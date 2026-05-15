@@ -1,6 +1,36 @@
-[gd_scene load_steps=2 format=3 uid="uid://cff5ag28s3u4b"]
+[gd_scene load_steps=6 format=3 uid="uid://cff5ag28s3u4b"]
 
 [ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_hbnr0"]
+[ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_yyjyw"]
+[ext_resource type="Shape3D" uid="uid://bmkey18lrpkej" path="res://resources/map.tres" id="5_cjm28"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/sentry.tscn" id="5_jewlw"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_8b2qo"]
+vertices = PackedVector3Array(149, 0.5, -149, -140.25, 0.5, -149, -141, 0.5, -148, -149, 0.5, 149, 149, 0.5, 149, -149, 0.5, -148)
+polygons = [PackedInt32Array(1, 0, 2), PackedInt32Array(2, 0, 4), PackedInt32Array(2, 4, 3), PackedInt32Array(3, 5, 2)]
+geometry_parsed_geometry_type = 1
+geometry_source_geometry_mode = 1
 
 [node name="Scenario" type="Node3D"]
 script = ExtResource("1_hbnr0")
+
+[node name="Unit" parent="." instance=ExtResource("5_jewlw")]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0)
+
+[node name="Unit2" parent="." instance=ExtResource("5_jewlw")]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 14.106335, 0, 0)
+
+[node name="Map" type="Node3D" parent="."]
+script = ExtResource("2_yyjyw")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_8b2qo")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion"]
+collision_layer = 16
+collision_mask = 16
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body"]
+shape = ExtResource("5_cjm28")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]

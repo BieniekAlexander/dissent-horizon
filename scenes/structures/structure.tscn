@@ -1,8 +1,13 @@
-[gd_scene load_steps=13 format=3 uid="uid://bnic4wpl31scb"]
+[gd_scene load_steps=18 format=3 uid="uid://bnic4wpl31scb"]
 
-[ext_resource type="Script" uid="uid://colf5fknqwc7b" path="res://scripts/entities/structures/structure.gd" id="1_37vmy"]
+[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_37vmy"]
 [ext_resource type="Texture2D" uid="uid://cgdrbpxqo62uf" path="res://assets/structure.png" id="2_ixuya"]
 [ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="3_l6d3i"]
+[ext_resource type="Script" path="res://scripts/entities/components/selectable.gd" id="4_slct0"]
+[ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="5_ownr0"]
+[ext_resource type="Script" path="res://scripts/entities/components/structure_command_context_provider.gd" id="6_ccpv0"]
+[ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="7_prod0"]
+[ext_resource type="Script" path="res://scripts/entities/components/resource_provider.gd" id="8_rspv0"]
 
 [sub_resource type="Gradient" id="Gradient_ulv2o"]
 offsets = PackedFloat32Array(0)
@@ -35,7 +40,7 @@ gradient = SubResource("Gradient_cdjbw")
 [sub_resource type="BoxShape3D" id="BoxShape3D_4vk4e"]
 size = Vector3(0.8, 1, 1.6)
 
-[node name="Structure" type="CharacterBody3D" groups=["commandable"]]
+[node name="Structure" type="CharacterBody3D" groups=["commandable", "structure"]]
 script = ExtResource("1_37vmy")
 type = -1
 
@@ -84,3 +89,20 @@ texture = ExtResource("3_l6d3i")
 
 [node name="Collider" type="CollisionShape3D" parent="."]
 shape = SubResource("BoxShape3D_4vk4e")
+
+[node name="Selectable" type="Node" parent="."]
+script = ExtResource("4_slct0")
+indicator_path = NodePath("../SelectionIndicator")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("5_ownr0")
+
+[node name="CommandContextProvider" type="Node" parent="."]
+script = ExtResource("6_ccpv0")
+
+[node name="Production" type="Node" parent="."]
+script = ExtResource("7_prod0")
+train_bar_path = NodePath("../TrainBar")
+
+[node name="ResourceProvider" type="Node" parent="."]
+script = ExtResource("8_rspv0")

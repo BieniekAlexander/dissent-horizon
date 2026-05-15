@@ -36,5 +36,6 @@ func _notification(what: int) -> void:
 		for c in get_children():
 			fit_child_in_rect(c, Rect2(Vector2(), size))
 			
-func set_some_setting():
-	queue_sort()
+# TODO: unused function
+#func set_some_setting():
+#	queue_sort()

@@ -1,6 +1,6 @@
 @tool
 class_name Anima
-extends Unit
+extends Commandable
 
 static var command_patterns_anima: Array[Pattern] = [
 	Pattern.new(func(a): return a[1].target is Star, PickUp),
@@ -11,8 +11,8 @@ static var command_patterns_anima: Array[Pattern] = [
 	), DropOff)
 ]
 
-static var anima_command_context: CommandContext = CommandContext.merge(
-	Commandable.get_command_context(),
+var anima_command_context: CommandContext = CommandContext.merge(
+	get_command_context(),
 	CommandContext.new(
 		command_patterns_anima,
 		{
@@ -26,5 +26,5 @@ static var anima_command_context: CommandContext = CommandContext.merge(
 	)
 )
 
-static func get_command_context() -> CommandContext:
+func get_command_context() -> CommandContext:
 	return anima_command_context

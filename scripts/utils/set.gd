@@ -75,24 +75,27 @@ func size() -> int:
 	return hash_set.keys().size()
 
 ## ARITHMETIC
-func union(other_set: Set) -> Set:
-	var ret: Set = Set.new(get_values())
-	ret.add_all(other_set.get_values())
-	return ret
+# TODO: unused function
+#func union(other_set: Set) -> Set:
+#	var ret: Set = Set.new(get_values())
+#	ret.add_all(other_set.get_values())
+#	return ret
 
-func intersection(other_set: Set) -> Set:
-	var ret: Set = Set.new()
-	
-	for v in get_values():
-		if other_set.contains(v):
-			ret.add(v)
-	
-	return ret
+# TODO: unused function
+#func intersection(other_set: Set) -> Set:
+#	var ret: Set = Set.new()
+#
+#	for v in get_values():
+#		if other_set.contains(v):
+#			ret.add(v)
+#
+#	return ret
 
-func difference(other_set: Set) -> Set:
-	var ret: Set = Set.new(get_values())
-	ret.remove_all(other_set.get_values())
-	return ret
+# TODO: unused function
+#func difference(other_set: Set) -> Set:
+#	var ret: Set = Set.new(get_values())
+#	ret.remove_all(other_set.get_values())
+#	return ret
 
 
 ## NODE

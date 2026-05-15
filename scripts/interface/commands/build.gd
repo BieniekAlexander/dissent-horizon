@@ -30,11 +30,12 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 
 func can_act(a_actor: Commandable) -> bool:
 	# TODO update this check such that the position is centered with respect to the build location
-	return SU.unit_is_close_to_cells(a_actor, build_cells)
+	push_error("Fix up")
+	return SU.linf_distance(VU.inXZ(a_actor.global_position), VU.inXZ(message.world_position))<1
 
 func fulfill_action(a_actor: Commandable) -> Variant:
-	var new_structure: Structure = message.tool.packed_scene.instantiate()
-	var hex_location: Vector2i = HU.world_to_evenq(VU.inXZ(message.world_position))
+	push_error("Account for position")
+	var new_structure: Commandable = message.tool.packed_scene.instantiate()
 	
 	new_structure.initialize(message.map, a_actor.commander)
 	#message.map.add_structure(new_structure, hex_location, 0)
@@ -50,7 +51,7 @@ func should_move(a_actor: Commandable) -> bool:
 ### NODE
 func _init(a_message: CommandMessage) -> void:
 	super(a_message)
-	build_cells = Structure.get_arrangement_cells(
+	build_cells = Commandable.get_arrangement_cells(
 		a_message.map,
 		VU.inXZ(a_message.position),
 		StructureSpec.structure_type_spec_map[a_message.tool.type].cube_grid_arrangement

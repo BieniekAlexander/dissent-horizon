@@ -43,12 +43,13 @@ var message: CommandMessage
 
 
 ### UTILS
-func _target_is_in_range(a_actor: Commandable, range: float) -> bool:
-	return SU.unit_is_close_to_target(
-		a_actor,
-		message.target,
-		range**2
-	)
+# TODO: unused function
+#func _target_is_in_range(a_actor: Commandable, range: float) -> bool:
+#	return SU.unit_is_close_to_target(
+#		a_actor,
+#		message.target,
+#		range**2
+#	)
 
 
 ### STATE UPDATES
@@ -73,23 +74,23 @@ func fulfill_action(a_commandable: Commandable) -> Variant:
 func _init(a_message: CommandMessage) -> void:
 	message = CommandMessage.deep_copy(a_message)
 
-static func load_command_from_dictionary(a_dictionary: Dictionary, map: Map) -> Command:
+static func load_command_from_dictionary(a_dictionary: Dictionary, a_map: Map) -> Command:
 	var command_class = {
 		"move": Command,
 		"attack_move": AttackMove,
 		"defend": Defend
 	}[a_dictionary["type"]]
 	
+	var pos: Vector3 = Vector3(a_dictionary["loc"][0], 10, a_dictionary["loc"][1])
 	var command = command_class.new(
 		CommandMessage.new(
-			map,
+			a_map,
 			null,
 			null,
-			map.evenq_grid[
-				int(a_dictionary["loc"][0])
-			][
-				int(a_dictionary["loc"][1])
-			].global_position	
+			a_map.get_navmesh_line_hit(
+				pos,
+				pos+10*Vector3.DOWN
+			)
 		)
 	)
 	return command

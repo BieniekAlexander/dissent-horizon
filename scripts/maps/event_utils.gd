@@ -20,7 +20,6 @@ static func render_event_config(a_event_config: Dictionary, a_frame: int) -> Var
 	a_event_config["timer"] = TimeUtils.get_frame_duration_from_time_spec(time_spec)+a_frame
 	time_spec["count"] -= 1
 	return a_event_config
-	
 
 static func load_entities_from_event(
 	a_event_config: Dictionary,
@@ -46,7 +45,7 @@ static func load_entities_from_event(
 				new_guys.append(new_guy)
 				a_map.add_entity(
 					new_guy,
-					HU.evenq_to_world(Vector2i(data["loc"][0], data["loc"][1])),
+					Vector2i(data["loc"][0], data["loc"][1]),
 					commander
 				)
 			

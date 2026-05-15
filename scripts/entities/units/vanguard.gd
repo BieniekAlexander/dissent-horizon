@@ -1,9 +1,9 @@
 @tool
 class_name Vanguard
-extends Unit
+extends Commandable
 
 ### COMMANDS
-static var vanguard_command_context: CommandContext = CommandContext.merge(
+var vanguard_command_context: CommandContext = CommandContext.merge(
 	CommandContext.new(
 		[
 			Pattern.new(
@@ -21,10 +21,10 @@ static var vanguard_command_context: CommandContext = CommandContext.merge(
 			)
 		}
 	),
-	Commandable.get_command_context()
+	get_command_context()
 )
 
-static func get_command_context() -> CommandContext:
+func get_command_context() -> CommandContext:
 	return vanguard_command_context
 
 
@@ -33,13 +33,13 @@ func _process(delta: float) -> void:
 	super(delta)
 	if Engine.is_editor_hint():
 		return
-		
+
 	if attack_timer > ATTACK_DURATION-5 and _command!=null:
 		$Lazer.global_position = global_position + .5*(_command.message.position-global_position) + Vector3.UP*.5
-		
+
 		# TODO get the 3D mesh to be aligned correctly - I can't get the mesh's major axis to be correct
 		$Lazer.rotation = Vector3(-VU.inXZ(_command.message.position-global_position).angle(), 0, deg_to_rad(90))
-		
+
 		$Lazer.scale.y = (_command.message.position-global_position).length()/2
 		$Lazer.set_visible(true)
 	else:
@@ -51,5 +51,7 @@ static var vanguard_weapon_patterns: Array[Pattern] = [
 	Pattern.new(func(e): return true, Weapon.new(null, null, Weapon.AttackType.LAZER))
 ]
 
-static func get_weapon_evaluation_patterns() -> Array:
+# Instance override now (the Commandable default became an instance method).
+# Returning vanguard's LAZER patterns regardless of group membership.
+func get_weapon_evaluation_patterns() -> Array:
 	return vanguard_weapon_patterns

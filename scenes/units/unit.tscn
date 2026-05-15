@@ -1,8 +1,12 @@
-[gd_scene load_steps=9 format=3 uid="uid://blcglpbttoi64"]
+[gd_scene load_steps=14 format=3 uid="uid://blcglpbttoi64"]
 
-[ext_resource type="Script" uid="uid://bwer68h35vhq" path="res://scripts/entities/units/unit.gd" id="2_3agr1"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="2_3agr1"]
 [ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="2_tefpw"]
 [ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="3_uy385"]
+[ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="4_slct0"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="5_ownr0"]
+[ext_resource type="Script" uid="uid://b0gn13d80smxd" path="res://scripts/entities/components/command_context_provider.gd" id="6_ccpv0"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="7_move0"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_hwjp0"]
 
@@ -20,11 +24,10 @@ colors = PackedColorArray(0.686275, 0, 0, 1)
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_cnvxh"]
 gradient = SubResource("Gradient_agsmt")
 
-[node name="Unit" type="CharacterBody3D" groups=["commandable"]]
+[sub_resource type="SphereShape3D" id="SphereShape3D_cx6aj"]
+
+[node name="Unit" type="CharacterBody3D" groups=["commandable", "unit"]]
 script = ExtResource("2_3agr1")
-AGGRO_RANGE = 1.0
-DAMAGE = 5.0
-type = -1
 
 [node name="NavigationAgent" type="NavigationAgent3D" parent="."]
 path_desired_distance = 0.5
@@ -34,7 +37,7 @@ avoidance_enabled = true
 neighbor_distance = 5.0
 max_neighbors = 5
 time_horizon_obstacles = 1.0
-max_speed = 3.0
+max_speed = 100.0
 avoidance_layers = 0
 avoidance_mask = 0
 debug_enabled = true
@@ -70,3 +73,21 @@ texture = ExtResource("3_uy385")
 [node name="Timer" type="Timer" parent="."]
 process_callback = 0
 one_shot = true
+
+[node name="Selectable" type="Area3D" parent="."]
+collision_layer = 256
+script = ExtResource("4_slct0")
+indicator_path = NodePath("../SelectionIndicator")
+
+[node name="SelectionShape" type="CollisionShape3D" parent="Selectable"]
+shape = SubResource("SphereShape3D_cx6aj")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("5_ownr0")
+
+[node name="CommandContextProvider" type="Node" parent="."]
+script = ExtResource("6_ccpv0")
+
+[node name="Movement" type="Node" parent="."]
+script = ExtResource("7_move0")
+nav_agent_path = NodePath("../NavigationAgent")

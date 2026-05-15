@@ -31,9 +31,19 @@ static func cursor_evaluator(a_selection: Array, a_command_type: Script, a_comma
 var cursor_target: Variant = Vector3.ZERO
 var mouse_position: Vector2 = Vector2.ZERO
 
-func get_cursor_target(a_mouse_position: Vector2) -> Entity:
-	var hex_coorinate: Vector2 = VU.inXZ(camera.get_mouse_world_position(mouse_position, .5))
-	return map.get_entity_at_position(hex_coorinate)
+func get_cursor_target(a_mouse_position: Vector2) -> Variant:
+	var ray_origin: Vector3 = camera.project_ray_origin(a_mouse_position)
+	var ray_end: Vector3 = ray_origin + camera.project_ray_normal(a_mouse_position) * 1000.0
+
+	var selection_hit = map.line_hit(ray_origin, ray_end, Map.CollisionMask.SELECTION)
+	if selection_hit and selection_hit['collider'] is Selectable:
+		return (selection_hit['collider'] as Selectable).get_entity()
+
+	var terrain_hit = map.line_hit(ray_origin, ray_end, Map.CollisionMask.TERRAIN)
+	if terrain_hit:
+		return terrain_hit['position']
+
+	return null
 
 
 ## CONTROL VARIABLES
@@ -62,8 +72,10 @@ func _ready():
 		add_child(selection_box)
 
 func _process(delta: float) -> void:
-	command_message.world_position = camera.get_mouse_world_position(mouse_position)
-	command_message.target = get_cursor_target(mouse_position)
+	var cursor_result: Variant = get_cursor_target(mouse_position)
+	command_message.target = cursor_result if cursor_result is Entity else null
+	command_message.world_position = cursor_result if cursor_result is Vector3 \
+		else camera.get_mouse_world_position(mouse_position)
 	
 	for i in range(selection.size()-1, -1, -1):
 		if not is_instance_valid(selection[i]):
@@ -152,79 +164,72 @@ func process_command(command_name: String) -> void:
 	upate_hud_buttons()
 
 func get_default_active_command_context(a_commandables: Array) -> CommandContext:
+	# Walk the selection and ask each entity's CommandContextProvider component
+	# for its contribution. Dedupe by entity script-type so we only invoke the
+	# provider once per type — providers of the same script return the same
+	# context, and this preserves the original perf characteristic.
 	a_commandables = a_commandables.filter(func(u): return is_instance_valid(u))
 	selected_unit_types.clear()
-	
-	for c: Commandable in a_commandables:
-		selected_unit_types.add(c.get_script())
-	
-	return selected_unit_types.map(
-		func(t): return t.get_command_context()
-	).reduce(
+
+	var seen_scripts: Dictionary = {}
+	var contexts: Array = []
+	for c in a_commandables:
+		var script = c.get_script()
+		if seen_scripts.has(script): continue
+		seen_scripts[script] = true
+		selected_unit_types.add(script)
+
+		var provider: CommandContextProvider = c.get_node_or_null("CommandContextProvider")
+		if provider == null: continue
+		var ctx: CommandContext = provider.get_context()
+		if ctx != null:
+			contexts.append(ctx)
+
+	return contexts.reduce(
 		func(a, b): return CommandContext.merge(a, b),
 		CommandContext.NULL
 	)
 
+## Return all Selectable nodes whose projected screen position falls within screen_rect.
+func query_box_collisions(screen_rect: Rect2) -> Array:
+	return get_tree().get_nodes_in_group("selectables").filter(
+		func(selectable: Selectable) -> bool:
+			return screen_rect.has_point(camera.unproject_position(selectable.global_position))
+	)
 
 ## SELECTION
 func deselect():
 	for c in selection:
 		if is_instance_valid(c):
-			c.set_deselected()
+			c.selectable.deselect()
 	selection = []
 	selected_unit_types = Set.new()
 
 func set_selection(selection_start_position: Vector2, selection_end_position: Vector2):
 	var drag_distance = abs(selection_start_position - selection_end_position)
 	if drag_distance < Vector2(10, 10):
-		set_selected_unit(selection_start_position)
+		pass # TODO
+		#set_selected_unit(selection_start_position)
 	else:
-		set_selected_units()
-
-func set_selected_unit(position: Vector2):
-	# TODO select the unit with something different from get_obstruction
-	# that method checks for a collider, but the sprite is generally bigger in screen space than the collider,
-	# and I probably want to check for sprite collision
-	var hex_coorinate: Vector2 = VU.inXZ(camera.get_mouse_world_position(position, .5))
-	var entity: Entity = map.get_entity_at_position(hex_coorinate)
-	
-	if entity != null and entity is Commandable:
-		selection.append(entity)
-		entity.set_selected()
+		for selectable: Selectable in query_box_collisions(Rect2(selection_start_position, selection_end_position - selection_start_position).abs()):
+			if selectable.select():
+				selection.append(selectable.get_parent())
 	
 	active_command_context = get_default_active_command_context(selection)
-
-func set_selected_units():
-	var selection_box_geometry: PackedVector2Array = [
-		selection_box.position,
-		selection_box.position + Vector2(selection_box.size.x, 0.0),
-		selection_box.position + selection_box.size,
-		selection_box.position + Vector2(0.0, selection_box.size.y)
-	]
-	
-	for c: Commandable in get_tree().get_nodes_in_group("commandable"):
-		# TODO collect units from spatial partitioning
-		if c.commander_id!=1: continue
-		var selected_screen_position = camera.unproject_position(c.global_position)
-		if Geometry2D.is_point_in_polygon(selected_screen_position, selection_box_geometry):
-			selection.append(c)
-			c.set_selected()
-	
-	active_command_context = get_default_active_command_context(selection)
-
 
 ## SETTING COMMANDS
-func cancel_command_for_units() -> void:
-	var selection = selection.filter(func(u): return is_instance_valid(u)) # TODO refactor so I dont have to do this smh
-	
-	if selection.size()==0:
-		return
-		
-	for c: Commandable in selection:
-		c.update_commands(
-			null,
-			false
-		)
+# TODO: unused function
+#func cancel_command_for_units() -> void:
+#	var selection = selection.filter(func(u): return is_instance_valid(u)) # TODO refactor so I dont have to do this smh
+#
+#	if selection.size()==0:
+#		return
+#
+#	for c: Commandable in selection:
+#		c.update_commands(
+#			null,
+#			false
+#		)
 
 func assign_command_to_units(
 	a_command_type: Script,

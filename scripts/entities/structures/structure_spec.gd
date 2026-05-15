@@ -1,22 +1,24 @@
 class_name StructureSpec
 
 var placement_checker: Callable
-var cube_grid_arrangement: Array
+
+## The size of the structure in tiles
+var dimensions: Vector2
 
 func _init(
 	a_placement_checker: Callable,
-	a_cube_grid_arrangement: Array
+	a_dimensions: Vector2i
 ) -> void:
 	placement_checker = a_placement_checker
-	cube_grid_arrangement = a_cube_grid_arrangement
+	dimensions = a_dimensions
 
 static var structure_type_spec_map: Dictionary[int, StructureSpec] = {
-	# NOTE: I tried to supply the Script as one of hte fields of the StructureSpec, but Godot couldn't interpret it, so I'm just passing the placement checking function
-	Entity.Type.UNDEFINED: StructureSpec.new(Structure.valid_placement, [Vector3i.ZERO]),
-	Entity.Type.STRUCTURE_MINE: StructureSpec.new(Mine.valid_placement, [Vector3i.ZERO]),
-	Entity.Type.STRUCTURE_DWELLING: StructureSpec.new(Structure.valid_placement, [Vector3i.ZERO]),
-	Entity.Type.STRUCTURE_OUTPOST: StructureSpec.new(Structure.valid_placement, [Vector3i.ZERO, Vector3i(-1,1,0), Vector3i(-1,0,1), Vector3i(0,-1,1), Vector3i(0,1,-1), Vector3i(1,0,-1), Vector3i(1,-1,0)]),
-	Entity.Type.STRUCTURE_LAB: StructureSpec.new(Structure.valid_placement, [Vector3i.ZERO, Vector3i(-1,1,0), Vector3i(-1,0,1)]),
-	Entity.Type.STRUCTURE_COMPOUND: StructureSpec.new(Structure.valid_placement, [Vector3i.ZERO, Vector3i(-1,1,0), Vector3i(-1,0,1)]),
-	Entity.Type.STRUCTURE_ARMORY: StructureSpec.new(Structure.valid_placement, [Vector3i.ZERO, Vector3i(-1,1,0), Vector3i(-1,0,1)])
+	# NOTE: I tried to supply the Script as one of the fields of the StructureSpec, but Godot couldn't interpret it, so I'm just passing the placement checking function
+	Entity.Type.UNDEFINED: StructureSpec.new(Commandable.valid_placement, Vector2i.ONE),
+	Entity.Type.STRUCTURE_MINE: StructureSpec.new(Mine.valid_placement, Vector2i.ONE),
+	Entity.Type.STRUCTURE_DWELLING: StructureSpec.new(Commandable.valid_placement, Vector2i.ONE),
+	Entity.Type.STRUCTURE_OUTPOST: StructureSpec.new(Commandable.valid_placement, Vector2i.ONE*3),
+	Entity.Type.STRUCTURE_LAB: StructureSpec.new(Commandable.valid_placement, Vector2i.ONE*2),
+	Entity.Type.STRUCTURE_COMPOUND: StructureSpec.new(Commandable.valid_placement, Vector2i.ONE*2),
+	Entity.Type.STRUCTURE_ARMORY: StructureSpec.new(Commandable.valid_placement, Vector2i.ONE*2)
 }

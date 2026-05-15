@@ -1,6 +1,6 @@
 @tool
 class_name Lab
-extends Structure
+extends Commandable
 
 ### RESOURCES
 static var TICK_RATE := 5*Engine.physics_ticks_per_second

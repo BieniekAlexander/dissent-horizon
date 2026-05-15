@@ -14,7 +14,7 @@ static func meets_precondition(
 ) -> PreconditionFailureCause:
 	return (
 		PreconditionFailureCause.NONE
-		if a_message.target is Structure and a_message.target.commander_id==0
+		if a_message.target is Commandable and a_message.target.is_in_group("structure") and a_message.target.commander_id==0
 		else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	)
 
@@ -28,7 +28,12 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		return self
 	else:
 		message.target.commander = a_actor.commander
-		a_actor.commander.population_max += message.target.population_provided
+		# Capture transfers ownership and credits the captor with the captured
+		# structure's population contribution. Read via the target's
+		# ResourceProvider component rather than a Structure-class property.
+		var provider: ResourceProvider = message.target.get_node_or_null("ResourceProvider") as ResourceProvider
+		if provider != null:
+			a_actor.commander.population_max += provider.population_provided
 		return null
 	
 

@@ -32,7 +32,7 @@ static func merge(a: CommandContext, b: CommandContext) -> CommandContext:
 		a.state_maping.merged(b.state_maping)
 	)
 
-func command_available(a_input_event: String, a_commandable: Commandable) -> bool:
+func command_available(a_input_event: String, a_commandable: Entity) -> bool:
 	# returns whether a given input event would be applicable in this command context
 	return state_maping.has(a_input_event) or evaluator.any(
 		func(p: Pattern): return p.result.tool_applies_to(a_input_event, a_commandable.type)

@@ -22,8 +22,9 @@ script = ExtResource("1_imw3m")
 id = 1
 
 [node name="Camera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 14.229, 5)
+transform = Transform3D(1, 0, 0, 0, -0.7071067, 0.7071067, 0, -0.7071067, -0.7071067, 0, 250, 250)
 projection = 1
+current = true
 size = 20.0
 far = 500.0
 script = ExtResource("2_omyur")
@@ -42,7 +43,7 @@ offset_right = 260.0
 offset_bottom = 85.0
 text = "	ore: 500
 	population: 0/0
-	dominion: 300"
+	dominion: 0"
 
 [node name="CommandsView" type="GridContainer" parent="Controller"]
 custom_minimum_size = Vector2(60, 40)
@@ -70,6 +71,7 @@ horizontal_alignment = 2
 
 [node name="Fog" type="MeshInstance3D" parent="."]
 transform = Transform3D(80, 0, 0, 0, 1, 0, 0, 0, 80, 0, 0.5, 0)
+visible = false
 mesh = SubResource("PlaneMesh_qcjp1")
 surface_material_override/0 = SubResource("ShaderMaterial_2xwjn")
 script = ExtResource("4_b3a3y")

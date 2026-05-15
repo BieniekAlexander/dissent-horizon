@@ -1,276 +1,205 @@
-@tool
 class_name Map
 extends Node3D
 
 
-### SPACE THINGS
-#### HEX GRID
-var evenq_grid: Dictionary = {}
-var structure_cell_map: Dictionary = {}
-const TILE_WIDTH = HexCell.TILE_SIZE*2.0
-const TILE_HORIZ = TILE_WIDTH * .75
-const TILE_HEIGHT = TILE_WIDTH * sqrt(3)/2.0
+enum CollisionMask {
+	UNITS = 1 << 0,
+	TERRAIN = 1 << 4,
+	SELECTION = 1 << 8
+}
 
-func parse_grid_coordinates(coords: Vector2i) -> Vector2i:
-	return Vector2i(
-		coords.x if coords.x>=0 else evenq_grid_width-coords.x,
-		coords.y if coords.y>=0 else evenq_grid_height-coords.y
-	)
+### SPACE THINGS
+
+#### TERRAIN
+## CollisionShape3D whose .shape is the HeightMapShape3D that defines the
+## terrain surface.  Set in the scene inspector.
+@onready var terrain_collision: CollisionShape3D = $NavigationRegion/Body/Shape
+
+## StaticBody3D that owns terrain_collision.  Its global_transform is used by
+## TerrainGrid/NavManager to convert grid positions to world space.
+@onready var terrain_body: StaticBody3D = $NavigationRegion/Body
+
+## World-space side length of one terrain cell.  Must match the scene's
+## terrain_body.scale.x (assuming uniform XZ scale).
+@export var cell_size: float = 10.0
+
+@onready var nav_region: NavigationRegion3D = $NavigationRegion
+
+#### GRID
+var cell_grid: Array = []
+
+# Populated by TerrainGrid/NavManager on _ready; used by Commandable.map_cells.
+var structure_cell_map: Dictionary = {}  # Commandable -> Array[Vector2i]
+
+var terrain_grid: TerrainGrid
+var nav_manager: NavManager
+
+
+# --- Coordinate helpers ----------------------------------------------------
+
+## Convert a grid cell (integer indices) to the world XZ centre of that cell.
+## Y is taken from the terrain surface at the cell centre corner; for flat
+## maps with uniform height this is the actual surface Y.
+func grid_to_world(cell: Vector2i) -> Vector3:
+	var hs: HeightMapShape3D = terrain_grid.height_shape()
+	var tb   := terrain_grid.terrain_body
+	var hw   := (hs.map_width  - 1) * 0.5
+	var hd   := (hs.map_depth  - 1) * 0.5
+	# Cell centre is at the average of its four corners in local space.
+	var cx   := cell.x + 0.5
+	var cz   := cell.y + 0.5
+	# Bilinear-sample the four surrounding corners for a smoother Y.
+	var h00  := hs.map_data[cell.y       * hs.map_width + cell.x    ]
+	var h10  := hs.map_data[cell.y       * hs.map_width + cell.x + 1]
+	var h11  := hs.map_data[(cell.y + 1) * hs.map_width + cell.x + 1]
+	var h01  := hs.map_data[(cell.y + 1) * hs.map_width + cell.x    ]
+	var h_center := (h00 + h10 + h11 + h01) * 0.25
+	var local_pos := Vector3(cx - hw, h_center, cz - hd)
+	return tb.global_transform * local_pos
+
+## Convert a world XZ position to the nearest grid cell indices.
+func world_to_grid(world_xz: Vector2) -> Vector2i:
+	return Vector2i(world_xz / cell_size)
+
+
+# --- Map bounds ------------------------------------------------------------
+
+## Returns [low: Vector2, high: Vector2] in grid-cell index space.
+## Compatible with the legacy call shape used by fog.gd.
+func get_min_max() -> Array:
+	var bounds := terrain_grid.get_bounds()
+	return [Vector2(bounds[0]), Vector2(bounds[1])]
+
+
+# --- Entity placement ------------------------------------------------------
 
 ## Add a game [Entity] to the map, allowing the [Map] to govern it in the game world
 func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -> void:
 	a_entity.initialize(self, a_commander)
-	
-	if a_entity is Structure:
-		var loc: Vector2i = Vector2i(HU.world_to_evenq(a_location))
-		add_structure(a_entity, loc, 0, false)
+
+	if a_entity is Commandable and a_entity.is_in_group("structure"):
+		add_structure(a_entity, a_location, 0, false)
 	else:
 		a_entity.global_position = VU.fromXZ(
 			SU.get_nonoverlapping_points(
 				self,
 				a_location,
 				a_entity.collision_radius,
+				get_world_3d(),
+				CollisionMask.UNITS,
+				1,
 				5.
 			)[0]
-		)+.5*Vector3.UP
-	
-	reassign_entity_in_spatial_partition(a_entity)
+		) + .5 * Vector3.UP
 
-func add_structure(a_structure: Structure, evenq_location: Vector2i, rotation: int, rebake: bool = true) -> void:
-	var cells: Set = Set.new()
-	a_structure.global_position = VU.fromXZ(HU.evenq_to_world(evenq_location))
-	var x_locs = []; var z_locs = []
-	
-	for location: Vector2i in HU.get_evenq_neighbor_coordinates(
-		evenq_location,
-		a_structure.cube_grid_arrangement
-	):
-		var cell: HexCell = evenq_grid[location.x][location.y]
-		cell.set_occupied(a_structure)
-		cells.add(cell)
-		x_locs.append(cell.xz_position.x)
-		z_locs.append(cell.xz_position.y)
-		
-		if a_structure is Mine:
-			cell.set_deposit()
-			# TODO not a good spot for this - but I'm looking to guarantee that,
-			# if the game adds a mine somewhere, it forces the tile to have ore
-	
-	# TODO maybe find better solution - guarantee that the structure's position
-	# is in the center of the cells that it's occupying
-	a_structure.global_position.x = AU.mean(x_locs)
-	a_structure.global_position.z = AU.mean(z_locs)
-	
-	structure_cell_map[a_structure] = cells
+
+func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: int, _rebake: bool = true) -> void:
+	a_structure.global_position = grid_to_world(grid_location)
+
+	var footprint: Array[Vector2i] = []
+	for w in range(a_structure.width):
+		for l in range(a_structure.length):
+			var cell := Vector2i(grid_location.x + w, grid_location.y + l)
+			cell_grid[cell.x][cell.y] = a_structure
+			footprint.append(cell)
+
+	structure_cell_map[a_structure] = footprint
+	terrain_grid.place_building(footprint, a_structure)
+	# TODO guarantee structure is centered on its cells
 	a_structure.map = self
-	
-	if rebake:
-		nav_region.bake_navigation_mesh()
 
-func remove_structure(a_structure: Structure, rebake: bool = true) -> void:
-	var cells: Set = structure_cell_map[a_structure]
+
+func remove_structure(a_structure: Commandable, _rebake: bool = true) -> void:
+	var cells: Array = terrain_grid.get_building_cells(a_structure)
+	for cell: Vector2i in cells:
+		cell_grid[cell.x][cell.y] = null
+	terrain_grid.remove_building(a_structure)
 	structure_cell_map.erase(a_structure)
-	
-	for cell: HexCell in cells.get_values():
-		cell.unset_occupied()
-	
-	if rebake:
-		nav_region.bake_navigation_mesh()
 
-#### UNIT LOCATION AND NAVIGATION
-var evenq_grid_width:
-	get: return evenq_grid.size()
-var evenq_grid_height:
-	get: return evenq_grid[0].size()
 
-@onready var nav_region: NavigationRegion3D = load("res://scenes/navigation_region.tscn").instantiate()
-static var SPATIAL_PARTITION_CELL_RADIUS: float = 5.
-var spatial_partition_grid: Array
+# --- Spatial queries -------------------------------------------------------
 
-func grid_coordinates_in_bounds(evenq_grid_coordinates: Vector2i) -> bool:
-	return (
-		evenq_grid_coordinates.x>=0
-		and evenq_grid_coordinates.x<evenq_grid_width
-		and evenq_grid_coordinates.y>=0
-		and evenq_grid_coordinates.y<evenq_grid_height
-	)
+func get_nearby_entities(a_position: Vector3, a_radius: float) -> Array:
+	var params: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
+	params.transform.origin = a_position
+	params.shape = SphereShape3D.new()
+	params.shape.radius = a_radius
+	params.collision_mask = CollisionMask.UNITS
 
-func get_map_cell(point: Vector2) -> HexCell:
-	var index: Vector2i = HU.world_to_evenq(point)
-	
-	if evenq_grid.has(index.x):
-		if evenq_grid[index.x].has(index.y):
-			return evenq_grid[index.x][index.y]
-			
-	return null
+	return get_world_3d().direct_space_state.intersect_shape(params, 10).map(
+		func(d): return d['collider']
+	)  # up to 10 hits
 
-func get_map_spatial_partition_index(point: Vector2) -> Vector2i:
-	return Vector2i(
-		floori((point.x)/SPATIAL_PARTITION_CELL_RADIUS),
-		floori((point.y)/SPATIAL_PARTITION_CELL_RADIUS)
-	)
 
-func get_nearby_entities(xz_position: Vector2, radius: float) -> Array:
-	var ret: Set = Set.new()
-	
-	for coordinates: Vector2i in get_nearby_spatial_partitions(xz_position, radius).get_values():
-		for e: Entity in spatial_partition_grid[coordinates.x][coordinates.y].get_values():
-			if (xz_position-e.xz_position).length_squared() < radius*radius:
-				ret.add(e)
-	
-	return ret.get_values()
+# Returns the first point on the navmesh along a line, or Vector3.INF if none.
+# from and to are Vector3, nav_map is a RID from a NavigationRegion3D.
+func get_navmesh_line_hit(
+	from: Vector3,
+	to: Vector3,
+	max_step: float = 0.5
+) -> Vector3:
+	var nav := NavigationServer3D
 
-func get_nearby_spatial_partitions(xz_position: Vector2, radius: float) -> Set:
-	var ret: Set = Set.new()
-	var top_left: Vector2i = get_map_spatial_partition_index(xz_position-Vector2.ONE*radius)
-	var bot_right: Vector2i = get_map_spatial_partition_index(xz_position+Vector2.ONE*radius)
-	
-	for i in range(top_left.x, bot_right.x+1):
-		for j in range(top_left.y, bot_right.y+1):
-			if i>=0 and i<spatial_partition_grid.size() and j>=0 and j<spatial_partition_grid[0].size():
-				ret.add(Vector2i(i, j))
-	
-	return ret
+	var dir := to - from
+	var length := dir.length()
+	if length == 0.0:
+		return Vector3.INF
+	dir /= length
 
-func reassign_entity_in_spatial_partition(a_entity: Entity) -> void:
-	var partition_coordinates_set = get_nearby_spatial_partitions(
-		VU.inXZ(a_entity.global_position),
-		a_entity.collision_radius
-	)
-	
-	assert(partition_coordinates_set.size()>0, "Entity is nowhere in spatial partitioning")
-	var new_coords_set: Set = partition_coordinates_set.difference(a_entity.pc_set)
-	var old_coords_set: Set = a_entity.pc_set.difference(partition_coordinates_set)
-	
-	for partition_coords: Vector2i in old_coords_set.get_values():
-		spatial_partition_grid[partition_coords.x][partition_coords.y].remove(a_entity)
-		
-	for partition_coords: Vector2i in new_coords_set.get_values():
-		spatial_partition_grid[partition_coords.x][partition_coords.y].add(a_entity)
-	
-	a_entity.pc_set = partition_coordinates_set
+	var t := 0.0
+	while t <= length:
+		var p := from + dir * t
+		var nav_p := nav.map_get_closest_point(nav_region.get_navigation_map(), p)
 
-func reassign_entities_in_spatial_partition(entities: Array, force: bool = false) -> void:
-	# NOTE: to be called each physics tick, after units have moved
-	for e: Entity in entities:
-		if e.spatial_partition_dirty or force:
-			reassign_entity_in_spatial_partition(e)
-			e.spatial_partition_dirty = false
+		if nav_p.distance_to(p) < 0.1: return nav_p
+		t += max_step
 
-func get_entities_at_spatial_partition(partition_index: Vector2i) -> Set:
-	if (
-		partition_index.x<0 or partition_index.x>=spatial_partition_grid.size()
-		or partition_index.y<0 or partition_index.y>=spatial_partition_grid[0].size()
-	):
-		return Set.Empty
-	else:
-		return spatial_partition_grid[partition_index.x][partition_index.y]
-
-func get_entities_near_point(xz_position: Vector2) -> Set:
-	## Returns units "near" the indicated point, as interpreted from the spatial partitioning
-	return get_entities_at_spatial_partition(
-		get_map_spatial_partition_index(xz_position)
-	)
+	return Vector3.INF
 
 
 ### MOVEMENT AND COLLISION
 var units: Array:
-	get: return get_tree().get_nodes_in_group("commandable").filter(func(c: Commandable): return c is Unit)
+	get: return get_tree().get_nodes_in_group("commandable").filter(func(c: Commandable): return c.is_in_group("unit"))
 
-func get_entity_at_position(xz_position: Vector2) -> Entity:
-	var potential_entities: Set = get_entities_near_point(xz_position)
-	
-	for e: Entity in potential_entities.get_values():
-		if CU.point_in_collider_2d(xz_position, e.collider):
-			return e
-	
-	return null
+## returns a dictionary describing what a line hit in space
+func line_hit(from: Vector3, to: Vector3, layer_mask: int) -> Variant:
+	var space_state := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(from, to, layer_mask)
+	query.collide_with_bodies = true
+	query.collide_with_areas = true
 
+	var result: Dictionary = space_state.intersect_ray(query)
+	return null if result.is_empty() else result
 
-### NODE
-func load_grid(a_grid_config: Array):
-	assert(a_grid_config.size()>0)
-	
-	evenq_grid = {}
-	var grid_height: int = a_grid_config[0].size()
-	var grid_width: int = (
-		a_grid_config.size()
-		if a_grid_config[-1].size()!=0
-		else a_grid_config.size()-1
+# Returns whether `coords` is within the cell_grid bounds.
+func grid_coordinates_in_bounds(coords: Vector2i) -> bool:
+	return (
+		coords.x >= 0 and coords.x < cell_grid.size()
+		and coords.y >= 0 and coords.y < (cell_grid[0].size() if not cell_grid.is_empty() else 0)
 	)
-	
-	spatial_partition_grid = range(ceili(grid_width*TILE_WIDTH)/SPATIAL_PARTITION_CELL_RADIUS+1).map(
-		func(_row): return range(ceili(grid_height*TILE_HEIGHT)/SPATIAL_PARTITION_CELL_RADIUS+1).map(
-			func(_col): return Set.new()
-		)
-	)
-	
-	for x in range(grid_height):
-		evenq_grid[x] = {}
-		for y in range(grid_width):
-			var next_terrain: HexCell = HexCell.instantiate(a_grid_config[y][x])
-			nav_region.add_child(next_terrain)
-			next_terrain.initialize(self, VU.fromXZ(HU.evenq_to_world(Vector2i(x, y))))
-			evenq_grid[x][y] = next_terrain
-			if next_terrain.structure!=null:
-				add_structure(next_terrain.structure, Vector2i(x, y), 0, false)
-				reassign_entity_in_spatial_partition(next_terrain.structure)
 
-@export var grid_config: Array
 
+#region Node
 func _ready() -> void:
-	add_child(nav_region)
-	nav_region.set_owner(self)
-	load_grid(grid_config)
+	assert(terrain_collision != null, "Map: terrain_collision export must be set in the scene")
+	assert(terrain_body      != null, "Map: terrain_body export must be set in the scene")
 
+	terrain_grid = TerrainGrid.new()
+	terrain_grid.terrain_collision = terrain_collision
+	terrain_grid.terrain_body      = terrain_body
+	terrain_grid.cell_size         = cell_size
+	add_child(terrain_grid)
 
-### EDITOR
-func _purge() -> void:
-	if nav_region!=null:
-		nav_region.queue_free()
+	# Initialize cell_grid from heightmap dimensions.
+	cell_grid = []
+	for x in range(terrain_grid.grid_width()):
+		var inner := []
+		for _z in range(terrain_grid.grid_depth()):
+			inner.append(null)
+		cell_grid.append(inner)
 
-@export_category("Debug")
-static func from_config(
-	a_grid_config: Array
-) -> Map:
-	var ret_map := Map.new()
-	ret_map.grid_config = a_grid_config
-	return ret_map
-
-func load_config(
-	a_config: Array
-) -> void:
-	grid_config = a_config
-
-@export var grid_config_path: String = ""
-@export var load_from_file: bool = true:
-	set(value):
-		grid_config = FSU.get_data_from_csv_file(grid_config_path)
-		_purge()
-		_ready()
-
-@export var export: bool = true:
-	set(value):
-		var rows: Array[String] = []
-		
-		for i in evenq_grid:
-			var row_str = ""
-			for j in evenq_grid[i]:
-				row_str += evenq_grid[i][j].get_config()+","
-			
-			row_str = row_str.trim_suffix(",")
-			rows.append(row_str)
-		
-		var file = FileAccess.open(grid_config_path, FileAccess.WRITE_READ)
-		
-		for row_str: String in rows:
-			file.store_line(row_str)
-		
-		file.close()
-
-@export var time_rebake: bool = true:
-	set(value):
-		var start_time = Time.get_unix_time_from_system()
-		nav_region.bake_navigation_mesh()
-		var end_time = Time.get_unix_time_from_system()
-		push_error(end_time-start_time)
+	nav_manager = NavManager.new()
+	nav_manager.navigation_region = nav_region
+	nav_manager.terrain_grid      = terrain_grid
+	add_child(nav_manager)
+#endregion

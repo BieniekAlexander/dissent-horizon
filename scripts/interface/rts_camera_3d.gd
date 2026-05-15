@@ -12,9 +12,10 @@ var move_reference_position: Vector2
 @export var rotate_left_action: String = "isometric_camera_rotate_left"
 @export var rotate_right_action: String = "isometric_camera_rotate_right"
 
-func center_on_position(position: Vector3) -> void:
-	# TODO offset camera position based on height - because the camera is angled, the camera won't be pointing at the entity
-	global_position = global_position.y*Vector3.UP + VU.onXZ(position)
+# TODO: unused function
+#func center_on_position(position: Vector3) -> void:
+#	# TODO offset camera position based on height - because the camera is angled, the camera won't be pointing at the entity
+#	global_position = global_position.y*Vector3.UP + VU.onXZ(position)
 
 ### ZOOM
 @export_category("Zoom")
@@ -92,7 +93,6 @@ func get_mouse_world_position(screen_position: Vector2, height: float = 0) -> Ve
 	
 	var depth = (camera_point_alt - height) * sqrt(2)
 	return project_position(screen_position, depth)
-
 
 
 ### NODE

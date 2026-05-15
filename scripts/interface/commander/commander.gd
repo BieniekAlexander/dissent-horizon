@@ -6,7 +6,7 @@ extends Node
 @export_range(0, 5) var id: int
 
 ### CONTROLS
-@onready var selection: Array[Unit] = []
+@onready var selection: Array[Commandable] = []
 @onready var click_screen_pos: Vector2 = Vector2.ZERO
 
 ### RESOURCES
@@ -56,19 +56,20 @@ func proc_technology() -> void:
 #### STRUCTURES
 @onready var structure_type_map: Dictionary
 
-func add_structure(a_structure: Structure) -> void:
+func add_structure(a_structure: Commandable) -> void:
 	structure_type_map[a_structure.type].add(a_structure)
 	proc_technology()
 
-func remove_structure(a_structure: Structure) -> void:
+func remove_structure(a_structure: Commandable) -> void:
 	structure_type_map[a_structure.type].remove(a_structure)
 	proc_technology()
 
 #### UNITS
-func get_commandables():
-	return get_tree().get_nodes_in_group("commandable").filter(
-		func(u): return u.commander == self
-	)
+# TODO: unused function
+#func get_commandables():
+#	return get_tree().get_nodes_in_group("commandable").filter(
+#		func(u): return u.commander == self
+#	)
 
 ### NODE
 func _ready() -> void:
