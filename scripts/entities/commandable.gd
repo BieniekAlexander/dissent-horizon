@@ -169,7 +169,6 @@ func _process(_delta: float) -> void:
 
 	# Movement-driven sprite facing + animation frames. Was Unit._process.
 	if movement != null and sprite != null:
-		visible = true
 		if velocity.x > 0:
 			sprite.flip_h = true
 		elif velocity.x < 0:

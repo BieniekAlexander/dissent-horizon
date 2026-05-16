@@ -71,7 +71,7 @@ const TEAM_COLOR_MAP: Dictionary = {
 
 
 ### VISION
-@export_range(0, 100) var sight_range: int = 20
+@onready var vision_range_shape: CollisionShape3D = get_node_or_null("VisionRange")
 
 ### PHYSICAL STATS
 enum LocomotionMode { GROUNDED, FLYING }

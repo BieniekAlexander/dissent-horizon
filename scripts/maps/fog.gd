@@ -1,97 +1,115 @@
 extends MeshInstance3D
 
+const POINTS_PER_UNIT: float = 2.0
+const PLAYER_COMMANDER_ID: int = 0
+# L8 byte value for "explored but not currently visible" (alpha ≈ 0.2)
+const EXPLORED_ALPHA: int = 51
 
-### SHADER
-## The set of values representing whether an area of the fog mesh should be drawn
-## The number of shader points representing the width of 1 distance unit of space
-const points_per_unit: float = 2
-var center: Vector2
-var fog_texture: PortableCompressedTexture2D
-var fog_image: Image
+var _img_width: int
+var _img_height: int
+var _center: Vector2
+var _world_half_w: float  # actual world half-extent in X
+var _world_half_d: float  # actual world half-extent in Z
+var _explored_bytes: PackedByteArray  # 255 = never seen, EXPLORED_ALPHA = seen before
+var _fog_bytes: PackedByteArray       # display buffer, rebuilt each frame from _explored_bytes
+var _fog_image: Image
+var _fog_texture: ImageTexture
+var _sight_disc_cache: Dictionary  # int radius_px -> Array[Vector2i]
 
-var vision_range_index_map: Dictionary
 
-func world_to_image(world_position: Vector2) -> Vector2i:
+func _world_to_pixel(world_xz: Vector2) -> Vector2i:
 	return Vector2i(
-		round((world_position.x-center.x+scale.x/2)*points_per_unit),
-		round((world_position.y-center.y+scale.z/2)*points_per_unit)
+		int(round((world_xz.x - _center.x + _world_half_w) * POINTS_PER_UNIT)),
+		int(round((world_xz.y - _center.y + _world_half_d) * POINTS_PER_UNIT))
 	)
 
-# TODO: unused function
-#func image_to_world(image_coordinate: Vector2i) -> Vector2:
-#	return Vector2(
-#		image_coordinate.x/points_per_unit-scale.x/2 + center.x,
-#		image_coordinate.y/points_per_unit-scale.z/2 + center.y
-#	)
+
+func _sight_disc(radius_px: int) -> Array:
+	if _sight_disc_cache.has(radius_px):
+		return _sight_disc_cache[radius_px]
+	var disc: Array[Vector2i] = []
+	var r2 := radius_px * radius_px
+	for dx in range(-radius_px, radius_px + 1):
+		for dy in range(-radius_px, radius_px + 1):
+			if dx * dx + dy * dy <= r2:
+				disc.append(Vector2i(dx, dy))
+	_sight_disc_cache[radius_px] = disc
+	return disc
 
 
-### NODE
 func _physics_process(_delta: float) -> void:
-	# https://forum.godotengine.org/t/how-to-create-texture-from-fog_image-in-editorscript/52267/2 
-	#visible = not Input.is_action_pressed("debug_hide_fog")
-	visible = false
-	#
-	#for x in range(fog_image.get_width()):
-		#for y in range(fog_image.get_height()):
-			#if fog_image.get_pixelv(Vector2i(x, y))!=Color.WHITE:
-				#fog_image.set_pixelv(Vector2i(x, y), Color.GRAY)
-	#
-	#for entity: Entity in get_tree().get_nodes_in_group("entity"):
-		#if entity.commander_id!=1 and entity is not Star: continue # TODO hardcoding for now - find some method of identifying the ID of the player
-		#var entity_location: Vector2i = world_to_image(VU.inXZ(entity.global_position))
-		#
-		#for index in vision_range_index_map[int(entity.sight_range*points_per_unit)]:
-			#var offset: Vector2i = entity_location+index
-			#if offset.x>0 and offset.x<fog_image.get_width() and offset.y>0 and offset.y<fog_image.get_height():
-				#fog_image.set_pixelv(offset, Color.BLACK)
-	#
-	#fog_texture = PortableCompressedTexture2D.new()
-	#fog_texture.create_from_image(fog_image, PortableCompressedTexture2D.COMPRESSION_MODE_LOSSLESS)
-	
-	# hide units that aren't covered by fog
-	#for entity: Entity in get_tree().get_nodes_in_group("entity"):
-	#	if entity is Unit:
-	#		if fog_image.get_pixelv(world_to_image(VU.inXZ(entity.global_position)))!=Color.BLACK:
-	#			entity.visible = false
-	#		else:
-	#			entity.visible = true
+	if _fog_texture == null:
+		return
+	visible = not Input.is_action_pressed("debug_hide_fog")
+	if not visible:
+		return
 
-func _process(_delta: float) -> void:
-	get_active_material(0).set_shader_parameter("fog_texture", fog_texture)
+	_fog_bytes = _explored_bytes.duplicate()
+
+	for entity: Entity in get_tree().get_nodes_in_group("entity"):
+		if entity.commander_id != PLAYER_COMMANDER_ID:
+			continue
+		if entity.vision_range_shape == null:
+			continue
+		var pixel := _world_to_pixel(VU.inXZ(entity.global_position))
+		var vision_shape := entity.vision_range_shape
+		var world_radius := (vision_shape.shape as CylinderShape3D).radius \
+			* vision_shape.global_transform.basis.x.length()
+		var radius_px := int(world_radius * POINTS_PER_UNIT)
+		for offset: Vector2i in _sight_disc(radius_px):
+			var px := pixel.x + offset.x
+			var py := pixel.y + offset.y
+			if px >= 0 and px < _img_width and py >= 0 and py < _img_height:
+				var idx := py * _img_width + px
+				_fog_bytes[idx] = 0
+				_explored_bytes[idx] = EXPLORED_ALPHA
+
+	_fog_image = Image.create_from_data(_img_width, _img_height, false, Image.FORMAT_L8, _fog_bytes)
+	_fog_texture.update(_fog_image)
+
+	for entity: Entity in get_tree().get_nodes_in_group("entity"):
+		if entity.commander_id == PLAYER_COMMANDER_ID:
+			continue
+		var pixel := _world_to_pixel(VU.inXZ(entity.global_position))
+		var in_bounds := pixel.x >= 0 and pixel.x < _img_width and pixel.y >= 0 and pixel.y < _img_height
+		entity.visible = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
+
 
 func _ready() -> void:
-	# set size
+	call_deferred(&"_initialize")
+
+
+func _initialize() -> void:
 	var map: Map = get_tree().current_scene.find_child("Map")
-	# TODO hacking the scale to cover map with fog - seems wrong with the added constants,
-	# but I'm not sure why the fog reveal seems to wrap around the bottom of the map
-	var min_max = map.get_min_max()
-	var width: int = min_max[1].x-min_max[0].x
-	var length: int = min_max[1].y-min_max[0].y
-	scale.x = float((width + 5) * map.cell_size)
-	scale.z = float((length + 5) * map.cell_size)
-	# set position
-	global_position = Vector3(scale.x, 0, scale.z)/2
-	center = VU.inXZ(global_position)
-	# setup shader
-	get_active_material(0).set_shader_parameter("mesh_scale", scale)
-	get_active_material(0).set_shader_parameter("points_per_unit", points_per_unit)
-	# set up fog image
-	fog_image = Image.create(
-		scale.x*points_per_unit,
-		scale.z*points_per_unit,
-		false,
-		Image.FORMAT_L8
-	)
-	
-	fog_image.fill(Color.WHITE)
-	# precalculate fog range index offsets
-	vision_range_index_map = {}
-	for r in range(1, 50):
-		var arr: Array = []
-		for x in range(-r,r+1):
-			for y in range(-r,r+1):
-				arr.append(Vector2i(x, y))
-		
-		vision_range_index_map[r] = arr.filter(
-			func(index: Vector2i): return index.length_squared()<r**2
-		)
+	var hs: HeightMapShape3D = map.terrain_grid.height_shape()
+	var tb: StaticBody3D = map.terrain_body
+
+	# HeightMapShape3D with map_width W covers local X -(W-1)/2 .. +(W-1)/2.
+	# With terrain_body scale, world half-extents are (W-1)/2 * cell_size.
+	var half_w := (hs.map_width - 1) * 0.5 * map.cell_size
+	var half_d := (hs.map_depth - 1) * 0.5 * map.cell_size
+	var margin := map.cell_size
+
+	# Desired world half-extents for the fog plane.
+	_world_half_w = half_w + margin
+	_world_half_d = half_d + margin
+
+	# PlaneMesh local vertices span ±(size/2) in XZ; node scale multiplies that.
+	# We want world half-extent = _world_half_w, so node_scale = _world_half_w / mesh_half.
+	var plane_mesh := mesh as PlaneMesh
+	scale.x = _world_half_w / (plane_mesh.size.x * 0.5)
+	scale.z = _world_half_d / (plane_mesh.size.y * 0.5)
+
+	global_position = Vector3(tb.global_position.x, 1.0, tb.global_position.z)
+	_center = VU.inXZ(global_position)
+
+	_img_width = int(_world_half_w * 2.0 * POINTS_PER_UNIT)
+	_img_height = int(_world_half_d * 2.0 * POINTS_PER_UNIT)
+
+	_explored_bytes = PackedByteArray()
+	_explored_bytes.resize(_img_width * _img_height)
+	_explored_bytes.fill(255)
+
+	_fog_image = Image.create_from_data(_img_width, _img_height, false, Image.FORMAT_L8, _explored_bytes)
+	_fog_texture = ImageTexture.create_from_image(_fog_image)
+	get_active_material(0).set_shader_parameter("fog_texture", _fog_texture)

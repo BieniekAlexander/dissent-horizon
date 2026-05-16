@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://blcglpbttoi64"]
+[gd_scene load_steps=17 format=3 uid="uid://blcglpbttoi64"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="2_3agr1"]
 [ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="2_tefpw"]
@@ -33,6 +33,10 @@ radius = 5.0
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_aggro0"]
 height = 100.0
 radius = 4.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_visn0"]
+height = 100.0
+radius = 6.0
 
 [node name="Unit" type="CharacterBody3D" groups=["commandable", "unit"]]
 script = ExtResource("2_3agr1")
@@ -107,4 +111,8 @@ debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
 [node name="AggroRange" type="CollisionShape3D" parent="."]
 shape = SubResource("CylinderShape3D_aggro0")
+disabled = true
+
+[node name="VisionRange" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_visn0")
 disabled = true
