@@ -3,3 +3,5 @@ res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scripts/shaders/fog.gdshader
 res://scripts/entities/tools/tool.gd
+res://scripts/maps/fog.gd
+res://scenes/scenarios/s1.tscn

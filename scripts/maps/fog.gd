@@ -1,8 +1,8 @@
 extends MeshInstance3D
 
-const POINTS_PER_UNIT: float = 2.0
+var POINTS_PER_UNIT: float = 2.0
 # L8 byte value for "explored but not currently visible" (alpha ≈ 0.2)
-const EXPLORED_ALPHA: int = 51
+const EXPLORED_ALPHA: int = 127
 
 var _img_width: int
 var _img_height: int
@@ -85,6 +85,8 @@ func _initialize() -> void:
 
 	# HeightMapShape3D with map_width W covers local X -(W-1)/2 .. +(W-1)/2.
 	# With terrain_body scale, world half-extents are (W-1)/2 * cell_size.
+	POINTS_PER_UNIT = 1.0 / map.cell_size
+
 	var half_w := (hs.map_width - 1) * 0.5 * map.cell_size
 	var half_d := (hs.map_depth - 1) * 0.5 * map.cell_size
 	var margin := map.cell_size

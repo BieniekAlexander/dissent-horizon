@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://cff5ag28s3u4b"]
+[gd_scene load_steps=7 format=3 uid="uid://cff5ag28s3u4b"]
 
 [ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_hbnr0"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_yyjyw"]
+[ext_resource type="PackedScene" uid="uid://d23qg30wikg14" path="res://scenes/units/vanguard.tscn" id="3_jewlw"]
 [ext_resource type="Shape3D" uid="uid://bmkey18lrpkej" path="res://resources/map.tres" id="5_cjm28"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/sentry.tscn" id="5_jewlw"]
 
@@ -14,19 +15,21 @@ geometry_source_geometry_mode = 1
 [node name="Scenario" type="Node3D"]
 script = ExtResource("1_hbnr0")
 
-[node name="Unit" parent="." instance=ExtResource("5_jewlw")]
+[node name="Unit1_1" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 18.154703, 0, -6.8444824)
 default_commander_id = 1
 
-[node name="Unit2" parent="." instance=ExtResource("5_jewlw")]
+[node name="Unit1_2" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 17.989946, 0, 0)
 default_commander_id = 1
 
-[node name="Unit3" parent="." instance=ExtResource("5_jewlw")]
+[node name="Unit1_3" parent="." instance=ExtResource("3_jewlw")]
+
+[node name="Unit2_1" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -18.799295, 0, -3.2128906)
 default_commander_id = 2
 
-[node name="Unit4" parent="." instance=ExtResource("5_jewlw")]
+[node name="Unit2_2" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -18.964052, 0, 3.6315918)
 default_commander_id = 2
 
