@@ -18,7 +18,7 @@ var damage: float = 5
 func _physics_process(delta: float) -> void:
 	# TODO revisit this collision check
 	if velocity.y<0 and global_position.y <= origin.y:
-		var bodies: Array = map.get_nearby_entities(global_position, .1)
+		var bodies: Array = SU.get_nearby_entities(get_world_3d(), global_position, .1, Map.CollisionMask.UNITS)
 		
 		for body: Entity in AU.sort_on_key(
 			func(b): return VU.inXZ(global_position).distance_squared_to(VU.inXZ(b.global_position)),

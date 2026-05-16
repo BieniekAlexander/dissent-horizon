@@ -8,8 +8,8 @@ var frame: int = 0
 @onready var commanders: Array = range(3).map(
 	func(o):
 		var c = (
-			load("res://scenes/player.tscn").instantiate()
-			if o == 1
+			load("res://scenes/player.tscn").instantiate() if o == 1
+			else Bot.new() if o >= 2
 			else Commander.new()
 		)
 		c.id = o

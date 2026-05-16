@@ -1,9 +1,13 @@
 class_name AttackMove
 extends Command
 ### STATE UPDATES
-func get_updated_state(a_actor: Commandable):
-	var aggro_command: Command = a_actor.get_aggro_near_position(a_actor.global_position, a_actor.ATTACK_RANGE)
-	return [aggro_command, self] if aggro_command!=null else self
+func get_updated_state(a_actor: Commandable) -> Command:
+	var aggro_command: Command = a_actor.get_aggro_near_position()
+	# Return the aggro command directly (not wrapped in an array). The
+	# update_commands(cmd, add_to_queue=true, prepend=true) path in
+	# CommandReceiver already pushes the current AttackMove back to the front
+	# of the queue, so wrapping self here would duplicate it.
+	return aggro_command if aggro_command != null else self
 
 
 ## DEBUG

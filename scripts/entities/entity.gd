@@ -9,6 +9,11 @@ extends CharacterBody3D
 # I need to enumerate because I can't peek into packed scenes
 @export var type: Type
 
+## Inspector shortcut: set the in-game commander index for this entity.
+## Entities placed in the editor use this to auto-initialize at run time;
+## entities spawned by the scenario ignore it (initialize() is called explicitly).
+@export_range(0, 5) var default_commander_id: int = 0
+
 enum Type {
 	# 3 - Faction {0: generic, 1: tech}
 	# 2 - Type {0: entity, 1: unit, 2: structure}
@@ -82,7 +87,6 @@ var attributes: Set
 @onready var inventory: Array[Entity] = []
 @onready var inventory_capacity: int = 1
 
-@export var AGGRO_RANGE: float = 5
 @export var DAMAGE: float = 10
 @export var ATTACK_RANGE: float = 0
 @export var ATTACK_DURATION: int = 10
@@ -98,7 +102,14 @@ var xz_position: Vector2:
 
 var map: Map
 var pc_set: Set = Set.new()
-@onready var collider: CollisionShape3D = get_node_or_null("Collider")
+@onready var collider: CollisionShape3D = get_node_or_null("Body")
+@onready var attack_range_shape: CollisionShape3D = get_node_or_null("AttackRange")
+@onready var aggro_range_shape: CollisionShape3D = get_node_or_null("AggroRange")
+
+## Override in unit scripts to return different shapes based on the target's
+## properties (e.g. LocomotionMode) when multiple attack types are needed.
+func _get_attack_range_shape(_target: Entity) -> CollisionShape3D:
+	return attack_range_shape
 
 # TODO: unused function
 #func get_collision_extents() -> Array[Vector2]:
@@ -119,7 +130,7 @@ var pc_set: Set = Set.new()
 
 var collision_radius: float:
 	get:
-		var shape = $Collider.shape
+		var shape = $Body.shape
 		if shape is SphereShape3D: return shape.radius
 		elif shape is BoxShape3D: return max(shape.size.x, shape.size.z)
 		else:
@@ -139,9 +150,41 @@ func _ready() -> void:
 			ownership.commander = _commander
 			_commander = null
 	_apply_team_tint()
+	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,
+	# so we self-initialize from default_commander_id after all _ready() calls
+	# have run (ensuring Scenario._ready() has already created the commanders).
+	if map == null and not Engine.is_editor_hint():
+		call_deferred(&"_auto_initialize")
 
-func _on_commander_changed(_old_commander: Commander, _new_commander: Commander) -> void:
+## Finds the Map and the Commander matching default_commander_id in the scene
+## tree and calls initialize() on this entity. Only runs when map is still null
+## (i.e. the entity was placed directly in the scene rather than spawned by
+## the Scenario loader).
+func _auto_initialize() -> void:
+	if map != null:
+		return
+	var scene_root := get_tree().current_scene
+	var found_map := scene_root.find_child("Map", true, false) as Map
+	if found_map == null:
+		push_warning("%s: auto-init skipped — no Map node in scene" % name)
+		return
+	var found_commander: Commander = null
+	for node in scene_root.find_children("*", "", true, false):
+		if node is Commander and (node as Commander).id == default_commander_id:
+			found_commander = node
+			break
+	if found_commander == null:
+		push_warning("%s: auto-init skipped — no Commander with id=%d" % [name, default_commander_id])
+		return
+	initialize(found_map, found_commander)
+
+func _on_commander_changed(_old_commander: Commander, new_commander: Commander) -> void:
 	_apply_team_tint()
+	# Keep the scene tree organised: entities live as children of their commander.
+	# Reparent only when already in the tree; add_child in initialize() covers
+	# the not-yet-in-tree case.
+	if new_commander != null and is_inside_tree() and get_parent() != new_commander:
+		reparent(new_commander, true)
 
 func _apply_team_tint() -> void:
 	# Previously this lived inline in the commander setter, which meant the
@@ -155,7 +198,11 @@ func _apply_team_tint() -> void:
 func initialize(a_map: Map, a_commander: Commander):
 	map = a_map
 	commander = a_commander
-	commander.add_child(self)
+	# If not yet in the tree (standard scenario-spawn path), add as a child of
+	# the commander now. If already in the tree (auto-initialize from scene
+	# placement), _on_commander_changed handles reparenting via the signal.
+	if not is_inside_tree():
+		a_commander.add_child(self)
 
 func _on_death() -> void:
 	for coords: Vector2i in pc_set.get_values():

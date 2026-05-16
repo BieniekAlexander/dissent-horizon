@@ -15,7 +15,7 @@ sight_range = 3
 transform = Transform3D(10, 0, 0, 0, 7.07107, 7.07107, 0, -7.07107, 7.07107, 0, 0, 0)
 texture = ExtResource("2_svr3l")
 
-[node name="Collider" type="CollisionShape3D" parent="."]
+[node name="Body" type="CollisionShape3D" parent="."]
 shape = SubResource("SphereShape3D_dw0la")
 
 [node name="NavigationObstacle3D" type="NavigationObstacle3D" parent="."]

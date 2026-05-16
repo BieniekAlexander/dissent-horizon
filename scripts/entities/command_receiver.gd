@@ -81,7 +81,6 @@ func _process_commands() -> void:
 			update_commands(new_commands, true, true)
 	elif owner.movement != null and _command.should_move(owner):
 		if owner.movement.target_position != _command.message.position:
-			print("%s -> %s" % [owner.global_position, _command.message.position])
 			load_destination(_command)
 			#owner._stop_timer.start()
 

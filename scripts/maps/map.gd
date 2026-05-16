@@ -19,11 +19,11 @@ enum CollisionMask {
 ## TerrainGrid/NavManager to convert grid positions to world space.
 @onready var terrain_body: StaticBody3D = $NavigationRegion/Body
 
-## World-space side length of one terrain cell.  Must match the scene's
-## terrain_body.scale.x (assuming uniform XZ scale).
-@export var cell_size: float = 10.0
 
 @onready var nav_region: NavigationRegion3D = $NavigationRegion
+
+## World-space side length of one terrain cell
+@onready var cell_size: float = terrain_body.scale.x
 
 #### GRID
 var cell_grid: Array = []
@@ -116,19 +116,6 @@ func remove_structure(a_structure: Commandable, _rebake: bool = true) -> void:
 	terrain_grid.remove_building(a_structure)
 	structure_cell_map.erase(a_structure)
 
-
-# --- Spatial queries -------------------------------------------------------
-
-func get_nearby_entities(a_position: Vector3, a_radius: float) -> Array:
-	var params: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
-	params.transform.origin = a_position
-	params.shape = SphereShape3D.new()
-	params.shape.radius = a_radius
-	params.collision_mask = CollisionMask.UNITS
-
-	return get_world_3d().direct_space_state.intersect_shape(params, 10).map(
-		func(d): return d['collider']
-	)  # up to 10 hits
 
 
 # Returns the first point on the navmesh along a line, or Vector3.INF if none.

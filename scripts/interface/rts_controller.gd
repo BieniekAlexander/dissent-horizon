@@ -22,7 +22,7 @@ static func cursor_evaluator(a_selection: Array, a_command_type: Script, a_comma
 			return selection_cursor
 		else:
 			return free_cursor
-	elif a_command_type==Attack:
+	elif a_command_type==Attack or a_command_type==AttackMove:
 		return attack_cursor
 	else:
 		return unknown_cursor
@@ -47,6 +47,10 @@ func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 
 
 ## CONTROL VARIABLES
+# TODO: replace with a reference to the active player's Commander once
+# multi-player / hot-seat support is needed. Hardcoded per user request.
+const PLAYER_COMMANDER_ID: int = 0
+
 @export var selection_box: ColorRect = ColorRect.new()
 @onready var command_message: CommandMessage = CommandMessage.new(map)
 @onready var next_command_additive: bool = false
@@ -73,21 +77,22 @@ func _ready():
 
 func _process(delta: float) -> void:
 	var cursor_result: Variant = get_cursor_target(mouse_position)
+	cursor_target = cursor_result
 	command_message.target = cursor_result if cursor_result is Entity else null
 	command_message.world_position = cursor_result if cursor_result is Vector3 \
 		else camera.get_mouse_world_position(mouse_position)
-	
+
 	for i in range(selection.size()-1, -1, -1):
 		if not is_instance_valid(selection[i]):
 			selection.remove_at(i)
-	
+
 	current_command_type = active_command_context.evaluate_command(
 		selection[0],
 		command_message
 	) if !selection.is_empty() else null
-	
+
 	if current_command_type==null:
-		Input.set_custom_mouse_cursor(free_cursor)
+		Input.set_custom_mouse_cursor(selection_cursor if cursor_result is Entity else free_cursor)
 	else:
 		var check: Command.PreconditionFailureCause = current_command_type.meets_precondition(selection[0] if !selection.is_empty() else null, command_message)
 		$CommandErrorMessage.text = Command.precondition_message_map[check]
@@ -208,13 +213,17 @@ func deselect():
 func set_selection(selection_start_position: Vector2, selection_end_position: Vector2):
 	var drag_distance = abs(selection_start_position - selection_end_position)
 	if drag_distance < Vector2(10, 10):
-		pass # TODO
-		#set_selected_unit(selection_start_position)
+		var click_target = get_cursor_target(selection_start_position)
+		if click_target is Entity and (click_target as Entity).commander_id == PLAYER_COMMANDER_ID:
+			if (click_target as Entity).selectable.select():
+				selection.append(click_target)
 	else:
 		for selectable: Selectable in query_box_collisions(Rect2(selection_start_position, selection_end_position - selection_start_position).abs()):
-			if selectable.select():
-				selection.append(selectable.get_parent())
-	
+			var entity := selectable.get_entity()
+			if entity != null and entity.commander_id == PLAYER_COMMANDER_ID:
+				if selectable.select():
+					selection.append(entity)
+
 	active_command_context = get_default_active_command_context(selection)
 
 ## SETTING COMMANDS

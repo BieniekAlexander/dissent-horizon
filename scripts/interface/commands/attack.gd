@@ -31,17 +31,17 @@ static func _target_attackable(a_message: CommandMessage) -> bool:
 ### STATE UPDATES
 func get_updated_state(a_actor: Commandable):
 	## Potentially return a new command based on a state check
-	return null if hash(message.target)==hash(null) else self
+	return null if not is_instance_valid(message.target) else self
 
 func should_move(a_actor: Commandable) -> bool:
-	return not (_target_attackable(message) and SU.unit_is_close_to_target(a_actor, message.target, a_actor.ATTACK_RANGE**2))
+	return not (_target_attackable(message) and SU.is_in_attack_range(a_actor, message.target))
 
 func can_act(a_actor: Commandable) -> bool:
 	return (
 		a_actor.attack_timer<=0
 		and _target_attackable(message)
 		and message.target!=a_actor
-		and SU.unit_is_close_to_target(a_actor, message.target, a_actor.ATTACK_RANGE**2)
+		and SU.is_in_attack_range(a_actor, message.target)
 	)
 
 func fulfill_action(a_actor: Commandable) -> Variant:

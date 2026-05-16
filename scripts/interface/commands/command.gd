@@ -54,7 +54,7 @@ var message: CommandMessage
 
 ### STATE UPDATES
 ## Potentially return a new command based on a state check
-func get_updated_state(a_commandable: Commandable):
+func get_updated_state(a_commandable: Commandable) -> Command:
 	return self
 
 ## Check if the [Commandable] should move in response to the command

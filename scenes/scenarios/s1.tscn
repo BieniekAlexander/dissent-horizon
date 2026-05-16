@@ -15,10 +15,18 @@ geometry_source_geometry_mode = 1
 script = ExtResource("1_hbnr0")
 
 [node name="Unit" parent="." instance=ExtResource("5_jewlw")]
-transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0)
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 21.394268, 0, -6.8444824)
 
 [node name="Unit2" parent="." instance=ExtResource("5_jewlw")]
-transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 14.106335, 0, 0)
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 21.229511, 0, 0)
+
+[node name="Unit3" parent="." instance=ExtResource("5_jewlw")]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -18.799295, 0, -3.2128906)
+default_commander_id = 1
+
+[node name="Unit4" parent="." instance=ExtResource("5_jewlw")]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -18.964052, 0, 3.6315918)
+default_commander_id = 1
 
 [node name="Map" type="Node3D" parent="."]
 script = ExtResource("2_yyjyw")
@@ -27,10 +35,9 @@ script = ExtResource("2_yyjyw")
 navigation_mesh = SubResource("NavigationMesh_8b2qo")
 
 [node name="Body" type="StaticBody3D" parent="Map/NavigationRegion"]
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 0, 0, 0)
 collision_layer = 16
 collision_mask = 16
 
 [node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body"]
 shape = ExtResource("5_cjm28")
-
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]

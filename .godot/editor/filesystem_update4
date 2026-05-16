@@ -12,3 +12,17 @@ res://resources/map.tres
 res://scenes/units/sentry.tscn
 res://scripts/entities/components/selectable.gd
 res://scripts/interface/rts_controller.gd
+res://scripts/entities/hit_box.gd
+res://scripts/entities/tools/projectile.gd
+res://scripts/utils/space_utils.gd
+res://scripts/entities/command_receiver.gd
+res://scripts/scenario.gd
+res://scenes/units/unit.tscn
+res://scripts/interface/commands/attack.gd
+res://scripts/entities/entity.gd
+res://scenes/projectiles/radiation.tscn
+res://scenes/structures/structure.tscn
+res://scripts/interface/commands/attack_move.gd
+res://scripts/interface/commands/command.gd
+res://scripts/interface/commands/defend.gd
+res://scenes/player.tscn

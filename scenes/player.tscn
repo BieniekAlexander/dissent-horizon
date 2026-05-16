@@ -22,10 +22,10 @@ script = ExtResource("1_imw3m")
 id = 1
 
 [node name="Camera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -0.7071067, 0.7071067, 0, -0.7071067, -0.7071067, 0, 250, 250)
+transform = Transform3D(1, 0, 0, 0, -0.7071067, 0.7071067, 0, -0.7071067, -0.7071067, 0, 10, 10)
 projection = 1
 current = true
-size = 20.0
+size = 50.0
 far = 500.0
 script = ExtResource("2_omyur")
 

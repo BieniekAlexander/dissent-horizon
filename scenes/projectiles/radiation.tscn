@@ -15,5 +15,5 @@ transform = Transform3D(100, 0, 0, 0, 70.7107, 70.7107, 0, -70.7107, 70.7107, 0,
 render_priority = 5
 texture = ExtResource("2_3mb8d")
 
-[node name="Collider" type="CollisionShape3D" parent="."]
+[node name="Body" type="CollisionShape3D" parent="."]
 shape = SubResource("SphereShape3D_5vyqb")

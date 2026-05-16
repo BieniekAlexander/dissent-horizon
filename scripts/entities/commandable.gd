@@ -96,24 +96,25 @@ static var empty_patterns: Array[Pattern] = []
 func get_weapon_evaluation_patterns() -> Array:
 	return unit_weapon_patterns if is_in_group("unit") else empty_patterns
 
-func get_aggro_near_position(a_position: Vector3, a_range: float) -> Command:
+func get_aggro_near_position() -> Command:
+	if aggro_range_shape == null:
+		return null
 	var weapon_patterns: Array = get_weapon_evaluation_patterns()
-	var entities = map.get_nearby_entities(a_position, a_range)
-	var commandables = entities.filter(func(e: Entity): return e is Commandable)
-	commandables = AU.sort_on_key(
-		func(e: Entity): return a_position.distance_squared_to(e.global_position),
-		commandables.filter(
-			func(e: Entity): return Pattern.eval(weapon_patterns, e) != null
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = aggro_range_shape.shape
+	params.transform = aggro_range_shape.global_transform
+	params.collision_mask = Map.CollisionMask.UNITS
+	params.exclude = [self]
+	var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 10)
+	var commandables: Array = AU.sort_on_key(
+		func(c: Commandable): return global_position.distance_squared_to(c.global_position),
+		hits.map(func(r): return r["collider"]).filter(
+			func(e): return e is Commandable and Pattern.eval(weapon_patterns, e) != null
 		)
 	)
-
 	for c: Commandable in commandables:
-		if (
-			c.commander_id > 0 and c.commander_id != commander_id
-			and (global_position - c.global_position).length_squared() < pow(a_range, 2)
-		):
+		if c.commander_id > 0 and c.commander_id != commander_id:
 			return Attack.new(CommandMessage.new(map, c, null))
-
 	return null
 
 func get_command_context() -> CommandContext:
@@ -133,15 +134,24 @@ func _ready() -> void:
 		if commander:
 			movement.set_avoidance_team(commander.id)
 
+func _on_commander_changed(old_commander: Commander, new_commander: Commander) -> void:
+	super(old_commander, new_commander)
+	if not is_in_group("structure"):
+		return
+	if old_commander != null:
+		old_commander.remove_structure(self)
+		if resource_provider != null:
+			resource_provider.remove_from(old_commander)
+	if new_commander != null:
+		new_commander.add_structure(self)
+		if resource_provider != null:
+			resource_provider.apply_to(new_commander)
+
 func initialize(a_map: Map, a_commander: Commander):
 	super(a_map, a_commander)
 	command_receiver.initialize(self)
-
-	# Structure-flavored lifecycle hooks.
-	if is_in_group("structure"):
-		a_commander.add_structure(self)
-		if resource_provider != null:
-			resource_provider.apply_to(commander)
+	# Structure registration is handled by _on_commander_changed, which fires
+	# from Entity._ready() when Ownership migrates the pre-tree _commander value.
 
 func receive_damage(attacker: Commandable, amount: float) -> void:
 	command_receiver.receive_damage(attacker, amount)
@@ -154,7 +164,8 @@ func _process(_delta: float) -> void:
 	$HPBar.visible = hp < hpMax or selectable.is_selected()
 	if hpBarFill.visible:
 		hpBarFill.scale.x = hp / hpMax
-		hpBarFill.position.x = -scale.x * (1 - hpBarFill.scale.x)
+		var half_w := hpBarFill.texture.get_width() * hpBarFill.pixel_size / 2.0
+		hpBarFill.position.x = -half_w * (1.0 - hpBarFill.scale.x)
 
 	# Movement-driven sprite facing + animation frames. Was Unit._process.
 	if movement != null and sprite != null:
@@ -191,7 +202,8 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 			for i in range(c):
 				var collision_collider = get_slide_collision(i).get_collider()
 				if collision_collider is Commandable and collision_collider.is_in_group("unit") and collision_collider._command == null:
-					_command = null
+					if not (_command is Attack and _command.message.target == collision_collider):
+						_command = null
 
 func _update_state() -> void:
 	if hp <= 0:

@@ -5,9 +5,34 @@ class_name SU
 
 static var rng = RandomNumberGenerator.new()
 
+static func get_nearby_entities(world_3d: World3D, a_position: Vector3, a_radius: float, collision_mask: int) -> Array:
+	var shape := SphereShape3D.new()
+	shape.radius = a_radius
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = shape
+	params.transform.origin = a_position
+	params.collision_mask = collision_mask
+	return world_3d.direct_space_state.intersect_shape(params, 10).map(
+		func(d): return d['collider']
+	)
+
 static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 	var diff = (pos1 - pos2).abs()
 	return max(diff.x, diff.y)
+
+## Tests whether the attacker's AttackRange shape overlaps the target's physics
+## body. Shape selection is delegated to _get_attack_range_shape so unit scripts
+## can swap in a different shape per target (e.g. flying vs grounded attack types).
+static func is_in_attack_range(attacker: Entity, target: Entity) -> bool:
+	var range_shape: CollisionShape3D = attacker._get_attack_range_shape(target)
+	if range_shape == null:
+		return false
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = range_shape.shape
+	params.transform = range_shape.global_transform
+	params.exclude = [attacker]
+	var results: Array = attacker.get_world_3d().direct_space_state.intersect_shape(params)
+	return results.any(func(r: Dictionary) -> bool: return r["collider"] == target)
 
 static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, distance_squared: float = .001) -> bool:
 	if a_target is Commandable and a_target.is_in_group("structure"):
