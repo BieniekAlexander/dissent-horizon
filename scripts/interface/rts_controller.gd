@@ -49,7 +49,7 @@ func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 ## CONTROL VARIABLES
 # TODO: replace with a reference to the active player's Commander once
 # multi-player / hot-seat support is needed. Hardcoded per user request.
-const PLAYER_COMMANDER_ID: int = 0
+const PLAYER_COMMANDER_ID: int = 1
 
 @export var selection_box: ColorRect = ColorRect.new()
 @onready var command_message: CommandMessage = CommandMessage.new(map)

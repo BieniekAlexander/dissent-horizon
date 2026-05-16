@@ -8,7 +8,7 @@
 [ext_resource type="Script" uid="uid://b0gn13d80smxd" path="res://scripts/entities/components/command_context_provider.gd" id="6_ccpv0"]
 [ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="7_move0"]
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_hwjp0"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
 
 [sub_resource type="Gradient" id="Gradient_clwnv"]
 offsets = PackedFloat32Array(0)
@@ -36,7 +36,7 @@ radius = 4.0
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_visn0"]
 height = 100.0
-radius = 6.0
+radius = 7.0
 
 [node name="Unit" type="CharacterBody3D" groups=["commandable", "unit"]]
 script = ExtResource("2_3agr1")
@@ -55,7 +55,7 @@ avoidance_mask = 0
 debug_enabled = true
 
 [node name="Body" type="CollisionShape3D" parent="."]
-shape = SubResource("SphereShape3D_hwjp0")
+shape = SubResource("CylinderShape3D_fe0lq")
 
 [node name="Sprite" type="Sprite3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0, 0)

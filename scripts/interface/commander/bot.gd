@@ -222,7 +222,7 @@ func get_enemies_near(position: Vector3, radius: float) -> Array:
 	return SU.get_nearby_entities(
 		map.get_world_3d(), position, radius, Map.CollisionMask.UNITS
 	).filter(
-		func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0
+		func(e): return e is Commandable and e.commander_id != id
 	)
 
 

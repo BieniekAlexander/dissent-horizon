@@ -1,7 +1,6 @@
 extends MeshInstance3D
 
 const POINTS_PER_UNIT: float = 2.0
-const PLAYER_COMMANDER_ID: int = 0
 # L8 byte value for "explored but not currently visible" (alpha ≈ 0.2)
 const EXPLORED_ALPHA: int = 51
 
@@ -47,7 +46,7 @@ func _physics_process(_delta: float) -> void:
 	_fog_bytes = _explored_bytes.duplicate()
 
 	for entity: Entity in get_tree().get_nodes_in_group("entity"):
-		if entity.commander_id != PLAYER_COMMANDER_ID:
+		if entity.commander_id != RTSController.PLAYER_COMMANDER_ID:
 			continue
 		if entity.vision_range_shape == null:
 			continue
@@ -68,7 +67,7 @@ func _physics_process(_delta: float) -> void:
 	_fog_texture.update(_fog_image)
 
 	for entity: Entity in get_tree().get_nodes_in_group("entity"):
-		if entity.commander_id == PLAYER_COMMANDER_ID:
+		if entity.commander_id == RTSController.PLAYER_COMMANDER_ID:
 			continue
 		var pixel := _world_to_pixel(VU.inXZ(entity.global_position))
 		var in_bounds := pixel.x >= 0 and pixel.x < _img_width and pixel.y >= 0 and pixel.y < _img_height

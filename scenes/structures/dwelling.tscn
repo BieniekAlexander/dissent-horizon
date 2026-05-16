@@ -4,13 +4,12 @@
 [ext_resource type="Texture2D" uid="uid://cpcl7027uxe1r" path="res://assets/greyscale-tree.png" id="2_lt302"]
 
 [node name="Structure" instance=ExtResource("1_q1wtf")]
-movement = 1
-ATTACK_DURATION = 0
 type = 4609
+ATTACK_DURATION = 0
 
 [node name="Sprite" parent="." index="1"]
 transform = Transform3D(0.322959, 0, 0, 0, 1, 0, 0, 0, 0.248468, 0, 0, 0)
 texture = ExtResource("2_lt302")
 
-[node name="ResourceProvider" parent="."]
+[node name="ResourceProvider" parent="." index="10"]
 population_provided = 100

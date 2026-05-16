@@ -47,6 +47,14 @@ func initialize(a_owner: Entity) -> void:
 	_command_queue = []
 	_fallback_command = Command.new(CommandMessage.new(owner.map, owner, null))
 
+func has_pending_work() -> bool:
+	return _command != null or not _command_queue.is_empty()
+
+## True when the unit has no user-set command — either genuinely idle or only
+## running the fallback placeholder. Queued commands count as non-idle.
+func is_idle() -> bool:
+	return _command_queue.is_empty() and (_command == null or is_same(_command, _fallback_command))
+
 func receive_damage(attacker: Commandable, amount: float) -> void:
 	owner.hp -= amount
 

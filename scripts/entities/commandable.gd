@@ -155,6 +155,28 @@ func initialize(a_map: Map, a_commander: Commander):
 
 func receive_damage(attacker: Commandable, amount: float) -> void:
 	command_receiver.receive_damage(attacker, amount)
+	if hp > 0 and command_receiver.is_idle() and attacker != null:
+		var attack_cmd := _get_vision_range_attack(attacker)
+		if attack_cmd != null:
+			update_commands(attack_cmd)
+
+## Returns an Attack command targeting `attacker` if it is within VisionRange and
+## is a valid enemy, otherwise null.
+func _get_vision_range_attack(attacker: Commandable) -> Command:
+	if vision_range_shape == null:
+		return null
+	if attacker.commander_id == 0 or attacker.commander_id == commander_id:
+		return null
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = vision_range_shape.shape
+	params.transform = vision_range_shape.global_transform
+	params.collision_mask = Map.CollisionMask.UNITS
+	params.exclude = [self]
+	var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
+	for hit in hits:
+		if hit["collider"] == attacker:
+			return Attack.new(CommandMessage.new(map, attacker, null))
+	return null
 
 func _process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
@@ -211,6 +233,11 @@ func _update_state() -> void:
 
 	if attack_timer > 0:
 		attack_timer -= 1
+
+	if command_receiver.is_idle():
+		var aggro_cmd := get_aggro_near_position()
+		if aggro_cmd != null:
+			update_commands(aggro_cmd)
 
 	command_receiver._update_state()
 

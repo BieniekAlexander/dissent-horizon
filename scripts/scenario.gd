@@ -5,11 +5,11 @@ extends Node3D
 
 ### GAME STATE
 var frame: int = 0
-@onready var commanders: Array = range(3).map(
+@onready var commanders: Array = range(1, 3).map(
 	func(o):
 		var c = (
-			load("res://scenes/player.tscn").instantiate() if o == 1
-			else Bot.new() if o >= 2
+			load("res://scenes/player.tscn").instantiate() if o == RTSController.PLAYER_COMMANDER_ID
+			else Bot.new() if o > RTSController.PLAYER_COMMANDER_ID
 			else Commander.new()
 		)
 		c.id = o
