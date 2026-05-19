@@ -27,4 +27,4 @@ var commander: Commander:
 		commander_changed.emit(old, value)
 
 var commander_id: int:
-	get: return _commander.id if _commander != null else 0
+	get: return _commander.id

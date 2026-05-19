@@ -13,11 +13,6 @@ func _make_ownership() -> Ownership:
 ## A fake Commander so we don't have to instantiate the real Commander node
 ## tree (which pulls in technology trees, resources, etc.) just to verify
 ## Ownership's contract. Ownership only reads `id` off the commander.
-class FakeCommander:
-	extends Node
-	var id: int = 0
-	func _init(commander_id: int = 0) -> void:
-		id = commander_id
 
 func test_default_commander_is_null():
 	var o := _make_ownership()
@@ -29,7 +24,8 @@ func test_commander_id_is_zero_when_unowned():
 
 func test_setting_commander_updates_commander_id():
 	var o := _make_ownership()
-	var c := FakeCommander.new(3)
+	var c := Commander.new()
+	c.id = 3
 	o.commander = c
 	assert_eq(o.commander, c)
 	assert_eq(o.commander_id, 3)
@@ -37,7 +33,8 @@ func test_setting_commander_updates_commander_id():
 
 func test_commander_changed_emits_with_old_and_new():
 	var o := _make_ownership()
-	var c := FakeCommander.new(1)
+	var c := Commander.new()
+	c.id = 1
 	watch_signals(o)
 	o.commander = c
 	assert_signal_emitted_with_parameters(o, "commander_changed", [null, c])
@@ -45,7 +42,8 @@ func test_commander_changed_emits_with_old_and_new():
 
 func test_setting_same_commander_is_a_noop():
 	var o := _make_ownership()
-	var c := FakeCommander.new(2)
+	var c := Commander.new()
+	c.id = 2
 	o.commander = c
 	watch_signals(o)
 	o.commander = c  # same instance
@@ -54,8 +52,10 @@ func test_setting_same_commander_is_a_noop():
 
 func test_changing_commander_emits_with_previous_value_as_old():
 	var o := _make_ownership()
-	var c1 := FakeCommander.new(1)
-	var c2 := FakeCommander.new(2)
+	var c1 := Commander.new()
+	c1.id = 1
+	var c2 := Commander.new()
+	c2.id = 2
 	o.commander = c1
 	watch_signals(o)
 	o.commander = c2
@@ -65,7 +65,8 @@ func test_changing_commander_emits_with_previous_value_as_old():
 
 func test_clearing_commander_emits_signal():
 	var o := _make_ownership()
-	var c := FakeCommander.new(4)
+	var c := Commander.new()
+	c.id = 4
 	o.commander = c
 	watch_signals(o)
 	o.commander = null

@@ -169,20 +169,19 @@ func process_command(command_name: String) -> void:
 	upate_hud_buttons()
 
 func get_default_active_command_context(a_commandables: Array) -> CommandContext:
-	# Walk the selection and ask each entity's CommandContextProvider component
-	# for its contribution. Dedupe by entity script-type so we only invoke the
-	# provider once per type — providers of the same script return the same
-	# context, and this preserves the original perf characteristic.
+	# The active context is the merge of the per-type CommandContext of every
+	# selected Entity.Type. Dedupe by Entity.Type so each type contributes its
+	# context once (entities of the same type resolve to the same context, and
+	# this preserves the original perf characteristic). A missing
+	# CommandContextProvider means the entity doesn't contribute at all.
 	a_commandables = a_commandables.filter(func(u): return is_instance_valid(u))
 	selected_unit_types.clear()
 
-	var seen_scripts: Dictionary = {}
 	var contexts: Array = []
 	for c in a_commandables:
-		var script = c.get_script()
-		if seen_scripts.has(script): continue
-		seen_scripts[script] = true
-		selected_unit_types.add(script)
+		var unit_type = c.type
+		if selected_unit_types.contains(unit_type): continue
+		selected_unit_types.add(unit_type)
 
 		var provider: CommandContextProvider = c.get_node_or_null("CommandContextProvider")
 		if provider == null: continue

@@ -1,32 +1,9 @@
-@tool
 class_name Vanguard
 extends Commandable
 
-### COMMANDS
-var vanguard_command_context: CommandContext = CommandContext.merge(
-	CommandContext.new(
-		[
-			Pattern.new(
-				func(a): return (
-					a[1].target is Lab
-				), Collect
-			)
-		],
-		{
-			"command_launch": CommandContext.new(
-				[
-					Pattern.new(func(a): return true, Launch)
-				],
-				{}
-			)
-		}
-	),
-	get_command_context()
-)
-
-func get_command_context() -> CommandContext:
-	return vanguard_command_context
-
+## Vanguard unit. Its command set (Collect from a Lab, the command_launch →
+## Launch sub-context) lives in CommandContextRegistry keyed by
+## Entity.Type.UNIT_VANGUARD, not as a get_command_context() override.
 
 ## NODE
 func _process(delta: float) -> void:
@@ -48,7 +25,7 @@ func _process(delta: float) -> void:
 
 ## WEAPONS
 static var vanguard_weapon_patterns: Array[Pattern] = [
-	Pattern.new(func(e): return true, Weapon.new(null, null, Weapon.AttackType.LAZER))
+	
 ]
 
 # Instance override now (the Commandable default became an instance method).

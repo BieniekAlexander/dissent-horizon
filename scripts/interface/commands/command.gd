@@ -42,16 +42,6 @@ static func meets_precondition(
 var message: CommandMessage
 
 
-### UTILS
-# TODO: unused function
-#func _target_is_in_range(a_actor: Commandable, range: float) -> bool:
-#	return SU.unit_is_close_to_target(
-#		a_actor,
-#		message.target,
-#		range**2
-#	)
-
-
 ### STATE UPDATES
 ## Potentially return a new command based on a state check
 func get_updated_state(a_commandable: Commandable) -> Command:

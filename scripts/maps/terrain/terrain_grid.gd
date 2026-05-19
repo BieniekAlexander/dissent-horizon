@@ -99,6 +99,10 @@ func get_bounds() -> Array:
 func place_building(cells: Array, building: Object) -> void:
 	_building_footprints[building] = cells
 	for cell: Vector2i in cells:
+		assert(
+			not _building_cells.has(cell),
+			"TerrainGrid: cell %s is already occupied by %s — cannot place %s" % [cell, _building_cells.get(cell), building]
+		)
 		_building_cells[cell] = building
 	cells_changed.emit(cells)
 

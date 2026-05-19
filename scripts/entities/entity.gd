@@ -26,6 +26,7 @@ enum Type {
 	STRUCTURE_LAB=0x1203,
 	STRUCTURE_COMPOUND=0x1204,
 	STRUCTURE_ARMORY=0x1205,
+	STRUCTURE_TURRET=0x1206,
 	UNIT_TECHNICIAN=0x1100,
 	UNIT_SENTRY=0x1101,
 	UNIT_VANGUARD=0x1102
@@ -35,7 +36,7 @@ enum Type {
 ## time (scene composition: see unit.tscn, structure.tscn). Entities without
 ## an Ownership child (e.g. star.tscn) fall back to the private _commander
 ## field below.
-@onready var ownership: Ownership = get_node_or_null("Ownership") as Ownership
+@onready var ownership: Ownership = $Ownership
 
 ## Movement component — wraps NavigationAgent3D for entities that pathfind.
 ## Null for entities that don't (structures, items). Callers must gate on
@@ -45,21 +46,13 @@ enum Type {
 ## Fallback storage used (a) before _ready resolves `ownership`, and (b) when
 ## the entity scene doesn't include an Ownership component at all. _ready
 ## migrates any pre-tree value into ownership.commander.
-var _commander: Commander
 var commander: Commander:
-	get:
-		if ownership != null: return ownership.commander
-		return _commander
+	get: return ownership.commander
 	set(value):
-		if ownership != null:
-			ownership.commander = value
-		else:
-			_commander = value
+		ownership.commander = value
 
 var commander_id: int:
-	get:
-		if ownership != null: return ownership.commander_id
-		return _commander.id if _commander != null else 0
+	get: return ownership.commander_id
 
 const TEAM_COLOR_MAP: Dictionary = {
 	0: Color.WHITE,
@@ -88,7 +81,6 @@ var attributes: Set
 @onready var inventory_capacity: int = 1
 
 @export var DAMAGE: float = 10
-@export var ATTACK_RANGE: float = 0
 @export var ATTACK_DURATION: int = 10
 var attack_timer: int = 0
 
@@ -111,45 +103,20 @@ var pc_set: Set = Set.new()
 func _get_attack_range_shape(_target: Entity) -> CollisionShape3D:
 	return attack_range_shape
 
-# TODO: unused function
-#func get_collision_extents() -> Array[Vector2]:
-#	var collider_radius
-#	match typeof(collider.shape):
-#		SphereShape3D: collider_radius = collider.shape.radius
-#		BoxShape3D: collider_radius = collider.shape.size.x*sqrt(2)
-#		ConcavePolygonShape3D:  collider_radius = 1
-#		_: collider_radius = 1
-#
-#	return [
-#		VU.inXZ(global_position),
-#		VU.inXZ(global_position)+Vector2.UP*collider_radius,
-#		VU.inXZ(global_position)+Vector2.DOWN*collider_radius,
-#		VU.inXZ(global_position)+Vector2.LEFT*collider_radius,
-#		VU.inXZ(global_position)+Vector2.RIGHT*collider_radius
-#	]
-
 var collision_radius: float:
 	get:
 		var shape = $Body.shape
 		if shape is SphereShape3D: return shape.radius
 		elif shape is BoxShape3D: return max(shape.size.x, shape.size.z)
 		else:
-			assert(false, "unhandled collider type %s" % typeof(shape))
+			push_error("unhandled collider type %s" % typeof(shape))
 			return -1.0
 
 
 ### NODE
 func _ready() -> void:
-	add_to_group("entity")
-	if ownership != null:
-		ownership.commander_changed.connect(_on_commander_changed)
-		# Migrate any pre-tree commander value (set via initialize() before the
-		# entity entered the scene tree) into Ownership so the component is the
-		# single source of truth from here on.
-		if _commander != null and ownership.commander == null:
-			ownership.commander = _commander
-			_commander = null
-	_apply_team_tint()
+	ownership.commander_changed.connect(_on_commander_changed)
+	
 	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,
 	# so we self-initialize from default_commander_id after all _ready() calls
 	# have run (ensuring Scenario._ready() has already created the commanders).
@@ -176,7 +143,18 @@ func _auto_initialize() -> void:
 	if found_commander == null:
 		push_warning("%s: auto-init skipped — no Commander with id=%d" % [name, default_commander_id])
 		return
+	# Capture position before initialize(), which reparents via _on_commander_changed.
+	var pre_init_pos := global_position
 	initialize(found_map, found_commander)
+	# Grid registration: editor-placed structures aren't spawned through
+	# map.add_entity(), so add_structure() has never been called for them.
+	if is_in_group("structure") and not found_map.structure_cell_map.has(self):
+		found_map.add_structure(
+			self,
+			found_map.world_to_grid(VU.inXZ(pre_init_pos)),
+			0,
+			false
+		)
 
 func _on_commander_changed(_old_commander: Commander, new_commander: Commander) -> void:
 	_apply_team_tint()
@@ -197,7 +175,10 @@ func _apply_team_tint() -> void:
 
 func initialize(a_map: Map, a_commander: Commander):
 	map = a_map
-	commander = a_commander
+	
+	 # TODO revisit. I'm trying to decide if all Entities need to be assigned to a commander
+	if default_commander_id>0:
+		commander = a_commander
 	# If not yet in the tree (standard scenario-spawn path), add as a child of
 	# the commander now. If already in the tree (auto-initialize from scene
 	# placement), _on_commander_changed handles reparenting via the signal.

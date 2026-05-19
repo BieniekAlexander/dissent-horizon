@@ -12,36 +12,6 @@ var _fallback_command: Command = null
 var _command_queue: Array[Command] = []
 var _disposition: Disposition = Disposition.PASSIVE
 
-static var _commandable_command_context: CommandContext
-
-static func get_command_context() -> CommandContext:
-	if _commandable_command_context == null:
-		_commandable_command_context = CommandContext.new(
-			[
-				Pattern.new(
-					func(a): return (
-						a[1].target != null
-						and a[1].target is Commandable
-						and a[1].target.commander_id != a[0].commander_id
-						and Pattern.eval(a[0].get_weapon_evaluation_patterns(), a[1].target) != null
-					), Attack
-				),
-				Pattern.new(func(_a): return true, Command)
-			],
-			{
-				"command_attack_move": CommandContext.new(
-					[
-						Pattern.new(func(a): return a[1].target != null and a[1].target is Commandable, Attack),
-						Pattern.new(func(_a): return true, AttackMove)
-					]
-				),
-				"command_stop": CommandContext.new(
-					[Pattern.new(func(_a): return true, Stop)]
-				)
-			}
-		)
-	return _commandable_command_context
-
 func initialize(a_owner: Entity) -> void:
 	owner = a_owner
 	_command_queue = []

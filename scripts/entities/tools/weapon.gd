@@ -30,7 +30,7 @@ var attack_type: AttackType
 
 func fire(a_owner: Commandable, a_target: Entity) -> void:
 	if packed_scene!=null:
-		var projectile: Projectile = packed_scene.instantiate()
+		var projectile:  = packed_scene.instantiate()
 		projectile.initialize(a_owner.map, a_owner.commander)
 		projectile.initialize_projectile(a_owner, a_target)
 	else:

@@ -1,11 +1,10 @@
-#@tool
 class_name Scenario
 extends Node3D
 
 
 ### GAME STATE
 var frame: int = 0
-@onready var commanders: Array = range(1, 3).map(
+@onready var commanders: Array = range(0, 3).map(
 	func(o):
 		var c = (
 			load("res://scenes/player.tscn").instantiate() if o == RTSController.PLAYER_COMMANDER_ID
@@ -18,7 +17,6 @@ var frame: int = 0
 
 ### GAME WORLD
 @onready var map: Map = $Map
-
 
 ### NODE
 func _ready() -> void:
@@ -37,6 +35,9 @@ func _ready() -> void:
 			var camera: Node3D = commander.get_node("Camera")
 			camera.look_at(Vector3.ZERO)
 			# camera.rotate_x(deg_to_rad(180))
+	
+	for commandable: Commandable in get_tree().get_nodes_in_group("commandable"):
+		commandable.commander = commanders[commandable.default_commander_id]
 		
 	if Engine.is_editor_hint():
 		set_physics_process(false)

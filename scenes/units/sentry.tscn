@@ -6,7 +6,7 @@
 [node name="Unit" instance=ExtResource("1_8cs83")]
 
 [node name="Sprite" parent="." index="2"]
-transform = Transform3D(3, 0, 0, 0, 2.1213202, -2.1213202, 0, 2.1213202, 2.1213202, 0, 0, 0)
+transform = Transform3D(3, 0, 0, 0, 2.1213202, -2.1213202, 0, 2.1213202, 2.1213202, 0, 0.3400603, 0)
 texture_filter = 0
 texture = ExtResource("2_njqvf")
 hframes = 3

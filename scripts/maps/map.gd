@@ -58,8 +58,14 @@ func grid_to_world(cell: Vector2i) -> Vector3:
 	return tb.global_transform * local_pos
 
 ## Convert a world XZ position to the nearest grid cell indices.
+## This is the exact inverse of grid_to_world: it undoes the terrain_body
+## transform and the (map_width-1)/2 centering that grid_to_world applies.
 func world_to_grid(world_xz: Vector2) -> Vector2i:
-	return Vector2i(world_xz / cell_size)
+	var hs: HeightMapShape3D = terrain_grid.height_shape()
+	var hw := (hs.map_width  - 1) * 0.5
+	var hd := (hs.map_depth  - 1) * 0.5
+	var local := terrain_body.global_transform.affine_inverse() * Vector3(world_xz.x, 0.0, world_xz.y)
+	return Vector2i(floori(local.x + hw), floori(local.z + hd))
 
 
 # --- Map bounds ------------------------------------------------------------

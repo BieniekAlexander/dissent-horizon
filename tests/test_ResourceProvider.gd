@@ -12,15 +12,9 @@ func _make_provider(provided: int = 0, required: int = 0) -> ResourceProvider:
 	add_child_autofree(r)
 	return r
 
-## A fake commander with just the fields ResourceProvider touches.
-class FakeCommander:
-	extends Node
-	var population_max: int = 0
-	var population_used: int = 0
-
 func test_apply_to_increments_both_pools():
 	var r := _make_provider(50, 10)
-	var c := FakeCommander.new()
+	var c := Commander.new()
 	r.apply_to(c)
 	assert_eq(c.population_max, 50)
 	assert_eq(c.population_used, 10)
@@ -28,7 +22,7 @@ func test_apply_to_increments_both_pools():
 
 func test_remove_from_undoes_apply_to():
 	var r := _make_provider(50, 10)
-	var c := FakeCommander.new()
+	var c := Commander.new()
 	r.apply_to(c)
 	r.remove_from(c)
 	assert_eq(c.population_max, 0, "apply/remove is symmetric on max")

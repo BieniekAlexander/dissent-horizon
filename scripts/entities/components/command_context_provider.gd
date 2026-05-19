@@ -4,24 +4,18 @@ extends Node
 ## CommandContextProvider component — exposes the CommandContext this entity
 ## contributes when it's part of a selected group.
 ##
-## Step 4 of the components refactor. The controller previously did
-## `c.get_script().get_command_context()` (calling an instance method on a
-## Script class — well-defined only when the chain bottomed out at a static
-## method, which was a latent footgun). Now it asks each entity's
-## CommandContextProvider for its context directly.
+## The context is keyed off the parent's Entity.Type via CommandContextRegistry,
+## not built per-instance or pulled from CommandReceiver. Different types yield
+## different command state machines (a structure can Train, a Vanguard can
+## Launch, …) and the controller merges the contexts of every selected type.
 ##
-## The default implementation delegates to the parent entity's existing
-## get_command_context() instance method so we don't have to rewrite Structure's
-## structure_command_context plumbing, Vanguard's override, etc. in this step.
-## A future step can move context construction *into* the provider — at which
-## point this becomes a leaf component that simply owns a CommandContext value.
-##
-## Entities without a CommandContextProvider (e.g. neutral resource items)
-## simply don't contribute to the merged context — which is the correct
-## behavior. Absence of the component IS the signal.
+## Entities without a CommandContextProvider (e.g. neutral resource items like
+## Stars) simply don't contribute to the merged context — absence of the
+## component IS the "no contribution" signal, so a missing/non-Entity parent
+## resolves to the NULL sentinel rather than a default command set.
 
 func get_context() -> CommandContext:
 	var parent: Node = get_parent()
-	if parent != null and parent.has_method("get_command_context"):
-		return parent.get_command_context()
+	if parent is Entity:
+		return CommandContextRegistry.for_type((parent as Entity).type)
 	return CommandContext.NULL

@@ -75,7 +75,7 @@ func update_bar(parent_scale_x: float) -> void:
 func _spawn_unit(scene: PackedScene) -> void:
 	var entity: Entity = get_parent() as Entity
 	if entity == null: return
-	var unit: Commandable = scene.instantiate()
+	var unit: Commandable = scene.instantiate() as Commandable
 	var spawn_bias: Vector3 = (
 		(rally_command.message.position - entity.global_position).normalized()
 		if rally_command != null

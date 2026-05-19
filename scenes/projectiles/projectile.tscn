@@ -1,14 +1,25 @@
-[gd_scene load_steps=3 format=3 uid="uid://dsr3o7rqnjdff"]
+[gd_scene load_steps=5 format=3 uid="uid://dsr3o7rqnjdff"]
 
 [ext_resource type="Texture2D" uid="uid://4j5okj7g4kff" path="res://assets/coin_logo.png" id="1_oqaoy"]
 [ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_s2d6s"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_l3el7"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hit01"]
+radius = 10.0
 
 [node name="Projectile" type="CharacterBody3D"]
 transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0, 0)
 script = ExtResource("1_s2d6s")
-sight_range = 5
 
 [node name="Sprite" type="Sprite3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0)
+transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
 render_priority = 5
 texture = ExtResource("1_oqaoy")
+
+[node name="HitShape" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_hit01")
+disabled = true
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("3_l3el7")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"

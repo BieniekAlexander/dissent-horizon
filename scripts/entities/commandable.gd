@@ -20,6 +20,8 @@ extends Entity
 @onready var selectable: Selectable = $Selectable
 @onready var production: Production = get_node_or_null("Production") as Production
 @onready var resource_provider: ResourceProvider = get_node_or_null("ResourceProvider") as ResourceProvider
+@onready var ore_extractor: OreExtractor = get_node_or_null("OreExtractor") as OreExtractor
+@onready var dominion_generator: DominionGenerator = get_node_or_null("DominionGenerator") as DominionGenerator
 
 var _command: Command:
 	get: return command_receiver._command
@@ -88,37 +90,36 @@ static func valid_placement(_a_command_message: CommandMessage, _a_dimensions: V
 ## Default weapon patterns for unit-grouped commandables. Structures default to
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
-static var unit_weapon_patterns: Array[Pattern] = [
-	Pattern.new(func(_e): return true, Weapon.new(null, null, Weapon.AttackType.BALLISTIC))
-]
-static var empty_patterns: Array[Pattern] = []
-
-func get_weapon_evaluation_patterns() -> Array:
-	return unit_weapon_patterns if is_in_group("unit") else empty_patterns
-
 func get_aggro_near_position() -> Command:
 	if aggro_range_shape == null:
 		return null
-	var weapon_patterns: Array = get_weapon_evaluation_patterns()
-	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = aggro_range_shape.shape
-	params.transform = aggro_range_shape.global_transform
-	params.collision_mask = Map.CollisionMask.UNITS
-	params.exclude = [self]
-	var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 10)
-	var commandables: Array = AU.sort_on_key(
-		func(c: Commandable): return global_position.distance_squared_to(c.global_position),
-		hits.map(func(r): return r["collider"]).filter(
-			func(e): return e is Commandable and Pattern.eval(weapon_patterns, e) != null
-		)
+	
+	var aggro_query := PhysicsShapeQueryParameters3D.new()
+	aggro_query.shape = aggro_range_shape.shape
+	aggro_query.transform = aggro_range_shape.global_transform
+	aggro_query.collision_mask = Map.CollisionMask.UNITS
+	aggro_query.exclude = [self]
+	
+	var weapon_patterns: Array = WeaponPatternsRegistry.for_type(type)
+	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
+		func(r): return r["collider"]
 	)
-	for c: Commandable in commandables:
-		if c.commander_id > 0 and c.commander_id != commander_id:
-			return Attack.new(CommandMessage.new(map, c, null))
-	return null
-
-func get_command_context() -> CommandContext:
-	return command_receiver.get_command_context()
+	var vs2 = vs.filter(
+		func(t): return t is Commandable and Pattern.eval(weapon_patterns, t) != null
+	)
+	var vs3 = vs2.filter(
+		func(t): return t.commander_id > 0 and t.commander_id != commander_id
+	)
+	var potential_targets: Array = AU.sort_on_key(
+		func(c: Commandable): return global_position.distance_squared_to(c.global_position),
+		vs3
+	)
+	
+	return (
+		Attack.new(CommandMessage.new(map, potential_targets[0], null))
+		if not potential_targets.is_empty()
+		else null
+	)
 
 func _ready() -> void:
 	super()
@@ -172,8 +173,8 @@ func _get_vision_range_attack(attacker: Commandable) -> Command:
 	params.transform = vision_range_shape.global_transform
 	params.collision_mask = Map.CollisionMask.UNITS
 	params.exclude = [self]
-	var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
-	for hit in hits:
+	var potential_targets: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
+	for hit in potential_targets:
 		if hit["collider"] == attacker:
 			return Attack.new(CommandMessage.new(map, attacker, null))
 	return null
@@ -244,6 +245,10 @@ func _update_state() -> void:
 	# Per-tick production. No-op for non-producing entities.
 	if production != null:
 		production.tick()
+	if ore_extractor != null:
+		ore_extractor.tick()
+	if dominion_generator != null:
+		dominion_generator.tick()
 
 func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
