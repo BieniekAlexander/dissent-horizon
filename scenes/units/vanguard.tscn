@@ -21,7 +21,6 @@ type = 4354
 attributes_list = Array[int]([1])
 hpMax = 12000.0
 DAMAGE = 20.0
-ATTACK_RANGE = 8.0
 ATTACK_DURATION = 30
 SPEED = 0.17
 

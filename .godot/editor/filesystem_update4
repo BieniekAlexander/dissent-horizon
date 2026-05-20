@@ -28,3 +28,7 @@ res://scripts/scenario.gd
 res://scripts/entities/components/ownership.gd
 res://scenes/projectiles/projectile.tscn
 res://scripts/entities/tools/projectile.gd
+res://scenes/structures/structure.tscn
+res://scenes/units/unit.tscn
+res://scripts/entities/command_receiver.gd
+res://scenes/commandable.tscn

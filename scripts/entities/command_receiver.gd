@@ -8,14 +8,12 @@ enum Disposition {
 
 var owner: Entity
 var _command: Command = null
-var _fallback_command: Command = null
 var _command_queue: Array[Command] = []
 var _disposition: Disposition = Disposition.PASSIVE
 
 func initialize(a_owner: Entity) -> void:
 	owner = a_owner
 	_command_queue = []
-	_fallback_command = Command.new(CommandMessage.new(owner.map, owner, null))
 
 func has_pending_work() -> bool:
 	return _command != null or not _command_queue.is_empty()
@@ -23,7 +21,7 @@ func has_pending_work() -> bool:
 ## True when the unit has no user-set command — either genuinely idle or only
 ## running the fallback placeholder. Queued commands count as non-idle.
 func is_idle() -> bool:
-	return _command_queue.is_empty() and (_command == null or is_same(_command, _fallback_command))
+	return _command_queue.is_empty() and (_command == null)
 
 func receive_damage(attacker: Commandable, amount: float) -> void:
 	owner.hp -= amount
@@ -40,7 +38,7 @@ func load_destination(command: Command) -> void:
 		owner.movement.set_target_position(command.message.position)
 
 func _process_commands() -> void:
-	var new_commands: Variant = _command.get_updated_state(owner) if _command != null else _fallback_command.get_updated_state(owner)
+	var new_commands: Variant = _command.get_updated_state(owner) if _command != null else null
 
 	if is_same(new_commands, null):
 		_command = null

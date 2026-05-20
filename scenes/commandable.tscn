@@ -1,0 +1,136 @@
+[gd_scene load_steps=19 format=3 uid="uid://dcmdbl3j4t1k2"]
+
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="2_3agr1"]
+[ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="2_tefpw"]
+[ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="3_uy385"]
+[ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="4_slct0"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="5_ownr0"]
+[ext_resource type="Script" uid="uid://b0gn13d80smxd" path="res://scripts/entities/components/command_context_provider.gd" id="6_ccpv0"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="7_move0"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
+
+[sub_resource type="Gradient" id="Gradient_clwnv"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_u25hc"]
+gradient = SubResource("Gradient_clwnv")
+
+[sub_resource type="Gradient" id="Gradient_76bi0"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(1, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_cnvxh"]
+gradient = SubResource("Gradient_76bi0")
+
+[sub_resource type="Gradient" id="Gradient_8aclg"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_5lb30"]
+gradient = SubResource("Gradient_8aclg")
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_cx6aj"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_44d7s"]
+height = 100.0
+radius = 5.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_aggro0"]
+height = 100.0
+radius = 4.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_visn0"]
+height = 100.0
+radius = 10.0
+
+[node name="Commandable" type="CharacterBody3D" groups=["commandable"]]
+script = ExtResource("2_3agr1")
+
+[node name="NavigationAgent" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.5
+target_desired_distance = 0.25
+path_max_distance = 10.01
+avoidance_enabled = true
+neighbor_distance = 5.0
+max_neighbors = 5
+time_horizon_obstacles = 1.0
+max_speed = 100.0
+avoidance_layers = 0
+avoidance_mask = 0
+debug_enabled = true
+
+[node name="Body" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_fe0lq")
+
+[node name="Sprite" type="Sprite3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0.3516159, 0)
+layers = 2
+axis = 1
+render_priority = 1
+texture = ExtResource("2_tefpw")
+
+[node name="HPBar" type="Sprite3D" parent="."]
+transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.6118286, -0.30808753)
+pixel_size = 0.0001
+render_priority = 8
+texture = SubResource("GradientTexture1D_u25hc")
+region_enabled = true
+region_rect = Rect2(2, 0, 0, 0)
+
+[node name="HPBarFill" type="Sprite3D" parent="HPBar"]
+render_priority = 6
+texture = SubResource("GradientTexture1D_cnvxh")
+
+[node name="HPBarBack" type="Sprite3D" parent="HPBar"]
+render_priority = 5
+texture = SubResource("GradientTexture1D_5lb30")
+
+[node name="SelectionIndicator" type="Sprite3D" parent="."]
+transform = Transform3D(0.5, 0, 0, 0, 0.353553, 0.353553, 0, -0.353553, 0.353553, 0, 0, 0)
+visible = false
+texture = ExtResource("3_uy385")
+
+[node name="Timer" type="Timer" parent="."]
+process_callback = 0
+one_shot = true
+
+[node name="Selectable" type="Area3D" parent="."]
+collision_layer = 256
+script = ExtResource("4_slct0")
+indicator_path = NodePath("../SelectionIndicator")
+
+[node name="SelectionShape" type="CollisionShape3D" parent="Selectable"]
+shape = SubResource("SphereShape3D_cx6aj")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("5_ownr0")
+
+[node name="CommandContextProvider" type="Node" parent="."]
+script = ExtResource("6_ccpv0")
+
+[node name="Movement" type="Node" parent="."]
+script = ExtResource("7_move0")
+nav_agent_path = NodePath("../NavigationAgent")
+
+[node name="AttackRange" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_44d7s")
+disabled = true
+debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
+
+[node name="AggroRange" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_aggro0")
+disabled = true
+
+[node name="VisionRange" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_visn0")
+disabled = true
+
+[node name="DebugLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+visible = false
+pixel_size = 0.05
+render_priority = 10
+text = "NULL"
+font_size = 16

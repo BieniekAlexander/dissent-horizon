@@ -38,6 +38,7 @@ func clear_command() -> void:
 	update_commands(null)
 
 @onready var hpBarFill: Sprite3D = $HPBar/HPBarFill
+@onready var _debug_label: Label3D = get_node_or_null("DebugLabel") as Label3D
 var SHOT_DURATION: int = 2
 
 ### STRUCTURE-FLAVORED STATE (gated on is_in_group("structure"))
@@ -208,6 +209,13 @@ func _process(_delta: float) -> void:
 				sprite.frame = 1
 			else:
 				sprite.frame = 0
+
+	# Debug label: show active command name while debug_info is held.
+	if _debug_label != null:
+		var show_debug := Input.is_action_pressed("debug_info")
+		_debug_label.visible = show_debug
+		if show_debug:
+			_debug_label.text = current_command().get_script().get_global_name() if has_command() else "NULL"
 
 	# Production-driven build progress alpha + train bar. Was Structure._process.
 	if production != null:

@@ -39,7 +39,7 @@ func _sight_disc(radius_px: int) -> Array:
 func _physics_process(_delta: float) -> void:
 	if _fog_texture == null:
 		return
-	visible = not Input.is_action_pressed("debug_hide_fog")
+	visible = not Input.is_action_pressed("debug_info")
 	if not visible:
 		return
 
