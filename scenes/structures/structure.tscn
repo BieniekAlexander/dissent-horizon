@@ -22,6 +22,10 @@ colors = PackedColorArray(1, 0, 0, 1)
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_hp_fill"]
 gradient = SubResource("Gradient_hp_fill")
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_niu5p"]
+height = 100.0
+radius = 10.0
+
 [sub_resource type="Gradient" id="Gradient_train_back"]
 offsets = PackedFloat32Array(0)
 colors = PackedColorArray(0, 0, 0, 1)
@@ -36,48 +40,43 @@ colors = PackedColorArray(0.8, 0.666667, 0, 1)
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_train_fill"]
 gradient = SubResource("Gradient_train_fill")
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_niu5p"]
-height = 100.0
-radius = 10.0
-
-[node name="Structure" instance=ExtResource("1_cmnd1") groups=["commandable", "structure"]]
+[node name="Structure" groups=["structure"] instance=ExtResource("1_cmnd1")]
+collision_layer = 3
 type = -1
 
-[node name="Body" parent="."]
+[node name="Body" parent="." index="1"]
 shape = SubResource("BoxShape3D_4vk4e")
 
-[node name="Sprite" parent="."]
+[node name="Sprite" parent="." index="2"]
 transform = Transform3D(7.33997, 0, 0, 0, 1, 0, 0, 0, 6.90188, 0, 0, 0)
 layers = 1
-axis = 1
-render_priority = 1
 texture = ExtResource("2_ixuya")
 
-[node name="HPBar" parent="."]
+[node name="HPBar" parent="." index="3"]
 transform = Transform3D(0.3, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.1, -0.2)
 texture = SubResource("GradientTexture1D_hp_back")
 
-[node name="HPBarFill" parent="HPBar"]
+[node name="HPBarFill" parent="HPBar" index="0"]
 texture = SubResource("GradientTexture1D_hp_fill")
 
-[node name="SelectionIndicator" parent="."]
+[node name="SelectionIndicator" parent="." index="4"]
 transform = Transform3D(0.25, 0, 0, 0, 0.176777, 0.176777, 0, -0.176777, 0.176777, 0, 0, 0)
 
-[node name="SelectionShape" parent="Selectable"]
+[node name="Selectable" parent="." index="6"]
+collision_layer = 256
+
+[node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("BoxShape3D_4vk4e")
 
-[node name="VisionRange" parent="."]
+[node name="VisionRange" parent="." index="12"]
 shape = SubResource("CylinderShape3D_niu5p")
 
-[node name="DebugLabel" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
-
-[node name="NavigationObstacle3D" type="NavigationObstacle3D" parent="."]
+[node name="NavigationObstacle3D" type="NavigationObstacle3D" parent="." index="14"]
 height = 10.0
 vertices = PackedVector3Array(1, 0, 1, -1, 0, 1, -1, 0, -1, 1, 0, -1)
 affect_navigation_mesh = true
 
-[node name="TrainBar" type="Sprite3D" parent="."]
+[node name="TrainBar" type="Sprite3D" parent="." index="15"]
 transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.25, -0.2)
 visible = false
 pixel_size = 0.0001
@@ -86,13 +85,13 @@ texture = SubResource("GradientTexture1D_train_back")
 region_enabled = true
 region_rect = Rect2(2, 0, 0, 0)
 
-[node name="TrainBarFill" type="Sprite3D" parent="TrainBar"]
+[node name="TrainBarFill" type="Sprite3D" parent="TrainBar" index="0"]
 render_priority = 5
 texture = SubResource("GradientTexture1D_train_fill")
 
-[node name="Production" type="Node" parent="."]
+[node name="Production" type="Node" parent="." index="16"]
 script = ExtResource("7_prod0")
 train_bar_path = NodePath("../TrainBar")
 
-[node name="ResourceProvider" type="Node" parent="."]
+[node name="ResourceProvider" type="Node" parent="." index="17"]
 script = ExtResource("8_rspv0")

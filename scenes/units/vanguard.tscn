@@ -35,5 +35,8 @@ rotation_order = 4
 sorting_offset = 100.0
 mesh = SubResource("CylinderMesh_o7umi")
 
+[node name="Selectable" parent="." index="7"]
+collision_layer = 256
+
 [node name="AttackRange" parent="." index="11"]
 shape = SubResource("CylinderShape3D_tw42r")

@@ -97,7 +97,7 @@ process_callback = 0
 one_shot = true
 
 [node name="Selectable" type="Area3D" parent="."]
-collision_layer = 256
+collision_layer = 1024
 script = ExtResource("4_slct0")
 indicator_path = NodePath("../SelectionIndicator")
 

@@ -10,3 +10,6 @@ transform = Transform3D(3, 0, 0, 0, 2.1213202, -2.1213202, 0, 2.1213202, 2.12132
 texture_filter = 0
 texture = ExtResource("2_njqvf")
 hframes = 3
+
+[node name="Selectable" parent="." index="6"]
+collision_layer = 256

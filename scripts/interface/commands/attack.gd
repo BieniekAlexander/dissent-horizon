@@ -26,7 +26,20 @@ static func _target_attackable(a_message: CommandMessage) -> bool:
 	# causes this to always return true, even if the target used to be an object,
 	# causing downstream checks to crash
 	return is_instance_valid(a_message.target)
- 
+
+## Returns true when a structure's physics body lies on the line between
+## a_actor and a_target (excluding a_target itself, so attacking a structure
+## directly is never blocked by that same structure).
+static func _structure_on_line(a_actor: Commandable, a_target: Entity) -> bool:
+	var space_state := a_actor.get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(
+		a_actor.global_position,
+		a_target.global_position,
+		CollisionLayers.Layer.STRUCTURE
+	)
+	query.exclude = [a_target.get_rid()]
+	return not space_state.intersect_ray(query).is_empty()
+
 
 ### STATE UPDATES
 func get_updated_state(a_actor: Commandable):
@@ -34,14 +47,18 @@ func get_updated_state(a_actor: Commandable):
 	return null if not is_instance_valid(message.target) else self
 
 func should_move(a_actor: Commandable) -> bool:
-	return not (_target_attackable(message) and SU.is_in_attack_range(a_actor, message.target))
+	return (
+		not (_target_attackable(message) and SU.is_in_attack_range(a_actor, message.target))
+		or _structure_on_line(a_actor, message.target)
+	)
 
 func can_act(a_actor: Commandable) -> bool:
 	return (
-		a_actor.attack_timer<=0
+		a_actor.attack_timer <= 0
 		and _target_attackable(message)
-		and message.target!=a_actor
+		and message.target != a_actor
 		and SU.is_in_attack_range(a_actor, message.target)
+		and not _structure_on_line(a_actor, message.target)
 	)
 
 func fulfill_action(a_actor: Commandable) -> Variant:

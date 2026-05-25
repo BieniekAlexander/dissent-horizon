@@ -2,12 +2,6 @@ class_name Map
 extends Node3D
 
 
-enum CollisionMask {
-	UNITS = 1 << 0,
-	TERRAIN = 1 << 4,
-	SELECTION = 1 << 8
-}
-
 ### SPACE THINGS
 
 #### TERRAIN
@@ -92,7 +86,7 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 				a_location,
 				a_entity.collision_radius,
 				get_world_3d(),
-				CollisionMask.UNITS,
+				CollisionLayers.Layer.BODY,
 				1,
 				5.
 			)[0]

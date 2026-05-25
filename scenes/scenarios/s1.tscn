@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=4 uid="uid://cff5ag28s3u4b"]
+[gd_scene load_steps=15 format=4 uid="uid://cff5ag28s3u4b"]
 
 [ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_hbnr0"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_yyjyw"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://chn6tbb8uh0m5" path="res://scenes/structures/turret.tscn" id="7_kk180"]
 [ext_resource type="Script" uid="uid://by08wgo0a2sby" path="res://scripts/maps/terrain/heightmap_mesh_generator.gd" id="8_hmgen"]
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="10_rvxgl"]
+[ext_resource type="PackedScene" uid="uid://lg3slrwglq37" path="res://scenes/structures/compound.tscn" id="11_xsms2"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_8b2qo"]
 vertices = PackedVector3Array(149, 0.5, -149, -140.25, 0.5, -149, -141, 0.5, -148, -149, 0.5, 149, 149, 0.5, 149, -149, 0.5, -148)
@@ -118,24 +119,26 @@ mesh = SubResource("ArrayMesh_kh21o")
 
 [node name="Mine1_1" parent="." instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.051548, 0, 2.5892334)
+collision_layer = 1
 default_commander_id = 1
 SPEED = 7.5
 
 [node name="Mine1_2" parent="." instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.051548, 0, 4.746338)
+collision_layer = 1
 default_commander_id = 1
 SPEED = 7.5
 
 [node name="Mine1_3" parent="." instance=ExtResource("6_cjm28")]
 transform = Transform3D(0.99999815, 0.0019373143, 0, -0.0019372382, 0.9999589, -0.008866156, -1.7176531e-05, 0.00886614, 0.9999607, 7.051548, 0, 6.8272705)
-default_commander_id = 1
-SPEED = 7.5
-
-[node name="Mine1_4" parent="." instance=ExtResource("6_cjm28")]
-transform = Transform3D(0.99999815, 0.0019373143, 0, -0.0019372382, 0.9999589, -0.008866156, -1.7176531e-05, 0.00886614, 0.9999607, 7.051548, 0, 8.968018)
+collision_layer = 1
 default_commander_id = 1
 SPEED = 7.5
 
 [node name="Turret2_1" parent="." instance=ExtResource("7_kk180")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 4)
 script = ExtResource("10_rvxgl")
+
+[node name="Structure" parent="." instance=ExtResource("11_xsms2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 6)
+default_commander_id = 1

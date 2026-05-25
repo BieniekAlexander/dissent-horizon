@@ -98,7 +98,7 @@ func get_aggro_near_position() -> Command:
 	var aggro_query := PhysicsShapeQueryParameters3D.new()
 	aggro_query.shape = aggro_range_shape.shape
 	aggro_query.transform = aggro_range_shape.global_transform
-	aggro_query.collision_mask = Map.CollisionMask.UNITS
+	aggro_query.collision_mask = CollisionLayers.Layer.BODY
 	aggro_query.exclude = [self]
 	
 	var weapon_patterns: Array = WeaponPatternsRegistry.for_type(type)
@@ -172,7 +172,7 @@ func _get_vision_range_attack(attacker: Commandable) -> Command:
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = vision_range_shape.shape
 	params.transform = vision_range_shape.global_transform
-	params.collision_mask = Map.CollisionMask.UNITS
+	params.collision_mask = CollisionLayers.Layer.BODY
 	params.exclude = [self]
 	var potential_targets: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
 	for hit in potential_targets:

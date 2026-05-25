@@ -50,9 +50,13 @@ static func _base() -> CommandContext:
 static func _build() -> void:
 	var base: CommandContext = _base()
 
-	# Structures route tool-bearing input to Train, otherwise a rally Command,
-	# then fall through to the base set.
-	var structure: CommandContext = CommandContext.NULL
+	# Structures route tool-bearing input to Train, otherwise a rally Command.
+	var structure: CommandContext = CommandContext.new(
+		[
+			Pattern.new(func(a): return a[1].tool != null, Train),
+			Pattern.new(func(_a): return true, Command)
+		]
+	)
 
 	# Technician (Anima): base set, plus pick up / drop off Stars and the
 	# command_ability → Build sub-context.

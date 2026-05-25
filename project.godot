@@ -147,8 +147,9 @@ command_launch={
 
 [layer_names]
 
-3d_physics/layer_1="units"
+3d_physics/layer_1="body"
 3d_navigation/layer_1="EverythingElseTbh"
+3d_physics/layer_2="structure"
 3d_navigation/layer_2="NavigationFloor"
 3d_physics/layer_5="ground"
 3d_physics/layer_6="water"

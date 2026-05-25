@@ -5,16 +5,14 @@
 
 [node name="Structure" instance=ExtResource("1_1qdpe")]
 process_physics_priority = 10
+type = 4612
 armor = 1
 hpMax = 500.0
-AGGRO_RANGE = 1.0
 ATTACK_DURATION = 0
-type = 4612
-sight_range = 10
 
-[node name="NavigationObstacle3D" parent="." index="0"]
-vertices = PackedVector3Array(4.05, 0, 0, 2.1, 3, 3.6, -2.1, 0, 3.6, -4.05, 0, 0, -2.1, 0, -3.6, 2.1, 0, -3.6)
-
-[node name="Sprite" parent="." index="1"]
-transform = Transform3D(18, 0, 0, 0, 2.453, 0, 0, 0, 16.926, 0, 0, 0)
+[node name="Sprite" parent="." index="2"]
+transform = Transform3D(18, 0, 0, 0, 1.734533, -11.96849, 0, 1.734533, 11.96849, 0, 1.3366241, 0)
 texture = ExtResource("3_i3cr2")
+
+[node name="NavigationObstacle3D" parent="." index="14"]
+vertices = PackedVector3Array(4.05, 0, 0, 2.1, 3, 3.6, -2.1, 0, 3.6, -4.05, 0, 0, -2.1, 0, -3.6, 2.1, 0, -3.6)

@@ -2,4 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://dcmdbl3j4t1k2" path="res://scenes/commandable.tscn" id="1_cmnd1"]
 
-[node name="Unit" instance=ExtResource("1_cmnd1") groups=["commandable", "unit"]]
+[node name="Unit" groups=["unit"] instance=ExtResource("1_cmnd1")]
+
+[node name="Selectable" parent="." index="6"]
+collision_layer = 256

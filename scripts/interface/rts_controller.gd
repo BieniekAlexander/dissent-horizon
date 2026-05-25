@@ -16,10 +16,13 @@ const attack_cursor: Resource = preload("res://assets/interface/cursor_attack.pn
 const unknown_cursor: Resource = preload("res://assets/interface/cursor_unknown.png")
 const invalid_cursor: Resource = preload("res://assets/interface/cursor_invalid.png")
 
-static func cursor_evaluator(a_selection: Array, a_command_type: Script, a_command_message: CommandMessage) -> Resource:
-	if a_command_type==Command:
-		if a_command_message.target!=null:
-			return selection_cursor
+static func cursor_evaluator(a_command_type: Script, a_command_message: CommandMessage) -> Resource:
+	if a_command_type==null or a_command_type==Command:
+		if (a_command_message.target!=null):
+			if a_command_message.target.commander.id==PLAYER_COMMANDER_ID:
+				return selection_cursor
+			else:
+				return attack_cursor
 		else:
 			return free_cursor
 	elif a_command_type==Attack or a_command_type==AttackMove:
@@ -35,11 +38,11 @@ func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 	var ray_origin: Vector3 = camera.project_ray_origin(a_mouse_position)
 	var ray_end: Vector3 = ray_origin + camera.project_ray_normal(a_mouse_position) * 1000.0
 
-	var selection_hit = map.line_hit(ray_origin, ray_end, Map.CollisionMask.SELECTION)
+	var selection_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Layer.SELECTION)
 	if selection_hit and selection_hit['collider'] is Selectable:
 		return (selection_hit['collider'] as Selectable).get_entity()
 
-	var terrain_hit = map.line_hit(ray_origin, ray_end, Map.CollisionMask.TERRAIN)
+	var terrain_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Layer.TERRAIN)
 	if terrain_hit:
 		return terrain_hit['position']
 
@@ -90,17 +93,19 @@ func _process(delta: float) -> void:
 		selection[0],
 		command_message
 	) if !selection.is_empty() else null
-
-	if current_command_type==null:
-		Input.set_custom_mouse_cursor(selection_cursor if cursor_result is Entity else free_cursor)
+	
+	var check: Command.PreconditionFailureCause =  (
+		Command.PreconditionFailureCause.NONE
+		if current_command_type==null
+		else current_command_type.meets_precondition(selection[0] if !selection.is_empty() else null, command_message)
+	)
+	
+	$CommandErrorMessage.text = Command.precondition_message_map[check]
+	
+	if check==Command.PreconditionFailureCause.NONE:
+		Input.set_custom_mouse_cursor(cursor_evaluator(current_command_type, command_message))
 	else:
-		var check: Command.PreconditionFailureCause = current_command_type.meets_precondition(selection[0] if !selection.is_empty() else null, command_message)
-		$CommandErrorMessage.text = Command.precondition_message_map[check]
-		
-		if check==Command.PreconditionFailureCause.NONE:
-			Input.set_custom_mouse_cursor(cursor_evaluator(selection, current_command_type, command_message))
-		else:
-			Input.set_custom_mouse_cursor(invalid_cursor)
+		Input.set_custom_mouse_cursor(invalid_cursor)
 
 
 func _unhandled_input(event: InputEvent) -> void:

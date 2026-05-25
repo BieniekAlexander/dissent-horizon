@@ -18,6 +18,6 @@ static var command_tool_map: Dictionary = {
 	#"command_tool_compound": Tool.new(Entity.Type.STRUCTURE_COMPOUND, preload("res://scenes/structures/compound.tscn")),
 	#"command_tool_armory": Tool.new(Entity.Type.STRUCTURE_ARMORY, preload("res://scenes/structures/armory.tscn")),
 	#"command_tool_technician": Tool.new(Entity.Type.UNIT_TECHNICIAN, preload("res://scenes/units/technician.tscn")),
-	#"command_tool_sentry": Tool.new(Entity.Type.UNIT_SENTRY, preload("res://scenes/units/sentry.tscn")),
-	#"command_tool_vanguard": Tool.new(Entity.Type.UNIT_VANGUARD, load("res://scenes/units/vanguard.tscn")),
+	"command_tool_sentry": Tool.new(Entity.Type.UNIT_SENTRY, load("res://scenes/units/sentry.tscn")),
+	"command_tool_vanguard": Tool.new(Entity.Type.UNIT_VANGUARD, load("res://scenes/units/vanguard.tscn")),
 }
