@@ -1,9 +1,14 @@
-[gd_scene load_steps=3 format=3 uid="uid://b8bcrcywyaj27"]
+[gd_scene load_steps=4 format=3 uid="uid://b8bcrcywyaj27"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_8cs83"]
 [ext_resource type="Texture2D" uid="uid://cu54wxkswu4d3" path="res://assets/entities/sentry.png" id="2_njqvf"]
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_44d7s"]
+height = 100.0
+radius = 5.0
+
 [node name="Unit" instance=ExtResource("1_8cs83")]
+SPEED = 0.1
 
 [node name="Sprite" parent="." index="2"]
 transform = Transform3D(3, 0, 0, 0, 2.1213202, -2.1213202, 0, 2.1213202, 2.1213202, 0, 0.3400603, 0)
@@ -11,5 +16,7 @@ texture_filter = 0
 texture = ExtResource("2_njqvf")
 hframes = 3
 
-[node name="Selectable" parent="." index="6"]
-collision_layer = 256
+[node name="AttackRange2" type="CollisionShape3D" parent="." index="8"]
+shape = SubResource("CylinderShape3D_44d7s")
+disabled = true
+debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)

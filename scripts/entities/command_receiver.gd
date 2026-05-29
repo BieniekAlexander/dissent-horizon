@@ -6,12 +6,12 @@ enum Disposition {
 	AGGRESSIVE
 }
 
-var owner: Entity
+var owner: Commandable
 var _command: Command = null
 var _command_queue: Array[Command] = []
 var _disposition: Disposition = Disposition.PASSIVE
 
-func initialize(a_owner: Entity) -> void:
+func initialize(a_owner: Commandable) -> void:
 	owner = a_owner
 	_command_queue = []
 
@@ -77,7 +77,13 @@ func _update_state() -> void:
 	if _command == null and not _command_queue.is_empty():
 		_command = _command_queue.pop_front()
 
-	_process_commands()
+	# Delegate to the owner's command processor (Commandable._process_commands),
+	# which routes structure-flavored commands (Train → Production.enqueue,
+	# base Command → Production.set_rally) before falling back to this
+	# receiver's default handling via _process_commands(). Calling our own
+	# _process_commands() here would bypass that routing entirely, which is why
+	# structure training and rally points silently did nothing.
+	owner._process_commands()
 
 func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
 	if a_commands == null:

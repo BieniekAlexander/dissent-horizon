@@ -27,4 +27,7 @@ var commander: Commander:
 		commander_changed.emit(old, value)
 
 var commander_id: int:
-	get: return _commander.id
+	# Unowned entities report commander id 0 (neutral/world) rather than
+	# crashing. Callers like fog.gd read this every physics frame across all
+	# commandables, so a null _commander must degrade gracefully.
+	get: return _commander.id if _commander != null else 0

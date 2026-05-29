@@ -65,12 +65,6 @@ func remove_structure(a_structure: Commandable) -> void:
 	proc_technology()
 
 #### UNITS
-# TODO: unused function
-#func get_commandables():
-#	return get_tree().get_nodes_in_group("commandable").filter(
-#		func(u): return u.commander == self
-#	)
-
 ### NODE
 func _ready() -> void:
 	for s in Entity.Type.values():

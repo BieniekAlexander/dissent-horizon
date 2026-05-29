@@ -1,8 +1,22 @@
-[gd_scene load_steps=2 format=3 uid="uid://blcglpbttoi64"]
+[gd_scene load_steps=4 format=3 uid="uid://blcglpbttoi64"]
 
 [ext_resource type="PackedScene" uid="uid://dcmdbl3j4t1k2" path="res://scenes/commandable.tscn" id="1_cmnd1"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="2_6e3tn"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_6e3tn"]
+height = 100.0
+radius = 5.0
 
 [node name="Unit" groups=["unit"] instance=ExtResource("1_cmnd1")]
 
 [node name="Selectable" parent="." index="6"]
 collision_layer = 256
+
+[node name="AttackRange" type="CollisionShape3D" parent="." index="8"]
+shape = SubResource("CylinderShape3D_6e3tn")
+disabled = true
+debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
+
+[node name="Movement" type="Node" parent="." index="12"]
+script = ExtResource("2_6e3tn")
+nav_agent_path = NodePath("../NavigationAgent")

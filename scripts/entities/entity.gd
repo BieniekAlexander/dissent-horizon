@@ -175,15 +175,22 @@ func _apply_team_tint() -> void:
 
 func initialize(a_map: Map, a_commander: Commander):
 	map = a_map
-	
-	 # TODO revisit. I'm trying to decide if all Entities need to be assigned to a commander
-	if default_commander_id>0:
-		commander = a_commander
-	# If not yet in the tree (standard scenario-spawn path), add as a child of
-	# the commander now. If already in the tree (auto-initialize from scene
-	# placement), _on_commander_changed handles reparenting via the signal.
+
+	# Add to the tree FIRST (standard dynamic-spawn path: trained units, built
+	# structures, projectiles). Entering the tree resolves the @onready
+	# `ownership` node, which the `commander` setter below delegates through —
+	# assigning before add_child would dereference a null ownership and crash.
+	# Already-in-tree entities (auto-initialize from scene placement) skip this;
+	# _on_commander_changed handles their reparenting via the signal.
 	if not is_inside_tree():
 		a_commander.add_child(self)
+
+	# Always honor the commander handed to us. The previous `default_commander_id
+	# > 0` gate dropped it for every dynamically-spawned entity (those default to
+	# 0), leaving Ownership._commander null — which crashes anything reading
+	# commander_id (e.g. fog.gd each physics frame). Scene-placed entities get
+	# their commander from Scenario._ready directly, so this doesn't disturb them.
+	commander = a_commander
 
 func _on_death() -> void:
 	for coords: Vector2i in pc_set.get_values():

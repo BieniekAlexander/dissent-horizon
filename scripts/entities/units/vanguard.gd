@@ -2,8 +2,8 @@ class_name Vanguard
 extends Commandable
 
 ## Vanguard unit. Its command set (Collect from a Lab, the command_launch →
-## Launch sub-context) lives in CommandContextRegistry keyed by
-## Entity.Type.UNIT_VANGUARD, not as a get_command_context() override.
+## Launch sub-context) is declared in CommandContextParser via predicates
+## keyed off Entity.Type.UNIT_VANGUARD.
 
 ## NODE
 func _process(delta: float) -> void:

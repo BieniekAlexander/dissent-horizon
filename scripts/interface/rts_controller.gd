@@ -59,15 +59,25 @@ const PLAYER_COMMANDER_ID: int = 1
 @onready var next_command_additive: bool = false
 var selection: Array[Node] = []
 var select_down_position: Vector2 = Vector2.ZERO
-var selected_unit_types: Set = Set.new()
 var current_command_type: Script = null
 
-var _active_command_context: CommandContext = CommandContext.NULL
-var active_command_context: CommandContext:
-	get: return _active_command_context
+## The set of command names available given the current selection — recomputed
+## (via CommandContextParser) whenever the selection changes. Used by the HUD
+## visibility loop and the hotkey-input gate in process_command(). Replaces
+## the merged CommandContext that the controller used to consult.
+var _available_commands: Array = []
+var available_commands: Array:
+	get: return _available_commands
 	set(value):
-		_active_command_context = value
+		_available_commands = value
 		upate_hud_buttons()
+
+## A hotkey like `command_attack_move` puts the controller into a "pending"
+## sub-mode where the next right-click resolves to AttackMove (or Attack on a
+## hostile target) instead of the default move/attack. Empty string = no
+## pending hotkey; resolve generically based on the cursor target. Replaces
+## the old state_maping-based sub-context machinery.
+var pending_command_name: String = ""
 
 ## NODE
 func _ready():
@@ -89,7 +99,8 @@ func _process(delta: float) -> void:
 		if not is_instance_valid(selection[i]):
 			selection.remove_at(i)
 
-	current_command_type = active_command_context.evaluate_command(
+	current_command_type = _resolve_command_class(
+		pending_command_name,
 		selection[0],
 		command_message
 	) if !selection.is_empty() else null
@@ -150,54 +161,116 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## CONTEXT SETTING
 func process_command(command_name: String) -> void:
+	var lead: Entity = selection[0] if !selection.is_empty() else null
+	# Both the tool-set branch and the hotkey branch require that the command
+	# actually applies to the current selection. The parser is the single
+	# source of truth — replaces the old CommandContext.command_available /
+	# CommandContext.get_new_context dispatch.
+	if lead == null or not CommandContextParser.command_available(command_name, lead):
+		return
+
 	if command_name.contains("tool"):
-		if active_command_context.command_available(command_name, selection[0]):
-			command_message.tool = Tool.command_tool_map[command_name]
+		command_message.tool = Tool.command_tool_map[command_name]
 	elif command_name.begins_with("command"):
-		active_command_context = active_command_context.get_new_context(command_name)
+		# Hotkey commands either fire immediately (no position needed, e.g.
+		# command_stop) or arm a pending sub-mode that the next right-click
+		# resolves (e.g. command_attack_move → Attack/AttackMove on click).
+		pending_command_name = command_name
 	else:
 		push_error("trying to process unknown action type: %s" % command_name)
 		return
-	
-	var command: Script = active_command_context.evaluate_command(
-		selection[0] if !selection.is_empty() else null,
-		command_message
-	)
-	
-	if command!=null and not command.requires_position():
+
+	var command: Script = _resolve_command_class(pending_command_name, lead, command_message)
+
+	if command != null and not command.requires_position():
 		assign_command_to_units(
 			command,
 			command_message,
 			next_command_additive
 		)
-	
+
 	upate_hud_buttons()
 
-func get_default_active_command_context(a_commandables: Array) -> CommandContext:
-	# The active context is the merge of the per-type CommandContext of every
-	# selected Entity.Type. Dedupe by Entity.Type so each type contributes its
-	# context once (entities of the same type resolve to the same context, and
-	# this preserves the original perf characteristic). A missing
-	# CommandContextProvider means the entity doesn't contribute at all.
-	a_commandables = a_commandables.filter(func(u): return is_instance_valid(u))
-	selected_unit_types.clear()
+## Picks the concrete Command Script class to instantiate given the controller
+## state. Replaces CommandContext.evaluate_command and the per-type Pattern
+## tables in the old registry. Resolution rules mirror the previous behavior:
+##
+##   - With `a_pending` set to a hotkey name, we're in a sub-mode armed by
+##     that hotkey. Target-sensitive sub-modes (attack_move) still pick a
+##     different class based on the cursor target.
+##   - With `a_pending` empty (default right-click), we resolve based on
+##     actor capability + target. Structures with a tool selected resolve to
+##     Train; technician/vanguard special targets resolve to PickUp/DropOff/
+##     Collect; hostile targets resolve to Attack; otherwise the basic move
+##     Command.
+##
+## Anything not matched falls through to null, which the caller treats as
+## "no valid command right now" (cursor goes invalid, no assignment fires).
+static func _resolve_command_class(
+	a_pending: String,
+	a_actor: Entity,
+	a_message: CommandMessage
+) -> Variant:
+	if a_actor == null:
+		return null
 
-	var contexts: Array = []
-	for c in a_commandables:
-		var unit_type = c.type
-		if selected_unit_types.contains(unit_type): continue
-		selected_unit_types.add(unit_type)
+	match a_pending:
+		"command_stop":
+			return Stop
+		"command_attack_move":
+			if a_message.target != null and a_message.target is Commandable:
+				return Attack
+			return AttackMove
+		"command_ability":
+			# Anima's Build sub-context.
+			return Build
+		"command_launch":
+			return Launch
+		"":
+			pass # fall through to default-target resolution below
+		_:
+			# command_tool_* and other hotkey aliases route through the
+			# default resolution: a structure with a tool set picks Train,
+			# everything else picks the basic Command.
+			pass
 
-		var provider: CommandContextProvider = c.get_node_or_null("CommandContextProvider")
-		if provider == null: continue
-		var ctx: CommandContext = provider.get_context()
-		if ctx != null:
-			contexts.append(ctx)
+	# Default resolution (no pending hotkey OR a tool-flavored alias).
+	var target = a_message.target
 
-	return contexts.reduce(
-		func(a, b): return CommandContext.merge(a, b),
-		CommandContext.NULL
-	)
+	# A producer with a tool selected is deliberately training.
+	if a_actor.has_node("Production") and a_message.tool != null:
+		return Train
+
+	# Unit-flavored special targets take priority over the generic attack.
+	if a_actor.type == Entity.Type.UNIT_VANGUARD and target is Lab:
+		return Collect
+	if a_actor.type == Entity.Type.UNIT_TECHNICIAN:
+		if target is Star:
+			return PickUp
+		if (
+			target is Entity
+			and (target as Entity).type == Entity.Type.STRUCTURE_OUTPOST
+			and not a_actor.inventory.is_empty()
+			and a_actor.inventory[0] is Star
+		):
+			return DropOff
+
+	# Hostile, weapon-matched target → Attack. This must precede the structure
+	# rally fallback below so a combatant structure (e.g. Turret) whose
+	# Production component would otherwise swallow the click as a rally point
+	# still resolves an explicit attack order. Non-combatant structures have
+	# empty weapon patterns, so Pattern.eval returns null and they fall
+	# through to rally unchanged.
+	if (
+		target != null
+		and target is Commandable
+		and (target as Commandable).commander_id != a_actor.commander_id
+		and Pattern.eval(WeaponPatternsRegistry.for_type(a_actor.type), target) != null
+	):
+		return Attack
+
+	# Producers fall back to rally; units to basic move — both plain Command.
+	return Command
 
 ## Return all Selectable nodes whose projected screen position falls within screen_rect.
 func query_box_collisions(screen_rect: Rect2) -> Array:
@@ -212,7 +285,7 @@ func deselect():
 		if is_instance_valid(c):
 			c.selectable.deselect()
 	selection = []
-	selected_unit_types = Set.new()
+	pending_command_name = ""
 
 func set_selection(selection_start_position: Vector2, selection_end_position: Vector2):
 	var drag_distance = abs(selection_start_position - selection_end_position)
@@ -228,7 +301,7 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 				if selectable.select():
 					selection.append(entity)
 
-	active_command_context = get_default_active_command_context(selection)
+	available_commands = CommandContextParser.commands_for_selection(selection)
 
 ## SETTING COMMANDS
 # TODO: unused function
@@ -254,33 +327,41 @@ func assign_command_to_units(
 	
 	if selection.size()==0:
 		push_error("no selections")
-		active_command_context = get_default_active_command_context(selection)
+		_reset_pending_state()
 		return false
-	
+
 	if a_command_type==null:
 		push_error("supplied a null command")
-		active_command_context = get_default_active_command_context(selection)
+		_reset_pending_state()
 		return false
 	else:
 		var check: Command.PreconditionFailureCause = a_command_type.meets_precondition(selection[0], a_command_message)
-		
+
 		if check!=Command.PreconditionFailureCause.NONE:
-			active_command_context = get_default_active_command_context(selection)
+			_reset_pending_state()
 			return false
 		else:
 			var new_command: Command = a_command_type.new(a_command_message)
-			
+
 			for c: Commandable in selection:
 				c.update_commands(
 					new_command,
 					add_to_queue
 				)
-	
+
 	if !add_to_queue:
-		active_command_context = get_default_active_command_context(selection)
+		_reset_pending_state()
 		command_message.clear()
-		
+
 	return true
+
+## After a command fires (or fails preconditions), drop the controller out of
+## any armed sub-mode and refresh the available-commands snapshot. Mirrors
+## the old "reset active_command_context to the default for the selection"
+## bookkeeping that lived inline at every exit path.
+func _reset_pending_state() -> void:
+	pending_command_name = ""
+	available_commands = CommandContextParser.commands_for_selection(selection)
 
 
 ## UTILS
@@ -298,8 +379,9 @@ func upate_hud_buttons() -> void:
 	# TODO definitely gonna refactor
 	for child: BoxContainer in $CommandsView.get_children():
 		for subchild: Button in child.get_children():
-			subchild.visible = !selection.is_empty() and active_command_context.command_available(
-				subchild.name, selection[0]
+			subchild.visible = (
+				!selection.is_empty()
+				and _available_commands.has(subchild.name)
 			)
 
 ### HUD signals

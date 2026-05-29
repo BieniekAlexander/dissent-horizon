@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://chn6tbb8uh0m5"]
+[gd_scene load_steps=14 format=3 uid="uid://chn6tbb8uh0m5"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_strct"]
 
@@ -23,6 +23,10 @@ colors = PackedColorArray(0, 0, 0, 1)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_4y8y4"]
 gradient = SubResource("Gradient_0noou")
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_44d7s"]
+height = 100.0
+radius = 5.0
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_vision"]
 height = 100.0
@@ -67,13 +71,18 @@ texture = SubResource("GradientTexture1D_4y8y4")
 region_enabled = true
 region_rect = Rect2(2, 0, 0, 0)
 
-[node name="VisionRange" parent="." index="12"]
+[node name="AttackRange" type="CollisionShape3D" parent="." index="8"]
+shape = SubResource("CylinderShape3D_44d7s")
+disabled = true
+debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
+
+[node name="VisionRange" parent="." index="10"]
 shape = SubResource("CylinderShape3D_vision")
 
-[node name="NavigationObstacle3D" parent="." index="14"]
+[node name="NavigationObstacle3D" parent="." index="12"]
 vertices = PackedVector3Array(1.35, 0, 0, 0.7, 1, 1.2, -0.7, 0, 1.2, -1.35, 0, 0, -0.7, 0, -1.2, 0.7, 0, -1.2)
 
-[node name="TrainBar" parent="." index="15"]
+[node name="TrainBar" parent="." index="13"]
 texture = SubResource("GradientTexture1D_1klos")
 
 [node name="TrainBarFill" parent="TrainBar" index="0"]

@@ -68,15 +68,15 @@ collision_layer = 256
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("BoxShape3D_4vk4e")
 
-[node name="VisionRange" parent="." index="12"]
+[node name="VisionRange" parent="." index="10"]
 shape = SubResource("CylinderShape3D_niu5p")
 
-[node name="NavigationObstacle3D" type="NavigationObstacle3D" parent="." index="14"]
+[node name="NavigationObstacle3D" type="NavigationObstacle3D" parent="." index="12"]
 height = 10.0
 vertices = PackedVector3Array(1, 0, 1, -1, 0, 1, -1, 0, -1, 1, 0, -1)
 affect_navigation_mesh = true
 
-[node name="TrainBar" type="Sprite3D" parent="." index="15"]
+[node name="TrainBar" type="Sprite3D" parent="." index="13"]
 transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.25, -0.2)
 visible = false
 pixel_size = 0.0001
@@ -89,9 +89,9 @@ region_rect = Rect2(2, 0, 0, 0)
 render_priority = 5
 texture = SubResource("GradientTexture1D_train_fill")
 
-[node name="Production" type="Node" parent="." index="16"]
+[node name="Production" type="Node" parent="." index="14"]
 script = ExtResource("7_prod0")
 train_bar_path = NodePath("../TrainBar")
 
-[node name="ResourceProvider" type="Node" parent="." index="17"]
+[node name="ResourceProvider" type="Node" parent="." index="15"]
 script = ExtResource("8_rspv0")

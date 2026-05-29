@@ -19,5 +19,5 @@ shape = SubResource("BoxShape3D_wykrx")
 [node name="Sprite" parent="." index="2"]
 transform = Transform3D(7.34, 0, 0, 0, 0.70710677, -4.8804507, 0, 0.70710677, 4.8804507, 0, 0.7910414, 0)
 
-[node name="OreExtractor" type="Node" parent="." index="12"]
+[node name="OreExtractor" type="Node" parent="." index="10"]
 script = ExtResource("3_oreex")

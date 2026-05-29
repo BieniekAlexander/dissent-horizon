@@ -8,8 +8,8 @@ armor = 1
 hpMax = 500.0
 ATTACK_DURATION = 0
 
-[node name="NavigationObstacle3D" parent="." index="0"]
-vertices = PackedVector3Array(4.05, 0, 0, 2.1, 3, 3.6, -2.1, 0, 3.6, -4.05, 0, 0, -2.1, 0, -3.6, 2.1, 0, -3.6)
-
-[node name="Sprite" parent="." index="1"]
+[node name="Sprite" parent="." index="2"]
 transform = Transform3D(20, 0, 0, 0, 2.725, 0, 0, 0, 18.807, 0, 0, 0)
+
+[node name="NavigationObstacle3D" parent="." index="11"]
+vertices = PackedVector3Array(4.05, 0, 0, 2.1, 3, 3.6, -2.1, 0, 3.6, -4.05, 0, 0, -2.1, 0, -3.6, 2.1, 0, -3.6)
