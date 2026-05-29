@@ -79,6 +79,17 @@ var available_commands: Array:
 ## the old state_maping-based sub-context machinery.
 var pending_command_name: String = ""
 
+## BUILD PLACEMENT PREVIEW
+## While a Build command is armed with a chosen Tool, we show a translucent
+## "ghost" of the structure under the cursor, snapped to the cell it would
+## occupy — the standard RTS placement preview. The ghost is a Sprite3D
+## duplicated out of the building's own scene (so it always matches the real
+## building art) and lives in the 3D world under the Map, not on this
+## CanvasLayer. We rebuild it only when the chosen structure changes.
+const BUILD_PREVIEW_ALPHA: float = 0.45
+var _build_preview: Node3D = null
+var _build_preview_tool_type: Variant = null
+
 ## NODE
 func _ready():
 	Input.set_custom_mouse_cursor(free_cursor)
@@ -121,6 +132,67 @@ func _process(delta: float) -> void:
 		Input.set_custom_mouse_cursor(free_cursor)
 	else:
 		Input.set_custom_mouse_cursor(invalid_cursor)
+
+	_update_build_preview()
+
+
+## Show / refresh / hide the translucent build-placement ghost. Called every
+## frame from _process. The ghost is visible only while the armed command is
+## Build and the player has chosen a Tool; it snaps to the same cell the
+## structure would be placed in, so the preview matches the real placement.
+func _update_build_preview() -> void:
+	var should_show: bool = (
+		current_command_type == Build
+		and command_message.tool != null
+	)
+	if not should_show:
+		if _build_preview != null and is_instance_valid(_build_preview):
+			_build_preview.visible = false
+		return
+
+	# (Re)build the ghost sprite when the chosen structure changes.
+	if _build_preview == null or not is_instance_valid(_build_preview) \
+			or command_message.tool.type != _build_preview_tool_type:
+		_rebuild_build_preview(command_message.tool)
+
+	# Snap to the cell the structure would occupy; hide if off-map so we never
+	# index the heightmap out of bounds (grid_to_world reads map_data directly).
+	var cell: Vector2i = map.world_to_grid(command_message.xz_position)
+	if not map.grid_coordinates_in_bounds(cell):
+		_build_preview.visible = false
+		return
+	_build_preview.global_position = map.grid_to_world(cell)
+	_build_preview.visible = true
+
+
+## Rebuild the ghost's sprite from the structure's own scene so the preview
+## always matches the real building art — including the player's team tint. The
+## source is the builder's Commander's live, team-tinted preview instance (kept
+## out of the tree, see Commander.get_build_preview_instance), so we don't
+## re-instantiate the scene here and the ghost inherits the per-commander
+## `modulate` color. We duplicate that Sprite and knock its alpha down to make
+## the placement preview translucent.
+func _rebuild_build_preview(a_tool: Tool) -> void:
+	if _build_preview == null or not is_instance_valid(_build_preview):
+		_build_preview = Node3D.new()
+		_build_preview.name = "BuildPreview"
+		_build_preview.visible = false
+		map.add_child(_build_preview)
+
+	for child in _build_preview.get_children():
+		child.free()
+	_build_preview_tool_type = a_tool.type
+
+	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
+	var commander: Commander = lead.commander if lead != null else null
+	var source: Node = commander.get_build_preview_instance(a_tool) if commander != null else null
+	if source == null:
+		return
+	var sprite := source.get_node_or_null("Sprite") as Sprite3D
+	if sprite != null:
+		var ghost := sprite.duplicate() as Sprite3D
+		ghost.modulate.a = BUILD_PREVIEW_ALPHA
+		_build_preview.add_child(ghost)
 
 
 func _unhandled_input(event: InputEvent) -> void:

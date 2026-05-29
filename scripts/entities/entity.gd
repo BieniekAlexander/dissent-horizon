@@ -169,9 +169,27 @@ func _apply_team_tint() -> void:
 	# setter had to know about the Sprite child. Now it's a separate concern
 	# driven by Ownership's commander_changed signal; a future SpriteVisual
 	# component should own this logic entirely.
+	#
+	# Resolve the Ownership node directly (rather than via the @onready
+	# `ownership` shim) so this also works on out-of-tree instances — e.g. the
+	# commander-owned build-placement previews, whose @onready members never
+	# resolve because they're never added to the SceneTree.
+	var own := get_node_or_null("Ownership") as Ownership
+	var id: int = own.commander_id if own != null else 0
 	var sprite: Node = get_node_or_null("Sprite")
 	if sprite != null and "modulate" in sprite:
-		sprite.modulate = TEAM_COLOR_MAP.get(commander_id, Color.WHITE)
+		sprite.modulate = TEAM_COLOR_MAP.get(id, Color.WHITE)
+
+## Configure this entity as a commander-owned visual preview (the build
+## placement "ghost") without the full initialize() / tree-entry path: assign
+## ownership and apply the team tint, but skip map registration, physics, group
+## activation and reparenting. Safe to call on an instance that is never added
+## to the SceneTree (so its @onready members never resolve).
+func configure_preview_ownership(a_commander: Commander) -> void:
+	var own := get_node_or_null("Ownership") as Ownership
+	if own != null:
+		own.commander = a_commander
+	_apply_team_tint()
 
 func initialize(a_map: Map, a_commander: Commander):
 	map = a_map

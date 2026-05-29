@@ -65,6 +65,41 @@ func remove_structure(a_structure: Commandable) -> void:
 	proc_technology()
 
 #### UNITS
+
+### BUILD PREVIEW INSTANCES
+## Live, out-of-tree instances of each buildable structure, kept so the build
+## "ghost" can reference a team-tinted version of the real building art. Keyed by
+## Entity.Type. These are deliberately NOT added to the SceneTree (so their
+## _ready / physics / fog / auto-init logic never runs and they're never
+## registered as real structures); because they're orphaned, we free them
+## explicitly on PREDELETE. Instantiating them through the Commander also means
+## runtime changes to a building type (e.g. an upgraded sprite) flow through to
+## the preview automatically.
+var _build_preview_instances: Dictionary = {}
+
+## Return (creating and caching on first use) a live, team-tinted instance of the
+## structure for the given Tool, for use as a placement-preview source. The
+## instance carries this commander's tint via configure_preview_ownership. Never
+## added to the tree. Returns null if the tool has no packed scene.
+func get_build_preview_instance(a_tool: Tool) -> Node:
+	if a_tool == null or a_tool.packed_scene == null:
+		return null
+	var cached: Variant = _build_preview_instances.get(a_tool.type)
+	if cached != null and is_instance_valid(cached):
+		return cached
+	var instance: Node = a_tool.packed_scene.instantiate()
+	if instance is Entity:
+		(instance as Entity).configure_preview_ownership(self)
+	_build_preview_instances[a_tool.type] = instance
+	return instance
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for inst in _build_preview_instances.values():
+			if is_instance_valid(inst):
+				inst.free()
+		_build_preview_instances.clear()
+
 ### NODE
 func _ready() -> void:
 	for s in Entity.Type.values():
