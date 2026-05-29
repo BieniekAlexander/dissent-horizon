@@ -22,3 +22,10 @@ res://scenes/structures/lab.tscn
 res://scenes/structures/outpost.tscn
 res://scripts/entities/entity.gd
 res://scripts/entities/components/ownership.gd
+res://scenes/units/technician.tscn
+res://scenes/scenarios/s1.tscn
+res://scripts/entities/tools/tool.gd
+res://scripts/interface/commands/build.gd
+res://scripts/entities/commandable.gd
+res://scripts/maps/map.gd
+res://scripts/utils/space_utils.gd

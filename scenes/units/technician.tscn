@@ -6,13 +6,14 @@
 
 [node name="Unit2" instance=ExtResource("1_ucq5h")]
 script = ExtResource("2_bfkh4")
-SPEED = 0.2
-attributes_list = Array[int]([1])
-AGGRO_RANGE = 100.0
 type = 4352
-sight_range = 10
+attributes_list = Array[int]([1])
+SPEED = 0.1
 
 [node name="Sprite" parent="." index="2"]
-transform = Transform3D(3, 0, 0, 0, 2.12132, -2.12132, 0, 2.12132, 2.12132, 0, 0, 0)
+transform = Transform3D(3, 0, 0, 0, 2.12132, -2.12132, 0, 2.12132, 2.12132, 0, 0.34201145, 0)
 flip_h = true
 texture = ExtResource("3_0rgnf")
+
+[node name="HPBar" parent="." index="3"]
+transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.72988397, -0.30808753)

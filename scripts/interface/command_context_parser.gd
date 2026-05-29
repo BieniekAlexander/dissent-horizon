@@ -105,3 +105,30 @@ static func commands_for_selection(a_entities: Array) -> Array:
 ## but written out for readability at call sites.
 static func command_available(a_command_name: String, a_entity: Entity) -> bool:
 	return commands_for(a_entity).has(a_command_name)
+
+## Every structure a builder could ever place. Filtered per-entity by
+## build_tools_for(). Kept separate from the rules table because build tools are
+## NOT part of a unit's base command set — structures surface their *train*
+## tools directly in the flat HUD, whereas these live behind the controller's
+## "Build" (command_ability) sub-menu and are queried on demand.
+const BUILD_TOOL_NAMES: Array = [
+	"command_tool_outpost",
+	"command_tool_dwelling",
+	"command_tool_mine",
+	"command_tool_lab",
+	"command_tool_compound",
+	"command_tool_armory",
+]
+
+## The build-tool command names the given entity can construct, in menu order.
+## Drives the controller's Build sub-menu and gates build-tool clicks. Source of
+## truth is Build.tool_applies_to (the same table Build itself consults), so the
+## menu can never advertise a structure the command would reject.
+static func build_tools_for(a_entity: Entity) -> Array:
+	var result: Array = []
+	if a_entity == null or not is_instance_valid(a_entity):
+		return result
+	for tool_name in BUILD_TOOL_NAMES:
+		if Build.tool_applies_to(tool_name, a_entity.type):
+			result.append(tool_name)
+	return result

@@ -83,8 +83,21 @@ static func get_arrangement_cells(
 			)
 		)
 
-static func valid_placement(_a_command_message: CommandMessage, _a_dimensions: Vector2i) -> bool:
-	push_error("TODO")
+## True iff every cell of the structure's footprint is in-bounds and currently
+## unoccupied. The clicked world position is treated as the footprint's origin
+## (min-x/min-y corner), matching how add_structure marks the footprint, so the
+## cursor's valid/invalid feedback agrees with where the building actually lands.
+static func valid_placement(a_command_message: CommandMessage, a_dimensions: Vector2i) -> bool:
+	var placement_map: Map = a_command_message.map
+	if placement_map == null:
+		return false
+	var origin: Vector2i = placement_map.world_to_grid(a_command_message.xz_position)
+	for coords in get_grid_coordinates(origin, a_dimensions):
+		var cell := Vector2i(coords)
+		if not placement_map.grid_coordinates_in_bounds(cell):
+			return false
+		if placement_map.cell_grid[cell.x][cell.y] != null:
+			return false
 	return true
 
 ### WEAPON

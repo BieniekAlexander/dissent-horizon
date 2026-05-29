@@ -182,3 +182,34 @@ func test_selection_ignores_invalid_entries():
 	autofree(stray)
 	var cmds := CommandContextParser.commands_for_selection([null, e, stray])
 	assert_true(cmds.has("command_attack_move"))
+
+## --- build_tools_for: the Technician Build sub-menu ------------------------
+
+func test_technician_build_tools_are_the_buildable_structures():
+	# build_tools_for mirrors Build.tool_applies_to for the Technician — the
+	# structures the controller's Build sub-menu offers.
+	var e := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
+	var tools := CommandContextParser.build_tools_for(e)
+	assert_true(tools.has("command_tool_outpost"))
+	assert_true(tools.has("command_tool_dwelling"))
+	assert_true(tools.has("command_tool_mine"))
+	assert_true(tools.has("command_tool_lab"))
+	assert_true(tools.has("command_tool_compound"))
+	assert_true(tools.has("command_tool_armory"))
+
+func test_non_builder_has_no_build_tools():
+	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	assert_eq(CommandContextParser.build_tools_for(e), [])
+
+func test_build_tools_for_null_is_empty():
+	assert_eq(CommandContextParser.build_tools_for(null), [])
+
+func test_build_tools_stay_out_of_the_flat_command_set():
+	# Build tools live behind the Build sub-menu (queried via build_tools_for),
+	# NOT in the unit's base command set — otherwise they'd clutter the flat HUD
+	# and the selection union. The Build entry point itself must still be there.
+	var e := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
+	_add_named_child(e, "Movement")
+	var cmds := CommandContextParser.commands_for(e)
+	assert_false(cmds.has("command_tool_outpost"), "build tools stay out of the flat command set")
+	assert_true(cmds.has("command_ability"), "but the Build entry point is present")

@@ -166,7 +166,19 @@ func process_command(command_name: String) -> void:
 	# actually applies to the current selection. The parser is the single
 	# source of truth — replaces the old CommandContext.command_available /
 	# CommandContext.get_new_context dispatch.
-	if lead == null or not CommandContextParser.command_available(command_name, lead):
+	#
+	# Build tools (command_tool_outpost, ...) are the exception: they aren't part
+	# of a unit's base command set, so they only become selectable once the
+	# player has armed the Build sub-menu (pending_command_name == "command_ability")
+	# and only for structures this builder can actually place.
+	var is_build_tool: bool = (
+		pending_command_name == "command_ability"
+		and CommandContextParser.build_tools_for(lead).has(command_name)
+	)
+	if lead == null or (
+		not CommandContextParser.command_available(command_name, lead)
+		and not is_build_tool
+	):
 		return
 
 	if command_name.contains("tool"):
@@ -377,12 +389,23 @@ static func get_action_names_by_prefix(event: InputEvent, event_prefix: String) 
 ### HUD updates
 func upate_hud_buttons() -> void:
 	# TODO definitely gonna refactor
+	var visible_names: Array = _visible_command_names()
 	for child: BoxContainer in $CommandsView.get_children():
 		for subchild: Button in child.get_children():
-			subchild.visible = (
-				!selection.is_empty()
-				and _available_commands.has(subchild.name)
-			)
+			subchild.visible = visible_names.has(subchild.name)
+
+## The command names whose HUD buttons should be visible for the current state.
+## Normally the selection's available commands, but once the player arms "Build"
+## (command_ability) we drill into the builder's buildable-structure tools so
+## they can pick what to place. Issuing or re-selecting clears pending_command_name
+## (via _reset_pending_state / deselect), which drops the menu back to the flat
+## command set.
+func _visible_command_names() -> Array:
+	if selection.is_empty():
+		return []
+	if pending_command_name == "command_ability":
+		return CommandContextParser.build_tools_for(selection[0])
+	return _available_commands
 
 ### HUD signals
 func _on_control_button_pressed(control_name: String) -> void:

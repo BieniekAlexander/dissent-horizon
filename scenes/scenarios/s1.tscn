@@ -1,8 +1,9 @@
-[gd_scene load_steps=15 format=4 uid="uid://cff5ag28s3u4b"]
+[gd_scene load_steps=16 format=4 uid="uid://cff5ag28s3u4b"]
 
 [ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_hbnr0"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_yyjyw"]
 [ext_resource type="PackedScene" uid="uid://d23qg30wikg14" path="res://scenes/units/vanguard.tscn" id="3_jewlw"]
+[ext_resource type="PackedScene" uid="uid://5kevopkrq8ts" path="res://scenes/units/technician.tscn" id="4_csmey"]
 [ext_resource type="Shape3D" uid="uid://bmkey18lrpkej" path="res://resources/map.tres" id="5_cjm28"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/sentry.tscn" id="5_jewlw"]
 [ext_resource type="PackedScene" uid="uid://d372d5stwv6gt" path="res://scenes/structures/mine.tscn" id="6_cjm28"]
@@ -47,54 +48,50 @@ script = ExtResource("1_hbnr0")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.802922, 0, -3.4934082)
 type = 4353
 default_commander_id = 1
-SPEED = 0.1
 
 [node name="Unit1_2" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.433595, 0, -0.9362793)
 type = 4353
 default_commander_id = 1
-SPEED = 0.1
 
 [node name="Unit1_3" parent="." instance=ExtResource("3_jewlw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.054028, 0, -6.9954834)
 default_commander_id = 1
 SPEED = 0.1
 
+[node name="Unit2" parent="." instance=ExtResource("4_csmey")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.028023, 0, -4.42395)
+default_commander_id = 1
+
 [node name="Unit2_1" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.963486, 0, -6.9921875)
 type = 4353
 default_commander_id = 2
-SPEED = 0.1
 
 [node name="Unit2_2" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.106402, 0, -5.0290527)
 type = 4353
 default_commander_id = 2
-SPEED = 0.1
 
 [node name="Unit2_3" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.48049, 0, 4.0217285)
 type = 4353
 default_commander_id = 2
-SPEED = 0.1
 
 [node name="Unit2_4" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.623406, 0, 5.9848633)
 type = 4353
 default_commander_id = 2
-SPEED = 0.1
 
 [node name="Unit2_5" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.48049, 0, -1.1429443)
 type = 4353
 default_commander_id = 2
-SPEED = 0.1
 
 [node name="Unit2_6" parent="." instance=ExtResource("5_jewlw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.623406, 0, 0.8201904)
 type = 4353
 default_commander_id = 2
-SPEED = 0.1
 
 [node name="Map" type="Node3D" parent="."]
 script = ExtResource("2_yyjyw")

@@ -96,10 +96,18 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: int, _rebake: bool = true) -> void:
 	a_structure.global_position = grid_to_world(grid_location)
 
+	# Footprint size comes from the structure's StructureSpec.dimensions so the
+	# cells we reserve match exactly what Commandable.valid_placement validated.
+	# Spec-less types (e.g. Turret) fall back to width/length. Out-of-bounds
+	# cells are skipped defensively — valid_placement should have rejected them.
+	var spec: StructureSpec = StructureSpec.structure_type_spec_map.get(a_structure.type)
+	var dims: Vector2i = Vector2i(spec.dimensions) if spec != null else Vector2i(a_structure.width, a_structure.length)
 	var footprint: Array[Vector2i] = []
-	for w in range(a_structure.width):
-		for l in range(a_structure.length):
+	for w in range(dims.x):
+		for l in range(dims.y):
 			var cell := Vector2i(grid_location.x + w, grid_location.y + l)
+			if not grid_coordinates_in_bounds(cell):
+				continue
 			cell_grid[cell.x][cell.y] = a_structure
 			footprint.append(cell)
 

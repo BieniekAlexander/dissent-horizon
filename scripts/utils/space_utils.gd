@@ -53,11 +53,27 @@ static func unit_is_close_to_position(a_unit: Commandable, a_position: Vector2, 
 		a_position - a_unit.xz_position
 	).length_squared() - a_unit.collision_radius**2 < distance_squared
 
-static func unit_is_close_to_structure(a_unit: Commandable, a_structure: Commandable, distance_squared: float = .001) -> bool:
-	# specifically checks that the borders of the cillision circles is less than some distance
-	return linf_distance(
-		VU.inXZ(a_unit.global_position), VU.inXZ(a_structure.global_position)
-	) < distance_squared
+static func unit_is_close_to_structure(a_unit: Commandable, a_structure: Commandable, _distance_squared: float = .001) -> bool:
+	# A unit counts as close to a structure when its grid cell lies within the
+	# structure's footprint or is immediately adjacent to it. Measuring against
+	# the whole footprint (rather than the structure's single origin cell) makes
+	# proximity scale with the building's size: otherwise a builder/collector
+	# would have to stand *on* a cell the structure itself occupies, which is
+	# impossible for anything larger than 1x1 — the old same-cell check could
+	# never succeed for a multi-cell structure, so a builder could never finish
+	# (Repair) a large building it had just placed.
+	var placement_map: Map = a_structure.map
+	if placement_map == null:
+		return linf_distance(VU.inXZ(a_unit.global_position), VU.inXZ(a_structure.global_position)) <= 1
+	var unit_cell: Vector2i = placement_map.world_to_grid(VU.inXZ(a_unit.global_position))
+	var footprint: Array = placement_map.structure_cell_map.get(a_structure, [])
+	if footprint.is_empty():
+		# Footprint not registered yet — fall back to the structure's origin cell.
+		return linf_distance(unit_cell, placement_map.world_to_grid(VU.inXZ(a_structure.global_position))) <= 1
+	for cell in footprint:
+		if linf_distance(unit_cell, cell) <= 1:
+			return true
+	return false
 
 static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distance_squared: float = .001) -> bool:
 	# specifically checks that the borders of the cillision circles is less than some distance
