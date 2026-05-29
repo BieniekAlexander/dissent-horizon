@@ -17,7 +17,9 @@ static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type)
 
 static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) -> PreconditionFailureCause:
 	if a_message.tool==null:
-		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+		# Build is entered but the player hasn't chosen which structure to place
+		# yet — a pending selection, not a failure.
+		return PreconditionFailureCause.COMMAND_PENDING_TOOL
 	elif not a_actor.commander.has_resources_for(a_message.tool.type):
 		return PreconditionFailureCause.NOT_ENOUGH_RESOURCES
 	elif not StructureSpec.structure_type_spec_map[a_message.tool.type].placement_checker.call(

@@ -115,6 +115,10 @@ func _process(delta: float) -> void:
 	
 	if check==Command.PreconditionFailureCause.NONE:
 		Input.set_custom_mouse_cursor(cursor_evaluator(current_command_type, command_message))
+	elif check==Command.PreconditionFailureCause.COMMAND_PENDING_TOOL:
+		# Not a failure — the command is awaiting the player's tool selection, so
+		# keep the default cursor rather than flagging an invalid placement.
+		Input.set_custom_mouse_cursor(free_cursor)
 	else:
 		Input.set_custom_mouse_cursor(invalid_cursor)
 

@@ -29,3 +29,4 @@ res://scripts/interface/commands/build.gd
 res://scripts/entities/commandable.gd
 res://scripts/maps/map.gd
 res://scripts/utils/space_utils.gd
+res://scripts/interface/commands/command.gd

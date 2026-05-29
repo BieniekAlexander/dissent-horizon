@@ -8,7 +8,10 @@ enum PreconditionFailureCause {
 	NOT_ENOUGH_RESOURCES,
 	TECHNOLOGY_NOT_AVAILABLE,
 	INVALID_PLACEMENT,
-	UNENUMERATED_FAILURE_CAUSE
+	UNENUMERATED_FAILURE_CAUSE,
+	# Not a failure: the command is entered but still waiting on the player to
+	# pick the tool/option it needs (e.g. Build with no structure chosen yet).
+	COMMAND_PENDING_TOOL
 }
 
 static var precondition_message_map: Dictionary = {
@@ -16,7 +19,8 @@ static var precondition_message_map: Dictionary = {
 	PreconditionFailureCause.NOT_ENOUGH_RESOURCES: "Not enough resources",
 	PreconditionFailureCause.TECHNOLOGY_NOT_AVAILABLE: "Technology not available",
 	PreconditionFailureCause.INVALID_PLACEMENT: "Invalid Placement",
-	PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE: "Unspecified failure"
+	PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE: "Unspecified failure",
+	PreconditionFailureCause.COMMAND_PENDING_TOOL: "Select an Option"
 }
 
 static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type):
