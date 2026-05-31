@@ -24,14 +24,27 @@ func _make_entity(a_type: int, a_groups: PackedStringArray = PackedStringArray()
 	return e
 
 func _add_named_child(a_parent: Node, a_name: String) -> Node:
-	# The parser only ever checks has_node("Movement") / has_node("Production"),
-	# so a bare Node with the right name is sufficient — we don't need to
-	# stand up real Movement/Production component scripts.
+	# The parser only ever checks has_node("Movement") for the movement/rally
+	# predicates, so a bare Node with the right name is sufficient there — we
+	# don't need to stand up a real Movement component script. (Production is the
+	# exception now: see _add_production, since the parser reads producible_types
+	# off the real component to build the train menu.)
 	var n := Node.new()
 	n.name = a_name
 	a_parent.add_child(n)
 	autofree(n)
 	return n
+
+func _add_production(a_parent: Node, a_producible_types: Array) -> Production:
+	# A real Production component — the parser's train_tools_for() reads its
+	# producible_types to decide which command_tool_* names the structure offers,
+	# so (unlike Movement) a bare placeholder Node won't do.
+	var p := Production.new()
+	p.name = "Production"
+	p.producible_types.assign(a_producible_types)
+	a_parent.add_child(p)
+	autofree(p)
+	return p
 
 ## --- commands_for: empty / null cases --------------------------------------
 
@@ -47,12 +60,12 @@ func test_bare_entity_with_no_components_and_no_groups_returns_empty():
 ## --- Unit-flavored predicates ---------------------------------------------
 
 func test_unit_with_movement_gets_movement_commands():
-	# UNIT_SENTRY with both a Movement and an AttackRange child stands in for a
+	# UNIT_SENTRY with both a Movement and an Inventory child stands in for a
 	# generic combat unit. command_move comes from Movement; the attack-flavored
-	# commands come from AttackRange.
+	# commands come from Inventory.
 	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "AttackRange")
+	_add_named_child(e, "Inventory")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_move"), "movement-bearing unit can move")
 	assert_true(cmds.has("command_attack_move"), "unit can attack-move")
@@ -60,12 +73,12 @@ func test_unit_with_movement_gets_movement_commands():
 	assert_true(cmds.has("command_attack"), "unit can attack")
 
 func test_attack_range_without_movement_still_has_combat_commands():
-	# The turret-like shape: an AttackRange-bearing entity with no Movement node
-	# loses command_move but keeps every AttackRange-flavored command — stop,
+	# The turret-like shape: an Inventory-bearing entity with no Movement node
+	# loses command_move but keeps every Inventory-flavored command — stop,
 	# attack, AND attack-move (the parser couples both attack commands to the
-	# AttackRange predicate).
+	# Inventory predicate).
 	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
-	_add_named_child(e, "AttackRange")
+	_add_named_child(e, "Inventory")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_false(cmds.has("command_move"))
 	assert_true(cmds.has("command_attack_move"))
@@ -85,10 +98,10 @@ func test_structure_with_production_gets_train_and_rally_move():
 
 func test_compound_advertises_only_its_train_tools():
 	var e := _make_entity(Entity.Type.STRUCTURE_COMPOUND, ["structure"])
-	_add_named_child(e, "Production")
+	# The Production component's producible_types is the source of truth for what
+	# the structure can train.
+	_add_production(e, [Entity.Type.UNIT_SENTRY, Entity.Type.UNIT_VANGUARD])
 	var cmds := CommandContextParser.commands_for(e)
-	# Train.tool_applies_to says Compound trains Sentry + Vanguard, nothing
-	# else.
 	assert_true(cmds.has("command_tool_sentry"))
 	assert_true(cmds.has("command_tool_vanguard"))
 	assert_false(cmds.has("command_tool_technician"))
@@ -96,7 +109,7 @@ func test_compound_advertises_only_its_train_tools():
 
 func test_outpost_advertises_only_technician_tool():
 	var e := _make_entity(Entity.Type.STRUCTURE_OUTPOST, ["structure"])
-	_add_named_child(e, "Production")
+	_add_production(e, [Entity.Type.UNIT_TECHNICIAN])
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_tool_technician"))
 	assert_false(cmds.has("command_tool_sentry"))
@@ -107,7 +120,7 @@ func test_outpost_advertises_only_technician_tool():
 func test_technician_has_build_ability_and_inventory_actions():
 	var e := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "AttackRange")
+	_add_named_child(e, "Inventory")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_ability"))
 	assert_true(cmds.has("command_build"))
@@ -122,7 +135,7 @@ func test_technician_has_build_ability_and_inventory_actions():
 func test_vanguard_has_launch_and_collect():
 	var e := _make_entity(Entity.Type.UNIT_VANGUARD, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "AttackRange")
+	_add_named_child(e, "Inventory")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_launch"))
 	assert_true(cmds.has("command_collect"))
@@ -135,7 +148,7 @@ func test_vanguard_has_launch_and_collect():
 func test_command_available_matches_commands_for():
 	var e := _make_entity(Entity.Type.UNIT_VANGUARD, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "AttackRange")
+	_add_named_child(e, "Inventory")
 	assert_true(CommandContextParser.command_available("command_launch", e))
 	assert_true(CommandContextParser.command_available("command_attack_move", e))
 	assert_false(CommandContextParser.command_available("command_ability", e))
@@ -152,7 +165,7 @@ func test_selection_union_combines_disparate_unit_types():
 	var anima := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
 	_add_named_child(anima, "Movement")
 	var compound := _make_entity(Entity.Type.STRUCTURE_COMPOUND, ["structure"])
-	_add_named_child(compound, "Production")
+	_add_production(compound, [Entity.Type.UNIT_SENTRY, Entity.Type.UNIT_VANGUARD])
 
 	var cmds := CommandContextParser.commands_for_selection([anima, compound])
 	assert_true(cmds.has("command_ability"), "anima contributes ability")
@@ -176,7 +189,7 @@ func test_selection_deduplicates_shared_commands():
 func test_selection_ignores_invalid_entries():
 	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "AttackRange")
+	_add_named_child(e, "Inventory")
 	# Mix in nulls and a non-Entity object; parser should skip them silently.
 	var stray := Node.new()
 	autofree(stray)
@@ -213,3 +226,43 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 	var cmds := CommandContextParser.commands_for(e)
 	assert_false(cmds.has("command_tool_outpost"), "build tools stay out of the flat command set")
 	assert_true(cmds.has("command_ability"), "but the Build entry point is present")
+
+## --- train_tools_for: production-driven menu -------------------------------
+
+func test_train_tools_for_reads_production_component():
+	var e := _make_entity(Entity.Type.STRUCTURE_COMPOUND, ["structure"])
+	_add_production(e, [Entity.Type.UNIT_SENTRY])
+	assert_eq(CommandContextParser.train_tools_for(e), ["command_tool_sentry"])
+
+func test_train_tools_for_entity_without_production_is_empty():
+	# A producer-less entity (e.g. a plain unit) offers no train tools.
+	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	assert_eq(CommandContextParser.train_tools_for(e), [])
+
+func test_train_tools_for_null_is_empty():
+	assert_eq(CommandContextParser.train_tools_for(null), [])
+
+## --- Scene config: producible_types is wired in the real .tscn files -------
+## These instantiate the actual structure scenes (not added to the tree) to
+## prove the Production node's producible_types export survives in the inherited
+## scene and that the parser surfaces the right train tools end-to-end.
+
+func test_outpost_scene_produces_technician():
+	var outpost: Node = load("res://scenes/structures/outpost.tscn").instantiate()
+	autofree(outpost)
+	var prod := outpost.get_node("Production") as Production
+	assert_not_null(prod, "outpost.tscn has a Production node")
+	assert_true(prod.can_produce(Entity.Type.UNIT_TECHNICIAN), "outpost trains technicians")
+	assert_true(CommandContextParser.commands_for(outpost).has("command_tool_technician"))
+
+func test_compound_scene_produces_sentry_and_vanguard():
+	var compound: Node = load("res://scenes/structures/compound.tscn").instantiate()
+	autofree(compound)
+	var prod := compound.get_node("Production") as Production
+	assert_not_null(prod, "compound.tscn has a Production node")
+	assert_true(prod.can_produce(Entity.Type.UNIT_SENTRY), "compound trains sentries")
+	assert_true(prod.can_produce(Entity.Type.UNIT_VANGUARD), "compound trains vanguards")
+	assert_false(prod.can_produce(Entity.Type.UNIT_TECHNICIAN), "compound does not train technicians")
+	var cmds := CommandContextParser.commands_for(compound)
+	assert_true(cmds.has("command_tool_sentry"))
+	assert_true(cmds.has("command_tool_vanguard"))

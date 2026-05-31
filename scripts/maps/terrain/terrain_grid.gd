@@ -12,17 +12,13 @@ extends Node
 ## Cell (gx, gz) spans the four heightmap corners
 ## (gx, gz), (gx+1, gz), (gx+1, gz+1), (gx, gz+1).
 
-## CollisionShape3D whose .shape is the HeightMapShape3D.
-@export var terrain_collision: CollisionShape3D
+## The heightmap resource that defines terrain extent and corner heights.
+## Set by Map._ready() from Map.height_map.
+var height_map: HeightMapShape3D
 
-## StaticBody3D that owns terrain_collision.  Its global_transform converts
-## heightmap-local positions to world space.
+## StaticBody3D retained for NavManager's global_transform reference until the
+## coordinate frame is fully migrated off the physics body.
 @export var terrain_body: StaticBody3D
-
-## World-space size of one grid cell (= terrain_body.scale.x, assuming
-## uniform XZ scaling).  Set this to match the scene's terrain scale so
-## that Map.grid_to_world / world_to_grid round-trip correctly.
-@export var cell_size: float = 100.0
 
 var _building_footprints: Dictionary = {}  # Object  -> Array[Vector2i]
 var _building_cells:      Dictionary = {}  # Vector2i -> Object
@@ -31,16 +27,14 @@ signal cells_changed(cells: Array)
 
 
 func _ready() -> void:
-	assert(terrain_collision != null, "TerrainGrid: terrain_collision must be set before adding to tree")
-	assert(terrain_body      != null, "TerrainGrid: terrain_body must be set before adding to tree")
-	assert(terrain_collision.shape is HeightMapShape3D,
-		"TerrainGrid: terrain_collision.shape must be a HeightMapShape3D")
+	assert(height_map  != null, "TerrainGrid: height_map must be set before adding to tree")
+	assert(terrain_body != null, "TerrainGrid: terrain_body must be set before adding to tree")
 
 
 # --- Shape accessors -------------------------------------------------------
 
 func height_shape() -> HeightMapShape3D:
-	return terrain_collision.shape as HeightMapShape3D
+	return height_map
 
 ## Total number of height-sample columns (X direction).
 func map_width() -> int:

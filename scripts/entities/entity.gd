@@ -95,13 +95,13 @@ var xz_position: Vector2:
 var map: Map
 var pc_set: Set = Set.new()
 @onready var collider: CollisionShape3D = get_node_or_null("Body")
-@onready var attack_range_shape: CollisionShape3D = get_node_or_null("AttackRange")
 @onready var aggro_range_shape: CollisionShape3D = get_node_or_null("AggroRange")
 
-## Override in unit scripts to return different shapes based on the target's
-## properties (e.g. LocomotionMode) when multiple attack types are needed.
-func _get_attack_range_shape(_target: Entity) -> CollisionShape3D:
-	return attack_range_shape
+### WEAPONS
+## The Inventory node whose children are this entity's Weapon nodes.
+## Null for entities that carry no weapons (structures without AttackRange,
+## plain workers, etc.). All weapon queries go through this node.
+@onready var weapon_inventory: Inventory = get_node_or_null("Inventory") as Inventory
 
 var collision_radius: float:
 	get:
@@ -148,13 +148,15 @@ func _auto_initialize() -> void:
 	initialize(found_map, found_commander)
 	# Grid registration: editor-placed structures aren't spawned through
 	# map.add_entity(), so add_structure() has never been called for them.
-	if is_in_group("structure") and not found_map.structure_cell_map.has(self):
-		found_map.add_structure(
-			self,
-			found_map.world_to_grid(VU.inXZ(pre_init_pos)),
-			0,
-			false
-		)
+	# pre_init_pos is the visual centre of the mesh. add_structure treats its
+	# grid_location argument as the top-left (min-x/min-z) corner of the
+	# footprint, so we subtract the centroid offset to recover that corner.
+	var obstruction := get_node_or_null("Obstruction") as Obstruction
+	if obstruction != null and not found_map.structure_cell_map.has(self):
+		var dims := obstruction.dimensions
+		var visual_cell := found_map.world_to_grid(VU.inXZ(pre_init_pos))
+		var centroid_offset := Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
+		found_map.add_structure(self, visual_cell - centroid_offset, 0, false)
 
 func _on_commander_changed(_old_commander: Commander, new_commander: Commander) -> void:
 	_apply_team_tint()

@@ -62,10 +62,9 @@ func _process_commands() -> void:
 
 		if !owner.movement.is_navigation_finished():
 			var next_path_position: Vector3 = owner.movement.get_next_path_position()
-			# Compute horizontal-only velocity. direction_to includes a Y component
-			# whenever the navmesh and the unit sit at different world heights, which
-			# drives the unit through geometry. All RTS movement is on a flat surface,
-			# so the Y term is always noise.
+			# Keep velocity XZ-only so the RVO avoidance system receives a clean
+			# 2D input.  Vertical terrain tracking is handled per-tick in
+			# Commandable._physics_process via Map.terrain_height_at().
 			var prelim_velocity = owner.global_position.direction_to(next_path_position) * owner.SPEED_PER_SECOND
 			prelim_velocity.y = 0.0
 			owner.movement.set_velocity(prelim_velocity)

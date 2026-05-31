@@ -20,26 +20,32 @@ var population:
 ### TECHNOLOGY
 # specifies what a commander can construct
 var technology_mapping: Dictionary = {
-	Entity.Type.STRUCTURE_OUTPOST: TechnologySpec.new(500, 0, 0, true),
-	Entity.Type.STRUCTURE_MINE: TechnologySpec.new(200, 0, 0, false, func(c: Commander): return not c.structure_type_map[Entity.Type.STRUCTURE_OUTPOST].is_empty()),
-	Entity.Type.STRUCTURE_LAB: TechnologySpec.new(300, 0, 0, false, func(c: Commander): return not c.structure_type_map[Entity.Type.STRUCTURE_MINE].is_empty()),
-	Entity.Type.STRUCTURE_DWELLING: TechnologySpec.new(150, 0, 0, false, func(c: Commander): return not c.structure_type_map[Entity.Type.STRUCTURE_OUTPOST].is_empty()),
-	Entity.Type.STRUCTURE_COMPOUND: TechnologySpec.new(300, 0, 0, false, func(c: Commander): return not c.structure_type_map[Entity.Type.STRUCTURE_DWELLING].is_empty()),
-	Entity.Type.STRUCTURE_ARMORY: TechnologySpec.new(150, 0, 0, false, func(c: Commander): return not c.structure_type_map[Entity.Type.STRUCTURE_COMPOUND].is_empty()),
-	Entity.Type.UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0, true),
-	Entity.Type.UNIT_SENTRY: TechnologySpec.new(150, 0, 0, false, func(c: Commander): return not c.structure_type_map[Entity.Type.STRUCTURE_COMPOUND].is_empty()),
-	Entity.Type.UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, false, func(c: Commander): return not c.structure_type_map[Entity.Type.STRUCTURE_COMPOUND].is_empty())
+	Entity.Type.STRUCTURE_OUTPOST: TechnologySpec.new(500, 0, 0),
+	Entity.Type.STRUCTURE_MINE: TechnologySpec.new(200, 0, 0, _requires_structure(Entity.Type.STRUCTURE_OUTPOST)),
+	Entity.Type.STRUCTURE_LAB: TechnologySpec.new(300, 0, 0, _requires_structure(Entity.Type.STRUCTURE_MINE)),
+	Entity.Type.STRUCTURE_DWELLING: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_OUTPOST)),
+	Entity.Type.STRUCTURE_COMPOUND: TechnologySpec.new(300, 0, 0, _requires_structure(Entity.Type.STRUCTURE_DWELLING)),
+	Entity.Type.STRUCTURE_ARMORY: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
+	Entity.Type.UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0),
+	Entity.Type.UNIT_SENTRY: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
+	Entity.Type.UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, _requires_structure(Entity.Type.STRUCTURE_COMPOUND))
 }
 
-func has_resources_for(a_type: Variant) -> bool:
-	var technology_spec: TechnologySpec = technology_mapping.get(a_type)
-	return (
-		technology_spec!=null
-		and technology_spec.available
-		and ore >= technology_spec.ore_cost
-		and population >= technology_spec.population_cost
-		and dominion >= technology_spec.dominion_cost
+static func _requires_structure(structure_type: Entity.Type) -> Callable:
+	return func(c: Commander): return (
+		TechnologySpec.UnmetNeed.NONE
+		if not c.structure_type_map[structure_type].is_empty()
+		else TechnologySpec.UnmetNeed.MISSING_STRUCTURE
 	)
+
+func get_unmet_need(a_type: Variant) -> TechnologySpec.UnmetNeed:
+	var technology_spec: TechnologySpec = technology_mapping.get(a_type)
+	if technology_spec == null:
+		return TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+	return technology_spec.get_unmet_need(self)
+
+func has_resources_for(a_type: Variant) -> bool:
+	return get_unmet_need(a_type) == TechnologySpec.UnmetNeed.NONE
 
 func use_resources_for(a_type: Variant) -> void:
 	var technology_spec: TechnologySpec = technology_mapping.get(a_type)
@@ -50,7 +56,7 @@ func use_resources_for(a_type: Variant) -> void:
 func proc_technology() -> void:
 	# updates the tech tree of the commander according to changes in ownership
 	for tech: TechnologySpec in technology_mapping.values():
-		tech.available = tech.availability_evaluator.call(self)
+		tech.unmet_need = tech.availability_evaluator.call(self)
 
 ### COMMANDABLES
 #### STRUCTURES

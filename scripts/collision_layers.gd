@@ -18,7 +18,9 @@ func _notification(what):
 
 
 func apply_to_project_settings():
-	for i in Layer.values():
-		ProjectSettings.set("layer_names/3d_physics/layer_%s" % (i+1),  Layer.keys()[i])
+	for key in Layer.keys():
+		var val: int = Layer[key]
+		var layer_num: int = 1 + int(log(val) / log(2))  # 1-based Godot layer index
+		ProjectSettings.set("layer_names/3d_physics/layer_%d" % layer_num, key)
 	ProjectSettings.save()
 	print("CollisionLayers: project settings updated.")

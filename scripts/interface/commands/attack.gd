@@ -10,12 +10,12 @@ static func meets_precondition(
 	a_actor: Commandable,
 	a_message: CommandMessage
 ) -> PreconditionFailureCause:
-	return (
-		PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-		if not _target_attackable(a_message)
-		else PreconditionFailureCause.NONE
-	)
-	
+	if not _target_attackable(a_message):
+		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	if a_actor == null or a_actor.weapon_inventory == null \
+			or not a_actor.weapon_inventory.any_weapon_can_target(a_message.target):
+		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	return PreconditionFailureCause.NONE
 
 
 ### UTILS
@@ -40,6 +40,13 @@ static func _structure_on_line(a_actor: Commandable, a_target: Entity) -> bool:
 	query.exclude = [a_target.get_rid()]
 	return not space_state.intersect_ray(query).is_empty()
 
+## Returns the weapon from a_actor's inventory that can target message.target,
+## or null if none can.
+func _weapon_for(a_actor: Commandable) -> Weapon:
+	if a_actor.weapon_inventory == null:
+		return null
+	return a_actor.weapon_inventory.weapon_for_target(message.target)
+
 
 ### STATE UPDATES
 func get_updated_state(a_actor: Commandable):
@@ -47,25 +54,30 @@ func get_updated_state(a_actor: Commandable):
 	return null if not is_instance_valid(message.target) else self
 
 func should_move(a_actor: Commandable) -> bool:
+	if not _target_attackable(message):
+		return false
+	var weapon := _weapon_for(a_actor)
+	if weapon == null:
+		return false
 	return (
-		not (_target_attackable(message) and SU.is_in_attack_range(a_actor, message.target))
+		not SU.is_in_attack_range(weapon, a_actor, message.target)
 		or _structure_on_line(a_actor, message.target)
 	)
 
 func can_act(a_actor: Commandable) -> bool:
+	if a_actor.attack_timer > 0 or not _target_attackable(message) or message.target == a_actor:
+		return false
+	var weapon := _weapon_for(a_actor)
 	return (
-		a_actor.attack_timer <= 0
-		and _target_attackable(message)
-		and message.target != a_actor
-		and SU.is_in_attack_range(a_actor, message.target)
+		weapon != null
+		and SU.is_in_attack_range(weapon, a_actor, message.target)
 		and not _structure_on_line(a_actor, message.target)
 	)
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	## Perform the command's action and return any relevant follow-up commands
 	a_actor.attack_timer = a_actor.ATTACK_DURATION
-	var weapon: Weapon = Pattern.eval(WeaponPatternsRegistry.for_type(a_actor.type), message.target)
-	weapon.fire(a_actor, message.target)
+	_weapon_for(a_actor).fire(a_actor, message.target)
 	return self
 
 ## DEBUG

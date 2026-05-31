@@ -47,8 +47,6 @@ var SHOT_DURATION: int = 2
 ## presence of the component that exposes the related behavior (Production,
 ## ResourceProvider).
 @onready var build_progress: float = 1
-var width: int = 1
-var length: int = 1
 var map_cells: Set:
 	get: return map.structure_cell_map.get(self, null) if map != null else null
 
@@ -105,21 +103,20 @@ static func valid_placement(a_command_message: CommandMessage, a_dimensions: Vec
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
 func get_aggro_near_position() -> Command:
-	if aggro_range_shape == null:
+	if aggro_range_shape == null or weapon_inventory == null:
 		return null
-	
+
 	var aggro_query := PhysicsShapeQueryParameters3D.new()
 	aggro_query.shape = aggro_range_shape.shape
 	aggro_query.transform = aggro_range_shape.global_transform
 	aggro_query.collision_mask = CollisionLayers.Layer.BODY
 	aggro_query.exclude = [self]
-	
-	var weapon_patterns: Array = WeaponPatternsRegistry.for_type(type)
+
 	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
 		func(r): return r["collider"]
 	)
 	var vs2 = vs.filter(
-		func(t): return t is Commandable and Pattern.eval(weapon_patterns, t) != null
+		func(t): return t is Commandable and weapon_inventory.weapon_for_target(t) != null
 	)
 	var vs3 = vs2.filter(
 		func(t): return t.commander_id > 0 and t.commander_id != commander_id
@@ -128,7 +125,7 @@ func get_aggro_near_position() -> Command:
 		func(c: Commandable): return global_position.distance_squared_to(c.global_position),
 		vs3
 	)
-	
+
 	return (
 		Attack.new(CommandMessage.new(map, potential_targets[0], null))
 		if not potential_targets.is_empty()
@@ -248,6 +245,11 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 					if not (_command is Attack and _command.message.target == collision_collider):
 						_command = null
 
+	# Snap Y to terrain after each move so height tracks the final XZ this tick,
+	# not the XZ from before the move (which is what _physics_process saw).
+	if map != null:
+		global_position.y = map.terrain_height_at(VU.inXZ(global_position))
+
 func _update_state() -> void:
 	if hp <= 0:
 		_on_death()
@@ -274,6 +276,11 @@ func _update_state() -> void:
 func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	_update_state()
+	# Keep units glued to terrain height each tick.  The navmesh is 3D (built
+	# from HeightMapShape3D data) but the velocity computation zeroes Y to keep
+	# avoidance stable, so Y tracking must happen here instead.
+	if movement != null and map != null:
+		global_position.y = map.terrain_height_at(VU.inXZ(global_position))
 
 func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
 	command_receiver.update_commands(a_commands, add_to_queue, prepend)

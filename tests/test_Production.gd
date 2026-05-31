@@ -53,3 +53,19 @@ func test_set_rally_stores_command():
 	# also a valid state (no rally point set).
 	p.set_rally(null)
 	assert_null(p.rally_command)
+
+## --- producible_types / can_produce ---------------------------------------
+## The component owns the "what can this build" capability (moved off the Train
+## command). Configured per structure scene via the producible_types export.
+
+func test_default_producible_types_is_empty():
+	var p := _make_production()
+	assert_eq(p.producible_types.size(), 0)
+	assert_false(p.can_produce(Entity.Type.UNIT_TECHNICIAN))
+
+func test_can_produce_reflects_configured_types():
+	var p := _make_production()
+	p.producible_types.assign([Entity.Type.UNIT_SENTRY, Entity.Type.UNIT_VANGUARD])
+	assert_true(p.can_produce(Entity.Type.UNIT_SENTRY))
+	assert_true(p.can_produce(Entity.Type.UNIT_VANGUARD))
+	assert_false(p.can_produce(Entity.Type.UNIT_TECHNICIAN), "type not in the list is not producible")

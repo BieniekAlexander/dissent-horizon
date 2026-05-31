@@ -20,19 +20,24 @@ static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 	var diff = (pos1 - pos2).abs()
 	return max(diff.x, diff.y)
 
-## Tests whether the attacker's AttackRange shape overlaps the target's physics
-## body. Shape selection is delegated to _get_attack_range_shape so unit scripts
-## can swap in a different shape per target (e.g. flying vs grounded attack types).
-static func is_in_attack_range(attacker: Entity, target: Entity) -> bool:
-	var range_shape: CollisionShape3D = attacker._get_attack_range_shape(target)
-	if range_shape == null:
+## Tests whether the attacker is in range to fire the given weapon at target.
+## Ranged weapons (attack_range_shape != null): physics shape overlap test.
+## Melee weapons (attack_range_shape == null): XZ centre-to-centre distance.
+## The shape is placed at the attacker's world transform rather than reading
+## global_transform off the CollisionShape3D node directly, because Weapon and
+## Inventory are plain Nodes (not Node3D) and would always report the origin.
+static func is_in_attack_range(weapon: Weapon, attacker: Entity, target: Entity) -> bool:
+	if weapon == null:
 		return false
-	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = range_shape.shape
-	params.transform = range_shape.global_transform
-	params.exclude = [attacker]
-	var results: Array = attacker.get_world_3d().direct_space_state.intersect_shape(params)
-	return results.any(func(r: Dictionary) -> bool: return r["collider"] == target)
+	if weapon.attack_range_shape != null:
+		var params := PhysicsShapeQueryParameters3D.new()
+		params.shape = weapon.attack_range_shape.shape
+		params.transform = attacker.global_transform
+		params.exclude = [attacker]
+		var results: Array = attacker.get_world_3d().direct_space_state.intersect_shape(params)
+		return results.any(func(r: Dictionary) -> bool: return r["collider"] == target)
+	else:
+		return attacker.xz_position.distance_to(target.xz_position) <= weapon.melee_range
 
 static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, distance_squared: float = .001) -> bool:
 	if a_target is Commandable and a_target.is_in_group("structure"):

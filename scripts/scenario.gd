@@ -37,6 +37,7 @@ func _ready() -> void:
 			# camera.rotate_x(deg_to_rad(180))
 	
 	for commandable: Commandable in get_tree().get_nodes_in_group("commandable"):
+		print("wow")
 		commandable.commander = commanders[commandable.default_commander_id]
 		
 	if Engine.is_editor_hint():

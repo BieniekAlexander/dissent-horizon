@@ -1,7 +1,6 @@
 class_name Build
 extends Command
 
-var build_cells: Set = null
 
 static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type) -> bool:
 	return command_tool_name in {
@@ -20,29 +19,32 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 		# Build is entered but the player hasn't chosen which structure to place
 		# yet — a pending selection, not a failure.
 		return PreconditionFailureCause.COMMAND_PENDING_TOOL
-	elif not a_actor.commander.has_resources_for(a_message.tool.type):
-		return PreconditionFailureCause.NOT_ENOUGH_RESOURCES
-	elif not StructureSpec.structure_type_spec_map[a_message.tool.type].placement_checker.call(
+	var unmet: TechnologySpec.UnmetNeed = a_actor.commander.get_unmet_need(a_message.tool.type)
+	if unmet != TechnologySpec.UnmetNeed.NONE:
+		return unmet_need_to_precondition[unmet]
+	var preview := a_actor.commander.get_build_preview_instance(a_message.tool)
+	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
+	var dims := obs.dimensions if obs != null else Vector2i.ONE
+	if not StructureSpec.structure_type_spec_map[a_message.tool.type].placement_checker.call(
 		a_message,
-		StructureSpec.structure_type_spec_map[a_message.tool.type].dimensions
+		dims
 	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
-	else:
-		return PreconditionFailureCause.NONE
+	return PreconditionFailureCause.NONE
 
 ## World-space Chebyshev reach within which the builder is "close enough" to
 ## lay down and work on the structure. It grows with the building's footprint so
 ## a large structure (e.g. the 3x3 Outpost) doesn't require the builder to stand
 ## on a cell the building itself will occupy: half the larger extent (centre →
 ## edge) plus a one-cell working buffer.
-func _build_reach() -> float:
-	if message.tool == null:
-		return 1.5
-	var dims: Vector2 = StructureSpec.structure_type_spec_map[message.tool.type].dimensions
-	return max(dims.x, dims.y) * 0.5 + 1.0
+func _build_reach(a_actor: Commandable) -> float:
+	var preview := a_actor.commander.get_build_preview_instance(message.tool)
+	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
+	var dims := obs.dimensions if obs != null else Vector2i.ONE
+	return maxf(float(max(dims.x, dims.y)), 1.5)
 
 func can_act(a_actor: Commandable) -> bool:
-	return SU.linf_distance(VU.inXZ(a_actor.global_position), VU.inXZ(message.world_position)) < _build_reach()
+	return SU.linf_distance(VU.inXZ(a_actor.global_position), VU.inXZ(message.world_position)) < _build_reach(a_actor)
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var new_structure: Commandable = message.tool.packed_scene.instantiate()
@@ -63,15 +65,10 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 func should_move(a_actor: Commandable) -> bool:
 	# Stop approaching once inside the (size-aware) build reach, so the builder
 	# parks just outside a large footprint rather than walking into its centre.
-	var reach := _build_reach()
+	var reach := _build_reach(a_actor)
 	return a_actor.global_position.distance_squared_to(message.world_position) >= reach * reach
 
 
 ### NODE
 func _init(a_message: CommandMessage) -> void:
 	super(a_message)
-	build_cells = Commandable.get_arrangement_cells(
-		a_message.map,
-		VU.inXZ(a_message.position),
-		StructureSpec.structure_type_spec_map[a_message.tool.type].dimensions
-	)

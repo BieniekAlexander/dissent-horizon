@@ -23,33 +23,27 @@ class_name CommandContextParser
 ## Example entry shape:
 ##   [func(e: Entity): return e.has_node("Movement"), "command_attack_move"]
 
-## Built lazily on first lookup — the predicates reference Command subclasses
-## (Train.tool_applies_to in particular) whose script classes resolve in load
-## order, so building the table at static-var init time is fragile. This
-## matches the lazy pattern the old CommandContextRegistry used for the same
-## reason.
+## Built lazily on first lookup to match the lazy pattern the old
+## CommandContextRegistry used (script-class resolution order is fragile at
+## static-var init time). Note that the structures' *train tools* are no longer
+## in this table — they're sourced per-entity from the Production component via
+## train_tools_for(), folded into commands_for() below.
 static var _rules: Array
 
 static func _build_rules() -> Array:
 	return [
 		# --- Movement-bearing entities (units): nav-flavored commands.
 		[func(e: Entity): return e.has_node("Movement"), "command_move"],
-		[func(e: Entity): return e.has_node("Movement") or e.has_node("AttackRange"), "command_stop"],
-		[func(e: Entity): return e.has_node("AttackRange"), "command_attack"],
-		[func(e: Entity): return e.has_node("AttackRange"), "command_attack_move"],
+		[func(e: Entity): return e.has_node("Movement") or e.has_node("Inventory"), "command_stop"],
+		[func(e: Entity): return e.has_node("Inventory"), "command_attack"],
+		[func(e: Entity): return e.has_node("Inventory"), "command_attack_move"],
 
-		# --- Production-bearing entities (structures): training + rally.
+		# --- Production-bearing entities (structures): training + rally. The
+		# specific train tools (command_tool_technician, ...) are added in
+		# commands_for() from the Production component's producible_types, so the
+		# menu reflects what that particular structure can actually build.
 		[func(e: Entity): return e.has_node("Production"), "command_train"],
 		[func(e: Entity): return e.has_node("Production"), "command_move"], # rally
-		[func(e: Entity): return Train.tool_applies_to("command_tool_outpost", e.type), "command_tool_outpost"],
-		[func(e: Entity): return Train.tool_applies_to("command_tool_dwelling", e.type), "command_tool_dwelling"],
-		[func(e: Entity): return Train.tool_applies_to("command_tool_mine", e.type), "command_tool_mine"],
-		[func(e: Entity): return Train.tool_applies_to("command_tool_lab", e.type), "command_tool_lab"],
-		[func(e: Entity): return Train.tool_applies_to("command_tool_compound", e.type), "command_tool_compound"],
-		[func(e: Entity): return Train.tool_applies_to("command_tool_armory", e.type), "command_tool_armory"],
-		[func(e: Entity): return Train.tool_applies_to("command_tool_technician", e.type), "command_tool_technician"],
-		[func(e: Entity): return Train.tool_applies_to("command_tool_sentry", e.type), "command_tool_sentry"],
-		[func(e: Entity): return Train.tool_applies_to("command_tool_vanguard", e.type), "command_tool_vanguard"],
 
 		# --- Technician (Anima): Star pickup/dropoff and the Build ability.
 		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_ability"],
@@ -81,6 +75,11 @@ static func commands_for(a_entity: Entity) -> Array:
 		var command_name: String = rule[1]
 		if not result.has(command_name) and predicate.call(a_entity):
 			result.append(command_name)
+	# The train tools a producer offers come from its Production component, not a
+	# static type table — so a structure advertises exactly what it can build.
+	for tool_name in train_tools_for(a_entity):
+		if not result.has(tool_name):
+			result.append(tool_name)
 	return result
 
 ## Union of `commands_for` across a selection. A command is available to the
@@ -105,6 +104,33 @@ static func commands_for_selection(a_entities: Array) -> Array:
 ## but written out for readability at call sites.
 static func command_available(a_command_name: String, a_entity: Entity) -> bool:
 	return commands_for(a_entity).has(a_command_name)
+
+## Every unit any producer could ever train. Filtered per-entity by
+## train_tools_for(), which consults the entity's Production component. Kept as a
+## flat list (rather than rule-table entries) so the capability lives entirely in
+## Production: this is just the name↔Tool bridge the HUD needs.
+const TRAIN_TOOL_NAMES: Array = [
+	"command_tool_technician",
+	"command_tool_sentry",
+	"command_tool_vanguard",
+]
+
+## The train-tool command names the given entity can produce, in menu order.
+## Source of truth is the entity's Production component (producible_types), so the
+## menu can only ever advertise units that structure can actually train. Returns
+## empty for entities without a Production node (e.g. units, neutral structures).
+static func train_tools_for(a_entity: Entity) -> Array:
+	var result: Array = []
+	if a_entity == null or not is_instance_valid(a_entity):
+		return result
+	var production := a_entity.get_node_or_null("Production") as Production
+	if production == null:
+		return result
+	for tool_name in TRAIN_TOOL_NAMES:
+		var tool: Tool = Tool.command_tool_map.get(tool_name)
+		if tool != null and production.can_produce(tool.type):
+			result.append(tool_name)
+	return result
 
 ## Every structure a builder could ever place. Filtered per-entity by
 ## build_tools_for(). Kept separate from the rules table because build tools are

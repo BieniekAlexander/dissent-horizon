@@ -1,9 +1,11 @@
-[gd_scene load_steps=4 format=3 uid="uid://b8bcrcywyaj27"]
+[gd_scene load_steps=6 format=3 uid="uid://b8bcrcywyaj27"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_8cs83"]
 [ext_resource type="Texture2D" uid="uid://cu54wxkswu4d3" path="res://assets/entities/sentry.png" id="2_njqvf"]
+[ext_resource type="Script" path="res://scripts/entities/components/inventory.gd" id="3_invnt"]
+[ext_resource type="Script" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_44d7s"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_sntry"]
 height = 100.0
 radius = 5.0
 
@@ -16,7 +18,14 @@ texture_filter = 0
 texture = ExtResource("2_njqvf")
 hframes = 3
 
-[node name="AttackRange2" type="CollisionShape3D" parent="." index="8"]
-shape = SubResource("CylinderShape3D_44d7s")
+[node name="Inventory" type="Node" parent="." index="13"]
+script = ExtResource("3_invnt")
+
+[node name="BallisticWeapon" type="Node" parent="Inventory"]
+script = ExtResource("4_wpn00")
+attack_type = 0
+
+[node name="AttackRange" type="CollisionShape3D" parent="Inventory/BallisticWeapon"]
+shape = SubResource("CylinderShape3D_sntry")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)

@@ -5,15 +5,15 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 	return PreconditionFailureCause.NONE
 	if a_message.tool==null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	elif not a_actor.commander.has_resources_for(a_message.tool.type):
-		return PreconditionFailureCause.NOT_ENOUGH_RESOURCES
-	elif not StructureSpec.structure_type_spec_map[a_message.tool.type].placement_checker.call(
+	var unmet: TechnologySpec.UnmetNeed = a_actor.commander.get_unmet_need(a_message.tool.type)
+	if unmet != TechnologySpec.UnmetNeed.NONE:
+		return unmet_need_to_precondition[unmet]
+	if not StructureSpec.structure_type_spec_map[a_message.tool.type].placement_checker.call(
 		a_message,
 		StructureSpec.structure_type_spec_map[a_message.tool.type].cube_grid_arrangement
 	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
-	else:
-		return PreconditionFailureCause.NONE
+	return PreconditionFailureCause.NONE
 
 func can_act(a_actor: Commandable) -> bool:
 	return (a_actor.xz_position-message.xz_position).length_squared()<10.*10.

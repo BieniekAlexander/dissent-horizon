@@ -22,6 +22,16 @@ extends Node
 ## component takes over UI duty, this NodePath goes away.
 @export var train_bar_path: NodePath
 
+## The unit types this producer can train, configured per structure scene
+## (e.g. Outpost → [UNIT_TECHNICIAN], Compound → [UNIT_SENTRY, UNIT_VANGUARD]).
+## This component is the single source of truth for what an entity can produce —
+## it replaces the old static Train.tool_applies_to table, so the capability
+## lives with the component that actually performs the production. Callers that
+## need to know what an entity can build (e.g. CommandContextParser building the
+## HUD's train menu) inspect the entity's Production node rather than keying off
+## its type in a command class.
+@export var producible_types: Array[Entity.Type] = []
+
 ## Each entry: [time_remaining_in_ticks: int, packed_scene: PackedScene].
 var training_queue: Array = []
 
@@ -42,6 +52,11 @@ func enqueue(creation_time: int, packed_scene: PackedScene) -> void:
 
 func set_rally(command: Command) -> void:
 	rally_command = command
+
+## Whether this producer can train the given unit type. Source of truth for the
+## "what can this build" question across the codebase (HUD train menu, AI).
+func can_produce(a_type: Entity.Type) -> bool:
+	return producible_types.has(a_type)
 
 ## Advance the queue by one tick. Returns true if a unit was completed and
 ## spawned this call. Called once per physics frame from the parent's

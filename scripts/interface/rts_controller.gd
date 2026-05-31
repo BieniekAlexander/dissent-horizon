@@ -99,7 +99,7 @@ func _ready():
 	if !selection_box.is_inside_tree():
 		add_child(selection_box)
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	var cursor_result: Variant = get_cursor_target(mouse_position)
 	cursor_target = cursor_result
 	command_message.target = cursor_result if cursor_result is Entity else null
@@ -238,10 +238,10 @@ func _unhandled_input(event: InputEvent) -> void:
 ## CONTEXT SETTING
 func process_command(command_name: String) -> void:
 	var lead: Entity = selection[0] if !selection.is_empty() else null
-	# Both the tool-set branch and the hotkey branch require that the command
-	# actually applies to the current selection. The parser is the single
-	# source of truth — replaces the old CommandContext.command_available /
-	# CommandContext.get_new_context dispatch.
+	# Gate on _available_commands (the union across the whole selection) rather
+	# than re-checking against selection[0] alone. This keeps the hotkey gate
+	# consistent with button visibility: if the button is shown, the hotkey works,
+	# regardless of which unit happens to be first in the selection.
 	#
 	# Build tools (command_tool_outpost, ...) are the exception: they aren't part
 	# of a unit's base command set, so they only become selectable once the
@@ -252,7 +252,7 @@ func process_command(command_name: String) -> void:
 		and CommandContextParser.build_tools_for(lead).has(command_name)
 	)
 	if lead == null or (
-		not CommandContextParser.command_available(command_name, lead)
+		not _available_commands.has(command_name)
 		and not is_build_tool
 	):
 		return
@@ -346,14 +346,14 @@ static func _resolve_command_class(
 	# Hostile, weapon-matched target → Attack. This must precede the structure
 	# rally fallback below so a combatant structure (e.g. Turret) whose
 	# Production component would otherwise swallow the click as a rally point
-	# still resolves an explicit attack order. Non-combatant structures have
-	# empty weapon patterns, so Pattern.eval returns null and they fall
-	# through to rally unchanged.
+	# still resolves an explicit attack order. Entities without an Inventory
+	# (or whose weapons can't target this entity) fall through to rally unchanged.
 	if (
 		target != null
 		and target is Commandable
 		and (target as Commandable).commander_id != a_actor.commander_id
-		and Pattern.eval(WeaponPatternsRegistry.for_type(a_actor.type), target) != null
+		and a_actor.weapon_inventory != null
+		and a_actor.weapon_inventory.weapon_for_target(target) != null
 	):
 		return Attack
 
@@ -380,7 +380,10 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 	if drag_distance < Vector2(10, 10):
 		var click_target = get_cursor_target(selection_start_position)
 		if click_target is Entity and (click_target as Entity).commander_id == PLAYER_COMMANDER_ID:
-			if (click_target as Entity).selectable.select():
+			if next_command_additive and selection.has(click_target):
+				(click_target as Entity).selectable.deselect()
+				selection.erase(click_target)
+			elif (click_target as Entity).selectable.select():
 				selection.append(click_target)
 	else:
 		for selectable: Selectable in query_box_collisions(Rect2(selection_start_position, selection_end_position - selection_start_position).abs()):
@@ -392,19 +395,6 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 	available_commands = CommandContextParser.commands_for_selection(selection)
 
 ## SETTING COMMANDS
-# TODO: unused function
-#func cancel_command_for_units() -> void:
-#	var selection = selection.filter(func(u): return is_instance_valid(u)) # TODO refactor so I dont have to do this smh
-#
-#	if selection.size()==0:
-#		return
-#
-#	for c: Commandable in selection:
-#		c.update_commands(
-#			null,
-#			false
-#		)
-
 func assign_command_to_units(
 	a_command_type: Script,
 	a_command_message: CommandMessage,
@@ -412,32 +402,34 @@ func assign_command_to_units(
 ) -> bool:
 	# Returns whether or not the command was successfully assigned to any units
 	selection = selection.filter(func(u): return is_instance_valid(u)) # TODO refactor so I dont have to do this smh
-	
-	if selection.size()==0:
+
+	if selection.size() == 0:
 		push_error("no selections")
 		_reset_pending_state()
 		return false
 
-	if a_command_type==null:
+	if a_command_type == null:
 		push_error("supplied a null command")
 		_reset_pending_state()
 		return false
-	else:
-		var check: Command.PreconditionFailureCause = a_command_type.meets_precondition(selection[0], a_command_message)
 
-		if check!=Command.PreconditionFailureCause.NONE:
-			_reset_pending_state()
-			return false
-		else:
-			var new_command: Command = a_command_type.new(a_command_message)
+	# Check preconditions per-unit so that a mixed selection (e.g. Sentries +
+	# Technician) can still execute a command: capable units receive it and
+	# incapable units are silently skipped.
+	var capable: Array = selection.filter(
+		func(c: Commandable) -> bool:
+			return a_command_type.meets_precondition(c, a_command_message) == Command.PreconditionFailureCause.NONE
+	)
 
-			for c: Commandable in selection:
-				c.update_commands(
-					new_command,
-					add_to_queue
-				)
+	if capable.is_empty():
+		_reset_pending_state()
+		return false
 
-	if !add_to_queue:
+	var new_command: Command = a_command_type.new(a_command_message)
+	for c: Commandable in capable:
+		c.update_commands(new_command, add_to_queue)
+
+	if not add_to_queue:
 		_reset_pending_state()
 		command_message.clear()
 

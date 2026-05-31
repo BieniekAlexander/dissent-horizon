@@ -21,14 +21,3 @@ func _process(delta: float) -> void:
 		$Lazer.set_visible(true)
 	else:
 		$Lazer.set_visible(false)
-
-
-## WEAPONS
-static var vanguard_weapon_patterns: Array[Pattern] = [
-	
-]
-
-# Instance override now (the Commandable default became an instance method).
-# Returning vanguard's LAZER patterns regardless of group membership.
-func get_weapon_evaluation_patterns() -> Array:
-	return vanguard_weapon_patterns

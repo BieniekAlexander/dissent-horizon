@@ -79,16 +79,15 @@ func _ready() -> void:
 
 func _initialize() -> void:
 	var map: Map = get_tree().current_scene.find_child("Map")
-	var hs: HeightMapShape3D = map.terrain_grid.height_shape()
-	var tb: StaticBody3D = map.terrain_body
+	var hs: HeightMapShape3D = map.height_map
 
 	# HeightMapShape3D with map_width W covers local X -(W-1)/2 .. +(W-1)/2.
-	# With terrain_body scale, world half-extents are (W-1)/2 * cell_size.
-	POINTS_PER_UNIT = 1.0 / map.cell_size
+	# World half-extents are (W-1)/2 * Map.CELL_SIZE.
+	POINTS_PER_UNIT = 1.0 / Map.CELL_SIZE
 
-	var half_w := (hs.map_width - 1) * 0.5 * map.cell_size
-	var half_d := (hs.map_depth - 1) * 0.5 * map.cell_size
-	var margin := map.cell_size
+	var half_w := (hs.map_width - 1) * 0.5 * Map.CELL_SIZE
+	var half_d := (hs.map_depth - 1) * 0.5 * Map.CELL_SIZE
+	var margin := Map.CELL_SIZE
 
 	# Desired world half-extents for the fog plane.
 	_world_half_w = half_w + margin
@@ -100,7 +99,7 @@ func _initialize() -> void:
 	scale.x = _world_half_w / (plane_mesh.size.x * 0.5)
 	scale.z = _world_half_d / (plane_mesh.size.y * 0.5)
 
-	global_position = Vector3(tb.global_position.x, 1.0, tb.global_position.z)
+	global_position = Vector3(map.global_position.x, 1.0, map.global_position.z)
 	_center = VU.inXZ(global_position)
 
 	_img_width = int(_world_half_w * 2.0 * POINTS_PER_UNIT)

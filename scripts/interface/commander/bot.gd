@@ -357,7 +357,7 @@ func nearest_neutral_mine(from_position: Vector3) -> Commandable:
 ## regardless of whether we can currently afford to produce it.
 func has_tech_for(type: Entity.Type) -> bool:
 	var spec: TechnologySpec = technology_mapping.get(type)
-	return spec != null and spec.available
+	return spec != null and spec.unmet_need == TechnologySpec.UnmetNeed.NONE
 
 
 ## All Entity.Types whose prerequisite structures are satisfied — the full

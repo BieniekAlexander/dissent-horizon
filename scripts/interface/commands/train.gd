@@ -1,16 +1,12 @@
 class_name Train
 extends Command
 
+## Which units a producer can train is no longer answered here — that capability
+## now lives on the Production component (see production.gd `producible_types` /
+## `can_produce`), configured per structure scene. CommandContextParser inspects
+## the entity's Production node to build the train menu, so this command class
+## carries only the train action's behavior.
 
-static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type) -> bool:
-	return command_tool_name in {
-		Entity.Type.STRUCTURE_OUTPOST: [
-			"command_tool_technician"
-		], Entity.Type.STRUCTURE_COMPOUND: [
-			"command_tool_sentry",
-	"command_tool_vanguard"
-		]
-	}.get(entity_type, [])
 
 static func requires_position() -> bool:
 	## Indicates whether this command requires a specified position to be issued
