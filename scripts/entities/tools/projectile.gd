@@ -13,6 +13,7 @@ const gravity: float = -.01
 const speed: float = .35
 var origin: Vector3
 var damage: float = 5
+var _weapon_damage: float = 0.0
 
 @onready var hit_shape: CollisionShape3D = get_node_or_null("HitShape")
 
@@ -42,13 +43,14 @@ func _apply_hit() -> void:
 			if source != null:
 				target.receive_damage(
 					source,
-					Pattern.eval(Weapon.damage_multiplier_patterns[attack_type], target) * source.DAMAGE
+					Pattern.eval(Weapon.damage_multiplier_patterns[attack_type], target) * _weapon_damage
 				)
 			target.receive_damage(source, damage)
 			break
 
 
-func initialize_projectile(a_source: Variant, a_target: Variant) -> void:
+func initialize_projectile(a_source: Variant, a_target: Variant, a_weapon_damage: float = 0.0) -> void:
+	_weapon_damage = a_weapon_damage
 	source = a_source if a_source is Commandable else null
 	target = a_target if a_target is Commandable else null
 	origin = a_source.global_position if a_source is Commandable else a_source

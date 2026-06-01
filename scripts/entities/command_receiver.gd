@@ -18,15 +18,24 @@ func initialize(a_owner: Commandable) -> void:
 func has_pending_work() -> bool:
 	return _command != null or not _command_queue.is_empty()
 
+## Returns the active command followed by any queued commands, in execution order.
+func get_command_chain() -> Array[Command]:
+	var chain: Array[Command] = []
+	if _command != null:
+		chain.append(_command)
+	chain.append_array(_command_queue)
+	return chain
+
 ## True when the unit has no user-set command — either genuinely idle or only
 ## running the fallback placeholder. Queued commands count as non-idle.
 func is_idle() -> bool:
 	return _command_queue.is_empty() and (_command == null)
 
 func receive_damage(attacker: Commandable, amount: float) -> void:
-	owner.hp -= amount
+	if owner.defense != null:
+		owner.defense.hp -= amount
 
-	if owner.hp > 0 and _command == null and attacker != null and !(_disposition == Disposition.PASSIVE):
+	if owner.defense != null and owner.defense.hp > 0 and _command == null and attacker != null and !(_disposition == Disposition.PASSIVE):
 		update_commands(
 			Command.new(CommandMessage.new(owner.map, attacker, null, attacker.global_position)),
 			true,
@@ -48,6 +57,7 @@ func _process_commands() -> void:
 		new_commands = _command.fulfill_action(owner)
 
 		if owner.movement != null:
+			owner.movement.is_final_leg = false
 			owner.movement.set_velocity(Vector3.ZERO)
 
 		if is_same(new_commands, null):
@@ -65,11 +75,15 @@ func _process_commands() -> void:
 			# Keep velocity XZ-only so the RVO avoidance system receives a clean
 			# 2D input.  Vertical terrain tracking is handled per-tick in
 			# Commandable._physics_process via Map.terrain_height_at().
-			var prelim_velocity = owner.global_position.direction_to(next_path_position) * owner.SPEED_PER_SECOND
+			var prelim_velocity = owner.global_position.direction_to(next_path_position) * owner.movement.speed_per_second
 			prelim_velocity.y = 0.0
+			# Tell Movement whether this is the final queued destination so it
+			# can apply braking when max_deceleration is bounded.
+			owner.movement.is_final_leg = _command_queue.is_empty()
 			owner.movement.set_velocity(prelim_velocity)
 		else:
 			owner.movement.set_target_position(owner.global_position)
+			owner.movement.is_final_leg = false
 			_command = null
 
 func _update_state() -> void:

@@ -5,9 +5,9 @@
 
 [node name="Unit" groups=["unit"] instance=ExtResource("1_cmnd1")]
 
-[node name="Selectable" parent="." index="6"]
-collision_layer = 256
-
-[node name="Movement" type="Node" parent="." index="12"]
+[node name="Movement" type="Node" parent="." index="7"]
 script = ExtResource("2_6e3tn")
 nav_agent_path = NodePath("../NavigationAgent")
+
+[node name="Selectable" parent="." index="9"]
+collision_layer = 256

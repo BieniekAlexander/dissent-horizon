@@ -24,3 +24,9 @@ func weapon_for_target(target: Entity) -> Weapon:
 
 func any_weapon_can_target(target: Entity) -> bool:
 	return weapon_for_target(target) != null
+
+func total_damage() -> float:
+	var total := 0.0
+	for w: Weapon in get_weapons():
+		total += w.damage
+	return total

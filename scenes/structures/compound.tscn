@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://lg3slrwglq37"]
+[gd_scene load_steps=9 format=3 uid="uid://lg3slrwglq37"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_1qdpe"]
 [ext_resource type="Texture2D" uid="uid://bm3tdpihnqyb" path="res://assets/entities/compound.png" id="3_i3cr2"]
@@ -6,22 +6,59 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_1qdpe"]
 size = Vector3(4, 10, 4)
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_niu5p"]
+height = 100.0
+radius = 10.0
+
+[sub_resource type="Gradient" id="Gradient_hp_back"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_hp_back"]
+gradient = SubResource("Gradient_hp_back")
+
+[sub_resource type="Gradient" id="Gradient_hp_fill"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(1, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_hp_fill"]
+gradient = SubResource("Gradient_hp_fill")
+
 [node name="Structure" instance=ExtResource("1_1qdpe")]
 process_physics_priority = 10
 type = 4612
-armor = 1
-hpMax = 500.0
-ATTACK_DURATION = 0
 
-[node name="Body" parent="." index="1"]
+[node name="Body" parent="." index="2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("BoxShape3D_1qdpe")
 
-[node name="Sprite" parent="." index="2"]
+[node name="AggroRange" parent="." index="3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="VisionRange" parent="." index="4"]
+shape = SubResource("CylinderShape3D_niu5p")
+
+[node name="Defense" parent="." index="6"]
+armor = 1
+hp_max = 500.0
+
+[node name="Sprite" parent="." index="10"]
 transform = Transform3D(18, 0, 0, 0, 1.734533, -11.96849, 0, 1.734533, 11.96849, 0, 1.3366241, 0)
+layers = 1
 texture = ExtResource("3_i3cr2")
 
-[node name="Obstruction" parent="." index="17"]
-dimensions = Vector2i(2, 2)
+[node name="HPBar" parent="." index="11"]
+transform = Transform3D(0.3, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.1, -0.2)
+texture = SubResource("GradientTexture1D_hp_back")
 
-[node name="Production" parent="." index="13"]
+[node name="HPBarFill" parent="HPBar" index="0"]
+texture = SubResource("GradientTexture1D_hp_fill")
+
+[node name="SelectionIndicator" parent="." index="12"]
+transform = Transform3D(0.25, 0, 0, 0, 0.176777, 0.176777, 0, -0.176777, 0.176777, 0, 0, 0)
+
+[node name="Production" parent="." index="14"]
 producible_types = Array[int]([4353, 4354])
+
+[node name="Obstruction" parent="." index="17"]
+dimensions = Vector2i(3, 3)

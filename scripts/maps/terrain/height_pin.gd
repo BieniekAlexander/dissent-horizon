@@ -1,10 +1,14 @@
 @tool
 class_name HeightPin
-extends Node3D
+extends Sprite3D
 
 signal height_changed(pin: HeightPin)
 
+
 func _ready() -> void:
+	texture = load("res://assets/logo.png")
+	scale = Vector3.ONE * .1
+	
 	if not Engine.is_editor_hint():
 		queue_free()
 		return

@@ -6,6 +6,20 @@ var target: Entity			# The entity which will be the recipient of the command
 var tool: Tool				# Any potential thing that is used in the fulfillment of a command
 var world_position: Vector3	# The raw position at which the command is requested (NOTE: `target` might not always be relevant)
 
+## Emitted when the last Command holding this message releases it, signalling
+## that no live commands still reference this snapshot.
+signal unreferenced
+
+var _ref_count: int = 0
+
+func retain() -> void:
+	_ref_count += 1
+
+func release() -> void:
+	_ref_count -= 1
+	if _ref_count <= 0:
+		unreferenced.emit()
+
 var position: Vector3:
 	get:
 		if target!=null and is_instance_valid(target):

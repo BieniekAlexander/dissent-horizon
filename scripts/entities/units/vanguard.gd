@@ -11,7 +11,7 @@ func _process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 
-	if attack_timer > ATTACK_DURATION-5 and _command!=null:
+	if attack_timer > _attack_duration - 5 and _command != null:
 		$Lazer.global_position = global_position + .5*(_command.message.position-global_position) + Vector3.UP*.5
 
 		# TODO get the 3D mesh to be aligned correctly - I can't get the mesh's major axis to be correct

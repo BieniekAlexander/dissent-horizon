@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://d372d5stwv6gt"]
+[gd_scene load_steps=5 format=3 uid="uid://d372d5stwv6gt"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_e1l0p"]
 [ext_resource type="Script" uid="uid://ravapu6j0gvv" path="res://scripts/entities/components/ore_extractor.gd" id="3_oreex"]
+[ext_resource type="Texture2D" uid="uid://cgdrbpxqo62uf" path="res://assets/structure.png" id="3_wykrx"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wykrx"]
 size = Vector3(2, 10, 2)
@@ -9,18 +10,16 @@ size = Vector3(2, 10, 2)
 [node name="Structure" instance=ExtResource("1_e1l0p")]
 collision_layer = 2
 type = 4610
-armor = 1
 
-[node name="Body" parent="." index="1"]
+[node name="Body" parent="." index="2"]
 shape = SubResource("BoxShape3D_wykrx")
 
-[node name="Sprite" parent="." index="2"]
-transform = Transform3D(7.34, 0, 0, 0, 0.70710677, -4.8804507, 0, 0.70710677, 4.8804507, 0, 0.7910414, 0)
+[node name="Defense" parent="." index="6"]
+armor = 1
 
-[node name="OreExtractor" type="Node" parent="." index="10"]
+[node name="OreExtractor" type="Node" parent="." index="7"]
 script = ExtResource("3_oreex")
 
-[node name="NavigationObstacle3D" type="NavigationObstacle3D" parent="." index="12"]
-height = 10.0
-vertices = PackedVector3Array(1, 0, 1, -1, 0, 1, -1, 0, -1, 1, 0, -1)
-affect_navigation_mesh = true
+[node name="Sprite" parent="." index="13"]
+transform = Transform3D(7.34, 0, 0, 0, 0.70710677, -4.8804507, 0, 0.70710677, 4.8804507, 0, 0.7910414, 0)
+texture = ExtResource("3_wykrx")

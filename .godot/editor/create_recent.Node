@@ -1,4 +1,4 @@
-HeightmapEditor
+Sprite3D
 Ownership
 MeshInstance3D
 StaticBody3D
@@ -8,7 +8,6 @@ NavigationRegion3D
 DirectionalLight3D
 OmniLight3D
 Node
-Sprite3D
 Sprite2D
 CollisionShape2D
 Area2D

@@ -75,9 +75,10 @@ func can_act(a_actor: Commandable) -> bool:
 	)
 
 func fulfill_action(a_actor: Commandable) -> Variant:
-	## Perform the command's action and return any relevant follow-up commands
-	a_actor.attack_timer = a_actor.ATTACK_DURATION
-	_weapon_for(a_actor).fire(a_actor, message.target)
+	var weapon := _weapon_for(a_actor)
+	a_actor.attack_timer = weapon.attack_duration
+	a_actor._attack_duration = weapon.attack_duration
+	weapon.fire(a_actor, message.target)
 	return self
 
 ## DEBUG

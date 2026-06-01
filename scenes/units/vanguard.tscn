@@ -21,12 +21,14 @@ radius = 30.0
 script = ExtResource("2_usw5g")
 type = 4354
 attributes_list = Array[int]([1])
-hpMax = 12000.0
-DAMAGE = 20.0
-ATTACK_DURATION = 30
-SPEED = 0.17
 
-[node name="Sprite" parent="." index="2"]
+[node name="Movement" parent="." index="7"]
+speed = 0.17
+
+[node name="Defense" parent="."]
+hp_max = 12000.0
+
+[node name="Sprite" parent="." index="0"]
 transform = Transform3D(3, 0, 0, 0, 2.12132, -2.12132, 0, 2.12132, 2.12132, 0, 0.35842848, 0)
 texture = ExtResource("3_m16ju")
 hframes = 3
@@ -43,6 +45,8 @@ script = ExtResource("4_invnt")
 [node name="LazerWeapon" type="Node" parent="Inventory"]
 script = ExtResource("5_wpn00")
 attack_type = 5
+damage = 20.0
+attack_duration = 30
 
 [node name="AttackRange" type="CollisionShape3D" parent="Inventory/LazerWeapon"]
 shape = SubResource("CylinderShape3D_vng")

@@ -31,6 +31,9 @@ var _command: Command:
 func current_command() -> Command:
 	return command_receiver._command
 
+func get_command_chain() -> Array[Command]:
+	return command_receiver.get_command_chain()
+
 func has_command() -> bool:
 	return current_command() != null
 
@@ -39,7 +42,7 @@ func clear_command() -> void:
 
 @onready var hpBarFill: Sprite3D = $HPBar/HPBarFill
 @onready var _debug_label: Label3D = get_node_or_null("DebugLabel") as Label3D
-var SHOT_DURATION: int = 2
+var _attack_duration: int = 0
 
 ### STRUCTURE-FLAVORED STATE (gated on is_in_group("structure"))
 ## These were on Structure before the collapse. Kept on Commandable so the
@@ -57,9 +60,11 @@ var map_cells: Set:
 ## `Commandable.get_arrangement_cells(...)`.
 static func get_grid_coordinates(a_center: Vector2i, a_dimensions) -> Array:
 	var ret: Array = []
+	var ox: int = (a_dimensions.x - 1) / 2
+	var oy: int = (a_dimensions.y - 1) / 2
 	for w in range(a_dimensions.x):
 		for h in range(a_dimensions.y):
-			ret.append(Vector2(a_center.x + w, a_center.y + h))
+			ret.append(Vector2(a_center.x - ox + w, a_center.y - oy + h))
 	return ret
 
 static func get_arrangement_cells(
@@ -82,9 +87,8 @@ static func get_arrangement_cells(
 		)
 
 ## True iff every cell of the structure's footprint is in-bounds and currently
-## unoccupied. The clicked world position is treated as the footprint's origin
-## (min-x/min-y corner), matching how add_structure marks the footprint, so the
-## cursor's valid/invalid feedback agrees with where the building actually lands.
+## unoccupied. The clicked world position is treated as the footprint centre,
+## matching how add_structure places the building.
 static func valid_placement(a_command_message: CommandMessage, a_dimensions: Vector2i) -> bool:
 	var placement_map: Map = a_command_message.map
 	if placement_map == null:
@@ -142,7 +146,7 @@ func _ready() -> void:
 	# a no-op for them.
 	if movement != null:
 		movement.velocity_ready.connect(_on_velocity_computed)
-		
+
 		if commander:
 			movement.set_avoidance_team(commander.id)
 
@@ -167,7 +171,7 @@ func initialize(a_map: Map, a_commander: Commander):
 
 func receive_damage(attacker: Commandable, amount: float) -> void:
 	command_receiver.receive_damage(attacker, amount)
-	if hp > 0 and command_receiver.is_idle() and attacker != null:
+	if defense != null and defense.hp > 0 and command_receiver.is_idle() and attacker != null:
 		var attack_cmd := _get_vision_range_attack(attacker)
 		if attack_cmd != null:
 			update_commands(attack_cmd)
@@ -195,9 +199,9 @@ func _process(_delta: float) -> void:
 	var sprite: Sprite3D = get_node_or_null("Sprite") as Sprite3D
 
 	# HP bar (visible while damaged or selected)
-	$HPBar.visible = hp < hpMax or selectable.is_selected()
+	$HPBar.visible = defense != null and (defense.hp < defense.hp_max or selectable.is_selected())
 	if hpBarFill.visible:
-		hpBarFill.scale.x = hp / hpMax
+		hpBarFill.scale.x = defense.hp / defense.hp_max
 		var half_w := hpBarFill.texture.get_width() * hpBarFill.pixel_size / 2.0
 		hpBarFill.position.x = -half_w * (1.0 - hpBarFill.scale.x)
 
@@ -213,7 +217,7 @@ func _process(_delta: float) -> void:
 		# NOTE hardcoding pattern preserved from Unit — Sentry uses 3 hframes.
 		# A future SpriteAnimation component should own this.
 		if sprite.hframes > 1:
-			if attack_timer == ATTACK_DURATION:
+			if _attack_duration > 0 and attack_timer == _attack_duration:
 				sprite.frame = 2
 			elif current_command() is Attack:
 				sprite.frame = 1
@@ -248,10 +252,10 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 	# Snap Y to terrain after each move so height tracks the final XZ this tick,
 	# not the XZ from before the move (which is what _physics_process saw).
 	if map != null:
-		global_position.y = map.terrain_height_at(VU.inXZ(global_position))
+		global_position.y = map.terrain_height_at(VU.inXZ(global_position)) + movement.height_offset()
 
 func _update_state() -> void:
-	if hp <= 0:
+	if defense != null and defense.hp <= 0:
 		_on_death()
 		return
 
@@ -280,7 +284,7 @@ func _physics_process(_delta: float) -> void:
 	# from HeightMapShape3D data) but the velocity computation zeroes Y to keep
 	# avoidance stable, so Y tracking must happen here instead.
 	if movement != null and map != null:
-		global_position.y = map.terrain_height_at(VU.inXZ(global_position))
+		global_position.y = map.terrain_height_at(VU.inXZ(global_position)) + movement.height_offset()
 
 func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
 	command_receiver.update_commands(a_commands, add_to_queue, prepend)

@@ -178,7 +178,7 @@ func army_average_health_fraction() -> float:
 		return 0.0
 	var total := 0.0
 	for c: Commandable in units:
-		total += c.hp / c.hpMax
+		total += c.defense.hp / c.defense.hp_max if c.defense != null else 0.0
 	return total / float(units.size())
 
 
@@ -189,7 +189,8 @@ func army_average_health_fraction() -> float:
 func estimate_army_strength() -> float:
 	var strength := 0.0
 	for c: Commandable in _owned_units():
-		strength += c.DAMAGE * (c.hp / c.hpMax)
+		if c.defense == null: continue
+		strength += (c.weapon_inventory.total_damage() if c.weapon_inventory != null else 0.0) * (c.defense.hp / c.defense.hp_max)
 	return strength
 
 
@@ -258,7 +259,7 @@ func most_threatened_structure(threat_radius: float = 30.0) -> Commandable:
 	for t in Entity.Type.values():
 		for s: Commandable in get_structures_of_type(t):
 			if not get_enemies_near(s.global_position, threat_radius).is_empty():
-				var frac := s.hp / s.hpMax
+				var frac := s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
 				if frac < worst_frac:
 					worst_frac = frac
 					worst = s
@@ -272,7 +273,8 @@ func most_threatened_structure(threat_radius: float = 30.0) -> Commandable:
 func relative_threat_level() -> float:
 	var enemy_strength := 0.0
 	for c: Commandable in get_enemy_units():
-		enemy_strength += c.DAMAGE * (c.hp / c.hpMax)
+		if c.defense == null: continue
+		enemy_strength += (c.weapon_inventory.total_damage() if c.weapon_inventory != null else 0.0) * (c.defense.hp / c.defense.hp_max)
 	var own := estimate_army_strength()
 	var total := own + enemy_strength
 	if total == 0.0:

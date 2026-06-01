@@ -78,7 +78,12 @@ func fulfill_action(a_commandable: Commandable) -> Variant:
 
 ### NODE
 func _init(a_message: CommandMessage) -> void:
-	message = CommandMessage.deep_copy(a_message)
+	message = a_message
+	message.retain()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and message != null:
+		message.release()
 
 static func load_command_from_dictionary(a_dictionary: Dictionary, a_map: Map) -> Command:
 	var command_class = {

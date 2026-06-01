@@ -9,11 +9,12 @@
 process_physics_priority = 10
 script = ExtResource("2_20vnl")
 type = 4611
-armor = 1
-hpMax = 500.0
-ATTACK_DURATION = 0
 
-[node name="Sprite" parent="." index="2"]
+[node name="Defense" parent="."]
+armor = 1
+hp_max = 500.0
+
+[node name="Sprite" parent="." index="0"]
 transform = Transform3D(15, 0, 0, 0, 2.044, 0, 0, 0, 14.105, 0, 0, 0)
 texture = ExtResource("3_woms5")
 

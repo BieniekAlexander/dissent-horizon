@@ -13,7 +13,6 @@ func _notification(what):
 	match what:
 		NOTIFICATION_EDITOR_PRE_SAVE:
 			apply_to_project_settings()
-			print('w')
 			# Useful for clearing temporary editor-only nodes
 
 

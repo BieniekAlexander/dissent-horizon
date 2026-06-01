@@ -38,6 +38,10 @@ enum Type {
 ## field below.
 @onready var ownership: Ownership = $Ownership
 
+## Defense component — owns hp, hp_max, and armor. Null for entities with no
+## concept of HP (e.g. Projectile, HitBox).
+@onready var defense: Defense = get_node_or_null("Defense") as Defense
+
 ## Movement component — wraps NavigationAgent3D for entities that pathfind.
 ## Null for entities that don't (structures, items). Callers must gate on
 ## `movement != null` before using it.
@@ -68,24 +72,15 @@ const TEAM_COLOR_MAP: Dictionary = {
 
 ### PHYSICAL STATS
 enum LocomotionMode { GROUNDED, FLYING }
-enum Armor { LIGHT, HEAVY }
 enum Attribute { MECH, BIO, UNMANNED }
 
-@export var armor: Armor = Armor.LIGHT
 @export var attributes_list: Array[Attribute] = []
 var attributes: Set
 
-@export var hpMax: float = 100
-@onready var hp: float = hpMax
 @onready var inventory: Array[Entity] = []
 @onready var inventory_capacity: int = 1
 
-@export var DAMAGE: float = 10
-@export var ATTACK_DURATION: int = 10
 var attack_timer: int = 0
-
-@export var SPEED: float = .25
-@onready var SPEED_PER_SECOND: float = SPEED * Engine.physics_ticks_per_second
 
 ### COLLISION
 var xz_position: Vector2:
@@ -153,10 +148,8 @@ func _auto_initialize() -> void:
 	# footprint, so we subtract the centroid offset to recover that corner.
 	var obstruction := get_node_or_null("Obstruction") as Obstruction
 	if obstruction != null and not found_map.structure_cell_map.has(self):
-		var dims := obstruction.dimensions
 		var visual_cell := found_map.world_to_grid(VU.inXZ(pre_init_pos))
-		var centroid_offset := Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
-		found_map.add_structure(self, visual_cell - centroid_offset, 0, false)
+		found_map.add_structure(self, visual_cell, 0, false)
 
 func _on_commander_changed(_old_commander: Commander, new_commander: Commander) -> void:
 	_apply_team_tint()

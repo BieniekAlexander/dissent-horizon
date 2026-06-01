@@ -136,11 +136,12 @@ func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: 
 	# directly e.g. from _auto_initialize).
 	var obs := a_structure.get_node_or_null("Obstruction") as Obstruction
 	var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
+	var origin := grid_location - Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
 	var footprint: Array[Vector2i] = []
 	var centroid := Vector3.ZERO
 	for w in range(dims.x):
 		for l in range(dims.y):
-			var cell := Vector2i(grid_location.x + w, grid_location.y + l)
+			var cell := Vector2i(origin.x + w, origin.y + l)
 			if not grid_coordinates_in_bounds(cell):
 				continue
 			cell_grid[cell.x][cell.y] = a_structure
@@ -153,6 +154,7 @@ func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: 
 
 	structure_cell_map[a_structure] = footprint
 	terrain_grid.place_building(footprint, a_structure)
+	a_structure.collision_layer &= ~CollisionLayers.Layer.BODY
 	a_structure.map = self
 
 
@@ -259,8 +261,6 @@ var _pin_updating: bool = false
 ## Returns the HeightPins container, creating and registering it if necessary.
 ## Safe to call at any time — does not depend on @onready or _ready() order.
 func _get_pin_container() -> Node3D:
-	if _pin_container != null:
-		return _pin_container
 	_pin_container = get_node_or_null("HeightPins") as Node3D
 	if _pin_container == null:
 		_pin_container = Node3D.new()

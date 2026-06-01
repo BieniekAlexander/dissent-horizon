@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, depth_draw_never, blend_mix;
+render_mode unshaded, depth_draw_never, depth_test_disabled, blend_mix;
 
 uniform sampler2D fog_texture;
 

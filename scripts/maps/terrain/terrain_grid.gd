@@ -6,11 +6,16 @@ extends Node
 ## The HeightMapShape3D is the authoritative source for terrain extent.
 ## A HeightMapShape3D with map_width W and map_depth D defines a grid of
 ## (W-1) × (D-1) navigable cells — one quad per pair of adjacent corners.
-## All cells within that extent are passable by default; buildings are the
-## only runtime source of blockage.
+## A cell is passable when it is in-bounds, unoccupied by a building, and
+## its four corner heights span no more than MAX_SLOPE_DIFF.
 ##
 ## Cell (gx, gz) spans the four heightmap corners
 ## (gx, gz), (gx+1, gz), (gx+1, gz+1), (gx, gz+1).
+
+## Maximum heightmap-unit spread across a cell's four corners before the cell
+## is considered too steep to traverse.  Raw map_data units (multiply by
+## terrain_body.scale.y to convert to world-space metres).
+const MAX_SLOPE_DIFF: float = 0.5
 
 ## The heightmap resource that defines terrain extent and corner heights.
 ## Set by Map._ready() from Map.height_map.
@@ -22,6 +27,7 @@ var height_map: HeightMapShape3D
 
 var _building_footprints: Dictionary = {}  # Object  -> Array[Vector2i]
 var _building_cells:      Dictionary = {}  # Vector2i -> Object
+var _steep_cells:         Dictionary = {}  # Vector2i -> true, precomputed at _ready()
 
 signal cells_changed(cells: Array)
 
@@ -29,6 +35,7 @@ signal cells_changed(cells: Array)
 func _ready() -> void:
 	assert(height_map  != null, "TerrainGrid: height_map must be set before adding to tree")
 	assert(terrain_body != null, "TerrainGrid: terrain_body must be set before adding to tree")
+	_compute_steep_cells()
 
 
 # --- Shape accessors -------------------------------------------------------
@@ -66,21 +73,40 @@ func is_in_bounds(cell: Vector2i) -> bool:
 func is_building_at(cell: Vector2i) -> bool:
 	return _building_cells.has(cell)
 
-## A cell is passable when it is within the heightmap extent and no building
-## occupies it.
-func is_passable(cell: Vector2i) -> bool:
-	return is_in_bounds(cell) and not is_building_at(cell)
+func is_too_steep(cell: Vector2i) -> bool:
+	return _steep_cells.has(cell)
 
-## Returns all cells that are not blocked by a building.
-## This is the set NavManager uses to construct the NavigationMesh.
+## A cell is passable when it is within the heightmap extent, no building
+## occupies it, and its corner-height spread does not exceed MAX_SLOPE_DIFF.
+func is_passable(cell: Vector2i) -> bool:
+	return is_in_bounds(cell) and not is_building_at(cell) and not is_too_steep(cell)
+
+## Returns all passable cells.  This is the set NavManager uses to build the NavigationMesh.
 func get_all_passable_cells() -> Array:
 	var result: Array = []
 	for x in range(grid_width()):
 		for z in range(grid_depth()):
 			var cell := Vector2i(x, z)
-			if not is_building_at(cell):
+			if is_passable(cell):
 				result.append(cell)
 	return result
+
+## Precompute steep cells from the heightmap.  Called once at _ready() since
+## the heightmap does not change at runtime.
+func _compute_steep_cells() -> void:
+	_steep_cells = {}
+	var hs := height_map
+	var w  := hs.map_width
+	for z in range(grid_depth()):
+		for x in range(grid_width()):
+			var h00 := hs.map_data[ z      * w + x    ]
+			var h10 := hs.map_data[ z      * w + x + 1]
+			var h01 := hs.map_data[(z + 1) * w + x    ]
+			var h11 := hs.map_data[(z + 1) * w + x + 1]
+			var spread := maxf(maxf(h00, h10), maxf(h01, h11)) \
+						- minf(minf(h00, h10), minf(h01, h11))
+			if spread > MAX_SLOPE_DIFF:
+				_steep_cells[Vector2i(x, z)] = true
 
 ## Returns [min: Vector2i, max: Vector2i] inclusive cell-index bounds.
 func get_bounds() -> Array:

@@ -5,8 +5,8 @@ extends Entity
 
 func _physics_process(delta: float) -> void:
 	for e: Entity in SU.get_nearby_entities(get_world_3d(), global_position, 2., CollisionLayers.Layer.BODY):
-		if e is Commandable:
-			e.hp -= 1
+		if e is Commandable and e.defense != null:
+			e.defense.hp -= 1
 	
 	lifespan -= 1
 	

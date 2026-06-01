@@ -5,21 +5,26 @@
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/inventory.gd" id="4_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="5_wpn00"]
 
-[node name="Unit2" instance=ExtResource("1_ucq5h")]
+[node name="Unit" instance=ExtResource("1_ucq5h")]
 type = 4352
 attributes_list = Array[int]([1])
-SPEED = 0.1
 
-[node name="Sprite" parent="." index="2"]
+[node name="Movement" parent="." index="7"]
+mode = 1
+max_acceleration = 3.0
+max_deceleration = -5.0
+speed = 0.2
+
+[node name="Sprite" parent="." index="11"]
 transform = Transform3D(3, 0, 0, 0, 2.12132, -2.12132, 0, 2.12132, 2.12132, 0, 0.34201145, 0)
 flip_h = true
 texture = ExtResource("3_0rgnf")
-
-[node name="HPBar" parent="." index="3"]
-transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.72988397, -0.30808753)
 
 [node name="Inventory" type="Node" parent="." index="12"]
 script = ExtResource("4_invnt")
 
 [node name="MeleeWeapon" type="Node" parent="Inventory" index="0"]
 script = ExtResource("5_wpn00")
+
+[node name="HPBar" parent="." index="13"]
+transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.72988397, -0.30808753)

@@ -1,32 +1,43 @@
-[gd_scene load_steps=17 format=3 uid="uid://bnic4wpl31scb"]
+[gd_scene load_steps=20 format=3 uid="uid://bnic4wpl31scb"]
 
 [ext_resource type="PackedScene" uid="uid://dcmdbl3j4t1k2" path="res://scenes/commandable.tscn" id="1_cmnd1"]
-[ext_resource type="Texture2D" uid="uid://cgdrbpxqo62uf" path="res://assets/structure.png" id="2_ixuya"]
 [ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="7_prod0"]
 [ext_resource type="Script" uid="uid://bgh3sjj1xc3cs" path="res://scripts/entities/components/resource_provider.gd" id="8_rspv0"]
-[ext_resource type="Script" path="res://scripts/entities/structures/footprint_visualizer.gd" id="9_fviz0"]
-[ext_resource type="Script" path="res://scripts/entities/components/obstruction.gd" id="10_obs0"]
+[ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="9_fviz0"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/obstruction.gd" id="10_obs0"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_4vk4e"]
-size = Vector3(1, 10, 1)
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
 
-[sub_resource type="Gradient" id="Gradient_hp_back"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_aggro0"]
+height = 100.0
+radius = 4.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_visn0"]
+height = 100.0
+radius = 10.0
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_cx6aj"]
+
+[sub_resource type="Gradient" id="Gradient_clwnv"]
 offsets = PackedFloat32Array(0)
 colors = PackedColorArray(0, 0, 0, 1)
 
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_hp_back"]
-gradient = SubResource("Gradient_hp_back")
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_u25hc"]
+gradient = SubResource("Gradient_clwnv")
 
-[sub_resource type="Gradient" id="Gradient_hp_fill"]
+[sub_resource type="Gradient" id="Gradient_76bi0"]
 offsets = PackedFloat32Array(1)
 colors = PackedColorArray(1, 0, 0, 1)
 
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_hp_fill"]
-gradient = SubResource("Gradient_hp_fill")
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_cnvxh"]
+gradient = SubResource("Gradient_76bi0")
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_niu5p"]
-height = 100.0
-radius = 10.0
+[sub_resource type="Gradient" id="Gradient_8aclg"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_5lb30"]
+gradient = SubResource("Gradient_8aclg")
 
 [sub_resource type="Gradient" id="Gradient_train_back"]
 offsets = PackedFloat32Array(0)
@@ -46,34 +57,41 @@ gradient = SubResource("Gradient_train_fill")
 collision_layer = 3
 type = -1
 
-[node name="Body" parent="." index="1"]
-shape = SubResource("BoxShape3D_4vk4e")
+[node name="Body" parent="." index="2"]
+shape = SubResource("CylinderShape3D_fe0lq")
 
-[node name="Sprite" parent="." index="2"]
-transform = Transform3D(7.33997, 0, 0, 0, 1, 0, 0, 0, 6.90188, 0, 0, 0)
-layers = 1
-texture = ExtResource("2_ixuya")
+[node name="AggroRange" parent="." index="3"]
+shape = SubResource("CylinderShape3D_aggro0")
 
-[node name="HPBar" parent="." index="3"]
-transform = Transform3D(0.3, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.1, -0.2)
-texture = SubResource("GradientTexture1D_hp_back")
+[node name="VisionRange" parent="." index="4"]
+shape = SubResource("CylinderShape3D_visn0")
 
-[node name="HPBarFill" parent="HPBar" index="0"]
-texture = SubResource("GradientTexture1D_hp_fill")
+[node name="Obstruction" type="Node" parent="." index="7"]
+script = ExtResource("10_obs0")
 
-[node name="SelectionIndicator" parent="." index="4"]
-transform = Transform3D(0.25, 0, 0, 0, 0.176777, 0.176777, 0, -0.176777, 0.176777, 0, 0, 0)
-
-[node name="Selectable" parent="." index="6"]
-collision_layer = 256
+[node name="ResourceProvider" type="Node" parent="." index="8"]
+script = ExtResource("8_rspv0")
 
 [node name="SelectionShape" parent="Selectable" index="0"]
-shape = SubResource("BoxShape3D_4vk4e")
+shape = SubResource("SphereShape3D_cx6aj")
 
-[node name="VisionRange" parent="." index="10"]
-shape = SubResource("CylinderShape3D_niu5p")
+[node name="HPBar" parent="." index="13"]
+texture = SubResource("GradientTexture1D_u25hc")
 
-[node name="TrainBar" type="Sprite3D" parent="." index="13"]
+[node name="HPBarFill" parent="HPBar" index="0"]
+texture = SubResource("GradientTexture1D_cnvxh")
+
+[node name="HPBarBack" parent="HPBar" index="1"]
+texture = SubResource("GradientTexture1D_5lb30")
+
+[node name="Production" type="Node" parent="." index="16"]
+script = ExtResource("7_prod0")
+train_bar_path = NodePath("../TrainBar")
+
+[node name="FootprintVisualizer" type="Node3D" parent="." index="19"]
+script = ExtResource("9_fviz0")
+
+[node name="TrainBar" type="Sprite3D" parent="." index="20"]
 transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.25, -0.2)
 visible = false
 pixel_size = 0.0001
@@ -85,16 +103,3 @@ region_rect = Rect2(2, 0, 0, 0)
 [node name="TrainBarFill" type="Sprite3D" parent="TrainBar" index="0"]
 render_priority = 5
 texture = SubResource("GradientTexture1D_train_fill")
-
-[node name="Production" type="Node" parent="." index="14"]
-script = ExtResource("7_prod0")
-train_bar_path = NodePath("../TrainBar")
-
-[node name="ResourceProvider" type="Node" parent="." index="15"]
-script = ExtResource("8_rspv0")
-
-[node name="FootprintVisualizer" type="Node3D" parent="." index="16"]
-script = ExtResource("9_fviz0")
-
-[node name="Obstruction" type="Node" parent="." index="17"]
-script = ExtResource("10_obs0")

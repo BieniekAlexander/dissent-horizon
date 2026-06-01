@@ -6,14 +6,15 @@
 [node name="Structure" instance=ExtResource("1_yjctr")]
 process_physics_priority = 10
 type = 4613
+
+[node name="Defense" parent="."]
 armor = 1
-hpMax = 500.0
-ATTACK_DURATION = 0
+hp_max = 500.0
 
 [node name="Obstruction" parent="." index="17"]
 dimensions = Vector2i(2, 2)
 
-[node name="Sprite" parent="." index="2"]
+[node name="Sprite" parent="." index="0"]
 transform = Transform3D(18, 0, 0, 0, 2.453, 0, 0, 0, 16.926, 0, 0, 0)
 texture = ExtResource("3_ddtmw")
 

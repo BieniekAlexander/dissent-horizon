@@ -79,6 +79,13 @@ var available_commands: Array:
 ## the old state_maping-based sub-context machinery.
 var pending_command_name: String = ""
 
+## WAYPOINT INDICATORS
+## One WaypointIndicator node per active CommandMessage snapshot, pooled to
+## avoid per-command allocations.  All indicator nodes live under the Map node.
+const _INDICATOR_POOL_SIZE: int = 16
+var _active_indicators: Dictionary = {}  # CommandMessage -> WaypointIndicator
+var _indicator_pool: Array = []          # idle WaypointIndicator nodes
+
 ## BUILD PLACEMENT PREVIEW
 ## While a Build command is armed with a chosen Tool, we show a translucent
 ## "ghost" of the structure under the cursor, snapped to the cell it would
@@ -94,10 +101,13 @@ var _build_preview_tool_type: Variant = null
 func _ready():
 	Input.set_custom_mouse_cursor(free_cursor)
 	upate_hud_buttons()
-	
+
 	selection_box.visible = false
 	if !selection_box.is_inside_tree():
 		add_child(selection_box)
+
+	for i in range(_INDICATOR_POOL_SIZE):
+		_indicator_pool.append(_make_indicator())
 
 func _process(_delta: float) -> void:
 	var cursor_result: Variant = get_cursor_target(mouse_position)
@@ -134,6 +144,7 @@ func _process(_delta: float) -> void:
 		Input.set_custom_mouse_cursor(invalid_cursor)
 
 	_update_build_preview()
+	_update_waypoint_display()
 
 
 ## Show / refresh / hide the translucent build-placement ghost. Called every
@@ -161,7 +172,21 @@ func _update_build_preview() -> void:
 	if not map.grid_coordinates_in_bounds(cell):
 		_build_preview.visible = false
 		return
-	_build_preview.global_position = map.grid_to_world(cell)
+
+	# Position at the footprint centroid, matching the arithmetic in
+	# Map.add_structure, so multi-cell buildings (e.g. 3×3) don't appear
+	# offset from where they actually land.
+	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
+	var commander: Commander = lead.commander if lead != null else null
+	var source: Node = commander.get_build_preview_instance(command_message.tool) if commander != null else null
+	var obs := source.get_node_or_null("Obstruction") as Obstruction if source != null else null
+	var dims := obs.dimensions if obs != null else Vector2i.ONE
+	var origin := cell - Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
+	var centroid := Vector3.ZERO
+	for w in range(dims.x):
+		for l in range(dims.y):
+			centroid += map.grid_to_world(Vector2i(origin.x + w, origin.y + l))
+	_build_preview.global_position = centroid / (dims.x * dims.y)
 	_build_preview.visible = true
 
 
@@ -177,7 +202,7 @@ func _rebuild_build_preview(a_tool: Tool) -> void:
 		_build_preview = Node3D.new()
 		_build_preview.name = "BuildPreview"
 		_build_preview.visible = false
-		map.add_child(_build_preview)
+		map.get_parent().add_child(_build_preview)
 
 	for child in _build_preview.get_children():
 		child.free()
@@ -425,7 +450,10 @@ func assign_command_to_units(
 		_reset_pending_state()
 		return false
 
-	var new_command: Command = a_command_type.new(a_command_message)
+	var snapshot := CommandMessage.deep_copy(a_command_message)
+	if a_command_type.requires_position():
+		_register_indicator(snapshot)
+	var new_command: Command = a_command_type.new(snapshot)
 	for c: Commandable in capable:
 		c.update_commands(new_command, add_to_queue)
 
@@ -442,6 +470,57 @@ func assign_command_to_units(
 func _reset_pending_state() -> void:
 	pending_command_name = ""
 	available_commands = CommandContextParser.commands_for_selection(selection)
+
+
+## WAYPOINT INDICATOR HELPERS
+
+func _make_indicator() -> WaypointIndicator:
+	var ind := WaypointIndicator.new()
+	map.add_child(ind)
+	ind.visible = false
+	return ind
+
+func _register_indicator(msg: CommandMessage) -> void:
+	if _indicator_pool.is_empty():
+		_indicator_pool.append(_make_indicator())
+	var ind: WaypointIndicator = _indicator_pool.pop_back()
+	_active_indicators[msg] = ind
+	msg.unreferenced.connect(_on_message_unreferenced.bind(msg), CONNECT_ONE_SHOT)
+
+func _on_message_unreferenced(msg: CommandMessage) -> void:
+	var ind = _active_indicators.get(msg)
+	if ind == null:
+		return
+	ind.visible = false
+	_active_indicators.erase(msg)
+	_indicator_pool.append(ind)
+
+## Show waypoint indicators for the current selection.  Called every frame so
+## the line from a moving unit to its first waypoint stays accurate.
+func _update_waypoint_display() -> void:
+	for ind in _active_indicators.values():
+		(ind as WaypointIndicator).visible = false
+
+	if selection.is_empty() or _active_indicators.is_empty():
+		return
+
+	# Walk every selected unit's chain so the union of all their active
+	# indicators is shown, not just the first representative's.
+	var configured: Dictionary = {}  # CommandMessage -> true, prevents double-configure
+	for entity in selection:
+		if not (entity is Commandable):
+			continue
+		var unit := entity as Commandable
+		var chain := unit.get_command_chain()
+		var prev_pos: Vector3 = unit.global_position
+		for cmd in chain:
+			var msg: CommandMessage = cmd.message
+			if _active_indicators.has(msg) and not configured.has(msg):
+				var ind: WaypointIndicator = _active_indicators[msg]
+				ind.configure(msg.position, prev_pos)
+				ind.visible = true
+				configured[msg] = true
+			prev_pos = msg.position
 
 
 ## UTILS

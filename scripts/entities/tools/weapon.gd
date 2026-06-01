@@ -17,17 +17,19 @@ enum AttackType {
 
 static var damage_multiplier_patterns: Dictionary = {
 	AttackType.BALLISTIC: [
-			Pattern.new(func(c: Commandable): return c.armor==Commandable.Armor.LIGHT, 1),
-			Pattern.new(func(c: Commandable): return c.armor==Commandable.Armor.HEAVY, .1)
+			Pattern.new(func(c: Commandable): return c.defense != null and c.defense.armor == Defense.Armor.LIGHT, 1),
+			Pattern.new(func(c: Commandable): return c.defense != null and c.defense.armor == Defense.Armor.HEAVY, .1)
 	],
 	AttackType.LAZER: [
-			Pattern.new(func(c: Commandable): return c.armor==Commandable.Armor.LIGHT, .25),
-			Pattern.new(func(c: Commandable): return c.armor==Commandable.Armor.HEAVY, 1)
+			Pattern.new(func(c: Commandable): return c.defense != null and c.defense.armor == Defense.Armor.LIGHT, .25),
+			Pattern.new(func(c: Commandable): return c.defense != null and c.defense.armor == Defense.Armor.HEAVY, 1)
 	]
 }
 
 ## COMBAT
 @export var attack_type: AttackType = AttackType.BALLISTIC
+@export var damage: float = 10
+@export var attack_duration: int = 10
 ## Projectile scene to launch on fire; null = instant damage applied directly.
 @export var packed_scene: PackedScene
 ## Maximum XZ distance (centre-to-centre) at which this weapon can strike when
@@ -47,9 +49,9 @@ func fire(a_owner: Commandable, a_target: Entity) -> void:
 	if packed_scene != null:
 		var projectile: = packed_scene.instantiate()
 		projectile.initialize(a_owner.map, a_owner.commander)
-		projectile.initialize_projectile(a_owner, a_target)
+		projectile.initialize_projectile(a_owner, a_target, damage)
 	else:
 		a_target.receive_damage(
 			a_owner,
-			Pattern.eval(damage_multiplier_patterns[attack_type], a_target) * a_owner.DAMAGE
+			Pattern.eval(damage_multiplier_patterns[attack_type], a_target) * damage
 		)

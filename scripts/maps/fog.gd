@@ -75,7 +75,7 @@ func _physics_process(_delta: float) -> void:
 
 func _ready() -> void:
 	call_deferred(&"_initialize")
-
+	get_active_material(0).render_priority = RenderPriority.FOG_PRIORITY
 
 func _initialize() -> void:
 	var map: Map = get_tree().current_scene.find_child("Map")

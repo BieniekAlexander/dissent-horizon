@@ -5,9 +5,8 @@
 
 [node name="Structure" instance=ExtResource("1_q1wtf")]
 type = 4609
-ATTACK_DURATION = 0
 
-[node name="Sprite" parent="." index="2"]
+[node name="Sprite" parent="." index="0"]
 transform = Transform3D(0.322959, 0, 0, 0, 1, 0, 0, 0, 0.248468, 0, 0, 0)
 texture = ExtResource("2_lt302")
 
