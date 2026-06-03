@@ -78,7 +78,7 @@ script = ExtResource("7_def00")
 [node name="#####CONTROLS#####" type="Node" parent="."]
 
 [node name="Selectable" type="Area3D" parent="."]
-collision_layer = 1024
+collision_layer = 256
 script = ExtResource("4_slct0")
 indicator_path = NodePath("../SelectionIndicator")
 

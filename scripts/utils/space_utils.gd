@@ -25,7 +25,7 @@ static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 ## Melee weapons (attack_range_shape == null): XZ centre-to-centre distance.
 ## The shape is placed at the attacker's world transform rather than reading
 ## global_transform off the CollisionShape3D node directly, because Weapon and
-## Inventory are plain Nodes (not Node3D) and would always report the origin.
+## Loadout are plain Nodes (not Node3D) and would always report the origin.
 static func is_in_attack_range(weapon: Weapon, attacker: Entity, target: Entity) -> bool:
 	if weapon == null:
 		return false
@@ -86,25 +86,135 @@ static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distan
 		an_entity.xz_position - a_unit.xz_position
 	).length_squared() - (an_entity.collision_radius+a_unit.collision_radius)**2 < distance_squared
 
+## ── UNIT PLACEMENT ──────────────────────────────────────────────────────────
+##
+## The functions below answer the question: "If this unit enters the scene
+## near an existing entity, where should it appear so it doesn't overlap?"
+## They are intentionally generic so the same logic can serve garrisoning,
+## structure exit, unit training, teleport landing, etc.
+
+## Return all unique grid cells that are directly adjacent (L∞-distance 1) to
+## any cell in `a_structure`'s footprint, are in-bounds, and are currently
+## passable (not occupied by another structure, not too steep).  The returned
+## list is shuffled so callers can pop_front() to assign distinct destinations
+## without bias.
+static func passable_cells_adjacent_to(a_structure: Commandable, a_map: Map) -> Array[Vector2i]:
+	if a_structure == null or a_map == null:
+		return []
+
+	var footprint: Array = a_map.structure_cell_map.get(a_structure, [])
+	# `seen` prevents both footprint cells and already-collected neighbors
+	# from appearing in the output.
+	var seen: Dictionary = {}
+	for cell in footprint:
+		seen[cell] = true
+
+	var result: Array[Vector2i] = []
+	for cell: Vector2i in footprint:
+		for dx in [-1, 0, 1]:
+			for dz in [-1, 0, 1]:
+				if dx == 0 and dz == 0:
+					continue
+				var neighbor := Vector2i(cell.x + dx, cell.y + dz)
+				if seen.has(neighbor):
+					continue
+				if not a_map.grid_coordinates_in_bounds(neighbor):
+					continue
+				if not a_map.terrain_grid.is_passable(neighbor):
+					continue
+				seen[neighbor] = true
+				result.append(neighbor)
+
+	result.shuffle()
+	return result
+
+
+## Return the grid cell adjacent to `a_structure`'s footprint — in-bounds and
+## passable — whose world-space centre is closest to `dest`.
+## Returns Vector2i(-1, -1) when no suitable cell exists.
+static func nearest_footprint_adjacent_cell(
+	dest: Vector3,
+	a_structure: Commandable,
+	a_map: Map
+) -> Vector2i:
+	if a_structure == null or a_map == null:
+		return Vector2i(-1, -1)
+
+	var footprint: Array = a_map.structure_cell_map.get(a_structure, [])
+	var in_footprint: Dictionary = {}
+	for cell in footprint:
+		in_footprint[cell] = true
+
+	var best_cell := Vector2i(-1, -1)
+	var best_dist_sq := INF
+
+	for cell: Vector2i in footprint:
+		for dx in [-1, 0, 1]:
+			for dz in [-1, 0, 1]:
+				if dx == 0 and dz == 0:
+					continue
+				var neighbor := Vector2i(cell.x + dx, cell.y + dz)
+				if in_footprint.has(neighbor):
+					continue
+				if not a_map.grid_coordinates_in_bounds(neighbor):
+					continue
+				if not a_map.terrain_grid.is_passable(neighbor):
+					continue
+				var dist_sq := a_map.grid_to_world(neighbor).distance_squared_to(dest)
+				if dist_sq < best_dist_sq:
+					best_dist_sq = dist_sq
+					best_cell = neighbor
+
+	return best_cell
+
+
+## Return the world-space spawn position for the unit at `index` (0-based) in
+## a ring of `total` units placed around `center`.  The ring radius is just
+## large enough to clear both entities' Layer.BODY collision spheres so no
+## overlap occurs at spawn time.  Y is snapped to terrain height plus the
+## unit's height offset.
+static func ring_spawn_position(
+	center: Commandable,
+	unit: Commandable,
+	index: int,
+	total: int,
+	a_map: Map
+) -> Vector3:
+	const BODY_BUFFER: float = 0.15
+	var ring_radius: float = center.collision_radius + unit.collision_radius + BODY_BUFFER
+
+	var angle: float = 2.0 * PI * float(index) / float(max(total, 1))
+	var xz: Vector2 = VU.inXZ(center.global_position) \
+		+ Vector2(cos(angle), sin(angle)) * ring_radius
+
+	var height_offset: float = unit.movement.height_offset() if unit.movement != null else 0.0
+	var y: float = a_map.terrain_height_at(xz) + height_offset \
+		if a_map != null else center.global_position.y
+
+	return Vector3(xz.x, y, xz.y)
+
+
+## How far (in XZ world units) a candidate point may drift from the navmesh
+## closest-point snap before it is considered off-navmesh.  Half a cell width
+## (CELL_SIZE = 2.0) keeps points well inside valid navmesh quads.
+const _NAV_SNAP_TOLERANCE: float = 1.0
+
 static func get_nonoverlapping_points(
 	map: Map,
 	center: Vector2,
 	point_radius: float,
 	world_3d: World3D,
 	collision_mask: int,
-	nav_layer_mask: int,
 	region_radius: float,
 	max_points: int = 1,
 	sample_count: int = 10,
-	raycast_height: float = 50.0,
-	raycast_max_depth: float = 200.0
 ) -> Array[Vector2]:
 	var about_points: Array[Vector2] = []
 	var ret_points: Array[Vector2] = []
 
 	# Seed with center if it lands on a valid nav surface and is free.
-	var center_ground := _project_to_nav_surface(center, world_3d, nav_layer_mask, raycast_height, raycast_max_depth)
-	if center_ground != null and _is_point_free_3d(center_ground, point_radius, world_3d, collision_mask):
+	var center_ground := _project_to_nav_surface(map, center)
+	if center_ground != Vector3.INF and _is_point_free_3d(center_ground, point_radius, world_3d, collision_mask):
 		ret_points.append(center)
 		about_points.append(center)
 		if max_points == 1:
@@ -124,8 +234,8 @@ static func get_nonoverlapping_points(
 				continue
 
 			# Project this XZ onto a valid nav surface.
-			var ground_pos := _project_to_nav_surface(new_point, world_3d, nav_layer_mask, raycast_height, raycast_max_depth)
-			if ground_pos == null:
+			var ground_pos := _project_to_nav_surface(map, new_point)
+			if ground_pos == Vector3.INF:
 				continue  # not on a valid surface
 
 			# Check for overlaps at grounded position.
@@ -145,43 +255,18 @@ static func get_nonoverlapping_points(
 	push_error("Not enough points collected - requested %s, got %s" % [max_points, ret_points.size()])
 	return ret_points
 
-static func _project_to_nav_surface(
-	point_xz: Vector2,
-	world_3d: World3D,
-	nav_layer_mask: int,
-	raycast_height: float,
-	raycast_max_depth: float
-) -> Vector3:
-	var space_state := world_3d.direct_space_state
-
-	var origin := Vector3(point_xz.x, raycast_height, point_xz.y)
-	var target := origin + Vector3.DOWN * raycast_max_depth
-
-	var query := PhysicsRayQueryParameters3D.create(origin, target)
-	query.collide_with_bodies = true
-	query.collide_with_areas = true
-	# Optionally, restrict to layers that contain navigation regions/ground geometry:
-	# query.collision_mask = <ground collision layers>
-
-	var result := space_state.intersect_ray(query)
-	if result.is_empty():
-		return Vector3.INF
-
-	var collider: Variant = result['collider']
-
-	# Try to read navigation layers. Adjust to your setup:
-	var nav_layers := 0
-	if collider.has_method("get_navigation_layers"):
-		nav_layers = collider.get_navigation_layers()
-	elif collider.has_meta("navigation_layers"):
-		nav_layers = int(collider.get_meta("navigation_layers"))
-	elif "navigation_layers" in collider:
-		nav_layers = collider.navigation_layers
-
-	if (nav_layers & nav_layer_mask) == 0:
-		return Vector3.INF  # surface not on desired navigation layers
-
-	return result.position
+## Project an XZ world position onto the navmesh using NavigationServer3D.
+## Returns the snapped Vector3 if the closest navmesh point is within
+## _NAV_SNAP_TOLERANCE in XZ; returns Vector3.INF if the point is off-navmesh
+## (e.g. over a building cell, outside map bounds, etc.).
+static func _project_to_nav_surface(map: Map, point_xz: Vector2) -> Vector3:
+	var nav_map := map.nav_region.get_navigation_map()
+	var probe := Vector3(point_xz.x, map.terrain_height_at(point_xz), point_xz.y)
+	var snapped := NavigationServer3D.map_get_closest_point(nav_map, probe)
+	var snapped_xz := Vector2(snapped.x, snapped.z)
+	if snapped_xz.distance_to(point_xz) > _NAV_SNAP_TOLERANCE:
+		return Vector3.INF  # candidate is off the navmesh
+	return snapped
 
 static func _is_point_free_3d(
 	ground_pos: Vector3,

@@ -35,6 +35,20 @@ func _add_named_child(a_parent: Node, a_name: String) -> Node:
 	autofree(n)
 	return n
 
+func _add_inventory(a_parent: Node, a_abilities: Array) -> Inventory:
+	# A real Inventory component — the parser's command_launch predicate casts the
+	# "Inventory" child to Inventory and calls has_ability(), so a bare Node won't
+	# do. tool_specs is populated directly here because _ready (which builds it
+	# from initial_abilities) only fires once the node is in the tree, and these
+	# test entities are intentionally never added to the tree.
+	var inv := Inventory.new()
+	inv.name = "Inventory"
+	for ability_type in a_abilities:
+		inv.tool_specs.append(ToolSpec.new(ability_type))
+	a_parent.add_child(inv)
+	autofree(inv)
+	return inv
+
 func _add_production(a_parent: Node, a_producible_types: Array) -> Production:
 	# A real Production component — the parser's train_tools_for() reads its
 	# producible_types to decide which command_tool_* names the structure offers,
@@ -60,12 +74,12 @@ func test_bare_entity_with_no_components_and_no_groups_returns_empty():
 ## --- Unit-flavored predicates ---------------------------------------------
 
 func test_unit_with_movement_gets_movement_commands():
-	# UNIT_SENTRY with both a Movement and an Inventory child stands in for a
+	# UNIT_SENTRY with both a Movement and an Loadout child stands in for a
 	# generic combat unit. command_move comes from Movement; the attack-flavored
-	# commands come from Inventory.
+	# commands come from Loadout.
 	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "Inventory")
+	_add_named_child(e, "Loadout")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_move"), "movement-bearing unit can move")
 	assert_true(cmds.has("command_attack_move"), "unit can attack-move")
@@ -73,12 +87,12 @@ func test_unit_with_movement_gets_movement_commands():
 	assert_true(cmds.has("command_attack"), "unit can attack")
 
 func test_attack_range_without_movement_still_has_combat_commands():
-	# The turret-like shape: an Inventory-bearing entity with no Movement node
-	# loses command_move but keeps every Inventory-flavored command — stop,
+	# The turret-like shape: an Loadout-bearing entity with no Movement node
+	# loses command_move but keeps every Loadout-flavored command — stop,
 	# attack, AND attack-move (the parser couples both attack commands to the
-	# Inventory predicate).
+	# Loadout predicate).
 	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
-	_add_named_child(e, "Inventory")
+	_add_named_child(e, "Loadout")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_false(cmds.has("command_move"))
 	assert_true(cmds.has("command_attack_move"))
@@ -120,7 +134,7 @@ func test_outpost_advertises_only_technician_tool():
 func test_technician_has_build_ability_and_inventory_actions():
 	var e := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "Inventory")
+	_add_named_child(e, "Loadout")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_ability"))
 	assert_true(cmds.has("command_build"))
@@ -135,7 +149,10 @@ func test_technician_has_build_ability_and_inventory_actions():
 func test_vanguard_has_launch_and_collect():
 	var e := _make_entity(Entity.Type.UNIT_VANGUARD, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "Inventory")
+	_add_named_child(e, "Loadout")
+	# command_launch is now sourced from the Inventory ability component, not the
+	# unit type — the unit must actually hold the RADIATION ability ToolSpec.
+	_add_inventory(e, [Ability.Type.RADIATION])
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_launch"))
 	assert_true(cmds.has("command_collect"))
@@ -148,7 +165,8 @@ func test_vanguard_has_launch_and_collect():
 func test_command_available_matches_commands_for():
 	var e := _make_entity(Entity.Type.UNIT_VANGUARD, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "Inventory")
+	_add_named_child(e, "Loadout")
+	_add_inventory(e, [Ability.Type.RADIATION])
 	assert_true(CommandContextParser.command_available("command_launch", e))
 	assert_true(CommandContextParser.command_available("command_attack_move", e))
 	assert_false(CommandContextParser.command_available("command_ability", e))
@@ -178,10 +196,10 @@ func test_selection_deduplicates_shared_commands():
 	# exactly once in the union.
 	var a := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
 	_add_named_child(a, "Movement")
-	_add_named_child(a, "AttackRange")
+	_add_named_child(a, "Loadout")
 	var b := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
 	_add_named_child(b, "Movement")
-	_add_named_child(b, "AttackRange")
+	_add_named_child(b, "Loadout")
 	var cmds := CommandContextParser.commands_for_selection([a, b])
 	var occurrences := cmds.filter(func(n): return n == "command_attack_move").size()
 	assert_eq(occurrences, 1, "shared command appears once in the union")
@@ -189,7 +207,7 @@ func test_selection_deduplicates_shared_commands():
 func test_selection_ignores_invalid_entries():
 	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
 	_add_named_child(e, "Movement")
-	_add_named_child(e, "Inventory")
+	_add_named_child(e, "Loadout")
 	# Mix in nulls and a non-Entity object; parser should skip them silently.
 	var stray := Node.new()
 	autofree(stray)

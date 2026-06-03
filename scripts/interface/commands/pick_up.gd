@@ -5,8 +5,10 @@ func should_move(a_actor: Commandable) -> bool:
 	return !SU.unit_is_close_to_target(a_actor, message.target)
 
 func can_act(a_actor: Commandable) -> bool:
-	return SU.unit_is_close_to_target(a_actor, message.target) \
-		and a_actor.inventory.size()<a_actor.inventory_capacity
+	var inv := a_actor.ability_inventory
+	return inv != null \
+		and SU.unit_is_close_to_target(a_actor, message.target) \
+		and inv.can_hold_more()
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	# TODO:
@@ -14,5 +16,5 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	# 2: the anima is not interpreting any commands queued after pickup - why?
 	var item: Entity = message.target
 	item.get_parent().remove_child(item)
-	a_actor.inventory.push_back(item)
+	a_actor.ability_inventory.add_item(item)
 	return null

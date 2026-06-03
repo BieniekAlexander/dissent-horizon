@@ -1,8 +1,8 @@
 class_name Weapon
 extends Node
 
-## A weapon that a commandable's Inventory can hold. Lives in the scene tree as
-## a child of an Inventory node, with an optional AttackRange CollisionShape3D
+## A weapon that a commandable's Loadout can hold. Lives in the scene tree as
+## a child of an Loadout node, with an optional AttackRange CollisionShape3D
 ## child that defines its reach.
 
 enum AttackType {
@@ -38,6 +38,13 @@ static var damage_multiplier_patterns: Dictionary = {
 @export var melee_range: float = 1.5
 
 @onready var attack_range_shape: CollisionShape3D = get_node_or_null("AttackRange")
+@onready var _visualizer: Node = _find_visualizer()
+
+func _find_visualizer() -> Node:
+	for c in get_children():
+		if c.has_method("show_beam"):
+			return c
+	return null
 
 ## Returns true when this weapon can target the given entity.
 ## By default any Entity is a valid target; override per-weapon for
@@ -55,3 +62,5 @@ func fire(a_owner: Commandable, a_target: Entity) -> void:
 			a_owner,
 			Pattern.eval(damage_multiplier_patterns[attack_type], a_target) * damage
 		)
+	if _visualizer:
+		_visualizer.show_beam(a_owner, a_target)

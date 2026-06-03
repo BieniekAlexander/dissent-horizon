@@ -22,6 +22,7 @@ extends Entity
 @onready var resource_provider: ResourceProvider = get_node_or_null("ResourceProvider") as ResourceProvider
 @onready var ore_extractor: OreExtractor = get_node_or_null("OreExtractor") as OreExtractor
 @onready var dominion_generator: DominionGenerator = get_node_or_null("DominionGenerator") as DominionGenerator
+@onready var shelter: Shelter = get_node_or_null("Shelter") as Shelter
 
 var _command: Command:
 	get: return command_receiver._command
@@ -113,7 +114,7 @@ func get_aggro_near_position() -> Command:
 	var aggro_query := PhysicsShapeQueryParameters3D.new()
 	aggro_query.shape = aggro_range_shape.shape
 	aggro_query.transform = aggro_range_shape.global_transform
-	aggro_query.collision_mask = CollisionLayers.Layer.BODY
+	aggro_query.collision_mask = CollisionLayers.Layer.TARGETABLE
 	aggro_query.exclude = [self]
 
 	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
@@ -170,6 +171,9 @@ func initialize(a_map: Map, a_commander: Commander):
 	# from Entity._ready() when Ownership migrates the pre-tree _commander value.
 
 func receive_damage(attacker: Commandable, amount: float) -> void:
+	# Being attacked breaks stealth: force the timed UNSTEALTHED window.
+	if stealth != null:
+		stealth.unstealth()
 	command_receiver.receive_damage(attacker, amount)
 	if defense != null and defense.hp > 0 and command_receiver.is_idle() and attacker != null:
 		var attack_cmd := _get_vision_range_attack(attacker)
@@ -186,7 +190,7 @@ func _get_vision_range_attack(attacker: Commandable) -> Command:
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = vision_range_shape.shape
 	params.transform = vision_range_shape.global_transform
-	params.collision_mask = CollisionLayers.Layer.BODY
+	params.collision_mask = CollisionLayers.Layer.TARGETABLE
 	params.exclude = [self]
 	var potential_targets: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
 	for hit in potential_targets:
@@ -237,6 +241,26 @@ func _process(_delta: float) -> void:
 			sprite.modulate.a = build_progress
 		production.update_bar(scale.x)
 
+	# Stealth visibility (driven by Stealth.state). The pulsing partial alpha is
+	# the "partially visible" cue; full alpha = fully visible; zero = unseen.
+	# • STEALTHED   — owner sees the faint pulse; enemies see nothing (HP bar hidden).
+	# • REVEALED    — faint pulse for everyone (owner and enemies).
+	# • UNSTEALTHED — fully visible to everyone (restored each frame so the
+	#                 transition out of stealth snaps back cleanly).
+	if stealth != null and sprite != null:
+		var pulse_alpha: float = 0.3 + .1 * sin(Engine.get_physics_frames() / 5.)
+		match stealth.state:
+			Stealth.State.UNSTEALTHED:
+				sprite.modulate.a = 1.0
+			Stealth.State.REVEALED:
+				sprite.modulate.a = pulse_alpha
+			Stealth.State.STEALTHED:
+				if commander_id == RTSController.PLAYER_COMMANDER_ID:
+					sprite.modulate.a = pulse_alpha
+				else:
+					sprite.modulate.a = 0.0
+					$HPBar.visible = false
+
 func _on_velocity_computed(a_velocity: Vector3) -> void:
 	velocity = a_velocity
 
@@ -277,6 +301,13 @@ func _update_state() -> void:
 	if dominion_generator != null:
 		dominion_generator.tick()
 
+	# Detection: reveal enemy stealth units within DetectionRange this tick.
+	if detection_range != null:
+		_detect_stealthed_units()
+	# Stealth: advance the unstealthing countdown on this entity.
+	if stealth != null:
+		stealth.tick()
+
 func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	_update_state()
@@ -311,6 +342,27 @@ func _process_commands() -> void:
 			clear_command()
 			return
 	command_receiver._process_commands()
+
+## Query the STEALTH collision layer within DetectionRange and stamp reveal()
+## on every enemy entity found.  Uses a targeted physics query so only
+## entities that opted into the STEALTH layer (i.e. those with a Stealth node)
+## are considered.
+func _detect_stealthed_units() -> void:
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = detection_range.shape
+	params.transform = detection_range.global_transform
+	params.collision_mask = CollisionLayers.Layer.STEALTH
+	params.exclude = [self]
+
+	for result: Dictionary in get_world_3d().direct_space_state.intersect_shape(params, 20):
+		var target := result["collider"] as Entity
+		if target == null or target.stealth == null:
+			continue
+		# Only reveal enemies — neutral (id 0) and own units are skipped.
+		if target.commander_id == 0 or target.commander_id == commander_id:
+			continue
+		target.stealth.reveal()
+
 
 func _on_death() -> void:
 	# Structure-flavored teardown.

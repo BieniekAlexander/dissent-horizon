@@ -11,8 +11,8 @@ func _ready() -> void:
 		[],
 		[ButtonSpec.new("command_attack_move", "Attack"), ButtonSpec.new("command_tool_compound", "Compound")],
 		[ButtonSpec.new("command_stop", "Stop"), ButtonSpec.new("command_tool_armory", "Armory")],
-		[],
-		[],
+		[ButtonSpec.new("command_evacuate", "Evacuate")],
+		[ButtonSpec.new("command_launch", "Radiate")],
 		[],
 		[ButtonSpec.new("command_tool_technician", "Techie")],
 		[ButtonSpec.new("command_tool_sentry", "Sentry")],
@@ -23,12 +23,13 @@ func _ready() -> void:
 		func(a: Array):
 			var grid_container = BoxContainer.new()
 			add_child(grid_container)
-			grid_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			grid_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			grid_container.custom_minimum_size = Vector2(60, 60)
+			grid_container.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			grid_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			
 			for item in a:
 				var b: Button = ButtonSpec.create_button_from_spec(item)
-				b.size = Vector2(100, 100)
+				b.custom_minimum_size = Vector2(60, 60)
 				grid_container.add_child(b)
 			
 			return grid_container

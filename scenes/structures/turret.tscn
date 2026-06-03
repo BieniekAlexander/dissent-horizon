@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_strct"]
 [ext_resource type="PackedScene" uid="uid://dsr3o7rqnjdff" path="res://scenes/projectiles/projectile.tscn" id="2_proj0"]
-[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/inventory.gd" id="3_invnt"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
 
 [sub_resource type="GDScript" id="GDScript_stns2"]
@@ -50,7 +50,7 @@ colors = PackedColorArray(0.8, 0.666667, 0, 1)
 gradient = SubResource("Gradient_cdjbw")
 
 [node name="Turret" instance=ExtResource("1_strct")]
-collision_layer = 2
+collision_layer = 6
 script = SubResource("GDScript_stns2")
 type = 4614
 default_commander_id = 1
@@ -86,14 +86,14 @@ texture = SubResource("GradientTexture1D_4y8y4")
 region_enabled = true
 region_rect = Rect2(2, 0, 0, 0)
 
-[node name="Inventory" type="Node" parent="." index="14"]
+[node name="Loadout" type="Node" parent="." index="14"]
 script = ExtResource("3_invnt")
 
-[node name="BallisticWeapon" type="Node" parent="Inventory" index="0"]
+[node name="BallisticWeapon" type="Node" parent="Loadout" index="0"]
 script = ExtResource("4_wpn00")
 packed_scene = ExtResource("2_proj0")
 
-[node name="AttackRange" type="CollisionShape3D" parent="Inventory/BallisticWeapon" index="0"]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0"]
 shape = SubResource("CylinderShape3D_44d7s")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)

@@ -1,3 +1,5 @@
+Stealth
+Shelter
 Sprite3D
 Ownership
 MeshInstance3D
@@ -11,4 +13,3 @@ Node
 Sprite2D
 CollisionShape2D
 Area2D
-GridMap

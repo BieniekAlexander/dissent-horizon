@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://b0r4m42p2r3dr"]
+[gd_scene load_steps=10 format=3 uid="uid://b0r4m42p2r3dr"]
 
 [ext_resource type="Script" uid="uid://dlfont33njutx" path="res://scripts/interface/commander/commander.gd" id="1_imw3m"]
 [ext_resource type="Script" uid="uid://ci0peslxxakbh" path="res://scripts/interface/rts_camera_3d.gd" id="2_omyur"]
@@ -6,6 +6,7 @@
 [ext_resource type="Shader" uid="uid://du6421tshttnx" path="res://scripts/rendering/shaders/fog.gdshader" id="4_ah75o"]
 [ext_resource type="Script" uid="uid://bprkmhrqjp56k" path="res://scripts/maps/fog.gd" id="4_b3a3y"]
 [ext_resource type="Script" uid="uid://b516knf7hdkun" path="res://scripts/interface/hud/command_grid.gd" id="4_fjrip"]
+[ext_resource type="Script" uid="uid://yjiyead7lnk" path="res://scripts/interface/control_feedback_sound_player.gd" id="7_cfsp1"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_qcjp1"]
 
@@ -48,9 +49,8 @@ custom_minimum_size = Vector2(60, 40)
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_top = -120.0
+offset_top = -136.0
 offset_right = 300.0
-offset_bottom = 16.0
 grow_vertical = 0
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -66,6 +66,11 @@ offset_left = -1.0
 offset_bottom = 0.223991
 grow_horizontal = 0
 horizontal_alignment = 2
+
+[node name="ControlFeedbackSoundPlayer" type="Node" parent="."]
+script = ExtResource("7_cfsp1")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="ControlFeedbackSoundPlayer"]
 
 [node name="Fog" type="MeshInstance3D" parent="."]
 transform = Transform3D(80, 0, 0, 0, 1.04, 0, 0, 0, 80, 0, 0, 0)

@@ -1,19 +1,24 @@
-[gd_scene load_steps=4 format=3 uid="uid://l2lvwietvqjt"]
+[gd_scene load_steps=5 format=3 uid="uid://l2lvwietvqjt"]
 
-[ext_resource type="Script" uid="uid://cvdkkvv5cy6f7" path="res://scripts/entities/hit_box.gd" id="1_5vyqb"]
+[ext_resource type="Script" uid="uid://cebdh6yfiks08" path="res://scripts/entities/tools/radiation.gd" id="1_rad00"]
 [ext_resource type="Texture2D" uid="uid://b06ixdn7o8rgi" path="res://assets/rtsWorker.png" id="2_3mb8d"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_ownr0"]
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_5vyqb"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_3mb8d"]
+height = 5.0
+radius = 3.0
 
 [node name="Radiation" type="CharacterBody3D"]
-transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0, 0)
-script = ExtResource("1_5vyqb")
-sight_range = 5
+script = ExtResource("1_rad00")
 
 [node name="Sprite" type="Sprite3D" parent="."]
-transform = Transform3D(100, 0, 0, 0, 70.7107, 70.7107, 0, -70.7107, 70.7107, 0, 0, 0)
+transform = Transform3D(10, 0, 0, 0, 7.071068, 7.071068, 0, -7.071068, 7.071068, 0, 0, 0)
 render_priority = 5
 texture = ExtResource("2_3mb8d")
 
 [node name="Body" type="CollisionShape3D" parent="."]
-shape = SubResource("SphereShape3D_5vyqb")
+shape = SubResource("CylinderShape3D_3mb8d")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("3_ownr0")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"

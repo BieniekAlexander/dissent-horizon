@@ -28,7 +28,21 @@ var technology_mapping: Dictionary = {
 	Entity.Type.STRUCTURE_ARMORY: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
 	Entity.Type.UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0),
 	Entity.Type.UNIT_SENTRY: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
-	Entity.Type.UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, _requires_structure(Entity.Type.STRUCTURE_COMPOUND))
+	Entity.Type.UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
+	# Abilities are gated here too. Ability.Type values (0,1,...) don't collide
+	# with Entity.Type values (all >= 0x1100), so they coexist in this map.
+	Ability.Type.RADIATION: TechnologySpec.new(0, 0, 0),
+}
+
+### ABILITIES
+## Per-commander map of Ability.Type -> payload PackedScene (a Projectile).
+## Kept per-commander (not global) so technology upgrades can unlock or swap an
+## ability's payload for one commander without affecting others, and can be
+## mutated at runtime. Whether a unit may use an ability is decided by its
+## Inventory (does it hold a ToolSpec?) plus the technology_mapping gate above;
+## this map only answers "what does using it spawn?".
+var ability_payload_registry: Dictionary = {
+	Ability.Type.RADIATION: load("res://scenes/projectiles/radiation.tscn"),
 }
 
 static func _requires_structure(structure_type: Entity.Type) -> Callable:

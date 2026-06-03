@@ -48,7 +48,7 @@ scripts/
 	hit_box.gd
 	components/                   — optional node-children bolted onto entities
 	  defense.gd                  — hp, hp_max, armor
-	  inventory.gd                — holds Weapon children
+	  loadout.gd                — holds Weapon children
 	  movement.gd                 — wraps NavigationAgent3D
 	  obstruction.gd              — declares footprint dimensions for structures
 	  ore_extractor.gd
@@ -140,7 +140,7 @@ Entity (CharacterBody3D)           — type enum, @export default_commander_id, 
   @onready ownership: Ownership    — commander ref; emits commander_changed
   @onready defense: Defense        — hp, hp_max, armor (get_node_or_null)
   @onready movement: Movement      — wraps NavigationAgent3D (get_node_or_null; null = stationary)
-  @onready weapon_inventory: Inventory   — holds Weapon children (get_node_or_null; null = unarmed)
+  @onready weapon_inventory: Loadout   — holds Weapon children (get_node_or_null; null = unarmed)
   @onready vision_range_shape: CollisionShape3D
   @onready aggro_range_shape: CollisionShape3D
 
@@ -387,7 +387,7 @@ Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance
 
 **`Obstruction` component** (replaces inline `width`/`length` fields): structures declare their footprint size via an `Obstruction` child node with `dimensions: Vector2i`. `Map.add_structure` and `Build.meets_precondition` read this instead of hard-coded values. This is how multi-cell structures work.
 
-**`Inventory` / `Weapon` refactor**: weapons are `Weapon` node-children of an `Inventory` node (`entity.weapon_inventory`). Previously weapons were mixed into entity stats. `Inventory.weapon_for_target(entity)` selects the correct weapon; `Weapon.fire()` handles both projectile and instant-damage modes. Melee vs. ranged is determined by presence of an `AttackRange` CollisionShape3D child on the `Weapon`.
+**`Loadout` / `Weapon` refactor**: weapons are `Weapon` node-children of a `Loadout` node (`entity.weapon_inventory`). Previously weapons were mixed into entity stats. `Loadout.weapon_for_target(entity)` selects the correct weapon; `Weapon.fire()` handles both projectile and instant-damage modes. Melee vs. ranged is determined by presence of an `AttackRange` CollisionShape3D child on the `Weapon`.
 
 **`HeightmapMeshGenerator` + `HeightPin` editor tools**: terrain heights are edited by moving `HeightPin` Sprite3D gizmos in the Godot editor; each pin writes back to `height_map.map_data` and triggers a mesh rebuild. Pins are deleted at runtime (`queue_free()` in `HeightPin._ready()` when not in editor).
 

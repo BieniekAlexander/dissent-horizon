@@ -40,13 +40,33 @@ func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 
 	var selection_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Layer.SELECTION)
 	if selection_hit and selection_hit['collider'] is Selectable:
-		return (selection_hit['collider'] as Selectable).get_entity()
+		var entity := (selection_hit['collider'] as Selectable).get_entity()
+		# Stealthed enemy units are rendered invisible to the player, so the cursor
+		# must ignore them for both selection and targeting — fall through to the
+		# terrain hit so a right-click resolves to a move instead of an attack.
+		if entity != null and not _is_hidden_enemy(entity):
+			return entity
 
 	var terrain_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Layer.TERRAIN)
 	if terrain_hit:
 		return terrain_hit['position']
 
 	return null
+
+## True when `entity` is an enemy unit currently hidden by stealth. These are the
+## STEALTHED units Commandable._process renders fully transparent for enemies, so
+## the cursor treats them as not-there. Once a detector sees them (REVEALED) or
+## combat forces them out (UNSTEALTHED) they become partially/fully visible and
+## thus clickable and targetable again.
+static func _is_hidden_enemy(entity: Entity) -> bool:
+	return entity.stealth != null \
+		and entity.stealth.state == Stealth.State.STEALTHED \
+		and entity.commander_id != PLAYER_COMMANDER_ID
+
+
+## SIGNALS
+signal unit_selected(entity: Entity)
+signal command_issued(entity: Entity, command_type: Script)
 
 
 ## CONTROL VARIABLES
@@ -338,7 +358,14 @@ static func _resolve_command_class(
 			# Anima's Build sub-context.
 			return Build
 		"command_launch":
-			return Launch
+			# The launch hotkey fires the generic Ability command. The specific
+			# ability is carried on the message so Ability can resolve the
+			# payload/charges. (Map more hotkeys → Ability.Type here as abilities
+			# are added.)
+			a_message.ability_type = Ability.Type.RADIATION
+			return Ability
+		"command_evacuate":
+			return Evacuate
 		"":
 			pass # fall through to default-target resolution below
 		_:
@@ -363,15 +390,28 @@ static func _resolve_command_class(
 		if (
 			target is Entity
 			and (target as Entity).type == Entity.Type.STRUCTURE_OUTPOST
-			and not a_actor.inventory.is_empty()
-			and a_actor.inventory[0] is Star
+			and a_actor.ability_inventory != null
+			and a_actor.ability_inventory.first_item() is Star
 		):
 			return DropOff
+
+	# Friendly Shelter target → Garrison (DEFAULT movement units only).
+	# Inserted before the Attack check so it takes priority over any edge case
+	# where a structure could otherwise be attacked.
+	if (
+		target != null
+		and target is Commandable
+		and (target as Commandable).commander_id == a_actor.commander_id
+		and target.has_node("Shelter")
+		and a_actor.has_node("Movement")
+		and (a_actor.get_node("Movement") as Movement).mode == Movement.Mode.DEFAULT
+	):
+		return Garrison
 
 	# Hostile, weapon-matched target → Attack. This must precede the structure
 	# rally fallback below so a combatant structure (e.g. Turret) whose
 	# Production component would otherwise swallow the click as a rally point
-	# still resolves an explicit attack order. Entities without an Inventory
+	# still resolves an explicit attack order. Entities without a Loadout
 	# (or whose weapons can't target this entity) fall through to rally unchanged.
 	if (
 		target != null
@@ -418,6 +458,8 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 					selection.append(entity)
 
 	available_commands = CommandContextParser.commands_for_selection(selection)
+	if not selection.is_empty():
+		unit_selected.emit(selection[0] as Entity)
 
 ## SETTING COMMANDS
 func assign_command_to_units(
@@ -450,6 +492,7 @@ func assign_command_to_units(
 		_reset_pending_state()
 		return false
 
+	command_issued.emit(capable[0] as Entity, a_command_type)
 	var snapshot := CommandMessage.deep_copy(a_command_message)
 	if a_command_type.requires_position():
 		_register_indicator(snapshot)

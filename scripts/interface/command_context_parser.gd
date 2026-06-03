@@ -34,9 +34,9 @@ static func _build_rules() -> Array:
 	return [
 		# --- Movement-bearing entities (units): nav-flavored commands.
 		[func(e: Entity): return e.has_node("Movement"), "command_move"],
-		[func(e: Entity): return e.has_node("Movement") or e.has_node("Inventory"), "command_stop"],
-		[func(e: Entity): return e.has_node("Inventory"), "command_attack"],
-		[func(e: Entity): return e.has_node("Inventory"), "command_attack_move"],
+		[func(e: Entity): return e.has_node("Movement") or e.has_node("Loadout"), "command_stop"],
+		[func(e: Entity): return e.has_node("Loadout"), "command_attack"],
+		[func(e: Entity): return e.has_node("Loadout"), "command_attack_move"],
 
 		# --- Production-bearing entities (structures): training + rally. The
 		# specific train tools (command_tool_technician, ...) are added in
@@ -51,10 +51,37 @@ static func _build_rules() -> Array:
 		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_pick_up"],
 		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_drop_off"],
 
-		# --- Vanguard: Lab-targeted Collect and the Launch ability.
-		[func(e: Entity): return e.type == Entity.Type.UNIT_VANGUARD, "command_launch"],
+		# --- Vanguard: Lab-targeted Collect and the (generic) Ability.
+		# The ability is offered when the unit's Inventory actually holds a
+		# ToolSpec for it — not by unit type — so abilities follow the component,
+		# not a hard-coded type table.
+		[func(e: Entity): return e.has_node("Inventory") \
+				and (e.get_node("Inventory") as Inventory).has_ability(Ability.Type.RADIATION),
+			"command_launch"],
 		[func(e: Entity): return e.type == Entity.Type.UNIT_VANGUARD, "command_collect"],
+
+		# --- Garrison / Evacuate.
+		# Units with DEFAULT movement can garrison into a friendly Shelter.
+		# The command resolves implicitly on right-click (like Attack) — it is
+		# listed here so the controller's available-commands set tracks it and
+		# the hotkey gate works consistently.
+		# Garrison is meaningless without a Movement component, so it's a named
+		# predicate (see _can_garrison): the `movement != null` check IS the
+		# Movement requirement, made explicit, and `.mode` is only read once the
+		# node is known to be a real Movement (no blind cast that can crash).
+		[CommandContextParser._can_garrison, "command_garrison"],
+		# Commandables that own a Shelter can order an evacuation.
+		[func(e: Entity): return e.has_node("Shelter"), "command_evacuate"],
 	]
+
+## Garrison applies only to entities that actually have a Movement component
+## whose mode is DEFAULT. Pulled out of the rules table as a named predicate so
+## the Movement requirement is explicit and the mode read is null-safe: a
+## non-Movement node (or none) makes the cast null and the predicate false,
+## rather than crashing on a blind `.mode` access.
+static func _can_garrison(e: Entity) -> bool:
+	var movement := e.get_node_or_null("Movement") as Movement
+	return movement != null and movement.mode == Movement.Mode.DEFAULT
 
 static func _rules_table() -> Array:
 	if _rules == null or _rules.is_empty():

@@ -47,6 +47,15 @@ enum Type {
 ## `movement != null` before using it.
 @onready var movement: Movement = get_node_or_null("Movement") as Movement
 
+## Stealth component — present on entities that can be hidden from enemies.
+## Null for entities that are always fully visible.
+@onready var stealth: Stealth = get_node_or_null("Stealth") as Stealth
+
+## Detection shape — present on entities that can reveal stealthed enemies.
+## The shape is tested against CollisionLayers.Layer.STEALTH each physics tick.
+## Null for entities that have no detection capability.
+@onready var detection_range: CollisionShape3D = get_node_or_null("DetectionRange")
+
 ## Fallback storage used (a) before _ready resolves `ownership`, and (b) when
 ## the entity scene doesn't include an Ownership component at all. _ready
 ## migrates any pre-tree value into ownership.commander.
@@ -77,9 +86,6 @@ enum Attribute { MECH, BIO, UNMANNED }
 @export var attributes_list: Array[Attribute] = []
 var attributes: Set
 
-@onready var inventory: Array[Entity] = []
-@onready var inventory_capacity: int = 1
-
 var attack_timer: int = 0
 
 ### COLLISION
@@ -93,10 +99,15 @@ var pc_set: Set = Set.new()
 @onready var aggro_range_shape: CollisionShape3D = get_node_or_null("AggroRange")
 
 ### WEAPONS
-## The Inventory node whose children are this entity's Weapon nodes.
+## The Loadout node whose children are this entity's Weapon nodes.
 ## Null for entities that carry no weapons (structures without AttackRange,
 ## plain workers, etc.). All weapon queries go through this node.
-@onready var weapon_inventory: Inventory = get_node_or_null("Inventory") as Inventory
+@onready var weapon_inventory: Loadout = get_node_or_null("Loadout") as Loadout
+
+### ABILITIES
+## The Inventory component holding this entity's ability ToolSpecs. Null for
+## entities with no abilities. Distinct from `inventory` (carried items) below.
+@onready var ability_inventory: Inventory = get_node_or_null("Inventory") as Inventory
 
 var collision_radius: float:
 	get:
@@ -117,6 +128,11 @@ func _ready() -> void:
 	# have run (ensuring Scenario._ready() has already created the commanders).
 	if map == null and not Engine.is_editor_hint():
 		call_deferred(&"_auto_initialize")
+	
+	_validate()
+
+func _validate() -> void:
+	assert(type != Entity.Type.UNDEFINED)
 
 ## Finds the Map and the Commander matching default_commander_id in the scene
 ## tree and calls initialize() on this entity. Only runs when map is still null

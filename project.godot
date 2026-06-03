@@ -25,8 +25,11 @@ shapes/navigation/3d/geometry_edge_color=Color(0.53642625, 0.19543079, 0.6861341
 
 [display]
 
+window/size/viewport_width=1920
+window/size/viewport_height=1080
 window/size/mode=4
 window/size/initial_position_type=0
+window/stretch/mode="canvas_items"
 
 [editor_plugins]
 

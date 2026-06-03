@@ -20,11 +20,21 @@ var _weapon_damage: float = 0.0
 
 ### NODE
 func _physics_process(_delta: float) -> void:
-	if velocity.y < 0 and global_position.y <= origin.y:
+	if _has_landed():
 		_apply_hit()
 		_on_death()
 		return
+	_advance()
 
+## True once the projectile is descending and has reached (or passed) its launch
+## height — i.e. it has hit the ground plane. Exposed (not inlined) so subclasses
+## with their own lifecycle (e.g. Radiation's state machine) can reuse it.
+func _has_landed() -> bool:
+	return velocity.y < 0 and global_position.y <= origin.y
+
+## Advance one physics step of ballistic motion. Shared with subclasses so they
+## don't reimplement the arc.
+func _advance() -> void:
 	global_position += velocity
 	velocity += Vector3.UP * gravity
 
@@ -34,7 +44,7 @@ func _apply_hit() -> void:
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = hit_shape.shape
 	params.transform = hit_shape.global_transform
-	params.collision_mask = CollisionLayers.Layer.BODY
+	params.collision_mask = CollisionLayers.Layer.TARGETABLE
 	var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 10)
 	for hit in hits:
 		if hit["collider"] == target:

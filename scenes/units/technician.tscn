@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://5kevopkrq8ts"]
+[gd_scene load_steps=6 format=3 uid="uid://5kevopkrq8ts"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_ucq5h"]
 [ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="3_0rgnf"]
-[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/inventory.gd" id="4_invnt"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="4_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="5_wpn00"]
+[ext_resource type="Script" path="res://scripts/entities/components/inventory.gd" id="6_invnt"]
 
 [node name="Unit" instance=ExtResource("1_ucq5h")]
 type = 4352
@@ -20,11 +21,15 @@ transform = Transform3D(3, 0, 0, 0, 2.12132, -2.12132, 0, 2.12132, 2.12132, 0, 0
 flip_h = true
 texture = ExtResource("3_0rgnf")
 
-[node name="Inventory" type="Node" parent="." index="12"]
+[node name="Loadout" type="Node" parent="." index="12"]
 script = ExtResource("4_invnt")
 
-[node name="MeleeWeapon" type="Node" parent="Inventory" index="0"]
+[node name="MeleeWeapon" type="Node" parent="Loadout" index="0"]
 script = ExtResource("5_wpn00")
+
+[node name="Inventory" type="Node" parent="."]
+script = ExtResource("6_invnt")
+item_capacity = 1
 
 [node name="HPBar" parent="." index="13"]
 transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.72988397, -0.30808753)

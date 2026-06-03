@@ -112,15 +112,19 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 	if a_entity is Commandable and a_entity.get_node_or_null("Obstruction") != null:
 		add_structure(a_entity, a_location, 0, false)
 	else:
-		var placement_xz: Vector2 = SU.get_nonoverlapping_points(
-			self,
-			a_location,
-			a_entity.collision_radius,
-			get_world_3d(),
-			CollisionLayers.Layer.BODY,
-			1,
-			5.
-		)[0]
+		var radius: float = a_entity.collision_radius
+		var placement_xz: Vector2
+		if radius > 0.0:
+			placement_xz = SU.get_nonoverlapping_points(
+				self,
+				a_location,
+				radius,
+				get_world_3d(),
+				CollisionLayers.Layer.MOVEMENT_OBSTRUCTION,
+				5.
+			)[0]
+		else:
+			placement_xz = a_location
 		a_entity.global_position = Vector3(
 			placement_xz.x,
 			terrain_height_at(placement_xz),
@@ -154,7 +158,6 @@ func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: 
 
 	structure_cell_map[a_structure] = footprint
 	terrain_grid.place_building(footprint, a_structure)
-	a_structure.collision_layer &= ~CollisionLayers.Layer.BODY
 	a_structure.map = self
 
 

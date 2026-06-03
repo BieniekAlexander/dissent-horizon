@@ -35,7 +35,7 @@ static func _structure_on_line(a_actor: Commandable, a_target: Entity) -> bool:
 	var query := PhysicsRayQueryParameters3D.create(
 		a_actor.global_position,
 		a_target.global_position,
-		CollisionLayers.Layer.STRUCTURE
+		CollisionLayers.Layer.STRUCTURE_BLOCKER
 	)
 	query.exclude = [a_target.get_rid()]
 	return not space_state.intersect_ray(query).is_empty()
@@ -79,6 +79,9 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	a_actor.attack_timer = weapon.attack_duration
 	a_actor._attack_duration = weapon.attack_duration
 	weapon.fire(a_actor, message.target)
+	# Attacking breaks stealth: force the timed UNSTEALTHED window.
+	if a_actor.stealth != null:
+		a_actor.stealth.unstealth()
 	return self
 
 ## DEBUG

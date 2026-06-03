@@ -73,6 +73,21 @@ func _physics_process(_delta: float) -> void:
 		entity.visible = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
 
 
+## Permanently reveal a circular area in world-space XZ (lift fog of war).
+## The pixels are written to _explored_bytes so the reveal persists across frames.
+## Safe to call before _initialize() completes — exits silently if not yet ready.
+func reveal_region(world_xz: Vector2, radius_world: float) -> void:
+	if _explored_bytes.is_empty():
+		return
+	var pixel := _world_to_pixel(world_xz)
+	var radius_px := maxi(1, int(radius_world * POINTS_PER_UNIT))
+	for offset: Vector2i in _sight_disc(radius_px):
+		var px := pixel.x + offset.x
+		var py := pixel.y + offset.y
+		if px >= 0 and px < _img_width and py >= 0 and py < _img_height:
+			_explored_bytes[py * _img_width + px] = EXPLORED_ALPHA
+
+
 func _ready() -> void:
 	call_deferred(&"_initialize")
 	get_active_material(0).render_priority = RenderPriority.FOG_PRIORITY

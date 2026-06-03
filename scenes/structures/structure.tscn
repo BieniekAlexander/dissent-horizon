@@ -54,7 +54,7 @@ colors = PackedColorArray(0.8, 0.666667, 0, 1)
 gradient = SubResource("Gradient_train_fill")
 
 [node name="Structure" groups=["structure"] instance=ExtResource("1_cmnd1")]
-collision_layer = 3
+collision_layer = 6
 type = -1
 
 [node name="Body" parent="." index="2"]

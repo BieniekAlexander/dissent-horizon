@@ -53,7 +53,7 @@
 
 ### Line 104 — `weapon_inventory`
 ```gdscript
-@onready var weapon_inventory: Inventory = get_node_or_null("Inventory") as Inventory
+@onready var weapon_inventory: Loadout = get_node_or_null("Loadout") as Loadout
 ```
 **Used for:** All weapon queries (`weapon_for_target`, `any_weapon_can_target`).  
 **If null:** Entity is unarmed. Correct for technicians, non-combat structures.  

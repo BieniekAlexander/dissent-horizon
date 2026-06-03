@@ -8,7 +8,7 @@
 size = Vector3(2, 10, 2)
 
 [node name="Structure" instance=ExtResource("1_e1l0p")]
-collision_layer = 2
+collision_layer = 6
 type = 4610
 
 [node name="Body" parent="." index="2"]
