@@ -71,6 +71,7 @@ horizontal_alignment = 2
 script = ExtResource("7_cfsp1")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="ControlFeedbackSoundPlayer"]
+volume_db = -29.759
 
 [node name="Fog" type="MeshInstance3D" parent="."]
 transform = Transform3D(80, 0, 0, 0, 1.04, 0, 0, 0, 80, 0, 0, 0)

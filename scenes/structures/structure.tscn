@@ -1,10 +1,11 @@
-[gd_scene load_steps=20 format=3 uid="uid://bnic4wpl31scb"]
+[gd_scene load_steps=21 format=3 uid="uid://bnic4wpl31scb"]
 
 [ext_resource type="PackedScene" uid="uid://dcmdbl3j4t1k2" path="res://scenes/commandable.tscn" id="1_cmnd1"]
 [ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="7_prod0"]
 [ext_resource type="Script" uid="uid://bgh3sjj1xc3cs" path="res://scripts/entities/components/resource_provider.gd" id="8_rspv0"]
 [ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="9_fviz0"]
 [ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/obstruction.gd" id="10_obs0"]
+[ext_resource type="Script" path="res://scripts/entities/structures/structure_snap.gd" id="11_snap0"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
 
@@ -91,7 +92,10 @@ train_bar_path = NodePath("../TrainBar")
 [node name="FootprintVisualizer" type="Node3D" parent="." index="19"]
 script = ExtResource("9_fviz0")
 
-[node name="TrainBar" type="Sprite3D" parent="." index="20"]
+[node name="StructureSnap" type="Node" parent="." index="21"]
+script = ExtResource("11_snap0")
+
+[node name="TrainBar" type="Sprite3D" parent="." index="22"]
 transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.25, -0.2)
 visible = false
 pixel_size = 0.0001

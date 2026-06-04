@@ -27,3 +27,5 @@ res://scripts/interface/commands/attack.gd
 res://scripts/maps/map.gd
 res://scripts/scenario/events/event_spawn_units.gd
 res://scripts/utils/space_utils.gd
+res://resources/map.tres
+res://scripts/maps/terrain/terrain_grid.gd

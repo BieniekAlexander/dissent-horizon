@@ -87,9 +87,9 @@ static func get_arrangement_cells(
 			)
 		)
 
-## True iff every cell of the structure's footprint is in-bounds and currently
-## unoccupied. The clicked world position is treated as the footprint centre,
-## matching how add_structure places the building.
+## True iff every cell of the structure's footprint is in-bounds, unoccupied,
+## and perfectly flat. The clicked world position is treated as the footprint
+## centre, matching how add_structure places the building.
 static func valid_placement(a_command_message: CommandMessage, a_dimensions: Vector2i) -> bool:
 	var placement_map: Map = a_command_message.map
 	if placement_map == null:
@@ -100,6 +100,8 @@ static func valid_placement(a_command_message: CommandMessage, a_dimensions: Vec
 		if not placement_map.grid_coordinates_in_bounds(cell):
 			return false
 		if placement_map.cell_grid[cell.x][cell.y] != null:
+			return false
+		if not placement_map.terrain_grid.is_flat(cell):
 			return false
 	return true
 

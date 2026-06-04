@@ -114,6 +114,8 @@ var _indicator_pool: Array = []          # idle WaypointIndicator nodes
 ## building art) and lives in the 3D world under the Map, not on this
 ## CanvasLayer. We rebuild it only when the chosen structure changes.
 const BUILD_PREVIEW_ALPHA: float = 0.45
+const BUILD_PREVIEW_VALID_TINT:   Color = Color(1.0, 1.0, 1.0, BUILD_PREVIEW_ALPHA)
+const BUILD_PREVIEW_INVALID_TINT: Color = Color(1.0, 0.25, 0.25, BUILD_PREVIEW_ALPHA)
 var _build_preview: Node3D = null
 var _build_preview_tool_type: Variant = null
 
@@ -163,7 +165,7 @@ func _process(_delta: float) -> void:
 	else:
 		Input.set_custom_mouse_cursor(invalid_cursor)
 
-	_update_build_preview()
+	_update_build_preview(check == Command.PreconditionFailureCause.INVALID_PLACEMENT)
 	_update_waypoint_display()
 
 
@@ -171,7 +173,7 @@ func _process(_delta: float) -> void:
 ## frame from _process. The ghost is visible only while the armed command is
 ## Build and the player has chosen a Tool; it snaps to the same cell the
 ## structure would be placed in, so the preview matches the real placement.
-func _update_build_preview() -> void:
+func _update_build_preview(is_invalid_placement: bool) -> void:
 	var should_show: bool = (
 		current_command_type == Build
 		and command_message.tool != null
@@ -207,6 +209,17 @@ func _update_build_preview() -> void:
 		for l in range(dims.y):
 			centroid += map.grid_to_world(Vector2i(origin.x + w, origin.y + l))
 	_build_preview.global_position = centroid / (dims.x * dims.y)
+
+	# Apply tint: red when placement is invalid, neutral otherwise.
+	var tint: Color = Entity.TEAM_COLOR_MAP[commander.id] * (
+		BUILD_PREVIEW_INVALID_TINT \
+		if is_invalid_placement \
+		else BUILD_PREVIEW_VALID_TINT
+	)
+	for child in _build_preview.get_children():
+		if child is Sprite3D:
+			child.modulate = tint
+
 	_build_preview.visible = true
 
 

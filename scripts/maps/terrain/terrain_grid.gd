@@ -76,6 +76,19 @@ func is_building_at(cell: Vector2i) -> bool:
 func is_too_steep(cell: Vector2i) -> bool:
 	return _steep_cells.has(cell)
 
+## True iff all four corner heights of the cell are identical (zero spread).
+## Used by structure placement to enforce that buildings may only be placed on
+## perfectly flat ground — stricter than is_too_steep, which allows a small slope.
+func is_flat(cell: Vector2i) -> bool:
+	if not is_in_bounds(cell):
+		return false
+	var w := height_map.map_width
+	var h00 := height_map.map_data[ cell.y      * w + cell.x    ]
+	var h10 := height_map.map_data[ cell.y      * w + cell.x + 1]
+	var h01 := height_map.map_data[(cell.y + 1) * w + cell.x    ]
+	var h11 := height_map.map_data[(cell.y + 1) * w + cell.x + 1]
+	return h00 == h10 and h10 == h01 and h01 == h11
+
 ## A cell is passable when it is within the heightmap extent, no building
 ## occupies it, and its corner-height spread does not exceed MAX_SLOPE_DIFF.
 func is_passable(cell: Vector2i) -> bool:
