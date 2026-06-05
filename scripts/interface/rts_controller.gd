@@ -506,12 +506,65 @@ func assign_command_to_units(
 		return false
 
 	command_issued.emit(capable[0] as Entity, a_command_type)
-	var snapshot := CommandMessage.deep_copy(a_command_message)
-	if a_command_type.requires_position():
-		_register_indicator(snapshot)
-	var new_command: Command = a_command_type.new(snapshot)
+
+	# Per-unit destination assignment: map each unit to its own spread-out point
+	# so a group move fans the selection out around the click instead of stacking
+	# everyone on a single position.
+	var destination_to_unit: Dictionary = {}
+	if a_command_type.requires_position() and capable.size() > 1:
+		var representative := capable[0] as Entity
+		var radius: float = representative.collision_radius
+		var region_radius: float = maxf(5.0, radius * 2.5 * float(capable.size()))
+		# The point we generated the destinations around (the click location).
+		var destination_centroid: Vector2 = a_command_message.xz_position
+		var destinations: Array[Vector2] = SU.get_nonoverlapping_points(
+			map,
+			destination_centroid,
+			radius,
+			map.get_world_3d(),
+			CollisionLayers.Layer.MOVEMENT_OBSTRUCTION,
+			region_radius,
+			capable.size()
+		)
+
+		# Centroid of the current unit positions; used to translate destinations
+		# back into the selection's frame so the assignment preserves formation.
+		var selection_centroid := Vector2.ZERO
+		for c: Commandable in capable:
+			selection_centroid += VU.inXZ((c as Entity).global_position)
+		selection_centroid /= float(capable.size())
+
+		# Greedily assign each destination to the nearest not-yet-assigned unit,
+		# comparing against the destination shifted into the selection's frame.
+		var unassigned: Array = capable.duplicate()
+		for destination: Vector2 in destinations:
+			if unassigned.is_empty():
+				break
+			var formation_anchor: Vector2 = destination - destination_centroid + selection_centroid
+			var best_index := 0
+			var best_dist := INF
+			for i: int in unassigned.size():
+				var unit_xz := VU.inXZ((unassigned[i] as Entity).global_position)
+				var dist: float = unit_xz.distance_squared_to(formation_anchor)
+				if dist < best_dist:
+					best_dist = dist
+					best_index = i
+			destination_to_unit[destination] = unassigned[best_index]
+			unassigned.remove_at(best_index)
+
+	var unit_to_destination: Dictionary = {}
+	for destination: Vector2 in destination_to_unit:
+		unit_to_destination[destination_to_unit[destination]] = destination
+
 	for c: Commandable in capable:
-		c.update_commands(new_command, add_to_queue)
+		var snapshot := CommandMessage.deep_copy(a_command_message)
+		if unit_to_destination.has(c):
+			var dest_xz: Vector2 = unit_to_destination[c]
+			snapshot.world_position = VU.fromXZ(dest_xz)
+			snapshot.world_position.y = map.terrain_height_at(dest_xz)
+		if a_command_type.requires_position():
+			_register_indicator(snapshot)
+		c.update_commands(a_command_type.new(snapshot), add_to_queue)
 
 	if not add_to_queue:
 		_reset_pending_state()
