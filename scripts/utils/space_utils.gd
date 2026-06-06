@@ -20,24 +20,23 @@ static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 	var diff = (pos1 - pos2).abs()
 	return max(diff.x, diff.y)
 
-## Tests whether the attacker is in range to fire the given weapon at target.
-## Ranged weapons (attack_range_shape != null): physics shape overlap test.
-## Melee weapons (attack_range_shape == null): XZ centre-to-centre distance.
+## Tests whether the attacker is in range to fire the given weapon at target,
+## via a physics shape overlap against the weapon's AttackRange shape. Every
+## weapon — including short-reach "melee" ones — carries an AttackRange shape
+## (melee weapons just use one only slightly larger than their body), so there
+## is no separate distance-based fallback.
 ## The shape is placed at the attacker's world transform rather than reading
 ## global_transform off the CollisionShape3D node directly, because Weapon and
 ## Loadout are plain Nodes (not Node3D) and would always report the origin.
 static func is_in_attack_range(weapon: Weapon, attacker: Entity, target: Entity) -> bool:
-	if weapon == null:
+	if weapon == null or weapon.attack_range_shape == null:
 		return false
-	if weapon.attack_range_shape != null:
-		var params := PhysicsShapeQueryParameters3D.new()
-		params.shape = weapon.attack_range_shape.shape
-		params.transform = attacker.global_transform
-		params.exclude = [attacker]
-		var results: Array = attacker.get_world_3d().direct_space_state.intersect_shape(params)
-		return results.any(func(r: Dictionary) -> bool: return r["collider"] == target)
-	else:
-		return attacker.xz_position.distance_to(target.xz_position) <= weapon.melee_range
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = weapon.attack_range_shape.shape
+	params.transform = attacker.global_transform
+	params.exclude = [attacker]
+	var results: Array = attacker.get_world_3d().direct_space_state.intersect_shape(params)
+	return results.any(func(r: Dictionary) -> bool: return r["collider"] == target)
 
 static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, distance_squared: float = .001) -> bool:
 	if a_target is Commandable and a_target.is_in_group("structure"):
@@ -50,13 +49,10 @@ static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, dist
 		push_error("unsuported distance target type")
 		return false
 
-static func unit_is_close_to_position(a_unit: Commandable, a_position: Vector2, distance_squared: float = .001) -> bool:
-	# TODO
-	push_error("TODO")
-	# specifically checks that the borders of the cillision circles is less than some distance
-	return (
-		a_position - a_unit.xz_position
-	).length_squared() - a_unit.collision_radius**2 < distance_squared
+static func unit_is_close_to_position(a_unit: Commandable, a_position: Vector2, _distance_squared: float = .001) -> bool:
+	# The navigation agent stops at the destination rather than overshooting, so
+	# arrival is just a position-equality check — no collision radius needed.
+	return a_unit.xz_position.is_equal_approx(a_position)
 
 static func unit_is_close_to_structure(a_unit: Commandable, a_structure: Commandable, _distance_squared: float = .001) -> bool:
 	# A unit counts as close to a structure when its grid cell lies within the
@@ -81,10 +77,15 @@ static func unit_is_close_to_structure(a_unit: Commandable, a_structure: Command
 	return false
 
 static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distance_squared: float = .001) -> bool:
-	# specifically checks that the borders of the cillision circles is less than some distance
+	# Engagement proximity: measured against each entity's TARGETABLE shape edge
+	# in the direction of the other, so the comparison fits each body's actual
+	# shape (a box reports its edge, not its circumscribed circle).
+	var t := CollisionLayers.Layer.TARGETABLE
+	var combined_extent: float = an_entity.collision_extent_toward(a_unit.xz_position, t) \
+		+ a_unit.collision_extent_toward(an_entity.xz_position, t)
 	return (
 		an_entity.xz_position - a_unit.xz_position
-	).length_squared() - (an_entity.collision_radius+a_unit.collision_radius)**2 < distance_squared
+	).length_squared() - combined_extent**2 < distance_squared
 
 ## ── UNIT PLACEMENT ──────────────────────────────────────────────────────────
 ##
@@ -168,32 +169,6 @@ static func nearest_footprint_adjacent_cell(
 	return best_cell
 
 
-## Return the world-space spawn position for the unit at `index` (0-based) in
-## a ring of `total` units placed around `center`.  The ring radius is just
-## large enough to clear both entities' Layer.BODY collision spheres so no
-## overlap occurs at spawn time.  Y is snapped to terrain height plus the
-## unit's height offset.
-static func ring_spawn_position(
-	center: Commandable,
-	unit: Commandable,
-	index: int,
-	total: int,
-	a_map: Map
-) -> Vector3:
-	const BODY_BUFFER: float = 0.15
-	var ring_radius: float = center.collision_radius + unit.collision_radius + BODY_BUFFER
-
-	var angle: float = 2.0 * PI * float(index) / float(max(total, 1))
-	var xz: Vector2 = VU.inXZ(center.global_position) \
-		+ Vector2(cos(angle), sin(angle)) * ring_radius
-
-	var height_offset: float = unit.movement.height_offset() if unit.movement != null else 0.0
-	var y: float = a_map.terrain_height_at(xz) + height_offset \
-		if a_map != null else center.global_position.y
-
-	return Vector3(xz.x, y, xz.y)
-
-
 ## How far (in XZ world units) a candidate point may drift from the navmesh
 ## closest-point snap before it is considered off-navmesh.  Half a cell width
 ## (CELL_SIZE = 2.0) keeps points well inside valid navmesh quads.
@@ -212,9 +187,15 @@ static func get_nonoverlapping_points(
 	var about_points: Array[Vector2] = []
 	var ret_points: Array[Vector2] = []
 
+	# The footprint each candidate point must be free of. Built once and reused
+	# across every free-space probe; a sphere of point_radius approximates the
+	# circular spacing the sampler lays out below.
+	var probe_shape := SphereShape3D.new()
+	probe_shape.radius = point_radius
+
 	# Seed with center if it lands on a valid nav surface and is free.
 	var center_ground := _project_to_nav_surface(map, center)
-	if center_ground != Vector3.INF and _is_point_free_3d(center_ground, point_radius, world_3d, collision_mask):
+	if center_ground != Vector3.INF and _shape_has_space(Transform3D(Basis(), center_ground), probe_shape, world_3d, collision_mask):
 		ret_points.append(center)
 		about_points.append(center)
 		if max_points == 1:
@@ -239,7 +220,7 @@ static func get_nonoverlapping_points(
 				continue  # not on a valid surface
 
 			# Check for overlaps at grounded position.
-			if _is_point_free_3d(ground_pos, point_radius, world_3d, collision_mask):
+			if _shape_has_space(Transform3D(Basis(), ground_pos), probe_shape, world_3d, collision_mask):
 				about_points.insert(0, new_point)
 				ret_points.append(new_point)
 
@@ -268,20 +249,22 @@ static func _project_to_nav_surface(map: Map, point_xz: Vector2) -> Vector3:
 		return Vector3.INF  # candidate is off the navmesh
 	return snapped
 
-static func _is_point_free_3d(
-	ground_pos: Vector3,
-	radius: float,
+## Returns true if `shape`, placed at `shape_transform`, overlaps nothing on
+## `collision_mask`. The caller supplies both the collision shape and its full
+## transform, so placement is tested against the body's actual footprint and
+## orientation — any Shape3D works, not just circular ones (a rotated box is
+## probed as a rotated box rather than collapsed to an axis-aligned bound).
+static func _shape_has_space(
+	shape_transform: Transform3D,
+	shape: Shape3D,
 	world_3d: World3D,
 	collision_mask: int
 ) -> bool:
 	var space_state := world_3d.direct_space_state
 
-	var shape := SphereShape3D.new()
-	shape.radius = radius
-
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = shape
-	params.transform.origin = ground_pos
+	params.transform = shape_transform
 	params.collision_mask = collision_mask
 	params.collide_with_areas = true
 	params.collide_with_bodies = true

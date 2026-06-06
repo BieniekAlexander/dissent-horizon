@@ -68,7 +68,6 @@ func _process_commands() -> void:
 	elif owner.movement != null and _command.should_move(owner):
 		if owner.movement.target_position != _command.message.position:
 			load_destination(_command)
-			#owner._stop_timer.start()
 
 		if !owner.movement.is_navigation_finished():
 			var next_path_position: Vector3 = owner.movement.get_next_path_position()

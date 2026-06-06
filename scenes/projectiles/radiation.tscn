@@ -9,6 +9,7 @@ height = 5.0
 radius = 3.0
 
 [node name="Radiation" type="CharacterBody3D"]
+collision_layer = 0
 script = ExtResource("1_rad00")
 
 [node name="Sprite" type="Sprite3D" parent="."]

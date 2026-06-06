@@ -81,14 +81,48 @@ func _evacuate_from_structure(owner_cmd: Commandable, a_map: Map) -> void:
 
 
 ## Evacuation path for shelter owners that do NOT occupy the terrain grid
-## (e.g. units). Garrisoned units are placed in a ring around the owner,
-## spaced just outside its Layer.BODY collision radius, then issued a movement
-## command to that same spawn position so the command clears immediately.
+## (e.g. units). Garrisoned units are spread around the owner via
+## SpaceUtils.get_nonoverlapping_points — each gets a distinct point clear of
+## existing bodies and on valid navmesh — then issued a movement command to
+## that spawn position so the command clears immediately.
 func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 	var count := _garrisoned.size()
+	var center := VU.inXZ(owner_cmd.global_position)
+	var radius: float = owner_cmd.bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION)
+
+	# Generate one spawn point per garrisoned unit around the owner. Size the
+	# search region off the owner's radius and the count so a large garrison
+	# still finds room.
+	var points: Array[Vector2] = []
+	if a_map != null:
+		var region_radius: float = 30. # maxf(5.0, radius * 2.5 * float(maxi(count, 1)))
+		points = SU.get_nonoverlapping_points(
+			a_map,
+			center,
+			radius,
+			a_map.get_world_3d(),
+			CollisionLayers.Layer.MOVEMENT_OBSTRUCTION,
+			region_radius,
+			count
+		)
+
+	# get_nonoverlapping_points may return fewer points than requested when the
+	# area is crowded (and we have no points at all without a map). Every unit
+	# still needs its OWN evacuation point, so fan the leftovers out on a ring
+	# of distinct angles around the owner; physics resolves any residual overlap.
+	while points.size() < count:
+		var leftover_index := points.size()
+		var angle: float = 2.0 * PI * float(leftover_index) / float(maxi(count, 1))
+		var ring_radius: float = 2.0 * radius * (1.0 + float(leftover_index) / float(maxi(count, 1)))
+		points.append(center + Vector2(cos(angle), sin(angle)) * ring_radius)
+
 	for i in range(count):
 		var unit: Commandable = _garrisoned[i]
-		var spawn_pos := SU.ring_spawn_position(owner_cmd, unit, i, count, a_map)
+		var spawn_xz: Vector2 = points[i]
+		var height_offset: float = unit.movement.height_offset() if unit.movement != null else 0.0
+		var y: float = a_map.terrain_height_at(spawn_xz) + height_offset \
+			if a_map != null else owner_cmd.global_position.y
+		var spawn_pos := Vector3(spawn_xz.x, y, spawn_xz.y)
 
 		unit.commander.add_child(unit)
 		unit.global_position = spawn_pos

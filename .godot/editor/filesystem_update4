@@ -29,3 +29,10 @@ res://scripts/scenario/events/event_spawn_units.gd
 res://scripts/utils/space_utils.gd
 res://resources/map.tres
 res://scripts/maps/terrain/terrain_grid.gd
+res://scripts/entities/components/shelter.gd
+res://scripts/interface/commands/garrison.gd
+res://scenes/projectiles/radiation.tscn
+res://scripts/entities/tools/weapon.gd
+res://scripts/interface/commands/capture.gd
+res://scripts/entities/command_receiver.gd
+res://scenes/commandable.tscn

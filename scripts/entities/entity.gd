@@ -109,14 +109,61 @@ var pc_set: Set = Set.new()
 ## entities with no abilities. Distinct from `inventory` (carried items) below.
 @onready var ability_inventory: Inventory = get_node_or_null("Inventory") as Inventory
 
-var collision_radius: float:
-	get:
-		var shape = $Body.shape
-		if shape is SphereShape3D: return shape.radius
-		elif shape is BoxShape3D: return max(shape.size.x, shape.size.z)
-		else:
-			push_error("unhandled collider type %s" % typeof(shape))
-			return -1.0
+## Circumscribed radius of the collision shape on the physics object that
+## participates in `layer`: the smallest circle (in XZ) that fully contains the
+## shape. Use this for conservative packing/spacing (e.g. placing bodies so they
+## can't overlap) where a single scalar is needed regardless of shape — for a
+## box this is the half-diagonal, not a side, so the circle still encloses it.
+func bounding_radius(layer: int) -> float:
+	var shape := _collision_shape_for_layer(layer)
+	if shape == null:
+		push_error("%s has no collision shape on layer %d" % [name, layer])
+		return -1.0
+	if shape is SphereShape3D: return shape.radius
+	if shape is CylinderShape3D: return shape.radius
+	if shape is BoxShape3D: return Vector2(shape.size.x, shape.size.z).length() * 0.5
+	push_error("unhandled collider type %s" % typeof(shape))
+	return -1.0
+
+## Distance (in XZ) from this entity's center to the boundary of its collision
+## shape on `layer`, in the direction of `target_xz`. Unlike bounding_radius this
+## is shape-appropriate: a box reports how far its edge actually extends toward
+## the target (accounting for the body's Y rotation), so a square reads as a
+## square rather than as its circumscribed circle. Use this for proximity /
+## border-to-border comparisons.
+func collision_extent_toward(target_xz: Vector2, layer: int) -> float:
+	var shape := _collision_shape_for_layer(layer)
+	if shape == null:
+		push_error("%s has no collision shape on layer %d" % [name, layer])
+		return -1.0
+	if shape is SphereShape3D: return shape.radius
+	if shape is CylinderShape3D: return shape.radius
+	if shape is BoxShape3D:
+		var dir := target_xz - xz_position
+		if dir.is_zero_approx():
+			return 0.0
+		# Rotate the direction into the body's local frame (Y rotation only) so
+		# we can treat the box as axis-aligned, then ray-cast to the box edge.
+		var local_dir := dir.rotated(global_rotation.y).normalized()
+		var half := Vector2(shape.size.x, shape.size.z) * 0.5
+		var tx: float = half.x / absf(local_dir.x) if not is_zero_approx(local_dir.x) else INF
+		var tz: float = half.y / absf(local_dir.y) if not is_zero_approx(local_dir.y) else INF
+		return minf(tx, tz)
+	push_error("unhandled collider type %s" % typeof(shape))
+	return -1.0
+
+## Resolve the CollisionShape3D's Shape3D for the physics object carrying
+## `layer`. The CharacterBody3D's own Body shape carries the movement/targetable
+## layers; otherwise we search child CollisionObject3D nodes (e.g. Area3D ranges).
+func _collision_shape_for_layer(layer: int) -> Shape3D:
+	if (collision_layer & layer) != 0 and collider != null:
+		return collider.shape
+	for child in get_children():
+		if child is CollisionObject3D and (child.collision_layer & layer) != 0:
+			for sub in child.get_children():
+				if sub is CollisionShape3D:
+					return sub.shape
+	return null
 
 
 ### NODE

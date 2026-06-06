@@ -513,7 +513,7 @@ func assign_command_to_units(
 	var destination_to_unit: Dictionary = {}
 	if a_command_type.requires_position() and capable.size() > 1:
 		var representative := capable[0] as Entity
-		var radius: float = representative.collision_radius
+		var radius: float = representative.bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION)
 		var region_radius: float = maxf(5.0, radius * 2.5 * float(capable.size()))
 		# The point we generated the destinations around (the click location).
 		var destination_centroid: Vector2 = a_command_message.xz_position

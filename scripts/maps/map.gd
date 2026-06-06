@@ -112,7 +112,7 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 	if a_entity is Commandable and a_entity.get_node_or_null("Obstruction") != null:
 		add_structure(a_entity, a_location, 0, false)
 	else:
-		var radius: float = a_entity.collision_radius
+		var radius: float = a_entity.bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION)
 		var placement_xz: Vector2
 		if radius > 0.0:
 			placement_xz = SU.get_nonoverlapping_points(

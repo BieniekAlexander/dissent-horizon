@@ -271,8 +271,10 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 			var c := get_slide_collision_count()
 			for i in range(c):
 				var collision_collider = get_slide_collision(i).get_collider()
-				if collision_collider is Commandable and collision_collider.is_in_group("unit") and collision_collider._command == null:
-					if not (_command is Attack and _command.message.target == collision_collider):
+				if collision_collider is Commandable and collision_collider._command == null:
+					if _command is not Attack or _command.message.target != collision_collider:
+						movement.set_velocity(Vector3.ZERO)
+						movement.is_final_leg = false
 						_command = null
 
 	# Snap Y to terrain after each move so height tracks the final XZ this tick,
@@ -295,6 +297,12 @@ func _update_state() -> void:
 
 	command_receiver._update_state()
 
+	# Command processing above may remove this unit from the tree mid-tick (e.g.
+	# garrisoning into a Shelter); the remaining per-tick work touches world/
+	# physics state that is invalid while orphaned, so stop here.
+	if not is_inside_tree():
+		return
+
 	# Per-tick production. No-op for non-producing entities.
 	if production != null:
 		production.tick()
@@ -313,6 +321,10 @@ func _update_state() -> void:
 func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	_update_state()
+	# A command fulfilled during _update_state() (e.g. garrisoning into a
+	# Shelter) may remove this unit from the tree mid-tick; touching
+	# global_position while orphaned warns, so skip the rest of the tick.
+	if not is_inside_tree(): return
 	# Keep units glued to terrain height each tick.  The navmesh is 3D (built
 	# from HeightMapShape3D data) but the velocity computation zeroes Y to keep
 	# avoidance stable, so Y tracking must happen here instead.

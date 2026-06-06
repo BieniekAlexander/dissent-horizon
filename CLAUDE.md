@@ -387,7 +387,7 @@ Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance
 
 **`Obstruction` component** (replaces inline `width`/`length` fields): structures declare their footprint size via an `Obstruction` child node with `dimensions: Vector2i`. `Map.add_structure` and `Build.meets_precondition` read this instead of hard-coded values. This is how multi-cell structures work.
 
-**`Loadout` / `Weapon` refactor**: weapons are `Weapon` node-children of a `Loadout` node (`entity.weapon_inventory`). Previously weapons were mixed into entity stats. `Loadout.weapon_for_target(entity)` selects the correct weapon; `Weapon.fire()` handles both projectile and instant-damage modes. Melee vs. ranged is determined by presence of an `AttackRange` CollisionShape3D child on the `Weapon`.
+**`Loadout` / `Weapon` refactor**: weapons are `Weapon` node-children of a `Loadout` node (`entity.weapon_inventory`). Previously weapons were mixed into entity stats. `Loadout.weapon_for_target(entity)` selects the correct weapon; `Weapon.fire()` handles both projectile and instant-damage modes. Every `Weapon` has an `AttackRange` CollisionShape3D child defining its reach (queried via `SU.is_in_attack_range`); short-reach "melee" weapons just use an `AttackRange` only slightly larger than the wielder's body shape rather than a separate distance fallback.
 
 **`HeightmapMeshGenerator` + `HeightPin` editor tools**: terrain heights are edited by moving `HeightPin` Sprite3D gizmos in the Godot editor; each pin writes back to `height_map.map_data` and triggers a mesh rebuild. Pins are deleted at runtime (`queue_free()` in `HeightPin._ready()` when not in editor).
 

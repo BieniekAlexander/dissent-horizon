@@ -2,8 +2,9 @@ class_name Weapon
 extends Node
 
 ## A weapon that a commandable's Loadout can hold. Lives in the scene tree as
-## a child of an Loadout node, with an optional AttackRange CollisionShape3D
-## child that defines its reach.
+## a child of an Loadout node, with an AttackRange CollisionShape3D child that
+## defines its reach. Every weapon has one — short-reach "melee" weapons simply
+## use an AttackRange only slightly larger than the wielder's body shape.
 
 enum AttackType {
 	BALLISTIC,
@@ -32,12 +33,7 @@ static var damage_multiplier_patterns: Dictionary = {
 @export var attack_duration: int = 10
 ## Projectile scene to launch on fire; null = instant damage applied directly.
 @export var packed_scene: PackedScene
-## Maximum XZ distance (centre-to-centre) at which this weapon can strike when
-## it has no AttackRange child (i.e. it is a melee weapon). Ignored for ranged
-## weapons that have an AttackRange child.
-@export var melee_range: float = 1.5
-
-@onready var attack_range_shape: CollisionShape3D = get_node_or_null("AttackRange")
+@onready var attack_range_shape: CollisionShape3D = $AttackRange
 @onready var _visualizer: Node = _find_visualizer()
 
 func _find_visualizer() -> Node:

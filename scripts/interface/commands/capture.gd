@@ -19,7 +19,7 @@ static func meets_precondition(
 	)
 
 func can_act(a_actor: Commandable) -> bool:
-	return a_actor.global_position.distance_squared_to(message.position)<=5
+	return SU.unit_is_close_to_structure(a_actor, message.target)
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	message.target.build_progress += .00222222222
@@ -38,4 +38,4 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	
 
 func should_move(a_actor: Commandable) -> bool:
-	return a_actor.global_position.distance_squared_to(message.position) >= .25
+	return not SU.unit_is_close_to_structure(a_actor, message.target)
