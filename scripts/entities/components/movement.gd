@@ -131,13 +131,28 @@ func get_next_path_position() -> Vector3:
 	return Vector3.ZERO
 
 
-## Configure avoidance so same-team units avoid each other.
+## Configure RVO avoidance.
+##   avoidance_layers (what we broadcast): our own team bit, so other agents can
+##     choose whether to avoid us.
+##   avoidance_mask (what we steer around): ALL teams — friendly units yield to
+##     each other (mutual) and we also route around enemy units.
+## The "enemies don't get out of our way" requirement is upheld by the command
+## loop, not the mask: only commanded, moving units apply an avoidance velocity,
+## so idle enemy units never reposition themselves to accommodate us.
 ## No-op in AERIAL mode (no NavAgent, no avoidance mesh).
+const _AVOIDANCE_ALL_TEAMS: int = 0xFFFFFFFF
+
 func set_avoidance_team(commander_id: int) -> void:
 	if mode == Mode.DEFAULT and _nav_agent != null:
-		var mask: int = 1 << commander_id
-		_nav_agent.avoidance_layers = mask
-		_nav_agent.avoidance_mask = mask
+		_nav_agent.avoidance_layers = 1 << commander_id
+		_nav_agent.avoidance_mask = _AVOIDANCE_ALL_TEAMS
+
+
+## Size the RVO avoidance radius to the body's real footprint so agents keep
+## a correct distance from one another. No-op in AERIAL mode (no NavAgent).
+func set_agent_radius(a_radius: float) -> void:
+	if mode == Mode.DEFAULT and _nav_agent != null and a_radius > 0.0:
+		_nav_agent.radius = a_radius
 
 
 ## World-units to add above the terrain surface when snapping Y.

@@ -47,7 +47,6 @@ script = ExtResource("2_3agr1")
 [node name="#####STATE#####" type="Node" parent="."]
 
 [node name="NavigationAgent" type="NavigationAgent3D" parent="."]
-path_desired_distance = 0.5
 target_desired_distance = 0.25
 path_max_distance = 10.01
 avoidance_enabled = true

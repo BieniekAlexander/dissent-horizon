@@ -149,12 +149,25 @@ func _ready() -> void:
 	# a no-op for them.
 	if movement != null:
 		movement.velocity_ready.connect(_on_velocity_computed)
-
-		if commander:
-			movement.set_avoidance_team(commander.id)
+		# Match the RVO avoidance radius to this unit's movement footprint so
+		# agents space themselves correctly during group moves.
+		movement.set_agent_radius(bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION))
+		# NOTE: avoidance team is configured in _on_commander_changed, not here.
+		# During initialize() add_child() (→ _ready) runs BEFORE the commander is
+		# assigned, so `commander` is null at this point; the team must be set
+		# when ownership is actually established.
 
 func _on_commander_changed(old_commander: Commander, new_commander: Commander) -> void:
 	super(old_commander, new_commander)
+
+	# Configure RVO avoidance team whenever ownership is established/changes. This
+	# is the first point at which the commander is known for dynamically-spawned
+	# units (initialize() assigns the commander after add_child/_ready), so this
+	# is what actually turns avoidance on — without it the agent keeps its
+	# scene-default avoidance_layers/mask of 0 and avoids nothing.
+	if movement != null and new_commander != null:
+		movement.set_avoidance_team(new_commander.id)
+
 	if not is_in_group("structure"):
 		return
 	if old_commander != null:
@@ -264,18 +277,14 @@ func _process(_delta: float) -> void:
 					$HPBar.visible = false
 
 func _on_velocity_computed(a_velocity: Vector3) -> void:
+	# a_velocity is the RVO avoidance-adjusted velocity from the NavigationAgent3D.
+	# We simply apply it; same-team avoidance keeps units from overlapping, so we
+	# no longer cancel commands on contact — the agents steer around each other
+	# instead of giving up when they touch.
 	velocity = a_velocity
 
 	if velocity != Vector3.ZERO:
-		if move_and_slide():
-			var c := get_slide_collision_count()
-			for i in range(c):
-				var collision_collider = get_slide_collision(i).get_collider()
-				if collision_collider is Commandable and collision_collider._command == null:
-					if _command is not Attack or _command.message.target != collision_collider:
-						movement.set_velocity(Vector3.ZERO)
-						movement.is_final_leg = false
-						_command = null
+		move_and_slide()
 
 	# Snap Y to terrain after each move so height tracks the final XZ this tick,
 	# not the XZ from before the move (which is what _physics_process saw).

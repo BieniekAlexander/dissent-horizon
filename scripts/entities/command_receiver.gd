@@ -51,6 +51,21 @@ func _process_commands() -> void:
 
 	if is_same(new_commands, null):
 		_command = null
+		# TODO(RVO experiment): feed idle units a zero velocity so they keep
+		# refreshing their entry in the avoidance simulation. Without this, a unit
+		# that finishes moving and goes idle stops calling set_velocity entirely,
+		# so its last non-zero velocity can linger in the RVO sim — making nearby
+		# movers steer around a "ghost" heading instead of treating it as the
+		# stationary obstacle it now is. Zeroing here marks it as parked.
+		# CAVEAT: this also lets RVO compute a (possibly non-zero) avoidance
+		# velocity for the idle unit, which _on_velocity_computed will apply — so
+		# idle units may now drift aside when a mover pushes into them. That is in
+		# tension with "enemies don't get out of the way"; if it looks wrong, the
+		# fix is to keep feeding 0 here but suppress *applying* avoidance velocity
+		# for commandless units in Commandable._on_velocity_computed.
+		if owner.movement != null:
+			owner.movement.is_final_leg = false
+			owner.movement.set_velocity(Vector3.ZERO)
 	elif !is_same(new_commands, _command) and !is_same(new_commands, null):
 		update_commands(new_commands, true, true)
 	elif _command.can_act(owner):
