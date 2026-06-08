@@ -12,10 +12,15 @@ static func meets_precondition(
 ) -> PreconditionFailureCause:
 	if not _target_attackable(a_message):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if a_actor == null or a_actor.weapon_inventory == null \
-			or not a_actor.weapon_inventory.any_weapon_can_target(a_message.target):
+	if a_actor == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	return PreconditionFailureCause.NONE
+	if a_actor.weapon_inventory != null \
+			and a_actor.weapon_inventory.any_weapon_can_target(a_message.target):
+		return PreconditionFailureCause.NONE
+	var shelter := a_actor.shelter
+	if shelter != null and shelter.any_garrison_can_target(a_message.target):
+		return PreconditionFailureCause.NONE
+	return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 
 
 ### UTILS

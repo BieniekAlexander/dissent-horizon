@@ -9,7 +9,7 @@
 
 [sub_resource type="Resource" id="Condition_timer"]
 script = ExtResource("2_timer")
-seconds = 30.0
+seconds = 5.0
 
 [sub_resource type="Resource" id="Event_spawn"]
 script = ExtResource("3_spawn")

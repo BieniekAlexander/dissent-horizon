@@ -53,7 +53,6 @@ avoidance_enabled = true
 neighbor_distance = 5.0
 max_neighbors = 5
 time_horizon_obstacles = 1.0
-max_speed = 100.0
 avoidance_layers = 0
 avoidance_mask = 0
 

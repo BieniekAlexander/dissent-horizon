@@ -142,10 +142,30 @@ func get_next_path_position() -> Vector3:
 ## No-op in AERIAL mode (no NavAgent, no avoidance mesh).
 const _AVOIDANCE_ALL_TEAMS: int = 0xFFFFFFFF
 
+## Saved avoidance_layers value while suppression is active; 0 means not suppressed.
+var _saved_avoidance_layers: int = 0
+
 func set_avoidance_team(commander_id: int) -> void:
 	if mode == Mode.DEFAULT and _nav_agent != null:
 		_nav_agent.avoidance_layers = 1 << commander_id
 		_nav_agent.avoidance_mask = _AVOIDANCE_ALL_TEAMS
+
+## Zero this agent's broadcast layers so no other agent RVO-steers around it.
+## Used by Garrison to let the approaching unit walk into the shelter target
+## without the avoidance system pushing them apart.  No-op if already suppressed
+## or in AERIAL mode.
+func suppress_avoidance_layers() -> void:
+	if mode != Mode.DEFAULT or _nav_agent == null or _saved_avoidance_layers != 0:
+		return
+	_saved_avoidance_layers = _nav_agent.avoidance_layers
+	_nav_agent.avoidance_layers = 0
+
+## Restore the avoidance_layers cleared by suppress_avoidance_layers.
+func restore_avoidance_layers() -> void:
+	if mode != Mode.DEFAULT or _nav_agent == null or _saved_avoidance_layers == 0:
+		return
+	_nav_agent.avoidance_layers = _saved_avoidance_layers
+	_saved_avoidance_layers = 0
 
 
 ## Size the RVO avoidance radius to the body's real footprint so agents keep

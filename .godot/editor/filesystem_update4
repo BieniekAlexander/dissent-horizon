@@ -37,3 +37,4 @@ res://scripts/interface/commands/capture.gd
 res://scripts/entities/command_receiver.gd
 res://scenes/commandable.tscn
 res://scripts/entities/components/movement.gd
+res://CLAUDE.md

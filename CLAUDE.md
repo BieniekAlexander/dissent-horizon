@@ -318,6 +318,10 @@ Hide fog for debugging: hold Space (`debug_info` action).
 
 ## Key conventions and patterns
 
+### Variable typing
+
+- Prefer specifying variable types rather than impling them, e.g. `var i: int = 0` rather than `var i := 0`
+
 ### `@onready` and optional components
 
 - Required nodes: use `$NodeName` directly or `assert()`. Don't silently accept null for nodes that must exist.

@@ -29,13 +29,25 @@ static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 ## global_transform off the CollisionShape3D node directly, because Weapon and
 ## Loadout are plain Nodes (not Node3D) and would always report the origin.
 static func is_in_attack_range(weapon: Weapon, attacker: Entity, target: Entity) -> bool:
+	return is_weapon_in_range_at(weapon, attacker.global_transform, attacker.get_world_3d(), target, attacker)
+
+## Same range check but with an explicit firing position. Used when the weapon
+## belongs to a garrisoned unit firing from a shelter owner's location.
+static func is_weapon_in_range_at(
+	weapon: Weapon,
+	from_transform: Transform3D,
+	world_3d: World3D,
+	target: Entity,
+	exclude: Object = null
+) -> bool:
 	if weapon == null or weapon.attack_range_shape == null:
 		return false
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = weapon.attack_range_shape.shape
-	params.transform = attacker.global_transform
-	params.exclude = [attacker]
-	var results: Array = attacker.get_world_3d().direct_space_state.intersect_shape(params)
+	params.transform = from_transform
+	if exclude != null:
+		params.exclude = [exclude]
+	var results: Array = world_3d.direct_space_state.intersect_shape(params)
 	return results.any(func(r: Dictionary) -> bool: return r["collider"] == target)
 
 static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, distance_squared: float = .001) -> bool:

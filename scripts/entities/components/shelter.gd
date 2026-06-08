@@ -10,6 +10,10 @@ extends Node
 
 ## Maximum number of units that may garrison simultaneously.
 @export var capacity: int = 4
+## When true, garrisoned units can fire their weapons from inside this shelter.
+## The shelter owner's position and AggroRange are used; garrisoned units supply
+## the weapons. Set false for purely protective shelters that offer no fire support.
+@export var bunker: bool = true
 
 ## Units currently garrisoned.  Held as orphaned nodes — removed from the
 ## scene tree but not freed.
@@ -22,6 +26,36 @@ func can_garrison() -> bool:
 
 func garrisoned_count() -> int:
 	return _garrisoned.size()
+
+## True when at least one garrisoned unit carries a weapon that can target `target`.
+func any_garrison_can_target(target: Entity) -> bool:
+	if not bunker:
+		return false
+	for unit: Commandable in _garrisoned:
+		if unit.weapon_inventory != null and unit.weapon_inventory.weapon_for_target(target) != null:
+			return true
+	return false
+
+## Fire eligible garrisoned units at `target` from `owner`'s world position.
+## Call once per physics tick while an Attack command is active. Manages each
+## unit's attack_timer independently since orphaned units don't tick themselves.
+func tick_bunker_fire(owner: Commandable, target: Entity) -> void:
+	if not bunker:
+		return
+	for unit: Commandable in _garrisoned:
+		if unit.attack_timer > 0:
+			unit.attack_timer -= 1
+			continue
+		if unit.weapon_inventory == null:
+			continue
+		var weapon := unit.weapon_inventory.weapon_for_target(target)
+		if weapon == null:
+			continue
+		if not SU.is_weapon_in_range_at(weapon, owner.global_transform, owner.get_world_3d(), target, owner):
+			continue
+		unit.attack_timer = weapon.attack_duration
+		unit._attack_duration = weapon.attack_duration
+		weapon.fire(owner, target)
 
 
 ## Remove `unit` from the active scene tree and store it here.

@@ -107,11 +107,17 @@ func get_min_max() -> Array:
 
 ## Add a game [Entity] to the map, allowing the [Map] to govern it in the game world
 func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -> void:
-	a_entity.initialize(self, a_commander)
-
 	if a_entity is Commandable and a_entity.get_node_or_null("Obstruction") != null:
+		a_entity.initialize(self, a_commander)
 		add_structure(a_entity, a_location, 0, false)
 	else:
+		# Compute position BEFORE add_child (inside initialize) so the physics
+		# server registers the entity at the correct world position from the start.
+		# If initialize ran first, the entity would enter the broadphase at (0,0,0)
+		# for the rest of that physics frame — close enough to the map centre that
+		# nearby aggro/attack-range queries on existing units (turret, technician)
+		# would incorrectly detect the freshly spawned enemies as in range.
+		# Commander is a plain Node (not Node3D), so entity.position == world position.
 		var radius: float = a_entity.bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION)
 		var placement_xz: Vector2
 		if radius > 0.0:
@@ -125,11 +131,12 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 			)[0]
 		else:
 			placement_xz = a_location
-		a_entity.global_position = Vector3(
+		a_entity.position = Vector3(
 			placement_xz.x,
 			terrain_height_at(placement_xz),
 			placement_xz.y
 		)
+		a_entity.initialize(self, a_commander)
 
 
 func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: int, _rebake: bool = true) -> void:

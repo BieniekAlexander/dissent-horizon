@@ -110,7 +110,8 @@ static func valid_placement(a_command_message: CommandMessage, a_dimensions: Vec
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
 func get_aggro_near_position() -> Command:
-	if aggro_range_shape == null or weapon_inventory == null:
+	var is_bunker: bool = shelter != null and shelter.bunker and shelter.garrisoned_count() > 0
+	if aggro_range_shape == null or (weapon_inventory == null and not is_bunker):
 		return null
 
 	var aggro_query := PhysicsShapeQueryParameters3D.new()
@@ -122,9 +123,10 @@ func get_aggro_near_position() -> Command:
 	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
 		func(r): return r["collider"]
 	)
-	var vs2 = vs.filter(
-		func(t): return t is Commandable and weapon_inventory.weapon_for_target(t) != null
-	)
+	var vs2 = vs.filter(func(t): return t is Commandable and (
+		(weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null)
+		or (is_bunker and shelter.any_garrison_can_target(t))
+	))
 	var vs3 = vs2.filter(
 		func(t): return t.commander_id > 0 and t.commander_id != commander_id
 	)
@@ -311,6 +313,15 @@ func _update_state() -> void:
 	# physics state that is invalid while orphaned, so stop here.
 	if not is_inside_tree():
 		return
+
+	# Bunker firing: when this shelter-owner has an active Attack command and
+	# garrisoned units carry matching weapons, fire those weapons each tick from
+	# this entity's world position. Runs independently of the owner's own weapon
+	# so a structure with no weapon_inventory can still provide fire support.
+	if shelter != null and shelter.bunker and shelter.garrisoned_count() > 0:
+		var active_cmd := current_command()
+		if active_cmd is Attack and is_instance_valid(active_cmd.message.target):
+			shelter.tick_bunker_fire(self, active_cmd.message.target)
 
 	# Per-tick production. No-op for non-producing entities.
 	if production != null:
