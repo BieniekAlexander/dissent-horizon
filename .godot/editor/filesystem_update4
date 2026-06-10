@@ -38,3 +38,6 @@ res://scripts/entities/command_receiver.gd
 res://scenes/commandable.tscn
 res://scripts/entities/components/movement.gd
 res://CLAUDE.md
+res://scripts/maps/fog.gd
+res://scripts/maps/minimap.gd
+res://scripts/interface/rts_camera_3d.gd

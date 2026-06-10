@@ -12,10 +12,12 @@ var move_reference_position: Vector2
 @export var rotate_left_action: String = "isometric_camera_rotate_left"
 @export var rotate_right_action: String = "isometric_camera_rotate_right"
 
-# TODO: unused function
-#func center_on_position(position: Vector3) -> void:
-#	# TODO offset camera position based on height - because the camera is angled, the camera won't be pointing at the entity
-#	global_position = global_position.y*Vector3.UP + VU.onXZ(position)
+## Move the camera so that it looks at `world_xz` on the ground plane (Y = 0).
+## Because the camera points at 45° downward, a camera at height Y and XZ
+## position (cx, cz) looks at ground point (cx, 0, cz − Y). Inverting:
+##   cx = wx,  cz = wz + Y
+func center_on(world_xz: Vector2) -> void:
+	global_position = Vector3(world_xz.x, global_position.y, world_xz.y + global_position.y)
 
 ### ZOOM
 @export_category("Zoom")

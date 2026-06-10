@@ -24,6 +24,13 @@ extends Entity
 @onready var dominion_generator: DominionGenerator = get_node_or_null("DominionGenerator") as DominionGenerator
 @onready var shelter: Shelter = get_node_or_null("Shelter") as Shelter
 
+## True when the player can currently perceive this commandable — fog pixel is
+## clear AND the unit is not stealthed. Written by fog.gd each physics tick for
+## non-player entities; always meaningless for player-owned units (the player
+## always knows where their own units are, so callers gate on commander_id first).
+## Scoped to the player for now; TODO: promote to a per-commander map.
+var in_sight_range: bool = false
+
 var _command: Command:
 	get: return command_receiver._command
 	set(value): command_receiver._command = value

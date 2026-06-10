@@ -1,4 +1,11 @@
+class_name Fog
 extends MeshInstance3D
+
+## Three-state terrain visibility as seen by the player.
+##   UNSEEN    — tile has never been in a player unit's vision radius.
+##   EXPLORED  — tile was seen at some point but is currently fogged.
+##   IN_SIGHT  — tile is inside a player unit's vision radius this frame.
+enum TerrainVisibility { UNSEEN, EXPLORED, IN_SIGHT }
 
 var POINTS_PER_UNIT: float = 2.0
 # L8 byte value for "explored but not currently visible" (alpha ≈ 0.5)
@@ -68,9 +75,35 @@ func _physics_process(_delta: float) -> void:
 	for entity: Entity in get_tree().get_nodes_in_group("commandable"):
 		if entity.commander_id == RTSController.PLAYER_COMMANDER_ID:
 			continue
-		var pixel := _world_to_pixel(VU.inXZ(entity.global_position))
-		var in_bounds := pixel.x >= 0 and pixel.x < _img_width and pixel.y >= 0 and pixel.y < _img_height
-		entity.visible = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
+		var pixel: Vector2i = _world_to_pixel(VU.inXZ(entity.global_position))
+		var in_bounds: bool = pixel.x >= 0 and pixel.x < _img_width and pixel.y >= 0 and pixel.y < _img_height
+		var fog_clear: bool = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
+		entity.visible = fog_clear
+		# in_sight_range: true only when the fog pixel is clear AND the entity is
+		# not actively stealthed. A stealthed enemy in a revealed fog cell is
+		# technically "visible" (the pixel is clear) but is perceptually hidden —
+		# its sprite alpha is 0 and it should not appear on the minimap or trigger
+		# any sight-based game logic. REVEALED and UNSTEALTHED count as perceptible.
+		if entity is Commandable:
+			var stealthed: bool = entity.stealth != null \
+				and entity.stealth.state == Stealth.State.STEALTHED
+			(entity as Commandable).in_sight_range = fog_clear and not stealthed
+
+
+## Returns the three-state terrain visibility for the fog pixel covering
+## `world_xz`. Used by the minimap to colour terrain appropriately.
+func terrain_visibility_at(world_xz: Vector2) -> TerrainVisibility:
+	if _explored_bytes.is_empty() or _fog_bytes.is_empty():
+		return TerrainVisibility.UNSEEN
+	var pixel: Vector2i = _world_to_pixel(world_xz)
+	if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
+		return TerrainVisibility.UNSEEN
+	var idx: int = pixel.y * _img_width + pixel.x
+	if _explored_bytes[idx] == 255:
+		return TerrainVisibility.UNSEEN
+	if _fog_bytes[idx] == 0:
+		return TerrainVisibility.IN_SIGHT
+	return TerrainVisibility.EXPLORED
 
 
 ## Permanently reveal a circular area in world-space XZ (lift fog of war).
