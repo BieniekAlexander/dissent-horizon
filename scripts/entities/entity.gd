@@ -52,7 +52,7 @@ enum Type {
 @onready var stealth: Stealth = get_node_or_null("Stealth") as Stealth
 
 ## Detection shape — present on entities that can reveal stealthed enemies.
-## The shape is tested against CollisionLayers.Layer.STEALTH each physics tick.
+## The shape is tested against CollisionLayers.Mask.STEALTH each physics tick.
 ## Null for entities that have no detection capability.
 @onready var detection_range: CollisionShape3D = get_node_or_null("DetectionRange")
 
@@ -95,8 +95,28 @@ var xz_position: Vector2:
 
 var map: Map
 var pc_set: Set = Set.new()
-@onready var collider: CollisionShape3D = get_node_or_null("Body")
+@onready var collider: CollisionShape3D = _resolve_collider()
+
+## The entity's primary collision shape. Commandables name their movement shape
+## "MovementBody"; other Entity scenes (radiation, star) use "Body". Prefer "Body"
+## when present so scenes mid-rename keep working, falling back to "MovementBody".
+func _resolve_collider() -> CollisionShape3D:
+	var node := get_node_or_null("Body")
+	if node == null:
+		node = get_node_or_null("MovementBody")
+	return node as CollisionShape3D
 @onready var aggro_range_shape: CollisionShape3D = get_node_or_null("AggroRange")
+
+## Resolve a physics-query collider to its owning Entity. Because TARGETABLE /
+## STRUCTURE_BLOCKER now live on the child TargetBody, query hits are that child
+## — walk up to its Entity parent. Colliders that are themselves Entities (any
+## other layer) pass straight through. Returns null for non-entity colliders.
+static func entity_from_collider(node: Object) -> Entity:
+	if node is Entity:
+		return node as Entity
+	if node is Node:
+		return (node as Node).get_parent() as Entity
+	return null
 
 ### WEAPONS
 ## The Loadout node whose children are this entity's Weapon nodes.
@@ -166,10 +186,29 @@ func _collision_shape_for_layer(layer: int) -> Shape3D:
 	return null
 
 
+## The root CharacterBody3D acts as a MOVEMENT_OBSTRUCTION only while the entity
+## is NOT registered as a terrain-grid obstruction. Registered structures are
+## obstacles via the navmesh, so their root carries no collision layer — which is
+## what stops moving units from running into building corners. Re-run whenever
+## grid registration changes (initialize / Map.add_structure / remove_structure).
+func refresh_movement_collision() -> void:
+	# Preserve the STEALTH bit, which the Stealth component toggles on the root
+	# independently of grid registration.
+	collision_layer &= CollisionLayers.Mask.STEALTH
+	collision_mask = 0
+	if not is_grid_obstruction():
+		collision_layer |= CollisionLayers.Mask.MOVEMENT_OBSTRUCTION
+
+## True when this entity currently occupies cells in the terrain grid (i.e. a
+## placed structure). Units and unplaced entities are never grid obstructions.
+func is_grid_obstruction() -> bool:
+	return map != null and map.structure_cell_map.has(self)
+
+
 ### NODE
 func _ready() -> void:
 	ownership.commander_changed.connect(_on_commander_changed)
-	
+
 	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,
 	# so we self-initialize from default_commander_id after all _ready() calls
 	# have run (ensuring Scenario._ready() has already created the commanders).
@@ -267,6 +306,11 @@ func initialize(a_map: Map, a_commander: Commander):
 	# commander_id (e.g. fog.gd each physics frame). Scene-placed entities get
 	# their commander from Scenario._ready directly, so this doesn't disturb them.
 	commander = a_commander
+
+	# Default movement-collision state: units (and not-yet-placed structures) act
+	# as MOVEMENT_OBSTRUCTION. Map.add_structure re-runs this once a structure is
+	# registered, clearing the layer so units don't collide with it.
+	refresh_movement_collision()
 
 func _on_death() -> void:
 	for coords: Vector2i in pc_set.get_values():

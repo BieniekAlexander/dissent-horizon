@@ -28,7 +28,7 @@ gradient = SubResource("Gradient_hp_fill")
 process_physics_priority = 10
 type = 4612
 
-[node name="Body" parent="." index="2"]
+[node name="MovementBody" parent="." index="2"]
 shape = SubResource("BoxShape3D_1qdpe")
 
 [node name="VisionRange" parent="." index="4"]

@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://dcmdbl3j4t1k2"]
+[gd_scene load_steps=19 format=3 uid="uid://dcmdbl3j4t1k2"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="2_3agr1"]
 [ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="2_tefpw"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="5_ownr0"]
 [ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="6_cli00"]
 [ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="7_def00"]
+[ext_resource type="Script" uid="uid://brt70ksdghy11" path="res://scripts/entities/components/avoidance_agent_3d.gd" id="8_avagent"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
 
@@ -42,6 +43,8 @@ colors = PackedColorArray(0, 0, 0, 1)
 gradient = SubResource("Gradient_8aclg")
 
 [node name="Commandable" type="CharacterBody3D" groups=["commandable"]]
+collision_layer = 0
+collision_mask = 0
 script = ExtResource("2_3agr1")
 
 [node name="#####STATE#####" type="Node" parent="."]
@@ -55,8 +58,16 @@ max_neighbors = 5
 time_horizon_obstacles = 1.0
 avoidance_layers = 0
 avoidance_mask = 0
+script = ExtResource("8_avagent")
 
-[node name="Body" type="CollisionShape3D" parent="."]
+[node name="MovementBody" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_fe0lq")
+
+[node name="TargetBody" type="StaticBody3D" parent="."]
+collision_layer = 2
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="TargetBody"]
 shape = SubResource("CylinderShape3D_fe0lq")
 
 [node name="AggroRange" type="CollisionShape3D" parent="."]
@@ -93,7 +104,7 @@ render_priority = 1
 texture = ExtResource("2_tefpw")
 
 [node name="HPBar" type="Sprite3D" parent="."]
-transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.3059143, -0.154043765)
+transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.3059143, -0.15404376)
 pixel_size = 0.0001
 render_priority = 8
 texture = SubResource("GradientTexture1D_u25hc")

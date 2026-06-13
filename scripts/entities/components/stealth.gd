@@ -50,7 +50,7 @@ func _ready() -> void:
 	# find this entity via a targeted physics query.
 	var entity := get_parent() as Entity
 	if entity != null:
-		entity.collision_layer |= CollisionLayers.Layer.STEALTH
+		entity.collision_layer |= CollisionLayers.Mask.STEALTH
 
 
 ## Called by a detecting entity each physics frame it overlaps this unit.

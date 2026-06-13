@@ -55,10 +55,10 @@ colors = PackedColorArray(0.8, 0.666667, 0, 1)
 gradient = SubResource("Gradient_train_fill")
 
 [node name="Structure" groups=["structure"] instance=ExtResource("1_cmnd1")]
-collision_layer = 6
+collision_layer = 0
 type = -1
 
-[node name="Body" parent="." index="2"]
+[node name="MovementBody" parent="." index="2"]
 shape = SubResource("CylinderShape3D_fe0lq")
 
 [node name="AggroRange" parent="." index="3"]

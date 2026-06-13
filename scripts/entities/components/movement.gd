@@ -131,24 +131,55 @@ func get_next_path_position() -> Vector3:
 	return Vector3.ZERO
 
 
-## Configure RVO avoidance.
-##   avoidance_layers (what we broadcast): our own team bit, so other agents can
-##     choose whether to avoid us.
-##   avoidance_mask (what we steer around): ALL teams — friendly units yield to
-##     each other (mutual) and we also route around enemy units.
-## The "enemies don't get out of our way" requirement is upheld by the command
-## loop, not the mask: only commanded, moving units apply an avoidance velocity,
-## so idle enemy units never reposition themselves to accommodate us.
-## No-op in AERIAL mode (no NavAgent, no avoidance mesh).
-const _AVOIDANCE_ALL_TEAMS: int = 0xFFFFFFFF
+## RVO avoidance notes: every agent broadcasts on a shared channel and avoids
+## everyone (mask = ALL); the avoidance layers do NOT encode teams. The
+## "enemies don't get out of our way" requirement is upheld by the command loop,
+## not the mask: only commanded, moving units apply an avoidance velocity, so
+## idle enemy units never reposition to accommodate us. Per-pair exemptions (a
+## unit following another) are handled by AvoidanceAgent3D exceptions, driven via
+## set_avoidance_follow_target() below.
 
 ## Saved avoidance_layers value while suppression is active; 0 means not suppressed.
 var _saved_avoidance_layers: int = 0
 
-func set_avoidance_team(commander_id: int) -> void:
-	if mode == Mode.DEFAULT and _nav_agent != null:
-		_nav_agent.avoidance_layers = 1 << commander_id
-		_nav_agent.avoidance_mask = _AVOIDANCE_ALL_TEAMS
+## The commandable this unit is currently "following" (its move destination is
+## that unit), for which reciprocal RVO avoidance is suppressed. null = none.
+var _avoidance_follow: Commandable = null
+
+## The NavigationAgent3D as an AvoidanceAgent3D, or null if it isn't one (e.g. a
+## plain agent in a unit test). Gates the per-pair avoidance-exception API.
+func avoidance_agent() -> AvoidanceAgent3D:
+	return _nav_agent as AvoidanceAgent3D
+
+## Turn on RVO avoidance with the default "avoid everyone" configuration. Called
+## once ownership is established. (Teams don't filter avoidance — the command
+## loop, not the mask, decides who actually yields.)
+func enable_avoidance() -> void:
+	var agent := avoidance_agent()
+	if mode == Mode.DEFAULT and agent != null:
+		agent.enable_avoidance()
+
+## Make this unit and `other` ignore each other in RVO (used while following a
+## unit), leaving all their other avoidance interactions intact. Passing a
+## different target (or null) drops the previous exception first, so this can be
+## driven straight from the per-tick command state. No-op in AERIAL mode or when
+## either side lacks an AvoidanceAgent3D.
+func set_avoidance_follow_target(other: Commandable) -> void:
+	var agent := avoidance_agent()
+	if mode != Mode.DEFAULT or agent == null or other == _avoidance_follow:
+		return
+	var prev: AvoidanceAgent3D = _follow_agent(_avoidance_follow)
+	if prev != null:
+		agent.remove_avoidance_exception_with(prev)
+	_avoidance_follow = other
+	var next: AvoidanceAgent3D = _follow_agent(other)
+	if next != null:
+		agent.add_avoidance_exception_with(next)
+
+func _follow_agent(c: Commandable) -> AvoidanceAgent3D:
+	if c == null or not is_instance_valid(c) or c.movement == null:
+		return null
+	return c.movement.avoidance_agent()
 
 ## Zero this agent's broadcast layers so no other agent RVO-steers around it.
 ## Used by Garrison to let the approaching unit walk into the shelter target

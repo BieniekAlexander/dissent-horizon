@@ -23,8 +23,12 @@ func release() -> void:
 
 var position: Vector3:
 	get:
+		# Keep the target's real Y (its terrain height), not a zeroed ground plane,
+		# so position-based renderers (waypoint + command-line indicators) sit at
+		# the target's height instead of a constant Y=0. xz_position drops Y anyway,
+		# and nav targets snap to the navmesh, so those consumers are unaffected.
 		if target!=null and is_instance_valid(target):
-			return VU.onXZ(target.global_position)
+			return target.global_position
 		else:
 			return world_position
 			

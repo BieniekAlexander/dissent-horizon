@@ -29,6 +29,10 @@ func _make_shape() -> HeightMapShape3D:
 
 func _graph_gen() -> GraphPlateauHeightmapGenerator:
 	var g := GraphPlateauHeightmapGenerator.new()
+	# The generator's width/depth now drive the output size (the shape is sized to
+	# match), so set them to the small test dimensions.
+	g.width = W
+	g.depth = W
 	g.region_count = 6
 	g.height_levels = 3
 	g.ramp_half_width = 3.0

@@ -126,7 +126,7 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 		# nearby aggro/attack-range queries on existing units (turret, technician)
 		# would incorrectly detect the freshly spawned enemies as in range.
 		# Commander is a plain Node (not Node3D), so entity.position == world position.
-		var radius: float = a_entity.bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION)
+		var radius: float = a_entity.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 		var placement_xz: Vector2
 		if radius > 0.0:
 			placement_xz = SU.get_nonoverlapping_points(
@@ -134,7 +134,7 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 				a_location,
 				radius,
 				get_world_3d(),
-				CollisionLayers.Layer.MOVEMENT_OBSTRUCTION,
+				CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
 				5.
 			)[0]
 		else:
@@ -174,6 +174,9 @@ func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: 
 	structure_cell_map[a_structure] = footprint
 	terrain_grid.place_building(footprint, a_structure)
 	a_structure.map = self
+	# Now registered as a grid obstruction — drop MOVEMENT_OBSTRUCTION so moving
+	# units route around it via the navmesh instead of colliding with its body.
+	a_structure.refresh_movement_collision()
 
 
 func remove_structure(a_structure: Commandable, _rebake: bool = true) -> void:
@@ -182,6 +185,9 @@ func remove_structure(a_structure: Commandable, _rebake: bool = true) -> void:
 		cell_grid[cell.x][cell.y] = null
 	terrain_grid.remove_building(a_structure)
 	structure_cell_map.erase(a_structure)
+	# No longer occupying the grid — restore MOVEMENT_OBSTRUCTION on the root.
+	if is_instance_valid(a_structure):
+		a_structure.refresh_movement_collision()
 
 
 ## Apply a per-cell impassability mask (water / hazard / scripted no-go) on top of

@@ -41,14 +41,14 @@ func execute(manager: ScenarioEventManager) -> void:
 	# next step), so a naive loop stacks them. SpaceUtils.get_nonoverlapping_points
 	# generates points spaced apart by construction (and clear of existing bodies),
 	# so the whole batch lands without overlap.
-	var radius: float = spawned[0].bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION)
+	var radius: float = spawned[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 	var region_radius: float = maxf(5.0, radius * 2.5 * float(maxi(count, 1)))
 	var points: Array[Vector2] = SU.get_nonoverlapping_points(
 		map,
 		spawn_center,
 		radius,
 		map.get_world_3d(),
-		CollisionLayers.Layer.MOVEMENT_OBSTRUCTION,
+		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
 		region_radius,
 		spawned.size()
 	)

@@ -73,11 +73,13 @@ func _do_generate() -> void:
 	if random_next_seed:
 		_apply_random_seed()
 
-	# Sync dimensions so the output always matches the target shape.
-	_generator.width = shape.map_width
-	_generator.depth = shape.map_depth
-
-	shape.map_data = _generator.generate()
+	# The generator's own width/depth drive the output; the shape is sized to match.
+	# (Previously this synced the other way — overwriting the generator's width/depth
+	# from the shape on every Generate, which silently reset values you'd edited.)
+	var data: PackedFloat32Array = _generator.generate()
+	shape.map_width = _generator.dimensions.x
+	shape.map_depth = _generator.dimensions.y
+	shape.map_data = data
 
 	# Rebuild the visual mesh — same path used by HeightPin._on_pin_height_changed.
 	var gen: HeightmapMeshGenerator = mesh_generator

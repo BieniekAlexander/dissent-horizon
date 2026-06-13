@@ -38,7 +38,7 @@ func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 	var ray_origin: Vector3 = camera.project_ray_origin(a_mouse_position)
 	var ray_end: Vector3 = ray_origin + camera.project_ray_normal(a_mouse_position) * 1000.0
 
-	var selection_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Layer.SELECTION)
+	var selection_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.SELECTION)
 	if selection_hit and selection_hit['collider'] is Selectable:
 		var entity := (selection_hit['collider'] as Selectable).get_entity()
 		# Stealthed enemy units are rendered invisible to the player, so the cursor
@@ -47,7 +47,7 @@ func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 		if entity != null and not _is_hidden_enemy(entity):
 			return entity
 
-	var terrain_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Layer.TERRAIN)
+	var terrain_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.TERRAIN)
 	if terrain_hit:
 		return terrain_hit['position']
 
@@ -513,7 +513,7 @@ func assign_command_to_units(
 	var destination_to_unit: Dictionary = {}
 	if a_command_type.requires_position() and capable.size() > 1:
 		var representative := capable[0] as Entity
-		var radius: float = representative.bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION)
+		var radius: float = representative.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 		var region_radius: float = maxf(5.0, radius * 2.5 * float(capable.size()))
 		# The point we generated the destinations around (the click location).
 		var destination_centroid: Vector2 = a_command_message.xz_position
@@ -522,7 +522,7 @@ func assign_command_to_units(
 			destination_centroid,
 			radius,
 			map.get_world_3d(),
-			CollisionLayers.Layer.MOVEMENT_OBSTRUCTION,
+			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
 			region_radius,
 			capable.size()
 		)

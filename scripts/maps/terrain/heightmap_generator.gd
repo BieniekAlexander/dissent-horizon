@@ -5,11 +5,18 @@ extends Resource
 ## Base class for procedural heightmap generators.
 ## Subclass this and override generate() to produce different terrain shapes.
 ##
-## width and depth must match the target HeightMapShape3D's map_width / map_depth.
-## HeightmapGeneratorTool syncs these automatically before calling generate().
+## `dimensions` (x = width, y = depth) is the output grid size. HeightmapGeneratorTool
+## sizes the target HeightMapShape3D to match before/after calling generate().
 
-@export var width: int = 120
-@export var depth: int = 120
+@export var dimensions: Vector2i = Vector2i(120, 120)
+
+## Axis accessors for `dimensions`, used throughout the generator implementations.
+var width: int:
+	get: return dimensions.x
+	set(value): dimensions.x = value
+var depth: int:
+	get: return dimensions.y
+	set(value): dimensions.y = value
 
 ## Return a PackedFloat32Array of size width*depth with corner heights in
 ## HeightMapShape3D local space.  Index: z * width + x.

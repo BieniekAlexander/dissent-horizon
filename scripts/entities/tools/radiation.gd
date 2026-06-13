@@ -45,10 +45,10 @@ func _tick_field() -> void:
 		var params := PhysicsShapeQueryParameters3D.new()
 		params.shape = collider.shape
 		params.transform = collider.global_transform
-		params.collision_mask = CollisionLayers.Layer.TARGETABLE
+		params.collision_mask = CollisionLayers.Mask.TARGETABLE
 		params.exclude = [self]
 		for hit in get_world_3d().direct_space_state.intersect_shape(params, 32):
-			var e = hit["collider"]
+			var e = Entity.entity_from_collider(hit["collider"])
 			if e is Commandable and e.defense != null:
 				e.receive_damage(null, field_damage_per_tick)
 

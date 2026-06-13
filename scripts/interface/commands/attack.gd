@@ -40,9 +40,15 @@ static func _structure_on_line(a_actor: Commandable, a_target: Entity) -> bool:
 	var query := PhysicsRayQueryParameters3D.create(
 		a_actor.global_position,
 		a_target.global_position,
-		CollisionLayers.Layer.STRUCTURE_BLOCKER
+		CollisionLayers.Mask.STRUCTURE_BLOCKER
 	)
-	query.exclude = [a_target.get_rid()]
+	# STRUCTURE_BLOCKER lives on the target's TargetBody child, so exclude that
+	# (and the root) to avoid the target's own body counting as line-of-fire cover.
+	var excludes: Array[RID] = [a_target.get_rid()]
+	var target_cmd := a_target as Commandable
+	if target_cmd != null and target_cmd.target_body != null:
+		excludes.append(target_cmd.target_body.get_rid())
+	query.exclude = excludes
 	return not space_state.intersect_ray(query).is_empty()
 
 ## Returns the weapon from a_actor's inventory that can target message.target,

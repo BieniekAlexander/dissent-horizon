@@ -13,8 +13,8 @@ static func get_nearby_entities(world_3d: World3D, a_position: Vector3, a_radius
 	params.transform.origin = a_position
 	params.collision_mask = collision_mask
 	return world_3d.direct_space_state.intersect_shape(params, 10).map(
-		func(d): return d['collider']
-	)
+		func(d): return Entity.entity_from_collider(d['collider'])
+	).filter(func(e): return e != null)
 
 static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 	var diff = (pos1 - pos2).abs()
@@ -45,10 +45,11 @@ static func is_weapon_in_range_at(
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = weapon.attack_range_shape.shape
 	params.transform = from_transform
+	params.collision_mask = CollisionLayers.Mask.TARGETABLE
 	if exclude != null:
 		params.exclude = [exclude]
 	var results: Array = world_3d.direct_space_state.intersect_shape(params)
-	return results.any(func(r: Dictionary) -> bool: return r["collider"] == target)
+	return results.any(func(r: Dictionary) -> bool: return Entity.entity_from_collider(r["collider"]) == target)
 
 static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, distance_squared: float = .001) -> bool:
 	if a_target is Commandable and a_target.is_in_group("structure"):
@@ -92,7 +93,7 @@ static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distan
 	# Engagement proximity: measured against each entity's TARGETABLE shape edge
 	# in the direction of the other, so the comparison fits each body's actual
 	# shape (a box reports its edge, not its circumscribed circle).
-	var t := CollisionLayers.Layer.TARGETABLE
+	var t := CollisionLayers.Mask.TARGETABLE
 	var combined_extent: float = an_entity.collision_extent_toward(a_unit.xz_position, t) \
 		+ a_unit.collision_extent_toward(an_entity.xz_position, t)
 	return (

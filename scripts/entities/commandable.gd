@@ -18,6 +18,12 @@ extends Entity
 ## Component references — all optional. Entity declares `ownership` and
 ## `movement`; Commandable adds `selectable`, `production`, `resource_provider`.
 @onready var selectable: Selectable = $Selectable
+## Child StaticBody3D carrying the TARGETABLE layer (plus STRUCTURE_BLOCKER for
+## structures, set in _ready). The root CharacterBody3D stays off those layers so
+## moving units never collide with building bodies; aggro / vision / projectile /
+## AoE / line-of-fire queries hit this child. Resolve a hit collider back to the
+## owning Entity with Entity.entity_from_collider(). Every Commandable has one.
+@onready var target_body: StaticBody3D = $TargetBody
 @onready var production: Production = get_node_or_null("Production") as Production
 @onready var resource_provider: ResourceProvider = get_node_or_null("ResourceProvider") as ResourceProvider
 @onready var ore_extractor: OreExtractor = get_node_or_null("OreExtractor") as OreExtractor
@@ -129,11 +135,11 @@ func get_aggro_near_position() -> Command:
 	var aggro_query := PhysicsShapeQueryParameters3D.new()
 	aggro_query.shape = aggro_range_shape.shape
 	aggro_query.transform = aggro_range_shape.global_transform
-	aggro_query.collision_mask = CollisionLayers.Layer.TARGETABLE
-	aggro_query.exclude = [self]
+	aggro_query.collision_mask = CollisionLayers.Mask.TARGETABLE
+	aggro_query.exclude = [target_body.get_rid()] if target_body != null else []
 
 	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
-		func(r): return r["collider"]
+		func(r): return Entity.entity_from_collider(r["collider"])
 	)
 	var vs2 = vs.filter(func(t): return t is Commandable and (
 		(weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null)
@@ -155,6 +161,17 @@ func get_aggro_near_position() -> Command:
 
 func _ready() -> void:
 	super()
+	# Establish the root's movement-collision layer now (map is still null, so this
+	# resolves to MOVEMENT_OBSTRUCTION) — bounding_radius() below reads it, and it
+	# runs before initialize() would otherwise set it.
+	refresh_movement_collision()
+	# Mirror the root Body shape onto the TargetBody so targeting matches the
+	# entity's footprint (mine/turret/compound override Body with a box).
+	if collider != null:
+		($TargetBody/Shape as CollisionShape3D).shape = collider.shape
+	# Structures also block line-of-fire (Attack raycasts query STRUCTURE_BLOCKER).
+	if is_in_group("structure"):
+		target_body.collision_layer |= CollisionLayers.Mask.STRUCTURE_BLOCKER
 	attributes = Set.new(attributes_list)
 	command_receiver.initialize(self)
 
@@ -165,7 +182,7 @@ func _ready() -> void:
 		movement.velocity_ready.connect(_on_velocity_computed)
 		# Match the RVO avoidance radius to this unit's movement footprint so
 		# agents space themselves correctly during group moves.
-		movement.set_agent_radius(bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION))
+		movement.set_agent_radius(bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
 		# NOTE: avoidance team is configured in _on_commander_changed, not here.
 		# During initialize() add_child() (→ _ready) runs BEFORE the commander is
 		# assigned, so `commander` is null at this point; the team must be set
@@ -174,13 +191,12 @@ func _ready() -> void:
 func _on_commander_changed(old_commander: Commander, new_commander: Commander) -> void:
 	super(old_commander, new_commander)
 
-	# Configure RVO avoidance team whenever ownership is established/changes. This
-	# is the first point at which the commander is known for dynamically-spawned
-	# units (initialize() assigns the commander after add_child/_ready), so this
-	# is what actually turns avoidance on — without it the agent keeps its
-	# scene-default avoidance_layers/mask of 0 and avoids nothing.
+	# Turn on RVO avoidance once ownership is established. This is the first point
+	# at which the commander is known for dynamically-spawned units (initialize()
+	# assigns the commander after add_child/_ready); without it the agent keeps
+	# its scene-default avoidance_layers/mask of 0 and avoids nothing.
 	if movement != null and new_commander != null:
-		movement.set_avoidance_team(new_commander.id)
+		movement.enable_avoidance()
 
 	if not is_in_group("structure"):
 		return
@@ -219,11 +235,11 @@ func _get_vision_range_attack(attacker: Commandable) -> Command:
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = vision_range_shape.shape
 	params.transform = vision_range_shape.global_transform
-	params.collision_mask = CollisionLayers.Layer.TARGETABLE
-	params.exclude = [self]
+	params.collision_mask = CollisionLayers.Mask.TARGETABLE
+	params.exclude = [target_body.get_rid()] if target_body != null else []
 	var potential_targets: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
 	for hit in potential_targets:
-		if hit["collider"] == attacker:
+		if Entity.entity_from_collider(hit["collider"]) == attacker:
 			return Attack.new(CommandMessage.new(map, attacker, null))
 	return null
 
@@ -397,7 +413,7 @@ func _detect_stealthed_units() -> void:
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = detection_range.shape
 	params.transform = detection_range.global_transform
-	params.collision_mask = CollisionLayers.Layer.STEALTH
+	params.collision_mask = CollisionLayers.Mask.STEALTH
 	params.exclude = [self]
 
 	for result: Dictionary in get_world_3d().direct_space_state.intersect_shape(params, 20):

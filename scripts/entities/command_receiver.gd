@@ -11,6 +11,13 @@ var _command: Command = null
 var _command_queue: Array[Command] = []
 var _disposition: Disposition = Disposition.PASSIVE
 
+## The unit currently being followed and the command driving that follow, both
+## captured while the target is still valid. Needed because a freed reference
+## reads as null in Godot (== null is true), so once the followed unit dies its
+## death is indistinguishable from a plain terrain move unless we remembered it.
+var _followed: Commandable = null
+var _follow_cmd: Command = null
+
 func initialize(a_owner: Commandable) -> void:
 	owner = a_owner
 	_command_queue = []
@@ -81,6 +88,35 @@ func _process_commands() -> void:
 			_command = null
 			update_commands(new_commands, true, true)
 	elif owner.movement != null and _command.should_move(owner):
+		var followed: Commandable = _follow_target()
+		if followed != null:
+			# Remember the live relationship so we can spot the target's death next
+			# tick (a freed reference reads as null, so we can't detect it after).
+			_followed = followed
+			_follow_cmd = _command
+		else:
+			# Not following (or no longer): if this same follow command's target has
+			# died, end it rather than driving toward the origin (message.position
+			# falls back to world_position == 0 once the target is gone).
+			# _follow_cmd (a RefCounted we hold) is the reliable "we were following"
+			# flag — _followed reads as null once freed, so it can't gate this.
+			var target_died: bool = _follow_cmd != null and is_same(_follow_cmd, _command) \
+					and not is_instance_valid(_followed)
+			_followed = null
+			_follow_cmd = null
+			if target_died:
+				owner.movement.set_velocity(Vector3.ZERO)
+				owner.movement.is_final_leg = false
+				_command = null
+				return
+
+		# Following: hold position once our MOVEMENT_OBSTRUCTION body would touch
+		# the target's, but KEEP the command so we resume if the target moves off.
+		if followed != null and _bodies_would_touch(followed):
+			owner.movement.set_velocity(Vector3.ZERO)
+			owner.movement.is_final_leg = false
+			return
+
 		if owner.movement.target_position != _command.message.position:
 			load_destination(_command)
 
@@ -98,7 +134,9 @@ func _process_commands() -> void:
 		else:
 			owner.movement.set_target_position(owner.global_position)
 			owner.movement.is_final_leg = false
-			_command = null
+			# A follow keeps its command on arrival; a plain move ends.
+			if followed == null:
+				_command = null
 
 func _update_state() -> void:
 	if _command == null and not _command_queue.is_empty():
@@ -111,6 +149,37 @@ func _update_state() -> void:
 	# _process_commands() here would bypass that routing entirely, which is why
 	# structure training and rally points silently did nothing.
 	owner._process_commands()
+
+	_reconcile_follow_avoidance()
+
+## The friendly unit this unit is currently "following" — i.e. its active command
+## moves it toward another unit on its own team — or null. Used both to suppress
+## reciprocal avoidance and to stop at the followed unit's body.
+func _follow_target() -> Commandable:
+	if _command == null or not _command.should_move(owner):
+		return null
+	var t: Entity = _command.message.target
+	if t != null and is_instance_valid(t) and t is Commandable \
+			and t != owner and t.is_in_group("unit") \
+			and (t as Commandable).commander_id == owner.commander_id:
+		return t as Commandable
+	return null
+
+## True when this unit's MOVEMENT_OBSTRUCTION body would overlap `other`'s — i.e.
+## their centre-to-centre XZ distance is within the sum of their body radii.
+func _bodies_would_touch(other: Commandable) -> bool:
+	var gap: float = VU.inXZ(owner.global_position).distance_to(VU.inXZ(other.global_position))
+	var reach: float = owner.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION) \
+			+ other.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+	return gap <= reach
+
+## Suppress reciprocal RVO avoidance between this unit and the one it follows so
+## the follower can close in without the pair shoving each other apart. Recomputed
+## every tick, so it clears when the command changes, the target dies, or idle.
+func _reconcile_follow_avoidance() -> void:
+	if owner.movement == null:
+		return
+	owner.movement.set_avoidance_follow_target(_follow_target())
 
 func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
 	if a_commands == null:

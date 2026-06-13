@@ -57,19 +57,18 @@ func test_nav_agent_path_resolves_on_ready():
 	# Read it back via the property — confirms _nav_agent is wired up.
 	assert_eq(m.target_position, Vector3(5, 0, 5))
 
-func test_set_avoidance_team_configures_both_layers_and_mask():
+func test_enable_avoidance_configures_layers_and_mask():
 	var parent := Node3D.new()
 	add_child_autofree(parent)
-	var agent := NavigationAgent3D.new()
+	var agent := AvoidanceAgent3D.new()
 	agent.name = "NavigationAgent"
 	parent.add_child(agent)
 	var m := Movement.new()
 	m.nav_agent_path = NodePath("../NavigationAgent")
 	parent.add_child(m)
-	m.set_avoidance_team(3)
-	var expected: int = 1 << 3
-	assert_eq(agent.avoidance_layers, expected, "avoidance_layers set")
-	assert_eq(agent.avoidance_mask, expected, "avoidance_mask set")
+	m.enable_avoidance()
+	assert_eq(agent.avoidance_layers, 1, "broadcasts on the shared NORMAL bit")
+	assert_eq(agent.avoidance_mask, 0xFFFFFFFF, "avoids everyone by default")
 
 func test_velocity_ready_forwards_from_agent_velocity_computed():
 	var parent := Node3D.new()

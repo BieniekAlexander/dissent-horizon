@@ -48,7 +48,7 @@ gradient = SubResource("Gradient_cdjbw")
 collision_mask = 0
 type = 4614
 
-[node name="Body" parent="." index="2"]
+[node name="MovementBody" parent="." index="2"]
 shape = SubResource("BoxShape3D_r3ibt")
 
 [node name="VisionRange" parent="." index="4"]

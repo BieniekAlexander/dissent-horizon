@@ -122,7 +122,7 @@ func _evacuate_from_structure(owner_cmd: Commandable, a_map: Map) -> void:
 func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 	var count := _garrisoned.size()
 	var center := VU.inXZ(owner_cmd.global_position)
-	var radius: float = owner_cmd.bounding_radius(CollisionLayers.Layer.MOVEMENT_OBSTRUCTION)
+	var radius: float = owner_cmd.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 
 	# Generate one spawn point per garrisoned unit around the owner. Size the
 	# search region off the owner's radius and the count so a large garrison
@@ -135,7 +135,7 @@ func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 			center,
 			radius,
 			a_map.get_world_3d(),
-			CollisionLayers.Layer.MOVEMENT_OBSTRUCTION,
+			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
 			region_radius,
 			count
 		)
