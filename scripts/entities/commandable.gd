@@ -203,7 +203,7 @@ func _on_commander_changed(old_commander: Commander, new_commander: Commander) -
 	# assigns the commander after add_child/_ready); without it the agent keeps
 	# its scene-default avoidance_layers/mask of 0 and avoids nothing.
 	if movement != null and new_commander != null:
-		movement.enable_avoidance()
+		movement.enable_avoidance(new_commander.id)
 
 	if not is_in_group("structure"):
 		return
@@ -219,6 +219,15 @@ func _on_commander_changed(old_commander: Commander, new_commander: Commander) -
 func initialize(a_map: Map, a_commander: Commander):
 	super(a_map, a_commander)
 	command_receiver.initialize(self)
+	# `map` is now set (super assigned it), for both dynamically-spawned and
+	# scene-placed units — unlike _on_commander_changed, which fires during _ready
+	# (before initialize) for scene-placed units. Derive the unit's size class from
+	# its MovementBody footprint and point the agent at the navmesh for that class.
+	if movement != null and map != null and map.nav_manager != null:
+		movement.configure_for_map(
+			map.nav_manager,
+			bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+		)
 	# Structure registration is handled by _on_commander_changed, which fires
 	# from Entity._ready() when Ownership migrates the pre-tree _commander value.
 

@@ -1,35 +1,47 @@
 class_name AvoidanceAgent3D
 extends NavigationAgent3D
 
-## A NavigationAgent3D that supports per-pair RVO avoidance exceptions — the
-## avoidance analogue of PhysicsBody3D.add_collision_exception_with().
+## A NavigationAgent3D with two layered RVO behaviours:
 ##
-## Godot's RVO has no per-instance exclusion list; agents only filter neighbours
-## by the avoidance_layers / avoidance_mask bitmasks. To let two specific agents
-## ignore each other *without* affecting anyone else, each agent that enters an
-## exception is handed a unique layer bit, and the partner clears that bit from
-## its own mask. Everyone else keeps mask = ALL, so all other interactions are
-## untouched.
+## 1. AVOIDANCE TEAMS. Each commander owns one low avoidance-layer bit
+##    (team_bit(commander_id) = 1 << commander_id). A unit broadcasts on its own
+##    commander's bit — its identity / "home" channel. By default every unit MASKS
+##    every team (plus the pool), so all units avoid all units regardless of team
+##    (nobody walks through anybody); the team bit identifies the commander and gives
+##    the exception system below a per-commander home channel to return to. (Filtering
+##    avoidance by team would, by definition, let other teams pass through each other,
+##    so the mask covers every team.)
 ##
-## Bits are pooled: a non-excepted agent broadcasts on the shared NORMAL bit and
-## only borrows a unique bit while it actually has an exception, returning it
-## afterwards. The pool is 31 bits, so the cap is ~31 agents in an exception at
-## once (not 31 agents total). If the pool is exhausted the exception degrades
-## gracefully (a warning, and the agents fall back to mutual avoidance).
+## 2. PER-PAIR EXCEPTIONS. Godot's RVO has no per-instance exclusion list, so to let
+##    two specific units ignore each other (the follow mechanic) each excepted agent
+##    borrows a unique bit from a high pool and broadcasts ONLY that bit; the partner
+##    clears it from its mask. Every other unit keeps all pool bits in its mask, so it
+##    still avoids the excepted agent. The avoidance analogue of
+##    PhysicsBody3D.add_collision_exception_with().
+##
+## Bit layout (32 avoidance layers): bits 0..TEAM_BITS-1 are team channels (one per
+## commander id, 0..5 today); bits TEAM_BITS..31 are the unique-bit pool. The pool is
+## 24 bits, so the cap is ~24 agents in an exception at once (not 24 total).
 
-## Shared channel every non-excepted agent broadcasts on; everyone's mask
-## includes it, so by default all agents avoid all agents.
-const _NORMAL_BIT: int = 1 << 0
-## "Avoid everything" mask. Exceptions clear individual partner bits from it.
-const _ALL: int = 0xFFFFFFFF
+## Number of low layer bits reserved for commander team channels. Commander ids run
+## 0..5 (Commander.id is @export_range(0,5)); 8 leaves margin.
+const _TEAM_BITS: int = Commander.NUM_MAX_COMMANDERS
+## Mask of every team channel bit (0..TEAM_BITS-1). Kept in each agent's mask so it
+## avoids every team, not just its own.
+const _ALL_TEAMS: int = (1 << _TEAM_BITS) - 1
+## Mask of every unique-bit-pool bit (TEAM_BITS..31). Kept in each agent's mask so it
+## keeps avoiding any agent currently broadcasting an exception (pool) bit.
+const _POOL_MASK: int = (~((1 << _TEAM_BITS) - 1)) & 0xFFFFFFFF
 
-## Free unique bits (1<<1 .. 1<<31) handed out to agents currently in an
+## Free unique bits (1<<TEAM_BITS .. 1<<31) handed out to agents currently in an
 ## exception. Static so the whole simulation shares one pool.
 static var _free_bits: Array[int] = []
 static var _pool_ready: bool = false
 
-## The unique bit this agent currently owns, or 0 when it broadcasts on the
-## shared NORMAL bit (i.e. has no active exceptions).
+## This agent's team channel bit (1 << commander_id), set by enable_avoidance().
+var _team_bit: int = 0
+## The unique pool bit this agent currently owns, or 0 when it broadcasts on its
+## team bit (i.e. has no active exceptions).
 var _unique_bit: int = 0
 ## Set of AvoidanceAgent3D this agent is currently ignoring (mutually).
 var _exceptions: Dictionary = {}  # AvoidanceAgent3D -> true
@@ -38,15 +50,22 @@ var _exceptions: Dictionary = {}  # AvoidanceAgent3D -> true
 static func _ensure_pool() -> void:
 	if _pool_ready:
 		return
-	for i in range(1, 32):  # bits 1..31; bit 0 is the shared NORMAL channel
+	for i in range(_TEAM_BITS, 32):  # team bits 0..TEAM_BITS-1 are reserved for teams
 		_free_bits.append(1 << i)
 	_pool_ready = true
 
 
-## Turn on avoidance with the default "avoid everyone" configuration. Call once
-## the agent should participate in the RVO simulation.
-func enable_avoidance() -> void:
+## The avoidance-layer bit for a commander's team.
+static func team_bit(commander_id: int) -> int:
+	return 1 << clampi(commander_id, 0, _TEAM_BITS - 1)
+
+
+## Turn on avoidance for the given commander's team. The agent broadcasts on that
+## commander's team bit but avoids every team (and any agent in an exception); the
+## team bit is its identity / exception home channel, not an avoidance filter.
+func enable_avoidance(commander_id: int) -> void:
 	avoidance_enabled = true
+	_team_bit = team_bit(commander_id)
 	avoidance_layers = _broadcast_bit()
 	avoidance_mask = _current_mask()
 
@@ -87,15 +106,17 @@ func clear_avoidance_exceptions() -> void:
 
 # --- Internals -------------------------------------------------------------
 
-## The layer bit this agent broadcasts on: its unique bit while excepted,
-## otherwise the shared NORMAL bit.
+## The layer bit this agent broadcasts on: its unique pool bit while excepted,
+## otherwise its team bit.
 func _broadcast_bit() -> int:
-	return _unique_bit if _unique_bit != 0 else _NORMAL_BIT
+	return _unique_bit if _unique_bit != 0 else _team_bit
 
 
-## avoidance_mask = ALL minus the broadcast bit of every agent we're ignoring.
+## avoidance_mask = every team bit + every pool bit (so all units avoid all units,
+## and excepted agents are still avoided), minus the broadcast bit of every agent
+## we're ignoring.
 func _current_mask() -> int:
-	var m: int = _ALL
+	var m: int = _ALL_TEAMS | _POOL_MASK
 	for other: Variant in _exceptions.keys():
 		if is_instance_valid(other):
 			m &= ~(other as AvoidanceAgent3D)._broadcast_bit()
@@ -107,13 +128,13 @@ func _apply_mask() -> void:
 
 
 ## Borrow a unique bit from the pool (lazily) so partners can single this agent
-## out. No-op once owned; degrades to staying on NORMAL if the pool is empty.
+## out. No-op once owned; degrades to staying on the team bit if the pool is empty.
 func _ensure_unique_bit() -> void:
 	if _unique_bit != 0:
 		return
 	_ensure_pool()
 	if _free_bits.is_empty():
-		push_warning("AvoidanceAgent3D: avoidance bit pool exhausted (>31 concurrent exceptions); pair not fully isolated")
+		push_warning("AvoidanceAgent3D: avoidance bit pool exhausted (>%d concurrent exceptions); pair not fully isolated" % (32 - _TEAM_BITS))
 		return
 	_unique_bit = _free_bits.pop_back()
 	avoidance_layers = _unique_bit
@@ -124,7 +145,7 @@ func _maybe_release_bit() -> void:
 	if _unique_bit != 0 and _exceptions.is_empty():
 		_free_bits.append(_unique_bit)
 		_unique_bit = 0
-		avoidance_layers = _NORMAL_BIT
+		avoidance_layers = _team_bit
 
 
 func _notification(what: int) -> void:

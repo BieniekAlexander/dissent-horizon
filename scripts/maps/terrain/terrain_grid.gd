@@ -42,6 +42,17 @@ var _cell_state: PackedByteArray = PackedByteArray()
 ## the cells it claimed on removal; this is ownership bookkeeping, not passability.
 var _building_footprints: Dictionary = {}
 
+## Per-cell fields used to bake space-eroded per-size-class nav-meshes (see
+## NavAgentClass / nav-agent-size-classes.md). Recomputed lazily whenever cells
+## change, gated by _fields_dirty:
+##   _clearance: anchored largest-square fit — side of the largest all-passable
+##               square whose TOP-LEFT corner is this cell (the covering gate).
+##   _dist:      Chebyshev distance, in cells, to the nearest impassable / out-of-
+##               bounds cell (a passable cell touching an obstacle has dist 1).
+var _clearance: PackedInt32Array = PackedInt32Array()
+var _dist: PackedInt32Array = PackedInt32Array()
+var _fields_dirty: bool = true
+
 signal cells_changed(cells: Array)
 
 
@@ -148,6 +159,132 @@ func get_bounds() -> Array:
 	return [Vector2i.ZERO, Vector2i(grid_width() - 1, grid_depth() - 1)]
 
 
+# --- Space-erosion fields (per-size-class nav-mesh baking) ------------------
+
+## Cells navigable by an agent of a given size class, expressed as the two
+## space-erosion parameters NavAgentClass derives from its radius:
+##   rings   — whole-cell layers to strip around obstacles (keeps big units off
+##             obstacles; pass 0 for no ring erosion).
+##   admit_k — minimum corridor width in cells (drops passages too narrow to fit).
+## A cell is included iff it is passable, sits MORE than `rings` cells from the
+## nearest obstacle/out-of-bounds, AND can be covered by an admit_k x admit_k block
+## of passable cells. Returned as a Set (Vector2i -> true) so NavManager can test
+## membership of neighbouring cells cheaply while insetting boundary vertices.
+func get_navigable_cells(rings: int, admit_k: int) -> Dictionary:
+	_ensure_fields()
+	var gw: int = grid_width()
+	var gh: int = grid_depth()
+	var result: Dictionary = {}
+	for z: int in gh:
+		for x: int in gw:
+			var idx: int = z * gw + x
+			if _cell_state[idx] != 0:
+				continue  # impassable
+			if rings > 0 and _dist[idx] <= rings:
+				continue  # stripped by ring-erosion
+			if admit_k > 1 and not _coverable(Vector2i(x, z), admit_k):
+				continue  # no admit_k x admit_k passable block fits here
+			result[Vector2i(x, z)] = true
+	return result
+
+## Anchored largest-square clearance at a cell (side of the largest all-passable
+## square with this cell as its top-left corner). Exposed for tests.
+func clearance_at(cell: Vector2i) -> int:
+	if not is_in_bounds(cell):
+		return 0
+	_ensure_fields()
+	return _clearance[_index(cell)]
+
+## Chebyshev distance in cells from a passable cell to the nearest obstacle /
+## out-of-bounds cell (0 if the cell itself is impassable). Exposed for tests.
+func distance_to_obstacle(cell: Vector2i) -> int:
+	if not is_in_bounds(cell):
+		return 0
+	_ensure_fields()
+	return _dist[_index(cell)]
+
+## True iff some admit_k x admit_k block of in-bounds passable cells contains `cell`.
+## Such a block exists iff one of the candidate top-left anchors in the k x k window
+## ending at `cell` has anchored clearance >= admit_k.
+func _coverable(cell: Vector2i, admit_k: int) -> bool:
+	var gw: int = grid_width()
+	var gh: int = grid_depth()
+	for az: int in range(maxi(0, cell.y - admit_k + 1), cell.y + 1):
+		if az + admit_k > gh:
+			continue
+		for ax: int in range(maxi(0, cell.x - admit_k + 1), cell.x + 1):
+			if ax + admit_k > gw:
+				continue
+			if _clearance[az * gw + ax] >= admit_k:
+				return true
+	return false
+
+## Recompute _clearance and _dist if a cell changed since they were last built.
+func _ensure_fields() -> void:
+	if not _fields_dirty:
+		return
+	_fields_dirty = false
+	_recompute_clearance()
+	_recompute_distance()
+
+## Anchored largest-square clearance (top-left corner). Standard bottom-up DP:
+## clearance(c) = 0 if impassable, else 1 + min(right, down, down-right).
+func _recompute_clearance() -> void:
+	var gw: int = grid_width()
+	var gh: int = grid_depth()
+	_clearance.resize(gw * gh)
+	for z: int in range(gh - 1, -1, -1):
+		for x: int in range(gw - 1, -1, -1):
+			var idx: int = z * gw + x
+			if _cell_state[idx] != 0:
+				_clearance[idx] = 0
+				continue
+			var right: int = _clearance[idx + 1] if x + 1 < gw else 0
+			var down: int = _clearance[idx + gw] if z + 1 < gh else 0
+			var diag: int = _clearance[(z + 1) * gw + (x + 1)] if (x + 1 < gw and z + 1 < gh) else 0
+			_clearance[idx] = 1 + mini(right, mini(down, diag))
+
+## Chebyshev distance transform to the nearest impassable / out-of-bounds cell.
+## Two passes (forward then backward); out-of-bounds neighbours count as obstacles
+## (distance 0), so map-edge cells erode like building-edge cells.
+func _recompute_distance() -> void:
+	var gw: int = grid_width()
+	var gh: int = grid_depth()
+	var big: int = gw + gh
+	_dist.resize(gw * gh)
+	for z: int in gh:
+		for x: int in gw:
+			var idx: int = z * gw + x
+			if _cell_state[idx] != 0:
+				_dist[idx] = 0
+			else:
+				_dist[idx] = big
+	# Forward pass: up, left, and the two upper diagonals (+1 each).
+	for z: int in gh:
+		for x: int in gw:
+			var idx: int = z * gw + x
+			if _dist[idx] == 0:
+				continue
+			var best: int = _dist[idx]
+			best = mini(best, (_dist[idx - 1] if x > 0 else 0) + 1)
+			best = mini(best, (_dist[idx - gw] if z > 0 else 0) + 1)
+			best = mini(best, (_dist[idx - gw - 1] if (x > 0 and z > 0) else 0) + 1)
+			best = mini(best, (_dist[idx - gw + 1] if (x + 1 < gw and z > 0) else 0) + 1)
+			_dist[idx] = best
+	# Backward pass: down, right, and the two lower diagonals.
+	for z: int in range(gh - 1, -1, -1):
+		for x: int in range(gw - 1, -1, -1):
+			var idx: int = z * gw + x
+			if _dist[idx] == 0:
+				continue
+			var best: int = _dist[idx]
+			best = mini(best, (_dist[idx + 1] if x + 1 < gw else 0) + 1)
+			best = mini(best, (_dist[idx + gw] if z + 1 < gh else 0) + 1)
+			best = mini(best, (_dist[idx + gw + 1] if (x + 1 < gw and z + 1 < gh) else 0) + 1)
+			best = mini(best, (_dist[idx + gw - 1] if (x > 0 and z + 1 < gh) else 0) + 1)
+			_dist[idx] = best
+
+
 # --- Runtime building management -------------------------------------------
 
 ## Mark `cells` as occupied by `building` and emit cells_changed.
@@ -159,6 +296,7 @@ func place_building(cells: Array, building: Object) -> void:
 			"TerrainGrid: cell %s is already occupied — cannot place %s" % [cell, building]
 		)
 		_cell_state[_index(cell)] |= _BUILDING
+	_fields_dirty = true
 	cells_changed.emit(cells)
 
 ## Free all cells occupied by `building` and emit cells_changed.
@@ -170,6 +308,7 @@ func remove_building(building: Object) -> void:
 	for cell: Vector2i in freed:
 		_cell_state[_index(cell)] &= ~_BUILDING
 	_building_footprints.erase(building)
+	_fields_dirty = true
 	cells_changed.emit(freed)
 
 ## Returns the cells registered for `building`, or [] if unknown.
@@ -200,6 +339,7 @@ func set_blocked_mask(mask: PackedByteArray) -> void:
 				changed.append(Vector2i(x, z))
 
 	if not changed.is_empty():
+		_fields_dirty = true
 		cells_changed.emit(changed)
 
 ## Block or unblock a single cell.
@@ -210,6 +350,7 @@ func set_blocked(cell: Vector2i, value: bool) -> void:
 	if ((_cell_state[idx] & _BLOCKED) != 0) == value:
 		return
 	_cell_state[idx] = (_cell_state[idx] | _BLOCKED) if value else (_cell_state[idx] & ~_BLOCKED)
+	_fields_dirty = true
 	cells_changed.emit([cell])
 
 ## Remove all blocks.

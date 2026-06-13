@@ -5,7 +5,7 @@
 | **Themes**   | Sacrifice, Firepower, Tempo |
 | ------------ | --------------------------- |
 | **Minion**   | Combat Vehicle              |
-| **Vigor**    |                             |
+| **Vigor**    | Commie block                |
 | **Dominion** | Damage structures           |
 | Vibes        | Honda                       |
 - Play style

@@ -20172,10 +20172,10 @@ deposit = NodePath("../DepositM2")
 default_commander_id = 1
 
 [node name="DepositM3" parent="." instance=ExtResource("30_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.5, 1, -22.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.5, 1, -22.5)
 
 [node name="Mine3" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.5, 1, -22.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.5, 1, -22.5)
 deposit = NodePath("../DepositM3")
 default_commander_id = 1
 

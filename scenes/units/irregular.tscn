@@ -42,13 +42,13 @@ shape = SubResource("CylinderShape3D_irreg")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
-[node name="Selectable" parent="." index="12"]
+[node name="Selectable" parent="." index="11"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
 
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("SphereShape3D_c8urn")
 
-[node name="Sprite" parent="." index="14"]
+[node name="Sprite" parent="." index="13"]
 transform = Transform3D(1.5, 0, 0, 0, 1.0606601, -1.0606601, 0, 1.0606601, 1.0606601, 0, 0.17003015, 0)
 texture_filter = 0
 texture = ExtResource("2_njqvf")

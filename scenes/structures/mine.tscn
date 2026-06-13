@@ -25,5 +25,5 @@ script = ExtResource("3_oreex")
 armor = 1
 
 [node name="Sprite" parent="." index="14"]
-transform = Transform3D(6, 0, 0, 0, 0.7700393, -5.3181496, 0, 0.7700392, 5.3181505, 0, 0.7, 0)
+transform = Transform3D(6, 0, 0, 0, 0.7700393, -3.535534, 0, 0.77003926, 3.5355341, 0.018972874, 0.7, 0.44018555)
 texture = ExtResource("3_wykrx")

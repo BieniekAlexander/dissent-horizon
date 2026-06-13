@@ -6,10 +6,9 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_dep"]
 size = Vector3(2, 10, 2)
 
-[node name="Deposit" groups=["structure", "deposit"] instance=ExtResource("1_base")]
+[node name="Deposit" groups=["deposit"] instance=ExtResource("1_base")]
 script = ExtResource("2_dep")
 type = 4615
-default_commander_id = 0
 
 [node name="MovementBody" parent="." index="2"]
 shape = SubResource("BoxShape3D_dep")
@@ -17,5 +16,5 @@ shape = SubResource("BoxShape3D_dep")
 [node name="Obstruction" parent="." index="7"]
 dimensions = Vector2i(2, 2)
 
-[node name="Sprite" parent="." index="14"]
-transform = Transform3D(2, 0, 0, 0, 1.4142135, -1.4142135, 0, 1.4142135, 1.4142135, 0, 0.7, 0)
+[node name="Sprite" parent="." index="13"]
+transform = Transform3D(2, 0, 0, 0, 1.4142135, -1.3435029, 0, 1.4142135, 1.3435029, -0.005941391, 0.7, 0.3996582)

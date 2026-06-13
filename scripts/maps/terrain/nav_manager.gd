@@ -1,12 +1,12 @@
 class_name NavManager
 extends Node
 
-## Owns and maintains the NavigationRegion3D for the map.
+## Owns and maintains the navigation meshes for the map.
 ##
-## Rather than baking from 3D geometry (which re-parses the whole scene), the
-## mesh is constructed directly from HeightMapShape3D data.  One quad is emitted
-## per passable cell, with shared vertices at cell corners so adjacent cells
-## share geometry.
+## Rather than baking from 3D geometry (which re-parses the whole scene), meshes
+## are constructed directly from HeightMapShape3D data.  One quad is emitted per
+## passable cell, with shared vertices at cell corners so adjacent cells share
+## geometry.
 ##
 ## Corner (cx, cz) in HeightMapShape3D local space sits at:
 ##
@@ -18,6 +18,19 @@ extends Node
 ## which is subsequently converted into NavigationRegion3D local space —
 ## the coordinate frame NavigationMesh vertices must be expressed in.
 ##
+## SIZE CLASSES: one mesh is baked per NavAgentClass.Size, space-eroded for that
+## class's radius (ring-erosion of obstacle-adjacent cells + a sub-cell inset of
+## boundary vertices). All of them live as separate REGIONS on the SAME navigation
+## map (the scene region's default world map), each tagged with a distinct
+## navigation layer bit; an agent selects its class's mesh via NavigationAgent3D
+## .navigation_layers (see layer_for / Movement.configure_for_map). Keeping a single
+## map is deliberate: Godot computes RVO avoidance per-map, so every unit must share
+## one map to avoid one another regardless of size class. The scene NavigationRegion3D
+## keeps an un-eroded mesh (on a reserved layer no agent uses) so map_get_closest_point
+## / line-of-sight snapping still cover the full passable surface. Per-region edge
+## connections are disabled — each class mesh is one self-contained region and must
+## not bleed into the others. See nav-agent-size-classes.md.
+##
 ## Rebuilds are debounced via call_deferred so that a burst of cell changes
 ## (e.g. a multi-cell building placement) collapses into a single rebuild at
 ## the end of the same frame.
@@ -25,15 +38,29 @@ extends Node
 @export var navigation_region: NavigationRegion3D
 @export var terrain_grid: TerrainGrid
 
+## Navigation layer bit reserved for the base un-eroded region. Far from the class
+## bits (1<<0 .. 1<<3) so no agent's class layer ever selects it.
+const _BASE_LAYER: int = 1 << 30
+
 var _rebuild_pending: bool = false
+
+## One region per size class, all on the scene region's navigation map.
+var _class_regions: Dictionary = {}  # NavAgentClass.Size -> RID (region)
 
 
 func _ready() -> void:
 	assert(navigation_region != null, "NavManager: navigation_region export must be set")
 	assert(terrain_grid      != null, "NavManager: terrain_grid export must be set")
+	_init_class_regions()
 	terrain_grid.cells_changed.connect(_on_cells_changed)
 	# Defer so all _ready() calls finish before the first build.
 	call_deferred("_rebuild_navmesh")
+
+
+func _exit_tree() -> void:
+	for region: RID in _class_regions.values():
+		NavigationServer3D.free_rid(region)
+	_class_regions.clear()
 
 
 # --- Public API ------------------------------------------------------------
@@ -47,7 +74,31 @@ func request_rebuild() -> void:
 	call_deferred("_rebuild_navmesh")
 
 
+## NavigationAgent3D.navigation_layers value that selects the space-eroded mesh for
+## `size`: one distinct bit per class (SMALL -> 1<<0 ... MASSIVE -> 1<<3).
+func layer_for(size: NavAgentClass.Size) -> int:
+	return 1 << (int(size) - 1)
+
+
 # --- Internal --------------------------------------------------------------
+
+## Create one region per size class on the scene region's map, each on its own
+## navigation layer and with cross-region edge connections disabled (each class
+## mesh is self-contained — agents must not path across class boundaries).
+func _init_class_regions() -> void:
+	var map: RID = navigation_region.get_navigation_map()
+	var xform: Transform3D = navigation_region.global_transform
+	# The base un-eroded region is for snapping only; keep it off every agent layer.
+	navigation_region.navigation_layers = _BASE_LAYER
+	navigation_region.use_edge_connections = false
+	for size: int in NavAgentClass.Size.values():
+		var region: RID = NavigationServer3D.region_create()
+		NavigationServer3D.region_set_map(region, map)
+		NavigationServer3D.region_set_transform(region, xform)
+		NavigationServer3D.region_set_navigation_layers(region, layer_for(size))
+		NavigationServer3D.region_set_use_edge_connections(region, false)
+		_class_regions[size] = region
+
 
 func _on_cells_changed(_cells: Array) -> void:
 	request_rebuild()
@@ -55,10 +106,23 @@ func _on_cells_changed(_cells: Array) -> void:
 
 func _rebuild_navmesh() -> void:
 	_rebuild_pending = false
-	navigation_region.navigation_mesh = _build_mesh()
+	# Base, un-eroded mesh on the scene region (reserved layer) — backs
+	# Map.get_navmesh_line_hit / EventCommandPoint target snapping over the full
+	# passable surface; no agent navigates on it.
+	navigation_region.navigation_mesh = _build_mesh(0, 1, 0.0)
+	# One space-eroded mesh per size class, each on its own navigation layer.
+	var cs: float = Map.CELL_SIZE
+	for size: int in _class_regions:
+		var rings: int = NavAgentClass.erosion_rings(size, cs)
+		var admit_k: int = NavAgentClass.required_clearance(size, cs)
+		var inset: float = NavAgentClass.inset(size, cs)
+		var mesh: NavigationMesh = _build_mesh(rings, admit_k, inset)
+		NavigationServer3D.region_set_navigation_mesh(_class_regions[size], mesh)
 
 
-func _build_mesh() -> NavigationMesh:
+## Build a NavigationMesh from the cells navigable under (rings, admit_k), with each
+## boundary vertex inset toward the walkable interior by `inset` world-units.
+func _build_mesh(rings: int, admit_k: int, inset: float) -> NavigationMesh:
 	var nav_mesh := NavigationMesh.new()
 	var hs    := terrain_grid.height_shape()
 	var tb    := terrain_grid.terrain_body
@@ -73,12 +137,18 @@ func _build_mesh() -> NavigationMesh:
 	# Pre-invert once so every vertex conversion is a cheap multiply.
 	var to_nav_local := navigation_region.global_transform.affine_inverse()
 
+	# Displacement is computed in corner-index space, where one unit == one cell;
+	# convert the world-space inset into that space.
+	var inset_local: float = inset / Map.CELL_SIZE
+
+	var cells: Dictionary = terrain_grid.get_navigable_cells(rings, admit_k)
+
 	# Shared-vertex approach: corners are keyed by their (cx, cz) coordinate
 	# so adjacent cells reuse the same vertex instead of duplicating it.
 	var vertex_map: Dictionary = {}  # Vector2i -> int index in verts
 	var verts := PackedVector3Array()
 
-	for cell: Vector2i in terrain_grid.get_all_passable_cells():
+	for cell: Vector2i in cells:
 		# The four corners of this cell in heightmap-corner index space.
 		var corners: Array[Vector2i] = [
 			Vector2i(cell.x,     cell.y    ),
@@ -91,14 +161,7 @@ func _build_mesh() -> NavigationMesh:
 		for corner: Vector2i in corners:
 			if not vertex_map.has(corner):
 				vertex_map[corner] = verts.size()
-				var cx := corner.x
-				var cz := corner.y
-				var local_pos := Vector3(
-					cx - half_w,
-					hs.map_data[cz * map_w + cx],
-					cz - half_d
-				)
-				var world := tb.global_transform * local_pos
+				var world := _corner_world(corner, cells, inset_local, hs, tb, half_w, half_d)
 				verts.append(to_nav_local * world)
 			indices.append(vertex_map[corner])
 
@@ -106,3 +169,63 @@ func _build_mesh() -> NavigationMesh:
 
 	nav_mesh.vertices = verts
 	return nav_mesh
+
+
+## World position of a heightmap corner, shifted toward the walkable interior by
+## `inset_local` (corner-index units). The shift direction is the normalised sum of
+## directions to the corner's INCLUDED incident cells, so a convex tip is pulled in,
+## a straight wall is pushed perpendicularly, and the concave corner around a building
+## is cut back — which is what keeps the unit from clipping that corner. Interior
+## corners (all four cells included) cancel to zero and don't move. The vertex is
+## shared, so moving it here moves it for every quad that references it.
+func _corner_world(
+	corner: Vector2i,
+	cells: Dictionary,
+	inset_local: float,
+	hs: HeightMapShape3D,
+	tb: StaticBody3D,
+	half_w: float,
+	half_d: float
+) -> Vector3:
+	var cx: float = corner.x
+	var cz: float = corner.y
+	if inset_local > 0.0:
+		# Incident cells, identified by their min-corner. Centre of cell (ax,az)
+		# sits at (ax+0.5, az+0.5), so the direction from this corner is ±0.5.
+		var sx: float = 0.0
+		var sz: float = 0.0
+		for ic: Vector2i in [
+			Vector2i(corner.x - 1, corner.y - 1),
+			Vector2i(corner.x,     corner.y - 1),
+			Vector2i(corner.x - 1, corner.y    ),
+			Vector2i(corner.x,     corner.y    ),
+		]:
+			if cells.has(ic):
+				sx += (ic.x + 0.5) - corner.x
+				sz += (ic.y + 0.5) - corner.y
+		var length: float = sqrt(sx * sx + sz * sz)
+		if length > 0.0:
+			cx += inset_local * sx / length
+			cz += inset_local * sz / length
+	var local_pos := Vector3(cx - half_w, _sample_height(cx, cz, hs), cz - half_d)
+	return tb.global_transform * local_pos
+
+
+## Bilinearly sample HeightMapShape3D height at fractional corner coordinates,
+## so an inset vertex stays on the terrain surface instead of snapping to a corner.
+func _sample_height(fx: float, fz: float, hs: HeightMapShape3D) -> float:
+	var w: int = hs.map_width
+	var d: int = hs.map_depth
+	var lx: float = clampf(fx, 0.0, w - 1)
+	var lz: float = clampf(fz, 0.0, d - 1)
+	var x0: int = floori(lx)
+	var z0: int = floori(lz)
+	var x1: int = mini(x0 + 1, w - 1)
+	var z1: int = mini(z0 + 1, d - 1)
+	var tx: float = lx - x0
+	var tz: float = lz - z0
+	var h00: float = hs.map_data[z0 * w + x0]
+	var h10: float = hs.map_data[z0 * w + x1]
+	var h01: float = hs.map_data[z1 * w + x0]
+	var h11: float = hs.map_data[z1 * w + x1]
+	return lerpf(lerpf(h00, h10, tx), lerpf(h01, h11, tx), tz)

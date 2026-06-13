@@ -66,9 +66,9 @@ func test_enable_avoidance_configures_layers_and_mask():
 	var m := Movement.new()
 	m.nav_agent_path = NodePath("../NavigationAgent")
 	parent.add_child(m)
-	m.enable_avoidance()
-	assert_eq(agent.avoidance_layers, 1, "broadcasts on the shared NORMAL bit")
-	assert_eq(agent.avoidance_mask, 0xFFFFFFFF, "avoids everyone by default")
+	m.enable_avoidance(2)  # commander id 2 -> team bit 1<<2
+	assert_eq(agent.avoidance_layers, AvoidanceAgent3D.team_bit(2), "broadcasts on its team bit")
+	assert_eq(agent.avoidance_mask, 0xFFFFFFFF, "avoids every team + agents in an exception")
 
 func test_velocity_ready_forwards_from_agent_velocity_computed():
 	var parent := Node3D.new()

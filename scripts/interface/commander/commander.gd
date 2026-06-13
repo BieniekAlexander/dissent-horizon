@@ -3,7 +3,8 @@ class_name Commander
 extends Node
 
 ### IDENTIFIERS
-@export_range(0, 5) var id: int
+const NUM_MAX_COMMANDERS: int = 8
+@export_range(0, NUM_MAX_COMMANDERS+1) var id: int
 
 ### CONTROLS
 @onready var selection: Array[Commandable] = []

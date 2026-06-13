@@ -25,6 +25,12 @@ enum Mode { DEFAULT, AERIAL }
 ## DEFAULT mode. Ignored in AERIAL mode.
 @export var nav_agent_path: NodePath
 
+## Collision size class — which space-eroded navmesh this unit navigates on (see
+## NavAgentClass / nav-agent-size-classes.md). NOT authored: configure_for_map()
+## derives it from the unit's MovementBody footprint radius (the smallest class
+## large enough for the body), so it always matches the unit's real size.
+var nav_agent_class: NavAgentClass.Size = NavAgentClass.Size.MEDIUM
+
 ## Maximum rate at which the entity's speed may increase, in world-units/s².
 ## INF (default) means speed can jump to any value instantly.
 @export var max_acceleration: float = INF
@@ -151,13 +157,13 @@ var _avoidance_follow: Commandable = null
 func avoidance_agent() -> AvoidanceAgent3D:
 	return _nav_agent as AvoidanceAgent3D
 
-## Turn on RVO avoidance with the default "avoid everyone" configuration. Called
-## once ownership is established. (Teams don't filter avoidance — the command
-## loop, not the mask, decides who actually yields.)
-func enable_avoidance() -> void:
+## Turn on RVO avoidance for `commander_id`'s team. Called once ownership is
+## established. Each commander owns one avoidance team bit; a unit avoids its own
+## team (and any agent currently in a per-pair exception) — see AvoidanceAgent3D.
+func enable_avoidance(commander_id: int) -> void:
 	var agent := avoidance_agent()
 	if mode == Mode.DEFAULT and agent != null:
-		agent.enable_avoidance()
+		agent.enable_avoidance(commander_id)
 
 ## Make this unit and `other` ignore each other in RVO (used while following a
 ## unit), leaving all their other avoidance interactions intact. Passing a
@@ -204,6 +210,22 @@ func restore_avoidance_layers() -> void:
 func set_agent_radius(a_radius: float) -> void:
 	if mode == Mode.DEFAULT and _nav_agent != null and a_radius > 0.0:
 		_nav_agent.radius = a_radius
+
+
+## Configure the agent from its MovementBody footprint `shape_radius`: set the RVO
+## avoidance radius to that footprint, derive the unit's size class (the smallest
+## NavAgentClass large enough to contain it), and select that class's space-eroded
+## navmesh via the agent's navigation_layers. The agent STAYS on the shared default
+## navigation map (every class mesh is a region on it), so RVO avoidance still sees
+## all units regardless of size — only the pathfinding layer differs. Called once the
+## unit's Map (hence its NavManager) is known — see Commandable.initialize. No-op in
+## AERIAL mode or when the agent / nav_manager is missing (e.g. plain test agents).
+func configure_for_map(nav_manager: NavManager, shape_radius: float) -> void:
+	if mode != Mode.DEFAULT or _nav_agent == null or nav_manager == null:
+		return
+	set_agent_radius(shape_radius)
+	nav_agent_class = NavAgentClass.class_for_radius(shape_radius)
+	_nav_agent.navigation_layers = nav_manager.layer_for(nav_agent_class)
 
 
 ## World-units to add above the terrain surface when snapping Y.

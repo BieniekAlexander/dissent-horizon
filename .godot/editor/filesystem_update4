@@ -9,3 +9,14 @@ res://scripts/entities/components/obstruction.gd
 res://scripts/entities/entity.gd
 res://scripts/maps/map.gd
 res://scripts/maps/terrain/terrain_grid.gd
+res://scripts/entities/commandable.gd
+res://scripts/entities/components/movement.gd
+res://scripts/maps/terrain/nav_manager.gd
+res://scripts/maps/terrain/nav_agent_class.gd
+res://tests/test_NavAgentSizeClasses.gd
+res://scenes/units/vanguard.tscn
+res://scenes/units/irregular.tscn
+res://scripts/entities/components/avoidance_agent_3d.gd
+res://scripts/interface/commander/commander.gd
+res://scenes/structures/mine.tscn
+res://scenes/structures/deposit.tscn
