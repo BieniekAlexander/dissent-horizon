@@ -61,8 +61,29 @@ func _weapon_for(a_actor: Commandable) -> Weapon:
 
 ### STATE UPDATES
 func get_updated_state(a_actor: Commandable):
-	## Potentially return a new command based on a state check
-	return null if not is_instance_valid(message.target) else self
+	## Potentially return a new command based on a state check.
+	if not is_instance_valid(message.target):
+		return null
+	# Non-persistent attacks stop being pursued once the target is no longer worth
+	# it — here, once it leaves the actor's aggro range (e.g. a target acquired
+	# while attack-moving/defending that fled). Persistent attacks (idle aggro)
+	# pursue to completion. See CommandMessage.persist.
+	if not message.persist and not _target_in_aggro_range(a_actor):
+		return null
+	return self
+
+## True when message.target is within a_actor's aggro range (XZ distance vs the
+## AggroRange cylinder radius). Mirrors fog.gd's world-radius derivation.
+func _target_in_aggro_range(a_actor: Commandable) -> bool:
+	var shape_node: CollisionShape3D = a_actor.aggro_range_shape
+	if shape_node == null:
+		return true
+	var cyl := shape_node.shape as CylinderShape3D
+	if cyl == null:
+		return true
+	var radius: float = cyl.radius * shape_node.global_transform.basis.x.length()
+	var gap: float = VU.inXZ(a_actor.global_position).distance_to(VU.inXZ(message.target.global_position))
+	return gap <= radius
 
 func should_move(a_actor: Commandable) -> bool:
 	if not _target_attackable(message):

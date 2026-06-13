@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://b0o0qcjj0c1of"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://cwjxn7tdi134o" path="res://scripts/entities/structures/deposit.gd" id="2_dep"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_dep"]
+size = Vector3(2, 10, 2)
+
+[node name="Deposit" groups=["structure", "deposit"] instance=ExtResource("1_base")]
+script = ExtResource("2_dep")
+type = 4615
+default_commander_id = 0
+
+[node name="MovementBody" parent="." index="2"]
+shape = SubResource("BoxShape3D_dep")
+
+[node name="Obstruction" parent="." index="7"]
+dimensions = Vector2i(2, 2)
+
+[node name="Sprite" parent="." index="14"]
+transform = Transform3D(2, 0, 0, 0, 1.4142135, -1.4142135, 0, 1.4142135, 1.4142135, 0, 0.7, 0)

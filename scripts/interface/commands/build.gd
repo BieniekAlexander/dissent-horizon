@@ -25,13 +25,10 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 		return unmet_need_to_precondition[unmet]
 	var preview := a_actor.commander.get_build_preview_instance(a_message.tool)
 	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
-	var dims := obs.dimensions if obs != null else Vector2i.ONE
-	var snap := preview.get_node_or_null("StructureSnap") as StructureSnap if preview != null else null
-	var allow_uneven: bool = snap.allow_uneven_terrain if snap != null else false
 	if not StructureSpec.structure_type_spec_map[a_message.tool.type].placement_checker.call(
 		a_message,
-		dims,
-		allow_uneven
+		obs.dimensions,
+		obs.allow_uneven
 	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 	return PreconditionFailureCause.NONE
@@ -53,13 +50,13 @@ func can_act(a_actor: Commandable) -> bool:
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var new_structure: Commandable = message.tool.packed_scene.instantiate()
 
-	# add_entity treats its location argument as GRID indices (Vector2i), so the
-	# clicked world position must be converted first — passing the raw world XZ
-	# truncates to a far-off cell. add_entity calls initialize() itself, so we
-	# don't re-initialize here.
+	# Pass the raw clicked world XZ; add_entity → add_structure resolves the footprint
+	# centre via Map.footprint_origin — the same logic the editor snap and the build
+	# preview (Commandable.valid_placement) use, so placement matches the preview.
+	# add_entity calls initialize() itself, so we don't re-initialize here.
 	message.map.add_entity(
 		new_structure,
-		message.map.world_to_grid(message.xz_position),
+		message.xz_position,
 		a_actor.commander
 	)
 	new_structure.build_progress = .1

@@ -74,10 +74,10 @@ func test_bare_entity_with_no_components_and_no_groups_returns_empty():
 ## --- Unit-flavored predicates ---------------------------------------------
 
 func test_unit_with_movement_gets_movement_commands():
-	# UNIT_SENTRY with both a Movement and an Loadout child stands in for a
+	# UNIT_IRREGULAR with both a Movement and an Loadout child stands in for a
 	# generic combat unit. command_move comes from Movement; the attack-flavored
 	# commands come from Loadout.
-	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	var e := _make_entity(Entity.Type.UNIT_IRREGULAR, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
 	var cmds := CommandContextParser.commands_for(e)
@@ -91,7 +91,7 @@ func test_attack_range_without_movement_still_has_combat_commands():
 	# loses command_move but keeps every Loadout-flavored command — stop,
 	# attack, AND attack-move (the parser couples both attack commands to the
 	# Loadout predicate).
-	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	var e := _make_entity(Entity.Type.UNIT_IRREGULAR, ["unit"])
 	_add_named_child(e, "Loadout")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_false(cmds.has("command_move"))
@@ -114,9 +114,9 @@ func test_compound_advertises_only_its_train_tools():
 	var e := _make_entity(Entity.Type.STRUCTURE_COMPOUND, ["structure"])
 	# The Production component's producible_types is the source of truth for what
 	# the structure can train.
-	_add_production(e, [Entity.Type.UNIT_SENTRY, Entity.Type.UNIT_VANGUARD])
+	_add_production(e, [Entity.Type.UNIT_IRREGULAR, Entity.Type.UNIT_VANGUARD])
 	var cmds := CommandContextParser.commands_for(e)
-	assert_true(cmds.has("command_tool_sentry"))
+	assert_true(cmds.has("command_tool_irregular"))
 	assert_true(cmds.has("command_tool_vanguard"))
 	assert_false(cmds.has("command_tool_technician"))
 	assert_false(cmds.has("command_tool_outpost"))
@@ -126,7 +126,7 @@ func test_outpost_advertises_only_technician_tool():
 	_add_production(e, [Entity.Type.UNIT_TECHNICIAN])
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_tool_technician"))
-	assert_false(cmds.has("command_tool_sentry"))
+	assert_false(cmds.has("command_tool_irregular"))
 	assert_false(cmds.has("command_tool_vanguard"))
 
 ## --- Technician (Anima) ----------------------------------------------------
@@ -183,21 +183,21 @@ func test_selection_union_combines_disparate_unit_types():
 	var anima := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
 	_add_named_child(anima, "Movement")
 	var compound := _make_entity(Entity.Type.STRUCTURE_COMPOUND, ["structure"])
-	_add_production(compound, [Entity.Type.UNIT_SENTRY, Entity.Type.UNIT_VANGUARD])
+	_add_production(compound, [Entity.Type.UNIT_IRREGULAR, Entity.Type.UNIT_VANGUARD])
 
 	var cmds := CommandContextParser.commands_for_selection([anima, compound])
 	assert_true(cmds.has("command_ability"), "anima contributes ability")
 	assert_true(cmds.has("command_train"), "compound contributes train")
-	assert_true(cmds.has("command_tool_sentry"), "compound contributes its tools")
+	assert_true(cmds.has("command_tool_irregular"), "compound contributes its tools")
 	assert_true(cmds.has("command_stop"), "shared unit command appears once")
 
 func test_selection_deduplicates_shared_commands():
 	# Two units of the same type — every shared command name should appear
 	# exactly once in the union.
-	var a := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	var a := _make_entity(Entity.Type.UNIT_IRREGULAR, ["unit"])
 	_add_named_child(a, "Movement")
 	_add_named_child(a, "Loadout")
-	var b := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	var b := _make_entity(Entity.Type.UNIT_IRREGULAR, ["unit"])
 	_add_named_child(b, "Movement")
 	_add_named_child(b, "Loadout")
 	var cmds := CommandContextParser.commands_for_selection([a, b])
@@ -205,7 +205,7 @@ func test_selection_deduplicates_shared_commands():
 	assert_eq(occurrences, 1, "shared command appears once in the union")
 
 func test_selection_ignores_invalid_entries():
-	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	var e := _make_entity(Entity.Type.UNIT_IRREGULAR, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
 	# Mix in nulls and a non-Entity object; parser should skip them silently.
@@ -229,7 +229,7 @@ func test_technician_build_tools_are_the_buildable_structures():
 	assert_true(tools.has("command_tool_armory"))
 
 func test_non_builder_has_no_build_tools():
-	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	var e := _make_entity(Entity.Type.UNIT_IRREGULAR, ["unit"])
 	assert_eq(CommandContextParser.build_tools_for(e), [])
 
 func test_build_tools_for_null_is_empty():
@@ -249,12 +249,12 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 
 func test_train_tools_for_reads_production_component():
 	var e := _make_entity(Entity.Type.STRUCTURE_COMPOUND, ["structure"])
-	_add_production(e, [Entity.Type.UNIT_SENTRY])
-	assert_eq(CommandContextParser.train_tools_for(e), ["command_tool_sentry"])
+	_add_production(e, [Entity.Type.UNIT_IRREGULAR])
+	assert_eq(CommandContextParser.train_tools_for(e), ["command_tool_irregular"])
 
 func test_train_tools_for_entity_without_production_is_empty():
 	# A producer-less entity (e.g. a plain unit) offers no train tools.
-	var e := _make_entity(Entity.Type.UNIT_SENTRY, ["unit"])
+	var e := _make_entity(Entity.Type.UNIT_IRREGULAR, ["unit"])
 	assert_eq(CommandContextParser.train_tools_for(e), [])
 
 func test_train_tools_for_null_is_empty():
@@ -273,14 +273,14 @@ func test_outpost_scene_produces_technician():
 	assert_true(prod.can_produce(Entity.Type.UNIT_TECHNICIAN), "outpost trains technicians")
 	assert_true(CommandContextParser.commands_for(outpost).has("command_tool_technician"))
 
-func test_compound_scene_produces_sentry_and_vanguard():
+func test_compound_scene_produces_irregular_and_vanguard():
 	var compound: Node = load("res://scenes/structures/compound.tscn").instantiate()
 	autofree(compound)
 	var prod := compound.get_node("Production") as Production
 	assert_not_null(prod, "compound.tscn has a Production node")
-	assert_true(prod.can_produce(Entity.Type.UNIT_SENTRY), "compound trains sentries")
+	assert_true(prod.can_produce(Entity.Type.UNIT_IRREGULAR), "compound trains irregulars")
 	assert_true(prod.can_produce(Entity.Type.UNIT_VANGUARD), "compound trains vanguards")
 	assert_false(prod.can_produce(Entity.Type.UNIT_TECHNICIAN), "compound does not train technicians")
 	var cmds := CommandContextParser.commands_for(compound)
-	assert_true(cmds.has("command_tool_sentry"))
+	assert_true(cmds.has("command_tool_irregular"))
 	assert_true(cmds.has("command_tool_vanguard"))

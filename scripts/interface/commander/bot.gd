@@ -117,7 +117,7 @@ func get_units() -> Array:
 	return _owned_units()
 
 
-## All units of a specific type (e.g. only Vanguards, only Sentries).
+## All units of a specific type (e.g. only Vanguards, only Irregulars).
 func get_units_of_type(type: Entity.Type) -> Array:
 	return _owned_units().filter(func(c: Commandable): return c.type == type)
 
@@ -159,7 +159,7 @@ func army_size() -> int:
 
 ## Maps Entity.Type → unit count for each type the bot owns.
 ## Use this to gauge army composition and spot imbalances
-## (e.g. too many Technicians, zero Sentries).
+## (e.g. too many Technicians, zero Irregulars).
 func army_type_counts() -> Dictionary:
 	var counts: Dictionary = {}
 	for c: Commandable in _owned_units():

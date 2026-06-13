@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://dcmdbl3j4t1k2"]
+[gd_scene load_steps=20 format=3 uid="uid://dcmdbl3j4t1k2"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="2_3agr1"]
 [ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="2_tefpw"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="6_cli00"]
 [ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="7_def00"]
 [ext_resource type="Script" uid="uid://brt70ksdghy11" path="res://scripts/entities/components/avoidance_agent_3d.gd" id="8_avagent"]
+[ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="9_ttint"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
 
@@ -136,3 +137,6 @@ pixel_size = 0.05
 render_priority = 10
 text = "NULL"
 font_size = 16
+
+[node name="TeamTint" type="Node" parent="."]
+script = ExtResource("9_ttint")

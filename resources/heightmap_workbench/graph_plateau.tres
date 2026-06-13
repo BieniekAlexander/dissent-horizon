@@ -5,11 +5,11 @@
 [resource]
 script = ExtResource("1_emqyv")
 region_count = 8
-cells_per_region = 160
-height_levels = 4
+cells_per_region = 120
+height_levels = 2
 ramp_run = 10
 ramp_half_width = 6.0
 elevation_change_chance = 0.6
 loop_ramp_chance = 0.4
-seed = 2771807005
-dimensions = Vector2i(100, 60)
+seed = 2271196271
+dimensions = Vector2i(80, 50)

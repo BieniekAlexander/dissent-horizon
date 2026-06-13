@@ -16,7 +16,7 @@ static var lines: Dictionary = {
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.UNIT_SENTRY: {
+	Entity.Type.UNIT_IRREGULAR: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
@@ -59,6 +59,11 @@ static var lines: Dictionary = {
 	Entity.Type.STRUCTURE_TURRET: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	Entity.Type.STRUCTURE_DEPOSIT: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
 }

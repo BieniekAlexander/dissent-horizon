@@ -493,7 +493,7 @@ func assign_command_to_units(
 		_reset_pending_state()
 		return false
 
-	# Check preconditions per-unit so that a mixed selection (e.g. Sentries +
+	# Check preconditions per-unit so that a mixed selection (e.g. Irregulars +
 	# Technician) can still execute a command: capable units receive it and
 	# incapable units are silently skipped.
 	var capable: Array = selection.filter(

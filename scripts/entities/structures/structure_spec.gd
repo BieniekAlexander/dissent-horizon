@@ -15,4 +15,5 @@ static var structure_type_spec_map: Dictionary[int, StructureSpec] = {
 	Entity.Type.STRUCTURE_COMPOUND: StructureSpec.new(Commandable.valid_placement),
 	Entity.Type.STRUCTURE_ARMORY: StructureSpec.new(Commandable.valid_placement),
 	Entity.Type.STRUCTURE_TURRET: StructureSpec.new(Commandable.valid_placement),
+	Entity.Type.STRUCTURE_DEPOSIT: StructureSpec.new(Commandable.valid_placement),
 }

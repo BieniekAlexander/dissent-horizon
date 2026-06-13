@@ -1,9 +1,8 @@
-[gd_scene load_steps=11 format=3 uid="uid://b8bcrcywyaj27"]
+[gd_scene load_steps=10 format=3 uid="uid://b8bcrcywyaj27"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_8cs83"]
-[ext_resource type="Texture2D" uid="uid://cu54wxkswu4d3" path="res://assets/entities/sentry.png" id="2_njqvf"]
+[ext_resource type="Texture2D" uid="uid://cu54wxkswu4d3" path="res://assets/entities/irregular.png" id="2_njqvf"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
-[ext_resource type="Script" uid="uid://cr4mbf5bvs8m3" path="res://scripts/entities/components/stealth.gd" id="4_lror7"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_invnt"]
 
@@ -13,7 +12,7 @@ radius = 0.3
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_c8urn"]
 radius = 0.3
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_sntry"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_irreg"]
 height = 100.0
 radius = 2.5
 
@@ -39,12 +38,9 @@ script = ExtResource("3_invnt")
 script = ExtResource("4_wpn00")
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0"]
-shape = SubResource("CylinderShape3D_sntry")
+shape = SubResource("CylinderShape3D_irreg")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
-
-[node name="Stealth" type="Node" parent="." index="9"]
-script = ExtResource("4_lror7")
 
 [node name="Selectable" parent="." index="12"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)

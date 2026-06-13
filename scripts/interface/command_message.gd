@@ -7,6 +7,12 @@ var tool: Tool				# Any potential thing that is used in the fulfillment of a com
 var world_position: Vector3	# The raw position at which the command is requested (NOTE: `target` might not always be relevant)
 var ability_type: Variant	# For Ability commands: which Ability.Type to invoke (null otherwise)
 
+## When true, the commandable pursues this command to completion regardless of the
+## "still worth it?" checks that Command.get_updated_state runs while `not persist`.
+## Defaults false; e.g. idle-aggro acquisition sets it true so a guarding unit
+## chases the target it spotted even after the target leaves its aggro range.
+var persist: bool = true
+
 ## Emitted when the last Command holding this message releases it, signalling
 ## that no live commands still reference this snapshot.
 signal unreferenced
@@ -50,10 +56,12 @@ func clear() -> void:
 	ability_type = null
 
 static func deep_copy(a_message: CommandMessage) -> CommandMessage:
-	return CommandMessage.new(
+	var copy := CommandMessage.new(
 		a_message.map,
 		a_message.target,
 		a_message.tool,
 		a_message.world_position,
 		a_message.ability_type
 	)
+	copy.persist = a_message.persist
+	return copy

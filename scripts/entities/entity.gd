@@ -27,8 +27,9 @@ enum Type {
 	STRUCTURE_COMPOUND=0x1204,
 	STRUCTURE_ARMORY=0x1205,
 	STRUCTURE_TURRET=0x1206,
+	STRUCTURE_DEPOSIT=0x1207,
 	UNIT_TECHNICIAN=0x1100,
-	UNIT_SENTRY=0x1101,
+	UNIT_IRREGULAR=0x1101,
 	UNIT_VANGUARD=0x1102
 }
 
@@ -251,13 +252,12 @@ func _auto_initialize() -> void:
 	initialize(found_map, found_commander)
 	# Grid registration: editor-placed structures aren't spawned through
 	# map.add_entity(), so add_structure() has never been called for them.
-	# pre_init_pos is the visual centre of the mesh. add_structure treats its
-	# grid_location argument as the top-left (min-x/min-z) corner of the
-	# footprint, so we subtract the centroid offset to recover that corner.
+	# pre_init_pos is the visual centre; add_structure resolves the footprint from it
+	# via Map.footprint_origin — identical to the editor StructureSnap, so an
+	# even-sized structure registers on the same cells it snapped to (no load shift).
 	var obstruction := get_node_or_null("Obstruction") as Obstruction
 	if obstruction != null and not found_map.structure_cell_map.has(self):
-		var visual_cell := found_map.world_to_grid(VU.inXZ(pre_init_pos))
-		found_map.add_structure(self, visual_cell, 0, false)
+		found_map.add_structure(self, VU.inXZ(pre_init_pos), 0, false)
 
 func _on_commander_changed(_old_commander: Commander, new_commander: Commander) -> void:
 	_apply_team_tint()

@@ -11,6 +11,6 @@ var frame: int = 0
 
 func tick() -> void:
 	frame += 1
-	if frame == TICK_RATE:
+	if frame%TICK_RATE==0:
 		var commandable := get_parent() as Commandable
 		commandable.commander.ore += ore_rate

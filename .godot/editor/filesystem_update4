@@ -1,5 +1,8 @@
-res://scenes/scenarios/s1.tscn
+res://scenes/structures/structure.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scenes/scenarios/s1.gdshader
 res://scripts/rendering/shaders/fog.gdshader
+res://scenes/scenarios/s1.tscn
+res://scripts/interface/commands/build.gd
+res://scripts/entities/components/obstruction.gd

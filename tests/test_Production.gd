@@ -65,7 +65,7 @@ func test_default_producible_types_is_empty():
 
 func test_can_produce_reflects_configured_types():
 	var p := _make_production()
-	p.producible_types.assign([Entity.Type.UNIT_SENTRY, Entity.Type.UNIT_VANGUARD])
-	assert_true(p.can_produce(Entity.Type.UNIT_SENTRY))
+	p.producible_types.assign([Entity.Type.UNIT_IRREGULAR, Entity.Type.UNIT_VANGUARD])
+	assert_true(p.can_produce(Entity.Type.UNIT_IRREGULAR))
 	assert_true(p.can_produce(Entity.Type.UNIT_VANGUARD))
 	assert_false(p.can_produce(Entity.Type.UNIT_TECHNICIAN), "type not in the list is not producible")

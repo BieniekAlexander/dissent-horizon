@@ -112,15 +112,18 @@ static func valid_placement(
 	var placement_map: Map = a_command_message.map
 	if placement_map == null:
 		return false
-	var origin: Vector2i = placement_map.world_to_grid(a_command_message.xz_position)
-	for coords in get_grid_coordinates(origin, a_dimensions):
-		var cell := Vector2i(coords)
-		if not placement_map.grid_coordinates_in_bounds(cell):
-			return false
-		if placement_map.cell_grid[cell.x][cell.y] != null:
-			return false
-		if not a_allow_uneven_terrain and not placement_map.terrain_grid.is_flat(cell):
-			return false
+	# Use the same footprint resolution as add_structure so the preview matches where
+	# the structure actually lands (parity-correct for even-sized footprints).
+	var origin: Vector2i = placement_map.footprint_origin(a_command_message.xz_position, a_dimensions)
+	for w in range(a_dimensions.x):
+		for l in range(a_dimensions.y):
+			var cell := Vector2i(origin.x + w, origin.y + l)
+			if not placement_map.grid_coordinates_in_bounds(cell):
+				return false
+			if placement_map.cell_grid[cell.x][cell.y] != null:
+				return false
+			if not a_allow_uneven_terrain and not placement_map.terrain_grid.is_flat(cell):
+				return false
 	return true
 
 ### WEAPON
@@ -153,11 +156,15 @@ func get_aggro_near_position() -> Command:
 		vs3
 	)
 
-	return (
-		Attack.new(CommandMessage.new(map, potential_targets[0], null))
-		if not potential_targets.is_empty()
-		else null
-	)
+	if potential_targets.is_empty():
+		return null
+	var msg := CommandMessage.new(map, potential_targets[0], null)
+	# An idle aggro acquisition (no active command) persists: the unit pursues the
+	# target to completion. Aggro acquired while already running a command (e.g.
+	# AttackMove/Defend calling this) stays non-persistent, so it's abandoned once
+	# the target leaves aggro range and the unit resumes its prior command.
+	msg.persist = has_command()
+	return Attack.new(msg)
 
 func _ready() -> void:
 	super()
@@ -263,7 +270,7 @@ func _process(_delta: float) -> void:
 		elif velocity.x == 0 and has_command():
 			sprite.flip_h = current_command().message.position.x > global_position.x
 
-		# NOTE hardcoding pattern preserved from Unit — Sentry uses 3 hframes.
+		# NOTE hardcoding pattern preserved from Unit — Irregular uses 3 hframes.
 		# A future SpriteAnimation component should own this.
 		if sprite.hframes > 1:
 			if _attack_duration > 0 and attack_timer == _attack_duration:

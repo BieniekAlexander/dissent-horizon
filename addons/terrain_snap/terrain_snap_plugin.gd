@@ -6,9 +6,11 @@ extends EditorPlugin
 ## Finish moving a node (release the left mouse button after a drag) while holding:
 ##   - Option (Alt)          → snap the selection's Y to the terrain heightmap
 ##                             height at its current XZ (continuous, follows slopes).
-##   - Option (Alt) + Shift  → snap the selection to its terrain GRID CELL: XZ to the
-##                             cell centre and Y to that cell's height (matches how
-##                             Map.add_structure places buildings at runtime).
+##   - Option (Alt) + Shift  → snap the selection to the terrain GRID: XZ + Y to the
+##                             centre of its footprint (a structure with an
+##                             Obstruction uses its full size, so a 2×2 lands on a
+##                             grid corner; everything else is a single cell). This
+##                             matches how Map.add_structure places it at runtime.
 ##
 ## Nothing happens on a normal drag — you only snap when the modifier is held, so a
 ## unit intentionally placed high above the terrain (e.g. a flier) is left alone.
@@ -78,25 +80,45 @@ func _snap_selection(to_grid: bool) -> void:
 	ur.create_action("Snap to terrain grid cell" if to_grid else "Snap to terrain height")
 	for node: Node3D in spatials:
 		var before: Vector3 = node.global_position
-		var after: Vector3 = _snapped_position(map, before, to_grid)
+		var after: Vector3 = _snapped_position(map, node, before, to_grid)
 		ur.add_do_property(node, "global_position", after)
 		ur.add_undo_property(node, "global_position", before)
 	ur.commit_action()
 
 
-func _snapped_position(map: Map, pos: Vector3, to_grid: bool) -> Vector3:
+func _snapped_position(map: Map, node: Node3D, pos: Vector3, to_grid: bool) -> Vector3:
 	var xz := Vector2(pos.x, pos.z)
 	if not to_grid:
 		# terrain_height_at clamps out-of-bounds XZ internally.
 		return Vector3(pos.x, map.terrain_height_at(xz), pos.z)
 
-	# Clamp the cell so grid_to_world never indexes the heightmap out of bounds
-	# (a HeightMapShape3D of W×D has (W-1)×(D-1) cells).
+	# Footprint-aware grid snap: a structure with an Obstruction centres on its
+	# whole footprint (even sizes land on a grid corner, odd on a cell); anything
+	# else is treated as 1×1 (a single cell). Computed from the HEIGHTMAP dims, not
+	# cell_grid (which is empty in the editor).
+	var dims := _dimensions(node)
 	var hm := map.height_map
-	var cell := map.world_to_grid(xz)
-	cell.x = clampi(cell.x, 0, hm.map_width - 2)
-	cell.y = clampi(cell.y, 0, hm.map_depth - 2)
-	return map.grid_to_world(cell)
+	var local: Vector3 = map.global_transform.affine_inverse() * Vector3(pos.x, 0.0, pos.z)
+	var cx: float = local.x + (hm.map_width - 1) * 0.5
+	var cz: float = local.z + (hm.map_depth - 1) * 0.5
+	var origin := Vector2i(roundi(cx - dims.x * 0.5), roundi(cz - dims.y * 0.5))
+	origin.x = clampi(origin.x, 0, hm.map_width - 1 - dims.x)
+	origin.y = clampi(origin.y, 0, hm.map_depth - 1 - dims.y)
+	var centroid := Vector3.ZERO
+	for w in range(dims.x):
+		for l in range(dims.y):
+			centroid += map.grid_to_world(origin + Vector2i(w, l))
+	return centroid / float(dims.x * dims.y)
+
+
+## Footprint size from the node's Obstruction component (via get() so it works on
+## the editor's placeholder instance of the non-@tool node), or 1×1 if none.
+func _dimensions(node: Node) -> Vector2i:
+	var obs := node.get_node_or_null("Obstruction")
+	if obs == null:
+		return Vector2i.ONE
+	var d: Variant = obs.get("dimensions")
+	return d if d is Vector2i else Vector2i.ONE
 
 
 ## Find the Map in the edited scene: the root itself, a child named "Map", or the

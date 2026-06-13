@@ -102,6 +102,36 @@ func world_to_grid(world_xz: Vector2) -> Vector2i:
 	return Vector2i(floori(local.x + hw), floori(local.z + hd))
 
 
+## Footprint origin (min-x/min-z cell) for a structure of `dims` whose CENTER is
+## at world_xz. Parity-correct: a structure centers on a cell when a dimension is
+## ODD and on a grid corner (between cells) when EVEN. Rounding the origin in
+## continuous corner-space (rather than flooring the centre cell) makes this
+## idempotent — snapping a structure then reading its position back yields the
+## same origin, including for 2x2 footprints.
+func footprint_origin(world_xz: Vector2, dims: Vector2i) -> Vector2i:
+	var hs := height_map
+	var local := global_transform.affine_inverse() * Vector3(world_xz.x, 0.0, world_xz.y)
+	var cx := local.x + (hs.map_width  - 1) * 0.5
+	var cz := local.z + (hs.map_depth  - 1) * 0.5
+	return Vector2i(roundi(cx - dims.x * 0.5), roundi(cz - dims.y * 0.5))
+
+
+## World-space centroid of the `dims` footprint anchored at `origin` (averages the
+## cell centres, so terrain height is sampled too). This is the same placement
+## add_structure uses; the editor StructureSnap snaps to it.
+func footprint_centroid(origin: Vector2i, dims: Vector2i) -> Vector3:
+	var centroid := Vector3.ZERO
+	var count := 0
+	for w in range(dims.x):
+		for l in range(dims.y):
+			var cell := origin + Vector2i(w, l)
+			if not grid_coordinates_in_bounds(cell):
+				continue
+			centroid += grid_to_world(cell)
+			count += 1
+	return centroid / count if count > 0 else grid_to_world(origin)
+
+
 # --- Map bounds ------------------------------------------------------------
 
 ## Returns [low: Vector2, high: Vector2] in grid-cell index space.
@@ -147,17 +177,42 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 		a_entity.initialize(self, a_commander)
 
 
-func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: int, _rebake: bool = true) -> void:
-	# Footprint size comes from the Obstruction component so the cells we reserve
-	# match exactly what Commandable.valid_placement validated.  Falls back to
-	# 1×1 for structures without an Obstruction node (shouldn't happen in normal
-	# play — add_entity guards on its presence, but add_structure can be called
-	# directly e.g. from _auto_initialize).
+## Register a structure on the grid, centred on `world_center` (world-space XZ).
+## The footprint origin is resolved with footprint_origin() — the SAME function the
+## editor StructureSnap, the build preview (Commandable.valid_placement) and scene
+## auto-init use — so a structure occupies the identical cells and lands at the
+## identical position in every case (even-sized footprints centre on a grid corner,
+## odd on a cell).
+func add_structure(a_structure: Commandable, world_center: Vector2, rotation: int = 0, _rebake: bool = true) -> void:
+	# Mines don't occupy the grid: they OVERLAY a Deposit (which stays the sole grid
+	# occupant). Link the mine to its deposit — the authored/build-set `deposit`
+	# reference if present, otherwise the deposit registered at the centre cell — and
+	# sit it on top, without touching cell_grid / terrain_grid.
+	if a_structure is Mine:
+		var mine := a_structure as Mine
+		var dep: Deposit = mine.deposit
+		if dep == null:
+			var cell := world_to_grid(world_center)
+			if grid_coordinates_in_bounds(cell):
+				dep = cell_grid[cell.x][cell.y] as Deposit
+		if dep == null:
+			push_error("Mine placed with no Deposit at %s — ignoring" % world_center)
+			return
+		mine.map = self
+		mine.bind_deposit(dep)
+		mine.global_position = dep.global_position
+		# Not a grid obstruction → keep MOVEMENT_OBSTRUCTION (the deposit handles
+		# navmesh exclusion for these cells).
+		mine.refresh_movement_collision()
+		return
+
+	# Footprint size from the Obstruction component (1×1 fallback). footprint_origin
+	# centres the structure parity-correctly; footprint_centroid is the same point
+	# StructureSnap snaps to in the editor.
 	var obs := a_structure.get_node_or_null("Obstruction") as Obstruction
 	var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
-	var origin := grid_location - Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
+	var origin := footprint_origin(world_center, dims)
 	var footprint: Array[Vector2i] = []
-	var centroid := Vector3.ZERO
 	for w in range(dims.x):
 		for l in range(dims.y):
 			var cell := Vector2i(origin.x + w, origin.y + l)
@@ -165,12 +220,8 @@ func add_structure(a_structure: Commandable, grid_location: Vector2i, rotation: 
 				continue
 			cell_grid[cell.x][cell.y] = a_structure
 			footprint.append(cell)
-			centroid += grid_to_world(cell)
 
-	if not footprint.is_empty():
-		centroid /= footprint.size()
-	a_structure.global_position = centroid
-
+	a_structure.global_position = footprint_centroid(origin, dims)
 	structure_cell_map[a_structure] = footprint
 	terrain_grid.place_building(footprint, a_structure)
 	a_structure.map = self

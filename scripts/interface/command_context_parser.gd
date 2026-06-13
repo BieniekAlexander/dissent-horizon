@@ -15,7 +15,7 @@ class_name CommandContextParser
 ##     table easy to refactor later if we standardize on one signal.
 ##   - command_name: String. The conventional name of a command that can be
 ##     issued; matches the input-action and HUD button names already used by
-##     the controller (e.g. "command_attack_move", "command_tool_sentry").
+##     the controller (e.g. "command_attack_move", "command_tool_irregular").
 ##     Non-hotkey commands (Attack, Train, PickUp, ...) are also listed here
 ##     under "command_<verb>" names so the parser is the single source of
 ##     truth for the command set a unit supports.
@@ -138,7 +138,7 @@ static func command_available(a_command_name: String, a_entity: Entity) -> bool:
 ## Production: this is just the name↔Tool bridge the HUD needs.
 const TRAIN_TOOL_NAMES: Array = [
 	"command_tool_technician",
-	"command_tool_sentry",
+	"command_tool_irregular",
 	"command_tool_vanguard",
 ]
 

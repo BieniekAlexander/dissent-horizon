@@ -23,7 +23,7 @@ extends Node
 @export var train_bar_path: NodePath
 
 ## The unit types this producer can train, configured per structure scene
-## (e.g. Outpost → [UNIT_TECHNICIAN], Compound → [UNIT_SENTRY, UNIT_VANGUARD]).
+## (e.g. Outpost → [UNIT_TECHNICIAN], Compound → [UNIT_IRREGULAR, UNIT_VANGUARD]).
 ## This component is the single source of truth for what an entity can produce —
 ## it replaces the old static Train.tool_applies_to table, so the capability
 ## lives with the component that actually performs the production. Callers that
