@@ -11,6 +11,7 @@ static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type)
 			"command_tool_lab",
 			"command_tool_compound",
 			"command_tool_armory",
+			"command_tool_turret",
 		]
 	}.get(entity_type, [])
 
@@ -25,9 +26,12 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 	var preview := a_actor.commander.get_build_preview_instance(a_message.tool)
 	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
 	var dims := obs.dimensions if obs != null else Vector2i.ONE
+	var snap := preview.get_node_or_null("StructureSnap") as StructureSnap if preview != null else null
+	var allow_uneven: bool = snap.allow_uneven_terrain if snap != null else false
 	if not StructureSpec.structure_type_spec_map[a_message.tool.type].placement_checker.call(
 		a_message,
-		dims
+		dims,
+		allow_uneven
 	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 	return PreconditionFailureCause.NONE

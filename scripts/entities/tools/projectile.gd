@@ -9,8 +9,8 @@ var source: Commandable
 var target: Commandable
 
 ### MOVEMENT
-const gravity: float = -.01
-const speed: float = .35
+const gravity: float = -.005
+const speed: float = .175
 var origin: Vector3
 var damage: float = 5
 var _weapon_damage: float = 0.0

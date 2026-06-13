@@ -29,6 +29,7 @@ var technology_mapping: Dictionary = {
 	Entity.Type.UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0),
 	Entity.Type.UNIT_SENTRY: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
 	Entity.Type.UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
+	Entity.Type.STRUCTURE_TURRET: TechnologySpec.new(50, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
 	# Abilities are gated here too. Ability.Type values (0,1,...) don't collide
 	# with Entity.Type values (all >= 0x1100), so they coexist in this map.
 	Ability.Type.RADIATION: TechnologySpec.new(0, 0, 0),

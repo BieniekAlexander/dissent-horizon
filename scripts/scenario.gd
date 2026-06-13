@@ -39,6 +39,9 @@ func _ready() -> void:
 	for commandable: Commandable in get_tree().get_nodes_in_group("commandable"):
 		commandable.commander = commanders[commandable.default_commander_id]
 
+	# Frame the player's starting position: buildings if any, else units.
+	_center_player_camera_on_starting_entities()
+
 	var event_manager := get_node_or_null("ScenarioEventManager") as ScenarioEventManager
 	if event_manager != null:
 		event_manager.message_requested.connect(_on_scenario_message)
@@ -50,6 +53,41 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	frame += 1
 	# $Map.nav_region.bake_navigation_mesh(false)
+
+
+## Move the player's camera so the view centers on the centroid of the player's
+## buildings at game start.  If the player has no buildings, centers on the
+## centroid of the player's units instead.  If the player owns neither, the
+## camera is left where it is.
+func _center_player_camera_on_starting_entities() -> void:
+	var player: Commander = commanders[RTSController.PLAYER_COMMANDER_ID]
+	var camera := player.get_node_or_null("Camera") as RTSCamera3D
+	if camera == null:
+		return
+
+	# Buildings take priority; fall back to units.
+	var positions: Array[Vector2] = _player_owned_positions_xz(player, "structure")
+	if positions.is_empty():
+		positions = _player_owned_positions_xz(player, "unit")
+	if positions.is_empty():
+		return  # no buildings or units — leave the camera as-is
+
+	var centroid := Vector2.ZERO
+	for p: Vector2 in positions:
+		centroid += p
+	centroid /= float(positions.size())
+	camera.center_on(centroid)
+
+
+## XZ positions of every entity in `group` (e.g. "structure" / "unit") owned by
+## `player`.  Empty when the player owns none.
+func _player_owned_positions_xz(player: Commander, group: String) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	for node: Node in get_tree().get_nodes_in_group(group):
+		var entity := node as Commandable
+		if entity != null and entity.commander == player:
+			result.append(VU.inXZ(entity.global_position))
+	return result
 
 
 ## Called when a ScenarioEventManager child emits message_requested.

@@ -22,7 +22,7 @@ enum Check {
 @export var rect_max: Vector2 = Vector2(10.0, 10.0)
 ## World-space XZ centre when region_shape == CIRCLE.
 @export var circle_center: Vector2 = Vector2.ZERO
-@export var circle_radius: float = 5.0
+@export var circle_radius: float = 2.5
 @export var check: Check = Check.ANY_INSIDE
 
 var _was_inside: bool = false

@@ -23,11 +23,9 @@ func _rebuild() -> void:
 	if entity == null:
 		return
 
-	var obs := entity.get_node_or_null("Obstruction") as Obstruction
-	var dims: Vector2i = obs.dimensions if obs != null else Vector2i(1, 1)
-
-	var w: float = dims.x * Map.CELL_SIZE
-	var d: float = dims.y * Map.CELL_SIZE
+	var obs: Obstruction = get_parent().find_child("Obstruction")
+	var w: float = obs.dimensions.x * Map.CELL_SIZE
+	var d: float = obs.dimensions.y * Map.CELL_SIZE
 
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(w, d)

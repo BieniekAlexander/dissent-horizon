@@ -5,15 +5,15 @@
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_ownr0"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_3mb8d"]
-height = 5.0
-radius = 3.0
+height = 2.5
+radius = 1.5
 
 [node name="Radiation" type="CharacterBody3D"]
 collision_layer = 0
 script = ExtResource("1_rad00")
 
 [node name="Sprite" type="Sprite3D" parent="."]
-transform = Transform3D(10, 0, 0, 0, 7.071068, 7.071068, 0, -7.071068, 7.071068, 0, 0, 0)
+transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
 render_priority = 5
 texture = ExtResource("2_3mb8d")
 

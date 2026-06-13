@@ -15,7 +15,7 @@ enum Type {
 }
 
 ## Max XZ distance from the target position at which the ability can be used.
-const RANGE: float = 10.0
+const RANGE: float = 5.0
 
 ### COMMAND PRECONDITIONS
 static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) -> PreconditionFailureCause:

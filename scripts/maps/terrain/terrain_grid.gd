@@ -29,6 +29,13 @@ var _building_footprints: Dictionary = {}  # Object  -> Array[Vector2i]
 var _building_cells:      Dictionary = {}  # Vector2i -> Object
 var _steep_cells:         Dictionary = {}  # Vector2i -> true, precomputed at _ready()
 
+## Per-cell impassability that has nothing to do with terrain height — water,
+## rubble, hazard fields, scripted no-go zones, etc.  This is the generic hook
+## for "impassable for reasons beyond the heightmap."  Cell-indexed
+## PackedByteArray of size grid_width()*grid_depth() (index = z*grid_width()+x);
+## a non-zero entry marks the cell blocked.  Empty = nothing blocked.
+var _blocked_mask: PackedByteArray = PackedByteArray()
+
 signal cells_changed(cells: Array)
 
 
@@ -76,6 +83,13 @@ func is_building_at(cell: Vector2i) -> bool:
 func is_too_steep(cell: Vector2i) -> bool:
 	return _steep_cells.has(cell)
 
+## True when the cell is marked impassable by the blocked mask (water, rubble,
+## scripted no-go, …), independent of its terrain height.
+func is_blocked(cell: Vector2i) -> bool:
+	if _blocked_mask.is_empty() or not is_in_bounds(cell):
+		return false
+	return _blocked_mask[cell.y * grid_width() + cell.x] != 0
+
 ## True iff all four corner heights of the cell are identical (zero spread).
 ## Used by structure placement to enforce that buildings may only be placed on
 ## perfectly flat ground — stricter than is_too_steep, which allows a small slope.
@@ -90,9 +104,13 @@ func is_flat(cell: Vector2i) -> bool:
 	return h00 == h10 and h10 == h01 and h01 == h11
 
 ## A cell is passable when it is within the heightmap extent, no building
-## occupies it, and its corner-height spread does not exceed MAX_SLOPE_DIFF.
+## occupies it, its corner-height spread does not exceed MAX_SLOPE_DIFF, and it
+## is not flagged by the blocked mask.
 func is_passable(cell: Vector2i) -> bool:
-	return is_in_bounds(cell) and not is_building_at(cell) and not is_too_steep(cell)
+	return is_in_bounds(cell) \
+		and not is_building_at(cell) \
+		and not is_too_steep(cell) \
+		and not is_blocked(cell)
 
 ## Returns all passable cells.  This is the set NavManager uses to build the NavigationMesh.
 func get_all_passable_cells() -> Array:
@@ -153,3 +171,47 @@ func remove_building(building: Object) -> void:
 ## Returns the cells registered for `building`, or [] if unknown.
 func get_building_cells(building: Object) -> Array:
 	return _building_footprints.get(building, [])
+
+
+# --- Blocked mask (non-height impassability) -------------------------------
+
+## Replace the whole blocked mask.  `mask` is cell-indexed
+## (index = z*grid_width()+x); a non-zero entry blocks the cell.  Pass an empty
+## array to clear all blocks.  Emits cells_changed for every cell whose blocked
+## state flipped, so NavManager rebuilds the navmesh to exclude/include them.
+func set_blocked_mask(mask: PackedByteArray) -> void:
+	var gw: int = grid_width()
+	var gh: int = grid_depth()
+	assert(mask.is_empty() or mask.size() == gw * gh,
+		"TerrainGrid: blocked mask must be empty or size grid_width*grid_depth (%d)" % (gw * gh))
+
+	var changed: Array = []
+	for z: int in gh:
+		for x: int in gw:
+			var idx: int = z * gw + x
+			var old_v: int = 0 if _blocked_mask.is_empty() else _blocked_mask[idx]
+			var new_v: int = 0 if mask.is_empty() else mask[idx]
+			if old_v != new_v:
+				changed.append(Vector2i(x, z))
+
+	_blocked_mask = mask
+	if not changed.is_empty():
+		cells_changed.emit(changed)
+
+## Block or unblock a single cell, allocating the mask on first use.
+func set_blocked(cell: Vector2i, value: bool) -> void:
+	if not is_in_bounds(cell):
+		return
+	var gw: int = grid_width()
+	if _blocked_mask.is_empty():
+		_blocked_mask.resize(gw * grid_depth())  # zero-initialised
+	var idx: int = cell.y * gw + cell.x
+	var new_v: int = 1 if value else 0
+	if _blocked_mask[idx] == new_v:
+		return
+	_blocked_mask[idx] = new_v
+	cells_changed.emit([cell])
+
+## Remove all blocks.
+func clear_blocked_mask() -> void:
+	set_blocked_mask(PackedByteArray())

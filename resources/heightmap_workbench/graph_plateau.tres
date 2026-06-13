@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GraphPlateauHeightmapGenerator" load_steps=2 format=3 uid="uid://cf8uoifgc2m6u"]
+
+[ext_resource type="Script" uid="uid://dks0ueuywo42b" path="res://scripts/maps/terrain/graph_plateau_heightmap_generator.gd" id="1_emqyv"]
+
+[resource]
+script = ExtResource("1_emqyv")
+region_count = 7
+cells_per_region = 120
+height_levels = 4
+ramp_run = 10
+ramp_half_width = 6.0
+loop_ramp_chance = 0.4
+guarantee_connected = false
+seed = 3205855435

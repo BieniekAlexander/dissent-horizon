@@ -11,13 +11,13 @@ func _ready() -> void:
 		[],
 		[ButtonSpec.new("command_attack_move", "Attack"), ButtonSpec.new("command_tool_compound", "Compound")],
 		[ButtonSpec.new("command_stop", "Stop"), ButtonSpec.new("command_tool_armory", "Armory")],
+		[ButtonSpec.new("command_tool_turret", "Turret")],
 		[ButtonSpec.new("command_evacuate", "Evacuate")],
 		[ButtonSpec.new("command_launch", "Radiate")],
 		[],
 		[ButtonSpec.new("command_tool_technician", "Techie")],
 		[ButtonSpec.new("command_tool_sentry", "Sentry")],
 		[ButtonSpec.new("command_tool_vanguard", "Vanguard")],
-		[],
 		[],
 	].map(
 		func(a: Array):

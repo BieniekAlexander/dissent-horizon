@@ -561,7 +561,7 @@ func assign_command_to_units(
 		if unit_to_destination.has(c):
 			var dest_xz: Vector2 = unit_to_destination[c]
 			snapshot.world_position = VU.fromXZ(dest_xz)
-			snapshot.world_position.y = map.terrain_height_at(dest_xz)
+		snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
 		if a_command_type.requires_position():
 			_register_indicator(snapshot)
 		c.update_commands(a_command_type.new(snapshot), add_to_queue)

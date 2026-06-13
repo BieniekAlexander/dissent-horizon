@@ -14,6 +14,9 @@ extends Node3D
 ##   2. Click "Build Mesh" to generate.
 ##   3. Right-click the `mesh` property → Save to write it to a .tres file.
 
+## Mirrors TerrainGrid.MAX_SLOPE_DIFF — cells steeper than this are impassable.
+const MAX_SLOPE_DIFF: float = 0.5
+
 @export var shape: HeightMapShape3D:
 	set(v):
 		shape = v
@@ -33,7 +36,10 @@ extends Node3D
 		_apply_to_instance()
 
 func _ready() -> void:
-	_apply_to_instance()
+	if shape != null:
+		build()
+	else:
+		_apply_to_instance()
 
 
 ## Build the mesh from the current `shape` and store it in `mesh`.
@@ -47,6 +53,18 @@ func build() -> void:
 	mesh = _build_mesh()
 	if material != null:
 		mesh.surface_set_material(0, material)
+	_sync_shader_grid()
+
+
+## Keep the checkerboard shader's cell count in lockstep with the heightmap so
+## each grid cell renders as exactly one checker square.  No-op when the material
+## isn't a ShaderMaterial (the parameters are simply ignored if absent).
+func _sync_shader_grid() -> void:
+	var sm := material as ShaderMaterial
+	if sm == null or shape == null:
+		return
+	sm.set_shader_parameter("grid_width", shape.map_width - 1)
+	sm.set_shader_parameter("grid_depth", shape.map_depth - 1)
 
 func _apply_to_instance() -> void:
 	var mi: MeshInstance3D = get_node_or_null("GeneratedMesh")
@@ -56,6 +74,7 @@ func _apply_to_instance() -> void:
 		add_child(mi)
 	mi.mesh = mesh
 	mi.material_override = material
+	_sync_shader_grid()
 
 
 func _build_mesh() -> ArrayMesh:
@@ -63,47 +82,50 @@ func _build_mesh() -> ArrayMesh:
 	var d: int = shape.map_depth
 	var hw: float = (w - 1) * 0.5
 	var hd: float = (d - 1) * 0.5
+	var gw: int = w - 1
+	var gd: int = d - 1
 	var data: PackedFloat32Array = shape.map_data
 
+	# Each passable cell gets its own 4 vertices.  Impassable cells (corner-height
+	# spread > MAX_SLOPE_DIFF) are omitted entirely, leaving literal geometry holes
+	# so the background shows through without any transparency shader tricks.
 	var verts   := PackedVector3Array()
 	var uvs     := PackedVector2Array()
 	var normals := PackedVector3Array()
 	var indices := PackedInt32Array()
 
-	verts.resize(w * d)
-	uvs.resize(w * d)
-	normals.resize(w * d)
+	for z in gd:
+		for x in gw:
+			var h00: float = data[ z      * w + x    ]
+			var h10: float = data[ z      * w + x + 1]
+			var h11: float = data[(z + 1) * w + x + 1]
+			var h01: float = data[(z + 1) * w + x    ]
 
-	# One vertex per heightmap corner, centred at origin.
-	for z in d:
-		for x in w:
-			var i: int = z * w + x
-			verts[i]   = Vector3(x - hw, data[i], z - hd)
-			uvs[i]     = Vector2(float(x) / (w - 1), float(z) / (d - 1))
-			normals[i] = Vector3.ZERO
+			var spread: float = maxf(maxf(h00, h10), maxf(h11, h01)) \
+							  - minf(minf(h00, h10), minf(h11, h01))
+			if spread > MAX_SLOPE_DIFF:
+				continue
 
-	# Two triangles per cell, winding CCW from above so normals point +Y.
-	for z in (d - 1):
-		for x in (w - 1):
-			var i00: int = z * w + x
-			var i10: int = z * w + x + 1
-			var i01: int = (z + 1) * w + x
-			var i11: int = (z + 1) * w + x + 1
+			var base: int = verts.size()
 
-			# fn1: triangle (i00, i10, i11)
-			# fn2: triangle (i00, i11, i01)
-			var fn1: Vector3 = (verts[i10] - verts[i00]).cross(verts[i11] - verts[i00])
-			var fn2: Vector3 = (verts[i11] - verts[i00]).cross(verts[i01] - verts[i00])
+			verts.append(Vector3(x     - hw, h00, z     - hd))
+			verts.append(Vector3(x + 1 - hw, h10, z     - hd))
+			verts.append(Vector3(x + 1 - hw, h11, z + 1 - hd))
+			verts.append(Vector3(x     - hw, h01, z + 1 - hd))
 
-			normals[i00] += fn1 + fn2
-			normals[i10] += fn1
-			normals[i11] += fn1 + fn2
-			normals[i01] += fn2
+			uvs.append(Vector2(float(x    ) / gw, float(z    ) / gd))
+			uvs.append(Vector2(float(x + 1) / gw, float(z    ) / gd))
+			uvs.append(Vector2(float(x + 1) / gw, float(z + 1) / gd))
+			uvs.append(Vector2(float(x    ) / gw, float(z + 1) / gd))
 
-			indices.append_array([i00, i10, i11, i00, i11, i01])
+			var fn: Vector3 = (verts[base + 1] - verts[base]) \
+							   .cross(verts[base + 3] - verts[base]).normalized()
+			normals.append(fn)
+			normals.append(fn)
+			normals.append(fn)
+			normals.append(fn)
 
-	for i in normals.size():
-		normals[i] = normals[i].normalized()
+			indices.append_array([base, base+1, base+2, base, base+2, base+3])
 
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)

@@ -150,13 +150,14 @@ command_launch={
 
 [layer_names]
 
-3d_physics/layer_1="body"
+3d_physics/layer_1="MOVEMENT_OBSTRUCTION"
 3d_navigation/layer_1="EverythingElseTbh"
-3d_physics/layer_2="structure"
+3d_physics/layer_2="TARGETABLE"
 3d_navigation/layer_2="NavigationFloor"
-3d_physics/layer_5="ground"
-3d_physics/layer_6="water"
-3d_physics/layer_9="selection"
+3d_physics/layer_3="STRUCTURE_BLOCKER"
+3d_physics/layer_4="STEALTH"
+3d_physics/layer_8="TERRAIN"
+3d_physics/layer_9="SELECTION"
 
 [physics]
 
@@ -164,4 +165,4 @@ common/physics_ticks_per_second=30
 
 [rendering]
 
-environment/defaults/default_clear_color=Color(0.47515643, 0.93000114, 0.79356915, 1)
+environment/defaults/default_clear_color=Color(0.48621997, 0.2852, 0.92, 1)

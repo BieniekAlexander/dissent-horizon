@@ -15,7 +15,7 @@ armor = 1
 hp_max = 500.0
 
 [node name="Sprite" parent="." index="0"]
-transform = Transform3D(15, 0, 0, 0, 2.044, 0, 0, 0, 14.105, 0, 0, 0)
+transform = Transform3D(7.5, 0, 0, 0, 1.022, 0, 0, 0, 7.0525, 0, 0, 0)
 texture = ExtResource("3_woms5")
 
 [node name="Obstruction" parent="." index="17"]

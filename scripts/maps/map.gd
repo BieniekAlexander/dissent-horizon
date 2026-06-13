@@ -10,12 +10,20 @@ extends Node3D
 ## This is the single source of truth for heightmap data; the StaticBody3D
 ## under NavigationRegion/Body may hold a reference to the same resource for
 ## physics collision but is no longer the authoritative data source.
-@export var height_map: HeightMapShape3D
+@export var height_map: HeightMapShape3D:
+	set(v):
+		if height_map != null and height_map.changed.is_connected(_on_height_shape_changed):
+			height_map.changed.disconnect(_on_height_shape_changed)
+		height_map = v
+		if is_node_ready() and Engine.is_editor_hint():
+			_on_height_map_replaced()
 
-## StaticBody3D retained as a physics collider for future terrain raycasts.
-## Its global_transform is still consumed by NavManager until that path is
-## updated; Map coordinate functions now use Map's own global_transform instead.
+## StaticBody3D retained as a physics collider for terrain raycasts.
 @onready var terrain_body: StaticBody3D = $NavigationRegion/Body
+
+## CollisionShape3D on the terrain body; kept in sync with height_map at runtime
+## so the physics shape always matches the authoritative heightmap resource.
+@onready var _terrain_collision_shape: CollisionShape3D = $NavigationRegion/Body/Shape
 
 @onready var nav_region: NavigationRegion3D = $NavigationRegion
 
@@ -24,9 +32,9 @@ extends Node3D
 var _pin_container: Node3D
 
 ## World-space side length of one terrain cell.
-## Encoded as Map's own scale (set to 2 in the scene) so that
+## Encoded as Map's own scale (set to 1 in the scene) so that
 ## global_transform serves directly as the heightmap-to-world frame.
-const CELL_SIZE: float = 2.0
+const CELL_SIZE: float = 1.0
 
 #### GRID
 var cell_grid: Array = []
@@ -176,6 +184,15 @@ func remove_structure(a_structure: Commandable, _rebake: bool = true) -> void:
 	structure_cell_map.erase(a_structure)
 
 
+## Apply a per-cell impassability mask (water / hazard / scripted no-go) on top of
+## the terrain.  Cell-indexed (index = z*(map_width-1)+x); empty clears it.  The
+## navmesh rebuilds automatically to route around the blocked cells.  See
+## BlockMaskGenerator for a connectivity-safe producer.
+func set_blocked_mask(mask: PackedByteArray) -> void:
+	if terrain_grid != null:
+		terrain_grid.set_blocked_mask(mask)
+
+
 
 # Returns the first point on the navmesh along a line, or Vector3.INF if none.
 # from and to are Vector3, nav_map is a RID from a NavigationRegion3D.
@@ -234,6 +251,8 @@ func _ready() -> void:
 	assert(height_map   != null, "Map: height_map export must be assigned in the inspector")
 	assert(terrain_body != null, "Map: terrain_body node not found at NavigationRegion/Body")
 
+	_terrain_collision_shape.shape = height_map
+
 	terrain_grid = TerrainGrid.new()
 	terrain_grid.height_map   = height_map
 	terrain_grid.terrain_body = terrain_body
@@ -251,6 +270,7 @@ func _ready() -> void:
 	nav_manager.navigation_region = nav_region
 	nav_manager.terrain_grid      = terrain_grid
 	add_child(nav_manager)
+
 #endregion
 
 
@@ -360,6 +380,29 @@ func _sync_height_pins() -> void:
 	_pin_updating = false
 
 
+func _on_height_map_replaced() -> void:
+	if height_map == null:
+		return
+	if not height_map.changed.is_connected(_on_height_shape_changed):
+		height_map.changed.connect(_on_height_shape_changed)
+	_on_height_shape_changed()
+	_rebuild_visual_mesh()
+	if _terrain_collision_shape != null:
+		_terrain_collision_shape.shape = height_map
+
+
+func _rebuild_visual_mesh() -> void:
+	if terrain_body == null:
+		return
+	var gen := terrain_body.get_node_or_null("HeightmapMeshGenerator") as HeightmapMeshGenerator
+	if gen == null:
+		return
+	if gen.shape != height_map:
+		gen.shape = height_map  # setter calls build() automatically
+	else:
+		gen.build()
+
+
 func _on_pin_height_changed(pin: HeightPin) -> void:
 	if _pin_updating or height_map == null:
 		return
@@ -389,6 +432,4 @@ func _on_pin_height_changed(pin: HeightPin) -> void:
 	height_map.map_data = data
 	_pin_updating = false
 
-	var gen := terrain_body.get_node_or_null("HeightmapMeshGenerator") as HeightmapMeshGenerator
-	if gen != null:
-		gen.build()
+	_rebuild_visual_mesh()

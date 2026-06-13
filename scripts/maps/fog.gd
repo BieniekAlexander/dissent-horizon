@@ -7,7 +7,7 @@ extends MeshInstance3D
 ##   IN_SIGHT  — tile is inside a player unit's vision radius this frame.
 enum TerrainVisibility { UNSEEN, EXPLORED, IN_SIGHT }
 
-var POINTS_PER_UNIT: float = 2.0
+var POINTS_PER_UNIT: float = 1.0  # overwritten in _initialize() = 1.0 / Map.CELL_SIZE
 # L8 byte value for "explored but not currently visible" (alpha ≈ 0.5)
 const EXPLORED_ALPHA: int = 127
 

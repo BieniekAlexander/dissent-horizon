@@ -10,7 +10,7 @@
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_88hoo"]
 height = 100.0
-radius = 7.0
+radius = 3.5
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ihkwo"]
 shading_mode = 0
@@ -21,7 +21,7 @@ material = SubResource("StandardMaterial3D_ihkwo")
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_vng"]
 height = 100.0
-radius = 30.0
+radius = 15.0
 
 [node name="Unit" instance=ExtResource("1_au4so")]
 type = 4354
@@ -34,10 +34,10 @@ disabled = true
 hp_max = 12000.0
 
 [node name="Movement" parent="." index="8"]
-speed = 0.08
+speed = 0.04
 
 [node name="Sprite" parent="." index="12"]
-transform = Transform3D(3, 0, 0, 0, 2.12132, -2.12132, 0, 2.12132, 2.12132, 0, 0.35842848, 0)
+transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17921424, 0)
 texture = ExtResource("3_m16ju")
 hframes = 3
 

@@ -171,6 +171,7 @@ const BUILD_TOOL_NAMES: Array = [
 	"command_tool_lab",
 	"command_tool_compound",
 	"command_tool_armory",
+	"command_tool_turret",
 ]
 
 ## The build-tool command names the given entity can construct, in menu order.

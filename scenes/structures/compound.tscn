@@ -4,11 +4,11 @@
 [ext_resource type="Texture2D" uid="uid://bm3tdpihnqyb" path="res://assets/entities/compound.png" id="3_i3cr2"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1qdpe"]
-size = Vector3(4, 10, 4)
+size = Vector3(2, 10, 2)
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_niu5p"]
 height = 100.0
-radius = 10.0
+radius = 5.0
 
 [sub_resource type="Gradient" id="Gradient_hp_back"]
 offsets = PackedFloat32Array(0)
@@ -29,11 +29,7 @@ process_physics_priority = 10
 type = 4612
 
 [node name="Body" parent="." index="2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("BoxShape3D_1qdpe")
-
-[node name="AggroRange" parent="." index="3"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
 [node name="VisionRange" parent="." index="4"]
 shape = SubResource("CylinderShape3D_niu5p")
@@ -42,23 +38,26 @@ shape = SubResource("CylinderShape3D_niu5p")
 armor = 1
 hp_max = 500.0
 
-[node name="Sprite" parent="." index="10"]
-transform = Transform3D(18, 0, 0, 0, 1.734533, -11.96849, 0, 1.734533, 11.96849, 0, 1.3366241, 0)
+[node name="Obstruction" parent="." index="7"]
+dimensions = Vector2i(3, 3)
+
+[node name="Sprite" parent="." index="12"]
+transform = Transform3D(9, 0, 0, 0, 0.8672665, -5.984245, 0, 0.8672665, 5.984245, 0, 0.66831205, 0)
 layers = 1
 texture = ExtResource("3_i3cr2")
 
-[node name="HPBar" parent="." index="11"]
-transform = Transform3D(0.3, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.1, -0.2)
+[node name="HPBar" parent="." index="13"]
+transform = Transform3D(0.15, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.05, -0.1)
 texture = SubResource("GradientTexture1D_hp_back")
 
 [node name="HPBarFill" parent="HPBar" index="0"]
 texture = SubResource("GradientTexture1D_hp_fill")
 
-[node name="SelectionIndicator" parent="." index="12"]
-transform = Transform3D(0.25, 0, 0, 0, 0.176777, 0.176777, 0, -0.176777, 0.176777, 0, 0, 0)
+[node name="SelectionIndicator" parent="." index="14"]
+transform = Transform3D(0.125, 0, 0, 0, 0.0883885, 0.0883885, 0, -0.0883885, 0.0883885, 0, 0, 0)
 
-[node name="Production" parent="." index="14"]
+[node name="Production" parent="." index="16"]
 producible_types = Array[int]([4353, 4354])
 
-[node name="Obstruction" parent="." index="17"]
-dimensions = Vector2i(3, 3)
+[node name="StructureSnap" parent="." index="20"]
+allow_uneven_terrain = false

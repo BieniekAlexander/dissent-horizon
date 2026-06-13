@@ -18,6 +18,7 @@ static var command_tool_map: Dictionary = {
 	"command_tool_lab": Tool.new(Entity.Type.STRUCTURE_LAB, load("res://scenes/structures/lab.tscn")),
 	"command_tool_compound": Tool.new(Entity.Type.STRUCTURE_COMPOUND, load("res://scenes/structures/compound.tscn")),
 	"command_tool_armory": Tool.new(Entity.Type.STRUCTURE_ARMORY, load("res://scenes/structures/armory.tscn")),
+	"command_tool_turret": Tool.new(Entity.Type.STRUCTURE_TURRET, load("res://scenes/structures/turret.tscn")),
 	# Train tools (structures → units).
 	"command_tool_technician": Tool.new(Entity.Type.UNIT_TECHNICIAN, load("res://scenes/units/technician.tscn")),
 	"command_tool_sentry": Tool.new(Entity.Type.UNIT_SENTRY, load("res://scenes/units/sentry.tscn")),

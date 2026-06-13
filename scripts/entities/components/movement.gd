@@ -34,14 +34,14 @@ enum Mode { DEFAULT, AERIAL }
 @export var max_deceleration: float = -INF
 
 ## How many world-units above the terrain surface an AERIAL unit flies.
-const AERIAL_HEIGHT: float = 3.0
+const AERIAL_HEIGHT: float = 1.5
 
 ## XZ arrival radius for AERIAL mode (mirrors NavigationAgent3D's
 ## target_desired_distance used in DEFAULT mode).
-const AERIAL_ARRIVAL_DISTANCE: float = 0.25
+const AERIAL_ARRIVAL_DISTANCE: float = 0.125
 
 ## Movement speed in world-units per physics tick.
-@export var speed: float = 0.25
+@export var speed: float = 0.125
 
 ## Convenience read-only: speed expressed in world-units per second.
 var speed_per_second: float:

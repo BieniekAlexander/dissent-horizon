@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="GraphPlateauHeightmapGenerator" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/maps/terrain/graph_plateau_heightmap_generator.gd" id="1_twrgt"]
+
+[resource]
+script = ExtResource("1_twrgt")
+region_count = 22
+height_levels = 5
+seed = 7

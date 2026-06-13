@@ -12,11 +12,11 @@
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_aggro0"]
 height = 100.0
-radius = 4.0
+radius = 2.0
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_visn0"]
 height = 100.0
-radius = 10.0
+radius = 5.0
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_cx6aj"]
 
@@ -47,10 +47,10 @@ script = ExtResource("2_3agr1")
 [node name="#####STATE#####" type="Node" parent="."]
 
 [node name="NavigationAgent" type="NavigationAgent3D" parent="."]
-target_desired_distance = 0.25
-path_max_distance = 10.01
+target_desired_distance = 0.125
+path_max_distance = 5.005
 avoidance_enabled = true
-neighbor_distance = 5.0
+neighbor_distance = 2.5
 max_neighbors = 5
 time_horizon_obstacles = 1.0
 avoidance_layers = 0
@@ -93,7 +93,7 @@ render_priority = 1
 texture = ExtResource("2_tefpw")
 
 [node name="HPBar" type="Sprite3D" parent="."]
-transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.6118286, -0.30808753)
+transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.3059143, -0.154043765)
 pixel_size = 0.0001
 render_priority = 8
 texture = SubResource("GradientTexture1D_u25hc")
@@ -109,7 +109,7 @@ render_priority = 5
 texture = SubResource("GradientTexture1D_5lb30")
 
 [node name="SelectionIndicator" type="Sprite3D" parent="."]
-transform = Transform3D(0.5, 0, 0, 0, 0.353553, 0.353553, 0, -0.353553, 0.353553, 0, 0, 0)
+transform = Transform3D(0.25, 0, 0, 0, 0.1767765, 0.1767765, 0, -0.1767765, 0.1767765, 0, 0, 0)
 visible = false
 texture = ExtResource("3_uy385")
 

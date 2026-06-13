@@ -12,6 +12,11 @@
 class_name StructureSnap
 extends Node
 
+## When false (the default), the structure may only be placed on perfectly flat
+## cells.  Set to true for structures that should be placeable on steep terrain
+## — for example, terrain-blocking obstacles.
+@export var allow_uneven_terrain: bool = false
+
 var _last_snapped_pos: Vector3 = Vector3.INF
 
 

@@ -183,8 +183,8 @@ static func nearest_footprint_adjacent_cell(
 
 ## How far (in XZ world units) a candidate point may drift from the navmesh
 ## closest-point snap before it is considered off-navmesh.  Half a cell width
-## (CELL_SIZE = 2.0) keeps points well inside valid navmesh quads.
-const _NAV_SNAP_TOLERANCE: float = 1.0
+## (CELL_SIZE = 1.0) keeps points well inside valid navmesh quads.
+const _NAV_SNAP_TOLERANCE: float = 0.5
 
 static func get_nonoverlapping_points(
 	map: Map,
