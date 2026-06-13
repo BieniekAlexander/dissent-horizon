@@ -1,5 +1,6 @@
+@tool
 class_name Trigger
-extends Resource
+extends Node
 
 enum ConditionMode {
 	## All conditions must be true for the trigger to fire.
@@ -12,6 +13,7 @@ enum ConditionMode {
 @export var label: String = ""
 @export var conditions: Array[Condition] = []
 @export var condition_mode: ConditionMode = ConditionMode.AND
+## The event nodes fired when this trigger's conditions are met, in order.
 @export var events: Array[ScenarioEvent] = []
 ## When true the trigger disables itself after firing once.
 @export var one_shot: bool = true
@@ -33,7 +35,8 @@ func is_satisfied(manager: ScenarioEventManager) -> bool:
 
 func fire(manager: ScenarioEventManager) -> void:
 	for event: ScenarioEvent in events:
-		event.execute(manager)
+		if event != null:
+			event.execute(manager)
 	if one_shot:
 		enabled = false
 	else:

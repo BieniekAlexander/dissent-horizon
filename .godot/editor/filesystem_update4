@@ -1,12 +1,5 @@
-res://scenes/tools/heightmap_workbench.tscn
+res://scenes/scenarios/s1.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scenes/scenarios/s1.gdshader
-res://resources/scenarios/scenario1/wave_1.tres
-res://resources/scenarios/scenario1/wave_2.tres
-res://resources/scenarios/scenario1/wave_3.tres
-res://resources/scenarios/scenario1/victory.tres
-res://resources/heightmap_workbench/graph_plateau.tres
 res://scripts/rendering/shaders/fog.gdshader
-res://resources/heightmap_workbench/terrain.tres
-res://scenes/scenarios/s1.tscn

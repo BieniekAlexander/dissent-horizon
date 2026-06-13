@@ -1,12 +1,12 @@
 # Introduction
 [[world-building#Haustoria|haustoria]]
 # Overview
-| **Themes**   | Siege, Sprawl, Constitution                 |
-| ------------ | ------------------------------------------- |
-| **Minion**   | Vulnerable Vehicle                          |
-| Morale       |                                             |
-| **Dominion** | Collect POWs from neutral or enemy infantry |
-| Vibes        | JP                                          |
+| **Themes**   | Siege, Sprawl, Constitution       |
+| ------------ | --------------------------------- |
+| **Minion**   | Vulnerable Vehicle                |
+| Vigor        | Typical power plants              |
+| **Dominion** | Collect neutral or enemy infantry |
+| Vibes        | JP                                |
 - Play style
 	- Tanky, extract units early-game
 	- Turtly, difficult to penetrate while aggregating resources

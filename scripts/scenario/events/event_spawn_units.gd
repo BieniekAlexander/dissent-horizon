@@ -1,16 +1,17 @@
+@tool
 class_name EventSpawnUnits
 extends ScenarioEvent
+
+## Spawns `count` instances of `scene` for `commander_id` at this node's
+## global_position. Each EventCommandPoint child (in scene-tree order) adds one
+## command to the chain issued to every spawned unit.
 
 @export var commander_id: int = 2
 @export var scene: PackedScene
 @export var count: int = 1
-## Grid cell around which units appear. Actual placement is deconflicted via
-## SpaceUtils so units never stack on spawn.
-@export var spawn_grid_cell: Vector2i = Vector2i.ZERO
-## If not (-1,-1), each spawned unit is issued this command immediately.
-@export var move_to_grid_cell: Vector2i = Vector2i(-1, -1)
-## Command to issue after spawn. "move" = basic move; "attack_move" = attack-move.
-@export_enum("move", "attack_move") var move_command: String = "attack_move"
+
+const _SPAWN_RING_RADIUS := 1.0
+
 
 func execute(manager: ScenarioEventManager) -> void:
 	if scene == null:
@@ -22,7 +23,7 @@ func execute(manager: ScenarioEventManager) -> void:
 	if map == null:
 		return
 
-	var spawn_center := VU.inXZ(map.grid_to_world(spawn_grid_cell))
+	var spawn_center := VU.inXZ(global_position)
 
 	# Instantiate first so we can read the unit's collision radius for spacing.
 	var spawned: Array[Commandable] = []
@@ -57,20 +58,17 @@ func execute(manager: ScenarioEventManager) -> void:
 		var place_xz: Vector2 = points[i] if i < points.size() else spawn_center
 		map.add_entity(spawned[i], place_xz, commander)
 
-	if move_to_grid_cell == Vector2i(-1, -1):
+	# Follow-up command chain: one command per EventCommandPoint child, in
+	# scene-tree order. No points → units just spawn and idle.
+	var command_points: Array[EventCommandPoint] = _command_points()
+	if command_points.is_empty():
 		return
 
-	# Snap the destination to the nearest navmesh point so the agents always have
-	# a reachable target.
-	var nav_map := map.nav_region.get_navigation_map()
-	var dest := NavigationServer3D.map_get_closest_point(
-		nav_map, map.grid_to_world(move_to_grid_cell)
-	)
-
 	for unit: Commandable in spawned:
-		var msg := CommandMessage.new(map, null, null, dest)
-		var cmd: Command = AttackMove.new(msg) if move_command == "attack_move" else Command.new(msg)
-		unit.update_commands(cmd)
+		var chain: Array[Command] = []
+		for point: EventCommandPoint in command_points:
+			chain.append(point.to_command(map))
+		unit.update_commands(chain)
 		# Prime the nav target immediately. CommandReceiver only calls
 		# load_destination when the agent's target_position differs from the
 		# command's — but a freshly spawned NavigationAgent3D defaults to (0,0,0).
@@ -78,4 +76,22 @@ func execute(manager: ScenarioEventManager) -> void:
 		# skips the load and the unit treats navigation as already finished,
 		# dropping the command on its first tick. Setting the target explicitly
 		# here kicks off path computation so the unit actually advances.
-		unit.load_destination(cmd)
+		unit.load_destination(chain[0])
+
+
+## Direct EventCommandPoint children, in scene-tree order.
+func _command_points() -> Array[EventCommandPoint]:
+	var result: Array[EventCommandPoint] = []
+	for child in get_children():
+		if child is EventCommandPoint:
+			result.append(child)
+	return result
+
+
+func _draw_editor_gizmo(verts: PackedVector3Array) -> void:
+	_gizmo_ring(verts, Vector3.ZERO, _SPAWN_RING_RADIUS)
+	# Polyline from the spawn point through each command point (local space).
+	var path: Array[Vector3] = [Vector3.ZERO]
+	for point: EventCommandPoint in _command_points():
+		path.append(point.position)
+	_gizmo_polyline(verts, path)

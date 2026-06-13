@@ -176,8 +176,14 @@ func collision_extent_toward(target_xz: Vector2, layer: int) -> float:
 ## `layer`. The CharacterBody3D's own Body shape carries the movement/targetable
 ## layers; otherwise we search child CollisionObject3D nodes (e.g. Area3D ranges).
 func _collision_shape_for_layer(layer: int) -> Shape3D:
-	if (collision_layer & layer) != 0 and collider != null:
-		return collider.shape
+	if (collision_layer & layer) != 0:
+		# `collider` is @onready, so it's still null on a freshly instantiated
+		# instance that hasn't entered the tree yet (e.g. spawned units measured
+		# for spacing before placement). _resolve_collider() uses get_node_or_null,
+		# which works out-of-tree, so resolve on demand when the cached var is null.
+		var shape_node := collider if collider != null else _resolve_collider()
+		if shape_node != null:
+			return shape_node.shape
 	for child in get_children():
 		if child is CollisionObject3D and (child.collision_layer & layer) != 0:
 			for sub in child.get_children():

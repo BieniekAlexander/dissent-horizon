@@ -46,9 +46,11 @@ func _sight_disc(radius_px: int) -> Array:
 func _physics_process(_delta: float) -> void:
 	if _fog_texture == null:
 		return
-	visible = not Input.is_action_pressed("debug_info")
-	if not visible:
-		return
+	# The debug view (hold Space) only hides the fog MESH so the whole map shows;
+	# the fog STATE keeps updating underneath so reveals/explored data stay current
+	# (and enemy sight logic keeps running) while the button is held.
+	var debug_view: bool = Input.is_action_pressed("debug_info")
+	visible = not debug_view
 
 	_fog_bytes = _explored_bytes.duplicate()
 	for entity: Entity in get_tree().get_nodes_in_group("commandable"):
@@ -78,7 +80,9 @@ func _physics_process(_delta: float) -> void:
 		var pixel: Vector2i = _world_to_pixel(VU.inXZ(entity.global_position))
 		var in_bounds: bool = pixel.x >= 0 and pixel.x < _img_width and pixel.y >= 0 and pixel.y < _img_height
 		var fog_clear: bool = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
-		entity.visible = fog_clear
+		# While debug-viewing, reveal every entity too; otherwise enemies show only
+		# where the fog is clear. in_sight_range below stays pure game logic.
+		entity.visible = debug_view or fog_clear
 		# in_sight_range: true only when the fog pixel is clear AND the entity is
 		# not actively stealthed. A stealthed enemy in a revealed fog cell is
 		# technically "visible" (the pixel is clear) but is perceptually hidden —

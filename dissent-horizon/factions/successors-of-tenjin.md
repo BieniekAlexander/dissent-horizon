@@ -5,7 +5,7 @@
 | **Themes**   | Advanced, Volatile, Elusiveness                                        |
 | ------------ | ---------------------------------------------------------------------- |
 | **Minion**   | Vulnerable Infantry                                                    |
-| Morale       | Reconnaissance Vehicles                                                |
+| Vigor        | Reconnaissance Vehicles                                                |
 | **Dominion** | Reactors generate, but have some byproduct that needs to be dealt with |
 | Vibes        | Guile                                                                  |
 - Play Style

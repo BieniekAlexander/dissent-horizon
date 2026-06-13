@@ -4,7 +4,7 @@
 | **Themes**   | Decentralized, Aerial, Pacifying                              |
 | ------------ | ------------------------------------------------------------- |
 | **Minion**   | Slow Aircraft                                                 |
-| Morale       | Large power plant building                                    |
+| Vigor        | Large power plant building                                    |
 | **Dominion** | Build an obelisk, where dominion is generated per nearby area |
 | Vibes        | Elena                                                         |
 - Play Style

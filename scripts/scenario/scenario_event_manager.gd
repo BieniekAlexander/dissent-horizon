@@ -1,13 +1,14 @@
 class_name ScenarioEventManager
 extends Node
 
-## Evaluates a list of Triggers each physics tick and fires their events when
-## conditions are met. Add this as a direct child of the Scenario node, then
-## populate the triggers array in the inspector (or via code) with Trigger
-## resources. Each Trigger holds Condition and ScenarioEvent resources that
-## are authored in the editor and serialized as .tres files.
+## Evaluates its Trigger child nodes each physics tick and fires their events
+## when conditions are met. Add this as a direct child of the Scenario node, then
+## add Trigger child nodes (each with its conditions authored in the inspector and
+## references to the ScenarioEvent nodes it fires). Event nodes are also placed as
+## children of this manager so they can be positioned in the world.
 
-@export var triggers: Array[Trigger] = []
+## Populated in _ready() from the Trigger child nodes, in scene-tree order.
+var triggers: Array[Trigger] = []
 
 ## Emitted when an EventShowMessage fires. Connect to HUD to display it.
 signal message_requested(text: String)
@@ -31,6 +32,10 @@ func _ready() -> void:
 		map = scenario.get_node_or_null("Map") as Map
 	else:
 		push_warning("ScenarioEventManager: expected parent to be Scenario, got %s" % parent)
+
+	for child in get_children():
+		if child is Trigger:
+			triggers.append(child)
 
 	for t: Trigger in triggers:
 		t.enabled = not t.starts_disabled
