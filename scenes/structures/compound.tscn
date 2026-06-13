@@ -58,6 +58,3 @@ transform = Transform3D(0.125, 0, 0, 0, 0.0883885, 0.0883885, 0, -0.0883885, 0.0
 
 [node name="Production" parent="." index="16"]
 producible_types = Array[int]([4353, 4354])
-
-[node name="StructureSnap" parent="." index="20"]
-allow_uneven_terrain = false

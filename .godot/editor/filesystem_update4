@@ -6,3 +6,6 @@ res://scripts/rendering/shaders/fog.gdshader
 res://scenes/scenarios/s1.tscn
 res://scripts/interface/commands/build.gd
 res://scripts/entities/components/obstruction.gd
+res://scripts/entities/entity.gd
+res://scripts/maps/map.gd
+res://scripts/maps/terrain/terrain_grid.gd

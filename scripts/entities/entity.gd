@@ -253,7 +253,7 @@ func _auto_initialize() -> void:
 	# Grid registration: editor-placed structures aren't spawned through
 	# map.add_entity(), so add_structure() has never been called for them.
 	# pre_init_pos is the visual centre; add_structure resolves the footprint from it
-	# via Map.footprint_origin — identical to the editor StructureSnap, so an
+	# via Map.footprint_origin — identical to the editor terrain-snap plugin, so an
 	# even-sized structure registers on the same cells it snapped to (no load shift).
 	var obstruction := get_node_or_null("Obstruction") as Obstruction
 	if obstruction != null and not found_map.structure_cell_map.has(self):

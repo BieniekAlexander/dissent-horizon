@@ -95,9 +95,6 @@ texture = SubResource("GradientTexture1D_4y8y4")
 region_enabled = true
 region_rect = Rect2(2, 0, 0, 0)
 
-[node name="StructureSnap" parent="." index="21"]
-allow_uneven_terrain = true
-
 [node name="TrainBar" parent="." index="22"]
 texture = SubResource("GradientTexture1D_1klos")
 

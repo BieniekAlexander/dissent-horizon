@@ -118,7 +118,7 @@ func footprint_origin(world_xz: Vector2, dims: Vector2i) -> Vector2i:
 
 ## World-space centroid of the `dims` footprint anchored at `origin` (averages the
 ## cell centres, so terrain height is sampled too). This is the same placement
-## add_structure uses; the editor StructureSnap snaps to it.
+## add_structure uses, and the editor terrain-snap plugin snaps to the same point.
 func footprint_centroid(origin: Vector2i, dims: Vector2i) -> Vector3:
 	var centroid := Vector3.ZERO
 	var count := 0
@@ -179,8 +179,8 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 
 ## Register a structure on the grid, centred on `world_center` (world-space XZ).
 ## The footprint origin is resolved with footprint_origin() — the SAME function the
-## editor StructureSnap, the build preview (Commandable.valid_placement) and scene
-## auto-init use — so a structure occupies the identical cells and lands at the
+## editor terrain-snap plugin, the build preview (Commandable.valid_placement) and
+## scene auto-init use — so a structure occupies the identical cells and lands at the
 ## identical position in every case (even-sized footprints centre on a grid corner,
 ## odd on a cell).
 func add_structure(a_structure: Commandable, world_center: Vector2, rotation: int = 0, _rebake: bool = true) -> void:
@@ -208,7 +208,7 @@ func add_structure(a_structure: Commandable, world_center: Vector2, rotation: in
 
 	# Footprint size from the Obstruction component (1×1 fallback). footprint_origin
 	# centres the structure parity-correctly; footprint_centroid is the same point
-	# StructureSnap snaps to in the editor.
+	# the editor terrain-snap plugin snaps to.
 	var obs := a_structure.get_node_or_null("Obstruction") as Obstruction
 	var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
 	var origin := footprint_origin(world_center, dims)

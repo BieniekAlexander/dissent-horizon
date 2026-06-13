@@ -27,6 +27,3 @@ armor = 1
 [node name="Sprite" parent="." index="14"]
 transform = Transform3D(6, 0, 0, 0, 0.7700393, -5.3181496, 0, 0.7700392, 5.3181505, 0, 0.7, 0)
 texture = ExtResource("3_wykrx")
-
-[node name="StructureSnap" parent="." index="21"]
-allow_uneven_terrain = false
