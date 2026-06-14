@@ -306,16 +306,30 @@ static func _resolve_command_class(
 		):
 			return DropOff
 
-	# Friendly Shelter target → Garrison (DEFAULT movement units only).
+	# Builder targeting a friendly under-construction structure → resume
+	# construction (Repair). Mirrors the Attack reinterpretation: the click is
+	# unambiguous — same-commander, not-yet-built, actor can build that type —
+	# so we short-circuit before the generic move/rally fallthrough.
+	var target_cmd := target as Commandable
+	if (
+		target_cmd != null
+		and target_cmd.commander_id == a_actor.commander_id
+		and not target_cmd.is_built
+		and a_actor.has_node("Builds")
+		and (a_actor.get_node("Builds") as Builds).can_build(target.type)
+	):
+		return Repair
+
+	# Friendly Shelter target → Garrison (GROUNDED_DIRECT movement units only).
 	# Inserted before the Attack check so it takes priority over any edge case
 	# where a structure could otherwise be attacked.
 	if (
-		target != null
-		and target is Commandable
-		and (target as Commandable).commander_id == a_actor.commander_id
+		target_cmd != null
+		and target_cmd.commander_id == a_actor.commander_id
+		and target_cmd.is_built
 		and target.has_node("Shelter")
 		and a_actor.has_node("Movement")
-		and (a_actor.get_node("Movement") as Movement).mode == Movement.Mode.DEFAULT
+		and (a_actor.get_node("Movement") as Movement).mode == Movement.Mode.GROUNDED_DIRECT
 	):
 		return Garrison
 

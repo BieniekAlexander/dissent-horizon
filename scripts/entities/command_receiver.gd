@@ -96,22 +96,32 @@ func _process_commands() -> void:
 	var new_commands: Variant = _command.get_updated_state(owner) if _command != null else null
 
 	if is_same(new_commands, null):
+		# Command dropped (e.g. target died, left aggro range, or command fulfilled).
+		# For FLYING units, anchor to the command's last-known destination so the
+		# orbit starts around where the action ended.
+		if _command != null and owner.movement != null \
+				and owner.movement.mode == Movement.Mode.FLYING:
+			owner.movement.set_anchor(_command.message.position)
 		_command = null
-		# TODO(RVO experiment): feed idle units a zero velocity so they keep
-		# refreshing their entry in the avoidance simulation. Without this, a unit
-		# that finishes moving and goes idle stops calling set_velocity entirely,
-		# so its last non-zero velocity can linger in the RVO sim — making nearby
-		# movers steer around a "ghost" heading instead of treating it as the
-		# stationary obstacle it now is. Zeroing here marks it as parked.
-		# CAVEAT: this also lets RVO compute a (possibly non-zero) avoidance
-		# velocity for the idle unit, which _on_velocity_computed will apply — so
-		# idle units may now drift aside when a mover pushes into them. That is in
-		# tension with "enemies don't get out of the way"; if it looks wrong, the
-		# fix is to keep feeding 0 here but suppress *applying* avoidance velocity
-		# for commandless units in Commandable._on_velocity_computed.
 		if owner.movement != null:
 			owner.movement.is_final_leg = false
-			owner.movement.set_velocity(Vector3.ZERO)
+			if owner.movement.mode == Movement.Mode.FLYING:
+				# Keep the unit moving along its orbit while idle.
+				owner.movement.set_velocity(owner.movement.compute_orbit_velocity())
+			else:
+				# TODO(RVO experiment): feed idle units a zero velocity so they keep
+				# refreshing their entry in the avoidance simulation. Without this, a unit
+				# that finishes moving and goes idle stops calling set_velocity entirely,
+				# so its last non-zero velocity can linger in the RVO sim — making nearby
+				# movers steer around a "ghost" heading instead of treating it as the
+				# stationary obstacle it now is. Zeroing here marks it as parked.
+				# CAVEAT: this also lets RVO compute a (possibly non-zero) avoidance
+				# velocity for the idle unit, which _on_velocity_computed will apply — so
+				# idle units may now drift aside when a mover pushes into them. That is in
+				# tension with "enemies don't get out of the way"; if it looks wrong, the
+				# fix is to keep feeding 0 here but suppress *applying* avoidance velocity
+				# for commandless units in Commandable._on_velocity_computed.
+				owner.movement.set_velocity(Vector3.ZERO)
 	elif !is_same(new_commands, _command) and !is_same(new_commands, null):
 		update_commands(new_commands, true, true)
 	elif _command.can_act(owner):
@@ -144,9 +154,17 @@ func _process_commands() -> void:
 			_followed = null
 			_follow_cmd = null
 			if target_died:
-				owner.movement.set_velocity(Vector3.ZERO)
-				owner.movement.is_final_leg = false
-				_command = null
+				if owner.movement.mode == Movement.Mode.FLYING:
+					# message.position holds the last-updated target position from
+					# before the target was freed — use it as the orbit anchor.
+					owner.movement.set_anchor(_command.message.position)
+					owner.movement.is_final_leg = false
+					_command = null
+					owner.movement.set_velocity(owner.movement.compute_orbit_velocity())
+				else:
+					owner.movement.set_velocity(Vector3.ZERO)
+					owner.movement.is_final_leg = false
+					_command = null
 				return
 
 		# Following: hold position once our MOVEMENT_OBSTRUCTION body would touch
@@ -164,18 +182,44 @@ func _process_commands() -> void:
 			# Keep velocity XZ-only so the RVO avoidance system receives a clean
 			# 2D input.  Vertical terrain tracking is handled per-tick in
 			# Commandable._physics_process via Map.terrain_height_at().
-			var prelim_velocity = owner.global_position.direction_to(next_path_position) * owner.movement.speed_per_second
+			var prelim_velocity: Vector3 = owner.global_position.direction_to(next_path_position) * owner.movement.speed_per_second
 			prelim_velocity.y = 0.0
-			# Tell Movement whether this is the final queued destination so it
-			# can apply braking when max_deceleration is bounded.
-			owner.movement.is_final_leg = _command_queue.is_empty()
+			# Brake only on the final queued destination, only for non-attack commands,
+			# and only for non-FLYING units. Flying units approach at full speed and
+			# decelerate naturally to orbit_speed once they transition to orbiting.
+			owner.movement.is_final_leg = _command_queue.is_empty() \
+					and not (_command is Attack) \
+					and owner.movement.mode != Movement.Mode.FLYING
 			owner.movement.set_velocity(prelim_velocity)
 		else:
-			owner.movement.set_target_position(owner.global_position)
-			owner.movement.is_final_leg = false
-			# A follow keeps its command on arrival; a plain move ends.
-			if followed == null:
-				_command = null
+			# HOVERING/FLYING pass-through: when there are more waypoints after this
+			# one, immediately load the next destination on the same tick rather than
+			# nulling the command and restarting on the next tick. This eliminates the
+			# one-tick standstill that would otherwise break the banking curve.
+			if (owner.movement.mode == Movement.Mode.HOVERING \
+					or owner.movement.mode == Movement.Mode.FLYING) \
+					and not _command_queue.is_empty() and followed == null:
+				_command = _command_queue.pop_front()
+				load_destination(_command)
+				owner.movement.is_final_leg = _command_queue.is_empty() \
+						and not (_command is Attack) \
+						and owner.movement.mode != Movement.Mode.FLYING
+				var next_pos: Vector3 = owner.movement.get_next_path_position()
+				var pv: Vector3 = owner.global_position.direction_to(next_pos) * owner.movement.speed_per_second
+				pv.y = 0.0
+				owner.movement.set_velocity(pv)
+			else:
+				owner.movement.is_final_leg = false
+				if owner.movement.mode == Movement.Mode.FLYING and followed == null:
+					# Arrived at destination with no further commands — orbit here.
+					owner.movement.set_anchor(owner.global_position)
+					_command = null
+					owner.movement.set_velocity(owner.movement.compute_orbit_velocity())
+				else:
+					owner.movement.set_target_position(owner.global_position)
+					# A follow keeps its command on arrival; a plain move ends.
+					if followed == null:
+						_command = null
 
 func _update_state() -> void:
 	if _command == null and not _command_queue.is_empty():

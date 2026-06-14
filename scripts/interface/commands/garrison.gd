@@ -7,7 +7,7 @@ static func requires_position() -> bool:
 
 ## Valid when:
 ##   - the target is a friendly Commandable that owns a Shelter component
-##   - the acting unit's Movement mode is DEFAULT
+##   - the acting unit's Movement mode is GROUNDED_DIRECT
 static func meets_precondition(
 	a_actor: Commandable,
 	a_message: CommandMessage
@@ -19,7 +19,9 @@ static func meets_precondition(
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	if not a_message.target.has_node("Shelter"):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if a_actor.movement == null or a_actor.movement.mode != Movement.Mode.DEFAULT:
+	if not (a_message.target as Commandable).is_built:
+		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	if a_actor.movement == null or a_actor.movement.mode != Movement.Mode.GROUNDED_DIRECT:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	if (a_message.target as Commandable).commander_id != a_actor.commander_id:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE

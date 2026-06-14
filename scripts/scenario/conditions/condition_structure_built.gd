@@ -27,7 +27,7 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 			return false
 		if commander_id >= 0 and c.commander_id != commander_id:
 			return false
-		return true
+		return c.is_built
 
 	# No cell constraint — check commander's structure_type_map.
 	for commander: Commander in manager.scenario.commanders:
@@ -37,10 +37,14 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 			for t: int in Entity.Type.values():
 				if t < 0:
 					continue
-				if not commander.structure_type_map[t].is_empty():
+				if commander.structure_type_map[t].get_values().any(
+					func(s: Commandable): return s.is_built
+				):
 					return true
 		else:
-			if not commander.structure_type_map[structure_type].is_empty():
+			if commander.structure_type_map[structure_type].get_values().any(
+				func(s: Commandable): return s.is_built
+			):
 				return true
 	return false
 #endregion

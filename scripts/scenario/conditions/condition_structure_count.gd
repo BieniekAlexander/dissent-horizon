@@ -16,6 +16,11 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 	var commander: Commander = manager.get_commander(commander_id)
 	if commander == null:
 		return false
+	# NOTE: counts ALL structures including those under construction. This is
+	# intentional for AT_MOST victory checks (a half-built enemy structure still
+	# exists and should prevent victory), but may be surprising for AT_LEAST
+	# economic triggers where only built structures provide income. Gate on
+	# Commandable.is_built inside the loop if a specific condition needs it.
 	var n := 0
 	if structure_type == Entity.Type.UNDEFINED:
 		for t: int in Entity.Type.values():

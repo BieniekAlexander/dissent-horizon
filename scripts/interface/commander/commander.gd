@@ -57,7 +57,9 @@ var ability_payload_registry: Dictionary = {
 static func _requires_structure(structure_type: Entity.Type) -> Callable:
 	return func(c: Commander): return (
 		TechnologySpec.UnmetNeed.NONE
-		if not c.structure_type_map[structure_type].is_empty()
+		if c.structure_type_map[structure_type].get_values().any(
+			func(s: Commandable): return s.is_built
+		)
 		else TechnologySpec.UnmetNeed.MISSING_STRUCTURE
 	)
 

@@ -2,27 +2,14 @@ class_name Build
 extends Command
 
 #region Preconditions
-static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type) -> bool:
-	return command_tool_name in {
-		Entity.Type.UNIT_TECHNICIAN: [
-			"command_tool_outpost",
-			"command_tool_dwelling",
-			"command_tool_mine",
-			"command_tool_lab",
-			"command_tool_compound",
-			"command_tool_armory",
-			"command_tool_turret",
-		],
-		Entity.Type.UNIT_WARLORD: [
-			"command_tool_outpost",
-			"command_tool_dwelling",
-			"command_tool_mine",
-			"command_tool_lab",
-			"command_tool_compound",
-			"command_tool_armory",
-			"command_tool_turret",
-		]
-	}.get(entity_type, [])
+static func tool_applies_to(command_tool_name: String, a_entity: Entity) -> bool:
+	var builds := a_entity.get_node_or_null("Builds") as Builds
+	if builds == null:
+		return false
+	var tool: Tool = Tool.command_tool_map.get(command_tool_name)
+	if tool == null:
+		return false
+	return builds.can_build(tool.type)
 
 static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) -> PreconditionFailureCause:
 	if a_message.tool==null:
@@ -62,6 +49,10 @@ func can_act(a_actor: Commandable) -> bool:
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var new_structure: Commandable = message.tool.packed_scene.instantiate()
+	# Mark as under construction before add_entity so that _ready → _on_commander_changed
+	# → add_structure → proc_technology all see is_built = false. build_progress is not
+	# @onready so this assignment survives _ready() without being overwritten.
+	new_structure.build_progress = .1
 
 	# Pass the raw clicked world XZ; add_entity → add_structure resolves the footprint
 	# centre via Map.footprint_origin — the same logic the editor snap and the build
@@ -72,7 +63,6 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		message.xz_position,
 		a_actor.commander
 	)
-	new_structure.build_progress = .1
 
 	if a_actor.veterancy != null:
 		a_actor.veterancy.gain_experience(10)

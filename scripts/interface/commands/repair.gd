@@ -16,5 +16,11 @@ func can_act(a_actor: Commandable) -> bool:
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var repairable: Commandable = message.target # TODO might be repairing osmething other than a structure
 	repairable.build_progress += .01 # TODO build rate
-	return null if repairable.build_progress >= 1 else self
+	if repairable.build_progress >= 1:
+		# Construction just completed; re-evaluate the tech tree so any structure
+		# gated on this one (e.g. Mine requires Outpost) now unlocks.
+		if repairable.commander != null:
+			repairable.commander.proc_technology()
+		return null
+	return self
 #endregion

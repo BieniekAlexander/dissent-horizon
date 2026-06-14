@@ -68,8 +68,8 @@ static func _build_rules() -> Array:
 		[func(e: Entity): return e.has_node("Production"), "command_train"],
 		[func(e: Entity): return e.has_node("Production"), "command_move"], # rally
 
-		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN or e.type == Entity.Type.UNIT_WARLORD, "command_ability"],
-		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN or e.type == Entity.Type.UNIT_WARLORD, "command_build"],
+		[func(e: Entity): return e.has_node("Builds"), "command_ability"],
+		[func(e: Entity): return e.has_node("Builds"), "command_build"],
 		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_pick_up"],
 		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_drop_off"],
 
@@ -78,20 +78,20 @@ static func _build_rules() -> Array:
 			"command_launch"],
 		[func(e: Entity): return e.type == Entity.Type.UNIT_VANGUARD, "command_collect"],
 
-		# Garrison applies only to entities with DEFAULT-mode Movement (see _can_garrison).
+		# Garrison applies only to entities with GROUNDED_DIRECT-mode Movement (see _can_garrison).
 		[CommandContextParser._can_garrison, "command_garrison"],
 		# Commandables that own a Shelter can order an evacuation.
 		[func(e: Entity): return e.has_node("Shelter"), "command_evacuate"],
 	]
 
 ## Garrison applies only to entities that actually have a Movement component
-## whose mode is DEFAULT. Pulled out of the rules table as a named predicate so
+## whose mode is GROUNDED_DIRECT. Pulled out of the rules table as a named predicate so
 ## the Movement requirement is explicit and the mode read is null-safe: a
 ## non-Movement node (or none) makes the cast null and the predicate false,
 ## rather than crashing on a blind `.mode` access.
 static func _can_garrison(e: Entity) -> bool:
 	var movement := e.get_node_or_null("Movement") as Movement
-	return movement != null and movement.mode == Movement.Mode.DEFAULT
+	return movement != null and movement.mode == Movement.Mode.GROUNDED_DIRECT
 
 static func _rules_table() -> Array:
 	if _rules == null or _rules.is_empty():
@@ -163,14 +163,14 @@ static func train_tools_for(a_entity: Entity) -> Array:
 
 ## The build-tool command names the given entity can construct, in menu order.
 ## Drives the controller's Build sub-menu and gates build-tool clicks. Source of
-## truth is Build.tool_applies_to (the same table Build itself consults), so the
-## menu can never advertise a structure the command would reject.
+## truth is the entity's Builds component, so the menu can never advertise a
+## structure the command would reject.
 static func build_tools_for(a_entity: Entity) -> Array:
 	var result: Array = []
 	if a_entity == null or not is_instance_valid(a_entity):
 		return result
 	for tool_name in BUILD_TOOL_NAMES:
-		if Build.tool_applies_to(tool_name, a_entity.type):
+		if Build.tool_applies_to(tool_name, a_entity):
 			result.append(tool_name)
 	return result
 #endregion

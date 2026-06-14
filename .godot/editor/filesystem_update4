@@ -1,6 +1,14 @@
-res://scenes/units/warlord.tscn
+res://scenes/units/technician.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scenes/scenarios/s1.gdshader
 res://scripts/rendering/shaders/fog.gdshader
+res://scripts/entities/commandable.gd
+res://scripts/interface/commands/build.gd
+res://scripts/interface/commands/repair.gd
+res://scenes/scenarios/s1.tscn
+res://scripts/entities/components/movement.gd
 res://scripts/interface/command_context_parser.gd
+res://scripts/interface/rts_controller.gd
+res://scripts/interface/commands/garrison.gd
+res://scripts/entities/command_receiver.gd

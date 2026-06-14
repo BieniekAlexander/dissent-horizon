@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://cay5kr6vpi16w"]
+[gd_scene load_steps=9 format=3 uid="uid://cay5kr6vpi16w"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_v5yox"]
 [ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="2_pc78a"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_qd6od"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_sfvjv"]
 [ext_resource type="Script" uid="uid://d18njab83ejgj" path="res://scripts/entities/components/dominion_provider.gd" id="6_dompr"]
+[ext_resource type="Script" uid="uid://i5cpflyrc4jkh" path="res://scripts/entities/components/builds.gd" id="7_builds"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_techmelee"]
 height = 100.0
@@ -43,3 +44,7 @@ transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15
 
 [node name="Inventory" type="Node" parent="." index="24"]
 script = ExtResource("5_sfvjv")
+
+[node name="Builds" type="Node" parent="." index="25"]
+script = ExtResource("7_builds")
+buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614])

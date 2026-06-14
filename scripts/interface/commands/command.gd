@@ -40,8 +40,7 @@ static var unmet_need_to_precondition: Dictionary = {
 #endregion
 
 #region Preconditions
-static func tool_applies_to(_command_tool_name: String, _entity_type: Entity.Type):
-	# TODO implement some means of checking if a given tool even applies for a given unit type, e.g. who can build what
+static func tool_applies_to(_command_tool_name: String, _a_entity: Entity) -> bool:
 	return false
 
 static func requires_position() -> bool:

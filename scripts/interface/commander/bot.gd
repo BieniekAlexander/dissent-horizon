@@ -91,11 +91,12 @@ func population_is_strained() -> bool:
 	return population_max > 0 and float(population_used) / float(population_max) >= 0.8
 
 
-## The number of owned Mines.  Serves as a relative income index — the
-## actual per-tick ore yield is not yet tracked, so callers treat this as
-## "how many income sources do we have" rather than ore-per-second.
+## The number of owned Mines that are fully built.  Serves as a relative income
+## index — partially-built mines are excluded because they don't yet extract ore.
 func mine_count() -> int:
-	return structure_type_map[Entity.Type.STRUCTURE_MINE].size()
+	return structure_type_map[Entity.Type.STRUCTURE_MINE].get_values().filter(
+		func(s: Commandable): return s.is_built
+	).size()
 
 
 ## True when the bot has both the prerequisite tech unlock AND enough ore /
@@ -128,13 +129,14 @@ func get_structures_of_type(type: Entity.Type) -> Array:
 	return structure_type_map[type].get_values()
 
 
-## Structures that have a Production component, meaning they can train units
-## or run a build queue.
+## Structures that have a Production component AND are fully built, meaning they
+## can currently train units. Under-construction structures are excluded because
+## production.tick() is gated on is_built and their queues won't advance.
 func get_production_structures() -> Array:
 	var result: Array = []
 	for t in Entity.Type.values():
 		for s: Commandable in get_structures_of_type(t):
-			if s.production != null:
+			if s.production != null and s.is_built:
 				result.append(s)
 	return result
 
@@ -230,6 +232,8 @@ func get_enemies_near(position: Vector3, radius: float) -> Array:
 ## Enemy units within [threat_radius] world units of any owned structure.
 ## Non-empty means the base is being actively pressured.  Deduplicates
 ## enemies that are close to several structures at once.
+## NOTE: intentionally includes unbuilt structures — an enemy attacking a
+## structure under construction is still a threat worth responding to.
 func get_enemies_threatening_base(threat_radius: float = 30.0) -> Array:
 	if map == null:
 		return []
@@ -299,6 +303,7 @@ func army_centroid() -> Vector3:
 
 ## Average world position of all owned structures — a rough "home base"
 ## anchor.  Returns Vector3.ZERO when no structures exist.
+## NOTE: includes unbuilt structures (they occupy real space and anchor the base).
 func base_centroid() -> Vector3:
 	var all_s: Array = []
 	for t in Entity.Type.values():
@@ -410,7 +415,9 @@ func seconds_elapsed() -> float:
 func game_phase() -> int:
 	var unique_struct_types := 0
 	for t in Entity.Type.values():
-		if not get_structures_of_type(t).is_empty():
+		# Only count fully-built structures — a structure under construction doesn't
+		# yet contribute tech or production capacity that marks a phase transition.
+		if get_structures_of_type(t).any(func(s: Commandable): return s.is_built):
 			unique_struct_types += 1
 
 	var elapsed := seconds_elapsed()

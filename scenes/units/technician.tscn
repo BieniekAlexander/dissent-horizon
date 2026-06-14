@@ -1,10 +1,11 @@
-[gd_scene load_steps=7 format=3 uid="uid://5kevopkrq8ts"]
+[gd_scene load_steps=8 format=3 uid="uid://5kevopkrq8ts"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_ucq5h"]
 [ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="3_0rgnf"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="4_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="5_wpn00"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="6_invnt"]
+[ext_resource type="Script" uid="uid://bfix8h487pr1x" path="res://scripts/entities/components/builds.gd" id="7_builds"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_techmelee"]
 height = 100.0
@@ -12,14 +13,16 @@ radius = 0.375
 
 [node name="Unit" instance=ExtResource("1_ucq5h")]
 type = 4352
-default_commander_id = null
 attributes_list = Array[int]([1])
 
 [node name="Movement" parent="." index="7"]
-mode = 1
-max_acceleration = 1.5
+mode = 16
+max_acceleration = 2.5
 max_deceleration = -2.5
-speed = 0.1
+speed = 0.12
+turn_rate = 100.0
+orbit_radius = 2.0
+orbit_speed = 0.07
 
 [node name="Loadout" type="Node" parent="." index="12"]
 script = ExtResource("4_invnt")
@@ -41,3 +44,7 @@ transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15
 
 [node name="Inventory" type="Node" parent="." index="23"]
 script = ExtResource("6_invnt")
+
+[node name="Builds" type="Node" parent="." index="24"]
+script = ExtResource("7_builds")
+buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614])

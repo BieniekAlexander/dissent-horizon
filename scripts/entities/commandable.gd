@@ -78,7 +78,12 @@ func load_destination(command: Command) -> void:
 ## scene script can stay generic; readers gate on group membership or on the
 ## presence of the component that exposes the related behavior (Production,
 ## ResourceProvider).
-@onready var build_progress: float = 1
+var build_progress: float = 1.
+## True when this entity is fully constructed. Units are always built; structures
+## become built once build_progress reaches 1.0 (set to 0.1 by Build.fulfill_action,
+## ticked up by Repair, defaulting to 1.0 for editor-placed structures).
+var is_built: bool:
+	get: return not is_in_group("structure") or build_progress >= 1.0
 var map_cells: Set:
 	get: return map.structure_cell_map.get(self, null) if map != null else null
 #endregion
@@ -398,10 +403,10 @@ func _update_state() -> void:
 		if active_cmd is Attack and is_instance_valid(active_cmd.message.target):
 			shelter.tick_bunker_fire(self, active_cmd.message.target)
 
-	# Per-tick production. No-op for non-producing entities.
-	if production != null:
+	# Per-tick production. No-op for non-producing entities or unbuilt structures.
+	if production != null and is_built:
 		production.tick()
-	if ore_extractor != null:
+	if ore_extractor != null and is_built:
 		ore_extractor.tick()
 	if dominion_generator != null:
 		dominion_generator.tick()
@@ -438,7 +443,7 @@ func _process_commands() -> void:
 			clear_command()
 			return
 		elif current is Train:
-			if commander.has_resources_for(current.message.tool.type):
+			if is_built and commander.has_resources_for(current.message.tool.type):
 				production.enqueue(
 					commander.technology_mapping[current.message.tool.type].creation_time,
 					current.message.tool.packed_scene
