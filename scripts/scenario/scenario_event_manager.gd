@@ -7,20 +7,24 @@ extends Node
 ## references to the ScenarioEvent nodes it fires). Event nodes are also placed as
 ## children of this manager so they can be positioned in the world.
 
-## Populated in _ready() from the Trigger child nodes, in scene-tree order.
-var triggers: Array[Trigger] = []
-
+#region Signals
 ## Emitted when an EventShowMessage fires. Connect to HUD to display it.
 signal message_requested(text: String)
 ## Emitted when an EventWinLose fires. won=true → player wins, false → loses.
 signal game_over(won: bool)
+#endregion
+
+#region Properties
+## Populated in _ready() from the Trigger child nodes, in scene-tree order.
+var triggers: Array[Trigger] = []
 
 var scenario: Scenario
 var map: Map
 
 var _fog: Node  # fog.gd MeshInstance3D; cached on first get_fog() call
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
 	var parent := get_parent()
 	if parent is Scenario:
@@ -49,8 +53,9 @@ func _physics_process(_delta: float) -> void:
 			continue
 		if t.is_satisfied(self):
 			t.fire(self)
+#endregion
 
-
+#region Public API
 ## Number of triggers still active (enabled) — i.e. waiting to fire or able to
 ## re-fire. A one-shot trigger drops out of this count once it fires and disables
 ## itself. Used by ConditionNoPendingTriggers to detect "this is the last event."
@@ -75,3 +80,4 @@ func get_fog() -> Node:
 		return _fog
 	_fog = get_tree().current_scene.find_child("Fog", true, false)
 	return _fog
+#endregion

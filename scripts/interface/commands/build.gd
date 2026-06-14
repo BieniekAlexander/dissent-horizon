@@ -1,10 +1,19 @@
 class_name Build
 extends Command
 
-
+#region Preconditions
 static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type) -> bool:
 	return command_tool_name in {
 		Entity.Type.UNIT_TECHNICIAN: [
+			"command_tool_outpost",
+			"command_tool_dwelling",
+			"command_tool_mine",
+			"command_tool_lab",
+			"command_tool_compound",
+			"command_tool_armory",
+			"command_tool_turret",
+		],
+		Entity.Type.UNIT_WARLORD: [
 			"command_tool_outpost",
 			"command_tool_dwelling",
 			"command_tool_mine",
@@ -32,7 +41,9 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 	return PreconditionFailureCause.NONE
+#endregion
 
+#region Private helpers
 ## World-space Chebyshev reach within which the builder is "close enough" to
 ## lay down and work on the structure. It grows with the building's footprint so
 ## a large structure (e.g. the 3x3 Outpost) doesn't require the builder to stand
@@ -43,7 +54,9 @@ func _build_reach(a_actor: Commandable) -> float:
 	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
 	var dims := obs.dimensions if obs != null else Vector2i.ONE
 	return maxf(float(max(dims.x, dims.y)), 1.5)
+#endregion
 
+#region State updates
 func can_act(a_actor: Commandable) -> bool:
 	return SU.linf_distance(VU.inXZ(a_actor.global_position), VU.inXZ(message.world_position)) < _build_reach(a_actor)
 
@@ -61,6 +74,9 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	)
 	new_structure.build_progress = .1
 
+	if a_actor.veterancy != null:
+		a_actor.veterancy.gain_experience(10)
+
 	return Repair.new(CommandMessage.new(message.map, new_structure))
 
 func should_move(a_actor: Commandable) -> bool:
@@ -68,8 +84,9 @@ func should_move(a_actor: Commandable) -> bool:
 	# parks just outside a large footprint rather than walking into its centre.
 	var reach := _build_reach(a_actor)
 	return a_actor.global_position.distance_squared_to(message.world_position) >= reach * reach
+#endregion
 
-
-### NODE
+#region Lifecycle
 func _init(a_message: CommandMessage) -> void:
 	super(a_message)
+#endregion

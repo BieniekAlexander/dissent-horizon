@@ -23,6 +23,34 @@ class_name CommandContextParser
 ## Example entry shape:
 ##   [func(e: Entity): return e.has_node("Movement"), "command_attack_move"]
 
+#region Constants
+## Every unit any producer could ever train. Filtered per-entity by
+## train_tools_for(), which consults the entity's Production component. Kept as a
+## flat list (rather than rule-table entries) so the capability lives entirely in
+## Production: this is just the name↔Tool bridge the HUD needs.
+const TRAIN_TOOL_NAMES: Array = [
+	"command_tool_technician",
+	"command_tool_irregular",
+	"command_tool_vanguard",
+]
+
+## Every structure a builder could ever place. Filtered per-entity by
+## build_tools_for(). Kept separate from the rules table because build tools are
+## NOT part of a unit's base command set — structures surface their *train*
+## tools directly in the flat HUD, whereas these live behind the controller's
+## "Build" (command_ability) sub-menu and are queried on demand.
+const BUILD_TOOL_NAMES: Array = [
+	"command_tool_outpost",
+	"command_tool_dwelling",
+	"command_tool_mine",
+	"command_tool_lab",
+	"command_tool_compound",
+	"command_tool_armory",
+	"command_tool_turret",
+]
+#endregion
+
+#region Private helpers
 ## Built lazily on first lookup to match the lazy pattern the old
 ## CommandContextRegistry used (script-class resolution order is fragile at
 ## static-var init time). Note that the structures' *train tools* are no longer
@@ -32,43 +60,25 @@ static var _rules: Array
 
 static func _build_rules() -> Array:
 	return [
-		# --- Movement-bearing entities (units): nav-flavored commands.
 		[func(e: Entity): return e.has_node("Movement"), "command_move"],
 		[func(e: Entity): return e.has_node("Movement") or e.has_node("Loadout"), "command_stop"],
 		[func(e: Entity): return e.has_node("Loadout"), "command_attack"],
 		[func(e: Entity): return e.has_node("Loadout"), "command_attack_move"],
 
-		# --- Production-bearing entities (structures): training + rally. The
-		# specific train tools (command_tool_technician, ...) are added in
-		# commands_for() from the Production component's producible_types, so the
-		# menu reflects what that particular structure can actually build.
 		[func(e: Entity): return e.has_node("Production"), "command_train"],
 		[func(e: Entity): return e.has_node("Production"), "command_move"], # rally
 
-		# --- Technician (Anima): Star pickup/dropoff and the Build ability.
-		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_ability"],
-		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_build"],
+		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN or e.type == Entity.Type.UNIT_WARLORD, "command_ability"],
+		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN or e.type == Entity.Type.UNIT_WARLORD, "command_build"],
 		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_pick_up"],
 		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_drop_off"],
 
-		# --- Vanguard: Lab-targeted Collect and the (generic) Ability.
-		# The ability is offered when the unit's Inventory actually holds a
-		# ToolSpec for it — not by unit type — so abilities follow the component,
-		# not a hard-coded type table.
 		[func(e: Entity): return e.has_node("Inventory") \
 				and (e.get_node("Inventory") as Inventory).has_ability(Ability.Type.RADIATION),
 			"command_launch"],
 		[func(e: Entity): return e.type == Entity.Type.UNIT_VANGUARD, "command_collect"],
 
-		# --- Garrison / Evacuate.
-		# Units with DEFAULT movement can garrison into a friendly Shelter.
-		# The command resolves implicitly on right-click (like Attack) — it is
-		# listed here so the controller's available-commands set tracks it and
-		# the hotkey gate works consistently.
-		# Garrison is meaningless without a Movement component, so it's a named
-		# predicate (see _can_garrison): the `movement != null` check IS the
-		# Movement requirement, made explicit, and `.mode` is only read once the
-		# node is known to be a real Movement (no blind cast that can crash).
+		# Garrison applies only to entities with DEFAULT-mode Movement (see _can_garrison).
 		[CommandContextParser._can_garrison, "command_garrison"],
 		# Commandables that own a Shelter can order an evacuation.
 		[func(e: Entity): return e.has_node("Shelter"), "command_evacuate"],
@@ -87,7 +97,9 @@ static func _rules_table() -> Array:
 	if _rules == null or _rules.is_empty():
 		_rules = _build_rules()
 	return _rules
+#endregion
 
+#region Public API
 ## Returns the deduplicated list of command names applicable to a single
 ## entity, preserving the order they appear in the rules table. Returns an
 ## empty array for a null / invalid entity rather than erroring — callers
@@ -132,16 +144,6 @@ static func commands_for_selection(a_entities: Array) -> Array:
 static func command_available(a_command_name: String, a_entity: Entity) -> bool:
 	return commands_for(a_entity).has(a_command_name)
 
-## Every unit any producer could ever train. Filtered per-entity by
-## train_tools_for(), which consults the entity's Production component. Kept as a
-## flat list (rather than rule-table entries) so the capability lives entirely in
-## Production: this is just the name↔Tool bridge the HUD needs.
-const TRAIN_TOOL_NAMES: Array = [
-	"command_tool_technician",
-	"command_tool_irregular",
-	"command_tool_vanguard",
-]
-
 ## The train-tool command names the given entity can produce, in menu order.
 ## Source of truth is the entity's Production component (producible_types), so the
 ## menu can only ever advertise units that structure can actually train. Returns
@@ -159,21 +161,6 @@ static func train_tools_for(a_entity: Entity) -> Array:
 			result.append(tool_name)
 	return result
 
-## Every structure a builder could ever place. Filtered per-entity by
-## build_tools_for(). Kept separate from the rules table because build tools are
-## NOT part of a unit's base command set — structures surface their *train*
-## tools directly in the flat HUD, whereas these live behind the controller's
-## "Build" (command_ability) sub-menu and are queried on demand.
-const BUILD_TOOL_NAMES: Array = [
-	"command_tool_outpost",
-	"command_tool_dwelling",
-	"command_tool_mine",
-	"command_tool_lab",
-	"command_tool_compound",
-	"command_tool_armory",
-	"command_tool_turret",
-]
-
 ## The build-tool command names the given entity can construct, in menu order.
 ## Drives the controller's Build sub-menu and gates build-tool clicks. Source of
 ## truth is Build.tool_applies_to (the same table Build itself consults), so the
@@ -186,3 +173,4 @@ static func build_tools_for(a_entity: Entity) -> Array:
 		if Build.tool_applies_to(tool_name, a_entity.type):
 			result.append(tool_name)
 	return result
+#endregion

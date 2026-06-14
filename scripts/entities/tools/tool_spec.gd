@@ -5,17 +5,22 @@ class_name ToolSpec
 ## bookkeeping for using it: charges are spent on use and regenerate over time
 ## up to max_charges, one charge per reload period.
 
+#region Constants
 const DEFAULT_MAX_CHARGES: int = 3
 ## Reload period, in physics frames, to restore one charge (90 ≈ 3s at 30 tps).
 const DEFAULT_RELOAD_FRAMES: int = 90
+#endregion
 
+#region Properties
 var ability_type: Ability.Type
 var max_charges: int
 var current_charges: int
 ## Frames remaining until the next charge is restored. Only counts down while
 ## current_charges < max_charges.
 var reload_timer: int
+#endregion
 
+#region Lifecycle
 func _init(
 	a_ability_type: Ability.Type,
 	a_max_charges: int = DEFAULT_MAX_CHARGES,
@@ -26,7 +31,9 @@ func _init(
 	max_charges = a_max_charges
 	current_charges = a_current_charges
 	reload_timer = a_reload_timer
+#endregion
 
+#region Public API
 func has_charge() -> bool:
 	return current_charges > 0
 
@@ -47,3 +54,4 @@ func tick() -> void:
 	if reload_timer <= 0:
 		current_charges += 1
 		reload_timer = DEFAULT_RELOAD_FRAMES
+#endregion

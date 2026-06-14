@@ -1,6 +1,7 @@
 class_name PickUp
 extends Command
 
+#region State updates
 func should_move(a_actor: Commandable) -> bool:
 	return !SU.unit_is_close_to_target(a_actor, message.target)
 
@@ -18,3 +19,4 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	item.get_parent().remove_child(item)
 	a_actor.ability_inventory.add_item(item)
 	return null
+#endregion

@@ -26,7 +26,7 @@
 # Specifics
 ## Tech Tree
 - **Stronghold**
-	- Warlord - dominion-generating unit, builds things and can salvage weapons, generates dominion based on veterancy
+	- Warlord - dominion-generating unit, builds things, generates dominion based on veterancy
 	- Militia - cheap, weak anti-infantry, can carry scavenged parts
 	- demoman - melee, places explosives on units or places mines
 	- Flak Cannon - only shoots up

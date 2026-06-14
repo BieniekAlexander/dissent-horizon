@@ -2,6 +2,7 @@
 class_name Trigger
 extends Node
 
+#region Properties
 enum ConditionMode {
 	## All conditions must be true for the trigger to fire.
 	AND,
@@ -23,8 +24,9 @@ enum ConditionMode {
 ## Runtime state — not serialized. Set to starts_disabled default by
 ## ScenarioEventManager._ready(); mutated by EventChainTrigger at runtime.
 var enabled: bool = true
+#endregion
 
-
+#region Public API
 func is_satisfied(manager: ScenarioEventManager) -> bool:
 	if conditions.is_empty():
 		return false
@@ -42,3 +44,4 @@ func fire(manager: ScenarioEventManager) -> void:
 	else:
 		for condition: Condition in conditions:
 			condition.reset()
+#endregion

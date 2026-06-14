@@ -14,5 +14,7 @@ extends Condition
 ## forever, so this condition would never pass alongside one. That matches the
 ## intent — a perpetual trigger genuinely is "still waiting."
 
+#region Public API
 func evaluate(manager: ScenarioEventManager) -> bool:
 	return manager.active_trigger_count() <= 1
+#endregion

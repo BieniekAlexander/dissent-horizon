@@ -5,6 +5,7 @@ extends Node
 ## Weapon represents one weapon slot. Methods here are the single place that
 ## walks this list so callers don't do ad-hoc child iteration.
 
+#region Public API
 func get_weapons() -> Array:
 	return get_children().filter(func(c: Node) -> bool: return c is Weapon)
 
@@ -30,3 +31,4 @@ func total_damage() -> float:
 	for w: Weapon in get_weapons():
 		total += w.damage
 	return total
+#endregion

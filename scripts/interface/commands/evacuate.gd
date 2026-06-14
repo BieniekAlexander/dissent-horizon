@@ -1,8 +1,7 @@
 class_name Evacuate
 extends Command
 
-## PRECONDITIONS
-
+#region Preconditions
 ## Fires immediately from the HUD — no target position required.
 static func requires_position() -> bool:
 	return false
@@ -15,10 +14,9 @@ static func meets_precondition(
 	if not a_actor.has_node("Shelter"):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
+#endregion
 
-
-## STATE UPDATES
-
+#region State updates
 ## Structures don't move.
 func should_move(_a_actor: Commandable) -> bool:
 	return false
@@ -33,8 +31,9 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if shelter != null:
 		shelter.evacuate(message.map)
 	return null
+#endregion
 
-
-## DEBUG
+#region Debug
 func _to_string() -> String:
 	return "Evacuate"
+#endregion

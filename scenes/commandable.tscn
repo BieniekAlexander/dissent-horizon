@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://dcmdbl3j4t1k2"]
+[gd_scene load_steps=21 format=3 uid="uid://dcmdbl3j4t1k2"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="2_3agr1"]
 [ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="2_tefpw"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="7_def00"]
 [ext_resource type="Script" uid="uid://brt70ksdghy11" path="res://scripts/entities/components/avoidance_agent_3d.gd" id="8_avagent"]
 [ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="9_ttint"]
+[ext_resource type="Script" uid="uid://csahh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="10_vetrn"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
 
@@ -85,6 +86,9 @@ script = ExtResource("5_ownr0")
 [node name="Defense" type="Node" parent="."]
 script = ExtResource("7_def00")
 
+[node name="Veterancy" type="Node" parent="."]
+script = ExtResource("10_vetrn")
+
 [node name="#####CONTROLS#####" type="Node" parent="."]
 
 [node name="Selectable" type="Area3D" parent="."]
@@ -140,3 +144,12 @@ font_size = 16
 
 [node name="TeamTint" type="Node" parent="."]
 script = ExtResource("9_ttint")
+
+[node name="VeterancyLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.55, 0)
+render_priority = 10
+font_size = 24
+
+[node name="AvoidanceObstacle" type="NavigationObstacle3D" parent="."]
+avoidance_enabled = false
+avoidance_layers = 0

@@ -9,6 +9,7 @@ extends Node3D
 ## (Map/NavigationRegion/Body in s1.tscn).  Assign a generator Resource and the
 ## shared map.tres shape in the inspector, then click "Generate".
 
+#region Properties
 var _generator: HeightmapGenerator
 
 ## Re-entrancy guard: writing a random seed back can emit the generator's
@@ -55,8 +56,9 @@ var _busy: bool = false
 
 @export_tool_button("Generate")
 var _generate_button: Callable = _do_generate
+#endregion
 
-
+#region Private helpers
 func _do_generate() -> void:
 	if _busy:
 		return
@@ -90,7 +92,6 @@ func _do_generate() -> void:
 
 	_busy = false
 
-
 ## Assign a fresh random seed to the generator (when it exposes one) and emit
 ## `changed` so the inspector shows the new value.  Generators without a `seed`
 ## property (e.g. the flat generator) are simply left as-is — nothing to roll.
@@ -102,9 +103,9 @@ func _apply_random_seed() -> void:
 	_generator.set("seed", int(rng.randi()))
 	_generator.emit_changed()  # refresh the inspector to show the rolled seed
 
-
 func _generator_has_seed() -> bool:
 	for prop: Dictionary in _generator.get_property_list():
 		if prop.get("name", "") == "seed":
 			return true
 	return false
+#endregion

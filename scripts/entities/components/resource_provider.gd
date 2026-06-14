@@ -14,9 +14,12 @@ extends Node
 ## (ore production rate, energy upkeep, etc.), they'd join this component
 ## rather than spawning per-resource components.
 
+#region Properties
 @export var population_provided: int = 0
 @export var population_required: int = 0
+#endregion
 
+#region Public API
 ## Register this entity's contribution with the commander. Called by the
 ## entity's initialize().
 func apply_to(commander: Commander) -> void:
@@ -29,3 +32,4 @@ func remove_from(commander: Commander) -> void:
 	if commander == null: return
 	commander.population_max -= population_provided
 	commander.population_used -= population_required
+#endregion

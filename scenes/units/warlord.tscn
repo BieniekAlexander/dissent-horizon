@@ -1,0 +1,45 @@
+[gd_scene load_steps=8 format=3 uid="uid://cay5kr6vpi16w"]
+
+[ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_v5yox"]
+[ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="2_pc78a"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_3lfjd"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_qd6od"]
+[ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_sfvjv"]
+[ext_resource type="Script" uid="uid://d18njab83ejgj" path="res://scripts/entities/components/dominion_provider.gd" id="6_dompr"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_techmelee"]
+height = 100.0
+radius = 6.0
+
+[node name="Unit" instance=ExtResource("1_v5yox")]
+type = 4355
+
+[node name="Movement" parent="." index="7"]
+speed = 0.1
+
+[node name="Defense" parent="." index="8"]
+hp_max = 800.0
+
+[node name="DominionProvider" type="Node" parent="." index="12"]
+script = ExtResource("6_dompr")
+
+[node name="Loadout" type="Node" parent="." index="13"]
+script = ExtResource("3_3lfjd")
+
+[node name="Weapon" type="Node" parent="Loadout" index="0"]
+script = ExtResource("4_qd6od")
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/Weapon" index="0"]
+shape = SubResource("CylinderShape3D_techmelee")
+disabled = true
+
+[node name="Sprite" parent="." index="15"]
+transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17100573, 0)
+flip_h = true
+texture = ExtResource("2_pc78a")
+
+[node name="HPBar" parent="." index="16"]
+transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)
+
+[node name="Inventory" type="Node" parent="." index="24"]
+script = ExtResource("5_sfvjv")

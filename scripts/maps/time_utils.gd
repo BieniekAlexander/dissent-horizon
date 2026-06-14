@@ -5,6 +5,7 @@ class_name TimeUtils
 
 static var rng = RandomNumberGenerator.new()
 
+#region Public API
 static func get_frames_from_seconds(a_seconds: float) -> int:
 	return int(a_seconds * Engine.physics_ticks_per_second)
 
@@ -14,7 +15,7 @@ static func get_frame_duration_sample(a_distribution: Dictionary) -> int:
 		if a_distribution["mean"] is String
 		else get_frames_from_seconds(a_distribution["mean"])
 	)
-	
+
 	var stdev: int = (
 		(
 			int(a_distribution["stdev"])
@@ -23,7 +24,7 @@ static func get_frame_duration_sample(a_distribution: Dictionary) -> int:
 		) if a_distribution.has("stdev")
 		else 0
 	)
-	
+
 	return int(rng.randfn(mean, stdev))
 
 static func get_frame_duration_from_time_spec(a_time_spec: Variant) -> int:
@@ -33,3 +34,4 @@ static func get_frame_duration_from_time_spec(a_time_spec: Variant) -> int:
 		return get_frames_from_seconds(a_time_spec)
 	else:
 		return int(a_time_spec)
+#endregion

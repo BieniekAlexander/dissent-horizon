@@ -1,7 +1,7 @@
 class_name Defend
 extends Command
 
-### STATE UPDATES
+#region State updates
 func should_move(a_actor: Commandable) -> bool:
 	return (
 		(VU.inXZ(a_actor.global_position)-VU.inXZ(message.position)).length_squared()
@@ -13,3 +13,4 @@ func get_updated_state(a_actor: Commandable):
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	return self
+#endregion

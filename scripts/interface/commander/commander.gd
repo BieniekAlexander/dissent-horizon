@@ -2,23 +2,31 @@
 class_name Commander
 extends Node
 
-### IDENTIFIERS
+#region Properties
+
+#region Identifiers
 const NUM_MAX_COMMANDERS: int = 8
 @export_range(0, NUM_MAX_COMMANDERS+1) var id: int
+#endregion
 
-### CONTROLS
+#region Controls
 @onready var selection: Array[Commandable] = []
 @onready var click_screen_pos: Vector2 = Vector2.ZERO
+#endregion
 
-### RESOURCES
+#region Resources
 @onready var ore: int = 500
 @onready var population_used: int = 0
 @onready var population_max: int = 0
 @onready var dominion: int = 0
 var population:
 	get: return population_max-population_used
+#endregion
 
-### TECHNOLOGY
+#endregion
+
+
+#region Technology
 # specifies what a commander can construct
 var technology_mapping: Dictionary = {
 	Entity.Type.STRUCTURE_OUTPOST: TechnologySpec.new(500, 0, 0),
@@ -36,7 +44,6 @@ var technology_mapping: Dictionary = {
 	Ability.Type.RADIATION: TechnologySpec.new(0, 0, 0),
 }
 
-### ABILITIES
 ## Per-commander map of Ability.Type -> payload PackedScene (a Projectile).
 ## Kept per-commander (not global) so technology upgrades can unlock or swap an
 ## ability's payload for one commander without affecting others, and can be
@@ -73,9 +80,12 @@ func proc_technology() -> void:
 	# updates the tech tree of the commander according to changes in ownership
 	for tech: TechnologySpec in technology_mapping.values():
 		tech.unmet_need = tech.availability_evaluator.call(self)
+#endregion
 
-### COMMANDABLES
-#### STRUCTURES
+
+#region Commandables
+
+#region Structures
 @onready var structure_type_map: Dictionary
 
 func add_structure(a_structure: Commandable) -> void:
@@ -85,10 +95,12 @@ func add_structure(a_structure: Commandable) -> void:
 func remove_structure(a_structure: Commandable) -> void:
 	structure_type_map[a_structure.type].remove(a_structure)
 	proc_technology()
+#endregion
 
-#### UNITS
+#endregion
 
-### BUILD PREVIEW INSTANCES
+
+#region Build previews
 ## Live, out-of-tree instances of each buildable structure, kept so the build
 ## "ghost" can reference a team-tinted version of the real building art. Keyed by
 ## Entity.Type. These are deliberately NOT added to the SceneTree (so their
@@ -121,8 +133,10 @@ func _notification(what: int) -> void:
 			if is_instance_valid(inst):
 				inst.free()
 		_build_preview_instances.clear()
+#endregion
 
-### NODE
+
+#region Node
 func _ready() -> void:
 	for s in Entity.Type.values():
 		structure_type_map[s] = Set.new()
@@ -138,3 +152,4 @@ func _process(delta: float) -> void:
 
 func _on_button_pressed() -> void:
 	print("pressed me")
+#endregion

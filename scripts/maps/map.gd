@@ -143,38 +143,50 @@ func get_min_max() -> Array:
 
 # --- Entity placement ------------------------------------------------------
 
-## Add a game [Entity] to the map, allowing the [Map] to govern it in the game world
-func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -> void:
-	if a_entity is Commandable and a_entity.get_node_or_null("Obstruction") != null:
-		a_entity.initialize(self, a_commander)
-		add_structure(a_entity, a_location, 0, false)
-	else:
-		# Compute position BEFORE add_child (inside initialize) so the physics
-		# server registers the entity at the correct world position from the start.
-		# If initialize ran first, the entity would enter the broadphase at (0,0,0)
-		# for the rest of that physics frame — close enough to the map centre that
-		# nearby aggro/attack-range queries on existing units (turret, technician)
-		# would incorrectly detect the freshly spawned enemies as in range.
-		# Commander is a plain Node (not Node3D), so entity.position == world position.
-		var radius: float = a_entity.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
-		var placement_xz: Vector2
-		if radius > 0.0:
-			placement_xz = SU.get_nonoverlapping_points(
-				self,
-				a_location,
-				radius,
-				get_world_3d(),
-				CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
-				5.
-			)[0]
+## Add a batch of [Entity] instances to the map under [a_commander].
+## Structures are placed individually via add_structure. Non-structure entities
+## are positioned together with a single get_nonoverlapping_points call so the
+## whole batch lands without same-frame broadphase overlap.
+## Position is set BEFORE initialize (add_child) so the physics server registers
+## each entity at the correct world position from the start — not at (0,0,0).
+func add_entities(a_entities: Array, a_location: Vector2, a_commander: Commander) -> void:
+	var units: Array = []
+	for entity: Entity in a_entities:
+		if entity is Commandable and entity.get_node_or_null("Obstruction") != null:
+			entity.initialize(self, a_commander)
+			add_structure(entity, a_location, 0, false)
 		else:
-			placement_xz = a_location
-		a_entity.position = Vector3(
+			units.append(entity)
+
+	if units.is_empty():
+		return
+
+	var radius: float = units[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+	var region_radius: float = maxf(5.0, radius * 2.5 * float(maxi(units.size(), 1)))
+	var points: Array[Vector2] = []
+	if radius > 0.0:
+		points = SU.get_nonoverlapping_points(
+			self,
+			a_location,
+			radius,
+			get_world_3d(),
+			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
+			region_radius,
+			units.size()
+		)
+
+	for i: int in units.size():
+		var placement_xz: Vector2 = points[i] if i < points.size() else a_location
+		units[i].position = Vector3(
 			placement_xz.x,
 			terrain_height_at(placement_xz),
 			placement_xz.y
 		)
-		a_entity.initialize(self, a_commander)
+		units[i].initialize(self, a_commander)
+
+## Convenience wrapper for placing a single entity. See add_entities.
+func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -> void:
+	add_entities([a_entity], a_location, a_commander)
 
 
 ## Register a structure on the grid, centred on `world_center` (world-space XZ).

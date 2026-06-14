@@ -14,8 +14,20 @@ extends Node
 ## CommandReceiver is therefore mode-agnostic; only the Y-snap in Commandable
 ## needs to query height_offset() to hover aerial units above the terrain.
 
+#region Signals
 signal velocity_ready(velocity: Vector3)
+#endregion
 
+#region Constants
+## How many world-units above the terrain surface an AERIAL unit flies.
+const AERIAL_HEIGHT: float = 1.5
+
+## XZ arrival radius for AERIAL mode (mirrors NavigationAgent3D's
+## target_desired_distance used in DEFAULT mode).
+const AERIAL_ARRIVAL_DISTANCE: float = 0.125
+#endregion
+
+#region Properties
 enum Mode { DEFAULT, AERIAL }
 
 ## Set in the inspector / scene file to choose the locomotion style.
@@ -38,13 +50,6 @@ var nav_agent_class: NavAgentClass.Size = NavAgentClass.Size.MEDIUM
 ## Maximum rate at which the entity's speed may decrease, in world-units/s².
 ## Must be ≤ 0; -INF (default) means speed can drop to any value instantly.
 @export var max_deceleration: float = -INF
-
-## How many world-units above the terrain surface an AERIAL unit flies.
-const AERIAL_HEIGHT: float = 1.5
-
-## XZ arrival radius for AERIAL mode (mirrors NavigationAgent3D's
-## target_desired_distance used in DEFAULT mode).
-const AERIAL_ARRIVAL_DISTANCE: float = 0.125
 
 ## Movement speed in world-units per physics tick.
 @export var speed: float = 0.125
@@ -69,7 +74,6 @@ var _current_velocity: Vector3 = Vector3.ZERO
 ## of arriving at full speed and snapping to a stop.
 var is_final_leg: bool = false
 
-
 var target_position: Vector3:
 	get:
 		match mode:
@@ -83,16 +87,20 @@ var target_position: Vector3:
 					_nav_agent.target_position = value
 			Mode.AERIAL:
 				_aerial_target = value
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
 	if mode == Mode.DEFAULT:
 		if not nav_agent_path.is_empty():
 			_nav_agent = get_node_or_null(nav_agent_path) as NavigationAgent3D
 		if _nav_agent != null:
 			_nav_agent.velocity_computed.connect(_on_velocity_computed)
+#endregion
 
+#region Public API
 
+#region Navigation
 func set_target_position(world_position: Vector3) -> void:
 	target_position = world_position
 
@@ -135,8 +143,9 @@ func get_next_path_position() -> Vector3:
 			flat.y = get_parent().global_position.y
 			return flat
 	return Vector3.ZERO
+#endregion
 
-
+#region RVO avoidance
 ## RVO avoidance notes: every agent broadcasts on a shared channel and avoids
 ## everyone (mask = ALL); the avoidance layers do NOT encode teams. The
 ## "enemies don't get out of our way" requirement is upheld by the command loop,
@@ -147,6 +156,12 @@ func get_next_path_position() -> Vector3:
 
 ## Saved avoidance_layers value while suppression is active; 0 means not suppressed.
 var _saved_avoidance_layers: int = 0
+## Saved obstacle avoidance_layers while suppression is active; 0 means not suppressed.
+var _saved_obstacle_layers: int = 0
+
+## NavigationObstacle3D that broadcasts this unit as an obstacle for cross-team
+## one-sided avoidance. Assigned by Commandable._ready after both nodes exist.
+var avoidance_obstacle: NavigationObstacle3D = null
 
 ## The commandable this unit is currently "following" (its move destination is
 ## that unit), for which reciprocal RVO avoidance is suppressed. null = none.
@@ -187,15 +202,18 @@ func _follow_agent(c: Commandable) -> AvoidanceAgent3D:
 		return null
 	return c.movement.avoidance_agent()
 
-## Zero this agent's broadcast layers so no other agent RVO-steers around it.
-## Used by Garrison to let the approaching unit walk into the shelter target
-## without the avoidance system pushing them apart.  No-op if already suppressed
-## or in AERIAL mode.
+## Zero this agent's broadcast layers and its obstacle layers so no other agent
+## RVO-steers around it. Used by Garrison to let the approaching unit walk into
+## the shelter target without the avoidance system pushing them apart.
+## No-op if already suppressed or in AERIAL mode.
 func suppress_avoidance_layers() -> void:
 	if mode != Mode.DEFAULT or _nav_agent == null or _saved_avoidance_layers != 0:
 		return
 	_saved_avoidance_layers = _nav_agent.avoidance_layers
 	_nav_agent.avoidance_layers = 0
+	if avoidance_obstacle != null and avoidance_obstacle.avoidance_enabled:
+		_saved_obstacle_layers = avoidance_obstacle.avoidance_layers
+		avoidance_obstacle.avoidance_layers = 0
 
 ## Restore the avoidance_layers cleared by suppress_avoidance_layers.
 func restore_avoidance_layers() -> void:
@@ -203,7 +221,10 @@ func restore_avoidance_layers() -> void:
 		return
 	_nav_agent.avoidance_layers = _saved_avoidance_layers
 	_saved_avoidance_layers = 0
-
+	if avoidance_obstacle != null and _saved_obstacle_layers != 0:
+		avoidance_obstacle.avoidance_layers = _saved_obstacle_layers
+		_saved_obstacle_layers = 0
+#endregion
 
 ## Size the RVO avoidance radius to the body's real footprint so agents keep
 ## a correct distance from one another. No-op in AERIAL mode (no NavAgent).
@@ -233,7 +254,9 @@ func configure_for_map(nav_manager: NavManager, shape_radius: float) -> void:
 func height_offset() -> float:
 	return AERIAL_HEIGHT if mode == Mode.AERIAL else 0.0
 
+#endregion
 
+#region Private helpers
 ## Straight-line distance from the parent entity to its current movement target.
 ## AERIAL: XZ-only, matching is_navigation_finished. DEFAULT: 3D distance to
 ## the nav target, used as an approximation of remaining path length.
@@ -292,3 +315,4 @@ func _apply_accel_limits(desired: Vector3) -> Vector3:
 func _on_velocity_computed(velocity: Vector3) -> void:
 	_current_velocity = velocity
 	velocity_ready.emit(velocity)
+#endregion

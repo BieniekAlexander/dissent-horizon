@@ -1,8 +1,9 @@
 extends GridContainer
 
+#region Lifecycle
 func _ready() -> void:
 	columns = 5
-	
+
 	var grid_containers: Array = [
 		[ButtonSpec.new("command_tool_outpost", "Outpost")],
 		[ButtonSpec.new("command_tool_dwelling", "Dwelling")],
@@ -26,14 +27,15 @@ func _ready() -> void:
 			grid_container.custom_minimum_size = Vector2(60, 60)
 			grid_container.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			grid_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			
+
 			for item in a:
 				var b: Button = ButtonSpec.create_button_from_spec(item)
 				b.custom_minimum_size = Vector2(60, 60)
 				grid_container.add_child(b)
-			
+
 			return grid_container
 	)
-	
+
 	# TODO instantiate the buttons and their dimensions
 	# Grid container with 5 columns, make 15 containers, each which will have a positioned button
+#endregion

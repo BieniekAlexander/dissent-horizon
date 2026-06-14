@@ -29,6 +29,7 @@ extends HeightmapGenerator
 ##         ramp_run >= 3 * height_step       (e.g. height_step 1.0 → ramp_run >= 3)
 ##     to keep the steepest ramp cell passable.
 
+#region Properties
 ## Number of Voronoi regions (plateaus).  Used directly when cells_per_region <= 0.
 @export var region_count: int = 14
 
@@ -71,8 +72,9 @@ extends HeightmapGenerator
 @export var guarantee_connected: bool = true
 
 @export var seed: int = 0
+#endregion
 
-
+#region Public API
 ## Effective region count: derived from cells_per_region when that is set (so
 ## plateau size stays constant across map sizes), else the explicit region_count.
 func _resolved_region_count() -> int:
@@ -80,7 +82,6 @@ func _resolved_region_count() -> int:
 		var cells: int = (width - 1) * (depth - 1)
 		return clampi(roundi(float(cells) / float(cells_per_region)), 1, maxi(1, cells))
 	return region_count
-
 
 func generate() -> PackedFloat32Array:
 	# Resolve the area-scaled region count by temporarily standing in for
@@ -90,8 +91,9 @@ func generate() -> PackedFloat32Array:
 	var result: PackedFloat32Array = _generate_impl()
 	region_count = saved_region_count
 	return result
+#endregion
 
-
+#region Private helpers
 func _generate_impl() -> PackedFloat32Array:
 	var data := PackedFloat32Array()
 	data.resize(width * depth)
@@ -184,10 +186,9 @@ func _generate_impl() -> PackedFloat32Array:
 		_repair_connectivity(data)
 
 	return data
+#endregion
 
-
-# --- Connectivity repair ---------------------------------------------------
-
+#region Connectivity repair
 ## Flood-fill the passable cells; while more than one component exists, carve the
 ## cheapest ramp corridor joining a stranded component to the largest one.  This
 ## is the guarantee that the graph stage only approximates: on a discrete corner
@@ -226,7 +227,6 @@ func _repair_connectivity(data: PackedFloat32Array) -> void:
 		# settle is the cheapest place to punch a corridor through.
 		if not _connect_nearest(data, comp, gw, gh, main_id):
 			return  # nothing left we can reach — give up rather than spin
-
 
 ## Carve the cheapest corridor from `main_id` to the nearest other component.
 ## Returns false if no other component is reachable.
@@ -282,7 +282,6 @@ func _connect_nearest(data: PackedFloat32Array, comp: PackedInt32Array, gw: int,
 	_carve_corridor(data, path)
 	return true
 
-
 ## Carve a list of cells (a connected path from a stranded cell to the mainland)
 ## into a passable ramp by writing a monotonic height profile between the two
 ## passable endpoints.  The corridor is widened perpendicular to its direction by
@@ -324,7 +323,6 @@ func _carve_corridor(data: PackedFloat32Array, path: Array[Vector2i]) -> void:
 			if cell.x >= 0 and cell.x < gw and cell.y >= 0 and cell.y < gh:
 				_set_cell_height(data, cell.x, cell.y, h)
 
-
 ## Unit axis direction of the path at index `i` (reduced to a single axis so the
 ## perpendicular band is axis-aligned and clean).
 func _corridor_dir(path: Array[Vector2i], i: int) -> Vector2i:
@@ -334,7 +332,6 @@ func _corridor_dir(path: Array[Vector2i], i: int) -> Vector2i:
 	if absi(d.x) >= absi(d.y):
 		return Vector2i(signi(d.x), 0) if d.x != 0 else Vector2i(1, 0)
 	return Vector2i(0, signi(d.y))
-
 
 func _flood(data: PackedFloat32Array, comp: PackedInt32Array, gw: int, gh: int, sx: int, sz: int, id: int) -> int:
 	var size: int = 0
@@ -352,7 +349,6 @@ func _flood(data: PackedFloat32Array, comp: PackedInt32Array, gw: int, gh: int, 
 				stack.append(Vector2i(nx, nz))
 	return size
 
-
 func _cell_passable(data: PackedFloat32Array, x: int, z: int) -> bool:
 	var h00: float = data[z * width + x]
 	var h10: float = data[z * width + x + 1]
@@ -360,21 +356,18 @@ func _cell_passable(data: PackedFloat32Array, x: int, z: int) -> bool:
 	var h11: float = data[(z + 1) * width + x + 1]
 	return (maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))) <= 0.5
 
-
 func _cell_height(data: PackedFloat32Array, x: int, z: int) -> float:
 	return (data[z * width + x] + data[z * width + x + 1]
 		+ data[(z + 1) * width + x] + data[(z + 1) * width + x + 1]) * 0.25
-
 
 func _set_cell_height(data: PackedFloat32Array, x: int, z: int, h: float) -> void:
 	data[z * width + x] = h
 	data[z * width + x + 1] = h
 	data[(z + 1) * width + x] = h
 	data[(z + 1) * width + x + 1] = h
+#endregion
 
-
-# --- Ramp carving ----------------------------------------------------------
-
+#region Ramp carving
 ## Carve a passable channel from seed `pa` (height `ha`) to seed `pb` (height
 ## `hb`).  Corners within `ramp_half_width` of the segment are overridden with a
 ## linear flat→slope→flat profile, centred on the segment midpoint (which lies on
@@ -407,10 +400,9 @@ func _carve_ramp(data: PackedFloat32Array, pa: Vector2, pb: Vector2, ha: float, 
 			# Linear flat→slope→flat: 0 near pa, 1 near pb.
 			var s: float = clampf((t - (0.5 - hrf)) / (2.0 * hrf), 0.0, 1.0)
 			data[z * width + x] = lerpf(ha, hb, s)
+#endregion
 
-
-# --- Graph helpers ---------------------------------------------------------
-
+#region Graph helpers
 ## Prim's MAXIMUM-weight spanning tree over the region-adjacency graph, preferring
 ## the fattest shared borders.  Assigns each region an integer level as the tree
 ## grows (root = 0; each tree edge keeps the level or steps ±1, clamped to
@@ -461,9 +453,9 @@ func _build_tree_levels(rng: RandomNumberGenerator, adjacency: Dictionary, borde
 			ramp_edges[_edge_key(best_u, best_v)] = true
 	return levels
 
-
 ## Order-independent integer key for an undirected region pair.
 func _edge_key(a: int, b: int) -> int:
 	var lo: int = mini(a, b)
 	var hi: int = maxi(a, b)
 	return lo * region_count + hi
+#endregion

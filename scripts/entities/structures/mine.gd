@@ -7,11 +7,13 @@ extends Commandable
 ## two hold mutual references (see Map.add_structure routing and Deposit). The
 ## Mine's OreExtractor child does the actual ore collection (generic, unchanged).
 
+#region Properties
 ## The deposit this mine sits on. Set by the build path at runtime (Map.add_structure)
 ## or authored in a scene (and auto-created by the editor convenience below).
 @export var deposit: Deposit
+#endregion
 
-
+#region Preconditions
 ## A mine may only be placed on a Deposit that has no mine yet. The mine binds to
 ## (and overlays) the whole deposit object, so it's enough that the clicked cell
 ## belongs to a free deposit — any cell of a multi-cell deposit works. This forbids
@@ -30,15 +32,17 @@ static func valid_placement(
 		return false
 	var occupant = map.cell_grid[cell.x][cell.y]
 	return occupant is Deposit and (occupant as Deposit).mine == null
+#endregion
 
-
+#region Public API
 ## Link this mine to its deposit (both directions).
 func bind_deposit(a_deposit: Deposit) -> void:
 	deposit = a_deposit
 	if a_deposit != null:
 		a_deposit.mine = self
+#endregion
 
-
+#region Lifecycle
 func _on_death() -> void:
 	# The deposit is never removed from the grid; just release it so it can be
 	# mined again. super() handles the rest of the structure teardown.
@@ -47,15 +51,15 @@ func _on_death() -> void:
 	super()
 
 
-### EDITOR CONVENIENCE
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		# Defer so the node's owner/parent are settled before we add a sibling.
 		call_deferred(&"_ensure_editor_deposit")
 		return
 	super()
+#endregion
 
-
+#region Editor helpers
 ## When a Mine is authored into a scene without a deposit, auto-create a linked
 ## Deposit sibling at the same spot so the mine is valid. Guarded on deposit==null
 ## so it runs once and never fights the user (deleting the deposit clears the link,
@@ -75,3 +79,4 @@ func _ensure_editor_deposit() -> void:
 	d.global_transform = global_transform
 	d.name = name + "Deposit"
 	deposit = d
+#endregion

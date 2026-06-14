@@ -1,15 +1,20 @@
 class_name Tool
 
+#region Properties
 var type: Variant
 var packed_scene: PackedScene
+#endregion
 
+#region Lifecycle
 func _init(
 	a_type: Variant,
 	a_packed_scene: PackedScene
 ) -> void:
 	type = a_type
 	packed_scene = a_packed_scene
+#endregion
 
+#region Registry
 static var command_tool_map: Dictionary = {
 	# Build tools (Technician → structures).
 	"command_tool_outpost": Tool.new(Entity.Type.STRUCTURE_OUTPOST, load("res://scenes/structures/outpost.tscn")),
@@ -24,3 +29,4 @@ static var command_tool_map: Dictionary = {
 	"command_tool_irregular": Tool.new(Entity.Type.UNIT_IRREGULAR, load("res://scenes/units/irregular.tscn")),
 	"command_tool_vanguard": Tool.new(Entity.Type.UNIT_VANGUARD, load("res://scenes/units/vanguard.tscn")),
 }
+#endregion

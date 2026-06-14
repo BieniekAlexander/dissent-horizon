@@ -15,15 +15,20 @@ extends Area3D
 ## component lookups. This is the boundary that keeps composition from
 ## collapsing back into implicit coupling.
 
+#region Signals
 signal state_changed(old_state: int, new_state: int)
+#endregion
 
+#region Constants
 enum State {
 	UNSELECTED,
 	HOVERED,  ## reserved for hover-highlight (not wired up yet)
 	PREVIEW,  ## reserved for in-progress box-drag (not wired up yet)
 	SELECTED,
 }
+#endregion
 
+#region Properties
 @export var enabled: bool = true
 
 ## Optional path (relative to this Selectable) to a Node3D whose .visible should
@@ -34,7 +39,9 @@ enum State {
 
 var _state: int = State.UNSELECTED
 var _indicator: Node3D = null
+#endregion
 
+#region Lifecycle
 func _ready() -> void:
 	add_to_group("selectables")
 	if indicator_path != null and not indicator_path.is_empty():
@@ -43,7 +50,9 @@ func _ready() -> void:
 			set_indicator(node)
 		elif node != null:
 			push_warning("Selectable.indicator_path points at non-Node3D: %s" % node)
+#endregion
 
+#region Public API
 var state: int:
 	get: return _state
 	set(value):
@@ -76,9 +85,12 @@ func get_entity() -> Entity:
 func set_indicator(indicator: Node3D) -> void:
 	_indicator = indicator
 	_refresh_indicator()
+#endregion
 
+#region Private helpers
 func _refresh_indicator() -> void:
 	if _indicator == null: return
 	# PREVIEW and SELECTED both show the ring for now. A future SelectionVisual
 	# can differentiate (e.g., dimmed preview ring during box-drag).
 	_indicator.visible = _state == State.SELECTED or _state == State.PREVIEW
+#endregion

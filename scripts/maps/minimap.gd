@@ -19,6 +19,7 @@ extends TextureRect
 ## Add this node as a child of the Player's Controller CanvasLayer so that it
 ## renders over the 3D world.
 
+#region Constants
 ## Image dimensions in pixels. 16:9 ratio, kept small so per-frame fills and
 ## pixel writes are cheap.
 const WIDTH: int = 192
@@ -33,7 +34,9 @@ const STRUCTURE_HALF: int = 1
 ## Terrain colours by fog state.
 const EXPLORED_COLOR: Color = Color(0.25, 0.25, 0.25, 1.0)  ## seen before, currently fogged
 const IN_SIGHT_COLOR: Color = Color(0.55, 0.55, 0.55, 1.0)  ## inside a unit's vision this frame
+#endregion
 
+#region Properties
 var _image: Image
 var _map: Map
 var _fog: Fog
@@ -49,8 +52,9 @@ var _dot_offsets: Array[Vector2i] = []
 var _square_offsets: Array[Vector2i] = []
 ## True once _initialize_bounds() has resolved the Map node.
 var _ready_to_draw: bool = false
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
 	_image = Image.create(WIDTH, HEIGHT, false, Image.FORMAT_RGBA8)
 	_image.fill(Color.BLACK)
@@ -76,7 +80,6 @@ func _ready() -> void:
 	# Defer bounds init so the scene tree (Map, height_map) is fully loaded.
 	call_deferred(&"_initialize_bounds")
 
-
 func _initialize_bounds() -> void:
 	_map = get_tree().current_scene.find_child("Map") as Map
 	if _map == null:
@@ -92,38 +95,6 @@ func _initialize_bounds() -> void:
 	_camera = get_tree().current_scene.find_child("Camera") as RTSCamera3D
 	_ready_to_draw = true
 
-
-## Inverse of world_to_minimap: returns the world XZ at the centre of a
-## minimap pixel. Used to sample the fog explored-bytes per minimap pixel.
-func minimap_to_world(pixel: Vector2i) -> Vector2:
-	var nx: float = (float(pixel.x) + 0.5) / float(WIDTH)
-	var ny: float = (float(pixel.y) + 0.5) / float(HEIGHT)
-	return Vector2(
-		nx * 2.0 * _world_half_w + _world_center.x - _world_half_w,
-		ny * 2.0 * _world_half_d + _world_center.y - _world_half_d
-	)
-
-
-## Maps a world XZ coordinate to a minimap pixel.
-## Returns Vector2i(-1, -1) when the position lies outside the mapped bounds.
-func world_to_minimap(world_xz: Vector2) -> Vector2i:
-	var nx: float = (world_xz.x - _world_center.x + _world_half_w) / (2.0 * _world_half_w)
-	var ny: float = (world_xz.y - _world_center.y + _world_half_d) / (2.0 * _world_half_d)
-	var px: int = int(nx * float(WIDTH))
-	var py: int = int(ny * float(HEIGHT))
-	if px < 0 or px >= WIDTH or py < 0 or py >= HEIGHT:
-		return Vector2i(-1, -1)
-	return Vector2i(px, py)
-
-
-func _draw_pixels(center: Vector2i, offsets: Array[Vector2i], color: Color) -> void:
-	for offset: Vector2i in offsets:
-		var px: int = center.x + offset.x
-		var py: int = center.y + offset.y
-		if px >= 0 and px < WIDTH and py >= 0 and py < HEIGHT:
-			_image.set_pixel(px, py, color)
-
-
 func _gui_input(event: InputEvent) -> void:
 	if not _ready_to_draw or _camera == null:
 		return
@@ -138,7 +109,6 @@ func _gui_input(event: InputEvent) -> void:
 		)
 		_camera.center_on(world_xz)
 		accept_event()
-
 
 func _process(_delta: float) -> void:
 	if not _ready_to_draw:
@@ -184,3 +154,36 @@ func _process(_delta: float) -> void:
 			_draw_pixels(minimap_pos, _dot_offsets, color)
 
 	(texture as ImageTexture).update(_image)
+#endregion
+
+#region Public API
+## Inverse of world_to_minimap: returns the world XZ at the centre of a
+## minimap pixel. Used to sample the fog explored-bytes per minimap pixel.
+func minimap_to_world(pixel: Vector2i) -> Vector2:
+	var nx: float = (float(pixel.x) + 0.5) / float(WIDTH)
+	var ny: float = (float(pixel.y) + 0.5) / float(HEIGHT)
+	return Vector2(
+		nx * 2.0 * _world_half_w + _world_center.x - _world_half_w,
+		ny * 2.0 * _world_half_d + _world_center.y - _world_half_d
+	)
+
+## Maps a world XZ coordinate to a minimap pixel.
+## Returns Vector2i(-1, -1) when the position lies outside the mapped bounds.
+func world_to_minimap(world_xz: Vector2) -> Vector2i:
+	var nx: float = (world_xz.x - _world_center.x + _world_half_w) / (2.0 * _world_half_w)
+	var ny: float = (world_xz.y - _world_center.y + _world_half_d) / (2.0 * _world_half_d)
+	var px: int = int(nx * float(WIDTH))
+	var py: int = int(ny * float(HEIGHT))
+	if px < 0 or px >= WIDTH or py < 0 or py >= HEIGHT:
+		return Vector2i(-1, -1)
+	return Vector2i(px, py)
+#endregion
+
+#region Private helpers
+func _draw_pixels(center: Vector2i, offsets: Array[Vector2i], color: Color) -> void:
+	for offset: Vector2i in offsets:
+		var px: int = center.x + offset.x
+		var py: int = center.y + offset.y
+		if px >= 0 and px < WIDTH and py >= 0 and py < HEIGHT:
+			_image.set_pixel(px, py, color)
+#endregion

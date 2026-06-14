@@ -1,6 +1,7 @@
 class_name ConditionUnitCount
 extends Condition
 
+#region Properties
 enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 
 @export var commander_id: int = 1
@@ -8,7 +9,9 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 @export var unit_type: Entity.Type = Entity.Type.UNDEFINED
 @export var comparison: Comparison = Comparison.AT_LEAST
 @export var count: int = 1
+#endregion
 
+#region Public API
 func evaluate(manager: ScenarioEventManager) -> bool:
 	var commander: Commander = manager.get_commander(commander_id)
 	if commander == null:
@@ -24,3 +27,4 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 		Comparison.AT_MOST:  return n <= count
 		Comparison.EXACTLY:  return n == count
 	return false
+#endregion

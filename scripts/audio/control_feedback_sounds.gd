@@ -1,6 +1,6 @@
 class_name ControlFeedbackSounds
 
-
+#region Constants
 enum LineType {
 	SELECTED,
 	ISSUED_COMMAND,
@@ -23,6 +23,11 @@ static var lines: Dictionary = {
 	},
 	Entity.Type.UNIT_VANGUARD: {
 		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_ROAR],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	Entity.Type.UNIT_WARLORD: {
+		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
@@ -67,12 +72,14 @@ static var lines: Dictionary = {
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
 }
+#endregion
 
-
+#region Lifecycle
 static func _static_init() -> void:
 	_validate()
+#endregion
 
-
+#region Private helpers
 static func _validate() -> void:
 	for entity_type: Entity.Type in Entity.Type.values():
 		if entity_type == Entity.Type.UNDEFINED:
@@ -87,3 +94,4 @@ static func _validate() -> void:
 			assert((type_lines[line_type] as Array).size() > 0,
 					"ControlFeedbackSounds: Entity.Type.%s LineType.%s has empty audio list" % [
 						Entity.Type.find_key(entity_type), LineType.find_key(line_type)])
+#endregion

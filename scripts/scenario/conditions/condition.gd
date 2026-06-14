@@ -1,6 +1,7 @@
 class_name Condition
 extends Resource
 
+#region Public API
 ## Returns true when this condition is met. Called every physics tick by Trigger.
 func evaluate(_manager: ScenarioEventManager) -> bool:
 	return false
@@ -9,3 +10,4 @@ func evaluate(_manager: ScenarioEventManager) -> bool:
 ## Override to clear any internal per-fire state.
 func reset() -> void:
 	pass
+#endregion

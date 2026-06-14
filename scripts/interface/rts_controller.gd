@@ -1,78 +1,34 @@
 class_name RTSController extends CanvasLayer
 
-## GAME STATE
-@onready var map: Map = get_tree().current_scene.find_child("Map")
-
-
-## CAMERA
-@onready var camera: RTSCamera3D = get_viewport().get_camera_3d()
-
-
-## MOUSE
-### VISUALS
+#region Constants
 const free_cursor: Resource = preload("res://assets/interface/cursor_free.png")
 const selection_cursor: Resource = preload("res://assets/interface/cursor_selection.png")
 const attack_cursor: Resource = preload("res://assets/interface/cursor_attack.png")
 const unknown_cursor: Resource = preload("res://assets/interface/cursor_unknown.png")
 const invalid_cursor: Resource = preload("res://assets/interface/cursor_invalid.png")
 
-static func cursor_evaluator(a_command_type: Script, a_command_message: CommandMessage) -> Resource:
-	if a_command_type==null or a_command_type==Command:
-		if (a_command_message.target!=null):
-			if a_command_message.target.commander.id==PLAYER_COMMANDER_ID:
-				return selection_cursor
-			else:
-				return attack_cursor
-		else:
-			return free_cursor
-	elif a_command_type==Attack or a_command_type==AttackMove:
-		return attack_cursor
-	else:
-		return unknown_cursor
-
-### GAMESTATE
-var cursor_target: Variant = Vector3.ZERO
-var mouse_position: Vector2 = Vector2.ZERO
-
-func get_cursor_target(a_mouse_position: Vector2) -> Variant:
-	var ray_origin: Vector3 = camera.project_ray_origin(a_mouse_position)
-	var ray_end: Vector3 = ray_origin + camera.project_ray_normal(a_mouse_position) * 1000.0
-
-	var selection_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.SELECTION)
-	if selection_hit and selection_hit['collider'] is Selectable:
-		var entity := (selection_hit['collider'] as Selectable).get_entity()
-		# Stealthed enemy units are rendered invisible to the player, so the cursor
-		# must ignore them for both selection and targeting — fall through to the
-		# terrain hit so a right-click resolves to a move instead of an attack.
-		if entity != null and not _is_hidden_enemy(entity):
-			return entity
-
-	var terrain_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.TERRAIN)
-	if terrain_hit:
-		return terrain_hit['position']
-
-	return null
-
-## True when `entity` is an enemy unit currently hidden by stealth. These are the
-## STEALTHED units Commandable._process renders fully transparent for enemies, so
-## the cursor treats them as not-there. Once a detector sees them (REVEALED) or
-## combat forces them out (UNSTEALTHED) they become partially/fully visible and
-## thus clickable and targetable again.
-static func _is_hidden_enemy(entity: Entity) -> bool:
-	return entity.stealth != null \
-		and entity.stealth.state == Stealth.State.STEALTHED \
-		and entity.commander_id != PLAYER_COMMANDER_ID
-
-
-## SIGNALS
-signal unit_selected(entity: Entity)
-signal command_issued(entity: Entity, command_type: Script)
-
-
-## CONTROL VARIABLES
 # TODO: replace with a reference to the active player's Commander once
 # multi-player / hot-seat support is needed. Hardcoded per user request.
 const PLAYER_COMMANDER_ID: int = 1
+
+const BUILD_PREVIEW_ALPHA: float = 0.45
+const BUILD_PREVIEW_VALID_TINT:   Color = Color(1.0, 1.0, 1.0, BUILD_PREVIEW_ALPHA)
+const BUILD_PREVIEW_INVALID_TINT: Color = Color(1.0, 0.25, 0.25, BUILD_PREVIEW_ALPHA)
+
+const _INDICATOR_POOL_SIZE: int = 16
+#endregion
+
+#region Signals
+signal unit_selected(entity: Entity)
+signal command_issued(entity: Entity, command_type: Script)
+#endregion
+
+#region Properties
+@onready var map: Map = get_tree().current_scene.find_child("Map")
+@onready var camera: RTSCamera3D = get_viewport().get_camera_3d()
+
+var cursor_target: Variant = Vector3.ZERO
+var mouse_position: Vector2 = Vector2.ZERO
 
 @export var selection_box: ColorRect = ColorRect.new()
 @onready var command_message: CommandMessage = CommandMessage.new(map)
@@ -99,27 +55,22 @@ var available_commands: Array:
 ## the old state_maping-based sub-context machinery.
 var pending_command_name: String = ""
 
-## WAYPOINT INDICATORS
 ## One WaypointIndicator node per active CommandMessage snapshot, pooled to
 ## avoid per-command allocations.  All indicator nodes live under the Map node.
-const _INDICATOR_POOL_SIZE: int = 16
 var _active_indicators: Dictionary = {}  # CommandMessage -> WaypointIndicator
 var _indicator_pool: Array = []          # idle WaypointIndicator nodes
 
-## BUILD PLACEMENT PREVIEW
 ## While a Build command is armed with a chosen Tool, we show a translucent
 ## "ghost" of the structure under the cursor, snapped to the cell it would
 ## occupy — the standard RTS placement preview. The ghost is a Sprite3D
 ## duplicated out of the building's own scene (so it always matches the real
 ## building art) and lives in the 3D world under the Map, not on this
 ## CanvasLayer. We rebuild it only when the chosen structure changes.
-const BUILD_PREVIEW_ALPHA: float = 0.45
-const BUILD_PREVIEW_VALID_TINT:   Color = Color(1.0, 1.0, 1.0, BUILD_PREVIEW_ALPHA)
-const BUILD_PREVIEW_INVALID_TINT: Color = Color(1.0, 0.25, 0.25, BUILD_PREVIEW_ALPHA)
 var _build_preview: Node3D = null
 var _build_preview_tool_type: Variant = null
+#endregion
 
-## NODE
+#region Lifecycle
 func _ready():
 	Input.set_custom_mouse_cursor(free_cursor)
 	upate_hud_buttons()
@@ -147,15 +98,15 @@ func _process(_delta: float) -> void:
 		selection[0],
 		command_message
 	) if !selection.is_empty() else null
-	
+
 	var check: Command.PreconditionFailureCause =  (
 		Command.PreconditionFailureCause.NONE
 		if current_command_type==null
 		else current_command_type.meets_precondition(selection[0] if !selection.is_empty() else null, command_message)
 	)
-	
+
 	$CommandErrorMessage.text = Command.precondition_message_map[check]
-	
+
 	if check==Command.PreconditionFailureCause.NONE:
 		Input.set_custom_mouse_cursor(cursor_evaluator(current_command_type, command_message))
 	elif check==Command.PreconditionFailureCause.COMMAND_PENDING_TOOL:
@@ -168,93 +119,7 @@ func _process(_delta: float) -> void:
 	_update_build_preview(check == Command.PreconditionFailureCause.INVALID_PLACEMENT)
 	_update_waypoint_display()
 
-
-## Show / refresh / hide the translucent build-placement ghost. Called every
-## frame from _process. The ghost is visible only while the armed command is
-## Build and the player has chosen a Tool; it snaps to the same cell the
-## structure would be placed in, so the preview matches the real placement.
-func _update_build_preview(is_invalid_placement: bool) -> void:
-	var should_show: bool = (
-		current_command_type == Build
-		and command_message.tool != null
-	)
-	if not should_show:
-		if _build_preview != null and is_instance_valid(_build_preview):
-			_build_preview.visible = false
-		return
-
-	# (Re)build the ghost sprite when the chosen structure changes.
-	if _build_preview == null or not is_instance_valid(_build_preview) \
-			or command_message.tool.type != _build_preview_tool_type:
-		_rebuild_build_preview(command_message.tool)
-
-	# Snap to the cell the structure would occupy; hide if off-map so we never
-	# index the heightmap out of bounds (grid_to_world reads map_data directly).
-	var cell: Vector2i = map.world_to_grid(command_message.xz_position)
-	if not map.grid_coordinates_in_bounds(cell):
-		_build_preview.visible = false
-		return
-
-	# Position at the footprint centroid, matching the arithmetic in
-	# Map.add_structure, so multi-cell buildings (e.g. 3×3) don't appear
-	# offset from where they actually land.
-	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
-	var commander: Commander = lead.commander if lead != null else null
-	var source: Node = commander.get_build_preview_instance(command_message.tool) if commander != null else null
-	var obs := source.get_node_or_null("Obstruction") as Obstruction if source != null else null
-	var dims := obs.dimensions if obs != null else Vector2i.ONE
-	var origin := cell - Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
-	var centroid := Vector3.ZERO
-	for w in range(dims.x):
-		for l in range(dims.y):
-			centroid += map.grid_to_world(Vector2i(origin.x + w, origin.y + l))
-	_build_preview.global_position = centroid / (dims.x * dims.y)
-
-	# Apply tint: red when placement is invalid, neutral otherwise.
-	var tint: Color = Entity.TEAM_COLOR_MAP[commander.id] * (
-		BUILD_PREVIEW_INVALID_TINT \
-		if is_invalid_placement \
-		else BUILD_PREVIEW_VALID_TINT
-	)
-	for child in _build_preview.get_children():
-		if child is Sprite3D:
-			child.modulate = tint
-
-	_build_preview.visible = true
-
-
-## Rebuild the ghost's sprite from the structure's own scene so the preview
-## always matches the real building art — including the player's team tint. The
-## source is the builder's Commander's live, team-tinted preview instance (kept
-## out of the tree, see Commander.get_build_preview_instance), so we don't
-## re-instantiate the scene here and the ghost inherits the per-commander
-## `modulate` color. We duplicate that Sprite and knock its alpha down to make
-## the placement preview translucent.
-func _rebuild_build_preview(a_tool: Tool) -> void:
-	if _build_preview == null or not is_instance_valid(_build_preview):
-		_build_preview = Node3D.new()
-		_build_preview.name = "BuildPreview"
-		_build_preview.visible = false
-		map.get_parent().add_child(_build_preview)
-
-	for child in _build_preview.get_children():
-		child.free()
-	_build_preview_tool_type = a_tool.type
-
-	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
-	var commander: Commander = lead.commander if lead != null else null
-	var source: Node = commander.get_build_preview_instance(a_tool) if commander != null else null
-	if source == null:
-		return
-	var sprite := source.get_node_or_null("Sprite") as Sprite3D
-	if sprite != null:
-		var ghost := sprite.duplicate() as Sprite3D
-		ghost.modulate.a = BUILD_PREVIEW_ALPHA
-		_build_preview.add_child(ghost)
-
-
 func _unhandled_input(event: InputEvent) -> void:
-	## MOUSE MOVEMENT
 	if event is InputEventMouseMotion:
 		mouse_position = event.position
 		if selection_box.visible == true:
@@ -268,7 +133,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				selection_box.position = Vector2(mouse_position.x - selection_box_size.x, mouse_position.y)
 			else:
 				selection_box.position = Vector2(mouse_position.x, mouse_position.y - selection_box_size.y)
-	# UNIT SELECTION
 	elif event.is_action_pressed("isometric_camera_select"):
 		select_down_position = mouse_position
 		selection_box.visible = true
@@ -277,23 +141,58 @@ func _unhandled_input(event: InputEvent) -> void:
 		selection_box.visible = false
 		if !next_command_additive: deselect()
 		set_selection(select_down_position, mouse_position)
-	## QUEUING
 	elif event.is_action_pressed("command_additive"):
 		next_command_additive = true
 	elif event.is_action_released("command_additive"):
 		next_command_additive = false
-	## COMMAND CONTEXT UPDATES
 	elif get_action_names_by_prefix(event, "command_").size()>0:
 		process_command(get_action_names_by_prefix(event, "command_")[0])
-	# ISSUING COMMANDS
 	elif event.is_action_pressed("move"):
 		assign_command_to_units(
 			current_command_type,
 			command_message,
 			next_command_additive
 		)
+#endregion
 
-## CONTEXT SETTING
+#region Selection
+## Return all Selectable nodes whose projected screen position falls within screen_rect.
+func query_box_collisions(screen_rect: Rect2) -> Array:
+	return get_tree().get_nodes_in_group("selectables").filter(
+		func(selectable: Selectable) -> bool:
+			return screen_rect.has_point(camera.unproject_position(selectable.global_position))
+	)
+
+func deselect():
+	for c in selection:
+		if is_instance_valid(c):
+			c.selectable.deselect()
+	selection = []
+	pending_command_name = ""
+
+func set_selection(selection_start_position: Vector2, selection_end_position: Vector2):
+	var drag_distance = abs(selection_start_position - selection_end_position)
+	if drag_distance < Vector2(10, 10):
+		var click_target = get_cursor_target(selection_start_position)
+		if click_target is Entity and (click_target as Entity).commander_id == PLAYER_COMMANDER_ID:
+			if next_command_additive and selection.has(click_target):
+				(click_target as Entity).selectable.deselect()
+				selection.erase(click_target)
+			elif (click_target as Entity).selectable.select():
+				selection.append(click_target)
+	else:
+		for selectable: Selectable in query_box_collisions(Rect2(selection_start_position, selection_end_position - selection_start_position).abs()):
+			var entity := selectable.get_entity()
+			if entity != null and entity.commander_id == PLAYER_COMMANDER_ID:
+				if selectable.select():
+					selection.append(entity)
+
+	available_commands = CommandContextParser.commands_for_selection(selection)
+	if not selection.is_empty():
+		unit_selected.emit(selection[0] as Entity)
+#endregion
+
+#region Command processing
 func process_command(command_name: String) -> void:
 	var lead: Entity = selection[0] if !selection.is_empty() else null
 	# Gate on _available_commands (the union across the whole selection) rather
@@ -368,7 +267,6 @@ static func _resolve_command_class(
 				return Attack
 			return AttackMove
 		"command_ability":
-			# Anima's Build sub-context.
 			return Build
 		"command_launch":
 			# The launch hotkey fires the generic Ability command. The specific
@@ -438,43 +336,6 @@ static func _resolve_command_class(
 	# Producers fall back to rally; units to basic move — both plain Command.
 	return Command
 
-## Return all Selectable nodes whose projected screen position falls within screen_rect.
-func query_box_collisions(screen_rect: Rect2) -> Array:
-	return get_tree().get_nodes_in_group("selectables").filter(
-		func(selectable: Selectable) -> bool:
-			return screen_rect.has_point(camera.unproject_position(selectable.global_position))
-	)
-
-## SELECTION
-func deselect():
-	for c in selection:
-		if is_instance_valid(c):
-			c.selectable.deselect()
-	selection = []
-	pending_command_name = ""
-
-func set_selection(selection_start_position: Vector2, selection_end_position: Vector2):
-	var drag_distance = abs(selection_start_position - selection_end_position)
-	if drag_distance < Vector2(10, 10):
-		var click_target = get_cursor_target(selection_start_position)
-		if click_target is Entity and (click_target as Entity).commander_id == PLAYER_COMMANDER_ID:
-			if next_command_additive and selection.has(click_target):
-				(click_target as Entity).selectable.deselect()
-				selection.erase(click_target)
-			elif (click_target as Entity).selectable.select():
-				selection.append(click_target)
-	else:
-		for selectable: Selectable in query_box_collisions(Rect2(selection_start_position, selection_end_position - selection_start_position).abs()):
-			var entity := selectable.get_entity()
-			if entity != null and entity.commander_id == PLAYER_COMMANDER_ID:
-				if selectable.select():
-					selection.append(entity)
-
-	available_commands = CommandContextParser.commands_for_selection(selection)
-	if not selection.is_empty():
-		unit_selected.emit(selection[0] as Entity)
-
-## SETTING COMMANDS
 func assign_command_to_units(
 	a_command_type: Script,
 	a_command_message: CommandMessage,
@@ -515,7 +376,6 @@ func assign_command_to_units(
 		var representative := capable[0] as Entity
 		var radius: float = representative.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 		var region_radius: float = maxf(5.0, radius * 2.5 * float(capable.size()))
-		# The point we generated the destinations around (the click location).
 		var destination_centroid: Vector2 = a_command_message.xz_position
 		var destinations: Array[Vector2] = SU.get_nonoverlapping_points(
 			map,
@@ -579,9 +439,158 @@ func assign_command_to_units(
 func _reset_pending_state() -> void:
 	pending_command_name = ""
 	available_commands = CommandContextParser.commands_for_selection(selection)
+#endregion
 
+#region HUD
+func upate_hud_buttons() -> void:
+	# TODO definitely gonna refactor
+	var visible_names: Array = _visible_command_names()
+	for child: BoxContainer in $CommandsView.get_children():
+		for subchild: Button in child.get_children():
+			subchild.visible = visible_names.has(subchild.name)
 
-## WAYPOINT INDICATOR HELPERS
+## The command names whose HUD buttons should be visible for the current state.
+## Normally the selection's available commands, but once the player arms "Build"
+## (command_ability) we drill into the builder's buildable-structure tools so
+## they can pick what to place. Issuing or re-selecting clears pending_command_name
+## (via _reset_pending_state / deselect), which drops the menu back to the flat
+## command set.
+func _visible_command_names() -> Array:
+	if selection.is_empty():
+		return []
+	if pending_command_name == "command_ability":
+		return CommandContextParser.build_tools_for(selection[0])
+	return _available_commands
+
+func _on_control_button_pressed(control_name: String) -> void:
+	process_command(control_name)
+#endregion
+
+#region Private helpers
+static func cursor_evaluator(a_command_type: Script, a_command_message: CommandMessage) -> Resource:
+	if a_command_type==null or a_command_type==Command:
+		if (a_command_message.target!=null):
+			if a_command_message.target.commander.id==PLAYER_COMMANDER_ID:
+				return selection_cursor
+			else:
+				return attack_cursor
+		else:
+			return free_cursor
+	elif a_command_type==Attack or a_command_type==AttackMove:
+		return attack_cursor
+	else:
+		return unknown_cursor
+
+## True when `entity` is an enemy unit currently hidden by stealth. These are the
+## STEALTHED units Commandable._process renders fully transparent for enemies, so
+## the cursor treats them as not-there. Once a detector sees them (REVEALED) or
+## combat forces them out (UNSTEALTHED) they become partially/fully visible and
+## thus clickable and targetable again.
+static func _is_hidden_enemy(entity: Entity) -> bool:
+	return entity.stealth != null \
+		and entity.stealth.state == Stealth.State.STEALTHED \
+		and entity.commander_id != PLAYER_COMMANDER_ID
+
+func get_cursor_target(a_mouse_position: Vector2) -> Variant:
+	var ray_origin: Vector3 = camera.project_ray_origin(a_mouse_position)
+	var ray_end: Vector3 = ray_origin + camera.project_ray_normal(a_mouse_position) * 1000.0
+
+	var selection_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.SELECTION)
+	if selection_hit and selection_hit['collider'] is Selectable:
+		var entity := (selection_hit['collider'] as Selectable).get_entity()
+		# Stealthed enemy units are rendered invisible to the player, so the cursor
+		# must ignore them for both selection and targeting — fall through to the
+		# terrain hit so a right-click resolves to a move instead of an attack.
+		if entity != null and not _is_hidden_enemy(entity):
+			return entity
+
+	var terrain_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.TERRAIN)
+	if terrain_hit:
+		return terrain_hit['position']
+
+	return null
+
+## Show / refresh / hide the translucent build-placement ghost. Called every
+## frame from _process. The ghost is visible only while the armed command is
+## Build and the player has chosen a Tool; it snaps to the same cell the
+## structure would be placed in, so the preview matches the real placement.
+func _update_build_preview(is_invalid_placement: bool) -> void:
+	var should_show: bool = (
+		current_command_type == Build
+		and command_message.tool != null
+	)
+	if not should_show:
+		if _build_preview != null and is_instance_valid(_build_preview):
+			_build_preview.visible = false
+		return
+
+	# (Re)build the ghost sprite when the chosen structure changes.
+	if _build_preview == null or not is_instance_valid(_build_preview) \
+			or command_message.tool.type != _build_preview_tool_type:
+		_rebuild_build_preview(command_message.tool)
+
+	# Snap to the cell the structure would occupy; hide if off-map so we never
+	# index the heightmap out of bounds (grid_to_world reads map_data directly).
+	var cell: Vector2i = map.world_to_grid(command_message.xz_position)
+	if not map.grid_coordinates_in_bounds(cell):
+		_build_preview.visible = false
+		return
+
+	# Position at the footprint centroid, matching the arithmetic in
+	# Map.add_structure, so multi-cell buildings (e.g. 3×3) don't appear
+	# offset from where they actually land.
+	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
+	var commander: Commander = lead.commander if lead != null else null
+	var source: Node = commander.get_build_preview_instance(command_message.tool) if commander != null else null
+	var obs := source.get_node_or_null("Obstruction") as Obstruction if source != null else null
+	var dims := obs.dimensions if obs != null else Vector2i.ONE
+	var origin := cell - Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
+	var centroid := Vector3.ZERO
+	for w in range(dims.x):
+		for l in range(dims.y):
+			centroid += map.grid_to_world(Vector2i(origin.x + w, origin.y + l))
+	_build_preview.global_position = centroid / (dims.x * dims.y)
+
+	# Apply tint: red when placement is invalid, neutral otherwise.
+	var tint: Color = Entity.TEAM_COLOR_MAP[commander.id] * (
+		BUILD_PREVIEW_INVALID_TINT \
+		if is_invalid_placement \
+		else BUILD_PREVIEW_VALID_TINT
+	)
+	for child in _build_preview.get_children():
+		if child is Sprite3D:
+			child.modulate = tint
+
+	_build_preview.visible = true
+
+## Rebuild the ghost's sprite from the structure's own scene so the preview
+## always matches the real building art — including the player's team tint. The
+## source is the builder's Commander's live, team-tinted preview instance (kept
+## out of the tree, see Commander.get_build_preview_instance), so we don't
+## re-instantiate the scene here and the ghost inherits the per-commander
+## `modulate` color. We duplicate that Sprite and knock its alpha down to make
+## the placement preview translucent.
+func _rebuild_build_preview(a_tool: Tool) -> void:
+	if _build_preview == null or not is_instance_valid(_build_preview):
+		_build_preview = Node3D.new()
+		_build_preview.name = "BuildPreview"
+		_build_preview.visible = false
+		map.get_parent().add_child(_build_preview)
+
+	for child in _build_preview.get_children():
+		child.free()
+	_build_preview_tool_type = a_tool.type
+
+	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
+	var commander: Commander = lead.commander if lead != null else null
+	var source: Node = commander.get_build_preview_instance(a_tool) if commander != null else null
+	if source == null:
+		return
+	var sprite := source.get_node_or_null("Sprite") as Sprite3D
+	if sprite != null:
+		var ghost := sprite.duplicate() as Sprite3D
+		ghost.modulate.a = BUILD_PREVIEW_ALPHA
+		_build_preview.add_child(ghost)
 
 func _make_indicator() -> WaypointIndicator:
 	var ind := WaypointIndicator.new()
@@ -631,38 +640,10 @@ func _update_waypoint_display() -> void:
 				configured[msg] = true
 			prev_pos = msg.position
 
-
-## UTILS
 static func get_action_names_by_prefix(event: InputEvent, event_prefix: String) -> Array:
 	return InputMap.get_actions().filter(
 		func(action_name: String): return event_prefix in action_name
 	).filter(
 		func(action_name: String): return event.is_action_pressed(action_name, true)
 	)
-
-
-## HUD
-### HUD updates
-func upate_hud_buttons() -> void:
-	# TODO definitely gonna refactor
-	var visible_names: Array = _visible_command_names()
-	for child: BoxContainer in $CommandsView.get_children():
-		for subchild: Button in child.get_children():
-			subchild.visible = visible_names.has(subchild.name)
-
-## The command names whose HUD buttons should be visible for the current state.
-## Normally the selection's available commands, but once the player arms "Build"
-## (command_ability) we drill into the builder's buildable-structure tools so
-## they can pick what to place. Issuing or re-selecting clears pending_command_name
-## (via _reset_pending_state / deselect), which drops the menu back to the flat
-## command set.
-func _visible_command_names() -> Array:
-	if selection.is_empty():
-		return []
-	if pending_command_name == "command_ability":
-		return CommandContextParser.build_tools_for(selection[0])
-	return _available_commands
-
-### HUD signals
-func _on_control_button_pressed(control_name: String) -> void:
-	process_command(control_name)
+#endregion

@@ -13,11 +13,16 @@ extends Entity
 ## gated by `is_in_group(...)` without referencing class names that no longer
 ## exist.
 
+#region Properties
 @onready var command_receiver: CommandReceiver = CommandReceiver.new()
 
 ## Component references — all optional. Entity declares `ownership` and
 ## `movement`; Commandable adds `selectable`, `production`, `resource_provider`.
 @onready var selectable: Selectable = $Selectable
+## NavigationObstacle3D used for cross-team one-sided avoidance (see
+## AvoidanceAgent3D for the bit-layout). Enabled and sized in _ready for units
+## only (movement != null); layers are set in _on_commander_changed.
+@onready var _avoidance_obstacle: NavigationObstacle3D = $AvoidanceObstacle
 ## Child StaticBody3D carrying the TARGETABLE layer (plus STRUCTURE_BLOCKER for
 ## structures, set in _ready). The root CharacterBody3D stays off those layers so
 ## moving units never collide with building bodies; aggro / vision / projectile /
@@ -28,7 +33,9 @@ extends Entity
 @onready var resource_provider: ResourceProvider = get_node_or_null("ResourceProvider") as ResourceProvider
 @onready var ore_extractor: OreExtractor = get_node_or_null("OreExtractor") as OreExtractor
 @onready var dominion_generator: DominionGenerator = get_node_or_null("DominionGenerator") as DominionGenerator
+@onready var dominion_provider: DominionProvider = get_node_or_null("DominionProvider") as DominionProvider
 @onready var shelter: Shelter = get_node_or_null("Shelter") as Shelter
+@onready var veterancy: Veterancy = $Veterancy
 
 ## True when the player can currently perceive this commandable — fog pixel is
 ## clear AND the unit is not stealthed. Written by fog.gd each physics tick for
@@ -41,7 +48,12 @@ var _command: Command:
 	get: return command_receiver._command
 	set(value): command_receiver._command = value
 
+@onready var hpBarFill: Sprite3D = $HPBar/HPBarFill
+@onready var _debug_label: Label3D = get_node_or_null("DebugLabel") as Label3D
+var _attack_duration: int = 0
+#endregion
 
+#region Command interface
 func current_command() -> Command:
 	return command_receiver._command
 
@@ -54,11 +66,14 @@ func has_command() -> bool:
 func clear_command() -> void:
 	update_commands(null)
 
-@onready var hpBarFill: Sprite3D = $HPBar/HPBarFill
-@onready var _debug_label: Label3D = get_node_or_null("DebugLabel") as Label3D
-var _attack_duration: int = 0
+func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
+	command_receiver.update_commands(a_commands, add_to_queue, prepend)
 
-### STRUCTURE-FLAVORED STATE (gated on is_in_group("structure"))
+func load_destination(command: Command) -> void:
+	command_receiver.load_destination(command)
+#endregion
+
+#region Structure state
 ## These were on Structure before the collapse. Kept on Commandable so the
 ## scene script can stay generic; readers gate on group membership or on the
 ## presence of the component that exposes the related behavior (Production,
@@ -66,8 +81,11 @@ var _attack_duration: int = 0
 @onready var build_progress: float = 1
 var map_cells: Set:
 	get: return map.structure_cell_map.get(self, null) if map != null else null
+#endregion
 
-### GRID PLACEMENT (statics — used by build.gd and other commands)
+#region Grid placement
+
+#region Static helpers
 ## These were Structure.<method> before the collapse. A future GridUtils
 ## module is the right home, but moving them onto Commandable keeps the
 ## existing `Structure.get_arrangement_cells(...)` call shape working as
@@ -125,8 +143,11 @@ static func valid_placement(
 			if not a_allow_uneven_terrain and not placement_map.terrain_grid.is_flat(cell):
 				return false
 	return true
+#endregion
 
-### WEAPON
+#endregion
+
+#region Combat
 ## Default weapon patterns for unit-grouped commandables. Structures default to
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
@@ -166,71 +187,6 @@ func get_aggro_near_position() -> Command:
 	msg.persist = has_command()
 	return Attack.new(msg)
 
-func _ready() -> void:
-	super()
-	# Establish the root's movement-collision layer now (map is still null, so this
-	# resolves to MOVEMENT_OBSTRUCTION) — bounding_radius() below reads it, and it
-	# runs before initialize() would otherwise set it.
-	refresh_movement_collision()
-	# Mirror the root Body shape onto the TargetBody so targeting matches the
-	# entity's footprint (mine/turret/compound override Body with a box).
-	if collider != null:
-		($TargetBody/Shape as CollisionShape3D).shape = collider.shape
-	# Structures also block line-of-fire (Attack raycasts query STRUCTURE_BLOCKER).
-	if is_in_group("structure"):
-		target_body.collision_layer |= CollisionLayers.Mask.STRUCTURE_BLOCKER
-	attributes = Set.new(attributes_list)
-	command_receiver.initialize(self)
-
-	# Wire Movement → physics handler for unit-shaped entities. Structures
-	# typically have no Movement component, so movement is null and this is
-	# a no-op for them.
-	if movement != null:
-		movement.velocity_ready.connect(_on_velocity_computed)
-		# Match the RVO avoidance radius to this unit's movement footprint so
-		# agents space themselves correctly during group moves.
-		movement.set_agent_radius(bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
-		# NOTE: avoidance team is configured in _on_commander_changed, not here.
-		# During initialize() add_child() (→ _ready) runs BEFORE the commander is
-		# assigned, so `commander` is null at this point; the team must be set
-		# when ownership is actually established.
-
-func _on_commander_changed(old_commander: Commander, new_commander: Commander) -> void:
-	super(old_commander, new_commander)
-
-	# Turn on RVO avoidance once ownership is established. This is the first point
-	# at which the commander is known for dynamically-spawned units (initialize()
-	# assigns the commander after add_child/_ready); without it the agent keeps
-	# its scene-default avoidance_layers/mask of 0 and avoids nothing.
-	if movement != null and new_commander != null:
-		movement.enable_avoidance(new_commander.id)
-
-	if not is_in_group("structure"):
-		return
-	if old_commander != null:
-		old_commander.remove_structure(self)
-		if resource_provider != null:
-			resource_provider.remove_from(old_commander)
-	if new_commander != null:
-		new_commander.add_structure(self)
-		if resource_provider != null:
-			resource_provider.apply_to(new_commander)
-
-func initialize(a_map: Map, a_commander: Commander):
-	super(a_map, a_commander)
-	command_receiver.initialize(self)
-	# `map` is now set (super assigned it), for both dynamically-spawned and
-	# scene-placed units — unlike _on_commander_changed, which fires during _ready
-	# (before initialize) for scene-placed units. Derive the unit's size class from
-	# its MovementBody footprint and point the agent at the navmesh for that class.
-	if movement != null and map != null and map.nav_manager != null:
-		movement.configure_for_map(
-			map.nav_manager,
-			bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
-		)
-	# Structure registration is handled by _on_commander_changed, which fires
-	# from Entity._ready() when Ownership migrates the pre-tree _commander value.
-
 func receive_damage(attacker: Commandable, amount: float) -> void:
 	# Being attacked breaks stealth: force the timed UNSTEALTHED window.
 	if stealth != null:
@@ -258,6 +214,81 @@ func _get_vision_range_attack(attacker: Commandable) -> Command:
 		if Entity.entity_from_collider(hit["collider"]) == attacker:
 			return Attack.new(CommandMessage.new(map, attacker, null))
 	return null
+#endregion
+
+#region Lifecycle
+func _ready() -> void:
+	super()
+	# Establish the root's movement-collision layer now (map is still null, so this
+	# resolves to MOVEMENT_OBSTRUCTION) — bounding_radius() below reads it, and it
+	# runs before initialize() would otherwise set it.
+	refresh_movement_collision()
+	# Mirror the root Body shape onto the TargetBody so targeting matches the
+	# entity's footprint (mine/turret/compound override Body with a box).
+	if collider != null:
+		($TargetBody/Shape as CollisionShape3D).shape = collider.shape
+	# Structures also block line-of-fire (Attack raycasts query STRUCTURE_BLOCKER).
+	if is_in_group("structure"):
+		target_body.collision_layer |= CollisionLayers.Mask.STRUCTURE_BLOCKER
+	attributes = Set.new(attributes_list)
+	command_receiver.initialize(self)
+
+	# Wire Movement → physics handler for unit-shaped entities. Structures
+	# typically have no Movement component, so movement is null and this is
+	# a no-op for them.
+	if movement != null:
+		movement.velocity_ready.connect(_on_velocity_computed)
+		var _r: float = bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+		movement.set_agent_radius(_r)
+		# Size the obstacle to match the unit's footprint and hand the reference
+		# to Movement so suppress/restore_avoidance_layers can silence it too.
+		# avoidance_layers is set when ownership is established (see _on_commander_changed).
+		_avoidance_obstacle.radius = _r
+		_avoidance_obstacle.avoidance_enabled = true
+		movement.avoidance_obstacle = _avoidance_obstacle
+		# NOTE: avoidance team is configured in _on_commander_changed, not here.
+		# During initialize() add_child() (→ _ready) runs BEFORE the commander is
+		# assigned, so `commander` is null at this point; the team must be set
+		# when ownership is actually established.
+
+func _on_commander_changed(old_commander: Commander, new_commander: Commander) -> void:
+	super(old_commander, new_commander)
+
+	# Turn on RVO avoidance once ownership is established. This is the first point
+	# at which the commander is known for dynamically-spawned units (initialize()
+	# assigns the commander after add_child/_ready); without it the agent keeps
+	# its scene-default avoidance_layers/mask of 0 and avoids nothing.
+	# Also update the NavigationObstacle3D layer so enemies steer around this
+	# unit one-sidedly (cross-team one-sided avoidance — see AvoidanceAgent3D).
+	if movement != null and new_commander != null:
+		movement.enable_avoidance(new_commander.id)
+		_avoidance_obstacle.avoidance_layers = AvoidanceAgent3D.obstacle_bit(new_commander.id)
+
+	if not is_in_group("structure"):
+		return
+	if old_commander != null:
+		old_commander.remove_structure(self)
+		if resource_provider != null:
+			resource_provider.remove_from(old_commander)
+	if new_commander != null:
+		new_commander.add_structure(self)
+		if resource_provider != null:
+			resource_provider.apply_to(new_commander)
+
+func initialize(a_map: Map, a_commander: Commander):
+	super(a_map, a_commander)
+	command_receiver.initialize(self)
+	# `map` is now set (super assigned it), for both dynamically-spawned and
+	# scene-placed units — unlike _on_commander_changed, which fires during _ready
+	# (before initialize) for scene-placed units. Derive the unit's size class from
+	# its MovementBody footprint and point the agent at the navmesh for that class.
+	if movement != null and map != null and map.nav_manager != null:
+		movement.configure_for_map(
+			map.nav_manager,
+			bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+		)
+	# Structure registration is handled by _on_commander_changed, which fires
+	# from Entity._ready() when Ownership migrates the pre-tree _commander value.
 
 func _process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
@@ -374,6 +405,8 @@ func _update_state() -> void:
 		ore_extractor.tick()
 	if dominion_generator != null:
 		dominion_generator.tick()
+	if dominion_provider != null:
+		dominion_provider.tick()
 
 	# Detection: reveal enemy stealth units within DetectionRange this tick.
 	if detection_range != null:
@@ -395,12 +428,6 @@ func _physics_process(_delta: float) -> void:
 	if movement != null and map != null:
 		global_position.y = map.terrain_height_at(VU.inXZ(global_position)) + movement.height_offset()
 
-func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
-	command_receiver.update_commands(a_commands, add_to_queue, prepend)
-
-func load_destination(command: Command) -> void:
-	command_receiver.load_destination(command)
-
 func _process_commands() -> void:
 	# Structures route Train and Command (rally) into the Production component.
 	# Everything else falls through to CommandReceiver's default handling.
@@ -421,6 +448,18 @@ func _process_commands() -> void:
 			return
 	command_receiver._process_commands()
 
+func _on_death() -> void:
+	# Structure-flavored teardown.
+	if is_in_group("structure"):
+		if commander != null:
+			commander.remove_structure(self)
+			if resource_provider != null:
+				resource_provider.remove_from(commander)
+		map.remove_structure(self)
+	super()
+#endregion
+
+#region Private helpers
 ## Query the STEALTH collision layer within DetectionRange and stamp reveal()
 ## on every enemy entity found.  Uses a targeted physics query so only
 ## entities that opted into the STEALTH layer (i.e. those with a Stealth node)
@@ -440,14 +479,4 @@ func _detect_stealthed_units() -> void:
 		if target.commander_id == 0 or target.commander_id == commander_id:
 			continue
 		target.stealth.reveal()
-
-
-func _on_death() -> void:
-	# Structure-flavored teardown.
-	if is_in_group("structure"):
-		if commander != null:
-			commander.remove_structure(self)
-			if resource_provider != null:
-				resource_provider.remove_from(commander)
-		map.remove_structure(self)
-	super()
+#endregion

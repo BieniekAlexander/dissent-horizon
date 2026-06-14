@@ -1,6 +1,7 @@
 ## Abstracts the set of arguments that can be provided to a command
 class_name CommandMessage
 
+#region Properties
 var map: Map				# the game map, passed for gamestate checks
 var target: Entity			# The entity which will be the recipient of the command
 var tool: Tool				# Any potential thing that is used in the fulfillment of a command
@@ -19,14 +20,6 @@ signal unreferenced
 
 var _ref_count: int = 0
 
-func retain() -> void:
-	_ref_count += 1
-
-func release() -> void:
-	_ref_count -= 1
-	if _ref_count <= 0:
-		unreferenced.emit()
-
 var position: Vector3:
 	get:
 		# Keep the target's real Y (its terrain height), not a zeroed ground plane,
@@ -37,18 +30,28 @@ var position: Vector3:
 			return target.global_position
 		else:
 			return world_position
-			
+
 var xz_position: Vector2:
 	get: return VU.inXZ(position)
+#endregion
 
-
-## NODE
+#region Lifecycle
 func _init(a_map: Map, a_target: Entity = null, a_tool: Tool = null, a_world_position: Vector3 = Vector3.ZERO, a_ability_type: Variant = null) -> void:
 	map = a_map
 	target = a_target
 	tool = a_tool
 	world_position = a_world_position
 	ability_type = a_ability_type
+#endregion
+
+#region Public API
+func retain() -> void:
+	_ref_count += 1
+
+func release() -> void:
+	_ref_count -= 1
+	if _ref_count <= 0:
+		unreferenced.emit()
 
 func clear() -> void:
 	target = null
@@ -65,3 +68,4 @@ static func deep_copy(a_message: CommandMessage) -> CommandMessage:
 	)
 	copy.persist = a_message.persist
 	return copy
+#endregion

@@ -1,6 +1,7 @@
 class_name ConditionEntityKilled
 extends Condition
 
+#region Properties
 ## Node name of the entity to watch. Searched in the "commandable" group on
 ## first evaluate() call. Using the name (not a NodePath) is reparent-safe —
 ## entities are reparented to their commander's subtree at runtime, so a fixed
@@ -9,7 +10,9 @@ extends Condition
 
 var _entity_ref: Node = null
 var _resolved: bool = false
+#endregion
 
+#region Private helpers
 func _resolve(manager: ScenarioEventManager) -> void:
 	if _resolved:
 		return
@@ -20,7 +23,9 @@ func _resolve(manager: ScenarioEventManager) -> void:
 		if node.name == entity_name:
 			_entity_ref = node
 			return
+#endregion
 
+#region Public API
 func evaluate(manager: ScenarioEventManager) -> bool:
 	_resolve(manager)
 	if _entity_ref == null:
@@ -30,3 +35,4 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 func reset() -> void:
 	_entity_ref = null
 	_resolved = false
+#endregion

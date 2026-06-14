@@ -1,6 +1,7 @@
 class_name ConditionTimer
 extends Condition
 
+#region Properties
 enum Mode {
 	## True once total scenario physics frames >= seconds * 30.
 	ELAPSED_SINCE_START,
@@ -13,7 +14,9 @@ enum Mode {
 @export var seconds: float = 60.0
 
 var _start_frame: int = -1
+#endregion
 
+#region Public API
 func evaluate(manager: ScenarioEventManager) -> bool:
 	var target_frames := TimeUtils.get_frames_from_seconds(seconds)
 	if mode == Mode.ELAPSED_SINCE_START:
@@ -24,3 +27,4 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 
 func reset() -> void:
 	_start_frame = -1
+#endregion

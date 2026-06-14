@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "factions/tselerate-coalition.md",
+                "file": "factions/baladians.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "tselerate-coalition"
+              "title": "baladians"
             }
           }
         ]
@@ -182,11 +182,11 @@
   },
   "active": "8b1ff7376e896a28",
   "lastOpenFiles": [
+    "factions/haustoria.md",
+    "factions/successors-of-tenjin.md",
+    "factions/the-warden.md",
     "factions/z-theocratic.md",
     "factions/tselerate-coalition.md",
-    "factions/the-warden.md",
-    "factions/successors-of-tenjin.md",
-    "factions/haustoria.md",
     "factions/baladians.md",
     "setting/resources.md"
   ]

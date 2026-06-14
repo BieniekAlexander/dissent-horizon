@@ -10,14 +10,16 @@ extends Command
 ## actor even *has* the ability is decided by its Inventory: it must hold a
 ## ToolSpec for message.ability_type, and that ToolSpec must have a charge left.
 
+#region Constants
 enum Type {
 	RADIATION,
 }
 
 ## Max XZ distance from the target position at which the ability can be used.
 const RANGE: float = 5.0
+#endregion
 
-### COMMAND PRECONDITIONS
+#region Preconditions
 static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) -> PreconditionFailureCause:
 	if a_actor == null or a_message.ability_type == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -33,9 +35,9 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 	if unmet != TechnologySpec.UnmetNeed.NONE:
 		return unmet_need_to_precondition[unmet]
 	return PreconditionFailureCause.NONE
+#endregion
 
-
-### UTILS
+#region Private helpers
 static func _tool_spec_for(a_actor: Commandable, a_ability_type: Variant) -> ToolSpec:
 	if a_actor == null:
 		return null
@@ -43,9 +45,9 @@ static func _tool_spec_for(a_actor: Commandable, a_ability_type: Variant) -> Too
 	if inventory == null:
 		return null
 	return inventory.tool_spec_for(a_ability_type)
+#endregion
 
-
-### STATE UPDATES
+#region State updates
 func should_move(a_actor: Commandable) -> bool:
 	return not can_act(a_actor)
 
@@ -68,3 +70,4 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	message.map.add_entity(projectile, message.xz_position, a_actor.commander)
 	projectile.initialize_projectile(a_actor, message.position)
 	return null
+#endregion

@@ -1,11 +1,14 @@
 class_name CommandReceiver
 extends RefCounted
 
+#region Constants
 enum Disposition {
 	PASSIVE,
 	AGGRESSIVE
 }
+#endregion
 
+#region Properties
 var owner: Commandable
 var _command: Command = null
 var _command_queue: Array[Command] = []
@@ -17,7 +20,9 @@ var _disposition: Disposition = Disposition.PASSIVE
 ## death is indistinguishable from a plain terrain move unless we remembered it.
 var _followed: Commandable = null
 var _follow_cmd: Command = null
+#endregion
 
+#region Public API
 func initialize(a_owner: Commandable) -> void:
 	owner = a_owner
 	_command_queue = []
@@ -40,7 +45,10 @@ func is_idle() -> bool:
 
 func receive_damage(attacker: Commandable, amount: float) -> void:
 	if owner.defense != null:
+		var was_alive: bool = owner.defense.hp > 0
 		owner.defense.hp -= amount
+		if was_alive and owner.defense.hp <= 0 and attacker != null and attacker.veterancy != null:
+			attacker.veterancy.gain_experience(10)
 
 	if owner.defense != null and owner.defense.hp > 0 and _command == null and attacker != null and !(_disposition == Disposition.PASSIVE):
 		update_commands(
@@ -53,6 +61,37 @@ func load_destination(command: Command) -> void:
 	if owner.movement != null:
 		owner.movement.set_target_position(command.message.position)
 
+func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
+	if a_commands == null:
+		_command_queue = []
+		_command = null
+	elif a_commands is Command:
+		if add_to_queue and prepend:
+			if _command != null:
+				_command_queue.push_front(_command)
+			_command = a_commands
+		elif add_to_queue and !prepend:
+			_command_queue.append(a_commands)
+		else:
+			_command_queue = []
+			_command = a_commands
+	elif a_commands is Array and a_commands.size() > 0:
+		if add_to_queue and prepend:
+			if _command != null:
+				_command_queue.assign(a_commands.slice(1) + [_command] + _command_queue)
+			else:
+				_command_queue.assign(a_commands.slice(1) + _command_queue)
+			_command = a_commands[0]
+		elif add_to_queue and !prepend:
+			_command_queue.append_array(a_commands)
+		else:
+			_command = a_commands[0]
+			_command_queue = a_commands.slice(1)
+	else:
+		push_error("Command argument is unsupported, arg=%s" % a_commands)
+#endregion
+
+#region Command processing
 func _process_commands() -> void:
 	var new_commands: Variant = _command.get_updated_state(owner) if _command != null else null
 
@@ -151,7 +190,9 @@ func _update_state() -> void:
 	owner._process_commands()
 
 	_reconcile_follow_avoidance()
+#endregion
 
+#region Private helpers
 ## The friendly unit this unit is currently "following" — i.e. its active command
 ## moves it toward another unit on its own team — or null. Used both to suppress
 ## reciprocal avoidance and to stop at the followed unit's body.
@@ -180,32 +221,4 @@ func _reconcile_follow_avoidance() -> void:
 	if owner.movement == null:
 		return
 	owner.movement.set_avoidance_follow_target(_follow_target())
-
-func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
-	if a_commands == null:
-		_command_queue = []
-		_command = null
-	elif a_commands is Command:
-		if add_to_queue and prepend:
-			if _command != null:
-				_command_queue.push_front(_command)
-			_command = a_commands
-		elif add_to_queue and !prepend:
-			_command_queue.append(a_commands)
-		else:
-			_command_queue = []
-			_command = a_commands
-	elif a_commands is Array and a_commands.size() > 0:
-		if add_to_queue and prepend:
-			if _command != null:
-				_command_queue.assign(a_commands.slice(1) + [_command] + _command_queue)
-			else:
-				_command_queue.assign(a_commands.slice(1) + _command_queue)
-			_command = a_commands[0]
-		elif add_to_queue and !prepend:
-			_command_queue.append_array(a_commands)
-		else:
-			_command = a_commands[0]
-			_command_queue = a_commands.slice(1)
-	else:
-		push_error("Command argument is unsupported, arg=%s" % a_commands)
+#endregion

@@ -8,13 +8,15 @@ extends Node3D
 ## Sizing: Map.CELL_SIZE * StructureSpec dimensions for this structure type.
 ## Removed from the scene tree at runtime so it carries zero gameplay cost.
 
+#region Lifecycle
 func _ready() -> void:
 	if not Engine.is_editor_hint():
 		queue_free()
 		return
 	_rebuild()
+#endregion
 
-
+#region Private helpers
 func _rebuild() -> void:
 	for child in get_children():
 		child.free()
@@ -41,3 +43,4 @@ func _rebuild() -> void:
 	mi.material_override = mat
 	mi.position.y = 0.05
 	add_child(mi)
+#endregion

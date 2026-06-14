@@ -12,7 +12,9 @@ extends Node
 ## - Carried items: Entities held by the unit (e.g. Stars a Technician picks
 ##   up), bounded by item_capacity.
 
-### ABILITIES
+#region Properties
+
+#region Abilities
 ## Ability.Type values this inventory starts with, authored per-scene (mirrors
 ## Entity.attributes_list). One ToolSpec is created per entry at _ready with
 ## default charge/reload values. Exported as ints because Godot serializes enum
@@ -20,15 +22,20 @@ extends Node
 @export var initial_abilities: Array[int] = []
 
 var tool_specs: Array[ToolSpec] = []
+#endregion
 
-### CARRIED ITEMS
+#region Carried items
 ## Maximum number of items this unit can carry at once.
 @export var item_capacity: int = 1
 
 ## Entities currently being carried (e.g. Stars). Moved here from the former
 ## Entity.inventory array as part of the inventory reconciliation.
 var items: Array[Entity] = []
+#endregion
 
+#endregion
+
+#region Lifecycle
 func _ready() -> void:
 	for ability_type in initial_abilities:
 		tool_specs.append(ToolSpec.new(ability_type))
@@ -36,7 +43,11 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	for spec in tool_specs:
 		spec.tick()
+#endregion
 
+#region Public API
+
+#region Abilities
 ## Returns the ToolSpec granting the given Ability.Type, or null if this
 ## entity has no slot for it.
 func tool_spec_for(a_ability_type: Variant) -> ToolSpec:
@@ -47,8 +58,9 @@ func tool_spec_for(a_ability_type: Variant) -> ToolSpec:
 
 func has_ability(a_ability_type: Variant) -> bool:
 	return tool_spec_for(a_ability_type) != null
+#endregion
 
-### CARRIED ITEMS
+#region Carried items
 func can_hold_more() -> bool:
 	return items.size() < item_capacity
 
@@ -68,3 +80,6 @@ func has_items() -> bool:
 ## The first carried item (oldest), or null if none.
 func first_item() -> Entity:
 	return items[0] if not items.is_empty() else null
+#endregion
+
+#endregion

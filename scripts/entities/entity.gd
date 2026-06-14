@@ -1,11 +1,7 @@
 class_name Entity
 extends CharacterBody3D
 
-
-### IDENTIFIERS
-
-
-#### TYPE ENUMERATION
+#region Identity
 # I need to enumerate because I can't peek into packed scenes
 @export var type: Type
 
@@ -30,7 +26,16 @@ enum Type {
 	STRUCTURE_DEPOSIT=0x1207,
 	UNIT_TECHNICIAN=0x1100,
 	UNIT_IRREGULAR=0x1101,
-	UNIT_VANGUARD=0x1102
+	UNIT_VANGUARD=0x1102,
+	UNIT_WARLORD=0x1103
+}
+
+const TEAM_COLOR_MAP: Dictionary = {
+	0: Color.WHITE,
+	1: Color(.2, 1, 1),
+	2: Color(1, 1, .2),
+	3: Color(.1, .6, .1),
+	4: Color(1, .2, .2)
 }
 
 ## Ownership component — owns the commander relationship. Resolved at _ready
@@ -39,6 +44,16 @@ enum Type {
 ## field below.
 @onready var ownership: Ownership = $Ownership
 
+var commander: Commander:
+	get: return ownership.commander
+	set(value):
+		ownership.commander = value
+
+var commander_id: int:
+	get: return ownership.commander_id
+#endregion
+
+#region Components
 ## Defense component — owns hp, hp_max, and armor. Null for entities with no
 ## concept of HP (e.g. Projectile, HitBox).
 @onready var defense: Defense = get_node_or_null("Defense") as Defense
@@ -57,30 +72,19 @@ enum Type {
 ## Null for entities that have no detection capability.
 @onready var detection_range: CollisionShape3D = get_node_or_null("DetectionRange")
 
-## Fallback storage used (a) before _ready resolves `ownership`, and (b) when
-## the entity scene doesn't include an Ownership component at all. _ready
-## migrates any pre-tree value into ownership.commander.
-var commander: Commander:
-	get: return ownership.commander
-	set(value):
-		ownership.commander = value
-
-var commander_id: int:
-	get: return ownership.commander_id
-
-const TEAM_COLOR_MAP: Dictionary = {
-	0: Color.WHITE,
-	1: Color(.2, 1, 1),
-	2: Color(1, 1, .2),
-	3: Color(.1, .6, .1),
-	4: Color(1, .2, .2)
-}
-
-
-### VISION
 @onready var vision_range_shape: CollisionShape3D = get_node_or_null("VisionRange")
 
-### PHYSICAL STATS
+## The Loadout node whose children are this entity's Weapon nodes.
+## Null for entities that carry no weapons (structures without AttackRange,
+## plain workers, etc.). All weapon queries go through this node.
+@onready var weapon_inventory: Loadout = get_node_or_null("Loadout") as Loadout
+
+## The Inventory component holding this entity's ability ToolSpecs. Null for
+## entities with no abilities. Distinct from `inventory` (carried items) below.
+@onready var ability_inventory: Inventory = get_node_or_null("Inventory") as Inventory
+#endregion
+
+#region Properties
 enum LocomotionMode { GROUNDED, FLYING }
 enum Attribute { MECH, BIO, UNMANNED }
 
@@ -89,7 +93,6 @@ var attributes: Set
 
 var attack_timer: int = 0
 
-### COLLISION
 var xz_position: Vector2:
 	get: return VU.inXZ(global_position)
 	set(value): global_position = VU.fromXZ(value)
@@ -97,7 +100,10 @@ var xz_position: Vector2:
 var map: Map
 var pc_set: Set = Set.new()
 @onready var collider: CollisionShape3D = _resolve_collider()
+@onready var aggro_range_shape: CollisionShape3D = get_node_or_null("AggroRange")
+#endregion
 
+#region Spatial queries
 ## The entity's primary collision shape. Commandables name their movement shape
 ## "MovementBody"; other Entity scenes (radiation, star) use "Body". Prefer "Body"
 ## when present so scenes mid-rename keep working, falling back to "MovementBody".
@@ -106,7 +112,6 @@ func _resolve_collider() -> CollisionShape3D:
 	if node == null:
 		node = get_node_or_null("MovementBody")
 	return node as CollisionShape3D
-@onready var aggro_range_shape: CollisionShape3D = get_node_or_null("AggroRange")
 
 ## Resolve a physics-query collider to its owning Entity. Because TARGETABLE /
 ## STRUCTURE_BLOCKER now live on the child TargetBody, query hits are that child
@@ -118,17 +123,6 @@ static func entity_from_collider(node: Object) -> Entity:
 	if node is Node:
 		return (node as Node).get_parent() as Entity
 	return null
-
-### WEAPONS
-## The Loadout node whose children are this entity's Weapon nodes.
-## Null for entities that carry no weapons (structures without AttackRange,
-## plain workers, etc.). All weapon queries go through this node.
-@onready var weapon_inventory: Loadout = get_node_or_null("Loadout") as Loadout
-
-### ABILITIES
-## The Inventory component holding this entity's ability ToolSpecs. Null for
-## entities with no abilities. Distinct from `inventory` (carried items) below.
-@onready var ability_inventory: Inventory = get_node_or_null("Inventory") as Inventory
 
 ## Circumscribed radius of the collision shape on the physics object that
 ## participates in `layer`: the smallest circle (in XZ) that fully contains the
@@ -210,9 +204,9 @@ func refresh_movement_collision() -> void:
 ## placed structure). Units and unplaced entities are never grid obstructions.
 func is_grid_obstruction() -> bool:
 	return map != null and map.structure_cell_map.has(self)
+#endregion
 
-
-### NODE
+#region Lifecycle
 func _ready() -> void:
 	ownership.commander_changed.connect(_on_commander_changed)
 
@@ -221,7 +215,7 @@ func _ready() -> void:
 	# have run (ensuring Scenario._ready() has already created the commanders).
 	if map == null and not Engine.is_editor_hint():
 		call_deferred(&"_auto_initialize")
-	
+
 	_validate()
 
 func _validate() -> void:
@@ -321,5 +315,6 @@ func initialize(a_map: Map, a_commander: Commander):
 func _on_death() -> void:
 	for coords: Vector2i in pc_set.get_values():
 		map.spatial_partition_grid[coords.x][coords.y].remove(self)
-	
+
 	queue_free()
+#endregion

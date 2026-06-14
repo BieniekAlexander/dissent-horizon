@@ -13,9 +13,11 @@
 class_name TeamTint
 extends Node
 
+#region Properties
 var _last_id: int = -1
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
 	if not Engine.is_editor_hint():
 		queue_free()
@@ -38,3 +40,4 @@ func _process(_delta: float) -> void:
 		return
 	sprite.modulate = Entity.TEAM_COLOR_MAP.get(id, Color.WHITE)
 	_last_id = id
+#endregion

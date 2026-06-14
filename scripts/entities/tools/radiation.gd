@@ -13,8 +13,11 @@ extends Projectile
 ## entity owns both phases, so there's no nested Entity fighting the
 ## auto-initialize/reparent lifecycle.
 
+#region Constants
 enum State { FLYING, FIELD }
+#endregion
 
+#region Properties
 ## How long (physics frames) the radiation field persists once it lands.
 @export var field_lifespan: int = 15 * Engine.physics_ticks_per_second
 ## HP removed from each affected entity per physics tick while in FIELD.
@@ -22,7 +25,9 @@ enum State { FLYING, FIELD }
 
 var _state: State = State.FLYING
 var _field_timer: int = 0
+#endregion
 
+#region Lifecycle
 func _physics_process(_delta: float) -> void:
 	match _state:
 		State.FLYING:
@@ -32,7 +37,9 @@ func _physics_process(_delta: float) -> void:
 				_advance()
 		State.FIELD:
 			_tick_field()
+#endregion
 
+#region Private helpers
 ## FLYING → FIELD: settle onto the ground plane and start the field timer.
 func _enter_field() -> void:
 	_state = State.FIELD
@@ -55,3 +62,4 @@ func _tick_field() -> void:
 	_field_timer -= 1
 	if _field_timer <= 0:
 		_on_death()
+#endregion

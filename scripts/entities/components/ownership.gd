@@ -15,8 +15,11 @@ extends Node
 ## presentation policy and lives elsewhere. It only knows about Commander
 ## references and emits a signal when they change.
 
+#region Signals
 signal commander_changed(old_commander: Commander, new_commander: Commander)
+#endregion
 
+#region Properties
 var _commander: Commander
 var commander: Commander:
 	get: return _commander
@@ -31,3 +34,4 @@ var commander_id: int:
 	# crashing. Callers like fog.gd read this every physics frame across all
 	# commandables, so a null _commander must degrade gracefully.
 	get: return _commander.id if _commander != null else 0
+#endregion

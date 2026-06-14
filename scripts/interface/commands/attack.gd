@@ -1,8 +1,7 @@
 class_name Attack
 extends Command
 
-
-## COMMAND PRECONDITIONS
+#region Preconditions
 static func requires_position() -> bool:
 	return true
 
@@ -21,9 +20,9 @@ static func meets_precondition(
 	if shelter != null and shelter.any_garrison_can_target(a_message.target):
 		return PreconditionFailureCause.NONE
 	return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+#endregion
 
-
-### UTILS
+#region Private helpers
 static func _target_attackable(a_message: CommandMessage) -> bool:
 	# TODO make it possible for units to attack the floor - unfortunately,
 	# I previously wrote this such that a_message.target==null => the floor should be attacked,
@@ -57,9 +56,9 @@ func _weapon_for(a_actor: Commandable) -> Weapon:
 	if a_actor.weapon_inventory == null:
 		return null
 	return a_actor.weapon_inventory.weapon_for_target(message.target)
+#endregion
 
-
-### STATE UPDATES
+#region State updates
 func get_updated_state(a_actor: Commandable):
 	## Potentially return a new command based on a state check.
 	if not is_instance_valid(message.target):
@@ -115,7 +114,9 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if a_actor.stealth != null:
 		a_actor.stealth.unstealth()
 	return self
+#endregion
 
-## DEBUG
+#region Debug
 func _to_string() -> String:
 	return "Attack: %s" % message.position
+#endregion

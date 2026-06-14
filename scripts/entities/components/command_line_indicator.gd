@@ -4,12 +4,17 @@ extends Node3D
 ## Draws a line from the unit's current position to its nearest command target.
 ## Visible only while the parent unit is selected.
 
+#region Constants
 const Y_OFFSET := 0.15
 const COLOR    := Color(0.4, 0.8, 1.0)  # light blue
+#endregion
 
+#region Properties
 var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
+#endregion
 
+#region Lifecycle
 func _ready() -> void:
 	_mesh = ImmediateMesh.new()
 	_mesh_instance = MeshInstance3D.new()
@@ -25,7 +30,9 @@ func _process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_redraw()
+#endregion
 
+#region Private helpers
 func _redraw() -> void:
 	_mesh.clear_surfaces()
 
@@ -42,3 +49,4 @@ func _redraw() -> void:
 	_mesh.surface_add_vertex(Vector3(0.0, Y_OFFSET, 0.0))
 	_mesh.surface_add_vertex(to_local(cmd.message.position) + Vector3(0.0, Y_OFFSET, 0.0))
 	_mesh.surface_end()
+#endregion

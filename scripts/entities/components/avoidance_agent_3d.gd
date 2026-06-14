@@ -3,66 +3,80 @@ extends NavigationAgent3D
 
 ## A NavigationAgent3D with two layered RVO behaviours:
 ##
-## 1. AVOIDANCE TEAMS. Each commander owns one low avoidance-layer bit
-##    (team_bit(commander_id) = 1 << commander_id). A unit broadcasts on its own
-##    commander's bit — its identity / "home" channel. By default every unit MASKS
-##    every team (plus the pool), so all units avoid all units regardless of team
-##    (nobody walks through anybody); the team bit identifies the commander and gives
-##    the exception system below a per-commander home channel to return to. (Filtering
-##    avoidance by team would, by definition, let other teams pass through each other,
-##    so the mask covers every team.)
+## 1. SAME-TEAM RECIPROCAL RVO. Each commander owns one low layer bit
+##    (team_bit(id) = 1 << id, bits 0..TEAM_BITS-1). A unit broadcasts on its
+##    team bit and masks ONLY its own team bit, so same-team agents do standard
+##    reciprocal RVO with each other (both adjust).
 ##
-## 2. PER-PAIR EXCEPTIONS. Godot's RVO has no per-instance exclusion list, so to let
-##    two specific units ignore each other (the follow mechanic) each excepted agent
-##    borrows a unique bit from a high pool and broadcasts ONLY that bit; the partner
-##    clears it from its mask. Every other unit keeps all pool bits in its mask, so it
-##    still avoids the excepted agent. The avoidance analogue of
-##    PhysicsBody3D.add_collision_exception_with().
+## 2. CROSS-TEAM ONE-SIDED AVOIDANCE (via NavigationObstacle3D). Each unit also
+##    carries a NavigationObstacle3D whose avoidance_layers = obstacle_bit(id)
+##    (bits TEAM_BITS..2*TEAM_BITS-1). A unit's avoidance_mask includes all
+##    FOREIGN obstacle bits but NOT the enemy's agent bit, so the unit steers
+##    around the enemy's obstacle unilaterally without triggering reciprocal RVO.
+##    The obstacle's layers are wired in Commandable._on_commander_changed.
 ##
-## Bit layout (32 avoidance layers): bits 0..TEAM_BITS-1 are team channels (one per
-## commander id, 0..5 today); bits TEAM_BITS..31 are the unique-bit pool. The pool is
-## 24 bits, so the cap is ~24 agents in an exception at once (not 24 total).
+## 3. PER-PAIR EXCEPTIONS (follow mechanic). Godot's RVO has no per-instance
+##    exclusion list; each excepted agent borrows a unique bit from the high pool
+##    (bits POOL_START..31) and broadcasts only that bit; the partner clears it
+##    from its mask. All other agents still mask every pool bit so they keep
+##    avoiding the excepted agent.
+##
+## Bit layout (32 avoidance layers):
+##   bits  0.. 7 — agent team channels (one per commander id, 0..7)
+##   bits  8..15 — obstacle channels   (one per commander id, shifted by TEAM_BITS)
+##   bits 16..31 — per-pair exception pool
 
-## Number of low layer bits reserved for commander team channels. Commander ids run
-## 0..5 (Commander.id is @export_range(0,5)); 8 leaves margin.
-const _TEAM_BITS: int = Commander.NUM_MAX_COMMANDERS
-## Mask of every team channel bit (0..TEAM_BITS-1). Kept in each agent's mask so it
-## avoids every team, not just its own.
+#region Constants
+## Number of low layer bits reserved for commander team channels.
+const _TEAM_BITS: int = Commander.NUM_MAX_COMMANDERS  ## = 8
+## Mask of every team-channel bit (bits 0..TEAM_BITS-1).
 const _ALL_TEAMS: int = (1 << _TEAM_BITS) - 1
-## Mask of every unique-bit-pool bit (TEAM_BITS..31). Kept in each agent's mask so it
-## keeps avoiding any agent currently broadcasting an exception (pool) bit.
-const _POOL_MASK: int = (~((1 << _TEAM_BITS) - 1)) & 0xFFFFFFFF
+## Mask of every obstacle-channel bit (bits TEAM_BITS..2*TEAM_BITS-1).
+const _ALL_OBSTACLES: int = _ALL_TEAMS << _TEAM_BITS
+## First bit of the exception pool.
+const _POOL_START: int = 2 * _TEAM_BITS  ## = 16
+## Mask of every exception-pool bit (bits POOL_START..31).
+const _POOL_MASK: int = (~((1 << _POOL_START) - 1)) & 0xFFFFFFFF
+#endregion
 
-## Free unique bits (1<<TEAM_BITS .. 1<<31) handed out to agents currently in an
-## exception. Static so the whole simulation shares one pool.
+#region Properties
+## Free unique bits (bits POOL_START..31) handed out to agents in an exception.
 static var _free_bits: Array[int] = []
 static var _pool_ready: bool = false
 
 ## This agent's team channel bit (1 << commander_id), set by enable_avoidance().
 var _team_bit: int = 0
-## The unique pool bit this agent currently owns, or 0 when it broadcasts on its
-## team bit (i.e. has no active exceptions).
+## The unique pool bit this agent currently owns, or 0 (broadcasts on team bit).
 var _unique_bit: int = 0
 ## Set of AvoidanceAgent3D this agent is currently ignoring (mutually).
 var _exceptions: Dictionary = {}  # AvoidanceAgent3D -> true
+#endregion
 
-
+#region Static helpers
 static func _ensure_pool() -> void:
 	if _pool_ready:
 		return
-	for i in range(_TEAM_BITS, 32):  # team bits 0..TEAM_BITS-1 are reserved for teams
+	for i: int in range(_POOL_START, 32):
 		_free_bits.append(1 << i)
 	_pool_ready = true
 
 
-## The avoidance-layer bit for a commander's team.
+## The avoidance-layer bit for a commander's agent channel (bits 0..7).
 static func team_bit(commander_id: int) -> int:
 	return 1 << clampi(commander_id, 0, _TEAM_BITS - 1)
 
 
-## Turn on avoidance for the given commander's team. The agent broadcasts on that
-## commander's team bit but avoids every team (and any agent in an exception); the
-## team bit is its identity / exception home channel, not an avoidance filter.
+## The avoidance-layer bit for a commander's NavigationObstacle3D (bits 8..15).
+## Used by Commandable._on_commander_changed to configure the obstacle node.
+static func obstacle_bit(commander_id: int) -> int:
+	return 1 << (_TEAM_BITS + clampi(commander_id, 0, _TEAM_BITS - 1))
+#endregion
+
+#region Public API
+## Turn on avoidance for the given commander's team. The agent broadcasts on
+## that commander's team bit and masks own-team agents + all foreign obstacles +
+## the exception pool. Same-team pairs get reciprocal RVO; cross-team avoidance
+## is one-sided via NavigationObstacle3D (see Commandable._on_commander_changed).
 func enable_avoidance(commander_id: int) -> void:
 	avoidance_enabled = true
 	_team_bit = team_bit(commander_id)
@@ -70,8 +84,7 @@ func enable_avoidance(commander_id: int) -> void:
 	avoidance_mask = _current_mask()
 
 
-# --- Per-pair exception API ------------------------------------------------
-
+#region Per-pair exceptions
 ## Make this agent and `other` ignore each other in RVO, leaving every other
 ## avoidance interaction for both agents unchanged. Idempotent and symmetric.
 func add_avoidance_exception_with(other: AvoidanceAgent3D) -> void:
@@ -102,21 +115,35 @@ func remove_avoidance_exception_with(other: AvoidanceAgent3D) -> void:
 func clear_avoidance_exceptions() -> void:
 	for other: Variant in _exceptions.keys():
 		remove_avoidance_exception_with(other)
+#endregion
 
+#endregion
 
-# --- Internals -------------------------------------------------------------
-
+#region Private helpers
 ## The layer bit this agent broadcasts on: its unique pool bit while excepted,
 ## otherwise its team bit.
 func _broadcast_bit() -> int:
 	return _unique_bit if _unique_bit != 0 else _team_bit
 
 
-## avoidance_mask = every team bit + every pool bit (so all units avoid all units,
-## and excepted agents are still avoided), minus the broadcast bit of every agent
-## we're ignoring.
+## The obstacle-channel bit for this agent's own commander (bits 8..15).
+func _own_obstacle_bit() -> int:
+	return _team_bit << _TEAM_BITS
+
+
+## Obstacle bits for every commander EXCEPT this agent's own commander.
+## An agent avoids foreign obstacles (one-sided) but not its own obstacle
+## (which is co-located with the agent and would cause degenerate avoidance).
+func _foreign_obstacle_mask() -> int:
+	return _ALL_OBSTACLES & ~_own_obstacle_bit()
+
+
+## avoidance_mask = own team bit (same-team reciprocal RVO)
+##               + all foreign obstacle bits (cross-team one-sided avoidance)
+##               + all pool bits (so excepted agents remain visible)
+##               - broadcast bit of every agent we're ignoring.
 func _current_mask() -> int:
-	var m: int = _ALL_TEAMS | _POOL_MASK
+	var m: int = _team_bit | _foreign_obstacle_mask() | _POOL_MASK
 	for other: Variant in _exceptions.keys():
 		if is_instance_valid(other):
 			m &= ~(other as AvoidanceAgent3D)._broadcast_bit()
@@ -128,13 +155,13 @@ func _apply_mask() -> void:
 
 
 ## Borrow a unique bit from the pool (lazily) so partners can single this agent
-## out. No-op once owned; degrades to staying on the team bit if the pool is empty.
+## out. No-op once owned; degrades gracefully if the pool is empty.
 func _ensure_unique_bit() -> void:
 	if _unique_bit != 0:
 		return
 	_ensure_pool()
 	if _free_bits.is_empty():
-		push_warning("AvoidanceAgent3D: avoidance bit pool exhausted (>%d concurrent exceptions); pair not fully isolated" % (32 - _TEAM_BITS))
+		push_warning("AvoidanceAgent3D: avoidance bit pool exhausted (>%d concurrent exceptions); pair not fully isolated" % (32 - _POOL_START))
 		return
 	_unique_bit = _free_bits.pop_back()
 	avoidance_layers = _unique_bit
@@ -149,7 +176,6 @@ func _maybe_release_bit() -> void:
 
 
 func _notification(what: int) -> void:
-	# On free, restore every partner's mask and return our bit, so a recycled bit
-	# can't leave a stale exception on another agent.
 	if what == NOTIFICATION_PREDELETE:
 		clear_avoidance_exceptions()
+#endregion

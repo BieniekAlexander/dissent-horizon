@@ -1,8 +1,7 @@
 class_name Garrison
 extends Command
 
-## PRECONDITIONS
-
+#region Preconditions
 static func requires_position() -> bool:
 	return true
 
@@ -25,10 +24,9 @@ static func meets_precondition(
 	if (a_message.target as Commandable).commander_id != a_actor.commander_id:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
+#endregion
 
-
-## STATE UPDATES
-
+#region Properties
 ## The actor that currently holds a MOVEMENT_OBSTRUCTION collision exception
 ## against the target, so we know whose exception to clear on teardown.
 var _excluded_actor: Commandable = null
@@ -37,6 +35,18 @@ var _excluded_actor: Commandable = null
 ## MOVEMENT_OBSTRUCTION body — stopping it short of garrison range (and tripping
 ## the slide-collision command-cancel in Commandable._on_velocity_computed).
 ## Exclude the target's body so the actor can move right up to / into it.
+
+## Suppress RVO broadcasting on both the actor and the target so neither agent
+## steers around the other during the approach.
+##   - Actor's layers zeroed: target's mask no longer sees the actor → target
+##     stops steering away from the approaching unit (the visible bug).
+##   - Target's layers zeroed: actor's mask no longer sees the target → actor
+##     goes straight in rather than being deflected sideways.
+## Only affects units (Movement != null); structures don't participate in RVO.
+var _rvo_suppressed_actor: Commandable = null
+#endregion
+
+#region Private helpers
 func _ensure_collision_exception(a_actor: Commandable) -> void:
 	if _excluded_actor != null:
 		return
@@ -52,15 +62,6 @@ func _clear_collision_exception() -> void:
 			and message.target is CollisionObject3D:
 		_excluded_actor.remove_collision_exception_with(message.target)
 	_excluded_actor = null
-
-## Suppress RVO broadcasting on both the actor and the target so neither agent
-## steers around the other during the approach.
-##   - Actor's layers zeroed: target's mask no longer sees the actor → target
-##     stops steering away from the approaching unit (the visible bug).
-##   - Target's layers zeroed: actor's mask no longer sees the target → actor
-##     goes straight in rather than being deflected sideways.
-## Only affects units (Movement != null); structures don't participate in RVO.
-var _rvo_suppressed_actor: Commandable = null
 
 func _ensure_rvo_suppression(a_actor: Commandable) -> void:
 	if _rvo_suppressed_actor != null:
@@ -81,7 +82,9 @@ func _clear_rvo_suppression() -> void:
 		var target := message.target as Commandable
 		if target != null and target.movement != null:
 			target.movement.restore_avoidance_layers()
+#endregion
 
+#region State updates
 ## Cancel if the target is destroyed while the unit is en route.
 func get_updated_state(a_actor: Commandable) -> Command:
 	if not is_instance_valid(message.target):
@@ -116,8 +119,9 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if shelter != null:
 		shelter.garrison(a_actor)
 	return null
+#endregion
 
-
+#region Lifecycle
 ## Safety net: if this command is replaced by another (e.g. the player issues a
 ## new order mid-approach) it is freed without any explicit completion call, so
 ## drop both exceptions here too rather than leaking them. Inlined (rather than
@@ -137,8 +141,9 @@ func _notification(what: int) -> void:
 			if target != null and target.movement != null:
 				target.movement.restore_avoidance_layers()
 	super._notification(what)
+#endregion
 
-
-## DEBUG
+#region Debug
 func _to_string() -> String:
 	return "Garrison: %s" % message.position
+#endregion

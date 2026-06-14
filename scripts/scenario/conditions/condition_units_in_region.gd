@@ -1,6 +1,7 @@
 class_name ConditionUnitsInRegion
 extends Condition
 
+#region Properties
 enum RegionShape { RECT, CIRCLE }
 enum Check {
 	## True every tick at least one matching unit is inside (level-triggered).
@@ -26,13 +27,17 @@ enum Check {
 @export var check: Check = Check.ANY_INSIDE
 
 var _was_inside: bool = false
+#endregion
 
+#region Private helpers
 func _in_region(xz: Vector2) -> bool:
 	if region_shape == RegionShape.RECT:
 		return xz.x >= rect_min.x and xz.x <= rect_max.x \
 			and xz.y >= rect_min.y and xz.y <= rect_max.y
 	return xz.distance_to(circle_center) <= circle_radius
+#endregion
 
+#region Public API
 func evaluate(manager: ScenarioEventManager) -> bool:
 	var commander: Commander = manager.get_commander(commander_id)
 	if commander == null:
@@ -64,3 +69,4 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 
 func reset() -> void:
 	_was_inside = false
+#endregion

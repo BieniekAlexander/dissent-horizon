@@ -16,6 +16,7 @@ extends Node
 ## read, and clearing one reason (removing a building, unblocking) leaves the cell
 ## impassable if any other reason still applies — no separate maps to keep in sync.
 
+#region Constants
 ## Maximum heightmap-unit spread across a cell's four corners before the cell
 ## is considered too steep to traverse.  Raw map_data units (multiply by
 ## terrain_body.scale.y to convert to world-space metres).
@@ -25,7 +26,13 @@ const MAX_SLOPE_DIFF: float = 0.5
 const _STEEP: int = 1 << 0      ## corner-height spread exceeds MAX_SLOPE_DIFF (static)
 const _BUILDING: int = 1 << 1   ## a structure occupies the cell
 const _BLOCKED: int = 1 << 2    ## non-height no-go: water, rubble, hazard, scripted
+#endregion
 
+#region Signals
+signal cells_changed(cells: Array)
+#endregion
+
+#region Properties
 ## The heightmap resource that defines terrain extent and corner heights.
 ## Set by Map._ready() from Map.height_map.
 var height_map: HeightMapShape3D
@@ -52,19 +59,17 @@ var _building_footprints: Dictionary = {}
 var _clearance: PackedInt32Array = PackedInt32Array()
 var _dist: PackedInt32Array = PackedInt32Array()
 var _fields_dirty: bool = true
+#endregion
 
-signal cells_changed(cells: Array)
-
-
+#region Lifecycle
 func _ready() -> void:
 	assert(height_map  != null, "TerrainGrid: height_map must be set before adding to tree")
 	assert(terrain_body != null, "TerrainGrid: terrain_body must be set before adding to tree")
 	_cell_state.resize(grid_width() * grid_depth())  # zero-initialised → all passable
 	_mark_steep_cells()
+#endregion
 
-
-# --- Shape accessors -------------------------------------------------------
-
+#region Shape accessors
 func height_shape() -> HeightMapShape3D:
 	return height_map
 
@@ -87,10 +92,9 @@ func grid_depth() -> int:
 ## Height (Y in terrain-body local space) at corner (cx, cz).
 func get_corner_height(cx: int, cz: int) -> float:
 	return height_shape().map_data[cz * map_width() + cx]
+#endregion
 
-
-# --- Cell queries ----------------------------------------------------------
-
+#region Cell queries
 func is_in_bounds(cell: Vector2i) -> bool:
 	return cell.x >= 0 and cell.x < grid_width() \
 		and cell.y >= 0 and cell.y < grid_depth()
@@ -137,30 +141,12 @@ func get_all_passable_cells() -> Array:
 				result.append(cell)
 	return result
 
-## Set the STEEP bit on cells whose corner-height spread exceeds MAX_SLOPE_DIFF.
-## Called once at _ready() since the heightmap does not change at runtime.
-func _mark_steep_cells() -> void:
-	var hs := height_map
-	var w  := hs.map_width
-	var gw := grid_width()
-	for z in range(grid_depth()):
-		for x in range(gw):
-			var h00 := hs.map_data[ z      * w + x    ]
-			var h10 := hs.map_data[ z      * w + x + 1]
-			var h01 := hs.map_data[(z + 1) * w + x    ]
-			var h11 := hs.map_data[(z + 1) * w + x + 1]
-			var spread := maxf(maxf(h00, h10), maxf(h01, h11)) \
-						- minf(minf(h00, h10), minf(h01, h11))
-			if spread > MAX_SLOPE_DIFF:
-				_cell_state[z * gw + x] |= _STEEP
-
 ## Returns [min: Vector2i, max: Vector2i] inclusive cell-index bounds.
 func get_bounds() -> Array:
 	return [Vector2i.ZERO, Vector2i(grid_width() - 1, grid_depth() - 1)]
+#endregion
 
-
-# --- Space-erosion fields (per-size-class nav-mesh baking) ------------------
-
+#region Space-erosion fields
 ## Cells navigable by an agent of a given size class, expressed as the two
 ## space-erosion parameters NavAgentClass derives from its radius:
 ##   rings   — whole-cell layers to strip around obstacles (keeps big units off
@@ -283,10 +269,9 @@ func _recompute_distance() -> void:
 			best = mini(best, (_dist[idx + gw + 1] if (x + 1 < gw and z + 1 < gh) else 0) + 1)
 			best = mini(best, (_dist[idx + gw - 1] if (x > 0 and z + 1 < gh) else 0) + 1)
 			_dist[idx] = best
+#endregion
 
-
-# --- Runtime building management -------------------------------------------
-
+#region Building management
 ## Mark `cells` as occupied by `building` and emit cells_changed.
 func place_building(cells: Array, building: Object) -> void:
 	_building_footprints[building] = cells
@@ -314,10 +299,9 @@ func remove_building(building: Object) -> void:
 ## Returns the cells registered for `building`, or [] if unknown.
 func get_building_cells(building: Object) -> Array:
 	return _building_footprints.get(building, [])
+#endregion
 
-
-# --- Blocked mask (non-height impassability) -------------------------------
-
+#region Blocked mask
 ## Replace the whole blocked state from `mask` (cell-indexed, index = z*grid_width()+x;
 ## a non-zero entry blocks the cell). Pass an empty array to clear all blocks. Only
 ## the BLOCKED bit is touched (steep/building reasons are preserved). Emits
@@ -356,3 +340,23 @@ func set_blocked(cell: Vector2i, value: bool) -> void:
 ## Remove all blocks.
 func clear_blocked_mask() -> void:
 	set_blocked_mask(PackedByteArray())
+#endregion
+
+#region Private helpers
+## Set the STEEP bit on cells whose corner-height spread exceeds MAX_SLOPE_DIFF.
+## Called once at _ready() since the heightmap does not change at runtime.
+func _mark_steep_cells() -> void:
+	var hs := height_map
+	var w  := hs.map_width
+	var gw := grid_width()
+	for z in range(grid_depth()):
+		for x in range(gw):
+			var h00 := hs.map_data[ z      * w + x    ]
+			var h10 := hs.map_data[ z      * w + x + 1]
+			var h01 := hs.map_data[(z + 1) * w + x    ]
+			var h11 := hs.map_data[(z + 1) * w + x + 1]
+			var spread := maxf(maxf(h00, h10), maxf(h01, h11)) \
+						- minf(minf(h00, h10), minf(h01, h11))
+			if spread > MAX_SLOPE_DIFF:
+				_cell_state[z * gw + x] |= _STEEP
+#endregion

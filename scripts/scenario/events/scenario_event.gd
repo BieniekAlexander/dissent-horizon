@@ -10,26 +10,32 @@ extends Node3D
 ## Subclasses override execute() for runtime behaviour and, optionally,
 ## _draw_editor_gizmo() to visualise themselves while editing the scene.
 
+#region Constants
 ## Colour used for this event's editor gizmo lines.
 const _GIZMO_COLOR := Color(1.0, 0.55, 0.1, 0.9)
+#endregion
 
+#region Properties
 var _gizmo: MeshInstance3D
 var _gizmo_material: StandardMaterial3D
+#endregion
 
-
+#region Public API
 ## Called when an owning Trigger fires. Implement effects in subclasses.
 func execute(_manager: ScenarioEventManager) -> void:
 	pass
+#endregion
 
-
+#region Lifecycle
 func _process(_delta: float) -> void:
 	# Editor-only authoring aid: rebuild the gizmo every frame so it tracks the
 	# node (and its children) as they're dragged around. The HeightPin tools use
 	# the same "@tool node draws helper visuals, skip them at runtime" pattern.
 	if Engine.is_editor_hint():
 		_refresh_editor_gizmo()
+#endregion
 
-
+#region Editor gizmo
 ## Override to append this event's gizmo line vertices (in pairs) to `verts`.
 ## Positions are LOCAL to this node. Default draws nothing.
 func _draw_editor_gizmo(_verts: PackedVector3Array) -> void:
@@ -79,3 +85,4 @@ func _gizmo_polyline(verts: PackedVector3Array, points: Array[Vector3]) -> void:
 	for i in range(points.size() - 1):
 		verts.append(points[i])
 		verts.append(points[i + 1])
+#endregion

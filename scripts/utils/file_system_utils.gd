@@ -1,5 +1,6 @@
 class_name FSU
 
+#region Public API
 static func get_data_from_csv_file(path: String) -> Array:
 	return Array(
 		FileAccess.open(
@@ -19,3 +20,4 @@ static func get_data_from_json_file(path: String) -> Variant:
 			FileAccess.READ
 		).get_as_text()
 	)
+#endregion

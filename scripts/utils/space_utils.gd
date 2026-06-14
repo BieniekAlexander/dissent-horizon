@@ -3,8 +3,13 @@
 # e.g. checking if a unit is adjacent to a structure, which sits on a set of hex cells
 class_name SU
 
+#region Properties
 static var rng = RandomNumberGenerator.new()
 
+const _NAV_SNAP_TOLERANCE: float = 0.5
+#endregion
+
+#region Public API
 static func get_nearby_entities(world_3d: World3D, a_position: Vector3, a_radius: float, collision_mask: int) -> Array:
 	var shape := SphereShape3D.new()
 	shape.radius = a_radius
@@ -100,13 +105,6 @@ static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distan
 		an_entity.xz_position - a_unit.xz_position
 	).length_squared() - combined_extent**2 < distance_squared
 
-## ── UNIT PLACEMENT ──────────────────────────────────────────────────────────
-##
-## The functions below answer the question: "If this unit enters the scene
-## near an existing entity, where should it appear so it doesn't overlap?"
-## They are intentionally generic so the same logic can serve garrisoning,
-## structure exit, unit training, teleport landing, etc.
-
 ## Return all unique grid cells that are directly adjacent (L∞-distance 1) to
 ## any cell in `a_structure`'s footprint, are in-bounds, and are currently
 ## passable (not occupied by another structure, not too steep).  The returned
@@ -141,7 +139,6 @@ static func passable_cells_adjacent_to(a_structure: Commandable, a_map: Map) -> 
 
 	result.shuffle()
 	return result
-
 
 ## Return the grid cell adjacent to `a_structure`'s footprint — in-bounds and
 ## passable — whose world-space centre is closest to `dest`.
@@ -181,12 +178,9 @@ static func nearest_footprint_adjacent_cell(
 
 	return best_cell
 
-
 ## How far (in XZ world units) a candidate point may drift from the navmesh
 ## closest-point snap before it is considered off-navmesh.  Half a cell width
 ## (CELL_SIZE = 1.0) keeps points well inside valid navmesh quads.
-const _NAV_SNAP_TOLERANCE: float = 0.5
-
 static func get_nonoverlapping_points(
 	map: Map,
 	center: Vector2,
@@ -248,7 +242,9 @@ static func get_nonoverlapping_points(
 
 	push_error("Not enough points collected - requested %s, got %s" % [max_points, ret_points.size()])
 	return ret_points
+#endregion
 
+#region Private helpers
 ## Project an XZ world position onto the navmesh using NavigationServer3D.
 ## Returns the snapped Vector3 if the closest navmesh point is within
 ## _NAV_SNAP_TOLERANCE in XZ; returns Vector3.INF if the point is off-navmesh
@@ -284,3 +280,4 @@ static func _shape_has_space(
 
 	var results: Array = space_state.intersect_shape(params, 1)
 	return results.is_empty()
+#endregion

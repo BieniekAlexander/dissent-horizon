@@ -1,8 +1,7 @@
 class_name Scenario
 extends Node3D
 
-
-### GAME STATE
+#region Properties
 var frame: int = 0
 @onready var commanders: Array = range(0, 3).map(
 	func(o):
@@ -15,10 +14,10 @@ var frame: int = 0
 		return c
 )
 
-### GAME WORLD
 @onready var map: Map = $Map
+#endregion
 
-### NODE
+#region Lifecycle
 func _ready() -> void:
 	var players_node = Node3D.new()
 	players_node.name = "Players"
@@ -53,8 +52,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	frame += 1
 	# $Map.nav_region.bake_navigation_mesh(false)
+#endregion
 
-
+#region Private helpers
 ## Move the player's camera so the view centers on the centroid of the player's
 ## buildings at game start.  If the player has no buildings, centers on the
 ## centroid of the player's units instead.  If the player owns neither, the
@@ -100,10 +100,10 @@ func _on_scenario_message(text: String) -> void:
 func _on_game_over(won: bool) -> void:
 	print("[Scenario] Game over — player %s" % ("wins" if won else "loses"))
 	# TODO: show win/lose screen and pause or return to menu.
+#endregion
 
 
 # TODO: unused function
 #func purge() -> void:
 #	if has_node("Players"):
 #		$Players.queue_free()
-	

@@ -15,6 +15,7 @@ extends Node
 ## `global_position` when spawning. It assumes the parent is an Entity; on a
 ## non-Entity parent, spawning is a no-op.
 
+#region Properties
 ## Path (relative to this node) to the TrainBar Node3D used to visualize
 ## training progress. Two-child contract: TrainBar must have a child
 ## "TrainBarFill" whose scale.x / position.x track progress. This mirrors the
@@ -40,11 +41,15 @@ var training_queue: Array = []
 var rally_command: Command = null
 
 var _train_bar: Node3D
+#endregion
 
+#region Lifecycle
 func _ready() -> void:
 	if not train_bar_path.is_empty():
 		_train_bar = get_node_or_null(train_bar_path) as Node3D
+#endregion
 
+#region Public API
 ## Enqueue a new training job. Called by Structure when a Train command is
 ## accepted (resources confirmed and deducted).
 func enqueue(creation_time: int, packed_scene: PackedScene) -> void:
@@ -86,7 +91,9 @@ func update_bar(parent_scale_x: float) -> void:
 	# job spec.
 	fill.scale.x = float(training_queue[0][0]) / 450
 	fill.position.x = -parent_scale_x * (1 - fill.scale.x)
+#endregion
 
+#region Private helpers
 func _spawn_unit(scene: PackedScene) -> void:
 	var entity: Entity = get_parent() as Entity
 	if entity == null: return
@@ -102,3 +109,4 @@ func _spawn_unit(scene: PackedScene) -> void:
 		entity.global_position + spawn_bias
 	)
 	unit.update_commands(rally_command)
+#endregion

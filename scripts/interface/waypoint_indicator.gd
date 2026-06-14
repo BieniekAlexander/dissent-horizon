@@ -1,14 +1,19 @@
 class_name WaypointIndicator
 extends Node3D
 
+#region Constants
 const Y_OFFSET    := 0.2
 const MARKER_SIZE := 0.5
 const COLOR       := Color(1.0, 0.85, 0.1)  # gold
+#endregion
 
+#region Properties
 var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
 var _from_world: Vector3
+#endregion
 
+#region Lifecycle
 func _ready() -> void:
 	_mesh = ImmediateMesh.new()
 	_mesh_instance = MeshInstance3D.new()
@@ -20,13 +25,17 @@ func _ready() -> void:
 	_mesh_instance.material_override = mat
 	_mesh_instance.get_active_material(0).render_priority = RenderPriority.WAYPOINT_PRIORITY
 	add_child(_mesh_instance)
+#endregion
 
+#region Public API
 ## Position the indicator at `destination` and draw a line from `from_pos`.
 func configure(destination: Vector3, from_pos: Vector3) -> void:
 	global_position = destination
 	_from_world = from_pos
 	_redraw()
+#endregion
 
+#region Private helpers
 func _redraw() -> void:
 	_mesh.clear_surfaces()
 	_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
@@ -51,3 +60,4 @@ func _redraw() -> void:
 	_mesh.surface_add_vertex(dest_local + Vector3(-r, 0.0,  0.0))
 
 	_mesh.surface_end()
+#endregion

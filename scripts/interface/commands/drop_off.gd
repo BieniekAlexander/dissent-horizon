@@ -1,6 +1,7 @@
 class_name DropOff
 extends Command
 
+#region State updates
 func should_move(a_actor: Commandable) -> bool:
 	return !SU.unit_is_close_to_target(a_actor, message.target, .01)
 
@@ -17,3 +18,4 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	item._on_death()
 	a_actor.commander.dominion += 100
 	return null
+#endregion

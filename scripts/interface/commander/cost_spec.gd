@@ -1,6 +1,7 @@
 # Specifies what things are available to a commander
 class_name TechnologySpec
 
+#region Constants
 enum UnmetNeed {
 	NONE,
 	NOT_ENOUGH_ORE,
@@ -16,7 +17,9 @@ static var unmet_need_message_map: Dictionary = {
 	UnmetNeed.NOT_ENOUGH_DOMINION: "Not enough dominion",
 	UnmetNeed.MISSING_STRUCTURE: "Required structure missing",
 }
+#endregion
 
+#region Properties
 var ore_cost: int
 var dominion_cost: int
 var population_cost: int
@@ -28,7 +31,9 @@ var availability_evaluator: Callable
 var creation_time: int
 
 static var get_none: Callable = func(_c): return UnmetNeed.NONE
+#endregion
 
+#region Lifecycle
 func _init(
 	a_ore_cost: int,
 	a_population_cost: int,
@@ -46,7 +51,9 @@ func _init(
 	# pessimistic; proc_technology will refine once a structure event fires.
 	if a_availability_evaluator != get_none:
 		unmet_need = UnmetNeed.MISSING_STRUCTURE
+#endregion
 
+#region Public API
 func get_unmet_need(a_commander: Commander) -> UnmetNeed:
 	if unmet_need != UnmetNeed.NONE:
 		return unmet_need
@@ -57,3 +64,4 @@ func get_unmet_need(a_commander: Commander) -> UnmetNeed:
 	if a_commander.dominion < dominion_cost:
 		return UnmetNeed.NOT_ENOUGH_DOMINION
 	return UnmetNeed.NONE
+#endregion

@@ -35,19 +35,23 @@ extends Node
 ## (e.g. a multi-cell building placement) collapses into a single rebuild at
 ## the end of the same frame.
 
-@export var navigation_region: NavigationRegion3D
-@export var terrain_grid: TerrainGrid
-
+#region Constants
 ## Navigation layer bit reserved for the base un-eroded region. Far from the class
 ## bits (1<<0 .. 1<<3) so no agent's class layer ever selects it.
 const _BASE_LAYER: int = 1 << 30
+#endregion
+
+#region Properties
+@export var navigation_region: NavigationRegion3D
+@export var terrain_grid: TerrainGrid
 
 var _rebuild_pending: bool = false
 
 ## One region per size class, all on the scene region's navigation map.
 var _class_regions: Dictionary = {}  # NavAgentClass.Size -> RID (region)
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
 	assert(navigation_region != null, "NavManager: navigation_region export must be set")
 	assert(terrain_grid      != null, "NavManager: terrain_grid export must be set")
@@ -56,15 +60,13 @@ func _ready() -> void:
 	# Defer so all _ready() calls finish before the first build.
 	call_deferred("_rebuild_navmesh")
 
-
 func _exit_tree() -> void:
 	for region: RID in _class_regions.values():
 		NavigationServer3D.free_rid(region)
 	_class_regions.clear()
+#endregion
 
-
-# --- Public API ------------------------------------------------------------
-
+#region Public API
 ## Schedule a navmesh rebuild at the end of this frame.
 ## Multiple calls within one frame coalesce into a single rebuild.
 func request_rebuild() -> void:
@@ -73,15 +75,13 @@ func request_rebuild() -> void:
 	_rebuild_pending = true
 	call_deferred("_rebuild_navmesh")
 
-
 ## NavigationAgent3D.navigation_layers value that selects the space-eroded mesh for
 ## `size`: one distinct bit per class (SMALL -> 1<<0 ... MASSIVE -> 1<<3).
 func layer_for(size: NavAgentClass.Size) -> int:
 	return 1 << (int(size) - 1)
+#endregion
 
-
-# --- Internal --------------------------------------------------------------
-
+#region Private helpers
 ## Create one region per size class on the scene region's map, each on its own
 ## navigation layer and with cross-region edge connections disabled (each class
 ## mesh is self-contained — agents must not path across class boundaries).
@@ -99,10 +99,8 @@ func _init_class_regions() -> void:
 		NavigationServer3D.region_set_use_edge_connections(region, false)
 		_class_regions[size] = region
 
-
 func _on_cells_changed(_cells: Array) -> void:
 	request_rebuild()
-
 
 func _rebuild_navmesh() -> void:
 	_rebuild_pending = false
@@ -118,7 +116,6 @@ func _rebuild_navmesh() -> void:
 		var inset: float = NavAgentClass.inset(size, cs)
 		var mesh: NavigationMesh = _build_mesh(rings, admit_k, inset)
 		NavigationServer3D.region_set_navigation_mesh(_class_regions[size], mesh)
-
 
 ## Build a NavigationMesh from the cells navigable under (rings, admit_k), with each
 ## boundary vertex inset toward the walkable interior by `inset` world-units.
@@ -170,7 +167,6 @@ func _build_mesh(rings: int, admit_k: int, inset: float) -> NavigationMesh:
 	nav_mesh.vertices = verts
 	return nav_mesh
 
-
 ## World position of a heightmap corner, shifted toward the walkable interior by
 ## `inset_local` (corner-index units). The shift direction is the normalised sum of
 ## directions to the corner's INCLUDED incident cells, so a convex tip is pulled in,
@@ -210,7 +206,6 @@ func _corner_world(
 	var local_pos := Vector3(cx - half_w, _sample_height(cx, cz, hs), cz - half_d)
 	return tb.global_transform * local_pos
 
-
 ## Bilinearly sample HeightMapShape3D height at fractional corner coordinates,
 ## so an inset vertex stays on the terrain surface instead of snapping to a corner.
 func _sample_height(fx: float, fz: float, hs: HeightMapShape3D) -> float:
@@ -229,3 +224,4 @@ func _sample_height(fx: float, fz: float, hs: HeightMapShape3D) -> float:
 	var h01: float = hs.map_data[z1 * w + x0]
 	var h11: float = hs.map_data[z1 * w + x1]
 	return lerpf(lerpf(h00, h10, tx), lerpf(h01, h11, tx), tz)
+#endregion

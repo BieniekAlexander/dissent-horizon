@@ -42,13 +42,16 @@ shape = SubResource("CylinderShape3D_irreg")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
-[node name="Selectable" parent="." index="11"]
+[node name="Veterancy" parent="." index="10"]
+level = 1
+
+[node name="Selectable" parent="." index="12"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
 
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("SphereShape3D_c8urn")
 
-[node name="Sprite" parent="." index="13"]
+[node name="Sprite" parent="." index="14"]
 transform = Transform3D(1.5, 0, 0, 0, 1.0606601, -1.0606601, 0, 1.0606601, 1.0606601, 0, 0.17003015, 0)
 texture_filter = 0
 texture = ExtResource("2_njqvf")
@@ -57,3 +60,8 @@ hframes = 3
 [node name="Inventory" type="Node" parent="." index="19"]
 script = ExtResource("5_invnt")
 initial_abilities = Array[int]([0])
+
+[node name="VeterancyLabel" parent="." index="22"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.55, -0.0009765625)
+visible = false
+pixel_size = 0.005

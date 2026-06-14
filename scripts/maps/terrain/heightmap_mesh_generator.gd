@@ -14,9 +14,12 @@ extends Node3D
 ##   2. Click "Build Mesh" to generate.
 ##   3. Right-click the `mesh` property → Save to write it to a .tres file.
 
+#region Constants
 ## Mirrors TerrainGrid.MAX_SLOPE_DIFF — cells steeper than this are impassable.
 const MAX_SLOPE_DIFF: float = 0.5
+#endregion
 
+#region Properties
 @export var shape: HeightMapShape3D:
 	set(v):
 		shape = v
@@ -35,17 +38,21 @@ const MAX_SLOPE_DIFF: float = 0.5
 		mesh = v
 		_apply_to_instance()
 
+## Click to rebuild the mesh from the current `shape`.
+@export var run_build: bool:
+	set(value): build()
+#endregion
+
+#region Lifecycle
 func _ready() -> void:
 	if shape != null:
 		build()
 	else:
 		_apply_to_instance()
+#endregion
 
-
+#region Public API
 ## Build the mesh from the current `shape` and store it in `mesh`.
-@export var run_build: bool:
-	set(value): build()
-
 func build() -> void:
 	if shape == null:
 		push_warning("HeightmapMeshGenerator: no shape assigned")
@@ -54,8 +61,9 @@ func build() -> void:
 	if material != null:
 		mesh.surface_set_material(0, material)
 	_sync_shader_grid()
+#endregion
 
-
+#region Private helpers
 ## Keep the checkerboard shader's cell count in lockstep with the heightmap so
 ## each grid cell renders as exactly one checker square.  No-op when the material
 ## isn't a ShaderMaterial (the parameters are simply ignored if absent).
@@ -75,7 +83,6 @@ func _apply_to_instance() -> void:
 	mi.mesh = mesh
 	mi.material_override = material
 	_sync_shader_grid()
-
 
 func _build_mesh() -> ArrayMesh:
 	var w: int = shape.map_width
@@ -137,3 +144,4 @@ func _build_mesh() -> ArrayMesh:
 	var result := ArrayMesh.new()
 	result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return result
+#endregion

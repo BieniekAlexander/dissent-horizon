@@ -1,13 +1,16 @@
 class_name ConditionStructureBuilt
 extends Condition
 
+#region Properties
 ## -1 = any commander owns it.
 @export var commander_id: int = -1
 ## UNDEFINED = any structure type.
 @export var structure_type: Entity.Type = Entity.Type.UNDEFINED
 ## (-1,-1) = ignore location; otherwise the exact grid cell must be occupied.
 @export var grid_cell: Vector2i = Vector2i(-1, -1)
+#endregion
 
+#region Public API
 func evaluate(manager: ScenarioEventManager) -> bool:
 	var map := manager.map
 	if map == null:
@@ -40,3 +43,4 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 			if not commander.structure_type_map[structure_type].is_empty():
 				return true
 	return false
+#endregion

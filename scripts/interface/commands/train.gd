@@ -7,7 +7,8 @@ extends Command
 ## the entity's Production node to build the train menu, so this command class
 ## carries only the train action's behavior.
 
-
+#region Preconditions
 static func requires_position() -> bool:
 	## Indicates whether this command requires a specified position to be issued
 	return false
+#endregion

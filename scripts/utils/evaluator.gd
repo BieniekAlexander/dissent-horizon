@@ -13,9 +13,19 @@
 ##)
 class_name Pattern
 
+#region Properties
 var condition: Callable
 var result: Variant
+#endregion
 
+#region Lifecycle
+func _init(a_condition: Callable, a_result: Variant) -> void:
+	# A tuple which pairs a condition with a potential result, to be returned if the condition is true
+	condition = a_condition
+	result = a_result
+#endregion
+
+#region Public API
 static func eval(
 	a_patterns: Array,
 	a_evalution_input: Variant,
@@ -24,11 +34,6 @@ static func eval(
 	for pattern: Pattern in a_patterns:
 		if pattern.condition.call(a_evalution_input):
 			return pattern.result
-	
+
 	return a_default
-
-
-func _init(a_condition: Callable, a_result: Variant) -> void:
-	# A tuple which pairs a condition with a potential result, to be returned if the condition is true
-	condition = a_condition
-	result = a_result
+#endregion

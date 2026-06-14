@@ -11,6 +11,7 @@ extends Commandable
 ## checks it to forbid stacking a second mine, and Mine._on_death clears it so the
 ## deposit becomes minable again (the deposit itself is never removed from the grid).
 
+#region Properties
 var _mine: Commandable = null
 var mine: Commandable:
 	get: return _mine
@@ -21,3 +22,4 @@ var mine: Commandable:
 		var sprite := get_node_or_null("Sprite")
 		if sprite != null:
 			sprite.visible = value == null
+#endregion

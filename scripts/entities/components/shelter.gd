@@ -8,6 +8,7 @@ extends Node
 ## the _garrisoned array reference.  On evacuation they are re-inserted under
 ## their original Commander node and dispersed to nearby open cells.
 
+#region Properties
 ## Maximum number of units that may garrison simultaneously.
 @export var capacity: int = 4
 ## When true, garrisoned units can fire their weapons from inside this shelter.
@@ -18,8 +19,9 @@ extends Node
 ## Units currently garrisoned.  Held as orphaned nodes — removed from the
 ## scene tree but not freed.
 var _garrisoned: Array[Commandable] = []
+#endregion
 
-
+#region Public API
 ## True when at least one more unit can be accepted.
 func can_garrison() -> bool:
 	return _garrisoned.size() < capacity
@@ -77,8 +79,9 @@ func evacuate(a_map: Map) -> void:
 		_evacuate_from_unit(owner_cmd, a_map)
 
 	_garrisoned.clear()
+#endregion
 
-
+#region Private helpers
 ## Evacuation path for shelter owners that occupy the terrain grid (structures).
 ## Each unit is placed at the footprint-boundary cell closest to its randomly
 ## assigned destination so it appears to exit from the correct side.
@@ -163,3 +166,4 @@ func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 
 		if a_map != null:
 			unit.update_commands(Command.new(CommandMessage.new(a_map, null, null, spawn_pos)))
+#endregion

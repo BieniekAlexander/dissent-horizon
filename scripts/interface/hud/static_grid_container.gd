@@ -1,6 +1,7 @@
 class_name StaticGridContainer
 extends Container
 
+#region Properties
 @export var grid_dimensions: Vector2i = Vector2.ZERO
 
 var control_size: Vector2:
@@ -8,13 +9,17 @@ var control_size: Vector2:
 		size.x/grid_dimensions.x,
 		size.y/grid_dimensions.y
 	)
+#endregion
 
+#region Public API
 func grid_index_to_position(a_grid_index: Vector2i) -> Vector2:
 	return Vector2(
 		control_size.x*a_grid_index.x,
 		control_size.y*a_grid_index.y
 	)
+#endregion
 
+#region Lifecycle
 func _ready() -> void:
 	assert(
 		get_children().all(
@@ -25,7 +30,7 @@ func _ready() -> void:
 		),
 		"One of the buttons doesn't have a proper grid position"
 	)
-	
+
 	for b: StaticGridButton in get_children():
 		b.custom_minimum_size = control_size
 		var control_position: Vector2 = grid_index_to_position(b.grid_index)
@@ -35,7 +40,4 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_SORT_CHILDREN:
 		for c in get_children():
 			fit_child_in_rect(c, Rect2(Vector2(), size))
-			
-# TODO: unused function
-#func set_some_setting():
-#	queue_sort()
+#endregion

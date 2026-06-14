@@ -13,6 +13,13 @@ extends RefCounted
 ## Output is cell-indexed (index = z*(width-1)+x), 1 = blocked, matching
 ## TerrainGrid's mask layout.
 
+#region Constants
+const MAX_SLOPE_DIFF: float = 0.5
+
+const _NEIGHBOURS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+#endregion
+
+#region Properties
 @export var seed: int = 0
 
 ## How many blobs to attempt.  Some may be rejected for breaking connectivity.
@@ -25,12 +32,9 @@ extends RefCounted
 ## slopes stay clear.  Keeping the connectors open makes blocks far less likely
 ## to disconnect the map.
 @export var flat_only: bool = true
+#endregion
 
-const MAX_SLOPE_DIFF: float = 0.5
-
-const _NEIGHBOURS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
-
-
+#region Public API
 func generate(heights: PackedFloat32Array, width: int, depth: int) -> PackedByteArray:
 	var gw: int = width - 1
 	var gh: int = depth - 1
@@ -76,8 +80,9 @@ func generate(heights: PackedFloat32Array, width: int, depth: int) -> PackedByte
 				blocked[c.y * gw + c.x] = 0
 
 	return blocked
+#endregion
 
-
+#region Private helpers
 func _is_eligible(cell: Vector2i, gw: int, gh: int, passable: PackedByteArray, flat: PackedByteArray, blocked: PackedByteArray) -> bool:
 	if cell.x < 0 or cell.x >= gw or cell.y < 0 or cell.y >= gh:
 		return false
@@ -86,14 +91,12 @@ func _is_eligible(cell: Vector2i, gw: int, gh: int, passable: PackedByteArray, f
 		return false
 	return flat[idx] == 1 if flat_only else true
 
-
 func _pick_candidate(rng: RandomNumberGenerator, gw: int, gh: int, passable: PackedByteArray, flat: PackedByteArray, blocked: PackedByteArray) -> Vector2i:
 	for _try: int in 60:
 		var cell := Vector2i(rng.randi_range(0, gw - 1), rng.randi_range(0, gh - 1))
 		if _is_eligible(cell, gw, gh, passable, flat, blocked):
 			return cell
 	return Vector2i(-1, -1)
-
 
 ## Random-frontier flood growth — gives organic blob shapes rather than discs.
 func _grow_blob(rng: RandomNumberGenerator, start: Vector2i, target: int, gw: int, gh: int, passable: PackedByteArray, flat: PackedByteArray, blocked: PackedByteArray) -> Array:
@@ -111,7 +114,6 @@ func _grow_blob(rng: RandomNumberGenerator, start: Vector2i, target: int, gw: in
 				visited[nb] = true
 				frontier.append(nb)
 	return blob
-
 
 ## True iff the cells that are height-passable AND not blocked form one connected
 ## component (4-neighbour).  Early-outs as soon as a second component appears.
@@ -139,3 +141,4 @@ func _passable_connected(gw: int, gh: int, passable: PackedByteArray, blocked: P
 								seen[ni] = 1
 								stack.append(Vector2i(nx, nz))
 	return components <= 1
+#endregion

@@ -1,14 +1,10 @@
 class_name Projectile
 extends Entity
 
-### PROPERTIES
+#region Properties
 var attack_type: Weapon.AttackType = Weapon.AttackType.BALLISTIC
-
-### ORIGIN
 var source: Commandable
 var target: Commandable
-
-### MOVEMENT
 const gravity: float = -.005
 const speed: float = .175
 var origin: Vector3
@@ -16,16 +12,35 @@ var damage: float = 5
 var _weapon_damage: float = 0.0
 
 @onready var hit_shape: CollisionShape3D = get_node_or_null("HitShape")
+#endregion
 
-
-### NODE
+#region Lifecycle
 func _physics_process(_delta: float) -> void:
 	if _has_landed():
 		_apply_hit()
 		_on_death()
 		return
 	_advance()
+#endregion
 
+#region Public API
+func initialize_projectile(a_source: Variant, a_target: Variant, a_weapon_damage: float = 0.0) -> void:
+	_weapon_damage = a_weapon_damage
+	source = a_source if a_source is Commandable else null
+	target = a_target if a_target is Commandable else null
+	origin = a_source.global_position if a_source is Commandable else a_source
+	var target_pos: Vector3 = a_target.global_position if a_target is Entity else a_target
+
+	var horizontal_dist: float = VU.inXZ(origin).distance_to(VU.inXZ(target_pos))
+	var time_to_target: float = horizontal_dist / speed
+	var vert_velocity: float = -gravity * time_to_target / 2
+
+	global_position = origin
+	velocity = (target_pos - origin).normalized() * speed + (vert_velocity + gravity) * Vector3.UP
+	#commander = a_source.commander
+#endregion
+
+#region Private helpers
 ## True once the projectile is descending and has reached (or passed) its launch
 ## height — i.e. it has hit the ground plane. Exposed (not inlined) so subclasses
 ## with their own lifecycle (e.g. Radiation's state machine) can reuse it.
@@ -57,19 +72,4 @@ func _apply_hit() -> void:
 				)
 			target.receive_damage(source, damage)
 			break
-
-
-func initialize_projectile(a_source: Variant, a_target: Variant, a_weapon_damage: float = 0.0) -> void:
-	_weapon_damage = a_weapon_damage
-	source = a_source if a_source is Commandable else null
-	target = a_target if a_target is Commandable else null
-	origin = a_source.global_position if a_source is Commandable else a_source
-	var target_pos: Vector3 = a_target.global_position if a_target is Entity else a_target
-
-	var horizontal_dist: float = VU.inXZ(origin).distance_to(VU.inXZ(target_pos))
-	var time_to_target: float = horizontal_dist / speed
-	var vert_velocity: float = -gravity * time_to_target / 2
-
-	global_position = origin
-	velocity = (target_pos - origin).normalized() * speed + (vert_velocity + gravity) * Vector3.UP
-	#commander = a_source.commander
+#endregion

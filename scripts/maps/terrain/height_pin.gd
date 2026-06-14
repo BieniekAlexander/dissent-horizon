@@ -2,13 +2,15 @@
 class_name HeightPin
 extends Sprite3D
 
+#region Signals
 signal height_changed(pin: HeightPin)
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
 	texture = load("res://assets/logo.png")
 	scale = Vector3.ONE * .1
-	
+
 	if not Engine.is_editor_hint():
 		queue_free()
 		return
@@ -17,3 +19,4 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_LOCAL_TRANSFORM_CHANGED:
 		height_changed.emit(self)
+#endregion

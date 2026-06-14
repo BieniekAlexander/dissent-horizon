@@ -23,6 +23,7 @@ extends Node
 ##   - Combat events (attacked / attacking) call unstealth(), which starts the
 ##     timed UNSTEALTHED window. That window is independent of detector coverage.
 
+#region Constants
 enum State {
 	STEALTHED,    ## hidden from enemies
 	REVEALED,     ## seen by a detector, but not combat-revealed
@@ -32,7 +33,9 @@ enum State {
 ## Physics frames the unit stays UNSTEALTHED after the last combat event.
 ## 90 frames ≈ 3 s at 30 ticks/s.
 const UNSTEALTH_DURATION_FRAMES: int = 90
+#endregion
 
+#region Properties
 ## Current visibility state. Read by Commandable._process (sprite alpha) and the
 ## controller's cursor (STEALTHED enemies are unclickable / untargetable).
 var state: State = State.STEALTHED
@@ -43,16 +46,18 @@ var _unstealth_timer_frames: int = 0
 
 ## Physics-frame index of the most recent reveal() call. -1 = never detected.
 var _last_detected_frame: int = -1
+#endregion
 
-
+#region Lifecycle
 func _ready() -> void:
 	# Register on the STEALTH collision layer so DetectionRange shapes can
 	# find this entity via a targeted physics query.
 	var entity := get_parent() as Entity
 	if entity != null:
 		entity.collision_layer |= CollisionLayers.Mask.STEALTH
+#endregion
 
-
+#region Public API
 ## Called by a detecting entity each physics frame it overlaps this unit.
 ## Stamps the current frame index; tick() uses this to drive the REVEALED state.
 func reveal() -> void:
@@ -81,3 +86,4 @@ func tick() -> void:
 		_unstealth_timer_frames = 0
 
 	state = State.REVEALED if detected else State.STEALTHED
+#endregion
