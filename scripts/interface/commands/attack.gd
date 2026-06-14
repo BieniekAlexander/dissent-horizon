@@ -29,7 +29,8 @@ static func _target_attackable(a_message: CommandMessage) -> bool:
 	# but a_message.target becomes nul when a target dies, so checking it in that manner
 	# causes this to always return true, even if the target used to be an object,
 	# causing downstream checks to crash
-	return is_instance_valid(a_message.target)
+	var t: Entity = a_message.target
+	return is_instance_valid(t) and (t as Commandable) != null and (t as Commandable).defense != null
 
 ## Returns true when a structure's physics body lies on the line between
 ## a_actor and a_target (excluding a_target itself, so attacking a structure

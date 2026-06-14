@@ -65,6 +65,9 @@ func _apply_hit() -> void:
 		if Entity.entity_from_collider(hit["collider"]) == target:
 			if not is_instance_valid(source):
 				source = null
+			var target_cmd := target as Commandable
+			if target_cmd == null or target_cmd.defense == null:
+				break
 			if source != null:
 				target.receive_damage(
 					source,

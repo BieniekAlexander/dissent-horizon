@@ -93,6 +93,7 @@ script = ExtResource("10_vetrn")
 
 [node name="Selectable" type="Area3D" parent="."]
 collision_layer = 256
+collision_mask = 0
 script = ExtResource("4_slct0")
 indicator_path = NodePath("../SelectionIndicator")
 

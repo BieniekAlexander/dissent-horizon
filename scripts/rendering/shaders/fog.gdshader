@@ -1,7 +1,7 @@
 shader_type spatial;
 render_mode unshaded, depth_draw_never, depth_test_disabled, blend_mix;
 
-uniform sampler2D fog_texture;
+uniform sampler2D fog_texture : filter_linear;
 
 void fragment() {
 	ALBEDO = vec3(0.0);

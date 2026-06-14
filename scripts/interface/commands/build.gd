@@ -64,9 +64,6 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		a_actor.commander
 	)
 
-	if a_actor.veterancy != null:
-		a_actor.veterancy.gain_experience(10)
-
 	return Repair.new(CommandMessage.new(message.map, new_structure))
 
 func should_move(a_actor: Commandable) -> bool:

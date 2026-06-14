@@ -15,6 +15,9 @@ type = 4610
 [node name="MovementBody" parent="." index="2"]
 shape = SubResource("BoxShape3D_wykrx")
 
+[node name="TargetBody" parent="." index="3"]
+collision_layer = 0
+
 [node name="Obstruction" parent="." index="7"]
 dimensions = Vector2i(2, 2)
 
@@ -24,6 +27,6 @@ script = ExtResource("3_oreex")
 [node name="Defense" parent="." index="10"]
 armor = 1
 
-[node name="Sprite" parent="." index="14"]
+[node name="Sprite" parent="." index="15"]
 transform = Transform3D(6, 0, 0, 0, 0.7700393, -3.535534, 0, 0.77003926, 3.5355341, 0.018972874, 0.7, 0.44018555)
 texture = ExtResource("3_wykrx")

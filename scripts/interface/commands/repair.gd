@@ -21,6 +21,8 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		# gated on this one (e.g. Mine requires Outpost) now unlocks.
 		if repairable.commander != null:
 			repairable.commander.proc_technology()
+		if a_actor.veterancy != null:
+			a_actor.veterancy.gain_experience(10)
 		return null
 	return self
 #endregion

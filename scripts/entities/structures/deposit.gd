@@ -1,5 +1,5 @@
 class_name Deposit
-extends Commandable
+extends Entity
 
 ## A resource deposit: a neutral, terrain-grid-occupying world structure that a
 ## player can build a Mine "on top of". The deposit stays the sole grid occupant

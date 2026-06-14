@@ -170,7 +170,7 @@ func get_aggro_near_position() -> Command:
 	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
 		func(r): return Entity.entity_from_collider(r["collider"])
 	)
-	var vs2 = vs.filter(func(t): return t is Commandable and (
+	var vs2 = vs.filter(func(t): return t is Commandable and t.defense != null and (
 		(weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null)
 		or (is_bunker and shelter.any_garrison_can_target(t))
 	))
