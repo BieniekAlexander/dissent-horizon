@@ -1,12 +1,16 @@
-[gd_scene load_steps=8 format=3 uid="uid://b0o0qcjj0c1of"]
+[gd_scene load_steps=11 format=3 uid="uid://b0o0qcjj0c1of"]
 
 [ext_resource type="Script" uid="uid://cwjxn7tdi134o" path="res://scripts/entities/structures/deposit.gd" id="2_dep"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_wha84"]
 [ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/obstruction.gd" id="3_j87wn"]
 [ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="7_tp7be"]
 [ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="8_ptwxw"]
 [ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="10_ev6f8"]
+[ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="12_um2k1"]
+[ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="13_ds4h6"]
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_fe0lq"]
+size = Vector3(2, 10, 2)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_cx6aj"]
 
@@ -23,7 +27,10 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="Shape" type="CollisionShape3D" parent="TargetBody"]
-shape = SubResource("CylinderShape3D_fe0lq")
+shape = SubResource("BoxShape3D_fe0lq")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("2_wha84")
 
 [node name="Obstruction" type="Node" parent="."]
 script = ExtResource("3_j87wn")
@@ -53,6 +60,9 @@ transform = Transform3D(0.25, 0, 0, 0, 0.1767765, 0.1767765, 0, -0.1767765, 0.17
 visible = false
 texture = ExtResource("10_ev6f8")
 
+[node name="FootprintVisualizer" type="Node3D" parent="."]
+script = ExtResource("12_um2k1")
+
 [node name="#####DEBUG#####" type="Node" parent="."]
 
 [node name="DebugLabel" type="Label3D" parent="."]
@@ -62,3 +72,10 @@ pixel_size = 0.05
 render_priority = 10
 text = "NULL"
 font_size = 16
+
+[node name="TeamTint" type="Node" parent="."]
+script = ExtResource("13_ds4h6")
+
+[node name="AvoidanceObstacle" type="NavigationObstacle3D" parent="."]
+avoidance_enabled = false
+avoidance_layers = 0

@@ -82,6 +82,20 @@ var commander_id: int:
 ## The Inventory component holding this entity's ability ToolSpecs. Null for
 ## entities with no abilities. Distinct from `inventory` (carried items) below.
 @onready var ability_inventory: Inventory = get_node_or_null("Inventory") as Inventory
+
+## Selectable component — owns the per-entity "is selected" bit and joins the
+## "selectables" group. Optional: present on units, structures, and any other
+## entity the player can box-/click-select (e.g. Deposit). Null for entities that
+## are never selectable (projectile, star, hit_box). Callers gate on `!= null`.
+@onready var selectable: Selectable = get_node_or_null("Selectable") as Selectable
+
+## Child StaticBody3D carrying the TARGETABLE layer (plus STRUCTURE_BLOCKER for
+## structures, set in _ready). The root CharacterBody3D stays off those layers so
+## moving units never collide with building bodies; aggro / vision / projectile /
+## AoE / line-of-fire queries hit this child. Resolve a hit collider back to the
+## owning Entity with Entity.entity_from_collider(). Optional — null for entities
+## with no targetable presence (star, hit_box).
+@onready var target_body: StaticBody3D = get_node_or_null("TargetBody") as StaticBody3D
 #endregion
 
 #region Properties
@@ -206,9 +220,49 @@ func is_grid_obstruction() -> bool:
 	return map != null and map.structure_cell_map.has(self)
 #endregion
 
+#region Structure placement
+## True iff every cell of the structure's footprint is in-bounds, unoccupied,
+## and (when a_allow_uneven_terrain is false) perfectly flat. The clicked world
+## position is treated as the footprint centre, matching how Map.add_structure
+## places the building. Lives on Entity (not Commandable) so any grid-occupying
+## entity — including non-commandable structures like Deposit — can be placed.
+static func valid_placement(
+	a_command_message: CommandMessage,
+	a_dimensions: Vector2i,
+	a_allow_uneven_terrain: bool = false
+) -> bool:
+	var placement_map: Map = a_command_message.map
+	if placement_map == null:
+		return false
+	# Use the same footprint resolution as add_structure so the preview matches where
+	# the structure actually lands (parity-correct for even-sized footprints).
+	var origin: Vector2i = placement_map.footprint_origin(a_command_message.xz_position, a_dimensions)
+	for w in range(a_dimensions.x):
+		for l in range(a_dimensions.y):
+			var cell := Vector2i(origin.x + w, origin.y + l)
+			if not placement_map.grid_coordinates_in_bounds(cell):
+				return false
+			if placement_map.cell_grid[cell.x][cell.y] != null:
+				return false
+			if not a_allow_uneven_terrain and not placement_map.terrain_grid.is_flat(cell):
+				return false
+	return true
+#endregion
+
 #region Lifecycle
 func _ready() -> void:
 	ownership.commander_changed.connect(_on_commander_changed)
+
+	# Mirror the root Body shape onto the TargetBody so targeting matches the
+	# entity's footprint (mine/turret/compound override Body with a box). Entities
+	# with no root collider (e.g. a Deposit, whose footprint lives only on the
+	# TargetBody) keep their authored TargetBody shape.
+	if target_body != null:
+		if collider != null:
+			(target_body.get_node("Shape") as CollisionShape3D).shape = collider.shape
+		# Structures also block line-of-fire (Attack raycasts query STRUCTURE_BLOCKER).
+		if is_in_group("structure"):
+			target_body.collision_layer |= CollisionLayers.Mask.STRUCTURE_BLOCKER
 
 	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,
 	# so we self-initialize from default_commander_id after all _ready() calls
@@ -313,6 +367,13 @@ func initialize(a_map: Map, a_commander: Commander):
 	refresh_movement_collision()
 
 func _on_death() -> void:
+	# Structure-flavored grid teardown: any entity that occupies the terrain grid
+	# (registered via Obstruction → Map.add_structure) must release its cells so the
+	# navmesh reopens them. Commandable._on_death adds commander/economy teardown
+	# on top of this via super(). Gated on group + map so plain units skip it.
+	if is_in_group("structure") and map != null:
+		map.remove_structure(self)
+
 	for coords: Vector2i in pc_set.get_values():
 		map.spatial_partition_grid[coords.x][coords.y].remove(self)
 

@@ -16,19 +16,13 @@ extends Entity
 #region Properties
 @onready var command_receiver: CommandReceiver = CommandReceiver.new()
 
-## Component references — all optional. Entity declares `ownership` and
-## `movement`; Commandable adds `selectable`, `production`, `resource_provider`.
-@onready var selectable: Selectable = $Selectable
+## Component references — all optional. Entity declares `ownership`, `movement`,
+## `selectable`, and `target_body`; Commandable adds `production`,
+## `resource_provider`, and the command/combat machinery below.
 ## NavigationObstacle3D used for cross-team one-sided avoidance (see
 ## AvoidanceAgent3D for the bit-layout). Enabled and sized in _ready for units
 ## only (movement != null); layers are set in _on_commander_changed.
 @onready var _avoidance_obstacle: NavigationObstacle3D = $AvoidanceObstacle
-## Child StaticBody3D carrying the TARGETABLE layer (plus STRUCTURE_BLOCKER for
-## structures, set in _ready). The root CharacterBody3D stays off those layers so
-## moving units never collide with building bodies; aggro / vision / projectile /
-## AoE / line-of-fire queries hit this child. Resolve a hit collider back to the
-## owning Entity with Entity.entity_from_collider(). Every Commandable has one.
-@onready var target_body: StaticBody3D = $TargetBody
 @onready var production: Production = get_node_or_null("Production") as Production
 @onready var resource_provider: ResourceProvider = get_node_or_null("ResourceProvider") as ResourceProvider
 @onready var ore_extractor: OreExtractor = get_node_or_null("OreExtractor") as OreExtractor
@@ -122,32 +116,8 @@ static func get_arrangement_cells(
 				func(coords): return a_map.cell_grid[coords.x][coords.y]
 			)
 		)
-
-## True iff every cell of the structure's footprint is in-bounds, unoccupied,
-## and (when a_allow_uneven_terrain is false) perfectly flat. The clicked world
-## position is treated as the footprint centre, matching how add_structure
-## places the building.
-static func valid_placement(
-	a_command_message: CommandMessage,
-	a_dimensions: Vector2i,
-	a_allow_uneven_terrain: bool = false
-) -> bool:
-	var placement_map: Map = a_command_message.map
-	if placement_map == null:
-		return false
-	# Use the same footprint resolution as add_structure so the preview matches where
-	# the structure actually lands (parity-correct for even-sized footprints).
-	var origin: Vector2i = placement_map.footprint_origin(a_command_message.xz_position, a_dimensions)
-	for w in range(a_dimensions.x):
-		for l in range(a_dimensions.y):
-			var cell := Vector2i(origin.x + w, origin.y + l)
-			if not placement_map.grid_coordinates_in_bounds(cell):
-				return false
-			if placement_map.cell_grid[cell.x][cell.y] != null:
-				return false
-			if not a_allow_uneven_terrain and not placement_map.terrain_grid.is_flat(cell):
-				return false
-	return true
+## valid_placement moved to Entity (any grid-occupying entity, incl. non-commandable
+## structures like Deposit, can be placement-checked) — call Entity.valid_placement.
 #endregion
 
 #endregion
@@ -226,15 +196,9 @@ func _ready() -> void:
 	super()
 	# Establish the root's movement-collision layer now (map is still null, so this
 	# resolves to MOVEMENT_OBSTRUCTION) — bounding_radius() below reads it, and it
-	# runs before initialize() would otherwise set it.
+	# runs before initialize() would otherwise set it. The TargetBody shape mirror
+	# and STRUCTURE_BLOCKER layer are handled in Entity._ready (via super() above).
 	refresh_movement_collision()
-	# Mirror the root Body shape onto the TargetBody so targeting matches the
-	# entity's footprint (mine/turret/compound override Body with a box).
-	if collider != null:
-		($TargetBody/Shape as CollisionShape3D).shape = collider.shape
-	# Structures also block line-of-fire (Attack raycasts query STRUCTURE_BLOCKER).
-	if is_in_group("structure"):
-		target_body.collision_layer |= CollisionLayers.Mask.STRUCTURE_BLOCKER
 	attributes = Set.new(attributes_list)
 	command_receiver.initialize(self)
 
@@ -454,13 +418,12 @@ func _process_commands() -> void:
 	command_receiver._process_commands()
 
 func _on_death() -> void:
-	# Structure-flavored teardown.
-	if is_in_group("structure"):
-		if commander != null:
-			commander.remove_structure(self)
-			if resource_provider != null:
-				resource_provider.remove_from(commander)
-		map.remove_structure(self)
+	# Commander/economy teardown for owned structures. The grid teardown
+	# (map.remove_structure) is handled in Entity._on_death via super().
+	if is_in_group("structure") and commander != null:
+		commander.remove_structure(self)
+		if resource_provider != null:
+			resource_provider.remove_from(commander)
 	super()
 #endregion
 

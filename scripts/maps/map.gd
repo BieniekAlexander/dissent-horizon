@@ -39,8 +39,9 @@ const CELL_SIZE: float = 1.0
 #### GRID
 var cell_grid: Array = []
 
-# Populated by TerrainGrid/NavManager on _ready; used by Commandable.map_cells.
-var structure_cell_map: Dictionary = {}  # Commandable -> Array[Vector2i]
+# Maps each grid-occupying Entity to the cells it covers. Any Entity with an
+# Obstruction registers here (units don't; non-commandable structures like Deposit do).
+var structure_cell_map: Dictionary = {}  # Entity -> Array[Vector2i]
 
 var terrain_grid: TerrainGrid
 var nav_manager: NavManager
@@ -132,6 +133,21 @@ func footprint_centroid(origin: Vector2i, dims: Vector2i) -> Vector3:
 	return centroid / count if count > 0 else grid_to_world(origin)
 
 
+## The in-bounds grid cells a `dims` structure occupies when its CENTER is at
+## world_center. Single source of truth for the footprint rectangle: add_structure
+## registers exactly these cells, and the build-reach proximity check measures
+## against them, so "close enough to place" and "close enough to build" agree.
+func footprint_cells(world_center: Vector2, dims: Vector2i) -> Array[Vector2i]:
+	var origin := footprint_origin(world_center, dims)
+	var cells: Array[Vector2i] = []
+	for w in range(dims.x):
+		for l in range(dims.y):
+			var cell := Vector2i(origin.x + w, origin.y + l)
+			if grid_coordinates_in_bounds(cell):
+				cells.append(cell)
+	return cells
+
+
 # --- Map bounds ------------------------------------------------------------
 
 ## Returns [low: Vector2, high: Vector2] in grid-cell index space.
@@ -152,7 +168,10 @@ func get_min_max() -> Array:
 func add_entities(a_entities: Array, a_location: Vector2, a_commander: Commander) -> void:
 	var units: Array = []
 	for entity: Entity in a_entities:
-		if entity is Commandable and entity.get_node_or_null("Obstruction") != null:
+		# Any entity with an Obstruction occupies the grid as a structure — this is
+		# no longer gated on Commandable, so non-commandable structures (Deposit)
+		# register too.
+		if entity.get_node_or_null("Obstruction") != null:
 			entity.initialize(self, a_commander)
 			add_structure(entity, a_location, 0, false)
 		else:
@@ -191,11 +210,11 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 
 ## Register a structure on the grid, centred on `world_center` (world-space XZ).
 ## The footprint origin is resolved with footprint_origin() — the SAME function the
-## editor terrain-snap plugin, the build preview (Commandable.valid_placement) and
+## editor terrain-snap plugin, the build preview (Entity.valid_placement) and
 ## scene auto-init use — so a structure occupies the identical cells and lands at the
 ## identical position in every case (even-sized footprints centre on a grid corner,
 ## odd on a cell).
-func add_structure(a_structure: Commandable, world_center: Vector2, rotation: int = 0, _rebake: bool = true) -> void:
+func add_structure(a_structure: Entity, world_center: Vector2, rotation: int = 0, _rebake: bool = true) -> void:
 	# Mines don't occupy the grid: they OVERLAY a Deposit (which stays the sole grid
 	# occupant). Link the mine to its deposit — the authored/build-set `deposit`
 	# reference if present, otherwise the deposit registered at the centre cell — and
@@ -223,17 +242,11 @@ func add_structure(a_structure: Commandable, world_center: Vector2, rotation: in
 	# the editor terrain-snap plugin snaps to.
 	var obs := a_structure.get_node_or_null("Obstruction") as Obstruction
 	var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
-	var origin := footprint_origin(world_center, dims)
-	var footprint: Array[Vector2i] = []
-	for w in range(dims.x):
-		for l in range(dims.y):
-			var cell := Vector2i(origin.x + w, origin.y + l)
-			if not grid_coordinates_in_bounds(cell):
-				continue
-			cell_grid[cell.x][cell.y] = a_structure
-			footprint.append(cell)
+	var footprint: Array[Vector2i] = footprint_cells(world_center, dims)
+	for cell: Vector2i in footprint:
+		cell_grid[cell.x][cell.y] = a_structure
 
-	a_structure.global_position = footprint_centroid(origin, dims)
+	a_structure.global_position = footprint_centroid(footprint_origin(world_center, dims), dims)
 	structure_cell_map[a_structure] = footprint
 	terrain_grid.place_building(footprint, a_structure)
 	a_structure.map = self
@@ -242,7 +255,7 @@ func add_structure(a_structure: Commandable, world_center: Vector2, rotation: in
 	a_structure.refresh_movement_collision()
 
 
-func remove_structure(a_structure: Commandable, _rebake: bool = true) -> void:
+func remove_structure(a_structure: Entity, _rebake: bool = true) -> void:
 	var cells: Array = terrain_grid.get_building_cells(a_structure)
 	for cell: Vector2i in cells:
 		cell_grid[cell.x][cell.y] = null
@@ -291,7 +304,7 @@ func get_navmesh_line_hit(
 
 ### MOVEMENT AND COLLISION
 var units: Array:
-	get: return get_tree().get_nodes_in_group("commandable").filter(func(c: Commandable): return c.is_in_group("unit"))
+	get: return get_tree().get_nodes_in_group("commandable").filter(func(c: Entity): return c.is_in_group("unit"))
 
 ## returns a dictionary describing what a line hit in space
 func line_hit(from: Vector3, to: Vector3, layer_mask: int) -> Variant:

@@ -31,21 +31,32 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 #endregion
 
 #region Private helpers
-## World-space Chebyshev reach within which the builder is "close enough" to
-## lay down and work on the structure. It grows with the building's footprint so
-## a large structure (e.g. the 3x3 Outpost) doesn't require the builder to stand
-## on a cell the building itself will occupy: half the larger extent (centre →
-## edge) plus a one-cell working buffer.
-func _build_reach(a_actor: Commandable) -> float:
+## The grid cells the structure WILL occupy once placed, derived from the tool's
+## footprint and the clicked spot via Map.footprint_cells — the exact same cells
+## add_structure will register. The builder's "close enough" check measures against
+## these, so being in range to place guarantees being in range to start building
+## (Repair, which checks the registered footprint, then agrees by construction).
+func _target_footprint(a_actor: Commandable) -> Array:
 	var preview := a_actor.commander.get_build_preview_instance(message.tool)
+	# An OVERLAY structure (a Mine) binds to an existing host (a Deposit) at the
+	# clicked cell rather than occupying its own cells, so it never registers its
+	# own footprint. Measure reach against the host's footprint so being in range to
+	# place matches being in range to build (Repair resolves the same host footprint
+	# via SU.structure_footprint once the overlay is bound).
+	if preview is Mine:
+		var cell := message.map.world_to_grid(message.xz_position)
+		if message.map.grid_coordinates_in_bounds(cell):
+			var host: Entity = message.map.cell_grid[cell.x][cell.y] as Entity
+			if host != null:
+				return message.map.structure_cell_map.get(host, [])
 	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
 	var dims := obs.dimensions if obs != null else Vector2i.ONE
-	return maxf(float(max(dims.x, dims.y)), 1.5)
+	return message.map.footprint_cells(message.xz_position, dims)
 #endregion
 
 #region State updates
 func can_act(a_actor: Commandable) -> bool:
-	return SU.linf_distance(VU.inXZ(a_actor.global_position), VU.inXZ(message.world_position)) < _build_reach(a_actor)
+	return SU.unit_is_close_to_footprint(a_actor, message.map, _target_footprint(a_actor))
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var new_structure: Commandable = message.tool.packed_scene.instantiate()
@@ -56,7 +67,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 
 	# Pass the raw clicked world XZ; add_entity → add_structure resolves the footprint
 	# centre via Map.footprint_origin — the same logic the editor snap and the build
-	# preview (Commandable.valid_placement) use, so placement matches the preview.
+	# preview (Entity.valid_placement) use, so placement matches the preview.
 	# add_entity calls initialize() itself, so we don't re-initialize here.
 	message.map.add_entity(
 		new_structure,
@@ -67,10 +78,10 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	return Repair.new(CommandMessage.new(message.map, new_structure))
 
 func should_move(a_actor: Commandable) -> bool:
-	# Stop approaching once inside the (size-aware) build reach, so the builder
-	# parks just outside a large footprint rather than walking into its centre.
-	var reach := _build_reach(a_actor)
-	return a_actor.global_position.distance_squared_to(message.world_position) >= reach * reach
+	# Keep approaching until adjacent to the would-be footprint. Because the
+	# footprint cells are the same ones Repair checks, the builder stops exactly
+	# where it can both place AND continue building — no "placed but out of range".
+	return not can_act(a_actor)
 #endregion
 
 #region Lifecycle

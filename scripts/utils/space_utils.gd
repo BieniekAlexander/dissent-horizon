@@ -74,22 +74,44 @@ static func unit_is_close_to_position(a_unit: Commandable, a_position: Vector2, 
 
 static func unit_is_close_to_structure(a_unit: Commandable, a_structure: Commandable, _distance_squared: float = .001) -> bool:
 	# A unit counts as close to a structure when its grid cell lies within the
-	# structure's footprint or is immediately adjacent to it. Measuring against
-	# the whole footprint (rather than the structure's single origin cell) makes
-	# proximity scale with the building's size: otherwise a builder/collector
-	# would have to stand *on* a cell the structure itself occupies, which is
-	# impossible for anything larger than 1x1 — the old same-cell check could
-	# never succeed for a multi-cell structure, so a builder could never finish
-	# (Repair) a large building it had just placed.
+	# structure's footprint or is immediately adjacent to it (see
+	# unit_is_close_to_footprint). Measuring against the whole footprint makes
+	# proximity scale with the building's size: otherwise a builder would have to
+	# stand *on* a cell the structure occupies, impossible for anything > 1x1.
 	var placement_map: Map = a_structure.map
 	if placement_map == null:
 		return linf_distance(VU.inXZ(a_unit.global_position), VU.inXZ(a_structure.global_position)) <= 1
-	var unit_cell: Vector2i = placement_map.world_to_grid(VU.inXZ(a_unit.global_position))
-	var footprint: Array = placement_map.structure_cell_map.get(a_structure, [])
+	var footprint: Array = structure_footprint(placement_map, a_structure)
 	if footprint.is_empty():
 		# Footprint not registered yet — fall back to the structure's origin cell.
-		return linf_distance(unit_cell, placement_map.world_to_grid(VU.inXZ(a_structure.global_position))) <= 1
-	for cell in footprint:
+		footprint = [placement_map.world_to_grid(VU.inXZ(a_structure.global_position))]
+	return unit_is_close_to_footprint(a_unit, placement_map, footprint)
+
+## The grid cells to measure build/repair proximity against for a structure.
+## Normally the structure's own registered footprint; an OVERLAY structure (a Mine,
+## which doesn't occupy the grid itself) reports its host Deposit's footprint, since
+## that is what it sits on. Empty if neither is registered yet.
+static func structure_footprint(a_map: Map, a_structure: Entity) -> Array:
+	if a_map == null or a_structure == null:
+		return []
+	var own: Array = a_map.structure_cell_map.get(a_structure, [])
+	if not own.is_empty():
+		return own
+	if a_structure is Mine and (a_structure as Mine).deposit != null:
+		return a_map.structure_cell_map.get((a_structure as Mine).deposit, [])
+	return []
+
+## True when a_unit's grid cell lies within (L∞ ≤ 1 of) any cell in `footprint` —
+## i.e. on the footprint or immediately adjacent. The shared "close enough to
+## build / repair / work on" predicate. Build measures against the would-be
+## footprint (Map.footprint_cells of the clicked spot) and Repair against the
+## structure's registered footprint; because add_structure registers exactly the
+## cells footprint_cells returns, the two checks always agree.
+static func unit_is_close_to_footprint(a_unit: Commandable, a_map: Map, footprint: Array) -> bool:
+	if a_map == null or footprint.is_empty():
+		return false
+	var unit_cell: Vector2i = a_map.world_to_grid(VU.inXZ(a_unit.global_position))
+	for cell: Vector2i in footprint:
 		if linf_distance(unit_cell, cell) <= 1:
 			return true
 	return false

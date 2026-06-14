@@ -35,8 +35,11 @@ func _ready() -> void:
 			camera.look_at(Vector3.ZERO)
 			# camera.rotate_x(deg_to_rad(180))
 
-	for commandable: Commandable in get_tree().get_nodes_in_group("commandable"):
-		commandable.commander = commanders[commandable.default_commander_id]
+	# Typed Entity (not Commandable): commander/default_commander_id are Entity-level,
+	# and the "commandable" group now also holds non-commandable owned entities such
+	# as Deposit. fog.gd / minimap.gd already iterate this group as Entity.
+	for entity: Entity in get_tree().get_nodes_in_group("commandable"):
+		entity.commander = commanders[entity.default_commander_id]
 
 	# Frame the player's starting position: buildings if any, else units.
 	_center_player_camera_on_starting_entities()
