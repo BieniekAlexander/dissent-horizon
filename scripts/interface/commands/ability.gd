@@ -64,10 +64,12 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		push_error("no ability payload registered for ability_type %s" % message.ability_type)
 		return null
 
-	# All ability payloads are Projectiles: spawn one and launch it from the
-	# actor toward the commanded position.
+	# All ability payloads are Projectiles: add them directly via initialize()
+	# (not map.add_entity, which runs unit-placement spreading logic and expects
+	# a MOVEMENT_OBSTRUCTION collision shape that projectiles don't have).
 	var projectile: Projectile = scene.instantiate()
-	message.map.add_entity(projectile, message.xz_position, a_actor.commander)
+	projectile.initialize(message.map, a_actor.commander)
+	projectile.global_position = a_actor.global_position
 	projectile.initialize_projectile(a_actor, message.position)
 	return null
 #endregion

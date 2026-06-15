@@ -16,7 +16,7 @@ type = 4352
 attributes_list = Array[int]([1])
 
 [node name="Movement" parent="." index="7"]
-mode = 16
+mode = 17
 max_acceleration = 2.5
 max_deceleration = -2.5
 speed = 0.12
@@ -24,10 +24,10 @@ turn_rate = 100.0
 orbit_radius = 2.0
 orbit_speed = 0.07
 
-[node name="Loadout" type="Node" parent="." index="12"]
+[node name="Loadout" type="Node3D" parent="." index="12"]
 script = ExtResource("4_invnt")
 
-[node name="MeleeWeapon" type="Node" parent="Loadout" index="0"]
+[node name="MeleeWeapon" type="Node3D" parent="Loadout" index="0"]
 script = ExtResource("5_wpn00")
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/MeleeWeapon" index="0"]

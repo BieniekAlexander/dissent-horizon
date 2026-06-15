@@ -1,9 +1,10 @@
-[gd_scene load_steps=17 format=3 uid="uid://chn6tbb8uh0m5"]
+[gd_scene load_steps=18 format=3 uid="uid://chn6tbb8uh0m5"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_strct"]
 [ext_resource type="PackedScene" uid="uid://dsr3o7rqnjdff" path="res://scenes/projectiles/projectile.tscn" id="2_proj0"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
+[ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="5_stns2"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_r3ibt"]
 size = Vector3(1, 10, 1)
@@ -64,16 +65,14 @@ shape = SubResource("CylinderShape3D_vision")
 armor = 1
 hp_max = 500.0
 
-[node name="Selectable" parent="." index="11"]
-collision_mask = 0
+[node name="SelectionShape" parent="Selectable" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24707031, 0)
 
-[node name="Sprite" parent="." index="13"]
-transform = Transform3D(1.5, 0, 0, 0, 0.14460336, -0.9973741, 0, 0.14460334, 0.99737424, 0, 0.3568282, 0)
-
-[node name="Loadout" type="Node" parent="." index="14"]
+[node name="Loadout" type="Node3D" parent="." index="14"]
 script = ExtResource("3_invnt")
 
-[node name="BallisticWeapon" type="Node" parent="Loadout" index="0"]
+[node name="BallisticWeapon" type="Node3D" parent="Loadout" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0562744, 0)
 script = ExtResource("4_wpn00")
 packed_scene = ExtResource("2_proj0")
 
@@ -82,7 +81,17 @@ shape = SubResource("CylinderShape3D_44d7s")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
-[node name="HPBar" parent="." index="15"]
+[node name="Sprite" parent="." index="15"]
+transform = Transform3D(0.3, 0, 0, 0, 0.7071068, -1.4142135, 0, 0.70710677, 1.4142137, 0, 0.6737838, -0.17417908)
+
+[node name="Sprite" type="Sprite3D" parent="Sprite" index="0"]
+transform = Transform3D(2.5, 0, 0, 0, 0.096, 0, 0, 0, 0.4, 0, 1.0564632, -0.42820844)
+layers = 2
+axis = 1
+render_priority = 1
+texture = ExtResource("5_stns2")
+
+[node name="HPBar" parent="." index="16"]
 visible = false
 
 [node name="HPBarFill" parent="HPBar" index="0"]
@@ -95,7 +104,7 @@ texture = SubResource("GradientTexture1D_4y8y4")
 region_enabled = true
 region_rect = Rect2(2, 0, 0, 0)
 
-[node name="TrainBar" parent="." index="22"]
+[node name="TrainBar" parent="." index="21"]
 texture = SubResource("GradientTexture1D_1klos")
 
 [node name="TrainBarFill" parent="TrainBar" index="0"]

@@ -9,12 +9,29 @@ radius = 10.0
 
 [node name="Projectile" type="CharacterBody3D"]
 transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
+collision_layer = 0
+collision_mask = 2
 script = ExtResource("1_s2d6s")
+base_damage = 50.0
+post_impact_lifespan = 1
+tick_rate = 1
 
-[node name="Sprite" type="Sprite3D" parent="."]
+[node name="InFlightSprite" type="Sprite3D" parent="."]
 transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
 render_priority = 5
 texture = ExtResource("1_oqaoy")
+
+[node name="InFlightParticles" type="GPUParticles3D" parent="."]
+emitting = false
+
+[node name="PostImpactSprite" type="Sprite3D" parent="."]
+transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
+visible = false
+render_priority = 5
+
+[node name="PostImpactParticles" type="GPUParticles3D" parent="."]
+visible = false
+emitting = false
 
 [node name="HitShape" type="CollisionShape3D" parent="."]
 shape = SubResource("SphereShape3D_hit01")

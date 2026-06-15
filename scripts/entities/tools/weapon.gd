@@ -1,5 +1,5 @@
 class_name Weapon
-extends Node
+extends Node3D
 
 ## A weapon that a commandable's Loadout can hold. Lives in the scene tree as
 ## a child of an Loadout node, with an AttackRange CollisionShape3D child that
@@ -60,6 +60,7 @@ func fire(a_owner: Commandable, a_target: Entity) -> void:
 	if packed_scene != null:
 		var projectile: = packed_scene.instantiate()
 		projectile.initialize(a_owner.map, a_owner.commander)
+		projectile.global_position = global_position
 		projectile.initialize_projectile(a_owner, a_target, effective_damage)
 	else:
 		a_target.receive_damage(

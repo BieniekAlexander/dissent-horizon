@@ -1,5 +1,5 @@
 class_name Loadout
-extends Node
+extends Node3D
 
 ## Holds the Weapon nodes owned by a commandable. Each direct child that is a
 ## Weapon represents one weapon slot. Methods here are the single place that

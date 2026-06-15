@@ -31,10 +31,10 @@ shape = SubResource("CylinderShape3D_c8urn")
 [node name="Movement" parent="." index="7"]
 speed = 0.05
 
-[node name="Loadout" type="Node" parent="." index="8"]
+[node name="Loadout" type="Node3D" parent="." index="8"]
 script = ExtResource("3_invnt")
 
-[node name="BallisticWeapon" type="Node" parent="Loadout" index="0"]
+[node name="BallisticWeapon" type="Node3D" parent="Loadout" index="0"]
 script = ExtResource("4_wpn00")
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0"]

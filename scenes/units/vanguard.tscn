@@ -55,10 +55,10 @@ hp_max = 12000.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18981934, 0)
 shape = SubResource("SphereShape3D_3fhxu")
 
-[node name="Loadout" type="Node" parent="." index="12"]
+[node name="Loadout" type="Node3D" parent="." index="12"]
 script = ExtResource("4_invnt")
 
-[node name="LazerWeapon" type="Node" parent="Loadout" index="0"]
+[node name="LazerWeapon" type="Node3D" parent="Loadout" index="0"]
 script = ExtResource("5_wpn00")
 attack_type = 5
 damage = 20.0

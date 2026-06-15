@@ -162,13 +162,15 @@ func get_aggro_near_position() -> Command:
 	msg.persist = has_command()
 	return Attack.new(msg)
 
-func receive_damage(attacker: Commandable, amount: float) -> void:
+func receive_damage(from: Commandable, amount: float) -> void:
 	# Being attacked breaks stealth: force the timed UNSTEALTHED window.
 	if stealth != null:
 		stealth.unstealth()
-	command_receiver.receive_damage(attacker, amount)
-	if defense != null and defense.hp > 0 and command_receiver.is_idle() and attacker != null:
-		var attack_cmd := _get_vision_range_attack(attacker)
+	command_receiver.receive_damage(from, amount)
+	
+	# retaliation logic
+	if defense != null and defense.hp > 0 and command_receiver.is_idle() and from != null:
+		var attack_cmd := _get_vision_range_attack(from)
 		if attack_cmd != null:
 			update_commands(attack_cmd)
 

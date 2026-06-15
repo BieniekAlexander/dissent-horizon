@@ -60,6 +60,16 @@ var pending_command_name: String = ""
 var _active_indicators: Dictionary = {}  # CommandMessage -> WaypointIndicator
 var _indicator_pool: Array = []          # idle WaypointIndicator nodes
 
+## Commander-level abilities available to the player.
+var _commander_abilities: Array[CommanderAbility] = []
+## Ability armed by the player — the next right-click activates it at that position.
+var _pending_ability: CommanderAbility = null
+## Horizontal ability bar added to this CanvasLayer at runtime.
+var _ability_bar: HBoxContainer = null
+
+@onready var _event_manager: ScenarioEventManager = \
+	get_tree().current_scene.find_child("ScenarioEventManager") as ScenarioEventManager
+
 ## While a Build command is armed with a chosen Tool, we show a translucent
 ## "ghost" of the structure under the cursor, snapped to the cell it would
 ## occupy — the standard RTS placement preview. The ghost is a Sprite3D
@@ -82,7 +92,11 @@ func _ready():
 	for i in range(_INDICATOR_POOL_SIZE):
 		_indicator_pool.append(_make_indicator())
 
-func _process(_delta: float) -> void:
+	_setup_commander_abilities()
+
+func _process(delta: float) -> void:
+	_tick_ability_bar(delta)
+
 	var cursor_result: Variant = get_cursor_target(mouse_position)
 	cursor_target = cursor_result
 	command_message.target = cursor_result if cursor_result is Entity else null
@@ -148,11 +162,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif get_action_names_by_prefix(event, "command_").size()>0:
 		process_command(get_action_names_by_prefix(event, "command_")[0])
 	elif event.is_action_pressed("move"):
-		assign_command_to_units(
-			current_command_type,
-			command_message,
-			next_command_additive
-		)
+		if _pending_ability != null:
+			_activate_pending_ability()
+		else:
+			assign_command_to_units(
+				current_command_type,
+				command_message,
+				next_command_additive
+			)
 #endregion
 
 #region Selection
@@ -660,4 +677,61 @@ static func get_action_names_by_prefix(event: InputEvent, event_prefix: String) 
 	).filter(
 		func(action_name: String): return event.is_action_pressed(action_name, true)
 	)
+#endregion
+
+#region Commander abilities
+func _setup_commander_abilities() -> void:
+	_commander_abilities = [
+		CommanderAbilityAmbush.new(),
+		CommanderAbilityIrradiate.new(),
+	]
+	_setup_ability_bar()
+
+func _setup_ability_bar() -> void:
+	_ability_bar = HBoxContainer.new()
+	_ability_bar.name = "AbilityBar"
+	_ability_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_ability_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	_ability_bar.add_theme_constant_override("separation", 8)
+	# Offset from the top edge so it doesn't overlap with other UI anchored there
+	_ability_bar.position = Vector2(0.0, 8.0)
+	add_child(_ability_bar)
+
+	for ab: CommanderAbility in _commander_abilities:
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(120.0, 32.0)
+		btn.pressed.connect(_on_ability_button_pressed.bind(ab))
+		_ability_bar.add_child(btn)
+
+func _tick_ability_bar(delta: float) -> void:
+	if _ability_bar == null:
+		return
+	for i: int in _commander_abilities.size():
+		var ab: CommanderAbility = _commander_abilities[i]
+		ab.tick(delta)
+		var btn: Button = _ability_bar.get_child(i) as Button
+		if btn == null:
+			continue
+		if _pending_ability == ab:
+			btn.text = "%s [click target]" % ab.ability_name
+			btn.disabled = false
+		elif not ab.is_ready():
+			btn.text = "%s (%.0fs)" % [ab.ability_name, ab.cooldown_remaining()]
+			btn.disabled = true
+		else:
+			btn.text = ab.ability_name
+			btn.disabled = false
+
+func _on_ability_button_pressed(ab: CommanderAbility) -> void:
+	if not ab.is_ready():
+		return
+	# Toggle: clicking again cancels.
+	_pending_ability = ab if _pending_ability != ab else null
+
+func _activate_pending_ability() -> void:
+	if _pending_ability == null or _event_manager == null:
+		_pending_ability = null
+		return
+	_pending_ability.activate(command_message.world_position, _event_manager)
+	_pending_ability = null
 #endregion
