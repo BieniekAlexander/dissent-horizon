@@ -9,6 +9,7 @@ enum Trajectory {
 	BALLISTIC,  ## Gravity-driven arc. The original (and default) implementation.
 	LINEAR,     ## Constant-velocity straight line toward the target; no gravity.
 	LOFTED,     ## High lob arc — NOT YET IMPLEMENTED (see the _*_lofted stubs).
+	HOMING		## Follows its target for some time
 }
 
 ## Lifecycle phase. IN_FLIGHT = travelling toward the target; POST_IMPACT = landed
@@ -122,6 +123,8 @@ func _initial_velocity(target_pos: Vector3) -> Vector3:
 		Trajectory.BALLISTIC: return _initial_velocity_ballistic(target_pos)
 		Trajectory.LINEAR:    return _initial_velocity_linear(target_pos)
 		Trajectory.LOFTED:    return _initial_velocity_lofted(target_pos)
+		Trajectory.HOMING:    return _initial_velocity_homing(target_pos)
+	assert(false, "unhandled trajectory type")
 	return Vector3.ZERO
 
 ## True once the projectile has reached its endpoint and should hit / despawn.
@@ -132,6 +135,8 @@ func _has_landed() -> bool:
 		Trajectory.BALLISTIC: return _has_landed_ballistic()
 		Trajectory.LINEAR:    return _has_landed_linear()
 		Trajectory.LOFTED:    return _has_landed_lofted()
+		Trajectory.HOMING:    return _has_landed_homing()
+	assert(false, "unhandled trajectory type")
 	return true
 
 ## Advance one physics step for the current trajectory. Shared with subclasses so
@@ -141,6 +146,7 @@ func _advance() -> void:
 		Trajectory.BALLISTIC: _advance_ballistic()
 		Trajectory.LINEAR:    _advance_linear()
 		Trajectory.LOFTED:    _advance_lofted()
+		Trajectory.HOMING:    _advance_homing()
 #endregion
 
 #region Trajectory: BALLISTIC (gravity arc)
@@ -197,6 +203,47 @@ func _advance_lofted() -> void:
 func _raise_lofted_unimplemented() -> void:
 	push_error("Projectile.Trajectory.LOFTED is not implemented yet")
 	assert(false, "Projectile.Trajectory.LOFTED is not implemented yet")
+#endregion
+
+#region Trjajectory: HOMING
+const rotation_rate: float = deg_to_rad(2.) # TODO expose, probably
+const acceleration: float = .0025
+const max_speed: float = .1
+const min_speed: float = .005
+var flight_time: int = 180
+
+func _initial_velocity_homing(a_target_pos: Vector3) -> Vector3:
+	return global_position.direction_to(a_target_pos)*.01
+
+func _has_landed_homing() -> bool:
+	 # TODO update this check, this is temp
+	return (
+		global_position.distance_squared_to(target.global_position)<.25
+		if is_instance_valid(target)
+		else flight_time<=0
+	)
+	
+func get_rotated_vector_3d(current: Vector3, target: Vector3, max_radians: float) -> Vector3:
+	var total_angle = current.angle_to(target)
+	
+	if total_angle < 0.001:
+		return target.normalized() * current.length()
+		
+	var weight = min(max_radians / total_angle, 1.0)
+	return current.slerp(target, weight).normalized()*current.length()
+
+func _advance_homing() -> void:
+	flight_time -= 1 # TODO move this out
+	if target:
+		var goal_direction: Vector3 = global_position.direction_to(target.global_position)
+		velocity = get_rotated_vector_3d(velocity, goal_direction, rotation_rate)
+		velocity = velocity.normalized() * (
+			min(velocity.length()+acceleration, max_speed)
+			if velocity.dot(global_position.direction_to(target.global_position))>=0
+			else max(velocity.length()-acceleration, min_speed)
+		)
+	
+	global_position += velocity
 #endregion
 
 #region Private helpers

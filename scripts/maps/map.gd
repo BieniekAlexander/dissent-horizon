@@ -196,10 +196,17 @@ func add_entities(a_entities: Array, a_location: Vector2, a_commander: Commander
 
 	for i: int in units.size():
 		var placement_xz: Vector2 = points[i] if i < points.size() else a_location
+		# Snap to the nearest navigable location so units never spawn inside a
+		# building or other non-navigable cell — e.g. an interaction event that
+		# spawns a unit anchored on the target structure. No-op for points that
+		# are already on the navmesh.
+		var snapped_xz: Vector2 = VU.inXZ(nearest_navmesh_point(
+			Vector3(placement_xz.x, terrain_height_at(placement_xz), placement_xz.y)
+		))
 		units[i].position = Vector3(
-			placement_xz.x,
-			terrain_height_at(placement_xz),
-			placement_xz.y
+			snapped_xz.x,
+			terrain_height_at(snapped_xz),
+			snapped_xz.y
 		)
 		units[i].initialize(self, a_commander)
 
@@ -274,6 +281,21 @@ func set_blocked_mask(mask: PackedByteArray) -> void:
 	if terrain_grid != null:
 		terrain_grid.set_blocked_mask(mask)
 
+
+
+## Snap `world_pos` to the closest point on the navigation mesh. Used when
+## placing units so they never land inside a building or other non-navigable
+## cell (the navmesh excludes those). A no-op for points already on the navmesh.
+## Returns `world_pos` unchanged when the navigation map hasn't synced yet, so
+## callers degrade to the requested position rather than collapsing to the map
+## origin (which is what map_get_closest_point returns for an empty map).
+func nearest_navmesh_point(world_pos: Vector3) -> Vector3:
+	if nav_region == null:
+		return world_pos
+	var nav_map: RID = nav_region.get_navigation_map()
+	if not nav_map.is_valid() or NavigationServer3D.map_get_iteration_id(nav_map) == 0:
+		return world_pos
+	return NavigationServer3D.map_get_closest_point(nav_map, world_pos)
 
 
 # Returns the first point on the navmesh along a line, or Vector3.INF if none.

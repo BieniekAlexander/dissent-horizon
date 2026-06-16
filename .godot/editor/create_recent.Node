@@ -1,15 +1,14 @@
+Node
+Shelter
+Label3D      - Matches the "text" keyword.
+Label      - Matches the "text" keyword.
+TextEdit
+Interactor
 Node3D
 GPUParticles3D
 CPUParticles3D
 EventCommandTarget
-Node
 Stealth
-Shelter
 Sprite3D
 Ownership
 MeshInstance3D
-StaticBody3D
-Area3D
-CollisionShape3D
-NavigationRegion3D
-DirectionalLight3D

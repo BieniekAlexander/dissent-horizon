@@ -23,16 +23,44 @@
 	- Artillery spotting system
 # Specifics
 ## Tech Tree
-- **Colony**
-	- POW Vehicle - ridiculous armor, builds, collects POWs for dominion
-- **Mine**
+
+| Tier   | Colony             | Barracks                    | Production Yard | Skyport |
+| ------ | ------------------ | --------------------------- | --------------- | ------- |
+| Tier 1 | [[#Freight Truck]] | [[#Recruit]]<br>[[#Badger]] |                 |         |
+|        |                    |                             |                 |         |
+|        |                    |                             |                 |         |
+```mermaid
+flowchart TD
+	Colony --> Plant & Barracks
+	Plant[Power Plant] --> Camp & Sam & Yard & Skyport
+	Camp[Internment Camp] --> Cannon
+	Sam[SAM Site]
+	Yard[Construction Yard] --> Tech
+```
+# Structures
+# Units
+## Colony
+### Freight Truck
+- Builder
+- ridiculous armor, builds
+- Collects POWs for dominion
+## Barracks
+### Recruit
+- Basic infantry unit
+### Badger
+- Basic anti-armor unit, long range rockets
+### Vagrant
+- sonic grenades, stun infantry and clear buildings
+## Production Yard
+## Skyport
+
+
 - **Quarters** - Population and Dominion
-	- turret - air, detects stealth
+	- SAM Site - air, detects stealth
 	- **Barracks** - Makes Infantry
-		- Volunteer - repairs, generates dominion in quarters
 		- rifleman - places artillery nodes
 		- Badger - looong range rocket infantry
-		- Vagrant - sonic grenades, stun infantry and clear buildings
+		- 
 		- **Bombard** - Cannon structure
 		- **War Factory**
 			- Medusa - scout vehicle, like a China ECM but for infantry

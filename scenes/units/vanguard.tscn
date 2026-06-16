@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://d1a5x13ex36cd" path="res://assets/entities/vanguard.png" id="3_m16ju"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="4_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="5_wpn00"]
-[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/shelter.gd" id="6_88hoo"]
+[ext_resource type="Script" path="res://scripts/entities/components/garrison.gd" id="6_3fhxu"]
 [ext_resource type="Script" uid="uid://lrlvxog2rg4l" path="res://scripts/entities/tools/lazer_visualization.gd" id="7_lzrvz"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="8_invnt"]
 
@@ -18,9 +18,6 @@ radius = 0.3
 height = 100.0
 radius = 3.5
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_3fhxu"]
-radius = 0.3
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ihkwo"]
 shading_mode = 0
 albedo_color = Color(0, 0.833333, 1, 1)
@@ -31,6 +28,9 @@ material = SubResource("StandardMaterial3D_ihkwo")
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_vng"]
 height = 100.0
 radius = 15.0
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_3fhxu"]
+radius = 0.3
 
 [node name="Unit" instance=ExtResource("1_au4so")]
 type = 4354
@@ -50,10 +50,6 @@ speed = 0.04
 
 [node name="Defense" parent="." index="9"]
 hp_max = 12000.0
-
-[node name="SelectionShape" parent="Selectable" index="0"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18981934, 0)
-shape = SubResource("SphereShape3D_3fhxu")
 
 [node name="Loadout" type="Node3D" parent="." index="12"]
 script = ExtResource("4_invnt")
@@ -76,13 +72,17 @@ shape = SubResource("CylinderShape3D_vng")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
-[node name="Sprite" parent="." index="14"]
+[node name="SelectionShape" parent="Selectable" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18981934, 0)
+shape = SubResource("SphereShape3D_3fhxu")
+
+[node name="Sprite" parent="." index="15"]
 transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17921424, 0)
 texture = ExtResource("3_m16ju")
 hframes = 3
 
-[node name="Shelter" type="Node" parent="." index="18"]
-script = ExtResource("6_88hoo")
+[node name="Garrison" type="Node" parent="." index="18"]
+script = ExtResource("6_3fhxu")
 metadata/_custom_type_script = "uid://dlhe01nj6efuh"
 
 [node name="Inventory" type="Node" parent="." index="19"]

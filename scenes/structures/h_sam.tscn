@@ -1,8 +1,8 @@
 [gd_scene load_steps=18 format=3 uid="uid://chn6tbb8uh0m5"]
 
-[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_strct"]
-[ext_resource type="PackedScene" uid="uid://dsr3o7rqnjdff" path="res://scenes/projectiles/projectile.tscn" id="2_proj0"]
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/n_structure.tscn" id="1_strct"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
+[ext_resource type="PackedScene" uid="uid://d4hii8hrkdfqe" path="res://scenes/projectiles/h_sam_missile.tscn" id="4_hro24"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
 [ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="5_stns2"]
 
@@ -71,12 +71,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24707031, 0)
 [node name="Loadout" type="Node3D" parent="." index="14"]
 script = ExtResource("3_invnt")
 
-[node name="BallisticWeapon" type="Node3D" parent="Loadout" index="0"]
+[node name="MissileLauncher" type="Node3D" parent="Loadout" index="0"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0562744, 0)
 script = ExtResource("4_wpn00")
-packed_scene = ExtResource("2_proj0")
+packed_scene = ExtResource("4_hro24")
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0"]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/MissileLauncher" index="0"]
 shape = SubResource("CylinderShape3D_44d7s")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)

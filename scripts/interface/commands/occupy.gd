@@ -1,4 +1,4 @@
-class_name Garrison
+class_name Occupy
 extends Command
 
 #region Preconditions
@@ -6,7 +6,8 @@ static func requires_position() -> bool:
 	return true
 
 ## Valid when:
-##   - the target is a friendly Commandable that owns a Shelter component
+##   - the target is a Commandable that owns a Garrison component and is either
+##     of the actor's own commander OR commanderless (neutral, id 0)
 ##   - the acting unit's Movement mode is GROUNDED_DIRECT
 static func meets_precondition(
 	a_actor: Commandable,
@@ -14,16 +15,19 @@ static func meets_precondition(
 ) -> PreconditionFailureCause:
 	if not is_instance_valid(a_message.target) or not (a_message.target is Commandable):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	# A shelter-capable unit cannot garrison into itself.
+	# A garrison-capable unit cannot occupy itself.
 	if a_message.target == a_actor:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if not a_message.target.has_node("Shelter"):
+	if not a_message.target.has_node("Garrison"):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	if not (a_message.target as Commandable).is_built:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	if a_actor.movement == null or a_actor.movement.mode != Movement.Mode.GROUNDED_DIRECT:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if (a_message.target as Commandable).commander_id != a_actor.commander_id:
+	# Own-team garrisons and commanderless (neutral) garrisons are both occupiable;
+	# an enemy-held garrison is not.
+	var target_commander_id: int = (a_message.target as Commandable).commander_id
+	if target_commander_id != a_actor.commander_id and target_commander_id != 0:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
 #endregion
@@ -97,29 +101,29 @@ func get_updated_state(a_actor: Commandable) -> Command:
 	_ensure_rvo_suppression(a_actor)
 	return self
 
-## Move until adjacent to the shelter structure.
+## Move until adjacent to the garrison structure.
 func should_move(a_actor: Commandable) -> bool:
 	return is_instance_valid(message.target) \
 		and not SU.unit_is_close_to_target(a_actor, message.target)
 
-## Garrison once adjacent and the shelter still has room.
+## Occupy once adjacent and the garrison still has room.
 func can_act(a_actor: Commandable) -> bool:
 	if not is_instance_valid(message.target):
 		return false
 	if not SU.unit_is_close_to_target(a_actor, message.target):
 		return false
-	var shelter := message.target.get_node_or_null("Shelter") as Shelter
-	return shelter != null and shelter.can_garrison()
+	var garrison := message.target.get_node_or_null("Garrison") as Garrison
+	return garrison != null and garrison.can_garrison()
 
-## Remove the acting unit from the scene tree into the shelter.
+## Remove the acting unit from the scene tree into the garrison.
 func fulfill_action(a_actor: Commandable) -> Variant:
 	# Clear both exceptions before garrisoning — once garrisoned the actor leaves
 	# the tree, so do the bookkeeping while its body is still resolvable.
 	_clear_collision_exception()
 	_clear_rvo_suppression()
-	var shelter := message.target.get_node_or_null("Shelter") as Shelter
-	if shelter != null:
-		shelter.garrison(a_actor)
+	var garrison := message.target.get_node_or_null("Garrison") as Garrison
+	if garrison != null:
+		garrison.garrison(a_actor)
 	return null
 #endregion
 
@@ -147,5 +151,5 @@ func _notification(what: int) -> void:
 
 #region Debug
 func _to_string() -> String:
-	return "Garrison: %s" % message.position
+	return "Occupy: %s" % message.position
 #endregion

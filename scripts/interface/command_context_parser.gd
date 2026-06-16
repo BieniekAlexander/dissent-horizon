@@ -16,7 +16,7 @@ class_name CommandContextParser
 ##   - command_name: String. The conventional name of a command that can be
 ##     issued; matches the input-action and HUD button names already used by
 ##     the controller (e.g. "command_attack_move", "command_tool_irregular").
-##     Non-hotkey commands (Attack, Train, PickUp, ...) are also listed here
+##     Non-hotkey commands (Attack, Train, Interact, ...) are also listed here
 ##     under "command_<verb>" names so the parser is the single source of
 ##     truth for the command set a unit supports.
 ##
@@ -32,6 +32,7 @@ const TRAIN_TOOL_NAMES: Array = [
 	"command_tool_technician",
 	"command_tool_irregular",
 	"command_tool_vanguard",
+	"command_tool_warlord"
 ]
 
 ## Every structure a builder could ever place. Filtered per-entity by
@@ -70,26 +71,27 @@ static func _build_rules() -> Array:
 
 		[func(e: Entity): return e.has_node("Builds"), "command_ability"],
 		[func(e: Entity): return e.has_node("Builds"), "command_build"],
-		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_pick_up"],
-		[func(e: Entity): return e.type == Entity.Type.UNIT_TECHNICIAN, "command_drop_off"],
 
 		[func(e: Entity): return e.has_node("Inventory") \
 				and (e.get_node("Inventory") as Inventory).has_ability(Ability.Type.RADIATION),
 			"command_launch"],
-		[func(e: Entity): return e.type == Entity.Type.UNIT_VANGUARD, "command_collect"],
+		# Any unit with an Interactor advertises the generalised interact command;
+		# the specific targets it applies to come from the interactor's list
+		# (replaces the former per-type pick_up / drop_off / collect rules).
+		[func(e: Entity): return e.has_node("Interactor"), "command_interact"],
 
-		# Garrison applies only to entities with GROUNDED_DIRECT-mode Movement (see _can_garrison).
-		[CommandContextParser._can_garrison, "command_garrison"],
-		# Commandables that own a Shelter can order an evacuation.
-		[func(e: Entity): return e.has_node("Shelter"), "command_evacuate"],
+		# Occupy applies only to entities with GROUNDED_DIRECT-mode Movement (see _can_occupy).
+		[CommandContextParser._can_occupy, "command_occupy"],
+		# Commandables that own a Garrison can order an evacuation.
+		[func(e: Entity): return e.has_node("Garrison"), "command_evacuate"],
 	]
 
-## Garrison applies only to entities that actually have a Movement component
+## Occupy applies only to entities that actually have a Movement component
 ## whose mode is GROUNDED_DIRECT. Pulled out of the rules table as a named predicate so
 ## the Movement requirement is explicit and the mode read is null-safe: a
 ## non-Movement node (or none) makes the cast null and the predicate false,
 ## rather than crashing on a blind `.mode` access.
-static func _can_garrison(e: Entity) -> bool:
+static func _can_occupy(e: Entity) -> bool:
 	var movement := e.get_node_or_null("Movement") as Movement
 	return movement != null and movement.mode == Movement.Mode.GROUNDED_DIRECT
 

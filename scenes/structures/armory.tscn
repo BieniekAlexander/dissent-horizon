@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://cvk2xwyp224g4"]
 
-[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_yjctr"]
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/n_structure.tscn" id="1_yjctr"]
 [ext_resource type="Texture2D" uid="uid://dcwnco3dd2n1t" path="res://assets/entities/armory.png" id="3_ddtmw"]
 
 [node name="Structure" instance=ExtResource("1_yjctr")]

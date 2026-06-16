@@ -37,7 +37,7 @@ static func is_in_attack_range(weapon: Weapon, attacker: Entity, target: Entity)
 	return is_weapon_in_range_at(weapon, attacker.global_transform, attacker.get_world_3d(), target, attacker)
 
 ## Same range check but with an explicit firing position. Used when the weapon
-## belongs to a garrisoned unit firing from a shelter owner's location.
+## belongs to a garrisoned unit firing from a garrison owner's location.
 static func is_weapon_in_range_at(
 	weapon: Weapon,
 	from_transform: Transform3D,

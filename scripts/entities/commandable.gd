@@ -28,7 +28,8 @@ extends Entity
 @onready var ore_extractor: OreExtractor = get_node_or_null("OreExtractor") as OreExtractor
 @onready var dominion_generator: DominionGenerator = get_node_or_null("DominionGenerator") as DominionGenerator
 @onready var dominion_provider: DominionProvider = get_node_or_null("DominionProvider") as DominionProvider
-@onready var shelter: Shelter = get_node_or_null("Shelter") as Shelter
+@onready var garrison: Garrison = get_node_or_null("Garrison") as Garrison
+@onready var interactor: Interactor = get_node_or_null("Interactor") as Interactor
 @onready var veterancy: Veterancy = $Veterancy
 
 ## True when the player can currently perceive this commandable — fog pixel is
@@ -127,7 +128,7 @@ static func get_arrangement_cells(
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
 func get_aggro_near_position() -> Command:
-	var is_bunker: bool = shelter != null and shelter.bunker and shelter.garrisoned_count() > 0
+	var is_bunker: bool = garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
 	if aggro_range_shape == null or (weapon_inventory == null and not is_bunker):
 		return null
 
@@ -142,7 +143,7 @@ func get_aggro_near_position() -> Command:
 	)
 	var vs2 = vs.filter(func(t): return t is Commandable and t.defense != null and (
 		(weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null)
-		or (is_bunker and shelter.any_garrison_can_target(t))
+		or (is_bunker and garrison.any_garrison_can_target(t))
 	))
 	var vs3 = vs2.filter(
 		func(t): return t.commander_id > 0 and t.commander_id != commander_id
@@ -355,19 +356,19 @@ func _update_state() -> void:
 	command_receiver._update_state()
 
 	# Command processing above may remove this unit from the tree mid-tick (e.g.
-	# garrisoning into a Shelter); the remaining per-tick work touches world/
+	# garrisoning into a Garrison); the remaining per-tick work touches world/
 	# physics state that is invalid while orphaned, so stop here.
 	if not is_inside_tree():
 		return
 
-	# Bunker firing: when this shelter-owner has an active Attack command and
+	# Bunker firing: when this garrison-owner has an active Attack command and
 	# garrisoned units carry matching weapons, fire those weapons each tick from
 	# this entity's world position. Runs independently of the owner's own weapon
 	# so a structure with no weapon_inventory can still provide fire support.
-	if shelter != null and shelter.bunker and shelter.garrisoned_count() > 0:
+	if garrison != null and garrison.bunker and garrison.garrisoned_count() > 0:
 		var active_cmd := current_command()
 		if active_cmd is Attack and is_instance_valid(active_cmd.message.target):
-			shelter.tick_bunker_fire(self, active_cmd.message.target)
+			garrison.tick_bunker_fire(self, active_cmd.message.target)
 
 	# Per-tick production. No-op for non-producing entities or unbuilt structures.
 	if production != null and is_built:
@@ -390,7 +391,7 @@ func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	_update_state()
 	# A command fulfilled during _update_state() (e.g. garrisoning into a
-	# Shelter) may remove this unit from the tree mid-tick; touching
+	# Garrison) may remove this unit from the tree mid-tick; touching
 	# global_position while orphaned warns, so skip the rest of the tick.
 	if not is_inside_tree(): return
 	# Keep units glued to terrain height each tick.  The navmesh is 3D (built

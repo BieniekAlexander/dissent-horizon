@@ -262,9 +262,9 @@ func process_command(command_name: String) -> void:
 ##     different class based on the cursor target.
 ##   - With `a_pending` empty (default right-click), we resolve based on
 ##     actor capability + target. Structures with a tool selected resolve to
-##     Train; technician/vanguard special targets resolve to PickUp/DropOff/
-##     Collect; hostile targets resolve to Attack; otherwise the basic move
-##     Command.
+##     Train; an interactor-equipped unit targeting an entity it has an
+##     interaction for resolves to Interact; hostile targets resolve to Attack;
+##     otherwise the basic move Command.
 ##
 ## Anything not matched falls through to null, which the caller treats as
 ## "no valid command right now" (cursor goes invalid, no assignment fires).
@@ -309,19 +309,19 @@ static func _resolve_command_class(
 	if a_actor.has_node("Production") and a_message.tool != null:
 		return Train
 
-	# Unit-flavored special targets take priority over the generic attack.
-	if a_actor.type == Entity.Type.UNIT_VANGUARD and target is Lab:
-		return Collect
-	if a_actor.type == Entity.Type.UNIT_TECHNICIAN:
-		if target is Star:
-			return PickUp
-		if (
-			target is Entity
-			and (target as Entity).type == Entity.Type.STRUCTURE_OUTPOST
-			and a_actor.ability_inventory != null
-			and a_actor.ability_inventory.first_item() is Star
-		):
-			return DropOff
+	# An interactor-equipped unit targeting an entity it has an interaction for
+	# resolves to Interact. This generalises the former per-type special cases
+	# (technician→Star PickUp, technician→Outpost DropOff, vanguard→Lab collect):
+	# what a unit can interact with now lives in its Interactor's list, and the
+	# Interact precondition gates on encampment availability.
+	var actor_cmd := a_actor as Commandable
+	if (
+		actor_cmd != null
+		and actor_cmd.interactor != null
+		and target is Entity
+		and actor_cmd.interactor.can_interact(actor_cmd, a_message)
+	):
+		return Interact
 
 	# Builder targeting a friendly under-construction structure → resume
 	# construction (Repair). Mirrors the Attack reinterpretation: the click is
@@ -337,28 +337,33 @@ static func _resolve_command_class(
 	):
 		return Repair
 
-	# Friendly Shelter target → Garrison (GROUNDED_DIRECT movement units only).
+	# Garrison target → Occupy (GROUNDED_DIRECT movement units only). Units may
+	# occupy a garrison of their own commander OR a commanderless (neutral) one.
 	# Inserted before the Attack check so it takes priority over any edge case
 	# where a structure could otherwise be attacked.
 	if (
 		target_cmd != null
-		and target_cmd.commander_id == a_actor.commander_id
+		and (target_cmd.commander_id == a_actor.commander_id or target_cmd.commander_id == 0)
 		and target_cmd.is_built
-		and target.has_node("Shelter")
+		and target.has_node("Garrison")
 		and a_actor.has_node("Movement")
 		and (a_actor.get_node("Movement") as Movement).mode == Movement.Mode.GROUNDED_DIRECT
 	):
-		return Garrison
+		return Occupy
 
 	# Hostile, weapon-matched target → Attack. This must precede the structure
 	# rally fallback below so a combatant structure (e.g. Turret) whose
 	# Production component would otherwise swallow the click as a rally point
 	# still resolves an explicit attack order. Entities without a Loadout
 	# (or whose weapons can't target this entity) fall through to rally unchanged.
+	# A commanderless garrison is excluded: a default right-click on it must not
+	# resolve to an attack (units can still attack it via the AttackMove context,
+	# resolved above). It falls through to the move/rally fallback instead.
 	if (
 		target != null
 		and target is Commandable
 		and (target as Commandable).commander_id != a_actor.commander_id
+		and not _is_commanderless_garrison(target)
 		and a_actor.weapon_inventory != null
 		and a_actor.weapon_inventory.weapon_for_target(target) != null
 	):
@@ -366,6 +371,16 @@ static func _resolve_command_class(
 
 	# Producers fall back to rally; units to basic move — both plain Command.
 	return Command
+
+## True when `target` is a built garrison with no commander (neutral, id 0).
+## Used to keep a default right-click from resolving to Attack against an
+## unowned garrison — such garrisons can be occupied (or attacked explicitly
+## via AttackMove), but never attacked by default.
+static func _is_commanderless_garrison(target) -> bool:
+	var target_cmd := target as Commandable
+	return target_cmd != null \
+		and target_cmd.commander_id == 0 \
+		and target.has_node("Garrison")
 
 func assign_command_to_units(
 	a_command_type: Script,

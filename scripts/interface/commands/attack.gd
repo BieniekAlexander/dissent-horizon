@@ -16,8 +16,8 @@ static func meets_precondition(
 	if a_actor.weapon_inventory != null \
 			and a_actor.weapon_inventory.any_weapon_can_target(a_message.target):
 		return PreconditionFailureCause.NONE
-	var shelter := a_actor.shelter
-	if shelter != null and shelter.any_garrison_can_target(a_message.target):
+	var garrison := a_actor.garrison
+	if garrison != null and garrison.any_garrison_can_target(a_message.target):
 		return PreconditionFailureCause.NONE
 	return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 #endregion

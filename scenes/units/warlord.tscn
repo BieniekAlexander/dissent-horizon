@@ -1,13 +1,24 @@
-[gd_scene load_steps=10 format=3 uid="uid://cay5kr6vpi16w"]
+[gd_scene load_steps=15 format=3 uid="uid://cay5kr6vpi16w"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_v5yox"]
 [ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="2_pc78a"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_3lfjd"]
+[ext_resource type="Script" uid="uid://b458bow20gdnj" path="res://scripts/entities/components/interactor.gd" id="4_7tit3"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_qd6od"]
 [ext_resource type="PackedScene" uid="uid://bhkuda16jew0g" path="res://scenes/projectiles/warlord_rocket.tscn" id="5_qd6od"]
+[ext_resource type="Script" uid="uid://dnydcqi1gpid3" path="res://scripts/entities/components/interaction.gd" id="5_scm32"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_sfvjv"]
 [ext_resource type="Script" uid="uid://d18njab83ejgj" path="res://scripts/entities/components/dominion_provider.gd" id="6_dompr"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/irregular.tscn" id="6_scm32"]
 [ext_resource type="Script" uid="uid://bfix8h487pr1x" path="res://scripts/entities/components/builds.gd" id="7_builds"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_scm32"]
+radius = 0.3
+
+[sub_resource type="Resource" id="Resource_mn5s2"]
+script = ExtResource("5_scm32")
+event = ExtResource("6_scm32")
+metadata/_custom_type_script = "uid://dnydcqi1gpid3"
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_techmelee"]
 height = 100.0
@@ -16,16 +27,30 @@ radius = 6.0
 [node name="Unit" instance=ExtResource("1_v5yox")]
 type = 4355
 
+[node name="MovementBody" parent="." index="2"]
+shape = SubResource("CylinderShape3D_scm32")
+
 [node name="Movement" parent="." index="7"]
 speed = 0.1
 
 [node name="Defense" parent="." index="8"]
 hp_max = 800.0
 
-[node name="DominionProvider" type="Node" parent="." index="12"]
+[node name="Inventory" type="Node" parent="." index="10"]
+script = ExtResource("5_sfvjv")
+
+[node name="Builds" type="Node" parent="." index="11"]
+script = ExtResource("7_builds")
+buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614])
+
+[node name="Interactor" type="Node" parent="." index="12"]
+script = ExtResource("4_7tit3")
+interactions = Array[ExtResource("5_scm32")]([SubResource("Resource_mn5s2")])
+
+[node name="DominionProvider" type="Node" parent="." index="15"]
 script = ExtResource("6_dompr")
 
-[node name="Loadout" type="Node3D" parent="." index="13"]
+[node name="Loadout" type="Node3D" parent="." index="16"]
 script = ExtResource("3_3lfjd")
 
 [node name="Weapon" type="Node3D" parent="Loadout" index="0"]
@@ -39,17 +64,10 @@ packed_scene = ExtResource("5_qd6od")
 shape = SubResource("CylinderShape3D_techmelee")
 disabled = true
 
-[node name="Sprite" parent="." index="15"]
+[node name="Sprite" parent="." index="18"]
 transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17100573, 0)
 flip_h = true
 texture = ExtResource("2_pc78a")
 
-[node name="HPBar" parent="." index="16"]
+[node name="HPBar" parent="." index="19"]
 transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)
-
-[node name="Inventory" type="Node" parent="." index="24"]
-script = ExtResource("5_sfvjv")
-
-[node name="Builds" type="Node" parent="." index="25"]
-script = ExtResource("7_builds")
-buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614])

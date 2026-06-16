@@ -135,27 +135,31 @@ func test_technician_has_build_ability_and_inventory_actions():
 	var e := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
+	# Interactions are now component-driven: a unit advertises command_interact
+	# iff it carries an Interactor (the parser only checks has_node here).
+	_add_named_child(e, "Interactor")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_ability"))
 	assert_true(cmds.has("command_build"))
-	assert_true(cmds.has("command_pick_up"))
-	assert_true(cmds.has("command_drop_off"))
+	assert_true(cmds.has("command_interact"))
 	# Still has the base unit commands.
 	assert_true(cmds.has("command_attack_move"))
 	assert_true(cmds.has("command_stop"))
 
 ## --- Vanguard --------------------------------------------------------------
 
-func test_vanguard_has_launch_and_collect():
+func test_vanguard_has_launch_and_interact():
 	var e := _make_entity(Entity.Type.UNIT_VANGUARD, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
 	# command_launch is now sourced from the Inventory ability component, not the
 	# unit type — the unit must actually hold the RADIATION ability ToolSpec.
 	_add_inventory(e, [Ability.Type.RADIATION])
+	# command_interact is advertised by the presence of an Interactor component.
+	_add_named_child(e, "Interactor")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_launch"))
-	assert_true(cmds.has("command_collect"))
+	assert_true(cmds.has("command_interact"))
 	# Still has the base unit commands.
 	assert_true(cmds.has("command_attack_move"))
 	assert_true(cmds.has("command_stop"))

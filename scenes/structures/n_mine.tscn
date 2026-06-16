@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3 uid="uid://d372d5stwv6gt"]
 
-[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_e1l0p"]
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/n_structure.tscn" id="1_e1l0p"]
 [ext_resource type="Script" uid="uid://dww1hvwpkpygd" path="res://scripts/entities/structures/mine.gd" id="2_mine0"]
 [ext_resource type="Script" uid="uid://ravapu6j0gvv" path="res://scripts/entities/components/ore_extractor.gd" id="3_oreex"]
 [ext_resource type="Texture2D" uid="uid://cgdrbpxqo62uf" path="res://assets/structure.png" id="3_wykrx"]

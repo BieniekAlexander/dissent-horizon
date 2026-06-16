@@ -11,11 +11,12 @@ extends CharacterBody3D
 @export_range(0, 5) var default_commander_id: int = 0
 
 enum Type {
-	# 3 - Faction {0: generic, 1: tech}
+	# 3 - Faction {0: generic, 1: tech, 2: anarch}
 	# 2 - Type {0: entity, 1: unit, 2: structure}
 	# 1 - Index
 	# 0 - Index
 	UNDEFINED=-1,
+	STRUCTURE_REDOUBT=0x2200,
 	STRUCTURE_OUTPOST=0x1200,
 	STRUCTURE_DWELLING=0x1201,
 	STRUCTURE_MINE=0x1202,
@@ -24,6 +25,7 @@ enum Type {
 	STRUCTURE_ARMORY=0x1205,
 	STRUCTURE_TURRET=0x1206,
 	STRUCTURE_DEPOSIT=0x1207,
+	STRUCTURE_SHELTER=0x1208,
 	UNIT_TECHNICIAN=0x1100,
 	UNIT_IRREGULAR=0x1101,
 	UNIT_VANGUARD=0x1102,

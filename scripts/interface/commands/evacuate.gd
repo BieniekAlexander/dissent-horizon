@@ -6,12 +6,12 @@ extends Command
 static func requires_position() -> bool:
 	return false
 
-## Valid when the issuing commandable owns a Shelter.
+## Valid when the issuing commandable owns a Garrison.
 static func meets_precondition(
 	a_actor: Commandable,
 	a_message: CommandMessage
 ) -> PreconditionFailureCause:
-	if not a_actor.has_node("Shelter"):
+	if not a_actor.has_node("Garrison"):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
 #endregion
@@ -27,9 +27,9 @@ func can_act(_a_actor: Commandable) -> bool:
 
 ## Restore all garrisoned units to the scene tree and disperse them.
 func fulfill_action(a_actor: Commandable) -> Variant:
-	var shelter := a_actor.get_node_or_null("Shelter") as Shelter
-	if shelter != null:
-		shelter.evacuate(message.map)
+	var garrison := a_actor.get_node_or_null("Garrison") as Garrison
+	if garrison != null:
+		garrison.evacuate(message.map)
 	return null
 #endregion
 

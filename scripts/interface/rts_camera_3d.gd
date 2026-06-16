@@ -1,6 +1,30 @@
 ## A camera angled at 45 degrees from above
 class_name RTSCamera3D extends Camera3D
 
+#region Constants
+## The camera's downward pitch — rotation about the global X axis, in degrees —
+## baked into the player camera in player.tscn. Flat sprites are authored to look
+## correct from this view, so it's the canonical record of the game's viewing
+## angle. Drives initial_position() below.
+const CAMERA_ANGLE_DEGREES: float = -135.0
+
+## How far the camera sits from the origin along the CAMERA_ANGLE_DEGREES
+## elevation. Only affects how zoomed-out the framing is, not the angle.
+const INITIAL_DISTANCE: float = 30.0
+#endregion
+
+#region Public API
+## The camera's canonical starting position: INITIAL_DISTANCE from the origin
+## along the elevation implied by CAMERA_ANGLE_DEGREES, so that looking at the
+## origin reproduces the game's viewing angle. (At -135° this is the +Y/+Z
+## "pulled back and raised" vantage the player camera uses.) The
+## editor-camera-angle plugin sits the editor viewport camera here and looks at
+## the origin while composing scenes (see addons/editor_camera_angle).
+static func initial_position() -> Vector3:
+	var rad: float = deg_to_rad(CAMERA_ANGLE_DEGREES)
+	return Vector3(0.0, -sin(rad), -cos(rad)) * INITIAL_DISTANCE
+#endregion
+
 #region Properties
 @export_category("Movement")
 @export var movement_speed: float = 1

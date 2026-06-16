@@ -71,6 +71,16 @@ static var lines: Dictionary = {
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
+	Entity.Type.STRUCTURE_SHELTER: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_ROAR],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	Entity.Type.STRUCTURE_REDOUBT: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_ROAR],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
 }
 #endregion
 

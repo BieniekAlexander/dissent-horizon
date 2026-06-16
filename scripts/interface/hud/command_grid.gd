@@ -16,7 +16,7 @@ func _ready() -> void:
 		[ButtonSpec.new("command_evacuate", "Evacuate")],
 		[ButtonSpec.new("command_launch", "Radiate")],
 		[],
-		[ButtonSpec.new("command_tool_technician", "Techie")],
+		[ButtonSpec.new("command_tool_warlord", "Warlord"), ButtonSpec.new("command_tool_technician", "Techie")],
 		[ButtonSpec.new("command_tool_irregular", "Irregular")],
 		[ButtonSpec.new("command_tool_vanguard", "Vanguard")],
 		[],

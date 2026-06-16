@@ -25,31 +25,41 @@
 	- vehicles can be scrapped for money (partial price, any health)
 # Specifics
 ## Tech Tree
-- **Stronghold**
-	- Warlord - dominion-generating unit, builds things, generates dominion based on veterancy
-	- Militia - cheap, weak anti-infantry, can carry scavenged parts
-	- demoman - melee, places explosives on units or places mines
-	- Flak Cannon - only shoots up
-	- Sharpshooter - sniper, requires deployment (req. Field Hospital)
-	- Prowler - ZH hijacker (requires Field Hospital)
-	- Commando - stealth, places charges on vehicles and buildings (req. Tech, super-unit)
-- **Quarry**
-- **Field Hospital** - Heals infantry, has upgrades
-- **Bunker** - Population and Garrison
-	- **Academy**
-	- **Chop Shop** - Makes Vehicles
-		- Sleeper - small, fast transport vehicle
-		- Locust - Like patriot system
-		- Monitor - like quad cannon
-		- Arc Engine - ECM that deals DOT (requires tech)
-		- Obfuscator - provides stealth to units (requires Vehicle Tech)
-		- Battle Bus (vehicle tech)
-		- **Vehicle Tech Dunno**
-	- **Hangar**
-		- Chinook - transport chopper
-		- Kamikaze Drone - scavenged drone, scourge, AOE
-		- Condor - plane, drops EMPS (requires Air Tech)
-		- **Air Tech dunno**
+| Tier   | Redoubt                        | Hangar                              | Stockpile    | Chop Shop |
+| ------ | ------------------------------ | ----------------------------------- | ------------ | --------- |
+| Tier 1 | [[#Warlord]]<br>[[#Irregular]] | [[#Chinook]]<br>[[#Kamikaze Drone]] |              |           |
+|        |                                |                                     | Sharpshooter |           |
+|        |                                |                                     |              |           |
+# Structures
+# Units
+## Redoubt
+### Warlord
+- Builder
+- dominion-generating unit, based on veterancy
+- Has a rocket launcher
+### Irregular
+- cheap, weak anti-infantry
+- TODO what can it do?
+## Hangar
+### Chinook
+- transport chopper
+### Kamikaze Drone
+- Like scourge in Brood War
+- Should probably do AOE and friendly fire - cool and balanced
+### Condor
+- Plane, drops EMPS (requires Air Tech)
+## Stockpile
+### Sharpshooter
+- sniper unit
+- has to deploy, probably
+- Maybe stealth?
+### Chop Shop
+ - Sleeper - small, fast transport vehicle
+- Locust - Like patriot system
+- Monitor - like quad cannon
+- Arc Engine - ECM that deals DOT (requires tech)
+- Battle Bus (vehicle tech)
+- **Vehicle Tech Dunno**
 ## Upgrades
 - Global
 	- a

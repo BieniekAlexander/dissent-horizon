@@ -1,6 +1,6 @@
 [gd_scene load_steps=10 format=3 uid="uid://lg3slrwglq37"]
 
-[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/structure.tscn" id="1_1qdpe"]
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/n_structure.tscn" id="1_1qdpe"]
 [ext_resource type="Texture2D" uid="uid://bm3tdpihnqyb" path="res://assets/entities/compound.png" id="3_i3cr2"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1qdpe"]

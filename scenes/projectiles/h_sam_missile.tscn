@@ -1,0 +1,58 @@
+[gd_scene load_steps=7 format=3 uid="uid://d4hii8hrkdfqe"]
+
+[ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_0vj4s"]
+[ext_resource type="Texture2D" uid="uid://4j5okj7g4kff" path="res://assets/coin_logo.png" id="2_spjmu"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_i0c7v"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_iorgb"]
+radial_velocity_min = 0.09997764
+radial_velocity_max = 0.09997764
+gravity = Vector3(0, -0.1, 0)
+
+[sub_resource type="SphereMesh" id="SphereMesh_iorgb"]
+radius = 0.05
+height = 0.05
+radial_segments = 16
+rings = 4
+is_hemisphere = true
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hit01"]
+
+[node name="Missile" type="CharacterBody3D"]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_0vj4s")
+trajectory = 3
+base_damage = 50.0
+post_impact_lifespan = 10
+tick_rate = 1000
+
+[node name="InFlightSprite" type="Sprite3D" parent="."]
+transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
+visible = false
+render_priority = 5
+texture = ExtResource("2_spjmu")
+
+[node name="InFlightParticles" type="GPUParticles3D" parent="."]
+visible = false
+emitting = false
+
+[node name="PostImpactSprite" type="Sprite3D" parent="."]
+transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
+visible = false
+render_priority = 5
+
+[node name="PostImpactParticles" type="GPUParticles3D" parent="."]
+amount = 25
+lifetime = 0.2
+process_material = SubResource("ParticleProcessMaterial_iorgb")
+draw_pass_1 = SubResource("SphereMesh_iorgb")
+
+[node name="HitShape" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_hit01")
+disabled = true
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("3_i0c7v")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"

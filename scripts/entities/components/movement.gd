@@ -274,8 +274,8 @@ func _follow_agent(c: Commandable) -> AvoidanceAgent3D:
 	return c.movement.avoidance_agent()
 
 ## Zero this agent's broadcast layers and its obstacle layers so no other agent
-## RVO-steers around it. Used by Garrison to let the approaching unit walk into
-## the shelter target without the avoidance system pushing them apart.
+## RVO-steers around it. Used by Occupy to let the approaching unit walk into
+## the garrison target without the avoidance system pushing them apart.
 ## No-op if already suppressed or in HOVERING mode.
 func suppress_avoidance_layers() -> void:
 	if mode != Mode.GROUNDED_DIRECT or _nav_agent == null or _saved_avoidance_layers != 0:

@@ -36,7 +36,8 @@ var technology_mapping: Dictionary = {
 	Entity.Type.STRUCTURE_COMPOUND: TechnologySpec.new(300, 0, 0, _requires_structure(Entity.Type.STRUCTURE_DWELLING)),
 	Entity.Type.STRUCTURE_ARMORY: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
 	Entity.Type.UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0),
-	Entity.Type.UNIT_IRREGULAR: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
+	Entity.Type.UNIT_WARLORD: TechnologySpec.new(250, 0, 0, _requires_structure(Entity.Type.STRUCTURE_REDOUBT)),
+	Entity.Type.UNIT_IRREGULAR: TechnologySpec.new(75, 0, 0, _requires_structure(Entity.Type.STRUCTURE_REDOUBT)),
 	Entity.Type.UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
 	Entity.Type.STRUCTURE_TURRET: TechnologySpec.new(50, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
 	# Abilities are gated here too. Ability.Type values (0,1,...) don't collide
