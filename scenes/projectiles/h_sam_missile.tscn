@@ -19,17 +19,17 @@ is_hemisphere = true
 [sub_resource type="SphereShape3D" id="SphereShape3D_hit01"]
 
 [node name="Missile" type="CharacterBody3D"]
-transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
 collision_layer = 0
 collision_mask = 2
 script = ExtResource("1_0vj4s")
 trajectory = 3
 base_damage = 50.0
-post_impact_lifespan = 10
+pre_impact_lifespan = 150
+post_impact_lifespan = 30
 tick_rate = 1000
 
 [node name="InFlightSprite" type="Sprite3D" parent="."]
-transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
+transform = Transform3D(0.25, 0, 0, 0, 0.17677669, 0.17677669, 0, -0.17677669, 0.17677669, 0, 0, 0)
 visible = false
 render_priority = 5
 texture = ExtResource("2_spjmu")
@@ -44,8 +44,8 @@ visible = false
 render_priority = 5
 
 [node name="PostImpactParticles" type="GPUParticles3D" parent="."]
-amount = 25
-lifetime = 0.2
+transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0, 0)
+amount = 5
 process_material = SubResource("ParticleProcessMaterial_iorgb")
 draw_pass_1 = SubResource("SphereMesh_iorgb")
 

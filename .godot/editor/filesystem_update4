@@ -20,3 +20,10 @@ res://scenes/projectiles/projectile.tscn
 res://scenes/projectiles/h_sam_missile.tscn
 res://scripts/entities/tools/projectile.gd
 res://scenes/projectiles/radiation.tscn
+res://scripts/utils/vector_utils.gd
+res://scripts/entities/tools/weapon.gd
+res://scripts/utils/array_utils.gd
+res://scripts/entities/commandable.gd
+res://scenes/units/irregular.tscn
+res://scenes/units/unit.tscn
+res://scenes/structures/n_shelter.tscn

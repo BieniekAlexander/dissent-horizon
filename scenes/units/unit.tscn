@@ -7,6 +7,15 @@
 collision_layer = 1
 collision_mask = 1
 
+[node name="MovementBody" parent="." index="2"]
+visible = false
+
+[node name="TargetBody" parent="." index="3"]
+visible = false
+
 [node name="Movement" type="Node" parent="." index="7"]
 script = ExtResource("2_6e3tn")
 nav_agent_path = NodePath("../NavigationAgent")
+
+[node name="Selectable" parent="." index="11"]
+visible = false

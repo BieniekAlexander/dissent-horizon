@@ -30,6 +30,18 @@ static func concat(a1: Array, a2: Array) -> Array:
 
 	return ret
 
+static func all(a1: Array, check: Callable) -> bool:
+	for a in a1:
+		if not check.call(a): return false
+	
+	return true
+
+static func any(a1: Array, check: Callable) -> bool:
+	for a in a1:
+		if check.call(a): return true
+	
+	return false
+
 static func sum(a_array: Array) -> float:
 	var ret: float = 0
 

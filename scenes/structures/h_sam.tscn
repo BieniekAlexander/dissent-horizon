@@ -1,10 +1,9 @@
-[gd_scene load_steps=18 format=3 uid="uid://chn6tbb8uh0m5"]
+[gd_scene load_steps=17 format=3 uid="uid://chn6tbb8uh0m5"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/n_structure.tscn" id="1_strct"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="PackedScene" uid="uid://d4hii8hrkdfqe" path="res://scenes/projectiles/h_sam_missile.tscn" id="4_hro24"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
-[ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="5_stns2"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_r3ibt"]
 size = Vector3(1, 10, 1)
@@ -53,12 +52,18 @@ gradient = SubResource("Gradient_cdjbw")
 type = 4614
 
 [node name="MovementBody" parent="." index="2"]
+visible = false
 shape = SubResource("BoxShape3D_r3ibt")
 
+[node name="TargetBody" parent="." index="3"]
+visible = false
+
 [node name="AggroRange" parent="." index="4"]
+visible = false
 shape = SubResource("CylinderShape3D_brsut")
 
 [node name="VisionRange" parent="." index="5"]
+visible = false
 shape = SubResource("CylinderShape3D_vision")
 
 [node name="Defense" parent="." index="9"]
@@ -69,11 +74,14 @@ hp_max = 500.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24707031, 0)
 
 [node name="Loadout" type="Node3D" parent="." index="14"]
+visible = false
 script = ExtResource("3_invnt")
 
 [node name="MissileLauncher" type="Node3D" parent="Loadout" index="0"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0562744, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42687988, 0)
 script = ExtResource("4_wpn00")
+attacks_grounded = false
+attacks_aerial = true
 packed_scene = ExtResource("4_hro24")
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/MissileLauncher" index="0"]
@@ -82,14 +90,7 @@ disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
 [node name="Sprite" parent="." index="15"]
-transform = Transform3D(0.3, 0, 0, 0, 0.7071068, -1.4142135, 0, 0.70710677, 1.4142137, 0, 0.6737838, -0.17417908)
-
-[node name="Sprite" type="Sprite3D" parent="Sprite" index="0"]
-transform = Transform3D(2.5, 0, 0, 0, 0.096, 0, 0, 0, 0.4, 0, 1.0564632, -0.42820844)
-layers = 2
-axis = 1
-render_priority = 1
-texture = ExtResource("5_stns2")
+transform = Transform3D(1, 0, 0, 0, 0.7071068, -0.70710677, 0, 0.70710677, 0.7071068, 0.008907318, 0.33644247, 0.20648193)
 
 [node name="HPBar" parent="." index="16"]
 visible = false

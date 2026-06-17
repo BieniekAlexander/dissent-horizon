@@ -33,9 +33,8 @@ const TICK_ONCE: int = 1 << 31
 @export var base_damage: float = 5.0 ## Damage value applied by this projectile, before any modifications
 @export var attack_type: Weapon.AttackType = Weapon.AttackType.BALLISTIC
 
-## Frames the projectile persists as a damage source AFTER impact. 0 = vanish on
-## impact (an ordinary one-shot projectile); > 0 = linger (e.g. a radiation field).
-@export var post_impact_lifespan: int = 0
+@export var pre_impact_lifespan: int = INF ## how long the projectile will last before detonating
+@export var post_impact_lifespan: int = 1 ## how long the projectile will last after impact
 
 ## Frames between damage applications while POST_IMPACT. The first application is
 ## always on impact; with the default (TICK_ONCE) damage is dealt exactly once. A
@@ -51,6 +50,7 @@ var _destination: Vector3
 
 var _state: State = State.IN_FLIGHT
 ## Frames elapsed since impact; drives the tick_rate re-application schedule.
+var _frames_pre_impact: int = 0
 var _frames_post_impact: int = 0
 
 @onready var hit_shape: CollisionShape3D = get_node_or_null("HitShape")
@@ -70,28 +70,28 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	match _state:
 		State.IN_FLIGHT:
-			if _has_landed():
+			if _has_landed() or _frames_pre_impact>pre_impact_lifespan:
 				_enter_post_impact()
 			else:
-				_advance()
+				_tick_pre_impact()
 		State.POST_IMPACT:
 			_tick_post_impact()
 #endregion
 
 #region Impact lifecycle
-## IN_FLIGHT → POST_IMPACT: settle on the ground, swap visuals, apply the
-## guaranteed on-impact damage, and either die now (post_impact_lifespan 0, an
-## ordinary projectile) or begin persisting as a damage from.
+func _tick_pre_impact() -> void:
+	_advance()
+	_frames_pre_impact += 1
+
+## State change to post-impact, accounting for visuals and state flag
 func _enter_post_impact() -> void:
 	_state = State.POST_IMPACT
-	_frames_post_impact = 0
 	velocity = Vector3.ZERO
 	global_position.y = _destination.y
 	_apply_state_visuals()
 	_tick_post_impact()
 
-## One POST_IMPACT step: re-apply damage every `tick_rate` frames (never, for the
-## TICK_ONCE default), then age out and die when post_impact_lifespan elapses.
+## Apply damage per tick_rate, and die if timespan elapses
 func _tick_post_impact() -> void:
 	if _frames_post_impact % tick_rate == 0:
 		_apply_hit()
@@ -105,7 +105,6 @@ func initialize_projectile(a_from: Variant, a_target: Variant, a_weapon_damage: 
 	 # TODO revisit projectile damage: should the damage value be initialized within the projectile, or the weapon it comes from?
 	# At the end of the day, I need some avenue of increasing the projectile damage according to upgrades and such
 	if a_weapon_damage>0: base_damage = a_weapon_damage
-	if from!=null: print("OK")
 	from = a_from if a_from is Commandable else null
 	target = a_target if a_target is Commandable else null
 	var target_pos: Vector3 = a_target.global_position if a_target is Entity else a_target
@@ -206,14 +205,13 @@ func _raise_lofted_unimplemented() -> void:
 #endregion
 
 #region Trjajectory: HOMING
-const rotation_rate: float = deg_to_rad(2.) # TODO expose, probably
+const rotation_rate: float = deg_to_rad(2.5) # TODO expose, probably
 const acceleration: float = .0025
-const max_speed: float = .1
 const min_speed: float = .005
 var flight_time: int = 180
 
 func _initial_velocity_homing(a_target_pos: Vector3) -> Vector3:
-	return global_position.direction_to(a_target_pos)*.01
+	return global_position.direction_to(a_target_pos)*speed/2
 
 func _has_landed_homing() -> bool:
 	 # TODO update this check, this is temp
@@ -222,24 +220,16 @@ func _has_landed_homing() -> bool:
 		if is_instance_valid(target)
 		else flight_time<=0
 	)
-	
-func get_rotated_vector_3d(current: Vector3, target: Vector3, max_radians: float) -> Vector3:
-	var total_angle = current.angle_to(target)
-	
-	if total_angle < 0.001:
-		return target.normalized() * current.length()
-		
-	var weight = min(max_radians / total_angle, 1.0)
-	return current.slerp(target, weight).normalized()*current.length()
 
 func _advance_homing() -> void:
 	flight_time -= 1 # TODO move this out
 	if target:
 		var goal_direction: Vector3 = global_position.direction_to(target.global_position)
-		velocity = get_rotated_vector_3d(velocity, goal_direction, rotation_rate)
+		var dot: float = velocity.normalized().dot(global_position.direction_to(target.global_position).normalized())
+		velocity = VU.get_rotated_vector_3d(velocity, goal_direction, rotation_rate)
 		velocity = velocity.normalized() * (
-			min(velocity.length()+acceleration, max_speed)
-			if velocity.dot(global_position.direction_to(target.global_position))>=0
+			min(velocity.length()+acceleration, speed)
+			if dot >= 0
 			else max(velocity.length()-acceleration, min_speed)
 		)
 	
@@ -270,6 +260,7 @@ func _apply_hit() -> void:
 	params.collision_mask = CollisionLayers.Mask.TARGETABLE
 	params.exclude = [self]
 	var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 32)
+	print(hits.size())
 	
 	for hit in hits:
 		var entity: Entity = Entity.entity_from_collider(hit["collider"])

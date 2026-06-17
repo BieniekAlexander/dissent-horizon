@@ -14,7 +14,7 @@
 size = Vector3(3, 10, 3)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_sel"]
-size = Vector3(3, 2, 3)
+size = Vector3(3, 0.9291992, 3)
 
 [node name="ShelterStructure" type="CharacterBody3D" groups=["commandable", "shelter", "structure"]]
 collision_layer = 0
@@ -49,12 +49,13 @@ script = ExtResource("5_sel")
 indicator_path = NodePath("../SelectionIndicator")
 
 [node name="SelectionShape" type="CollisionShape3D" parent="Selectable"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5354004, 0)
 shape = SubResource("BoxShape3D_sel")
 
 [node name="#####VISUALS#####" type="Node" parent="."]
 
 [node name="Sprite" type="Sprite3D" parent="."]
-transform = Transform3D(10, 0, 0, 0, 7.071068, -6.3639607, 0, 7.071068, 6.3639607, 0.07373214, 0.6683121, -0.079711914)
+transform = Transform3D(10, 0, 0, 0, 7.071068, -6.3639607, 0, 7.071068, 6.3639607, 0.09030843, 0.6683121, 0.35986328)
 axis = 1
 texture = ExtResource("6_spr")
 

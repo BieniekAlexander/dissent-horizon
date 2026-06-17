@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=4 uid="uid://cff5ag28s3u4b"]
+[gd_scene load_steps=36 format=4 uid="uid://cff5ag28s3u4b"]
 
 [ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_hbnr0"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_yyjyw"]
@@ -14,7 +14,6 @@
 [ext_resource type="Script" uid="uid://by08wgo0a2sby" path="res://scripts/maps/terrain/heightmap_mesh_generator.gd" id="8_hmgen"]
 [ext_resource type="Script" uid="uid://beisqea2qw3il" path="res://scripts/maps/terrain/height_pin.gd" id="9_h54hq"]
 [ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="9_m0npt"]
-[ext_resource type="PackedScene" uid="uid://lg3slrwglq37" path="res://scenes/structures/compound.tscn" id="11_xsms2"]
 [ext_resource type="Script" uid="uid://qe5ctlojh5nw" path="res://scripts/scenario/trigger.gd" id="16_64642"]
 [ext_resource type="Script" uid="uid://bybghbb1kr1fq" path="res://scripts/scenario/events/event_command_target.gd" id="19_6bpmu"]
 [ext_resource type="Script" uid="uid://gl6ex3gwef1y" path="res://scripts/scenario/scenario_event_manager.gd" id="20_sem"]
@@ -25,7 +24,6 @@
 [ext_resource type="Script" uid="uid://h64s6w0eauxg" path="res://scripts/scenario/conditions/condition.gd" id="26_cond"]
 [ext_resource type="Script" uid="uid://galquf6r12o1" path="res://scripts/scenario/conditions/condition_timer.gd" id="27_timer"]
 [ext_resource type="Script" uid="uid://81a8tovoa0ow" path="res://scripts/scenario/conditions/condition_no_pending_triggers.gd" id="28_nopend"]
-[ext_resource type="PackedScene" uid="uid://dtyheenc7jb57" path="res://scenes/structures/b_redoubt.tscn" id="28_tjmpc"]
 [ext_resource type="Script" uid="uid://cmb6jbyknp4a4" path="res://scripts/scenario/conditions/condition_unit_count.gd" id="29_count"]
 [ext_resource type="PackedScene" uid="uid://csyr8p6ug2rpw" path="res://scenes/structures/n_shelter.tscn" id="29_ifeyy"]
 [ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/structures/deposit.tscn" id="30_dep"]
@@ -20162,22 +20160,6 @@ transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 39.5, 1, 24.5)
 texture = ExtResource("9_m0npt")
 script = ExtResource("9_h54hq")
 
-[node name="DepositM1" parent="." instance=ExtResource("30_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.5, 1, -22.5)
-
-[node name="Mine1" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.5, 1, -22.5)
-deposit = NodePath("../DepositM1")
-default_commander_id = 1
-
-[node name="DepositM2" parent="." instance=ExtResource("30_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 0, 19.5)
-
-[node name="Mine2" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 0, 19.5)
-deposit = NodePath("../DepositM2")
-default_commander_id = 2
-
 [node name="DepositM3" parent="." instance=ExtResource("30_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -21.5)
 
@@ -20186,25 +20168,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -21.5)
 deposit = NodePath("../DepositM3")
 default_commander_id = 2
 
-[node name="Turret" parent="." instance=ExtResource("7_kk180")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 1, -15)
-default_commander_id = 1
+[node name="Turret1" parent="." instance=ExtResource("7_kk180")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -19)
+default_commander_id = 2
 
 [node name="Turret2" parent="." instance=ExtResource("7_kk180")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, 9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -16)
 default_commander_id = 2
-
-[node name="Turret3" parent="." instance=ExtResource("7_kk180")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, 18)
-default_commander_id = 2
-
-[node name="Turret4" parent="." instance=ExtResource("7_kk180")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 14)
-default_commander_id = 2
-
-[node name="Compound" parent="." instance=ExtResource("11_xsms2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 1, -17)
-default_commander_id = 1
 
 [node name="Deposit" parent="." instance=ExtResource("30_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.5, 0, -1.5)
@@ -20271,9 +20241,5 @@ label = "Victory (all waves spawned + all commander 2 units dead)"
 conditions = Array[ExtResource("26_cond")]([SubResource("Cond_nopend"), SubResource("Cond_count")])
 events = [NodePath("../VictoryMsg"), NodePath("../Win")]
 
-[node name="Structure" parent="." instance=ExtResource("28_tjmpc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 1, -13)
-default_commander_id = 1
-
 [node name="Structure2" parent="." instance=ExtResource("29_ifeyy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, -21)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.987976, 0, -21)

@@ -33,6 +33,8 @@ static var damage_multiplier_patterns: Dictionary = {
 @export var attack_type: AttackType = AttackType.BALLISTIC
 @export var damage: float = 10
 @export var attack_duration: int = 10
+@export var attacks_grounded: bool = true # TODO refactor, make these checks more elegantly
+@export var attacks_aerial: bool = false
 ## Projectile scene to launch on fire; null = instant damage applied directly.
 @export var packed_scene: PackedScene
 @onready var attack_range_shape: CollisionShape3D = $AttackRange
@@ -52,7 +54,13 @@ func _find_visualizer() -> Node:
 ## By default any Entity is a valid target; override per-weapon for
 ## type-specific rules (e.g. cannot target flying units).
 func can_target(_target: Entity) -> bool:
-	return true
+	# TODO refactor, this is very very hacked
+	if _target.movement==null: return true
+	return (
+		attacks_aerial and _target.movement.mode in [Movement.Mode.FLYING, Movement.Mode.HOVERING]
+	) or (
+		attacks_grounded and _target.movement.mode == Movement.Mode.GROUNDED_DIRECT
+	)
 
 func fire(a_owner: Commandable, a_target: Entity) -> void:
 	var vet_level: int = a_owner.veterancy.level if a_owner.veterancy != null else 0

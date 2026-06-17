@@ -15,7 +15,7 @@ const NUM_MAX_COMMANDERS: int = 8
 #endregion
 
 #region Resources
-@onready var ore: int = 500
+@onready var ore: int = 0
 @onready var population_used: int = 0
 @onready var population_max: int = 0
 @onready var dominion: int = 0
