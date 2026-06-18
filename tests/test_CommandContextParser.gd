@@ -60,6 +60,19 @@ func _add_production(a_parent: Node, a_producible_types: Array) -> Production:
 	autofree(p)
 	return p
 
+func _add_builds(a_parent: Node, a_buildable_types: Array) -> Builds:
+	# A real Builds component — build_tools_for() casts the "Builds" child to
+	# Builds and calls can_build(), so (like Production) a bare placeholder Node
+	# won't do. buildable_types is assigned directly because Builds._ready (which
+	# only asserts non-emptiness) fires once in the tree, and these test entities
+	# are intentionally never added to it.
+	var b := Builds.new()
+	b.name = "Builds"
+	b.buildable_types.assign(a_buildable_types)
+	a_parent.add_child(b)
+	autofree(b)
+	return b
+
 ## --- commands_for: empty / null cases --------------------------------------
 
 func test_null_entity_returns_empty():
@@ -135,6 +148,10 @@ func test_technician_has_build_ability_and_inventory_actions():
 	var e := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
+	# Build capability is component-driven: command_ability/command_build are
+	# advertised iff the unit carries a Builds component (the parser only checks
+	# has_node here).
+	_add_named_child(e, "Builds")
 	# Interactions are now component-driven: a unit advertises command_interact
 	# iff it carries an Interactor (the parser only checks has_node here).
 	_add_named_child(e, "Interactor")
@@ -186,6 +203,7 @@ func test_selection_union_combines_disparate_unit_types():
 	# compound-train commands in the union.
 	var anima := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
 	_add_named_child(anima, "Movement")
+	_add_named_child(anima, "Builds")
 	var compound := _make_entity(Entity.Type.STRUCTURE_COMPOUND, ["structure"])
 	_add_production(compound, [Entity.Type.UNIT_IRREGULAR, Entity.Type.UNIT_VANGUARD])
 
@@ -221,9 +239,17 @@ func test_selection_ignores_invalid_entries():
 ## --- build_tools_for: the Technician Build sub-menu ------------------------
 
 func test_technician_build_tools_are_the_buildable_structures():
-	# build_tools_for mirrors Build.tool_applies_to for the Technician — the
-	# structures the controller's Build sub-menu offers.
+	# build_tools_for mirrors Build.tool_applies_to: it offers exactly the tools
+	# whose structure type is listed in the builder's Builds component.
 	var e := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
+	_add_builds(e, [
+		Entity.Type.STRUCTURE_OUTPOST,
+		Entity.Type.STRUCTURE_DWELLING,
+		Entity.Type.STRUCTURE_MINE,
+		Entity.Type.STRUCTURE_LAB,
+		Entity.Type.STRUCTURE_COMPOUND,
+		Entity.Type.STRUCTURE_ARMORY,
+	])
 	var tools := CommandContextParser.build_tools_for(e)
 	assert_true(tools.has("command_tool_outpost"))
 	assert_true(tools.has("command_tool_dwelling"))
@@ -245,6 +271,7 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 	# and the selection union. The Build entry point itself must still be there.
 	var e := _make_entity(Entity.Type.UNIT_TECHNICIAN, ["unit"])
 	_add_named_child(e, "Movement")
+	_add_named_child(e, "Builds")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_false(cmds.has("command_tool_outpost"), "build tools stay out of the flat command set")
 	assert_true(cmds.has("command_ability"), "but the Build entry point is present")
@@ -264,27 +291,25 @@ func test_train_tools_for_entity_without_production_is_empty():
 func test_train_tools_for_null_is_empty():
 	assert_eq(CommandContextParser.train_tools_for(null), [])
 
-## --- Scene config: producible_types is wired in the real .tscn files -------
-## These instantiate the actual structure scenes (not added to the tree) to
-## prove the Production node's producible_types export survives in the inherited
-## scene and that the parser surfaces the right train tools end-to-end.
+## --- Production end-to-end: component → can_produce → surfaced train tool ----
+## These build minimal entities carrying only a Production component (rather than
+## loading live structure scenes) to prove can_produce and the parser's train-tool
+## surfacing line up for a given producible_types set.
 
-func test_outpost_scene_produces_technician():
-	var outpost: Node = load("res://scenes/structures/outpost.tscn").instantiate()
-	autofree(outpost)
-	var prod := outpost.get_node("Production") as Production
-	assert_not_null(prod, "outpost.tscn has a Production node")
-	assert_true(prod.can_produce(Entity.Type.UNIT_TECHNICIAN), "outpost trains technicians")
-	assert_true(CommandContextParser.commands_for(outpost).has("command_tool_technician"))
+func test_technician_producer_surfaces_technician_tool():
+	var producer := _make_entity(Entity.Type.STRUCTURE_OUTPOST, ["structure"])
+	_add_production(producer, [Entity.Type.UNIT_TECHNICIAN])
+	assert_true(producer.get_node("Production").can_produce(Entity.Type.UNIT_TECHNICIAN),
+		"a producer with TECHNICIAN in producible_types trains technicians")
+	assert_true(CommandContextParser.commands_for(producer).has("command_tool_technician"))
 
-func test_compound_scene_produces_irregular_and_vanguard():
-	var compound: Node = load("res://scenes/structures/compound.tscn").instantiate()
-	autofree(compound)
-	var prod := compound.get_node("Production") as Production
-	assert_not_null(prod, "compound.tscn has a Production node")
-	assert_true(prod.can_produce(Entity.Type.UNIT_IRREGULAR), "compound trains irregulars")
-	assert_true(prod.can_produce(Entity.Type.UNIT_VANGUARD), "compound trains vanguards")
-	assert_false(prod.can_produce(Entity.Type.UNIT_TECHNICIAN), "compound does not train technicians")
-	var cmds := CommandContextParser.commands_for(compound)
+func test_irregular_and_vanguard_producer_surfaces_both_tools():
+	var producer := _make_entity(Entity.Type.STRUCTURE_COMPOUND, ["structure"])
+	_add_production(producer, [Entity.Type.UNIT_IRREGULAR, Entity.Type.UNIT_VANGUARD])
+	var prod := producer.get_node("Production") as Production
+	assert_true(prod.can_produce(Entity.Type.UNIT_IRREGULAR), "produces irregulars")
+	assert_true(prod.can_produce(Entity.Type.UNIT_VANGUARD), "produces vanguards")
+	assert_false(prod.can_produce(Entity.Type.UNIT_TECHNICIAN), "does not produce technicians")
+	var cmds := CommandContextParser.commands_for(producer)
 	assert_true(cmds.has("command_tool_irregular"))
 	assert_true(cmds.has("command_tool_vanguard"))

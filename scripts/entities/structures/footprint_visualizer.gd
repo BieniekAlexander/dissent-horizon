@@ -5,7 +5,7 @@ extends Node3D
 ## Editor-only overlay that renders a semi-transparent flat rectangle showing
 ## exactly which terrain grid cells this structure occupies.
 ##
-## Sizing: Map.CELL_SIZE * StructureSpec dimensions for this structure type.
+## Sizing: Map.CELL_SIZE * Obstruction dimensions for this structure type.
 ## Removed from the scene tree at runtime so it carries zero gameplay cost.
 
 #region Lifecycle

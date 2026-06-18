@@ -1,9 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://d372d5stwv6gt"]
+[gd_scene load_steps=5 format=3 uid="uid://d372d5stwv6gt"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/abstract_structure.tscn" id="1_e1l0p"]
 [ext_resource type="Script" uid="uid://dww1hvwpkpygd" path="res://scripts/entities/structures/mine.gd" id="2_mine0"]
 [ext_resource type="Script" uid="uid://ravapu6j0gvv" path="res://scripts/entities/components/ore_extractor.gd" id="3_oreex"]
-[ext_resource type="Texture2D" uid="uid://cgdrbpxqo62uf" path="res://assets/structure.png" id="3_wykrx"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wykrx"]
 size = Vector3(2, 10, 2)
@@ -18,15 +17,11 @@ shape = SubResource("BoxShape3D_wykrx")
 [node name="TargetBody" parent="." index="3"]
 collision_layer = 0
 
-[node name="Obstruction" parent="." index="7"]
-dimensions = Vector2i(2, 2)
-
 [node name="OreExtractor" type="Node" parent="." index="8"]
 script = ExtResource("3_oreex")
 
-[node name="Defense" parent="." index="10"]
+[node name="Defense" parent="." index="9"]
 armor = 1
 
-[node name="Sprite" parent="." index="15"]
+[node name="Sprite" parent="." index="14"]
 transform = Transform3D(6, 0, 0, 0, 0.7700393, -3.535534, 0, 0.77003926, 3.5355341, 0.018972874, 0.7, 0.44018555)
-texture = ExtResource("3_wykrx")

@@ -57,6 +57,20 @@ func _weapon_for(a_actor: Commandable) -> Weapon:
 	if a_actor.weapon_inventory == null:
 		return null
 	return a_actor.weapon_inventory.weapon_for_target(message.target)
+
+## True when a_actor is acting as a bunker: it owns a Garrison with bunker fire
+## enabled and at least one unit garrisoned, so its garrisoned units' weapons can
+## fire at the target even when the actor itself carries no weapon.
+func _is_bunker(a_actor: Commandable) -> bool:
+	var garrison := a_actor.garrison
+	return garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
+
+## True when a_actor's own weapon can fire at message.target this tick.
+func _own_weapon_can_fire(a_actor: Commandable) -> bool:
+	var weapon := _weapon_for(a_actor)
+	return weapon != null \
+		and weapon.is_ready() \
+		and SU.is_in_attack_range(weapon, a_actor, message.target)
 #endregion
 
 #region State updates
@@ -97,21 +111,27 @@ func should_move(a_actor: Commandable) -> bool:
 	)
 
 func can_act(a_actor: Commandable) -> bool:
-	var weapon := _weapon_for(a_actor)
-	if not weapon.is_ready() or not _target_attackable(message) or message.target == a_actor:
+	if not _target_attackable(message) or message.target == a_actor:
 		return false
-	return (
-		weapon != null
-		and SU.is_in_attack_range(weapon, a_actor, message.target)
-		and not _structure_on_line(a_actor, message.target)
-	)
+	if _structure_on_line(a_actor, message.target):
+		return false
+	# Act when either the actor's own weapon or — for a bunker — any garrisoned
+	# unit's weapon is loaded and in range. A weaponless bunker has no own weapon,
+	# so the garrison branch is the only one that fires.
+	return _own_weapon_can_fire(a_actor) \
+		or (_is_bunker(a_actor) and a_actor.garrison.can_fire_at(a_actor, message.target))
 
 func fulfill_action(a_actor: Commandable) -> Variant:
-	var weapon := _weapon_for(a_actor)
-	weapon.fire(a_actor, message.target)
-	# Attacking breaks stealth: force the timed UNSTEALTHED window.
-	if a_actor.stealth != null:
-		a_actor.stealth.unstealth()
+	# Fire the actor's own weapon when it is loaded and in range.
+	if _own_weapon_can_fire(a_actor):
+		_weapon_for(a_actor).fire(a_actor, message.target)
+		# Attacking breaks stealth: force the timed UNSTEALTHED window.
+		if a_actor.stealth != null:
+			a_actor.stealth.unstealth()
+	# Bunker fire: each garrisoned inventory produces a projectile from its first
+	# target-capable, loaded, in-range weapon, fired from the actor's position.
+	if _is_bunker(a_actor):
+		a_actor.garrison.tick_bunker_fire(a_actor, message.target)
 	return self
 #endregion
 

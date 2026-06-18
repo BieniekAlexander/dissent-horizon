@@ -13,27 +13,6 @@ extends Commandable
 @export var deposit: Deposit
 #endregion
 
-#region Preconditions
-## A mine may only be placed on a Deposit that has no mine yet. The mine binds to
-## (and overlays) the whole deposit object, so it's enough that the clicked cell
-## belongs to a free deposit — any cell of a multi-cell deposit works. This forbids
-## building on bare ground, on other structures, and stacking a second mine on one
-## deposit. (a_dimensions is unused: the mine doesn't occupy the grid itself.)
-static func valid_placement(
-	a_command_message: CommandMessage,
-	_a_dimensions: Vector2i,
-	_a_allow_uneven_terrain: bool = false
-) -> bool:
-	var map: Map = a_command_message.map
-	if map == null:
-		return false
-	var cell: Vector2i = map.world_to_grid(a_command_message.xz_position)
-	if not map.grid_coordinates_in_bounds(cell):
-		return false
-	var occupant = map.cell_grid[cell.x][cell.y]
-	return occupant is Deposit and (occupant as Deposit).mine == null
-#endregion
-
 #region Public API
 ## Link this mine to its deposit (both directions). While the mine overlays the
 ## deposit the deposit stays the sole grid/collision occupant, so the mine's own

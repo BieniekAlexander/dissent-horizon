@@ -46,28 +46,56 @@ func any_garrison_can_target(target: Entity) -> bool:
 			return true
 	return false
 
-## Fire eligible garrisoned units at `target` from `owner`'s world position.
-## Call once per physics tick while an Attack command is active. Manages each
-## unit's attack_timer independently since orphaned units don't tick themselves.
+## Fire every garrisoned unit's first target-capable weapon at `target` from
+## `owner`'s world position, for those weapons that are loaded and in range.
+## Each weapon advances its own reload timer in Weapon._physics_process because
+## its Loadout was reparented onto `owner` at garrison time (see garrison()), so
+## firing simply respects Weapon.is_ready() rather than tracking timers here.
 func tick_bunker_fire(owner: Commandable, target: Entity) -> void:
 	if not bunker:
 		return
 	for unit: Commandable in _garrisoned:
-		if unit.weapon_inventory == null:
-			continue
-		var weapon := unit.weapon_inventory.weapon_for_target(target)
-		if weapon == null:
-			continue
-		if not SU.is_weapon_in_range_at(weapon, owner.global_transform, owner.get_world_3d(), target, owner):
-			continue
-		unit.attack_timer = weapon.attack_duration
-		unit._attack_duration = weapon.attack_duration
-		weapon.fire(owner, target)
+		var weapon := _firing_weapon(unit, owner, target)
+		if weapon != null:
+			weapon.fire(owner, target)
+
+
+## True when at least one garrisoned unit carries a weapon that can target, is
+## loaded, and reaches `target` from `owner`'s position — i.e. a bunker volley
+## would actually produce a projectile this tick.
+func can_fire_at(owner: Commandable, target: Entity) -> bool:
+	if not bunker:
+		return false
+	for unit: Commandable in _garrisoned:
+		if _firing_weapon(unit, owner, target) != null:
+			return true
+	return false
+
+
+## The first weapon in `unit`'s inventory that can target `target`, is ready to
+## fire, and reaches it from `owner`'s position; null if none qualifies.
+func _firing_weapon(unit: Commandable, owner: Commandable, target: Entity) -> Weapon:
+	if unit.weapon_inventory == null:
+		return null
+	var weapon := unit.weapon_inventory.weapon_for_target(target)
+	if weapon == null or not weapon.is_ready():
+		return null
+	if not SU.is_weapon_in_range_at(weapon, owner.global_transform, owner.get_world_3d(), target, owner):
+		return null
+	return weapon
 
 
 ## Remove `unit` from the active scene tree and store it here.
 func garrison(unit: Commandable) -> void:
 	_adopt_commander_if_neutral(unit)
+	# For a bunker, hoist the unit's weapon inventory onto this garrison's owner
+	# so its weapons keep advancing their _physics_process reload timers — an
+	# orphaned (off-tree) unit doesn't tick, so otherwise its weapons would never
+	# reload or fire. The unit itself still leaves the tree; only its Loadout
+	# stays, reparented under the owner.
+	var owner_node := get_parent()
+	if bunker and owner_node != null and unit.weapon_inventory != null:
+		unit.weapon_inventory.reparent(owner_node, false)
 	unit.get_parent().remove_child(unit)
 	_garrisoned.append(unit)
 
@@ -120,6 +148,16 @@ func _revert_adopted_commander(owner_cmd: Commandable) -> void:
 #endregion
 
 #region Private helpers
+## Move a garrisoned unit's weapon inventory back under the unit, reversing the
+## hoist done in garrison(). Call after the unit has been re-added to the tree.
+## A no-op when the Loadout was never moved (non-bunker garrison, or unit had no
+## inventory), detected via the Loadout's current parent.
+func _restore_loadout(unit: Commandable) -> void:
+	var loadout := unit.weapon_inventory
+	if loadout != null and loadout.get_parent() != unit:
+		loadout.reparent(unit, false)
+
+
 ## Evacuation path for garrison owners that occupy the terrain grid (structures).
 ## Each unit is placed at the footprint-boundary cell closest to its randomly
 ## assigned destination so it appears to exit from the correct side.
@@ -142,6 +180,7 @@ func _evacuate_from_structure(owner_cmd: Commandable, a_map: Map) -> void:
 		var spawn_cell := SU.nearest_footprint_adjacent_cell(dest, owner_cmd, a_map)
 
 		unit.commander.add_child(unit)
+		_restore_loadout(unit)
 
 		if spawn_cell != Vector2i(-1, -1):
 			var spawn_xz := a_map.grid_to_world(spawn_cell)
@@ -200,6 +239,7 @@ func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 		var spawn_pos := Vector3(spawn_xz.x, y, spawn_xz.y)
 
 		unit.commander.add_child(unit)
+		_restore_loadout(unit)
 		unit.global_position = spawn_pos
 
 		if a_map != null:

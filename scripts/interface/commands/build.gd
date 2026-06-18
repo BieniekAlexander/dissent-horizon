@@ -21,12 +21,21 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 		return unmet_need_to_precondition[unmet]
 	var preview := a_actor.commander.get_build_preview_instance(a_message.tool)
 	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
-	if not StructureSpec.structure_type_spec_map[a_message.tool.type].placement_checker.call(
+	
+	if not Obstruction.valid_placement(
 		a_message,
 		obs.dimensions,
 		obs.allow_uneven
 	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
+	
+	if preview.has_node("OreExtractor") and not OreExtractor.valid_placement(
+		a_message,
+		obs.dimensions,
+		obs.allow_uneven
+	):
+		return PreconditionFailureCause.INVALID_PLACEMENT
+	
 	return PreconditionFailureCause.NONE
 #endregion
 

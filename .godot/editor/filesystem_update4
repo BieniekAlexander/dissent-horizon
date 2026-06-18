@@ -19,3 +19,10 @@ res://scenes/structures/n_structure.tscn
 res://scenes/scenarios/s1.tscn
 res://scenes/structures/n_building.tscn
 res://scenes/structures/abstract_structure.tscn
+res://scripts/entities/components/obstruction.gd
+res://scripts/interface/commands/build.gd
+res://scripts/entities/structures/mine.gd
+res://scripts/entities/components/ore_extractor.gd
+res://scripts/entities/structures/footprint_visualizer.gd
+res://scripts/interface/commander/commander.gd
+res://scenes/structures/n_mine.tscn

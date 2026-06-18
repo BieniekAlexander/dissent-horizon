@@ -45,7 +45,6 @@ var _command: Command:
 
 @onready var hpBarFill: Sprite3D = $HPBar/HPBarFill
 @onready var _debug_label: Label3D = get_node_or_null("DebugLabel") as Label3D
-var _attack_duration: int = 0
 #endregion
 
 #region Command interface
@@ -141,7 +140,11 @@ func get_aggro_near_position() -> Command:
 	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
 		func(r): return Entity.entity_from_collider(r["collider"])
 	).filter(
-		func(t): return weapon_inventory.weapon_for_target(t)!=null
+		func(t): return (
+			garrison._garrisoned[0].weapon_inventory.weapon_for_target(t)!=null
+			if garrison!=null and garrison.garrisoned_count() > 0
+			else weapon_inventory.weapon_for_target(t)!=null
+		)
 	).filter(func(t): return t is Commandable and t.defense != null and (
 		(weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null)
 		or (is_bunker and garrison.any_garrison_can_target(t))
@@ -177,11 +180,13 @@ func receive_damage(from: Commandable, amount: float) -> void:
 			update_commands(attack_cmd)
 
 ## Returns an Attack command targeting `attacker` if it is within VisionRange and
-## is a valid enemy, otherwise null.
+## is a valid enemy and retaliator has a valid weapon, otherwise null.
 func _get_vision_range_attack(attacker: Commandable) -> Command:
 	if vision_range_shape == null:
 		return null
 	if attacker.commander_id == 0 or attacker.commander_id == commander_id:
+		return null
+	if weapon_inventory==null or not weapon_inventory.has_weapons():
 		return null
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = vision_range_shape.shape
@@ -190,7 +195,7 @@ func _get_vision_range_attack(attacker: Commandable) -> Command:
 	params.exclude = [target_body.get_rid()] if target_body != null else []
 	var potential_targets: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
 	for hit in potential_targets:
-		if Entity.entity_from_collider(hit["collider"]) == attacker:
+		if Entity.entity_from_collider(hit["collider"]) == attacker and weapon_inventory.weapon_for_target(attacker)!=null:
 			return Attack.new(CommandMessage.new(map, attacker, null))
 	return null
 #endregion
@@ -358,15 +363,6 @@ func _update_state() -> void:
 	# physics state that is invalid while orphaned, so stop here.
 	if not is_inside_tree():
 		return
-
-	# Bunker firing: when this garrison-owner has an active Attack command and
-	# garrisoned units carry matching weapons, fire those weapons each tick from
-	# this entity's world position. Runs independently of the owner's own weapon
-	# so a structure with no weapon_inventory can still provide fire support.
-	if garrison != null and garrison.bunker and garrison.garrisoned_count() > 0:
-		var active_cmd := current_command()
-		if active_cmd is Attack and is_instance_valid(active_cmd.message.target):
-			garrison.tick_bunker_fire(self, active_cmd.message.target)
 
 	# Per-tick production. No-op for non-producing entities or unbuilt structures.
 	if production != null and is_built:

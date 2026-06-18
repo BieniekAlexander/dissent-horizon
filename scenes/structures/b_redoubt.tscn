@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://dtyheenc7jb57"]
+[gd_scene load_steps=4 format=3 uid="uid://dtyheenc7jb57"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/abstract_structure.tscn" id="1_emt25"]
 [ext_resource type="Texture2D" uid="uid://cpcl7027uxe1r" path="res://assets/greyscale-tree.png" id="2_pig0v"]
+[ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="3_prod0"]
 
 [node name="Structure" instance=ExtResource("1_emt25")]
 type = 8704
@@ -17,5 +18,6 @@ hp_max = 500.0
 transform = Transform3D(0.36, 0, 0, 0, 0.036062445, -0.14142136, 0, 0.036062445, 0.14142136, 0, 0.7736206, 0.76805496)
 texture = ExtResource("2_pig0v")
 
-[node name="Production" parent="." index="16"]
+[node name="Production" type="Node" parent="." index="16"]
+script = ExtResource("3_prod0")
 producible_types = Array[int]([4355, 4353])

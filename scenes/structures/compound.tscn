@@ -1,7 +1,8 @@
-[gd_scene load_steps=10 format=3 uid="uid://lg3slrwglq37"]
+[gd_scene load_steps=11 format=3 uid="uid://lg3slrwglq37"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/abstract_structure.tscn" id="1_1qdpe"]
 [ext_resource type="Texture2D" uid="uid://bm3tdpihnqyb" path="res://assets/entities/compound.png" id="3_i3cr2"]
+[ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="4_prod0"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1qdpe"]
 size = Vector3(2, 10, 2)
@@ -60,7 +61,8 @@ texture = SubResource("GradientTexture1D_hp_back")
 [node name="HPBarFill" parent="HPBar" index="0"]
 texture = SubResource("GradientTexture1D_hp_fill")
 
-[node name="Production" parent="." index="16"]
+[node name="Production" type="Node" parent="." index="16"]
+script = ExtResource("4_prod0")
 producible_types = Array[int]([4353, 4354])
 
 [node name="SelectionIndicator" parent="." index="17"]

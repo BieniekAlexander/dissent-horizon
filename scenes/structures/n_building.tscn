@@ -9,3 +9,5 @@ type = 4612
 [node name="Garrison" type="Node" parent="." index="10"]
 script = ExtResource("2_fkhkx")
 metadata/_custom_type_script = "uid://dlhe01nj6efuh"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." index="24"]
