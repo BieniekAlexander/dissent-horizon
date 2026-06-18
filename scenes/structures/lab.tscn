@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://r5d76hoe5wxx"]
 
-[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/n_structure.tscn" id="1_fo04x"]
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/abstract_structure.tscn" id="1_fo04x"]
 [ext_resource type="Script" uid="uid://1lu3h2h6pp4f" path="res://scripts/entities/structures/lab.gd" id="2_20vnl"]
 [ext_resource type="Texture2D" uid="uid://desooi0j2hq3b" path="res://assets/entities/lab.png" id="3_woms5"]
 [ext_resource type="Script" uid="uid://dabpqha0g1wjn" path="res://scripts/entities/components/dominion_generator.gd" id="4_domgn"]

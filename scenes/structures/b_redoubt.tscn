@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dtyheenc7jb57"]
 
-[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/n_structure.tscn" id="1_emt25"]
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/abstract_structure.tscn" id="1_emt25"]
 [ext_resource type="Texture2D" uid="uid://cpcl7027uxe1r" path="res://assets/greyscale-tree.png" id="2_pig0v"]
 
 [node name="Structure" instance=ExtResource("1_emt25")]

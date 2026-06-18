@@ -1,8 +1,7 @@
-[gd_scene load_steps=20 format=3 uid="uid://bnic4wpl31scb"]
+[gd_scene load_steps=15 format=3 uid="uid://bnic4wpl31scb"]
 
 [ext_resource type="PackedScene" uid="uid://dcmdbl3j4t1k2" path="res://scenes/commandable.tscn" id="1_cmnd1"]
-[ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="7_prod0"]
-[ext_resource type="Script" uid="uid://bgh3sjj1xc3cs" path="res://scripts/entities/components/resource_provider.gd" id="8_rspv0"]
+[ext_resource type="Texture2D" uid="uid://cgdrbpxqo62uf" path="res://assets/structure.png" id="4_067er"]
 [ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="9_fviz0"]
 [ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/obstruction.gd" id="10_obs0"]
 
@@ -39,20 +38,6 @@ colors = PackedColorArray(0, 0, 0, 1)
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_5lb30"]
 gradient = SubResource("Gradient_8aclg")
 
-[sub_resource type="Gradient" id="Gradient_train_back"]
-offsets = PackedFloat32Array(0)
-colors = PackedColorArray(0, 0, 0, 1)
-
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_train_back"]
-gradient = SubResource("Gradient_train_back")
-
-[sub_resource type="Gradient" id="Gradient_train_fill"]
-offsets = PackedFloat32Array(1)
-colors = PackedColorArray(0.8, 0.666667, 0, 1)
-
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_train_fill"]
-gradient = SubResource("Gradient_train_fill")
-
 [node name="Structure" groups=["structure"] instance=ExtResource("1_cmnd1")]
 type = -1
 
@@ -67,12 +52,14 @@ shape = SubResource("CylinderShape3D_visn0")
 
 [node name="Obstruction" type="Node" parent="." index="7"]
 script = ExtResource("10_obs0")
-
-[node name="ResourceProvider" type="Node" parent="." index="8"]
-script = ExtResource("8_rspv0")
+dimensions = Vector2i(2, 2)
 
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("SphereShape3D_cx6aj")
+
+[node name="Sprite" parent="." index="13"]
+transform = Transform3D(6, 0, 0, 0, 1.4142137, -2.828427, 0, 1.4142135, 2.8284273, 0, 0.3516159, 0.30216217)
+texture = ExtResource("4_067er")
 
 [node name="HPBar" parent="." index="14"]
 texture = SubResource("GradientTexture1D_u25hc")
@@ -83,22 +70,5 @@ texture = SubResource("GradientTexture1D_cnvxh")
 [node name="HPBarBack" parent="HPBar" index="1"]
 texture = SubResource("GradientTexture1D_5lb30")
 
-[node name="Production" type="Node" parent="." index="16"]
-script = ExtResource("7_prod0")
-train_bar_path = NodePath("../TrainBar")
-
-[node name="FootprintVisualizer" type="Node3D" parent="." index="19"]
+[node name="FootprintVisualizer" type="Node3D" parent="." index="17"]
 script = ExtResource("9_fviz0")
-
-[node name="TrainBar" type="Sprite3D" parent="." index="20"]
-transform = Transform3D(0.333, 0, 0, 0, 5, 0, 0, 0, 1, 0, 0.25, -0.2)
-visible = false
-pixel_size = 0.0001
-render_priority = 8
-texture = SubResource("GradientTexture1D_train_back")
-region_enabled = true
-region_rect = Rect2(2, 0, 0, 0)
-
-[node name="TrainBarFill" type="Sprite3D" parent="TrainBar" index="0"]
-render_priority = 5
-texture = SubResource("GradientTexture1D_train_fill")

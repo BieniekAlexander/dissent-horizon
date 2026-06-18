@@ -286,7 +286,7 @@ func _process(_delta: float) -> void:
 		# NOTE hardcoding pattern preserved from Unit — Irregular uses 3 hframes.
 		# A future SpriteAnimation component should own this.
 		if sprite.hframes > 1:
-			if _attack_duration > 0 and attack_timer == _attack_duration:
+			if false: # TODO revisit, get firing state from weapon
 				sprite.frame = 2
 			elif current_command() is Attack:
 				sprite.frame = 1
@@ -345,9 +345,6 @@ func _update_state() -> void:
 	if defense != null and defense.hp <= 0:
 		_on_death()
 		return
-
-	if attack_timer > 0:
-		attack_timer -= 1
 
 	if command_receiver.is_idle():
 		var aggro_cmd := get_aggro_near_position()

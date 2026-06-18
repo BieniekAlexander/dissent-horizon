@@ -27,8 +27,8 @@
 | Tier   | Colony             | Barracks                    | Production Yard | Skyport |
 | ------ | ------------------ | --------------------------- | --------------- | ------- |
 | Tier 1 | [[#Freight Truck]] | [[#Recruit]]<br>[[#Badger]] |                 |         |
-|        |                    |                             |                 |         |
-|        |                    |                             |                 |         |
+| Tier 2 |                    | [[#Suppressor]]             |                 |         |
+| Tier 3 |                    |                             |                 |         |
 ```mermaid
 flowchart TD
 	Colony --> Plant & Barracks
@@ -49,7 +49,7 @@ flowchart TD
 - Basic infantry unit
 ### Badger
 - Basic anti-armor unit, long range rockets
-### Vagrant
+### Suppressor
 - sonic grenades, stun infantry and clear buildings
 ## Production Yard
 ## Skyport

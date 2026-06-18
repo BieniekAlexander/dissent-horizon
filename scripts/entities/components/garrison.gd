@@ -53,9 +53,6 @@ func tick_bunker_fire(owner: Commandable, target: Entity) -> void:
 	if not bunker:
 		return
 	for unit: Commandable in _garrisoned:
-		if unit.attack_timer > 0:
-			unit.attack_timer -= 1
-			continue
 		if unit.weapon_inventory == null:
 			continue
 		var weapon := unit.weapon_inventory.weapon_for_target(target)

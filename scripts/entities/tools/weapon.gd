@@ -1,3 +1,4 @@
+@tool
 class_name Weapon
 extends Node3D
 
@@ -6,47 +7,64 @@ extends Node3D
 ## defines its reach. Every weapon has one — short-reach "melee" weapons simply
 ## use an AttackRange only slightly larger than the wielder's body shape.
 
-#region Constants
-enum AttackType {
-	BALLISTIC,
-	TOXIN,
-	FIRE,
-	ELECTRICITY,
-	SIEGE,
-	LAZER,
-	EXPLOSIVE
-}
-
-static var damage_multiplier_patterns: Dictionary = {
-	AttackType.BALLISTIC: [
-			Pattern.new(func(c: Commandable): return c.defense != null and c.defense.armor == Defense.Armor.LIGHT, 1),
-			Pattern.new(func(c: Commandable): return c.defense != null and c.defense.armor == Defense.Armor.HEAVY, .1)
-	],
-	AttackType.LAZER: [
-			Pattern.new(func(c: Commandable): return c.defense != null and c.defense.armor == Defense.Armor.LIGHT, .25),
-			Pattern.new(func(c: Commandable): return c.defense != null and c.defense.armor == Defense.Armor.HEAVY, 1)
-	]
-}
+#region Properties
+#region ammo
+@export var split_time: int = 10	## time between attacks
+@export var reload_time: int = 10	## time between full reload
+var _split_timer: int = 0			## time until next attack ready
+var _reload_timer: int = 0			## time until reload ammo
+@export var clip_size: int = 1		## amount of ammo between reloads
+var _ammo: int = 1					## current amount of ammo left, before reload timer finishes
 #endregion
 
-#region Properties
-@export var attack_type: AttackType = AttackType.BALLISTIC
-@export var damage: float = 10
-@export var attack_duration: int = 10
+#region projectile evaluation
+@onready var attack_range_shape: CollisionShape3D = $AttackRange
+@export var projectile_scene: PackedScene		## projectile produced when firing (which may have its own damage evaluation)
+@export var melee_damage: float = 10
+@export var melee_damage_type: Damage.Type = Damage.Type.LEAD
+#endregion
+
+#region attack conditions
 @export var attacks_grounded: bool = true # TODO refactor, make these checks more elegantly
 @export var attacks_aerial: bool = false
-## Projectile scene to launch on fire; null = instant damage applied directly.
-@export var packed_scene: PackedScene
-@onready var attack_range_shape: CollisionShape3D = $AttackRange
-@onready var _visualizer: Node = _find_visualizer()
 #endregion
 
-#region Private helpers
-func _find_visualizer() -> Node:
-	for c in get_children():
-		if c.has_method("show_beam"):
-			return c
-	return null
+#endregion
+
+#region tool
+func _validate_property(property: Dictionary) -> void:
+	match property.name:
+		"projectile": property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
+		"clip_size": property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
+		"melee_damage":
+			if projectile_scene!=null:
+				melee_damage = 0.
+				property.usage = property.usage | PROPERTY_USAGE_READ_ONLY
+			else:
+				property.usage = property.usage & ~PROPERTY_USAGE_READ_ONLY
+		"melee_damage_type":
+			melee_damage_type = Damage.Type.LEAD
+			property.usage = (
+				property.usage & ~PROPERTY_USAGE_READ_ONLY
+				if projectile_scene==null
+				else property.usage | PROPERTY_USAGE_READ_ONLY
+			)
+		"reload_time":
+			if clip_size==1:
+				reload_time = split_time
+				property.usage = property.usage | PROPERTY_USAGE_READ_ONLY
+			else:
+				property.usage = property.usage & ~PROPERTY_USAGE_READ_ONLY
+#endregion
+
+#region lifecycle
+func _physics_process(_delta: float) -> void:
+	_split_timer -= 1
+	_reload_timer -= 1
+	
+	if _reload_timer <= 0:
+		_split_timer = 0
+		_ammo = clip_size
 #endregion
 
 #region Public API
@@ -62,19 +80,25 @@ func can_target(_target: Entity) -> bool:
 		attacks_grounded and _target.movement.mode == Movement.Mode.GROUNDED_DIRECT
 	)
 
+func is_ready() -> bool:
+	return _ammo>0 and _split_timer==0
+	
+
 func fire(a_owner: Commandable, a_target: Entity) -> void:
 	var vet_level: int = a_owner.veterancy.level if a_owner.veterancy != null else 0
-	var effective_damage: float = damage + 0.2 * float(vet_level)
-	if packed_scene != null:
-		var projectile: = packed_scene.instantiate()
+	var effective_damage: float = melee_damage + 0.2 * float(vet_level)
+	if projectile_scene != null:
+		var projectile: Projectile = projectile_scene.instantiate()
 		projectile.initialize(a_owner.map, a_owner.commander)
 		projectile.global_position = global_position
 		projectile.initialize_projectile(a_owner, a_target, effective_damage)
 	else:
 		a_target.receive_damage(
 			a_owner,
-			Pattern.eval(damage_multiplier_patterns[attack_type], a_target) * effective_damage
+			Pattern.eval(Damage.multiplier_patterns[melee_damage_type], a_target) * melee_damage
 		)
-	if _visualizer:
-		_visualizer.show_beam(a_owner, a_target)
+	
+	_ammo -= 1
+	_split_timer = split_time
+	_reload_timer = reload_time
 #endregion

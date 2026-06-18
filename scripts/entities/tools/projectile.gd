@@ -6,9 +6,9 @@ extends Entity
 ## math (launch velocity, per-tick advance, and landing test) is dispatched off this
 ## value — see _initial_velocity / _advance / _has_landed.
 enum Trajectory {
-	BALLISTIC,  ## Gravity-driven arc. The original (and default) implementation.
-	LINEAR,     ## Constant-velocity straight line toward the target; no gravity.
-	LOFTED,     ## High lob arc — NOT YET IMPLEMENTED (see the _*_lofted stubs).
+	BALLISTIC,	## Gravity-driven arc. The original (and default) implementation.
+	LINEAR,		## Constant-velocity straight line toward the target; no gravity.
+	LOFTED,		## High lob arc — NOT YET IMPLEMENTED (see the _*_lofted stubs).
 	HOMING		## Follows its target for some time
 }
 
@@ -26,21 +26,17 @@ const gravity: float = -.005
 ## Sentinel tick_rate ("infinite" period): damage is applied once, on impact, and
 ## never repeats. GDScript ints can't hold INF, so this is a value no realistic
 ## lifespan reaches — the modulo in _tick_post_impact then never fires again.
-const TICK_ONCE: int = 1 << 31
+const INT_MAX: int = 1 << 31
 
+@export var hitscan: bool = false
 @export var trajectory: Trajectory = Trajectory.BALLISTIC
 @export var speed: float = .175
 @export var base_damage: float = 5.0 ## Damage value applied by this projectile, before any modifications
-@export var attack_type: Weapon.AttackType = Weapon.AttackType.BALLISTIC
+@export var damage_type: Damage.Type = Damage.Type.LEAD
 
-@export var pre_impact_lifespan: int = INF ## how long the projectile will last before detonating
+@export var pre_impact_lifespan: int = INT_MAX ## how long the projectile will last before detonating
 @export var post_impact_lifespan: int = 1 ## how long the projectile will last after impact
-
-## Frames between damage applications while POST_IMPACT. The first application is
-## always on impact; with the default (TICK_ONCE) damage is dealt exactly once. A
-## finite value re-applies damage every `tick_rate` frames while the projectile
-## persists, for a lingering field.
-@export var tick_rate: int = TICK_ONCE
+@export var tick_rate: int = INT_MAX ## tick rate at which damage is reapplied POST_IMPACT
 
 var from: Commandable
 var target: Commandable
@@ -66,8 +62,15 @@ var _frames_post_impact: int = 0
 func _ready() -> void:
 	super()
 	_apply_state_visuals()
+	assert(hitscan != (hit_shape!=null), "hitscan weapon has hit shape")
+	curr_physics_pos = global_position
+
+var prev_physics_pos: Vector3
+var curr_physics_pos: Vector3
 
 func _physics_process(_delta: float) -> void:
+	prev_physics_pos = curr_physics_pos
+	curr_physics_pos = global_position
 	match _state:
 		State.IN_FLIGHT:
 			if _has_landed() or _frames_pre_impact>pre_impact_lifespan:
@@ -76,6 +79,11 @@ func _physics_process(_delta: float) -> void:
 				_tick_pre_impact()
 		State.POST_IMPACT:
 			_tick_post_impact()
+
+func _process(_delta: float) -> void:
+	if trajectory==Trajectory.LINEAR: # TODO clean up the LERP visualization
+		var alpha: float = Engine.get_physics_interpolation_fraction()
+		$InFlightSprite.global_position = prev_physics_pos.lerp(curr_physics_pos, alpha)
 #endregion
 
 #region Impact lifecycle
@@ -253,19 +261,19 @@ func _set_visual(sprite: Sprite3D, particles: GPUParticles3D, on: bool) -> void:
 
 func _apply_hit() -> void:
 	if hit_shape == null:
-		return
-	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = hit_shape.shape
-	params.transform = hit_shape.global_transform
-	params.collision_mask = CollisionLayers.Mask.TARGETABLE
-	params.exclude = [self]
-	var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 32)
-	print(hits.size())
-	
-	for hit in hits:
-		var entity: Entity = Entity.entity_from_collider(hit["collider"])
-		var cmd: Commandable = entity as Commandable if entity != null else null
-		if cmd != null and cmd.defense != null:
-			cmd.receive_damage(from, base_damage)
+		target.receive_damage(from, base_damage)
+	else:
+		var params := PhysicsShapeQueryParameters3D.new()
+		params.shape = hit_shape.shape
+		params.transform = hit_shape.global_transform
+		params.collision_mask = CollisionLayers.Mask.TARGETABLE
+		params.exclude = [self]
+		var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 32)
+		
+		for hit in hits:
+			var entity: Entity = Entity.entity_from_collider(hit["collider"])
+			var cmd: Commandable = entity as Commandable if entity != null else null
+			if cmd != null and cmd.defense != null:
+				cmd.receive_damage(from, base_damage)
 
 #endregion

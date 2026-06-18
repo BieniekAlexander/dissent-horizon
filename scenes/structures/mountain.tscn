@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dgt48vlp8toqy"]
 
-[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/n_structure.tscn" id="1_xbjmm"]
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/structures/abstract_structure.tscn" id="1_xbjmm"]
 [ext_resource type="Texture2D" uid="uid://5vx0iccure6l" path="res://assets/mountain.png" id="2_44gaq"]
 
 [node name="Structure" instance=ExtResource("1_xbjmm")]

@@ -97,9 +97,9 @@ func should_move(a_actor: Commandable) -> bool:
 	)
 
 func can_act(a_actor: Commandable) -> bool:
-	if a_actor.attack_timer > 0 or not _target_attackable(message) or message.target == a_actor:
-		return false
 	var weapon := _weapon_for(a_actor)
+	if not weapon.is_ready() or not _target_attackable(message) or message.target == a_actor:
+		return false
 	return (
 		weapon != null
 		and SU.is_in_attack_range(weapon, a_actor, message.target)
@@ -108,8 +108,6 @@ func can_act(a_actor: Commandable) -> bool:
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var weapon := _weapon_for(a_actor)
-	a_actor.attack_timer = weapon.attack_duration
-	a_actor._attack_duration = weapon.attack_duration
 	weapon.fire(a_actor, message.target)
 	# Attacking breaks stealth: force the timed UNSTEALTHED window.
 	if a_actor.stealth != null:

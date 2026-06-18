@@ -107,8 +107,6 @@ enum Attribute { MECH, BIO, UNMANNED }
 @export var attributes_list: Array[Attribute] = []
 var attributes: Set
 
-var attack_timer: int = 0
-
 var xz_position: Vector2:
 	get: return VU.inXZ(global_position)
 	set(value): global_position = VU.fromXZ(value)

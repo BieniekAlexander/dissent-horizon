@@ -1,9 +1,10 @@
-[gd_scene load_steps=10 format=3 uid="uid://b8bcrcywyaj27"]
+[gd_scene load_steps=11 format=3 uid="uid://b8bcrcywyaj27"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_8cs83"]
 [ext_resource type="Texture2D" uid="uid://cu54wxkswu4d3" path="res://assets/entities/irregular.png" id="2_njqvf"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
+[ext_resource type="PackedScene" uid="uid://cm7ixbl5una03" path="res://scenes/projectiles/irregular_bullet.tscn" id="4_y688p"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_invnt"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_skyvu"]
@@ -22,11 +23,7 @@ radius = 0.3
 [node name="Unit2" instance=ExtResource("1_8cs83")]
 
 [node name="MovementBody" parent="." index="2"]
-visible = false
 shape = SubResource("CylinderShape3D_skyvu")
-
-[node name="TargetBody" parent="." index="3"]
-visible = false
 
 [node name="Shape" parent="TargetBody" index="0"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0014038086, 0.00012207031, -0.0008544922)
@@ -41,6 +38,7 @@ script = ExtResource("3_invnt")
 
 [node name="BallisticWeapon" type="Node3D" parent="Loadout" index="0"]
 script = ExtResource("4_wpn00")
+projectile = ExtResource("4_y688p")
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0"]
 shape = SubResource("CylinderShape3D_irreg")
@@ -52,7 +50,6 @@ level = 1
 
 [node name="Selectable" parent="." index="12"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
-visible = false
 
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("SphereShape3D_c8urn")

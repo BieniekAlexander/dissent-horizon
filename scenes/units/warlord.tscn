@@ -55,10 +55,10 @@ script = ExtResource("3_3lfjd")
 
 [node name="Weapon" type="Node3D" parent="Loadout" index="0"]
 script = ExtResource("4_qd6od")
-attack_type = 6
-damage = 50.0
-attack_duration = 15
-packed_scene = ExtResource("5_qd6od")
+split_time = 30
+reload_time = 30
+projectile_scene = ExtResource("5_qd6od")
+melee_damage = 0.0
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/Weapon" index="0"]
 shape = SubResource("CylinderShape3D_techmelee")

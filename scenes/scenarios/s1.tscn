@@ -1,4 +1,4 @@
-[gd_scene load_steps=36 format=4 uid="uid://cff5ag28s3u4b"]
+[gd_scene load_steps=37 format=4 uid="uid://cff5ag28s3u4b"]
 
 [ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_hbnr0"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_yyjyw"]
@@ -24,6 +24,7 @@
 [ext_resource type="Script" uid="uid://h64s6w0eauxg" path="res://scripts/scenario/conditions/condition.gd" id="26_cond"]
 [ext_resource type="Script" uid="uid://galquf6r12o1" path="res://scripts/scenario/conditions/condition_timer.gd" id="27_timer"]
 [ext_resource type="Script" uid="uid://81a8tovoa0ow" path="res://scripts/scenario/conditions/condition_no_pending_triggers.gd" id="28_nopend"]
+[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/structures/n_building.tscn" id="28_tjmpc"]
 [ext_resource type="Script" uid="uid://cmb6jbyknp4a4" path="res://scripts/scenario/conditions/condition_unit_count.gd" id="29_count"]
 [ext_resource type="PackedScene" uid="uid://csyr8p6ug2rpw" path="res://scenes/structures/n_shelter.tscn" id="29_ifeyy"]
 [ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/structures/deposit.tscn" id="30_dep"]
@@ -20161,19 +20162,27 @@ texture = ExtResource("9_m0npt")
 script = ExtResource("9_h54hq")
 
 [node name="DepositM3" parent="." instance=ExtResource("30_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -21.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -20.5)
 
 [node name="Mine3" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -21.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -20.5)
+deposit = NodePath("../DepositM3")
+default_commander_id = 2
+
+[node name="DepositM4" parent="." instance=ExtResource("30_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -18.5)
+
+[node name="Mine4" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -18.5)
 deposit = NodePath("../DepositM3")
 default_commander_id = 2
 
 [node name="Turret1" parent="." instance=ExtResource("7_kk180")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -19)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, -16)
 default_commander_id = 2
 
 [node name="Turret2" parent="." instance=ExtResource("7_kk180")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -23)
 default_commander_id = 2
 
 [node name="Deposit" parent="." instance=ExtResource("30_dep")]
@@ -20242,4 +20251,13 @@ conditions = Array[ExtResource("26_cond")]([SubResource("Cond_nopend"), SubResou
 events = [NodePath("../VictoryMsg"), NodePath("../Win")]
 
 [node name="Structure2" parent="." instance=ExtResource("29_ifeyy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.987976, 0, -21)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -22)
+
+[node name="Structure" parent="." instance=ExtResource("28_tjmpc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.5, 0, -22.5)
+
+[node name="Structure3" parent="." instance=ExtResource("28_tjmpc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.5, 0, -20.5)
+
+[node name="Structure4" parent="." instance=ExtResource("28_tjmpc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.5, 0, -18.5)
