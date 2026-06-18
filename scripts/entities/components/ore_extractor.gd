@@ -37,6 +37,5 @@ static func valid_placement(
 	if not map.grid_coordinates_in_bounds(cell):
 		return false
 	var occupant = map.cell_grid[cell.x][cell.y]
-	print("wow")
 	return occupant is Deposit and (occupant as Deposit).mine == null
 #endregion

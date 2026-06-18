@@ -21,21 +21,18 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 		return unmet_need_to_precondition[unmet]
 	var preview := a_actor.commander.get_build_preview_instance(a_message.tool)
 	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
-	
-	if not Obstruction.valid_placement(
-		a_message,
-		obs.dimensions,
-		obs.allow_uneven
-	):
+
+	# A Mine is an OVERLAY structure: it binds to an existing Deposit instead of
+	# occupying its own cells (see add_structure / _target_footprint, both keyed on
+	# `is Mine`). The generic empty-cell Obstruction check can therefore never pass
+	# for a mine — the deposit already occupies those cells — so a mine is gated on
+	# the deposit check (OreExtractor.valid_placement) INSTEAD, not in addition.
+	if preview is Mine:
+		if not OreExtractor.valid_placement(a_message, obs.dimensions, obs.allow_uneven):
+			return PreconditionFailureCause.INVALID_PLACEMENT
+	elif not Obstruction.valid_placement(a_message, obs.dimensions, obs.allow_uneven):
 		return PreconditionFailureCause.INVALID_PLACEMENT
-	
-	if preview.has_node("OreExtractor") and not OreExtractor.valid_placement(
-		a_message,
-		obs.dimensions,
-		obs.allow_uneven
-	):
-		return PreconditionFailureCause.INVALID_PLACEMENT
-	
+
 	return PreconditionFailureCause.NONE
 #endregion
 
