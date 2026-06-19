@@ -5,7 +5,7 @@ extends Node3D
 ## Editor-only overlay that renders a semi-transparent flat rectangle showing
 ## exactly which terrain grid cells this structure occupies.
 ##
-## Sizing: Map.CELL_SIZE * Obstruction dimensions for this structure type.
+## Sizing: Map.CELL_SIZE * Structure dimensions for this structure type.
 ## Removed from the scene tree at runtime so it carries zero gameplay cost.
 
 #region Lifecycle
@@ -25,7 +25,7 @@ func _rebuild() -> void:
 	if entity == null:
 		return
 
-	var obs: Obstruction = get_parent().find_child("Obstruction")
+	var obs: Structure = get_parent().find_child("Structure")
 	var w: float = obs.dimensions.x * Map.CELL_SIZE
 	var d: float = obs.dimensions.y * Map.CELL_SIZE
 

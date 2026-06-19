@@ -1,3 +1,5 @@
+EventSpawnEntities
+EventCommandPoint
 CollisionShape3D
 Garrison
 Node
@@ -11,5 +13,3 @@ GPUParticles3D
 CPUParticles3D
 EventCommandTarget
 Stealth
-Sprite3D
-Ownership

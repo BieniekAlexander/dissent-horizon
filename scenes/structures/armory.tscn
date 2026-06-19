@@ -11,7 +11,7 @@ type = 4613
 armor = 1
 hp_max = 500.0
 
-[node name="Obstruction" parent="." index="17"]
+[node name="Structure" parent="." index="17"]
 dimensions = Vector2i(2, 2)
 
 [node name="Sprite" parent="." index="0"]

@@ -11,7 +11,7 @@ extends Condition
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioEventManager) -> bool:
+func evaluate(manager: ScenarioTriggerManager) -> bool:
 	var map := manager.map
 	if map == null:
 		return false

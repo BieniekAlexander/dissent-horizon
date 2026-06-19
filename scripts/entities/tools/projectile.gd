@@ -266,7 +266,7 @@ func _apply_hit() -> void:
 		var params := PhysicsShapeQueryParameters3D.new()
 		params.shape = hit_shape.shape
 		params.transform = hit_shape.global_transform
-		params.collision_mask = CollisionLayers.Mask.TARGETABLE
+		params.collision_mask = CollisionLayers.TARGETABLE_ANY
 		params.exclude = [self]
 		var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 32)
 		

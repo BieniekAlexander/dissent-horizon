@@ -35,7 +35,7 @@ enum Priority {
 #endregion
 
 #region Public API
-func to_command(manager: ScenarioEventManager) -> Command:
+func to_command(manager: ScenarioTriggerManager) -> Command:
 	var spawning_id: int = _spawning_commander_id()
 	var candidates: Array = _enemy_candidates(manager, spawning_id)
 	if candidates.is_empty():
@@ -56,11 +56,11 @@ func to_command(manager: ScenarioEventManager) -> Command:
 #region Private helpers
 func _spawning_commander_id() -> int:
 	var p: Node = get_parent()
-	if p is EventSpawnUnits:
-		return (p as EventSpawnUnits).commander_id
+	if p is EventSpawnEntities:
+		return (p as EventSpawnEntities).commander_id
 	return 0
 
-func _enemy_candidates(manager: ScenarioEventManager, spawning_id: int) -> Array:
+func _enemy_candidates(manager: ScenarioTriggerManager, spawning_id: int) -> Array:
 	var group: String = "structure" if type == Type.BASE else "unit"
 	var result: Array = []
 	for node in manager.get_tree().get_nodes_in_group(group):
@@ -72,7 +72,7 @@ func _enemy_candidates(manager: ScenarioEventManager, spawning_id: int) -> Array
 		result.append(c)
 	return result
 
-func _select_cluster(clusters: Array, manager: ScenarioEventManager) -> Array:
+func _select_cluster(clusters: Array, manager: ScenarioTriggerManager) -> Array:
 	if clusters.is_empty():
 		return []
 	var ref_pos: Vector3 = global_position

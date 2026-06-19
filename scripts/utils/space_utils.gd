@@ -50,7 +50,9 @@ static func is_weapon_in_range_at(
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = weapon.attack_range_shape.shape
 	params.transform = from_transform
-	params.collision_mask = CollisionLayers.Mask.TARGETABLE
+	# Only scan the layers this weapon can actually hit, so e.g. a ground-only
+	# weapon never reports an air target as "in range".
+	params.collision_mask = weapon.target_mask
 	if exclude != null:
 		params.exclude = [exclude]
 	var results: Array = world_3d.direct_space_state.intersect_shape(params)
@@ -117,10 +119,10 @@ static func unit_is_close_to_footprint(a_unit: Commandable, a_map: Map, footprin
 	return false
 
 static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distance_squared: float = .001) -> bool:
-	# Engagement proximity: measured against each entity's TARGETABLE shape edge
+	# Engagement proximity: measured against each entity's targetable shape edge
 	# in the direction of the other, so the comparison fits each body's actual
 	# shape (a box reports its edge, not its circumscribed circle).
-	var t := CollisionLayers.Mask.TARGETABLE
+	var t := CollisionLayers.TARGETABLE_ANY
 	var combined_extent: float = an_entity.collision_extent_toward(a_unit.xz_position, t) \
 		+ a_unit.collision_extent_toward(an_entity.xz_position, t)
 	return (

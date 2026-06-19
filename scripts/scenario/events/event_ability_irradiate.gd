@@ -1,4 +1,4 @@
-class_name EventAbilityIrradiate extends ScenarioEvent
+class_name EventAbilityIrradiate extends AbstractEvent
 
 ## Spawns a radiation projectile near the clicked position so it lands immediately.
 ## The source is offset 0.5 units along +X so the short ballistic arc resolves
@@ -8,7 +8,7 @@ const _RADIATION_SCENE: PackedScene = preload("res://scenes/projectiles/radiatio
 const _SOURCE_OFFSET: float = 0.5
 const _COMMANDER_ID: int = 1
 
-func execute(manager: ScenarioEventManager) -> void:
+func execute(manager: ScenarioTriggerManager) -> void:
 	var commander: Commander = manager.get_commander(_COMMANDER_ID)
 	var map: Map = manager.map
 	if commander == null or map == null:

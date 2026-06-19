@@ -38,7 +38,7 @@ shape = SubResource("BoxShape3D_1qdpe")
 [node name="VisionRange" parent="." index="5"]
 shape = SubResource("CylinderShape3D_niu5p")
 
-[node name="Obstruction" parent="." index="7"]
+[node name="Structure" parent="." index="7"]
 dimensions = Vector2i(3, 3)
 
 [node name="Defense" parent="." index="9"]

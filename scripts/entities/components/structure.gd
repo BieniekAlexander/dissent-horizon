@@ -1,6 +1,11 @@
 @tool
-class_name Obstruction
+class_name Structure
 extends Node
+
+## Marks its parent Entity as a structure: a grid-occupying building (as opposed
+## to a mobile unit). Presence of this component is the single discriminator for
+## "is this a structure" — checked via has_node("Structure") rather than reading
+## Entity.Type. Also declares the building's grid footprint.
 
 #region Properties
 ## How many grid cells this entity blocks in each axis (width × depth).

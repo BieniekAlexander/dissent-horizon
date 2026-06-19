@@ -38,7 +38,7 @@ func _in_region(xz: Vector2) -> bool:
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioEventManager) -> bool:
+func evaluate(manager: ScenarioTriggerManager) -> bool:
 	var commander: Commander = manager.get_commander(commander_id)
 	if commander == null:
 		return false
@@ -68,5 +68,6 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 	return false
 
 func reset() -> void:
+	super.reset()
 	_was_inside = false
 #endregion

@@ -1,4 +1,4 @@
-class_name EventAbilityAmbush extends ScenarioEvent
+class_name EventAbilityAmbush extends AbstractEvent
 
 ## Spawns 3 irregulars for the player commander at this event's global_position.
 ## Intended to be instantiated and positioned at runtime by CommanderAbilityAmbush.
@@ -7,7 +7,7 @@ const _IRREGULAR_SCENE: PackedScene = preload("res://scenes/units/irregular.tscn
 const _SPAWN_COUNT: int = 3
 const _COMMANDER_ID: int = 1
 
-func execute(manager: ScenarioEventManager) -> void:
+func execute(manager: ScenarioTriggerManager) -> void:
 	var commander: Commander = manager.get_commander(_COMMANDER_ID)
 	var map: Map = manager.map
 	if commander == null or map == null:

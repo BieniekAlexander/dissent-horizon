@@ -27,9 +27,10 @@ func _on_command_issued(entity: Entity, command_type: Script) -> void:
 	_play(entity, _COMMAND_LINE_TYPES[command_type])
 
 func _play(entity: Entity, line_type: ControlFeedbackSounds.LineType) -> void:
-	if entity.type == Entity.Type.UNDEFINED:
-		return
-	var type_lines: Dictionary = ControlFeedbackSounds.lines.get(entity.type, {})
+	# Fall back to the UNDEFINED entry's lines for an UNDEFINED-typed entity or any
+	# type without its own entry, so there's always feedback to play.
+	var fallback: Dictionary = ControlFeedbackSounds.lines.get(Entity.Type.UNDEFINED, {})
+	var type_lines: Dictionary = ControlFeedbackSounds.lines.get(entity.type, fallback)
 	var clips: Array = type_lines.get(line_type, [])
 	if clips.is_empty():
 		return

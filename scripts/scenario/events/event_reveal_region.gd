@@ -1,6 +1,6 @@
 @tool
 class_name EventRevealRegion
-extends ScenarioEvent
+extends AbstractEvent
 
 #region Properties
 ## World-space radius to reveal (in the same units as Map.CELL_SIZE). The centre
@@ -9,7 +9,7 @@ extends ScenarioEvent
 #endregion
 
 #region Public API
-func execute(manager: ScenarioEventManager) -> void:
+func execute(manager: ScenarioTriggerManager) -> void:
 	var fog := manager.get_fog()
 	if fog == null:
 		return

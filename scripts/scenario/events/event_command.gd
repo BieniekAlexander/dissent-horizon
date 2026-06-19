@@ -12,5 +12,5 @@ extends Node3D
 ## owns its own Command/CommandMessage (they ref-count the message and must never
 ## be shared). Returns null if no valid command can be produced (e.g. no matching
 ## targets exist yet); callers must skip null entries.
-func to_command(_manager: ScenarioEventManager) -> Command:
+func to_command(_manager: ScenarioTriggerManager) -> Command:
 	return null

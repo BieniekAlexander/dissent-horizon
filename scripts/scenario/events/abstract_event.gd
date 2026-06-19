@@ -1,10 +1,10 @@
 @tool
-class_name ScenarioEvent
+class_name AbstractEvent
 extends Node3D
 
 ## Base class for scenario events. Events are positioned Node3Ds: an event's
 ## global_position is its anchor (e.g. EventSpawnUnits spawns at that point), and
-## child nodes (see EventCommandPoint) describe follow-up behaviour. A Trigger
+## child nodes (see EventCommandPoint) describe follow-up behaviour. A GlobalTrigger
 ## holds references to the event nodes it fires when its conditions are met.
 ##
 ## Subclasses override execute() for runtime behaviour and, optionally,
@@ -21,8 +21,8 @@ var _gizmo_material: StandardMaterial3D
 #endregion
 
 #region Public API
-## Called when an owning Trigger fires. Implement effects in subclasses.
-func execute(_manager: ScenarioEventManager) -> void:
+## Called when an owning GlobalTrigger fires. Implement effects in subclasses.
+func execute(_manager: ScenarioTriggerManager) -> void:
 	pass
 #endregion
 

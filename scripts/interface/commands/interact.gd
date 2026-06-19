@@ -57,7 +57,7 @@ static func _target_available(target: Entity) -> bool:
 ## position would spawn it inside the target structure.
 ##
 ## Any other scene is added to the active scene anchored at the target; a
-## ScenarioEvent root additionally has execute() called and is then freed (a
+## Event root additionally has execute() called and is then freed (a
 ## one-shot performance), while plain scenes are left to run their own _ready.
 func _perform_event(a_actor: Commandable, interaction: Interaction) -> void:
 	if interaction.event == null:
@@ -70,7 +70,7 @@ func _perform_event(a_actor: Commandable, interaction: Interaction) -> void:
 
 	# A spawned Entity routes through the Map: add_entity snaps units to the
 	# nearest navmesh point and assigns the commander. (Structures with an
-	# Obstruction take the grid-placement path inside add_entities.)
+	# Structure take the grid-placement path inside add_entities.)
 	var map: Map = message.map if message.map != null else a_actor.map
 	if instance is Entity and map != null:
 		map.add_entity(instance as Entity, anchor, a_actor.commander)
@@ -84,7 +84,7 @@ func _perform_event(a_actor: Commandable, interaction: Interaction) -> void:
 	if instance is Node3D and is_instance_valid(message.target):
 		(instance as Node3D).global_position = (message.target as Node3D).global_position
 	if instance.has_method("execute"):
-		var manager := scene_root.find_child("ScenarioEventManager") as ScenarioEventManager
+		var manager := scene_root.find_child("ScenarioTriggerManager") as ScenarioTriggerManager
 		instance.execute(manager)
 		instance.queue_free()
 #endregion

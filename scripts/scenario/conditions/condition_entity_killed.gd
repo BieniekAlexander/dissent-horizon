@@ -13,7 +13,7 @@ var _resolved: bool = false
 #endregion
 
 #region Private helpers
-func _resolve(manager: ScenarioEventManager) -> void:
+func _resolve(manager: ScenarioTriggerManager) -> void:
 	if _resolved:
 		return
 	_resolved = true
@@ -26,13 +26,14 @@ func _resolve(manager: ScenarioEventManager) -> void:
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioEventManager) -> bool:
+func evaluate(manager: ScenarioTriggerManager) -> bool:
 	_resolve(manager)
 	if _entity_ref == null:
 		return false
 	return not is_instance_valid(_entity_ref) or not _entity_ref.is_inside_tree()
 
 func reset() -> void:
+	super.reset()
 	_entity_ref = null
 	_resolved = false
 #endregion

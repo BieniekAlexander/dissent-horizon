@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://dcmdbl3j4t1k2" path="res://scenes/commandable.tscn" id="1_cmnd1"]
 [ext_resource type="Texture2D" uid="uid://cgdrbpxqo62uf" path="res://assets/structure.png" id="4_067er"]
 [ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="9_fviz0"]
-[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/obstruction.gd" id="10_obs0"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="10_obs0"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
 
@@ -50,7 +50,7 @@ shape = SubResource("CylinderShape3D_aggro0")
 [node name="VisionRange" parent="." index="5"]
 shape = SubResource("CylinderShape3D_visn0")
 
-[node name="Obstruction" type="Node" parent="." index="7"]
+[node name="Structure" type="Node" parent="." index="7"]
 script = ExtResource("10_obs0")
 dimensions = Vector2i(2, 2)
 

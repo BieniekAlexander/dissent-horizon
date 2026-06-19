@@ -1,6 +1,6 @@
 @tool
 class_name EventGrantResources
-extends ScenarioEvent
+extends AbstractEvent
 
 #region Properties
 @export var commander_id: int = 1
@@ -9,7 +9,7 @@ extends ScenarioEvent
 #endregion
 
 #region Public API
-func execute(manager: ScenarioEventManager) -> void:
+func execute(manager: ScenarioTriggerManager) -> void:
 	var commander := manager.get_commander(commander_id)
 	if commander == null:
 		return

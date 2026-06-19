@@ -44,7 +44,7 @@ func _ready() -> void:
 	# Frame the player's starting position: buildings if any, else units.
 	_center_player_camera_on_starting_entities()
 
-	var event_manager := get_node_or_null("ScenarioEventManager") as ScenarioEventManager
+	var event_manager := get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
 	if event_manager != null:
 		event_manager.message_requested.connect(_on_scenario_message)
 		event_manager.game_over.connect(_on_game_over)
@@ -93,13 +93,13 @@ func _player_owned_positions_xz(player: Commander, group: String) -> Array[Vecto
 	return result
 
 
-## Called when a ScenarioEventManager child emits message_requested.
+## Called when a ScenarioTriggerManager child emits message_requested.
 ## Connect the HUD notification UI here once one exists.
 func _on_scenario_message(text: String) -> void:
 	print("[Scenario] ", text)
 
 
-## Called when a ScenarioEventManager child emits game_over.
+## Called when a ScenarioTriggerManager child emits game_over.
 func _on_game_over(won: bool) -> void:
 	print("[Scenario] Game over — player %s" % ("wins" if won else "loses"))
 	# TODO: show win/lose screen and pause or return to menu.

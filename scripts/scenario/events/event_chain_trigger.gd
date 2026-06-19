@@ -1,18 +1,20 @@
 @tool
 class_name EventChainTrigger
-extends ScenarioEvent
+extends AbstractEvent
 
 #region Properties
-## The trigger to enable or disable when this event fires.
-@export var target_trigger: Trigger
-## True to enable the target trigger; false to disable it.
+## The GlobalTrigger to enable or disable when this event fires.
+@export var target_event: GlobalTrigger
+## True to enable the target event; false to disable it.
 @export var enable: bool = true
 #endregion
 
 #region Public API
-func execute(_manager: ScenarioEventManager) -> void:
-	if target_trigger == null:
-		push_warning("EventChainTrigger: target_trigger is not set")
+func execute(manager: ScenarioTriggerManager) -> void:
+	if target_event == null:
+		push_warning("EventChainTrigger: target_event is not set")
 		return
-	target_trigger.enabled = enable
+	# set_active arms a re-enabled trigger / disarms a disabled one (push model), rather
+	# than just flipping a flag the old poll loop would have noticed.
+	target_event.set_active(enable, manager)
 #endregion

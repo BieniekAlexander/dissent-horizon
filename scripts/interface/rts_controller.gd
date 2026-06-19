@@ -67,8 +67,8 @@ var _pending_ability: CommanderAbility = null
 ## Horizontal ability bar added to this CanvasLayer at runtime.
 var _ability_bar: HBoxContainer = null
 
-@onready var _event_manager: ScenarioEventManager = \
-	get_tree().current_scene.find_child("ScenarioEventManager") as ScenarioEventManager
+@onready var _event_manager: ScenarioTriggerManager = \
+	get_tree().current_scene.find_child("ScenarioTriggerManager") as ScenarioTriggerManager
 
 ## While a Build command is armed with a chosen Tool, we show a translucent
 ## "ghost" of the structure under the cursor, snapped to the cell it would
@@ -588,7 +588,7 @@ func _update_build_preview(is_invalid_placement: bool) -> void:
 	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
 	var commander: Commander = lead.commander if lead != null else null
 	var source: Node = commander.get_build_preview_instance(command_message.tool) if commander != null else null
-	var obs := source.get_node_or_null("Obstruction") as Obstruction if source != null else null
+	var obs := source.get_node_or_null("Structure") as Structure if source != null else null
 	var dims := obs.dimensions if obs != null else Vector2i.ONE
 	var origin := cell - Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
 	var centroid := Vector3.ZERO

@@ -1,7 +1,7 @@
 class_name CommanderAbility extends RefCounted
 
 ## A commander-level ability the player can activate at a chosen map position.
-## Wraps a ScenarioEvent (created fresh on each activation) with a cooldown timer.
+## Wraps an AbstractEvent (created fresh on each activation) with a cooldown timer.
 ## Subclasses override _make_event() to return the specific event to execute.
 
 var ability_name: String = ""
@@ -25,10 +25,10 @@ func tick(delta: float) -> void:
 		_cooldown_remaining = maxf(0.0, _cooldown_remaining - delta)
 
 ## Execute the ability at the given world position. Starts the cooldown on success.
-func activate(position: Vector3, manager: ScenarioEventManager) -> void:
+func activate(position: Vector3, manager: ScenarioTriggerManager) -> void:
 	if not is_ready():
 		return
-	var event: ScenarioEvent = _make_event()
+	var event: AbstractEvent = _make_event()
 	if event == null:
 		return
 	manager.add_child(event)
@@ -37,6 +37,6 @@ func activate(position: Vector3, manager: ScenarioEventManager) -> void:
 	event.queue_free()
 	_cooldown_remaining = cooldown_duration
 
-## Return a fresh ScenarioEvent instance for this ability. Override in subclasses.
-func _make_event() -> ScenarioEvent:
+## Return a fresh AbstractEvent instance for this ability. Override in subclasses.
+func _make_event() -> AbstractEvent:
 	return null

@@ -53,7 +53,7 @@ shape = SubResource("CylinderShape3D_brsut")
 visible = false
 shape = SubResource("CylinderShape3D_vision")
 
-[node name="Obstruction" parent="." index="7"]
+[node name="Structure" parent="." index="7"]
 dimensions = Vector2i(1, 1)
 
 [node name="Defense" parent="." index="8"]
@@ -79,8 +79,7 @@ reload_time = 90
 clip_size = 3
 projectile_scene = ExtResource("4_hro24")
 melee_damage = 0.0
-attacks_grounded = false
-attacks_aerial = true
+target_mask = 4
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/MissileLauncher" index="0"]
 shape = SubResource("CylinderShape3D_44d7s")

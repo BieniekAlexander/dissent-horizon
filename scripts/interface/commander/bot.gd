@@ -52,9 +52,18 @@ func initialize(a_map: Map, a_scenario: Scenario) -> void:
 func _owned_commandables() -> Array:
 	return get_children().filter(func(n): return n is Commandable)
 
+# A structure carries a "Structure" component (declaring its grid footprint); a
+# mobile unit does not. Presence of that child node — NOT the Entity.Type — is the
+# bot's unit/structure discriminator, so new scenes classify correctly without any
+# type-table edits.
 func _owned_units() -> Array:
 	return _owned_commandables().filter(
-		func(c: Commandable): return c.is_in_group("unit")
+		func(c: Commandable): return not c.has_node("Structure")
+	)
+
+func _owned_structures() -> Array:
+	return _owned_commandables().filter(
+		func(c: Commandable): return c.has_node("Structure")
 	)
 
 # Gathers all commandables owned by an arbitrary list of commanders using
@@ -94,8 +103,10 @@ func population_is_strained() -> bool:
 ## The number of owned Mines that are fully built.  Serves as a relative income
 ## index — partially-built mines are excluded because they don't yet extract ore.
 func mine_count() -> int:
-	return structure_type_map[Entity.Type.STRUCTURE_MINE].get_values().filter(
-		func(s: Commandable): return s.is_built
+	# A mine is a built structure that extracts ore — identified by its OreExtractor
+	# component rather than by Entity.Type.
+	return _owned_structures().filter(
+		func(s: Commandable): return s.has_node("OreExtractor") and s.is_built
 	).size()
 
 
@@ -118,9 +129,23 @@ func get_units() -> Array:
 	return _owned_units()
 
 
-## All units of a specific type (e.g. only Vanguards, only Irregulars).
+## The scene resource path that [type] is produced from, or "" when no build/train
+## tool registers it. Lets the bot match owned instances to a catalog type by their
+## scene (a node property) instead of reading each instance's Entity.Type.
+func _scene_path_for_type(type) -> String:
+	for tool: Tool in Tool.command_tool_map.values():
+		if tool.type == type and tool.packed_scene != null:
+			return tool.packed_scene.resource_path
+	return ""
+
+
+## All units of a specific type (e.g. only Vanguards, only Irregulars). Matches by
+## the unit's source scene rather than by inspecting its Entity.Type.
 func get_units_of_type(type: Entity.Type) -> Array:
-	return _owned_units().filter(func(c: Commandable): return c.type == type)
+	var scene_path := _scene_path_for_type(type)
+	if scene_path == "":
+		return []
+	return _owned_units().filter(func(c: Commandable): return c.scene_file_path == scene_path)
 
 
 ## All structures of a specific type.  Wraps structure_type_map for
@@ -133,12 +158,9 @@ func get_structures_of_type(type: Entity.Type) -> Array:
 ## can currently train units. Under-construction structures are excluded because
 ## production.tick() is gated on is_built and their queues won't advance.
 func get_production_structures() -> Array:
-	var result: Array = []
-	for t in Entity.Type.values():
-		for s: Commandable in get_structures_of_type(t):
-			if s.production != null and s.is_built:
-				result.append(s)
-	return result
+	return _owned_structures().filter(
+		func(s: Commandable): return s.production != null and s.is_built
+	)
 
 
 ## Production-capable structures whose training queue is currently empty.
@@ -159,13 +181,13 @@ func army_size() -> int:
 	return _owned_units().size()
 
 
-## Maps Entity.Type → unit count for each type the bot owns.
-## Use this to gauge army composition and spot imbalances
-## (e.g. too many Technicians, zero Irregulars).
+## Maps unit scene path → count for each kind of unit the bot owns. Keyed by the
+## source scene (a node property) rather than Entity.Type, so it gauges army
+## composition without inspecting each unit's type.
 func army_type_counts() -> Dictionary:
 	var counts: Dictionary = {}
 	for c: Commandable in _owned_units():
-		counts[c.type] = counts.get(c.type, 0) + 1
+		counts[c.scene_file_path] = counts.get(c.scene_file_path, 0) + 1
 	return counts
 
 
@@ -206,14 +228,14 @@ func get_all_enemies() -> Array:
 ## Only the mobile units owned by enemy commanders — the things that attack.
 func get_enemy_units() -> Array:
 	return get_all_enemies().filter(
-		func(c: Commandable): return c.is_in_group("unit")
+		func(c: Commandable): return not c.has_node("Structure")
 	)
 
 
 ## Only the structures owned by enemy commanders — the things to destroy.
 func get_enemy_structures() -> Array:
 	return get_all_enemies().filter(
-		func(c: Commandable): return c.is_in_group("structure")
+		func(c: Commandable): return c.has_node("Structure")
 	)
 
 
@@ -223,7 +245,7 @@ func get_enemies_near(position: Vector3, radius: float) -> Array:
 	if map == null:
 		return []
 	return SU.get_nearby_entities(
-		map.get_world_3d(), position, radius, CollisionLayers.Mask.TARGETABLE
+		map.get_world_3d(), position, radius, CollisionLayers.TARGETABLE_ANY
 	).filter(
 		func(e): return e is Commandable and e.commander_id != id
 	)
@@ -239,12 +261,11 @@ func get_enemies_threatening_base(threat_radius: float = 30.0) -> Array:
 		return []
 	var seen: Dictionary = {}
 	var threats: Array = []
-	for t in Entity.Type.values():
-		for s: Commandable in get_structures_of_type(t):
-			for enemy: Commandable in get_enemies_near(s.global_position, threat_radius):
-				if not seen.has(enemy):
-					seen[enemy] = true
-					threats.append(enemy)
+	for s: Commandable in _owned_structures():
+		for enemy: Commandable in get_enemies_near(s.global_position, threat_radius):
+			if not seen.has(enemy):
+				seen[enemy] = true
+				threats.append(enemy)
 	return threats
 
 
@@ -260,13 +281,12 @@ func is_base_under_threat(threat_radius: float = 30.0) -> bool:
 func most_threatened_structure(threat_radius: float = 30.0) -> Commandable:
 	var worst: Commandable = null
 	var worst_frac := 1.0
-	for t in Entity.Type.values():
-		for s: Commandable in get_structures_of_type(t):
-			if not get_enemies_near(s.global_position, threat_radius).is_empty():
-				var frac := s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
-				if frac < worst_frac:
-					worst_frac = frac
-					worst = s
+	for s: Commandable in _owned_structures():
+		if not get_enemies_near(s.global_position, threat_radius).is_empty():
+			var frac := s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
+			if frac < worst_frac:
+				worst_frac = frac
+				worst = s
 	return worst
 
 
@@ -305,9 +325,7 @@ func army_centroid() -> Vector3:
 ## anchor.  Returns Vector3.ZERO when no structures exist.
 ## NOTE: includes unbuilt structures (they occupy real space and anchor the base).
 func base_centroid() -> Vector3:
-	var all_s: Array = []
-	for t in Entity.Type.values():
-		all_s.append_array(get_structures_of_type(t))
+	var all_s: Array = _owned_structures()
 	if all_s.is_empty():
 		return Vector3.ZERO
 	var sum := Vector3.ZERO
@@ -341,8 +359,9 @@ func get_neutral_mines() -> Array:
 	if neutrals.is_empty():
 		return []
 	var neutral: Commander = neutrals.front()
+	# A mine is identified by its OreExtractor component, not by Entity.Type.
 	return neutral.get_children().filter(
-		func(n): return n is Commandable and n.type == Entity.Type.STRUCTURE_MINE
+		func(n): return n is Commandable and n.has_node("OreExtractor")
 	)
 
 
@@ -359,6 +378,29 @@ func nearest_neutral_mine(from_position: Vector3) -> Commandable:
 
 
 # ─── TECHNOLOGY / BUILD ORDER ───────────────────────────────────────────────
+
+## The build/train preview instance for [type], or null when no tool produces it
+## (e.g. an ability type). Lets the bot classify a catalog type by its SCENE's
+## components instead of by the Entity.Type value. Reuses Commander's cached,
+## out-of-tree preview instances.
+func _preview_for_type(type) -> Node:
+	for tool: Tool in Tool.command_tool_map.values():
+		if tool.type == type:
+			return get_build_preview_instance(tool)
+	return null
+
+## True when [type] builds a structure — detected by a "Structure" component on
+## its preview scene rather than by reading the Entity.Type value.
+func _type_is_structure(type) -> bool:
+	var preview := _preview_for_type(type)
+	return preview != null and preview.has_node("Structure")
+
+## True when [type] trains a mobile unit — a producible scene with no "Structure"
+## component. Excludes ability types (no producing tool, so no preview).
+func _type_is_unit(type) -> bool:
+	var preview := _preview_for_type(type)
+	return preview != null and not preview.has_node("Structure")
+
 
 ## True when all prerequisite structures for [type] have been built,
 ## regardless of whether we can currently afford to produce it.
@@ -377,20 +419,18 @@ func unlocked_types() -> Array:
 ## represents a potential tech-tree expansion the bot could invest in.
 func locked_structure_types() -> Array:
 	return technology_mapping.keys().filter(
-		func(t: Entity.Type):
-			# Structure types occupy the 0x1200..0x12FF range per Entity.Type.
-			return (t & 0xFF00) == 0x1200 and not has_tech_for(t)
+		func(t): return _type_is_structure(t) and not has_tech_for(t)
 	)
 
 
 ## The most advanced unit type (highest Entity.Type value) currently
-## unlocked for training.  Higher values map to later-tier units per the
-## hex-encoded naming convention.  Returns UNDEFINED when no units are
+## unlocked for training.  Unit-vs-structure is decided by the type's scene (no
+## "Structure" component); "most advanced" still ranks by the enum value, which is
+## the tech catalog's intended ordering.  Returns UNDEFINED when no units are
 ## available yet.
 func highest_unlocked_unit_type() -> Entity.Type:
-	# Unit types occupy the 0x1100..0x11FF range.
 	var unit_types := unlocked_types().filter(
-		func(t: Entity.Type): return (t & 0xFF00) == 0x1100
+		func(t): return _type_is_unit(t)
 	)
 	if unit_types.is_empty():
 		return Entity.Type.UNDEFINED
@@ -413,12 +453,14 @@ func seconds_elapsed() -> float:
 ## (a proxy for tech-tree depth), with elapsed time as a backstop so
 ## the bot can't stay "early" indefinitely when base-building is slow.
 func game_phase() -> int:
-	var unique_struct_types := 0
-	for t in Entity.Type.values():
-		# Only count fully-built structures — a structure under construction doesn't
-		# yet contribute tech or production capacity that marks a phase transition.
-		if get_structures_of_type(t).any(func(s: Commandable): return s.is_built):
-			unique_struct_types += 1
+	# Distinct KINDS of built structure, keyed by scene rather than Entity.Type — a
+	# proxy for tech-tree depth. Only fully-built structures count; one under
+	# construction doesn't yet contribute tech or production capacity.
+	var kinds: Dictionary = {}
+	for s: Commandable in _owned_structures():
+		if s.is_built:
+			kinds[s.scene_file_path] = true
+	var unique_struct_types := kinds.size()
 
 	var elapsed := seconds_elapsed()
 	if unique_struct_types >= 4 or elapsed > 180.0:

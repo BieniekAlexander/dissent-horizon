@@ -5,12 +5,18 @@ extends EditorScript
 #region Constants
 enum Mask {
 	MOVEMENT_OBSTRUCTION = 1 << 0,  ## Units only. Governs physical push-back during move_and_slide.
-	TARGETABLE           = 1 << 1,  ## All commandables (units + structures). Queried by aggro, vision, projectiles, AoE, and bot scans.
-	STRUCTURE_BLOCKER    = 1 << 2,  ## Structures only. Queried by Attack line-of-fire raycasts.
-	STEALTH              = 1 << 3,  ## Set at runtime by Stealth component. Queried by detection-range checks.
+	TARGETABLE_GROUND    = 1 << 1,  ## Ground units + all structures. Queried by aggro, vision, projectiles, AoE, and bot scans.
+	TARGETABLE_AIR       = 1 << 2,  ## Aerial / hovering units. The anti-air counterpart of TARGETABLE_GROUND (kept adjacent to it).
+	STRUCTURE_BLOCKER    = 1 << 3,  ## Structures only. Queried by Attack line-of-fire raycasts.
+	STEALTH              = 1 << 4,  ## Set at runtime by Stealth component. Queried by detection-range checks.
 	TERRAIN              = 1 << 7,  ## Terrain StaticBody. Queried by ground-click raycasts.
 	SELECTION            = 1 << 8,  ## Selectable Area3D. Queried by click-to-select raycasts.
 }
+
+## Both targetable layers OR'd together — the "find every attackable entity" mask
+## for broad scans (aggro, vision, AoE, proximity, bot scans). Which of these layers
+## a specific weapon may actually hit is filtered separately via Weapon.target_mask.
+const TARGETABLE_ANY: int = Mask.TARGETABLE_GROUND | Mask.TARGETABLE_AIR
 #endregion
 
 #region Lifecycle

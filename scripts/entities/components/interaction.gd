@@ -24,7 +24,7 @@ enum Type {
 
 ## Scene performed when the interaction completes. A spawned Entity is placed via
 ## Map.add_entity (nearest navmesh point, under the actor's commander); other
-## scenes are added to the active scene and, if a ScenarioEvent, executed.
+## scenes are added to the active scene and, if a Event, executed.
 @export var event: PackedScene
 
 ## Seconds the unit must remain interacting (in range) before completion.

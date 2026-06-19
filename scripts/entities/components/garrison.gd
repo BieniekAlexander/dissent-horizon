@@ -121,12 +121,12 @@ func _adopt_commander_if_neutral(unit: Commandable) -> void:
 
 ## Restore all garrisoned units to the scene tree.
 ## Routes to the appropriate placement strategy depending on whether the
-## garrison owner occupies the terrain grid (has an Obstruction component) or
+## garrison owner occupies the terrain grid (has an Structure component) or
 ## is itself a non-grid entity such as a unit.
 func evacuate(a_map: Map) -> void:
 	var owner_cmd := get_parent() as Commandable
 
-	if owner_cmd != null and owner_cmd.has_node("Obstruction"):
+	if owner_cmd != null and owner_cmd.has_node("Structure"):
 		_evacuate_from_structure(owner_cmd, a_map)
 	else:
 		_evacuate_from_unit(owner_cmd, a_map)

@@ -19,7 +19,7 @@ var _gizmo: MeshInstance3D
 #endregion
 
 #region Public API
-func to_command(manager: ScenarioEventManager) -> Command:
+func to_command(manager: ScenarioTriggerManager) -> Command:
 	var nav_map := manager.map.nav_region.get_navigation_map()
 	var dest := NavigationServer3D.map_get_closest_point(nav_map, global_position)
 	var msg := CommandMessage.new(manager.map, null, null, dest)

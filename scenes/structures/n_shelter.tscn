@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b7noqplt4gdch" path="res://scripts/entities/structures/shelter_structure.gd" id="1_shstr"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_own"]
-[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/obstruction.gd" id="3_obs"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="3_obs"]
 [ext_resource type="Script" uid="uid://dlstea8ufglor" path="res://scripts/entities/components/shelter.gd" id="4_shel"]
 [ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="5_sel"]
 [ext_resource type="Texture2D" uid="uid://bm3tdpihnqyb" path="res://assets/entities/compound.png" id="6_spr"]
@@ -34,7 +34,7 @@ shape = SubResource("BoxShape3D_target")
 [node name="Ownership" type="Node" parent="."]
 script = ExtResource("2_own")
 
-[node name="Obstruction" type="Node" parent="."]
+[node name="Structure" type="Node" parent="."]
 script = ExtResource("3_obs")
 dimensions = Vector2i(3, 3)
 

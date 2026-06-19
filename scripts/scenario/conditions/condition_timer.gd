@@ -17,7 +17,7 @@ var _start_frame: int = -1
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioEventManager) -> bool:
+func evaluate(manager: ScenarioTriggerManager) -> bool:
 	var target_frames := TimeUtils.get_frames_from_seconds(seconds)
 	if mode == Mode.ELAPSED_SINCE_START:
 		return manager.scenario.frame >= target_frames
@@ -26,5 +26,6 @@ func evaluate(manager: ScenarioEventManager) -> bool:
 	return (manager.scenario.frame - _start_frame) >= target_frames
 
 func reset() -> void:
+	super.reset()
 	_start_frame = -1
 #endregion

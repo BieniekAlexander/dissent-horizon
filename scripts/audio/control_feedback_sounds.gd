@@ -11,6 +11,14 @@ const _ROAR := preload("res://assets/audio/didgeridoo-monster-roar.mp3")
 const _HOOT := preload("res://assets/audio/hoot.wav")
 
 static var lines: Dictionary = {
+	# Fallback voice lines, played for any entity whose type has no entry of its own
+	# (and for UNDEFINED-typed entities). _validate() skips UNDEFINED, so this entry
+	# is optional to the validation but lets the player always have something to play.
+	Entity.Type.UNDEFINED: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
 	Entity.Type.UNIT_TECHNICIAN: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],

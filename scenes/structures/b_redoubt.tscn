@@ -7,7 +7,7 @@
 [node name="Structure" instance=ExtResource("1_emt25")]
 type = 8704
 
-[node name="Obstruction" parent="." index="7"]
+[node name="Structure" parent="." index="7"]
 dimensions = Vector2i(3, 3)
 
 [node name="Defense" parent="." index="9"]

@@ -134,7 +134,7 @@ func get_aggro_near_position() -> Command:
 	var aggro_query := PhysicsShapeQueryParameters3D.new()
 	aggro_query.shape = aggro_range_shape.shape
 	aggro_query.transform = aggro_range_shape.global_transform
-	aggro_query.collision_mask = CollisionLayers.Mask.TARGETABLE
+	aggro_query.collision_mask = CollisionLayers.TARGETABLE_ANY
 	aggro_query.exclude = [target_body.get_rid()] if target_body != null else []
 
 	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
@@ -171,6 +171,7 @@ func receive_damage(from: Commandable, amount: float) -> void:
 	# Being attacked breaks stealth: force the timed UNSTEALTHED window.
 	if stealth != null:
 		stealth.unstealth()
+	_fire_entity_occurrence(EntityOccurrence.ON_RECEIVE_DAMAGE)
 	command_receiver.receive_damage(from, amount)
 	
 	# retaliation logic
@@ -191,7 +192,7 @@ func _get_vision_range_attack(attacker: Commandable) -> Command:
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = vision_range_shape.shape
 	params.transform = vision_range_shape.global_transform
-	params.collision_mask = CollisionLayers.Mask.TARGETABLE
+	params.collision_mask = CollisionLayers.TARGETABLE_ANY
 	params.exclude = [target_body.get_rid()] if target_body != null else []
 	var potential_targets: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
 	for hit in potential_targets:

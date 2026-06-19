@@ -12,7 +12,7 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioEventManager) -> bool:
+func evaluate(manager: ScenarioTriggerManager) -> bool:
 	var commander: Commander = manager.get_commander(commander_id)
 	if commander == null:
 		return false

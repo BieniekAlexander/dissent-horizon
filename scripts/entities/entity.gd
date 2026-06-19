@@ -39,7 +39,40 @@ const TEAM_COLOR_MAP: Dictionary = {
 	3: Color(.1, .6, .1),
 	4: Color(1, .2, .2)
 }
+#endregion
 
+#region Lifecycle occurrences
+## Lifecycle moments that can happen to an entity — the "occurrence" (condition-side)
+## inputs that an EntityTrigger reacts to, distinct from an Event (the world-update it
+## fires). Used to key `entity_triggers` and as the payload of the `entity_occurrence`
+## signal. Currently only ON_DEATH and ON_RECEIVE_DAMAGE are wired (see _on_death /
+## Commandable.receive_damage); the stealth occurrences are enumerated for future use
+## (they'd emit from Stealth's state transitions).
+enum EntityOccurrence {
+	ON_DEATH = 0,
+	ON_RECEIVE_DAMAGE = 1,
+	ON_ENTER_STEALTH = 2,
+	ON_EXIT_STEALTH = 3
+}
+
+## Per-entity Triggers. Each EntityTrigger pairs an EntityOccurrence (its activation) with
+## an AbstractEvent scene; when that occurrence happens the scene is run via
+## ScenarioTriggerManager.dispatch_event_scene() at the location its SpawnLocator picks
+## (by default this entity's position), with this entity as the source. Order doesn't
+## matter; the first entry matching the occurrence fires.
+@export var entity_triggers: Array[EntityTrigger] = []
+
+## Emitted whenever a lifecycle occurrence happens on this entity, regardless of whether
+## a reaction scene is configured — so other systems (audio, score, AI) can listen.
+signal entity_occurrence(occurrence: EntityOccurrence, source: Entity)
+
+## Cached ScenarioTriggerManager (the reaction dispatcher), resolved lazily from the
+## current scene. Null when the scene has no manager — reactions are then skipped,
+## though `entity_occurrence` still fires.
+var _trigger_manager: ScenarioTriggerManager
+#endregion
+
+#region Identity
 ## Ownership component — owns the commander relationship. Resolved at _ready
 ## time (scene composition: see unit.tscn, structure.tscn). Entities without
 ## an Ownership child (e.g. star.tscn) fall back to the private _commander
@@ -91,8 +124,9 @@ var commander_id: int:
 ## are never selectable (projectile, star, hit_box). Callers gate on `!= null`.
 @onready var selectable: Selectable = get_node_or_null("Selectable") as Selectable
 
-## Child StaticBody3D carrying the TARGETABLE layer (plus STRUCTURE_BLOCKER for
-## structures, set in _ready). The root CharacterBody3D stays off those layers so
+## Child StaticBody3D carrying the targetable layer(s) — TARGETABLE_GROUND and/or
+## TARGETABLE_AIR (plus STRUCTURE_BLOCKER for structures), set from components in
+## _apply_targetable_layers(). The root CharacterBody3D stays off those layers so
 ## moving units never collide with building bodies; aggro / vision / projectile /
 ## AoE / line-of-fire queries hit this child. Resolve a hit collider back to the
 ## owning Entity with Entity.entity_from_collider(). Optional — null for entities
@@ -127,8 +161,8 @@ func _resolve_collider() -> CollisionShape3D:
 		node = get_node_or_null("MovementBody")
 	return node as CollisionShape3D
 
-## Resolve a physics-query collider to its owning Entity. Because TARGETABLE /
-## STRUCTURE_BLOCKER now live on the child TargetBody, query hits are that child
+## Resolve a physics-query collider to its owning Entity. Because the targetable
+## layers / STRUCTURE_BLOCKER now live on the child TargetBody, query hits are that child
 ## — walk up to its Entity parent. Colliders that are themselves Entities (any
 ## other layer) pass straight through. Returns null for non-entity colliders.
 static func entity_from_collider(node: Object) -> Entity:
@@ -218,6 +252,40 @@ func refresh_movement_collision() -> void:
 ## placed structure). Units and unplaced entities are never grid obstructions.
 func is_grid_obstruction() -> bool:
 	return map != null and map.structure_cell_map.has(self)
+
+## Set the TargetBody's targetable collision layers from this entity's components —
+## the single place that decides what a weapon can lock onto:
+##   - a structure (has a Structure component) is a ground target, and also blocks
+##     line-of-fire, so it carries STRUCTURE_BLOCKER too;
+##   - a unit (has a Movement component) is an air target when flying/hovering,
+##     otherwise a ground target;
+##   - an entity with neither component exposes no targetable layer (not attackable).
+func _apply_targetable_layers() -> void:
+	if target_body == null:
+		return
+	# Clear the bits we own here, then recompute, leaving any unrelated bits intact.
+	var layers: int = target_body.collision_layer & ~(
+		CollisionLayers.Mask.TARGETABLE_GROUND
+		| CollisionLayers.Mask.TARGETABLE_AIR
+		| CollisionLayers.Mask.STRUCTURE_BLOCKER
+	)
+	if has_node("Structure"):
+		layers |= CollisionLayers.Mask.TARGETABLE_GROUND | CollisionLayers.Mask.STRUCTURE_BLOCKER
+	elif movement != null:
+		layers |= (
+			CollisionLayers.Mask.TARGETABLE_AIR
+			if movement.mode in [Movement.Mode.FLYING, Movement.Mode.HOVERING]
+			else CollisionLayers.Mask.TARGETABLE_GROUND
+		)
+	target_body.collision_layer = layers
+
+## The TARGETABLE_GROUND / TARGETABLE_AIR bits this entity currently exposes, or 0
+## when it isn't targetable. A weapon may attack it iff its target_mask intersects
+## these. Sourced from the TargetBody configured by _apply_targetable_layers().
+func targetable_layers() -> int:
+	if target_body == null:
+		return 0
+	return target_body.collision_layer & CollisionLayers.TARGETABLE_ANY
 #endregion
 
 #region Lifecycle
@@ -231,9 +299,7 @@ func _ready() -> void:
 	if target_body != null:
 		if collider != null:
 			(target_body.get_node("Shape") as CollisionShape3D).shape = collider.shape
-		# Structures also block line-of-fire (Attack raycasts query STRUCTURE_BLOCKER).
-		if is_in_group("structure"):
-			target_body.collision_layer |= CollisionLayers.Mask.STRUCTURE_BLOCKER
+		_apply_targetable_layers()
 
 	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,
 	# so we self-initialize from default_commander_id after all _ready() calls
@@ -244,7 +310,10 @@ func _ready() -> void:
 	_validate()
 
 func _validate() -> void:
-	assert(type != Entity.Type.UNDEFINED)
+	if type == Entity.Type.UNDEFINED:
+		push_error("Entity '%s' has an UNDEFINED type (scene: %s) — set its `type` in the scene." % [
+			name, scene_file_path if scene_file_path != "" else "<not from a scene file>"
+		])
 
 ## Finds the Map and the Commander matching default_commander_id in the scene
 ## tree and calls initialize() on this entity. Only runs when map is still null
@@ -274,7 +343,7 @@ func _auto_initialize() -> void:
 	# pre_init_pos is the visual centre; add_structure resolves the footprint from it
 	# via Map.footprint_origin — identical to the editor terrain-snap plugin, so an
 	# even-sized structure registers on the same cells it snapped to (no load shift).
-	var obstruction := get_node_or_null("Obstruction") as Obstruction
+	var obstruction := get_node_or_null("Structure") as Structure
 	if obstruction != null and not found_map.structure_cell_map.has(self):
 		found_map.add_structure(self, VU.inXZ(pre_init_pos), 0, false)
 
@@ -338,8 +407,14 @@ func initialize(a_map: Map, a_commander: Commander):
 	refresh_movement_collision()
 
 func _on_death() -> void:
+	# Fire the death reaction FIRST, while map / global_position / commander are
+	# still valid (the teardown + queue_free below would invalidate them). This is
+	# the single death chokepoint: Commandable._on_death reaches it via super()
+	# after its commander bookkeeping, which leaves those references intact.
+	_fire_entity_occurrence(EntityOccurrence.ON_DEATH)
+
 	# Structure-flavored grid teardown: any entity that occupies the terrain grid
-	# (registered via Obstruction → Map.add_structure) must release its cells so the
+	# (registered via Structure → Map.add_structure) must release its cells so the
 	# navmesh reopens them. Commandable._on_death adds commander/economy teardown
 	# on top of this via super(). Gated on group + map so plain units skip it.
 	if is_in_group("structure") and map != null:
@@ -349,4 +424,50 @@ func _on_death() -> void:
 		map.spatial_partition_grid[coords.x][coords.y].remove(self)
 
 	queue_free()
+#endregion
+
+#region Lifecycle occurrence dispatch
+## Announce that `occurrence` happened on this entity: emit the entity_occurrence
+## signal and, if a matching EntityTrigger's conditions hold, hand its Event scene to
+## the manager to bring into the game. Safe to call even when the scene has no
+## ScenarioTriggerManager (the signal still fires; reactions are skipped).
+func _fire_entity_occurrence(occurrence: EntityOccurrence) -> void:
+	entity_occurrence.emit(occurrence, self)
+	var manager := _resolve_trigger_manager()
+	if manager == null:
+		return
+	# Report to the manager's bus regardless of whether THIS entity has a reaction —
+	# cumulative conditions (ConditionOccurrenceTally) need to see every occurrence.
+	manager.report_entity_occurrence(occurrence, self)
+	var trigger := _trigger_for(occurrence)
+	if trigger == null:
+		return
+	# Entity Trigger → load and run its event scene at the location the trigger's
+	# SpawnLocator picks (default: this entity's position), with this entity as the source.
+	var event_scene := load(trigger.event_scene_path) as PackedScene
+	if event_scene == null:
+		return
+	var spawn_position := trigger.resolve_spawn_position(self, manager)
+	manager.dispatch_event_scene(event_scene, spawn_position, self)
+
+## The EntityTrigger to fire for `occurrence`: the first entry that matches it. Null
+## when none does — the occurrence alone is the trigger, no extra conditions.
+func _trigger_for(occurrence: EntityOccurrence) -> EntityTrigger:
+	for trigger: EntityTrigger in entity_triggers:
+		assert(trigger != null, "Null entry in entity_triggers")
+		if trigger.occurrence != occurrence:
+			continue
+		assert(not trigger.event_scene_path.is_empty(), "EntityTrigger for %s has no event_scene_path" % EntityOccurrence.find_key(occurrence))
+		return trigger
+	return null
+
+## Lazily resolve (and cache) the scene's ScenarioTriggerManager. Returns null when
+## the current scene has none (reactions are then skipped; the signal still fires).
+func _resolve_trigger_manager() -> ScenarioTriggerManager:
+	if _trigger_manager != null and is_instance_valid(_trigger_manager):
+		return _trigger_manager
+	var scene_root := get_tree().current_scene if is_inside_tree() else null
+	if scene_root != null:
+		_trigger_manager = scene_root.get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
+	return _trigger_manager
 #endregion

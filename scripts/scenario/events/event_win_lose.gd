@@ -1,6 +1,6 @@
 @tool
 class_name EventWinLose
-extends ScenarioEvent
+extends AbstractEvent
 
 #region Properties
 ## True → player wins; false → player loses.
@@ -8,6 +8,6 @@ extends ScenarioEvent
 #endregion
 
 #region Public API
-func execute(manager: ScenarioEventManager) -> void:
+func execute(manager: ScenarioTriggerManager) -> void:
 	manager.game_over.emit(player_wins)
 #endregion

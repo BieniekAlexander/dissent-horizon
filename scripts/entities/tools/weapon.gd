@@ -25,8 +25,7 @@ var _ammo: int = 1					## current amount of ammo left, before reload timer finis
 #endregion
 
 #region attack conditions
-@export var attacks_grounded: bool = true # TODO refactor, make these checks more elegantly
-@export var attacks_aerial: bool = false
+@export_flags_3d_physics var target_mask: int = CollisionLayers.Mask.TARGETABLE_GROUND ## Indicates which collision-layer-based targeting the weapon can hit
 #endregion
 
 #endregion
@@ -58,6 +57,16 @@ func _validate_property(property: Dictionary) -> void:
 #endregion
 
 #region lifecycle
+func _ready() -> void:
+	assert(
+		(target_mask & CollisionLayers.TARGETABLE_ANY) != 0,
+		"Weapon '%s': must set something as targetable" % [name, target_mask]
+	)
+	assert(
+		(target_mask & ~CollisionLayers.TARGETABLE_ANY) == 0,
+		"Weapon '%s': target_mask may only set TARGETABLE_GROUND / TARGETABLE_AIR (got %d)" % [name, target_mask]
+	)
+
 func _physics_process(_delta: float) -> void:
 	_split_timer -= 1
 	_reload_timer -= 1
@@ -68,17 +77,11 @@ func _physics_process(_delta: float) -> void:
 #endregion
 
 #region Public API
-## Returns true when this weapon can target the given entity.
-## By default any Entity is a valid target; override per-weapon for
-## type-specific rules (e.g. cannot target flying units).
-func can_target(_target: Entity) -> bool:
-	# TODO refactor, this is very very hacked
-	if _target.movement==null: return true
-	return (
-		attacks_aerial and _target.movement.mode in [Movement.Mode.FLYING, Movement.Mode.HOVERING]
-	) or (
-		attacks_grounded and _target.movement.mode == Movement.Mode.GROUNDED_DIRECT
-	)
+## Returns true when this weapon can target the given entity: i.e. the target
+## exposes a targetable layer (ground/air) that this weapon's target_mask covers.
+## Entities with no targetable layer (targetable_layers() == 0) can't be attacked.
+func can_target(a_target: Entity) -> bool:
+	return (target_mask & a_target.targetable_layers()) != 0
 
 func is_ready() -> bool:
 	return _ammo>0 and _split_timer==0

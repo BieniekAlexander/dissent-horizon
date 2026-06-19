@@ -20,17 +20,17 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 	if unmet != TechnologySpec.UnmetNeed.NONE:
 		return unmet_need_to_precondition[unmet]
 	var preview := a_actor.commander.get_build_preview_instance(a_message.tool)
-	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
+	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
 
 	# A Mine is an OVERLAY structure: it binds to an existing Deposit instead of
 	# occupying its own cells (see add_structure / _target_footprint, both keyed on
-	# `is Mine`). The generic empty-cell Obstruction check can therefore never pass
+	# `is Mine`). The generic empty-cell Structure check can therefore never pass
 	# for a mine — the deposit already occupies those cells — so a mine is gated on
 	# the deposit check (OreExtractor.valid_placement) INSTEAD, not in addition.
 	if preview is Mine:
 		if not OreExtractor.valid_placement(a_message, obs.dimensions, obs.allow_uneven):
 			return PreconditionFailureCause.INVALID_PLACEMENT
-	elif not Obstruction.valid_placement(a_message, obs.dimensions, obs.allow_uneven):
+	elif not Structure.valid_placement(a_message, obs.dimensions, obs.allow_uneven):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 
 	return PreconditionFailureCause.NONE
@@ -55,7 +55,7 @@ func _target_footprint(a_actor: Commandable) -> Array:
 			var host: Entity = message.map.cell_grid[cell.x][cell.y] as Entity
 			if host != null:
 				return message.map.structure_cell_map.get(host, [])
-	var obs := preview.get_node_or_null("Obstruction") as Obstruction if preview != null else null
+	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
 	var dims := obs.dimensions if obs != null else Vector2i.ONE
 	return message.map.footprint_cells(message.xz_position, dims)
 #endregion

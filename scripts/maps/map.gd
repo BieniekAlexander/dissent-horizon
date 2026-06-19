@@ -40,7 +40,7 @@ const CELL_SIZE: float = 1.0
 var cell_grid: Array = []
 
 # Maps each grid-occupying Entity to the cells it covers. Any Entity with an
-# Obstruction registers here (units don't; non-commandable structures like Deposit do).
+# Structure registers here (units don't; non-commandable structures like Deposit do).
 var structure_cell_map: Dictionary = {}  # Entity -> Array[Vector2i]
 
 var terrain_grid: TerrainGrid
@@ -168,10 +168,10 @@ func get_min_max() -> Array:
 func add_entities(a_entities: Array, a_location: Vector2, a_commander: Commander) -> void:
 	var units: Array = []
 	for entity: Entity in a_entities:
-		# Any entity with an Obstruction occupies the grid as a structure — this is
+		# Any entity with an Structure occupies the grid as a structure — this is
 		# no longer gated on Commandable, so non-commandable structures (Deposit)
 		# register too.
-		if entity.get_node_or_null("Obstruction") != null:
+		if entity.get_node_or_null("Structure") != null:
 			entity.initialize(self, a_commander)
 			add_structure(entity, a_location, 0, false)
 		else:
@@ -244,10 +244,10 @@ func add_structure(a_structure: Entity, world_center: Vector2, rotation: int = 0
 		mine.refresh_movement_collision()
 		return
 
-	# Footprint size from the Obstruction component (1×1 fallback). footprint_origin
+	# Footprint size from the Structure component (1×1 fallback). footprint_origin
 	# centres the structure parity-correctly; footprint_centroid is the same point
 	# the editor terrain-snap plugin snaps to.
-	var obs := a_structure.get_node_or_null("Obstruction") as Obstruction
+	var obs := a_structure.get_node_or_null("Structure") as Structure
 	var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
 	var footprint: Array[Vector2i] = footprint_cells(world_center, dims)
 	for cell: Vector2i in footprint:

@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" uid="uid://kw1olwl5r42j" path="res://scripts/scenario/events/abstract_event.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://de2utln0ffbv" path="res://scripts/scenario/events/event_show_message.gd" id="2_msg"]
+[ext_resource type="Script" uid="uid://f6ls1r1jxki7" path="res://scripts/scenario/events/event_win_lose.gd" id="3_win"]
+
+[node name="Victory" type="Node3D"]
+script = ExtResource("1_root")
+
+[node name="VictoryMsg" type="Node3D" parent="."]
+script = ExtResource("2_msg")
+message = "All enemy forces eliminated. Victory!"
+
+[node name="Win" type="Node3D" parent="."]
+script = ExtResource("3_win")
