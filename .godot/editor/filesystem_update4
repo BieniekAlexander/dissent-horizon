@@ -20,3 +20,6 @@ res://scripts/entities/effects/status_effect.gd
 res://tests/test_StatusEffect.gd
 res://scripts/entities/tools/weapon.gd
 res://scenes/units/irregular.tscn
+res://scripts/maps/terrain/nav_manager.gd
+res://scripts/scenario/global_trigger.gd
+res://scripts/scenario/scenario_trigger_manager.gd

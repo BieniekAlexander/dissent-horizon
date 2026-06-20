@@ -1,8 +1,13 @@
 @tool
 class_name GlobalTrigger
-extends Node
+extends Node3D
 
 ## A scenario-wide ("global") Trigger: it owns a set of Conditions and, as inline child
+## nodes, the AbstractEvents it runs when they're met. Extends Node3D (not Node) purely so
+## the whole trigger — and its child events (spawn anchors, command points, region shapes) —
+## can be drag-selected and moved together in the editor; it holds no meaningful transform
+## of its own (authored at identity, so child event world positions are unchanged).
+##
 ## nodes, the AbstractEvents it runs when they're met. Rather than being polled, it ARMS
 ## its conditions (arm()) and fires reactively when a condition reports a change
 ## (Condition.state_changed) and the AND/OR aggregate crosses into satisfied. Each

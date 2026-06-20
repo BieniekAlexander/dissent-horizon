@@ -41,11 +41,25 @@ extends Node
 const _BASE_LAYER: int = 1 << 30
 #endregion
 
+#region Signals
+## Emitted once the navigation mesh has been built AND force-synchronized for the first
+## time, i.e. the map is actually queryable (map_get_closest_point /
+## get_nonoverlapping_points return real surface points). Scenario triggers that spawn or
+## path on the nav map gate on this so they never run against an empty/unsynced map.
+## Re-checks should use is_ready() (the signal won't fire again after the first build).
+signal navmesh_ready
+#endregion
+
 #region Properties
 @export var navigation_region: NavigationRegion3D
 @export var terrain_grid: TerrainGrid
 
 var _rebuild_pending: bool = false
+## True once the first real (populated + synced) navmesh build has completed.
+var _ready_announced: bool = false
+## Set after the first mesh build to force a sync + emit navmesh_ready on the next physics
+## frame (map_force_update is only valid during the physics step).
+var _pending_first_sync: bool = false
 
 ## One region per size class, all on the scene region's navigation map.
 var _class_regions: Dictionary = {}  # NavAgentClass.Size -> RID (region)
@@ -59,6 +73,52 @@ func _ready() -> void:
 	terrain_grid.cells_changed.connect(_on_cells_changed)
 	# Defer so all _ready() calls finish before the first build.
 	call_deferred("_rebuild_navmesh")
+	# Physics processing is only needed for the one-shot first-build force-sync below.
+	set_physics_process(false)
+
+## After the first mesh build, force a map sync each physics frame (map_force_update is
+## only valid during the physics step) and probe a known-navigable point until the map
+## actually resolves it — assigning a region's mesh and having the map merge it into its
+## query structure can take more than one sync, so we poll rather than assume one frame is
+## enough. Once queryable, announce readiness and stop physics-processing.
+func _physics_process(_delta: float) -> void:
+	if not _pending_first_sync:
+		set_physics_process(false)
+		return
+	var nm: RID = navigation_region.get_navigation_map()
+	NavigationServer3D.map_force_update(nm)
+	if not _map_resolves_navigable_point(nm):
+		return  # not merged into the query structure yet — try again next physics frame
+	_pending_first_sync = false
+	_ready_announced = true
+	set_physics_process(false)
+	navmesh_ready.emit()
+
+## True once map_get_closest_point on `nm` resolves a point that IS navigable back to (near)
+## itself — i.e. the map's query structure has incorporated the region mesh. An empty/unsynced
+## map returns the origin instead, which is far from the probe.
+func _map_resolves_navigable_point(nm: RID) -> bool:
+	var probe: Vector3 = _sample_navigable_world_point()
+	if probe == Vector3.INF:
+		return true  # no navigable cells at all — nothing to wait for
+	var snapped: Vector3 = NavigationServer3D.map_get_closest_point(nm, probe)
+	return snapped.distance_to(probe) < Map.CELL_SIZE
+
+## World-space centre of an arbitrary navigable cell, using the same corner→world mapping
+## as _build_mesh, or Vector3.INF if the terrain has no navigable cells. Used as a probe to
+## detect when the navigation map is queryable.
+func _sample_navigable_world_point() -> Vector3:
+	var cells: Dictionary = terrain_grid.get_navigable_cells(0, 1)
+	if cells.is_empty():
+		return Vector3.INF
+	var cell: Vector2i = cells.keys()[0]
+	var hs: HeightMapShape3D = terrain_grid.height_shape()
+	var tb: StaticBody3D = terrain_grid.terrain_body
+	var half_w: float = (hs.map_width - 1) * 0.5
+	var half_d: float = (hs.map_depth - 1) * 0.5
+	var fx: float = cell.x + 0.5
+	var fz: float = cell.y + 0.5
+	return tb.global_transform * Vector3(fx - half_w, _sample_height(fx, fz, hs), fz - half_d)
 
 func _exit_tree() -> void:
 	for region: RID in _class_regions.values():
@@ -79,6 +139,11 @@ func request_rebuild() -> void:
 ## `size`: one distinct bit per class (SMALL -> 1<<0 ... MASSIVE -> 1<<3).
 func layer_for(size: NavAgentClass.Size) -> int:
 	return 1 << (int(size) - 1)
+
+## True once the first populated navmesh has been built and synchronized — i.e. the nav
+## map is queryable. Callers that may run before the first build await navmesh_ready.
+func is_ready() -> bool:
+	return _ready_announced
 #endregion
 
 #region Private helpers
@@ -116,6 +181,15 @@ func _rebuild_navmesh() -> void:
 		var inset: float = NavAgentClass.inset(size, cs)
 		var mesh: NavigationMesh = _build_mesh(rings, admit_k, inset)
 		NavigationServer3D.region_set_navigation_mesh(_class_regions[size], mesh)
+
+	# On the FIRST build, schedule a one-shot physics-frame sync. The meshes are set here
+	# (deferred / idle), but NavigationServer3D only synchronizes maps during the physics
+	# step and map_force_update is only valid there — so the actual force-sync + readiness
+	# announcement happens in _physics_process. Subsequent rebuilds (building placement
+	# etc.) ride the normal async sync; nothing gates on them.
+	if not _ready_announced and not _pending_first_sync:
+		_pending_first_sync = true
+		set_physics_process(true)
 
 ## Build a NavigationMesh from the cells navigable under (rings, admit_k), with each
 ## boundary vertex inset toward the walkable interior by `inset` world-units.

@@ -65,9 +65,29 @@ func _ready() -> void:
 	condition_poller.manager = self
 	add_child(condition_poller)
 
-	# Arm each enabled trigger so it watches its conditions reactively. There is no
-	# per-tick polling of triggers any more — a trigger fires when a condition reports
-	# a change (Condition.state_changed) and the aggregate crosses into satisfied.
+	# Arm triggers only once the navigation map has finished its first synchronization.
+	# Events that query the nav map (EventSpawnEntities → Map.add_entities →
+	# SU.get_nonoverlapping_points, EventCommandPoint → map_get_closest_point) fail if
+	# they run before then ("navigation map query failed because it was made before
+	# first map synchronization"), which silently drops frame-0 spawns. Gating here
+	# means a trigger can safely fire at t=0 without any artificial timer delay.
+	_arm_triggers_when_navmesh_ready()
+
+
+## Wait for the navmesh to be built and synced, then arm every enabled trigger. NavManager
+## builds the mesh via call_deferred and the NavigationServer syncs it on a later step, so
+## the map isn't queryable during _ready — it announces readiness via NavManager.navmesh_ready
+## (which also force-syncs the first build). Until then, spawn/path events would silently fail.
+func _arm_triggers_when_navmesh_ready() -> void:
+	if map != null and map.nav_manager != null and not map.nav_manager.is_ready():
+		await map.nav_manager.navmesh_ready
+	_arm_triggers()
+
+
+## Arm each enabled trigger so it watches its conditions reactively. There is no
+## per-tick polling of triggers any more — a trigger fires when a condition reports a
+## change (Condition.state_changed) and the aggregate crosses into satisfied.
+func _arm_triggers() -> void:
 	for e: GlobalTrigger in global_triggers:
 		e.enabled = not e.starts_disabled
 		if e.enabled:
