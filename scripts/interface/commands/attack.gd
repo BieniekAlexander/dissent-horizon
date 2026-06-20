@@ -78,31 +78,57 @@ func get_updated_state(a_actor: Commandable):
 	## Potentially return a new command based on a state check.
 	if not is_instance_valid(message.target):
 		return null
-	# Non-persistent attacks stop being pursued once the target is no longer worth
-	# it — here, once it leaves the actor's aggro range (e.g. a target acquired
-	# while attack-moving/defending that fled). Persistent attacks (idle aggro)
-	# pursue to completion. See CommandMessage.persist.
-	if not message.persist and not _target_in_aggro_range(a_actor):
+	# Non-persistent attacks stop being pursued once the target leaves the actor's
+	# leash (e.g. a target acquired while attack-moving/defending that fled).
+	# Persistent attacks (idle aggro) pursue to completion. See CommandMessage.persist.
+	if not message.persist and not _target_within_leash(a_actor):
 		return null
 	return self
 
-## True when message.target is still within the relevant aggro range. When this
-## attack was acquired via a Defend command with an override shape, that same
-## shape determines the boundary (so the unit chases targets within the defend
-## area rather than within its own smaller native aggro shape). Falls back to
-## the actor's own aggro_range_shape for ordinarily-acquired attacks.
-func _target_in_aggro_range(a_actor: Commandable) -> bool:
-	var shape_node: CollisionShape3D = message.aggro_shape if message.aggro_shape != null else a_actor.aggro_range_shape
+## Hysteresis factor applied to the weapon-range leash. The target is acquired at the
+## (smaller) aggro range but only released past weapon-range × this factor, so a target
+## jittering at the boundary doesn't churn acquire→drop — the cause of the Attack↔NULL
+## flicker. > 1.0.
+const _LEASH_HYSTERESIS: float = 1.25
+
+## True when message.target is still close enough to keep pursuing a non-persistent
+## attack. Two regimes:
+##   * Defend override (message.aggro_shape set): the target must stay within that fixed
+##     defend area, measured from the shape's own origin — unchanged, exact (no margin).
+##   * Ordinary aggro-acquired attack: the target must stay within
+##     max(weapon AttackRange, aggro range) × _LEASH_HYSTERESIS, measured from the actor.
+##     Taking the max of the two keeps a unit engaging a target it can still shoot (weapon
+##     range) while never leashing tighter than its aggro range; the margin is the
+##     hysteresis that absorbs boundary jitter.
+func _target_within_leash(a_actor: Commandable) -> bool:
+	if message.aggro_shape != null:
+		var origin: Vector3 = message.aggro_shape.global_transform.origin
+		var radius: float = _shape_node_xz_radius(message.aggro_shape)
+		if radius < 0.0:
+			return true
+		return VU.inXZ(origin).distance_to(VU.inXZ(message.target.global_position)) <= radius
+
+	var leash: float = _leash_radius(a_actor)
+	if leash < 0.0:
+		return true
+	return VU.inXZ(a_actor.global_position).distance_to(VU.inXZ(message.target.global_position)) <= leash
+
+## The pursue radius for an ordinary attack: max(firing weapon's AttackRange, actor's
+## aggro range) XZ radius × _LEASH_HYSTERESIS, or -1.0 when neither is known (treated as
+## "always in range").
+func _leash_radius(a_actor: Commandable) -> float:
+	var weapon := _weapon_for(a_actor)
+	var weapon_radius: float = _shape_node_xz_radius(weapon.attack_range_shape) if weapon != null else -1.0
+	var aggro_radius: float = _shape_node_xz_radius(a_actor.aggro_range_shape)
+	var base: float = maxf(weapon_radius, aggro_radius)
+	return base * _LEASH_HYSTERESIS if base >= 0.0 else -1.0
+
+## XZ radius of a CollisionShape3D node (shape radius × the node's X-axis scale), or
+## -1.0 for a null node or unsupported shape.
+func _shape_node_xz_radius(shape_node: CollisionShape3D) -> float:
 	if shape_node == null:
-		return true
-	var origin: Vector3 = shape_node.global_transform.origin if message.aggro_shape != null \
-			else a_actor.global_position
-	var scale: float = shape_node.global_transform.basis.x.length()
-	var radius: float = _shape_xz_radius(shape_node.shape, scale)
-	if radius < 0.0:
-		return true
-	var gap: float = VU.inXZ(origin).distance_to(VU.inXZ(message.target.global_position))
-	return gap <= radius
+		return -1.0
+	return _shape_xz_radius(shape_node.shape, shape_node.global_transform.basis.x.length())
 
 
 ## Returns the effective XZ radius for supported shape types, or -1 for unknown shapes.

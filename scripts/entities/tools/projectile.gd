@@ -285,8 +285,13 @@ func _set_visual(sprite: Sprite3D, particles: GPUParticles3D, on: bool) -> void:
 		particles.emitting = on
 
 func _apply_hit() -> void:
+	# Collect the Commandables struck this hit so child EffectApplicators can act on
+	# the same set the damage landed on.
+	var struck: Array[Commandable] = []
 	if hit_shape == null:
-		target.receive_damage(from, base_damage)
+		if target != null:
+			target.receive_damage(from, base_damage)
+			struck.append(target)
 	else:
 		var params := PhysicsShapeQueryParameters3D.new()
 		params.shape = hit_shape.shape
@@ -294,11 +299,27 @@ func _apply_hit() -> void:
 		params.collision_mask = CollisionLayers.TARGETABLE_ANY
 		params.exclude = [self]
 		var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 32)
-		
+
 		for hit in hits:
 			var entity: Entity = Entity.entity_from_collider(hit["collider"])
 			var cmd: Commandable = entity as Commandable if entity != null else null
 			if cmd != null and cmd.defense != null:
 				cmd.receive_damage(from, base_damage)
+				struck.append(cmd)
+
+	# Apply status effects every hit. Reapplication on a lingering field (e.g. Radiation
+	# ticking each frame) is governed by each effect's ReapplyMode — REFRESH keeps the
+	# duration topped up while a unit stays in the field; STACK accrues stacks up to
+	# max_stacks — rather than being suppressed after the first hit.
+	_apply_effects(struck)
+
+## Apply each child EffectApplicator to `targets`, attributing the effects to `from`.
+## No-op when the projectile carries no EffectApplicator children.
+func _apply_effects(targets: Array[Commandable]) -> void:
+	if targets.is_empty():
+		return
+	for child: Node in get_children():
+		if child is EffectApplicator:
+			(child as EffectApplicator).apply(targets, from)
 
 #endregion

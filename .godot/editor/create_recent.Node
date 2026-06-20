@@ -1,3 +1,5 @@
+DamageOverTimeStatusEffect
+EffectApplicator
 CollisionShape3D
 EventSpawnEntities
 EntityTrigger
@@ -11,4 +13,3 @@ Node3D
 GPUParticles3D
 CPUParticles3D
 EventCommandTarget
-Stealth

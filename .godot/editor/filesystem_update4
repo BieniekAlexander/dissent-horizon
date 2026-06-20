@@ -14,3 +14,9 @@ res://scripts/interface/commands/defend.gd
 res://scripts/entities/tools/projectile.gd
 res://scenes/projectiles/lazer.tscn
 res://scenes/units/vanguard.tscn
+res://scripts/entities/effects/damage_over_time_status_effect.gd
+res://scripts/entities/effects/slow_status_effect.gd
+res://scripts/entities/effects/status_effect.gd
+res://tests/test_StatusEffect.gd
+res://scripts/entities/tools/weapon.gd
+res://scenes/units/irregular.tscn

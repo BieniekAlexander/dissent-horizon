@@ -60,11 +60,11 @@ func _validate_property(property: Dictionary) -> void:
 func _ready() -> void:
 	assert(
 		(target_mask & CollisionLayers.TARGETABLE_ANY) != 0,
-		"Weapon '%s': must set something as targetable" % [name, target_mask]
+		"Weapon '%s': must set something as targetable" % name
 	)
 	assert(
 		(target_mask & ~CollisionLayers.TARGETABLE_ANY) == 0,
-		"Weapon '%s': target_mask may only set TARGETABLE_GROUND / TARGETABLE_AIR (got %d)" % [name, target_mask]
+		"Weapon '%s': target_mask may only set TARGETABLE_GROUND / TARGETABLE_AIR" % name
 	)
 
 func _physics_process(_delta: float) -> void:
