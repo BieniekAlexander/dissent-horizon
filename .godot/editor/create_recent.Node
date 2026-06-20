@@ -1,11 +1,10 @@
-EventSpawnEntities
-EventCommandPoint
 CollisionShape3D
+EventSpawnEntities
+EntityTrigger
+EventCommandPoint
 Garrison
 Node
 Shelter
-Label3D      - Matches the "text" keyword.
-Label      - Matches the "text" keyword.
 TextEdit
 Interactor
 Node3D

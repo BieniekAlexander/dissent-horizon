@@ -86,18 +86,34 @@ func get_updated_state(a_actor: Commandable):
 		return null
 	return self
 
-## True when message.target is within a_actor's aggro range (XZ distance vs the
-## AggroRange cylinder radius). Mirrors fog.gd's world-radius derivation.
+## True when message.target is still within the relevant aggro range. When this
+## attack was acquired via a Defend command with an override shape, that same
+## shape determines the boundary (so the unit chases targets within the defend
+## area rather than within its own smaller native aggro shape). Falls back to
+## the actor's own aggro_range_shape for ordinarily-acquired attacks.
 func _target_in_aggro_range(a_actor: Commandable) -> bool:
-	var shape_node: CollisionShape3D = a_actor.aggro_range_shape
+	var shape_node: CollisionShape3D = message.aggro_shape if message.aggro_shape != null else a_actor.aggro_range_shape
 	if shape_node == null:
 		return true
-	var cyl := shape_node.shape as CylinderShape3D
-	if cyl == null:
+	var origin: Vector3 = shape_node.global_transform.origin if message.aggro_shape != null \
+			else a_actor.global_position
+	var scale: float = shape_node.global_transform.basis.x.length()
+	var radius: float = _shape_xz_radius(shape_node.shape, scale)
+	if radius < 0.0:
 		return true
-	var radius: float = cyl.radius * shape_node.global_transform.basis.x.length()
-	var gap: float = VU.inXZ(a_actor.global_position).distance_to(VU.inXZ(message.target.global_position))
+	var gap: float = VU.inXZ(origin).distance_to(VU.inXZ(message.target.global_position))
 	return gap <= radius
+
+
+## Returns the effective XZ radius for supported shape types, or -1 for unknown shapes.
+static func _shape_xz_radius(shape: Shape3D, scale: float) -> float:
+	var cyl := shape as CylinderShape3D
+	if cyl != null:
+		return cyl.radius * scale
+	var sph := shape as SphereShape3D
+	if sph != null:
+		return sph.radius * scale
+	return -1.0
 
 func should_move(a_actor: Commandable) -> bool:
 	if not _target_attackable(message):

@@ -65,6 +65,8 @@ static func _build_rules() -> Array:
 		[func(e: Entity): return e.has_node("Movement") or e.has_node("Loadout"), "command_stop"],
 		[func(e: Entity): return e.has_node("Loadout"), "command_attack"],
 		[func(e: Entity): return e.has_node("Loadout"), "command_attack_move"],
+		[func(e: Entity): return e.has_node("Movement"), "command_patrol"],
+		[func(e: Entity): return e.has_node("Movement") and e.has_node("Loadout"), "command_defend"],
 
 		[func(e: Entity): return e.has_node("Production"), "command_train"],
 		[func(e: Entity): return e.has_node("Production"), "command_move"], # rally

@@ -279,6 +279,10 @@ static func _resolve_command_class(
 	match a_pending:
 		"command_stop":
 			return Stop
+		"command_patrol":
+			return Patrol
+		"command_defend":
+			return Defend
 		"command_attack_move":
 			if a_message.target != null and a_message.target is Commandable:
 				return Attack
@@ -462,6 +466,9 @@ func assign_command_to_units(
 	for destination: Vector2 in destination_to_unit:
 		unit_to_destination[destination_to_unit[destination]] = destination
 
+	if a_command_type == Defend:
+		a_command_message.aggro_shape = _largest_aggro_shape(capable)
+
 	for c: Commandable in capable:
 		var snapshot := CommandMessage.deep_copy(a_command_message)
 		if unit_to_destination.has(c):
@@ -470,7 +477,10 @@ func assign_command_to_units(
 		snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
 		if a_command_type.requires_position():
 			_register_indicator(snapshot)
-		c.update_commands(a_command_type.new(snapshot), add_to_queue)
+		var new_cmd: Command = Patrol.for_actor(c, snapshot) \
+				if a_command_type == Patrol \
+				else a_command_type.new(snapshot)
+		c.update_commands(new_cmd, add_to_queue)
 
 	if not add_to_queue:
 		_reset_pending_state()
@@ -692,6 +702,31 @@ static func get_action_names_by_prefix(event: InputEvent, event_prefix: String) 
 	).filter(
 		func(action_name: String): return event.is_action_pressed(action_name, true)
 	)
+
+## Returns the CollisionShape3D with the largest aggro radius among `a_units`.
+## Used so a group Defend order scans with the widest aggro coverage available.
+static func _largest_aggro_shape(a_units: Array) -> CollisionShape3D:
+	var best: CollisionShape3D = null
+	var best_radius: float = 0.0
+	for c: Commandable in a_units:
+		var shape: CollisionShape3D = c.aggro_range_shape
+		if shape == null or shape.shape == null:
+			continue
+		var radius: float = _aggro_shape_radius(shape)
+		if radius > best_radius:
+			best_radius = radius
+			best = shape
+	return best
+
+static func _aggro_shape_radius(shape: CollisionShape3D) -> float:
+	var s: Shape3D = shape.shape
+	if s is SphereShape3D:
+		return (s as SphereShape3D).radius
+	if s is BoxShape3D:
+		return (s as BoxShape3D).size.length()
+	if s is CapsuleShape3D:
+		return (s as CapsuleShape3D).radius
+	return 0.0
 #endregion
 
 #region Commander abilities

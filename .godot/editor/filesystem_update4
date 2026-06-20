@@ -1,0 +1,13 @@
+res://scenes/scenarios/s1.tscn
+res://addons/gut/gui/editor_globals.gd
+res://addons/gut/gui/EditorRadioButton.tres
+res://scenes/scenarios/s1.gdshader
+res://scripts/rendering/shaders/fog.gdshader
+res://scripts/scenario/events/event_spawn_entities.gd
+res://scripts/scenario/events/event_command_target.gd
+res://scripts/scenario/events/event_issue_command.gd
+res://scripts/entities/command_receiver.gd
+res://scripts/interface/command_context_parser.gd
+res://scripts/interface/rts_controller.gd
+res://scripts/interface/commands/attack.gd
+res://scripts/interface/commands/defend.gd

@@ -5,9 +5,9 @@ extends Node
 ## that drives pull conditions. Add this as a direct child of the Scenario node, then add
 ## GlobalTrigger child nodes, each with its conditions and its own inline child AbstractEvents.
 ##
-## It's the hub for the unified event model: GlobalTriggers run their inline child events
-## (source=null) and EntityTriggers dispatch a PackedScene event at the source entity — both
-## converge on run_event(). Entities also report their lifecycle occurrences here
+## It's the hub for the unified event model: both GlobalTriggers (source=null) and
+## per-entity EntityTriggers (source=the entity) run their own inline child AbstractEvents
+## via run_event(). Entities also report their lifecycle occurrences here
 ## (report_entity_occurrence → entity_occurrence signal) so cumulative conditions like
 ## ConditionOccurrenceTally ("N units have died") can accumulate them.
 
@@ -122,21 +122,4 @@ func run_event(event: AbstractEvent, source: Entity = null) -> void:
 		if child is AbstractEvent:
 			run_event(child as AbstractEvent, source)
 	reaction_source = prev_source
-
-
-## Instantiate a PackedScene whose root is an AbstractEvent, place it at `position`, run
-## it, then free it. Used by EntityTrigger reactions, whose event is not authored inline
-## in the live scene the way a GlobalTrigger's child events are.
-func dispatch_event_scene(event_scene: PackedScene, position: Vector3, source: Entity) -> void:
-	if event_scene == null or map == null:
-		return
-	var root := event_scene.instantiate()
-	if root is AbstractEvent:
-		add_child(root)
-		(root as Node3D).global_position = position
-		run_event(root as AbstractEvent, source)
-		root.queue_free()
-	else:
-		push_warning("EntityTrigger event scene root is not an AbstractEvent: %s" % root)
-		root.queue_free()
 #endregion

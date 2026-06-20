@@ -1,6 +1,10 @@
 class_name Entity
 extends CharacterBody3D
 
+## Name of the organizational header node (see commandable.tscn) that EntityTrigger child
+## nodes are grouped under in the scene tree.
+const TRIGGERS_HEADER := "#####TRIGGERS#####"
+
 #region Identity
 # I need to enumerate because I can't peek into packed scenes
 @export var type: Type
@@ -44,7 +48,7 @@ const TEAM_COLOR_MAP: Dictionary = {
 #region Lifecycle occurrences
 ## Lifecycle moments that can happen to an entity — the "occurrence" (condition-side)
 ## inputs that an EntityTrigger reacts to, distinct from an Event (the world-update it
-## fires). Used to key `entity_triggers` and as the payload of the `entity_occurrence`
+## fires). Selects which EntityTrigger reacts, and is the payload of the `entity_occurrence`
 ## signal. Currently only ON_DEATH and ON_RECEIVE_DAMAGE are wired (see _on_death /
 ## Commandable.receive_damage); the stealth occurrences are enumerated for future use
 ## (they'd emit from Stealth's state transitions).
@@ -55,12 +59,11 @@ enum EntityOccurrence {
 	ON_EXIT_STEALTH = 3
 }
 
-## Per-entity Triggers. Each EntityTrigger pairs an EntityOccurrence (its activation) with
-## an AbstractEvent scene; when that occurrence happens the scene is run via
-## ScenarioTriggerManager.dispatch_event_scene() at the location its SpawnLocator picks
-## (by default this entity's position), with this entity as the source. Order doesn't
-## matter; the first entry matching the occurrence fires.
-@export var entity_triggers: Array[EntityTrigger] = []
+## Per-entity reactions are authored as EntityTrigger CHILD NODES of this entity, each
+## with its own child AbstractEvent node(s). When an occurrence fires, the matching child
+## trigger runs its events (see _fire_entity_occurrence). Mirrors how GlobalTriggers are
+## child nodes of the ScenarioTriggerManager — no PackedScene-on-a-Resource (which crashes
+## the editor inspector).
 
 ## Emitted whenever a lifecycle occurrence happens on this entity, regardless of whether
 ## a reaction scene is configured — so other systems (audio, score, AI) can listen.
@@ -427,10 +430,10 @@ func _on_death() -> void:
 #endregion
 
 #region Lifecycle occurrence dispatch
-## Announce that `occurrence` happened on this entity: emit the entity_occurrence
-## signal and, if a matching EntityTrigger's conditions hold, hand its Event scene to
-## the manager to bring into the game. Safe to call even when the scene has no
-## ScenarioTriggerManager (the signal still fires; reactions are skipped).
+## Announce that `occurrence` happened on this entity: emit the entity_occurrence signal,
+## report it to the manager's bus, and fire the matching child EntityTrigger (if any).
+## Safe to call even when the scene has no ScenarioTriggerManager (the signal still fires;
+## reactions are skipped).
 func _fire_entity_occurrence(occurrence: EntityOccurrence) -> void:
 	entity_occurrence.emit(occurrence, self)
 	var manager := _resolve_trigger_manager()
@@ -440,26 +443,29 @@ func _fire_entity_occurrence(occurrence: EntityOccurrence) -> void:
 	# cumulative conditions (ConditionOccurrenceTally) need to see every occurrence.
 	manager.report_entity_occurrence(occurrence, self)
 	var trigger := _trigger_for(occurrence)
-	if trigger == null:
-		return
-	# Entity Trigger → load and run its event scene at the location the trigger's
-	# SpawnLocator picks (default: this entity's position), with this entity as the source.
-	var event_scene := load(trigger.event_scene_path) as PackedScene
-	if event_scene == null:
-		return
-	var spawn_position := trigger.resolve_spawn_position(self, manager)
-	manager.dispatch_event_scene(event_scene, spawn_position, self)
+	if trigger != null:
+		trigger.fire(manager, self)
 
-## The EntityTrigger to fire for `occurrence`: the first entry that matches it. Null
-## when none does — the occurrence alone is the trigger, no extra conditions.
+## The child EntityTrigger to fire for `occurrence`: the first matching one. Null when no
+## trigger matches. EntityTriggers live under the "#####TRIGGERS#####" organizational
+## header (see commandable.tscn) when present, else directly under this entity.
 func _trigger_for(occurrence: EntityOccurrence) -> EntityTrigger:
-	for trigger: EntityTrigger in entity_triggers:
-		assert(trigger != null, "Null entry in entity_triggers")
+	for child in _triggers_root().get_children():
+		var trigger := child as EntityTrigger
+		if trigger == null:
+			continue
 		if trigger.occurrence != occurrence:
 			continue
-		assert(not trigger.event_scene_path.is_empty(), "EntityTrigger for %s has no event_scene_path" % EntityOccurrence.find_key(occurrence))
 		return trigger
 	return null
+
+## The node whose children are this entity's EntityTriggers: the "#####TRIGGERS#####"
+## header node if it exists, otherwise the entity itself.
+func _triggers_root() -> Node:
+	for child in get_children():
+		if child.name == TRIGGERS_HEADER:
+			return child
+	return self
 
 ## Lazily resolve (and cache) the scene's ScenarioTriggerManager. Returns null when
 ## the current scene has none (reactions are then skipped; the signal still fires).

@@ -56,6 +56,8 @@ func to_command(manager: ScenarioTriggerManager) -> Command:
 #region Private helpers
 func _spawning_commander_id() -> int:
 	var p: Node = get_parent()
+	if p is EventIssueCommand:
+		return (p as EventIssueCommand).active_commander_id()
 	if p is EventSpawnEntities:
 		return (p as EventSpawnEntities).commander_id
 	return 0

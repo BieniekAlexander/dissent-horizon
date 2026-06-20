@@ -43,6 +43,28 @@ func get_command_chain() -> Array[Command]:
 func is_idle() -> bool:
 	return _command_queue.is_empty() and (_command == null)
 
+func has_patrol_command() -> bool:
+	if _command is Patrol:
+		return true
+	for cmd: Command in _command_queue:
+		if cmd is Patrol:
+			return true
+	return false
+
+## Pops and returns the positions of every leading Patrol command from the front
+## of the queue (stopping at the first non-Patrol entry). Used by Patrol.fulfill_action
+## to absorb Shift+Patrol waypoints at arrival time.
+func consume_leading_patrol_positions() -> Array[Vector3]:
+	var positions: Array[Vector3] = []
+	while not _command_queue.is_empty():
+		var front: Command = _command_queue.front()
+		if front is Patrol:
+			positions.append((front as Patrol).message.position)
+			_command_queue.pop_front()
+		else:
+			break
+	return positions
+
 func receive_damage(attacker: Commandable, amount: float) -> void:
 	if owner.defense != null:
 		var was_alive: bool = owner.defense.hp > 0
@@ -189,6 +211,7 @@ func _process_commands() -> void:
 			# decelerate naturally to orbit_speed once they transition to orbiting.
 			owner.movement.is_final_leg = _command_queue.is_empty() \
 					and not (_command is Attack) \
+					and not (_command is Patrol) \
 					and owner.movement.mode != Movement.Mode.FLYING
 			owner.movement.set_velocity(prelim_velocity)
 		else:

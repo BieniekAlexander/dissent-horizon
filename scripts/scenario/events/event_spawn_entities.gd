@@ -12,14 +12,25 @@ extends AbstractEvent
 ## through Map.add_entities (structures register on the grid); other Entities are placed
 ## via Map.add_entity; anything else (a pure VFX/SFX node) is parked at the anchor.
 ##
-## EventCommand children (EventCommandPoint / EventCommandTarget) add one follow-up
-## command each, in scene-tree order, to the chain issued to every spawned Commandable.
+## An EventIssueCommand child node, if present, issues a command chain to every spawned
+## Commandable. If absent, spawned units receive no initial orders.
 
 #region Constants
 const _SPAWN_RING_RADIUS := 1.0
 #endregion
 
 #region Properties
+## How the spawned entities' owner is chosen.
+enum Assignment {
+	## Use `commander_id` directly. Right for events with no source entity (GlobalTriggers).
+	SPECIFIED = 0,
+	## Inherit the owner from the source entity — the one whose EntityTrigger fired.
+	INHERITED = 1
+}
+
+@export var assignment: Assignment = Assignment.SPECIFIED
+## The commander the spawned entities belong to when ownership == SPECIFIED. Forced to -1
+## and made read-only when ownership == INHERITED (the owner comes from the source entity).
 @export var commander_id: int = 2
 ## The PackedScenes to spawn. Each is instanced `count` times.
 @export var entity_scenes: Array[PackedScene] = []
@@ -30,9 +41,23 @@ const _SPAWN_RING_RADIUS := 1.0
 @export var spawn_position: Node3D
 #endregion
 
+#region Tool
+func _validate_property(property: Dictionary) -> void:
+	match property.name:
+		"ownership":
+			# Editing ownership re-runs validation so commander_id's read-only state updates.
+			property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
+		"commander_id":
+			if assignment == Assignment.INHERITED:
+				commander_id = -1
+				property.usage = property.usage | PROPERTY_USAGE_READ_ONLY
+			else:
+				property.usage = property.usage & ~PROPERTY_USAGE_READ_ONLY
+#endregion
+
 #region Public API
 func execute(manager: ScenarioTriggerManager) -> void:
-	var commander := manager.get_commander(commander_id)
+	var commander := _resolve_commander(manager)
 	if commander == null:
 		return
 	var map := manager.map
@@ -65,47 +90,41 @@ func execute(manager: ScenarioTriggerManager) -> void:
 
 	map.add_entities(commandables, anchor_xz, commander)
 
-	# Follow-up command chain for the commandable spawns.
-	var event_commands: Array[EventCommand] = _event_commands()
-	if event_commands.is_empty():
-		return
-
-	for unit: Commandable in commandables:
-		var chain: Array[Command] = []
-		for ec: EventCommand in event_commands:
-			var cmd: Command = ec.to_command(manager)
-			if cmd != null:
-				chain.append(cmd)
-		if chain.is_empty():
-			continue
-		unit.update_commands(chain)
-		# Prime the nav target immediately. CommandReceiver only calls load_destination
-		# when the agent's target_position differs from the command's — but a freshly
-		# spawned NavigationAgent3D defaults to (0,0,0). When the destination is the map
-		# centre (also world origin) that guard skips the load and the unit treats
-		# navigation as already finished, dropping the command on its first tick. Setting
-		# the target explicitly here kicks off path computation so the unit advances.
-		unit.load_destination(chain[0])
+	var issue_cmd: EventIssueCommand = _find_issue_command()
+	if issue_cmd != null:
+		issue_cmd.issue_commands_to(commandables, manager, commander.id)
 #endregion
 
 #region Private helpers
-## Direct EventCommand children, in scene-tree order.
-func _event_commands() -> Array[EventCommand]:
-	var result: Array[EventCommand] = []
-	for child in get_children():
-		if child is EventCommand:
-			result.append(child)
-	return result
+## The commander spawned entities belong to: `commander_id` when SPECIFIED, or the source
+## entity's commander when INHERITED. Null when INHERITED but there's no source entity
+## (e.g. fired from a GlobalTrigger) — callers then skip spawning.
+func _resolve_commander(manager: ScenarioTriggerManager) -> Commander:
+	if assignment == Assignment.INHERITED:
+		var source := manager.reaction_source
+		if source == null:
+			return null
+		return manager.get_commander(source.commander_id)
+	return manager.get_commander(commander_id)
+
+func _find_issue_command() -> EventIssueCommand:
+	for child: Node in get_children():
+		if child is EventIssueCommand:
+			return child as EventIssueCommand
+	return null
 #endregion
 
 #region Editor gizmo
 func _draw_editor_gizmo(verts: PackedVector3Array) -> void:
 	_gizmo_ring(verts, Vector3.ZERO, _SPAWN_RING_RADIUS)
-	# Polyline from the spawn point through each EventCommandPoint child (local space).
-	# EventCommandTarget nodes don't have a fixed position, so only waypoints are drawn.
+	# Polyline from the spawn point through each EventCommandPoint grandchild (those
+	# inside the nested EventIssueCommand). EventCommandTarget nodes don't have a fixed
+	# position so only waypoints are drawn.
 	var path: Array[Vector3] = [Vector3.ZERO]
-	for child in get_children():
-		if child is EventCommandPoint:
-			path.append((child as EventCommandPoint).position)
+	for child: Node in get_children():
+		if child is EventIssueCommand:
+			for grandchild: Node in child.get_children():
+				if grandchild is EventCommandPoint:
+					path.append(to_local((grandchild as EventCommandPoint).global_position))
 	_gizmo_polyline(verts, path)
 #endregion

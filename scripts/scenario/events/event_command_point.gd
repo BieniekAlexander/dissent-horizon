@@ -13,7 +13,7 @@ const _MARKER_SIZE := 0.4
 #endregion
 
 #region Properties
-@export_enum("move", "attack_move") var command_type: String = "attack_move"
+@export_enum("move", "attack_move", "defend") var command_type: String = "attack_move"
 
 var _gizmo: MeshInstance3D
 #endregion
@@ -25,6 +25,8 @@ func to_command(manager: ScenarioTriggerManager) -> Command:
 	var msg := CommandMessage.new(manager.map, null, null, dest)
 	if command_type == "attack_move":
 		return AttackMove.new(msg)
+	if command_type == "defend":
+		return Defend.new(msg)
 	return Command.new(msg)
 #endregion
 

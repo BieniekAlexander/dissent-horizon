@@ -89,27 +89,6 @@ func _init(a_message: CommandMessage) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE and message != null:
 		message.release()
-
-static func load_command_from_dictionary(a_dictionary: Dictionary, a_map: Map) -> Command:
-	var command_class = {
-		"move": Command,
-		"attack_move": AttackMove,
-		"defend": Defend
-	}[a_dictionary["type"]]
-
-	var pos: Vector3 = Vector3(a_dictionary["loc"][0], 10, a_dictionary["loc"][1])
-	var command = command_class.new(
-		CommandMessage.new(
-			a_map,
-			null,
-			null,
-			a_map.get_navmesh_line_hit(
-				pos,
-				pos+10*Vector3.DOWN
-			)
-		)
-	)
-	return command
 #endregion
 
 #region Debug

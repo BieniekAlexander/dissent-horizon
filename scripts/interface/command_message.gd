@@ -7,6 +7,7 @@ var target: Entity			# The entity which will be the recipient of the command
 var tool: Tool				# Any potential thing that is used in the fulfillment of a command
 var world_position: Vector3	# The raw position at which the command is requested (NOTE: `target` might not always be relevant)
 var ability_type: Variant	# For Ability commands: which Ability.Type to invoke (null otherwise)
+var aggro_shape: CollisionShape3D	# Largest aggro shape in the issuing group (Defend); null → each unit uses its own
 
 ## When true, the commandable pursues this command to completion regardless of the
 ## "still worth it?" checks that Command.get_updated_state runs while `not persist`.
@@ -67,5 +68,6 @@ static func deep_copy(a_message: CommandMessage) -> CommandMessage:
 		a_message.ability_type
 	)
 	copy.persist = a_message.persist
+	copy.aggro_shape = a_message.aggro_shape
 	return copy
 #endregion

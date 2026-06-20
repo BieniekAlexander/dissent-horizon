@@ -1,49 +1,41 @@
 @tool
 class_name EntityTrigger
-extends Resource
+extends Node
 
-## One entry in an Entity's `entity_triggers`: pairs a lifecycle occurrence with the
-## AbstractEvent scene to run when that occurrence happens on the entity (see
-## Entity.EntityOccurrence and ScenarioTriggerManager.dispatch_event_scene).
+## A per-entity Trigger: the reactive counterpart to GlobalTrigger. Add it as a child of
+## an Entity and give it one or more child AbstractEvent nodes (the reaction). When
+## `occurrence` fires on the owning entity, those child events run.
 ##
-## The reactive counterpart to GlobalTrigger: a GlobalTrigger is armed and fires when its
-## Conditions hold, whereas an EntityTrigger fires the moment its `occurrence` is emitted
-## on the owning entity. The occurrence alone is the trigger (no extra conditions).
+## Like GlobalTrigger, the events are inline child NODES, not a PackedScene reference —
+## which both keeps the two trigger types symmetric and sidesteps the Godot editor crash
+## that occurs when a PackedScene is assigned to a custom Resource's property. To author a
+## reaction, drag an event scene (root = an AbstractEvent, e.g. EventSpawnEntities) from
+## the FileSystem dock onto this node in the entity's scene tree.
 ##
-## The event is a PackedScene (the entity has no inline scene context the way a
-## GlobalTrigger does), instantiated and placed by `spawn_locator` when it fires — by
-## default at the source entity's position. Assign a SpawnLocator subclass to anchor it
-## elsewhere (e.g. the nearest structure).
-##
-## Authored as an array element in the inspector. The `occurrence` field renders as a
-## named dropdown, and the element's header mirrors the chosen occurrence via
-## resource_name — so the array reads "ON_DEATH" / "ON_RECEIVE_DAMAGE" rather than
-## bare numeric indices.
+## A GlobalTrigger is armed and fires when its Conditions hold; an EntityTrigger fires the
+## moment its `occurrence` is emitted on the owning entity (the occurrence alone is the
+## trigger — no extra conditions).
 
 ## Which lifecycle occurrence on the owning entity fires this reaction.
-@export var occurrence: Entity.EntityOccurrence = Entity.EntityOccurrence.ON_DEATH:
-	set(value):
-		occurrence = value
-		# Mirror the chosen occurrence onto the resource name so the inspector's array
-		# element header reads e.g. "ON_DEATH" instead of a bare index.
-		resource_name = Entity.EntityOccurrence.find_key(value)
+@export var occurrence: Entity.EntityOccurrence = Entity.EntityOccurrence.ON_DEATH
 
-## Path to the AbstractEvent scene (.tscn) run when `occurrence` fires on the owning
-## entity. Stored as a file path, NOT a PackedScene reference, on purpose: assigning a
-## PackedScene value to a custom Resource field crashes the Godot 4.5 editor — confirmed
-## via crash logging: our setter completes, then the engine's inspector rebuild/preview
-## for the PackedScene faults (no GDScript runs after). A path field sidesteps that
-## picker. Drag a .tscn from the FileSystem dock onto this field, or use its browse
-## button; it's loaded lazily when the trigger fires.
-@export_file("*.tscn") var event_scene_path: String = ""
-
-## Strategy that picks where the event is anchored, given the entity that fired it. Null
-## means "at the source entity's position."
+## Strategy that picks where the events are anchored, given the entity that fired them.
+## Null means "at the source entity's position."
 @export var spawn_locator: SpawnLocator
 
 
-## Where the event should be anchored when this trigger fires on `source`.
-func resolve_spawn_position(source: Entity, manager: ScenarioTriggerManager) -> Vector3:
+## Run this trigger's child events for `source` (the entity it fired on). Each child
+## AbstractEvent is placed at the resolved spawn position, then executed via the manager.
+func fire(manager: ScenarioTriggerManager, source: Entity) -> void:
+	var position: Vector3 = _resolve_spawn_position(source, manager)
+	for child in get_children():
+		if child is AbstractEvent:
+			(child as Node3D).global_position = position
+			manager.run_event(child as AbstractEvent, source)
+
+
+## Where the events should be anchored when this trigger fires on `source`.
+func _resolve_spawn_position(source: Entity, manager: ScenarioTriggerManager) -> Vector3:
 	if spawn_locator != null:
 		return spawn_locator.resolve(source, manager)
 	return source.global_position

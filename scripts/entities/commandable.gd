@@ -126,14 +126,25 @@ static func get_arrangement_cells(
 ## Default weapon patterns for unit-grouped commandables. Structures default to
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
-func get_aggro_near_position() -> Command:
+func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D = null) -> Command:
 	var is_bunker: bool = garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
 	if aggro_range_shape == null or (weapon_inventory == null and not is_bunker):
 		return null
 
+	var shape_source: CollisionShape3D = a_shape if a_shape != null else aggro_range_shape
+	var center: Vector3
+	if a_center == null:
+		center = aggro_range_shape.global_transform.origin
+	elif a_center is Node3D:
+		center = a_center.global_position
+	else:
+		center = a_center as Vector3
+	var shape_transform: Transform3D = shape_source.global_transform
+	shape_transform.origin = center
+
 	var aggro_query := PhysicsShapeQueryParameters3D.new()
-	aggro_query.shape = aggro_range_shape.shape
-	aggro_query.transform = aggro_range_shape.global_transform
+	aggro_query.shape = shape_source.shape
+	aggro_query.transform = shape_transform
 	aggro_query.collision_mask = CollisionLayers.TARGETABLE_ANY
 	aggro_query.exclude = [target_body.get_rid()] if target_body != null else []
 
@@ -164,7 +175,7 @@ func get_aggro_near_position() -> Command:
 	# target to completion. Aggro acquired while already running a command (e.g.
 	# AttackMove/Defend calling this) stays non-persistent, so it's abandoned once
 	# the target leaves aggro range and the unit resumes its prior command.
-	msg.persist = has_command()
+	msg.persist = not has_command()
 	return Attack.new(msg)
 
 func receive_damage(from: Commandable, amount: float) -> void:
