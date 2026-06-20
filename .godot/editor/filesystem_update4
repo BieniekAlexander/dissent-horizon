@@ -11,3 +11,6 @@ res://scripts/interface/command_context_parser.gd
 res://scripts/interface/rts_controller.gd
 res://scripts/interface/commands/attack.gd
 res://scripts/interface/commands/defend.gd
+res://scripts/entities/tools/projectile.gd
+res://scenes/projectiles/lazer.tscn
+res://scenes/units/vanguard.tscn

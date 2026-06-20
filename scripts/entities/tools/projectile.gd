@@ -56,6 +56,14 @@ var _frames_post_impact: int = 0
 @onready var _in_flight_particles: GPUParticles3D = get_node_or_null("InFlightParticles") as GPUParticles3D
 @onready var _post_impact_sprite: Sprite3D = get_node_or_null("PostImpactSprite") as Sprite3D
 @onready var _post_impact_particles: GPUParticles3D = get_node_or_null("PostImpactParticles") as GPUParticles3D
+## TODO the below handling of the beam mesh is very ugly, revisit this to generalize it with the other visualizations
+## Optional beam visual (e.g. the vanguard lazer): a CylinderMesh that is stretched
+## once from the projectile's origin to _destination so it reads as a single long
+## line for the projectile's brief lifespan. Null for projectiles that don't use it.
+@onready var _beam_mesh: MeshInstance3D = get_node_or_null("BeamMesh") as MeshInstance3D
+
+## How far the beam is lifted off the origin/target line so it doesn't clip the ground.
+const BEAM_LIFT: float = 0.5
 #endregion
 
 #region Lifecycle
@@ -81,9 +89,9 @@ func _physics_process(_delta: float) -> void:
 			_tick_post_impact()
 
 func _process(_delta: float) -> void:
-	if trajectory==Trajectory.LINEAR: # TODO clean up the LERP visualization
+	if trajectory==Trajectory.LINEAR and _in_flight_sprite != null: # TODO clean up the LERP visualization
 		var alpha: float = Engine.get_physics_interpolation_fraction()
-		$InFlightSprite.global_position = prev_physics_pos.lerp(curr_physics_pos, alpha)
+		_in_flight_sprite.global_position = prev_physics_pos.lerp(curr_physics_pos, alpha)
 #endregion
 
 #region Impact lifecycle
@@ -120,6 +128,7 @@ func initialize_projectile(a_from: Variant, a_target: Variant, a_weapon_damage: 
 	_destination = target_pos
 	velocity = _initial_velocity(target_pos)
 	#commander = a_source.commander
+	_orient_beam()
 #endregion
 
 #region Trajectory dispatch
@@ -251,6 +260,22 @@ func _apply_state_visuals() -> void:
 	var in_flight: bool = _state == State.IN_FLIGHT
 	_set_visual(_in_flight_sprite, _in_flight_particles, in_flight)
 	_set_visual(_post_impact_sprite, _post_impact_particles, not in_flight)
+
+## Stretch the optional BeamMesh into a single line from the projectile's origin
+## (its current global_position, set just before initialize_projectile) to
+## _destination. The cylinder's long axis is local Y; the mesh is authored thin on
+## X/Z (the beam thickness) so we only scale Y to the beam length. No-op when the
+## projectile has no BeamMesh. Called once at launch — the beam is static for the
+## projectile's brief lifespan, so it needs no per-frame update.
+func _orient_beam() -> void:
+	if _beam_mesh == null:
+		return
+	var diff: Vector3 = _destination - global_position
+	# Local space == world space here: the root has identity rotation and unit
+	# scale, so the mesh's local transform maps directly onto world directions.
+	_beam_mesh.position = 0.5 * diff + Vector3.UP * BEAM_LIFT
+	_beam_mesh.rotation = Vector3(-VU.inXZ(diff).angle(), 0, deg_to_rad(90))
+	_beam_mesh.scale = Vector3(1, diff.length() / 2.0, 1)
 
 func _set_visual(sprite: Sprite3D, particles: GPUParticles3D, on: bool) -> void:
 	if sprite != null:
