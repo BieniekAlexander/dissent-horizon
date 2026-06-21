@@ -9,7 +9,7 @@ process_physics_priority = 10
 type = 4611
 
 [node name="Defense" parent="." index="8"]
-armor = 1
+armour_type = 3
 hp_max = 500.0
 
 [node name="Sprite" parent="." index="13"]

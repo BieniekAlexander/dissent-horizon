@@ -1,0 +1,77 @@
+[gd_scene format=3 uid="uid://chrecru1t0001"]
+
+[ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_8cs83"]
+[ext_resource type="Texture2D" uid="uid://cu54wxkswu4d3" path="res://assets/entities/irregular.png" id="2_njqvf"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
+[ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_invnt"]
+[ext_resource type="PackedScene" path="res://scenes/projectiles/h_recruit_bullet.tscn" id="6_hrbul"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_skyvu"]
+radius = 0.2
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_c8urn"]
+radius = 0.3
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_tv7h1"]
+height = 100.0
+radius = 5.75
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_irreg"]
+height = 100.0
+radius = 2.875
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_c8urn"]
+radius = 0.3
+
+[node name="Recruit" unique_id=1210299015 instance=ExtResource("1_8cs83")]
+
+[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+shape = SubResource("CylinderShape3D_skyvu")
+
+[node name="Shape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0014038086, 0.00012207031, -0.0008544922)
+shape = SubResource("CylinderShape3D_c8urn")
+
+[node name="AggroRange" parent="." index="4" unique_id=131280482]
+shape = SubResource("CylinderShape3D_tv7h1")
+
+[node name="Movement" parent="." index="7"]
+speed = 0.04
+
+[node name="Loadout" type="Node3D" parent="." index="8" unique_id=1619495853]
+visible = false
+script = ExtResource("3_invnt")
+
+[node name="BallisticWeapon" type="Node3D" parent="Loadout" index="0" unique_id=1393546052]
+script = ExtResource("4_wpn00")
+projectile_scene = ExtResource("6_hrbul")
+melee_damage = 0.0
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0" unique_id=1338445835]
+shape = SubResource("CylinderShape3D_irreg")
+disabled = true
+debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
+
+[node name="Veterancy" parent="." index="10" unique_id=1733255303]
+level = 1
+
+[node name="Selectable" parent="." index="12" unique_id=2049500591]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=1543182780]
+shape = SubResource("SphereShape3D_c8urn")
+
+[node name="Sprite" parent="." index="14" unique_id=1381401170]
+transform = Transform3D(1.5, 0, 0, 0, 1.0606601, -1.0606601, 0, 1.0606601, 1.0606601, 0, 0.17003015, 0)
+texture_filter = 0
+texture = ExtResource("2_njqvf")
+hframes = 3
+
+[node name="Inventory" type="Node" parent="." index="19" unique_id=1765311699]
+script = ExtResource("5_invnt")
+initial_abilities = Array[int]([0])
+
+[node name="VeterancyLabel" parent="." index="22" unique_id=1705221844]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.55, -0.0009765625)
+visible = false

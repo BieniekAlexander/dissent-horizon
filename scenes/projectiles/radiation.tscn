@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://l2lvwietvqjt"]
+[gd_scene format=3 uid="uid://l2lvwietvqjt"]
 
 [ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_3mb8d"]
 [ext_resource type="Texture2D" uid="uid://b06ixdn7o8rgi" path="res://assets/rtsWorker.png" id="2_3mb8d"]
@@ -26,7 +26,7 @@ is_hemisphere = true
 height = 5.0
 radius = 2.0
 
-[node name="Radiation" type="CharacterBody3D"]
+[node name="Radiation" type="CharacterBody3D" unique_id=1436276604]
 collision_layer = 2
 collision_mask = 2
 script = ExtResource("1_3mb8d")
@@ -34,23 +34,23 @@ base_damage = 3.0
 post_impact_lifespan = 300
 tick_rate = 15
 
-[node name="InFlightSprite" type="Sprite3D" parent="."]
+[node name="InFlightSprite" type="Sprite3D" parent="." unique_id=520119631]
 transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
 render_priority = 5
 texture = ExtResource("2_3mb8d")
 
-[node name="InFlightParticles" type="GPUParticles3D" parent="."]
+[node name="InFlightParticles" type="GPUParticles3D" parent="." unique_id=47267117]
 emitting = false
 
-[node name="PostImpactParticles" type="GPUParticles3D" parent="."]
+[node name="PostImpactParticles" type="GPUParticles3D" parent="." unique_id=1067741693]
 amount = 32
 lifetime = 3.0
 process_material = SubResource("ParticleProcessMaterial_3mb8d")
 draw_pass_1 = SubResource("SphereMesh_3mb8d")
 
-[node name="HitShape" type="CollisionShape3D" parent="."]
+[node name="HitShape" type="CollisionShape3D" parent="." unique_id=1658602613]
 shape = SubResource("CylinderShape3D_3mb8d")
 
-[node name="Ownership" type="Node" parent="."]
+[node name="Ownership" type="Node" parent="." unique_id=1769212453]
 script = ExtResource("3_ownr0")
 metadata/_custom_type_script = "uid://cw7pigc81a8s6"

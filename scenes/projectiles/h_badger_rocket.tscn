@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://csyjjmuctxo47"]
+
+[ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_hsewj"]
+[ext_resource type="Texture2D" uid="uid://4j5okj7g4kff" path="res://assets/coin_logo.png" id="2_0petp"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_ilrt3"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_hsewj"]
+gravity = Vector3(0, 0, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_0petp"]
+size = Vector2(0.1, 0.1)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hit01"]
+
+[node name="Projectile" type="CharacterBody3D" unique_id=868653940]
+script = ExtResource("1_hsewj")
+trajectory = 1
+speed = 0.3
+base_damage = 15.0
+pre_impact_lifespan = 60
+post_impact_lifespan = 10
+tick_rate = 100
+
+[node name="InFlightSprite" type="Sprite3D" parent="." unique_id=2003180271]
+transform = Transform3D(0.4, 0, 0, 0, 0.2828427, 0.2828427, 0, -0.2828427, 0.2828427, 0, 0, 0)
+modulate = Color(1, 0.23921569, 0.23921569, 1)
+render_priority = 5
+texture = ExtResource("2_0petp")
+
+[node name="InFlightParticles" type="GPUParticles3D" parent="." unique_id=1645966837]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
+amount = 20
+lifetime = 0.1
+process_material = SubResource("ParticleProcessMaterial_hsewj")
+draw_pass_1 = SubResource("QuadMesh_0petp")
+
+[node name="HitShape" type="CollisionShape3D" parent="." unique_id=1074125257]
+shape = SubResource("SphereShape3D_hit01")
+disabled = true
+
+[node name="Ownership" type="Node" parent="." unique_id=1866835442]
+script = ExtResource("3_ilrt3")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"

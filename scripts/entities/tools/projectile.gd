@@ -117,10 +117,7 @@ func _tick_post_impact() -> void:
 #endregion
 
 #region Public API
-func initialize_projectile(a_from: Variant, a_target: Variant, a_weapon_damage: float = 0.0) -> void:
-	 # TODO revisit projectile damage: should the damage value be initialized within the projectile, or the weapon it comes from?
-	# At the end of the day, I need some avenue of increasing the projectile damage according to upgrades and such
-	if a_weapon_damage>0: base_damage = a_weapon_damage
+func initialize_projectile(a_from: Variant, a_target: Variant) -> void:
 	from = a_from if a_from is Commandable else null
 	target = a_target if a_target is Commandable else null
 	var target_pos: Vector3 = a_target.global_position if a_target is Entity else a_target
@@ -284,14 +281,38 @@ func _set_visual(sprite: Sprite3D, particles: GPUParticles3D, on: bool) -> void:
 		particles.visible = on
 		particles.emitting = on
 
+## Final per-hit damage: base_damage scaled by the firing unit's veterancy when the
+## source can be identified — (1 + level/10) * base_damage, where level is the
+## Veterancy.Level enum value (0 = NONE … 3 = HEROIC). Falls back to base_damage when
+## the source is unknown/freed or carries no Veterancy. is_instance_valid guards against
+## the projectile outliving its shooter.
+func _effective_damage() -> float:
+	if is_instance_valid(from) and from.veterancy != null:
+		return base_damage * (1.0 + float(int(from.veterancy.level)) / 10.0)
+	return base_damage
+
+func get_effects() -> Array:
+	return get_children().filter(
+		func(child): return child is EffectApplicator
+	)
+
 func _apply_hit() -> void:
 	# Collect the Commandables struck this hit so child EffectApplicators can act on
 	# the same set the damage landed on.
-	var struck: Array[Commandable] = []
+	var damage: float = _effective_damage()
+	# `from` (the shooter) and `target` are references held since launch; either can be
+	# queue_free()d before this projectile lands (the shooter dies mid-flight; the target
+	# is killed by another projectile). A freed Object does NOT compare equal to null in
+	# Godot 4 — passing one to a typed `Commandable` parameter throws "argument ...
+	# (previously freed) is not a subclass" — so guard both with is_instance_valid. The
+	# source collapses to null (an unattributed hit) rather than skipping the hit.
+	var source: Commandable = from if is_instance_valid(from) else null
+	var dmg: Damage = Damage.new(damage, damage_type)
 	if hit_shape == null:
-		if target != null:
-			target.receive_damage(from, base_damage)
-			struck.append(target)
+		if is_instance_valid(target):
+			target.receive_damage(dmg, source)
+			for effect: EffectApplicator in get_effects():
+				effect.apply([target], source)
 	else:
 		var params := PhysicsShapeQueryParameters3D.new()
 		params.shape = hit_shape.shape
@@ -299,27 +320,14 @@ func _apply_hit() -> void:
 		params.collision_mask = CollisionLayers.TARGETABLE_ANY
 		params.exclude = [self]
 		var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 32)
+		var targets: Array = hits.map(
+			func(hit: Dictionary): return Entity.entity_from_collider(hit["collider"])
+		)
 
-		for hit in hits:
-			var entity: Entity = Entity.entity_from_collider(hit["collider"])
-			var cmd: Commandable = entity as Commandable if entity != null else null
-			if cmd != null and cmd.defense != null:
-				cmd.receive_damage(from, base_damage)
-				struck.append(cmd)
+		for target in targets:
+			if is_instance_valid(target) and target.defense != null:
+				target.receive_damage(dmg, source)
 
-	# Apply status effects every hit. Reapplication on a lingering field (e.g. Radiation
-	# ticking each frame) is governed by each effect's ReapplyMode — REFRESH keeps the
-	# duration topped up while a unit stays in the field; STACK accrues stacks up to
-	# max_stacks — rather than being suppressed after the first hit.
-	_apply_effects(struck)
-
-## Apply each child EffectApplicator to `targets`, attributing the effects to `from`.
-## No-op when the projectile carries no EffectApplicator children.
-func _apply_effects(targets: Array[Commandable]) -> void:
-	if targets.is_empty():
-		return
-	for child: Node in get_children():
-		if child is EffectApplicator:
-			(child as EffectApplicator).apply(targets, from)
-
+		for effect: EffectApplicator in get_effects():
+			effect.apply(targets, source)
 #endregion

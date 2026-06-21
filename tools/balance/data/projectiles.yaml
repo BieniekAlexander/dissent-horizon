@@ -1,0 +1,27 @@
+# Catalog of shareable projectiles (id -> projectile). Numeric stats live here;
+# the visual/collision PackedScene stays in Godot, joined by this id. Referenced
+# by id from weapons. DEMO data — Phase 2 regenerates from Godot.
+projectiles:
+  # Shared across factions: used by both the Regime rifle and the Nomad carbine
+  # (in different faction files) — one definition, two owners.
+  lead_round_8:
+    base_damage: 8
+    damage_type: LEAD
+    speed: 1.0
+
+  lead_round_6:
+    base_damage: 6
+    damage_type: LEAD
+    speed: 1.0
+
+  shell_explosive_50:
+    base_damage: 50
+    damage_type: EXPLOSIVE
+    aoe_radius: 1.5           # informational in v1 (AoE is out of scope)
+    speed: 0.3
+
+  lazer_beam:
+    base_damage: 20
+    damage_type: LAZER
+    speed: 0.0
+    status_effects: [burn_dot_20]

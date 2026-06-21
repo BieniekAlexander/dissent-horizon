@@ -1,26 +1,25 @@
-[gd_scene load_steps=4 format=3 uid="uid://cm7ixbl5una03"]
+[gd_scene format=3 uid="uid://cm7ixbl5una03"]
 
 [ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_pxj58"]
 [ext_resource type="Texture2D" uid="uid://4j5okj7g4kff" path="res://assets/coin_logo.png" id="2_n1pw1"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_l3idu"]
 
-[node name="Projectile" type="CharacterBody3D"]
-transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
+[node name="Projectile" type="CharacterBody3D" unique_id=208917844]
 collision_layer = 0
 collision_mask = 2
 script = ExtResource("1_pxj58")
 hitscan = true
 trajectory = 1
-speed = 0.1
-base_damage = 50.0
+speed = 1.0
+base_damage = 8.0
 pre_impact_lifespan = 10000
 tick_rate = 1
 
-[node name="InFlightSprite" type="Sprite3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.70710677, 0.70710677, 0, -0.70710677, 0.70710677, 0, 0, 0)
+[node name="InFlightSprite" type="Sprite3D" parent="." unique_id=11328538]
+transform = Transform3D(0.05, 0, 0, 0, 0.035355339, 0.035355339, 0, -0.035355339, 0.035355339, 0, 0, 0)
 render_priority = 8
 texture = ExtResource("2_n1pw1")
 
-[node name="Ownership" type="Node" parent="."]
+[node name="Ownership" type="Node" parent="." unique_id=1123607683]
 script = ExtResource("3_l3idu")
 metadata/_custom_type_script = "uid://cw7pigc81a8s6"

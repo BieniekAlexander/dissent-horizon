@@ -1,0 +1,55 @@
+# DEMO faction (provisional). Illustrates the schema and exercises every query.
+# Phase 2 replaces this with real rosters exported from Godot.
+#
+# Design intent: heavy, expensive, ground-bound bruisers. Strong frontal armor,
+# NO answer to aircraft (deliberate hole, so the "unanswered threats" query lights up).
+# Weapons are referenced by id from data/weapons.yaml.
+faction: iron_regime
+name: Iron Regime
+description: Heavy ground army — expensive, durable, blind to the sky.
+
+buildables:
+  - id: outpost
+    kind: structure
+    name: Outpost
+    cost: {ore: 500}
+    requires: []
+
+  - id: compound
+    kind: structure
+    name: Compound
+    cost: {ore: 300}
+    requires: [outpost]
+
+  # --- units ---
+  - id: conscript
+    kind: unit
+    name: Conscript
+    cost: {ore: 75}
+    requires: [outpost]
+    armour: LIGHT
+    hp: 120
+    movement: {layer: ground, speed: 0.05}
+    weapons: [rifle]
+
+  # Intentionally DOMINATED by conscript (costs more, weaker, slower) -> should
+  # show up as obsolete / off the Pareto frontier.
+  - id: militia
+    kind: unit
+    name: Militia
+    cost: {ore: 90}
+    requires: [outpost]
+    armour: LIGHT
+    hp: 100
+    movement: {layer: ground, speed: 0.04}
+    weapons: [old_rifle]
+
+  - id: heavy_tank
+    kind: unit
+    name: Heavy Tank
+    cost: {ore: 600}
+    requires: [compound]
+    armour: HEAVY
+    hp: 800
+    movement: {layer: ground, speed: 0.1}
+    weapons: [cannon]

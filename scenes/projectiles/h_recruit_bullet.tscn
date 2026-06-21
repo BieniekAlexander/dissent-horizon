@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://cm7ixbl5una03" path="res://scenes/projectiles/irregular_bullet.tscn" id="1_base"]
+
+[node name="Projectile" instance=ExtResource("1_base")]
+base_damage = 10.0

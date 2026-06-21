@@ -33,7 +33,8 @@ enum Type {
 	UNIT_TECHNICIAN=0x1100,
 	UNIT_IRREGULAR=0x1101,
 	UNIT_VANGUARD=0x1102,
-	UNIT_WARLORD=0x1103
+	UNIT_WARLORD=0x1103,
+	H_CANNON=0x1209
 }
 
 const TEAM_COLOR_MAP: Dictionary = {
@@ -408,6 +409,16 @@ func initialize(a_map: Map, a_commander: Commander):
 	# as MOVEMENT_OBSTRUCTION. Map.add_structure re-runs this once a structure is
 	# registered, clearing the layer so units don't collide with it.
 	refresh_movement_collision()
+
+func receive_damage(damage: Damage, from: Commandable = null) -> void:
+	if defense == null:
+		return
+	var final_amount: float = DamageTable.calculate_damage(damage.amount, damage.type, self)
+	var was_alive: bool = defense.hp > 0
+	defense.hp -= final_amount
+	if was_alive and defense.hp <= 0 and from != null and from.veterancy != null:
+		from.veterancy.gain_experience(10)
+	_fire_entity_occurrence(EntityOccurrence.ON_RECEIVE_DAMAGE)
 
 func _on_death() -> void:
 	# Fire the death reaction FIRST, while map / global_position / commander are

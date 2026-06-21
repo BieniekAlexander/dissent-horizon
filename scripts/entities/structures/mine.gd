@@ -14,49 +14,62 @@ extends Commandable
 #endregion
 
 #region Public API
-## Link this mine to its deposit (both directions). While the mine overlays the
-## deposit the deposit stays the sole grid/collision occupant, so the mine's own
-## colliders are disabled to avoid duplicating it; they're restored when the mine
-## is released from the deposit (see _on_death).
+## Link this mine to its deposit (both directions). The mine OVERLAYS the deposit and
+## becomes the interactive entity at that cell — it must stay selectable (cursor /
+## right-click) and targetable (attack / aggro). The deposit underneath is hidden: its
+## own Selectable + TargetBody are suppressed so clicks and target queries resolve to the
+## mine (an enemy structure) rather than the neutral deposit. Restored on mine death (see
+## _on_death). The deposit remains the sole GRID occupant throughout (unchanged).
 func bind_deposit(a_deposit: Deposit) -> void:
 	deposit = a_deposit
 	if a_deposit != null:
 		a_deposit.mine = self
-		_set_colliders_disabled(true)
+		_set_deposit_interaction_disabled(true)
 #endregion
 
-#region Colliders
-## CollisionShape3Ds we disabled on bind, remembered so restoration re-enables
-## exactly those (and not any that were already disabled for another reason).
-var _overlay_disabled_shapes: Array[CollisionShape3D] = []
+#region Deposit overlay
+## Deposit Selectable/TargetBody shapes we disabled on bind, remembered so restoration
+## re-enables exactly those (and not any disabled for another reason).
+var _deposit_disabled_shapes: Array[CollisionShape3D] = []
 
-## Disable (or restore) every collider under the mine. Called when the mine
-## starts / stops overlaying a deposit. Editor-inert so the in-editor preview
-## keeps its colliders.
-func _set_colliders_disabled(a_disabled: bool) -> void:
-	if Engine.is_editor_hint():
+## Suppress (or restore) the host deposit's interaction colliders — the CollisionShape3Ds
+## under its Selectable (SELECTION layer) and TargetBody (TARGETABLE layer) — so the
+## overlaying mine is the sole click/attack target. The deposit's grid/movement presence
+## is left untouched; only its selection + targetability are toggled. Editor-inert.
+func _set_deposit_interaction_disabled(a_disabled: bool) -> void:
+	if Engine.is_editor_hint() or not is_instance_valid(deposit):
 		return
 	if a_disabled:
-		for node in find_children("*", "CollisionShape3D", true, false):
-			var shape := node as CollisionShape3D
-			if shape != null and not shape.disabled:
+		for shape in _deposit_interaction_shapes():
+			if not shape.disabled:
 				shape.disabled = true
-				_overlay_disabled_shapes.append(shape)
+				_deposit_disabled_shapes.append(shape)
 	else:
-		for shape in _overlay_disabled_shapes:
+		for shape in _deposit_disabled_shapes:
 			if is_instance_valid(shape):
 				shape.disabled = false
-		_overlay_disabled_shapes.clear()
+		_deposit_disabled_shapes.clear()
+
+## The deposit's SELECTION + TARGETABLE CollisionShape3Ds (under its Selectable and
+## TargetBody). Empty entries are skipped if the deposit lacks either component.
+func _deposit_interaction_shapes() -> Array[CollisionShape3D]:
+	var result: Array[CollisionShape3D] = []
+	for host: Node in [deposit.selectable, deposit.target_body]:
+		if host != null:
+			for node in host.find_children("*", "CollisionShape3D", true, false):
+				if node is CollisionShape3D:
+					result.append(node as CollisionShape3D)
+	return result
 #endregion
 
 #region Lifecycle
 func _on_death() -> void:
-	# The deposit is never removed from the grid; just release it so it can be
-	# mined again, and restore the colliders disabled while overlaying it.
+	# The deposit is never removed from the grid; just release it so it can be mined
+	# again, and restore the interaction colliders we suppressed while overlaying it.
 	# super() handles the rest of the structure teardown.
-	if deposit != null and is_instance_valid(deposit):
+	if is_instance_valid(deposit):
+		_set_deposit_interaction_disabled(false)
 		deposit.mine = null
-	_set_colliders_disabled(false)
 	super()
 
 

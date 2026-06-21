@@ -1,6 +1,8 @@
 extends GutTest
 
-## Unit tests for the Mine-on-Deposit placement rule (Mine.valid_placement).
+## Unit tests for the Mine-on-Deposit placement rule (OreExtractor.valid_placement).
+## The rule used to live on Mine.valid_placement; it moved to OreExtractor (mines are
+## overlay structures, gated on their OreExtractor component — see Build.meets_precondition).
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Mine.gd
@@ -11,7 +13,7 @@ extends GutTest
 ## the headless s1.tscn run; here we pin down WHEN a mine may be placed.
 
 
-## A minimal Map: just enough of the API that Mine.valid_placement touches, with a
+## A minimal Map: just enough of the API that OreExtractor.valid_placement touches, with a
 ## hand-set cell_grid and integer-rounded world↔grid mapping.
 class StubMap extends Map:
 	func world_to_grid(world_xz: Vector2) -> Vector2i:
@@ -41,7 +43,7 @@ func _msg(map: Map, cell: Vector2i) -> CommandMessage:
 
 func test_rejects_bare_ground() -> void:
 	var map := _make_map()
-	assert_false(Mine.valid_placement(_msg(map, Vector2i(1, 1)), Vector2i.ONE),
+	assert_false(OreExtractor.valid_placement(_msg(map, Vector2i(1, 1)), Vector2i.ONE),
 		"a mine may not be built on an empty cell")
 
 
@@ -49,7 +51,7 @@ func test_rejects_non_deposit_structure() -> void:
 	var map := _make_map()
 	var other := autofree(Commandable.new()) as Commandable
 	map.cell_grid[1][1] = other
-	assert_false(Mine.valid_placement(_msg(map, Vector2i(1, 1)), Vector2i.ONE),
+	assert_false(OreExtractor.valid_placement(_msg(map, Vector2i(1, 1)), Vector2i.ONE),
 		"a mine may not be built on a non-deposit structure")
 
 
@@ -57,7 +59,7 @@ func test_accepts_free_deposit() -> void:
 	var map := _make_map()
 	var dep := autofree(Deposit.new()) as Deposit
 	map.cell_grid[1][1] = dep
-	assert_true(Mine.valid_placement(_msg(map, Vector2i(1, 1)), Vector2i.ONE),
+	assert_true(OreExtractor.valid_placement(_msg(map, Vector2i(1, 1)), Vector2i.ONE),
 		"a mine may be built on a free deposit")
 
 
@@ -66,11 +68,11 @@ func test_rejects_already_mined_deposit() -> void:
 	var dep := autofree(Deposit.new()) as Deposit
 	dep.mine = autofree(Commandable.new()) as Commandable
 	map.cell_grid[1][1] = dep
-	assert_false(Mine.valid_placement(_msg(map, Vector2i(1, 1)), Vector2i.ONE),
+	assert_false(OreExtractor.valid_placement(_msg(map, Vector2i(1, 1)), Vector2i.ONE),
 		"no second mine on a deposit that already has one")
 
 
 func test_rejects_out_of_bounds() -> void:
 	var map := _make_map()
-	assert_false(Mine.valid_placement(_msg(map, Vector2i(9, 9)), Vector2i.ONE),
+	assert_false(OreExtractor.valid_placement(_msg(map, Vector2i(9, 9)), Vector2i.ONE),
 		"a mine may not be built off the grid")

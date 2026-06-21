@@ -10,9 +10,7 @@ extends StatusEffect
 @export var damage_per_tick: float = 10.0
 ## Period, in ticks, between damage applications. 1 = every tick.
 @export var tick_rate: int = 10
-## Damage flavour for future armor-multiplier wiring. NOTE: receive_damage() currently
-## applies a raw amount (it takes no Damage.Type), so this mirrors Projectile.damage_type
-## as metadata until the multiplier path (Damage.multiplier_patterns) is wired in.
+## Damage flavour passed to DamageTable for armour/attribute multiplier lookup.
 @export var damage_type: Damage.Type = Damage.Type.FIRE
 
 func _on_tick() -> void:
@@ -28,4 +26,4 @@ func _on_tick() -> void:
 	# the projectile's own impact damage already covers).
 	if (_elapsed + 1) % tick_rate == 0:
 		var src: Commandable = source if (source != null and is_instance_valid(source)) else null
-		victim.receive_damage(src, damage_per_tick * _stacks)
+		victim.receive_damage(Damage.new(damage_per_tick * _stacks, damage_type), src)

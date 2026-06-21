@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://xi4d44sl0pu6"]
+
+[ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_v5yox"]
+[ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="2_pc78a"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_3lfjd"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_qd6od"]
+[ext_resource type="PackedScene" path="res://scenes/projectiles/h_badger_rocket.tscn" id="5_qd6od"]
+[ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_sfvjv"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/b_irregular.tscn" id="6_scm32"]
+[ext_resource type="Script" uid="uid://bfix8h487pr1x" path="res://scripts/entities/components/builds.gd" id="7_builds"]
+[ext_resource type="Script" uid="uid://cjxnopfncnnjp" path="res://scripts/entities/entity_trigger.gd" id="11_8mobt"]
+[ext_resource type="Script" uid="uid://tm1rdm5spju8" path="res://scripts/scenario/events/event_spawn_entities.gd" id="12_wwinq"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_scm32"]
+radius = 0.3
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_techmelee"]
+height = 100.0
+radius = 5.0
+
+[node name="Badger" unique_id=716209437 instance=ExtResource("1_v5yox")]
+type = 4355
+
+[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+shape = SubResource("CylinderShape3D_scm32")
+
+[node name="Movement" parent="." index="7"]
+speed = 0.1
+
+[node name="Defense" parent="." index="8" unique_id=637704181]
+hp_max = 800.0
+
+[node name="Inventory" type="Node" parent="." index="10" unique_id=196458833]
+script = ExtResource("5_sfvjv")
+
+[node name="Builds" type="Node" parent="." index="11" unique_id=181383139]
+script = ExtResource("7_builds")
+buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614])
+
+[node name="Loadout" type="Node3D" parent="." index="12" unique_id=1657665789]
+script = ExtResource("3_3lfjd")
+
+[node name="Weapon" type="Node3D" parent="Loadout" index="0" unique_id=1845403030]
+script = ExtResource("4_qd6od")
+split_time = 45
+reload_time = 45
+projectile_scene = ExtResource("5_qd6od")
+melee_damage = 0.0
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/Weapon" index="0" unique_id=1451356995]
+shape = SubResource("CylinderShape3D_techmelee")
+disabled = true
+
+[node name="Sprite" parent="." index="16" unique_id=1381401170]
+transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17100573, 0)
+flip_h = true
+texture = ExtResource("2_pc78a")
+
+[node name="HPBar" parent="." index="17" unique_id=665391337]
+transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)
+
+[node name="EntityTrigger" type="Node" parent="#####TRIGGERS#####" parent_id_path=PackedInt32Array(402250202) index="0" unique_id=1566894775]
+script = ExtResource("11_8mobt")
+metadata/_custom_type_script = "uid://cjxnopfncnnjp"
+
+[node name="EventSpawnEntities" type="Node3D" parent="#####TRIGGERS#####/EntityTrigger" index="0" unique_id=2093385775]
+script = ExtResource("12_wwinq")
+entity_scenes = Array[PackedScene]([ExtResource("6_scm32")])
+count = 2
+metadata/_custom_type_script = "uid://tm1rdm5spju8"

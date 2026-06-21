@@ -88,18 +88,13 @@ func is_ready() -> bool:
 	
 
 func fire(a_owner: Commandable, a_target: Entity) -> void:
-	var vet_level: int = a_owner.veterancy.level if a_owner.veterancy != null else 0
-	var effective_damage: float = melee_damage + 0.2 * float(vet_level)
 	if projectile_scene != null:
 		var projectile: Projectile = projectile_scene.instantiate()
 		projectile.initialize(a_owner.map, a_owner.commander)
 		projectile.global_position = global_position
-		projectile.initialize_projectile(a_owner, a_target, effective_damage)
+		projectile.initialize_projectile(a_owner, a_target)
 	else:
-		a_target.receive_damage(
-			a_owner,
-			Pattern.eval(Damage.multiplier_patterns[melee_damage_type], a_target) * melee_damage
-		)
+		a_target.receive_damage(Damage.new(melee_damage, melee_damage_type), a_owner)
 	
 	_ammo -= 1
 	_split_timer = split_time

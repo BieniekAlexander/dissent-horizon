@@ -18,9 +18,15 @@ var _commander_id_context: int = -1
 func execute(manager: ScenarioTriggerManager) -> void:
 	if get_parent() is EventSpawnEntities:
 		return
-	var units: Array[Commandable] = _all_scene_units(manager)
+	var entities: Array[Entity] = _all_scene_entities(manager)
 	for sel: EntitySelector in _selectors():
-		units = sel.filter(units, manager)
+		entities = sel.filter(entities, manager)
+	# The selector pipeline is Entity-typed, but commands only apply to Commandables —
+	# narrow to them here (the Commandable predicate at the command-issuing boundary).
+	var units: Array[Commandable] = []
+	for entity: Entity in entities:
+		if entity is Commandable:
+			units.append(entity)
 	issue_commands_to(units, manager)
 
 
@@ -63,12 +69,12 @@ func active_commander_id() -> int:
 	return 0
 
 
-func _all_scene_units(manager: ScenarioTriggerManager) -> Array[Commandable]:
-	var result: Array[Commandable] = []
+func _all_scene_entities(manager: ScenarioTriggerManager) -> Array[Entity]:
+	var result: Array[Entity] = []
 	for node: Node in manager.get_tree().get_nodes_in_group("unit"):
-		var c: Commandable = node as Commandable
-		if c != null:
-			result.append(c)
+		var e: Entity = node as Entity
+		if e != null:
+			result.append(e)
 	return result
 
 

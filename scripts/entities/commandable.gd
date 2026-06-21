@@ -171,23 +171,17 @@ func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D
 	if potential_targets.is_empty():
 		return null
 	var msg := CommandMessage.new(map, potential_targets[0], null)
-	# An idle aggro acquisition (no active command) persists: the unit pursues the
-	# target to completion. Aggro acquired while already running a command (e.g.
-	# AttackMove/Defend calling this) stays non-persistent, so it's abandoned once
-	# the target leaves aggro range and the unit resumes its prior command.
-	msg.persist = not has_command()
+	msg.persist = false
 	return Attack.new(msg)
 
-func receive_damage(from: Commandable, amount: float) -> void:
+func receive_damage(damage: Damage, from: Commandable = null) -> void:
+	super(damage, from)
 	# Being attacked breaks stealth: force the timed UNSTEALTHED window.
 	if stealth != null:
 		stealth.unstealth()
-	_fire_entity_occurrence(EntityOccurrence.ON_RECEIVE_DAMAGE)
-	command_receiver.receive_damage(from, amount)
-	
 	# retaliation logic
 	if defense != null and defense.hp > 0 and command_receiver.is_idle() and from != null:
-		var attack_cmd := _get_vision_range_attack(from)
+		var attack_cmd: Command = _get_vision_range_attack(from)
 		if attack_cmd != null:
 			update_commands(attack_cmd)
 

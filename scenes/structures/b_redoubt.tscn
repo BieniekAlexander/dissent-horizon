@@ -11,7 +11,7 @@ type = 8704
 dimensions = Vector2i(3, 3)
 
 [node name="Defense" parent="." index="9"]
-armor = 1
+armour_type = 3
 hp_max = 500.0
 
 [node name="Sprite" parent="." index="14"]

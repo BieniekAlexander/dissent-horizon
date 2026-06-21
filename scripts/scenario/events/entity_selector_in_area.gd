@@ -2,18 +2,18 @@
 class_name EntitySelectorInArea
 extends EntitySelector
 
-## Keeps only units whose CharacterBody3D is overlapping `area`.
-## The Area3D must have an appropriate collision_mask to detect units.
+## Keeps only entities whose CharacterBody3D is overlapping `area`.
+## The Area3D must have an appropriate collision_mask to detect them.
 
 @export var area: Area3D
 
-func filter(units: Array[Commandable], _manager: ScenarioTriggerManager) -> Array[Commandable]:
+func filter(entities: Array[Entity], _manager: ScenarioTriggerManager) -> Array[Entity]:
 	if area == null:
-		return units
+		return entities
 	var bodies: Array[Node3D] = area.get_overlapping_bodies()
 	var in_area: Dictionary = {}
 	for b: Node3D in bodies:
 		in_area[b] = true
-	var result: Array[Commandable] = []
-	result.assign(units.filter(func(u: Commandable) -> bool: return in_area.has(u)))
+	var result: Array[Entity] = []
+	result.assign(entities.filter(func(e: Entity) -> bool: return in_area.has(e)))
 	return result

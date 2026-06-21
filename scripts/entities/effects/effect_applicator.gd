@@ -31,16 +31,19 @@ func execute(manager: ScenarioTriggerManager) -> void:
 
 
 ## Apply the child status effects to `seed`, narrowed by the child selector pipeline.
-## `a_source` is the inflictor (for damage attribution); `manager` is forwarded to
-## selectors that need it (most ignore it) and may be null (e.g. projectile impact).
-func apply(seed: Array[Commandable], a_source: Commandable = null, manager: ScenarioTriggerManager = null) -> void:
-	var recipients: Array[Commandable] = seed
+## Recipients are Entities — an effect may target any Entity, not just Commandables. A
+## stage that must narrow to Commandables (or any other kind) is just a predicate in the
+## selector pipeline, not a constraint on this base type. `a_source` is the inflictor (for
+## damage attribution); `manager` is forwarded to selectors that need it (most ignore it)
+## and may be null (e.g. projectile impact).
+func apply(seed: Array[Entity], a_source: Commandable = null, manager: ScenarioTriggerManager = null) -> void:
+	var recipients: Array[Entity] = seed
 	for sel: EntitySelector in _selectors():
 		recipients = sel.filter(recipients, manager)
 	if recipients.is_empty():
 		return
 	var templates: Array[StatusEffect] = _effect_templates()
-	for entity: Commandable in recipients:
+	for entity: Entity in recipients:
 		for template: StatusEffect in templates:
 			var effect: StatusEffect = template.duplicate() as StatusEffect
 			effect.apply_to(entity, a_source)
@@ -63,11 +66,11 @@ func _effect_templates() -> Array[StatusEffect]:
 	return result
 
 
-func _all_scene_units(manager: ScenarioTriggerManager) -> Array[Commandable]:
-	var result: Array[Commandable] = []
+func _all_scene_units(manager: ScenarioTriggerManager) -> Array[Entity]:
+	var result: Array[Entity] = []
 	for node: Node in manager.get_tree().get_nodes_in_group("unit"):
-		var c: Commandable = node as Commandable
-		if c != null:
-			result.append(c)
+		var e: Entity = node as Entity
+		if e != null:
+			result.append(e)
 	return result
 #endregion

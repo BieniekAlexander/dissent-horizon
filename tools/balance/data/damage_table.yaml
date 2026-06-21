@@ -1,0 +1,25 @@
+# Damage-effectiveness tables — the rock-paper-scissors core of combat.
+#
+# SOURCE OF TRUTH: mirrored from the live game CSVs
+#   res://resources/damage/damage_vs_armour.csv
+#   res://resources/damage/damage_vs_attribute.csv
+# Phase 2 (Godot -> YAML exporter) will regenerate this file automatically so it
+# can never drift. Until then it is hand-synced; keep the two in lockstep.
+#
+# vs_armour[damage_type][armour_type] -> multiplier applied to base damage.
+# Missing cells default to 1.0 (same convention as DamageTable.get_armour_multiplier).
+vs_armour:
+  LEAD:        {UNARMORED: 1.0,  LIGHT: 1.0,  MEDIUM: 0.5,  HEAVY: 0.1}
+  LAZER:       {UNARMORED: 1.0,  LIGHT: 0.25, MEDIUM: 0.75, HEAVY: 1.5}
+  TOXIN:       {UNARMORED: 1.0,  LIGHT: 1.0,  MEDIUM: 1.0,  HEAVY: 1.0}
+  FIRE:        {UNARMORED: 1.0,  LIGHT: 1.0,  MEDIUM: 0.75, HEAVY: 0.5}
+  ELECTRICITY: {UNARMORED: 1.0,  LIGHT: 1.0,  MEDIUM: 1.0,  HEAVY: 1.0}
+  SIEGE:       {UNARMORED: 1.0,  LIGHT: 0.75, MEDIUM: 1.0,  HEAVY: 1.5}
+  EXPLOSIVE:   {UNARMORED: 1.25, LIGHT: 1.0,  MEDIUM: 0.9,  HEAVY: 0.75}
+
+# vs_attribute[damage_type][attribute] -> multiplier, applied multiplicatively
+# for every attribute the target has (IS_GROUNDED / IS_FLYING / HAS_STEALTH).
+# Missing cells default to 1.0.
+vs_attribute:
+  TOXIN:     {IS_FLYING: 0.5}
+  EXPLOSIVE: {IS_FLYING: 0.5}

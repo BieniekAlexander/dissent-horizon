@@ -65,20 +65,6 @@ func consume_leading_patrol_positions() -> Array[Vector3]:
 			break
 	return positions
 
-func receive_damage(attacker: Commandable, amount: float) -> void:
-	if owner.defense != null:
-		var was_alive: bool = owner.defense.hp > 0
-		owner.defense.hp -= amount
-		if was_alive and owner.defense.hp <= 0 and attacker != null and attacker.veterancy != null:
-			attacker.veterancy.gain_experience(10)
-
-	if owner.defense != null and owner.defense.hp > 0 and _command == null and attacker != null and !(_disposition == Disposition.PASSIVE):
-		update_commands(
-			Command.new(CommandMessage.new(owner.map, attacker, null, attacker.global_position)),
-			true,
-			true
-		)
-
 func load_destination(command: Command) -> void:
 	if owner.movement != null:
 		owner.movement.set_target_position(command.message.position)

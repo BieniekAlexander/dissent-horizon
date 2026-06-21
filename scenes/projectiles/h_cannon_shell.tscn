@@ -1,0 +1,57 @@
+[gd_scene format=3 uid="uid://bx3hcnshl0001"]
+
+[ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_hcpro"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_hcown"]
+[ext_resource type="Texture2D" uid="uid://b06ixdn7o8rgi" path="res://assets/rtsWorker.png" id="2_uldbq"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dfxen"]
+velocity_pivot = Vector3(1, 0, 1)
+direction = Vector3(0, 0, 1)
+spread = 180.0
+flatness = 1.0
+initial_velocity_min = 0.5
+initial_velocity_max = 0.5
+gravity = Vector3(0, 0, 0)
+linear_accel_min = -0.10000224
+linear_accel_max = -0.10000224
+
+[sub_resource type="SphereMesh" id="SphereMesh_vdrgy"]
+radius = 0.1
+height = 0.05
+radial_segments = 16
+rings = 2
+is_hemisphere = true
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hchit"]
+radius = 3.0
+
+[node name="HCannonShell" type="CharacterBody3D" unique_id=876173962]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_hcpro")
+speed = 0.3
+base_damage = 50.0
+damage_type = 7
+post_impact_lifespan = 30
+
+[node name="InFlightSprite" type="Sprite3D" parent="." unique_id=904659717]
+transform = Transform3D(5, 0, 0, 0, 3.535534, 3.535534, 0, -3.535534, 3.535534, 0, 0, 0)
+render_priority = 5
+texture = ExtResource("2_uldbq")
+
+[node name="InFlightParticles" type="GPUParticles3D" parent="." unique_id=883230071]
+emitting = false
+
+[node name="PostImpactParticles" type="GPUParticles3D" parent="." unique_id=382783214]
+amount = 32
+lifetime = 3.0
+process_material = SubResource("ParticleProcessMaterial_dfxen")
+draw_pass_1 = SubResource("SphereMesh_vdrgy")
+
+[node name="HitShape" type="CollisionShape3D" parent="." unique_id=1310445498]
+shape = SubResource("SphereShape3D_hchit")
+disabled = true
+
+[node name="Ownership" type="Node" parent="." unique_id=1219157398]
+script = ExtResource("2_hcown")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"

@@ -2,11 +2,11 @@
 class_name EntitySelectorCommander
 extends EntitySelector
 
-## Keeps only units owned by `commander_id`.
+## Keeps only entities owned by `commander_id`.
 
 @export var commander_id: int = 0
 
-func filter(units: Array[Commandable], _manager: ScenarioTriggerManager) -> Array[Commandable]:
-	var result: Array[Commandable] = []
-	result.assign(units.filter(func(u: Commandable) -> bool: return u.commander_id == commander_id))
+func filter(entities: Array[Entity], _manager: ScenarioTriggerManager) -> Array[Entity]:
+	var result: Array[Entity] = []
+	result.assign(entities.filter(func(e: Entity) -> bool: return e.commander_id == commander_id))
 	return result

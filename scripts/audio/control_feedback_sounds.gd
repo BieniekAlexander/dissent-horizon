@@ -74,6 +74,11 @@ static var lines: Dictionary = {
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
+	Entity.Type.H_CANNON: {
+		LineType.SELECTED: [_ROAR],
+		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
 	Entity.Type.STRUCTURE_DEPOSIT: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],

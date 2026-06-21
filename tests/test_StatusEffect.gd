@@ -195,8 +195,8 @@ func test_selector_keeps_units_with_attribute() -> void:
 	autofree(sel)
 	sel.attribute = Entity.Attribute.MECH
 	sel.require_present = true
-	var kept: Array[Commandable] = sel.filter([mech, bio], null)
-	assert_eq(kept, [mech] as Array[Commandable], "keeps only the MECH unit")
+	var kept: Array[Entity] = sel.filter([mech, bio], null)
+	assert_eq(kept, [mech] as Array[Entity], "keeps only the MECH unit")
 
 
 func test_selector_keeps_units_without_attribute() -> void:
@@ -206,8 +206,8 @@ func test_selector_keeps_units_without_attribute() -> void:
 	autofree(sel)
 	sel.attribute = Entity.Attribute.MECH
 	sel.require_present = false
-	var kept: Array[Commandable] = sel.filter([mech, bio], null)
-	assert_eq(kept, [bio] as Array[Commandable], "keeps only the non-MECH unit")
+	var kept: Array[Entity] = sel.filter([mech, bio], null)
+	assert_eq(kept, [bio] as Array[Entity], "keeps only the non-MECH unit")
 #endregion
 
 

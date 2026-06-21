@@ -2,13 +2,14 @@
 class_name EntitySelectorMovementMode
 extends EntitySelector
 
-## Keeps only units whose Movement.mode matches `mode`.
+## Keeps only entities whose Movement.mode matches `mode` (those without a Movement
+## component are dropped).
 
 @export var mode: Movement.Mode = Movement.Mode.GROUNDED_DIRECT
 
-func filter(units: Array[Commandable], _manager: ScenarioTriggerManager) -> Array[Commandable]:
-	var result: Array[Commandable] = []
-	result.assign(units.filter(func(u: Commandable) -> bool:
-		return u.movement != null and u.movement.mode == mode
+func filter(entities: Array[Entity], _manager: ScenarioTriggerManager) -> Array[Entity]:
+	var result: Array[Entity] = []
+	result.assign(entities.filter(func(e: Entity) -> bool:
+		return e.movement != null and e.movement.mode == mode
 	))
 	return result

@@ -471,6 +471,8 @@ func assign_command_to_units(
 
 	for c: Commandable in capable:
 		var snapshot := CommandMessage.deep_copy(a_command_message)
+		if a_command_type == Attack:
+			snapshot.persist = true
 		if unit_to_destination.has(c):
 			var dest_xz: Vector2 = unit_to_destination[c]
 			snapshot.world_position = VU.fromXZ(dest_xz)

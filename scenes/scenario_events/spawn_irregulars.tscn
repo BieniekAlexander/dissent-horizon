@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://muhcb0477j1x"]
+[gd_scene format=3 uid="uid://muhcb0477j1x"]
 
 [ext_resource type="Script" uid="uid://tm1rdm5spju8" path="res://scripts/scenario/events/event_spawn_entities.gd" id="1_e04dg"]
-[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/irregular.tscn" id="2_vh02a"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/b_irregular.tscn" id="2_vh02a"]
 
-[node name="SpawnIrregulars" type="Node3D"]
+[node name="SpawnIrregulars" type="Node3D" unique_id=267313945]
 script = ExtResource("1_e04dg")
 entity_scenes = Array[PackedScene]([ExtResource("2_vh02a")])
 count = 3

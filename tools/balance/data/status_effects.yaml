@@ -1,0 +1,8 @@
+# Catalog of shareable status effects (id -> effect). Referenced by id from
+# projectiles. DEMO data — Phase 2 regenerates from Godot.
+status_effects:
+  burn_dot_20:
+    kind: damage_over_time
+    damage_per_tick: 5
+    duration_ticks: 12        # total = 60 over its lifetime
+    damage_type: LAZER        # omit to inherit the carrier projectile's type
