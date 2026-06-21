@@ -7,9 +7,12 @@ const attack_cursor: Resource = preload("res://assets/interface/cursor_attack.pn
 const unknown_cursor: Resource = preload("res://assets/interface/cursor_unknown.png")
 const invalid_cursor: Resource = preload("res://assets/interface/cursor_invalid.png")
 
-# TODO: replace with a reference to the active player's Commander once
-# multi-player / hot-seat support is needed. Hardcoded per user request.
-const PLAYER_COMMANDER_ID: int = 1
+# The commander id the local human controls. Runtime-set by Scenario from its
+# control config (see Scenario.human_commander_id), so the player can be any
+# commander id — or absent entirely (spectator), in which case this is < 1 and
+# no human rig (camera/HUD/fog) exists. Read by fog, minimap, and commandable to
+# decide the local viewpoint. Was a const; now a static var so it can vary.
+static var PLAYER_COMMANDER_ID: int = 1
 
 const BUILD_PREVIEW_ALPHA: float = 0.45
 const BUILD_PREVIEW_VALID_TINT:   Color = Color(1.0, 1.0, 1.0, BUILD_PREVIEW_ALPHA)

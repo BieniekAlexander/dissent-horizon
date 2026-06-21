@@ -3,14 +3,14 @@
 vs_armour:
   LEAD:
     UNARMORED: 1
-    LIGHT: 1
-    MEDIUM: 0.5
+    LIGHT: .75
+    MEDIUM: 0.25
     HEAVY: 0.1
   LAZER:
-    UNARMORED: 1
-    LIGHT: 0.25
-    MEDIUM: 0.75
-    HEAVY: 1.5
+    UNARMORED: .1
+    LIGHT: 0.75
+    MEDIUM: 1
+    HEAVY: .5
   TOXIN:
     UNARMORED: 1
     LIGHT: 1
@@ -32,10 +32,10 @@ vs_armour:
     MEDIUM: 1
     HEAVY: 1.5
   EXPLOSIVE:
-    UNARMORED: 1.25
+    UNARMORED: .25
     LIGHT: 1
-    MEDIUM: 0.7
-    HEAVY: 0.75
+    MEDIUM: 0.75
+    HEAVY: 0.5
 vs_attribute:
   LEAD: {}
   LAZER: {}

@@ -153,8 +153,14 @@ func _ready() -> void:
 		structure_type_map[s] = Set.new()
 
 func _process(delta: float) -> void:
-	if id!=1: return
-	$Controller/ResourceSummaryLabel.text = (
+	# Only the human-controlled commander carries the HUD rig (Controller +
+	# ResourceSummaryLabel), and it can now be any id — or none, in spectator
+	# mode. Gate on the node actually existing rather than a hardcoded id so bots
+	# (and the neutral commander) don't try to write a label they don't have.
+	var label := get_node_or_null("Controller/ResourceSummaryLabel") as RichTextLabel
+	if label == null:
+		return
+	label.text = (
 		"\tore: %s\n\tpopulation: %s\n\tdominion: %s" % [
 	 	ore,
 		("%s/%s" % [population_used, population_max]),

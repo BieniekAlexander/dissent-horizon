@@ -57,16 +57,98 @@ def test_edits_reach_via_subresource():
     assert ok and "radius = 10.0\n" in out
 
 
-def test_missing_property_is_not_created():
-    ok, reason, out = _apply(SAMPLE, _edit(("node", "Defense"), "regen", "5.0"))
-    assert not ok
-    assert "not overridden" in reason
-    assert "regen" not in out                  # never invented an override
+def test_missing_property_is_appended_to_existing_block():
+    # Category A: the Defense block exists but has no `regen` line — append it.
+    ok, _, out = _apply(SAMPLE, _edit(("node", "Defense"), "regen", "5.0"))
+    assert ok
+    assert "regen = 5.0\n" in out
+    assert out.count("regen") == 1             # appended once, not duplicated
+    # appended inside the Defense block, before the blank line / next header
+    block = out.split('[node name="Defense"')[1].split("\n\n")[0]
+    assert "regen = 5.0" in block
+    assert "speed = 0.04\n" in out             # neighbouring block untouched
 
 
-def test_missing_block_reports():
-    ok, reason, _ = _apply(SAMPLE, _edit(("node", "Garrison"), "capacity", "4"))
+def test_appends_into_root_node_block():
+    # warlord_rocket.damage_type shape: root node exists, property line absent.
+    text = '[node name="Projectile" type="CharacterBody3D"]\nbase_damage = 15.0\n'
+    ok, _, out = _apply(text, _edit(("root",), "damage_type", "7"))
+    assert ok and out == (
+        '[node name="Projectile" type="CharacterBody3D"]\n'
+        "base_damage = 15.0\n"
+        "damage_type = 7\n"
+    )
+
+
+def test_missing_block_without_base_is_refused():
+    # SAMPLE's root is a plain node (no `instance=`), so there's no base scene
+    # to inherit Garrison from — synthesis must refuse, not invent a block.
+    ok, reason, out = _apply(SAMPLE, _edit(("node", "Garrison"), "capacity", "4"))
     assert not ok and "not found" in reason
+    assert "Garrison" not in out
+
+
+# --- Category B: synthesise an override for an inherited node -------------- #
+BASE = """[gd_scene format=3 uid="uid://base"]
+
+[node name="Commandable" type="CharacterBody3D" unique_id=249815651]
+
+[node name="Defense" type="Node" parent="." unique_id=637704181]
+hp_max = 100.0
+"""
+
+DERIVED = """[gd_scene format=3 uid="uid://derived"]
+
+[ext_resource type="PackedScene" uid="uid://base" path="res://base.tscn" id="1_b"]
+
+[sub_resource type="SphereShape3D" id="Sphere_1"]
+radius = 1.0
+
+[node name="Unit" unique_id=111 instance=ExtResource("1_b")]
+
+[node name="Movement" parent="." index="7"]
+speed = 0.05
+"""
+
+
+def test_synthesises_inherited_override(tmp_path, monkeypatch):
+    monkeypatch.setattr(importer, "PROJECT_ROOT", tmp_path)
+    (tmp_path / "base.tscn").write_text(BASE)
+    e = _edit(("node", "Defense"), "hp_max", "240.0")
+    e.target = "res://derived.tscn"
+    lines = DERIVED.splitlines(keepends=True)
+    ok, reason = importer._apply_scene_edit(lines, e)
+    out = "".join(lines)
+    assert ok and reason == "" and e.created
+    # carries the base node's unique_id + parent, omits index (Godot self-heals)
+    assert '[node name="Defense" parent="." unique_id=637704181]\n' in out
+    assert "hp_max = 240.0\n" in out
+    assert "index=" not in out.split("Defense")[1].split("\n")[0]
+    # inserted after the root block, before the first override — not in subresources
+    assert out.index('name="Defense"') > out.index('name="Unit"')
+    assert out.index('name="Defense"') < out.index('name="Movement"')
+    assert out.index('name="Defense"') > out.index("SphereShape3D")
+
+
+def test_synthesised_override_drops_uid_when_base_has_none(tmp_path, monkeypatch):
+    # A node first defined in an intermediate scene without a unique_id (like
+    # unit.tscn's Movement) must be synthesised without one too.
+    monkeypatch.setattr(importer, "PROJECT_ROOT", tmp_path)
+    base = BASE.replace(" unique_id=637704181", "").replace("Defense", "Garrison")
+    (tmp_path / "base.tscn").write_text(base)
+    e = _edit(("node", "Garrison"), "hp_max", "5.0")
+    e.target = "res://derived.tscn"
+    lines = DERIVED.splitlines(keepends=True)
+    ok, _ = importer._apply_scene_edit(lines, e)
+    assert ok and '[node name="Garrison" parent="."]\n' in "".join(lines)
+
+
+def test_reach_radius_not_invented_on_shape():
+    # reach edits stay conservative: never append `radius` to an arbitrary shape.
+    no_radius = SAMPLE.replace("radius = 15.0\n", "")
+    ok, reason, out = _apply(no_radius, _edit(("reach", "LazerWeapon"), "radius", "10.0"))
+    assert not ok and "radius not present" in reason
+    assert "radius = 10.0" not in out
 
 
 def test_manifest_single_line_edit():

@@ -1,15 +1,10 @@
-[gd_resource type="Resource" script_class="GraphPlateauHeightmapGenerator" load_steps=2 format=3 uid="uid://cf8uoifgc2m6u"]
+[gd_resource type="Resource" script_class="GraphPlateauHeightmapGenerator" format=3]
 
-[ext_resource type="Script" uid="uid://dks0ueuywo42b" path="res://scripts/maps/terrain/graph_plateau_heightmap_generator.gd" id="1_emqyv"]
+[ext_resource type="Script" path="res://scripts/maps/terrain/graph_plateau_heightmap_generator.gd" id="1_emqyv"]
 
 [resource]
 script = ExtResource("1_emqyv")
-region_count = 8
-cells_per_region = 120
-height_levels = 2
-ramp_run = 10
-ramp_half_width = 6.0
-elevation_change_chance = 0.6
-loop_ramp_chance = 0.4
-seed = 2271196271
-dimensions = Vector2i(80, 50)
+cells_per_region = 84
+ramp_run = 5
+ramp_half_width = 5.0
+seed = 7

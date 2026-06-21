@@ -1,5 +1,5 @@
 extends SceneTree
-const B := preload("res://tools/heightmap_workbench_builder.gd")
+const B := preload("res://tools/terrain/heightmap_workbench_builder.gd")
 func _init() -> void:
 	var r: Dictionary = B.new().build()
 	print("BUILD ok=%s scene=%s" % [r["ok"], r["scene_path"]])

@@ -34,6 +34,7 @@ func test_null_commander_is_safe_on_both_paths():
 	# Should not crash.
 	r.apply_to(null)
 	r.remove_from(null)
+	pass_test("null commander is handled safely on both paths")
 
 func test_default_values_are_zero():
 	var r := ResourceProvider.new()

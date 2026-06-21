@@ -6,7 +6,7 @@ extends EditorScript
 ##   res://resources/block_mask_demo/block_mask_demo.tscn
 ## Logic lives in block_mask_demo_builder.gd (EditorScript can't run headlessly).
 
-const DemoBuilder := preload("res://tools/block_mask_demo_builder.gd")
+const DemoBuilder := preload("res://tools/terrain/block_mask_demo_builder.gd")
 
 
 func _run() -> void:

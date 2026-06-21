@@ -34,6 +34,6 @@ projectiles:
       - "lazer_dot"
   warlord_rocket:
     base_damage: 15
-    damage_type: "LEAD"
+    damage_type: "EXPLOSIVE"
     speed: 0.15
     status_effects: []

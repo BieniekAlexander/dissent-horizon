@@ -8,7 +8,7 @@ extends EditorScript
 ## You normally only need to run this ONCE to create the workbench; after that you
 ## work inside the scene itself.
 
-const WorkbenchBuilder := preload("res://tools/heightmap_workbench_builder.gd")
+const WorkbenchBuilder := preload("res://tools/terrain/heightmap_workbench_builder.gd")
 
 
 func _run() -> void:

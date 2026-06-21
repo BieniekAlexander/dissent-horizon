@@ -87,8 +87,10 @@ var orbit_angular_speed: ## orbit angular speed in degrees/tick
 	get: return rad_to_deg(orbit_speed/orbit_radius)
 
 ## The point a FLYING unit orbits while idle — set to the last command destination
-## by CommandReceiver whenever a command ends.
-@onready var _anchor: Vector3 = get_parent().global_position
+## by CommandReceiver whenever a command ends. Seeded from the parent entity's
+## position in _ready (only FLYING/HOVERING modes have a Node3D parent and ever
+## read this; a plain-Node parent — e.g. in unit tests — leaves it at ZERO).
+var _anchor: Vector3 = Vector3.ZERO
 
 ## Current angle (radians) on the orbit circle, updated each tick by
 ## compute_orbit_velocity(). Initialised from the unit's actual position relative
@@ -123,6 +125,9 @@ var target_position: Vector3:
 
 #region Lifecycle
 func _ready() -> void:
+	var parent := get_parent()
+	if parent is Node3D:
+		_anchor = (parent as Node3D).global_position
 	if mode == Mode.GROUNDED_DIRECT:
 		if not nav_agent_path.is_empty():
 			_nav_agent = get_node_or_null(nav_agent_path) as NavigationAgent3D

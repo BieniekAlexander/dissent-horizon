@@ -14,7 +14,7 @@ extends EditorScript
 ## All logic lives in graph_plateau_gallery_builder.gd so it can also be driven
 ## headlessly (EditorScript itself cannot be instantiated outside the editor).
 
-const GalleryBuilder := preload("res://tools/graph_plateau_gallery_builder.gd")
+const GalleryBuilder := preload("res://tools/terrain/graph_plateau_gallery_builder.gd")
 
 
 func _run() -> void:

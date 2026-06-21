@@ -21,7 +21,6 @@ radius = 10.0
 type = 4617
 
 [node name="AggroRange" parent="." index="4" unique_id=131280482]
-visible = false
 shape = SubResource("CylinderShape3D_aggro")
 
 [node name="VisionRange" parent="." index="5" unique_id=1124867207]

@@ -93,7 +93,7 @@ func _init():
 	if projection == PROJECTION_PERSPECTIVE:
 		zoom_in = zoom_in_perspective
 		zoom_out = zoom_out_perspective
-	if projection == PROJECTION_ORTHOGONAL:
+	elif projection == PROJECTION_ORTHOGONAL:
 		zoom_in = zoom_in_orthogonal
 		zoom_out = zoom_out_orthogonal
 	else:

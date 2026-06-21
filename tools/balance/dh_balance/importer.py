@@ -217,6 +217,7 @@ class Edit:
     value: str | None           # formatted Godot text value
     skip_reason: str | None = None
     applied: bool = False
+    created: bool = False        # True when applying synthesised a new override block
 
     def describe(self) -> str:
         tag = f"({self.change.kind} {self.change.id}.{self.change.field})"
@@ -314,20 +315,130 @@ def _find_block(lines: list[str], predicate) -> int:
     return -1
 
 
-def _set_prop_in_block(lines: list[str], start: int, prop: str, value: str) -> bool:
+def _set_prop_in_block(lines: list[str], start: int, prop: str, value: str,
+                       create: bool = True) -> bool:
     """Replace the RHS of ``prop = ...`` within the block beginning at ``start``
-    (up to the next ``[...]`` header). Returns False if the property isn't
-    present — we never *create* an override (that risks corrupting inheritance)."""
+    (up to the next ``[...]`` header).
+
+    If the property line isn't present and ``create`` is True, append it to the
+    block. Adding a property to a node block that *already exists* is exactly how
+    Godot records an override, so this is safe — it does not create new node
+    blocks (the genuinely structural case). With ``create`` False the property
+    is only ever rewritten, never invented (used where appending a key would be
+    type-dependent, e.g. a SubResource shape's ``radius``)."""
     pat = re.compile(rf"^(\s*{re.escape(prop)}\s*=\s*).*$")
     i = start + 1
+    last_content = start   # last line that belongs to the block (header to start)
     while i < len(lines) and not lines[i].startswith("["):
         m = pat.match(lines[i])
         if m:
             eol = lines[i][len(lines[i].rstrip("\r\n")):]   # preserve the line ending
             lines[i] = m.group(1) + value + eol
             return True
+        if lines[i].strip():
+            last_content = i
         i += 1
-    return False
+    if not create:
+        return False
+    # Append the override right after the block's last property (before any
+    # trailing blank line that separates it from the next header).
+    src = lines[last_content]
+    eol = src[len(src.rstrip("\r\n")):] or "\n"
+    if not src.endswith(("\n", "\r")):
+        lines[last_content] = src + eol
+    lines.insert(last_content + 1, f"{prop} = {value}{eol}")
+    return True
+
+
+# --------------------------------------------------------------------------- #
+# Inheritance-aware override creation (Category B: the node lives only in a base
+# scene, so the target has no block to edit — we synthesise the override).
+# --------------------------------------------------------------------------- #
+_EXT_RES_RE = re.compile(r'^\[ext_resource\b.*\bpath="([^"]+)".*\bid="([^"]+)"')
+_ROOT_INSTANCE_RE = re.compile(r'^\[node\b.*\binstance=ExtResource\("([^"]+)"\)')
+
+
+def _ext_resource_paths(lines: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for line in lines:
+        m = _EXT_RES_RE.match(line)
+        if m:
+            out[m.group(2)] = m.group(1)   # id -> res:// path
+    return out
+
+
+def _base_scene_of(lines: list[str]) -> Path | None:
+    """The scene the root node inherits from (its ``instance=`` target), or None
+    if this scene's root is a plain (non-inherited) node."""
+    ext = _ext_resource_paths(lines)
+    for line in lines:
+        m = _ROOT_INSTANCE_RE.match(line)
+        if m:
+            res = ext.get(m.group(1))
+            return _res_to_fs(res) if res else None
+    return None
+
+
+def _node_definition(lines: list[str], name: str) -> tuple[str, str | None] | None:
+    """Find where ``name`` is *defined* (a header carrying ``type=``) in these
+    lines, returning ``(parent, unique_id|None)``. Override blocks (no ``type=``)
+    are skipped so we recover the canonical parent path and stable id."""
+    hdr = re.compile(rf'^\[node name="{re.escape(name)}"(.*)\]\s*$')
+    for line in lines:
+        m = hdr.match(line)
+        if not m or " type=" not in m.group(1):
+            continue
+        attrs = m.group(1)
+        pm = re.search(r'\bparent="([^"]+)"', attrs)
+        um = re.search(r"\bunique_id=(\d+)", attrs)
+        return (pm.group(1) if pm else "."), (um.group(1) if um else None)
+    return None
+
+
+def _resolve_inherited_node(lines: list[str], name: str) -> tuple[str, str | None] | None:
+    """Walk the inheritance chain from this scene up to the base that defines
+    ``name``; return its ``(parent, unique_id)`` or None if no base defines it."""
+    base = _base_scene_of(lines)
+    seen: set[Path] = set()
+    while base is not None and base not in seen and base.exists():
+        seen.add(base)
+        base_lines = base.read_text().splitlines(keepends=True)
+        found = _node_definition(base_lines, name)
+        if found:
+            return found
+        base = _base_scene_of(base_lines)
+    return None
+
+
+def _create_node_override(lines: list[str], edit: Edit) -> tuple[bool, str]:
+    """Synthesise an override block for an inherited node that has no block in
+    the target scene. The block omits ``index`` on purpose: Godot binds the
+    override by name+parent and keeps the node at its inherited slot, then
+    rewrites the canonical index on the next editor save (verified headless)."""
+    name = edit.locator[1]
+    resolved = _resolve_inherited_node(lines, name)
+    if resolved is None:
+        return False, f"node '{name}' not found in this scene or any base scene"
+    parent, uid = resolved
+    uid_attr = f" unique_id={uid}" if uid is not None else ""
+    header = f'[node name="{name}" parent="{parent}"{uid_attr}]\n'
+    body = f"{edit.prop} = {edit.value}\n"
+    # Insert as its own block just before the first existing override/sub block
+    # (i.e. right after the root node's block), keeping the file tidy.
+    insert_at = len(lines)
+    seen_root = False
+    for i, line in enumerate(lines):
+        if line.startswith("[node "):
+            if seen_root:
+                insert_at = i
+                break
+            seen_root = True
+        elif seen_root and line.startswith("[sub_resource"):
+            insert_at = i
+            break
+    lines[insert_at:insert_at] = [header, body, "\n"]
+    edit.created = True
+    return True, ""
 
 
 def _node_predicate(name: str, parent_substr: str | None = None):
@@ -353,6 +464,10 @@ def _apply_scene_edit(lines: list[str], edit: Edit) -> tuple[bool, str]:
     else:
         return False, f"unknown locator {kind}"
     if idx < 0:
+        # No block in this scene: the node is inherited from a base scene.
+        # Synthesise the override rather than skipping (Category B).
+        if kind == "node":
+            return _create_node_override(lines, edit)
         return False, f"block for {edit.locator} not found"
     if _set_prop_in_block(lines, idx, edit.prop, edit.value):
         return True, ""
@@ -379,7 +494,7 @@ def _apply_reach(lines: list[str], edit: Edit) -> tuple[bool, str]:
     sub = _find_block(lines, lambda l: l.startswith("[sub_resource ") and f'id="{sub_id}"' in l)
     if sub < 0:
         return False, f"sub_resource {sub_id} not found"
-    if _set_prop_in_block(lines, sub, "radius", edit.value):
+    if _set_prop_in_block(lines, sub, "radius", edit.value, create=False):
         return True, ""
     return False, "radius not present on the shape"
 

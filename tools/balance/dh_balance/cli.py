@@ -74,7 +74,11 @@ def main(argv: list[str] | None = None) -> int:
               f"{len(skipped)} unwritable, {len(manual)} structural; "
               f"{len(added)} added, {len(removed)} removed.\n")
         for e in applied:
-            print("  ", ("WROTE " if args.apply else "WOULD ") + e.describe()[5:])
+            if e.created:
+                prefix = "CREATED " if args.apply else "WOULD CREATE "
+            else:
+                prefix = "WROTE " if args.apply else "WOULD "
+            print("  ", prefix + e.describe()[5:])
         for e in skipped:
             print(f"   UNWRITABLE  {e.change.kind} {e.change.id}.{e.change.field}  ({e.skip_reason})")
         for e in manual:

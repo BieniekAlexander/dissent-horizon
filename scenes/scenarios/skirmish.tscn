@@ -1,0 +1,137 @@
+[gd_scene format=3 uid="uid://dwyce4x7fmm2r"]
+
+[ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_scen"]
+[ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_map"]
+[ext_resource type="Shape3D" uid="uid://bmkey18lrpkej" path="res://resources/map.tres" id="3_hmap"]
+[ext_resource type="PackedScene" uid="uid://dtyheenc7jb57" path="res://scenes/structures/b_redoubt.tscn" id="4_rdbt"]
+[ext_resource type="PackedScene" uid="uid://5kevopkrq8ts" path="res://scenes/units/technician.tscn" id="5_tech"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/b_irregular.tscn" id="6_irr"]
+[ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/structures/deposit.tscn" id="7_dep"]
+[ext_resource type="PackedScene" uid="uid://d372d5stwv6gt" path="res://scenes/structures/n_mine.tscn" id="8_mine"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_skirmish"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(30, 30)
+
+[sub_resource type="StandardMaterial3D" id="Material_ground"]
+albedo_color = Color(0.3, 0.45, 0.25, 1)
+
+[node name="Scenario" type="Node3D" unique_id=1388645473]
+script = ExtResource("1_scen")
+human_commander_id = 0
+
+[node name="Map" type="Node3D" parent="." unique_id=1078024187]
+script = ExtResource("2_map")
+height_map = ExtResource("3_hmap")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" unique_id=1752500325 groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_skirmish")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion" unique_id=1763143768]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=955792924]
+shape = ExtResource("3_hmap")
+
+[node name="HeightPins" type="Node3D" parent="Map" unique_id=1998771652]
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+mesh = SubResource("PlaneMesh_ground")
+surface_material_override/0 = SubResource("Material_ground")
+
+[node name="Redoubt1" parent="." unique_id=1951409475 instance=ExtResource("4_rdbt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 0, 0.5)
+default_commander_id = 1
+
+[node name="Technician1" parent="." unique_id=471909050 instance=ExtResource("5_tech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 3)
+default_commander_id = 1
+
+[node name="Irregular1" parent="." unique_id=1657703732 instance=ExtResource("6_irr")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -3)
+default_commander_id = 1
+
+[node name="Irregular2" parent="." unique_id=1043748937 instance=ExtResource("6_irr")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -2)
+default_commander_id = 1
+
+[node name="Irregular3" parent="." unique_id=1525424937 instance=ExtResource("6_irr")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -4)
+default_commander_id = 1
+
+[node name="Redoubt2" parent="." unique_id=980429692 instance=ExtResource("4_rdbt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 0, 0.5)
+default_commander_id = 2
+
+[node name="Technician2" parent="." unique_id=1658446594 instance=ExtResource("5_tech")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 3)
+default_commander_id = 2
+
+[node name="Irregular4" parent="." unique_id=355004439 instance=ExtResource("6_irr")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -3)
+default_commander_id = 2
+
+[node name="Irregular5" parent="." unique_id=892344768 instance=ExtResource("6_irr")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -2)
+default_commander_id = 2
+
+[node name="Irregular6" parent="." unique_id=907266268 instance=ExtResource("6_irr")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, -4)
+default_commander_id = 2
+
+[node name="Deposit1" parent="." unique_id=1070395610 instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 4.5)
+
+[node name="Deposit2" parent="." unique_id=1237971618 instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -4.5)
+
+[node name="DepositW1" parent="." instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -6.5)
+
+[node name="MineW1" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -6.5)
+deposit = NodePath("../DepositW1")
+default_commander_id = 1
+
+[node name="DepositW2" parent="." instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -0.5)
+
+[node name="MineW2" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -0.5)
+deposit = NodePath("../DepositW2")
+default_commander_id = 1
+
+[node name="DepositW3" parent="." instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, 5.5)
+
+[node name="MineW3" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, 5.5)
+deposit = NodePath("../DepositW3")
+default_commander_id = 1
+
+[node name="DepositE1" parent="." instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -6.5)
+
+[node name="MineE1" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -6.5)
+deposit = NodePath("../DepositE1")
+default_commander_id = 2
+
+[node name="DepositE2" parent="." instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -0.5)
+
+[node name="MineE2" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -0.5)
+deposit = NodePath("../DepositE2")
+default_commander_id = 2
+
+[node name="DepositE3" parent="." instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 5.5)
+
+[node name="MineE3" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 5.5)
+deposit = NodePath("../DepositE3")
+default_commander_id = 2

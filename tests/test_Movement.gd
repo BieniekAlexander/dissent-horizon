@@ -68,7 +68,13 @@ func test_enable_avoidance_configures_layers_and_mask():
 	parent.add_child(m)
 	m.enable_avoidance(2)  # commander id 2 -> team bit 1<<2
 	assert_eq(agent.avoidance_layers, AvoidanceAgent3D.team_bit(2), "broadcasts on its team bit")
-	assert_eq(agent.avoidance_mask, 0xFFFFFFFF, "avoids every team + agents in an exception")
+	# Cross-team avoidance is now one-sided via NavigationObstacle3D, so the mask is
+	# own team bit (same-team reciprocal RVO) + every FOREIGN obstacle bit + the
+	# exception pool — NOT a blanket avoid-all. See AvoidanceAgent3D._current_mask.
+	var mask := agent.avoidance_mask
+	assert_ne(mask & AvoidanceAgent3D.team_bit(2), 0, "masks own team bit (same-team reciprocal RVO)")
+	assert_ne(mask & AvoidanceAgent3D.obstacle_bit(1), 0, "masks a foreign commander's obstacle bit")
+	assert_eq(mask & AvoidanceAgent3D.obstacle_bit(2), 0, "does NOT mask its own obstacle bit")
 
 func test_velocity_ready_forwards_from_agent_velocity_computed():
 	var parent := Node3D.new()
