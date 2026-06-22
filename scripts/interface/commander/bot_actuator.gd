@@ -33,14 +33,32 @@ func attack_move(units: Array, world_pos: Vector3) -> void:
 		u.load_destination(cmd)
 
 
-## Order each unit to attack a specific enemy entity directly.
-func attack(units: Array, target: Entity) -> void:
+## Order each unit to attack a specific enemy entity directly. persist=false makes
+## it a leashed engagement (drop the target if it flees / leaves range), so the unit
+## returns to idle — and gets re-tasked — instead of chasing forever.
+func attack(units: Array, target: Entity, persist: bool = true) -> void:
 	if _map == null or target == null:
 		return
 	for u: Commandable in units:
-		var cmd := Attack.new(CommandMessage.new(_map, target))
+		var msg := CommandMessage.new(_map, target)
+		msg.persist = persist
+		var cmd := Attack.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
+
+
+## Order a builder to place a structure of `type` at a world position. For a Mine
+## (overlay), world_pos must sit on the target Deposit's cell. Tech/resource/
+## placement validity are enforced downstream by Build.meets_precondition, so an
+## invalid request is a safe no-op (the builder just won't complete it).
+func build(builder: Commandable, type: Entity.Type, world_pos: Vector3) -> bool:
+	var tool := _tool_for_type(type)
+	if tool == null:
+		return false
+	var cmd := Build.new(CommandMessage.new(_map, null, tool, world_pos))
+	builder.update_commands(cmd)
+	builder.load_destination(cmd)
+	return true
 
 
 ## Queue one unit of `type` at a production structure. Returns false only when no

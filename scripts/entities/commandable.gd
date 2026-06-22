@@ -61,6 +61,17 @@ func clear_command() -> void:
 	update_commands(null)
 
 func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
+	if not add_to_queue:
+		# Notify any units waiting to garrison that the host is changing course.
+		if garrison != null and not garrison._pending_garrison_units.is_empty():
+			garrison.cancel_pending_garrison()
+		# If the host is grounded (garrison landing or Land command) and receives a
+		# new command, lift off so it can execute that command.
+		if movement != null and movement.mode == Movement.Mode.HOVERING:
+			if movement.is_grounded_temp():
+				movement.take_off_for_movement()
+			elif movement.is_pending_land():
+				movement.cancel_pending_land()
 	command_receiver.update_commands(a_commands, add_to_queue, prepend)
 
 func load_destination(command: Command) -> void:
@@ -266,8 +277,9 @@ func initialize(a_map: Map, a_commander: Commander):
 	# scene-placed units — unlike _on_commander_changed, which fires during _ready
 	# (before initialize) for scene-placed units. Derive the unit's size class from
 	# its MovementBody footprint and point the agent at the navmesh for that class.
-	if movement != null and map != null and map.nav_manager != null:
+	if movement != null and map != null:
 		movement.configure_for_map(
+			map,
 			map.nav_manager,
 			bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 		)
@@ -363,6 +375,14 @@ func _update_state() -> void:
 			update_commands(aggro_cmd)
 
 	command_receiver._update_state()
+
+	# A HOVERING garrison host with pending units descends to accept them once it
+	# is idle (no active command). This fires both when already idle at the moment
+	# intent is registered and when a movement command completes.
+	if garrison != null and not garrison._pending_garrison_units.is_empty() \
+			and movement != null and movement.mode == Movement.Mode.HOVERING \
+			and command_receiver.is_idle():
+		movement.land(Callable())
 
 	# Command processing above may remove this unit from the tree mid-tick (e.g.
 	# garrisoning into a Garrison); the remaining per-tick work touches world/

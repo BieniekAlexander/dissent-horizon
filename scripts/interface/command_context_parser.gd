@@ -48,6 +48,7 @@ const BUILD_TOOL_NAMES: Array = [
 	"command_tool_compound",
 	"command_tool_armory",
 	"command_tool_turret",
+	"command_tool_redoubt",
 ]
 #endregion
 
@@ -86,6 +87,8 @@ static func _build_rules() -> Array:
 		[CommandContextParser._can_occupy, "command_occupy"],
 		# Commandables that own a Garrison can order an evacuation.
 		[func(e: Entity): return e.has_node("Garrison"), "command_evacuate"],
+		# HOVERING units that are not already permanently grounded can land.
+		[CommandContextParser._can_land, "command_land"],
 	]
 
 ## Occupy applies only to entities that actually have a Movement component
@@ -96,6 +99,11 @@ static func _build_rules() -> Array:
 static func _can_occupy(e: Entity) -> bool:
 	var movement := e.get_node_or_null("Movement") as Movement
 	return movement != null and movement.mode == Movement.Mode.GROUNDED_DIRECT
+
+static func _can_land(e: Entity) -> bool:
+	var movement := e.get_node_or_null("Movement") as Movement
+	return movement != null and movement.mode == Movement.Mode.HOVERING \
+		and not movement.is_permanently_grounded()
 
 static func _rules_table() -> Array:
 	if _rules == null or _rules.is_empty():

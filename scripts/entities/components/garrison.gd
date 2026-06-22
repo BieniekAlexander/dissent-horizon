@@ -20,6 +20,10 @@ extends Node
 ## scene tree but not freed.
 var _garrisoned: Array[Commandable] = []
 
+## Units that have registered intent to garrison this shelter while it lands.
+## Each entry auto-removes itself via tree_exiting when the unit dies.
+var _pending_garrison_units: Array[Commandable] = []
+
 ## When a commanderless (neutral) garrison is garrisoned, it temporarily adopts
 ## the garrisoning units' commander. `_adopted_commander` records that this
 ## happened so we can revert on full evacuation; `_restore_commander` holds the
@@ -33,6 +37,36 @@ var _restore_commander: Commander = null
 ## True when at least one more unit can be accepted.
 func can_garrison() -> bool:
 	return _garrisoned.size() < capacity
+
+## Register `unit` as intending to garrison once this shelter touches down.
+## Idempotent — a second call for the same unit is silently ignored.
+## Connects to tree_exiting so a unit that dies auto-removes itself.
+func register_garrison_intent(unit: Commandable) -> void:
+	if unit in _pending_garrison_units:
+		return
+	_pending_garrison_units.append(unit)
+	unit.tree_exiting.connect(unregister_garrison_intent.bind(unit))
+
+## Remove `unit` from the pending list and drop the tree_exiting connection.
+## When the list becomes empty and the host is already grounded, lifts off so
+## the host resumes normal HOVERING without needing an explicit player command.
+func unregister_garrison_intent(unit: Commandable) -> void:
+	_pending_garrison_units.erase(unit)
+	if unit.tree_exiting.is_connected(unregister_garrison_intent.bind(unit)):
+		unit.tree_exiting.disconnect(unregister_garrison_intent.bind(unit))
+	if _pending_garrison_units.is_empty():
+		var owner_cmd := get_parent() as Commandable
+		if owner_cmd != null and owner_cmd.movement != null:
+			owner_cmd.movement.take_off()
+
+## Tell all pending units to drop their garrison command, then clear the list.
+## Called when the shelter receives a new command while units are waiting.
+func cancel_pending_garrison() -> void:
+	var pending: Array[Commandable] = _pending_garrison_units.duplicate()
+	for unit: Commandable in pending:
+		unregister_garrison_intent(unit)
+		if is_instance_valid(unit):
+			unit.update_commands(null)
 
 func garrisoned_count() -> int:
 	return _garrisoned.size()
@@ -133,6 +167,11 @@ func evacuate(a_map: Map) -> void:
 
 	_garrisoned.clear()
 	_revert_adopted_commander(owner_cmd)
+
+	# If the host landed to accept garrison units, return it to hover altitude.
+	if owner_cmd != null and owner_cmd.movement != null \
+			and owner_cmd.movement.mode == Movement.Mode.HOVERING:
+		owner_cmd.movement.take_off()
 
 
 ## Revert a commander adopted from garrisoning units once everyone has left, so

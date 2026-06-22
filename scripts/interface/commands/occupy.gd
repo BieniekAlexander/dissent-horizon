@@ -37,6 +37,10 @@ static func meets_precondition(
 ## against the target, so we know whose exception to clear on teardown.
 var _excluded_actor: Commandable = null
 
+## The actor that registered garrison intent on the HOVERING host, so we can
+## unregister if the command is replaced before the actor actually garrisons.
+var _garrison_registered_actor: Commandable = null
+
 ## While approaching, the actor would physically collide with the target's
 ## MOVEMENT_OBSTRUCTION body — stopping it short of garrison range (and tripping
 ## the slide-collision command-cancel in Commandable._on_velocity_computed).
@@ -92,6 +96,8 @@ func _clear_rvo_suppression() -> void:
 
 #region State updates
 ## Cancel if the target is destroyed while the unit is en route.
+## For HOVERING hosts, registers garrison intent on the first valid tick so the
+## host knows to descend and can take off again once all pending units are inside.
 func get_updated_state(a_actor: Commandable) -> Command:
 	if not is_instance_valid(message.target):
 		_clear_collision_exception()
@@ -99,21 +105,45 @@ func get_updated_state(a_actor: Commandable) -> Command:
 		return null
 	_ensure_collision_exception(a_actor)
 	_ensure_rvo_suppression(a_actor)
+	var host := message.target as Commandable
+	if host != null and host.movement != null \
+			and host.movement.mode == Movement.Mode.HOVERING \
+			and host.garrison != null \
+			and _garrison_registered_actor == null:
+		host.garrison.register_garrison_intent(a_actor)
+		_garrison_registered_actor = a_actor
 	return self
 
-## Move until adjacent to the garrison structure.
+## While the host is a HOVERING unit that has not yet grounded, keep approaching
+## unconditionally so the actor tracks the host's moving XZ position.
+## Once grounded, fall back to the normal proximity check.
 func should_move(a_actor: Commandable) -> bool:
-	return is_instance_valid(message.target) \
-		and not SU.unit_is_close_to_target(a_actor, message.target)
+	if not is_instance_valid(message.target):
+		return false
+	var host := message.target as Commandable
+	if host != null and host.movement != null \
+			and host.movement.mode == Movement.Mode.HOVERING \
+			and not host.movement.is_grounded_temp():
+		return true
+	return not SU.unit_is_close_to_target(a_actor, message.target)
 
 ## Occupy once adjacent and the garrison still has room.
+## For HOVERING hosts the host descends automatically (driven by
+## Commandable._update_state); this just waits until GROUNDED_TEMP.
 func can_act(a_actor: Commandable) -> bool:
 	if not is_instance_valid(message.target):
 		return false
 	if not SU.unit_is_close_to_target(a_actor, message.target):
 		return false
 	var garrison := message.target.get_node_or_null("Garrison") as Garrison
-	return garrison != null and garrison.can_garrison()
+	if garrison == null or not garrison.can_garrison():
+		return false
+	var host := message.target as Commandable
+	if host != null and host.movement != null \
+			and host.movement.mode == Movement.Mode.HOVERING \
+			and not host.movement.is_grounded_temp():
+		return false
+	return true
 
 ## Remove the acting unit from the scene tree into the garrison.
 func fulfill_action(a_actor: Commandable) -> Variant:
@@ -122,8 +152,18 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	_clear_collision_exception()
 	_clear_rvo_suppression()
 	var garrison := message.target.get_node_or_null("Garrison") as Garrison
-	if garrison != null:
-		garrison.garrison(a_actor)
+	if garrison == null:
+		return null
+	var host := message.target as Commandable
+	if host != null and host.movement != null \
+			and host.movement.mode == Movement.Mode.HOVERING:
+		# Only accept units that are still registered; units that died during
+		# the descent removed themselves from the list via tree_exiting.
+		if not a_actor in garrison._pending_garrison_units:
+			return null
+		garrison.unregister_garrison_intent(a_actor)
+		_garrison_registered_actor = null
+	garrison.garrison(a_actor)
 	return null
 #endregion
 
@@ -146,6 +186,13 @@ func _notification(what: int) -> void:
 			var target := message.target as Commandable
 			if target != null and target.movement != null:
 				target.movement.restore_avoidance_layers()
+			# If this actor registered garrison intent but never actually garrisoned
+			# (e.g. the player issued a new command), unregister now so the host
+			# doesn't stay grounded waiting for a unit that has moved on.
+			if _garrison_registered_actor != null and target != null \
+					and target.garrison != null:
+				target.garrison.unregister_garrison_intent(_garrison_registered_actor)
+		_garrison_registered_actor = null
 	super._notification(what)
 #endregion
 

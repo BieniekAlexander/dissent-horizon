@@ -31,8 +31,10 @@ var bot: Bot
 ## resolved. The actuator is the shared command-issuing surface; the managers
 ## decide and call into it.
 var _actuator: BotActuator
+var _economy: BotEconomy
 var _military: BotMilitary
 var _production: BotProduction
+var _targeting: BotTargeting
 
 var _ticks_since_think: int = 0
 
@@ -59,8 +61,12 @@ func _physics_process(_delta: float) -> void:
 func think() -> void:
 	if not _ensure_managers():
 		return
+	_economy.tick()
 	_production.tick()
 	_military.tick()
+	# Last: refine per-unit targets (defend against threats). Runs after the
+	# military's objective tasking so a threatened unit's reaction takes priority.
+	_targeting.tick()
 
 
 ## Build the strategy layer once the Bot's map is available (Bot._ready resolves
@@ -71,6 +77,8 @@ func _ensure_managers() -> bool:
 	if bot == null or bot.map == null:
 		return false
 	_actuator = BotActuator.new(bot.map)
+	_economy = BotEconomy.new(bot, _actuator)
 	_production = BotProduction.new(bot, _actuator)
 	_military = BotMilitary.new(bot, _actuator)
+	_targeting = BotTargeting.new(bot, _actuator)
 	return true

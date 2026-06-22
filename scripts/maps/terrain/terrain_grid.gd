@@ -144,6 +144,47 @@ func get_all_passable_cells() -> Array:
 ## Returns [min: Vector2i, max: Vector2i] inclusive cell-index bounds.
 func get_bounds() -> Array:
 	return [Vector2i.ZERO, Vector2i(grid_width() - 1, grid_depth() - 1)]
+
+
+## True iff occupying `footprint` (an Array of cells) does NOT split the passable
+## surface into MORE pieces than it's already in — i.e. it doesn't wall off a region
+## and strand units (e.g. a builder ending up in a pocket it can't leave). Compares
+## the connected-component count of the passable cells before vs. after the
+## hypothetical placement (4-neighbour, matching how the navmesh stitches adjacent
+## cells); safe iff the count doesn't increase. The before/after comparison (rather
+## than "is it all one component") tolerates maps that are already fragmented by
+## terrain — it only forbids the placement from adding a new split.
+func placement_preserves_connectivity(footprint: Array) -> bool:
+	var blocked: Dictionary = {}
+	for c: Vector2i in footprint:
+		blocked[c] = true
+	return _passable_component_count(blocked) <= _passable_component_count({})
+
+
+## Number of 4-connected components among passable cells, excluding any cell in
+## `extra_blocked` (a Set: Vector2i -> true) as if it were occupied.
+func _passable_component_count(extra_blocked: Dictionary) -> int:
+	var cells: Dictionary = {}
+	for c: Vector2i in get_all_passable_cells():
+		if not extra_blocked.has(c):
+			cells[c] = true
+	var neighbours: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	var seen: Dictionary = {}
+	var count: int = 0
+	for start: Vector2i in cells:
+		if seen.has(start):
+			continue
+		count += 1
+		var stack: Array = [start]
+		seen[start] = true
+		while not stack.is_empty():
+			var cell: Vector2i = stack.pop_back()
+			for d: Vector2i in neighbours:
+				var nb: Vector2i = cell + d
+				if cells.has(nb) and not seen.has(nb):
+					seen[nb] = true
+					stack.append(nb)
+	return count
 #endregion
 
 #region Space-erosion fields

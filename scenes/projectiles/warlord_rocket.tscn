@@ -22,6 +22,7 @@ base_damage = 15.0
 pre_impact_lifespan = 60
 post_impact_lifespan = 10
 tick_rate = 100
+damage_type = 7
 
 [node name="InFlightSprite" type="Sprite3D" parent="." unique_id=1181884608]
 transform = Transform3D(0.4, 0, 0, 0, 0.2828427, 0.2828427, 0, -0.2828427, 0.2828427, 0, 0, 0)

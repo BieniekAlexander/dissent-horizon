@@ -83,6 +83,24 @@ func _physics_process(_delta: float) -> void:
 func can_target(a_target: Entity) -> bool:
 	return (target_mask & a_target.targetable_layers()) != 0
 
+## Rough per-shot damage this weapon deals: melee_damage for a melee weapon, or the
+## fired projectile's base_damage for a ranged one (matching fire(), which applies
+## melee_damage directly or spawns the projectile). Pre-modifier — ignores veterancy
+## and the damage-vs-armour table — so it's a coarse figure for AI combat-power
+## estimates, not exact in-fight damage. The ranged value is read by instantiating
+## the projectile scene once (out of tree, so no _ready) and cached.
+func per_shot_damage() -> float:
+	if _cached_per_shot_damage >= 0.0:
+		return _cached_per_shot_damage
+	if projectile_scene == null:
+		_cached_per_shot_damage = melee_damage
+	else:
+		var proj: Node = projectile_scene.instantiate()
+		_cached_per_shot_damage = (proj as Projectile).base_damage if proj is Projectile else 0.0
+		proj.free()
+	return _cached_per_shot_damage
+var _cached_per_shot_damage: float = -1.0
+
 func is_ready() -> bool:
 	return _ammo>0 and _split_timer==0
 	

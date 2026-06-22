@@ -23,6 +23,9 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 			repairable.commander.proc_technology()
 		if a_actor.veterancy != null:
 			a_actor.veterancy.gain_experience(10)
+		# If this actor landed to build (HOVERING builder in GROUNDED_TEMP), take off.
+		if a_actor.movement != null and a_actor.movement.is_grounded_temp():
+			a_actor.movement.take_off()
 		return null
 	return self
 #endregion

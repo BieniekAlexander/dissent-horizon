@@ -73,6 +73,12 @@ func _own_weapon_can_fire(a_actor: Commandable) -> bool:
 		and SU.is_in_attack_range(weapon, a_actor, message.target)
 #endregion
 
+#region Properties
+## Set to true once a melee-landing sequence has been initiated so subsequent
+## ticks don't attempt to start a second landing while the first is in progress.
+var _melee_landing_started: bool = false
+#endregion
+
 #region State updates
 func get_updated_state(a_actor: Commandable):
 	## Potentially return a new command based on a state check.
@@ -166,7 +172,28 @@ func can_act(a_actor: Commandable) -> bool:
 func fulfill_action(a_actor: Commandable) -> Variant:
 	# Fire the actor's own weapon when it is loaded and in range.
 	if _own_weapon_can_fire(a_actor):
-		_weapon_for(a_actor).fire(a_actor, message.target)
+		var weapon := _weapon_for(a_actor)
+		# A HOVERING unit attacking a grounded target with a melee weapon must
+		# land first.  The strike fires from the landing callback; this branch
+		# returns self to keep the command alive while the descent is in progress.
+		# Once the callback fires the command is cleared by update_commands(null).
+		var target_is_air: bool = (message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR) != 0
+		if weapon.projectile_scene == null \
+				and a_actor.movement != null \
+				and a_actor.movement.mode == Movement.Mode.HOVERING \
+				and not target_is_air:
+			if not _melee_landing_started:
+				_melee_landing_started = true
+				a_actor.movement.land(func() -> void:
+					if not is_instance_valid(a_actor) or not is_instance_valid(message.target):
+						return
+					weapon.fire(a_actor, message.target)
+					if a_actor.stealth != null:
+						a_actor.stealth.unstealth()
+					a_actor.update_commands(null)
+				)
+			return self
+		weapon.fire(a_actor, message.target)
 		# Attacking breaks stealth: force the timed UNSTEALTHED window.
 		if a_actor.stealth != null:
 			a_actor.stealth.unstealth()

@@ -1,7 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://5kevopkrq8ts"]
+[gd_scene format=3 uid="uid://5kevopkrq8ts"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_ucq5h"]
 [ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="3_0rgnf"]
+[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="4_fyu6r"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="4_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="5_wpn00"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="6_invnt"]
@@ -11,12 +12,12 @@
 height = 100.0
 radius = 0.375
 
-[node name="Unit" instance=ExtResource("1_ucq5h")]
+[node name="Unit" unique_id=513065552 instance=ExtResource("1_ucq5h")]
 type = 4352
 attributes_list = Array[int]([1])
 
 [node name="Movement" parent="." index="7"]
-mode = 17
+mode = 16
 max_acceleration = 2.5
 max_deceleration = -2.5
 speed = 0.12
@@ -24,27 +25,31 @@ turn_rate = 100.0
 orbit_radius = 2.0
 orbit_speed = 0.07
 
-[node name="Loadout" type="Node3D" parent="." index="12"]
+[node name="Loadout" type="Node3D" parent="." index="12" unique_id=271883483]
 script = ExtResource("4_invnt")
 
-[node name="MeleeWeapon" type="Node3D" parent="Loadout" index="0"]
+[node name="MeleeWeapon" type="Node3D" parent="Loadout" index="0" unique_id=164106321]
 script = ExtResource("5_wpn00")
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/MeleeWeapon" index="0"]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/MeleeWeapon" index="0" unique_id=1019715679]
 shape = SubResource("CylinderShape3D_techmelee")
 disabled = true
 
-[node name="Sprite" parent="." index="14"]
+[node name="Garrison" type="Node" parent="." index="13" unique_id=2012043734]
+script = ExtResource("4_fyu6r")
+metadata/_custom_type_script = "uid://dlhe01nj6efuh"
+
+[node name="Sprite" parent="." index="15" unique_id=1381401170]
 transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17100573, 0)
 flip_h = true
 texture = ExtResource("3_0rgnf")
 
-[node name="HPBar" parent="." index="15"]
+[node name="HPBar" parent="." index="16" unique_id=665391337]
 transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)
 
-[node name="Inventory" type="Node" parent="." index="23"]
+[node name="Inventory" type="Node" parent="." index="24" unique_id=1968441076]
 script = ExtResource("6_invnt")
 
-[node name="Builds" type="Node" parent="." index="24"]
+[node name="Builds" type="Node" parent="." index="25" unique_id=810133913]
 script = ExtResource("7_builds")
-buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614])
+buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614, 8704])

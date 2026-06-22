@@ -1,15 +1,14 @@
+Garrison
+Shelter
 DamageOverTimeStatusEffect
 EffectApplicator
 CollisionShape3D
 EventSpawnEntities
 EntityTrigger
 EventCommandPoint
-Garrison
 Node
-Shelter
 TextEdit
 Interactor
 Node3D
 GPUParticles3D
 CPUParticles3D
-EventCommandTarget

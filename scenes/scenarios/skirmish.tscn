@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_map"]
 [ext_resource type="Shape3D" uid="uid://bmkey18lrpkej" path="res://resources/map.tres" id="3_hmap"]
 [ext_resource type="PackedScene" uid="uid://dtyheenc7jb57" path="res://scenes/structures/b_redoubt.tscn" id="4_rdbt"]
-[ext_resource type="PackedScene" uid="uid://5kevopkrq8ts" path="res://scenes/units/technician.tscn" id="5_tech"]
+[ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/units/warlord.tscn" id="5_aeqv4"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/b_irregular.tscn" id="6_irr"]
 [ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/structures/deposit.tscn" id="7_dep"]
 [ext_resource type="PackedScene" uid="uid://d372d5stwv6gt" path="res://scenes/structures/n_mine.tscn" id="8_mine"]
@@ -19,7 +19,6 @@ albedo_color = Color(0.3, 0.45, 0.25, 1)
 
 [node name="Scenario" type="Node3D" unique_id=1388645473]
 script = ExtResource("1_scen")
-human_commander_id = 0
 
 [node name="Map" type="Node3D" parent="." unique_id=1078024187]
 script = ExtResource("2_map")
@@ -37,7 +36,7 @@ shape = ExtResource("3_hmap")
 
 [node name="HeightPins" type="Node3D" parent="Map" unique_id=1998771652]
 
-[node name="Ground" type="MeshInstance3D" parent="."]
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=227341847]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 mesh = SubResource("PlaneMesh_ground")
 surface_material_override/0 = SubResource("Material_ground")
@@ -46,8 +45,8 @@ surface_material_override/0 = SubResource("Material_ground")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 0, 0.5)
 default_commander_id = 1
 
-[node name="Technician1" parent="." unique_id=471909050 instance=ExtResource("5_tech")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 3)
+[node name="Warlord1" parent="." unique_id=1941500794 instance=ExtResource("5_aeqv4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.7404175, 0, -2.0860596)
 default_commander_id = 1
 
 [node name="Irregular1" parent="." unique_id=1657703732 instance=ExtResource("6_irr")]
@@ -66,8 +65,8 @@ default_commander_id = 1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 0, 0.5)
 default_commander_id = 2
 
-[node name="Technician2" parent="." unique_id=1658446594 instance=ExtResource("5_tech")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 3)
+[node name="Warlord2" parent="." unique_id=1052921950 instance=ExtResource("5_aeqv4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.82489, 1.5341797, 0.5)
 default_commander_id = 2
 
 [node name="Irregular4" parent="." unique_id=355004439 instance=ExtResource("6_irr")]
@@ -88,50 +87,50 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 4.5)
 [node name="Deposit2" parent="." unique_id=1237971618 instance=ExtResource("7_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -4.5)
 
-[node name="DepositW1" parent="." instance=ExtResource("7_dep")]
+[node name="DepositW1" parent="." unique_id=95704478 instance=ExtResource("7_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -6.5)
 
-[node name="MineW1" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+[node name="MineW1" parent="." unique_id=1172608463 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -6.5)
 deposit = NodePath("../DepositW1")
 default_commander_id = 1
 
-[node name="DepositW2" parent="." instance=ExtResource("7_dep")]
+[node name="DepositW2" parent="." unique_id=1314091393 instance=ExtResource("7_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -0.5)
 
-[node name="MineW2" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+[node name="MineW2" parent="." unique_id=590895325 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -0.5)
 deposit = NodePath("../DepositW2")
 default_commander_id = 1
 
-[node name="DepositW3" parent="." instance=ExtResource("7_dep")]
+[node name="DepositW3" parent="." unique_id=1512653845 instance=ExtResource("7_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, 5.5)
 
-[node name="MineW3" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+[node name="MineW3" parent="." unique_id=1544173339 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, 5.5)
 deposit = NodePath("../DepositW3")
 default_commander_id = 1
 
-[node name="DepositE1" parent="." instance=ExtResource("7_dep")]
+[node name="DepositE1" parent="." unique_id=952128424 instance=ExtResource("7_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -6.5)
 
-[node name="MineE1" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+[node name="MineE1" parent="." unique_id=814128566 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -6.5)
 deposit = NodePath("../DepositE1")
 default_commander_id = 2
 
-[node name="DepositE2" parent="." instance=ExtResource("7_dep")]
+[node name="DepositE2" parent="." unique_id=1523704059 instance=ExtResource("7_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -0.5)
 
-[node name="MineE2" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+[node name="MineE2" parent="." unique_id=173156674 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -0.5)
 deposit = NodePath("../DepositE2")
 default_commander_id = 2
 
-[node name="DepositE3" parent="." instance=ExtResource("7_dep")]
+[node name="DepositE3" parent="." unique_id=1466741384 instance=ExtResource("7_dep")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 5.5)
 
-[node name="MineE3" parent="." node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
+[node name="MineE3" parent="." unique_id=1062991096 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 5.5)
 deposit = NodePath("../DepositE3")
 default_commander_id = 2

@@ -26,9 +26,13 @@ func weapon_for_target(target: Entity) -> Weapon:
 func any_weapon_can_target(target: Entity) -> bool:
 	return weapon_for_target(target) != null
 
+## Sum of each weapon's rough per-shot damage (see Weapon.per_shot_damage) — a
+## coarse combat-power figure for AI estimates (e.g. Bot.estimate_army_strength).
+## Not DPS: it doesn't factor fire rate (split_time/reload_time/clip_size); raise
+## that to per-weapon DPS here if rate-of-fire ever needs to matter to the estimate.
 func total_damage() -> float:
 	var total := 0.0
 	for w: Weapon in get_weapons():
-		total += w.damage
+		total += w.per_shot_damage()
 	return total
 #endregion

@@ -30,6 +30,9 @@ var population:
 # specifies what a commander can construct
 var technology_mapping: Dictionary = {
 	Entity.Type.STRUCTURE_OUTPOST: TechnologySpec.new(500, 0, 0),
+	# Redoubt: the unit-production building (trains warlords/irregulars). No
+	# structure prerequisite — it's a primary base building like the outpost.
+	Entity.Type.STRUCTURE_REDOUBT: TechnologySpec.new(400, 0, 0),
 	Entity.Type.STRUCTURE_MINE: TechnologySpec.new(200, 0, 0), # _requires_structures([Entity.Type.STRUCTURE_OUTPOST, Entity.Type.STRUCTURE_DWELLING])
 	Entity.Type.STRUCTURE_LAB: TechnologySpec.new(300, 0, 0, _requires_structure(Entity.Type.STRUCTURE_MINE)),
 	Entity.Type.STRUCTURE_DWELLING: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_OUTPOST)),

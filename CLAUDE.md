@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Terminology
+
+**Garrison (verb / noun)** — the mechanic by which a GROUNDED_DIRECT unit enters a Commandable that has a `Garrison` component. The `Garrison` component is the host; `Occupy` is the command issued by the entering unit.
+
+**Shelter (noun)** — a specific game structure with resource significance (distinct from the generic garrison mechanic). Do not use "shelter" as a synonym for a garrison host.
+
+---
+
 ## Project overview
 
 Dissent Horizon is a Godot 4.5 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is `scenes/scenarios/s1.tscn`. Physics runs at 30 ticks/second.

@@ -20315,6 +20315,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -22)
 [node name="Structure" parent="." unique_id=1749279520 instance=ExtResource("28_tjmpc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.5, 0, -22.5)
 
+[node name="Structure5" parent="." unique_id=710910103 instance=ExtResource("28_tjmpc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31, 1, -22)
+
 [node name="Structure3" parent="." unique_id=559965997 instance=ExtResource("28_tjmpc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.5, 0, -20.5)
 

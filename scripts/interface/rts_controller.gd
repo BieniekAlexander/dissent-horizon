@@ -107,7 +107,10 @@ func _process(delta: float) -> void:
 		else camera.get_mouse_world_position(mouse_position)
 
 	for i in range(selection.size()-1, -1, -1):
-		if not is_instance_valid(selection[i]):
+		var entity: Node = selection[i]
+		if not is_instance_valid(entity) or not entity.is_inside_tree():
+			if is_instance_valid(entity):
+				entity.selectable.deselect()
 			selection.remove_at(i)
 
 	current_command_type = _resolve_command_class(
@@ -301,6 +304,8 @@ static func _resolve_command_class(
 			return Ability
 		"command_evacuate":
 			return Evacuate
+		"command_land":
+			return Land
 		"":
 			pass # fall through to default-target resolution below
 		_:

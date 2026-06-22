@@ -86,9 +86,13 @@ func _decide_posture() -> Posture:
 	return Posture.MASS
 
 
-## Armed units only — excludes builders/non-combatants (no weapon_inventory).
+## Units we send to fight: every armed unit EXCEPT one that's currently
+## constructing. Build-capable units (Warlords) are combat units too and fight
+## normally; we just don't interrupt the one the economy pulled to build/repair a
+## structure (it rejoins the army once it's done).
 func _combat_units(units: Array) -> Array:
-	return units.filter(func(u: Commandable): return u.weapon_inventory != null)
+	return units.filter(func(u: Commandable):
+		return u.weapon_inventory != null and not BotEconomy._is_constructing(u))
 
 
 ## The world position to rally on for `posture`, or null when none applies.

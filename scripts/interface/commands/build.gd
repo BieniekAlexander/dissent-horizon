@@ -60,11 +60,37 @@ func _target_footprint(a_actor: Commandable) -> Array:
 	return message.map.footprint_cells(message.xz_position, dims)
 #endregion
 
+#region Properties
+## True once a landing sequence has been initiated for a HOVERING builder, so
+## subsequent ticks while descending don't restart the landing or the build.
+var _landing_started: bool = false
+#endregion
+
 #region State updates
 func can_act(a_actor: Commandable) -> bool:
 	return SU.unit_is_close_to_footprint(a_actor, message.map, _target_footprint(a_actor))
 
 func fulfill_action(a_actor: Commandable) -> Variant:
+	# HOVERING builders must land before placing the structure.  Start the
+	# descent on the first call; subsequent calls while descending are no-ops
+	# (land() is idempotent).  The actual placement happens in the callback.
+	if a_actor.movement != null and a_actor.movement.mode == Movement.Mode.HOVERING \
+			and not a_actor.movement.is_grounded_temp():
+		if not _landing_started:
+			_landing_started = true
+			var msg: CommandMessage = message
+			a_actor.movement.land(func() -> void:
+				if not is_instance_valid(a_actor):
+					return
+				var new_structure: Commandable = msg.tool.packed_scene.instantiate()
+				new_structure.build_progress = .1
+				msg.map.add_entity(new_structure, msg.xz_position, a_actor.commander)
+				a_actor.update_commands(
+					Repair.new(CommandMessage.new(msg.map, new_structure))
+				)
+			)
+		return self
+
 	var new_structure: Commandable = message.tool.packed_scene.instantiate()
 	# Mark as under construction before add_entity so that _ready → _on_commander_changed
 	# → add_structure → proc_technology all see is_built = false. build_progress is not
