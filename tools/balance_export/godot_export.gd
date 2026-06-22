@@ -2,18 +2,34 @@ extends SceneTree
 
 ## Godot -> YAML balance exporter (Phase 2 of the dh-balance bridge).
 ##
-## Reads tools/balance_export/manifest.json, instantiates each listed scene
-## WITHOUT adding it to the tree (so _ready / _auto_initialize never fire), reads
-## the resolved component stats (Defense, Weapon, Projectile, StatusEffect),
-## normalizes them into the shared catalogs (weapons / projectiles /
-## status_effects, deduped by id), and writes the YAML the dh_balance Python
-## framework consumes. Costs and tech `requires` come from the manifest (they're
-## not reliably on the scenes yet). Output goes to a separate data_exported/ dir
-## so it can be diffed against the hand-authored data/ before promoting.
+## DISCOVERY-DRIVEN: walks the unit/structure scene dirs, and for every scene in
+## the "unit"/"structure" groups instantiates it WITHOUT adding it to the tree
+## (so _ready / _auto_initialize never fire), reads the resolved component stats
+## (Defense, Weapon, Projectile, StatusEffect), and normalizes them into the
+## shared catalogs (weapons / projectiles / status_effects, deduped by id).
+##
+## The manifest is now a METADATA OVERLAY, not an allowlist: it supplies the
+## fields that aren't reliably on the scenes (cost, tech `requires`, faction
+## grouping), matched to a discovered scene by its res:// path. A scene with no
+## manifest entry is STILL exported -- with placeholder cost/requires, grouped
+## under the "unassigned" faction, and a loud WARN -- so a brand-new unit can
+## never be silently forgotten. Output goes to a separate data_exported/ dir so
+## it can be diffed against the hand-authored data/ before promoting.
 ##
 ## Run:  godot --headless -s res://tools/balance_export/godot_export.gd
 
 const MANIFEST_PATH := "res://tools/balance_export/manifest.json"
+
+## Dirs scanned for buildable scenes when the manifest omits "scan_dirs".
+const DEFAULT_SCAN_DIRS: Array = ["res://scenes/units", "res://scenes/structures"]
+
+## Scene basenames (no dir, no .tscn) skipped during discovery when the manifest
+## omits "skip_scenes": the inherited base scenes plus non-buildable structures.
+## A scene that isn't in the "unit"/"structure" groups is dropped regardless.
+const DEFAULT_SKIP: Array = ["unit", "abstract_structure", "commandable", "mountain", "deposit"]
+
+## Faction bucket for discovered scenes with no manifest entry.
+const UNASSIGNED_FACTION := "unassigned"
 
 var _weapons: Dictionary = {}          # id -> weapon dict
 var _projectiles: Dictionary = {}      # id -> projectile dict
@@ -32,15 +48,61 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	DirAccess.make_dir_recursive_absolute(out_dir + "/factions")
 
-	# Factions first (this populates the shared catalogs as a side effect).
+	# Metadata overlay (scene_path -> {faction, entry}) + faction display info.
+	var overlay: Dictionary = _build_overlay(manifest)
+	var faction_meta: Dictionary = _faction_meta(manifest)
+
+	# Discover buildable scenes on disk, then group by faction. Stats come from
+	# the scene; cost/requires/faction come from the matching overlay entry (or
+	# placeholders + a warning when there is none). Populates the shared catalogs
+	# as a side effect.
+	var scan_dirs: Array = manifest.get("scan_dirs", DEFAULT_SCAN_DIRS)
+	var skip: Array = manifest.get("skip_scenes", DEFAULT_SKIP)
+	var scenes: Array = _discover_scenes(scan_dirs, skip)
+
+	var by_faction: Dictionary = {}   # faction_id -> Array[buildable dict]
+	for scene_path in scenes:
+		var ov: Dictionary = overlay.get(scene_path, {})
+		var entry: Dictionary = ov.get("entry", {})
+		var b: Dictionary = _build_buildable(scene_path, entry)
+		if b.is_empty():
+			continue   # not a unit/structure, or failed to load (already warned)
+		var faction_id: String = ov.get("faction", UNASSIGNED_FACTION)
+		if not ov.has("entry"):
+			_warnings.append(
+				"%s auto-included (no manifest entry) -> placeholder cost/requires, faction=%s"
+				% [scene_path, UNASSIGNED_FACTION])
+		if not by_faction.has(faction_id):
+			by_faction[faction_id] = []
+		by_faction[faction_id].append(b)
+
+	# Flag manifest entries whose scene was never discovered (renamed/deleted/skipped).
+	for scene_path in overlay:
+		if scene_path not in scenes:
+			_warnings.append("manifest entry references %s but it was not discovered (renamed/deleted/skipped?)" % scene_path)
+
+	# Write one roster file per faction. Manifest order first, then any extras
+	# (e.g. "unassigned") appended deterministically.
+	var faction_order: Array = []
 	for faction in manifest.get("factions", []):
-		var doc: Dictionary = _build_faction(faction)
-		var path: String = "%s/factions/%s.yaml" % [out_dir, faction["id"]]
+		faction_order.append(faction["id"])
+	for faction_id in by_faction:
+		if faction_id not in faction_order:
+			faction_order.append(faction_id)
+
+	for faction_id in faction_order:
+		if not by_faction.has(faction_id):
+			continue
+		var meta: Dictionary = faction_meta.get(faction_id, {
+			"name": String(faction_id).capitalize(),
+			"description": "Auto-grouped; assign these to a real faction in manifest.json.",
+		})
+		var path: String = "%s/factions/%s.yaml" % [out_dir, faction_id]
 		_write(path, _header("faction roster") + _yaml({
-			"faction": faction["id"],
-			"name": faction.get("name", faction["id"]),
-			"description": faction.get("description", ""),
-			"buildables": doc["buildables"],
+			"faction": faction_id,
+			"name": meta["name"],
+			"description": meta["description"],
+			"buildables": by_faction[faction_id],
 		}, 0))
 
 	# Then the catalogs they referenced.
@@ -67,17 +129,52 @@ func _initialize() -> void:
 # --------------------------------------------------------------------------- #
 # Extraction
 # --------------------------------------------------------------------------- #
-func _build_faction(faction: Dictionary) -> Dictionary:
-	var buildables: Array = []
-	for entry in faction.get("buildables", []):
-		var b: Dictionary = _build_buildable(faction["id"], entry)
-		if not b.is_empty():
-			buildables.append(b)
-	return {"buildables": buildables}
+## scene_path -> {"faction": String, "entry": Dictionary} for every manifest
+## buildable, so a discovered scene can pull its cost/requires/faction by path.
+func _build_overlay(manifest: Dictionary) -> Dictionary:
+	var overlay: Dictionary = {}
+	for faction in manifest.get("factions", []):
+		for entry in faction.get("buildables", []):
+			if not entry.has("scene"):
+				continue
+			if overlay.has(entry["scene"]):
+				_warnings.append("manifest lists %s more than once; using the last entry" % entry["scene"])
+			overlay[entry["scene"]] = {"faction": faction["id"], "entry": entry}
+	return overlay
 
 
-func _build_buildable(faction_id: String, entry: Dictionary) -> Dictionary:
-	var scene_path: String = entry["scene"]
+## faction_id -> {"name", "description"} from the manifest factions.
+func _faction_meta(manifest: Dictionary) -> Dictionary:
+	var meta: Dictionary = {}
+	for faction in manifest.get("factions", []):
+		meta[faction["id"]] = {
+			"name": faction.get("name", faction["id"]),
+			"description": faction.get("description", ""),
+		}
+	return meta
+
+
+## All res:// scene paths under dirs whose basename isn't in skip. The
+## unit/structure-group test happens later in _build_buildable (needs an instance).
+func _discover_scenes(dirs: Array, skip: Array) -> Array:
+	var found: Array = []
+	for dir_path in dirs:
+		var da: DirAccess = DirAccess.open(dir_path)
+		if da == null:
+			_warnings.append("scan dir not found: %s" % dir_path)
+			continue
+		da.list_dir_begin()
+		var fn: String = da.get_next()
+		while fn != "":
+			if not da.current_is_dir() and fn.get_extension() == "tscn" and fn.get_basename() not in skip:
+				found.append(dir_path.path_join(fn))
+			fn = da.get_next()
+		da.list_dir_end()
+	found.sort()
+	return found
+
+
+func _build_buildable(scene_path: String, entry: Dictionary) -> Dictionary:
 	var packed: PackedScene = load(scene_path)
 	if packed == null:
 		_warnings.append("could not load scene %s (skipped)" % scene_path)
@@ -87,7 +184,13 @@ func _build_buildable(faction_id: String, entry: Dictionary) -> Dictionary:
 		_warnings.append("could not instantiate %s (skipped)" % scene_path)
 		return {}
 
-	var bid: String = entry["id"]
+	# Only actual buildables: drop anything not flagged unit/structure (base
+	# scenes that slipped the skip-list, props, etc.). Silent -- not an error.
+	if not (inst.is_in_group("unit") or inst.is_in_group("structure")):
+		inst.free()
+		return {}
+
+	var bid: String = entry.get("id", scene_path.get_file().get_basename())
 	var is_structure: bool = inst.is_in_group("structure")
 
 	# Ordered for readable output.
