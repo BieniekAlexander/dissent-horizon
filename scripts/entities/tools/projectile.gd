@@ -320,9 +320,13 @@ func _apply_hit() -> void:
 		params.collision_mask = CollisionLayers.TARGETABLE_ANY
 		params.exclude = [self]
 		var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 32)
-		var targets: Array = hits.map(
+		# .map() returns an untyped Array, but EffectApplicator.apply expects Array[Entity];
+		# assign() copies with element-type conversion. entity_from_collider may return null,
+		# which a typed object array permits (the receive_damage loop guards with is_valid).
+		var targets: Array[Entity] = []
+		targets.assign(hits.map(
 			func(hit: Dictionary): return Entity.entity_from_collider(hit["collider"])
-		)
+		))
 
 		for target in targets:
 			if is_instance_valid(target) and target.defense != null:

@@ -1,6 +1,7 @@
 [gd_scene format=4 uid="uid://cff5ag28s3u4b"]
 
 [ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_hbnr0"]
+[ext_resource type="PackedScene" uid="uid://bmartyrunit01" path="res://scenes/units/b_martyr.tscn" id="2_4xaid"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_yyjyw"]
 [ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/units/warlord.tscn" id="4_6bpmu"]
 [ext_resource type="PackedScene" uid="uid://5kevopkrq8ts" path="res://scenes/units/technician.tscn" id="5_7beh8"]
@@ -97,6 +98,10 @@ count = 0
 
 [node name="Scenario" type="Node3D" unique_id=540534445]
 script = ExtResource("1_hbnr0")
+
+[node name="Martyr" parent="." unique_id=440012001 instance=ExtResource("2_4xaid")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 1, -11)
+default_commander_id = 1
 
 [node name="Warlord1" parent="." unique_id=478388711 instance=ExtResource("4_6bpmu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.697655, 1, -14.891724)

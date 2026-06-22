@@ -66,10 +66,18 @@ func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: b
 		if garrison != null and not garrison._pending_garrison_units.is_empty():
 			garrison.cancel_pending_garrison()
 		# If the host is grounded (garrison landing or Land command) and receives a
-		# new command, lift off so it can execute that command.
+		# new command that requires movement, lift off so it can execute it.
+		# Commands that handle their own landing (e.g. Evacuate) return false from
+		# should_move and must not trigger a take-off here.
 		if movement != null and movement.mode == Movement.Mode.HOVERING:
+			var first_cmd: Command = null
+			if a_commands is Command:
+				first_cmd = a_commands
+			elif a_commands is Array and not (a_commands as Array).is_empty():
+				first_cmd = (a_commands as Array)[0]
 			if movement.is_grounded_temp():
-				movement.take_off_for_movement()
+				if first_cmd != null and first_cmd.should_move(self):
+					movement.take_off_for_movement()
 			elif movement.is_pending_land():
 				movement.cancel_pending_land()
 	command_receiver.update_commands(a_commands, add_to_queue, prepend)

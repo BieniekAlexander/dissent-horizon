@@ -112,6 +112,12 @@ var _hovering_target: Vector3 = Vector3.ZERO
 var orbit_angular_speed: ## orbit angular speed in degrees/tick
 	get: return rad_to_deg(orbit_speed/orbit_radius)
 
+## Horizontal distance (world units) over which a FLYING unit performs its dive-attack
+## descent: at or beyond this distance from the dive target it cruises at AERIAL_HEIGHT,
+## at the target it touches the ground, interpolating linearly between. Driven by
+## request_dive() / _update_flying_height().
+@export var dive_distance: float = 3.0
+
 ## The point a FLYING unit orbits while idle — set to the last command destination
 ## by CommandReceiver whenever a command ends. Seeded from the parent entity's
 ## position in _ready (only FLYING/HOVERING modes have a Node3D parent and ever
@@ -170,6 +176,14 @@ var _has_landing_target: bool = false
 ## LANDING (decreases) and TAKING_OFF (increases); read by height_offset().
 var _current_height_offset: float = 0.0
 
+## FLYING dive-attack state. request_dive() raises _dive_requested each tick a FLYING
+## unit is attacking a ground target, recording the target's XZ in _dive_target_xz;
+## _update_flying_height() consumes (clears) the flag. Because it self-clears, the unit
+## only keeps diving while the requests keep arriving — once they stop (target lost,
+## attack ended, or target out of dive_distance handling) it eases back to AERIAL_HEIGHT.
+var _dive_requested: bool = false
+var _dive_target_xz: Vector2 = Vector2.ZERO
+
 ## True when the current movement leg is the entity's last queued destination
 ## (no commands follow in the queue). Set each tick by CommandReceiver; used
 ## to trigger braking so the entity decelerates to a halt at the target instead
@@ -204,6 +218,9 @@ func _ready() -> void:
 			_nav_agent.velocity_computed.connect(_on_velocity_computed)
 
 func _physics_process(_delta: float) -> void:
+	if mode == Mode.FLYING:
+		_update_flying_height()
+		return
 	if mode != Mode.HOVERING:
 		return
 	# Pre-landing navigation: stay AIRBORNE and steer to the safe landing spot
@@ -457,6 +474,35 @@ func compute_orbit_velocity() -> Vector3:
 	return get_parent().global_position.direction_to(ideal_3d) * orbit_speed * tps
 #endregion
 
+#region FLYING dive-attack
+## Ask a FLYING unit to dive toward `target_xz` (a world XZ) this tick: it descends from
+## AERIAL_HEIGHT toward the ground as it closes within `dive_distance`. Call every tick the
+## dive should continue (e.g. from Attack while a FLYING actor attacks a ground target) —
+## the request self-clears, so the moment the calls stop the unit eases back up to cruise
+## altitude. No-op outside FLYING mode.
+func request_dive(target_xz: Vector2) -> void:
+	if mode != Mode.FLYING:
+		return
+	_dive_requested = true
+	_dive_target_xz = target_xz
+
+
+## Per-tick FLYING altitude control, called from _physics_process. Eases
+## _current_height_offset toward a target offset at LANDING_SPEED: AERIAL_HEIGHT while
+## cruising, or — during a dive (request_dive() this tick) — an offset that scales with the
+## unit's horizontal distance to the dive target (0 at the target, AERIAL_HEIGHT at or
+## beyond dive_distance). So the unit drops as it bears down on the target and climbs back
+## once the dive requests stop. Consumes (clears) _dive_requested.
+func _update_flying_height() -> void:
+	var desired: float = AERIAL_HEIGHT
+	var parent := get_parent()
+	if _dive_requested and parent is Node3D and dive_distance > 0.0:
+		var dist: float = VU.inXZ((parent as Node3D).global_position).distance_to(_dive_target_xz)
+		desired = AERIAL_HEIGHT * clampf(dist / dive_distance, 0.0, 1.0)
+	_current_height_offset = move_toward(_current_height_offset, desired, LANDING_SPEED)
+	_dive_requested = false
+#endregion
+
 #region RVO avoidance
 ## RVO avoidance notes: every agent broadcasts on a shared channel and avoids
 ## everyone (mask = ALL); the avoidance layers do NOT encode teams. The
@@ -565,13 +611,14 @@ func configure_for_map(a_map: Map, nav_manager: NavManager, shape_radius: float)
 
 ## World-units to add above the terrain surface when snapping Y.
 ## Commandable._on_velocity_computed and _physics_process both call this.
-## For HOVERING units this returns _current_height_offset, which is animated
-## during LANDING (decreasing) and TAKING_OFF (increasing).
+## For HOVERING and FLYING units this returns _current_height_offset, which is animated:
+## HOVERING during LANDING (decreasing) / TAKING_OFF (increasing), and FLYING during a
+## dive-attack descent / cruise-altitude climb (see _update_flying_height).
 func height_offset() -> float:
 	if mode == Mode.HOVERING:
 		return _current_height_offset
 	if mode == Mode.FLYING:
-		return AERIAL_HEIGHT
+		return _current_height_offset
 	return 0.0
 
 #endregion
@@ -729,6 +776,10 @@ func _on_velocity_computed(velocity: Vector3) -> void:
 ## touchdown cell for a moving unit) is off the navmesh, BFS from the CURRENT cell
 ## to the nearest passable cell and store it as _landing_target. _try_start_landing
 ## then defers the descent until the unit has navigated there (_pending_land).
+## TODO: landing target is sometimes placed beyond the obstruction rather than at the
+## nearest navmesh edge to the predicted position. The nearest_navmesh_point query
+## is correct in principle but the predicted world-Y (aerial height) may bias the 3D
+## proximity search away from the correct edge — revisit with a terrain-height Y.
 func _compute_landing_correction() -> void:
 	_has_landing_target = false
 	if _map == null or _map.terrain_grid == null:

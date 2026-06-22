@@ -34,3 +34,8 @@ res://scripts/interface/commands/build.gd
 res://scripts/interface/commands/occupy.gd
 res://scripts/interface/commands/repair.gd
 res://scripts/interface/commands/evacuate.gd
+res://scripts/audio/control_feedback_sounds.gd
+res://scripts/entities/entity.gd
+res://scripts/entities/tools/projectile.gd
+res://scenes/units/b_martyr.tscn
+res://scenes/projectiles/b_martyr_bomb.tscn

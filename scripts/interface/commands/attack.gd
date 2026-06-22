@@ -71,6 +71,23 @@ func _own_weapon_can_fire(a_actor: Commandable) -> bool:
 	return weapon != null \
 		and weapon.is_ready() \
 		and SU.is_in_attack_range(weapon, a_actor, message.target)
+
+## Drive a FLYING actor's dive-attack descent for this tick: while attacking a ground
+## (non-air) target, ask Movement to dive toward the target so the unit drops out of the
+## sky as it closes in. A no-op for non-FLYING actors and for air targets (those are
+## engaged at cruise altitude). Movement eases the unit back up on its own once this stops
+## being called — see Movement.request_dive / _update_flying_height.
+func _update_flying_dive(a_actor: Commandable) -> void:
+	var mv := a_actor.movement
+	if mv == null or mv.mode != Movement.Mode.FLYING:
+		return
+	if not is_instance_valid(message.target):
+		return
+	var target_is_air: bool = \
+		(message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR) != 0
+	if target_is_air:
+		return
+	mv.request_dive(VU.inXZ(message.target.global_position))
 #endregion
 
 #region Properties
@@ -89,6 +106,10 @@ func get_updated_state(a_actor: Commandable):
 	# Persistent attacks (idle aggro) pursue to completion. See CommandMessage.persist.
 	if not message.persist and not _target_within_leash(a_actor):
 		return null
+	# While this attack is live, a FLYING actor dives onto a ground target (and climbs
+	# back to cruise altitude once this stops being requested — i.e. when the command ends
+	# above). Requested every tick because Movement.request_dive self-clears.
+	_update_flying_dive(a_actor)
 	return self
 
 ## Hysteresis factor applied to the weapon-range leash. The target is acquired at the

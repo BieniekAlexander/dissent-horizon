@@ -90,3 +90,66 @@ func test_velocity_ready_forwards_from_agent_velocity_computed():
 	# forward via its own velocity_ready signal.
 	agent.velocity_computed.emit(Vector3(2, 0, 0))
 	assert_signal_emitted_with_parameters(m, "velocity_ready", [Vector3(2, 0, 0)])
+
+#region FLYING dive-attack
+## Helper: a FLYING Movement under a Node3D parent at `pos`, _ready'd (so its height
+## offset is seeded to AERIAL_HEIGHT).
+func _make_flying(pos: Vector3) -> Movement:
+	var parent := Node3D.new()
+	add_child_autofree(parent)
+	parent.global_position = pos
+	var m := Movement.new()
+	m.mode = Movement.Mode.FLYING
+	parent.add_child(m)  # triggers _ready
+	return m
+
+func test_flying_starts_at_cruise_altitude():
+	var m := _make_flying(Vector3(10, 0, 10))
+	assert_almost_eq(m.height_offset(), Movement.AERIAL_HEIGHT, 0.001)
+
+func test_flying_dive_descends_proportional_to_distance():
+	# Target half a dive_distance away -> settles at half cruise altitude.
+	var m := _make_flying(Vector3(10, 0, 10))
+	var tgt := Vector2(10.0 + m.dive_distance * 0.5, 10.0)
+	for i in 100:
+		m.request_dive(tgt)
+		m._update_flying_height()
+	assert_almost_eq(m.height_offset(), Movement.AERIAL_HEIGHT * 0.5, 0.02)
+
+func test_flying_dive_onto_target_reaches_ground():
+	# Diving straight onto the target's XZ (distance 0) drops to ~ground level.
+	var m := _make_flying(Vector3(10, 0, 10))
+	for i in 100:
+		m.request_dive(Vector2(10.0, 10.0))
+		m._update_flying_height()
+	assert_almost_eq(m.height_offset(), 0.0, 0.02)
+
+func test_flying_climbs_back_when_dive_not_requested():
+	# Dive down, then stop requesting -> eases back to cruise altitude.
+	var m := _make_flying(Vector3(10, 0, 10))
+	for i in 100:
+		m.request_dive(Vector2(10.0, 10.0))
+		m._update_flying_height()
+	assert_lt(m.height_offset(), 0.1, "precondition: dove to the ground")
+	for i in 100:
+		m._update_flying_height()  # no request this tick
+	assert_almost_eq(m.height_offset(), Movement.AERIAL_HEIGHT, 0.02)
+
+func test_flying_stays_at_altitude_for_far_target():
+	# A dive request for a target beyond dive_distance keeps the unit at cruise altitude.
+	var m := _make_flying(Vector3(10, 0, 10))
+	for i in 30:
+		m.request_dive(Vector2(10.0 + m.dive_distance * 5.0, 10.0))
+		m._update_flying_height()
+	assert_almost_eq(m.height_offset(), Movement.AERIAL_HEIGHT, 0.001)
+
+func test_request_dive_is_noop_outside_flying_mode():
+	# A GROUNDED_DIRECT unit ignores dive requests and keeps a zero height offset.
+	var parent := Node3D.new()
+	add_child_autofree(parent)
+	var m := Movement.new()
+	m.mode = Movement.Mode.GROUNDED_DIRECT
+	parent.add_child(m)
+	m.request_dive(Vector2(10, 10))
+	assert_almost_eq(m.height_offset(), 0.0, 0.001)
+#endregion
