@@ -14,28 +14,39 @@ const TRIGGERS_HEADER := "#####TRIGGERS#####"
 ## entities spawned by the scenario ignore it (initialize() is called explicitly).
 @export_range(0, 5) var default_commander_id: int = 0
 
+## Enumerated identifiers for things in the game, used to uniquely identify things that would be unwieldy to
+## track with respect to scenes, e.g. "which structures does the player currently have built, for tech checks?"
+## 3 - Faction {0: neutral, 1: tech, 2: anarch, 3: col}
+## 2 - Type {0: entity, 1: unit, 2: structure}
+## 1 - Index
+## 0 - Index
 enum Type {
-	# 3 - Faction {0: generic, 1: tech, 2: anarch}
-	# 2 - Type {0: entity, 1: unit, 2: structure}
-	# 1 - Index
-	# 0 - Index
+	## SENTINEL VALUES
+	ABSTRACT=-2, # NOTE: ignored in scene validation checks, as these structures are used for godot inheritence, not meant to be used in game
 	UNDEFINED=-1,
-	STRUCTURE_REDOUBT=0x2200,
-	STRUCTURE_OUTPOST=0x1200,
-	STRUCTURE_DWELLING=0x1201,
-	STRUCTURE_MINE=0x1202,
-	STRUCTURE_LAB=0x1203,
-	STRUCTURE_COMPOUND=0x1204,
-	STRUCTURE_ARMORY=0x1205,
-	STRUCTURE_TURRET=0x1206,
-	STRUCTURE_DEPOSIT=0x1207,
-	STRUCTURE_SHELTER=0x1208,
-	UNIT_TECHNICIAN=0x1100,
-	UNIT_IRREGULAR=0x1101,
-	UNIT_VANGUARD=0x1102,
-	UNIT_WARLORD=0x1103,
-	UNIT_MARTYR=0x1104,
-	H_CANNON=0x1209
+	## NT (NEUTRAL)
+	NT_STRUCTURE_BUILDING=0x0200,
+	NT_STRUCTURE_MINE=0x0201, # TODO reassign ID as neutral, maybe? Will all factions have the same mine?
+	NT_STRUCTURE_SHELTER=0x1202,
+	## TC (TECHNOCRATIC)
+	TC_STRUCTURE_OUTPOST=0x1200,
+	TC_STRUCTURE_DWELLING=0x1201,
+	TC_STRUCTURE_LAB=0x1203,
+	TC_STRUCTURE_COMPOUND=0x1204,
+	TC_STRUCTURE_ARMORY=0x1205,
+	TC_UNIT_VANGUARD=0x1102,
+	## AN (ANARCHICAL)
+	AN_STRUCTURE_REDOUBT=0x2200,
+	AN_STRUCTURE_DEPOSIT=0x1207,
+	AN_UNIT_TECHNICIAN=0x1100,
+	AN_UNIT_IRREGULAR=0x1101,
+	AN_UNIT_WARLORD=0x1103,
+	AN_UNIT_KAMIKAZE=0x1104,
+	## CL (COLONIAL)
+	CL_UNIT_RECRUIT=0x3100,
+	CL_UNIT_BADGER=0x3101,
+	CL_STRUCTURE_SAM=0x3208,
+	CL_STRUCTURE_CANNON=0x3209,
 }
 
 const TEAM_COLOR_MAP: Dictionary = {

@@ -17,9 +17,9 @@ extends RefCounted
 ## directly. Revisit when units carry queryable role or damage-vs-class data.
 
 ## The unit to mass when we need to beat the enemy ARMY.
-const ANTI_UNIT: Entity.Type = Entity.Type.UNIT_IRREGULAR
+const ANTI_UNIT: Entity.Type = Entity.Type.AN_UNIT_IRREGULAR
 ## The unit to mass when we're ahead and want to crush the enemy's STRUCTURES.
-const ANTI_STRUCTURE: Entity.Type = Entity.Type.UNIT_WARLORD
+const ANTI_STRUCTURE: Entity.Type = Entity.Type.AN_UNIT_WARLORD
 
 ## How many times the enemy's combat-unit count we must field before we consider
 ## ourselves dominant enough to pivot to anti-structure production.

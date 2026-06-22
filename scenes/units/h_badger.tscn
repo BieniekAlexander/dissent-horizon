@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="2_pc78a"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_3lfjd"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_qd6od"]
-[ext_resource type="PackedScene" path="res://scenes/projectiles/h_badger_rocket.tscn" id="5_qd6od"]
+[ext_resource type="PackedScene" uid="uid://csyjjmuctxo47" path="res://scenes/projectiles/h_badger_rocket.tscn" id="5_qd6od"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_sfvjv"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/b_irregular.tscn" id="6_scm32"]
 [ext_resource type="Script" uid="uid://bfix8h487pr1x" path="res://scripts/entities/components/builds.gd" id="7_builds"]
@@ -19,7 +19,7 @@ height = 100.0
 radius = 5.0
 
 [node name="Badger" unique_id=716209437 instance=ExtResource("1_v5yox")]
-type = 4355
+type = 12545
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_scm32")

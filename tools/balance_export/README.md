@@ -50,7 +50,6 @@ else is read from the scene.
 - Output is **generated** (git-ignored). Promote by copying into `data/`.
 - Pareto "obsolete" is **combat-only**: a builder like the technician shows up as
   dominated because the model doesn't yet know about non-combat roles. Expected.
-- Headless logs some pre-existing project noise (`DamageTable` autoload, a stale
-  `outpost.tscn` ref in `tool.gd`, `implicit_initializer` warnings). Harmless to
-  the export — the stats still extract.
+- Headless logs some pre-existing project noise (`DamageTable` autoload,
+  `implicit_initializer` warnings). Harmless to the export — the stats still extract.
 - Phase 3 (YAML → Godot importer) is the reverse direction and not built yet.

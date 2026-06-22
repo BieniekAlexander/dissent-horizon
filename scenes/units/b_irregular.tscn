@@ -25,9 +25,7 @@ radius = 2.5
 radius = 0.3
 
 [node name="Unit2" unique_id=1210299015 instance=ExtResource("1_8cs83")]
-
-[node name="Defense" parent="." unique_id=637704181]
-hp_max = 80.0
+type = 4353
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_skyvu")
@@ -55,6 +53,9 @@ melee_damage = 0.0
 shape = SubResource("CylinderShape3D_irreg")
 disabled = true
 debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
+
+[node name="Defense" parent="." index="9" unique_id=637704181]
+hp_max = 80.0
 
 [node name="Veterancy" parent="." index="10" unique_id=1733255303]
 level = 1

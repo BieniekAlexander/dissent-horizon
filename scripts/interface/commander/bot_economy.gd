@@ -13,8 +13,8 @@ extends RefCounted
 ## so difficulty settings can later make it smarter (e.g. true income-vs-spend
 ## rate tracking, target building counts, scouting-gated expansion).
 
-const REDOUBT_TYPE: Entity.Type = Entity.Type.STRUCTURE_REDOUBT
-const MINE_TYPE: Entity.Type = Entity.Type.STRUCTURE_MINE
+const REDOUBT_TYPE: Entity.Type = Entity.Type.AN_STRUCTURE_REDOUBT
+const MINE_TYPE: Entity.Type = Entity.Type.NT_STRUCTURE_MINE
 
 ## Ore we want banked before committing to extra production capacity. Sitting
 ## above this (and not falling) means production isn't draining our income.
@@ -150,10 +150,10 @@ func _placement_ok(world: Vector3, dims: Vector2i) -> bool:
 ## Footprint dimensions for a buildable type, read off its build-preview instance
 ## (the same Structure component Build inspects). Falls back to 2×2.
 func _dims_for_type(type: Entity.Type) -> Vector2i:
-	for tool: Tool in Tool.command_tool_map.values():
-		if tool != null and tool.type == type:
-			var preview: Node = _bot.get_build_preview_instance(tool)
-			var s: Structure = preview.get_node_or_null("Structure") as Structure if preview != null else null
-			if s != null:
-				return s.dimensions
+	var tool: Tool = Tool.for_type(type)
+	if tool != null:
+		var preview: Node = _bot.get_build_preview_instance(tool)
+		var s: Structure = preview.get_node_or_null("Structure") as Structure if preview != null else null
+		if s != null:
+			return s.dimensions
 	return Vector2i(2, 2)

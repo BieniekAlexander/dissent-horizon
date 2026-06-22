@@ -19,82 +19,92 @@ static var lines: Dictionary = {
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.UNIT_TECHNICIAN: {
+	Entity.Type.AN_UNIT_TECHNICIAN: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.UNIT_IRREGULAR: {
+	Entity.Type.AN_UNIT_IRREGULAR: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.UNIT_VANGUARD: {
+	Entity.Type.TC_UNIT_VANGUARD: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.UNIT_WARLORD: {
+	Entity.Type.AN_UNIT_WARLORD: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.UNIT_MARTYR: {
+	Entity.Type.AN_UNIT_KAMIKAZE: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_OUTPOST: {
+	Entity.Type.CL_UNIT_RECRUIT: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	Entity.Type.CL_UNIT_BADGER: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_DWELLING: {
-		LineType.SELECTED: [_HOOT],
-		LineType.ISSUED_COMMAND: [_ROAR],
-		LineType.ISSUED_ATTACK: [_ROAR],
-	},
-	Entity.Type.STRUCTURE_MINE: {
+	Entity.Type.TC_STRUCTURE_OUTPOST: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_LAB: {
+	Entity.Type.TC_STRUCTURE_DWELLING: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_COMPOUND: {
+	Entity.Type.NT_STRUCTURE_MINE: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_ARMORY: {
+	Entity.Type.TC_STRUCTURE_LAB: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_TURRET: {
+	Entity.Type.TC_STRUCTURE_COMPOUND: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.H_CANNON: {
+	Entity.Type.TC_STRUCTURE_ARMORY: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_ROAR],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	Entity.Type.CL_STRUCTURE_CANNON: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_DEPOSIT: {
+	Entity.Type.CL_STRUCTURE_SAM: {
+		LineType.SELECTED: [_ROAR],
+		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	Entity.Type.AN_STRUCTURE_DEPOSIT: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_SHELTER: {
+	Entity.Type.NT_STRUCTURE_SHELTER: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.STRUCTURE_REDOUBT: {
+	Entity.Type.AN_STRUCTURE_REDOUBT: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
@@ -110,10 +120,11 @@ static func _static_init() -> void:
 #region Private helpers
 static func _validate() -> void:
 	for entity_type: Entity.Type in Entity.Type.values():
-		if entity_type == Entity.Type.UNDEFINED:
+		if entity_type < 0:
 			continue
-		assert(lines.has(entity_type),
-				"ControlFeedbackSounds: missing entry for Entity.Type.%s" % Entity.Type.find_key(entity_type))
+		if not lines.has(entity_type):
+			push_error("ControlFeedbackSounds: missing entry for Entity.Type.%s" % Entity.Type.find_key(entity_type))
+			continue
 		var type_lines: Dictionary = lines[entity_type]
 		for line_type: LineType in LineType.values():
 			assert(type_lines.has(line_type),

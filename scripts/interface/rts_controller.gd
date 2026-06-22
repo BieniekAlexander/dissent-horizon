@@ -223,7 +223,7 @@ func process_command(command_name: String) -> void:
 	# consistent with button visibility: if the button is shown, the hotkey works,
 	# regardless of which unit happens to be first in the selection.
 	#
-	# Build tools (command_tool_outpost, ...) are the exception: they aren't part
+	# Build tools (command_tool_dwelling, ...) are the exception: they aren't part
 	# of a unit's base command set, so they only become selectable once the
 	# player has armed the Build sub-menu (pending_command_name == "command_ability")
 	# and only for structures this builder can actually place.
@@ -238,7 +238,7 @@ func process_command(command_name: String) -> void:
 		return
 
 	if command_name.contains("tool"):
-		command_message.tool = Tool.command_tool_map[command_name]
+		command_message.tool = Tool.for_name(command_name)
 	elif command_name.begins_with("command"):
 		# Hotkey commands either fire immediately (no position needed, e.g.
 		# command_stop) or arm a pending sub-mode that the next right-click

@@ -37,14 +37,10 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 			for t: int in Entity.Type.values():
 				if t < 0:
 					continue
-				if commander.structure_type_map[t].get_values().any(
-					func(s: Commandable): return s.is_built
-				):
+				if commander.has_built_structure(t):
 					return true
 		else:
-			if commander.structure_type_map[structure_type].get_values().any(
-				func(s: Commandable): return s.is_built
-			):
+			if commander.has_built_structure(structure_type):
 				return true
 	return false
 #endregion

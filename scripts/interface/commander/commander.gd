@@ -29,20 +29,19 @@ var population:
 #region Technology
 # specifies what a commander can construct
 var technology_mapping: Dictionary = {
-	Entity.Type.STRUCTURE_OUTPOST: TechnologySpec.new(500, 0, 0),
+	Entity.Type.TC_STRUCTURE_OUTPOST: TechnologySpec.new(500, 0, 0),
 	# Redoubt: the unit-production building (trains warlords/irregulars). No
 	# structure prerequisite — it's a primary base building like the outpost.
-	Entity.Type.STRUCTURE_REDOUBT: TechnologySpec.new(400, 0, 0),
-	Entity.Type.STRUCTURE_MINE: TechnologySpec.new(200, 0, 0), # _requires_structures([Entity.Type.STRUCTURE_OUTPOST, Entity.Type.STRUCTURE_DWELLING])
-	Entity.Type.STRUCTURE_LAB: TechnologySpec.new(300, 0, 0, _requires_structure(Entity.Type.STRUCTURE_MINE)),
-	Entity.Type.STRUCTURE_DWELLING: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_OUTPOST)),
-	Entity.Type.STRUCTURE_COMPOUND: TechnologySpec.new(300, 0, 0, _requires_structure(Entity.Type.STRUCTURE_DWELLING)),
-	Entity.Type.STRUCTURE_ARMORY: TechnologySpec.new(150, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
-	Entity.Type.UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0),
-	Entity.Type.UNIT_WARLORD: TechnologySpec.new(250, 0, 0, _requires_structure(Entity.Type.STRUCTURE_REDOUBT)),
-	Entity.Type.UNIT_IRREGULAR: TechnologySpec.new(75, 0, 0, _requires_structure(Entity.Type.STRUCTURE_REDOUBT)),
-	Entity.Type.UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
-	Entity.Type.STRUCTURE_TURRET: TechnologySpec.new(50, 0, 0, _requires_structure(Entity.Type.STRUCTURE_COMPOUND)),
+	Entity.Type.AN_STRUCTURE_REDOUBT: TechnologySpec.new(400, 0, 0),
+	Entity.Type.NT_STRUCTURE_MINE: TechnologySpec.new(200, 0, 0), # [Entity.Type.TC_STRUCTURE_OUTPOST, Entity.Type.TC_STRUCTURE_DWELLING]
+	Entity.Type.TC_STRUCTURE_LAB: TechnologySpec.new(300, 0, 0, [Entity.Type.NT_STRUCTURE_MINE]),
+	Entity.Type.TC_STRUCTURE_DWELLING: TechnologySpec.new(150, 0, 0, [Entity.Type.TC_STRUCTURE_OUTPOST]),
+	Entity.Type.TC_STRUCTURE_COMPOUND: TechnologySpec.new(300, 0, 0, [Entity.Type.TC_STRUCTURE_DWELLING]),
+	Entity.Type.TC_STRUCTURE_ARMORY: TechnologySpec.new(150, 0, 0, [Entity.Type.TC_STRUCTURE_COMPOUND]),
+	Entity.Type.AN_UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0),
+	Entity.Type.AN_UNIT_WARLORD: TechnologySpec.new(250, 0, 0, [Entity.Type.AN_STRUCTURE_REDOUBT]),
+	Entity.Type.AN_UNIT_IRREGULAR: TechnologySpec.new(75, 0, 0, [Entity.Type.AN_STRUCTURE_REDOUBT]),
+	Entity.Type.TC_UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, [Entity.Type.TC_STRUCTURE_COMPOUND]),
 	# Abilities are gated here too. Ability.Type values (0,1,...) don't collide
 	# with Entity.Type values (all >= 0x1100), so they coexist in this map.
 	Ability.Type.RADIATION: TechnologySpec.new(0, 0, 0),
@@ -58,21 +57,12 @@ var ability_payload_registry: Dictionary = {
 	Ability.Type.RADIATION: load("res://scenes/projectiles/radiation.tscn"),
 }
 
-static func _requires_structure(structure_type: Entity.Type) -> Callable:
-	return _requires_structures([structure_type])
-
-## Tech gate satisfied only when the commander owns a FINISHED (is_built) structure
-## of EVERY listed type. Single-prereq buildings use _requires_structure; multi-prereq
-## ones (e.g. Mine needs both a built Outpost AND a built Dwelling) list all types.
-static func _requires_structures(structure_types: Array) -> Callable:
-	return func(c: Commander): return (
-		TechnologySpec.UnmetNeed.NONE
-		if structure_types.all(
-			func(t): return c.structure_type_map[t].get_values().any(
-				func(s: Commandable): return s.is_built
-			)
-		)
-		else TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+## True iff this commander owns at least one FINISHED (is_built) structure of the
+## given Entity.Type. Single source of truth for "is this structure prereq met?",
+## shared by proc_technology and ConditionStructureBuilt.
+func has_built_structure(structure_type: int) -> bool:
+	return structure_type_map[structure_type].get_values().any(
+		func(s: Commandable): return s.is_built
 	)
 
 func get_unmet_need(a_type: Variant) -> TechnologySpec.UnmetNeed:
@@ -91,9 +81,14 @@ func use_resources_for(a_type: Variant) -> void:
 	# TODO population
 
 func proc_technology() -> void:
-	# updates the tech tree of the commander according to changes in ownership
+	# updates the tech tree of the commander according to changes in ownership.
+	# A spec with no required_structures has all() return true → NONE.
 	for tech: TechnologySpec in technology_mapping.values():
-		tech.unmet_need = tech.availability_evaluator.call(self)
+		tech.unmet_need = (
+			TechnologySpec.UnmetNeed.NONE
+			if tech.required_structures.all(func(t: int): return has_built_structure(t))
+			else TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+		)
 #endregion
 
 

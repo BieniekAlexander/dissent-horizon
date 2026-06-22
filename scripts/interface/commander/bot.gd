@@ -133,10 +133,8 @@ func get_units() -> Array:
 ## tool registers it. Lets the bot match owned instances to a catalog type by their
 ## scene (a node property) instead of reading each instance's Entity.Type.
 func _scene_path_for_type(type) -> String:
-	for tool: Tool in Tool.command_tool_map.values():
-		if tool.type == type and tool.packed_scene != null:
-			return tool.packed_scene.resource_path
-	return ""
+	var tool: Tool = Tool.for_type(type)
+	return tool.packed_scene.resource_path if tool != null and tool.packed_scene != null else ""
 
 
 ## All units of a specific type (e.g. only Vanguards, only Irregulars). Matches by
@@ -384,10 +382,8 @@ func nearest_neutral_mine(from_position: Vector3) -> Commandable:
 ## components instead of by the Entity.Type value. Reuses Commander's cached,
 ## out-of-tree preview instances.
 func _preview_for_type(type) -> Node:
-	for tool: Tool in Tool.command_tool_map.values():
-		if tool.type == type:
-			return get_build_preview_instance(tool)
-	return null
+	var tool: Tool = Tool.for_type(type)
+	return get_build_preview_instance(tool) if tool != null else null
 
 ## True when [type] builds a structure — detected by a "Structure" component on
 ## its preview scene rather than by reading the Entity.Type value.

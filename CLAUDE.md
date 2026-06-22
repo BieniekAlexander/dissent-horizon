@@ -120,7 +120,7 @@ scenes/
   player.tscn                     — Commander id=1 with RTSController + Camera
   commandable.tscn                — base scene inherited by unit.tscn / structure.tscn
   units/technician.tscn, sentry.tscn, vanguard.tscn
-  structures/outpost.tscn, dwelling.tscn, mine.tscn, lab.tscn, compound.tscn, armory.tscn, turret.tscn, mountain.tscn
+  structures/dwelling.tscn, mine.tscn, lab.tscn, compound.tscn, armory.tscn, turret.tscn, mountain.tscn
   projectiles/projectile.tscn, radiation.tscn
   items/star.tscn
   map/terrain.tscn
@@ -237,7 +237,7 @@ static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type)
 Key input actions (defined in `project.godot`):
 - `isometric_camera_select` (LMB), `move` (RMB)
 - `command_attack_move` (A), `command_stop` (S), `command_launch` (F), `command_ability` (technician Build)
-- `command_tool_well`, `command_tool_dwelling`, `command_tool_outpost`, `command_tool_mine`, `command_tool_lab`, `command_tool_compound`, `command_tool_armory`
+- `command_tool_well`, `command_tool_dwelling`, `command_tool_mine`, `command_tool_lab`, `command_tool_compound`, `command_tool_armory`
 - `debug_hide_fog` / `debug_info` (Space)
 
 ---
@@ -299,7 +299,7 @@ Hide fog for debugging: hold Space (`debug_info` action).
 
 `Commander` (`@tool`) tracks:
 - `ore: int`, `population_used / population_max`, `dominion: int`
-- `technology_mapping: Dictionary[Entity.Type → TechnologySpec]` — costs + `availability_evaluator` callable
+- `technology_mapping: Dictionary[Entity.Type → TechnologySpec]` — costs + `required_structures: Array[Entity.Type]` prerequisite list
 - `structure_type_map: Dictionary[Entity.Type → Set]` — all owned structures of each type
 
 `proc_technology()` must be called whenever structures are added or removed (handled automatically via `add_structure` / `remove_structure`).
@@ -314,8 +314,8 @@ Hide fog for debugging: hold Space (`debug_info` action).
 
 `Tool` (`scripts/entities/tools/tool.gd`): a plain value object with `type: Variant` (an `Entity.Type`) and `packed_scene: PackedScene`. `Tool.command_tool_map` is a static Dictionary keyed by input-action name string:
 ```gdscript
-"command_tool_outpost" → Tool(STRUCTURE_OUTPOST, outpost.tscn)
-"command_tool_technician" → Tool(UNIT_TECHNICIAN, technician.tscn)
+"command_tool_dwelling" → Tool(TC_STRUCTURE_DWELLING, dwelling.tscn)
+"command_tool_technician" → Tool(AN_UNIT_TECHNICIAN, technician.tscn)
 ```
 
 `StructureSpec` (`scripts/entities/structures/structure_spec.gd`): per-type placement checker callable. `StructureSpec.structure_type_spec_map` is the static lookup used by `Build.meets_precondition`.

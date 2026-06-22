@@ -6,7 +6,7 @@ static func tool_applies_to(command_tool_name: String, a_entity: Entity) -> bool
 	var builds := a_entity.get_node_or_null("Builds") as Builds
 	if builds == null:
 		return false
-	var tool: Tool = Tool.command_tool_map.get(command_tool_name)
+	var tool: Tool = Tool.for_name(command_tool_name)
 	if tool == null:
 		return false
 	return builds.can_build(tool.type)

@@ -36,7 +36,7 @@ colors = PackedColorArray(0, 0, 0, 1)
 gradient = SubResource("Gradient_0noou")
 
 [node name="Turret" unique_id=1870326686 instance=ExtResource("1_strct")]
-type = 4614
+type = 12808
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 visible = false

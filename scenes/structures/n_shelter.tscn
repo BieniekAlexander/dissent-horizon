@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://csyr8p6ug2rpw"]
+[gd_scene format=3 uid="uid://csyr8p6ug2rpw"]
 
 [ext_resource type="Script" uid="uid://b7noqplt4gdch" path="res://scripts/entities/structures/shelter_structure.gd" id="1_shstr"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_own"]
@@ -16,67 +16,67 @@ size = Vector3(3, 10, 3)
 [sub_resource type="BoxShape3D" id="BoxShape3D_sel"]
 size = Vector3(3, 0.9291992, 3)
 
-[node name="ShelterStructure" type="CharacterBody3D" groups=["commandable", "shelter", "structure"]]
+[node name="ShelterStructure" type="CharacterBody3D" unique_id=1386197407 groups=["commandable", "shelter", "structure"]]
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("1_shstr")
-type = 4616
+type = 4610
 
-[node name="#####STATE#####" type="Node" parent="."]
+[node name="#####STATE#####" type="Node" parent="." unique_id=661891945]
 
-[node name="TargetBody" type="StaticBody3D" parent="."]
+[node name="TargetBody" type="StaticBody3D" parent="." unique_id=413313159]
 collision_layer = 2
 collision_mask = 0
 
-[node name="Shape" type="CollisionShape3D" parent="TargetBody"]
+[node name="Shape" type="CollisionShape3D" parent="TargetBody" unique_id=1260478445]
 shape = SubResource("BoxShape3D_target")
 
-[node name="Ownership" type="Node" parent="."]
+[node name="Ownership" type="Node" parent="." unique_id=40693621]
 script = ExtResource("2_own")
 
-[node name="Structure" type="Node" parent="."]
+[node name="Structure" type="Node" parent="." unique_id=448907667]
 script = ExtResource("3_obs")
 dimensions = Vector2i(3, 3)
 
-[node name="Shelter" type="Node" parent="."]
+[node name="Shelter" type="Node" parent="." unique_id=190571362]
 script = ExtResource("4_shel")
 
-[node name="#####CONTROLS#####" type="Node" parent="."]
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=2060797920]
 
-[node name="Selectable" type="Area3D" parent="."]
+[node name="Selectable" type="Area3D" parent="." unique_id=942080017]
 collision_layer = 256
 script = ExtResource("5_sel")
 indicator_path = NodePath("../SelectionIndicator")
 
-[node name="SelectionShape" type="CollisionShape3D" parent="Selectable"]
+[node name="SelectionShape" type="CollisionShape3D" parent="Selectable" unique_id=733690030]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5354004, 0)
 shape = SubResource("BoxShape3D_sel")
 
-[node name="#####VISUALS#####" type="Node" parent="."]
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1363122046]
 
-[node name="Sprite" type="Sprite3D" parent="."]
+[node name="Sprite" type="Sprite3D" parent="." unique_id=1923341668]
 transform = Transform3D(10, 0, 0, 0, 7.071068, -6.3639607, 0, 7.071068, 6.3639607, 0.09030843, 0.6683121, 0.35986328)
 axis = 1
 texture = ExtResource("6_spr")
 
-[node name="SelectionIndicator" type="Sprite3D" parent="."]
+[node name="SelectionIndicator" type="Sprite3D" parent="." unique_id=1099006864]
 transform = Transform3D(0.125, 0, 0, 0, 0.0883885, 0.0883885, 0, -0.0883885, 0.0883885, 0, 0, 0)
 visible = false
 texture = ExtResource("7_seli")
 
-[node name="TempLabel" type="Label3D" parent="."]
+[node name="TempLabel" type="Label3D" parent="." unique_id=1364464904]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.67541504, 0.84295654)
 billboard = 1
 render_priority = 3
 outline_render_priority = 1
 text = "SHELTER"
 
-[node name="FootprintVisualizer" type="Node3D" parent="."]
+[node name="FootprintVisualizer" type="Node3D" parent="." unique_id=1820155775]
 script = ExtResource("8_fviz")
 
-[node name="#####DEBUG#####" type="Node" parent="."]
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=437700484]
 
-[node name="DebugLabel" type="Label3D" parent="."]
+[node name="DebugLabel" type="Label3D" parent="." unique_id=1441340077]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 visible = false
 pixel_size = 0.05
@@ -84,9 +84,9 @@ render_priority = 10
 text = "NULL"
 font_size = 16
 
-[node name="TeamTint" type="Node" parent="."]
+[node name="TeamTint" type="Node" parent="." unique_id=407090635]
 script = ExtResource("9_tint")
 
-[node name="AvoidanceObstacle" type="NavigationObstacle3D" parent="."]
+[node name="AvoidanceObstacle" type="NavigationObstacle3D" parent="." unique_id=1466253000]
 avoidance_enabled = false
 avoidance_layers = 0

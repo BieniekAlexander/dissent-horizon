@@ -1,0 +1,19 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+
+=== Entity.Type <-> scene validation ===
+scanned dirs: res://scenes/units, res://scenes/structures
+scenes found: 21 (19 are Entity roots)
+
+[1] UNUSED Entity.Type values (no scanned scene instantiates with this type): 3
+    - TC_STRUCTURE_OUTPOST (0x1200)
+    - CL_UNIT_RECRUIT (0x3100)
+    - CL_STRUCTURE_CANNON (0x3209)
+
+[2] NAME/SCENE MISMATCHES (enum name-stem not in declaring scene's filename): 1
+    - TC_STRUCTURE_COMPOUND (stem "COMPOUND") declared by n_building.tscn
+
+(note) scenes whose root resolved to UNDEFINED (no type set): 2
+    - abstract_structure.tscn
+    - mountain.tscn
+

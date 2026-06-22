@@ -13,44 +13,20 @@ class_name CommandContextParser
 ##     enum, has_node(...) for a component, group membership, inventory, etc.
 ##     The contract is just "given an Entity, return a bool", which keeps the
 ##     table easy to refactor later if we standardize on one signal.
-##   - command_name: String. The conventional name of a command that can be
-##     issued; matches the input-action and HUD button names already used by
-##     the controller (e.g. "command_attack_move", "command_tool_irregular").
-##     Non-hotkey commands (Attack, Train, Interact, ...) are also listed here
-##     under "command_<verb>" names so the parser is the single source of
-##     truth for the command set a unit supports.
+##   - command_name: String. The command's conventional name. Verb commands
+##     (e.g. "command_attack_move") match the controller's input actions; tool
+##     names (e.g. "command_tool_irregular") are HUD/registry ids defined in Tool
+##     and are NOT input actions. Non-hotkey commands (Attack, Train, Interact,
+##     ...) are also listed under "command_<verb>" names so the parser is the
+##     single source of truth for the command set a unit supports.
 ##
 ## Example entry shape:
 ##   [func(e: Entity): return e.has_node("Movement"), "command_attack_move"]
 
-#region Constants
-## Every unit any producer could ever train. Filtered per-entity by
-## train_tools_for(), which consults the entity's Production component. Kept as a
-## flat list (rather than rule-table entries) so the capability lives entirely in
-## Production: this is just the name↔Tool bridge the HUD needs.
-const TRAIN_TOOL_NAMES: Array = [
-	"command_tool_technician",
-	"command_tool_irregular",
-	"command_tool_vanguard",
-	"command_tool_warlord"
-]
-
-## Every structure a builder could ever place. Filtered per-entity by
-## build_tools_for(). Kept separate from the rules table because build tools are
-## NOT part of a unit's base command set — structures surface their *train*
-## tools directly in the flat HUD, whereas these live behind the controller's
-## "Build" (command_ability) sub-menu and are queried on demand.
-const BUILD_TOOL_NAMES: Array = [
-	"command_tool_outpost",
-	"command_tool_dwelling",
-	"command_tool_mine",
-	"command_tool_lab",
-	"command_tool_compound",
-	"command_tool_armory",
-	"command_tool_turret",
-	"command_tool_redoubt",
-]
-#endregion
+## The full set of train/build tool names comes from the Tool registry
+## (Tool.train_tool_names() / Tool.build_tool_names()), filtered per-entity below
+## by the entity's Production / Builds component. They used to be hardcoded here
+## as two name lists; the registry is now the single source of truth.
 
 #region Private helpers
 ## Built lazily on first lookup to match the lazy pattern the old
@@ -167,8 +143,8 @@ static func train_tools_for(a_entity: Entity) -> Array:
 	var production := a_entity.get_node_or_null("Production") as Production
 	if production == null:
 		return result
-	for tool_name in TRAIN_TOOL_NAMES:
-		var tool: Tool = Tool.command_tool_map.get(tool_name)
+	for tool_name in Tool.train_tool_names():
+		var tool: Tool = Tool.for_name(tool_name)
 		if tool != null and production.can_produce(tool.type):
 			result.append(tool_name)
 	return result
@@ -181,7 +157,7 @@ static func build_tools_for(a_entity: Entity) -> Array:
 	var result: Array = []
 	if a_entity == null or not is_instance_valid(a_entity):
 		return result
-	for tool_name in BUILD_TOOL_NAMES:
+	for tool_name in Tool.build_tool_names():
 		if Build.tool_applies_to(tool_name, a_entity):
 			result.append(tool_name)
 	return result

@@ -1,41 +1,53 @@
 extends GridContainer
 
+## Data-driven command grid: a Tool.grid_width × Tool.grid_height grid of cells.
+## Tool buttons place themselves at their Tool.grid_position (from the registry);
+## the verb-command buttons below carry their own fixed positions. Several buttons
+## landing in one cell stack inside that cell's BoxContainer — see
+## Tool.grid_collisions() for reviewing when that overlap is actually a problem.
+
 #region Lifecycle
 func _ready() -> void:
-	columns = 5
+	columns = Tool.grid_width
 
-	var grid_containers: Array = [
-		[ButtonSpec.new("command_tool_outpost", "Outpost")],
-		[ButtonSpec.new("command_tool_dwelling", "Dwelling")],
-		[ButtonSpec.new("command_ability", "Build"), ButtonSpec.new("command_tool_mine", "Mine")],
-		[ButtonSpec.new("command_tool_lab", "Lab")],
-		[ButtonSpec.new("command_tool_redoubt", "Redoubt")],
-		[ButtonSpec.new("command_attack_move", "Attack"), ButtonSpec.new("command_tool_compound", "Compound")],
-		[ButtonSpec.new("command_stop", "Stop"), ButtonSpec.new("command_tool_armory", "Armory")],
-		[ButtonSpec.new("command_defend", "Defend"), ButtonSpec.new("command_tool_turret", "Turret")],
-		[ButtonSpec.new("command_evacuate", "Evacuate")],
-		[ButtonSpec.new("command_launch", "Radiate")],
-		[ButtonSpec.new("command_land", "Land")],
-		[ButtonSpec.new("command_tool_warlord", "Warlord"), ButtonSpec.new("command_tool_technician", "Techie")],
-		[ButtonSpec.new("command_tool_irregular", "Irregular")],
-		[ButtonSpec.new("command_tool_vanguard", "Vanguard")],
-		[],
-	].map(
-		func(a: Array):
-			var grid_container = BoxContainer.new()
-			add_child(grid_container)
-			grid_container.custom_minimum_size = Vector2(60, 60)
-			grid_container.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-			grid_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# Verb commands aren't registry Tools, so their cells are defined here:
+	# [command_name, label, grid cell].
+	var verb_buttons: Array = [
+		["command_ability", "Build", Vector2i(2, 0)],
+		["command_attack_move", "Attack", Vector2i(0, 1)],
+		["command_stop", "Stop", Vector2i(1, 1)],
+		["command_defend", "Defend", Vector2i(2, 1)],
+		["command_evacuate", "Evacuate", Vector2i(3, 1)],
+		["command_launch", "Radiate", Vector2i(4, 1)],
+		["command_land", "Land", Vector2i(0, 2)],
+	]
 
-			for item in a:
-				var b: Button = ButtonSpec.create_button_from_spec(item)
-				b.custom_minimum_size = Vector2(60, 60)
-				grid_container.add_child(b)
+	# One BoxContainer cell per grid slot, row-major (index = y*width + x). The
+	# GridContainer lays its children out in this order via `columns`.
+	var cells: Array = []
+	for i in Tool.grid_width * Tool.grid_height:
+		var cell := BoxContainer.new()
+		add_child(cell)
+		cell.custom_minimum_size = Vector2(60, 60)
+		cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cells.append(cell)
 
-			return grid_container
-	)
+	# Verb commands (fixed positions above).
+	for entry: Array in verb_buttons:
+		_place_button(cells, ButtonSpec.new(entry[0], entry[1]), entry[2])
 
-	# TODO instantiate the buttons and their dimensions
-	# Grid container with 5 columns, make 15 containers, each which will have a positioned button
+	# Tools (positions sourced from the Tool registry).
+	for tool: Tool in Tool.command_tool_map.values():
+		_place_button(cells, ButtonSpec.for_tool(tool.command_name), tool.grid_position)
+#endregion
+
+#region Private helpers
+func _place_button(cells: Array, spec: ButtonSpec, grid_cell: Vector2i) -> void:
+	if not Tool.position_in_bounds(grid_cell):
+		push_error("command_grid: '%s' has out-of-bounds grid cell %s" % [spec.control, grid_cell])
+		return
+	var b: Button = ButtonSpec.create_button_from_spec(spec)
+	b.custom_minimum_size = Vector2(60, 60)
+	cells[Tool.cell_index(grid_cell)].add_child(b)
 #endregion

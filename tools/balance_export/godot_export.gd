@@ -23,11 +23,6 @@ const MANIFEST_PATH := "res://tools/balance_export/manifest.json"
 ## Dirs scanned for buildable scenes when the manifest omits "scan_dirs".
 const DEFAULT_SCAN_DIRS: Array = ["res://scenes/units", "res://scenes/structures"]
 
-## Scene basenames (no dir, no .tscn) skipped during discovery when the manifest
-## omits "skip_scenes": the inherited base scenes plus non-buildable structures.
-## A scene that isn't in the "unit"/"structure" groups is dropped regardless.
-const DEFAULT_SKIP: Array = ["unit", "abstract_structure", "commandable", "mountain", "deposit"]
-
 ## Faction bucket for discovered scenes with no manifest entry.
 const UNASSIGNED_FACTION := "unassigned"
 
@@ -57,8 +52,7 @@ func _initialize() -> void:
 	# placeholders + a warning when there is none). Populates the shared catalogs
 	# as a side effect.
 	var scan_dirs: Array = manifest.get("scan_dirs", DEFAULT_SCAN_DIRS)
-	var skip: Array = manifest.get("skip_scenes", DEFAULT_SKIP)
-	var scenes: Array = _discover_scenes(scan_dirs, skip)
+	var scenes: Array = _discover_scenes(scan_dirs)
 
 	var by_faction: Dictionary = {}   # faction_id -> Array[buildable dict]
 	for scene_path in scenes:
@@ -154,9 +148,10 @@ func _faction_meta(manifest: Dictionary) -> Dictionary:
 	return meta
 
 
-## All res:// scene paths under dirs whose basename isn't in skip. The
-## unit/structure-group test happens later in _build_buildable (needs an instance).
-func _discover_scenes(dirs: Array, skip: Array) -> Array:
+## All res:// .tscn paths under dirs. Whether each is a real buildable (vs. an
+## ABSTRACT inheritance scaffold or a non-unit/structure node) is decided later
+## in _build_buildable, which needs an instance to read the root's type/groups.
+func _discover_scenes(dirs: Array) -> Array:
 	var found: Array = []
 	for dir_path in dirs:
 		var da: DirAccess = DirAccess.open(dir_path)
@@ -166,7 +161,7 @@ func _discover_scenes(dirs: Array, skip: Array) -> Array:
 		da.list_dir_begin()
 		var fn: String = da.get_next()
 		while fn != "":
-			if not da.current_is_dir() and fn.get_extension() == "tscn" and fn.get_basename() not in skip:
+			if not da.current_is_dir() and fn.get_extension() == "tscn":
 				found.append(dir_path.path_join(fn))
 			fn = da.get_next()
 		da.list_dir_end()
@@ -184,8 +179,13 @@ func _build_buildable(scene_path: String, entry: Dictionary) -> Dictionary:
 		_warnings.append("could not instantiate %s (skipped)" % scene_path)
 		return {}
 
-	# Only actual buildables: drop anything not flagged unit/structure (base
-	# scenes that slipped the skip-list, props, etc.). Silent -- not an error.
+	# Ignore inheritance-only scaffolds (base scenes Godot uses for inheritance,
+	# not real game entities) -- flagged by the root's type. Silent, not an error.
+	if inst is Entity and inst.type == Entity.Type.ABSTRACT:
+		inst.free()
+		return {}
+
+	# Belt-and-suspenders: only unit/structure-group roots are buildables.
 	if not (inst.is_in_group("unit") or inst.is_in_group("structure")):
 		inst.free()
 		return {}

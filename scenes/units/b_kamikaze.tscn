@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/units/unit.tscn" id="1_unit"]
 [ext_resource type="Texture2D" uid="uid://cu54wxkswu4d3" path="res://assets/entities/irregular.png" id="2_tex"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_load"]
-[ext_resource type="PackedScene" uid="uid://cmrtyrbomb001" path="res://scenes/projectiles/b_martyr_bomb.tscn" id="4_bomb"]
+[ext_resource type="PackedScene" uid="uid://cmrtyrbomb001" path="res://scenes/projectiles/b_kamikaze_bomb.tscn" id="4_bomb"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="5_wpn"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="6_inv"]
 
@@ -35,7 +35,7 @@ shape = SubResource("CylinderShape3D_target")
 [node name="AggroRange" parent="." index="4" unique_id=131280482]
 shape = SubResource("CylinderShape3D_aggro")
 
-[node name="Movement" parent="." index="7"]
+[node name="Movement" parent="." index="7" unique_id=413735738]
 mode = 17
 max_acceleration = 1.0
 max_deceleration = -1.5

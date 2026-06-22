@@ -58,6 +58,33 @@ in the editor rather than risk a malformed override. Cost/tech changes route to
 | `damage_table.yaml` cells | source CSVs `resources/damage/damage_vs_{armour,attribute}.csv` (targeted cell; blank = default multiplier) |
 | structural (`name`, `kind`, `weapons`, `attributes`, `layer`, `requires`) | reported, edited by hand |
 
+### Validating the `Entity.Type` ↔ scene mapping
+
+The export joins enums to scenes, so it's only as reliable as the scenes'
+`type` values. This auditor catches drift between the `Entity.Type` enum and the
+scenes that are supposed to declare each value:
+
+```bash
+godot --headless -s res://tools/balance_export/validation.gd
+```
+
+It walks `scenes/units` + `scenes/structures`, instantiates each scene
+out-of-tree, reads the root's `type`, and reports:
+
+- **[1] Unused enums** — `Entity.Type` values that **no** scanned scene
+  instantiates with (an enum with no scene behind it, or a scene that forgot to
+  set its `type`).
+- **[2] Name/scene mismatches** — the enum's name-stem (the text after the last
+  `_`, e.g. `AN_STRUCTURE_REDOUBT` → `REDOUBT`) is not a case-insensitive
+  substring of a declaring scene's filename (e.g. type `…COMPOUND` living in
+  `n_building.tscn`).
+- **(note)** scenes whose root resolved to `UNDEFINED` (no `type` set).
+
+It hardcodes no enum members, so it still runs — and pinpoints the cause — when
+the rest of the project doesn't compile. Scope is the two scanned dirs; an enum
+whose scene lives elsewhere shows as unused (the report prints the dirs it
+scanned).
+
 ## Concepts
 
 | Concept | Definition |
