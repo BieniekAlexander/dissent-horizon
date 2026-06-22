@@ -216,6 +216,16 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 #endregion
 
 #region Command processing
+## The control context(s) currently active for tool/command availability, as a
+## ControlBinding.ControlContext bitmask: BUILD while the Build sub-menu is armed, otherwise
+## the default ACT|TRAIN page. The single place that interprets the controller's
+## mode (pending_command_name) as a ControlBinding.ControlContext — shared vocabulary with
+## the Tool registry / command_context_parser.tools_for().
+func current_context() -> int:
+	if pending_command_name == "command_ability":
+		return ControlBinding.ControlContext.BUILD
+	return ControlBinding.ControlContext.ACT | ControlBinding.ControlContext.TRAIN
+
 func process_command(command_name: String) -> void:
 	var lead: Entity = selection[0] if !selection.is_empty() else null
 	# Gate on _available_commands (the union across the whole selection) rather
@@ -224,12 +234,12 @@ func process_command(command_name: String) -> void:
 	# regardless of which unit happens to be first in the selection.
 	#
 	# Build tools (command_tool_dwelling, ...) are the exception: they aren't part
-	# of a unit's base command set, so they only become selectable once the
-	# player has armed the Build sub-menu (pending_command_name == "command_ability")
-	# and only for structures this builder can actually place.
+	# of a unit's base command set, so they only become selectable once the player
+	# has armed the Build sub-menu (current_context() == BUILD) and only for
+	# structures this builder can actually place.
 	var is_build_tool: bool = (
-		pending_command_name == "command_ability"
-		and CommandContextParser.build_tools_for(lead).has(command_name)
+		current_context() == ControlBinding.ControlContext.BUILD
+		and CommandContextParser.tools_for(lead, ControlBinding.ControlContext.BUILD).has(command_name)
 	)
 	if lead == null or (
 		not _available_commands.has(command_name)
@@ -237,8 +247,9 @@ func process_command(command_name: String) -> void:
 	):
 		return
 
-	if command_name.contains("tool"):
-		command_message.tool = Tool.for_name(command_name)
+	var tool: Tool = Tool.for_name(command_name)
+	if tool != null:
+		command_message.tool = tool
 	elif command_name.begins_with("command"):
 		# Hotkey commands either fire immediately (no position needed, e.g.
 		# command_stop) or arm a pending sub-mode that the next right-click
@@ -524,8 +535,8 @@ func upate_hud_buttons() -> void:
 func _visible_command_names() -> Array:
 	if selection.is_empty():
 		return []
-	if pending_command_name == "command_ability":
-		return CommandContextParser.build_tools_for(selection[0])
+	if current_context() == ControlBinding.ControlContext.BUILD:
+		return CommandContextParser.tools_for(selection[0], ControlBinding.ControlContext.BUILD)
 	return _available_commands
 
 func _on_control_button_pressed(control_name: String) -> void:

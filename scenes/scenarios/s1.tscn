@@ -100,7 +100,7 @@ count = 0
 script = ExtResource("1_hbnr0")
 
 [node name="Martyr" parent="." unique_id=440012001 instance=ExtResource("2_4xaid")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 1, -11)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 3, -11)
 default_commander_id = 1
 
 [node name="Warlord1" parent="." unique_id=478388711 instance=ExtResource("4_6bpmu")]

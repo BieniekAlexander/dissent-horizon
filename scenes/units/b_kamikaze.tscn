@@ -23,7 +23,7 @@ height = 100.0
 [sub_resource type="SphereShape3D" id="SphereShape3D_sel"]
 radius = 0.3
 
-[node name="Martyr" unique_id=440012001 instance=ExtResource("1_unit")]
+[node name="Kamikaze" unique_id=440012001 instance=ExtResource("1_unit")]
 type = 4356
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
@@ -39,8 +39,8 @@ shape = SubResource("CylinderShape3D_aggro")
 mode = 17
 max_acceleration = 1.0
 max_deceleration = -1.5
-speed = 0.15
-turn_rate = 90.0
+speed = 0.1
+turn_rate = 120.0
 
 [node name="Loadout" type="Node3D" parent="." index="8" unique_id=1619495853]
 visible = false
@@ -59,7 +59,7 @@ debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
 [node name="Defense" parent="." index="9" unique_id=637704181]
 armour_type = 1
-hp_max = 20.0
+hp_max = 15.0
 
 [node name="Veterancy" parent="." index="10" unique_id=1733255303]
 level = 1

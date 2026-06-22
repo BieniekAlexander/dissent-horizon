@@ -208,8 +208,7 @@ Commands are the primary game-action abstraction. Each command is a `RefCounted`
 **`CommandContextParser`** (static class) is the single source of truth for which command names are available to a given entity or selection:
 - `commands_for(entity)` — predicate table → list of command name strings
 - `commands_for_selection(entities)` — union across selection
-- `train_tools_for(entity)` — reads `Production.producible_types`
-- `build_tools_for(entity)` — reads `Build.tool_applies_to()`
+- `tools_for(entity, context)` — tool command names available in a `Tool.ControlContext` (BUILD/TRAIN); gates BUILD tools via `Build.tool_applies_to()`, TRAIN tools via `Production.producible_types`. The controller's `current_context()` supplies the context.
 
 **Command preconditions** — every command subclass implements:
 ```gdscript

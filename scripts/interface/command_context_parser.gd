@@ -23,17 +23,17 @@ class_name CommandContextParser
 ## Example entry shape:
 ##   [func(e: Entity): return e.has_node("Movement"), "command_attack_move"]
 
-## The full set of train/build tool names comes from the Tool registry
-## (Tool.train_tool_names() / Tool.build_tool_names()), filtered per-entity below
-## by the entity's Production / Builds component. They used to be hardcoded here
-## as two name lists; the registry is now the single source of truth.
+## Tool names come from the Tool registry, filtered per control context +
+## per-entity capability by tools_for(entity, context) below (ControlBinding.ControlContext
+## is the single build/train/act vocabulary, shared with RTSController). They used
+## to be hardcoded here as two name lists; the registry is the source of truth.
 
 #region Private helpers
 ## Built lazily on first lookup to match the lazy pattern the old
 ## CommandContextRegistry used (script-class resolution order is fragile at
 ## static-var init time). Note that the structures' *train tools* are no longer
 ## in this table — they're sourced per-entity from the Production component via
-## train_tools_for(), folded into commands_for() below.
+## tools_for(entity, ControlContext.TRAIN), folded into commands_for() below.
 static var _rules: Array
 
 static func _build_rules() -> Array:
@@ -104,7 +104,7 @@ static func commands_for(a_entity: Entity) -> Array:
 			result.append(command_name)
 	# The train tools a producer offers come from its Production component, not a
 	# static type table — so a structure advertises exactly what it can build.
-	for tool_name in train_tools_for(a_entity):
+	for tool_name in tools_for(a_entity, ControlBinding.ControlContext.TRAIN):
 		if not result.has(tool_name):
 			result.append(tool_name)
 	return result
@@ -132,33 +132,28 @@ static func commands_for_selection(a_entities: Array) -> Array:
 static func command_available(a_command_name: String, a_entity: Entity) -> bool:
 	return commands_for(a_entity).has(a_command_name)
 
-## The train-tool command names the given entity can produce, in menu order.
-## Source of truth is the entity's Production component (producible_types), so the
-## menu can only ever advertise units that structure can actually train. Returns
-## empty for entities without a Production node (e.g. units, neutral structures).
-static func train_tools_for(a_entity: Entity) -> Array:
+## The tool command names available to `a_entity` in the given control context(s),
+## in menu order. Single context-filtered query that replaces the former
+## build_tools_for / train_tools_for split:
+##   - candidate tools are those whose control_context intersects `a_context`
+##     (Tool.tools_in_context);
+##   - each is then gated by the component that owns that capability — BUILD tools
+##     by the entity's Builds (via Build.tool_applies_to), TRAIN tools by its
+##     Production (can_produce) — so the menu can never advertise a tool the
+##     command would reject.
+## The gate DISPATCH lives here; the gate logic itself stays in Build / Production.
+## Returns empty for a null/invalid entity, or one lacking the relevant component.
+static func tools_for(a_entity: Entity, a_context: int) -> Array:
 	var result: Array = []
 	if a_entity == null or not is_instance_valid(a_entity):
 		return result
 	var production := a_entity.get_node_or_null("Production") as Production
-	if production == null:
-		return result
-	for tool_name in Tool.train_tool_names():
-		var tool: Tool = Tool.for_name(tool_name)
-		if tool != null and production.can_produce(tool.type):
-			result.append(tool_name)
-	return result
-
-## The build-tool command names the given entity can construct, in menu order.
-## Drives the controller's Build sub-menu and gates build-tool clicks. Source of
-## truth is the entity's Builds component, so the menu can never advertise a
-## structure the command would reject.
-static func build_tools_for(a_entity: Entity) -> Array:
-	var result: Array = []
-	if a_entity == null or not is_instance_valid(a_entity):
-		return result
-	for tool_name in Tool.build_tool_names():
-		if Build.tool_applies_to(tool_name, a_entity):
-			result.append(tool_name)
+	for tool: Tool in Tool.tools_in_context(a_context):
+		if (tool.control_context & ControlBinding.ControlContext.BUILD) != 0:
+			if Build.tool_applies_to(tool.command_name, a_entity):
+				result.append(tool.command_name)
+		elif (tool.control_context & ControlBinding.ControlContext.TRAIN) != 0:
+			if production != null and production.can_produce(tool.type):
+				result.append(tool.command_name)
 	return result
 #endregion

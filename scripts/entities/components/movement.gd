@@ -27,7 +27,7 @@ signal velocity_ready(velocity: Vector3)
 #region Constants
 ## How many world-units above the terrain surface an aerial unit (HOVERING or
 ## FLYING) flies. Both modes share the same cruise altitude.
-const AERIAL_HEIGHT: float = 1.5
+const AERIAL_HEIGHT: float = 2.0
 
 ## XZ arrival radius for HOVERING / FLYING modes (mirrors NavigationAgent3D's
 ## target_desired_distance used in GROUNDED_DIRECT mode).

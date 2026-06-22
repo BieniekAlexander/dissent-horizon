@@ -248,7 +248,7 @@ func test_technician_build_tools_are_the_buildable_structures():
 		Entity.Type.TC_STRUCTURE_COMPOUND,
 		Entity.Type.TC_STRUCTURE_ARMORY,
 	])
-	var tools := CommandContextParser.build_tools_for(e)
+	var tools := CommandContextParser.tools_for(e, ControlBinding.ControlContext.BUILD)
 	assert_true(tools.has("command_tool_dwelling"))
 	assert_true(tools.has("command_tool_mine"))
 	assert_true(tools.has("command_tool_lab"))
@@ -257,10 +257,10 @@ func test_technician_build_tools_are_the_buildable_structures():
 
 func test_non_builder_has_no_build_tools():
 	var e := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
-	assert_eq(CommandContextParser.build_tools_for(e), [])
+	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.BUILD), [])
 
 func test_build_tools_for_null_is_empty():
-	assert_eq(CommandContextParser.build_tools_for(null), [])
+	assert_eq(CommandContextParser.tools_for(null, ControlBinding.ControlContext.BUILD), [])
 
 func test_build_tools_stay_out_of_the_flat_command_set():
 	# Build tools live behind the Build sub-menu (queried via build_tools_for),
@@ -278,15 +278,15 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 func test_train_tools_for_reads_production_component():
 	var e := _make_entity(Entity.Type.TC_STRUCTURE_COMPOUND, ["structure"])
 	_add_production(e, [Entity.Type.AN_UNIT_IRREGULAR])
-	assert_eq(CommandContextParser.train_tools_for(e), ["command_tool_irregular"])
+	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), ["command_tool_irregular"])
 
 func test_train_tools_for_entity_without_production_is_empty():
 	# A producer-less entity (e.g. a plain unit) offers no train tools.
 	var e := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
-	assert_eq(CommandContextParser.train_tools_for(e), [])
+	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), [])
 
 func test_train_tools_for_null_is_empty():
-	assert_eq(CommandContextParser.train_tools_for(null), [])
+	assert_eq(CommandContextParser.tools_for(null, ControlBinding.ControlContext.TRAIN), [])
 
 ## --- Production end-to-end: component → can_produce → surfaced train tool ----
 ## These build minimal entities carrying only a Production component (rather than
