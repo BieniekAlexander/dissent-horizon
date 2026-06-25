@@ -31,6 +31,16 @@ const DEFEND_THREAT_RADIUS: float = 10.0
 ## and re-tasking the whole army. Keeps a wandering enemy target from thrashing.
 const OBJECTIVE_EPSILON: float = 3.0
 
+## Attack-wave commitment by army VALUE. The bot launches an all-in attack once the
+## ore value of its army reaches a cap sampled from a clamped normal — so the timing
+## (and army size) of pushes varies and the game keeps moving. Re-rolled per launch.
+const ARMY_VALUE_CAP_MEAN: float = 750.0
+const ARMY_VALUE_CAP_SD: float = 150.0  # clamp to [μ-2σ, μ+2σ] = [450, 1050]
+## A launched wave stays committed (ATTACK, overriding DEFEND) until the army is
+## spent down to this fraction of its value at launch — so a re-rolled, possibly
+## higher cap can't instantly cancel a push, and the bot doesn't dribble its army in.
+const WAVE_SPENT_FRACTION: float = 0.35
+
 var _bot: Bot
 var _act: BotActuator
 
@@ -38,10 +48,16 @@ var _posture: Posture = Posture.MASS
 var _objective: Vector3 = Vector3.ZERO
 var _has_objective: bool = false
 
+## Army-value threshold for the NEXT attack wave, and the live wave state.
+var _army_value_cap: float = 0.0
+var _wave_active: bool = false
+var _wave_launch_value: float = 0.0
+
 
 func _init(a_bot: Bot, a_act: BotActuator) -> void:
 	_bot = a_bot
 	_act = a_act
+	_army_value_cap = _sample_army_value_cap()
 
 
 func tick() -> void:
@@ -79,11 +95,41 @@ func current_posture() -> Posture:
 
 
 func _decide_posture() -> Posture:
+	# A committed attack wave OVERRIDES defence — once the bot has massed an army
+	# worth a (randomised) cap, it pushes regardless of a scout poking the base.
+	# This is the anti-turtle fix: DEFEND no longer wins unconditionally.
+	if _committing_to_attack():
+		return Posture.ATTACK
 	if _bot.is_base_under_threat(DEFEND_THREAT_RADIUS):
 		return Posture.DEFEND
 	if _combat_units(_bot.get_units()).size() >= ATTACK_ARMY_THRESHOLD:
 		return Posture.ATTACK
 	return Posture.MASS
+
+
+## True while the bot is committed to an attack wave. A wave launches when the army's
+## ore value reaches the current cap (then the cap is re-rolled for next time) and
+## stays committed until the army is spent to WAVE_SPENT_FRACTION of its launch value.
+func _committing_to_attack() -> bool:
+	var value: float = _bot.army_resource_value()
+	if _wave_active:
+		if value <= _wave_launch_value * WAVE_SPENT_FRACTION:
+			_wave_active = false  # army spent — regroup and re-accumulate
+		return _wave_active
+	if value >= _army_value_cap:
+		_wave_active = true
+		_wave_launch_value = value
+		_army_value_cap = _sample_army_value_cap()  # re-roll the next wave's threshold
+		return true
+	return false
+
+
+## A fresh army-value cap drawn from N(mean, sd), clamped to [μ-2σ, μ+2σ].
+func _sample_army_value_cap() -> float:
+	return clampf(
+		randfn(ARMY_VALUE_CAP_MEAN, ARMY_VALUE_CAP_SD),
+		ARMY_VALUE_CAP_MEAN - 2.0 * ARMY_VALUE_CAP_SD,
+		ARMY_VALUE_CAP_MEAN + 2.0 * ARMY_VALUE_CAP_SD)
 
 
 ## Units we send to fight: every armed unit EXCEPT one that's currently

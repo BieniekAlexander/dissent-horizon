@@ -12,7 +12,7 @@ import argparse
 import math
 from pathlib import Path
 
-from . import graph, queries
+from . import combat, effectiveness, graph, queries
 from .loader import load_world
 
 
@@ -41,6 +41,15 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("low_tier", type=int)
     sp.add_argument("high_faction")
     sp.add_argument("high_tier", type=int)
+    sp = sub.add_parser("matchup", help="emergent-factor breakdown for an attacker vs target")
+    sp.add_argument("attacker", help="uid faction:id")
+    sp.add_argument("target", help="uid faction:id")
+    sp = sub.add_parser("distinctness",
+                        help="faction roster distinctness: matrix, or detail for one pair")
+    sp.add_argument("faction_a", nargs="?", help="omit both for the all-pairs matrix")
+    sp.add_argument("faction_b", nargs="?")
+    sp.add_argument("--tier", type=int, action="append",
+                    help="restrict to these tech tiers (repeatable, e.g. --tier 1 --tier 2)")
     sp = sub.add_parser("import", help="dry-run: preview YAML -> Godot changes")
     sp.add_argument("--current", type=Path, required=True,
                     help="current Godot state (a fresh data_exported/)")
@@ -70,9 +79,12 @@ def main(argv: list[str] | None = None) -> int:
         applied = [e for e in edits if e.applied]
         skipped = [e for e in edits if e.scope != "skip" and not e.applied]
         manual = [e for e in edits if e.scope == "skip"]
+        # Entities described in the flat files but absent from the Godot export
+        # (`current`) have no scene to write to. This is a non-fatal WARNING, not
+        # an error — you may be sketching a unit in YAML before authoring it.
         print(f"{mode}\n{len(changes)} change(s): {len(applied)} writable, "
               f"{len(skipped)} unwritable, {len(manual)} structural; "
-              f"{len(added)} added, {len(removed)} removed.\n")
+              f"{len(added)} not in Godot, {len(removed)} removed.\n")
         for e in applied:
             if e.created:
                 prefix = "CREATED " if args.apply else "WOULD CREATE "
@@ -84,7 +96,8 @@ def main(argv: list[str] | None = None) -> int:
         for e in manual:
             print("  ", e.describe())
         for a in added:
-            print(f"   + NEW {a.kind} {a.id} (in desired only — create it in Godot)")
+            print(f"   WARNING  {a.kind} '{a.id}' is described in the flat files but "
+                  f"not found in the Godot files (no scene) — skipped, not applied")
         for r in removed:
             print(f"   - GONE {r.kind} {r.id} (in current only)")
         return 0
@@ -133,6 +146,43 @@ def main(argv: list[str] | None = None) -> int:
             best = u.best_response or "—"
             print(f"  STRUGGLES vs {u.threat} (ore {u.threat_cost:.0f})  "
                   f"best response: {best} [exchange_cost={_fmt_xc(u.best_exchange_cost)}]  ({u.reason})")
+
+    elif args.cmd == "matchup":
+        a = world.get(args.attacker)
+        t = world.get(args.target)
+        d = world.damage
+        print(f"{a.uid}  ->  {t.uid}")
+        print(f"  base dps        {combat.dps(d, a, t):.2f}")
+        for name, v in effectiveness.matchup_factors(d, a, t).items():
+            print(f"    x {name:9}   {v:.3f}")
+        print(f"  combined factor {effectiveness.combined_factor(d, a, t):.3f}")
+        print(f"  effective dps   {effectiveness.effective_dps(d, a, t):.2f}")
+        print(f"  exchange_cost   base={_fmt_xc(combat.exchange_cost(d, a, t))}  "
+              f"effective={_fmt_xc(effectiveness.effective_exchange_cost(d, a, t))}")
+
+    elif args.cmd == "distinctness":
+        tiers = set(args.tier) if args.tier else None
+        suffix = f"  (tiers {sorted(tiers)})" if tiers else ""
+        if args.faction_a and args.faction_b:
+            r = queries.faction_distinctness(world, args.faction_a, args.faction_b, tiers)
+            print(f"{r.faction_a} vs {r.faction_b}{suffix}")
+            print(f"  {r.faction_a:>12} -> {r.faction_b:<12}  {r.a_to_b:.2f}  (how poorly {r.faction_b} shadows {r.faction_a})")
+            print(f"  {r.faction_b:>12} -> {r.faction_a:<12}  {r.b_to_a:.2f}")
+            if r.most_similar:
+                ms = r.most_similar
+                print(f"  most similar: {ms.unit_a} ~ {ms.unit_b}  (distinctness {ms.distinctness:.2f})")
+        elif args.faction_a:
+            print("provide BOTH factions for a pair, or NEITHER for the matrix.")
+            return 2
+        else:
+            m = queries.distinctness_matrix(world, tiers)
+            fids = list(world.factions)
+            print(f"set_distinctness  (row shadowed by col; higher = more distinct){suffix}")
+            print("            " + "".join(f"{c[:11]:>13}" for c in fids))
+            for a in fids:
+                cells = "".join("-".rjust(13) if a == b else f"{m[(a, b)]:>13.1f}"
+                                for b in fids)
+                print(f"{a[:11]:>12}" + cells)
 
     return 0
 

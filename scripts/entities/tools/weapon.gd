@@ -90,16 +90,35 @@ func can_target(a_target: Entity) -> bool:
 ## estimates, not exact in-fight damage. The ranged value is read by instantiating
 ## the projectile scene once (out of tree, so no _ready) and cached.
 func per_shot_damage() -> float:
+	_ensure_shot_cache()
+	return _cached_per_shot_damage
+
+## The Damage.Type a shot applies: melee_damage_type for melee, the projectile's
+## damage_type for ranged. Pairs with per_shot_damage() for damage-table lookups
+## (e.g. the bot's effectiveness-vs-armour targeting signal).
+func per_shot_damage_type() -> Damage.Type:
+	_ensure_shot_cache()
+	return _cached_damage_type
+
+## Populate the per-shot damage + type cache on first use, instantiating the
+## projectile scene once (out of tree → no _ready) for ranged weapons.
+func _ensure_shot_cache() -> void:
 	if _cached_per_shot_damage >= 0.0:
-		return _cached_per_shot_damage
+		return
 	if projectile_scene == null:
 		_cached_per_shot_damage = melee_damage
+		_cached_damage_type = melee_damage_type
 	else:
 		var proj: Node = projectile_scene.instantiate()
-		_cached_per_shot_damage = (proj as Projectile).base_damage if proj is Projectile else 0.0
+		if proj is Projectile:
+			_cached_per_shot_damage = (proj as Projectile).base_damage
+			_cached_damage_type = (proj as Projectile).damage_type
+		else:
+			_cached_per_shot_damage = 0.0
+			_cached_damage_type = melee_damage_type
 		proj.free()
-	return _cached_per_shot_damage
 var _cached_per_shot_damage: float = -1.0
+var _cached_damage_type: Damage.Type = Damage.Type.LEAD
 
 func is_ready() -> bool:
 	return _ammo>0 and _split_timer==0

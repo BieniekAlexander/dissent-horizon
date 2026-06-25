@@ -3,11 +3,11 @@
 [ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_scen"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_map"]
 [ext_resource type="Shape3D" uid="uid://bmkey18lrpkej" path="res://resources/map.tres" id="3_hmap"]
-[ext_resource type="PackedScene" uid="uid://dtyheenc7jb57" path="res://scenes/structures/b_redoubt.tscn" id="4_rdbt"]
-[ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/units/warlord.tscn" id="5_aeqv4"]
-[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/units/b_irregular.tscn" id="6_irr"]
-[ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/structures/deposit.tscn" id="7_dep"]
-[ext_resource type="PackedScene" uid="uid://d372d5stwv6gt" path="res://scenes/structures/n_mine.tscn" id="8_mine"]
+[ext_resource type="PackedScene" uid="uid://dtyheenc7jb57" path="res://scenes/entities/structures/an/stronghold.tscn" id="4_rdbt"]
+[ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/entities/units/an/warlord.tscn" id="5_aeqv4"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/irregular.tscn" id="6_irr"]
+[ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/entities/structures/nt/deposit.tscn" id="7_dep"]
+[ext_resource type="PackedScene" uid="uid://d372d5stwv6gt" path="res://scenes/entities/structures/nt/mine.tscn" id="8_mine"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_skirmish"]
 
@@ -19,6 +19,7 @@ albedo_color = Color(0.3, 0.45, 0.25, 1)
 
 [node name="Scenario" type="Node3D" unique_id=1388645473]
 script = ExtResource("1_scen")
+human_commander_id = 0
 
 [node name="Map" type="Node3D" parent="." unique_id=1078024187]
 script = ExtResource("2_map")

@@ -27,6 +27,7 @@ from .model import (
     DamageTable,
     DamageType,
     Faction,
+    Frame,
     Layer,
     Projectile,
     StatusEffect,
@@ -155,6 +156,7 @@ def _buildable(faction_id: str, d: dict, weapons: dict[str, Weapon]) -> Buildabl
         cost=cost,
         requires=list(d.get("requires", [])),
         armour=Armour(d["armour"]) if d.get("armour") else None,
+        frame=Frame(d["frame"]) if d.get("frame") else None,
         hp=float(d.get("hp", 0.0)),
         layer=Layer(move["layer"]) if move.get("layer") else None,
         speed=float(move.get("speed", 0.0)),
@@ -186,7 +188,11 @@ def load_damage_table(path: Path) -> DamageTable:
         DamageType(dt): {a: float(m) for a, m in row.items()}
         for dt, row in raw.get("vs_attribute", {}).items()
     }
-    return DamageTable(vs_armour=vs_armour, vs_attribute=vs_attribute)
+    vs_frame = {
+        DamageType(dt): {Frame(fr): float(m) for fr, m in row.items()}
+        for dt, row in raw.get("vs_frame", {}).items()
+    }
+    return DamageTable(vs_armour=vs_armour, vs_attribute=vs_attribute, vs_frame=vs_frame)
 
 
 def load_world(data_dir: Path | None = None) -> World:

@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://dakd76yyj4wc"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_upjvb"]
+[ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="2_cmhi3"]
+[ext_resource type="Texture2D" uid="uid://5vx0iccure6l" path="res://assets/mountain.png" id="2_ybmff"]
+
+[node name="Structure" unique_id=1763180119 instance=ExtResource("1_upjvb")]
+type = 8712
+
+[node name="Structure" parent="." index="7" unique_id=390859349]
+dimensions = Vector2i(4, 4)
+
+[node name="Defense" parent="." index="8" unique_id=637704181]
+armour_type = 2
+hp_max = 600.0
+
+[node name="Production" type="Node" parent="." index="10" unique_id=884454748]
+script = ExtResource("2_cmhi3")
+producible_types = Array[int]([8452])
+metadata/_custom_type_script = "uid://cqvco5y3gnfph"
+
+[node name="Sprite" parent="." index="14" unique_id=1381401170]
+transform = Transform3D(0.16, 0, 0, 0, 2.8284273, -0.08485281, 0, 2.828427, 0.084852815, -0.22279882, 0.3516159, 0.033470154)
+texture = ExtResource("2_ybmff")

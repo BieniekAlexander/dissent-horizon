@@ -4,7 +4,7 @@ class_name EventAbilityIrradiate extends AbstractEvent
 ## The source is offset 0.5 units along +X so the short ballistic arc resolves
 ## within a few physics frames and the field appears right at the target.
 
-const _RADIATION_SCENE: PackedScene = preload("res://scenes/projectiles/radiation.tscn")
+const _RADIATION_SCENE: PackedScene = preload("res://scenes/entities/projectiles/radiation.tscn")
 const _SOURCE_OFFSET: float = 0.5
 const _COMMANDER_ID: int = 1
 

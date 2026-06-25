@@ -1,29 +1,24 @@
 class_name BotProduction
 extends RefCounted
 
-## BotProduction — keeps production buildings busy with a tactically-chosen unit.
+## BotProduction — trains the unit that best COUNTERS the believed enemy, with no
+## per-unit rules and no cheap-unit bias.
 ##
-## Composition policy (army-comparison driven):
-##   • When we DON'T clearly outnumber the enemy, build the anti-unit unit
-##     (Irregular) to win the field fight.
-##   • Once we outnumber them by SUPERIORITY_RATIO, switch to the anti-structure
-##     unit (Warlord) to convert that lead into razing the enemy's base.
-## The desired type is trained when a structure can produce + afford it; otherwise
-## we fall back to whatever it can afford, so production never stalls.
+## Each idle production building picks the producible unit with the highest
+## composition value (Bot.unit_composition_value): effectiveness × per-enemy-type
+## demand, where demand is each believed enemy type's importance reduced by how well
+## the bot's CURRENT army already counters it. So:
+##   • an enemy type the army can't handle (e.g. fliers it can't hit, or massed
+##     irregulars only the Kamikaze's AOE answers) has high demand → that counter
+##     gets built;
+##   • once a threat is covered its demand falls (diminishing returns) → the bot
+##     diversifies, and eventually values anti-structure units (warlords) for the
+##     longer game, since enemy structures keep a (smaller) standing demand.
 ##
-## NOTE: the unit→role mapping is hardcoded to the current roster. There's no
-## per-unit role/damage metadata in the game yet (that lives in the offline
-## balance tool), so until there is, ANTI_UNIT / ANTI_STRUCTURE name the picks
-## directly. Revisit when units carry queryable role or damage-vs-class data.
-
-## The unit to mass when we need to beat the enemy ARMY.
-const ANTI_UNIT: Entity.Type = Entity.Type.AN_UNIT_IRREGULAR
-## The unit to mass when we're ahead and want to crush the enemy's STRUCTURES.
-const ANTI_STRUCTURE: Entity.Type = Entity.Type.AN_UNIT_WARLORD
-
-## How many times the enemy's combat-unit count we must field before we consider
-## ourselves dominant enough to pivot to anti-structure production.
-const SUPERIORITY_RATIO: float = 1.5
+## Cost is NOT a tiebreaker: the wanted unit is trained when affordable, otherwise
+## the building WAITS and saves up rather than spamming a cheaper, weaker unit — the
+## fix for the bot drowning in irregulars. With no enemy seen yet, it just masses the
+## cheapest unit to field an opening army.
 
 var _bot: Bot
 var _act: BotActuator
@@ -35,40 +30,43 @@ func _init(a_bot: Bot, a_act: BotActuator) -> void:
 
 
 func tick() -> void:
-	var desired: Entity.Type = _desired_unit_type()
+	var demand: Dictionary = _bot.enemy_demand_map()
 	for s: Commandable in _bot.get_idle_production_structures():
-		var type: Entity.Type = _pick_trainable(s, desired)
-		if type != Entity.Type.UNDEFINED:
+		var type: Entity.Type = _best_unit_for(s, demand)
+		# Train the wanted unit only when we can afford it; otherwise wait and bank
+		# ore for it instead of falling back to something cheaper and less useful.
+		if type != Entity.Type.UNDEFINED and _bot.can_afford(type):
 			_act.train(s, type)
 
 
-## Anti-structure when we clearly outnumber the enemy's army (finish them off),
-## otherwise anti-unit (win the field fight first). With no enemy units left,
-## any army of ours counts as dominant → push anti-structure to raze the base.
-func _desired_unit_type() -> Entity.Type:
-	var own: int = _combat_count(_bot.get_units())
-	var enemy: int = _combat_count(_bot.get_enemy_units())
-	if own > 0 and own >= enemy * SUPERIORITY_RATIO:
-		return ANTI_STRUCTURE
-	return ANTI_UNIT
-
-
-## Train the desired type if this structure can make and afford it; else fall back
-## to the highest-value unit it can currently afford (so a building is never idle
-## when it could be producing something useful).
-func _pick_trainable(structure: Commandable, desired: Entity.Type) -> Entity.Type:
-	if structure.production.can_produce(desired) and _bot.can_afford(desired):
-		return desired
-	return _best_affordable_unit(structure)
-
-
-func _best_affordable_unit(structure: Commandable) -> Entity.Type:
+## The producible unit at [structure] that best counters the believed enemy. With no
+## intel yet (empty demand), falls back to the cheapest affordable unit so the
+## building still fields an opening army.
+func _best_unit_for(structure: Commandable, demand: Dictionary) -> Entity.Type:
+	if demand.is_empty():
+		return _cheapest_affordable_unit(structure)
 	var best: Entity.Type = Entity.Type.UNDEFINED
+	var best_score: float = -1.0
 	for t: Entity.Type in structure.production.producible_types:
-		if _bot.can_afford(t) and t > best:
+		var score: float = _bot.unit_composition_value(t, demand)
+		if score > best_score:
+			best_score = score
 			best = t
 	return best
 
 
-func _combat_count(units: Array) -> int:
-	return units.filter(func(u: Commandable): return u.weapon_inventory != null).size()
+func _cheapest_affordable_unit(structure: Commandable) -> Entity.Type:
+	var best: Entity.Type = Entity.Type.UNDEFINED
+	var best_cost: int = 1 << 30
+	for t: Entity.Type in structure.production.producible_types:
+		if _bot.can_afford(t):
+			var cost: int = _ore_cost(t)
+			if cost < best_cost:
+				best_cost = cost
+				best = t
+	return best
+
+
+func _ore_cost(type) -> int:
+	var spec: TechnologySpec = _bot.technology_mapping.get(type)
+	return spec.ore_cost if spec != null else 0

@@ -25,21 +25,29 @@
 	- vehicles can be scrapped for money (partial price, any health)
 # Specifics
 ## Tech Tree
-| Tier   | Redoubt                        | Hangar                              | Stockpile    | Chop Shop |
-| ------ | ------------------------------ | ----------------------------------- | ------------ | --------- |
-| Tier 1 | [[#Warlord]]<br>[[#Irregular]] | [[#Chinook]]<br>[[#Kamikaze Drone]] |              |           |
-|        |                                |                                     | Sharpshooter |           |
-|        |                                |                                     |              |           |
+| Tier   | Stronghold                     | Hangar                              | Chop Shop |
+| ------ | ------------------------------ | ----------------------------------- | --------- |
+| Tier 1 | [[#Warlord]]<br>[[#Irregular]] |                                     |           |
+|        | Demolitionist                  | [[#Chinook]]<br>[[#Kamikaze Drone]] |           |
+|        | Jammer<br>Sharpshooter         | [[#Condor]]                         |           |
+
+
+```mermaid
+flowchart TD
+	Stronghold
+	Safehouse --> Cooperative & Hospital[Field Hospital]
+	Cooperative --> Shack[Tech Shack] & Stockpile & Hangar & Shop[Chop Shop]
+	Mine
+```
 # Structures
 # Units
 ## Redoubt
 ### Warlord
-- Builder
 - dominion-generating unit, based on veterancy
 - Has a rocket launcher
 ### Irregular
 - cheap, weak anti-infantry
-- TODO what can it do?
+- Builder
 ## Hangar
 ### Chinook
 - transport chopper
@@ -48,7 +56,7 @@
 - Should probably do AOE and friendly fire - cool and balanced
 ### Condor
 - Plane, drops EMPS (requires Air Tech)
-## Stockpile
+## Redoubt
 ### Sharpshooter
 - sniper unit
 - has to deploy, probably

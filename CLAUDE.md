@@ -118,12 +118,22 @@ scripts/
 scenes/
   scenarios/s1.tscn               — main scene
   player.tscn                     — Commander id=1 with RTSController + Camera
-  commandable.tscn                — base scene inherited by unit.tscn / structure.tscn
-  units/technician.tscn, sentry.tscn, vanguard.tscn
-  structures/dwelling.tscn, mine.tscn, lab.tscn, compound.tscn, armory.tscn, turret.tscn, mountain.tscn
-  projectiles/projectile.tscn, radiation.tscn
-  items/star.tscn
   map/terrain.tscn
+  entities/                       — all game entities, grouped by category then faction
+    commandable.tscn              — base scene inherited by unit.tscn / abstract_structure.tscn
+    units/                        — unit.tscn (base) at root; per-faction subfolders below
+      tc/vanguard.tscn
+      an/technician.tscn, b_irregular.tscn, warlord.tscn, b_kamikaze.tscn
+      cl/h_recruit.tscn, h_badger.tscn
+    structures/                   — abstract_structure.tscn (base) at root
+      nt/n_building.tscn, n_mine.tscn, n_shelter.tscn, mountain.tscn
+      tc/dwelling.tscn, lab.tscn, compound.tscn, armory.tscn
+      an/b_redoubt.tscn, deposit.tscn
+      cl/h_sam.tscn, h_cannon.tscn
+    projectiles/                  — projectile.tscn, bullet.tscn, lazer.tscn, radiation.tscn (base/generic) at root
+      an/irregular_bullet.tscn, warlord_rocket.tscn, b_kamikaze_bomb.tscn
+      cl/h_badger_rocket.tscn, h_cannon_shell.tscn, h_recruit_bullet.tscn, h_sam_missile.tscn
+  # faction codes mirror Entity.Type prefixes: nt=NEUTRAL, tc=TECHNOCRACY, an=ANARCHISTS, cl=COLLECTIVE
 configs/
   scenarios/scenario1/, scenario2/
 	init.json    — per-commander starting entities (scene path + grid location)

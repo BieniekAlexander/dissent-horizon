@@ -2,7 +2,7 @@ Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
 
 
 === Entity.Type <-> scene validation ===
-scanned dirs: res://scenes/units, res://scenes/structures
+scanned dirs: res://scenes/entities/units, res://scenes/entities/structures
 scenes found: 21 (19 are Entity roots)
 
 [1] UNUSED Entity.Type values (no scanned scene instantiates with this type): 3

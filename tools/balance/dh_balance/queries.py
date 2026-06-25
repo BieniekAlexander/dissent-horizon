@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from . import combat, graph
+from . import combat, distinctness, effectiveness, graph
 from .model import Buildable, Faction, World
 
 
@@ -81,7 +81,7 @@ def unanswered_threats(
         best_r: Buildable | None = None
         best_xc = combat.INF
         for r in responses:
-            xc = combat.exchange_cost(table, r, t)
+            xc = effectiveness.effective_exchange_cost(table, r, t)
             if xc < best_xc:
                 best_xc, best_r = xc, r
         favorable = best_r is not None and best_xc < t.cost.scalar()
@@ -129,7 +129,7 @@ def tech_tier_gap(
     for t in high_pool:
         best_r, best_xc = None, combat.INF
         for r in low_pool:
-            xc = combat.exchange_cost(table, r, t)
+            xc = effectiveness.effective_exchange_cost(table, r, t)
             if xc < best_xc:
                 best_xc, best_r = xc, r
         if not (best_r is not None and best_xc < t.cost.scalar()):
@@ -146,3 +146,57 @@ def tech_tier_gap(
         high_faction=high_faction_id, high_tier=high_tier,
         struggles_against=out,
     )
+
+
+# --------------------------------------------------------------------------- #
+# Q4: faction roster distinctness
+# --------------------------------------------------------------------------- #
+def _units_in_tiers(world: World, faction_id: str, tiers: set[int] | None) -> list[Buildable]:
+    """A faction's units, optionally restricted to the given tech tiers."""
+    faction = world.factions[faction_id]
+    units = faction.units()
+    if tiers is None:
+        return units
+    tier_of = graph.tech_tiers(faction)
+    return [u for u in units if tier_of.get(u.id, 1) in tiers]
+
+
+@dataclass
+class FactionDistinctness:
+    faction_a: str
+    faction_b: str
+    a_to_b: float                              # how poorly B shadows A
+    b_to_a: float                              # how poorly A shadows B (asymmetric)
+    most_similar: distinctness.SimilarPair | None
+
+
+def faction_distinctness(
+    world: World, faction_a: str, faction_b: str, tiers: set[int] | None = None,
+) -> FactionDistinctness:
+    """How distinct two factions' rosters are (optionally within ``tiers``), in
+    both directions, plus their single most-similar unit pairing."""
+    table = world.damage
+    ua = _units_in_tiers(world, faction_a, tiers)
+    ub = _units_in_tiers(world, faction_b, tiers)
+    return FactionDistinctness(
+        faction_a=faction_a,
+        faction_b=faction_b,
+        a_to_b=distinctness.set_distinctness(table, ua, ub),
+        b_to_a=distinctness.set_distinctness(table, ub, ua),
+        most_similar=distinctness.most_similar_pair(table, ua, ub),
+    )
+
+
+def distinctness_matrix(
+    world: World, tiers: set[int] | None = None,
+) -> dict[tuple[str, str], float]:
+    """``set_distinctness`` for every ordered faction pair (asymmetric)."""
+    table = world.damage
+    fids = list(world.factions)
+    pools = {fid: _units_in_tiers(world, fid, tiers) for fid in fids}
+    out: dict[tuple[str, str], float] = {}
+    for a in fids:
+        for b in fids:
+            if a != b:
+                out[(a, b)] = distinctness.set_distinctness(table, pools[a], pools[b])
+    return out

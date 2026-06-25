@@ -68,7 +68,7 @@ scenes that are supposed to declare each value:
 godot --headless -s res://tools/balance_export/validation.gd
 ```
 
-It walks `scenes/units` + `scenes/structures`, instantiates each scene
+It walks `scenes/entities/units` + `scenes/entities/structures` (recursing into faction subfolders), instantiates each scene
 out-of-tree, reads the root's `type`, and reports:
 
 - **[1] Unused enums** — `Entity.Type` values that **no** scanned scene

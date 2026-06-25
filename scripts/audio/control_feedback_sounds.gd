@@ -94,7 +94,7 @@ static var lines: Dictionary = {
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.AN_STRUCTURE_DEPOSIT: {
+	Entity.Type.NT_STRUCTURE_DEPOSIT: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
@@ -104,7 +104,7 @@ static var lines: Dictionary = {
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.AN_STRUCTURE_REDOUBT: {
+	Entity.Type.AN_STRUCTURE_STRONGHOLD: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],

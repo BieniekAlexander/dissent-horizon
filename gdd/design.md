@@ -76,7 +76,7 @@
 ## Damage Types
 - Damage
 	- Ballistics - cheap, only effective against light or no armor
-	- Railgun - like ballistics
+	- Railgun - like ballistics, s
 	- Explosives - only effective against armor
 	- Lazer - only effective against armor
 	- Plasma - Good against 

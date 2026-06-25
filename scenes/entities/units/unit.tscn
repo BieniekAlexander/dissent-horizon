@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://blcglpbttoi64"]
+
+[ext_resource type="PackedScene" uid="uid://dcmdbl3j4t1k2" path="res://scenes/entities/commandable.tscn" id="1_cmnd1"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="2_6e3tn"]
+
+[node name="Unit" unique_id=1891335319 groups=["unit"] instance=ExtResource("1_cmnd1")]
+collision_layer = 1
+collision_mask = 1
+type = -2
+
+[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+visible = false
+
+[node name="TargetBody" parent="." index="3" unique_id=1235114386]
+visible = false
+
+[node name="Movement" type="Node" parent="." index="7" unique_id=413735738]
+script = ExtResource("2_6e3tn")
+nav_agent_path = NodePath("../NavigationAgent")
+
+[node name="Selectable" parent="." index="11" unique_id=2049500591]
+visible = false

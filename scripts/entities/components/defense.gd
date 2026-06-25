@@ -2,9 +2,11 @@ class_name Defense
 extends Node
 
 #region Properties
-enum ArmourType { UNARMORED = 0, LIGHT = 1, MEDIUM = 2, HEAVY = 3 }
+enum ArmourType { LIGHT = 0, MEDIUM = 1, HEAVY = 2 }
+enum FrameType { BIOLOGICAL = 0, METALLIC = 1 }
 
-@export var armour_type: ArmourType = ArmourType.UNARMORED
+@export var armour_type: ArmourType = ArmourType.LIGHT
+@export var frame_type: FrameType = FrameType.BIOLOGICAL
 @export var hp_max: float = 100
 var hp: float
 #endregion

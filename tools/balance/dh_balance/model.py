@@ -25,10 +25,16 @@ PHYSICS_TICKS_PER_SECOND = 30.0
 
 
 class Armour(str, Enum):
-    UNARMORED = "UNARMORED"
     LIGHT = "LIGHT"
     MEDIUM = "MEDIUM"
     HEAVY = "HEAVY"
+
+
+class Frame(str, Enum):
+    """Chassis material — a second damage axis alongside Armour (mirrors
+    Defense.FrameType in-game)."""
+    BIOLOGICAL = "BIOLOGICAL"
+    METALLIC = "METALLIC"
 
 
 class DamageType(str, Enum):
@@ -133,6 +139,7 @@ class Buildable:
 
     # unit-only combat fields (None/empty for non-combat structures)
     armour: Armour | None = None
+    frame: Frame | None = None
     hp: float = 0.0
     layer: Layer | None = None
     speed: float = 0.0
@@ -174,12 +181,16 @@ class Faction:
 
 @dataclass
 class DamageTable:
-    """Mirrors the live DamageTable: damage_type x {armour, attribute} -> multiplier."""
+    """Mirrors the live DamageTable: damage_type x {armour, frame, attribute} -> multiplier."""
     vs_armour: dict[DamageType, dict[Armour, float]]
     vs_attribute: dict[DamageType, dict[str, float]]
+    vs_frame: dict[DamageType, dict[Frame, float]] = field(default_factory=dict)
 
     def armour_multiplier(self, dtype: DamageType, armour: Armour) -> float:
         return self.vs_armour.get(dtype, {}).get(armour, 1.0)
+
+    def frame_multiplier(self, dtype: DamageType, frame: Frame) -> float:
+        return self.vs_frame.get(dtype, {}).get(frame, 1.0)
 
     def attribute_multiplier(self, dtype: DamageType, attributes: list[str], layer: Layer | None) -> float:
         row = self.vs_attribute.get(dtype, {})

@@ -13,10 +13,13 @@ IGNORES the following, every one of which can flip an outcome:
   * Compounding interactions — buffs, support units, terrain, combined arms.
   * Micromanagement — focus fire, retreating damaged units, ability timing.
 
-When any of these dominates a real matchup, encode the corrected value via the
-per-matchup `overrides:` block (see graph.py) rather than complicating the math.
-These factors are where a future analytic-Lanchester or in-engine simulator
-earns its keep; until then, treat results as a coarse triage, not a verdict.
+Range, speed, dodging, overkill, and AoE are now estimated as per-pair
+multiplicative factors in ``effectiveness.py`` (folded in via
+``effective_exchange_cost``, which the queries use). When a factor heuristic
+still can't capture a matchup, encode the corrected value via the per-matchup
+`overrides:` block (see graph.py) rather than complicating the math. A future
+analytic-Lanchester or in-engine simulator is where the real fidelity lives;
+until then, treat results as a coarse triage, not a verdict.
 
 Every formula is the documented baseline the "computed + overrides" layer can
 override per matchup. Keep this module pure (no I/O) so it is trivially testable
@@ -58,8 +61,9 @@ def damage_per_shot(table: DamageTable, weapon: Weapon, target: Buildable) -> fl
     total = 0.0
     for amount, dtype in shot_components(weapon):
         armour_mult = table.armour_multiplier(dtype, target.armour) if target.armour else 1.0
+        frame_mult = table.frame_multiplier(dtype, target.frame) if target.frame else 1.0
         attr_mult = table.attribute_multiplier(dtype, target.attributes, target.layer)
-        total += amount * armour_mult * attr_mult
+        total += amount * armour_mult * frame_mult * attr_mult
     return total
 
 

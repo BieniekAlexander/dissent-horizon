@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "factions/baladians.md",
+                "file": "tasks.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "baladians"
+              "title": "tasks"
             }
           }
         ]
@@ -182,10 +182,15 @@
   },
   "active": "8b1ff7376e896a28",
   "lastOpenFiles": [
-    "factions/haustoria.md",
-    "factions/baladians.md",
-    "factions/successors-of-tenjin.md",
     "factions/the-warden.md",
+    "factions/haustoria.md",
+    "factions/successors-of-tenjin.md",
+    "factions/baladians.md",
+    "mechanics-inspiration.md",
+    "NOTES.md",
+    "tasks.md",
+    "design.md",
+    "balance.md",
     "factions/z-theocratic.md",
     "factions/tselerate-coalition.md",
     "setting/resources.md"

@@ -33,8 +33,25 @@ from .model import Buildable, Projectile, StatusEffect, Weapon, World
 # <root>/tools/balance/dh_balance/importer.py.
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
+# Projectile scenes live under scenes/entities/projectiles/, split into faction
+# subfolders (an/, cl/) with faction-neutral bases at the category root. Resolve
+# a projectile id to its owning res:// path by locating the file on disk so the
+# annotation (which also drives the surgical .tscn edit) points at the real scene.
+_PROJECTILES_DIR = PROJECT_ROOT / "scenes" / "entities" / "projectiles"
+
+
+def _projectile_scene(pid: str) -> str:
+    matches = list(_PROJECTILES_DIR.rglob(f"{pid}.tscn"))
+    if matches:
+        rel = matches[0].relative_to(PROJECT_ROOT).as_posix()
+        return f"res://{rel}"
+    # Fall back to the category root if the file isn't found (e.g. dry-run on a
+    # projectile that doesn't exist yet).
+    return f"res://scenes/entities/projectiles/{pid}.tscn"
+
 # YAML enum name -> the integer Godot stores in the .tscn (mirrors the game enums).
-_ARMOUR_INT = {"UNARMORED": 0, "LIGHT": 1, "MEDIUM": 2, "HEAVY": 3}
+_ARMOUR_INT = {"LIGHT": 0, "MEDIUM": 1, "HEAVY": 2}
+_FRAME_INT = {"BIOLOGICAL": 0, "METALLIC": 1}
 _DAMAGE_INT = {"LEAD": 1, "LAZER": 2, "TOXIN": 3, "FIRE": 4,
                "ELECTRICITY": 5, "SIEGE": 6, "EXPLOSIVE": 7}
 _HIT_BIT = {"ground": 1 << 1, "air": 1 << 2}   # CollisionLayers.Mask.TARGETABLE_*
@@ -93,7 +110,8 @@ def _weapon_fields(w: Weapon) -> dict:
 def _buildable_fields(b: Buildable) -> dict:
     return {"kind": b.kind, "name": b.name, "ore": b.cost.ore,
             "population": b.cost.population, "dominion": b.cost.dominion,
-            "armour": _enum(b.armour), "hp": b.hp, "layer": _enum(b.layer),
+            "armour": _enum(b.armour), "frame": _enum(b.frame),
+            "hp": b.hp, "layer": _enum(b.layer),
             "speed": b.speed, "attributes": sorted(b.attributes),
             "requires": b.requires, "weapons": [w.id for w in b.weapons]}
 
@@ -127,7 +145,7 @@ def diff_worlds(current: World, desired: World, scene_for: dict[str, str] | None
     weapons, and buildables. ``scene_for`` maps an entity id to its owning
     scene path (best-effort annotation for the dry-run)."""
     scene_for = scene_for or {}
-    proj_scene = lambda pid: f"res://scenes/projectiles/{pid}.tscn"
+    proj_scene = _projectile_scene
 
     changes, added, removed = [], [], []
     for kind, cur, des, fields, scn in [
@@ -162,6 +180,7 @@ def _diff_damage(current: World, desired: World) -> list[Change]:
     multiplier (1.0 / blank); current==None vs a value is filling a blank."""
     out: list[Change] = []
     for attr, kind in [("vs_armour", "damage_vs_armour"),
+                       ("vs_frame", "damage_vs_frame"),
                        ("vs_attribute", "damage_vs_attribute")]:
         cmap = getattr(current.damage, attr)
         dmap = getattr(desired.damage, attr)
@@ -200,7 +219,7 @@ def scene_map_from_manifest(manifest_path: Path, world: World) -> dict[str, str]
                     out[f"weapon:{w.id}"] = scene
     for pid, p in world.projectiles.items():
         for e in p.status_effects:
-            out[f"status_effect:{e.id}"] = f"res://scenes/projectiles/{pid}.tscn"
+            out[f"status_effect:{e.id}"] = _projectile_scene(pid)
     return out
 
 
@@ -249,6 +268,7 @@ def _mask_from_hits(hits: list[str]) -> str:
 _SCENE_DISPATCH = {
     ("buildable", "hp"): ("hp_max", _fmt_float, "Defense"),
     ("buildable", "armour"): ("armour_type", lambda v: str(_ARMOUR_INT[v]), "Defense"),
+    ("buildable", "frame"): ("frame_type", lambda v: str(_FRAME_INT[v]), "Defense"),
     ("buildable", "speed"): ("speed", _fmt_float, "Movement"),
     ("weapon", "split_time"): ("split_time", str, "weapon"),
     ("weapon", "reload_time"): ("reload_time", str, "weapon"),
@@ -268,10 +288,14 @@ _SCENE_DISPATCH = {
 _MANIFEST_FIELDS = {"ore", "population", "dominion"}
 
 
+_DAMAGE_CSV_KEY = {"damage_vs_armour": "armour", "damage_vs_frame": "frame",
+                   "damage_vs_attribute": "attribute"}
+
+
 def _plan_one(change: Change, world: World) -> Edit:
     key = (change.kind, change.field)
-    if change.kind in ("damage_vs_armour", "damage_vs_attribute"):
-        csv_key = "armour" if change.kind == "damage_vs_armour" else "attribute"
+    if change.kind in _DAMAGE_CSV_KEY:
+        csv_key = _DAMAGE_CSV_KEY[change.kind]
         value = "" if change.desired is None else _fmt_float(change.desired)
         return Edit(change, "csv", csv_key, None, change.field, value)
     if change.kind == "buildable" and change.field in _MANIFEST_FIELDS:

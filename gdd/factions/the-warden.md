@@ -24,30 +24,68 @@
 	- drones can attach to larger mechanical units
 # Specifics
 ## Tech Tree
+
+| Tier   | Nexus       | Assembler                      | [[#BBB]] | [[#CCC]] |
+| ------ | ----------- | ------------------------------ | -------- | -------- |
+| Tier 1 | [[#Canary]] | [[#Interceptor]]<br>[[#Harpy]] |          |          |
+| Tier 2 |             | [[#Sentinel]]                  |          |          |
+| Tier 3 |             |                                |          |          |
+```mermaid
+flowchart TD
+	Nexus
+	Reactor --> Opticon & Assembler & Turret
+	Assembler --> BBB & CCC
+	Mine
+	
+```
+# Structures
+# Units
+## Nexus
+### Canary
+- Flying builder unit
+## Assembler
+### Interceptor
+- cheap drone with anti-infantry melee
+- does EMP
+	- shot as EMP when attached to air units, shock melee when on ground units
+### Sentinel
+- lazer drone, with lock-on ability
+### Harpy
+- flying drone with rockets
+### Peacekeeper
+- floating drone with gattling, detects stealth (req. Tech)
+## BBB
+### Surveyor
+- anti-infantry vehicle, can use a drone
+### Paladin
+- lazer tank
+### Gattling tank - ...
+### Matrix
+floats, creates arcs between drones, zaps missiles (req. tech)
+### Absolution
+- Late-game floating fortress that can build and attach multiple drones (req. late tech, super unit)
+ ## CCC
+### Falcon
+- fighter
+### Viper
+- single target elimination
+### Purifier
+- aurora bomber (req. tech)
+# Specifics
+## Tech Tree
 - **Nexus** - Main building
-	- Canary - Flying builder unit
+	- 
 	- **Quarry** - you know
-	- **Obelisk** - Generates dominion for each nearby empty tile
+	- Opticon - Generates dominion for each nearby empty tile
 	- **Reactor** - supports a lot of population
 		- **Patriot** - missiles, detects stealth
 		- **Repair Station**
 		- **Assembler** - T1 production
-			- Interceptor - cheap drone with anti-infantry melee, and does EMP (shot as EMP when attached to air units, shock melee when on ground units)
-			- Sentinel - lazer drone, with lock-on ability
-			- Harpy - flying drone with rockets
-			- Peacekeeper - floating drone with gattling, detects stealth (req. Tech)
+			- 
 			- **Cyber Uplink**
 				- **Quantum Mainframe**
-			- BBB - T2 Production
-				- Surveyor - anti-infantry vehicle, can use a drone
-				- Paladin - lazer tank
-				- Gattling tank - ...
-				- Matrix - floats, creates arcs between drones, zaps missiles (req. tech)
-				- Absolution - Late-game floating fortress that can build and attach multiple drones (req. late tech, super unit)
-			- CCC - T2 Production
-				- Falcon - fighter
-				- Viper - single target elimination
-				- Purifier - aurora bomber (req. tech)
+			
+			-
 ## Upgrades
 - Generic
 	- Rocket speed upgrade

@@ -35,6 +35,9 @@ var _economy: BotEconomy
 var _military: BotMilitary
 var _production: BotProduction
 var _targeting: BotTargeting
+## Persistent, fog-limited belief about the enemy (last-known positions of seen
+## units/structures). Refreshed first each think; available to the managers.
+var _blackboard: BotBlackboard
 
 var _ticks_since_think: int = 0
 
@@ -61,6 +64,8 @@ func _physics_process(_delta: float) -> void:
 func think() -> void:
 	if not _ensure_managers():
 		return
+	# Fold current vision into the persistent enemy belief before any manager runs.
+	_blackboard.update()
 	_economy.tick()
 	_production.tick()
 	_military.tick()
@@ -77,6 +82,8 @@ func _ensure_managers() -> bool:
 	if bot == null or bot.map == null:
 		return false
 	_actuator = BotActuator.new(bot.map)
+	_blackboard = BotBlackboard.new(bot)
+	bot.blackboard = _blackboard  # let perception/composition read believed enemies
 	_economy = BotEconomy.new(bot, _actuator)
 	_production = BotProduction.new(bot, _actuator)
 	_military = BotMilitary.new(bot, _actuator)

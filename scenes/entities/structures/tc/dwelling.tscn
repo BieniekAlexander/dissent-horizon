@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://cjo4epfbae3ce"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_q1wtf"]
+[ext_resource type="Texture2D" uid="uid://cpcl7027uxe1r" path="res://assets/greyscale-tree.png" id="2_lt302"]
+
+[node name="Structure" instance=ExtResource("1_q1wtf")]
+type = 4609
+
+[node name="Sprite" parent="." index="0"]
+transform = Transform3D(0.1614795, 0, 0, 0, 0.5, 0, 0, 0, 0.124234, 0, 0, 0)
+texture = ExtResource("2_lt302")
+
+[node name="ResourceProvider" parent="." index="14"]
+population_provided = 100

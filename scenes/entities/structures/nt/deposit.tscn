@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://b0o0qcjj0c1of"]
+
+[ext_resource type="Script" uid="uid://cwjxn7tdi134o" path="res://scripts/entities/structures/deposit.gd" id="2_dep"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_wha84"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="3_j87wn"]
+[ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="7_tp7be"]
+[ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="8_ptwxw"]
+[ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="10_ev6f8"]
+[ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="12_um2k1"]
+[ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="13_ds4h6"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_fe0lq"]
+size = Vector3(2, 10, 2)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_cx6aj"]
+
+[node name="Deposit" type="CharacterBody3D" unique_id=1650277605 groups=["commandable", "deposit", "structure"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2_dep")
+type = 515
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=1739599997]
+
+[node name="TargetBody" type="StaticBody3D" parent="." unique_id=425582076]
+collision_layer = 2
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="TargetBody" unique_id=1966278839]
+shape = SubResource("BoxShape3D_fe0lq")
+
+[node name="Ownership" type="Node" parent="." unique_id=2091970670]
+script = ExtResource("2_wha84")
+
+[node name="Structure" type="Node" parent="." unique_id=1499545086]
+script = ExtResource("3_j87wn")
+dimensions = Vector2i(2, 2)
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=206166040]
+
+[node name="Selectable" type="Area3D" parent="." unique_id=495621729]
+collision_layer = 256
+script = ExtResource("7_tp7be")
+indicator_path = NodePath("../SelectionIndicator")
+
+[node name="SelectionShape" type="CollisionShape3D" parent="Selectable" unique_id=1060365342]
+shape = SubResource("SphereShape3D_cx6aj")
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=403845497]
+
+[node name="Sprite" type="Sprite3D" parent="." unique_id=1422442771]
+transform = Transform3D(2, 0, 0, 0, 1.4142135, -1.3435029, 0, 1.4142135, 1.3435029, -0.005941391, 0.7, 0.3996582)
+layers = 2
+axis = 1
+render_priority = 1
+texture = ExtResource("8_ptwxw")
+
+[node name="SelectionIndicator" type="Sprite3D" parent="." unique_id=880803247]
+transform = Transform3D(0.25, 0, 0, 0, 0.1767765, 0.1767765, 0, -0.1767765, 0.1767765, 0, 0, 0)
+visible = false
+texture = ExtResource("10_ev6f8")
+
+[node name="FootprintVisualizer" type="Node3D" parent="." unique_id=41352269]
+script = ExtResource("12_um2k1")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=1266389855]
+
+[node name="DebugLabel" type="Label3D" parent="." unique_id=1379237899]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+visible = false
+pixel_size = 0.05
+render_priority = 10
+text = "NULL"
+font_size = 16
+
+[node name="TeamTint" type="Node" parent="." unique_id=863795846]
+script = ExtResource("13_ds4h6")
+
+[node name="AvoidanceObstacle" type="NavigationObstacle3D" parent="." unique_id=1902865715]
+avoidance_enabled = false
+avoidance_layers = 0

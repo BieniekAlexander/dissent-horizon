@@ -33,7 +33,7 @@ func test_for_type_unknown_is_null() -> void:
 func test_tool_faction_mask_is_its_faction() -> void:
 	# Tool overrides ControlBinding's all-factions default with its real faction.
 	assert_eq(Tool.for_name("command_tool_dwelling").faction_mask(), Tool.Faction.TECHNOCRACY)
-	assert_eq(Tool.for_name("command_tool_redoubt").faction_mask(), Tool.Faction.ANARCHISTS)
+	assert_eq(Tool.for_name("command_tool_stronghold").faction_mask(), Tool.Faction.ANARCHISTS)
 
 func _names(tools: Array) -> Array:
 	return tools.map(func(t: Tool): return t.command_name)
@@ -42,7 +42,7 @@ func test_build_context_tools_are_the_structures_in_order() -> void:
 	assert_eq(_names(Tool.tools_in_context(ControlBinding.ControlContext.BUILD)), [
 		"command_tool_dwelling",
 		"command_tool_mine",
-		"command_tool_redoubt",
+		"command_tool_stronghold",
 		"command_tool_lab",
 		"command_tool_compound",
 		"command_tool_armory",

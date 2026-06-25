@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://c2s5yo2m20vob"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_rkgck"]
+[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_fkhkx"]
+
+[node name="Structure" unique_id=817652821 instance=ExtResource("1_rkgck")]
+type = 512
+
+[node name="Garrison" type="Node" parent="." index="10" unique_id=1251296186]
+script = ExtResource("2_fkhkx")
+metadata/_custom_type_script = "uid://dlhe01nj6efuh"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." index="24" unique_id=401658380]

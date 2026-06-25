@@ -58,3 +58,62 @@
 	- GLA Hole + fake buildings
 
 TODO put this somewhere: [ZeroSpace resources](https://www.youtube.com/watch?v=bYPsNj3p_LM)
+# Zero Hour Tech Trees
+## China
+```mermaid
+flowchart TD
+
+    CC[Command Center]
+	Reactor[Nuclear Reactor]
+	Barracks[Barracks] --> Bunker
+    
+    Reactor --> Supply[Supply Center]
+    Reactor --> Gattling[Gattling Tower]
+    Supply --> WarFactory[War Factory]
+    Supply --> Airfield[Airfield]
+
+    WarFactory --> Propaganda[Propaganda Center]
+
+    Propaganda --> Internet[Internet Center]
+    Propaganda --> Nuke[Nuclear Missile Silo]
+    Propaganda --> Speaker[Speaker Tower]
+```
+
+## GLA
+```mermaid
+flowchart TD
+
+    CC[Command Center]
+
+    Supply[Supply Stash]
+    Barracks[Barracks]
+    
+    Demo[Demo Trap]
+
+    Supply --> Arms[Arms Dealer]
+    Arms --> Palace[Palace]
+    Palace --> BlackMarket[Black Market]
+    Palace --> Scud[SCUD Storm]
+    Barracks --> Stinger[Stinger Site] & Tunnel[Tunnel Network]
+```
+
+## USA
+```mermaid
+flowchart TD
+
+    CC[Command Center]
+    Power[Cold Fusion Reactor]
+    Barracks[Barracks]
+
+    Power --> Supply[Supply Center]
+    Power --> Patriot[Patriot Missile System] & Firebase
+
+    Supply --> WarFactory[War Factory]
+    Supply --> Airfield[Airfield]
+
+    WarFactory -.-> Strategy[Strategy Center]
+    Airfield -.-> Strategy
+
+    Strategy --> SupplyDrop[Supply Drop Zone]
+    Strategy --> Particle[Particle Cannon]
+```

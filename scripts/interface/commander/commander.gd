@@ -32,16 +32,18 @@ var technology_mapping: Dictionary = {
 	Entity.Type.TC_STRUCTURE_OUTPOST: TechnologySpec.new(500, 0, 0),
 	# Redoubt: the unit-production building (trains warlords/irregulars). No
 	# structure prerequisite — it's a primary base building like the outpost.
-	Entity.Type.AN_STRUCTURE_REDOUBT: TechnologySpec.new(400, 0, 0),
+	Entity.Type.AN_STRUCTURE_STRONGHOLD: TechnologySpec.new(400, 0, 0),
 	Entity.Type.NT_STRUCTURE_MINE: TechnologySpec.new(200, 0, 0), # [Entity.Type.TC_STRUCTURE_OUTPOST, Entity.Type.TC_STRUCTURE_DWELLING]
 	Entity.Type.TC_STRUCTURE_LAB: TechnologySpec.new(300, 0, 0, [Entity.Type.NT_STRUCTURE_MINE]),
 	Entity.Type.TC_STRUCTURE_DWELLING: TechnologySpec.new(150, 0, 0, [Entity.Type.TC_STRUCTURE_OUTPOST]),
 	Entity.Type.TC_STRUCTURE_COMPOUND: TechnologySpec.new(300, 0, 0, [Entity.Type.TC_STRUCTURE_DWELLING]),
 	Entity.Type.TC_STRUCTURE_ARMORY: TechnologySpec.new(150, 0, 0, [Entity.Type.TC_STRUCTURE_COMPOUND]),
 	Entity.Type.AN_UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0),
-	Entity.Type.AN_UNIT_WARLORD: TechnologySpec.new(250, 0, 0, [Entity.Type.AN_STRUCTURE_REDOUBT]),
-	Entity.Type.AN_UNIT_IRREGULAR: TechnologySpec.new(75, 0, 0, [Entity.Type.AN_STRUCTURE_REDOUBT]),
+	Entity.Type.AN_UNIT_WARLORD: TechnologySpec.new(250, 0, 0),
+	Entity.Type.AN_UNIT_IRREGULAR: TechnologySpec.new(75, 0, 0, [Entity.Type.AN_STRUCTURE_STRONGHOLD]),
 	Entity.Type.TC_UNIT_VANGUARD: TechnologySpec.new(200, 0, 50, [Entity.Type.TC_STRUCTURE_COMPOUND]),
+	Entity.Type.AN_UNIT_KAMIKAZE: TechnologySpec.new(200, 0, 0),
+	Entity.Type.AN_STRUCTURE_HANGAR: TechnologySpec.new(500, 0, 0, [Entity.Type.AN_STRUCTURE_STRONGHOLD]),
 	# Abilities are gated here too. Ability.Type values (0,1,...) don't collide
 	# with Entity.Type values (all >= 0x1100), so they coexist in this map.
 	Ability.Type.RADIATION: TechnologySpec.new(0, 0, 0),
@@ -54,7 +56,7 @@ var technology_mapping: Dictionary = {
 ## Inventory (does it hold a ToolSpec?) plus the technology_mapping gate above;
 ## this map only answers "what does using it spawn?".
 var ability_payload_registry: Dictionary = {
-	Ability.Type.RADIATION: load("res://scenes/projectiles/radiation.tscn"),
+	Ability.Type.RADIATION: load("res://scenes/entities/projectiles/radiation.tscn"),
 }
 
 ## True iff this commander owns at least one FINISHED (is_built) structure of the

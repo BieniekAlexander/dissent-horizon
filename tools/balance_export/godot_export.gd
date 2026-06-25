@@ -21,7 +21,7 @@ extends SceneTree
 const MANIFEST_PATH := "res://tools/balance_export/manifest.json"
 
 ## Dirs scanned for buildable scenes when the manifest omits "scan_dirs".
-const DEFAULT_SCAN_DIRS: Array = ["res://scenes/units", "res://scenes/structures"]
+const DEFAULT_SCAN_DIRS: Array = ["res://scenes/entities/units", "res://scenes/entities/structures"]
 
 ## Faction bucket for discovered scenes with no manifest entry.
 const UNASSIGNED_FACTION := "unassigned"
@@ -107,10 +107,13 @@ func _initialize() -> void:
 	# Damage table straight from the game CSVs.
 	var dmg: Dictionary = manifest.get("damage_csv", {})
 	if dmg.has("armour"):
-		_write(out_dir + "/damage_table.yaml", _header("damage table (from game CSVs)") + _yaml({
+		var tables: Dictionary = {
 			"vs_armour": _load_csv_table(dmg["armour"]),
 			"vs_attribute": _load_csv_table(dmg["attribute"]),
-		}, 0))
+		}
+		if dmg.has("frame"):
+			tables["vs_frame"] = _load_csv_table(dmg["frame"])
+		_write(out_dir + "/damage_table.yaml", _header("damage table (from game CSVs)") + _yaml(tables, 0))
 
 	print("\nexport complete -> ", out_dir)
 	print("  weapons=%d projectiles=%d status_effects=%d" % [
@@ -154,19 +157,28 @@ func _faction_meta(manifest: Dictionary) -> Dictionary:
 func _discover_scenes(dirs: Array) -> Array:
 	var found: Array = []
 	for dir_path in dirs:
-		var da: DirAccess = DirAccess.open(dir_path)
-		if da == null:
-			_warnings.append("scan dir not found: %s" % dir_path)
-			continue
-		da.list_dir_begin()
-		var fn: String = da.get_next()
-		while fn != "":
-			if not da.current_is_dir() and fn.get_extension() == "tscn":
-				found.append(dir_path.path_join(fn))
-			fn = da.get_next()
-		da.list_dir_end()
+		_discover_scenes_in(dir_path, found)
 	found.sort()
 	return found
+
+
+## Recurse into faction subfolders (an/, cl/, ...) under each scan dir.
+func _discover_scenes_in(dir_path: String, found: Array) -> void:
+	var da: DirAccess = DirAccess.open(dir_path)
+	if da == null:
+		_warnings.append("scan dir not found: %s" % dir_path)
+		return
+	da.list_dir_begin()
+	var fn: String = da.get_next()
+	while fn != "":
+		var full: String = dir_path.path_join(fn)
+		if da.current_is_dir():
+			if not fn.begins_with("."):
+				_discover_scenes_in(full, found)
+		elif fn.get_extension() == "tscn":
+			found.append(full)
+		fn = da.get_next()
+	da.list_dir_end()
 
 
 func _build_buildable(scene_path: String, entry: Dictionary) -> Dictionary:
@@ -205,6 +217,7 @@ func _build_buildable(scene_path: String, entry: Dictionary) -> Dictionary:
 	var defense: Node = inst.get_node_or_null("Defense")
 	if defense != null:
 		b["armour"] = _armour_name(defense.armour_type)
+		b["frame"] = _frame_name(defense.frame_type)
 		b["hp"] = defense.hp_max
 
 	var movement: Node = inst.get_node_or_null("Movement")
@@ -296,7 +309,14 @@ func _armour_name(v: int) -> String:
 	for k in Defense.ArmourType:
 		if Defense.ArmourType[k] == v:
 			return k
-	return "UNARMORED"
+	return "LIGHT"
+
+
+func _frame_name(v: int) -> String:
+	for k in Defense.FrameType:
+		if Defense.FrameType[k] == v:
+			return k
+	return "BIOLOGICAL"
 
 
 func _layer_name(mode: int) -> String:

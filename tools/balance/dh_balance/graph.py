@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import networkx as nx
 
-from . import combat
+from . import combat, effectiveness
 from .model import Buildable, Faction, World
 
 
@@ -77,7 +77,7 @@ def counter_graph(world: World) -> nx.DiGraph:
                 xc = float(ov["exchange_cost"])
                 source = "override"
             else:
-                xc = combat.exchange_cost(world.damage, r, t)
+                xc = effectiveness.effective_exchange_cost(world.damage, r, t)
                 source = "computed"
             g.add_edge(
                 r.uid, t.uid,

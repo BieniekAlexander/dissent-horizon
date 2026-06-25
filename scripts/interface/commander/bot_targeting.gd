@@ -33,12 +33,26 @@ var switch_margin: float = 1.3
 var scan_radius: float = DEFAULT_SCAN_RADIUS
 
 
+## Default per-signal weights (the relative importance dial — a difficulty level
+## would override these, or build a different signal mix entirely). Each signal is
+## roughly normalised so the weights are comparable: threat 0/1, effectiveness ~a
+## damage multiplier centred on 1, finishability 0..1, proximity 0..1.
+const W_THREAT: float = 1.0
+const W_EFFECTIVENESS: float = 1.0
+const W_FINISHABILITY: float = 1.0
+const W_PROXIMITY: float = 0.5
+
+
 func _init(a_bot: Bot, a_act: BotActuator) -> void:
 	_bot = a_bot
 	_act = a_act
-	# v1 default mix: react to incoming threats only. A difficulty level would
-	# instead build its own mix (e.g. also append effectiveness_signal, etc.).
-	append_signal(1.0, threat_signal)
+	# Default mix: prefer targets that threaten us, that we hit hard (good matchup),
+	# that are nearly dead (cheap kills), and that are close — weighted by the W_*
+	# constants. append_signal more / fewer to retune per difficulty.
+	append_signal(W_THREAT, threat_signal)
+	append_signal(W_EFFECTIVENESS, effectiveness_signal)
+	append_signal(W_FINISHABILITY, finishability_signal)
+	append_signal(W_PROXIMITY, proximity_signal)
 
 
 ## Register a scoring signal. fn(unit, candidate) -> float (higher = more desirable
@@ -57,8 +71,11 @@ func tick() -> void:
 
 
 func _retarget(unit: Commandable) -> void:
-	# Candidates: nearby enemies this unit is actually able to attack.
-	var candidates: Array = _bot.get_enemies_near(unit.global_position, scan_radius).filter(
+	# Candidates: enemies within this unit's OWN aggro range that it can attack.
+	# Scoping to aggro range (not a fixed scan radius) keeps picks inside the
+	# persist=false attack leash, so the chosen target sticks instead of being
+	# instantly dropped as out-of-range and re-picked every think.
+	var candidates: Array = _bot.get_enemies_near(unit.global_position, _engage_radius(unit)).filter(
 		func(c: Commandable): return unit.weapon_inventory.weapon_for_target(c) != null
 	)
 	if candidates.is_empty():
@@ -69,6 +86,22 @@ func _retarget(unit: Commandable) -> void:
 		# persist=false: deal with the threat, then fall back to the army objective
 		# (the military manager re-tasks the unit once it goes idle).
 		_act.attack([unit], best, false)
+
+
+## The unit's aggro-range XZ radius (how far it engages), falling back to scan_radius
+## when it has no aggro shape. Bounds the retarget candidate scan so picks stay within
+## the unit's engagement leash.
+func _engage_radius(unit: Commandable) -> float:
+	var shape_node: CollisionShape3D = unit.aggro_range_shape
+	if shape_node == null:
+		return scan_radius
+	var scale: float = shape_node.global_transform.basis.x.length()
+	var shp: Shape3D = shape_node.shape
+	if shp is CylinderShape3D:
+		return (shp as CylinderShape3D).radius * scale
+	if shp is SphereShape3D:
+		return (shp as SphereShape3D).radius * scale
+	return scan_radius
 
 
 ## The enemy this unit is presently set to attack, or null (e.g. while attack-moving).
@@ -110,11 +143,8 @@ func _score(unit: Commandable, candidate: Commandable) -> float:
 
 ## THREAT — does `candidate` pose a present danger to `unit`: it can target `unit`
 ## AND is currently positioned to hit it. A harmless target (a building, or an enemy
-## out of its own range) scores 0, so a unit chipping a building swings to whatever is
-## actually shooting it. v1 is binary (1.0 = a live threat); combined with the commit
-## margin, that means "drop a non-threat for any threat, then stay on it." Ranking
-## threats BY MAGNITUDE is a future refinement — it needs a real per-weapon DPS figure
-## (Loadout.total_damage() is currently broken: it reads a removed Weapon.damage field).
+## out of its own range) scores 0. Binary (1.0 = a live threat), so combined with the
+## commit margin it means "drop a non-threat for any threat, then stay on it."
 static func threat_signal(unit: Commandable, candidate: Commandable) -> float:
 	if candidate.weapon_inventory == null:
 		return 0.0
@@ -125,9 +155,41 @@ static func threat_signal(unit: Commandable, candidate: Commandable) -> float:
 		return 0.0
 	return 1.0
 
-# Future signals (not registered in v1) would look like, e.g.:
-#   static func effectiveness_signal(unit, candidate) -> float:
-#       # how well `unit` damages `candidate` (DamageTable vs its armour/attributes)
-#   static func finishability_signal(unit, candidate) -> float:
-#       # bonus for low remaining HP — cheap kills worth finishing
-# A difficulty config registers whichever mix it wants via append_signal().
+
+## EFFECTIVENESS — how good `unit`'s matchup is against `candidate`: the damage-table
+## multiplier (after armour + attribute modifiers) of the weapon it would use, i.e.
+## effective_damage / base_damage. 1.0 = neutral, >1 strong vs this target, <1 weak —
+## so a unit gravitates to the enemies it actually hurts. (Multiplier, not absolute
+## damage, so the signal is comparable across different-strength units.)
+static func effectiveness_signal(unit: Commandable, candidate: Commandable) -> float:
+	# Hand-set matchup override wins over the computed multiplier (parity with the
+	# production effectiveness in Bot.unit_effectiveness_vs).
+	var override: Variant = DamageTable.matchup_override(unit.type, candidate.type)
+	if override != null:
+		return override
+	if unit.weapon_inventory == null:
+		return 0.0
+	var w: Weapon = unit.weapon_inventory.weapon_for_target(candidate)
+	if w == null:
+		return 0.0
+	var base: float = w.per_shot_damage()
+	if base <= 0.0:
+		return 0.0
+	return DamageTable.calculate_damage(base, w.per_shot_damage_type(), candidate) / base
+
+
+## FINISHABILITY — how close `candidate` is to dying (lost HP fraction, 0..1). A
+## nearly-dead target scores ~1, a full-health one ~0, so the bot prefers to finish
+## off cheap kills rather than spread damage.
+static func finishability_signal(_unit: Commandable, candidate: Commandable) -> float:
+	var d: Defense = candidate.defense
+	if d == null or d.hp_max <= 0.0:
+		return 0.0
+	return clampf(1.0 - d.hp / d.hp_max, 0.0, 1.0)
+
+
+## PROXIMITY — prefer closer targets (less travel, faster to engage). Decreasing with
+## XZ distance, self-normalising to (0, 1] (1 when adjacent, → 0 far away).
+static func proximity_signal(unit: Commandable, candidate: Commandable) -> float:
+	var dist: float = VU.inXZ(unit.global_position).distance_to(VU.inXZ(candidate.global_position))
+	return 1.0 / (1.0 + dist)

@@ -9,7 +9,7 @@ extends SceneTree
 ##
 ##   [1] Entity.Type values that NO scanned scene instantiates with (unused).
 ##   [2] Entity.Type values whose name-stem (the text after the last '_', e.g.
-##       STRUCTURE_REDOUBT -> "REDOUBT") does NOT appear (case-insensitively) in
+##       STRUCTURE_STRONGHOLD -> "STRONGHOLD") does NOT appear (case-insensitively) in
 ##       the filename of a scene that declares them -- i.e. the enum and the
 ##       scene it lives in have drifted apart.
 ##
@@ -22,7 +22,7 @@ extends SceneTree
 ##
 ## Run:  godot --headless -s res://tools/balance_export/validation.gd
 
-const SCAN_DIRS: Array = ["res://scenes/units", "res://scenes/structures"]
+const SCAN_DIRS: Array = ["res://scenes/entities/units", "res://scenes/entities/structures"]
 
 
 func _initialize() -> void:
@@ -124,7 +124,7 @@ func _type_from_packed(packed: PackedScene) -> Variant:
 	return _type_from_packed(base) if base != null else null
 
 
-## Text after the last underscore: STRUCTURE_REDOUBT -> REDOUBT. No '_' -> whole.
+## Text after the last underscore: STRUCTURE_STRONGHOLD -> STRONGHOLD. No '_' -> whole.
 func _name_stem(enum_name: String) -> String:
 	var i: int = enum_name.rfind("_")
 	return enum_name.substr(i + 1) if i >= 0 else enum_name

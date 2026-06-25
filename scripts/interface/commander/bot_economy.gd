@@ -4,23 +4,25 @@ extends RefCounted
 ## BotEconomy — grows income and production capacity.
 ##
 ## Each think pass, with a free builder available:
-##   1. Claim a free Deposit by building a Mine (more ore income), then
-##   2. When income is outpacing spending, build another Redoubt (more unit
-##      production throughput — see _has_resource_surplus).
+##   1. When income is outpacing spending, build a production structure (more unit
+##      throughput — see _has_resource_surplus), else
+##   2. Grow income by building a mine on a free Deposit.
 ## One builder serializes the work, which naturally rate-limits construction.
+##
+## WHICH structures it builds is NOT hardcoded — it's derived from the bot's
+## buildable set (registry ∩ builder capabilities ∩ tech) classified by component
+## (Production / OreExtractor). A newly-added buildable structure (e.g. a Hangar) is
+## picked up automatically; see Bot.buildable_production_structure_types / _income_.
 ##
 ## The surplus test is deliberately simple and isolated in _has_resource_surplus()
 ## so difficulty settings can later make it smarter (e.g. true income-vs-spend
 ## rate tracking, target building counts, scouting-gated expansion).
 
-const REDOUBT_TYPE: Entity.Type = Entity.Type.AN_STRUCTURE_REDOUBT
-const MINE_TYPE: Entity.Type = Entity.Type.NT_STRUCTURE_MINE
-
 ## Ore we want banked before committing to extra production capacity. Sitting
 ## above this (and not falling) means production isn't draining our income.
-const REDOUBT_RESERVE: int = 600
+const STRONGHOLD_RESERVE: int = 600
 
-## Ring radii (in cells, around the base centroid) searched for a redoubt spot.
+## Ring radii (in cells, around the base centroid) searched for a stronghold spot.
 const SEARCH_MIN_RING: int = 2
 const SEARCH_MAX_RING: int = 14
 
@@ -50,26 +52,63 @@ func tick() -> void:
 		return
 
 	# When income is outpacing spending, sink the surplus into more production
-	# capacity. Redoubts go up near the base, so the build completes reliably.
-	if surplus and _bot.can_afford(REDOUBT_TYPE):
-		var spot: Variant = _find_build_spot(REDOUBT_TYPE)
-		if spot != null:
-			_act.build(builder, REDOUBT_TYPE, spot)
-			return
+	# capacity. Built near the base, so the build completes reliably.
+	if surplus:
+		var ptype: Variant = _production_structure_to_build()
+		if ptype != null:
+			var spot: Variant = _find_build_spot(ptype)
+			if spot != null:
+				_act.build(builder, ptype, spot)
+		return
 
 	# Otherwise, if we're NOT swimming in ore, grow income by claiming a free
 	# deposit with a mine. (When already in surplus we don't need more mines.)
-	if not surplus:
+	var mtype: Variant = _income_structure_to_build()
+	if mtype != null:
 		var deposit: Entity = _nearest_unclaimed_deposit()
-		if deposit != null and _bot.can_afford(MINE_TYPE):
-			_act.build(builder, MINE_TYPE, deposit.global_position)
+		if deposit != null:
+			_act.build(builder, mtype, deposit.global_position)
+
+
+## Which production structure to build now: an affordable buildable production
+## type, PREFERRING one we don't own yet — so every production building (e.g. a
+## newly-added Hangar) gets built at least once to unlock its units, before scaling
+## up the cheapest existing one. null when none is affordable.
+func _production_structure_to_build() -> Variant:
+	var candidates: Array = _bot.buildable_production_structure_types().filter(
+		func(t): return _bot.can_afford(t)
+	)
+	if candidates.is_empty():
+		return null
+	var unowned: Array = candidates.filter(
+		func(t): return _bot.get_structures_of_type(t).is_empty()
+	)
+	var pool: Array = unowned if not unowned.is_empty() else candidates
+	pool.sort_custom(func(a, b): return _ore_cost(a) < _ore_cost(b))
+	return pool[0]
+
+
+## Cheapest affordable buildable income (mine) structure, or null.
+func _income_structure_to_build() -> Variant:
+	var candidates: Array = _bot.buildable_income_structure_types().filter(
+		func(t): return _bot.can_afford(t)
+	)
+	if candidates.is_empty():
+		return null
+	candidates.sort_custom(func(a, b): return _ore_cost(a) < _ore_cost(b))
+	return candidates[0]
+
+
+func _ore_cost(type) -> int:
+	var spec: TechnologySpec = _bot.technology_mapping.get(type)
+	return spec.ore_cost if spec != null else 0
 
 
 ## Are we earning faster than we spend? Simple proxy (overridable seam for
 ## difficulty tuning): ore is parked above a healthy reserve AND isn't falling,
 ## i.e. production training each tick still can't drain what the mines bring in.
 func _has_resource_surplus() -> bool:
-	return _bot.ore >= REDOUBT_RESERVE and _bot.ore >= _prev_ore
+	return _bot.ore >= STRONGHOLD_RESERVE and _bot.ore >= _prev_ore
 
 
 ## True while any owned unit is in the middle of constructing (placing or

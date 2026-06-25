@@ -175,9 +175,9 @@ def test_plan_routes_fields_correctly():
 
 
 CSV_ARMOUR = (
-    "damage_type,UNARMORED,LIGHT,MEDIUM,HEAVY\n"
-    "LEAD,1.0,1.0,0.5,0.1\n"
-    "LAZER,1.0,0.25,0.75,1.5\n"
+    "damage_type,LIGHT,MEDIUM,HEAVY\n"
+    "LEAD,1.0,0.5,0.1\n"
+    "LAZER,0.25,0.75,1.5\n"
 )
 CSV_ATTR = (
     "damage_type,IS_GROUNDED,IS_FLYING,HAS_STEALTH\n"
@@ -209,8 +209,26 @@ def test_apply_csv_writes_targeted_cell(tmp_path):
     importer._apply_csv_edits(csv, [e], dry_run=False)
     out = csv.read_text()
     assert e.applied
-    assert "LEAD,1.0,1.0,0.5,0.2\n" in out          # only the targeted cell
-    assert "LAZER,1.0,0.25,0.75,1.5\n" in out        # other row untouched
+    assert "LEAD,1.0,0.5,0.2\n" in out               # only the targeted cell
+    assert "LAZER,0.25,0.75,1.5\n" in out             # other row untouched
+
+
+def test_frame_change_routes_to_scene_frame_type():
+    from dh_balance.loader import load_world
+    w = load_world()
+    ch = Change("buildable", "iron_regime:heavy_tank", "frame",
+                "BIOLOGICAL", "METALLIC", "res://t.tscn")
+    e = importer.plan([ch], w)[0]
+    assert e.scope == "scene" and e.locator == ("node", "Defense")
+    assert e.prop == "frame_type" and e.value == "1"   # METALLIC -> 1
+
+
+def test_appends_frame_type_into_existing_defense_block():
+    # SAMPLE's Defense overrides hp_max/armour_type but not frame_type -> append.
+    ok, _, out = _apply(SAMPLE, _edit(("node", "Defense"), "frame_type", "1"))
+    assert ok and "frame_type = 1\n" in out
+    assert out.count("frame_type") == 1
+    assert "armour_type = 0\n" in out                  # neighbour untouched
 
 
 def test_apply_csv_fills_blank_attribute_cell(tmp_path):
@@ -225,12 +243,12 @@ def test_apply_csv_fills_blank_attribute_cell(tmp_path):
 
 def test_end_to_end_apply_on_temp_copy(tmp_path, monkeypatch):
     # Apply through the real file path machinery against a throwaway copy.
-    scene_dir = tmp_path / "scenes" / "units"
+    scene_dir = tmp_path / "scenes" / "entities" / "units"
     scene_dir.mkdir(parents=True)
     (scene_dir / "x.tscn").write_text(SAMPLE)
     monkeypatch.setattr(importer, "PROJECT_ROOT", tmp_path)
     e = _edit(("node", "Defense"), "hp_max", "8000.0")
-    e.target = "res://scenes/units/x.tscn"
+    e.target = "res://scenes/entities/units/x.tscn"
     importer.apply([e], tmp_path / "manifest.json", dry_run=False)
     assert e.applied
     assert "hp_max = 8000.0\n" in (scene_dir / "x.tscn").read_text()

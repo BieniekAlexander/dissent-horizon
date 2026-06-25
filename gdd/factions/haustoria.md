@@ -24,18 +24,19 @@
 # Specifics
 ## Tech Tree
 
-| Tier   | Colony             | Barracks                    | Production Yard | Skyport |
-| ------ | ------------------ | --------------------------- | --------------- | ------- |
-| Tier 1 | [[#Freight Truck]] | [[#Recruit]]<br>[[#Badger]] |                 |         |
-| Tier 2 |                    | [[#Suppressor]]             |                 |         |
-| Tier 3 |                    |                             |                 |         |
+| Tier   | Colony             | Barracks                       | Production Yard | Skyport |
+| ------ | ------------------ | ------------------------------ | --------------- | ------- |
+| Tier 1 | [[#Freight Truck]] | [[#Pathfinder]]<br>[[#Badger]] |                 |         |
+| Tier 2 |                    |                                | Rail Tank       |         |
+| Tier 3 |                    |                                |                 |         |
 ```mermaid
 flowchart TD
-	Colony --> Plant & Barracks
+	Colony
 	Plant[Power Plant] --> Camp & Sam & Yard & Skyport
 	Camp[Internment Camp] --> Cannon
 	Sam[SAM Site]
 	Yard[Construction Yard] --> Tech
+	Barracks
 ```
 # Structures
 # Units
@@ -45,12 +46,13 @@ flowchart TD
 - ridiculous armor, builds
 - Collects POWs for dominion
 ## Barracks
-### Recruit
+### Pathfinder
 - Basic infantry unit
+- Siege spotter
 ### Badger
 - Basic anti-armor unit, long range rockets
 ### Suppressor
-- sonic grenades, stun infantry and clear buildings
+- sonic grenades, stun infantry
 ## Production Yard
 ## Skyport
 
@@ -58,8 +60,6 @@ flowchart TD
 - **Quarters** - Population and Dominion
 	- SAM Site - air, detects stealth
 	- **Barracks** - Makes Infantry
-		- rifleman - places artillery nodes
-		- Badger - looong range rocket infantry
 		- 
 		- **Bombard** - Cannon structure
 		- **War Factory**

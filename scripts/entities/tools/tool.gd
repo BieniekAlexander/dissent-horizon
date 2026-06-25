@@ -65,17 +65,19 @@ func faction_mask() -> int:
 ## faction.
 static var command_tool_map: Dictionary = {
 	# Build tools (Technician → structures): ControlContext.BUILD.
-	"command_tool_dwelling": Tool.new("command_tool_dwelling", Entity.Type.TC_STRUCTURE_DWELLING, load("res://scenes/structures/dwelling.tscn"), "Dwelling", Vector2i(1, 0), ControlContext.BUILD, Faction.TECHNOCRACY),
-	"command_tool_mine": Tool.new("command_tool_mine", Entity.Type.NT_STRUCTURE_MINE, load("res://scenes/structures/n_mine.tscn"), "Mine", Vector2i(2, 0), ControlContext.BUILD, Faction.NEUTRAL),
-	"command_tool_redoubt": Tool.new("command_tool_redoubt", Entity.Type.AN_STRUCTURE_REDOUBT, load("res://scenes/structures/b_redoubt.tscn"), "Redoubt", Vector2i(4, 0), ControlContext.BUILD, Faction.ANARCHISTS),
-	"command_tool_lab": Tool.new("command_tool_lab", Entity.Type.TC_STRUCTURE_LAB, load("res://scenes/structures/lab.tscn"), "Lab", Vector2i(3, 0), ControlContext.BUILD, Faction.TECHNOCRACY),
-	"command_tool_compound": Tool.new("command_tool_compound", Entity.Type.TC_STRUCTURE_COMPOUND, load("res://scenes/structures/compound.tscn"), "Compound", Vector2i(0, 1), ControlContext.BUILD, Faction.TECHNOCRACY),
-	"command_tool_armory": Tool.new("command_tool_armory", Entity.Type.TC_STRUCTURE_ARMORY, load("res://scenes/structures/armory.tscn"), "Armory", Vector2i(1, 1), ControlContext.BUILD, Faction.TECHNOCRACY),
+	"command_tool_dwelling": Tool.new("command_tool_dwelling", Entity.Type.TC_STRUCTURE_DWELLING, load("res://scenes/entities/structures/tc/dwelling.tscn"), "Dwelling", Vector2i(1, 0), ControlContext.BUILD, Faction.TECHNOCRACY),
+	"command_tool_mine": Tool.new("command_tool_mine", Entity.Type.NT_STRUCTURE_MINE, load("res://scenes/entities/structures/nt/mine.tscn"), "Mine", Vector2i(2, 0), ControlContext.BUILD, Faction.NEUTRAL),
+	"command_tool_stronghold": Tool.new("command_tool_stronghold", Entity.Type.AN_STRUCTURE_STRONGHOLD, load("res://scenes/entities/structures/an/stronghold.tscn"), "Redoubt", Vector2i(4, 0), ControlContext.BUILD, Faction.ANARCHISTS),
+	"command_tool_lab": Tool.new("command_tool_lab", Entity.Type.TC_STRUCTURE_LAB, load("res://scenes/entities/structures/tc/lab.tscn"), "Lab", Vector2i(3, 0), ControlContext.BUILD, Faction.TECHNOCRACY),
+	"command_tool_compound": Tool.new("command_tool_compound", Entity.Type.TC_STRUCTURE_COMPOUND, load("res://scenes/entities/structures/tc/compound.tscn"), "Compound", Vector2i(0, 1), ControlContext.BUILD, Faction.TECHNOCRACY),
+	"command_tool_armory": Tool.new("command_tool_armory", Entity.Type.TC_STRUCTURE_ARMORY, load("res://scenes/entities/structures/tc/armory.tscn"), "Armory", Vector2i(1, 1), ControlContext.BUILD, Faction.TECHNOCRACY),
+	"command_tool_hangar": Tool.new("command_tool_hangar", Entity.Type.AN_STRUCTURE_HANGAR, load("res://scenes/entities/structures/an/hangar.tscn"), "Hangar", Vector2i(4, 1), ControlContext.BUILD, Faction.ANARCHISTS),
 	# Train tools (structures → units): ControlContext.TRAIN.
-	"command_tool_technician": Tool.new("command_tool_technician", Entity.Type.AN_UNIT_TECHNICIAN, load("res://scenes/units/technician.tscn"), "Techie", Vector2i(1, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
-	"command_tool_irregular": Tool.new("command_tool_irregular", Entity.Type.AN_UNIT_IRREGULAR, load("res://scenes/units/b_irregular.tscn"), "Irregular", Vector2i(2, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
-	"command_tool_warlord": Tool.new("command_tool_warlord", Entity.Type.AN_UNIT_WARLORD, load("res://scenes/units/warlord.tscn"), "Warlord", Vector2i(1, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
-	"command_tool_vanguard": Tool.new("command_tool_vanguard", Entity.Type.TC_UNIT_VANGUARD, load("res://scenes/units/vanguard.tscn"), "Vanguard", Vector2i(3, 2), ControlContext.TRAIN, Faction.TECHNOCRACY),
+	"command_tool_technician": Tool.new("command_tool_technician", Entity.Type.AN_UNIT_TECHNICIAN, load("res://scenes/entities/units/an/technician.tscn"), "Techie", Vector2i(1, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
+	"command_tool_irregular": Tool.new("command_tool_irregular", Entity.Type.AN_UNIT_IRREGULAR, load("res://scenes/entities/units/an/irregular.tscn"), "Irregular", Vector2i(2, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
+	"command_tool_kamikaze": Tool.new("command_tool_kamikaze", Entity.Type.AN_UNIT_KAMIKAZE, load("res://scenes/entities/units/an/kamikaze.tscn"), "Kamikaze", Vector2i(0,0), ControlContext.TRAIN, Faction.ANARCHISTS),
+	"command_tool_warlord": Tool.new("command_tool_warlord", Entity.Type.AN_UNIT_WARLORD, load("res://scenes/entities/units/an/warlord.tscn"), "Warlord", Vector2i(1, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
+	"command_tool_vanguard": Tool.new("command_tool_vanguard", Entity.Type.TC_UNIT_VANGUARD, load("res://scenes/entities/units/tc/vanguard.tscn"), "Vanguard", Vector2i(3, 2), ControlContext.TRAIN, Faction.TECHNOCRACY),
 }
 
 ## Entity.Type -> Tool. Lazily built (see note above); cached after first use.

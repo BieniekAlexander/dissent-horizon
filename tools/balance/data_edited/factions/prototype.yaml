@@ -11,7 +11,7 @@ buildables:
     cost:
       ore: 150
     requires: []
-    armour: "UNARMORED"
+    armour: "LIGHT"
     hp: 100
     attributes: []
     weapons: []
@@ -60,7 +60,7 @@ buildables:
     cost:
       ore: 100
     requires: []
-    armour: "UNARMORED"
+    armour: "LIGHT"
     hp: 100
     movement:
       layer: "air"
@@ -76,7 +76,7 @@ buildables:
       ore: 75
     requires:
       - "compound"
-    armour: "UNARMORED"
+    armour: "LIGHT"
     hp: 80
     movement:
       layer: "ground"
@@ -92,7 +92,7 @@ buildables:
       ore: 60
     requires:
       - "compound"
-    armour: "UNARMORED"
+    armour: "LIGHT"
     hp: 100
     movement:
       layer: "ground"
@@ -108,7 +108,7 @@ buildables:
       ore: 300
     requires:
       - "compound"
-    armour: "UNARMORED"
+    armour: "LIGHT"
     hp: 800
     movement:
       layer: "ground"
@@ -125,7 +125,7 @@ buildables:
       dominion: 50
     requires:
       - "compound"
-    armour: "UNARMORED"
+    armour: "LIGHT"
     hp: 12000
     movement:
       layer: "ground"
@@ -141,7 +141,7 @@ buildables:
       ore: 250
     requires:
       - "compound"
-    armour: "LIGHT"
+    armour: "MEDIUM"
     hp: 240
     movement:
       layer: "ground"

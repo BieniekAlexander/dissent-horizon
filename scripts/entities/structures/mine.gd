@@ -95,7 +95,7 @@ func _ensure_editor_deposit() -> void:
 	var parent := get_parent()
 	if scene_owner == null or parent == null:
 		return
-	var d: Deposit = load("res://scenes/structures/deposit.tscn").instantiate()
+	var d: Deposit = load("res://scenes/entities/structures/an/deposit.tscn").instantiate()
 	parent.add_child(d)
 	d.owner = scene_owner
 	d.global_transform = global_transform

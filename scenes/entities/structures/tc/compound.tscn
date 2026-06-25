@@ -1,0 +1,69 @@
+[gd_scene load_steps=11 format=3 uid="uid://lg3slrwglq37"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_1qdpe"]
+[ext_resource type="Texture2D" uid="uid://bm3tdpihnqyb" path="res://assets/entities/compound.png" id="3_i3cr2"]
+[ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="4_prod0"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1qdpe"]
+size = Vector3(2, 10, 2)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_niu5p"]
+height = 100.0
+radius = 5.0
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_i3cr2"]
+size = Vector3(3.0092773, 1, 1.826416)
+
+[sub_resource type="Gradient" id="Gradient_hp_back"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_hp_back"]
+gradient = SubResource("Gradient_hp_back")
+
+[sub_resource type="Gradient" id="Gradient_hp_fill"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(1, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_hp_fill"]
+gradient = SubResource("Gradient_hp_fill")
+
+[node name="Structure" instance=ExtResource("1_1qdpe")]
+process_physics_priority = 10
+type = 4612
+
+[node name="MovementBody" parent="." index="2"]
+shape = SubResource("BoxShape3D_1qdpe")
+
+[node name="VisionRange" parent="." index="5"]
+shape = SubResource("CylinderShape3D_niu5p")
+
+[node name="Structure" parent="." index="7"]
+dimensions = Vector2i(3, 3)
+
+[node name="Defense" parent="." index="9"]
+armour_type = 2
+hp_max = 500.0
+
+[node name="SelectionShape" parent="Selectable" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.012939453, 0, 0.029663086)
+shape = SubResource("BoxShape3D_i3cr2")
+
+[node name="Sprite" parent="." index="14"]
+transform = Transform3D(10, 0, 0, 0, 0.86762, -6.3639607, 0, 0.86762, 6.3639607, 0.088653564, 0.6683121, 0.36853027)
+layers = 1
+texture = ExtResource("3_i3cr2")
+
+[node name="HPBar" parent="." index="15"]
+transform = Transform3D(0.15, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.05, -0.1)
+texture = SubResource("GradientTexture1D_hp_back")
+
+[node name="HPBarFill" parent="HPBar" index="0"]
+texture = SubResource("GradientTexture1D_hp_fill")
+
+[node name="Production" type="Node" parent="." index="16"]
+script = ExtResource("4_prod0")
+producible_types = Array[int]([4353, 4354])
+
+[node name="SelectionIndicator" parent="." index="17"]
+transform = Transform3D(0.125, 0, 0, 0, 0.0883885, 0.0883885, 0, -0.0883885, 0.0883885, 0, 0, 0)

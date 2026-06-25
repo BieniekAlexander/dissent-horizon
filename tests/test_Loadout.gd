@@ -41,7 +41,7 @@ func test_sums_multiple_weapons() -> void:
 
 
 func test_ranged_uses_projectile_base_damage() -> void:
-	var scene: PackedScene = load("res://scenes/projectiles/bullet.tscn")
+	var scene: PackedScene = load("res://scenes/entities/projectiles/bullet.tscn")
 	var probe: Node = scene.instantiate()
 	var expected: float = (probe as Projectile).base_damage
 	probe.free()

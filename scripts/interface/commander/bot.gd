@@ -20,6 +20,11 @@ var map: Map
 ## for locating enemy commanders.
 var scenario: Scenario
 
+## Persistent, fog-limited belief about the enemy (assigned + ticked by BotBrain).
+## Composition decisions read believed enemy types from here so they survive vision
+## flicker. Null until the brain wires it.
+var blackboard: BotBlackboard
+
 
 # ─── LIFECYCLE ──────────────────────────────────────────────────────────────
 
@@ -177,6 +182,18 @@ func get_idle_units() -> Array:
 ## Total number of units owned by this commander.
 func army_size() -> int:
 	return _owned_units().size()
+
+
+## Total ore value of the owned army — sum of each unit's build cost (its
+## technology_mapping ore_cost). Used by the military as the "how much have I
+## invested in an army" gauge that drives attack-wave commitment.
+func army_resource_value() -> float:
+	var total: float = 0.0
+	for u: Commandable in _owned_units():
+		var spec: TechnologySpec = technology_mapping.get(u.type)
+		if spec != null:
+			total += spec.ore_cost
+	return total
 
 
 ## Maps unit scene path → count for each kind of unit the bot owns. Keyed by the
@@ -396,6 +413,181 @@ func _type_is_structure(type) -> bool:
 func _type_is_unit(type) -> bool:
 	var preview := _preview_for_type(type)
 	return preview != null and not preview.has_node("Structure")
+
+
+## True when [type]'s scene carries the named component (e.g. "Production",
+## "OreExtractor") — inspected on the cached build preview, so classification
+## generalises without a per-type table.
+func _type_has_component(type, component: String) -> bool:
+	var preview := _preview_for_type(type)
+	return preview != null and preview.has_node(component)
+
+
+## Union of every Builds.buildable_types across the bot's owned units — the full
+## set of structure types SOME builder it owns is allowed to place (a Set:
+## type -> true). Empty when the bot owns no builder.
+func _builder_buildable_types() -> Dictionary:
+	var caps: Dictionary = {}
+	for u: Commandable in _owned_units():
+		var builds: Node = u.get_node_or_null("Builds")
+		if builds != null:
+			for t: int in builds.buildable_types:
+				caps[t] = true
+	return caps
+
+
+## Every structure type the bot can currently place: it's in the build registry,
+## SOME owned builder may build it, and its tech prerequisites are met (cost is the
+## caller's concern). Derived from the registry + builder capabilities, so a newly
+## added buildable structure is picked up automatically — no hardcoded type list.
+func buildable_structure_types() -> Array:
+	var caps := _builder_buildable_types()
+	return Tool.tools_in_context(ControlBinding.ControlContext.BUILD).map(
+		func(t: Tool): return t.type
+	).filter(
+		func(type): return caps.has(type) and has_tech_for(type)
+	)
+
+
+## Buildable structures that train units (carry a Production component) — the
+## throughput buildings the economy expands (Redoubt, Hangar, …).
+func buildable_production_structure_types() -> Array:
+	return buildable_structure_types().filter(
+		func(t): return _type_has_component(t, "Production")
+	)
+
+
+## Buildable structures that generate ore income (carry an OreExtractor — i.e.
+## deposit-overlay mines).
+func buildable_income_structure_types() -> Array:
+	return buildable_structure_types().filter(
+		func(t): return _type_has_component(t, "OreExtractor")
+	)
+
+
+# ─── VISION (fog-limited perception) + COUNTER-INTEL ────────────────────────
+
+## Enemy commandables the bot can currently SEE: those within the VisionRange of
+## any owned unit or structure. The bot has no fog texture of its own (fog is the
+## human's), so visibility is derived directly from owned entities' vision radii.
+## Deduplicated. This is the fog-of-war boundary for the bot's decisions — they must
+## not "cheat" by reading enemies the bot can't see.
+func visible_enemies() -> Array:
+	var result: Array = []
+	var seen: Dictionary = {}
+	for owned: Commandable in _owned_commandables():
+		var vr: float = _shape_xz_radius(owned.vision_range_shape)
+		if vr <= 0.0:
+			continue
+		for e in get_enemies_near(owned.global_position, vr):
+			if not seen.has(e):
+				seen[e] = true
+				result.append(e)
+	return result
+
+
+## How good a unit of [unit_type]'s MATCHUP is against [target]: the damage-table
+## multiplier (effective_damage / base_damage, after armour + attributes) of the
+## weapon it would use. 1.0 = neutral, >1 strong vs this target, <1 weak, and 0 when
+## it can't hit the target at all (e.g. a ground-only weapon vs a flier). The
+## multiplier — not absolute damage — so counter-selection keys off the matchup
+## rather than which unit hits hardest (robust while raw damage is uncalibrated), and
+## mirrors the targeting effectiveness signal. Reads the weapon off the cached train
+## preview, so it generalises to any unit type with no per-type table.
+func unit_effectiveness_vs(unit_type, target: Commandable) -> float:
+	# A hand-set matchup override wins over the computed multiplier (AOE, kiting, …
+	# the damage table can't express — e.g. Kamikaze ≫ Irregular).
+	var override: Variant = DamageTable.matchup_override(unit_type, target.type)
+	if override != null:
+		return override
+	# `target` must be a LIVE instance: targetable_layers()/armour come from runtime
+	# nodes (target_body), so a build PREVIEW would read 0 and break this. Effectiveness
+	# is otherwise type-level, so any live instance of a type is representative.
+	var my_preview := _preview_for_type(unit_type)
+	if my_preview == null:
+		return 0.0
+	var loadout := my_preview.get_node_or_null("Loadout") as Loadout
+	if loadout == null:
+		return 0.0
+	var w: Weapon = loadout.weapon_for_target(target)
+	if w == null:
+		return 0.0
+	var base: float = w.per_shot_damage()
+	if base <= 0.0:
+		return 0.0
+	return DamageTable.calculate_damage(base, w.per_shot_damage_type(), target) / base
+
+
+# ─── ARMY COMPOSITION (effectiveness-driven counter-production) ──────────────
+
+## How much less we value covering structures than enemy units — beating the enemy
+## ARMY is the immediate goal; razing structures (warlords' job) is the longer game.
+const STRUCTURE_IMPORTANCE: float = 0.4
+
+## Per believed enemy TYPE: { type -> { "demand": float, "rep": Commandable } }.
+## demand = that type's summed importance across the believed-and-still-alive enemy
+## comp (units 1.0, structures STRUCTURE_IMPORTANCE), DIVIDED DOWN by how well our
+## current army already counters it — so a covered type has low demand (diminishing
+## returns) and an unmet threat has high demand. `rep` is one live instance of the
+## type, since effectiveness needs a live target (build previews read 0). Fog-limited:
+## reads the blackboard's beliefs, restricted to entries whose entity is still alive.
+func enemy_demand_map() -> Dictionary:
+	if blackboard == null:
+		return {}
+	var importance: Dictionary = {}      # type -> summed importance
+	var reps: Dictionary = {}            # type -> a live Commandable of that type
+	for entry: BotBlackboard.Entry in blackboard.believed():
+		if not is_instance_valid(entry.entity):
+			continue
+		var imp: float = STRUCTURE_IMPORTANCE if entry.is_structure else 1.0
+		importance[entry.type] = importance.get(entry.type, 0.0) + imp
+		if not reps.has(entry.type):
+			reps[entry.type] = entry.entity
+
+	var own := _owned_units()
+	var demand: Dictionary = {}
+	for etype in importance:
+		var rep: Commandable = reps[etype]
+		var coverage: float = 0.0
+		for u: Commandable in own:
+			coverage += unit_effectiveness_vs(u.type, rep)
+		demand[etype] = {"demand": importance[etype] / (1.0 + coverage), "rep": rep}
+	return demand
+
+
+## How valuable building one more [unit_type] is against the current demand map: its
+## effectiveness vs each believed enemy type (using that type's live rep) × its demand.
+func unit_composition_value(unit_type, demand: Dictionary) -> float:
+	var total: float = 0.0
+	for etype in demand:
+		var d: Dictionary = demand[etype]
+		total += unit_effectiveness_vs(unit_type, d["rep"]) * d["demand"]
+	return total
+
+
+## True when the bot currently has vision of [world_pos]: some owned unit or
+## structure is within its VisionRange of that point. Lets the blackboard verify
+## whether a believed-but-unseen structure is still there when units revisit.
+func has_vision_at(world_pos: Vector3) -> bool:
+	var p: Vector2 = VU.inXZ(world_pos)
+	for owned: Commandable in _owned_commandables():
+		var vr: float = _shape_xz_radius(owned.vision_range_shape)
+		if vr > 0.0 and VU.inXZ(owned.global_position).distance_to(p) <= vr:
+			return true
+	return false
+
+
+## XZ radius of a CollisionShape3D (cylinder/sphere radius × node X-scale), or 0.
+func _shape_xz_radius(shape_node: CollisionShape3D) -> float:
+	if shape_node == null:
+		return 0.0
+	var scale: float = shape_node.global_transform.basis.x.length()
+	var shp: Shape3D = shape_node.shape
+	if shp is CylinderShape3D:
+		return (shp as CylinderShape3D).radius * scale
+	if shp is SphereShape3D:
+		return (shp as SphereShape3D).radius * scale
+	return 0.0
 
 
 ## True when all prerequisite structures for [type] have been built,

@@ -57,3 +57,32 @@ def test_exchange_cost_symmetry_direction():
     tank = get(w, "iron_regime:heavy_tank")
     raider = get(w, "sky_nomads:raider")
     assert exchange_cost(w.damage, tank, raider) < exchange_cost(w.damage, raider, tank)
+
+
+def test_frame_multiplier_scales_damage_per_shot():
+    from dh_balance.combat import damage_per_shot
+    from dh_balance.model import (
+        Armour, Buildable, Cost, DamageTable, DamageType, Frame, Layer,
+        Projectile, Weapon,
+    )
+    # LAZER doubles vs METALLIC, halves vs BIOLOGICAL; armour neutral so only
+    # the frame axis moves.
+    table = DamageTable(
+        vs_armour={}, vs_attribute={},
+        vs_frame={DamageType.LAZER: {Frame.METALLIC: 2.0, Frame.BIOLOGICAL: 0.5}},
+    )
+    weapon = Weapon(id="w", name="w", split_time=1, reload_time=1, clip_size=1,
+                    reach=1.0, hits=frozenset({Layer.GROUND}),
+                    projectile=Projectile(id="p", base_damage=100.0,
+                                          damage_type=DamageType.LAZER))
+
+    def dummy(frame):
+        return Buildable(faction="f", id="t", kind="unit", name="t", cost=Cost(),
+                         armour=Armour.MEDIUM, frame=frame, hp=100.0, layer=Layer.GROUND)
+
+    assert damage_per_shot(table, weapon, dummy(Frame.METALLIC)) == 200.0
+    assert damage_per_shot(table, weapon, dummy(Frame.BIOLOGICAL)) == 50.0
+    # No frame on the target -> frame axis is a no-op (multiplier 1.0).
+    none_frame = dummy(Frame.METALLIC)
+    none_frame.frame = None
+    assert damage_per_shot(table, weapon, none_frame) == 100.0
