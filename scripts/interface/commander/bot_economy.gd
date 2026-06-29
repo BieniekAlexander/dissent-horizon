@@ -51,6 +51,30 @@ func tick() -> void:
 	if builder == null:
 		return
 
+	# Priority: stand up the faction's dominion structure (e.g. the internment camp)
+	# if we don't own one yet — it anchors the dominion strategy the opportunist's
+	# capture/deposit loop feeds. Detected generically by the DominionGenerator
+	# component, so future faction dominion buildings are picked up automatically.
+	var dtype: Variant = _dominion_structure_to_build()
+	if dtype != null:
+		var dspot: Variant = _find_build_spot(dtype)
+		if dspot != null:
+			_act.build(builder, dtype, dspot)
+		return
+
+	# Before expanding further, make sure there's vigor headroom: if we're low on
+	# spare capacity, stand up the faction's vigor provider (power plant / safehouse /
+	# dwelling) first. While one is needed we don't add more buildings — if it's not
+	# affordable yet we bank for it rather than digging the strain deeper.
+	if _bot.needs_vigor_provider():
+		var vtype: Variant = _vigor_structure_to_build()
+		if vtype != null:
+			if _bot.can_afford(vtype):
+				var vspot: Variant = _find_build_spot(vtype)
+				if vspot != null:
+					_act.build(builder, vtype, vspot)
+			return
+
 	# When income is outpacing spending, sink the surplus into more production
 	# capacity. Built near the base, so the build completes reliably.
 	if surplus:
@@ -86,6 +110,29 @@ func _production_structure_to_build() -> Variant:
 	var pool: Array = unowned if not unowned.is_empty() else candidates
 	pool.sort_custom(func(a, b): return _ore_cost(a) < _ore_cost(b))
 	return pool[0]
+
+
+## Cheapest affordable buildable dominion structure we don't own yet (currently the
+## internment camp), or null. We only stand up one — extra capacity is handled by the
+## capture loop filling it, not by building more.
+func _dominion_structure_to_build() -> Variant:
+	var candidates: Array = _bot.buildable_dominion_structure_types().filter(
+		func(t): return _bot.can_afford(t) and _bot.get_structures_of_type(t).is_empty()
+	)
+	if candidates.is_empty():
+		return null
+	candidates.sort_custom(func(a, b): return _ore_cost(a) < _ore_cost(b))
+	return candidates[0]
+
+
+## Cheapest buildable vigor provider (tech-available), regardless of affordability so
+## the caller can bank for it. null when the faction has none in its buildable set.
+func _vigor_structure_to_build() -> Variant:
+	var candidates: Array = _bot.buildable_vigor_structure_types()
+	if candidates.is_empty():
+		return null
+	candidates.sort_custom(func(a, b): return _ore_cost(a) < _ore_cost(b))
+	return candidates[0]
 
 
 ## Cheapest affordable buildable income (mine) structure, or null.
@@ -128,15 +175,19 @@ static func _is_constructing(u: Commandable) -> bool:
 	return c is Build or c is Repair
 
 
-## Choose a unit to construct with. Build-capable units (Warlords) are also
+## Choose a unit to construct with. Build-capable units (Irregulars) are also
 ## fighters in this faction, which is intended — so we only ever pull ONE, and
 ## prefer an idle one to minimise disrupting the army; if none is idle we pull a
 ## fighter (it rejoins combat once the structure is finished). Returns null when
-## the bot owns no builder yet (e.g. an all-Irregular army).
+## the bot owns no builder yet.
 func _pick_builder() -> Commandable:
 	var busy_builder: Commandable = null
 	for u: Commandable in _bot.get_units():
 		if not u.has_node("Builds"):
+			continue
+		# Don't yank a unit mid-opportunity (e.g. a truck capturing/depositing) onto a
+		# build job — that loop is committed work, like construction itself.
+		if BotOpportunist.is_committed(u):
 			continue
 		if not u.has_command():
 			return u  # idle builder — ideal

@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="2_lout"]
 [ext_resource type="PackedScene" uid="uid://bx3hcnshl0001" path="res://scenes/entities/projectiles/cl/cannon_shell.tscn" id="3_hcsh"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn"]
-[ext_resource type="Texture2D" uid="uid://cpcl7027uxe1r" path="res://assets/greyscale-tree.png" id="5_tex"]
+[ext_resource type="Texture2D" uid="uid://6xha7emva7vn" path="res://assets/entities/cannon.png" id="5_tex"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_aggro"]
 height = 100.0
@@ -35,7 +35,7 @@ armour_type = 2
 hp_max = 500.0
 
 [node name="Sprite" parent="." index="13" unique_id=1381401170]
-transform = Transform3D(0.36, 0, 0, 0, 0.036062445, -0.14142136, 0, 0.036062445, 0.14142136, 0, 0.7736206, 0.76805496)
+transform = Transform3D(9, 0, 0, 0, 2.4748738, -5.656854, 0, 2.4748738, 5.656854, -0.029706955, 0.45, -0.96627045)
 texture = ExtResource("5_tex")
 
 [node name="Loadout" type="Node3D" parent="." index="14" unique_id=369583052]

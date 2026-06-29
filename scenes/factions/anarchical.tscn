@@ -1,0 +1,48 @@
+[gd_scene load_steps=12 format=3 uid="uid://b8anrchclftn01"]
+
+[ext_resource type="Script" uid="uid://cyrg0j3vbx1ds" path="res://scripts/interface/commander/faction.gd" id="1_fac"]
+[ext_resource type="PackedScene" uid="uid://dtyheenc7jb57" path="res://scenes/entities/structures/an/stronghold.tscn" id="2_strgh"]
+[ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/entities/units/an/warlord.tscn" id="7_war"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/irregular.tscn" id="8_irr"]
+[ext_resource type="Script" uid="uid://cteoy2vx2l533" path="res://scripts/interface/commander/ordnance.gd" id="3_ord"]
+[ext_resource type="PackedScene" uid="uid://c0rdnambush01" path="res://scenes/scenario_events/ordnance_ambush.tscn" id="4_amb"]
+[ext_resource type="PackedScene" uid="uid://ceb4vdpa82eig" path="res://scenes/scenario_events/ordnance_irradiate.tscn" id="5_irr"]
+[ext_resource type="Script" uid="uid://bhm0bavkjvt0q" path="res://scripts/interface/commander/ordnance_unlock.gd" id="6_unlock"]
+
+[sub_resource type="Resource" id="Ordnance_ambush"]
+script = ExtResource("3_ord")
+ordnance_name = "Ambush"
+cooldown_duration = 60.0
+event_scene = ExtResource("4_amb")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+
+[sub_resource type="Resource" id="Ordnance_irradiate"]
+script = ExtResource("3_ord")
+ordnance_name = "Irradiate"
+cooldown_duration = 60.0
+event_scene = ExtResource("5_irr")
+targeting = 0
+effect_radius = 6.0
+min_targets = 2
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+
+[sub_resource type="Resource" id="Unlock_ambush"]
+script = ExtResource("6_unlock")
+ordnance = SubResource("Ordnance_ambush")
+dominion_cost = 250
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Unlock_irradiate"]
+script = ExtResource("6_unlock")
+ordnance = SubResource("Ordnance_irradiate")
+dominion_cost = 750
+prerequisites = Array[OrdnanceUnlock]([SubResource("Unlock_ambush")])
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[node name="Anarchical" type="Node"]
+script = ExtResource("1_fac")
+faction_name = "Anarchists"
+starting_structure = ExtResource("2_strgh")
+starting_units = Array[PackedScene]([ExtResource("7_war"), ExtResource("8_irr"), ExtResource("8_irr"), ExtResource("8_irr")])
+ordnance_unlocks = Array[OrdnanceUnlock]([SubResource("Unlock_ambush"), SubResource("Unlock_irradiate")])

@@ -17,7 +17,7 @@ func tick() -> void:
 	frame += 1
 	if frame == TICK_RATE:
 		var commandable := get_parent() as Commandable
-		commandable.commander.dominion += dominion_rate
+		commandable.commander.add_dominion(dominion_rate)
 		frame = 0
 		build_up += 1
 #endregion

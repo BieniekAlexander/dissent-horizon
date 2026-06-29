@@ -13,7 +13,7 @@ armour_type = 2
 hp_max = 500.0
 
 [node name="Sprite" parent="." index="13"]
-transform = Transform3D(7.5, 0, 0, 0, 1.022, 0, 0, 0, 7.0525, 0, 0, 0)
+transform = Transform3D(3.5, 0, 0, 0, 2.4748745, -2.4748745, 0, 2.4748745, 2.4748745, 0, 0.45, 0)
 texture = ExtResource("3_woms5")
 
 [node name="DominionGenerator" type="Node" parent="." index="15"]

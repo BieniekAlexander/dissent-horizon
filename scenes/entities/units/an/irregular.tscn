@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://cm7ixbl5una03" path="res://scenes/entities/projectiles/an/irregular_bullet.tscn" id="4_l4yvx"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_invnt"]
+[ext_resource type="Script" uid="uid://bfix8h487pr1x" path="res://scripts/entities/components/builds.gd" id="6_builds"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_skyvu"]
 radius = 0.2
@@ -38,7 +39,7 @@ shape = SubResource("CylinderShape3D_c8urn")
 shape = SubResource("CylinderShape3D_tv7h1")
 
 [node name="Movement" parent="." index="7" unique_id=413735738]
-speed = 0.05
+speed = 0.055
 
 [node name="Loadout" type="Node3D" parent="." index="8" unique_id=1619495853]
 visible = false
@@ -57,16 +58,17 @@ debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 [node name="Defense" parent="." index="9" unique_id=637704181]
 hp_max = 80.0
 
-[node name="Veterancy" parent="." index="10" unique_id=1733255303]
-level = 1
+[node name="Builds" type="Node" parent="." index="11" unique_id=481383139]
+script = ExtResource("6_builds")
+buildable_types = Array[int]([8704, 8712, 8705, 8706, 513])
 
-[node name="Selectable" parent="." index="12" unique_id=2049500591]
+[node name="Selectable" parent="." index="13" unique_id=2049500591]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
 
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=1543182780]
 shape = SubResource("SphereShape3D_c8urn")
 
-[node name="Sprite" parent="." index="14" unique_id=1381401170]
+[node name="Sprite" parent="." index="15" unique_id=1381401170]
 transform = Transform3D(1.5, 0, 0, 0, 1.0606601, -1.0606601, 0, 1.0606601, 1.0606601, 0, 0.17003015, 0)
 texture_filter = 0
 texture = ExtResource("2_njqvf")
@@ -76,6 +78,6 @@ hframes = 3
 script = ExtResource("5_invnt")
 initial_abilities = Array[int]([0])
 
-[node name="VeterancyLabel" parent="." index="22" unique_id=1705221844]
+[node name="VeterancyLabel" parent="." index="23" unique_id=1705221844]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.55, -0.0009765625)
 visible = false

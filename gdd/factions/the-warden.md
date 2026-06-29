@@ -16,7 +16,6 @@
 - Asymmetric Mechanics
 	- Mobility - lots of flying units, even at low tech
 	- Heal - nanobots for slow heal over time, a la Zerg
-	- Steal - LACK
 	- Disable - rocket defense systems
 	- bonus - bonus XP for units that are alone (passive? Higher rate per kill?)
 - Unique Mechanics

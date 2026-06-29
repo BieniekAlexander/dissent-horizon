@@ -72,12 +72,21 @@ static var command_tool_map: Dictionary = {
 	"command_tool_compound": Tool.new("command_tool_compound", Entity.Type.TC_STRUCTURE_COMPOUND, load("res://scenes/entities/structures/tc/compound.tscn"), "Compound", Vector2i(0, 1), ControlContext.BUILD, Faction.TECHNOCRACY),
 	"command_tool_armory": Tool.new("command_tool_armory", Entity.Type.TC_STRUCTURE_ARMORY, load("res://scenes/entities/structures/tc/armory.tscn"), "Armory", Vector2i(1, 1), ControlContext.BUILD, Faction.TECHNOCRACY),
 	"command_tool_hangar": Tool.new("command_tool_hangar", Entity.Type.AN_STRUCTURE_HANGAR, load("res://scenes/entities/structures/an/hangar.tscn"), "Hangar", Vector2i(4, 1), ControlContext.BUILD, Faction.ANARCHISTS),
+	"command_tool_field_hospital": Tool.new("command_tool_field_hospital", Entity.Type.AN_STRUCTURE_FIELD_HOSPITAL, load("res://scenes/entities/structures/an/field_hospital.tscn"), "Field Hosp", Vector2i(4, 2), ControlContext.BUILD, Faction.ANARCHISTS),
+	"command_tool_safehouse": Tool.new("command_tool_safehouse", Entity.Type.AN_STRUCTURE_SAFEHOUSE, load("res://scenes/entities/structures/an/safehouse.tscn"), "Safehouse", Vector2i(3, 2), ControlContext.BUILD, Faction.ANARCHISTS),
+	"command_tool_settlement": Tool.new("command_tool_settlement", Entity.Type.CL_STRUCTURE_SETTLEMENT, load("res://scenes/entities/structures/cl/settlement.tscn"), "Settlement", Vector2i(0, 0), ControlContext.BUILD, Faction.COLLECTIVE),
+	"command_tool_power_plant": Tool.new("command_tool_power_plant", Entity.Type.CL_STRUCTURE_POWER_PLANT, load("res://scenes/entities/structures/cl/power_plant.tscn"), "Power Plant", Vector2i(1, 0), ControlContext.BUILD, Faction.COLLECTIVE),
+	"command_tool_barracks": Tool.new("command_tool_barracks", Entity.Type.CL_STRUCTURE_BARRACKS, load("res://scenes/entities/structures/cl/barracks.tscn"), "Barracks", Vector2i(2, 0), ControlContext.BUILD, Faction.COLLECTIVE),
+	"command_tool_internment_camp": Tool.new("command_tool_internment_camp", Entity.Type.CL_STRUCTURE_INTERNMENT_CAMP, load("res://scenes/entities/structures/cl/internment_camp.tscn"), "Internment", Vector2i(3, 0), ControlContext.BUILD, Faction.COLLECTIVE),
 	# Train tools (structures → units): ControlContext.TRAIN.
-	"command_tool_technician": Tool.new("command_tool_technician", Entity.Type.AN_UNIT_TECHNICIAN, load("res://scenes/entities/units/an/technician.tscn"), "Techie", Vector2i(1, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
+	"command_tool_technician": Tool.new("command_tool_technician", Entity.Type.TC_UNIT_TECHNICIAN, load("res://scenes/entities/units/an/technician.tscn"), "Techie", Vector2i(1, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
 	"command_tool_irregular": Tool.new("command_tool_irregular", Entity.Type.AN_UNIT_IRREGULAR, load("res://scenes/entities/units/an/irregular.tscn"), "Irregular", Vector2i(2, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
 	"command_tool_kamikaze": Tool.new("command_tool_kamikaze", Entity.Type.AN_UNIT_KAMIKAZE, load("res://scenes/entities/units/an/kamikaze.tscn"), "Kamikaze", Vector2i(0,0), ControlContext.TRAIN, Faction.ANARCHISTS),
 	"command_tool_warlord": Tool.new("command_tool_warlord", Entity.Type.AN_UNIT_WARLORD, load("res://scenes/entities/units/an/warlord.tscn"), "Warlord", Vector2i(1, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
 	"command_tool_vanguard": Tool.new("command_tool_vanguard", Entity.Type.TC_UNIT_VANGUARD, load("res://scenes/entities/units/tc/vanguard.tscn"), "Vanguard", Vector2i(3, 2), ControlContext.TRAIN, Faction.TECHNOCRACY),
+	"command_tool_stock_truck": Tool.new("command_tool_stock_truck", Entity.Type.CL_UNIT_STOCK_TRUCK, load("res://scenes/entities/units/cl/stock_truck.tscn"), "Stock Truck", Vector2i(0, 2), ControlContext.TRAIN, Faction.COLLECTIVE),
+	"command_tool_recruit": Tool.new("command_tool_recruit", Entity.Type.CL_UNIT_RECRUIT, load("res://scenes/entities/units/cl/recruit.tscn"), "Recruit", Vector2i(1, 2), ControlContext.TRAIN, Faction.COLLECTIVE),
+	"command_tool_badger": Tool.new("command_tool_badger", Entity.Type.CL_UNIT_BADGER, load("res://scenes/entities/units/cl/badger.tscn"), "Badger", Vector2i(2, 2), ControlContext.TRAIN, Faction.COLLECTIVE),
 }
 
 ## Entity.Type -> Tool. Lazily built (see note above); cached after first use.

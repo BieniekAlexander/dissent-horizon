@@ -1,13 +1,29 @@
 [gd_scene format=3 uid="uid://dwyce4x7fmm2r"]
 
-[ext_resource type="Script" uid="uid://dnubkywgbtex4" path="res://scripts/scenario.gd" id="1_scen"]
+[ext_resource type="Script" uid="uid://45qwlquq73h8" path="res://scripts/skirmish.gd" id="1_scen"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_map"]
 [ext_resource type="Shape3D" uid="uid://bmkey18lrpkej" path="res://resources/map.tres" id="3_hmap"]
-[ext_resource type="PackedScene" uid="uid://dtyheenc7jb57" path="res://scenes/entities/structures/an/stronghold.tscn" id="4_rdbt"]
-[ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/entities/units/an/warlord.tscn" id="5_aeqv4"]
-[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/irregular.tscn" id="6_irr"]
+[ext_resource type="PackedScene" uid="uid://bqe38bvv7aclk" path="res://scenes/factions/colonial.tscn" id="4_22jj8"]
 [ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/entities/structures/nt/deposit.tscn" id="7_dep"]
 [ext_resource type="PackedScene" uid="uid://d372d5stwv6gt" path="res://scenes/entities/structures/nt/mine.tscn" id="8_mine"]
+[ext_resource type="Script" uid="uid://rck85holj04" path="res://scripts/interface/commander/player_slot.gd" id="9_pslot"]
+[ext_resource type="PackedScene" uid="uid://bkpybipbter41" path="res://scenes/factions/anarchical.tscn" id="10_anfac"]
+[ext_resource type="PackedScene" uid="uid://csyr8p6ug2rpw" path="res://scenes/entities/structures/nt/shelter.tscn" id="11_uxael"]
+[ext_resource type="Script" uid="uid://gl6ex3gwef1y" path="res://scripts/scenario/scenario_trigger_manager.gd" id="12_stm"]
+[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/building.tscn" id="13_bldg"]
+
+[sub_resource type="Resource" id="PlayerSlot_bot1"]
+script = ExtResource("9_pslot")
+is_bot = false
+faction = ExtResource("10_anfac")
+starting_dominion = 0
+metadata/_custom_type_script = "uid://rck85holj04"
+
+[sub_resource type="Resource" id="PlayerSlot_bot2"]
+script = ExtResource("9_pslot")
+faction = ExtResource("4_22jj8")
+starting_dominion = 0
+metadata/_custom_type_script = "uid://rck85holj04"
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_skirmish"]
 
@@ -19,7 +35,7 @@ albedo_color = Color(0.3, 0.45, 0.25, 1)
 
 [node name="Scenario" type="Node3D" unique_id=1388645473]
 script = ExtResource("1_scen")
-human_commander_id = 0
+player_slots = Array[ExtResource("9_pslot")]([SubResource("PlayerSlot_bot1"), SubResource("PlayerSlot_bot2")])
 
 [node name="Map" type="Node3D" parent="." unique_id=1078024187]
 script = ExtResource("2_map")
@@ -38,100 +54,86 @@ shape = ExtResource("3_hmap")
 [node name="HeightPins" type="Node3D" parent="Map" unique_id=1998771652]
 
 [node name="Ground" type="MeshInstance3D" parent="." unique_id=227341847]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 mesh = SubResource("PlaneMesh_ground")
 surface_material_override/0 = SubResource("Material_ground")
 
-[node name="Redoubt1" parent="." unique_id=1951409475 instance=ExtResource("4_rdbt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 0, 0.5)
-default_commander_id = 1
+[node name="StartPoint1" type="Marker3D" parent="." unique_id=2034759910 groups=["start_position"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 0)
 
-[node name="Warlord1" parent="." unique_id=1941500794 instance=ExtResource("5_aeqv4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.7404175, 0, -2.0860596)
-default_commander_id = 1
-
-[node name="Irregular1" parent="." unique_id=1657703732 instance=ExtResource("6_irr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -3)
-default_commander_id = 1
-
-[node name="Irregular2" parent="." unique_id=1043748937 instance=ExtResource("6_irr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -2)
-default_commander_id = 1
-
-[node name="Irregular3" parent="." unique_id=1525424937 instance=ExtResource("6_irr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -4)
-default_commander_id = 1
-
-[node name="Redoubt2" parent="." unique_id=980429692 instance=ExtResource("4_rdbt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 0, 0.5)
-default_commander_id = 2
-
-[node name="Warlord2" parent="." unique_id=1052921950 instance=ExtResource("5_aeqv4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.82489, 1.5341797, 0.5)
-default_commander_id = 2
-
-[node name="Irregular4" parent="." unique_id=355004439 instance=ExtResource("6_irr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -3)
-default_commander_id = 2
-
-[node name="Irregular5" parent="." unique_id=892344768 instance=ExtResource("6_irr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -2)
-default_commander_id = 2
-
-[node name="Irregular6" parent="." unique_id=907266268 instance=ExtResource("6_irr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, -4)
-default_commander_id = 2
+[node name="StartPoint2" type="Marker3D" parent="." unique_id=2116674148 groups=["start_position"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 0)
 
 [node name="Deposit1" parent="." unique_id=1070395610 instance=ExtResource("7_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -13)
 
 [node name="Deposit2" parent="." unique_id=1237971618 instance=ExtResource("7_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, -13)
 
 [node name="DepositW1" parent="." unique_id=95704478 instance=ExtResource("7_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -6.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -3)
 
 [node name="MineW1" parent="." unique_id=1172608463 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -6.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -3)
 deposit = NodePath("../DepositW1")
+vigor_provided = null
+vigor_required = null
 default_commander_id = 1
 
 [node name="DepositW2" parent="." unique_id=1314091393 instance=ExtResource("7_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -0.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, 0)
 
 [node name="MineW2" parent="." unique_id=590895325 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -0.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, 0)
 deposit = NodePath("../DepositW2")
+vigor_provided = null
+vigor_required = null
 default_commander_id = 1
 
 [node name="DepositW3" parent="." unique_id=1512653845 instance=ExtResource("7_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, 5.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, 3)
 
 [node name="MineW3" parent="." unique_id=1544173339 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, 5.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, 3)
 deposit = NodePath("../DepositW3")
+vigor_provided = null
+vigor_required = null
 default_commander_id = 1
 
 [node name="DepositE1" parent="." unique_id=952128424 instance=ExtResource("7_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -6.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, -3)
 
 [node name="MineE1" parent="." unique_id=814128566 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -6.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, -3)
 deposit = NodePath("../DepositE1")
+vigor_provided = null
+vigor_required = null
 default_commander_id = 2
 
 [node name="DepositE2" parent="." unique_id=1523704059 instance=ExtResource("7_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -0.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 0)
 
 [node name="MineE2" parent="." unique_id=173156674 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -0.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 0)
 deposit = NodePath("../DepositE2")
+vigor_provided = null
+vigor_required = null
 default_commander_id = 2
 
 [node name="DepositE3" parent="." unique_id=1466741384 instance=ExtResource("7_dep")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 5.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 3)
 
 [node name="MineE3" parent="." unique_id=1062991096 node_paths=PackedStringArray("deposit") instance=ExtResource("8_mine")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 5.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 3)
 deposit = NodePath("../DepositE3")
+vigor_provided = null
+vigor_required = null
 default_commander_id = 2
+
+[node name="ShelterStructure" parent="." unique_id=1386197407 instance=ExtResource("11_uxael")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 12)
+
+[node name="NeutralBuilding" parent="." unique_id=830170337 instance=ExtResource("13_bldg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 5)
+
+[node name="ScenarioTriggerManager" type="Node" parent="." unique_id=314421007]
+script = ExtResource("12_stm")

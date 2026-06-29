@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://ceptu7d0dwbsy"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_base"]
+[ext_resource type="Texture2D" uid="uid://1ml7qwlkrvxh" path="res://assets/entities/power_plant.png" id="2_tex"]
+
+[node name="Structure" unique_id=1346449537 instance=ExtResource("1_base")]
+type = 12801
+vigor_provided = 100
+
+[node name="Defense" parent="." index="8" unique_id=637704181]
+armour_type = 2
+hp_max = 300.0
+
+[node name="Sprite" parent="." index="13" unique_id=1381401170]
+transform = Transform3D(4, 0, 0, 0, 1.4142137, -3.1819804, 0, 1.4142135, 3.1819806, -0.012350082, 0.3516159, -0.5479355)
+texture = ExtResource("2_tex")

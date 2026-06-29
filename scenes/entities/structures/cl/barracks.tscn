@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://cl0barracks01"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="2_prod"]
+[ext_resource type="Texture2D" uid="uid://ci1l2imnbsmrg" path="res://assets/entities/barracks.png" id="3_tex"]
+
+[node name="Structure" instance=ExtResource("1_base")]
+type = 12802
+vigor_required = 40
+
+[node name="Structure" parent="." index="7"]
+dimensions = Vector2i(3, 3)
+
+[node name="Defense" parent="." index="8"]
+armour_type = 2
+hp_max = 400.0
+
+[node name="Production" type="Node" parent="." index="10"]
+script = ExtResource("2_prod")
+producible_types = Array[int]([12545, 12546])
+
+[node name="Sprite" parent="." index="14"]
+transform = Transform3D(7.5, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, -0.028815746, 0.45, -0.5472431)
+texture = ExtResource("3_tex")

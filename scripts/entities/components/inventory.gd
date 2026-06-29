@@ -27,6 +27,9 @@ var tool_specs: Array[ToolSpec] = []
 #region Carried items
 ## Maximum number of items this unit can carry at once.
 @export var item_capacity: int = 1
+## When true, carried items are returned to their original commanders when the
+## holder dies. When false they are freed with the holder.
+@export var preserve_occupants: bool = true
 
 ## Entities currently being carried (e.g. Stars). Moved here from the former
 ## Entity.inventory array as part of the inventory reconciliation.
@@ -43,6 +46,16 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	for spec in tool_specs:
 		spec.tick()
+
+## Free any carried units that are detached from the tree (e.g. units imprisoned by
+## a stock truck or internment camp) when this inventory is destroyed, so those
+## out-of-tree instances don't leak when their holder dies. In-tree items are left
+## alone — they belong to the scene and are freed through it.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for item: Entity in items:
+			if is_instance_valid(item) and not item.is_inside_tree():
+				item.free()
 #endregion
 
 #region Public API
@@ -80,6 +93,32 @@ func has_items() -> bool:
 ## The first carried item (oldest), or null if none.
 func first_item() -> Entity:
 	return items[0] if not items.is_empty() else null
+
+## Return all carried Commandables to their original commanders as live scene
+## entities, positioned at [spawn_pos]. Items with no valid commander are freed.
+## Called when the holder is about to die; clears [items] so _notification(PREDELETE)
+## finds nothing to clean up.
+func eject_to_scene(spawn_pos: Vector3) -> void:
+	for item: Entity in items:
+		if not is_instance_valid(item):
+			continue
+		var cmd: Commander = (item as Commandable).commander \
+			if item is Commandable else null
+		if cmd == null or not is_instance_valid(cmd):
+			item.free()
+			continue
+		cmd.add_child(item)
+		item.global_position = spawn_pos
+		(item as Commandable).update_commands(null)
+	items.clear()
+
+## Free all carried items without returning them.
+## Called when preserve_occupants is false and the holder is destroyed.
+func free_items() -> void:
+	for item: Entity in items:
+		if is_instance_valid(item):
+			item.free()
+	items.clear()
 #endregion
 
 #endregion

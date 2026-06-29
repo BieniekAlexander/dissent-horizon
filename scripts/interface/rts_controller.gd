@@ -8,8 +8,8 @@ const unknown_cursor: Resource = preload("res://assets/interface/cursor_unknown.
 const invalid_cursor: Resource = preload("res://assets/interface/cursor_invalid.png")
 
 # The commander id the local human controls. Runtime-set by Scenario from its
-# control config (see Scenario.human_commander_id), so the player can be any
-# commander id — or absent entirely (spectator), in which case this is < 1 and
+# player_slots (the first non-bot slot), so the player can be any commander id —
+# or absent entirely (spectator), in which case this is < 1 and
 # no human rig (camera/HUD/fog) exists. Read by fog, minimap, and commandable to
 # decide the local viewpoint. Was a const; now a static var so it can vary.
 static var PLAYER_COMMANDER_ID: int = 1
@@ -63,12 +63,13 @@ var pending_command_name: String = ""
 var _active_indicators: Dictionary = {}  # CommandMessage -> WaypointIndicator
 var _indicator_pool: Array = []          # idle WaypointIndicator nodes
 
-## Commander-level abilities available to the player.
-var _commander_abilities: Array[CommanderAbility] = []
-## Ability armed by the player — the next right-click activates it at that position.
-var _pending_ability: CommanderAbility = null
-## Horizontal ability bar added to this CanvasLayer at runtime.
-var _ability_bar: HBoxContainer = null
+## The local commander's ordnance arsenal — its DAG of unlockable ordnances and the
+## per-match owned/cooldown state (see _setup_commander_ordnances).
+var _arsenal: OrdnanceArsenal = null
+## Ordnance armed by the player — the next right-click activates it at that position.
+var _pending_ordnance: Ordnance = null
+## Horizontal ordnance bar added to this CanvasLayer at runtime.
+var _ordnance_bar: HBoxContainer = null
 
 @onready var _event_manager: ScenarioTriggerManager = \
 	get_tree().current_scene.find_child("ScenarioTriggerManager") as ScenarioTriggerManager
@@ -95,10 +96,14 @@ func _ready():
 	for i in range(_INDICATOR_POOL_SIZE):
 		_indicator_pool.append(_make_indicator())
 
-	_setup_commander_abilities()
+	# Deferred: this controller is a child of its Commander, so child _ready() runs
+	# BEFORE the parent's. The commander instances its Faction in its own _ready(),
+	# so reading commander.faction now would see null. Deferring runs the setup after
+	# the whole subtree's _ready() cascade, once the faction exists.
+	_setup_commander_ordnances.call_deferred()
 
 func _process(delta: float) -> void:
-	_tick_ability_bar(delta)
+	_tick_ordnance_bar(delta)
 
 	var cursor_result: Variant = get_cursor_target(mouse_position)
 	cursor_target = cursor_result
@@ -168,8 +173,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif get_action_names_by_prefix(event, "command_").size()>0:
 		process_command(get_action_names_by_prefix(event, "command_")[0])
 	elif event.is_action_pressed("move"):
-		if _pending_ability != null:
-			_activate_pending_ability()
+		if _pending_ordnance != null:
+			_activate_pending_ordnance()
 		else:
 			assign_command_to_units(
 				current_command_type,
@@ -750,59 +755,84 @@ static func _aggro_shape_radius(shape: CollisionShape3D) -> float:
 	return 0.0
 #endregion
 
-#region Commander abilities
-func _setup_commander_abilities() -> void:
-	_commander_abilities = [
-		CommanderAbilityAmbush.new(),
-		CommanderAbilityIrradiate.new(),
-	]
-	_setup_ability_bar()
+#region Commander ordnances
+## Source the ordnance arsenal from the local commander, so what the player sees and
+## can unlock/deploy is faction-driven. The controller is a child of its Commander
+## node (see player.tscn). One button per DAG node: a locked node is unlocked (for
+## dominion) on click; an owned one is armed for targeting.
+func _setup_commander_ordnances() -> void:
+	var commander: Commander = get_parent() as Commander
+	if commander != null:
+		_arsenal = commander.ordnance_arsenal
+	_setup_ordnance_bar()
 
-func _setup_ability_bar() -> void:
-	_ability_bar = HBoxContainer.new()
-	_ability_bar.name = "AbilityBar"
-	_ability_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_ability_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	_ability_bar.add_theme_constant_override("separation", 8)
+func _setup_ordnance_bar() -> void:
+	_ordnance_bar = HBoxContainer.new()
+	_ordnance_bar.name = "OrdnanceBar"
+	_ordnance_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_ordnance_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	_ordnance_bar.add_theme_constant_override("separation", 8)
 	# Offset from the top edge so it doesn't overlap with other UI anchored there
-	_ability_bar.position = Vector2(0.0, 8.0)
-	add_child(_ability_bar)
+	_ordnance_bar.position = Vector2(0.0, 8.0)
+	add_child(_ordnance_bar)
 
-	for ab: CommanderAbility in _commander_abilities:
-		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(120.0, 32.0)
-		btn.pressed.connect(_on_ability_button_pressed.bind(ab))
-		_ability_bar.add_child(btn)
-
-func _tick_ability_bar(delta: float) -> void:
-	if _ability_bar == null:
+	if _arsenal == null:
 		return
-	for i: int in _commander_abilities.size():
-		var ab: CommanderAbility = _commander_abilities[i]
-		ab.tick(delta)
-		var btn: Button = _ability_bar.get_child(i) as Button
-		if btn == null:
-			continue
-		if _pending_ability == ab:
-			btn.text = "%s [click target]" % ab.ability_name
-			btn.disabled = false
-		elif not ab.is_ready():
-			btn.text = "%s (%.0fs)" % [ab.ability_name, ab.cooldown_remaining()]
-			btn.disabled = true
-		else:
-			btn.text = ab.ability_name
-			btn.disabled = false
+	for entry: OrdnanceArsenal.Entry in _arsenal.entries:
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(140.0, 32.0)
+		btn.pressed.connect(_on_ordnance_button_pressed.bind(entry))
+		_ordnance_bar.add_child(btn)
 
-func _on_ability_button_pressed(ab: CommanderAbility) -> void:
-	if not ab.is_ready():
+func _tick_ordnance_bar(delta: float) -> void:
+	if _ordnance_bar == null or _arsenal == null:
+		return
+	for i: int in _arsenal.entries.size():
+		var entry: OrdnanceArsenal.Entry = _arsenal.entries[i]
+		entry.ordnance.tick(delta)
+		var btn: Button = _ordnance_bar.get_child(i) as Button
+		if btn != null:
+			_paint_ordnance_button(btn, entry)
+
+## Repaint one ordnance button from its entry's state: locked nodes show their
+## unlock cost (enabled only when available + affordable); owned nodes behave like
+## the old bar (arm / cooldown / armed).
+func _paint_ordnance_button(btn: Button, entry: OrdnanceArsenal.Entry) -> void:
+	var ordnance: Ordnance = entry.ordnance
+	if not entry.owned:
+		if _arsenal.is_available(entry):
+			btn.text = "Unlock %s (%d dom)" % [ordnance.ordnance_name, entry.unlock.dominion_cost]
+			btn.disabled = not _arsenal.can_afford(entry)
+		else:
+			btn.text = "%s [locked]" % ordnance.ordnance_name
+			btn.disabled = true
+	elif _pending_ordnance == ordnance:
+		btn.text = "%s [click target]" % ordnance.ordnance_name
+		btn.disabled = false
+	elif not ordnance.is_ready():
+		btn.text = "%s (%.0fs)" % [ordnance.ordnance_name, ordnance.cooldown_remaining()]
+		btn.disabled = true
+	else:
+		btn.text = ordnance.ordnance_name
+		btn.disabled = false
+
+## Click handling depends on state: a locked-but-available entry is purchased; an
+## owned, ready entry is armed/cancelled for targeting.
+func _on_ordnance_button_pressed(entry: OrdnanceArsenal.Entry) -> void:
+	if not entry.owned:
+		_arsenal.try_unlock(entry)
+		return
+	if not entry.ordnance.is_ready():
 		return
 	# Toggle: clicking again cancels.
-	_pending_ability = ab if _pending_ability != ab else null
+	_pending_ordnance = entry.ordnance if _pending_ordnance != entry.ordnance else null
 
-func _activate_pending_ability() -> void:
-	if _pending_ability == null or _event_manager == null:
-		_pending_ability = null
+func _activate_pending_ordnance() -> void:
+	if _pending_ordnance == null or _event_manager == null:
+		_pending_ordnance = null
 		return
-	_pending_ability.activate(command_message.world_position, _event_manager)
-	_pending_ability = null
+	# Activate on behalf of the local human commander so the event spawns/affects
+	# things for the player, not commander 0.
+	_pending_ordnance.activate(command_message.world_position, _event_manager, PLAYER_COMMANDER_ID)
+	_pending_ordnance = null
 #endregion

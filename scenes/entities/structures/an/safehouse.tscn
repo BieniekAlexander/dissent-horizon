@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://cfknm7pw56rqq"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_base"]
+[ext_resource type="Texture2D" uid="uid://b2ufpkj0vknhf" path="res://assets/entities/safehouse.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="3_grsn"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_es21j"]
+height = 100.0
+radius = 10.0
+
+[node name="Structure" unique_id=1086267193 instance=ExtResource("1_base")]
+vigor_provided = 50
+type = 8706
+
+[node name="AggroRange" parent="." index="4" unique_id=131280482]
+shape = SubResource("CylinderShape3D_es21j")
+
+[node name="Defense" parent="." index="8" unique_id=637704181]
+armour_type = 2
+hp_max = 300.0
+
+[node name="Garrison" type="Node" parent="." index="10" unique_id=1073047851]
+script = ExtResource("3_grsn")
+
+[node name="Sprite" parent="." index="14" unique_id=1381401170]
+transform = Transform3D(5, 0, 0, 0, 1.767767, -3.535534, 0, 1.767767, 3.535534, 0, 0.4, -0.4)
+texture = ExtResource("2_tex")

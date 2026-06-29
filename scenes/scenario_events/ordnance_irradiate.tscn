@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://ceb4vdpa82eig"]
+
+[ext_resource type="Script" uid="uid://f3kmjhjgjaom" path="res://scripts/scenario/events/event_ability_irradiate.gd" id="1_irr"]
+
+[node name="OrdnanceIrradiate" type="Node3D"]
+script = ExtResource("1_irr")

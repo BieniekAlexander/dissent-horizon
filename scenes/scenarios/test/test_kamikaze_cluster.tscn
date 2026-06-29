@@ -1,0 +1,109 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/scenario/test/test_scenario.gd" id="1_p6at1"]
+[ext_resource type="Script" path="res://scripts/scenario/test/test_expectation.gd" id="2_4rowk"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_unit_has_command.gd" id="3_tf026"]
+[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="4_otfk0"]
+[ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="5_nn1mh"]
+[ext_resource type="Script" path="res://scripts/maps/map.gd" id="6_7bk8i"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/kamikaze.tscn" id="7_bro1q"]
+[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="8_2soij"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/irregular.tscn" id="9_hx2ak"]
+
+[sub_resource type="Resource" id="Resource_a56bk"]
+script = ExtResource("3_tf026")
+unit_type = 8452
+
+[sub_resource type="Resource" id="Resource_seot4"]
+script = ExtResource("2_4rowk")
+description = "kamikaze attacks the cluster within 300 ticks"
+condition = SubResource("Resource_a56bk")
+deadline_ticks = 300
+
+[sub_resource type="Resource" id="Resource_1bqt1"]
+script = ExtResource("4_otfk0")
+faction = ExtResource("5_nn1mh")
+starting_dominion = 0
+
+[sub_resource type="Resource" id="Resource_67mau"]
+script = ExtResource("4_otfk0")
+faction = ExtResource("5_nn1mh")
+difficulty = 0
+starting_ore = 0
+starting_dominion = 0
+
+[sub_resource type="HeightMapShape3D" id="HeightMapShape3D_b5pmn"]
+map_width = 21
+map_depth = 21
+map_data = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_p1740"]
+
+[node name="TestKamikazeCluster" type="Node3D" unique_id=1118149575]
+script = ExtResource("1_p6at1")
+expectations = Array[ExtResource("2_4rowk")]([SubResource("Resource_seot4")])
+max_ticks = 600
+player_slots = Array[ExtResource("4_otfk0")]([SubResource("Resource_1bqt1"), SubResource("Resource_67mau")])
+
+[node name="Map" type="Node3D" parent="." unique_id=455736939]
+script = ExtResource("6_7bk8i")
+height_map = SubResource("HeightMapShape3D_b5pmn")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" unique_id=206289621 groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_p1740")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion" unique_id=1280589434]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=616714704]
+shape = SubResource("HeightMapShape3D_b5pmn")
+
+[node name="HeightPins" type="Node3D" parent="Map" unique_id=1495000324]
+
+[node name="Kamikaze" type="CharacterBody3D" parent="." unique_id=440012001 groups=["commandable", "unit"] instance=ExtResource("7_bro1q")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
+script = ExtResource("8_2soij")
+type = 8452
+default_commander_id = 1
+
+[node name="Unit2" type="CharacterBody3D" parent="." unique_id=1210299015 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0)
+script = ExtResource("8_2soij")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@2" type="CharacterBody3D" parent="." unique_id=1126334548 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 0.8660254)
+script = ExtResource("8_2soij")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@3" type="CharacterBody3D" parent="." unique_id=321715670 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0.8660254)
+script = ExtResource("8_2soij")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@4" type="CharacterBody3D" parent="." unique_id=1133482428 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 1.2246469e-16)
+script = ExtResource("8_2soij")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@5" type="CharacterBody3D" parent="." unique_id=986920232 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, -0.8660254)
+script = ExtResource("8_2soij")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@6" type="CharacterBody3D" parent="." unique_id=188054937 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -0.8660254)
+script = ExtResource("8_2soij")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@7" type="CharacterBody3D" parent="." unique_id=1041162017 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+script = ExtResource("8_2soij")
+type = 8449
+default_commander_id = 2

@@ -1,10 +1,6 @@
 class_name Entity
 extends CharacterBody3D
 
-## Name of the organizational header node (see commandable.tscn) that EntityTrigger child
-## nodes are grouped under in the scene tree.
-const TRIGGERS_HEADER := "#####TRIGGERS#####"
-
 #region Identity
 # I need to enumerate because I can't peek into packed scenes
 @export var type: Type
@@ -38,14 +34,21 @@ enum Type {
 	TC_UNIT_VANGUARD=0x1102,
 	## AN (ANARCHICAL)
 	AN_STRUCTURE_STRONGHOLD=0x2200,
+	AN_STRUCTURE_FIELD_HOSPITAL=0x2201,
+	AN_STRUCTURE_SAFEHOUSE=0x2202,
 	AN_STRUCTURE_HANGAR=0x2208,
-	AN_UNIT_TECHNICIAN=0x1100,
+	TC_UNIT_TECHNICIAN=0x1100,
 	AN_UNIT_IRREGULAR=0x2101,
 	AN_UNIT_WARLORD=0x2103,
 	AN_UNIT_KAMIKAZE=0x2104,
 	## CL (COLONIAL)
-	CL_UNIT_RECRUIT=0x3100,
-	CL_UNIT_BADGER=0x3101,
+	CL_UNIT_STOCK_TRUCK=0x3100,
+	CL_UNIT_RECRUIT=0x3101,
+	CL_UNIT_BADGER=0x3102,
+	CL_STRUCTURE_SETTLEMENT=0x3200,
+	CL_STRUCTURE_POWER_PLANT=0x3201,
+	CL_STRUCTURE_BARRACKS=0x3202,
+	CL_STRUCTURE_INTERNMENT_CAMP=0x3203,
 	CL_STRUCTURE_SAM=0x3208,
 	CL_STRUCTURE_CANNON=0x3209,
 }
@@ -63,14 +66,17 @@ const TEAM_COLOR_MAP: Dictionary = {
 ## Lifecycle moments that can happen to an entity — the "occurrence" (condition-side)
 ## inputs that an EntityTrigger reacts to, distinct from an Event (the world-update it
 ## fires). Selects which EntityTrigger reacts, and is the payload of the `entity_occurrence`
-## signal. Currently only ON_DEATH and ON_RECEIVE_DAMAGE are wired (see _on_death /
-## Commandable.receive_damage); the stealth occurrences are enumerated for future use
-## (they'd emit from Stealth's state transitions).
+## signal. Stealth occurrences emit from Stealth's state transitions. Attacker occurrences
+## (ON_DEAL_DAMAGE, ON_KILL) fire on the attacker via receive_damage; ON_FINISH_BUILD fires
+## on the builder from Repair.fulfill_action when construction completes.
 enum EntityOccurrence {
 	ON_DEATH = 0,
 	ON_RECEIVE_DAMAGE = 1,
 	ON_ENTER_STEALTH = 2,
-	ON_EXIT_STEALTH = 3
+	ON_EXIT_STEALTH = 3,
+	ON_DEAL_DAMAGE = 4,
+	ON_KILL = 5,
+	ON_FINISH_BUILD = 6,
 }
 
 ## Per-entity reactions are authored as EntityTrigger CHILD NODES of this entity, each
@@ -103,6 +109,21 @@ var commander: Commander:
 
 var commander_id: int:
 	get: return ownership.commander_id
+
+## Ownership-relationship helpers. commander_id 0 is the neutral/world owner (see
+## CLAUDE.md): neither friend nor foe. These centralize the commander_id
+## comparisons that were otherwise duplicated (in subtly different, easy-to-invert
+## shapes) across aggro, detection, AI, and command code.
+func is_neutral() -> bool:
+	return commander_id == 0
+
+func is_friendly_to(other: Entity) -> bool:
+	return other != null and commander_id == other.commander_id
+
+## True when `other` is an enemy of this entity: owned (not neutral) by a different
+## commander.
+func is_enemy_of(other: Entity) -> bool:
+	return other != null and other.commander_id > 0 and other.commander_id != commander_id
 #endregion
 
 #region Components
@@ -303,6 +324,14 @@ func targetable_layers() -> int:
 	if target_body == null:
 		return 0
 	return target_body.collision_layer & CollisionLayers.TARGETABLE_ANY
+
+
+## True when this entity is currently airborne — it has an aerial movement mode
+## (HOVERING or FLYING) and is not mid-landing or temporarily grounded.
+## False for GROUNDED_DIRECT units and for HOVERING units in any landing state
+## (LANDING / GROUNDED_TEMP / TAKING_OFF).
+func is_airborne() -> bool:
+	return movement != null and movement.is_airborne()
 #endregion
 
 #region Lifecycle
@@ -427,10 +456,13 @@ func receive_damage(damage: Damage, from: Commandable = null) -> void:
 	if defense == null:
 		return
 	var final_amount: float = DamageTable.calculate_damage(damage.amount, damage.type, self)
-	var was_alive: bool = defense.hp > 0
-	defense.hp -= final_amount
-	if was_alive and defense.hp <= 0 and from != null and from.veterancy != null:
-		from.veterancy.gain_experience(10)
+	var was_lethal: bool = defense.apply_damage(final_amount)
+	if from != null and from.veterancy != null:
+		from.veterancy.gain_experience(roundi(final_amount * Veterancy.XP_PER_DAMAGE))
+		from._fire_entity_occurrence(EntityOccurrence.ON_DEAL_DAMAGE)
+		if was_lethal:
+			from.veterancy.gain_experience(roundi(defense.hp_max * Veterancy.XP_PER_KILL_HP))
+			from._fire_entity_occurrence(EntityOccurrence.ON_KILL)
 	_fire_entity_occurrence(EntityOccurrence.ON_RECEIVE_DAMAGE)
 
 func _on_death() -> void:
@@ -487,7 +519,7 @@ func _trigger_for(occurrence: EntityOccurrence) -> EntityTrigger:
 ## header node if it exists, otherwise the entity itself.
 func _triggers_root() -> Node:
 	for child in get_children():
-		if child.name == TRIGGERS_HEADER:
+		if child.name == "#####TRIGGERS#####": # TODO refactor - the agent did this too literally
 			return child
 	return self
 

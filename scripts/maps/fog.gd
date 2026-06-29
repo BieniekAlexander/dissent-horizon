@@ -1,16 +1,32 @@
 class_name Fog
 extends MeshInstance3D
 
-## Three-state terrain visibility as seen by the player.
-##   UNSEEN    — tile has never been in a player unit's vision radius.
+## Three-state terrain visibility as seen by a single commander.
+##   UNSEEN    — tile has never been in any owned unit's vision radius.
 ##   EXPLORED  — tile was seen at some point but is currently fogged.
-##   IN_SIGHT  — tile is inside a player unit's vision radius this frame.
+##   IN_SIGHT  — tile is inside an owned unit's vision radius this frame.
 enum TerrainVisibility { UNSEEN, EXPLORED, IN_SIGHT }
 
 #region Properties
 var POINTS_PER_UNIT: float = 1.0  # overwritten in _initialize() = 1.0 / Map.CELL_SIZE
 # L8 byte value for "explored but not currently visible" (alpha ≈ 0.5)
 const EXPLORED_ALPHA: int = 127
+
+## The commander whose units are used to reveal this fog texture.
+## -1 (default) falls back to RTSController.PLAYER_COMMANDER_ID so the node
+## placed in player.tscn needs no configuration.
+var watching_commander_id: int = -1
+
+## Which commander's fog currently drives entity visibility and renders its mesh.
+## -1  (default)  → use RTSController.PLAYER_COMMANDER_ID (normal gameplay).
+## -2             → omniscient: all entities visible, no fog plane rendered.
+## ≥ 1            → that specific commander's Fog is active (spectator mode).
+## Changed by the spectator HUD toggle buttons.
+static var active_commander_id: int = -1
+
+## Registry: commander_id → Fog node, for look-up by the minimap and spectator HUD.
+## The player's Fog registers under key -1 (its watching_commander_id default).
+static var _fogs_by_commander: Dictionary = {}
 
 var _img_width: int
 var _img_height: int
@@ -28,6 +44,7 @@ var _sight_disc_cache: Dictionary  # int radius_px -> Array[Vector2i]
 func _ready() -> void:
 	call_deferred(&"_initialize")
 	get_active_material(0).render_priority = RenderPriority.FOG_PRIORITY
+	Fog._fogs_by_commander[watching_commander_id] = self
 
 func _initialize() -> void:
 	var map: Map = get_tree().current_scene.find_child("Map")
@@ -68,15 +85,18 @@ func _initialize() -> void:
 func _physics_process(_delta: float) -> void:
 	if _fog_texture == null:
 		return
-	# The debug view (hold Space) only hides the fog MESH so the whole map shows;
-	# the fog STATE keeps updating underneath so reveals/explored data stay current
-	# (and enemy sight logic keeps running) while the button is held.
-	var debug_view: bool = Input.is_action_pressed("debug_info")
-	visible = not debug_view
 
+	var active_id: int = Fog.active_commander_id
+	var viewer_id: int = watching_commander_id if watching_commander_id >= 0 \
+		else RTSController.PLAYER_COMMANDER_ID
+	var is_active: bool = (active_id == -1 and viewer_id == RTSController.PLAYER_COMMANDER_ID) \
+		or viewer_id == active_id
+
+	# ── Update exploration texture for this commander's units ──
+	# Runs for every commander's Fog so their data stays current even off-screen.
 	_fog_bytes = _explored_bytes.duplicate()
 	for entity: Entity in get_tree().get_nodes_in_group("commandable"):
-		if entity.commander_id != RTSController.PLAYER_COMMANDER_ID:
+		if entity.commander_id != viewer_id:
 			continue
 		if entity.vision_range_shape == null:
 			continue
@@ -96,27 +116,47 @@ func _physics_process(_delta: float) -> void:
 	_fog_image = Image.create_from_data(_img_width, _img_height, false, Image.FORMAT_L8, _fog_bytes)
 	_fog_texture.update(_fog_image)
 
-	for entity: Entity in get_tree().get_nodes_in_group("commandable"):
-		if entity.commander_id == RTSController.PLAYER_COMMANDER_ID:
-			continue
-		var pixel: Vector2i = _world_to_pixel(VU.inXZ(entity.global_position))
-		var in_bounds: bool = pixel.x >= 0 and pixel.x < _img_width and pixel.y >= 0 and pixel.y < _img_height
-		var fog_clear: bool = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
-		# While debug-viewing, reveal every entity too; otherwise enemies show only
-		# where the fog is clear. in_sight_range below stays pure game logic.
-		entity.visible = debug_view or fog_clear
-		# in_sight_range: true only when the fog pixel is clear AND the entity is
-		# not actively stealthed. A stealthed enemy in a revealed fog cell is
-		# technically "visible" (the pixel is clear) but is perceptually hidden —
-		# its sprite alpha is 0 and it should not appear on the minimap or trigger
-		# any sight-based game logic. REVEALED and UNSTEALTHED count as perceptible.
-		if entity is Commandable:
-			var stealthed: bool = entity.stealth != null \
-				and entity.stealth.state == Stealth.State.STEALTHED
-			(entity as Commandable).in_sight_range = fog_clear and not stealthed
+	# ── Mesh visibility: only the active fog plane renders ──
+	# Debug-view hides the active fog mesh temporarily (terrain stays lit, data
+	# keeps updating) — same behaviour as before but now scoped to the active fog.
+	var debug_view: bool = Input.is_action_pressed("debug_info")
+	visible = is_active and not debug_view and active_id != -2
+
+	# ── Entity visibility: only one system touches this per frame ──
+	if active_id == -2:
+		# Omniscient spectator: every Fog instance runs this — idempotent and cheap.
+		for entity: Entity in get_tree().get_nodes_in_group("commandable"):
+			entity.visible = true
+			if entity is Commandable:
+				var stealthed: bool = entity.stealth != null \
+					and entity.stealth.state == Stealth.State.STEALTHED
+				(entity as Commandable).in_sight_range = not stealthed
+	elif is_active:
+		for entity: Entity in get_tree().get_nodes_in_group("commandable"):
+			if entity.commander_id == viewer_id:
+				continue
+			var pixel: Vector2i = _world_to_pixel(VU.inXZ(entity.global_position))
+			var in_bounds: bool = pixel.x >= 0 and pixel.x < _img_width \
+				and pixel.y >= 0 and pixel.y < _img_height
+			var fog_clear: bool = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
+			entity.visible = debug_view or fog_clear
+			if entity is Commandable:
+				var stealthed: bool = entity.stealth != null \
+					and entity.stealth.state == Stealth.State.STEALTHED
+				(entity as Commandable).in_sight_range = fog_clear and not stealthed
 #endregion
 
 #region Public API
+## The Fog node currently driving entity visibility and the rendered plane.
+## Returns null in omniscient mode (active_commander_id == -2).
+static func get_active_fog() -> Variant:
+	var active_id: int = Fog.active_commander_id
+	if active_id == -2:
+		return null
+	if active_id == -1:
+		return Fog._fogs_by_commander.get(-1)
+	return Fog._fogs_by_commander.get(active_id)
+
 ## Returns the three-state terrain visibility for the fog pixel covering
 ## `world_xz`. Used by the minimap to colour terrain appropriately.
 func terrain_visibility_at(world_xz: Vector2) -> TerrainVisibility:

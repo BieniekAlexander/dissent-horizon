@@ -56,8 +56,10 @@ static func _target_available(target: Entity) -> bool:
 ## initialised under the actor's commander — dropping it at the target's
 ## position would spawn it inside the target structure.
 ##
-## Any other scene is added to the active scene anchored at the target; a
-## Event root additionally has execute() called and is then freed (a
+## Any other scene is added to the active scene anchored at the target; an
+## AbstractEvent root is run through ScenarioTriggerManager.run_event with the
+## actor as the reaction source — so events using Assignment.INHERITED (e.g.
+## liberation) assign their spawns to the liberating commander — then freed (a
 ## one-shot performance), while plain scenes are left to run their own _ready.
 func _perform_event(a_actor: Commandable, interaction: Interaction) -> void:
 	if interaction.event == null:
@@ -83,9 +85,12 @@ func _perform_event(a_actor: Commandable, interaction: Interaction) -> void:
 	scene_root.add_child(instance)
 	if instance is Node3D and is_instance_valid(message.target):
 		(instance as Node3D).global_position = (message.target as Node3D).global_position
-	if instance.has_method("execute"):
+	if instance is AbstractEvent:
 		var manager := scene_root.find_child("ScenarioTriggerManager") as ScenarioTriggerManager
-		instance.execute(manager)
+		if manager != null:
+			# Run with the actor as reaction source so INHERITED-assignment events
+			# spawn under the liberating commander; run_event also recurses nested events.
+			manager.run_event(instance as AbstractEvent, a_actor)
 		instance.queue_free()
 #endregion
 
@@ -101,11 +106,20 @@ func get_updated_state(a_actor: Commandable) -> Command:
 
 func should_move(a_actor: Commandable) -> bool:
 	return is_instance_valid(message.target) \
-		and not SU.unit_is_close_to_target(a_actor, message.target)
+		and not SU.unit_is_close_to_target(a_actor, message.target, _reach_squared(a_actor))
 
 func can_act(a_actor: Commandable) -> bool:
 	return is_instance_valid(message.target) \
-		and SU.unit_is_close_to_target(a_actor, message.target)
+		and SU.unit_is_close_to_target(a_actor, message.target, _reach_squared(a_actor))
+
+## Squared proximity slack passed to the closeness check — the resolved interaction's
+## interact_range² when set, else the default near-touch. Lets an interaction (e.g.
+## ABDUCT) grab a mobile target from a few units away instead of needing to collide.
+func _reach_squared(a_actor: Commandable) -> float:
+	var interaction := _interaction_for(a_actor)
+	if interaction != null and interaction.interact_range > 0.0:
+		return interaction.interact_range * interaction.interact_range
+	return 0.001
 
 ## Accumulate interaction time while in range; perform the event once the
 ## interaction's duration has elapsed, then end the command.
@@ -116,16 +130,65 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	_elapsed += a_actor.get_physics_process_delta_time()
 	if _elapsed < interaction.duration:
 		return self
-	_perform_event(a_actor, interaction)
-	_on_completed(interaction)
+	_complete(a_actor, interaction)
 	return null
 
-## Type-specific completion side effects. A completed LIBERATE consumes the
-## target Shelter's availability, restarting its countdown to maximum so the
-## shelter must recharge before it can be interacted with again.
-func _on_completed(interaction: Interaction) -> void:
-	if interaction.type != Interaction.Type.LIBERATE:
+## Run the interaction's completion effect, dispatched by type. LIBERATE spawns the
+## event units into the world; the inventory types (ABDUCT/COLLECT/DEPOSIT) move
+## units between the actor's and target's Inventories instead.
+func _complete(a_actor: Commandable, interaction: Interaction) -> void:
+	match interaction.type:
+		Interaction.Type.LIBERATE:
+			_perform_event(a_actor, interaction)
+			_reset_target_shelter()
+		Interaction.Type.ABDUCT:
+			_abduct(a_actor)
+		Interaction.Type.COLLECT:
+			_collect(a_actor, interaction)
+			_reset_target_shelter()
+		Interaction.Type.DEPOSIT:
+			_deposit(a_actor)
+
+## Remove the targeted enemy unit from the game and imprison it in the actor's
+## Inventory. The captured instance is detached from the tree (so it leaves physics,
+## fog, and group queries) but kept alive as the prisoner; the holder frees it on
+## death (see Inventory). No-op if the actor's inventory filled up in the meantime.
+func _abduct(a_actor: Commandable) -> void:
+	if not is_instance_valid(message.target):
 		return
+	var inventory: Inventory = a_actor.ability_inventory
+	if inventory == null or not inventory.can_hold_more():
+		return
+	var captive: Entity = message.target
+	var parent: Node = captive.get_parent()
+	if parent != null:
+		parent.remove_child(captive)
+	inventory.add_item(captive)
+
+## Instantiate up to the interaction's payload_count units into the actor's
+## Inventory (clamped to remaining space), without ever placing them in the world.
+func _collect(a_actor: Commandable, interaction: Interaction) -> void:
+	var inventory: Inventory = a_actor.ability_inventory
+	if inventory == null or interaction.payload_scene == null:
+		return
+	for i: int in interaction.payload_count:
+		if not inventory.can_hold_more():
+			break
+		inventory.add_item(interaction.payload_scene.instantiate() as Entity)
+
+## Transfer carried units from the actor's Inventory into the target's, oldest first,
+## until the target is full or the actor is empty (partial deposit allowed).
+func _deposit(a_actor: Commandable) -> void:
+	var source: Inventory = a_actor.ability_inventory
+	var sink: Inventory = Interaction.target_inventory(message.target)
+	if source == null or sink == null:
+		return
+	while source.has_items() and sink.can_hold_more():
+		sink.add_item(source.items.pop_front())
+
+## Restart the target Shelter's countdown so it must recharge before being used
+## again. No-op when the target has no Shelter.
+func _reset_target_shelter() -> void:
 	if not is_instance_valid(message.target):
 		return
 	var shelter := message.target.get_node_or_null("Shelter") as Shelter

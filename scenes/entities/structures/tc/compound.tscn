@@ -31,6 +31,7 @@ gradient = SubResource("Gradient_hp_fill")
 [node name="Structure" instance=ExtResource("1_1qdpe")]
 process_physics_priority = 10
 type = 4612
+vigor_required = 40
 
 [node name="MovementBody" parent="." index="2"]
 shape = SubResource("BoxShape3D_1qdpe")
@@ -50,7 +51,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.012939453, 0, 0.029663086)
 shape = SubResource("BoxShape3D_i3cr2")
 
 [node name="Sprite" parent="." index="14"]
-transform = Transform3D(10, 0, 0, 0, 0.86762, -6.3639607, 0, 0.86762, 6.3639607, 0.088653564, 0.6683121, 0.36853027)
+transform = Transform3D(3.5, 0, 0, 0, 2.4748745, -2.4748745, 0, 2.4748745, 2.4748745, 0, 0.45, 0)
 layers = 1
 texture = ExtResource("3_i3cr2")
 

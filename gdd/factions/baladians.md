@@ -17,7 +17,6 @@
 - Asymmetric Mechanics
 	- Mobility - cheap, mobile helicopters, maybe with stealth
 	- Heal - field hospitals
-	- Steal - hijack mechanic
 	- Disable - EMP
 	- Boost - warlord unit AOE bonus
 - Unique Mechanics

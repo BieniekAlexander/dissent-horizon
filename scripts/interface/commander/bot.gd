@@ -98,11 +98,15 @@ func ore_is_above(threshold: int) -> bool:
 	return ore >= threshold
 
 
-## True when 80 % or more of population capacity is already consumed.
-## A strained population will block the next unit train order; the bot
-## should queue a Dwelling before training more units.
-func population_is_strained() -> bool:
-	return population_max > 0 and float(population_used) / float(population_max) >= 0.8
+## Vigor surplus below which the bot should stand up its faction vigor provider
+## before expanding further — roughly one unit-producing structure's upkeep, so it
+## builds power proactively rather than waiting until it's already strained.
+const VIGOR_PROVIDER_MARGIN: int = 40
+
+## True when the commander lacks the headroom to add another vigor-consuming
+## structure — the cue for BotEconomy to build a vigor provider before more buildings.
+func needs_vigor_provider() -> bool:
+	return vigor < VIGOR_PROVIDER_MARGIN
 
 
 ## The number of owned Mines that are fully built.  Serves as a relative income
@@ -116,7 +120,7 @@ func mine_count() -> int:
 
 
 ## True when the bot has both the prerequisite tech unlock AND enough ore /
-## population / dominion to produce [type] right now.
+## vigor / dominion to produce [type] right now.
 func can_afford(type: Entity.Type) -> bool:
 	return has_resources_for(type)
 
@@ -262,8 +266,21 @@ func get_enemies_near(position: Vector3, radius: float) -> Array:
 	return SU.get_nearby_entities(
 		map.get_world_3d(), position, radius, CollisionLayers.TARGETABLE_ANY
 	).filter(
-		func(e): return e is Commandable and e.commander_id != id
+		# An ENEMY is owned by a different, non-neutral commander. Excluding neutral
+		# (id 0) here — matching is_enemy_of / _enemy_commanders — keeps the bot from
+		# treating neutral structures as targets (e.g. BotTargeting would otherwise
+		# retask a unit onto a neutral building). Neutrals still take collateral AoE.
+		func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0
 	)
+
+
+## Enemy commandables within [unit]'s aggro range. Returns an empty array when
+## the unit has no aggro_range_shape or the shape has zero radius.
+func get_enemies_in_aggro_range(unit: Commandable) -> Array:
+	var radius: float = _shape_xz_radius(unit.aggro_range_shape)
+	if radius <= 0.0:
+		return []
+	return get_enemies_near(unit.global_position, radius)
 
 
 ## Enemy units within [threat_radius] world units of any owned structure.
@@ -349,6 +366,38 @@ func base_centroid() -> Vector3:
 	return sum / float(all_s.size())
 
 
+## Owned, fully-built structures that have a Garrison component with remaining space.
+func get_garrison_structures() -> Array:
+	return _owned_structures().filter(
+		func(s: Commandable) -> bool:
+			return s.is_built and s.garrison != null and s.garrison.can_garrison()
+	)
+
+
+## The nearest owned garrison structure with available space to [unit], or null
+## when the bot owns none. Used by preservation to garrison at-risk units.
+func nearest_garrison_for(unit: Commandable) -> Commandable:
+	var hosts: Array = get_garrison_structures()
+	if hosts.is_empty():
+		return null
+	return AU.sort_on_key(
+		func(s: Commandable): return unit.global_position.distance_squared_to(s.global_position),
+		hosts
+	).front()
+
+
+## The owned structure nearest to [from], or null when the bot owns none.
+## Used by BotPreservation as the retreat waypoint for at-risk units.
+func nearest_own_structure(from: Vector3) -> Commandable:
+	var structs: Array = _owned_structures()
+	if structs.is_empty():
+		return null
+	return AU.sort_on_key(
+		func(s: Commandable): return from.distance_squared_to(s.global_position),
+		structs
+	).front()
+
+
 ## The enemy structure closest to our base centroid.
 ## Attacking the nearest enemy building minimises exposure while applying
 ## economic pressure.  Returns null when no enemy structures exist.
@@ -392,6 +441,94 @@ func nearest_neutral_mine(from_position: Vector3) -> Commandable:
 	).front()
 
 
+# ─── INTERACTIONS (utility-gain opportunities) ──────────────────────────────
+
+## Owned units that can perform interactions — those carrying an Interactor component
+## (e.g. Warlords, who can liberate Shelters). The set the opportunist draws liberators
+## from; identified by the component, so any future interactor unit is picked up.
+func get_interactors() -> Array:
+	return _owned_units().filter(func(u: Commandable): return u.interactor != null)
+
+
+## Every Shelter on the map currently available to interact with (its startup countdown
+## has elapsed). Shelters are fixed neutral map features, so — like neutral mines — the
+## bot is aware of them regardless of fog. Returns the Shelter-bearing Entities (a
+## ShelterStructure derives from Entity, not Commandable — it takes no commands).
+func get_available_shelters() -> Array:
+	return get_tree().get_nodes_in_group("shelter").filter(
+		func(n: Node) -> bool:
+			var s := n.get_node_or_null("Shelter") as Shelter
+			return s != null and s.available
+	)
+
+
+## Owned, built structures with inventory space to receive deposited units (e.g. an
+## internment camp). Identified by the Inventory component, so any future deposit
+## structure is picked up automatically.
+func get_deposit_structures() -> Array:
+	return _owned_structures().filter(
+		func(s: Commandable) -> bool:
+			if not s.is_built:
+				return false
+			var inv := s.get_node_or_null("Inventory") as Inventory
+			return inv != null and inv.can_hold_more()
+	)
+
+
+## Visible enemy units the bot can capture: biological-frame, non-structure, owned by
+## an enemy. Fog-limited (visible_enemies only). The Colonial stock truck imprisons
+## these for dominion.
+func get_capturable_enemies() -> Array:
+	return visible_enemies().filter(
+		func(e: Commandable) -> bool:
+			return not e.has_node("Structure") \
+				and EntityAttribute.evaluate(EntityAttribute.Type.IS_BIOLOGICAL, e)
+	)
+
+
+## Ore value of the units an Interaction's event scene would spawn for us — sums
+## unit_cost(type) × count across every EventSpawnEntities in the event. This is the raw
+## utility GAIN of performing the interaction (e.g. liberating a Shelter). Cached per
+## event scene path, since the catalog is authored on the scene and never changes.
+var _interaction_value_cache: Dictionary = {}
+
+func interaction_spawn_value(interaction: Interaction) -> float:
+	if interaction == null or interaction.event == null:
+		return 0.0
+	var key: String = interaction.event.resource_path
+	if _interaction_value_cache.has(key):
+		return _interaction_value_cache[key]
+	var value: float = _compute_interaction_spawn_value(interaction.event)
+	_interaction_value_cache[key] = value
+	return value
+
+
+func _compute_interaction_spawn_value(event_scene: PackedScene) -> float:
+	var root: Node = event_scene.instantiate()
+	var spawners: Array = []
+	if root is EventSpawnEntities:
+		spawners.append(root)
+	spawners.append_array(root.find_children("*", "EventSpawnEntities", true, false))
+	var value: float = 0.0
+	for spawner: EventSpawnEntities in spawners:
+		for packed: PackedScene in spawner.entity_scenes:
+			value += float(_scene_unit_cost(packed) * spawner.count)
+	root.free()
+	return value
+
+
+## Ore cost of the unit a PackedScene spawns, via the tech tree (same convention as
+## army_resource_value). Instantiates out of tree only to read the scene's Entity.Type,
+## then frees it. 0 when the scene isn't an Entity or the type isn't priced.
+func _scene_unit_cost(packed: PackedScene) -> int:
+	if packed == null:
+		return 0
+	var inst: Node = packed.instantiate()
+	var t: Variant = inst.type if inst is Entity else Entity.Type.UNDEFINED
+	inst.free()
+	return unit_cost(t)
+
+
 # ─── TECHNOLOGY / BUILD ORDER ───────────────────────────────────────────────
 
 ## The build/train preview instance for [type], or null when no tool produces it
@@ -413,6 +550,30 @@ func _type_is_structure(type) -> bool:
 func _type_is_unit(type) -> bool:
 	var preview := _preview_for_type(type)
 	return preview != null and not preview.has_node("Structure")
+
+
+## True when [type] is a COMBAT unit — its scene carries a Loadout with at least one
+## Weapon. A unit with an empty Loadout (e.g. the colonial Stock Truck, whose utility
+## role isn't wired yet) can't attack, so it returns false: the bot won't field it in
+## attack waves or train it as army. Inspected on the cached build preview, so no
+## per-type table is needed.
+func unit_can_attack(type) -> bool:
+	var preview := _preview_for_type(type)
+	if preview == null:
+		return false
+	var loadout := preview.get_node_or_null("Loadout") as Loadout
+	return loadout != null and loadout.has_weapons()
+
+
+## True when [type] is a non-combat UTILITY unit worth fielding anyway — it can build
+## structures (Builds) or perform interactions (Interactor), e.g. the Colonial Stock
+## Truck. Lets production stand up a controlled number of these even though they can't
+## attack. Inspected on the cached build preview, so no per-type table is needed.
+func unit_is_utility(type) -> bool:
+	var preview := _preview_for_type(type)
+	if preview == null:
+		return false
+	return preview.has_node("Builds") or preview.has_node("Interactor")
 
 
 ## True when [type]'s scene carries the named component (e.g. "Production",
@@ -463,6 +624,30 @@ func buildable_income_structure_types() -> Array:
 	return buildable_structure_types().filter(
 		func(t): return _type_has_component(t, "OreExtractor")
 	)
+
+
+## Buildable structures that generate dominion (carry a DominionGenerator — e.g. the
+## Colonial internment camp). The generic hook the economy uses to stand up whatever
+## structure a faction's dominion strategy needs, with no per-faction type list.
+func buildable_dominion_structure_types() -> Array:
+	return buildable_structure_types().filter(
+		func(t): return _type_has_component(t, "DominionGenerator")
+	)
+
+
+## Buildable structures that supply vigor (their preview's vigor_provided > 0 — e.g.
+## the Colonial power plant, Anarchical safehouse, Technocratic dwelling). The generic
+## hook the economy uses to keep the commander out of vigor strain; the right
+## faction-specific provider falls out of each faction's buildable set automatically.
+func buildable_vigor_structure_types() -> Array:
+	return buildable_structure_types().filter(func(t): return _type_provides_vigor(t))
+
+
+## True when [type]'s build preview contributes vigor capacity (vigor_provided > 0),
+## inspected on the cached preview so no per-type table is needed.
+func _type_provides_vigor(type) -> bool:
+	var preview := _preview_for_type(type)
+	return preview is Commandable and (preview as Commandable).vigor_provided > 0
 
 
 # ─── VISION (fog-limited perception) + COUNTER-INTEL ────────────────────────
@@ -544,6 +729,21 @@ func enemy_demand_map() -> Dictionary:
 		if not reps.has(entry.type):
 			reps[entry.type] = entry.entity
 
+	# The enemy ALWAYS has a base to raze (the win condition), so guarantee a baseline
+	# anti-structure target even when none is currently in view. Without this, a bot
+	# that sees no enemy at all has zero demand and falls back to spamming the cheapest
+	# unit — exactly the "keeps making irregulars" bug. Proxy the enemy's (unseen)
+	# structures with one of our own (same armour class, a sound default otherwise).
+	var sees_enemy_structure: bool = reps.values().any(
+		func(r: Commandable): return r.has_node("Structure")
+	)
+	if not sees_enemy_structure:
+		var own_structs := _owned_structures()
+		if not own_structs.is_empty():
+			var s_rep: Commandable = own_structs[0]
+			importance[s_rep.type] = importance.get(s_rep.type, 0.0) + STRUCTURE_IMPORTANCE
+			reps[s_rep.type] = s_rep
+
 	var own := _owned_units()
 	var demand: Dictionary = {}
 	for etype in importance:
@@ -565,6 +765,118 @@ func unit_composition_value(unit_type, demand: Dictionary) -> float:
 	return total
 
 
+# ─── AOE-SUICIDE UNITS (kamikaze cost-effectiveness) ────────────────────────
+
+## Ore cost of a type, from the tech tree.
+func unit_cost(unit_type) -> int:
+	var spec: TechnologySpec = technology_mapping.get(unit_type)
+	return spec.ore_cost if spec != null else 0
+
+
+## Total ore value of the enemy's army AS THE BOT BELIEVES IT — sum of the build cost
+## of every believed-and-still-alive enemy UNIT on the blackboard (fog-limited: only
+## units the bot has seen). The contextual aggression compares this against its own
+## army value to decide whether it's ahead. 0 when nothing is believed.
+func believed_enemy_army_value() -> float:
+	if blackboard == null:
+		return 0.0
+	var total: float = 0.0
+	for entry: BotBlackboard.Entry in blackboard.believed():
+		if entry.is_structure or not is_instance_valid(entry.entity):
+			continue
+		total += unit_cost(entry.type)
+	return total
+
+## Cached per type: { "radius": float, "damage": float, "type": Damage.Type } when a
+## unit is an AOE-SUICIDE unit (its weapon fires a projectile carrying a
+## SuicideStatusEffect with a blast shape), else null. Detected from the projectile,
+## not a unit name, so any such unit qualifies. Reads the projectile's HitShape
+## sphere for the blast radius and its base_damage/damage_type.
+var _aoe_profile_cache: Dictionary = {}
+
+func aoe_suicide_profile(unit_type) -> Variant:
+	if _aoe_profile_cache.has(unit_type):
+		return _aoe_profile_cache[unit_type]
+	var profile: Variant = _compute_aoe_suicide_profile(unit_type)
+	_aoe_profile_cache[unit_type] = profile
+	return profile
+
+func _compute_aoe_suicide_profile(unit_type) -> Variant:
+	var unit_preview := _preview_for_type(unit_type)
+	if unit_preview == null:
+		return null
+	var loadout := unit_preview.get_node_or_null("Loadout") as Loadout
+	if loadout == null:
+		return null
+	for w: Weapon in loadout.get_weapons():
+		if w.projectile_scene == null:
+			continue
+		var proj: Node = w.projectile_scene.instantiate()
+		var suicide: bool = not proj.find_children("*", "SuicideStatusEffect", true, false).is_empty()
+		var radius: float = _projectile_blast_radius(proj)
+		var dmg: Variant = proj.get("base_damage")
+		var dtype: Variant = proj.get("damage_type")
+		proj.free()
+		if suicide and radius > 0.0 and dmg != null:
+			return {"radius": radius, "damage": float(dmg), "type": dtype}
+	return null
+
+func _projectile_blast_radius(proj: Node) -> float:
+	var hit := proj.get_node_or_null("HitShape") as CollisionShape3D
+	if hit == null or not (hit.shape is SphereShape3D):
+		return 0.0
+	# Out-of-tree, so use local transforms: blast radius scales with the projectile
+	# root and the shape node's own X scale.
+	return (hit.shape as SphereShape3D).radius * (proj as Node3D).scale.x * hit.transform.basis.x.length()
+
+
+## True when [unit] is an AOE-suicide unit (has an aoe_suicide_profile).
+func is_suicide_aoe_unit(unit: Commandable) -> bool:
+	return aoe_suicide_profile(unit.type) != null
+
+## Owned AOE-suicide units (the ones BotKamikaze micromanages).
+func get_suicide_aoe_units() -> Array:
+	return _owned_units().filter(func(u: Commandable): return is_suicide_aoe_unit(u))
+
+
+## The most COST-EFFECTIVE blast target for [kamikaze], or null if none clears the
+## bar. For each visible enemy unit (a blast centre), the hit's value is summed over
+## the enemy units the blast would catch: (HP-fraction it removes) × (their ore cost).
+## A run is worth it only when that value beats the drone's own cost — i.e. the blast
+## destroys more than it spends. Returns { "target": Commandable, "value": float }.
+func kamikaze_best_target(kamikaze: Commandable) -> Variant:
+	var profile: Variant = aoe_suicide_profile(kamikaze.type)
+	if profile == null:
+		return null
+	var enemies := visible_enemies()
+	var best_target: Commandable = null
+	var best_value: float = 0.0
+	for e: Commandable in enemies:
+		if e.has_node("Structure"):
+			continue  # centre blasts on enemy UNITS (clusters), not buildings
+		var value: float = _aoe_hit_value(e.global_position, profile, enemies)
+		if value > best_value:
+			best_value = value
+			best_target = e
+	if best_target != null and best_value >= float(unit_cost(kamikaze.type)):
+		return {"target": best_target, "value": best_value}
+	return null
+
+func _aoe_hit_value(center: Vector3, profile: Dictionary, enemies: Array) -> float:
+	var c: Vector2 = VU.inXZ(center)
+	var radius: float = profile["radius"]
+	var total: float = 0.0
+	for u: Commandable in enemies:
+		if u.has_node("Structure") or u.defense == null or u.defense.hp_max <= 0.0:
+			continue
+		if c.distance_to(VU.inXZ(u.global_position)) > radius:
+			continue
+		var eff: float = DamageTable.calculate_damage(profile["damage"], profile["type"], u)
+		var fraction: float = minf(eff, u.defense.hp) / u.defense.hp_max
+		total += fraction * float(unit_cost(u.type))
+	return total
+
+
 ## True when the bot currently has vision of [world_pos]: some owned unit or
 ## structure is within its VisionRange of that point. Lets the blackboard verify
 ## whether a believed-but-unseen structure is still there when units revisit.
@@ -575,6 +887,13 @@ func has_vision_at(world_pos: Vector3) -> bool:
 		if vr > 0.0 and VU.inXZ(owned.global_position).distance_to(p) <= vr:
 			return true
 	return false
+
+
+## World-space XZ radius of [entity]'s VisionRange — the SAME reveal radius the fog of war
+## uses (fog.gd reads vision_range_shape identically). 0 when the entity has no vision shape.
+## Use this anywhere "what this unit can actually see" must match what fog reveals.
+func vision_radius(entity: Entity) -> float:
+	return _shape_xz_radius(entity.vision_range_shape) if entity != null else 0.0
 
 
 ## XZ radius of a CollisionShape3D (cylinder/sphere radius × node X-scale), or 0.

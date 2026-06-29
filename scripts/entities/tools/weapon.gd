@@ -18,7 +18,18 @@ var _ammo: int = 1					## current amount of ammo left, before reload timer finis
 #endregion
 
 #region projectile evaluation
-@onready var attack_range_shape: CollisionShape3D = $AttackRange
+@onready var attack_range_shape_ground: CollisionShape3D = (
+	(get_node_or_null("AttackRangeGround") if has_node("AttackRangeGround") else get_node("AttackRange"))
+	if target_mask & CollisionLayers.Mask.TARGETABLE_GROUND
+	else null
+)
+
+@onready var attack_range_shape_air: CollisionShape3D = (
+	get_node_or_null("AttackRangeAir") if has_node("AttackRangeAir") else get_node("AttackRange")
+	if target_mask & CollisionLayers.Mask.TARGETABLE_AIR
+	else null
+)
+
 @export var projectile_scene: PackedScene		## projectile produced when firing (which may have its own damage evaluation)
 @export var melee_damage: float = 10
 @export var melee_damage_type: Damage.Type = Damage.Type.LEAD
@@ -99,6 +110,9 @@ func per_shot_damage() -> float:
 func per_shot_damage_type() -> Damage.Type:
 	_ensure_shot_cache()
 	return _cached_damage_type
+	
+func get_range_for_target(a_target: Commandable) -> CollisionShape3D:
+	return attack_range_shape_air if a_target.is_airborne() else attack_range_shape_ground
 
 ## Populate the per-shot damage + type cache on first use, instantiating the
 ## projectile scene once (out of tree → no _ready) for ranged weapons.

@@ -15,10 +15,18 @@ extends Node
 ## The garrison owner's position and AggroRange are used; garrisoned units supply
 ## the weapons. Set false for purely protective garrisons that offer no fire support.
 @export var bunker: bool = true
+## When true, garrisoned units are evacuated (returned to the scene) when the host
+## dies. When false they die with the host. Defaults to true so garrisons are a
+## safe haven rather than a death trap.
+@export var preserve_occupants: bool = true
 
 ## Units currently garrisoned.  Held as orphaned nodes — removed from the
 ## scene tree but not freed.
 var _garrisoned: Array[Commandable] = []
+
+## Saved radius of the host's AggroRange shape before any unit garrisoned.
+## -1.0 means "nothing has garrisoned yet / already restored".
+var _original_aggro_radius: float = -1.0
 
 ## Units that have registered intent to garrison this shelter while it lands.
 ## Each entry auto-removes itself via tree_exiting when the unit dies.
@@ -70,6 +78,14 @@ func cancel_pending_garrison() -> void:
 
 func garrisoned_count() -> int:
 	return _garrisoned.size()
+
+## Free all garrisoned units without returning them to the scene.
+## Used when preserve_occupants is false and the host is destroyed.
+func kill_occupants() -> void:
+	for unit: Commandable in _garrisoned:
+		if is_instance_valid(unit):
+			unit.queue_free()
+	_garrisoned.clear()
 
 ## True when at least one garrisoned unit carries a weapon that can target `target`.
 func any_garrison_can_target(target: Entity) -> bool:
@@ -132,6 +148,7 @@ func garrison(unit: Commandable) -> void:
 		unit.weapon_inventory.reparent(owner_node, false)
 	unit.get_parent().remove_child(unit)
 	_garrisoned.append(unit)
+	_refresh_aggro_range()
 
 
 ## When this garrison has no commander (neutral, id 0), adopt the garrisoning
@@ -167,6 +184,7 @@ func evacuate(a_map: Map) -> void:
 
 	_garrisoned.clear()
 	_revert_adopted_commander(owner_cmd)
+	_refresh_aggro_range()
 
 	# If the host landed to accept garrison units, return it to hover altitude.
 	if owner_cmd != null and owner_cmd.movement != null \
@@ -231,6 +249,63 @@ func _evacuate_from_structure(owner_cmd: Commandable, a_map: Map) -> void:
 			)
 
 		unit.update_commands(Command.new(CommandMessage.new(a_map, null, null, dest)))
+
+
+## Recompute the host's AggroRange radius to cover the widest weapon range among all
+## garrisoned units, clamped below by the host's original (pre-garrison) radius.
+## On the last evacuation (empty _garrisoned) the original radius is restored.
+func _refresh_aggro_range() -> void:
+	var owner_cmd := get_parent() as Commandable
+	if owner_cmd == null or owner_cmd.aggro_range_shape == null:
+		return
+	var aggro_shape: Shape3D = owner_cmd.aggro_range_shape.shape
+	if aggro_shape == null:
+		return
+	if _garrisoned.is_empty():
+		if _original_aggro_radius >= 0.0:
+			_set_shape_radius(aggro_shape, _original_aggro_radius)
+			_original_aggro_radius = -1.0
+		return
+	if _original_aggro_radius < 0.0:
+		_original_aggro_radius = _get_shape_radius(aggro_shape)
+	var best: float = _original_aggro_radius
+	for unit: Commandable in _garrisoned:
+		if unit.weapon_inventory == null:
+			continue
+		for child in unit.weapon_inventory.get_children():
+			var weapon: Weapon = child as Weapon
+			if weapon == null:
+				continue
+			if weapon.attack_range_shape_ground != null and weapon.attack_range_shape_ground.shape != null:
+				best = maxf(best, _get_shape_radius(weapon.attack_range_shape_ground.shape))
+			if weapon.attack_range_shape_air != null and weapon.attack_range_shape_air.shape != null:
+				best = maxf(best, _get_shape_radius(weapon.attack_range_shape_air.shape))
+	_set_shape_radius(aggro_shape, best)
+
+
+static func _get_shape_radius(shape: Shape3D) -> float:
+	if shape is SphereShape3D:
+		return (shape as SphereShape3D).radius
+	if shape is CylinderShape3D:
+		return (shape as CylinderShape3D).radius
+	return 0.0
+
+
+static func _set_shape_radius(shape: Shape3D, radius: float) -> void:
+	if shape is SphereShape3D:
+		(shape as SphereShape3D).radius = radius
+	elif shape is CylinderShape3D:
+		(shape as CylinderShape3D).radius = radius
+
+
+## Safety net: free any garrisoned units that are still orphaned when this component
+## is freed (i.e. when the host dies and neither evacuate() nor kill_occupants() had
+## already cleared them). In-tree units are left untouched.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for unit: Commandable in _garrisoned:
+			if is_instance_valid(unit) and not unit.is_inside_tree():
+				unit.free()
 
 
 ## Evacuation path for garrison owners that do NOT occupy the terrain grid

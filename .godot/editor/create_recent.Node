@@ -1,14 +1,14 @@
+CollisionShape3D
+Node3D
 Production
 Garrison
 Shelter
 DamageOverTimeStatusEffect
 EffectApplicator
-CollisionShape3D
 EventSpawnEntities
 EntityTrigger
 EventCommandPoint
 Node
 TextEdit
 Interactor
-Node3D
 GPUParticles3D

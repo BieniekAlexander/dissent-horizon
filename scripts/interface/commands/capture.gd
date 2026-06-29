@@ -29,13 +29,10 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if message.target.build_progress<2:
 		return self
 	else:
+		# Transferring ownership re-runs Commandable._on_commander_changed, which moves
+		# the structure's vigor contribution from the old commander to the captor — so
+		# the captor is credited (and the former owner debited) automatically here.
 		message.target.commander = a_actor.commander
-		# Capture transfers ownership and credits the captor with the captured
-		# structure's population contribution. Read via the target's
-		# ResourceProvider component rather than a Structure-class property.
-		var provider: ResourceProvider = message.target.get_node_or_null("ResourceProvider") as ResourceProvider
-		if provider != null:
-			a_actor.commander.population_max += provider.population_provided
 		return null
 
 

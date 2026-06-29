@@ -1,0 +1,91 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/scenario/test/test_scenario.gd" id="1_5l55n"]
+[ext_resource type="Script" path="res://scripts/scenario/test/test_expectation.gd" id="2_audxy"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_unit_has_no_command_for.gd" id="3_ecp2h"]
+[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="4_rfbx3"]
+[ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="5_aq0tc"]
+[ext_resource type="Script" path="res://scripts/maps/map.gd" id="6_1rjwe"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/kamikaze.tscn" id="7_8aknt"]
+[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="8_fd312"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/irregular.tscn" id="9_7pfti"]
+
+[sub_resource type="Resource" id="Resource_y8br0"]
+script = ExtResource("3_ecp2h")
+unit_type = 8452
+
+[sub_resource type="Resource" id="Resource_3qrq2"]
+script = ExtResource("2_audxy")
+description = "kamikaze stays command-free for 10s against spread irregulars"
+condition = SubResource("Resource_y8br0")
+deadline_ticks = 900
+
+[sub_resource type="Resource" id="Resource_ih55w"]
+script = ExtResource("4_rfbx3")
+faction = ExtResource("5_aq0tc")
+starting_dominion = 0
+
+[sub_resource type="Resource" id="Resource_k35i1"]
+script = ExtResource("4_rfbx3")
+faction = ExtResource("5_aq0tc")
+difficulty = 0
+starting_ore = 0
+starting_dominion = 0
+
+[sub_resource type="HeightMapShape3D" id="HeightMapShape3D_o74ke"]
+map_width = 29
+map_depth = 29
+map_data = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_nctmo"]
+
+[node name="TestKamikazeNoCluster" type="Node3D" unique_id=377353419]
+script = ExtResource("1_5l55n")
+expectations = Array[ExtResource("2_audxy")]([SubResource("Resource_3qrq2")])
+max_ticks = 1200
+player_slots = Array[ExtResource("4_rfbx3")]([SubResource("Resource_ih55w"), SubResource("Resource_k35i1")])
+
+[node name="Map" type="Node3D" parent="." unique_id=1770232179]
+script = ExtResource("6_1rjwe")
+height_map = SubResource("HeightMapShape3D_o74ke")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" unique_id=457490337 groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_nctmo")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion" unique_id=631811309]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=1552930368]
+shape = SubResource("HeightMapShape3D_o74ke")
+
+[node name="HeightPins" type="Node3D" parent="Map" unique_id=1748355172]
+
+[node name="Kamikaze" type="CharacterBody3D" parent="." unique_id=440012001 groups=["commandable", "unit"] instance=ExtResource("7_8aknt")]
+script = ExtResource("8_fd312")
+type = 8452
+default_commander_id = 1
+
+[node name="Unit2" type="CharacterBody3D" parent="." unique_id=1210299015 groups=["commandable", "unit"] instance=ExtResource("9_7pfti")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, 11)
+script = ExtResource("8_fd312")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@8" type="CharacterBody3D" parent="." unique_id=1989333741 groups=["commandable", "unit"] instance=ExtResource("9_7pfti")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 11)
+script = ExtResource("8_fd312")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@9" type="CharacterBody3D" parent="." unique_id=183380514 groups=["commandable", "unit"] instance=ExtResource("9_7pfti")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, -11)
+script = ExtResource("8_fd312")
+type = 8449
+default_commander_id = 2
+
+[node name="@CharacterBody3D@10" type="CharacterBody3D" parent="." unique_id=1883057945 groups=["commandable", "unit"] instance=ExtResource("9_7pfti")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, -11)
+script = ExtResource("8_fd312")
+type = 8449
+default_commander_id = 2

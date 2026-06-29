@@ -2,26 +2,20 @@ class_name Scenario
 extends Node3D
 
 #region Configuration
-## Total commanders including the neutral world commander at id 0. The skirmish
-## therefore has (commander_count - 1) playable factions, ids 1 .. count-1.
-@export var commander_count: int = 3
-
-## Which commander id the local human controls. Set to 0 (or any value < 1) for a
-## spectator session: no human rig is created, every faction is a Bot, and the
-## player just watches the bots fight. The human can be any id >= 1.
-@export var human_commander_id: int = 1
-
-## Bot commander ids that are created but left inert (the "do nothing"
-## convenience). A passive bot still gets a BotBrain; its think loop is disabled.
-## Handy for isolating a single bot while developing/tuning the AI.
-@export var passive_bot_ids: Array[int] = []
+## The participants in this scenario, in commander-id order starting at 1 — the
+## neutral world commander at id 0 is implicit and not a slot. Each slot builds one
+## Commander (a Bot, or the human player.tscn rig) fielding its faction at its
+## difficulty. A session with no human slot is a spectator session. Replaces the old
+## commander_count / human_commander_id / passive_bot_ids trio.
+@export var player_slots: Array[PlayerSlot] = []
 #endregion
 
 #region Properties
 var frame: int = 0
 
-## Built in _ready() from the control config above: id 0 = neutral Commander,
-## human_commander_id = the human rig (scenes/player.tscn), every other id = Bot.
+## Built in _ready() from player_slots: id 0 = neutral Commander, then one Commander
+## per slot (ids 1..N) — the human rig (scenes/player.tscn) for a non-bot slot, a Bot
+## otherwise. Indexed by commander id (entities resolve owners via commanders[id]).
 var commanders: Array = []
 
 @onready var map: Map = $Map
@@ -39,9 +33,16 @@ func _ready() -> void:
 	for commander in commanders:
 		players_node.add_child(commander)
 		commander.set_owner(self)
-		# Every Bot (i.e. every non-human, non-neutral commander) gets a brain.
-		if commander is Bot:
-			_attach_brain(commander)
+
+	# Every Bot gets a brain, configured with its slot's difficulty. Done in a second
+	# pass (after the commanders are in the tree) so the brain attaches to a live bot.
+	for slot: PlayerSlot in player_slots:
+		if slot.commander is Bot:
+			_attach_brain(slot.commander as Bot, slot.difficulty)
+
+	# Create a Fog node for each bot commander so it tracks its own exploration.
+	# The human player already has a Fog in player.tscn (watching_commander_id = -1).
+	_create_bot_fogs()
 
 	var has_view_camera: bool = false
 	for commander: Commander in commanders: # setting camera
@@ -57,6 +58,8 @@ func _ready() -> void:
 	# on the map.
 	if not has_view_camera:
 		_setup_spectator_camera()
+		_setup_spectator_hud()
+		_init_spectator_fog()
 
 	# Typed Entity (not Commandable): commander/default_commander_id are Entity-level,
 	# and the "commandable" group now also holds non-commandable owned entities such
@@ -64,13 +67,23 @@ func _ready() -> void:
 	for entity: Entity in get_tree().get_nodes_in_group("commandable"):
 		entity.commander = commanders[entity.default_commander_id]
 
+	# Extension point: subclasses (e.g. Skirmish) spawn each slot's faction-defined
+	# opening force here. Deliberately AFTER the owner-assignment loop above —
+	# dynamically-spawned entities default to commander_id 0, so spawning earlier
+	# would let that loop reset them to the neutral commander. Map.add_entities sets
+	# their owner directly, and being placed after the loop keeps it.
+	_spawn_initial_entities()
+
 	# Frame the player's starting position: buildings if any, else units.
 	_center_player_camera_on_starting_entities()
 
-	var event_manager := get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
-	if event_manager != null:
-		event_manager.message_requested.connect(_on_scenario_message)
-		event_manager.game_over.connect(_on_game_over)
+	var event_manager := _ensure_trigger_manager()
+	event_manager.message_requested.connect(_on_scenario_message)
+	event_manager.game_over.connect(_on_game_over)
+
+	# In-world debug visualisation of the active bot's internals (scout coverage, …),
+	# gated on hold-Spacebar + the bot-view toggle. See BotDebugOverlay.
+	_create_bot_debug_overlay()
 
 	if Engine.is_editor_hint():
 		set_physics_process(false)
@@ -81,23 +94,51 @@ func _physics_process(delta: float) -> void:
 #endregion
 
 #region Private helpers
-## Construct the commander list from the control config. id 0 is always the
-## neutral world commander; the configured human id (if >= 1) gets the human rig
-## from scenes/player.tscn; every other id is a Bot. Also publishes the human id
-## to RTSController so fog/minimap/commandable adopt the right local viewpoint
-## (PLAYER_COMMANDER_ID < 1 in spectator mode means "no local human").
+## Hook for subclasses to spawn each player slot's opening force at runtime. Base
+## Scenario authors its starting entities directly in the scene tree, so this is a
+## no-op; Skirmish overrides it to build each slot's structure + units from its
+## faction. Called from _ready (see the call site for ordering constraints).
+func _spawn_initial_entities() -> void:
+	pass
+
+
+## Construct the commander list from player_slots. id 0 is always the neutral world
+## commander; each slot then builds commander id 1..N — the human rig
+## (scenes/player.tscn) for a non-bot slot, a Bot otherwise — and the slot's faction
+## is propagated onto it. Publishes the local human's id to RTSController so
+## fog/minimap/commandable adopt the right viewpoint (PLAYER_COMMANDER_ID < 1 means
+## a spectator session with no local human).
 func _build_commanders() -> void:
-	RTSController.PLAYER_COMMANDER_ID = human_commander_id
 	commanders = []
-	for o: int in range(commander_count):
+
+	var neutral := Commander.new()  # id 0 = neutral / world
+	neutral.id = 0
+	commanders.append(neutral)
+
+	# Default to spectator; the first human slot (if any) claims the local viewpoint.
+	RTSController.PLAYER_COMMANDER_ID = 0
+
+	for i: int in player_slots.size():
+		var slot: PlayerSlot = player_slots[i]
+		var id: int = i + 1
 		var c: Commander
-		if o >= 1 and o == human_commander_id:
-			c = load("res://scenes/player.tscn").instantiate()
-		elif o == 0:
-			c = Commander.new()  # neutral / world
-		else:
+		if slot.is_bot:
 			c = Bot.new()
-		c.id = o
+		else:
+			c = load("res://scenes/player.tscn").instantiate()
+			if RTSController.PLAYER_COMMANDER_ID < 1:
+				RTSController.PLAYER_COMMANDER_ID = id
+		c.id = id
+		# Apply the slot's starting resources. Set before the commander enters the
+		# tree; Commander's resource fields are plain (not @onready) so this sticks.
+		c.ore = slot.starting_ore
+		c.dominion = slot.starting_dominion
+		# Propagate the slot's faction onto its commander. Commander._ready instances
+		# it for the starting structure + ordnances. A null slot faction leaves the
+		# commander's own default in place (e.g. the one player.tscn ships with).
+		if slot.faction != null:
+			c.faction_scene = slot.faction
+		slot.commander = c
 		commanders.append(c)
 
 
@@ -131,12 +172,164 @@ func _setup_spectator_camera() -> void:
 	cam.look_at(Vector3.ZERO)
 
 
-## Give a Bot its decision/tick layer. Passive bots (listed in passive_bot_ids)
-## still get a brain so the structure is uniform; it just stays inert.
-func _attach_brain(bot: Bot) -> void:
+## Build a CanvasLayer HUD that shows one resource panel per non-neutral
+## commander, plus a fog-toggle row so the spectator can switch perspectives.
+## Called only in spectator mode (no human rig).
+func _setup_spectator_hud() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "SpectatorHUD"
+	add_child(layer)
+
+	var vbox := VBoxContainer.new()
+	vbox.position = Vector2(8.0, 8.0)
+	layer.add_child(vbox)
+
+	# ── Fog toggle row ──
+	var fog_row := HBoxContainer.new()
+	fog_row.name = "FogToggleRow"
+	fog_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(fog_row)
+
+	var no_fog_btn := Button.new()
+	no_fog_btn.name = "FogBtn_NoFog"
+	no_fog_btn.text = "No Fog"
+	no_fog_btn.custom_minimum_size = Vector2(80.0, 28.0)
+	fog_row.add_child(no_fog_btn)
+
+	for commander: Commander in commanders:
+		if commander.id == 0 or not commander is Bot:
+			continue
+		var btn := Button.new()
+		btn.name = "FogBtn_%d" % commander.id
+		btn.text = "Bot %d POV" % commander.id
+		btn.custom_minimum_size = Vector2(100.0, 28.0)
+		fog_row.add_child(btn)
+
+	# Wire button callbacks now that all buttons exist.
+	_wire_spectator_fog_buttons(fog_row)
+	_refresh_spectator_fog_buttons(fog_row)
+
+	vbox.add_child(HSeparator.new())
+
+	# ── Per-commander resource labels ──
+	for commander: Commander in commanders:
+		if commander.id == 0:
+			continue
+		var label := RichTextLabel.new()
+		label.name = "CommanderLabel_%d" % commander.id
+		label.custom_minimum_size = Vector2(260.0, 85.0)
+		vbox.add_child(label)
+		_refresh_spectator_label(label, commander)
+		commander.resources_changed.connect(_refresh_spectator_label.bind(label, commander))
+
+
+func _wire_spectator_fog_buttons(fog_row: HBoxContainer) -> void:
+	var no_fog_btn: Button = fog_row.get_node("FogBtn_NoFog")
+	no_fog_btn.pressed.connect(func() -> void:
+		Fog.active_commander_id = -2
+		_refresh_spectator_fog_buttons(fog_row)
+	)
+	for commander: Commander in commanders:
+		if commander.id == 0 or not commander is Bot:
+			continue
+		var btn: Button = fog_row.get_node("FogBtn_%d" % commander.id)
+		var cid: int = commander.id
+		btn.pressed.connect(func() -> void:
+			Fog.active_commander_id = cid
+			_refresh_spectator_fog_buttons(fog_row)
+		)
+
+
+func _refresh_spectator_fog_buttons(fog_row: HBoxContainer) -> void:
+	var active_id: int = Fog.active_commander_id
+	var no_fog_btn: Button = fog_row.get_node_or_null("FogBtn_NoFog") as Button
+	if no_fog_btn != null:
+		no_fog_btn.disabled = (active_id == -2)
+	for commander: Commander in commanders:
+		if commander.id == 0 or not commander is Bot:
+			continue
+		var btn: Button = fog_row.get_node_or_null("FogBtn_%d" % commander.id) as Button
+		if btn != null:
+			btn.disabled = (active_id == commander.id)
+
+
+## Repaint one commander's spectator resource panel.
+func _refresh_spectator_label(label: RichTextLabel, commander: Commander) -> void:
+	label.text = (
+		"Commander %d:\n\tore: %s\n\tvigor: %s\n\tdominion: %s" % [
+			commander.id,
+			commander.ore,
+			"%s/%s" % [commander.vigor_required, commander.vigor_provided],
+			commander.dominion,
+		]
+	)
+
+
+## Set the initial active fog for spectator sessions: default to the first bot's
+## perspective so entity visibility is immediately meaningful.
+func _init_spectator_fog() -> void:
+	for commander: Commander in commanders:
+		if commander.id != 0 and commander is Bot:
+			Fog.active_commander_id = commander.id
+			return
+
+
+## Create and attach a Fog node for each bot commander so every AI tracks its
+## own exploration state. The human player already has a Fog in player.tscn
+## (with watching_commander_id = -1, the default).
+func _create_bot_fogs() -> void:
+	for commander: Commander in commanders:
+		if commander.id == 0 or not commander is Bot:
+			continue
+		var fog: Fog = Fog.new()
+		fog.watching_commander_id = commander.id
+		fog.name = "Fog"
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(2.0, 2.0)
+		fog.mesh = plane
+		var mat := ShaderMaterial.new()
+		mat.shader = load("res://scripts/rendering/shaders/fog.gdshader")
+		fog.set_surface_override_material(0, mat)
+		commander.add_child(fog)
+		fog.set_owner(self)
+
+
+## The scenario's event host. Both commander ordnances and scripted triggers run
+## their AbstractEvents through it (manager.add_child(event) + event.execute). An
+## authored scenario includes one carrying its GlobalTriggers; a scene without
+## scripted events (e.g. a skirmish) has none, so we create an empty host here —
+## otherwise the bots' (and player's) ordnances would have nowhere to run and
+## silently no-op. Idempotent: returns the existing node when the scene has one.
+func _ensure_trigger_manager() -> ScenarioTriggerManager:
+	var existing := get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
+	if existing != null:
+		return existing
+	var manager := ScenarioTriggerManager.new()
+	manager.name = "ScenarioTriggerManager"
+	add_child(manager)
+	manager.set_owner(self)
+	return manager
+
+
+## Create the bot debug overlay (one per session). It self-gates on the debug_info action
+## and the bot-view toggle, so it's harmless to always add — it draws nothing until both
+## gates open. Placed at the scenario origin so its world-space markers align.
+func _create_bot_debug_overlay() -> void:
+	var overlay := BotDebugOverlay.new()
+	overlay.name = "BotDebugOverlay"
+	overlay.scenario = self
+	add_child(overlay)
+	overlay.set_owner(self)
+
+
+## Give a Bot its decision/tick layer, carrying its slot's difficulty. A PASSIVE bot
+## still gets a brain (so the structure is uniform); its think loop is just disabled,
+## leaving it inert. Other tiers are stored on the brain but behave identically for now.
+func _attach_brain(bot: Bot, difficulty: PlayerSlot.Difficulty) -> void:
 	var brain := BotBrain.new()
 	brain.name = "BotBrain"
-	brain.active = not passive_bot_ids.has(bot.id)
+	brain.difficulty = difficulty
+	brain.active = difficulty != PlayerSlot.Difficulty.PASSIVE
 	bot.add_child(brain)
 	brain.set_owner(self)
 
@@ -191,9 +384,3 @@ func _on_game_over(won: bool) -> void:
 	print("[Scenario] Game over — player %s" % ("wins" if won else "loses"))
 	# TODO: show win/lose screen and pause or return to menu.
 #endregion
-
-
-# TODO: unused function
-#func purge() -> void:
-#	if has_node("Players"):
-#		$Players.queue_free()

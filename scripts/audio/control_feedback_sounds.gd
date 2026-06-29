@@ -19,7 +19,7 @@ static var lines: Dictionary = {
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.AN_UNIT_TECHNICIAN: {
+	Entity.Type.TC_UNIT_TECHNICIAN: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],

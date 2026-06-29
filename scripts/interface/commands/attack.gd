@@ -101,10 +101,22 @@ func get_updated_state(a_actor: Commandable):
 	## Potentially return a new command based on a state check.
 	if not is_instance_valid(message.target):
 		return null
-	# Non-persistent attacks stop being pursued once the target leaves the actor's
-	# leash (e.g. a target acquired while attack-moving/defending that fled).
-	# Persistent attacks (idle aggro) pursue to completion. See CommandMessage.persist.
-	if not message.persist and not _target_within_leash(a_actor):
+	# A target that is alive but no longer in the scene tree (e.g. it just entered a
+	# Garrison, which orphans the node without freeing it) is unreachable. is_instance_valid()
+	# still reports true for an orphaned node, so check tree membership explicitly — otherwise
+	# reading message.target.global_position below warns and returns an identity transform.
+	if not message.target.is_inside_tree():
+		return null
+	# A non-persistent attack (aggro / attack-move / defend) stops being pursued once the
+	# target leaves the actor's leash. A persistent (player-issued) attack normally pursues
+	# to completion — but only if the actor can MOVE to chase. A stationary attacker (e.g. a
+	# garrison/bunker structure with no Movement) cannot close distance, so the leash applies
+	# to it regardless of persist: otherwise an out-of-range manual target locks the command
+	# forever — can_act stays false, the actor never goes idle, and aggro can never re-acquire
+	# a target it could actually fire on (the cause of a bunker going silent after a retarget).
+	# See CommandMessage.persist.
+	var can_chase: bool = a_actor.movement != null
+	if (not message.persist or not can_chase) and not _target_within_leash(a_actor):
 		return null
 	# While this attack is live, a FLYING actor dives onto a ground target (and climbs
 	# back to cruise altitude once this stops being requested — i.e. when the command ends
@@ -144,8 +156,11 @@ func _target_within_leash(a_actor: Commandable) -> bool:
 ## aggro range) XZ radius × _LEASH_HYSTERESIS, or -1.0 when neither is known (treated as
 ## "always in range").
 func _leash_radius(a_actor: Commandable) -> float:
+	# A bunker host carries no weapon of its own (it fires through garrisoned units), so
+	# _weapon_for returns null here — fall back to the aggro range alone rather than crashing.
 	var weapon := _weapon_for(a_actor)
-	var weapon_radius: float = _shape_node_xz_radius(weapon.attack_range_shape) if weapon != null else -1.0
+	var range_shape: CollisionShape3D = weapon.get_range_for_target(a_actor) if weapon != null else null
+	var weapon_radius: float = _shape_node_xz_radius(range_shape) if range_shape != null else -1.0
 	var aggro_radius: float = _shape_node_xz_radius(a_actor.aggro_range_shape)
 	var base: float = maxf(weapon_radius, aggro_radius)
 	return base * _LEASH_HYSTERESIS if base >= 0.0 else -1.0

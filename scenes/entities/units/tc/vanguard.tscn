@@ -38,7 +38,7 @@ shape = SubResource("CylinderShape3D_lg61a")
 shape = SubResource("CylinderShape3D_88hoo")
 disabled = true
 
-[node name="Movement" parent="." index="8"]
+[node name="Movement" parent="." index="8" unique_id=413735738]
 speed = 0.04
 
 [node name="Defense" parent="." index="9" unique_id=637704181]

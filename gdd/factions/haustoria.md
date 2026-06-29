@@ -24,11 +24,11 @@
 # Specifics
 ## Tech Tree
 
-| Tier   | Colony             | Barracks                       | Production Yard | Skyport |
-| ------ | ------------------ | ------------------------------ | --------------- | ------- |
-| Tier 1 | [[#Freight Truck]] | [[#Pathfinder]]<br>[[#Badger]] |                 |         |
-| Tier 2 |                    |                                | Rail Tank       |         |
-| Tier 3 |                    |                                |                 |         |
+| Tier   | Colony           | Barracks                       | Production Yard | Skyport |
+| ------ | ---------------- | ------------------------------ | --------------- | ------- |
+| Tier 1 | [[#Stock Truck]] | [[#Pathfinder]]<br>[[#Badger]] |                 |         |
+| Tier 2 |                  |                                | Rail Tank       |         |
+| Tier 3 |                  |                                |                 |         |
 ```mermaid
 flowchart TD
 	Colony
@@ -41,7 +41,7 @@ flowchart TD
 # Structures
 # Units
 ## Colony
-### Freight Truck
+### Stock Truck
 - Builder
 - ridiculous armor, builds
 - Collects POWs for dominion

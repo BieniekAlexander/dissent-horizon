@@ -61,15 +61,7 @@ enum LandingState {
 ## Set in the inspector / scene file to choose the locomotion style.
 @export var mode: Mode = Mode.GROUNDED_DIRECT
 
-## Path (relative to this Movement node) to the NavigationAgent3D used in
-## GROUNDED_DIRECT mode. Ignored in HOVERING mode.
-@export var nav_agent_path: NodePath
-
-## Collision size class — which space-eroded navmesh this unit navigates on (see
-## NavAgentClass / nav-agent-size-classes.md). NOT authored: configure_for_map()
-## derives it from the unit's MovementBody footprint radius (the smallest class
-## large enough for the body), so it always matches the unit's real size.
-var nav_agent_class: NavAgentClass.Size = NavAgentClass.Size.MEDIUM
+# --- Shared across all modes (ungrouped) ---
 
 ## Maximum rate at which the entity's speed may increase, in world-units/s².
 ## INF (default) means speed can jump to any value instantly.
@@ -82,12 +74,38 @@ var nav_agent_class: NavAgentClass.Size = NavAgentClass.Size.MEDIUM
 ## Movement speed in world-units per physics tick.
 @export var speed: float = 0.125
 
-## Maximum rate at which the entity's heading may change, in degrees per second,
-## for HOVERING mode. Limits the per-tick direction change in _apply_accel_limits
-## so intermediate-waypoint transitions curve smoothly (banking turn) rather than
-## snapping to the new heading instantly. INF (default) means no limit.
+## Maximum rate at which the entity's heading may change, in degrees per second.
+## HOVERING/FLYING: limits banking turns in _apply_accel_limits.
+## GROUNDED_DIRECT: limits facing rotation before velocity reflects the new direction
+## (default 360.0 applied in _ready when left at INF; INF means no limit).
 @export var turn_rate: float = INF
 
+## Convenience read-only: speed expressed in world-units per second.
+var speed_per_second: float:
+	get: return speed * Engine.physics_ticks_per_second
+
+@export_group("Grounded")
+## Path (relative to this Movement node) to the NavigationAgent3D used in
+## GROUNDED_DIRECT mode. Ignored in HOVERING mode.
+@export var nav_agent_path: NodePath
+
+## GROUNDED_DIRECT only. The speed the unit holds while it is still rotating
+## toward a new heading, as a fraction of its current commanded speed. It applies
+## for the whole turn (not just the part where the target is behind): until the
+## nose is aligned the unit travels at min_turn_speed_ratio of its desired speed —
+## forward when the destination is ahead, in reverse when it is behind. Once
+## aligned it drives straight at full speed.
+##   0.0 (default) — no translation while turning: the unit pivots in place and
+##                   only then sets off in a straight line, with no curved
+##                   approach (infantry-style).
+##   0.3–0.5       — the unit must keep rolling while it reorients, backing up to
+##                   swing around — three-point turns (vehicle-style, C&C Generals).
+##   1.0           — full-speed arcs: the unit never slows to turn, curving onto
+##                   the new heading at speed.
+## Ignored when turn_rate is INF (instant turning) or in aerial modes.
+@export var min_turn_speed_ratio: float = 0.0
+
+@export_group("Hovering")
 ## Fraction of max speed available when moving directly opposite to the current
 ## body-facing direction (180° reversal). 0.0 (default) preserves the existing
 ## behaviour — the unit must rotate to face the target before accelerating. A
@@ -97,26 +115,33 @@ var nav_agent_class: NavAgentClass.Size = NavAgentClass.Size.MEDIUM
 ## with turn_rate = INF can always reach full speed in any direction.
 @export var reverse_speed_ratio: float = 0.35
 
-## Convenience read-only: speed expressed in world-units per second.
-var speed_per_second: float:
-	get: return speed * Engine.physics_ticks_per_second
-
-var _nav_agent: NavigationAgent3D
-
-## Stores the current target for HOVERING / FLYING modes (no NavAgent).
-var _hovering_target: Vector3 = Vector3.ZERO
-
+@export_group("Flying")
 ## Orbit parameters for FLYING mode. The unit circles the anchor while idle.
 @export var orbit_radius: float = 3. ## desired orbit distance of this unit
 @export var orbit_speed: float = .05 ## speed of unit while orbiting, units/tick
-var orbit_angular_speed: ## orbit angular speed in degrees/tick
-	get: return rad_to_deg(orbit_speed/orbit_radius)
 
 ## Horizontal distance (world units) over which a FLYING unit performs its dive-attack
 ## descent: at or beyond this distance from the dive target it cruises at AERIAL_HEIGHT,
 ## at the target it touches the ground, interpolating linearly between. Driven by
 ## request_dive() / _update_flying_height().
 @export var dive_distance: float = 3.0
+
+# --- Internal state (not exported) ---
+
+## Collision size class — which space-eroded navmesh this unit navigates on (see
+## NavAgentClass / nav-agent-size-classes.md). NOT authored: configure_for_map()
+## derives it from the unit's MovementBody footprint radius (the smallest class
+## large enough for the body), so it always matches the unit's real size.
+var nav_agent_class: NavAgentClass.Size = NavAgentClass.Size.MEDIUM
+
+var _nav_agent: NavigationAgent3D
+
+## Stores the current target for HOVERING / FLYING modes (no NavAgent).
+var _hovering_target: Vector3 = Vector3.ZERO
+
+## Orbit angular speed in degrees/tick (derived from orbit_speed / orbit_radius).
+var orbit_angular_speed:
+	get: return rad_to_deg(orbit_speed/orbit_radius)
 
 ## The point a FLYING unit orbits while idle — set to the last command destination
 ## by CommandReceiver whenever a command ends. Seeded from the parent entity's
@@ -134,11 +159,13 @@ var _orbit_angle: float = 0.0
 ## avoidance-adjusted value, keeping the budget honest.
 var _current_velocity: Vector3 = Vector3.ZERO
 
-## Body-facing direction for HOVERING units with reverse_speed_ratio > 0.
-## Represents the nose orientation; chases the emitted velocity direction at
-## turn_rate deg/s each tick. Persists when the unit is stopped so the unit
-## retains its heading between commands. Zero until the unit first moves, at
-## which point it is snapped to the initial velocity direction.
+## Body-facing direction (nose orientation). Used by HOVERING units with
+## reverse_speed_ratio > 0 (chased via _update_facing) and by GROUNDED_DIRECT
+## units with a finite turn_rate (driven by _apply_grounded_turn): the velocity
+## the unit actually applies follows _facing, which rotates toward the desired
+## direction at turn_rate deg/s. Persists when the unit is stopped so it retains
+## its heading between commands. Zero until the unit first moves, at which point
+## it is snapped to the initial velocity direction.
 var _facing: Vector3 = Vector3.ZERO
 
 ## Current landing state for HOVERING units.  Always AIRBORNE for other modes.
@@ -212,6 +239,8 @@ func _ready() -> void:
 		_anchor = (parent as Node3D).global_position
 	_current_height_offset = AERIAL_HEIGHT if mode == Mode.HOVERING or mode == Mode.FLYING else 0.0
 	if mode == Mode.GROUNDED_DIRECT:
+		if turn_rate == INF:
+			turn_rate = 360.0
 		if not nav_agent_path.is_empty():
 			_nav_agent = get_node_or_null(nav_agent_path) as NavigationAgent3D
 		if _nav_agent != null:
@@ -343,6 +372,18 @@ func land_permanently() -> void:
 ## True while the unit is on the ground waiting (GROUNDED_TEMP state).
 func is_grounded_temp() -> bool:
 	return _landing_state == LandingState.GROUNDED_TEMP
+
+
+## True when this unit is airborne at cruise altitude — i.e. it has an aerial
+## movement mode AND is not in any stage of a temporary landing (descending,
+## grounded, or ascending).  FLYING units are always airborne; a HOVERING unit
+## in LANDING / GROUNDED_TEMP / TAKING_OFF is not.
+func is_airborne() -> bool:
+	if mode == Mode.FLYING:
+		return true
+	if mode == Mode.HOVERING:
+		return _landing_state == LandingState.AIRBORNE
+	return false
 
 
 ## True when the unit was grounded by an explicit Land command (not by the
@@ -768,8 +809,43 @@ func _apply_accel_limits(desired: Vector3) -> Vector3:
 
 
 func _on_velocity_computed(velocity: Vector3) -> void:
+	if mode == Mode.GROUNDED_DIRECT and turn_rate != INF:
+		velocity = _apply_grounded_turn(velocity)
 	_current_velocity = velocity
 	velocity_ready.emit(velocity)
+
+
+## Rotate _facing toward the avoidance-adjusted velocity direction at turn_rate
+## and shape the emitted velocity so the unit moves the way it is actually
+## pointing — not instantly toward where it wants to go.
+##
+## While the nose is NOT yet aligned with the destination, the unit travels at
+## min_turn_speed_ratio of its desired speed (forward when the target is ahead,
+## reverse when it is behind, which lets a positive ratio back-and-fill into a
+## three-point turn). A ratio of 0 means no translation at all — the unit pivots
+## in place until aligned. Once aligned it drives straight at the full desired
+## speed, so there is no curved approach unless the ratio asks for one.
+func _apply_grounded_turn(velocity: Vector3) -> Vector3:
+	var desired_speed: float = velocity.length()
+	if desired_speed <= 1e-4:
+		return velocity  # stopping / arrived — hold facing, don't force a turn
+	var desired_dir: Vector3 = velocity / desired_speed
+	if _facing.is_zero_approx():
+		_facing = desired_dir  # first move: snap to the initial heading
+		return desired_speed * _facing
+	var tps: float = float(Engine.physics_ticks_per_second)
+	var max_angle: float = deg_to_rad(turn_rate) / tps
+	var angle: float = _facing.angle_to(desired_dir)
+	if angle <= max_angle:
+		# Close enough to finish aligning this tick — drive straight at full speed.
+		_facing = desired_dir
+		return desired_speed * _facing
+	# Still turning: rotate the nose and translate only as much as the ratio
+	# allows, in the direction (forward / reverse) that makes progress.
+	_facing = _facing.slerp(desired_dir, max_angle / angle).normalized()
+	var maneuver_speed: float = min_turn_speed_ratio * desired_speed
+	var travel_sign: float = 1.0 if _facing.dot(desired_dir) >= 0.0 else -1.0
+	return travel_sign * maneuver_speed * _facing
 
 
 ## Called before starting a descent. If the unit's current cell (or the predicted

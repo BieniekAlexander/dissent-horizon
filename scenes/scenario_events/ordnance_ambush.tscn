@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://c0rdnambush01"]
+
+[ext_resource type="Script" uid="uid://bsxvbf5i07l6" path="res://scripts/scenario/events/event_ability_ambush.gd" id="1_amb"]
+
+[node name="OrdnanceAmbush" type="Node3D"]
+script = ExtResource("1_amb")

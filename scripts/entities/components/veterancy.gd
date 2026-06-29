@@ -3,6 +3,11 @@ extends Node
 
 enum Level { NONE = 0, VETERAN = 1, ELITE = 2, HEROIC = 3 }
 
+## XP-scaling balance knobs — raise to promote faster veterancy progression.
+const XP_PER_DAMAGE: float = 0.05      ## XP per point of damage dealt (ON_DEAL_DAMAGE)
+const XP_PER_KILL_HP: float = 0.05     ## XP per point of killed unit's max HP (ON_KILL)
+const XP_PER_BUILD_ORE: float = 0.05  ## XP per ore cost of a completed structure (ON_FINISH_BUILD)
+
 var experience: int = 0
 @export var level: Level = Level.NONE
 

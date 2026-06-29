@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/scenario/test/test_scenario.gd" id="1_cvmag"]
+[ext_resource type="Script" path="res://scripts/scenario/test/test_expectation.gd" id="2_of3ux"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_scout_coverage.gd" id="3_un1m1"]
+[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="4_sg30g"]
+[ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="5_siam3"]
+[ext_resource type="Script" path="res://scripts/maps/map.gd" id="6_nfe0d"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/technician.tscn" id="7_mrgn3"]
+[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="8_vfj1i"]
+
+[sub_resource type="Resource" id="Resource_k8j24"]
+script = ExtResource("3_un1m1")
+
+[sub_resource type="Resource" id="Resource_ed267"]
+script = ExtResource("2_of3ux")
+description = "every scout point seen at least once within 3000 ticks"
+condition = SubResource("Resource_k8j24")
+deadline_ticks = 3000
+
+[sub_resource type="Resource" id="Resource_2rk4u"]
+script = ExtResource("4_sg30g")
+faction = ExtResource("5_siam3")
+starting_ore = 0
+starting_dominion = 0
+
+[sub_resource type="HeightMapShape3D" id="HeightMapShape3D_b2gqw"]
+map_width = 17
+map_depth = 17
+map_data = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_w83ut"]
+
+[node name="TestScoutCoverage" type="Node3D" unique_id=1229480209]
+script = ExtResource("1_cvmag")
+expectations = Array[ExtResource("2_of3ux")]([SubResource("Resource_ed267")])
+max_ticks = 3200
+player_slots = Array[ExtResource("4_sg30g")]([SubResource("Resource_2rk4u")])
+
+[node name="Map" type="Node3D" parent="." unique_id=387653424]
+script = ExtResource("6_nfe0d")
+height_map = SubResource("HeightMapShape3D_b2gqw")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" unique_id=1240328290 groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_w83ut")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion" unique_id=1231917049]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=810331199]
+shape = SubResource("HeightMapShape3D_b2gqw")
+
+[node name="HeightPins" type="Node3D" parent="Map" unique_id=1305016727]
+
+[node name="Unit" type="CharacterBody3D" parent="." unique_id=513065552 groups=["commandable", "unit"] instance=ExtResource("7_mrgn3")]
+script = ExtResource("8_vfj1i")
+type = 4352
+default_commander_id = 1
+attributes_list = Array[int]([1])

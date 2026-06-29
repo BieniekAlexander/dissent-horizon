@@ -6,10 +6,13 @@ class_name EventAbilityIrradiate extends AbstractEvent
 
 const _RADIATION_SCENE: PackedScene = preload("res://scenes/entities/projectiles/radiation.tscn")
 const _SOURCE_OFFSET: float = 0.5
-const _COMMANDER_ID: int = 1
+
+## Commander the radiation field belongs to (whose enemies it damages). Set by the
+## activating Ordnance before execute, so the same event serves the player or a bot.
+var commander_id: int = 1
 
 func execute(manager: ScenarioTriggerManager) -> void:
-	var commander: Commander = manager.get_commander(_COMMANDER_ID)
+	var commander: Commander = manager.get_commander(commander_id)
 	var map: Map = manager.map
 	if commander == null or map == null:
 		return

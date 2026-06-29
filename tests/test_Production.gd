@@ -61,11 +61,11 @@ func test_set_rally_stores_command():
 func test_default_producible_types_is_empty():
 	var p := _make_production()
 	assert_eq(p.producible_types.size(), 0)
-	assert_false(p.can_produce(Entity.Type.AN_UNIT_TECHNICIAN))
+	assert_false(p.can_produce(Entity.Type.TC_UNIT_TECHNICIAN))
 
 func test_can_produce_reflects_configured_types():
 	var p := _make_production()
 	p.producible_types.assign([Entity.Type.AN_UNIT_IRREGULAR, Entity.Type.TC_UNIT_VANGUARD])
 	assert_true(p.can_produce(Entity.Type.AN_UNIT_IRREGULAR))
 	assert_true(p.can_produce(Entity.Type.TC_UNIT_VANGUARD))
-	assert_false(p.can_produce(Entity.Type.AN_UNIT_TECHNICIAN), "type not in the list is not producible")
+	assert_false(p.can_produce(Entity.Type.TC_UNIT_TECHNICIAN), "type not in the list is not producible")

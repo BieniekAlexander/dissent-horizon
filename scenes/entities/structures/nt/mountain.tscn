@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dgt48vlp8toqy"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_xbjmm"]
-[ext_resource type="Texture2D" uid="uid://5vx0iccure6l" path="res://assets/mountain.png" id="2_44gaq"]
+[ext_resource type="Texture2D" uid="uid://bn6hnbx8gnojx" path="res://assets/entities/mountain.png" id="2_44gaq"]
 
 [node name="Structure" unique_id=1571358518 instance=ExtResource("1_xbjmm")]
 
@@ -9,5 +9,5 @@
 hp_max = 500.0
 
 [node name="Sprite" parent="." index="13" unique_id=1381401170]
-transform = Transform3D(0.0465338, 0, 0, 0, 0.5, 0, 0, 0, 0.0635375, -0.060007, 0.0148926, -0.1783445)
+transform = Transform3D(3.5, 0, 0, 0, 2.4748745, -2.4748745, 0, 2.4748745, 2.4748745, 0, 0.45, 0)
 texture = ExtResource("2_44gaq")

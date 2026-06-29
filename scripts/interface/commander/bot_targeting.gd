@@ -67,6 +67,10 @@ func tick() -> void:
 			continue  # can't attack anything
 		if BotEconomy._is_constructing(unit):
 			continue  # don't yank the active builder mid-construction
+		if BotOpportunist.is_committed(unit):
+			continue  # don't yank a unit mid-liberation (or other committed opportunity)
+		if _bot.is_suicide_aoe_unit(unit):
+			continue  # kamikazes are micro'd by BotKamikaze (cost-effective blasts only)
 		_retarget(unit)
 
 

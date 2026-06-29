@@ -59,6 +59,8 @@ shape = SubResource("SphereShape3D_cx6aj")
 
 [node name="Sprite" parent="." index="13" unique_id=1381401170]
 transform = Transform3D(6, 0, 0, 0, 1.4142137, -2.828427, 0, 1.4142135, 2.8284273, 0, 0.3516159, 0.30216217)
+sorting_offset = 5.0
+no_depth_test = true
 texture = ExtResource("4_067er")
 
 [node name="HPBar" parent="." index="14" unique_id=665391337]

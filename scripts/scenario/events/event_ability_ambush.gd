@@ -1,14 +1,17 @@
 class_name EventAbilityAmbush extends AbstractEvent
 
-## Spawns 3 irregulars for the player commander at this event's global_position.
-## Intended to be instantiated and positioned at runtime by CommanderAbilityAmbush.
+## Spawns 3 irregulars at this event's global_position for `commander_id`. The
+## activating Ordnance sets commander_id to its owner before execute, so the same
+## event serves the human player and any bot.
 
 const _IRREGULAR_SCENE: PackedScene = preload("res://scenes/entities/units/an/irregular.tscn")
 const _SPAWN_COUNT: int = 3
-const _COMMANDER_ID: int = 1
+
+## Commander the spawned irregulars belong to. Set by the activating Ordnance.
+var commander_id: int = 1
 
 func execute(manager: ScenarioTriggerManager) -> void:
-	var commander: Commander = manager.get_commander(_COMMANDER_ID)
+	var commander: Commander = manager.get_commander(commander_id)
 	var map: Map = manager.map
 	if commander == null or map == null:
 		return

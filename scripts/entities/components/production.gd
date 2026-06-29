@@ -36,6 +36,14 @@ extends Node
 ## Each entry: [time_remaining_in_ticks: int, packed_scene: PackedScene].
 var training_queue: Array = []
 
+## Build-rate fraction applied while the owning commander is vigor-strained (upkeep
+## exceeds capacity) — production runs at half speed.
+const STRAINED_RATE: float = 0.5
+
+## Fractional build progress carried across ticks so a sub-1.0 rate (the strained
+## penalty) still advances the integer countdown smoothly.
+var _progress_accum: float = 0.0
+
 ## The most recent rally command; trained units inherit this as their first
 ## command (so newly-spawned units walk toward the rally point).
 var rally_command: Command = null
@@ -68,12 +76,26 @@ func can_produce(a_type: Entity.Type) -> bool:
 ## _update_state.
 func tick() -> bool:
 	if training_queue.is_empty(): return false
+	# Advance by the current build rate (1.0 normally, STRAINED_RATE while the
+	# commander is over its vigor upkeep). The fractional accumulator turns a 0.5
+	# rate into "advance one tick of progress every other frame" = half speed.
+	_progress_accum += _build_rate()
+	if _progress_accum < 1.0:
+		return false
+	_progress_accum -= 1.0
 	training_queue[0][0] -= 1
 	if training_queue[0][0] <= 0:
 		var spec: Variant = training_queue.pop_front()
 		_spawn_unit(spec[1])
 		return true
 	return false
+
+## Normal speed, halved while the owning commander is vigor-strained.
+func _build_rate() -> float:
+	var entity: Entity = get_parent() as Entity
+	if entity != null and entity.commander != null and entity.commander.is_vigor_strained():
+		return STRAINED_RATE
+	return 1.0
 
 ## Update the train bar's visibility and fill scale. Called from _process.
 ## `parent_scale_x` is the entity's scale.x — needed so the fill bar's

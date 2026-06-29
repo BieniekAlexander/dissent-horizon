@@ -27,7 +27,7 @@ func _on_apply() -> void:
 		# Drop the firer to 0 HP and let the normal death path (Commandable._update_state
 		# -> _on_death) handle commander/grid teardown and queue_free, rather than tearing
 		# the firer down from inside another entity's effect.
-		source.defense.hp = 0
+		source.defense.kill()
 
 	# This effect has done its job; don't linger on the host victim doing nothing for
 	# duration_ticks. remove() undoes nothing (no _on_remove override) and frees the node.

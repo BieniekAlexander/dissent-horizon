@@ -13,6 +13,6 @@ func execute(manager: ScenarioTriggerManager) -> void:
 	var commander := manager.get_commander(commander_id)
 	if commander == null:
 		return
-	commander.ore += ore
-	commander.dominion += dominion
+	commander.add_ore(ore)
+	commander.add_dominion(dominion)
 #endregion

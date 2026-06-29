@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://b6oqu7bqdu6sy"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_base"]
+[ext_resource type="Texture2D" uid="uid://dquyt5toxxm67" path="res://assets/entities/internment_camp.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="3_inv"]
+[ext_resource type="Script" uid="uid://dj0jw37l6fn41" path="res://scripts/entities/components/inventory_dominion_generator.gd" id="4_dom"]
+
+[node name="Structure" instance=ExtResource("1_base")]
+type = 12803
+
+[node name="Structure" parent="." index="7"]
+dimensions = Vector2i(4, 4)
+
+[node name="Defense" parent="." index="8"]
+armour_type = 2
+hp_max = 400.0
+
+[node name="Inventory" type="Node" parent="." index="10"]
+script = ExtResource("3_inv")
+item_capacity = 6
+
+[node name="DominionGenerator" type="Node" parent="." index="11"]
+script = ExtResource("4_dom")
+dominion_per_unit = 5
+
+[node name="Sprite" parent="." index="15"]
+transform = Transform3D(10, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, 0, 0.45, -0.5)
+texture = ExtResource("2_tex")

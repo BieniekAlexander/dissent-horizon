@@ -15,6 +15,6 @@ hp_max = 500.0
 dimensions = Vector2i(2, 2)
 
 [node name="Sprite" parent="." index="0"]
-transform = Transform3D(9, 0, 0, 0, 1.2265, 0, 0, 0, 8.463, 0, 0, 0)
+transform = Transform3D(3.5, 0, 0, 0, 2.4748745, -2.4748745, 0, 2.4748745, 2.4748745, 0, 0.45, 0)
 texture = ExtResource("3_ddtmw")
 

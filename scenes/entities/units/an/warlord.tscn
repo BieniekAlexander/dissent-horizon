@@ -8,21 +8,36 @@
 [ext_resource type="PackedScene" uid="uid://bhkuda16jew0g" path="res://scenes/entities/projectiles/an/warlord_rocket.tscn" id="5_qd6od"]
 [ext_resource type="Script" uid="uid://dnydcqi1gpid3" path="res://scripts/entities/components/interaction.gd" id="5_scm32"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_sfvjv"]
+[ext_resource type="PackedScene" uid="uid://bdf2ac0cqg878" path="res://scenes/events/liberation.tscn" id="5_vc0lo"]
 [ext_resource type="Script" uid="uid://d18njab83ejgj" path="res://scripts/entities/components/dominion_provider.gd" id="6_dompr"]
-[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/irregular.tscn" id="6_scm32"]
-[ext_resource type="Script" uid="uid://bfix8h487pr1x" path="res://scripts/entities/components/builds.gd" id="7_builds"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_scm32"]
 radius = 0.3
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_uasw6"]
+height = 100.0
+radius = 5.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_erjr0"]
+height = 100.0
+radius = 6.0
+
 [sub_resource type="Resource" id="Resource_mn5s2"]
 script = ExtResource("5_scm32")
-event = ExtResource("6_scm32")
+event = ExtResource("5_vc0lo")
 metadata/_custom_type_script = "uid://dnydcqi1gpid3"
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_d835v"]
+height = 100.0
+radius = 4.0
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_techmelee"]
 height = 100.0
-radius = 6.0
+radius = 10.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_q1l8a"]
+height = 5.0
+radius = 5.0
 
 [node name="Unit2" unique_id=1941500794 instance=ExtResource("1_v5yox")]
 type = 8451
@@ -30,19 +45,25 @@ type = 8451
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_scm32")
 
+[node name="AggroRange" parent="." index="4" unique_id=131280482]
+shape = SubResource("CylinderShape3D_uasw6")
+
+[node name="VisionRange" parent="." index="5" unique_id=1124867207]
+shape = SubResource("CylinderShape3D_erjr0")
+
 [node name="Movement" parent="." index="7" unique_id=413735738]
 speed = 0.04
+turn_rate = 1080.0
+reverse_speed_ratio = 0.0
+orbit_radius = 0.0
+orbit_speed = 0.0
 
 [node name="Defense" parent="." index="8" unique_id=637704181]
 armour_type = 1
-hp_max = 200.0
+hp_max = 160.0
 
 [node name="Inventory" type="Node" parent="." index="10" unique_id=196458833]
 script = ExtResource("5_sfvjv")
-
-[node name="Builds" type="Node" parent="." index="11" unique_id=181383139]
-script = ExtResource("7_builds")
-buildable_types = Array[int]([8704, 8712, 513])
 
 [node name="Interactor" type="Node" parent="." index="12" unique_id=352270591]
 script = ExtResource("4_7tit3")
@@ -59,17 +80,24 @@ projectile_scene = ExtResource("5_qd6od")
 melee_damage = 0.0
 target_mask = 6
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/Weapon" index="0" unique_id=1451356995]
+[node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/Weapon" index="0" unique_id=1451356995]
+shape = SubResource("CylinderShape3D_d835v")
+disabled = true
+
+[node name="AttackRangeAir" type="CollisionShape3D" parent="Loadout/Weapon" index="1" unique_id=1441504240]
 shape = SubResource("CylinderShape3D_techmelee")
 disabled = true
 
-[node name="DominionProvider" type="Node" parent="." index="14" unique_id=277136784]
+[node name="DominionProvider" type="Node3D" parent="." index="14" unique_id=892263234]
 script = ExtResource("6_dompr")
 
-[node name="Sprite" parent="." index="18" unique_id=1381401170]
+[node name="DominionRegion" type="CollisionShape3D" parent="DominionProvider" index="0" unique_id=783951289]
+shape = SubResource("CylinderShape3D_q1l8a")
+
+[node name="Sprite" parent="." index="17" unique_id=1381401170]
 transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17100573, 0)
 flip_h = true
 texture = ExtResource("2_pc78a")
 
-[node name="HPBar" parent="." index="19" unique_id=665391337]
+[node name="HPBar" parent="." index="18" unique_id=665391337]
 transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)

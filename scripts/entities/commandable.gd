@@ -17,17 +17,24 @@ extends Entity
 @onready var command_receiver: CommandReceiver = CommandReceiver.new()
 
 ## Component references — all optional. Entity declares `ownership`, `movement`,
-## `selectable`, and `target_body`; Commandable adds `production`,
-## `resource_provider`, and the command/combat machinery below.
+## `selectable`, and `target_body`; Commandable adds `production` and the
+## command/combat machinery below.
 ## NavigationObstacle3D used for cross-team one-sided avoidance (see
 ## AvoidanceAgent3D for the bit-layout). Enabled and sized in _ready for units
 ## only (movement != null); layers are set in _on_commander_changed.
 @onready var _avoidance_obstacle: NavigationObstacle3D = $AvoidanceObstacle
 @onready var production: Production = get_node_or_null("Production") as Production
-@onready var resource_provider: ResourceProvider = get_node_or_null("ResourceProvider") as ResourceProvider
+
+## Vigor (the "power" resource) this commandable contributes to its commander —
+## the old ResourceProvider component, folded up into Commandable. Defaults to 0/0;
+## structure scenes override (a vigor provider sets vigor_provided, a unit-producing
+## structure sets vigor_required). Registered/unregistered with the commander on
+## ownership change and on death (see _on_commander_changed / _on_death).
+@export var vigor_provided: int = 0
+@export var vigor_required: int = 0
+
 @onready var ore_extractor: OreExtractor = get_node_or_null("OreExtractor") as OreExtractor
 @onready var dominion_generator: DominionGenerator = get_node_or_null("DominionGenerator") as DominionGenerator
-@onready var dominion_provider: DominionProvider = get_node_or_null("DominionProvider") as DominionProvider
 @onready var garrison: Garrison = get_node_or_null("Garrison") as Garrison
 @onready var interactor: Interactor = get_node_or_null("Interactor") as Interactor
 @onready var veterancy: Veterancy = $Veterancy
@@ -89,14 +96,74 @@ func load_destination(command: Command) -> void:
 #region Structure state
 ## These were on Structure before the collapse. Kept on Commandable so the
 ## scene script can stay generic; readers gate on group membership or on the
-## presence of the component that exposes the related behavior (Production,
-## ResourceProvider).
+## presence of the component that exposes the related behavior (e.g. Production).
 var build_progress: float = 1.
+## Construction progress a freshly-placed structure starts at (see begin_construction).
+const INITIAL_BUILD_PROGRESS: float = 0.1
+## Fraction of max_health a freshly-placed structure starts with.
+const INITIAL_HEALTH_FACTOR: float = 0.1
+## Emitted whenever build_progress changes, so visuals (construction alpha / train
+## bar) could update reactively rather than polling.
+signal build_progress_changed(progress: float)
 ## True when this entity is fully constructed. Units are always built; structures
-## become built once build_progress reaches 1.0 (set to 0.1 by Build.fulfill_action,
-## ticked up by Repair, defaulting to 1.0 for editor-placed structures).
+## become built once build_progress reaches 1.0 (set to INITIAL_BUILD_PROGRESS by
+## Build.fulfill_action, ticked up by Repair, defaulting to 1.0 for editor-placed
+## structures).
 var is_built: bool:
 	get: return not is_in_group("structure") or build_progress >= 1.0
+
+## Units currently registered as active builders of this structure.
+var _active_builders: Array[Commandable] = []
+
+## Mark a freshly-instantiated structure as just-started construction. Call before
+## add_entity so _ready → add_structure → proc_technology see is_built = false.
+## HP is initialized to INITIAL_HEALTH_FACTOR * hp_max in Commandable._ready(),
+## after Defense._ready() has set it to hp_max, so we don't touch it here.
+func begin_construction() -> void:
+	build_progress = INITIAL_BUILD_PROGRESS
+	build_progress_changed.emit(build_progress)
+
+## Advance construction by `delta`, clamped at 1.0 (fully built). Returns true on
+## the single tick construction first reaches completion, so callers run their
+## one-time finish logic (tech re-eval, builder XP) exactly once.
+## Also scales hp proportionally so health tracks build progress during construction
+## (Task 4): each unit of build progress adds delta * hp_max * (1 - INITIAL_HEALTH_FACTOR).
+func advance_build_progress(delta: float) -> bool:
+	var was_built: bool = build_progress >= 1.0
+	var old_progress: float = build_progress
+	build_progress = minf(build_progress + delta, 1.0)
+	var actual_delta: float = build_progress - old_progress
+	if defense != null and actual_delta > 0.0 and not was_built:
+		defense.hp = minf(
+			defense.hp + actual_delta * defense.hp_max * (1.0 - INITIAL_HEALTH_FACTOR) / (1.0 - INITIAL_BUILD_PROGRESS),
+			defense.hp_max
+		)
+		defense.hp_changed.emit(defense.hp, defense.hp_max)
+	build_progress_changed.emit(build_progress)
+	return not was_built and build_progress >= 1.0
+
+## Register `unit` as an active builder of this structure. Connects to tree_exiting
+## so a dead or removed builder is automatically unregistered. Safe to call multiple
+## times with the same unit (idempotent).
+func register_builder(unit: Commandable) -> void:
+	if _active_builders.has(unit):
+		return
+	_active_builders.append(unit)
+	unit.tree_exiting.connect(unregister_builder.bind(unit), CONNECT_ONE_SHOT)
+
+## Remove `unit` from the active-builder list. Called explicitly when a Repair
+## command ends, and automatically via tree_exiting when a builder dies.
+func unregister_builder(unit: Commandable) -> void:
+	_active_builders.erase(unit)
+
+## Per-builder-per-tick build progress increment consistent with the AOE2 formula:
+##   effective_build_time = 3 * base_build_time / (n + 2)
+## Each of n builders calls this each tick, so total progress per tick = 1/effective_build_time.
+func effective_build_increment() -> float:
+	var n: int = max(1, _active_builders.size())
+	var spec: TechnologySpec = commander.technology_mapping.get(type) if commander != null else null
+	var base_build_time: int = spec.creation_time if spec != null else 600
+	return float(n + 2) / (3.0 * float(base_build_time) * float(n))
 var map_cells: Set:
 	get: return map.structure_cell_map.get(self, null) if map != null else null
 #endregion
@@ -161,29 +228,23 @@ func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D
 	var shape_transform: Transform3D = shape_source.global_transform
 	shape_transform.origin = center
 
-	var aggro_query := PhysicsShapeQueryParameters3D.new()
-	aggro_query.shape = shape_source.shape
-	aggro_query.transform = shape_transform
-	aggro_query.collision_mask = CollisionLayers.TARGETABLE_ANY
-	aggro_query.exclude = [target_body.get_rid()] if target_body != null else []
-
-	var vs = get_world_3d().direct_space_state.intersect_shape(aggro_query, 10).map(
-		func(r): return Entity.entity_from_collider(r["collider"])
-	).filter(
-		func(t): return (
-			garrison._garrisoned[0].weapon_inventory.weapon_for_target(t)!=null
-			if garrison!=null and garrison.garrisoned_count() > 0
-			else weapon_inventory.weapon_for_target(t)!=null
-		)
-	).filter(func(t): return t is Commandable and t.defense != null and (
-		(weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null)
-		or (is_bunker and garrison.any_garrison_can_target(t))
-	)).filter(
-		func(t): return t.commander_id > 0 and t.commander_id != commander_id
+	var excludes: Array = [target_body.get_rid()] if target_body != null else []
+	var vs: Array[Entity] = SU.query_shape_for_entities(
+		get_world_3d(), shape_source.shape, shape_transform,
+		CollisionLayers.TARGETABLE_ANY, excludes, 10
+	).filter(func(t: Entity) -> bool:
+		# An attackable enemy this actor (or its garrison, when a bunker) can fire on.
+		if not (t is Commandable and (t as Commandable).defense != null):
+			return false
+		if not is_enemy_of(t):
+			return false
+		if weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null:
+			return true
+		return is_bunker and garrison.any_garrison_can_target(t)
 	)
-	
+
 	var potential_targets: Array = AU.sort_on_key(
-		func(c: Commandable): return global_position.distance_squared_to(c.global_position),
+		func(c: Commandable): return VU.inXZ(global_position).distance_squared_to(VU.inXZ(c.global_position)),
 		vs
 	)
 
@@ -209,18 +270,17 @@ func receive_damage(damage: Damage, from: Commandable = null) -> void:
 func _get_vision_range_attack(attacker: Commandable) -> Command:
 	if vision_range_shape == null:
 		return null
-	if attacker.commander_id == 0 or attacker.commander_id == commander_id:
+	if not is_enemy_of(attacker):
 		return null
 	if weapon_inventory==null or not weapon_inventory.has_weapons():
 		return null
-	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = vision_range_shape.shape
-	params.transform = vision_range_shape.global_transform
-	params.collision_mask = CollisionLayers.TARGETABLE_ANY
-	params.exclude = [target_body.get_rid()] if target_body != null else []
-	var potential_targets: Array = get_world_3d().direct_space_state.intersect_shape(params, 20)
-	for hit in potential_targets:
-		if Entity.entity_from_collider(hit["collider"]) == attacker and weapon_inventory.weapon_for_target(attacker)!=null:
+	var excludes: Array = [target_body.get_rid()] if target_body != null else []
+	var potential_targets: Array[Entity] = SU.query_shape_for_entities(
+		get_world_3d(), vision_range_shape.shape, vision_range_shape.global_transform,
+		CollisionLayers.TARGETABLE_ANY, excludes, 20
+	)
+	for t in potential_targets:
+		if t == attacker and weapon_inventory.weapon_for_target(attacker) != null:
 			return Attack.new(CommandMessage.new(map, attacker, null))
 	return null
 #endregion
@@ -235,6 +295,18 @@ func _ready() -> void:
 	refresh_movement_collision()
 	attributes = Set.new(attributes_list)
 	command_receiver.initialize(self)
+
+	# Drive the HP-bar fill geometry off damage events rather than recomputing it
+	# every frame. Visibility still depends on selection (see _process), but the
+	# fill scale/offset only move when hp moves.
+	if defense != null:
+		defense.hp_changed.connect(_on_hp_changed)
+		# Defense._ready() initializes hp to hp_max. For structures placed by
+		# Build.fulfill_action (begin_construction called before _ready), override
+		# hp to match the construction starting fraction (Task 4).
+		if is_in_group("structure") and not is_built:
+			defense.hp = defense.hp_max * INITIAL_HEALTH_FACTOR
+		_on_hp_changed(defense.hp, defense.hp_max)
 
 	# Wire Movement → physics handler for unit-shaped entities. Structures
 	# typically have no Movement component, so movement is null and this is
@@ -271,12 +343,10 @@ func _on_commander_changed(old_commander: Commander, new_commander: Commander) -
 		return
 	if old_commander != null:
 		old_commander.remove_structure(self)
-		if resource_provider != null:
-			resource_provider.remove_from(old_commander)
+		old_commander.adjust_vigor(-vigor_required, -vigor_provided)
 	if new_commander != null:
 		new_commander.add_structure(self)
-		if resource_provider != null:
-			resource_provider.apply_to(new_commander)
+		new_commander.adjust_vigor(vigor_required, vigor_provided)
 
 func initialize(a_map: Map, a_commander: Commander):
 	super(a_map, a_commander)
@@ -298,12 +368,9 @@ func _process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	var sprite: Sprite3D = get_node_or_null("Sprite") as Sprite3D
 
-	# HP bar (visible while damaged or selected)
+	# HP bar visibility (visible while damaged or selected). The fill geometry is
+	# driven separately by _on_hp_changed, since it only moves when hp moves.
 	$HPBar.visible = defense != null and (defense.hp < defense.hp_max or selectable.is_selected())
-	if hpBarFill.visible:
-		hpBarFill.scale.x = defense.hp / defense.hp_max
-		var half_w := hpBarFill.texture.get_width() * hpBarFill.pixel_size / 2.0
-		hpBarFill.position.x = -half_w * (1.0 - hpBarFill.scale.x)
 
 	# Movement-driven sprite facing + animation frames. Was Unit._process.
 	if movement != null and sprite != null:
@@ -357,6 +424,15 @@ func _process(_delta: float) -> void:
 					sprite.modulate.a = 0.0
 					$HPBar.visible = false
 
+## Resize/offset the HP-bar fill to match the current hp fraction. Connected to
+## Defense.hp_changed, so it runs only when hp actually changes.
+func _on_hp_changed(a_hp: float, a_hp_max: float) -> void:
+	if hpBarFill == null or a_hp_max <= 0:
+		return
+	hpBarFill.scale.x = a_hp / a_hp_max
+	var half_w := hpBarFill.texture.get_width() * hpBarFill.pixel_size / 2.0
+	hpBarFill.position.x = -half_w * (1.0 - hpBarFill.scale.x)
+
 func _on_velocity_computed(a_velocity: Vector3) -> void:
 	# a_velocity is the RVO avoidance-adjusted velocity from the NavigationAgent3D.
 	# We simply apply it; same-team avoidance keeps units from overlapping, so we
@@ -405,8 +481,6 @@ func _update_state() -> void:
 		ore_extractor.tick()
 	if dominion_generator != null:
 		dominion_generator.tick()
-	if dominion_provider != null:
-		dominion_provider.tick()
 
 	# Detection: reveal enemy stealth units within DetectionRange this tick.
 	if detection_range != null:
@@ -449,12 +523,26 @@ func _process_commands() -> void:
 	command_receiver._process_commands()
 
 func _on_death() -> void:
+	# Return or kill garrisoned occupants before queue_free() voids the host's map
+	# reference and orphans them permanently.
+	if garrison != null and garrison.garrisoned_count() > 0:
+		if garrison.preserve_occupants:
+			garrison.evacuate(map)
+		else:
+			garrison.kill_occupants()
+	# Return or free inventory occupants (e.g. abducted units in a stock truck or
+	# internment camp). eject_to_scene clears the items array, so the Inventory
+	# PREDELETE handler becomes a harmless no-op.
+	if ability_inventory != null and ability_inventory.has_items():
+		if ability_inventory.preserve_occupants:
+			ability_inventory.eject_to_scene(global_position)
+		else:
+			ability_inventory.free_items()
 	# Commander/economy teardown for owned structures. The grid teardown
 	# (map.remove_structure) is handled in Entity._on_death via super().
 	if is_in_group("structure") and commander != null:
 		commander.remove_structure(self)
-		if resource_provider != null:
-			resource_provider.remove_from(commander)
+		commander.adjust_vigor(-vigor_required, -vigor_provided)
 	super()
 #endregion
 
@@ -464,18 +552,15 @@ func _on_death() -> void:
 ## entities that opted into the STEALTH layer (i.e. those with a Stealth node)
 ## are considered.
 func _detect_stealthed_units() -> void:
-	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = detection_range.shape
-	params.transform = detection_range.global_transform
-	params.collision_mask = CollisionLayers.Mask.STEALTH
-	params.exclude = [self]
-
-	for result: Dictionary in get_world_3d().direct_space_state.intersect_shape(params, 20):
-		var target := result["collider"] as Entity
-		if target == null or target.stealth == null:
+	var targets: Array[Entity] = SU.query_shape_for_entities(
+		get_world_3d(), detection_range.shape, detection_range.global_transform,
+		CollisionLayers.Mask.STEALTH, [self], 20
+	)
+	for target in targets:
+		if target.stealth == null:
 			continue
 		# Only reveal enemies — neutral (id 0) and own units are skipped.
-		if target.commander_id == 0 or target.commander_id == commander_id:
+		if not is_enemy_of(target):
 			continue
 		target.stealth.reveal()
 #endregion

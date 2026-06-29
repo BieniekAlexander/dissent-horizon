@@ -52,4 +52,4 @@ script = ExtResource("6_invnt")
 
 [node name="Builds" type="Node" parent="." index="25" unique_id=810133913]
 script = ExtResource("7_builds")
-buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614, 8704])
+buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614, 8704, 8705, 8706])

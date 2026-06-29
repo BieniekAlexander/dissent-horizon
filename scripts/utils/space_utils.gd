@@ -10,16 +10,38 @@ const _NAV_SNAP_TOLERANCE: float = 0.5
 #endregion
 
 #region Public API
+## Run a shape overlap and return the owning Entities of everything it hit on
+## `collision_mask`, with nulls (non-entity colliders) dropped. The single
+## chokepoint for "which entities overlap this shape" — aggro, vision, detection,
+## and AoE all go through here instead of hand-rolling intersect_shape +
+## entity_from_collider. `exclude` is a list of RIDs/Objects to skip.
+static func query_shape_for_entities(
+	world_3d: World3D,
+	shape: Shape3D,
+	transform: Transform3D,
+	collision_mask: int,
+	exclude: Array = [],
+	max_results: int = 32
+) -> Array[Entity]:
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = shape
+	params.transform = transform
+	params.collision_mask = collision_mask
+	params.exclude = exclude
+	var result: Array[Entity] = []
+	result.assign(
+		world_3d.direct_space_state.intersect_shape(params, max_results).map(
+			func(d: Dictionary) -> Entity: return Entity.entity_from_collider(d["collider"])
+		).filter(func(e: Entity) -> bool: return e != null)
+	)
+	return result
+
 static func get_nearby_entities(world_3d: World3D, a_position: Vector3, a_radius: float, collision_mask: int) -> Array:
 	var shape := SphereShape3D.new()
 	shape.radius = a_radius
-	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = shape
-	params.transform.origin = a_position
-	params.collision_mask = collision_mask
-	return world_3d.direct_space_state.intersect_shape(params, 10).map(
-		func(d): return Entity.entity_from_collider(d['collider'])
-	).filter(func(e): return e != null)
+	return query_shape_for_entities(
+		world_3d, shape, Transform3D(Basis(), a_position), collision_mask, [], 10
+	)
 
 static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 	var diff = (pos1 - pos2).abs()
@@ -34,7 +56,11 @@ static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 ## global_transform off the CollisionShape3D node directly, because Weapon and
 ## Loadout are plain Nodes (not Node3D) and would always report the origin.
 static func is_in_attack_range(weapon: Weapon, attacker: Entity, target: Entity) -> bool:
-	return is_weapon_in_range_at(weapon, attacker.global_transform, attacker.get_world_3d(), target, attacker)
+	return (
+		is_weapon_in_range_at(weapon, attacker.global_transform, attacker.get_world_3d(), target, attacker)
+		if weapon!=null
+		else false
+	)
 
 ## Same range check but with an explicit firing position. Used when the weapon
 ## belongs to a garrisoned unit firing from a garrison owner's location.
@@ -45,10 +71,8 @@ static func is_weapon_in_range_at(
 	target: Entity,
 	exclude: Object = null
 ) -> bool:
-	if weapon == null or weapon.attack_range_shape == null:
-		return false
 	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = weapon.attack_range_shape.shape
+	params.shape = weapon.get_range_for_target(target).shape
 	params.transform = from_transform
 	# Only scan the layers this weapon can actually hit, so e.g. a ground-only
 	# weapon never reports an air target as "in range".
@@ -59,7 +83,10 @@ static func is_weapon_in_range_at(
 	return results.any(func(r: Dictionary) -> bool: return Entity.entity_from_collider(r["collider"]) == target)
 
 static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, distance_squared: float = .001) -> bool:
-	if a_target is Commandable and a_target.is_in_group("structure"):
+	# Group-based, not type-based: a structure may be an Entity that is NOT a Commandable
+	# (e.g. ShelterStructure / Deposit), and it still wants footprint-adjacency proximity
+	# rather than the strict touch-the-target-body check used for mobile units.
+	if a_target is Entity and a_target.is_in_group("structure"):
 		return SU.unit_is_close_to_structure(a_unit, a_target, distance_squared)
 	elif a_target is Entity:
 		return SU.unit_is_close_to_unit(a_unit, a_target, distance_squared)
@@ -74,7 +101,7 @@ static func unit_is_close_to_position(a_unit: Commandable, a_position: Vector2, 
 	# arrival is just a position-equality check — no collision radius needed.
 	return a_unit.xz_position.is_equal_approx(a_position)
 
-static func unit_is_close_to_structure(a_unit: Commandable, a_structure: Commandable, _distance_squared: float = .001) -> bool:
+static func unit_is_close_to_structure(a_unit: Commandable, a_structure: Entity, _distance_squared: float = .001) -> bool:
 	# A unit counts as close to a structure when its grid cell lies within the
 	# structure's footprint or is immediately adjacent to it (see
 	# unit_is_close_to_footprint). Measuring against the whole footprint makes
@@ -135,32 +162,7 @@ static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distan
 ## list is shuffled so callers can pop_front() to assign distinct destinations
 ## without bias.
 static func passable_cells_adjacent_to(a_structure: Commandable, a_map: Map) -> Array[Vector2i]:
-	if a_structure == null or a_map == null:
-		return []
-
-	var footprint: Array = a_map.structure_cell_map.get(a_structure, [])
-	# `seen` prevents both footprint cells and already-collected neighbors
-	# from appearing in the output.
-	var seen: Dictionary = {}
-	for cell in footprint:
-		seen[cell] = true
-
-	var result: Array[Vector2i] = []
-	for cell: Vector2i in footprint:
-		for dx in [-1, 0, 1]:
-			for dz in [-1, 0, 1]:
-				if dx == 0 and dz == 0:
-					continue
-				var neighbor := Vector2i(cell.x + dx, cell.y + dz)
-				if seen.has(neighbor):
-					continue
-				if not a_map.grid_coordinates_in_bounds(neighbor):
-					continue
-				if not a_map.terrain_grid.is_passable(neighbor):
-					continue
-				seen[neighbor] = true
-				result.append(neighbor)
-
+	var result: Array[Vector2i] = _passable_footprint_neighbors(a_structure, a_map)
 	result.shuffle()
 	return result
 
@@ -172,33 +174,14 @@ static func nearest_footprint_adjacent_cell(
 	a_structure: Commandable,
 	a_map: Map
 ) -> Vector2i:
-	if a_structure == null or a_map == null:
-		return Vector2i(-1, -1)
-
-	var footprint: Array = a_map.structure_cell_map.get(a_structure, [])
-	var in_footprint: Dictionary = {}
-	for cell in footprint:
-		in_footprint[cell] = true
-
 	var best_cell := Vector2i(-1, -1)
 	var best_dist_sq := INF
 
-	for cell: Vector2i in footprint:
-		for dx in [-1, 0, 1]:
-			for dz in [-1, 0, 1]:
-				if dx == 0 and dz == 0:
-					continue
-				var neighbor := Vector2i(cell.x + dx, cell.y + dz)
-				if in_footprint.has(neighbor):
-					continue
-				if not a_map.grid_coordinates_in_bounds(neighbor):
-					continue
-				if not a_map.terrain_grid.is_passable(neighbor):
-					continue
-				var dist_sq := a_map.grid_to_world(neighbor).distance_squared_to(dest)
-				if dist_sq < best_dist_sq:
-					best_dist_sq = dist_sq
-					best_cell = neighbor
+	for neighbor in _passable_footprint_neighbors(a_structure, a_map):
+		var dist_sq := a_map.grid_to_world(neighbor).distance_squared_to(dest)
+		if dist_sq < best_dist_sq:
+			best_dist_sq = dist_sq
+			best_cell = neighbor
 
 	return best_cell
 
@@ -269,6 +252,39 @@ static func get_nonoverlapping_points(
 #endregion
 
 #region Private helpers
+## All in-bounds, passable grid cells adjacent (L∞ = 1) to any cell in
+## `a_structure`'s registered footprint, excluding the footprint cells themselves.
+## De-duplicated and unordered. Shared by passable_cells_adjacent_to (which
+## shuffles the result) and nearest_footprint_adjacent_cell (which picks the one
+## closest to a point).
+static func _passable_footprint_neighbors(a_structure: Commandable, a_map: Map) -> Array[Vector2i]:
+	if a_structure == null or a_map == null:
+		return []
+
+	var footprint: Array = a_map.structure_cell_map.get(a_structure, [])
+	# `seen` excludes footprint cells and de-duplicates neighbors reachable from
+	# more than one footprint cell.
+	var seen: Dictionary = {}
+	for cell in footprint:
+		seen[cell] = true
+
+	var result: Array[Vector2i] = []
+	for cell: Vector2i in footprint:
+		for dx in [-1, 0, 1]:
+			for dz in [-1, 0, 1]:
+				if dx == 0 and dz == 0:
+					continue
+				var neighbor := Vector2i(cell.x + dx, cell.y + dz)
+				if seen.has(neighbor):
+					continue
+				seen[neighbor] = true
+				if not a_map.grid_coordinates_in_bounds(neighbor):
+					continue
+				if not a_map.terrain_grid.is_passable(neighbor):
+					continue
+				result.append(neighbor)
+	return result
+
 ## Project an XZ world position onto the navmesh using NavigationServer3D.
 ## Returns the snapped Vector3 if the closest navmesh point is within
 ## _NAV_SNAP_TOLERANCE in XZ; returns Vector3.INF if the point is off-navmesh

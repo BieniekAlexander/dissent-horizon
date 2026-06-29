@@ -17,7 +17,6 @@
 - Asymmetric mechanics
 	- Mobility - speed modifiers for units
 	- Heal - LACK
-	- Steal - AOE unit that steals infantry
 	- bonus - frenzy: units destroying buildings get temporary bonus
 - Unique Mechanics
 	- sacrifice building health for faster unit production

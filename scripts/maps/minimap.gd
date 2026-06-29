@@ -114,12 +114,16 @@ func _process(_delta: float) -> void:
 	if not _ready_to_draw:
 		return
 
+	# Re-resolve the active fog each frame so spectator fog-toggle takes effect immediately.
+	var resolved_fog: Variant = Fog.get_active_fog()
+	_fog = resolved_fog if resolved_fog is Fog else null
+
 	_image.fill(Color.BLACK)
 
 	# Pass 1: shade terrain by fog state.
 	#   UNSEEN   → black (already filled above, no write needed)
 	#   EXPLORED → dark grey (seen before, currently fogged)
-	#   IN_SIGHT → light grey (inside a player unit's vision radius this frame)
+	#   IN_SIGHT → light grey (inside the active commander's vision this frame)
 	if _fog != null:
 		for mpy: int in HEIGHT:
 			for mpx: int in WIDTH:
@@ -128,6 +132,9 @@ func _process(_delta: float) -> void:
 						_image.set_pixel(mpx, mpy, EXPLORED_COLOR)
 					Fog.TerrainVisibility.IN_SIGHT:
 						_image.set_pixel(mpx, mpy, IN_SIGHT_COLOR)
+	elif Fog.active_commander_id == -2:
+		# Omniscient spectator: all terrain is visible.
+		_image.fill(IN_SIGHT_COLOR)
 
 	# Pass 2: draw commandable dots/squares on top of the terrain layer.
 	for entity: Entity in get_tree().get_nodes_in_group("commandable"):

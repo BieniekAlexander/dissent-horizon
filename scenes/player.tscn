@@ -1,6 +1,7 @@
-[gd_scene load_steps=11 format=3 uid="uid://b0r4m42p2r3dr"]
+[gd_scene load_steps=12 format=3 uid="uid://b0r4m42p2r3dr"]
 
 [ext_resource type="Script" uid="uid://dlfont33njutx" path="res://scripts/interface/commander/commander.gd" id="1_imw3m"]
+[ext_resource type="PackedScene" uid="uid://b8anrchclftn01" path="res://scenes/factions/anarchical.tscn" id="9_anfac"]
 [ext_resource type="Script" uid="uid://ci0peslxxakbh" path="res://scripts/interface/rts_camera_3d.gd" id="2_omyur"]
 [ext_resource type="Script" uid="uid://cldm35yesp5qj" path="res://scripts/interface/rts_controller.gd" id="3_q8ke8"]
 [ext_resource type="Shader" uid="uid://du6421tshttnx" path="res://scripts/rendering/shaders/fog.gdshader" id="4_ah75o"]
@@ -20,6 +21,7 @@ layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_imw3m")
 id = 1
+faction_scene = ExtResource("9_anfac")
 
 [node name="Camera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -0.7071067, 0.7071067, 0, -0.7071067, -0.7071067, 0, 20, 20)
@@ -42,7 +44,7 @@ color = Color(0.654902, 0.137255, 0.972549, 0.498039)
 offset_right = 260.0
 offset_bottom = 85.0
 text = "	ore: 500
-	population: 0/0
+	vigor: 0/100
 	dominion: 0"
 
 [node name="CommandsView" type="GridContainer" parent="Controller"]

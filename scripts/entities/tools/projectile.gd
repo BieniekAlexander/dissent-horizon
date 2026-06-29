@@ -314,23 +314,17 @@ func _apply_hit() -> void:
 			for effect: EffectApplicator in get_effects():
 				effect.apply([target], source)
 	else:
-		var params := PhysicsShapeQueryParameters3D.new()
-		params.shape = hit_shape.shape
-		params.transform = hit_shape.global_transform
-		params.collision_mask = CollisionLayers.TARGETABLE_ANY
-		params.exclude = [self]
-		var hits: Array = get_world_3d().direct_space_state.intersect_shape(params, 32)
-		# .map() returns an untyped Array, but EffectApplicator.apply expects Array[Entity];
-		# assign() copies with element-type conversion. entity_from_collider may return null,
-		# which a typed object array permits (the receive_damage loop guards with is_valid).
-		var targets: Array[Entity] = []
-		targets.assign(hits.map(
-			func(hit: Dictionary): return Entity.entity_from_collider(hit["collider"])
-		))
+		# Every Commandable the blast overlaps (nulls / non-entity colliders are
+		# dropped by the helper). EffectApplicator.apply expects Array[Entity],
+		# which this already is.
+		var targets: Array[Entity] = SU.query_shape_for_entities(
+			get_world_3d(), hit_shape.shape, hit_shape.global_transform,
+			CollisionLayers.TARGETABLE_ANY, [self], 32
+		)
 
-		for target in targets:
-			if is_instance_valid(target) and target.defense != null:
-				target.receive_damage(dmg, source)
+		for entity in targets:
+			if entity.defense != null:
+				entity.receive_damage(dmg, source)
 
 		for effect: EffectApplicator in get_effects():
 			effect.apply(targets, source)

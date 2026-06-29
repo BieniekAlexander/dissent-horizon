@@ -6,7 +6,7 @@ static var command_class: bool = true
 enum PreconditionFailureCause {
 	NONE,
 	NOT_ENOUGH_ORE,
-	NOT_ENOUGH_POPULATION,
+	NOT_ENOUGH_VIGOR,
 	NOT_ENOUGH_DOMINION,
 	MISSING_STRUCTURE,
 	INVALID_PLACEMENT,
@@ -21,7 +21,7 @@ enum PreconditionFailureCause {
 static var precondition_message_map: Dictionary = {
 	PreconditionFailureCause.NONE: "",
 	PreconditionFailureCause.NOT_ENOUGH_ORE: "Not enough ore",
-	PreconditionFailureCause.NOT_ENOUGH_POPULATION: "Not enough population",
+	PreconditionFailureCause.NOT_ENOUGH_VIGOR: "Not enough vigor",
 	PreconditionFailureCause.NOT_ENOUGH_DOMINION: "Not enough dominion",
 	PreconditionFailureCause.MISSING_STRUCTURE: "Required structure missing",
 	PreconditionFailureCause.INVALID_PLACEMENT: "Invalid Placement",
@@ -33,7 +33,7 @@ static var precondition_message_map: Dictionary = {
 static var unmet_need_to_precondition: Dictionary = {
 	TechnologySpec.UnmetNeed.NONE: PreconditionFailureCause.NONE,
 	TechnologySpec.UnmetNeed.NOT_ENOUGH_ORE: PreconditionFailureCause.NOT_ENOUGH_ORE,
-	TechnologySpec.UnmetNeed.NOT_ENOUGH_POPULATION: PreconditionFailureCause.NOT_ENOUGH_POPULATION,
+	TechnologySpec.UnmetNeed.NOT_ENOUGH_VIGOR: PreconditionFailureCause.NOT_ENOUGH_VIGOR,
 	TechnologySpec.UnmetNeed.NOT_ENOUGH_DOMINION: PreconditionFailureCause.NOT_ENOUGH_DOMINION,
 	TechnologySpec.UnmetNeed.MISSING_STRUCTURE: PreconditionFailureCause.MISSING_STRUCTURE,
 }

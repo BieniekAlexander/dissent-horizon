@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_wha84"]
 [ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="3_j87wn"]
 [ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="7_tp7be"]
-[ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="8_ptwxw"]
+[ext_resource type="Texture2D" uid="uid://dkij2c8xkko6p" path="res://assets/entities/deposit.png" id="8_ptwxw"]
 [ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="10_ev6f8"]
 [ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="12_um2k1"]
 [ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="13_ds4h6"]
@@ -49,7 +49,7 @@ shape = SubResource("SphereShape3D_cx6aj")
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=403845497]
 
 [node name="Sprite" type="Sprite3D" parent="." unique_id=1422442771]
-transform = Transform3D(2, 0, 0, 0, 1.4142135, -1.3435029, 0, 1.4142135, 1.3435029, -0.005941391, 0.7, 0.3996582)
+transform = Transform3D(5, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, -0.052672386, 0.45, -1.0397491)
 layers = 2
 axis = 1
 render_priority = 1

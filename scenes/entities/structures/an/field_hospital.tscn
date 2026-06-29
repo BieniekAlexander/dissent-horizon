@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://ctsti2dym3cqs"]
+
+[ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_fhosp"]
+[ext_resource type="Texture2D" uid="uid://nfkbbq0h2g1s" path="res://assets/entities/field_hospital.png" id="2_fhosp"]
+[ext_resource type="Script" uid="uid://7pgkow0rp0jw" path="res://scripts/entities/effects/heal_aoe.gd" id="3_fhosp"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_heal"]
+size = Vector3(5, 10, 5)
+
+[node name="Structure" unique_id=46397257 instance=ExtResource("1_fhosp")]
+type = 8705
+
+[node name="Structure" parent="." index="7" unique_id=390859349]
+dimensions = Vector2i(3, 3)
+
+[node name="Defense" parent="." index="8" unique_id=637704181]
+hp_max = 300.0
+
+[node name="Sprite" parent="." index="13" unique_id=1381401170]
+transform = Transform3D(3.5, 0, 0, 0, 2.4748745, -2.4748745, 0, 2.4748745, 2.4748745, 0, 0.45, 0)
+texture = ExtResource("2_fhosp")
+
+[node name="HealAOE" type="Area3D" parent="." index="18" unique_id=1842361047]
+script = ExtResource("3_fhosp")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HealAOE" index="0" unique_id=1969097381]
+shape = SubResource("BoxShape3D_heal")

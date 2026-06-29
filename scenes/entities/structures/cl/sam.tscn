@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="PackedScene" uid="uid://d4hii8hrkdfqe" path="res://scenes/entities/projectiles/cl/sam_missile.tscn" id="4_hro24"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
-[ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="5_hro24"]
+[ext_resource type="Texture2D" uid="uid://b0f6cbwp1joct" path="res://assets/entities/sam.png" id="5_hro24"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_r3ibt"]
 size = Vector3(1, 10, 1)
@@ -64,7 +64,7 @@ hp_max = 200.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24707031, 0)
 
 [node name="Sprite" parent="." index="13" unique_id=1381401170]
-transform = Transform3D(1, 0, 0, 0, 0.7071068, -0.70710677, 0, 0.70710677, 0.7071068, 0.008907318, 0.33644247, 0.20648193)
+transform = Transform3D(3.5, 0, 0, 0, 2.4748745, -2.4748745, 0, 2.4748745, 2.4748745, 0, 0.45, 0)
 texture = ExtResource("5_hro24")
 
 [node name="Loadout" type="Node3D" parent="." index="14" unique_id=1780205216]

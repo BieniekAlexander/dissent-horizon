@@ -1,11 +1,12 @@
 [gd_scene format=3 uid="uid://dtyheenc7jb57"]
 
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_emt25"]
-[ext_resource type="Texture2D" uid="uid://cpcl7027uxe1r" path="res://assets/greyscale-tree.png" id="2_pig0v"]
+[ext_resource type="Texture2D" uid="uid://cwleeftk3nbmd" path="res://assets/entities/stronghold.png" id="2_pig0v"]
 [ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="3_prod0"]
 
 [node name="Structure" unique_id=1969097380 instance=ExtResource("1_emt25")]
 type = 8704
+vigor_required = 40
 
 [node name="Structure" parent="." index="7" unique_id=390859349]
 dimensions = Vector2i(3, 3)
@@ -19,5 +20,5 @@ script = ExtResource("3_prod0")
 producible_types = Array[int]([8451, 8449])
 
 [node name="Sprite" parent="." index="14" unique_id=1381401170]
-transform = Transform3D(0.36, 0, 0, 0, 0.036062445, -0.14142136, 0, 0.036062445, 0.14142136, 0, 0.7736206, 0.76805496)
+transform = Transform3D(7.5, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, -0.028815746, 0.45, -0.5472431)
 texture = ExtResource("2_pig0v")

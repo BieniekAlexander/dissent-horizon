@@ -33,6 +33,19 @@ func attack_move(units: Array, world_pos: Vector3) -> void:
 		u.load_destination(cmd)
 
 
+## Order each unit to move to a world position WITHOUT engaging — a plain move
+## command (not attack-move), so units don't aggro en route. Used to pull a kamikaze
+## back to safety when no blast is worth it.
+func move(units: Array, world_pos: Vector3) -> void:
+	if _map == null:
+		return
+	var dest: Vector3 = _map.nearest_navmesh_point(world_pos)
+	for u: Commandable in units:
+		var cmd := Command.new(CommandMessage.new(_map, null, null, dest))
+		u.update_commands(cmd)
+		u.load_destination(cmd)
+
+
 ## Order each unit to attack a specific enemy entity directly. persist=false makes
 ## it a leashed engagement (drop the target if it flees / leaves range), so the unit
 ## returns to idle — and gets re-tasked — instead of chasing forever.
@@ -59,6 +72,31 @@ func build(builder: Commandable, type: Entity.Type, world_pos: Vector3) -> bool:
 	builder.update_commands(cmd)
 	builder.load_destination(cmd)
 	return true
+
+
+## Order a unit to interact with a target (e.g. a Warlord liberating a Shelter). The
+## unit paths to the target and performs its applicable Interaction on arrival. The
+## message's `position` derives from the target, so load_destination primes the nav goal.
+## Applicability (the unit owning a matching Interactor interaction, the target being
+## available) is enforced downstream by Interact.meets_precondition, so an invalid
+## request is a safe no-op.
+func interact(unit: Commandable, target: Entity) -> void:
+	if _map == null or target == null:
+		return
+	var cmd := Interact.new(CommandMessage.new(_map, target))
+	unit.update_commands(cmd)
+	unit.load_destination(cmd)
+
+
+## Order [unit] to enter [host]'s garrison. The Occupy precondition enforces
+## GROUNDED_DIRECT movement and a same-team or neutral, built Garrison host;
+## precondition failures are silently handled by Occupy itself.
+func garrison_into(unit: Commandable, host: Commandable) -> void:
+	if _map == null:
+		return
+	var cmd := Occupy.new(CommandMessage.new(_map, host, null, host.global_position))
+	unit.update_commands(cmd)
+	unit.load_destination(cmd)
 
 
 ## Queue one unit of `type` at a production structure. Returns false only when no

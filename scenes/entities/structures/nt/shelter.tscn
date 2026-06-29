@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="3_obs"]
 [ext_resource type="Script" uid="uid://dlstea8ufglor" path="res://scripts/entities/components/shelter.gd" id="4_shel"]
 [ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="5_sel"]
-[ext_resource type="Texture2D" uid="uid://bm3tdpihnqyb" path="res://assets/entities/compound.png" id="6_spr"]
+[ext_resource type="Texture2D" uid="uid://br0rjuhf3qq36" path="res://assets/entities/shelter.png" id="6_spr"]
 [ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="7_seli"]
 [ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="8_fviz"]
 [ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="9_tint"]
@@ -55,8 +55,9 @@ shape = SubResource("BoxShape3D_sel")
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1363122046]
 
 [node name="Sprite" type="Sprite3D" parent="." unique_id=1923341668]
-transform = Transform3D(10, 0, 0, 0, 7.071068, -6.3639607, 0, 7.071068, 6.3639607, 0.09030843, 0.6683121, 0.35986328)
+transform = Transform3D(15, 0, 0, 0, 2.4748738, -5.656854, 0, 2.4748738, 5.656854, -0.07409811, 0.45, -0.91401863)
 axis = 1
+no_depth_test = true
 texture = ExtResource("6_spr")
 
 [node name="SelectionIndicator" type="Sprite3D" parent="." unique_id=1099006864]

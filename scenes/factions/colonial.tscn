@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://bqe38bvv7aclk"]
+
+[ext_resource type="Script" uid="uid://cyrg0j3vbx1ds" path="res://scripts/interface/commander/faction.gd" id="1_fac"]
+[ext_resource type="PackedScene" uid="uid://cl0settlement01" path="res://scenes/entities/structures/cl/settlement.tscn" id="2_settl"]
+[ext_resource type="PackedScene" uid="uid://dgu5rjol1pe84" path="res://scenes/entities/units/cl/stock_truck.tscn" id="3_truck"]
+[ext_resource type="PackedScene" uid="uid://chrecru1t0001" path="res://scenes/entities/units/cl/recruit.tscn" id="4_recr"]
+[ext_resource type="PackedScene" uid="uid://xi4d44sl0pu6" path="res://scenes/entities/units/cl/badger.tscn" id="5_badg"]
+
+[node name="Colonial" type="Node"]
+script = ExtResource("1_fac")
+faction_name = "Colonials"
+starting_structure = ExtResource("2_settl")
+starting_units = Array[PackedScene]([ExtResource("3_truck"), ExtResource("4_recr"), ExtResource("4_recr"), ExtResource("5_badg")])
+ordnance_unlocks = Array[OrdnanceUnlock]([])

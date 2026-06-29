@@ -4,6 +4,7 @@ enum Type {
 	IS_GROUNDED,
 	IS_FLYING,
 	HAS_STEALTH,
+	IS_BIOLOGICAL,
 	# extend as needed
 }
 
@@ -16,6 +17,9 @@ static var evaluators: Dictionary = {
 		return m != null and (m.mode == Movement.Mode.FLYING or m.mode == Movement.Mode.HOVERING),
 	Type.HAS_STEALTH: func(e: Node) -> bool:
 		return e.get_node_or_null("Stealth") != null,
+	Type.IS_BIOLOGICAL: func(e: Node) -> bool:
+		var d: Defense = e.get_node_or_null("Defense") as Defense
+		return d != null and d.frame_type == Defense.FrameType.BIOLOGICAL,
 }
 
 static func evaluate(attribute: Type, entity: Node) -> bool:
