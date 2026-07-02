@@ -69,12 +69,16 @@ flowchart TD
 - **Vehicle Tech Dunno**
 ## Upgrades
 - Global
-	- a
+	- All infantry units gain 20% maximum health
 - Specific
-	- Garrisons can't be flushed
-	- 
+	- Warlords provide an attack speed buff
+	- Safehouses can't be flushed
+	- Liberating provides a warlord in addition to irregulars
 ## Ordnances
-- Passive
-	- s
-- Active
-	- 
+- T1
+	- promote an irregular to a warlord
+	- informant - give an irregular stealth
+- T2
+	- Ambush
+- T3
+	- sdf

@@ -83,7 +83,6 @@ floats, creates arcs between drones, zaps missiles (req. tech)
 			- 
 			- **Cyber Uplink**
 				- **Quantum Mainframe**
-			
 			-
 ## Upgrades
 - Generic
@@ -101,13 +100,10 @@ floats, creates arcs between drones, zaps missiles (req. tech)
 	- Increase surveyor line of sight
 	- vipers can clear garrisons
 ## Ordnances
-- Upgrades
-	- presence of drones doesn't impact XP
-	- Interceptors can steal enemy units
-	- Viper stealth
-	- 
-- Uses
-	- particle cannon
-	- Deploy peacekeeper drones anywhere
-	- repair drone boost
+- T1
 	- Short-circuit a single unit
+- T2
+	- Deploy peacekeeper drones anywhere
+	- Viper stealth
+- T3
+	- particle cannon

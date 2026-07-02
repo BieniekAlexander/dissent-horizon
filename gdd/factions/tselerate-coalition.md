@@ -45,3 +45,9 @@
 			- bombs in a line (req. Tech)
 ## Upgrades
 ## Ordnances
+- T1
+	- Ignite a given friendly unit
+- T2
+	- Frenzy - temporarily give a set of units more movement speed
+- T3
+	- asdasd

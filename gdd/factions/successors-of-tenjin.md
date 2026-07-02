@@ -53,9 +53,7 @@ Rainbirds can carry units
 Science labs have more capacity
 Galvanizer powers up more quickly
 Technicians resistant to toxins
-Teleport units from teleporter anywhere
 technicians build things more quickly
-Turns a group of technicians into sentries
 Missile with toxins, drains a science lab
 ## Ordnances
 - Scan
@@ -78,3 +76,12 @@ Missile with toxins, drains a science lab
 | Spending dominion, more counters | lazers vs a vehicle                                        |
 | Unit impasses                    | rainbird vs snipers                                        |
 | Unlocking abilities              | teleporter onto island (prevent use of rainbirds for drop) |
+## Ordnances
+- T1
+	- Haste - give a single unit 50% more movement speed for some time
+- T2
+	- Turns a group of technicians into sentries
+	- 
+- T3
+	- particle cannon
+	- Teleport units from teleporter anywhere

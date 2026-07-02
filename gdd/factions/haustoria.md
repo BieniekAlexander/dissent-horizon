@@ -56,7 +56,6 @@ flowchart TD
 ## Production Yard
 ## Skyport
 
-
 - **Quarters** - Population and Dominion
 	- SAM Site - air, detects stealth
 	- **Barracks** - Makes Infantry
@@ -77,13 +76,13 @@ flowchart TD
 	- 
 - Specific
 	- POW vehicle speed upgrade
-	- Shredder speed upgrade
 	- Artillery leaves radiation
+	- Recruit artillery beacon
 ## Ordnances
-- passive
-	- dd
-	- 
-- active
+- T1
 	- scan
-	- place artillery beacon somehow
+	- promotion - give a target unit veterancy
+	- A given structure will be built twice as fast
+- T2
+	- 
 	- 

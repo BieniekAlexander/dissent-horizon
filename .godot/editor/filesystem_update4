@@ -56,3 +56,4 @@ res://scripts/entities/entity_attribute.gd
 res://scenes/entities/units/an/warlord.tscn
 res://scripts/entities/components/dominion_provider.gd
 res://scenes/scenarios/s1.tscn
+res://scripts/interface/commander/anarchical_dominion.gd

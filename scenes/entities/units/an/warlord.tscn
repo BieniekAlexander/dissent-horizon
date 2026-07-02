@@ -9,7 +9,6 @@
 [ext_resource type="Script" uid="uid://dnydcqi1gpid3" path="res://scripts/entities/components/interaction.gd" id="5_scm32"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_sfvjv"]
 [ext_resource type="PackedScene" uid="uid://bdf2ac0cqg878" path="res://scenes/events/liberation.tscn" id="5_vc0lo"]
-[ext_resource type="Script" uid="uid://d18njab83ejgj" path="res://scripts/entities/components/dominion_provider.gd" id="6_dompr"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_scm32"]
 radius = 0.3
@@ -37,7 +36,7 @@ radius = 10.0
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_q1l8a"]
 height = 5.0
-radius = 5.0
+radius = 2.5
 
 [node name="Unit2" unique_id=1941500794 instance=ExtResource("1_v5yox")]
 type = 8451
@@ -88,10 +87,7 @@ disabled = true
 shape = SubResource("CylinderShape3D_techmelee")
 disabled = true
 
-[node name="DominionProvider" type="Node3D" parent="." index="14" unique_id=892263234]
-script = ExtResource("6_dompr")
-
-[node name="DominionRegion" type="CollisionShape3D" parent="DominionProvider" index="0" unique_id=783951289]
+[node name="DominionRegion" type="CollisionShape3D" parent="." index="14" unique_id=783951289]
 shape = SubResource("CylinderShape3D_q1l8a")
 
 [node name="Sprite" parent="." index="17" unique_id=1381401170]

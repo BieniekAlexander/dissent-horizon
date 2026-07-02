@@ -13,3 +13,9 @@
 - 
 ## Upgrades
 ## Ordnances
+- T1
+	- divination - provide vision of all shelters on the map
+- T2
+	- mind control
+- T3
+	- 
