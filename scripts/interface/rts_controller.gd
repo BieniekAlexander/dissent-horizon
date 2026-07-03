@@ -26,6 +26,10 @@ const _INDICATOR_POOL_SIZE: int = 16
 ## command_grid.gd's SELECT bindings so the strings live in one place.
 const CMD_SELECT_IDLE_COMBAT: String = "command_select_idle_combat"
 const CMD_SELECT_IDLE_BUILDER: String = "command_select_idle_builder"
+
+## Max gap between two clicks on the same unit for them to count as a double-click
+## (which selects all on-screen units of that entity type).
+const DOUBLE_CLICK_SECONDS: float = 0.3
 #endregion
 
 #region Signals
@@ -47,6 +51,12 @@ var mouse_position: Vector2 = Vector2.ZERO
 var selection: Array[Node] = []
 var select_down_position: Vector2 = Vector2.ZERO
 var current_command_type: Script = null
+
+## Double-click tracking: the player unit hit by the previous click and when
+## (engine ms) it was clicked. A second click on the same unit within
+## DOUBLE_CLICK_SECONDS selects all on-screen units of that type.
+var _last_click_target: Entity = null
+var _last_click_time_ms: int = -1
 
 ## The set of command names available given the current selection — recomputed
 ## (via CommandContextParser) whenever the selection changes. Used by the HUD
@@ -176,8 +186,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		selection_box.set_size(Vector2.ZERO)
 	elif event.is_action_released("isometric_camera_select"):
 		selection_box.visible = false
-		if !next_command_additive: deselect()
-		set_selection(select_down_position, mouse_position)
+		_handle_select_release()
 	elif event.is_action_pressed("command_additive"):
 		next_command_additive = true
 	elif event.is_action_released("command_additive"):
@@ -244,6 +253,57 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 	if not selection.is_empty():
 		unit_selected.emit(selection[0] as Entity)
 
+## Resolves a left-click release into either a double-click (select all on-screen
+## units of the clicked unit's type) or a normal single-click / box selection.
+func _handle_select_release() -> void:
+	# Only a click (not a drag) can be part of a double-click; identify the
+	# player unit under the cursor, if any.
+	var is_click: bool = abs(mouse_position - select_down_position) < Vector2(10, 10)
+	# get_cursor_target returns an Entity, a Vector3 (terrain), or null — only keep
+	# the Entity case (guard the cast so a Vector3 isn't cast to Entity).
+	var hit: Variant = get_cursor_target(select_down_position) if is_click else null
+	var target: Entity = hit as Entity if hit is Entity else null
+	var is_player_unit: bool = target != null and target.commander_id == PLAYER_COMMANDER_ID
+
+	if is_player_unit and _is_double_click(target):
+		_select_on_screen_units_of_type(target.type)
+		_last_click_target = null  # reset so a third quick click starts fresh
+		return
+
+	if !next_command_additive:
+		deselect()
+	set_selection(select_down_position, mouse_position)
+	# Record this click so a matching follow-up click registers as a double-click.
+	_last_click_target = target if is_player_unit else null
+	_last_click_time_ms = Time.get_ticks_msec()
+
+## True when `target` is the same unit clicked last, within DOUBLE_CLICK_SECONDS.
+func _is_double_click(target: Entity) -> bool:
+	return target == _last_click_target \
+		and _last_click_time_ms >= 0 \
+		and (Time.get_ticks_msec() - _last_click_time_ms) <= int(DOUBLE_CLICK_SECONDS * 1000.0)
+
+## Replaces the selection (or adds, when additive) with every on-screen,
+## player-owned commandable whose entity type matches `entity_type`.
+func _select_on_screen_units_of_type(entity_type: Entity.Type) -> void:
+	if !next_command_additive:
+		deselect()
+	var candidates: Array = get_tree().get_nodes_in_group("commandable").filter(
+		func(c: Variant) -> bool:
+			return c is Entity \
+				and (c as Entity).type == entity_type \
+				and (c as Entity).commander_id == PLAYER_COMMANDER_ID
+	)
+	for entity: Node in commandables_on_screen(candidates):
+		var cmd: Commandable = entity as Commandable
+		if cmd == null or cmd.selectable == null or selection.has(cmd):
+			continue
+		if cmd.selectable.select():
+			selection.append(cmd)
+	available_commands = CommandContextParser.commands_for_selection(selection)
+	if not selection.is_empty():
+		unit_selected.emit(selection[0] as Entity)
+
 ## Selects the player's least-recently-selected idle combat unit — a unit with
 ## at least one Weapon in its Loadout. Returns the selected unit, or null if the
 ## player has no idle combat unit.
@@ -293,6 +353,66 @@ func _select_least_recently_selected_idle_unit(predicate: Callable) -> Commandab
 	if camera != null:
 		camera.center_on(VU.inXZ(best.global_position))
 	return best
+#endregion
+
+#region Screen queries
+## Returns the subset of `commandables` that are currently on screen. A
+## commandable is "on screen" when its selection shape is at all visible in the
+## camera's orthographic view — i.e. the projected extent of its Selectable
+## sphere overlaps the viewport rectangle (partially-visible units count).
+func commandables_on_screen(commandables: Array) -> Array:
+	if camera == null:
+		return []
+	var viewport_rect: Rect2 = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	return commandables.filter(
+		func(c: Variant) -> bool:
+			return c is Commandable and _selection_shape_in_view(c as Commandable, viewport_rect)
+	)
+
+## True when the commandable's selection shape projects onto `viewport_rect` at
+## all (any overlap — a partially-visible shape still counts as on screen).
+func _selection_shape_in_view(commandable: Commandable, viewport_rect: Rect2) -> bool:
+	if commandable == null or commandable.selectable == null:
+		return false
+	var shape_node: CollisionShape3D = _selection_shape_node(commandable.selectable)
+	if shape_node == null:
+		return false
+	var center: Vector3 = shape_node.global_position
+	# unproject_position is meaningless for points behind the lens; a shape there
+	# is not on screen. (An overhead ortho RTS camera never puts field units
+	# behind it, but guard anyway.)
+	if camera.is_position_behind(center):
+		return false
+
+	# World radius of the selection sphere, scaled by the shape's world scale.
+	# Non-sphere shapes fall back to a point test (radius 0).
+	var world_radius: float = 0.0
+	if shape_node.shape is SphereShape3D:
+		world_radius = (shape_node.shape as SphereShape3D).radius \
+			* shape_node.global_transform.basis.x.length()
+
+	# Screen-space radius: project a point one world-radius to the camera's right
+	# and measure the pixel gap. This derives the on-screen size without assuming
+	# the orthographic projection math directly.
+	var center_screen: Vector2 = camera.unproject_position(center)
+	var edge_screen: Vector2 = camera.unproject_position(
+		center + camera.global_transform.basis.x.normalized() * world_radius
+	)
+	var screen_radius: float = center_screen.distance_to(edge_screen)
+
+	var shape_rect: Rect2 = Rect2(
+		center_screen - Vector2(screen_radius, screen_radius),
+		Vector2(screen_radius, screen_radius) * 2.0
+	)
+	return viewport_rect.intersects(shape_rect)
+
+## The CollisionShape3D defining a Selectable's selection area (its first
+## CollisionShape3D child), or null.
+func _selection_shape_node(selectable: Selectable) -> CollisionShape3D:
+	for child: Node in selectable.get_children():
+		if child is CollisionShape3D:
+			return child as CollisionShape3D
+	return null
 #endregion
 
 #region Command processing

@@ -482,13 +482,13 @@ projectile.gd::GDScript::8624145805998780528::1783054055::0::1::::Projectile<>En
 tool.gd::GDScript::661227060920906257::1782691378::0::1::::Tool<>ControlBinding<><>0<>0<><>::
 tool_spec.gd::GDScript::9172178016778089690::1781835915::0::1::::ToolSpec<>RefCounted<><>0<>0<><>::
 weapon.gd::GDScript::5883104329211910795::1782499266::0::1::::Weapon<>Node3D<><>0<>1<><>::
-::res://scripts/interface/::1783065822
+::res://scripts/interface/::1783068054
 bot_debug_overlay.gd::GDScript::1366272958180379099::1782674157::0::1::::BotDebugOverlay<>Node3D<><>0<>0<><>::
 command_context_parser.gd::GDScript::2443482578440639772::1782162582::0::1::::CommandContextParser<>RefCounted<><>0<>0<><>::
 command_message.gd::GDScript::2483931537430949200::1783004299::0::1::::CommandMessage<>RefCounted<><>0<>0<><>::
 control_feedback_sound_player.gd::GDScript::50107072128472992::1783004299::0::1::::ControlFeedbackSoundPlayer<>Node<><>0<>0<><>::
 rts_camera_3d.gd::GDScript::5386880421897985377::1782014540::0::1::::RTSCamera3D<>Camera3D<><>0<>0<><>::
-rts_controller.gd::GDScript::5551891999791503161::1783065822::0::1::::RTSController<>CanvasLayer<><>0<>0<><>::
+rts_controller.gd::GDScript::5551891999791503161::1783068054::0::1::::RTSController<>CanvasLayer<><>0<>0<><>::
 waypoint_indicator.gd::GDScript::4143400636130310510::1781835915::0::1::::WaypointIndicator<>Node3D<><>0<>0<><>::
 ::res://scripts/interface/commander/::1783021735
 anarchical_dominion.gd::GDScript::5505216723405700372::1783002624::0::1::::AnarchicalDominion<>Node<><>0<>0<><>::
