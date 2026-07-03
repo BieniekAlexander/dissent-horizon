@@ -37,6 +37,7 @@
 [sub_resource type="Resource" id="PlayerSlot_human"]
 script = ExtResource("50_pslot")
 is_bot = false
+starting_ore = 10000
 metadata/_custom_type_script = "uid://rck85holj04"
 
 [sub_resource type="Resource" id="PlayerSlot_bot"]
@@ -20169,8 +20170,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, -20.5)
 [node name="Mine3" parent="." unique_id=1079978563 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(0.9999655, 0, 0.008307671, 0, 1, 0, -0.008307671, 0, 0.9999655, -9.5, 0, -20.5)
 deposit = NodePath("../DepositM3")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="SamNorth1" parent="." unique_id=879936308 instance=ExtResource("7_kk180")]
@@ -20322,8 +20321,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, -20.5)
 [node name="MineNorth2" parent="." unique_id=320000002 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, -20.5)
 deposit = NodePath("../DepositNorth2")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="SamNorth3" parent="." unique_id=320000003 instance=ExtResource("7_kk180")]
@@ -20348,8 +20345,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 1, -6)
 [node name="MineEast1" parent="." unique_id=320000022 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 1, -6)
 deposit = NodePath("../DepositEast1")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="DepositEast2" parent="." unique_id=320000023 instance=ExtResource("30_dep")]
@@ -20358,8 +20353,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 1, -2)
 [node name="MineEast2" parent="." unique_id=320000024 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 1, -2)
 deposit = NodePath("../DepositEast2")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="DepositEast3" parent="." unique_id=320000025 instance=ExtResource("30_dep")]
@@ -20368,8 +20361,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33, 1, 4)
 [node name="MineEast3" parent="." unique_id=320000026 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33, 1, 4)
 deposit = NodePath("../DepositEast3")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="SamSouth1" parent="." unique_id=320000031 instance=ExtResource("7_kk180")]
@@ -20394,8 +20385,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19, 0, 19)
 [node name="MineSouth1" parent="." unique_id=320000042 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19, 0, 19)
 deposit = NodePath("../DepositSouth1")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="DepositSouth2" parent="." unique_id=320000043 instance=ExtResource("30_dep")]
@@ -20404,8 +20393,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, 19)
 [node name="MineSouth2" parent="." unique_id=320000044 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, 19)
 deposit = NodePath("../DepositSouth2")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="DepositSouth3" parent="." unique_id=320000045 instance=ExtResource("30_dep")]
@@ -20414,8 +20401,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 19)
 [node name="MineSouth3" parent="." unique_id=320000046 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 19)
 deposit = NodePath("../DepositSouth3")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="DepositSouth4" parent="." unique_id=320000047 instance=ExtResource("30_dep")]
@@ -20424,8 +20409,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 19)
 [node name="MineSouth4" parent="." unique_id=320000048 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 19)
 deposit = NodePath("../DepositSouth4")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="DepositSouth5" parent="." unique_id=320000049 instance=ExtResource("30_dep")]
@@ -20434,8 +20417,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 19)
 [node name="MineSouth5" parent="." unique_id=320000050 node_paths=PackedStringArray("deposit") instance=ExtResource("6_cjm28")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 19)
 deposit = NodePath("../DepositSouth5")
-vigor_provided = null
-vigor_required = null
 default_commander_id = 2
 
 [node name="HCannon1" parent="." unique_id=330000001 instance=ExtResource("41_hcnn")]

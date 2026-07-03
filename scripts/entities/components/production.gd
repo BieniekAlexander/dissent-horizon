@@ -33,7 +33,11 @@ extends Node
 ## its type in a command class.
 @export var producible_types: Array[Entity.Type] = []
 
-## Each entry: [time_remaining_in_ticks: int, packed_scene: PackedScene].
+## Each entry is [remaining_ticks, total_ticks, scene] — see the JOB_* indices.
+## total_ticks is kept so the HUD/train bar can show real progress.
+const JOB_REMAINING: int = 0
+const JOB_TOTAL: int = 1
+const JOB_SCENE: int = 2
 var training_queue: Array = []
 
 ## Build-rate fraction applied while the owning commander is vigor-strained (upkeep
@@ -57,12 +61,28 @@ func _ready() -> void:
 ## Enqueue a new training job. Called by Structure when a Train command is
 ## accepted (resources confirmed and deducted).
 func enqueue(creation_time: int, packed_scene: PackedScene) -> void:
-	training_queue.push_back([creation_time, packed_scene])
+	training_queue.push_back([creation_time, creation_time, packed_scene])
 
 ## Whether this producer can train the given unit type. Source of truth for the
 ## "what can this build" question across the codebase (HUD train menu, AI).
 func can_produce(a_type: Entity.Type) -> bool:
 	return producible_types.has(a_type)
+
+## Number of units queued (the first is actively training; the rest wait).
+func job_count() -> int:
+	return training_queue.size()
+
+## The unit scene for queued job `i`.
+func job_scene(i: int) -> PackedScene:
+	return training_queue[i][JOB_SCENE] as PackedScene
+
+## Training progress (0..1) of queued job `i`: 0 when just enqueued, 1 when done.
+## Only the head job (i == 0) actually advances; the rest sit at 0 until promoted.
+func job_progress(i: int) -> float:
+	var total: int = training_queue[i][JOB_TOTAL]
+	if total <= 0:
+		return 0.0
+	return clampf(1.0 - float(training_queue[i][JOB_REMAINING]) / float(total), 0.0, 1.0)
 
 ## Advance the queue by one tick. Returns true if a unit was completed and
 ## spawned this call. Called once per physics frame from the parent's
@@ -79,7 +99,7 @@ func tick() -> bool:
 	training_queue[0][0] -= 1
 	if training_queue[0][0] <= 0:
 		var spec: Variant = training_queue.pop_front()
-		_spawn_unit(spec[1])
+		_spawn_unit(spec[JOB_SCENE])
 		return true
 	return false
 
@@ -101,10 +121,10 @@ func update_bar(parent_scale_x: float) -> void:
 	if not _train_bar.visible: return
 	var fill: Node3D = _train_bar.get_node_or_null("TrainBarFill") as Node3D
 	if fill == null: return
-	# 450 is the same magic number the previous inline code used; flagged as
-	# a hardcode there too. A future cleanup should source this from the
-	# job spec.
-	fill.scale.x = float(training_queue[0][0]) / 450
+	# Fraction of training time remaining (bar shrinks toward completion), now
+	# sourced from the job's own total tick count rather than a magic constant.
+	var total: int = training_queue[0][JOB_TOTAL]
+	fill.scale.x = float(training_queue[0][JOB_REMAINING]) / float(maxi(1, total))
 	fill.position.x = -parent_scale_x * (1 - fill.scale.x)
 #endregion
 

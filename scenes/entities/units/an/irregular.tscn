@@ -25,7 +25,7 @@ radius = 2.5
 [sub_resource type="SphereShape3D" id="SphereShape3D_c8urn"]
 radius = 0.3
 
-[node name="Unit2" unique_id=1210299015 instance=ExtResource("1_8cs83")]
+[node name="Irregular" unique_id=1210299015 instance=ExtResource("1_8cs83")]
 type = 8449
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]

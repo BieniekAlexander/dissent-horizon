@@ -47,9 +47,7 @@ signal command_issued(entity: Entity, command_type: Script)
 #region Properties
 @onready var map: Map = get_tree().current_scene.find_child("Map")
 @onready var camera: RTSCamera3D = get_viewport().get_camera_3d()
-@onready var _selection_info_label: Label = $InfoSection/Summary/SelectionInfoLabel
-@onready var _training_count_label: Label = $InfoSection/Details/ProductionInfo/TrainingLabel
-@onready var _queued_count_label: Label = $InfoSection/Details/ProductionInfo/QueuedLabel
+@onready var _info_view: InfoView = $InfoSection
 
 var cursor_target: Variant = Vector3.ZERO
 var mouse_position: Vector2 = Vector2.ZERO
@@ -192,8 +190,7 @@ func _process(delta: float) -> void:
 
 	_update_build_preview(check == MoveCommand.PreconditionFailureCause.INVALID_PLACEMENT)
 	_update_waypoint_display()
-	_update_selection_info()
-	_update_production_details()
+	_info_view.update(selection)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
@@ -808,45 +805,6 @@ func _reset_pending_state() -> void:
 #endregion
 
 #region HUD
-## Refreshes the InfoSection Summary's selection readout: nothing when empty, the
-## selected unit's node name for a single selection, otherwise the count.
-func _update_selection_info() -> void:
-	var text: String
-	if selection.is_empty():
-		text = ""
-	elif selection.size() == 1:
-		text = String(selection[0].name)
-	else:
-		text = "%d units selected" % selection.size()
-	if _selection_info_label.text != text:
-		_selection_info_label.text = text
-
-## Refreshes the InfoSection Details' production readout. Across the selection's
-## producers (commandables with a Production component), each non-empty training
-## queue has one unit actively training (its head) and the rest waiting. Both
-## labels stay blank unless something is actually queued.
-func _update_production_details() -> void:
-	var being_trained: int = 0
-	var queued: int = 0
-	for node: Node in selection:
-		var cmd: Commandable = node as Commandable
-		if cmd == null or cmd.production == null:
-			continue
-		var queue_size: int = cmd.production.training_queue.size()
-		if queue_size > 0:
-			being_trained += 1
-			queued += queue_size - 1
-
-	var training_text: String = ""
-	var queued_text: String = ""
-	if being_trained > 0 or queued > 0:
-		training_text = "Training: %d" % being_trained
-		queued_text = "Queued: %d" % queued
-	if _training_count_label.text != training_text:
-		_training_count_label.text = training_text
-	if _queued_count_label.text != queued_text:
-		_queued_count_label.text = queued_text
-
 func upate_hud_buttons() -> void:
 	# TODO definitely gonna refactor
 	var visible_names: Array = _visible_command_names()
