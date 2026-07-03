@@ -19,6 +19,13 @@ const BUILD_PREVIEW_VALID_TINT:   Color = Color(1.0, 1.0, 1.0, BUILD_PREVIEW_ALP
 const BUILD_PREVIEW_INVALID_TINT: Color = Color(1.0, 0.25, 0.25, BUILD_PREVIEW_ALPHA)
 
 const _INDICATOR_POOL_SIZE: int = 16
+
+## Command names for the SELECT-context grid buttons shown when nothing is
+## selected. Handled directly in _on_control_button_pressed (they bypass the
+## normal, selection-gated process_command pipeline). Referenced by
+## command_grid.gd's SELECT bindings so the strings live in one place.
+const CMD_SELECT_IDLE_COMBAT: String = "command_select_idle_combat"
+const CMD_SELECT_IDLE_BUILDER: String = "command_select_idle_builder"
 #endregion
 
 #region Signals
@@ -29,6 +36,7 @@ signal command_issued(entity: Entity, command_type: Script)
 #region Properties
 @onready var map: Map = get_tree().current_scene.find_child("Map")
 @onready var camera: RTSCamera3D = get_viewport().get_camera_3d()
+@onready var _selection_info_label: Label = $InfoSection/SelectionInfoLabel
 
 var cursor_target: Variant = Vector3.ZERO
 var mouse_position: Vector2 = Vector2.ZERO
@@ -146,6 +154,7 @@ func _process(delta: float) -> void:
 
 	_update_build_preview(check == MoveCommand.PreconditionFailureCause.INVALID_PLACEMENT)
 	_update_waypoint_display()
+	_update_selection_info()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
@@ -234,6 +243,56 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 	available_commands = CommandContextParser.commands_for_selection(selection)
 	if not selection.is_empty():
 		unit_selected.emit(selection[0] as Entity)
+
+## Selects the player's least-recently-selected idle combat unit — a unit with
+## at least one Weapon in its Loadout. Returns the selected unit, or null if the
+## player has no idle combat unit.
+func select_least_recently_selected_idle_combat_unit() -> Commandable:
+	return _select_least_recently_selected_idle_unit(
+		func(unit: Commandable) -> bool:
+			var loadout: Loadout = unit.get_node_or_null("Loadout") as Loadout
+			return loadout != null and loadout.has_weapons()
+	)
+
+## Selects the player's least-recently-selected idle builder unit — a unit with
+## a Builds component. Returns the selected unit, or null if the player has no
+## idle builder.
+func select_least_recently_selected_idle_builder_unit() -> Commandable:
+	return _select_least_recently_selected_idle_unit(
+		func(unit: Commandable) -> bool:
+			return unit.has_node("Builds")
+	)
+
+## Shared machinery for the idle-unit cyclers. Scans the player's units for the
+## idle (no active command, _command == null) unit satisfying `predicate` that
+## was selected longest ago, then makes it the sole selection and centers the
+## camera on it. Returns that unit, or null if none qualify. Selecting it bumps
+## its Selectable.last_selected_time, so repeated calls cycle through the group.
+func _select_least_recently_selected_idle_unit(predicate: Callable) -> Commandable:
+	var best: Commandable = null
+	for node: Node in get_tree().get_nodes_in_group("unit"):
+		var unit: Commandable = node as Commandable
+		if unit == null \
+				or unit.commander_id != PLAYER_COMMANDER_ID \
+				or unit.selectable == null \
+				or unit._command != null:  # not idle
+			continue
+		if not predicate.call(unit):
+			continue
+		if best == null or unit.selectable.last_selected_time < best.selectable.last_selected_time:
+			best = unit
+
+	if best == null:
+		return null
+
+	deselect()
+	if best.selectable.select():
+		selection.append(best)
+	available_commands = CommandContextParser.commands_for_selection(selection)
+	unit_selected.emit(best)
+	if camera != null:
+		camera.center_on(VU.inXZ(best.global_position))
+	return best
 #endregion
 
 #region Command processing
@@ -541,6 +600,19 @@ func _reset_pending_state() -> void:
 #endregion
 
 #region HUD
+## Refreshes the InfoSection's selection readout: nothing when empty, the
+## selected unit's node name for a single selection, otherwise the count.
+func _update_selection_info() -> void:
+	var text: String
+	if selection.is_empty():
+		text = ""
+	elif selection.size() == 1:
+		text = String(selection[0].name)
+	else:
+		text = "%d units selected" % selection.size()
+	if _selection_info_label.text != text:
+		_selection_info_label.text = text
+
 func upate_hud_buttons() -> void:
 	# TODO definitely gonna refactor
 	var visible_names: Array = _visible_command_names()
@@ -556,13 +628,22 @@ func upate_hud_buttons() -> void:
 ## command set.
 func _visible_command_names() -> Array:
 	if selection.is_empty():
-		return []
+		# Nothing selected: offer the idle-unit selectors.
+		return [CMD_SELECT_IDLE_COMBAT, CMD_SELECT_IDLE_BUILDER]
 	if current_context() == ControlBinding.ControlContext.BUILD:
 		return CommandContextParser.tools_for(selection[0], ControlBinding.ControlContext.BUILD)
 	return _available_commands
 
 func _on_control_button_pressed(control_name: String) -> void:
-	process_command(control_name)
+	# The SELECT-context buttons don't act on the current selection — they change
+	# it — so they bypass the selection-gated process_command pipeline.
+	match control_name:
+		CMD_SELECT_IDLE_COMBAT:
+			select_least_recently_selected_idle_combat_unit()
+		CMD_SELECT_IDLE_BUILDER:
+			select_least_recently_selected_idle_builder_unit()
+		_:
+			process_command(control_name)
 #endregion
 
 #region Private helpers

@@ -22,9 +22,18 @@ static var _VERB_BINDINGS: Array = [
 	ControlBinding.new("command_land", "Land", Vector2i(0, 2), ControlBinding.ControlContext.ACT),
 ]
 
-## Every binding in the grid, in placement order: verb commands then tools.
+## SELECT-context commands — shown only when nothing is selected. These don't
+## act on a unit; the controller intercepts them in _on_control_button_pressed
+## to select the least-recently-selected idle combat / builder unit.
+static var _SELECT_BINDINGS: Array = [
+	ControlBinding.new(RTSController.CMD_SELECT_IDLE_COMBAT, "Idle Army", Vector2i(0, 0), ControlBinding.ControlContext.SELECT),
+	ControlBinding.new(RTSController.CMD_SELECT_IDLE_BUILDER, "Idle Builder", Vector2i(1, 0), ControlBinding.ControlContext.SELECT),
+]
+
+## Every binding in the grid, in placement order: verb commands, the
+## nothing-selected selectors, then tools.
 static func bindings() -> Array:
-	return _VERB_BINDINGS + Tool.command_tool_map.values()
+	return _VERB_BINDINGS + _SELECT_BINDINGS + Tool.command_tool_map.values()
 
 #region Lifecycle
 func _ready() -> void:

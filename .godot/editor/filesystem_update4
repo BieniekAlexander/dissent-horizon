@@ -20,3 +20,6 @@ res://scripts/interface/rts_controller.gd
 res://scripts/interface/hud/button_spec.gd
 res://scripts/interface/hud/command_grid.gd
 res://scripts/maps/fog.gd
+res://scripts/entities/components/selectable.gd
+res://scenes/entities/units/an/irregular.tscn
+res://scripts/entities/tools/control_binding.gd

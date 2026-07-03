@@ -11,10 +11,11 @@ class_name ControlBinding
 
 #region Constants
 ## Controller context(s) a binding appears under, as a bitmask. Verb commands are
-## ACT; build/train tools are BUILD/TRAIN. RTSController.current_context() maps its
-## modes onto these bits; command_context_parser.tools_for() and grid_collisions()
+## ACT; build/train tools are BUILD/TRAIN; SELECT is the "nothing selected" page
+## (e.g. the idle-unit selectors). RTSController.current_context() maps its modes
+## onto these bits; command_context_parser.tools_for() and grid_collisions()
 ## filter on them.
-enum ControlContext { ACT = 1 << 0, TRAIN = 1 << 1, BUILD = 1 << 2 }
+enum ControlContext { ACT = 1 << 0, TRAIN = 1 << 1, BUILD = 1 << 2, SELECT = 1 << 3 }
 
 ## All-ones faction mask: a binding with no faction allegiance (every verb) applies
 ## to all factions, so faction can never be what separates it from a tool in the

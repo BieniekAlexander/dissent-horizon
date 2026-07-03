@@ -39,6 +39,13 @@ enum State {
 
 var _state: int = State.UNSELECTED
 var _indicator: Node3D = null
+
+## Engine-time (ms) this entity was last selected. Seeded at _ready — i.e. the
+## moment the entity is introduced into the game — so a never-selected unit
+## still orders sensibly (oldest first) for the controller's
+## least-recently-selected idle-unit cyclers. Refreshed each time the entity
+## enters the SELECTED state.
+@onready var last_selected_time: int = Time.get_ticks_msec()
 #endregion
 
 #region Lifecycle
@@ -66,6 +73,8 @@ func set_state(new_state: int) -> bool:
 		return false
 	var old: int = _state
 	_state = new_state
+	if new_state == State.SELECTED:
+		last_selected_time = Time.get_ticks_msec()
 	_refresh_indicator()
 	state_changed.emit(old, new_state)
 	return true
