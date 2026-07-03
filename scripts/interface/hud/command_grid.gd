@@ -22,12 +22,39 @@ static var _VERB_BINDINGS: Array = [
 	ControlBinding.new("command_land", "Land", Vector2i(0, 2), ControlBinding.ControlContext.ACT),
 ]
 
-## SELECT-context commands — shown only when nothing is selected. These don't
-## act on a unit; the controller intercepts them in _on_control_button_pressed
-## to select the least-recently-selected idle combat / builder unit.
+## SELECT-context commands — shown only when nothing is selected. These don't act
+## on a unit; the controller (via _select_command_handlers) intercepts them in
+## _on_control_button_pressed to run the corresponding selection routine. Laid out
+## as a 3x3 block: rows are army / builder / production, columns are idle /
+## on-screen / all. The right two columns stay blank.
 static var _SELECT_BINDINGS: Array = [
-	ControlBinding.new(RTSController.CMD_SELECT_IDLE_COMBAT, "Idle Army", Vector2i(0, 0), ControlBinding.ControlContext.SELECT),
-	ControlBinding.new(RTSController.CMD_SELECT_IDLE_BUILDER, "Idle Builder", Vector2i(1, 0), ControlBinding.ControlContext.SELECT),
+	ControlBinding.new(RTSController.CMD_SELECT_IDLE_COMBAT, "Idle Army", Vector2i(0, 0), ControlBinding.ControlContext.SELECT,
+		"Select an idle army unit",
+		"Select an idle army unit (an armed unit with no orders).\nCycles through them least-recently-selected first, so repeated presses walk the whole idle army, and centers the camera on the pick."),
+	ControlBinding.new(RTSController.CMD_SELECT_ARMY_ON_SCREEN, "Army Scr", Vector2i(1, 0), ControlBinding.ControlContext.SELECT,
+		"Select army units on screen",
+		"Select every armed unit currently visible on screen. Units partly at the screen edge count as on-screen."),
+	ControlBinding.new(RTSController.CMD_SELECT_ARMY_ALL, "All Army", Vector2i(2, 0), ControlBinding.ControlContext.SELECT,
+		"Select all army units",
+		"Select every armed unit you own, anywhere on the map — on screen or not."),
+	ControlBinding.new(RTSController.CMD_SELECT_IDLE_BUILDER, "Idle Bldr", Vector2i(0, 1), ControlBinding.ControlContext.SELECT,
+		"Select an idle builder",
+		"Select an idle builder (a build-capable unit with no orders).\nCycles through them least-recently-selected first, so repeated presses walk the whole idle builder pool, and centers the camera on the pick."),
+	ControlBinding.new(RTSController.CMD_SELECT_BUILDERS_ON_SCREEN, "Bldr Scr", Vector2i(1, 1), ControlBinding.ControlContext.SELECT,
+		"Select builders on screen",
+		"Select every builder currently visible on screen. Units partly at the screen edge count as on-screen."),
+	ControlBinding.new(RTSController.CMD_SELECT_BUILDERS_ALL, "All Bldr", Vector2i(2, 1), ControlBinding.ControlContext.SELECT,
+		"Select all builders",
+		"Select every builder you own, anywhere on the map — on screen or not."),
+	ControlBinding.new(RTSController.CMD_SELECT_IDLE_PRODUCTION, "Idle Prod", Vector2i(0, 2), ControlBinding.ControlContext.SELECT,
+		"Select an idle production structure",
+		"Select an idle production structure — one that can train units but has an empty queue right now.\nCycles least-recently-selected first and centers the camera on the pick."),
+	ControlBinding.new(RTSController.CMD_SELECT_PRODUCTION_ON_SCREEN, "Prod Scr", Vector2i(1, 2), ControlBinding.ControlContext.SELECT,
+		"Select production structures on screen",
+		"Select every unit-producing structure currently visible on screen, busy or idle."),
+	ControlBinding.new(RTSController.CMD_SELECT_PRODUCTION_ALL, "All Prod", Vector2i(2, 2), ControlBinding.ControlContext.SELECT,
+		"Select all production structures",
+		"Select every unit-producing structure you own, anywhere on the map — busy or idle, on screen or not."),
 ]
 
 ## Every binding in the grid, in placement order: verb commands, the
@@ -62,8 +89,14 @@ func _place_button(cells: Array, binding: ControlBinding) -> void:
 	if not ControlBinding.position_in_bounds(binding.grid_position):
 		push_error("CommandGrid: '%s' has out-of-bounds grid cell %s" % [binding.command_name, binding.grid_position])
 		return
-	var b: Button = ButtonSpec.create_button_from_spec(ButtonSpec.new(binding.command_name, binding.label))
+	var b: Button = ButtonSpec.create_button_from_spec(
+		ButtonSpec.new(binding.command_name, binding.label, binding.simple_tooltip, binding.verbose_tooltip)
+	)
 	b.custom_minimum_size = Vector2(60, 60)
+	# Clip long labels so a button's text can't inflate its minimum size past its
+	# grid cell (e.g. "Idle Builder" wants ~97px). Without this such a button
+	# widens its whole column and the uniform 5x3 grid breaks.
+	b.clip_text = true
 	# Fill the cell so buttons scale with the grid instead of staying pinned to
 	# their 60x60 floor.
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -21,11 +21,18 @@ const BUILD_PREVIEW_INVALID_TINT: Color = Color(1.0, 0.25, 0.25, BUILD_PREVIEW_A
 const _INDICATOR_POOL_SIZE: int = 16
 
 ## Command names for the SELECT-context grid buttons shown when nothing is
-## selected. Handled directly in _on_control_button_pressed (they bypass the
-## normal, selection-gated process_command pipeline). Referenced by
+## selected. Dispatched via _select_command_handlers (built in _ready), bypassing
+## the normal, selection-gated process_command pipeline. Referenced by
 ## command_grid.gd's SELECT bindings so the strings live in one place.
 const CMD_SELECT_IDLE_COMBAT: String = "command_select_idle_combat"
+const CMD_SELECT_ARMY_ON_SCREEN: String = "command_select_army_on_screen"
+const CMD_SELECT_ARMY_ALL: String = "command_select_army_all"
 const CMD_SELECT_IDLE_BUILDER: String = "command_select_idle_builder"
+const CMD_SELECT_BUILDERS_ON_SCREEN: String = "command_select_builders_on_screen"
+const CMD_SELECT_BUILDERS_ALL: String = "command_select_builders_all"
+const CMD_SELECT_IDLE_PRODUCTION: String = "command_select_idle_production"
+const CMD_SELECT_PRODUCTION_ON_SCREEN: String = "command_select_production_on_screen"
+const CMD_SELECT_PRODUCTION_ALL: String = "command_select_production_all"
 
 ## Max gap between two clicks on the same unit for them to count as a double-click
 ## (which selects all on-screen units of that entity type).
@@ -40,7 +47,9 @@ signal command_issued(entity: Entity, command_type: Script)
 #region Properties
 @onready var map: Map = get_tree().current_scene.find_child("Map")
 @onready var camera: RTSCamera3D = get_viewport().get_camera_3d()
-@onready var _selection_info_label: Label = $InfoSection/SelectionInfoLabel
+@onready var _selection_info_label: Label = $InfoSection/Summary/SelectionInfoLabel
+@onready var _training_count_label: Label = $InfoSection/Details/ProductionInfo/TrainingLabel
+@onready var _queued_count_label: Label = $InfoSection/Details/ProductionInfo/QueuedLabel
 
 var cursor_target: Variant = Vector3.ZERO
 var mouse_position: Vector2 = Vector2.ZERO
@@ -51,6 +60,11 @@ var mouse_position: Vector2 = Vector2.ZERO
 var selection: Array[Node] = []
 var select_down_position: Vector2 = Vector2.ZERO
 var current_command_type: Script = null
+
+## SELECT-context grid command name -> the selection routine it invokes. Built in
+## _ready (values are bound to this instance). Drives both the "nothing selected"
+## button visibility and the button-press dispatch.
+var _select_command_handlers: Dictionary = {}
 
 ## Double-click tracking: the player unit hit by the previous click and when
 ## (engine ms) it was clicked. A second click on the same unit within
@@ -105,6 +119,20 @@ var _build_preview_tool_type: Variant = null
 #region Lifecycle
 func _ready():
 	Input.set_custom_mouse_cursor(free_cursor)
+	# Map each SELECT-context grid command to its selection routine. Must be built
+	# before the first upate_hud_buttons() (below) since it drives which buttons
+	# show while nothing is selected.
+	_select_command_handlers = {
+		CMD_SELECT_IDLE_COMBAT: select_least_recently_selected_idle_combat_unit,
+		CMD_SELECT_ARMY_ON_SCREEN: select_army_units_on_screen,
+		CMD_SELECT_ARMY_ALL: select_all_army_units,
+		CMD_SELECT_IDLE_BUILDER: select_least_recently_selected_idle_builder_unit,
+		CMD_SELECT_BUILDERS_ON_SCREEN: select_builders_on_screen,
+		CMD_SELECT_BUILDERS_ALL: select_all_builders,
+		CMD_SELECT_IDLE_PRODUCTION: select_least_recently_selected_idle_production_structure,
+		CMD_SELECT_PRODUCTION_ON_SCREEN: select_production_structures_on_screen,
+		CMD_SELECT_PRODUCTION_ALL: select_all_production_structures,
+	}
 	upate_hud_buttons()
 
 	selection_box.visible = false
@@ -165,6 +193,7 @@ func _process(delta: float) -> void:
 	_update_build_preview(check == MoveCommand.PreconditionFailureCause.INVALID_PLACEMENT)
 	_update_waypoint_display()
 	_update_selection_info()
+	_update_production_details()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
@@ -294,7 +323,88 @@ func _select_on_screen_units_of_type(entity_type: Entity.Type) -> void:
 				and (c as Entity).type == entity_type \
 				and (c as Entity).commander_id == PLAYER_COMMANDER_ID
 	)
-	for entity: Node in commandables_on_screen(candidates):
+	_select_units(commandables_on_screen(candidates))
+
+# --- Category predicates (a Commandable satisfies the category) ---------------
+## "Army" unit: a unit carrying at least one Weapon in its Loadout.
+func _is_army_unit(c: Commandable) -> bool:
+	var loadout: Loadout = c.get_node_or_null("Loadout") as Loadout
+	return c.is_in_group("unit") and loadout != null and loadout.has_weapons()
+
+## "Builder" unit: a unit with a Builds component.
+func _is_builder_unit(c: Commandable) -> bool:
+	return c.is_in_group("unit") and c.has_node("Builds")
+
+## "Production structure": a structure that can train units (has Production).
+func _is_producer_structure(c: Commandable) -> bool:
+	return c.is_in_group("structure") and c.production != null
+
+# --- Least-recently-selected (idle) cyclers -----------------------------------
+## Idle army unit, least recently selected. Idle = no active command.
+func select_least_recently_selected_idle_combat_unit() -> Commandable:
+	return _select_least_recently_selected(
+		func(c: Commandable) -> bool: return c._command == null and _is_army_unit(c)
+	)
+
+## Idle builder unit, least recently selected. Idle = no active command.
+func select_least_recently_selected_idle_builder_unit() -> Commandable:
+	return _select_least_recently_selected(
+		func(c: Commandable) -> bool: return c._command == null and _is_builder_unit(c)
+	)
+
+## Idle production structure, least recently selected. Idle = can produce but its
+## training queue is currently empty (not producing anything).
+func select_least_recently_selected_idle_production_structure() -> Commandable:
+	return _select_least_recently_selected(
+		func(c: Commandable) -> bool: return _is_producer_structure(c) and c.production.training_queue.is_empty()
+	)
+
+# --- Bulk selection (on-screen / global) --------------------------------------
+## Selects every on-screen player army unit.
+func select_army_units_on_screen() -> void:
+	_select_all(_is_army_unit, true)
+
+## Selects every player army unit, on screen or not.
+func select_all_army_units() -> void:
+	_select_all(_is_army_unit, false)
+
+## Selects every on-screen player builder.
+func select_builders_on_screen() -> void:
+	_select_all(_is_builder_unit, true)
+
+## Selects every player builder, on screen or not.
+func select_all_builders() -> void:
+	_select_all(_is_builder_unit, false)
+
+## Selects every on-screen player production structure.
+func select_production_structures_on_screen() -> void:
+	_select_all(_is_producer_structure, true)
+
+## Selects every player production structure, on screen or not.
+func select_all_production_structures() -> void:
+	_select_all(_is_producer_structure, false)
+
+# --- Shared selection machinery -----------------------------------------------
+## Adds every player-owned commandable satisfying `predicate` to the selection
+## (replacing it first unless additive). `on_screen_only` restricts to the ones
+## currently visible in the camera's view.
+func _select_all(predicate: Callable, on_screen_only: bool) -> void:
+	if !next_command_additive:
+		deselect()
+	var candidates: Array = get_tree().get_nodes_in_group("commandable").filter(
+		func(node: Variant) -> bool:
+			var c: Commandable = node as Commandable
+			return c != null and c.commander_id == PLAYER_COMMANDER_ID \
+				and c.selectable != null and predicate.call(c)
+	)
+	if on_screen_only:
+		candidates = commandables_on_screen(candidates)
+	_select_units(candidates)
+
+## Selects each commandable in `entities` (skipping already-selected ones) and
+## refreshes the HUD / available-command state. Shared selection finalizer.
+func _select_units(entities: Array) -> void:
+	for entity: Node in entities:
 		var cmd: Commandable = entity as Commandable
 		if cmd == null or cmd.selectable == null or selection.has(cmd):
 			continue
@@ -304,43 +414,21 @@ func _select_on_screen_units_of_type(entity_type: Entity.Type) -> void:
 	if not selection.is_empty():
 		unit_selected.emit(selection[0] as Entity)
 
-## Selects the player's least-recently-selected idle combat unit — a unit with
-## at least one Weapon in its Loadout. Returns the selected unit, or null if the
-## player has no idle combat unit.
-func select_least_recently_selected_idle_combat_unit() -> Commandable:
-	return _select_least_recently_selected_idle_unit(
-		func(unit: Commandable) -> bool:
-			var loadout: Loadout = unit.get_node_or_null("Loadout") as Loadout
-			return loadout != null and loadout.has_weapons()
-	)
-
-## Selects the player's least-recently-selected idle builder unit — a unit with
-## a Builds component. Returns the selected unit, or null if the player has no
-## idle builder.
-func select_least_recently_selected_idle_builder_unit() -> Commandable:
-	return _select_least_recently_selected_idle_unit(
-		func(unit: Commandable) -> bool:
-			return unit.has_node("Builds")
-	)
-
-## Shared machinery for the idle-unit cyclers. Scans the player's units for the
-## idle (no active command, _command == null) unit satisfying `predicate` that
-## was selected longest ago, then makes it the sole selection and centers the
-## camera on it. Returns that unit, or null if none qualify. Selecting it bumps
-## its Selectable.last_selected_time, so repeated calls cycle through the group.
-func _select_least_recently_selected_idle_unit(predicate: Callable) -> Commandable:
+## Shared machinery for the least-recently-selected cyclers. Scans the player's
+## commandables for the one satisfying `predicate` that was selected longest ago,
+## then makes it the sole selection and centers the camera on it. Returns that
+## commandable, or null if none qualify. Selecting it bumps its
+## Selectable.last_selected_time, so repeated calls cycle through the group.
+func _select_least_recently_selected(predicate: Callable) -> Commandable:
 	var best: Commandable = null
-	for node: Node in get_tree().get_nodes_in_group("unit"):
-		var unit: Commandable = node as Commandable
-		if unit == null \
-				or unit.commander_id != PLAYER_COMMANDER_ID \
-				or unit.selectable == null \
-				or unit._command != null:  # not idle
+	for node: Node in get_tree().get_nodes_in_group("commandable"):
+		var c: Commandable = node as Commandable
+		if c == null or c.commander_id != PLAYER_COMMANDER_ID or c.selectable == null:
 			continue
-		if not predicate.call(unit):
+		if not predicate.call(c):
 			continue
-		if best == null or unit.selectable.last_selected_time < best.selectable.last_selected_time:
-			best = unit
+		if best == null or c.selectable.last_selected_time < best.selectable.last_selected_time:
+			best = c
 
 	if best == null:
 		return null
@@ -720,7 +808,7 @@ func _reset_pending_state() -> void:
 #endregion
 
 #region HUD
-## Refreshes the InfoSection's selection readout: nothing when empty, the
+## Refreshes the InfoSection Summary's selection readout: nothing when empty, the
 ## selected unit's node name for a single selection, otherwise the count.
 func _update_selection_info() -> void:
 	var text: String
@@ -732,6 +820,32 @@ func _update_selection_info() -> void:
 		text = "%d units selected" % selection.size()
 	if _selection_info_label.text != text:
 		_selection_info_label.text = text
+
+## Refreshes the InfoSection Details' production readout. Across the selection's
+## producers (commandables with a Production component), each non-empty training
+## queue has one unit actively training (its head) and the rest waiting. Both
+## labels stay blank unless something is actually queued.
+func _update_production_details() -> void:
+	var being_trained: int = 0
+	var queued: int = 0
+	for node: Node in selection:
+		var cmd: Commandable = node as Commandable
+		if cmd == null or cmd.production == null:
+			continue
+		var queue_size: int = cmd.production.training_queue.size()
+		if queue_size > 0:
+			being_trained += 1
+			queued += queue_size - 1
+
+	var training_text: String = ""
+	var queued_text: String = ""
+	if being_trained > 0 or queued > 0:
+		training_text = "Training: %d" % being_trained
+		queued_text = "Queued: %d" % queued
+	if _training_count_label.text != training_text:
+		_training_count_label.text = training_text
+	if _queued_count_label.text != queued_text:
+		_queued_count_label.text = queued_text
 
 func upate_hud_buttons() -> void:
 	# TODO definitely gonna refactor
@@ -748,8 +862,8 @@ func upate_hud_buttons() -> void:
 ## command set.
 func _visible_command_names() -> Array:
 	if selection.is_empty():
-		# Nothing selected: offer the idle-unit selectors.
-		return [CMD_SELECT_IDLE_COMBAT, CMD_SELECT_IDLE_BUILDER]
+		# Nothing selected: offer the SELECT-context selectors.
+		return _select_command_handlers.keys()
 	if current_context() == ControlBinding.ControlContext.BUILD:
 		return CommandContextParser.tools_for(selection[0], ControlBinding.ControlContext.BUILD)
 	return _available_commands
@@ -757,13 +871,10 @@ func _visible_command_names() -> Array:
 func _on_control_button_pressed(control_name: String) -> void:
 	# The SELECT-context buttons don't act on the current selection — they change
 	# it — so they bypass the selection-gated process_command pipeline.
-	match control_name:
-		CMD_SELECT_IDLE_COMBAT:
-			select_least_recently_selected_idle_combat_unit()
-		CMD_SELECT_IDLE_BUILDER:
-			select_least_recently_selected_idle_builder_unit()
-		_:
-			process_command(control_name)
+	if _select_command_handlers.has(control_name):
+		_select_command_handlers[control_name].call()
+		return
+	process_command(control_name)
 #endregion
 
 #region Private helpers

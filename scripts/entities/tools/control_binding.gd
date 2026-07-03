@@ -39,6 +39,10 @@ var label: String
 var grid_position: Vector2i
 ## Bitmask of ControlContext values this binding appears under.
 var control_context: int
+## HUD button tooltip shown normally.
+var simple_tooltip: String
+## HUD button tooltip shown while the "ui_verbose" action (Alt) is held.
+var verbose_tooltip: String
 #endregion
 
 #region Lifecycle
@@ -46,12 +50,16 @@ func _init(
 	a_command_name: String,
 	a_label: String,
 	a_grid_position: Vector2i,
-	a_control_context: int
+	a_control_context: int,
+	a_simple_tooltip: String = "",
+	a_verbose_tooltip: String = ""
 ) -> void:
 	command_name = a_command_name
 	label = a_label
 	grid_position = a_grid_position
 	control_context = a_control_context
+	simple_tooltip = a_simple_tooltip
+	verbose_tooltip = a_verbose_tooltip
 #endregion
 
 #region Faction

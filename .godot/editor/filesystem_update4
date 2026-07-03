@@ -23,3 +23,5 @@ res://scripts/maps/fog.gd
 res://scripts/entities/components/selectable.gd
 res://scenes/entities/units/an/irregular.tscn
 res://scripts/entities/tools/control_binding.gd
+res://scripts/interface/hud/verbose_tooltip_button.gd
+res://scenes/entities/units/an/kamikaze.tscn

@@ -61,9 +61,6 @@ debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 armour_type = 1
 hp_max = 15.0
 
-[node name="Veterancy" parent="." index="10" unique_id=1733255303]
-level = 1
-
 [node name="Selectable" parent="." index="12" unique_id=2049500591]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
 
