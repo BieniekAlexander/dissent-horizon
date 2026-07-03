@@ -40,16 +40,49 @@ func _spawn_initial_entities() -> void:
 ## the human player's camera on it (a no-op in spectator sessions). Runs immediately
 ## if the navmesh is already built, otherwise once navmesh_ready fires — so it can
 ## land a frame or two after _ready.
+##
+## Structures are spawned for every slot BEFORE any units: placing a structure
+## registers its footprint on the grid synchronously, but the navmesh rebuild
+## that excludes those cells (and the collision layer that would otherwise let
+## the unit scatter step see the structure as an obstacle) only lands once the
+## NavigationServer syncs it — see NavManager.await_excluded. Scattering units in
+## the same call as their slot's structure would race that rebuild and could
+## place a unit inside the structure's footprint. Waiting here lets
+## Map.add_entities' get_nonoverlapping_points see every just-placed structure
+## as an obstacle before it picks unit positions.
 func _deploy_all_forces() -> void:
 	var start_points: Array[Node3D] = _start_points()
 	if start_points.size() < player_slots.size():
 		push_error("Skirmish: %d player slots but only %d '%s' start-point nodes in the scene" % [
 			player_slots.size(), start_points.size(), START_POINT_GROUP
 		])
+
+	# Index i -> the Commandable Structure just placed for player_slots[i], or null
+	# (no structure / no commander for that slot). _spawn_slot_units uses this to
+	# seed unit scattering off the structure's footprint instead of its own centre.
+	var structures: Array = []
+	var footprint_probes: Array[Vector3] = []
+	for i: int in player_slots.size():
+		if i >= start_points.size():
+			structures.append(null)
+			continue
+		var structure: Commandable = _spawn_slot_structure(player_slots[i], VU.inXZ(start_points[i].global_position))
+		structures.append(structure)
+		if structure != null:
+			for cell: Vector2i in map.structure_cell_map.get(structure, []):
+				footprint_probes.append(map.grid_to_world(cell))
+
+	# Force the cells_changed → navmesh rebuild triggered by the structures above
+	# to actually sync before scattering units onto the navmesh — is_ready()/
+	# navmesh_ready only cover the very first build; later rebuilds otherwise
+	# just ride the normal (unforced) async sync, which isn't guaranteed to have
+	# landed by the next line.
+	await map.nav_manager.await_excluded(footprint_probes)
+
 	for i: int in player_slots.size():
 		if i >= start_points.size():
 			break
-		_spawn_slot_force(player_slots[i], VU.inXZ(start_points[i].global_position))
+		_spawn_slot_units(player_slots[i], VU.inXZ(start_points[i].global_position), structures[i])
 	_center_player_camera_on_starting_entities()
 
 
@@ -67,27 +100,61 @@ func _start_points() -> Array[Node3D]:
 	return points
 
 
-## Deploy one slot's faction-defined opening force, centred on `origin` (world XZ).
-## Reuses the Faction instance the slot's Commander already built in _instance_faction
-## (no need to re-instantiate the faction scene). No-op for a slot with no commander
-## or no faction (e.g. a commander left on player.tscn's default with nothing authored).
-func _spawn_slot_force(slot: PlayerSlot, origin: Vector2) -> void:
+## Spawn one slot's faction-defined starting structure (the HQ/base), centred on
+## `origin` (world XZ). Reuses the Faction instance the slot's Commander already
+## built in _instance_faction (no need to re-instantiate the faction scene). No-op
+## (returns null) for a slot with no commander/faction, or a faction with no
+## starting structure. Returns the spawned Commandable so _spawn_slot_units can
+## seed unit scattering off its footprint.
+func _spawn_slot_structure(slot: PlayerSlot, origin: Vector2) -> Commandable:
+	var commander: Commander = slot.commander
+	if commander == null or commander.faction == null:
+		return null
+	var faction: Faction = commander.faction
+	if faction.starting_structure == null:
+		return null
+
+	var structure: Commandable = faction.starting_structure.instantiate()
+	# add_entities registers the Structure on the grid at `origin`, calling
+	# initialize(map, commander) so it enters the tree under its commander with
+	# ownership set.
+	map.add_entities([structure], origin, commander)
+	return structure
+
+
+## Spawn one slot's faction-defined starting units, arranged around `structure`'s
+## footprint (falling back to `origin` if the slot has no structure). Called only
+## after every slot's starting structure has been placed (see _deploy_all_forces)
+## so the units scatter onto navmesh that already excludes the structures'
+## footprints.
+func _spawn_slot_units(slot: PlayerSlot, origin: Vector2, structure: Commandable) -> void:
 	var commander: Commander = slot.commander
 	if commander == null or commander.faction == null:
 		return
 	var faction: Faction = commander.faction
 
-	var entities: Array = []
-	if faction.starting_structure != null:
-		entities.append(faction.starting_structure.instantiate())
+	var units: Array = []
 	for unit_scene: PackedScene in faction.starting_units:
 		if unit_scene != null:
-			entities.append(unit_scene.instantiate())
+			units.append(unit_scene.instantiate())
 
-	if entities.is_empty():
+	if units.is_empty():
 		return
 
-	# add_entities registers any Structure on the grid at `origin` and scatters the
-	# units onto nearby navmesh, calling initialize(map, commander) on each so the
-	# entity enters the tree under its commander with ownership set.
-	map.add_entities(entities, origin, commander)
+	# SU.get_nonoverlapping_points seeds its scatter search AT the point it's given
+	# and only grows outward from points that land on the navmesh — so seeding it
+	# with `origin` (the structure's own centre, now off-navmesh) finds nothing and
+	# every unit falls back to that same off-navmesh point. Seed from the nearest
+	# footprint-adjacent cell instead, which is guaranteed to be on-navmesh.
+	var scatter_origin: Vector2 = origin
+	if structure != null:
+		var adjacent_cell: Vector2i = SU.nearest_footprint_adjacent_cell(
+			Vector3(origin.x, map.terrain_height_at(origin), origin.y), structure, map
+		)
+		if adjacent_cell != Vector2i(-1, -1):
+			scatter_origin = VU.inXZ(map.grid_to_world(adjacent_cell))
+
+	# add_entities scatters the units onto nearby navmesh (get_nonoverlapping_points),
+	# calling initialize(map, commander) on each so the entity enters the tree under
+	# its commander with ownership set.
+	map.add_entities(units, scatter_origin, commander)

@@ -23,6 +23,19 @@ func gain_experience(amount: int) -> void:
 	experience += amount
 	_update_level()
 
+## Set veterancy to exactly `new_level`, syncing `experience` to that level's
+## threshold. Used to transfer a rank wholesale (e.g. the Dignify ordnance carries an
+## Irregular's rank onto the Warlord it becomes).
+func set_level(new_level: Level) -> void:
+	level = new_level
+	experience = _LEVEL_THRESHOLDS[int(new_level)]
+	_update_label()
+
+## Advance one veterancy level, capped at HEROIC. Used by the Promote ordnance.
+func promote() -> void:
+	if level < Level.HEROIC:
+		set_level((int(level) + 1) as Level)
+
 func _update_level() -> void:
 	var new_level: Level
 	if experience >= 100:

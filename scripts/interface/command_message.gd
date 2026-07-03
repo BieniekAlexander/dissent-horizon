@@ -10,12 +10,12 @@ var ability_type: Variant	# For Ability commands: which Ability.Type to invoke (
 var aggro_shape: CollisionShape3D	# Largest aggro shape in the issuing group (Defend); null → each unit uses its own
 
 ## When true, the commandable pursues this command to completion regardless of the
-## "still worth it?" checks that Command.get_updated_state runs while `not persist`.
+## "still worth it?" checks that MoveCommand.get_updated_state runs while `not persist`.
 ## Defaults false; e.g. idle-aggro acquisition sets it true so a guarding unit
 ## chases the target it spotted even after the target leaves its aggro range.
 var persist: bool = true
 
-## Emitted when the last Command holding this message releases it, signalling
+## Emitted when the last MoveCommand holding this message releases it, signalling
 ## that no live commands still reference this snapshot.
 signal unreferenced
 

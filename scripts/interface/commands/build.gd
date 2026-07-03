@@ -1,5 +1,5 @@
 class_name Build
-extends Command
+extends MoveCommand
 
 ## Safehouse conversion: the safehouse build tool aimed at a NEUTRAL building upgrades
 ## that building IN PLACE into a safehouse — the same node keeps its HP, footprint and
@@ -162,7 +162,7 @@ func _after_placement(new_structure: Commandable, a_map: Map) -> void:
 		if cell_set.has(unit_cell):
 			var nav_point: Vector3 = a_map.nearest_navmesh_point(unit.global_position)
 			var move_msg: CommandMessage = CommandMessage.new(a_map, null, null, nav_point)
-			unit.update_commands(Command.new(move_msg), true, true)
+			unit.update_commands(MoveCommand.new(move_msg), true, true)
 #endregion
 
 #region Properties

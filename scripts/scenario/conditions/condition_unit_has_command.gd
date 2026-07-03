@@ -5,8 +5,8 @@ extends Condition
 ## bot's kamikaze has an Attack command". A pull condition: it reads live command state
 ## each poll.
 ##
-## `command_name` matches the Command subclass by its class_name (e.g. "Attack",
-## "AttackMove", "Move"). `quantifier` decides whether ANY matching unit suffices or ALL of
+## `command_name` matches the MoveCommand subclass by its class_name (e.g. "Attack",
+## "AttackMove", "MoveCommand"). `quantifier` decides whether ANY matching unit suffices or ALL of
 ## them must hold it. With `unit_type` = UNDEFINED every unit the commander owns is
 ## considered.
 
@@ -17,7 +17,7 @@ enum Quantifier { ANY, ALL }
 @export var commander_id: int = 1
 ## UNDEFINED matches units of any type.
 @export var unit_type: Entity.Type = Entity.Type.UNDEFINED
-## The Command subclass name to look for (its class_name), e.g. "Attack".
+## The MoveCommand subclass name to look for (its class_name), e.g. "Attack".
 @export var command_name: String = "Attack"
 ## ANY: at least one matching unit holds the command. ALL: every matching unit does.
 @export var quantifier: Quantifier = Quantifier.ANY
@@ -36,7 +36,7 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 	if units.is_empty():
 		return false
 	var holds_command := func(u: Commandable) -> bool:
-		var c: Command = u.current_command()
+		var c: MoveCommand = u.current_command()
 		return c != null and _command_class_name(c) == command_name
 	if quantifier == Quantifier.ALL:
 		return units.all(holds_command)
@@ -44,8 +44,8 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 #endregion
 
 #region Internal
-## The runtime class_name of a Command instance (e.g. "Attack"), or "" if unavailable.
-func _command_class_name(command: Command) -> String:
+## The runtime class_name of a MoveCommand instance (e.g. "Attack"), or "" if unavailable.
+func _command_class_name(command: MoveCommand) -> String:
 	var script: Script = command.get_script()
 	return String(script.get_global_name()) if script != null else ""
 #endregion

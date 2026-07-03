@@ -1,5 +1,5 @@
 class_name Stop
-extends Command
+extends MoveCommand
 
 #region Preconditions
 static func requires_position() -> bool:

@@ -30,6 +30,25 @@ var ordnance_arsenal: OrdnanceArsenal = null
 @onready var click_screen_pos: Vector2 = Vector2.ZERO
 #endregion
 
+#region Perception
+## References resolved from the scene tree at _ready (Scenario/Players/<commander>),
+## required by the fog-limited perception queries below and by the blackboard.
+## May be injected explicitly via initialize() instead.
+var map: Map
+var scenario: Scenario
+
+## Persistent, fog-limited belief about the enemy PLUS the visual memory of scouted
+## structures (see CommanderBlackboard). Created at runtime for every non-neutral
+## commander (player and bot alike) and ticked on a throttled cadence below. Null in
+## the editor and for the neutral (id 0) commander.
+var blackboard: CommanderBlackboard
+
+## Physics ticks between blackboard updates (~5 Hz). Belief/snapshot refresh doesn't
+## need to run every physics frame, and visible_enemies() runs physics-space queries.
+const BLACKBOARD_TICK_INTERVAL: int = 6
+var _ticks_since_blackboard: int = 0
+#endregion
+
 #region Resources
 ## Starting ore/dominion are applied per-commander from its PlayerSlot (see
 ## Scenario); a commander built without a slot (the neutral world commander) keeps
@@ -213,6 +232,127 @@ func _notification(what: int) -> void:
 			if is_instance_valid(inst):
 				inst.free()
 		_build_preview_instances.clear()
+		if blackboard != null:
+			blackboard.free_visuals()
+#endregion
+
+
+#region Perception queries (fog-limited)
+# Entity.initialize() calls commander.add_child(entity), so every owned entity is a
+# direct child of this node. get_children() is therefore the authoritative source
+# for owned-entity queries, and requires no scene-tree scan.
+func _owned_commandables() -> Array:
+	return get_children().filter(func(n): return n is Commandable)
+
+## Owned entities that contribute VISION — any child carrying a VisionRange shape.
+## Broader than _owned_commandables(): it also includes non-Commandable vision
+## sources such as the Scout spawned by the Radar Scan ordnance. Geometric-vision
+## queries (visible_enemies / has_vision_at, and through it visible_foreign_structures
+## and the blackboard's snapshot/belief memory) iterate THIS set so they match the fog
+## texture — fog.gd likewise reveals for any entity with a vision_range_shape, not just
+## Commandables. Without this a Scout would poke a hole in the fog but never trigger the
+## sight checks that record structure snapshots.
+func _owned_vision_sources() -> Array:
+	return get_children().filter(
+		func(n): return n is Entity and (n as Entity).vision_range_shape != null
+	)
+
+# Gathers all commandables owned by an arbitrary list of commanders using the same
+# child-based convention.
+func _commandables_of(commanders: Array) -> Array:
+	var result: Array = []
+	for c: Commander in commanders:
+		for child in c.get_children():
+			if child is Commandable:
+				result.append(child)
+	return result
+
+# Every Commander with id != 0 (neutral) and id != self.id is an enemy.
+func _enemy_commanders() -> Array:
+	if scenario == null:
+		return []
+	return scenario.commanders.filter(
+		func(c: Commander): return c.id != id and c.id != 0
+	)
+
+## All enemy commandables within [radius] world units of [position]. An ENEMY is
+## owned by a different, non-neutral commander (excluding neutral id 0 matches
+## _enemy_commanders).
+func get_enemies_near(position: Vector3, radius: float) -> Array:
+	if map == null:
+		return []
+	return SU.get_nearby_entities(
+		map.get_world_3d(), position, radius, CollisionLayers.TARGETABLE_ANY
+	).filter(
+		func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0
+	)
+
+## Structures currently within this commander's vision that it does NOT own —
+## INCLUDING neutral (id 0) ones (mines, mountains, Shelters, Deposits). Unlike
+## visible_enemies(), this deliberately keeps neutral structures so the snapshot
+## memory remembers them too. "Structure" means an entity carrying a Structure
+## component (grid-occupying footprint) — NOT necessarily a Commandable: Shelters and
+## Deposits derive from Entity, so gate on has_node("Structure"), not `is Commandable`.
+## Uses the "structure" group + has_vision_at (geometric vision), so it needs no
+## targetable collision layer (neutral structures may not be on one).
+func visible_foreign_structures() -> Array:
+	var result: Array = []
+	for s in get_tree().get_nodes_in_group("structure"):
+		if s.has_node("Structure") and s.commander_id != id and has_vision_at(s.global_position):
+			result.append(s)
+	return result
+
+## Enemy commandables this commander can currently SEE: those within the VisionRange
+## of any owned unit or structure. Deduplicated. This is the fog-of-war boundary for
+## belief updates — it must not "cheat" by reading enemies the commander can't see.
+func visible_enemies() -> Array:
+	var result: Array = []
+	var seen: Dictionary = {}
+	for owned: Entity in _owned_vision_sources():
+		var vr: float = _shape_xz_radius(owned.vision_range_shape)
+		if vr <= 0.0:
+			continue
+		for e in get_enemies_near(owned.global_position, vr):
+			if not seen.has(e) and (e as Commandable).is_visible_to(id):
+				seen[e] = true
+				result.append(e)
+	return result
+
+## True when this commander currently has vision of [world_pos]: some owned unit or
+## structure is within its VisionRange of that point. Lets the blackboard verify
+## whether a believed-but-unseen structure is still there when units revisit.
+func has_vision_at(world_pos: Vector3) -> bool:
+	var p: Vector2 = VU.inXZ(world_pos)
+	for owned: Entity in _owned_vision_sources():
+		var vr: float = _shape_xz_radius(owned.vision_range_shape)
+		if vr > 0.0 and VU.inXZ(owned.global_position).distance_to(p) <= vr:
+			return true
+	return false
+
+## World-space XZ radius of [entity]'s VisionRange — the SAME reveal radius the fog
+## of war uses (fog.gd reads vision_range_shape identically). 0 when the entity has
+## no vision shape.
+func vision_radius(entity: Entity) -> float:
+	return _shape_xz_radius(entity.vision_range_shape) if entity != null else 0.0
+
+## XZ radius of a CollisionShape3D (cylinder/sphere radius × node X-scale), or 0.
+func _shape_xz_radius(shape_node: CollisionShape3D) -> float:
+	if shape_node == null:
+		return 0.0
+	var scale: float = shape_node.global_transform.basis.x.length()
+	var shp: Shape3D = shape_node.shape
+	if shp is CylinderShape3D:
+		return (shp as CylinderShape3D).radius * scale
+	if shp is SphereShape3D:
+		return (shp as SphereShape3D).radius * scale
+	return 0.0
+
+## Seconds elapsed since the scenario started, derived from the physics frame
+## counter (30 ticks per second).
+func seconds_elapsed() -> float:
+	if scenario == null:
+		return 0.0
+	return float(scenario.frame) / float(Engine.physics_ticks_per_second)
 #endregion
 
 
@@ -225,6 +365,52 @@ func _ready() -> void:
 	# every frame (see resources_changed). Paint once now for the initial values.
 	resources_changed.connect(_refresh_resource_label)
 	_refresh_resource_label()
+
+	# Runtime-only perception setup. Commander is @tool, so guard against the editor
+	# (where there's no live Scenario to walk up to).
+	if Engine.is_editor_hint():
+		return
+	_resolve_scene_references()
+	# The neutral world commander (id 0) never views and has no strategic beliefs,
+	# so it needs no blackboard or snapshots.
+	if id != 0:
+		blackboard = CommanderBlackboard.new(self)
+	# Run this commander's _physics_process AFTER fog.gd's (default priority 0), so the
+	# snapshot visibility swap reads each real structure's freshly-updated `visible`
+	# this frame — making the memory the exact complement of what fog shows.
+	process_physics_priority = 100
+
+## Resolve [map] and [scenario] from the expected position Scenario/Players/<self>.
+## Scenario._ready() places all commanders under a "Players" node that is a direct
+## child of Scenario, so two get_parent() calls suffice. No-ops on already-set refs
+## (e.g. injected via initialize()).
+func _resolve_scene_references() -> void:
+	var players := get_parent()
+	if players != null and scenario == null:
+		scenario = players.get_parent() as Scenario
+	if scenario != null and map == null:
+		map = scenario.map
+
+## Explicit injection alternative to the tree-walk in _ready(), for when references
+## must be wired before any _ready() callbacks fire.
+func initialize(a_map: Map, a_scenario: Scenario) -> void:
+	map = a_map
+	scenario = a_scenario
+
+func _physics_process(_delta: float) -> void:
+	if Engine.is_editor_hint() or blackboard == null or map == null:
+		return
+	# Snapshot visibility runs EVERY frame (cheap: a handful of structures), so a
+	# remembered structure appears the exact frame fog hides the real one — no gap.
+	# The heavier belief refresh (visible_enemies physics queries + snapshot creation)
+	# is throttled. Snapshot visibility reads each real structure's fog-driven
+	# `visible`, so it must run AFTER fog: see process_physics_priority in _ready.
+	blackboard.refresh_snapshots()
+	_ticks_since_blackboard += 1
+	if _ticks_since_blackboard < BLACKBOARD_TICK_INTERVAL:
+		return
+	_ticks_since_blackboard = 0
+	blackboard.update()
 
 ## Instance this commander's faction_scene as a child and cache it in `faction`.
 ## Safe to call with no faction_scene assigned (faction stays null).

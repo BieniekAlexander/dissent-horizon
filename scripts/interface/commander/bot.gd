@@ -8,54 +8,11 @@ extends Commander
 ## understand game state before deciding what to do.  No decision-making
 ## or command-issuing logic belongs here.
 ##
-## Scene placement: Bot expects to live at Scenario/Players/<bot>, which
-## lets _ready() auto-resolve [map] and [scenario] by walking up the tree.
-## Alternatively, call [method initialize] before any queries run to inject
-## the references explicitly — useful if the tree structure ever changes.
-
-## Reference to the game map, required for all spatial queries.
-var map: Map
-
-## Reference to the root scenario, required for frame-based timing and
-## for locating enemy commanders.
-var scenario: Scenario
-
-## Persistent, fog-limited belief about the enemy (assigned + ticked by BotBrain).
-## Composition decisions read believed enemy types from here so they survive vision
-## flicker. Null until the brain wires it.
-var blackboard: BotBlackboard
-
-
-# ─── LIFECYCLE ──────────────────────────────────────────────────────────────
-
-func _ready() -> void:
-	super()
-	# Auto-resolve from the expected position Scenario/Players/<bot>.
-	# Scenario._ready() places all commanders under a "Players" Node3D that
-	# is a direct child of Scenario, so two get_parent() calls suffice.
-	var players := get_parent()
-	if players != null and scenario == null:
-		scenario = players.get_parent() as Scenario
-	if scenario != null and map == null:
-		map = scenario.map
-
-
-## Explicit injection alternative to the tree-walk in _ready().
-## Scenario._ready() can call this after adding the Bot as a child if it
-## ever needs to wire references before any _ready() callbacks fire.
-func initialize(a_map: Map, a_scenario: Scenario) -> void:
-	map = a_map
-	scenario = a_scenario
-
+## Scene placement: Bot expects to live at Scenario/Players/<bot>. Commander._ready()
+## auto-resolves [map] and [scenario] (both live on Commander now) by walking up the
+## tree, and owns the fog-limited perception surface and the CommanderBlackboard.
 
 # ─── INTERNAL HELPERS ───────────────────────────────────────────────────────
-
-# Entity.initialize() calls commander.add_child(entity), so every owned
-# entity is a direct child of this node.  get_children() is therefore the
-# authoritative source for owned-entity queries, and requires no scene-tree
-# scan.
-func _owned_commandables() -> Array:
-	return get_children().filter(func(n): return n is Commandable)
 
 # A structure carries a "Structure" component (declaring its grid footprint); a
 # mobile unit does not. Presence of that child node — NOT the Entity.Type — is the
@@ -69,24 +26,6 @@ func _owned_units() -> Array:
 func _owned_structures() -> Array:
 	return _owned_commandables().filter(
 		func(c: Commandable): return c.has_node("Structure")
-	)
-
-# Gathers all commandables owned by an arbitrary list of commanders using
-# the same child-based convention.
-func _commandables_of(commanders: Array) -> Array:
-	var result: Array = []
-	for c: Commander in commanders:
-		for child in c.get_children():
-			if child is Commandable:
-				result.append(child)
-	return result
-
-# Every Commander with id != 0 (neutral) and id != self.id is an enemy.
-func _enemy_commanders() -> Array:
-	if scenario == null:
-		return []
-	return scenario.commanders.filter(
-		func(c: Commander): return c.id != id and c.id != 0
 	)
 
 
@@ -255,22 +194,6 @@ func get_enemy_units() -> Array:
 func get_enemy_structures() -> Array:
 	return get_all_enemies().filter(
 		func(c: Commandable): return c.has_node("Structure")
-	)
-
-
-## All enemy entities within [radius] world units of [position].
-## Useful for hotspot checks: "how many enemies are near my Mine right now?"
-func get_enemies_near(position: Vector3, radius: float) -> Array:
-	if map == null:
-		return []
-	return SU.get_nearby_entities(
-		map.get_world_3d(), position, radius, CollisionLayers.TARGETABLE_ANY
-	).filter(
-		# An ENEMY is owned by a different, non-neutral commander. Excluding neutral
-		# (id 0) here — matching is_enemy_of / _enemy_commanders — keeps the bot from
-		# treating neutral structures as targets (e.g. BotTargeting would otherwise
-		# retask a unit onto a neutral building). Neutrals still take collateral AoE.
-		func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0
 	)
 
 
@@ -650,26 +573,9 @@ func _type_provides_vigor(type) -> bool:
 	return preview is Commandable and (preview as Commandable).vigor_provided > 0
 
 
-# ─── VISION (fog-limited perception) + COUNTER-INTEL ────────────────────────
-
-## Enemy commandables the bot can currently SEE: those within the VisionRange of
-## any owned unit or structure. The bot has no fog texture of its own (fog is the
-## human's), so visibility is derived directly from owned entities' vision radii.
-## Deduplicated. This is the fog-of-war boundary for the bot's decisions — they must
-## not "cheat" by reading enemies the bot can't see.
-func visible_enemies() -> Array:
-	var result: Array = []
-	var seen: Dictionary = {}
-	for owned: Commandable in _owned_commandables():
-		var vr: float = _shape_xz_radius(owned.vision_range_shape)
-		if vr <= 0.0:
-			continue
-		for e in get_enemies_near(owned.global_position, vr):
-			if not seen.has(e):
-				seen[e] = true
-				result.append(e)
-	return result
-
+# ─── COUNTER-INTEL ──────────────────────────────────────────────────────────
+# The fog-limited perception surface (visible_enemies, has_vision_at, vision_radius,
+# get_enemies_near, seconds_elapsed) now lives on Commander, shared with players.
 
 ## How good a unit of [unit_type]'s MATCHUP is against [target]: the damage-table
 ## multiplier (effective_damage / base_damage, after armour + attributes) of the
@@ -721,7 +627,7 @@ func enemy_demand_map() -> Dictionary:
 		return {}
 	var importance: Dictionary = {}      # type -> summed importance
 	var reps: Dictionary = {}            # type -> a live Commandable of that type
-	for entry: BotBlackboard.Entry in blackboard.believed():
+	for entry: CommanderBlackboard.Entry in blackboard.believed():
 		if not is_instance_valid(entry.entity):
 			continue
 		var imp: float = STRUCTURE_IMPORTANCE if entry.is_structure else 1.0
@@ -781,7 +687,7 @@ func believed_enemy_army_value() -> float:
 	if blackboard == null:
 		return 0.0
 	var total: float = 0.0
-	for entry: BotBlackboard.Entry in blackboard.believed():
+	for entry: CommanderBlackboard.Entry in blackboard.believed():
 		if entry.is_structure or not is_instance_valid(entry.entity):
 			continue
 		total += unit_cost(entry.type)
@@ -877,38 +783,6 @@ func _aoe_hit_value(center: Vector3, profile: Dictionary, enemies: Array) -> flo
 	return total
 
 
-## True when the bot currently has vision of [world_pos]: some owned unit or
-## structure is within its VisionRange of that point. Lets the blackboard verify
-## whether a believed-but-unseen structure is still there when units revisit.
-func has_vision_at(world_pos: Vector3) -> bool:
-	var p: Vector2 = VU.inXZ(world_pos)
-	for owned: Commandable in _owned_commandables():
-		var vr: float = _shape_xz_radius(owned.vision_range_shape)
-		if vr > 0.0 and VU.inXZ(owned.global_position).distance_to(p) <= vr:
-			return true
-	return false
-
-
-## World-space XZ radius of [entity]'s VisionRange — the SAME reveal radius the fog of war
-## uses (fog.gd reads vision_range_shape identically). 0 when the entity has no vision shape.
-## Use this anywhere "what this unit can actually see" must match what fog reveals.
-func vision_radius(entity: Entity) -> float:
-	return _shape_xz_radius(entity.vision_range_shape) if entity != null else 0.0
-
-
-## XZ radius of a CollisionShape3D (cylinder/sphere radius × node X-scale), or 0.
-func _shape_xz_radius(shape_node: CollisionShape3D) -> float:
-	if shape_node == null:
-		return 0.0
-	var scale: float = shape_node.global_transform.basis.x.length()
-	var shp: Shape3D = shape_node.shape
-	if shp is CylinderShape3D:
-		return (shp as CylinderShape3D).radius * scale
-	if shp is SphereShape3D:
-		return (shp as SphereShape3D).radius * scale
-	return 0.0
-
-
 ## True when all prerequisite structures for [type] have been built,
 ## regardless of whether we can currently afford to produce it.
 func has_tech_for(type: Entity.Type) -> bool:
@@ -946,14 +820,7 @@ func highest_unlocked_unit_type() -> Entity.Type:
 
 
 # ─── GAME PHASE / TIME ──────────────────────────────────────────────────────
-
-## Seconds elapsed since the scenario started, derived from the physics
-## frame counter (30 ticks per second).
-func seconds_elapsed() -> float:
-	if scenario == null:
-		return 0.0
-	return float(scenario.frame) / float(Engine.physics_ticks_per_second)
-
+# seconds_elapsed() now lives on Commander (shared perception surface).
 
 ## Coarse game-phase index: 0 = early, 1 = mid, 2 = late.
 ## Driven primarily by the number of distinct structure types owned

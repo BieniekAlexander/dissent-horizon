@@ -1,6 +1,7 @@
 class_name Damage
 
 enum Type {
+	UNDEFINED = 0,
 	LEAD = 1,
 	LAZER = 2,
 	TOXIN = 3,

@@ -1,5 +1,5 @@
 class_name Interact
-extends Command
+extends MoveCommand
 
 ## Generalised interaction command. A unit carrying an [Interactor] component can
 ## Interact with any target whose `Entity.Type` matches one of the interactor's
@@ -97,7 +97,7 @@ func _perform_event(a_actor: Commandable, interaction: Interaction) -> void:
 #region State updates
 ## Drop the command if the target vanished, the interaction no longer applies,
 ## or the target's Shelter went unavailable.
-func get_updated_state(a_actor: Commandable) -> Command:
+func get_updated_state(a_actor: Commandable) -> Variant:
 	if not is_instance_valid(message.target):
 		return null
 	if _interaction_for(a_actor) == null or not _target_available(message.target):

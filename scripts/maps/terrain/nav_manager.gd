@@ -144,6 +144,42 @@ func layer_for(size: NavAgentClass.Size) -> int:
 ## map is queryable. Callers that may run before the first build await navmesh_ready.
 func is_ready() -> bool:
 	return _ready_announced
+
+## Await until every point in `probes` is confirmed excluded from the navmesh —
+## i.e. map_get_closest_point no longer resolves it back to (near) itself. Pass
+## the world-space centers of a just-placed structure's footprint cells to wait
+## out its exclusion before scattering units onto the navmesh.
+##
+## navmesh_ready/is_ready only cover the very FIRST build — after that, _rebuild_navmesh
+## rides "the normal async sync" with nothing gating on it (see its comment), so a caller
+## that places a structure and immediately scatters units onto the navmesh can race the
+## rebuild and land a unit on the structure's own footprint. A single map_force_update
+## (or even a couple, spread across physics frames) isn't reliably enough — a newly
+## region_set_navigation_mesh'd region can take more than a couple of syncs to actually
+## merge into the map's query structure (mirrors the same "can take more than one sync"
+## caveat as the first-build poll in _physics_process) — so this polls a REAL correctness
+## check instead of trusting a fixed iteration count, giving up (returning false) after
+## `max_iterations` as a safety net against hanging forever on a bad probe.
+func await_excluded(probes: Array[Vector3], max_iterations: int = 30) -> bool:
+	if probes.is_empty():
+		return true
+	# Let a call_deferred("_rebuild_navmesh") queued this frame actually run and set the
+	# new region meshes before forcing the server to sync them.
+	if _rebuild_pending:
+		await get_tree().process_frame
+	var nm: RID = navigation_region.get_navigation_map()
+	for _i in max_iterations:
+		await get_tree().physics_frame
+		NavigationServer3D.map_force_update(nm)
+		var all_excluded := true
+		for p: Vector3 in probes:
+			if NavigationServer3D.map_get_closest_point(nm, p).distance_to(p) < 0.05:
+				all_excluded = false
+				break
+		if all_excluded:
+			return true
+	push_warning("NavManager.await_excluded: %d probe(s) never confirmed excluded after %d iterations" % [probes.size(), max_iterations])
+	return false
 #endregion
 
 #region Private helpers

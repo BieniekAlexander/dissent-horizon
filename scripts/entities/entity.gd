@@ -21,6 +21,7 @@ enum Type {
 	ABSTRACT=-2, # NOTE: ignored in scene validation checks, as these structures are used for godot inheritence, not meant to be used in game
 	UNDEFINED=-1,
 	## NT (NEUTRAL)
+	NT_UTILITY_RECON=0x0004, # invisible commander-owned vision source (Radar Scan ordnance)
 	NT_STRUCTURE_BUILDING=0x0200,
 	NT_STRUCTURE_MINE=0x0201, # TODO reassign ID as neutral, maybe? Will all factions have the same mine?
 	NT_STRUCTURE_SHELTER=0x0202,

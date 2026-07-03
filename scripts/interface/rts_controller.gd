@@ -124,24 +124,24 @@ func _process(delta: float) -> void:
 		command_message
 	) if !selection.is_empty() else null
 
-	var check: Command.PreconditionFailureCause =  (
-		Command.PreconditionFailureCause.NONE
+	var check: MoveCommand.PreconditionFailureCause =  (
+		MoveCommand.PreconditionFailureCause.NONE
 		if current_command_type==null
 		else current_command_type.meets_precondition(selection[0] if !selection.is_empty() else null, command_message)
 	)
 
-	$CommandErrorMessage.text = Command.precondition_message_map[check]
+	$CommandErrorMessage.text = MoveCommand.precondition_message_map[check]
 
-	if check==Command.PreconditionFailureCause.NONE:
+	if check==MoveCommand.PreconditionFailureCause.NONE:
 		Input.set_custom_mouse_cursor(cursor_evaluator(current_command_type, command_message))
-	elif check==Command.PreconditionFailureCause.COMMAND_PENDING_TOOL:
+	elif check==MoveCommand.PreconditionFailureCause.COMMAND_PENDING_TOOL:
 		# Not a failure — the command is awaiting the player's tool selection, so
 		# keep the default cursor rather than flagging an invalid placement.
 		Input.set_custom_mouse_cursor(free_cursor)
 	else:
 		Input.set_custom_mouse_cursor(invalid_cursor)
 
-	_update_build_preview(check == Command.PreconditionFailureCause.INVALID_PLACEMENT)
+	_update_build_preview(check == MoveCommand.PreconditionFailureCause.INVALID_PLACEMENT)
 	_update_waypoint_display()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -209,11 +209,24 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 			elif (click_target as Entity).selectable.select():
 				selection.append(click_target)
 	else:
-		for selectable: Selectable in query_box_collisions(Rect2(selection_start_position, selection_end_position - selection_start_position).abs()):
+		var boxed: Array = query_box_collisions(
+			Rect2(selection_start_position, selection_end_position - selection_start_position).abs()
+		).filter(
+			func(s: Selectable) -> bool:
+				var e := s.get_entity()
+				return e != null and e.commander_id == PLAYER_COMMANDER_ID
+		)
+		# A box that catches any unit skips structures, so dragging over a mixed group
+		# selects only the mobile units (structures are picked individually). Consider
+		# the current selection too, so an additive box behaves the same.
+		var has_unit: bool = selection.any(func(e): return not e.has_node("Structure")) \
+			or boxed.any(func(s: Selectable): return not s.get_entity().has_node("Structure"))
+		for selectable: Selectable in boxed:
 			var entity := selectable.get_entity()
-			if entity != null and entity.commander_id == PLAYER_COMMANDER_ID:
-				if selectable.select():
-					selection.append(entity)
+			if has_unit and entity.has_node("Structure"):
+				continue
+			if selectable.select():
+				selection.append(entity)
 
 	available_commands = CommandContextParser.commands_for_selection(selection)
 	if not selection.is_empty():
@@ -286,7 +299,7 @@ func process_command(command_name: String) -> void:
 ##     actor capability + target. Structures with a tool selected resolve to
 ##     Train; an interactor-equipped unit targeting an entity it has an
 ##     interaction for resolves to Interact; hostile targets resolve to Attack;
-##     otherwise the basic move Command.
+##     otherwise the basic MoveCommand.
 ##
 ## Anything not matched falls through to null, which the caller treats as
 ## "no valid command right now" (cursor goes invalid, no assignment fires).
@@ -327,7 +340,7 @@ static func _resolve_command_class(
 		_:
 			# command_tool_* and other hotkey aliases route through the
 			# default resolution: a structure with a tool set picks Train,
-			# everything else picks the basic Command.
+			# everything else picks the basic MoveCommand.
 			pass
 
 	# Default resolution (no pending hotkey OR a tool-flavored alias).
@@ -381,8 +394,8 @@ static func _resolve_command_class(
 
 	# Hostile, weapon-matched target → Attack. This must precede the structure
 	# rally fallback below so a combatant structure (e.g. Turret) whose
-	# Production component would otherwise swallow the click as a rally point
-	# still resolves an explicit attack order. Entities without a Loadout
+	# can_rally() (Production or Garrison) would otherwise swallow the click as
+	# a rally point still resolves an explicit attack order. Entities without a Loadout
 	# (or whose weapons can't target this entity) fall through to rally unchanged.
 	# A commanderless garrison is excluded: a default right-click on it must not
 	# resolve to an attack (units can still attack it via the AttackMove context,
@@ -397,8 +410,9 @@ static func _resolve_command_class(
 	):
 		return Attack
 
-	# Producers fall back to rally; units to basic move — both plain Command.
-	return Command
+	# can_rally() structures (producers, garrisons) fall back to rally; units
+	# to basic move — both plain MoveCommand (see Commandable._process_commands).
+	return MoveCommand
 
 ## True when `target` is a built garrison with no commander (neutral, id 0).
 ## Used to keep a default right-click from resolving to Attack against an
@@ -433,7 +447,7 @@ func assign_command_to_units(
 	# incapable units are silently skipped.
 	var capable: Array = selection.filter(
 		func(c: Commandable) -> bool:
-			return a_command_type.meets_precondition(c, a_command_message) == Command.PreconditionFailureCause.NONE
+			return a_command_type.meets_precondition(c, a_command_message) == MoveCommand.PreconditionFailureCause.NONE
 	)
 
 	if capable.is_empty():
@@ -503,7 +517,7 @@ func assign_command_to_units(
 		snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
 		if a_command_type.requires_position():
 			_register_indicator(snapshot)
-		var new_cmd: Command = Patrol.for_actor(c, snapshot) \
+		var new_cmd: MoveCommand = Patrol.for_actor(c, snapshot) \
 				if a_command_type == Patrol \
 				else a_command_type.new(snapshot)
 		c.update_commands(new_cmd, add_to_queue)
@@ -550,7 +564,7 @@ func _on_control_button_pressed(control_name: String) -> void:
 
 #region Private helpers
 static func cursor_evaluator(a_command_type: Script, a_command_message: CommandMessage) -> Resource:
-	if a_command_type==null or a_command_type==Command:
+	if a_command_type==null or a_command_type==MoveCommand:
 		if (a_command_message.target!=null):
 			if a_command_message.target.commander.id==PLAYER_COMMANDER_ID:
 				return selection_cursor
@@ -563,15 +577,20 @@ static func cursor_evaluator(a_command_type: Script, a_command_message: CommandM
 	else:
 		return unknown_cursor
 
-## True when `entity` is an enemy unit currently hidden by stealth. These are the
-## STEALTHED units Commandable._process renders fully transparent for enemies, so
-## the cursor treats them as not-there. Once a detector sees them (REVEALED) or
-## combat forces them out (UNSTEALTHED) they become partially/fully visible and
-## thus clickable and targetable again.
-static func _is_hidden_enemy(entity: Entity) -> bool:
-	return entity.stealth != null \
-		and entity.stealth.state == Stealth.State.STEALTHED \
-		and entity.commander_id != PLAYER_COMMANDER_ID
+## True when the player can currently perceive `entity` — so the cursor may target
+## it. Own units are always known; a fog-tracked Commandable is perceptible only
+## while it's in sight (in_sight_range is fog.gd's per-tick "fog pixel clear AND not
+## stealthed" flag, so this subsumes both fog and stealth). A fogged enemy — or a
+## fogged structure's remembered snapshot, which has no SELECTION collider at all —
+## is not detected, so a right-click over it resolves to a Move on the terrain
+## beneath. Non-Commandable map features (e.g. neutral Shelters) aren't fog-managed,
+## so fall back to their render state (always drawn → still targetable to liberate).
+static func _is_perceptible(entity: Entity) -> bool:
+	if entity.commander_id == PLAYER_COMMANDER_ID:
+		return true
+	if entity is Commandable:
+		return (entity as Commandable).in_sight_range
+	return entity.visible
 
 func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 	var ray_origin: Vector3 = camera.project_ray_origin(a_mouse_position)
@@ -580,10 +599,10 @@ func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 	var selection_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.SELECTION)
 	if selection_hit and selection_hit['collider'] is Selectable:
 		var entity := (selection_hit['collider'] as Selectable).get_entity()
-		# Stealthed enemy units are rendered invisible to the player, so the cursor
-		# must ignore them for both selection and targeting — fall through to the
-		# terrain hit so a right-click resolves to a move instead of an attack.
-		if entity != null and not _is_hidden_enemy(entity):
+		# Only detect entities the player can actually see. Fogged/stealthed enemies
+		# are ignored — fall through to the terrain hit so a right-click resolves to a
+		# move instead of an attack against something the player can't perceive.
+		if entity != null and _is_perceptible(entity):
 			return entity
 
 	var terrain_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.TERRAIN)
@@ -627,10 +646,18 @@ func _update_build_preview(is_invalid_placement: bool) -> void:
 	var obs := source.get_node_or_null("Structure") as Structure if source != null else null
 	var dims := obs.dimensions if obs != null else Vector2i.ONE
 	var origin := cell - Vector2i((dims.x - 1) / 2, (dims.y - 1) / 2)
+
+	# The centre cell alone can be in-bounds while the rest of a multi-cell
+	# footprint spills off the map near an edge — check every cell the
+	# structure would occupy, not just its centre, before touching grid_to_world.
 	var centroid := Vector3.ZERO
 	for w in range(dims.x):
 		for l in range(dims.y):
-			centroid += map.grid_to_world(Vector2i(origin.x + w, origin.y + l))
+			var footprint_cell := Vector2i(origin.x + w, origin.y + l)
+			if not map.grid_coordinates_in_bounds(footprint_cell):
+				_build_preview.visible = false
+				return
+			centroid += map.grid_to_world(footprint_cell)
 	_build_preview.global_position = centroid / (dims.x * dims.y)
 
 	# Apply tint: red when placement is invalid, neutral otherwise.

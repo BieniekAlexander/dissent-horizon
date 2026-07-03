@@ -1,9 +1,9 @@
 class_name AttackMove
-extends Command
+extends MoveCommand
 
 #region State updates
-func get_updated_state(a_actor: Commandable) -> Command:
-	var aggro_command: Command = a_actor.get_aggro_near_position()
+func get_updated_state(a_actor: Commandable) -> Variant:
+	var aggro_command: MoveCommand = a_actor.get_aggro_near_position()
 	# Return the aggro command directly (not wrapped in an array). The
 	# update_commands(cmd, add_to_queue=true, prepend=true) path in
 	# CommandReceiver already pushes the current AttackMove back to the front

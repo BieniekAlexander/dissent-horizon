@@ -1,28 +1,5 @@
 # Bugs
-- when units are issued a command against a structure (e.g. garrison, interact, etc.), it appears that the units generally try to navigate to the position on the navmesh "above" the structure. They should be navigating to the point on the navmesh near the structure that is closest to them
-- if my cursor is trying to evaluate something related to position, and my cursor is off of the navmesh, the game crashes because of an out-of-bounds error. Rather than throwing a bounds error, just return some sentinel value or NULL, and provide some "invalid command" state
-```
-  E 0:01:27:908   Map.grid_to_world: Out of bounds get index '904' (on base: 'PackedFloat32Array')
-  <GDScript Source>map.gd:65 @ Map.grid_to_world()
-  <Stack Trace> map.gd:65 @ grid_to_world()
-                rts_controller.gd:633 @ _update_build_preview()
-                rts_controller.gd:144 @ _process()
-
-```
-- Some of my units are collecting an attack command, even when it already has an active Move `Command`. Aggro should be evaluated during an AttackMove command, but not a  `Command`. Retargeting during a plain move `Command` might happen for a CPU Bot that is changing the decisions of the units, but there should be no command override logic for commands in-and-of-themselves unless specifically implemented in an `get_updated_state` override
-	- Maybe for semantic clarity, rename Command to MoveCommand
-- Upon Skirmish startup, it appears that structures and units are being spawned at the same position, and units are being spawned inside structures. To address this, spawn all structures first, and then add units in afterwards, only positioning units on the remaining available navmesh space. There should already be utility functions implemented elsewhere that support the spawning of units onto the navmesh.
 # Mechanics
-## Rally Points
-- I recall that structures which produce units have a feature that, if they receive a Move `Command`, the command is interpreted as an assignment of a rallypoint for the units trained. Structures with the `garrison` component should have the same sort of logic, where a move command issued to it should direct units to go in that direction if they're given the `Evacuate` command. I think, in summary, here's what the implementation should look like:
-	- Consider that commandables might have features which produce units from it - wrap this detail in a check, `can_rally`, which will be true in the cases that:
-		- The unit has a garrison, which is to say that units can occupy it
-		- The unit might be able to produce other units
-		- The commandable might produce commandables in response to events, such as its own death
-	- In these cases, there should be some sort of logic that gives the produced or released units a destination to move towards:
-		- produce units and give them a rally point
-		- If a unit dies and produces units, they can inherit the movement command of its source unit
-	- In the event that the source unit can move, the produced units can just inherit move commands. However, in the case that the unit cannot move (i.e. it's a structure), it should hold onto a `rally_point`, which is used to give released units an initial movement destination
 # Ordnances
 I'll define some ordnances that I want to be implemented - just set them to cost 100 dominion, 30 second cooldown, and without any ordnance dependencies. I'll modify those details myself.
 ## Anarchical

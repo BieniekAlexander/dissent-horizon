@@ -9,6 +9,8 @@
 [ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/entities/units/an/warlord.tscn" id="7_war"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/irregular.tscn" id="8_irr"]
 [ext_resource type="Script" uid="uid://cko1d6cmwppd1" path="res://scripts/interface/commander/anarchical_dominion.gd" id="9_1xmxo"]
+[ext_resource type="PackedScene" uid="uid://c0rdndignify01" path="res://scenes/scenario_events/ordnance_dignify.tscn" id="10_dig"]
+[ext_resource type="PackedScene" uid="uid://c0rdninformnt01" path="res://scenes/scenario_events/ordnance_informant.tscn" id="11_inf"]
 
 [sub_resource type="Resource" id="Ordnance_ambush"]
 script = ExtResource("3_ord")
@@ -36,12 +38,40 @@ dominion_cost = 750
 prerequisites = Array[ExtResource("6_unlock")]([SubResource("Unlock_ambush")])
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
+[sub_resource type="Resource" id="Ordnance_dignify"]
+script = ExtResource("3_ord")
+ordnance_name = "Dignify"
+cooldown_duration = 30.0
+event_scene = ExtResource("10_dig")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+
+[sub_resource type="Resource" id="Unlock_dignify"]
+script = ExtResource("6_unlock")
+ordnance = SubResource("Ordnance_dignify")
+dominion_cost = 100
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Ordnance_informant"]
+script = ExtResource("3_ord")
+ordnance_name = "Informant"
+cooldown_duration = 30.0
+event_scene = ExtResource("11_inf")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+
+[sub_resource type="Resource" id="Unlock_informant"]
+script = ExtResource("6_unlock")
+ordnance = SubResource("Ordnance_informant")
+dominion_cost = 100
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
 [node name="Anarchical" type="Node" unique_id=1805763819]
 script = ExtResource("1_fac")
 faction_name = "Anarchists"
 starting_structure = ExtResource("2_strgh")
 starting_units = Array[PackedScene]([ExtResource("7_war"), ExtResource("8_irr"), ExtResource("8_irr"), ExtResource("8_irr")])
-ordnance_unlocks = Array[ExtResource("6_unlock")]([SubResource("Unlock_ambush"), SubResource("Unlock_irradiate")])
+ordnance_unlocks = Array[ExtResource("6_unlock")]([SubResource("Unlock_ambush"), SubResource("Unlock_irradiate"), SubResource("Unlock_dignify"), SubResource("Unlock_informant")])
 
 [node name="DominionGeneration" type="Node" parent="." unique_id=702650420]
 script = ExtResource("9_1xmxo")

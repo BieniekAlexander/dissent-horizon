@@ -80,7 +80,8 @@ func _retarget(unit: Commandable) -> void:
 	# persist=false attack leash, so the chosen target sticks instead of being
 	# instantly dropped as out-of-range and re-picked every think.
 	var candidates: Array = _bot.get_enemies_near(unit.global_position, _engage_radius(unit)).filter(
-		func(c: Commandable): return unit.weapon_inventory.weapon_for_target(c) != null
+		func(c: Commandable): return unit.weapon_inventory.weapon_for_target(c) != null \
+			and c.is_visible_to(_bot.id)
 	)
 	if candidates.is_empty():
 		return

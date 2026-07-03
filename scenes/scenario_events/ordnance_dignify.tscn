@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://0kq65elxkyto"]
+
+[ext_resource type="Script" uid="uid://w6uyr0g2c6pd" path="res://scripts/scenario/events/event_dignify.gd" id="1_dig"]
+
+[node name="OrdnanceDignify" type="Node3D"]
+script = ExtResource("1_dig")

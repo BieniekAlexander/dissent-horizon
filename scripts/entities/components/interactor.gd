@@ -18,7 +18,7 @@ extends Node
 func applicable_interaction(a_actor: Commandable, a_message: CommandMessage) -> Interaction:
 	for interaction: Interaction in interactions:
 		if interaction != null \
-				and interaction.meets_precondition(a_actor, a_message) == Command.PreconditionFailureCause.NONE:
+				and interaction.meets_precondition(a_actor, a_message) == MoveCommand.PreconditionFailureCause.NONE:
 			return interaction
 	return null
 

@@ -52,8 +52,13 @@ var nav_manager: NavManager
 ## Convert a grid cell (integer indices) to the world XZ centre of that cell.
 ## Y is taken from the terrain surface at the cell centre corner; for flat
 ## maps with uniform height this is the actual surface Y.
+## Returns Vector3.INF for a cell outside the heightmap (same off-surface
+## sentinel used by get_navmesh_line_hit / SU._project_to_nav_surface) instead
+## of indexing map_data out of bounds.
 func grid_to_world(cell: Vector2i) -> Vector3:
 	var hs := height_map
+	if cell.x < 0 or cell.y < 0 or cell.x > hs.map_width - 2 or cell.y > hs.map_depth - 2:
+		return Vector3.INF
 	var hw   := (hs.map_width  - 1) * 0.5
 	var hd   := (hs.map_depth  - 1) * 0.5
 	# Cell centre is at the average of its four corners in local space.
@@ -180,7 +185,13 @@ func add_entities(a_entities: Array, a_location: Vector2, a_commander: Commander
 	if units.is_empty():
 		return
 
-	var radius: float = units[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+	# The largest radius in the batch, not just units[0]'s: a mixed batch (e.g. a
+	# faction's starting_units) sizes candidate spacing/clearance for its biggest
+	# member, so a smaller unit type earlier in the array doesn't undersize the
+	# clearance a larger one later in the array actually needs.
+	var radius: float = 0.0
+	for unit: Entity in units:
+		radius = maxf(radius, unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
 	var region_radius: float = maxf(5.0, radius * 2.5 * float(maxi(units.size(), 1)))
 	var points: Array[Vector2] = []
 	if radius > 0.0:
@@ -189,7 +200,13 @@ func add_entities(a_entities: Array, a_location: Vector2, a_commander: Commander
 			a_location,
 			radius,
 			get_world_3d(),
-			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
+			# STRUCTURE_BLOCKER (in addition to MOVEMENT_OBSTRUCTION) so candidates
+			# also clear any structure's TargetBody — structures drop MOVEMENT_OBSTRUCTION
+			# once grid-registered (see refresh_movement_collision) and rely on the
+			# navmesh for exclusion instead, but a just-placed structure's navmesh
+			# exclusion can still be mid-rebuild/unsynced at this point (see
+			# Skirmish._deploy_all_forces), so this catches it regardless of that timing.
+			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION | CollisionLayers.Mask.STRUCTURE_BLOCKER,
 			region_radius,
 			units.size()
 		)

@@ -1,5 +1,5 @@
 class_name Capture
-extends Command
+extends MoveCommand
 
 #region Preconditions
 static func evaluator(a_actor: Commandable, a_message: CommandMessage) -> Variant:

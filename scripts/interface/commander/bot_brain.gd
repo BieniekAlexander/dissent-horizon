@@ -50,9 +50,6 @@ var _scout: BotScout
 ## Opportunistic, utility-driven decisions (e.g. Warlords liberating Shelters for free
 ## units). Extensible: new utility decisions register as gatherers inside it.
 var _opportunist: BotOpportunist
-## Persistent, fog-limited belief about the enemy (last-known positions of seen
-## units/structures). Refreshed first each think; available to the managers.
-var _blackboard: BotBlackboard
 
 var _ticks_since_think: int = 0
 
@@ -86,8 +83,8 @@ func _physics_process(delta: float) -> void:
 func think() -> void:
 	if not _ensure_managers():
 		return
-	# Fold current vision into the persistent enemy belief before any manager runs.
-	_blackboard.update()
+	# The persistent enemy belief (bot.blackboard) is owned and ticked by Commander
+	# now; managers read it directly.
 	_economy.tick()
 	_production.tick()
 	# Before the military's idle-sweep: opportunistic utility actions (liberation,
@@ -122,8 +119,6 @@ func _ensure_managers() -> bool:
 	if bot == null or bot.map == null:
 		return false
 	_actuator = BotActuator.new(bot.map)
-	_blackboard = BotBlackboard.new(bot)
-	bot.blackboard = _blackboard  # let perception/composition read believed enemies
 	_economy = BotEconomy.new(bot, _actuator)
 	_production = BotProduction.new(bot, _actuator)
 	_military = BotMilitary.new(bot, _actuator)
@@ -170,7 +165,7 @@ func _tick_preservation(_delta: float) -> void:
 			continue
 		if not _no_effective_targets_in_aggro(unit):
 			continue
-		var cmd: Command = unit.current_command()
+		var cmd: MoveCommand = unit.current_command()
 		if not (cmd is Attack or cmd is AttackMove):
 			continue
 		unit.update_commands(null)

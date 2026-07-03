@@ -41,7 +41,7 @@ func move(units: Array, world_pos: Vector3) -> void:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(world_pos)
 	for u: Commandable in units:
-		var cmd := Command.new(CommandMessage.new(_map, null, null, dest))
+		var cmd := MoveCommand.new(CommandMessage.new(_map, null, null, dest))
 		u.update_commands(cmd)
 		u.load_destination(cmd)
 

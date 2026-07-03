@@ -1,5 +1,5 @@
 class_name Land
-extends Command
+extends MoveCommand
 
 #region Preconditions
 ## Fires immediately from the HUD — no target position required.

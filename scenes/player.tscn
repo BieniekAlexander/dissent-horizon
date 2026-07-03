@@ -1,14 +1,14 @@
-[gd_scene load_steps=12 format=3 uid="uid://b0r4m42p2r3dr"]
+[gd_scene format=3 uid="uid://b0r4m42p2r3dr"]
 
 [ext_resource type="Script" uid="uid://dlfont33njutx" path="res://scripts/interface/commander/commander.gd" id="1_imw3m"]
-[ext_resource type="PackedScene" uid="uid://b8anrchclftn01" path="res://scenes/factions/anarchical.tscn" id="9_anfac"]
 [ext_resource type="Script" uid="uid://ci0peslxxakbh" path="res://scripts/interface/rts_camera_3d.gd" id="2_omyur"]
 [ext_resource type="Script" uid="uid://cldm35yesp5qj" path="res://scripts/interface/rts_controller.gd" id="3_q8ke8"]
 [ext_resource type="Shader" uid="uid://du6421tshttnx" path="res://scripts/rendering/shaders/fog.gdshader" id="4_ah75o"]
 [ext_resource type="Script" uid="uid://bprkmhrqjp56k" path="res://scripts/maps/fog.gd" id="4_b3a3y"]
-[ext_resource type="Script" path="res://scripts/maps/minimap.gd" id="8_minimap"]
 [ext_resource type="Script" uid="uid://b516knf7hdkun" path="res://scripts/interface/hud/command_grid.gd" id="4_fjrip"]
 [ext_resource type="Script" uid="uid://yjiyead7lnk" path="res://scripts/interface/control_feedback_sound_player.gd" id="7_cfsp1"]
+[ext_resource type="Script" uid="uid://cifbkg5b8mfnb" path="res://scripts/maps/minimap.gd" id="8_minimap"]
+[ext_resource type="PackedScene" uid="uid://bkpybipbter41" path="res://scenes/factions/anarchical.tscn" id="9_anfac"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_qcjp1"]
 
@@ -16,14 +16,14 @@
 render_priority = 10
 shader = ExtResource("4_ah75o")
 
-[node name="Player" type="Control"]
+[node name="Player" type="Control" unique_id=309245524]
 layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_imw3m")
 id = 1
 faction_scene = ExtResource("9_anfac")
 
-[node name="Camera" type="Camera3D" parent="."]
+[node name="Camera" type="Camera3D" parent="." unique_id=1564004439]
 transform = Transform3D(1, 0, 0, 0, -0.7071067, 0.7071067, 0, -0.7071067, -0.7071067, 0, 20, 20)
 projection = 1
 current = true
@@ -31,73 +31,69 @@ size = 15.0
 far = 1000.0
 script = ExtResource("2_omyur")
 
-[node name="Controller" type="CanvasLayer" parent="." node_paths=PackedStringArray("selection_box")]
+[node name="Controller" type="CanvasLayer" parent="." unique_id=851979161 node_paths=PackedStringArray("selection_box")]
 script = ExtResource("3_q8ke8")
 selection_box = NodePath("SelectionBox")
 
-[node name="SelectionBox" type="ColorRect" parent="Controller"]
+[node name="SelectionBox" type="ColorRect" parent="Controller" unique_id=429736881]
 offset_right = 40.0
 offset_bottom = 40.0
 color = Color(0.654902, 0.137255, 0.972549, 0.498039)
 
-[node name="ResourceSummaryLabel" type="RichTextLabel" parent="Controller"]
+[node name="ResourceSummaryLabel" type="RichTextLabel" parent="Controller" unique_id=1608019882]
 offset_right = 260.0
 offset_bottom = 85.0
-text = "	ore: 500
+text = "	ore: 0
 	vigor: 0/100
 	dominion: 0"
 
-[node name="CommandsView" type="GridContainer" parent="Controller"]
-custom_minimum_size = Vector2(60, 40)
-anchors_preset = 2
+[node name="CommandsBorder" type="ColorRect" parent="Controller" unique_id=822633084]
+anchors_preset = 3
+anchor_left = 1.0
 anchor_top = 1.0
+anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = -298.0
+offset_top = -140.0
+grow_horizontal = 0
+grow_vertical = 0
+color = Color(0.35, 0.35, 0.35, 1)
+
+[node name="CommandsView" type="GridContainer" parent="Controller" unique_id=249551403]
+custom_minimum_size = Vector2(60, 40)
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -300.0
 offset_top = -136.0
-offset_right = 300.0
+grow_horizontal = 0
 grow_vertical = 0
 size_flags_horizontal = 3
 size_flags_vertical = 3
 columns = 5
 script = ExtResource("4_fjrip")
 
-[node name="MinimapBorder" type="ColorRect" parent="Controller"]
-## Grey backing rect that forms a 4 px visual border around the minimap.
-## Must sit before Minimap in the tree so it renders behind it.
-## Dimensions: minimap (192×108) + 4 px on every side = 200×116.
-## Anchored to bottom-right with the same 8 px screen margin as the minimap,
-## extended 4 px outward in each direction.
-layout_mode = 1
-anchor_left = 1.0
+[node name="MinimapBorder" type="ColorRect" parent="Controller" unique_id=1051067280]
+anchors_preset = 2
 anchor_top = 1.0
-anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -204.0
-offset_top = -120.0
-offset_right = -4.0
-offset_bottom = -4.0
-grow_horizontal = 0
-grow_vertical = 0
-color = Color(0.35, 0.35, 0.35, 1.0)
-
-[node name="Minimap" type="TextureRect" parent="Controller"]
-## Anchored to the bottom-right corner with an 8 px margin.
-## The script creates the 192×108 image; custom_minimum_size keeps the rect
-## from collapsing before the texture is assigned.
-custom_minimum_size = Vector2(192, 108)
-layout_mode = 1
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -200.0
 offset_top = -116.0
-offset_right = -8.0
-offset_bottom = -8.0
-grow_horizontal = 0
+offset_right = 200.0
+grow_vertical = 0
+color = Color(0.35, 0.35, 0.35, 1)
+
+[node name="Minimap" type="TextureRect" parent="Controller" unique_id=175631056]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -108.0
+offset_right = 192.0
 grow_vertical = 0
 script = ExtResource("8_minimap")
 
-[node name="CommandErrorMessage" type="RichTextLabel" parent="Controller"]
+[node name="CommandErrorMessage" type="RichTextLabel" parent="Controller" unique_id=1051783739]
 clip_contents = false
 anchors_preset = 1
 anchor_left = 1.0
@@ -107,13 +103,13 @@ offset_bottom = 0.223991
 grow_horizontal = 0
 horizontal_alignment = 2
 
-[node name="ControlFeedbackSoundPlayer" type="Node" parent="."]
+[node name="ControlFeedbackSoundPlayer" type="Node" parent="." unique_id=1140375605]
 script = ExtResource("7_cfsp1")
 
-[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="ControlFeedbackSoundPlayer"]
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="ControlFeedbackSoundPlayer" unique_id=334102415]
 volume_db = -29.759
 
-[node name="Fog" type="MeshInstance3D" parent="."]
+[node name="Fog" type="MeshInstance3D" parent="." unique_id=1374554313]
 transform = Transform3D(80, 0, 0, 0, 1.04, 0, 0, 0, 80, 0, 0, 0)
 top_level = true
 sorting_offset = 100.0

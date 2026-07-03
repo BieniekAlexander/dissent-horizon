@@ -171,7 +171,7 @@ func _someone_constructing() -> bool:
 static func _is_constructing(u: Commandable) -> bool:
 	if not u.has_command():
 		return false
-	var c: Command = u.current_command()
+	var c: MoveCommand = u.current_command()
 	return c is Build or c is Repair
 
 

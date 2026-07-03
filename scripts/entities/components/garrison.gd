@@ -216,39 +216,36 @@ func _restore_loadout(unit: Commandable) -> void:
 
 
 ## Evacuation path for garrison owners that occupy the terrain grid (structures).
-## Each unit is placed at the footprint-boundary cell closest to its randomly
-## assigned destination so it appears to exit from the correct side.
+## Units are spread around the footprint via _spread_points — same navmesh-
+## snapped, non-overlapping placement _evacuate_from_unit uses — so a full
+## garrison evacuating on one frame doesn't stack its units on top of each other.
 func _evacuate_from_structure(owner_cmd: Commandable, a_map: Map) -> void:
-	# Build the candidate list once; pop_front() gives each unit a unique cell.
-	var open_cells := SU.passable_cells_adjacent_to(owner_cmd, a_map)
+	var count := _garrisoned.size()
+	if count == 0:
+		return
 
-	for unit: Commandable in _garrisoned:
-		# Pick a destination — each unit gets its own cell where possible.
-		var dest: Vector3
-		if open_cells.is_empty():
-			# Fallback: converge on the structure's world position; the physics
-			# collision system will push them apart from there.
-			dest = owner_cmd.global_position
-		else:
-			dest = a_map.grid_to_world(open_cells.pop_front())
+	# The structure's own centroid usually isn't on the navmesh (building cells
+	# are excluded from it), so _spread_points can't anchor there directly —
+	# seed instead from a passable cell adjacent to the footprint.
+	var seed_cells := SU.passable_cells_adjacent_to(owner_cmd, a_map)
+	var center: Vector2 = VU.inXZ(a_map.grid_to_world(seed_cells[0])) \
+		if not seed_cells.is_empty() else VU.inXZ(owner_cmd.global_position)
+	# All garrisoned units carry Movement (Occupy requires GROUNDED_DIRECT), so
+	# the first one's radius is a reasonable stand-in for evacuee spacing.
+	var point_radius: float = _garrisoned[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+	var points: Array[Vector2] = _spread_points(a_map, center, point_radius, owner_cmd.get_world_3d(), count)
 
-		# Spawn at the boundary cell closest to the destination so the unit
-		# exits from the correct side of the building.
-		var spawn_cell := SU.nearest_footprint_adjacent_cell(dest, owner_cmd, a_map)
+	for i in range(count):
+		var unit: Commandable = _garrisoned[i]
+		var spawn_xz: Vector2 = points[i]
+		var height_offset: float = unit.movement.height_offset() if unit.movement != null else 0.0
+		var spawn_pos := Vector3(spawn_xz.x, a_map.terrain_height_at(spawn_xz) + height_offset, spawn_xz.y)
 
 		unit.commander.add_child(unit)
 		_restore_loadout(unit)
+		unit.global_position = spawn_pos
 
-		if spawn_cell != Vector2i(-1, -1):
-			var spawn_xz := a_map.grid_to_world(spawn_cell)
-			var height_offset := unit.movement.height_offset() if unit.movement != null else 0.0
-			unit.global_position = Vector3(
-				spawn_xz.x,
-				a_map.terrain_height_at(VU.inXZ(spawn_xz)) + height_offset,
-				spawn_xz.z
-			)
-
-		unit.update_commands(Command.new(CommandMessage.new(a_map, null, null, dest)))
+		unit.update_commands(_release_commands(owner_cmd, a_map, spawn_pos))
 
 
 ## Recompute the host's AggroRange radius to cover the widest weapon range among all
@@ -310,39 +307,18 @@ func _notification(what: int) -> void:
 
 ## Evacuation path for garrison owners that do NOT occupy the terrain grid
 ## (e.g. units). Garrisoned units are spread around the owner via
-## SpaceUtils.get_nonoverlapping_points — each gets a distinct point clear of
-## existing bodies and on valid navmesh — then issued a movement command to
-## that spawn position so the command clears immediately.
+## _spread_points — each gets a distinct point clear of existing bodies and on
+## valid navmesh — then issued a movement command to that spawn position so
+## the command clears immediately.
 func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 	var count := _garrisoned.size()
+	if count == 0:
+		return
 	var center := VU.inXZ(owner_cmd.global_position)
 	var radius: float = owner_cmd.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
-
-	# Generate one spawn point per garrisoned unit around the owner. Size the
-	# search region off the owner's radius and the count so a large garrison
-	# still finds room.
-	var points: Array[Vector2] = []
-	if a_map != null:
-		var region_radius: float = 30. # maxf(5.0, radius * 2.5 * float(maxi(count, 1)))
-		points = SU.get_nonoverlapping_points(
-			a_map,
-			center,
-			radius,
-			a_map.get_world_3d(),
-			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
-			region_radius,
-			count
-		)
-
-	# get_nonoverlapping_points may return fewer points than requested when the
-	# area is crowded (and we have no points at all without a map). Every unit
-	# still needs its OWN evacuation point, so fan the leftovers out on a ring
-	# of distinct angles around the owner; physics resolves any residual overlap.
-	while points.size() < count:
-		var leftover_index := points.size()
-		var angle: float = 2.0 * PI * float(leftover_index) / float(maxi(count, 1))
-		var ring_radius: float = 2.0 * radius * (1.0 + float(leftover_index) / float(maxi(count, 1)))
-		points.append(center + Vector2(cos(angle), sin(angle)) * ring_radius)
+	var points: Array[Vector2] = _spread_points(
+		a_map, center, radius, a_map.get_world_3d() if a_map != null else null, count
+	)
 
 	for i in range(count):
 		var unit: Commandable = _garrisoned[i]
@@ -357,5 +333,44 @@ func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 		unit.global_position = spawn_pos
 
 		if a_map != null:
-			unit.update_commands(Command.new(CommandMessage.new(a_map, null, null, spawn_pos)))
+			unit.update_commands(_release_commands(owner_cmd, a_map, spawn_pos))
+
+
+## Generate `count` distinct XZ points around `center`, each snapped to valid
+## navmesh and clear of existing MOVEMENT_OBSTRUCTION bodies — via
+## SpaceUtils.get_nonoverlapping_points — so units released together (from a
+## structure or a mobile host) don't land stacked on the same frame. Falls
+## back to fanning any shortfall (crowded area, or no map) out on a ring of
+## distinct angles around `center`; physics resolves any residual overlap.
+static func _spread_points(
+	a_map: Map, center: Vector2, point_radius: float, world_3d: World3D, count: int
+) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	if a_map != null:
+		var region_radius: float = 30.
+		points = SU.get_nonoverlapping_points(
+			a_map, center, point_radius, world_3d,
+			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, region_radius, count
+		)
+
+	while points.size() < count:
+		var leftover_index := points.size()
+		var angle: float = 2.0 * PI * float(leftover_index) / float(maxi(count, 1))
+		var ring_radius: float = 2.0 * point_radius * (1.0 + float(leftover_index) / float(maxi(count, 1)))
+		points.append(center + Vector2(cos(angle), sin(angle)) * ring_radius)
+
+	return points
+
+
+## The command chain a released unit gets on evacuation: first, the immediate
+## exit-point move (`dest`) so it clears the host without overlapping it, then
+## — if the host has a rally destination (see Commandable.rally_destination)
+## — a second leg toward that, so evacuees continue on rather than stopping
+## right outside.
+static func _release_commands(owner_cmd: Commandable, a_map: Map, dest: Vector3) -> Array[MoveCommand]:
+	var commands: Array[MoveCommand] = [MoveCommand.new(CommandMessage.new(a_map, null, null, dest))]
+	var rally: MoveCommand = owner_cmd.rally_destination() if owner_cmd != null else null
+	if rally != null:
+		commands.append(rally)
+	return commands
 #endregion

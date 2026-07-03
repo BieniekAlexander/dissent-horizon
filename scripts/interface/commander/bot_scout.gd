@@ -194,7 +194,7 @@ func _update_scout_unit() -> void:
 func _scout_was_retasked() -> bool:
 	if not _scout_unit.has_command():
 		return false  # idle after reaching a waypoint, still ours
-	var c: Command = _scout_unit.current_command()
+	var c: MoveCommand = _scout_unit.current_command()
 	return c is Attack or c is AttackMove or c is Build or c is Repair \
 		or c is Occupy or c is Capture or c is Land or c is Interact
 
@@ -223,7 +223,7 @@ func _pick_fastest_available() -> Variant:
 func _unit_is_available(u: Commandable) -> bool:
 	if not u.has_command():
 		return true
-	var c: Command = u.current_command()
+	var c: MoveCommand = u.current_command()
 	return not (c is Attack or c is AttackMove or c is Build or c is Repair \
 		or c is Occupy or c is Capture or c is Land or c is Interact)
 

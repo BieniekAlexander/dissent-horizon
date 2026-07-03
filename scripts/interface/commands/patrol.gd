@@ -1,5 +1,5 @@
 class_name Patrol
-extends Command
+extends MoveCommand
 
 ## Endlessly-cycling patrol between two or more waypoints with aggro checking
 ## along the way (identical to AttackMove's aggro behaviour). On reaching the
@@ -41,8 +41,8 @@ static func for_actor(a_actor: Commandable, a_message: CommandMessage) -> Patrol
 
 
 #region State updates
-func get_updated_state(a_actor: Commandable) -> Command:
-	var aggro: Command = a_actor.get_aggro_near_position()
+func get_updated_state(a_actor: Commandable) -> Variant:
+	var aggro: MoveCommand = a_actor.get_aggro_near_position()
 	return aggro if aggro != null else self
 
 

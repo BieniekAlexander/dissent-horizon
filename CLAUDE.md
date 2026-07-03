@@ -61,7 +61,8 @@ scripts/
 	  obstruction.gd              — declares footprint dimensions for structures
 	  ore_extractor.gd
 	  ownership.gd                — commander relationship + team tint signal
-	  production.gd               — training queue + rally; also has producible_types
+	  production.gd               — training queue; also has producible_types
+	  garrison.gd                 — holds occupants; Occupy enters, Evacuate releases
 	  resource_provider.gd        — population contribution
 	  selectable.gd
 	  dominion_generator.gd
@@ -82,7 +83,7 @@ scripts/
 	command_context_parser.gd     — maps entity predicates → available command names
 	command_message.gd            — context bundle passed to commands
 	commands/                     — one file per command type
-	  command.gd                  — base class; static meets_precondition/requires_position/tool_applies_to
+	  move_command.gd              — base class; static meets_precondition/requires_position/tool_applies_to
 	  attack.gd, attack_move.gd, build.gd, capture.gd, collect.gd
 	  defend.gd, drop_off.gd, launch.gd, pick_up.gd, repair.gd, stop.gd, train.gd
 	commander/
@@ -211,9 +212,9 @@ Commands are the primary game-action abstraction. Each command is a `RefCounted`
 - `world_position: Vector3` — raw raycast hit
 - `map: Map`
 - `xz_position: Vector2` — computed from world_position
-- Reference-counted: `retain()` / `release()` in Command `_init` / `_notification(PREDELETE)`. `deep_copy()` when snapshotting for waypoint indicators.
+- Reference-counted: `retain()` / `release()` in MoveCommand `_init` / `_notification(PREDELETE)`. `deep_copy()` when snapshotting for waypoint indicators.
 
-**`CommandReceiver`** owns the queue (`_command: Command` + `_command_queue: Array[Command]`). Key method: `update_commands(a_commands, add_to_queue, prepend)` — accepts a `Command`, an `Array[Command]`, or `null` (clears queue).
+**`CommandReceiver`** owns the queue (`_command: MoveCommand` + `_command_queue: Array[MoveCommand]`). Key method: `update_commands(a_commands, add_to_queue, prepend)` — accepts a `MoveCommand`, an `Array[MoveCommand]`, or `null` (clears queue).
 
 **`CommandContextParser`** (static class) is the single source of truth for which command names are available to a given entity or selection:
 - `commands_for(entity)` — predicate table → list of command name strings
@@ -228,7 +229,9 @@ static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type)
 ```
 `PreconditionFailureCause.COMMAND_PENDING_TOOL` is not a failure — it means "armed but waiting on tool selection."
 
-**Structure-flavored routing**: `Commandable._process_commands()` intercepts `Train` and base `Command` (rally) before they reach `CommandReceiver._process_commands()`, routing them into the `Production` component.
+**Structure-flavored routing**: `Commandable._process_commands()` intercepts `Train`, routing it into the `Production` component, and (for any stationary `can_rally()` commandable — one with a `Production` or `Garrison` component) a base `MoveCommand`, storing it as `rally_point` instead of moving. Both are intercepted before reaching `CommandReceiver._process_commands()`.
+
+**Rally / release destinations** (`Commandable.can_rally()` / `rally_point` / `rally_destination()`): any commandable that trains units (`Production`) or holds occupants (`Garrison`) can rally. A stationary one (no `Movement`) holds `rally_point`, set by intercepting a bare `MoveCommand` as above; a mobile one (e.g. a transport) instead hands off its own active movement command. `rally_destination()` returns whichever applies, or `null` for "no forced destination." `Production._spawn_unit` gives newly-trained units this as their first command; `Garrison.evacuate()` chains it on after each evacuee's immediate exit-point move, so e.g. a destroyed transport's passengers continue in the direction it was heading, and units released from a structure walk on toward its rally point.
 
 ---
 
@@ -313,7 +316,7 @@ Hide fog for debugging: hold Space (`debug_info` action).
 
 `proc_technology()` must be called whenever structures are added or removed (handled automatically via `add_structure` / `remove_structure`).
 
-`TechnologySpec.get_unmet_need(commander)` returns the first blocking reason (NOT_ENOUGH_ORE, MISSING_STRUCTURE, etc.). `Command.unmet_need_to_precondition` maps those to `PreconditionFailureCause` values.
+`TechnologySpec.get_unmet_need(commander)` returns the first blocking reason (NOT_ENOUGH_ORE, MISSING_STRUCTURE, etc.). `MoveCommand.unmet_need_to_precondition` maps those to `PreconditionFailureCause` values.
 
 **Build preview instances**: `Commander.get_build_preview_instance(tool)` returns a cached, out-of-tree entity instance used for placement-preview art. These are **never added to the SceneTree** — they never trigger `_ready`, physics, fog visibility, or auto-init. They're freed in `Commander._notification(PREDELETE)`.
 
@@ -392,7 +395,7 @@ Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance
 
 **`get_node_or_null` for optional components**: the `@onready` optional-component pattern is intentional. Don't change optional components to hard `$` references without checking all call sites gate on null. See `get_node_or_null_audit.md` for verdicts on each occurrence.
 
-**`Commandable._process_commands()` routing**: structures intercept `Train` and base `Command` (rally) here before they reach `CommandReceiver._process_commands()`. Calling `command_receiver._process_commands()` directly (bypassing `Commandable._process_commands()`) breaks structure training and rally points.
+**`Commandable._process_commands()` routing**: structures intercept `Train`, and stationary `can_rally()` commandables intercept base `MoveCommand` (rally), here before they reach `CommandReceiver._process_commands()`. Calling `command_receiver._process_commands()` directly (bypassing `Commandable._process_commands()`) breaks structure training and rally points.
 
 **Commander_id = 0 is neutral/world**: fog hides enemies (id != player_id), aggro checks gate on `commander_id > 0 and != self.commander_id`. Don't conflate "unowned" with "player-owned."
 

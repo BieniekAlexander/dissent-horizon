@@ -134,6 +134,13 @@ func _physics_process(_delta: float) -> void:
 	elif is_active:
 		for entity: Entity in get_tree().get_nodes_in_group("commandable"):
 			if entity.commander_id == viewer_id:
+				# Own units are always visible to their owner. Set this explicitly
+				# rather than skipping: when the active view switches directly from
+				# another commander (spectator POV), that commander's fog had hidden
+				# these as enemies, and nothing else would clear that stale state
+				# (switching via "no fog" works only because it forces everything
+				# visible). Garrisoned occupants are out of the tree, so untouched.
+				entity.visible = true
 				continue
 			var pixel: Vector2i = _world_to_pixel(VU.inXZ(entity.global_position))
 			var in_bounds: bool = pixel.x >= 0 and pixel.x < _img_width \
@@ -171,6 +178,18 @@ func terrain_visibility_at(world_xz: Vector2) -> TerrainVisibility:
 	if _fog_bytes[idx] == 0:
 		return TerrainVisibility.IN_SIGHT
 	return TerrainVisibility.EXPLORED
+
+## Whether [world_xz] is currently within this commander's live vision (fog pixel
+## clear). Unlike terrain_visibility_at, this works regardless of whether this Fog
+## is the "active"/spectated one — _fog_bytes is kept current for every registered
+## commander's Fog each physics tick (see _physics_process).
+func fog_clear_at(world_xz: Vector2) -> bool:
+	if _fog_bytes.is_empty():
+		return false
+	var pixel: Vector2i = _world_to_pixel(world_xz)
+	if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
+		return false
+	return _fog_bytes[pixel.y * _img_width + pixel.x] == 0
 
 ## Permanently reveal a circular area in world-space XZ (lift fog of war).
 ## The pixels are written to _explored_bytes so the reveal persists across frames.

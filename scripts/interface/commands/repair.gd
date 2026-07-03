@@ -1,11 +1,11 @@
 class_name Repair
-extends Command
+extends MoveCommand
 
 #region Preconditions
 static func meets_precondition(
 	a_actor: Commandable,
 	a_message: CommandMessage
-) -> Command.PreconditionFailureCause:
+) -> MoveCommand.PreconditionFailureCause:
 	return PreconditionFailureCause.NONE
 #endregion
 
@@ -16,7 +16,7 @@ var _builder: Commandable = null
 #endregion
 
 #region State updates
-func get_updated_state(a_actor: Commandable) -> Command:
+func get_updated_state(a_actor: Commandable) -> Variant:
 	# The repair target (the structure being built/repaired) can be destroyed mid-build.
 	# Once freed, message.target reads as a previously-freed instance and any check on it
 	# (e.g. unit_is_close_to_target's `is Entity`) crashes. Drop the command instead.

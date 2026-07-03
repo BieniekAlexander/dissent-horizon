@@ -128,7 +128,7 @@ func _nearest(units: Array, world_pos: Vector3) -> Commandable:
 ## Interactor units free to take on a new errand — not mid-build or mid-interaction.
 func _free_carriers() -> Array:
 	return _bot.get_interactors().filter(func(u: Commandable) -> bool:
-		var c: Command = u.current_command()
+		var c: MoveCommand = u.current_command()
 		return not (c is Interact or c is Build or c is Repair)
 	)
 
@@ -195,7 +195,7 @@ func _gather_deposits() -> Array[BotOpportunity]:
 		var inv: Inventory = carrier.ability_inventory
 		if inv == null or not inv.has_items():
 			continue
-		var c: Command = carrier.current_command()
+		var c: MoveCommand = carrier.current_command()
 		if c is Interact or c is Build or c is Repair:
 			continue
 		var camp: Commandable = _nearest(camps, carrier.global_position)

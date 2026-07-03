@@ -1,5 +1,5 @@
 class_name Occupy
-extends Command
+extends MoveCommand
 
 #region Preconditions
 static func requires_position() -> bool:
@@ -98,7 +98,7 @@ func _clear_rvo_suppression() -> void:
 ## Cancel if the target is destroyed while the unit is en route.
 ## For HOVERING hosts, registers garrison intent on the first valid tick so the
 ## host knows to descend and can take off again once all pending units are inside.
-func get_updated_state(a_actor: Commandable) -> Command:
+func get_updated_state(a_actor: Commandable) -> Variant:
 	if not is_instance_valid(message.target):
 		_clear_collision_exception()
 		_clear_rvo_suppression()

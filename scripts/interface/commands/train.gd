@@ -1,5 +1,5 @@
 class_name Train
-extends Command
+extends MoveCommand
 
 ## Which units a producer can train is no longer answered here — that capability
 ## now lives on the Production component (see production.gd `producible_types` /

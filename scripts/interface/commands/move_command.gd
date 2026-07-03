@@ -1,4 +1,4 @@
-class_name Command
+class_name MoveCommand
 
 #region Constants
 static var command_class: bool = true
@@ -63,8 +63,11 @@ var message: CommandMessage
 #endregion
 
 #region State updates
-## Potentially return a new command based on a state check
-func get_updated_state(_a_commandable: Commandable) -> Command:
+## Potentially return a new command based on a state check. A plain MoveCommand
+## never reactively retargets on its own — it always returns self. Aggro-based
+## retargeting (chasing down a nearby enemy) is opt-in per subclass (see
+## AttackMove, Patrol, Defend), not a base-class behavior every command inherits.
+func get_updated_state(_a_commandable: Commandable) -> Variant:
 	return self
 
 ## Check if the [Commandable] should move in response to the command
@@ -75,7 +78,7 @@ func should_move(_a_commandable: Commandable) -> bool:
 func can_act(_a_commandable: Commandable) -> bool:
 	return false
 
-## Perform the characteristic action of this command and return whatever might be a follow-up [Command], or null otherwise
+## Perform the characteristic action of this command and return whatever might be a follow-up [MoveCommand], or null otherwise
 func fulfill_action(_a_commandable: Commandable) -> Variant:
 	push_error("no action should have been performed")
 	return self
@@ -93,5 +96,5 @@ func _notification(what: int) -> void:
 
 #region Debug
 func _to_string() -> String:
-	return "Command: %s" % message.position
+	return "MoveCommand: %s" % message.position
 #endregion

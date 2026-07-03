@@ -6,7 +6,7 @@ extends Resource
 ## effect runs (see [Interact] for the per-type completion logic).
 ##
 ## Applicability is decided by `type`: each Interaction.Type maps to an
-## evaluation function (same signature as Command.meets_precondition) that
+## evaluation function (same signature as MoveCommand.meets_precondition) that
 ## inspects the actor/message and returns whether the interaction may proceed.
 ## Held in an [Interactor]'s `interactions` list.
 
@@ -67,42 +67,42 @@ static func target_inventory(target: Node) -> Inventory:
 
 #region Evaluation
 ## Per-type evaluation functions, each with the same signature as
-## Command.meets_precondition: (a_actor, a_message) -> PreconditionFailureCause.
+## MoveCommand.meets_precondition: (a_actor, a_message) -> PreconditionFailureCause.
 ## Built lazily — static-var class-resolution order is fragile at init time.
 static var _evaluators: Dictionary
 
 static func _build_evaluators() -> Dictionary:
 	return {
-		Type.LIBERATE: func(_a_actor: Commandable, a_message: CommandMessage) -> Command.PreconditionFailureCause:
-			return Command.PreconditionFailureCause.NONE \
+		Type.LIBERATE: func(_a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
+			return MoveCommand.PreconditionFailureCause.NONE \
 				if is_instance_valid(a_message.target) and a_message.target.has_node("Shelter") \
-				else Command.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
+				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
 
 		# Enemy "infantry" = a biological-frame, non-structure unit owned by an enemy.
-		Type.ABDUCT: func(a_actor: Commandable, a_message: CommandMessage) -> Command.PreconditionFailureCause:
-			return Command.PreconditionFailureCause.NONE \
+		Type.ABDUCT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
+			return MoveCommand.PreconditionFailureCause.NONE \
 				if is_instance_valid(a_message.target) and a_message.target is Entity \
 					and a_actor.is_enemy_of(a_message.target) \
 					and not a_message.target.has_node("Structure") \
 					and EntityAttribute.evaluate(EntityAttribute.Type.IS_BIOLOGICAL, a_message.target) \
 					and a_message.target.defense.armour_type == Defense.ArmourType.LIGHT \
 					and a_actor.ability_inventory != null and a_actor.ability_inventory.can_hold_more() \
-				else Command.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
+				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
 
-		Type.COLLECT: func(a_actor: Commandable, a_message: CommandMessage) -> Command.PreconditionFailureCause:
-			return Command.PreconditionFailureCause.NONE \
+		Type.COLLECT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
+			return MoveCommand.PreconditionFailureCause.NONE \
 				if is_instance_valid(a_message.target) and a_message.target.has_node("Shelter") \
 					and a_actor.ability_inventory != null and a_actor.ability_inventory.can_hold_more() \
-				else Command.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
+				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
 
 		# Deposit into any structure that has inventory space, when we carry units.
-		Type.DEPOSIT: func(a_actor: Commandable, a_message: CommandMessage) -> Command.PreconditionFailureCause:
-			return Command.PreconditionFailureCause.NONE \
+		Type.DEPOSIT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
+			return MoveCommand.PreconditionFailureCause.NONE \
 				if is_instance_valid(a_message.target) and a_message.target.has_node("Structure") \
 					and a_actor.ability_inventory != null and a_actor.ability_inventory.has_items() \
 					and target_inventory(a_message.target) != null \
 					and target_inventory(a_message.target).can_hold_more() \
-				else Command.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
+				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
 	}
 
 static func _evaluator_for(a_type: Interaction.Type) -> Callable:
@@ -115,6 +115,6 @@ static func _evaluator_for(a_type: Interaction.Type) -> Callable:
 func meets_precondition(
 	a_actor: Commandable,
 	a_message: CommandMessage
-) -> Command.PreconditionFailureCause:
+) -> MoveCommand.PreconditionFailureCause:
 	return _evaluator_for(type).call(a_actor, a_message)
 #endregion

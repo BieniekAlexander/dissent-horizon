@@ -288,7 +288,7 @@ func _set_visual(sprite: Sprite3D, particles: GPUParticles3D, on: bool) -> void:
 ## the projectile outliving its shooter.
 func _effective_damage() -> float:
 	if is_instance_valid(from) and from.veterancy != null:
-		return base_damage * (1.0 + float(int(from.veterancy.level)) / 10.0)
+		return base_damage * (1.0 + float(from.veterancy.level) / 10.0)
 	return base_damage
 
 func get_effects() -> Array:

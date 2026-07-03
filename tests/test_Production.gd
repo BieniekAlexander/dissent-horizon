@@ -17,7 +17,6 @@ func _make_production() -> Production:
 func test_default_queue_is_empty():
 	var p := _make_production()
 	assert_eq(p.training_queue.size(), 0)
-	assert_null(p.rally_command)
 
 func test_enqueue_appends_to_queue():
 	var p := _make_production()
@@ -45,14 +44,6 @@ func test_tick_decrements_head():
 func test_tick_returns_false_on_empty_queue():
 	var p := _make_production()
 	assert_false(p.tick())
-
-func test_set_rally_stores_command():
-	var p := _make_production()
-	# We can't easily instantiate a real Command without a CommandMessage and
-	# its Map dependency, so we just verify the field is set. A null rally is
-	# also a valid state (no rally point set).
-	p.set_rally(null)
-	assert_null(p.rally_command)
 
 ## --- producible_types / can_produce ---------------------------------------
 ## The component owns the "what can this build" capability (moved off the Train

@@ -10,8 +10,8 @@ enum Disposition {
 
 #region Properties
 var owner: Commandable
-var _command: Command = null
-var _command_queue: Array[Command] = []
+var _command: MoveCommand = null
+var _command_queue: Array[MoveCommand] = []
 var _disposition: Disposition = Disposition.PASSIVE
 
 ## The unit currently being followed and the command driving that follow, both
@@ -19,7 +19,7 @@ var _disposition: Disposition = Disposition.PASSIVE
 ## reads as null in Godot (== null is true), so once the followed unit dies its
 ## death is indistinguishable from a plain terrain move unless we remembered it.
 var _followed: Commandable = null
-var _follow_cmd: Command = null
+var _follow_cmd: MoveCommand = null
 #endregion
 
 #region Public API
@@ -31,8 +31,8 @@ func has_pending_work() -> bool:
 	return _command != null or not _command_queue.is_empty()
 
 ## Returns the active command followed by any queued commands, in execution order.
-func get_command_chain() -> Array[Command]:
-	var chain: Array[Command] = []
+func get_command_chain() -> Array[MoveCommand]:
+	var chain: Array[MoveCommand] = []
 	if _command != null:
 		chain.append(_command)
 	chain.append_array(_command_queue)
@@ -46,7 +46,7 @@ func is_idle() -> bool:
 func has_patrol_command() -> bool:
 	if _command is Patrol:
 		return true
-	for cmd: Command in _command_queue:
+	for cmd: MoveCommand in _command_queue:
 		if cmd is Patrol:
 			return true
 	return false
@@ -57,7 +57,7 @@ func has_patrol_command() -> bool:
 func consume_leading_patrol_positions() -> Array[Vector3]:
 	var positions: Array[Vector3] = []
 	while not _command_queue.is_empty():
-		var front: Command = _command_queue.front()
+		var front: MoveCommand = _command_queue.front()
 		if front is Patrol:
 			positions.append((front as Patrol).message.position)
 			_command_queue.pop_front()
@@ -65,15 +65,31 @@ func consume_leading_patrol_positions() -> Array[Vector3]:
 			break
 	return positions
 
-func load_destination(command: Command) -> void:
+func load_destination(command: MoveCommand) -> void:
 	if owner.movement != null:
-		owner.movement.set_target_position(command.message.position)
+		owner.movement.set_target_position(_resolve_movement_target(command))
+
+## The nav-mesh point a command should actually walk toward. For a structure
+## target, that's the structure's footprint-adjacent cell closest to THIS actor
+## — not the structure's own footprint centroid (message.position), which may
+## sit on a non-navigable cell and, being the same for every actor, would pull
+## everyone toward the same spot rather than each unit's nearest approach.
+## Falls back to message.position for non-structure targets (units, ground clicks).
+func _resolve_movement_target(command: MoveCommand) -> Vector3:
+	var target: Entity = command.message.target
+	if target != null and is_instance_valid(target) and target is Commandable and target.is_in_group("structure"):
+		var map: Map = command.message.map
+		if map != null:
+			var cell: Vector2i = SU.nearest_footprint_adjacent_cell(owner.global_position, target as Commandable, map)
+			if cell != Vector2i(-1, -1):
+				return map.grid_to_world(cell)
+	return command.message.position
 
 func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
 	if a_commands == null:
 		_command_queue = []
 		_command = null
-	elif a_commands is Command:
+	elif a_commands is MoveCommand:
 		if add_to_queue and prepend:
 			if _command != null:
 				_command_queue.push_front(_command)
@@ -96,7 +112,7 @@ func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: b
 			_command = a_commands[0]
 			_command_queue = a_commands.slice(1)
 	else:
-		push_error("Command argument is unsupported, arg=%s" % a_commands)
+		push_error("MoveCommand argument is unsupported, arg=%s" % a_commands)
 #endregion
 
 #region Command processing
@@ -182,7 +198,7 @@ func _process_commands() -> void:
 			owner.movement.is_final_leg = false
 			return
 
-		if owner.movement.target_position != _command.message.position:
+		if owner.movement.target_position != _resolve_movement_target(_command):
 			load_destination(_command)
 
 		if !owner.movement.is_navigation_finished():
@@ -236,7 +252,7 @@ func _update_state() -> void:
 
 	# Delegate to the owner's command processor (Commandable._process_commands),
 	# which routes structure-flavored commands (Train → Production.enqueue,
-	# base Command → Production.set_rally) before falling back to this
+	# base MoveCommand → Commandable.set_rally) before falling back to this
 	# receiver's default handling via _process_commands(). Calling our own
 	# _process_commands() here would bypass that routing entirely, which is why
 	# structure training and rally points silently did nothing.

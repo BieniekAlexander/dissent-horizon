@@ -1,5 +1,5 @@
 class_name Attack
-extends Command
+extends MoveCommand
 
 #region Preconditions
 static func requires_position() -> bool:
@@ -97,7 +97,7 @@ var _melee_landing_started: bool = false
 #endregion
 
 #region State updates
-func get_updated_state(a_actor: Commandable):
+func get_updated_state(a_actor: Commandable) -> Variant:
 	## Potentially return a new command based on a state check.
 	if not is_instance_valid(message.target):
 		return null

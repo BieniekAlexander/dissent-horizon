@@ -44,10 +44,6 @@ const STRAINED_RATE: float = 0.5
 ## penalty) still advances the integer countdown smoothly.
 var _progress_accum: float = 0.0
 
-## The most recent rally command; trained units inherit this as their first
-## command (so newly-spawned units walk toward the rally point).
-var rally_command: Command = null
-
 var _train_bar: Node3D
 #endregion
 
@@ -62,9 +58,6 @@ func _ready() -> void:
 ## accepted (resources confirmed and deducted).
 func enqueue(creation_time: int, packed_scene: PackedScene) -> void:
 	training_queue.push_back([creation_time, packed_scene])
-
-func set_rally(command: Command) -> void:
-	rally_command = command
 
 ## Whether this producer can train the given unit type. Source of truth for the
 ## "what can this build" question across the codebase (HUD train menu, AI).
@@ -119,10 +112,12 @@ func update_bar(parent_scale_x: float) -> void:
 func _spawn_unit(scene: PackedScene) -> void:
 	var entity: Entity = get_parent() as Entity
 	if entity == null: return
+	var owner_cmd: Commandable = entity as Commandable
+	var rally: MoveCommand = owner_cmd.rally_destination() if owner_cmd != null else null
 	var unit: Commandable = scene.instantiate() as Commandable
 	var spawn_bias: Vector3 = (
-		(rally_command.message.position - entity.global_position).normalized()
-		if rally_command != null
+		(rally.message.position - entity.global_position).normalized()
+		if rally != null
 		else Vector3.ZERO
 	)
 	unit.initialize(entity.map, entity.commander)
@@ -130,5 +125,5 @@ func _spawn_unit(scene: PackedScene) -> void:
 		entity.get_world_3d().navigation_map,
 		entity.global_position + spawn_bias
 	)
-	unit.update_commands(rally_command)
+	unit.update_commands(rally)
 #endregion

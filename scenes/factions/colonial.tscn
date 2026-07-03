@@ -5,10 +5,41 @@
 [ext_resource type="PackedScene" uid="uid://dgu5rjol1pe84" path="res://scenes/entities/units/cl/stock_truck.tscn" id="3_truck"]
 [ext_resource type="PackedScene" uid="uid://chrecru1t0001" path="res://scenes/entities/units/cl/recruit.tscn" id="4_recr"]
 [ext_resource type="PackedScene" uid="uid://xi4d44sl0pu6" path="res://scenes/entities/units/cl/badger.tscn" id="5_badg"]
+[ext_resource type="Script" uid="uid://cteoy2vx2l533" path="res://scripts/interface/commander/ordnance.gd" id="6_ord"]
+[ext_resource type="Script" uid="uid://bhm0bavkjvt0q" path="res://scripts/interface/commander/ordnance_unlock.gd" id="7_unlock"]
+[ext_resource type="PackedScene" uid="uid://c0rdnpromote001" path="res://scenes/scenario_events/ordnance_promote.tscn" id="8_pro"]
+[ext_resource type="PackedScene" uid="uid://c0rdnradarscn01" path="res://scenes/scenario_events/ordnance_radar_scan.tscn" id="9_rad"]
+
+[sub_resource type="Resource" id="Ordnance_promote"]
+script = ExtResource("6_ord")
+ordnance_name = "Promote"
+cooldown_duration = 30.0
+event_scene = ExtResource("8_pro")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+
+[sub_resource type="Resource" id="Unlock_promote"]
+script = ExtResource("7_unlock")
+ordnance = SubResource("Ordnance_promote")
+dominion_cost = 100
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Ordnance_radar"]
+script = ExtResource("6_ord")
+ordnance_name = "Radar Scan"
+cooldown_duration = 30.0
+event_scene = ExtResource("9_rad")
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+
+[sub_resource type="Resource" id="Unlock_radar"]
+script = ExtResource("7_unlock")
+ordnance = SubResource("Ordnance_radar")
+dominion_cost = 100
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [node name="Colonial" type="Node"]
 script = ExtResource("1_fac")
 faction_name = "Colonials"
 starting_structure = ExtResource("2_settl")
 starting_units = Array[PackedScene]([ExtResource("3_truck"), ExtResource("4_recr"), ExtResource("4_recr"), ExtResource("5_badg")])
-ordnance_unlocks = Array[OrdnanceUnlock]([])
+ordnance_unlocks = Array[ExtResource("7_unlock")]([SubResource("Unlock_promote"), SubResource("Unlock_radar")])

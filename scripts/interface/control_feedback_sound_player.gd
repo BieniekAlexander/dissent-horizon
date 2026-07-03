@@ -3,7 +3,7 @@ extends Node
 
 #region Properties
 static var _COMMAND_LINE_TYPES: Dictionary[Script, ControlFeedbackSounds.LineType] = {
-	Command: ControlFeedbackSounds.LineType.ISSUED_COMMAND,
+	MoveCommand: ControlFeedbackSounds.LineType.ISSUED_COMMAND,
 	Attack: ControlFeedbackSounds.LineType.ISSUED_ATTACK,
 }
 

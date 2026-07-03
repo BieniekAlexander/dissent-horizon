@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bbppurjtv8fc7"]
+
+[ext_resource type="Script" uid="uid://dvfmaqvf765mu" path="res://scripts/entities/scout.gd" id="1_scout"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_ownr"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_vision"]
+height = 100.0
+radius = 8.0
+
+[node name="Scout" type="CharacterBody3D" groups=["commandable"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_scout")
+type = 4
+
+[node name="VisionRange" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_vision")
+disabled = true
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("2_ownr")

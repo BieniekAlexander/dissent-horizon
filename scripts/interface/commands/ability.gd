@@ -1,5 +1,5 @@
 class_name Ability
-extends Command
+extends MoveCommand
 
 ## Generic position-targeted ability command (repurposed from the old Launch).
 ##

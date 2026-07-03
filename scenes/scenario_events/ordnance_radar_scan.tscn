@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cecedxppj374g"]
+
+[ext_resource type="Script" uid="uid://dfmrebaif66d7" path="res://scripts/scenario/events/event_radar_scan.gd" id="1_rad"]
+
+[node name="OrdnanceRadarScan" type="Node3D"]
+script = ExtResource("1_rad")

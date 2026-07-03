@@ -19,7 +19,7 @@ var _gizmo: MeshInstance3D
 #endregion
 
 #region Public API
-func to_command(manager: ScenarioTriggerManager) -> Command:
+func to_command(manager: ScenarioTriggerManager) -> MoveCommand:
 	var nav_map := manager.map.nav_region.get_navigation_map()
 	var dest := NavigationServer3D.map_get_closest_point(nav_map, global_position)
 	var msg := CommandMessage.new(manager.map, null, null, dest)
@@ -27,7 +27,7 @@ func to_command(manager: ScenarioTriggerManager) -> Command:
 		return AttackMove.new(msg)
 	if command_type == "defend":
 		return Defend.new(msg)
-	return Command.new(msg)
+	return MoveCommand.new(msg)
 #endregion
 
 #region Lifecycle

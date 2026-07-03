@@ -46,7 +46,20 @@ extends Entity
 ## Scoped to the player for now; TODO: promote to a per-commander map.
 var in_sight_range: bool = false
 
-var _command: Command:
+## Whether commander [viewer_commander_id] can currently perceive this commandable:
+## its fog pixel is clear for that commander AND this commandable is not stealthed.
+## Unlike in_sight_range (which only tracks the single active/spectated commander),
+## this looks up the viewer's own Fog instance directly, so it's correct for bots
+## reasoning about their own vision regardless of which commander is being spectated.
+func is_visible_to(viewer_commander_id: int) -> bool:
+	if stealth != null and stealth.state == Stealth.State.STEALTHED:
+		return false
+	var fog: Fog = Fog._fogs_by_commander.get(viewer_commander_id)
+	if fog == null:
+		return true
+	return fog.fog_clear_at(VU.inXZ(global_position))
+
+var _command: MoveCommand:
 	get: return command_receiver._command
 	set(value): command_receiver._command = value
 
@@ -55,10 +68,10 @@ var _command: Command:
 #endregion
 
 #region Command interface
-func current_command() -> Command:
+func current_command() -> MoveCommand:
 	return command_receiver._command
 
-func get_command_chain() -> Array[Command]:
+func get_command_chain() -> Array[MoveCommand]:
 	return command_receiver.get_command_chain()
 
 func has_command() -> bool:
@@ -77,8 +90,8 @@ func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: b
 		# Commands that handle their own landing (e.g. Evacuate) return false from
 		# should_move and must not trigger a take-off here.
 		if movement != null and movement.mode == Movement.Mode.HOVERING:
-			var first_cmd: Command = null
-			if a_commands is Command:
+			var first_cmd: MoveCommand = null
+			if a_commands is MoveCommand:
 				first_cmd = a_commands
 			elif a_commands is Array and not (a_commands as Array).is_empty():
 				first_cmd = (a_commands as Array)[0]
@@ -89,8 +102,42 @@ func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: b
 				movement.cancel_pending_land()
 	command_receiver.update_commands(a_commands, add_to_queue, prepend)
 
-func load_destination(command: Command) -> void:
+func load_destination(command: MoveCommand) -> void:
 	command_receiver.load_destination(command)
+#endregion
+
+#region Rally
+## True when units produced or released by this commandable (Production
+## training a unit, or Garrison evacuating occupants) should be given an
+## initial destination to move toward. Covers structures that train units and
+## any commandable — structure or mobile unit — that can hold occupants in a
+## Garrison (e.g. a transport).
+func can_rally() -> bool:
+	return production != null or garrison != null
+
+## Destination held by a stationary can_rally() commandable (movement ==
+## null), set by intercepting a bare MoveCommand in _process_commands (see
+## there). Meaningless for mobile commandables, which share their own active
+## movement instead — see rally_destination.
+var rally_point: MoveCommand = null
+
+func set_rally(command: MoveCommand) -> void:
+	rally_point = command
+
+## The command a unit produced or released by this commandable should inherit
+## as its next order, or null for "no forced destination". A mobile
+## commandable (movement != null) hands off its own active movement — so e.g.
+## a transport that's destroyed mid-move passes its heading to its evacuated
+## passengers — excluding commands that don't represent motion (should_move()
+## == false, e.g. Evacuate itself). A stationary commandable (a structure) has
+## no movement order of its own to share, so it uses rally_point instead.
+func rally_destination() -> MoveCommand:
+	if movement == null:
+		return rally_point
+	var current: MoveCommand = current_command()
+	if current != null and current.should_move(self):
+		return current
+	return null
 #endregion
 
 #region Structure state
@@ -212,7 +259,7 @@ static func get_arrangement_cells(
 ## Default weapon patterns for unit-grouped commandables. Structures default to
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
-func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D = null) -> Command:
+func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D = null) -> MoveCommand:
 	var is_bunker: bool = garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
 	if aggro_range_shape == null or (weapon_inventory == null and not is_bunker):
 		return null
@@ -238,6 +285,8 @@ func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D
 			return false
 		if not is_enemy_of(t):
 			return false
+		if not (t as Commandable).is_visible_to(commander_id):
+			return false
 		if weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null:
 			return true
 		return is_bunker and garrison.any_garrison_can_target(t)
@@ -261,13 +310,13 @@ func receive_damage(damage: Damage, from: Commandable = null) -> void:
 		stealth.unstealth()
 	# retaliation logic
 	if defense != null and defense.hp > 0 and command_receiver.is_idle() and from != null:
-		var attack_cmd: Command = _get_vision_range_attack(from)
+		var attack_cmd: MoveCommand = _get_vision_range_attack(from)
 		if attack_cmd != null:
 			update_commands(attack_cmd)
 
 ## Returns an Attack command targeting `attacker` if it is within VisionRange and
 ## is a valid enemy and retaliator has a valid weapon, otherwise null.
-func _get_vision_range_attack(attacker: Commandable) -> Command:
+func _get_vision_range_attack(attacker: Commandable) -> MoveCommand:
 	if vision_range_shape == null:
 		return null
 	if not is_enemy_of(attacker):
@@ -503,15 +552,17 @@ func _physics_process(_delta: float) -> void:
 		global_position.y = map.terrain_height_at(VU.inXZ(global_position)) + movement.height_offset()
 
 func _process_commands() -> void:
-	# Structures route Train and Command (rally) into the Production component.
-	# Everything else falls through to CommandReceiver's default handling.
-	if production != null and has_command():
-		var current: Command = current_command()
-		if current.get_script() == Command:
-			production.set_rally(current)
+	# A stationary can_rally() commandable routes a bare MoveCommand into its own
+	# rally_point instead of moving (see rally_destination). Structures also
+	# route Train into the Production component. Everything else falls through
+	# to CommandReceiver's default handling.
+	if has_command():
+		var current: MoveCommand = current_command()
+		if movement == null and can_rally() and current.get_script() == MoveCommand:
+			set_rally(current)
 			clear_command()
 			return
-		elif current is Train:
+		elif production != null and current is Train:
 			if is_built and commander.has_resources_for(current.message.tool.type):
 				production.enqueue(
 					commander.technology_mapping[current.message.tool.type].creation_time,

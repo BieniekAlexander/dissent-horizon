@@ -39,9 +39,9 @@ func issue_commands_to(units: Array[Commandable], manager: ScenarioTriggerManage
 	var aggro_override: CollisionShape3D = _aggro_shape_override()
 	if not event_commands.is_empty():
 		for unit: Commandable in units:
-			var chain: Array[Command] = []
+			var chain: Array[MoveCommand] = []
 			for ec: EventCommand in event_commands:
-				var cmd: Command = ec.to_command(manager)
+				var cmd: MoveCommand = ec.to_command(manager)
 				if cmd != null:
 					if aggro_override != null and cmd is Defend:
 						cmd.message.aggro_shape = aggro_override
