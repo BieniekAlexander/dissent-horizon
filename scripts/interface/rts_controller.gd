@@ -93,8 +93,11 @@ func _ready():
 	if !selection_box.is_inside_tree():
 		add_child(selection_box)
 
-	for i in range(_INDICATOR_POOL_SIZE):
-		_indicator_pool.append(_make_indicator())
+	# Waypoint indicators live under Map; skip pooling when there is no Map
+	# (e.g. running player.tscn standalone to preview the HUD).
+	if map != null:
+		for i in range(_INDICATOR_POOL_SIZE):
+			_indicator_pool.append(_make_indicator())
 
 	# Deferred: this controller is a child of its Commander, so child _ready() runs
 	# BEFORE the parent's. The commander instances its Faction in its own _ready(),
@@ -541,7 +544,7 @@ func _reset_pending_state() -> void:
 func upate_hud_buttons() -> void:
 	# TODO definitely gonna refactor
 	var visible_names: Array = _visible_command_names()
-	for child: BoxContainer in $CommandsView.get_children():
+	for child: BoxContainer in $CommandsSection/CommandsBorder/CommandsView.get_children():
 		for subchild: Button in child.get_children():
 			subchild.visible = visible_names.has(subchild.name)
 
@@ -593,6 +596,10 @@ static func _is_perceptible(entity: Entity) -> bool:
 	return entity.visible
 
 func get_cursor_target(a_mouse_position: Vector2) -> Variant:
+	# Cursor picking raycasts against the Map; with no Map (e.g. running
+	# player.tscn standalone to preview the HUD) there is nothing to hit.
+	if map == null:
+		return null
 	var ray_origin: Vector3 = camera.project_ray_origin(a_mouse_position)
 	var ray_end: Vector3 = ray_origin + camera.project_ray_normal(a_mouse_position) * 1000.0
 
@@ -708,6 +715,8 @@ func _make_indicator() -> WaypointIndicator:
 	return ind
 
 func _register_indicator(msg: CommandMessage) -> void:
+	if map == null:
+		return
 	if _indicator_pool.is_empty():
 		_indicator_pool.append(_make_indicator())
 	var ind: WaypointIndicator = _indicator_pool.pop_back()

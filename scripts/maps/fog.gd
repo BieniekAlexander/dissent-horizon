@@ -48,6 +48,10 @@ func _ready() -> void:
 
 func _initialize() -> void:
 	var map: Map = get_tree().current_scene.find_child("Map")
+	# No Map (e.g. running player.tscn standalone to preview the HUD): leave
+	# _fog_texture null so _physics_process no-ops and the fog stays inert.
+	if map == null:
+		return
 	var hs: HeightMapShape3D = map.height_map
 
 	# HeightMapShape3D with map_width W covers local X -(W-1)/2 .. +(W-1)/2.

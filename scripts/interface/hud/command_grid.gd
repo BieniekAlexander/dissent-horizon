@@ -36,9 +36,12 @@ func _ready() -> void:
 	for i in ControlBinding.grid_width * ControlBinding.grid_height:
 		var cell := BoxContainer.new()
 		add_child(cell)
+		# custom_minimum_size is the floor; EXPAND_FILL lets the cells grow to
+		# divide up whatever rect the grid is given so the grid scales to fit
+		# inside its border rather than sitting at a fixed pixel size.
 		cell.custom_minimum_size = Vector2(60, 60)
-		cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		cells.append(cell)
 
 	for binding: ControlBinding in bindings():
@@ -52,5 +55,9 @@ func _place_button(cells: Array, binding: ControlBinding) -> void:
 		return
 	var b: Button = ButtonSpec.create_button_from_spec(ButtonSpec.new(binding.command_name, binding.label))
 	b.custom_minimum_size = Vector2(60, 60)
+	# Fill the cell so buttons scale with the grid instead of staying pinned to
+	# their 60x60 floor.
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	cells[ControlBinding.cell_index(binding.grid_position)].add_child(b)
 #endregion

@@ -47,51 +47,99 @@ text = "	ore: 0
 	vigor: 0/100
 	dominion: 0"
 
-[node name="CommandsBorder" type="ColorRect" parent="Controller" unique_id=822633084]
+[node name="MapSection" type="Control" parent="Controller" unique_id=1965947438]
+layout_mode = 3
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -298.0
-offset_top = -140.0
+offset_left = -374.0
+offset_top = -191.0
 grow_horizontal = 0
 grow_vertical = 0
+mouse_filter = 2
+
+[node name="MinimapBorder" type="ColorRect" parent="Controller/MapSection" unique_id=1051067280]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.35, 0.35, 0.35, 1)
 
-[node name="CommandsView" type="GridContainer" parent="Controller" unique_id=249551403]
-custom_minimum_size = Vector2(60, 40)
-anchors_preset = 3
-anchor_left = 1.0
+[node name="Minimap" type="TextureRect" parent="Controller/MapSection/MinimapBorder" unique_id=175631056]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_minimap")
+
+[node name="InfoSection" type="Control" parent="Controller" unique_id=593031055]
+layout_mode = 3
+anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -300.0
-offset_top = -136.0
-grow_horizontal = 0
+offset_left = 324.0
+offset_top = -196.0
+offset_right = -374.0
+grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
+
+[node name="Background" type="ColorRect" parent="Controller/InfoSection" unique_id=802320450]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 5.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.35, 0.35, 0.35, 0.2509804)
+
+[node name="CommandsSection" type="Control" parent="Controller" unique_id=1645374738]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -191.0
+offset_right = 324.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="CommandsBorder" type="ColorRect" parent="Controller/CommandsSection" unique_id=822633084]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.35, 0.35, 0.35, 1)
+
+[node name="CommandsView" type="GridContainer" parent="Controller/CommandsSection/CommandsBorder" unique_id=249551403]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
 columns = 5
 script = ExtResource("4_fjrip")
-
-[node name="MinimapBorder" type="ColorRect" parent="Controller" unique_id=1051067280]
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_top = -116.0
-offset_right = 200.0
-grow_vertical = 0
-color = Color(0.35, 0.35, 0.35, 1)
-
-[node name="Minimap" type="TextureRect" parent="Controller" unique_id=175631056]
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_top = -108.0
-offset_right = 192.0
-grow_vertical = 0
-script = ExtResource("8_minimap")
 
 [node name="CommandErrorMessage" type="RichTextLabel" parent="Controller" unique_id=1051783739]
 clip_contents = false
