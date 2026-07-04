@@ -288,7 +288,7 @@ Builds the `NavigationMesh` directly from `HeightMapShape3D` data (not from bake
 
 `HeightmapMeshGenerator` (`@tool`) generates an `ArrayMesh` from `HeightMapShape3D`; lives as a child of `NavigationRegion/Body`. `HeightPin` (`@tool`, `Sprite3D`) — one pin per heightmap corner under `Map/HeightPins`. Moving a pin in the editor writes back to `height_map.map_data` and triggers a mesh rebuild. The pin system is editor-only; pins `queue_free()` themselves at runtime.
 
-To spawn pins: select the Map node in the editor and toggle `generate_height_pins` in the inspector.
+To spawn pins: select the Map node in the editor and toggle `generate_editor_pins` in the inspector. This spawns both `HeightPin`s (one per corner, drag Y to sculpt) and `BlockPin`s (one per navigable cell — a red/grey view of `Map.blocked_cells`). To edit the authored no-go overlay, select one or more `BlockPin`s and toggle the `blocked` checkbox in the inspector (a multi-selection applies to all selected pins); each pin writes through to `Map.blocked_cells` via `Map.set_cell_blocked()`. `blocked_cells` (a saved `@export`) is the source of truth and is applied to the `TerrainGrid` at runtime; `BlockPin`s are transient (not saved) and regenerated from it. `HeightPin`s persist and are reconnected on scene open; `BlockPin`s are not.
 
 ---
 

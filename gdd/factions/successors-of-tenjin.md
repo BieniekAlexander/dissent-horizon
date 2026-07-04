@@ -25,11 +25,11 @@
 # Specifics
 ## Tech Tree
 - **Outpost**
+	- technician
 - Domicile
 - **Compound**
-	- rifleman, can build vehicles
+	- minigunner, expensive and strong, shoots up
 	- lazer soldier
-	- minigunner, expensive and strong, shoots up (T1 Tech)
 	- Cyborg, lazer swords (T2 tech)
 - **Dispatch Facility**
 	- Looking Glass - observer

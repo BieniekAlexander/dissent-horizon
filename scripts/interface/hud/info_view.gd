@@ -60,7 +60,9 @@ func _update_details(selection: Array) -> void:
 	var sig: String = ""
 	for node: Node in selection:
 		var c: Commandable = node as Commandable
-		if c == null or c.production == null:
+		# Only the player's own producers reveal their training queue — never an
+		# enemy/neutral unit's.
+		if c == null or c.production == null or c.commander_id != RTSController.PLAYER_COMMANDER_ID:
 			continue
 		for i in c.production.job_count():
 			jobs.append([c, i])

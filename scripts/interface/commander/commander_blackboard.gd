@@ -67,8 +67,11 @@ func _init(a_commander: Commander) -> void:
 	_commander = a_commander
 
 
-## Fold current vision into the belief, age it out, then reconcile the structure
-## snapshots. Call once per commander tick.
+## Fold current vision into the belief and age it out. This is the AI-only layer
+## (only bots read believed()), and its expensive step — visible_enemies()'s
+## physics queries — is why Commander throttles this call to ~5 Hz. The player-
+## facing snapshot layer is NOT updated here; see _ensure_snapshots() /
+## refresh_snapshots(), both driven every physics frame.
 func update() -> void:
 	var now: float = _commander.seconds_elapsed()
 
@@ -87,11 +90,6 @@ func update() -> void:
 				_entries.erase(id)
 		elif now - entry.last_seen_time > BLACKBOARD_EXPIRATION:
 			_entries.erase(id)
-
-	# 3. Snapshot any newly-scouted foreign structure. Visibility + reconcile of
-	#    existing snapshots runs every frame in refresh_snapshots() (called
-	#    unthrottled by Commander), so the memory tracks fog with no lag.
-	_ensure_snapshots()
 
 
 ## All believed enemy entities (persistent structures + unexpired units).
@@ -133,10 +131,12 @@ func free_visuals() -> void:
 
 
 ## Create a snapshot for each currently-scouted foreign structure that lacks one at
-## its present cell. Called on the (throttled) belief update; visibility is handled
-## separately, every frame, by refresh_snapshots(). Reads visible_foreign_structures
-## (NOT the enemy belief) so NEUTRAL structures — mines, mountains — are remembered
-## too, not just enemy-owned ones.
+## its present cell. Runs EVERY physics frame (from refresh_snapshots), NOT on the
+## throttled belief update: creation is cheap (fog-pixel lookups over a handful of
+## structures, no physics queries) and player-facing, so a newly-revealed structure
+## is remembered the same frame fog shows it — no lag before it can be re-fogged.
+## Reads visible_foreign_structures (NOT the enemy belief) so NEUTRAL structures —
+## mines, mountains — are remembered too, not just enemy-owned ones.
 func _ensure_snapshots() -> void:
 	var map: Map = _commander.map
 	if map == null:
@@ -148,17 +148,21 @@ func _ensure_snapshots() -> void:
 			_create_snapshot(s, cell, key)
 
 
-## Reconcile every snapshot against present vision and set its visibility. Called
-## EVERY physics frame by Commander (cheap — a handful of structures), AFTER fog has
-## refreshed each real structure's `visible`. A snapshot's visibility is the exact
-## complement of its real counterpart's fog state, so the swap is gap-free: the frame
-## fog hides the real structure, the snapshot shows; the frame fog reveals it, the
-## snapshot hides. A snapshot is deleted once its cell is re-scouted and the real
-## structure is gone (destroyed) or has moved off the cell.
+## Create any missing snapshots, then reconcile every snapshot against present
+## vision and set its visibility. Called EVERY physics frame by Commander (cheap —
+## a handful of structures), AFTER fog has refreshed each real structure's `visible`.
+## A snapshot's visibility is the exact complement of its real counterpart's fog
+## state, so the swap is gap-free: the frame fog hides the real structure, the
+## snapshot shows; the frame fog reveals it, the snapshot hides. A snapshot is
+## deleted once its cell is re-scouted and the real structure is gone (destroyed) or
+## has moved off the cell.
 func refresh_snapshots() -> void:
 	var map: Map = _commander.map
 	if map == null:
 		return
+	# Creation runs here (not on the throttled belief update) so it stays in step
+	# with the fog reveal that this same method reconciles against.
+	_ensure_snapshots()
 	var is_viewer: bool = _commander_is_active_viewer()
 	for key: String in _snapshots.keys():
 		var snap: Snapshot = _snapshots[key]

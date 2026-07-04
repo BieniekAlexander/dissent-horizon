@@ -43,6 +43,13 @@ var cell_grid: Array = []
 # Structure registers here (units don't; non-commandable structures like Deposit do).
 var structure_cell_map: Dictionary = {}  # Entity -> Array[Vector2i]
 
+## Authored per-cell "no-go" overlay (water / rubble / hazard / scripted block) and
+## the SINGLE SOURCE OF TRUTH for it — saved with the scene and applied to the
+## TerrainGrid at runtime. Cell indices, Vector2i(x, z), 0..grid_width-1 /
+## 0..grid_depth-1. The editor BlockPins are only a view/edit surface over this list
+## (see generate_editor_pins and BlockPin.blocked).
+@export var blocked_cells: Array[Vector2i] = []
+
 var terrain_grid: TerrainGrid
 var nav_manager: NavManager
 
@@ -387,6 +394,11 @@ func _ready() -> void:
 			inner.append(null)
 		cell_grid.append(inner)
 
+	# Apply the authored no-go overlay before the navmesh first builds, so the
+	# initial navmesh already excludes the blocked cells.
+	if not blocked_cells.is_empty():
+		terrain_grid.set_blocked_mask(_blocked_cells_to_mask())
+
 	nav_manager = NavManager.new()
 	nav_manager.navigation_region = nav_region
 	nav_manager.terrain_grid      = terrain_grid
@@ -396,17 +408,73 @@ func _ready() -> void:
 
 
 # ---------------------------------------------------------------------------
-# Heightmap editor (editor-only)
+# Editor pins (editor-only)
 # ---------------------------------------------------------------------------
 
-## Click to spawn one HeightPin per heightmap corner under HeightPins.
-## Each pin's Y position directly equals the corresponding map_data value in
-## the HeightMapShape3D's local space.  Moving a pin writes back to map_data
-## and triggers a mesh rebuild via the sibling HeightmapMeshGenerator.
-@export var generate_height_pins: bool:
-	set(_v): _spawn_height_pins()
+## Toggle to (re)spawn all editor authoring pins under Map:
+##   - one HeightPin per heightmap corner (drag its Y to sculpt terrain), and
+##   - one BlockPin per navigable cell (a view of blocked_cells; red = blocked).
+## Both re-read the current map state, so this is safe to toggle any time to
+## refresh the pins. Pins are editor-only and delete themselves at runtime.
+@export var generate_editor_pins: bool:
+	set(_v): _spawn_editor_pins()
+
+## Inspector trigger: (re)build the visual terrain mesh from the current map fields.
+## Creates a HeightmapMeshGenerator under the terrain body if one doesn't exist, then
+## syncs its shape to height_map and rebuilds the ArrayMesh — so a fresh map gets a
+## generated mesh, and a mesh that drifted from the heightmap is brought back in sync.
+@export var generate_visual_mesh: bool:
+	set(_v): _regenerate_visual_mesh()
 
 var _pin_updating: bool = false
+
+
+# ---------------------------------------------------------------------------
+# Map mirroring (editor-only authoring tool)
+# ---------------------------------------------------------------------------
+
+## A mirror axis. HORIZONTAL is the map's vertical centre line (splits left/right);
+## VERTICAL is the horizontal centre line (splits bottom/top); NONE means no axis.
+enum MirrorAxis { NONE, HORIZONTAL, VERTICAL }
+
+## The PRIMARY axis picks which half is the reference (kept and copied):
+## HORIZONTAL keeps the LEFT half (min-X); VERTICAL keeps the BOTTOM half (max-Z,
+## +Z / south). NONE disables the mirror.
+@export var mirror_primary_axis: MirrorAxis = MirrorAxis.HORIZONTAL
+
+## The SECONDARY axis controls how the reference half is transformed onto the
+## opposite half:
+##   NONE                 → pure reflection across the primary axis (mirror image).
+##   opposite of primary  → reflection across BOTH axes, i.e. a 180° point
+##                          reflection through the centre — the copied half is also
+##                          flipped along the primary axis (point-symmetric map).
+## A secondary equal to the primary (or NONE) is treated as "no secondary flip".
+@export var mirror_secondary_axis: MirrorAxis = MirrorAxis.NONE
+
+## Inspector trigger (toggling either way runs the op, like generate_editor_pins).
+## Mirrors the map per mirror_primary_axis / mirror_secondary_axis:
+##   1. the reference half's heightmap corners are copied onto the opposite half,
+##   2. every game entity on the opposite half is erased from the scene, then
+##   3. every game entity on the reference half is duplicated and transformed onto
+##      the opposite half (commander 1 ↔ 2 swapped on the copies).
+@export var mirror_map: bool:
+	set(_v): _run_mirror()
+
+
+## Resolve the primary/secondary axis exports into the two booleans the mirror
+## implementation takes, then run it. Primary NONE is a no-op.
+func _run_mirror() -> void:
+	if mirror_primary_axis == MirrorAxis.NONE:
+		push_warning("Map.mirror_map: primary axis is NONE — nothing to mirror")
+		return
+	var primary_horizontal: bool = mirror_primary_axis == MirrorAxis.HORIZONTAL
+	# A secondary flip only applies when the secondary is the OTHER axis; NONE or
+	# the same-as-primary means a plain mirror.
+	var flip_secondary: bool = (
+		mirror_secondary_axis != MirrorAxis.NONE
+		and mirror_secondary_axis != mirror_primary_axis
+	)
+	_mirror_map(primary_horizontal, flip_secondary)
 
 
 ## Returns the HeightPins container, creating and registering it if necessary.
@@ -435,6 +503,8 @@ func _reconnect_pins() -> void:
 		if child is HeightPin:
 			if not child.height_changed.is_connected(_on_pin_height_changed):
 				child.height_changed.connect(_on_pin_height_changed)
+	# BlockPins are transient (not saved), so there's nothing to reconnect — they're
+	# respawned from blocked_cells by generate_editor_pins.
 
 
 func _spawn_height_pins() -> void:
@@ -469,6 +539,97 @@ func _spawn_height_pins() -> void:
 			container.add_child(pin)
 			pin.owner = scene_root
 			pin.height_changed.connect(_on_pin_height_changed)
+
+
+## Spawn both pin families (heightmap corners + blocked-cell markers). Both read
+## current map state, so re-toggling generate_editor_pins refreshes the view.
+func _spawn_editor_pins() -> void:
+	_spawn_height_pins()
+	_spawn_block_pins()
+
+
+## Returns the BlockPins container, creating it if necessary. Unlike HeightPins the
+## container and its pins are TRANSIENT — no owner is set, so they aren't saved with
+## the scene (blocked_cells is the persisted source of truth; pins are regenerated
+## from it by generate_editor_pins).
+func _get_block_pin_container() -> Node3D:
+	var container := get_node_or_null("BlockPins") as Node3D
+	if container == null:
+		container = Node3D.new()
+		container.name = "BlockPins"
+		add_child(container)
+	return container
+
+
+## Spawn one BlockPin per navigable cell under BlockPins, coloured from the current
+## blocked_cells list. Editor-only, and a full respawn (clears existing BlockPins
+## first) so it always reflects blocked_cells.
+func _spawn_block_pins() -> void:
+	if not Engine.is_editor_hint():
+		return
+	if terrain_body == null or height_map == null:
+		return
+
+	var container := _get_block_pin_container()
+	for child in container.get_children():
+		if child is BlockPin:
+			child.free()
+
+	var w := height_map.map_width
+	var d := height_map.map_depth
+	var hw := (w - 1) * 0.5
+	var hd := (d - 1) * 0.5
+	var data := height_map.map_data
+	var gw := w - 1  # navigable cells span one fewer than corners on each axis
+	var gd := d - 1
+
+	var blocked_lookup := {}
+	for c: Vector2i in blocked_cells:
+		blocked_lookup[c] = true
+
+	for z in gd:
+		for x in gw:
+			var cell := Vector2i(x, z)
+			var pin := BlockPin.new()
+			pin.name = "BlockPin_%d_%d" % [x, z]
+			pin.cell = cell
+			# Sit at the cell centre (between corners), lifted just above the average
+			# corner height so the marker reads clearly over the terrain.
+			var h_center: float = (
+				data[z * w + x] + data[z * w + x + 1]
+				+ data[(z + 1) * w + x] + data[(z + 1) * w + x + 1]
+			) * 0.25
+			pin.position = Vector3((x + 0.5) - hw, h_center + 0.1, (z + 0.5) - hd)
+			container.add_child(pin)
+			# Seed the pin from the overlay WITHOUT writing back (it is the source).
+			pin.set_blocked_silently(blocked_lookup.has(cell))
+
+
+## Write-through from a BlockPin's `blocked` toggle: add or remove one cell in
+## blocked_cells (the source of truth). Reassigns the array so the @tool inspector
+## registers the change and the scene is marked dirty.
+func set_cell_blocked(cell: Vector2i, value: bool) -> void:
+	if blocked_cells.has(cell) == value:
+		return
+	var updated: Array[Vector2i] = blocked_cells.duplicate()
+	if value:
+		updated.append(cell)
+	else:
+		updated.erase(cell)
+	blocked_cells = updated
+
+
+## Convert blocked_cells into the cell-indexed PackedByteArray TerrainGrid expects
+## (size grid_width*grid_depth, index = z*grid_width+x, 1 = blocked).
+func _blocked_cells_to_mask() -> PackedByteArray:
+	var gw := terrain_grid.grid_width()
+	var gd := terrain_grid.grid_depth()
+	var mask := PackedByteArray()
+	mask.resize(gw * gd)  # zero-filled → all clear
+	for c: Vector2i in blocked_cells:
+		if c.x >= 0 and c.x < gw and c.y >= 0 and c.y < gd:
+			mask[c.y * gw + c.x] = 1
+	return mask
 
 
 func _on_height_shape_changed() -> void:
@@ -524,6 +685,48 @@ func _rebuild_visual_mesh() -> void:
 		gen.build()
 
 
+## Inspector-button handler for generate_visual_mesh: ensure a HeightmapMeshGenerator
+## exists under the terrain body (creating one if missing), then rebuild the terrain
+## mesh from height_map.
+func _regenerate_visual_mesh() -> void:
+	if not Engine.is_editor_hint():
+		return
+	if height_map == null:
+		push_warning("Map.generate_visual_mesh: no height_map assigned")
+		return
+	if terrain_body == null:
+		push_warning("Map.generate_visual_mesh: terrain body ($NavigationRegion/Body) not ready")
+		return
+	_ensure_visual_mesh_generator()
+	_rebuild_visual_mesh()
+
+
+## Return the HeightmapMeshGenerator under the terrain body, creating and configuring
+## one if it doesn't exist. A created generator is owned by the edited scene so it is
+## saved (and rebuilds its mesh from `shape` on load / at runtime), and defaults to
+## the game's checkerboard terrain shader so the mesh reads as terrain immediately.
+func _ensure_visual_mesh_generator() -> HeightmapMeshGenerator:
+	var gen := terrain_body.get_node_or_null("HeightmapMeshGenerator") as HeightmapMeshGenerator
+	if gen != null:
+		return gen
+
+	gen = HeightmapMeshGenerator.new()
+	gen.name = "HeightmapMeshGenerator"
+	terrain_body.add_child(gen)
+	gen.owner = get_tree().edited_scene_root
+
+	# Default material: the game's terrain shader (build() keeps its grid params in
+	# sync with the heightmap). Skipped gracefully if the shader can't be loaded.
+	var shader := load("res://scenes/scenarios/s1.gdshader") as Shader
+	if shader != null:
+		var mat := ShaderMaterial.new()
+		mat.shader = shader
+		mat.set_shader_parameter("color_a", Color(0.22, 0.4, 0.22))
+		mat.set_shader_parameter("color_b", Color(0.16, 0.3, 0.16))
+		gen.material = mat
+	return gen
+
+
 func _on_pin_height_changed(pin: HeightPin) -> void:
 	if _pin_updating or height_map == null:
 		return
@@ -554,3 +757,198 @@ func _on_pin_height_changed(pin: HeightPin) -> void:
 	_pin_updating = false
 
 	_rebuild_visual_mesh()
+
+
+# ---------------------------------------------------------------------------
+# Map mirroring implementation (editor-only)
+# ---------------------------------------------------------------------------
+
+## Small tolerance (world units) for classifying an entity as on-axis: anything
+## within this of the centre line is left untouched (it is its own mirror).
+const _MIRROR_AXIS_EPS: float = 0.01
+
+
+## Mirror the whole map — heightmap then entities — onto the opposite half.
+## `primary_horizontal` true keeps the LEFT half (reflect left→right); false keeps
+## the BOTTOM half (+Z, reflect bottom→top). `flip_secondary` additionally reflects
+## across the OTHER axis, turning the plain mirror into a 180° point reflection.
+## Editor-only: it mutates the scene tree and heightmap, meaningless at runtime.
+func _mirror_map(primary_horizontal: bool, flip_secondary: bool) -> void:
+	if not Engine.is_editor_hint():
+		push_warning("Map.mirror_map is an editor-only authoring tool; ignoring at runtime")
+		return
+	if height_map == null:
+		push_warning("Map.mirror_map: no height_map assigned")
+		return
+	_mirror_heightmap(primary_horizontal, flip_secondary)
+	_mirror_blocked_cells(primary_horizontal, flip_secondary)
+	_mirror_entities(primary_horizontal, flip_secondary)
+
+
+## Copy the reference half's heightmap corners onto the opposite half so the two
+## halves have identical terrain. Left (min-x) is the reference for a horizontal
+## primary; bottom (max-z) for a vertical one. When `flip_secondary`, the source
+## corner is additionally reflected across the other axis (point reflection). The
+## centre column/row (odd sizes) is the axis and is left as-is.
+func _mirror_heightmap(primary_horizontal: bool, flip_secondary: bool) -> void:
+	var w := height_map.map_width
+	var d := height_map.map_depth
+	var data := height_map.map_data  # a copy; mutate then assign back
+	if primary_horizontal:
+		for z in range(d):
+			for x in range(w):
+				var mx := w - 1 - x
+				if x > mx:  # right (opposite) corner ← reference corner
+					# Source is the mirror in X, plus the mirror in Z when flipping.
+					var src_z := (d - 1 - z) if flip_secondary else z
+					data[z * w + x] = data[src_z * w + mx]
+	else:
+		for z in range(d):
+			var mz := d - 1 - z
+			if z < mz:  # top (opposite) row ← reference row
+				for x in range(w):
+					# Source is the mirror in Z, plus the mirror in X when flipping.
+					var src_x := (w - 1 - x) if flip_secondary else x
+					data[z * w + x] = data[mz * w + src_x]
+	height_map.map_data = data
+	if _terrain_collision_shape != null:
+		_terrain_collision_shape.shape = height_map
+	_on_height_shape_changed()  # resync/respawn HeightPins to the new data
+	_rebuild_visual_mesh()
+
+
+## Mirror the authored blocked-cell overlay to match the terrain: drop opposite-half
+## blocked cells, keep the reference half, and add the reflection of each reference
+## cell onto the opposite half. Uses the SAME reflect-X/reflect-Z rule as the entity
+## mirror, on cell indices (grid is one smaller than the corner grid on each axis).
+func _mirror_blocked_cells(primary_horizontal: bool, flip_secondary: bool) -> void:
+	if blocked_cells.is_empty():
+		return
+	var gw := height_map.map_width - 1   # navigable cell columns
+	var gd := height_map.map_depth - 1   # navigable cell rows
+
+	# Keep only reference-half (and on-axis) cells; drop the opposite half. Reference
+	# is left (min-x) for a horizontal primary, bottom (max-z) for a vertical one —
+	# matching the heightmap/entity mirrors.
+	var kept: Dictionary = {}
+	for cell: Vector2i in blocked_cells:
+		var on_opposite: bool = (
+			cell.x > (gw - 1 - cell.x) if primary_horizontal
+			else cell.y < (gd - 1 - cell.y)
+		)
+		if not on_opposite:
+			kept[cell] = true
+
+	# Add the reflection of every kept cell (on-axis cells reflect to themselves on
+	# the primary axis, but still flip across the secondary when point-mirroring).
+	var reflect_x: bool = primary_horizontal or flip_secondary
+	var reflect_z: bool = not primary_horizontal or flip_secondary
+	var result: Dictionary = {}
+	for cell: Vector2i in kept.keys():
+		result[cell] = true
+		var rx: int = (gw - 1 - cell.x) if reflect_x else cell.x
+		var rz: int = (gd - 1 - cell.y) if reflect_z else cell.y
+		result[Vector2i(rx, rz)] = true
+
+	var updated: Array[Vector2i] = []
+	for cell: Vector2i in result.keys():
+		updated.append(cell)
+	blocked_cells = updated
+
+	# Recolour existing BlockPins to the mirrored data (no-op if none are spawned).
+	var container := get_node_or_null("BlockPins")
+	if container != null and container.get_child_count() > 0:
+		_spawn_block_pins()
+
+
+## Erase every game entity on the opposite half, then duplicate every game entity
+## on the reference half and reflect it across the centre. Mine→Deposit links are
+## repointed to the duplicated deposits so mirrored mines bind correctly.
+func _mirror_entities(primary_horizontal: bool, flip_secondary: bool) -> void:
+	var root: Node = get_tree().edited_scene_root
+	if root == null:
+		return
+	var center := global_transform.origin
+	# The reference half is decided by the PRIMARY axis only; the secondary axis
+	# just adds an extra reflection to where each copy lands.
+	var axis_val: float = center.x if primary_horizontal else center.z
+
+	# Classify each entity as reference / opposite / on-axis by its position along
+	# the primary axis. Reference = left (min-x) for horizontal, bottom (max-z) for
+	# vertical. Free opposite-side entities now; keep reference ones for copying.
+	var reference: Array[Node3D] = []
+	for node: Node3D in _collect_game_entities(root):
+		var coord: float = node.global_position.x if primary_horizontal else node.global_position.z
+		var delta: float = coord - axis_val
+		if primary_horizontal:
+			# left is reference, so reference sits at negative delta
+			delta = -delta
+		if delta > _MIRROR_AXIS_EPS:
+			reference.append(node)          # reference half — copy across
+		elif delta < -_MIRROR_AXIS_EPS:
+			node.free()                     # opposite half — erase
+		# else: on the axis — its own mirror, leave untouched
+
+	# Duplicate each reference entity, transform its position onto the opposite
+	# half, and parent it back into the scene (owner = scene root so it is saved).
+	var orig_to_dup: Dictionary = {}
+	for node: Node3D in reference:
+		var dup: Node3D = node.duplicate()  # default flags keep instances + groups + script
+		dup.name = String(node.name) + "_mirror"
+		node.get_parent().add_child(dup)
+		dup.owner = root
+		# Reflect across the primary axis always; across the other axis too when a
+		# secondary flip is requested (making it a 180° point reflection).
+		var p := node.global_position
+		var reflect_x: bool = primary_horizontal or flip_secondary
+		var reflect_z: bool = not primary_horizontal or flip_secondary
+		dup.global_position = Vector3(
+			(2.0 * center.x - p.x) if reflect_x else p.x,
+			p.y,
+			(2.0 * center.z - p.z) if reflect_z else p.z
+		)
+		# The mirrored half belongs to the opposing player: swap commander 1 ↔ 2.
+		# Neutral (0) and any other id are left as-is.
+		_flip_commander_id(dup)
+		orig_to_dup[node] = dup
+
+	# Fix inter-entity references that duplicate() left pointing at originals: a
+	# duplicated Mine still references the ORIGINAL deposit, so repoint it at that
+	# deposit's duplicate (and sit it on top) when the deposit was mirrored too.
+	for node: Node3D in reference:
+		if node is Mine:
+			var dup_mine := orig_to_dup[node] as Mine
+			var orig_dep: Deposit = (node as Mine).deposit
+			if orig_dep != null and orig_to_dup.has(orig_dep):
+				var dup_dep := orig_to_dup[orig_dep] as Deposit
+				dup_mine.deposit = dup_dep
+				dup_mine.global_position = dup_dep.global_position
+
+
+## Swap a mirrored entity's owner between commander 1 and 2 so the copied half
+## belongs to the opposing player. Neutral (0) and any other id are untouched.
+## No-op for non-Entity nodes (e.g. start-point markers have no commander).
+func _flip_commander_id(node: Node3D) -> void:
+	if node is Entity:
+		var entity := node as Entity
+		if entity.default_commander_id == 1:
+			entity.default_commander_id = 2
+		elif entity.default_commander_id == 2:
+			entity.default_commander_id = 1
+
+
+## Node3D game entities authored under `root` that the mirror should act on:
+## anything in the "commandable", "structure" or "start_position" groups (deposits,
+## mines, shelters, buildings, start markers, …). Excludes the Map's own subtree
+## (terrain, nav, height pins) and de-duplicates across groups.
+func _collect_game_entities(root: Node) -> Array[Node3D]:
+	var seen: Dictionary = {}
+	var result: Array[Node3D] = []
+	for group: String in ["commandable", "structure", "start_position"]:
+		for node: Node in get_tree().get_nodes_in_group(group):
+			if node is Node3D and not seen.has(node) \
+					and root.is_ancestor_of(node) \
+					and node != self and not is_ancestor_of(node):
+				seen[node] = true
+				result.append(node as Node3D)
+	return result

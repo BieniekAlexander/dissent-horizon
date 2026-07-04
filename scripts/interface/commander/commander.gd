@@ -43,8 +43,10 @@ var scenario: Scenario
 ## the editor and for the neutral (id 0) commander.
 var blackboard: CommanderBlackboard
 
-## Physics ticks between blackboard updates (~5 Hz). Belief/snapshot refresh doesn't
-## need to run every physics frame, and visible_enemies() runs physics-space queries.
+## Physics ticks between belief updates (~5 Hz). The AI-only belief layer doesn't
+## need to run every physics frame, and its visible_enemies() step runs expensive
+## physics-space queries. The player-facing snapshot layer is NOT throttled — it
+## runs every frame in blackboard.refresh_snapshots() (see _physics_process).
 const BLACKBOARD_TICK_INTERVAL: int = 6
 var _ticks_since_blackboard: int = 0
 #endregion
@@ -293,12 +295,18 @@ func get_enemies_near(position: Vector3, radius: float) -> Array:
 ## memory remembers them too. "Structure" means an entity carrying a Structure
 ## component (grid-occupying footprint) — NOT necessarily a Commandable: Shelters and
 ## Deposits derive from Entity, so gate on has_node("Structure"), not `is Commandable`.
-## Uses the "structure" group + has_vision_at (geometric vision), so it needs no
-## targetable collision layer (neutral structures may not be on one).
+## Uses the "structure" group + Fog.structure_in_vision (the SAME any-footprint-cell
+## fog check fog.gd uses to reveal a structure), so it needs no targetable collision
+## layer (neutral structures may not be on one), and a structure is deemed "seen"
+## here on exactly the frames fog reveals it.
 func visible_foreign_structures() -> Array:
 	var result: Array = []
+	var fog: Fog = _fog()
 	for s in get_tree().get_nodes_in_group("structure"):
-		if s.has_node("Structure") and s.commander_id != id and has_vision_at(s.global_position):
+		# A structure is seen when ANY of its footprint cells is revealed (the same
+		# any-cell rule fog.gd uses to show it) — not just the cell under its origin.
+		if s.has_node("Structure") and s.commander_id != id \
+				and (fog == null or fog.structure_in_vision(s)):
 			result.append(s)
 	return result
 
@@ -318,16 +326,25 @@ func visible_enemies() -> Array:
 				result.append(e)
 	return result
 
-## True when this commander currently has vision of [world_pos]: some owned unit or
-## structure is within its VisionRange of that point. Lets the blackboard verify
-## whether a believed-but-unseen structure is still there when units revisit.
+## True when the fog pixel covering [world_pos] is currently revealed in this
+## commander's fog — the SAME pixel-quantized disc fog.gd uses, NOT a geometric
+## distance (which would disagree with the rasterized disc at the boundary). Used
+## for point checks against a remembered structure location (belief aging, snapshot
+## re-scout). For a live structure's own visibility use Fog.structure_in_vision,
+## which tests its whole footprint. Returns true when this commander has no fog.
 func has_vision_at(world_pos: Vector3) -> bool:
-	var p: Vector2 = VU.inXZ(world_pos)
-	for owned: Entity in _owned_vision_sources():
-		var vr: float = _shape_xz_radius(owned.vision_range_shape)
-		if vr > 0.0 and VU.inXZ(owned.global_position).distance_to(p) <= vr:
-			return true
-	return false
+	var fog: Fog = _fog()
+	if fog == null:
+		return true
+	return fog.fog_clear_at(VU.inXZ(world_pos))
+
+## This commander's Fog of war. Bot Fogs are registered under their commander id,
+## while the human player's Fog registers under -1 (its watching_commander_id
+## default), so the player's id maps back to that key. Null for a commander with no
+## Fog (the neutral/world owner, or no rig / editor).
+func _fog() -> Fog:
+	var key: int = -1 if id == RTSController.PLAYER_COMMANDER_ID else id
+	return Fog._fogs_by_commander.get(key)
 
 ## World-space XZ radius of [entity]'s VisionRange — the SAME reveal radius the fog
 ## of war uses (fog.gd reads vision_range_shape identically). 0 when the entity has
@@ -400,12 +417,14 @@ func initialize(a_map: Map, a_scenario: Scenario) -> void:
 func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint() or blackboard == null or map == null:
 		return
-	# Snapshot visibility runs EVERY frame (cheap: a handful of structures), so a
-	# remembered structure appears the exact frame fog hides the real one — no gap.
-	# The heavier belief refresh (visible_enemies physics queries + snapshot creation)
-	# is throttled. Snapshot visibility reads each real structure's fog-driven
-	# `visible`, so it must run AFTER fog: see process_physics_priority in _ready.
+	# The player-facing snapshot layer (creation + visibility) runs EVERY frame
+	# (cheap: a handful of structures, fog-pixel lookups only), so a remembered
+	# structure appears the exact frame fog hides the real one — no gap or lag. It
+	# reads each real structure's fog-driven `visible`, so it must run AFTER fog:
+	# see process_physics_priority in _ready.
 	blackboard.refresh_snapshots()
+	# The AI-only belief refresh (visible_enemies physics queries + aging) is the
+	# heavy, non-player-facing part, so it's throttled to ~5 Hz.
 	_ticks_since_blackboard += 1
 	if _ticks_since_blackboard < BLACKBOARD_TICK_INTERVAL:
 		return

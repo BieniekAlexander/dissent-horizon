@@ -158,18 +158,32 @@ func _process(delta: float) -> void:
 	command_message.world_position = cursor_result if cursor_result is Vector3 \
 		else camera.get_mouse_world_position(mouse_position)
 
+	var pruned: bool = false
 	for i in range(selection.size()-1, -1, -1):
 		var entity: Node = selection[i]
 		if not is_instance_valid(entity) or not entity.is_inside_tree():
 			if is_instance_valid(entity):
 				entity.selectable.deselect()
 			selection.remove_at(i)
+			pruned = true
+			continue
+		# Drop an enemy/neutral unit as soon as it leaves the player's vision.
+		var commandable: Commandable = entity as Commandable
+		if commandable != null and not _is_player_owned(commandable) \
+				and not commandable.is_visible_to(PLAYER_COMMANDER_ID):
+			commandable.selectable.deselect()
+			selection.remove_at(i)
+			pruned = true
+	if pruned:
+		_refresh_available_commands()
 
+	# Command resolution only applies to the player's own units; an enemy/neutral
+	# selection is info-only, so no command is resolved (or later issued) for it.
 	current_command_type = _resolve_command_class(
 		pending_command_name,
 		selection[0],
 		command_message
-	) if !selection.is_empty() else null
+	) if _selection_owned_by_player() else null
 
 	var check: MoveCommand.PreconditionFailureCause =  (
 		MoveCommand.PreconditionFailureCause.NONE
@@ -218,11 +232,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_released("command_additive"):
 		next_command_additive = false
 	elif get_action_names_by_prefix(event, "command_").size()>0:
-		process_command(get_action_names_by_prefix(event, "command_")[0])
+		_dispatch_command_hotkey(get_action_names_by_prefix(event, "command_"))
 	elif event.is_action_pressed("move"):
 		if _pending_ordnance != null:
 			_activate_pending_ordnance()
-		else:
+		elif _selection_owned_by_player():
+			# Only the player's own units take commands; an enemy/neutral
+			# info-selection ignores the move/command click.
 			assign_command_to_units(
 				current_command_type,
 				command_message,
@@ -249,12 +265,24 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 	var drag_distance = abs(selection_start_position - selection_end_position)
 	if drag_distance < Vector2(10, 10):
 		var click_target = get_cursor_target(selection_start_position)
-		if click_target is Entity and (click_target as Entity).commander_id == PLAYER_COMMANDER_ID:
-			if next_command_additive and selection.has(click_target):
-				(click_target as Entity).selectable.deselect()
-				selection.erase(click_target)
-			elif (click_target as Entity).selectable.select():
-				selection.append(click_target)
+		if click_target is Entity:
+			var entity: Entity = click_target as Entity
+			if _is_player_owned(entity):
+				# Selecting your own unit never keeps an enemy info-selection around.
+				if _has_enemy_selected():
+					deselect()
+				if next_command_additive and selection.has(entity):
+					entity.selectable.deselect()
+					selection.erase(entity)
+				elif entity.selectable.select():
+					selection.append(entity)
+			elif not next_command_additive:
+				# Enemy/neutral: single-select only (never additively). The
+				# non-additive deselect in _handle_select_release already cleared
+				# the prior selection, so this becomes the sole selected unit.
+				if entity.selectable.select():
+					selection.append(entity)
+			# A shift-click on an enemy/neutral unit is ignored (falls through).
 	else:
 		var boxed: Array = query_box_collisions(
 			Rect2(selection_start_position, selection_end_position - selection_start_position).abs()
@@ -275,9 +303,29 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 			if selectable.select():
 				selection.append(entity)
 
-	available_commands = CommandContextParser.commands_for_selection(selection)
+	_refresh_available_commands()
 	if not selection.is_empty():
 		unit_selected.emit(selection[0] as Entity)
+
+## Whether `entity` belongs to the local player.
+func _is_player_owned(entity: Entity) -> bool:
+	return entity != null and entity.commander_id == PLAYER_COMMANDER_ID
+
+## True when the current selection is the player's own — the only selection the
+## player can issue commands to. Enemy/neutral selections are info-only.
+func _selection_owned_by_player() -> bool:
+	return not selection.is_empty() and _is_player_owned(selection[0] as Entity)
+
+## True when the current selection is a single enemy/neutral (non-player) unit.
+func _has_enemy_selected() -> bool:
+	return not selection.is_empty() and not _is_player_owned(selection[0] as Entity)
+
+## Recomputes the command set for the current selection, and refreshes HUD button
+## visibility via the setter. Empty for an enemy selection — the player can look
+## but not command it.
+func _refresh_available_commands() -> void:
+	available_commands = [] if _has_enemy_selected() \
+		else CommandContextParser.commands_for_selection(selection)
 
 ## Resolves a left-click release into either a double-click (select all on-screen
 ## units of the clicked unit's type) or a normal single-click / box selection.
@@ -511,26 +559,44 @@ func current_context() -> int:
 		return ControlBinding.ControlContext.BUILD
 	return ControlBinding.ControlContext.ACT | ControlBinding.ControlContext.TRAIN
 
+## Whether `command_name` is a unit command the current selection can act on right
+## now — the gate shared by button visibility, the hotkey dispatcher, and
+## process_command itself. False when nothing is selected, and false for
+## SELECT-context commands (idle army, etc.), which the dispatcher routes
+## separately and which are never gated by the selection.
+##
+## Gate on _available_commands (the union across the whole selection) rather than
+## re-checking selection[0] alone, so a hotkey works whenever its button is shown.
+## Build tools (command_tool_dwelling, ...) are the exception: they aren't part of
+## a unit's base command set, so they only qualify once the Build sub-menu is armed
+## (current_context() == BUILD) and only for structures this builder can place.
+func _command_is_available(command_name: String) -> bool:
+	if selection.is_empty():
+		return false
+	if _available_commands.has(command_name):
+		return true
+	return current_context() == ControlBinding.ControlContext.BUILD \
+		and CommandContextParser.tools_for(selection[0], ControlBinding.ControlContext.BUILD).has(command_name)
+
+## Resolves the set of "command_" input actions triggered by one key press to a
+## single action to run. A currently-available unit command wins; failing that, a
+## SELECT command (idle army, etc.) runs regardless of whether anything is
+## selected. So a SELECT hotkey works at any time, yet yields its key to a
+## selected unit's verb/tool when they share a binding.
+func _dispatch_command_hotkey(command_actions: Array) -> void:
+	for command_name: String in command_actions:
+		if _command_is_available(command_name):
+			process_command(command_name)
+			return
+	for command_name: String in command_actions:
+		if _select_command_handlers.has(command_name):
+			_select_command_handlers[command_name].call()
+			return
+
 func process_command(command_name: String) -> void:
-	var lead: Entity = selection[0] if !selection.is_empty() else null
-	# Gate on _available_commands (the union across the whole selection) rather
-	# than re-checking against selection[0] alone. This keeps the hotkey gate
-	# consistent with button visibility: if the button is shown, the hotkey works,
-	# regardless of which unit happens to be first in the selection.
-	#
-	# Build tools (command_tool_dwelling, ...) are the exception: they aren't part
-	# of a unit's base command set, so they only become selectable once the player
-	# has armed the Build sub-menu (current_context() == BUILD) and only for
-	# structures this builder can actually place.
-	var is_build_tool: bool = (
-		current_context() == ControlBinding.ControlContext.BUILD
-		and CommandContextParser.tools_for(lead, ControlBinding.ControlContext.BUILD).has(command_name)
-	)
-	if lead == null or (
-		not _available_commands.has(command_name)
-		and not is_build_tool
-	):
+	if not _command_is_available(command_name):
 		return
+	var lead: Entity = selection[0]
 
 	var tool: Tool = Tool.for_name(command_name)
 	if tool != null:

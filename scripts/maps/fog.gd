@@ -38,6 +38,7 @@ var _fog_bytes: PackedByteArray       # display buffer, rebuilt each frame from 
 var _fog_image: Image
 var _fog_texture: ImageTexture
 var _sight_disc_cache: Dictionary  # int radius_px -> Array[Vector2i]
+var _map: Map  # cached in _initialize; used to look up structure footprint cells
 #endregion
 
 #region Lifecycle
@@ -52,6 +53,7 @@ func _initialize() -> void:
 	# _fog_texture null so _physics_process no-ops and the fog stays inert.
 	if map == null:
 		return
+	_map = map
 	var hs: HeightMapShape3D = map.height_map
 
 	# HeightMapShape3D with map_width W covers local X -(W-1)/2 .. +(W-1)/2.
@@ -146,10 +148,17 @@ func _physics_process(_delta: float) -> void:
 				# visible). Garrisoned occupants are out of the tree, so untouched.
 				entity.visible = true
 				continue
-			var pixel: Vector2i = _world_to_pixel(VU.inXZ(entity.global_position))
-			var in_bounds: bool = pixel.x >= 0 and pixel.x < _img_width \
-				and pixel.y >= 0 and pixel.y < _img_height
-			var fog_clear: bool = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
+			# A structure occupies a footprint of grid cells, so it's in sight when
+			# ANY occupied cell is revealed — not only the cell under its origin.
+			# Units (and structures with no registered footprint) use their point.
+			var fog_clear: bool
+			if entity.has_node("Structure"):
+				fog_clear = structure_in_vision(entity)
+			else:
+				var pixel: Vector2i = _world_to_pixel(VU.inXZ(entity.global_position))
+				var in_bounds: bool = pixel.x >= 0 and pixel.x < _img_width \
+					and pixel.y >= 0 and pixel.y < _img_height
+				fog_clear = in_bounds and _fog_bytes[pixel.y * _img_width + pixel.x] == 0
 			entity.visible = debug_view or fog_clear
 			if entity is Commandable:
 				var stealthed: bool = entity.stealth != null \
@@ -194,6 +203,23 @@ func fog_clear_at(world_xz: Vector2) -> bool:
 	if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
 		return false
 	return _fog_bytes[pixel.y * _img_width + pixel.x] == 0
+
+## True when ANY grid cell [structure] occupies is currently in this fog's vision.
+## Structures are discretised into a footprint of terrain cells, so a multi-cell
+## building counts as seen the instant any of its cells is scouted — not only when
+## the cell under its origin is. Falls back to the origin point when the structure
+## has no registered footprint (or the Map is unavailable).
+func structure_in_vision(structure: Node) -> bool:
+	var origin_xz: Vector2 = VU.inXZ((structure as Node3D).global_position)
+	if _map == null:
+		return fog_clear_at(origin_xz)
+	var cells: Variant = _map.structure_cell_map.get(structure)
+	if cells == null or (cells as Array).is_empty():
+		return fog_clear_at(origin_xz)
+	for cell: Vector2i in cells:
+		if fog_clear_at(VU.inXZ(_map.grid_to_world(cell))):
+			return true
+	return false
 
 ## Permanently reveal a circular area in world-space XZ (lift fog of war).
 ## The pixels are written to _explored_bytes so the reveal persists across frames.
