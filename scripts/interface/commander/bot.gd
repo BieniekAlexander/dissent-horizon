@@ -197,13 +197,19 @@ func get_enemy_structures() -> Array:
 	)
 
 
-## Enemy commandables within [unit]'s aggro range. Returns an empty array when
-## the unit has no aggro_range_shape or the shape has zero radius.
-func get_enemies_in_aggro_range(unit: Commandable) -> Array:
-	var radius: float = _shape_xz_radius(unit.aggro_range_shape)
-	if radius <= 0.0:
-		return []
-	return get_enemies_near(unit.global_position, radius)
+## Enemy commandables within [unit]'s aggro range, keeping only targets ranked at least
+## as important as [min_target_priority] and sorting them by target priority (most
+## important first). Uses the unit's actual aggro shape via SU.entities_in_aggro_shape —
+## the same check Commandable.get_aggro_near_position runs. Empty when the unit has no
+## aggro_range_shape.
+func get_enemies_in_aggro_range(unit: Commandable, \
+		min_target_priority: Entity.TargetPriority = Entity.TargetPriority.NON_COMBAT_UNITS) -> Array:
+	var enemies: Array = SU.entities_in_aggro_shape(
+		unit.get_world_3d(), unit.aggro_range_shape, unit.global_position, unit.target_body
+	).filter(func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0 \
+		and e.target_priority <= min_target_priority)
+	enemies.sort_custom(func(a: Entity, b: Entity): return a.target_priority < b.target_priority)
+	return enemies
 
 
 ## Enemy units within [threat_radius] world units of any owned structure.

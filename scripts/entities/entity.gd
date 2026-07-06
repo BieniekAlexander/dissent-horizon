@@ -191,6 +191,43 @@ var pc_set: Set = Set.new()
 @onready var aggro_range_shape: CollisionShape3D = get_node_or_null("AggroRange")
 #endregion
 
+#region Targeting priority
+## Aggro target-priority ranking (lower value = engaged first): armed things before
+## unarmed, mobile units before structures. Aggro checks drop targets ranked worse than
+## the issuing command's floor and sort the survivors by this. See
+## `target_priority` and CommandMessage.target_priority.
+enum TargetPriority {
+	COMBAT_UNITS = 0,          ## non-structure entity that has weapons
+	COMBAT_STRUCTURES = 1,     ## structure that has weapons
+	NON_COMBAT_UNITS = 2,      ## non-structure entity with no weapons
+	NON_COMBAT_STRUCTURES = 3, ## structure with no weapons
+}
+
+## This entity's TargetPriority, derived from whether it currently occupies the terrain
+## grid as a structure (structure_is_active) and whether it is armed (is_armed).
+var target_priority: TargetPriority:
+	get:
+		var armed: bool = is_armed()
+		if structure_is_active():
+			return TargetPriority.COMBAT_STRUCTURES if armed else TargetPriority.NON_COMBAT_STRUCTURES
+		return TargetPriority.COMBAT_UNITS if armed else TargetPriority.NON_COMBAT_UNITS
+
+## Whether this entity can currently project weapon fire — by default, its own equipped
+## weapons. Commandable overrides this to ALSO count a bunker garrison that is actively
+## holding armed occupants (whose fire the structure propagates), so it stays a method for
+## that override rather than an inline check.
+func is_armed() -> bool:
+	return weapon_inventory != null and weapon_inventory.has_weapons()
+
+## True iff this entity currently occupies the terrain grid as a structure. For now this
+## is exactly "has a Structure component", but it is wrapped here so future work can let an
+## entity toggle between a navmesh-blocking structure and a mobile form (attaching /
+## detaching from the terrain grid) by updating this one predicate rather than every
+## caller. Callers that mean "is this entity a structure right now" should use this.
+func structure_is_active() -> bool:
+	return has_node("Structure")
+#endregion
+
 #region Spatial queries
 ## The entity's primary collision shape. Commandables name their movement shape
 ## "MovementBody"; other Entity scenes (radiation, star) use "Body". Prefer "Body"

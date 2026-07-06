@@ -315,7 +315,11 @@ func _apply_hit() -> void:
 	var source: Commandable = from if is_instance_valid(from) else null
 	var dmg: Damage = Damage.new(damage, damage_type)
 	if hit_shape == null:
-		if is_instance_valid(target):
+		# Also require the target to still be in the scene tree: a unit that garrisoned
+		# mid-flight is orphaned (alive but out of the world), so it's inside the garrison
+		# and out of reach — skip it, matching the AoE branch below, whose physics query
+		# can't reach out-of-tree entities either.
+		if is_instance_valid(target) and target.is_inside_tree():
 			target.receive_damage(dmg, source)
 			for effect: EffectApplicator in get_effects():
 				effect.apply([target], source)

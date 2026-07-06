@@ -42,7 +42,7 @@ static func for_actor(a_actor: Commandable, a_message: CommandMessage) -> Patrol
 
 #region State updates
 func get_updated_state(a_actor: Commandable) -> Variant:
-	var aggro: MoveCommand = a_actor.get_aggro_near_position()
+	var aggro: MoveCommand = a_actor.get_aggro_near_position(null, null, message.target_priority)
 	return aggro if aggro != null else self
 
 

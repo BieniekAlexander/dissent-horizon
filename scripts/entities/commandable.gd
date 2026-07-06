@@ -256,10 +256,18 @@ static func get_arrangement_cells(
 #endregion
 
 #region Combat
+## Widen Entity.is_armed(): a Commandable also counts as armed while it is a bunker
+## garrison ACTIVELY holding an occupant that carries a weapon, since bunker fire
+## propagates that occupant's shots (making e.g. a garrisoned shelter a COMBAT_STRUCTURES
+## target). Capability alone — an empty bunker — does not qualify.
+func is_armed() -> bool:
+	return super() or (garrison != null and garrison.bunker and garrison.has_armed_occupants())
+
 ## Default weapon patterns for unit-grouped commandables. Structures default to
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
-func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D = null) -> MoveCommand:
+func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D = null, \
+		min_target_priority: TargetPriority = TargetPriority.NON_COMBAT_UNITS) -> MoveCommand:
 	var is_bunker: bool = garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
 	if aggro_range_shape == null or (weapon_inventory == null and not is_bunker):
 		return null
@@ -272,16 +280,15 @@ func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D
 		center = a_center.global_position
 	else:
 		center = a_center as Vector3
-	var shape_transform: Transform3D = shape_source.global_transform
-	shape_transform.origin = center
 
-	var excludes: Array = [target_body.get_rid()] if target_body != null else []
-	var vs: Array[Entity] = SU.query_shape_for_entities(
-		get_world_3d(), shape_source.shape, shape_transform,
-		CollisionLayers.TARGETABLE_ANY, excludes, 10
+	var vs: Array[Entity] = SU.entities_in_aggro_shape(
+		get_world_3d(), shape_source, center, target_body, 10
 	).filter(func(t: Entity) -> bool:
-		# An attackable enemy this actor (or its garrison, when a bunker) can fire on.
+		# An attackable enemy this actor (or its garrison, when a bunker) can fire on,
+		# ranked at least as important as the command's minimum target priority.
 		if not (t is Commandable and (t as Commandable).defense != null):
+			return false
+		if t.target_priority > min_target_priority:
 			return false
 		if not is_enemy_of(t):
 			return false
@@ -292,14 +299,19 @@ func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D
 		return is_bunker and garrison.any_garrison_can_target(t)
 	)
 
-	var potential_targets: Array = AU.sort_on_key(
-		func(c: Commandable): return VU.inXZ(global_position).distance_squared_to(VU.inXZ(c.global_position)),
-		vs
+	# Prefer higher-priority targets (lower TargetPriority value), breaking ties by the
+	# nearest so a unit still engages the closest of the most important targets.
+	var self_xz: Vector2 = VU.inXZ(global_position)
+	vs.sort_custom(func(a: Entity, b: Entity) -> bool:
+		if a.target_priority != b.target_priority:
+			return a.target_priority < b.target_priority
+		return self_xz.distance_squared_to(VU.inXZ(a.global_position)) \
+			< self_xz.distance_squared_to(VU.inXZ(b.global_position))
 	)
 
-	if potential_targets.is_empty():
+	if vs.is_empty():
 		return null
-	var msg := CommandMessage.new(map, potential_targets[0], null)
+	var msg := CommandMessage.new(map, vs[0], null)
 	msg.persist = false
 	return Attack.new(msg)
 
@@ -317,7 +329,10 @@ func receive_damage(damage: Damage, from: Commandable = null) -> void:
 ## Returns an Attack command targeting `attacker` if it is within VisionRange and
 ## is a valid enemy and retaliator has a valid weapon, otherwise null.
 func _get_vision_range_attack(attacker: Commandable) -> MoveCommand:
-	if vision_range_shape == null:
+	# A garrisoned (or otherwise orphaned) unit is out of the scene tree, so get_world_3d()
+	# is null and the shape query below would crash. It also can't act on a retaliation
+	# target while inside a garrison, so bail out.
+	if vision_range_shape == null or not is_inside_tree():
 		return null
 	if not is_enemy_of(attacker):
 		return null

@@ -9,6 +9,12 @@ var world_position: Vector3	# The raw position at which the command is requested
 var ability_type: Variant	# For Ability commands: which Ability.Type to invoke (null otherwise)
 var aggro_shape: CollisionShape3D	# Largest aggro shape in the issuing group (Defend); null → each unit uses its own
 
+## Minimum target priority this command's aggro will engage: a target whose own
+## Entity.target_priority ranks WORSE (higher-valued) than this is ignored. Defaults to
+## NON_COMBAT_UNITS, so aggro chases armed things and unarmed units but skips unarmed
+## structures unless a command explicitly widens it. See Commandable.get_aggro_near_position.
+var target_priority: Entity.TargetPriority = Entity.TargetPriority.NON_COMBAT_UNITS
+
 ## When true, the commandable pursues this command to completion regardless of the
 ## "still worth it?" checks that MoveCommand.get_updated_state runs while `not persist`.
 ## Defaults false; e.g. idle-aggro acquisition sets it true so a guarding unit
@@ -69,5 +75,6 @@ static func deep_copy(a_message: CommandMessage) -> CommandMessage:
 	)
 	copy.persist = a_message.persist
 	copy.aggro_shape = a_message.aggro_shape
+	copy.target_priority = a_message.target_priority
 	return copy
 #endregion

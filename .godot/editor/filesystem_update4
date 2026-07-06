@@ -1,13 +1,9 @@
+res://scripts/entities/commandable.gd
+res://scripts/entities/tools/projectile.gd
 res://scenes/scenarios/s1.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scenes/scenarios/s1.gdshader
 res://scripts/rendering/shaders/fog.gdshader
 res://scripts/entities/entity.gd
-res://scripts/maps/fog.gd
-res://resources/heightmap_workbench/terrain.tres
-res://scenes/entities/structures/nt/rock_2.tscn
-res://scenes/entities/projectiles/cl/badger_rocket.tscn
-res://scenes/entities/structures/nt/building.tscn
 res://scripts/entities/components/garrison.gd
-res://scripts/interface/commands/occupy.gd

@@ -43,6 +43,28 @@ static func get_nearby_entities(world_3d: World3D, a_position: Vector3, a_radius
 		world_3d, shape, Transform3D(Basis(), a_position), collision_mask, [], 10
 	)
 
+## The shared "aggro shape collision check": targetable entities overlapping
+## `shape_node`'s shape re-centred at `center` (world space). Positions the aggro/query
+## shape at `center` and returns everything on TARGETABLE_ANY inside it, using the real
+## shape geometry (not a radius approximation) and leaving enemy/visibility/weapon
+## filtering to the caller. `exclude_body` (e.g. the querying entity's own TargetBody) is
+## skipped. Empty when `shape_node` or its shape is null.
+static func entities_in_aggro_shape(
+	world_3d: World3D,
+	shape_node: CollisionShape3D,
+	center: Vector3,
+	exclude_body: CollisionObject3D = null,
+	max_results: int = 32
+) -> Array[Entity]:
+	if shape_node == null or shape_node.shape == null:
+		return []
+	var xform: Transform3D = shape_node.global_transform
+	xform.origin = center
+	var exclude: Array = [exclude_body.get_rid()] if exclude_body != null else []
+	return query_shape_for_entities(
+		world_3d, shape_node.shape, xform, CollisionLayers.TARGETABLE_ANY, exclude, max_results
+	)
+
 static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 	var diff = (pos1 - pos2).abs()
 	return max(diff.x, diff.y)

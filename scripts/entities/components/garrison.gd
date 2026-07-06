@@ -96,6 +96,16 @@ func kill_occupants() -> void:
 			unit.queue_free()
 	_garrisoned.clear()
 
+## True when this garrison is ACTIVELY holding at least one occupant that carries a
+## weapon — the precondition for any bunker fire to project. Merely being able to accept
+## such units (an empty or unarmed-only garrison) returns false. Target-agnostic, unlike
+## any_garrison_can_target(); used to rank a bunker host as a combat target.
+func has_armed_occupants() -> bool:
+	for unit: Commandable in _garrisoned:
+		if unit.weapon_inventory != null and unit.weapon_inventory.has_weapons():
+			return true
+	return false
+
 ## True when at least one garrisoned unit carries a weapon that can target `target`.
 func any_garrison_can_target(target: Entity) -> bool:
 	if not bunker:
