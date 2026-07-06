@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" uid="uid://bsxvbf5i07l6" path="res://scripts/scenario/events/event_ability_ambush.gd" id="1_amb"]
 
-[node name="OrdnanceAmbush" type="Node3D"]
+[node name="OrdnanceAmbush" type="Sprite3D"]
 script = ExtResource("1_amb")

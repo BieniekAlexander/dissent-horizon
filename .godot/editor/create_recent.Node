@@ -1,5 +1,8 @@
-Node
 CollisionShape3D
+Ownership
+Scout
+Node
+Sprite3D
 Node3D
 Production
 Garrison
@@ -9,6 +12,3 @@ EffectApplicator
 EventSpawnEntities
 EntityTrigger
 EventCommandPoint
-TextEdit
-Interactor
-GPUParticles3D

@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/irregular.tscn" id="1_0sxg5"]
 [ext_resource type="Script" uid="uid://tm1rdm5spju8" path="res://scripts/scenario/events/event_spawn_entities.gd" id="1_dc7d4"]
 
-[node name="Liberation" type="Node3D" unique_id=426552721]
+[node name="Liberation" type="Sprite3D" unique_id=426552721]
 script = ExtResource("1_dc7d4")
 assignment = 1
 commander_id = -1

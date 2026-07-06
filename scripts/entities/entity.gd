@@ -349,6 +349,12 @@ func _ready() -> void:
 			(target_body.get_node("TargetShape") as CollisionShape3D).shape = collider.shape
 		_apply_targetable_layers()
 
+	# Any entity with a VisionRange contributes line-of-sight, so it joins the "los"
+	# group that fog.gd iterates to reveal fog — independent of "commandable". This is
+	# what lets a non-Commandable recon entity (e.g. Scout) clear fog for its owner.
+	if vision_range_shape != null:
+		add_to_group("los")
+
 	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,
 	# so we self-initialize from default_commander_id after all _ready() calls
 	# have run (ensuring Scenario._ready() has already created the commanders).

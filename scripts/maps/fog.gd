@@ -38,6 +38,7 @@ var _fog_bytes: PackedByteArray       # display buffer, rebuilt each frame from 
 var _fog_image: Image
 var _fog_texture: ImageTexture
 var _sight_disc_cache: Dictionary  # int radius_px -> Array[Vector2i]
+var _footprint_cache: Dictionary  # footprint signature "kind:hx:hz" -> Array[Vector2i]
 var _map: Map  # cached in _initialize; used to look up structure footprint cells
 #endregion
 
@@ -98,20 +99,22 @@ func _physics_process(_delta: float) -> void:
 	var is_active: bool = (active_id == -1 and viewer_id == RTSController.PLAYER_COMMANDER_ID) \
 		or viewer_id == active_id
 
-	# ── Update exploration texture for this commander's units ──
+	# ── Update exploration texture for this commander's vision sources ──
 	# Runs for every commander's Fog so their data stays current even off-screen.
+	# The "los" group holds every Entity that has a VisionRange shape (see
+	# Entity._ready), so anything with sight — units, structures, a recon Scout —
+	# reveals fog regardless of whether it accepts commands.
 	_fog_bytes = _explored_bytes.duplicate()
-	for entity: Entity in get_tree().get_nodes_in_group("commandable"):
+	for entity: Entity in get_tree().get_nodes_in_group("los"):
 		if entity.commander_id != viewer_id:
 			continue
-		if entity.vision_range_shape == null:
+		var vision_shape: CollisionShape3D = entity.vision_range_shape
+		if vision_shape == null or vision_shape.shape == null:
 			continue
-		var pixel := _world_to_pixel(VU.inXZ(entity.global_position))
-		var vision_shape := entity.vision_range_shape
-		var world_radius := (vision_shape.shape as CylinderShape3D).radius \
-			* vision_shape.global_transform.basis.x.length()
-		var radius_px := int(world_radius * POINTS_PER_UNIT)
-		for offset: Vector2i in _sight_disc(radius_px):
+		# Centre on the shape (it may be offset from the entity origin), and cover the
+		# shape's XZ cross-section — any shape type, not just a circle.
+		var pixel := _world_to_pixel(VU.inXZ(vision_shape.global_position))
+		for offset: Vector2i in _vision_offsets(vision_shape):
 			var px := pixel.x + offset.x
 			var py := pixel.y + offset.y
 			if px >= 0 and px < _img_width and py >= 0 and py < _img_height:
@@ -254,4 +257,61 @@ func _sight_disc(radius_px: int) -> Array:
 				disc.append(Vector2i(dx, dy))
 	_sight_disc_cache[radius_px] = disc
 	return disc
+
+## Pixel offsets (relative to the vision shape's centre pixel) covered by `vision_shape`
+## projected onto the XZ plane. The fog is a flat plane, so only the shape's XZ
+## cross-section matters. Handles the shapes we use — Cylinder/Sphere/Capsule (a circle,
+## or an ellipse under non-uniform scale) and Box (a rectangle) — and falls back to any
+## other shape's bounding box, so a new shape type still reveals (over-reveals at worst)
+## rather than crashing. Shapes are assumed axis-aligned. Cached by footprint signature
+## (kind + pixel half-extents) so identical footprints are computed once.
+func _vision_offsets(vision_shape: CollisionShape3D) -> Array:
+	var shape: Shape3D = vision_shape.shape
+	var xf: Transform3D = vision_shape.global_transform
+	# Axis-aligned: basis.x / basis.z carry only horizontal scale, no rotation.
+	var scale_x: float = Vector2(xf.basis.x.x, xf.basis.x.z).length()
+	var scale_z: float = Vector2(xf.basis.z.x, xf.basis.z.z).length()
+
+	# kind 0 = ellipse (circular in XZ), 1 = rectangle. `half` = world-space XZ half-extents.
+	var kind: int = 1
+	var half: Vector2 = Vector2.ZERO
+	if shape is CylinderShape3D:
+		var r: float = (shape as CylinderShape3D).radius
+		kind = 0
+		half = Vector2(r * scale_x, r * scale_z)
+	elif shape is SphereShape3D:
+		var r: float = (shape as SphereShape3D).radius
+		kind = 0
+		half = Vector2(r * scale_x, r * scale_z)
+	elif shape is CapsuleShape3D:
+		var r: float = (shape as CapsuleShape3D).radius
+		kind = 0
+		half = Vector2(r * scale_x, r * scale_z)
+	elif shape is BoxShape3D:
+		var s: Vector3 = (shape as BoxShape3D).size
+		half = Vector2(s.x * 0.5 * scale_x, s.z * 0.5 * scale_z)
+	else:
+		# Unknown shape: reveal its XZ bounding box so it still contributes vision.
+		var aabb: AABB = shape.get_debug_mesh().get_aabb()
+		half = Vector2(aabb.size.x * 0.5 * scale_x, aabb.size.z * 0.5 * scale_z)
+
+	var hx: int = int(half.x * POINTS_PER_UNIT)
+	var hz: int = int(half.y * POINTS_PER_UNIT)
+	var key: String = "%d:%d:%d" % [kind, hx, hz]
+	if _footprint_cache.has(key):
+		return _footprint_cache[key]
+
+	var offsets: Array[Vector2i] = []
+	for dz: int in range(-hz, hz + 1):
+		for dx: int in range(-hx, hx + 1):
+			var inside: bool = true
+			if kind == 0:
+				# Normalised ellipse test (a circle when hx == hz).
+				var nx: float = float(dx) / float(hx) if hx > 0 else 0.0
+				var nz: float = float(dz) / float(hz) if hz > 0 else 0.0
+				inside = nx * nx + nz * nz <= 1.0
+			if inside:
+				offsets.append(Vector2i(dx, dz))
+	_footprint_cache[key] = offsets
+	return offsets
 #endregion

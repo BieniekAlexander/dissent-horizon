@@ -189,7 +189,7 @@ func _notification(what: int) -> void:
 			# If this actor registered garrison intent but never actually garrisoned
 			# (e.g. the player issued a new command), unregister now so the host
 			# doesn't stay grounded waiting for a unit that has moved on.
-			if _garrison_registered_actor != null and target != null \
+			if is_instance_valid(_garrison_registered_actor) and target != null \
 					and target.garrison != null:
 				target.garrison.unregister_garrison_intent(_garrison_registered_actor)
 		_garrison_registered_actor = null

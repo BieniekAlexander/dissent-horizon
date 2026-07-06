@@ -1,0 +1,54 @@
+[gd_scene format=3 uid="uid://x1npbdho0isq"]
+
+[ext_resource type="Script" uid="uid://b7noqplt4gdch" path="res://scripts/entities/structures/shelter_structure.gd" id="1_7e53h"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_j8ro6"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="3_ev5e7"]
+[ext_resource type="Texture2D" uid="uid://5vx0iccure6l" path="res://assets/mountain.png" id="4_yhbvv"]
+[ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="8_2hsat"]
+[ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="9_wxsgx"]
+
+[node name="ShelterStructure" type="CharacterBody3D" unique_id=1386197407 groups=["commandable", "shelter", "structure"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_7e53h")
+type = 4610
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=661891945]
+
+[node name="Ownership" type="Node" parent="." unique_id=40693621]
+script = ExtResource("2_j8ro6")
+
+[node name="Structure" type="Node" parent="." unique_id=448907667]
+script = ExtResource("3_ev5e7")
+dimensions = Vector2i(2, 2)
+allow_uneven = true
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=2060797920]
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1363122046]
+
+[node name="Sprite" type="Sprite3D" parent="." unique_id=1923341668]
+transform = Transform3D(0.08, 0, 0, 0, 0.016263457, -0.0424264, 0, 0.016263455, 0.042426407, -0.09445536, 0.45, 0.30374527)
+axis = 1
+no_depth_test = true
+texture = ExtResource("4_yhbvv")
+
+[node name="FootprintVisualizer" type="Node3D" parent="." unique_id=1820155775 groups=["debug_shape_footprint"]]
+script = ExtResource("8_2hsat")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=437700484]
+
+[node name="DebugLabel" type="Label3D" parent="." unique_id=1441340077]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+visible = false
+pixel_size = 0.05
+render_priority = 10
+text = "NULL"
+font_size = 16
+
+[node name="TeamTint" type="Node" parent="." unique_id=407090635]
+script = ExtResource("9_wxsgx")
+
+[node name="AvoidanceObstacle" type="NavigationObstacle3D" parent="." unique_id=1466253000]
+avoidance_enabled = false
+avoidance_layers = 0

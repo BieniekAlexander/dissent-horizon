@@ -32,7 +32,7 @@ disabled = true
 script = ExtResource("2_own")
 metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 
-[node name="EffectApplicator" type="Node3D" parent="." unique_id=440011005]
+[node name="EffectApplicator" type="Sprite3D" parent="." unique_id=440011005]
 script = ExtResource("3_eff")
 metadata/_custom_type_script = "uid://drins2oa5nvwm"
 

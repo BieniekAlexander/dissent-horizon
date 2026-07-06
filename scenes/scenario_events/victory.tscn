@@ -4,12 +4,12 @@
 [ext_resource type="Script" uid="uid://de2utln0ffbv" path="res://scripts/scenario/events/event_show_message.gd" id="2_msg"]
 [ext_resource type="Script" uid="uid://f6ls1r1jxki7" path="res://scripts/scenario/events/event_win_lose.gd" id="3_win"]
 
-[node name="Victory" type="Node3D"]
+[node name="Victory" type="Sprite3D"]
 script = ExtResource("1_root")
 
-[node name="VictoryMsg" type="Node3D" parent="."]
+[node name="VictoryMsg" type="Sprite3D" parent="."]
 script = ExtResource("2_msg")
 message = "All enemy forces eliminated. Victory!"
 
-[node name="Win" type="Node3D" parent="."]
+[node name="Win" type="Sprite3D" parent="."]
 script = ExtResource("3_win")

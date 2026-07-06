@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" uid="uid://f3kmjhjgjaom" path="res://scripts/scenario/events/event_ability_irradiate.gd" id="1_irr"]
 
-[node name="OrdnanceIrradiate" type="Node3D"]
+[node name="OrdnanceIrradiate" type="Sprite3D"]
 script = ExtResource("1_irr")

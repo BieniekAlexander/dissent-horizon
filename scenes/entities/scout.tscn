@@ -7,15 +7,17 @@
 height = 100.0
 radius = 8.0
 
-[node name="Scout" type="CharacterBody3D" groups=["commandable"]]
+[node name="Scout" type="CharacterBody3D" unique_id=1180138012 groups=["commandable"]]
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("1_scout")
 type = 4
 
-[node name="VisionRange" type="CollisionShape3D" parent="." groups=["debug_shape_vision_range"]]
+[node name="VisionRange" type="CollisionShape3D" parent="." unique_id=812144965 groups=["debug_shape_vision_range"]]
+visible = false
 shape = SubResource("CylinderShape3D_vision")
 disabled = true
+debug_color = Color(0.2, 0.6, 1, 0.3)
 
-[node name="Ownership" type="Node" parent="."]
+[node name="Ownership" type="Node" parent="." unique_id=852799154]
 script = ExtResource("2_ownr")

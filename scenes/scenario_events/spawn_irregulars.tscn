@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://tm1rdm5spju8" path="res://scripts/scenario/events/event_spawn_entities.gd" id="1_e04dg"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/irregular.tscn" id="2_vh02a"]
 
-[node name="SpawnIrregulars" type="Node3D" unique_id=267313945]
+[node name="SpawnIrregulars" type="Sprite3D" unique_id=267313945]
 script = ExtResource("1_e04dg")
 entity_scenes = Array[PackedScene]([ExtResource("2_vh02a")])
 count = 3

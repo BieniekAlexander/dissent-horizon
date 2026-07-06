@@ -15,10 +15,6 @@ extends AbstractEvent
 ## An EventIssueCommand child node, if present, issues a command chain to every spawned
 ## Commandable. If absent, spawned units receive no initial orders.
 
-#region Constants
-const _SPAWN_RING_RADIUS := 1.0
-#endregion
-
 #region Properties
 ## How the spawned entities' owner is chosen.
 enum Assignment {
@@ -112,19 +108,4 @@ func _find_issue_command() -> EventIssueCommand:
 		if child is EventIssueCommand:
 			return child as EventIssueCommand
 	return null
-#endregion
-
-#region Editor gizmo
-func _draw_editor_gizmo(verts: PackedVector3Array) -> void:
-	_gizmo_ring(verts, Vector3.ZERO, _SPAWN_RING_RADIUS)
-	# Polyline from the spawn point through each EventCommandPoint grandchild (those
-	# inside the nested EventIssueCommand). EventCommandTarget nodes don't have a fixed
-	# position so only waypoints are drawn.
-	var path: Array[Vector3] = [Vector3.ZERO]
-	for child: Node in get_children():
-		if child is EventIssueCommand:
-			for grandchild: Node in child.get_children():
-				if grandchild is EventCommandPoint:
-					path.append(to_local((grandchild as EventCommandPoint).global_position))
-	_gizmo_polyline(verts, path)
 #endregion

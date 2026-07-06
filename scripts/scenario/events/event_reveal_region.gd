@@ -15,8 +15,3 @@ func execute(manager: ScenarioTriggerManager) -> void:
 		return
 	fog.reveal_region(VU.inXZ(global_position), radius)
 #endregion
-
-#region Editor gizmo
-func _draw_editor_gizmo(verts: PackedVector3Array) -> void:
-	_gizmo_ring(verts, Vector3.ZERO, radius)
-#endregion

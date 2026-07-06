@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" uid="uid://dm1g858ecl34g" path="res://scripts/scenario/events/event_promote.gd" id="1_pro"]
 
-[node name="OrdnancePromote" type="Node3D"]
+[node name="OrdnancePromote" type="Sprite3D"]
 script = ExtResource("1_pro")

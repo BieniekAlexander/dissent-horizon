@@ -11,13 +11,12 @@ class_name Scout extends Entity
 ## minimap skips it (it draws only Commandables). It never registers in the terrain
 ## grid, so it obstructs nothing.
 
-## Physics frames the scout persists before freeing itself. 450 ≈ 15 s at the game's
-## 30 ticks/second.
+## Physics frames the scout persists before freeing itself. if less than 0, the timer is infinite.
 @export var lifespan_frames: int = 450
 
 var _frames_alive: int = 0
 
 func _physics_process(_delta: float) -> void:
 	_frames_alive += 1
-	if _frames_alive >= lifespan_frames:
+	if lifespan_frames>=0 and _frames_alive >= lifespan_frames:
 		queue_free()

@@ -296,10 +296,12 @@ To spawn pins: select the Map node in the editor and toggle `generate_editor_pin
 
 `MeshInstance3D` with a shader that samples a grayscale `ImageTexture` (FORMAT_L8). Each physics frame:
 1. Copies `_explored_bytes` → `_fog_bytes`
-2. For each player-owned commandable with a `VisionRange` CollisionShape3D, clears pixels within radius (disc pre-cached by radius)
+2. For each player-owned entity in the **`"los"` group** (every `Entity` with a `VisionRange` CollisionShape3D — added in `Entity._ready`, independent of `"commandable"`), clears the pixels its vision shape covers in the XZ plane. `_vision_offsets()` generalizes over shape type: Cylinder/Sphere/Capsule reveal a circle (ellipse under non-uniform scale), Box a rectangle, and any other shape falls back to its XZ bounding box. Shapes are assumed axis-aligned; footprints are cached by signature (`kind:hx:hz`).
 3. Marks cleared pixels as explored (EXPLORED_ALPHA = 127) in `_explored_bytes`
 4. Uploads updated image to shader
-5. Hides enemy commandables whose pixel value is non-zero
+5. Hides enemy commandables whose pixel value is non-zero (this step still iterates `"commandable"`, since it's about entity visibility, not vision sources)
+
+A non-Commandable recon entity (e.g. `Scout`) reveals fog purely by having a `VisionRange` — it lands in `"los"` automatically. Do NOT assume the vision shape is a cylinder: `_vision_offsets()` must stay shape-agnostic.
 
 `POINTS_PER_UNIT = 1.0 / Map.CELL_SIZE` (set in `_initialize`). The fog plane is scaled to cover the terrain plus one cell margin.
 

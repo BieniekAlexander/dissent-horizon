@@ -53,20 +53,24 @@ func can_garrison() -> bool:
 
 ## Register `unit` as intending to garrison once this shelter touches down.
 ## Idempotent — a second call for the same unit is silently ignored.
-## Connects to tree_exiting so a unit that dies auto-removes itself.
+## Uses a CONNECT_ONE_SHOT tree_exiting hook so a unit that dies (or otherwise
+## leaves the tree) removes itself exactly once, mirroring register_builder().
 func register_garrison_intent(unit: Commandable) -> void:
 	if unit in _pending_garrison_units:
 		return
 	_pending_garrison_units.append(unit)
-	unit.tree_exiting.connect(unregister_garrison_intent.bind(unit))
+	unit.tree_exiting.connect(unregister_garrison_intent.bind(unit), CONNECT_ONE_SHOT)
 
-## Remove `unit` from the pending list and drop the tree_exiting connection.
-## When the list becomes empty and the host is already grounded, lifts off so
-## the host resumes normal HOVERING without needing an explicit player command.
+## Drop `unit` from the pending list. When the list becomes empty and the host is
+## grounded, lift off so it resumes normal HOVERING without an explicit command.
+##
+## Deliberately does NOT read or disconnect `unit.tree_exiting`. A dying unit reaches
+## this both via that ONE_SHOT signal AND via Occupy's PREDELETE teardown, by which
+## point the unit is mid-free — and touching a freed node's signal crashes Godot
+## entirely. The one-shot connection cleans itself up; a still-live unit that
+## unregistered manually just keeps a harmless spent hook (as register_builder does).
 func unregister_garrison_intent(unit: Commandable) -> void:
 	_pending_garrison_units.erase(unit)
-	if unit.tree_exiting.is_connected(unregister_garrison_intent.bind(unit)):
-		unit.tree_exiting.disconnect(unregister_garrison_intent.bind(unit))
 	if _pending_garrison_units.is_empty():
 		var owner_cmd := get_parent() as Commandable
 		if owner_cmd != null and owner_cmd.movement != null:

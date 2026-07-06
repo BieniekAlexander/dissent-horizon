@@ -18,6 +18,7 @@ script = ExtResource("1_hsewj")
 trajectory = 1
 speed = 0.3
 base_damage = 15.0
+damage_type = 6
 pre_impact_lifespan = 60
 post_impact_lifespan = 10
 tick_rate = 100
