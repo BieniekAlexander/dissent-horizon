@@ -43,7 +43,7 @@ else is read from the scene.
 - **Weapons** are emitted per-buildable (`<buildable>_<weapon>`); Godot weapons
   are scene-embedded nodes, not shared resources.
 - **Status effects** hang off their projectile (`<projectile>_dot`).
-- **Damage table** is regenerated from `resources/damage/*.csv`.
+- **Damage table** is regenerated from `resources/damage/*.tsv`.
 
 ## Known gaps / notes
 

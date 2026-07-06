@@ -13,6 +13,8 @@
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_fe0lq"]
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_targetbody"]
+
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_aggro0"]
 height = 100.0
 radius = 2.0
@@ -62,21 +64,21 @@ avoidance_layers = 0
 avoidance_mask = 0
 script = ExtResource("8_avagent")
 
-[node name="MovementBody" type="CollisionShape3D" parent="." unique_id=1991558196]
+[node name="MovementBody" type="CollisionShape3D" parent="." unique_id=1991558196 groups=["debug_shape_movement_body"]]
 shape = SubResource("CylinderShape3D_fe0lq")
 
 [node name="TargetBody" type="StaticBody3D" parent="." unique_id=1235114386]
 collision_layer = 2
 collision_mask = 0
 
-[node name="Shape" type="CollisionShape3D" parent="TargetBody" unique_id=406925482]
-shape = SubResource("CylinderShape3D_fe0lq")
+[node name="TargetShape" type="CollisionShape3D" parent="TargetBody" unique_id=406925482 groups=["debug_shape_target_body"]]
+shape = SubResource("CylinderShape3D_targetbody")
 
-[node name="AggroRange" type="CollisionShape3D" parent="." unique_id=131280482]
+[node name="AggroRange" type="CollisionShape3D" parent="." unique_id=131280482 groups=["debug_shape_aggro_range"]]
 shape = SubResource("CylinderShape3D_aggro0")
 disabled = true
 
-[node name="VisionRange" type="CollisionShape3D" parent="." unique_id=1124867207]
+[node name="VisionRange" type="CollisionShape3D" parent="." unique_id=1124867207 groups=["debug_shape_vision_range"]]
 shape = SubResource("CylinderShape3D_visn0")
 disabled = true
 
@@ -97,7 +99,7 @@ collision_mask = 0
 script = ExtResource("4_slct0")
 indicator_path = NodePath("../SelectionIndicator")
 
-[node name="SelectionShape" type="CollisionShape3D" parent="Selectable" unique_id=1543182780]
+[node name="SelectionShape" type="CollisionShape3D" parent="Selectable" unique_id=1543182780 groups=["debug_shape_selection"]]
 shape = SubResource("SphereShape3D_cx6aj")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=378466876]

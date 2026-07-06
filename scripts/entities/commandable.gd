@@ -566,7 +566,8 @@ func _process_commands() -> void:
 			if is_built and commander.has_resources_for(current.message.tool.type):
 				production.enqueue(
 					commander.technology_mapping[current.message.tool.type].creation_time,
-					current.message.tool.packed_scene
+					current.message.tool.packed_scene,
+					current.message.tool.type
 				)
 				commander.use_resources_for(current.message.tool.type)
 			clear_command()

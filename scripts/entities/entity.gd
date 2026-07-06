@@ -42,6 +42,7 @@ enum Type {
 	AN_UNIT_IRREGULAR=0x2101,
 	AN_UNIT_WARLORD=0x2103,
 	AN_UNIT_KAMIKAZE=0x2104,
+	AN_UNIT_MERCURY=0x2105,
 	## CL (COLONIAL)
 	CL_UNIT_STOCK_TRUCK=0x3100,
 	CL_UNIT_RECRUIT=0x3101,
@@ -345,7 +346,7 @@ func _ready() -> void:
 	# TargetBody) keep their authored TargetBody shape.
 	if target_body != null:
 		if collider != null:
-			(target_body.get_node("Shape") as CollisionShape3D).shape = collider.shape
+			(target_body.get_node("TargetShape") as CollisionShape3D).shape = collider.shape
 		_apply_targetable_layers()
 
 	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,

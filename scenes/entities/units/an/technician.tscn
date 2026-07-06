@@ -31,7 +31,7 @@ script = ExtResource("4_invnt")
 [node name="MeleeWeapon" type="Node3D" parent="Loadout" index="0" unique_id=164106321]
 script = ExtResource("5_wpn00")
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/MeleeWeapon" index="0" unique_id=1019715679]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/MeleeWeapon" index="0" unique_id=1019715679 groups=["debug_shape_attack_range"]]
 shape = SubResource("CylinderShape3D_techmelee")
 disabled = true
 

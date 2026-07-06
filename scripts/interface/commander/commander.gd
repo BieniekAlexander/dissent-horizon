@@ -118,6 +118,7 @@ var technology_mapping: Dictionary = {
 	Entity.Type.AN_UNIT_WARLORD: TechnologySpec.new(250, 0, 0, 20*30),
 	Entity.Type.AN_UNIT_IRREGULAR: TechnologySpec.new(75, 0, 0, 15*30),
 	Entity.Type.AN_UNIT_KAMIKAZE: TechnologySpec.new(200, 0, 0, 25*30),
+	Entity.Type.AN_UNIT_MERCURY: TechnologySpec.new(300, 0, 0, 25*30),
 	# CL (Colonial)
 	Entity.Type.CL_STRUCTURE_SETTLEMENT: TechnologySpec.new(400, 0, 0, 45*30),
 	Entity.Type.CL_STRUCTURE_INTERNMENT_CAMP: TechnologySpec.new(300, 0, 0, 30*30),
@@ -171,6 +172,16 @@ func use_resources_for(a_type: Variant) -> void:
 	add_dominion(-technology_spec.dominion_cost)
 	# Vigor is upkeep, not a one-time spend — it's adjusted when structures are
 	# built/lost (see Commandable), not deducted per train.
+
+## Refund the cost of `a_type` — the inverse of use_resources_for. Used when a queued
+## training job is cancelled. A no-op for an unknown type. Vigor is upkeep (adjusted
+## on build/loss), so nothing to refund there.
+func refund_resources_for(a_type: Variant) -> void:
+	var technology_spec: TechnologySpec = technology_mapping.get(a_type)
+	if technology_spec == null:
+		return
+	add_ore(technology_spec.ore_cost)
+	add_dominion(technology_spec.dominion_cost)
 
 func proc_technology() -> void:
 	# updates the tech tree of the commander according to changes in ownership.

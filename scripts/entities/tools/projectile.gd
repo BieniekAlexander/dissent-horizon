@@ -81,7 +81,13 @@ func _physics_process(_delta: float) -> void:
 	curr_physics_pos = global_position
 	match _state:
 		State.IN_FLIGHT:
-			if _has_landed() or _frames_pre_impact>pre_impact_lifespan:
+			if _has_landed():
+				if is_instance_valid(target):
+					# TODO revisit, the check might be error prone but projectiles overshooting their targets are causing misses
+					global_position = target.global_position # force the projectile to land on its target if it has "landed" with resepct to it
+				
+				_enter_post_impact()
+			elif _frames_pre_impact>pre_impact_lifespan:
 				_enter_post_impact()
 			else:
 				_tick_pre_impact()

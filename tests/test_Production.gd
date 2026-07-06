@@ -45,6 +45,30 @@ func test_tick_returns_false_on_empty_queue():
 	var p := _make_production()
 	assert_false(p.tick())
 
+## --- cancel ----------------------------------------------------------------
+## cancel() removes a queued job (and, when the producer has a commander, refunds
+## its cost — the refund path is exercised in-game since it needs a live commander).
+
+func test_enqueue_stores_type_for_refund():
+	var p := _make_production()
+	p.enqueue(10, null, Entity.Type.AN_UNIT_IRREGULAR)
+	assert_eq(p.job_type(0), Entity.Type.AN_UNIT_IRREGULAR)
+
+func test_cancel_removes_the_job():
+	var p := _make_production()
+	p.enqueue(5, null, Entity.Type.AN_UNIT_IRREGULAR)
+	p.enqueue(15, null, Entity.Type.TC_UNIT_VANGUARD)
+	assert_true(p.cancel(0), "cancel returns true when a job is removed")
+	assert_eq(p.job_count(), 1, "queue shrinks by one")
+	assert_eq(p.training_queue[0][Production.JOB_TOTAL], 15, "the second job is promoted to head")
+
+func test_cancel_out_of_range_is_a_noop():
+	var p := _make_production()
+	p.enqueue(5, null)
+	assert_false(p.cancel(3), "index past the end returns false")
+	assert_false(p.cancel(-1), "negative index returns false")
+	assert_eq(p.job_count(), 1, "queue is untouched")
+
 ## --- producible_types / can_produce ---------------------------------------
 ## The component owns the "what can this build" capability (moved off the Train
 ## command). Configured per structure scene via the producible_types export.

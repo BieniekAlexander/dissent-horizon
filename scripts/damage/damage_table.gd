@@ -46,12 +46,12 @@ func matchup_override(attacker_type: int, target_type: int) -> Variant:
 	return _matchup_table.get(attacker_type, {}).get(target_type)
 
 func _load_armour_table() -> void:
-	var file: FileAccess = FileAccess.open("res://resources/damage/damage_vs_armour.csv", FileAccess.READ)
+	var file: FileAccess = FileAccess.open("res://resources/damage/damage_vs_armour.tsv", FileAccess.READ)
 	if file == null:
-		push_error("DamageTable: could not open damage_vs_armour.csv")
+		push_error("DamageTable: could not open damage_vs_armour.tsv")
 		return
 
-	var header: PackedStringArray = file.get_csv_line()
+	var header: PackedStringArray = file.get_csv_line("\t")
 	var armour_keys: Array = Defense.ArmourType.keys()
 	var col_map: Dictionary = {} # col_index -> ArmourType int
 	for i: int in range(1, header.size()):
@@ -61,7 +61,7 @@ func _load_armour_table() -> void:
 
 	var damage_keys: Array = Damage.Type.keys()
 	while not file.eof_reached():
-		var row: PackedStringArray = file.get_csv_line()
+		var row: PackedStringArray = file.get_csv_line("\t")
 		if row.size() < 2:
 			continue
 		var row_name: String = row[0].strip_edges()
@@ -79,14 +79,14 @@ func _load_armour_table() -> void:
 	file.close()
 
 func _load_frame_table() -> void:
-	# TODO(tune): damage_vs_frame.csv is a neutral placeholder (all 1.0). Author
+	# TODO(tune): damage_vs_frame.tsv is a neutral placeholder (all 1.0). Author
 	# real BIOLOGICAL/METALLIC matchups and assign frame_type per unit.
-	var file: FileAccess = FileAccess.open("res://resources/damage/damage_vs_frame.csv", FileAccess.READ)
+	var file: FileAccess = FileAccess.open("res://resources/damage/damage_vs_frame.tsv", FileAccess.READ)
 	if file == null:
-		push_error("DamageTable: could not open damage_vs_frame.csv")
+		push_error("DamageTable: could not open damage_vs_frame.tsv")
 		return
 
-	var header: PackedStringArray = file.get_csv_line()
+	var header: PackedStringArray = file.get_csv_line("\t")
 	var frame_keys: Array = Defense.FrameType.keys()
 	var col_map: Dictionary = {} # col_index -> FrameType int
 	for i: int in range(1, header.size()):
@@ -96,7 +96,7 @@ func _load_frame_table() -> void:
 
 	var damage_keys: Array = Damage.Type.keys()
 	while not file.eof_reached():
-		var row: PackedStringArray = file.get_csv_line()
+		var row: PackedStringArray = file.get_csv_line("\t")
 		if row.size() < 2:
 			continue
 		var row_name: String = row[0].strip_edges()
@@ -114,12 +114,12 @@ func _load_frame_table() -> void:
 	file.close()
 
 func _load_attribute_table() -> void:
-	var file: FileAccess = FileAccess.open("res://resources/damage/damage_vs_attribute.csv", FileAccess.READ)
+	var file: FileAccess = FileAccess.open("res://resources/damage/damage_vs_attribute.tsv", FileAccess.READ)
 	if file == null:
-		push_error("DamageTable: could not open damage_vs_attribute.csv")
+		push_error("DamageTable: could not open damage_vs_attribute.tsv")
 		return
 
-	var header: PackedStringArray = file.get_csv_line()
+	var header: PackedStringArray = file.get_csv_line("\t")
 	var attr_keys: Array = EntityAttribute.Type.keys()
 	var col_map: Dictionary = {} # col_index -> EntityAttribute.Type int
 	for i: int in range(1, header.size()):
@@ -129,7 +129,7 @@ func _load_attribute_table() -> void:
 
 	var damage_keys: Array = Damage.Type.keys()
 	while not file.eof_reached():
-		var row: PackedStringArray = file.get_csv_line()
+		var row: PackedStringArray = file.get_csv_line("\t")
 		if row.size() < 2:
 			continue
 		var row_name: String = row[0].strip_edges()
@@ -151,11 +151,11 @@ func _load_attribute_table() -> void:
 ## target Entity.Type names, cells = effectiveness multiplier (blank = no override).
 ## Absent file is fine — it just means no overrides.
 func _load_matchup_table() -> void:
-	var file: FileAccess = FileAccess.open("res://resources/damage/matchup_overrides.csv", FileAccess.READ)
+	var file: FileAccess = FileAccess.open("res://resources/damage/matchup_overrides.tsv", FileAccess.READ)
 	if file == null:
 		return
 
-	var header: PackedStringArray = file.get_csv_line()
+	var header: PackedStringArray = file.get_csv_line("\t")
 	var type_keys: Array = Entity.Type.keys()
 	var col_map: Dictionary = {} # col_index -> target Entity.Type int
 	for i: int in range(1, header.size()):
@@ -164,7 +164,7 @@ func _load_matchup_table() -> void:
 			col_map[i] = Entity.Type[col_name]
 
 	while not file.eof_reached():
-		var row: PackedStringArray = file.get_csv_line()
+		var row: PackedStringArray = file.get_csv_line("\t")
 		if row.size() < 2:
 			continue
 		var row_name: String = row[0].strip_edges()

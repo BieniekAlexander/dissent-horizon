@@ -45,6 +45,9 @@ shape = SubResource("BoxShape3D_r3ibt")
 [node name="TargetBody" parent="." index="3" unique_id=1235114386]
 visible = false
 
+[node name="TargetShape" parent="TargetBody" index="0" unique_id=406925482]
+visible = false
+
 [node name="AggroRange" parent="." index="4" unique_id=131280482]
 visible = false
 shape = SubResource("CylinderShape3D_brsut")
@@ -53,22 +56,23 @@ shape = SubResource("CylinderShape3D_brsut")
 visible = false
 shape = SubResource("CylinderShape3D_vision")
 
-[node name="Structure" parent="." index="7"]
+[node name="Structure" parent="." index="7" unique_id=390859349]
 dimensions = Vector2i(1, 1)
 
 [node name="Defense" parent="." index="8" unique_id=637704181]
 armour_type = 1
-hp_max = 200.0
+frame_type = 1
+hp_max = 500.0
 
 [node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24707031, 0)
+visible = false
 
 [node name="Sprite" parent="." index="13" unique_id=1381401170]
 transform = Transform3D(3.5, 0, 0, 0, 2.4748745, -2.4748745, 0, 2.4748745, 2.4748745, 0, 0.45, 0)
 texture = ExtResource("5_hro24")
 
 [node name="Loadout" type="Node3D" parent="." index="14" unique_id=1780205216]
-visible = false
 script = ExtResource("3_invnt")
 
 [node name="MissileLauncher" type="Node3D" parent="Loadout" index="0" unique_id=1106583924]
@@ -81,10 +85,10 @@ projectile_scene = ExtResource("4_hro24")
 melee_damage = 0.0
 target_mask = 4
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/MissileLauncher" index="0" unique_id=433196544]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/MissileLauncher" index="0" unique_id=433196544 groups=["debug_shape_attack_range"]]
+visible = false
 shape = SubResource("CylinderShape3D_44d7s")
 disabled = true
-debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
 [node name="HPBar" parent="." index="15" unique_id=665391337]
 visible = false
@@ -98,3 +102,6 @@ render_priority = 8
 texture = SubResource("GradientTexture1D_4y8y4")
 region_enabled = true
 region_rect = Rect2(2, 0, 0, 0)
+
+[node name="FootprintVisualizer" parent="." index="23" unique_id=286423146]
+visible = false

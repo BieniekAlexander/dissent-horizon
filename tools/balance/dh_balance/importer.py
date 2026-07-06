@@ -52,8 +52,8 @@ def _projectile_scene(pid: str) -> str:
 # YAML enum name -> the integer Godot stores in the .tscn (mirrors the game enums).
 _ARMOUR_INT = {"LIGHT": 0, "MEDIUM": 1, "HEAVY": 2}
 _FRAME_INT = {"BIOLOGICAL": 0, "METALLIC": 1}
-_DAMAGE_INT = {"LEAD": 1, "LAZER": 2, "TOXIN": 3, "FIRE": 4,
-               "ELECTRICITY": 5, "SIEGE": 6, "EXPLOSIVE": 7}
+_DAMAGE_INT = {"LEAD": 1, "TOXIC": 2, "SONIC": 3, "PLASMA": 4,
+               "SIEGE": 5, "EXPLOSIVE": 6, "ELECTRIC": 7, "LAZER": 8}
 _HIT_BIT = {"ground": 1 << 1, "air": 1 << 2}   # CollisionLayers.Mask.TARGETABLE_*
 
 
@@ -176,7 +176,7 @@ def diff_worlds(current: World, desired: World, scene_for: dict[str, str] | None
 
 def _diff_damage(current: World, desired: World) -> list[Change]:
     """Diff the damage table cell-by-cell. A change writes back to the source
-    CSVs (resources/damage/*.csv), not a scene. An absent cell means the default
+    TSVs (resources/damage/*.tsv), not a scene. An absent cell means the default
     multiplier (1.0 / blank); current==None vs a value is filling a blank."""
     out: list[Change] = []
     for attr, kind in [("vs_armour", "damage_vs_armour"),
@@ -524,17 +524,17 @@ def _apply_reach(lines: list[str], edit: Edit) -> tuple[bool, str]:
 
 
 def _apply_csv_edits(fs: Path, edits: list[Edit], dry_run: bool) -> None:
-    """Set cells in a damage CSV. ``edit.change.id`` is the row (damage type),
+    """Set cells in a damage TSV. ``edit.change.id`` is the row (damage type),
     ``edit.prop`` the column header; a blank ``value`` clears the cell back to
     the default multiplier."""
     lines = fs.read_text().splitlines()
     if not lines:
         for e in edits:
-            e.skip_reason = "empty CSV"
+            e.skip_reason = "empty TSV"
         return
-    header = [h.strip() for h in lines[0].split(",")]
+    header = [h.strip() for h in lines[0].split("\t")]
     col_of = {name: i for i, name in enumerate(header)}
-    row_of = {lines[i].split(",")[0].strip(): i
+    row_of = {lines[i].split("\t")[0].strip(): i
               for i in range(1, len(lines)) if lines[i].strip()}
     changed = False
     for e in edits:
@@ -542,11 +542,11 @@ def _apply_csv_edits(fs: Path, edits: list[Edit], dry_run: bool) -> None:
         if ci is None or ri is None:
             e.skip_reason = f"cell {e.change.id}/{e.prop} not in CSV"
             continue
-        cells = lines[ri].split(",")
+        cells = lines[ri].split("\t")
         while len(cells) <= ci:
             cells.append("")
         cells[ci] = e.value
-        lines[ri] = ",".join(cells)
+        lines[ri] = "\t".join(cells)
         e.applied = True
         changed = True
     if changed and not dry_run:

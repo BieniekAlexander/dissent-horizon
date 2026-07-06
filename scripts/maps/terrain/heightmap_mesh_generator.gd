@@ -93,9 +93,14 @@ func _build_mesh() -> ArrayMesh:
 	var gd: int = d - 1
 	var data: PackedFloat32Array = shape.map_data
 
-	# Each passable cell gets its own 4 vertices.  Impassable cells (corner-height
-	# spread > MAX_SLOPE_DIFF) are omitted entirely, leaving literal geometry holes
-	# so the background shows through without any transparency shader tricks.
+	# Each passable cell gets its own 4 vertices.  Impassable cells are omitted
+	# entirely, leaving literal geometry holes so the background shows through without
+	# any transparency shader tricks. A cell is impassable when its corner-height
+	# spread > MAX_SLOPE_DIFF (too steep) OR it is an authored no-go cell (the owning
+	# Map's blocked_cells) — so toggling a BlockPin punches/fills a hole here just like
+	# dragging a HeightPin reshapes the mesh (see Map.set_cell_blocked).
+	var blocked: Dictionary = _blocked_lookup()
+
 	var verts   := PackedVector3Array()
 	var uvs     := PackedVector2Array()
 	var normals := PackedVector3Array()
@@ -103,6 +108,8 @@ func _build_mesh() -> ArrayMesh:
 
 	for z in gd:
 		for x in gw:
+			if blocked.has(Vector2i(x, z)):
+				continue
 			var h00: float = data[ z      * w + x    ]
 			var h10: float = data[ z      * w + x + 1]
 			var h11: float = data[(z + 1) * w + x + 1]
@@ -144,4 +151,28 @@ func _build_mesh() -> ArrayMesh:
 	var result := ArrayMesh.new()
 	result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return result
+
+
+## Grid cells the owning Map has flagged as no-go (Map.blocked_cells), as a
+## Vector2i → true lookup for O(1) membership in the build loop. Empty when there is
+## no Map ancestor (e.g. the generator used standalone), so blocking only takes effect
+## inside a Map — and build() always reflects the CURRENT blocked_cells, whoever
+## triggered it.
+func _blocked_lookup() -> Dictionary:
+	var lookup: Dictionary = {}
+	var map := _find_map()
+	if map != null:
+		for c: Vector2i in map.blocked_cells:
+			lookup[c] = true
+	return lookup
+
+
+## Walk up to the owning Map (the generator lives under Map/NavigationRegion/Body).
+func _find_map() -> Map:
+	var node: Node = get_parent()
+	while node != null:
+		if node is Map:
+			return node as Map
+		node = node.get_parent()
+	return null
 #endregion

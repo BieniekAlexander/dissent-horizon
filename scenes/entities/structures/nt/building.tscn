@@ -26,5 +26,3 @@ metadata/_custom_type_script = "uid://dlhe01nj6efuh"
 [node name="Sprite" parent="." index="14" unique_id=1381401170]
 transform = Transform3D(7, 0, 0, 0, 2.4748738, -2.828427, 0, 2.4748738, 2.828427, -0.0350976, 0.45, -0.004480958)
 texture = ExtResource("3_bldsp")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="." index="24" unique_id=401658380]

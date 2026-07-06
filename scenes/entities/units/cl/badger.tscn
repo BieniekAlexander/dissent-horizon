@@ -20,6 +20,15 @@ type = 12546
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_scm32")
 
+[node name="TargetShape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
+visible = false
+
+[node name="AggroRange" parent="." index="4" unique_id=131280482]
+visible = false
+
+[node name="VisionRange" parent="." index="5" unique_id=1124867207]
+visible = false
+
 [node name="Movement" parent="." index="7" unique_id=413735738]
 speed = 0.05
 turn_rate = 1080.0
@@ -37,9 +46,16 @@ reload_time = 45
 projectile_scene = ExtResource("5_qd6od")
 melee_damage = 0.0
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/Weapon" index="0" unique_id=1451356995]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/Weapon" index="0" unique_id=1451356995 groups=["debug_shape_attack_range"]]
+visible = false
 shape = SubResource("CylinderShape3D_techmelee")
 disabled = true
+
+[node name="Selectable" parent="." index="13" unique_id=2049500591]
+visible = true
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=1543182780]
+visible = false
 
 [node name="Sprite" parent="." index="15" unique_id=1381401170]
 transform = Transform3D(3, 0, 0, 0, 1.0606601, -2.1213202, 0, 1.0606601, 2.1213202, 0, 0.17100573, 0)

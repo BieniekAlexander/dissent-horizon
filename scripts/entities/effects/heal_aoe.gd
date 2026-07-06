@@ -15,7 +15,7 @@ func _ready() -> void:
 	collision_mask = CollisionLayers.Mask.MOVEMENT_OBSTRUCTION
 	_parent_entity = get_parent() as Entity
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(_delta: float) -> void: 
 	var effective_id: int = _parent_entity.commander_id if _parent_entity != null else commander_id
 	for body: Node3D in get_overlapping_bodies():
 		if not body.is_in_group("unit"):

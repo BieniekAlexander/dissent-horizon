@@ -17,7 +17,7 @@ hp_max = 600.0
 
 [node name="Production" type="Node" parent="." index="10" unique_id=884454748]
 script = ExtResource("2_cmhi3")
-producible_types = Array[int]([8452])
+producible_types = Array[int]([8452, 8453])
 metadata/_custom_type_script = "uid://cqvco5y3gnfph"
 
 [node name="Sprite" parent="." index="14" unique_id=1381401170]

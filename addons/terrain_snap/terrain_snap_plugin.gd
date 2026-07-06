@@ -7,9 +7,9 @@ extends EditorPlugin
 ##   - Option (Alt)          → snap the selection's Y to the terrain heightmap
 ##                             height at its current XZ (continuous, follows slopes).
 ##   - Option (Alt) + Shift  → snap the selection to the terrain GRID: XZ + Y to the
-##                             centre of its footprint (a structure with an
-##                             Obstruction uses its full size, so a 2×2 lands on a
-##                             grid corner; everything else is a single cell). This
+##                             centre of its footprint (a structure with a Structure
+##                             component uses its full size, so a 2×2 lands on a grid
+##                             corner; everything else is a single cell). This
 ##                             matches how Map.add_structure places it at runtime.
 ##
 ## Nothing happens on a normal drag — you only snap when the modifier is held, so a
@@ -92,7 +92,7 @@ func _snapped_position(map: Map, node: Node3D, pos: Vector3, to_grid: bool) -> V
 		# terrain_height_at clamps out-of-bounds XZ internally.
 		return Vector3(pos.x, map.terrain_height_at(xz), pos.z)
 
-	# Footprint-aware grid snap: a structure with an Obstruction centres on its
+	# Footprint-aware grid snap: a structure with a Structure component centres on its
 	# whole footprint (even sizes land on a grid corner, odd on a cell); anything
 	# else is treated as 1×1 (a single cell). Computed from the HEIGHTMAP dims, not
 	# cell_grid (which is empty in the editor).
@@ -111,10 +111,14 @@ func _snapped_position(map: Map, node: Node3D, pos: Vector3, to_grid: bool) -> V
 	return centroid / float(dims.x * dims.y)
 
 
-## Footprint size from the node's Obstruction component (via get() so it works on
-## the editor's placeholder instance of the non-@tool node), or 1×1 if none.
+## Footprint size from the node's Structure component (read via get() so it works
+## regardless of the component's script @tool state), or 1×1 if none. The component
+## node is named "Structure" — the same one Map.add_structure reads its dimensions
+## from (it was formerly "Obstruction"; keep that as a fallback for old scenes).
 func _dimensions(node: Node) -> Vector2i:
-	var obs := node.get_node_or_null("Obstruction")
+	var obs := node.get_node_or_null("Structure")
+	if obs == null:
+		obs = node.get_node_or_null("Obstruction")
 	if obs == null:
 		return Vector2i.ONE
 	var d: Variant = obs.get("dimensions")

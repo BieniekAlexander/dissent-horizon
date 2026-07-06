@@ -11,12 +11,18 @@ type = -2
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 visible = false
 
-[node name="TargetBody" parent="." index="3" unique_id=1235114386]
+[node name="TargetShape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
+visible = false
+
+[node name="AggroRange" parent="." index="4" unique_id=131280482]
+visible = false
+
+[node name="VisionRange" parent="." index="5" unique_id=1124867207]
 visible = false
 
 [node name="Movement" type="Node" parent="." index="7" unique_id=413735738]
 script = ExtResource("2_6e3tn")
 nav_agent_path = NodePath("../NavigationAgent")
 
-[node name="Selectable" parent="." index="11" unique_id=2049500591]
+[node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
 visible = false

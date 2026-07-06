@@ -79,15 +79,15 @@ projectile_scene = ExtResource("5_qd6od")
 melee_damage = 0.0
 target_mask = 6
 
-[node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/Weapon" index="0" unique_id=1451356995]
+[node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/Weapon" index="0" unique_id=1451356995 groups=["debug_shape_attack_range"]]
 shape = SubResource("CylinderShape3D_d835v")
 disabled = true
 
-[node name="AttackRangeAir" type="CollisionShape3D" parent="Loadout/Weapon" index="1" unique_id=1441504240]
+[node name="AttackRangeAir" type="CollisionShape3D" parent="Loadout/Weapon" index="1" unique_id=1441504240 groups=["debug_shape_attack_range"]]
 shape = SubResource("CylinderShape3D_techmelee")
 disabled = true
 
-[node name="DominionRegion" type="CollisionShape3D" parent="." index="14" unique_id=783951289]
+[node name="DominionRegion" type="CollisionShape3D" parent="." index="14" unique_id=783951289 groups=["debug_shape_warlord_dominion"]]
 shape = SubResource("CylinderShape3D_q1l8a")
 
 [node name="Sprite" parent="." index="17" unique_id=1381401170]

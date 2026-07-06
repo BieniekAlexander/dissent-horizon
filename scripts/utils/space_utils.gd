@@ -69,18 +69,55 @@ static func is_weapon_in_range_at(
 	from_transform: Transform3D,
 	world_3d: World3D,
 	target: Entity,
-	exclude: Object = null
+	firer: Entity = null,
+	reach_bonus: float = 0.0
 ) -> bool:
 	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = weapon.get_range_for_target(target).shape
-	params.transform = from_transform
+	# A flat reach buffer (e.g. a garrison's range_bonus) GROWS the query radius rather
+	# than offsetting the origin below: growth stays centred on the firer, so an
+	# arbitrarily large bonus can never overshoot a point-blank target into a dead zone
+	# the way a big origin shift would. Only rebuilds the shape when a bonus applies.
+	var range_shape: Shape3D = weapon.get_range_for_target(target).shape
+	params.shape = _grow_shape_radius(range_shape, reach_bonus) if reach_bonus > 0.0 else range_shape
+	# Surface-to-surface range. The query already reports the target's NEAR edge, but
+	# it is centred on the firer, so a wide firer's own hull eats into its reach. Push
+	# the query origin toward the target by the firer's own targetable extent, so reach
+	# is measured from the firer's hull edge — "range R" becomes the gap between the two
+	# hulls regardless of either body's size (e.g. a bunkered garrison reaches as far as
+	# the units shooting into it). NOTE: PhysicsShapeQueryParameters3D.margin is a no-op
+	# for intersect_shape (verified for sphere and cylinder), so we shift the transform
+	# rather than inflate via margin.
+	var from_t := from_transform
+	if firer != null:
+		var to_target: Vector2 = target.xz_position - VU.inXZ(from_transform.origin)
+		if not to_target.is_zero_approx():
+			var extent: float = maxf(0.0,
+				firer.collision_extent_toward(target.xz_position, CollisionLayers.TARGETABLE_ANY))
+			from_t.origin += VU.fromXZ(to_target.normalized() * extent)
+	params.transform = from_t
 	# Only scan the layers this weapon can actually hit, so e.g. a ground-only
 	# weapon never reports an air target as "in range".
 	params.collision_mask = weapon.target_mask
-	if exclude != null:
-		params.exclude = [exclude]
+	if firer != null:
+		params.exclude = [firer]
 	var results: Array = world_3d.direct_space_state.intersect_shape(params)
 	return results.any(func(r: Dictionary) -> bool: return Entity.entity_from_collider(r["collider"]) == target)
+
+
+## Return a copy of `shape` with its radius grown by `amount`, leaving the shared
+## source resource untouched. Cylinder and sphere cover every AttackRange shape in
+## use; an unrecognised shape is returned unchanged (bonus silently not applied).
+static func _grow_shape_radius(shape: Shape3D, amount: float) -> Shape3D:
+	if shape is CylinderShape3D:
+		var c: CylinderShape3D = (shape as CylinderShape3D).duplicate()
+		c.radius += amount
+		return c
+	if shape is SphereShape3D:
+		var s: SphereShape3D = (shape as SphereShape3D).duplicate()
+		s.radius += amount
+		return s
+	return shape
+
 
 static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, distance_squared: float = .001) -> bool:
 	# Group-based, not type-based: a structure may be an Entity that is NOT a Commandable
@@ -188,6 +225,16 @@ static func nearest_footprint_adjacent_cell(
 ## How far (in XZ world units) a candidate point may drift from the navmesh
 ## closest-point snap before it is considered off-navmesh.  Half a cell width
 ## (CELL_SIZE = 1.0) keeps points well inside valid navmesh quads.
+## Scatter up to `max_points` distinct XZ points around `center`, each on the
+## navmesh and clear of `collision_mask` bodies.
+##
+## Spacing normally uses the uniform `point_radius`. When `point_radii` is
+## supplied (one entry per requested point), the point at index i is instead
+## spaced and clearance-probed by ITS OWN radius, and the gap between a point and
+## its neighbour is the sum of their two radii — so a mix of large and small
+## bodies packs each according to its real footprint rather than inheriting one
+## shared (often oversized) radius. `point_radius` remains the fallback for any
+## index beyond `point_radii`'s length.
 static func get_nonoverlapping_points(
 	map: Map,
 	center: Vector2,
@@ -197,32 +244,42 @@ static func get_nonoverlapping_points(
 	region_radius: float,
 	max_points: int = 1,
 	sample_count: int = 10,
+	point_radii: Array[float] = [],
 ) -> Array[Vector2]:
+	# Each accepted point is stored with the radius it was placed at, so its
+	# children space themselves off the correct (its own) footprint.
 	var about_points: Array[Vector2] = []
+	var about_radii: Array[float] = []
 	var ret_points: Array[Vector2] = []
 
-	# The footprint each candidate point must be free of. Built once and reused
-	# across every free-space probe; a sphere of point_radius approximates the
-	# circular spacing the sampler lays out below.
+	# A sphere sized per candidate; radius is reset before each free-space probe.
 	var probe_shape := SphereShape3D.new()
-	probe_shape.radius = point_radius
 
 	# Seed with center if it lands on a valid nav surface and is free.
+	var seed_radius: float = _radius_at(point_radii, 0, point_radius)
+	probe_shape.radius = seed_radius
 	var center_ground := _project_to_nav_surface(map, center)
 	if center_ground != Vector3.INF and _shape_has_space(Transform3D(Basis(), center_ground), probe_shape, world_3d, collision_mask):
 		ret_points.append(center)
 		about_points.append(center)
+		about_radii.append(seed_radius)
 		if max_points == 1:
 			return ret_points
 
 	while about_points.size() > 0:
 		var about_point: Vector2 = about_points[0]
+		var parent_radius: float = about_radii[0]
+		# The next point to place maps to index ret_points.size() (== caller's slot).
+		var new_radius: float = _radius_at(point_radii, ret_points.size(), point_radius)
+		probe_shape.radius = new_radius
 		var candidate_accepted := false
 
 		for i in range(sample_count):
 			var angle: float = 2.0 * PI * rng.randf()
-			var vec := 2.0 * point_radius * (1.0 + rng.randf()) * Vector2(sin(angle), cos(angle))
-			var new_point := about_point + vec
+			# Centre-to-centre gap ≥ the two bodies touching (sum of radii), up to 2×
+			# that, so neighbours never overlap whatever their individual sizes.
+			var spacing: float = (parent_radius + new_radius) * (1.0 + rng.randf())
+			var new_point := about_point + spacing * Vector2(sin(angle), cos(angle))
 
 			# Stay inside region in XZ.
 			if (new_point - center).length_squared() >= region_radius * region_radius:
@@ -236,6 +293,7 @@ static func get_nonoverlapping_points(
 			# Check for overlaps at grounded position.
 			if _shape_has_space(Transform3D(Basis(), ground_pos), probe_shape, world_3d, collision_mask):
 				about_points.insert(0, new_point)
+				about_radii.insert(0, new_radius)
 				ret_points.append(new_point)
 
 				if ret_points.size() == max_points:
@@ -246,9 +304,16 @@ static func get_nonoverlapping_points(
 
 		if not candidate_accepted:
 			about_points.remove_at(0)
+			about_radii.remove_at(0)
 
 	push_error("Not enough points collected - requested %s, got %s" % [max_points, ret_points.size()])
 	return ret_points
+
+
+## Radius for the point at `idx`: its own entry in `point_radii` when present,
+## else the uniform `fallback`.
+static func _radius_at(point_radii: Array[float], idx: int, fallback: float) -> float:
+	return point_radii[idx] if idx < point_radii.size() else fallback
 #endregion
 
 #region Private helpers

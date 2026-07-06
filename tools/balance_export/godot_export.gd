@@ -104,7 +104,7 @@ func _initialize() -> void:
 	_write(out_dir + "/projectiles.yaml", _header("projectile catalog") + _yaml({"projectiles": _projectiles}, 0))
 	_write(out_dir + "/weapons.yaml", _header("weapon catalog") + _yaml({"weapons": _weapons}, 0))
 
-	# Damage table straight from the game CSVs.
+	# Damage table straight from the game TSVs.
 	var dmg: Dictionary = manifest.get("damage_csv", {})
 	if dmg.has("armour"):
 		var tables: Dictionary = {
@@ -113,7 +113,7 @@ func _initialize() -> void:
 		}
 		if dmg.has("frame"):
 			tables["vs_frame"] = _load_csv_table(dmg["frame"])
-		_write(out_dir + "/damage_table.yaml", _header("damage table (from game CSVs)") + _yaml(tables, 0))
+		_write(out_dir + "/damage_table.yaml", _header("damage table (from game TSVs)") + _yaml(tables, 0))
 
 	print("\nexport complete -> ", out_dir)
 	print("  weapons=%d projectiles=%d status_effects=%d" % [
@@ -344,20 +344,20 @@ func _weapon_suffix(node_name: String) -> String:
 
 
 # --------------------------------------------------------------------------- #
-# CSV -> damage table
+# TSV -> damage table
 # --------------------------------------------------------------------------- #
 func _load_csv_table(path: String) -> Dictionary:
 	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if f == null:
-		_warnings.append("could not read CSV %s" % path)
+		_warnings.append("could not read TSV %s" % path)
 		return {}
-	var header: PackedStringArray = f.get_csv_line()
+	var header: PackedStringArray = f.get_csv_line("\t")
 	var cols: Array = []
 	for i in range(1, header.size()):
 		cols.append(header[i].strip_edges())
 	var table: Dictionary = {}
 	while not f.eof_reached():
-		var row: PackedStringArray = f.get_csv_line()
+		var row: PackedStringArray = f.get_csv_line("\t")
 		if row.size() < 2:
 			continue
 		var rname: String = row[0].strip_edges()

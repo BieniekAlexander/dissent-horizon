@@ -73,14 +73,30 @@ func bind_existing(commandable: Commandable) -> void:
 	_refresh_existing()
 
 ## Represent the queued/training unit at `job_index` of `producer`'s queue:
-## icon from its scene, blue training-progress bar.
+## icon from its scene, blue training-progress bar. The card is clickable — a left
+## click cancels this job (removing it from the queue and refunding its cost).
 func bind_training(producer: Commandable, job_index: int) -> void:
 	_producer = producer
 	_job_index = job_index
 	_commandable = null
+	# Training cards accept clicks to cancel; live-unit cards stay non-interactive.
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	tooltip_text = "Click to cancel (refunds cost)"
 	if producer.production != null and job_index < producer.production.job_count():
 		set_icon(_letter(producer.production.job_scene(job_index).resource_path))
 	_refresh_training()
+
+## Cancel this card's training job on left click. InfoView rebuilds the detail cards
+## when the queue changes, so the freed/renumbered cards follow automatically.
+func _gui_input(event: InputEvent) -> void:
+	if _producer == null:
+		return
+	if event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		if is_instance_valid(_producer) and _producer.production != null:
+			_producer.production.cancel(_job_index)
+			accept_event()
 #endregion
 
 #region Display API

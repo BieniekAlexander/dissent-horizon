@@ -20,12 +20,23 @@ radius = 10.0
 [node name="HCannon" unique_id=763468474 instance=ExtResource("1_strct")]
 type = 12809
 
+[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+visible = false
+debug_color = Color(0.8, 0.8, 0.8, 0.4)
+
+[node name="TargetShape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
+visible = false
+debug_color = Color(1, 0.9, 0.2, 0.35)
+
 [node name="AggroRange" parent="." index="4" unique_id=131280482]
+visible = false
 shape = SubResource("CylinderShape3D_aggro")
+debug_color = Color(1, 0.55, 0.1, 0.35)
 
 [node name="VisionRange" parent="." index="5" unique_id=1124867207]
 visible = false
 shape = SubResource("CylinderShape3D_vsn")
+debug_color = Color(0.2, 0.6, 1, 0.3)
 
 [node name="Structure" parent="." index="7" unique_id=390859349]
 dimensions = Vector2i(3, 3)
@@ -34,12 +45,15 @@ dimensions = Vector2i(3, 3)
 armour_type = 2
 hp_max = 500.0
 
+[node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
+visible = false
+debug_color = Color(0.2, 0.9, 0.3, 0.3)
+
 [node name="Sprite" parent="." index="13" unique_id=1381401170]
 transform = Transform3D(9, 0, 0, 0, 2.4748738, -5.656854, 0, 2.4748738, 5.656854, -0.029706955, 0.45, -0.96627045)
 texture = ExtResource("5_tex")
 
 [node name="Loadout" type="Node3D" parent="." index="14" unique_id=369583052]
-visible = false
 script = ExtResource("2_lout")
 
 [node name="HeavyCannon" type="Node3D" parent="Loadout" index="0" unique_id=744356347]
@@ -49,6 +63,11 @@ reload_time = 150
 projectile_scene = ExtResource("3_hcsh")
 melee_damage = 0.0
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/HeavyCannon" index="0" unique_id=169657121]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/HeavyCannon" index="0" unique_id=169657121 groups=["debug_shape_attack_range"]]
+visible = false
 shape = SubResource("SphereShape3D_atk")
 disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
+
+[node name="FootprintVisualizer" parent="." index="23" unique_id=286423146]
+visible = false

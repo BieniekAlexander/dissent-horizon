@@ -1,8 +1,6 @@
-res://scenes/scenarios/skirmish_tournament_desert.tscn
+res://addons/scene_visibility_tools/plugin.gd
+res://scenes/scenarios/s1.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scenes/scenarios/s1.gdshader
 res://scripts/rendering/shaders/fog.gdshader
-res://scripts/maps/map.gd
-res://scripts/maps/terrain/block_pin.gd
-res://resources/map_tournament_desert.tres

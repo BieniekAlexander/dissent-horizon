@@ -31,10 +31,10 @@ type = 4354
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_3fhxu")
 
-[node name="Shape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
+[node name="TargetShape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
 shape = SubResource("CylinderShape3D_lg61a")
 
-[node name="DetectionRange" type="CollisionShape3D" parent="." index="4" unique_id=174254774]
+[node name="DetectionRange" type="CollisionShape3D" parent="." index="4" unique_id=174254774 groups=["debug_shape_detection_range"]]
 shape = SubResource("CylinderShape3D_88hoo")
 disabled = true
 
@@ -54,10 +54,9 @@ reload_time = 40
 projectile_scene = ExtResource("7_lzrsc")
 melee_damage = 0.0
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/LazerWeapon" index="0" unique_id=817522838]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/LazerWeapon" index="0" unique_id=817522838 groups=["debug_shape_attack_range"]]
 shape = SubResource("CylinderShape3D_vng")
 disabled = true
-debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
 [node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18981934, 0)

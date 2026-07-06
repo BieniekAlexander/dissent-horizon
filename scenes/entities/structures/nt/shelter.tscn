@@ -28,7 +28,7 @@ type = 4610
 collision_layer = 2
 collision_mask = 0
 
-[node name="Shape" type="CollisionShape3D" parent="TargetBody" unique_id=1260478445]
+[node name="TargetShape" type="CollisionShape3D" parent="TargetBody" unique_id=1260478445 groups=["debug_shape_target_body"]]
 shape = SubResource("BoxShape3D_target")
 
 [node name="Ownership" type="Node" parent="." unique_id=40693621]
@@ -48,7 +48,7 @@ collision_layer = 256
 script = ExtResource("5_sel")
 indicator_path = NodePath("../SelectionIndicator")
 
-[node name="SelectionShape" type="CollisionShape3D" parent="Selectable" unique_id=733690030]
+[node name="SelectionShape" type="CollisionShape3D" parent="Selectable" unique_id=733690030 groups=["debug_shape_selection"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5354004, 0)
 shape = SubResource("BoxShape3D_sel")
 
@@ -72,7 +72,7 @@ render_priority = 3
 outline_render_priority = 1
 text = "SHELTER"
 
-[node name="FootprintVisualizer" type="Node3D" parent="." unique_id=1820155775]
+[node name="FootprintVisualizer" type="Node3D" parent="." unique_id=1820155775 groups=["debug_shape_footprint"]]
 script = ExtResource("8_fviz")
 
 [node name="#####DEBUG#####" type="Node" parent="." unique_id=437700484]

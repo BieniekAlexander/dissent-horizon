@@ -19,6 +19,11 @@ extends Node
 ## dies. When false they die with the host. Defaults to true so garrisons are a
 ## safe haven rather than a death trap.
 @export var preserve_occupants: bool = true
+## Extra attack range (world units) granted to occupants firing out of this
+## garrison, on top of each weapon's own range and the host's hull extent. Lets a
+## shelter act as a force multiplier — e.g. compensating short-range units. Only
+## meaningful when `bunker` is true; 0 leaves bunker fire at its plain reach.
+@export var range_bonus: float = 0.0
 
 ## Units currently garrisoned.  Held as orphaned nodes — removed from the
 ## scene tree but not freed.
@@ -130,7 +135,7 @@ func _firing_weapon(unit: Commandable, owner: Commandable, target: Entity) -> We
 	var weapon := unit.weapon_inventory.weapon_for_target(target)
 	if weapon == null or not weapon.is_ready():
 		return null
-	if not SU.is_weapon_in_range_at(weapon, owner.global_transform, owner.get_world_3d(), target, owner):
+	if not SU.is_weapon_in_range_at(weapon, owner.global_transform, owner.get_world_3d(), target, owner, range_bonus):
 		return null
 	return weapon
 
@@ -225,15 +230,25 @@ func _evacuate_from_structure(owner_cmd: Commandable, a_map: Map) -> void:
 		return
 
 	# The structure's own centroid usually isn't on the navmesh (building cells
-	# are excluded from it), so _spread_points can't anchor there directly —
-	# seed instead from a passable cell adjacent to the footprint.
-	var seed_cells := SU.passable_cells_adjacent_to(owner_cmd, a_map)
-	var center: Vector2 = VU.inXZ(a_map.grid_to_world(seed_cells[0])) \
-		if not seed_cells.is_empty() else VU.inXZ(owner_cmd.global_position)
-	# All garrisoned units carry Movement (Occupy requires GROUNDED_DIRECT), so
-	# the first one's radius is a reasonable stand-in for evacuee spacing.
-	var point_radius: float = _garrisoned[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
-	var points: Array[Vector2] = _spread_points(a_map, center, point_radius, owner_cmd.get_world_3d(), count)
+	# are excluded from it), so _spread_points can't anchor there directly — seed
+	# from a passable cell adjacent to the footprint. When the host has a rally
+	# destination the evacuees are sent to (see _release_commands), seed from the
+	# adjacent cell CLOSEST to it so they emerge on that side — mirroring the rally
+	# bias Production._spawn_unit applies to freshly-trained units. With no rally,
+	# any adjacent cell (shuffled) will do.
+	var rally: MoveCommand = owner_cmd.rally_destination()
+	var seed_cell: Vector2i = SU.nearest_footprint_adjacent_cell(rally.message.position, owner_cmd, a_map) \
+		if rally != null else Vector2i(-1, -1)
+	var center: Vector2
+	if seed_cell != Vector2i(-1, -1):
+		center = VU.inXZ(a_map.grid_to_world(seed_cell))
+	else:
+		var seed_cells := SU.passable_cells_adjacent_to(owner_cmd, a_map)
+		center = VU.inXZ(a_map.grid_to_world(seed_cells[0])) \
+			if not seed_cells.is_empty() else VU.inXZ(owner_cmd.global_position)
+	# Each evacuee is spaced by its OWN body radius (see _evacuee_radii), so a mix
+	# of large and small occupants packs tightly rather than by one shared radius.
+	var points: Array[Vector2] = _spread_points(a_map, center, _evacuee_radii(), owner_cmd.get_world_3d(), count)
 
 	for i in range(count):
 		var unit: Commandable = _garrisoned[i]
@@ -250,6 +265,10 @@ func _evacuate_from_structure(owner_cmd: Commandable, a_map: Map) -> void:
 
 ## Recompute the host's AggroRange radius to cover the widest weapon range among all
 ## garrisoned units, clamped below by the host's original (pre-garrison) radius.
+## For a bunker, each weapon range is extended by the host's hull extent and
+## range_bonus so the detection envelope matches what bunker fire can actually reach
+## (see is_weapon_in_range_at); otherwise a shelter that fires further would sit idle
+## while enemies stand inside its firing range.
 ## On the last evacuation (empty _garrisoned) the original radius is restored.
 func _refresh_aggro_range() -> void:
 	var owner_cmd := get_parent() as Commandable
@@ -265,6 +284,11 @@ func _refresh_aggro_range() -> void:
 		return
 	if _original_aggro_radius < 0.0:
 		_original_aggro_radius = _get_shape_radius(aggro_shape)
+	# Only a bunker fires, so only it extends its detection to the fire envelope:
+	# weapon range + host hull extent + range_bonus. Non-bunkers add nothing.
+	var reach_extra: float = 0.0
+	if bunker:
+		reach_extra = range_bonus + maxf(0.0, owner_cmd.bounding_radius(CollisionLayers.TARGETABLE_ANY))
 	var best: float = _original_aggro_radius
 	for unit: Commandable in _garrisoned:
 		if unit.weapon_inventory == null:
@@ -274,9 +298,9 @@ func _refresh_aggro_range() -> void:
 			if weapon == null:
 				continue
 			if weapon.attack_range_shape_ground != null and weapon.attack_range_shape_ground.shape != null:
-				best = maxf(best, _get_shape_radius(weapon.attack_range_shape_ground.shape))
+				best = maxf(best, _get_shape_radius(weapon.attack_range_shape_ground.shape) + reach_extra)
 			if weapon.attack_range_shape_air != null and weapon.attack_range_shape_air.shape != null:
-				best = maxf(best, _get_shape_radius(weapon.attack_range_shape_air.shape))
+				best = maxf(best, _get_shape_radius(weapon.attack_range_shape_air.shape) + reach_extra)
 	_set_shape_radius(aggro_shape, best)
 
 
@@ -315,9 +339,17 @@ func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 	if count == 0:
 		return
 	var center := VU.inXZ(owner_cmd.global_position)
-	var radius: float = owner_cmd.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+	# Bias the cluster toward the destination the evacuees are sent to (the host's
+	# rally_destination — e.g. a transport passing on its heading), so they disembark
+	# on that side. Mirrors Production._spawn_unit's rally bias.
+	var rally: MoveCommand = owner_cmd.rally_destination()
+	if rally != null:
+		var to_dest: Vector2 = VU.inXZ(rally.message.position) - center
+		if not to_dest.is_zero_approx():
+			center += to_dest.normalized()
+	# Space each evacuee by its own radius rather than the (often larger) transport's.
 	var points: Array[Vector2] = _spread_points(
-		a_map, center, radius, a_map.get_world_3d() if a_map != null else null, count
+		a_map, center, _evacuee_radii(), a_map.get_world_3d() if a_map != null else null, count
 	)
 
 	for i in range(count):
@@ -343,23 +375,38 @@ func _evacuate_from_unit(owner_cmd: Commandable, a_map: Map) -> void:
 ## back to fanning any shortfall (crowded area, or no map) out on a ring of
 ## distinct angles around `center`; physics resolves any residual overlap.
 static func _spread_points(
-	a_map: Map, center: Vector2, point_radius: float, world_3d: World3D, count: int
+	a_map: Map, center: Vector2, point_radii: Array[float], world_3d: World3D, count: int
 ) -> Array[Vector2]:
 	var points: Array[Vector2] = []
-	if a_map != null:
-		var region_radius: float = 30.
+	if a_map != null and not point_radii.is_empty():
+		# No maximum spread radius: per-unit spacing (point_radii) already keeps the
+		# release tight, so let the sampler place points wherever it finds free
+		# navmesh rather than rejecting any that fall past a fixed cap.
+		var region_radius: float = INF
 		points = SU.get_nonoverlapping_points(
-			a_map, center, point_radius, world_3d,
-			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, region_radius, count
+			a_map, center, point_radii[0], world_3d,
+			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, region_radius, count, 10, point_radii
 		)
 
 	while points.size() < count:
 		var leftover_index := points.size()
 		var angle: float = 2.0 * PI * float(leftover_index) / float(maxi(count, 1))
-		var ring_radius: float = 2.0 * point_radius * (1.0 + float(leftover_index) / float(maxi(count, 1)))
+		# Fan any shortfall out on a ring, sized by that specific unit's radius.
+		var r: float = point_radii[leftover_index] if leftover_index < point_radii.size() else 0.5
+		var ring_radius: float = 2.0 * r * (1.0 + float(leftover_index) / float(maxi(count, 1)))
 		points.append(center + Vector2(cos(angle), sin(angle)) * ring_radius)
 
 	return points
+
+
+## Per-occupant MOVEMENT_OBSTRUCTION radius, in _garrisoned order, so evacuation
+## can space each released unit by its own footprint. All occupants carry a
+## MovementBody (Occupy requires GROUNDED_DIRECT), so bounding_radius is valid.
+func _evacuee_radii() -> Array[float]:
+	var radii: Array[float] = []
+	for unit: Commandable in _garrisoned:
+		radii.append(unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
+	return radii
 
 
 ## The command chain a released unit gets on evacuation: first, the immediate

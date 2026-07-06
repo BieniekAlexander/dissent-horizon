@@ -43,26 +43,25 @@
 
 ### Attributes
 
-| Property   | Possibilities                |
-| ---------- | ---------------------------- |
-| Biological | Fleshy unit                  |
-| Mechanical | Unit with machinery          |
-| Sentient   | controlled by a living thing |
-| Light      | Light armor                  |
-| Heavy      | Heavy armor                  |
-| Grounded   |                              |
-| Flying     |                              |
+| Property   | Possibilities |
+| ---------- | ------------- |
+| Biological | Fleshy unit   |
+| Mechanical | Fleshy unit   |
+| Light      | Light armor   |
+| Medium     | Medium Armor  |
+| Heavy      | Heavy armor   |
 ### Offense
 
-| Type        | Light | Heavy | Bonuses         | Forms               | Properties                               |
-| ----------- | ----- | ----- | --------------- | ------------------- | ---------------------------------------- |
-| Ballistics  | +     | -     | Air             | Melee<br>Projectile |                                          |
-| Toxins      |       | -     | Biological      | AOE                 |                                          |
-| Fire        | +     |       |                 | AOE<br>Ray          |                                          |
-| Electricity | +     |       | Mechanical      | Instant<br>AOE      |                                          |
-| Siege       | -     | +     |                 | Projectile<br>AOE   |                                          |
-| Lazers      |       | +     | Mechanical, Air | Melee<br>Ray        | Raycast that goes through non-mech units |
-| Explosives  | +     | +     |                 | Projectile<br>AOE   |                                          |
+| Type        | Bio | Mech | Light | Medium | Heavy | Properties                        |
+| ----------- | --- | ---- | ----- | ------ | ----- | --------------------------------- |
+| Lead        |     | -    | +     | -      | -     | hitscan                           |
+| Toxic       | +   | -    |       |        |       |                                   |
+| Sonic       | +   | -    | -     |        | +     |                                   |
+| Plasma      |     |      | +     |        | -     | short range                       |
+| Siege       |     |      | -     |        | +     |                                   |
+| Explosive   |     | +    |       |        |       |                                   |
+| Electricity | -   | +    | +     |        |       |                                   |
+| Lazer       | -   | +    |       |        | +     | damage impacted by movement speed |
 ## Technologies
 ## Units
 ### T1

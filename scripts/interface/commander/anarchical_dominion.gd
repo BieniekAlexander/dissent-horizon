@@ -4,7 +4,6 @@ extends Node
 #region Properties
 ## Dominion awarded per veterancy level per tick cycle.
 @export var dominion_per_unit: int = 5
-@onready var dominion_region: CollisionShape3D = $DominionRegion
 static var TICK_RATE: int = 150
 var frame: int = 0
 @onready var commander: Commander = get_parent().get_parent()

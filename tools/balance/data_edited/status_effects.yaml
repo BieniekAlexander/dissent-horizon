@@ -6,4 +6,4 @@ status_effects:
     damage_per_tick: 20
     tick_rate: 10
     duration_ticks: 100
-    damage_type: "FIRE"
+    damage_type: "LEAD"

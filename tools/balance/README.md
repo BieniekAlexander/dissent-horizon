@@ -55,7 +55,7 @@ in the editor rather than risk a malformed override. Cost/tech changes route to
 | projectile `base_damage`/`damage_type`/`speed` | projectile scene root |
 | status-effect `damage_per_tick`/`tick_rate`/`duration_ticks`/`damage_type` | the `DamageOverTimeStatusEffect` node |
 | `ore`/`population`/`dominion` | `manifest.json` |
-| `damage_table.yaml` cells | source CSVs `resources/damage/damage_vs_{armour,attribute}.csv` (targeted cell; blank = default multiplier) |
+| `damage_table.yaml` cells | source CSVs `resources/damage/damage_vs_{armour,attribute}.tsv` (targeted cell; blank = default multiplier) |
 | structural (`name`, `kind`, `weapons`, `attributes`, `layer`, `requires`) | reported, edited by hand |
 
 ### Validating the `Entity.Type` ↔ scene mapping

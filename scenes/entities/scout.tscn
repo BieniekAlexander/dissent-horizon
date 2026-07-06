@@ -13,7 +13,7 @@ collision_mask = 0
 script = ExtResource("1_scout")
 type = 4
 
-[node name="VisionRange" type="CollisionShape3D" parent="."]
+[node name="VisionRange" type="CollisionShape3D" parent="." groups=["debug_shape_vision_range"]]
 shape = SubResource("CylinderShape3D_vision")
 disabled = true
 

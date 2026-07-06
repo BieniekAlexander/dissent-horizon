@@ -9,7 +9,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NavAgentSizeClasses.gd
 
-const CS: float = 1.0  # Map.CELL_SIZE
+const CS: float = Map.CELL_SIZE
 
 
 # --- NavAgentClass parameters ----------------------------------------------

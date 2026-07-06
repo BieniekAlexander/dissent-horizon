@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://c3lw2nltdhcuq"]
+
+[ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/entities/units/unit.tscn" id="1_unit"]
+[ext_resource type="Texture2D" uid="uid://x1mcil8nobim" path="res://assets/entities/mercury.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="3_garr"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1m2jm"]
+radius = 0.7
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_gto2x"]
+radius = 0.7
+
+[node name="Unit" unique_id=502146001 instance=ExtResource("1_unit")]
+type = 8453
+attributes_list = Array[int]([0])
+
+[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+visible = true
+shape = SubResource("CylinderShape3D_1m2jm")
+
+[node name="TargetBody" parent="." index="3" unique_id=1235114386]
+visible = true
+
+[node name="TargetShape" parent="TargetBody" index="0" unique_id=406925482]
+shape = SubResource("CylinderShape3D_gto2x")
+
+[node name="Movement" parent="." index="7" unique_id=413735738]
+mode = 16
+max_acceleration = 2.5
+max_deceleration = -2.5
+speed = 0.12
+turn_rate = 100.0
+orbit_radius = 2.0
+orbit_speed = 0.07
+
+[node name="Garrison" type="Node" parent="." index="12" unique_id=502146002]
+script = ExtResource("3_garr")
+capacity = 6
+bunker = false
+preserve_occupants = false
+metadata/_custom_type_script = "uid://dlhe01nj6efuh"
+
+[node name="Sprite" parent="." index="14" unique_id=1381401170]
+transform = Transform3D(3, 0, 0, 0, 2.1213202, -2.1213202, 0, 2.1213202, 2.1213202, 0, 0.17100573, 0)
+texture = ExtResource("2_tex")

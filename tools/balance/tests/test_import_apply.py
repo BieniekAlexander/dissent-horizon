@@ -174,15 +174,15 @@ def test_plan_routes_fields_correctly():
     assert edits[2].scope == "skip"
 
 
-CSV_ARMOUR = (
-    "damage_type,LIGHT,MEDIUM,HEAVY\n"
-    "LEAD,1.0,0.5,0.1\n"
-    "LAZER,0.25,0.75,1.5\n"
+TSV_ARMOUR = (
+    "damage_type\tLIGHT\tMEDIUM\tHEAVY\n"
+    "LEAD\t1.0\t0.5\t0.1\n"
+    "LAZER\t0.25\t0.75\t1.5\n"
 )
-CSV_ATTR = (
-    "damage_type,IS_GROUNDED,IS_FLYING,HAS_STEALTH\n"
-    "TOXIN,,0.5,\n"
-    "EXPLOSIVE,,0.5,\n"
+TSV_ATTR = (
+    "damage_type\tIS_GROUNDED\tIS_FLYING\tHAS_STEALTH\n"
+    "TOXIN\t\t0.5\t\n"
+    "EXPLOSIVE\t\t0.5\t\n"
 )
 
 
@@ -202,15 +202,15 @@ def test_diff_detects_damage_table_change(tmp_path):
 
 
 def test_apply_csv_writes_targeted_cell(tmp_path):
-    csv = tmp_path / "damage_vs_armour.csv"
-    csv.write_text(CSV_ARMOUR)
+    tsv = tmp_path / "damage_vs_armour.tsv"
+    tsv.write_text(TSV_ARMOUR)
     ch = Change("damage_vs_armour", "LEAD", "HEAVY", 0.1, 0.2)
     e = Edit(ch, "csv", "armour", None, "HEAVY", "0.2")
-    importer._apply_csv_edits(csv, [e], dry_run=False)
-    out = csv.read_text()
+    importer._apply_csv_edits(tsv, [e], dry_run=False)
+    out = tsv.read_text()
     assert e.applied
-    assert "LEAD,1.0,0.5,0.2\n" in out               # only the targeted cell
-    assert "LAZER,0.25,0.75,1.5\n" in out             # other row untouched
+    assert "LEAD\t1.0\t0.5\t0.2\n" in out             # only the targeted cell
+    assert "LAZER\t0.25\t0.75\t1.5\n" in out           # other row untouched
 
 
 def test_frame_change_routes_to_scene_frame_type():
@@ -232,13 +232,13 @@ def test_appends_frame_type_into_existing_defense_block():
 
 
 def test_apply_csv_fills_blank_attribute_cell(tmp_path):
-    csv = tmp_path / "damage_vs_attribute.csv"
-    csv.write_text(CSV_ATTR)
+    tsv = tmp_path / "damage_vs_attribute.tsv"
+    tsv.write_text(TSV_ATTR)
     ch = Change("damage_vs_attribute", "TOXIN", "HAS_STEALTH", None, 0.25)
     e = Edit(ch, "csv", "attribute", None, "HAS_STEALTH", "0.25")
-    importer._apply_csv_edits(csv, [e], dry_run=False)
+    importer._apply_csv_edits(tsv, [e], dry_run=False)
     assert e.applied
-    assert "TOXIN,,0.5,0.25\n" in csv.read_text()    # previously-blank cell filled
+    assert "TOXIN\t\t0.5\t0.25\n" in tsv.read_text()  # previously-blank cell filled
 
 
 def test_end_to_end_apply_on_temp_copy(tmp_path, monkeypatch):

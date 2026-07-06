@@ -29,7 +29,7 @@ type = 8452
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_body")
 
-[node name="Shape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
+[node name="TargetShape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
 shape = SubResource("CylinderShape3D_target")
 
 [node name="AggroRange" parent="." index="4" unique_id=131280482]
@@ -52,10 +52,9 @@ projectile_scene = ExtResource("4_bomb")
 melee_damage = 0.0
 target_mask = 6
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BombWeapon" index="0" unique_id=1338445835]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BombWeapon" index="0" unique_id=1338445835 groups=["debug_shape_attack_range"]]
 shape = SubResource("CylinderShape3D_atk")
 disabled = true
-debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
 [node name="Defense" parent="." index="9" unique_id=637704181]
 armour_type = 1

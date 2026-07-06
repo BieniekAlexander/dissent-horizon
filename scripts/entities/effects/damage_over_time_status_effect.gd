@@ -11,7 +11,7 @@ extends StatusEffect
 ## Period, in ticks, between damage applications. 1 = every tick.
 @export var tick_rate: int = 10
 ## Damage flavour passed to DamageTable for armour/attribute multiplier lookup.
-@export var damage_type: Damage.Type = Damage.Type.FIRE
+@export var damage_type: Damage.Type = Damage.Type.PLASMA
 
 func _on_tick() -> void:
 	if tick_rate <= 0:

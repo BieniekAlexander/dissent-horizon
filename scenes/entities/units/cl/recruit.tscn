@@ -28,10 +28,9 @@ radius = 0.3
 type = 12545
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
-visible = true
 shape = SubResource("CylinderShape3D_skyvu")
 
-[node name="Shape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
+[node name="TargetShape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0014038086, 0.00012207031, -0.0008544922)
 shape = SubResource("CylinderShape3D_c8urn")
 
@@ -42,7 +41,6 @@ shape = SubResource("CylinderShape3D_tv7h1")
 speed = 0.05
 
 [node name="Loadout" type="Node3D" parent="." index="8" unique_id=1619495853]
-visible = false
 script = ExtResource("3_invnt")
 
 [node name="BallisticWeapon" type="Node3D" parent="Loadout" index="0" unique_id=1393546052]
@@ -52,10 +50,10 @@ reload_time = 15
 projectile_scene = ExtResource("6_hrbul")
 melee_damage = 0.0
 
-[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0" unique_id=1338445835]
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0" unique_id=1338445835 groups=["debug_shape_attack_range"]]
+visible = false
 shape = SubResource("CylinderShape3D_irreg")
 disabled = true
-debug_color = Color(0.85153013, 0.013014795, 4.813075e-07, 0.41960785)
 
 [node name="Defense" parent="." index="9" unique_id=637704181]
 hp_max = 120.0

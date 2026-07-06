@@ -15,7 +15,7 @@ var _button: Button = null
 func _enter_tree() -> void:
 	_button = Button.new()
 	_button.text = "Cam Angle"
-	_button.tooltip_text = "Snap the editor camera to the game view: distance %s at %d°, looking at the origin." % [
+	_button.tooltip_text = "Snap the editor camera to the game view: distance %s at %d°, looking at the selection centroid." % [
 		str(RTSCamera3D.INITIAL_DISTANCE), int(RTSCamera3D.CAMERA_ANGLE_DEGREES)]
 	_button.pressed.connect(_apply_view)
 	add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, _button)
@@ -38,6 +38,13 @@ func _apply_view() -> void:
 	var camera := viewport.get_camera_3d()
 	if camera == null:
 		return
-	camera.global_position = RTSCamera3D.initial_position()
-	camera.look_at(Vector3.ZERO, Vector3.UP)
+	
+	var selection: Array = EditorInterface.get_selection().get_selected_nodes()
+	var centroid: Vector3 = Vector3.ZERO
+	
+	for s in selection:
+		centroid += s.global_position/selection.size()
+	
+	camera.global_position = centroid + RTSCamera3D.initial_position()
+	camera.look_at(centroid, Vector3.UP)
 #endregion

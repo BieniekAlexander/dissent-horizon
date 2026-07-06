@@ -3,12 +3,13 @@ class_name Damage
 enum Type {
 	UNDEFINED = 0,
 	LEAD = 1,
-	LAZER = 2,
-	TOXIN = 3,
-	FIRE = 4,
-	ELECTRICITY = 5,
-	SIEGE = 6,
-	EXPLOSIVE = 7
+	TOXIC = 2,
+	SONIC = 3,
+	PLASMA = 4,
+	SIEGE = 5,
+	EXPLOSIVE = 6,
+	ELECTRIC = 7,
+	LAZER = 8
 }
 
 var amount: float

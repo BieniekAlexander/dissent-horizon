@@ -1,9 +1,9 @@
 # Damage-effectiveness tables — the rock-paper-scissors core of combat.
 #
 # SOURCE OF TRUTH: mirrored from the live game CSVs
-#   res://resources/damage/damage_vs_armour.csv
-#   res://resources/damage/damage_vs_frame.csv
-#   res://resources/damage/damage_vs_attribute.csv
+#   res://resources/damage/damage_vs_armour.tsv
+#   res://resources/damage/damage_vs_frame.tsv
+#   res://resources/damage/damage_vs_attribute.tsv
 # Phase 2 (Godot -> YAML exporter) will regenerate this file automatically so it
 # can never drift. Until then it is hand-synced; keep the two in lockstep.
 #

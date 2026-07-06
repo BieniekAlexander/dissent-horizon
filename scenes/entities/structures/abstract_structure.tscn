@@ -72,5 +72,5 @@ texture = SubResource("GradientTexture1D_cnvxh")
 [node name="HPBarBack" parent="HPBar" index="1" unique_id=1731424049]
 texture = SubResource("GradientTexture1D_5lb30")
 
-[node name="FootprintVisualizer" type="Node3D" parent="." index="17" unique_id=286423146]
+[node name="FootprintVisualizer" type="Node3D" parent="." index="22" unique_id=286423146 groups=["debug_shape_footprint"]]
 script = ExtResource("9_fviz0")

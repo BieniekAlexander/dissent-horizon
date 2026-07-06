@@ -40,11 +40,12 @@ class Frame(str, Enum):
 class DamageType(str, Enum):
     LEAD = "LEAD"
     LAZER = "LAZER"
-    TOXIN = "TOXIN"
-    FIRE = "FIRE"
-    ELECTRICITY = "ELECTRICITY"
+    TOXIC = "TOXIC"
+    PLASMA = "PLASMA"
+    ELECTRIC = "ELECTRIC"
     SIEGE = "SIEGE"
     EXPLOSIVE = "EXPLOSIVE"
+    SONIC = "SONIC"
 
 
 class Layer(str, Enum):

@@ -33,11 +33,13 @@ extends Node
 ## its type in a command class.
 @export var producible_types: Array[Entity.Type] = []
 
-## Each entry is [remaining_ticks, total_ticks, scene] — see the JOB_* indices.
-## total_ticks is kept so the HUD/train bar can show real progress.
+## Each entry is [remaining_ticks, total_ticks, scene, type] — see the JOB_* indices.
+## total_ticks is kept so the HUD/train bar can show real progress; type is kept so a
+## cancelled job can refund its cost (see cancel()).
 const JOB_REMAINING: int = 0
 const JOB_TOTAL: int = 1
 const JOB_SCENE: int = 2
+const JOB_TYPE: int = 3
 var training_queue: Array = []
 
 ## Build-rate fraction applied while the owning commander is vigor-strained (upkeep
@@ -59,9 +61,11 @@ func _ready() -> void:
 
 #region Public API
 ## Enqueue a new training job. Called by Structure when a Train command is
-## accepted (resources confirmed and deducted).
-func enqueue(creation_time: int, packed_scene: PackedScene) -> void:
-	training_queue.push_back([creation_time, creation_time, packed_scene])
+## accepted (resources confirmed and deducted). `unit_type` (an Entity.Type) is
+## stored so cancel() can refund the job's cost; it's optional for callers/tests
+## that don't need refunds.
+func enqueue(creation_time: int, packed_scene: PackedScene, unit_type: Variant = null) -> void:
+	training_queue.push_back([creation_time, creation_time, packed_scene, unit_type])
 
 ## Whether this producer can train the given unit type. Source of truth for the
 ## "what can this build" question across the codebase (HUD train menu, AI).
@@ -75,6 +79,28 @@ func job_count() -> int:
 ## The unit scene for queued job `i`.
 func job_scene(i: int) -> PackedScene:
 	return training_queue[i][JOB_SCENE] as PackedScene
+
+## The Entity.Type for queued job `i` (used to refund cost on cancel). May be null
+## if the job was enqueued without a type.
+func job_type(i: int) -> Variant:
+	return training_queue[i][JOB_TYPE]
+
+## Cancel the queued job at `index`: remove it from the queue and refund its cost to
+## the owning commander. A no-op (returns false) for an out-of-range index. Cancelling
+## any job refunds the full cost — including the head job that's partway trained.
+func cancel(index: int) -> bool:
+	if index < 0 or index >= training_queue.size():
+		return false
+	var unit_type: Variant = training_queue[index][JOB_TYPE]
+	training_queue.remove_at(index)
+	# Removing the head job promotes the next one (its remaining is still full), so
+	# clear the sub-tick accumulator to avoid leaking partial progress into it.
+	if index == 0:
+		_progress_accum = 0.0
+	var entity: Entity = get_parent() as Entity
+	if entity != null and entity.commander != null and unit_type != null:
+		entity.commander.refund_resources_for(unit_type)
+	return true
 
 ## Training progress (0..1) of queued job `i`: 0 when just enqueued, 1 when done.
 ## Only the head job (i == 0) actually advances; the rest sit at 0 until promoted.

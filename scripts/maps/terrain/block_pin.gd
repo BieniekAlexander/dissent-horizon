@@ -8,9 +8,11 @@ extends Sprite3D
 ## blocked_cells list. Select several pins and toggle once to edit them all (the
 ## inspector applies a multi-selection edit to every selected pin).
 ##
-## BlockPins are NOT the source of truth and are NOT saved with the scene: they are
-## regenerated from Map.blocked_cells by generate_editor_pins, and delete themselves
-## at runtime. Map.blocked_cells (a saved @export) is the authoritative overlay.
+## BlockPins are NOT the source of truth. They are owned by (and saved with) the
+## edited scene — like HeightPins, to avoid an editor crash when adding thousands of
+## un-owned nodes on large maps — but are regenerated from Map.blocked_cells by
+## generate_editor_pins and delete themselves at runtime (see _ready). Map.blocked_cells
+## (a saved @export) is the authoritative overlay.
 
 ## The navigable cell this pin marks (grid indices, Vector2i(x, z)). Set by the
 ## spawner; not exported (pins are transient).
@@ -30,7 +32,11 @@ var _suppress_write: bool = false
 	set(value):
 		_blocked = value
 		_refresh()
-		if _suppress_write or not Engine.is_editor_hint():
+		# not is_inside_tree(): the setter also fires while the scene is loading (Godot
+		# sets saved property values before the node enters the tree). Writing then would
+		# push each saved pin's stale `blocked` through to cell (0,0) — cell isn't restored
+		# until _ready — so only write for a real in-tree edit (an inspector toggle).
+		if _suppress_write or not Engine.is_editor_hint() or not is_inside_tree():
 			return
 		var map := _find_map()
 		if map != null:
@@ -43,7 +49,18 @@ func _ready() -> void:
 	if not Engine.is_editor_hint():
 		queue_free()
 		return
+	_restore_cell_from_name()
 	_refresh()
+
+
+## Recover `cell` from the node name ("BlockPin_<x>_<z>"). `cell` is not exported, so a
+## SAVED pin reloads with cell (0,0) — which would make editing it write through to the
+## wrong Map.blocked_cells entry. The name IS saved and is set from (x, z) by the
+## spawner, so parsing it restores the correct cell. No-op if the name doesn't match.
+func _restore_cell_from_name() -> void:
+	var parts: PackedStringArray = String(name).trim_prefix("BlockPin_").split("_")
+	if parts.size() == 2 and parts[0].is_valid_int() and parts[1].is_valid_int():
+		cell = Vector2i(int(parts[0]), int(parts[1]))
 
 
 ## Set `blocked` to reflect external (Map) state without writing back to the Map.
