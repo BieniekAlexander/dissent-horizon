@@ -17,7 +17,7 @@ hp_max = 500.0
 
 [node name="Production" type="Node" parent="." index="10" unique_id=2107909945]
 script = ExtResource("3_prod0")
-producible_types = Array[int]([8451, 8449])
+producible_types = Array[int]([8451, 8449, 8454])
 
 [node name="Sprite" parent="." index="14" unique_id=1381401170]
 transform = Transform3D(7.5, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, -0.028815746, 0.45, -0.5472431)

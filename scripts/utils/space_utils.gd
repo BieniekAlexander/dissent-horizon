@@ -204,6 +204,20 @@ static func unit_is_close_to_footprint(a_unit: Commandable, a_map: Map, footprin
 			return true
 	return false
 
+## Shape-based reach test: true when `a_target`'s targetable body overlaps `a_shape`
+## positioned upright at `a_unit`'s world position. The shape-driven counterpart to the
+## scalar `unit_is_close_to_unit` slack — used by interactions whose reach is authored as
+## a Shape3D (e.g. a Cylinder), so vertical extent and non-circular reach are honored.
+## False when the shape or target is missing.
+static func unit_shape_overlaps_target(a_unit: Commandable, a_target: Entity, a_shape: Shape3D) -> bool:
+	if a_shape == null or not is_instance_valid(a_target):
+		return false
+	var xform := Transform3D(Basis.IDENTITY, a_unit.global_position)
+	var hits: Array[Entity] = query_shape_for_entities(
+		a_unit.get_world_3d(), a_shape, xform, CollisionLayers.TARGETABLE_ANY, [a_unit]
+	)
+	return a_target in hits
+
 static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distance_squared: float = .001) -> bool:
 	# Engagement proximity: measured against each entity's targetable shape edge
 	# in the direction of the other, so the comparison fits each body's actual

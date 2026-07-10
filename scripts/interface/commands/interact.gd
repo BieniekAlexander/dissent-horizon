@@ -10,10 +10,10 @@ extends MoveCommand
 ## what a unit can interact with now lives entirely in its Interactor's list.
 
 #region Properties
-## Seconds spent interacting so far. Accumulates each tick the unit is in range
-## (i.e. while can_act is true), and the interaction completes once it reaches
-## the resolved Interaction's duration.
-var _elapsed: float = 0.0
+## Physics ticks spent interacting so far. Accumulates each tick the unit is in range
+## (i.e. while can_act is true, so fulfill_action runs once per physics tick), and the
+## interaction completes once it reaches the resolved Interaction's required_ticks.
+var _elapsed_ticks: float = 0.0
 #endregion
 
 #region Preconditions
@@ -105,21 +105,24 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	return self
 
 func should_move(a_actor: Commandable) -> bool:
-	return is_instance_valid(message.target) \
-		and not SU.unit_is_close_to_target(a_actor, message.target, _reach_squared(a_actor))
+	return is_instance_valid(message.target) and not _in_reach(a_actor)
 
 func can_act(a_actor: Commandable) -> bool:
-	return is_instance_valid(message.target) \
-		and SU.unit_is_close_to_target(a_actor, message.target, _reach_squared(a_actor))
+	return is_instance_valid(message.target) and _in_reach(a_actor)
 
-## Squared proximity slack passed to the closeness check — the resolved interaction's
-## interact_range² when set, else the default near-touch. Lets an interaction (e.g.
-## ABDUCT) grab a mobile target from a few units away instead of needing to collide.
-func _reach_squared(a_actor: Commandable) -> float:
+## Whether the actor is close enough to the target to perform the interaction.
+## Structure targets always use footprint adjacency (scale-aware). For a MOBILE target,
+## the resolved interaction's `interact_shape` (a collision volume centred on the actor)
+## decides reach when set — letting an interaction (e.g. ABDUCT) grab a target a few
+## units away without colliding — otherwise the default near-touch contact applies.
+func _in_reach(a_actor: Commandable) -> bool:
+	var target: Entity = message.target
+	if target.is_in_group("structure"):
+		return SU.unit_is_close_to_structure(a_actor, target)
 	var interaction := _interaction_for(a_actor)
-	if interaction != null and interaction.interact_range > 0.0:
-		return interaction.interact_range * interaction.interact_range
-	return 0.001
+	if interaction != null and interaction.interact_shape != null:
+		return SU.unit_shape_overlaps_target(a_actor, target, interaction.interact_shape)
+	return SU.unit_is_close_to_target(a_actor, target)
 
 ## Accumulate interaction time while in range; perform the event once the
 ## interaction's duration has elapsed, then end the command.
@@ -127,8 +130,8 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	var interaction := _interaction_for(a_actor)
 	if interaction == null:
 		return null
-	_elapsed += a_actor.get_physics_process_delta_time()
-	if _elapsed < interaction.duration:
+	_elapsed_ticks += 1.0
+	if _elapsed_ticks < interaction.required_ticks(message.target):
 		return self
 	_complete(a_actor, interaction)
 	return null
@@ -148,6 +151,8 @@ func _complete(a_actor: Commandable, interaction: Interaction) -> void:
 			_reset_target_shelter()
 		Interaction.Type.DEPOSIT:
 			_deposit(a_actor)
+		Interaction.Type.PLANT:
+			_plant(a_actor, interaction)
 
 ## Remove the targeted enemy unit from the game and imprison it in the actor's
 ## Inventory. The captured instance is detached from the tree (so it leaves physics,
@@ -175,6 +180,22 @@ func _collect(a_actor: Commandable, interaction: Interaction) -> void:
 		if not inventory.can_hold_more():
 			break
 		inventory.add_item(interaction.payload_scene.instantiate() as Entity)
+
+## Detonate a planted charge: spawn the interaction's projectile at the target's
+## position, attributed to the planter's commander, and let it explode where it
+## stands. Mirrors Weapon.fire's spawn sequence (initialize adds it to the tree and
+## resolves ownership; initialize_projectile sets its origin/destination). No-op if
+## the interaction has no projectile scene or the target vanished mid-plant.
+func _plant(a_actor: Commandable, interaction: Interaction) -> void:
+	if interaction.projectile_scene == null or not is_instance_valid(message.target):
+		return
+	var map: Map = message.map if message.map != null else a_actor.map
+	if map == null:
+		return
+	var projectile: Projectile = interaction.projectile_scene.instantiate()
+	projectile.initialize(map, a_actor.commander)
+	projectile.global_position = (message.target as Node3D).global_position
+	projectile.initialize_projectile(a_actor, message.target)
 
 ## Transfer carried units from the actor's Inventory into the target's, oldest first,
 ## until the target is full or the actor is empty (partial deposit allowed).

@@ -16,10 +16,10 @@
 	- Self-generating dominion -> specific infantry unit for this
 - Asymmetric Mechanics
 	- Mobility - LACK
-	- Heal - dominion infantry also repairs shit
-	- Bonus - signal boosting units for artillery
+	- Disable - sonic interaction with infantry
+	- Heal - Supply Truck repairs all mechanical units
+	- Boost - deploy vehicles
 - Unique Mechanics
-	- mines last longer
 	- Artillery spotting system
 # Specifics
 ## Tech Tree
@@ -41,9 +41,9 @@ flowchart TD
 # Structures
 # Units
 ## Colony
-### Stock Truck
-- Builder
-- ridiculous armor, builds
+### Supply Truck
+- armored builder
+- repairs
 - Collects POWs for dominion
 ## Barracks
 ### Pathfinder
@@ -52,25 +52,26 @@ flowchart TD
 ### Badger
 - Basic anti-armor unit, long range rockets
 ### Suppressor
-- sonic grenades, stun infantry
+- sonic grenades
+- flush infantry
 ## Production Yard
+### Sabbath
+- Scout unit, stuns infantry
+### Battery
+- shoots a small barrage of homing missiles - shoots more when deployed
+### Carronade
+- Solid tank, siege damage
+- deploy the tank to force it stationary and increase defense
+### Shredder
+- slow, quad cannon
+# Tremor
+- idk yet
 ## Skyport
-
-- **Quarters** - Population and Dominion
-	- SAM Site - air, detects stealth
-	- **Barracks** - Makes Infantry
-		- 
-		- **Bombard** - Cannon structure
-		- **War Factory**
-			- Medusa - scout vehicle, like a China ECM but for infantry
-			- Pitbull
-			- Rhino
-			- Shredder - slow, quad cannon
-			- Tempest - shatterer, long range, vs inf and light armor (req. Tech)
-			- **Airport**
-				- Eagle - raptor
-				- Helix with anti-infantry gun
-				- Harbinger - detector, deploy to extend siege range (req. Tech)
+### Eagle
+- raptor
+### Helix with anti-infantry gun
+### Harbinger
+- deploy to give siege signal (req. Tech)
 ## Upgrades
 - Universal
 	- 

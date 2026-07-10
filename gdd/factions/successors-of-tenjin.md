@@ -17,10 +17,10 @@
 - Asymmetric mechanics
 	- Mobility - portals
 	- Heal - technicians can repair mechs and vehicles
-	- disable - toxins effectively disable infantry
+	- disable - hacking structures
 	- bonus - LACK
 - Unique Mechanics
-	- dominion charge mechanic
+	- Lab discharge
 	- technicians build units on battlefield
 # Specifics
 ## Tech Tree

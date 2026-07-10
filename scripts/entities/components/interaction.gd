@@ -27,7 +27,17 @@ enum Type {
 	## internment camp). Applicable when the actor holds units and the target is a
 	## structure with inventory space. Transfers as many as fit (partial allowed).
 	DEPOSIT,
+	## Plant a bomb on an enemy METALLIC-frame target. On completion a `projectile_scene`
+	## is spawned at the target's position and detonates there. Applicable to any enemy
+	## Entity whose Defense frame_type is METALLIC.
+	PLANT,
 }
+
+## How an interaction's duration is derived (see required_ticks):
+## - CONSTANT: a fixed `duration` (in seconds).
+## - BY_HP: proportional to the target's current hp — a tougher target takes longer
+##   to work on (e.g. rigging a bomb to a bigger structure).
+enum DurationType { CONSTANT = 0, BY_HP = 1 }
 #endregion
 
 #region Properties
@@ -47,15 +57,31 @@ enum Type {
 ## remaining inventory space).
 @export var payload_count: int = 1
 
-## Seconds the unit must remain interacting (in range) before completion.
+## For PLANT: the Projectile scene spawned at the target's position on completion.
+@export var projectile_scene: PackedScene
+
+## How this interaction's duration is derived. CONSTANT uses `duration` directly;
+## BY_HP scales with the target's current hp (see required_ticks).
+@export var duration_type: DurationType = DurationType.CONSTANT
+
+## For CONSTANT duration_type: seconds the unit must remain interacting (in range)
+## before completion. Ignored when duration_type is BY_HP.
 @export var duration: float = 1.0
 
-## How close (world units) the actor must get to a MOBILE target before it can act.
-## 0 = the default near-touch contact. Matters for unit targets (e.g. ABDUCT): RVO
-## avoidance keeps units apart, so a touch-only reach makes a carrier chase a mobile
-## target forever — give capture a few units of reach so it can grab without colliding.
-## Ignored for structure targets, which use footprint adjacency regardless.
-@export var interact_range: float = 0.0
+## For BY_HP duration_type: physics ticks required per unit of the target's current hp.
+## required_ticks returns hp_factor × target.defense.hp.
+@export var hp_factor: float = 0.2
+
+## The reach volume the actor uses to contact a MOBILE target, centred (upright) on the
+## actor: the interaction can proceed once the target's targetable body overlaps this
+## shape. Replaces the former scalar `interact_range`, so reach can be non-circular and
+## have vertical extent (a Cylinder height=5 radius=r reproduces the old radius-r reach
+## while also tolerating a height gap). Null = the default near-touch contact. Matters
+## for unit targets (e.g. ABDUCT): RVO avoidance keeps units apart, so a touch-only reach
+## makes a carrier chase a mobile target forever — give capture a shape with some radius
+## so it can grab without colliding. Ignored for structure targets, which use footprint
+## adjacency regardless.
+@export var interact_shape: Shape3D
 #endregion
 
 #region Helpers
@@ -63,6 +89,17 @@ enum Type {
 ## internment camp) receives carried units into this.
 static func target_inventory(target: Node) -> Inventory:
 	return target.get_node_or_null("Inventory") as Inventory if target != null else null
+
+## Physics ticks the actor must remain interacting before this interaction completes,
+## resolved against duration_type:
+## - CONSTANT: `duration` seconds converted to ticks via the physics tick rate.
+## - BY_HP: hp_factor × the target's current hp (a tougher target takes proportionally
+##   longer). Falls back to the CONSTANT value when the target has no Defense.
+func required_ticks(a_target: Entity) -> float:
+	if duration_type == DurationType.BY_HP \
+			and is_instance_valid(a_target) and a_target.defense != null:
+		return hp_factor * a_target.defense.hp
+	return duration * Engine.physics_ticks_per_second
 #endregion
 
 #region Evaluation
@@ -102,6 +139,15 @@ static func _build_evaluators() -> Dictionary:
 					and a_actor.ability_inventory != null and a_actor.ability_inventory.has_items() \
 					and target_inventory(a_message.target) != null \
 					and target_inventory(a_message.target).can_hold_more() \
+				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
+
+		# Plant a bomb on an enemy METALLIC-frame target (unit or structure).
+		Type.PLANT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
+			return MoveCommand.PreconditionFailureCause.NONE \
+				if is_instance_valid(a_message.target) and a_message.target is Entity \
+					and a_actor.is_enemy_of(a_message.target) \
+					and a_message.target.defense != null \
+					and a_message.target.defense.frame_type == Defense.FrameType.METALLIC \
 				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
 	}
 

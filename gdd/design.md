@@ -41,25 +41,14 @@
 - toxin
 ## Damage Calculations
 
-### Attributes
-
-| Property   | Possibilities |
-| ---------- | ------------- |
-| Biological | Fleshy unit   |
-| Mechanical | Fleshy unit   |
-| Light      | Light armor   |
-| Medium     | Medium Armor  |
-| Heavy      | Heavy armor   |
-### Offense
-
 | Type        | Bio | Mech | Light | Medium | Heavy | Properties                        |
 | ----------- | --- | ---- | ----- | ------ | ----- | --------------------------------- |
-| Lead        |     | -    | +     | -      | -     | hitscan                           |
 | Toxic       | +   | -    |       |        |       |                                   |
 | Sonic       | +   | -    | -     |        | +     |                                   |
+| Lead        |     | -    | +     | -      | -     | hitscan                           |
 | Plasma      |     |      | +     |        | -     | short range                       |
-| Siege       |     |      | -     |        | +     |                                   |
 | Explosive   |     | +    |       |        |       |                                   |
+| Siege       | -   | +    | -     |        | +     |                                   |
 | Electricity | -   | +    | +     |        |       |                                   |
 | Lazer       | -   | +    |       |        | +     | damage impacted by movement speed |
 ## Technologies
@@ -72,23 +61,6 @@
 | Tank | Ranged | Melee  | Ranged | Ranged | Ranged | X      |
 | Air  | X      | Ranged | Ranged | +Tank  | +Inf   | Ranged |
 
-## Damage Types
-- Damage
-	- Ballistics - cheap, only effective against light or no armor
-	- Railgun - like ballistics, s
-	- Explosives - only effective against armor
-	- Lazer - only effective against armor
-	- Plasma - Good against 
-- Auxiliary
-	- Sonic
-	- Cryo
-	- Fire
-	- Radiation
-- Neutral
-	- ballistics
-	- explosives
-	- lazers
-	- electricity
 ## Unit Modulators
 - Price
 - Health

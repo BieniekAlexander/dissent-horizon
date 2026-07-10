@@ -102,8 +102,13 @@ func eject_to_scene(spawn_pos: Vector3) -> void:
 	for item: Entity in items:
 		if not is_instance_valid(item):
 			continue
-		var cmd: Commander = (item as Commandable).commander \
-			if item is Commandable else null
+		# Items that never entered the tree (e.g. units minted by a COLLECT
+		# interaction) never ran _ready, so their `ownership` @onready is null and
+		# reading `.commander` would fault. Such items have no commander to return
+		# to — treat them like the null-commander case below and free them.
+		var cmd: Commander = null
+		if item is Commandable and (item as Commandable).ownership != null:
+			cmd = (item as Commandable).commander
 		if cmd == null or not is_instance_valid(cmd):
 			item.free()
 			continue

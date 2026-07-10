@@ -47,26 +47,35 @@ flowchart TD
 ### Irregular
 - cheap, weak anti-infantry
 - Builder
+## Redoubt
+### Sapper
+- plants explosives
+### Sharpshooter
+- sniper unit
+- has to deploy, probably
+- Maybe stealth?
+## Chop Shop
+### Collective
+- transport vehicle
+- armored, no weapons
+### Monitor
+-  like quad cannon
+# Rocket Buggy
+- Rip it tbh
+- requires tech
+### Arc Engine
+- ECM that deals DOT (requires tech)
 ## Hangar
 ### Chinook
 - transport chopper
+- stealth
 ### Kamikaze Drone
 - Like scourge in Brood War
 - Should probably do AOE and friendly fire - cool and balanced
 ### Condor
 - Plane, drops EMPS (requires Air Tech)
-## Redoubt
-### Sharpshooter
-- sniper unit
-- has to deploy, probably
-- Maybe stealth?
-### Chop Shop
- - Sleeper - small, fast transport vehicle
-- Locust - Like patriot system
-- Monitor - like quad cannon
-- Arc Engine - ECM that deals DOT (requires tech)
-- Battle Bus (vehicle tech)
-- **Vehicle Tech Dunno**
+### Liberator Gunship
+- Like an AC-130
 ## Upgrades
 - Global
 	- All infantry units gain 20% maximum health

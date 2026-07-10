@@ -117,6 +117,7 @@ var technology_mapping: Dictionary = {
 	Entity.Type.AN_STRUCTURE_HANGAR: TechnologySpec.new(500, 0, 0, 10*Engine.physics_ticks_per_second, [Entity.Type.AN_STRUCTURE_STRONGHOLD]),
 	Entity.Type.AN_UNIT_WARLORD: TechnologySpec.new(250, 0, 0, 20*30),
 	Entity.Type.AN_UNIT_IRREGULAR: TechnologySpec.new(75, 0, 0, 15*30),
+	Entity.Type.AN_UNIT_SAPPER: TechnologySpec.new(125, 0, 0, 20*30),
 	Entity.Type.AN_UNIT_KAMIKAZE: TechnologySpec.new(200, 0, 0, 25*30),
 	Entity.Type.AN_UNIT_MERCURY: TechnologySpec.new(300, 0, 0, 25*30),
 	# CL (Colonial)
@@ -124,7 +125,7 @@ var technology_mapping: Dictionary = {
 	Entity.Type.CL_STRUCTURE_INTERNMENT_CAMP: TechnologySpec.new(300, 0, 0, 30*30),
 	Entity.Type.CL_STRUCTURE_POWER_PLANT: TechnologySpec.new(200, 0, 0, 20*30, [Entity.Type.CL_STRUCTURE_INTERNMENT_CAMP]),
 	Entity.Type.CL_STRUCTURE_BARRACKS: TechnologySpec.new(300, 0, 0, 30*30),
-	Entity.Type.CL_UNIT_STOCK_TRUCK: TechnologySpec.new(600, 0, 0, 25*30),
+	Entity.Type.CL_UNIT_SUPPLY_TRUCK: TechnologySpec.new(600, 0, 0, 25*30),
 	Entity.Type.CL_UNIT_RECRUIT: TechnologySpec.new(100, 0, 0, 20*30),
 	Entity.Type.CL_UNIT_BADGER: TechnologySpec.new(200, 0, 0, 25*30),
 	# TC (Technocratic)

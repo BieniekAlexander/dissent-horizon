@@ -12,6 +12,14 @@ extends Control
 ## Two bind modes drive what the card shows and self-updates each frame:
 ##   * bind_existing(commandable) — a live unit: red HP bar.
 ##   * bind_training(producer, i)  — a queued/training unit: blue progress bar.
+##
+## A live-unit card bound via bind_existing(commandable, true) is clickable and emits
+## `activated(commandable, shift_held)` on left click; the owner (InfoView) decides what
+## that means for its context (re-select the unit, or evacuate a garrison occupant).
+
+## Emitted when a clickable live-unit card is left-clicked. `shift_held` is true when
+## Shift was down. Not emitted for training cards (those cancel their job directly).
+signal activated(commandable: Commandable, shift_held: bool)
 
 const CARD_SIZE: Vector2 = Vector2(48, 48)
 const BAR_HEIGHT: float = 5.0
@@ -64,11 +72,16 @@ func _process(_delta: float) -> void:
 #endregion
 
 #region Binding
-## Represent a live unit: icon from its scene, red HP bar.
-func bind_existing(commandable: Commandable) -> void:
+## Represent a live unit: icon from its scene, red HP bar. When `clickable` is true the
+## card accepts left clicks and emits `activated(commandable, shift_held)` — used by the
+## summary (re-select) and garrison-occupant (evacuate) card lists.
+func bind_existing(commandable: Commandable, clickable: bool = false) -> void:
 	_commandable = commandable
 	_producer = null
 	_job_index = -1
+	if clickable:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	set_icon(_letter(commandable.scene_file_path))
 	_refresh_existing()
 
@@ -87,16 +100,27 @@ func bind_training(producer: Commandable, job_index: int) -> void:
 		set_icon(_letter(producer.production.job_scene(job_index).resource_path))
 	_refresh_training()
 
-## Cancel this card's training job on left click. InfoView rebuilds the detail cards
-## when the queue changes, so the freed/renumbered cards follow automatically.
+## Left click handling. A training card cancels its job; a clickable live-unit card
+## emits `activated` so its owner can act (re-select / evacuate). InfoView rebuilds the
+## cards when the underlying set changes, so freed/renumbered cards follow automatically.
+##
+## BOTH the press and the release are consumed (accept_event on each). The world-selection
+## handler in RTSController fires on the button RELEASE (is_action_released → set_selection),
+## so leaving the release unconsumed would let a card click also trigger a world select/
+## deselect — e.g. clicking an occupant card would evacuate AND then clear the selection.
 func _gui_input(event: InputEvent) -> void:
-	if _producer == null:
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if event is InputEventMouseButton and event.pressed \
-			and event.button_index == MOUSE_BUTTON_LEFT:
+	# Consume the whole click (press + release) so it never reaches RTSController's
+	# selection input. Act only on the press.
+	accept_event()
+	if not event.pressed:
+		return
+	if _producer != null:
 		if is_instance_valid(_producer) and _producer.production != null:
 			_producer.production.cancel(_job_index)
-			accept_event()
+	elif _commandable != null and is_instance_valid(_commandable):
+		activated.emit(_commandable, (event as InputEventMouseButton).shift_pressed)
 #endregion
 
 #region Display API

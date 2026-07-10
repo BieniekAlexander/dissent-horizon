@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "modes/campaign/baladians.md",
+                "file": "factions/baladians.md",
                 "mode": "source",
                 "source": false
               },
@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "locust",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -182,19 +182,20 @@
   },
   "active": "8b1ff7376e896a28",
   "lastOpenFiles": [
+    "tasks.md",
+    "factions/the-warden.md",
+    "factions/haustoria.md",
+    "factions/successors-of-tenjin.md",
     "factions/baladians.md",
-    "factions/tselerate-coalition.md",
-    "setting/maps/standoff.md",
-    "balance.md",
     "design.md",
     "mechanics-inspiration.md",
-    "NOTES.md",
-    "tasks.md",
-    "world-building.md",
-    "setting/resources.md",
-    "factions/haustoria.md",
+    "factions/tselerate-coalition.md",
     "factions/z-theocratic.md",
-    "factions/the-warden.md",
-    "factions/successors-of-tenjin.md"
+    "modes/campaign/baladians.md",
+    "setting/maps/standoff.md",
+    "balance.md",
+    "NOTES.md",
+    "world-building.md",
+    "setting/resources.md"
   ]
 }

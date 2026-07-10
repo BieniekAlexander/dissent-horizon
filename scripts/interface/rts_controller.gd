@@ -14,6 +14,12 @@ const invalid_cursor: Resource = preload("res://assets/interface/cursor_invalid.
 # decide the local viewpoint. Was a const; now a static var so it can vary.
 static var PLAYER_COMMANDER_ID: int = 1
 
+# Full-panel HUD Controls in this group swallow world-selection clicks: a press or
+# release whose cursor sits inside any of them is NOT interpreted as unit selection
+# (see _pointer_over_blocking_ui). Add future HUD panels (MapSection, InfoSection,
+# CommandsSection, …) to this group in the scene to have them ignored the same way.
+const SELECTION_BLOCKING_UI_GROUP: StringName = &"selection_blocking_ui"
+
 const BUILD_PREVIEW_ALPHA: float = 0.45
 const BUILD_PREVIEW_VALID_TINT:   Color = Color(1.0, 1.0, 1.0, BUILD_PREVIEW_ALPHA)
 const BUILD_PREVIEW_INVALID_TINT: Color = Color(1.0, 0.25, 0.25, BUILD_PREVIEW_ALPHA)
@@ -137,6 +143,12 @@ func _ready():
 	if !selection_box.is_inside_tree():
 		add_child(selection_box)
 
+	# The info panel's summary cards drive selection changes (left click = select only,
+	# shift+click = remove from selection).
+	if _info_view != null:
+		_info_view.select_only_requested.connect(select_only)
+		_info_view.deselect_requested.connect(remove_from_selection)
+
 	# Waypoint indicators live under Map; skip pooling when there is no Map
 	# (e.g. running player.tscn standalone to preview the HUD).
 	if map != null:
@@ -221,12 +233,20 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				selection_box.position = Vector2(mouse_position.x, mouse_position.y - selection_box_size.y)
 	elif event.is_action_pressed("isometric_camera_select"):
+		# A press that starts on a HUD panel isn't a world-selection drag — ignore it so
+		# the panel's own controls (or nothing) handle the click.
+		if _pointer_over_blocking_ui():
+			return
 		select_down_position = mouse_position
 		selection_box.visible = true
 		selection_box.set_size(Vector2.ZERO)
 	elif event.is_action_released("isometric_camera_select"):
 		selection_box.visible = false
-		_handle_select_release()
+		# Only resolve a selection when the release is over the world, not a HUD panel —
+		# otherwise clicking a HUD element (e.g. an info-panel card) would also clear or
+		# retarget the world selection on button-up.
+		if not _pointer_over_blocking_ui():
+			_handle_select_release()
 	elif event.is_action_pressed("command_additive"):
 		next_command_additive = true
 	elif event.is_action_released("command_additive"):
@@ -247,6 +267,23 @@ func _unhandled_input(event: InputEvent) -> void:
 #endregion
 
 #region Selection
+## True when the LIVE cursor position lies inside any visible HUD panel in the
+## SELECTION_BLOCKING_UI_GROUP. Clicks over those panels must not drive world selection.
+## Grouping (rather than hard-coding the three sections) means any future full-panel UI
+## added to that group is ignored automatically.
+##
+## Reads get_viewport().get_mouse_position() directly rather than the cached
+## `mouse_position` field: that field only updates from MouseMotion events that reach
+## _unhandled_input, and motion over a HUD panel is swallowed by the panel — so the
+## cached value is stale (still a world point) exactly when we need to know we're over UI.
+func _pointer_over_blocking_ui() -> bool:
+	var screen_pos: Vector2 = get_viewport().get_mouse_position()
+	for node: Node in get_tree().get_nodes_in_group(SELECTION_BLOCKING_UI_GROUP):
+		var panel: Control = node as Control
+		if panel != null and panel.is_visible_in_tree() and panel.get_global_rect().has_point(screen_pos):
+			return true
+	return false
+
 ## Return all Selectable nodes whose projected screen position falls within screen_rect.
 func query_box_collisions(screen_rect: Rect2) -> Array:
 	return get_tree().get_nodes_in_group("selectables").filter(
@@ -260,6 +297,25 @@ func deselect():
 			c.selectable.deselect()
 	selection = []
 	pending_command_name = ""
+
+## Make `commandable` the sole selection (used by the info panel's summary cards). Clears
+## the current selection, selects just this one, and refreshes the HUD to match.
+func select_only(commandable: Commandable) -> void:
+	deselect()
+	if is_instance_valid(commandable) and commandable.selectable.select():
+		selection.append(commandable)
+	_refresh_available_commands()
+	if not selection.is_empty():
+		unit_selected.emit(selection[0] as Entity)
+
+## Drop `commandable` from the current selection (used by shift+click on a summary card),
+## leaving the rest selected, then refresh the HUD.
+func remove_from_selection(commandable: Commandable) -> void:
+	if commandable in selection:
+		if is_instance_valid(commandable):
+			commandable.selectable.deselect()
+		selection.erase(commandable)
+	_refresh_available_commands()
 
 func set_selection(selection_start_position: Vector2, selection_end_position: Vector2):
 	var drag_distance = abs(selection_start_position - selection_end_position)

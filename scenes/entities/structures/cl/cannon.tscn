@@ -43,6 +43,7 @@ dimensions = Vector2i(3, 3)
 
 [node name="Defense" parent="." index="8" unique_id=637704181]
 armour_type = 2
+frame_type = 1
 hp_max = 500.0
 
 [node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]

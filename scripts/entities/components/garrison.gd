@@ -211,6 +211,62 @@ func evacuate(a_map: Map) -> void:
 		owner_cmd.movement.take_off()
 
 
+## Evacuate a SINGLE occupant `unit` (used by the info panel's per-occupant evacuate),
+## returning just that unit to the scene next to the host and dispersing it. Mirrors the
+## per-unit placement/command logic of evacuate() but for one occupant. The adopted
+## commander is only reverted once the garrison empties. No-op when `unit` isn't held here.
+func evacuate_one(unit: Commandable, a_map: Map) -> void:
+	if not (unit in _garrisoned):
+		return
+	var owner_cmd := get_parent() as Commandable
+
+	# Seed placement from a passable cell next to a structure host's footprint (its own
+	# cells are off-navmesh), otherwise from the host's own position (a unit host).
+	var center: Vector2
+	if owner_cmd != null and owner_cmd.has_node("Structure") and a_map != null:
+		var cells: Array[Vector2i] = SU.passable_cells_adjacent_to(owner_cmd, a_map)
+		center = VU.inXZ(a_map.grid_to_world(cells[0])) if not cells.is_empty() \
+			else VU.inXZ(owner_cmd.global_position)
+	else:
+		center = VU.inXZ(owner_cmd.global_position) if owner_cmd != null else Vector2.ZERO
+
+	var radii: Array[float] = [unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)]
+	var world: World3D = owner_cmd.get_world_3d() if owner_cmd != null \
+		else (a_map.get_world_3d() if a_map != null else null)
+	var spawn_xz: Vector2 = _spread_points(a_map, center, radii, world, 1)[0]
+	var height_offset: float = unit.movement.height_offset() if unit.movement != null else 0.0
+	var y: float = a_map.terrain_height_at(spawn_xz) + height_offset if a_map != null \
+		else (owner_cmd.global_position.y if owner_cmd != null else 0.0)
+	var spawn_pos := Vector3(spawn_xz.x, y, spawn_xz.y)
+
+	_garrisoned.erase(unit)
+	unit.commander.add_child(unit)
+	_restore_loadout(unit)
+	unit.global_position = spawn_pos
+	# Return the evacuee UNSELECTED: the player evacuated it from the info panel while
+	# the garrison host is the selected unit, so releasing it must not steal the
+	# selection (or leave a stale selection ring carried over from before it garrisoned).
+	# The controller keeps the host in its selection set; we just make sure the released
+	# unit doesn't come back looking selected.
+	if unit.selectable != null:
+		unit.selectable.deselect()
+	if a_map != null:
+		unit.update_commands(_release_commands(owner_cmd, a_map, spawn_pos))
+
+	if _garrisoned.is_empty():
+		_revert_adopted_commander(owner_cmd)
+	_refresh_aggro_range()
+	if _garrisoned.is_empty() and owner_cmd != null and owner_cmd.movement != null \
+			and owner_cmd.movement.mode == Movement.Mode.HOVERING:
+		owner_cmd.movement.take_off()
+
+
+## The units currently garrisoned (read-only view for UI such as the info panel's
+## per-occupant cards). Callers must not mutate the returned array.
+func occupants() -> Array[Commandable]:
+	return _garrisoned
+
+
 ## Revert a commander adopted from garrisoning units once everyone has left, so
 ## the garrison returns to neutral. No-op when the garrison had its own commander
 ## to begin with (it was never adopted), so a preexisting commander is preserved.

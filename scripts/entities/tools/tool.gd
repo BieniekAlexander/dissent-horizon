@@ -84,8 +84,9 @@ static var command_tool_map: Dictionary = {
 	"command_tool_kamikaze": Tool.new("command_tool_kamikaze", Entity.Type.AN_UNIT_KAMIKAZE, load("res://scenes/entities/units/an/kamikaze.tscn"), "Kamikaze", Vector2i(0,0), ControlContext.TRAIN, Faction.ANARCHISTS),
 	"command_tool_mercury": Tool.new("command_tool_mercury", Entity.Type.AN_UNIT_MERCURY, load("res://scenes/entities/units/an/mercury.tscn"), "Mercury", Vector2i(1, 0), ControlContext.TRAIN, Faction.ANARCHISTS),
 	"command_tool_warlord": Tool.new("command_tool_warlord", Entity.Type.AN_UNIT_WARLORD, load("res://scenes/entities/units/an/warlord.tscn"), "Warlord", Vector2i(1, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
+	"command_tool_sapper": Tool.new("command_tool_sapper", Entity.Type.AN_UNIT_SAPPER, load("res://scenes/entities/units/an/sapper.tscn"), "Sapper", Vector2i(0, 2), ControlContext.TRAIN, Faction.ANARCHISTS),
 	"command_tool_vanguard": Tool.new("command_tool_vanguard", Entity.Type.TC_UNIT_VANGUARD, load("res://scenes/entities/units/tc/vanguard.tscn"), "Vanguard", Vector2i(3, 2), ControlContext.TRAIN, Faction.TECHNOCRACY),
-	"command_tool_stock_truck": Tool.new("command_tool_stock_truck", Entity.Type.CL_UNIT_STOCK_TRUCK, load("res://scenes/entities/units/cl/stock_truck.tscn"), "Stock Truck", Vector2i(0, 2), ControlContext.TRAIN, Faction.COLLECTIVE),
+	"command_tool_stock_truck": Tool.new("command_tool_stock_truck", Entity.Type.CL_UNIT_SUPPLY_TRUCK, load("res://scenes/entities/units/cl/supply_truck.tscn"), "Supply Truck", Vector2i(0, 2), ControlContext.TRAIN, Faction.COLLECTIVE),
 	"command_tool_recruit": Tool.new("command_tool_recruit", Entity.Type.CL_UNIT_RECRUIT, load("res://scenes/entities/units/cl/recruit.tscn"), "Recruit", Vector2i(1, 2), ControlContext.TRAIN, Faction.COLLECTIVE),
 	"command_tool_badger": Tool.new("command_tool_badger", Entity.Type.CL_UNIT_BADGER, load("res://scenes/entities/units/cl/badger.tscn"), "Badger", Vector2i(2, 2), ControlContext.TRAIN, Faction.COLLECTIVE),
 }

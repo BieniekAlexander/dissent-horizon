@@ -103,7 +103,24 @@ func _process(_delta: float) -> void:
 #region Impact lifecycle
 func _tick_pre_impact() -> void:
 	_advance()
+	_face_velocity()
 	_frames_pre_impact += 1
+
+## Rotate the projectile to face its current velocity direction. Skipped when
+## velocity is ~zero (first frame / impact) to avoid a degenerate look_at.
+## BALLISTIC's velocity curves under gravity, so calling this every tick
+## naturally noses the projectile down on descent — correct and desirable.
+## LINEAR's velocity never changes after launch, so this only has an effect
+## once. HOMING's velocity steers each tick, so facing tracks the turn.
+func _face_velocity() -> void:
+	if velocity.length_squared() <= 0.001:
+		return
+	# look_at can't use a parallel up-vector: fall back to FORWARD for a
+	# projectile moving straight up or down.
+	var up: Vector3 = Vector3.UP
+	if absf(velocity.normalized().dot(Vector3.UP)) > 0.999:
+		up = Vector3.FORWARD
+	look_at(global_position + velocity, up)
 
 ## State change to post-impact, accounting for visuals and state flag
 func _enter_post_impact() -> void:

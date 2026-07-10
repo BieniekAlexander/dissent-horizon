@@ -37,6 +37,11 @@ const HOVERING_ARRIVAL_DISTANCE: float = 0.125
 ## the ground during a temporary landing.  At 30 ticks/s and AERIAL_HEIGHT = 1.5
 ## this gives a ~1-second descent and a ~1-second ascent.
 const LANDING_SPEED: float = 0.05
+
+## Pitch-tilt applied to a HOVERING unit's rotation.x while it is LANDING or
+## TAKING_OFF, so the body noses down/up slightly with its vertical motion.
+const HOVER_TILT_FACTOR: float = 0.3
+const HOVER_MAX_TILT: float = deg_to_rad(20)
 #endregion
 
 #region Properties
@@ -159,15 +164,6 @@ var _orbit_angle: float = 0.0
 ## avoidance-adjusted value, keeping the budget honest.
 var _current_velocity: Vector3 = Vector3.ZERO
 
-## Body-facing direction (nose orientation). Used by HOVERING units with
-## reverse_speed_ratio > 0 (chased via _update_facing) and by GROUNDED_DIRECT
-## units with a finite turn_rate (driven by _apply_grounded_turn): the velocity
-## the unit actually applies follows _facing, which rotates toward the desired
-## direction at turn_rate deg/s. Persists when the unit is stopped so it retains
-## its heading between commands. Zero until the unit first moves, at which point
-## it is snapped to the initial velocity direction.
-var _facing: Vector3 = Vector3.ZERO
-
 ## Current landing state for HOVERING units.  Always AIRBORNE for other modes.
 var _landing_state: LandingState = LandingState.AIRBORNE
 
@@ -252,6 +248,12 @@ func _physics_process(_delta: float) -> void:
 		return
 	if mode != Mode.HOVERING:
 		return
+	# Vertical pitch tilt only applies mid-LANDING/TAKING_OFF (set below); every
+	# other state keeps a level body.
+	if _landing_state != LandingState.LANDING and _landing_state != LandingState.TAKING_OFF:
+		var level_owner: Node3D = _owner_node()
+		if level_owner != null:
+			level_owner.rotation.x = 0.0
 	# Pre-landing navigation: stay AIRBORNE and steer to the safe landing spot
 	# before beginning the descent. Descent starts once we arrive.
 	if _pending_land and _landing_state == LandingState.AIRBORNE:
@@ -274,7 +276,9 @@ func _physics_process(_delta: float) -> void:
 		return
 	match _landing_state:
 		LandingState.LANDING:
+			var prev_height_offset: float = _current_height_offset
 			_current_height_offset = maxf(0.0, _current_height_offset - LANDING_SPEED)
+			_apply_hover_tilt(_current_height_offset - prev_height_offset)
 			if _current_height_offset <= 0.0:
 				_landing_state = LandingState.GROUNDED_TEMP
 				_has_landing_target = false
@@ -310,7 +314,9 @@ func _physics_process(_delta: float) -> void:
 					velocity_ready.emit(_current_velocity)
 					_update_facing(_current_velocity)
 		LandingState.TAKING_OFF:
+			var prev_height_offset: float = _current_height_offset
 			_current_height_offset = minf(AERIAL_HEIGHT, _current_height_offset + LANDING_SPEED)
+			_apply_hover_tilt(_current_height_offset - prev_height_offset)
 			if _current_height_offset >= AERIAL_HEIGHT:
 				_landing_state = LandingState.AIRBORNE
 #endregion
@@ -542,6 +548,8 @@ func _update_flying_height() -> void:
 		desired = AERIAL_HEIGHT * clampf(dist / dive_distance, 0.0, 1.0)
 	_current_height_offset = move_toward(_current_height_offset, desired, LANDING_SPEED)
 	_dive_requested = false
+	if parent is Node3D:
+		(parent as Node3D).rotation.x = 0.0 # TODO: implement vertical tilt for FLYING mode
 #endregion
 
 #region RVO avoidance
@@ -680,28 +688,66 @@ func _distance_to_target() -> float:
 	return 0.0
 
 
-## Rotate _facing toward the emitted velocity direction at turn_rate deg/s.
-## Call after every velocity_ready.emit() in HOVERING mode so the body-facing
-## direction stays consistent with what the physics actually produced.
-## No-op when velocity is zero (facing persists through stops), when
-## reverse_speed_ratio is 0 (facing not used), or in non-HOVERING modes.
+## Rotate the owner node's rotation.y toward the emitted velocity direction at
+## turn_rate deg/s. Call after every velocity_ready.emit() in HOVERING/FLYING
+## mode so the body-facing direction (rotation.y — see get_facing()) stays
+## consistent with what the physics actually produced. No-op when velocity is
+## zero (facing persists through stops) or in GROUNDED_DIRECT mode (turn
+## handled by _apply_grounded_turn instead).
 func _update_facing(velocity: Vector3) -> void:
-	if mode != Mode.HOVERING or reverse_speed_ratio <= 0.0 or velocity.is_zero_approx():
+	if mode == Mode.GROUNDED_DIRECT or velocity.is_zero_approx():
 		return
-	var target_dir := velocity.normalized()
-	if _facing.is_zero_approx():
-		_facing = target_dir  # first move: snap to initial direction
+	_rotate_owner_toward(velocity)
+
+
+## The Node3D whose rotation.y is this Movement's single source of truth for
+## facing direction — its parent in the scene tree. null in unit tests that
+## add a Movement under a plain Node.
+func _owner_node() -> Node3D:
+	return get_parent() as Node3D
+
+
+## The unit's current XZ facing direction, derived from the owner node's
+## rotation.y. Drop-in replacement for the old _facing field for any external
+## caller. Defaults to Vector3(0, 0, 1) (rotation.y == 0) when there's no
+## owner Node3D.
+func get_facing() -> Vector3:
+	var owner_node: Node3D = _owner_node()
+	if owner_node == null:
+		return Vector3(0, 0, 1)
+	return Vector3(sin(owner_node.rotation.y), 0, cos(owner_node.rotation.y))
+
+
+## Rotate the owner node's rotation.y toward the XZ direction of `target_dir`
+## at turn_rate deg/s (instantly if turn_rate is INF). No-op if there's no
+## owner Node3D or target_dir is degenerate.
+func _rotate_owner_toward(target_dir: Vector3) -> void:
+	var owner_node: Node3D = _owner_node()
+	if owner_node == null or target_dir.is_zero_approx():
 		return
+	var target_angle: float = atan2(target_dir.x, target_dir.z)
 	if turn_rate == INF:
-		_facing = target_dir
+		owner_node.rotation.y = target_angle
 		return
-	var tps := float(Engine.physics_ticks_per_second)
-	var max_angle := deg_to_rad(turn_rate) / tps
-	var angle := _facing.angle_to(target_dir)
-	if angle > max_angle:
-		_facing = _facing.slerp(target_dir, max_angle / angle).normalized()
-	else:
-		_facing = target_dir
+	var tps: float = float(Engine.physics_ticks_per_second)
+	var max_delta: float = deg_to_rad(turn_rate) / tps
+	owner_node.rotation.y += clampf(
+		angle_difference(owner_node.rotation.y, target_angle), -max_delta, max_delta
+	)
+
+
+## Pitch the owner node's rotation.x a little in response to vertical motion
+## while LANDING/TAKING_OFF (vertical_velocity = this tick's change in
+## _current_height_offset — negative while descending, positive while
+## ascending). No-op if there's no owner Node3D.
+## TODO: tune tilt for 3D model
+func _apply_hover_tilt(vertical_velocity: float) -> void:
+	var owner_node: Node3D = _owner_node()
+	if owner_node == null:
+		return
+	owner_node.rotation.x = clampf(
+		-vertical_velocity * HOVER_TILT_FACTOR, -HOVER_MAX_TILT, HOVER_MAX_TILT
+	)
 
 
 ## Clamp the speed change from _current_velocity to desired within the
@@ -753,8 +799,9 @@ func _apply_accel_limits(desired: Vector3) -> Vector3:
 	#             the CURRENT direction so the emitted velocity stays physically
 	#             correct (no instantaneous direction flip for bounded decel).
 	#   Phase 2 — unit is stopped or already moving toward desired: cap speed by
-	#             how well _facing (body nose) aligns with the desired direction.
-	#             Forward (facing == desired): full speed. Backward: reverse_speed.
+	#             how well the owner's current facing (get_facing(), driven by
+	#             rotation.y) aligns with the desired direction. Forward
+	#             (facing == desired): full speed. Backward: reverse_speed.
 	var decelerate_in_current_dir: bool = false
 	if hovering_needs_facing:
 		var desired_dir := desired.normalized()
@@ -765,9 +812,8 @@ func _apply_accel_limits(desired: Vector3) -> Vector3:
 			desired_speed = 0.0
 			decelerate_in_current_dir = true
 		else:
-			# Phase 2: apply the facing-based cap. Treat unset facing as aligned.
-			var f := _facing if not _facing.is_zero_approx() else desired_dir
-			var alignment := f.dot(desired_dir)
+			# Phase 2: apply the facing-based cap.
+			var alignment := get_facing().dot(desired_dir)
 			desired_speed = minf(desired_speed, lerpf(
 				speed * reverse_speed_ratio * tps,
 				speed * tps,
@@ -815,9 +861,10 @@ func _on_velocity_computed(velocity: Vector3) -> void:
 	velocity_ready.emit(velocity)
 
 
-## Rotate _facing toward the avoidance-adjusted velocity direction at turn_rate
-## and shape the emitted velocity so the unit moves the way it is actually
-## pointing — not instantly toward where it wants to go.
+## Rotate the owner's rotation.y toward the avoidance-adjusted velocity
+## direction at turn_rate and shape the emitted velocity so the unit moves the
+## way it is actually pointing (get_facing()) — not instantly toward where it
+## wants to go.
 ##
 ## While the nose is NOT yet aligned with the destination, the unit travels at
 ## min_turn_speed_ratio of its desired speed (forward when the target is ahead,
@@ -830,22 +877,20 @@ func _apply_grounded_turn(velocity: Vector3) -> Vector3:
 	if desired_speed <= 1e-4:
 		return velocity  # stopping / arrived — hold facing, don't force a turn
 	var desired_dir: Vector3 = velocity / desired_speed
-	if _facing.is_zero_approx():
-		_facing = desired_dir  # first move: snap to the initial heading
-		return desired_speed * _facing
+	var current_dir: Vector3 = get_facing()
 	var tps: float = float(Engine.physics_ticks_per_second)
 	var max_angle: float = deg_to_rad(turn_rate) / tps
-	var angle: float = _facing.angle_to(desired_dir)
+	var angle: float = current_dir.angle_to(desired_dir)
+	_rotate_owner_toward(desired_dir)
 	if angle <= max_angle:
 		# Close enough to finish aligning this tick — drive straight at full speed.
-		_facing = desired_dir
-		return desired_speed * _facing
-	# Still turning: rotate the nose and translate only as much as the ratio
-	# allows, in the direction (forward / reverse) that makes progress.
-	_facing = _facing.slerp(desired_dir, max_angle / angle).normalized()
+		return desired_speed * desired_dir
+	# Still turning: translate only as much as the ratio allows, in the
+	# direction (forward / reverse) that makes progress.
+	var new_dir: Vector3 = get_facing()
 	var maneuver_speed: float = min_turn_speed_ratio * desired_speed
-	var travel_sign: float = 1.0 if _facing.dot(desired_dir) >= 0.0 else -1.0
-	return travel_sign * maneuver_speed * _facing
+	var travel_sign: float = 1.0 if new_dir.dot(desired_dir) >= 0.0 else -1.0
+	return travel_sign * maneuver_speed * new_dir
 
 
 ## Called before starting a descent. If the unit's current cell (or the predicted

@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_invnt"]
 [ext_resource type="Script" uid="uid://bfix8h487pr1x" path="res://scripts/entities/components/builds.gd" id="6_builds"]
+[ext_resource type="PackedScene" path="res://assets/meshes/entities/irregular_dummy.glb" id="7_mesh"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_skyvu"]
 radius = 0.2
@@ -74,6 +75,7 @@ shape = SubResource("SphereShape3D_c8urn")
 
 [node name="Sprite" parent="." index="15" unique_id=1381401170]
 transform = Transform3D(1.5, 0, 0, 0, 1.0606601, -1.0606601, 0, 1.0606601, 1.0606601, 0, 0.17003015, 0)
+visible = false
 texture_filter = 0
 texture = ExtResource("2_njqvf")
 hframes = 3
@@ -85,3 +87,5 @@ initial_abilities = Array[int]([0])
 [node name="VeterancyLabel" parent="." index="23" unique_id=1705221844]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.55, -0.0009765625)
 visible = false
+
+[node name="Model" parent="." instance=ExtResource("7_mesh")]

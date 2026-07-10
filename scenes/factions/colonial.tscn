@@ -1,14 +1,14 @@
 [gd_scene format=3 uid="uid://bqe38bvv7aclk"]
 
 [ext_resource type="Script" uid="uid://cyrg0j3vbx1ds" path="res://scripts/interface/commander/faction.gd" id="1_fac"]
-[ext_resource type="PackedScene" uid="uid://cl0settlement01" path="res://scenes/entities/structures/cl/settlement.tscn" id="2_settl"]
-[ext_resource type="PackedScene" uid="uid://dgu5rjol1pe84" path="res://scenes/entities/units/cl/stock_truck.tscn" id="3_truck"]
+[ext_resource type="PackedScene" uid="uid://chfrb011hwbsy" path="res://scenes/entities/structures/cl/settlement.tscn" id="2_settl"]
+[ext_resource type="PackedScene" uid="uid://dgu5rjol1pe84" path="res://scenes/entities/units/cl/supply_truck.tscn" id="3_truck"]
 [ext_resource type="PackedScene" uid="uid://chrecru1t0001" path="res://scenes/entities/units/cl/recruit.tscn" id="4_recr"]
 [ext_resource type="PackedScene" uid="uid://xi4d44sl0pu6" path="res://scenes/entities/units/cl/badger.tscn" id="5_badg"]
 [ext_resource type="Script" uid="uid://cteoy2vx2l533" path="res://scripts/interface/commander/ordnance.gd" id="6_ord"]
 [ext_resource type="Script" uid="uid://bhm0bavkjvt0q" path="res://scripts/interface/commander/ordnance_unlock.gd" id="7_unlock"]
-[ext_resource type="PackedScene" uid="uid://c0rdnpromote001" path="res://scenes/scenario_events/ordnance_promote.tscn" id="8_pro"]
-[ext_resource type="PackedScene" uid="uid://c0rdnradarscn01" path="res://scenes/scenario_events/ordnance_radar_scan.tscn" id="9_rad"]
+[ext_resource type="PackedScene" uid="uid://ceccva2mk6k4g" path="res://scenes/scenario_events/ordnance_promote.tscn" id="8_pro"]
+[ext_resource type="PackedScene" uid="uid://cecedxppj374g" path="res://scenes/scenario_events/ordnance_radar_scan.tscn" id="9_rad"]
 
 [sub_resource type="Resource" id="Ordnance_promote"]
 script = ExtResource("6_ord")

@@ -46,9 +46,10 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 			return PreconditionFailureCause.NOT_ENOUGH_ORE
 		return PreconditionFailureCause.NONE
 
-	var unmet: TechnologySpec.UnmetNeed = a_actor.commander.get_unmet_need(a_message.tool.type)
-	if unmet != TechnologySpec.UnmetNeed.NONE:
-		return unmet_need_to_precondition[unmet]
+	# Placement is checked BEFORE resources/tech: an invalid-placement result drives a
+	# terrain visual cue, and letting a NOT_ENOUGH_ORE / MISSING_STRUCTURE result short-
+	# circuit ahead of it would suppress that cue and confuse the player. So resolve
+	# placement first, then fall through to the resource/tech gate.
 	var preview := a_actor.commander.get_build_preview_instance(a_message.tool)
 	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
 
@@ -62,6 +63,10 @@ static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) 
 			return PreconditionFailureCause.INVALID_PLACEMENT
 	elif not Structure.valid_placement(a_message, obs.dimensions, obs.allow_uneven):
 		return PreconditionFailureCause.INVALID_PLACEMENT
+
+	var unmet: TechnologySpec.UnmetNeed = a_actor.commander.get_unmet_need(a_message.tool.type)
+	if unmet != TechnologySpec.UnmetNeed.NONE:
+		return unmet_need_to_precondition[unmet]
 
 	return PreconditionFailureCause.NONE
 #endregion

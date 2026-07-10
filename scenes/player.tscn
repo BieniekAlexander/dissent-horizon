@@ -6,10 +6,10 @@
 [ext_resource type="Shader" uid="uid://du6421tshttnx" path="res://scripts/rendering/shaders/fog.gdshader" id="4_ah75o"]
 [ext_resource type="Script" uid="uid://bprkmhrqjp56k" path="res://scripts/maps/fog.gd" id="4_b3a3y"]
 [ext_resource type="Script" uid="uid://b516knf7hdkun" path="res://scripts/interface/hud/command_grid.gd" id="4_fjrip"]
-[ext_resource type="Script" path="res://scripts/interface/hud/info_view.gd" id="10_infoview"]
 [ext_resource type="Script" uid="uid://yjiyead7lnk" path="res://scripts/interface/control_feedback_sound_player.gd" id="7_cfsp1"]
 [ext_resource type="Script" uid="uid://cifbkg5b8mfnb" path="res://scripts/maps/minimap.gd" id="8_minimap"]
 [ext_resource type="PackedScene" uid="uid://bkpybipbter41" path="res://scenes/factions/anarchical.tscn" id="9_anfac"]
+[ext_resource type="Script" uid="uid://byjcppaifact3" path="res://scripts/interface/hud/info_view.gd" id="10_infoview"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_qcjp1"]
 
@@ -48,7 +48,7 @@ text = "	ore: 0
 	vigor: 0/100
 	dominion: 0"
 
-[node name="MapSection" type="Control" parent="Controller" unique_id=1965947438]
+[node name="MapSection" type="Control" parent="Controller" unique_id=1965947438 groups=["selection_blocking_ui"]]
 layout_mode = 3
 anchors_preset = 3
 anchor_left = 1.0
@@ -82,7 +82,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("8_minimap")
 
-[node name="InfoSection" type="Control" parent="Controller" unique_id=593031055]
+[node name="InfoSection" type="Control" parent="Controller" unique_id=593031055 groups=["selection_blocking_ui"]]
 layout_mode = 3
 anchors_preset = 12
 anchor_top = 1.0
@@ -106,7 +106,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.35, 0.35, 0.35, 0.2509804)
 
-[node name="Summary" type="Control" parent="Controller/InfoSection"]
+[node name="Summary" type="Control" parent="Controller/InfoSection" unique_id=243269838]
 layout_mode = 1
 anchor_right = 0.4
 anchor_bottom = 1.0
@@ -114,7 +114,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="NameLabel" type="Label" parent="Controller/InfoSection/Summary"]
+[node name="NameLabel" type="Label" parent="Controller/InfoSection/Summary" unique_id=370129560]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -124,7 +124,6 @@ grow_vertical = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
-mouse_filter = 2
 
 [node name="Cards" type="HFlowContainer" parent="Controller/InfoSection/Summary" unique_id=610274355]
 layout_mode = 1
@@ -139,7 +138,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Details" type="Control" parent="Controller/InfoSection"]
+[node name="Details" type="Control" parent="Controller/InfoSection" unique_id=710854947]
 layout_mode = 1
 anchor_left = 0.4
 anchor_right = 1.0
@@ -148,7 +147,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Cards" type="HFlowContainer" parent="Controller/InfoSection/Details"]
+[node name="Cards" type="HFlowContainer" parent="Controller/InfoSection/Details" unique_id=1385580273]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -161,7 +160,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="CommandsSection" type="Control" parent="Controller" unique_id=1645374738]
+[node name="CommandsSection" type="Control" parent="Controller" unique_id=1645374738 groups=["selection_blocking_ui"]]
 layout_mode = 3
 anchors_preset = 2
 anchor_top = 1.0

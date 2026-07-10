@@ -5,24 +5,47 @@
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="3_inv"]
 [ext_resource type="Script" uid="uid://dj0jw37l6fn41" path="res://scripts/entities/components/inventory_dominion_generator.gd" id="4_dom"]
 
-[node name="Structure" instance=ExtResource("1_base")]
+[node name="Structure" unique_id=227912066 instance=ExtResource("1_base")]
 type = 12803
 
-[node name="Structure" parent="." index="7"]
+[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+visible = false
+debug_color = Color(0.8, 0.8, 0.8, 0.4)
+
+[node name="TargetShape" parent="TargetBody" parent_id_path=PackedInt32Array(1235114386) index="0" unique_id=406925482]
+visible = false
+debug_color = Color(1, 0.9, 0.2, 0.35)
+
+[node name="AggroRange" parent="." index="4" unique_id=131280482]
+visible = false
+debug_color = Color(1, 0.55, 0.1, 0.35)
+
+[node name="VisionRange" parent="." index="5" unique_id=1124867207]
+visible = false
+debug_color = Color(0.2, 0.6, 1, 0.3)
+
+[node name="Structure" parent="." index="7" unique_id=390859349]
 dimensions = Vector2i(4, 4)
 
-[node name="Defense" parent="." index="8"]
+[node name="Defense" parent="." index="8" unique_id=637704181]
 armour_type = 2
+frame_type = 1
 hp_max = 400.0
 
-[node name="Inventory" type="Node" parent="." index="10"]
+[node name="Inventory" type="Node" parent="." index="10" unique_id=506499158]
 script = ExtResource("3_inv")
 item_capacity = 6
 
-[node name="DominionGenerator" type="Node" parent="." index="11"]
+[node name="DominionGenerator" type="Node" parent="." index="11" unique_id=443692185]
 script = ExtResource("4_dom")
-dominion_per_unit = 5
 
-[node name="Sprite" parent="." index="15"]
+[node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
+visible = false
+debug_color = Color(0.2, 0.9, 0.3, 0.3)
+
+[node name="Sprite" parent="." index="15" unique_id=1381401170]
 transform = Transform3D(10, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, 0, 0.45, -0.5)
 texture = ExtResource("2_tex")
+
+[node name="FootprintVisualizer" parent="." index="24" unique_id=286423146]
+visible = false

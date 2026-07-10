@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://45qwlquq73h8" path="res://scripts/skirmish.gd" id="1_scen"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_map"]
 [ext_resource type="Shape3D" uid="uid://bmkey18lrpkej" path="res://resources/map.tres" id="3_hmap"]
-[ext_resource type="PackedScene" uid="uid://bkpybipbter41" path="res://scenes/factions/anarchical.tscn" id="3_uxael"]
 [ext_resource type="PackedScene" uid="uid://bqe38bvv7aclk" path="res://scenes/factions/colonial.tscn" id="4_22jj8"]
 [ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/entities/structures/nt/deposit.tscn" id="7_dep"]
 [ext_resource type="PackedScene" uid="uid://d372d5stwv6gt" path="res://scenes/entities/structures/nt/mine.tscn" id="8_mine"]
@@ -15,7 +14,7 @@
 [sub_resource type="Resource" id="PlayerSlot_bot1"]
 script = ExtResource("9_pslot")
 is_bot = false
-faction = ExtResource("3_uxael")
+faction = ExtResource("4_22jj8")
 metadata/_custom_type_script = "uid://rck85holj04"
 
 [sub_resource type="Resource" id="PlayerSlot_bot2"]

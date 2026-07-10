@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://cwd673adqbgqs"]
+
+[ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_a88ap"]
+[ext_resource type="Texture2D" uid="uid://4j5okj7g4kff" path="res://assets/coin_logo.png" id="2_cb7tc"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_xc3ue"]
+
+[node name="Projectile" type="CharacterBody3D" unique_id=208917844]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_a88ap")
+hitscan = true
+trajectory = 1
+speed = 1.0
+base_damage = 45.0
+damage_type = 5
+pre_impact_lifespan = 10000
+tick_rate = 1
+
+[node name="InFlightSprite" type="Sprite3D" parent="." unique_id=11328538]
+transform = Transform3D(0.3, 0, 0, 0, 0.21213204, 0.21213204, 0, -0.21213204, 0.21213204, 0, 0, 0)
+render_priority = 8
+texture = ExtResource("2_cb7tc")
+
+[node name="Ownership" type="Node" parent="." unique_id=1123607683]
+script = ExtResource("3_xc3ue")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"
