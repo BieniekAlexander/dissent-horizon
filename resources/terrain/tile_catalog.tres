@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="TerrainTileCatalog" format=3 uid="uid://benq5jyol51xy"]
+
+[ext_resource type="Script" uid="uid://b1k5r78tymu7" path="res://scripts/maps/terrain/terrain_tile_catalog.gd" id="1_83mn2"]
+[ext_resource type="Script" uid="uid://dt6e3sqbgau70" path="res://scripts/maps/terrain/tile_type.gd" id="2_vxbb0"]
+
+[sub_resource type="Resource" id="Resource_s0vh6"]
+script = ExtResource("2_vxbb0")
+
+[sub_resource type="Resource" id="Resource_ea3mw"]
+script = ExtResource("2_vxbb0")
+name = "Water"
+passable = false
+buildable = false
+map_color = Color(0.16, 0.34, 0.52, 1)
+
+[sub_resource type="Resource" id="Resource_ik0nx"]
+script = ExtResource("2_vxbb0")
+name = "Forest"
+passable = false
+buildable = false
+map_color = Color(0.13, 0.28, 0.14, 1)
+
+[sub_resource type="Resource" id="Resource_00oj1"]
+script = ExtResource("2_vxbb0")
+name = "Cliff"
+passable = false
+buildable = false
+renders_surface = false
+map_color = Color(0.42, 0.38, 0.32, 1)
+
+[sub_resource type="Resource" id="Resource_gnbb2"]
+script = ExtResource("2_vxbb0")
+name = "NoGo"
+passable = false
+buildable = false
+renders_surface = false
+
+[resource]
+script = ExtResource("1_83mn2")
+types = Array[ExtResource("2_vxbb0")]([SubResource("Resource_s0vh6"), SubResource("Resource_ea3mw"), SubResource("Resource_ik0nx"), SubResource("Resource_00oj1"), SubResource("Resource_gnbb2")])

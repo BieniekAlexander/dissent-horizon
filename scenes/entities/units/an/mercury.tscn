@@ -28,10 +28,10 @@ shape = SubResource("CylinderShape3D_gto2x")
 mode = 16
 max_acceleration = 2.5
 max_deceleration = -2.5
-speed = 0.12
+speed = 3.6
 turn_rate = 100.0
 orbit_radius = 2.0
-orbit_speed = 0.07
+orbit_speed = 2.1
 
 [node name="Garrison" type="Node" parent="." index="12" unique_id=502146002]
 script = ExtResource("3_garr")

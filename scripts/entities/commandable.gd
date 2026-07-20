@@ -25,6 +25,11 @@ extends Entity
 @onready var _avoidance_obstacle: NavigationObstacle3D = $AvoidanceObstacle
 @onready var production: Production = get_node_or_null("Production") as Production
 
+## Area3D used for crush detection (see _tick_crush). Its CollisionShape3D's shape is
+## mirrored from the root's own collider in _ready, same as TargetBody's shape mirror
+## in Entity._ready, so it matches each faction scene's actual footprint override.
+@onready var _crush_area: Area3D = get_node_or_null("CrushArea") as Area3D
+
 ## Vigor (the "power" resource) this commandable contributes to its commander —
 ## the old ResourceProvider component, folded up into Commandable. Defaults to 0/0;
 ## structure scenes override (a vigor provider sets vigor_provided, a unit-producing
@@ -360,6 +365,13 @@ func _ready() -> void:
 	attributes = Set.new(attributes_list)
 	command_receiver.initialize(self)
 
+	# Mirror the root's collision shape onto the crush-detection area's shape, so its
+	# overlap test matches this entity's real footprint (MovementBody/Body is overridden
+	# per faction scene — see e.g. vanguard.tscn — same pattern as TargetBody's mirror
+	# in Entity._ready).
+	if _crush_area != null and collider != null:
+		(_crush_area.get_node("CrushShape") as CollisionShape3D).shape = collider.shape
+
 	# Drive the HP-bar fill geometry off damage events rather than recomputing it
 	# every frame. Visibility still depends on selection (see _process), but the
 	# fill scale/offset only move when hp moves.
@@ -428,6 +440,26 @@ func initialize(a_map: Map, a_commander: Commander):
 	# Structure registration is handled by _on_commander_changed, which fires
 	# from Entity._ready() when Ownership migrates the pre-tree _commander value.
 
+## Push command state into the MeshVisual component: map the current situation
+## to a high-level animation state. The animation call is a no-op until an
+## AnimationTree is authored.
+##
+## Facing is NOT pushed here anymore. The root node's rotation.y is now the
+## single source of truth for facing (Movement rotates it toward the direction
+## of travel / aim — see Movement.get_facing, which treats +Z as the mesh's
+## visual front), and MeshVisual is a child that inherits that rotation.
+## Driving MeshVisual.face_direction as well would rotate the mesh a SECOND time
+## on top of the root, compounding the two into a doubled, offset yaw that
+## snaps for large turns.
+func _drive_mesh_visual(mesh_visual: MeshVisual) -> void:
+	var state: MeshVisual.AnimationState = MeshVisual.AnimationState.IDLE
+	if has_command() and current_command() is Attack:
+		state = MeshVisual.AnimationState.ATTACK
+	elif movement != null and Vector2(velocity.x, velocity.z).length_squared() > 0.0001:
+		state = MeshVisual.AnimationState.MOVE
+	mesh_visual.set_animation_state(state)
+
+
 func _process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	var sprite: Sprite3D = get_node_or_null("Sprite") as Sprite3D
@@ -436,8 +468,12 @@ func _process(_delta: float) -> void:
 	# driven separately by _on_hp_changed, since it only moves when hp moves.
 	$HPBar.visible = defense != null and (defense.hp < defense.hp_max or selectable.is_selected())
 
-	# Movement-driven sprite facing + animation frames. Was Unit._process.
-	if movement != null and sprite != null:
+	# Movement-driven facing + animation state. MeshVisual (3D models) supersedes
+	# the Sprite path (billboards); drive whichever this entity actually has.
+	var mesh_visual := get_node_or_null("MeshVisual") as MeshVisual
+	if mesh_visual != null:
+		_drive_mesh_visual(mesh_visual)
+	elif movement != null and sprite != null:
 		if velocity.x > 0:
 			sprite.flip_h = true
 		elif velocity.x < 0:
@@ -565,6 +601,51 @@ func _physics_process(_delta: float) -> void:
 	# avoidance stable, so Y tracking must happen here instead.
 	if movement != null and map != null:
 		global_position.y = map.terrain_height_at(VU.inXZ(global_position)) + movement.height_offset()
+	_update_crush_avoidance_exclusions()
+	_tick_crush()
+
+#region Crush
+## Recompute which enemy obstacle channels (AvoidanceAgent3D.obstacle_bit) this unit's
+## avoidance mask should ignore: any enemy commander with at least one nearby unit this
+## unit can crush (Movement.can_crush) is walked through rather than detoured around.
+## No-op without a GROUNDED_DIRECT Movement + AvoidanceAgent3D (avoidance_agent() is
+## null for HOVERING/FLYING and for units without an AvoidanceAgent3D-backed nav agent).
+## See the _crush_excluded_obstacles caveat on AvoidanceAgent3D: obstacle channels are
+## per-commander, not per-unit, so this is a team-wide approximation.
+func _update_crush_avoidance_exclusions() -> void:
+	if movement == null or aggro_range_shape == null:
+		return
+	var agent: AvoidanceAgent3D = movement.avoidance_agent()
+	if agent == null:
+		return
+	var nearby: Array[Entity] = SU.entities_in_aggro_shape(
+		get_world_3d(), aggro_range_shape, global_position, target_body, 20
+	)
+	var excluded: int = 0
+	for e: Entity in nearby:
+		if not (e is Commandable) or not is_enemy_of(e):
+			continue
+		var enemy: Commandable = e as Commandable
+		if enemy.movement != null and movement.can_crush(enemy.movement):
+			excluded |= AvoidanceAgent3D.obstacle_bit(enemy.commander_id)
+	agent.set_crush_excluded_obstacles(excluded)
+
+## Instant-kill any enemy Commandable currently overlapping CrushArea that this unit's
+## Movement.can_crush() clears — the "drive over the smaller unit" half of the crush
+## mechanic (_update_crush_avoidance_exclusions above is the "don't detour around it"
+## half). No-op without Movement or a CrushArea child.
+func _tick_crush() -> void:
+	if movement == null or _crush_area == null:
+		return
+	for body: Node in _crush_area.get_overlapping_bodies():
+		var enemy := body as Commandable
+		if enemy == null or enemy == self or not is_enemy_of(enemy):
+			continue
+		if enemy.movement == null or not movement.can_crush(enemy.movement):
+			continue
+		if enemy.defense != null and enemy.defense.hp > 0:
+			enemy.defense.kill()
+#endregion
 
 func _process_commands() -> void:
 	# A stationary can_rally() commandable routes a bare MoveCommand into its own

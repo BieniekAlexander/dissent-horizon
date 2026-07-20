@@ -1,17 +1,16 @@
 [gd_scene format=3 uid="uid://x1npbdho0isq"]
 
-[ext_resource type="Script" uid="uid://b7noqplt4gdch" path="res://scripts/entities/structures/shelter_structure.gd" id="1_7e53h"]
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_ylpv5"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_j8ro6"]
 [ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="3_ev5e7"]
 [ext_resource type="Texture2D" uid="uid://5vx0iccure6l" path="res://assets/mountain.png" id="4_yhbvv"]
 [ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="8_2hsat"]
 [ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="9_wxsgx"]
 
-[node name="ShelterStructure" type="CharacterBody3D" unique_id=1386197407 groups=["commandable", "shelter", "structure"]]
+[node name="Rock" type="CharacterBody3D" unique_id=1386197407 groups=["shelter", "structure"]]
 collision_layer = 0
 collision_mask = 0
-script = ExtResource("1_7e53h")
-type = 4610
+script = ExtResource("1_ylpv5")
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=661891945]
 
@@ -34,6 +33,7 @@ no_depth_test = true
 texture = ExtResource("4_yhbvv")
 
 [node name="FootprintVisualizer" type="Node3D" parent="." unique_id=1820155775 groups=["debug_shape_footprint"]]
+visible = false
 script = ExtResource("8_2hsat")
 
 [node name="#####DEBUG#####" type="Node" parent="." unique_id=437700484]

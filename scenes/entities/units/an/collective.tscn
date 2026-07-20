@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://beurhqsrdi45w"]
+
+[ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/entities/units/unit.tscn" id="1_4wg0t"]
+[ext_resource type="PackedScene" uid="uid://bhjcpnh5cknd3" path="res://assets/meshes/entities/collective.blend" id="2_6hm2s"]
+[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_baaro"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_q0vgu"]
+radius = 0.8
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_baaro"]
+height = 100.0
+radius = 10.0
+
+[node name="Unit" unique_id=1891335319 instance=ExtResource("1_4wg0t")]
+
+[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+shape = SubResource("CylinderShape3D_q0vgu")
+
+[node name="VisionRange" parent="." index="5" unique_id=1124867207]
+shape = SubResource("CylinderShape3D_baaro")
+
+[node name="Movement" parent="." index="7" unique_id=413735738]
+crush_class = 2
+max_acceleration = 3.0
+max_deceleration = -3.0
+speed = 4.0
+turn_rate = 150.0
+min_turn_speed_ratio = 1.5
+
+[node name="Defense" parent="." index="8" unique_id=637704181]
+armour_type = 1
+frame_type = 1
+hp_max = 200.0
+
+[node name="Garrison" type="Node" parent="." index="10" unique_id=946153333]
+script = ExtResource("2_baaro")
+bunker = false
+metadata/_custom_type_script = "uid://dlhe01nj6efuh"
+
+[node name="collective" parent="MeshVisual" parent_id_path=PackedInt32Array(1116984397) index="0" unique_id=1607625754 instance=ExtResource("2_6hm2s")]

@@ -19,14 +19,21 @@ extends RefCounted
 ## Every entry carries the entity's last-known world location.
 ##
 ## The Snapshot layer (see Snapshot / _snapshots) is the VISUAL counterpart: for
-## each scouted structure-at-a-cell it keeps a duplicated Sprite3D that renders
-## the remembered building while the real one is fogged, and is reconciled/deleted
-## when the commander re-scouts that cell. Snapshots carry no SELECTION collider,
-## so the cursor and box-select never detect them (the controls layer relies on
-## this — a fogged structure must not be targetable).
+## each scouted structure-at-a-cell it keeps a duplicated MeshVisual (the entity's
+## 3D model) that renders the remembered building while the real one is fogged, and
+## is reconciled/deleted when the commander re-scouts that cell. Snapshots carry no
+## SELECTION collider, so the cursor and box-select never detect them (the controls
+## layer relies on this — a fogged structure must not be targetable).
 
 ## Seconds a unit belief survives without a fresh sighting before it lapses.
 const BLACKBOARD_EXPIRATION: float = 180.0
+
+## Multiplicative darkening applied to a snapshot's MeshVisual so a remembered (fogged)
+## structure reads as dimmed — "under the fog of war" — versus the full-brightness live
+## building. Multiplies the snapshot's already-team-tinted albedo, so team colours are kept,
+## just darker. ~50% brightness with a slight cool bias, roughly matching the terrain fog's
+## explored dimming.
+const SNAPSHOT_FOG_TINT: Color = Color(0.45, 0.45, 0.55)
 
 
 ## One remembered enemy entity.
@@ -48,7 +55,7 @@ class Snapshot:
 	# Live ref to the real structure. Entity (NOT Commandable) — Shelters/Deposits are
 	# structures that derive from Entity. is_instance_valid may go false on destruction.
 	var entity: Entity
-	var node: Sprite3D                  # duplicated "Sprite", world-positioned in the container
+	var node: Node3D                    # duplicated MeshVisual, world-positioned in the container
 	# Captured at creation (stays valid after `entity` is freed): a Deposit yields its
 	# cell to any structure overlaid on it (a Mine) when both are remembered — see
 	# _suppress_overlapping_snapshots.
@@ -58,7 +65,7 @@ class Snapshot:
 var _commander: Commander
 var _entries: Dictionary = {}           # instance_id -> Entry
 var _snapshots: Dictionary = {}         # "id:cell" -> Snapshot
-## Lazily created Node3D under the map that parents every snapshot Sprite3D. Freed
+## Lazily created Node3D under the map that parents every snapshot MeshVisual. Freed
 ## by free_visuals() (called from Commander's PREDELETE).
 var _snapshot_container: Node3D = null
 
@@ -227,22 +234,29 @@ func _snapshot_outranks(a: Snapshot, b: Snapshot) -> bool:
 
 
 func _create_snapshot(structure: Entity, cell: Vector2i, key: String) -> void:
-	var sprite := structure.get_node_or_null("Sprite") as Sprite3D
-	if sprite == null:
+	var visual := structure.get_node_or_null("MeshVisual") as MeshVisual
+	if visual == null:
 		return
 	if _snapshot_container == null or not is_instance_valid(_snapshot_container):
 		_snapshot_container = Node3D.new()
 		_snapshot_container.name = "StructureSnapshots_%d" % _commander.id
 		_commander.map.add_child(_snapshot_container)
 
-	# Duplicate only the Sprite3D (not the whole entity), so the snapshot has no
-	# SELECTION collider and inherits the structure's team-tint modulate. Match the
-	# sprite's world transform (not just the structure origin) so the remembered
-	# image sits exactly where the real sprite did — same vertical offset and scale.
-	var node := sprite.duplicate() as Sprite3D
+	# Duplicate the MeshVisual subtree (the 3D model, not the whole entity), so the snapshot has
+	# no SELECTION collider. On being added, the copy's MeshVisual._ready re-gathers its OWN
+	# override materials from the source's already-team-tinted ones, so it keeps the tint without
+	# sharing materials with — or being re-driven by — the live structure. Match the real mesh's
+	# world transform so the remembered image sits exactly where the structure did (offset/scale/
+	# facing). It's a static memory, so stop its per-frame processing.
+	var node := visual.duplicate() as MeshVisual
 	_snapshot_container.add_child(node)
-	node.global_transform = sprite.global_transform
+	node.global_transform = visual.global_transform
+	node.set_process(false)
+	node.set_physics_process(false)
 	node.visible = false
+	# Darken it so it reads as "under the fog of war". The copy's captured design albedo is the
+	# already-team-tinted colour, so this multiply keeps the team hue and just dims it.
+	node.set_team_color(SNAPSHOT_FOG_TINT)
 
 	var snap := Snapshot.new()
 	snap.structure_id = structure.get_instance_id()

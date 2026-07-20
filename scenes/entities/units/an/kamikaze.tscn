@@ -39,7 +39,7 @@ shape = SubResource("CylinderShape3D_aggro")
 mode = 17
 max_acceleration = 1.0
 max_deceleration = -1.5
-speed = 0.1
+speed = 3.0
 turn_rate = 120.0
 
 [node name="Loadout" type="Node3D" parent="." index="8" unique_id=1619495853]

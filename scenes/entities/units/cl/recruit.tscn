@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://chrecru1t0001"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/entities/units/unit.tscn" id="1_8cs83"]
-[ext_resource type="Texture2D" uid="uid://cqdr1q3porht6" path="res://assets/entities/recruit.png" id="2_njqvf"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_invnt"]
+[ext_resource type="PackedScene" uid="uid://bbpr4d102dgv8" path="res://assets/meshes/entities/dummy_bio.blend" id="5_o8ngu"]
 [ext_resource type="PackedScene" uid="uid://b1pxdwtcob60x" path="res://scenes/entities/projectiles/cl/recruit_bullet.tscn" id="6_hrbul"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_skyvu"]
@@ -17,9 +17,13 @@ radius = 0.3
 height = 100.0
 radius = 5.75
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_o8ngu"]
+height = 100.0
+radius = 12.0
+
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_irreg"]
 height = 100.0
-radius = 2.875
+radius = 5.5
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_c8urn"]
 radius = 0.3
@@ -37,8 +41,13 @@ shape = SubResource("CylinderShape3D_c8urn")
 [node name="AggroRange" parent="." index="4" unique_id=131280482]
 shape = SubResource("CylinderShape3D_tv7h1")
 
+[node name="VisionRange" parent="." index="5" unique_id=1124867207]
+shape = SubResource("CylinderShape3D_o8ngu")
+
 [node name="Movement" parent="." index="7" unique_id=413735738]
-speed = 0.05
+crush_class = 0
+speed = 1.5
+turn_rate = 1080.0
 
 [node name="Loadout" type="Node3D" parent="." index="8" unique_id=1619495853]
 script = ExtResource("3_invnt")
@@ -54,6 +63,7 @@ melee_damage = 0.0
 visible = false
 shape = SubResource("CylinderShape3D_irreg")
 disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
 
 [node name="Defense" parent="." index="9" unique_id=637704181]
 hp_max = 120.0
@@ -64,11 +74,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=1543182780]
 shape = SubResource("SphereShape3D_c8urn")
 
-[node name="Sprite" parent="." index="14" unique_id=1381401170]
-transform = Transform3D(3, 0, 0, 0, 1.0606601, -2.1213202, 0, 1.0606601, 2.1213202, 0, 0.17003015, 0)
-texture_filter = 0
-texture = ExtResource("2_njqvf")
-hframes = 3
+[node name="dummy_bio" parent="MeshVisual" parent_id_path=PackedInt32Array(1116984397) index="0" unique_id=639843308 instance=ExtResource("5_o8ngu")]
 
 [node name="Inventory" type="Node" parent="." index="19" unique_id=1765311699]
 script = ExtResource("5_invnt")

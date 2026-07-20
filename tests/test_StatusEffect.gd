@@ -20,8 +20,8 @@ extends GutTest
 ## tree — effects are attached as children and ticked manually — so we keep it out.
 class StubCommandable extends Commandable:
 	var damage_taken: float = 0.0
-	func receive_damage(_from: Commandable, amount: float) -> void:
-		damage_taken += amount
+	func receive_damage(damage: Damage, _from: Commandable = null) -> void:
+		damage_taken += damage.amount
 
 
 func _make_unit(speed: float = 1.0, attrs: Array = []) -> StubCommandable:

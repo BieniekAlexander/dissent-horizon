@@ -51,8 +51,6 @@ collision_mask = 0
 [node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=810331199]
 shape = SubResource("HeightMapShape3D_b2gqw")
 
-[node name="HeightPins" type="Node3D" parent="Map" unique_id=1305016727]
-
 [node name="Unit" type="CharacterBody3D" parent="." unique_id=513065552 groups=["commandable", "unit"] instance=ExtResource("7_mrgn3")]
 script = ExtResource("8_vfj1i")
 type = 4352

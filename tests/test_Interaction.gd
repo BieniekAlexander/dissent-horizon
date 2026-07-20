@@ -76,9 +76,9 @@ func test_liberate_evaluation_returns_failure_cause():
 	ix.type = Interaction.Type.LIBERATE
 	assert_eq(
 		ix.meets_precondition(null, _message_for(_make_target(true))),
-		Command.PreconditionFailureCause.NONE
+		MoveCommand.PreconditionFailureCause.NONE
 	)
 	assert_eq(
 		ix.meets_precondition(null, _message_for(_make_target(false))),
-		Command.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+		MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	)

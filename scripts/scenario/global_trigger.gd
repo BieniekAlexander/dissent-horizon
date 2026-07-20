@@ -58,6 +58,11 @@ func arm(manager: ScenarioTriggerManager) -> void:
 	_manager = manager
 	_was_satisfied = false
 	for condition: Condition in conditions:
+		# A RegionAwareCondition only stores a NodePath (a Resource can't resolve one); resolve
+		# it against this trigger and inject the live CollisionShape3D before the condition runs.
+		if condition is RegionAwareCondition:
+			var region_aware := condition as RegionAwareCondition
+			region_aware.bind_region(get_node_or_null(region_aware.region_shape_path) as CollisionShape3D)
 		condition.arm(manager)
 		if not condition.state_changed.is_connected(_on_condition_changed):
 			condition.state_changed.connect(_on_condition_changed)

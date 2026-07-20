@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://dcmdbl3j4t1k2"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="2_3agr1"]
-[ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="2_tefpw"]
 [ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="3_uy385"]
 [ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="4_slct0"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="5_ownr0"]
@@ -65,22 +64,30 @@ avoidance_mask = 0
 script = ExtResource("8_avagent")
 
 [node name="MovementBody" type="CollisionShape3D" parent="." unique_id=1991558196 groups=["debug_shape_movement_body"]]
+visible = false
 shape = SubResource("CylinderShape3D_fe0lq")
+debug_color = Color(0.8, 0.8, 0.8, 0.4)
 
 [node name="TargetBody" type="StaticBody3D" parent="." unique_id=1235114386]
 collision_layer = 2
 collision_mask = 0
 
 [node name="TargetShape" type="CollisionShape3D" parent="TargetBody" unique_id=406925482 groups=["debug_shape_target_body"]]
+visible = false
 shape = SubResource("CylinderShape3D_targetbody")
+debug_color = Color(1, 0.9, 0.2, 0.35)
 
 [node name="AggroRange" type="CollisionShape3D" parent="." unique_id=131280482 groups=["debug_shape_aggro_range"]]
+visible = false
 shape = SubResource("CylinderShape3D_aggro0")
 disabled = true
+debug_color = Color(1, 0.55, 0.1, 0.35)
 
 [node name="VisionRange" type="CollisionShape3D" parent="." unique_id=1124867207 groups=["debug_shape_vision_range"]]
+visible = false
 shape = SubResource("CylinderShape3D_visn0")
 disabled = true
+debug_color = Color(0.2, 0.6, 1, 0.3)
 
 [node name="Ownership" type="Node" parent="." unique_id=578459348]
 script = ExtResource("5_ownr0")
@@ -100,16 +107,11 @@ script = ExtResource("4_slct0")
 indicator_path = NodePath("../SelectionIndicator")
 
 [node name="SelectionShape" type="CollisionShape3D" parent="Selectable" unique_id=1543182780 groups=["debug_shape_selection"]]
+visible = false
 shape = SubResource("SphereShape3D_cx6aj")
+debug_color = Color(0.2, 0.9, 0.3, 0.3)
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=378466876]
-
-[node name="Sprite" type="Sprite3D" parent="." unique_id=1381401170]
-transform = Transform3D(1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0.3516159, 0)
-layers = 2
-axis = 1
-render_priority = 1
-texture = ExtResource("2_tefpw")
 
 [node name="HPBar" type="Sprite3D" parent="." unique_id=665391337]
 transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.3059143, -0.15404376)
@@ -156,5 +158,14 @@ font_size = 24
 [node name="AvoidanceObstacle" type="NavigationObstacle3D" parent="." unique_id=2009715013]
 avoidance_enabled = false
 avoidance_layers = 0
+
+[node name="CrushArea" type="Area3D" parent="." unique_id=900112233]
+collision_layer = 0
+collision_mask = 1
+
+[node name="CrushShape" type="CollisionShape3D" parent="CrushArea" unique_id=900112234 groups=["debug_shape_crush_area"]]
+visible = false
+shape = SubResource("CylinderShape3D_fe0lq")
+debug_color = Color(1, 0.2, 0.2, 0.35)
 
 [node name="#####TRIGGERS#####" type="Node" parent="." unique_id=402250202]

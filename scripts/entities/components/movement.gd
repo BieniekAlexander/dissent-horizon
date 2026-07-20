@@ -42,6 +42,10 @@ const LANDING_SPEED: float = 0.05
 ## TAKING_OFF, so the body noses down/up slightly with its vertical motion.
 const HOVER_TILT_FACTOR: float = 0.3
 const HOVER_MAX_TILT: float = deg_to_rad(20)
+
+## Tolerance (radians) for is_facing() to treat the owner's rotation.y as
+## "caught up" with a face_toward() target.
+const _FACING_ALIGNMENT_EPSILON: float = 0.001
 #endregion
 
 #region Properties
@@ -63,6 +67,14 @@ enum LandingState {
 	TAKING_OFF
 }
 
+## Crush size classes (see can_crush()). Independent of nav_agent_class (navmesh
+## erosion) and the body's real bounding_radius — this is purely the crush-eligibility
+## tier, authored per unit type.
+enum CrushClass { TINY = 0, SMALL = 1, MEDIUM = 2, LARGE = 3, HUGE = 4 }
+
+## Set in the inspector to size this unit for the crush mechanic (see can_crush()).
+@export var crush_class: CrushClass = CrushClass.SMALL
+
 ## Set in the inspector / scene file to choose the locomotion style.
 @export var mode: Mode = Mode.GROUNDED_DIRECT
 
@@ -76,18 +88,15 @@ enum LandingState {
 ## Must be ≤ 0; -INF (default) means speed can drop to any value instantly.
 @export var max_deceleration: float = -INF
 
-## Movement speed in world-units per physics tick.
-@export var speed: float = 0.125
+## Movement speed in world-units per second.
+@export var speed: float = 3.75
 
 ## Maximum rate at which the entity's heading may change, in degrees per second.
 ## HOVERING/FLYING: limits banking turns in _apply_accel_limits.
-## GROUNDED_DIRECT: limits facing rotation before velocity reflects the new direction
-## (default 360.0 applied in _ready when left at INF; INF means no limit).
+## GROUNDED_DIRECT: limits facing rotation before velocity reflects the new direction.
+## INF (default) means no limit — the body snaps to face its heading instantly.
 @export var turn_rate: float = INF
 
-## Convenience read-only: speed expressed in world-units per second.
-var speed_per_second: float:
-	get: return speed * Engine.physics_ticks_per_second
 
 @export_group("Grounded")
 ## Path (relative to this Movement node) to the NavigationAgent3D used in
@@ -123,7 +132,7 @@ var speed_per_second: float:
 @export_group("Flying")
 ## Orbit parameters for FLYING mode. The unit circles the anchor while idle.
 @export var orbit_radius: float = 3. ## desired orbit distance of this unit
-@export var orbit_speed: float = .05 ## speed of unit while orbiting, units/tick
+@export var orbit_speed: float = 1.5 ## speed of unit while orbiting, world-units/second
 
 ## Horizontal distance (world units) over which a FLYING unit performs its dive-attack
 ## descent: at or beyond this distance from the dive target it cruises at AERIAL_HEIGHT,
@@ -144,7 +153,7 @@ var _nav_agent: NavigationAgent3D
 ## Stores the current target for HOVERING / FLYING modes (no NavAgent).
 var _hovering_target: Vector3 = Vector3.ZERO
 
-## Orbit angular speed in degrees/tick (derived from orbit_speed / orbit_radius).
+## Orbit angular speed in degrees/second (derived from orbit_speed / orbit_radius).
 var orbit_angular_speed:
 	get: return rad_to_deg(orbit_speed/orbit_radius)
 
@@ -235,8 +244,6 @@ func _ready() -> void:
 		_anchor = (parent as Node3D).global_position
 	_current_height_offset = AERIAL_HEIGHT if mode == Mode.HOVERING or mode == Mode.FLYING else 0.0
 	if mode == Mode.GROUNDED_DIRECT:
-		if turn_rate == INF:
-			turn_rate = 360.0
 		if not nav_agent_path.is_empty():
 			_nav_agent = get_node_or_null(nav_agent_path) as NavigationAgent3D
 		if _nav_agent != null:
@@ -268,7 +275,7 @@ func _physics_process(_delta: float) -> void:
 			var tps: float = Engine.physics_ticks_per_second
 			# Brake as the unit closes in: cap speed so it arrives in at most 1 tick
 			# when very close, preventing overshoot of a nearby target cell center.
-			var desired_speed: float = minf(speed, to_target.length()) * tps
+			var desired_speed: float = minf(speed, to_target.length() * tps)
 			var desired: Vector3 = to_target.normalized() * desired_speed
 			_current_velocity = _apply_accel_limits(desired)
 			velocity_ready.emit(_current_velocity)
@@ -297,9 +304,9 @@ func _physics_process(_delta: float) -> void:
 					var tps: float = Engine.physics_ticks_per_second
 					var time_remaining: float = ticks_remaining / tps
 					var max_speed: float = dist / time_remaining if time_remaining > 1e-4 \
-						else speed * tps
+						else speed
 					var desired: Vector3 = to_target.normalized() \
-						* minf(speed * tps, max_speed)
+						* minf(speed, max_speed)
 					_current_velocity = _apply_accel_limits(desired)
 					velocity_ready.emit(_current_velocity)
 					_update_facing(_current_velocity)
@@ -507,18 +514,19 @@ func compute_orbit_velocity() -> Vector3:
 	# the unit is. If it drifts off-radius, the ideal point is still on the circle,
 	# so direction_to() naturally has a corrective radial component that pulls the
 	# unit back while continuing the orbit.
-	_orbit_angle += orbit_speed / orbit_radius
+	# orbit_speed is world-units/second, so the per-tick angle advance is the
+	# per-tick arc length (orbit_speed / tps) over the radius.
+	_orbit_angle += orbit_speed / orbit_radius / tps
 	var ideal_xz: Vector2 = VU.inXZ(_anchor) + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * orbit_radius
 	var ideal_3d: Vector3 = VU.fromXZ(ideal_xz)
 	# Match Y so direction_to() gives a horizontal vector; Y is snapped by Commandable.
 	ideal_3d.y = get_parent().global_position.y
-	# Use orbit_speed (not speed_per_second) so the unit travels at the same rate
-	# as the ideal point advances along the arc. Both move at orbit_speed, so once
-	# on the circle the unit tracks the ideal exactly — and orbit_radius is the true
-	# governing parameter rather than the generic movement speed. Multiply by tps
-	# to convert from units/tick to units/second (the unit CharacterBody3D.velocity
-	# expects, consistent with speed_per_second used elsewhere).
-	return get_parent().global_position.direction_to(ideal_3d) * orbit_speed * tps
+	# Use orbit_speed (not speed) so the unit travels at the same rate as the ideal
+	# point advances along the arc. Both move at orbit_speed, so once on the circle
+	# the unit tracks the ideal exactly — and orbit_radius is the true governing
+	# parameter rather than the generic movement speed. orbit_speed is already
+	# world-units/second, which is what CharacterBody3D.velocity expects.
+	return get_parent().global_position.direction_to(ideal_3d) * orbit_speed
 #endregion
 
 #region FLYING dive-attack
@@ -550,6 +558,14 @@ func _update_flying_height() -> void:
 	_dive_requested = false
 	if parent is Node3D:
 		(parent as Node3D).rotation.x = 0.0 # TODO: implement vertical tilt for FLYING mode
+#endregion
+
+#region Crush
+## True when this unit can crush (instant-kill on contact, and steer through rather
+## than avoid) `other`. Requires a two-tier gap (not one) so crushing is reserved for
+## a clear size mismatch — e.g. LARGE crushes TINY/SMALL but not MEDIUM.
+func can_crush(other: Movement) -> bool:
+	return int(crush_class) >= int(other.crush_class) + 2
 #endregion
 
 #region RVO avoidance
@@ -654,7 +670,7 @@ func configure_for_map(a_map: Map, nav_manager: NavManager, shape_radius: float)
 	if mode != Mode.GROUNDED_DIRECT or _nav_agent == null or nav_manager == null:
 		return
 	set_agent_radius(shape_radius)
-	nav_agent_class = NavAgentClass.class_for_radius(shape_radius)
+	nav_agent_class = NavAgentClass.class_for_radius(shape_radius, Map.CELL_SIZE)
 	_nav_agent.navigation_layers = nav_manager.layer_for(nav_agent_class)
 
 
@@ -709,8 +725,11 @@ func _owner_node() -> Node3D:
 
 ## The unit's current XZ facing direction, derived from the owner node's
 ## rotation.y. Drop-in replacement for the old _facing field for any external
-## caller. Defaults to Vector3(0, 0, 1) (rotation.y == 0) when there's no
-## owner Node3D.
+## caller. Uses the owner node's +Z axis as "forward": our models are authored
+## facing -Y in Blender, which the glTF importer maps to +Z in Godot (NOT the
+## engine's own -Z forward), so +Z is the visual front of the mesh and the
+## root's rotation.y orients it directly. Defaults to (0, 0, 1) (rotation.y ==
+## 0) when there's no owner Node3D.
 func get_facing() -> Vector3:
 	var owner_node: Node3D = _owner_node()
 	if owner_node == null:
@@ -718,9 +737,45 @@ func get_facing() -> Vector3:
 	return Vector3(sin(owner_node.rotation.y), 0, cos(owner_node.rotation.y))
 
 
-## Rotate the owner node's rotation.y toward the XZ direction of `target_dir`
-## at turn_rate deg/s (instantly if turn_rate is INF). No-op if there's no
-## owner Node3D or target_dir is degenerate.
+## Rotate the owner toward `target_position` (XZ only) at turn_rate deg/s —
+## the same rotation.y driving movement (see get_facing()). Public entry point
+## for non-movement callers that need the unit's body to turn, e.g. Attack
+## aiming a weapon before firing. There's only one facing today (the root
+## node's), so aiming and movement share it; if a unit ever needs an
+## independently-aimed part (e.g. a tank turret vs. its treads) that would get
+## its own rotation separate from this one.
+func face_toward(target_position: Vector3) -> void:
+	var owner_node: Node3D = _owner_node()
+	if owner_node == null:
+		return
+	var dir: Vector3 = target_position - owner_node.global_position
+	dir.y = 0.0
+	_rotate_owner_toward(dir)
+
+
+## True when the owner's current facing (get_facing()) already points at
+## `target_position` (XZ only), within a tight tolerance. Pairs with
+## face_toward(): callers that gate an action on facing (e.g. Attack firing)
+## call face_toward() every tick to turn, then is_facing() to know when the
+## turn has caught up. Vacuously true with no owner Node3D or a degenerate
+## (on top of the owner) target.
+func is_facing(target_position: Vector3) -> bool:
+	var owner_node: Node3D = _owner_node()
+	if owner_node == null:
+		return true
+	var dir: Vector3 = target_position - owner_node.global_position
+	dir.y = 0.0
+	if dir.is_zero_approx():
+		return true
+	return get_facing().angle_to(dir.normalized()) <= _FACING_ALIGNMENT_EPSILON
+
+
+## Rotate the owner node's rotation.y so its +Z (forward) axis points along the
+## XZ direction of `target_dir`, at turn_rate deg/s (instantly if turn_rate is
+## INF). +Z is our meshes' visual front (authored -Y in Blender → +Z on glTF
+## import; matches get_facing()), so this is the yaw that visually points the
+## mesh at target_dir. No-op if there's no owner Node3D or target_dir is
+## degenerate.
 func _rotate_owner_toward(target_dir: Vector3) -> void:
 	var owner_node: Node3D = _owner_node()
 	if owner_node == null or target_dir.is_zero_approx():
@@ -756,6 +811,18 @@ func _apply_hover_tilt(vertical_velocity: float) -> void:
 ## bounded: caps desired speed to sqrt(2·|max_decel|·dist), the maximum speed
 ## from which the entity can decelerate to zero over the remaining distance.
 func _apply_accel_limits(desired: Vector3) -> Vector3:
+	# Grounded units run their acceleration / deceleration as a SIGNED longitudinal
+	# speed in _apply_grounded_turn (so a forward↔reverse command eases through zero
+	# instead of snapping to the opposite velocity). Here we only apply the final-leg
+	# braking speed cap; the per-tick rate limiting happens after avoidance.
+	if mode == Mode.GROUNDED_DIRECT:
+		if is_final_leg and max_deceleration != -INF and not desired.is_zero_approx():
+			var dist: float = _distance_to_target()
+			var braking_speed: float = sqrt(2.0 * absf(max_deceleration) * dist) if dist > 0.0 else 0.0
+			if braking_speed < desired.length():
+				return desired.normalized() * braking_speed
+		return desired
+
 	# hovering_needs_alignment: old behaviour (reverse_speed_ratio == 0). The unit
 	# must turn to face the target before accelerating; misalignment zeroes speed.
 	# hovering_needs_facing: new helicopter behaviour (reverse_speed_ratio > 0 and
@@ -815,8 +882,8 @@ func _apply_accel_limits(desired: Vector3) -> Vector3:
 			# Phase 2: apply the facing-based cap.
 			var alignment := get_facing().dot(desired_dir)
 			desired_speed = minf(desired_speed, lerpf(
-				speed * reverse_speed_ratio * tps,
-				speed * tps,
+				speed * reverse_speed_ratio,
+				speed,
 				(alignment + 1.0) * 0.5))
 
 	var speed_delta: float = desired_speed - current_speed
@@ -855,42 +922,90 @@ func _apply_accel_limits(desired: Vector3) -> Vector3:
 
 
 func _on_velocity_computed(velocity: Vector3) -> void:
-	if mode == Mode.GROUNDED_DIRECT and turn_rate != INF:
+	# Always route grounded velocity through _apply_grounded_turn, including when
+	# turn_rate is INF: it also drives the body rotation (via _rotate_owner_toward),
+	# and INF just makes that an instant snap while returning the velocity
+	# unchanged. Gating this on turn_rate != INF (as before) meant INF grounded
+	# units never had their rotation.y — and therefore their model — updated.
+	if mode == Mode.GROUNDED_DIRECT:
 		velocity = _apply_grounded_turn(velocity)
 	_current_velocity = velocity
 	velocity_ready.emit(velocity)
 
 
-## Rotate the owner's rotation.y toward the avoidance-adjusted velocity
-## direction at turn_rate and shape the emitted velocity so the unit moves the
-## way it is actually pointing (get_facing()) — not instantly toward where it
-## wants to go.
+## Rotate the owner's rotation.y toward the avoidance-adjusted velocity direction
+## at turn_rate and shape the emitted velocity so the unit moves the way it is
+## actually pointing (get_facing()) — not instantly toward where it wants to go.
 ##
-## While the nose is NOT yet aligned with the destination, the unit travels at
-## min_turn_speed_ratio of its desired speed (forward when the target is ahead,
-## reverse when it is behind, which lets a positive ratio back-and-fill into a
-## three-point turn). A ratio of 0 means no translation at all — the unit pivots
-## in place until aligned. Once aligned it drives straight at the full desired
-## speed, so there is no curved approach unless the ratio asks for one.
+## Translation is a SIGNED longitudinal speed along the facing axis: positive drives
+## forward, negative reverses. Each tick that signed speed is rate-limited toward a
+## target by _approach_signed_speed, so it eases through zero on a forward↔reverse
+## flip rather than snapping to the opposite velocity — the smooth part of a
+## three-point turn.
+##
+## The target signed speed is:
+##   - the full desired speed (forward) once the nose is aligned with the destination;
+##   - otherwise min_turn_speed_ratio of the desired speed, signed by whether the
+##     destination is ahead of or behind the current facing. A ratio of 0 means no
+##     translation while turning — the unit pivots in place until aligned.
 func _apply_grounded_turn(velocity: Vector3) -> Vector3:
+	var tps: float = float(Engine.physics_ticks_per_second)
+	# Signed longitudinal speed carried over from last tick. The emitted velocity is
+	# always along ±facing, and facing hasn't rotated yet this tick, so projecting the
+	# previous velocity onto it recovers that signed speed (sign included).
+	var facing: Vector3 = get_facing()
+	var s_prev: float = _current_velocity.dot(facing)
+
 	var desired_speed: float = velocity.length()
 	if desired_speed <= 1e-4:
-		return velocity  # stopping / arrived — hold facing, don't force a turn
+		# No destination this tick: coast the longitudinal speed down to zero within
+		# the deceleration budget (a moving vehicle shouldn't stop dead). An unbounded
+		# decel reaches zero immediately, preserving the old snap-to-stop.
+		var s_stop: float = _approach_signed_speed(s_prev, 0.0, tps)
+		return s_stop * facing if absf(s_stop) >= 1e-4 else Vector3.ZERO
+
 	var desired_dir: Vector3 = velocity / desired_speed
-	var current_dir: Vector3 = get_facing()
-	var tps: float = float(Engine.physics_ticks_per_second)
 	var max_angle: float = deg_to_rad(turn_rate) / tps
-	var angle: float = current_dir.angle_to(desired_dir)
+	var angle: float = facing.angle_to(desired_dir)
 	_rotate_owner_toward(desired_dir)
+	var new_facing: Vector3 = get_facing()
+
+	# Target signed speed, and the axis it is applied along. Once aligned the unit
+	# drives straight at full speed along the destination direction; while still
+	# turning it moves along its facing at the maneuvering speed, signed by whether
+	# the destination lies ahead of (or behind) that facing.
+	var target_signed: float
+	var out_dir: Vector3
 	if angle <= max_angle:
-		# Close enough to finish aligning this tick — drive straight at full speed.
-		return desired_speed * desired_dir
-	# Still turning: translate only as much as the ratio allows, in the
-	# direction (forward / reverse) that makes progress.
-	var new_dir: Vector3 = get_facing()
-	var maneuver_speed: float = min_turn_speed_ratio * desired_speed
-	var travel_sign: float = 1.0 if new_dir.dot(desired_dir) >= 0.0 else -1.0
-	return travel_sign * maneuver_speed * new_dir
+		target_signed = desired_speed
+		out_dir = desired_dir
+	else:
+		var progress_sign: float = 1.0 if new_facing.dot(desired_dir) >= 0.0 else -1.0
+		target_signed = progress_sign * min_turn_speed_ratio * desired_speed
+		out_dir = new_facing
+
+	var s_new: float = _approach_signed_speed(s_prev, target_signed, tps)
+	return s_new * out_dir if absf(s_new) >= 1e-4 else Vector3.ZERO
+
+
+## Advance a signed longitudinal speed `s` toward `target` within one tick's
+## acceleration / deceleration budget. Growing the speed's magnitude (driving harder
+## in the current direction of travel) is bounded by max_acceleration; shrinking it —
+## which includes easing down through zero to reverse — is bounded by max_deceleration.
+## max_deceleration is treated as a magnitude, so either sign of the authored value
+## works. INF bounds reproduce the old instant behaviour.
+func _approach_signed_speed(s: float, target: float, tps: float) -> float:
+	var accel_step: float = max_acceleration / tps
+	var decel_step: float = absf(max_deceleration) / tps
+	if target > s:
+		# Raising s: accelerating if already moving forward (s >= 0), otherwise slowing
+		# a reverse motion back toward zero (deceleration).
+		return minf(s + (accel_step if s >= 0.0 else decel_step), target)
+	elif target < s:
+		# Lowering s: accelerating if already reversing (s <= 0), otherwise braking a
+		# forward motion (deceleration).
+		return maxf(s - (accel_step if s <= 0.0 else decel_step), target)
+	return s
 
 
 ## Called before starting a descent. If the unit's current cell (or the predicted

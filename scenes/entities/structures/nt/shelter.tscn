@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://csyr8p6ug2rpw"]
 
-[ext_resource type="Script" uid="uid://b7noqplt4gdch" path="res://scripts/entities/structures/shelter_structure.gd" id="1_shstr"]
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_cjycp"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_own"]
 [ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="3_obs"]
 [ext_resource type="Script" uid="uid://dlstea8ufglor" path="res://scripts/entities/components/shelter.gd" id="4_shel"]
@@ -19,8 +19,7 @@ size = Vector3(3, 0.9291992, 3)
 [node name="ShelterStructure" type="CharacterBody3D" unique_id=1386197407 groups=["commandable", "shelter", "structure"]]
 collision_layer = 0
 collision_mask = 0
-script = ExtResource("1_shstr")
-type = 4610
+script = ExtResource("1_cjycp")
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=661891945]
 
@@ -29,7 +28,9 @@ collision_layer = 2
 collision_mask = 0
 
 [node name="TargetShape" type="CollisionShape3D" parent="TargetBody" unique_id=1260478445 groups=["debug_shape_target_body"]]
+visible = false
 shape = SubResource("BoxShape3D_target")
+debug_color = Color(1, 0.9, 0.2, 0.35)
 
 [node name="Ownership" type="Node" parent="." unique_id=40693621]
 script = ExtResource("2_own")
@@ -50,13 +51,16 @@ indicator_path = NodePath("../SelectionIndicator")
 
 [node name="SelectionShape" type="CollisionShape3D" parent="Selectable" unique_id=733690030 groups=["debug_shape_selection"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5354004, 0)
+visible = false
 shape = SubResource("BoxShape3D_sel")
+debug_color = Color(0.2, 0.9, 0.3, 0.3)
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1363122046]
 
 [node name="Sprite" type="Sprite3D" parent="." unique_id=1923341668]
 transform = Transform3D(15, 0, 0, 0, 2.4748738, -5.656854, 0, 2.4748738, 5.656854, -0.07409811, 0.45, -0.91401863)
 axis = 1
+billboard = 2
 no_depth_test = true
 texture = ExtResource("6_spr")
 
@@ -73,6 +77,7 @@ outline_render_priority = 1
 text = "SHELTER"
 
 [node name="FootprintVisualizer" type="Node3D" parent="." unique_id=1820155775 groups=["debug_shape_footprint"]]
+visible = false
 script = ExtResource("8_fviz")
 
 [node name="#####DEBUG#####" type="Node" parent="." unique_id=437700484]

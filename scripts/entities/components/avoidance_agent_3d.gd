@@ -50,6 +50,17 @@ var _team_bit: int = 0
 var _unique_bit: int = 0
 ## Set of AvoidanceAgent3D this agent is currently ignoring (mutually).
 var _exceptions: Dictionary = {}  # AvoidanceAgent3D -> true
+
+## Foreign obstacle bits (see obstacle_bit()) currently excluded from this agent's
+## mask because Commandable._update_crush_avoidance_exclusions() found at least one
+## nearby enemy on that channel this agent can crush (Movement.can_crush) — the
+## agent should path through it rather than detour around it. 0 = nothing excluded.
+## CAVEAT: an obstacle channel is shared by an entire commander's units, not one
+## unit, so excluding it also hides that commander's OTHER, non-crushable obstacles
+## while a crushable one is nearby. There is no per-unit obstacle bit today (the
+## exception pool at POOL_START.. is agent-to-agent only, see add_avoidance_exception_with);
+## this is a team-wide approximation, not a precise per-enemy exclusion.
+var _crush_excluded_obstacles: int = 0
 #endregion
 
 #region Static helpers
@@ -117,6 +128,18 @@ func clear_avoidance_exceptions() -> void:
 		remove_avoidance_exception_with(other)
 #endregion
 
+#region Crush exclusion
+## Set which foreign obstacle bits (see obstacle_bit()) to drop from avoidance_mask
+## because every nearby enemy currently on that channel is one this agent can crush
+## (see the _crush_excluded_obstacles caveat above). Pass 0 to clear. Called every
+## tick by Commandable._update_crush_avoidance_exclusions(); a no-op when unchanged.
+func set_crush_excluded_obstacles(mask: int) -> void:
+	if mask == _crush_excluded_obstacles:
+		return
+	_crush_excluded_obstacles = mask
+	_apply_mask()
+#endregion
+
 #endregion
 
 #region Private helpers
@@ -147,6 +170,7 @@ func _current_mask() -> int:
 	for other: Variant in _exceptions.keys():
 		if is_instance_valid(other):
 			m &= ~(other as AvoidanceAgent3D)._broadcast_bit()
+	m &= ~_crush_excluded_obstacles
 	return m
 
 

@@ -2,7 +2,7 @@
 extends EditorPlugin
 
 ## A small 3D-viewport toolbar that shows/hides authoring layers of the edited
-## scenario — height pins, block pins, game entities, and scenario triggers — so the
+## scenario — game entities and scenario triggers — so the
 ## viewport can be decluttered while editing. There is exactly one Map per edited
 ## scene, so a single shared toolbar fits better than per-node inspector toggles.
 ##
@@ -48,8 +48,6 @@ func _enter_tree() -> void:
 	var label := Label.new()
 	label.text = "Show:"
 	_toolbar.add_child(label)
-	_add_button("Height Pins", _toggle_height_pins)
-	_add_button("Block Pins", _toggle_block_pins)
 	_add_button("Entities", _toggle_entities)
 	_add_button("Triggers", _toggle_triggers)
 	_add_shapes_menu()
@@ -167,18 +165,6 @@ func _refresh_toolbar_visibility() -> void:
 
 
 #region Toggles
-func _toggle_height_pins() -> void:
-	var map := _current_map()
-	if map != null:
-		_flip([map.get_node_or_null("HeightPins")])
-
-
-func _toggle_block_pins() -> void:
-	var map := _current_map()
-	if map != null:
-		_flip([map.get_node_or_null("BlockPins")])
-
-
 func _toggle_entities() -> void:
 	_flip(_entities())
 

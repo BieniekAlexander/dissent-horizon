@@ -30,7 +30,7 @@ visible = false
 visible = false
 
 [node name="Movement" parent="." index="7" unique_id=413735738]
-speed = 0.05
+speed = 1.5
 turn_rate = 1080.0
 
 [node name="Inventory" type="Node" parent="." index="10" unique_id=196458833]

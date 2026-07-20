@@ -153,3 +153,47 @@ func test_request_dive_is_noop_outside_flying_mode():
 	m.request_dive(Vector2(10, 10))
 	assert_almost_eq(m.height_offset(), 0.0, 0.001)
 #endregion
+
+#region Grounded signed-speed acceleration
+## _approach_signed_speed eases a signed longitudinal speed through zero under the
+## accel/decel budget, and picks accel vs decel by whether the speed's magnitude is
+## growing or shrinking. tps = 30, so a step is field/30 per tick.
+func test_approach_signed_speed_selects_accel_and_decel():
+	var m := Movement.new()
+	add_child_autofree(m)
+	m.max_acceleration = 1.5    # accel step 0.05/tick
+	m.max_deceleration = -3.0   # decel step 0.10/tick (authored ≤ 0; used as a magnitude)
+	# Braking a forward motion toward a reverse target uses deceleration, not a snap.
+	assert_almost_eq(m._approach_signed_speed(1.8, -1.8, 30.0), 1.7, 1e-4, "forward brakes at decel")
+	# Easing straight through zero within one tick stays continuous.
+	assert_almost_eq(m._approach_signed_speed(0.05, -1.8, 30.0), -0.05, 1e-4, "crosses zero smoothly")
+	# Below zero, building reverse speed uses acceleration.
+	assert_almost_eq(m._approach_signed_speed(-0.05, -1.8, 30.0), -0.10, 1e-4, "reverse builds at accel")
+	# Speeding up forward uses acceleration.
+	assert_almost_eq(m._approach_signed_speed(1.0, 1.8, 30.0), 1.05, 1e-4, "forward builds at accel")
+
+
+## Regression: a reverse command must NOT flip the emitted velocity straight to full
+## reverse. With bounded deceleration the along-facing speed decelerates by one
+## decel step instead of snapping to the opposite sign.
+func test_grounded_reverse_command_does_not_snap_velocity():
+	var parent := Node3D.new()
+	add_child_autofree(parent)
+	parent.rotation.y = 0.0            # facing = (0, 0, -1)
+	var m := Movement.new()
+	m.mode = Movement.Mode.GROUNDED_DIRECT
+	m.max_acceleration = 1.5
+	m.max_deceleration = -3.0          # decel step 0.10/tick (authored ≤ 0)
+	m.turn_rate = 90.0
+	m.min_turn_speed_ratio = 1.0
+	parent.add_child(m)                # _ready keeps the finite turn_rate
+
+	var facing: Vector3 = m.get_facing()
+	m._current_velocity = facing * 1.8            # driving forward at full speed
+	# Command points directly behind the unit (reverse).
+	var out: Vector3 = m._apply_grounded_turn(-facing * 1.8)
+
+	# It brakes one decel step (1.8 -> 1.7), it does NOT jump to 1.8 in reverse.
+	assert_almost_eq(out.length(), 1.7, 1e-3, "reverse decelerates by one step, no snap")
+	assert_gt(out.dot(facing), 0.0, "still moving forward this tick, not flipped to reverse")
+#endregion

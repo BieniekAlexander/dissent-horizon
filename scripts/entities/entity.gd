@@ -32,14 +32,15 @@ enum Type {
 	TC_STRUCTURE_LAB=0x1203,
 	TC_STRUCTURE_COMPOUND=0x1204,
 	TC_STRUCTURE_ARMORY=0x1205,
+	TC_UNIT_TECHNICIAN=0x1100,
 	TC_UNIT_VANGUARD=0x1102,
 	## AN (ANARCHICAL)
 	AN_STRUCTURE_STRONGHOLD=0x2200,
 	AN_STRUCTURE_FIELD_HOSPITAL=0x2201,
 	AN_STRUCTURE_SAFEHOUSE=0x2202,
 	AN_STRUCTURE_HANGAR=0x2208,
-	TC_UNIT_TECHNICIAN=0x1100,
 	AN_UNIT_IRREGULAR=0x2101,
+	AN_UNIT_COLLECTIVE=0x2102,
 	AN_UNIT_WARLORD=0x2103,
 	AN_UNIT_KAMIKAZE=0x2104,
 	AN_UNIT_MERCURY=0x2105,
@@ -459,9 +460,18 @@ func _apply_team_tint() -> void:
 	# resolve because they're never added to the SceneTree.
 	var own := get_node_or_null("Ownership") as Ownership
 	var id: int = own.commander_id if own != null else 0
+	var color: Color = TEAM_COLOR_MAP.get(id, Color.WHITE)
+
+	# 3D entities own their look via a MeshVisual component; billboard entities
+	# still tint the Sprite. Prefer MeshVisual where present (migration path).
+	var mesh_visual := get_node_or_null("MeshVisual") as MeshVisual
+	if mesh_visual != null:
+		mesh_visual.set_team_color(color)
+		return
+
 	var sprite: Node = get_node_or_null("Sprite")
 	if sprite != null and "modulate" in sprite:
-		sprite.modulate = TEAM_COLOR_MAP.get(id, Color.WHITE)
+		sprite.modulate = color
 
 ## Configure this entity as a commander-owned visual preview (the build
 ## placement "ghost") without the full initialize() / tree-entry path: assign

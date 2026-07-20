@@ -46,6 +46,16 @@ var _world_half_d: float
 ## World-space XZ origin of the map (typically zero, but read from the Map node
 ## so the minimap stays correct if the scene is ever repositioned).
 var _world_center: Vector2
+## When the map has screen-aligned play bounds, the minimap frames THAT rectangle in the
+## screen-aligned frame instead of the full axis-aligned grid — so the playspace fills the
+## minimap the way it fills the screen (no rotated diamond, no wasted corners). Axes, taken
+## from the default camera (RTSCamera3D at +X+Z looking at origin): screen-RIGHT = v = world
+## +X-Z (→ minimap x); screen-UP = -u where u = world +X+Z (→ minimap y, +u pointing DOWN).
+## _screen_half_u / _v are the play half-extents projected onto u / v.
+var _screen_aligned: bool = false
+var _screen_half_u: float
+var _screen_half_v: float
+const _INV_SQRT2: float = 0.7071067811865476
 ## Precomputed (dx, dy) offsets forming a filled circle of radius DOT_RADIUS.
 var _dot_offsets: Array[Vector2i] = []
 ## Precomputed (dx, dy) offsets forming a filled STRUCTURE_HALF*2+1 square.
@@ -91,6 +101,16 @@ func _initialize_bounds() -> void:
 	_world_half_w = (hs.map_width - 1) * 0.5 * Map.CELL_SIZE
 	_world_half_d = (hs.map_depth - 1) * 0.5 * Map.CELL_SIZE
 	_world_center = VU.inXZ(_map.global_position)
+
+	# If the map defines screen-aligned play bounds, frame that rectangle instead. One (s,t)
+	# unit moves the cell by (0.5, 0.5), i.e. CELL_SIZE/sqrt(2) of world distance along its
+	# screen axis, so the world half-extent along u/v is half_st * CELL_SIZE / sqrt(2).
+	var td: TerrainData = _map.terrain_data
+	var half_st: Vector2 = td.play_half_extents() if td != null else Vector2.ZERO
+	if half_st != Vector2.ZERO:
+		_screen_aligned = true
+		_screen_half_u = half_st.x * Map.CELL_SIZE * _INV_SQRT2
+		_screen_half_v = half_st.y * Map.CELL_SIZE * _INV_SQRT2
 	_fog = get_tree().current_scene.find_child("Fog") as Fog
 	_camera = get_tree().current_scene.find_child("Camera") as RTSCamera3D
 	_ready_to_draw = true
@@ -169,6 +189,15 @@ func _process(_delta: float) -> void:
 func minimap_to_world(pixel: Vector2i) -> Vector2:
 	var nx: float = (float(pixel.x) + 0.5) / float(WIDTH)
 	var ny: float = (float(pixel.y) + 0.5) / float(HEIGHT)
+	if _screen_aligned:
+		# Un-normalise onto the screen axes (v = screen-right → x; u = screen-down → y), then
+		# rotate the (u, v) offset back into world XZ: X = (u + v)/sqrt2, Z = (u - v)/sqrt2.
+		var pv: float = nx * 2.0 * _screen_half_v - _screen_half_v
+		var pu: float = ny * 2.0 * _screen_half_u - _screen_half_u
+		return Vector2(
+			(pu + pv) * _INV_SQRT2 + _world_center.x,
+			(pu - pv) * _INV_SQRT2 + _world_center.y
+		)
 	return Vector2(
 		nx * 2.0 * _world_half_w + _world_center.x - _world_half_w,
 		ny * 2.0 * _world_half_d + _world_center.y - _world_half_d
@@ -177,8 +206,19 @@ func minimap_to_world(pixel: Vector2i) -> Vector2:
 ## Maps a world XZ coordinate to a minimap pixel.
 ## Returns Vector2i(-1, -1) when the position lies outside the mapped bounds.
 func world_to_minimap(world_xz: Vector2) -> Vector2i:
-	var nx: float = (world_xz.x - _world_center.x + _world_half_w) / (2.0 * _world_half_w)
-	var ny: float = (world_xz.y - _world_center.y + _world_half_d) / (2.0 * _world_half_d)
+	var nx: float
+	var ny: float
+	if _screen_aligned:
+		# Project the world offset onto the screen axes u = (+X+Z)/sqrt2, v = (+X-Z)/sqrt2, then
+		# map v (screen-right) → x and u (screen-down) → y, so top of minimap = screen-up (-u).
+		var pc: Vector2 = world_xz - _world_center
+		var pu: float = (pc.x + pc.y) * _INV_SQRT2
+		var pv: float = (pc.x - pc.y) * _INV_SQRT2
+		nx = (pv + _screen_half_v) / (2.0 * _screen_half_v)
+		ny = (pu + _screen_half_u) / (2.0 * _screen_half_u)
+	else:
+		nx = (world_xz.x - _world_center.x + _world_half_w) / (2.0 * _world_half_w)
+		ny = (world_xz.y - _world_center.y + _world_half_d) / (2.0 * _world_half_d)
 	var px: int = int(nx * float(WIDTH))
 	var py: int = int(ny * float(HEIGHT))
 	if px < 0 or px >= WIDTH or py < 0 or py >= HEIGHT:

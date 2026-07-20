@@ -51,8 +51,6 @@ collision_mask = 0
 [node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body"]
 shape = ExtResource("3_hmap")
 
-[node name="HeightPins" type="Node3D" parent="Map"]
-
 [node name="Ground" type="MeshInstance3D" parent="."]
 mesh = SubResource("PlaneMesh_ground")
 surface_material_override/0 = SubResource("Material_ground")

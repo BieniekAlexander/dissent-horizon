@@ -206,7 +206,7 @@ func _process_commands() -> void:
 			# Keep velocity XZ-only so the RVO avoidance system receives a clean
 			# 2D input.  Vertical terrain tracking is handled per-tick in
 			# Commandable._physics_process via Map.terrain_height_at().
-			var prelim_velocity: Vector3 = owner.global_position.direction_to(next_path_position) * owner.movement.speed_per_second
+			var prelim_velocity: Vector3 = owner.global_position.direction_to(next_path_position) * owner.movement.speed
 			prelim_velocity.y = 0.0
 			# Brake only on the final queued destination, only for non-attack commands,
 			# and only for non-FLYING units. Flying units approach at full speed and
@@ -230,7 +230,7 @@ func _process_commands() -> void:
 						and not (_command is Attack) \
 						and owner.movement.mode != Movement.Mode.FLYING
 				var next_pos: Vector3 = owner.movement.get_next_path_position()
-				var pv: Vector3 = owner.global_position.direction_to(next_pos) * owner.movement.speed_per_second
+				var pv: Vector3 = owner.global_position.direction_to(next_pos) * owner.movement.speed
 				pv.y = 0.0
 				owner.movement.set_velocity(pv)
 			else:

@@ -3,7 +3,6 @@
 [ext_resource type="PackedScene" uid="uid://bnic4wpl31scb" path="res://scenes/entities/structures/abstract_structure.tscn" id="1_e1l0p"]
 [ext_resource type="Script" uid="uid://dww1hvwpkpygd" path="res://scripts/entities/structures/mine.gd" id="2_mine0"]
 [ext_resource type="Script" uid="uid://ravapu6j0gvv" path="res://scripts/entities/components/ore_extractor.gd" id="3_oreex"]
-[ext_resource type="Texture2D" uid="uid://dwkapnu4yvnx4" path="res://assets/entities/mine.png" id="4_nxbv5"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wykrx"]
 size = Vector3(2, 10, 2)
@@ -24,7 +23,3 @@ script = ExtResource("3_oreex")
 [node name="Defense" parent="." index="9" unique_id=637704181]
 armour_type = 1
 hp_max = 250.0
-
-[node name="Sprite" parent="." index="14" unique_id=1381401170]
-transform = Transform3D(5, 0, 0, 0, 2.4748738, -3.535534, 0, 2.4748738, 3.535534, -0.027104378, 0.45, -0.35136986)
-texture = ExtResource("4_nxbv5")

@@ -12,15 +12,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Dissent Horizon is a Godot 4.5 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is `scenes/scenarios/s1.tscn`. Physics runs at 30 ticks/second.
+Dissent Horizon is a Godot 4.7 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is `scenes/scenarios/s1.tscn`. Physics runs at 30 ticks/second.
 
-Current state: playable prototype. Terrain uses a `HeightMapShape3D`-backed heightmap with a custom in-editor height-pin editing workflow. Unit/Structure class hierarchy was recently collapsed into a single `Commandable` class using component children (see §Entity hierarchy below).
+Current state: playable prototype. Terrain is a tile-type model: a single `TerrainData` resource holds per-corner heights + a per-cell tile-type layer (see `terrain-tile-types.md`), authored in-editor with the `terrain_brush` plugin (paint tile types; raise/lower/smooth/set height). Unit/Structure class hierarchy was recently collapsed into a single `Commandable` class using component children (see §Entity hierarchy below).
 
 ---
 
 ## Running and testing
 
-No CLI build script. Open the project in Godot 4.5 by pointing the editor at `project.godot`.
+No CLI build script. Open the project in Godot 4.7 by pointing the editor at `project.godot`.
 
 Tests use the [GUT](https://github.com/bitwes/Gut) addon. Run all tests headlessly:
 ```
@@ -38,8 +38,8 @@ Tests live in `tests/` and extend `GutTest`.
 
 ## Tech stack
 
-- **Godot 4.5**, GDScript only
-- **Addons**: `gut` (testing), `csv-data-importer` (terrain grid CSVs), `godot-improved-json` (JSON serialization), `heightmap_editor` (HeightPin gizmo plugin)
+- **Godot 4.7**, GDScript only
+- **Addons**: `gut` (testing), `csv-data-importer` (terrain grid CSVs), `godot-improved-json` (JSON serialization), `terrain_brush` (in-editor terrain painting/sculpting), `terrain_snap` (drag-snap entities to the grid/height), `editor_camera_angle`, `scene_visibility_tools`
 - Collision layers are centralised in `scripts/collision_layers.gd` (`CollisionLayers.Layer.*`)
 
 ---
@@ -98,10 +98,12 @@ scripts/
 	map.gd                        — @tool; owns terrain, navmesh, cell_grid, coordinate helpers
 	fog.gd                        — MeshInstance3D fog-of-war shader driver
 	terrain/
-	  terrain_grid.gd             — tracks cell occupancy + slope-steepness
+	  terrain_data.gd             — @tool Resource; the authored source: heights + per-cell tile_types + catalog
+	  tile_type.gd                — @tool Resource; one tile type (passable / buildable / …)
+	  terrain_tile_catalog.gd     — @tool Resource; the tile-type palette (byte index → TileType)
+	  terrain_grid.gd             — tracks per-cell passability (steep / building / blocked bitmask)
 	  nav_manager.gd              — builds NavigationMesh from passable cells
-	  heightmap_mesh_generator.gd — @tool; generates ArrayMesh from HeightMapShape3D
-	  height_pin.gd               — @tool; Sprite3D pin per heightmap corner
+	  heightmap_mesh_generator.gd — @tool; generates ArrayMesh from the derived HeightMapShape3D
   utils/
 	vector_utils.gd               — VU alias (VectorUtils)
 	array_utils.gd                — AU alias (ArrayUtils)
@@ -259,8 +261,9 @@ Key input actions (defined in `project.godot`):
 ### `Map` (`@tool`, `scripts/maps/map.gd`)
 
 The scene node that owns terrain and navigation. Key exports:
-- `@export var height_map: HeightMapShape3D` — **single source of truth** for terrain extent and corner heights
-- `const CELL_SIZE: float = 2.0` — world-space side of one terrain cell; encoded as Map's own scale in the scene
+- `@export var terrain_data: TerrainData` — **single source of truth**: per-corner `heights` + a per-cell `tile_types` layer (byte indices into a `TerrainTileCatalog`). See `terrain-tile-types.md`.
+- `@export var height_map: HeightMapShape3D` — **derived** from `terrain_data` (`TerrainData.to_height_shape()`) at load; read by `TerrainGrid` / `NavManager` / the mesh generator and used as the cursor-picking collider. `_validate_property` keeps the derived value out of the saved scene. (Un-migrated maps may still assign it directly instead of `terrain_data`.)
+- `const CELL_SIZE: float = 1.0` — world-space side of one terrain cell; encoded as Map's own scale in the scene
 
 Key methods:
 - `grid_to_world(cell: Vector2i) -> Vector3` — bilinearly samples corner heights for Y
@@ -271,24 +274,28 @@ Key methods:
 
 ### `TerrainGrid` (`scripts/maps/terrain/terrain_grid.gd`)
 
-Derives the navigable cell grid from the heightmap. A `HeightMapShape3D` with `map_width` W and `map_depth` D yields **(W−1) × (D−1) navigable cells** (one quad per adjacent corner pair). Tracks:
-- `_building_cells: Dictionary` (Vector2i → Object) — O(1) occupancy lookup
-- `_building_footprints: Dictionary` (Object → Array[Vector2i]) — per-structure footprint
-- `_steep_cells: Dictionary` — precomputed at startup; cells where corner height spread > `MAX_SLOPE_DIFF = 0.5` are impassable
+Derives the navigable cell grid from the heightmap. A `HeightMapShape3D` with `map_width` W and `map_depth` D yields **(W−1) × (D−1) navigable cells** (one quad per adjacent corner pair). Passability is one `_cell_state: PackedByteArray` (a per-cell bitmask of impassability *reasons*); a cell is passable iff its byte is `0`, so the check is a single byte read. Each source flips only its own bit:
+- `_STEEP` — corner-height spread > `MAX_SLOPE_DIFF = 0.5` (the cliff layer; precomputed at startup)
+- `_BUILDING` — a structure occupies the cell (`place_building` / `remove_building`; `_building_footprints` maps each structure → its cells)
+- `_BLOCKED` — the cell's tile TYPE is impassable (water/forest/no-go), fed from `terrain_data.blocked_mask()` via `Map.set_blocked_mask`
 
-Emits `cells_changed(cells: Array)` whenever buildings are placed/removed.
+Emits `cells_changed(cells: Array)` whenever passability changes.
 
 ### `NavManager` (`scripts/maps/terrain/nav_manager.gd`)
 
-Builds the `NavigationMesh` directly from `HeightMapShape3D` data (not from baked 3D geometry). One quad per passable cell; shared vertices across adjacent cells. Rebuilds are debounced with `call_deferred`. The navmesh excludes building-occupied cells and steep cells automatically.
+Builds the `NavigationMesh` directly from `HeightMapShape3D` data (not from baked 3D geometry). One quad per passable cell; shared vertices across adjacent cells. Rebuilds are debounced with `call_deferred`. The navmesh excludes building-occupied, steep, and impassable-typed cells automatically.
 
 **Do not change the navmesh building approach** — it avoids Godot's slow geometry-bake path and correctly encodes terrain heights.
 
-### HeightmapMeshGenerator + HeightPin (editor tools)
+### Terrain visuals + in-editor editing (the `terrain_brush` plugin)
 
-`HeightmapMeshGenerator` (`@tool`) generates an `ArrayMesh` from `HeightMapShape3D`; lives as a child of `NavigationRegion/Body`. `HeightPin` (`@tool`, `Sprite3D`) — one pin per heightmap corner under `Map/HeightPins`. Moving a pin in the editor writes back to `height_map.map_data` and triggers a mesh rebuild. The pin system is editor-only; pins `queue_free()` themselves at runtime.
+`HeightmapMeshGenerator` (`@tool`, under `NavigationRegion/Body`) generates the visual terrain `ArrayMesh` from the derived `HeightMapShape3D`. It **omits impassable cells** (steep or impassable-typed), leaving literal geometry holes — so blocking a cell / raising a cliff punches a hole with no transparency tricks.
 
-To spawn pins: select the Map node in the editor and toggle `generate_editor_pins` in the inspector. This spawns both `HeightPin`s (one per corner, drag Y to sculpt) and `BlockPin`s (one per navigable cell — a red/grey view of `Map.blocked_cells`). To edit the authored no-go overlay, select one or more `BlockPin`s and toggle the `blocked` checkbox in the inspector (a multi-selection applies to all selected pins); each pin writes through to `Map.blocked_cells` via `Map.set_cell_blocked()`. `blocked_cells` (a saved `@export`) is the source of truth and is applied to the `TerrainGrid` at runtime; `BlockPin`s are transient (not saved) and regenerated from it. `HeightPin`s persist and are reconnected on scene open; `BlockPin`s are not.
+Terrain is authored in-editor with the **`terrain_brush`** plugin (`addons/terrain_brush`): select a Map, toggle "Terrain Brush" in the spatial-editor toolbar, pick a mode, then left-click-drag over the terrain. Modes:
+- **Paint** — sets the hovered cells' tile type (Open/Water/Forest/Cliff/NoGo) in `terrain_data.tile_types`.
+- **Raise / Lower / Smooth / Set** — sculpt `terrain_data.heights` per corner (radial falloff; Set flattens to a target). All height edits are clamped to `[0, 5]` and snapped to `0.5`.
+
+Edits write straight to `terrain_data` (persist with **Save All** / saving the resource) and are one undo action per stroke. The former `HeightPin` / `BlockPin` gizmos, the `heightmap_editor` addon, `Map.generate_editor_pins`, and `Map.blocked_cells` were all removed. `Map._mirror_*` (the mirror authoring tool) operates directly on `terrain_data` (heights + tile types).
 
 ---
 
@@ -393,7 +400,7 @@ Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance
 
 **Navmesh cell-exclusion approach**: `NavManager._build_mesh()` iterates `terrain_grid.get_all_passable_cells()`. The passability check (`TerrainGrid.is_passable()`) gates on `is_in_bounds AND NOT is_building_at AND NOT is_too_steep`. Do not replace this with Godot's geometry-bake path — it's too slow and doesn't encode terrain heights correctly.
 
-**`Map.CELL_SIZE` const**: fog, NavManager, and coordinate helpers all derive from this. It's `2.0` and encoded as Map's scale. Don't add a separate `cell_size` export that could diverge.
+**`Map.CELL_SIZE` const**: fog, NavManager, and coordinate helpers all derive from this. It's `1.0` and encoded as Map's scale. Don't add a separate `cell_size` export that could diverge.
 
 **`get_node_or_null` for optional components**: the `@onready` optional-component pattern is intentional. Don't change optional components to hard `$` references without checking all call sites gate on null. See `get_node_or_null_audit.md` for verdicts on each occurrence.
 
@@ -415,7 +422,7 @@ Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance
 
 **`Loadout` / `Weapon` refactor**: weapons are `Weapon` node-children of a `Loadout` node (`entity.weapon_inventory`). Previously weapons were mixed into entity stats. `Loadout.weapon_for_target(entity)` selects the correct weapon; `Weapon.fire()` handles both projectile and instant-damage modes. Every `Weapon` has an `AttackRange` CollisionShape3D child defining its reach (queried via `SU.is_in_attack_range`); short-reach "melee" weapons just use an `AttackRange` only slightly larger than the wielder's body shape rather than a separate distance fallback.
 
-**`HeightmapMeshGenerator` + `HeightPin` editor tools**: terrain heights are edited by moving `HeightPin` Sprite3D gizmos in the Godot editor; each pin writes back to `height_map.map_data` and triggers a mesh rebuild. Pins are deleted at runtime (`queue_free()` in `HeightPin._ready()` when not in editor).
+**Tile-type terrain (`TerrainData`)**: terrain moved from a directly-authored `HeightMapShape3D` + a separate `blocked_cells` overlay to a single `TerrainData` resource (per-corner heights + per-cell tile types + a `TerrainTileCatalog`). `Map` derives the `HeightMapShape3D`, the visual mesh, the navmesh, and `TerrainGrid`'s blocked mask from it. Authoring is the `terrain_brush` plugin; the old `HeightPin`/`BlockPin` gizmos were deleted. Full design + migration notes in `terrain-tile-types.md`.
 
 **Terrain height snapping for units**: units snap Y to terrain each physics tick; navmesh velocity is XZ-only. This split was introduced when verticality was added back after a brief removal.
 

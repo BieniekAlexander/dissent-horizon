@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://cay5kr6vpi16w"]
 
 [ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/entities/units/unit.tscn" id="1_v5yox"]
-[ext_resource type="Texture2D" uid="uid://e37rsn6w2d05" path="res://assets/entities/technician.png" id="2_pc78a"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_3lfjd"]
 [ext_resource type="Script" uid="uid://b458bow20gdnj" path="res://scripts/entities/components/interactor.gd" id="4_7tit3"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_qd6od"]
@@ -9,6 +8,7 @@
 [ext_resource type="Script" uid="uid://dnydcqi1gpid3" path="res://scripts/entities/components/interaction.gd" id="5_scm32"]
 [ext_resource type="Script" uid="uid://0o7h4tvqskk7" path="res://scripts/entities/components/inventory.gd" id="5_sfvjv"]
 [ext_resource type="PackedScene" uid="uid://bdf2ac0cqg878" path="res://scenes/events/liberation.tscn" id="5_vc0lo"]
+[ext_resource type="PackedScene" uid="uid://bbpr4d102dgv8" path="res://assets/meshes/entities/dummy_bio.blend" id="9_oomff"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_scm32"]
 radius = 0.3
@@ -51,7 +51,7 @@ shape = SubResource("CylinderShape3D_uasw6")
 shape = SubResource("CylinderShape3D_erjr0")
 
 [node name="Movement" parent="." index="7" unique_id=413735738]
-speed = 0.04
+speed = 1.2
 turn_rate = 1080.0
 reverse_speed_ratio = 0.0
 orbit_radius = 0.0
@@ -80,20 +80,22 @@ melee_damage = 0.0
 target_mask = 6
 
 [node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/Weapon" index="0" unique_id=1451356995 groups=["debug_shape_attack_range"]]
+visible = false
 shape = SubResource("CylinderShape3D_d835v")
 disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
 
 [node name="AttackRangeAir" type="CollisionShape3D" parent="Loadout/Weapon" index="1" unique_id=1441504240 groups=["debug_shape_attack_range"]]
+visible = false
 shape = SubResource("CylinderShape3D_techmelee")
 disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
 
 [node name="DominionRegion" type="CollisionShape3D" parent="." index="14" unique_id=783951289 groups=["debug_shape_warlord_dominion"]]
+visible = false
 shape = SubResource("CylinderShape3D_q1l8a")
 
-[node name="Sprite" parent="." index="17" unique_id=1381401170]
-transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17100573, 0)
-flip_h = true
-texture = ExtResource("2_pc78a")
-
-[node name="HPBar" parent="." index="18" unique_id=665391337]
+[node name="HPBar" parent="." index="17" unique_id=665391337]
 transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)
+
+[node name="dummy_bio" parent="MeshVisual" parent_id_path=PackedInt32Array(1116984397) index="0" unique_id=639843308 instance=ExtResource("9_oomff")]

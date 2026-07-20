@@ -17,10 +17,9 @@ extends GutTest
 
 func test_layer_for_is_a_distinct_bit_per_class():
 	var nm := NavManager.new()  # layer_for is pure; no _ready / map needed
-	assert_eq(nm.layer_for(NavAgentClass.Size.SMALL),   1 << 0)
-	assert_eq(nm.layer_for(NavAgentClass.Size.MEDIUM),  1 << 1)
-	assert_eq(nm.layer_for(NavAgentClass.Size.LARGE),   1 << 2)
-	assert_eq(nm.layer_for(NavAgentClass.Size.MASSIVE), 1 << 3)
+	assert_eq(nm.layer_for(NavAgentClass.Size.SMALL),  1 << 0)
+	assert_eq(nm.layer_for(NavAgentClass.Size.MEDIUM), 1 << 1)
+	assert_eq(nm.layer_for(NavAgentClass.Size.LARGE),  1 << 2)
 	# All class layers are disjoint from each other and from the base region's layer,
 	# so no agent ever paths on another class's mesh or on the un-eroded base mesh.
 	var seen: int = 0
@@ -46,12 +45,12 @@ func test_configure_sets_class_layer_and_keeps_shared_map():
 	var map_before: RID = agent.get_navigation_map()
 
 	# layer_for is pure, so a bare NavManager (no _ready) is enough to drive
-	# configure_for_map. Radius 0.5 -> LARGE (smallest class with radius >= 0.5).
+	# configure_for_map. Radius 0.5 -> MEDIUM (SMALL's ceiling is 0.45 < 0.5).
 	var nm := NavManager.new()
-	m.configure_for_map(nm, 0.5)
+	m.configure_for_map(null, nm, 0.5)
 
-	assert_eq(m.nav_agent_class, NavAgentClass.Size.LARGE, "0.5 footprint -> LARGE")
-	assert_eq(agent.navigation_layers, nm.layer_for(NavAgentClass.Size.LARGE),
+	assert_eq(m.nav_agent_class, NavAgentClass.Size.MEDIUM, "0.5 footprint -> MEDIUM")
+	assert_eq(agent.navigation_layers, nm.layer_for(NavAgentClass.Size.MEDIUM),
 		"agent paths on its class layer")
 	assert_eq(agent.get_navigation_map(), map_before,
 		"agent stays on the shared map — avoidance must remain map-wide")

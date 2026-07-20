@@ -72,10 +72,13 @@ func _update_summary(selection: Array) -> void:
 		_summary_name.visible = false
 		_summary_cards.visible = false
 
-## Generic single-unit blurb: the unit's node name, plus an inventory line when it has an
-## Inventory component (carried items vs capacity, and its ability count).
+## Generic single-unit blurb: the unit's node name, an HP line when it has a Defense
+## component, plus an inventory line when it has an Inventory component (carried items vs
+## capacity, and its ability count).
 func _single_unit_text(commandable: Commandable) -> String:
 	var text: String = String((commandable as Node).name)
+	if commandable.defense != null:
+		text += "\nHP %d/%d" % [roundi(commandable.defense.hp), roundi(commandable.defense.hp_max)]
 	var inventory: Inventory = commandable.get_node_or_null("Inventory") as Inventory
 	if inventory != null:
 		text += "\nCarrying %d/%d" % [inventory.item_count(), inventory.item_capacity]

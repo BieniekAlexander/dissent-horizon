@@ -1,7 +1,8 @@
 [gd_scene format=3 uid="uid://bnic4wpl31scb"]
 
 [ext_resource type="PackedScene" uid="uid://dcmdbl3j4t1k2" path="res://scenes/entities/commandable.tscn" id="1_cmnd1"]
-[ext_resource type="Texture2D" uid="uid://cgdrbpxqo62uf" path="res://assets/structure.png" id="4_067er"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="3_2ydxr"]
+[ext_resource type="PackedScene" uid="uid://d0ukwg6dohqlf" path="res://assets/meshes/entities/dummy_structure.blend" id="3_63dsq"]
 [ext_resource type="Script" uid="uid://cdbvnxn2wcsll" path="res://scripts/entities/structures/footprint_visualizer.gd" id="9_fviz0"]
 [ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="10_obs0"]
 
@@ -15,7 +16,8 @@ radius = 2.0
 height = 100.0
 radius = 5.0
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_cx6aj"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_63dsq"]
+size = Vector3(2, 2, 2)
 
 [sub_resource type="Gradient" id="Gradient_clwnv"]
 offsets = PackedFloat32Array(0)
@@ -55,15 +57,10 @@ script = ExtResource("10_obs0")
 dimensions = Vector2i(2, 2)
 
 [node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
-shape = SubResource("SphereShape3D_cx6aj")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("BoxShape3D_63dsq")
 
-[node name="Sprite" parent="." index="13" unique_id=1381401170]
-transform = Transform3D(6, 0, 0, 0, 1.4142137, -2.828427, 0, 1.4142135, 2.8284273, 0, 0.3516159, 0.30216217)
-sorting_offset = 5.0
-no_depth_test = true
-texture = ExtResource("4_067er")
-
-[node name="HPBar" parent="." index="14" unique_id=665391337]
+[node name="HPBar" parent="." index="13" unique_id=665391337]
 texture = SubResource("GradientTexture1D_u25hc")
 
 [node name="HPBarFill" parent="HPBar" index="0" unique_id=1126221551]
@@ -72,5 +69,12 @@ texture = SubResource("GradientTexture1D_cnvxh")
 [node name="HPBarBack" parent="HPBar" index="1" unique_id=1731424049]
 texture = SubResource("GradientTexture1D_5lb30")
 
-[node name="FootprintVisualizer" type="Node3D" parent="." index="22" unique_id=286423146 groups=["debug_shape_footprint"]]
+[node name="MeshVisual" type="Node3D" parent="." index="16" unique_id=1386367754]
+script = ExtResource("3_2ydxr")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="Model" parent="MeshVisual" index="0" unique_id=552980325 instance=ExtResource("3_63dsq")]
+
+[node name="FootprintVisualizer" type="Node3D" parent="." index="23" unique_id=286423146 groups=["debug_shape_footprint"]]
+visible = false
 script = ExtResource("9_fviz0")

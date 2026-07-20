@@ -65,12 +65,17 @@ func _is_bunker(a_actor: Commandable) -> bool:
 	var garrison := a_actor.garrison
 	return garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
 
-## True when a_actor's own weapon can fire at message.target this tick.
+## True when a_actor's own weapon can fire at message.target this tick. Requires
+## the actor's body to already be facing the target — see _update_facing — so a
+## unit visibly turns to aim before its first shot rather than firing sideways.
+## Actors with no Movement (e.g. a stationary turret structure) have no facing
+## to wait on and always pass this check.
 func _own_weapon_can_fire(a_actor: Commandable) -> bool:
 	var weapon := _weapon_for(a_actor)
 	return weapon != null \
 		and weapon.is_ready() \
-		and SU.is_in_attack_range(weapon, a_actor, message.target)
+		and SU.is_in_attack_range(weapon, a_actor, message.target) \
+		and (a_actor.movement == null or a_actor.movement.is_facing(message.target.global_position))
 
 ## Drive a FLYING actor's dive-attack descent for this tick: while attacking a ground
 ## (non-air) target, ask Movement to dive toward the target so the unit drops out of the
@@ -88,6 +93,30 @@ func _update_flying_dive(a_actor: Commandable) -> void:
 	if target_is_air:
 		return
 	mv.request_dive(VU.inXZ(message.target.global_position))
+
+## Turn a_actor's body to face message.target so it can aim its weapon — the
+## same rotation.y that drives movement (Movement.face_toward / get_facing()),
+## since there's no separate turret facing yet. Only while stationary and
+## unobstructed (should_move() false): while still closing distance, movement's
+## own turn-toward-heading facing takes over instead (see Movement.set_velocity
+## / _apply_grounded_turn), and letting both fight over rotation.y the same
+## tick would be redundant since the two directions are normally the same
+## anyway while approaching. No-op for actors with no Movement to turn.
+##
+## Explicitly zeroes velocity here too. Once should_move() goes false,
+## CommandReceiver stops calling set_velocity for this actor entirely (neither
+## the should_move branch nor the post-fulfill_action cleanup runs while we're
+## just waiting to align) — so without this, the NavigationAgent3D avoidance
+## sim keeps re-simulating the actor's LAST requested velocity (the nonzero
+## approach velocity from before it arrived) every tick. Movement's own
+## _apply_grounded_turn then keeps rotating the body toward that stale
+## direction, fighting face_toward() below — the cause of units getting stuck
+## mid-turn instead of ever finishing their aim.
+func _update_facing(a_actor: Commandable) -> void:
+	if a_actor.movement == null or should_move(a_actor):
+		return
+	a_actor.movement.set_velocity(Vector3.ZERO)
+	a_actor.movement.face_toward(message.target.global_position)
 #endregion
 
 #region Properties
@@ -122,6 +151,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	# back to cruise altitude once this stops being requested — i.e. when the command ends
 	# above). Requested every tick because Movement.request_dive self-clears.
 	_update_flying_dive(a_actor)
+	_update_facing(a_actor)
 	return self
 
 ## Hysteresis factor applied to the weapon-range leash. The target is acquired at the

@@ -35,17 +35,26 @@ var _world_half_w: float  # actual world half-extent in X
 var _world_half_d: float  # actual world half-extent in Z
 var _explored_bytes: PackedByteArray  # 255 = never seen, EXPLORED_ALPHA = seen before
 var _fog_bytes: PackedByteArray       # display buffer, rebuilt each frame from _explored_bytes
+## Per-pixel play-bounds mask (1 = in the screen-aligned playspace, 0 = out). Out-of-play
+## pixels are held fully transparent (never shrouded/explored) so the fog stops at the play
+## area instead of hanging black over the chopped-off corners. Empty/ignored when the map has
+## no play bounds (see _play_bounds_active).
+var _play_mask: PackedByteArray
+var _play_bounds_active: bool = false
 var _fog_image: Image
 var _fog_texture: ImageTexture
 var _sight_disc_cache: Dictionary  # int radius_px -> Array[Vector2i]
 var _footprint_cache: Dictionary  # footprint signature "kind:hx:hz" -> Array[Vector2i]
 var _map: Map  # cached in _initialize; used to look up structure footprint cells
+## The terrain's ShaderMaterial (s1.gdshader). The player's fog pushes the active commander's
+## fog texture into it each frame so the shroud is drawn on the terrain surface (height-conformal)
+## rather than by this node's flat plane, which is left hidden. Null on maps with no such mesh.
+var _terrain_material: ShaderMaterial
 #endregion
 
 #region Lifecycle
 func _ready() -> void:
 	call_deferred(&"_initialize")
-	get_active_material(0).render_priority = RenderPriority.FOG_PRIORITY
 	Fog._fogs_by_commander[watching_commander_id] = self
 
 func _initialize() -> void:
@@ -65,18 +74,13 @@ func _initialize() -> void:
 	var half_d := (hs.map_depth - 1) * 0.5 * Map.CELL_SIZE
 	var margin := Map.CELL_SIZE
 
-	# Desired world half-extents for the fog plane.
+	# World half-extents the fog texture covers (terrain plus a one-cell margin).
 	_world_half_w = half_w + margin
 	_world_half_d = half_d + margin
 
-	# PlaneMesh local vertices span ±(size/2) in XZ; node scale multiplies that.
-	# We want world half-extent = _world_half_w, so node_scale = _world_half_w / mesh_half.
-	var plane_mesh := mesh as PlaneMesh
-	scale.x = _world_half_w / (plane_mesh.size.x * 0.5)
-	scale.z = _world_half_d / (plane_mesh.size.y * 0.5)
-
-	global_position = Vector3(map.global_position.x, 1.0, map.global_position.z)
-	_center = VU.inXZ(global_position)
+	# The fog texture is centred on the map; no plane to size any more (drawn by the terrain
+	# shader). _center feeds _world_to_pixel and the terrain shader's fog_rect.
+	_center = VU.inXZ(map.global_position)
 
 	_img_width = int(_world_half_w * 2.0 * POINTS_PER_UNIT)
 	_img_height = int(_world_half_d * 2.0 * POINTS_PER_UNIT)
@@ -85,9 +89,18 @@ func _initialize() -> void:
 	_explored_bytes.resize(_img_width * _img_height)
 	_explored_bytes.fill(255)
 
+	_build_play_mask()  # holds out-of-play pixels transparent (also zeroes them in _explored_bytes)
+
 	_fog_image = Image.create_from_data(_img_width, _img_height, false, Image.FORMAT_L8, _explored_bytes)
 	_fog_texture = ImageTexture.create_from_image(_fog_image)
-	get_active_material(0).set_shader_parameter("fog_texture", _fog_texture)
+
+	# Fog is now drawn by the terrain shader (height-conformal), not this flat plane: hide the
+	# plane and resolve the terrain material the player's fog will feed each frame.
+	visible = false
+	if map.terrain_body != null:
+		var gen := map.terrain_body.get_node_or_null("HeightmapMeshGenerator") as HeightmapMeshGenerator
+		if gen != null:
+			_terrain_material = gen.material as ShaderMaterial
 
 func _physics_process(_delta: float) -> void:
 	if _fog_texture == null:
@@ -119,17 +132,21 @@ func _physics_process(_delta: float) -> void:
 			var py := pixel.y + offset.y
 			if px >= 0 and px < _img_width and py >= 0 and py < _img_height:
 				var idx := py * _img_width + px
+				if _play_bounds_active and _play_mask[idx] == 0:
+					continue  # out of play: keep it transparent, don't shroud/explore it
 				_fog_bytes[idx] = 0
 				_explored_bytes[idx] = EXPLORED_ALPHA
 
 	_fog_image = Image.create_from_data(_img_width, _img_height, false, Image.FORMAT_L8, _fog_bytes)
 	_fog_texture.update(_fog_image)
 
-	# ── Mesh visibility: only the active fog plane renders ──
-	# Debug-view hides the active fog mesh temporarily (terrain stays lit, data
-	# keeps updating) — same behaviour as before but now scoped to the active fog.
+	# ── Drive the terrain-shader fog ──
+	# Fog is sampled per-fragment in the terrain shader (conforms to terrain height) instead of
+	# being a flat plane. Exactly one node — the player's own fog — pushes the ACTIVE commander's
+	# fog texture into the terrain material each frame; debug-view / omniscient disable it.
 	var debug_view: bool = Input.is_action_pressed("debug_info")
-	visible = is_active and not debug_view and active_id != -2
+	if viewer_id == RTSController.PLAYER_COMMANDER_ID:
+		_drive_terrain_fog(debug_view)
 
 	# ── Entity visibility: only one system touches this per frame ──
 	if active_id == -2:
@@ -189,6 +206,8 @@ func terrain_visibility_at(world_xz: Vector2) -> TerrainVisibility:
 	if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
 		return TerrainVisibility.UNSEEN
 	var idx: int = pixel.y * _img_width + pixel.x
+	if _play_bounds_active and _play_mask[idx] == 0:
+		return TerrainVisibility.UNSEEN  # out of play: not real terrain
 	if _explored_bytes[idx] == 255:
 		return TerrainVisibility.UNSEEN
 	if _fog_bytes[idx] == 0:
@@ -236,15 +255,69 @@ func reveal_region(world_xz: Vector2, radius_world: float) -> void:
 		var px := pixel.x + offset.x
 		var py := pixel.y + offset.y
 		if px >= 0 and px < _img_width and py >= 0 and py < _img_height:
-			_explored_bytes[py * _img_width + px] = EXPLORED_ALPHA
+			var idx := py * _img_width + px
+			if _play_bounds_active and _play_mask[idx] == 0:
+				continue  # out of play: stays transparent
+			_explored_bytes[idx] = EXPLORED_ALPHA
 #endregion
 
 #region Private helpers
+## Feed the terrain material the ACTIVE commander's fog so the shroud renders on the ground.
+## Called only by the player's own fog. Disabled (full-bright terrain) during debug-view or
+## omniscient spectator, or when there is no active fog.
+func _drive_terrain_fog(debug_view: bool) -> void:
+	if _terrain_material == null:
+		return
+	var active_id: int = Fog.active_commander_id
+	if debug_view or active_id == -2:
+		_terrain_material.set_shader_parameter("fog_enabled", 0.0)
+		return
+	var active_fog: Variant = Fog.get_active_fog()
+	if not (active_fog is Fog):
+		_terrain_material.set_shader_parameter("fog_enabled", 0.0)
+		return
+	var af: Fog = active_fog
+	_terrain_material.set_shader_parameter("fog_texture", af._fog_texture)
+	_terrain_material.set_shader_parameter("fog_rect", af._fog_rect_param())
+	_terrain_material.set_shader_parameter("fog_enabled", 1.0)
+
+## World-XZ → fog-UV mapping for the terrain shader: (center.x, center.z, half_w, half_d).
+func _fog_rect_param() -> Vector4:
+	return Vector4(_center.x, _center.y, _world_half_w, _world_half_d)
+
 func _world_to_pixel(world_xz: Vector2) -> Vector2i:
 	return Vector2i(
 		int(round((world_xz.x - _center.x + _world_half_w) * POINTS_PER_UNIT)),
 		int(round((world_xz.y - _center.y + _world_half_d) * POINTS_PER_UNIT))
 	)
+
+## World XZ at the centre of fog pixel (px, py) — the inverse of _world_to_pixel (which uses
+## round(), so pixel px is centred at px/PPU, with no half-pixel offset).
+func _pixel_to_world(px: int, py: int) -> Vector2:
+	return Vector2(
+		float(px) / POINTS_PER_UNIT - _world_half_w + _center.x,
+		float(py) / POINTS_PER_UNIT - _world_half_d + _center.y
+	)
+
+## Build the per-pixel play mask from the map's play bounds, and pre-clear out-of-play pixels
+## in _explored_bytes to 0 so they start (and stay) fully transparent. No-op — _play_bounds_active
+## stays false, the mask unused — when the map has no play bounds, so unbounded maps are unchanged.
+func _build_play_mask() -> void:
+	var td: TerrainData = _map.terrain_data
+	if td == null or not td.play_bounds_enabled:
+		_play_bounds_active = false
+		return
+	_play_bounds_active = true
+	_play_mask = PackedByteArray()
+	_play_mask.resize(_img_width * _img_height)
+	_play_mask.fill(1)
+	for py: int in _img_height:
+		for px: int in _img_width:
+			var cell: Vector2i = _map.world_to_grid(_pixel_to_world(px, py))
+			if not td.is_cell_in_play(cell):
+				var idx: int = py * _img_width + px
+				_play_mask[idx] = 0
+				_explored_bytes[idx] = 0  # out of play: fully transparent, never shrouded
 
 func _sight_disc(radius_px: int) -> Array:
 	if _sight_disc_cache.has(radius_px):

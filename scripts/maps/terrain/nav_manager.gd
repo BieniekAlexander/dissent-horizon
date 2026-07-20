@@ -37,7 +37,7 @@ extends Node
 
 #region Constants
 ## Navigation layer bit reserved for the base un-eroded region. Far from the class
-## bits (1<<0 .. 1<<3) so no agent's class layer ever selects it.
+## bits (1<<0 .. 1<<2, one per NavAgentClass.Size) so no agent's class layer ever selects it.
 const _BASE_LAYER: int = 1 << 30
 #endregion
 
@@ -136,7 +136,7 @@ func request_rebuild() -> void:
 	call_deferred("_rebuild_navmesh")
 
 ## NavigationAgent3D.navigation_layers value that selects the space-eroded mesh for
-## `size`: one distinct bit per class (SMALL -> 1<<0 ... MASSIVE -> 1<<3).
+## `size`: one distinct bit per class (SMALL -> 1<<0 ... LARGE -> 1<<2).
 func layer_for(size: NavAgentClass.Size) -> int:
 	return 1 << (int(size) - 1)
 

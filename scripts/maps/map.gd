@@ -6,14 +6,28 @@ extends Node3D
 ### SPACE THINGS
 
 #### TERRAIN
-## The heightmap resource that defines terrain extent and corner heights.
-## This is the single source of truth for heightmap data; the StaticBody3D
-## under NavigationRegion/Body may hold a reference to the same resource for
-## physics collision but is no longer the authoritative data source.
+## The authored/generated source of truth for terrain: corner heights + per-cell tile
+## types in one resource (see terrain-tile-types.md). When assigned, Map DERIVES the
+## working `height_map` (below) and TerrainGrid's blocked mask from it. Maps not yet
+## migrated leave this null and assign `height_map` directly.
+@export var terrain_data: TerrainData:
+	set(v):
+		if terrain_data != null and terrain_data.changed.is_connected(_on_terrain_data_changed):
+			terrain_data.changed.disconnect(_on_terrain_data_changed)
+		terrain_data = v
+		# React to inspector edits of the resource itself (e.g. its dimensions), not just to
+		# a whole-resource reassignment. The terrain brush edits the arrays by direct
+		# assignment (no `changed` emission), so it drives its own rebuilds without routing here.
+		if terrain_data != null and not terrain_data.changed.is_connected(_on_terrain_data_changed):
+			terrain_data.changed.connect(_on_terrain_data_changed)
+		if is_node_ready() and Engine.is_editor_hint():
+			_sync_from_terrain_data()
+
+## The working heightmap: terrain extent + corner heights. DERIVED from terrain_data when
+## one is assigned (rebuilt each load), else authored directly for un-migrated maps. Read
+## by TerrainGrid / NavManager / HeightmapMeshGenerator and used as the picking collider.
 @export var height_map: HeightMapShape3D:
 	set(v):
-		if height_map != null and height_map.changed.is_connected(_on_height_shape_changed):
-			height_map.changed.disconnect(_on_height_shape_changed)
 		height_map = v
 		if is_node_ready() and Engine.is_editor_hint():
 			_on_height_map_replaced()
@@ -27,10 +41,6 @@ extends Node3D
 
 @onready var nav_region: NavigationRegion3D = $NavigationRegion
 
-## Editor-only container that holds one HeightPin child per heightmap corner.
-## Resolved lazily so it works even when the node doesn't exist in the scene yet.
-var _pin_container: Node3D
-
 ## World-space side length of one terrain cell.
 ## Encoded as Map's own scale (set to 1 in the scene) so that
 ## global_transform serves directly as the heightmap-to-world frame.
@@ -43,15 +53,21 @@ var cell_grid: Array = []
 # Structure registers here (units don't; non-commandable structures like Deposit do).
 var structure_cell_map: Dictionary = {}  # Entity -> Array[Vector2i]
 
-## Authored per-cell "no-go" overlay (water / rubble / hazard / scripted block) and
-## the SINGLE SOURCE OF TRUTH for it — saved with the scene and applied to the
-## TerrainGrid at runtime. Cell indices, Vector2i(x, z), 0..grid_width-1 /
-## 0..grid_depth-1. The editor BlockPins are only a view/edit surface over this list
-## (see generate_editor_pins and BlockPin.blocked).
-@export var blocked_cells: Array[Vector2i] = []
+# The per-cell "no-go" overlay now lives in `terrain_data.tile_types` — a cell is a
+# permanent barrier when its tile type is impassable (see TerrainData.blocked_mask).
+# The old `blocked_cells` export was cut once s1 was migrated, and terrain is now edited
+# with the Terrain Brush plugin (addons/terrain_brush). See terrain-tile-types.md.
 
 var terrain_grid: TerrainGrid
 var nav_manager: NavManager
+
+
+## When terrain_data drives the terrain, height_map is a DERIVED runtime artifact — keep
+## it visible in the inspector but don't serialize it, so the scene never stores a stale
+## duplicate of the heightmap alongside the authoritative terrain_data.
+func _validate_property(property: Dictionary) -> void:
+	if property.name == "height_map" and terrain_data != null:
+		property.usage &= ~PROPERTY_USAGE_STORAGE
 
 
 # --- Coordinate helpers ----------------------------------------------------
@@ -373,10 +389,15 @@ func grid_coordinates_in_bounds(coords: Vector2i) -> bool:
 #region Node
 func _ready() -> void:
 	if Engine.is_editor_hint():
-		_reconnect_pins()
+		if terrain_data != null:
+			_sync_from_terrain_data()
 		return
 
-	assert(height_map   != null, "Map: height_map export must be assigned in the inspector")
+	# Derive the working heightmap from the authored TerrainData (heights layer). Maps
+	# not yet migrated fall back to a directly-assigned height_map.
+	if terrain_data != null:
+		height_map = terrain_data.to_height_shape()
+	assert(height_map   != null, "Map: assign terrain_data (or height_map) in the inspector")
 	assert(terrain_body != null, "Map: terrain_body node not found at NavigationRegion/Body")
 
 	_terrain_collision_shape.shape = height_map
@@ -394,10 +415,10 @@ func _ready() -> void:
 			inner.append(null)
 		cell_grid.append(inner)
 
-	# Apply the authored no-go overlay before the navmesh first builds, so the
-	# initial navmesh already excludes the blocked cells.
-	if not blocked_cells.is_empty():
-		terrain_grid.set_blocked_mask(_blocked_cells_to_mask())
+	# Apply the tile-type-derived no-go overlay before the navmesh first builds, so the
+	# initial navmesh already excludes impassable-typed cells (water / forest / no-go).
+	if terrain_data != null:
+		terrain_grid.set_blocked_mask(terrain_data.blocked_mask())
 
 	nav_manager = NavManager.new()
 	nav_manager.navigation_region = nav_region
@@ -411,23 +432,12 @@ func _ready() -> void:
 # Editor pins (editor-only)
 # ---------------------------------------------------------------------------
 
-## Toggle to (re)spawn all editor authoring pins under Map:
-##   - one HeightPin per heightmap corner (drag its Y to sculpt terrain), and
-##   - one BlockPin per navigable cell (a view of blocked_cells; red = blocked).
-## Both re-read the current map state, so this is safe to toggle any time to
-## refresh the pins. Pins are editor-only and delete themselves at runtime.
-@export var generate_editor_pins: bool:
-	set(_v): _spawn_editor_pins()
-
 ## Inspector trigger: (re)build the visual terrain mesh from the current map fields.
 ## Creates a HeightmapMeshGenerator under the terrain body if one doesn't exist, then
 ## syncs its shape to height_map and rebuilds the ArrayMesh — so a fresh map gets a
 ## generated mesh, and a mesh that drifted from the heightmap is brought back in sync.
 @export var generate_visual_mesh: bool:
 	set(_v): _regenerate_visual_mesh()
-
-var _pin_updating: bool = false
-
 
 # ---------------------------------------------------------------------------
 # Map mirroring (editor-only authoring tool)
@@ -451,7 +461,7 @@ enum MirrorAxis { NONE, HORIZONTAL, VERTICAL }
 ## A secondary equal to the primary (or NONE) is treated as "no secondary flip".
 @export var mirror_secondary_axis: MirrorAxis = MirrorAxis.NONE
 
-## Inspector trigger (toggling either way runs the op, like generate_editor_pins).
+## Inspector trigger (toggling either way runs the op, like generate_visual_mesh).
 ## Mirrors the map per mirror_primary_axis / mirror_secondary_axis:
 ##   1. the reference half's heightmap corners are copied onto the opposite half,
 ##   2. every game entity on the opposite half is erased from the scene, then
@@ -477,216 +487,106 @@ func _run_mirror() -> void:
 	_mirror_map(primary_horizontal, flip_secondary)
 
 
-## Returns the HeightPins container, creating and registering it if necessary.
-## Safe to call at any time — does not depend on @onready or _ready() order.
-func _get_pin_container() -> Node3D:
-	_pin_container = get_node_or_null("HeightPins") as Node3D
-	if _pin_container == null:
-		_pin_container = Node3D.new()
-		_pin_container.name = "HeightPins"
-		add_child(_pin_container)
-		if Engine.is_editor_hint():
-			_pin_container.owner = get_tree().edited_scene_root
-	return _pin_container
-
-
-## Reconnect callbacks for any HeightPin nodes already present in the scene
-## (e.g. pins saved to the scene file from a previous Generate session).
-## Called from _ready() in editor mode so pins work immediately on scene open.
-func _reconnect_pins() -> void:
-	if height_map == null:
-		return
-	var container: Node3D = _get_pin_container()
-	if not height_map.changed.is_connected(_on_height_shape_changed):
-		height_map.changed.connect(_on_height_shape_changed)
-	for child in container.get_children():
-		if child is HeightPin:
-			if not child.height_changed.is_connected(_on_pin_height_changed):
-				child.height_changed.connect(_on_pin_height_changed)
-	# BlockPins carry no runtime signal wiring (they write through their `blocked`
-	# setter directly), so there's nothing to reconnect — they're respawned from
-	# blocked_cells by generate_editor_pins.
-
-
-func _spawn_height_pins() -> void:
-	if not Engine.is_editor_hint():
-		return
-	if terrain_body == null or height_map == null:  # terrain_body is @onready; null = not ready yet
-		return
-
-	var container := _get_pin_container()
-
-	for child in container.get_children():
-		if child is HeightPin:
-			child.free()
-
-	if height_map.changed.is_connected(_on_height_shape_changed):
-		height_map.changed.disconnect(_on_height_shape_changed)
-	height_map.changed.connect(_on_height_shape_changed)
-
-	var w := height_map.map_width
-	var d := height_map.map_depth
-	var hw := (w - 1) * 0.5
-	var hd := (d - 1) * 0.5
-	var data := height_map.map_data
-
-	var scene_root: Node = get_tree().edited_scene_root
-	for z in d:
-		for x in w:
-			var idx := z * w + x
-			var pin := HeightPin.new()
-			pin.name = "HeightPin_%d_%d" % [x, z]
-			pin.position = Vector3(x - hw, data[idx], z - hd)
-			container.add_child(pin)
-			pin.owner = scene_root
-			pin.height_changed.connect(_on_pin_height_changed)
-
-
-## Spawn both pin families (heightmap corners + blocked-cell markers). Both read
-## current map state, so re-toggling generate_editor_pins refreshes the view.
-func _spawn_editor_pins() -> void:
-	_spawn_height_pins()
-	_spawn_block_pins()
-
-
-## Returns the BlockPins container, creating it if necessary. Like HeightPins, the
-## container and its pins are OWNED by the edited scene (so the editor tracks them
-## without the large-map add-node crash) and thus saved. blocked_cells remains the
-## authoritative overlay — pins only mirror it and are regenerated by
-## generate_editor_pins — and every pin self-deletes at runtime (BlockPin._ready).
-func _get_block_pin_container() -> Node3D:
-	var container := get_node_or_null("BlockPins") as Node3D
-	if container == null:
-		container = Node3D.new()
-		container.name = "BlockPins"
-		add_child(container)
-		# Own the container (and its pins below) like HeightPins do. Adding thousands
-		# of UN-owned nodes to the edited scene at once trips an editor-side crash on
-		# large maps (LocalVector insert OOB); owned nodes are what the working height-
-		# pin path uses. Pins still self-delete at runtime (BlockPin._ready), so being
-		# saved is harmless — blocked_cells remains the source of truth.
-		if Engine.is_editor_hint():
-			container.owner = get_tree().edited_scene_root
-	return container
-
-
-## Spawn one BlockPin per navigable cell under BlockPins, coloured from the current
-## blocked_cells list. Editor-only, and a full respawn (clears existing BlockPins
-## first) so it always reflects blocked_cells.
-func _spawn_block_pins() -> void:
-	if not Engine.is_editor_hint():
-		return
-	if terrain_body == null or height_map == null:
-		return
-
-	var container := _get_block_pin_container()
-	for child in container.get_children():
-		if child is BlockPin:
-			child.free()
-
-	var w := height_map.map_width
-	var d := height_map.map_depth
-	var hw := (w - 1) * 0.5
-	var hd := (d - 1) * 0.5
-	var data := height_map.map_data
-	var gw := w - 1  # navigable cells span one fewer than corners on each axis
-	var gd := d - 1
-
-	var blocked_lookup := {}
-	for c: Vector2i in blocked_cells:
-		blocked_lookup[c] = true
-
-	var scene_root: Node = get_tree().edited_scene_root
-	for z in gd:
-		for x in gw:
-			var cell := Vector2i(x, z)
-			var pin := BlockPin.new()
-			pin.name = "BlockPin_%d_%d" % [x, z]
-			pin.cell = cell
-			# Sit at the cell centre (between corners), lifted just above the average
-			# corner height so the marker reads clearly over the terrain.
-			var h_center: float = (
-				data[z * w + x] + data[z * w + x + 1]
-				+ data[(z + 1) * w + x] + data[(z + 1) * w + x + 1]
-			) * 0.25
-			pin.position = Vector3((x + 0.5) - hw, h_center + 0.1, (z + 0.5) - hd)
-			container.add_child(pin)
-			# Own the pin (like HeightPins) so the editor tracks it without the
-			# large-map crash that adding un-owned nodes en masse triggers.
-			pin.owner = scene_root
-			# Seed the pin from the overlay WITHOUT writing back (it is the source).
-			pin.set_blocked_silently(blocked_lookup.has(cell))
-
-
-## Write-through from a BlockPin's `blocked` toggle: add or remove one cell in
-## blocked_cells (the source of truth). Reassigns the array so the @tool inspector
-## registers the change and the scene is marked dirty.
-func set_cell_blocked(cell: Vector2i, value: bool) -> void:
-	if blocked_cells.has(cell) == value:
-		return
-	var updated: Array[Vector2i] = blocked_cells.duplicate()
-	if value:
-		updated.append(cell)
-	else:
-		updated.erase(cell)
-	blocked_cells = updated
-	# Rebuild the visual mesh so blocking/clearing a cell punches/fills its hole
-	# immediately, mirroring the instant terrain update on a HeightPin drag.
-	_rebuild_visual_mesh()
-
-
-## Convert blocked_cells into the cell-indexed PackedByteArray TerrainGrid expects
-## (size grid_width*grid_depth, index = z*grid_width+x, 1 = blocked).
-func _blocked_cells_to_mask() -> PackedByteArray:
-	var gw := terrain_grid.grid_width()
-	var gd := terrain_grid.grid_depth()
-	var mask := PackedByteArray()
-	mask.resize(gw * gd)  # zero-filled → all clear
-	for c: Vector2i in blocked_cells:
-		if c.x >= 0 and c.x < gw and c.y >= 0 and c.y < gd:
-			mask[c.y * gw + c.x] = 1
-	return mask
-
-
-func _on_height_shape_changed() -> void:
-	if _pin_updating or height_map == null:
-		return
-	var container := _get_pin_container()
-	var expected := height_map.map_width * height_map.map_depth
-	var actual := container.get_children().filter(func(c): return c is HeightPin).size()
-	if expected != actual:
-		_spawn_height_pins()
-	else:
-		_sync_height_pins()
-
-
-func _sync_height_pins() -> void:
-	if height_map == null:
-		return
-	var w := height_map.map_width
-	var hw := (w - 1) * 0.5
-	var hd := (height_map.map_depth - 1) * 0.5
-	var data := height_map.map_data
-	_pin_updating = true
-	for child in _get_pin_container().get_children():
-		if child is HeightPin:
-			var gx := roundi(child.position.x + hw)
-			var gz := roundi(child.position.z + hd)
-			var idx := gz * w + gx
-			if idx >= 0 and idx < data.size():
-				child.position.y = data[idx]
-	_pin_updating = false
 
 
 func _on_height_map_replaced() -> void:
 	if height_map == null:
 		return
-	if not height_map.changed.is_connected(_on_height_shape_changed):
-		height_map.changed.connect(_on_height_shape_changed)
-	_on_height_shape_changed()
 	_rebuild_visual_mesh()
 	if _terrain_collision_shape != null:
 		_terrain_collision_shape.shape = height_map
+
+
+## Editor helper for the terrain brush: rebuild just the visual terrain mesh from the
+## current terrain_data (fast — used live during a brush stroke, e.g. after painting tile
+## types, so impassable cells punch/fill their mesh holes immediately).
+func rebuild_terrain_mesh() -> void:
+	_rebuild_visual_mesh()
+
+
+## Editor helper for the height-sculpt brush: push the current terrain_data.heights into
+## the LIVE height_map in place, rebuild the mesh, and re-seat editor-placed entities on the
+## new surface.
+func apply_terrain_heights_live() -> void:
+	if terrain_data == null or height_map == null:
+		return
+	height_map.map_data = terrain_data.heights
+	_rebuild_visual_mesh()
+	_reseat_entities_on_terrain()
+
+
+## Editor helper: full refresh after an external terrain_data edit (terrain brush stroke
+## end, undo/redo). When the heights layer changed, updates the live height_map in place +
+## collider, and re-seats editor-placed entities on the new surface; always rebuilds the mesh.
+func rebuild_terrain_visuals(heights_changed: bool) -> void:
+	if terrain_data == null:
+		return
+	if heights_changed and height_map != null:
+		height_map.map_data = terrain_data.heights
+		if _terrain_collision_shape != null:
+			_terrain_collision_shape.shape = height_map
+	_rebuild_visual_mesh()
+	if heights_changed:
+		_reseat_entities_on_terrain()
+
+
+## Editor-only: snap every scene-placed game entity's Y to the terrain surface at its XZ, so
+## brush height edits carry the entities with them (buildings/units sit on the new ground
+## instead of floating or sinking). Purely EDITOR-VISUAL — at runtime units resample
+## terrain_height_at every tick and structures are re-seated by add_structure, so this never
+## affects gameplay. Reuses the same entity set as the mirror tool.
+func _reseat_entities_on_terrain() -> void:
+	if not Engine.is_editor_hint() or terrain_data == null:
+		return
+	var root: Node = get_tree().edited_scene_root
+	if root == null:
+		return
+	for node: Node3D in _collect_game_entities(root):
+		var xz := Vector2(node.global_position.x, node.global_position.z)
+		node.global_position.y = terrain_height_at(xz)
+
+
+## Undo-routing helpers for the terrain brush. Registering brush undo ops as METHOD calls
+## on Map (a scene node) — rather than a property op on the terrain_data Resource plus a
+## method op on Map — keeps the whole action in ONE EditorUndoRedoManager history, avoiding
+## the "UndoRedo history mismatch" error you get when an action mixes a Resource and a Node.
+func set_terrain_heights(new_heights: PackedFloat32Array) -> void:
+	if terrain_data == null:
+		return
+	terrain_data.heights = new_heights
+	rebuild_terrain_visuals(true)
+
+
+func set_terrain_tile_types(new_types: PackedByteArray) -> void:
+	if terrain_data == null:
+		return
+	terrain_data.tile_types = new_types
+	rebuild_terrain_visuals(false)
+
+
+## Rebuild the working height_map from terrain_data (heights layer) and refresh the
+## editor visuals. Called from _ready and the terrain_data setter. Setting height_map
+## routes through its setter, which rebuilds the mesh when the node is already ready in
+## the editor; we rebuild explicitly here to cover the _ready path too.
+func _sync_from_terrain_data() -> void:
+	if terrain_data == null:
+		return
+	height_map = terrain_data.to_height_shape()
+	if Engine.is_editor_hint():
+		if _terrain_collision_shape != null:
+			_terrain_collision_shape.shape = height_map
+		_rebuild_visual_mesh()
+
+
+## Editor: the terrain_data resource itself was edited in the inspector (e.g. its dimensions
+## or catalog changed, emitting `changed`). Re-derive the working heightmap, rebuild the
+## mesh, and re-seat entities on the new surface. (The brush edits the arrays by direct
+## assignment, which does NOT emit `changed`, so brush strokes never re-enter here.)
+func _on_terrain_data_changed() -> void:
+	if not Engine.is_editor_hint():
+		return
+	_sync_from_terrain_data()
+	_reseat_entities_on_terrain()
 
 
 func _rebuild_visual_mesh() -> void:
@@ -743,38 +643,6 @@ func _ensure_visual_mesh_generator() -> HeightmapMeshGenerator:
 	return gen
 
 
-func _on_pin_height_changed(pin: HeightPin) -> void:
-	if _pin_updating or height_map == null:
-		return
-
-	var w := height_map.map_width
-	var hw := (w - 1) * 0.5
-	var hd := (height_map.map_depth - 1) * 0.5
-	var gx := roundi(pin.position.x + hw)
-	var gz := roundi(pin.position.z + hd)
-
-	var expected_x := gx - hw
-	var expected_z := gz - hd
-	if not is_equal_approx(pin.position.x, expected_x) \
-			or not is_equal_approx(pin.position.z, expected_z):
-		_pin_updating = true
-		pin.position.x = expected_x
-		pin.position.z = expected_z
-		_pin_updating = false
-
-	var idx := gz * w + gx
-	var data := height_map.map_data
-	if idx < 0 or idx >= data.size() or is_equal_approx(data[idx], pin.position.y):
-		return
-
-	_pin_updating = true
-	data[idx] = pin.position.y
-	height_map.map_data = data
-	_pin_updating = false
-
-	_rebuild_visual_mesh()
-
-
 # ---------------------------------------------------------------------------
 # Map mirroring implementation (editor-only)
 # ---------------------------------------------------------------------------
@@ -793,11 +661,11 @@ func _mirror_map(primary_horizontal: bool, flip_secondary: bool) -> void:
 	if not Engine.is_editor_hint():
 		push_warning("Map.mirror_map is an editor-only authoring tool; ignoring at runtime")
 		return
-	if height_map == null:
-		push_warning("Map.mirror_map: no height_map assigned")
+	if terrain_data == null:
+		push_warning("Map.mirror_map: no terrain_data assigned")
 		return
-	_mirror_heightmap(primary_horizontal, flip_secondary)
-	_mirror_blocked_cells(primary_horizontal, flip_secondary)
+	_mirror_heights(primary_horizontal, flip_secondary)
+	_mirror_tile_types(primary_horizontal, flip_secondary)
 	_mirror_entities(primary_horizontal, flip_secondary)
 
 
@@ -806,10 +674,10 @@ func _mirror_map(primary_horizontal: bool, flip_secondary: bool) -> void:
 ## primary; bottom (max-z) for a vertical one. When `flip_secondary`, the source
 ## corner is additionally reflected across the other axis (point reflection). The
 ## centre column/row (odd sizes) is the axis and is left as-is.
-func _mirror_heightmap(primary_horizontal: bool, flip_secondary: bool) -> void:
-	var w := height_map.map_width
-	var d := height_map.map_depth
-	var data := height_map.map_data  # a copy; mutate then assign back
+func _mirror_heights(primary_horizontal: bool, flip_secondary: bool) -> void:
+	var w := terrain_data.map_width()
+	var d := terrain_data.map_depth()
+	var data := terrain_data.heights  # a copy; mutate then assign back
 	if primary_horizontal:
 		for z in range(d):
 			for x in range(w):
@@ -826,55 +694,35 @@ func _mirror_heightmap(primary_horizontal: bool, flip_secondary: bool) -> void:
 					# Source is the mirror in Z, plus the mirror in X when flipping.
 					var src_x := (w - 1 - x) if flip_secondary else x
 					data[z * w + x] = data[mz * w + src_x]
-	height_map.map_data = data
-	if _terrain_collision_shape != null:
-		_terrain_collision_shape.shape = height_map
-	_on_height_shape_changed()  # resync/respawn HeightPins to the new data
-	_rebuild_visual_mesh()
+	terrain_data.heights = data
+	_sync_from_terrain_data()   # re-derive height_map + collider, rebuild mesh
 
 
-## Mirror the authored blocked-cell overlay to match the terrain: drop opposite-half
-## blocked cells, keep the reference half, and add the reflection of each reference
-## cell onto the opposite half. Uses the SAME reflect-X/reflect-Z rule as the entity
-## mirror, on cell indices (grid is one smaller than the corner grid on each axis).
-func _mirror_blocked_cells(primary_horizontal: bool, flip_secondary: bool) -> void:
-	if blocked_cells.is_empty():
+## Mirror the per-cell tile types to match the terrain, so the copied half reflects the
+## reference half. Same reflect rule as _mirror_heights, on the cell grid (one smaller
+## than the corner grid on each axis). No-op when tile_types is empty (all-Open).
+func _mirror_tile_types(primary_horizontal: bool, flip_secondary: bool) -> void:
+	if terrain_data.tile_types.is_empty():
 		return
-	var gw := height_map.map_width - 1   # navigable cell columns
-	var gd := height_map.map_depth - 1   # navigable cell rows
-
-	# Keep only reference-half (and on-axis) cells; drop the opposite half. Reference
-	# is left (min-x) for a horizontal primary, bottom (max-z) for a vertical one —
-	# matching the heightmap/entity mirrors.
-	var kept: Dictionary = {}
-	for cell: Vector2i in blocked_cells:
-		var on_opposite: bool = (
-			cell.x > (gw - 1 - cell.x) if primary_horizontal
-			else cell.y < (gd - 1 - cell.y)
-		)
-		if not on_opposite:
-			kept[cell] = true
-
-	# Add the reflection of every kept cell (on-axis cells reflect to themselves on
-	# the primary axis, but still flip across the secondary when point-mirroring).
-	var reflect_x: bool = primary_horizontal or flip_secondary
-	var reflect_z: bool = not primary_horizontal or flip_secondary
-	var result: Dictionary = {}
-	for cell: Vector2i in kept.keys():
-		result[cell] = true
-		var rx: int = (gw - 1 - cell.x) if reflect_x else cell.x
-		var rz: int = (gd - 1 - cell.y) if reflect_z else cell.y
-		result[Vector2i(rx, rz)] = true
-
-	var updated: Array[Vector2i] = []
-	for cell: Vector2i in result.keys():
-		updated.append(cell)
-	blocked_cells = updated
-
-	# Recolour existing BlockPins to the mirrored data (no-op if none are spawned).
-	var container := get_node_or_null("BlockPins")
-	if container != null and container.get_child_count() > 0:
-		_spawn_block_pins()
+	var gw := terrain_data.grid_width()   # navigable cell columns
+	var gd := terrain_data.grid_depth()   # navigable cell rows
+	var t := terrain_data.tile_types  # a copy; mutate then assign back
+	if primary_horizontal:
+		for z in range(gd):
+			for x in range(gw):
+				var mx := gw - 1 - x
+				if x > mx:  # right (opposite) cell ← reference cell
+					var src_z := (gd - 1 - z) if flip_secondary else z
+					t[z * gw + x] = t[src_z * gw + mx]
+	else:
+		for z in range(gd):
+			var mz := gd - 1 - z
+			if z < mz:  # top (opposite) row ← reference row
+				for x in range(gw):
+					var src_x := (gw - 1 - x) if flip_secondary else x
+					t[z * gw + x] = t[mz * gw + src_x]
+	terrain_data.tile_types = t
+	_rebuild_visual_mesh()
 
 
 ## Erase every game entity on the opposite half, then duplicate every game entity

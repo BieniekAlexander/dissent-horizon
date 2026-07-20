@@ -3,19 +3,12 @@
 [ext_resource type="Script" uid="uid://dlfont33njutx" path="res://scripts/interface/commander/commander.gd" id="1_imw3m"]
 [ext_resource type="Script" uid="uid://ci0peslxxakbh" path="res://scripts/interface/rts_camera_3d.gd" id="2_omyur"]
 [ext_resource type="Script" uid="uid://cldm35yesp5qj" path="res://scripts/interface/rts_controller.gd" id="3_q8ke8"]
-[ext_resource type="Shader" uid="uid://du6421tshttnx" path="res://scripts/rendering/shaders/fog.gdshader" id="4_ah75o"]
 [ext_resource type="Script" uid="uid://bprkmhrqjp56k" path="res://scripts/maps/fog.gd" id="4_b3a3y"]
 [ext_resource type="Script" uid="uid://b516knf7hdkun" path="res://scripts/interface/hud/command_grid.gd" id="4_fjrip"]
 [ext_resource type="Script" uid="uid://yjiyead7lnk" path="res://scripts/interface/control_feedback_sound_player.gd" id="7_cfsp1"]
 [ext_resource type="Script" uid="uid://cifbkg5b8mfnb" path="res://scripts/maps/minimap.gd" id="8_minimap"]
 [ext_resource type="PackedScene" uid="uid://bkpybipbter41" path="res://scenes/factions/anarchical.tscn" id="9_anfac"]
 [ext_resource type="Script" uid="uid://byjcppaifact3" path="res://scripts/interface/hud/info_view.gd" id="10_infoview"]
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_qcjp1"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_2xwjn"]
-render_priority = 10
-shader = ExtResource("4_ah75o")
 
 [node name="Player" type="Control" unique_id=309245524]
 layout_mode = 3
@@ -214,9 +207,5 @@ script = ExtResource("7_cfsp1")
 volume_db = -29.759
 
 [node name="Fog" type="MeshInstance3D" parent="." unique_id=1374554313]
-transform = Transform3D(80, 0, 0, 0, 1.04, 0, 0, 0, 80, 0, 0, 0)
 top_level = true
-sorting_offset = 100.0
-mesh = SubResource("PlaneMesh_qcjp1")
-surface_material_override/0 = SubResource("ShaderMaterial_2xwjn")
 script = ExtResource("4_b3a3y")

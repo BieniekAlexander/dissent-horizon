@@ -59,8 +59,6 @@ collision_mask = 0
 [node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=616714704]
 shape = SubResource("HeightMapShape3D_b5pmn")
 
-[node name="HeightPins" type="Node3D" parent="Map" unique_id=1495000324]
-
 [node name="Kamikaze" type="CharacterBody3D" parent="." unique_id=440012001 groups=["commandable", "unit"] instance=ExtResource("7_bro1q")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
 script = ExtResource("8_2soij")

@@ -55,13 +55,11 @@ flowchart TD
 - sonic grenades
 - flush infantry
 ## Production Yard
-### Sabbath
-- Scout unit, stuns infantry
-### Battery
-- shoots a small barrage of homing missiles - shoots more when deployed
+
 ### Carronade
 - Solid tank, siege damage
-- deploy the tank to force it stationary and increase defense
+### Sabbath
+- Scout unit, stuns infantry
 ### Shredder
 - slow, quad cannon
 # Tremor

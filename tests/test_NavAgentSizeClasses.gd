@@ -14,49 +14,50 @@ const CS: float = Map.CELL_SIZE
 
 # --- NavAgentClass parameters ----------------------------------------------
 
-func test_radii_match_spec():
-	assert_eq(NavAgentClass.radius(NavAgentClass.Size.SMALL),   0.2)
-	assert_eq(NavAgentClass.radius(NavAgentClass.Size.MEDIUM),  0.4)
-	assert_eq(NavAgentClass.radius(NavAgentClass.Size.LARGE),   0.7)
-	assert_eq(NavAgentClass.radius(NavAgentClass.Size.MASSIVE), 1.3)
+func test_radii_are_half_corridor_width_minus_margin():
+	# radius = tier * cs / 2 - CLEARANCE_MARGIN. At cs=1, margin=0.05.
+	var m: float = NavAgentClass.CLEARANCE_MARGIN
+	assert_almost_eq(NavAgentClass.radius(NavAgentClass.Size.SMALL,  CS), 0.5 - m, 1e-5)
+	assert_almost_eq(NavAgentClass.radius(NavAgentClass.Size.MEDIUM, CS), 1.0 - m, 1e-5)
+	assert_almost_eq(NavAgentClass.radius(NavAgentClass.Size.LARGE,  CS), 1.5 - m, 1e-5)
 
 
 func test_required_clearance_is_min_corridor_width():
-	# ceil(2*r/cs): SMALL/MEDIUM fit a 1-cell hallway, LARGE a 2-cell, MASSIVE a 3-cell.
-	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.SMALL,   CS), 1)
-	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.MEDIUM,  CS), 1)
-	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.LARGE,   CS), 2)
-	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.MASSIVE, CS), 3)
+	# The tier itself (enum value): SMALL=1-cell, MEDIUM=2-cell, LARGE=3-cell.
+	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.SMALL,  CS), 1)
+	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.MEDIUM, CS), 2)
+	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.LARGE,  CS), 3)
 
 
 func test_class_for_radius_picks_smallest_large_enough():
-	# Exact class radii map to their own class.
-	assert_eq(NavAgentClass.class_for_radius(0.2), NavAgentClass.Size.SMALL)
-	assert_eq(NavAgentClass.class_for_radius(0.4), NavAgentClass.Size.MEDIUM)
-	assert_eq(NavAgentClass.class_for_radius(0.7), NavAgentClass.Size.LARGE)
-	assert_eq(NavAgentClass.class_for_radius(1.3), NavAgentClass.Size.MASSIVE)
-	# A 0.3-radius body fits MEDIUM/LARGE/MASSIVE; MEDIUM is the smallest large enough.
-	assert_eq(NavAgentClass.class_for_radius(0.3), NavAgentClass.Size.MEDIUM)
-	# Just over a boundary bumps up to the next class.
-	assert_eq(NavAgentClass.class_for_radius(0.41), NavAgentClass.Size.LARGE)
-	assert_eq(NavAgentClass.class_for_radius(0.71), NavAgentClass.Size.MASSIVE)
+	# Interior of each band (kept off the exact 0.45/0.95 boundaries, which are
+	# float-fragile) maps to the expected tier.
+	assert_eq(NavAgentClass.class_for_radius(0.2, CS), NavAgentClass.Size.SMALL)
+	assert_eq(NavAgentClass.class_for_radius(0.4, CS), NavAgentClass.Size.SMALL)
+	assert_eq(NavAgentClass.class_for_radius(0.5, CS), NavAgentClass.Size.MEDIUM)
+	assert_eq(NavAgentClass.class_for_radius(1.0, CS), NavAgentClass.Size.LARGE)
+	# Regression: a body just over the SMALL ceiling (0.45) needs 2 cells, not 3 —
+	# the carronade case. 0.70 and 0.75 must BOTH be MEDIUM (no tier cliff at 0.70).
+	assert_eq(NavAgentClass.class_for_radius(0.70, CS), NavAgentClass.Size.MEDIUM)
+	assert_eq(NavAgentClass.class_for_radius(0.75, CS), NavAgentClass.Size.MEDIUM)
 	# Tiny / zero / negative (missing shape) falls to the smallest class.
-	assert_eq(NavAgentClass.class_for_radius(0.05), NavAgentClass.Size.SMALL)
-	assert_eq(NavAgentClass.class_for_radius(-1.0), NavAgentClass.Size.SMALL)
-	# Bigger than every class radius clamps to MASSIVE.
-	assert_eq(NavAgentClass.class_for_radius(5.0), NavAgentClass.Size.MASSIVE)
+	assert_eq(NavAgentClass.class_for_radius(0.05, CS), NavAgentClass.Size.SMALL)
+	assert_eq(NavAgentClass.class_for_radius(-1.0, CS), NavAgentClass.Size.SMALL)
+	# Bigger than every class radius clamps to LARGE.
+	assert_eq(NavAgentClass.class_for_radius(5.0, CS), NavAgentClass.Size.LARGE)
 
 
 func test_erosion_rings_and_inset():
-	# Only MASSIVE (r > cs) strips a whole ring; the rest are pure sub-cell inset.
-	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.SMALL,   CS), 0)
-	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.LARGE,   CS), 0)
-	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.MASSIVE, CS), 1)
+	# rings + inset reconstruct the class radius (rings whole cells + a sub-cell
+	# remainder). At cs=1 only LARGE (r=1.45) strips a whole ring.
+	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.SMALL,  CS), 0)
+	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.MEDIUM, CS), 0)
+	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.LARGE,  CS), 1)
 
-	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.SMALL,   CS), 0.2, 1e-5)
-	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.MEDIUM,  CS), 0.4, 1e-5)
-	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.LARGE,   CS), 0.7, 1e-5)
-	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.MASSIVE, CS), 0.3, 1e-5)
+	var m: float = NavAgentClass.CLEARANCE_MARGIN
+	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.SMALL,  CS), 0.5 - m, 1e-5)
+	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.MEDIUM, CS), 1.0 - m, 1e-5)
+	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.LARGE,  CS), 0.5 - m, 1e-5)
 
 	# The inset is always strictly sub-cell, so it can't overshoot an interior vertex.
 	for size: int in NavAgentClass.Size.values():
@@ -135,25 +136,33 @@ func _admits(width: int, size: int) -> bool:
 	return grid.get_navigable_cells(rings, admit_k).has(mid)
 
 
-func test_one_cell_hallway_admits_small_and_medium_only():
-	assert_true(_admits(1, NavAgentClass.Size.SMALL),   "SMALL fits a 1-cell hallway")
-	assert_true(_admits(1, NavAgentClass.Size.MEDIUM),  "MEDIUM fits a 1-cell hallway")
-	assert_false(_admits(1, NavAgentClass.Size.LARGE),  "LARGE needs a 2-cell hallway")
-	assert_false(_admits(1, NavAgentClass.Size.MASSIVE),"MASSIVE needs a 3-cell hallway")
+func test_one_cell_hallway_admits_small_only():
+	assert_true(_admits(1, NavAgentClass.Size.SMALL),  "SMALL fits a 1-cell hallway")
+	assert_false(_admits(1, NavAgentClass.Size.MEDIUM),"MEDIUM needs a 2-cell hallway")
+	assert_false(_admits(1, NavAgentClass.Size.LARGE), "LARGE needs a 3-cell hallway")
 
 
-func test_two_cell_hallway_admits_up_to_large():
+func test_two_cell_hallway_admits_up_to_medium():
 	assert_true(_admits(2, NavAgentClass.Size.SMALL))
-	assert_true(_admits(2, NavAgentClass.Size.MEDIUM))
-	assert_true(_admits(2, NavAgentClass.Size.LARGE),  "LARGE fits a 2-cell hallway")
-	assert_false(_admits(2, NavAgentClass.Size.MASSIVE),"MASSIVE still needs 3 cells")
+	assert_true(_admits(2, NavAgentClass.Size.MEDIUM), "MEDIUM fits a 2-cell hallway")
+	assert_false(_admits(2, NavAgentClass.Size.LARGE), "LARGE still needs 3 cells")
 
 
 func test_three_cell_hallway_admits_all():
 	assert_true(_admits(3, NavAgentClass.Size.SMALL))
 	assert_true(_admits(3, NavAgentClass.Size.MEDIUM))
-	assert_true(_admits(3, NavAgentClass.Size.LARGE))
-	assert_true(_admits(3, NavAgentClass.Size.MASSIVE), "MASSIVE fits a 3-cell hallway")
+	assert_true(_admits(3, NavAgentClass.Size.LARGE), "LARGE fits a 3-cell hallway")
+
+
+## End-to-end regression for the carronade tier cliff: a 0.75-radius body classifies
+## as MEDIUM and can traverse a 2-cell corridor but NOT a 1-cell one — and 0.70 (which
+## used to flip a whole tier) behaves identically.
+func test_carronade_radius_traverses_two_cell_not_one():
+	for r: float in [0.70, 0.75]:
+		var size: int = NavAgentClass.class_for_radius(r, CS)
+		assert_eq(size, NavAgentClass.Size.MEDIUM, "radius %s -> MEDIUM" % r)
+		assert_false(_admits(1, size), "radius %s excluded from a 1-cell corridor" % r)
+		assert_true(_admits(2, size),  "radius %s admitted to a 2-cell corridor" % r)
 
 
 func test_navigable_subset_of_passable():

@@ -281,15 +281,11 @@ func _create_bot_fogs() -> void:
 	for commander: Commander in commanders:
 		if commander.id == 0 or not commander is Bot:
 			continue
+		# No mesh/material: fog is drawn by the terrain shader now (fog.gd hides its own plane),
+		# so a bot's Fog node exists only to track that commander's exploration state.
 		var fog: Fog = Fog.new()
 		fog.watching_commander_id = commander.id
 		fog.name = "Fog"
-		var plane := PlaneMesh.new()
-		plane.size = Vector2(2.0, 2.0)
-		fog.mesh = plane
-		var mat := ShaderMaterial.new()
-		mat.shader = load("res://scripts/rendering/shaders/fog.gdshader")
-		fog.set_surface_override_material(0, mat)
 		commander.add_child(fog)
 		fog.set_owner(self)
 
