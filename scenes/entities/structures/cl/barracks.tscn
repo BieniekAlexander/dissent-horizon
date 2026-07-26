@@ -6,7 +6,7 @@
 
 [node name="Structure" unique_id=195272591 instance=ExtResource("1_base")]
 vigor_required = 40
-type = 12802
+id = &"barracks"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 visible = false
@@ -34,15 +34,11 @@ hp_max = 400.0
 
 [node name="Production" type="Node" parent="." index="10" unique_id=1899954387]
 script = ExtResource("2_prod")
-producible_types = Array[int]([12545, 12546])
+producible_types = Array[StringName]([&"recruit", &"badger"])
 
 [node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
 visible = false
 debug_color = Color(0.2, 0.9, 0.3, 0.3)
-
-[node name="Sprite" parent="." index="14" unique_id=1381401170]
-transform = Transform3D(7.5, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, -0.028815746, 0.45, -0.5472431)
-texture = ExtResource("3_tex")
 
 [node name="FootprintVisualizer" parent="." index="23" unique_id=286423146]
 visible = false

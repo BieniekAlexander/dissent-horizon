@@ -5,10 +5,20 @@ format them however they like.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from . import combat, distinctness, effectiveness, graph
 from .model import Buildable, Faction, World
+
+
+def _reachable_faction(faction: Faction, reachable_only: bool) -> Faction:
+    """A copy of ``faction`` limited to buildables reachable from its starting
+    state, or ``faction`` unchanged when the filter is disabled."""
+    if not reachable_only:
+        return faction
+    reachable = graph.reachable_from(faction)
+    buildables = {k: v for k, v in faction.buildables.items() if k in reachable}
+    return replace(faction, buildables=buildables)
 
 
 # --------------------------------------------------------------------------- #
@@ -37,10 +47,10 @@ def _dominates(table, a: Buildable, b: Buildable) -> bool:
     return better_anywhere
 
 
-def obsolete_units(world: World, faction_id: str) -> list[Domination]:
+def obsolete_units(world: World, faction_id: str, reachable_only: bool = True) -> list[Domination]:
     """Units in a faction made redundant: dominated by another unit in the
     same faction (no more expensive, no worse on any axis, better somewhere)."""
-    faction = world.factions[faction_id]
+    faction = _reachable_faction(world.factions[faction_id], reachable_only)
     units = [u for u in faction.units() if u.is_combatant]
     out: list[Domination] = []
     for b in units:
@@ -68,13 +78,15 @@ def unanswered_threats(
     attacker_id: str,
     defender_id: str,
     defender_pool: list[Buildable] | None = None,
+    reachable_only: bool = True,
 ) -> list[UnansweredThreat]:
     """For each combat unit of ``attacker_id``, find B's cheapest response and
     flag it if no response is *economically favorable* (exchange_cost < cost)."""
     table = world.damage
-    threats = [u for u in world.factions[attacker_id].units() if u.is_combatant]
+    attacker = _reachable_faction(world.factions[attacker_id], reachable_only)
+    threats = [u for u in attacker.units() if u.is_combatant]
     responses = defender_pool if defender_pool is not None else \
-        [u for u in world.factions[defender_id].units() if u.is_combatant]
+        [u for u in _reachable_faction(world.factions[defender_id], reachable_only).units() if u.is_combatant]
 
     out: list[UnansweredThreat] = []
     for t in threats:
@@ -115,13 +127,14 @@ def tech_tier_gap(
     low_tier: int,
     high_faction_id: str,
     high_tier: int,
+    reachable_only: bool = True,
 ) -> TierGapReport:
     """If the low faction is capped at ``low_tier`` and the high faction can
     field up to ``high_tier``, what can the low faction not answer?"""
     high = world.factions[high_faction_id]
     low = world.factions[low_faction_id]
-    high_pool = graph.units_up_to_tier(high, high_tier)
-    low_pool = graph.units_up_to_tier(low, low_tier)
+    high_pool = graph.units_up_to_tier(high, high_tier, reachable_only=reachable_only)
+    low_pool = graph.units_up_to_tier(low, low_tier, reachable_only=reachable_only)
 
     # Reuse the unanswered-threats logic but with both pools tier-restricted.
     table = world.damage
@@ -151,9 +164,11 @@ def tech_tier_gap(
 # --------------------------------------------------------------------------- #
 # Q4: faction roster distinctness
 # --------------------------------------------------------------------------- #
-def _units_in_tiers(world: World, faction_id: str, tiers: set[int] | None) -> list[Buildable]:
+def _units_in_tiers(
+    world: World, faction_id: str, tiers: set[int] | None, reachable_only: bool = True,
+) -> list[Buildable]:
     """A faction's units, optionally restricted to the given tech tiers."""
-    faction = world.factions[faction_id]
+    faction = _reachable_faction(world.factions[faction_id], reachable_only)
     units = faction.units()
     if tiers is None:
         return units
@@ -172,12 +187,13 @@ class FactionDistinctness:
 
 def faction_distinctness(
     world: World, faction_a: str, faction_b: str, tiers: set[int] | None = None,
+    reachable_only: bool = True,
 ) -> FactionDistinctness:
     """How distinct two factions' rosters are (optionally within ``tiers``), in
     both directions, plus their single most-similar unit pairing."""
     table = world.damage
-    ua = _units_in_tiers(world, faction_a, tiers)
-    ub = _units_in_tiers(world, faction_b, tiers)
+    ua = _units_in_tiers(world, faction_a, tiers, reachable_only)
+    ub = _units_in_tiers(world, faction_b, tiers, reachable_only)
     return FactionDistinctness(
         faction_a=faction_a,
         faction_b=faction_b,
@@ -188,12 +204,12 @@ def faction_distinctness(
 
 
 def distinctness_matrix(
-    world: World, tiers: set[int] | None = None,
+    world: World, tiers: set[int] | None = None, reachable_only: bool = True,
 ) -> dict[tuple[str, str], float]:
     """``set_distinctness`` for every ordered faction pair (asymmetric)."""
     table = world.damage
     fids = list(world.factions)
-    pools = {fid: _units_in_tiers(world, fid, tiers) for fid in fids}
+    pools = {fid: _units_in_tiers(world, fid, tiers, reachable_only) for fid in fids}
     out: dict[tuple[str, str], float] = {}
     for a in fids:
         for b in fids:

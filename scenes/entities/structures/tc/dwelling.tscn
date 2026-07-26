@@ -4,9 +4,5 @@
 [ext_resource type="Texture2D" uid="uid://cogbjcrr1u6md" path="res://assets/entities/dwelling.png" id="2_lt302"]
 
 [node name="Structure" instance=ExtResource("1_q1wtf")]
-type = 4609
+id = &"dwelling"
 vigor_provided = 100
-
-[node name="Sprite" parent="." index="0"]
-transform = Transform3D(3.5, 0, 0, 0, 2.4748745, -2.4748745, 0, 2.4748745, 2.4748745, 0, 0.45, 0)
-texture = ExtResource("2_lt302")

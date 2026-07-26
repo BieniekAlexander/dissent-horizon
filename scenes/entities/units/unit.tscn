@@ -7,7 +7,6 @@
 [node name="Unit" unique_id=1891335319 groups=["unit"] instance=ExtResource("1_cmnd1")]
 collision_layer = 1
 collision_mask = 1
-type = -2
 
 [node name="Movement" type="Node" parent="." index="7" unique_id=413735738]
 script = ExtResource("2_6e3tn")

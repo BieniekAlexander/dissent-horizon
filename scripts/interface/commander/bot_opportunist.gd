@@ -155,7 +155,7 @@ func _gather_abductions() -> Array[BotOpportunity]:
 		var carrier: Commandable = _nearest(carriers, enemy.global_position)
 		if carrier == null or not _resolves(carrier, enemy, Interaction.Type.ABDUCT):
 			continue
-		var value: float = PRISONER_VALUE + 0.5 * float(_bot.unit_cost(enemy.type))
+		var value: float = PRISONER_VALUE + 0.5 * float(_bot.unit_cost(enemy.id))
 		out.append(InteractOpportunity.new(carrier, enemy, value, "abduct"))
 	return out
 

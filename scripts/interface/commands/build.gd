@@ -25,11 +25,11 @@ static func tool_applies_to(command_tool_name: String, a_entity: Entity) -> bool
 ## a building that's already owned (or garrisoned, which adopts a commander) isn't a
 ## conversion target.
 static func _is_safehouse_conversion(a_message: CommandMessage) -> bool:
-	if a_message.tool == null or a_message.tool.type != Entity.Type.AN_STRUCTURE_SAFEHOUSE:
+	if a_message.tool == null or a_message.tool.type != EntityIds.SAFEHOUSE:
 		return false
 	var target := a_message.target as Commandable
 	return target != null and is_instance_valid(target) \
-		and target.type == Entity.Type.NT_STRUCTURE_BUILDING \
+		and target.id == EntityIds.BUILDING \
 		and target.commander_id == 0
 
 static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) -> PreconditionFailureCause:
@@ -182,6 +182,11 @@ var _conversion_paid: bool = false
 #endregion
 
 #region State updates
+## Building is a channeled action: a hit staggers the builder, pausing placement/build
+## progress until the stagger wears off.
+func blocked_by_stagger(_a_actor: Commandable) -> bool:
+	return true
+
 func can_act(a_actor: Commandable) -> bool:
 	# A safehouse conversion works against the existing building's footprint, not a
 	# would-be placement footprint.
@@ -298,7 +303,7 @@ func _convert_building_to_safehouse(building: Commandable, commander: Commander)
 	building.commander = commander
 	# Re-key the commander's structure map from the building type to the safehouse type.
 	commander.remove_structure(building)
-	building.type = Entity.Type.AN_STRUCTURE_SAFEHOUSE
+	building.id = EntityIds.SAFEHOUSE
 	commander.add_structure(building)
 	# Grant the safehouse's vigor capacity (the building provided none). Sourced from
 	# the safehouse scene's own value so the two stay in sync.

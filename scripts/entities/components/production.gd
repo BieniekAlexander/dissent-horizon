@@ -31,7 +31,7 @@ extends Node
 ## need to know what an entity can build (e.g. CommandContextParser building the
 ## HUD's train menu) inspect the entity's Production node rather than keying off
 ## its type in a command class.
-@export var producible_types: Array[Entity.Type] = []
+@export var producible_types: Array[StringName] = []
 
 ## Each entry is [remaining_ticks, total_ticks, scene, type] — see the JOB_* indices.
 ## total_ticks is kept so the HUD/train bar can show real progress; type is kept so a
@@ -69,7 +69,7 @@ func enqueue(creation_time: int, packed_scene: PackedScene, unit_type: Variant =
 
 ## Whether this producer can train the given unit type. Source of truth for the
 ## "what can this build" question across the codebase (HUD train menu, AI).
-func can_produce(a_type: Entity.Type) -> bool:
+func can_produce(a_type: StringName) -> bool:
 	return producible_types.has(a_type)
 
 ## Number of units queued (the first is actively training; the rest wait).

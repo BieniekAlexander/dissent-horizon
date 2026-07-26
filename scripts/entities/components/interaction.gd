@@ -84,6 +84,18 @@ enum DurationType { CONSTANT = 0, BY_HP = 1 }
 @export var interact_shape: Shape3D
 #endregion
 
+#region Stagger
+## Interaction types whose completion is suppressed while the actor is staggered
+## (recently damaged): the actor moves into range but waits until the stagger wears off.
+## Types not listed (e.g. ABDUCT, COLLECT, DEPOSIT) proceed regardless. Consulted by
+## Interact.blocked_by_stagger via the resolved interaction.
+const _STAGGER_BLOCKED_TYPES: Array[Type] = [Type.LIBERATE, Type.PLANT]
+
+## Whether this interaction's completion is blocked while the actor is staggered.
+func blocks_while_staggered() -> bool:
+	return type in _STAGGER_BLOCKED_TYPES
+#endregion
+
 #region Helpers
 ## The Inventory component on `target`, or null. The deposit target (e.g. an
 ## internment camp) receives carried units into this.

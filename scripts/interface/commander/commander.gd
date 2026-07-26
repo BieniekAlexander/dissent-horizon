@@ -104,41 +104,36 @@ func is_vigor_strained() -> bool:
 
 
 #region Technology
-# specifies what a commander can construct
-var technology_mapping: Dictionary = {
-	Entity.Type.TC_STRUCTURE_OUTPOST: TechnologySpec.new(500, 0, 0, 40*Engine.physics_ticks_per_second),
-	# Redoubt: the unit-production building (trains warlords/irregulars). No
-	# structure prerequisite — it's a primary base building like the outpost.
-	Entity.Type.NT_STRUCTURE_MINE: TechnologySpec.new(200, 0, 0, 20*Engine.physics_ticks_per_second, []), # [Entity.Type.TC_STRUCTURE_OUTPOST, Entity.Type.TC_STRUCTURE_DWELLING]
-	# AN (Anarchical)
-	Entity.Type.AN_STRUCTURE_STRONGHOLD: TechnologySpec.new(400, 0, 0, 40*30, []),
-	Entity.Type.AN_STRUCTURE_FIELD_HOSPITAL: TechnologySpec.new(250, 0, 0, 30*30),
-	Entity.Type.AN_STRUCTURE_SAFEHOUSE: TechnologySpec.new(150, 0, 0, 20*30),
-	Entity.Type.AN_STRUCTURE_HANGAR: TechnologySpec.new(500, 0, 0, 10*Engine.physics_ticks_per_second, [Entity.Type.AN_STRUCTURE_STRONGHOLD]),
-	Entity.Type.AN_UNIT_WARLORD: TechnologySpec.new(250, 0, 0, 20*30),
-	Entity.Type.AN_UNIT_IRREGULAR: TechnologySpec.new(75, 0, 0, 15*30),
-	Entity.Type.AN_UNIT_SAPPER: TechnologySpec.new(125, 0, 0, 20*30),
-	Entity.Type.AN_UNIT_KAMIKAZE: TechnologySpec.new(200, 0, 0, 25*30),
-	Entity.Type.AN_UNIT_MERCURY: TechnologySpec.new(300, 0, 0, 25*30),
-	# CL (Colonial)
-	Entity.Type.CL_STRUCTURE_SETTLEMENT: TechnologySpec.new(400, 0, 0, 45*30),
-	Entity.Type.CL_STRUCTURE_INTERNMENT_CAMP: TechnologySpec.new(300, 0, 0, 30*30),
-	Entity.Type.CL_STRUCTURE_POWER_PLANT: TechnologySpec.new(200, 0, 0, 20*30, [Entity.Type.CL_STRUCTURE_INTERNMENT_CAMP]),
-	Entity.Type.CL_STRUCTURE_BARRACKS: TechnologySpec.new(300, 0, 0, 30*30),
-	Entity.Type.CL_UNIT_SUPPLY_TRUCK: TechnologySpec.new(600, 0, 0, 25*30),
-	Entity.Type.CL_UNIT_RECRUIT: TechnologySpec.new(100, 0, 0, 20*30),
-	Entity.Type.CL_UNIT_BADGER: TechnologySpec.new(200, 0, 0, 25*30),
-	# TC (Technocratic)
-	Entity.Type.TC_STRUCTURE_LAB: TechnologySpec.new(300, 0, 0, 40*30),
-	Entity.Type.TC_STRUCTURE_DWELLING: TechnologySpec.new(150, 0, 0, 25*30),
-	Entity.Type.TC_STRUCTURE_COMPOUND: TechnologySpec.new(300, 0, 0, 30*30),
-	Entity.Type.TC_STRUCTURE_ARMORY: TechnologySpec.new(150, 0, 0, 30*30),
-	Entity.Type.TC_UNIT_TECHNICIAN: TechnologySpec.new(100, 0, 0, 25*30),
-	Entity.Type.TC_UNIT_VANGUARD: TechnologySpec.new(200, 0, 0, 20*30),
-	# Abilities are gated here too. Ability.Type values (0,1,...) don't collide
-	# with Entity.Type values (all >= 0x1100), so they coexist in this map.
-	Ability.Type.RADIATION: TechnologySpec.new(0, 0, 0, 0),
-}
+## What a commander can construct: piece id (StringName — see EntityIds) ->
+## TechnologySpec, loaded from the GENERATED technology data. The spec importer
+## derives that file from each piece's gdd doc (cost / build_time / requires);
+## to change costs or prerequisites, edit the doc and re-run the importer.
+const TECHNOLOGY_JSON_PATH: String = "res://resources/generated/technology.json"
+
+var technology_mapping: Dictionary = _load_technology()
+
+## Ability gates ride in the same map (int Ability.Type keys coexist with the
+## StringName piece keys). Abilities aren't doc-governed yet — future spec pass.
+static func _load_technology() -> Dictionary:
+	var out: Dictionary = {}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(TECHNOLOGY_JSON_PATH))
+	if not (parsed is Dictionary):
+		push_error("Commander: cannot load %s — run the spec importer" % TECHNOLOGY_JSON_PATH)
+	else:
+		for id in parsed:
+			var e: Dictionary = parsed[id]
+			var requires: Array = []
+			for r in e.get("requires", []):
+				requires.append(StringName(str(r)))
+			out[StringName(str(id))] = TechnologySpec.new(
+				int(e["cost"]["ore"]),
+				int(e["cost"]["vigor"]),
+				int(e["cost"]["dominion"]),
+				int(e["build_time_ticks"]),
+				requires
+			)
+	out[Ability.Type.RADIATION] = TechnologySpec.new(0, 0, 0, 0)
+	return out
 
 ## Per-commander map of Ability.Type -> payload PackedScene (a Projectile).
 ## Kept per-commander (not global) so technology upgrades can unlock or swap an
@@ -151,10 +146,10 @@ var ability_payload_registry: Dictionary = {
 }
 
 ## True iff this commander owns at least one FINISHED (is_built) structure of the
-## given Entity.Type. Single source of truth for "is this structure prereq met?",
+## given piece id. Single source of truth for "is this structure prereq met?",
 ## shared by proc_technology and ConditionStructureBuilt.
-func has_built_structure(structure_type: int) -> bool:
-	return structure_type_map[structure_type].get_values().any(
+func has_built_structure(a_id: StringName) -> bool:
+	return _structures_of(a_id).get_values().any(
 		func(s: Commandable): return s.is_built
 	)
 
@@ -190,7 +185,7 @@ func proc_technology() -> void:
 	for tech: TechnologySpec in technology_mapping.values():
 		tech.unmet_need = (
 			TechnologySpec.UnmetNeed.NONE
-			if tech.required_structures.all(func(t: int): return has_built_structure(t))
+			if tech.required_structures.all(func(t): return has_built_structure(t))
 			else TechnologySpec.UnmetNeed.MISSING_STRUCTURE
 		)
 #endregion
@@ -199,14 +194,21 @@ func proc_technology() -> void:
 #region Commandables
 
 #region Structures
-@onready var structure_type_map: Dictionary
+## piece id (StringName) -> Set of owned structures; entries appear lazily as
+## structure ids are first seen (ids are open-ended, unlike the old enum).
+var structure_type_map: Dictionary = {}
+
+func _structures_of(a_id: StringName) -> Set:
+	if not structure_type_map.has(a_id):
+		structure_type_map[a_id] = Set.new()
+	return structure_type_map[a_id]
 
 func add_structure(a_structure: Commandable) -> void:
-	structure_type_map[a_structure.type].add(a_structure)
+	_structures_of(a_structure.id).add(a_structure)
 	proc_technology()
 
 func remove_structure(a_structure: Commandable) -> void:
-	structure_type_map[a_structure.type].remove(a_structure)
+	_structures_of(a_structure.id).remove(a_structure)
 	proc_technology()
 #endregion
 
@@ -216,7 +218,7 @@ func remove_structure(a_structure: Commandable) -> void:
 #region Build previews
 ## Live, out-of-tree instances of each buildable structure, kept so the build
 ## "ghost" can reference a team-tinted version of the real building art. Keyed by
-## Entity.Type. These are deliberately NOT added to the SceneTree (so their
+## piece id. These are deliberately NOT added to the SceneTree (so their
 ## _ready / physics / fog / auto-init logic never runs and they're never
 ## registered as real structures); because they're orphaned, we free them
 ## explicitly on PREDELETE. Instantiating them through the Commander also means
@@ -387,8 +389,6 @@ func seconds_elapsed() -> float:
 
 #region Node
 func _ready() -> void:
-	for s in Entity.Type.values():
-		structure_type_map[s] = Set.new()
 	_instance_faction()
 	# Drive the HUD resource label off resource changes rather than polling it
 	# every frame (see resources_changed). Paint once now for the initial values.

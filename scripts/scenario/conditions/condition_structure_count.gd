@@ -6,7 +6,7 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 
 @export var commander_id: int = 1
 ## UNDEFINED matches structures of any type.
-@export var structure_type: Entity.Type = Entity.Type.UNDEFINED
+@export var structure_type: StringName = &""
 @export var comparison: Comparison = Comparison.AT_LEAST
 @export var count: int = 1
 #endregion
@@ -22,13 +22,12 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 	# economic triggers where only built structures provide income. Gate on
 	# Commandable.is_built inside the loop if a specific condition needs it.
 	var n := 0
-	if structure_type == Entity.Type.UNDEFINED:
-		for t: int in Entity.Type.values():
-			if t < 0:
-				continue  # skip UNDEFINED
+	if structure_type == &"":
+		for t: StringName in commander.structure_type_map:
 			n += commander.structure_type_map[t].size()
 	else:
-		n = commander.structure_type_map[structure_type].size()
+		var s: Variant = commander.structure_type_map.get(structure_type)
+		n = s.size() if s != null else 0
 	match comparison:
 		Comparison.AT_LEAST: return n >= count
 		Comparison.AT_MOST:  return n <= count

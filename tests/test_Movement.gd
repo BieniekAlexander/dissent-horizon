@@ -116,10 +116,15 @@ func test_flying_dive_descends_proportional_to_distance():
 		m._update_flying_height()
 	assert_almost_eq(m.height_offset(), Movement.AERIAL_HEIGHT * 0.5, 0.02)
 
+## Ticks to fully descend/ascend the cruise altitude at LANDING_SPEED, with headroom —
+## derived from the constants so the tests hold if AERIAL_HEIGHT changes.
+func _full_height_ticks() -> int:
+	return int(ceil(Movement.AERIAL_HEIGHT / Movement.LANDING_SPEED)) + 20
+
 func test_flying_dive_onto_target_reaches_ground():
 	# Diving straight onto the target's XZ (distance 0) drops to ~ground level.
 	var m := _make_flying(Vector3(10, 0, 10))
-	for i in 100:
+	for i in _full_height_ticks():
 		m.request_dive(Vector2(10.0, 10.0))
 		m._update_flying_height()
 	assert_almost_eq(m.height_offset(), 0.0, 0.02)
@@ -127,11 +132,11 @@ func test_flying_dive_onto_target_reaches_ground():
 func test_flying_climbs_back_when_dive_not_requested():
 	# Dive down, then stop requesting -> eases back to cruise altitude.
 	var m := _make_flying(Vector3(10, 0, 10))
-	for i in 100:
+	for i in _full_height_ticks():
 		m.request_dive(Vector2(10.0, 10.0))
 		m._update_flying_height()
 	assert_lt(m.height_offset(), 0.1, "precondition: dove to the ground")
-	for i in 100:
+	for i in _full_height_ticks():
 		m._update_flying_height()  # no request this tick
 	assert_almost_eq(m.height_offset(), Movement.AERIAL_HEIGHT, 0.02)
 
@@ -196,4 +201,148 @@ func test_grounded_reverse_command_does_not_snap_velocity():
 	# It brakes one decel step (1.8 -> 1.7), it does NOT jump to 1.8 in reverse.
 	assert_almost_eq(out.length(), 1.7, 1e-3, "reverse decelerates by one step, no snap")
 	assert_gt(out.dot(facing), 0.0, "still moving forward this tick, not flipped to reverse")
+#endregion
+
+#region Hovering bank/pitch attitude
+## Helper: an AIRBORNE HOVERING Movement under a Node3D parent facing +Z (rotation.y
+## == 0, so get_facing() == +Z and its right axis is +X). Bank helpers read the
+## parent's rotation, so tests assert on parent.rotation.{x,z}.
+func _make_hovering() -> Array:
+	var parent := Node3D.new()
+	add_child_autofree(parent)
+	var m := Movement.new()
+	m.mode = Movement.Mode.HOVERING
+	parent.add_child(m)  # triggers _ready (seeds AIRBORNE + cruise altitude)
+	return [parent, m]
+
+
+func test_hover_bank_noses_down_while_cruising_forward():
+	var pair := _make_hovering()
+	var parent: Node3D = pair[0]
+	var m: Movement = pair[1]
+	# Steady forward velocity (zero acceleration) — pitch is speed-based, so the nose
+	# still dips: it tracks how fast the unit flies, not whether it's accelerating.
+	m._current_velocity = Vector3(0, 0, m.speed * 0.5)
+	m._prev_tilt_velocity = m._current_velocity
+	m._apply_hover_bank()
+	assert_gt(parent.rotation.x, 0.0, "forward flight noses the +Z front down")
+	assert_almost_eq(parent.rotation.z, 0.0, 1e-6, "straight-line flight produces no roll")
+
+
+func test_hover_bank_noses_up_when_flying_backward():
+	var pair := _make_hovering()
+	var parent: Node3D = pair[0]
+	var m: Movement = pair[1]
+	# Sliding backward (velocity opposes facing) lifts the nose.
+	m._current_velocity = Vector3(0, 0, -m.speed * m.reverse_speed_ratio * 0.5)
+	m._prev_tilt_velocity = m._current_velocity
+	m._apply_hover_bank()
+	assert_lt(parent.rotation.x, 0.0, "reverse flight noses up")
+
+
+func test_hover_bank_pitch_scales_with_forward_speed():
+	var pair := _make_hovering()
+	var parent: Node3D = pair[0]
+	var m: Movement = pair[1]
+	# Full forward speed converges to the max nose-down angle.
+	for i in 200:
+		m._current_velocity = Vector3(0, 0, m.speed)
+		m._prev_tilt_velocity = m._current_velocity
+		m._apply_hover_bank()
+	assert_almost_eq(parent.rotation.x, Movement.HOVER_MAX_PITCH, 1e-3, "full speed saturates pitch")
+
+
+func test_hover_bank_pitch_is_clamped_above_top_speed():
+	var pair := _make_hovering()
+	var parent: Node3D = pair[0]
+	var m: Movement = pair[1]
+	# Even an over-speed velocity can't pitch past the cap.
+	for i in 200:
+		m._current_velocity = Vector3(0, 0, m.speed * 3.0)
+		m._prev_tilt_velocity = m._current_velocity
+		m._apply_hover_bank()
+	assert_almost_eq(parent.rotation.x, Movement.HOVER_MAX_PITCH, 1e-3, "pitch never exceeds the cap")
+
+
+func test_hover_bank_rolls_into_rightward_acceleration():
+	var pair := _make_hovering()
+	var parent: Node3D = pair[0]
+	var m: Movement = pair[1]
+	m._prev_tilt_velocity = Vector3.ZERO
+	m._current_velocity = Vector3(2.0, 0, 0)  # accelerating along +X (the body's right)
+	m._apply_hover_bank()
+	assert_lt(parent.rotation.z, 0.0, "banks right: the inside (+X) side drops (-rotation.z)")
+	assert_almost_eq(parent.rotation.x, 0.0, 1e-6, "no forward-speed component -> no pitch")
+
+
+func test_hover_bank_levels_out_when_stopped():
+	var pair := _make_hovering()
+	var parent: Node3D = pair[0]
+	var m: Movement = pair[1]
+	# Build up a lean...
+	for i in 30:
+		m._current_velocity = Vector3(0, 0, m.speed)
+		m._prev_tilt_velocity = m._current_velocity
+		m._apply_hover_bank()
+	assert_gt(parent.rotation.x, 0.1, "precondition: leaning forward")
+	# ...then come to rest -> the nose returns to level.
+	for i in 100:
+		m._current_velocity = Vector3.ZERO
+		m._prev_tilt_velocity = Vector3.ZERO
+		m._apply_hover_bank()
+	assert_almost_eq(parent.rotation.x, 0.0, 0.01, "hovering in place relaxes to level")
+#endregion
+
+#region Aerial altitude smoothing
+## _step_smoothed_altitude is the acceleration-limited vertical controller that eases an
+## aerial unit's followed terrain height toward a target. These exercise it directly
+## (no Map needed); _update_aerial_altitude just feeds it a terrain target each tick.
+func test_altitude_converges_to_constant_target():
+	var m := Movement.new()
+	add_child_autofree(m)
+	m._smoothed_terrain_y = 0.0
+	m._vertical_velocity = 0.0
+	for i in 300:
+		m._step_smoothed_altitude(5.0)  # climb toward a 5-unit-higher plateau
+	assert_almost_eq(m._smoothed_terrain_y, 5.0, 0.01, "settles onto the target height")
+	assert_almost_eq(m._vertical_velocity, 0.0, 0.05, "and comes to rest there")
+
+
+func test_altitude_respects_max_vertical_accel():
+	var m := Movement.new()
+	add_child_autofree(m)
+	m._smoothed_terrain_y = 0.0
+	m._vertical_velocity = 0.0
+	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var dv_max: float = Movement.MAX_VERTICAL_ACCEL * dt
+	# Against a huge target the controller wants maximum climb, but the per-tick change
+	# in vertical speed can never exceed the acceleration budget.
+	var prev_vy: float = m._vertical_velocity
+	for i in 50:
+		m._step_smoothed_altitude(1000.0)
+		assert_lte(absf(m._vertical_velocity - prev_vy), dv_max + 1e-5, "accel stays within budget")
+		prev_vy = m._vertical_velocity
+
+
+func test_altitude_does_not_significantly_overshoot():
+	var m := Movement.new()
+	add_child_autofree(m)
+	m._smoothed_terrain_y = 0.0
+	m._vertical_velocity = 0.0
+	var peak: float = 0.0
+	for i in 300:
+		m._step_smoothed_altitude(3.0)
+		peak = maxf(peak, m._smoothed_terrain_y)
+	# The stopping-envelope approach settles onto the target without launching past it.
+	assert_lt(peak, 3.0 + 0.25, "overshoot past the target stays small")
+
+
+func test_altitude_descends_to_lower_target():
+	var m := Movement.new()
+	add_child_autofree(m)
+	m._smoothed_terrain_y = 5.0
+	m._vertical_velocity = 0.0
+	for i in 300:
+		m._step_smoothed_altitude(1.0)  # ground drops away beneath the unit
+	assert_almost_eq(m._smoothed_terrain_y, 1.0, 0.01, "eases down to the lower terrain")
 #endregion

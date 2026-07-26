@@ -39,7 +39,7 @@ height = 5.0
 radius = 2.5
 
 [node name="Unit2" unique_id=1941500794 instance=ExtResource("1_v5yox")]
-type = 8451
+id = &"warlord"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_scm32")

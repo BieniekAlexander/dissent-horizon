@@ -15,9 +15,9 @@ extends EventCommand
 #endregion
 
 #region Public API
-func to_command(manager: ScenarioTriggerManager) -> MoveCommand:
+func to_command(manager: ScenarioTriggerManager, post_offset: Vector3 = Vector3.ZERO) -> MoveCommand:
 	var nav_map := manager.map.nav_region.get_navigation_map()
-	var dest := NavigationServer3D.map_get_closest_point(nav_map, global_position)
+	var dest := NavigationServer3D.map_get_closest_point(nav_map, global_position + post_offset)
 	var msg := CommandMessage.new(manager.map, null, null, dest)
 	if command_type == "attack_move":
 		return AttackMove.new(msg)

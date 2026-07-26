@@ -60,7 +60,7 @@ func mine_count() -> int:
 
 ## True when the bot has both the prerequisite tech unlock AND enough ore /
 ## vigor / dominion to produce [type] right now.
-func can_afford(type: Entity.Type) -> bool:
+func can_afford(type: StringName) -> bool:
 	return has_resources_for(type)
 
 
@@ -87,7 +87,7 @@ func _scene_path_for_type(type) -> String:
 
 ## All units of a specific type (e.g. only Vanguards, only Irregulars). Matches by
 ## the unit's source scene rather than by inspecting its Entity.Type.
-func get_units_of_type(type: Entity.Type) -> Array:
+func get_units_of_type(type: StringName) -> Array:
 	var scene_path := _scene_path_for_type(type)
 	if scene_path == "":
 		return []
@@ -96,8 +96,9 @@ func get_units_of_type(type: Entity.Type) -> Array:
 
 ## All structures of a specific type.  Wraps structure_type_map for
 ## convenience so callers don't need to call .get_values() themselves.
-func get_structures_of_type(type: Entity.Type) -> Array:
-	return structure_type_map[type].get_values()
+func get_structures_of_type(type: StringName) -> Array:
+	var s: Variant = structure_type_map.get(type)
+	return s.get_values() if s != null else []
 
 
 ## Structures that have a Production component AND are fully built, meaning they
@@ -133,7 +134,7 @@ func army_size() -> int:
 func army_resource_value() -> float:
 	var total: float = 0.0
 	for u: Commandable in _owned_units():
-		var spec: TechnologySpec = technology_mapping.get(u.type)
+		var spec: TechnologySpec = technology_mapping.get(u.id)
 		if spec != null:
 			total += spec.ore_cost
 	return total
@@ -447,13 +448,13 @@ func _compute_interaction_spawn_value(event_scene: PackedScene) -> float:
 
 
 ## Ore cost of the unit a PackedScene spawns, via the tech tree (same convention as
-## army_resource_value). Instantiates out of tree only to read the scene's Entity.Type,
-## then frees it. 0 when the scene isn't an Entity or the type isn't priced.
+## army_resource_value). Instantiates out of tree only to read the scene's piece id,
+## then frees it. 0 when the scene isn't an Entity or the id isn't priced.
 func _scene_unit_cost(packed: PackedScene) -> int:
 	if packed == null:
 		return 0
 	var inst: Node = packed.instantiate()
-	var t: Variant = inst.type if inst is Entity else Entity.Type.UNDEFINED
+	var t: StringName = inst.id if inst is Entity else &""
 	inst.free()
 	return unit_cost(t)
 
@@ -521,7 +522,7 @@ func _builder_buildable_types() -> Dictionary:
 	for u: Commandable in _owned_units():
 		var builds: Node = u.get_node_or_null("Builds")
 		if builds != null:
-			for t: int in builds.buildable_types:
+			for t: StringName in builds.buildable_types:
 				caps[t] = true
 	return caps
 
@@ -594,7 +595,7 @@ func _type_provides_vigor(type) -> bool:
 func unit_effectiveness_vs(unit_type, target: Commandable) -> float:
 	# A hand-set matchup override wins over the computed multiplier (AOE, kiting, …
 	# the damage table can't express — e.g. Kamikaze ≫ Irregular).
-	var override: Variant = DamageTable.matchup_override(unit_type, target.type)
+	var override: Variant = DamageTable.matchup_override(unit_type, target.id)
 	if override != null:
 		return override
 	# `target` must be a LIVE instance: targetable_layers()/armour come from runtime
@@ -653,8 +654,8 @@ func enemy_demand_map() -> Dictionary:
 		var own_structs := _owned_structures()
 		if not own_structs.is_empty():
 			var s_rep: Commandable = own_structs[0]
-			importance[s_rep.type] = importance.get(s_rep.type, 0.0) + STRUCTURE_IMPORTANCE
-			reps[s_rep.type] = s_rep
+			importance[s_rep.id] = importance.get(s_rep.id, 0.0) + STRUCTURE_IMPORTANCE
+			reps[s_rep.id] = s_rep
 
 	var own := _owned_units()
 	var demand: Dictionary = {}
@@ -662,7 +663,7 @@ func enemy_demand_map() -> Dictionary:
 		var rep: Commandable = reps[etype]
 		var coverage: float = 0.0
 		for u: Commandable in own:
-			coverage += unit_effectiveness_vs(u.type, rep)
+			coverage += unit_effectiveness_vs(u.id, rep)
 		demand[etype] = {"demand": importance[etype] / (1.0 + coverage), "rep": rep}
 	return demand
 
@@ -744,7 +745,7 @@ func _projectile_blast_radius(proj: Node) -> float:
 
 ## True when [unit] is an AOE-suicide unit (has an aoe_suicide_profile).
 func is_suicide_aoe_unit(unit: Commandable) -> bool:
-	return aoe_suicide_profile(unit.type) != null
+	return aoe_suicide_profile(unit.id) != null
 
 ## Owned AOE-suicide units (the ones BotKamikaze micromanages).
 func get_suicide_aoe_units() -> Array:
@@ -757,7 +758,7 @@ func get_suicide_aoe_units() -> Array:
 ## A run is worth it only when that value beats the drone's own cost — i.e. the blast
 ## destroys more than it spends. Returns { "target": Commandable, "value": float }.
 func kamikaze_best_target(kamikaze: Commandable) -> Variant:
-	var profile: Variant = aoe_suicide_profile(kamikaze.type)
+	var profile: Variant = aoe_suicide_profile(kamikaze.id)
 	if profile == null:
 		return null
 	var enemies := visible_enemies()
@@ -770,7 +771,7 @@ func kamikaze_best_target(kamikaze: Commandable) -> Variant:
 		if value > best_value:
 			best_value = value
 			best_target = e
-	if best_target != null and best_value >= float(unit_cost(kamikaze.type)):
+	if best_target != null and best_value >= float(unit_cost(kamikaze.id)):
 		return {"target": best_target, "value": best_value}
 	return null
 
@@ -785,13 +786,13 @@ func _aoe_hit_value(center: Vector3, profile: Dictionary, enemies: Array) -> flo
 			continue
 		var eff: float = DamageTable.calculate_damage(profile["damage"], profile["type"], u)
 		var fraction: float = minf(eff, u.defense.hp) / u.defense.hp_max
-		total += fraction * float(unit_cost(u.type))
+		total += fraction * float(unit_cost(u.id))
 	return total
 
 
 ## True when all prerequisite structures for [type] have been built,
 ## regardless of whether we can currently afford to produce it.
-func has_tech_for(type: Entity.Type) -> bool:
+func has_tech_for(type: StringName) -> bool:
 	var spec: TechnologySpec = technology_mapping.get(type)
 	return spec != null and spec.unmet_need == TechnologySpec.UnmetNeed.NONE
 
@@ -799,29 +800,36 @@ func has_tech_for(type: Entity.Type) -> bool:
 ## All Entity.Types whose prerequisite structures are satisfied — the full
 ## set of things we are currently able to build or train, ignoring cost.
 func unlocked_types() -> Array:
-	return technology_mapping.keys().filter(func(t): return has_tech_for(t))
+	# Piece ids only — the map also carries int Ability.Type gate keys.
+	return technology_mapping.keys().filter(
+		func(t): return t is StringName and has_tech_for(t)
+	)
 
 
 ## Structure types whose tech prerequisite is NOT yet met — each one
 ## represents a potential tech-tree expansion the bot could invest in.
 func locked_structure_types() -> Array:
 	return technology_mapping.keys().filter(
-		func(t): return _type_is_structure(t) and not has_tech_for(t)
+		func(t): return t is StringName and _type_is_structure(t) and not has_tech_for(t)
 	)
 
 
-## The most advanced unit type (highest Entity.Type value) currently
-## unlocked for training.  Unit-vs-structure is decided by the type's scene (no
-## "Structure" component); "most advanced" still ranks by the enum value, which is
-## the tech catalog's intended ordering.  Returns UNDEFINED when no units are
-## available yet.
-func highest_unlocked_unit_type() -> Entity.Type:
+## The most advanced unit type currently unlocked for training. Unit-vs-structure
+## is decided by the type's scene (no "Structure" component); "most advanced"
+## ranks by ore cost (ids are strings now, so the old enum-value ordering is
+## gone — cost is the tech catalog's de-facto advancement axis), with the id as
+## a deterministic tiebreak. Returns &"" when no units are available yet.
+func highest_unlocked_unit_type() -> StringName:
 	var unit_types := unlocked_types().filter(
 		func(t): return _type_is_unit(t)
 	)
 	if unit_types.is_empty():
-		return Entity.Type.UNDEFINED
-	unit_types.sort()
+		return &""
+	unit_types.sort_custom(func(a, b) -> bool:
+		if unit_cost(a) != unit_cost(b):
+			return unit_cost(a) < unit_cost(b)
+		return String(a) < String(b)
+	)
 	return unit_types.back()
 
 

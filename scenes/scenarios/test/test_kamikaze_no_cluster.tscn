@@ -61,29 +61,29 @@ shape = SubResource("HeightMapShape3D_o74ke")
 
 [node name="Kamikaze" type="CharacterBody3D" parent="." unique_id=440012001 groups=["commandable", "unit"] instance=ExtResource("7_8aknt")]
 script = ExtResource("8_fd312")
-type = 8452
+id = &"kamikaze"
 default_commander_id = 1
 
 [node name="Unit2" type="CharacterBody3D" parent="." unique_id=1210299015 groups=["commandable", "unit"] instance=ExtResource("9_7pfti")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, 11)
 script = ExtResource("8_fd312")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@8" type="CharacterBody3D" parent="." unique_id=1989333741 groups=["commandable", "unit"] instance=ExtResource("9_7pfti")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 11)
 script = ExtResource("8_fd312")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@9" type="CharacterBody3D" parent="." unique_id=183380514 groups=["commandable", "unit"] instance=ExtResource("9_7pfti")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, -11)
 script = ExtResource("8_fd312")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@10" type="CharacterBody3D" parent="." unique_id=1883057945 groups=["commandable", "unit"] instance=ExtResource("9_7pfti")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, -11)
 script = ExtResource("8_fd312")
-type = 8449
+id = &"irregular"
 default_commander_id = 2

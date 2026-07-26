@@ -32,7 +32,7 @@ func _find_target_unit(manager: ScenarioTriggerManager) -> Commandable:
 		var candidate := node as Commandable
 		if candidate == null or candidate.commander_id != commander_id:
 			continue
-		if want != null and candidate.type != want:
+		if want != null and candidate.id != want:
 			continue
 		var dist_sq: float = VU.inXZ(candidate.global_position).distance_squared_to(pos_xz)
 		if dist_sq <= best_dist_sq:

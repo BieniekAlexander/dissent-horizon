@@ -13,7 +13,7 @@ height = 100.0
 radius = 0.375
 
 [node name="Unit" unique_id=513065552 instance=ExtResource("1_ucq5h")]
-type = 4352
+id = &"technician"
 attributes_list = Array[int]([1])
 
 [node name="Movement" parent="." index="7"]
@@ -39,11 +39,6 @@ disabled = true
 script = ExtResource("4_fyu6r")
 metadata/_custom_type_script = "uid://dlhe01nj6efuh"
 
-[node name="Sprite" parent="." index="15" unique_id=1381401170]
-transform = Transform3D(1.5, 0, 0, 0, 1.06066, -1.06066, 0, 1.06066, 1.06066, 0, 0.17100573, 0)
-flip_h = true
-texture = ExtResource("3_0rgnf")
-
 [node name="HPBar" parent="." index="16" unique_id=665391337]
 transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)
 
@@ -52,4 +47,4 @@ script = ExtResource("6_invnt")
 
 [node name="Builds" type="Node" parent="." index="25" unique_id=810133913]
 script = ExtResource("7_builds")
-buildable_types = Array[int]([4608, 4609, 4610, 4611, 4612, 4613, 4614, 8704, 8705, 8706])
+buildable_types = Array[StringName]([&"dwelling", &"lab", &"compound", &"armory", &"stronghold", &"field_hospital", &"safehouse"])

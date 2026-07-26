@@ -1,0 +1,314 @@
+{
+	"command_tool_armory": {
+		"context": "BUILD",
+		"factions": [
+			"technocracy"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "armory",
+		"label": "Armory",
+		"scene": "res://scenes/entities/structures/tc/armory.tscn"
+	},
+	"command_tool_badger": {
+		"context": "TRAIN",
+		"factions": [
+			"collective"
+		],
+		"grid": [
+			2,
+			2
+		],
+		"id": "badger",
+		"label": "Badger",
+		"scene": "res://scenes/entities/units/cl/badger.tscn"
+	},
+	"command_tool_barracks": {
+		"context": "BUILD",
+		"factions": [
+			"collective"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"id": "barracks",
+		"label": "Barracks",
+		"scene": "res://scenes/entities/structures/cl/barracks.tscn"
+	},
+	"command_tool_chinook": {
+		"context": "TRAIN",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			3,
+			0
+		],
+		"id": "chinook",
+		"label": "Chinook",
+		"scene": "res://scenes/entities/units/an/chinook.tscn"
+	},
+	"command_tool_compound": {
+		"context": "BUILD",
+		"factions": [
+			"technocracy"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "compound",
+		"label": "Compound",
+		"scene": "res://scenes/entities/structures/tc/compound.tscn"
+	},
+	"command_tool_dwelling": {
+		"context": "BUILD",
+		"factions": [
+			"technocracy"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"id": "dwelling",
+		"label": "Dwelling",
+		"scene": "res://scenes/entities/structures/tc/dwelling.tscn"
+	},
+	"command_tool_field_hospital": {
+		"context": "BUILD",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			4,
+			2
+		],
+		"id": "field_hospital",
+		"label": "Field Hosp",
+		"scene": "res://scenes/entities/structures/an/field_hospital.tscn"
+	},
+	"command_tool_hangar": {
+		"context": "BUILD",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			4,
+			1
+		],
+		"id": "hangar",
+		"label": "Hangar",
+		"scene": "res://scenes/entities/structures/an/hangar.tscn"
+	},
+	"command_tool_internment_camp": {
+		"context": "BUILD",
+		"factions": [
+			"collective"
+		],
+		"grid": [
+			3,
+			0
+		],
+		"id": "internment_camp",
+		"label": "Internment",
+		"scene": "res://scenes/entities/structures/cl/internment_camp.tscn"
+	},
+	"command_tool_irregular": {
+		"context": "TRAIN",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			2,
+			2
+		],
+		"id": "irregular",
+		"label": "Irregular",
+		"scene": "res://scenes/entities/units/an/irregular.tscn"
+	},
+	"command_tool_kamikaze": {
+		"context": "TRAIN",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			0,
+			0
+		],
+		"id": "kamikaze",
+		"label": "Kamikaze",
+		"scene": "res://scenes/entities/units/an/kamikaze.tscn"
+	},
+	"command_tool_lab": {
+		"context": "BUILD",
+		"factions": [
+			"technocracy"
+		],
+		"grid": [
+			3,
+			0
+		],
+		"id": "lab",
+		"label": "Lab",
+		"scene": "res://scenes/entities/structures/tc/lab.tscn"
+	},
+	"command_tool_mercury": {
+		"context": "TRAIN",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"id": "mercury",
+		"label": "Mercury",
+		"scene": "res://scenes/entities/units/an/mercury.tscn"
+	},
+	"command_tool_mine": {
+		"context": "BUILD",
+		"factions": [
+			"neutral"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"id": "mine",
+		"label": "Mine",
+		"scene": "res://scenes/entities/structures/nt/mine.tscn"
+	},
+	"command_tool_power_plant": {
+		"context": "BUILD",
+		"factions": [
+			"collective"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"id": "power_plant",
+		"label": "Power Plant",
+		"scene": "res://scenes/entities/structures/cl/power_plant.tscn"
+	},
+	"command_tool_recruit": {
+		"context": "TRAIN",
+		"factions": [
+			"collective"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"id": "recruit",
+		"label": "Recruit",
+		"scene": "res://scenes/entities/units/cl/recruit.tscn"
+	},
+	"command_tool_safehouse": {
+		"context": "BUILD",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			3,
+			2
+		],
+		"id": "safehouse",
+		"label": "Safehouse",
+		"scene": "res://scenes/entities/structures/an/safehouse.tscn"
+	},
+	"command_tool_sapper": {
+		"context": "TRAIN",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			0,
+			2
+		],
+		"id": "sapper",
+		"label": "Sapper",
+		"scene": "res://scenes/entities/units/an/sapper.tscn"
+	},
+	"command_tool_settlement": {
+		"context": "BUILD",
+		"factions": [
+			"collective"
+		],
+		"grid": [
+			0,
+			0
+		],
+		"id": "settlement",
+		"label": "Settlement",
+		"scene": "res://scenes/entities/structures/cl/settlement.tscn"
+	},
+	"command_tool_stronghold": {
+		"context": "BUILD",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			4,
+			0
+		],
+		"id": "stronghold",
+		"label": "Stronghold",
+		"scene": "res://scenes/entities/structures/an/stronghold.tscn"
+	},
+	"command_tool_supply_truck": {
+		"context": "TRAIN",
+		"factions": [
+			"collective"
+		],
+		"grid": [
+			0,
+			2
+		],
+		"id": "supply_truck",
+		"label": "Supply Truck",
+		"scene": "res://scenes/entities/units/cl/supply_truck.tscn"
+	},
+	"command_tool_technician": {
+		"context": "TRAIN",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"id": "technician",
+		"label": "Techie",
+		"scene": "res://scenes/entities/units/an/technician.tscn"
+	},
+	"command_tool_vanguard": {
+		"context": "TRAIN",
+		"factions": [
+			"technocracy"
+		],
+		"grid": [
+			3,
+			2
+		],
+		"id": "vanguard",
+		"label": "Vanguard",
+		"scene": "res://scenes/entities/units/tc/vanguard.tscn"
+	},
+	"command_tool_warlord": {
+		"context": "TRAIN",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"id": "warlord",
+		"label": "Warlord",
+		"scene": "res://scenes/entities/units/an/warlord.tscn"
+	}
+}

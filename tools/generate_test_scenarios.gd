@@ -51,7 +51,7 @@ func _generate_kamikaze_cluster() -> void:
 
 	var check := ConditionUnitHasCommand.new()
 	check.commander_id = 1
-	check.unit_type = Entity.Type.AN_UNIT_KAMIKAZE
+	check.unit_type = EntityIds.KAMIKAZE
 	check.command_name = "Attack"
 	check.quantifier = ConditionUnitHasCommand.Quantifier.ANY
 	root.expectations = [
@@ -83,7 +83,7 @@ func _generate_kamikaze_no_cluster() -> void:
 
 	var check := ConditionUnitHasNoCommandFor.new()
 	check.commander_id = 1
-	check.unit_type = Entity.Type.AN_UNIT_KAMIKAZE
+	check.unit_type = EntityIds.KAMIKAZE
 	check.ticks = 300  # 10 physics seconds command-free
 	root.expectations = [
 		_expect("kamikaze stays command-free for 10s against spread irregulars", check, 900),

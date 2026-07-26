@@ -53,6 +53,6 @@ shape = SubResource("HeightMapShape3D_b2gqw")
 
 [node name="Unit" type="CharacterBody3D" parent="." unique_id=513065552 groups=["commandable", "unit"] instance=ExtResource("7_mrgn3")]
 script = ExtResource("8_vfj1i")
-type = 4352
+id = &"technician"
 default_commander_id = 1
 attributes_list = Array[int]([1])

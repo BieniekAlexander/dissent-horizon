@@ -1,9 +1,9 @@
+DirectionalLight3D
+OmniLight3D
 CollisionShape3D
 Garrison
 MeshVisual
-DirectionalLight3D
 LightmapGI
-OmniLight3D
 AreaLight3D
 MeshInstance3D
 Ownership

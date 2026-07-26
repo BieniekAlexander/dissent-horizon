@@ -213,7 +213,7 @@ func unregister_builder(unit: Commandable) -> void:
 ## Each of n builders calls this each tick, so total progress per tick = 1/effective_build_time.
 func effective_build_increment() -> float:
 	var n: int = max(1, _active_builders.size())
-	var spec: TechnologySpec = commander.technology_mapping.get(type) if commander != null else null
+	var spec: TechnologySpec = commander.technology_mapping.get(id) if commander != null else null
 	var base_build_time: int = spec.creation_time if spec != null else 600
 	return float(n + 2) / (3.0 * float(base_build_time) * float(n))
 var map_cells: Set:
@@ -322,6 +322,10 @@ func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D
 
 func receive_damage(damage: Damage, from: Commandable = null) -> void:
 	super(damage, from)
+	# Any hit staggers the unit: refresh the timer so channeled actions (Build, Repair,
+	# certain interactions) are suppressed for STAGGER_SECONDS. See is_staggered / the
+	# gate in CommandReceiver._process_commands and MoveCommand.blocked_by_stagger.
+	_stagger_ticks = STAGGER_SECONDS * Engine.physics_ticks_per_second
 	# Being attacked breaks stealth: force the timed UNSTEALTHED window.
 	if stealth != null:
 		stealth.unstealth()
@@ -330,7 +334,27 @@ func receive_damage(damage: Damage, from: Commandable = null) -> void:
 		var attack_cmd: MoveCommand = _get_vision_range_attack(from)
 		if attack_cmd != null:
 			update_commands(attack_cmd)
+#endregion
 
+#region Stagger
+## Seconds a unit stays staggered after taking damage. While staggered, commands whose
+## action opts in (MoveCommand.blocked_by_stagger — Build, Repair, LIBERATE/PLANT
+## interactions) suppress their completion: the unit still moves into range but waits to
+## act until the stagger clears. It is a lightweight universal mechanic — a per-unit
+## countdown rather than a StatusEffect node, since it fires on every damage instance.
+const STAGGER_SECONDS: int = 3
+
+## Remaining stagger duration in physics ticks; 0 when not staggered. Refreshed to full
+## in receive_damage, counted down each tick in _physics_process.
+var _stagger_ticks: int = 0
+
+## True while the unit is staggered (recently damaged). A stagger-blocked command holds
+## instead of completing its action while this is true.
+func is_staggered() -> bool:
+	return _stagger_ticks > 0
+#endregion
+
+#region Retaliation
 ## Returns an Attack command targeting `attacker` if it is within VisionRange and
 ## is a valid enemy and retaliator has a valid weapon, otherwise null.
 func _get_vision_range_attack(attacker: Commandable) -> MoveCommand:
@@ -355,6 +379,19 @@ func _get_vision_range_attack(attacker: Commandable) -> MoveCommand:
 #endregion
 
 #region Lifecycle
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		# Drop the command chain while this actor is still fully valid. Each MoveCommand's
+		# PREDELETE resets our Movement.speed_cap (group-move cleanup), so it must run
+		# before our own destructor frees Movement and our script members — otherwise it
+		# dereferences a half-freed actor and hard-crashes. Commands normally clear
+		# themselves on completion; the ones that outlive it (e.g. held while staggered)
+		# are torn down here. See MoveCommand._notification.
+		if command_receiver != null:
+			command_receiver._command = null
+			command_receiver._command_queue.clear()
+		rally_point = null
+
 func _ready() -> void:
 	super()
 	# Establish the root's movement-collision layer now (map is still null, so this
@@ -544,9 +581,13 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 		move_and_slide()
 
 	# Snap Y to terrain after each move so height tracks the final XZ this tick,
-	# not the XZ from before the move (which is what _physics_process saw).
+	# not the XZ from before the move (which is what _physics_process saw). Aerial
+	# units follow an acceleration-smoothed terrain height (see Movement) instead of
+	# the raw contour, so their base Y comes from aerial_follow_y.
 	if map != null:
-		global_position.y = map.terrain_height_at(VU.inXZ(global_position)) + movement.height_offset()
+		var terrain_y: float = map.terrain_height_at(VU.inXZ(global_position))
+		var base_y: float = movement.aerial_follow_y(terrain_y) if movement.is_aerial_mode() else terrain_y
+		global_position.y = base_y + movement.height_offset()
 
 func _update_state() -> void:
 	if defense != null and defense.hp <= 0:
@@ -591,6 +632,8 @@ func _update_state() -> void:
 
 func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint(): return
+	if _stagger_ticks > 0:
+		_stagger_ticks -= 1
 	_update_state()
 	# A command fulfilled during _update_state() (e.g. garrisoning into a
 	# Garrison) may remove this unit from the tree mid-tick; touching
@@ -598,9 +641,12 @@ func _physics_process(_delta: float) -> void:
 	if not is_inside_tree(): return
 	# Keep units glued to terrain height each tick.  The navmesh is 3D (built
 	# from HeightMapShape3D data) but the velocity computation zeroes Y to keep
-	# avoidance stable, so Y tracking must happen here instead.
+	# avoidance stable, so Y tracking must happen here instead. Aerial units track an
+	# acceleration-smoothed terrain height (see Movement) rather than the raw contour.
 	if movement != null and map != null:
-		global_position.y = map.terrain_height_at(VU.inXZ(global_position)) + movement.height_offset()
+		var terrain_y: float = map.terrain_height_at(VU.inXZ(global_position))
+		var base_y: float = movement.aerial_follow_y(terrain_y) if movement.is_aerial_mode() else terrain_y
+		global_position.y = base_y + movement.height_offset()
 	_update_crush_avoidance_exclusions()
 	_tick_crush()
 

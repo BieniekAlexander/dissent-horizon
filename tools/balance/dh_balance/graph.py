@@ -5,6 +5,8 @@ extensions (tech-up timing, reachability) plug in. Queries consume these.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 import networkx as nx
 
 from . import combat, effectiveness
@@ -36,8 +38,76 @@ def tech_tiers(faction: Faction) -> dict[str, int]:
     return tiers
 
 
-def units_up_to_tier(faction: Faction, max_tier: int) -> list[Buildable]:
+def reachable_from(faction: Faction) -> set[str]:
+    """Ids of everything the faction can actually field, from its starting state.
+
+    Two ways a buildable becomes available, explored together to a fixpoint:
+
+    * ``requires`` edges — owning a prereq unlocks its dependents (this also
+      covers training, since a structure's ``trains`` list is inverted into the
+      trained unit's ``requires`` by the exporter).
+    * ``builds`` lists — a builder unit can construct those structures outright.
+      They are DAG *sources*, not dependents of the builder: you do not tech
+      through the builder to reach them. At least one starting unit is a
+      builder, so this is what opens the tree up.
+
+    The fixpoint matters because a structure reached this way may train a
+    further builder, which unlocks structures of its own.
+    """
+    g = tech_graph(faction)
+    reachable: set[str] = set()
+    queue: list[str] = [b for b in faction.starts_with if b in faction.buildables]
+    reachable.update(queue)
+
+    while queue:
+        node = queue.pop()
+        buildable = faction.buildables[node]
+        unlocked = list(g.successors(node)) + buildable.builds
+        for nxt in unlocked:
+            if nxt in faction.buildables and nxt not in reachable:
+                reachable.add(nxt)
+                queue.append(nxt)
+    return reachable
+
+
+def with_external_buildables(world: World, faction: Faction) -> Faction:
+    """``faction`` plus out-of-faction pieces its builders can construct.
+
+    Neutral structures (mines, deposits) are authored outside any faction's
+    directory, so they land in another catalog — but a faction's own builders
+    raise them, and they belong in that faction's tech graph.
+
+    Only pieces a REACHABLE builder can raise are pulled in: an unreachable
+    unit's ``builds`` list says nothing about what the faction can field, and
+    honouring it would let a stray cross-faction reference drag in an unrelated
+    roster. Reachability and the merged catalog grow together to a fixpoint,
+    since a pulled-in structure may itself unlock more.
+    """
+    elsewhere = {bid: b
+                 for other in world.factions.values() if other.id != faction.id
+                 for bid, b in other.buildables.items()}
+    merged = dict(faction.buildables)
+    while True:
+        reached = reachable_from(replace(faction, buildables=merged))
+        new = {target: elsewhere[target]
+               for bid in reached
+               for target in merged[bid].builds
+               if target in elsewhere and target not in merged}
+        if not new:
+            break
+        merged.update(new)
+    if merged.keys() == faction.buildables.keys():
+        return faction
+    return replace(faction, buildables=merged)
+
+
+def units_up_to_tier(faction: Faction, max_tier: int, reachable_only: bool = True) -> list[Buildable]:
     """Combatants reachable when the faction is capped at ``max_tier``."""
+    buildables = faction.buildables
+    if reachable_only:
+        reachable = reachable_from(faction)
+        buildables = {k: v for k, v in buildables.items() if k in reachable}
+    faction = replace(faction, buildables=buildables) if reachable_only else faction
     tiers = tech_tiers(faction)
     return [b for b in faction.combatants() if tiers.get(b.id, 1) <= max_tier]
 

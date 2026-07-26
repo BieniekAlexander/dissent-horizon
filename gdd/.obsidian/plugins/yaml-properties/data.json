@@ -1,0 +1,17 @@
+{
+  "collapsedByDefault": true,
+  "hideInReadingMode": true,
+  "rememberPerFile": true,
+  "styleSourceYaml": true,
+  "compactYaml": false,
+  "collapsedFiles": {
+    "factions/baladians/pieces/sapper.md": true,
+    "factions/baladians/pieces/stronghold.md": false,
+    "factions/baladians/pieces/an_plant_bomb.md": false,
+    "factions/baladians/pieces/chinook.md": false,
+    "factions/colonials/colonials.md": true,
+    "factions/colonials/pieces/petrel.md": false,
+    "factions/colonial/pieces/sam_missile.md": false,
+    "factions/colonial/pieces/sam.md": false
+  }
+}

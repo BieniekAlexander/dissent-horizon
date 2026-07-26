@@ -1,0 +1,36 @@
+# Damage-effectiveness tables — the rock-paper-scissors core of combat.
+#
+# SOURCE OF TRUTH: mirrored from the live game CSVs
+#   res://resources/damage/damage_vs_armour.tsv
+#   res://resources/damage/damage_vs_frame.tsv
+#   res://resources/damage/damage_vs_attribute.tsv
+# Phase 2 (Godot -> YAML exporter) will regenerate this file automatically so it
+# can never drift. Until then it is hand-synced; keep the two in lockstep.
+#
+# vs_armour[damage_type][armour_type] -> multiplier applied to base damage.
+# Missing cells default to 1.0 (same convention as DamageTable.get_armour_multiplier).
+vs_armour:
+  LEAD:        {LIGHT: 1.0,  MEDIUM: 0.5,  HEAVY: 0.1}
+  LAZER:       {LIGHT: 0.25, MEDIUM: 0.75, HEAVY: 1.5}
+  TOXIC:       {LIGHT: 1.0,  MEDIUM: 1.0,  HEAVY: 1.0}
+  ELECTRIC:   {LIGHT: 1.0,  MEDIUM: 1.0,  HEAVY: 1.0}
+  SIEGE:       {LIGHT: 0.75, MEDIUM: 1.0,  HEAVY: 1.5}
+  EXPLOSIVE:   {LIGHT: 1.0,  MEDIUM: 0.9,  HEAVY: 0.75}
+
+# vs_frame[damage_type][frame_type] -> multiplier applied to base damage.
+# TODO(tune): placeholder (all 1.0) until the frame matchups are authored.
+# Missing cells -> 1.0.
+vs_frame:
+  LEAD:        {BIOLOGICAL: 1.0, METALLIC: 1.0}
+  LAZER:       {BIOLOGICAL: 1.0, METALLIC: 1.0}
+  TOXIC:       {BIOLOGICAL: 1.0, METALLIC: 1.0}
+  ELECTRIC:   {BIOLOGICAL: 1.0, METALLIC: 1.0}
+  SIEGE:       {BIOLOGICAL: 1.0, METALLIC: 1.0}
+  EXPLOSIVE:   {BIOLOGICAL: 1.0, METALLIC: 1.0}
+
+# vs_attribute[damage_type][attribute] -> multiplier, applied multiplicatively
+# for every attribute the target has (IS_GROUNDED / IS_FLYING / HAS_STEALTH).
+# Missing cells default to 1.0.
+vs_attribute:
+  TOXIC:     {IS_FLYING: 0.5}
+  EXPLOSIVE: {IS_FLYING: 0.5}

@@ -29,7 +29,7 @@ radius = 5.5
 radius = 0.3
 
 [node name="Recruit" unique_id=1210299015 instance=ExtResource("1_8cs83")]
-type = 12545
+id = &"recruit"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_skyvu")

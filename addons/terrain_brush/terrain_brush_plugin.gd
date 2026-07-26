@@ -14,6 +14,15 @@ extends EditorPlugin
 ## Each stroke is one undo action. Resolves the Map from the edited scene like the
 ## Terrain Snap plugin. Editing is disabled unless the brush toggle is on, so normal
 ## selection/navigation is unaffected when you're not painting.
+##
+## Toggling the brush on auto-selects the scene's Map (viewport input is only forwarded to us
+## while a node we _handle is the edited object). Viewport hotkeys (while the brush is active):
+##   M            cycle Mode (Paint / Set)
+##   B            cycle brush Shape (Circle / Square)
+##   L            cycle Stroke (Free / Line)
+##   T / Shift+T  cycle the Paint tile type forward / backward
+##   [ / ]        decrement / increment the brush radius
+##   - / =        decrement / increment the Set target height
 
 const _RING_SEGMENTS: int = 48
 
@@ -58,6 +67,7 @@ var _stroke_before_types: PackedByteArray = PackedByteArray()
 var _stroke_before_heights: PackedFloat32Array = PackedFloat32Array()
 var _preview: MeshInstance3D
 var _preview_map: Map = null
+var _preview_cell: Vector2i = Vector2i(-1, -1)  # last hovered cell, so hotkeys can refresh the ring
 var _bounds_preview: MeshInstance3D  # outline of the screen-aligned play bounds
 #endregion
 
@@ -77,26 +87,26 @@ func _enter_tree() -> void:
 	_toolbar.add_child(_toggle)
 
 	_mode_option = OptionButton.new()
-	_mode_option.tooltip_text = "Brush mode: Paint tile types, or Set corner heights."
+	_mode_option.tooltip_text = "Brush mode: Paint tile types, or Set corner heights. (M to cycle)"
 	_mode_option.add_item("Paint", Mode.PAINT)
 	_mode_option.add_item("Set", Mode.SET)
 	_mode_option.item_selected.connect(_on_mode_changed)
 	_toolbar.add_child(_mode_option)
 
 	_shape_option = OptionButton.new()
-	_shape_option.tooltip_text = "Brush footprint shape."
+	_shape_option.tooltip_text = "Brush footprint shape. (B to cycle)"
 	_shape_option.add_item("Circle", Shape.CIRCLE)
 	_shape_option.add_item("Square", Shape.SQUARE)
 	_toolbar.add_child(_shape_option)
 
 	_stroke_option = OptionButton.new()
-	_stroke_option.tooltip_text = "Stroke: Free drags freely; Line rubber-bands a straight line (press = anchor, drag to aim, release to commit)."
+	_stroke_option.tooltip_text = "Stroke: Free drags freely; Line rubber-bands a straight line (press = anchor, drag to aim, release to commit). (L to cycle)"
 	_stroke_option.add_item("Free", Stroke.FREE)
 	_stroke_option.add_item("Line", Stroke.LINE)
 	_toolbar.add_child(_stroke_option)
 
 	_tile_option = OptionButton.new()
-	_tile_option.tooltip_text = "Tile type to paint (Paint mode)."
+	_tile_option.tooltip_text = "Tile type to paint (Paint mode). (T / Shift+T to cycle)"
 	_toolbar.add_child(_tile_option)
 
 	var radius_label := Label.new()
@@ -107,7 +117,7 @@ func _enter_tree() -> void:
 	_radius_spin.min_value = 0
 	_radius_spin.max_value = 40
 	_radius_spin.value = 3
-	_radius_spin.tooltip_text = "Brush radius in cells (0 = single cell)."
+	_radius_spin.tooltip_text = "Brush radius in cells (0 = single cell). ([ / ] to adjust)"
 	_toolbar.add_child(_radius_spin)
 
 	var set_label := Label.new()
@@ -120,7 +130,7 @@ func _enter_tree() -> void:
 	_set_height_spin.step = HEIGHT_STEP
 	_set_height_spin.value = 0.0
 	_set_height_spin.editable = false  # only relevant in Set mode
-	_set_height_spin.tooltip_text = "Target height for Set mode (0..5, 0.5 steps)."
+	_set_height_spin.tooltip_text = "Target height for Set mode (0..5, 0.5 steps). (- / = to adjust)"
 	_toolbar.add_child(_set_height_spin)
 
 	add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, _toolbar)
@@ -150,12 +160,26 @@ func _handles(_object: Object) -> bool:
 func _on_toggled(pressed: bool) -> void:
 	_active = pressed
 	if _active:
+		_select_map()  # viewport input only forwards while a node we _handle is edited
 		_refresh_tile_options()
 		_update_bounds_overlay(_find_map())  # show bounds immediately, before the first motion
 	else:
 		_painting = false
 		_clear_preview()
 		_clear_bounds_preview()
+
+
+## Select the scene's Map so the editor forwards 3D viewport input (and our hotkeys) to us —
+## _forward_3d_gui_input only fires while a node this plugin _handles is the edited object.
+## There is only ever one Map in the scene, so grab the first one.
+func _select_map() -> void:
+	var map := _find_map()
+	if map == null:
+		return
+	var selection := EditorInterface.get_selection()
+	selection.clear()
+	selection.add_node(map)
+	EditorInterface.edit_node(map)
 
 
 ## Populate the tile-type dropdown from the edited Map's catalog (names + catalog index
@@ -212,12 +236,71 @@ func _on_mode_changed(_index: int) -> void:
 #endregion
 
 
+#region Hotkeys
+## Viewport hotkeys while the brush is active: toggle each setting (one key per setting) or
+## nudge the numeric spinboxes. Consumes handled keys (via the STOP return in the caller) so
+## they don't leak to editor shortcuts. Returns whether the key was handled.
+func _handle_key(event: InputEventKey, map: Map) -> bool:
+	match event.keycode:
+		KEY_M:
+			_cycle_mode(1)
+		KEY_B:
+			_cycle_option(_shape_option, 1)
+		KEY_L:
+			_cycle_option(_stroke_option, 1)
+		KEY_T:
+			_cycle_option(_tile_option, -1 if event.shift_pressed else 1)
+		KEY_BRACKETRIGHT:
+			_adjust_spin(_radius_spin, 1)
+		KEY_BRACKETLEFT:
+			_adjust_spin(_radius_spin, -1)
+		KEY_EQUAL:
+			_adjust_spin(_set_height_spin, 1)
+		KEY_MINUS:
+			_adjust_spin(_set_height_spin, -1)
+		_:
+			return false
+	# Refresh the brush ring so shape/size changes show without needing to move the mouse.
+	if _preview_cell.x != -1:
+		_update_preview(map, _preview_cell)
+	return true
+
+
+## Cycle the Mode dropdown by `delta` and re-run the mode-changed side effects (enable/disable
+## the tile + height controls), since OptionButton.select() doesn't emit item_selected.
+func _cycle_mode(delta: int) -> void:
+	if _mode_option == null or _mode_option.item_count == 0:
+		return
+	_mode_option.select(wrapi(_mode_option.selected + delta, 0, _mode_option.item_count))
+	_on_mode_changed(_mode_option.selected)
+
+
+## Cycle an OptionButton's selection by `delta`, wrapping around the item list.
+func _cycle_option(option: OptionButton, delta: int) -> void:
+	if option == null or option.item_count == 0:
+		return
+	option.select(wrapi(option.selected + delta, 0, option.item_count))
+
+
+## Nudge a SpinBox by `steps` of its own step size, clamped to its range.
+func _adjust_spin(spin: SpinBox, steps: int) -> void:
+	if spin == null:
+		return
+	spin.value = clampf(spin.value + steps * spin.step, spin.min_value, spin.max_value)
+#endregion
+
+
 #region Viewport input
 func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 	if not _active:
 		return EditorPlugin.AFTER_GUI_INPUT_PASS
 	var map := _find_map()
 	if map == null or map.terrain_data == null:
+		return EditorPlugin.AFTER_GUI_INPUT_PASS
+
+	if event is InputEventKey:
+		if event.pressed and not event.echo and _handle_key(event, map):
+			return EditorPlugin.AFTER_GUI_INPUT_STOP
 		return EditorPlugin.AFTER_GUI_INPUT_PASS
 
 	if event is InputEventMouseMotion:
@@ -488,6 +571,7 @@ func _cell_under_cursor(camera: Camera3D, mouse_pos: Vector2, map: Map) -> Vecto
 ## cursor is off-terrain). Re-parented under the active Map as an internal child so it is
 ## neither saved nor shown in the scene dock.
 func _update_preview(map: Map, center: Vector2i) -> void:
+	_preview_cell = center
 	if not _active or center.x == -1:
 		if _preview != null:
 			_preview.visible = false

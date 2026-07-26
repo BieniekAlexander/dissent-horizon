@@ -8,13 +8,12 @@ from dh_balance import combat
 from dh_balance.loader import (
     load_status_effects,
     load_weapons,
-    load_world,
 )
 from dh_balance.model import DamageType
 
 
-def test_shared_projectile_is_the_same_object_across_files():
-    w = load_world()
+def test_shared_projectile_is_the_same_object_across_files(world):
+    w = world
     rifle = w.weapons["rifle"]            # iron_regime:conscript
     carbine = w.weapons["carbine"]        # sky_nomads:raider
     # Both reference lead_round_8 -> the resolver hands back one shared object.
@@ -22,22 +21,22 @@ def test_shared_projectile_is_the_same_object_across_files():
     assert rifle.projectile is w.projectiles["lead_round_8"]
 
 
-def test_resolved_graph_reaches_status_effect():
-    w = load_world()
+def test_resolved_graph_reaches_status_effect(world):
+    w = world
     beam = w.weapons["beam"]
     assert beam.projectile.status_effects[0] is w.status_effects["burn_dot_20"]
 
 
-def test_melee_weapon_has_no_projectile():
-    w = load_world()
+def test_melee_weapon_has_no_projectile(world):
+    w = world
     blade = w.weapons["toxin_blade"]
     assert blade.projectile is None
     comps = combat.shot_components(blade)
-    assert comps == [(12.0, DamageType.TOXIN)]
+    assert comps == [(12.0, DamageType.TOXIC)]
 
 
-def test_dot_damage_is_folded_into_the_shot():
-    w = load_world()
+def test_dot_damage_is_folded_into_the_shot(world):
+    w = world
     beam = w.weapons["beam"]
     # direct 20 LAZER + DoT total (5 * 12 = 60) LAZER = 80 raw before multipliers
     raw = sum(amount for amount, _ in combat.shot_components(beam))

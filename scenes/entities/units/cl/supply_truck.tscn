@@ -41,7 +41,7 @@ duration = 0.5
 metadata/_custom_type_script = "uid://dnydcqi1gpid3"
 
 [node name="Truck" unique_id=716209437 instance=ExtResource("1_5tsu5")]
-type = 12544
+id = &"supply_truck"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 visible = true
@@ -75,7 +75,7 @@ item_capacity = 3
 
 [node name="Builds" type="Node" parent="." index="11" unique_id=181383139]
 script = ExtResource("3_mjfq3")
-buildable_types = Array[int]([12800, 12801, 12802, 12803, 12808, 12809])
+buildable_types = Array[StringName]([&"settlement", &"power_plant", &"barracks", &"internment_camp", &"sam", &"cannon"])
 
 [node name="Loadout" type="Node3D" parent="." index="12" unique_id=1657665789]
 script = ExtResource("4_1jl50")
@@ -86,12 +86,6 @@ interactions = Array[ExtResource("12_intn")]([SubResource("Interaction_abduct"),
 
 [node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
 debug_color = Color(0.2, 0.9, 0.3, 0.3)
-
-[node name="Sprite" parent="." index="17" unique_id=1381401170]
-transform = Transform3D(6, 0, 0, 0, 1.5916973, -4.2426405, 0, 1.5916973, 4.2426405, -0.022032738, 0.17100573, 0)
-flip_h = true
-texture = ExtResource("7_t4vot")
-hframes = 3
 
 [node name="HPBar" parent="." index="18" unique_id=665391337]
 transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)

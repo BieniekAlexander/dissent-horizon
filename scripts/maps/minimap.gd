@@ -62,6 +62,19 @@ var _dot_offsets: Array[Vector2i] = []
 var _square_offsets: Array[Vector2i] = []
 ## True once _initialize_bounds() has resolved the Map node.
 var _ready_to_draw: bool = false
+## The player's RTSController (an ancestor of this node), resolved in
+## _initialize_bounds. Null in spectator, where there is no human controller —
+## right-click commands and drag-selection are then no-ops.
+var _controller: RTSController
+
+## Drag-selection state. While the left button is held over the minimap the player
+## is defining a world-space selection box; on release we convert the two minimap
+## pixels to world XZ and ask the controller to select the units inside.
+var _drag_selecting: bool = false
+var _drag_start_pixel: Vector2i = Vector2i.ZERO
+var _drag_current_pixel: Vector2i = Vector2i.ZERO
+## Outline colour of the on-minimap drag-selection rectangle.
+const DRAG_RECT_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
 #endregion
 
 #region Lifecycle
@@ -113,21 +126,46 @@ func _initialize_bounds() -> void:
 		_screen_half_v = half_st.y * Map.CELL_SIZE * _INV_SQRT2
 	_fog = get_tree().current_scene.find_child("Fog") as Fog
 	_camera = get_tree().current_scene.find_child("Camera") as RTSCamera3D
+	# The minimap lives inside the player's Controller CanvasLayer subtree; walk up
+	# to find it so right-clicks / drags can drive the controller's command +
+	# selection logic. Absent in spectator (no human controller).
+	var ancestor: Node = get_parent()
+	while ancestor != null and not (ancestor is RTSController):
+		ancestor = ancestor.get_parent()
+	_controller = ancestor as RTSController
 	_ready_to_draw = true
 
 func _gui_input(event: InputEvent) -> void:
 	if not _ready_to_draw or _camera == null:
 		return
-	if event is InputEventMouseButton \
-			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT \
-			and (event as InputEventMouseButton).pressed:
-		# Normalise the click position by the Control's actual rendered size so
-		# the mapping is correct even if layout ever changes the rect dimensions.
-		var uv: Vector2 = event.position / size
-		var world_xz: Vector2 = minimap_to_world(
-			Vector2i(int(uv.x * float(WIDTH)), int(uv.y * float(HEIGHT)))
-		)
-		_camera.center_on(world_xz)
+	if event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event as InputEventMouseButton
+		match mb.button_index:
+			MOUSE_BUTTON_MIDDLE:
+				# Middle click recentres the camera on the clicked world position
+				# (was the left-click behaviour before the remap).
+				if mb.pressed:
+					_camera.center_on(_pixel_to_world(mb.position))
+					accept_event()
+			MOUSE_BUTTON_RIGHT:
+				# Right click issues the controller's armed command at the clicked
+				# world position (move / attack-move / ability / ...).
+				if mb.pressed:
+					if _controller != null:
+						_controller.issue_command_at_world_position(_pixel_to_world(mb.position))
+					accept_event()
+			MOUSE_BUTTON_LEFT:
+				# Left click-drag defines a world-space selection box.
+				if mb.pressed:
+					_drag_selecting = true
+					_drag_start_pixel = _event_pixel(mb.position)
+					_drag_current_pixel = _drag_start_pixel
+				elif _drag_selecting:
+					_drag_selecting = false
+					_finish_drag_selection(_event_pixel(mb.position))
+				accept_event()
+	elif event is InputEventMouseMotion and _drag_selecting:
+		_drag_current_pixel = _event_pixel((event as InputEventMouseMotion).position)
 		accept_event()
 
 func _process(_delta: float) -> void:
@@ -180,6 +218,10 @@ func _process(_delta: float) -> void:
 		else:
 			_draw_pixels(minimap_pos, _dot_offsets, color)
 
+	# Pass 3: overlay the live drag-selection rectangle, if the player is dragging.
+	if _drag_selecting:
+		_draw_selection_rect()
+
 	(texture as ImageTexture).update(_image)
 #endregion
 
@@ -227,6 +269,41 @@ func world_to_minimap(world_xz: Vector2) -> Vector2i:
 #endregion
 
 #region Private helpers
+## The minimap pixel under a _gui_input event position. Normalised by the
+## Control's actual rendered size so the mapping holds even if layout resizes the
+## rect.
+func _event_pixel(pos: Vector2) -> Vector2i:
+	var uv: Vector2 = pos / size
+	return Vector2i(int(uv.x * float(WIDTH)), int(uv.y * float(HEIGHT)))
+
+## World XZ at the centre of the minimap pixel under a _gui_input event position.
+func _pixel_to_world(pos: Vector2) -> Vector2:
+	return minimap_to_world(_event_pixel(pos))
+
+## Convert the drag's two minimap pixels to a world-space XZ rectangle and hand it
+## to the controller to select the player units inside.
+func _finish_drag_selection(end_pixel: Vector2i) -> void:
+	if _controller == null:
+		return
+	var a: Vector2 = minimap_to_world(_drag_start_pixel)
+	var b: Vector2 = minimap_to_world(end_pixel)
+	var world_rect: Rect2 = Rect2(a, b - a).abs()
+	_controller.select_units_in_world_rect(world_rect, _controller.next_command_additive)
+
+## Draw the drag-selection rectangle outline (in minimap pixel space) so the
+## player sees the box they're dragging. Called from _process while dragging.
+func _draw_selection_rect() -> void:
+	var x0: int = clampi(mini(_drag_start_pixel.x, _drag_current_pixel.x), 0, WIDTH - 1)
+	var x1: int = clampi(maxi(_drag_start_pixel.x, _drag_current_pixel.x), 0, WIDTH - 1)
+	var y0: int = clampi(mini(_drag_start_pixel.y, _drag_current_pixel.y), 0, HEIGHT - 1)
+	var y1: int = clampi(maxi(_drag_start_pixel.y, _drag_current_pixel.y), 0, HEIGHT - 1)
+	for x: int in range(x0, x1 + 1):
+		_image.set_pixel(x, y0, DRAG_RECT_COLOR)
+		_image.set_pixel(x, y1, DRAG_RECT_COLOR)
+	for y: int in range(y0, y1 + 1):
+		_image.set_pixel(x0, y, DRAG_RECT_COLOR)
+		_image.set_pixel(x1, y, DRAG_RECT_COLOR)
+
 func _draw_pixels(center: Vector2i, offsets: Array[Vector2i], color: Color) -> void:
 	for offset: Vector2i in offsets:
 		var px: int = center.x + offset.x

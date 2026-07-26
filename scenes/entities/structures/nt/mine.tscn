@@ -9,7 +9,7 @@ size = Vector3(2, 10, 2)
 
 [node name="Structure" unique_id=1269877854 instance=ExtResource("1_e1l0p")]
 script = ExtResource("2_mine0")
-type = 513
+id = &"mine"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("BoxShape3D_wykrx")

@@ -16,7 +16,7 @@ hitscan = true
 trajectory = 1
 speed = 0.5
 tick_rate = 1
-type = 4608
+id = &"outpost"
 
 [node name="InFlightSprite" type="Sprite3D" parent="." unique_id=32108227]
 transform = Transform3D(0.4, 0, 0, 0, 0.2828427, 0.2828427, 0, -0.2828427, 0.2828427, 0, 0, 0)

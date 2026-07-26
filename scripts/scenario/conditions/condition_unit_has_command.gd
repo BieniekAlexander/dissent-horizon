@@ -16,7 +16,7 @@ enum Quantifier { ANY, ALL }
 ## Which commander's units to inspect.
 @export var commander_id: int = 1
 ## UNDEFINED matches units of any type.
-@export var unit_type: Entity.Type = Entity.Type.UNDEFINED
+@export var unit_type: StringName = &""
 ## The MoveCommand subclass name to look for (its class_name), e.g. "Attack".
 @export var command_name: String = "Attack"
 ## ANY: at least one matching unit holds the command. ALL: every matching unit does.
@@ -31,7 +31,7 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 	var units: Array = commander.get_children().filter(
 		func(n: Node) -> bool:
 			return n is Commandable and (n as Commandable).is_in_group("unit") \
-				and (unit_type == Entity.Type.UNDEFINED or (n as Commandable).type == unit_type)
+				and (unit_type == &"" or (n as Commandable).id == unit_type)
 	)
 	if units.is_empty():
 		return false

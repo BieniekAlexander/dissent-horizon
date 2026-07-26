@@ -39,7 +39,7 @@ const SNAPSHOT_FOG_TINT: Color = Color(0.45, 0.45, 0.55)
 ## One remembered enemy entity.
 class Entry:
 	var instance_id: int
-	var type: int                       # Entity.Type
+	var type: StringName                # piece id (see EntityIds)
 	var is_structure: bool
 	var last_known_location: Vector3
 	var last_seen_time: float           # seconds (Commander.seconds_elapsed) of last sighting
@@ -118,7 +118,7 @@ func _upsert(e: Commandable, now: float) -> void:
 	if entry == null:
 		entry = Entry.new()
 		entry.instance_id = id
-		entry.type = e.type
+		entry.type = e.id
 		entry.is_structure = e.has_node("Structure")
 		_entries[id] = entry
 	entry.entity = e

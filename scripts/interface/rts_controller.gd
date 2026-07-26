@@ -363,6 +363,36 @@ func set_selection(selection_start_position: Vector2, selection_end_position: Ve
 	if not selection.is_empty():
 		unit_selected.emit(selection[0] as Entity)
 
+## Select every player-owned unit whose world XZ falls inside `world_rect` (a
+## rectangle in the XZ plane, world units). Mirrors the box branch of
+## set_selection but tests each unit's world position directly instead of
+## projecting it to screen — this is what the minimap's drag-select uses, since a
+## minimap drag defines a region in world space, not on the viewport. `additive`
+## keeps the current selection (shift-drag) instead of replacing it.
+func select_units_in_world_rect(world_rect: Rect2, additive: bool) -> void:
+	if not additive:
+		deselect()
+	var boxed: Array = get_tree().get_nodes_in_group("selectables").filter(
+		func(s: Selectable) -> bool:
+			var e: Entity = s.get_entity()
+			return e != null and e.commander_id == PLAYER_COMMANDER_ID \
+				and world_rect.has_point(VU.inXZ(e.global_position))
+	)
+	# A box that catches any unit skips structures, so a drag over a mixed group
+	# selects only the mobile units (mirrors set_selection). Consider the current
+	# selection too, so an additive drag behaves the same.
+	var has_unit: bool = selection.any(func(e): return not e.has_node("Structure")) \
+		or boxed.any(func(s: Selectable): return not s.get_entity().has_node("Structure"))
+	for selectable: Selectable in boxed:
+		var entity: Entity = selectable.get_entity()
+		if has_unit and entity.has_node("Structure"):
+			continue
+		if not selection.has(entity) and selectable.select():
+			selection.append(entity)
+	_refresh_available_commands()
+	if not selection.is_empty():
+		unit_selected.emit(selection[0] as Entity)
+
 ## Whether `entity` belongs to the local player.
 func _is_player_owned(entity: Entity) -> bool:
 	return entity != null and entity.commander_id == PLAYER_COMMANDER_ID
@@ -396,7 +426,7 @@ func _handle_select_release() -> void:
 	var is_player_unit: bool = target != null and target.commander_id == PLAYER_COMMANDER_ID
 
 	if is_player_unit and _is_double_click(target):
-		_select_on_screen_units_of_type(target.type)
+		_select_on_screen_units_of_type(target.id)
 		_last_click_target = null  # reset so a third quick click starts fresh
 		return
 
@@ -415,13 +445,13 @@ func _is_double_click(target: Entity) -> bool:
 
 ## Replaces the selection (or adds, when additive) with every on-screen,
 ## player-owned commandable whose entity type matches `entity_type`.
-func _select_on_screen_units_of_type(entity_type: Entity.Type) -> void:
+func _select_on_screen_units_of_type(entity_type: StringName) -> void:
 	if !next_command_additive:
 		deselect()
 	var candidates: Array = get_tree().get_nodes_in_group("commandable").filter(
 		func(c: Variant) -> bool:
 			return c is Entity \
-				and (c as Entity).type == entity_type \
+				and (c as Entity).id == entity_type \
 				and (c as Entity).commander_id == PLAYER_COMMANDER_ID
 	)
 	_select_units(commandables_on_screen(candidates))
@@ -763,7 +793,7 @@ static func _resolve_command_class(
 		and target_cmd.commander_id == a_actor.commander_id
 		and not target_cmd.is_built
 		and a_actor.has_node("Builds")
-		and (a_actor.get_node("Builds") as Builds).can_build(target.type)
+		and (a_actor.get_node("Builds") as Builds).can_build(target.id)
 	):
 		return Repair
 
@@ -845,6 +875,19 @@ func assign_command_to_units(
 
 	command_issued.emit(capable[0] as Entity, a_command_type)
 
+	# Any multi-unit command caps every mobile unit's Movement.speed_cap to the
+	# slowest one's speed, so a mixed-speed group doesn't stretch out over the trip.
+	# Reset when each unit's command is destroyed — completed, cancelled, or replaced
+	# (see MoveCommand._notification / CommandReceiver._process_commands).
+	var apply_speed_cap: bool = capable.size() > 1
+	var slowest: float = 0.0
+	if apply_speed_cap:
+		var movers: Array = capable.filter(func(c: Commandable) -> bool: return c.movement != null)
+		apply_speed_cap = not movers.is_empty()
+		if apply_speed_cap:
+			slowest = movers.map(func(c: Commandable) -> float: return c.movement.speed).min()
+			a_command_message.match_group_speed = true
+
 	# Per-unit destination assignment: map each unit to its own spread-out point
 	# so a group move fans the selection out around the click instead of stacking
 	# everyone on a single position.
@@ -864,40 +907,65 @@ func assign_command_to_units(
 			capable.size()
 		)
 
-		# Centroid of the current unit positions; used to translate destinations
-		# back into the selection's frame so the assignment preserves formation.
+		# Centroid of the current unit positions; used to sort units into the same
+		# rotational frame as the destinations so the assignment preserves formation.
 		var selection_centroid := Vector2.ZERO
 		for c: Commandable in capable:
 			selection_centroid += VU.inXZ((c as Entity).global_position)
 		selection_centroid /= float(capable.size())
 
-		# Greedily assign each destination to the nearest not-yet-assigned unit,
-		# comparing against the destination shifted into the selection's frame.
-		var unassigned: Array = capable.duplicate()
-		for destination: Vector2 in destinations:
-			if unassigned.is_empty():
-				break
-			var formation_anchor: Vector2 = destination - destination_centroid + selection_centroid
-			var best_index := 0
-			var best_dist := INF
-			for i: int in unassigned.size():
-				var unit_xz := VU.inXZ((unassigned[i] as Entity).global_position)
-				var dist: float = unit_xz.distance_squared_to(formation_anchor)
-				if dist < best_dist:
-					best_dist = dist
-					best_index = i
-			destination_to_unit[destination] = unassigned[best_index]
-			unassigned.remove_at(best_index)
+		# Sort destinations by angle around the click point, and units by angle
+		# around the group's own centroid, then zip the two sorted sequences
+		# together. Two sequences swept in the same rotational order can't cross,
+		# so this guarantees non-crossing, formation-preserving paths by
+		# construction — replacing the old O(N^2) greedy nearest-free-destination
+		# search, which assigned in whatever order the BFS scatter happened to
+		# return them and produced crossing paths.
+		destinations.sort_custom(
+			func(a: Vector2, b: Vector2) -> bool:
+				return atan2(a.x - destination_centroid.x, a.y - destination_centroid.y) \
+						< atan2(b.x - destination_centroid.x, b.y - destination_centroid.y)
+		)
+		var sorted_capable: Array = capable.duplicate()
+		sorted_capable.sort_custom(
+			func(a: Commandable, b: Commandable) -> bool:
+				var a_xz: Vector2 = VU.inXZ((a as Entity).global_position)
+				var b_xz: Vector2 = VU.inXZ((b as Entity).global_position)
+				return atan2(a_xz.x - selection_centroid.x, a_xz.y - selection_centroid.y) \
+						< atan2(b_xz.x - selection_centroid.x, b_xz.y - selection_centroid.y)
+		)
+		# If scatter found fewer points than units, only the first
+		# min(destinations, units) get one; the rest fall back to the raw click
+		# point via the unit_to_destination.has(c) check below.
+		for i: int in mini(destinations.size(), sorted_capable.size()):
+			destination_to_unit[destinations[i]] = sorted_capable[i]
 
 	var unit_to_destination: Dictionary = {}
 	for destination: Vector2 in destination_to_unit:
 		unit_to_destination[destination_to_unit[destination]] = destination
 
+	# For a Defend order, build ONE region collider — a hard copy of the group's widest
+	# aggro shape, pinned at the target centre — that every defender scans against. A copy
+	# (not a borrowed live unit shape) is required now that aggro is centred on the shape's
+	# own position: a borrowed shape would drag the defended region around with its owner.
+	# Its lifetime is leased to the issued Defend messages and it frees when the last one is
+	# released (see _lease_region_shape).
+	var defend_shape: CollisionShape3D = null
 	if a_command_type == Defend:
-		a_command_message.aggro_shape = _largest_aggro_shape(capable)
+		var center: Vector3 = a_command_message.world_position
+		center.y = map.terrain_height_at(a_command_message.xz_position)
+		defend_shape = _make_defend_region_shape(_largest_aggro_shape(capable), center)
+		a_command_message.aggro_shape = defend_shape
 
+	var defend_messages: Array[CommandMessage] = []
 	for c: Commandable in capable:
+		if apply_speed_cap and c.movement != null:
+			c.movement.speed_cap = slowest
 		var snapshot := CommandMessage.deep_copy(a_command_message)
+		# Tag every per-unit snapshot with the shared, un-copied message this
+		# batch was issued from, so MoveCommand's periodic swap check can find
+		# sibling units by comparing origin identity (see CommandMessage.origin).
+		snapshot.origin = a_command_message
 		if a_command_type == Attack:
 			snapshot.persist = true
 		if unit_to_destination.has(c):
@@ -910,12 +978,64 @@ func assign_command_to_units(
 				if a_command_type == Patrol \
 				else a_command_type.new(snapshot)
 		c.update_commands(new_cmd, add_to_queue)
+		if defend_shape != null:
+			defend_messages.append(snapshot)
+
+	if defend_shape != null:
+		_lease_region_shape(defend_shape, defend_messages)
 
 	if not add_to_queue:
 		_reset_pending_state()
 		command_message.clear()
 
 	return true
+
+## Issue the player's currently-armed right-click action at a world XZ position,
+## as if they had right-clicked that point in the 3D world — but resolving a
+## POSITION only, never an entity target. This is the minimap's right-click entry
+## point: the minimap knows where on the map was clicked, not which unit sits
+## there, so target is left null.
+##
+## Because target is null, _resolve_command_class only ever yields position-based
+## commands (Move, AttackMove, Ability, ...); the target-requiring branches
+## (Interact, Occupy, Repair, Attack-on-unit) all fall through to null or resolve
+## to something that fails requires_position(). Either way we bail without
+## touching the armed context, so a right-click over the minimap while an
+## interact-style command is armed is simply ignored — exactly as specified.
+func issue_command_at_world_position(world_xz: Vector2) -> void:
+	if map == null:
+		return
+	# An armed ordnance targets a position — fire it at the clicked point, matching
+	# the "move" right-click handler in _unhandled_input.
+	if _pending_ordnance != null:
+		command_message.world_position = _world_point(world_xz)
+		_activate_pending_ordnance()
+		return
+
+	# Only the player's own units take commands; an enemy/neutral info-selection
+	# (or an empty selection) ignores the click.
+	if not _selection_owned_by_player():
+		return
+
+	var msg: CommandMessage = CommandMessage.new(map)
+	msg.world_position = _world_point(world_xz)
+	msg.tool = command_message.tool
+	msg.ability_type = command_message.ability_type
+
+	var command: Variant = _resolve_command_class(pending_command_name, selection[0], msg)
+	# Drop anything that isn't a pure position command: null (nothing resolved),
+	# or a command that needs a specific entity target (requires_position() == false,
+	# e.g. Stop/Occupy/Interact). The armed context is preserved untouched.
+	if command == null or not command.requires_position():
+		return
+	assign_command_to_units(command, msg, next_command_additive)
+
+## World point at `world_xz`, lifted onto the terrain so waypoint indicators and
+## any Y-sensitive consumers sit at the ground height rather than Y=0.
+func _world_point(world_xz: Vector2) -> Vector3:
+	var p: Vector3 = VU.fromXZ(world_xz)
+	p.y = map.terrain_height_at(world_xz)
+	return p
 
 ## After a command fires (or fails preconditions), drop the controller out of
 ## any armed sub-mode and refresh the available-commands snapshot. Mirrors
@@ -1181,6 +1301,37 @@ static func _aggro_shape_radius(shape: CollisionShape3D) -> float:
 	if s is CapsuleShape3D:
 		return (s as CapsuleShape3D).radius
 	return 0.0
+
+## Builds a standalone defended-region collider from `template` (the widest group aggro
+## shape), pinned at `center`. The geometry is hard-copied so it's independent of the unit
+## it came from, and it's added to the tree before positioning because an out-of-tree
+## Node3D reports an identity global_transform. Returns null when there's no usable shape.
+func _make_defend_region_shape(template: CollisionShape3D, center: Vector3) -> CollisionShape3D:
+	if template == null or template.shape == null or map == null:
+		return null
+	var region: CollisionShape3D = CollisionShape3D.new()
+	region.shape = template.shape.duplicate()
+	map.add_child(region)
+	region.global_transform = Transform3D(Basis.IDENTITY, center)
+	return region
+
+## Ties the region collider's lifetime to the Defend messages that reference it: once every
+## one has been released (its owning command replaced, the unit reassigned or destroyed),
+## nothing is defending the region, so the collider frees. Uses the same per-message
+## `unreferenced` signal the waypoint indicators ride. `remaining` is a one-element array so
+## the closures share one mutable counter (Arrays are reference types in GDScript).
+static func _lease_region_shape(region: CollisionShape3D, messages: Array[CommandMessage]) -> void:
+	if messages.is_empty():
+		if is_instance_valid(region):
+			region.queue_free()
+		return
+	var remaining: Array[int] = [messages.size()]
+	for m: CommandMessage in messages:
+		m.unreferenced.connect(func() -> void:
+			remaining[0] -= 1
+			if remaining[0] <= 0 and is_instance_valid(region):
+				region.queue_free()
+		, CONNECT_ONE_SHOT)
 #endregion
 
 #region Commander ordnances

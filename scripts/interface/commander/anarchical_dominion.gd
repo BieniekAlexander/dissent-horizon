@@ -11,7 +11,7 @@ var frame: int = 0
 
 func _proc() -> void:
 	var warlords: Array = commander.get_children().filter(
-		func(n): return n is Commandable and n.type==Entity.Type.AN_UNIT_WARLORD
+		func(n): return n is Commandable and n.id==EntityIds.WARLORD
 	)
 	
 	var procs: Array = []
@@ -24,7 +24,7 @@ func _proc() -> void:
 			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION
 		)
 		results = results.filter(
-			func(e: Entity) -> bool: return e.type!=Entity.Type.AN_UNIT_WARLORD and e.defense.frame_type==Defense.FrameType.BIOLOGICAL
+			func(e: Entity) -> bool: return e.id!=EntityIds.WARLORD and e.defense.frame_type==Defense.FrameType.BIOLOGICAL
 		)
 		
 		for irregular: Commandable in results:

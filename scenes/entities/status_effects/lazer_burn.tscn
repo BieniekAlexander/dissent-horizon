@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://cf688bar1du8t"]
+
+[ext_resource type="Script" uid="uid://wkvrnrs4ionh" path="res://scripts/entities/effects/damage_over_time_status_effect.gd" id="1_dot"]
+
+[node name="LazerBurn" type="Node"]
+script = ExtResource("1_dot")
+damage_per_tick = 20.0
+duration_ticks = 100
+metadata/_custom_type_script = "uid://wkvrnrs4ionh"

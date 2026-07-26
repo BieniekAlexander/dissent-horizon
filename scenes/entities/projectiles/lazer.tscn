@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_lzr00"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_lzr01"]
 [ext_resource type="Script" uid="uid://drins2oa5nvwm" path="res://scripts/entities/effects/effect_applicator.gd" id="3_ekp1j"]
-[ext_resource type="Script" uid="uid://wkvrnrs4ionh" path="res://scripts/entities/effects/damage_over_time_status_effect.gd" id="4_03i8l"]
+[ext_resource type="PackedScene" uid="uid://cf688bar1du8t" path="res://scenes/entities/status_effects/lazer_burn.tscn" id="4_burn"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lzr"]
 shading_mode = 0
@@ -38,8 +38,4 @@ metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 script = ExtResource("3_ekp1j")
 metadata/_custom_type_script = "uid://drins2oa5nvwm"
 
-[node name="DamageOverTimeStatusEffect" type="Node" parent="EffectApplicator" unique_id=383966440]
-script = ExtResource("4_03i8l")
-damage_per_tick = 20.0
-duration_ticks = 100
-metadata/_custom_type_script = "uid://wkvrnrs4ionh"
+[node name="LazerBurn" parent="EffectApplicator" instance=ExtResource("4_burn")]

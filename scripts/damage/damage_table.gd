@@ -3,7 +3,7 @@ extends Node
 var _armour_table: Dictionary = {}    # {Damage.Type -> {Defense.ArmourType -> float}}
 var _frame_table: Dictionary = {}     # {Damage.Type -> {Defense.FrameType -> float}}
 var _attribute_table: Dictionary = {} # {Damage.Type -> {EntityAttribute.Type -> float}}
-## {attacker Entity.Type -> {target Entity.Type -> effectiveness multiplier}}.
+## {attacker piece id -> {target piece id -> effectiveness multiplier}}.
 ## Hand-authored per-matchup overrides ("computed + overrides"): a value here WINS
 ## over the computed damage-table multiplier, for effectiveness the armour/attribute
 ## tables can't express (AOE, kiting, …) — e.g. Kamikaze ≫ Irregular from its splash.
@@ -42,7 +42,7 @@ func calculate_damage(base: float, damage_type: Damage.Type, target: Node) -> fl
 ## Hand-set effectiveness multiplier for [attacker_type] vs [target_type], or null
 ## when no override is authored (callers then use the computed damage-table value).
 ## This is the "computed + overrides" hook the bot consults — the override wins.
-func matchup_override(attacker_type: int, target_type: int) -> Variant:
+func matchup_override(attacker_type: StringName, target_type: StringName) -> Variant:
 	return _matchup_table.get(attacker_type, {}).get(target_type)
 
 func _load_armour_table() -> void:
@@ -147,30 +147,38 @@ func _load_attribute_table() -> void:
 
 	file.close()
 
-## Optional per-matchup override table: rows = attacker Entity.Type names, columns =
-## target Entity.Type names, cells = effectiveness multiplier (blank = no override).
-## Absent file is fine — it just means no overrides.
+## Optional per-matchup override table: rows = attacker piece ids, columns =
+## target piece ids (snake_case, matching the gdd spec docs / EntityIds), cells =
+## effectiveness multiplier (blank = no override). Absent file is fine — it just
+## means no overrides. Old-style enum names (UPPERCASE) are flagged so a stale
+## table doesn't silently stop matching.
 func _load_matchup_table() -> void:
 	var file: FileAccess = FileAccess.open("res://resources/damage/matchup_overrides.tsv", FileAccess.READ)
 	if file == null:
 		return
 
 	var header: PackedStringArray = file.get_csv_line("\t")
-	var type_keys: Array = Entity.Type.keys()
-	var col_map: Dictionary = {} # col_index -> target Entity.Type int
+	var col_map: Dictionary = {} # col_index -> target piece id StringName
 	for i: int in range(1, header.size()):
 		var col_name: String = header[i].strip_edges()
-		if col_name in type_keys:
-			col_map[i] = Entity.Type[col_name]
+		if col_name.is_empty():
+			continue
+		if col_name != col_name.to_lower():
+			push_warning("matchup_overrides.tsv: column '%s' is not a snake_case piece id — ignored" % col_name)
+			continue
+		col_map[i] = StringName(col_name)
 
 	while not file.eof_reached():
 		var row: PackedStringArray = file.get_csv_line("\t")
 		if row.size() < 2:
 			continue
 		var row_name: String = row[0].strip_edges()
-		if not (row_name in type_keys):
+		if row_name.is_empty():
 			continue
-		var attacker_type: int = Entity.Type[row_name]
+		if row_name != row_name.to_lower():
+			push_warning("matchup_overrides.tsv: row '%s' is not a snake_case piece id — ignored" % row_name)
+			continue
+		var attacker_id: StringName = StringName(row_name)
 		var override_row: Dictionary = {}
 		for col_idx: int in col_map:
 			if col_idx < row.size():
@@ -178,6 +186,6 @@ func _load_matchup_table() -> void:
 				if not cell.is_empty():
 					override_row[col_map[col_idx]] = float(cell)
 		if not override_row.is_empty():
-			_matchup_table[attacker_type] = override_row
+			_matchup_table[attacker_id] = override_row
 
 	file.close()

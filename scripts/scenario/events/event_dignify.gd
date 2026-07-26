@@ -7,7 +7,7 @@ class_name EventDignify extends EventTargetUnit
 const _WARLORD_SCENE: PackedScene = preload("res://scenes/entities/units/an/warlord.tscn")
 
 func _required_type() -> Variant:
-	return Entity.Type.AN_UNIT_IRREGULAR
+	return EntityIds.IRREGULAR
 
 func execute(manager: ScenarioTriggerManager) -> void:
 	var commander: Commander = manager.get_commander(commander_id)

@@ -38,24 +38,24 @@ const UTILITY_UNIT_CAP: int = 3
 func tick() -> void:
 	var demand: Dictionary = _bot.enemy_demand_map()
 	for s: Commandable in _bot.get_idle_production_structures():
-		var type: Entity.Type = _best_unit_for(s, demand)
+		var type: StringName = _best_unit_for(s, demand)
 		# A structure that can't train any combat unit (e.g. the Settlement, which only
 		# makes the weaponless Stock Truck) instead fields a capped number of utility
 		# units — builders/capturers that earn their keep outside the army.
-		if type == Entity.Type.UNDEFINED:
+		if type == &"":
 			type = _best_utility_unit_for(s)
 		# Train the wanted unit only when we can afford it; otherwise wait and bank
 		# ore for it instead of falling back to something cheaper and less useful.
-		if type != Entity.Type.UNDEFINED and _bot.can_afford(type):
+		if type != &"" and _bot.can_afford(type):
 			_act.train(s, type)
 
 
 ## Cheapest affordable producible utility unit at [structure] that we're still below
 ## the cap on, or UNDEFINED. Used only when no combat unit is producible there.
-func _best_utility_unit_for(structure: Commandable) -> Entity.Type:
-	var best: Entity.Type = Entity.Type.UNDEFINED
+func _best_utility_unit_for(structure: Commandable) -> StringName:
+	var best: StringName = &""
 	var best_cost: int = 1 << 30
-	for t: Entity.Type in structure.production.producible_types:
+	for t: StringName in structure.production.producible_types:
 		if not _bot.unit_is_utility(t):
 			continue
 		if _bot.get_units_of_type(t).size() >= UTILITY_UNIT_CAP:
@@ -72,12 +72,12 @@ func _best_utility_unit_for(structure: Commandable) -> Entity.Type:
 ## The producible unit at [structure] that best counters the believed enemy. With no
 ## intel yet (empty demand), falls back to the cheapest affordable unit so the
 ## building still fields an opening army.
-func _best_unit_for(structure: Commandable, demand: Dictionary) -> Entity.Type:
+func _best_unit_for(structure: Commandable, demand: Dictionary) -> StringName:
 	if demand.is_empty():
 		return _cheapest_affordable_unit(structure)
-	var best: Entity.Type = Entity.Type.UNDEFINED
+	var best: StringName = &""
 	var best_score: float = -1.0
-	for t: Entity.Type in structure.production.producible_types:
+	for t: StringName in structure.production.producible_types:
 		# Only train combat units — a weaponless unit (e.g. the Stock Truck) adds
 		# nothing to the army, so a structure that can ONLY make such units waits
 		# rather than spamming them. Builders are fielded via the economy, not here.
@@ -90,10 +90,10 @@ func _best_unit_for(structure: Commandable, demand: Dictionary) -> Entity.Type:
 	return best
 
 
-func _cheapest_affordable_unit(structure: Commandable) -> Entity.Type:
-	var best: Entity.Type = Entity.Type.UNDEFINED
+func _cheapest_affordable_unit(structure: Commandable) -> StringName:
+	var best: StringName = &""
 	var best_cost: int = 1 << 30
-	for t: Entity.Type in structure.production.producible_types:
+	for t: StringName in structure.production.producible_types:
 		# Same combat-only gate as _best_unit_for: never mass a non-combat unit as
 		# the "opening army" filler.
 		if not _bot.unit_can_attack(t):

@@ -117,6 +117,13 @@ func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: b
 
 #region Command processing
 func _process_commands() -> void:
+	# Stamp the actor here (rather than relying on MoveCommand.get_updated_state to
+	# capture it) so it's set uniformly across every command subclass — most override
+	# get_updated_state without calling super, so a base-class capture would miss them.
+	# _notification(PREDELETE) reads this to reset a group-move Movement.speed_cap
+	# (see RTSController.assign_command_to_units) regardless of command type.
+	if _command != null:
+		_command._actor = owner
 	var new_commands: Variant = _command.get_updated_state(owner) if _command != null else null
 
 	if is_same(new_commands, null):
@@ -149,6 +156,16 @@ func _process_commands() -> void:
 	elif !is_same(new_commands, _command) and !is_same(new_commands, null):
 		update_commands(new_commands, true, true)
 	elif _command.can_act(owner):
+		# In range and ready — but if a hit has staggered the actor and this command's
+		# action opts into stagger (Build, Repair, LIBERATE/PLANT interactions), suppress
+		# the action and hold position until the stagger wears off. Movement itself is
+		# never stagger-blocked, so a staggered actor still reaches this point normally.
+		if owner.is_staggered() and _command.blocked_by_stagger(owner):
+			if owner.movement != null:
+				owner.movement.is_final_leg = false
+				owner.movement.set_velocity(Vector3.ZERO)
+			return
+
 		new_commands = _command.fulfill_action(owner)
 
 		if owner.movement != null:
@@ -206,7 +223,7 @@ func _process_commands() -> void:
 			# Keep velocity XZ-only so the RVO avoidance system receives a clean
 			# 2D input.  Vertical terrain tracking is handled per-tick in
 			# Commandable._physics_process via Map.terrain_height_at().
-			var prelim_velocity: Vector3 = owner.global_position.direction_to(next_path_position) * owner.movement.speed
+			var prelim_velocity: Vector3 = owner.global_position.direction_to(next_path_position) * owner.movement._effective_max_speed()
 			prelim_velocity.y = 0.0
 			# Brake only on the final queued destination, only for non-attack commands,
 			# and only for non-FLYING units. Flying units approach at full speed and
@@ -230,7 +247,7 @@ func _process_commands() -> void:
 						and not (_command is Attack) \
 						and owner.movement.mode != Movement.Mode.FLYING
 				var next_pos: Vector3 = owner.movement.get_next_path_position()
-				var pv: Vector3 = owner.global_position.direction_to(next_pos) * owner.movement.speed
+				var pv: Vector3 = owner.global_position.direction_to(next_pos) * owner.movement._effective_max_speed()
 				pv.y = 0.0
 				owner.movement.set_velocity(pv)
 			else:

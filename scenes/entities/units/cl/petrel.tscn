@@ -1,0 +1,66 @@
+[gd_scene format=3 uid="uid://cfvaa2n76377u"]
+
+[ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/entities/units/unit.tscn" id="1_crjtw"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="2_ir476"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="3_6qc42"]
+[ext_resource type="PackedScene" uid="uid://cwd673adqbgqs" path="res://scenes/entities/projectiles/cl/carronade_shell.tscn" id="4_4miwg"]
+[ext_resource type="PackedScene" uid="uid://dj4f8q8vrycvg" path="res://assets/meshes/entities/colonial/petrel.blend" id="5_crjtw"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_scm32"]
+radius = 0.75
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_crjtw"]
+height = 100.0
+radius = 15.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_h6ab8"]
+height = 100.0
+radius = 7.5
+
+[node name="Carronade" unique_id=716209437 instance=ExtResource("1_crjtw")]
+id = &"petrel"
+
+[node name="NavigationAgent" parent="." index="1" unique_id=1153039146]
+radius = 0.75
+
+[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+shape = SubResource("CylinderShape3D_scm32")
+
+[node name="VisionRange" parent="." index="5" unique_id=1124867207]
+shape = SubResource("CylinderShape3D_crjtw")
+
+[node name="Movement" parent="." index="7" unique_id=413735738]
+crush_class = 2
+mode = 16
+max_acceleration = 3.0
+max_deceleration = -4.0
+speed = 4.0
+turn_rate = 200.0
+min_turn_speed_ratio = 1.0
+reverse_speed_ratio = 1.0
+
+[node name="Defense" parent="." index="8" unique_id=637704181]
+frame_type = 1
+hp_max = 200.0
+
+[node name="Loadout" type="Node3D" parent="." index="10" unique_id=1657665789]
+script = ExtResource("2_ir476")
+
+[node name="BallisticWeapon" type="Node3D" parent="Loadout" index="0" unique_id=916909210]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.37408447, 1.0335083)
+script = ExtResource("3_6qc42")
+split_time = 3
+reload_time = 3
+projectile_scene = ExtResource("4_4miwg")
+melee_damage = 0.0
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" index="0" unique_id=311194734 groups=["debug_shape_attack_range"]]
+visible = false
+shape = SubResource("CylinderShape3D_h6ab8")
+disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
+
+[node name="HPBar" parent="." index="14" unique_id=665391337]
+transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)
+
+[node name="petrel" parent="MeshVisual" parent_id_path=PackedInt32Array(1116984397) index="0" unique_id=1657290300 instance=ExtResource("5_crjtw")]

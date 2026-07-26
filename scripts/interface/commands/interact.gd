@@ -95,6 +95,13 @@ func _perform_event(a_actor: Commandable, interaction: Interaction) -> void:
 #endregion
 
 #region State updates
+## Some interactions are channeled/vulnerable (LIBERATE, PLANT) and pause while the actor
+## is staggered; others (ABDUCT, ...) are not. Defer to the resolved interaction's own
+## rule — see Interaction.blocks_while_staggered.
+func blocked_by_stagger(a_actor: Commandable) -> bool:
+	var interaction := _interaction_for(a_actor)
+	return interaction != null and interaction.blocks_while_staggered()
+
 ## Drop the command if the target vanished, the interaction no longer applies,
 ## or the target's Shelter went unavailable.
 func get_updated_state(a_actor: Commandable) -> Variant:

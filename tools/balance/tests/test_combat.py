@@ -8,50 +8,45 @@ from dh_balance.combat import (
     is_favorable,
     time_to_kill,
 )
-from dh_balance.loader import load_world
-
-
-def world():
-    return load_world()
 
 
 def get(w, uid):
     return w.get(uid)
 
 
-def test_shots_per_second_single_clip():
-    w = world()
+def test_shots_per_second_single_clip(world):
+    w = world
     cannon = get(w, "iron_regime:heavy_tank").weapons[0]
     # split_time=45 ticks, clip_size=1, 30 ticks/sec -> 30/45 shots/sec
     assert cannon.shots_per_second() == pytest.approx(30.0 / 45.0)
 
 
-def test_lead_is_terrible_vs_heavy():
-    w = world()
+def test_lead_is_terrible_vs_heavy(world):
+    w = world
     conscript = get(w, "iron_regime:conscript")   # LEAD rifle
     tank = get(w, "iron_regime:heavy_tank")        # HEAVY
     # LEAD vs HEAVY multiplier is 0.1 -> very low dps
     assert dps(w.damage, conscript, tank) < dps(w.damage, conscript, get(w, "sky_nomads:raider"))
 
 
-def test_ground_weapon_cannot_hit_air_is_infinite_ttk():
-    w = world()
+def test_ground_weapon_cannot_hit_air_is_infinite_ttk(world):
+    w = world
     tank = get(w, "iron_regime:heavy_tank")   # cannon hits ground only
     gunship = get(w, "sky_nomads:gunship")     # air
     assert math.isinf(time_to_kill(w.damage, tank, gunship))
     assert math.isinf(exchange_cost(w.damage, tank, gunship))
 
 
-def test_gunship_is_unanswered_by_regime():
-    w = world()
+def test_gunship_is_unanswered_by_regime(world):
+    w = world
     gunship = get(w, "sky_nomads:gunship")
     # No iron_regime unit can hit air -> none favorable.
     regime_units = [u for u in w.factions["iron_regime"].units() if u.is_combatant]
     assert all(not is_favorable(w.damage, r, gunship) for r in regime_units)
 
 
-def test_exchange_cost_symmetry_direction():
-    w = world()
+def test_exchange_cost_symmetry_direction(world):
+    w = world
     # A heavy tank should be a more cost-efficient answer to a raider than the
     # reverse (raiders chip a heavy tank very slowly with LEAD).
     tank = get(w, "iron_regime:heavy_tank")

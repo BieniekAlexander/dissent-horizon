@@ -2,60 +2,23 @@ class_name Entity
 extends CharacterBody3D
 
 #region Identity
-# I need to enumerate because I can't peek into packed scenes
-@export var type: Type
+## The game-piece identifier: the snake_case id of this entity's spec doc in
+## gdd/ (see tools/spec_import). Generated constants live in EntityIds — use
+## `EntityIds.WARLORD`, not a raw &"warlord", in hand-written code. Empty on
+## abstract inheritance-base scenes (unit.tscn etc.), which are never used in
+## game; is_abstract() gates validation and export tooling on that.
+@export var id: StringName = &""
 
 ## Inspector shortcut: set the in-game commander index for this entity.
 ## Entities placed in the editor use this to auto-initialize at run time;
 ## entities spawned by the scenario ignore it (initialize() is called explicitly).
 @export_range(0, 5) var default_commander_id: int = 0
 
-## Enumerated identifiers for things in the game, used to uniquely identify things that would be unwieldy to
-## track with respect to scenes, e.g. "which structures does the player currently have built, for tech checks?"
-## 3 - Faction {0: neutral, 1: tech, 2: anarch, 3: col}
-## 2 - Type {0: entity, 1: unit, 2: structure}
-## 1 - Index
-## 0 - Index
-enum Type {
-	## SENTINEL VALUES
-	ABSTRACT=-2, # NOTE: ignored in scene validation checks, as these structures are used for godot inheritence, not meant to be used in game
-	UNDEFINED=-1,
-	## NT (NEUTRAL)
-	NT_UTILITY_RECON=0x0004, # invisible commander-owned vision source (Radar Scan ordnance)
-	NT_STRUCTURE_BUILDING=0x0200,
-	NT_STRUCTURE_MINE=0x0201, # TODO reassign ID as neutral, maybe? Will all factions have the same mine?
-	NT_STRUCTURE_SHELTER=0x0202,
-	NT_STRUCTURE_DEPOSIT=0x0203,
-	## TC (TECHNOCRATIC)
-	TC_STRUCTURE_OUTPOST=0x1200,
-	TC_STRUCTURE_DWELLING=0x1201,
-	TC_STRUCTURE_LAB=0x1203,
-	TC_STRUCTURE_COMPOUND=0x1204,
-	TC_STRUCTURE_ARMORY=0x1205,
-	TC_UNIT_TECHNICIAN=0x1100,
-	TC_UNIT_VANGUARD=0x1102,
-	## AN (ANARCHICAL)
-	AN_STRUCTURE_STRONGHOLD=0x2200,
-	AN_STRUCTURE_FIELD_HOSPITAL=0x2201,
-	AN_STRUCTURE_SAFEHOUSE=0x2202,
-	AN_STRUCTURE_HANGAR=0x2208,
-	AN_UNIT_IRREGULAR=0x2101,
-	AN_UNIT_COLLECTIVE=0x2102,
-	AN_UNIT_WARLORD=0x2103,
-	AN_UNIT_KAMIKAZE=0x2104,
-	AN_UNIT_MERCURY=0x2105,
-	AN_UNIT_SAPPER=0x2106,
-	## CL (COLONIAL)
-	CL_UNIT_SUPPLY_TRUCK=0x3100,
-	CL_UNIT_RECRUIT=0x3101,
-	CL_UNIT_BADGER=0x3102,
-	CL_STRUCTURE_SETTLEMENT=0x3200,
-	CL_STRUCTURE_POWER_PLANT=0x3201,
-	CL_STRUCTURE_BARRACKS=0x3202,
-	CL_STRUCTURE_INTERNMENT_CAMP=0x3203,
-	CL_STRUCTURE_SAM=0x3208,
-	CL_STRUCTURE_CANNON=0x3209,
-}
+
+## Inheritance-base scenes (unit.tscn / abstract_structure.tscn) leave `id`
+## empty; they exist for scene inheritance, not gameplay.
+func is_abstract() -> bool:
+	return id.is_empty()
 
 const TEAM_COLOR_MAP: Dictionary = {
 	0: Color.WHITE,
@@ -177,7 +140,6 @@ func is_enemy_of(other: Entity) -> bool:
 #endregion
 
 #region Properties
-enum LocomotionMode { GROUNDED, FLYING }
 enum Attribute { MECH, BIO, UNMANNED }
 
 @export var attributes_list: Array[Attribute] = []
@@ -403,8 +365,10 @@ func _ready() -> void:
 	_validate()
 
 func _validate() -> void:
-	if type == Entity.Type.UNDEFINED:
-		push_error("Entity '%s' has an UNDEFINED type (scene: %s) — set its `type` in the scene." % [
+	# Abstract base scenes never enter the tree themselves, so an in-tree
+	# unit/structure with an empty id is a piece missing its spec-doc identity.
+	if id.is_empty() and (is_in_group("unit") or is_in_group("structure")):
+		push_warning("Entity '%s' has an empty id (scene: %s) — set it from the piece's gdd doc." % [
 			name, scene_file_path if scene_file_path != "" else "<not from a scene file>"
 		])
 

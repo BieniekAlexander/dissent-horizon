@@ -143,7 +143,7 @@ func _should_preserve(unit: Commandable) -> bool:
 		PlayerSlot.Difficulty.PASSIVE, PlayerSlot.Difficulty.EASY:
 			return false
 		PlayerSlot.Difficulty.MEDIUM:
-			var spec: TechnologySpec = bot.technology_mapping.get(unit.type)
+			var spec: TechnologySpec = bot.technology_mapping.get(unit.id)
 			return spec != null and spec.ore_cost >= 250
 		_:  # HARD, IMPOSSIBLE
 			return true
@@ -185,7 +185,7 @@ func _no_effective_targets_in_aggro(unit: Commandable) -> bool:
 	if nearby.is_empty():
 		return false
 	for enemy: Commandable in nearby:
-		if bot.unit_effectiveness_vs(unit.type, enemy) > 0.0:
+		if bot.unit_effectiveness_vs(unit.id, enemy) > 0.0:
 			return false
 	return true
 

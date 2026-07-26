@@ -137,6 +137,7 @@ class Buildable:
     name: str
     cost: Cost
     requires: list[str] = field(default_factory=list)
+    builds: list[str] = field(default_factory=list)   # structure ids this unit can construct
 
     # unit-only combat fields (None/empty for non-combat structures)
     armour: Armour | None = None
@@ -172,6 +173,7 @@ class Faction:
     description: str
     buildables: dict[str, Buildable]            # id -> Buildable
     overrides: list[dict] = field(default_factory=list)
+    starts_with: list[str] = field(default_factory=list)   # buildable ids owned/available at scenario start
 
     def units(self) -> list[Buildable]:
         return [b for b in self.buildables.values() if b.is_unit]

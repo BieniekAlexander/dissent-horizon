@@ -9,6 +9,19 @@ var world_position: Vector3	# The raw position at which the command is requested
 var ability_type: Variant	# For Ability commands: which Ability.Type to invoke (null otherwise)
 var aggro_shape: CollisionShape3D	# Largest aggro shape in the issuing group (Defend); null → each unit uses its own
 
+## The shared, un-copied message a multi-unit command batch was issued from (see
+## RTSController.assign_command_to_units), or null. Every per-unit snapshot from
+## the same batch points at the same `origin` object, so `is_same(a.origin, b.origin)`
+## identifies sibling units sharing one command — used by MoveCommand's periodic
+## destination-swap check to find swap candidates.
+var origin: CommandMessage = null
+
+## True when this command was issued as a multi-unit group move that capped every
+## capable unit's Movement.speed_cap to the slowest member's speed (see
+## RTSController.assign_command_to_units). Informational — the cap itself lives on
+## each unit's Movement, not this message.
+var match_group_speed: bool = false
+
 ## Minimum target priority this command's aggro will engage: a target whose own
 ## Entity.target_priority ranks WORSE (higher-valued) than this is ignored. Defaults to
 ## NON_COMBAT_UNITS, so aggro chases armed things and unarmed units but skips unarmed
@@ -76,5 +89,7 @@ static func deep_copy(a_message: CommandMessage) -> CommandMessage:
 	copy.persist = a_message.persist
 	copy.aggro_shape = a_message.aggro_shape
 	copy.target_priority = a_message.target_priority
+	copy.origin = a_message.origin
+	copy.match_group_speed = a_message.match_group_speed
 	return copy
 #endregion

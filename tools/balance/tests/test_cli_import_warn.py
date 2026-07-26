@@ -5,12 +5,11 @@ import shutil
 import yaml
 
 from dh_balance.cli import main
-from dh_balance.loader import DATA_DIR
 
 
-def _copy(tmp_path, name):
+def _copy(tmp_path, name, src):
     dst = tmp_path / name
-    shutil.copytree(DATA_DIR, dst)
+    shutil.copytree(src, dst)
     return dst
 
 
@@ -20,9 +19,9 @@ def _run(current, desired, tmp_path, capsys):
     return rc, capsys.readouterr().out
 
 
-def test_warns_on_flatfile_unit_with_no_godot_scene(tmp_path, capsys):
-    current = _copy(tmp_path, "current")
-    desired = _copy(tmp_path, "desired")
+def test_warns_on_flatfile_unit_with_no_godot_scene(tmp_path, capsys, fixture_dir):
+    current = _copy(tmp_path, "current", fixture_dir)
+    desired = _copy(tmp_path, "desired", fixture_dir)
     fac = desired / "factions" / "iron_regime.yaml"
     raw = yaml.safe_load(fac.read_text())
     raw["buildables"].append(
@@ -39,9 +38,9 @@ def test_warns_on_flatfile_unit_with_no_godot_scene(tmp_path, capsys):
     assert "1 not in Godot" in out                   # surfaced in the summary line
 
 
-def test_no_warning_when_every_unit_has_a_scene(tmp_path, capsys):
-    current = _copy(tmp_path, "current")
-    desired = _copy(tmp_path, "desired")               # identical copies
+def test_no_warning_when_every_unit_has_a_scene(tmp_path, capsys, fixture_dir):
+    current = _copy(tmp_path, "current", fixture_dir)
+    desired = _copy(tmp_path, "desired", fixture_dir)               # identical copies
     rc, out = _run(current, desired, tmp_path, capsys)
     assert rc == 0
     assert "WARNING" not in out

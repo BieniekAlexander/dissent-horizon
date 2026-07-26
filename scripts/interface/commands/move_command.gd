@@ -60,6 +60,20 @@ static func meets_precondition(
 
 #region Properties
 var message: CommandMessage
+
+## Counts down toward the next per-second destination-swap check (see
+## _resolve_destination_swap). Only meaningful for a plain MoveCommand instance,
+## since subclasses (Patrol, Attack, Defend, ...) override get_updated_state()
+## without calling super and so never run this check.
+var _swap_cooldown: float = 0.0
+
+## The actor this command is running for. Stamped every tick by
+## CommandReceiver._process_commands() — not captured here, since most subclasses
+## override get_updated_state() without calling super and a base-class capture
+## would miss them. Used only to reset a group-move Movement.speed_cap (see
+## RTSController.assign_command_to_units) once this command is destroyed —
+## completed, cancelled, or replaced by another command.
+var _actor: Commandable = null
 #endregion
 
 #region State updates
@@ -67,8 +81,60 @@ var message: CommandMessage
 ## never reactively retargets on its own — it always returns self. Aggro-based
 ## retargeting (chasing down a nearby enemy) is opt-in per subclass (see
 ## AttackMove, Patrol, Defend), not a base-class behavior every command inherits.
-func get_updated_state(_a_commandable: Commandable) -> Variant:
+func get_updated_state(a_commandable: Commandable) -> Variant:
+	_swap_cooldown -= 1.0 / Engine.get_physics_ticks_per_second()
+	if _swap_cooldown <= 0.0:
+		_swap_cooldown = 1.0
+		_resolve_destination_swap(a_commandable)
 	return self
+
+## Once a second, check every sibling unit sharing this exact multi-unit move
+## order (same CommandMessage.origin — see RTSController.assign_command_to_units)
+## for a beneficial destination swap: if trading destinations would shorten both
+## units' remaining paths, swap them and retarget both units' Movement immediately.
+## This corrects crossing paths that develop after the angular-sort assignment at
+## issue time — e.g. once RVO avoidance nudges a unit off its straight-line course.
+func _resolve_destination_swap(a_commandable: Commandable) -> void:
+	if message.origin == null or message.target != null:
+		return
+	if a_commandable.movement == null or a_commandable.movement.is_navigation_finished():
+		return
+	if a_commandable.commander == null:
+		return
+
+	var my_dest: Vector3 = message.position
+	for other in a_commandable.commander.get_children():
+		if not (other is Commandable) or other == a_commandable:
+			continue
+		var other_unit: Commandable = other as Commandable
+		var other_cmd: MoveCommand = other_unit.current_command()
+		if other_cmd == null or not is_same(other_cmd.message.origin, message.origin):
+			continue
+		if other_cmd.message.target != null:
+			continue
+		if other_unit.movement == null or other_unit.movement.is_navigation_finished():
+			continue
+
+		var other_dest: Vector3 = other_cmd.message.position
+		var my_dist: float = a_commandable.global_position.distance_to(my_dest)
+		var other_dist: float = other_unit.global_position.distance_to(other_dest)
+		var swap_my_dist: float = a_commandable.global_position.distance_to(other_dest)
+		var swap_other_dist: float = other_unit.global_position.distance_to(my_dest)
+
+		if swap_my_dist + swap_other_dist < my_dist + other_dist:
+			message.world_position = other_dest
+			other_cmd.message.world_position = my_dest
+			a_commandable.movement.set_target_position(message.position)
+			other_unit.movement.set_target_position(other_cmd.message.position)
+			my_dest = other_cmd.message.position
+
+## Whether this command's characteristic action is suppressed while the actor is
+## staggered (recently damaged). Default false: most actions ignore stagger. A command
+## representing a channeled / vulnerable action (Build, Repair, and some Interactions)
+## overrides this to opt in — the actor still moves into range but waits, not completing
+## the action, until the stagger wears off. Enforced in CommandReceiver._process_commands.
+func blocked_by_stagger(_a_commandable: Commandable) -> bool:
+	return false
 
 ## Check if the [Commandable] should move in response to the command
 func should_move(_a_commandable: Commandable) -> bool:
@@ -90,8 +156,16 @@ func _init(a_message: CommandMessage) -> void:
 	message.retain()
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE and message != null:
-		message.release()
+	if what == NOTIFICATION_PREDELETE:
+		if message != null:
+			message.release()
+		# Validate movement too, not just _actor: during scene teardown the actor's child
+		# Movement node is freed BEFORE the actor itself, so a command that outlives its
+		# fulfillment (e.g. one held while its actor was staggered) can run this PREDELETE
+		# with _actor still valid but _actor.movement a dangling reference — touching it
+		# then crashes. is_instance_valid covers both the null and freed cases.
+		if _actor != null and is_instance_valid(_actor) and is_instance_valid(_actor.movement):
+			_actor.movement.speed_cap = 0.0
 #endregion
 
 #region Debug

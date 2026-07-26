@@ -169,7 +169,7 @@ static func threat_signal(unit: Commandable, candidate: Commandable) -> float:
 static func effectiveness_signal(unit: Commandable, candidate: Commandable) -> float:
 	# Hand-set matchup override wins over the computed multiplier (parity with the
 	# production effectiveness in Bot.unit_effectiveness_vs).
-	var override: Variant = DamageTable.matchup_override(unit.type, candidate.type)
+	var override: Variant = DamageTable.matchup_override(unit.id, candidate.id)
 	if override != null:
 		return override
 	if unit.weapon_inventory == null:

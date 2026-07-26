@@ -10,7 +10,7 @@ radius = 10.0
 
 [node name="Structure" unique_id=1086267193 instance=ExtResource("1_base")]
 vigor_provided = 50
-type = 8706
+id = &"safehouse"
 
 [node name="AggroRange" parent="." index="4" unique_id=131280482]
 shape = SubResource("CylinderShape3D_es21j")
@@ -21,7 +21,3 @@ hp_max = 300.0
 
 [node name="Garrison" type="Node" parent="." index="10" unique_id=1073047851]
 script = ExtResource("3_grsn")
-
-[node name="Sprite" parent="." index="14" unique_id=1381401170]
-transform = Transform3D(5, 0, 0, 0, 1.767767, -3.535534, 0, 1.767767, 3.535534, 0, 0.4, -0.4)
-texture = ExtResource("2_tex")

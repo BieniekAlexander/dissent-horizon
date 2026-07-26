@@ -64,7 +64,7 @@ func attack(units: Array, target: Entity, persist: bool = true) -> void:
 ## (overlay), world_pos must sit on the target Deposit's cell. Tech/resource/
 ## placement validity are enforced downstream by Build.meets_precondition, so an
 ## invalid request is a safe no-op (the builder just won't complete it).
-func build(builder: Commandable, type: Entity.Type, world_pos: Vector3) -> bool:
+func build(builder: Commandable, type: StringName, world_pos: Vector3) -> bool:
 	var tool := Tool.for_type(type)
 	if tool == null:
 		return false
@@ -103,7 +103,7 @@ func garrison_into(unit: Commandable, host: Commandable) -> void:
 ## tool produces `type`; affordability + cost deduction are enforced downstream by
 ## Commandable._process_commands (which routes Train into the Production queue and
 ## calls commander.use_resources_for), so a too-expensive request is a safe no-op.
-func train(structure: Commandable, type: Entity.Type) -> bool:
+func train(structure: Commandable, type: StringName) -> bool:
 	var tool := Tool.for_type(type)
 	if tool == null:
 		return false

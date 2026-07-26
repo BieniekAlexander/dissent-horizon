@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://dnkpg0ladlg6v" path="res://scripts/entities/components/selectable.gd" id="4_slct0"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="5_ownr0"]
 [ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="6_cli00"]
+[ext_resource type="Script" uid="uid://cywa5m1mky68q" path="res://scripts/entities/components/altitude_indicator.gd" id="6_altind"]
 [ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="7_def00"]
 [ext_resource type="Script" uid="uid://brt70ksdghy11" path="res://scripts/entities/components/avoidance_agent_3d.gd" id="8_avagent"]
 [ext_resource type="Script" uid="uid://cs0gtu3132l1h" path="res://scripts/entities/components/team_tint.gd" id="9_ttint"]
@@ -136,6 +137,9 @@ texture = ExtResource("3_uy385")
 
 [node name="CommandLineIndicator" type="Node3D" parent="." unique_id=331473960]
 script = ExtResource("6_cli00")
+
+[node name="AltitudeIndicator" type="Node3D" parent="." unique_id=331473961]
+script = ExtResource("6_altind")
 
 [node name="#####DEBUG#####" type="Node" parent="." unique_id=542481400]
 

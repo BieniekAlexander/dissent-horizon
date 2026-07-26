@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://dj0jw37l6fn41" path="res://scripts/entities/components/inventory_dominion_generator.gd" id="4_dom"]
 
 [node name="Structure" unique_id=227912066 instance=ExtResource("1_base")]
-type = 12803
+id = &"internment_camp"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 visible = false
@@ -42,10 +42,6 @@ script = ExtResource("4_dom")
 [node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
 visible = false
 debug_color = Color(0.2, 0.9, 0.3, 0.3)
-
-[node name="Sprite" parent="." index="15" unique_id=1381401170]
-transform = Transform3D(10, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, 0, 0.45, -0.5)
-texture = ExtResource("2_tex")
 
 [node name="FootprintVisualizer" parent="." index="24" unique_id=286423146]
 visible = false

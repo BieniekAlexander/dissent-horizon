@@ -213,7 +213,7 @@ func _nearest_unclaimed_deposit() -> Entity:
 
 ## Nearest valid, empty, flat footprint to the base centroid for `type`, searched
 ## ring by ring outward. Returns a world position or null if none found.
-func _find_build_spot(type: Entity.Type) -> Variant:
+func _find_build_spot(type: StringName) -> Variant:
 	var dims: Vector2i = _dims_for_type(type)
 	var origin: Vector2i = _bot.map.world_to_grid(VU.inXZ(_bot.base_centroid()))
 	for radius: int in range(SEARCH_MIN_RING, SEARCH_MAX_RING):
@@ -239,7 +239,7 @@ func _placement_ok(world: Vector3, dims: Vector2i) -> bool:
 
 ## Footprint dimensions for a buildable type, read off its build-preview instance
 ## (the same Structure component Build inspects). Falls back to 2×2.
-func _dims_for_type(type: Entity.Type) -> Vector2i:
+func _dims_for_type(type: StringName) -> Vector2i:
 	var tool: Tool = Tool.for_type(type)
 	if tool != null:
 		var preview: Node = _bot.get_build_preview_instance(tool)

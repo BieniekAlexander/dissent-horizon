@@ -159,9 +159,8 @@ def test_manifest_single_line_edit():
     assert ok and '"ore": 250' in new and '"id": "badger"' in new
 
 
-def test_plan_routes_fields_correctly():
-    from dh_balance.loader import load_world
-    w = load_world()
+def test_plan_routes_fields_correctly(world):
+    w = world
     def ch(kind, cid, field, scene=None):
         return Change(kind, cid, field, 1, 2, scene)
     edits = importer.plan([
@@ -186,17 +185,17 @@ TSV_ATTR = (
 )
 
 
-def test_diff_detects_damage_table_change(tmp_path):
+def test_diff_detects_damage_table_change(tmp_path, fixture_dir):
     import shutil
     import yaml
-    from dh_balance.loader import DATA_DIR, load_world
+    from dh_balance.loader import load_world
     dst = tmp_path / "d"
-    shutil.copytree(DATA_DIR, dst)
+    shutil.copytree(fixture_dir, dst)
     dt = dst / "damage_table.yaml"
     raw = yaml.safe_load(dt.read_text())
     raw["vs_armour"]["LEAD"]["HEAVY"] = 0.2
     dt.write_text(yaml.safe_dump(raw))
-    changes, _, _ = importer.diff_worlds(load_world(DATA_DIR), load_world(dst))
+    changes, _, _ = importer.diff_worlds(load_world(fixture_dir), load_world(dst))
     hit = [c for c in changes if c.kind == "damage_vs_armour" and c.id == "LEAD" and c.field == "HEAVY"]
     assert len(hit) == 1 and hit[0].current == 0.1 and hit[0].desired == 0.2
 
@@ -213,9 +212,8 @@ def test_apply_csv_writes_targeted_cell(tmp_path):
     assert "LAZER\t0.25\t0.75\t1.5\n" in out           # other row untouched
 
 
-def test_frame_change_routes_to_scene_frame_type():
-    from dh_balance.loader import load_world
-    w = load_world()
+def test_frame_change_routes_to_scene_frame_type(world):
+    w = world
     ch = Change("buildable", "iron_regime:heavy_tank", "frame",
                 "BIOLOGICAL", "METALLIC", "res://t.tscn")
     e = importer.plan([ch], w)[0]

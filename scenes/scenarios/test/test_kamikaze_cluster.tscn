@@ -62,46 +62,46 @@ shape = SubResource("HeightMapShape3D_b5pmn")
 [node name="Kamikaze" type="CharacterBody3D" parent="." unique_id=440012001 groups=["commandable", "unit"] instance=ExtResource("7_bro1q")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
 script = ExtResource("8_2soij")
-type = 8452
+id = &"kamikaze"
 default_commander_id = 1
 
 [node name="Unit2" type="CharacterBody3D" parent="." unique_id=1210299015 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0)
 script = ExtResource("8_2soij")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@2" type="CharacterBody3D" parent="." unique_id=1126334548 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 0.8660254)
 script = ExtResource("8_2soij")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@3" type="CharacterBody3D" parent="." unique_id=321715670 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0.8660254)
 script = ExtResource("8_2soij")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@4" type="CharacterBody3D" parent="." unique_id=1133482428 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 1.2246469e-16)
 script = ExtResource("8_2soij")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@5" type="CharacterBody3D" parent="." unique_id=986920232 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, -0.8660254)
 script = ExtResource("8_2soij")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@6" type="CharacterBody3D" parent="." unique_id=188054937 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -0.8660254)
 script = ExtResource("8_2soij")
-type = 8449
+id = &"irregular"
 default_commander_id = 2
 
 [node name="@CharacterBody3D@7" type="CharacterBody3D" parent="." unique_id=1041162017 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
 script = ExtResource("8_2soij")
-type = 8449
+id = &"irregular"
 default_commander_id = 2

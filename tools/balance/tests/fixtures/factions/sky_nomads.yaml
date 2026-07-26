@@ -1,0 +1,62 @@
+# DEMO faction (provisional). See iron_regime.yaml header.
+#
+# Design intent: cheap, fast, light. Reaches tier 3 (airpad) for a gunship that
+# the Iron Regime has no way to shoot down -> the asymmetry the queries surface.
+# Weapons are referenced by id from data/weapons.yaml.
+faction: sky_nomads
+name: Sky Nomads
+description: Fast light raiders with air superiority at the top tier.
+
+# See iron_regime.yaml — everything descends from the outpost.
+starts_with: [outpost]
+
+buildables:
+  - id: outpost
+    kind: structure
+    name: Roost
+    cost: {ore: 500}
+    requires: []
+
+  - id: compound
+    kind: structure
+    name: Warren
+    cost: {ore: 300}
+    requires: [outpost]
+
+  - id: airpad
+    kind: structure
+    name: Airpad
+    cost: {ore: 350}
+    requires: [compound]    # tier 3
+
+  # --- units ---
+  - id: raider
+    kind: unit
+    name: Raider
+    cost: {ore: 80}
+    requires: [outpost]
+    armour: LIGHT
+    hp: 120
+    movement: {layer: ground, speed: 0.08}
+    weapons: [carbine]        # shares lead_round_8 with the Regime's rifle
+
+  - id: saboteur
+    kind: unit
+    name: Saboteur
+    cost: {ore: 60}
+    requires: [outpost]
+    armour: LIGHT
+    hp: 90
+    movement: {layer: ground, speed: 0.07}
+    attributes: [HAS_STEALTH]
+    weapons: [toxin_blade]    # melee weapon (no projectile)
+
+  - id: gunship
+    kind: unit
+    name: Gunship
+    cost: {ore: 350}
+    requires: [airpad]        # tier 4 air threat
+    armour: LIGHT
+    hp: 300
+    movement: {layer: air, speed: 0.12}
+    weapons: [beam]

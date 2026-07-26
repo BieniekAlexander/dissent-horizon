@@ -1,6 +1,12 @@
-res://scenes/scenarios/s1.tscn
+res://scenes/entities/units/an/irregular.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://resources/terrain/tile_catalog.tres
 res://scenes/scenarios/s1.gdshader
 res://scripts/rendering/shaders/fog.gdshader
+res://scenes/entities/units/an/warlord.tscn
+res://scripts/generated/entity_ids.gd
+res://tools/spec_import/scene_sync.gd
+res://tools/spec_import/tscn_doc.gd
+res://scenes/entities/units/cl/petrel.tscn
+res://addons/terrain_brush/terrain_brush_plugin.gd

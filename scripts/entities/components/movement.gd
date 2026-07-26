@@ -27,7 +27,7 @@ signal velocity_ready(velocity: Vector3)
 #region Constants
 ## How many world-units above the terrain surface an aerial unit (HOVERING or
 ## FLYING) flies. Both modes share the same cruise altitude.
-const AERIAL_HEIGHT: float = 2.0
+const AERIAL_HEIGHT: float = 6.0
 
 ## XZ arrival radius for HOVERING / FLYING modes (mirrors NavigationAgent3D's
 ## target_desired_distance used in GROUNDED_DIRECT mode).
@@ -42,6 +42,42 @@ const LANDING_SPEED: float = 0.05
 ## TAKING_OFF, so the body noses down/up slightly with its vertical motion.
 const HOVER_TILT_FACTOR: float = 0.3
 const HOVER_MAX_TILT: float = deg_to_rad(20)
+
+## Helicopter-style attitude for an AIRBORNE HOVERING unit (see _apply_hover_bank).
+##
+## Pitch (rotation.x) tracks travel SPEED along the facing axis as a fraction of the
+## unit's top speed in that direction (forward vs. the slower reverse cap) — not its
+## acceleration — so the nose holds a steady dip through a forward cruise and lifts
+## when flying backward. HOVER_MAX_PITCH is the nose-down angle reached at full
+## forward speed (and, via the reverse cap, the nose-up angle at full reverse).
+##
+## Roll (rotation.z) still banks into lateral acceleration (a turn): HOVER_BANK_FACTOR
+## is radians of roll per world-unit/s² of sideways acceleration, capped by
+## HOVER_MAX_BANK.
+##
+## HOVER_BANK_RESPONSE is the per-tick fraction the visible attitude eases toward its
+## target (exponential smoothing at the 30 Hz physics rate), so speed and heading
+## changes read as leans, not snaps.
+const HOVER_MAX_PITCH: float = deg_to_rad(25)
+const HOVER_BANK_FACTOR: float = 0.05
+const HOVER_MAX_BANK: float = deg_to_rad(20)
+const HOVER_BANK_RESPONSE: float = 0.15
+
+## Aerial terrain-following (see _update_aerial_altitude). Rather than snap an aerial
+## unit's Y rigidly to terrain_height + offset each tick — which jerks the body up and
+## down as it crosses uneven ground — the base terrain height it follows is eased under
+## a bounded vertical acceleration.
+##
+## MAX_VERTICAL_ACCEL — hardest the climb/descent RATE may change, world-units/s².
+##   Higher ≈ the old rigid snap; lower ≈ floatier. (No max vertical SPEED cap today;
+##   a tall cliff briefly climbs fast — add one here if that ever reads as too abrupt.)
+## AERIAL_LOOKAHEAD_SECONDS — how far ahead, in seconds of travel at the current
+##   velocity, terrain is sampled so the unit starts climbing before it reaches a rise.
+## AERIAL_LOOKAHEAD_SAMPLES — points sampled from here to the look-ahead position; the
+##   MAX height wins, so a rise anywhere along the span lifts the unit in time.
+const MAX_VERTICAL_ACCEL: float = 5.0
+const AERIAL_LOOKAHEAD_SECONDS: float = 0.6
+const AERIAL_LOOKAHEAD_SAMPLES: int = 4
 
 ## Tolerance (radians) for is_facing() to treat the owner's rotation.y as
 ## "caught up" with a face_toward() target.
@@ -90,6 +126,13 @@ enum CrushClass { TINY = 0, SMALL = 1, MEDIUM = 2, LARGE = 3, HUGE = 4 }
 
 ## Movement speed in world-units per second.
 @export var speed: float = 3.75
+
+## Temporary override for commanded travel speed, in world-units per second. 0.0
+## (default) means uncapped — use `speed` as normal. Set by a group move order
+## (see RTSController.assign_command_to_units) so a mixed-speed selection travels
+## at its slowest member's pace; cleared back to 0.0 when that unit's MoveCommand
+## is destroyed (see MoveCommand._notification).
+var speed_cap: float = 0.0
 
 ## Maximum rate at which the entity's heading may change, in degrees per second.
 ## HOVERING/FLYING: limits banking turns in _apply_accel_limits.
@@ -176,6 +219,22 @@ var _current_velocity: Vector3 = Vector3.ZERO
 ## Current landing state for HOVERING units.  Always AIRBORNE for other modes.
 var _landing_state: LandingState = LandingState.AIRBORNE
 
+## Previous tick's velocity, used by _apply_hover_bank to derive the horizontal
+## acceleration that drives an AIRBORNE HOVERING unit's pitch/roll lean. Kept in
+## sync (without applying a lean) in every non-AIRBORNE state so the bank doesn't
+## jump on the next takeoff.
+var _prev_tilt_velocity: Vector3 = Vector3.ZERO
+
+## Aerial terrain-following state (see _update_aerial_altitude). _smoothed_terrain_y is
+## the eased base terrain height the unit follows — Commandable adds height_offset() to
+## it for the final world Y (aerial_follow_y). _vertical_velocity is its current rate of
+## change (world-units/s), ramped under MAX_VERTICAL_ACCEL. Seeded to the actual terrain
+## height on the first tick (guarded by _aerial_y_seeded) so the unit doesn't ease up
+## from zero on spawn.
+var _smoothed_terrain_y: float = 0.0
+var _vertical_velocity: float = 0.0
+var _aerial_y_seeded: bool = false
+
 ## Map reference used by HOVERING units for navmesh queries (landing snap and
 ## ascent cap). Set by configure_for_map(); null until then.
 var _map: Map = null
@@ -252,15 +311,26 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	if mode == Mode.FLYING:
 		_update_flying_height()
+		_update_aerial_altitude()
 		return
 	if mode != Mode.HOVERING:
 		return
-	# Vertical pitch tilt only applies mid-LANDING/TAKING_OFF (set below); every
-	# other state keeps a level body.
-	if _landing_state != LandingState.LANDING and _landing_state != LandingState.TAKING_OFF:
-		var level_owner: Node3D = _owner_node()
-		if level_owner != null:
-			level_owner.rotation.x = 0.0
+	# Ease the terrain height this unit follows (once per tick, before any early
+	# return below) so it rises and falls smoothly over uneven ground.
+	_update_aerial_altitude()
+	# Body attitude. AIRBORNE units bank into their horizontal acceleration
+	# (helicopter lean — pitch on rotation.x, roll on rotation.z); LANDING /
+	# TAKING_OFF nose up/down from vertical motion (set in the match below);
+	# GROUNDED_TEMP eases back to level. Every non-AIRBORNE state also keeps the
+	# bank's velocity baseline current so the lean doesn't jump on the next takeoff.
+	match _landing_state:
+		LandingState.AIRBORNE:
+			_apply_hover_bank()
+		LandingState.GROUNDED_TEMP:
+			_prev_tilt_velocity = _current_velocity
+			_level_body()
+		_:
+			_prev_tilt_velocity = _current_velocity
 	# Pre-landing navigation: stay AIRBORNE and steer to the safe landing spot
 	# before beginning the descent. Descent starts once we arrive.
 	if _pending_land and _landing_state == LandingState.AIRBORNE:
@@ -430,6 +500,11 @@ func _try_start_landing() -> void:
 		_landing_state = LandingState.LANDING  # safe to descend here directly
 
 #region Navigation
+## The travel speed CommandReceiver should drive toward: speed_cap when a group
+## move has capped it, otherwise the unit's own speed.
+func _effective_max_speed() -> float:
+	return speed_cap if speed_cap > 0.0 else speed
+
 func set_target_position(world_position: Vector3) -> void:
 	target_position = world_position
 
@@ -686,9 +761,81 @@ func height_offset() -> float:
 		return _current_height_offset
 	return 0.0
 
+
+## True for the aerial locomotion modes (HOVERING / FLYING) — the ones whose world Y
+## is the smoothed terrain-follow height plus height_offset(), rather than a rigid
+## terrain snap. Used by Commandable to choose which Y model to apply.
+func is_aerial_mode() -> bool:
+	return mode == Mode.HOVERING or mode == Mode.FLYING
+
+
+## The base terrain height an aerial unit should sit at this tick — the acceleration-
+## smoothed value maintained by _update_aerial_altitude. Commandable adds height_offset()
+## to it for the final world Y. Returns `fallback_terrain_y` (the raw terrain height at
+## the unit's XZ) until the smoother has been seeded, so spawn and the map-less unit-test
+## path behave exactly like the old rigid snap.
+func aerial_follow_y(fallback_terrain_y: float) -> float:
+	return _smoothed_terrain_y if _aerial_y_seeded else fallback_terrain_y
+
 #endregion
 
 #region Private helpers
+## Advance the aerial terrain-following height one tick (called once per tick from
+## _physics_process for HOVERING / FLYING). Eases _smoothed_terrain_y toward the
+## HIGHEST terrain along the unit's near-future path under MAX_VERTICAL_ACCEL, so the
+## body climbs and descends smoothly over uneven ground and lifts early enough to clear
+## an upcoming rise. Terrain is sampled analytically via Map.terrain_height_at (a cheap
+## bilinear heightmap read — no physics query and no structures), so this stays O(1)
+## per unit regardless of the scene. No-op without a parent Node3D or a configured Map.
+func _update_aerial_altitude() -> void:
+	var parent := get_parent() as Node3D
+	if parent == null or _map == null:
+		return
+	var pos_xz: Vector2 = VU.inXZ(parent.global_position)
+	# Seed to the actual terrain on the first tick so the unit doesn't ease up from 0.
+	if not _aerial_y_seeded:
+		_smoothed_terrain_y = _map.terrain_height_at(pos_xz)
+		_vertical_velocity = 0.0
+		_aerial_y_seeded = true
+		return
+	# Target = the highest terrain the unit is about to fly over. Sampling only the
+	# single look-ahead point could miss a taller cell between here and there; taking
+	# the max across the span guarantees the unit is lifted in time to clear it.
+	var target_terrain: float = _map.terrain_height_at(pos_xz)
+	var vel_xz: Vector2 = VU.inXZ(_current_velocity)
+	if not vel_xz.is_zero_approx():
+		var ahead: Vector2 = vel_xz * AERIAL_LOOKAHEAD_SECONDS
+		for i in AERIAL_LOOKAHEAD_SAMPLES:
+			var f: float = float(i + 1) / float(AERIAL_LOOKAHEAD_SAMPLES)
+			target_terrain = maxf(target_terrain, _map.terrain_height_at(pos_xz + ahead * f))
+	_step_smoothed_altitude(target_terrain)
+
+
+## Advance _smoothed_terrain_y one tick toward `target_terrain` under MAX_VERTICAL_ACCEL.
+## Acceleration-limited "arrive": approach at the fastest speed from which the unit can
+## still brake to a stop within the remaining gap (v = sqrt(2·a·d)), then ramp the actual
+## vertical speed toward that within the per-tick accel budget. Because the approach
+## speed shrinks with the gap, it decelerates in time and settles with little overshoot.
+## Split out from _update_aerial_altitude (which supplies the terrain target) so the
+## controller can be exercised without a Map.
+func _step_smoothed_altitude(target_terrain: float) -> void:
+	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var gap: float = target_terrain - _smoothed_terrain_y
+	var approach_speed: float = signf(gap) * sqrt(2.0 * MAX_VERTICAL_ACCEL * absf(gap))
+	var dv_max: float = MAX_VERTICAL_ACCEL * dt
+	_vertical_velocity += clampf(approach_speed - _vertical_velocity, -dv_max, dv_max)
+	var new_y: float = _smoothed_terrain_y + _vertical_velocity * dt
+	# Anti-overshoot: if this step reaches or crosses the target, settle exactly on it
+	# (the crossing is sub-tick away, so this is invisible) and drop the residual speed.
+	# Without it the steep sqrt curve near zero leaves a small buzzing limit cycle; a
+	# still-moving terrain target just re-opens the gap next tick and re-accelerates.
+	if gap == 0.0 or signf(target_terrain - new_y) != signf(gap):
+		_smoothed_terrain_y = target_terrain
+		_vertical_velocity = 0.0
+	else:
+		_smoothed_terrain_y = new_y
+
+
 ## Straight-line distance from the parent entity to its current movement target.
 ## HOVERING/FLYING: XZ-only, matching is_navigation_finished. GROUNDED_DIRECT: 3D
 ## distance to the nav target, used as an approximation of remaining path length.
@@ -803,6 +950,55 @@ func _apply_hover_tilt(vertical_velocity: float) -> void:
 	owner_node.rotation.x = clampf(
 		-vertical_velocity * HOVER_TILT_FACTOR, -HOVER_MAX_TILT, HOVER_MAX_TILT
 	)
+	# No lateral banking during a straight-down landing/takeoff — settle any
+	# residual roll carried in from cruise.
+	owner_node.rotation.z = lerpf(owner_node.rotation.z, 0.0, HOVER_BANK_RESPONSE)
+
+
+## Give an AIRBORNE HOVERING unit a helicopter attitude: it noses down (rotation.x)
+## the faster it flies forward and lifts its nose when flying backward, and rolls
+## (rotation.z) into a turn. Pitch is driven by SPEED along the facing axis relative
+## to the unit's forward/reverse top speeds — so a steady forward cruise holds a
+## steady nose-down — while roll follows this tick's lateral acceleration. The visible
+## rotation eases toward the target (HOVER_BANK_RESPONSE) so the lean reads smoothly
+## even when the underlying velocity change is abrupt. No-op if there's no owner Node3D.
+func _apply_hover_bank() -> void:
+	var owner_node: Node3D = _owner_node()
+	if owner_node == null:
+		return
+	var tps: float = float(Engine.physics_ticks_per_second)
+	var accel: Vector3 = (_current_velocity - _prev_tilt_velocity) * tps
+	_prev_tilt_velocity = _current_velocity
+	accel.y = 0.0
+	var facing: Vector3 = get_facing()                      # +Z forward, unit XZ vector
+	var right: Vector3 = Vector3(facing.z, 0.0, -facing.x)  # facing turned 90° clockwise (+X when facing +Z)
+
+	# Pitch: fraction of top speed along the facing axis (forward uses `speed`, reverse
+	# the slower `speed * reverse_speed_ratio` cap), times the max nose-down angle.
+	# +rotation.x tips the +Z nose toward the ground, so a positive (forward) fraction
+	# noses down and a negative (reverse) fraction noses up.
+	var fwd_speed: float = _current_velocity.dot(facing)
+	var max_dir_speed: float = speed if fwd_speed >= 0.0 else speed * reverse_speed_ratio
+	var pitch_frac: float = clampf(fwd_speed / max_dir_speed, -1.0, 1.0) if max_dir_speed > 1e-4 else 0.0
+	var target_pitch: float = pitch_frac * HOVER_MAX_PITCH
+
+	# Roll: bank into the lateral acceleration of a turn. +rotation.z lifts the +X
+	# (right) side, so to drop the inside of the turn the roll takes the opposite sign.
+	var target_roll: float = clampf(
+		-accel.dot(right) * HOVER_BANK_FACTOR, -HOVER_MAX_BANK, HOVER_MAX_BANK)
+
+	owner_node.rotation.x = lerpf(owner_node.rotation.x, target_pitch, HOVER_BANK_RESPONSE)
+	owner_node.rotation.z = lerpf(owner_node.rotation.z, target_roll, HOVER_BANK_RESPONSE)
+
+
+## Ease the owner node's pitch and roll back to level. Used while GROUNDED_TEMP so
+## a unit that touched down mid-lean settles flat on the ground.
+func _level_body() -> void:
+	var owner_node: Node3D = _owner_node()
+	if owner_node == null:
+		return
+	owner_node.rotation.x = lerpf(owner_node.rotation.x, 0.0, HOVER_BANK_RESPONSE)
+	owner_node.rotation.z = lerpf(owner_node.rotation.z, 0.0, HOVER_BANK_RESPONSE)
 
 
 ## Clamp the speed change from _current_velocity to desired within the

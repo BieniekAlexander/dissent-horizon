@@ -16,6 +16,11 @@ var _builder: Commandable = null
 #endregion
 
 #region State updates
+## Repairing/finishing construction is a channeled action: a hit staggers the worker,
+## pausing build progress until the stagger wears off.
+func blocked_by_stagger(_a_actor: Commandable) -> bool:
+	return true
+
 func get_updated_state(a_actor: Commandable) -> Variant:
 	# The repair target (the structure being built/repaired) can be destroyed mid-build.
 	# Once freed, message.target reads as a previously-freed instance and any check on it
@@ -39,7 +44,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		if repairable.commander != null:
 			repairable.commander.proc_technology()
 		if a_actor.veterancy != null:
-			var spec: TechnologySpec = repairable.commander.technology_mapping.get(repairable.type) \
+			var spec: TechnologySpec = repairable.commander.technology_mapping.get(repairable.id) \
 				if repairable.commander != null else null
 			var xp: int = roundi(float(spec.ore_cost) * Veterancy.XP_PER_BUILD_ORE) if spec != null else 0
 			a_actor.veterancy.gain_experience(xp)

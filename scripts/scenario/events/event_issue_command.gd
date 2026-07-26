@@ -37,11 +37,17 @@ func issue_commands_to(units: Array[Commandable], manager: ScenarioTriggerManage
 	_commander_id_context = p_commander_id_context
 	var event_commands: Array[EventCommand] = _event_commands()
 	var aggro_override: CollisionShape3D = _aggro_shape_override()
+	# One planar offset per unit so the group fans into a formation around the command
+	# point(s) instead of every unit converging on the identical post (which, with the
+	# nav-based arrival check, would leave them swirling and never settling).
+	var offsets: Array[Vector3] = _formation_offsets(units, manager, event_commands)
 	if not event_commands.is_empty():
-		for unit: Commandable in units:
+		for i: int in units.size():
+			var unit: Commandable = units[i]
+			var offset: Vector3 = offsets[i]
 			var chain: Array[MoveCommand] = []
 			for ec: EventCommand in event_commands:
-				var cmd: MoveCommand = ec.to_command(manager)
+				var cmd: MoveCommand = ec.to_command(manager, offset)
 				if cmd != null:
 					if aggro_override != null and cmd is Defend:
 						cmd.message.aggro_shape = aggro_override
@@ -99,3 +105,36 @@ func _aggro_shape_override() -> CollisionShape3D:
 		if child is CollisionShape3D:
 			return child as CollisionShape3D
 	return null
+
+
+## A per-unit planar offset (index-aligned with `units`) that spreads the group into a
+## non-overlapping formation around the final command point, so each unit ends at its own
+## post rather than every unit converging on one shared point. Returns all-zero offsets for
+## a single unit or when the chain has no positional post to anchor on.
+func _formation_offsets(
+	units: Array[Commandable], manager: ScenarioTriggerManager, event_commands: Array[EventCommand]
+) -> Array[Vector3]:
+	var offsets: Array[Vector3] = []
+	var anchor: EventCommandPoint = null
+	for ec: EventCommand in event_commands:
+		if ec is EventCommandPoint:
+			anchor = ec as EventCommandPoint
+	if units.size() <= 1 or anchor == null or manager.map == null:
+		for _u: Commandable in units:
+			offsets.append(Vector3.ZERO)
+		return offsets
+	var map: Map = manager.map
+	var radius: float = units[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+	var region_radius: float = maxf(5.0, radius * 2.5 * float(units.size()))
+	var anchor_xz: Vector2 = VU.inXZ(anchor.global_position)
+	var points: Array[Vector2] = SU.get_nonoverlapping_points(
+		map, anchor_xz, radius, map.get_world_3d(),
+		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, region_radius, units.size()
+	)
+	for i: int in units.size():
+		if i < points.size():
+			var d: Vector2 = points[i] - anchor_xz
+			offsets.append(Vector3(d.x, 0.0, d.y))
+		else:
+			offsets.append(Vector3.ZERO)
+	return offsets

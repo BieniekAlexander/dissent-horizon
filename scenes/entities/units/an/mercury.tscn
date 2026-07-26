@@ -11,7 +11,7 @@ radius = 0.7
 radius = 0.7
 
 [node name="Unit" unique_id=502146001 instance=ExtResource("1_unit")]
-type = 8453
+id = &"mercury"
 attributes_list = Array[int]([0])
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
@@ -39,7 +39,3 @@ capacity = 6
 bunker = false
 preserve_occupants = false
 metadata/_custom_type_script = "uid://dlhe01nj6efuh"
-
-[node name="Sprite" parent="." index="14" unique_id=1381401170]
-transform = Transform3D(3, 0, 0, 0, 2.1213202, -2.1213202, 0, 2.1213202, 2.1213202, 0, 0.17100573, 0)
-texture = ExtResource("2_tex")

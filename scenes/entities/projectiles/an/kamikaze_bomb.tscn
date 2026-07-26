@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_proj"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_own"]
 [ext_resource type="Script" uid="uid://drins2oa5nvwm" path="res://scripts/entities/effects/effect_applicator.gd" id="3_eff"]
-[ext_resource type="Script" uid="uid://2o4hxulrei0s" path="res://scripts/entities/effects/suicide_status_effect.gd" id="4_suicide"]
+[ext_resource type="PackedScene" uid="uid://dhb6ybl0nlc3f" path="res://scenes/entities/status_effects/suicide.tscn" id="4_suicide"]
 [ext_resource type="Texture2D" uid="uid://cu54wxkswu4d3" path="res://assets/entities/irregular.png" id="5_tex"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_blast"]
@@ -36,6 +36,4 @@ metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 script = ExtResource("3_eff")
 metadata/_custom_type_script = "uid://drins2oa5nvwm"
 
-[node name="SuicideStatusEffect" type="Node" parent="EffectApplicator" unique_id=440011006]
-script = ExtResource("4_suicide")
-metadata/_custom_type_script = "uid://2o4hxulrei0s"
+[node name="Suicide" parent="EffectApplicator" instance=ExtResource("4_suicide")]

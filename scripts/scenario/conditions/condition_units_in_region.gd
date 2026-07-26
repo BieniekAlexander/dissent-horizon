@@ -16,7 +16,7 @@ enum Check {
 
 @export var commander_id: int = 1
 ## UNDEFINED matches any unit type.
-@export var unit_type: Entity.Type = Entity.Type.UNDEFINED
+@export var unit_type: StringName = &""
 @export var region_shape: RegionShape = RegionShape.RECT
 ## World-space XZ corners when region_shape == RECT.
 @export var rect_min: Vector2 = Vector2.ZERO
@@ -45,7 +45,7 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 	var units: Array = commander.get_children().filter(
 		func(n: Node) -> bool:
 			return n is Commandable and (n as Commandable).is_in_group("unit") \
-				and (unit_type == Entity.Type.UNDEFINED or (n as Commandable).type == unit_type)
+				and (unit_type == &"" or (n as Commandable).id == unit_type)
 	)
 	var any_inside := units.any(
 		func(u: Commandable) -> bool: return _in_region(VU.inXZ(u.global_position))

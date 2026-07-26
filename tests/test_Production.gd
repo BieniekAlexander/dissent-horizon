@@ -51,13 +51,13 @@ func test_tick_returns_false_on_empty_queue():
 
 func test_enqueue_stores_type_for_refund():
 	var p := _make_production()
-	p.enqueue(10, null, Entity.Type.AN_UNIT_IRREGULAR)
-	assert_eq(p.job_type(0), Entity.Type.AN_UNIT_IRREGULAR)
+	p.enqueue(10, null, EntityIds.IRREGULAR)
+	assert_eq(p.job_type(0), EntityIds.IRREGULAR)
 
 func test_cancel_removes_the_job():
 	var p := _make_production()
-	p.enqueue(5, null, Entity.Type.AN_UNIT_IRREGULAR)
-	p.enqueue(15, null, Entity.Type.TC_UNIT_VANGUARD)
+	p.enqueue(5, null, EntityIds.IRREGULAR)
+	p.enqueue(15, null, EntityIds.VANGUARD)
 	assert_true(p.cancel(0), "cancel returns true when a job is removed")
 	assert_eq(p.job_count(), 1, "queue shrinks by one")
 	assert_eq(p.training_queue[0][Production.JOB_TOTAL], 15, "the second job is promoted to head")
@@ -76,11 +76,11 @@ func test_cancel_out_of_range_is_a_noop():
 func test_default_producible_types_is_empty():
 	var p := _make_production()
 	assert_eq(p.producible_types.size(), 0)
-	assert_false(p.can_produce(Entity.Type.TC_UNIT_TECHNICIAN))
+	assert_false(p.can_produce(EntityIds.TECHNICIAN))
 
 func test_can_produce_reflects_configured_types():
 	var p := _make_production()
-	p.producible_types.assign([Entity.Type.AN_UNIT_IRREGULAR, Entity.Type.TC_UNIT_VANGUARD])
-	assert_true(p.can_produce(Entity.Type.AN_UNIT_IRREGULAR))
-	assert_true(p.can_produce(Entity.Type.TC_UNIT_VANGUARD))
-	assert_false(p.can_produce(Entity.Type.TC_UNIT_TECHNICIAN), "type not in the list is not producible")
+	p.producible_types.assign([EntityIds.IRREGULAR, EntityIds.VANGUARD])
+	assert_true(p.can_produce(EntityIds.IRREGULAR))
+	assert_true(p.can_produce(EntityIds.VANGUARD))
+	assert_false(p.can_produce(EntityIds.TECHNICIAN), "type not in the list is not producible")

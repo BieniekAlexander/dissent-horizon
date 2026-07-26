@@ -155,6 +155,7 @@ def _buildable(faction_id: str, d: dict, weapons: dict[str, Weapon]) -> Buildabl
         name=d.get("name", d["id"]),
         cost=cost,
         requires=list(d.get("requires", [])),
+        builds=list(d.get("builds", [])),
         armour=Armour(d["armour"]) if d.get("armour") else None,
         frame=Frame(d["frame"]) if d.get("frame") else None,
         hp=float(d.get("hp", 0.0)),
@@ -175,6 +176,7 @@ def load_faction(path: Path, weapons: dict[str, Weapon]) -> Faction:
         description=raw.get("description", ""),
         buildables=buildables,
         overrides=list(raw.get("overrides", [])),
+        starts_with=list(raw.get("starts_with", [])),
     )
 
 

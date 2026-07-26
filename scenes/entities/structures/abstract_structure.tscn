@@ -41,7 +41,6 @@ colors = PackedColorArray(0, 0, 0, 1)
 gradient = SubResource("Gradient_8aclg")
 
 [node name="Structure" unique_id=1763180119 groups=["structure"] instance=ExtResource("1_cmnd1")]
-type = -2
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_fe0lq")

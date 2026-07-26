@@ -18,7 +18,7 @@ size = Vector3(2, 10, 2)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("2_dep")
-type = 515
+id = &"deposit"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1739599997]
 

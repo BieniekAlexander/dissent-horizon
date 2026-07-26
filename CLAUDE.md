@@ -68,12 +68,11 @@ scripts/
 	  dominion_generator.gd
 	  command_line_indicator.gd
 	structures/
-	  structure_spec.gd           — per-type placement checker + StructureSpec.structure_type_spec_map
 	  lab.gd, mine.gd, footprint_visualizer.gd
 	units/
 	  vanguard.gd
 	tools/
-	  tool.gd                     — Tool class + Tool.command_tool_map (static)
+	  tool.gd                     — Tool class; command_tool_map loads from resources/generated/tools.json
 	  weapon.gd                   — Weapon node; AttackRange child = ranged, null = melee
 	  projectile.gd
 	items/
@@ -136,7 +135,12 @@ scenes/
     projectiles/                  — projectile.tscn, bullet.tscn, lazer.tscn, radiation.tscn (base/generic) at root
       an/irregular_bullet.tscn, warlord_rocket.tscn, b_kamikaze_bomb.tscn
       cl/h_badger_rocket.tscn, h_cannon_shell.tscn, h_recruit_bullet.tscn, h_sam_missile.tscn
-  # faction codes mirror Entity.Type prefixes: nt=NEUTRAL, tc=TECHNOCRACY, an=ANARCHISTS, cl=COLLECTIVE
+  # faction-code dirs are organizational only: nt=neutral, tc=technocracy, an=anarchists/baladians, cl=collective/colonials
+scenes/entities/status_effects/       — standalone status-effect scenes (instanced under projectile EffectApplicators)
+scripts/generated/                    — AUTO-GENERATED EntityIds / StatusEffectIds (spec importer)
+resources/generated/                  — AUTO-GENERATED technology.json / tools.json (spec importer)
+tools/spec_import/                    — the gdd-doc importer (see its README)
+gdd/                                  — design docs; a file is an importable spec iff its frontmatter has an `id` key (location is free)
 configs/
   scenarios/scenario1/, scenario2/
 	init.json    — per-commander starting entities (scene path + grid location)
@@ -181,12 +185,10 @@ Entity (CharacterBody3D)           — type enum, @export default_commander_id, 
 
 Use `entity.is_in_group("unit")` / `is_in_group("structure")` rather than `is Unit` / `is Structure` (those classes don't exist anymore).
 
-### `Entity.Type` enum
+### Piece ids (`Entity.id` — the old `Entity.Type` enum is gone)
 
-Hex-encoded values in `entity.gd`:
-- Hundreds digit: `1` = unit, `2` = structure (confusingly the comment says "Type {0: entity, 1: unit, 2: structure}" but the actual values show `1100`=unit, `1200`=structure)
-- Examples: `UNIT_TECHNICIAN=0x1100`, `STRUCTURE_OUTPOST=0x1200`
-- Commander id `0` = neutral/world-owned
+Every game piece is identified by a snake_case StringName `Entity.id` (e.g. `&"warlord"`), which is the id of its spec doc in `gdd/` (see §Spec importer). Hand-written code references ids through the GENERATED `EntityIds` constants (`EntityIds.WARLORD`) — never raw strings. An empty id marks an abstract inheritance-base scene (`Entity.is_abstract()`). Unit-vs-structure is group membership / the `Structure` component, never the id.
+- Commander id `0` = neutral/world-owned (unchanged)
 
 ### Component attachment pattern
 
@@ -319,9 +321,9 @@ Hide fog for debugging: hold Space (`debug_info` action).
 ## Commander and economy
 
 `Commander` (`@tool`) tracks:
-- `ore: int`, `population_used / population_max`, `dominion: int`
-- `technology_mapping: Dictionary[Entity.Type → TechnologySpec]` — costs + `required_structures: Array[Entity.Type]` prerequisite list
-- `structure_type_map: Dictionary[Entity.Type → Set]` — all owned structures of each type
+- `ore: int`, vigor (capacity/upkeep), `dominion: int`
+- `technology_mapping: Dictionary[StringName piece id → TechnologySpec]` — LOADED at startup from the generated `resources/generated/technology.json` (edit the gdd docs + re-run the spec importer, not the code). Ability gates ride in the same map under int `Ability.Type` keys.
+- `structure_type_map: Dictionary[StringName piece id → Set]` — all owned structures of each id; entries appear lazily (use `has_built_structure` / `_structures_of`)
 
 `proc_technology()` must be called whenever structures are added or removed (handled automatically via `add_structure` / `remove_structure`).
 
@@ -331,17 +333,15 @@ Hide fog for debugging: hold Space (`debug_info` action).
 
 ---
 
-## `Tool` and `StructureSpec` / `Entity.Type` wiring
+## `Tool` wiring and the spec importer
 
-`Tool` (`scripts/entities/tools/tool.gd`): a plain value object with `type: Variant` (an `Entity.Type`) and `packed_scene: PackedScene`. `Tool.command_tool_map` is a static Dictionary keyed by input-action name string:
-```gdscript
-"command_tool_dwelling" → Tool(TC_STRUCTURE_DWELLING, dwelling.tscn)
-"command_tool_technician" → Tool(AN_UNIT_TECHNICIAN, technician.tscn)
-```
+`Tool` (`scripts/entities/tools/tool.gd`): a ControlBinding with `type: StringName` (a piece id) and `packed_scene`. `Tool.command_tool_map` is BUILT FROM GENERATED DATA at startup (`resources/generated/tools.json`, derived from each piece doc's `ui:` frontmatter). Command names follow `command_tool_<id>`. To add a buildable/trainable piece: give its gdd doc a `ui:` key and re-run the importer — no code edit. `Tool.Faction` masks are button-grid layout metadata (collision review), never gameplay gating.
 
-`StructureSpec` (`scripts/entities/structures/structure_spec.gd`): per-type placement checker callable. `StructureSpec.structure_type_spec_map` is the static lookup used by `Build.meets_precondition`.
+**Spec importer** (`tools/spec_import/`, full docs in its README): the gdd docs govern numeric/economy data one-way. `godot --headless -s res://tools/spec_import/import.gd` (or the "Spec Import" editor toolbar menu) validates every doc (loud, total, no fuzzy matching), syncs scenes via text-level .tscn edits (never `PackedScene.pack()` — it flattens inheritance), creates skeleton scenes for docs without `scene:`, and regenerates `scripts/generated/{entity_ids,status_effect_ids}.gd` + `resources/generated/{technology,tools}.json`. Full mode deletes scene-only collection items; incremental preserves them. Balance analysis derives from the same docs via `tools/balance/gdd_to_balance.py`.
 
-`Obstruction` (`scripts/entities/components/obstruction.gd`): a node-child on structures that declares `dimensions: Vector2i` — the footprint in grid cells. `Map.add_structure` reads this to register all occupied cells.
+Every spec carries a generic `id` (the stable game-side key — flavor-neutral, e.g. `anarchical` not `baladians`), a user-facing `title` (display flavor text; `name` is reserved on Godot nodes, so `title` — a faction's title syncs to its scene `faction_name`), and an optional `editor_description` (copied to the scene root node's Godot-native `editor_description`).
+
+`Structure` (`scripts/entities/components/structure.gd`): the node-child that marks an entity as a structure and declares `dimensions: Vector2i` — the footprint in grid cells (doc key `footprint`). `Map.add_structure` reads this to register all occupied cells.
 
 ---
 
@@ -383,7 +383,7 @@ entity.is_in_group("unit")        # unit-flavored (not "is Unit")
 
 1. Player selects Build, picks tool → `command_message.tool` set
 2. `RTSController._resolve_command_class()` returns `Build`
-3. `Build.meets_precondition()` checks: resources, tech prereqs, `StructureSpec.placement_checker(msg, dims)` (all cells in `Obstruction.dimensions` footprint are in-bounds and unoccupied)
+3. `Build.meets_precondition()` checks: resources, tech prereqs, `Structure.valid_placement(msg, dims)` (all cells in the `Structure.dimensions` footprint are in-bounds and unoccupied)
 4. On right-click: `Build.fulfill_action()` → `map.add_entity()` → `map.add_structure()` → `TerrainGrid.place_building()` → `cells_changed` → `NavManager` rebuilds navmesh
 
 ### Terrain height snapping for units
@@ -429,5 +429,7 @@ Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance
 **`CommandContextParser`** replaces `CommandContext` + `CommandContextRegistry` + `CommandContextProvider`: a flat predicate table (static array of `[Callable, command_name_string]`) is the single source of truth for what commands are available to an entity. The old per-type pre-built context objects and the `Pattern`-based evaluation chain are gone.
 
 **`RTSController._resolve_command_class()`** replaces the old `CommandContext.evaluate_command` / `state_maping` sub-context machinery. Command sub-modes (e.g., attack-move) are now a single `pending_command_name: String` on the controller; next right-click resolves it.
+
+**GDD spec pipeline + string ids (2026-07)**: game-piece data is governed by Obsidian docs in `gdd/` (YAML frontmatter) and imported one-way into scenes/generated data by `tools/spec_import` (see §Tool wiring). `Entity.Type` was deleted in favor of `Entity.id: StringName` + generated `EntityIds` consts; `Commander.technology_mapping` and `Tool.command_tool_map` load from generated JSON. The old `tools/balance_export` Godot→YAML exporter was retired (`tools/balance/gdd_to_balance.py` derives dh_balance data from the docs instead).
 
 **Multi-cell structures design**: see `multi-cell-structures.md` for a full design doc. Current code has partial infrastructure (`Obstruction.dimensions`, `Map.add_structure` iterating the rectangle, `TerrainGrid` accepting arbitrary footprint arrays). Known open issue: visual centering for scene-placed structures and `get_grid_coordinates` returning `Vector2` (should be `Vector2i`).

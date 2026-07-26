@@ -15,9 +15,9 @@ extends GutTest
 
 ## --- Helpers ---------------------------------------------------------------
 
-func _make_entity(a_type: int, a_groups: PackedStringArray = PackedStringArray()) -> Entity:
+func _make_entity(a_type: StringName, a_groups: PackedStringArray = PackedStringArray()) -> Entity:
 	var e := Entity.new()
-	e.type = a_type
+	e.id = a_type
 	autofree(e)
 	for g in a_groups:
 		e.add_to_group(g)
@@ -81,7 +81,7 @@ func test_null_entity_returns_empty():
 func test_bare_entity_with_no_components_and_no_groups_returns_empty():
 	# UNDEFINED type, no Movement, no Production, no group memberships —
 	# nothing in RULES should fire.
-	var e := _make_entity(Entity.Type.UNDEFINED)
+	var e := _make_entity(&"")
 	assert_eq(CommandContextParser.commands_for(e), [])
 
 ## --- Unit-flavored predicates ---------------------------------------------
@@ -90,7 +90,7 @@ func test_unit_with_movement_gets_movement_commands():
 	# UNIT_IRREGULAR with both a Movement and an Loadout child stands in for a
 	# generic combat unit. command_move comes from Movement; the attack-flavored
 	# commands come from Loadout.
-	var e := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
+	var e := _make_entity(EntityIds.IRREGULAR, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
 	var cmds := CommandContextParser.commands_for(e)
@@ -104,7 +104,7 @@ func test_attack_range_without_movement_still_has_combat_commands():
 	# loses command_move but keeps every Loadout-flavored command — stop,
 	# attack, AND attack-move (the parser couples both attack commands to the
 	# Loadout predicate).
-	var e := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
+	var e := _make_entity(EntityIds.IRREGULAR, ["unit"])
 	_add_named_child(e, "Loadout")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_false(cmds.has("command_move"))
@@ -115,7 +115,7 @@ func test_attack_range_without_movement_still_has_combat_commands():
 ## --- Structure-flavored predicates ----------------------------------------
 
 func test_structure_with_production_gets_train_and_rally_move():
-	var e := _make_entity(Entity.Type.TC_STRUCTURE_COMPOUND, ["structure"])
+	var e := _make_entity(EntityIds.COMPOUND, ["structure"])
 	_add_named_child(e, "Production")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_train"), "production-bearing structure can train")
@@ -124,18 +124,18 @@ func test_structure_with_production_gets_train_and_rally_move():
 	assert_false(cmds.has("command_attack_move"))
 
 func test_compound_advertises_only_its_train_tools():
-	var e := _make_entity(Entity.Type.TC_STRUCTURE_COMPOUND, ["structure"])
+	var e := _make_entity(EntityIds.COMPOUND, ["structure"])
 	# The Production component's producible_types is the source of truth for what
 	# the structure can train.
-	_add_production(e, [Entity.Type.AN_UNIT_IRREGULAR, Entity.Type.TC_UNIT_VANGUARD])
+	_add_production(e, [EntityIds.IRREGULAR, EntityIds.VANGUARD])
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_tool_irregular"))
 	assert_true(cmds.has("command_tool_vanguard"))
 	assert_false(cmds.has("command_tool_technician"))
 
-func test_outpost_advertises_only_technician_tool():
-	var e := _make_entity(Entity.Type.TC_STRUCTURE_OUTPOST, ["structure"])
-	_add_production(e, [Entity.Type.TC_UNIT_TECHNICIAN])
+func test_structure_advertises_only_its_producibles():
+	var e := _make_entity(EntityIds.STRONGHOLD, ["structure"])
+	_add_production(e, [EntityIds.TECHNICIAN])
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_tool_technician"))
 	assert_false(cmds.has("command_tool_irregular"))
@@ -144,7 +144,7 @@ func test_outpost_advertises_only_technician_tool():
 ## --- Technician (Anima) ----------------------------------------------------
 
 func test_technician_has_build_ability_and_inventory_actions():
-	var e := _make_entity(Entity.Type.TC_UNIT_TECHNICIAN, ["unit"])
+	var e := _make_entity(EntityIds.TECHNICIAN, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
 	# Build capability is component-driven: command_ability/command_build are
@@ -165,7 +165,7 @@ func test_technician_has_build_ability_and_inventory_actions():
 ## --- Vanguard --------------------------------------------------------------
 
 func test_vanguard_has_launch_and_interact():
-	var e := _make_entity(Entity.Type.TC_UNIT_VANGUARD, ["unit"])
+	var e := _make_entity(EntityIds.VANGUARD, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
 	# command_launch is now sourced from the Inventory ability component, not the
@@ -183,7 +183,7 @@ func test_vanguard_has_launch_and_interact():
 ## --- command_available -----------------------------------------------------
 
 func test_command_available_matches_commands_for():
-	var e := _make_entity(Entity.Type.TC_UNIT_VANGUARD, ["unit"])
+	var e := _make_entity(EntityIds.VANGUARD, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
 	_add_inventory(e, [Ability.Type.RADIATION])
@@ -200,11 +200,11 @@ func test_command_available_on_null_returns_false():
 func test_selection_union_combines_disparate_unit_types():
 	# Anima + Compound: parser should expose technician-specific commands AND
 	# compound-train commands in the union.
-	var anima := _make_entity(Entity.Type.TC_UNIT_TECHNICIAN, ["unit"])
+	var anima := _make_entity(EntityIds.TECHNICIAN, ["unit"])
 	_add_named_child(anima, "Movement")
 	_add_named_child(anima, "Builds")
-	var compound := _make_entity(Entity.Type.TC_STRUCTURE_COMPOUND, ["structure"])
-	_add_production(compound, [Entity.Type.AN_UNIT_IRREGULAR, Entity.Type.TC_UNIT_VANGUARD])
+	var compound := _make_entity(EntityIds.COMPOUND, ["structure"])
+	_add_production(compound, [EntityIds.IRREGULAR, EntityIds.VANGUARD])
 
 	var cmds := CommandContextParser.commands_for_selection([anima, compound])
 	assert_true(cmds.has("command_ability"), "anima contributes ability")
@@ -215,10 +215,10 @@ func test_selection_union_combines_disparate_unit_types():
 func test_selection_deduplicates_shared_commands():
 	# Two units of the same type — every shared command name should appear
 	# exactly once in the union.
-	var a := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
+	var a := _make_entity(EntityIds.IRREGULAR, ["unit"])
 	_add_named_child(a, "Movement")
 	_add_named_child(a, "Loadout")
-	var b := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
+	var b := _make_entity(EntityIds.IRREGULAR, ["unit"])
 	_add_named_child(b, "Movement")
 	_add_named_child(b, "Loadout")
 	var cmds := CommandContextParser.commands_for_selection([a, b])
@@ -226,7 +226,7 @@ func test_selection_deduplicates_shared_commands():
 	assert_eq(occurrences, 1, "shared command appears once in the union")
 
 func test_selection_ignores_invalid_entries():
-	var e := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
+	var e := _make_entity(EntityIds.IRREGULAR, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Loadout")
 	# Mix in nulls and a non-Entity object; parser should skip them silently.
@@ -240,13 +240,13 @@ func test_selection_ignores_invalid_entries():
 func test_technician_build_tools_are_the_buildable_structures():
 	# build_tools_for mirrors Build.tool_applies_to: it offers exactly the tools
 	# whose structure type is listed in the builder's Builds component.
-	var e := _make_entity(Entity.Type.TC_UNIT_TECHNICIAN, ["unit"])
+	var e := _make_entity(EntityIds.TECHNICIAN, ["unit"])
 	_add_builds(e, [
-		Entity.Type.TC_STRUCTURE_DWELLING,
-		Entity.Type.NT_STRUCTURE_MINE,
-		Entity.Type.TC_STRUCTURE_LAB,
-		Entity.Type.TC_STRUCTURE_COMPOUND,
-		Entity.Type.TC_STRUCTURE_ARMORY,
+		EntityIds.DWELLING,
+		EntityIds.MINE,
+		EntityIds.LAB,
+		EntityIds.COMPOUND,
+		EntityIds.ARMORY,
 	])
 	var tools := CommandContextParser.tools_for(e, ControlBinding.ControlContext.BUILD)
 	assert_true(tools.has("command_tool_dwelling"))
@@ -256,7 +256,7 @@ func test_technician_build_tools_are_the_buildable_structures():
 	assert_true(tools.has("command_tool_armory"))
 
 func test_non_builder_has_no_build_tools():
-	var e := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
+	var e := _make_entity(EntityIds.IRREGULAR, ["unit"])
 	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.BUILD), [])
 
 func test_build_tools_for_null_is_empty():
@@ -266,7 +266,7 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 	# Build tools live behind the Build sub-menu (queried via build_tools_for),
 	# NOT in the unit's base command set — otherwise they'd clutter the flat HUD
 	# and the selection union. The Build entry point itself must still be there.
-	var e := _make_entity(Entity.Type.TC_UNIT_TECHNICIAN, ["unit"])
+	var e := _make_entity(EntityIds.TECHNICIAN, ["unit"])
 	_add_named_child(e, "Movement")
 	_add_named_child(e, "Builds")
 	var cmds := CommandContextParser.commands_for(e)
@@ -276,13 +276,13 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 ## --- train_tools_for: production-driven menu -------------------------------
 
 func test_train_tools_for_reads_production_component():
-	var e := _make_entity(Entity.Type.TC_STRUCTURE_COMPOUND, ["structure"])
-	_add_production(e, [Entity.Type.AN_UNIT_IRREGULAR])
+	var e := _make_entity(EntityIds.COMPOUND, ["structure"])
+	_add_production(e, [EntityIds.IRREGULAR])
 	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), ["command_tool_irregular"])
 
 func test_train_tools_for_entity_without_production_is_empty():
 	# A producer-less entity (e.g. a plain unit) offers no train tools.
-	var e := _make_entity(Entity.Type.AN_UNIT_IRREGULAR, ["unit"])
+	var e := _make_entity(EntityIds.IRREGULAR, ["unit"])
 	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), [])
 
 func test_train_tools_for_null_is_empty():
@@ -294,19 +294,19 @@ func test_train_tools_for_null_is_empty():
 ## surfacing line up for a given producible_types set.
 
 func test_technician_producer_surfaces_technician_tool():
-	var producer := _make_entity(Entity.Type.TC_STRUCTURE_OUTPOST, ["structure"])
-	_add_production(producer, [Entity.Type.TC_UNIT_TECHNICIAN])
-	assert_true(producer.get_node("Production").can_produce(Entity.Type.TC_UNIT_TECHNICIAN),
+	var producer := _make_entity(EntityIds.STRONGHOLD, ["structure"])
+	_add_production(producer, [EntityIds.TECHNICIAN])
+	assert_true(producer.get_node("Production").can_produce(EntityIds.TECHNICIAN),
 		"a producer with TECHNICIAN in producible_types trains technicians")
 	assert_true(CommandContextParser.commands_for(producer).has("command_tool_technician"))
 
 func test_irregular_and_vanguard_producer_surfaces_both_tools():
-	var producer := _make_entity(Entity.Type.TC_STRUCTURE_COMPOUND, ["structure"])
-	_add_production(producer, [Entity.Type.AN_UNIT_IRREGULAR, Entity.Type.TC_UNIT_VANGUARD])
+	var producer := _make_entity(EntityIds.COMPOUND, ["structure"])
+	_add_production(producer, [EntityIds.IRREGULAR, EntityIds.VANGUARD])
 	var prod := producer.get_node("Production") as Production
-	assert_true(prod.can_produce(Entity.Type.AN_UNIT_IRREGULAR), "produces irregulars")
-	assert_true(prod.can_produce(Entity.Type.TC_UNIT_VANGUARD), "produces vanguards")
-	assert_false(prod.can_produce(Entity.Type.TC_UNIT_TECHNICIAN), "does not produce technicians")
+	assert_true(prod.can_produce(EntityIds.IRREGULAR), "produces irregulars")
+	assert_true(prod.can_produce(EntityIds.VANGUARD), "produces vanguards")
+	assert_false(prod.can_produce(EntityIds.TECHNICIAN), "does not produce technicians")
 	var cmds := CommandContextParser.commands_for(producer)
 	assert_true(cmds.has("command_tool_irregular"))
 	assert_true(cmds.has("command_tool_vanguard"))

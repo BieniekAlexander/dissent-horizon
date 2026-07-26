@@ -1,16 +1,15 @@
 """Unit tests for the faction-distinctness heuristics."""
 from dh_balance import distinctness as dn
-from dh_balance.loader import load_world
 from dh_balance.model import (
     Armour, Buildable, Cost, DamageTable, DamageType, Frame, Layer, Projectile, Weapon,
 )
 
-# LEAD favours LIGHT, LAZER favours HEAVY (opposite ends); TOXIN is neutral.
+# LEAD favours LIGHT, LAZER favours HEAVY (opposite ends); TOXIC is neutral.
 TABLE = DamageTable(
     vs_armour={
         DamageType.LEAD: {Armour.LIGHT: 1.0, Armour.MEDIUM: 0.5, Armour.HEAVY: 0.1},
         DamageType.LAZER: {Armour.LIGHT: 0.1, Armour.MEDIUM: 0.75, Armour.HEAVY: 1.5},
-        DamageType.TOXIN: {Armour.LIGHT: 1.0, Armour.MEDIUM: 1.0, Armour.HEAVY: 1.0},
+        DamageType.TOXIC: {Armour.LIGHT: 1.0, Armour.MEDIUM: 1.0, Armour.HEAVY: 1.0},
     },
     vs_attribute={}, vs_frame={},
 )
@@ -46,21 +45,21 @@ def test_weapon_difference_reach_buckets():
 
 def test_weapon_difference_damage_type():
     lead, lazer = wpn(dtype=DamageType.LEAD), wpn(dtype=DamageType.LAZER)
-    toxin = wpn(dtype=DamageType.TOXIN)
+    toxin = wpn(dtype=DamageType.TOXIC)
     assert dn.weapon_difference(TABLE, lead, lazer) == dn.DAMAGE_TYPE_DIFF + dn.DAMAGE_GREATLY_DIFF
     assert dn.weapon_difference(TABLE, lead, toxin) == dn.DAMAGE_TYPE_DIFF      # differ, not greatly
 
 
 def test_damage_types_greatly_differ():
     assert dn.damage_types_greatly_differ(TABLE, DamageType.LEAD, DamageType.LAZER)
-    assert not dn.damage_types_greatly_differ(TABLE, DamageType.LEAD, DamageType.TOXIN)
+    assert not dn.damage_types_greatly_differ(TABLE, DamageType.LEAD, DamageType.TOXIC)
     assert not dn.damage_types_greatly_differ(TABLE, DamageType.LEAD, DamageType.LEAD)
 
 
 # --- unit-level differences ------------------------------------------------- #
 def test_loadout_difference_overlap_and_unarmed():
     a = unit(weapons=[wpn(dtype=DamageType.LEAD), wpn(dtype=DamageType.LAZER)])
-    b = unit(weapons=[wpn(dtype=DamageType.TOXIN), wpn(dtype=DamageType.LEAD)])
+    b = unit(weapons=[wpn(dtype=DamageType.TOXIC), wpn(dtype=DamageType.LEAD)])
     assert dn.loadout_difference(TABLE, a, b) == 0.0          # both field a LEAD gun
     assert dn.loadout_difference(TABLE, unit(weapons=[]), unit()) == dn.UNARMED_VS_ARMED
     assert dn.loadout_difference(TABLE, unit(weapons=[]), unit(weapons=[])) == 0.0
@@ -105,16 +104,16 @@ def test_most_similar_pair_finds_the_twins():
     assert pair is not None and pair.unit_b == "f:b_twin" and pair.distinctness == 0.0
 
 
-def test_set_distinctness_of_roster_against_itself_is_zero():
-    w = load_world()
+def test_set_distinctness_of_roster_against_itself_is_zero(world):
+    w = world
     units = w.factions["iron_regime"].units()
     assert dn.set_distinctness(w.damage, units, units) == 0.0
 
 
 # --- query integration ------------------------------------------------------ #
-def test_faction_distinctness_and_matrix_on_fixture():
+def test_faction_distinctness_and_matrix_on_fixture(world):
     from dh_balance import queries
-    w = load_world()
+    w = world
     r = queries.faction_distinctness(w, "iron_regime", "sky_nomads")
     assert r.a_to_b >= 0.0 and r.b_to_a >= 0.0
     assert r.most_similar is not None

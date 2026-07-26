@@ -15,7 +15,7 @@ height = 100.0
 radius = 5.0
 
 [node name="Badger" unique_id=716209437 instance=ExtResource("1_v5yox")]
-type = 12546
+id = &"badger"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_scm32")
@@ -56,12 +56,6 @@ visible = true
 
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=1543182780]
 visible = false
-
-[node name="Sprite" parent="." index="15" unique_id=1381401170]
-transform = Transform3D(3, 0, 0, 0, 1.0606601, -2.1213202, 0, 1.0606601, 2.1213202, 0, 0.17100573, 0)
-flip_h = true
-texture = ExtResource("2_pc78a")
-hframes = 3
 
 [node name="HPBar" parent="." index="16" unique_id=665391337]
 transform = Transform3D(0.1665, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.36494198, -0.15404376)

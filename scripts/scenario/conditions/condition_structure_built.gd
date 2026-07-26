@@ -5,7 +5,7 @@ extends Condition
 ## -1 = any commander owns it.
 @export var commander_id: int = -1
 ## UNDEFINED = any structure type.
-@export var structure_type: Entity.Type = Entity.Type.UNDEFINED
+@export var structure_type: StringName = &""
 ## (-1,-1) = ignore location; otherwise the exact grid cell must be occupied.
 @export var grid_cell: Vector2i = Vector2i(-1, -1)
 #endregion
@@ -23,7 +23,7 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 		if occupant == null or not occupant is Commandable:
 			return false
 		var c := occupant as Commandable
-		if structure_type != Entity.Type.UNDEFINED and c.type != structure_type:
+		if structure_type != &"" and c.id != structure_type:
 			return false
 		if commander_id >= 0 and c.commander_id != commander_id:
 			return false
@@ -33,10 +33,8 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 	for commander: Commander in manager.scenario.commanders:
 		if commander_id >= 0 and commander.id != commander_id:
 			continue
-		if structure_type == Entity.Type.UNDEFINED:
-			for t: int in Entity.Type.values():
-				if t < 0:
-					continue
+		if structure_type == &"":
+			for t: StringName in commander.structure_type_map:
 				if commander.has_built_structure(t):
 					return true
 		else:

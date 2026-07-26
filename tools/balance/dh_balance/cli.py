@@ -4,6 +4,7 @@
     python -m dh_balance unanswered <attacker> <defender>
     python -m dh_balance tier-gap <low_faction> <low_tier> <high_faction> <high_tier>
     python -m dh_balance tiers <faction>
+    python -m dh_balance mermaid <faction>
     python -m dh_balance list
 """
 from __future__ import annotations
@@ -20,6 +21,38 @@ def _fmt_xc(xc: float) -> str:
     return "INF (cannot hit)" if math.isinf(xc) else f"{xc:.0f}"
 
 
+def _mermaid_placeholder(label: str, why: str) -> str:
+    """A one-node stand-in for a graph that cannot be drawn. A bodyless
+    flowchart renders as an unexplained blank box, so state the reason."""
+    return f'flowchart LR\n    empty["{label}: {why}"]'
+
+
+def _mermaid(faction, reachable_only: bool) -> str:
+    """A ``flowchart LR`` rendering of ``faction``'s tech DAG (graph.tech_graph),
+    one node per buildable and one edge per requires-link. Units render as
+    stadium shapes, structures as rectangles. ``reachable_only`` restricts to
+    graph.reachable_from(faction), matching the balance queries' default."""
+    g = graph.tech_graph(faction)
+    nodes = set(g.nodes)
+    if reachable_only:
+        nodes &= graph.reachable_from(faction)
+
+    if not nodes:
+        return _mermaid_placeholder(
+            faction.id,
+            "no starts_with in the faction doc, so nothing is reachable"
+            if not faction.starts_with else "nothing reachable from starts_with")
+
+    lines = ["flowchart LR"]
+    for node in sorted(nodes):
+        b = faction.buildables[node]
+        open_b, close_b = ("([", "])") if b.is_unit else ("[", "]")
+        lines.append(f'    {node}{open_b}"{b.name}"{close_b}')
+    for u, v in sorted(e for e in g.edges if e[0] in nodes and e[1] in nodes):
+        lines.append(f"    {u} --> {v}")
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="dh_balance", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -31,6 +64,11 @@ def main(argv: list[str] | None = None) -> int:
     sp = sub.add_parser("list", help="list factions and units")
     sp = sub.add_parser("tiers", help="show tech tiers for a faction")
     sp.add_argument("faction")
+    sp = sub.add_parser("mermaid", help="tech DAG as a Mermaid flowchart (for Obsidian/docs embedding)")
+    sp.add_argument("faction", nargs="?", help="omit with --all for every faction")
+    sp.add_argument("--all", action="store_true", help="emit one flowchart per faction")
+    sp.add_argument("--full", action="store_true",
+                    help="include buildables unreachable from starts_with too (default: reachable-only)")
     sp = sub.add_parser("obsolete", help="units off the Pareto frontier")
     sp.add_argument("faction")
     sp = sub.add_parser("unanswered", help="threats A has that B can't answer")
@@ -118,6 +156,27 @@ def main(argv: list[str] | None = None) -> int:
         for uid, tier in sorted(graph.tech_tiers(world.factions[args.faction]).items(),
                                 key=lambda kv: kv[1]):
             print(f"T{tier}  {uid}")
+
+    elif args.cmd == "mermaid":
+        if not args.all and not args.faction:
+            print("provide a faction, or --all for every faction.")
+            return 2
+        fids = list(world.factions) if args.all else [args.faction]
+        for fid in fids:
+            if args.all:
+                print(f"## {fid}\n")
+            faction = world.factions.get(fid)
+            print("```mermaid")
+            if faction is None:
+                # A faction with no unit/structure docs yet — it never reaches
+                # the export at all. Draw the moot graph rather than failing.
+                print(_mermaid_placeholder(fid, "no pieces authored yet"))
+            else:
+                faction = graph.with_external_buildables(world, faction)
+                print(_mermaid(faction, reachable_only=not args.full))
+            print("```")
+            if args.all:
+                print()
 
     elif args.cmd == "obsolete":
         res = queries.obsolete_units(world, args.faction)

@@ -15,5 +15,9 @@ extends EditorMarkerSprite3D
 ## owns its own Command/CommandMessage (they ref-count the message and must never
 ## be shared). Returns null if no valid command can be produced (e.g. no matching
 ## targets exist yet); callers must skip null entries.
-func to_command(_manager: ScenarioTriggerManager) -> MoveCommand:
+##
+## `post_offset` is a per-unit planar offset applied to positional destinations so a group
+## fans into a formation instead of stacking on one point (subclasses that target an entity
+## rather than a position ignore it).
+func to_command(_manager: ScenarioTriggerManager, _post_offset: Vector3 = Vector3.ZERO) -> MoveCommand:
 	return null

@@ -11,100 +11,102 @@ const _ROAR := preload("res://assets/audio/didgeridoo-monster-roar.mp3")
 const _HOOT := preload("res://assets/audio/hoot.wav")
 
 static var lines: Dictionary = {
-	# Fallback voice lines, played for any entity whose type has no entry of its own
-	# (and for UNDEFINED-typed entities). _validate() skips UNDEFINED, so this entry
+	# Fallback voice lines, played for any entity whose id has no entry of its own
+	# (and for empty-id entities). _validate() skips the fallback, so this entry
 	# is optional to the validation but lets the player always have something to play.
-	Entity.Type.UNDEFINED: {
+	&"": {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.TC_UNIT_TECHNICIAN: {
-		LineType.SELECTED: [_HOOT],
-		LineType.ISSUED_COMMAND: [_ROAR],
-		LineType.ISSUED_ATTACK: [_ROAR],
-	},
-	Entity.Type.AN_UNIT_IRREGULAR: {
-		LineType.SELECTED: [_ROAR],
-		LineType.ISSUED_COMMAND: [_HOOT],
-		LineType.ISSUED_ATTACK: [_ROAR],
-	},
-	Entity.Type.TC_UNIT_VANGUARD: {
+	EntityIds.TECHNICIAN: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.AN_UNIT_WARLORD: {
-		LineType.SELECTED: [_ROAR],
-		LineType.ISSUED_COMMAND: [_ROAR],
-		LineType.ISSUED_ATTACK: [_ROAR],
-	},
-	Entity.Type.AN_UNIT_KAMIKAZE: {
-		LineType.SELECTED: [_HOOT],
-		LineType.ISSUED_COMMAND: [_HOOT],
-		LineType.ISSUED_ATTACK: [_ROAR],
-	},
-	Entity.Type.CL_UNIT_RECRUIT: {
-		LineType.SELECTED: [_HOOT],
-		LineType.ISSUED_COMMAND: [_HOOT],
-		LineType.ISSUED_ATTACK: [_ROAR],
-	},
-	Entity.Type.CL_UNIT_BADGER: {
+	EntityIds.IRREGULAR: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.TC_STRUCTURE_OUTPOST: {
-		LineType.SELECTED: [_ROAR],
-		LineType.ISSUED_COMMAND: [_HOOT],
-		LineType.ISSUED_ATTACK: [_ROAR],
-	},
-	Entity.Type.TC_STRUCTURE_DWELLING: {
+	EntityIds.VANGUARD: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.NT_STRUCTURE_MINE: {
+	EntityIds.WARLORD: {
+		LineType.SELECTED: [_ROAR],
+		LineType.ISSUED_COMMAND: [_ROAR],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	EntityIds.KAMIKAZE: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	EntityIds.RECRUIT: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	EntityIds.BADGER: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.TC_STRUCTURE_LAB: {
-		LineType.SELECTED: [_HOOT],
-		LineType.ISSUED_COMMAND: [_ROAR],
-		LineType.ISSUED_ATTACK: [_ROAR],
-	},
-	Entity.Type.TC_STRUCTURE_COMPOUND: {
+	&"outpost": {   # no spec doc yet (scene missing); raw id keeps the lines wired
+	
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.TC_STRUCTURE_ARMORY: {
+	EntityIds.DWELLING: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.CL_STRUCTURE_CANNON: {
+	EntityIds.MINE: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.CL_STRUCTURE_SAM: {
+	EntityIds.LAB: {
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_ROAR],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	EntityIds.COMPOUND: {
 		LineType.SELECTED: [_ROAR],
 		LineType.ISSUED_COMMAND: [_HOOT],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.NT_STRUCTURE_DEPOSIT: {
+	EntityIds.ARMORY: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.NT_STRUCTURE_SHELTER: {
+	EntityIds.CANNON: {
+		LineType.SELECTED: [_ROAR],
+		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	EntityIds.SAM: {
+		LineType.SELECTED: [_ROAR],
+		LineType.ISSUED_COMMAND: [_HOOT],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	EntityIds.DEPOSIT: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
 	},
-	Entity.Type.AN_STRUCTURE_STRONGHOLD: {
+	&"shelter": {   # no spec doc yet (root isn't an Entity); raw id keeps the lines wired
+	
+		LineType.SELECTED: [_HOOT],
+		LineType.ISSUED_COMMAND: [_ROAR],
+		LineType.ISSUED_ATTACK: [_ROAR],
+	},
+	EntityIds.STRONGHOLD: {
 		LineType.SELECTED: [_HOOT],
 		LineType.ISSUED_COMMAND: [_ROAR],
 		LineType.ISSUED_ATTACK: [_ROAR],
@@ -119,18 +121,20 @@ static func _static_init() -> void:
 
 #region Private helpers
 static func _validate() -> void:
-	for entity_type: Entity.Type in Entity.Type.values():
-		if entity_type < 0:
+	# Completeness is checked against the generated piece-id registry (EntityIds),
+	# so a newly doc'd piece immediately flags its missing voice lines here.
+	var piece_ids: Dictionary = (EntityIds as Script).get_script_constant_map()
+	for const_name in piece_ids:
+		var entity_id: StringName = piece_ids[const_name]
+		if not lines.has(entity_id):
+			push_error("ControlFeedbackSounds: missing entry for piece '%s'" % entity_id)
 			continue
-		if not lines.has(entity_type):
-			push_error("ControlFeedbackSounds: missing entry for Entity.Type.%s" % Entity.Type.find_key(entity_type))
-			continue
-		var type_lines: Dictionary = lines[entity_type]
+		var type_lines: Dictionary = lines[entity_id]
 		for line_type: LineType in LineType.values():
 			assert(type_lines.has(line_type),
-					"ControlFeedbackSounds: Entity.Type.%s missing LineType.%s" % [
-						Entity.Type.find_key(entity_type), LineType.find_key(line_type)])
+					"ControlFeedbackSounds: piece '%s' missing LineType.%s" % [
+						entity_id, LineType.find_key(line_type)])
 			assert((type_lines[line_type] as Array).size() > 0,
-					"ControlFeedbackSounds: Entity.Type.%s LineType.%s has empty audio list" % [
-						Entity.Type.find_key(entity_type), LineType.find_key(line_type)])
+					"ControlFeedbackSounds: piece '%s' LineType.%s has empty audio list" % [
+						entity_id, LineType.find_key(line_type)])
 #endregion

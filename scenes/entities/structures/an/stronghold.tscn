@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="3_prod0"]
 
 [node name="Structure" unique_id=1969097380 instance=ExtResource("1_emt25")]
-type = 8704
+id = &"stronghold"
 vigor_required = 40
 
 [node name="Structure" parent="." index="7" unique_id=390859349]
@@ -17,8 +17,4 @@ hp_max = 500.0
 
 [node name="Production" type="Node" parent="." index="10" unique_id=2107909945]
 script = ExtResource("3_prod0")
-producible_types = Array[int]([8451, 8449, 8454])
-
-[node name="Sprite" parent="." index="14" unique_id=1381401170]
-transform = Transform3D(7.5, 0, 0, 0, 2.4748738, -4.9497476, 0, 2.4748738, 4.9497476, -0.028815746, 0.45, -0.5472431)
-texture = ExtResource("2_pig0v")
+producible_types = Array[StringName]([&"warlord", &"irregular", &"sapper"])

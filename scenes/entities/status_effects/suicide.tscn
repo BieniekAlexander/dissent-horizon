@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://dhb6ybl0nlc3f"]
+
+[ext_resource type="Script" uid="uid://2o4hxulrei0s" path="res://scripts/entities/effects/suicide_status_effect.gd" id="1_suicide"]
+
+[node name="Suicide" type="Node"]
+script = ExtResource("1_suicide")
+metadata/_custom_type_script = "uid://2o4hxulrei0s"

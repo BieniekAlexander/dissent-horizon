@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://cl268o2nx6nni"]
+
+[ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/entities/units/unit.tscn" id="1_base"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_vision_range"]
+height = 100.0
+radius = 7.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_aggro_range"]
+height = 100.0
+radius = 4.0
+
+[node name="Chinook" instance=ExtResource("1_base")]
+id = &"chinook"
+
+[node name="Defense" parent="." index="8"]
+hp_max = 220.0
+frame_type = 1
+
+[node name="VisionRange" parent="." index="5"]
+shape = SubResource("CylinderShape3D_vision_range")
+
+[node name="AggroRange" parent="." index="4"]
+shape = SubResource("CylinderShape3D_aggro_range")
+
+[node name="Movement" parent="." index="7"]
+mode = 16
+speed = 2.4
+turn_rate = 720.0

@@ -35,7 +35,7 @@ enum Priority {
 #endregion
 
 #region Public API
-func to_command(manager: ScenarioTriggerManager) -> MoveCommand:
+func to_command(manager: ScenarioTriggerManager, _post_offset: Vector3 = Vector3.ZERO) -> MoveCommand:
 	var spawning_id: int = _spawning_commander_id()
 	var candidates: Array = _enemy_candidates(manager, spawning_id)
 	if candidates.is_empty():

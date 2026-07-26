@@ -12,7 +12,7 @@ height = 100.0
 radius = 15.0
 
 [node name="Structure" unique_id=817652821 instance=ExtResource("1_rkgck")]
-type = 512
+id = &"building"
 
 [node name="AggroRange" parent="." index="4" unique_id=131280482]
 shape = SubResource("CylinderShape3D_hsrtd")

@@ -1,0 +1,224 @@
+{
+	"armory": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"ore": 150,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"badger": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"ore": 200,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"barracks": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"ore": 300,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"chinook": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"ore": 350,
+			"vigor": 0
+		},
+		"requires": [
+			"hangar"
+		]
+	},
+	"compound": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"ore": 300,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"dwelling": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"ore": 150,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"field_hospital": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"ore": 250,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"hangar": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"ore": 500,
+			"vigor": 0
+		},
+		"requires": [
+			"stronghold"
+		]
+	},
+	"internment_camp": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"ore": 300,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"irregular": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"ore": 75,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"kamikaze": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"ore": 200,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"lab": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"ore": 300,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"mercury": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"ore": 300,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"mine": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"ore": 200,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"power_plant": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"ore": 200,
+			"vigor": 0
+		},
+		"requires": [
+			"internment_camp"
+		]
+	},
+	"recruit": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"ore": 100,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"safehouse": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"ore": 150,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"sapper": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"ore": 125,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"settlement": {
+		"build_time_ticks": 1350,
+		"cost": {
+			"dominion": 0,
+			"ore": 400,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"stronghold": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"ore": 400,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"supply_truck": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"ore": 600,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"technician": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"ore": 100,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"vanguard": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"ore": 200,
+			"vigor": 0
+		},
+		"requires": []
+	},
+	"warlord": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"ore": 250,
+			"vigor": 0
+		},
+		"requires": []
+	}
+}

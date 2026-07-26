@@ -24,7 +24,7 @@ height = 100.0
 radius = 0.3
 
 [node name="Kamikaze" unique_id=440012001 instance=ExtResource("1_unit")]
-type = 8452
+id = &"kamikaze"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 shape = SubResource("CylinderShape3D_body")
@@ -65,12 +65,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
 
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=1543182780]
 shape = SubResource("SphereShape3D_sel")
-
-[node name="Sprite" parent="." index="14" unique_id=1381401170]
-transform = Transform3D(1.5, 0, 0, 0, 1.0606601, -1.0606601, 0, 1.0606601, 1.0606601, 0, 0.17003015, 0)
-texture_filter = 0
-texture = ExtResource("2_tex")
-hframes = 3
 
 [node name="Inventory" type="Node" parent="." index="19" unique_id=1765311699]
 script = ExtResource("6_inv")

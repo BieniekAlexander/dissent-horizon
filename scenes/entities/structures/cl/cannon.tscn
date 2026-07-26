@@ -18,7 +18,7 @@ radius = 10.0
 radius = 10.0
 
 [node name="HCannon" unique_id=763468474 instance=ExtResource("1_strct")]
-type = 12809
+id = &"cannon"
 
 [node name="MovementBody" parent="." index="2" unique_id=1991558196]
 visible = false
@@ -49,10 +49,6 @@ hp_max = 500.0
 [node name="SelectionShape" parent="Selectable" parent_id_path=PackedInt32Array(2049500591) index="0" unique_id=1543182780]
 visible = false
 debug_color = Color(0.2, 0.9, 0.3, 0.3)
-
-[node name="Sprite" parent="." index="13" unique_id=1381401170]
-transform = Transform3D(9, 0, 0, 0, 2.4748738, -5.656854, 0, 2.4748738, 5.656854, -0.029706955, 0.45, -0.96627045)
-texture = ExtResource("5_tex")
 
 [node name="Loadout" type="Node3D" parent="." index="14" unique_id=369583052]
 script = ExtResource("2_lout")

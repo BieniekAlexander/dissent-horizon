@@ -14,7 +14,7 @@ height = 100.0
 radius = 3.5
 
 [node name="Carronade" unique_id=716209437 instance=ExtResource("1_gmg2f")]
-type = 12544
+id = &"supply_truck"
 
 [node name="NavigationAgent" parent="." index="1" unique_id=1153039146]
 radius = 0.75

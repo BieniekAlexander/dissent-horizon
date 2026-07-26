@@ -1,0 +1,58 @@
+# Catalog of shareable weapons (id -> weapon). A ranged weapon references a
+# projectile by id; a melee weapon omits `projectile` and uses melee_damage.
+# Referenced by id from faction buildables. DEMO data — Phase 2 regenerates.
+weapons:
+  rifle:
+    name: Rifle
+    projectile: lead_round_8        # shared projectile
+    split_time: 12
+    reload_time: 12
+    clip_size: 1
+    reach: 5.0
+    hits: [ground]
+
+  old_rifle:
+    name: Old Rifle
+    projectile: lead_round_6
+    split_time: 14
+    reload_time: 14
+    clip_size: 1
+    reach: 4.5
+    hits: [ground]
+
+  cannon:
+    name: Cannon
+    projectile: shell_explosive_50
+    split_time: 45
+    reload_time: 45
+    clip_size: 1
+    reach: 7.5
+    hits: [ground]                  # cannot hit air -> the Regime's blind spot
+
+  carbine:
+    name: Carbine
+    projectile: lead_round_8        # same shared projectile as `rifle`
+    split_time: 11
+    reload_time: 11
+    clip_size: 1
+    reach: 5.0
+    hits: [ground]
+
+  toxin_blade:
+    name: Toxin Blade               # melee: no projectile
+    melee_damage: 12
+    melee_damage_type: TOXIC
+    split_time: 20
+    reload_time: 20
+    clip_size: 1
+    reach: 3.0
+    hits: [ground]
+
+  beam:
+    name: Beam
+    projectile: lazer_beam          # carries the burn_dot_20 status effect
+    split_time: 40
+    reload_time: 40
+    clip_size: 1
+    reach: 15.0
+    hits: [ground, air]

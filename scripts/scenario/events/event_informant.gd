@@ -6,7 +6,7 @@ class_name EventInformant extends EventTargetUnit
 ## Commandable ticks it and the sprite fades. No-op if it is already stealthed.
 
 func _required_type() -> Variant:
-	return Entity.Type.AN_UNIT_IRREGULAR
+	return EntityIds.IRREGULAR
 
 func execute(manager: ScenarioTriggerManager) -> void:
 	var target: Commandable = _find_target_unit(manager)
