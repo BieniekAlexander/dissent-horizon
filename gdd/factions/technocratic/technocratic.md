@@ -25,6 +25,13 @@
 # Specifics
 ## Tech Tree
 
+<!-- tech-graph:start -->
+```mermaid
+flowchart LR
+    empty["technocratic: no starts_with in the faction doc, so nothing is reachable"]
+```
+<!-- tech-graph:end -->
+
 ```dataviewjs
 await dv.view("_scripts/tech-graph")
 ```

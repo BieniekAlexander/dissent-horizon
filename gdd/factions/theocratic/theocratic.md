@@ -11,6 +11,13 @@
 # Specifics
 # Tech Tree
 
+<!-- tech-graph:start -->
+```mermaid
+flowchart LR
+    empty["theocratic: no pieces authored yet"]
+```
+<!-- tech-graph:end -->
+
 ```dataviewjs
 await dv.view("_scripts/tech-graph")
 ```

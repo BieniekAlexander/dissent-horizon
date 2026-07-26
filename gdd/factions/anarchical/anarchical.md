@@ -38,6 +38,30 @@ world-building lore — see [[world-building#Baladians]]).
 # Specifics
 ## Tech Tree
 
+<!-- tech-graph:start -->
+```mermaid
+flowchart LR
+    chinook(["chinook"])
+    field_hospital["field_hospital"]
+    hangar["hangar"]
+    irregular(["irregular"])
+    kamikaze(["kamikaze"])
+    mercury(["mercury"])
+    mine["mine"]
+    safehouse["safehouse"]
+    sapper(["sapper"])
+    stronghold["stronghold"]
+    warlord(["warlord"])
+    hangar --> chinook
+    hangar --> kamikaze
+    hangar --> mercury
+    stronghold --> hangar
+    stronghold --> irregular
+    stronghold --> sapper
+    stronghold --> warlord
+```
+<!-- tech-graph:end -->
+
 ```dataviewjs
 await dv.view("_scripts/tech-graph")
 ```
