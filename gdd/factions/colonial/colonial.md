@@ -37,6 +37,25 @@ world-building lore — see [[world-building#Haustoria]]).
 # Specifics
 ## Tech Tree
 
+<!-- tech-graph:start -->
+```mermaid
+flowchart LR
+    badger(["badger"])
+    barracks["barracks"]
+    cannon["cannon"]
+    internment_camp["internment_camp"]
+    power_plant["power_plant"]
+    recruit(["recruit"])
+    sam["sam"]
+    settlement["settlement"]
+    supply_truck(["supply_truck"])
+    barracks --> badger
+    barracks --> recruit
+    internment_camp --> power_plant
+    settlement --> supply_truck
+```
+<!-- tech-graph:end -->
+
 ```dataviewjs
 await dv.view("_scripts/tech-graph")
 ```
