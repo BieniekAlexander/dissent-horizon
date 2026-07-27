@@ -15,6 +15,28 @@ extends Area3D
 ## component lookups. This is the boundary that keeps composition from
 ## collapsing back into implicit coupling.
 
+## Whether the player may add this entity to a SELECTION.
+##
+## False for a piece that exists on the field but is nobody's to command — the Scan
+## sanction's recon drone. Godot cannot remove a node inherited from a base scene, so the
+## component is unavoidable; this is how it is switched off.
+##
+## Expressed as a flag rather than by clearing the node's collision_layer, and that
+## distinction cost a bug: the SELECTION layer is what the CURSOR picks against
+## (RTSController.get_cursor_target), so a layerless Selectable also became impossible to
+## right-click — the drone could not be attacked. Worse, it did not even work: box-select
+## reads the "selectables" GROUP rather than the layer, so a drag still caught it. The flag
+## is honoured at the one choke point both paths share (select, below), and the entity
+## stays pickable, which is what makes it a legal ATTACK target.
+@export var selectable_by_player: bool = true
+
+
+## Whether the player can select this entity — the question Commander.has_anything_in_play
+## asks, where "can they still do anything" is what is really meant.
+func is_reachable() -> bool:
+	return selectable_by_player
+
+
 #region Signals
 signal state_changed(old_state: int, new_state: int)
 #endregion
@@ -65,24 +87,29 @@ var state: int:
 	set(value):
 		set_state(value)
 
-func set_state(new_state: int) -> bool:
+func set_state(a_new_state: int) -> bool:
 	## Returns true if the state actually changed.
-	if not enabled and new_state != State.UNSELECTED:
+	if not enabled and a_new_state != State.UNSELECTED:
 		return false
-	if new_state == _state:
+	if a_new_state == _state:
 		return false
 	var old: int = _state
-	_state = new_state
-	if new_state == State.SELECTED:
+	_state = a_new_state
+	if a_new_state == State.SELECTED:
 		last_selected_time = Time.get_ticks_msec()
 	_refresh_indicator()
-	state_changed.emit(old, new_state)
+	state_changed.emit(old, a_new_state)
 	return true
 
 func is_selected() -> bool:
 	return _state == State.SELECTED
 
+## Both selection paths — the click in RTSController.set_selection and the box drag below
+## it — go through here and honour the returned bool, so refusing here is the whole of
+## "this cannot be selected".
 func select() -> bool:
+	if not selectable_by_player:
+		return false
 	return set_state(State.SELECTED)
 
 func deselect() -> bool:
@@ -91,8 +118,8 @@ func deselect() -> bool:
 func get_entity() -> Entity:
 	return get_parent() as Entity
 
-func set_indicator(indicator: Node3D) -> void:
-	_indicator = indicator
+func set_indicator(a_indicator: Node3D) -> void:
+	_indicator = a_indicator
 	_refresh_indicator()
 #endregion
 

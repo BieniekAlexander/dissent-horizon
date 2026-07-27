@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://ceb4mlwq5pgcg"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_srul4"]
+
+[node name="Dialog" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_srul4")
+title = "Evacuating"
+body = "To evacuate your units from the buildings, select the buildings and press \"evacuate\" on the command card on the bottom left section of the HUD."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

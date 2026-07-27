@@ -1,0 +1,146 @@
+[gd_scene format=3 uid="uid://cb2jqbg1ut1nd"]
+
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_4rmvd"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
+[ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_aftbi"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="2_spec"]
+[ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_bgl6y"]
+[ext_resource type="PackedScene" uid="uid://c1wu8cfh3yl7b" path="res://scenes/entities/projectiles/lb/dunno.tscn" id="3_spec"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_medium.tres" id="4_spec"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_v7b6a"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="5_spec"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_xp4hi"]
+[ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_eo42d"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="8_dg7xl"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="9_fepod"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="10_psttr"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="11_jv5qq"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="12_3urmk"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="13_ekudc"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="14_hgbcx"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="15_wtc3t"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="16_fjsdk"]
+[ext_resource type="Script" uid="uid://cywa5m1mky68q" path="res://scripts/entities/components/altitude_indicator.gd" id="17_ppxay"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="18_omd32"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="19_g3r1e"]
+[ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="20_sctuf"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_04leu"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_6lk3l"]
+height = 0.6
+radius = 0.7
+
+[sub_resource type="BoxMesh" id="BoxMesh_n2rmy"]
+size = Vector3(0.9, 0.6, 1.4)
+
+[node name="LbMechMediumAntiLight" type="CharacterBody3D" unique_id=794031455 groups=["piece", "unit"]]
+script = ExtResource("1_4rmvd")
+description = "Mech unit, weak alone but can be augmented with drones"
+verbose = "Mobile Drone Chassis"
+id = &"lb_mechMedium_antiLight"
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=1840264593]
+
+[node name="NavigationAgent" parent="." unique_id=1744162296 instance=ExtResource("2_aftbi")]
+
+[node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_bgl6y")]
+
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_v7b6a")]
+
+[node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_xp4hi")]
+
+[node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_eo42d")]
+shape = ExtResource("5_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=1154544368]
+script = ExtResource("8_dg7xl")
+
+[node name="Locomotion" type="Node" parent="." unique_id=1662154766]
+script = ExtResource("9_fepod")
+speed = 3.0
+turn_rate = 150.0
+nav_agent_path = NodePath("../NavigationAgent")
+max_acceleration = 1.5
+max_deceleration = -4.5
+min_turn_speed_ratio = 0.5
+
+[node name="Defense" type="Node" parent="." unique_id=1170165491]
+script = ExtResource("10_psttr")
+armour_type = 1
+frame_type = 1
+hp_max = 250.0
+
+[node name="Veterancy" type="Node" parent="." unique_id=1548741390]
+script = ExtResource("11_jv5qq")
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=752632754]
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("12_3urmk")]
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
+shape = SubResource("CylinderShape3D_6lk3l")
+metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=946443748]
+
+[node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("13_ekudc")]
+transform = Transform3D(0.364583, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.72, 0)
+billboard = 2
+metadata/_visual_default_hp_bar = 0.933333
+
+[node name="HPBarFill" parent="HPBar" index="0" unique_id=470614922]
+billboard = 2
+
+[node name="HPBarBack" parent="HPBar" index="1" unique_id=99646461]
+billboard = 2
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("14_hgbcx")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="." unique_id=2006175029]
+script = ExtResource("15_wtc3t")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=1405955787]
+script = ExtResource("16_fjsdk")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual" unique_id=523406053]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("BoxMesh_n2rmy")
+metadata/_visual_default_mesh = "mech unit"
+
+[node name="AltitudeIndicator" type="Node3D" parent="." unique_id=581315939]
+script = ExtResource("17_ppxay")
+
+[node name="StatusVisuals" type="Node3D" parent="." unique_id=1095766516]
+script = ExtResource("18_omd32")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=91887841]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("19_g3r1e")]
+billboard = 2
+
+[node name="AvoidanceObstacle" parent="." unique_id=1666248074 instance=ExtResource("20_sctuf")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="." unique_id=152111919]
+
+[node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("21_04leu")]
+
+[node name="AggroRangeAir" parent="." unique_id=1242767653 instance=ExtResource("5_xp4hi")]
+
+[node name="Loadout" type="Node3D" parent="." unique_id=1878022311]
+script = ExtResource("1_spec")
+
+[node name="UnnamedWeapon" type="Node3D" parent="Loadout" unique_id=2106397629]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.39, 0.49)
+script = ExtResource("2_spec")
+projectile_scene = ExtResource("3_spec")
+melee_damage = 0.0
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/UnnamedWeapon" unique_id=1060135537 groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("4_spec")
+disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
+
+[editable path="Selectable"]
+[editable path="HPBar"]

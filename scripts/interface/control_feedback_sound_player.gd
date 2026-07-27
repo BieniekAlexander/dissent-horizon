@@ -2,36 +2,40 @@ class_name ControlFeedbackSoundPlayer
 extends Node
 
 #region Properties
-static var _COMMAND_LINE_TYPES: Dictionary[Script, ControlFeedbackSounds.LineType] = {
-	MoveCommand: ControlFeedbackSounds.LineType.ISSUED_COMMAND,
-	Attack: ControlFeedbackSounds.LineType.ISSUED_ATTACK,
-}
+## Attack and AttackMove are the only command types that bark the ATTACK line;
+## every other command a unit is given (move, stop, defend, build, repair, ...)
+## barks ISSUED_COMMAND instead. See _on_command_issued.
+static var _ATTACK_COMMAND_TYPES: Array[Script] = [Attack, AttackMove]
 
 @onready var _audio: AudioStreamPlayer = $AudioStreamPlayer
 #endregion
 
 #region Lifecycle
 func _ready() -> void:
+	# Orders can still be issued while a SimulationClock hold pauses the world, so their
+	# audio feedback has to survive the pause too — a paused AudioStreamPlayer is silent.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	var controller := get_parent().find_child("Controller") as RTSController
 	controller.unit_selected.connect(_on_unit_selected)
 	controller.command_issued.connect(_on_command_issued)
 #endregion
 
 #region Private helpers
-func _on_unit_selected(entity: Entity) -> void:
-	_play(entity, ControlFeedbackSounds.LineType.SELECTED)
+func _on_unit_selected(a_entity: Entity) -> void:
+	_play(a_entity, ControlFeedbackSounds.LineType.SELECTED)
 
-func _on_command_issued(entity: Entity, command_type: Script) -> void:
-	if not _COMMAND_LINE_TYPES.has(command_type):
-		return
-	_play(entity, _COMMAND_LINE_TYPES[command_type])
+func _on_command_issued(a_entity: Entity, a_command_type: Script) -> void:
+	var line_type: ControlFeedbackSounds.LineType = (
+		ControlFeedbackSounds.LineType.ISSUED_ATTACK if a_command_type in _ATTACK_COMMAND_TYPES
+		else ControlFeedbackSounds.LineType.ISSUED_COMMAND
+	)
+	_play(a_entity, line_type)
 
-func _play(entity: Entity, line_type: ControlFeedbackSounds.LineType) -> void:
-	# Fall back to the UNDEFINED entry's lines for an UNDEFINED-typed entity or any
-	# type without its own entry, so there's always feedback to play.
-	var fallback: Dictionary = ControlFeedbackSounds.lines.get(&"", {})
-	var type_lines: Dictionary = ControlFeedbackSounds.lines.get(entity.id, fallback)
-	var clips: Array = type_lines.get(line_type, [])
+func _play(a_entity: Entity, a_line_type: ControlFeedbackSounds.LineType) -> void:
+	# Structures (and any other entity with no entry) have no lines at all, by
+	# design — see ControlFeedbackSounds.lines. No fallback: nothing to play.
+	var type_lines: Dictionary = ControlFeedbackSounds.lines.get(a_entity.id, {})
+	var clips: Array = type_lines.get(a_line_type, [])
 	if clips.is_empty():
 		return
 	_audio.stream = clips.pick_random()

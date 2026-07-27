@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://c0rdglobemp01"]
+
+[ext_resource type="Script" uid="uid://crdawqvaiwaam" path="res://scripts/scenario/events/event_global_emp.gd" id="1_evt"]
+
+[node name="SanctionGlobalEmp" type="Sprite3D"]
+script = ExtResource("1_evt")
+duration_ticks = 150
+metadata/_custom_type_script = "uid://crdawqvaiwaam"

@@ -1,41 +1,132 @@
-[gd_scene format=3 uid="uid://c3lw2nltdhcuq"]
+[gd_scene load_steps=26 format=3 uid="uid://c3lw2nltdhcuq"]
 
-[ext_resource type="PackedScene" uid="uid://blcglpbttoi64" path="res://scenes/entities/units/unit.tscn" id="1_unit"]
-[ext_resource type="Texture2D" uid="uid://x1mcil8nobim" path="res://assets/entities/mercury.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_5lr41"]
+[ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_rqgt3"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="3_garr"]
+[ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_oc0g3"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_8ya2g"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_2h432"]
+[ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_mb0h8"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="7_v5j8n"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="8_7our4"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="9_i04bg"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="10_x280b"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="11_fqpnc"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="13_vfhbr"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="14_383yn"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="15_6nbfd"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="16_u66iy"]
+[ext_resource type="Script" uid="uid://cywa5m1mky68q" path="res://scripts/entities/components/altitude_indicator.gd" id="17_keo0h"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="18_lruob"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="19_ptxdy"]
+[ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="20_4lo6d"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_1brtd"]
+[ext_resource type="Script" uid="uid://04yfk0mkmwom" path="res://scripts/entities/components/aerial.gd" id="1_spec"]
+[ext_resource type="Script" uid="uid://b5vq0ggkn5wow" path="res://scripts/entities/components/docking.gd" id="2_spec"]
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_1m2jm"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_w5j01"]
 radius = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_gto2x"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_a0kvb"]
 radius = 0.7
 
-[node name="Unit" unique_id=502146001 instance=ExtResource("1_unit")]
-id = &"mercury"
+[node name="Unit" type="CharacterBody3D" unique_id=233044726 groups=["piece", "unit"]]
+script = ExtResource("1_5lr41")
+id = &"an_aircraftLight_transport"
 attributes_list = Array[int]([0])
 
-[node name="MovementBody" parent="." index="2" unique_id=1991558196]
+[node name="#####STATE#####" type="Node" parent="." unique_id=967189875]
+
+[node name="NavigationAgent" parent="." unique_id=1744162296 instance=ExtResource("2_rqgt3")]
+
+[node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_oc0g3")]
 visible = true
-shape = SubResource("CylinderShape3D_1m2jm")
+shape = SubResource("CylinderShape3D_w5j01")
 
-[node name="TargetBody" parent="." index="3" unique_id=1235114386]
-visible = true
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_8ya2g")]
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=406925482]
-shape = SubResource("CylinderShape3D_gto2x")
+[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+shape = SubResource("CylinderShape3D_a0kvb")
 
-[node name="Movement" parent="." index="7" unique_id=413735738]
-mode = 16
+[node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_2h432")]
+
+[node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_mb0h8")]
+
+[node name="Ownership" type="Node" parent="." unique_id=1353164043]
+script = ExtResource("7_v5j8n")
+
+[node name="Locomotion" type="Node" parent="." unique_id=1248648606]
+script = ExtResource("8_7our4")
 max_acceleration = 2.5
 max_deceleration = -2.5
 speed = 3.6
 turn_rate = 100.0
+nav_agent_path = NodePath("../NavigationAgent")
+
+[node name="Aerial" type="Node" parent="."]
+script = ExtResource("1_spec")
+mode = 16
 orbit_radius = 2.0
 orbit_speed = 2.1
 
-[node name="Garrison" type="Node" parent="." index="12" unique_id=502146002]
+[node name="Docking" type="Node" parent="."]
+script = ExtResource("2_spec")
+
+[node name="Defense" type="Node" parent="." unique_id=921949987]
+script = ExtResource("9_i04bg")
+
+[node name="Veterancy" type="Node" parent="." unique_id=58732042]
+script = ExtResource("10_x280b")
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=2139300460]
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("11_fqpnc")]
+
+[node name="Garrison" type="Node" parent="." unique_id=1776549299]
 script = ExtResource("3_garr")
 capacity = 6
 bunker = false
 preserve_occupants = false
 metadata/_custom_type_script = "uid://dlhe01nj6efuh"
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=144946160]
+
+[node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("13_vfhbr")]
+billboard = 2
+
+[node name="HPBarFill" parent="HPBar" index="0" unique_id=470614922]
+billboard = 2
+
+[node name="HPBarBack" parent="HPBar" index="1" unique_id=99646461]
+billboard = 2
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("14_383yn")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="." unique_id=588836138]
+script = ExtResource("15_6nbfd")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=1694854683]
+script = ExtResource("16_u66iy")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="AltitudeIndicator" type="Node3D" parent="." unique_id=1499824266]
+script = ExtResource("17_keo0h")
+
+[node name="StatusVisuals" type="Node3D" parent="." unique_id=1032368597]
+script = ExtResource("18_lruob")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=558792873]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("19_ptxdy")]
+billboard = 2
+
+[node name="AvoidanceObstacle" parent="." unique_id=1666248074 instance=ExtResource("20_4lo6d")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="." unique_id=246550969]
+
+[node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("21_1brtd")]
+
+[node name="AggroRangeAir" parent="." unique_id=429441066 instance=ExtResource("5_2h432")]
+
+[editable path="TargetBody"]
+[editable path="HPBar"]

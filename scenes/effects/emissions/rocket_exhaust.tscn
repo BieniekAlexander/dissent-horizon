@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/emission_particles.gd" id="1_delay"]
+[ext_resource type="Material" path="res://resources/emissions/particle_smoke.tres" id="3_smoke"]
+
+[sub_resource type="Gradient" id="Gradient_Smoke"]
+offsets = PackedFloat32Array(0, 0.08, 0.2, 1)
+colors = PackedColorArray(1, 0.8, 0.5, 0, 1, 0.8, 0.5, 0.6, 0.75, 0.75, 0.75, 0.45, 0.6, 0.6, 0.6, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Smoke"]
+gradient = SubResource("Gradient_Smoke")
+
+[sub_resource type="Curve" id="Curve_Smoke"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Smoke"]
+curve = SubResource("Curve_Smoke")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Smoke"]
+emission_shape = 3
+emission_box_extents = Vector3(0.021, 0.021, 0.245)
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 0.035
+initial_velocity_max = 0.14
+gravity = Vector3(0, 0.105, 0)
+damping_min = 0.35
+damping_max = 0.35
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.28
+scale_max = 0.385
+scale_curve = SubResource("CurveTexture_Smoke")
+color_ramp = SubResource("GradientTexture1D_Smoke")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Smoke"]
+material = ExtResource("3_smoke")
+
+[node name="RocketExhaust" type="Node3D"]
+
+[node name="Smoke" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.21)
+emitting = false
+amount = 150
+lifetime = 1.2
+visibility_aabb = AABB(-8, -8, -8, 16, 16, 16)
+process_material = SubResource("ParticleProcessMaterial_Smoke")
+draw_pass_1 = SubResource("QuadMesh_Smoke")
+script = ExtResource("1_delay")
+start_delay_seconds = 0.12

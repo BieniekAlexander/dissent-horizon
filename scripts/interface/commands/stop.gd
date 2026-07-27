@@ -7,13 +7,13 @@ static func requires_position() -> bool:
 #endregion
 
 #region State updates
-func should_move(a_commandable: Commandable) -> bool:
+func should_move(_a_commandable: Commandable) -> bool:
 	return false
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(_a_actor: Commandable) -> bool:
 	return true
 
-func fulfill_action(a_commandable: Commandable) -> Variant:
+func fulfill_action(_a_commandable: Commandable) -> Variant:
 	return null
 #endregion
 

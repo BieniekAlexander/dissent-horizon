@@ -17,24 +17,36 @@ extends RefCounted
 
 enum Posture { MASS, ATTACK, DEFEND }
 
-## Minimum combat units before the bot commits to an attack. Low for now so the
-## opening armies actually clash; a difficulty/aggression knob later.
-const ATTACK_ARMY_THRESHOLD: int = 3
+## Minimum combat units before the bot commits to an attack — the AGGRESSION dial, set from
+## BotDifficulty. The default is the value every tier used before difficulty was a knob, so a
+## manager built without a brain behaves exactly as it did.
+var army_commit_threshold: int = 3
+
+## Whether this bot takes offensive action at all. False for PASSIVE, which still masses and
+## still DEFENDS what it owns but never marches on anybody — a sparring partner rather than
+## an inert one. See BotDifficulty.may_attack.
+var may_attack: bool = true
 
 ## Enemy units within this distance (world units) of an owned structure count as
 ## pressuring the base → DEFEND. Deliberately tighter than Bot.is_base_under_threat's
 ## 30-unit default, which on a small map flags the *enemy's stationary base* as a
 ## permanent threat and makes the bot turtle forever.
-const DEFEND_THREAT_RADIUS: float = 10.0
+##
+## A PARAMETER (BotDifficulty.defend_threat_radius), shared with BotSanction so the two
+## agree on what "under threat" means. The default is the value it had as a constant.
+var defend_threat_radius: float = 10.0
 
 ## How far the objective must move (world units) before counting as "changed"
 ## and re-tasking the whole army. Keeps a wandering enemy target from thrashing.
 const OBJECTIVE_EPSILON: float = 3.0
 
 ## CONTEXTUAL attack commitment: launch a wave when our army value is at least
-## ATTACK_RATIO × the BELIEVED enemy army value — i.e. attack when we're ahead, to
+## `attack_value_ratio` × the BELIEVED enemy army value — i.e. attack when we're ahead, to
 ## punish, not on a blind timer.
-const ATTACK_RATIO: float = 1.3
+##
+## A PARAMETER (BotDifficulty.attack_value_ratio): this is the bot's real aggression dial,
+## the one `army_commit_threshold` only approximates by counting bodies.
+var attack_value_ratio: float = 1.3
 ## Anti-stalemate escalation: the required ratio decays this much per second the bot
 ## holds a standing army WITHOUT committing. Two evenly-matched bots that can't
 ## out-produce each other would otherwise build forever; instead the bar relaxes until
@@ -60,13 +72,37 @@ const ENEMY_ESTIMATE_TAU: float = 30.0
 ## actually SEEN more. This keeps the bot from reading phantom 5× advantages: attacks
 ## become escalation-driven (anti-stalemate) instead of blind, while a genuinely
 ## larger SEEN enemy still reads as such and is respected.
-const ASSUMED_ENEMY_PARITY: float = 0.85
+##
+## A PARAMETER (BotDifficulty.assumed_enemy_parity). It is the bot's whole model of what it
+## cannot see, which is why it is worth searching alongside `scout_unit_budget`: a bot that
+## looks needs less of a prior than one that does not.
+var assumed_enemy_parity: float = 0.85
 ## A launched wave stays committed (ATTACK, overriding DEFEND) until the army is spent
 ## down to this fraction of its launch value — so the bot doesn't dribble its army in.
 const WAVE_SPENT_FRACTION: float = 0.35
 
+## RETREAT. A wave is called off early — before it is spent — when the army has lost this
+## much of its launch value AND BotMomentum says the bot is actively bleeding.
+##
+## Both halves are load-bearing. Losses alone are not a reason to leave: a wave that trades
+## a third of itself for the enemy's army has WON, and the old rule of running until spent
+## to 35% exists because a bot that pulls back on damage dribbles its army in one squad at a
+## time. The momentum test is what distinguishes "this is costing us" from "this is costing
+## us FAST", and it is why retreating here is not a return to dribbling.
+##
+## A PARAMETER (BotDifficulty.wave_abort_fraction), and 0 restores the pre-retreat bot
+## exactly: a wave that only ever ends by being spent.
+var wave_abort_fraction: float = 0.70
+
+## Seconds spent regrouping at home after a wave is called off, during which the bot will
+## not commit again. Long enough to walk back and re-mass; without it the army-size branch
+## in _decide_posture would re-launch the retreat the same think it began.
+const REGROUP_SECONDS: float = 20.0
+
 var _bot: Bot
 var _act: BotActuator
+## Whether the bot is winning or losing; what turns a costly push into a retreat.
+var _momentum: BotMomentum
 
 var _posture: Posture = Posture.MASS
 var _objective: Vector3 = Vector3.ZERO
@@ -78,14 +114,27 @@ var _wave_launch_value: float = 0.0
 var _stalemate_time: float = 0.0       # seconds holding an army without committing
 var _last_eval_time: float = 0.0       # for the real-time escalation clock
 var _enemy_value_estimate: float = 0.0 # smoothed (decayed-peak) belief of enemy army value
+## seconds_elapsed() until which a called-off wave is regrouping and will not re-commit.
+var _regroup_until: float = 0.0
+
+## Which manager owns which unit; the brain replaces this with the bot's shared registry. A
+## fresh one by default, so a bare manager in a test sees every unit unclaimed.
+var claims: BotClaims = BotClaims.new()
+
+## Work units per unit considered for the army (BotScheduler counts work in units of roughly a
+## microsecond on the calibration machine).
+const UNIT_WORK_UNITS: int = 50
 
 
-func _init(a_bot: Bot, a_act: BotActuator) -> void:
+func _init(a_bot: Bot, a_act: BotActuator, a_momentum: BotMomentum = null) -> void:
 	_bot = a_bot
 	_act = a_act
+	_momentum = a_momentum
 
 
-func tick() -> void:
+## Returns the work units spent.
+func tick() -> int:
+	var considered: int = _bot.get_units().size()
 	var posture: Posture = _decide_posture()
 	var objective: Variant = _objective_for(posture)
 	# No valid objective for the chosen posture (e.g. ATTACK with no enemies) —
@@ -94,7 +143,7 @@ func tick() -> void:
 		posture = Posture.MASS
 		objective = _objective_for(Posture.MASS)
 	if objective == null:
-		return  # nothing to anchor on (no base and no units) — idle.
+		return considered * UNIT_WORK_UNITS  # nothing to anchor on (no base and no units) — idle.
 
 	var objective_pos: Vector3 = objective
 	var changed: bool = (
@@ -110,9 +159,9 @@ func tick() -> void:
 	# whatever units are currently idle and send them to the standing objective.
 	# Only armed units fight — never march the unarmed technician to its death.
 	var units: Array = _combat_units(_bot.get_units() if changed else _bot.get_idle_units())
-	if units.is_empty():
-		return
-	_act.attack_move(units, objective_pos)
+	if not units.is_empty():
+		_act.attack_move(units, objective_pos)
+	return considered * UNIT_WORK_UNITS
 
 
 func current_posture() -> Posture:
@@ -120,20 +169,31 @@ func current_posture() -> Posture:
 
 
 func _decide_posture() -> Posture:
+	# A PASSIVE bot has exactly two postures. It answers something walking into its base and
+	# otherwise gathers; nothing it does ever leaves home. Checked before everything, because
+	# "never attacks the player" is not a threshold it could cross.
+	if not may_attack:
+		return Posture.DEFEND if _bot.is_base_under_threat(defend_threat_radius) \
+			else Posture.MASS
 	# A committed attack wave OVERRIDES defence — once the bot has massed an army
 	# worth a (randomised) cap, it pushes regardless of a scout poking the base.
 	# This is the anti-turtle fix: DEFEND no longer wins unconditionally.
 	if _committing_to_attack():
 		return Posture.ATTACK
-	if _bot.is_base_under_threat(DEFEND_THREAT_RADIUS):
+	if _bot.is_base_under_threat(defend_threat_radius):
 		return Posture.DEFEND
-	if _combat_units(_bot.get_units()).size() >= ATTACK_ARMY_THRESHOLD:
+	# Regrouping after a called-off wave: gather at home and rebuild. Checked BEFORE the
+	# army-size branch, which would otherwise re-order the attack the same think the retreat
+	# was decided — the army is still large, it is just losing.
+	if _bot.seconds_elapsed() < _regroup_until:
+		return Posture.MASS
+	if _combat_units(_bot.get_units()).size() >= army_commit_threshold:
 		return Posture.ATTACK
 	return Posture.MASS
 
 
 ## True while the bot is committed to an attack wave. A wave launches when the army's
-## ore value reaches the current cap (then the cap is re-rolled for next time) and
+## energy value reaches the current cap (then the cap is re-rolled for next time) and
 ## stays committed until the army is spent to WAVE_SPENT_FRACTION of its launch value.
 func _committing_to_attack() -> bool:
 	var own: float = _bot.army_resource_value()
@@ -151,12 +211,15 @@ func _committing_to_attack() -> bool:
 		# mustn't read as "they have nothing".
 		_enemy_value_estimate = lerp(_enemy_value_estimate, believed, clampf(dt / ENEMY_ESTIMATE_TAU, 0.0, 1.0))
 
-	# Already committed: see the wave through until the army is spent, then regroup.
+	# Already committed: see the wave through — unless it is going badly enough to leave.
 	if _wave_active:
-		if own <= _wave_launch_value * WAVE_SPENT_FRACTION:
-			_wave_active = false
-			_stalemate_time = 0.0
+		if own <= _wave_launch_value * WAVE_SPENT_FRACTION or _should_abort_wave(own):
+			_end_wave()
 		return _wave_active
+
+	# Regrouping from a called-off wave: rebuild before committing again.
+	if now < _regroup_until:
+		return false
 
 	# No army worth committing yet — building up isn't a stalemate.
 	if own < MIN_ATTACK_ARMY_VALUE:
@@ -165,11 +228,11 @@ func _committing_to_attack() -> bool:
 
 	# Apply the humility prior: assume the enemy is at least ASSUMED_ENEMY_PARITY × our
 	# own army unless we've actually seen more.
-	var enemy_estimate: float = maxf(_enemy_value_estimate, own * ASSUMED_ENEMY_PARITY)
+	var enemy_estimate: float = maxf(_enemy_value_estimate, own * assumed_enemy_parity)
 	var ratio: float = own / maxf(enemy_estimate, ENEMY_VALUE_FLOOR)
-	# Bar starts at ATTACK_RATIO and relaxes the longer we hold without fighting, so a
+	# Bar starts at attack_value_ratio and relaxes the longer we hold without fighting, so a
 	# parity deadlock eventually forces a commit (but never below MIN_ATTACK_RATIO).
-	var threshold: float = maxf(MIN_ATTACK_RATIO, ATTACK_RATIO - _stalemate_time * STALEMATE_ESCALATION_PER_SEC)
+	var threshold: float = maxf(MIN_ATTACK_RATIO, attack_value_ratio - _stalemate_time * STALEMATE_ESCALATION_PER_SEC)
 
 	if ratio >= threshold:
 		_wave_active = true
@@ -181,41 +244,97 @@ func _committing_to_attack() -> bool:
 	return false
 
 
-## Units we send to fight: every ARMED unit EXCEPT one that's currently
-## constructing. "Armed" means a Loadout that actually holds a Weapon — an empty
-## Loadout (e.g. the colonial Stock Truck, a not-yet-functional utility unit) has
-## a weapon_inventory node but no weapons, so it must NOT be marched into combat.
-## Build-capable units (Irregulars) are combat units too and fight normally; we just
-## don't interrupt the one the economy pulled to build/repair a structure (it rejoins
-## the army once it's done).
-func _combat_units(units: Array) -> Array:
-	return units.filter(func(u: Commandable):
-		return u.weapon_inventory != null \
-			and u.weapon_inventory.has_weapons() \
+## RETREAT TEST: is this wave failing rather than merely costing something?
+##
+## Two conditions, and neither alone is enough — see wave_abort_fraction. False when the bot
+## has no momentum signal (a manager built without one in a test), so the wave behaves
+## exactly as it did before retreat existed.
+func _should_abort_wave(a_own_value: float) -> bool:
+	if _momentum == null:
+		return false
+	return a_own_value <= _wave_launch_value * wave_abort_fraction and _momentum.is_losing()
+
+
+## Close out the wave and start the regroup window. The escalation clock restarts too: the
+## bot has just fought, so it is not sitting in a stalemate.
+func _end_wave() -> void:
+	_wave_active = false
+	_stalemate_time = 0.0
+	_regroup_until = _bot.seconds_elapsed() + REGROUP_SECONDS
+
+
+## Units we send to fight: everything with COMBAT UTILITY except one that is currently busy.
+##
+## Combat utility is armed OR able to crush (Bot.unit_has_combat_utility), and the second
+## half is the correction: an armed-only test filtered the Colonial Stock Truck out of the
+## re-task AND out of the idle sweep, so a truck with nothing to capture was claimed by
+## nobody and stood still for the rest of the match. It is unarmed and it is not harmless —
+## it runs light infantry over, which on this content is also how the Colonials take
+## prisoners.
+##
+## Build-capable units (Irregulars) are combat units too and fight normally; we just don't
+## interrupt the one the economy pulled to build/repair a structure (it rejoins the army once
+## it's done), or the one the opportunist has already committed to an errand.
+##
+## A CLAIMED unit is never the army's: the army is what nobody else has claimed (BotClaims), so
+## a scout, a unit mid-fight under BotTargeting, or one on an errand is left alone however the
+## managers happen to be interleaved.
+func _combat_units(a_units: Array) -> Array:
+	return a_units.filter(func(u: Commandable):
+		return _bot.unit_has_combat_utility(u) \
+			and not claims.is_claimed(u) \
 			and not BotEconomy._is_constructing(u) \
 			and not BotOpportunist.is_committed(u) \
 			and not _bot.is_suicide_aoe_unit(u))  # kamikazes are micro'd by BotKamikaze
 
 
 ## The world position to rally on for `posture`, or null when none applies.
-func _objective_for(posture: Posture) -> Variant:
-	match posture:
+func _objective_for(a_posture: Posture) -> Variant:
+	match a_posture:
 		Posture.DEFEND:
 			var threatened: Commandable = _bot.most_threatened_structure()
 			if threatened != null:
 				return threatened.global_position
 			return _home_anchor()
 		Posture.ATTACK:
-			var target: Commandable = _bot.nearest_enemy_structure_to_base()
-			if target != null:
-				return target.global_position
-			# No enemy structures: head for any enemy unit instead.
-			var enemies: Array = _bot.get_enemy_units()
-			if not enemies.is_empty():
-				return (enemies.front() as Commandable).global_position
-			return null
+			# FOG-LIMITED, deliberately: the army marches on what this bot has SEEN, never on the
+			# live scene. An opponent it has not scouted yields no objective at all, tick() demotes
+			# the posture to MASS, and the bot builds up at home until it finds somebody — which is
+			# what makes scouting a precondition for aggression rather than a nicety. See
+			# Bot.nearest_believed_enemy_structure_position and
+			# gdd/systems/ai/bot-architecture.md §The attack objective is a belief.
+			#
+			# AND ACTIONABLE. Being fog-limited was never the only requirement: a belief is only an
+			# objective if marching on it can lead to something happening. Two ways it cannot, both
+			# measured in self-play and both reported from a watched match — see
+			# gdd/systems/ai/bot-engagement-fixes.md §The objective nobody could act on:
+			#   • NOTHING IN THE ARMY CAN HURT IT. An enemy Scan drone is a HOVERING piece on the
+			#     air layer; a ground-only army has no targeting mode for it at all, so ordered
+			#     onto it the whole army walks over, arrives, and stands there until the drone's
+			#     lifespan runs out. `Bot.any_unit_can_damage` is that question.
+			#   • THE WALK HAS ALREADY DISPROVED IT. A unit belief lapses only on a three-minute
+			#     timer, so an army standing on the spot where it last saw an enemy scout keeps
+			#     marching at ground it can see is empty. `Bot.belief_is_disproved` is that one.
+			# Both are FILTERS, not rankings: a rejected belief is not a candidate, so the query
+			# still answers with the nearest belief that IS actionable rather than with nothing.
+			var army: Array = _combat_units(_bot.get_units())
+			var actionable: Callable = func(entry: CommanderBlackboard.Entry) -> bool:
+				return Bot.any_unit_can_damage(army, entry.entity) and not _bot.belief_is_disproved(entry)
+			var believed_base: Variant = _bot.nearest_believed_enemy_structure_position(actionable)
+			if believed_base != null:
+				return believed_base
+			# Nothing of theirs standing that we know of: go after the last place we saw a unit.
+			return _bot.nearest_believed_enemy_unit_position(_home_anchor_position(), actionable)
 		_:  # MASS
 			return _home_anchor()
+
+
+## `_home_anchor()` as a plain Vector3 — ZERO when there is nothing to anchor on. Used where
+## the anchor is only a distance ORIGIN (which of several remembered positions is nearest)
+## rather than a destination, so "nowhere" needs no separate branch.
+func _home_anchor_position() -> Vector3:
+	var anchor: Variant = _home_anchor()
+	return anchor if anchor != null else Vector3.ZERO
 
 
 ## Where "home" is: the base centroid if we own structures, else the army's

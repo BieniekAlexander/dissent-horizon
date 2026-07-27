@@ -10,23 +10,23 @@
 # vs_armour[damage_type][armour_type] -> multiplier applied to base damage.
 # Missing cells default to 1.0 (same convention as DamageTable.get_armour_multiplier).
 vs_armour:
-  LEAD:        {LIGHT: 1.0,  MEDIUM: 0.5,  HEAVY: 0.1}
-  LAZER:       {LIGHT: 0.25, MEDIUM: 0.75, HEAVY: 1.5}
-  TOXIC:       {LIGHT: 1.0,  MEDIUM: 1.0,  HEAVY: 1.0}
-  ELECTRIC:   {LIGHT: 1.0,  MEDIUM: 1.0,  HEAVY: 1.0}
-  SIEGE:       {LIGHT: 0.75, MEDIUM: 1.0,  HEAVY: 1.5}
-  EXPLOSIVE:   {LIGHT: 1.0,  MEDIUM: 0.9,  HEAVY: 0.75}
+  LEAD:        {LIGHT: 1.0,  MEDIUM: 0.5,  STRONG: 0.1}
+  LAZER:       {LIGHT: 0.25, MEDIUM: 0.75, STRONG: 1.5}
+  TOXIC:       {LIGHT: 1.0,  MEDIUM: 1.0,  STRONG: 1.0}
+  ELECTRIC:   {LIGHT: 1.0,  MEDIUM: 1.0,  STRONG: 1.0}
+  SIEGE:       {LIGHT: 0.75, MEDIUM: 1.0,  STRONG: 1.5}
+  EXPLOSIVE:   {LIGHT: 1.0,  MEDIUM: 0.9,  STRONG: 0.75}
 
 # vs_frame[damage_type][frame_type] -> multiplier applied to base damage.
 # TODO(tune): placeholder (all 1.0) until the frame matchups are authored.
 # Missing cells -> 1.0.
 vs_frame:
-  LEAD:        {BIOLOGICAL: 1.0, METALLIC: 1.0}
-  LAZER:       {BIOLOGICAL: 1.0, METALLIC: 1.0}
-  TOXIC:       {BIOLOGICAL: 1.0, METALLIC: 1.0}
-  ELECTRIC:   {BIOLOGICAL: 1.0, METALLIC: 1.0}
-  SIEGE:       {BIOLOGICAL: 1.0, METALLIC: 1.0}
-  EXPLOSIVE:   {BIOLOGICAL: 1.0, METALLIC: 1.0}
+  LEAD:        {BIO: 1.0, MECH: 1.0}
+  LAZER:       {BIO: 1.0, MECH: 1.0}
+  TOXIC:       {BIO: 1.0, MECH: 1.0}
+  ELECTRIC:   {BIO: 1.0, MECH: 1.0}
+  SIEGE:       {BIO: 1.0, MECH: 1.0}
+  EXPLOSIVE:   {BIO: 1.0, MECH: 1.0}
 
 # vs_attribute[damage_type][attribute] -> multiplier, applied multiplicatively
 # for every attribute the target has (IS_GROUNDED / IS_FLYING / HAS_STEALTH).

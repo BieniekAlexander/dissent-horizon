@@ -24,20 +24,20 @@ var _after: Array[Vector3] = []
 var _nav_loaded: bool = false
 
 
-func _init(a_message: CommandMessage, p_before: Array[Vector3] = [], p_after: Array[Vector3] = []) -> void:
+func _init(a_message: CommandMessage, a_p_before: Array[Vector3] = [], a_p_after: Array[Vector3] = []) -> void:
 	super(a_message)
-	_before = p_before.duplicate()
-	_after = p_after.duplicate()
+	_before = a_p_before.duplicate()
+	_after = a_p_after.duplicate()
 
 
 ## Use this factory when issuing Patrol in response to player input. If the actor
 ## has no existing Patrol command anywhere in its chain, the actor's current
 ## position is added to _before so the unit has a return anchor; otherwise the
 ## new waypoint is simply appended to the ongoing route.
-static func for_actor(a_actor: Commandable, a_message: CommandMessage) -> Patrol:
-	if a_actor.command_receiver.has_patrol_command():
-		return Patrol.new(a_message)
-	return Patrol.new(a_message, [a_actor.global_position])
+static func for_actor(actor: Commandable, message: CommandMessage) -> Patrol:
+	if actor.command_receiver.has_patrol_command():
+		return Patrol.new(message)
+	return Patrol.new(message, [actor.global_position])
 
 
 #region State updates

@@ -1,14 +1,16 @@
 ---
-kind: projectile
-id: lazer
+kind: Entity
 title: lazer
 scene: res://scenes/entities/projectiles/lazer.tscn
 damage: 20
 damage_type: LEAD
-speed: 0
-trajectory: LINEAR
-hitscan: true
 status_effects: [lazer_burn]
+hitscan: true
+phases:
+  - motion: {preset: LINEAR, speed: ZERO}
+    lifespan: 0.2
+  - lifespan: 0
+    payload: once
 ---
 
 # Lazer

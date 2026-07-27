@@ -1,0 +1,104 @@
+[gd_scene format=3 uid="uid://btocg581rj4q5"]
+
+[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_scvi2"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
+[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_plmqj"]
+[ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_j63ie"]
+[ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_4ef7x"]
+[ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="8_ghc12"]
+[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="9_th56h"]
+[ext_resource type="Script" path="res://scripts/entities/components/defense.gd" id="10_3utad"]
+[ext_resource type="Script" path="res://scripts/entities/components/veterancy.gd" id="11_3r8ff"]
+[ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="12_83cvq"]
+[ext_resource type="PackedScene" path="res://scenes/components/hp_bar.tscn" id="13_ddhw0"]
+[ext_resource type="PackedScene" path="res://scenes/components/selection_indicator.tscn" id="14_8e1yh"]
+[ext_resource type="Script" path="res://scripts/entities/components/command_line_indicator.gd" id="15_2c634"]
+[ext_resource type="Script" path="res://scripts/entities/components/mesh_visual.gd" id="16_7fqb2"]
+[ext_resource type="Script" path="res://scripts/entities/components/status_visuals.gd" id="18_f4aeq"]
+[ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="19_c6x31"]
+[ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="21_54xfd"]
+[ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="22_b8kp5"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_62bls"]
+size = Vector3(5, 2, 5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ovuqv"]
+size = Vector3(5, 2, 5)
+
+[node name="LbInfrastructure" type="CharacterBody3D" unique_id=677047957 groups=["piece", "fixture", "structure"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_scvi2")
+infrastructure = 500
+id = &"lb_infrastructure"
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=79731668]
+
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_plmqj")]
+
+[node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_j63ie")]
+
+[node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_4ef7x")]
+shape = ExtResource("1_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=1590472786]
+script = ExtResource("8_ghc12")
+
+[node name="Structure" type="Node" parent="." unique_id=385896243]
+script = ExtResource("9_th56h")
+dimensions = Vector2i(5, 5)
+
+[node name="Defense" type="Node" parent="." unique_id=213887514]
+script = ExtResource("10_3utad")
+armour_type = 2
+frame_type = 1
+hp_max = 400.0
+
+[node name="Veterancy" type="Node" parent="." unique_id=338470]
+script = ExtResource("11_3r8ff")
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=1182705160]
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("12_83cvq")]
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("BoxShape3D_62bls")
+metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1249421495]
+
+[node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("13_ddhw0")]
+transform = Transform3D(0.520833, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 2.12, 0)
+metadata/_visual_default_hp_bar = 1.333333
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("14_8e1yh")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="." unique_id=2036436005]
+script = ExtResource("15_2c634")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=1928521819]
+script = ExtResource("16_7fqb2")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual" unique_id=137511787]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("BoxMesh_ovuqv")
+metadata/_visual_default_mesh = "structure"
+
+[node name="StatusVisuals" type="Node3D" parent="." unique_id=280679464]
+script = ExtResource("18_f4aeq")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=1740467713]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("19_c6x31")]
+
+[node name="FootprintVisualizer" parent="." unique_id=234382478 instance=ExtResource("21_54xfd")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="." unique_id=1125004174]
+
+[node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("22_b8kp5")]
+
+[node name="AggroRangeAir" parent="." unique_id=2006129628 instance=ExtResource("5_j63ie")]
+
+[editable path="Selectable"]

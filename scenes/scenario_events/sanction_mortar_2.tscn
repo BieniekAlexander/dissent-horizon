@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://cebbvfpptsk4g"]
+
+[ext_resource type="Script" uid="uid://cg2yywrhr21y" path="res://scripts/scenario/events/event_mortar_barrage.gd" id="1_evt"]
+[ext_resource type="PackedScene" uid="uid://bx3hcnshl0001" path="res://scenes/entities/projectiles/cl/cannon_shell.tscn" id="2_shell"]
+
+[node name="SanctionMortar2" type="Sprite3D"]
+script = ExtResource("1_evt")
+shell_count = 8
+projectile_scene = ExtResource("2_shell")
+metadata/_custom_type_script = "uid://cg2yywrhr21y"

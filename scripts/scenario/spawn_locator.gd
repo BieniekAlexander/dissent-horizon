@@ -6,5 +6,5 @@ extends Resource
 ## trigger fired on. The base returns the source entity's own position; subclasses
 ## override resolve() for "nearest structure", a fixed offset, etc. Assign one to
 ## EntityTrigger.spawn_locator (null = this base behaviour).
-func resolve(source: Entity, _manager: ScenarioTriggerManager) -> Vector3:
-	return source.global_position if source != null else Vector3.ZERO
+func resolve(a_source: Entity, _a_manager: ScenarioTriggerManager) -> Vector3:
+	return a_source.global_position if a_source != null else Vector3.ZERO

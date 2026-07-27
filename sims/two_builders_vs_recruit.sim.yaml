@@ -1,0 +1,27 @@
+description: |
+  The same matchup as builder_vs_recruit with the numbers reversed: two Anarchical builders
+  against one Colonial rifleman. The claim is that two workers beat one soldier — i.e. that
+  the rifleman's edge is not worth double its opposition.
+
+  Both builders are one GROUP, so both work the same one-entry target list: focus fire is
+  what a single group means.
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      builders:
+        of: [ { piece: an_bioLight_builder, count: 2 } ]
+        at: west
+        facing: east
+        formation: line
+        orders: [ { attack: { target: B.riflemen } } ]
+  B:
+    with:
+      riflemen:
+        of: [ { piece: cl_bioLight_antiLight, count: 1 } ]
+        at: { from: A.builders, distance: 10, bearing: east }
+        facing: west
+        orders: [ { attack: { target: A.builders } } ]
+run: { for: 30s, seed: 1 }
+expect:
+  - { of: B.riflemen, check: dead }

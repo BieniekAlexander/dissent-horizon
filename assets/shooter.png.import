@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://di68otfa2otn0"
 path.s3tc="res://.godot/imported/shooter.png-737c8b538985d43215f7dc0ff65fbc2a.s3tc.ctex"
+path.etc2="res://.godot/imported/shooter.png-737c8b538985d43215f7dc0ff65fbc2a.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/shooter.png"
-dest_files=["res://.godot/imported/shooter.png-737c8b538985d43215f7dc0ff65fbc2a.s3tc.ctex"]
+dest_files=["res://.godot/imported/shooter.png-737c8b538985d43215f7dc0ff65fbc2a.s3tc.ctex", "res://.godot/imported/shooter.png-737c8b538985d43215f7dc0ff65fbc2a.etc2.ctex"]
 
 [params]
 

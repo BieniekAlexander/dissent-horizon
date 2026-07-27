@@ -2,19 +2,19 @@ class_name Capture
 extends MoveCommand
 
 #region Preconditions
-static func evaluator(a_actor: Commandable, a_message: CommandMessage) -> Variant:
-	if meets_precondition(a_actor, a_message):
+static func evaluator(actor: Commandable, message: CommandMessage) -> Variant:
+	if meets_precondition(actor, message):
 		return Capture
 	else:
 		return null
 
 static func meets_precondition(
-	a_actor: Commandable,
-	a_message: CommandMessage
+	_actor: Commandable,
+	message: CommandMessage
 ) -> PreconditionFailureCause:
 	return (
 		PreconditionFailureCause.NONE
-		if a_message.target is Commandable and a_message.target.is_in_group("structure") and a_message.target.commander_id==0
+		if message.target is Commandable and message.target.is_in_group("structure") and message.target.commander_id==0
 		else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	)
 #endregion
@@ -30,7 +30,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		return self
 	else:
 		# Transferring ownership re-runs Commandable._on_commander_changed, which moves
-		# the structure's vigor contribution from the old commander to the captor — so
+		# the structure's infrastructure contribution from the old commander to the captor — so
 		# the captor is credited (and the former owner debited) automatically here.
 		message.target.commander = a_actor.commander
 		return null

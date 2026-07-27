@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://bbkejnpmkntco"]
+
+[ext_resource type="Texture2D" uid="uid://bojbrs2dpggcv" path="res://assets/selection.png" id="1_1ypxu"]
+
+[node name="SelectionIndicator" type="Sprite3D" unique_id=1818557065]
+transform = Transform3D(0.25, 0, 0, 0, 0.1767765, 0.1767765, 0, -0.1767765, 0.1767765, 0, 0, 0)
+visible = false
+billboard = 1
+no_depth_test = true
+texture = ExtResource("1_1ypxu")

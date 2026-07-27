@@ -1,0 +1,192 @@
+[gd_scene load_steps=39 format=3 uid="uid://cay5kr6vpi16w"]
+
+[ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="1_spec"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_tikas"]
+[ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_3x8wj"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_long.tres" id="2_spec"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_3lfjd"]
+[ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_gx4vd"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/air_range_siege.tres" id="3_spec"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_2y3vt"]
+[ext_resource type="Script" uid="uid://c56seif73ev55" path="res://scripts/entities/components/liberator.gd" id="4_7tit3"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_qd6od"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="4_spec"]
+[ext_resource type="PackedScene" uid="uid://bhkuda16jew0g" path="res://scenes/entities/projectiles/an/warlord_rocket.tscn" id="5_qd6od"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/detection_small.tres" id="5_spec"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_uo4by"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="5_vc0lo"]
+[ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_bm7rv"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="8_3mxnb"]
+[ext_resource type="PackedScene" uid="uid://c7drjhmuh7vx6" path="res://assets/meshes/entities/irregular.blend" id="8_oomff"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="9_a2wmh"]
+[ext_resource type="PackedScene" uid="uid://d00xukqenvmgt" path="res://assets/meshes/cone.blend" id="10_cone"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="10_qj5mi"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="11_aaxeb"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="12_a4cxk"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="20_llkja"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="21_7646f"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="22_px7sk"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="23_h3ls2"]
+[ext_resource type="Script" uid="uid://cywa5m1mky68q" path="res://scripts/entities/components/altitude_indicator.gd" id="26_kgqqf"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="27_l2tts"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="28_47gfm"]
+[ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="29_j15rk"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="30_rv5qs"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/air_range_long.tres" id="6_spec"]
+[ext_resource type="PackedScene" uid="uid://d4hii8hrkdfqe" path="res://scenes/entities/projectiles/cl/sam_missile.tscn" id="7_spec"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1vyis"]
+radius = 0.3
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_7hqlv"]
+height = 5.0
+radius = 2.5
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_rs2ks"]
+height = 1.4
+radius = 0.45
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_tixnj"]
+height = 5.0
+radius = 4.0
+
+[node name="Unit2" type="CharacterBody3D" unique_id=416004826 groups=["piece", "unit"]]
+script = ExtResource("1_tikas")
+description = "dominion-claiming infantry unit, effective against armored targets"
+verbose = "dominion-claiming infantry unit, armed with a rocket launcher. Effective against armored units, and weak against infantry. Acquire dominion by staying close to allied infantry units."
+id = &"an_bioMedium_dominionGen"
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=1841358401]
+
+[node name="NavigationAgent" parent="." unique_id=1744162296 instance=ExtResource("2_3x8wj")]
+
+[node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_gx4vd")]
+shape = SubResource("CylinderShape3D_1vyis")
+
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_2y3vt")]
+
+[node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_uo4by")]
+
+[node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_bm7rv")]
+shape = ExtResource("4_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=656331361]
+script = ExtResource("8_3mxnb")
+
+[node name="Locomotion" type="Node" parent="." unique_id=277967987]
+script = ExtResource("9_a2wmh")
+speed = 1.65
+turn_rate = 1080.0
+nav_agent_path = NodePath("../NavigationAgent")
+
+[node name="Defense" type="Node" parent="." unique_id=1764808928]
+script = ExtResource("10_qj5mi")
+armour_type = 1
+hp_max = 160.0
+
+[node name="Veterancy" type="Node" parent="." unique_id=61976410]
+script = ExtResource("11_aaxeb")
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=1963842618]
+
+[node name="DominionRegion" type="CollisionShape3D" parent="." unique_id=172490848 groups=["debug_shape_warlord_dominion"]]
+visible = false
+shape = SubResource("CylinderShape3D_7hqlv")
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("12_a4cxk")]
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
+shape = SubResource("CylinderShape3D_rs2ks")
+metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Liberator" type="Node" parent="." unique_id=556601423]
+script = ExtResource("4_7tit3")
+converted_scene = ExtResource("5_vc0lo")
+
+[node name="Loadout" type="Node3D" parent="." unique_id=1077950614]
+script = ExtResource("3_3lfjd")
+
+[node name="Weapon" type="Node3D" parent="Loadout" unique_id=522370872]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48632813, 0.1538086)
+script = ExtResource("4_qd6od")
+split_time_ticks = 45
+reload_time_ticks = 45
+projectile_scene = ExtResource("7_spec")
+melee_damage = 0.0
+target_mask = 6
+
+[node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/Weapon" unique_id=1604335179 groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("2_spec")
+disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
+
+[node name="AttackRangeAir" type="CollisionShape3D" parent="Loadout/Weapon" unique_id=1207409746 groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("6_spec")
+disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1796090107]
+
+[node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("20_llkja")]
+transform = Transform3D(0.136719, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 1.52, 0)
+billboard = 2
+metadata/_visual_default_hp_bar = 0.35
+
+[node name="HPBarFill" parent="HPBar" index="0" unique_id=470614922]
+billboard = 2
+
+[node name="HPBarBack" parent="HPBar" index="1" unique_id=99646461]
+billboard = 2
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("21_7646f")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="." unique_id=2763738]
+script = ExtResource("22_px7sk")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=359779036]
+script = ExtResource("23_h3ls2")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="irregular" parent="MeshVisual" unique_id=1108500900 instance=ExtResource("8_oomff")]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, 0)
+
+[node name="Hat" parent="MeshVisual" unique_id=902720253 instance=ExtResource("10_cone")]
+transform = Transform3D(0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.2, 0, 1.2, 0)
+
+[node name="AltitudeIndicator" type="Node3D" parent="." unique_id=158939114]
+script = ExtResource("26_kgqqf")
+
+[node name="StatusVisuals" type="Node3D" parent="." unique_id=1498774800]
+script = ExtResource("27_l2tts")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=1834209116]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("28_47gfm")]
+billboard = 2
+
+[node name="AvoidanceObstacle" parent="." unique_id=1666248074 instance=ExtResource("29_j15rk")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="." unique_id=1649753144]
+
+[node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("30_rv5qs")]
+
+[node name="AggroRangeAir" parent="." unique_id=872346650 instance=ExtResource("5_uo4by")]
+
+[node name="LiberationRange" type="CollisionShape3D" parent="." unique_id=633427054 groups=["debug_shape_liberation_range"]]
+visible = false
+shape = SubResource("CylinderShape3D_tixnj")
+debug_color = Color(0.9, 0.35, 0.15, 0.35)
+
+[node name="Abilities" type="Node" parent="." unique_id=626723748]
+script = ExtResource("1_spec")
+groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 30, "grants": [&"retinue"] }])
+
+[node name="DetectionRange" type="CollisionShape3D" parent="." unique_id=1438864352 groups=["debug_shape_detection_range"]]
+shape = ExtResource("5_spec")
+disabled = true
+debug_color = Color(0.7, 0.2, 0.9, 0.35)
+
+[editable path="Selectable"]
+[editable path="HPBar"]

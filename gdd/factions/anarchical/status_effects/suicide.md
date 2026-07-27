@@ -1,6 +1,5 @@
 ---
-kind: status_effect
-id: suicide
+kind: StatusEffect
 title: suicide
 scene: res://scenes/entities/status_effects/suicide.tscn
 ---

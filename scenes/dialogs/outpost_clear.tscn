@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="OutpostClear" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Outpost clear"
+body = "The road is open. That is everything the basics can teach you, commander."
+acknowledge_text = "Finish"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

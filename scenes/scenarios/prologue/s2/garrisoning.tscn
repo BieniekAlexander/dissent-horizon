@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://cri0y1iiky5ob"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_53gkh"]
+
+[node name="Dialog" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_53gkh")
+title = "Basic Controls"
+body = "Some units can be garrisoned into other units and structures, allowing them to shoot from inside. To do so, just issue a move command on the target.
+
+Use the buildings to help your units defeat the enemies to the right."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

@@ -10,11 +10,11 @@ extends AbstractEvent
 #endregion
 
 #region Public API
-func execute(manager: ScenarioTriggerManager) -> void:
+func execute(a_manager: ScenarioTriggerManager) -> void:
 	if target_event == null:
 		push_warning("EventChainTrigger: target_event is not set")
 		return
 	# set_active arms a re-enabled trigger / disarms a disabled one (push model), rather
 	# than just flipping a flag the old poll loop would have noticed.
-	target_event.set_active(enable, manager)
+	target_event.set_active(enable, a_manager)
 #endregion

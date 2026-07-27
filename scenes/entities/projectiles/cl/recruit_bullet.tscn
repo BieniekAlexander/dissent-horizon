@@ -1,6 +1,43 @@
 [gd_scene format=3 uid="uid://b1pxdwtcob60x"]
 
-[ext_resource type="PackedScene" uid="uid://cm7ixbl5una03" path="res://scenes/entities/projectiles/an/irregular_bullet.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_k4nap"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_utk6t"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="4_0ihgd"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="1_spec"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
+[ext_resource type="Script" uid="uid://cowyf3f55ehdh" path="res://scripts/entities/components/tracer.gd" id="mig_tracer"]
+[ext_resource type="Mesh" path="res://resources/emissions/lead_tracer_beam.tres" id="fx_beam"]
 
-[node name="Projectile" unique_id=1124046733 instance=ExtResource("1_base")]
+[node name="Projectile" type="CharacterBody3D" unique_id=1706925958]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_k4nap")
+
+[node name="BeamMesh" type="MeshInstance3D" parent="."]
+sorting_offset = 100.0
+mesh = ExtResource("fx_beam")
+
+[node name="Ownership" type="Node" parent="." unique_id=1038599058]
+script = ExtResource("3_utk6t")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"
+
+[node name="Flight" type="Node3D" parent="." unique_id=1461507681]
+script = ExtResource("4_0ihgd")
+speed = 28.0
+
+[node name="Impact" type="Node3D" parent="." unique_id=2109590638]
+script = ExtResource("4_0ihgd")
+ends_on_arrival = false
+lifespan_seconds = 0.0
+applies_payload = true
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("1_spec")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("mig_payload")
+hitscan = true
 base_damage = 7.5
+
+[node name="Tracer" type="Node" parent="."]
+script = ExtResource("mig_tracer")

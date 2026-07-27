@@ -5,9 +5,8 @@
 | **Themes**   | Sacrifice, Firepower, Tempo |
 | ------------ | --------------------------- |
 | **Minion**   | Combat Vehicle              |
-| **Vigor**    | Commie block                |
+| **Infrastructure**    | Commie block                |
 | **Dominion** | Damage structures           |
-| Vibes        | Honda                       |
 - Play style
 	- early rush/harass/poke
 	- tempo
@@ -18,18 +17,18 @@
 	- Mobility - speed modifiers for units
 	- Heal - LACK
 	- bonus - frenzy: units destroying buildings get temporary bonus
+	- Positional - frenzy
 - Unique Mechanics
-	- sacrifice building health for faster unit production
-	- self-sacrificing units
+	- "add oil" mechanic, sacrifices health for frenzy
 # Specifics
 # Tech Tree
 
-<!-- tech-graph:start -->
 ```mermaid
+%% tech-graph:start
 flowchart LR
-    empty["marxist: no pieces authored yet"]
+    empty["marxist: no starts_with in the faction doc, so nothing is reachable"]
+%% tech-graph:end
 ```
-<!-- tech-graph:end -->
 
 ```dataviewjs
 await dv.view("_scripts/tech-graph")
@@ -55,7 +54,7 @@ await dv.view("_scripts/tech-graph")
 			- Napalm aircraft, toggle to spread fire, limited amount
 			- bombs in a line (req. Tech)
 ## Upgrades
-## Ordnances
+## Sanctions
 - T1
 	- Ignite a given friendly unit
 - T2

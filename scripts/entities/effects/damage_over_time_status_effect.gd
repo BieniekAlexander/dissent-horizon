@@ -16,10 +16,8 @@ extends StatusEffect
 func _on_tick() -> void:
 	if tick_rate <= 0:
 		return
-	if not (_entity is Commandable):
-		return
-	var victim: Commandable = _entity as Commandable
-	if victim.defense == null:
+	var victim: Entity = _entity
+	if victim == null or victim.defense == null:
 		return
 	# Fire on tick_rate boundaries counting from the first tick (so a 100-tick effect
 	# at tick_rate 10 lands at ticks 10, 20, … 100 — never a free hit at tick 0, which

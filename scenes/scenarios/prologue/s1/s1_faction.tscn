@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://ddh8y76pfvc55"]
+
+[ext_resource type="Script" uid="uid://cyrg0j3vbx1ds" path="res://scripts/interface/commander/faction.gd" id="1_2vlcq"]
+
+[node name="Empty" type="Node" unique_id=1805763819]
+script = ExtResource("1_2vlcq")
+faction_name = "Empty"

@@ -17,8 +17,8 @@ func _on_apply() -> void:
 	_apply_factor(_stacks)
 
 
-func _on_stacks_changed(old_stacks: int, new_stacks: int) -> void:
-	_apply_factor(new_stacks - old_stacks)
+func _on_stacks_changed(a_old_stacks: int, a_new_stacks: int) -> void:
+	_apply_factor(a_new_stacks - a_old_stacks)
 
 
 func _on_remove() -> void:
@@ -28,7 +28,7 @@ func _on_remove() -> void:
 
 ## Multiply the host's speed by slow_multiplier^count. A negative count undoes that many
 ## stacks. No-op without a Movement, or for a non-positive multiplier (can't be undone).
-func _apply_factor(count: int) -> void:
-	if count == 0 or _entity == null or _entity.movement == null or slow_multiplier <= 0.0:
+func _apply_factor(a_count: int) -> void:
+	if a_count == 0 or _entity == null or _entity.movement == null or slow_multiplier <= 0.0:
 		return
-	_entity.movement.speed *= pow(slow_multiplier, count)
+	_entity.movement.speed *= pow(slow_multiplier, a_count)

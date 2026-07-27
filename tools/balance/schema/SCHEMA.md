@@ -50,8 +50,8 @@ weapons:
   cannon:                       # ranged: carries a projectile
     name: Cannon
     projectile: shell_explosive_50
-    split_time: 45              # ticks between shots      (Weapon.split_time)
-    reload_time: 45             # ticks to refill a clip   (Weapon.reload_time)
+    split_time: 45              # ticks between shots      (Weapon.split_time_ticks)
+    reload_time: 45             # ticks to refill a clip   (Weapon.reload_time_ticks)
     clip_size: 1                # shots per clip           (Weapon.clip_size)
     reach: 7.5                  # AttackRange radius, world units
     hits: [ground]             # target layers: ground / air (Weapon.target_mask)
@@ -76,11 +76,11 @@ buildables:
   - id: heavy_tank            # unique within the faction
     kind: unit                # unit | structure
     name: Heavy Tank
-    cost: {ore: 600}          # v1 = ore only. TODO: pop + dominion + build_time -> weighted scalar
+    cost: {energy: 600}          # v1 = energy only. TODO: pop + dominion + build_time -> weighted scalar
     requires: [compound]      # buildable ids that must exist first (tech DAG edges)
 
     # --- unit-only combat fields (omit for non-combat structures) ---
-    armour: HEAVY             # UNARMORED | LIGHT | MEDIUM | HEAVY  (Defense.armour_type)
+    armour: STRONG            # UNARMORED | LIGHT | MEDIUM | STRONG  (Defense.armour_type)
     hp: 800                   # Defense.hp_max
     movement:
       layer: ground           # ground | air — drives movement AND how it's targeted

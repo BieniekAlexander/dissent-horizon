@@ -1,0 +1,134 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/emission_particles.gd" id="1_delay"]
+[ext_resource type="Material" path="res://resources/emissions/particle_additive.tres" id="2_add"]
+[ext_resource type="Material" path="res://resources/emissions/particle_smoke.tres" id="3_smoke"]
+
+[sub_resource type="Gradient" id="Gradient_Glow"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1, 0.95, 0.75, 0.9, 1, 0.5, 0.15, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Glow"]
+gradient = SubResource("Gradient_Glow")
+
+[sub_resource type="Curve" id="Curve_Glow"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.8), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Glow"]
+curve = SubResource("Curve_Glow")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Glow"]
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 0
+initial_velocity_max = 0
+gravity = Vector3(0, 0, 0)
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.315
+scale_max = 0.385
+scale_curve = SubResource("CurveTexture_Glow")
+color_ramp = SubResource("GradientTexture1D_Glow")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Glow"]
+material = ExtResource("2_add")
+
+[sub_resource type="Gradient" id="Gradient_Trace"]
+offsets = PackedFloat32Array(0, 0.4, 1)
+colors = PackedColorArray(1, 0.8, 0.4, 0.9, 1, 0.35, 0.1, 0.5, 0.6, 0.1, 0.02, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Trace"]
+gradient = SubResource("Gradient_Trace")
+
+[sub_resource type="Curve" id="Curve_Trace"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Trace"]
+curve = SubResource("Curve_Trace")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Trace"]
+emission_shape = 3
+emission_box_extents = Vector3(0.014, 0.014, 0.14)
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 0
+initial_velocity_max = 0
+gravity = Vector3(0, 0, 0)
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.14
+scale_max = 0.168
+scale_curve = SubResource("CurveTexture_Trace")
+color_ramp = SubResource("GradientTexture1D_Trace")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Trace"]
+material = ExtResource("2_add")
+
+[sub_resource type="Gradient" id="Gradient_Smoke"]
+offsets = PackedFloat32Array(0, 0.1, 1)
+colors = PackedColorArray(0.7, 0.68, 0.65, 0, 0.7, 0.68, 0.65, 0.4, 0.6, 0.6, 0.6, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Smoke"]
+gradient = SubResource("Gradient_Smoke")
+
+[sub_resource type="Curve" id="Curve_Smoke"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Smoke"]
+curve = SubResource("Curve_Smoke")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Smoke"]
+emission_shape = 3
+emission_box_extents = Vector3(0.014, 0.014, 0.14)
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 0.035
+initial_velocity_max = 0.105
+gravity = Vector3(0, 0.07, 0)
+damping_min = 0.21
+damping_max = 0.21
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.28
+scale_max = 0.385
+scale_curve = SubResource("CurveTexture_Smoke")
+color_ramp = SubResource("GradientTexture1D_Smoke")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Smoke"]
+material = ExtResource("3_smoke")
+
+[node name="ArtilleryTrail" type="Node3D"]
+
+[node name="Glow" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 8
+lifetime = 0.12
+local_coords = true
+visibility_aabb = AABB(-8, -8, -8, 16, 16, 16)
+process_material = SubResource("ParticleProcessMaterial_Glow")
+draw_pass_1 = SubResource("QuadMesh_Glow")
+
+[node name="Trace" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.14)
+emitting = false
+amount = 90
+lifetime = 0.45
+visibility_aabb = AABB(-8, -8, -8, 16, 16, 16)
+process_material = SubResource("ParticleProcessMaterial_Trace")
+draw_pass_1 = SubResource("QuadMesh_Trace")
+script = ExtResource("1_delay")
+start_delay_seconds = 0.1
+
+[node name="Smoke" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.14)
+emitting = false
+amount = 100
+lifetime = 1.6
+visibility_aabb = AABB(-8, -8, -8, 16, 16, 16)
+process_material = SubResource("ParticleProcessMaterial_Smoke")
+draw_pass_1 = SubResource("QuadMesh_Smoke")
+script = ExtResource("1_delay")
+start_delay_seconds = 0.1

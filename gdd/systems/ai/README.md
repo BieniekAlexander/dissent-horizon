@@ -1,0 +1,33 @@
+---
+title: AI
+type: system-index
+---
+
+# AI
+
+The CPU commander: what it perceives, how it decides, and how it acts.
+
+| Note | Covers |
+|---|---|
+| [bot-architecture.md](bot-architecture.md) | what is built today — the layers, the modules, and where each decision is made |
+| [bot-roadmap.md](bot-roadmap.md) | TODO: planning over ladders, the gaps below, and the training harness |
+| [objective-selection.md](objective-selection.md) | TODO, unapproved: the layer above every decision — all-in and booming as postures, not modes |
+| [three-layer-comparison.md](three-layer-comparison.md) | RESEARCH: ZeroSpace's framework read against this bot — what matches, and the three gaps |
+| [bot-parameter-space.md](bot-parameter-space.md) | what a tuning run may MOVE: the audit behind every `BotDifficulty` field, each one's search range, what interacts with what, and the ladders no parameter reaches |
+| [selfplay-harness.md](selfplay-harness.md) | headless bot-versus-bot matches with injected parameters — how to run one, the JSON in and out, and what determinism actually holds |
+| [bot-engagement-fixes.md](bot-engagement-fixes.md) | why a bot-versus-bot match was a guaranteed stalemate with zero combat, the four fixes, the before/after decisive rate, and the hysteresis re-check |
+| [selfplay-results-2026-09-06.md](selfplay-results-2026-09-06.md) | MEASURED: 156 self-play matches on the fixed economy, and it SUPERSEDES the 2026-09-05 note — the start-position advantage is real, follows the POSITION, and survives an exactly symmetric map because the bot's build search prefers a world axis; which "inert" parameters came alive; the archetype matrix is still transitive but RUSHER is now last |
+| [bot-economy-diagnosis.md](bot-economy-diagnosis.md) | FIXED: why the bot was broke in 70% of sampled ticks and never owned an extractor — the reserve was a trigger and not a floor, and income was gated behind being poor; the before/after, and why the flat stalemate is the same bug |
+| [bot-performance.md](bot-performance.md) | MEASURED 2026-09-25: what a physics tick costs with bots running, a navmesh rebuild phase by phase, and the ranked fixes for the three ways the game misses the 30 FPS budget |
+| [think-scheduling.md](think-scheduling.md) | how a bot's thinking is paced: jobs on their own periods, one shared work-unit budget, resumable sweeps, and the claims registry that replaced run order |
+
+**Belongs here:** the Bot's perception API, the decision modules and their cadence, the
+actuator, difficulty tiers, and anything about how the CPU chooses what to do.
+
+**Does not belong here:** the commands it issues ([commands](../commands/)), the economy it
+plays ([macroeconomics](../macroeconomics/)), or scripted mission behaviour, which is
+authored per scenario rather than decided
+([scenario-scripting/tactics](../scenario-scripting/tactics.md)). The line between a TACTIC
+and the Bot is worth stating: a tactic is a scenario author saying "these units do this",
+the Bot is a commander deciding for itself, and the two are deliberately separate systems
+today — see [bot-roadmap](bot-roadmap.md) §Tactics and the Bot.

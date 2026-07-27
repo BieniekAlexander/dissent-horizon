@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://b4mg8vf6usyv5"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_w3ijo"]
+
+[node name="WinDialog" type="VBoxContainer" unique_id=814944871]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_w3ijo")
+title = "Defeat"
+body = "You lose!"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

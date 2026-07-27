@@ -1,84 +1,107 @@
 extends GutTest
 
-## Tests for the Shelter/interaction mechanic:
-##   - Shelter: a startup countdown that flips `available` once it hits 0.
-##   - Interactor / Interaction: a unit's list of type-matched interactions.
+## Tests for the Interactor / Interaction mechanic: a unit's list of interactions and
+## the per-type precondition each is gated by.
 ##
-## These classes are pure data/logic components, so the tests drive them
-## directly (calling _ready / _physics_process) without standing up a scene.
-
-## --- Shelter ------------------------------------------------------------
-
-func test_Shelter_starts_unavailable_and_counts_down():
-	var e := Shelter.new()
-	e.startup_delay = 2.0
-	autofree(e)
-	e._ready()
-	assert_false(e.available, "unavailable while the timer is running")
-	e._physics_process(1.0)
-	assert_false(e.available, "still counting down after a partial tick")
-	e._physics_process(1.0)
-	assert_true(e.available, "available once the timer reaches 0")
-
-func test_Shelter_clamps_at_zero():
-	var e := Shelter.new()
-	e.startup_delay = 1.0
-	autofree(e)
-	e._ready()
-	e._physics_process(5.0)  # overshoot the remaining time
-	assert_true(e.available)
-	assert_eq(e._remaining, 0.0, "timer never goes negative")
-
-## --- Interactor / Interaction ---------------------------------------------
+## Applicability is decided by the interaction type's mapped evaluation function. DEPOSIT is
+## the one exercised here — it is the type the Stock Truck still carries, and its rule is a
+## real one: the target must be a structure whose garrison INTERNS, and the actor must
+## actually be holding somebody.
 ##
-## Applicability is now decided by the interaction type's mapped precondition
-## function. LIBERATE passes iff the message target has a Shelter component.
+## Capture is no longer an interaction at all: a truck takes prisoners by driving over them
+## (see test_CaptureByCrushing.gd). HIJACK has its own file.
 
-func _make_interactor(a_type: Interaction.Type) -> Interactor:
-	var interactor := Interactor.new()
-	autofree(interactor)
-	var ix := Interaction.new()
-	ix.type = a_type
-	interactor.interactions.append(ix)
-	return interactor
+const SUPPLY_TRUCK := preload("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
+const TERRESTRIAL := preload("res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn")
+const COMPOUND := preload("res://scenes/entities/structures/cl/cl_infrastructure.tscn")
+## A structure with an OPEN garrison — one that holds units but interns nobody.
+const OPEN_GARRISON := preload("res://scenes/entities/structures/nt/nt_building.tscn")
 
-## A bare target entity, optionally carrying a Shelter component child (a plain
-## Node named "Shelter" — the LIBERATE evaluator only checks has_node).
-func _make_target(a_has_shelter: bool) -> Entity:
-	var t := Entity.new()
-	autofree(t)
-	if a_has_shelter:
-		var s := Node.new()
-		s.name = "Shelter"
-		t.add_child(s)
-		autofree(s)
-	return t
+func _commanded(a_id: int) -> Commander:
+	var c := Commander.new()
+	c.id = a_id
+	add_child_autofree(c)
+	return c
+
+## A live unit instance owned by [a_commander_id]. Ownership is assigned directly (not
+## through initialize) so no Map is needed.
+func _unit(a_scene: PackedScene, a_commander_id: int) -> Commandable:
+	var u := a_scene.instantiate() as Commandable
+	add_child_autofree(u)
+	u.ownership.commander = _commanded(a_commander_id)
+	return u
 
 func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
 
-func test_liberate_applies_when_target_has_shelter():
-	var interactor := _make_interactor(Interaction.Type.LIBERATE)
-	var target := _make_target(true)
-	var msg := _message_for(target)
-	assert_true(interactor.can_interact(null, msg))
-	assert_eq(interactor.applicable_interaction(null, msg).type, Interaction.Type.LIBERATE)
+func _interaction_of(a_unit: Commandable, a_type: Interaction.Type) -> Interaction:
+	if a_unit.interactor == null:
+		return null
+	for i: Interaction in a_unit.interactor.interactions:
+		if i.type == a_type:
+			return i
+	return null
 
-func test_liberate_does_not_apply_without_shelter():
-	var interactor := _make_interactor(Interaction.Type.LIBERATE)
-	var target := _make_target(false)
-	var msg := _message_for(target)
-	assert_false(interactor.can_interact(null, msg))
-	assert_null(interactor.applicable_interaction(null, msg))
+## --- DEPOSIT applicability -------------------------------------------------
 
-func test_liberate_evaluation_returns_failure_cause():
-	var ix := Interaction.new()
-	ix.type = Interaction.Type.LIBERATE
+func test_deposit_applies_to_a_camp_when_the_truck_is_loaded():
+	var truck := _unit(SUPPLY_TRUCK, 1)
+	truck.garrison.garrison(_unit(TERRESTRIAL, 0))
+	var camp := _unit(COMPOUND, 1)
+	var resolved: Interaction = truck.interactor.applicable_interaction(truck, _message_for(camp))
+	assert_not_null(resolved, "a loaded truck can deposit at a compound")
+	assert_eq(resolved.type, Interaction.Type.DEPOSIT)
+
+func test_deposit_does_not_apply_to_an_empty_truck():
+	var truck := _unit(SUPPLY_TRUCK, 1)
+	assert_null(
+		truck.interactor.applicable_interaction(truck, _message_for(_unit(COMPOUND, 1))),
+		"there is nothing to hand over"
+	)
+
+func test_deposit_does_not_apply_to_a_structure_that_does_not_intern():
+	var truck := _unit(SUPPLY_TRUCK, 1)
+	truck.garrison.garrison(_unit(TERRESTRIAL, 0))
+	assert_null(
+		truck.interactor.applicable_interaction(truck, _message_for(_unit(OPEN_GARRISON, 1))),
+		"an open safehouse is not a prison camp"
+	)
+
+func test_deposit_evaluation_returns_failure_cause():
+	var truck := _unit(SUPPLY_TRUCK, 1)
+	var deposit: Interaction = _interaction_of(truck, Interaction.Type.DEPOSIT)
+	assert_not_null(deposit, "the truck carries a DEPOSIT interaction")
 	assert_eq(
-		ix.meets_precondition(null, _message_for(_make_target(true))),
+		deposit.meets_precondition(truck, _message_for(_unit(COMPOUND, 1))),
+		MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
+		"empty: nothing to deposit"
+	)
+	truck.garrison.garrison(_unit(TERRESTRIAL, 0))
+	assert_eq(
+		deposit.meets_precondition(truck, _message_for(_unit(COMPOUND, 1))),
 		MoveCommand.PreconditionFailureCause.NONE
 	)
-	assert_eq(
-		ix.meets_precondition(null, _message_for(_make_target(false))),
-		MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	)
+
+## --- The truck's interaction list ------------------------------------------
+
+func test_supply_truck_carries_only_deposit():
+	# Both of the errands it used to carry are gone from this list: the shelter COLLECT
+	# errand, and then ABDUCT, which became a contact mechanic (Garrison.can_capture).
+	var truck := _unit(SUPPLY_TRUCK, 1)
+	var types: Array = truck.interactor.interactions.map(func(i: Interaction) -> int: return i.type)
+	assert_eq(types, [Interaction.Type.DEPOSIT])
+
+## --- Interact travels in order to ACT, and arriving is not the point ---------
+##
+## `Interact` inherited `ends_on_arrival()`'s default `true`, which is wrong for every
+## interaction it drives (DEPOSIT, HIJACK): a unit that had to WALK to its target
+## dropped the whole order the tick navigation reported "arrived", if that happened even one
+## tick before `_in_reach` agreed — leaving a loaded truck standing at a Compound, cargo
+## intact, doing nothing forever. Same bug, same fix, as Build/Assemble/Repair.
+
+func test_interact_does_not_end_on_arrival():
+	var truck := _unit(SUPPLY_TRUCK, 1)
+	truck.garrison.garrison(_unit(TERRESTRIAL, 0))
+	var order := Interact.new(_message_for(_unit(COMPOUND, 1)))
+	assert_false(order.ends_on_arrival(),
+		"arriving is not the point — depositing is, and only can_act/fulfill_action decide that")

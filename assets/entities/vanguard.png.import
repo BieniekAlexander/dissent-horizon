@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://d1a5x13ex36cd"
 path.s3tc="res://.godot/imported/vanguard.png-484149e249c26b48f1535f831895cfa4.s3tc.ctex"
+path.etc2="res://.godot/imported/vanguard.png-484149e249c26b48f1535f831895cfa4.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/vanguard.png"
-dest_files=["res://.godot/imported/vanguard.png-484149e249c26b48f1535f831895cfa4.s3tc.ctex"]
+dest_files=["res://.godot/imported/vanguard.png-484149e249c26b48f1535f831895cfa4.s3tc.ctex", "res://.godot/imported/vanguard.png-484149e249c26b48f1535f831895cfa4.etc2.ctex"]
 
 [params]
 

@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cpcl7027uxe1r"
 path.s3tc="res://.godot/imported/greyscale-tree.png-1a0aba0c5baf38bc8cf39b4a25f06b6d.s3tc.ctex"
+path.etc2="res://.godot/imported/greyscale-tree.png-1a0aba0c5baf38bc8cf39b4a25f06b6d.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/greyscale-tree.png"
-dest_files=["res://.godot/imported/greyscale-tree.png-1a0aba0c5baf38bc8cf39b4a25f06b6d.s3tc.ctex"]
+dest_files=["res://.godot/imported/greyscale-tree.png-1a0aba0c5baf38bc8cf39b4a25f06b6d.s3tc.ctex", "res://.godot/imported/greyscale-tree.png-1a0aba0c5baf38bc8cf39b4a25f06b6d.etc2.ctex"]
 
 [params]
 

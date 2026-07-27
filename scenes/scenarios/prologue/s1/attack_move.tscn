@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://7kujyq0djjpu"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_fwosv"]
+
+[node name="DialogPage" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_fwosv")
+title = "Attack Moving"
+body = "You can also issue an \"Attack Move\" command, which means your units will find targets on their own while they're heading towards their destination. To do so, press {{ command_attack_move }} and then press {{ command_issue }} to set their destination."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

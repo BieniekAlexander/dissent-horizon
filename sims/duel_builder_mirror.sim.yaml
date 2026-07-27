@@ -1,0 +1,24 @@
+description: |
+  A mirror duel: one Anarchical builder each side, ordered onto the other. The claim is a
+  TRADE rather than a win — with identical pieces and identical orders, neither should be
+  left standing at the end of the window.
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      builders:
+        of: [ { piece: an_bioLight_builder, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.builders } } ]
+  B:
+    with:
+      builders:
+        of: [ { piece: an_bioLight_builder, count: 1 } ]
+        at: { from: A.builders, distance: 10, bearing: east }
+        facing: west
+        orders: [ { attack: { target: A.builders } } ]
+run: { for: 30s, seed: 1 }
+expect:
+  - { of: A.builders, check: dead }
+  - { of: B.builders, check: dead }

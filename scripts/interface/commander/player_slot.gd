@@ -24,8 +24,11 @@ enum Difficulty {
 
 ## The faction this player fields, as a faction scene (e.g. anarchical.tscn).
 ## Propagated to the built Commander (sets its faction_scene), which instances it
-## for the starting structure and ordnances. When null, the commander keeps its own
-## default faction (e.g. the one player.tscn ships with).
+## for the starting units and sanctions.
+##
+## REQUIRED — Scenario._validate_player_slots fails the boot when a slot leaves it
+## null. There is no default: Commander.faction_scene is not exported precisely so
+## that this is the only place a commander's faction can be configured.
 @export var faction: PackedScene
 
 ## Bot difficulty (see Difficulty). Ignored for a human slot.
@@ -35,8 +38,8 @@ enum Difficulty {
 ## The resource stockpiles the commander begins the match with. Scenario applies
 ## these to the built commander; a commander built without a slot (the neutral world
 ## commander) starts at zero.
-@export var starting_ore: int = 1000
-@export var starting_dominion: int = 1000
+@export var starting_energy: int = 1000
+@export var starting_dominion: int = 300
 #endregion
 
 ## The live Commander built for this slot, assigned by Scenario at build time.

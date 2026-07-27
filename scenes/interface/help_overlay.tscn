@@ -1,0 +1,121 @@
+[gd_scene format=3 uid="uid://d1qym633ecjpp"]
+
+[ext_resource type="Script" uid="uid://ct4dpsbfs83kc" path="res://scripts/interface/hud/help_overlay.gd" id="1_help"]
+
+[node name="HelpOverlay" type="Control" unique_id=1561749654]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_help")
+hint_text = "Hold {{ show_help }} to show testing info"
+debug_hint_text = "Press {{ show_debug_info }} to display the debug menu"
+help_text = "To exit the game:
+- MacOS: CMD + Q
+- Windows/Linux: Alt+F4"
+
+[node name="HintPanel" type="PanelContainer" parent="." unique_id=833757270]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -374.0
+offset_top = -235.0
+offset_bottom = -195.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="HintPanel" unique_id=153382799]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
+
+[node name="HintText" type="RichTextLabel" parent="HintPanel/Margin" unique_id=1382961040]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+bbcode_enabled = true
+text = "Hold {{ show_help }} to show testing info"
+fit_content = true
+scroll_active = false
+
+[node name="DebugHintPanel" type="PanelContainer" parent="." unique_id=1907346215]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -374.0
+offset_top = -279.0
+offset_bottom = -239.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="DebugHintPanel" unique_id=1224690371]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
+
+[node name="DebugHintText" type="RichTextLabel" parent="DebugHintPanel/Margin" unique_id=640518873]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+bbcode_enabled = true
+text = "Press {{ show_debug_info }} to display the debug menu"
+fit_content = true
+scroll_active = false
+
+[node name="HelpCenter" type="CenterContainer" parent="." unique_id=536861011]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HelpPanel" type="PanelContainer" parent="HelpCenter" unique_id=812683019]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(640, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="HelpCenter/HelpPanel" unique_id=1284264983]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="HelpText" type="RichTextLabel" parent="HelpCenter/HelpPanel/Margin" unique_id=1816378960]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(592, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 18
+bbcode_enabled = true
+text = "To exit the game:
+- MacOS: CMD + Q
+- Windows/Linux: Alt+F4"
+fit_content = true
+scroll_active = false

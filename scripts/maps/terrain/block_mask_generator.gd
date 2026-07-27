@@ -35,9 +35,9 @@ const _NEIGHBOURS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vec
 #endregion
 
 #region Public API
-func generate(heights: PackedFloat32Array, width: int, depth: int) -> PackedByteArray:
-	var gw: int = width - 1
-	var gh: int = depth - 1
+func generate(a_heights: PackedFloat32Array, a_width: int, a_depth: int) -> PackedByteArray:
+	var gw: int = a_width - 1
+	var gh: int = a_depth - 1
 	var blocked := PackedByteArray()
 	if gw <= 0 or gh <= 0:
 		return blocked
@@ -50,10 +50,10 @@ func generate(heights: PackedFloat32Array, width: int, depth: int) -> PackedByte
 	flat.resize(gw * gh)
 	for z: int in gh:
 		for x: int in gw:
-			var h00: float = heights[z * width + x]
-			var h10: float = heights[z * width + x + 1]
-			var h01: float = heights[(z + 1) * width + x]
-			var h11: float = heights[(z + 1) * width + x + 1]
+			var h00: float = a_heights[z * a_width + x]
+			var h10: float = a_heights[z * a_width + x + 1]
+			var h01: float = a_heights[(z + 1) * a_width + x]
+			var h11: float = a_heights[(z + 1) * a_width + x + 1]
 			var hi: float = maxf(maxf(h00, h10), maxf(h01, h11))
 			var lo: float = minf(minf(h00, h10), minf(h01, h11))
 			var idx: int = z * gw + x
@@ -83,48 +83,48 @@ func generate(heights: PackedFloat32Array, width: int, depth: int) -> PackedByte
 #endregion
 
 #region Private helpers
-func _is_eligible(cell: Vector2i, gw: int, gh: int, passable: PackedByteArray, flat: PackedByteArray, blocked: PackedByteArray) -> bool:
-	if cell.x < 0 or cell.x >= gw or cell.y < 0 or cell.y >= gh:
+func _is_eligible(a_cell: Vector2i, a_gw: int, a_gh: int, a_passable: PackedByteArray, a_flat: PackedByteArray, a_blocked: PackedByteArray) -> bool:
+	if a_cell.x < 0 or a_cell.x >= a_gw or a_cell.y < 0 or a_cell.y >= a_gh:
 		return false
-	var idx: int = cell.y * gw + cell.x
-	if passable[idx] == 0 or blocked[idx] == 1:
+	var idx: int = a_cell.y * a_gw + a_cell.x
+	if a_passable[idx] == 0 or a_blocked[idx] == 1:
 		return false
-	return flat[idx] == 1 if flat_only else true
+	return a_flat[idx] == 1 if flat_only else true
 
-func _pick_candidate(rng: RandomNumberGenerator, gw: int, gh: int, passable: PackedByteArray, flat: PackedByteArray, blocked: PackedByteArray) -> Vector2i:
+func _pick_candidate(a_rng: RandomNumberGenerator, a_gw: int, a_gh: int, a_passable: PackedByteArray, a_flat: PackedByteArray, a_blocked: PackedByteArray) -> Vector2i:
 	for _try: int in 60:
-		var cell := Vector2i(rng.randi_range(0, gw - 1), rng.randi_range(0, gh - 1))
-		if _is_eligible(cell, gw, gh, passable, flat, blocked):
+		var cell := Vector2i(a_rng.randi_range(0, a_gw - 1), a_rng.randi_range(0, a_gh - 1))
+		if _is_eligible(cell, a_gw, a_gh, a_passable, a_flat, a_blocked):
 			return cell
 	return Vector2i(-1, -1)
 
 ## Random-frontier flood growth — gives organic blob shapes rather than discs.
-func _grow_blob(rng: RandomNumberGenerator, start: Vector2i, target: int, gw: int, gh: int, passable: PackedByteArray, flat: PackedByteArray, blocked: PackedByteArray) -> Array:
+func _grow_blob(a_rng: RandomNumberGenerator, a_start: Vector2i, a_target: int, a_gw: int, a_gh: int, a_passable: PackedByteArray, a_flat: PackedByteArray, a_blocked: PackedByteArray) -> Array:
 	var blob: Array = []
-	var visited: Dictionary = {start: true}
-	var frontier: Array = [start]
-	while not frontier.is_empty() and blob.size() < target:
-		var i: int = rng.randi_range(0, frontier.size() - 1)
+	var visited: Dictionary = {a_start: true}
+	var frontier: Array = [a_start]
+	while not frontier.is_empty() and blob.size() < a_target:
+		var i: int = a_rng.randi_range(0, frontier.size() - 1)
 		var cell: Vector2i = frontier[i]
 		frontier.remove_at(i)
 		blob.append(cell)
 		for d: Vector2i in _NEIGHBOURS:
 			var nb: Vector2i = cell + d
-			if not visited.has(nb) and _is_eligible(nb, gw, gh, passable, flat, blocked):
+			if not visited.has(nb) and _is_eligible(nb, a_gw, a_gh, a_passable, a_flat, a_blocked):
 				visited[nb] = true
 				frontier.append(nb)
 	return blob
 
 ## True iff the cells that are height-passable AND not blocked form one connected
 ## component (4-neighbour).  Early-outs as soon as a second component appears.
-func _passable_connected(gw: int, gh: int, passable: PackedByteArray, blocked: PackedByteArray) -> bool:
+func _passable_connected(a_gw: int, a_gh: int, a_passable: PackedByteArray, a_blocked: PackedByteArray) -> bool:
 	var seen := PackedByteArray()
-	seen.resize(gw * gh)
+	seen.resize(a_gw * a_gh)
 	var components: int = 0
-	for z: int in gh:
-		for x: int in gw:
-			var idx: int = z * gw + x
-			if passable[idx] == 1 and blocked[idx] == 0 and seen[idx] == 0:
+	for z: int in a_gh:
+		for x: int in a_gw:
+			var idx: int = z * a_gw + x
+			if a_passable[idx] == 1 and a_blocked[idx] == 0 and seen[idx] == 0:
 				components += 1
 				if components > 1:
 					return false
@@ -135,9 +135,9 @@ func _passable_connected(gw: int, gh: int, passable: PackedByteArray, blocked: P
 					for d: Vector2i in _NEIGHBOURS:
 						var nx: int = c.x + d.x
 						var nz: int = c.y + d.y
-						if nx >= 0 and nx < gw and nz >= 0 and nz < gh:
-							var ni: int = nz * gw + nx
-							if passable[ni] == 1 and blocked[ni] == 0 and seen[ni] == 0:
+						if nx >= 0 and nx < a_gw and nz >= 0 and nz < a_gh:
+							var ni: int = nz * a_gw + nx
+							if a_passable[ni] == 1 and a_blocked[ni] == 0 and seen[ni] == 0:
 								seen[ni] = 1
 								stack.append(Vector2i(nx, nz))
 	return components <= 1

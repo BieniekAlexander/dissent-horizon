@@ -1,3 +1,4 @@
+
 # World Building
 
 This document provides brief overviews of the factions and setting relevant to Dissent Horizon. For deeper lore, refer to the external **world-building knowledge base** (link TBD).
@@ -10,7 +11,7 @@ Anarchic communities organized at a small scale — think tribal, Arab-influence
 
 ## Haustoria
 
-An imperial confederation with Roman and American Dream influences — perpetually expanding, extracting, and growing. *Haustorium* refers to a parasitic root structure, and the faction lives up to the name: Haustoria incorporates other civilizations by force when necessary, maintains a rigid hierarchy with nominal meritocracy, and consumes resources faster than it can replenish them. Their technological specialties include psychic powers and brainwashing, siege warfare, and laser weapons sourced from the Successors of Tenjin. Energy infrastructure includes a small number of hotly contested Dyson Spheres.
+An imperial confederation with Roman and American Dream influences — perpetually expanding, extracting, and growing. *Haustorium* refers to a parasitic root structure, and the faction lives up to the name: Haustoria incorporates other civilizations by force when necessary, maintains a rigid hierarchy with nominal meritocracy, and consumes resources faster than it can replenish them. Their technological specialties include cryogenics, siege warfare, and laser weapons sourced from the Successors of Tenjin. Energy infrastructure includes a small number of hotly contested Dyson Spheres.
 
 ## Successors of Tenjin
 

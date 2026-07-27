@@ -4,7 +4,7 @@ class_name NavAgentClass
 ##
 ## One NavigationMesh (and one region on the shared NavigationServer3D map) is baked
 ## per class, eroded for that class's radius; an agent navigates on the mesh for its
-## class. See nav-agent-size-classes.md for the full design and the research
+## class. See gdd/systems/terrain-and-navigation/agent-size-classes.md for the full design and the research
 ## (StarCraft / AoE2 / clearance-based pathfinding) behind it.
 ##
 ## The classes ARE corridor-width tiers: the enum value is the corridor width, in

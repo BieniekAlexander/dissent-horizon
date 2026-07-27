@@ -13,7 +13,7 @@ const DEPTH: int = 30
 const MAX_SLOPE_DIFF: float = 0.5
 
 
-func _heights(seed_val: int) -> PackedFloat32Array:
+func _heights(a_seed_val: int) -> PackedFloat32Array:
 	var gen := GraphPlateauHeightmapGenerator.new()
 	gen.width = WIDTH
 	gen.depth = DEPTH
@@ -21,37 +21,37 @@ func _heights(seed_val: int) -> PackedFloat32Array:
 	gen.height_levels = 3
 	gen.height_step = 1.0
 	gen.ramp_half_width = 2.5
-	gen.seed = seed_val
+	gen.seed = a_seed_val
 	return gen.generate()
 
 
-func _make_mask(seed_val: int, flat_only: bool = true) -> Dictionary:
-	var heights: PackedFloat32Array = _heights(seed_val)
+func _make_mask(a_seed_val: int, a_flat_only: bool = true) -> Dictionary:
+	var heights: PackedFloat32Array = _heights(a_seed_val)
 	var bm := BlockMaskGenerator.new()
-	bm.seed = seed_val
-	bm.flat_only = flat_only
+	bm.seed = a_seed_val
+	bm.flat_only = a_flat_only
 	var mask: PackedByteArray = bm.generate(heights, WIDTH, DEPTH)
 	return {"heights": heights, "mask": mask}
 
 
-func _cell_passable(h: PackedFloat32Array, x: int, z: int) -> bool:
-	var h00: float = h[z * WIDTH + x]
-	var h10: float = h[z * WIDTH + x + 1]
-	var h01: float = h[(z + 1) * WIDTH + x]
-	var h11: float = h[(z + 1) * WIDTH + x + 1]
+func _cell_passable(a_h: PackedFloat32Array, a_x: int, a_z: int) -> bool:
+	var h00: float = a_h[a_z * WIDTH + a_x]
+	var h10: float = a_h[a_z * WIDTH + a_x + 1]
+	var h01: float = a_h[(a_z + 1) * WIDTH + a_x]
+	var h11: float = a_h[(a_z + 1) * WIDTH + a_x + 1]
 	return (maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))) <= MAX_SLOPE_DIFF
 
 
-func _cell_flat(h: PackedFloat32Array, x: int, z: int) -> bool:
-	var h00: float = h[z * WIDTH + x]
-	var h10: float = h[z * WIDTH + x + 1]
-	var h01: float = h[(z + 1) * WIDTH + x]
-	var h11: float = h[(z + 1) * WIDTH + x + 1]
+func _cell_flat(a_h: PackedFloat32Array, a_x: int, a_z: int) -> bool:
+	var h00: float = a_h[a_z * WIDTH + a_x]
+	var h10: float = a_h[a_z * WIDTH + a_x + 1]
+	var h01: float = a_h[(a_z + 1) * WIDTH + a_x]
+	var h11: float = a_h[(a_z + 1) * WIDTH + a_x + 1]
 	return is_equal_approx(h00, h10) and is_equal_approx(h10, h01) and is_equal_approx(h01, h11)
 
 
 ## Components of (passable AND not blocked).
-func _passable_unblocked_components(h: PackedFloat32Array, mask: PackedByteArray) -> int:
+func _passable_unblocked_components(a_h: PackedFloat32Array, a_mask: PackedByteArray) -> int:
 	var gw: int = WIDTH - 1
 	var gh: int = DEPTH - 1
 	var seen: PackedByteArray = PackedByteArray()
@@ -60,7 +60,7 @@ func _passable_unblocked_components(h: PackedFloat32Array, mask: PackedByteArray
 	for z: int in gh:
 		for x: int in gw:
 			var idx: int = z * gw + x
-			if _cell_passable(h, x, z) and mask[idx] == 0 and seen[idx] == 0:
+			if _cell_passable(a_h, x, z) and a_mask[idx] == 0 and seen[idx] == 0:
 				components += 1
 				var stack: Array = [Vector2i(x, z)]
 				seen[idx] = 1
@@ -71,15 +71,15 @@ func _passable_unblocked_components(h: PackedFloat32Array, mask: PackedByteArray
 						var nz: int = c.y + d.y
 						if nx >= 0 and nx < gw and nz >= 0 and nz < gh:
 							var ni: int = nz * gw + nx
-							if _cell_passable(h, nx, nz) and mask[ni] == 0 and seen[ni] == 0:
+							if _cell_passable(a_h, nx, nz) and a_mask[ni] == 0 and seen[ni] == 0:
 								seen[ni] = 1
 								stack.append(Vector2i(nx, nz))
 	return components
 
 
-func _blocked_count(mask: PackedByteArray) -> int:
+func _blocked_count(a_mask: PackedByteArray) -> int:
 	var n: int = 0
-	for b: int in mask:
+	for b: int in a_mask:
 		if b != 0:
 			n += 1
 	return n

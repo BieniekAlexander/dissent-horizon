@@ -1,0 +1,1063 @@
+[
+	{
+		"faction": "anarchists",
+		"id": "an_airField",
+		"is_fixture": true,
+		"label": "Hangar",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_airField.tscn",
+		"tool": "command_tool_an_airField"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_aircraftLight_antiMech",
+		"is_fixture": false,
+		"label": "Kamikaze",
+		"producers": [
+			"an_airField"
+		],
+		"scene": "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn",
+		"tool": "command_tool_an_aircraftLight_antiMech"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_aircraftLight_transport",
+		"is_fixture": false,
+		"label": "Raven",
+		"producers": [
+			"an_airField"
+		],
+		"scene": "res://scenes/entities/units/an/an_aircraftLight_transport.tscn",
+		"tool": "command_tool_an_aircraftLight_transport"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_aircraftMedium_support",
+		"is_fixture": false,
+		"label": "Condor",
+		"producers": [
+			"an_airField"
+		],
+		"scene": "res://scenes/entities/units/an/an_aircraftMedium_support.tscn",
+		"tool": "command_tool_an_aircraftMedium_support"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_barracks",
+		"is_fixture": true,
+		"label": "Redoubt",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_barracks.tscn",
+		"tool": "command_tool_an_barracks"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_bioLight_antiBio",
+		"is_fixture": false,
+		"label": "Sharpshooter",
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioLight_antiBio.tscn",
+		"tool": "command_tool_an_bioLight_antiBio"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_bioLight_antiStructure",
+		"is_fixture": false,
+		"label": "Sapper",
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioLight_antiStructure.tscn",
+		"tool": "command_tool_an_bioLight_antiStructure"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_bioLight_builder",
+		"is_fixture": false,
+		"label": "Irregular",
+		"producers": [
+			"an_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioLight_builder.tscn",
+		"tool": "command_tool_an_bioLight_builder"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_bioMedium_antiMech",
+		"is_fixture": false,
+		"label": "Shock Trooper",
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioMedium_antiMech.tscn",
+		"tool": "command_tool_an_bioMedium_antiMech"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_bioMedium_dominionGen",
+		"is_fixture": false,
+		"label": "Warlord",
+		"producers": [
+			"an_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn",
+		"tool": "command_tool_an_bioMedium_dominionGen"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_bioMedium_support",
+		"is_fixture": false,
+		"label": "Hijacker",
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioMedium_support.tscn",
+		"tool": "command_tool_an_bioMedium_support"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_bioStrong_antiLight",
+		"is_fixture": false,
+		"label": "Juggernaut",
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioStrong_antiLight.tscn",
+		"tool": "command_tool_an_bioStrong_antiLight"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_commandCenter",
+		"is_fixture": true,
+		"label": "Stronghold",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_commandCenter.tscn",
+		"tool": "command_tool_an_commandCenter"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_infrastructure",
+		"is_fixture": true,
+		"label": "Safehouse",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_infrastructure.tscn",
+		"tool": "command_tool_an_infrastructure"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_mechLight_transport",
+		"is_fixture": false,
+		"label": "Collective",
+		"producers": [
+			"an_warFactory"
+		],
+		"scene": "res://scenes/entities/units/an/an_mechLight_transport.tscn",
+		"tool": "command_tool_an_mechLight_transport"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_mechMedium_antiBio",
+		"is_fixture": false,
+		"label": "Toxin Tractor",
+		"producers": [
+			"an_warFactory"
+		],
+		"scene": "res://scenes/entities/units/an/an_mechMedium_antiBio.tscn",
+		"tool": "command_tool_an_mechMedium_antiBio"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_mechMedium_artillery",
+		"is_fixture": false,
+		"label": "MLRS",
+		"producers": [
+			"an_warFactory"
+		],
+		"scene": "res://scenes/entities/units/an/an_mechMedium_artillery.tscn",
+		"tool": "command_tool_an_mechMedium_artillery"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_mechStrong_transport",
+		"is_fixture": false,
+		"label": "War Wagon",
+		"producers": [
+			"an_warFactory"
+		],
+		"scene": "res://scenes/entities/units/an/an_mechStrong_transport.tscn",
+		"tool": "command_tool_an_mechStrong_transport"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_support1",
+		"is_fixture": true,
+		"label": "Hideout",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_support1.tscn",
+		"tool": "command_tool_an_support1"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_support2",
+		"is_fixture": true,
+		"label": "Distress Signal",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_support2.tscn",
+		"tool": "command_tool_an_support2"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_support3",
+		"is_fixture": true,
+		"label": "EMP Device",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_support3.tscn",
+		"tool": "command_tool_an_support3"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_tech1",
+		"is_fixture": true,
+		"label": "Stockpile",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_tech1.tscn",
+		"tool": "command_tool_an_tech1"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_tech2",
+		"is_fixture": true,
+		"label": "Clandestine Lab",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_tech2.tscn",
+		"tool": "command_tool_an_tech2"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_warFactory",
+		"is_fixture": true,
+		"label": "Chop Shop",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_warFactory.tscn",
+		"tool": "command_tool_an_warFactory"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_airField",
+		"is_fixture": true,
+		"label": "Sky Port",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_airField.tscn",
+		"tool": "command_tool_cl_airField"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_aircraftLight_antiLight",
+		"is_fixture": false,
+		"label": "Clipper",
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn",
+		"tool": "command_tool_cl_aircraftLight_antiLight"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_aircraftMedium_antiMech",
+		"is_fixture": false,
+		"label": "drake",
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn",
+		"tool": "command_tool_cl_aircraftMedium_antiMech"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_aircraftMedium_transport",
+		"is_fixture": false,
+		"label": "caravel",
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn",
+		"tool": "command_tool_cl_aircraftMedium_transport"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_aircraftStrong_support",
+		"is_fixture": false,
+		"label": "Reverence",
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftStrong_support.tscn",
+		"tool": "command_tool_cl_aircraftStrong_support"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_barracks",
+		"is_fixture": true,
+		"label": "Barracks",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_barracks.tscn",
+		"tool": "command_tool_cl_barracks"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_bioLight_antiLight",
+		"is_fixture": false,
+		"label": "Recruit",
+		"producers": [
+			"cl_barracks"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
+		"tool": "command_tool_cl_bioLight_antiLight"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_bioLight_antiMech",
+		"is_fixture": false,
+		"label": "Badger",
+		"producers": [
+			"cl_barracks"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn",
+		"tool": "command_tool_cl_bioLight_antiMech"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_bioLight_builder",
+		"is_fixture": false,
+		"label": "Servant",
+		"producers": [
+			"cl_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioLight_builder.tscn",
+		"tool": "command_tool_cl_bioLight_builder"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_bioLight_stealth",
+		"is_fixture": false,
+		"label": "sleeper",
+		"producers": [
+			"cl_barracks"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioLight_stealth.tscn",
+		"tool": "command_tool_cl_bioLight_stealth"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_bioMedium_antiLight",
+		"is_fixture": false,
+		"label": "Constable",
+		"producers": [
+			"cl_barracks"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioMedium_antiLight.tscn",
+		"tool": "command_tool_cl_bioMedium_antiLight"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_commandCenter",
+		"is_fixture": true,
+		"label": "Citadel",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_commandCenter.tscn",
+		"tool": "command_tool_cl_commandCenter"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_defense_antiAircraft",
+		"is_fixture": true,
+		"label": "Sam",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn",
+		"tool": "command_tool_cl_defense_antiAircraft"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_defense_antiLight",
+		"is_fixture": true,
+		"label": "Watch Tower",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn",
+		"tool": "command_tool_cl_defense_antiLight"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_defense_antiStructure",
+		"is_fixture": true,
+		"label": "Bombard",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn",
+		"tool": "command_tool_cl_defense_antiStructure"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_infrastructure",
+		"is_fixture": true,
+		"label": "Compound",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_infrastructure.tscn",
+		"tool": "command_tool_cl_infrastructure"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_mechLight_dominionGen",
+		"is_fixture": false,
+		"label": "Stock Truck",
+		"producers": [
+			"cl_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn",
+		"tool": "command_tool_cl_mechLight_dominionGen"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_mechMedium_antiLight",
+		"is_fixture": false,
+		"label": "sloop",
+		"producers": [
+			"cl_warFactory"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_mechMedium_antiLight.tscn",
+		"tool": "command_tool_cl_mechMedium_antiLight"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_mechMedium_antiMech",
+		"is_fixture": false,
+		"label": "Matilda",
+		"producers": [
+			"cl_warFactory"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn",
+		"tool": "command_tool_cl_mechMedium_antiMech"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_mechStrong_support",
+		"is_fixture": false,
+		"label": "avalanche",
+		"producers": [
+			"cl_warFactory"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_mechStrong_support.tscn",
+		"tool": "command_tool_cl_mechStrong_support"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_support1",
+		"is_fixture": true,
+		"label": "Annex",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_support1.tscn",
+		"tool": "command_tool_cl_support1"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_support2",
+		"is_fixture": true,
+		"label": "Supply Beacon",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_support2.tscn",
+		"tool": "command_tool_cl_support2"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_support3",
+		"is_fixture": true,
+		"label": "Storm Cell",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_support3.tscn",
+		"tool": "command_tool_cl_support3"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_tech1",
+		"is_fixture": true,
+		"label": "Operations Center",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_tech1.tscn",
+		"tool": "command_tool_cl_tech1"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_tech2",
+		"is_fixture": true,
+		"label": "Academy",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_tech2.tscn",
+		"tool": "command_tool_cl_tech2"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_warFactory",
+		"is_fixture": true,
+		"label": "Production Yard",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_warFactory.tscn",
+		"tool": "command_tool_cl_warFactory"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_airField",
+		"is_fixture": true,
+		"label": "Emission Bay",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_airField.tscn",
+		"tool": "command_tool_lb_airField"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_aircraftLight_antiAir",
+		"is_fixture": false,
+		"label": "Interceptor",
+		"producers": [
+			"lb_airField"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_antiAir.tscn",
+		"tool": "command_tool_lb_aircraftLight_antiAir"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_aircraftLight_antiMech",
+		"is_fixture": false,
+		"label": "Harpy",
+		"producers": [
+			"lb_barracks"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_antiMech.tscn",
+		"tool": "command_tool_lb_aircraftLight_antiMech"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_aircraftLight_builder",
+		"is_fixture": false,
+		"label": "Canary",
+		"producers": [
+			"lb_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_builder.tscn",
+		"tool": "command_tool_lb_aircraftLight_builder"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_aircraftMedium_antiBio",
+		"is_fixture": false,
+		"label": "Sentinel",
+		"producers": [
+			"lb_barracks"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiBio.tscn",
+		"tool": "command_tool_lb_aircraftMedium_antiBio"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_aircraftMedium_antiHeavy",
+		"is_fixture": false,
+		"label": "Purifier",
+		"producers": [
+			"lb_airField"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiHeavy.tscn",
+		"tool": "command_tool_lb_aircraftMedium_antiHeavy"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_aircraftMedium_antiMech",
+		"is_fixture": false,
+		"label": "Viper",
+		"producers": [
+			"lb_airField"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiMech.tscn",
+		"tool": "command_tool_lb_aircraftMedium_antiMech"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_aircraftStrong_support",
+		"is_fixture": false,
+		"label": "Fabricator",
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftStrong_support.tscn",
+		"tool": "command_tool_lb_aircraftStrong_support"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_barracks",
+		"is_fixture": true,
+		"label": "Assembler",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_barracks.tscn",
+		"tool": "command_tool_lb_barracks"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_commandCenter",
+		"is_fixture": true,
+		"label": "Shard",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_commandCenter.tscn",
+		"tool": "command_tool_lb_commandCenter"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_defense",
+		"is_fixture": true,
+		"label": "Security Tower",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_defense.tscn",
+		"tool": "command_tool_lb_defense"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_dominion",
+		"is_fixture": true,
+		"label": "Opticon",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_dominion.tscn",
+		"tool": "command_tool_lb_dominion"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_infrastructure",
+		"is_fixture": true,
+		"label": "Relay",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_infrastructure.tscn",
+		"tool": "command_tool_lb_infrastructure"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_mechLight_antiLight",
+		"is_fixture": false,
+		"label": "Shock Drone",
+		"producers": [
+			"lb_barracks"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechLight_antiLight.tscn",
+		"tool": "command_tool_lb_mechLight_antiLight"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_mechLight_antiLight1",
+		"is_fixture": false,
+		"label": "Gatling Tank",
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechLight_antiLight1.tscn",
+		"tool": "command_tool_lb_mechLight_antiLight1"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_mechLight_antiStrong",
+		"is_fixture": false,
+		"label": "Refraction Tank",
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechLight_antiStrong.tscn",
+		"tool": "command_tool_lb_mechLight_antiStrong"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_mechLight_support",
+		"is_fixture": false,
+		"label": "Point Defense Drone",
+		"producers": [
+			"lb_barracks"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechLight_support.tscn",
+		"tool": "command_tool_lb_mechLight_support"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_mechMedium_antiLight",
+		"is_fixture": false,
+		"label": "MDC",
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechMedium_antiLight.tscn",
+		"tool": "command_tool_lb_mechMedium_antiLight"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_mechMedium_support",
+		"is_fixture": false,
+		"label": "Liberator",
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechMedium_support.tscn",
+		"tool": "command_tool_lb_mechMedium_support"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_support1",
+		"is_fixture": true,
+		"label": "Reclamator",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_support1.tscn",
+		"tool": "command_tool_lb_support1"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_support2",
+		"is_fixture": true,
+		"label": "Pacific Enforcer",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_support2.tscn",
+		"tool": "command_tool_lb_support2"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_support3",
+		"is_fixture": true,
+		"label": "Absolution",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_support3.tscn",
+		"tool": "command_tool_lb_support3"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_tech1",
+		"is_fixture": true,
+		"label": "Controller",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_tech1.tscn",
+		"tool": "command_tool_lb_tech1"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_tech2",
+		"is_fixture": true,
+		"label": "Mainframe",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_tech2.tscn",
+		"tool": "command_tool_lb_tech2"
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_warFactory",
+		"is_fixture": true,
+		"label": "LI War Factory",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_warFactory.tscn",
+		"tool": "command_tool_lb_warFactory"
+	},
+	{
+		"faction": "marxist",
+		"id": "mr_airField",
+		"is_fixture": true,
+		"label": "mr_air_field",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_airField.tscn",
+		"tool": "command_tool_mr_airField"
+	},
+	{
+		"faction": "marxist",
+		"id": "mr_barracks",
+		"is_fixture": true,
+		"label": "mr_barracks",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_barracks.tscn",
+		"tool": "command_tool_mr_barracks"
+	},
+	{
+		"faction": "marxist",
+		"id": "mr_commandCenter",
+		"is_fixture": true,
+		"label": "mr_command_center",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_commandCenter.tscn",
+		"tool": "command_tool_mr_commandCenter"
+	},
+	{
+		"faction": "marxist",
+		"id": "mr_dominion",
+		"is_fixture": true,
+		"label": "mr_dominion",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_dominion.tscn",
+		"tool": "command_tool_mr_dominion"
+	},
+	{
+		"faction": "marxist",
+		"id": "mr_infrastructure",
+		"is_fixture": true,
+		"label": "mr_infrastructure",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_infrastructure.tscn",
+		"tool": "command_tool_mr_infrastructure"
+	},
+	{
+		"faction": "marxist",
+		"id": "mr_warFactory",
+		"is_fixture": true,
+		"label": "mr_war_factory",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_warFactory.tscn",
+		"tool": "command_tool_mr_warFactory"
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_aircraftMedium_transport",
+		"is_fixture": false,
+		"label": "Dropship",
+		"producers": [],
+		"scene": "res://scenes/entities/units/nt/nt_aircraftMedium_transport.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_bioLight_terrestrial",
+		"is_fixture": false,
+		"label": "terrestrial",
+		"producers": [],
+		"scene": "res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_building",
+		"is_fixture": true,
+		"label": "building",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_building.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_extractionSite",
+		"is_fixture": true,
+		"label": "Extraction Site",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_extractionSite.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_extractor",
+		"is_fixture": true,
+		"label": "Extractor",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_extractor.tscn",
+		"tool": "command_tool_nt_extractor"
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_shelter",
+		"is_fixture": true,
+		"label": "shelter",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_shelter.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_bioLight_antiMech",
+		"is_fixture": false,
+		"label": "Vanguard",
+		"producers": [],
+		"scene": "res://scenes/entities/units/tc/tc_bioLight_antiMech.tscn",
+		"tool": "command_tool_tc_bioLight_antiMech"
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_bioLight_builder",
+		"is_fixture": false,
+		"label": "Technician",
+		"producers": [],
+		"scene": "res://scenes/entities/units/an/tc_bioLight_builder.tscn",
+		"tool": "command_tool_tc_bioLight_builder"
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_mechMedium_infrastructure",
+		"is_fixture": false,
+		"label": "Surveyor",
+		"producers": [],
+		"scene": "res://scenes/entities/units/an/tc_mechMedium_infrastructure.tscn",
+		"tool": "command_tool_tc_mechMedium_infrastructure"
+	},
+	{
+		"faction": "theocratic",
+		"id": "th_airField",
+		"is_fixture": true,
+		"label": "th_air_field",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_airField.tscn",
+		"tool": "command_tool_th_airField"
+	},
+	{
+		"faction": "theocratic",
+		"id": "th_barracks",
+		"is_fixture": true,
+		"label": "th_barracks",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_barracks.tscn",
+		"tool": "command_tool_th_barracks"
+	},
+	{
+		"faction": "theocratic",
+		"id": "th_commandCenter",
+		"is_fixture": true,
+		"label": "th_command_center",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_commandCenter.tscn",
+		"tool": "command_tool_th_commandCenter"
+	},
+	{
+		"faction": "theocratic",
+		"id": "th_dominion",
+		"is_fixture": true,
+		"label": "th_dominion",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_dominion.tscn",
+		"tool": "command_tool_th_dominion"
+	},
+	{
+		"faction": "theocratic",
+		"id": "th_infrastructure",
+		"is_fixture": true,
+		"label": "th_infrastructure",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_infrastructure.tscn",
+		"tool": "command_tool_th_infrastructure"
+	},
+	{
+		"faction": "theocratic",
+		"id": "th_warFactory",
+		"is_fixture": true,
+		"label": "th_war_factory",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_warFactory.tscn",
+		"tool": "command_tool_th_warFactory"
+	},
+	{
+		"faction": "anarchists",
+		"id": "an_tech0",
+		"is_fixture": true,
+		"label": "an_stockpile",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_stockpile.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "anarchists",
+		"id": "hangar",
+		"is_fixture": true,
+		"label": "hangar",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/hangar.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_armory",
+		"is_fixture": true,
+		"label": "armory",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/armory.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "dwelling",
+		"is_fixture": true,
+		"label": "dwelling",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/dwelling.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_barracks",
+		"is_fixture": true,
+		"label": "facility",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/facility.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_lab",
+		"is_fixture": true,
+		"label": "lab",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/lab.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_airField",
+		"is_fixture": true,
+		"label": "tc_air_field",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_air_field.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_commandCenter",
+		"is_fixture": true,
+		"label": "tc_command_center",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_command_center.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_dominion",
+		"is_fixture": true,
+		"label": "tc_dominion",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_dominion.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_infrastructure",
+		"is_fixture": true,
+		"label": "tc_infrastructure",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_infrastructure.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_warFactory",
+		"is_fixture": true,
+		"label": "tc_war_factory",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_war_factory.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_aircraftHeavy_support",
+		"is_fixture": false,
+		"label": "apapa",
+		"producers": [],
+		"scene": "res://scenes/entities/units/lb/apapa.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "libertarian",
+		"id": "lb_mechLight_antiBio",
+		"is_fixture": false,
+		"label": "interceptor",
+		"producers": [],
+		"scene": "res://scenes/entities/units/lb/interceptor.tscn",
+		"tool": ""
+	}
+]

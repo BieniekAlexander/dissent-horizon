@@ -1,0 +1,314 @@
+/* Obsidian highlights the entire property row when any child has focus;
+   for nested trees that reads as the whole object being edited. Suppress
+   the row-level treatment and let the focused field carry the feedback. */
+.metadata-property.nfp-property.has-focus,
+.metadata-property.nfp-property:focus-within {
+	background-color: transparent;
+	box-shadow: none;
+}
+
+.nfp-root {
+	width: 100%;
+	font-size: var(--font-smaller);
+}
+
+.nfp-object,
+.nfp-array {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-1);
+	width: 100%;
+}
+
+.nfp-value > .nfp-object,
+.nfp-value > .nfp-array,
+.nfp-array-item-body > .nfp-object {
+	padding-left: var(--size-4-3);
+	border-left: 1px solid var(--background-modifier-border);
+}
+
+.nfp-row,
+.nfp-array-item {
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-2-2);
+}
+
+.nfp-row:hover > .nfp-remove,
+.nfp-array-item:hover > .nfp-remove {
+	opacity: 1;
+}
+
+.nfp-key {
+	color: var(--metadata-label-text-color, var(--text-muted));
+	flex-shrink: 0;
+}
+
+.nfp-value,
+.nfp-array-item-body {
+	flex-grow: 1;
+	min-width: 0;
+}
+
+/* Values read as plain text until interacted with; the form-field box
+   treatment appears only on focus. The compound selector out-specifies
+   Obsidian's input[type="text"] base styles. */
+.nfp-root input.nfp-input:not([type="checkbox"]) {
+	width: 100%;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	font-family: inherit;
+	font-size: inherit;
+	height: auto;
+	padding: 0 var(--size-2-2);
+}
+
+.nfp-root input.nfp-input:not([type="checkbox"]):hover {
+	background: var(--background-modifier-hover);
+}
+
+.nfp-root input.nfp-input:not([type="checkbox"]):focus {
+	background: var(--background-modifier-form-field);
+	box-shadow: 0 0 0 1px var(--background-modifier-border-focus);
+}
+
+.nfp-remove {
+	background: none;
+	border: none;
+	box-shadow: none;
+	color: var(--text-faint);
+	cursor: pointer;
+	opacity: 0;
+	padding: 0 var(--size-2-1);
+	font-size: var(--font-smaller);
+}
+
+.nfp-remove:hover {
+	color: var(--text-normal);
+}
+
+/* Sizing only; look and hover state come from Obsidian's own
+   metadata-add-button / text-icon-button classes. */
+.nfp-add {
+	align-self: flex-start;
+	margin-top: var(--size-2-1);
+}
+
+.nfp-hidden {
+	display: none;
+}
+
+/* Wraps rather than running past a narrow cell's clipped edge. */
+.nfp-add-form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--size-2-1);
+}
+
+.nfp-add-form input.nfp-input {
+	width: auto;
+	max-width: 14em;
+}
+
+/* Look and hover state come from Obsidian's clickable-icon class. */
+.nfp-kind-btn {
+	padding: var(--size-2-1);
+}
+
+/* --- Editable object keys ------------------------------------------------
+   The key reads as a label until it is focused, at which point it takes the
+   same form-field treatment as a value. `size` is set from the text length in
+   JS so the field is exactly as wide as the name it holds. */
+.nfp-root input.nfp-key-input {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: var(--radius-s);
+	color: var(--metadata-label-text-color, var(--text-muted));
+	font-family: inherit;
+	font-size: inherit;
+	height: auto;
+	min-width: 2ch;
+	padding: 0 var(--size-2-1);
+	width: auto;
+}
+
+.nfp-root input.nfp-key-input:hover {
+	background: var(--background-modifier-hover);
+}
+
+.nfp-root input.nfp-key-input:focus {
+	background: var(--background-modifier-form-field);
+	box-shadow: 0 0 0 1px var(--background-modifier-border-focus);
+	color: var(--text-normal);
+}
+
+/* --- YAML mode ---------------------------------------------------------- */
+/* The whole value's own type and the mode switch, above the tree. */
+.nfp-header {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--size-2-1);
+}
+
+.nfp-header .nfp-type {
+	opacity: 1;
+}
+
+.nfp-mode-switch {
+	padding: var(--size-2-1);
+}
+
+.nfp-root textarea.nfp-yaml {
+	width: 100%;
+	background: var(--background-modifier-form-field);
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: var(--font-smaller);
+	line-height: var(--line-height-tight);
+	min-height: calc(var(--line-height-tight) * 2em);
+	padding: var(--size-2-2);
+	resize: vertical;
+	tab-size: 2;
+	white-space: pre;
+}
+
+.nfp-yaml-error {
+	color: var(--text-error);
+	font-size: var(--font-smallest);
+	padding: var(--size-2-1) var(--size-2-2);
+}
+
+/* --- Bases table cells ---------------------------------------------------
+   A `.bases-td` is one row tall with `overflow: hidden` and only grows while
+   something inside it holds focus, so the stacked tree is unreadable at rest.
+   The cell shows a single-line summary until it is focused, and the editor
+   only then — which is also when Obsidian's own `height: fit-content` kicks
+   in and gives it the room. */
+.nfp-cell {
+	display: block;
+	width: 100%;
+	min-width: 0;
+}
+
+/* Exactly one of the summary and the editor is shown, chosen by the same
+   :focus-within that grows the cell. No JS state to fall out of step with.
+   The editor is CLAMPED rather than `display: none`, because the click that
+   opens the cell works by focusing a field inside it — and nothing in a
+   `display: none` subtree can take focus, so :focus-within could never become
+   true and the cell would never open at all. Zero height with the overflow
+   hidden keeps it invisible while leaving it focusable. */
+.nfp-cell-summary {
+	display: block;
+	color: var(--text-normal);
+	cursor: text;
+	min-width: 0;
+	overflow: hidden;
+	padding: 0 var(--size-2-2);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.nfp-cell-summary.is-empty {
+	color: var(--text-faint);
+}
+
+.nfp-cell-summary:focus-visible {
+	box-shadow: 0 0 0 1px var(--background-modifier-border-focus);
+	border-radius: var(--radius-s);
+	outline: none;
+}
+
+.nfp-cell-editor {
+	display: block;
+	height: 0;
+	overflow: hidden;
+	width: 100%;
+	min-width: 0;
+}
+
+.bases-td:focus-within .nfp-cell-summary {
+	display: none;
+}
+
+.bases-td:focus-within .nfp-cell-editor {
+	height: auto;
+	overflow: visible;
+}
+
+.bases-td:focus-within .nfp-cell {
+	padding: var(--size-2-2);
+}
+
+/* Obsidian already grows a focused cell to `height: fit-content`, so the
+   editor is not clipped vertically; its own `overflow: hidden` must stay, or
+   an expanded cell bleeds over the rows beneath it. Only the one-line clamp
+   has to be lifted. */
+.bases-td:focus-within .nfp-cell,
+.bases-td:focus-within .nfp-root {
+	white-space: normal;
+	align-items: flex-start;
+}
+
+.bases-td:focus-within .bases-table-cell {
+	height: auto;
+	align-items: flex-start;
+}
+
+/* The cell's own background must be opaque: an expanded editor is drawn over
+   the rows beneath it. */
+.bases-td:focus-within .nfp-cell {
+	background-color: var(--bases-table-cell-background-active, var(--background-primary));
+}
+
+/* --- Leaf rows: the value and the encoding it is stored as --------------- */
+.nfp-leaf {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-1);
+	width: 100%;
+	min-width: 0;
+}
+
+.nfp-leaf > input.nfp-input:not([type="checkbox"]) {
+	flex-grow: 1;
+	min-width: 0;
+}
+
+/* Sits quiet until the row is touched, like the remove button. */
+.nfp-type {
+	flex-shrink: 0;
+	opacity: 0;
+	padding: var(--size-2-1);
+}
+
+.nfp-row:hover > .nfp-type,
+.nfp-array-item:hover > .nfp-type,
+.nfp-row:focus-within > .nfp-type,
+.nfp-array-item:focus-within > .nfp-type,
+.nfp-type:focus-visible {
+	opacity: 1;
+}
+
+.nfp-kind-btn.is-active {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-accent);
+}
+
+/* A cell whose value Obsidian renders itself: the stock editor fills the cell
+   and the type control sits after it, appearing on hover like the row ones. */
+.bases-td > .bases-table-cell > .nfp-type {
+	flex-shrink: 0;
+	align-self: center;
+}
+
+.bases-td:hover > .bases-table-cell > .nfp-type,
+.bases-td:focus-within > .bases-table-cell > .nfp-type {
+	opacity: 1;
+}

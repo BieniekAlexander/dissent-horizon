@@ -1,0 +1,84 @@
+[gd_scene format=3 uid="uid://c25o0pnyxjvev"]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_5c2r4"]
+[ext_resource type="Script" uid="uid://drins2oa5nvwm" path="res://scripts/entities/effects/effect_applicator.gd" id="1_spec"]
+[ext_resource type="Texture2D" uid="uid://4j5okj7g4kff" path="res://assets/coin_logo.png" id="2_kbt1f"]
+[ext_resource type="PackedScene" uid="uid://b8empstun0001" path="res://scenes/entities/status_effects/emp.tscn" id="2_spec"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="3_spec"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="4_kbcmw"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/aoe_medium.tres" id="4_spec"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="5_spec"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_4wnfd"]
+radius = 0.09
+height = 0.18
+
+[sub_resource type="SphereMesh" id="SphereMesh_hm5jc"]
+radius = 0.22
+height = 0.44
+
+[node name="CondorEmpBomb" type="CharacterBody3D" unique_id=1269079018]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_5c2r4")
+
+[node name="InFlightSprite" type="Sprite3D" parent="." unique_id=1854945553]
+transform = Transform3D(0.25, 0, 0, 0, 0.1767767, 0.1767767, 0, -0.1767767, 0.1767767, 0, 0, 0)
+render_priority = 5
+texture = ExtResource("2_kbt1f")
+
+[node name="InFlightParticles" type="GPUParticles3D" parent="." unique_id=2010861042]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
+emitting = false
+
+[node name="PostImpactSprite" type="Sprite3D" parent="." unique_id=649126713]
+transform = Transform3D(0.25, 0, 0, 0, 0.1767767, 0.1767767, 0, -0.1767767, 0.1767767, 0, 0, 0)
+visible = false
+render_priority = 5
+
+[node name="PostImpactParticles" type="GPUParticles3D" parent="." unique_id=800602483]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
+visible = false
+emitting = false
+
+[node name="HitShape" type="CollisionShape3D" parent="." unique_id=839361762]
+shape = ExtResource("4_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=195245528]
+script = ExtResource("4_kbcmw")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"
+
+[node name="EffectApplicator" type="Sprite3D" parent="." unique_id=380093780]
+script = ExtResource("1_spec")
+
+[node name="Emp" parent="EffectApplicator" unique_id=923601563 instance=ExtResource("2_spec")]
+
+[node name="InFlightMesh" type="MeshInstance3D" parent="." unique_id=646661600]
+mesh = SubResource("SphereMesh_4wnfd")
+metadata/_visual_default_mesh = "ballistic projectile"
+
+[node name="PostImpactMesh" type="MeshInstance3D" parent="." unique_id=1156063219]
+mesh = SubResource("SphereMesh_hm5jc")
+metadata/_visual_default_mesh = "ballistic projectile"
+
+[node name="Flight" type="Node3D" parent="." unique_id=745930619]
+script = ExtResource("3_spec")
+speed = 20.0
+gravity_mps2 = 4.5
+visuals = Array[NodePath]([NodePath("InFlightSprite"), NodePath("InFlightParticles"), NodePath("InFlightMesh")])
+
+[node name="Impact" type="Node3D" parent="." unique_id=1168274480]
+script = ExtResource("3_spec")
+ends_on_arrival = false
+lifespan_seconds = 0.0
+applies_payload = true
+visuals = Array[NodePath]([NodePath("PostImpactSprite"), NodePath("PostImpactParticles"), NodePath("PostImpactMesh")])
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("5_spec")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("mig_payload")
+base_damage = 10.0
+damage_type = 7

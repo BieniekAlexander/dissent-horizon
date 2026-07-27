@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cu54wxkswu4d3"
 path.s3tc="res://.godot/imported/irregular.png-5123fefe6d23eb5ccfe69d4443ef0bd8.s3tc.ctex"
+path.etc2="res://.godot/imported/irregular.png-5123fefe6d23eb5ccfe69d4443ef0bd8.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/irregular.png"
-dest_files=["res://.godot/imported/irregular.png-5123fefe6d23eb5ccfe69d4443ef0bd8.s3tc.ctex"]
+dest_files=["res://.godot/imported/irregular.png-5123fefe6d23eb5ccfe69d4443ef0bd8.s3tc.ctex", "res://.godot/imported/irregular.png-5123fefe6d23eb5ccfe69d4443ef0bd8.etc2.ctex"]
 
 [params]
 

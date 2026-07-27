@@ -1,0 +1,5 @@
+[gd_scene format=3 uid="uid://cx8i022ic1h02"]
+
+[node name="AvoidanceObstacle" type="NavigationObstacle3D" unique_id=1666248074]
+avoidance_enabled = false
+avoidance_layers = 0

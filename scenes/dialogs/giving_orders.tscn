@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="GivingOrders" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Giving orders"
+body = "That unit is now under your direct control.
+
+Right-click on the marked ground to send it there."
+acknowledge_text = "Move out"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

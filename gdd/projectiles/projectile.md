@@ -1,11 +1,10 @@
 ---
-kind: projectile
-id: projectile
+kind: Entity
 title: projectile
 scene: res://scenes/entities/projectiles/projectile.tscn
 damage: 50
 damage_type: LEAD
-speed: 0.175
+speed: FAST
 trajectory: BALLISTIC
 hitscan: false
 ---

@@ -8,12 +8,12 @@ const _RADIATION_SCENE: PackedScene = preload("res://scenes/entities/projectiles
 const _SOURCE_OFFSET: float = 0.5
 
 ## Commander the radiation field belongs to (whose enemies it damages). Set by the
-## activating Ordnance before execute, so the same event serves the player or a bot.
+## activating Sanction before execute, so the same event serves the player or a bot.
 var commander_id: int = 1
 
-func execute(manager: ScenarioTriggerManager) -> void:
-	var commander: Commander = manager.get_commander(commander_id)
-	var map: Map = manager.map
+func execute(a_manager: ScenarioTriggerManager) -> void:
+	var commander: Commander = a_manager.get_commander(commander_id)
+	var map: Map = a_manager.map
 	if commander == null or map == null:
 		return
 
@@ -21,7 +21,7 @@ func execute(manager: ScenarioTriggerManager) -> void:
 	target_pos.y = map.terrain_height_at(VU.inXZ(target_pos))
 	var source_pos: Vector3 = target_pos + Vector3(_SOURCE_OFFSET, 0.0, 0.0)
 
-	var projectile: Projectile = _RADIATION_SCENE.instantiate() as Projectile
+	var projectile: Entity = _RADIATION_SCENE.instantiate() as Entity
 	projectile.initialize(map, commander)
 	projectile.global_position = source_pos
-	projectile.initialize_projectile(null, target_pos)
+	Emitter.launch(projectile, null, target_pos)

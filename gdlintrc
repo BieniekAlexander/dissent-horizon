@@ -1,0 +1,47 @@
+# gdlint configuration — see tools/lint.sh.
+#
+# Every entry below either RECORDS a convention from ~/.claude/CLAUDE.md or DISABLES a
+# default rule that contradicts one. A rule is never relaxed because the tree happens to
+# violate it; it is relaxed only where the violation is the documented convention.
+
+# --- Rules disabled, each because a stated convention says otherwise ------------------
+disable:
+  # §Deferred, "File size limits — deliberately none. A module of a hundred cohesive
+  # functions is fine; cohesion is the test, not length." Both of these measure length.
+  - max-file-lines
+  - max-public-methods
+  # This project orders a class body by `#region` (Constants / Properties / Lifecycle /
+  # Public API / Private helpers), which is a different and deliberate scheme from
+  # gdlint's fixed one. Enforcing gdlint's would mean abandoning the regions.
+  - class-definitions-order
+  # §1.1 prefers expression-oriented code, and a symmetric if/else that returns from both
+  # arms reads as the two halves of one decision. Collapsing the else is gdlint's taste,
+  # not a convention here.
+  - no-else-return
+  - no-elif-return
+  # A test loads its entity scenes INSIDE the test rather than at file scope, deliberately
+  # — a file-scope preload of an entity scene poisons the Tool registry for the whole run
+  # (CLAUDE.md §A file-scope preload…). Hoisting a second `load` to a shared const is
+  # exactly the fix this rule wants and exactly the bug that note describes.
+  - duplicated-load
+
+# --- Rules kept, with the project's own thresholds ------------------------------------
+
+# A `static var` in SCREAMING_SNAKE is a CONSTANT that GDScript will not let be `const`
+# — a class reference, or a value read from the engine at load. §3.2 names those
+# constants, so they are spelled as constants.
+class-variable-name: (_?[a-z][a-z0-9]*(_[a-z0-9]+)*|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*)
+
+# Test names use an ALL-CAPS word for emphasis on the thing under test
+# (`test_the_banner_sits_ABOVE_the_grid`). A whole word may be capitalised; a camelCase
+# name still fails, which is the case §3.2 actually forbids.
+function-name: (_on_([A-Z][a-z0-9]*)+(_[a-z0-9]+)*|_?[a-z][a-z0-9]*(_([a-z0-9]+|[A-Z0-9]+))*)
+
+# §5.1: "write functions so that as few assertions as possible are warranted" — which in
+# practice means guard clauses that return early. Six is too few for a precondition
+# chain; twelve still catches a function that has become a decision tree.
+max-returns: 12
+
+# The tree wraps prose comments at about 95 columns. 100 leaves headroom without
+# licensing a line nobody can read in a split editor.
+max-line-length: 100

@@ -1,0 +1,111 @@
+[gd_scene format=3 uid="uid://cjtfujd10oo22"]
+
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="1_spec"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="2_spec"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_spec"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="4_spec"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="5_spec"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="6_spec"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="7_spec"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="8_spec"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="9_spec"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="10_spec"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="11_spec"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="12_spec"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="13_spec"]
+[ext_resource type="Script" uid="uid://cr4mbf5bvs8m3" path="res://scripts/entities/components/stealth.gd" id="14_spec"]
+[ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="15_spec"]
+[ext_resource type="Script" path="res://scripts/entities/components/planted_charge.gd" id="16_charge"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_stealth"]
+radius = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
+size = Vector3(0.9, 0.6, 1.4)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_selection"]
+radius = 0.7
+height = 0.6
+
+[node name="AnPlantedCharge" type="CharacterBody3D" groups=["piece"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_root")
+id = &"an_plantedCharge"
+description = "A Sapper's charge, waiting to be set off"
+verbose = "Goes off when its Sapper says so, when it is destroyed, or when what it rides on is. Removed without going off if its Sapper dies, or if an enemy repairs it away."
+
+[node name="#####STATE#####" type="Node" parent="."]
+
+[node name="TargetBody" parent="." instance=ExtResource("1_spec")]
+
+[node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("3_spec")
+
+[node name="Defense" type="Node" parent="."]
+script = ExtResource("4_spec")
+hp_max = 50.0
+frame_type = 1
+
+[node name="Veterancy" type="Node" parent="."]
+script = ExtResource("5_spec")
+
+[node name="#####CONTROLS#####" type="Node" parent="."]
+
+[node name="Selectable" parent="." instance=ExtResource("6_spec")]
+
+[node name="SelectionShape" parent="Selectable" index="0"]
+shape = SubResource("CylinderShape3D_selection")
+metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="."]
+
+[node name="HPBar" parent="." instance=ExtResource("7_spec")]
+transform = Transform3D(0.364583, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.72, 0.0)
+metadata/_visual_default_hp_bar = 0.933333
+
+[node name="SelectionIndicator" parent="." instance=ExtResource("8_spec")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="."]
+script = ExtResource("9_spec")
+
+[node name="MeshVisual" type="Node3D" parent="."]
+script = ExtResource("10_spec")
+
+[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual"]
+mesh = SubResource("BoxMesh_placeholder")
+metadata/_visual_default_mesh = "mech unit"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0)
+
+[node name="StatusVisuals" type="Node3D" parent="."]
+script = ExtResource("11_spec")
+
+[node name="#####DEBUG#####" type="Node" parent="."]
+
+[node name="DebugLabel" parent="." instance=ExtResource("12_spec")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="."]
+
+[node name="TargetIndicator" parent="." instance=ExtResource("13_spec")]
+
+[node name="AggroRangeAir" parent="." instance=ExtResource("2_spec")]
+
+[node name="Stealth" type="Node" parent="."]
+script = ExtResource("14_spec")
+
+[node name="Abilities" type="Node" parent="."]
+script = ExtResource("15_spec")
+groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 30, "grants": [&"detonate"] }])
+
+[node name="PlantedCharge" type="Node" parent="."]
+script = ExtResource("16_charge")
+
+[node name="StealthBody" type="StaticBody3D" parent="."]
+collision_layer = 16
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="StealthBody"]
+shape = SubResource("SphereShape3D_stealth")

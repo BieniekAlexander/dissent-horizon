@@ -2,19 +2,23 @@ class_name Commandable
 extends Entity
 
 ## Commandable — the unified base for entities that participate in the command
-## system. After the Stage D collapse, both "units" and "structures" are just
-## Commandables with different component bags and different group memberships.
+## system. "Units" and "structures" are both just Commandables, differing only in
+## their component bags and their group memberships.
 ##
-## - is_in_group("unit") replaces the old `is Unit` check
-## - is_in_group("structure") replaces the old `is Structure` check
+## - ask `is_in_group("unit")` and `is_in_group("structure")`, never a class check.
+##   There is no Unit class, and `Structure` is the footprint COMPONENT — `is Structure`
+##   asks a different question than a reader expects it to. On a Commandable, "structure"
+##   and "fixture" coincide; code that must also reach FEATURES asks "fixture".
 ##
-## The group memberships are declared in unit.tscn and structure.tscn rather
-## than in code, so behavior that varies between units and structures can be
-## gated by `is_in_group(...)` without referencing class names that no longer
-## exist.
+## The group memberships are derived by the spec importer from each piece's doc and written
+## on its scene, so behaviour that varies between units and structures is gated by
+## composition rather than by type.
 
 #region Properties
 @onready var command_receiver: CommandReceiver = CommandReceiver.new()
+## What this piece is doing, for its animation and its action badge. Not @onready: an emitter
+## may cue it before this piece has entered the tree.
+var action_tracker: ActionTracker = ActionTracker.new()
 
 ## Component references — all optional. Entity declares `ownership`, `movement`,
 ## `selectable`, and `target_body`; Commandable adds `production` and the
@@ -22,26 +26,35 @@ extends Entity
 ## NavigationObstacle3D used for cross-team one-sided avoidance (see
 ## AvoidanceAgent3D for the bit-layout). Enabled and sized in _ready for units
 ## only (movement != null); layers are set in _on_commander_changed.
-@onready var _avoidance_obstacle: NavigationObstacle3D = $AvoidanceObstacle
+@onready var _avoidance_obstacle: NavigationObstacle3D = \
+		get_node_or_null("AvoidanceObstacle") as NavigationObstacle3D
 @onready var production: Production = get_node_or_null("Production") as Production
 
-## Area3D used for crush detection (see _tick_crush). Its CollisionShape3D's shape is
-## mirrored from the root's own collider in _ready, same as TargetBody's shape mirror
-## in Entity._ready, so it matches each faction scene's actual footprint override.
-@onready var _crush_area: Area3D = get_node_or_null("CrushArea") as Area3D
+## Infrastructure (the "power" resource) this commandable contributes to its commander. One
+## signed int: POSITIVE provides capacity, NEGATIVE consumes upkeep, 0 (the default) is
+## neutral. Any commandable may carry it — unit or structure — and it counts while the piece
+## is built and in play (see _sync_infrastructure).
+@export var infrastructure: int = 0
 
-## Vigor (the "power" resource) this commandable contributes to its commander —
-## the old ResourceProvider component, folded up into Commandable. Defaults to 0/0;
-## structure scenes override (a vigor provider sets vigor_provided, a unit-producing
-## structure sets vigor_required). Registered/unregistered with the commander on
-## ownership change and on death (see _on_commander_changed / _on_death).
-@export var vigor_provided: int = 0
-@export var vigor_required: int = 0
+## The commander currently credited with `infrastructure`, or null. Kept rather than derived
+## because the debit must go to whoever was credited, which ownership changes and teardown
+## have already moved on from by the time it is due. Untyped: it may hold a freed commander.
+var _infrastructure_credited_to: Variant = null
 
-@onready var ore_extractor: OreExtractor = get_node_or_null("OreExtractor") as OreExtractor
+@onready var energy_extractor: EnergyExtractor = get_node_or_null("EnergyExtractor") as EnergyExtractor
 @onready var dominion_generator: DominionGenerator = get_node_or_null("DominionGenerator") as DominionGenerator
 @onready var garrison: Garrison = get_node_or_null("Garrison") as Garrison
+## The airfield component, present only on structures aerial units dock at to rearm.
+## Distinct from `garrison` in every way that matters — a docked aircraft stays in the
+## tree, visible and selectable on its pad — so the two are separate components and a
+## structure may in principle own both. See docking_bay.gd.
+@onready var docking_bay: DockingBay = get_node_or_null("DockingBay") as DockingBay
+## The unit-side half: present on a piece that docks at airfields. See docking.gd.
+@onready var docking: Docking = get_node_or_null("Docking") as Docking
 @onready var interactor: Interactor = get_node_or_null("Interactor") as Interactor
+@onready var liberator: Liberator = get_node_or_null("Liberator") as Liberator
+## Present on a unit that can plant itself (Deploy / Undeploy). See deployable.gd.
+@onready var deployable: Deployable = get_node_or_null("Deployable") as Deployable
 @onready var veterancy: Veterancy = $Veterancy
 
 ## True when the player can currently perceive this commandable — fog pixel is
@@ -51,33 +64,145 @@ extends Entity
 ## Scoped to the player for now; TODO: promote to a per-commander map.
 var in_sight_range: bool = false
 
-## Whether commander [viewer_commander_id] can currently perceive this commandable:
-## its fog pixel is clear for that commander AND this commandable is not stealthed.
-## Unlike in_sight_range (which only tracks the single active/spectated commander),
-## this looks up the viewer's own Fog instance directly, so it's correct for bots
-## reasoning about their own vision regardless of which commander is being spectated.
-func is_visible_to(viewer_commander_id: int) -> bool:
-	if stealth != null and stealth.state == Stealth.State.STEALTHED:
-		return false
-	var fog: Fog = Fog._fogs_by_commander.get(viewer_commander_id)
-	if fog == null:
-		return true
-	return fog.fog_clear_at(VU.inXZ(global_position))
+## True while stealth is hiding this commandable from the LOCAL PLAYER completely — it is
+## STEALTHED and not theirs. Its model is drawn at zero alpha, its HP bar is suppressed and
+## its floating indicators are hidden, so nothing about it is on screen at all.
+##
+## Narrower than is_visible_to(): that asks whether a given commander can perceive this
+## unit AT ALL (fog included, and answers for bots); this asks only whether STEALTH is what
+## is hiding it, which is the question the drawing code has — fog is already handled for it
+## by fog.gd toggling `visible`.
+func is_hidden_by_stealth() -> bool:
+	return stealth != null \
+		and stealth.state == Stealth.State.STEALTHED \
+		and commander_id != RTSController.PLAYER_COMMANDER_ID
 
 var _command: MoveCommand:
 	get: return command_receiver._command
 	set(value): command_receiver._command = value
 
-@onready var hpBarFill: Sprite3D = $HPBar/HPBarFill
+@onready var hp_bar_fill: Sprite3D = $HPBar/HPBarFill
 @onready var _debug_label: Label3D = get_node_or_null("DebugLabel") as Label3D
+#endregion
+
+#region Flavor text
+## Short blurb shown in the HUD info panel when this is the sole selected unit
+## (InfoView._single_unit_text); `verbose` replaces it while the ui_verbose action is
+## held. Populated per-piece from the gdd doc's `description:`/`verbose:` keys (see
+## tools/spec_import's _sync_flavor_text) — raw, WITH any `{{ action }}` placeholders
+## still in place; resolved_description()/resolved_verbose() render those at read time,
+## same as DialogPage.
+##
+## A piece that never got either key written is loud about it rather than silently
+## blank: the field is stamped with the matching MISSING_* string, which IS the visible
+## complaint — a player or a scene-browsing dev sees "TODO fill out this description" in
+## the info panel and knows exactly what's missing, same as VerboseTooltipButton's
+## MISSING_TOOLTIP. It deliberately stops there rather than also push_error/push_warning
+## like VerboseTooltipButton does: that precedent is safe only because every shipped
+## button already carries a tooltip, so the missing-case never fires outside its own
+## dedicated test. description/verbose is a brand-new field most of the roster genuinely
+## hasn't been given yet (only warlord/irregular so far), so _ready() would hit that path
+## on nearly every OTHER scene GUT instantiates — and GUT's error_tracker fails a test on
+## push_warning exactly as readily as push_error (both are FAILURE by default; only
+## push_error is exempted from counting as an "engine error" on top of that), so there is
+## no severity level here that stays loud without breaking every unrelated test that spawns
+## an undocumented piece. _report_missing_flavor_text (below) prints instead, purely for a
+## developer watching the console — coverage itself is tracked centrally, the same way an
+## undocumented `title` already is (the importer refuses a spec with no title):
+## the spec importer WARNs on a piece with no flavor text (the unit test for it was cut —
+## CLAUDE.md §A unit test does not assert facts about authored content). The setter
+## below still push_errors on an explicit empty assignment — that's an authored mistake,
+## not a piece simply awaiting its copy, and it matches VerboseTooltipButton exactly
+## because (like a button missing its tooltip) it is not expected to happen at all.
+const MISSING_DESCRIPTION: String = "TODO fill out this description"
+const MISSING_VERBOSE: String = "TODO fill out this verbose description"
+
+## ids already reported this run, so a still-undocumented piece logs its complaint once
+## per id rather than once per spawned instance — a cheap unit trained by the dozen would
+## otherwise flood the console with the same complaint.
+static var _warned_missing_description: Dictionary = {}
+static var _warned_missing_verbose: Dictionary = {}
+
+## Assigning "" substitutes MISSING_DESCRIPTION and reports it — catches an explicit
+## empty assignment. The far more common case (a scene whose description was simply
+## never set) never reaches this setter at all, since Godot only invokes it for a
+## property the .tscn actually stores; _ready() below is the backstop for that.
+##
+## THE DECLARED DEFAULT IS THE PLACEHOLDER, not "", and that is load-bearing rather than
+## cosmetic: overriding `script` on a node inherited from a base scene makes Godot
+## re-assign every exported property to its declared default before the stored overrides
+## land. With "" as the default that construction pass tripped this setter, so every
+## instantiation of such a scene reported a spurious empty description — under the BASE
+## scene's node name, since the rename had not happened either. `scout.tscn` is exactly
+## that shape. Defaulting to the placeholder makes the pass a no-op complaint-wise while
+## leaving an AUTHORED `description = ""` as loud as it ever was.
+@export var description: String = MISSING_DESCRIPTION:
+	set(value):
+		if value.is_empty():
+			push_error("Commandable '%s' was given an empty description" % name)
+			description = MISSING_DESCRIPTION
+		else:
+			description = value
+
+## Same treatment as description, for the ui_verbose-held tier.
+@export var verbose: String = MISSING_VERBOSE:
+	set(value):
+		if value.is_empty():
+			push_error("Commandable '%s' was given an empty verbose description" % name)
+			verbose = MISSING_VERBOSE
+		else:
+			verbose = value
+
+## `description` rendered through InputPrompt.format() — same "keep placeholders in the
+## field, resolve at render time" pattern as DialogPage.resolved_acknowledge_text(). Only
+## InputMap action names are recognised as placeholders today.
+func resolved_description() -> String:
+	return InputPrompt.format(description)
+
+## `verbose` rendered through InputPrompt.format() — see resolved_description().
+func resolved_verbose() -> String:
+	return InputPrompt.format(verbose)
+
+## Prints the "still undocumented" complaint once per piece id per run rather than once
+## per spawned instance (see _warned_missing_description/_warned_missing_verbose). A plain
+## print, not push_error/push_warning — see the field docs above for why this path can't
+## use Godot's error/warning channel without breaking every unrelated test that happens to
+## spawn an undocumented piece.
+func _report_missing_flavor_text(a_field: String, a_seen: Dictionary) -> void:
+	if a_seen.has(id):
+		return
+	a_seen[id] = true
+	print("Commandable id '%s' entered the tree with no %s text" % [id, a_field])
 #endregion
 
 #region Command interface
 func current_command() -> MoveCommand:
 	return command_receiver._command
 
+## An order that means "shoot" releases hold fire on receipt — queued or not — so a held unit
+## told to attack or attack-move will also pick up targets on its own again afterwards.
+func _release_hold_fire_for(a_commands: Variant) -> void:
+	var commands: Array = a_commands if a_commands is Array else [a_commands]
+	for command: Variant in commands:
+		if command is MoveCommand and (command as MoveCommand).releases_hold_fire():
+			is_holding_fire = false
+			return
+
 func get_command_chain() -> Array[MoveCommand]:
 	return command_receiver.get_command_chain()
+
+## The Garrison currently holding this unit, or null when it is out in the world.
+##
+## A unit inside a garrison is REMOVED FROM THE TREE, which makes it indistinguishable from a
+## unit that has died to anything asking `is_inside_tree()`. It is not the same thing at all —
+## one is held and coming back, the other is gone — and this is what tells them apart. Set by
+## Garrison.garrison and cleared by every release path.
+var garrisoned_in: Garrison = null
+
+## Whether this unit is being held inside a garrison rather than standing in the world.
+func is_garrisoned() -> bool:
+	return garrisoned_in != null and is_instance_valid(garrisoned_in)
+
 
 func has_command() -> bool:
 	return current_command() != null
@@ -85,30 +210,130 @@ func has_command() -> bool:
 func clear_command() -> void:
 	update_commands(null)
 
-func update_commands(a_commands: Variant, add_to_queue: bool = false, prepend: bool = false) -> void:
-	if not add_to_queue:
+func update_commands(a_commands: Variant, a_add_to_queue: bool = false, a_prepend: bool = false) -> void:
+	# A stationary can_rally() commandable turns a bare move order into a pre-issued
+	# command for the units it produces, rather than trying to walk there itself. Absorbed
+	# HERE, at the point of issue, because this is where the additive flag still exists.
+	if _absorb_rally_commands(a_commands, a_add_to_queue):
+		return
+	if deployable != null and a_commands != null:
+		var admission: Dictionary = deployable.admit(
+			_as_orders(a_commands), a_add_to_queue, command_receiver.get_command_chain())
+		var admitted: Array[MoveCommand] = admission["orders"]
+		if admission["keep_active"]:
+			command_receiver.clear_queue()
+		if admitted.is_empty():
+			return
+		a_commands = admitted
+		a_add_to_queue = admission["add_to_queue"]
+		# Nothing jumps ahead of a transition: an interrupt waits behind it like any order.
+		a_prepend = a_prepend and not deployable.is_transitioning()
+	_release_hold_fire_for(a_commands)
+	if not a_add_to_queue:
 		# Notify any units waiting to garrison that the host is changing course.
 		if garrison != null and not garrison._pending_garrison_units.is_empty():
 			garrison.cancel_pending_garrison()
-		# If the host is grounded (garrison landing or Land command) and receives a
-		# new command that requires movement, lift off so it can execute it.
+		# If the host is grounded (garrison landing, Land command, or parked on a docking pad)
+		# and receives a new command that requires movement, lift off so it can execute it.
 		# Commands that handle their own landing (e.g. Evacuate) return false from
 		# should_move and must not trigger a take-off here.
-		if movement != null and movement.mode == Movement.Mode.HOVERING:
+		#
+		# Both aerial modes, not just HOVERING: a FLYING unit can be grounded too now that it
+		# docks, and one re-ordered off a pad without this would try to carry out the order by
+		# taxiing along the deck.
+		if aerial != null:
 			var first_cmd: MoveCommand = null
 			if a_commands is MoveCommand:
 				first_cmd = a_commands
 			elif a_commands is Array and not (a_commands as Array).is_empty():
 				first_cmd = (a_commands as Array)[0]
-			if movement.is_grounded_temp():
+			if aerial.is_grounded_temp():
 				if first_cmd != null and first_cmd.should_move(self):
-					movement.take_off_for_movement()
-			elif movement.is_pending_land():
-				movement.cancel_pending_land()
-	command_receiver.update_commands(a_commands, add_to_queue, prepend)
+					# A unit on a DOCKING PAD leaves through leave_dock, which gives the pad back and
+					# taxis it out to a runway threshold before it climbs. Taking off in place here
+					# would skip the roll-out entirely — the aircraft would rise straight off its
+					# parking space, which is exactly what the runways exist to stop.
+					if docking != null and docking.is_docked_on_pad():
+						docking.leave_dock()
+					else:
+						aerial.take_off_for_movement()
+			elif aerial.is_pending_land():
+				aerial.cancel_pending_land()
+	command_receiver.update_commands(a_commands, a_add_to_queue, a_prepend)
 
-func load_destination(command: MoveCommand) -> void:
-	command_receiver.load_destination(command)
+## `a_commands` — one order or a list of them, as update_commands takes it — as a list.
+static func _as_orders(a_commands: Variant) -> Array[MoveCommand]:
+	var orders: Array[MoveCommand] = []
+	if a_commands is MoveCommand:
+		orders.append(a_commands)
+	elif a_commands is Array:
+		orders.assign(a_commands)
+	return orders
+
+func load_destination(a_command: MoveCommand) -> void:
+	command_receiver.load_destination(a_command)
+#endregion
+
+#region Weapons readiness
+## Whether this commandable may use its weapons at all right now.
+##
+## AN AERIAL UNIT ON THE GROUND CANNOT SHOOT, and being harmless on the deck is the other half
+## of being a GROUND target while parked there. A FLIGHT-STATE question (`is_airborne`), not a
+## targeting one (`Entity.is_air_target`) — the two agree for an aircraft and nowhere else.
+## Ground units are untouched: they carry no Aerial.
+## Why: gdd/systems/combat/aerial-operations/attack-runs.md §The attack run, and
+## gdd/systems/combat/target-acquisition.md.
+func can_use_weapons() -> bool:
+	if is_unpowered():
+		return false
+	return aerial == null or aerial.is_airborne()
+
+
+## True while this piece is a STRUCTURE its commander cannot power — infrastructure upkeep
+## exceeds capacity (Commander.is_infrastructure_strained).
+##
+## An over-subscribed network switches its BUILDINGS off: no weapons, and no abilities
+## either, passive or active (see Abilities.is_operational). The building still stands,
+## still occupies its cells, is still a target, and still produces at the reduced rate
+## strain already imposed — going dark is what the shortfall costs, and building an
+## infrastructure provider is the whole remedy.
+##
+## UNITS ARE UNTOUCHED. Strain is a fact about buildings drawing more than the network
+## supplies; an army in the field does not stop shooting because a power plant was lost.
+## Why: gdd/systems/macroeconomics/production-and-economy.md §Insufficient infrastructure.
+## `ownership` is checked before `commander` is read: an OUT-OF-TREE instance (a build
+## preview, a scene instantiated in a test) never ran its @onready, so the component is null
+## and the property getter would error rather than answer. Nothing unowned is unpowered.
+## Show or hide the marker saying this unit is what an armed single-unit ability would act on
+## (see RTSController._update_ability_target). Optional node: a piece scene that does not
+## inherit commandable.tscn simply has no marker.
+func set_ability_targeted(a_targeted: bool) -> void:
+	var marker := get_node_or_null("TargetIndicator") as Node3D
+	if marker != null:
+		marker.visible = a_targeted
+
+
+func is_unpowered() -> bool:
+	return is_in_group("structure") \
+		and ownership != null \
+		and commander != null \
+		and commander.is_infrastructure_strained()
+
+
+## An empty unit stands down the order that only made sense with something to shoot —
+## pushing it into the queue, not throwing it away, so it resumes once the unit is rearmed.
+##
+## UNCONDITIONAL — before any question of where to rearm. An Attack this unit cannot carry
+## out is worth stopping on its own account, whether or not it owns an airfield to go home
+## to; otherwise a dry aircraft with nowhere to rearm flies at its target forever. Ordinary
+## units are untouched, since is_out_of_ammo() is false for any loadout with nothing
+## CHARGED in it (see Loadout.is_out_of_ammo).
+func _defer_unshootable_orders() -> void:
+	if weapon_inventory == null or not weapon_inventory.is_out_of_ammo():
+		return
+	command_receiver.defer_ammo_dependent_commands()
+
+
 #endregion
 
 #region Rally
@@ -120,29 +345,97 @@ func load_destination(command: MoveCommand) -> void:
 func can_rally() -> bool:
 	return production != null or garrison != null
 
-## Destination held by a stationary can_rally() commandable (movement ==
-## null), set by intercepting a bare MoveCommand in _process_commands (see
-## there). Meaningless for mobile commandables, which share their own active
-## movement instead — see rally_destination.
-var rally_point: MoveCommand = null
+## PRE-ISSUED command queue for a stationary can_rally() commandable (movement == null):
+## the orders every unit it produces or releases inherits, in order, as though the player
+## had given them to that unit the moment it appeared. Fed by intercepting bare
+## MoveCommands in update_commands (see _absorb_rally_commands) — a plain right-click
+## REPLACES the queue, a shift right-click APPENDS to it.
+##
+## These are TEMPLATES, never handed out directly: rally_chain() returns fresh copies, so
+## two units produced from one rally can't share command instances. A queue (rather than
+## the single rally point this replaced) exists so richer pre-issued orders — attack-move,
+## defend, a patrol route — can be stacked here later; only bare moves are absorbed today.
+##
+## Meaningless for mobile commandables, which share their own active movement instead —
+## see rally_chain.
+var rally_commands: Array[MoveCommand] = []
 
-func set_rally(command: MoveCommand) -> void:
-	rally_point = command
+## Replace the pre-issued queue with a single command (a plain right-click).
+func set_rally(a_command: MoveCommand) -> void:
+	rally_commands = [a_command]
 
-## The command a unit produced or released by this commandable should inherit
-## as its next order, or null for "no forced destination". A mobile
-## commandable (movement != null) hands off its own active movement — so e.g.
-## a transport that's destroyed mid-move passes its heading to its evacuated
-## passengers — excluding commands that don't represent motion (should_move()
-## == false, e.g. Evacuate itself). A stationary commandable (a structure) has
-## no movement order of its own to share, so it uses rally_point instead.
+## Add a command to the end of the pre-issued queue (a shift right-click).
+func append_rally(a_command: MoveCommand) -> void:
+	rally_commands.append(a_command)
+
+func clear_rally() -> void:
+	rally_commands.clear()
+
+## The command chain a unit produced or released by this commandable should inherit, as
+## FRESH copies it owns outright (see MoveCommand.duplicated). Empty for "no forced
+## destination".
+##
+## A mobile commandable (movement != null) has no pre-issued queue of its own and hands
+## on its own active movement instead — so a transport destroyed mid-move passes its
+## heading to its evacuated passengers — excluding commands that don't represent motion
+## (should_move() == false, e.g. Evacuate itself).
+func rally_chain() -> Array[MoveCommand]:
+	var chain: Array[MoveCommand] = []
+	if not can_move():
+		for command: MoveCommand in rally_commands:
+			chain.append(command.duplicated())
+		return chain
+	var current: MoveCommand = current_command()
+	if current != null and current.should_move(self):
+		chain.append(current.duplicated())
+	return chain
+
+## The first pre-issued command, or null — the heading readers use to bias where a unit
+## appears (Production's spawn offset, Garrison's exit-side seed). Returns the live
+## template, NOT a copy: callers only read `message.position` off it. To actually give
+## the orders to a unit, use rally_chain().
 func rally_destination() -> MoveCommand:
-	if movement == null:
-		return rally_point
+	if not can_move():
+		return rally_commands[0] if not rally_commands.is_empty() else null
 	var current: MoveCommand = current_command()
 	if current != null and current.should_move(self):
 		return current
 	return null
+
+## Route a bare MoveCommand aimed at a stationary can_rally() commandable into its
+## pre-issued queue instead of its command receiver — a structure can't walk anywhere, so
+## a move order on it means "send what you make there". Returns true when the commands
+## were absorbed and must not reach the receiver.
+##
+## `add_to_queue` is the additive (shift) flag straight off the player's order, which is
+## why this lives here rather than in _process_commands: by the time the receiver has
+## stored a command, whether it was meant to replace or extend is no longer knowable.
+##
+## Only EXACT MoveCommands are absorbed — an Attack or Evacuate aimed at a structure is a
+## real order for the structure itself. A mixed array is left alone entirely rather than
+## split, so the receiver still sees a coherent chain.
+func _absorb_rally_commands(a_commands: Variant, a_add_to_queue: bool) -> bool:
+	if can_move() or not can_rally() or a_commands == null:
+		return false
+	var incoming: Array[MoveCommand] = []
+	if a_commands is MoveCommand:
+		incoming.append(a_commands)
+	elif a_commands is Array:
+		for command: Variant in a_commands:
+			if not (command is MoveCommand):
+				return false
+			incoming.append(command)
+	else:
+		return false
+	if incoming.is_empty():
+		return false
+	for command: MoveCommand in incoming:
+		if command.get_script() != MoveCommand:
+			return false
+	if not a_add_to_queue:
+		rally_commands.clear()
+	rally_commands.append_array(incoming)
+	return true
 #endregion
 
 #region Structure state
@@ -164,8 +457,92 @@ signal build_progress_changed(progress: float)
 var is_built: bool:
 	get: return not is_in_group("structure") or build_progress >= 1.0
 
+## A structure sees only once it is UP — a foundation is not a watchtower yet, however far
+## its finished form will see. Same rule as its other powers below.
+func grants_vision() -> bool:
+	return super() and is_built
+
+## A structure is cover only once it is UP. Same rule as every other thing an unfinished
+## building cannot do (fire, produce, admit occupants): it exists — grid-occupying,
+## selectable, shootable — but it does not yet act on anything around it.
+func blocks_line_of_fire() -> bool:
+	return super() and is_built
+
 ## Units currently registered as active builders of this structure.
 var _active_builders: Array[Commandable] = []
+
+## BLUEPRINTS only — true while the purchase that raised this blueprint is still PENDING,
+## i.e. the commander has committed to the build but can't pay for it yet. Drawn darker
+## (MeshVisual.SHADE_AWAITING_FUNDS) so a site that is merely QUEUED is distinguishable
+## at a glance from one a builder can actually start on.
+##
+## Set by Build.plan_structure from the transaction's state and cleared by
+## PurchaseTransaction.fund(); nothing else should write it. Meaningless once the
+## structure is placed — commit_construction clears it, since a placed structure has by
+## definition been paid for.
+var awaiting_funds: bool = false
+
+## Set the awaiting-funds state and repaint. Idempotent, so the funded-in-the-same-frame
+## case (see Build.plan_structure) costs nothing.
+func set_awaiting_funds(a_awaiting: bool) -> void:
+	if awaiting_funds == a_awaiting:
+		return
+	awaiting_funds = a_awaiting
+	_apply_construction_visuals()
+
+## Mark a freshly-instantiated structure as merely PLANNED — the blueprint an issued
+## Build order raises at its site, before any builder arrives. Call BEFORE initialize()
+## / add_entity: _ready and _on_commander_changed both read `is_planned` to skip the
+## line-of-sight, infrastructure and commander-registration that a real structure gets, and the
+## collision helpers read it to leave the thing intangible.
+##
+## What it DOES get is a live node the player can click: ownership, team tint, its
+## Selectable area and its Production component — so units can be queued at a building
+## that hasn't been started yet, exactly as they can at a half-built one.
+func plan_construction() -> void:
+	is_planned = true
+	build_progress = 0.0
+	build_progress_changed.emit(build_progress)
+
+## Turn a planned structure into a real one at `world_center`: this is the moment the
+## builder lays the foundation, so everything plan_construction held back switches on —
+## grid cells (and the navmesh hole they punch), collision, line of sight, the commander's
+## structure registry — and construction starts.
+##
+## Idempotent-ish: a no-op on a structure that was never planned, so the direct-issue
+## build path (scenario events, tests) is unaffected.
+func commit_construction(a_map: Map, a_world_center: Vector2) -> void:
+	if not is_planned:
+		return
+	is_planned = false
+	# A structure being laid down has been paid for by definition — the builder consumes
+	# the reservation to get here. Clear the flag rather than leaving a stale true to
+	# darken a structure that is now genuinely under construction.
+	awaiting_funds = false
+
+	# Grid registration also positions the structure on its footprint centre, punches the
+	# navmesh hole and re-runs refresh_movement_collision (which now, with is_planned
+	# false, gives it the layers a placed structure carries).
+	if a_map != null:
+		a_map.add_structure(self, a_world_center)
+	_apply_targetable_layers()
+	if vision_range_shape != null and not is_in_group("los"):
+		add_to_group("los")
+
+	# Commander bookkeeping deferred from _on_commander_changed: the structure counts
+	# toward the tech tree only now that it exists (tech itself still gates on is_built, so
+	# proc_technology won't credit it until construction finishes). Infrastructure is NOT
+	# credited here — a foundation isn't a working relay or a load-bearing upkeep yet; see
+	# advance_build_progress(), which credits it on the tick construction actually finishes.
+	if commander != null:
+		commander.add_structure(self)
+
+	# Per-tick logic (production, aggro, death checks) was off while planned.
+	set_physics_process(true)
+	begin_construction()
+	if defense != null:
+		defense.hp = defense.hp_max * INITIAL_HEALTH_FACTOR
+		defense.hp_changed.emit(defense.hp, defense.hp_max)
 
 ## Mark a freshly-instantiated structure as just-started construction. Call before
 ## add_entity so _ready → add_structure → proc_technology see is_built = false.
@@ -180,10 +557,10 @@ func begin_construction() -> void:
 ## one-time finish logic (tech re-eval, builder XP) exactly once.
 ## Also scales hp proportionally so health tracks build progress during construction
 ## (Task 4): each unit of build progress adds delta * hp_max * (1 - INITIAL_HEALTH_FACTOR).
-func advance_build_progress(delta: float) -> bool:
+func advance_build_progress(a_delta: float) -> bool:
 	var was_built: bool = build_progress >= 1.0
 	var old_progress: float = build_progress
-	build_progress = minf(build_progress + delta, 1.0)
+	build_progress = minf(build_progress + a_delta, 1.0)
 	var actual_delta: float = build_progress - old_progress
 	if defense != null and actual_delta > 0.0 and not was_built:
 		defense.hp = minf(
@@ -192,30 +569,83 @@ func advance_build_progress(delta: float) -> bool:
 		)
 		defense.hp_changed.emit(defense.hp, defense.hp_max)
 	build_progress_changed.emit(build_progress)
-	return not was_built and build_progress >= 1.0
+	var just_built: bool = not was_built and build_progress >= 1.0
+	if just_built:
+		# The finished building becomes cover on this tick. Done here rather than in Assemble
+		# so every route that finishes a structure (Capture, a scenario event) agrees.
+		_apply_targetable_layers()
+		# Infrastructure counts from the tick the piece is WORKING, not from the tick its
+		# foundation was laid (see commit_construction).
+		_sync_infrastructure()
+	return just_built
+
+func _on_build_progress_changed(_a_progress: float) -> void:
+	_apply_construction_visuals()
+
+## Draw the 3D model according to construction state, on two independent channels: OPACITY
+## (how far along the lifecycle) and SHADE (whether it has been paid for).
+## Why two rather than one scale, and how they compose with StatusVisuals' pair:
+## gdd/systems/ux/ui/construction-visuals.md §Two channels, not one four-step scale.
+func _apply_construction_visuals() -> void:
+	var mesh_visual := get_node_or_null("MeshVisual") as MeshVisual
+	if mesh_visual == null:
+		return
+	mesh_visual.set_opacity(construction_opacity())
+	mesh_visual.set_shade(construction_shade())
+
+## The opacity this commandable's art should be drawn at, by construction state.
+func construction_opacity() -> float:
+	if is_planned:
+		return MeshVisual.OPACITY_PLANNED
+	return MeshVisual.OPACITY_BUILT if is_built else MeshVisual.OPACITY_CONSTRUCTING
+
+## How dark this commandable's art should be drawn — normal, or the darker
+## awaiting-funds shade while a blueprint's purchase is still waiting to be paid for.
+func construction_shade() -> float:
+	return MeshVisual.SHADE_AWAITING_FUNDS if awaiting_funds else MeshVisual.SHADE_NORMAL
 
 ## Register `unit` as an active builder of this structure. Connects to tree_exiting
 ## so a dead or removed builder is automatically unregistered. Safe to call multiple
 ## times with the same unit (idempotent).
-func register_builder(unit: Commandable) -> void:
-	if _active_builders.has(unit):
+func register_builder(a_unit: Commandable) -> void:
+	if _active_builders.has(a_unit):
 		return
-	_active_builders.append(unit)
-	unit.tree_exiting.connect(unregister_builder.bind(unit), CONNECT_ONE_SHOT)
+	_active_builders.append(a_unit)
+	a_unit.tree_exiting.connect(unregister_builder.bind(a_unit), CONNECT_ONE_SHOT)
 
 ## Remove `unit` from the active-builder list. Called explicitly when a Repair
 ## command ends, and automatically via tree_exiting when a builder dies.
-func unregister_builder(unit: Commandable) -> void:
-	_active_builders.erase(unit)
+func unregister_builder(a_unit: Commandable) -> void:
+	_active_builders.erase(a_unit)
 
-## Per-builder-per-tick build progress increment consistent with the AOE2 formula:
-##   effective_build_time = 3 * base_build_time / (n + 2)
-## Each of n builders calls this each tick, so total progress per tick = 1/effective_build_time.
+## How much each extra builder past the first counts toward the site's build RATE, as a
+## fraction of the first one. ZERO by deliberate balance choice: piling workers onto one
+## structure must not buy tempo. Multiple builders are still supported for redundancy — a
+## staggered or killed one leaves the others working — so this is a rate factor rather than
+## a refusal to take the order.
+##
+## Set it to 1.0 to restore the plain AOE2 curve (each builder counting in full), which is
+## what the code did before the balance pass. Intermediate values are meaningful too:
+## 0.5 gives half-credit for every builder after the first.
+const MARGINAL_BUILDER_EFFICIENCY: float = 0.0
+
+## Build time in ticks assumed for a site whose type has no technology entry — a scenario-
+## placed structure the tech tree does not price.
+const UNPRICED_BUILD_TIME_TICKS: int = 600
+
+## Per-builder-per-tick build progress increment, from the AOE2 formula
+##   effective_build_time = 3 * base_build_time / (effective_n + 2)
+## with the raw builder count replaced by an EFFECTIVE count that discounts every builder
+## past the first by MARGINAL_BUILDER_EFFICIENCY. Each of the n registered builders calls
+## this once per tick, so the site's total per-tick progress is n times this — i.e.
+## 1/effective_build_time when all of them are acting, and proportionally less while some
+## are staggered.
 func effective_build_increment() -> float:
-	var n: int = max(1, _active_builders.size())
+	var n: int = maxi(1, _active_builders.size())
+	var effective_n: float = 1.0 + MARGINAL_BUILDER_EFFICIENCY * float(n - 1)
 	var spec: TechnologySpec = commander.technology_mapping.get(id) if commander != null else null
-	var base_build_time: int = spec.creation_time if spec != null else 600
-	return float(n + 2) / (3.0 * float(base_build_time) * float(n))
+	var base_build_time: int = spec.creation_time if spec != null else UNPRICED_BUILD_TIME_TICKS
+	return (effective_n + 2.0) / (3.0 * float(base_build_time) * float(n))
 var map_cells: Set:
 	get: return map.structure_cell_map.get(self, null) if map != null else null
 #endregion
@@ -227,40 +657,69 @@ var map_cells: Set:
 ## module is the right home, but moving them onto Commandable keeps the
 ## existing `Structure.get_arrangement_cells(...)` call shape working as
 ## `Commandable.get_arrangement_cells(...)`.
-static func get_grid_coordinates(a_center: Vector2i, a_dimensions) -> Array:
+static func get_grid_coordinates(center: Vector2i, dimensions) -> Array:
 	var ret: Array = []
-	var ox: int = (a_dimensions.x - 1) / 2
-	var oy: int = (a_dimensions.y - 1) / 2
-	for w in range(a_dimensions.x):
-		for h in range(a_dimensions.y):
-			ret.append(Vector2(a_center.x - ox + w, a_center.y - oy + h))
+	var ox: int = (dimensions.x - 1) / 2
+	var oy: int = (dimensions.y - 1) / 2
+	for w in range(dimensions.x):
+		for h in range(dimensions.y):
+			ret.append(Vector2(center.x - ox + w, center.y - oy + h))
 	return ret
 
 static func get_arrangement_cells(
-	a_map: Map,
-	a_point: Vector2,
-	a_dimensions: Vector2i
+	map: Map,
+	point: Vector2,
+	dimensions: Vector2i
 ) -> Set:
-	var center_coords: Vector2i = a_map.world_to_grid(a_point)
-	var neighbor_coordinates = get_grid_coordinates(center_coords, a_dimensions)
+	var center_coords: Vector2i = map.world_to_grid(point)
+	var neighbor_coordinates = get_grid_coordinates(center_coords, dimensions)
 
 	if neighbor_coordinates.any(
-		func(c: Vector2i): return not a_map.grid_coordinates_in_bounds(c)
+		func(c: Vector2i): return not map.grid_coordinates_in_bounds(c)
 	):
-		return Set.Empty
+		return Set.EMPTY
 	else:
 		return Set.new(
 			neighbor_coordinates.map(
-				func(coords): return a_map.cell_grid[coords.x][coords.y]
+				func(coords): return map.cell_grid[coords.x][coords.y]
 			)
 		)
 ## valid_placement moved to Entity (any grid-occupying entity, incl. non-commandable
-## structures like Deposit, can be placement-checked) — call Entity.valid_placement.
+## structures like ExtractionSite, can be placement-checked) — call Entity.valid_placement.
 #endregion
 
 #endregion
 
 #region Combat
+## HOLD FIRE: while true this piece never acquires a target ON ITS OWN — no idle pickup, no
+## retaliation, and nothing for Defend or Patrol to engage (get_aggro_near_position answers
+## null). Explicit orders are untouched, and an Attack or Attack-move RELEASES the hold
+## (MoveCommand.releases_hold_fire, applied in update_commands). Set by the player's
+## hold-fire command, by the bot's kamikaze hold, and by gaining stealth (Stealth._ready).
+##
+## A flag on the piece rather than a command, so setting it leaves the queue as it was: a
+## held drone standing at home with an empty queue is the state the bot asserts.
+## Why: gdd/design-framework/commitment-and-movement.md §Action timing.
+var is_holding_fire: bool = false
+
+## Whether an enemy has stuck anything on this piece that a heal would take off — a beacon or
+## a planted charge riding on it (Defense.restore sheds them).
+func has_hostile_markers() -> bool:
+	return Beacon.carried_by(self).any(func(b: Beacon) -> bool: return is_enemy_of(b.host())) \
+		or PlantedCharge.carried_by(self).any(
+			func(c: PlantedCharge) -> bool: return is_enemy_of(c.host()))
+
+
+## Take off every enemy beacon and planted charge riding on this piece. A charge is removed
+## without going off. Called by a heal (Defense.restore).
+func shed_hostile_markers() -> void:
+	for beacon: Beacon in Beacon.carried_by(self):
+		if is_enemy_of(beacon.host()):
+			beacon.dismiss()
+	for charge: PlantedCharge in PlantedCharge.carried_by(self):
+		if is_enemy_of(charge.host()):
+			charge.remove()
+
 ## Widen Entity.is_armed(): a Commandable also counts as armed while it is a bunker
 ## garrison ACTIVELY holding an occupant that carries a weapon, since bunker fire
 ## propagates that occupant's shots (making e.g. a garrisoned shelter a COMBAT_STRUCTURES
@@ -268,36 +727,62 @@ static func get_arrangement_cells(
 func is_armed() -> bool:
 	return super() or (garrison != null and garrison.bunker and garrison.has_armed_occupants())
 
+## How many candidates one aggro scan considers per layer before filtering. The nearest
+## few are all a pick ever needs, and the physics query cost grows with this.
+const AGGRO_SCAN_MAX_RESULTS: int = 10
+
+## This piece's reach on a layer, widened by a bunker's occupants: a bunker fires through the
+## units inside it, so it picks fights at the range they can shoot from.
+func reach_on_layer(a_layer: int) -> float:
+	var best: float = super(a_layer)
+	if garrison != null and garrison.bunker:
+		best = maxf(best, garrison.occupant_reach_on_layer(a_layer))
+	return best
+
 ## Default weapon patterns for unit-grouped commandables. Structures default to
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
 func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D = null, \
 		min_target_priority: TargetPriority = TargetPriority.NON_COMBAT_UNITS) -> MoveCommand:
+	if is_holding_fire or (deployable != null and not deployable.can_use_weapons()):
+		return null
 	var is_bunker: bool = garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
-	if aggro_range_shape == null or (weapon_inventory == null and not is_bunker):
+	if aggro_shapes().is_empty() or (weapon_inventory == null and not is_bunker):
 		return null
 
-	var shape_source: CollisionShape3D = a_shape if a_shape != null else aggro_range_shape
 	var center: Vector3
 	if a_center == null:
-		center = aggro_range_shape.global_transform.origin
+		center = global_position
 	elif a_center is Node3D:
 		center = a_center.global_position
 	else:
 		center = a_center as Vector3
 
-	var vs: Array[Entity] = SU.entities_in_aggro_shape(
-		get_world_3d(), shape_source, center, target_body, 10
-	).filter(func(t: Entity) -> bool:
+	# A caller-supplied region (Defend's area) is one shape for both layers, measured from its
+	# centre POINT; otherwise the scan runs once per layer with that layer's own aggro radius,
+	# measured from this piece's footprint. Either way the query asks only for hostile sides,
+	# so allies cannot fill AGGRO_SCAN_MAX_RESULTS.
+	var found: Array[Entity] = []
+	if a_shape != null:
+		found = _hostiles_in_region(a_shape, center, CollisionLayers.TARGETABLE_ANY)
+	elif a_center != null:
+		# A post with no region shape (Defend): each layer's aggro radius around the post.
+		for pass_spec: Array in [[aggro_shape_ground, CollisionLayers.Mask.TARGETABLE_GROUND],
+				[aggro_shape_air, CollisionLayers.Mask.TARGETABLE_AIR]]:
+			if pass_spec[0] != null:
+				found.append_array(_hostiles_in_region(pass_spec[0], center, pass_spec[1]))
+	else:
+		found = hostiles_in_aggro(AGGRO_SCAN_MAX_RESULTS)
+	var vs: Array[Entity] = found.filter(func(t: Entity) -> bool:
 		# An attackable enemy this actor (or its garrison, when a bunker) can fire on,
 		# ranked at least as important as the command's minimum target priority.
-		if not (t is Commandable and (t as Commandable).defense != null):
+		if not t.is_attackable():
 			return false
 		if t.target_priority > min_target_priority:
 			return false
 		if not is_enemy_of(t):
 			return false
-		if not (t as Commandable).is_visible_to(commander_id):
+		if not t.is_visible_to(commander_id):
 			return false
 		if weapon_inventory != null and weapon_inventory.weapon_for_target(t) != null:
 			return true
@@ -320,8 +805,20 @@ func get_aggro_near_position(a_center: Variant = null, a_shape: CollisionShape3D
 	msg.persist = false
 	return Attack.new(msg)
 
-func receive_damage(damage: Damage, from: Commandable = null) -> void:
-	super(damage, from)
+## Enemy targetables on `a_layers` within the region `a_shape` names, centred on
+## `a_center`: the gap from the centre POINT to each footprint within the region's radius —
+## the same test Attack._target_within_leash releases by.
+func _hostiles_in_region(
+		a_shape: CollisionShape3D, a_center: Vector3, a_layers: int) -> Array[Entity]:
+	if a_shape.shape == null:
+		return []
+	var exclude: Array = [target_body.get_rid()] if target_body != null else []
+	return SU.entities_within(get_world_3d(), Hull.point(VU.inXZ(a_center)), a_shape.shape,
+		a_center, CollisionLayers.hostile_mask(a_layers, commander_id),
+		exclude, AGGRO_SCAN_MAX_RESULTS)
+
+func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
+	super(a_damage, a_from)
 	# Any hit staggers the unit: refresh the timer so channeled actions (Build, Repair,
 	# certain interactions) are suppressed for STAGGER_SECONDS. See is_staggered / the
 	# gate in CommandReceiver._process_commands and MoveCommand.blocked_by_stagger.
@@ -329,16 +826,16 @@ func receive_damage(damage: Damage, from: Commandable = null) -> void:
 	# Being attacked breaks stealth: force the timed UNSTEALTHED window.
 	if stealth != null:
 		stealth.unstealth()
-	# retaliation logic
-	if defense != null and defense.hp > 0 and command_receiver.is_idle() and from != null:
-		var attack_cmd: MoveCommand = _get_vision_range_attack(from)
+	# Retaliation: only a piece with nothing to do answers, so an order is never overridden.
+	if defense != null and defense.hp > 0 and command_receiver.is_idle() and a_from != null:
+		var attack_cmd: MoveCommand = _retaliation_against(a_from)
 		if attack_cmd != null:
 			update_commands(attack_cmd)
 #endregion
 
 #region Stagger
 ## Seconds a unit stays staggered after taking damage. While staggered, commands whose
-## action opts in (MoveCommand.blocked_by_stagger — Build, Repair, LIBERATE/PLANT
+## action opts in (MoveCommand.blocked_by_stagger — Build, Repair, PLANT
 ## interactions) suppress their completion: the unit still moves into range but waits to
 ## act until the stagger clears. It is a lightweight universal mechanic — a per-unit
 ## countdown rather than a StatusEffect node, since it fires on every damage instance.
@@ -354,33 +851,54 @@ func is_staggered() -> bool:
 	return _stagger_ticks > 0
 #endregion
 
+#region Stun
+## True while a StunStatusEffect is active on this unit — a harder stop than stagger:
+## CommandReceiver._process_commands() returns immediately while this is true, so a
+## stunned unit neither moves nor acts, full stop. No local timer: the child
+## StatusEffect node owns its own duration and frees itself, so this just asks "is one
+## attached right now" rather than tracking a second copy of the countdown.
+func is_stunned() -> bool:
+	for child: Node in get_children():
+		if child is StunStatusEffect and (child as StunStatusEffect).is_active():
+			return true
+	return false
+#endregion
+
 #region Retaliation
-## Returns an Attack command targeting `attacker` if it is within VisionRange and
-## is a valid enemy and retaliator has a valid weapon, otherwise null.
-func _get_vision_range_attack(attacker: Commandable) -> MoveCommand:
-	# A garrisoned (or otherwise orphaned) unit is out of the scene tree, so get_world_3d()
-	# is null and the shape query below would crash. It also can't act on a retaliation
-	# target while inside a garrison, so bail out.
-	if vision_range_shape == null or not is_inside_tree():
+## An Attack on `a_attacker`, the piece that just hit this one, or null when this one should
+## not answer: it is holding fire, is garrisoned, cannot fire on the attacker (its own weapons
+## nor, for a bunker, its occupants'), or its SIDE cannot see the attacker — an attacker in
+## fog or under stealth is not answered, the same vision gate as idle aggro
+## (gdd/systems/combat/target-acquisition.md). Aggro distance plays no part: this is what
+## answers fire from past aggro. A piece that cannot move answers only what it already
+## reaches, since it could never close on anything else.
+func _retaliation_against(a_attacker: Commandable) -> MoveCommand:
+	if is_holding_fire or not is_inside_tree() or not can_use_weapons():
 		return null
-	if not is_enemy_of(attacker):
+	if not is_instance_valid(a_attacker) or not a_attacker.is_inside_tree() \
+			or not is_enemy_of(a_attacker) or not a_attacker.is_visible_to(commander_id):
 		return null
-	if weapon_inventory==null or not weapon_inventory.has_weapons():
+	var message := CommandMessage.new(map, a_attacker, null)
+	if Attack.meets_precondition(self, message) != MoveCommand.PreconditionFailureCause.NONE:
 		return null
-	var excludes: Array = [target_body.get_rid()] if target_body != null else []
-	var potential_targets: Array[Entity] = SU.query_shape_for_entities(
-		get_world_3d(), vision_range_shape.shape, vision_range_shape.global_transform,
-		CollisionLayers.TARGETABLE_ANY, excludes, 20
-	)
-	for t in potential_targets:
-		if t == attacker and weapon_inventory.weapon_for_target(attacker) != null:
-			return Attack.new(CommandMessage.new(map, attacker, null))
-	return null
+	if not can_move() and not _reaches(a_attacker):
+		return null
+	return Attack.new(message)
+
+
+## Whether this piece could fire on `a_target` from where it stands, loaded or not — through
+## its own weapon or, as a bunker, through an occupant's.
+func _reaches(a_target: Entity) -> bool:
+	var weapon: Weapon = weapon_inventory.weapon_for_target(a_target) \
+		if weapon_inventory != null else null
+	if weapon != null and SU.is_in_attack_range(weapon, self, a_target):
+		return true
+	return garrison != null and garrison.can_reach(self, a_target)
 #endregion
 
 #region Lifecycle
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
+func _notification(a_what: int) -> void:
+	if a_what == NOTIFICATION_PREDELETE:
 		# Drop the command chain while this actor is still fully valid. Each MoveCommand's
 		# PREDELETE resets our Movement.speed_cap (group-move cleanup), so it must run
 		# before our own destructor frees Movement and our script members — otherwise it
@@ -388,12 +906,25 @@ func _notification(what: int) -> void:
 		# themselves on completion; the ones that outlive it (e.g. held while staggered)
 		# are torn down here. See MoveCommand._notification.
 		if command_receiver != null:
-			command_receiver._command = null
-			command_receiver._command_queue.clear()
-		rally_point = null
+			command_receiver.update_commands(null)
+		rally_commands.clear()
+		# Not every exit is a death — a consumed captive, a garrison's occupants killed with
+		# it, an expiry — so the free itself is what finally withdraws the contribution.
+		_withdraw_infrastructure()
 
 func _ready() -> void:
 	super()
+	# Catches the far more common case above: a scene whose description/verbose was
+	# simply never set, so the setters never ran at all (see the field docs).
+	# Compared against the PLACEHOLDER as well as "", since that is now the declared default
+	# (see the field docs) — a scene that never set its copy arrives holding it.
+	if description.is_empty() or description == MISSING_DESCRIPTION:
+		description = MISSING_DESCRIPTION
+		_report_missing_flavor_text("description", _warned_missing_description)
+	if verbose.is_empty() or verbose == MISSING_VERBOSE:
+		verbose = MISSING_VERBOSE
+		_report_missing_flavor_text("verbose", _warned_missing_verbose)
+
 	# Establish the root's movement-collision layer now (map is still null, so this
 	# resolves to MOVEMENT_OBSTRUCTION) — bounding_radius() below reads it, and it
 	# runs before initialize() would otherwise set it. The TargetBody shape mirror
@@ -402,13 +933,6 @@ func _ready() -> void:
 	attributes = Set.new(attributes_list)
 	command_receiver.initialize(self)
 
-	# Mirror the root's collision shape onto the crush-detection area's shape, so its
-	# overlap test matches this entity's real footprint (MovementBody/Body is overridden
-	# per faction scene — see e.g. vanguard.tscn — same pattern as TargetBody's mirror
-	# in Entity._ready).
-	if _crush_area != null and collider != null:
-		(_crush_area.get_node("CrushShape") as CollisionShape3D).shape = collider.shape
-
 	# Drive the HP-bar fill geometry off damage events rather than recomputing it
 	# every frame. Visibility still depends on selection (see _process), but the
 	# fill scale/offset only move when hp moves.
@@ -416,31 +940,48 @@ func _ready() -> void:
 		defense.hp_changed.connect(_on_hp_changed)
 		# Defense._ready() initializes hp to hp_max. For structures placed by
 		# Build.fulfill_action (begin_construction called before _ready), override
-		# hp to match the construction starting fraction (Task 4).
-		if is_in_group("structure") and not is_built:
+		# hp to match the construction starting fraction (Task 4). A merely PLANNED
+		# structure keeps full hp — it can't be damaged, and a part-full bar would read
+		# as a damaged building; commit_construction drops it when the foundation is laid.
+		if is_in_group("structure") and not is_built and not is_planned:
 			defense.hp = defense.hp_max * INITIAL_HEALTH_FACTOR
 		_on_hp_changed(defense.hp, defense.hp_max)
 
-	# Wire Movement → physics handler for unit-shaped entities. Structures
-	# typically have no Movement component, so movement is null and this is
-	# a no-op for them.
-	if movement != null:
-		movement.velocity_ready.connect(_on_velocity_computed)
-		var _r: float = bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
-		movement.set_agent_radius(_r)
+	# Construction fade: a structure placed but not finished is drawn translucent, and
+	# snaps to full opacity the tick it completes. Driven off the progress signal (plus
+	# this initial call, since begin_construction fires before we're in the tree) rather
+	# than polled every frame. Structures placed in the editor start built, so this is a
+	# no-op for them; units are always built.
+	build_progress_changed.connect(_on_build_progress_changed)
+	_apply_construction_visuals()
+
+	# A planned structure runs no per-tick logic: nothing to produce (the queue holds
+	# its orders until it's built), nothing to shoot, nothing to die. commit_construction
+	# switches this back on when the builder lays it down.
+	if is_planned:
+		set_physics_process(false)
+
+	# Wire Movement → physics handler for any entity carrying one. Wired on the COMPONENT,
+	# live or not, so a two-form piece that starts deployed is ready the moment it undeploys;
+	# the obstacle broadcasts only while the component is live (Movement.set_active).
+	if movement_component != null:
+		movement_component.velocity_ready.connect(_on_velocity_computed)
+		var body_radius: float = bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+		movement_component.set_agent_radius(body_radius)
 		# Size the obstacle to match the unit's footprint and hand the reference
 		# to Movement so suppress/restore_avoidance_layers can silence it too.
 		# avoidance_layers is set when ownership is established (see _on_commander_changed).
-		_avoidance_obstacle.radius = _r
-		_avoidance_obstacle.avoidance_enabled = true
-		movement.avoidance_obstacle = _avoidance_obstacle
+		if _avoidance_obstacle != null:
+			_avoidance_obstacle.radius = body_radius
+			_avoidance_obstacle.avoidance_enabled = movement_component.is_active
+			movement_component.avoidance_obstacle = _avoidance_obstacle
 		# NOTE: avoidance team is configured in _on_commander_changed, not here.
 		# During initialize() add_child() (→ _ready) runs BEFORE the commander is
 		# assigned, so `commander` is null at this point; the team must be set
 		# when ownership is actually established.
 
-func _on_commander_changed(old_commander: Commander, new_commander: Commander) -> void:
-	super(old_commander, new_commander)
+func _on_commander_changed(a_old_commander: Commander, a_new_commander: Commander) -> void:
+	super(a_old_commander, a_new_commander)
 
 	# Turn on RVO avoidance once ownership is established. This is the first point
 	# at which the commander is known for dynamically-spawned units (initialize()
@@ -448,18 +989,27 @@ func _on_commander_changed(old_commander: Commander, new_commander: Commander) -
 	# its scene-default avoidance_layers/mask of 0 and avoids nothing.
 	# Also update the NavigationObstacle3D layer so enemies steer around this
 	# unit one-sidedly (cross-team one-sided avoidance — see AvoidanceAgent3D).
-	if movement != null and new_commander != null:
-		movement.enable_avoidance(new_commander.id)
-		_avoidance_obstacle.avoidance_layers = AvoidanceAgent3D.obstacle_bit(new_commander.id)
+	if movement_component != null and a_new_commander != null:
+		var obstacle_layers: int = AvoidanceAgent3D.obstacle_bit(a_new_commander.id)
+		if _avoidance_obstacle != null and not (deployable != null
+				and deployable.hold_obstacle_layers(obstacle_layers)):
+			_avoidance_obstacle.avoidance_layers = obstacle_layers
+		if movement != null:
+			movement.enable_avoidance(a_new_commander.id)
 
+	_sync_infrastructure()
 	if not is_in_group("structure"):
 		return
-	if old_commander != null:
-		old_commander.remove_structure(self)
-		old_commander.adjust_vigor(-vigor_required, -vigor_provided)
-	if new_commander != null:
-		new_commander.add_structure(self)
-		new_commander.adjust_vigor(vigor_required, vigor_provided)
+	# A PLANNED structure is owned (it's tinted, selectable and takes train orders) but it
+	# is not one of the commander's buildings yet: it doesn't belong in the structure
+	# registry the tech tree and the AI read. commit_construction
+	# runs this registration when the builder actually lays it down.
+	if is_planned:
+		return
+	if a_old_commander != null:
+		a_old_commander.remove_structure(self)
+	if a_new_commander != null:
+		a_new_commander.add_structure(self)
 
 func initialize(a_map: Map, a_commander: Commander):
 	super(a_map, a_commander)
@@ -468,8 +1018,8 @@ func initialize(a_map: Map, a_commander: Commander):
 	# scene-placed units — unlike _on_commander_changed, which fires during _ready
 	# (before initialize) for scene-placed units. Derive the unit's size class from
 	# its MovementBody footprint and point the agent at the navmesh for that class.
-	if movement != null and map != null:
-		movement.configure_for_map(
+	if movement_component != null and map != null:
+		movement_component.configure_for_map(
 			map,
 			map.nav_manager,
 			bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
@@ -488,87 +1038,68 @@ func initialize(a_map: Map, a_commander: Commander):
 ## Driving MeshVisual.face_direction as well would rotate the mesh a SECOND time
 ## on top of the root, compounding the two into a doubled, offset yaw that
 ## snaps for large turns.
-func _drive_mesh_visual(mesh_visual: MeshVisual) -> void:
+func _drive_mesh_visual(a_mesh_visual: MeshVisual) -> void:
 	var state: MeshVisual.AnimationState = MeshVisual.AnimationState.IDLE
 	if has_command() and current_command() is Attack:
 		state = MeshVisual.AnimationState.ATTACK
 	elif movement != null and Vector2(velocity.x, velocity.z).length_squared() > 0.0001:
 		state = MeshVisual.AnimationState.MOVE
-	mesh_visual.set_animation_state(state)
+	a_mesh_visual.set_animation_state(state)
 
 
-func _process(_delta: float) -> void:
+func _process(_a_delta: float) -> void:
 	if Engine.is_editor_hint(): return
-	var sprite: Sprite3D = get_node_or_null("Sprite") as Sprite3D
 
-	# HP bar visibility (visible while damaged or selected). The fill geometry is
-	# driven separately by _on_hp_changed, since it only moves when hp moves.
-	$HPBar.visible = defense != null and (defense.hp < defense.hp_max or selectable.is_selected())
+	# HP bar visibility (visible while damaged or selected, and never on a unit stealth is
+	# hiding from us — an enemy whose model is drawn at zero alpha must not be given away
+	# by a floating bar). The fill geometry is driven separately by _on_hp_changed, since
+	# it only moves when hp moves.
+	$HPBar.visible = defense != null \
+		and (defense.hp < defense.hp_max or selectable.is_selected()) \
+		and not is_hidden_by_stealth()
 
-	# Movement-driven facing + animation state. MeshVisual (3D models) supersedes
-	# the Sprite path (billboards); drive whichever this entity actually has.
+	# Movement-driven animation state.
 	var mesh_visual := get_node_or_null("MeshVisual") as MeshVisual
 	if mesh_visual != null:
 		_drive_mesh_visual(mesh_visual)
-	elif movement != null and sprite != null:
-		if velocity.x > 0:
-			sprite.flip_h = true
-		elif velocity.x < 0:
-			sprite.flip_h = false
-		elif velocity.x == 0 and has_command():
-			sprite.flip_h = current_command().message.position.x > global_position.x
 
-		# NOTE hardcoding pattern preserved from Unit — Irregular uses 3 hframes.
-		# A future SpriteAnimation component should own this.
-		if sprite.hframes > 1:
-			if false: # TODO revisit, get firing state from weapon
-				sprite.frame = 2
-			elif current_command() is Attack:
-				sprite.frame = 1
-			else:
-				sprite.frame = 0
-
-	# Debug label: show active command name while debug_info is held.
+	# Debug label: show active command name while the debug view is up.
 	if _debug_label != null:
-		var show_debug := Input.is_action_pressed("debug_info")
+		var show_debug: bool = DebugMode.is_active()
 		_debug_label.visible = show_debug
 		if show_debug:
 			_debug_label.text = current_command().get_script().get_global_name() if has_command() else "NULL"
 
-	# Production-driven build progress alpha + train bar. Was Structure._process.
+	# Train bar. Was Structure._process.
 	if production != null:
-		if sprite != null:
-			sprite.modulate.a = build_progress
 		production.update_bar(scale.x)
-
-	# Stealth visibility (driven by Stealth.state). The pulsing partial alpha is
-	# the "partially visible" cue; full alpha = fully visible; zero = unseen.
-	# • STEALTHED   — owner sees the faint pulse; enemies see nothing (HP bar hidden).
-	# • REVEALED    — faint pulse for everyone (owner and enemies).
-	# • UNSTEALTHED — fully visible to everyone (restored each frame so the
-	#                 transition out of stealth snaps back cleanly).
-	if stealth != null and sprite != null:
-		var pulse_alpha: float = 0.3 + .1 * sin(Engine.get_physics_frames() / 5.)
-		match stealth.state:
-			Stealth.State.UNSTEALTHED:
-				sprite.modulate.a = 1.0
-			Stealth.State.REVEALED:
-				sprite.modulate.a = pulse_alpha
-			Stealth.State.STEALTHED:
-				if commander_id == RTSController.PLAYER_COMMANDER_ID:
-					sprite.modulate.a = pulse_alpha
-				else:
-					sprite.modulate.a = 0.0
-					$HPBar.visible = false
 
 ## Resize/offset the HP-bar fill to match the current hp fraction. Connected to
 ## Defense.hp_changed, so it runs only when hp actually changes.
+## Drives the HP bar's fill: how much of it shows, where it is anchored, and what
+## color it is. Called on damage/heal rather than every frame (see _ready).
+##
+## The bar shrinks by CROPPING the quad (region_rect) and re-anchors with `offset` —
+## never by scaling or moving the NODE. Both of those live in the sprite's own 2D
+## plane, so they are carried along when the billboard turns the quad to face the
+## camera. `position` is not: it feeds the model matrix's translation, which a
+## billboard preserves in WORLD space, so a leftward nudge marched the fill along
+## world −X while the quad faced elsewhere — on this game's isometric camera that
+## reads as the fill drifting up and off the bar as damage accumulates.
 func _on_hp_changed(a_hp: float, a_hp_max: float) -> void:
-	if hpBarFill == null or a_hp_max <= 0:
+	if hp_bar_fill == null or hp_bar_fill.texture == null or a_hp_max <= 0:
 		return
-	hpBarFill.scale.x = a_hp / a_hp_max
-	var half_w := hpBarFill.texture.get_width() * hpBarFill.pixel_size / 2.0
-	hpBarFill.position.x = -half_w * (1.0 - hpBarFill.scale.x)
+	# Clamped because hp goes negative for a tick before _on_death runs, and nothing
+	# stops a heal exceeding hp_max; both must land on an end of the bar, not past it.
+	var fraction: float = clampf(a_hp / a_hp_max, 0.0, 1.0)
+	var size: Vector2 = hp_bar_fill.texture.get_size()
+	hp_bar_fill.region_enabled = true
+	hp_bar_fill.region_rect = Rect2(0.0, 0.0, size.x * fraction, size.y)
+	# Half the width the crop removed, shifting the (still centred) quad left so its
+	# LEFT edge stays put and the bar drains rightward. Zero at full health.
+	hp_bar_fill.offset = Vector2(-size.x * (1.0 - fraction) / 2.0, 0.0)
+	# The fill texture is white; all of its color comes from here (see HealthBarGradient).
+	hp_bar_fill.modulate = HealthBarGradient.color_for(fraction)
 
 func _on_velocity_computed(a_velocity: Vector3) -> void:
 	# a_velocity is the RVO avoidance-adjusted velocity from the NavigationAgent3D.
@@ -581,20 +1112,49 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 		move_and_slide()
 
 	# Snap Y to terrain after each move so height tracks the final XZ this tick,
-	# not the XZ from before the move (which is what _physics_process saw). Aerial
-	# units follow an acceleration-smoothed terrain height (see Movement) instead of
-	# the raw contour, so their base Y comes from aerial_follow_y.
+	# not the XZ from before the move (which is what _physics_process saw).
 	if map != null:
-		var terrain_y: float = map.terrain_height_at(VU.inXZ(global_position))
-		var base_y: float = movement.aerial_follow_y(terrain_y) if movement.is_aerial_mode() else terrain_y
-		global_position.y = base_y + movement.height_offset()
+		_snap_height_to_terrain()
+
+
+## Stand the body at its height for this tick: the terrain under it — the eased contour an
+## aircraft follows (Aerial.follow_y) rather than the raw one — plus its height above that.
+func _snap_height_to_terrain() -> void:
+	var terrain_y: float = map.terrain_height_at(VU.inXZ(global_position))
+	var base_y: float = aerial.follow_y(terrain_y) if aerial != null else terrain_y
+	global_position.y = base_y + height_offset()
 
 func _update_state() -> void:
 	if defense != null and defense.hp <= 0:
 		_on_death()
 		return
 
-	if command_receiver.is_idle():
+	# Before anything else this tick: an aircraft with nothing left to fire stands down the
+	# order that assumed it would shoot, and then — only if that leaves it with nothing else
+	# worth doing — takes itself home. Ahead of the idle-aggro check on purpose, so a dry
+	# unit cannot pick up a new target it could only stand over.
+	_defer_unshootable_orders()
+	# Ahead of the rearm check: an aircraft whose airfield has just been destroyed is not
+	# parked any more, and maybe_auto_rearm reads "parked" as "already home".
+	if docking != null:
+		docking.release_lost_dock()
+		docking.maybe_auto_rearm()
+		docking.release_runway()
+		docking.aim_parked_at_runway()
+
+	# Aggro pickup is gated on being FINISHED as well as idle. The receiver refuses to act
+	# on an unbuilt owner's commands anyway, so an ungated pickup would only have the
+	# structure repeatedly latch onto a target it cannot shoot — and, once built, open fire
+	# on whatever happened to be nearest rather than waiting to be told.
+	#
+	# A GROUNDED AIRCRAFT PICKS UP NOTHING. It is sitting on its airfield (or in a field)
+	# with its own vision still live, so without this gate it would latch onto anything that
+	# wandered past and then stand over it unable to shoot — see can_use_weapons. For a
+	# parked one it would also take off after it, which is not what "stays in its dock until
+	# ordered" means.
+	#
+	# A piece holding fire picks up nothing either — get_aggro_near_position answers null.
+	if is_built and command_receiver.is_idle() and can_use_weapons():
 		var aggro_cmd := get_aggro_near_position()
 		if aggro_cmd != null:
 			update_commands(aggro_cmd)
@@ -605,9 +1165,9 @@ func _update_state() -> void:
 	# is idle (no active command). This fires both when already idle at the moment
 	# intent is registered and when a movement command completes.
 	if garrison != null and not garrison._pending_garrison_units.is_empty() \
-			and movement != null and movement.mode == Movement.Mode.HOVERING \
+			and aerial != null and aerial.mode == Movement.Mode.HOVERING \
 			and command_receiver.is_idle():
-		movement.land(Callable())
+		aerial.land(Callable())
 
 	# Command processing above may remove this unit from the tree mid-tick (e.g.
 	# garrisoning into a Garrison); the remaining per-tick work touches world/
@@ -618,10 +1178,18 @@ func _update_state() -> void:
 	# Per-tick production. No-op for non-producing entities or unbuilt structures.
 	if production != null and is_built:
 		production.tick()
-	if ore_extractor != null and is_built:
-		ore_extractor.tick()
+	# Service whatever is parked on this airfield's pads. Driven from the STRUCTURE rather
+	# than from each docked aircraft, so the bay's charge_rate is applied in one place and a
+	# parked unit needs no per-tick branch of its own.
+	if docking_bay != null and is_built:
+		docking_bay.tick_recharge()
+	if energy_extractor != null and is_built:
+		energy_extractor.tick()
 	if dominion_generator != null:
 		dominion_generator.tick()
+	# Passive conversion: any neutral unit inside LiberationRange changes sides.
+	if liberator != null:
+		liberator.tick()
 
 	# Detection: reveal enemy stealth units within DetectionRange this tick.
 	if detection_range != null:
@@ -630,7 +1198,7 @@ func _update_state() -> void:
 	if stealth != null:
 		stealth.tick()
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(_a_delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	if _stagger_ticks > 0:
 		_stagger_ticks -= 1
@@ -641,115 +1209,230 @@ func _physics_process(_delta: float) -> void:
 	if not is_inside_tree(): return
 	# Keep units glued to terrain height each tick.  The navmesh is 3D (built
 	# from HeightMapShape3D data) but the velocity computation zeroes Y to keep
-	# avoidance stable, so Y tracking must happen here instead. Aerial units track an
-	# acceleration-smoothed terrain height (see Movement) rather than the raw contour.
-	if movement != null and map != null:
-		var terrain_y: float = map.terrain_height_at(VU.inXZ(global_position))
-		var base_y: float = movement.aerial_follow_y(terrain_y) if movement.is_aerial_mode() else terrain_y
-		global_position.y = base_y + movement.height_offset()
-	_update_crush_avoidance_exclusions()
+	# avoidance stable, so Y tracking must happen here instead.
+	if (movement != null or aerial != null) and map != null:
+		_snap_height_to_terrain()
+	# Who yields to whom in same-team RVO: a unit firing from where it stands yields to nobody,
+	# a traveller outranks a stander. Per-tick because the ranking follows what the unit is
+	# doing right now — see Movement.
+	if movement != null:
+		var command: MoveCommand = current_command()
+		movement.update_avoidance_priority(command != null and command.holds_ground(self))
+	# Immediately after the height above: whether this piece is an air or a ground target is
+	# a question about the Y just written, so the two must not be a tick apart.
+	refresh_targetable_altitude()
 	_tick_crush()
 
 #region Crush
-## Recompute which enemy obstacle channels (AvoidanceAgent3D.obstacle_bit) this unit's
-## avoidance mask should ignore: any enemy commander with at least one nearby unit this
-## unit can crush (Movement.can_crush) is walked through rather than detoured around.
-## No-op without a GROUNDED_DIRECT Movement + AvoidanceAgent3D (avoidance_agent() is
-## null for HOVERING/FLYING and for units without an AvoidanceAgent3D-backed nav agent).
-## See the _crush_excluded_obstacles caveat on AvoidanceAgent3D: obstacle channels are
-## per-commander, not per-unit, so this is a team-wide approximation.
-func _update_crush_avoidance_exclusions() -> void:
-	if movement == null or aggro_range_shape == null:
+## The scan sphere, KEPT between ticks. A Shape3D owns a physics-server RID, so building one
+## per tick per crusher churns server resources for a value that almost never changes —
+## this is the object-pool case, not premature caching. Rebuilt only when the agent's
+## neighbour distance actually differs, so a reconfigured agent still gets the right volume.
+var _crush_scan_shape: SphereShape3D = null
+
+## Both halves of the crush mechanic, skipped wholesale for anything that cannot
+## crush at all — no Movement, or a crush_class too low to outrank even TINY, which
+## is the large majority of pieces. Nothing here needs a dedicated node: crushers are
+## rare enough to pay for their own queries, where a persistent Area3D would have sat
+## in the broadphase on every commandable in the game.
+##
+## A crusher carrying a hold takes prisoners with the same contact — see
+## _run_over_overlapping_units.
+func _tick_crush() -> void:
+	if movement == null or not movement.can_crush_anything():
 		return
+	_update_crush_avoidance_exclusions()
+	_run_over_overlapping_units()
+
+## The "don't detour around it" half: recompute which foreign obstacle channels
+## (AvoidanceAgent3D.obstacle_bit) this unit's avoidance mask should ignore — any
+## commander with a nearby unit this one can run over (_can_run_over) is walked through
+## rather than steered around. The NEUTRAL channel is in scope: a carrier that steered
+## around a Shelter's Terrestrials could never make contact to take one.
+##
+## SCANNED WITHIN THE AGENT'S OWN RVO NEIGHBOURHOOD, not within AggroRange. Aggro range
+## answers "how far will I pick a fight", which is a different question and one a peaceful
+## crusher deliberately declines to answer: a dominion generator, a transport and a truck
+## all have no aggro volume at all, and every one of them must still drive over infantry.
+## Scoping the scan to AggroRange meant those units excluded nothing, ever, and steered
+## politely around the soldiers they outweigh — the bug this pass fixes, seen with a
+## `cl_mechLight_dominionGen` detouring around an enemy `cl_bioLight_builder`. It was
+## invisible to a reader because the guard was on the aggro NODE, which every piece
+## inherits from commandable.tscn, while the scan needs the aggro SHAPE, which a piece
+## without an aggro range does not have.
+##
+## `neighbor_distance` is the region RVO reacts within BY DEFINITION, so it is exactly the
+## set of neighbours there is anything to exclude about — outside it the agent was never
+## going to steer around them anyway. Queried on MOVEMENT_OBSTRUCTION, the same layer the
+## run-over half uses, so both halves of the mechanic look at the same population.
+##
+## No-op without an AvoidanceAgent3D-backed nav agent. (Aerial units never reach here at
+## all — _tick_crush bails on them via can_crush_anything, which is also why
+## avoidance_agent() being null in those modes no longer matters.)
+##
+## See the _crush_excluded_obstacles caveat on AvoidanceAgent3D: obstacle channels are
+## per-commander, not per-unit, so this stays a team-wide approximation.
+func _update_crush_avoidance_exclusions() -> void:
 	var agent: AvoidanceAgent3D = movement.avoidance_agent()
 	if agent == null:
 		return
-	var nearby: Array[Entity] = SU.entities_in_aggro_shape(
-		get_world_3d(), aggro_range_shape, global_position, target_body, 20
-	)
 	var excluded: int = 0
-	for e: Entity in nearby:
-		if not (e is Commandable) or not is_enemy_of(e):
+	for e: Entity in SU.query_shape_for_entities(
+		get_world_3d(), _crush_avoidance_scan_shape(agent),
+		Transform3D(Basis.IDENTITY, global_position),
+		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, [get_rid()]
+	):
+		var other := e as Commandable
+		if other == null or not _can_run_over(other):
 			continue
-		var enemy: Commandable = e as Commandable
-		if enemy.movement != null and movement.can_crush(enemy.movement):
-			excluded |= AvoidanceAgent3D.obstacle_bit(enemy.commander_id)
+		excluded |= AvoidanceAgent3D.obstacle_bit(other.commander_id)
 	agent.set_crush_excluded_obstacles(excluded)
 
-## Instant-kill any enemy Commandable currently overlapping CrushArea that this unit's
-## Movement.can_crush() clears — the "drive over the smaller unit" half of the crush
-## mechanic (_update_crush_avoidance_exclusions above is the "don't detour around it"
-## half). No-op without Movement or a CrushArea child.
-func _tick_crush() -> void:
-	if movement == null or _crush_area == null:
+## The volume to look for crushable neighbours in: a sphere of the agent's RVO neighbour
+## distance, centred on this unit.
+func _crush_avoidance_scan_shape(a_agent: AvoidanceAgent3D) -> SphereShape3D:
+	if _crush_scan_shape == null:
+		_crush_scan_shape = SphereShape3D.new()
+	if not is_equal_approx(_crush_scan_shape.radius, a_agent.neighbor_distance):
+		_crush_scan_shape.radius = a_agent.neighbor_distance
+	return _crush_scan_shape
+
+## Whether driving into [a_other] would come to anything: this unit outsizes it AND the
+## contact has a consequence — a kill if it is an enemy, a capture if it is prey this unit has
+## room for. Both halves of the mechanic ask this, so a unit is only walked through when
+## walking through it does something. A NEUTRAL qualifies only via the capture arm, which is
+## why this is not simply is_enemy_of. `can_crush()` already rules out every aerial pairing,
+## so no altitude test is needed. Why:
+## gdd/systems/combat/garrison-and-transport.md.
+func _can_run_over(a_other: Commandable) -> bool:
+	if a_other.movement == null or not movement.can_crush(a_other.movement):
+		return false
+	return is_enemy_of(a_other) or Garrison.can_capture(self, a_other)
+
+## The "drive over the smaller unit" half. Every unit overlapping this one's own movement
+## body that it outsizes is either TAKEN PRISONER — if this unit has a hold with room and
+## the pairing is a capture (Garrison.can_capture) — or, failing that, killed if it is an
+## enemy.
+##
+## The order matters and the fallthrough is the point: capacity gates the CAPTURE, never the
+## crush. A full truck still flattens the soldier it drives over. A neutral it cannot take
+## is simply left alone, since neutrals were never crushed.
+##
+## Queried against the movement collider, NOT the (much wider, result-capped) aggro
+## shape scanned above: a crusher ploughing through a swarm is exactly the case where
+## an aggro-sized query truncates, and truncating here would drop kills. A
+## footprint-sized query only ever holds real contacts, so the cap never bites.
+func _run_over_overlapping_units() -> void:
+	if collider == null or collider.shape == null:
 		return
-	for body: Node in _crush_area.get_overlapping_bodies():
-		var enemy := body as Commandable
-		if enemy == null or enemy == self or not is_enemy_of(enemy):
+	for e: Entity in SU.query_shape_for_entities(
+		get_world_3d(), collider.shape, collider.global_transform,
+		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, [get_rid()]
+	):
+		var other := e as Commandable
+		if other == null or not _can_run_over(other):
 			continue
-		if enemy.movement == null or not movement.can_crush(enemy.movement):
+		if garrison != null and Garrison.can_capture(self, other):
+			garrison.garrison(other)
 			continue
-		if enemy.defense != null and enemy.defense.hp > 0:
-			enemy.defense.kill()
+		if not is_enemy_of(other):
+			continue
+		if other.defense != null and other.defense.hp > 0:
+			other.defense.kill()
 #endregion
 
+## A two-form piece is one of its commander's structures exactly while it is deployed. A
+## PLANNED one is registered by commit_construction instead, as every structure is.
+func _on_form_changed(a_deployed: bool) -> void:
+	if commander == null or is_planned:
+		return
+	if a_deployed:
+		commander.add_structure(self)
+	else:
+		commander.remove_structure(self)
+
 func _process_commands() -> void:
-	# A stationary can_rally() commandable routes a bare MoveCommand into its own
-	# rally_point instead of moving (see rally_destination). Structures also
-	# route Train into the Production component. Everything else falls through
-	# to CommandReceiver's default handling.
+	# Structures route Train into the commander's production queue. Everything else falls
+	# through to CommandReceiver's default handling. (Bare MoveCommands aimed at a
+	# stationary can_rally() commandable never get this far — update_commands absorbs them
+	# into rally_commands at the point of issue.)
 	if has_command():
 		var current: MoveCommand = current_command()
-		if movement == null and can_rally() and current.get_script() == MoveCommand:
-			set_rally(current)
-			clear_command()
-			return
-		elif production != null and current is Train:
-			if is_built and commander.has_resources_for(current.message.tool.type):
-				production.enqueue(
-					commander.technology_mapping[current.message.tool.type].creation_time,
-					current.message.tool.packed_scene,
-					current.message.tool.type
-				)
-				commander.use_resources_for(current.message.tool.type)
+		if production != null and current is Train:
+			# Training is a PURCHASE, so it goes through the commander's global production
+			# queue instead of being enqueued here — the queue deducts the cost and hands the
+			# job back to this component once the energy exists, so an unaffordable order waits
+			# rather than being dropped. This is the single-producer entry point (scenario
+			# events, the bot, anything that hands a Train command straight to a structure);
+			# the player's multi-select train submits one purchase across the whole selection
+			# from RTSController.assign_command_to_units.
+			# No is_built gate: a structure still under construction accepts orders, and the
+			# queue holds them until it finishes (see ProductionQueue._dispatch).
+			if commander != null and commander.can_order(current.message.tool.type):
+				commander.production_queue.submit_train(current.message.tool, [self])
 			clear_command()
 			return
 	command_receiver._process_commands()
 
 func _on_death() -> void:
 	# Return or kill garrisoned occupants before queue_free() voids the host's map
-	# reference and orphans them permanently.
+	# reference and orphans them permanently. This is also how PRISONERS get out: a
+	# destroyed stock truck or Compound is a garrison like any other, and each
+	# occupant is released to its OWN commander (see Garrison._return_to_commander).
 	if garrison != null and garrison.garrisoned_count() > 0:
 		if garrison.preserve_occupants:
 			garrison.evacuate(map)
 		else:
 			garrison.kill_occupants()
-	# Return or free inventory occupants (e.g. abducted units in a stock truck or
-	# internment camp). eject_to_scene clears the items array, so the Inventory
-	# PREDELETE handler becomes a harmless no-op.
-	if ability_inventory != null and ability_inventory.has_items():
-		if ability_inventory.preserve_occupants:
-			ability_inventory.eject_to_scene(global_position)
-		else:
-			ability_inventory.free_items()
+	# Refund whatever this producer still owed the player. Two separate pots:
+	#   * jobs already handed to this Production queue — paid for, so cancel() returns
+	#     each one's cost here (nothing else watches this queue);
+	#   * purchases still sitting in the commander's global queue that named this
+	#     structure as a producer — those are dropped and refunded by ProductionQueue's
+	#     own prune once this node is freed (a producer that no longer exists leaves the
+	#     transaction with no candidates).
+	# A destroyed barracks must not swallow the energy for the units it never trained.
+	if production != null:
+		while production.job_count() > 0:
+			production.cancel(production.job_count() - 1)
 	# Commander/economy teardown for owned structures. The grid teardown
 	# (map.remove_structure) is handled in Entity._on_death via super().
 	if is_in_group("structure") and commander != null:
 		commander.remove_structure(self)
-		commander.adjust_vigor(-vigor_required, -vigor_provided)
+	_withdraw_infrastructure()
 	super()
 #endregion
 
 #region Private helpers
-## Query the STEALTH collision layer within DetectionRange and stamp reveal()
-## on every enemy entity found.  Uses a targeted physics query so only
-## entities that opted into the STEALTH layer (i.e. those with a Stealth node)
-## are considered.
+## Credit `infrastructure` to the commander it should count for now, moving it off whoever
+## held it before. It counts for the owner while the piece is built and not merely planned —
+## never by whether the piece is a structure. A zero contribution registers nothing, so the
+## commander is not told about every rifleman that comes and goes.
+func _sync_infrastructure() -> void:
+	var target: Commander = commander \
+		if is_built and not is_planned and infrastructure != 0 else null
+	if _infrastructure_credited_to == target:
+		return
+	_withdraw_infrastructure()
+	if target != null:
+		target.add_infrastructure(infrastructure)
+		_infrastructure_credited_to = target
+
+
+func _withdraw_infrastructure() -> void:
+	var credited: Variant = _infrastructure_credited_to
+	_infrastructure_credited_to = null
+	if credited != null and is_instance_valid(credited):
+		(credited as Commander).remove_infrastructure(infrastructure)
+
+
+## Stamp reveal() on every enemy within DetectionRange, measured between footprints like
+## every range (SU.entities_within). Queries the STEALTH layer, so only entities that opted
+## into it (i.e. those with a Stealth node) are considered.
 func _detect_stealthed_units() -> void:
-	var targets: Array[Entity] = SU.query_shape_for_entities(
-		get_world_3d(), detection_range.shape, detection_range.global_transform,
-		CollisionLayers.Mask.STEALTH, [self], 20
-	)
+	var targets: Array[Entity] = SU.entities_within(get_world_3d(), hull(),
+		detection_range.shape, detection_range.global_position,
+		CollisionLayers.Mask.STEALTH, [self], 20)
 	for target in targets:
 		if target.stealth == null:
 			continue

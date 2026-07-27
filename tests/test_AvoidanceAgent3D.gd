@@ -5,18 +5,18 @@ extends GutTest
 
 ## Compute the expected default avoidance_mask for a given commander.
 ## = own team bit + all FOREIGN obstacle bits (not own) + exception pool
-func _expected_mask(commander_id: int) -> int:
-	var team: int = AvoidanceAgent3D.team_bit(commander_id)
-	var own_obs: int = AvoidanceAgent3D.obstacle_bit(commander_id)
+func _expected_mask(a_commander_id: int) -> int:
+	var team: int = AvoidanceAgent3D.team_bit(a_commander_id)
+	var own_obs: int = AvoidanceAgent3D.obstacle_bit(a_commander_id)
 	var all_obs: int = (AvoidanceAgent3D._ALL_TEAMS) << AvoidanceAgent3D._TEAM_BITS  # 0xFF00
 	var pool: int = AvoidanceAgent3D._POOL_MASK  # bits 16..31
 	return team | (all_obs & ~own_obs) | pool
 
 
-func _agent(commander_id: int = 1) -> AvoidanceAgent3D:
+func _agent(a_commander_id: int = 1) -> AvoidanceAgent3D:
 	var a := AvoidanceAgent3D.new()
 	add_child_autofree(a)
-	a.enable_avoidance(commander_id)
+	a.enable_avoidance(a_commander_id)
 	return a
 
 

@@ -1,0 +1,219 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://resources/emissions/particle_additive.tres" id="2_add"]
+[ext_resource type="Material" path="res://resources/emissions/particle_ground_ring.tres" id="3_ring"]
+[ext_resource type="Material" path="res://resources/emissions/particle_smoke.tres" id="4_smoke"]
+
+[sub_resource type="Gradient" id="Gradient_Flash"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1, 0.97, 0.85, 1, 1, 0.6, 0.2, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Flash"]
+gradient = SubResource("Gradient_Flash")
+
+[sub_resource type="Curve" id="Curve_Flash"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Flash"]
+curve = SubResource("Curve_Flash")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Flash"]
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 0
+initial_velocity_max = 0
+gravity = Vector3(0, 0, 0)
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 2.5
+scale_max = 3.2
+scale_curve = SubResource("CurveTexture_Flash")
+color_ramp = SubResource("GradientTexture1D_Flash")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Flash"]
+material = ExtResource("2_add")
+
+[sub_resource type="Gradient" id="Gradient_Fireball"]
+offsets = PackedFloat32Array(0, 0.2, 0.55, 1)
+colors = PackedColorArray(1, 0.9, 0.6, 0.8, 1, 0.5, 0.12, 0.6, 0.45, 0.12, 0.03, 0.35, 0.2, 0.05, 0.02, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Fireball"]
+gradient = SubResource("Gradient_Fireball")
+
+[sub_resource type="Curve" id="Curve_Fireball"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(0.25, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.6), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_Fireball"]
+curve = SubResource("Curve_Fireball")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Fireball"]
+emission_shape = 1
+emission_sphere_radius = 0.6
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 4.5
+initial_velocity_max = 6.5
+gravity = Vector3(0, 0.8, 0)
+damping_min = 6
+damping_max = 6
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.6
+scale_max = 1.3
+scale_curve = SubResource("CurveTexture_Fireball")
+color_ramp = SubResource("GradientTexture1D_Fireball")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Fireball"]
+material = ExtResource("2_add")
+
+[sub_resource type="Gradient" id="Gradient_Shockwave"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(1, 0.9, 0.7, 1, 1, 0.6, 0.3, 0.6, 1, 0.5, 0.2, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Shockwave"]
+gradient = SubResource("Gradient_Shockwave")
+
+[sub_resource type="Curve" id="Curve_Shockwave"]
+_data = [Vector2(0, 0.1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Shockwave"]
+curve = SubResource("Curve_Shockwave")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Shockwave"]
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 0
+initial_velocity_max = 0
+gravity = Vector3(0, 0, 0)
+scale_min = 6
+scale_max = 6
+scale_curve = SubResource("CurveTexture_Shockwave")
+color_ramp = SubResource("GradientTexture1D_Shockwave")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_Shockwave"]
+material = ExtResource("3_ring")
+size = Vector2(1, 1)
+
+[sub_resource type="Gradient" id="Gradient_Dust"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.35, 0.3, 0.25, 0.7, 0.5, 0.47, 0.42, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Dust"]
+gradient = SubResource("Gradient_Dust")
+
+[sub_resource type="Curve" id="Curve_Dust"]
+_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Dust"]
+curve = SubResource("Curve_Dust")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Dust"]
+emission_shape = 1
+emission_sphere_radius = 1.2
+direction = Vector3(0, 1, 0)
+spread = 70
+initial_velocity_min = 0.6
+initial_velocity_max = 1.6
+gravity = Vector3(0, 0.3, 0)
+damping_min = 0.6
+damping_max = 0.6
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 1.4
+scale_max = 2
+scale_curve = SubResource("CurveTexture_Dust")
+color_ramp = SubResource("GradientTexture1D_Dust")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Dust"]
+material = ExtResource("4_smoke")
+
+[sub_resource type="Gradient" id="Gradient_Debris"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1, 0.9, 0.5, 1, 1, 0.4, 0.1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Debris"]
+gradient = SubResource("Gradient_Debris")
+
+[sub_resource type="Curve" id="Curve_Debris"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.6), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Debris"]
+curve = SubResource("Curve_Debris")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Debris"]
+direction = Vector3(0, 1, 0)
+spread = 65
+initial_velocity_min = 5
+initial_velocity_max = 8
+gravity = Vector3(0, -9.8, 0)
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.08
+scale_max = 0.12
+scale_curve = SubResource("CurveTexture_Debris")
+color_ramp = SubResource("GradientTexture1D_Debris")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Debris"]
+material = ExtResource("2_add")
+
+[node name="ArtilleryExplosion" type="Node3D"]
+
+[node name="Flash" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+emitting = false
+amount = 2
+lifetime = 0.2
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-8, -2, -8, 16, 12, 16)
+process_material = SubResource("ParticleProcessMaterial_Flash")
+draw_pass_1 = SubResource("QuadMesh_Flash")
+
+[node name="Fireball" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+emitting = false
+amount = 50
+lifetime = 0.75
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-8, -2, -8, 16, 12, 16)
+process_material = SubResource("ParticleProcessMaterial_Fireball")
+draw_pass_1 = SubResource("QuadMesh_Fireball")
+
+[node name="Shockwave" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+emitting = false
+amount = 1
+lifetime = 0.45
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-8, -2, -8, 16, 12, 16)
+process_material = SubResource("ParticleProcessMaterial_Shockwave")
+draw_pass_1 = SubResource("PlaneMesh_Shockwave")
+
+[node name="Dust" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+emitting = false
+amount = 28
+lifetime = 2.6
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-8, -2, -8, 16, 12, 16)
+process_material = SubResource("ParticleProcessMaterial_Dust")
+draw_pass_1 = SubResource("QuadMesh_Dust")
+
+[node name="Debris" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+emitting = false
+amount = 28
+lifetime = 1.1
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-8, -2, -8, 16, 12, 16)
+process_material = SubResource("ParticleProcessMaterial_Debris")
+draw_pass_1 = SubResource("QuadMesh_Debris")

@@ -27,12 +27,15 @@ func test_enqueue_appends_to_queue():
 	assert_eq(p.training_queue.size(), 1)
 	assert_eq(p.training_queue[0][0], 10)
 
-func test_enqueue_preserves_fifo_order():
+## A structure builds ONE unit at a time: everything else waits in the commander's global
+## queue, which is what lets two producers share a burden. A second enqueue is refused
+## rather than stacking.
+func test_a_second_enqueue_is_refused_while_busy():
 	var p := _make_production()
-	p.enqueue(5, null)
-	p.enqueue(15, null)
-	assert_eq(p.training_queue[0][0], 5, "first enqueued is at head")
-	assert_eq(p.training_queue[1][0], 15, "second enqueued is at tail")
+	assert_true(p.enqueue(5, null), "the first job is accepted")
+	assert_false(p.enqueue(15, null), "the second is refused")
+	assert_eq(p.training_queue.size(), 1)
+	assert_eq(p.training_queue[0][0], 5, "and the job in progress is untouched")
 
 func test_tick_decrements_head():
 	var p := _make_production()
@@ -51,16 +54,15 @@ func test_tick_returns_false_on_empty_queue():
 
 func test_enqueue_stores_type_for_refund():
 	var p := _make_production()
-	p.enqueue(10, null, EntityIds.IRREGULAR)
-	assert_eq(p.job_type(0), EntityIds.IRREGULAR)
+	p.enqueue(10, null, EntityIds.AN_BIO_LIGHT_BUILDER)
+	assert_eq(p.job_type(0), EntityIds.AN_BIO_LIGHT_BUILDER)
 
 func test_cancel_removes_the_job():
 	var p := _make_production()
-	p.enqueue(5, null, EntityIds.IRREGULAR)
-	p.enqueue(15, null, EntityIds.VANGUARD)
+	p.enqueue(5, null, EntityIds.AN_BIO_LIGHT_BUILDER)
 	assert_true(p.cancel(0), "cancel returns true when a job is removed")
-	assert_eq(p.job_count(), 1, "queue shrinks by one")
-	assert_eq(p.training_queue[0][Production.JOB_TOTAL], 15, "the second job is promoted to head")
+	assert_eq(p.job_count(), 0, "the job is gone")
+	assert_true(p.is_free(), "and the producer can take another")
 
 func test_cancel_out_of_range_is_a_noop():
 	var p := _make_production()
@@ -69,6 +71,20 @@ func test_cancel_out_of_range_is_a_noop():
 	assert_false(p.cancel(-1), "negative index returns false")
 	assert_eq(p.job_count(), 1, "queue is untouched")
 
+## --- job_commands ------------------------------------------------------------
+## The pre-issued chain a queued job will hand its unit at spawn (JOB_COMMANDS).
+
+func test_job_commands_defaults_to_empty():
+	var p := _make_production()
+	p.enqueue(10, null)
+	assert_eq(p.job_commands(0), [])
+
+func test_job_commands_returns_the_enqueued_chain():
+	var p := _make_production()
+	var move := MoveCommand.new(CommandMessage.new(null, null, null, Vector3(5, 0, 5)))
+	p.enqueue(10, null, EntityIds.AN_BIO_LIGHT_BUILDER, [move])
+	assert_eq(p.job_commands(0), [move])
+
 ## --- producible_types / can_produce ---------------------------------------
 ## The component owns the "what can this build" capability (moved off the Train
 ## command). Configured per structure scene via the producible_types export.
@@ -76,11 +92,11 @@ func test_cancel_out_of_range_is_a_noop():
 func test_default_producible_types_is_empty():
 	var p := _make_production()
 	assert_eq(p.producible_types.size(), 0)
-	assert_false(p.can_produce(EntityIds.TECHNICIAN))
+	assert_false(p.can_produce(EntityIds.TC_BIO_LIGHT_BUILDER))
 
 func test_can_produce_reflects_configured_types():
 	var p := _make_production()
-	p.producible_types.assign([EntityIds.IRREGULAR, EntityIds.VANGUARD])
-	assert_true(p.can_produce(EntityIds.IRREGULAR))
-	assert_true(p.can_produce(EntityIds.VANGUARD))
-	assert_false(p.can_produce(EntityIds.TECHNICIAN), "type not in the list is not producible")
+	p.producible_types.assign([EntityIds.AN_BIO_LIGHT_BUILDER, EntityIds.TC_BIO_LIGHT_ANTI_MECH])
+	assert_true(p.can_produce(EntityIds.AN_BIO_LIGHT_BUILDER))
+	assert_true(p.can_produce(EntityIds.TC_BIO_LIGHT_ANTI_MECH))
+	assert_false(p.can_produce(EntityIds.TC_BIO_LIGHT_BUILDER), "type not in the list is not producible")

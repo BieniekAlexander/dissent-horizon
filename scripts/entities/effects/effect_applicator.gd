@@ -18,7 +18,7 @@ extends AbstractEvent
 ##     EntitySelectorInArea           # who: narrow by area
 ##
 ## Two activation contexts, one implementation:
-##   * Under a Projectile: the projectile calls apply() on impact, seeding with the units
+##   * Under an emission: its Payload calls apply() on impact, seeding with the units
 ##     it hit (so EntitySelectorInArea is optional — the hit_shape already scoped them).
 ##   * Under a GlobalTrigger: it extends AbstractEvent, so the trigger fires execute(),
 ##     which seeds with EVERY unit in the scene and lets the selectors do the scoping.
@@ -26,8 +26,8 @@ extends AbstractEvent
 #region Public API
 ## Trigger-driven entry point (GlobalTrigger.fire → ScenarioTriggerManager.run_event).
 ## Seeds with all scene units; the selector pipeline scopes them.
-func execute(manager: ScenarioTriggerManager) -> void:
-	apply(_all_scene_units(manager), null, manager)
+func execute(a_manager: ScenarioTriggerManager) -> void:
+	apply(_all_scene_units(a_manager), null, a_manager)
 
 
 ## Apply the child status effects to `seed`, narrowed by the child selector pipeline.
@@ -36,10 +36,10 @@ func execute(manager: ScenarioTriggerManager) -> void:
 ## selector pipeline, not a constraint on this base type. `a_source` is the inflictor (for
 ## damage attribution); `manager` is forwarded to selectors that need it (most ignore it)
 ## and may be null (e.g. projectile impact).
-func apply(seed: Array[Entity], a_source: Commandable = null, manager: ScenarioTriggerManager = null) -> void:
-	var recipients: Array[Entity] = seed
+func apply(a_seed: Array[Entity], a_source: Commandable = null, a_manager: ScenarioTriggerManager = null) -> void:
+	var recipients: Array[Entity] = a_seed
 	for sel: EntitySelector in _selectors():
-		recipients = sel.filter(recipients, manager)
+		recipients = sel.filter(recipients, a_manager)
 	if recipients.is_empty():
 		return
 	var templates: Array[StatusEffect] = _effect_templates()
@@ -66,9 +66,9 @@ func _effect_templates() -> Array[StatusEffect]:
 	return result
 
 
-func _all_scene_units(manager: ScenarioTriggerManager) -> Array[Entity]:
+func _all_scene_units(a_manager: ScenarioTriggerManager) -> Array[Entity]:
 	var result: Array[Entity] = []
-	for node: Node in manager.get_tree().get_nodes_in_group("unit"):
+	for node: Node in a_manager.get_tree().get_nodes_in_group("unit"):
 		var e: Entity = node as Entity
 		if e != null:
 			result.append(e)

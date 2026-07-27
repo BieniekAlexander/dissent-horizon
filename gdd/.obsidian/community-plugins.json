@@ -1,4 +1,7 @@
 [
+  "dataview",
+  "obsidian-excalidraw-plugin",
+  "nested-frontmatter-properties",
   "yaml-properties",
-  "dataview"
+  "text-finder"
 ]

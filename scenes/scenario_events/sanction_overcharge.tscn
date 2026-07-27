@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://0ksp1pawf0to"]
+
+[ext_resource type="Script" uid="uid://dlr40xt0tq5bx" path="res://scripts/scenario/events/event_overcharge.gd" id="1_evt"]
+
+[node name="SanctionOvercharge" type="Sprite3D"]
+script = ExtResource("1_evt")
+scope = 1
+damage = 400.0
+metadata/_custom_type_script = "uid://dlr40xt0tq5bx"

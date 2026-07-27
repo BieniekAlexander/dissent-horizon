@@ -1,0 +1,35 @@
+formulas:
+  Untitled: ""
+  Untitled 2: |
+    build.time
+views:
+  - type: table
+    name: Table
+    filters:
+      and:
+        - "!kind.isEmpty()"
+        - file.name.startsWith("cl_")
+    order:
+      - file.name
+      - build
+      - build.time
+      - build.cost.energy
+      - footprint
+      - senses.aggro
+      - range
+      - movement.speed
+    sort:
+      - property: range
+        direction: ASC
+      - property: footprint
+        direction: DESC
+      - property: file.name
+        direction: DESC
+      - property: build.time
+        direction: DESC
+      - property: build
+        direction: ASC
+      - property: cost
+        direction: ASC
+    columnSize:
+      note.build: 300

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/hud_panels_preview.gd" id="1_prev"]
+
+[node name="HudPanelsPreview" type="Node"]
+script = ExtResource("1_prev")

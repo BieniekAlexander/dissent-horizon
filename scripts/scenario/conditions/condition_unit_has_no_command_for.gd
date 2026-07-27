@@ -1,3 +1,4 @@
+@tool
 class_name ConditionUnitHasNoCommandFor
 extends Condition
 
@@ -25,9 +26,9 @@ var _idle_since: int = -1
 
 
 #region Public API
-func evaluate(manager: ScenarioTriggerManager) -> bool:
-	var now: int = manager.scenario.frame
-	if not _all_idle(manager):
+func evaluate(a_manager: ScenarioTriggerManager) -> bool:
+	var now: int = a_manager.scenario.tick
+	if not _all_idle(a_manager):
 		_idle_since = -1
 		return false
 	if _idle_since < 0:
@@ -43,8 +44,8 @@ func reset() -> void:
 #region Internal
 ## True when every matching unit currently holds no command. False (streak-breaking) when
 ## no matching unit exists, so the check can't pass on an empty set.
-func _all_idle(manager: ScenarioTriggerManager) -> bool:
-	var commander: Commander = manager.get_commander(commander_id)
+func _all_idle(a_manager: ScenarioTriggerManager) -> bool:
+	var commander: Commander = a_manager.get_commander(commander_id)
 	if commander == null:
 		return false
 	var units: Array = commander.get_children().filter(

@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://0ke7wam350tp"]
+
+[ext_resource type="Script" uid="uid://cachm63174pfi" path="res://scripts/scenario/events/event_deploy_beacon.gd" id="1_evt"]
+
+[node name="SanctionBeacon2" type="Sprite3D"]
+script = ExtResource("1_evt")
+lifespan_seconds = 15.0
+sight_radius = 2.0
+metadata/_custom_type_script = "uid://cachm63174pfi"

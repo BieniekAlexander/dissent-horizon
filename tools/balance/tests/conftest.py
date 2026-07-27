@@ -7,7 +7,7 @@ depend on whatever the design docs happened to say, and an export would delete
 the faction files out from under them.
 
 The fixture world is hand-authored to exercise specific balance properties
-(iron_regime = ground-only LEAD/HEAVY roster, sky_nomads = air + shared
+(iron_regime = ground-only LEAD/STRONG roster, sky_nomads = air + shared
 projectile), so assertions stay meaningful regardless of game balance changes.
 """
 from __future__ import annotations

@@ -8,6 +8,6 @@ extends AbstractEvent
 #endregion
 
 #region Public API
-func execute(manager: ScenarioTriggerManager) -> void:
-	manager.game_over.emit(player_wins)
+func execute(a_manager: ScenarioTriggerManager) -> void:
+	a_manager.game_over.emit(player_wins)
 #endregion

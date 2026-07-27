@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://cm8a2ibjpbdoq"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_lhg4d"]
+
+[node name="DialogPage" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_lhg4d")
+title = "Basic Controls"
+body = "You can select multiple units by holding {{ world_select }}, dragging a box around them, and releasing them."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

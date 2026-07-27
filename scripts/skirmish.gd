@@ -3,25 +3,35 @@ extends Scenario
 
 ## A Skirmish is a Scenario whose opening forces are built at runtime from each
 ## player slot's faction, rather than being placed in the scene tree by hand. This
-## keeps the .tscn faction-agnostic: swap a slot's faction and the right structure +
-## units deploy automatically, with no per-faction copies of the map.
+## keeps the .tscn faction-agnostic: swap a slot's faction and the right units
+## deploy automatically, with no per-faction copies of the map.
 ##
 ## Deploy positions come from marker nodes authored in the scene (in the
 ## START_POINT_GROUP group), one per player slot, mapped to slots by sorted name
 ## order — so the map author places the starting positions and the script just fills
-## them. For each slot it spawns, at that slot's start point:
-##   - the faction's starting_structure (the HQ/base), and
-##   - the faction's starting_units, arranged around it.
-## Ownership is handed straight to the slot's commander via Map.add_entities, which
-## also registers the structure on the grid and places units on the navmesh.
+## them. For each slot it spawns, at that slot's start point, the faction's starting_units, in
+## its starting_formation three tiles toward the middle of the map (or scattered when it
+## declares none). No structure is spawned: every Skirmish deploys by drop, so the slot holds a
+## command-centre drop instead (Deployment; starting-formations.md §Deferred deployment).
+## Ownership is handed straight to the slot's commander via Map.add_entities, which places
+## the units on the navmesh.
 ##
-## Neutral/map features (deposits, mines, shelters, terrain) stay authored in the
+## Every other neutral/map feature (extraction sites, shelters, terrain) stays authored in the
 ## scene — they aren't faction forces and aren't this class's concern.
 
-## Scene nodes (Node3D) in this group mark where each player slot deploys. The scene
-## should hold at least player_slots.size() of them; they're matched to slots by
-## sorted name order (e.g. "StartPoint1" → slot 0, "StartPoint2" → slot 1).
+## Scene nodes (Node3D) in this group mark where each player slot deploys — authored in the
+## MAP, since where a match can start is a fact about the map rather than the scenario.
+##
+## **A scenario may have no more slots than its map has start points**, and matching is by
+## sorted name order ("StartPoint1" → slot 0, "StartPoint2" → slot 1). Fewer slots than points
+## is the normal case: the first N points are used and the rest of the map's starts go unplayed,
+## which is how one map serves a two-player skirmish and a four-player one.
 const START_POINT_GROUP := "start_position"
+
+
+## Every Skirmish deploys by drop; it is the reference game for tuning the competitive match.
+func uses_deferred_deployment() -> bool:
+	return true
 
 
 func _spawn_initial_entities() -> void:
@@ -36,53 +46,19 @@ func _spawn_initial_entities() -> void:
 		map.nav_manager.navmesh_ready.connect(_deploy_all_forces, CONNECT_ONE_SHOT)
 
 
-## Spawn every slot's opening force at its matching start-point node, then re-frame
-## the human player's camera on it (a no-op in spectator sessions). Runs immediately
-## if the navmesh is already built, otherwise once navmesh_ready fires — so it can
-## land a frame or two after _ready.
-##
-## Structures are spawned for every slot BEFORE any units: placing a structure
-## registers its footprint on the grid synchronously, but the navmesh rebuild
-## that excludes those cells (and the collision layer that would otherwise let
-## the unit scatter step see the structure as an obstacle) only lands once the
-## NavigationServer syncs it — see NavManager.await_excluded. Scattering units in
-## the same call as their slot's structure would race that rebuild and could
-## place a unit inside the structure's footprint. Waiting here lets
-## Map.add_entities' get_nonoverlapping_points see every just-placed structure
-## as an obstacle before it picks unit positions.
+## Spawn every slot's starting units at its matching start-point node, then re-frame the human
+## player's camera on them (a no-op in spectator sessions). Runs immediately if the navmesh is
+## already built, otherwise once navmesh_ready fires — so it can land a frame or two after _ready.
 func _deploy_all_forces() -> void:
 	var start_points: Array[Node3D] = _start_points()
 	if start_points.size() < player_slots.size():
-		push_error("Skirmish: %d player slots but only %d '%s' start-point nodes in the scene" % [
-			player_slots.size(), start_points.size(), START_POINT_GROUP
+		push_error(("Skirmish: %d player slots but the map has only %d start points ('%s'). "
+			+ "A scenario may not have more slots than its map has starts; the slots past %d "
+			+ "deploy nothing.") % [
+			player_slots.size(), start_points.size(), START_POINT_GROUP, start_points.size()
 		])
-
-	# Index i -> the Commandable Structure just placed for player_slots[i], or null
-	# (no structure / no commander for that slot). _spawn_slot_units uses this to
-	# seed unit scattering off the structure's footprint instead of its own centre.
-	var structures: Array = []
-	var footprint_probes: Array[Vector3] = []
-	for i: int in player_slots.size():
-		if i >= start_points.size():
-			structures.append(null)
-			continue
-		var structure: Commandable = _spawn_slot_structure(player_slots[i], VU.inXZ(start_points[i].global_position))
-		structures.append(structure)
-		if structure != null:
-			for cell: Vector2i in map.structure_cell_map.get(structure, []):
-				footprint_probes.append(map.grid_to_world(cell))
-
-	# Force the cells_changed → navmesh rebuild triggered by the structures above
-	# to actually sync before scattering units onto the navmesh — is_ready()/
-	# navmesh_ready only cover the very first build; later rebuilds otherwise
-	# just ride the normal (unforced) async sync, which isn't guaranteed to have
-	# landed by the next line.
-	await map.nav_manager.await_excluded(footprint_probes)
-
-	for i: int in player_slots.size():
-		if i >= start_points.size():
-			break
-		_spawn_slot_units(player_slots[i], VU.inXZ(start_points[i].global_position), structures[i])
+	for i: int in mini(player_slots.size(), start_points.size()):
+		_spawn_slot_units(player_slots[i], VU.inXZ(start_points[i].global_position))
 	_center_player_camera_on_starting_entities()
 
 
@@ -100,35 +76,10 @@ func _start_points() -> Array[Node3D]:
 	return points
 
 
-## Spawn one slot's faction-defined starting structure (the HQ/base), centred on
-## `origin` (world XZ). Reuses the Faction instance the slot's Commander already
-## built in _instance_faction (no need to re-instantiate the faction scene). No-op
-## (returns null) for a slot with no commander/faction, or a faction with no
-## starting structure. Returns the spawned Commandable so _spawn_slot_units can
-## seed unit scattering off its footprint.
-func _spawn_slot_structure(slot: PlayerSlot, origin: Vector2) -> Commandable:
-	var commander: Commander = slot.commander
-	if commander == null or commander.faction == null:
-		return null
-	var faction: Faction = commander.faction
-	if faction.starting_structure == null:
-		return null
-
-	var structure: Commandable = faction.starting_structure.instantiate()
-	# add_entities registers the Structure on the grid at `origin`, calling
-	# initialize(map, commander) so it enters the tree under its commander with
-	# ownership set.
-	map.add_entities([structure], origin, commander)
-	return structure
-
-
-## Spawn one slot's faction-defined starting units, arranged around `structure`'s
-## footprint (falling back to `origin` if the slot has no structure). Called only
-## after every slot's starting structure has been placed (see _deploy_all_forces)
-## so the units scatter onto navmesh that already excludes the structures'
-## footprints.
-func _spawn_slot_units(slot: PlayerSlot, origin: Vector2, structure: Commandable) -> void:
-	var commander: Commander = slot.commander
+## Spawn one slot's faction-defined starting units at `a_origin`, in its formation when it
+## declares one, scattered onto the navmesh around the start point when it does not.
+func _spawn_slot_units(a_slot: PlayerSlot, a_origin: Vector2) -> void:
+	var commander: Commander = a_slot.commander
 	if commander == null or commander.faction == null:
 		return
 	var faction: Faction = commander.faction
@@ -141,20 +92,43 @@ func _spawn_slot_units(slot: PlayerSlot, origin: Vector2, structure: Commandable
 	if units.is_empty():
 		return
 
-	# SU.get_nonoverlapping_points seeds its scatter search AT the point it's given
-	# and only grows outward from points that land on the navmesh — so seeding it
-	# with `origin` (the structure's own centre, now off-navmesh) finds nothing and
-	# every unit falls back to that same off-navmesh point. Seed from the nearest
-	# footprint-adjacent cell instead, which is guaranteed to be on-navmesh.
-	var scatter_origin: Vector2 = origin
-	if structure != null:
-		var adjacent_cell: Vector2i = SU.nearest_footprint_adjacent_cell(
-			Vector3(origin.x, map.terrain_height_at(origin), origin.y), structure, map
-		)
-		if adjacent_cell != Vector2i(-1, -1):
-			scatter_origin = VU.inXZ(map.grid_to_world(adjacent_cell))
+	# An authored formation replaces the scatter outright: the units stand where the faction
+	# says, three tiles into the map from the start point, facing it.
+	var formation_points: Array[Vector2] = _formation_points(faction, a_origin, units.size())
 
-	# add_entities scatters the units onto nearby navmesh (get_nonoverlapping_points),
-	# calling initialize(map, commander) on each so the entity enters the tree under
-	# its commander with ownership set.
-	map.add_entities(units, scatter_origin, commander)
+	# add_entities scatters the units onto nearby navmesh (get_nonoverlapping_points) when no
+	# formation was given, calling initialize(map, commander) on each so the entity enters the
+	# tree under its commander with ownership set. Formation points are snapped to navigable
+	# ground the same way, so an authored slot over a cliff is corrected rather than obeyed.
+	var seed_point: Vector2 = formation_points[0] if not formation_points.is_empty() else a_origin
+	map.add_entities(units, seed_point, commander, formation_points)
+
+
+## Where this faction's `a_count` starting units stand, or EMPTY for "scatter them".
+##
+## Empty covers both no formation authored and a formation whose slot count disagrees with
+## the faction's unit list. The mismatch is an authoring error and says so twice: an assert,
+## which stops a debug run at the fault, and a push_error plus the scatter fallback, so a
+## release build deploys a usable force rather than none.
+func _formation_points(a_faction: Faction, a_origin: Vector2, a_count: int) -> Array[Vector2]:
+	if a_faction.starting_formation == null:
+		return []
+	var slots: Node = a_faction.starting_formation.instantiate()
+	var offsets: Array[Vector2] = StartingFormation.offsets_from(slots)
+	slots.free()
+	assert(offsets.size() == a_count,
+		"Skirmish: %s's starting_formation has %d slots for %d starting units" % [
+			a_faction.faction_name, offsets.size(), a_count
+		])
+	if offsets.size() != a_count:
+		push_error("Skirmish: %s's starting_formation has %d slots for %d starting units" % [
+			a_faction.faction_name, offsets.size(), a_count
+		])
+		return []
+	var area: PlayArea = map.play_area()
+	# No declared play area leaves no middle to face; the formation then keeps its authored
+	# heading, which is the direction the old scatter deployed in anyway.
+	var center: Vector2 = area.center if area != null else a_origin
+	return StartingFormation.world_points(
+		offsets, a_origin, center, StartingFormation.DISTANCE_CELLS * Map.CELL_SIZE, Vector2.ZERO
+	)

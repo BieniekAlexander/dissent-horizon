@@ -1,3 +1,4 @@
+@tool
 class_name ConditionUnitHasCommand
 extends Condition
 
@@ -24,8 +25,8 @@ enum Quantifier { ANY, ALL }
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioTriggerManager) -> bool:
-	var commander: Commander = manager.get_commander(commander_id)
+func evaluate(a_manager: ScenarioTriggerManager) -> bool:
+	var commander: Commander = a_manager.get_commander(commander_id)
 	if commander == null:
 		return false
 	var units: Array = commander.get_children().filter(
@@ -45,7 +46,7 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 
 #region Internal
 ## The runtime class_name of a MoveCommand instance (e.g. "Attack"), or "" if unavailable.
-func _command_class_name(command: MoveCommand) -> String:
-	var script: Script = command.get_script()
+func _command_class_name(a_command: MoveCommand) -> String:
+	var script: Script = a_command.get_script()
 	return String(script.get_global_name()) if script != null else ""
 #endregion

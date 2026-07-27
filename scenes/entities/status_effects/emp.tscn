@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://b8empstun0001"]
+
+[ext_resource type="Script" uid="uid://d1jpfxrfygchd" path="res://scripts/entities/effects/stun_status_effect.gd" id="1_fx"]
+[ext_resource type="Texture2D" uid="uid://mrhtxoph2u5e" path="res://assets/interface/status_emp.svg" id="2_bolt"]
+
+[node name="Emp" type="Node"]
+script = ExtResource("1_fx")
+title = "EMP"
+description = "Machinery is dead: no orders answered until it reboots."
+valence = 2
+verbose = "The mechanical twin of Choking — the same total stop, restricted to MECH frames, so infantry walking beside a stalled vehicle are untouched.\nAn EMP'd unit does not move, shoot, build or defend itself. Nothing it was told to do is lost; the orders resume when it comes back."
+duration_ticks = 60
+host_tint = Color(0.22, 0.22, 0.24, 1)
+indicator_icon = ExtResource("2_bolt")
+indicator_blink_hz = 2.5
+affects_frames = 2
+metadata/_custom_type_script = "uid://d1jpfxrfygchd"

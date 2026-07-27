@@ -1,0 +1,185 @@
+[gd_scene format=3 uid="uid://cw6wfnfv7ys83"]
+
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_momft"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
+[ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_4uqyo"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="2_spec"]
+[ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_nr0nh"]
+[ext_resource type="PackedScene" uid="uid://c8j0vdirduomm" path="res://scenes/entities/projectiles/an/mlrs_rocket.tscn" id="3_spec"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_mhprt"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_siege.tres" id="4_spec"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_1lsay"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="5_spec"]
+[ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_vuwbc"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="8_s3frv"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="9_l5lfo"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="10_wg613"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="11_7xjv7"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="12_5qsbb"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="13_ctfiv"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="14_x6sv4"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="15_cjcy4"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="16_rt5tg"]
+[ext_resource type="Script" uid="uid://cywa5m1mky68q" path="res://scripts/entities/components/altitude_indicator.gd" id="17_712jb"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="18_ne2as"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="19_nl523"]
+[ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="20_yfcby"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_mmkhl"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_f6jj0"]
+height = 0.6
+radius = 0.7
+
+[sub_resource type="BoxMesh" id="BoxMesh_3540y"]
+size = Vector3(0.9, 0.6, 1.4)
+
+[node name="AnMechMediumArtillery" type="CharacterBody3D" unique_id=552585694 groups=["piece", "unit"]]
+script = ExtResource("1_momft")
+id = &"an_mechMedium_artillery"
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=1552130326]
+
+[node name="NavigationAgent" parent="." unique_id=1744162296 instance=ExtResource("2_4uqyo")]
+
+[node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_nr0nh")]
+
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_mhprt")]
+
+[node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_1lsay")]
+
+[node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_vuwbc")]
+shape = ExtResource("5_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=772445231]
+script = ExtResource("8_s3frv")
+
+[node name="Locomotion" type="Node" parent="." unique_id=385110028]
+script = ExtResource("9_l5lfo")
+crush_class = 2
+max_acceleration = 0.75
+max_deceleration = -2.25
+speed = 2.2
+turn_rate = 90.0
+nav_agent_path = NodePath("../NavigationAgent")
+min_turn_speed_ratio = 0.3
+
+[node name="Defense" type="Node" parent="." unique_id=234980009]
+script = ExtResource("10_wg613")
+armour_type = 1
+frame_type = 1
+hp_max = 220.0
+
+[node name="Veterancy" type="Node" parent="." unique_id=1782817076]
+script = ExtResource("11_7xjv7")
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=512428308]
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("12_5qsbb")]
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
+shape = SubResource("CylinderShape3D_f6jj0")
+metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1708617183]
+
+[node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("13_ctfiv")]
+transform = Transform3D(0.364583, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.72, 0)
+billboard = 2
+metadata/_visual_default_hp_bar = 0.933333
+
+[node name="HPBarFill" parent="HPBar" index="0" unique_id=470614922]
+billboard = 2
+
+[node name="HPBarBack" parent="HPBar" index="1" unique_id=99646461]
+billboard = 2
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("14_x6sv4")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="." unique_id=272817792]
+script = ExtResource("15_cjcy4")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=473543559]
+script = ExtResource("16_rt5tg")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual" unique_id=2050162706]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("BoxMesh_3540y")
+metadata/_visual_default_mesh = "mech unit"
+
+[node name="AltitudeIndicator" type="Node3D" parent="." unique_id=509563361]
+script = ExtResource("17_712jb")
+
+[node name="StatusVisuals" type="Node3D" parent="." unique_id=1709550139]
+script = ExtResource("18_ne2as")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=2126783327]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("19_nl523")]
+billboard = 2
+
+[node name="AvoidanceObstacle" parent="." unique_id=1666248074 instance=ExtResource("20_yfcby")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="." unique_id=1433566054]
+
+[node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("21_mmkhl")]
+
+[node name="AggroRangeAir" parent="." unique_id=170871717 instance=ExtResource("5_1lsay")]
+
+[node name="Loadout" type="Node3D" parent="." unique_id=156714845]
+script = ExtResource("1_spec")
+
+[node name="RocketPod" type="Node3D" parent="Loadout" unique_id=2107600471]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.3)
+script = ExtResource("2_spec")
+split_time_ticks = 3
+reload_time_ticks = 300
+clip_size = 12
+projectile_scene = ExtResource("3_spec")
+melee_damage = 0.0
+startup_time_ticks = 30
+target_mask = 6
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/RocketPod" unique_id=285111114 groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("4_spec")
+disabled = true
+
+[node name="LaunchPoint1" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0, 0)
+
+[node name="LaunchPoint2" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07, 0, 0)
+
+[node name="LaunchPoint3" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, 0, 0)
+
+[node name="LaunchPoint4" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0, 0)
+
+[node name="LaunchPoint5" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0.09, 0)
+
+[node name="LaunchPoint6" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07, 0.09, 0)
+
+[node name="LaunchPoint7" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, 0.09, 0)
+
+[node name="LaunchPoint8" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0.09, 0)
+
+[node name="LaunchPoint9" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 0.18, 0)
+
+[node name="LaunchPoint10" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07, 0.18, 0)
+
+[node name="LaunchPoint11" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, 0.18, 0)
+
+[node name="LaunchPoint12" type="Marker3D" parent="Loadout/RocketPod"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21, 0.18, 0)
+
+[editable path="Selectable"]
+[editable path="HPBar"]

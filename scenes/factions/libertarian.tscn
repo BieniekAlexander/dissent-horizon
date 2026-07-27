@@ -1,0 +1,18 @@
+[gd_scene load_steps=7 format=3 uid="uid://bxwfdqx0u3vx8"]
+
+[ext_resource type="Script" uid="uid://cyrg0j3vbx1ds" path="res://scripts/interface/commander/faction.gd" id="1_fac"]
+[ext_resource type="PackedScene" uid="uid://vidpk2mkoyqq" path="res://scenes/entities/units/lb/canary.tscn" id="2_spec"]
+[ext_resource type="PackedScene" path="res://scenes/factions/formations/pair.tscn" id="99_form"]
+[ext_resource type="PackedScene" uid="uid://cp5sjg7umtlyb" path="res://scenes/entities/units/lb/lb_aircraftLight_builder.tscn" id="3_spec"]
+[ext_resource type="Script" path="res://scripts/interface/commander/libertarian_dominion.gd" id="4_dom"]
+
+[node name="Libertarian" type="Node"]
+script = ExtResource("1_fac")
+faction_name = "The Warden"
+infrastructure_source = &"lb_infrastructure"
+starting_units = Array[PackedScene]([ExtResource("3_spec"), ExtResource("3_spec")])
+starting_formation = ExtResource("99_form")
+
+[node name="DominionGeneration" type="Node" parent="."]
+script = ExtResource("4_dom")
+structure_sources = Array[StringName]([&"lb_dominion"])

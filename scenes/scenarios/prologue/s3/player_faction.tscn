@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://dqbknx4wrkcn2"]
+
+[ext_resource type="Script" uid="uid://cyrg0j3vbx1ds" path="res://scripts/interface/commander/faction.gd" id="1_pbnny"]
+[ext_resource type="Script" uid="uid://bhm0bavkjvt0q" path="res://scripts/interface/commander/sanction_unlock.gd" id="3_jtxvg"]
+[ext_resource type="PackedScene" uid="uid://0kq65elxkyto" path="res://scenes/scenario_events/sanction_dignify.tscn" id="4_n6iyf"]
+[ext_resource type="PackedScene" uid="uid://c0rdnambush01" path="res://scenes/scenario_events/sanction_ambush.tscn" id="5_pbnny"]
+[ext_resource type="Script" uid="uid://cteoy2vx2l533" path="res://scripts/interface/commander/sanction.gd" id="5_v8jg3"]
+[ext_resource type="Script" uid="uid://cko1d6cmwppd1" path="res://scripts/interface/commander/anarchical_dominion.gd" id="6_gvdpv"]
+
+[sub_resource type="Resource" id="Resource_8vkoe"]
+script = ExtResource("5_v8jg3")
+sanction_name = "Dignify"
+description = "When active, right click on an irregular to dignify them into a Warlord."
+event_scene = ExtResource("4_n6iyf")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+
+[sub_resource type="Resource" id="Resource_5loti"]
+script = ExtResource("3_jtxvg")
+sanction = SubResource("Resource_8vkoe")
+tier = 0
+column = 0
+dominion_cost = 100
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Resource_twmkk"]
+script = ExtResource("5_v8jg3")
+sanction_name = "Ambush"
+cooldown_duration = 90.0
+event_scene = ExtResource("5_pbnny")
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+
+[sub_resource type="Resource" id="Resource_jtxvg"]
+script = ExtResource("3_jtxvg")
+sanction = SubResource("Resource_twmkk")
+tier = 0
+column = 1
+dominion_cost = 250
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[node name="S3" type="Node" unique_id=1805763819]
+script = ExtResource("1_pbnny")
+faction_name = "S3 Faction"
+sanction_unlocks = Array[ExtResource("3_jtxvg")]([SubResource("Resource_5loti"), SubResource("Resource_jtxvg")])
+
+[node name="AnarchicalDominion" type="Node" parent="." unique_id=1301396626]
+script = ExtResource("6_gvdpv")
+dominion_per_unit = 1
+metadata/_custom_type_script = "uid://cko1d6cmwppd1"

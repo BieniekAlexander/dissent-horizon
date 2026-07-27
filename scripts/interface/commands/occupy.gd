@@ -8,28 +8,54 @@ static func requires_position() -> bool:
 ## Valid when:
 ##   - the target is a Commandable that owns a Garrison component and is either
 ##     of the actor's own commander OR commanderless (neutral, id 0)
-##   - the acting unit's Movement mode is GROUNDED_DIRECT
+##   - that Garrison's occupancy masks admit the acting unit (frame, armour, and
+##     locomotion style — see Garrison.admits). The masks replace what used to be a
+##     hard-coded GROUNDED check here, so a hangar-style garrison can take
+##     aircraft while a garrison with every mask cleared (a prison hold) takes no
+##     voluntary occupants at all.
+## Remaining capacity is deliberately NOT part of the precondition — it is checked in
+## can_act(), so a unit ordered into a full garrison walks over and waits for a slot.
 static func meets_precondition(
-	a_actor: Commandable,
-	a_message: CommandMessage
+	actor: Commandable,
+	message: CommandMessage
 ) -> PreconditionFailureCause:
-	if not is_instance_valid(a_message.target) or not (a_message.target is Commandable):
+	if not is_instance_valid(message.target) or not (message.target is Commandable):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	return PreconditionFailureCause.NONE \
+		if host_admits(actor, message.target as Commandable) \
+		else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+
+
+## Whether `a_occupant` may be ordered into `a_host`'s garrison — the whole of this
+## command's rule, stated with no CommandMessage so the reverse order can ask it too.
+##
+## [Embark] is issued to the HOST and needs exactly this answer about the unit it is
+## calling in. Asking through here rather than restating the masks is the same discipline
+## _resolve_command_class follows when it delegates to this precondition: a second copy of
+## "which units a garrison takes" is a copy that rots, and this one already did once.
+##
+## REMAINING CAPACITY IS DELIBERATELY NOT ASKED. A unit ordered into a full garrison walks
+## over and waits for a slot, which is why it is checked in can_act instead. Embark adds
+## the capacity test on its own, because the player hovering a unit wants to know whether
+## calling it in would achieve anything.
+static func host_admits(occupant: Commandable, host: Commandable) -> bool:
+	if occupant == null or not is_instance_valid(occupant):
+		return false
+	if host == null or not is_instance_valid(host):
+		return false
 	# A garrison-capable unit cannot occupy itself.
-	if a_message.target == a_actor:
-		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if not a_message.target.has_node("Garrison"):
-		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if not (a_message.target as Commandable).is_built:
-		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if a_actor.movement == null or a_actor.movement.mode != Movement.Mode.GROUNDED_DIRECT:
-		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	if host == occupant:
+		return false
+	var host_garrison := host.get_node_or_null("Garrison") as Garrison
+	if host_garrison == null:
+		return false
+	if not host.is_built:
+		return false
+	if not occupant.can_move() or not host_garrison.admits(occupant):
+		return false
 	# Own-team garrisons and commanderless (neutral) garrisons are both occupiable;
 	# an enemy-held garrison is not.
-	var target_commander_id: int = (a_message.target as Commandable).commander_id
-	if target_commander_id != a_actor.commander_id and target_commander_id != 0:
-		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	return PreconditionFailureCause.NONE
+	return host.commander_id == occupant.commander_id or host.commander_id == 0
 #endregion
 
 #region Properties
@@ -106,13 +132,23 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	_ensure_collision_exception(a_actor)
 	_ensure_rvo_suppression(a_actor)
 	var host := message.target as Commandable
-	if host != null and host.movement != null \
-			and host.movement.mode == Movement.Mode.HOVERING \
+	if host != null and host.aerial != null \
+			and host.aerial.mode == Movement.Mode.HOVERING \
 			and host.garrison != null \
 			and _garrison_registered_actor == null:
 		host.garrison.register_garrison_intent(a_actor)
 		_garrison_registered_actor = a_actor
 	return self
+
+## The host, for the whole life of the order. A passenger must not steer around the very
+## thing it is climbing into, and the host driving to meet it must not shove it aside.
+##
+## Stated here rather than left to the follow rule, which only exempts a friendly unit while
+## the follower is still MOVING: a passenger that has arrived and is waiting for a slot in a
+## full hold is exactly when the host is nearest and the shoving worst, and a NEUTRAL host
+## (a Shelter) is never a follow target at all.
+func avoidance_exception(_a_actor: Commandable) -> Commandable:
+	return message.target as Commandable if is_instance_valid(message.target) else null
 
 ## While the host is a HOVERING unit that has not yet grounded, keep approaching
 ## unconditionally so the actor tracks the host's moving XZ position.
@@ -121,9 +157,9 @@ func should_move(a_actor: Commandable) -> bool:
 	if not is_instance_valid(message.target):
 		return false
 	var host := message.target as Commandable
-	if host != null and host.movement != null \
-			and host.movement.mode == Movement.Mode.HOVERING \
-			and not host.movement.is_grounded_temp():
+	if host != null and host.aerial != null \
+			and host.aerial.mode == Movement.Mode.HOVERING \
+			and not host.aerial.is_grounded_temp():
 		return true
 	return not SU.unit_is_close_to_target(a_actor, message.target)
 
@@ -136,12 +172,14 @@ func can_act(a_actor: Commandable) -> bool:
 	if not SU.unit_is_close_to_target(a_actor, message.target):
 		return false
 	var garrison := message.target.get_node_or_null("Garrison") as Garrison
-	if garrison == null or not garrison.can_garrison():
+	# accepts() re-checks the masks alongside the room left, since the actor's own state
+	# (its Movement mode, say) can change between the order and its arrival.
+	if garrison == null or not garrison.accepts(a_actor):
 		return false
 	var host := message.target as Commandable
-	if host != null and host.movement != null \
-			and host.movement.mode == Movement.Mode.HOVERING \
-			and not host.movement.is_grounded_temp():
+	if host != null and host.aerial != null \
+			and host.aerial.mode == Movement.Mode.HOVERING \
+			and not host.aerial.is_grounded_temp():
 		return false
 	return true
 
@@ -155,8 +193,8 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if garrison == null:
 		return null
 	var host := message.target as Commandable
-	if host != null and host.movement != null \
-			and host.movement.mode == Movement.Mode.HOVERING:
+	if host != null and host.aerial != null \
+			and host.aerial.mode == Movement.Mode.HOVERING:
 		# Only accept units that are still registered; units that died during
 		# the descent removed themselves from the list via tree_exiting.
 		if not a_actor in garrison._pending_garrison_units:
@@ -168,32 +206,30 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 #endregion
 
 #region Lifecycle
-## Safety net: if this command is replaced by another (e.g. the player issues a
-## new order mid-approach) it is freed without any explicit completion call, so
-## drop both exceptions here too rather than leaking them. Inlined (rather than
-## calling the helper methods) because during PREDELETE the script instance is
-## mid-teardown and dispatching to other methods fails.
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		if is_instance_valid(_excluded_actor) and message != null \
-				and is_instance_valid(message.target) and message.target is CollisionObject3D:
-			_excluded_actor.remove_collision_exception_with(message.target)
-		_excluded_actor = null
-		if is_instance_valid(_rvo_suppressed_actor) and _rvo_suppressed_actor.movement != null:
-			_rvo_suppressed_actor.movement.restore_avoidance_layers()
-		_rvo_suppressed_actor = null
-		if message != null and is_instance_valid(message.target):
-			var target := message.target as Commandable
-			if target != null and target.movement != null:
-				target.movement.restore_avoidance_layers()
-			# If this actor registered garrison intent but never actually garrisoned
-			# (e.g. the player issued a new command), unregister now so the host
-			# doesn't stay grounded waiting for a unit that has moved on.
-			if is_instance_valid(_garrison_registered_actor) and target != null \
-					and target.garrison != null:
-				target.garrison.unregister_garrison_intent(_garrison_registered_actor)
-		_garrison_registered_actor = null
-	super._notification(what)
+## Replaced mid-approach (the player issued a new order), the command leaves without completing,
+## so it drops both exceptions and the garrison intent here, while the actor is alive.
+func on_released(_a_actor: Commandable) -> void:
+	_clear_collision_exception()
+	_clear_rvo_suppression()
+	if is_instance_valid(_garrison_registered_actor) and is_instance_valid(message.target):
+		var target := message.target as Commandable
+		if target != null and target.garrison != null:
+			target.garrison.unregister_garrison_intent(_garrison_registered_actor)
+	_garrison_registered_actor = null
+
+
+## The HOST's half only: a command freed with its actor (the actor died, or was consumed by a
+## Compound sentence, mid-approach) never gets on_released, and the host would stay out of
+## avoidance. It must not reach into the actor, which may be mid-teardown here — this used to
+## restore the actor's avoidance too, and crashed reading its Movement (MoveCommand._notification).
+## A destroyed actor takes its own exceptions with it, and leaves the host's pending list
+## through its own tree_exiting hook (Garrison.register_garrison_intent).
+func _notification(a_what: int) -> void:
+	if a_what == NOTIFICATION_PREDELETE and message != null and is_instance_valid(message.target):
+		var target := message.target as Commandable
+		if target != null and target.movement != null:
+			target.movement.restore_avoidance_layers()
+	super._notification(a_what)
 #endregion
 
 #region Debug

@@ -6,7 +6,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_StatusEffect.gd
 ##
-## A full Commandable needs a Map/scene to _ready (see test_Mine notes), so we use a
+## A full Commandable needs a Map/scene to _ready (see test_Extractor notes), so we use a
 ## StubCommandable that skips that heavy init and hand-sets only the fields the effects
 ## touch (movement, defense, attributes, receive_damage). The per-tick lifecycle is
 ## driven by calling _physics_process directly rather than waiting on the physics loop.
@@ -20,45 +20,45 @@ extends GutTest
 ## tree — effects are attached as children and ticked manually — so we keep it out.
 class StubCommandable extends Commandable:
 	var damage_taken: float = 0.0
-	func receive_damage(damage: Damage, _from: Commandable = null) -> void:
-		damage_taken += damage.amount
+	func receive_damage(a_damage: Damage, _a_from: Commandable = null) -> void:
+		damage_taken += a_damage.amount
 
 
-func _make_unit(speed: float = 1.0, attrs: Array = []) -> StubCommandable:
+func _make_unit(a_speed: float = 1.0, a_attrs: Array = []) -> StubCommandable:
 	var u := StubCommandable.new()
 	autofree(u)  # out-of-tree; free at test end (also frees attached effect children)
 	var mv := Movement.new()
 	autofree(mv)
 	u.movement = mv
-	mv.speed = speed
+	mv.speed = a_speed
 	var def := Defense.new()
 	autofree(def)
 	u.defense = def
-	u.attributes = Set.new(attrs)
+	u.attributes = Set.new(a_attrs)
 	return u
 
 
-func _tick(effect: StatusEffect, n: int) -> void:
-	for i in n:
-		if is_instance_valid(effect) and effect.get_parent() != null:
-			effect._physics_process(0.0)
+func _tick(a_effect: StatusEffect, a_n: int) -> void:
+	for i in a_n:
+		if is_instance_valid(a_effect) and a_effect.get_parent() != null:
+			a_effect._physics_process(0.0)
 
 
-func _status_children(u: Node) -> Array:
-	return u.get_children().filter(func(c: Node) -> bool: return c is StatusEffect)
+func _status_children(a_u: Node) -> Array:
+	return a_u.get_children().filter(func(c: Node) -> bool: return c is StatusEffect)
 
 
 ## Apply a fresh slow of the given mode/potency, returning the node actually live on `u`
 ## (a reapply discards the new node and reuses the existing one, so re-resolve it).
-func _apply_slow(u: StubCommandable, mult: float, mode: StatusEffect.ReapplyMode,
-		max_stacks: int = 1, duration: int = 0) -> SlowStatusEffect:
+func _apply_slow(a_u: StubCommandable, a_mult: float, a_mode: StatusEffect.ReapplyMode,
+		a_max_stacks: int = 1, a_duration: int = 0) -> SlowStatusEffect:
 	var s := SlowStatusEffect.new()
-	s.slow_multiplier = mult
-	s.reapply_mode = mode
-	s.max_stacks = max_stacks
-	s.duration_ticks = duration
-	s.apply_to(u)
-	var live := _status_children(u)
+	s.slow_multiplier = a_mult
+	s.reapply_mode = a_mode
+	s.max_stacks = a_max_stacks
+	s.duration_ticks = a_duration
+	s.apply_to(a_u)
+	var live := _status_children(a_u)
 	return live[0] as SlowStatusEffect if not live.is_empty() else null
 
 

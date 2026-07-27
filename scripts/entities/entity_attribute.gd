@@ -10,16 +10,17 @@ enum Type {
 
 static var evaluators: Dictionary = {
 	Type.IS_GROUNDED: func(e: Node) -> bool:
-		var m: Movement = e.get_node_or_null("Movement") as Movement
-		return m == null or m.mode == Movement.Mode.GROUNDED_DIRECT,
+		var m: Movement = e.get_node_or_null("Locomotion") as Movement
+		return m == null or not m.is_active or m.mode == Movement.Mode.GROUNDED,
 	Type.IS_FLYING: func(e: Node) -> bool:
-		var m: Movement = e.get_node_or_null("Movement") as Movement
-		return m != null and (m.mode == Movement.Mode.FLYING or m.mode == Movement.Mode.HOVERING),
+		var m: Movement = e.get_node_or_null("Locomotion") as Movement
+		return m != null and m.is_active \
+			and (m.mode == Movement.Mode.FLYING or m.mode == Movement.Mode.HOVERING),
 	Type.HAS_STEALTH: func(e: Node) -> bool:
 		return e.get_node_or_null("Stealth") != null,
 	Type.IS_BIOLOGICAL: func(e: Node) -> bool:
 		var d: Defense = e.get_node_or_null("Defense") as Defense
-		return d != null and d.frame_type == Defense.FrameType.BIOLOGICAL,
+		return d != null and d.frame_type == Defense.FrameType.BIO,
 }
 
 static func evaluate(attribute: Type, entity: Node) -> bool:

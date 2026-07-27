@@ -1,32 +1,30 @@
 extends GutTest
 
 ## Tests for the stagger mechanic: taking damage staggers a unit, which suppresses
-## certain channeled actions (Build, Repair, LIBERATE/PLANT interactions — but NOT
-## ABDUCT) until the stagger wears off. Movement and most actions are never blocked.
+## certain channeled actions (Build, Assemble, Repair, Plant, HIJACK interactions — but NOT
+## DEPOSIT)
+## until the stagger wears off. Movement and most actions are never blocked.
 ##
 ## The per-command "is this action stagger-blocked?" rules are pure logic, so these
 ## drive the command / interaction classes directly without standing up a scene.
 
 ## --- Which interaction types are stagger-blocked -----------------------------
-## The allow-set is the core spec: LIBERATE and PLANT wait out a stagger; the others
-## (ABDUCT, COLLECT, DEPOSIT) proceed regardless.
+## The allow-set is the core spec: HIJACK waits out a stagger; DEPOSIT proceeds
+## regardless.
 
 func _interaction(a_type: Interaction.Type) -> Interaction:
 	var ix := Interaction.new()
 	ix.type = a_type
 	return ix
 
-func test_liberate_is_blocked_while_staggered():
-	assert_true(_interaction(Interaction.Type.LIBERATE).blocks_while_staggered())
-
 func test_plant_is_blocked_while_staggered():
-	assert_true(_interaction(Interaction.Type.PLANT).blocks_while_staggered())
+	var plant := Plant.new(CommandMessage.new(null, null, null, Vector3.ZERO))
+	assert_true(plant.blocked_by_stagger(null))
 
-func test_abduct_is_not_blocked_while_staggered():
-	assert_false(_interaction(Interaction.Type.ABDUCT).blocks_while_staggered())
+func test_hijack_is_blocked_while_staggered():
+	assert_true(_interaction(Interaction.Type.HIJACK).blocks_while_staggered())
 
-func test_collect_and_deposit_are_not_blocked_while_staggered():
-	assert_false(_interaction(Interaction.Type.COLLECT).blocks_while_staggered())
+func test_deposit_is_not_blocked_while_staggered():
 	assert_false(_interaction(Interaction.Type.DEPOSIT).blocks_while_staggered())
 
 ## --- Which commands opt into stagger blocking --------------------------------
@@ -41,9 +39,44 @@ func test_plain_move_is_not_blocked_by_stagger():
 func test_build_is_blocked_by_stagger():
 	assert_true(Build.new(_message()).blocked_by_stagger(null))
 
+func test_assemble_is_blocked_by_stagger():
+	assert_true(Assemble.new(_message()).blocked_by_stagger(null))
+
 func test_repair_is_blocked_by_stagger():
 	assert_true(Repair.new(_message()).blocked_by_stagger(null))
 
 ## Interact itself has no fixed answer — it defers to the resolved interaction's
 ## blocks_while_staggered (see the Interaction.Type tests above), so a staggered actor
-## waits out a LIBERATE/PLANT but proceeds with an ABDUCT.
+## waits out a HIJACK but proceeds with a DEPOSIT.
+
+## --- A staggered piece cannot be healed --------------------------------------
+## Enforced on Defense.restore, the one door every mender goes through, so the Repair
+## command and the heal aura cannot disagree. Construction is NOT healing and is not
+## affected — advance_build_progress writes hp directly.
+
+func _wounded_patient() -> Commandable:
+	var patient: Commandable = load(
+		"res://scenes/entities/units/an/an_bioLight_builder.tscn"
+	).instantiate()
+	add_child_autofree(patient)
+	patient.defense.hp = patient.defense.hp_max * 0.5
+	return patient
+
+func test_restore_is_refused_while_staggered():
+	var patient := _wounded_patient()
+	patient.receive_damage(Damage.new(1.0))
+	assert_true(patient.is_staggered(), "the hit staggered it")
+	var after_hit: float = patient.defense.hp
+	assert_false(patient.defense.restore(10.0), "reports not-full, so a mender stands by")
+	assert_almost_eq(patient.defense.hp, after_hit, 0.001, "no hp was restored")
+
+func test_restore_resumes_once_the_stagger_wears_off():
+	# Cleared directly rather than by ticking out STAGGER_SECONDS of physics: the countdown
+	# itself is Commandable's, and what is under test here is the gate on restore.
+	var patient := _wounded_patient()
+	patient.receive_damage(Damage.new(1.0))
+	patient._stagger_ticks = 0
+	assert_false(patient.is_staggered(), "the stagger has worn off")
+	var before: float = patient.defense.hp
+	patient.defense.restore(10.0)
+	assert_almost_eq(patient.defense.hp, before + 10.0, 0.001, "mending resumes")

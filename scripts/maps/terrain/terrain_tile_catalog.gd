@@ -2,18 +2,18 @@
 class_name TerrainTileCatalog
 extends Resource
 
-## The "palette" of tile types: an ordered list of TileType definitions where the list
+## The "palette" of ground materials: an ordered list of TileType definitions where the list
 ## INDEX is the byte a cell stores in TerrainData.tile_types. Stored as its own standalone
 ## .tres (resources/terrain/tile_catalog.tres) so types can be added/tuned as data without
 ## code changes — the same split as Godot's TileMap (per-cell ids) + TileSet (definitions).
 ##
-## Convention: index 0 is the default passable "Open" type, so a zero-filled tile_types
-## array (or a cell out of range) reads as open ground.
+## Convention: index 0 is the default material, so a zero-filled tile_types array (or a cell
+## out of range) reads as that.
 
-## Byte index -> TileType. Index 0 should be the default "Open" type.
+## Byte index -> TileType. Index 0 is the default material.
 @export var types: Array[TileType] = []
 
-## The default (Open) index used for unspecified / out-of-range cells.
+## The default material index used for unspecified / out-of-range cells.
 const DEFAULT_INDEX: int = 0
 
 
@@ -21,46 +21,37 @@ func count() -> int:
 	return types.size()
 
 
-## Index of the first impassable type (used as the "NoGo" target when an editor toggle
-## blocks a cell), or -1 if every type is passable.
-func first_impassable_index() -> int:
-	for i: int in types.size():
-		if not types[i].passable:
-			return i
-	return -1
-
-
-func _type_or_null(i: int) -> TileType:
-	return types[i] if i >= 0 and i < types.size() else null
-
-
-## Whether a cell of type `i` is traversable. Unknown/out-of-range indices fall back
-## to the default (open) behaviour so a malformed map degrades to passable rather than
-## walling everything off.
-func passable(i: int) -> bool:
-	var t: TileType = _type_or_null(i)
-	return t.passable if t != null else true
-
-
-## Whether a cell of type `i` permits structures (before the flat-ground check).
-func buildable(i: int) -> bool:
-	var t: TileType = _type_or_null(i)
-	return t.buildable if t != null else true
-
-
-## Whether a cell of type `i` contributes surface geometry to the visual mesh (see
-## TileType.renders_surface). Unknown/out-of-range indices fall back to `true` (rendered),
-## matching passable()'s "degrade to normal ground" convention.
-func renders_surface(i: int) -> bool:
-	var t: TileType = _type_or_null(i)
-	return t.renders_surface if t != null else true
+func _type_or_null(a_i: int) -> TileType:
+	return types[a_i] if a_i >= 0 and a_i < types.size() else null
 
 
 ## The flat albedo for type `i` (see TileType.map_color). Unknown/out-of-range indices fall
 ## back to the shared default open-ground colour.
-func map_color(i: int) -> Color:
-	var t: TileType = _type_or_null(i)
+func map_color(a_i: int) -> Color:
+	var t: TileType = _type_or_null(a_i)
 	return t.map_color if t != null else TileType.DEFAULT_MAP_COLOR
+
+
+## Every type's flat colour, indexed by tile index — the palette TerrainSurface hands the
+## terrain shader as `tile_colors`. Padded to `size` so the shader's fixed-length array is
+## fully defined; unfilled slots take the default open-ground colour rather than black, so an
+## out-of-range index degrades to ground the same way map_color() does.
+func map_color_array(a_size: int) -> PackedColorArray:
+	var out := PackedColorArray()
+	out.resize(a_size)
+	for i: int in a_size:
+		out[i] = map_color(i) if i < types.size() else TileType.DEFAULT_MAP_COLOR
+	return out
+
+
+## Per-type "has a real texture" flags, indexed by tile index, padded to `size`.
+func texture_flag_array(a_size: int) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	out.resize(a_size)
+	for i: int in a_size:
+		var t: TileType = _type_or_null(i)
+		out[i] = 1.0 if t != null and t.texture != null else 0.0
+	return out
 
 
 ## Side length (px) every type texture is normalised to when packed into the Texture2DArray.
@@ -94,8 +85,8 @@ func build_texture_array() -> Dictionary:
 
 
 ## A type texture converted to the common size / format / mipmap state the array requires.
-func _normalized_image(tex: Texture2D) -> Image:
-	var img: Image = tex.get_image()
+func _normalized_image(a_tex: Texture2D) -> Image:
+	var img: Image = a_tex.get_image()
 	if img == null:
 		return _blank_image()
 	if img.is_compressed():

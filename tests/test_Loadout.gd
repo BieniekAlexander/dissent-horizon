@@ -4,7 +4,7 @@ extends GutTest
 ##
 ## Regression: total_damage() used to sum a removed Weapon.damage field and crashed
 ## with "Invalid access to property 'damage'". It now sums per_shot_damage() —
-## melee_damage for melee weapons, the projectile's base_damage for ranged ones.
+## melee_damage for melee weapons, the emission Payload's base_damage for ranged ones.
 ##
 ## Run: godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Loadout.gd
 ##
@@ -13,9 +13,9 @@ extends GutTest
 ## doesn't depend on either.
 
 
-func _melee_weapon(dmg: float) -> Weapon:
+func _melee_weapon(a_dmg: float) -> Weapon:
 	var w := Weapon.new()
-	w.melee_damage = dmg
+	w.melee_damage = a_dmg
 	return w
 
 
@@ -43,7 +43,7 @@ func test_sums_multiple_weapons() -> void:
 func test_ranged_uses_projectile_base_damage() -> void:
 	var scene: PackedScene = load("res://scenes/entities/projectiles/bullet.tscn")
 	var probe: Node = scene.instantiate()
-	var expected: float = (probe as Projectile).base_damage
+	var expected: float = Payload.of(probe).base_damage
 	probe.free()
 
 	var w := Weapon.new()

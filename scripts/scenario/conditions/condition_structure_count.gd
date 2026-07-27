@@ -1,3 +1,4 @@
+@tool
 class_name ConditionStructureCount
 extends Condition
 
@@ -12,8 +13,8 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioTriggerManager) -> bool:
-	var commander: Commander = manager.get_commander(commander_id)
+func evaluate(a_manager: ScenarioTriggerManager) -> bool:
+	var commander: Commander = a_manager.get_commander(commander_id)
 	if commander == null:
 		return false
 	# NOTE: counts ALL structures including those under construction. This is
@@ -24,13 +25,34 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 	var n := 0
 	if structure_type == &"":
 		for t: StringName in commander.structure_type_map:
-			n += commander.structure_type_map[t].size()
+			n += commander.structure_type_map[t].filter(func(c: Commandable): return c.is_built).size()
 	else:
 		var s: Variant = commander.structure_type_map.get(structure_type)
-		n = s.size() if s != null else 0
+		n = s.filter(func(c: Commandable): return c.is_built).size() if s != null else 0
 	match comparison:
 		Comparison.AT_LEAST: return n >= count
 		Comparison.AT_MOST:  return n <= count
 		Comparison.EXACTLY:  return n == count
 	return false
+#endregion
+
+#region Player-facing description (highlights)
+## Same rule as ConditionUnitCount: AT_MOST means "remove these", so the standing
+## structures are the task and get marked. AT_LEAST / EXACTLY are waiting on a building
+## that doesn't exist yet, and there is nothing to point at.
+func highlight_entities(a_manager: ScenarioTriggerManager) -> Array[Entity]:
+	var result: Array[Entity] = []
+	if comparison != Comparison.AT_MOST:
+		return result
+	var commander: Commander = a_manager.get_commander(commander_id)
+	if commander == null:
+		return result
+	for id: StringName in commander.structure_type_map:
+		if structure_type != &"" and id != structure_type:
+			continue
+		for structure: Variant in commander.structure_type_map[id].get_values():
+			var entity := structure as Entity
+			if entity != null and is_instance_valid(entity) and entity.is_inside_tree():
+				result.append(entity)
+	return result
 #endregion

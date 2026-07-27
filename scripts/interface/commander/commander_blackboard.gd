@@ -52,14 +52,14 @@ class Entry:
 class Snapshot:
 	var structure_id: int
 	var cell: Vector2i                  # representative grid cell (map.world_to_grid of last-known pos)
-	# Live ref to the real structure. Entity (NOT Commandable) — Shelters/Deposits are
+	# Live ref to the real structure. Entity (NOT Commandable) — Shelters/ExtractionSites are
 	# structures that derive from Entity. is_instance_valid may go false on destruction.
 	var entity: Entity
 	var node: Node3D                    # duplicated MeshVisual, world-positioned in the container
-	# Captured at creation (stays valid after `entity` is freed): a Deposit yields its
-	# cell to any structure overlaid on it (a Mine) when both are remembered — see
+	# Captured at creation (stays valid after `entity` is freed): an ExtractionSite yields its
+	# cell to any structure overlaid on it (an Extractor) when both are remembered — see
 	# _suppress_overlapping_snapshots.
-	var is_deposit: bool
+	var is_extraction_site: bool
 
 
 var _commander: Commander
@@ -112,18 +112,18 @@ func believed_units() -> Array:
 	return _entries.values().filter(func(e: Entry): return not e.is_structure)
 
 
-func _upsert(e: Commandable, now: float) -> void:
-	var id: int = e.get_instance_id()
+func _upsert(a_e: Commandable, a_now: float) -> void:
+	var id: int = a_e.get_instance_id()
 	var entry: Entry = _entries.get(id)
 	if entry == null:
 		entry = Entry.new()
 		entry.instance_id = id
-		entry.type = e.id
-		entry.is_structure = e.has_node("Structure")
+		entry.type = a_e.id
+		entry.is_structure = a_e.structure_is_active()
 		_entries[id] = entry
-	entry.entity = e
-	entry.last_known_location = e.global_position
-	entry.last_seen_time = now
+	entry.entity = a_e
+	entry.last_known_location = a_e.global_position
+	entry.last_seen_time = a_now
 
 
 #region Structure snapshots (visual fog-of-war memory)
@@ -143,7 +143,7 @@ func free_visuals() -> void:
 ## structures, no physics queries) and player-facing, so a newly-revealed structure
 ## is remembered the same frame fog shows it — no lag before it can be re-fogged.
 ## Reads visible_foreign_structures (NOT the enemy belief) so NEUTRAL structures —
-## mines, mountains — are remembered too, not just enemy-owned ones.
+## extractors, mountains — are remembered too, not just enemy-owned ones.
 func _ensure_snapshots() -> void:
 	var map: Map = _commander.map
 	if map == null:
@@ -195,7 +195,7 @@ func refresh_snapshots() -> void:
 		else:
 			snap.node.visible = is_viewer
 
-	# Structures can stack on one cell (a Mine built on a Deposit), so two remembered
+	# Structures can stack on one cell (an Extractor built on an ExtractionSite), so two remembered
 	# images could otherwise render on top of each other. Collapse each cell to a single
 	# visible snapshot.
 	if is_viewer:
@@ -204,7 +204,7 @@ func refresh_snapshots() -> void:
 
 ## Enforce "at most one visible snapshot per grid cell". Among the snapshots that want
 ## to show at the same cell this frame, keep only the highest-priority one visible and
-## hide the rest — so a Mine's remembered image, not the Deposit it was built on, is
+## hide the rest — so an Extractor's remembered image, not the ExtractionSite it was built on, is
 ## what renders.
 func _suppress_overlapping_snapshots() -> void:
 	var winner_by_cell: Dictionary = {}   # Vector2i -> Snapshot
@@ -223,18 +223,19 @@ func _suppress_overlapping_snapshots() -> void:
 
 
 ## True when `a` should be the single visible snapshot on a shared cell, beating `b`. A
-## Deposit yields to any non-Deposit overlaying it (the Mine wins); equal-rank ties break
+## An ExtractionSite yields to any non-site overlaying it (the Extractor wins); equal-rank
+## ties break
 ## by instance id so the choice is stable frame-to-frame (no flicker).
-func _snapshot_outranks(a: Snapshot, b: Snapshot) -> bool:
-	var pa: int = 0 if a.is_deposit else 1
-	var pb: int = 0 if b.is_deposit else 1
+func _snapshot_outranks(a_a: Snapshot, a_b: Snapshot) -> bool:
+	var pa: int = 0 if a_a.is_extraction_site else 1
+	var pb: int = 0 if a_b.is_extraction_site else 1
 	if pa != pb:
 		return pa > pb
-	return a.structure_id > b.structure_id
+	return a_a.structure_id > a_b.structure_id
 
 
-func _create_snapshot(structure: Entity, cell: Vector2i, key: String) -> void:
-	var visual := structure.get_node_or_null("MeshVisual") as MeshVisual
+func _create_snapshot(a_structure: Entity, a_cell: Vector2i, a_key: String) -> void:
+	var visual := a_structure.get_node_or_null("MeshVisual") as MeshVisual
 	if visual == null:
 		return
 	if _snapshot_container == null or not is_instance_valid(_snapshot_container):
@@ -259,26 +260,26 @@ func _create_snapshot(structure: Entity, cell: Vector2i, key: String) -> void:
 	node.set_team_color(SNAPSHOT_FOG_TINT)
 
 	var snap := Snapshot.new()
-	snap.structure_id = structure.get_instance_id()
-	snap.cell = cell
-	snap.entity = structure
+	snap.structure_id = a_structure.get_instance_id()
+	snap.cell = a_cell
+	snap.entity = a_structure
 	snap.node = node
-	snap.is_deposit = structure is Deposit
-	_snapshots[key] = snap
+	snap.is_extraction_site = ExtractionSite.of(a_structure) != null
+	_snapshots[a_key] = snap
 
 
-func _snapshot_key(structure_id: int, cell: Vector2i) -> String:
-	return "%d:%s" % [structure_id, cell]
+func _snapshot_key(a_structure_id: int, a_cell: Vector2i) -> String:
+	return "%d:%s" % [a_structure_id, a_cell]
 
 
 ## Mirrors fog.gd's active-fog resolution: snapshots render only for the commander
 ## whose view is currently on screen, and never under the omniscient spectator or
-## the hold-Space debug reveal (both of which show real structures directly).
+## the debug reveal (both of which show real structures directly).
 func _commander_is_active_viewer() -> bool:
 	var active_id: int = Fog.active_commander_id
 	if active_id == -2:
 		return false
-	if Input.is_action_pressed("debug_info"):
+	if DebugMode.is_active():
 		return false
 	var viewer_id: int = active_id if active_id >= 1 else RTSController.PLAYER_COMMANDER_ID
 	return _commander.id == viewer_id

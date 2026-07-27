@@ -1,0 +1,153 @@
+---
+title: The Colonial dominion loop
+type: system-note
+---
+
+# The Colonial dominion loop
+
+*Design note for [Dissent Horizon](../../../CLAUDE.md).*
+
+Steps 1-4 of the work order below shipped 2026-09-17. **TODO — step 5:** `sentence_length` is a
+placeholder constant (60s on the Compound), and the real knobs are still to be chosen against the
+model in design-framework/proposals.md. Nothing else here is provisional.
+
+The economics behind it — why throughput rather than a stock, and which knob does what — are in
+[design-framework/proposals](../../design-framework/proposals.md) §Colonial dominion. This note
+owns the MECHANICS; that one owns the model and its open calibration.
+
+---
+
+## Why it changes
+
+Dominion paid for as long as a captive is *held* makes a delivery a one-time fill: once a
+Compound is full it pays forever, the route stops mattering, and Compound placement stops being
+a decision. Paying for a captive's *term* makes the rate depend on arrivals, so where the
+Compound stands relative to a Shelter is a live trade against where it stands relative to the
+buildings it supports.
+
+## A captive serves a sentence
+
+**A deposit no longer converts a captive into a Servant.** The captive is held as itself for
+`sentence_length`, and pays dominion each cycle while it serves — the per-occupant generator is
+unchanged. Occupancy therefore settles at the arrival rate times the sentence, capped by the
+Compound's capacity, instead of climbing to capacity and staying there.
+
+`sentence_length` is a constant to begin with. It is the knob that sets both the value of one
+captive and how long the rate takes to reach its ceiling.
+
+**A finished sentence CONSUMES the captive.** The unit is removed from the game; the Compound
+produces nothing but the dominion it paid along the way and the cooldown reduction it emits on
+the way out. This supersedes conversion-on-deposit, and with it the idea that internment produces
+labour at all: the Colonial route now spends bodies rather than re-badging them, which is what
+separates it from the Anarchical one, where a Warlord converts a Terrestrial and keeps the unit
+in the world. It is also the faction's lore in one mechanic — a power that consumes what it
+takes faster than it replenishes.
+
+The pitfall accepted: a Shelter's population is finite per unit time, so a Colonial player who
+works one hard is burning a resource an Anarchist opponent would have turned into soldiers. That
+is the trade, not a leak.
+
+**The Compound becomes a CLOSED garrison.** Nothing may be ordered into it — the Servants-only
+allowlist goes, and deposit is the only way in. It is no longer somewhere to park a spare body;
+a Servant reaches it only by riding a Stock Truck (§Servants as dominion). `CLAUDE.md` §Terminology uses the Compound as its example of
+a garrison that is *not* closed; that entry changes when this lands.
+
+Release on destruction is unchanged, and worth stating because it now means something different:
+a destroyed Compound hands every occupant back to the commander it was taken from, so killing one
+mid-term rescues the prisoners rather than merely denying the income.
+
+## Servants as dominion
+
+**A Servant may ride a Stock Truck, and a delivery takes it to the Compound with the captives.**
+The truck's cage admits Servants by order and no other piece (a `pieces:` allowlist on masks
+opened for light biological infantry), sharing its three places with prisoners; capture by
+crush is unchanged. A deposit hands over everything in the cage, and a Servant serves a
+sentence like a prisoner — paying dominion each cycle, consumed at the end.
+
+**The difference is who may let it out.** An order — Evacuate, or an occupant's card — releases
+only the host's own side, so a Servant can be walked out of a truck or out of a Compound before
+its sentence ends, and the captives beside it stay. See
+[garrison-and-transport](garrison-and-transport.md) §The two directions of the door are separate
+statements.
+
+What it is for: Servants become transportable, and they are a very cost-inefficient way to buy
+dominion — 500 energy a head against the free bodies a Shelter supplies. An option for a player
+with energy and no prisoners, not a route.
+
+TODO: a truck tasked on a Shelter (`TaskShelter`) deposits whatever it carries, so a Servant
+riding a tasked truck is sentenced on the next delivery without the player asking. Whether
+tasking should leave Servants aboard, or refuse to run with them, is open.
+
+TODO: the bot neither loads Servants into trucks nor sentences them.
+
+## The positional bonus is an event, not a rate
+
+**On a sentence completing, the Compound reduces the cooldown of every ability pool on every
+edge-adjacent friendly structure by a percentage.** Work Detail's passive per-occupant recharge
+rate is deprecated and replaced by this.
+
+The reason for the swap is that the two halves of the building should tell one story. A passive
+rate rewards *holding* bodies, which is exactly what the sentence model stops rewarding; a
+per-completion reduction rewards *turning them over*, which is what the dominion rate now
+measures too. A Compound worked hard by a short route is worth more at both jobs at once.
+
+Unchanged: adjacency is edge contact between footprints, the supporter must be finished and
+owned by the same commander, and a commander who cannot cover its upkeep lends nothing.
+
+**The percentage is of the pool's FULL cooldown**, not of its remaining time: a fixed chunk of
+time per completion, which a player can count ("three sentences off the next scan") and which can
+finish a cooldown outright. A share of the remaining time was rejected for the opposite property
+— it tapers toward ready, so the last stretch of a long cooldown would be immune to the mechanic.
+
+Nothing is banked: a completion while an adjacent pool is already charged is worth nothing there.
+
+## The pieces this changes
+
+Target values for the change; once applied, the spec docs own them.
+
+| Piece | Change | Consequence |
+|---|---|---|
+| Stock Truck | armour `MEDIUM`; speed `1.75` | survives the roads it now spends its life on (the damage table's anti-light types all fall a step against MEDIUM); barely outpaces infantry, so it stops being a scout and capturing an enemy soldier becomes opportunistic rather than a chase |
+| Shelter | spawn interval `10`, capacity unchanged | arrivals become frequent and small, which is what makes route length bind at map distances rather than only at absurd ones; the population cap still buffers a Shelter left alone, for a third as long |
+
+The truck's speed is also what puts the Colonial "slow to traverse the map" identity on the
+dominion route itself — see [design-framework/matchups](../../design-framework/matchups.md).
+
+## What it depends on
+
+Tasking a truck on a Shelter is its own system, and the first consumer of it:
+[commands/unit-tasking](../commands/unit-tasking.md).
+
+## Work order
+
+1. ✅ **Sentences.** `sentence_length` on the garrison, a per-occupant term, and consumption at
+   the end of it. Retired `garrison.interns` as the deposit marker, and closed the Compound's
+   garrison (the Servants-only allowlist gone). `CLAUDE.md` §Terminology's closed-garrison
+   example changed in the same change, and `deferred.md` 2.27 — the bot parking a spare Servant
+   for dominion — retired, because there is nowhere to park one now. `Garrison.deposit_from` /
+   `Garrison._physics_process` / `scripts/entities/components/garrison.gd`.
+2. ✅ **The positional bonus.** Emitted on completion (`Garrison._emit_positional_bonus` →
+   `Abilities.reduce_all_cooldowns`); the passive recharge-rate constant is retired and
+   `work_detail`'s ability doc rewritten around the event.
+3. ✅ **Piece values.** Stock Truck (`armour: MEDIUM`, `speed: 1.75`) via the spec doc and an
+   importer run; Shelter's `spawn_interval` (10s) hand-authored on `nt_shelter.tscn` directly —
+   Shelter is not yet part of the spec-doc schema (`tools/spec_import/README.md` §Doc schema).
+4. ✅ **Tasking.** [commands/unit-tasking](../commands/unit-tasking.md) — `TaskShelter`. The bot
+   does not issue it yet (`tests/test_BotCommandCoverage.gd`).
+5. **Calibration.** Choose the knobs against the model in
+   [design-framework/proposals](../../design-framework/proposals.md). `sentence_length: 60` on
+   the Compound is a placeholder, same footing as every other unset knob there.
+
+Steps 1-3 stood alone: the loop worked with hand-driven trucks before tasking existed.
+
+## The dominion-rate projection
+
+**Built alongside tasking, not originally scoped here:** the HUD's forward-looking dominion
+projection (`DominionBar`'s translucent bar region) used to assume "if the current rate held"
+— valid under the old indefinite-hold model, wrong under sentences, where occupancy decays as
+terms complete. `Commander.projected_dominion_rate()` derives a steady-state rate instead, from
+which Shelters have tasked trucks right now: round-trip time at the trucks' own speed against
+each Shelter's regeneration, capped by the receiving Compound's capacity — the model's
+`min(Φ·τ, K)` above, with `c`/`t_l`/`t_u`/`μ`/`m` dropped as negligible for the one-truck
+openings this is aimed at. See
+[ui/economy-bars](../ux/ui/economy-bars.md) §Rate projection and `tests/test_ProjectedDominionRate.gd`.

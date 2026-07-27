@@ -4,23 +4,23 @@ class_name AU
 static func comp_value(a, b) -> bool:
 	return (a["value"]<b["value"])
 
-static func sort_on_key(a_key: Callable, a_array: Array) -> Array:
-	var arr_keyed = a_array.map(func(a): return {"item": a, "value": a_key.call(a)})
+static func sort_on_key(key: Callable, array: Array) -> Array:
+	var arr_keyed = array.map(func(a): return {"item": a, "value": key.call(a)})
 	arr_keyed.sort_custom(comp_value)
 	return arr_keyed.map(func(a): return a["item"])
 
 ## push into an array as a priority queue, returning the index at which it was inserted
-static func priority_queue_push(a_key: Callable, a_item: Variant, a_queue: Array) -> int:
+static func priority_queue_push(key: Callable, item: Variant, queue: Array) -> int:
 	# O(n) implementation because I'm lazy
-	var item_key: Variant = a_key.call(a_item)
+	var item_key: Variant = key.call(item)
 
-	for i in range(0, a_queue.size()):
-		if item_key < a_key.call(a_queue[i]):
-			a_queue.insert(i, a_item)
+	for i in range(0, queue.size()):
+		if item_key < key.call(queue[i]):
+			queue.insert(i, item)
 			return i
 
-	a_queue.append(a_item)
-	return a_queue.size()-1
+	queue.append(item)
+	return queue.size()-1
 
 static func concat(a1: Array, a2: Array) -> Array:
 	var ret: Array = a1.duplicate()
@@ -33,26 +33,26 @@ static func concat(a1: Array, a2: Array) -> Array:
 static func all(a1: Array, check: Callable) -> bool:
 	for a in a1:
 		if not check.call(a): return false
-	
+
 	return true
 
 static func any(a1: Array, check: Callable) -> bool:
 	for a in a1:
 		if check.call(a): return true
-	
+
 	return false
 
-static func sum(a_array: Array) -> float:
+static func sum(array: Array) -> float:
 	var ret: float = 0
 
-	for a in a_array:
+	for a in array:
 		ret += a
 
 	return ret
 
-static func median(a_array: Array) -> float:
+static func median(array: Array) -> float:
 	# TODO write a faster implementation of this
-	var array_sorted: Array = a_array.duplicate()
+	var array_sorted: Array = array.duplicate()
 	array_sorted.sort()
 
 	if array_sorted.size()%2==1:
@@ -60,6 +60,6 @@ static func median(a_array: Array) -> float:
 	else:
 		return (array_sorted[array_sorted.size()/2]+array_sorted[array_sorted.size()/2])/2.0
 
-static func mean(a_array: Array) -> float:
-	return AU.sum(a_array)*1.0/a_array.size()
+static func mean(array: Array) -> float:
+	return AU.sum(array)*1.0/array.size()
 #endregion

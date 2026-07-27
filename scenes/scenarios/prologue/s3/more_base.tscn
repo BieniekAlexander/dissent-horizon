@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://e3uy781giwg"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_kw4ed"]
+
+[node name="Dialog" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_kw4ed")
+title = "Continuing to Scale"
+body = "You've been introduced to Energy and Dominion as resources of interest. The final resource you need to worry about is Infrastructure, which you'll need to maintain to uphold your war effort.
+
+You get some baseline infrastructure for free, but many structures require some amount of infrastructure for upkeep, and insufficient infrastructure will make your army less effective. (NOTE: the detriment for insufficient infrastructure has not been implemented yet :^])
+
+To acquire more Infrastructure, build safehouses."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

@@ -11,5 +11,5 @@ extends Node3D
 ## issuance) is itself just a predicate — express it as a selector, don't bake it into
 ## the base type.
 
-func filter(entities: Array[Entity], _manager: ScenarioTriggerManager) -> Array[Entity]:
-	return entities
+func filter(a_entities: Array[Entity], _a_manager: ScenarioTriggerManager) -> Array[Entity]:
+	return a_entities

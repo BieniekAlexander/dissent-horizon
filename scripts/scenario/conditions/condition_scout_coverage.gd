@@ -1,3 +1,4 @@
+@tool
 class_name ConditionScoutCoverage
 extends Condition
 
@@ -18,8 +19,8 @@ extends Condition
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioTriggerManager) -> bool:
-	var scout: BotScout = _resolve_scout(manager)
+func evaluate(a_manager: ScenarioTriggerManager) -> bool:
+	var scout: BotScout = _resolve_scout(a_manager)
 	if scout == null:
 		return false
 	return scout.observed_fraction() >= minimum_fraction
@@ -28,8 +29,8 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 #region Internal
 ## Walk commander → BotBrain → BotScout, or null if any link is missing (e.g. the brain
 ## hasn't built its managers yet, which happens before the first think).
-func _resolve_scout(manager: ScenarioTriggerManager) -> BotScout:
-	var bot: Bot = manager.get_commander(commander_id) as Bot
+func _resolve_scout(a_manager: ScenarioTriggerManager) -> BotScout:
+	var bot: Bot = a_manager.get_commander(commander_id) as Bot
 	if bot == null:
 		return null
 	var brain: BotBrain = bot.get_node_or_null("BotBrain") as BotBrain

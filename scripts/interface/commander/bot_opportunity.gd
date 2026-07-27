@@ -16,14 +16,14 @@ var actor: Commandable
 
 
 ## Estimated net value (gain minus cost) of taking this action right now, expressed in
-## ore-equivalent units so opportunities from different domains are directly
+## energy-equivalent units so opportunities from different domains are directly
 ## comparable. Only positive-utility opportunities are ever acted on.
 func utility() -> float:
 	return 0.0
 
 
 ## Carry out the action through the actuator — the bot's sole command-issuing surface.
-func execute(_act: BotActuator) -> void:
+func execute(_a_act: BotActuator) -> void:
 	pass
 
 

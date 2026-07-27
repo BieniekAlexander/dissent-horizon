@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Tests for the per-size-class space-erosion used to bake one navmesh per
-## NavAgentClass.Size (see nav-agent-size-classes.md). Covers:
+## NavAgentClass.Size (see gdd/systems/terrain-and-navigation/agent-size-classes.md). Covers:
 ##   - NavAgentClass erosion parameters derived from the radii
 ##   - TerrainGrid clearance / distance fields
 ##   - TerrainGrid.get_navigable_cells hallway-admission semantics per class
@@ -67,12 +67,12 @@ func test_erosion_rings_and_inset():
 
 # --- TerrainGrid clearance / distance fields -------------------------------
 
-func _make_grid(w: int) -> TerrainGrid:
+func _make_grid(a_w: int) -> TerrainGrid:
 	var shape := HeightMapShape3D.new()
-	shape.map_width = w
-	shape.map_depth = w
+	shape.map_width = a_w
+	shape.map_depth = a_w
 	var data := PackedFloat32Array()
-	data.resize(w * w)  # all zeros -> every cell flat and passable
+	data.resize(a_w * a_w)  # all zeros -> every cell flat and passable
 	shape.map_data = data
 
 	var body := StaticBody3D.new()
@@ -88,16 +88,16 @@ func _make_grid(w: int) -> TerrainGrid:
 ## Block every cell outside a centred, full-width horizontal band `width` cells tall,
 ## leaving a corridor of that width. Returns the grid; the band is centred on the
 ## grid's middle row so cell (gw/2, gh/2) is always inside it.
-func _make_corridor(corner_w: int, width: int) -> TerrainGrid:
-	var grid := _make_grid(corner_w)
+func _make_corridor(a_corner_w: int, a_width: int) -> TerrainGrid:
+	var grid := _make_grid(a_corner_w)
 	var gw: int = grid.grid_width()
 	var gh: int = grid.grid_depth()
-	var z0: int = (gh - width) / 2
+	var z0: int = (gh - a_width) / 2
 	var mask := PackedByteArray()
 	mask.resize(gw * gh)
 	for z: int in gh:
 		for x: int in gw:
-			if z < z0 or z >= z0 + width:
+			if z < z0 or z >= z0 + a_width:
 				mask[z * gw + x] = 1
 	grid.set_blocked_mask(mask)
 	return grid
@@ -128,11 +128,11 @@ func test_distance_to_obstacle():
 
 ## Whether the centre cell of a width-`width` corridor is in the navigable set for
 ## a given size class.
-func _admits(width: int, size: int) -> bool:
-	var grid := _make_corridor(14, width)  # 13x13 cells; band centred on row 6
+func _admits(a_width: int, a_size: int) -> bool:
+	var grid := _make_corridor(14, a_width)  # 13x13 cells; band centred on row 6
 	var mid := Vector2i(grid.grid_width() / 2, grid.grid_depth() / 2)
-	var rings: int = NavAgentClass.erosion_rings(size, CS)
-	var admit_k: int = NavAgentClass.required_clearance(size, CS)
+	var rings: int = NavAgentClass.erosion_rings(a_size, CS)
+	var admit_k: int = NavAgentClass.required_clearance(a_size, CS)
 	return grid.get_navigable_cells(rings, admit_k).has(mid)
 
 

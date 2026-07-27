@@ -7,6 +7,6 @@ extends AbstractEvent
 #endregion
 
 #region Public API
-func execute(manager: ScenarioTriggerManager) -> void:
-	manager.message_requested.emit(message)
+func execute(a_manager: ScenarioTriggerManager) -> void:
+	a_manager.message_requested.emit(message)
 #endregion

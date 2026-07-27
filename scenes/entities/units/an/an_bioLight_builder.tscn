@@ -1,0 +1,166 @@
+[gd_scene format=3 uid="uid://b8bcrcywyaj27"]
+
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_brve4"]
+[ext_resource type="Script" uid="uid://i5cpflyrc4jkh" path="res://scripts/entities/components/builds.gd" id="1_spec"]
+[ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_i70vf"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="2_spec"]
+[ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_5e8iu"]
+[ext_resource type="PackedScene" uid="uid://c7drjhmuh7vx6" path="res://assets/meshes/entities/irregular.blend" id="3_o5h8i"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="3_spec"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_6ncs5"]
+[ext_resource type="PackedScene" uid="uid://cm7ixbl5una03" path="res://scenes/entities/projectiles/an/irregular_bullet.tscn" id="4_spec"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_khhew"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_medium.tres" id="5_spec"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="6_spec"]
+[ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_ubdlh"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/detection_small.tres" id="7_spec"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="8_nkqfo"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="9_1by68"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="10_bb5rx"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="11_nr03k"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="12_k2xvu"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="13_p5vpd"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="14_211ts"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="15_l1k45"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="16_o8kaq"]
+[ext_resource type="Script" uid="uid://cywa5m1mky68q" path="res://scripts/entities/components/altitude_indicator.gd" id="18_hn75c"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="19_k4b10"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="20_igbta"]
+[ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="21_qe7on"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="22_08m76"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_t7gre"]
+height = 100.0
+radius = 0.2
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_vja68"]
+height = 100.0
+radius = 0.2
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1hule"]
+height = 1.05
+radius = 0.45
+
+[node name="Unit" type="CharacterBody3D" unique_id=1344909156 groups=["piece", "unit"]]
+script = ExtResource("1_brve4")
+description = "Guerilla fighter that builds structures, effective in numbers"
+verbose = "Guerilla fighter armed with a light rifle. Cheap and strong in numbers, effective against other infantry. Can also build structures."
+id = &"an_bioLight_builder"
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=1341816917]
+
+[node name="NavigationAgent" parent="." unique_id=1744162296 instance=ExtResource("2_i70vf")]
+
+[node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_5e8iu")]
+shape = SubResource("CylinderShape3D_t7gre")
+
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_6ncs5")]
+
+[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+shape = SubResource("CylinderShape3D_vja68")
+
+[node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_khhew")]
+
+[node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_ubdlh")]
+shape = ExtResource("6_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=1967685655]
+script = ExtResource("8_nkqfo")
+
+[node name="Locomotion" type="Node" parent="." unique_id=1547743983]
+script = ExtResource("9_1by68")
+crush_class = 0
+speed = 1.65
+turn_rate = 1080.0
+nav_agent_path = NodePath("../NavigationAgent")
+
+[node name="Defense" type="Node" parent="." unique_id=1734370137]
+script = ExtResource("10_bb5rx")
+hp_max = 80.0
+
+[node name="Veterancy" type="Node" parent="." unique_id=1736835810]
+script = ExtResource("11_nr03k")
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=1442974807]
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("12_k2xvu")]
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
+shape = SubResource("CylinderShape3D_1hule")
+metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1820687536]
+
+[node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("13_p5vpd")]
+transform = Transform3D(0.136719, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 1.17, 0)
+billboard = 2
+metadata/_visual_default_hp_bar = 0.35
+
+[node name="HPBarFill" parent="HPBar" index="0" unique_id=470614922]
+billboard = 2
+
+[node name="HPBarBack" parent="HPBar" index="1" unique_id=99646461]
+billboard = 2
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("14_211ts")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="." unique_id=1769560417]
+script = ExtResource("15_l1k45")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=1652598979]
+script = ExtResource("16_o8kaq")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="irregular" parent="MeshVisual" unique_id=1108500900 instance=ExtResource("3_o5h8i")]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, 0)
+
+[node name="AltitudeIndicator" type="Node3D" parent="." unique_id=2090582642]
+script = ExtResource("18_hn75c")
+
+[node name="StatusVisuals" type="Node3D" parent="." unique_id=1558941055]
+script = ExtResource("19_k4b10")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=2052797979]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("20_igbta")]
+billboard = 2
+
+[node name="AvoidanceObstacle" parent="." unique_id=1666248074 instance=ExtResource("21_qe7on")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="." unique_id=803348194]
+
+[node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("22_08m76")]
+
+[node name="Builds" type="Node" parent="." unique_id=865789273]
+script = ExtResource("1_spec")
+buildable_types = Array[StringName]([&"nt_extractor", &"an_commandCenter", &"an_airField", &"an_infrastructure", &"an_barracks", &"an_warFactory", &"an_support1", &"an_support2", &"an_support3", &"an_tech1", &"an_tech2"])
+
+[node name="Loadout" type="Node3D" parent="." unique_id=1605037165]
+script = ExtResource("2_spec")
+
+[node name="BallisticWeapon" type="Node3D" parent="Loadout" unique_id=1305131789]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.683, 0.137)
+script = ExtResource("3_spec")
+projectile_scene = ExtResource("4_spec")
+melee_damage = 0.0
+split_time_ticks = 3
+reload_time_ticks = 24
+clip_size = 3
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" unique_id=1489122729 groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("5_spec")
+disabled = true
+debug_color = Color(0.85, 0.01, 0, 0.42)
+
+[node name="AggroRangeAir" parent="." unique_id=1555512449 instance=ExtResource("5_khhew")]
+
+[node name="DetectionRange" type="CollisionShape3D" parent="." unique_id=179514512 groups=["debug_shape_detection_range"]]
+visible = false
+shape = ExtResource("7_spec")
+disabled = true
+debug_color = Color(0.7, 0.2, 0.9, 0.35)
+
+[editable path="TargetBody"]
+[editable path="Selectable"]
+[editable path="HPBar"]

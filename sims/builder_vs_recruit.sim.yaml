@@ -1,0 +1,22 @@
+description: |
+  One Anarchical builder against one Colonial anti-light rifleman. The builder is a worker
+  with a sidearm and the recruit is a soldier, so the claim is that the soldier walks away.
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      builders:
+        of: [ { piece: an_bioLight_builder, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.riflemen } } ]
+  B:
+    with:
+      riflemen:
+        of: [ { piece: cl_bioLight_antiLight, count: 1 } ]
+        at: { from: A.builders, distance: 10, bearing: east }
+        facing: west
+        orders: [ { attack: { target: A.builders } } ]
+run: { for: 30s, seed: 1 }
+expect:
+  - { of: B.riflemen, check: alive }

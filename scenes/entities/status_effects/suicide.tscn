@@ -4,4 +4,8 @@
 
 [node name="Suicide" type="Node"]
 script = ExtResource("1_suicide")
+title = "Expended"
+description = "The airframe is spent: it is destroying itself on this target."
+valence = 2
+verbose = "Not something done TO a unit so much as what it is doing. The kamikaze's attack IS the ram, and this is the moment it commits.\nIt drops the host straight to zero without running the damage pipeline, so nothing about armour or frame changes the outcome."
 metadata/_custom_type_script = "uid://2o4hxulrei0s"

@@ -1,77 +1,335 @@
 [gd_scene format=3 uid="uid://bkpybipbter41"]
 
 [ext_resource type="Script" uid="uid://cyrg0j3vbx1ds" path="res://scripts/interface/commander/faction.gd" id="1_fac"]
-[ext_resource type="PackedScene" uid="uid://dtyheenc7jb57" path="res://scenes/entities/structures/an/stronghold.tscn" id="2_strgh"]
-[ext_resource type="Script" uid="uid://cteoy2vx2l533" path="res://scripts/interface/commander/ordnance.gd" id="3_ord"]
-[ext_resource type="PackedScene" uid="uid://c0rdnambush01" path="res://scenes/scenario_events/ordnance_ambush.tscn" id="4_amb"]
-[ext_resource type="PackedScene" uid="uid://ceb4vdpa82eig" path="res://scenes/scenario_events/ordnance_irradiate.tscn" id="5_irr"]
-[ext_resource type="Script" uid="uid://bhm0bavkjvt0q" path="res://scripts/interface/commander/ordnance_unlock.gd" id="6_unlock"]
-[ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/entities/units/an/warlord.tscn" id="7_war"]
-[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/irregular.tscn" id="8_irr"]
+[ext_resource type="Script" uid="uid://cteoy2vx2l533" path="res://scripts/interface/commander/sanction.gd" id="3_ord"]
+[ext_resource type="PackedScene" uid="uid://c0rdnambush01" path="res://scenes/scenario_events/sanction_ambush.tscn" id="4_amb"]
+[ext_resource type="Script" uid="uid://bhm0bavkjvt0q" path="res://scripts/interface/commander/sanction_unlock.gd" id="6_unlock"]
+[ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn" id="7_war"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="8_irr"]
 [ext_resource type="Script" uid="uid://cko1d6cmwppd1" path="res://scripts/interface/commander/anarchical_dominion.gd" id="9_1xmxo"]
-[ext_resource type="PackedScene" uid="uid://c0rdndignify01" path="res://scenes/scenario_events/ordnance_dignify.tscn" id="10_dig"]
-[ext_resource type="PackedScene" uid="uid://c0rdninformnt01" path="res://scenes/scenario_events/ordnance_informant.tscn" id="11_inf"]
+[ext_resource type="PackedScene" uid="uid://0kq65elxkyto" path="res://scenes/scenario_events/sanction_dignify.tscn" id="10_dig"]
+[ext_resource type="PackedScene" uid="uid://ceb4q04pege4g" path="res://scenes/scenario_events/sanction_informant.tscn" id="11_inf"]
+[ext_resource type="PackedScene" path="res://scenes/scenario_events/sanction_stub.tscn" id="12_stub"]
+[ext_resource type="PackedScene" uid="uid://c0rdnambush02" path="res://scenes/scenario_events/sanction_ambush_2.tscn" id="13_a2"]
+[ext_resource type="PackedScene" uid="uid://c0rdnambush03" path="res://scenes/scenario_events/sanction_ambush_3.tscn" id="14_a3"]
+[ext_resource type="PackedScene" uid="uid://cd6aja7krsk4h" path="res://scenes/scenario_events/sanction_informant_2.tscn" id="15_i2"]
+[ext_resource type="PackedScene" uid="uid://cd6aja7krsk4i" path="res://scenes/scenario_events/sanction_informant_3.tscn" id="16_i3"]
+[ext_resource type="PackedScene" uid="uid://0ksp1pawf0to" path="res://scenes/scenario_events/sanction_overcharge.tscn" id="17_ov"]
+[ext_resource type="PackedScene" uid="uid://c0rdglobemp01" path="res://scenes/scenario_events/sanction_global_emp.tscn" id="18_ge"]
+[ext_resource type="PackedScene" uid="uid://cebbvfppssk4g" path="res://scenes/scenario_events/sanction_mortar_1.tscn" id="19_m1"]
+[ext_resource type="PackedScene" uid="uid://cebbvfpptsk4g" path="res://scenes/scenario_events/sanction_mortar_2.tscn" id="19_m2"]
+[ext_resource type="PackedScene" uid="uid://cebbvfppusk4g" path="res://scenes/scenario_events/sanction_mortar_3.tscn" id="19_m3"]
+[ext_resource type="PackedScene" path="res://scenes/factions/formations/wedge_4.tscn" id="99_form"]
 
-[sub_resource type="Resource" id="Ordnance_ambush"]
+[sub_resource type="Resource" id="Sanction_dignify"]
 script = ExtResource("3_ord")
-ordnance_name = "Ambush"
-event_scene = ExtResource("4_amb")
-targeting = 1
-metadata/_custom_type_script = "uid://cteoy2vx2l533"
-
-[sub_resource type="Resource" id="Unlock_ambush"]
-script = ExtResource("6_unlock")
-ordnance = SubResource("Ordnance_ambush")
-dominion_cost = 250
-metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
-
-[sub_resource type="Resource" id="Ordnance_irradiate"]
-script = ExtResource("3_ord")
-ordnance_name = "Irradiate"
-event_scene = ExtResource("5_irr")
-metadata/_custom_type_script = "uid://cteoy2vx2l533"
-
-[sub_resource type="Resource" id="Unlock_irradiate"]
-script = ExtResource("6_unlock")
-ordnance = SubResource("Ordnance_irradiate")
-dominion_cost = 750
-prerequisites = Array[ExtResource("6_unlock")]([SubResource("Unlock_ambush")])
-metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
-
-[sub_resource type="Resource" id="Ordnance_dignify"]
-script = ExtResource("3_ord")
-ordnance_name = "Dignify"
+sanction_name = "Dignify"
+description = "Promotes a clicked Irregular into a Warlord, keeping the veterancy it has already earned."
 cooldown_duration = 30.0
 event_scene = ExtResource("10_dig")
 targeting = 1
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "A transformation, not a purchase: the Irregular is consumed and the Warlord stands\nin its place at the same spot, carrying its rank across.\n\nIts STANDING ORDERS come across too, as far as the new piece can carry them. The\nqueue is walked and truncated at the first command a Warlord cannot perform — a\nWarlord cannot build, so an Irregular told to raise a redoubt and then hold a hill\nkeeps neither order, since the second was given expecting the first to have happened."
+ability_id = &"dignify"
+ability_level = 1
 
 [sub_resource type="Resource" id="Unlock_dignify"]
 script = ExtResource("6_unlock")
-ordnance = SubResource("Ordnance_dignify")
+sanction = SubResource("Sanction_dignify")
+tier = 0
+column = 0
 dominion_cost = 100
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
-[sub_resource type="Resource" id="Ordnance_informant"]
+[sub_resource type="Resource" id="Sanction_ambush1"]
 script = ExtResource("3_ord")
-ordnance_name = "Informant"
+sanction_name = "Ambush 1"
+description = "Drops 4 × Irregular at the target point. Use it to reinforce a failing defence, or to open a second front behind the enemy line."
+event_scene = ExtResource("4_amb")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "The Anarchists' bodies-anywhere sanction. The squad arrives under your control and\nis yours to keep."
+cooldown_duration = 60.0
+ability_id = &"ambush"
+ability_level = 1
+
+[sub_resource type="Resource" id="Unlock_ambush1"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_ambush1")
+tier = 1
+column = 0
+dominion_cost = 250
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_ambush2"]
+script = ExtResource("3_ord")
+sanction_name = "Ambush 2"
+description = "Drops 8 × Irregular at the target point, replacing Ambush 1."
+event_scene = ExtResource("13_a2")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "Twice the squad for the same click. Replaces Ambush 1 outright."
+cooldown_duration = 60.0
+ability_id = &"ambush"
+ability_level = 2
+
+[sub_resource type="Resource" id="Unlock_ambush2"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_ambush2")
+tier = 2
+column = 0
+parent = SubResource("Unlock_ambush1")
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_ambush3"]
+script = ExtResource("3_ord")
+sanction_name = "Ambush 3"
+description = "Drops 16 × Irregular at the target point, replacing Ambush 2."
+event_scene = ExtResource("14_a3")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "A full war band dropped in one go — enough to decide an engagement outright, which\nis what the bottom of the Ambush column is for."
+cooldown_duration = 60.0
+ability_id = &"ambush"
+ability_level = 3
+
+[sub_resource type="Resource" id="Unlock_ambush3"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_ambush3")
+tier = 3
+column = 0
+parent = SubResource("Unlock_ambush2")
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_informant1"]
+script = ExtResource("3_ord")
+sanction_name = "Informant 1"
+description = "Grants a clicked Irregular permanent stealth, letting it move unseen until it attacks."
 cooldown_duration = 30.0
 event_scene = ExtResource("11_inf")
 targeting = 1
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "Stealth is permanent once granted — it is a property of the unit from then on, not\na timed effect. The unit is revealed while it is inside an enemy detector's range,\nand forced fully visible for a few seconds after it attacks or is attacked."
+ability_id = &"informant"
+ability_level = 1
 
-[sub_resource type="Resource" id="Unlock_informant"]
+[sub_resource type="Resource" id="Unlock_informant1"]
 script = ExtResource("6_unlock")
-ordnance = SubResource("Ordnance_informant")
+sanction = SubResource("Sanction_informant1")
+tier = 0
+column = 1
 dominion_cost = 100
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_informant2"]
+script = ExtResource("3_ord")
+sanction_name = "Informant 2"
+description = "Grants permanent stealth to any clicked friendly biological unit, replacing Informant 1."
+event_scene = ExtResource("15_i2")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "The same grant, now aimable at any of your biological units rather than Irregulars alone."
+cooldown_duration = 30.0
+ability_id = &"informant"
+ability_level = 2
+
+[sub_resource type="Resource" id="Unlock_informant2"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_informant2")
+tier = 1
+column = 1
+parent = SubResource("Unlock_informant1")
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_informant3"]
+script = ExtResource("3_ord")
+sanction_name = "Informant 3"
+description = "Grants permanent stealth to any clicked friendly unit, replacing Informant 2."
+event_scene = ExtResource("16_i3")
+targeting = 1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "Any unit you own, machines included."
+cooldown_duration = 30.0
+ability_id = &"informant"
+ability_level = 3
+
+[sub_resource type="Resource" id="Unlock_informant3"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_informant3")
+tier = 2
+column = 1
+parent = SubResource("Unlock_informant2")
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_scavenge1"]
+script = ExtResource("3_ord")
+sanction_name = "Scavenge 1"
+description = "Every enemy unit or structure you destroy pays back 10% of its build cost in energy. Always on once unlocked — there is nothing to deploy."
+passive = true
+kill_bounty_fraction = 0.1
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "A STANDING benefit rather than a sanction you fire: unlocking it is the whole\nthing. It never appears on the deploy bar and has no cooldown.\n\nThe bounty is paid to whoever landed the killing blow, so it cannot be earned from\nyour own losses, from a unit that starves, or from one scuttled deliberately."
+ability_id = &"scavenge"
+ability_level = 1
+
+[sub_resource type="Resource" id="Unlock_scavenge1"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_scavenge1")
+tier = 0
+column = 2
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_scavenge2"]
+script = ExtResource("3_ord")
+sanction_name = "Scavenge 2"
+description = "Every enemy kill pays back 20% of its build cost in energy, replacing Scavenge 1. Always on once unlocked."
+passive = true
+kill_bounty_fraction = 0.2
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "Replaces Scavenge 1 rather than adding to it — the rate becomes 20%, not 30%."
+ability_id = &"scavenge"
+ability_level = 2
+
+[sub_resource type="Resource" id="Unlock_scavenge2"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_scavenge2")
+tier = 1
+column = 2
+parent = SubResource("Unlock_scavenge1")
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_scavenge3"]
+script = ExtResource("3_ord")
+sanction_name = "Scavenge 3"
+description = "Every enemy kill pays back 30% of its build cost in energy, replacing Scavenge 2. Always on once unlocked."
+passive = true
+kill_bounty_fraction = 0.3
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "The full expression of the faction''s scavenging theme: a third of everything you destroy comes back as energy."
+ability_id = &"scavenge"
+ability_level = 3
+
+[sub_resource type="Resource" id="Unlock_scavenge3"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_scavenge3")
+tier = 2
+column = 2
+parent = SubResource("Unlock_scavenge2")
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_overcharge"]
+script = ExtResource("3_ord")
+sanction_name = "Overcharge"
+description = "Dumps a huge surge into a single DISABLED unit. It can only be aimed at something already stunned — pair it with Global EMP."
+event_scene = ExtResource("17_ov")
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "Worth nothing on its own and decisive after Global EMP: being disabled is a\nrequirement of the TARGET, not a damage bonus, so a click that finds no stunned\nunit does nothing at all.\n\nAny hard stun qualifies, including a Colonial cryogenic freeze — a frozen unit is\nexactly as helpless as an EMPed one.\n\nThe damage is flat rather than a share of the target's health. The pairing already\nguarantees the target cannot escape, so scaling it to size would make the\ncombination an unconditional kill on anything."
+cooldown_duration = 60.0
+ability_id = &"overcharge"
+ability_level = 1
+
+[sub_resource type="Resource" id="Unlock_overcharge"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_overcharge")
+tier = 3
+column = 2
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_global_emp"]
+script = ExtResource("3_ord")
+sanction_name = "Global EMP"
+description = "Stuns every machine on the map for five seconds — yours included. Your infantry does not care, which is the point."
+needs_target = false
+needs_vision = false
+event_scene = ExtResource("18_ge")
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "Fires the moment you press it: there is nowhere to point a map-wide effect, so it\nis never armed and never waits on a click.\n\nIt catches YOUR machines too. That asymmetry is the mechanic rather than an\noversight — an EMP only takes hold on a mechanical frame, and the Anarchists field\ninfantry, so they pay almost nothing to fire it while a vehicle-heavy opponent\nstops dead. Sparing your own vehicles would erase the only real cost of fielding\nthem as this faction."
+cooldown_duration = 60.0
+ability_id = &"global_emp"
+ability_level = 1
+
+[sub_resource type="Resource" id="Unlock_global_emp"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_global_emp")
+tier = 4
+column = 2
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_mortar1"]
+script = ExtResource("3_ord")
+sanction_name = "Mortar 1"
+description = "Four shells lob in from off the map onto the target point."
+event_scene = ExtResource("19_m1")
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "Called in rather than fired: the shells come over the map edge nearest the\nDistress Signal that called them, so where you build the caster decides which\nside the barrage arrives from.\nThe muzzles are scattered; the aim is not. Every shell converges on the point\nyou clicked."
+cooldown_duration = 60.0
+ability_id = &"mortar"
+ability_level = 1
+
+[sub_resource type="Resource" id="Unlock_mortar1"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_mortar1")
+tier = 1
+column = 3
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_mortar2"]
+script = ExtResource("3_ord")
+sanction_name = "Mortar 2"
+description = "Eight shells lob in from off the map onto the target point, replacing Mortar 1."
+event_scene = ExtResource("19_m2")
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "Twice the barrage, same arrival and same aim point. Replaces Mortar 1 outright —\na column is one sanction you improve, not a growing collection."
+cooldown_duration = 60.0
+ability_id = &"mortar"
+ability_level = 2
+
+[sub_resource type="Resource" id="Unlock_mortar2"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_mortar2")
+tier = 2
+column = 3
+parent = SubResource("Unlock_mortar1")
+dominion_cost = 500
+metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
+
+[sub_resource type="Resource" id="Sanction_mortar3"]
+script = ExtResource("3_ord")
+sanction_name = "Mortar 3"
+description = "Sixteen shells lob in from off the map onto the target point, replacing Mortar 2."
+event_scene = ExtResource("19_m3")
+metadata/_custom_type_script = "uid://cteoy2vx2l533"
+verbose_description = "The heaviest barrage the Anarchists can call down, and the reason to take the\nMortar column to its end."
+cooldown_duration = 60.0
+ability_id = &"mortar"
+ability_level = 3
+
+[sub_resource type="Resource" id="Unlock_mortar3"]
+script = ExtResource("6_unlock")
+sanction = SubResource("Sanction_mortar3")
+tier = 3
+column = 3
+parent = SubResource("Unlock_mortar2")
+dominion_cost = 500
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [node name="Anarchical" type="Node" unique_id=1805763819]
 script = ExtResource("1_fac")
 faction_name = "Anarchists"
-starting_structure = ExtResource("2_strgh")
+infrastructure_source = &"an_infrastructure"
 starting_units = Array[PackedScene]([ExtResource("7_war"), ExtResource("8_irr"), ExtResource("8_irr"), ExtResource("8_irr")])
-ordnance_unlocks = Array[ExtResource("6_unlock")]([SubResource("Unlock_ambush"), SubResource("Unlock_irradiate"), SubResource("Unlock_dignify"), SubResource("Unlock_informant")])
+starting_formation = ExtResource("99_form")
+sanction_unlocks = Array[ExtResource("6_unlock")]([SubResource("Unlock_dignify"), SubResource("Unlock_ambush1"), SubResource("Unlock_ambush2"), SubResource("Unlock_ambush3"), SubResource("Unlock_informant1"), SubResource("Unlock_informant2"), SubResource("Unlock_informant3"), SubResource("Unlock_scavenge1"), SubResource("Unlock_scavenge2"), SubResource("Unlock_scavenge3"), SubResource("Unlock_overcharge"), SubResource("Unlock_global_emp"), SubResource("Unlock_mortar1"), SubResource("Unlock_mortar2"), SubResource("Unlock_mortar3")])
 
 [node name="DominionGeneration" type="Node" parent="." unique_id=702650420]
 script = ExtResource("9_1xmxo")

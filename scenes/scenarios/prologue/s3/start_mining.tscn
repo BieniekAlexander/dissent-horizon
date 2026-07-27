@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bldfumiwhpe24"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_kpy4q"]
+
+[node name="Dialog" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_kpy4q")
+title = "Base Building"
+body = "You won't make it very far in a skirmish without some structure. This scenario guides you through how to establish and develop your base of operations.
+
+In addition to fighting, irregulars are capable of building structures for your base of operations. To start, select an irregular, open the build menu on the bottom left, select an extractor, and place it on an extraction site to collect more energy.
+
+The extraction sites are the very large cones lmao"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

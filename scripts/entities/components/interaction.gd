@@ -11,54 +11,40 @@ extends Resource
 ## Held in an [Interactor]'s `interactions` list.
 
 #region Types
+## Values are stated explicitly: an Interaction's `type` is stored in authored scenes as a
+## NUMBER, so a member removed from the middle would silently re-point every one of them.
+## (Removing ABDUCT — abduction became a crush, see Garrison.can_capture — cost exactly that
+## renumbering, done by hand across three scenes.)
 enum Type {
-	## Liberate a Shelter: spawns the `event` units into the world under the actor's
-	## commander, then resets the shelter. Applicable to any target with a Shelter.
-	LIBERATE,
-	## Abduct an enemy biological unit: on arrival the target is removed from the
-	## game and stored in the actor's Inventory. Applicable to an enemy "infantry"
-	## (biological-frame, non-structure) unit when the actor has free inventory space.
-	ABDUCT,
-	## Collect units from a ready Shelter into the actor's Inventory (rather than
-	## spawning them into the world like LIBERATE). Puts up to `payload_count`
-	## instances of `payload_scene` into the inventory, then resets the shelter.
-	COLLECT,
-	## Deposit the actor's carried units into the target's Inventory (e.g. an
-	## internment camp). Applicable when the actor holds units and the target is a
-	## structure with inventory space. Transfers as many as fit (partial allowed).
-	DEPOSIT,
-	## Plant a bomb on an enemy METALLIC-frame target. On completion a `projectile_scene`
-	## is spawned at the target's position and detonates there. Applicable to any enemy
-	## Entity whose Defense frame_type is METALLIC.
-	PLANT,
+	## Hand the actor's captives over to the target's [Garrison] (e.g. a Compound), which
+	## SENTENCES each one as it takes it (see Garrison.deposit_from). Applicable when the
+	## actor holds occupants and the target is a structure whose garrison sentences its
+	## occupants — i.e. names a positive `sentence_length` — and has room. Transfers as many
+	## as fit (partial allowed).
+	DEPOSIT = 0,
+	# 1 was PLANT, retired for the Plant ability (planted-explosives.md). Left unused rather
+	# than reused, for the renumbering reason above.
+	## Take a MECH-frame UNIT over: on completion the target changes ownership to the
+	## actor's commander and the ACTOR is expended (see Interact._hijack). Applicable to a
+	## non-friendly, MECH-frame, non-structure Commandable.
+	##
+	## Deliberately units-only: a building changing hands
+	## is Capture's job, and it has completely different bookkeeping (structure registry,
+	## infrastructure, grid). Non-friendly rather than enemy-only — a derelict
+	## neutral vehicle is a legitimate prize.
+	HIJACK = 2,
 }
 
 ## How an interaction's duration is derived (see required_ticks):
 ## - CONSTANT: a fixed `duration` (in seconds).
 ## - BY_HP: proportional to the target's current hp — a tougher target takes longer
-##   to work on (e.g. rigging a bomb to a bigger structure).
+##   to work on (e.g. taking over a bigger vehicle).
 enum DurationType { CONSTANT = 0, BY_HP = 1 }
 #endregion
 
 #region Properties
 ## Which interaction this is; selects the evaluation function (see _evaluators).
-@export var type: Interaction.Type = Interaction.Type.LIBERATE
-
-## Scene performed when a LIBERATE interaction completes. A spawned Entity is placed
-## via Map.add_entity (nearest navmesh point, under the actor's commander); other
-## scenes are added to the active scene and, if a Event, executed. Unused by the
-## inventory-based interaction types (ABDUCT/COLLECT/DEPOSIT).
-@export var event: PackedScene
-
-## For COLLECT: the unit scene instanced into the actor's Inventory on completion.
-@export var payload_scene: PackedScene
-
-## For COLLECT: how many `payload_scene` instances to produce (clamped to the actor's
-## remaining inventory space).
-@export var payload_count: int = 1
-
-## For PLANT: the Projectile scene spawned at the target's position on completion.
-@export var projectile_scene: PackedScene
+@export var type: Interaction.Type = Interaction.Type.DEPOSIT
 
 ## How this interaction's duration is derived. CONSTANT uses `duration` directly;
 ## BY_HP scales with the target's current hp (see required_ticks).
@@ -77,9 +63,9 @@ enum DurationType { CONSTANT = 0, BY_HP = 1 }
 ## shape. Replaces the former scalar `interact_range`, so reach can be non-circular and
 ## have vertical extent (a Cylinder height=5 radius=r reproduces the old radius-r reach
 ## while also tolerating a height gap). Null = the default near-touch contact. Matters
-## for unit targets (e.g. ABDUCT): RVO avoidance keeps units apart, so a touch-only reach
-## makes a carrier chase a mobile target forever — give capture a shape with some radius
-## so it can grab without colliding. Ignored for structure targets, which use footprint
+## for unit targets (e.g. HIJACK): RVO avoidance keeps units apart, so a touch-only reach
+## makes a mobile target impossible to catch — give such an interaction a shape with some
+## radius so it can be performed without colliding. Ignored for structure targets, which use footprint
 ## adjacency regardless.
 @export var interact_shape: Shape3D
 #endregion
@@ -87,9 +73,9 @@ enum DurationType { CONSTANT = 0, BY_HP = 1 }
 #region Stagger
 ## Interaction types whose completion is suppressed while the actor is staggered
 ## (recently damaged): the actor moves into range but waits until the stagger wears off.
-## Types not listed (e.g. ABDUCT, COLLECT, DEPOSIT) proceed regardless. Consulted by
+## Types not listed (DEPOSIT) proceed regardless. Consulted by
 ## Interact.blocked_by_stagger via the resolved interaction.
-const _STAGGER_BLOCKED_TYPES: Array[Type] = [Type.LIBERATE, Type.PLANT]
+const _STAGGER_BLOCKED_TYPES: Array[Type] = [Type.HIJACK]
 
 ## Whether this interaction's completion is blocked while the actor is staggered.
 func blocks_while_staggered() -> bool:
@@ -97,10 +83,10 @@ func blocks_while_staggered() -> bool:
 #endregion
 
 #region Helpers
-## The Inventory component on `target`, or null. The deposit target (e.g. an
-## internment camp) receives carried units into this.
-static func target_inventory(target: Node) -> Inventory:
-	return target.get_node_or_null("Inventory") as Inventory if target != null else null
+## The Garrison component on `target`, or null. The deposit target (e.g. a
+## Compound) interns the carrier's captives into this.
+static func target_garrison(target: Node) -> Garrison:
+	return target.get_node_or_null("Garrison") as Garrison if target != null else null
 
 ## Physics ticks the actor must remain interacting before this interaction completes,
 ## resolved against duration_type:
@@ -122,51 +108,38 @@ static var _evaluators: Dictionary
 
 static func _build_evaluators() -> Dictionary:
 	return {
-		Type.LIBERATE: func(_a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
-			return MoveCommand.PreconditionFailureCause.NONE \
-				if is_instance_valid(a_message.target) and a_message.target.has_node("Shelter") \
-				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
-
-		# Enemy "infantry" = a biological-frame, non-structure unit owned by an enemy.
-		Type.ABDUCT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
-			return MoveCommand.PreconditionFailureCause.NONE \
-				if is_instance_valid(a_message.target) and a_message.target is Entity \
-					and a_actor.is_enemy_of(a_message.target) \
-					and not a_message.target.has_node("Structure") \
-					and EntityAttribute.evaluate(EntityAttribute.Type.IS_BIOLOGICAL, a_message.target) \
-					and a_message.target.defense.armour_type == Defense.ArmourType.LIGHT \
-					and a_actor.ability_inventory != null and a_actor.ability_inventory.can_hold_more() \
-				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
-
-		Type.COLLECT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
-			return MoveCommand.PreconditionFailureCause.NONE \
-				if is_instance_valid(a_message.target) and a_message.target.has_node("Shelter") \
-					and a_actor.ability_inventory != null and a_actor.ability_inventory.can_hold_more() \
-				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
-
-		# Deposit into any structure that has inventory space, when we carry units.
+		# Deposit into a structure whose garrison SENTENCES its occupants — one that names a
+		# positive sentence_length (Garrison.can_intern) — when we are holding captives and
+		# it has room. That is what marks a prison (a Compound) apart from an ordinary
+		# garrison; prisoners are not dropped off in a safehouse.
 		Type.DEPOSIT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
 			return MoveCommand.PreconditionFailureCause.NONE \
-				if is_instance_valid(a_message.target) and a_message.target.has_node("Structure") \
-					and a_actor.ability_inventory != null and a_actor.ability_inventory.has_items() \
-					and target_inventory(a_message.target) != null \
-					and target_inventory(a_message.target).can_hold_more() \
+				if is_instance_valid(a_message.target) and a_message.target.structure_is_active() \
+					and a_actor.garrison != null and a_actor.garrison.garrisoned_count() > 0 \
+					and target_garrison(a_message.target) != null \
+					and target_garrison(a_message.target).can_intern() \
 				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
 
-		# Plant a bomb on an enemy METALLIC-frame target (unit or structure).
-		Type.PLANT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
+		# Take over a MECH-frame UNIT. Non-friendly (so neutral vehicles qualify too) and
+		# non-structure, mirroring the capture rule the Stock Truck runs on, with the frame axis
+		# flipped: a capture takes the crew, HIJACK takes the machine. Structures are excluded
+		# outright; a building changing hands is Capture, which has its own registry / infrastructure /
+		# grid bookkeeping.
+		Type.HIJACK: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
 			return MoveCommand.PreconditionFailureCause.NONE \
-				if is_instance_valid(a_message.target) and a_message.target is Entity \
-					and a_actor.is_enemy_of(a_message.target) \
+				if is_instance_valid(a_message.target) and a_message.target is Commandable \
+					and not a_message.target.is_friendly_to(a_actor) \
+					and not a_message.target.structure_is_active() \
+					and PlantedCharge.of(a_message.target) == null \
 					and a_message.target.defense != null \
-					and a_message.target.defense.frame_type == Defense.FrameType.METALLIC \
+					and a_message.target.defense.frame_type == Defense.FrameType.MECH \
 				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
 	}
 
-static func _evaluator_for(a_type: Interaction.Type) -> Callable:
+static func _evaluator_for(type: Interaction.Type) -> Callable:
 	if _evaluators.is_empty():
 		_evaluators = _build_evaluators()
-	return _evaluators[a_type]
+	return _evaluators[type]
 
 ## Evaluate this interaction's applicability for the given actor/message, using
 ## the function mapped to its `type`.

@@ -15,12 +15,12 @@ radius = 15.0
 hp_max = 12000.0
 armour_type = 0
 
-[node name="Movement" parent="." index="8"]
+[node name="Locomotion" parent="." index="8"]
 speed = 0.04
 
 [node name="LazerWeapon" type="Node3D" parent="Loadout" index="0"]
-split_time = 40
-reload_time = 40
+split_time_ticks = 40
+reload_time_ticks = 40
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/LazerWeapon" index="0"]
 shape = SubResource("Sphere_1")
@@ -48,8 +48,8 @@ def test_edits_defense_hp_in_place():
 
 
 def test_edits_weapon_property():
-    ok, _, out = _apply(SAMPLE, _edit(("weapon", "LazerWeapon"), "split_time", "30"))
-    assert ok and "split_time = 30\n" in out
+    ok, _, out = _apply(SAMPLE, _edit(("weapon", "LazerWeapon"), "split_time_ticks", "30"))
+    assert ok and "split_time_ticks = 30\n" in out
 
 
 def test_edits_reach_via_subresource():
@@ -106,7 +106,7 @@ radius = 1.0
 
 [node name="Unit" unique_id=111 instance=ExtResource("1_b")]
 
-[node name="Movement" parent="." index="7"]
+[node name="Locomotion" parent="." index="7"]
 speed = 0.05
 """
 
@@ -126,13 +126,13 @@ def test_synthesises_inherited_override(tmp_path, monkeypatch):
     assert "index=" not in out.split("Defense")[1].split("\n")[0]
     # inserted after the root block, before the first override — not in subresources
     assert out.index('name="Defense"') > out.index('name="Unit"')
-    assert out.index('name="Defense"') < out.index('name="Movement"')
+    assert out.index('name="Defense"') < out.index('name="Locomotion"')
     assert out.index('name="Defense"') > out.index("SphereShape3D")
 
 
 def test_synthesised_override_drops_uid_when_base_has_none(tmp_path, monkeypatch):
     # A node first defined in an intermediate scene without a unique_id (like
-    # unit.tscn's Movement) must be synthesised without one too.
+    # a unit's Locomotion) must be synthesised without one too.
     monkeypatch.setattr(importer, "PROJECT_ROOT", tmp_path)
     base = BASE.replace(" unique_id=637704181", "").replace("Defense", "Garrison")
     (tmp_path / "base.tscn").write_text(base)
@@ -174,7 +174,7 @@ def test_plan_routes_fields_correctly(world):
 
 
 TSV_ARMOUR = (
-    "damage_type\tLIGHT\tMEDIUM\tHEAVY\n"
+    "damage_type\tLIGHT\tMEDIUM\tSTRONG\n"
     "LEAD\t1.0\t0.5\t0.1\n"
     "LAZER\t0.25\t0.75\t1.5\n"
 )
@@ -193,18 +193,18 @@ def test_diff_detects_damage_table_change(tmp_path, fixture_dir):
     shutil.copytree(fixture_dir, dst)
     dt = dst / "damage_table.yaml"
     raw = yaml.safe_load(dt.read_text())
-    raw["vs_armour"]["LEAD"]["HEAVY"] = 0.2
+    raw["vs_armour"]["LEAD"]["STRONG"] = 0.2
     dt.write_text(yaml.safe_dump(raw))
     changes, _, _ = importer.diff_worlds(load_world(fixture_dir), load_world(dst))
-    hit = [c for c in changes if c.kind == "damage_vs_armour" and c.id == "LEAD" and c.field == "HEAVY"]
+    hit = [c for c in changes if c.kind == "damage_vs_armour" and c.id == "LEAD" and c.field == "STRONG"]
     assert len(hit) == 1 and hit[0].current == 0.1 and hit[0].desired == 0.2
 
 
 def test_apply_csv_writes_targeted_cell(tmp_path):
     tsv = tmp_path / "damage_vs_armour.tsv"
     tsv.write_text(TSV_ARMOUR)
-    ch = Change("damage_vs_armour", "LEAD", "HEAVY", 0.1, 0.2)
-    e = Edit(ch, "csv", "armour", None, "HEAVY", "0.2")
+    ch = Change("damage_vs_armour", "LEAD", "STRONG", 0.1, 0.2)
+    e = Edit(ch, "csv", "armour", None, "STRONG", "0.2")
     importer._apply_csv_edits(tsv, [e], dry_run=False)
     out = tsv.read_text()
     assert e.applied
@@ -215,10 +215,10 @@ def test_apply_csv_writes_targeted_cell(tmp_path):
 def test_frame_change_routes_to_scene_frame_type(world):
     w = world
     ch = Change("buildable", "iron_regime:heavy_tank", "frame",
-                "BIOLOGICAL", "METALLIC", "res://t.tscn")
+                "BIO", "MECH", "res://t.tscn")
     e = importer.plan([ch], w)[0]
     assert e.scope == "scene" and e.locator == ("node", "Defense")
-    assert e.prop == "frame_type" and e.value == "1"   # METALLIC -> 1
+    assert e.prop == "frame_type" and e.value == "1"   # MECH -> 1
 
 
 def test_appends_frame_type_into_existing_defense_block():

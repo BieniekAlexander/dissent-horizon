@@ -1,9 +1,17 @@
-[gd_scene load_steps=2 format=3 uid="uid://cf688bar1du8t"]
+[gd_scene load_steps=3 format=3 uid="uid://cf688bar1du8t"]
 
 [ext_resource type="Script" uid="uid://wkvrnrs4ionh" path="res://scripts/entities/effects/damage_over_time_status_effect.gd" id="1_dot"]
+[ext_resource type="Texture2D" uid="uid://s3qko3mqr3ce" path="res://assets/interface/status_burn.svg" id="2_burn"]
 
 [node name="LazerBurn" type="Node"]
 script = ExtResource("1_dot")
-damage_per_tick = 20.0
+title = "Burning"
+description = "Losing hit points every tick until it goes out."
+valence = 2
+verbose = "Damage over time rather than on impact: the shot has already landed, and this is the wound continuing to cost.\nIt cannot kill through repair — a mender out-heals it — so its real use is against something that has to keep running rather than something standing next to a Kobold."
 duration_ticks = 100
+host_tint = Color(1, 0.88, 0.8, 1)
+indicator_icon = ExtResource("2_burn")
+indicator_blink_hz = 4.0
+damage_per_tick = 20.0
 metadata/_custom_type_script = "uid://wkvrnrs4ionh"

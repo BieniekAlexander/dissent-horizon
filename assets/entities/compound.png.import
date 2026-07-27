@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bm3tdpihnqyb"
 path.s3tc="res://.godot/imported/compound.png-94e568b140893699e4f29b6de0e40bfc.s3tc.ctex"
+path.etc2="res://.godot/imported/compound.png-94e568b140893699e4f29b6de0e40bfc.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/compound.png"
-dest_files=["res://.godot/imported/compound.png-94e568b140893699e4f29b6de0e40bfc.s3tc.ctex"]
+dest_files=["res://.godot/imported/compound.png-94e568b140893699e4f29b6de0e40bfc.s3tc.ctex", "res://.godot/imported/compound.png-94e568b140893699e4f29b6de0e40bfc.etc2.ctex"]
 
 [params]
 

@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://cprchtenpy001"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_canopy"]
+radius = 0.85
+height = 0.85
+radial_segments = 12
+rings = 4
+is_hemisphere = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_canopy"]
+cull_mode = 2
+albedo_color = Color(0.878431, 0.858824, 0.792157, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_shrouds"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 1.0
+radial_segments = 6
+rings = 0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shrouds"]
+albedo_color = Color(0.298039, 0.290196, 0.262745, 1)
+
+[node name="Parachute" type="Node3D"]
+
+[node name="Shrouds" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("CylinderMesh_shrouds")
+surface_material_override/0 = SubResource("StandardMaterial3D_shrouds")
+
+[node name="Canopy" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("SphereMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")

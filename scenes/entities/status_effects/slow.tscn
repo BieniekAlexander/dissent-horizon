@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://c1slow000001"]
+
+[ext_resource type="Script" uid="uid://83ey47kt08oq" path="res://scripts/entities/effects/slow_status_effect.gd" id="1_sl"]
+[ext_resource type="Texture2D" uid="uid://csq5qva4huag8" path="res://assets/interface/status_slow.svg" id="2_hg"]
+
+[node name="Slow" type="Node"]
+script = ExtResource("1_sl")
+title = "Slowed"
+description = "Moving at a fraction of its usual speed."
+valence = 2
+verbose = "Movement only: a slowed piece shoots, builds and defends itself exactly as before, it simply cannot get anywhere.\nAgainst a retreating group it is worth more than damage — nothing it does not kill escapes either."
+duration_ticks = 90
+indicator_icon = ExtResource("2_hg")
+slow_multiplier = 0.5
+metadata/_custom_type_script = "uid://83ey47kt08oq"

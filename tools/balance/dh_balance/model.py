@@ -15,37 +15,75 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 
-# Godot's Engine.physics_ticks_per_second. Cadence/durations are authored in
-# ticks. The game sets this to 30 (project.godot: physics/common/
-# physics_ticks_per_second=30). NOTE: it cancels in every ratio-based query
-# (exchange_cost, Pareto), so it only affects absolute shots/sec and a future
-# real-time army sim — keep it in sync with project.godot regardless.
-PHYSICS_TICKS_PER_SECOND = 30.0
+# tools/balance/dh_balance/model.py -> the repository root.
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _physics_ticks_per_second() -> float:
+    """Godot's ``Engine.physics_ticks_per_second``, READ FROM ``project.godot``.
+
+    Derived rather than typed: this is the same factor ``TimeUtils.ticks_per_second``
+    expresses in-engine, and a second hardcoded copy is exactly the failure mode the
+    project's unit rule names — the engine adapts to a changed physics rate and the copy
+    silently corrupts everything expressed in it. Out of process there is no ``Engine``,
+    so the project file is the source.
+
+    It cancels in every ratio-based query (exchange_cost, Pareto), so it affects only
+    absolute shots/sec and a future real-time army sim — which is precisely why a wrong
+    value here would go unnoticed.
+    """
+    settings = _PROJECT_ROOT / "project.godot"
+    for line in settings.read_text(encoding="utf-8").splitlines():
+        if line.startswith("common/physics_ticks_per_second="):
+            return float(line.split("=", 1)[1])
+    raise RuntimeError(
+        "project.godot names no physics/common/physics_ticks_per_second")
+
+
+PHYSICS_TICKS_PER_SECOND = _physics_ticks_per_second()
 
 
 class Armour(str, Enum):
     LIGHT = "LIGHT"
     MEDIUM = "MEDIUM"
-    HEAVY = "HEAVY"
+    STRONG = "STRONG"
 
 
 class Frame(str, Enum):
     """Chassis material — a second damage axis alongside Armour (mirrors
     Defense.FrameType in-game)."""
-    BIOLOGICAL = "BIOLOGICAL"
-    METALLIC = "METALLIC"
+    BIO = "BIO"
+    MECH = "MECH"
 
 
 class DamageType(str, Enum):
+    """Mirrors ``Damage.Type`` (scripts/entities/tools/damage.gd) BY NAME.
+
+    Written out rather than generated so the names are greppable and type
+    checkers can see them — but it is a mirror, and mirrors drift: this one
+    lagged the engine by three members (INCENDIARY, HIGH_EXPLOSIVE, CRYO), which
+    surfaced as a hard ``ValueError`` out of the loader the first time a doc used
+    one, taking the mermaid tech-graph down with it. ``tests/test_damage_types``
+    now parses the engine enum and fails if the two disagree, so the next member
+    added in Godot is caught here rather than at the next unlucky import.
+
+    UNDEFINED is the enum's zero and appears in no catalog; it is listed so the
+    mirror is complete.
+    """
+    UNDEFINED = "UNDEFINED"
     LEAD = "LEAD"
-    LAZER = "LAZER"
     TOXIC = "TOXIC"
+    SONIC = "SONIC"
     PLASMA = "PLASMA"
-    ELECTRIC = "ELECTRIC"
     SIEGE = "SIEGE"
     EXPLOSIVE = "EXPLOSIVE"
-    SONIC = "SONIC"
+    ELECTRIC = "ELECTRIC"
+    LAZER = "LAZER"
+    INCENDIARY = "INCENDIARY"
+    HIGH_EXPLOSIVE = "HIGH_EXPLOSIVE"
+    CRYO = "CRYO"
 
 
 class Layer(str, Enum):
@@ -138,6 +176,7 @@ class Buildable:
     cost: Cost
     requires: list[str] = field(default_factory=list)
     builds: list[str] = field(default_factory=list)   # structure ids this unit can construct
+    trains: list[str] = field(default_factory=list)   # unit ids this structure produces
 
     # unit-only combat fields (None/empty for non-combat structures)
     armour: Armour | None = None
@@ -196,6 +235,7 @@ class DamageTable:
         return self.vs_frame.get(dtype, {}).get(frame, 1.0)
 
     def attribute_multiplier(self, dtype: DamageType, attributes: list[str], layer: Layer | None) -> float:
+        """DEPRECATED: no longer applied by combat.damage_per_shot, matching the live game."""
         row = self.vs_attribute.get(dtype, {})
         if not row:
             return 1.0

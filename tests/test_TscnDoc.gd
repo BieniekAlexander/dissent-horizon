@@ -32,7 +32,7 @@ turn_rate = 1080.0
 script = ExtResource("2_load")
 
 [node name="Weapon" type="Node3D" parent="Loadout" index="0"]
-split_time = 45
+split_time_ticks = 45
 
 [node name="AttackRange" type="CollisionShape3D" parent="Loadout/Weapon" index="0"]
 disabled = true
@@ -157,7 +157,7 @@ func test_add_node_groups_under_parent_subtree() -> void:
 	var doc: RefCounted = _doc()
 	doc.add_node(
 		[["name", "Weapon2"], ["type", "Node3D"], ["parent", "Loadout"]],
-		{"split_time": "30"}
+		{"split_time_ticks": "30"}
 	)
 	var text: String = doc.to_text()
 	# New sibling lands after the existing Weapon subtree (incl. AttackRange).
@@ -174,6 +174,235 @@ func test_remove_node_removes_descendants() -> void:
 	assert_false(text.contains("[node name=\"AttackRange\""))
 	assert_string_contains(text, "[node name=\"Loadout\"")
 	assert_eq(TscnDoc.from_text(text).to_text(), text)
+
+
+## Removing a component must take its script entry with it. Godot LOADS every
+## [ext_resource], referenced or not, so an orphan left pointing at a script that is later
+## deleted makes the scene emit errors on every load — which is how eight scenes ended up
+## carrying a retired `SanctionCaster` reference nothing could resolve.
+func test_remove_node_prunes_the_ext_resource_it_orphaned() -> void:
+	var doc: RefCounted = _doc()
+	doc.remove_node("Loadout")
+	var text: String = doc.to_text()
+	assert_false(text.contains("loadout.gd"), "the component's script entry goes with it")
+	assert_string_contains(text, "load_steps=3", "and load_steps is corrected")
+	assert_eq(TscnDoc.from_text(text).to_text(), text)
+
+
+func test_pruning_spares_an_ext_resource_something_still_uses() -> void:
+	var doc: RefCounted = _doc()
+	doc.remove_node("Loadout")
+	var text: String = doc.to_text()
+	assert_string_contains(text, "unit.tscn", "the base scene is still instanced by the root")
+
+
+func test_removing_a_node_leaves_unrelated_ext_resources_alone() -> void:
+	# Only the removal's own orphans go. A node with no script entry of its own must not
+	# take anything with it.
+	var doc: RefCounted = _doc()
+	doc.remove_node("Movement")
+	var text: String = doc.to_text()
+	assert_string_contains(text, "loadout.gd")
+	assert_string_contains(text, "unit.tscn")
+
+
+# --------------------------------------------------------------------------- #
+# Removal is TOTAL — the step 0 contract
+# --------------------------------------------------------------------------- #
+## Composition makes removal routine: deleting a doc key deletes a node, on every run. That
+## turns "add, then remove, and the bytes come back" from a nicety into the property the
+## whole pass rests on — residue (an unread script entry, a shape nothing points at, a
+## stale load_steps) makes the NEXT add differ from the first, and the difference
+## compounds silently. These tests are that contract, per component shape the importer
+## creates. See gdd/systems/authoring/composition-rework.md §Step 0.
+
+## Add a component the way the importer does, remove it again, and the file must be the
+## bytes it started as. Parameterised over the shapes the importer actually creates: a
+## script-only Node, a Node3D component, and a CollisionShape3D that brings its own
+## sub_resource (which is most of them — every doc-governed radius is a shape).
+func test_removing_a_created_component_gives_the_bytes_back() -> void:
+	for name: String in ["Repairs", "Abilities", "DetectionRange"]:
+		var doc: RefCounted = _doc()
+		_add_component(doc, name)
+		doc.remove_node(name)
+		assert_eq(doc.to_text(), FIXTURE, "%s: add then remove left residue" % name)
+
+
+func test_add_remove_add_is_byte_identical() -> void:
+	for name: String in ["Repairs", "Abilities", "DetectionRange"]:
+		var once: RefCounted = _doc()
+		_add_component(once, name)
+		var twice: RefCounted = _doc()
+		_add_component(twice, name)
+		twice.remove_node(name)
+		var again: RefCounted = TscnDoc.from_text(twice.to_text())
+		_add_component(again, name)
+		assert_eq(again.to_text(), once.to_text(),
+			"%s: the second add must reproduce the first" % name)
+
+
+## The three creation shapes, spelled the way SpecSceneSync spells them.
+func _add_component(a_doc: RefCounted, a_name: String) -> void:
+	match a_name:
+		"DetectionRange":
+			var sid: String = a_doc.add_sub_resource("CylinderShape3D", "detection_range",
+				{"height": "100.0", "radius": "3.5"})
+			a_doc.add_node(
+				[["name", a_name], ["type", "CollisionShape3D"], ["parent", "."]],
+				{"disabled": "true", "shape": "SubResource(\"%s\")" % sid})
+		_:
+			var script_id: String = a_doc.ensure_ext_resource(
+				"Script", "res://scripts/entities/components/%s.gd" % a_name.to_snake_case())
+			a_doc.add_node(
+				[["name", a_name], ["type", "Node" if a_name == "Repairs" else "Node3D"],
+					["parent", "."]],
+				{"script": "ExtResource(\"%s\")" % script_id})
+
+
+func _with_repairs() -> RefCounted:
+	var doc: RefCounted = _doc()
+	var id: String = doc.ensure_ext_resource("Script", "res://scripts/entities/components/repairs.gd")
+	doc.add_node([["name", "Repairs"], ["type", "Node"], ["parent", "."]],
+		{"script": "ExtResource(\"%s\")" % id})
+	return doc
+
+
+## Every doc-governed SHAPE is a sub_resource, so a component that owns one is the common
+## case rather than the rare one. Leaving the shape behind was defensible while removal was
+## a bug fix on a rarely-taken path; under composition it is the residue that breaks the
+## identity above.
+func test_remove_node_prunes_the_sub_resource_it_orphaned() -> void:
+	var doc: RefCounted = _doc()
+	doc.remove_node("VisionRange")
+	var text: String = doc.to_text()
+	assert_false(text.contains("CylinderShape3D_vis"), "the node's own shape goes with it")
+	assert_string_contains(text, "load_steps=3", "and load_steps is corrected")
+	assert_eq(TscnDoc.from_text(text).to_text(), text)
+
+
+func test_pruning_spares_a_sub_resource_another_node_still_uses() -> void:
+	var doc: RefCounted = _doc()
+	doc.add_node([["name", "AggroRange"], ["type", "CollisionShape3D"], ["parent", "."]],
+		{"shape": "SubResource(\"CylinderShape3D_vis\")"})
+	doc.remove_node("VisionRange")
+	assert_string_contains(doc.to_text(), "CylinderShape3D_vis", "still referenced elsewhere")
+
+
+## Reachability is transitive: a mesh names its material, so a sub_resource can be live
+## purely because another live sub_resource points at it.
+func test_pruning_is_transitive_through_sub_resources() -> void:
+	const NESTED: String = """[gd_scene load_steps=3 format=3 uid="uid://nested001"]
+
+[sub_resource type="StandardMaterial3D" id="Material_a"]
+albedo_color = Color(1, 1, 1, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_a"]
+material = SubResource("Material_a")
+
+[node name="Root" type="Node3D"]
+
+[node name="Model" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_a")
+"""
+	var doc: RefCounted = TscnDoc.from_text(NESTED)
+	assert_eq(doc.to_text(), NESTED)
+	doc.remove_node("Model")
+	var text: String = doc.to_text()
+	assert_false(text.contains("Mesh_a"), "the mesh had one referrer")
+	assert_false(text.contains("Material_a"), "and so the material it named is unreachable too")
+	assert_false(text.contains("load_steps"),
+		"no resources left, so the count goes, as Godot writes a scene with none")
+
+
+func test_a_live_sub_resource_keeps_the_material_it_names() -> void:
+	const NESTED: String = """[gd_scene load_steps=3 format=3 uid="uid://nested002"]
+
+[sub_resource type="StandardMaterial3D" id="Material_a"]
+albedo_color = Color(1, 1, 1, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_a"]
+material = SubResource("Material_a")
+
+[node name="Root" type="Node3D"]
+
+[node name="Spare" type="Node3D" parent="."]
+
+[node name="Model" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_a")
+"""
+	var doc: RefCounted = TscnDoc.from_text(NESTED)
+	doc.remove_node("Spare")
+	var text: String = doc.to_text()
+	assert_string_contains(text, "Mesh_a", "the mesh still has a referrer")
+	assert_string_contains(text, "Material_a", "and so does the material it names")
+	assert_string_contains(text, "load_steps=3")
+
+
+## The acceptance criterion stated in the plan, as a standing check: nothing in the entity
+## roster points at a resource file that is not there. An orphan ext_resource is LOADED
+## anyway, so one left behind by a removal makes the scene error on every load once the
+## file it names is deleted.
+func test_no_entity_scene_references_a_missing_resource() -> void:
+	var dangling: Array = []
+	for path in _all_scene_paths(["res://scenes/entities", "res://scenes/factions"]):
+		var f: FileAccess = FileAccess.open(path, FileAccess.READ)
+		var doc: RefCounted = TscnDoc.from_text(f.get_as_text())
+		f.close()
+		for section in doc.sections_of("ext_resource"):
+			var res_path: String = section["attrs"].get("path", "")
+			if res_path != "" and not ResourceLoader.exists(res_path) \
+					and not FileAccess.file_exists(res_path):
+				dangling.append("%s -> %s" % [path, res_path])
+	assert_eq(dangling, [], "scenes pointing at resources that do not exist")
+
+
+## Removal has to survive the real roster, not just a fixture: pull each scene's own
+## root-level component nodes out one at a time and check the document still parses,
+## round-trips, and names no resource it no longer defines.
+func test_removing_any_component_from_any_roster_scene_leaves_no_dangling_reference() -> void:
+	var checked: int = 0
+	for path in _all_scene_paths(["res://scenes/entities"]):
+		var f: FileAccess = FileAccess.open(path, FileAccess.READ)
+		var original: String = f.get_as_text()
+		f.close()
+		for node_path in _own_root_node_paths(TscnDoc.from_text(original)):
+			var doc: RefCounted = TscnDoc.from_text(original)
+			doc.remove_node(node_path)
+			var text: String = doc.to_text()
+			assert_eq(TscnDoc.from_text(text).to_text(), text,
+				"%s minus %s no longer round-trips" % [path, node_path])
+			assert_eq(_undefined_refs(TscnDoc.from_text(text)), [],
+				"%s minus %s references a resource it no longer defines" % [path, node_path])
+			checked += 1
+	assert_gt(checked, 100, "the sweep should reach the whole roster")
+
+
+## Node paths the FILE declares directly under the root (an inherited node with no override
+## has no section, and cannot be removed by a text edit anyway).
+func _own_root_node_paths(a_doc: RefCounted) -> Array:
+	var out: Array = []
+	for section in a_doc.sections_of("node"):
+		if section["attrs"].get("parent", "") == ".":
+			out.append(TscnDoc.node_path_of(section))
+	return out
+
+
+## Resource ids the document REFERENCES but no longer DEFINES.
+func _undefined_refs(a_doc: RefCounted) -> Array:
+	var defined: Dictionary = {}
+	for tag: String in ["ext_resource", "sub_resource"]:
+		for section in a_doc.sections_of(tag):
+			defined[section["attrs"].get("id", "")] = true
+	var missing: Dictionary = {}
+	var pattern: RegEx = RegEx.create_from_string('(?:Ext|Sub)Resource\\("([^"]+)"\\)')
+	for section in a_doc.sections:
+		for line in section["lines"]:
+			for hit in pattern.search_all(line):
+				if not defined.has(hit.get_string(1)):
+					missing[hit.get_string(1)] = true
+	var out: Array = missing.keys()
+	out.sort()
+	return out
 
 
 func test_fmt_helpers() -> void:

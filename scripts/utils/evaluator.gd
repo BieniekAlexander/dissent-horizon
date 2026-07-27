@@ -4,11 +4,11 @@
 ##
 ## Patterns might be `eval`uated together in an array, e.g. the following pseudocode:
 ## Pattern.eval(
-##	a_patterns = [
-## 		Pattern.new(func(time): time < NOON, COFFEE),
-##		Pattern.new(func(time): time < 2PM, TEA)
-##	],
-##	a_evaluation_input = 1PM,
+##  a_patterns = [
+##     Pattern.new(func(time): time < NOON, COFFEE),
+##    Pattern.new(func(time): time < 2PM, TEA)
+##  ],
+##  a_evaluation_input = 1PM,
 ##  a_default = WATER
 ##)
 class_name Pattern
@@ -27,13 +27,13 @@ func _init(a_condition: Callable, a_result: Variant) -> void:
 
 #region Public API
 static func eval(
-	a_patterns: Array,
-	a_evalution_input: Variant,
-	a_default: Variant = null
+	patterns: Array,
+	evalution_input: Variant,
+	default: Variant = null
 ) -> Variant:
-	for pattern: Pattern in a_patterns:
-		if pattern.condition.call(a_evalution_input):
+	for pattern: Pattern in patterns:
+		if pattern.condition.call(evalution_input):
 			return pattern.result
 
-	return a_default
+	return default
 #endregion

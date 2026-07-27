@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://b06ixdn7o8rgi"
 path.s3tc="res://.godot/imported/rtsWorker.png-60ccdef5d185643b53a4be7589003908.s3tc.ctex"
+path.etc2="res://.godot/imported/rtsWorker.png-60ccdef5d185643b53a4be7589003908.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/rtsWorker.png"
-dest_files=["res://.godot/imported/rtsWorker.png-60ccdef5d185643b53a4be7589003908.s3tc.ctex"]
+dest_files=["res://.godot/imported/rtsWorker.png-60ccdef5d185643b53a4be7589003908.s3tc.ctex", "res://.godot/imported/rtsWorker.png-60ccdef5d185643b53a4be7589003908.etc2.ctex"]
 
 [params]
 

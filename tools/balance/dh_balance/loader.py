@@ -156,6 +156,7 @@ def _buildable(faction_id: str, d: dict, weapons: dict[str, Weapon]) -> Buildabl
         cost=cost,
         requires=list(d.get("requires", [])),
         builds=list(d.get("builds", [])),
+        trains=list(d.get("trains", [])),
         armour=Armour(d["armour"]) if d.get("armour") else None,
         frame=Frame(d["frame"]) if d.get("frame") else None,
         hp=float(d.get("hp", 0.0)),

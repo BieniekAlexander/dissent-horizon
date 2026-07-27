@@ -1,3 +1,4 @@
+@tool
 class_name ConditionOccurrenceTally
 extends Condition
 
@@ -20,18 +21,18 @@ var _tally: int = 0
 #endregion
 
 #region Push wiring
-func arm(manager: ScenarioTriggerManager) -> void:
-	if not manager.entity_occurrence.is_connected(_on_entity_occurrence):
-		manager.entity_occurrence.connect(_on_entity_occurrence)
+func arm(a_manager: ScenarioTriggerManager) -> void:
+	if not a_manager.entity_occurrence.is_connected(_on_entity_occurrence):
+		a_manager.entity_occurrence.connect(_on_entity_occurrence)
 
 
-func disarm(manager: ScenarioTriggerManager) -> void:
-	if manager.entity_occurrence.is_connected(_on_entity_occurrence):
-		manager.entity_occurrence.disconnect(_on_entity_occurrence)
+func disarm(a_manager: ScenarioTriggerManager) -> void:
+	if a_manager.entity_occurrence.is_connected(_on_entity_occurrence):
+		a_manager.entity_occurrence.disconnect(_on_entity_occurrence)
 #endregion
 
 #region Public API
-func evaluate(_manager: ScenarioTriggerManager) -> bool:
+func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
 	return _tally >= count
 
 
@@ -41,10 +42,10 @@ func reset() -> void:
 #endregion
 
 #region Private helpers
-func _on_entity_occurrence(an_occurrence: Entity.EntityOccurrence, source: Entity) -> void:
-	if an_occurrence != occurrence:
+func _on_entity_occurrence(a_an_occurrence: Entity.EntityOccurrence, a_source: Entity) -> void:
+	if a_an_occurrence != occurrence:
 		return
-	if commander_id != -1 and (source == null or source.commander_id != commander_id):
+	if commander_id != -1 and (a_source == null or a_source.commander_id != commander_id):
 		return
 	_tally += 1
 	var now: bool = _tally >= count

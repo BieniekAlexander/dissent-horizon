@@ -26,16 +26,16 @@ extends Node
 
 ## Run this trigger's child events for `source` (the entity it fired on). Each child
 ## AbstractEvent is placed at the resolved spawn position, then executed via the manager.
-func fire(manager: ScenarioTriggerManager, source: Entity) -> void:
-	var position: Vector3 = _resolve_spawn_position(source, manager)
+func fire(a_manager: ScenarioTriggerManager, a_source: Entity) -> void:
+	var position: Vector3 = _resolve_spawn_position(a_source, a_manager)
 	for child in get_children():
 		if child is AbstractEvent:
 			(child as Node3D).global_position = position
-			manager.run_event(child as AbstractEvent, source)
+			a_manager.run_event(child as AbstractEvent, a_source)
 
 
 ## Where the events should be anchored when this trigger fires on `source`.
-func _resolve_spawn_position(source: Entity, manager: ScenarioTriggerManager) -> Vector3:
+func _resolve_spawn_position(a_source: Entity, a_manager: ScenarioTriggerManager) -> Vector3:
 	if spawn_locator != null:
-		return spawn_locator.resolve(source, manager)
-	return source.global_position
+		return spawn_locator.resolve(a_source, a_manager)
+	return a_source.global_position

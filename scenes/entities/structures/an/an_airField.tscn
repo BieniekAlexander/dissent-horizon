@@ -1,0 +1,133 @@
+[gd_scene format=3 uid="uid://dq46kii585mok"]
+
+[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_sfub2"]
+[ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
+[ext_resource type="Script" path="res://scripts/entities/components/docking_bay.gd" id="2_dockbay"]
+[ext_resource type="Script" path="res://scripts/entities/components/docking_pad.gd" id="2_dockpad"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="2_spec"]
+[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_7obao"]
+[ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_jq70u"]
+[ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_dy8fr"]
+[ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="8_obpp5"]
+[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="9_sob2v"]
+[ext_resource type="Script" path="res://scripts/entities/components/defense.gd" id="10_1lcck"]
+[ext_resource type="Script" path="res://scripts/entities/components/veterancy.gd" id="11_icquc"]
+[ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="12_17kpw"]
+[ext_resource type="PackedScene" path="res://scenes/components/hp_bar.tscn" id="13_odhdw"]
+[ext_resource type="PackedScene" path="res://scenes/components/selection_indicator.tscn" id="14_q0x3t"]
+[ext_resource type="Script" path="res://scripts/entities/components/command_line_indicator.gd" id="15_4llj8"]
+[ext_resource type="Script" path="res://scripts/entities/components/mesh_visual.gd" id="16_x3yau"]
+[ext_resource type="Script" path="res://scripts/entities/components/status_visuals.gd" id="18_i8oep"]
+[ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="19_jnlme"]
+[ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="21_ddnpo"]
+[ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="22_cumpo"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4rqrf"]
+size = Vector3(4, 2, 4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7iidh"]
+size = Vector3(4, 2, 4)
+
+[node name="AnAirField" type="CharacterBody3D" unique_id=140033569 groups=["piece", "fixture", "structure"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_sfub2")
+infrastructure = -75
+id = &"an_airField"
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=1849692025]
+
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_7obao")]
+
+[node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_jq70u")]
+
+[node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_dy8fr")]
+shape = ExtResource("2_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=280609522]
+script = ExtResource("8_obpp5")
+
+[node name="Structure" type="Node" parent="." unique_id=1888462795]
+script = ExtResource("9_sob2v")
+dimensions = Vector2i(4, 4)
+
+[node name="Defense" type="Node" parent="." unique_id=1919996188]
+script = ExtResource("10_1lcck")
+armour_type = 1
+frame_type = 1
+hp_max = 1000.0
+
+[node name="Veterancy" type="Node" parent="." unique_id=1259959867]
+script = ExtResource("11_icquc")
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=71360402]
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("12_17kpw")]
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("BoxShape3D_4rqrf")
+metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1298202852]
+
+[node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("13_odhdw")]
+transform = Transform3D(0.520833, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 2.12, 0)
+metadata/_visual_default_hp_bar = 1.333333
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("14_q0x3t")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="." unique_id=1732154668]
+script = ExtResource("15_4llj8")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=1224452089]
+script = ExtResource("16_x3yau")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual" unique_id=751774856]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("BoxMesh_7iidh")
+metadata/_visual_default_mesh = "structure"
+
+[node name="StatusVisuals" type="Node3D" parent="." unique_id=1648869222]
+script = ExtResource("18_i8oep")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=1321312017]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("19_jnlme")]
+
+[node name="FootprintVisualizer" parent="." unique_id=234382478 instance=ExtResource("21_ddnpo")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="." unique_id=870980384]
+
+[node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("22_cumpo")]
+
+[node name="AggroRangeAir" parent="." unique_id=938547147 instance=ExtResource("5_jq70u")]
+
+[node name="Production" type="Node" parent="." unique_id=375033735]
+script = ExtResource("1_spec")
+producible_types = Array[StringName]([&"an_aircraftLight_antiMech", &"an_aircraftLight_transport", &"an_aircraftMedium_support"])
+
+[node name="DockingBay" type="Node3D" parent="." unique_id=1921351260]
+script = ExtResource("2_dockbay")
+
+[node name="Runway" type="Marker3D" parent="DockingBay" unique_id=35513102]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.5)
+
+[node name="Pad1" type="Marker3D" parent="DockingBay" unique_id=1230815923]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -1)
+script = ExtResource("2_dockpad")
+
+[node name="Pad2" type="Marker3D" parent="DockingBay" unique_id=74445152]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, -1)
+script = ExtResource("2_dockpad")
+
+[node name="Pad3" type="Marker3D" parent="DockingBay" unique_id=944703749]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 1)
+script = ExtResource("2_dockpad")
+
+[node name="Pad4" type="Marker3D" parent="DockingBay" unique_id=2109948538]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1)
+script = ExtResource("2_dockpad")
+
+[editable path="Selectable"]

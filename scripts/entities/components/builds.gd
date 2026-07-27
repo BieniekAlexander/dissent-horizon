@@ -12,5 +12,5 @@ func _ready() -> void:
 		"%s: Builds component has no buildable_types listed" % get_parent().name)
 
 ## Returns true when this unit can place the structure of the given type.
-func can_build(structure_type: StringName) -> bool:
-	return buildable_types.has(structure_type)
+func can_build(a_structure_type: StringName) -> bool:
+	return buildable_types.has(a_structure_type)

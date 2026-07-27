@@ -1,6 +1,6 @@
 extends Node
 
-## One-off generator for the example TestScenario scenes. Building a full scenario .tscn by
+## One-off generator for the example SimulationScenario scenes. Building a full scenario .tscn by
 ## hand (map node tree, embedded heightmap, player slots, placed entities, expectation +
 ## condition sub-resources) is error-prone, so we assemble each scene programmatically and
 ## pack it to a real .tscn the user can then OPEN AND EDIT in the Godot editor.
@@ -14,8 +14,11 @@ extends Node
 ## packs and saves, so no entity _ready/auto-init side effects fire.
 
 const ANARCHICAL: String = "res://scenes/factions/anarchical.tscn"
-const KAMIKAZE: String = "res://scenes/entities/units/an/kamikaze.tscn"
-const IRREGULAR: String = "res://scenes/entities/units/an/irregular.tscn"
+## The kamikaze drone. The piece was re-keyed `kamikaze` -> `an_aircraftLight_antiMech`
+## when ids took the `<faction>_<role>` form; "Kamikaze" survives as its doc `title`, which
+## is why the scenarios below still read that way. Its old scene is gone with the old id.
+const KAMIKAZE: String = "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn"
+const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
 const TECHNICIAN: String = "res://scenes/entities/units/an/technician.tscn"
 
 const OUT_DIR: String = "res://scenes/scenarios/test"
@@ -33,7 +36,7 @@ func _ready() -> void:
 # ─── SCENE 1: kamikaze attacks a cluster ─────────────────────────────────────
 
 func _generate_kamikaze_cluster() -> void:
-	var root := TestScenario.new()
+	var root := SimulationScenario.new()
 	root.name = "TestKamikazeCluster"
 	root.max_ticks = 600
 	root.player_slots = [
@@ -51,7 +54,7 @@ func _generate_kamikaze_cluster() -> void:
 
 	var check := ConditionUnitHasCommand.new()
 	check.commander_id = 1
-	check.unit_type = EntityIds.KAMIKAZE
+	check.unit_type = EntityIds.AN_AIRCRAFT_LIGHT_ANTI_MECH
 	check.command_name = "Attack"
 	check.quantifier = ConditionUnitHasCommand.Quantifier.ANY
 	root.expectations = [
@@ -64,7 +67,7 @@ func _generate_kamikaze_cluster() -> void:
 # ─── SCENE 2: spread irregulars — kamikaze should NOT be committed ───────────
 
 func _generate_kamikaze_no_cluster() -> void:
-	var root := TestScenario.new()
+	var root := SimulationScenario.new()
 	root.name = "TestKamikazeNoCluster"
 	root.max_ticks = 1200
 	root.player_slots = [
@@ -83,7 +86,7 @@ func _generate_kamikaze_no_cluster() -> void:
 
 	var check := ConditionUnitHasNoCommandFor.new()
 	check.commander_id = 1
-	check.unit_type = EntityIds.KAMIKAZE
+	check.unit_type = EntityIds.AN_AIRCRAFT_LIGHT_ANTI_MECH
 	check.ticks = 300  # 10 physics seconds command-free
 	root.expectations = [
 		_expect("kamikaze stays command-free for 10s against spread irregulars", check, 900),
@@ -95,10 +98,10 @@ func _generate_kamikaze_no_cluster() -> void:
 # ─── SCENE 3: lone unit scouts the whole map ─────────────────────────────────
 
 func _generate_scout_coverage() -> void:
-	var root := TestScenario.new()
+	var root := SimulationScenario.new()
 	root.name = "TestScoutCoverage"
 	root.max_ticks = 3200
-	# One bot, no economy (ore 0) so its lone unit is free to scout rather than build.
+	# One bot, no economy (energy 0) so its lone unit is free to scout rather than build.
 	root.player_slots = [_slot(PlayerSlot.Difficulty.MEDIUM, 0)]
 	# Map sized so a single unit, seeing only its true ~5-unit vision radius, can still
 	# sweep every scout point within the 3000-tick budget — yet wider than that radius, so
@@ -120,91 +123,61 @@ func _generate_scout_coverage() -> void:
 
 # ─── BUILDERS ────────────────────────────────────────────────────────────────
 
-func _slot(difficulty: PlayerSlot.Difficulty, ore: int) -> PlayerSlot:
+func _slot(a_difficulty: PlayerSlot.Difficulty, a_energy: int) -> PlayerSlot:
 	var slot := PlayerSlot.new()
 	slot.is_bot = true
 	slot.faction = load(ANARCHICAL)
-	slot.difficulty = difficulty
-	slot.starting_ore = ore
+	slot.difficulty = a_difficulty
+	slot.starting_energy = a_energy
 	slot.starting_dominion = 0
 	return slot
 
 
-func _expect(description: String, condition: Condition, deadline_ticks: int) -> TestExpectation:
-	var e := TestExpectation.new()
-	e.description = description
-	e.condition = condition
-	e.deadline_ticks = deadline_ticks
+func _expect(
+	a_description: String, a_condition: Condition, a_deadline_ticks: int
+) -> SimulationExpectation:
+	var e := SimulationExpectation.new()
+	e.description = a_description
+	e.condition = a_condition
+	e.deadline_ticks = a_deadline_ticks
 	return e
 
 
 ## Instantiate `scene_path` under `root` as a placed scenario entity owned by commander
 ## `commander_id`, at world XZ `xz` (terrain is flat at y = 0).
-func _place(root: Node, scene_path: String, commander_id: int, xz: Vector2) -> void:
-	var inst := (load(scene_path) as PackedScene).instantiate()
-	inst.default_commander_id = commander_id
-	root.add_child(inst)
-	(inst as Node3D).position = Vector3(xz.x, 0.0, xz.y)
+func _place(a_root: Node, a_scene_path: String, a_commander_id: int, a_xz: Vector2) -> void:
+	var inst := (load(a_scene_path) as PackedScene).instantiate()
+	inst.default_commander_id = a_commander_id
+	a_root.add_child(inst)
+	(inst as Node3D).position = Vector3(a_xz.x, 0.0, a_xz.y)
 
 
-## A flat Map with `cells`×`cells` navigable cells, matching the node layout Map expects
-## ($NavigationRegion/Body/Shape) and a HeightMapShape3D of all-zero heights.
-func _flat_map(cells: int) -> Map:
-	var corners: int = cells + 1
-	var hs := HeightMapShape3D.new()
-	hs.map_width = corners
-	hs.map_depth = corners
-	var data := PackedFloat32Array()
-	data.resize(corners * corners)
-	hs.map_data = data
-
-	var m := Map.new()
-	m.name = "Map"
-
-	var nav := NavigationRegion3D.new()
-	nav.name = "NavigationRegion"
-	nav.add_to_group("navigation_mesh_source_group", true)
-	nav.navigation_mesh = NavigationMesh.new()
-
-	var body := StaticBody3D.new()
-	body.name = "Body"
-	body.collision_layer = CollisionLayers.Mask.TERRAIN
-	body.collision_mask = 0
-	nav.add_child(body)
-
-	var shape := CollisionShape3D.new()
-	shape.name = "Shape"
-	shape.shape = hs
-	body.add_child(shape)
-
-	m.add_child(nav)
-
-	var pins := Node3D.new()
-	pins.name = "HeightPins"
-	m.add_child(pins)
-
-	m.height_map = hs
-	return m
+## A flat Map of `a_cells` × `a_cells` navigable cells.
+##
+## Delegates to SimArena, which builds the same thing for spec-driven runs. Two callers, one
+## arena: a second copy of this scaffolding would drift the moment either side changed.
+func _flat_map(a_cells: int) -> Map:
+	return SimArena.flat_map(a_cells)
 
 
-func _ring_points(center: Vector2, radius: float, count: int) -> Array:
+func _ring_points(a_center: Vector2, a_radius: float, a_count: int) -> Array:
 	var points: Array = []
-	for k: int in count:
-		var ang: float = TAU * float(k) / float(count)
-		points.append(center + Vector2(cos(ang), sin(ang)) * radius)
+	for k: int in a_count:
+		var ang: float = TAU * float(k) / float(a_count)
+		points.append(a_center + Vector2(cos(ang), sin(ang)) * a_radius)
 	return points
 
 
 # ─── PACK + SAVE ─────────────────────────────────────────────────────────────
 
-func _save(root: Node, file_name: String) -> void:
-	_own_recursive(root, root)
+func _save(a_root: Node, a_file_name: String) -> void:
+	_own_recursive(a_root, a_root)
 	var packed := PackedScene.new()
-	var err: int = packed.pack(root)
+	var err: int = packed.pack(a_root)
 	if err != OK:
-		push_error("pack failed for %s: %d" % [file_name, err])
+		push_error("pack failed for %s: %d" % [a_file_name, err])
 		return
-	var path: String = "%s/%s" % [OUT_DIR, file_name]
+	var path: String = "%s/%s" % [OUT_DIR, a_file_name]
 	err = ResourceSaver.save(packed, path)
 	if err != OK:
 		push_error("save failed for %s: %d" % [path, err])
@@ -214,8 +187,8 @@ func _save(root: Node, file_name: String) -> void:
 
 ## Set owner = root on every node so pack() includes it. Recurse only into nodes we built;
 ## stop at instanced subtrees (scene_file_path != "") so they save as instance references.
-func _own_recursive(node: Node, root: Node) -> void:
-	for child: Node in node.get_children():
-		child.owner = root
+func _own_recursive(a_node: Node, a_root: Node) -> void:
+	for child: Node in a_node.get_children():
+		child.owner = a_root
 		if child.scene_file_path == "":
-			_own_recursive(child, root)
+			_own_recursive(child, a_root)

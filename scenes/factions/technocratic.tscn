@@ -1,0 +1,13 @@
+[gd_scene load_steps=6 format=3 uid="uid://dtaa26n7g74kh"]
+
+[ext_resource type="Script" uid="uid://cyrg0j3vbx1ds" path="res://scripts/interface/commander/faction.gd" id="1_fac"]
+[ext_resource type="PackedScene" uid="uid://5kevopkrq8ts" path="res://scenes/entities/units/an/technician.tscn" id="2_spec"]
+[ext_resource type="PackedScene" path="res://scenes/factions/formations/single.tscn" id="99_form"]
+[ext_resource type="PackedScene" uid="uid://dn8gudwube55w" path="res://scenes/entities/units/an/tc_bioLight_builder.tscn" id="1_spec"]
+
+[node name="Technocratic" type="Node"]
+script = ExtResource("1_fac")
+faction_name = "Successors of Tenjin"
+infrastructure_source = &"tc_infrastructure"
+starting_units = Array[PackedScene]([ExtResource("1_spec")])
+starting_formation = ExtResource("99_form")

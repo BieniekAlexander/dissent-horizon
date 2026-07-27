@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwleeftk3nbmd"
 path.s3tc="res://.godot/imported/stronghold.png-49531d81ad179886bf47f9255ce5ce4d.s3tc.ctex"
+path.etc2="res://.godot/imported/stronghold.png-49531d81ad179886bf47f9255ce5ce4d.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/stronghold.png"
-dest_files=["res://.godot/imported/stronghold.png-49531d81ad179886bf47f9255ce5ce4d.s3tc.ctex"]
+dest_files=["res://.godot/imported/stronghold.png-49531d81ad179886bf47f9255ce5ce4d.s3tc.ctex", "res://.godot/imported/stronghold.png-49531d81ad179886bf47f9255ce5ce4d.etc2.ctex"]
 
 [params]
 

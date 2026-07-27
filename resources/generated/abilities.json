@@ -1,0 +1,612 @@
+{
+	"ambush": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Drops 4 × Irregular at the target point. Use it to reinforce a failing defence, or to open a second front behind the enemy line.",
+				"title": "Ambush 1",
+				"verbose": "The Anarchists' bodies-anywhere sanction. The squad arrives under your control and\nis yours to keep."
+			},
+			{
+				"description": "Drops 8 × Irregular at the target point, replacing Ambush 1.",
+				"title": "Ambush 2",
+				"verbose": "Twice the squad for the same click. Replaces Ambush 1 outright."
+			},
+			{
+				"description": "Drops 16 × Irregular at the target point, replacing Ambush 2.",
+				"title": "Ambush 3",
+				"verbose": "A full war band dropped in one go — enough to decide an engagement outright, which\nis what the bottom of the Ambush column is for."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Ambush",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"beacon": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Places a firing solution at the target point for 15 seconds. Any Bombard can then shell it from anywhere on the map.",
+				"title": "Beacon 1",
+				"verbose": "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for ten seconds and stay\nuntil the shot lands; this puts one wherever you can see, immediately.\n\nWhat you pay for that is a clock: the beacon stands for 15 seconds and is gone\nwhether or not a gun used it.\n\nThe beacon is spent by the first shell that uses it, exactly like a spotter's."
+			},
+			{
+				"description": "The same solution, and it now lights the fog around itself (radius 2). Replaces Beacon 1.",
+				"title": "Beacon 2",
+				"verbose": "A blind beacon marks ground you already had eyes on. This one brings its own, so it\ncan be dropped into the shroud and show you what it is standing next to — which is\nusually what you wanted to shell."
+			},
+			{
+				"description": "The solution now stands until a shell spends it, rather than expiring. Replaces Beacon 2.",
+				"title": "Beacon 3",
+				"verbose": "Drops the clock. The solution keeps its small sight radius and waits indefinitely,\nso it can be placed before the guns are ready rather than in the same breath."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Beacon Drop",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"blizzard": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Freezes everything in a wide area. STUB: no payload built yet.",
+				"title": "Blizzard",
+				"verbose": "Not implemented. The cell is real — it costs dominion and runs its cooldown — but firing it does nothing yet."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Blizzard",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"bombard": {
+		"active_grid": [
+			2,
+			0
+		],
+		"cast_by": "SINGLE",
+		"command": "command_bombard",
+		"description": "Drop a shell anywhere on the map your side is spotting.",
+		"dominion": false,
+		"emits": "res://scenes/entities/projectiles/cl/cannon_shell.tscn",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			0
+		],
+		"hud_button": true,
+		"levels": [],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Bombard",
+		"valence": "NEUTRAL",
+		"verbose": "Range is unlimited; what limits it is VISION BY PROXY. The shot may be aimed at any\npoint one of your pieces is currently spotting, so the gun is worth nothing on its\nown and everything beside a spotter.\n\nA beacon marks a point once and is spent by the shot that uses it; a Bombard's own\nsurroundings and a Reverence's are marked permanently and cost nothing. Spotted\nground inside a permanent range is preferred, so a free solution never burns a\nbeacon a Recruit was walked across the map to place."
+	},
+	"detonate": {
+		"active_grid": [],
+		"cast_by": "ALL",
+		"command": "command_detonate",
+		"description": "Set off a planted charge.",
+		"dominion": false,
+		"emits": "res://scenes/entities/projectiles/an/an_plant_bomb.tscn",
+		"factions": [],
+		"grid": [],
+		"hud_button": false,
+		"levels": [],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Detonate",
+		"valence": "NEUTRAL",
+		"verbose": "Given to the charge itself, or to the Sapper that planted it, from anywhere on the map and\nwhether or not the charge can be seen."
+	},
+	"dignify": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			0,
+			0
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Promotes a clicked Irregular into a Warlord, keeping the veterancy it has already earned.",
+				"title": "Dignify",
+				"verbose": "A transformation, not a purchase: the Irregular is consumed and the Warlord stands\nin its place at the same spot, carrying its rank across.\n\nIts STANDING ORDERS come across too, as far as the new piece can carry them. The\nqueue is walked and truncated at the first command a Warlord cannot perform — a\nWarlord cannot build, so an Irregular told to raise a redoubt and then hold a hill\nkeeps neither order, since the second was given expecting the first to have happened."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Dignify",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"drop": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Flies 3 × Recruit in and drops them on the target point.",
+				"title": "Drop 1",
+				"verbose": "The cheapest way to put bodies somewhere they are not expected — reinforcing a\ncollapsing defence, or opening a second front behind the enemy line.\n\nIt is a FLIGHT, not a spawn. A transport crosses the map from your side of the\nboard, releases the squad under canopy over the point you clicked, and flies on\nout the far side. Shoot the transport down on the way in and the shipment goes\nwith it."
+			},
+			{
+				"description": "Flies in a shipment of your choosing — 5 × Recruit, or a sloop.",
+				"title": "Drop 2",
+				"verbose": "The level that turns Drop into a CHOICE. Pressing it opens a cargo menu the way Build\nopens a structure list; pick the shipment, then click where it goes.\n\nIt replaces Drop 1 outright rather than joining it — a column is one sanction you\nimprove — and improving it here means both a bigger squad than Drop 1 flew and a\nvehicle it could not carry at all."
+			},
+			{
+				"description": "Flies in a shipment of your choosing, up to a Matilda.",
+				"title": "Drop 3",
+				"verbose": "The heaviest shipment the Colonials can call in, and the reason to take the Drop\ncolumn to its end. Every option Drop 2 offered arrives in greater numbers, and the\nMatilda is added to the menu."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Drop",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"freeze": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			0
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Freezes one of YOUR units for 15 seconds — it can take no action at all, but its armour rises a step while it stands there. A way to save something about to die.",
+				"title": "Freeze 1",
+				"verbose": "Cryogenics cut both ways: a frozen unit is helpless and tougher at the same time.\nFreezing your own unit trades everything it could have done for a step of armour,\nwhich is how you carry something through a barrage it would not otherwise survive.\n\nUnits already at STRONG armour cannot be frozen — there is no step above it, so\nthey would take the immobilisation with none of the protection. Structures cannot\nbe frozen either."
+			},
+			{
+				"description": "Freezes any unit for 15 seconds — friendly or hostile. It can take no action, and its armour rises a step. Replaces Freeze 1. Strong armour cannot be frozen.",
+				"title": "Freeze 2",
+				"verbose": "The same effect, now aimable at anyone. On an enemy it is a hard removal from the\nfight for 15 seconds; the armour step it also grants them is the cost of using it\noffensively, so it takes a unit out of a fight rather than setting one up to die."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Freeze",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"global_emp": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Stuns every machine on the map for five seconds — yours included. Your infantry does not care, which is the point.",
+				"title": "Global EMP",
+				"verbose": "Fires the moment you press it: there is nowhere to point a map-wide effect, so it\nis never armed and never waits on a click.\n\nIt catches YOUR machines too. That asymmetry is the mechanic rather than an\noversight — an EMP only takes hold on a mechanical frame, and the Anarchists field\ninfantry, so they pay almost nothing to fire it while a vehicle-heavy opponent\nstops dead. Sparing your own vehicles would erase the only real cost of fielding\nthem as this faction."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Global EMP",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"gunship": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			2
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Calls a gunship to strafe the target point. STUB: no payload built yet.",
+				"title": "Gunship",
+				"verbose": "Not implemented. The cell is real — it costs dominion, opens the tier below it and runs its cooldown — but firing it does nothing yet."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Gunship",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"informant": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Grants a clicked Irregular permanent stealth, letting it move unseen until it attacks.",
+				"title": "Informant 1",
+				"verbose": "Stealth is permanent once granted — it is a property of the unit from then on, not\na timed effect. The unit is revealed while it is inside an enemy detector's range,\nand forced fully visible for a few seconds after it attacks or is attacked."
+			},
+			{
+				"description": "Grants permanent stealth to any clicked friendly biological unit, replacing Informant 1.",
+				"title": "Informant 2",
+				"verbose": "The same grant, now aimable at any of your biological units rather than Irregulars alone."
+			},
+			{
+				"description": "Grants permanent stealth to any clicked friendly unit, replacing Informant 2.",
+				"title": "Informant 3",
+				"verbose": "Any unit you own, machines included."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Informant",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"irradiate": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "command_launch",
+		"description": "Lay down a radiation field on a point within range.",
+		"dominion": false,
+		"emits": "res://scenes/entities/projectiles/radiation.tscn",
+		"factions": [],
+		"grid": [],
+		"hud_button": false,
+		"levels": [],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Radiate",
+		"valence": "NEUTRAL",
+		"verbose": "A LOCAL ability, not an ordnance: the unit carrying it walks into range and puts the field\ndown itself, so there is no commander-level button and no cell on the ORDNANCE card.\n\nCharges are the unit's own pool — three of them, one back every three seconds — so a\ncarrier can lay a short burst and then has to wait."
+	},
+	"mortar": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Four shells lob in from off the map onto the target point.",
+				"title": "Mortar 1",
+				"verbose": "Called in rather than fired: the shells come over the map edge nearest the\nDistress Signal that called them, so where you build the caster decides which\nside the barrage arrives from.\nThe muzzles are scattered; the aim is not. Every shell converges on the point\nyou clicked."
+			},
+			{
+				"description": "Eight shells lob in from off the map onto the target point, replacing Mortar 1.",
+				"title": "Mortar 2",
+				"verbose": "Twice the barrage, same arrival and same aim point. Replaces Mortar 1 outright —\na column is one sanction you improve, not a growing collection."
+			},
+			{
+				"description": "Sixteen shells lob in from off the map onto the target point, replacing Mortar 2.",
+				"title": "Mortar 3",
+				"verbose": "The heaviest barrage the Anarchists can call down, and the reason to take the\nMortar column to its end."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Mortar Strike",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"overcharge": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			0,
+			2
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Dumps a huge surge into a single DISABLED unit. It can only be aimed at something already stunned — pair it with Global EMP.",
+				"title": "Overcharge",
+				"verbose": "Worth nothing on its own and decisive after Global EMP: being disabled is a\nrequirement of the TARGET, not a damage bonus, so a click that finds no stunned\nunit does nothing at all.\n\nAny hard stun qualifies, including a Colonial cryogenic freeze — a frozen unit is\nexactly as helpless as an EMPed one.\n\nThe damage is flat rather than a share of the target's health. The pairing already\nguarantees the target cannot escape, so scaling it to size would make the\ncombination an unconditional kill on anything."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Overcharge",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"plant": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "command_plant",
+		"description": "Rig a charge on a point, a vehicle or a building.",
+		"dominion": false,
+		"emits": "",
+		"factions": [],
+		"grid": [],
+		"hud_button": false,
+		"levels": [],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Plant",
+		"valence": "NEUTRAL",
+		"verbose": "The Sapper walks to the chosen point or piece and works on it — longer on a sturdier\ntarget — then leaves a charge there. On a vehicle or building (anyone's, as long as it is a\nmachine) the charge rides with it; anywhere else it stands on the ground.\n\nOne charge, and it does not come back while the one it planted is still in play."
+	},
+	"promotion": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Grants the first veterancy level to a clicked friendly unit of any type. Only a unit that has not yet earned a level can be promoted this way.",
+				"title": "Promotion",
+				"verbose": "Starts a unit's career rather than shortening it. A unit that has already earned a level is not a valid target, so the ranks above Veteran stay earned in combat and no single favourite can be walked up to Heroic with dominion.\n\nOnly an UNBLOODED unit is marked as a target while it is armed; pointing at a unit that has already earned a level targets nothing."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Promotion",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"retinue": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "Friendly infantry standing with this Warlord bank dominion every cycle.",
+		"dominion": false,
+		"emits": "",
+		"factions": [],
+		"grid": [],
+		"hud_button": false,
+		"levels": [],
+		"passive": true,
+		"range": 5.0,
+		"reveals": "DOMINION",
+		"title": "Retinue",
+		"valence": "BOON",
+		"verbose": "A POSITIONAL passive, like the Colonials' [[work_detail|Work Detail]] and unlike anything\nthat is fired: it is on for as long as the Warlord is alive, and what it is worth depends\nentirely on where the Warlord is standing.\n\nEvery friendly BIO unit inside its reach pays dominion once a cycle. The Warlord itself\ndoes not count, and neither does a second Warlord — this is a claim on FOLLOWERS, so a\npile of Warlords with nobody to lead banks nothing.\n\nA unit standing in two Warlords' reaches is counted ONCE. Stacking Warlords on one squad\nis not a strategy; spreading them across the squads you already field is."
+	},
+	"scan": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Reveals the fog of war within 10 units of the target point for 15 seconds, then fades. Scouting without risking a unit.",
+				"title": "Scan 1",
+				"verbose": "The one family that may be aimed into ground you cannot see — a reveal that could\nonly be pointed at what you already had eyes on would be useful precisely where it\nis not needed.\n\nThe reveal is a real vision source for its lifetime, not a one-off snapshot, so\nanything that moves through the circle is seen while it is up."
+			},
+			{
+				"description": "Reveals the fog around the target point for 15 seconds and exposes any stealthed units caught in it, replacing Scan 1.",
+				"title": "Scan 2",
+				"verbose": "The same circle, now with detection: stealthed units inside it are revealed for as\nlong as the scan lasts. The counter to an opponent leaning on stealth."
+			},
+			{
+				"description": "Leaves a permanent eye over the target point — the same reveal and stealth detection, held indefinitely. Replaces Scan 2.",
+				"title": "Scan 3",
+				"verbose": "A hovering observer that never expires. It cannot be commanded or selected, and it\nwatches the ground it was placed over for the rest of the match, unless the enemy\nshoots it down."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Scan",
+		"valence": "NEUTRAL",
+		"verbose": ""
+	},
+	"scavenge": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "",
+		"dominion": true,
+		"emits": "",
+		"factions": [],
+		"grid": [],
+		"hud_button": false,
+		"levels": [
+			{
+				"description": "Every enemy unit or structure you destroy pays back 10% of its build cost in energy. Always on once unlocked — there is nothing to deploy.",
+				"title": "Scavenge 1",
+				"verbose": "A STANDING benefit rather than a sanction you fire: unlocking it is the whole\nthing. It never appears on the deploy bar and has no cooldown.\n\nThe bounty is paid to whoever landed the killing blow, so it cannot be earned from\nyour own losses, from a unit that starves, or from one scuttled deliberately."
+			},
+			{
+				"description": "Every enemy kill pays back 20% of its build cost in energy, replacing Scavenge 1. Always on once unlocked.",
+				"title": "Scavenge 2",
+				"verbose": "Replaces Scavenge 1 rather than adding to it — the rate becomes 20%, not 30%."
+			},
+			{
+				"description": "Every enemy kill pays back 30% of its build cost in energy, replacing Scavenge 2. Always on once unlocked.",
+				"title": "Scavenge 3",
+				"verbose": "The full expression of the faction''s scavenging theme: a third of everything you destroy comes back as energy."
+			}
+		],
+		"passive": true,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Scavenge",
+		"valence": "BOON",
+		"verbose": ""
+	},
+	"spot": {
+		"active_grid": [],
+		"cast_by": "ALL",
+		"command": "command_spot",
+		"description": "Call in a firing solution, leaving a beacon for the artillery to spend.",
+		"dominion": false,
+		"emits": "",
+		"factions": [],
+		"grid": [],
+		"hud_button": false,
+		"levels": [],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Spot",
+		"valence": "NEUTRAL",
+		"verbose": "The unit walks within range of the chosen point, holds still while it calls the strike in,\nand leaves a [[beacon|Beacon]] standing there. It then STAYS on the beacon until a Bombard\nspends it — that commitment is what the artillery is paying for.\n\nA LOCAL ability: it is an order given to the spotter, not something the commander calls in,\nso it has no cell on the ORDNANCE card."
+	},
+	"work_detail": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "Each sentence served here shaves 8% off the full cooldown of every ability pool on the buildings next door.",
+		"dominion": false,
+		"emits": "",
+		"factions": [],
+		"grid": [],
+		"hud_button": false,
+		"levels": [],
+		"passive": true,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Work Detail",
+		"valence": "BOON",
+		"verbose": "A POSITIONAL passive, and the only one in the game: it benefits the buildings the\nCompound TOUCHES rather than the Compound itself. Edge contact is what counts — a\nbuilding meeting it corner-to-corner shares no wall and gets nothing.\n\nThe bonus fires per COMPLETION, not per head held. The instant a captive's sentence\nends, every adjacent friendly building's ability pools each lose 8% of their own full\ncooldown — a fixed chunk of time you can count (\"three sentences off the next scan\"),\nnot a rate that speeds up while the Compound is full. A pool already at full charge\nbanks nothing from a completion it did not need.\n\nNothing is lent by a Compound that is still going up, by one its commander cannot\npower, or across the front line — only your own buildings are worked."
+	}
+}

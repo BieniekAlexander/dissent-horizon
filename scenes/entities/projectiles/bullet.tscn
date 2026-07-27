@@ -1,8 +1,12 @@
 [gd_scene format=3 uid="uid://b2tyrhflqbhdl"]
 
-[ext_resource type="Script" uid="uid://du4uolfsq0t73" path="res://scripts/entities/tools/projectile.gd" id="1_k5ji7"]
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_k5ji7"]
 [ext_resource type="Texture2D" uid="uid://4j5okj7g4kff" path="res://assets/coin_logo.png" id="2_i2bxc"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_kxxn2"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="1_spec"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="2_spec"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
+[ext_resource type="Script" uid="uid://cowyf3f55ehdh" path="res://scripts/entities/components/tracer.gd" id="mig_tracer"]
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_hsewj"]
 gravity = Vector3(0, 0, 0)
@@ -10,12 +14,22 @@ gravity = Vector3(0, 0, 0)
 [sub_resource type="QuadMesh" id="QuadMesh_0petp"]
 size = Vector2(0.1, 0.1)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trace"]
+shading_mode = 0
+albedo_color = Color(1, 0.9, 0.4, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_trace"]
+material = SubResource("StandardMaterial3D_trace")
+top_radius = 0.035
+bottom_radius = 0.035
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_placeholder"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 0.5
+
 [node name="Projectile" type="CharacterBody3D" unique_id=33164798]
 script = ExtResource("1_k5ji7")
-hitscan = true
-trajectory = 1
-speed = 0.5
-tick_rate = 1
 id = &"outpost"
 
 [node name="InFlightSprite" type="Sprite3D" parent="." unique_id=32108227]
@@ -34,3 +48,33 @@ draw_pass_1 = SubResource("QuadMesh_0petp")
 [node name="Ownership" type="Node" parent="." unique_id=692684352]
 script = ExtResource("3_kxxn2")
 metadata/_custom_type_script = "uid://cw7pigc81a8s6"
+
+[node name="BeamMesh" type="MeshInstance3D" parent="."]
+rotation_order = 4
+sorting_offset = 100.0
+mesh = SubResource("CylinderMesh_trace")
+
+[node name="InFlightMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("CylinderMesh_placeholder")
+metadata/_visual_default_mesh = "linear projectile"
+
+[node name="Flight" type="Node3D" parent="."]
+script = ExtResource("1_spec")
+speed = 20.0
+visuals = Array[NodePath]([NodePath("InFlightSprite"), NodePath("InFlightParticles"), NodePath("InFlightMesh")])
+
+[node name="Impact" type="Node3D" parent="."]
+script = ExtResource("1_spec")
+ends_on_arrival = false
+lifespan_seconds = 0.0
+applies_payload = true
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("2_spec")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("mig_payload")
+hitscan = true
+
+[node name="Tracer" type="Node" parent="."]
+script = ExtResource("mig_tracer")

@@ -1,0 +1,84 @@
+[gd_scene format=3 uid="uid://csyr8p6ug2rpw"]
+
+[ext_resource type="Script" path="res://scripts/entities/entity.gd" id="1_cjycp"]
+[ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="2_own"]
+[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="2_wisfu"]
+[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="3_obs"]
+[ext_resource type="Script" path="res://scripts/entities/components/shelter.gd" id="4_shel"]
+[ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="7_fhj1p"]
+[ext_resource type="Script" path="res://scripts/entities/components/mesh_visual.gd" id="7_yubve"]
+[ext_resource type="PackedScene" path="res://assets/meshes/hexagonal_prism.blend" id="8_j75vq"]
+[ext_resource type="PackedScene" path="res://scenes/components/selection_indicator.tscn" id="10_jtbbu"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn" id="10_terr"]
+[ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="11_scfmn"]
+[ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="12_ss5ie"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1dpfl"]
+size = Vector3(3, 10, 3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wisfu"]
+size = Vector3(3, 0.9291992, 3)
+
+[node name="ShelterStructure" type="CharacterBody3D" unique_id=1119858882 groups=["piece", "fixture", "shelter"]]
+editor_description = "Neutral map feature that houses and repopulates Terrestrials."
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_cjycp")
+id = &"nt_shelter"
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=86555838]
+
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("2_wisfu")]
+
+[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+shape = SubResource("BoxShape3D_1dpfl")
+
+[node name="Ownership" type="Node" parent="." unique_id=1036473683]
+script = ExtResource("2_own")
+
+[node name="Structure" type="Node" parent="." unique_id=1894825326]
+script = ExtResource("3_obs")
+dimensions = Vector2i(3, 3)
+
+[node name="Shelter" type="Node" parent="." unique_id=1102419492]
+script = ExtResource("4_shel")
+terrestrial_scene = ExtResource("10_terr")
+spawn_interval = 10.0
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=1752767766]
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("7_fhj1p")]
+collision_mask = 1
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5354004, 0)
+shape = SubResource("BoxShape3D_wisfu")
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1630377983]
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=34012536]
+script = ExtResource("7_yubve")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="hexagonal_prism" parent="MeshVisual" unique_id=912920800 instance=ExtResource("8_j75vq")]
+transform = Transform3D(1.8, 0, 0, 0, 0.45, 0, 0, 0, 1.588, 0, 0.49453723, 0)
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("10_jtbbu")]
+transform = Transform3D(0.125, 0, 0, 0, 0.0883885, 0.0883885, 0, -0.0883885, 0.0883885, 0, 0, 0)
+
+[node name="TempLabel" type="Label3D" parent="." unique_id=2126960747]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.67541504, 0.84295654)
+billboard = 1
+render_priority = 3
+outline_render_priority = 1
+text = "SHELTER"
+
+[node name="FootprintVisualizer" parent="." unique_id=234382478 instance=ExtResource("11_scfmn")]
+visible = true
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=210304353]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("12_ss5ie")]
+
+[editable path="TargetBody"]
+[editable path="Selectable"]

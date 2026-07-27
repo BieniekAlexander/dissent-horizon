@@ -23,7 +23,7 @@ buildables:
       ore: 300
     requires:
       - "dwelling"
-    armour: "HEAVY"
+    armour: "STRONG"
     hp: 500
     attributes: []
     weapons: []
@@ -35,7 +35,7 @@ buildables:
       ore: 200
     requires:
       - "compound"
-    armour: "HEAVY"
+    armour: "STRONG"
     hp: 500
     attributes: []
     weapons:
@@ -48,7 +48,7 @@ buildables:
       ore: 250
     requires:
       - "compound"
-    armour: "HEAVY"
+    armour: "STRONG"
     hp: 500
     attributes: []
     weapons:

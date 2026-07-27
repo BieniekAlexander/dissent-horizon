@@ -1,3 +1,4 @@
+@tool
 class_name ConditionNoPendingTriggers
 extends Condition
 
@@ -15,6 +16,6 @@ extends Condition
 ## intent — a perpetual trigger genuinely is "still waiting."
 
 #region Public API
-func evaluate(manager: ScenarioTriggerManager) -> bool:
-	return manager.active_global_trigger_count() <= 1
+func evaluate(a_manager: ScenarioTriggerManager) -> bool:
+	return a_manager.active_global_trigger_count() <= 1
 #endregion

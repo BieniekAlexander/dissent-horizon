@@ -50,8 +50,8 @@ def _projectile_scene(pid: str) -> str:
     return f"res://scenes/entities/projectiles/{pid}.tscn"
 
 # YAML enum name -> the integer Godot stores in the .tscn (mirrors the game enums).
-_ARMOUR_INT = {"LIGHT": 0, "MEDIUM": 1, "HEAVY": 2}
-_FRAME_INT = {"BIOLOGICAL": 0, "METALLIC": 1}
+_ARMOUR_INT = {"LIGHT": 0, "MEDIUM": 1, "STRONG": 2}
+_FRAME_INT = {"BIO": 0, "MECH": 1}
 _DAMAGE_INT = {"LEAD": 1, "TOXIC": 2, "SONIC": 3, "PLASMA": 4,
                "SIEGE": 5, "EXPLOSIVE": 6, "ELECTRIC": 7, "LAZER": 8}
 _HIT_BIT = {"ground": 1 << 1, "air": 1 << 2}   # CollisionLayers.Mask.TARGETABLE_*
@@ -269,16 +269,16 @@ _SCENE_DISPATCH = {
     ("buildable", "hp"): ("hp_max", _fmt_float, "Defense"),
     ("buildable", "armour"): ("armour_type", lambda v: str(_ARMOUR_INT[v]), "Defense"),
     ("buildable", "frame"): ("frame_type", lambda v: str(_FRAME_INT[v]), "Defense"),
-    ("buildable", "speed"): ("speed", _fmt_float, "Movement"),
-    ("weapon", "split_time"): ("split_time", str, "weapon"),
-    ("weapon", "reload_time"): ("reload_time", str, "weapon"),
+    ("buildable", "speed"): ("speed", _fmt_float, "Locomotion"),
+    ("weapon", "split_time"): ("split_time_ticks", str, "weapon"),
+    ("weapon", "reload_time"): ("reload_time_ticks", str, "weapon"),
     ("weapon", "clip_size"): ("clip_size", str, "weapon"),
     ("weapon", "melee_damage"): ("melee_damage", _fmt_float, "weapon"),
     ("weapon", "melee_damage_type"): ("melee_damage_type", lambda v: str(_DAMAGE_INT[v]), "weapon"),
     ("weapon", "hits"): ("target_mask", _mask_from_hits, "weapon"),
     ("weapon", "reach"): ("radius", _fmt_float, "reach"),
-    ("projectile", "base_damage"): ("base_damage", _fmt_float, "root"),
-    ("projectile", "damage_type"): ("damage_type", lambda v: str(_DAMAGE_INT[v]), "root"),
+    ("projectile", "base_damage"): ("base_damage", _fmt_float, "Payload"),
+    ("projectile", "damage_type"): ("damage_type", lambda v: str(_DAMAGE_INT[v]), "Payload"),
     ("projectile", "speed"): ("speed", _fmt_float, "root"),
     ("status_effect", "damage_per_tick"): ("damage_per_tick", _fmt_float, "dot"),
     ("status_effect", "tick_rate"): ("tick_rate", str, "dot"),
@@ -317,7 +317,7 @@ def _plan_one(change: Change, world: World) -> Edit:
     elif locator_kind in ("root", "dot"):
         locator = (locator_kind,)
     else:
-        locator = ("node", locator_kind)   # Defense / Movement
+        locator = ("node", locator_kind)   # Defense / Locomotion / an emission's Payload
     return Edit(change, "scene", change.scene, locator, prop, value_fn(change.desired))
 
 

@@ -69,7 +69,7 @@ def _cosine(a: list[float], b: list[float]) -> float:
 
 def damage_types_greatly_differ(table: DamageTable, a: DamageType, b: DamageType) -> bool:
     """True when two damage types specialise against opposite defences (e.g.
-    LAZER↑heavy/metallic vs LEAD↑light) — measured as a low cosine between their
+    LAZER↑strong/metallic vs LEAD↑light) — measured as a low cosine between their
     effectiveness profiles."""
     if a == b:
         return False

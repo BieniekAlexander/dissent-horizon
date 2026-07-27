@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cd6aja7krsk4i"]
+
+[ext_resource type="Script" uid="uid://b1qecgcgn7l02" path="res://scripts/scenario/events/event_informant.gd" id="1_evt"]
+
+[node name="SanctionInformant3" type="Sprite3D"]
+script = ExtResource("1_evt")
+eligibility = 2
+metadata/_custom_type_script = "uid://b1qecgcgn7l02"

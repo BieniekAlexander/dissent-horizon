@@ -1,0 +1,55 @@
+[gd_scene format=3 uid="uid://c8j0vdirduomm"]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_01emb"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="1_spec"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/aoe_small.tres" id="2_spec"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="4_tmqnx"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="3_spec"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/rocket_model.tscn" id="fx_rocket"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/rocket_exhaust.tscn" id="fx_exhaust"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/rocket_explosion.tscn" id="fx_rocket_boom"]
+
+[node name="MlrsRocket" type="CharacterBody3D" unique_id=1170128141]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_01emb")
+
+[node name="InFlightParticles" parent="." instance=ExtResource("fx_exhaust")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.1932)
+
+[node name="InFlightMesh" parent="." instance=ExtResource("fx_rocket")]
+transform = Transform3D(0.84, 0, 0, 0, 0.84, 0, 0, 0, 0.84, 0, 0, 0)
+
+[node name="PostImpactParticles" parent="." instance=ExtResource("fx_rocket_boom")]
+
+[node name="HitShape" type="CollisionShape3D" parent="." unique_id=551116697]
+shape = ExtResource("2_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=1564931907]
+script = ExtResource("4_tmqnx")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"
+
+[node name="Flight" type="Node3D" parent="." unique_id=2104023005]
+script = ExtResource("1_spec")
+speed = 15.0
+gravity_mps2 = 18.75
+jitter_degrees = 3
+visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh")])
+launch_pitch_degrees = 45.0
+
+[node name="Impact" type="Node3D" parent="." unique_id=1862765588]
+script = ExtResource("1_spec")
+ends_on_arrival = false
+lifespan_seconds = 1.6
+applies_payload = true
+visuals = Array[NodePath]([NodePath("PostImpactParticles")])
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("3_spec")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("mig_payload")
+bio_ground_aim = true
+base_damage = 20.0
+damage_type = 6

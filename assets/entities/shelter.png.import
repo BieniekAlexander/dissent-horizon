@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://br0rjuhf3qq36"
 path.s3tc="res://.godot/imported/shelter.png-c48d4b0f4047f4eed67521c99f3cff15.s3tc.ctex"
+path.etc2="res://.godot/imported/shelter.png-c48d4b0f4047f4eed67521c99f3cff15.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/shelter.png"
-dest_files=["res://.godot/imported/shelter.png-c48d4b0f4047f4eed67521c99f3cff15.s3tc.ctex"]
+dest_files=["res://.godot/imported/shelter.png-c48d4b0f4047f4eed67521c99f3cff15.s3tc.ctex", "res://.godot/imported/shelter.png-c48d4b0f4047f4eed67521c99f3cff15.etc2.ctex"]
 
 [params]
 

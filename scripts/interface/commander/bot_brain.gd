@@ -6,29 +6,61 @@ extends Node
 ## Architecture (perception → decision → action):
 ##   • Perception lives on the [Bot] this node is a child of (bot.gd — read-only
 ##     "senses": economy, army, threat, spatial, tech, phase).
-##   • Decision lives HERE: a throttled think() pass that will host the strategy
-##     managers (economy / production / military) coordinated by a posture FSM.
+##   • Decision lives HERE: the strategy managers, each run as one or more BotJobs on its own
+##     period by the session's shared BotScheduler (see register_jobs), and the BotClaims
+##     registry that says which manager owns which unit.
 ##   • Action will live in a thin actuator layer (the only place that issues
 ##     commands), kept separate so the decision code stays pure and testable.
 ##
-## One BotBrain is attached per non-human, non-neutral commander by
-## Scenario._attach_brain(), which sets [difficulty] (and derives [active]) from the
-## commander's PlayerSlot. A neutral (id 0) or human-controlled commander never gets
-## one.
+## One BotBrain is attached per non-neutral commander by Scenario._attach_brain(), which
+## sets [difficulty] from the commander's PlayerSlot and switches it off for a human slot.
+## The neutral commander (id 0) never gets one.
 
-## This bot's difficulty, propagated from its PlayerSlot. Stored for future tuning;
-## for now only PASSIVE changes behaviour (it leaves [active] false → the bot is
-## inert), and every other tier behaves identically.
+## This bot's difficulty, propagated from its PlayerSlot. Write it through
+## `set_difficulty` — the tier only matters through the [config] it selects.
 var difficulty: PlayerSlot.Difficulty = PlayerSlot.Difficulty.MEDIUM
 
-## When false the think loop is skipped entirely: the bot is inert. Derived from
-## [difficulty] (PASSIVE → false) by Scenario._attach_brain().
+## THE PARAMETERS THIS BOT PLAYS BY. Every handicap lives here rather than in a branch on
+## `difficulty`, so a tier is a set of numbers that can be searched — see BotDifficulty.
+var config: BotDifficulty = BotDifficulty.for_tier(PlayerSlot.Difficulty.MEDIUM)
+
+## When false the think loop is skipped entirely: the bot is inert. A human slot's brain is
+## off; Scenario.set_ai_control is what switches one on or off mid-match.
+##
+## NOT what PASSIVE means any more. A passive bot is "minimally active, and never attacks",
+## which is a bot that still thinks — it builds, trains and defends itself, and
+## `config.may_attack` is what stops it marching. Leaving it inert made it scenery rather
+## than an opponent. This flag survives for a scenario that genuinely wants a frozen
+## commander.
 var active: bool = true
 
-## Physics ticks between successive think() passes. AI decisions are coarse and
-## relatively expensive, so we deliberately think a few times per second rather
-## than every tick (30 tps → THINK_INTERVAL_TICKS=15 ≈ twice per second).
-const THINK_INTERVAL_TICKS: int = 15
+## Seconds between preservation sweeps. A retreat decision, so about as quick as a player
+## glancing at a losing fight — but not a difficulty knob: noticing a unit about to die is not
+## a handicap the tiers vary.
+const PRESERVATION_PERIOD_SECONDS: float = 1.0
+
+## Which of several jobs due on the same tick runs first (BotJob.priority). Combat first, so a
+## tick short of budget delays scouting rather than a fight; momentum before everything,
+## because the military reads it.
+## Above everything: until the command centre is down the bot has no economy to run.
+const JOB_PRIORITY_DEPLOYMENT: int = 100
+const JOB_PRIORITY_MOMENTUM: int = 90
+const JOB_PRIORITY_TARGETING: int = 80
+const JOB_PRIORITY_MILITARY: int = 70
+const JOB_PRIORITY_KAMIKAZE: int = 60
+const JOB_PRIORITY_PRESERVATION: int = 60
+const JOB_PRIORITY_SANCTION: int = 50
+const JOB_PRIORITY_OPPORTUNIST: int = 40
+const JOB_PRIORITY_ECONOMY: int = 30
+const JOB_PRIORITY_PRODUCTION: int = 20
+const JOB_PRIORITY_SCOUT: int = 10
+
+## Work units a job reports when it did nothing measurable, so a no-op still counts against
+## the budget rather than looking free.
+const IDLE_JOB_WORK_UNITS: int = 1
+## Work units per unit the preservation sweep looks at (BotScheduler counts work in units of
+## roughly a microsecond on the calibration machine).
+const PRESERVATION_UNIT_WORK_UNITS: int = 2
 
 ## HP fraction at or below which a unit is considered "at risk" for preservation.
 const PRESERVATION_HP_THRESHOLD: float = 0.25
@@ -40,21 +72,58 @@ var bot: Bot
 ## resolved. The actuator is the shared command-issuing surface; the managers
 ## decide and call into it.
 var _actuator: BotActuator
+## Whether the bot is winning or losing — sampled first each think, read by the military.
+var _momentum: BotMomentum
 var _economy: BotEconomy
+var _deployment: BotDeployment
 var _military: BotMilitary
 var _production: BotProduction
 var _targeting: BotTargeting
 var _kamikaze: BotKamikaze
-var _ordnance: BotOrdnance
+var _sanction: BotSanction
 var _scout: BotScout
 ## Opportunistic, utility-driven decisions (e.g. Warlords liberating Shelters for free
 ## units). Extensible: new utility decisions register as gatherers inside it.
 var _opportunist: BotOpportunist
 
-var _ticks_since_think: int = 0
+## Which manager owns which unit — shared by every manager of this bot.
+var claims: BotClaims = BotClaims.new()
 
-## Accumulated physics time (seconds) since preservation last ran.
-var _preservation_elapsed: float = 0.0
+## This brain's jobs, in the order `think` runs them. Built with the managers.
+var _jobs: Array[BotJob] = []
+## Whether the jobs have been handed to the session's scheduler.
+var _registered: bool = false
+
+
+## Set the tier and the parameters it selects together, so the two can never disagree.
+func set_difficulty(a_tier: PlayerSlot.Difficulty) -> void:
+	difficulty = a_tier
+	config = BotDifficulty.for_tier(a_tier)
+	# Mid-match, the managers already hold the old tier's numbers.
+	if _military != null:
+		_apply_config()
+
+
+## Replace the parameters this bot plays by, WITHOUT touching the tier it reports.
+##
+## The injection point for a tuning run: the search wants to try values the tier table does
+## not contain, and the alternative — editing `BotDifficulty.for_tier` per experiment — would
+## make the tiers a property of the build rather than of the game, so two parameter sets
+## could not be run side by side and no result would name what produced it. See
+## tools/selfplay/ and gdd/systems/ai/selfplay-harness.md.
+##
+## `difficulty` deliberately keeps its old value: it is the tier this bot IS (what a scenario
+## authored, what a HUD would show), while `config` is what it plays by. A search that
+## rewrote the tier would be reporting a lie about the second one.
+##
+## Re-applies to the managers when they already exist, so this works mid-match as well as at
+## attach time.
+func set_config(a_config: BotDifficulty) -> void:
+	if a_config == null:
+		return
+	config = a_config
+	if _military != null:
+		_apply_config()
 
 
 func _ready() -> void:
@@ -63,46 +132,131 @@ func _ready() -> void:
 		push_warning("BotBrain expects to be a child of a Bot; found %s" % get_parent())
 
 
-func _physics_process(delta: float) -> void:
-	if not active or bot == null or Engine.is_editor_hint():
+## Polls only until the strategy layer can be built (Bot._ready resolves the map), then hands
+## the jobs to the scheduler and stops: from then on the scheduler is what runs this brain.
+func _physics_process(_a_delta: float) -> void:
+	if bot == null or Engine.is_editor_hint():
 		return
-	_preservation_elapsed += delta
-	if _preservation_elapsed >= 1.0:
-		_preservation_elapsed -= 1.0
-		_tick_preservation(delta)
-	_ticks_since_think += 1
-	if _ticks_since_think < THINK_INTERVAL_TICKS:
+	if not _ensure_managers():
 		return
-	_ticks_since_think = 0
-	think()
+	# Hosted beside the commanders, so it lives and pauses with the session they belong to.
+	var host: Node = bot.get_parent() if bot.get_parent() != null else bot
+	register_jobs(BotScheduler.find_or_create(self, host))
+	set_physics_process(false)
 
 
-## Decision entry point, run on the throttled cadence above. Runs the strategy
-## managers in priority order: production fills idle buildings; military steers
-## the army. Economy expansion (mines/dwellings) joins here in a later milestone.
+## Hand this brain's jobs to `a_scheduler`. Once only.
+func register_jobs(a_scheduler: BotScheduler) -> void:
+	if _registered or not _ensure_managers():
+		return
+	_registered = true
+	for job: BotJob in _jobs:
+		a_scheduler.register(job)
+
+
+## Run every job once, to completion, in scheduling order — a whole decision pass in one call,
+## outside the scheduler. For tests and probes; the game itself is paced by BotScheduler.
 func think() -> void:
 	if not _ensure_managers():
 		return
-	# The persistent enemy belief (bot.blackboard) is owned and ticked by Commander
-	# now; managers read it directly.
-	_economy.tick()
-	_production.tick()
-	# Before the military's idle-sweep: opportunistic utility actions (liberation,
-	# future utility-gain decisions) claim units (e.g. Warlords) so they read as
-	# non-idle and aren't yanked into an AttackMove this same tick.
-	_opportunist.tick()
-	# Scout before military: a unit given a move command here is non-idle when the
-	# military's idle-sweep runs, protecting it from an immediate AttackMove override.
-	_scout.tick()
-	_military.tick()
-	# Last: refine per-unit targets (defend against threats). Runs after the
-	# military's objective tasking so a threatened unit's reaction takes priority.
-	_targeting.tick()
-	# AOE-suicide drones are micro'd separately (cost-effective blasts only), on a
-	# slow ~7s cadence of their own.
-	_kamikaze.tick()
-	# Commander-level ordnances (faction abilities): defend the base, else strike.
-	_ordnance.tick()
+	for job: BotJob in _jobs:
+		job.work.call(BotScheduler.WORK_UNITS_PER_TICK)
+		while job.has_pending_work():
+			job.work.call(BotScheduler.WORK_UNITS_PER_TICK)
+
+
+## This brain's jobs, built with the managers. The periods are read through the config on
+## every run, so a set_config mid-match re-paces them.
+func _build_jobs() -> void:
+	var combat: Callable = func() -> float: return config.combat_period_seconds
+	var strategy: Callable = func() -> float: return config.strategy_period_seconds
+	var scouting: Callable = func() -> float: return config.scout_period_seconds
+	_jobs = [
+		BotJob.new(&"deployment", self, strategy, JOB_PRIORITY_DEPLOYMENT, _deployment.tick,
+			_deployment.is_pending),
+		BotJob.new(&"momentum", self, combat, JOB_PRIORITY_MOMENTUM, _unit_work(_momentum.tick)),
+		BotJob.new(&"targeting", self, combat, JOB_PRIORITY_TARGETING, _unit_work(_targeting.tick)),
+		BotJob.new(&"military", self, combat, JOB_PRIORITY_MILITARY, _unit_work(_military.tick)),
+		BotJob.new(&"sanction", self, combat, JOB_PRIORITY_SANCTION, _unit_work(_sanction.tick)),
+		BotJob.new(&"kamikaze", self, func() -> float: return BotKamikaze.EVAL_PERIOD_SECONDS,
+			JOB_PRIORITY_KAMIKAZE, _unit_work(_kamikaze.tick)),
+		BotJob.new(&"preservation", self, func() -> float: return PRESERVATION_PERIOD_SECONDS,
+			JOB_PRIORITY_PRESERVATION, _unit_work(_tick_preservation)),
+		BotJob.new(&"opportunist", self, strategy, JOB_PRIORITY_OPPORTUNIST,
+			_unit_work(_opportunist.tick)),
+		BotJob.new(&"economy", self, strategy, JOB_PRIORITY_ECONOMY, _economy.tick,
+			_economy.has_pending_search),
+		BotJob.new(&"production", self, strategy, JOB_PRIORITY_PRODUCTION,
+			_unit_work(_production.tick)),
+		# Seeing comes before dispatching, so a scout is sent on from what was just seen.
+		BotJob.new(&"scout_sight", self, scouting, JOB_PRIORITY_SCOUT + 1, _scout.sweep_sight,
+			_scout.is_sight_pending),
+		BotJob.new(&"scout", self, scouting, JOB_PRIORITY_SCOUT, _scout.tick,
+			_scout.is_dispatch_pending),
+	]
+
+
+## Wrap a manager's `tick() -> int` (work units spent) as a job's work callable. The allowance
+## is not passed down: these ticks always finish, and report what they cost. (The economy's and
+## the scout's ticks take the allowance themselves, and are registered unwrapped.)
+static func _unit_work(tick: Callable) -> Callable:
+	return func(_allowance: int) -> int: return maxi(IDLE_JOB_WORK_UNITS, int(tick.call()))
+
+
+## Push the difficulty parameters into the managers that read them. Called once the layer is
+## built; re-callable, so a scenario that changes a bot's tier mid-match need only call it.
+func _apply_config() -> void:
+	if config == null:
+		return
+	_military.army_commit_threshold = config.army_commit_threshold
+	_military.may_attack = config.may_attack
+	_military.attack_value_ratio = config.attack_value_ratio
+	_military.assumed_enemy_parity = config.assumed_enemy_parity
+	_military.wave_abort_fraction = config.wave_abort_fraction
+	_military.defend_threat_radius = config.defend_threat_radius
+	_targeting.switch_margin = config.retarget_switch_margin
+	_targeting.set_signal_weights(
+		config.retarget_weight_effectiveness,
+		config.retarget_weight_finishability,
+		config.retarget_weight_proximity
+	)
+	_scout.unit_budget = config.scout_unit_budget
+	_economy.reserve = config.economy_reserve
+	_economy.build_concurrency = config.build_concurrency
+	_economy.production_structure_cap = config.production_structure_cap
+	_economy.income_structure_target = config.income_structure_target
+	# The economy is the THIRD consumer of the threat radius (BotMilitary and BotSanction are
+	# the others). "Is something of mine under attack" has to mean one thing across the bot,
+	# and it is what tells the economy to stop expanding — see BotEconomy.safety.
+	_economy.defend_threat_radius = config.defend_threat_radius
+	# Where a building goes, as three costs per cell against compactness = 1.0. See
+	# BotEconomy §WHERE A BUILDING GOES for why compactness itself is not a parameter.
+	_economy.place_frontage_bias = config.place_frontage_bias
+	_economy.place_shelter_bias = config.place_shelter_bias
+	_economy.place_corridor_weight = config.place_corridor_weight
+	_production.utility_unit_cap = config.utility_unit_cap
+	# The two errand counts the utility demand is sized against. Both are already parameters
+	# of other managers; production reads them because a builder and a scout are units it has
+	# to have MADE. See BotProduction._utility_demand_for.
+	_production.build_concurrency = config.build_concurrency
+	_production.scout_unit_budget = config.scout_unit_budget
+	# The same reserve the economy plays by: it is a COMMANDER-WIDE spending floor, and a
+	# floor one of the two spenders ignores is not a floor (see BotProduction.reserve).
+	_production.reserve = config.economy_reserve
+	_sanction.may_attack = config.may_attack
+	_sanction.defend_threat_radius = config.defend_threat_radius
+	# The two production-mix weights live on the PERCEPTION layer (Bot.enemy_demand_map is
+	# what reads them), so they are pushed onto the bot rather than onto a manager. Same
+	# discipline either way: a number handed down, never a branch on the tier.
+	if bot != null:
+		bot.structure_demand_weight = config.structure_demand_weight
+		bot.demand_coverage_falloff = config.demand_coverage_falloff
+
+
+## The momentum signal, or null before the strategy layer is built (first think). Lets a
+## scenario / debugger read whether the bot believes it is losing.
+func get_momentum() -> BotMomentum:
+	return _momentum
 
 
 ## The scout manager, or null before the strategy layer is built (first think). Lets a
@@ -119,44 +273,54 @@ func _ensure_managers() -> bool:
 	if bot == null or bot.map == null:
 		return false
 	_actuator = BotActuator.new(bot.map)
-	_economy = BotEconomy.new(bot, _actuator)
+	_momentum = BotMomentum.new(bot)
+	# The economy takes momentum for the same reason the military does: whether the bot is
+	# bleeding right now is half of "is it safe to go and take an extractor".
+	_economy = BotEconomy.new(bot, _actuator, _momentum)
+	# Ranks its drop spots with the economy's placement score, so the bot has one notion of a
+	# good spot for a building however the building arrives.
+	_deployment = BotDeployment.new(bot, _economy)
 	_production = BotProduction.new(bot, _actuator)
-	_military = BotMilitary.new(bot, _actuator)
+	_military = BotMilitary.new(bot, _actuator, _momentum)
 	_targeting = BotTargeting.new(bot, _actuator)
 	_kamikaze = BotKamikaze.new(bot, _actuator)
-	# Ordnances fire through the ScenarioTriggerManager (the event host), resolved
-	# from the scenario. Null when a scene has none → BotOrdnance.tick no-ops.
-	var manager := bot.scenario.get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager \
-		if bot.scenario != null else null
-	_ordnance = BotOrdnance.new(bot, _actuator, manager)
+	# BotSanction needs no event host handed to it: it issues UseSanction like the player,
+	# and the command resolves the host itself.
+	_sanction = BotSanction.new(bot, _actuator)
 	_scout = BotScout.new(bot, _actuator)
 	_opportunist = BotOpportunist.new(bot, _actuator)
+	# One registry, shared: a claim means nothing unless every manager reads the same one.
+	for manager: Object in [_economy, _military, _targeting, _kamikaze, _scout, _opportunist]:
+		manager.set("claims", claims)
+	# AFTER every manager exists, and after construction rather than through their
+	# constructors: a manager that ignores difficulty should not have to take it, and one that
+	# starts reading it should not change its own call site.
+	_apply_config()
+	_build_jobs()
 	return true
 
 
 # ─── UNIT PRESERVATION ──────────────────────────────────────────────────────
 
-## Whether this bot should attempt to save [unit] from destruction.
-## Easy / Passive: never. Medium: only units costing ≥ 250 ore. Hard+: always.
-func _should_preserve(unit: Commandable) -> bool:
-	match difficulty:
-		PlayerSlot.Difficulty.PASSIVE, PlayerSlot.Difficulty.EASY:
-			return false
-		PlayerSlot.Difficulty.MEDIUM:
-			var spec: TechnologySpec = bot.technology_mapping.get(unit.id)
-			return spec != null and spec.ore_cost >= 250
-		_:  # HARD, IMPOSSIBLE
-			return true
+## Whether this bot should attempt to save [unit] from destruction — a PARAMETER now
+## (`BotDifficulty.preserve_min_cost`) rather than a match on the tier, so the threshold is
+## a number a tuning run can move rather than three branches it cannot.
+func _should_preserve(a_unit: Commandable) -> bool:
+	if config == null:
+		return false
+	var spec: TechnologySpec = bot.technology_mapping.get(a_unit.id)
+	return config.preserves_unit_costing(spec.energy_cost if spec != null else 0)
 
 
-## Called every second from _physics_process. For each owned unit that _should_preserve
+## Run every PRESERVATION_PERIOD_SECONDS. For each owned unit that _should_preserve
 ## AND is at-risk (hp ≤ PRESERVATION_HP_THRESHOLD) AND has no effective targets in
 ## aggro range AND is actively fighting (Attack or AttackMove command), cancel the
-## fight and move the unit home.
-func _tick_preservation(_delta: float) -> void:
+## fight and move the unit home. Returns the work units spent: one per unit looked at.
+func _tick_preservation() -> int:
 	if _actuator == null:
-		return
-	for unit: Commandable in bot.get_units():
+		return 0
+	var units: Array = bot.get_units()
+	for unit: Commandable in units:
 		if not _should_preserve(unit):
 			continue
 		if unit.defense == null:
@@ -174,26 +338,27 @@ func _tick_preservation(_delta: float) -> void:
 			_actuator.garrison_into(unit, garrison_host)
 		else:
 			_actuator.move([unit], _preservation_retreat_dest(unit))
+	return units.size() * PRESERVATION_UNIT_WORK_UNITS
 
 
 ## True when the unit has enemies in its aggro range but cannot effectively damage
 ## any of them (unit_effectiveness_vs returns 0 for every target). Returns false
 ## — i.e. "don't retreat on this gate" — when the range is empty, since an
 ## attack-moving unit with no enemies nearby isn't in a bad matchup yet.
-func _no_effective_targets_in_aggro(unit: Commandable) -> bool:
-	var nearby: Array = bot.get_enemies_in_aggro_range(unit)
+func _no_effective_targets_in_aggro(a_unit: Commandable) -> bool:
+	var nearby: Array = bot.get_enemies_in_aggro_range(a_unit)
 	if nearby.is_empty():
 		return false
 	for enemy: Commandable in nearby:
-		if bot.unit_effectiveness_vs(unit.id, enemy) > 0.0:
+		if bot.unit_effectiveness_vs(a_unit.id, enemy) > 0.0:
 			return false
 	return true
 
 
 ## Retreat destination for [unit]: nearest own structure, or base centroid as
 ## fallback when the bot has no structures left.
-func _preservation_retreat_dest(unit: Commandable) -> Vector3:
-	var nearest: Commandable = bot.nearest_own_structure(unit.global_position)
+func _preservation_retreat_dest(a_unit: Commandable) -> Vector3:
+	var nearest: Commandable = bot.nearest_own_structure(a_unit.global_position)
 	if nearest != null:
 		return nearest.global_position
 	return bot.base_centroid()

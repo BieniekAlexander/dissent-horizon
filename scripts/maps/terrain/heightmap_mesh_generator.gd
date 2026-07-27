@@ -128,6 +128,10 @@ func _apply_to_instance() -> void:
 	mi.material_override = material
 	_sync_shader_params()
 
+## One quad per cell, with its own four vertices — no sharing, so tile boundaries are hard
+## and every cell carries its own per-vertex data. What the three cell fates are (gap, black
+## obstacle, ordinary surface) and what the four vertex channels mean:
+## gdd/systems/terrain-and-navigation/tile-types.md §How a cell reaches the shader.
 func _build_mesh() -> ArrayMesh:
 	var w: int = shape.map_width
 	var d: int = shape.map_depth
@@ -136,21 +140,6 @@ func _build_mesh() -> ArrayMesh:
 	var gw: int = w - 1
 	var gd: int = d - 1
 	var data: PackedFloat32Array = shape.map_data
-
-	# Each cell gets its own 4 vertices — no vertex sharing across cells — so tile boundaries are
-	# hard-edged and every cell can carry its own per-vertex data with no bleed. The only cells
-	# OMITTED (a literal geometry gap) are OUT-OF-PLAY cells, so the playable diamond reads against
-	# the background. Non-passable obstacles (too-steep cells, or cliff/no-go tile types with
-	# renders_surface = false) are still rendered, but as solid BLACK, so they don't show the
-	# background through a hole (see the "void" sentinel below). Water/forest are impassable for
-	# NAV yet rendered with their colour: passability and visibility are deliberately separate.
-	#
-	# Each cell bakes its tile identity into per-vertex data for the shader:
-	#   * COLOR.rgb = the cell type's map_color (or black for a void cell).
-	#   * COLOR.a   = the tile-type index / 255, sampled as a Texture2DArray layer — EXCEPT the
-	#                 reserved value 1.0 (index 255), the "void" sentinel that forces flat black.
-	#   * UV        = per-cell 0..1 (each cell samples a full texture once real texturing lands).
-	#   * UV2       = global 0..1 across the whole map (kept for map-wide overlays: AO, minimap).
 	var td: TerrainData = _terrain_data()
 
 	var verts   := PackedVector3Array()
@@ -163,31 +152,15 @@ func _build_mesh() -> ArrayMesh:
 	for z in gd:
 		for x in gw:
 			var cell := Vector2i(x, z)
-			# Out-of-play cells stay gaps (they're outside the map, so the play-area diamond edge
-			# stays visible against the background rather than being framed in black).
+			# Out-of-play cells (void included) stay gaps, so the play-area edge reads against
+			# the background rather than being framed in black.
 			if td != null and not td.is_cell_in_play(cell):
 				continue
 			var h00: float = data[ z      * w + x    ]
 			var h10: float = data[ z      * w + x + 1]
 			var h11: float = data[(z + 1) * w + x + 1]
 			var h01: float = data[(z + 1) * w + x    ]
-
-			var spread: float = maxf(maxf(h00, h10), maxf(h11, h01)) \
-							  - minf(minf(h00, h10), minf(h11, h01))
-
-			# Non-passable OBSTACLES — a cliff/no-go tile type (renders_surface = false) or a cell
-			# too steep to traverse — render as solid BLACK geometry rather than gaps, so they read
-			# as black under fog / when unexplored instead of showing the background through a hole.
-			# COLOR.a == 1.0 is the shader's "void" sentinel: skip texturing, keep COLOR.rgb (black).
-			var is_void: bool = spread > MAX_SLOPE_DIFF \
-							 or (td != null and not td.cell_renders_surface(cell))
-			var col: Color
-			if is_void:
-				col = Color(0.0, 0.0, 0.0, 1.0)
-			else:
-				col = td.cell_map_color(cell) if td != null else TileType.DEFAULT_MAP_COLOR
-				col.a = (td.tile_at(cell) if td != null else 0) / 255.0
-
+			var col: Color = _cell_color(td, cell, _corner_spread(h00, h10, h11, h01))
 			var base: int = verts.size()
 
 			verts.append(Vector3(x     - hw, h00, z     - hd))
@@ -213,7 +186,7 @@ func _build_mesh() -> ArrayMesh:
 			colors.append(col)
 
 			var fn: Vector3 = (verts[base + 1] - verts[base]) \
-							   .cross(verts[base + 3] - verts[base]).normalized()
+								.cross(verts[base + 3] - verts[base]).normalized()
 			normals.append(fn)
 			normals.append(fn)
 			normals.append(fn)
@@ -233,6 +206,24 @@ func _build_mesh() -> ArrayMesh:
 	var result := ArrayMesh.new()
 	result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return result
+
+
+## The height difference across a cell's four corners — what MAX_SLOPE_DIFF is compared
+## against to call the cell too steep to traverse.
+static func _corner_spread(h00: float, h10: float, h11: float, h01: float) -> float:
+	return maxf(maxf(h00, h10), maxf(h11, h01)) - minf(minf(h00, h10), minf(h11, h01))
+
+
+## The per-vertex COLOR for one cell: its ground material's map colour with the type index
+## packed into alpha, or the cliff sentinel (black, alpha 1.0) for a cell too steep to walk.
+## A void cell never reaches here — it is out of play, so the caller omits it.
+func _cell_color(a_terrain_data: TerrainData, a_cell: Vector2i, a_spread: float) -> Color:
+	if a_spread > MAX_SLOPE_DIFF:
+		return Color(0.0, 0.0, 0.0, 1.0)
+	var col: Color = a_terrain_data.cell_map_color(a_cell) if a_terrain_data != null \
+		else TileType.DEFAULT_MAP_COLOR
+	col.a = (a_terrain_data.tile_at(a_cell) if a_terrain_data != null else 0) / 255.0
+	return col
 
 
 ## Walk up to the owning Map (the generator lives under Map/NavigationRegion/Body).

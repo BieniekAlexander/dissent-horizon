@@ -1,13 +1,16 @@
 ---
-kind: projectile
-id: an_plant_bomb
+kind: Entity
 title: an_plant_bomb
-scene: res://scenes/entities/projectiles/an/plant_bomb.tscn
+scene: res://scenes/entities/projectiles/an/an_plant_bomb.tscn
 damage: 10000
 damage_type: EXPLOSIVE
-speed: 0
-trajectory: LINEAR
+blast: aoe_charge
 hitscan: false
+phases:
+  - motion: {preset: LINEAR, speed: ZERO}
+    lifespan: 0
+  - lifespan: 1
+    payload: 0
 ---
 
 # An Plant Bomb

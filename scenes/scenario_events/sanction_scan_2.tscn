@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://0kv5wl1g50to"]
+
+[ext_resource type="Script" uid="uid://dfmrebaif66d7" path="res://scripts/scenario/events/event_radar_scan.gd" id="1_evt"]
+
+[node name="SanctionScan2" type="Sprite3D"]
+script = ExtResource("1_evt")
+vision_radius = 10.0
+lifespan_seconds = 15.0
+detection_radius = 10.0
+metadata/_custom_type_script = "uid://dfmrebaif66d7"

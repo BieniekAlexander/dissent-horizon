@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[node name="Pair" type="Node3D"]
+
+[node name="Slot1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, 0, 0)
+
+[node name="Slot2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 0, 0)

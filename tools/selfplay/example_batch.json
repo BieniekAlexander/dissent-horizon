@@ -1,0 +1,29 @@
+[
+  {
+    "id": "hard_vs_medium_s1",
+    "seed": 1,
+    "max_simulated_seconds": 1200,
+    "slots": [
+      {"difficulty": "HARD"},
+      {"difficulty": "MEDIUM"}
+    ]
+  },
+  {
+    "id": "commit_sweep_lo_s1",
+    "seed": 1,
+    "max_simulated_seconds": 1200,
+    "slots": [
+      {"difficulty": "HARD", "config": {"attack_value_ratio": 1.0}},
+      {"difficulty": "HARD"}
+    ]
+  },
+  {
+    "id": "commit_sweep_hi_s1",
+    "seed": 1,
+    "max_simulated_seconds": 1200,
+    "slots": [
+      {"difficulty": "HARD", "config": {"attack_value_ratio": 1.6}},
+      {"difficulty": "HARD"}
+    ]
+  }
+]

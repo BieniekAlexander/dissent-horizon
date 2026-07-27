@@ -1,13 +1,14 @@
 ---
-kind: projectile
-id: radiation
+kind: Entity
 title: radiation
 scene: res://scenes/entities/projectiles/radiation.tscn
 damage: 3
 damage_type: LEAD
-speed: 0.175
-trajectory: BALLISTIC
 hitscan: false
+phases:
+  - motion: {preset: BALLISTIC, speed: FAST}
+  - lifespan: 10
+    payload: 0.5
 ---
 
 # Radiation

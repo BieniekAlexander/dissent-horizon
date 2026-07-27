@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://b1free0e00001"]
+
+[ext_resource type="Script" uid="uid://tbvart7vj2ii" path="res://scripts/entities/effects/freeze_status_effect.gd" id="1_fz"]
+[ext_resource type="Texture2D" uid="uid://csmql1uvoycbs" path="res://assets/interface/status_freeze.svg" id="2_flake"]
+
+[node name="Freeze" type="Node"]
+script = ExtResource("1_fz")
+title = "Frozen"
+description = "Slowed to a crawl, and harder to hurt while it lasts."
+valence = 2
+verbose = "The Colonial cryogenics theme, and deliberately two-edged: a frozen piece is nearly immobile, but the cold RAISES its armour class, so it is a worse target while it is stuck.\nFreezing your own advance is a real cost — this is a tool for stopping something crossing ground, not for softening it up."
+duration_ticks = 450
+host_tint = Color(0.62, 0.84, 1, 1)
+indicator_icon = ExtResource("2_flake")
+metadata/_custom_type_script = "uid://tbvart7vj2ii"

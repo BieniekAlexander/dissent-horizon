@@ -11,7 +11,13 @@ extends RefCounted
 ##   - block mappings (nested by indentation) and block sequences ("- item"),
 ##     including sequences of mappings (the `weapons:` list)
 ##   - full-line and trailing `#` comments
-## Anchors, aliases, multi-line scalars, and tag syntax are NOT supported.
+##   - block scalars: `key: |` (literal, newlines kept) and `key: >` (folded,
+##     newlines within a paragraph become spaces, blank lines stay breaks).
+##     A chomping indicator (`|-`, `>+`, …) parses but is ignored: the value is
+##     always trailing-trimmed, which is what every consumer of this schema wants.
+##     Comment stripping does NOT apply inside a block scalar, so prose may
+##     contain `#`.
+## Anchors, aliases, and tag syntax are NOT supported.
 ##
 ## Obsidian wikilinks are accepted anywhere a string scalar appears: a value that
 ## is entirely a wikilink ("[[warlord]]", "[[dir/warlord#Heading|alias]]") is
@@ -23,10 +29,10 @@ extends RefCounted
 ## offending line.
 
 
-static func parse_file(a_path: String) -> Dictionary:
-	var f: FileAccess = FileAccess.open(a_path, FileAccess.READ)
+static func parse_file(path: String) -> Dictionary:
+	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if f == null:
-		return _err("cannot open %s" % a_path)
+		return _err("cannot open %s" % path)
 	var text: String = f.get_as_text()
 	f.close()
 	return parse(text)
@@ -34,8 +40,8 @@ static func parse_file(a_path: String) -> Dictionary:
 
 ## Parses a full markdown document; returns ok with empty data when the document
 ## has no frontmatter block (a prose-only doc is not an error).
-static func parse(a_markdown: String) -> Dictionary:
-	var lines: PackedStringArray = a_markdown.split("\n")
+static func parse(markdown: String) -> Dictionary:
+	var lines: PackedStringArray = markdown.split("\n")
 	if lines.size() == 0 or lines[0].strip_edges() != "---":
 		return {"ok": true, "data": {}, "error": ""}
 	var fence_end: int = -1
@@ -53,8 +59,8 @@ static func parse(a_markdown: String) -> Dictionary:
 
 
 ## Parses bare YAML lines (no fences). Exposed for tests.
-static func parse_yaml(a_lines: Array[String]) -> Dictionary:
-	var cleaned: Variant = _clean_lines(a_lines)
+static func parse_yaml(lines: Array[String]) -> Dictionary:
+	var cleaned: Variant = _clean_lines(lines)
 	if cleaned is String:
 		return _err(cleaned as String)
 	var rows: Array = cleaned
@@ -70,15 +76,23 @@ static func parse_yaml(a_lines: Array[String]) -> Dictionary:
 	return {"ok": true, "data": result["value"], "error": ""}
 
 
+## Index of the colon separating a key from its value on one line, or -1 when the
+## line is not a key/value pair. Exposed because the canonical-order rewrite
+## (SpecSchema) works on the same lines and must agree with this parser about
+## where a key ends.
+static func key_colon(text: String) -> int:
+	return _find_key_colon(text)
+
+
 ## "[[target|alias]]" / "[[dir/target#anchor]]" -> "target"; other strings pass
 ## through unchanged. Only applies when the WHOLE string is one wikilink.
-static func strip_wikilink(a_value: String) -> String:
-	var s: String = a_value.strip_edges()
+static func strip_wikilink(value: String) -> String:
+	var s: String = value.strip_edges()
 	if not (s.begins_with("[[") and s.ends_with("]]")):
-		return a_value
+		return value
 	var inner: String = s.substr(2, s.length() - 4)
 	if inner.contains("]]") or inner.contains("[["):
-		return a_value
+		return value
 	# The reference is the link TARGET; the display alias (after |) is cosmetic.
 	inner = inner.split("|")[0]
 	inner = inner.split("#")[0]
@@ -91,35 +105,121 @@ static func strip_wikilink(a_value: String) -> String:
 # --------------------------------------------------------------------------- #
 ## Rows of {"indent": int, "text": String} with blanks/comments removed and
 ## trailing comments stripped. Returns an error String on tab indentation.
-static func _clean_lines(a_lines: Array[String]) -> Variant:
+static func _clean_lines(lines: Array[String]) -> Variant:
 	var rows: Array = []
-	for line in a_lines:
+	var i: int = 0
+	while i < lines.size():
+		var line: String = lines[i]
 		var no_comment: String = _strip_comment(line)
 		if no_comment.strip_edges() == "":
+			i += 1
 			continue
 		var indent: int = 0
 		while indent < no_comment.length() and no_comment[indent] == " ":
 			indent += 1
 		if indent < no_comment.length() and no_comment[indent] == "\t":
 			return "tab indentation is not valid YAML: %s" % line.strip_edges()
-		rows.append({"indent": indent, "text": no_comment.substr(indent).strip_edges()})
+		var text: String = no_comment.substr(indent).strip_edges()
+		# A block scalar is collapsed into ONE row carrying its finished value, so the
+		# mapping/sequence parsers below never learn that multi-line scalars exist.
+		var header: Dictionary = _block_scalar_header(text)
+		if header.is_empty():
+			rows.append({"indent": indent, "text": text})
+			i += 1
+			continue
+		var gathered: Dictionary = _gather_block_scalar(lines, i + 1, indent, header["folded"])
+		rows.append({
+			"indent": indent, "text": "%s:" % header["key"], "scalar": gathered["value"],
+		})
+		i = gathered["next"]
 	return rows
 
 
+## `{"key": …, "folded": bool}` when `a_text` is a block-scalar header (`name: |`,
+## `name: >-`), else {}. A dash-prefixed sequence item is deliberately excluded: this
+## schema always writes block scalars as their own `key:` line inside an item.
+static func _block_scalar_header(text: String) -> Dictionary:
+	if text.begins_with("- "):
+		return {}
+	var colon: int = _find_key_colon(text)
+	if colon == -1:
+		return {}
+	var rest: String = text.substr(colon + 1).strip_edges()
+	if rest != "|" and rest != ">" and rest != "|-" and rest != ">-" \
+			and rest != "|+" and rest != ">+":
+		return {}
+	return {
+		"key": _unquote(text.substr(0, colon).strip_edges()),
+		"folded": rest.begins_with(">"),
+	}
+
+
+## Reads a block scalar's body: every line after the header that is blank or indented
+## deeper than the header, with the block's own indentation removed.
+##
+## Blank lines are KEPT (they are paragraph breaks in the value) even though the row
+## scanner drops them elsewhere, and comments are NOT stripped — a `#` inside prose is
+## content, not a comment. Returns {"value": String, "next": int}.
+static func _gather_block_scalar(lines: Array[String], start: int, key_indent: int,
+		folded: bool) -> Dictionary:
+	var raw: Array[String] = []
+	var i: int = start
+	var block_indent: int = -1
+	while i < lines.size():
+		var line: String = lines[i]
+		if line.strip_edges() == "":
+			raw.append("")
+			i += 1
+			continue
+		var indent: int = 0
+		while indent < line.length() and line[indent] == " ":
+			indent += 1
+		if indent <= key_indent:
+			break
+		if block_indent == -1:
+			block_indent = indent
+		raw.append(line.substr(mini(block_indent, indent)))
+		i += 1
+	# Trailing blank lines are never part of the value (chomping is not honoured; see
+	# the class docs), so drop them before joining.
+	while not raw.is_empty() and raw[raw.size() - 1].strip_edges() == "":
+		raw.remove_at(raw.size() - 1)
+	return {"value": _join_block(raw, folded), "next": i}
+
+
+## Literal: the lines as they stand. Folded: newlines inside a paragraph become spaces,
+## and a blank line stays a single break between paragraphs.
+static func _join_block(raw: Array[String], folded: bool) -> String:
+	if not folded:
+		return "\n".join(raw)
+	var paragraphs: Array[String] = []
+	var current: Array[String] = []
+	for line: String in raw:
+		if line.strip_edges() == "":
+			if not current.is_empty():
+				paragraphs.append(" ".join(current))
+				current = []
+		else:
+			current.append(line.strip_edges())
+	if not current.is_empty():
+		paragraphs.append(" ".join(current))
+	return "\n".join(paragraphs)
+
+
 ## Removes a trailing " # comment" that is outside quotes/brackets.
-static func _strip_comment(a_line: String) -> String:
+static func _strip_comment(line: String) -> String:
 	var in_quote: String = ""
-	for i in a_line.length():
-		var c: String = a_line[i]
+	for i in line.length():
+		var c: String = line[i]
 		if in_quote != "":
 			if c == in_quote:
 				in_quote = ""
 			continue
 		if c == "\"" or c == "'":
 			in_quote = c
-		elif c == "#" and (i == 0 or a_line[i - 1] == " " or a_line[i - 1] == "\t"):
-			return a_line.substr(0, i)
-	return a_line
+		elif c == "#" and (i == 0 or line[i - 1] == " " or line[i - 1] == "\t"):
+			return line.substr(0, i)
+	return line
 
 
 # --------------------------------------------------------------------------- #
@@ -127,20 +227,20 @@ static func _strip_comment(a_line: String) -> String:
 # --------------------------------------------------------------------------- #
 ## Parses rows[start..] at exactly `indent` into one value (mapping or sequence).
 ## Returns {"value": Variant, "next": int} or {"error": String}.
-static func _parse_block(a_rows: Array, a_start: int, a_indent: int) -> Dictionary:
-	if a_rows[a_start]["text"].begins_with("- ") or a_rows[a_start]["text"] == "-":
-		return _parse_sequence(a_rows, a_start, a_indent)
-	return _parse_mapping(a_rows, a_start, a_indent)
+static func _parse_block(rows: Array, start: int, indent: int) -> Dictionary:
+	if rows[start]["text"].begins_with("- ") or rows[start]["text"] == "-":
+		return _parse_sequence(rows, start, indent)
+	return _parse_mapping(rows, start, indent)
 
 
-static func _parse_mapping(a_rows: Array, a_start: int, a_indent: int) -> Dictionary:
+static func _parse_mapping(rows: Array, start: int, indent: int) -> Dictionary:
 	var map: Dictionary = {}
-	var i: int = a_start
-	while i < a_rows.size():
-		var row: Dictionary = a_rows[i]
-		if row["indent"] < a_indent:
+	var i: int = start
+	while i < rows.size():
+		var row: Dictionary = rows[i]
+		if row["indent"] < indent:
 			break
-		if row["indent"] > a_indent:
+		if row["indent"] > indent:
 			return {"error": "unexpected indentation: %s" % row["text"]}
 		var text: String = row["text"]
 		if text.begins_with("- "):
@@ -149,23 +249,34 @@ static func _parse_mapping(a_rows: Array, a_start: int, a_indent: int) -> Dictio
 		if colon == -1:
 			return {"error": "expected 'key: value': %s" % text}
 		var key: String = _unquote(text.substr(0, colon).strip_edges())
+		# A KEY WRITTEN TWICE AT ONE LEVEL ABORTS THE IMPORT rather than taking the last one.
+		# YAML's own rule is last-wins, silently, which is the worst possible answer here: the
+		# value a reader sees first is not the value the game gets, and the two are usually
+		# different precisely because someone edited the wrong line. Validation in this
+		# pipeline is total and loud, and a doc that says two things about one key is exactly
+		# the case that policy exists for.
+		if map.has(key):
+			return {"error": "duplicate key '%s' at this level: %s" % [key, text]}
 		var rest: String = text.substr(colon + 1).strip_edges()
 		i += 1
-		if rest != "":
+		if row.has("scalar"):
+			# A block scalar, already resolved by _clean_lines.
+			map[key] = row["scalar"]
+		elif rest != "":
 			var scalar: Variant = _parse_flow(rest)
 			if scalar is Dictionary and scalar.has("__error"):
 				return {"error": scalar["__error"]}
 			map[key] = scalar
-		elif i < a_rows.size() and a_rows[i]["indent"] > a_indent:
-			var nested: Dictionary = _parse_block(a_rows, i, a_rows[i]["indent"])
+		elif i < rows.size() and rows[i]["indent"] > indent:
+			var nested: Dictionary = _parse_block(rows, i, rows[i]["indent"])
 			if nested.has("error"):
 				return nested
 			map[key] = nested["value"]
 			i = nested["next"]
-		elif i < a_rows.size() and a_rows[i]["indent"] == a_indent \
-				and (a_rows[i]["text"].begins_with("- ") or a_rows[i]["text"] == "-"):
+		elif i < rows.size() and rows[i]["indent"] == indent \
+				and (rows[i]["text"].begins_with("- ") or rows[i]["text"] == "-"):
 			# YAML allows sequence items at the SAME indent as their key.
-			var seq: Dictionary = _parse_sequence(a_rows, i, a_indent)
+			var seq: Dictionary = _parse_sequence(rows, i, indent)
 			if seq.has("error"):
 				return seq
 			map[key] = seq["value"]
@@ -175,25 +286,25 @@ static func _parse_mapping(a_rows: Array, a_start: int, a_indent: int) -> Dictio
 	return {"value": map, "next": i}
 
 
-static func _parse_sequence(a_rows: Array, a_start: int, a_indent: int) -> Dictionary:
+static func _parse_sequence(rows: Array, start: int, indent: int) -> Dictionary:
 	var seq: Array = []
-	var i: int = a_start
-	while i < a_rows.size():
-		var row: Dictionary = a_rows[i]
-		if row["indent"] != a_indent or not (row["text"].begins_with("- ") or row["text"] == "-"):
-			if row["indent"] >= a_indent and (row["text"].begins_with("- ") or row["text"] == "-"):
+	var i: int = start
+	while i < rows.size():
+		var row: Dictionary = rows[i]
+		if row["indent"] != indent or not (row["text"].begins_with("- ") or row["text"] == "-"):
+			if row["indent"] >= indent and (row["text"].begins_with("- ") or row["text"] == "-"):
 				return {"error": "misaligned sequence item: %s" % row["text"]}
 			break
 		var rest: String = row["text"].substr(1).strip_edges()   # after the dash
 		# Gather this item's continuation lines (deeper-indented block under the dash).
 		var block_end: int = i + 1
-		while block_end < a_rows.size() and a_rows[block_end]["indent"] > a_indent:
+		while block_end < rows.size() and rows[block_end]["indent"] > indent:
 			block_end += 1
 		if rest == "":
 			if block_end == i + 1:
 				seq.append(null)
 			else:
-				var nested: Dictionary = _parse_block(a_rows, i + 1, a_rows[i + 1]["indent"])
+				var nested: Dictionary = _parse_block(rows, i + 1, rows[i + 1]["indent"])
 				if nested.has("error"):
 					return nested
 				seq.append(nested["value"])
@@ -202,10 +313,10 @@ static func _parse_sequence(a_rows: Array, a_start: int, a_indent: int) -> Dicti
 			# Mapping whose first entry sits on the dash line. Re-parse the item as
 			# its own mini-document: the dash-line content dedented to the
 			# continuation indent, followed by the continuation lines.
-			var item_rows: Array = [{"indent": a_indent + 2, "text": rest}]
+			var item_rows: Array = [{"indent": indent + 2, "text": rest}]
 			for j in range(i + 1, block_end):
-				item_rows.append(a_rows[j])
-			var item: Dictionary = _parse_mapping(item_rows, 0, a_indent + 2)
+				item_rows.append(rows[j])
+			var item: Dictionary = _parse_mapping(item_rows, 0, indent + 2)
 			if item.has("error"):
 				return item
 			if item["next"] != item_rows.size():
@@ -226,8 +337,8 @@ static func _parse_sequence(a_rows: Array, a_start: int, a_indent: int) -> Dicti
 # --------------------------------------------------------------------------- #
 # Flow (inline) values
 # --------------------------------------------------------------------------- #
-static func _parse_flow(a_text: String) -> Variant:
-	var s: String = a_text.strip_edges()
+static func _parse_flow(text: String) -> Variant:
+	var s: String = text.strip_edges()
 	if s.begins_with("{"):
 		if not s.ends_with("}"):
 			return {"__error": "unterminated flow mapping: %s" % s}
@@ -259,13 +370,13 @@ static func _parse_flow(a_text: String) -> Variant:
 
 
 ## Splits flow-collection innards on top-level commas (quotes and nesting aware).
-static func _split_flow(a_text: String) -> Array:
+static func _split_flow(text: String) -> Array:
 	var parts: Array = []
 	var depth: int = 0
 	var in_quote: String = ""
 	var current: String = ""
-	for i in a_text.length():
-		var c: String = a_text[i]
+	for i in text.length():
+		var c: String = text[i]
 		if in_quote != "":
 			current += c
 			if c == in_quote:
@@ -293,8 +404,8 @@ static func _split_flow(a_text: String) -> Array:
 	return parts
 
 
-static func _parse_scalar(a_text: String) -> Variant:
-	var s: String = a_text.strip_edges()
+static func _parse_scalar(text: String) -> Variant:
+	var s: String = text.strip_edges()
 	if s == "" or s == "~" or s == "null":
 		return null
 	if (s.begins_with("\"") and s.ends_with("\"") and s.length() >= 2) \
@@ -317,27 +428,27 @@ static func _parse_scalar(a_text: String) -> Variant:
 ## Index of the colon separating a key from its value: the first ": " (or a
 ## trailing ":"), outside quotes. -1 when the text is not a key/value pair.
 ## Plain colons inside values ("res://x") don't match because they lack the space.
-static func _find_key_colon(a_text: String) -> int:
+static func _find_key_colon(text: String) -> int:
 	var in_quote: String = ""
-	for i in a_text.length():
-		var c: String = a_text[i]
+	for i in text.length():
+		var c: String = text[i]
 		if in_quote != "":
 			if c == in_quote:
 				in_quote = ""
 			continue
 		if c == "\"" or c == "'":
 			in_quote = c
-		elif c == ":" and (i == a_text.length() - 1 or a_text[i + 1] == " "):
+		elif c == ":" and (i == text.length() - 1 or text[i + 1] == " "):
 			return i
 	return -1
 
 
-static func _unquote(a_text: String) -> String:
-	if (a_text.begins_with("\"") and a_text.ends_with("\"") and a_text.length() >= 2) \
-			or (a_text.begins_with("'") and a_text.ends_with("'") and a_text.length() >= 2):
-		return a_text.substr(1, a_text.length() - 2)
-	return a_text
+static func _unquote(text: String) -> String:
+	if (text.begins_with("\"") and text.ends_with("\"") and text.length() >= 2) \
+			or (text.begins_with("'") and text.ends_with("'") and text.length() >= 2):
+		return text.substr(1, text.length() - 2)
+	return text
 
 
-static func _err(a_message: String) -> Dictionary:
-	return {"ok": false, "data": {}, "error": a_message}
+static func _err(message: String) -> Dictionary:
+	return {"ok": false, "data": {}, "error": message}

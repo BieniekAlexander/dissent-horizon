@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="Welcome" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Field Command"
+body = "Your cell has gone loud, commander. We will walk you through the basics.
+
+The world is held while you read — take your time. Orders you give now are still accepted; they simply wait for the world to resume."
+acknowledge_text = "Understood"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

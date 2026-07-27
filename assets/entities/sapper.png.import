@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://ce3mpkmhce6ie"
 path.s3tc="res://.godot/imported/sapper.png-e80b3ea48a253e34d60e4679f3f7a999.s3tc.ctex"
+path.etc2="res://.godot/imported/sapper.png-e80b3ea48a253e34d60e4679f3f7a999.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/sapper.png"
-dest_files=["res://.godot/imported/sapper.png-e80b3ea48a253e34d60e4679f3f7a999.s3tc.ctex"]
+dest_files=["res://.godot/imported/sapper.png-e80b3ea48a253e34d60e4679f3f7a999.s3tc.ctex", "res://.godot/imported/sapper.png-e80b3ea48a253e34d60e4679f3f7a999.etc2.ctex"]
 
 [params]
 

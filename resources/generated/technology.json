@@ -1,224 +1,988 @@
 {
-	"armory": {
-		"build_time_ticks": 900,
-		"cost": {
-			"dominion": 0,
-			"ore": 150,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"badger": {
+	"an_airField": {
 		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"ore": 200,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"barracks": {
-		"build_time_ticks": 900,
-		"cost": {
-			"dominion": 0,
-			"ore": 300,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"chinook": {
-		"build_time_ticks": 750,
-		"cost": {
-			"dominion": 0,
-			"ore": 350,
-			"vigor": 0
+			"energy": 800,
+			"infrastructure": 0
 		},
 		"requires": [
-			"hangar"
+			"an_infrastructure"
 		]
 	},
-	"compound": {
-		"build_time_ticks": 900,
-		"cost": {
-			"dominion": 0,
-			"ore": 300,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"dwelling": {
-		"build_time_ticks": 750,
-		"cost": {
-			"dominion": 0,
-			"ore": 150,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"field_hospital": {
-		"build_time_ticks": 900,
-		"cost": {
-			"dominion": 0,
-			"ore": 250,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"hangar": {
+	"an_aircraftLight_antiMech": {
 		"build_time_ticks": 300,
 		"cost": {
 			"dominion": 0,
-			"ore": 500,
-			"vigor": 0
-		},
-		"requires": [
-			"stronghold"
-		]
-	},
-	"internment_camp": {
-		"build_time_ticks": 900,
-		"cost": {
-			"dominion": 0,
-			"ore": 300,
-			"vigor": 0
+			"energy": 300,
+			"infrastructure": 0
 		},
 		"requires": []
 	},
-	"irregular": {
+	"an_aircraftLight_transport": {
 		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
-			"ore": 75,
-			"vigor": 0
+			"energy": 800,
+			"infrastructure": 0
 		},
 		"requires": []
 	},
-	"kamikaze": {
-		"build_time_ticks": 750,
+	"an_aircraftMedium_support": {
+		"build_time_ticks": 900,
 		"cost": {
 			"dominion": 0,
-			"ore": 200,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"lab": {
-		"build_time_ticks": 1200,
-		"cost": {
-			"dominion": 0,
-			"ore": 300,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"mercury": {
-		"build_time_ticks": 750,
-		"cost": {
-			"dominion": 0,
-			"ore": 300,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"mine": {
-		"build_time_ticks": 600,
-		"cost": {
-			"dominion": 0,
-			"ore": 200,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"power_plant": {
-		"build_time_ticks": 600,
-		"cost": {
-			"dominion": 0,
-			"ore": 200,
-			"vigor": 0
+			"energy": 1200,
+			"infrastructure": 0
 		},
 		"requires": [
-			"internment_camp"
+			"an_tech2"
 		]
 	},
-	"recruit": {
+	"an_barracks": {
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"ore": 100,
-			"vigor": 0
+			"energy": 1000,
+			"infrastructure": 0
 		},
-		"requires": []
+		"requires": [
+			"an_infrastructure"
+		]
 	},
-	"safehouse": {
+	"an_bioLight_antiBio": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 750,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_tech1"
+		]
+	},
+	"an_bioLight_antiStructure": {
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"ore": 150,
-			"vigor": 0
+			"energy": 500,
+			"infrastructure": 0
 		},
 		"requires": []
 	},
-	"sapper": {
+	"an_bioLight_builder": {
+		"build_time_ticks": 240,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"an_bioMedium_antiMech": {
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"ore": 125,
-			"vigor": 0
+			"energy": 400,
+			"infrastructure": 0
 		},
 		"requires": []
 	},
-	"settlement": {
-		"build_time_ticks": 1350,
+	"an_bioMedium_dominionGen": {
+		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
-			"ore": 400,
-			"vigor": 0
+			"energy": 250,
+			"infrastructure": 0
 		},
 		"requires": []
 	},
-	"stronghold": {
+	"an_bioMedium_support": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_tech2"
+		]
+	},
+	"an_bioStrong_antiLight": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 1000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_tech1"
+		]
+	},
+	"an_commandCenter": {
 		"build_time_ticks": 1200,
 		"cost": {
 			"dominion": 0,
-			"ore": 400,
-			"vigor": 0
+			"energy": 1500,
+			"infrastructure": 0
 		},
 		"requires": []
 	},
-	"supply_truck": {
-		"build_time_ticks": 750,
-		"cost": {
-			"dominion": 0,
-			"ore": 600,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"technician": {
-		"build_time_ticks": 750,
-		"cost": {
-			"dominion": 0,
-			"ore": 100,
-			"vigor": 0
-		},
-		"requires": []
-	},
-	"vanguard": {
+	"an_infrastructure": {
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"ore": 200,
-			"vigor": 0
+			"energy": 500,
+			"infrastructure": 0
 		},
 		"requires": []
 	},
-	"warlord": {
+	"an_mechLight_transport": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 400,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"an_mechMedium_antiBio": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 600,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"an_mechMedium_artillery": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 750,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_tech1"
+		]
+	},
+	"an_mechStrong_transport": {
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"ore": 250,
-			"vigor": 0
+			"energy": 750,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_tech1"
+		]
+	},
+	"an_plantedCharge": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
 		},
 		"requires": []
+	},
+	"an_support1": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 1000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_barracks"
+		]
+	},
+	"an_support2": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_tech1"
+		]
+	},
+	"an_support3": {
+		"build_time_ticks": 1800,
+		"cost": {
+			"dominion": 0,
+			"energy": 3000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_tech2"
+		]
+	},
+	"an_tech1": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 1200,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_warFactory"
+		]
+	},
+	"an_tech2": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_airField"
+		]
+	},
+	"an_warFactory": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"an_infrastructure"
+		]
+	},
+	"cl_airField": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 1000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_barracks"
+		]
+	},
+	"cl_aircraftLight_antiLight": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 600,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_aircraftMedium_antiMech": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 1000,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_aircraftMedium_transport": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_aircraftStrong_support": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech2"
+		]
+	},
+	"cl_barracks": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_infrastructure"
+		]
+	},
+	"cl_bioLight_antiLight": {
+		"build_time_ticks": 240,
+		"cost": {
+			"dominion": 0,
+			"energy": 120,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_bioLight_antiMech": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 200,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_bioLight_builder": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_bioLight_stealth": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 600,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech2"
+		]
+	},
+	"cl_bioMedium_antiLight": {
+		"build_time_ticks": 360,
+		"cost": {
+			"dominion": 0,
+			"energy": 200,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech1"
+		]
+	},
+	"cl_commandCenter": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_defense_antiAircraft": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 400,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_infrastructure"
+		]
+	},
+	"cl_defense_antiLight": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 400,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_infrastructure"
+		]
+	},
+	"cl_defense_antiStructure": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 1000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech1"
+		]
+	},
+	"cl_infrastructure": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 1000,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_mechLight_dominionGen": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_mechMedium_antiLight": {
+		"build_time_ticks": 360,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_mechMedium_antiMech": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 600,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"cl_mechStrong_support": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 1200,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech2"
+		]
+	},
+	"cl_support1": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 1000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech1"
+		]
+	},
+	"cl_support2": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 1200,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_airField"
+		]
+	},
+	"cl_support3": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 2500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech2"
+		]
+	},
+	"cl_tech1": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 1200,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_barracks"
+		]
+	},
+	"cl_tech2": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_warFactory"
+		]
+	},
+	"cl_warFactory": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_barracks"
+		]
+	},
+	"lb_airField": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_dominion"
+		]
+	},
+	"lb_aircraftLight_antiAir": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_aircraftLight_antiMech": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 250,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_tech1"
+		]
+	},
+	"lb_aircraftLight_builder": {
+		"build_time_ticks": 360,
+		"cost": {
+			"dominion": 0,
+			"energy": 200,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_aircraftMedium_antiBio": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_aircraftMedium_antiHeavy": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"energy": 1200,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_tech2"
+		]
+	},
+	"lb_aircraftMedium_antiMech": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_aircraftStrong_support": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 1500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_tech1"
+		]
+	},
+	"lb_barracks": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_infrastructure"
+		]
+	},
+	"lb_commandCenter": {
+		"build_time_ticks": 1800,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_defense": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_infrastructure"
+		]
+	},
+	"lb_dominion": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 250,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_infrastructure"
+		]
+	},
+	"lb_infrastructure": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_mechLight_antiLight": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_mechLight_antiLight1": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_mechLight_antiStrong": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 600,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_mechLight_support": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_tech2"
+		]
+	},
+	"lb_mechMedium_antiLight": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 600,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"lb_mechMedium_support": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 600,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_tech2"
+		]
+	},
+	"lb_support1": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_barracks"
+		]
+	},
+	"lb_support2": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_tech1"
+		]
+	},
+	"lb_support3": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_tech2"
+		]
+	},
+	"lb_tech1": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 1200,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_barracks"
+		]
+	},
+	"lb_tech2": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_warFactory"
+		]
+	},
+	"lb_warFactory": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"lb_barracks"
+		]
+	},
+	"mr_airField": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"mr_dominion"
+		]
+	},
+	"mr_barracks": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": [
+			"mr_infrastructure"
+		]
+	},
+	"mr_commandCenter": {
+		"build_time_ticks": 1800,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"mr_dominion": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 250,
+			"infrastructure": 0
+		},
+		"requires": [
+			"mr_infrastructure"
+		]
+	},
+	"mr_infrastructure": {
+		"build_time_ticks": 1800,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"mr_warFactory": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"mr_barracks"
+		]
+	},
+	"nt_aircraftLight_recon": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_aircraftMedium_transport": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_bioLight_terrestrial": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_building": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_extractionSite": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_extractor": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_shelter": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"tc_bioLight_antiMech": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 200,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"tc_bioLight_builder": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"tc_mechMedium_infrastructure": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"th_airField": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"th_dominion"
+		]
+	},
+	"th_barracks": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": [
+			"th_infrastructure"
+		]
+	},
+	"th_commandCenter": {
+		"build_time_ticks": 1800,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"th_dominion": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 250,
+			"infrastructure": 0
+		},
+		"requires": [
+			"th_infrastructure"
+		]
+	},
+	"th_infrastructure": {
+		"build_time_ticks": 1800,
+		"cost": {
+			"dominion": 0,
+			"energy": 300,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"th_warFactory": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"th_barracks"
+		]
 	}
 }

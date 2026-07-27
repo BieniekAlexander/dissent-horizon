@@ -18,9 +18,11 @@ func utility() -> float:
 	return _utility
 
 
-func execute(act: BotActuator) -> void:
-	if is_instance_valid(_host) and _host.garrison != null and _host.garrison.can_garrison():
-		act.garrison_into(actor, _host)
+func execute(a_act: BotActuator) -> void:
+	# accepts() rather than a bare room check: the host may not admit THIS unit at all
+	# (its occupancy masks), and either way the Occupy order would just be refused.
+	if is_instance_valid(_host) and _host.garrison != null and _host.garrison.accepts(actor):
+		a_act.garrison_into(actor, _host)
 
 
 func describe() -> String:

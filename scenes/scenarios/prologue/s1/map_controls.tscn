@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bsuj6hv1d01h5"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_brv5g"]
+
+[node name="DialogPage" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_brv5g")
+title = "Viewing the Map"
+body = "Your camera views a particular section of the game world, and a minimap on the bottom right of the screen shows its entirety. You can move the camera by:
+- holding {{ isometric_camera_drag }} over the screen and dragging your mouse
+- Clicking {{ isometric_camera_drag }} on the minimap
+- Moving your cursor to the edge of the screen"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

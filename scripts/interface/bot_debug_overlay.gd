@@ -4,7 +4,7 @@ extends Node3D
 ## In-world debug visualisation of a single bot's internal state.
 ##
 ## Gated two ways, matching the rest of the game's debug HUD:
-##   1. Only drawn while the "debug_info" action (hold Spacebar) is held — the same gate
+##   1. Only drawn while the debug view is up (DebugMode.is_active()) — the same gate
 ##      that reveals unit command labels.
 ##   2. Only ever shows ONE bot: the one currently selected by the bot-view toggle
 ##      (Fog.active_commander_id, the spectator POV button). When the active view isn't a
@@ -51,12 +51,12 @@ func _ready() -> void:
 	add_child(_mesh_instance)
 
 
-func _process(_delta: float) -> void:
+func _process(_a_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_mesh.clear_surfaces()
-	# Gate 1: the shared "hold to show debug" action.
-	if not Input.is_action_pressed("debug_info"):
+	# Gate 1: the shared debug view.
+	if not DebugMode.is_active():
 		return
 	# Gate 2: a specific bot must be the active view.
 	var bot: Bot = _active_bot()
@@ -66,8 +66,8 @@ func _process(_delta: float) -> void:
 
 
 ## Draw every enabled debug layer for [bot]. Add more layers here as they're built.
-func _draw_overlay(bot: Bot) -> void:
-	_draw_scout_coverage(bot)
+func _draw_overlay(a_bot: Bot) -> void:
+	_draw_scout_coverage(a_bot)
 
 
 # ─── ACTIVE BOT RESOLUTION ───────────────────────────────────────────────────
@@ -88,15 +88,15 @@ func _active_bot() -> Bot:
 
 # ─── SCOUT COVERAGE LAYER ────────────────────────────────────────────────────
 
-func _draw_scout_coverage(bot: Bot) -> void:
-	var brain: BotBrain = bot.get_node_or_null("BotBrain") as BotBrain
+func _draw_scout_coverage(a_bot: Bot) -> void:
+	var brain: BotBrain = a_bot.get_node_or_null("BotBrain") as BotBrain
 	if brain == null:
 		return
 	var scout: BotScout = brain.get_scout()
 	if scout == null:
 		return  # managers not built yet (before the first think)
 
-	var now: float = bot.seconds_elapsed()
+	var now: float = a_bot.seconds_elapsed()
 	var points: Array = scout.debug_points()
 	if points.is_empty():
 		return
@@ -117,10 +117,10 @@ func _draw_scout_coverage(bot: Bot) -> void:
 
 
 ## Green (just scouted) → red (stale at SCOUT_EXPIRATION_TIMER); grey if never seen.
-func _recency_color(last_seen: float, ever_seen: bool, now: float) -> Color:
-	if not ever_seen:
+func _recency_color(a_last_seen: float, a_ever_seen: bool, a_now: float) -> Color:
+	if not a_ever_seen:
 		return COLOR_NEVER
-	var age: float = now - last_seen
+	var age: float = a_now - a_last_seen
 	var t: float = clampf(age / BotScout.SCOUT_EXPIRATION_TIMER, 0.0, 1.0)
 	var c: Color = COLOR_FRESH.lerp(COLOR_STALE, t)
 	c.a = 0.55
@@ -128,20 +128,20 @@ func _recency_color(last_seen: float, ever_seen: bool, now: float) -> Color:
 
 
 ## A flat square centred on `world_pos`, slightly lifted, as two triangles.
-func _add_marker_quad(world_pos: Vector3, color: Color) -> void:
-	var c: Vector3 = to_local(world_pos) + Vector3(0.0, Y_LIFT, 0.0)
+func _add_marker_quad(a_world_pos: Vector3, a_color: Color) -> void:
+	var c: Vector3 = to_local(a_world_pos) + Vector3(0.0, Y_LIFT, 0.0)
 	var a: Vector3 = c + Vector3(-MARKER_HALF, 0.0, -MARKER_HALF)
 	var b: Vector3 = c + Vector3(MARKER_HALF, 0.0, -MARKER_HALF)
 	var d: Vector3 = c + Vector3(MARKER_HALF, 0.0, MARKER_HALF)
 	var e: Vector3 = c + Vector3(-MARKER_HALF, 0.0, MARKER_HALF)
-	_mesh.surface_set_color(color)
+	_mesh.surface_set_color(a_color)
 	for v: Vector3 in [a, b, d, a, d, e]:
 		_mesh.surface_add_vertex(v)
 
 
 ## A short vertical line rising from `world_pos`.
-func _add_stick(world_pos: Vector3, color: Color) -> void:
-	var base: Vector3 = to_local(world_pos) + Vector3(0.0, Y_LIFT, 0.0)
-	_mesh.surface_set_color(color)
+func _add_stick(a_world_pos: Vector3, a_color: Color) -> void:
+	var base: Vector3 = to_local(a_world_pos) + Vector3(0.0, Y_LIFT, 0.0)
+	_mesh.surface_set_color(a_color)
 	_mesh.surface_add_vertex(base)
 	_mesh.surface_add_vertex(base + Vector3(0.0, STICK_HEIGHT, 0.0))

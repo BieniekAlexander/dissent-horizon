@@ -32,7 +32,7 @@ extends EditorPlugin
 ##     runtime, so they don't exist in an authored/edited scene anyway.
 
 ## Groups whose Node3D members count as "entities" — mirrors Map._collect_game_entities.
-const _ENTITY_GROUPS: Array[String] = ["commandable", "structure", "start_position"]
+const _ENTITY_GROUPS: Array[String] = ["piece", "fixture", "start_position"]
 
 ## Prefix that marks a node as a toggleable debug visualizer shape.
 const _SHAPE_GROUP_PREFIX: String = "debug_shape_"

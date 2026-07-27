@@ -3,20 +3,30 @@
 | **Themes**   | Devotion, Hierarchy, Imposition     |
 | ------------ | ----------------------------------- |
 | **Minion**   | Vulnerable Vehicle                  |
-| Vigor        | Slow aircraft, like Overlords       |
+| Infrastructure        | Slow aircraft, like Overlords       |
 | **Dominion** | Capture shelters, like AOE4 shrines |
-| Vibes        | Zangief                             |
-- Play style
-	- ...
+- Doctrine
+	- 
+	- 
+	- 
+- Asymmetric Mechanics
+	- Heal
+	- Mobility
+	- Disable
+	- Positional
+- Unique Mechanics
+	- 
+	- 
+	- 
 # Specifics
 # Tech Tree
 
-<!-- tech-graph:start -->
 ```mermaid
+%% tech-graph:start
 flowchart LR
-    empty["theocratic: no pieces authored yet"]
+    empty["theocratic: no starts_with in the faction doc, so nothing is reachable"]
+%% tech-graph:end
 ```
-<!-- tech-graph:end -->
 
 ```dataviewjs
 await dv.view("_scripts/tech-graph")
@@ -24,7 +34,7 @@ await dv.view("_scripts/tech-graph")
 
 - 
 ## Upgrades
-## Ordnances
+## Sanctions
 - T1
 	- divination - provide vision of all shelters on the map
 - T2

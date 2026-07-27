@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://c0nk6c2u6b7sn"]
+
+[ext_resource type="Script" uid="uid://brt70ksdghy11" path="res://scripts/entities/components/avoidance_agent_3d.gd" id="1_wptmu"]
+
+[node name="NavigationAgent" type="NavigationAgent3D" unique_id=1744162296]
+target_desired_distance = 0.125
+path_max_distance = 5.005
+avoidance_enabled = true
+neighbor_distance = 2.5
+max_neighbors = 5
+time_horizon_obstacles = 1.0
+avoidance_layers = 0
+avoidance_mask = 0
+script = ExtResource("1_wptmu")

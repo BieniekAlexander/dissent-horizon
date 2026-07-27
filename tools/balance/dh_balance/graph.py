@@ -17,14 +17,29 @@ from .model import Buildable, Faction, World
 # Tech DAG
 # --------------------------------------------------------------------------- #
 def tech_graph(faction: Faction) -> nx.DiGraph:
-    """Directed acyclic graph of prerequisites: edge prereq -> dependent."""
+    """Directed acyclic graph of unlocks: edge prereq -> dependent.
+
+    Two authored relations produce edges, distinguished by the ``relation``
+    edge attribute so consumers can tell them apart:
+
+    * ``requires`` — a tech prerequisite: you must own X before Y is available.
+    * ``trains``   — a production line: structure X builds unit Y.
+
+    A pair may be authored both ways (a unit naming the very structure that
+    trains it); ``requires`` wins, since the explicit prerequisite is the
+    stronger claim.
+    """
     g = nx.DiGraph()
     for b in faction.buildables.values():
         g.add_node(b.id, buildable=b)
     for b in faction.buildables.values():
+        for trained in b.trains:
+            if trained in faction.buildables:
+                g.add_edge(b.id, trained, relation="trains")
+    for b in faction.buildables.values():
         for req in b.requires:
             if req in faction.buildables:
-                g.add_edge(req, b.id)
+                g.add_edge(req, b.id, relation="requires")
     return g
 
 
@@ -43,9 +58,8 @@ def reachable_from(faction: Faction) -> set[str]:
 
     Two ways a buildable becomes available, explored together to a fixpoint:
 
-    * ``requires`` edges — owning a prereq unlocks its dependents (this also
-      covers training, since a structure's ``trains`` list is inverted into the
-      trained unit's ``requires`` by the exporter).
+    * tech-graph edges — owning a prereq unlocks its dependents, covering both
+      ``requires`` prerequisites and ``trains`` production lines.
     * ``builds`` lists — a builder unit can construct those structures outright.
       They are DAG *sources*, not dependents of the builder: you do not tech
       through the builder to reach them. At least one starting unit is a
@@ -73,7 +87,7 @@ def reachable_from(faction: Faction) -> set[str]:
 def with_external_buildables(world: World, faction: Faction) -> Faction:
     """``faction`` plus out-of-faction pieces its builders can construct.
 
-    Neutral structures (mines, deposits) are authored outside any faction's
+    Neutral structures (extractors, extraction sites) are authored outside any faction's
     directory, so they land in another catalog — but a faction's own builders
     raise them, and they belong in that faction's tech graph.
 

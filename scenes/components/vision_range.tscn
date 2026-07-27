@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://d3i8gyv13tvod"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_so4an"]
+height = 100.0
+radius = 5.0
+
+[node name="VisionRange" type="CollisionShape3D" unique_id=453272117 groups=["debug_shape_vision_range"]]
+visible = false
+shape = SubResource("CylinderShape3D_so4an")
+disabled = true
+debug_color = Color(0.2, 0.6, 1, 0.3)

@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://s4i1mw2jtfvk"
 path.s3tc="res://.godot/imported/supply_truck.png-08485182315092c15789a8aa30628f9e.s3tc.ctex"
+path.etc2="res://.godot/imported/supply_truck.png-08485182315092c15789a8aa30628f9e.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/supply_truck.png"
-dest_files=["res://.godot/imported/supply_truck.png-08485182315092c15789a8aa30628f9e.s3tc.ctex"]
+dest_files=["res://.godot/imported/supply_truck.png-08485182315092c15789a8aa30628f9e.s3tc.ctex", "res://.godot/imported/supply_truck.png-08485182315092c15789a8aa30628f9e.etc2.ctex"]
 
 [params]
 

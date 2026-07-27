@@ -1,0 +1,102 @@
+extends GutTest
+
+## Tests for the map-generation dock's parameter form (addons/map_generator). The dock's
+## actions drive EditorInterface, which a headless run has none of; what is tested is that the
+## form is built from MapGenerationParams and edits it.
+##
+## TODO: nothing covers the actions themselves — generating into the open Scenario, the warning
+## before replacing a map it already has, and saving the map as a scene. They need an editor,
+## so covering them means either an editor-only test harness or pulling the scene surgery out
+## of the dock into something testable (the writer already holds build_map, pack and adopt).
+##
+## Run with:
+##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_MapGeneratorDock.gd \
+##     -gdir=res://tests/none -gexit
+
+var _dock: Node
+
+
+func before_each() -> void:
+	_dock = (load("res://addons/map_generator/map_generator_dock.gd") as GDScript).new()
+	add_child_autofree(_dock)
+
+
+## The form's editor for a parameter, found by its label.
+func _field(a_property: String) -> Control:
+	var form: GridContainer = _dock._form
+	var children: Array[Node] = form.get_children()
+	for i: int in range(0, children.size() - 1, 2):
+		if (children[i] as Label).text == a_property.capitalize():
+			return children[i + 1] as Control
+	return null
+
+
+func test_the_form_offers_generation_knobs_but_not_piece_facts() -> void:
+	assert_not_null(_field("play_size_min"))
+	assert_not_null(_field("building_occupancy"))
+	assert_null(_field("site_energy_per_second"))
+	assert_null(_field("alliance_count"))
+
+
+func test_editing_a_field_edits_the_parameters() -> void:
+	(_field("play_size_max") as SpinBox).value = 101
+	assert_eq(_dock._params.play_size_max, 101)
+	(_field("building_occupancy") as SpinBox).value = 0.03
+	assert_almost_eq(_dock._params.building_occupancy, 0.03, 1e-6)
+
+
+func test_changing_the_alliance_count_resets_to_its_defaults() -> void:
+	(_field("play_size_max") as SpinBox).value = 101
+	_dock._alliances.value = 3
+	assert_eq(_dock._params.alliance_count, 3)
+	assert_ne(_dock._params.play_size_max, 101)
+
+
+func test_a_building_occupancy_at_the_failure_point_is_warned() -> void:
+	var occupancy: SpinBox = _field("building_occupancy") as SpinBox
+	occupancy.value = MapGenerationParams.BUILDING_OCCUPANCY_FAILURE - 0.01
+	assert_false(_dock._warnings.visible)
+	occupancy.value = MapGenerationParams.BUILDING_OCCUPANCY_FAILURE
+	assert_true(_dock._warnings.visible)
+	assert_string_contains(_dock._warnings.text, "10%")
+
+
+## Every knob belongs to exactly one group. A new parameter that nobody filed still appears —
+## the dock collects leftovers under "Other" — so this is what says it was filed on purpose.
+func test_every_parameter_is_in_exactly_one_group() -> void:
+	var filed: Dictionary = {}
+	for group: Dictionary in MapGenerationParams.PROPERTY_GROUPS:
+		for property_name: String in group.properties:
+			assert_false(filed.has(property_name), "%s is in two groups" % property_name)
+			filed[property_name] = true
+	var params := MapGenerationParams.new()
+	for property: Dictionary in params.get_property_list():
+		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			assert_true(filed.has(String(property.name)),
+				"%s is in no group — file it in PROPERTY_GROUPS" % property.name)
+			filed.erase(String(property.name))
+	assert_eq(filed.keys(), [], "groups name parameters that no longer exist")
+
+
+func test_the_form_is_sectioned_by_group() -> void:
+	var headings: Array[String] = []
+	for child: Node in _dock._form.get_children():
+		if child is Label and MapGenerationParams.PROPERTY_GROUPS.any(
+				func(group: Dictionary) -> bool: return group.name == (child as Label).text):
+			headings.append((child as Label).text)
+	assert_has(headings, "Elevation")
+	assert_has(headings, "Ponds")
+	assert_does_not_have(headings, "Alliances", "its field is the header spin box, not the form")
+
+
+## A pass is chosen by name, not by number: "Terrain", not 5.
+func test_the_last_pass_is_chosen_from_named_passes() -> void:
+	var menu: OptionButton = _field("last_pass") as OptionButton
+	assert_not_null(menu, "last_pass is an enum, so the form gives it a menu")
+	assert_eq(menu.item_count, MapGenerationParams.Pass.size())
+	assert_eq(menu.get_item_text(0), "Extent")
+	assert_eq(menu.get_item_id(menu.selected), int(MapGenerationParams.Pass.ELEVATION),
+		"the default runs every pass")
+	menu.item_selected.emit(menu.get_item_index(MapGenerationParams.Pass.TOPOLOGY))
+	assert_eq(_dock._params.last_pass, MapGenerationParams.Pass.TOPOLOGY)
+	assert_string_contains(_dock._warnings.text, "topology")

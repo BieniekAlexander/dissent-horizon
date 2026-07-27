@@ -1,0 +1,95 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interface/hud/debug_panel.gd" id="1_panel"]
+
+[node name="DebugPanel" type="PanelContainer" groups=["selection_blocking_ui"]]
+custom_minimum_size = Vector2(352, 0)
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 48.0
+grow_horizontal = 0
+script = ExtResource("1_panel")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Column" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleRow" type="HBoxContainer" parent="Margin/Column"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Column/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Debug"
+
+[node name="FoldButton" type="Button" parent="Margin/Column/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+focus_mode = 0
+text = "–"
+
+[node name="Body" type="VBoxContainer" parent="Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PlayerRow" type="HBoxContainer" parent="Margin/Column/Body"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Margin/Column/Body/PlayerRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "Player"
+
+[node name="PlayerOption" type="OptionButton" parent="Margin/Column/Body/PlayerRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+
+[node name="BotsTitle" type="Label" parent="Margin/Column/Body"]
+layout_mode = 2
+text = "Bot difficulty"
+
+[node name="BotRows" type="VBoxContainer" parent="Margin/Column/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="Margin/Column/Body"]
+layout_mode = 2
+
+[node name="FactionRow" type="HBoxContainer" parent="Margin/Column/Body"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Margin/Column/Body/FactionRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "Faction"
+
+[node name="FactionOption" type="OptionButton" parent="Margin/Column/Body/FactionRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+
+[node name="PieceScroll" type="ScrollContainer" parent="Margin/Column/Body"]
+custom_minimum_size = Vector2(0, 420)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="PieceList" type="VBoxContainer" parent="Margin/Column/Body/PieceScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3

@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://cf2ath2dyfx8t"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_ns1df"]
+
+[node name="TargetBody" type="StaticBody3D" unique_id=1501995797]
+collision_layer = 2
+collision_mask = 0
+
+[node name="TargetShape" type="CollisionShape3D" parent="." unique_id=1914658452 groups=["debug_shape_target_body"]]
+visible = false
+shape = SubResource("CylinderShape3D_ns1df")
+debug_color = Color(1, 0.9, 0.2, 0.35)

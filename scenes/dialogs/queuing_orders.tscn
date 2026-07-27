@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="QueuingOrders" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Keep moving"
+body = "Good. Orders queue up — hold Shift while ordering to add a waypoint instead of replacing the current one.
+
+Push on to the overlook to the east."
+acknowledge_text = "On our way"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

@@ -1,6 +1,5 @@
 ---
-kind: status_effect
-id: lazer_burn
+kind: StatusEffect
 title: lazer_burn
 scene: res://scenes/entities/status_effects/lazer_burn.tscn
 ---

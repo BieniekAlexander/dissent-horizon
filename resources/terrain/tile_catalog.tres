@@ -6,35 +6,26 @@
 [sub_resource type="Resource" id="Resource_s0vh6"]
 script = ExtResource("2_vxbb0")
 
-[sub_resource type="Resource" id="Resource_ea3mw"]
+[sub_resource type="Resource" id="Resource_dirt"]
 script = ExtResource("2_vxbb0")
-name = "Water"
-passable = false
-buildable = false
-map_color = Color(0.16, 0.34, 0.52, 1)
+name = "Dirt"
+map_color = Color(0.4, 0.31, 0.21, 1)
 
-[sub_resource type="Resource" id="Resource_ik0nx"]
+[sub_resource type="Resource" id="Resource_sand"]
 script = ExtResource("2_vxbb0")
-name = "Forest"
-passable = false
-buildable = false
-map_color = Color(0.13, 0.28, 0.14, 1)
+name = "Sand"
+map_color = Color(0.66, 0.58, 0.4, 1)
 
-[sub_resource type="Resource" id="Resource_00oj1"]
+[sub_resource type="Resource" id="Resource_rock"]
 script = ExtResource("2_vxbb0")
-name = "Cliff"
-passable = false
-buildable = false
-renders_surface = false
-map_color = Color(0.42, 0.38, 0.32, 1)
+name = "Rock"
+map_color = Color(0.42, 0.4, 0.38, 1)
 
-[sub_resource type="Resource" id="Resource_gnbb2"]
+[sub_resource type="Resource" id="Resource_lithium"]
 script = ExtResource("2_vxbb0")
-name = "NoGo"
-passable = false
-buildable = false
-renders_surface = false
+name = "Lithium bed"
+map_color = Color(0.55, 0.62, 0.66, 1)
 
 [resource]
 script = ExtResource("1_83mn2")
-types = Array[ExtResource("2_vxbb0")]([SubResource("Resource_s0vh6"), SubResource("Resource_ea3mw"), SubResource("Resource_ik0nx"), SubResource("Resource_00oj1"), SubResource("Resource_gnbb2")])
+types = Array[ExtResource("2_vxbb0")]([SubResource("Resource_s0vh6"), SubResource("Resource_dirt"), SubResource("Resource_sand"), SubResource("Resource_rock"), SubResource("Resource_lithium")])

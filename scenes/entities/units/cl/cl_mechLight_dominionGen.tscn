@@ -1,0 +1,159 @@
+[gd_scene format=3 uid="uid://dgu5rjol1pe84"]
+
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="1_spec"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_takft"]
+[ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_iernq"]
+[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_mtf1e"]
+[ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_s2ceu"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="4_1jl50"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_pwmah"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_pptdc"]
+[ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_kn5xd"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="8_w03ii"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="9_0bvcj"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="10_v3t83"]
+[ext_resource type="Script" uid="uid://b458bow20gdnj" path="res://scripts/entities/components/interactor.gd" id="11_intor"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="11_pg51y"]
+[ext_resource type="Script" uid="uid://dnydcqi1gpid3" path="res://scripts/entities/components/interaction.gd" id="12_intn"]
+[ext_resource type="PackedScene" uid="uid://bhjcpnh5cknd3" path="res://assets/meshes/entities/an_mechStrong_transport.blend" id="13_model"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="16_6e2gn"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="17_wfbpo"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="18_n05dn"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="19_sy2a8"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="20_qc5hs"]
+[ext_resource type="Script" uid="uid://cywa5m1mky68q" path="res://scripts/entities/components/altitude_indicator.gd" id="22_cu7nu"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="23_gu6qh"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="24_7xrxe"]
+[ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="25_nqs12"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="26_umgcp"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_qg2w4"]
+radius = 0.7
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_82gg0"]
+radius = 0.7
+
+[sub_resource type="Resource" id="Interaction_deposit"]
+script = ExtResource("12_intn")
+duration = 0.5
+metadata/_custom_type_script = "uid://dnydcqi1gpid3"
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_yytsj"]
+height = 0.716779
+radius = 0.840335
+
+[node name="Truck" type="CharacterBody3D" unique_id=125283962 groups=["piece", "unit"]]
+script = ExtResource("1_takft")
+description = "armoured POW carrier; captures infantry for dominion"
+verbose = "The Colonial dominion unit. Drives over light biological units — enemy or neutral — and takes them into a cage holding three, then delivers them to a Compound, where each serves a sentence before being consumed. A full truck crushes what it runs over instead."
+id = &"cl_mechLight_dominionGen"
+
+[node name="#####STATE#####" type="Node" parent="." unique_id=1082666169]
+
+[node name="NavigationAgent" parent="." unique_id=1744162296 instance=ExtResource("2_iernq")]
+
+[node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_s2ceu")]
+shape = SubResource("CylinderShape3D_qg2w4")
+
+[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_pwmah")]
+
+[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+shape = SubResource("CylinderShape3D_82gg0")
+
+[node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_pptdc")]
+
+[node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_kn5xd")]
+shape = ExtResource("1_spec")
+
+[node name="Ownership" type="Node" parent="." unique_id=1591592860]
+script = ExtResource("8_w03ii")
+
+[node name="Locomotion" type="Node" parent="." unique_id=2071524329]
+script = ExtResource("9_0bvcj")
+crush_class = 2
+max_acceleration = 3.0
+max_deceleration = -6.0
+speed = 4.0
+turn_rate = 180.0
+nav_agent_path = NodePath("../NavigationAgent")
+min_turn_speed_ratio = 1.0
+
+[node name="Defense" type="Node" parent="." unique_id=562143327]
+script = ExtResource("10_v3t83")
+armour_type = 1
+frame_type = 1
+hp_max = 300.0
+
+[node name="Veterancy" type="Node" parent="." unique_id=1851501761]
+script = ExtResource("11_pg51y")
+
+[node name="Garrison" type="Node" parent="." unique_id=963950659]
+script = ExtResource("2_mtf1e")
+occupiable_frames = 1
+occupiable_armours = 1
+occupiable_movements = 1
+capacity = 3
+bunker = false
+occupiable_ids = Array[StringName]([&"cl_bioLight_builder"])
+
+[node name="#####CONTROLS#####" type="Node" parent="." unique_id=1886377788]
+
+[node name="Loadout" type="Node3D" parent="." unique_id=892383155]
+script = ExtResource("4_1jl50")
+
+[node name="Interactor" type="Node" parent="." unique_id=1349273282]
+script = ExtResource("11_intor")
+interactions = Array[ExtResource("12_intn")]([SubResource("Interaction_deposit")])
+
+[node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("16_6e2gn")]
+
+[node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
+shape = SubResource("CylinderShape3D_yytsj")
+metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="." unique_id=1777176771]
+
+[node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("17_wfbpo")]
+transform = Transform3D(0.437675, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 0.837749, 0)
+billboard = 2
+metadata/_visual_default_hp_bar = 1.120447
+
+[node name="HPBarFill" parent="HPBar" index="0" unique_id=470614922]
+billboard = 2
+
+[node name="HPBarBack" parent="HPBar" index="1" unique_id=99646461]
+billboard = 2
+
+[node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("18_n05dn")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="." unique_id=1908419966]
+script = ExtResource("19_sy2a8")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=861881302]
+script = ExtResource("20_qc5hs")
+metadata/_custom_type_script = "uid://dt2degoni7u3v"
+
+[node name="Model" parent="MeshVisual" unique_id=1907422681 instance=ExtResource("13_model")]
+
+[node name="AltitudeIndicator" type="Node3D" parent="." unique_id=1951148665]
+script = ExtResource("22_cu7nu")
+
+[node name="StatusVisuals" type="Node3D" parent="." unique_id=287828149]
+script = ExtResource("23_gu6qh")
+
+[node name="#####DEBUG#####" type="Node" parent="." unique_id=95789444]
+
+[node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("24_7xrxe")]
+billboard = 2
+
+[node name="AvoidanceObstacle" parent="." unique_id=1666248074 instance=ExtResource("25_nqs12")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="." unique_id=568713933]
+
+[node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("26_umgcp")]
+
+[node name="AggroRangeAir" parent="." unique_id=1182212565 instance=ExtResource("5_pptdc")]
+
+[editable path="TargetBody"]
+[editable path="Selectable"]
+[editable path="HPBar"]

@@ -1,0 +1,297 @@
+[gd_scene format=3 uid="uid://bt7ut0r1altc0"]
+
+[ext_resource type="Script" uid="uid://45qwlquq73h8" path="res://scripts/skirmish.gd" id="1_scen"]
+[ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="2_map"]
+[ext_resource type="Shape3D" uid="uid://b1wtooheah4jc" path="res://resources/map_tiny_tactics.tres" id="3_hmap"]
+[ext_resource type="PackedScene" uid="uid://bkpybipbter41" path="res://scenes/factions/anarchical.tscn" id="4_anfac"]
+[ext_resource type="PackedScene" uid="uid://bqe38bvv7aclk" path="res://scenes/factions/colonial.tscn" id="5_clfac"]
+[ext_resource type="Script" uid="uid://rck85holj04" path="res://scripts/interface/commander/player_slot.gd" id="6_pslot"]
+[ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/entities/structures/nt/nt_extractionSite.tscn" id="7_dep"]
+[ext_resource type="Script" uid="uid://gl6ex3gwef1y" path="res://scripts/scenario/scenario_trigger_manager.gd" id="8_stm"]
+[ext_resource type="Texture2D" uid="uid://bayqq8wrh6ypl" path="res://assets/logo.png" id="9_icon"]
+[ext_resource type="Script" uid="uid://cwee5ltjfk1jx" path="res://scripts/scenario/global_trigger.gd" id="10_trigger"]
+[ext_resource type="Script" uid="uid://bmxevacxppenv" path="res://scripts/scenario/objective_chain.gd" id="12_chain"]
+[ext_resource type="Script" uid="uid://g36ky163gcme" path="res://scripts/scenario/events/event_show_dialog.gd" id="13_dialog"]
+[ext_resource type="Script" uid="uid://cymt53ask6fs3" path="res://scripts/scenario/events/event_highlight.gd" id="14_highlight"]
+[ext_resource type="Script" uid="uid://f6ls1r1jxki7" path="res://scripts/scenario/events/event_win_lose.gd" id="15_win"]
+[ext_resource type="Script" uid="uid://h64s6w0eauxg" path="res://scripts/scenario/conditions/condition.gd" id="16_cond"]
+[ext_resource type="Script" uid="uid://c2r0cqgnx2b6b" path="res://scripts/scenario/conditions/condition_unit_selected.gd" id="17_selected"]
+[ext_resource type="Script" uid="uid://cmb6jbyknp4a4" path="res://scripts/scenario/conditions/condition_unit_count.gd" id="18_count"]
+[ext_resource type="Script" uid="uid://galquf6r12o1" path="res://scripts/scenario/conditions/condition_timer.gd" id="19_timer"]
+[ext_resource type="PackedScene" path="res://scenes/dialogs/welcome.tscn" id="20_welcome"]
+[ext_resource type="PackedScene" path="res://scenes/dialogs/giving_orders.tscn" id="20_giving_orders"]
+[ext_resource type="PackedScene" path="res://scenes/dialogs/queuing_orders.tscn" id="20_queuing_orders"]
+[ext_resource type="PackedScene" path="res://scenes/dialogs/engaging_the_enemy.tscn" id="20_engaging_the_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/dialogs/outpost_clear.tscn" id="20_outpost_clear"]
+[ext_resource type="Script" uid="uid://pa0hcwlp6sxl" path="res://scripts/interface/hud/help_book.gd" id="21_helpbook"]
+[ext_resource type="PackedScene" path="res://scenes/scenarios/start_point.tscn" id="start_point"]
+
+[sub_resource type="Resource" id="PlayerSlot_human"]
+script = ExtResource("6_pslot")
+is_bot = false
+faction = ExtResource("4_anfac")
+starting_energy = 1000
+starting_dominion = 1000
+metadata/_custom_type_script = "uid://rck85holj04"
+
+[sub_resource type="Resource" id="PlayerSlot_outpost"]
+script = ExtResource("6_pslot")
+faction = ExtResource("5_clfac")
+difficulty = 0
+starting_energy = 0
+starting_dominion = 0
+metadata/_custom_type_script = "uid://rck85holj04"
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_tutorial"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(28, 28)
+
+[sub_resource type="StandardMaterial3D" id="Material_ground"]
+albedo_color = Color(0.3, 0.45, 0.25, 1)
+
+[sub_resource type="Resource" id="Cond_intro"]
+script = ExtResource("19_timer")
+seconds = 0.0
+
+[sub_resource type="Resource" id="Cond_select"]
+script = ExtResource("17_selected")
+commander_id = 1
+count = 1
+
+[sub_resource type="BoxShape3D" id="Shape_rally"]
+size = Vector3(5, 3, 5)
+
+[sub_resource type="Resource" id="Cond_rally"]
+script = ExtResource("18_count")
+commander_id = 1
+comparison = 0
+count = 1
+region_shape_path = NodePath("RallyRegion")
+metadata/_custom_type_script = "uid://cmb6jbyknp4a4"
+
+[sub_resource type="BoxShape3D" id="Shape_overlook"]
+size = Vector3(5, 3, 5)
+
+[sub_resource type="Resource" id="Cond_overlook"]
+script = ExtResource("18_count")
+commander_id = 1
+comparison = 0
+count = 1
+region_shape_path = NodePath("OverlookRegion")
+metadata/_custom_type_script = "uid://cmb6jbyknp4a4"
+
+[sub_resource type="BoxShape3D" id="Shape_outpost"]
+size = Vector3(12, 3, 12)
+
+[sub_resource type="Resource" id="Cond_outpost"]
+script = ExtResource("18_count")
+commander_id = 2
+comparison = 1
+count = 0
+region_shape_path = NodePath("OutpostRegion")
+metadata/_custom_type_script = "uid://cmb6jbyknp4a4"
+
+[node name="Scenario" type="Node3D"]
+script = ExtResource("1_scen")
+player_slots = Array[ExtResource("6_pslot")]([SubResource("PlayerSlot_human"), SubResource("PlayerSlot_outpost")])
+
+[node name="Map" type="Node3D" parent="."]
+script = ExtResource("2_map")
+height_map = ExtResource("3_hmap")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_tutorial")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion"]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body"]
+shape = ExtResource("3_hmap")
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_ground")
+surface_material_override/0 = SubResource("Material_ground")
+
+[node name="StartPoint1" parent="." instance=ExtResource("start_point")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -9)
+color = Color(0.238, 0.190, 0.950, 1)
+
+[node name="StartPoint2" parent="." instance=ExtResource("start_point")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 9)
+color = Color(0.729, 0.190, 0.950, 1)
+
+[node name="DepositPlayer" parent="." instance=ExtResource("7_dep")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, -6)
+
+[node name="ScenarioTriggerManager" type="Node" parent="."]
+script = ExtResource("8_stm")
+
+[node name="Intro" type="Sprite3D" parent="ScenarioTriggerManager"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("10_trigger")
+conditions = Array[ExtResource("16_cond")]([SubResource("Cond_intro")])
+
+[node name="Welcome" type="Sprite3D" parent="ScenarioTriggerManager/Intro"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("13_dialog")
+page = ExtResource("20_welcome")
+pause_simulation = true
+
+[node name="Objectives" type="Node" parent="ScenarioTriggerManager"]
+script = ExtResource("12_chain")
+
+[node name="SelectUnit" type="Sprite3D" parent="ScenarioTriggerManager/Objectives"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("10_trigger")
+conditions = Array[ExtResource("16_cond")]([SubResource("Cond_select")])
+scope = 1
+description = "Select one of your units"
+
+[node name="Marks" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/SelectUnit"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("14_highlight")
+
+[node name="NextBrief" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/SelectUnit"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("13_dialog")
+page = ExtResource("20_giving_orders")
+pause_simulation = true
+
+[node name="MoveToRally" type="Sprite3D" parent="ScenarioTriggerManager/Objectives"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -6)
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("10_trigger")
+conditions = Array[ExtResource("16_cond")]([SubResource("Cond_rally")])
+scope = 1
+description = "Move a unit to the rally point"
+
+[node name="RallyRegion" type="CollisionShape3D" parent="ScenarioTriggerManager/Objectives/MoveToRally"]
+visible = false
+shape = SubResource("Shape_rally")
+debug_color = Color(1, 0.85, 0.15, 0.3)
+
+[node name="Marks" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/MoveToRally"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("14_highlight")
+
+[node name="NextBrief" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/MoveToRally"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("13_dialog")
+page = ExtResource("20_queuing_orders")
+pause_simulation = true
+
+[node name="MoveToOverlook" type="Sprite3D" parent="ScenarioTriggerManager/Objectives"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -2)
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("10_trigger")
+conditions = Array[ExtResource("16_cond")]([SubResource("Cond_overlook")])
+scope = 1
+description = "Advance to the overlook"
+
+[node name="OverlookRegion" type="CollisionShape3D" parent="ScenarioTriggerManager/Objectives/MoveToOverlook"]
+visible = false
+shape = SubResource("Shape_overlook")
+debug_color = Color(1, 0.85, 0.15, 0.3)
+
+[node name="Marks" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/MoveToOverlook"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("14_highlight")
+
+[node name="NextBrief" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/MoveToOverlook"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("13_dialog")
+page = ExtResource("20_engaging_the_enemy")
+pause_simulation = true
+
+[node name="ClearOutpost" type="Sprite3D" parent="ScenarioTriggerManager/Objectives"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 9)
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("10_trigger")
+conditions = Array[ExtResource("16_cond")]([SubResource("Cond_outpost")])
+scope = 1
+description = "Destroy the colonial units at the outpost"
+
+[node name="OutpostRegion" type="CollisionShape3D" parent="ScenarioTriggerManager/Objectives/ClearOutpost"]
+visible = false
+shape = SubResource("Shape_outpost")
+debug_color = Color(1, 0.3, 0.25, 0.3)
+
+[node name="Marks" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/ClearOutpost"]
+modulate = Color(1, 0.3, 0.25, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("14_highlight")
+
+[node name="Outro" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/ClearOutpost"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("13_dialog")
+page = ExtResource("20_outpost_clear")
+pause_simulation = true
+
+[node name="Win" type="Sprite3D" parent="ScenarioTriggerManager/Objectives/ClearOutpost"]
+modulate = Color(1, 0.7, 0.2, 1)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+texture = ExtResource("9_icon")
+script = ExtResource("15_win")
+
+[node name="HelpBook" type="Node" parent="."]
+script = ExtResource("21_helpbook")
+pages = Array[PackedScene]([ExtResource("20_welcome"), ExtResource("20_giving_orders"), ExtResource("20_queuing_orders"), ExtResource("20_engaging_the_enemy"), ExtResource("20_outpost_clear")])

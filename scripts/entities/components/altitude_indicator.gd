@@ -45,7 +45,7 @@ func _ready() -> void:
 	_mesh_instance.material_override = mat
 	add_child(_mesh_instance)
 
-func _process(_delta: float) -> void:
+func _process(_a_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_redraw()

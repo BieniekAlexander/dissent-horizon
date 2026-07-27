@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://1ml7qwlkrvxh"
 path.s3tc="res://.godot/imported/power_plant.png-c96dbc215e024f035c45a6ecf13ce353.s3tc.ctex"
+path.etc2="res://.godot/imported/power_plant.png-c96dbc215e024f035c45a6ecf13ce353.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/power_plant.png"
-dest_files=["res://.godot/imported/power_plant.png-c96dbc215e024f035c45a6ecf13ce353.s3tc.ctex"]
+dest_files=["res://.godot/imported/power_plant.png-c96dbc215e024f035c45a6ecf13ce353.s3tc.ctex", "res://.godot/imported/power_plant.png-c96dbc215e024f035c45a6ecf13ce353.etc2.ctex"]
 
 [params]
 

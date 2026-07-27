@@ -29,9 +29,9 @@ func _ready() -> void:
 
 #region Public API
 ## Position the indicator at `destination` and draw a line from `from_pos`.
-func configure(destination: Vector3, from_pos: Vector3) -> void:
-	global_position = destination
-	_from_world = from_pos
+func configure(a_destination: Vector3, a_from_pos: Vector3) -> void:
+	global_position = a_destination
+	_from_world = a_from_pos
 	_redraw()
 #endregion
 

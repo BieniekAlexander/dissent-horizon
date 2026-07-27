@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.3, 0.31, 0.28, 1)
+metallic = 0.6
+roughness = 0.45
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_band"]
+albedo_color = Color(0.75, 0.55, 0.25, 1)
+metallic = 0.8
+roughness = 0.35
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_body"]
+material = SubResource("StandardMaterial3D_body")
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.22
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_ogive"]
+material = SubResource("StandardMaterial3D_body")
+top_radius = 0.0
+bottom_radius = 0.07
+height = 0.14
+radial_segments = 16
+rings = 2
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_band"]
+material = SubResource("StandardMaterial3D_band")
+top_radius = 0.074
+bottom_radius = 0.074
+height = 0.03
+radial_segments = 16
+rings = 1
+
+[node name="ArtilleryShellModel" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+mesh = SubResource("CylinderMesh_body")
+
+[node name="Ogive" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -0.18)
+mesh = SubResource("CylinderMesh_ogive")
+
+[node name="Band" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.07)
+mesh = SubResource("CylinderMesh_band")

@@ -194,7 +194,7 @@ func _generate_impl() -> PackedFloat32Array:
 ## is the guarantee that the graph stage only approximates: on a discrete corner
 ## grid, thin Voronoi borders and triple-junction pinches can sever an otherwise
 ## passable ramp, so a final verify-and-repair pass makes connectivity certain.
-func _repair_connectivity(data: PackedFloat32Array) -> void:
+func _repair_connectivity(a_data: PackedFloat32Array) -> void:
 	var gw: int = width - 1
 	var gh: int = depth - 1
 	if gw <= 0 or gh <= 0:
@@ -209,8 +209,8 @@ func _repair_connectivity(data: PackedFloat32Array) -> void:
 		var n: int = 0
 		for z: int in gh:
 			for x: int in gw:
-				if _cell_passable(data, x, z) and comp[z * gw + x] == -1:
-					var sz: int = _flood(data, comp, gw, gh, x, z, n)
+				if _cell_passable(a_data, x, z) and comp[z * gw + x] == -1:
+					var sz: int = _flood(a_data, comp, gw, gh, x, z, n)
 					sizes.append(sz)
 					n += 1
 		if n <= 1:
@@ -225,43 +225,44 @@ func _repair_connectivity(data: PackedFloat32Array) -> void:
 		# 0-1 BFS outward from the mainland; entering an impassable cell costs 1,
 		# a passable cell costs 0.  The first passable cell of another component we
 		# settle is the cheapest place to punch a corridor through.
-		if not _connect_nearest(data, comp, gw, gh, main_id):
+		if not _connect_nearest(a_data, comp, gw, gh, main_id):
 			return  # nothing left we can reach — give up rather than spin
 
 ## Carve the cheapest corridor from `main_id` to the nearest other component.
 ## Returns false if no other component is reachable.
-func _connect_nearest(data: PackedFloat32Array, comp: PackedInt32Array, gw: int, gh: int, main_id: int) -> bool:
-	var INF_D: int = 1 << 30
+func _connect_nearest(a_data: PackedFloat32Array, a_comp: PackedInt32Array, a_gw: int, a_gh: int, a_main_id: int) -> bool:
+	## Stand-in for an unreachable distance; large enough that no real path can reach it.
+	var unreachable: int = 1 << 30
 	var dist := PackedInt32Array()
 	var parent := PackedInt32Array()
-	dist.resize(gw * gh)
-	parent.resize(gw * gh)
-	dist.fill(INF_D)
+	dist.resize(a_gw * a_gh)
+	parent.resize(a_gw * a_gh)
+	dist.fill(unreachable)
 	parent.fill(-1)
 
 	var deque: Array[int] = []  # cell indices; treated as a 0-1 BFS deque
-	for z: int in gh:
-		for x: int in gw:
-			if comp[z * gw + x] == main_id:
-				dist[z * gw + x] = 0
-				deque.push_back(z * gw + x)
+	for z: int in a_gh:
+		for x: int in a_gw:
+			if a_comp[z * a_gw + x] == a_main_id:
+				dist[z * a_gw + x] = 0
+				deque.push_back(z * a_gw + x)
 
 	var target: int = -1
 	while not deque.is_empty():
 		var cur: int = deque.pop_front()
-		var cx: int = cur % gw
-		var cz: int = cur / gw
+		var cx: int = cur % a_gw
+		var cz: int = cur / a_gw
 		# Settling a passable cell of another component → cheapest crossing found.
-		if _cell_passable(data, cx, cz) and comp[cur] != main_id and comp[cur] != -1:
+		if _cell_passable(a_data, cx, cz) and a_comp[cur] != a_main_id and a_comp[cur] != -1:
 			target = cur
 			break
 		for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
 			var nx: int = cx + d.x
 			var nz: int = cz + d.y
-			if nx < 0 or nx >= gw or nz < 0 or nz >= gh:
+			if nx < 0 or nx >= a_gw or nz < 0 or nz >= a_gh:
 				continue
-			var ni: int = nz * gw + nx
-			var w: int = 0 if _cell_passable(data, nx, nz) else 1
+			var ni: int = nz * a_gw + nx
+			var w: int = 0 if _cell_passable(a_data, nx, nz) else 1
 			if dist[cur] + w < dist[ni]:
 				dist[ni] = dist[cur] + w
 				parent[ni] = cur
@@ -277,9 +278,9 @@ func _connect_nearest(data: PackedFloat32Array, comp: PackedInt32Array, gw: int,
 	var path: Array[Vector2i] = []
 	var c: int = target
 	while c != -1:
-		path.append(Vector2i(c % gw, c / gw))
+		path.append(Vector2i(c % a_gw, c / a_gw))
 		c = parent[c]
-	_carve_corridor(data, path)
+	_carve_corridor(a_data, path)
 	return true
 
 ## Carve a list of cells (a connected path from a stranded cell to the mainland)
@@ -289,82 +290,82 @@ func _connect_nearest(data: PackedFloat32Array, comp: PackedInt32Array, gw: int,
 ## 1-cell bottlenecks.  If the endpoint height difference would exceed
 ## MAX_SLOPE_DIFF per cell, the run is extended with real cells past the mainland
 ## end (a short notch into that plateau) so the slope stays passable.
-func _carve_corridor(data: PackedFloat32Array, path: Array[Vector2i]) -> void:
+func _carve_corridor(a_data: PackedFloat32Array, a_path: Array[Vector2i]) -> void:
 	var gw: int = width - 1
 	var gh: int = depth - 1
 	var max_slope: float = 0.5  # TerrainGrid.MAX_SLOPE_DIFF
-	if path.size() < 2:
+	if a_path.size() < 2:
 		return
-	var ha: float = _cell_height(data, path[0].x, path[0].y)
-	var hb: float = _cell_height(data, path[path.size() - 1].x, path[path.size() - 1].y)
+	var ha: float = _cell_height(a_data, a_path[0].x, a_path[0].y)
+	var hb: float = _cell_height(a_data, a_path[a_path.size() - 1].x, a_path[a_path.size() - 1].y)
 
 	# Extend the mainland end with new in-bounds cells until the run is long
 	# enough to keep each step <= max_slope.
 	var needed: int = ceili(absf(hb - ha) / max_slope) + 1
-	while path.size() < needed:
-		var n: int = path.size()
-		var dir: Vector2i = path[n - 1] - path[n - 2]
-		var nxt: Vector2i = path[n - 1] + dir
+	while a_path.size() < needed:
+		var n: int = a_path.size()
+		var dir: Vector2i = a_path[n - 1] - a_path[n - 2]
+		var nxt: Vector2i = a_path[n - 1] + dir
 		if nxt.x < 0 or nxt.x >= gw or nxt.y < 0 or nxt.y >= gh:
 			break  # ran out of room — accept the gentlest slope we can manage
-		path.append(nxt)
+		a_path.append(nxt)
 
-	var last: int = path.size() - 1
+	var last: int = a_path.size() - 1
 	var half_w: int = maxi(1, int(ramp_half_width))  # band half-width in cells
-	for i: int in path.size():
+	for i: int in a_path.size():
 		var h: float = lerpf(ha, hb, float(i) / float(last))
 		# Lay a flat lateral band at this step's height, perpendicular to travel.
 		# Same height across the band → flat → passable; consecutive bands differ
 		# by <= max_slope → passable along the climb.
-		var fwd: Vector2i = _corridor_dir(path, i)
+		var fwd: Vector2i = _corridor_dir(a_path, i)
 		var perp := Vector2i(-fwd.y, fwd.x)
 		for k: int in range(-half_w, half_w + 1):
-			var cell: Vector2i = path[i] + perp * k
+			var cell: Vector2i = a_path[i] + perp * k
 			if cell.x >= 0 and cell.x < gw and cell.y >= 0 and cell.y < gh:
-				_set_cell_height(data, cell.x, cell.y, h)
+				_set_cell_height(a_data, cell.x, cell.y, h)
 
 ## Unit axis direction of the path at index `i` (reduced to a single axis so the
 ## perpendicular band is axis-aligned and clean).
-func _corridor_dir(path: Array[Vector2i], i: int) -> Vector2i:
-	var a: Vector2i = path[mini(i + 1, path.size() - 1)]
-	var b: Vector2i = path[maxi(i - 1, 0)]
+func _corridor_dir(a_path: Array[Vector2i], a_i: int) -> Vector2i:
+	var a: Vector2i = a_path[mini(a_i + 1, a_path.size() - 1)]
+	var b: Vector2i = a_path[maxi(a_i - 1, 0)]
 	var d: Vector2i = a - b
 	if absi(d.x) >= absi(d.y):
 		return Vector2i(signi(d.x), 0) if d.x != 0 else Vector2i(1, 0)
 	return Vector2i(0, signi(d.y))
 
-func _flood(data: PackedFloat32Array, comp: PackedInt32Array, gw: int, gh: int, sx: int, sz: int, id: int) -> int:
+func _flood(a_data: PackedFloat32Array, a_comp: PackedInt32Array, a_gw: int, a_gh: int, a_sx: int, a_sz: int, a_id: int) -> int:
 	var size: int = 0
-	var stack: Array[Vector2i] = [Vector2i(sx, sz)]
-	comp[sz * gw + sx] = id
+	var stack: Array[Vector2i] = [Vector2i(a_sx, a_sz)]
+	a_comp[a_sz * a_gw + a_sx] = a_id
 	while not stack.is_empty():
 		var c: Vector2i = stack.pop_back()
 		size += 1
 		for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
 			var nx: int = c.x + d.x
 			var nz: int = c.y + d.y
-			if nx >= 0 and nx < gw and nz >= 0 and nz < gh \
-					and _cell_passable(data, nx, nz) and comp[nz * gw + nx] == -1:
-				comp[nz * gw + nx] = id
+			if nx >= 0 and nx < a_gw and nz >= 0 and nz < a_gh \
+					and _cell_passable(a_data, nx, nz) and a_comp[nz * a_gw + nx] == -1:
+				a_comp[nz * a_gw + nx] = a_id
 				stack.append(Vector2i(nx, nz))
 	return size
 
-func _cell_passable(data: PackedFloat32Array, x: int, z: int) -> bool:
-	var h00: float = data[z * width + x]
-	var h10: float = data[z * width + x + 1]
-	var h01: float = data[(z + 1) * width + x]
-	var h11: float = data[(z + 1) * width + x + 1]
+func _cell_passable(a_data: PackedFloat32Array, a_x: int, a_z: int) -> bool:
+	var h00: float = a_data[a_z * width + a_x]
+	var h10: float = a_data[a_z * width + a_x + 1]
+	var h01: float = a_data[(a_z + 1) * width + a_x]
+	var h11: float = a_data[(a_z + 1) * width + a_x + 1]
 	return (maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))) <= 0.5
 
-func _cell_height(data: PackedFloat32Array, x: int, z: int) -> float:
-	return (data[z * width + x] + data[z * width + x + 1]
-		+ data[(z + 1) * width + x] + data[(z + 1) * width + x + 1]) * 0.25
+func _cell_height(a_data: PackedFloat32Array, a_x: int, a_z: int) -> float:
+	return (a_data[a_z * width + a_x] + a_data[a_z * width + a_x + 1]
+		+ a_data[(a_z + 1) * width + a_x] + a_data[(a_z + 1) * width + a_x + 1]) * 0.25
 
-func _set_cell_height(data: PackedFloat32Array, x: int, z: int, h: float) -> void:
-	data[z * width + x] = h
-	data[z * width + x + 1] = h
-	data[(z + 1) * width + x] = h
-	data[(z + 1) * width + x + 1] = h
+func _set_cell_height(a_data: PackedFloat32Array, a_x: int, a_z: int, a_h: float) -> void:
+	a_data[a_z * width + a_x] = a_h
+	a_data[a_z * width + a_x + 1] = a_h
+	a_data[(a_z + 1) * width + a_x] = a_h
+	a_data[(a_z + 1) * width + a_x + 1] = a_h
 #endregion
 
 #region Ramp carving
@@ -372,8 +373,8 @@ func _set_cell_height(data: PackedFloat32Array, x: int, z: int, h: float) -> voi
 ## `hb`).  Corners within `ramp_half_width` of the segment are overridden with a
 ## linear flat→slope→flat profile, centred on the segment midpoint (which lies on
 ## the shared Voronoi border for adjacent seeds).
-func _carve_ramp(data: PackedFloat32Array, pa: Vector2, pb: Vector2, ha: float, hb: float) -> void:
-	var seg: Vector2 = pb - pa
+func _carve_ramp(a_data: PackedFloat32Array, a_pa: Vector2, a_pb: Vector2, a_ha: float, a_hb: float) -> void:
+	var seg: Vector2 = a_pb - a_pa
 	var seg_len: float = seg.length()
 	if seg_len < 0.001:
 		return
@@ -384,22 +385,22 @@ func _carve_ramp(data: PackedFloat32Array, pa: Vector2, pb: Vector2, ha: float, 
 
 	# Iterate the segment's bounding box, padded by the channel half-width.
 	var pad: float = ramp_half_width + 1.0
-	var min_x: int = maxi(0, floori(minf(pa.x, pb.x) - pad))
-	var max_x: int = mini(width - 1, ceili(maxf(pa.x, pb.x) + pad))
-	var min_z: int = maxi(0, floori(minf(pa.y, pb.y) - pad))
-	var max_z: int = mini(depth - 1, ceili(maxf(pa.y, pb.y) + pad))
+	var min_x: int = maxi(0, floori(minf(a_pa.x, a_pb.x) - pad))
+	var max_x: int = mini(width - 1, ceili(maxf(a_pa.x, a_pb.x) + pad))
+	var min_z: int = maxi(0, floori(minf(a_pa.y, a_pb.y) - pad))
+	var max_z: int = mini(depth - 1, ceili(maxf(a_pa.y, a_pb.y) + pad))
 
 	for z: int in range(min_z, max_z + 1):
 		for x: int in range(min_x, max_x + 1):
 			var p := Vector2(float(x), float(z))
-			var along: float = clampf((p - pa).dot(u), 0.0, seg_len)
+			var along: float = clampf((p - a_pa).dot(u), 0.0, seg_len)
 			var t: float = along / seg_len
-			var perp: float = p.distance_to(pa + u * along)
+			var perp: float = p.distance_to(a_pa + u * along)
 			if perp > ramp_half_width:
 				continue
 			# Linear flat→slope→flat: 0 near pa, 1 near pb.
 			var s: float = clampf((t - (0.5 - hrf)) / (2.0 * hrf), 0.0, 1.0)
-			data[z * width + x] = lerpf(ha, hb, s)
+			a_data[z * width + x] = lerpf(a_ha, a_hb, s)
 #endregion
 
 #region Graph helpers
@@ -408,7 +409,7 @@ func _carve_ramp(data: PackedFloat32Array, pa: Vector2, pb: Vector2, ha: float, 
 ## grows (root = 0; each tree edge keeps the level or steps ±1, clamped to
 ## [0, height_levels-1]).  Records level-changing tree edges into `ramp_edges`.
 ## Returns a level per region (regions in disconnected graph fragments → 0).
-func _build_tree_levels(rng: RandomNumberGenerator, adjacency: Dictionary, border_weight: Dictionary, ramp_edges: Dictionary) -> PackedInt32Array:
+func _build_tree_levels(a_rng: RandomNumberGenerator, a_adjacency: Dictionary, a_border_weight: Dictionary, a_ramp_edges: Dictionary) -> PackedInt32Array:
 	var levels := PackedInt32Array()
 	levels.resize(region_count)  # PackedInt32Array zero-initialises
 
@@ -418,8 +419,8 @@ func _build_tree_levels(rng: RandomNumberGenerator, adjacency: Dictionary, borde
 	var best_total: int = -1
 	for i: int in region_count:
 		var total: int = 0
-		for nb: Variant in adjacency[i]:
-			total += int(border_weight.get(_edge_key(i, nb), 0))
+		for nb: Variant in a_adjacency[i]:
+			total += int(a_border_weight.get(_edge_key(i, nb), 0))
 		if total > best_total:
 			best_total = total
 			start = i
@@ -432,10 +433,10 @@ func _build_tree_levels(rng: RandomNumberGenerator, adjacency: Dictionary, borde
 		var best_v: int = -1
 		var best_w: int = -1
 		for u: Variant in visited:
-			for v: Variant in adjacency[u]:
+			for v: Variant in a_adjacency[u]:
 				if visited.has(v):
 					continue
-				var w: int = int(border_weight.get(_edge_key(u, v), 0))
+				var w: int = int(a_border_weight.get(_edge_key(u, v), 0))
 				if w > best_w:
 					best_w = w
 					best_u = u
@@ -445,17 +446,17 @@ func _build_tree_levels(rng: RandomNumberGenerator, adjacency: Dictionary, borde
 
 		visited[best_v] = true
 		var delta: int = 0
-		if rng.randf() < elevation_change_chance:
-			delta = 1 if rng.randf() < 0.5 else -1
+		if a_rng.randf() < elevation_change_chance:
+			delta = 1 if a_rng.randf() < 0.5 else -1
 		var lvl: int = clampi(levels[best_u] + delta, 0, height_levels - 1)
 		levels[best_v] = lvl
 		if absi(lvl - levels[best_u]) == 1:
-			ramp_edges[_edge_key(best_u, best_v)] = true
+			a_ramp_edges[_edge_key(best_u, best_v)] = true
 	return levels
 
 ## Order-independent integer key for an undirected region pair.
-func _edge_key(a: int, b: int) -> int:
-	var lo: int = mini(a, b)
-	var hi: int = maxi(a, b)
+func _edge_key(a_a: int, a_b: int) -> int:
+	var lo: int = mini(a_a, a_b)
+	var hi: int = maxi(a_a, a_b)
 	return lo * region_count + hi
 #endregion

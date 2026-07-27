@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://c0rdnambush02"]
+
+[ext_resource type="Script" uid="uid://tm1rdm5spju8" path="res://scripts/scenario/events/event_spawn_entities.gd" id="1_evt"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="2_unit"]
+
+[node name="SanctionAmbush2" type="Sprite3D"]
+script = ExtResource("1_evt")
+entity_scenes = Array[PackedScene]([ExtResource("2_unit")])
+count_expression = "8"
+metadata/_custom_type_script = "uid://tm1rdm5spju8"

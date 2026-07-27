@@ -1,1 +1,2 @@
+Curve
 HeightMapShape3D

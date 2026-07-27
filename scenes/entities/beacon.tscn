@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://b3ac0nmrk0001"]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="0_entity"]
+[ext_resource type="Script" uid="uid://dnyr33p2qgi3r" path="res://scripts/entities/beacon.gd" id="1_beacon"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_ownr"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="3_mv"]
+[ext_resource type="Script" uid="uid://cr4mbf5bvs8m3" path="res://scripts/entities/components/stealth.gd" id="4_stealth"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_beacon"]
+albedo_color = Color(1, 1, 1, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_beacon"]
+material = SubResource("StandardMaterial3D_beacon")
+radius = 0.1
+height = 0.2
+radial_segments = 12
+rings = 6
+
+[sub_resource type="TorusMesh" id="TorusMesh_used"]
+material = SubResource("StandardMaterial3D_beacon")
+inner_radius = 0.22
+outer_radius = 0.3
+rings = 16
+ring_segments = 6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_stealth"]
+radius = 0.3
+
+[node name="Beacon" type="CharacterBody3D" unique_id=1907553001]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("0_entity")
+id = &"beacon"
+
+[node name="Ownership" type="Node" parent="." unique_id=1907553002]
+script = ExtResource("2_ownr")
+
+[node name="MeshVisual" type="Node3D" parent="." unique_id=1907553003]
+script = ExtResource("3_mv")
+
+[node name="Marker" type="MeshInstance3D" parent="MeshVisual" unique_id=1907553004]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+mesh = SubResource("SphereMesh_beacon")
+
+[node name="Beacon" type="Node" parent="."]
+script = ExtResource("1_beacon")
+
+[node name="UsedMarker" type="MeshInstance3D" parent="MeshVisual"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("TorusMesh_used")
+
+[node name="Stealth" type="Node" parent="."]
+script = ExtResource("4_stealth")
+
+[node name="StealthBody" type="StaticBody3D" parent="."]
+collision_layer = 16
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="StealthBody"]
+shape = SubResource("SphereShape3D_stealth")

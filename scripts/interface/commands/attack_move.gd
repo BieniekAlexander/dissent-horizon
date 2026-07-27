@@ -1,6 +1,15 @@
 class_name AttackMove
 extends MoveCommand
 
+## This order exists in order to shoot, so an empty charged loadout makes it undoable for
+## now. The receiver stands it down into the queue rather than have the unit fly at
+## something it cannot touch — it resumes once the unit has been back to an airfield.
+func requires_ammo() -> bool:
+	return true
+
+func releases_hold_fire() -> bool:
+	return true
+
 #region State updates
 func get_updated_state(a_actor: Commandable) -> Variant:
 	var aggro_command: MoveCommand = a_actor.get_aggro_near_position(null, null, message.target_priority)

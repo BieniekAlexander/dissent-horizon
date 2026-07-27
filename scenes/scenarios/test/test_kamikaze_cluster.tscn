@@ -1,14 +1,14 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/scenario/test/test_scenario.gd" id="1_p6at1"]
-[ext_resource type="Script" path="res://scripts/scenario/test/test_expectation.gd" id="2_4rowk"]
-[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_unit_has_command.gd" id="3_tf026"]
-[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="4_otfk0"]
-[ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="5_nn1mh"]
-[ext_resource type="Script" path="res://scripts/maps/map.gd" id="6_7bk8i"]
-[ext_resource type="PackedScene" path="res://scenes/entities/units/an/kamikaze.tscn" id="7_bro1q"]
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="8_2soij"]
-[ext_resource type="PackedScene" path="res://scenes/entities/units/an/irregular.tscn" id="9_hx2ak"]
+[ext_resource type="Script" uid="uid://7ocxs7rn4x4v" path="res://scripts/scenario/simulation_scenario.gd" id="1_p6at1"]
+[ext_resource type="Script" uid="uid://cy4mbhdcurdsl" path="res://scripts/scenario/simulation_expectation.gd" id="2_4rowk"]
+[ext_resource type="Script" uid="uid://dmxnfehxbdrc8" path="res://scripts/scenario/conditions/condition_unit_has_command.gd" id="3_tf026"]
+[ext_resource type="Script" uid="uid://rck85holj04" path="res://scripts/interface/commander/player_slot.gd" id="4_otfk0"]
+[ext_resource type="PackedScene" uid="uid://bkpybipbter41" path="res://scenes/factions/anarchical.tscn" id="5_nn1mh"]
+[ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="6_7bk8i"]
+[ext_resource type="PackedScene" uid="uid://bmartyrunit01" path="res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn" id="7_bro1q"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="8_2soij"]
+[ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="9_hx2ak"]
 
 [sub_resource type="Resource" id="Resource_a56bk"]
 script = ExtResource("3_tf026")
@@ -29,7 +29,7 @@ starting_dominion = 0
 script = ExtResource("4_otfk0")
 faction = ExtResource("5_nn1mh")
 difficulty = 0
-starting_ore = 0
+starting_energy = 0
 starting_dominion = 0
 
 [sub_resource type="HeightMapShape3D" id="HeightMapShape3D_b5pmn"]
@@ -59,49 +59,49 @@ collision_mask = 0
 [node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=616714704]
 shape = SubResource("HeightMapShape3D_b5pmn")
 
-[node name="Kamikaze" type="CharacterBody3D" parent="." unique_id=440012001 groups=["commandable", "unit"] instance=ExtResource("7_bro1q")]
+[node name="Kamikaze" type="CharacterBody3D" parent="." unique_id=440012001 instance=ExtResource("7_bro1q")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
 script = ExtResource("8_2soij")
-id = &"kamikaze"
+id = &"an_aircraftLight_antiMech"
 default_commander_id = 1
 
-[node name="Unit2" type="CharacterBody3D" parent="." unique_id=1210299015 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+[node name="Unit2" type="CharacterBody3D" parent="." unique_id=1210299015 instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0)
 script = ExtResource("8_2soij")
-id = &"irregular"
+id = &"an_bioLight_builder"
 default_commander_id = 2
 
-[node name="@CharacterBody3D@2" type="CharacterBody3D" parent="." unique_id=1126334548 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+[node name="@CharacterBody3D@2" type="CharacterBody3D" parent="." unique_id=1126334548 instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 0.8660254)
 script = ExtResource("8_2soij")
-id = &"irregular"
+id = &"an_bioLight_builder"
 default_commander_id = 2
 
-[node name="@CharacterBody3D@3" type="CharacterBody3D" parent="." unique_id=321715670 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+[node name="@CharacterBody3D@3" type="CharacterBody3D" parent="." unique_id=321715670 instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0.8660254)
 script = ExtResource("8_2soij")
-id = &"irregular"
+id = &"an_bioLight_builder"
 default_commander_id = 2
 
-[node name="@CharacterBody3D@4" type="CharacterBody3D" parent="." unique_id=1133482428 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+[node name="@CharacterBody3D@4" type="CharacterBody3D" parent="." unique_id=1133482428 instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 1.2246469e-16)
 script = ExtResource("8_2soij")
-id = &"irregular"
+id = &"an_bioLight_builder"
 default_commander_id = 2
 
-[node name="@CharacterBody3D@5" type="CharacterBody3D" parent="." unique_id=986920232 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+[node name="@CharacterBody3D@5" type="CharacterBody3D" parent="." unique_id=986920232 instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, -0.8660254)
 script = ExtResource("8_2soij")
-id = &"irregular"
+id = &"an_bioLight_builder"
 default_commander_id = 2
 
-[node name="@CharacterBody3D@6" type="CharacterBody3D" parent="." unique_id=188054937 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+[node name="@CharacterBody3D@6" type="CharacterBody3D" parent="." unique_id=188054937 instance=ExtResource("9_hx2ak")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -0.8660254)
 script = ExtResource("8_2soij")
-id = &"irregular"
+id = &"an_bioLight_builder"
 default_commander_id = 2
 
-[node name="@CharacterBody3D@7" type="CharacterBody3D" parent="." unique_id=1041162017 groups=["commandable", "unit"] instance=ExtResource("9_hx2ak")]
+[node name="@CharacterBody3D@7" type="CharacterBody3D" parent="." unique_id=1041162017 instance=ExtResource("9_hx2ak")]
 script = ExtResource("8_2soij")
-id = &"irregular"
+id = &"an_bioLight_builder"
 default_commander_id = 2

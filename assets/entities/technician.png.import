@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://e37rsn6w2d05"
 path.s3tc="res://.godot/imported/technician.png-1479195538aed583b9d45ecd73b2e611.s3tc.ctex"
+path.etc2="res://.godot/imported/technician.png-1479195538aed583b9d45ecd73b2e611.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/entities/technician.png"
-dest_files=["res://.godot/imported/technician.png-1479195538aed583b9d45ecd73b2e611.s3tc.ctex"]
+dest_files=["res://.godot/imported/technician.png-1479195538aed583b9d45ecd73b2e611.s3tc.ctex", "res://.godot/imported/technician.png-1479195538aed583b9d45ecd73b2e611.etc2.ctex"]
 
 [params]
 

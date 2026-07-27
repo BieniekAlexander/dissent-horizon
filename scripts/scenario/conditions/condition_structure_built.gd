@@ -1,3 +1,4 @@
+@tool
 class_name ConditionStructureBuilt
 extends Condition
 
@@ -11,8 +12,8 @@ extends Condition
 #endregion
 
 #region Public API
-func evaluate(manager: ScenarioTriggerManager) -> bool:
-	var map := manager.map
+func evaluate(a_manager: ScenarioTriggerManager) -> bool:
+	var map := a_manager.map
 	if map == null:
 		return false
 
@@ -30,7 +31,7 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 		return c.is_built
 
 	# No cell constraint — check commander's structure_type_map.
-	for commander: Commander in manager.scenario.commanders:
+	for commander: Commander in a_manager.scenario.commanders:
 		if commander_id >= 0 and commander.id != commander_id:
 			continue
 		if structure_type == &"":
@@ -41,4 +42,21 @@ func evaluate(manager: ScenarioTriggerManager) -> bool:
 			if commander.has_built_structure(structure_type):
 				return true
 	return false
+#endregion
+
+#region Player-facing description (highlights)
+## With a cell constraint, the cell itself is the instruction ("build it HERE") — paint the
+## one-cell footprint. Without one the check is "build this ANYWHERE", which has no place
+## to point at; highlight the producing structure explicitly with an EventHighlight carrying
+## its own EntitySelector children instead.
+func highlight_shapes(a_manager: ScenarioTriggerManager) -> Array[HighlightShape]:
+	var result: Array[HighlightShape] = []
+	if grid_cell == Vector2i(-1, -1) or a_manager.map == null:
+		return result
+	if not a_manager.map.grid_coordinates_in_bounds(grid_cell):
+		return result
+	var world: Vector3 = a_manager.map.grid_to_world(grid_cell)
+	var half: float = Map.CELL_SIZE * 0.5
+	result.append(HighlightShape.rect(VU.inXZ(world), Vector2(half, half)))
+	return result
 #endregion

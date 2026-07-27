@@ -2,53 +2,53 @@ vs_armour:
   LEAD:
     LIGHT: 1
     MEDIUM: 0.25
-    HEAVY: 0.1
+    STRONG: 0.1
   LAZER:
     LIGHT: 0.1
     MEDIUM: 1
-    HEAVY: 0.5
+    STRONG: 0.5
   TOXIN:
     LIGHT: 1
     MEDIUM: 1
-    HEAVY: 1
+    STRONG: 1
   FIRE:
     LIGHT: 1
     MEDIUM: 0.75
-    HEAVY: 0.5
+    STRONG: 0.5
   ELECTRICITY:
     LIGHT: 1
     MEDIUM: 1
-    HEAVY: 1
+    STRONG: 1
   SIEGE:
     LIGHT: 1
     MEDIUM: 1
-    HEAVY: 1.5
+    STRONG: 1.5
   EXPLOSIVE:
     LIGHT: 0.25
     MEDIUM: 0.75
-    HEAVY: 0.5
+    STRONG: 0.5
 vs_frame:
   LEAD:
-    BIOLOGICAL: 1.0
-    METALLIC: 1.0
+    BIO: 1.0
+    MECH: 1.0
   LAZER:
-    BIOLOGICAL: 1.0
-    METALLIC: 1.0
+    BIO: 1.0
+    MECH: 1.0
   TOXIN:
-    BIOLOGICAL: 1.0
-    METALLIC: 1.0
+    BIO: 1.0
+    MECH: 1.0
   FIRE:
-    BIOLOGICAL: 1.0
-    METALLIC: 1.0
+    BIO: 1.0
+    MECH: 1.0
   ELECTRICITY:
-    BIOLOGICAL: 1.0
-    METALLIC: 1.0
+    BIO: 1.0
+    MECH: 1.0
   SIEGE:
-    BIOLOGICAL: 1.0
-    METALLIC: 1.0
+    BIO: 1.0
+    MECH: 1.0
   EXPLOSIVE:
-    BIOLOGICAL: 1.0
-    METALLIC: 1.0
+    BIO: 1.0
+    MECH: 1.0
 vs_attribute:
   LEAD: {}
   LAZER: {}

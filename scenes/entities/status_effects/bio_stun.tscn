@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://dikilnr73y4ow"]
+
+[ext_resource type="Script" uid="uid://d1jpfxrfygchd" path="res://scripts/entities/effects/stun_status_effect.gd" id="1_fx"]
+[ext_resource type="Texture2D" uid="uid://ct1uhawbw613u" path="res://assets/interface/status_bio.svg" id="2_bio"]
+
+[node name="BioStun" type="Node"]
+script = ExtResource("1_fx")
+title = "Choking"
+description = "Living crews are down: no orders answered until it clears."
+valence = 2
+verbose = "A gas or shock payload that acts on BIO frames only — a machine hit by the same round shrugs it off.\nA choking unit does NOTHING: it does not move, shoot, build or defend itself. That is a harder stop than the stagger an ordinary hit causes, which suppresses only the channeled jobs."
+duration_ticks = 30
+host_tint = Color(0.55, 0.78, 0.42, 1)
+indicator_icon = ExtResource("2_bio")
+indicator_blink_hz = 2.5
+affects_frames = 1
+metadata/_custom_type_script = "uid://d1jpfxrfygchd"

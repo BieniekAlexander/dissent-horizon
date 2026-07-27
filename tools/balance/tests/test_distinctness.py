@@ -4,12 +4,12 @@ from dh_balance.model import (
     Armour, Buildable, Cost, DamageTable, DamageType, Frame, Layer, Projectile, Weapon,
 )
 
-# LEAD favours LIGHT, LAZER favours HEAVY (opposite ends); TOXIC is neutral.
+# LEAD favours LIGHT, LAZER favours STRONG (opposite ends); TOXIC is neutral.
 TABLE = DamageTable(
     vs_armour={
-        DamageType.LEAD: {Armour.LIGHT: 1.0, Armour.MEDIUM: 0.5, Armour.HEAVY: 0.1},
-        DamageType.LAZER: {Armour.LIGHT: 0.1, Armour.MEDIUM: 0.75, Armour.HEAVY: 1.5},
-        DamageType.TOXIC: {Armour.LIGHT: 1.0, Armour.MEDIUM: 1.0, Armour.HEAVY: 1.0},
+        DamageType.LEAD: {Armour.LIGHT: 1.0, Armour.MEDIUM: 0.5, Armour.STRONG: 0.1},
+        DamageType.LAZER: {Armour.LIGHT: 0.1, Armour.MEDIUM: 0.75, Armour.STRONG: 1.5},
+        DamageType.TOXIC: {Armour.LIGHT: 1.0, Armour.MEDIUM: 1.0, Armour.STRONG: 1.0},
     },
     vs_attribute={}, vs_frame={},
 )
@@ -22,7 +22,7 @@ def wpn(reach=1.0, hits=(Layer.GROUND,), dtype=DamageType.LEAD, melee=False):
                   melee_damage=0.0 if not melee else 10.0, melee_damage_type=dtype)
 
 
-def unit(uid="u", weapons=None, frame=Frame.BIOLOGICAL, armour=Armour.LIGHT,
+def unit(uid="u", weapons=None, frame=Frame.BIO, armour=Armour.LIGHT,
          speed=0.05, cost=100, layer=Layer.GROUND):
     return Buildable(faction="f", id=uid, kind="unit", name=uid, cost=Cost(ore=cost),
                      armour=armour, frame=frame, hp=100.0, layer=layer, speed=speed,
@@ -66,8 +66,8 @@ def test_loadout_difference_overlap_and_unarmed():
 
 
 def test_defense_difference():
-    assert dn.defense_difference(unit(frame=Frame.BIOLOGICAL), unit(frame=Frame.METALLIC)) == dn.FRAME_DIFF
-    assert dn.defense_difference(unit(armour=Armour.LIGHT), unit(armour=Armour.HEAVY)) == 2 * dn.BUCKET_STEP
+    assert dn.defense_difference(unit(frame=Frame.BIO), unit(frame=Frame.MECH)) == dn.FRAME_DIFF
+    assert dn.defense_difference(unit(armour=Armour.LIGHT), unit(armour=Armour.STRONG)) == 2 * dn.BUCKET_STEP
     assert dn.defense_difference(unit(), unit()) == 0.0
 
 
@@ -89,7 +89,7 @@ def test_unit_distinctness_identical_is_zero():
 # --- set-level -------------------------------------------------------------- #
 def test_set_distinctness_is_asymmetric():
     twin = unit(uid="a")
-    other = unit(uid="b", armour=Armour.HEAVY, frame=Frame.METALLIC, cost=500,
+    other = unit(uid="b", armour=Armour.STRONG, frame=Frame.MECH, cost=500,
                  weapons=[wpn(dtype=DamageType.LAZER, reach=10.0)])
     a = [twin]
     b = [unit(uid="a2"), other]              # contains a twin of `twin` plus a very different unit
@@ -98,8 +98,8 @@ def test_set_distinctness_is_asymmetric():
 
 
 def test_most_similar_pair_finds_the_twins():
-    a = [unit(uid="a", armour=Armour.HEAVY)]
-    b = [unit(uid="b_far", armour=Armour.LIGHT, cost=500), unit(uid="b_twin", armour=Armour.HEAVY)]
+    a = [unit(uid="a", armour=Armour.STRONG)]
+    b = [unit(uid="b_far", armour=Armour.LIGHT, cost=500), unit(uid="b_twin", armour=Armour.STRONG)]
     pair = dn.most_similar_pair(TABLE, a, b)
     assert pair is not None and pair.unit_b == "f:b_twin" and pair.distinctness == 0.0
 

@@ -8,8 +8,11 @@ enum Type {
 	PLASMA = 4,
 	SIEGE = 5,
 	EXPLOSIVE = 6,
-	ELECTRIC = 7,
-	LAZER = 8
+	ELECTRIC = 7,   ## the Damage System spec's ELECTRICITY — kept as ELECTRIC, the pre-existing name
+	LAZER = 8,
+	INCENDIARY = 9,
+	HIGH_EXPLOSIVE = 10,
+	CRYO = 11,
 }
 
 var amount: float

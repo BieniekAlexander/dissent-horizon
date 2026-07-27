@@ -20,29 +20,29 @@ const WIDTH: int = 30
 const DEPTH: int = 30
 const MAX_SLOPE_DIFF: float = 0.5
 
-func _make(seed_val: int, height_levels: int = 3) -> GraphPlateauHeightmapGenerator:
+func _make(a_seed_val: int, a_height_levels: int = 3) -> GraphPlateauHeightmapGenerator:
 	var gen := GraphPlateauHeightmapGenerator.new()
 	gen.width = WIDTH
 	gen.depth = DEPTH
 	gen.region_count = 14
-	gen.height_levels = height_levels
+	gen.height_levels = a_height_levels
 	gen.height_step = 1.0
 	gen.ramp_run = 4
 	gen.ramp_half_width = 2.5
-	gen.seed = seed_val
+	gen.seed = a_seed_val
 	return gen
 
 
-func _cell_passable(data: PackedFloat32Array, x: int, z: int) -> bool:
-	var h00: float = data[z * WIDTH + x]
-	var h10: float = data[z * WIDTH + x + 1]
-	var h01: float = data[(z + 1) * WIDTH + x]
-	var h11: float = data[(z + 1) * WIDTH + x + 1]
+func _cell_passable(a_data: PackedFloat32Array, a_x: int, a_z: int) -> bool:
+	var h00: float = a_data[a_z * WIDTH + a_x]
+	var h10: float = a_data[a_z * WIDTH + a_x + 1]
+	var h01: float = a_data[(a_z + 1) * WIDTH + a_x]
+	var h11: float = a_data[(a_z + 1) * WIDTH + a_x + 1]
 	return (maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))) <= MAX_SLOPE_DIFF
 
 
 ## Number of connected components in the passable cell grid (4-neighbour).
-func _component_count(data: PackedFloat32Array) -> int:
+func _component_count(a_data: PackedFloat32Array) -> int:
 	var gw: int = WIDTH - 1
 	var gh: int = DEPTH - 1
 	var seen: PackedByteArray = PackedByteArray()
@@ -50,7 +50,7 @@ func _component_count(data: PackedFloat32Array) -> int:
 	var components: int = 0
 	for z: int in gh:
 		for x: int in gw:
-			if _cell_passable(data, x, z) and seen[z * gw + x] == 0:
+			if _cell_passable(a_data, x, z) and seen[z * gw + x] == 0:
 				components += 1
 				var stack: Array = [Vector2i(x, z)]
 				seen[z * gw + x] = 1
@@ -60,7 +60,7 @@ func _component_count(data: PackedFloat32Array) -> int:
 						var nx: int = c.x + d.x
 						var nz: int = c.y + d.y
 						if nx >= 0 and nx < gw and nz >= 0 and nz < gh \
-								and _cell_passable(data, nx, nz) and seen[nz * gw + nx] == 0:
+								and _cell_passable(a_data, nx, nz) and seen[nz * gw + nx] == 0:
 							seen[nz * gw + nx] = 1
 							stack.append(Vector2i(nx, nz))
 	return components
@@ -114,17 +114,17 @@ func test_uses_multiple_elevation_levels():
 	assert_gt(levels_seen.size(), 1, "expected more than one elevation tier in use")
 
 
-func _slope_cell_count(data: PackedFloat32Array) -> int:
+func _slope_cell_count(a_data: PackedFloat32Array) -> int:
 	# Passable but not flat = a ramp cell.
 	var gw: int = WIDTH - 1
 	var gh: int = DEPTH - 1
 	var count: int = 0
 	for z: int in gh:
 		for x: int in gw:
-			var h00: float = data[z * WIDTH + x]
-			var h10: float = data[z * WIDTH + x + 1]
-			var h01: float = data[(z + 1) * WIDTH + x]
-			var h11: float = data[(z + 1) * WIDTH + x + 1]
+			var h00: float = a_data[z * WIDTH + x]
+			var h10: float = a_data[z * WIDTH + x + 1]
+			var h01: float = a_data[(z + 1) * WIDTH + x]
+			var h11: float = a_data[(z + 1) * WIDTH + x + 1]
 			var hi: float = maxf(maxf(h00, h10), maxf(h01, h11))
 			var lo: float = minf(minf(h00, h10), minf(h01, h11))
 			if (hi - lo) <= MAX_SLOPE_DIFF and not is_equal_approx(hi, lo):
@@ -151,16 +151,16 @@ func test_wider_ramps_stay_connected_and_get_wider():
 
 
 # Generic (size-parameterised) connected-component count for the larger maps.
-func _components_dim(data: PackedFloat32Array, w: int, d: int) -> int:
-	var gw: int = w - 1
-	var gh: int = d - 1
+func _components_dim(a_data: PackedFloat32Array, a_w: int, a_d: int) -> int:
+	var gw: int = a_w - 1
+	var gh: int = a_d - 1
 	var seen: PackedByteArray = PackedByteArray()
 	seen.resize(gw * gh)
 	var passable := func(x: int, z: int) -> bool:
-		var h00: float = data[z * w + x]
-		var h10: float = data[z * w + x + 1]
-		var h01: float = data[(z + 1) * w + x]
-		var h11: float = data[(z + 1) * w + x + 1]
+		var h00: float = a_data[z * a_w + x]
+		var h10: float = a_data[z * a_w + x + 1]
+		var h01: float = a_data[(z + 1) * a_w + x]
+		var h11: float = a_data[(z + 1) * a_w + x + 1]
 		return (maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))) <= MAX_SLOPE_DIFF
 	var components: int = 0
 	for z: int in gh:

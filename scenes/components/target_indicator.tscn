@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://dm5myhkhemcld"]
+
+[ext_resource type="Texture2D" uid="uid://blf6o2y44a3gs" path="res://assets/target.png" id="1_pvp5m"]
+
+[node name="TargetIndicator" type="Sprite3D" unique_id=686962728]
+transform = Transform3D(0.25, 0, 0, 0, 0.1767765, 0.1767765, 0, -0.1767765, 0.1767765, 0, 0, 0)
+visible = false
+billboard = 1
+no_depth_test = true
+texture = ExtResource("1_pvp5m")

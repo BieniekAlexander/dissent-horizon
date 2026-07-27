@@ -1,5 +1,13 @@
 class_name VU
 
+## Vector helpers, aliased `VU` for how often they appear. Y is terrain height and XZ is the
+## horizontal plane, so converting between a world Vector3 and its ground footprint is the
+## single most common operation in this codebase.
+##
+## PLANNED: rename the four camelCase names below (`inXZ`, `onXZ`, `fromXZ`, `l1Norm`) to
+## snake_case per §3.2 — approved 2026-09-24 (gdd/deferred.md 2.40). 174 call sites, and
+## CLAUDE.md names them by hand. `gdlint` reports them until it happens.
+
 #region Public API
 static func inXZ(v: Vector3) -> Vector2:
 	return Vector2(v.x, v.z)
@@ -19,10 +27,10 @@ static func range(v: Vector2) -> int:
 
 static func get_rotated_vector_3d(current: Vector3, target: Vector3, max_radians: float) -> Vector3:
 	var total_angle = current.angle_to(target)
-	
+
 	if total_angle < 0.001:
 		return target.normalized() * current.length()
-		
+
 	var weight = min(max_radians / total_angle, 1.0)
 	return current.slerp(target, weight).normalized()*current.length()
 #endregion

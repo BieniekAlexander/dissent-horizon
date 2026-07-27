@@ -58,12 +58,12 @@ func build() -> Dictionary:
 
 ## Generate one variation: save its generator + baked shape, add a labelled mesh
 ## tile to the gallery, and return its stats.
-func _bake_one(root: Node3D, rc: int, hl: int, w: int, d: int, origin: Vector3) -> Dictionary:
+func _bake_one(a_root: Node3D, a_rc: int, a_hl: int, a_w: int, a_d: int, a_origin: Vector3) -> Dictionary:
 	var gen := GraphPlateauHeightmapGenerator.new()
-	gen.width = w
-	gen.depth = d
-	gen.region_count = rc
-	gen.height_levels = hl
+	gen.width = a_w
+	gen.depth = a_d
+	gen.region_count = a_rc
+	gen.height_levels = a_hl
 	gen.height_step = HEIGHT_STEP
 	gen.ramp_run = RAMP_RUN
 	gen.ramp_half_width = RAMP_HALF_WIDTH
@@ -72,11 +72,11 @@ func _bake_one(root: Node3D, rc: int, hl: int, w: int, d: int, origin: Vector3) 
 	var data: PackedFloat32Array = gen.generate()
 
 	var shape := HeightMapShape3D.new()
-	shape.map_width = w
-	shape.map_depth = d
+	shape.map_width = a_w
+	shape.map_depth = a_d
 	shape.map_data = data
 
-	var tag: String = "rc%d_hl%d" % [rc, hl]
+	var tag: String = "rc%d_hl%d" % [a_rc, a_hl]
 	ResourceSaver.save(gen, OUTPUT_DIR + "/gp_%s.tres" % tag)
 	ResourceSaver.save(shape, OUTPUT_DIR + "/hm_%s.tres" % tag)
 
@@ -90,23 +90,23 @@ func _bake_one(root: Node3D, rc: int, hl: int, w: int, d: int, origin: Vector3) 
 	var tile := MeshInstance3D.new()
 	tile.name = "tile_%s" % tag
 	tile.mesh = mesh
-	tile.position = origin
-	root.add_child(tile)
-	tile.owner = root
+	tile.position = a_origin
+	a_root.add_child(tile)
+	tile.owner = a_root
 
-	var stats: Dictionary = _stats(data, w, d)
+	var stats: Dictionary = _stats(data, a_w, a_d)
 	var label := Label3D.new()
 	label.name = "label_%s" % tag
-	label.text = "rc=%d hl=%d\n%d%% pass" % [rc, hl, stats["passable_pct"]]
+	label.text = "rc=%d hl=%d\n%d%% pass" % [a_rc, a_hl, stats["passable_pct"]]
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = origin + Vector3(0.0, float(hl) * HEIGHT_STEP + 4.0, 0.0)
+	label.position = a_origin + Vector3(0.0, float(a_hl) * HEIGHT_STEP + 4.0, 0.0)
 	label.modulate = Color.WHITE if stats["connected"] else Color.RED
-	root.add_child(label)
-	label.owner = root
+	a_root.add_child(label)
+	label.owner = a_root
 
 	return {
-		"region_count": rc,
-		"height_levels": hl,
+		"region_count": a_rc,
+		"height_levels": a_hl,
 		"tag": tag,
 		"passable_pct": stats["passable_pct"],
 		"flat_pct": stats["flat_pct"],
@@ -114,39 +114,39 @@ func _bake_one(root: Node3D, rc: int, hl: int, w: int, d: int, origin: Vector3) 
 	}
 
 
-func _add_lighting_and_camera(root: Node3D, spacing: float, cols: int, rows: int) -> void:
+func _add_lighting_and_camera(a_root: Node3D, a_spacing: float, a_cols: int, a_rows: int) -> void:
 	var light := DirectionalLight3D.new()
 	light.name = "Sun"
 	light.rotation_degrees = Vector3(-55.0, -40.0, 0.0)
 	light.light_energy = 1.1
-	root.add_child(light)
-	light.owner = root
+	a_root.add_child(light)
+	light.owner = a_root
 
-	var center := Vector3((cols - 1) * spacing * 0.5, 0.0, (rows - 1) * spacing * 0.5)
+	var center := Vector3((a_cols - 1) * a_spacing * 0.5, 0.0, (a_rows - 1) * a_spacing * 0.5)
 	var cam := Camera3D.new()
 	cam.name = "GalleryCamera"
-	cam.position = center + Vector3(0.0, spacing * 1.6, spacing * 1.8)
+	cam.position = center + Vector3(0.0, a_spacing * 1.6, a_spacing * 1.8)
 	cam.rotation_degrees = Vector3(-42.0, 0.0, 0.0)
 	cam.current = true
-	root.add_child(cam)
-	cam.owner = root
+	a_root.add_child(cam)
+	cam.owner = a_root
 
 
 # --- Stats (mirrors TerrainGrid passability: corner spread > 0.5 = impassable) ---
 
-func _stats(data: PackedFloat32Array, w: int, d: int) -> Dictionary:
-	var gw: int = w - 1
-	var gh: int = d - 1
+func _stats(a_data: PackedFloat32Array, a_w: int, a_d: int) -> Dictionary:
+	var gw: int = a_w - 1
+	var gh: int = a_d - 1
 	var passable := PackedByteArray()
 	passable.resize(gw * gh)
 	var pass_count: int = 0
 	var flat_count: int = 0
 	for z: int in gh:
 		for x: int in gw:
-			var h00: float = data[z * w + x]
-			var h10: float = data[z * w + x + 1]
-			var h01: float = data[(z + 1) * w + x]
-			var h11: float = data[(z + 1) * w + x + 1]
+			var h00: float = a_data[z * a_w + x]
+			var h10: float = a_data[z * a_w + x + 1]
+			var h01: float = a_data[(z + 1) * a_w + x]
+			var h11: float = a_data[(z + 1) * a_w + x + 1]
 			var hi: float = maxf(maxf(h00, h10), maxf(h01, h11))
 			var lo: float = minf(minf(h00, h10), minf(h01, h11))
 			if (hi - lo) <= 0.5:
@@ -189,7 +189,7 @@ func _ensure_output_dir() -> void:
 		push_error("GalleryBuilder: could not create %s (error %d)" % [abs_path, err])
 
 
-func _write_readme(entries: Array) -> void:
+func _write_readme(a_entries: Array) -> void:
 	var abs_path: String = ProjectSettings.globalize_path(OUTPUT_DIR + "/README.md")
 	var f: FileAccess = FileAccess.open(abs_path, FileAccess.WRITE)
 	if f == null:
@@ -206,7 +206,7 @@ func _write_readme(entries: Array) -> void:
 	])
 	f.store_string("| Variation | region_count | height_levels | passable | flat/buildable | connected |\n")
 	f.store_string("|-----------|-------------|--------------|----------|----------------|-----------|\n")
-	for e: Dictionary in entries:
+	for e: Dictionary in a_entries:
 		f.store_string("| hm_%s | %d | %d | %d%% | %d%% | %s |\n" % [
 			e["tag"], e["region_count"], e["height_levels"],
 			e["passable_pct"], e["flat_pct"], "yes" if e["connected"] else "**NO**"

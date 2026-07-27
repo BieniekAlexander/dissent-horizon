@@ -36,8 +36,8 @@ func _ready() -> void:
 		var control_position: Vector2 = grid_index_to_position(b.grid_index)
 		b.set_position(control_position, true)
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_SORT_CHILDREN:
+func _notification(a_what: int) -> void:
+	if a_what == NOTIFICATION_SORT_CHILDREN:
 		for c in get_children():
 			fit_child_in_rect(c, Rect2(Vector2(), size))
 #endregion

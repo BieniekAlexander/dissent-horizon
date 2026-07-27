@@ -1,162 +1,252 @@
 {
-	"command_tool_armory": {
+	"command_tool_an_airField": {
 		"context": "BUILD",
-		"factions": [
-			"technocracy"
-		],
-		"grid": [
-			1,
-			1
-		],
-		"id": "armory",
-		"label": "Armory",
-		"scene": "res://scenes/entities/structures/tc/armory.tscn"
-	},
-	"command_tool_badger": {
-		"context": "TRAIN",
-		"factions": [
-			"collective"
-		],
-		"grid": [
-			2,
-			2
-		],
-		"id": "badger",
-		"label": "Badger",
-		"scene": "res://scenes/entities/units/cl/badger.tscn"
-	},
-	"command_tool_barracks": {
-		"context": "BUILD",
-		"factions": [
-			"collective"
-		],
-		"grid": [
-			2,
-			0
-		],
-		"id": "barracks",
-		"label": "Barracks",
-		"scene": "res://scenes/entities/structures/cl/barracks.tscn"
-	},
-	"command_tool_chinook": {
-		"context": "TRAIN",
-		"factions": [
-			"anarchists"
-		],
-		"grid": [
+		"context_grid": [
 			3,
 			0
 		],
-		"id": "chinook",
-		"label": "Chinook",
-		"scene": "res://scenes/entities/units/an/chinook.tscn"
-	},
-	"command_tool_compound": {
-		"context": "BUILD",
-		"factions": [
-			"technocracy"
-		],
-		"grid": [
-			0,
-			1
-		],
-		"id": "compound",
-		"label": "Compound",
-		"scene": "res://scenes/entities/structures/tc/compound.tscn"
-	},
-	"command_tool_dwelling": {
-		"context": "BUILD",
-		"factions": [
-			"technocracy"
-		],
-		"grid": [
-			1,
-			0
-		],
-		"id": "dwelling",
-		"label": "Dwelling",
-		"scene": "res://scenes/entities/structures/tc/dwelling.tscn"
-	},
-	"command_tool_field_hospital": {
-		"context": "BUILD",
 		"factions": [
 			"anarchists"
 		],
 		"grid": [
-			4,
-			2
-		],
-		"id": "field_hospital",
-		"label": "Field Hosp",
-		"scene": "res://scenes/entities/structures/an/field_hospital.tscn"
-	},
-	"command_tool_hangar": {
-		"context": "BUILD",
-		"factions": [
-			"anarchists"
-		],
-		"grid": [
-			4,
+			2,
 			1
 		],
-		"id": "hangar",
+		"id": "an_airField",
 		"label": "Hangar",
-		"scene": "res://scenes/entities/structures/an/hangar.tscn"
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_airField.tscn",
+		"tooltip": "Build Hangar — 800 energy, 25s",
+		"verbose": "Build Hangar — 800 energy, 25s\nRequires: Safehouse\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Kamikaze, Raven, Condor"
 	},
-	"command_tool_internment_camp": {
-		"context": "BUILD",
-		"factions": [
-			"collective"
-		],
-		"grid": [
-			3,
-			0
-		],
-		"id": "internment_camp",
-		"label": "Internment",
-		"scene": "res://scenes/entities/structures/cl/internment_camp.tscn"
-	},
-	"command_tool_irregular": {
+	"command_tool_an_aircraftLight_antiMech": {
 		"context": "TRAIN",
-		"factions": [
-			"anarchists"
-		],
-		"grid": [
-			2,
-			2
-		],
-		"id": "irregular",
-		"label": "Irregular",
-		"scene": "res://scenes/entities/units/an/irregular.tscn"
-	},
-	"command_tool_kamikaze": {
-		"context": "TRAIN",
+		"context_grid": [],
 		"factions": [
 			"anarchists"
 		],
 		"grid": [
 			0,
+			1
+		],
+		"id": "an_aircraftLight_antiMech",
+		"label": "Kamikaze",
+		"needs_docking": false,
+		"producers": [
+			"an_airField"
+		],
+		"scene": "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn",
+		"tooltip": "Train Kamikaze — 300 energy, 10s",
+		"verbose": "Train Kamikaze — 300 energy, 10s\n75 HP · light armour · mech frame\nflying, speed 5.25 · vision 18\nBombWeapon: 150 explosive, reach 0.5"
+	},
+	"command_tool_an_aircraftLight_transport": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "an_aircraftLight_transport",
+		"label": "Raven",
+		"needs_docking": false,
+		"producers": [
+			"an_airField"
+		],
+		"scene": "res://scenes/entities/units/an/an_aircraftLight_transport.tscn",
+		"tooltip": "Train Raven — 800 energy, 15s",
+		"verbose": "Train Raven — 800 energy, 15s\n120 HP · light armour · mech frame\nhovering, speed 4 · vision 22"
+	},
+	"command_tool_an_aircraftMedium_support": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "an_aircraftMedium_support",
+		"label": "Condor",
+		"needs_docking": true,
+		"producers": [
+			"an_airField"
+		],
+		"scene": "res://scenes/entities/units/an/an_aircraftMedium_support.tscn",
+		"tooltip": "Train Condor — 1200 energy, 30s",
+		"verbose": "Train Condor — 1200 energy, 30s\nRequires: Clandestine Lab\n220 HP · medium armour · mech frame\nflying, speed 4 · vision 18\nEmpBomb: 10 electric, reach 8"
+	},
+	"command_tool_an_barracks": {
+		"context": "BUILD",
+		"context_grid": [
+			1,
 			0
 		],
-		"id": "kamikaze",
-		"label": "Kamikaze",
-		"scene": "res://scenes/entities/units/an/kamikaze.tscn"
-	},
-	"command_tool_lab": {
-		"context": "BUILD",
 		"factions": [
-			"technocracy"
+			"anarchists"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "an_barracks",
+		"label": "Redoubt",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_barracks.tscn",
+		"tooltip": "Build Redoubt — 1000 energy, 20s",
+		"verbose": "Build Redoubt — 1000 energy, 20s\nRequires: Safehouse\n750 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 50 infrastructure upkeep\nTrains: Sapper, Shock Trooper, Sharpshooter, Juggernaut, Hijacker"
+	},
+	"command_tool_an_bioLight_antiBio": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "an_bioLight_antiBio",
+		"label": "Sharpshooter",
+		"needs_docking": false,
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioLight_antiBio.tscn",
+		"tooltip": "Train Sharpshooter — 750 energy, 30s",
+		"verbose": "Train Sharpshooter — 750 energy, 30s\nRequires: Stockpile\n90 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16"
+	},
+	"command_tool_an_bioLight_antiStructure": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "an_bioLight_antiStructure",
+		"label": "Sapper",
+		"needs_docking": false,
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioLight_antiStructure.tscn",
+		"tooltip": "Train Sapper — 500 energy, 20s",
+		"verbose": "Train Sapper — 500 energy, 20s\n90 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nRepairs damaged mechanical units and structures"
+	},
+	"command_tool_an_bioLight_builder": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "an_bioLight_builder",
+		"label": "Irregular",
+		"needs_docking": false,
+		"producers": [
+			"an_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioLight_builder.tscn",
+		"tooltip": "Train Irregular — 100 energy, 8s",
+		"verbose": "Train Irregular — 100 energy, 8s\n80 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBuilds: Extractor, Stronghold, Hangar, Safehouse, Redoubt, Chop Shop, Hideout, Distress Signal, EMP Device, Stockpile, Clandestine Lab\nBallisticWeapon: 5 lead, reach 8"
+	},
+	"command_tool_an_bioMedium_antiMech": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "an_bioMedium_antiMech",
+		"label": "Shock Trooper",
+		"needs_docking": false,
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioMedium_antiMech.tscn",
+		"tooltip": "Train Shock Trooper — 400 energy, 20s",
+		"verbose": "Train Shock Trooper — 400 energy, 20s\n90 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nArcWeapon: 12 electric, reach 8"
+	},
+	"command_tool_an_bioMedium_dominionGen": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "an_bioMedium_dominionGen",
+		"label": "Warlord",
+		"needs_docking": false,
+		"producers": [
+			"an_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn",
+		"tooltip": "Train Warlord — 250 energy, 15s",
+		"verbose": "Train Warlord — 250 energy, 15s\n160 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nWeapon: 40 explosive, reach 12"
+	},
+	"command_tool_an_bioMedium_support": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			4,
+			1
+		],
+		"id": "an_bioMedium_support",
+		"label": "Hijacker",
+		"needs_docking": false,
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioMedium_support.tscn",
+		"tooltip": "Train Hijacker — 500 energy, 20s",
+		"verbose": "Train Hijacker — 500 energy, 20s\nRequires: Clandestine Lab\n150 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16"
+	},
+	"command_tool_an_bioStrong_antiLight": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
 		],
 		"grid": [
 			3,
+			1
+		],
+		"id": "an_bioStrong_antiLight",
+		"label": "Juggernaut",
+		"needs_docking": false,
+		"producers": [
+			"an_barracks"
+		],
+		"scene": "res://scenes/entities/units/an/an_bioStrong_antiLight.tscn",
+		"tooltip": "Train Juggernaut — 1000 energy, 20s",
+		"verbose": "Train Juggernaut — 1000 energy, 20s\nRequires: Stockpile\n90 HP · strong armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 12 lead, reach 8 ground / 12 air"
+	},
+	"command_tool_an_commandCenter": {
+		"context": "BUILD",
+		"context_grid": [
+			0,
 			0
 		],
-		"id": "lab",
-		"label": "Lab",
-		"scene": "res://scenes/entities/structures/tc/lab.tscn"
-	},
-	"command_tool_mercury": {
-		"context": "TRAIN",
 		"factions": [
 			"anarchists"
 		],
@@ -164,151 +254,1530 @@
 			1,
 			0
 		],
-		"id": "mercury",
-		"label": "Mercury",
-		"scene": "res://scenes/entities/units/an/mercury.tscn"
+		"id": "an_commandCenter",
+		"label": "Stronghold",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_commandCenter.tscn",
+		"tooltip": "Build Stronghold — 1500 energy, 40s",
+		"verbose": "Build Stronghold — 1500 energy, 40s\n2500 HP · strong armour · mech frame\n4×4 cells · vision 24\nProvides 100 infrastructure\nTrains: Warlord, Irregular"
 	},
-	"command_tool_mine": {
+	"command_tool_an_infrastructure": {
 		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"id": "an_infrastructure",
+		"label": "Safehouse",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_infrastructure.tscn",
+		"tooltip": "Build Safehouse — 500 energy, 20s",
+		"verbose": "Build Safehouse — 500 energy, 20s\n600 HP · medium armour · mech frame\n2×2 cells · vision 20\nProvides 50 infrastructure"
+	},
+	"command_tool_an_mechLight_transport": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "an_mechLight_transport",
+		"label": "Collective",
+		"needs_docking": false,
+		"producers": [
+			"an_warFactory"
+		],
+		"scene": "res://scenes/entities/units/an/an_mechLight_transport.tscn",
+		"tooltip": "Train Collective — 400 energy, 10s",
+		"verbose": "Train Collective — 400 energy, 10s\n220 HP · light armour · mech frame\ngrounded, speed 4 · vision 20"
+	},
+	"command_tool_an_mechMedium_antiBio": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "an_mechMedium_antiBio",
+		"label": "Toxin Tractor",
+		"needs_docking": false,
+		"producers": [
+			"an_warFactory"
+		],
+		"scene": "res://scenes/entities/units/an/an_mechMedium_antiBio.tscn",
+		"tooltip": "Train Toxin Tractor — 600 energy, 15s",
+		"verbose": "Train Toxin Tractor — 600 energy, 15s\n220 HP · medium armour · mech frame\ngrounded, speed 3 · vision 20\nToxinSprayer: 18 toxic, reach 8"
+	},
+	"command_tool_an_mechMedium_artillery": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "an_mechMedium_artillery",
+		"label": "MLRS",
+		"needs_docking": false,
+		"producers": [
+			"an_warFactory"
+		],
+		"scene": "res://scenes/entities/units/an/an_mechMedium_artillery.tscn",
+		"tooltip": "Train MLRS — 750 energy, 15s",
+		"verbose": "Train MLRS — 750 energy, 15s\nRequires: Stockpile\n220 HP · medium armour · mech frame\ngrounded, speed 2.2 · vision 20\nRocketPod: 20 explosive, reach 24"
+	},
+	"command_tool_an_mechStrong_transport": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "an_mechStrong_transport",
+		"label": "War Wagon",
+		"needs_docking": false,
+		"producers": [
+			"an_warFactory"
+		],
+		"scene": "res://scenes/entities/units/an/an_mechStrong_transport.tscn",
+		"tooltip": "Train War Wagon — 750 energy, 20s",
+		"verbose": "Train War Wagon — 750 energy, 20s\nRequires: Stockpile\n220 HP · strong armour · mech frame\ngrounded, speed 2.2 · vision 20"
+	},
+	"command_tool_an_support1": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"id": "an_support1",
+		"label": "Hideout",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_support1.tscn",
+		"tooltip": "Build Hideout — 1000 energy, 30s",
+		"verbose": "Build Hideout — 1000 energy, 30s\nRequires: Redoubt\n1500 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 75 infrastructure upkeep"
+	},
+	"command_tool_an_support2": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			2,
+			2
+		],
+		"id": "an_support2",
+		"label": "Distress Signal",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_support2.tscn",
+		"tooltip": "Build Distress Signal — 2000 energy, 30s",
+		"verbose": "Build Distress Signal — 2000 energy, 30s\nRequires: Stockpile\n1500 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 100 infrastructure upkeep"
+	},
+	"command_tool_an_support3": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			3,
+			2
+		],
+		"id": "an_support3",
+		"label": "EMP Device",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_support3.tscn",
+		"tooltip": "Build EMP Device — 3000 energy, 60s",
+		"verbose": "Build EMP Device — 3000 energy, 60s\nRequires: Clandestine Lab\n2000 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 200 infrastructure upkeep"
+	},
+	"command_tool_an_tech1": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "an_tech1",
+		"label": "Stockpile",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_tech1.tscn",
+		"tooltip": "Build Stockpile — 1200 energy, 25s",
+		"verbose": "Build Stockpile — 1200 energy, 25s\nRequires: Chop Shop\n1000 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 50 infrastructure upkeep"
+	},
+	"command_tool_an_tech2": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			4,
+			1
+		],
+		"id": "an_tech2",
+		"label": "Clandestine Lab",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_tech2.tscn",
+		"tooltip": "Build Clandestine Lab — 2000 energy, 40s",
+		"verbose": "Build Clandestine Lab — 2000 energy, 40s\nRequires: Hangar\n1200 HP · medium armour · mech frame\n1×4 cells · vision 20\nCosts 75 infrastructure upkeep"
+	},
+	"command_tool_an_warFactory": {
+		"context": "BUILD",
+		"context_grid": [
+			2,
+			0
+		],
+		"factions": [
+			"anarchists"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "an_warFactory",
+		"label": "Chop Shop",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/an/an_warFactory.tscn",
+		"tooltip": "Build Chop Shop — 2000 energy, 15s",
+		"verbose": "Build Chop Shop — 2000 energy, 15s\nRequires: Safehouse\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Collective, Toxin Tractor, War Wagon, MLRS"
+	},
+	"command_tool_cl_airField": {
+		"context": "BUILD",
+		"context_grid": [
+			3,
+			0
+		],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "cl_airField",
+		"label": "Sky Port",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_airField.tscn",
+		"tooltip": "Build Sky Port — 1000 energy, 25s",
+		"verbose": "Build Sky Port — 1000 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n6×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Clipper, drake, caravel, Reverence"
+	},
+	"command_tool_cl_aircraftLight_antiLight": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "cl_aircraftLight_antiLight",
+		"label": "Clipper",
+		"needs_docking": false,
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn",
+		"tooltip": "Train Clipper — 600 energy, 15s",
+		"verbose": "Train Clipper — 600 energy, 15s\n120 HP · light armour · mech frame\nhovering, speed 4 · vision 22\nBallisticWeapon: 12 lead, reach 8"
+	},
+	"command_tool_cl_aircraftMedium_antiMech": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "cl_aircraftMedium_antiMech",
+		"label": "drake",
+		"needs_docking": true,
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn",
+		"tooltip": "Train drake — 1000 energy, 25s",
+		"verbose": "Train drake — 1000 energy, 25s\n150 HP · medium armour · mech frame\nflying, speed 5.25 · vision 18\nWeapon: 35 explosive, reach 12"
+	},
+	"command_tool_cl_aircraftMedium_transport": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "cl_aircraftMedium_transport",
+		"label": "caravel",
+		"needs_docking": false,
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn",
+		"tooltip": "Train caravel — 500 energy, 25s",
+		"verbose": "Train caravel — 500 energy, 25s\n180 HP · medium armour · mech frame\nhovering, speed 4 · vision 22"
+	},
+	"command_tool_cl_aircraftStrong_support": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "cl_aircraftStrong_support",
+		"label": "Reverence",
+		"needs_docking": false,
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftStrong_support.tscn",
+		"tooltip": "Train Reverence — 2000 energy, 15s",
+		"verbose": "Train Reverence — 2000 energy, 15s\nRequires: Academy\n700 HP · strong armour · mech frame\nhovering, speed 3 · vision 22"
+	},
+	"command_tool_cl_barracks": {
+		"context": "BUILD",
+		"context_grid": [
+			1,
+			0
+		],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "cl_barracks",
+		"label": "Barracks",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_barracks.tscn",
+		"tooltip": "Build Barracks — 500 energy, 10s",
+		"verbose": "Build Barracks — 500 energy, 10s\nRequires: Compound\n600 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nTrains: Recruit, Badger, Constable, sleeper"
+	},
+	"command_tool_cl_bioLight_antiLight": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "cl_bioLight_antiLight",
+		"label": "Recruit",
+		"needs_docking": false,
+		"producers": [
+			"cl_barracks"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
+		"tooltip": "Train Recruit — 120 energy, 8s",
+		"verbose": "Train Recruit — 120 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 7.5 lead, reach 8"
+	},
+	"command_tool_cl_bioLight_antiMech": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "cl_bioLight_antiMech",
+		"label": "Badger",
+		"needs_docking": false,
+		"producers": [
+			"cl_barracks"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn",
+		"tooltip": "Train Badger — 200 energy, 10s",
+		"verbose": "Train Badger — 200 energy, 10s\n100 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nWeapon: 40 explosive, reach 12"
+	},
+	"command_tool_cl_bioLight_builder": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "cl_bioLight_builder",
+		"label": "Servant",
+		"needs_docking": false,
+		"producers": [
+			"cl_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioLight_builder.tscn",
+		"tooltip": "Train Servant — 500 energy, 10s",
+		"verbose": "Train Servant — 500 energy, 10s\n120 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nBuilds: Citadel, Extractor, Compound, Barracks, Sam, Watch Tower, Bombard, Sky Port, Production Yard, Operations Center, Academy, Annex, Supply Beacon, Storm Cell\nRepairs damaged mechanical units and structures"
+	},
+	"command_tool_cl_bioLight_stealth": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "cl_bioLight_stealth",
+		"label": "sleeper",
+		"needs_docking": false,
+		"producers": [
+			"cl_barracks"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioLight_stealth.tscn",
+		"tooltip": "Train sleeper — 600 energy, 15s",
+		"verbose": "Train sleeper — 600 energy, 15s\nRequires: Academy\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16"
+	},
+	"command_tool_cl_bioMedium_antiLight": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "cl_bioMedium_antiLight",
+		"label": "Constable",
+		"needs_docking": false,
+		"producers": [
+			"cl_barracks"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_bioMedium_antiLight.tscn",
+		"tooltip": "Train Constable — 200 energy, 12s",
+		"verbose": "Train Constable — 200 energy, 12s\nRequires: Operations Center\n150 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 8 lead, reach 8 ground / 12 air"
+	},
+	"command_tool_cl_commandCenter": {
+		"context": "BUILD",
+		"context_grid": [
+			0,
+			0
+		],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"id": "cl_commandCenter",
+		"label": "Citadel",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_commandCenter.tscn",
+		"tooltip": "Build Citadel — 2000 energy, 30s",
+		"verbose": "Build Citadel — 2000 energy, 30s\n3000 HP · strong armour · mech frame\n8×8 cells · vision 30\nProvides 100 infrastructure\nTrains: Stock Truck, Servant"
+	},
+	"command_tool_cl_defense_antiAircraft": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			0
+		],
+		"id": "cl_defense_antiAircraft",
+		"label": "Sam",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn",
+		"tooltip": "Build Sam — 400 energy, 15s",
+		"verbose": "Build Sam — 400 energy, 15s\nRequires: Compound\n500 HP · medium armour · mech frame\n1×1 cells · vision 20\nCosts 50 infrastructure upkeep\nMissileLauncher: 40 explosive, reach 20"
+	},
+	"command_tool_cl_defense_antiLight": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "cl_defense_antiLight",
+		"label": "Watch Tower",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn",
+		"tooltip": "Build Watch Tower — 400 energy, 30s",
+		"verbose": "Build Watch Tower — 400 energy, 30s\nRequires: Compound\n500 HP · medium armour · mech frame\n1×1 cells · vision 24\nCosts 50 infrastructure upkeep\nBallisticWeapon: 15 lead, reach 12"
+	},
+	"command_tool_cl_defense_antiStructure": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			4,
+			0
+		],
+		"id": "cl_defense_antiStructure",
+		"label": "Bombard",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn",
+		"tooltip": "Build Bombard — 1000 energy, 30s",
+		"verbose": "Build Bombard — 1000 energy, 30s\nRequires: Operations Center\n750 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep"
+	},
+	"command_tool_cl_infrastructure": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"id": "cl_infrastructure",
+		"label": "Compound",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_infrastructure.tscn",
+		"tooltip": "Build Compound — 1000 energy, 20s",
+		"verbose": "Build Compound — 1000 energy, 20s\n750 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 100 infrastructure"
+	},
+	"command_tool_cl_mechLight_dominionGen": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "cl_mechLight_dominionGen",
+		"label": "Stock Truck",
+		"needs_docking": false,
+		"producers": [
+			"cl_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn",
+		"tooltip": "Train Stock Truck — 500 energy, 15s",
+		"verbose": "Train Stock Truck — 500 energy, 15s\n300 HP · medium armour · mech frame\ngrounded, speed 4 · vision 20"
+	},
+	"command_tool_cl_mechMedium_antiLight": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "cl_mechMedium_antiLight",
+		"label": "sloop",
+		"needs_docking": false,
+		"producers": [
+			"cl_warFactory"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_mechMedium_antiLight.tscn",
+		"tooltip": "Train sloop — 500 energy, 12s",
+		"verbose": "Train sloop — 500 energy, 12s\n300 HP · medium armour · mech frame\ngrounded, speed 3 · vision 20\nBallisticWeapon: 22.5 lead, reach 12 ground / 18 air"
+	},
+	"command_tool_cl_mechMedium_antiMech": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "cl_mechMedium_antiMech",
+		"label": "Matilda",
+		"needs_docking": false,
+		"producers": [
+			"cl_warFactory"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn",
+		"tooltip": "Train Matilda — 600 energy, 15s",
+		"verbose": "Train Matilda — 600 energy, 15s\n400 HP · medium armour · mech frame\ngrounded, speed 3 · vision 20\nBallisticWeapon: 90 siege, reach 12"
+	},
+	"command_tool_cl_mechStrong_support": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "cl_mechStrong_support",
+		"label": "avalanche",
+		"needs_docking": false,
+		"producers": [
+			"cl_warFactory"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_mechStrong_support.tscn",
+		"tooltip": "Train avalanche — 1200 energy, 20s",
+		"verbose": "Train avalanche — 1200 energy, 20s\nRequires: Academy\n200 HP · strong armour · mech frame\ngrounded, speed 2.2 · vision 20\nCryoWeapon: 50 cryo, reach 12"
+	},
+	"command_tool_cl_support1": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			2,
+			2
+		],
+		"id": "cl_support1",
+		"label": "Annex",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_support1.tscn",
+		"tooltip": "Build Annex — 1000 energy, 20s",
+		"verbose": "Build Annex — 1000 energy, 20s\nRequires: Operations Center\n500 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
+	},
+	"command_tool_cl_support2": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			2
+		],
+		"id": "cl_support2",
+		"label": "Supply Beacon",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_support2.tscn",
+		"tooltip": "Build Supply Beacon — 1200 energy, 20s",
+		"verbose": "Build Supply Beacon — 1200 energy, 20s\nRequires: Sky Port\n600 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 100 infrastructure upkeep"
+	},
+	"command_tool_cl_support3": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			4,
+			2
+		],
+		"id": "cl_support3",
+		"label": "Storm Cell",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_support3.tscn",
+		"tooltip": "Build Storm Cell — 2500 energy, 30s",
+		"verbose": "Build Storm Cell — 2500 energy, 30s\nRequires: Academy\n1500 HP · strong armour · mech frame\n5×5 cells · vision 24\nCosts 200 infrastructure upkeep"
+	},
+	"command_tool_cl_tech1": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			2
+		],
+		"id": "cl_tech1",
+		"label": "Operations Center",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_tech1.tscn",
+		"tooltip": "Build Operations Center — 1200 energy, 25s",
+		"verbose": "Build Operations Center — 1200 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
+	},
+	"command_tool_cl_tech2": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"id": "cl_tech2",
+		"label": "Academy",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_tech2.tscn",
+		"tooltip": "Build Academy — 2000 energy, 40s",
+		"verbose": "Build Academy — 2000 energy, 40s\nRequires: Production Yard\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
+	},
+	"command_tool_cl_warFactory": {
+		"context": "BUILD",
+		"context_grid": [
+			2,
+			0
+		],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "cl_warFactory",
+		"label": "Production Yard",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_warFactory.tscn",
+		"tooltip": "Build Production Yard — 2000 energy, 15s",
+		"verbose": "Build Production Yard — 2000 energy, 15s\nRequires: Barracks\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: sloop, Matilda, avalanche"
+	},
+	"command_tool_lb_airField": {
+		"context": "BUILD",
+		"context_grid": [
+			3,
+			0
+		],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "lb_airField",
+		"label": "Emission Bay",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_airField.tscn",
+		"tooltip": "Build Emission Bay — 500 energy, 30s",
+		"verbose": "Build Emission Bay — 500 energy, 30s\nRequires: Opticon\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 50 infrastructure\nTrains: Interceptor, Viper, Purifier"
+	},
+	"command_tool_lb_aircraftLight_antiAir": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "lb_aircraftLight_antiAir",
+		"label": "Interceptor",
+		"needs_docking": false,
+		"producers": [
+			"lb_airField"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_antiAir.tscn",
+		"tooltip": "Train Interceptor — 500 energy, 40s",
+		"verbose": "Train Interceptor — 500 energy, 40s\n200 HP · medium armour · mech frame\nflying, speed 5.25 · vision 18\nInterceptorWeapon: 10 siege, reach 12"
+	},
+	"command_tool_lb_aircraftLight_antiMech": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "lb_aircraftLight_antiMech",
+		"label": "Harpy",
+		"needs_docking": false,
+		"producers": [
+			"lb_barracks"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_antiMech.tscn",
+		"tooltip": "Train Harpy — 250 energy, 15s",
+		"verbose": "Train Harpy — 250 energy, 15s\nRequires: Controller\n120 HP · light armour · mech frame\nhovering, speed 5.25 · vision 22\nWeapon: 40 explosive, reach 6 ground"
+	},
+	"command_tool_lb_aircraftLight_builder": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "lb_aircraftLight_builder",
+		"label": "Canary",
+		"needs_docking": false,
+		"producers": [
+			"lb_commandCenter"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_builder.tscn",
+		"tooltip": "Train Canary — 200 energy, 12s",
+		"verbose": "Train Canary — 200 energy, 12s\n100 HP · light armour · mech frame\nhovering, speed 4 · vision 22\nBuilds: Extractor, Shard, Relay, Opticon, Assembler, LI War Factory, Emission Bay"
+	},
+	"command_tool_lb_aircraftMedium_antiBio": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "lb_aircraftMedium_antiBio",
+		"label": "Sentinel",
+		"needs_docking": false,
+		"producers": [
+			"lb_barracks"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiBio.tscn",
+		"tooltip": "Train Sentinel — 300 energy, 15s",
+		"verbose": "Train Sentinel — 300 energy, 15s\n200 HP · medium armour · mech frame\nhovering, speed 3 · vision 22\nSentinelSonicWeapon: 15 explosive, reach 12"
+	},
+	"command_tool_lb_aircraftMedium_antiHeavy": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "lb_aircraftMedium_antiHeavy",
+		"label": "Purifier",
+		"needs_docking": false,
+		"producers": [
+			"lb_airField"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiHeavy.tscn",
+		"tooltip": "Train Purifier — 1200 energy, 40s",
+		"verbose": "Train Purifier — 1200 energy, 40s\nRequires: Mainframe\n200 HP · medium armour · mech frame\nflying, speed 4 · vision 18\nViperWeapon: 15 siege, reach 12"
+	},
+	"command_tool_lb_aircraftMedium_antiMech": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "lb_aircraftMedium_antiMech",
+		"label": "Viper",
+		"needs_docking": false,
+		"producers": [
+			"lb_airField"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiMech.tscn",
+		"tooltip": "Train Viper — 500 energy, 20s",
+		"verbose": "Train Viper — 500 energy, 20s\n200 HP · medium armour · mech frame\nflying, speed 4 · vision 18\nViperWeapon: 15 explosive, reach 12"
+	},
+	"command_tool_lb_aircraftStrong_support": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			4,
+			1
+		],
+		"id": "lb_aircraftStrong_support",
+		"label": "Fabricator",
+		"needs_docking": false,
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_aircraftStrong_support.tscn",
+		"tooltip": "Train Fabricator — 1500 energy, 15s",
+		"verbose": "Train Fabricator — 1500 energy, 15s\nRequires: Controller\n250 HP · strong armour · mech frame\nhovering, speed 3 · vision 22"
+	},
+	"command_tool_lb_barracks": {
+		"context": "BUILD",
+		"context_grid": [
+			1,
+			0
+		],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "lb_barracks",
+		"label": "Assembler",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_barracks.tscn",
+		"tooltip": "Build Assembler — 300 energy, 30s",
+		"verbose": "Build Assembler — 300 energy, 30s\nRequires: Relay\n400 HP · medium armour · mech frame\n3×3 cells · vision 24\nProvides 50 infrastructure\nTrains: Shock Drone, Sentinel, Harpy, Point Defense Drone"
+	},
+	"command_tool_lb_commandCenter": {
+		"context": "BUILD",
+		"context_grid": [
+			0,
+			0
+		],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"id": "lb_commandCenter",
+		"label": "Shard",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_commandCenter.tscn",
+		"tooltip": "Build Shard — 300 energy, 60s",
+		"verbose": "Build Shard — 300 energy, 60s\n400 HP · strong armour · mech frame\n4×4 cells · vision 30\nTrains: Canary"
+	},
+	"command_tool_lb_defense": {
+		"context": "BUILD",
+		"context_grid": [
+			2,
+			0
+		],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			3,
+			0
+		],
+		"id": "lb_defense",
+		"label": "Security Tower",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_defense.tscn",
+		"tooltip": "Build Security Tower — 500 energy, 20s",
+		"verbose": "Build Security Tower — 500 energy, 20s\nRequires: Relay\n400 HP · medium armour · mech frame\n3×3 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_lb_dominion": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			2,
+			2
+		],
+		"id": "lb_dominion",
+		"label": "Opticon",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_dominion.tscn",
+		"tooltip": "Build Opticon — 250 energy, 15s",
+		"verbose": "Build Opticon — 250 energy, 15s\nRequires: Relay\n400 HP · light armour · mech frame\n1×1 cells · vision 20\nProvides 500 infrastructure"
+	},
+	"command_tool_lb_infrastructure": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"id": "lb_infrastructure",
+		"label": "Relay",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_infrastructure.tscn",
+		"tooltip": "Build Relay — 300 energy, 20s",
+		"verbose": "Build Relay — 300 energy, 20s\n400 HP · strong armour · mech frame\n5×5 cells · vision 24\nProvides 500 infrastructure"
+	},
+	"command_tool_lb_mechLight_antiLight": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "lb_mechLight_antiLight",
+		"label": "Shock Drone",
+		"needs_docking": false,
+		"producers": [
+			"lb_barracks"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechLight_antiLight.tscn",
+		"tooltip": "Train Shock Drone — 100 energy, 10s",
+		"verbose": "Train Shock Drone — 100 energy, 10s\n100 HP · light armour · mech frame\ngrounded, speed 1.65 · vision 20\nZap: 35 lead (melee), reach 0.5"
+	},
+	"command_tool_lb_mechLight_antiLight1": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "lb_mechLight_antiLight1",
+		"label": "Gatling Tank",
+		"needs_docking": false,
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechLight_antiLight1.tscn",
+		"tooltip": "Train Gatling Tank — 100 energy, 10s",
+		"verbose": "Train Gatling Tank — 100 energy, 10s\n100 HP · light armour · mech frame\ngrounded, speed 3 · vision 20\nGatling: 20 lead, reach 12 ground / 18 air"
+	},
+	"command_tool_lb_mechLight_antiStrong": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "lb_mechLight_antiStrong",
+		"label": "Refraction Tank",
+		"needs_docking": false,
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechLight_antiStrong.tscn",
+		"tooltip": "Train Refraction Tank — 600 energy, 15s",
+		"verbose": "Train Refraction Tank — 600 energy, 15s\n250 HP · light armour · mech frame\ngrounded, speed 3 · vision 20\nLazerWeaponTank: 20 lead, reach 12"
+	},
+	"command_tool_lb_mechLight_support": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "lb_mechLight_support",
+		"label": "Point Defense Drone",
+		"needs_docking": false,
+		"producers": [
+			"lb_barracks"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechLight_support.tscn",
+		"tooltip": "Train Point Defense Drone — 500 energy, 10s",
+		"verbose": "Train Point Defense Drone — 500 energy, 10s\nRequires: Mainframe\n100 HP · light armour · mech frame\ngrounded, speed 1.65 · vision 20\nZap: 35 lead (melee), reach 0.5"
+	},
+	"command_tool_lb_mechMedium_antiLight": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "lb_mechMedium_antiLight",
+		"label": "MDC",
+		"needs_docking": false,
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechMedium_antiLight.tscn",
+		"tooltip": "Train MDC — 600 energy, 15s",
+		"verbose": "Train MDC — 600 energy, 15s\n250 HP · medium armour · mech frame\ngrounded, speed 3 · vision 20\nUnnamedWeapon: 15 lead, reach 8"
+	},
+	"command_tool_lb_mechMedium_support": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "lb_mechMedium_support",
+		"label": "Liberator",
+		"needs_docking": false,
+		"producers": [
+			"lb_warFactory"
+		],
+		"scene": "res://scenes/entities/units/lb/lb_mechMedium_support.tscn",
+		"tooltip": "Train Liberator — 600 energy, 15s",
+		"verbose": "Train Liberator — 600 energy, 15s\nRequires: Mainframe\n250 HP · medium armour · mech frame\ngrounded, speed 3 · vision 20"
+	},
+	"command_tool_lb_support1": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "lb_support1",
+		"label": "Reclamator",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_support1.tscn",
+		"tooltip": "Build Reclamator — 500 energy, 20s",
+		"verbose": "Build Reclamator — 500 energy, 20s\nRequires: Assembler\n400 HP · medium armour · mech frame\n3×3 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_lb_support2": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			4,
+			1
+		],
+		"id": "lb_support2",
+		"label": "Pacific Enforcer",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_support2.tscn",
+		"tooltip": "Build Pacific Enforcer — 500 energy, 20s",
+		"verbose": "Build Pacific Enforcer — 500 energy, 20s\nRequires: Controller\n400 HP · medium armour · mech frame\n3×3 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_lb_support3": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			5,
+			1
+		],
+		"id": "lb_support3",
+		"label": "Absolution",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_support3.tscn",
+		"tooltip": "Build Absolution — 500 energy, 20s",
+		"verbose": "Build Absolution — 500 energy, 20s\nRequires: Mainframe\n400 HP · medium armour · mech frame\n3×3 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_lb_tech1": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			0,
+			2
+		],
+		"id": "lb_tech1",
+		"label": "Controller",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_tech1.tscn",
+		"tooltip": "Build Controller — 1200 energy, 30s",
+		"verbose": "Build Controller — 1200 energy, 30s\nRequires: Assembler\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_lb_tech2": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "lb_tech2",
+		"label": "Mainframe",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_tech2.tscn",
+		"tooltip": "Build Mainframe — 2000 energy, 30s",
+		"verbose": "Build Mainframe — 2000 energy, 30s\nRequires: LI War Factory\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_lb_warFactory": {
+		"context": "BUILD",
+		"context_grid": [
+			2,
+			0
+		],
+		"factions": [
+			"libertarian"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"id": "lb_warFactory",
+		"label": "LI War Factory",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/lb/lb_warFactory.tscn",
+		"tooltip": "Build LI War Factory — 500 energy, 30s",
+		"verbose": "Build LI War Factory — 500 energy, 30s\nRequires: Assembler\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 50 infrastructure\nTrains: Gatling Tank, Refraction Tank, MDC, Fabricator, Liberator"
+	},
+	"command_tool_mr_airField": {
+		"context": "BUILD",
+		"context_grid": [
+			3,
+			0
+		],
+		"factions": [
+			"marxist"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "mr_airField",
+		"label": "mr_air_field",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_airField.tscn",
+		"tooltip": "Build mr_air_field — 500 energy, 30s",
+		"verbose": "Build mr_air_field — 500 energy, 30s\nRequires: mr_dominion\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_mr_barracks": {
+		"context": "BUILD",
+		"context_grid": [
+			1,
+			0
+		],
+		"factions": [
+			"marxist"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "mr_barracks",
+		"label": "mr_barracks",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_barracks.tscn",
+		"tooltip": "Build mr_barracks — 300 energy, 30s",
+		"verbose": "Build mr_barracks — 300 energy, 30s\nRequires: mr_infrastructure\n400 HP · medium armour · mech frame\n3×3 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_mr_commandCenter": {
+		"context": "BUILD",
+		"context_grid": [
+			0,
+			0
+		],
+		"factions": [
+			"marxist"
+		],
+		"grid": [
+			3,
+			0
+		],
+		"id": "mr_commandCenter",
+		"label": "mr_command_center",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_commandCenter.tscn",
+		"tooltip": "Build mr_command_center — 300 energy, 60s",
+		"verbose": "Build mr_command_center — 300 energy, 60s\n400 HP · strong armour · mech frame\n4×4 cells · vision 30"
+	},
+	"command_tool_mr_dominion": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"marxist"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"id": "mr_dominion",
+		"label": "mr_dominion",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_dominion.tscn",
+		"tooltip": "Build mr_dominion — 250 energy, 15s",
+		"verbose": "Build mr_dominion — 250 energy, 15s\nRequires: mr_infrastructure\n400 HP · light armour · mech frame\n1×1 cells · vision 20\nProvides 500 infrastructure"
+	},
+	"command_tool_mr_infrastructure": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"marxist"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"id": "mr_infrastructure",
+		"label": "mr_infrastructure",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_infrastructure.tscn",
+		"tooltip": "Build mr_infrastructure — 300 energy, 60s",
+		"verbose": "Build mr_infrastructure — 300 energy, 60s\n400 HP · medium armour · mech frame\n5×5 cells · vision 24\nProvides 500 infrastructure"
+	},
+	"command_tool_mr_warFactory": {
+		"context": "BUILD",
+		"context_grid": [
+			2,
+			0
+		],
+		"factions": [
+			"marxist"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "mr_warFactory",
+		"label": "mr_war_factory",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/mr/mr_warFactory.tscn",
+		"tooltip": "Build mr_war_factory — 500 energy, 30s",
+		"verbose": "Build mr_war_factory — 500 energy, 30s\nRequires: mr_barracks\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_nt_extractor": {
+		"context": "BUILD",
+		"context_grid": [],
 		"factions": [
 			"neutral"
 		],
 		"grid": [
-			2,
-			0
-		],
-		"id": "mine",
-		"label": "Mine",
-		"scene": "res://scenes/entities/structures/nt/mine.tscn"
-	},
-	"command_tool_power_plant": {
-		"context": "BUILD",
-		"factions": [
-			"collective"
-		],
-		"grid": [
-			1,
-			0
-		],
-		"id": "power_plant",
-		"label": "Power Plant",
-		"scene": "res://scenes/entities/structures/cl/power_plant.tscn"
-	},
-	"command_tool_recruit": {
-		"context": "TRAIN",
-		"factions": [
-			"collective"
-		],
-		"grid": [
-			1,
-			2
-		],
-		"id": "recruit",
-		"label": "Recruit",
-		"scene": "res://scenes/entities/units/cl/recruit.tscn"
-	},
-	"command_tool_safehouse": {
-		"context": "BUILD",
-		"factions": [
-			"anarchists"
-		],
-		"grid": [
-			3,
-			2
-		],
-		"id": "safehouse",
-		"label": "Safehouse",
-		"scene": "res://scenes/entities/structures/an/safehouse.tscn"
-	},
-	"command_tool_sapper": {
-		"context": "TRAIN",
-		"factions": [
-			"anarchists"
-		],
-		"grid": [
-			0,
-			2
-		],
-		"id": "sapper",
-		"label": "Sapper",
-		"scene": "res://scenes/entities/units/an/sapper.tscn"
-	},
-	"command_tool_settlement": {
-		"context": "BUILD",
-		"factions": [
-			"collective"
-		],
-		"grid": [
 			0,
 			0
 		],
-		"id": "settlement",
-		"label": "Settlement",
-		"scene": "res://scenes/entities/structures/cl/settlement.tscn"
+		"id": "nt_extractor",
+		"label": "Extractor",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_extractor.tscn",
+		"tooltip": "Build Extractor — 500 energy, 20s",
+		"verbose": "Build Extractor — 500 energy, 20s\n500 HP · medium armour · mech frame\n2×2 cells · vision 20\nCosts 50 infrastructure upkeep"
 	},
-	"command_tool_stronghold": {
-		"context": "BUILD",
-		"factions": [
-			"anarchists"
-		],
-		"grid": [
-			4,
-			0
-		],
-		"id": "stronghold",
-		"label": "Stronghold",
-		"scene": "res://scenes/entities/structures/an/stronghold.tscn"
-	},
-	"command_tool_supply_truck": {
+	"command_tool_tc_bioLight_antiMech": {
 		"context": "TRAIN",
-		"factions": [
-			"collective"
-		],
-		"grid": [
-			0,
-			2
-		],
-		"id": "supply_truck",
-		"label": "Supply Truck",
-		"scene": "res://scenes/entities/units/cl/supply_truck.tscn"
-	},
-	"command_tool_technician": {
-		"context": "TRAIN",
-		"factions": [
-			"anarchists"
-		],
-		"grid": [
-			1,
-			2
-		],
-		"id": "technician",
-		"label": "Techie",
-		"scene": "res://scenes/entities/units/an/technician.tscn"
-	},
-	"command_tool_vanguard": {
-		"context": "TRAIN",
+		"context_grid": [],
 		"factions": [
 			"technocracy"
 		],
 		"grid": [
-			3,
-			2
+			0,
+			1
 		],
-		"id": "vanguard",
+		"id": "tc_bioLight_antiMech",
 		"label": "Vanguard",
-		"scene": "res://scenes/entities/units/tc/vanguard.tscn"
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/units/tc/tc_bioLight_antiMech.tscn",
+		"tooltip": "Train Vanguard — 200 energy, 20s",
+		"verbose": "Train Vanguard — 200 energy, 20s\n12000 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nLazerWeapon: 20 lead, reach 24"
 	},
-	"command_tool_warlord": {
+	"command_tool_tc_bioLight_builder": {
 		"context": "TRAIN",
+		"context_grid": [],
 		"factions": [
-			"anarchists"
+			"technocracy"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "tc_bioLight_builder",
+		"label": "Technician",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/units/an/tc_bioLight_builder.tscn",
+		"tooltip": "Train Technician — 100 energy, 25s",
+		"verbose": "Train Technician — 100 energy, 25s\n100 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16"
+	},
+	"command_tool_tc_mechMedium_infrastructure": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"technocracy"
 		],
 		"grid": [
 			1,
-			2
+			1
 		],
-		"id": "warlord",
-		"label": "Warlord",
-		"scene": "res://scenes/entities/units/an/warlord.tscn"
+		"id": "tc_mechMedium_infrastructure",
+		"label": "Surveyor",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/units/an/tc_mechMedium_infrastructure.tscn",
+		"tooltip": "Train Surveyor — 500 energy, 25s",
+		"verbose": "Train Surveyor — 500 energy, 25s\n300 HP · medium armour · mech frame\nhovering, speed 4 · vision 22\nProvides 75 infrastructure"
+	},
+	"command_tool_th_airField": {
+		"context": "BUILD",
+		"context_grid": [
+			3,
+			0
+		],
+		"factions": [
+			"theocratic"
+		],
+		"grid": [
+			2,
+			1
+		],
+		"id": "th_airField",
+		"label": "th_air_field",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_airField.tscn",
+		"tooltip": "Build th_air_field — 500 energy, 30s",
+		"verbose": "Build th_air_field — 500 energy, 30s\nRequires: th_dominion\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_th_barracks": {
+		"context": "BUILD",
+		"context_grid": [
+			1,
+			0
+		],
+		"factions": [
+			"theocratic"
+		],
+		"grid": [
+			0,
+			1
+		],
+		"id": "th_barracks",
+		"label": "th_barracks",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_barracks.tscn",
+		"tooltip": "Build th_barracks — 300 energy, 30s",
+		"verbose": "Build th_barracks — 300 energy, 30s\nRequires: th_infrastructure\n400 HP · medium armour · mech frame\n3×3 cells · vision 24\nProvides 50 infrastructure"
+	},
+	"command_tool_th_commandCenter": {
+		"context": "BUILD",
+		"context_grid": [
+			0,
+			0
+		],
+		"factions": [
+			"theocratic"
+		],
+		"grid": [
+			3,
+			0
+		],
+		"id": "th_commandCenter",
+		"label": "th_command_center",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_commandCenter.tscn",
+		"tooltip": "Build th_command_center — 300 energy, 60s",
+		"verbose": "Build th_command_center — 300 energy, 60s\n400 HP · strong armour · mech frame\n4×4 cells · vision 30"
+	},
+	"command_tool_th_dominion": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"theocratic"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"id": "th_dominion",
+		"label": "th_dominion",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_dominion.tscn",
+		"tooltip": "Build th_dominion — 250 energy, 15s",
+		"verbose": "Build th_dominion — 250 energy, 15s\nRequires: th_infrastructure\n400 HP · light armour · mech frame\n1×1 cells · vision 20\nProvides 500 infrastructure"
+	},
+	"command_tool_th_infrastructure": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"theocratic"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"id": "th_infrastructure",
+		"label": "th_infrastructure",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_infrastructure.tscn",
+		"tooltip": "Build th_infrastructure — 300 energy, 60s",
+		"verbose": "Build th_infrastructure — 300 energy, 60s\n400 HP · medium armour · mech frame\n5×5 cells · vision 24\nProvides 500 infrastructure"
+	},
+	"command_tool_th_warFactory": {
+		"context": "BUILD",
+		"context_grid": [
+			2,
+			0
+		],
+		"factions": [
+			"theocratic"
+		],
+		"grid": [
+			1,
+			1
+		],
+		"id": "th_warFactory",
+		"label": "th_war_factory",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/th/th_warFactory.tscn",
+		"tooltip": "Build th_war_factory — 500 energy, 30s",
+		"verbose": "Build th_war_factory — 500 energy, 30s\nRequires: th_barracks\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 50 infrastructure"
 	}
 }

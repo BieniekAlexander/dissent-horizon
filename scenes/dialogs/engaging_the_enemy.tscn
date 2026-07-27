@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="EngagingTheEnemy" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Contact"
+body = "There is a colonial outpost past the ridge, and its garrison is between us and the road.
+
+Clear every colonial unit out of the marked ground. Select your force, then right-click the enemy."
+acknowledge_text = "Engage"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

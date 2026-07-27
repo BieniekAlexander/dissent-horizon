@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://dmw6etpxaldb6"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_lkdmw"]
+
+[node name="MovementBody" type="CollisionShape3D" unique_id=1895683008 groups=["debug_shape_movement_body"]]
+visible = false
+shape = SubResource("CylinderShape3D_lkdmw")
+debug_color = Color(0.8, 0.8, 0.8, 0.4)

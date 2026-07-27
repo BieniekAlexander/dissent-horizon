@@ -1,41 +1,62 @@
+@tool
 class_name EventTargetUnit extends AbstractEvent
 
-## Base class for ordnance events that act on a single friendly unit the player
-## picked by clicking. The activating Ordnance only forwards the clicked world
-## position (see Ordnance.activate), so the target unit is resolved here: the
-## nearest commander-owned unit within SELECT_RADIUS of this event's
-## global_position, optionally filtered to one Entity.Type (see _required_type).
+## Base class for sanction events that act on ONE unit — Promotion, Freeze, Dignify,
+## Informant, Overcharge, and any later ability of that kind. The unit is NAMED by the order:
+## the player points at it (RTSController picks the unit under the cursor that this event
+## accepts) and the activating Sanction hands it over as `target_unit`. There is no area and
+## no search around the aim point — "the nearest qualifying unit within a radius" is what this
+## used to do, and it is why the armed cursor drew a circle that described nothing the player
+## could see.
 ##
-## Subclasses override _required_type() (to constrain which unit types qualify) and
-## execute() (to apply their effect to the unit returned by _find_target_unit).
+## Two knobs, and they are deliberately separate questions:
+##   • `scope` — WHOSE units may be picked. Most of these sanctions buff your own army
+##     (Promote, Informant), but some act on anyone (Colonial Freeze 2, Anarchical
+##     Overcharge), and a subclass should not have to reimplement an ownership test to
+##     say so. Authored per SANCTION SCENE, which is what lets one script serve Freeze 1
+##     (own) and Freeze 2 (any) with no second subclass.
+##   • `_qualifies()` — WHAT else the unit must be. Overridden by subclasses for the
+##     conditions only they know about (already stunned, not yet promoted, of one piece id).
+##
+## `accepts` is the one statement of both, asked by the cursor (which unit is highlighted),
+## by UseSanction (whether the order may be given at all) and here (whether the unit named
+## is still a legal target when the cast lands). A cast with no accepted unit is refused
+## BEFORE a charge is spent — see Sanction.activate.
 
-## World-space radius around the click within which a unit qualifies as the target.
-const SELECT_RADIUS: float = 3.0
+## Whose units may be picked.
+enum Scope {
+	OWN = 0,  ## only the activating commander's own units
+	ANY = 1,  ## anyone's — friendly, hostile or neutral
+}
 
-## Commander whose unit this event affects. Set by the activating Ordnance before
-## execute, so the same event serves the human player and any bot.
+@export var scope: Scope = Scope.OWN
+
+## Commander whose sanction this is. Set by the activating Sanction before execute, so
+## the same event serves the human player and any bot. Under Scope.OWN it is also the
+## ownership filter; under Scope.ANY it only decides who gets the credit.
 var commander_id: int = 1
 
-## The Entity.Type a candidate must be, or null to accept any owned unit. Override
-## in subclasses that only apply to a specific unit type (e.g. Dignify → Irregular).
-func _required_type() -> Variant:
-	return null
+## The unit this cast acts on, handed over by the activating Sanction. Null means no unit
+## was named, and the event does nothing.
+var target_unit: Commandable = null
 
-## Nearest commander-owned unit within SELECT_RADIUS of this event's position that
-## matches _required_type(), or null if none qualifies.
-func _find_target_unit(manager: ScenarioTriggerManager) -> Commandable:
-	var want: Variant = _required_type()
-	var pos_xz: Vector2 = VU.inXZ(global_position)
-	var best: Commandable = null
-	var best_dist_sq: float = SELECT_RADIUS * SELECT_RADIUS
-	for node in manager.get_tree().get_nodes_in_group("unit"):
-		var candidate := node as Commandable
-		if candidate == null or candidate.commander_id != commander_id:
-			continue
-		if want != null and candidate.id != want:
-			continue
-		var dist_sq: float = VU.inXZ(candidate.global_position).distance_squared_to(pos_xz)
-		if dist_sq <= best_dist_sq:
-			best_dist_sq = dist_sq
-			best = candidate
-	return best
+## Extra per-subclass admission test, asked after scope. Default: anything.
+func _qualifies(_a_candidate: Commandable) -> bool:
+	return true
+
+## Whether `a_candidate` is a unit this event may act on for `a_commander_id`: a live unit
+## (not a structure), inside `scope`, and passing `_qualifies`. Untyped parameter, because
+## the cursor and a queued order can both hand over something freed since it was named.
+func accepts(a_candidate: Variant, a_commander_id: int) -> bool:
+	if not is_instance_valid(a_candidate) or not (a_candidate is Commandable):
+		return false
+	var unit: Commandable = a_candidate
+	if unit.is_queued_for_deletion() or not unit.is_in_group("unit"):
+		return false
+	if scope == Scope.OWN and unit.commander_id != a_commander_id:
+		return false
+	return _qualifies(unit)
+
+## The named target, if it is still one this event accepts; otherwise null.
+func _find_target_unit(_a_manager: ScenarioTriggerManager) -> Commandable:
+	return target_unit if accepts(target_unit, commander_id) else null

@@ -5,4 +5,4 @@ tenjin: 1
 # Examples
 - Generals ECVs, Avengers vs Rockets
 - Body-blocking in Blizzard games
-- Shooting down ordnances in Generals
+- Shooting down sanctions in Generals

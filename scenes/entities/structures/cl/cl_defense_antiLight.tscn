@@ -1,0 +1,133 @@
+[gd_scene format=3 uid="uid://cmwo6vlb5bkrn"]
+
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="1_spec"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="2_spec"]
+[ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="3_spec"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="4_spec"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="5_spec"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="6_spec"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="7_spec"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="8_spec"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="9_spec"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="10_spec"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="11_spec"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="12_spec"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="13_spec"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="14_spec"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="15_spec"]
+[ext_resource type="PackedScene" uid="uid://c0a8hdddox08m" path="res://scenes/components/footprint_visualizer.tscn" id="16_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="17_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/detection_medium.tres" id="18_spec"]
+[ext_resource type="Script" uid="uid://c2yvk740iyjw" path="res://scripts/entities/components/beacon_range.gd" id="19_spec"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="20_spec"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="21_spec"]
+[ext_resource type="PackedScene" uid="uid://nwxttcar8xw5" path="res://scenes/entities/projectiles/cl/watch_tower_bullet.tscn" id="22_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/ground_range_long.tres" id="23_spec"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
+size = Vector3(1.0, 2.0, 1.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
+size = Vector3(1.0, 2.0, 1.0)
+
+[node name="ClDefenseAntiLight" type="CharacterBody3D" groups=["piece", "fixture", "structure"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_root")
+id = &"cl_defense_antiLight"
+description = "Lookout post that guns down infantry, detects stealth and spots for Bombards"
+verbose = "Lookout post. Its machine gun shreds lightly armoured infantry, it detects stealthed units, and the ground around it is spotted for your Bombards."
+infrastructure = -50
+
+[node name="#####STATE#####" type="Node" parent="."]
+
+[node name="TargetBody" parent="." instance=ExtResource("1_spec")]
+
+[node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
+
+[node name="VisionRange" parent="." instance=ExtResource("3_spec")]
+shape = ExtResource("17_spec")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("4_spec")
+
+[node name="Structure" type="Node" parent="."]
+script = ExtResource("5_spec")
+dimensions = Vector2i(1, 1)
+
+[node name="Defense" type="Node" parent="."]
+script = ExtResource("6_spec")
+hp_max = 500.0
+armour_type = 1
+frame_type = 1
+
+[node name="Veterancy" type="Node" parent="."]
+script = ExtResource("7_spec")
+
+[node name="#####CONTROLS#####" type="Node" parent="."]
+
+[node name="Selectable" parent="." instance=ExtResource("8_spec")]
+
+[node name="SelectionShape" parent="Selectable" index="0"]
+shape = SubResource("BoxShape3D_selection")
+metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="."]
+
+[node name="HPBar" parent="." instance=ExtResource("9_spec")]
+transform = Transform3D(0.260417, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 2.12, 0.0)
+metadata/_visual_default_hp_bar = 0.666667
+
+[node name="SelectionIndicator" parent="." instance=ExtResource("10_spec")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="."]
+script = ExtResource("11_spec")
+
+[node name="MeshVisual" type="Node3D" parent="."]
+script = ExtResource("12_spec")
+
+[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual"]
+mesh = SubResource("BoxMesh_placeholder")
+metadata/_visual_default_mesh = "structure"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+
+[node name="StatusVisuals" type="Node3D" parent="."]
+script = ExtResource("13_spec")
+
+[node name="#####DEBUG#####" type="Node" parent="."]
+
+[node name="DebugLabel" parent="." instance=ExtResource("14_spec")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="."]
+
+[node name="TargetIndicator" parent="." instance=ExtResource("15_spec")]
+
+[node name="AggroRangeAir" parent="." instance=ExtResource("2_spec")]
+
+[node name="FootprintVisualizer" parent="." instance=ExtResource("16_spec")]
+
+[node name="DetectionRange" type="CollisionShape3D" parent="." groups=["debug_shape_detection_range"]]
+disabled = true
+shape = ExtResource("18_spec")
+
+[node name="BeaconRange" type="Node" parent="."]
+script = ExtResource("19_spec")
+radius = 12.0
+
+[node name="Loadout" type="Node3D" parent="."]
+script = ExtResource("20_spec")
+
+[node name="BallisticWeapon" type="Node3D" parent="Loadout"]
+script = ExtResource("21_spec")
+split_time_ticks = 7
+reload_time_ticks = 45
+clip_size = 4
+projectile_scene = ExtResource("22_spec")
+melee_damage = 0.0
+target_mask = 2
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/BallisticWeapon" groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("23_spec")
+disabled = true

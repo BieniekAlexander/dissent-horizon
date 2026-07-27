@@ -36,94 +36,73 @@ static func query_shape_for_entities(
 	)
 	return result
 
-static func get_nearby_entities(world_3d: World3D, a_position: Vector3, a_radius: float, collision_mask: int) -> Array:
+static func get_nearby_entities(world_3d: World3D, position: Vector3, radius: float, collision_mask: int) -> Array:
 	var shape := SphereShape3D.new()
-	shape.radius = a_radius
+	shape.radius = radius
 	return query_shape_for_entities(
-		world_3d, shape, Transform3D(Basis(), a_position), collision_mask, [], 10
+		world_3d, shape, Transform3D(Basis(), position), collision_mask, [], 10
 	)
 
-## The shared "aggro shape collision check": targetable entities overlapping
-## `shape_node`'s shape re-centred at `center` (world space). Positions the aggro/query
-## shape at `center` and returns everything on TARGETABLE_ANY inside it, using the real
-## shape geometry (not a radius approximation) and leaving enemy/visibility/weapon
-## filtering to the caller. `exclude_body` (e.g. the querying entity's own TargetBody) is
-## skipped. Empty when `shape_node` or its shape is null.
-static func entities_in_aggro_shape(
+## The gap between two pieces' footprints (Entity.hull), or 0.0 when they touch. EVERY
+## piece-to-piece range is this gap against a radius, from whichever end it is asked, so no
+## range favours the bigger body. Why: gdd/systems/combat/range-buckets.md §Ranges are
+## measured between hulls.
+static func hull_gap(a: Entity, b: Entity) -> float:
+	return Hull.gap(a.hull(), b.hull())
+
+
+## Entities on `collision_mask` whose footprint lies within `radius` of `from`'s — the one
+## query behind aggro, detection and the other "who is within R of me" ranges. `shape` is the
+## range volume, placed upright at `origin`: the physics query grows it by `from`'s own
+## extent as a broad phase (keeping the shape's height, so a short volume still ignores what
+## flies over it), and the exact footprint gap then decides. `exclude` is a list of
+## RIDs/Objects to skip.
+static func entities_within(
 	world_3d: World3D,
-	shape_node: CollisionShape3D,
-	center: Vector3,
-	exclude_body: CollisionObject3D = null,
+	from: Hull,
+	shape: Shape3D,
+	origin: Vector3,
+	collision_mask: int,
+	exclude: Array = [],
 	max_results: int = 32
 ) -> Array[Entity]:
-	if shape_node == null or shape_node.shape == null:
+	var radius: float = RangeShapes.radius_of(shape)
+	if radius < 0.0:
 		return []
-	var xform: Transform3D = shape_node.global_transform
-	xform.origin = center
-	var exclude: Array = [exclude_body.get_rid()] if exclude_body != null else []
-	return query_shape_for_entities(
-		world_3d, shape_node.shape, xform, CollisionLayers.TARGETABLE_ANY, exclude, max_results
-	)
+	var broad: Shape3D = _grow_shape_radius(shape, from.extent())
+	var found: Array[Entity] = query_shape_for_entities(world_3d, broad,
+		Transform3D(Basis.IDENTITY, origin), collision_mask, exclude, max_results)
+	return found.filter(func(e: Entity) -> bool: return Hull.gap(from, e.hull()) <= radius)
+
 
 static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 	var diff = (pos1 - pos2).abs()
 	return max(diff.x, diff.y)
 
-## Tests whether the attacker is in range to fire the given weapon at target,
-## via a physics shape overlap against the weapon's AttackRange shape. Every
-## weapon — including short-reach "melee" ones — carries an AttackRange shape
-## (melee weapons just use one only slightly larger than their body), so there
-## is no separate distance-based fallback.
-## The shape is placed at the attacker's world transform rather than reading
-## global_transform off the CollisionShape3D node directly, because Weapon and
-## Loadout are plain Nodes (not Node3D) and would always report the origin.
-static func is_in_attack_range(weapon: Weapon, attacker: Entity, target: Entity) -> bool:
-	return (
-		is_weapon_in_range_at(weapon, attacker.global_transform, attacker.get_world_3d(), target, attacker)
-		if weapon!=null
-		else false
-	)
-
-## Same range check but with an explicit firing position. Used when the weapon
-## belongs to a garrisoned unit firing from a garrison owner's location.
-static func is_weapon_in_range_at(
-	weapon: Weapon,
-	from_transform: Transform3D,
-	world_3d: World3D,
-	target: Entity,
-	firer: Entity = null,
-	reach_bonus: float = 0.0
+## Whether `attacker` can reach `target` with `weapon` from where it stands: the weapon has
+## a range for the layer the target is on, and the gap between the two footprints is within
+## that reach plus `reach_bonus` (a garrison's). A bunker's occupants fire from the HOST, so
+## Garrison passes the host as `attacker`.
+static func is_in_attack_range(
+	weapon: Weapon, attacker: Entity, target: Entity, reach_bonus: float = 0.0
 ) -> bool:
-	var params := PhysicsShapeQueryParameters3D.new()
-	# A flat reach buffer (e.g. a garrison's range_bonus) GROWS the query radius rather
-	# than offsetting the origin below: growth stays centred on the firer, so an
-	# arbitrarily large bonus can never overshoot a point-blank target into a dead zone
-	# the way a big origin shift would. Only rebuilds the shape when a bonus applies.
-	var range_shape: Shape3D = weapon.get_range_for_target(target).shape
-	params.shape = _grow_shape_radius(range_shape, reach_bonus) if reach_bonus > 0.0 else range_shape
-	# Surface-to-surface range. The query already reports the target's NEAR edge, but
-	# it is centred on the firer, so a wide firer's own hull eats into its reach. Push
-	# the query origin toward the target by the firer's own targetable extent, so reach
-	# is measured from the firer's hull edge — "range R" becomes the gap between the two
-	# hulls regardless of either body's size (e.g. a bunkered garrison reaches as far as
-	# the units shooting into it). NOTE: PhysicsShapeQueryParameters3D.margin is a no-op
-	# for intersect_shape (verified for sphere and cylinder), so we shift the transform
-	# rather than inflate via margin.
-	var from_t := from_transform
-	if firer != null:
-		var to_target: Vector2 = target.xz_position - VU.inXZ(from_transform.origin)
-		if not to_target.is_zero_approx():
-			var extent: float = maxf(0.0,
-				firer.collision_extent_toward(target.xz_position, CollisionLayers.TARGETABLE_ANY))
-			from_t.origin += VU.fromXZ(to_target.normalized() * extent)
-	params.transform = from_t
-	# Only scan the layers this weapon can actually hit, so e.g. a ground-only
-	# weapon never reports an air target as "in range".
-	params.collision_mask = weapon.target_mask
-	if firer != null:
-		params.exclude = [firer]
-	var results: Array = world_3d.direct_space_state.intersect_shape(params)
-	return results.any(func(r: Dictionary) -> bool: return Entity.entity_from_collider(r["collider"]) == target)
+	if weapon == null or not is_instance_valid(target) or not target.is_inside_tree():
+		return false
+	# NO REACH AGAINST THIS KIND OF TARGET IS NOT IN RANGE. get_range_for_target returns null
+	# when the weapon carries no range shape for the side the target is on — a ground-only
+	# weapon asked about an air target, or an AA gun asked about one that has landed — and
+	# that null is an answer, not an oversight. It is reachable even though
+	# Loadout.weapon_for_target only hands back a weapon whose can_target() passed: can_target
+	# reads the TargetBody's LAYER, latched at the end of a tick, while get_range_for_target
+	# reads LIVE altitude, and for the one tick a piece crosses Aerial.AIR_TARGET_ALTITUDE the
+	# two disagree.
+	var range_node: CollisionShape3D = weapon.get_range_for_target(target)
+	if range_node == null or range_node.shape == null:
+		return false
+	if weapon.target_mask & target.targetable_layers() == 0:
+		return false
+	var reach: float = RangeShapes.radius_of(range_node.shape)
+	return reach >= 0.0 and hull_gap(attacker, target) <= reach + reach_bonus
 
 
 ## Return a copy of `shape` with its radius grown by `amount`, leaving the shared
@@ -141,53 +120,86 @@ static func _grow_shape_radius(shape: Shape3D, amount: float) -> Shape3D:
 	return shape
 
 
-static func unit_is_close_to_target(a_unit: Commandable, a_target: Variant, distance_squared: float = .001) -> bool:
+static func unit_is_close_to_target(unit: Commandable, target: Variant, distance_squared: float = .001) -> bool:
 	# Group-based, not type-based: a structure may be an Entity that is NOT a Commandable
-	# (e.g. ShelterStructure / Deposit), and it still wants footprint-adjacency proximity
+	# (e.g. ShelterStructure / ExtractionSite), and it still wants footprint-adjacency proximity
 	# rather than the strict touch-the-target-body check used for mobile units.
-	if a_target is Entity and a_target.is_in_group("structure"):
-		return SU.unit_is_close_to_structure(a_unit, a_target, distance_squared)
-	elif a_target is Entity:
-		return SU.unit_is_close_to_unit(a_unit, a_target, distance_squared)
-	elif a_target is Vector2:
-		return SU.unit_is_close_to_position(a_unit, a_target, distance_squared)
+	if target is Entity and target.is_in_group("fixture"):
+		return SU.unit_is_close_to_structure(unit, target, distance_squared)
+	elif target is Entity:
+		return SU.unit_is_close_to_unit(unit, target, distance_squared)
+	elif target is Vector2:
+		return SU.unit_is_close_to_position(unit, target, distance_squared)
 	else:
 		push_error("unsuported distance target type")
 		return false
 
-static func unit_is_close_to_position(a_unit: Commandable, a_position: Vector2, _distance_squared: float = .001) -> bool:
+static func unit_is_close_to_position(unit: Commandable, position: Vector2, _distance_squared: float = .001) -> bool:
 	# The navigation agent stops at the destination rather than overshooting, so
 	# arrival is just a position-equality check — no collision radius needed.
-	return a_unit.xz_position.is_equal_approx(a_position)
+	return unit.xz_position.is_equal_approx(position)
 
-static func unit_is_close_to_structure(a_unit: Commandable, a_structure: Entity, _distance_squared: float = .001) -> bool:
+static func unit_is_close_to_structure(unit: Commandable, structure: Entity, _distance_squared: float = .001) -> bool:
 	# A unit counts as close to a structure when its grid cell lies within the
 	# structure's footprint or is immediately adjacent to it (see
 	# unit_is_close_to_footprint). Measuring against the whole footprint makes
 	# proximity scale with the building's size: otherwise a builder would have to
 	# stand *on* a cell the structure occupies, impossible for anything > 1x1.
-	var placement_map: Map = a_structure.map
+	var placement_map: Map = structure.map
 	if placement_map == null:
-		return linf_distance(VU.inXZ(a_unit.global_position), VU.inXZ(a_structure.global_position)) <= 1
-	var footprint: Array = structure_footprint(placement_map, a_structure)
+		return linf_distance(VU.inXZ(unit.global_position), VU.inXZ(structure.global_position)) <= 1
+	var footprint: Array = structure_footprint(placement_map, structure)
 	if footprint.is_empty():
 		# Footprint not registered yet — fall back to the structure's origin cell.
-		footprint = [placement_map.world_to_grid(VU.inXZ(a_structure.global_position))]
-	return unit_is_close_to_footprint(a_unit, placement_map, footprint)
+		footprint = [placement_map.world_to_grid(VU.inXZ(structure.global_position))]
+	return unit_is_close_to_footprint(unit, placement_map, footprint)
 
 ## The grid cells to measure build/repair proximity against for a structure.
-## Normally the structure's own registered footprint; an OVERLAY structure (a Mine,
-## which doesn't occupy the grid itself) reports its host Deposit's footprint, since
-## that is what it sits on. Empty if neither is registered yet.
-static func structure_footprint(a_map: Map, a_structure: Entity) -> Array:
-	if a_map == null or a_structure == null:
+## The structure's own registered footprint; an Extractor not yet registered but already
+## bound to its ExtractionSite reports the site's footprint, which is the one it will take.
+## Empty if neither is registered yet.
+static func structure_footprint(map: Map, structure: Entity) -> Array:
+	if map == null or structure == null:
 		return []
-	var own: Array = a_map.structure_cell_map.get(a_structure, [])
+	var own: Array = map.structure_cell_map.get(structure, [])
 	if not own.is_empty():
 		return own
-	if a_structure is Mine and (a_structure as Mine).deposit != null:
-		return a_map.structure_cell_map.get((a_structure as Mine).deposit, [])
+	var extractor: Extractor = Extractor.of(structure)
+	if extractor != null and extractor.extraction_site != null:
+		return map.structure_cell_map.get(extractor.extraction_site, [])
 	return []
+
+## Every OTHER entity registered on a grid cell that shares an EDGE with `structure`'s
+## footprint — the buildings it physically touches. De-duplicated; never contains
+## `structure` itself; empty for anything not registered on the grid.
+##
+## DIAGONALS ARE EXCLUDED, and that is the whole difference from
+## `_passable_footprint_neighbors`. Two buildings meeting at a corner share no wall, and
+## "adjacent" in the game's sense — a Compound working the buildings around it — means they
+## do. The other helper asks the opposite question (where can a unit STAND next to this?)
+## and wants the diagonals, so the two cannot be one.
+static func edge_adjacent_structures(map: Map, structure: Entity) -> Array[Entity]:
+	var out: Array[Entity] = []
+	if map == null or structure == null:
+		return out
+	var footprint: Array = structure_footprint(map, structure)
+	if footprint.is_empty():
+		return out
+	var own: Dictionary = {}
+	for cell: Vector2i in footprint:
+		own[cell] = true
+	var seen: Dictionary = {}
+	for cell: Vector2i in footprint:
+		for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			var neighbor: Vector2i = cell + step
+			if own.has(neighbor) or not map.grid_coordinates_in_bounds(neighbor):
+				continue
+			var occupant := map.cell_grid[neighbor.x][neighbor.y] as Entity
+			if occupant == null or occupant == structure or seen.has(occupant):
+				continue
+			seen[occupant] = true
+			out.append(occupant)
+	return out
 
 ## True when a_unit's grid cell lies within (L∞ ≤ 1 of) any cell in `footprint` —
 ## i.e. on the footprint or immediately adjacent. The shared "close enough to
@@ -195,68 +207,170 @@ static func structure_footprint(a_map: Map, a_structure: Entity) -> Array:
 ## footprint (Map.footprint_cells of the clicked spot) and Repair against the
 ## structure's registered footprint; because add_structure registers exactly the
 ## cells footprint_cells returns, the two checks always agree.
-static func unit_is_close_to_footprint(a_unit: Commandable, a_map: Map, footprint: Array) -> bool:
-	if a_map == null or footprint.is_empty():
+##
+## A unit wider than a cell is ALSO close once it is within its nav size class's standoff
+## of the footprint (see _within_class_standoff): its class navmesh is eroded back from
+## every building edge by NavAgentClass.radius, which for MEDIUM (0.95) leaves almost none
+## of an adjacent cell reachable — so the grid test alone is one such a unit can never pass,
+## and a Stock Truck parked at its Compound stood there forever, loaded.
+static func unit_is_close_to_footprint(unit: Commandable, map: Map, footprint: Array) -> bool:
+	if map == null or footprint.is_empty():
 		return false
-	var unit_cell: Vector2i = a_map.world_to_grid(VU.inXZ(a_unit.global_position))
+	var unit_cell: Vector2i = map.world_to_grid(VU.inXZ(unit.global_position))
 	for cell: Vector2i in footprint:
-		if linf_distance(unit_cell, cell) <= 1:
+		if linf_distance(unit_cell, cell) <= 1.:
+			return true
+	return _within_class_standoff(unit, map, footprint)
+
+## How far past its class navmesh's edge a unit may come to rest and still count as having
+## got as close as navigation allows: the agent halts short of its mesh's nearest point
+## (measured ~0.5), and the inset is a chamfer rather than a true offset, so corners sit
+## further out still. One cell covers both without reaching a second cell's worth of ground.
+const CLASS_STANDOFF_SLACK: float = Map.CELL_SIZE
+
+## How far a unit of NavAgentClass.Size `nav_class` may be left from a point its navmesh
+## steers it toward and still be as close as that class gets — its erosion plus the slack.
+static func class_standoff_reach(nav_class: int) -> float:
+	return NavAgentClass.radius(nav_class, Map.CELL_SIZE) + CLASS_STANDOFF_SLACK
+
+## Whether `unit` is within the closest distance its navigation size class can bring it to
+## `footprint` — NavAgentClass.radius (the erosion of its class mesh) plus
+## CLASS_STANDOFF_SLACK — measured from the unit's XZ position to the nearest footprint
+## cell's square. False for a unit with no Movement, which never pathed there anyway.
+static func _within_class_standoff(unit: Commandable, map: Map, footprint: Array) -> bool:
+	if unit.movement == null:
+		return false
+	var reach: float = class_standoff_reach(unit.movement.nav_agent_class)
+	var here: Vector2 = VU.inXZ(unit.global_position)
+	var half: float = Map.CELL_SIZE * 0.5
+	for cell: Vector2i in footprint:
+		var offset: Vector2 = (here - VU.inXZ(map.grid_to_world(cell))).abs()
+		var outside: Vector2 = (offset - Vector2(half, half)).max(Vector2.ZERO)
+		if outside.length() <= reach:
 			return true
 	return false
 
-## Shape-based reach test: true when `a_target`'s targetable body overlaps `a_shape`
-## positioned upright at `a_unit`'s world position. The shape-driven counterpart to the
-## scalar `unit_is_close_to_unit` slack — used by interactions whose reach is authored as
-## a Shape3D (e.g. a Cylinder), so vertical extent and non-circular reach are honored.
-## False when the shape or target is missing.
-static func unit_shape_overlaps_target(a_unit: Commandable, a_target: Entity, a_shape: Shape3D) -> bool:
-	if a_shape == null or not is_instance_valid(a_target):
+## Whether `target` lies within an interaction's authored reach `shape` (e.g. a Cylinder)
+## of `unit`: the footprint gap within the shape's radius, with the shape's height kept by
+## the broad phase (see entities_within). False when the shape or target is missing.
+static func unit_shape_overlaps_target(unit: Commandable, target: Entity, shape: Shape3D) -> bool:
+	if shape == null or not is_instance_valid(target):
 		return false
-	var xform := Transform3D(Basis.IDENTITY, a_unit.global_position)
-	var hits: Array[Entity] = query_shape_for_entities(
-		a_unit.get_world_3d(), a_shape, xform, CollisionLayers.TARGETABLE_ANY, [a_unit]
-	)
-	return a_target in hits
+	return target in entities_within(unit.get_world_3d(), unit.hull(), shape,
+		unit.global_position, CollisionLayers.TARGETABLE_ANY, [unit])
 
-static func unit_is_close_to_unit(a_unit: Commandable, an_entity: Entity, distance_squared: float = .001) -> bool:
-	# Engagement proximity: measured against each entity's targetable shape edge
-	# in the direction of the other, so the comparison fits each body's actual
-	# shape (a box reports its edge, not its circumscribed circle).
-	var t := CollisionLayers.TARGETABLE_ANY
-	var combined_extent: float = an_entity.collision_extent_toward(a_unit.xz_position, t) \
-		+ a_unit.collision_extent_toward(an_entity.xz_position, t)
-	return (
-		an_entity.xz_position - a_unit.xz_position
-	).length_squared() - combined_extent**2 < distance_squared
+## Engagement proximity: the two footprints touch, within a slack whose SQUARE is
+## `distance_squared`.
+static func unit_is_close_to_unit(unit: Commandable, an_entity: Entity, distance_squared: float = .001) -> bool:
+	var gap: float = hull_gap(unit, an_entity)
+	return gap * gap < distance_squared
 
 ## Return all unique grid cells that are directly adjacent (L∞-distance 1) to
 ## any cell in `a_structure`'s footprint, are in-bounds, and are currently
 ## passable (not occupied by another structure, not too steep).  The returned
 ## list is shuffled so callers can pop_front() to assign distinct destinations
 ## without bias.
-static func passable_cells_adjacent_to(a_structure: Commandable, a_map: Map) -> Array[Vector2i]:
-	var result: Array[Vector2i] = _passable_footprint_neighbors(a_structure, a_map)
+##
+## ENTITY, not Commandable — a structure need not be a Commandable (an ExtractionSite, a
+## Shelter and a Rock are plain Entities carrying a Structure component), and every other
+## member of this family already says Entity: `_passable_footprint_neighbors`, which does
+## all the work, `nearest_footprint_adjacent_cell`, and `unit_is_close_to_structure`. This
+## one was the straggler.
+static func passable_cells_adjacent_to(structure: Entity, map: Map) -> Array[Vector2i]:
+	var result: Array[Vector2i] = _passable_footprint_neighbors(structure, map)
 	result.shuffle()
 	return result
 
-## Return the grid cell adjacent to `a_structure`'s footprint — in-bounds and
-## passable — whose world-space centre is closest to `dest`.
+## The nearest of `candidates` (Commandables) to `from`, by XZ distance, or null when
+## `candidates` is empty. A small generic query — TaskShelter's nearest-Compound-with-room
+## and Commander.projected_dominion_rate's nearest-Compound-to-a-Shelter are both this,
+## asked from a different point, and neither wants its own copy of "walk a list, keep the
+## closest".
+static func nearest_of(candidates: Array, from: Entity) -> Commandable:
+	var best: Commandable = null
+	var best_distance: float = 0.0
+	for candidate: Commandable in candidates:
+		var distance: float = from.xz_position.distance_to(candidate.xz_position)
+		if best == null or distance < best_distance:
+			best = candidate
+			best_distance = distance
+	return best
+
+
+## Return the grid cell adjacent to `a_structure`'s footprint — in-bounds,
+## passable, and EDGE-adjacent to it — whose world-space centre is closest to `dest`.
 ## Returns Vector2i(-1, -1) when no suitable cell exists.
+##
+## EDGE-adjacent, not merely one of `_passable_footprint_neighbors`' 8-directional
+## candidates: a pure DIAGONAL corner of a rectangular footprint touches it at a single
+## grid vertex, which a navmesh baked from passable cells does not connect through (two
+## cells meeting only at a corner share no walkable edge between them). Godot's
+## NavigationAgent3D then reports the corner as unreachable and paths only as close as it
+## can get — which can land short of any cell this function's callers consider "close
+## enough" (Garrison._release_commands, Build's overlay routing, and this function's own
+## caller in CommandReceiver._resolve_movement_target), so the unit arrives, stops, and
+## never satisfies whatever range check was waiting on it. `unit_is_close_to_footprint`
+## keeps the diagonals — a unit already standing at a corner is legitimately close,
+## however it got there — this is a NAVIGATION DESTINATION, where reachability is the
+## question, so it excludes them at the source instead.
+##
+## `nav_class`, when given, is the walker's NavAgentClass.Size — see footprint_approach_cells.
 static func nearest_footprint_adjacent_cell(
 	dest: Vector3,
-	a_structure: Commandable,
-	a_map: Map
+	structure: Entity,
+	map: Map,
+	nav_class: int = NO_NAV_CLASS
 ) -> Vector2i:
-	var best_cell := Vector2i(-1, -1)
-	var best_dist_sq := INF
+	var cells: Array[Vector2i] = footprint_approach_cells(dest, structure, map, nav_class)
+	return cells.front() if not cells.is_empty() else Vector2i(-1, -1)
 
-	for neighbor in _passable_footprint_neighbors(a_structure, a_map):
-		var dist_sq := a_map.grid_to_world(neighbor).distance_squared_to(dest)
-		if dist_sq < best_dist_sq:
-			best_dist_sq = dist_sq
-			best_cell = neighbor
+## Every passable cell EDGE-adjacent to `structure`'s footprint, nearest to `dest` first.
+##
+## `nav_class`, when given, is the walker's NavAgentClass.Size: cells that class cannot stand
+## on (TerrainGrid.is_navigable_for — the gate its navmesh is baked from) are dropped, so a
+## truck is not sent into a one-cell gap between two buildings. Falls back to every passable
+## candidate when the class fits none. Standable is not REACHABLE — a pocket walled in by
+## other buildings passes this test — which is why CommandReceiver checks the ranked list
+## against a real path before committing to one.
+static func footprint_approach_cells(
+	dest: Vector3,
+	structure: Entity,
+	map: Map,
+	nav_class: int = NO_NAV_CLASS
+) -> Array[Vector2i]:
+	var footprint: Array = structure_footprint(map, structure)
+	var candidates: Array[Vector2i] = []
+	for cell: Vector2i in _passable_footprint_neighbors(structure, map):
+		if _edge_adjacent_to_any(cell, footprint):
+			candidates.append(cell)
+	if nav_class != NO_NAV_CLASS:
+		var rings: int = NavAgentClass.erosion_rings(nav_class, Map.CELL_SIZE)
+		var admit_k: int = NavAgentClass.required_clearance(nav_class, Map.CELL_SIZE)
+		var standable: Array[Vector2i] = []
+		for cell: Vector2i in candidates:
+			if map.terrain_grid.is_navigable_for(cell, rings, admit_k):
+				standable.append(cell)
+		if not standable.is_empty():
+			candidates = standable
+	candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return map.grid_to_world(a).distance_squared_to(dest) \
+			< map.grid_to_world(b).distance_squared_to(dest))
+	return candidates
 
-	return best_cell
+## `nearest_footprint_adjacent_cell`'s "no walker class" — NavAgentClass.Size starts at 1.
+const NO_NAV_CLASS: int = 0
+
+
+## Whether `cell` shares a grid EDGE (not merely a corner) with at least one cell in
+## `footprint` — Manhattan distance exactly 1, i.e. one axis differs by 1 AND THE OTHER BY
+## 0. (`diff.x == 1 or diff.y == 1` alone is not enough: (1, 2) satisfies that but is two
+## cells away on the other axis, not adjacent at all.)
+static func _edge_adjacent_to_any(cell: Vector2i, footprint: Array) -> bool:
+	for f: Vector2i in footprint:
+		var diff: Vector2i = (cell - (f as Vector2i)).abs()
+		if diff.x + diff.y == 1:
+			return true
+	return false
 
 ## How far (in XZ world units) a candidate point may drift from the navmesh
 ## closest-point snap before it is considered off-navmesh.  Half a cell width
@@ -358,11 +472,13 @@ static func _radius_at(point_radii: Array[float], idx: int, fallback: float) -> 
 ## De-duplicated and unordered. Shared by passable_cells_adjacent_to (which
 ## shuffles the result) and nearest_footprint_adjacent_cell (which picks the one
 ## closest to a point).
-static func _passable_footprint_neighbors(a_structure: Commandable, a_map: Map) -> Array[Vector2i]:
-	if a_structure == null or a_map == null:
+static func _passable_footprint_neighbors(structure: Entity, map: Map) -> Array[Vector2i]:
+	if structure == null or map == null:
 		return []
 
-	var footprint: Array = a_map.structure_cell_map.get(a_structure, [])
+	# structure_footprint, NOT structure_cell_map directly, so this and
+	# unit_is_close_to_structure (the matching RANGE check) resolve a footprint the same way.
+	var footprint: Array = structure_footprint(map, structure)
 	# `seen` excludes footprint cells and de-duplicates neighbors reachable from
 	# more than one footprint cell.
 	var seen: Dictionary = {}
@@ -379,9 +495,9 @@ static func _passable_footprint_neighbors(a_structure: Commandable, a_map: Map) 
 				if seen.has(neighbor):
 					continue
 				seen[neighbor] = true
-				if not a_map.grid_coordinates_in_bounds(neighbor):
+				if not map.grid_coordinates_in_bounds(neighbor):
 					continue
-				if not a_map.terrain_grid.is_passable(neighbor):
+				if not map.terrain_grid.is_passable(neighbor):
 					continue
 				result.append(neighbor)
 	return result

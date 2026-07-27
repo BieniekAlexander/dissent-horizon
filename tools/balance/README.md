@@ -49,14 +49,33 @@ in the editor rather than risk a malformed override. Cost/tech changes route to
 | Field | Target |
 |---|---|
 | `hp`, `armour` | unit scene `Defense` node (`hp_max`, `armour_type`) |
-| `speed` | unit scene `Movement` node |
-| weapon `split_time`/`reload_time`/`clip_size`/`melee_*`/`hits` | weapon node under `Loadout` (`hits`→`target_mask`) |
+| `speed` | unit scene `Locomotion` node |
+| weapon `split_time`/`reload_time` (scene: `*_ticks`)/`clip_size`/`melee_*`/`hits` | weapon node under `Loadout` (`hits`→`target_mask`) |
 | weapon `reach` | the weapon's `AttackRange` → `SubResource` shape `radius` |
-| projectile `base_damage`/`damage_type`/`speed` | projectile scene root |
+| projectile `base_damage`/`damage_type` | the emission scene's `Payload` node |
+| projectile `speed` | emission scene root — TODO: stale since speed moved onto the `EmissionPhase` children |
 | status-effect `damage_per_tick`/`tick_rate`/`duration_ticks`/`damage_type` | the `DamageOverTimeStatusEffect` node |
-| `ore`/`population`/`dominion` | `manifest.json` |
+| `energy`/`population`/`dominion` | `manifest.json` — TODO: `population` is a leftover name; `gdd_to_balance.py` fills it from `infrastructure`, and the tool's model, loader and importer should call it that |
 | `damage_table.yaml` cells | source CSVs `resources/damage/damage_vs_{armour,attribute}.tsv` (targeted cell; blank = default multiplier) |
 | structural (`name`, `kind`, `weapons`, `attributes`, `layer`, `requires`) | reported, edited by hand |
+
+### Damage types are mirrored twice, and both mirrors are pinned
+
+`Damage.Type` (`scripts/entities/tools/damage.gd`) has two Python counterparts:
+`gdd_to_balance.DAMAGE_TYPES` (matched by ORDINAL — a projectile scene stores
+`damage_type` as the enum's integer) and `dh_balance.model.DamageType` (matched
+by NAME — the catalogs are YAML keyed by name). The first is now PARSED out of
+`damage.gd` rather than hand-written; the second is still written out, for
+greppability, and `tests/test_damage_types.py` fails if either disagrees with
+the engine.
+
+That test exists because both had drifted three members behind
+(INCENDIARY, HIGH_EXPLOSIVE, CRYO). The failure modes are quiet in different
+ways: a missing NAME drops that type's whole row from `damage_table.yaml` behind
+a one-line WARN, and the first projectile doc to use it then raises
+`ValueError: '<TYPE>' is not a valid DamageType` out of `load_projectiles` —
+which takes down every command including `mermaid`, so a stale enum reads as
+"the tech-tree diagram is broken".
 
 ### Validating the `Entity.Type` ↔ scene mapping
 
@@ -95,7 +114,7 @@ scanned).
 | **favorable response** | `exchange_cost(R,T) < cost(T)`. The Costed-Response bar: every threat should have one. |
 | **tech tier** | longest `requires` chain depth in the faction's tech DAG. |
 
-Cost is **ore-only in v1** (see `TODO(weighted-scalar)` in `model.py:Cost.scalar`).
+Cost is **energy-only in v1** (see `TODO(weighted-scalar)` in `model.py:Cost.scalar`).
 Counter values are **computed from stats**, with an optional per-matchup
 `overrides:` block (see `schema/SCHEMA.md`).
 
@@ -141,6 +160,80 @@ projectile is referenceable from any weapon in any file. The loader resolves
 bottom-up (effects → projectiles → weapons → factions) and **fails hard on
 duplicate ids or dangling refs**. This mirrors Godot's own `uid`/`ext_resource`
 sharing — full details in `schema/SCHEMA.md`.
+
+### The baked tech graph: three relations, three devices, one arrow meaning
+
+`python -m dh_balance mermaid <faction>` renders the tech DAG for a faction note
+(`gdd/factions/<f>/<f>.md`, refreshed by that note's "Refresh tech tree" button).
+The rosters have exactly three relations to show, and **only one of them is an
+arrow** — an all-arrow diagram was unreadable long before a faction was finished:
+
+| Relation | Drawn as | Why not an arrow |
+|---|---|---|
+| structure **trains** unit | the unit sits INSIDE the structure's subgraph | a production line is a group, and a group of 4 is 4 arrows saying one thing |
+| unit **requires** a structure it isn't trained by | the gate and the units it gates share a colour class | the arrow crossed the whole diagram, and collided with the production lines on the way |
+| structure **requires** structure | a solid arrow | it *is* the backbone; nothing else competes for the reading |
+
+So an arrow means "tech backbone" and nothing else, and the dashed arrow is
+retired — it existed to separate `requires` from `trains`, and neither of those
+is an edge any more.
+
+**The backbone is declared in an order chosen to keep its edges from crossing**, not in
+id order. Mermaid lays flowcharts out with dagre, a Sugiyama pipeline whose within-rank
+ORDERING step is a heuristic seeded by declaration order — so on a graph where the
+heuristic gets stuck, the seed decides the picture, and a seed derived from spelling has
+nothing to do with the shape of the tree. `_declaration_order` does one forward barycenter
+sweep instead: each node goes at the mean position of its parents in the rank above, ties
+broken by id so re-runs stay byte-identical.
+
+Measured by driving **dagre itself** (`npm i dagre`, feed it the emitted graph, read the
+ranks back out of the laid-out geometry and count crossings) rather than by eyeballing
+renders: the Colonials went 2 crossings → 0, every other faction stayed at 0. It is a
+heuristic, not a solver, so a future roster could still need a hand — but it cannot do
+worse than the id-order seed on a tree, where the sweep is exact.
+
+**Inside a producer, units are listed in the order its doc's `trains:` names
+them** — not sorted. That list is authored and already load-bearing elsewhere: the
+command grid takes a train button's COLUMN from the unit's index in it (CLAUDE.md
+§Structure buttons are laid out by ROLE), so it is the same left-to-right order
+the player reads off the HUD, and it is usually written as a progression (cheap to
+expensive, basic to specialist). Sorting it made the chart disagree with the game
+about the shape of its own roster. The order of the CLUSTERS, and every other list
+in the emitter, is still by id — only within a production line does authoring win.
+
+A **tech gate** is a structure named in a unit's `requires` that does *not* also
+train it. The self-naming case (`an_airField` in the requires of the transport it
+builds) is a production line stated twice; colouring it would announce a tech
+step the faction has not got.
+
+Colours are `_TECH_PALETTE` in `cli.py`: saturated fills carrying white text,
+because one literal has to read on **both** Obsidian themes — a border-only
+treatment is swallowed by the dark theme's own node border, and a pale fill loses
+its text on it. Producer clusters use a translucent grey for the same reason (it
+resolves light on the light theme, dark on the dark one). Mermaid's untouched
+cluster default is a pale yellow that reads as a highlight, not a container.
+
+Three mermaid facts the emitter is built around, all found by rendering rather
+than by reading docs:
+
+- `class` on a subgraph reaches only its LABEL, so a cluster takes its colour
+  through `style`.
+- A node may be declared in exactly one subgraph, so a unit named by two
+  producers is drawn inside the first by id (the cluster order is the id-sorted
+  one; the units within a cluster are not — see above).
+- Siblings render in DECLARATION order, which is what makes the `trains:` order
+  above reach the picture at all.
+- **A subgraph's own `direction` is ignored whenever it is linked to anything
+  outside it** — which every producer here is. So the units lay out along the
+  PARENT's flow axis, and the chart is `TB` purely to stack them in a column;
+  a horizontal backbone and columnar production lines cannot be had at once.
+  Both workarounds fail: a nested inner subgraph with its own `direction TB` is
+  ignored just the same *and* reserves dead space, and an invisible anchor
+  fanning `~~~` links to force one rank leaves the units in a row.
+
+Spacing is `_LAYOUT_DIRECTIVE`. In a TB chart `rankSpacing` is the gap between
+the stacked units inside a producer, so it is the knob for how tight a production
+line reads, and it runs well under mermaid's default 50.
 
 ## Roadmap
 

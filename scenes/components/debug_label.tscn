@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://d3slh613es4gd"]
+
+[node name="DebugLabel" type="Label3D" unique_id=456109672]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+visible = false
+pixel_size = 0.05
+render_priority = 10
+text = "NULL"
+font_size = 16

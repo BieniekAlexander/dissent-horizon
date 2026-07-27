@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://inhlt3ng2kbm"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_exfhe"]
+
+[node name="ClickAndMove" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_exfhe")
+title = "Basic Controls"
+body = "Select a unit by hovering your mouse over it and pressing {{ world_select }}. With a unit selected, press {{ command_issue }} to command it to move."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

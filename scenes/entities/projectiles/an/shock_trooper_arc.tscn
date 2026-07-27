@@ -1,0 +1,73 @@
+[gd_scene load_steps=10 format=3 uid="uid://box2xwa8npsj3"]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_8pfc6"]
+[ext_resource type="Script" uid="uid://drins2oa5nvwm" path="res://scripts/entities/effects/effect_applicator.gd" id="1_spec"]
+[ext_resource type="Texture2D" uid="uid://4j5okj7g4kff" path="res://assets/coin_logo.png" id="2_5j2li"]
+[ext_resource type="PackedScene" uid="uid://b8empstun0001" path="res://scenes/entities/status_effects/emp.tscn" id="2_spec"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_45m6v"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="3_spec"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="4_spec"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_empd6"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 0.5
+
+[node name="ShockTrooperArc" type="CharacterBody3D" unique_id=565016749]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_8pfc6")
+
+[node name="InFlightSprite" type="Sprite3D" parent="." unique_id=167661596]
+transform = Transform3D(0.25, 0, 0, 0, 0.1767767, 0.1767767, 0, -0.1767767, 0.1767767, 0, 0, 0)
+render_priority = 5
+texture = ExtResource("2_5j2li")
+
+[node name="InFlightParticles" type="GPUParticles3D" parent="." unique_id=1100788129]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
+emitting = false
+
+[node name="PostImpactSprite" type="Sprite3D" parent="." unique_id=1904151921]
+transform = Transform3D(0.25, 0, 0, 0, 0.1767767, 0.1767767, 0, -0.1767767, 0.1767767, 0, 0, 0)
+visible = false
+render_priority = 5
+
+[node name="PostImpactParticles" type="GPUParticles3D" parent="." unique_id=621428179]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0)
+visible = false
+emitting = false
+
+[node name="Ownership" type="Node" parent="." unique_id=1367556969]
+script = ExtResource("3_45m6v")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"
+
+[node name="EffectApplicator" type="Sprite3D" parent="." unique_id=1279850634]
+script = ExtResource("1_spec")
+
+[node name="Emp" parent="EffectApplicator" unique_id=475571367 instance=ExtResource("2_spec")]
+
+[node name="InFlightMesh" type="MeshInstance3D" parent="." unique_id=2013821719]
+mesh = SubResource("CylinderMesh_empd6")
+metadata/_visual_default_mesh = "linear projectile"
+
+[node name="Flight" type="Node3D" parent="." unique_id=1614596320]
+script = ExtResource("3_spec")
+speed = 28.0
+visuals = Array[NodePath]([NodePath("InFlightSprite"), NodePath("InFlightParticles"), NodePath("InFlightMesh")])
+
+[node name="Impact" type="Node3D" parent="." unique_id=73443977]
+script = ExtResource("3_spec")
+ends_on_arrival = false
+lifespan_seconds = 0.0
+applies_payload = true
+visuals = Array[NodePath]([NodePath("PostImpactSprite"), NodePath("PostImpactParticles")])
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("4_spec")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("mig_payload")
+hitscan = true
+base_damage = 12.0
+damage_type = 7

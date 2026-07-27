@@ -88,19 +88,19 @@ func build() -> Dictionary:
 
 
 ## A MultiMeshInstance3D of red boxes, one per blocked cell, sitting on the surface.
-func _build_block_overlay(heights: PackedFloat32Array, mask: PackedByteArray, w: int, d: int) -> MultiMeshInstance3D:
-	var gw: int = w - 1
-	var gh: int = d - 1
-	var half_w: float = (w - 1) * 0.5
-	var half_d: float = (d - 1) * 0.5
+func _build_block_overlay(a_heights: PackedFloat32Array, a_mask: PackedByteArray, a_w: int, a_d: int) -> MultiMeshInstance3D:
+	var gw: int = a_w - 1
+	var gh: int = a_d - 1
+	var half_w: float = (a_w - 1) * 0.5
+	var half_d: float = (a_d - 1) * 0.5
 
 	var transforms: Array[Transform3D] = []
 	for z: int in gh:
 		for x: int in gw:
-			if mask[z * gw + x] == 0:
+			if a_mask[z * gw + x] == 0:
 				continue
-			var hc: float = (heights[z * w + x] + heights[z * w + x + 1]
-				+ heights[(z + 1) * w + x] + heights[(z + 1) * w + x + 1]) * 0.25
+			var hc: float = (a_heights[z * a_w + x] + a_heights[z * a_w + x + 1]
+				+ a_heights[(z + 1) * a_w + x] + a_heights[(z + 1) * a_w + x + 1]) * 0.25
 			var pos := Vector3(x + 0.5 - half_w, hc + 0.15, z + 0.5 - half_d)
 			transforms.append(Transform3D(Basis.IDENTITY, pos))
 
@@ -123,21 +123,21 @@ func _build_block_overlay(heights: PackedFloat32Array, mask: PackedByteArray, w:
 	return mmi
 
 
-func _add_light_and_camera(root: Node3D, w: int, d: int) -> void:
+func _add_light_and_camera(a_root: Node3D, a_w: int, a_d: int) -> void:
 	var light := DirectionalLight3D.new()
 	light.name = "Sun"
 	light.rotation_degrees = Vector3(-55.0, -40.0, 0.0)
 	light.light_energy = 1.1
-	root.add_child(light)
-	light.owner = root
+	a_root.add_child(light)
+	light.owner = a_root
 
 	var cam := Camera3D.new()
 	cam.name = "DemoCamera"
-	cam.position = Vector3(0.0, float(maxi(w, d)) * 0.9, float(d) * 0.9)
+	cam.position = Vector3(0.0, float(maxi(a_w, a_d)) * 0.9, float(a_d) * 0.9)
 	cam.rotation_degrees = Vector3(-50.0, 0.0, 0.0)
 	cam.current = true
-	root.add_child(cam)
-	cam.owner = root
+	a_root.add_child(cam)
+	cam.owner = a_root
 
 
 func _ensure_dir() -> void:

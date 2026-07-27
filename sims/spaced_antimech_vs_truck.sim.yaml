@@ -1,0 +1,40 @@
+description: |
+  Two Colonial anti-mech troopers against one stock truck, SPACED OUT so the truck cannot
+  answer both with one pass.
+
+  "Spaced out" is expressed as two separate GROUPS rather than one group in a loose
+  formation, and that is the grammar working as intended: grouping is how intent is said.
+  The flanks sit twelve world units apart on either side of the truck's line of advance, so
+  running one down leaves the truck under fire from the other for the whole trip back.
+
+  The truck's orders are a QUEUE of two moves — drive over the north flank, then the south —
+  because it is unarmed and a move is the only offensive thing it can be told to do.
+
+  TODO: the twelve-unit separation is a first guess, not a calibrated number. Revisit it
+  against the trooper's actual weapon range once this matchup is being tuned.
+setting: { kind: flat, size: 40 }
+given:
+  A:
+    with:
+      truck:
+        of: [ { piece: cl_mechLight_dominionGen, count: 1 } ]
+        at: west
+        facing: east
+        orders:
+          - { move: { target: B.north_flank } }
+          - { move: { target: B.south_flank } }
+  B:
+    with:
+      north_flank:
+        of: [ { piece: cl_bioLight_antiMech, count: 2 } ]
+        at: { from: A.truck, distance: 14, bearing: northeast }
+        facing: west
+        orders: [ { attack: { target: A.truck } } ]
+      south_flank:
+        of: [ { piece: cl_bioLight_antiMech, count: 1 } ]
+        at: { from: A.truck, distance: 14, bearing: southeast }
+        facing: west
+        orders: [ { attack: { target: A.truck } } ]
+run: { for: 45s, seed: 1 }
+expect:
+  - { of: A.truck, check: dead }

@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cv856fb48540r"]
+
+[node name="AggroRange" type="CollisionShape3D" unique_id=1326815153 groups=["debug_shape_aggro_range"]]
+visible = false
+disabled = true
+debug_color = Color(1, 0.55, 0.1, 0.35)

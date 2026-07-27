@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://sdxace8bcbjq"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_eqxv8"]
+
+[node name="Dialog" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_eqxv8")
+title = "Unit Countering"
+body = "Each unit performs well against certain enemies and poorly against others. To the east, you need to take out a helicopter, and note that your your irregulars are useless against it, but warlords will do well."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

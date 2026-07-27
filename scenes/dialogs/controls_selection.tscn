@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="ControlsSelection" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Selecting units"
+body = "{{ world_select }} a unit to select it. Hold and drag it to box-select several.\n\nDouble-click a unit to select every unit of that type on screen.\n\nHold {{ modifier_additive }} while clicking to add to (or remove from) the selection."
+acknowledge_text = "Got it"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

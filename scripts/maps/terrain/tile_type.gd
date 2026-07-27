@@ -2,35 +2,17 @@
 class_name TileType
 extends Resource
 
-## One entry in a TerrainTileCatalog — the definition a per-cell byte index refers to.
-## A cell's byte in TerrainData.tile_types indexes into the catalog's `types` array to
-## reach one of these. Properties here are shared once per type (not repeated per cell).
+## One entry in a TerrainTileCatalog — a GROUND MATERIAL, the definition a per-cell byte
+## index refers to. A cell's byte in TerrainData.tile_types indexes into the catalog's `types`
+## array to reach one of these. Properties here are shared once per type (not repeated per cell).
 ##
-## Passability is PERMANENT and type-driven (water/forest = not passable, forever); the
-## only temporary obstruction is buildings (tracked separately by TerrainGrid). Heights
-## are a separate layer — a cell can be an Open (passable, buildable) type yet still be
-## non-buildable because it's sloped (see TerrainGrid.is_flat) or impassable because it's
-## too steep (TerrainGrid._STEEP, the distinct cliff layer).
+## A material is art only: every material is walkable and buildable. What makes ground
+## impassable is always visible in its geometry — a slope too steep (TerrainGrid._STEEP), deep
+## water, a void the mesh bake found, or the edge of play.
+## gdd/systems/terrain-and-navigation/map-composition.md §What survives of the tile-type layer.
 
 ## Human-readable name (inspector/debug only).
-@export var name: String = "Open"
-
-## Whether units may traverse a cell of this type. False = a permanent barrier
-## (water, forest, cliff-type, scripted no-go). Feeds TerrainGrid's _BLOCKED bit.
-@export var passable: bool = true
-
-## Whether structures may be placed on a cell of this type. Only meaningful when
-## `passable`; the final buildability of a cell also requires flat ground
-## (TerrainGrid.is_flat), so a buildable type on a slope is still not buildable.
-@export var buildable: bool = true
-
-## Whether a cell of this type contributes SURFACE geometry to the visual terrain mesh.
-## This is a VISUAL concern, deliberately separate from `passable` (a NAV concern): water
-## and forest are impassable yet still rendered (true), while cliff / scripted no-go are
-## rendered as literal holes in the mesh — the background shows through — so their surface
-## is omitted (false). HeightmapMeshGenerator reads this per cell; a false value skips the
-## cell's quad. (Cells that are too STEEP become holes regardless, via corner-height spread.)
-@export var renders_surface: bool = true
+@export var name: String = "Grass"
 
 ## Flat albedo the baseline terrain shader shows for a cell of this type, until real
 ## per-type texturing lands (see the reserved `texture` below). HeightmapMeshGenerator bakes

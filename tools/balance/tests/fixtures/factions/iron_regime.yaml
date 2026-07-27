@@ -53,7 +53,7 @@ buildables:
     name: Heavy Tank
     cost: {ore: 600}
     requires: [compound]
-    armour: HEAVY
+    armour: STRONG
     hp: 800
     movement: {layer: ground, speed: 0.1}
     weapons: [cannon]

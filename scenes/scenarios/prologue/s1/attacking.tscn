@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://eqq0v4pqefy4"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_6etly"]
+
+[node name="DialogPage" type="VBoxContainer" unique_id=1514761984]
+custom_minimum_size = Vector2(520, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_6etly")
+title = "Attacking"
+body = "Your irregulars can attack enemy units. You can target specific units by hovering over them and clicking {{ command_issue }}.
+
+Note that different units have different abilities; e.g. your Sapper cannot attack, and will ignore the command."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

@@ -1,7 +1,7 @@
 extends GutTest
 
 ## The Scenario must guarantee a ScenarioTriggerManager (the event host) so that
-## commander ordnances and scripted events always have somewhere to run — even in a
+## commander sanctions and scripted events always have somewhere to run — even in a
 ## scene like skirmish.tscn that declares no triggers. Guards the regression where
 ## bots silently no-op'd because the booted scene had no host.
 ##

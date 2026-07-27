@@ -3,9 +3,9 @@ class_name CU
 ## Single-linkage agglomerative clustering.
 ## Merges clusters whose minimum inter-node distance is below the threshold.
 ## Returns an Array of Arrays, each subarray being one cluster.
-static func get_nodes_clustered(a_nodes: Array, distance_threshold: float) -> Array:
+static func get_nodes_clustered(nodes: Array, distance_threshold: float) -> Array:
 	var clusters: Array = []
-	for node in a_nodes:
+	for node in nodes:
 		clusters.append([node])
 
 	var merged: bool = true

@@ -1,9 +1,9 @@
 extends GutTest
 
-## A Mine built on a Deposit leaves BOTH remembered as fog-of-war snapshots at the same
-## grid cell (the neutral Deposit and the enemy Mine are each a "foreign structure").
+## A Extractor built on an ExtractionSite leaves BOTH remembered as fog-of-war snapshots at the same
+## grid cell (the neutral ExtractionSite and the enemy Extractor are each a "foreign structure").
 ## CommanderBlackboard._suppress_overlapping_snapshots collapses each cell to one visible
-## image, with a Deposit yielding to the Mine overlaid on it.
+## image, with an ExtractionSite yielding to the Extractor overlaid on it.
 
 var _cmdr: Commander
 var _bb: CommanderBlackboard
@@ -23,31 +23,33 @@ func after_each() -> void:
 
 
 ## Build a visible snapshot at `cell` and register it under a unique key.
-func _snapshot(cell: Vector2i, is_deposit: bool, id: int) -> CommanderBlackboard.Snapshot:
+func _snapshot(
+	a_cell: Vector2i, a_is_extraction_site: bool, a_id: int
+) -> CommanderBlackboard.Snapshot:
 	var node := Sprite3D.new()
 	node.visible = true
 	_sprites.append(node)
 	var snap := CommanderBlackboard.Snapshot.new()
-	snap.structure_id = id
-	snap.cell = cell
-	snap.is_deposit = is_deposit
+	snap.structure_id = a_id
+	snap.cell = a_cell
+	snap.is_extraction_site = a_is_extraction_site
 	snap.node = node
-	_bb._snapshots["%d:%s" % [id, cell]] = snap
+	_bb._snapshots["%d:%s" % [a_id, a_cell]] = snap
 	return snap
 
 
-func test_mine_snapshot_hides_the_deposit_on_the_same_cell() -> void:
-	var deposit := _snapshot(Vector2i(4, 4), true, 1)
-	var mine := _snapshot(Vector2i(4, 4), false, 2)
+func test_extractor_snapshot_hides_the_site_on_the_same_cell() -> void:
+	var site := _snapshot(Vector2i(4, 4), true, 1)
+	var extractor := _snapshot(Vector2i(4, 4), false, 2)
 	_bb._suppress_overlapping_snapshots()
-	assert_false(deposit.node.visible, "deposit snapshot should hide under the mine")
-	assert_true(mine.node.visible, "mine snapshot should remain visible")
+	assert_false(site.node.visible, "extraction site snapshot should hide under the extractor")
+	assert_true(extractor.node.visible, "extractor snapshot should remain visible")
 
 
-func test_deposit_alone_stays_visible() -> void:
-	var deposit := _snapshot(Vector2i(4, 4), true, 1)
+func test_site_alone_stays_visible() -> void:
+	var site := _snapshot(Vector2i(4, 4), true, 1)
 	_bb._suppress_overlapping_snapshots()
-	assert_true(deposit.node.visible, "a lone deposit snapshot should stay visible")
+	assert_true(site.node.visible, "a lone extraction site snapshot should stay visible")
 
 
 func test_snapshots_on_different_cells_both_stay_visible() -> void:
@@ -59,7 +61,7 @@ func test_snapshots_on_different_cells_both_stay_visible() -> void:
 
 
 func test_equal_rank_collision_keeps_exactly_one_visible() -> void:
-	# Two non-deposit structures somehow on one cell: still collapse to a single image.
+	# Two non-site structures somehow on one cell: still collapse to a single image.
 	var a := _snapshot(Vector2i(4, 4), false, 1)
 	var b := _snapshot(Vector2i(4, 4), false, 2)
 	_bb._suppress_overlapping_snapshots()

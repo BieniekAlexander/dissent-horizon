@@ -2,13 +2,13 @@ class_name InteractOpportunity
 extends BotOpportunity
 
 ## InteractOpportunity — send an Interactor unit to perform an Interaction on a target,
-## valued in ore-equivalent so it ranks against every other [BotOpportunity]. Generic
+## valued in energy-equivalent so it ranks against every other [BotOpportunity]. Generic
 ## over the interaction kind: the gatherer computes the gain (`value`) and this just
-## charges travel and issues the Interact. Used for the Colonial capture / shelter-
-## collect / internment-deposit loop (see BotOpportunist), and reusable by any future
-## interaction-driven dominion mechanic.
+## charges travel and issues the Interact. Used for the Compound-deposit half of the Colonial
+## dominion loop (see BotOpportunist) — its capture half is CONTACT, not an interaction, and
+## is a [ContactOpportunity] — and reusable by any future interaction-driven mechanic.
 
-## Ore-value charged per world-unit of travel — same scale/idea as LiberationOpportunity,
+## Energy-value charged per world-unit of travel — same scale/idea as ContactOpportunity,
 ## so a nearer target outranks a distant one of equal gain.
 const TRAVEL_COST_PER_UNIT: float = 2.0
 
@@ -36,8 +36,8 @@ func utility() -> float:
 	return _value - _travel_weight * _distance
 
 
-func execute(act: BotActuator) -> void:
-	act.interact(actor, _target)
+func execute(a_act: BotActuator) -> void:
+	a_act.interact(actor, _target)
 
 
 func describe() -> String:

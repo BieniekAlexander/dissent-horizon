@@ -1,0 +1,25 @@
+description: |
+  One Colonial anti-mech trooper against a stock truck.
+
+  THE TRUCK IS UNARMED, so its order is a MOVE onto the trooper rather than an attack: its
+  answer to infantry is to drive over them. The claim is that one trooper is not enough to
+  stop it — the truck survives the approach.
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      truck:
+        of: [ { piece: cl_mechLight_dominionGen, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { move: { target: B.troopers } } ]
+  B:
+    with:
+      troopers:
+        of: [ { piece: cl_bioLight_antiMech, count: 1 } ]
+        at: { from: A.truck, distance: 12, bearing: east }
+        facing: west
+        orders: [ { attack: { target: A.truck } } ]
+run: { for: 30s, seed: 1 }
+expect:
+  - { of: A.truck, check: alive }

@@ -12,7 +12,7 @@ extends Node
 ##                 back to STEALTHED the moment it leaves every detector's range.
 ##                 Faintly visible to everyone.
 ##   UNSTEALTHED — it has attacked or been attacked, forcing it fully visible for
-##                 UNSTEALTH_DURATION_FRAMES regardless of detector coverage.
+##                 UNSTEALTH_DURATION_TICKS regardless of detector coverage.
 ##
 ## Detection protocol (frame-stamp approach, ordering-safe):
 ##   - Any entity with a DetectionRange shape calls reveal() on this node each
@@ -32,7 +32,7 @@ enum State {
 
 ## Physics frames the unit stays UNSTEALTHED after the last combat event.
 ## 90 frames ≈ 3 s at 30 ticks/s.
-const UNSTEALTH_DURATION_FRAMES: int = 90
+const UNSTEALTH_DURATION_TICKS: int = 90
 #endregion
 
 #region Properties
@@ -42,7 +42,7 @@ var state: State = State.STEALTHED
 
 ## Remaining frames in the UNSTEALTHED window. Only meaningful while
 ## state == State.UNSTEALTHED; counts down each tick.
-var _unstealth_timer_frames: int = 0
+var _unstealth_timer_ticks: int = 0
 
 ## Physics-frame index of the most recent reveal() call. -1 = never detected.
 var _last_detected_frame: int = -1
@@ -55,6 +55,11 @@ func _ready() -> void:
 	var entity := get_parent() as Entity
 	if entity != null:
 		entity.collision_layer |= CollisionLayers.Mask.STEALTH
+	# Gaining stealth holds fire, whether the piece was authored with it or granted it later —
+	# idle aggro would otherwise spend the stealth on whatever wandered past.
+	var actor := entity as Commandable
+	if actor != null:
+		actor.is_holding_fire = true
 #endregion
 
 #region Public API
@@ -68,7 +73,7 @@ func reveal() -> void:
 ## window, which persists even after the unit leaves every detector's range.
 func unstealth() -> void:
 	state = State.UNSTEALTHED
-	_unstealth_timer_frames = UNSTEALTH_DURATION_FRAMES
+	_unstealth_timer_ticks = UNSTEALTH_DURATION_TICKS
 
 
 ## Advance stealth state by one physics tick. Must be called once per tick from
@@ -80,10 +85,10 @@ func tick() -> void:
 	# regardless of detector coverage. Once it closes, fall through to the
 	# detector-driven STEALTHED/REVEALED decision below.
 	if state == State.UNSTEALTHED:
-		_unstealth_timer_frames -= 1
-		if _unstealth_timer_frames > 0:
+		_unstealth_timer_ticks -= 1
+		if _unstealth_timer_ticks > 0:
 			return
-		_unstealth_timer_frames = 0
+		_unstealth_timer_ticks = 0
 
 	state = State.REVEALED if detected else State.STEALTHED
 #endregion

@@ -62,8 +62,10 @@ def damage_per_shot(table: DamageTable, weapon: Weapon, target: Buildable) -> fl
     for amount, dtype in shot_components(weapon):
         armour_mult = table.armour_multiplier(dtype, target.armour) if target.armour else 1.0
         frame_mult = table.frame_multiplier(dtype, target.frame) if target.frame else 1.0
-        attr_mult = table.attribute_multiplier(dtype, target.attributes, target.layer)
-        total += amount * armour_mult * frame_mult * attr_mult
+        # Two axes only, as in the live game (scripts/damage/damage_table.gd): the attribute
+        # multipliers (damage_vs_attribute.tsv) are deprecated — armour classes and movement
+        # physics carry that specificity. See gdd/design-framework/static-defence.md.
+        total += amount * armour_mult * frame_mult
     return total
 
 
@@ -119,7 +121,7 @@ def feature_vector(table: DamageTable, unit: Buildable) -> dict[str, float]:
     """Benefit axes for Pareto comparison (higher = better on every axis).
 
     Cost is handled separately (lower is better) by the Pareto routine. DPS is
-    broken out per *armour class faced* so an anti-heavy unit isn't judged
+    broken out per *armour class faced* so an anti-strong unit isn't judged
     obsolete just because it underperforms against light targets.
     """
     from .model import Armour  # local import to avoid cycle at module load

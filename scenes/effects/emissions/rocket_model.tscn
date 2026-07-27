@@ -1,0 +1,89 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.45, 0.47, 0.42, 1)
+metallic = 0.4
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nose"]
+albedo_color = Color(0.7, 0.18, 0.12, 1)
+metallic = 0.2
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fin"]
+albedo_color = Color(0.25, 0.26, 0.24, 1)
+metallic = 0.3
+roughness = 0.7
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_body"]
+material = SubResource("StandardMaterial3D_body")
+top_radius = 0.035
+bottom_radius = 0.035
+height = 0.4
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_nose"]
+material = SubResource("StandardMaterial3D_nose")
+top_radius = 0.0
+bottom_radius = 0.035
+height = 0.1
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_nozzle"]
+material = SubResource("StandardMaterial3D_fin")
+top_radius = 0.022
+bottom_radius = 0.028
+height = 0.03
+radial_segments = 12
+rings = 1
+
+[sub_resource type="BoxMesh" id="BoxMesh_fin_h"]
+material = SubResource("StandardMaterial3D_fin")
+size = Vector3(0.14, 0.006, 0.08)
+
+[sub_resource type="BoxMesh" id="BoxMesh_fin_v"]
+material = SubResource("StandardMaterial3D_fin")
+size = Vector3(0.006, 0.14, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_flame"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(1, 0.62, 0.2, 0.9)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_flame"]
+material = SubResource("StandardMaterial3D_flame")
+top_radius = 0.022
+bottom_radius = 0.0
+height = 0.12
+radial_segments = 8
+rings = 1
+
+[node name="RocketModel" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+mesh = SubResource("CylinderMesh_body")
+
+[node name="Nose" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -0.25)
+mesh = SubResource("CylinderMesh_nose")
+
+[node name="Nozzle" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.215)
+mesh = SubResource("CylinderMesh_nozzle")
+
+[node name="FinsH" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.15)
+mesh = SubResource("BoxMesh_fin_h")
+
+[node name="FinsV" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.15)
+mesh = SubResource("BoxMesh_fin_v")
+
+[node name="Flame" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.29)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_flame")

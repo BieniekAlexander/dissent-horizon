@@ -5,6 +5,11 @@ extends ControlBinding
 ## entity reference (piece id + packed_scene) and a faction UI mask over the
 ## base binding's command_name / label / grid_position / control_context.
 ##
+## Its BUTTON TEXT is the piece's doc `title` and its two tooltip tiers are
+## synthesized from the same doc's stats — all three arrive through tools.json, so
+## renaming or rebalancing a piece re-labels and re-describes its button with no code
+## or scene edit (see SpecGenerators.tools_json).
+##
 ## command_tool_map is BUILT FROM GENERATED DATA: resources/generated/tools.json,
 ## which the spec importer derives from each piece doc's `ui:` frontmatter (see
 ## tools/spec_import). To add a buildable/trainable thing, give its gdd doc a
@@ -18,22 +23,6 @@ extends ControlBinding
 #region Constants
 const TOOLS_JSON_PATH: String = "res://resources/generated/tools.json"
 
-## UI-layout faction grouping, as a bitmask (overrides ControlBinding's
-## all-factions default via faction_mask()). This is BUTTON-GRID metadata for
-## the collision review — two tools may share a grid cell only if their faction
-## masks are disjoint. It is NOT a gameplay gate: piece availability is
-## technology (structures owned), never a faction tag. Names mirror the doc
-## `ui.factions` strings, uppercased.
-enum Faction {
-	NEUTRAL     = 1 << 0,
-	TECHNOCRACY = 1 << 1,
-	ANARCHISTS  = 1 << 2,
-	COLLECTIVE  = 1 << 3,
-	FACTION_E   = 1 << 4,
-	FACTION_F   = 1 << 5,
-	FACTION_G   = 1 << 6,
-	FACTION_H   = 1 << 7,
-}
 #endregion
 
 #region Properties
@@ -42,9 +31,33 @@ var type: StringName
 var packed_scene: PackedScene
 ## Bitmask of Faction values; surfaced to the collision review via faction_mask().
 var faction: int
+## For a TRAIN tool, the ids of the structures whose `trains:` list names this piece —
+## the only selections whose card can ever draw this button. Empty for BUILD tools, whose
+## builders are declared in scenes (Builds.buildable_types) rather than in the docs.
+## Surfaced to the collision review via actor_ids().
+var producers: Array
+## This PRODUCER's cell in row 0 of the PRODUCTION card — the radio button that picks whose
+## training the card is showing — or (-1, -1) for a piece that is not a producer.
+##
+## A SECOND cell, not a reuse of `grid_position`: that one is where this piece's own BUILD
+## button sits on a builder's menu, which is a different button in a different list. Authored
+## (`ui.context_grid`) rather than packed per selection, because a cell must be a fixed
+## property of a piece — a key that trains from a barracks in one selection and a war factory
+## in another is exactly what positional hotkeys exist to prevent.
+var context_grid: Vector2i = Vector2i(-1, -1)
+
+## True when this piece carries a CHARGED weapon, so every one the commander fields wants
+## a docking pad to rearm at. Derived by the importer from the doc's weapon list, and read
+## by the HUD's capacity soft gate — which needs the answer every frame and must not
+## instantiate the unit scene to get it.
+var needs_docking: bool = false
 #endregion
 
 #region Lifecycle
+## TODO: twelve parameters, all of them one piece's generated facts. The composition rework
+## (gdd/systems/authoring/composition-rework.md) is what shortens this — a Tool built from
+## the piece's own spec rather than from a positional argument list. `gdlint` reports it
+## until then.
 func _init(
 	a_command_name: String,
 	a_type: StringName,
@@ -52,15 +65,39 @@ func _init(
 	a_label: String,
 	a_grid_position: Vector2i,
 	a_control_context: int,
-	a_faction: int
+	a_faction: int,
+	a_simple_tooltip: String = "",
+	a_verbose_tooltip: String = "",
+	a_producers: Array = [],
+	a_needs_docking: bool = false,
+	a_context_grid: Vector2i = Vector2i(-1, -1)
 ) -> void:
-	super(a_command_name, a_label, a_grid_position, a_control_context)
+	# A tool's card follows from what it does, so it is never authored twice: placing a
+	# structure is an order given to a UNIT and belongs beside that unit's other orders,
+	# while training is what a producer does with energy. See ControlBinding.CommandFamily.
+	var command_family: int = CommandFamily.PRODUCTION \
+		if (a_control_context & ControlContext.TRAIN) != 0 else CommandFamily.ACTIVE
+	super(a_command_name, a_label, a_grid_position, a_control_context,
+		a_simple_tooltip, a_verbose_tooltip, command_family)
 	type = a_type
 	packed_scene = a_packed_scene
 	faction = a_faction
+	producers = a_producers
+	needs_docking = a_needs_docking
+	context_grid = a_context_grid
 
 func faction_mask() -> int:
 	return faction
+
+func actor_ids() -> Array:
+	return producers
+
+## A train button no producer can offer. `producers` is DERIVED from every `trains:` list
+## in the docs, so for a TRAIN tool it is complete by construction and an empty one is a
+## fact rather than an omission. Never true of a BUILD tool: builders are declared in
+## scenes (Builds.buildable_types), which this registry does not read.
+func is_orphaned() -> bool:
+	return (control_context & ControlContext.TRAIN) != 0 and producers.is_empty()
 #endregion
 
 #region Registry
@@ -82,25 +119,48 @@ static func _load_registry() -> Dictionary:
 		if scene == null:
 			push_error("Tool: %s scene missing: %s" % [command_name, e["scene"]])
 			continue
-		var mask: int = 0
-		for fname in e.get("factions", []):
-			var key: String = str(fname).to_upper()
-			if Faction.has(key):
-				mask |= Faction[key]
-			else:
-				push_error("Tool: %s has unknown ui faction '%s'" % [command_name, fname])
-		if mask == 0:
-			mask = ControlBinding.FACTION_ANY
-		out[String(command_name)] = Tool.new(
-			String(command_name),
-			StringName(str(e["id"])),
-			scene,
-			str(e["label"]),
-			Vector2i(int(e["grid"][0]), int(e["grid"][1])),
-			ControlContext.BUILD if str(e["context"]) == "BUILD" else ControlContext.TRAIN,
-			mask
-		)
+		out[String(command_name)] = from_entry(String(command_name), e, scene)
 	return out
+
+## One tools.json entry as a Tool. `scene` is passed in rather than loaded here so the spec
+## importer can build its not-yet-written entries (with a null scene) to review the grid
+## before it writes anything — see SpecGenerators.grid_collisions.
+static func from_entry(command_name: String, e: Dictionary, scene: PackedScene) -> Tool:
+	var mask: int = 0
+	for fname in e.get("factions", []):
+		var key: String = str(fname).to_upper()
+		if Faction.has(key):
+			mask |= Faction[key]
+		else:
+			# Loud, because the fallback below is the permissive one: an unrecognised name
+			# widens the tool to every faction and so makes it collide with everything in its
+			# cell. Add the member to Faction rather than living with the error.
+			push_error("Tool: %s has unknown ui faction '%s' — add it to ControlBinding.Faction" \
+				% [command_name, fname])
+	if mask == 0:
+		mask = ControlBinding.FACTION_ANY
+	var producer_ids: Array = []
+	for p in e.get("producers", []):
+		producer_ids.append(StringName(str(p)))
+	return Tool.new(
+		command_name,
+		StringName(str(e["id"])),
+		scene,
+		str(e["label"]),
+		Vector2i(int(e["grid"][0]), int(e["grid"][1])),
+		ControlContext.BUILD if str(e["context"]) == "BUILD" else ControlContext.TRAIN,
+		mask,
+		str(e.get("tooltip", "")),
+		str(e.get("verbose", "")),
+		producer_ids,
+		bool(e.get("needs_docking", false)),
+		_cell(e.get("context_grid", []))
+	)
+
+## A generated [x, y] pair as a cell, or (-1, -1) when the list is absent or malformed.
+static func _cell(value: Variant) -> Vector2i:
+	return Vector2i(int(value[0]), int(value[1])) \
+		if value is Array and value.size() == 2 else Vector2i(-1, -1)
 
 ## piece id -> Tool. Lazily built; cached after first use.
 static var _by_id_cache: Dictionary = {}
@@ -114,23 +174,23 @@ static func _by_id() -> Dictionary:
 
 #region Lookups
 ## The Tool with this command name, or null.
-static func for_name(a_command_name: String) -> Tool:
-	return command_tool_map.get(a_command_name)
+static func for_name(command_name: String) -> Tool:
+	return command_tool_map.get(command_name)
 
 ## The Tool that produces/places this piece id, or null.
-static func for_id(a_id: StringName) -> Tool:
-	return _by_id().get(a_id)
+static func for_id(id: StringName) -> Tool:
+	return _by_id().get(id)
 
 ## Back-compat alias for for_id (the field is still named `type`).
-static func for_type(a_id: StringName) -> Tool:
-	return for_id(a_id)
+static func for_type(id: StringName) -> Tool:
+	return for_id(id)
 
 ## Tools (in registry order) whose control_context intersects the given context
 ## bitmask. The single context filter used by command_context_parser.tools_for().
-static func tools_in_context(a_context: int) -> Array:
+static func tools_in_context(context: int) -> Array:
 	var out: Array = []
 	for t: Tool in command_tool_map.values():
-		if (t.control_context & a_context) != 0:
+		if (t.control_context & context) != 0:
 			out.append(t)
 	return out
 #endregion

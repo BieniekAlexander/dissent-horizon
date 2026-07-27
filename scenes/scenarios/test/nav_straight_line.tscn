@@ -1,0 +1,56 @@
+[gd_scene format=3]
+
+; A deliberately EMPTY scenario: a dead-flat map, one human slot, and nothing else — no bot,
+; no deposits, no starting forces (base Scenario._spawn_initial_entities is a no-op, unlike
+; Skirmish's). It exists so a single unit can be measured in genuinely unobstructed space,
+; with no neighbour for RVO to react to and no obstacle for the navmesh to route around.
+;
+; Driven by tools/terrain_meshes/probe_velocity_angle.gd.
+
+[ext_resource type="Script" path="res://scripts/scenario.gd" id="1_scenario"]
+[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="2_slot"]
+[ext_resource type="Script" path="res://scripts/maps/map.gd" id="3_map"]
+[ext_resource type="Resource" path="res://resources/terrain/mesh_flat_terrain.tres" id="4_terrain"]
+[ext_resource type="Shape3D" path="res://resources/terrain/mesh_flat_terrain_shape.tres" id="5_shape"]
+[ext_resource type="ArrayMesh" path="res://resources/terrain/test_meshes/flat_plain.res" id="11_mesh"]
+[ext_resource type="Script" path="res://scripts/maps/terrain/terrain_surface.gd" id="6_surface"]
+[ext_resource type="Shader" path="res://scripts/rendering/shaders/terrain_surface.gdshader" id="7_shader"]
+[ext_resource type="PackedScene" path="res://scenes/factions/colonial.tscn" id="8_faction"]
+
+[sub_resource type="Resource" id="PlayerSlot_human"]
+script = ExtResource("2_slot")
+is_bot = false
+faction = ExtResource("8_faction")
+starting_energy = 5000
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_empty"]
+
+[sub_resource type="ShaderMaterial" id="Material_terrain"]
+shader = ExtResource("7_shader")
+
+[node name="Scenario" type="Node3D"]
+script = ExtResource("1_scenario")
+player_slots = Array[ExtResource("2_slot")]([SubResource("PlayerSlot_human")])
+
+[node name="Map" type="Node3D" parent="."]
+script = ExtResource("3_map")
+terrain_data = ExtResource("4_terrain")
+terrain_source_mesh = ExtResource("11_mesh")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_empty")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion"]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body"]
+shape = ExtResource("5_shape")
+
+[node name="TerrainSurface" type="MeshInstance3D" parent="Map/NavigationRegion/Body"]
+script = ExtResource("6_surface")
+material = SubResource("Material_terrain")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.766, 0.369, -0.527, 0, 0.819, 0.574, 0.643, -0.44, 0.628, 0, 40, 0)
+light_energy = 1.1

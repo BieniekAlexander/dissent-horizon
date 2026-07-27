@@ -24,7 +24,11 @@ extends NavigationAgent3D
 ## Bit layout (32 avoidance layers):
 ##   bits  0.. 7 — agent team channels (one per commander id, 0..7)
 ##   bits  8..15 — obstacle channels   (one per commander id, shifted by TEAM_BITS)
-##   bits 16..31 — per-pair exception pool
+##   bits 16..30 — per-pair exception pool
+##   bit  31     — the STANDING channel: a piece that has planted itself (a deployed unit,
+##                 see Deployable) broadcasts its obstacle here. It is never handed out as
+##                 an exception bit, and every agent masks the whole pool range, so every
+##                 agent of every team steers around a standing piece one-sided.
 
 #region Constants
 ## Number of low layer bits reserved for commander team channels.
@@ -35,8 +39,11 @@ const _ALL_TEAMS: int = (1 << _TEAM_BITS) - 1
 const _ALL_OBSTACLES: int = _ALL_TEAMS << _TEAM_BITS
 ## First bit of the exception pool.
 const _POOL_START: int = 2 * _TEAM_BITS  ## = 16
-## Mask of every exception-pool bit (bits POOL_START..31).
+## Mask of every bit from POOL_START up: the exception pool AND the standing channel, which
+## is why masking it makes every agent avoid a standing piece.
 const _POOL_MASK: int = (~((1 << _POOL_START) - 1)) & 0xFFFFFFFF
+## The obstacle channel a standing piece broadcasts on — the top bit, withheld from the pool.
+const STANDING_OBSTACLE_BIT: int = 1 << 31
 #endregion
 
 #region Properties
@@ -68,7 +75,8 @@ static func _ensure_pool() -> void:
 	if _pool_ready:
 		return
 	for i: int in range(_POOL_START, 32):
-		_free_bits.append(1 << i)
+		if (1 << i) != STANDING_OBSTACLE_BIT:
+			_free_bits.append(1 << i)
 	_pool_ready = true
 
 
@@ -88,9 +96,9 @@ static func obstacle_bit(commander_id: int) -> int:
 ## that commander's team bit and masks own-team agents + all foreign obstacles +
 ## the exception pool. Same-team pairs get reciprocal RVO; cross-team avoidance
 ## is one-sided via NavigationObstacle3D (see Commandable._on_commander_changed).
-func enable_avoidance(commander_id: int) -> void:
+func enable_avoidance(a_commander_id: int) -> void:
 	avoidance_enabled = true
-	_team_bit = team_bit(commander_id)
+	_team_bit = team_bit(a_commander_id)
 	avoidance_layers = _broadcast_bit()
 	avoidance_mask = _current_mask()
 
@@ -98,28 +106,28 @@ func enable_avoidance(commander_id: int) -> void:
 #region Per-pair exceptions
 ## Make this agent and `other` ignore each other in RVO, leaving every other
 ## avoidance interaction for both agents unchanged. Idempotent and symmetric.
-func add_avoidance_exception_with(other: AvoidanceAgent3D) -> void:
-	if other == null or other == self or _exceptions.has(other):
+func add_avoidance_exception_with(a_other: AvoidanceAgent3D) -> void:
+	if a_other == null or a_other == self or _exceptions.has(a_other):
 		return
 	_ensure_unique_bit()
-	other._ensure_unique_bit()
-	_exceptions[other] = true
-	other._exceptions[self] = true
+	a_other._ensure_unique_bit()
+	_exceptions[a_other] = true
+	a_other._exceptions[self] = true
 	_apply_mask()
-	other._apply_mask()
+	a_other._apply_mask()
 
 
 ## Restore mutual avoidance between this agent and `other`. Idempotent.
-func remove_avoidance_exception_with(other: AvoidanceAgent3D) -> void:
-	if other == null or not _exceptions.has(other):
+func remove_avoidance_exception_with(a_other: AvoidanceAgent3D) -> void:
+	if a_other == null or not _exceptions.has(a_other):
 		return
-	_exceptions.erase(other)
+	_exceptions.erase(a_other)
 	_apply_mask()
 	_maybe_release_bit()
-	if is_instance_valid(other):
-		other._exceptions.erase(self)
-		other._apply_mask()
-		other._maybe_release_bit()
+	if is_instance_valid(a_other):
+		a_other._exceptions.erase(self)
+		a_other._apply_mask()
+		a_other._maybe_release_bit()
 
 
 ## Drop all of this agent's avoidance exceptions, restoring every partner.
@@ -133,10 +141,10 @@ func clear_avoidance_exceptions() -> void:
 ## because every nearby enemy currently on that channel is one this agent can crush
 ## (see the _crush_excluded_obstacles caveat above). Pass 0 to clear. Called every
 ## tick by Commandable._update_crush_avoidance_exclusions(); a no-op when unchanged.
-func set_crush_excluded_obstacles(mask: int) -> void:
-	if mask == _crush_excluded_obstacles:
+func set_crush_excluded_obstacles(a_mask: int) -> void:
+	if a_mask == _crush_excluded_obstacles:
 		return
-	_crush_excluded_obstacles = mask
+	_crush_excluded_obstacles = a_mask
 	_apply_mask()
 #endregion
 
@@ -185,7 +193,8 @@ func _ensure_unique_bit() -> void:
 		return
 	_ensure_pool()
 	if _free_bits.is_empty():
-		push_warning("AvoidanceAgent3D: avoidance bit pool exhausted (>%d concurrent exceptions); pair not fully isolated" % (32 - _POOL_START))
+		push_warning(("AvoidanceAgent3D: avoidance bit pool exhausted (>%d concurrent exceptions);"
+			+ " pair not fully isolated") % (31 - _POOL_START))
 		return
 	_unique_bit = _free_bits.pop_back()
 	avoidance_layers = _unique_bit
@@ -199,7 +208,7 @@ func _maybe_release_bit() -> void:
 		avoidance_layers = _team_bit
 
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
+func _notification(a_what: int) -> void:
+	if a_what == NOTIFICATION_PREDELETE:
 		clear_avoidance_exceptions()
 #endregion

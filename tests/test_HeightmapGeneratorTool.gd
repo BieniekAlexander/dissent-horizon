@@ -40,13 +40,13 @@ func _graph_gen() -> GraphPlateauHeightmapGenerator:
 	return g
 
 
-func _make_tool(gen: HeightmapGenerator) -> HeightmapGeneratorTool:
+func _make_tool(a_gen: HeightmapGenerator) -> HeightmapGeneratorTool:
 	var t := HeightmapGeneratorTool.new()
 	add_child_autofree(t)
 	var mg := HeightmapMeshGenerator.new()
 	add_child_autofree(mg)
 	t.mesh_generator = mg
-	t.generator = gen
+	t.generator = a_gen
 	t.shape = _make_shape()
 	mg.shape = t.shape
 	return t

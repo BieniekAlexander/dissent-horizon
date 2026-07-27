@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://tcx25lew0ufg"]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_ul6uq"]
+
+[node name="SanctionTutorial" type="VBoxContainer" unique_id=1321947336]
+custom_minimum_size = Vector2(520, 0)
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_ul6uq")
+title = "Sanctions"
+body = "When you aggregate enough dominion, you can unlock sanctions which can be used in battle. They appear on the top of the screen, and you can click on them to unlock them and then use them. Hover over them to understand what they do."
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"
