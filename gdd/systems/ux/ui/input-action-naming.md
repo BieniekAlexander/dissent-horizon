@@ -114,6 +114,13 @@ often as it resolves to a move. The alternative — reading the prefix as a topi
 a route — would have cost the rule that keeps modifiers out of the dispatcher, which is
 worth more.
 
+## `command_armed_issue` and `command_armed_cancel`
+
+Two more names that begin `command_` and are not grid commands. They are what the controller reads
+for "carry out / put down the armed order", sourced at runtime from `world_select` and `command_issue`
+by the control scheme ([control-matrices](control-matrices.md) §Armed-order scheme). They are handled
+above the prefix dispatcher for the same reason `command_issue` is.
+
 ## What is still open
 
 The UI-click question above is **unanswered and unbuilt**. `world_select` names the world
