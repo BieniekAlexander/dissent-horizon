@@ -24,7 +24,7 @@ extends RefCounted
 ##   speed: float            gives it a navigated `Movement` at this speed (default: immobile)
 ##   vision: float           radius of a `VisionRange` cylinder (default: none)
 ##   weapon: Dictionary      a `Loadout` with one `Weapon`:
-##                             projectile: bool  ranged (default when it has reach) or melee
+##                             projectile: bool  ranged (it carries a blank projectile) or melee (default)
 ##                             damage: float  per hit (default 0: a fake gun wounds nobody)
 ##                             ground: float  radius of its ground reach (0 = none)
 ##                             air: float     radius of its air reach (0 = none)
@@ -81,15 +81,41 @@ const MACHINE: Dictionary = {"speed": 2.0, "vision": 8.0, "frame": Defense.Frame
 const AIRCRAFT: Dictionary = {"aerial": true, "vision": 8.0, "weapon": {"ground": 6.0}}
 
 
-## Whichever of `unit` / `structure` the options name (`"structure": true` picks the latter).
-static func make(a_options: Dictionary = {}) -> Commandable:
+## Whichever of `unit` / `structure` / `feature` the options name (`"structure": true`,
+## `"feature": true`).
+static func make(a_options: Dictionary = {}) -> Entity:
+	if a_options.get("feature", false):
+		return feature(a_options)
 	return _build(a_options, bool(a_options.get("structure", false)))
+
+
+## An UNCOMMANDABLE fixture: an `Entity` with a footprint and hit points that takes no orders
+## (a neutral marker, a resource site). Options as for `structure()`.
+static func feature(a_options: Dictionary = {}) -> Entity:
+	var piece := Entity.new()
+	piece.name = "FakeFeature"
+	piece.id = a_options.get("id", &"fake_feature")
+	piece.add_to_group(&"piece", true)
+	piece.add_to_group(&"fixture", true)
+	_add_scene(piece, "target_body.tscn", "TargetBody")
+	_add_scene(piece, "selectable.tscn", "Selectable")
+	_add_node(piece, Ownership.new(), "Ownership")
+	var defense := Defense.new()
+	defense.hp_max = float(a_options.get("hp", 100.0))
+	_add_node(piece, defense, "Defense")
+	var body := Structure.new()
+	body.dimensions = a_options.get("dimensions", Vector2i(1, 1))
+	_add_node(piece, body, "Structure")
+	if a_options.get("extraction_site", false):
+		_add_node(piece, ExtractionSite.new(), "ExtractionSite")
+		piece.add_to_group(&"extraction_site", true)
+	return piece
 
 
 ## A PackedScene of the piece `a_options` describes, for code that takes scenes (a spawn event's
 ## `entity_scenes`) rather than instances. Each call packs a fresh copy.
 static func scene_of(a_options: Dictionary = {}) -> PackedScene:
-	var piece: Commandable = make(a_options)
+	var piece: Entity = make(a_options)
 	_claim_for_packing(piece, piece)
 	var scene := PackedScene.new()
 	scene.pack(piece)
@@ -120,10 +146,10 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	piece.id = a_options.get("id", &"fake_structure" if a_structure else &"fake_unit")
 	if a_options.has("occupancy"):
 		piece.occupancy_size = int(a_options["occupancy"])
-	piece.add_to_group(&"piece")
-	piece.add_to_group(&"structure" if a_structure else &"unit")
+	piece.add_to_group(&"piece", true)
+	piece.add_to_group(&"structure" if a_structure else &"unit", true)
 	if a_structure:
-		piece.add_to_group(&"fixture")
+		piece.add_to_group(&"fixture", true)
 
 	# The pieces every Commandable's own lookups require.
 	_add_scene(piece, "navigation_agent.tscn", "NavigationAgent")
@@ -171,7 +197,7 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		(piece.get_node("Selectable") as Selectable).selectable_by_player = bool(a_options["selectable"])
 	if a_options.get("extraction_site", false):
 		_add_node(piece, ExtractionSite.new(), "ExtractionSite")
-		piece.add_to_group(&"extraction_site")
+		piece.add_to_group(&"extraction_site", true)
 	if a_options.get("occupant_dominion", false):
 		_add_node(piece, OccupantDominionGenerator.new(), "DominionGenerator")
 	if a_options.get("liberatable", false):
@@ -281,8 +307,9 @@ static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:
 	loadout.add_child(weapon)
 	var ground: float = float(a_weapon.get("ground", 0.0))
 	var air: float = float(a_weapon.get("air", 0.0))
-	# A gun that reaches somewhere is ranged and fires SOMETHING; `projectile: false` makes it melee.
-	if bool(a_weapon.get("projectile", ground > 0.0 or air > 0.0)):
+	# Melee unless a test asks for a ranged gun: a blank projectile a fake fires is not an Entity,
+	# and nothing here should actually launch one.
+	if bool(a_weapon.get("projectile", false)):
 		weapon.projectile_scene = _blank_projectile()
 	# Reach on both layers is two named shapes, one each; reach on one layer is a lone shape whose
 	# weapon's target_mask names the layer it serves.
@@ -334,7 +361,7 @@ static func _add_reach(a_weapon: Weapon, a_name: String, a_radius: float) -> voi
 	reach.name = a_name
 	if a_radius > 0.0:
 		reach.shape = _cylinder(a_radius)
-	reach.add_to_group(&"debug_shape_attack_range")
+	reach.add_to_group(&"debug_shape_attack_range", true)
 	a_weapon.add_child(reach)
 
 

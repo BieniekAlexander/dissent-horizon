@@ -11,7 +11,7 @@ extends GutTest
 ## Scenes are load()ed INSIDE the tests, never preloaded at file scope — see CLAUDE.md
 ## §Running and testing for the registry poisoning a file-scope preload can cause.
 
-const SHOOTER_PATH: Dictionary = FakePieces.SOLDIER
+const SHOOTER_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {"ground": 6.0, "projectile": true}}
 ## Unarmed.
 const BUILDER_PATH: Dictionary = FakePieces.PLAIN
 ## A gun that reaches the air alone.
