@@ -307,8 +307,7 @@ func test_the_card_filter_does_not_key_on_flavour_text() -> void:
 ## first as the second drew every unbought sanction lit. It did so twice, by two different
 ## routes, which is why both are pinned here.
 func _citadel_of(a_controller: RTSController) -> Commandable:
-	var citadel := (load("res://scenes/entities/structures/cl/cl_commandCenter.tscn") \
-		as PackedScene).instantiate() as Commandable
+	var citadel: Commandable = FakePieces.structure({"abilities": [{"grants": [&"scan"]}]})
 	add_child_autofree(citadel)
 	citadel.ownership.commander = a_controller._commander()
 	assert_true((citadel.get_node("Abilities") as Abilities).grants(&"scan"),
