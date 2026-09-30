@@ -48,6 +48,7 @@ extends RefCounted
 ##   status_visuals: bool    a `StatusVisuals` (badges, tints, pips); pair it with `mesh`
 ##   docking: bool           a `Docking`: the aircraft can land at a friendly airfield
 ##   docking_bay: Dictionary an airfield: pads: int (default 2), runways: int (default 1)
+##   beacon_range: float     a `BeaconRange` of this radius: ground it covers counts as spotted
 ##   abilities: Array        an `Abilities` pool per entry: {grants: [ids], max_charges, cooldown_ticks}
 ##   shelter: bool          a `Shelter` component that spawns a blank unit
 ##   repairs: bool          a `Repairs` component: the piece can mend
@@ -226,6 +227,10 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		_add_node(piece, Docking.new(), "Docking")
 	if a_options.has("docking_bay"):
 		_add_docking_bay(piece, a_options["docking_bay"] as Dictionary)
+	if a_options.has("beacon_range"):
+		var spotting := BeaconRange.new()
+		spotting.radius = float(a_options["beacon_range"])
+		_add_node(piece, spotting, "BeaconRange")
 	if a_options.has("abilities"):
 		var pool := Abilities.new()
 		var groups: Array[Dictionary] = []
@@ -402,6 +407,31 @@ static func _add_scene(a_piece: Node, a_file: String, a_name: String) -> void:
 static func _add_node(a_piece: Node, a_node: Node, a_name: String) -> void:
 	a_node.name = a_name
 	a_piece.add_child(a_node)
+
+
+#region Abilities
+static var _saved_abilities: Dictionary = {}
+
+
+## Define (or redefine) ability `a_id` in the catalog for this test: `a_entry` takes the keys of
+## a `kind: AbilityDefinition` doc (`range`, `cast_by`, `passive`, `title` ...). Mechanics that
+## name an ability by a code constant (`Bombard.ABILITY_ID`) read their numbers from here, so a
+## test states them rather than depending on the shipped doc. Call `restore_abilities` in
+## `after_each`.
+static func install_ability(a_id: StringName, a_entry: Dictionary = {}) -> void:
+	if not _saved_abilities.has(a_id):
+		_saved_abilities[a_id] = AbilityCatalog._definitions.get(String(a_id))
+	AbilityCatalog._definitions[String(a_id)] = AbilityDefinition.from_entry(a_id, a_entry)
+
+
+static func restore_abilities() -> void:
+	for id: StringName in _saved_abilities:
+		if _saved_abilities[id] == null:
+			AbilityCatalog._definitions.erase(String(id))
+		else:
+			AbilityCatalog._definitions[String(id)] = _saved_abilities[id]
+	_saved_abilities.clear()
+#endregion
 
 
 #region Tools, families and technology

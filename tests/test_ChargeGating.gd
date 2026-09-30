@@ -21,7 +21,13 @@ const ABILITY: StringName = &"irradiate"
 var _commander: Commander
 
 
+func after_each() -> void:
+	FakePieces.restore_abilities()
+
+
 func before_each() -> void:
+	FakePieces.install_ability(Bombard.ABILITY_ID, {"range": 30.0})
+	FakePieces.install_ability(ABILITY, {"range": 30.0})
 	_commander = Commander.new()
 	_commander.id = 1
 	add_child_autofree(_commander)
@@ -35,8 +41,8 @@ func _gun(a_ready: bool) -> Commandable:
 	# BASE_INFRASTRUCTURE cannot cover two of them — an unpowered building casts nothing
 	# (see tests/test_InfrastructureStrain.gd), which is not what is under test here.
 	_commander.add_infrastructure(1000)
-	var scene: PackedScene = load("res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn")
-	var gun: Commandable = scene.instantiate()
+	var gun: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2), "beacon_range": 30.0,
+		"abilities": [{"grants": [Bombard.ABILITY_ID], "cooldown_ticks": 100}]})
 	_commander.add_child(gun)
 	autofree(gun)
 	gun.top_level = true
@@ -115,8 +121,7 @@ func _caster(a_charges: int) -> Commandable:
 	# The Vanguard, which is one of the three pieces actually granted the ability. The Warlord
 	# stood here while charges lived in an `Inventory` any unit could be handed at runtime;
 	# a pool is authored per piece, so the fixture has to be a piece that carries one.
-	var scene: PackedScene = load("res://scenes/entities/units/tc/tc_bioLight_antiMech.tscn")
-	var actor: Commandable = scene.instantiate()
+	var actor: Commandable = FakePieces.unit({"speed": 2.0, "vision": 8.0, "abilities": [{}]})
 	_commander.add_child(actor)
 	autofree(actor)
 	actor.top_level = true
