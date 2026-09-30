@@ -423,17 +423,19 @@ static var _saved_abilities: Dictionary = {}
 static var _fake_emissions: Array[String] = []
 
 
-## An EMISSION (a shell): an `Entity` flying a two-phase `PhasedLocomotion` — a flight, then an
+## An EMISSION (a shell; options `hitscan`, `hit_shape`): an `Entity` flying a two-phase `PhasedLocomotion` — a flight, then an
 ## impact that does not end on arrival — carrying a `Payload`. The smallest piece an ability
 ## can throw; nothing about what a shipped shell looks like or hits for.
-static func emission() -> Entity:
+static func emission(a_options: Dictionary = {}) -> Entity:
 	var shell := Entity.new()
 	shell.name = "FakeShell"
 	shell.id = &"fake_shell"
 	_add_node(shell, Ownership.new(), "Ownership")
-	var hit := CollisionShape3D.new()
-	hit.shape = _cylinder(0.5)
-	_add_node(shell, hit, "HitShape")
+	# A blast is a HitShape, which a hitscan emission does not carry (`hit_shape` false drops it).
+	if bool(a_options.get("hit_shape", true)):
+		var hit := CollisionShape3D.new()
+		hit.shape = _cylinder(0.5)
+		_add_node(shell, hit, "HitShape")
 	var flight := EmissionPhase.new()
 	flight.speed = 9.0
 	flight.gravity_mps2 = 4.5
@@ -445,7 +447,9 @@ static func emission() -> Entity:
 	impact.applies_payload = true
 	_add_node(shell, impact, "Impact")
 	_add_node(shell, PhasedLocomotion.new(), "Locomotion")
-	_add_node(shell, Payload.new(), "Payload")
+	var payload := Payload.new()
+	payload.hitscan = bool(a_options.get("hitscan", false))
+	_add_node(shell, payload, "Payload")
 	_claim_for_packing(shell, shell)
 	return shell
 
