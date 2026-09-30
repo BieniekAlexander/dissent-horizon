@@ -10,10 +10,14 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_VariantCycle.gd -gexit
 
+## Fake tools: one whose piece has variants, and one whose piece has none (re-pressing it is unchanged).
+## Fake tools. The variants tool is of `EntityIds.AN_INFRASTRUCTURE` because that id is what the
+## conversion rule is keyed on in code; its variants are a fake neutral-building family.
 const TOOL_NAME: String = "command_tool_an_infrastructure"
 ## A tool whose piece has no variants, to prove re-pressing it is unchanged.
-const PLAIN_TOOL_NAME: String = "command_tool_an_barracks"
-const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const PLAIN_TOOL_NAME: String = "command_tool_fake_plain"
+const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0,
+	"builds": [&"an_infrastructure", &"fake_plain"]}
 const BUILD_COMMAND: String = "command_ability"
 
 const MAP_CORNERS: int = 17
@@ -63,7 +67,20 @@ var _controller: RTSController
 var _builder: Commandable
 
 
+func after_each() -> void:
+	FakePieces.restore_families()
+	FakePieces.restore_tools()
+
+
 func before_each() -> void:
+	FakePieces.install_families([
+		{"id": &"fake_form_a", "family": &"neutral_building", "footprint": Vector2i(4, 4)},
+		{"id": &"fake_form_b", "family": &"neutral_building", "footprint": Vector2i(3, 5)}])
+	var forms: Array[StringName] = [&"fake_form_a", &"fake_form_b"]
+	FakePieces.register_tool(FakePieces.tool(EntityIds.AN_INFRASTRUCTURE,
+		{"structure": true, "dimensions": Vector2i(4, 4)}, forms))
+	FakePieces.register_tool(FakePieces.tool(&"fake_plain",
+		{"structure": true, "dimensions": Vector2i(3, 3)}))
 	_world = Node3D.new()
 	_map = _make_map()
 	_world.add_child(_map)
@@ -79,6 +96,8 @@ func before_each() -> void:
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
 	_neutral.set_physics_process(false)
+	_commander.technology_mapping = {EntityIds.AN_INFRASTRUCTURE: FakePieces.tech(), &"fake_plain": FakePieces.tech(),
+		&"fake_form_a": FakePieces.tech(), &"fake_form_b": FakePieces.tech()}
 	_builder = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(_builder)
 	var builds := _builder.get_node("Builds") as Builds
