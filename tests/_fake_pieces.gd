@@ -23,10 +23,11 @@ extends RefCounted
 ##   speed: float            gives it a navigated `Movement` at this speed (default: immobile)
 ##   vision: float           radius of a `VisionRange` cylinder (default: none)
 ##   weapon: Dictionary      a `Loadout` with one `Weapon`:
+##                             damage: float  per hit (default 0: a fake gun wounds nobody)
 ##                             ground: float  radius of its ground reach (0 = none)
 ##                             air: float     radius of its air reach (0 = none)
 ##                             clip_size: int, charged: bool, reload_ticks: int
-##   builds: Array           `Builds.buildable_types`, which also adds the `Builds` component
+##   builds: Array | true    `Builds.buildable_types` (true: one real tool's type), adding `Builds`
 ##   frame / armour: int     `Defense.frame_type` / `Defense.armour_type` (defaults BIO / LIGHT)
 ##   crush: int              `Movement.crush_class` (needs `speed`)
 ##   interactions: Array     `Interaction.Type`s, which adds an `Interactor`
@@ -39,6 +40,24 @@ extends RefCounted
 ##   obstruction: bool       a structure blocks line of fire (`structure()` only; default true)
 
 const _COMPONENTS: String = "res://scenes/components/"
+
+## PRESETS: the usual stand-ins, so a test that only needs "a soldier" says so. Each is just an
+## options dictionary — copy and extend with `.merged({...})` when a test needs one more thing.
+## A mobile piece that sees and has a ground gun.
+const SOLDIER: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {"ground": 6.0}}
+## A mobile piece that sees and can build. (`"builds": true` fills in a real tool's type.)
+const BUILDER: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": true}
+## A mobile, unarmed, non-building piece.
+const PLAIN: Dictionary = {"speed": 2.0, "vision": 8.0}
+## A structure with a hold.
+const BUILDING: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
+## A flying piece with a ground gun.
+const AIRCRAFT: Dictionary = {"aerial": true, "vision": 8.0, "weapon": {"ground": 6.0}}
+
+
+## Whichever of `unit` / `structure` the options name (`"structure": true` picks the latter).
+static func make(a_options: Dictionary = {}) -> Commandable:
+	return _build(a_options, bool(a_options.get("structure", false)))
 
 
 static func unit(a_options: Dictionary = {}) -> Commandable:
@@ -106,8 +125,12 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	if a_options.has("builds"):
 		var builds := Builds.new()
 		var types: Array[StringName] = []
-		for type: Variant in a_options["builds"] as Array:
-			types.append(StringName(type))
+		var named: Variant = a_options["builds"]
+		if named is Array:
+			for type: Variant in named as Array:
+				types.append(StringName(type))
+		elif named == true:
+			types.append(a_buildable_type())
 		builds.buildable_types = types
 		_add_node(piece, builds, "Builds")
 	if a_options.has("garrison"):
@@ -151,6 +174,8 @@ static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:
 	weapon.clip_size = int(a_weapon.get("clip_size", 1))
 	weapon.charged = bool(a_weapon.get("charged", false))
 	weapon.reload_time_ticks = int(a_weapon.get("reload_ticks", 10))
+	# Harmless by default: a fake that shoots would kill what a test set up to be shot AT.
+	weapon.melee_damage = float(a_weapon.get("damage", 0.0))
 	loadout.add_child(weapon)
 	var ground: float = float(a_weapon.get("ground", 0.0))
 	var air: float = float(a_weapon.get("air", 0.0))
@@ -165,18 +190,20 @@ static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:
 	elif air > 0.0:
 		weapon.target_mask = CollisionLayers.Mask.TARGETABLE_AIR
 		_add_reach(weapon, "AttackRange", air)
+	else:
+		# A weapon always looks for its reach shape: a gun that reaches nowhere has an empty one.
+		_add_reach(weapon, "AttackRange", 0.0)
 	a_piece.add_child(loadout)
 	# A piece that can shoot will pick a fight on its own, out to about as far as it reaches.
-	if ground > 0.0:
-		_add_aggro(a_piece, "AggroRangeGround", ground)
-	if air > 0.0:
-		_add_aggro(a_piece, "AggroRangeAir", air)
+	_add_aggro(a_piece, "AggroRangeGround", ground)
+	_add_aggro(a_piece, "AggroRangeAir", air)
 
 
 static func _add_aggro(a_piece: Commandable, a_name: String, a_radius: float) -> void:
 	var aggro: Node = _scene("aggro_range.tscn")
 	aggro.name = a_name
-	(aggro as CollisionShape3D).shape = _cylinder(a_radius)
+	if a_radius > 0.0:
+		(aggro as CollisionShape3D).shape = _cylinder(a_radius)
 	a_piece.add_child(aggro)
 
 
@@ -191,7 +218,8 @@ static func a_buildable_type() -> StringName:
 static func _add_reach(a_weapon: Weapon, a_name: String, a_radius: float) -> void:
 	var reach := CollisionShape3D.new()
 	reach.name = a_name
-	reach.shape = _cylinder(a_radius)
+	if a_radius > 0.0:
+		reach.shape = _cylinder(a_radius)
 	reach.add_to_group(&"debug_shape_attack_range")
 	a_weapon.add_child(reach)
 

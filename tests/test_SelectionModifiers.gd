@@ -20,12 +20,10 @@ func _controller() -> RTSController:
 ## do — the class has required `@onready` children (an HP bar, a Selectable) and errors
 ## without them — and the gesture genuinely needs both a world position and a live Selectable.
 ##
-## `load()` INSIDE the test rather than a file-scope preload, which would poison the Tool
-## registry for the whole run (CLAUDE.md §A file-scope preload…). Ownership is assigned
+## Ownership is assigned
 ## directly rather than through initialize(), so no Map is needed (see test_Garrison).
 func _unit_at(a_xz: Vector2, a_commander: Commander) -> Commandable:
-	var scene: PackedScene = load("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-	var unit := scene.instantiate() as Commandable
+	var unit: Commandable = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(unit)
 	unit.ownership.commander = a_commander
 	unit.global_position = VU.fromXZ(a_xz)

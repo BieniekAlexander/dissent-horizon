@@ -19,9 +19,8 @@ extends GutTest
 ## PATHS, not preloads (see CLAUDE.md): this file sorts early, and a file-scope preload of an
 ## entity scene poisons the Tool registry for the whole run.
 
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
+const RECRUIT: Dictionary = FakePieces.SOLDIER
+const IRREGULAR: Dictionary = FakePieces.BUILDER
 const PLAYER: int = 1
 const ENEMY: int = 2
 
@@ -30,8 +29,8 @@ const ENEMY: int = 2
 const MARCH_DISTANCE: float = 24.0
 
 
-func _unit(a_scene: String, a_commander_id: int) -> Commandable:
-	var u := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var u := FakePieces.make(a_options) as Commandable
 	add_child_autofree(u)
 	var c := Commander.new()
 	c.id = a_commander_id

@@ -9,8 +9,7 @@ extends GutTest
 ##     -gtest=res://tests/test_AggroFromReach.gd -gdir=res://tests/none -gexit
 
 ## A unit scene used only as a HARNESS: every reach it is tested with is set here.
-const HARNESS_PATH: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-
+const HARNESS_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {}}  # a gun with no reach yet
 const GROUND: int = CollisionLayers.Mask.TARGETABLE_GROUND
 const AIR: int = CollisionLayers.Mask.TARGETABLE_AIR
 
@@ -62,7 +61,7 @@ func _cylinder_node(a_radius: float) -> CollisionShape3D:
 ## The harness with one weapon reaching `a_ground` on the ground and `a_air` in the air
 ## (a negative value: cannot hit that layer).
 func _piece(a_ground: float, a_air: float) -> Commandable:
-	var piece: Commandable = (load(HARNESS_PATH) as PackedScene).instantiate() as Commandable
+	var piece: Commandable = FakePieces.make(HARNESS_PATH) as Commandable
 	add_child_autofree(piece)
 	var weapon: Weapon = piece.weapon_inventory.get_weapons()[0]
 	weapon.target_mask = (GROUND if a_ground >= 0.0 else 0) | (AIR if a_air >= 0.0 else 0)
