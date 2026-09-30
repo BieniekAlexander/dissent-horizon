@@ -10,8 +10,8 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ConstructionOpacity.gd -gexit
 
-const STRUCTURE := preload("res://scenes/entities/structures/tc/dwelling.tscn")
-const UNIT := preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
+const STRUCTURE: Dictionary = {"mesh": true}
+const UNIT: Dictionary = {"mesh": true, "speed": 2.0}
 
 
 func _visual(a_entity: Node) -> MeshVisual:
@@ -20,7 +20,7 @@ func _visual(a_entity: Node) -> MeshVisual:
 
 ## Editor-placed structures start built (build_progress defaults to 1.0), so nothing fades.
 func test_finished_structure_is_fully_opaque() -> void:
-	var s: Node = STRUCTURE.instantiate()
+	var s: Node = FakePieces.structure(STRUCTURE)
 	add_child_autofree(s)
 	assert_eq(_visual(s).opacity(), MeshVisual.OPACITY_BUILT,
 		"a structure that starts built is drawn solid")
@@ -30,7 +30,7 @@ func test_finished_structure_is_fully_opaque() -> void:
 ## tree, so the fade has to be applied from _ready — the progress signal it emits there has
 ## no listeners yet.
 func test_structure_placed_under_construction_is_faded() -> void:
-	var s: Node = STRUCTURE.instantiate()
+	var s: Node = FakePieces.structure(STRUCTURE)
 	(s as Commandable).begin_construction()
 	add_child_autofree(s)
 	assert_eq(_visual(s).opacity(), MeshVisual.OPACITY_CONSTRUCTING,
@@ -40,7 +40,7 @@ func test_structure_placed_under_construction_is_faded() -> void:
 ## The fade is a STEP, not a ramp with build_progress: a structure halfway up still reads
 ## as "under construction" rather than as nearly-invisible.
 func test_opacity_does_not_track_progress_until_complete() -> void:
-	var s: Node = STRUCTURE.instantiate()
+	var s: Node = FakePieces.structure(STRUCTURE)
 	var c := s as Commandable
 	c.begin_construction()
 	add_child_autofree(s)
@@ -51,7 +51,7 @@ func test_opacity_does_not_track_progress_until_complete() -> void:
 
 
 func test_finishing_construction_restores_full_opacity() -> void:
-	var s: Node = STRUCTURE.instantiate()
+	var s: Node = FakePieces.structure(STRUCTURE)
 	var c := s as Commandable
 	c.begin_construction()
 	add_child_autofree(s)
@@ -63,7 +63,7 @@ func test_finishing_construction_restores_full_opacity() -> void:
 
 ## Units are always built, so the construction fade never touches them.
 func test_units_are_never_faded() -> void:
-	var u: Node = UNIT.instantiate()
+	var u: Node = FakePieces.unit(UNIT)
 	add_child_autofree(u)
 	var visual: MeshVisual = _visual(u)
 	if visual == null:
@@ -75,7 +75,7 @@ func test_units_are_never_faded() -> void:
 ## A faded model must not keep casting a solid shadow, or it reads as a finished building
 ## from the ground up regardless of its alpha.
 func test_fading_drops_the_models_shadow() -> void:
-	var s: Node = STRUCTURE.instantiate()
+	var s: Node = FakePieces.structure(STRUCTURE)
 	var c := s as Commandable
 	c.begin_construction()
 	add_child_autofree(s)

@@ -12,8 +12,6 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_InfrastructureContribution.gd -gexit
 
-const UNIT_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const STRUCTURE_SCENE: String = "res://scenes/entities/structures/an/an_barracks.tscn"
 const PROVIDES: int = 40
 const CONSUMES: int = -25
 
@@ -38,7 +36,7 @@ func _commander(a_id: int) -> Commander:
 
 
 func _unit(a_owner: Commander, a_infrastructure: int) -> Commandable:
-	var unit: Commandable = load(UNIT_SCENE).instantiate() as Commandable
+	var unit: Commandable = FakePieces.unit()
 	unit.infrastructure = a_infrastructure
 	a_owner.add_child(unit)
 	unit.ownership.commander = a_owner
@@ -83,7 +81,7 @@ func test_a_free_that_is_not_a_death_still_withdraws_it() -> void:
 
 func test_an_unfinished_piece_contributes_only_once_built() -> void:
 	var before: int = _a.infrastructure_provided
-	var structure: Commandable = load(STRUCTURE_SCENE).instantiate() as Commandable
+	var structure: Commandable = FakePieces.structure()
 	structure.infrastructure = PROVIDES
 	structure.begin_construction()
 	_a.add_child(structure)

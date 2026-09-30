@@ -19,8 +19,8 @@ extends GutTest
 ## Structure) and the anarchist command center (structure, has both Structure and
 ## MeshVisual, unlike most of the still-Sprite-based structures).
 
-const UNIT: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-const STRUCTURE: PackedScene = preload("res://scenes/entities/structures/an/an_commandCenter.tscn")
+const UNIT: Dictionary = {"mesh": true, "speed": 2.0}
+const STRUCTURE: Dictionary = {"mesh": true}
 
 
 func _mesh_visual_of(a_node: Node) -> MeshVisual:
@@ -35,7 +35,7 @@ func _materials_of(a_visual: MeshVisual) -> Array[BaseMaterial3D]:
 
 
 func test_non_structure_entity_gets_the_xray_stencil() -> void:
-	var unit: Node = UNIT.instantiate()
+	var unit: Node = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	var visual: MeshVisual = _mesh_visual_of(unit)
 	var mats: Array[BaseMaterial3D] = _materials_of(visual)
@@ -46,7 +46,7 @@ func test_non_structure_entity_gets_the_xray_stencil() -> void:
 
 
 func test_structure_entity_has_no_silhouette() -> void:
-	var structure: Node = STRUCTURE.instantiate()
+	var structure: Node = FakePieces.structure(STRUCTURE)
 	add_child_autofree(structure)
 	var visual: MeshVisual = _mesh_visual_of(structure)
 	var mats: Array[BaseMaterial3D] = _materials_of(visual)
@@ -58,7 +58,7 @@ func test_structure_entity_has_no_silhouette() -> void:
 
 
 func test_silhouette_color_tracks_team_tint() -> void:
-	var unit: Node = UNIT.instantiate()
+	var unit: Node = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	var visual: MeshVisual = _mesh_visual_of(unit)
 	var team_color := Color(1.0, 0.2, 0.2)
@@ -74,7 +74,7 @@ func test_silhouette_color_tracks_team_tint() -> void:
 ## A faded material is transparent, so it writes neither depth nor stencil — leaving the
 ## x-ray pass with no mark to test against, which would paint the entire model as hidden.
 func test_silhouette_is_suppressed_while_the_model_is_faded() -> void:
-	var unit: Node = UNIT.instantiate()
+	var unit: Node = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	var visual: MeshVisual = _mesh_visual_of(unit)
 	visual.set_opacity(MeshVisual.OPACITY_CONSTRUCTING)
@@ -88,8 +88,8 @@ func test_silhouette_is_suppressed_while_the_model_is_faded() -> void:
 
 
 func test_each_entity_keeps_its_own_silhouette_colour() -> void:
-	var a: Node = UNIT.instantiate()
-	var b: Node = UNIT.instantiate()
+	var a: Node = FakePieces.unit(UNIT)
+	var b: Node = FakePieces.unit(UNIT)
 	add_child_autofree(a)
 	add_child_autofree(b)
 	_mesh_visual_of(a).set_team_color(Color(1.0, 0.2, 0.2))
