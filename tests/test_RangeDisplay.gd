@@ -17,14 +17,20 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_RangeDisplay.gd -gexit
 
-const TURRET_SCENE: String = "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
-## An UNARMED piece. The Colonials' Servant carries no Loadout at all, which is the state
-## the "not applicable is not drawn" rule is about — most builders in this game are armed.
-const WORKER_SCENE: String = "res://scenes/entities/units/cl/cl_bioLight_builder.tscn"
+## Fake pieces (tests/_fake_pieces.gd) holding only the reach a test is about.
+## A gun that reaches the air alone, and sees.
+const TURRET: Dictionary = {"vision": 10.0, "weapon": {"air": 8.0}}
+## An UNARMED piece: no Loadout at all, which is the state the "not applicable is not drawn"
+## rule is about.
+const WORKER: Dictionary = {"vision": 6.0}
+## A gun that hits both layers, with a separate ground and air shape.
+const BOTH_LAYERS: Dictionary = {"vision": 6.0, "weapon": {"ground": 12.0, "air": 18.0}}
+## A ground-only gun with one plain AttackRange.
+const GROUND_ONLY: Dictionary = {"vision": 6.0, "weapon": {"ground": 9.0}}
 
 
-func _piece(a_scene: String) -> Commandable:
-	var piece: Commandable = load(a_scene).instantiate()
+func _piece(a_options: Dictionary) -> Commandable:
+	var piece: Commandable = FakePieces.unit(a_options)
 	add_child_autofree(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -34,7 +40,7 @@ func _piece(a_scene: String) -> Commandable:
 # --- Which shape a kind resolves to -------------------------------------------------
 
 func test_a_turret_reports_its_weapon_and_vision_reach() -> void:
-	var turret := _piece(TURRET_SCENE)
+	var turret := _piece(TURRET)
 	assert_gt(EntityRanges.radius_of(turret, EntityRanges.Kind.ATTACK_AIR), 0.0,
 		"a SAM has a reach against aircraft")
 	assert_eq(EntityRanges.radius_of(turret, EntityRanges.Kind.ATTACK), -1.0,
@@ -44,26 +50,20 @@ func test_a_turret_reports_its_weapon_and_vision_reach() -> void:
 
 # --- Ground and air reach --------------------------------------------------------------
 
-## A gun that hits both layers, with a separate AttackRangeGround and AttackRangeAir.
-const BOTH_LAYERS_SCENE: String = "res://scenes/entities/units/cl/cl_mechMedium_antiLight.tscn"
-## A ground-only gun with one plain AttackRange.
-const GROUND_ONLY_SCENE: String = "res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn"
-
-
 func _attack_bands(a_piece: Entity) -> Array[RangeIndicator.Band]:
 	return RangeIndicator.bands_for_entity(a_piece,
 		[EntityRanges.Kind.ATTACK, EntityRanges.Kind.ATTACK_AIR])
 
 
 func test_a_ground_only_gun_draws_no_air_ring() -> void:
-	var piece := _piece(GROUND_ONLY_SCENE)
+	var piece := _piece(GROUND_ONLY)
 	assert_gt(EntityRanges.radius_of(piece, EntityRanges.Kind.ATTACK), 0.0)
 	assert_eq(EntityRanges.radius_of(piece, EntityRanges.Kind.ATTACK_AIR), -1.0)
 	assert_eq(_attack_bands(piece).size(), 1)
 
 
 func test_different_ground_and_air_reach_draw_two_rings_in_two_colours() -> void:
-	var piece := _piece(BOTH_LAYERS_SCENE)
+	var piece := _piece(BOTH_LAYERS)
 	var ground: CollisionShape3D = piece.find_child("AttackRangeGround", true, false)
 	var air: CollisionShape3D = piece.find_child("AttackRangeAir", true, false)
 	ground.shape = ground.shape.duplicate()
@@ -78,7 +78,7 @@ func test_different_ground_and_air_reach_draw_two_rings_in_two_colours() -> void
 
 
 func test_equal_ground_and_air_reach_draw_one_alternating_ring() -> void:
-	var piece := _piece(BOTH_LAYERS_SCENE)
+	var piece := _piece(BOTH_LAYERS)
 	var ground: CollisionShape3D = piece.find_child("AttackRangeGround", true, false)
 	var air: CollisionShape3D = piece.find_child("AttackRangeAir", true, false)
 	ground.shape = ground.shape.duplicate()
@@ -104,28 +104,34 @@ func test_the_two_alternating_dash_patterns_cover_the_line_between_them() -> voi
 func test_a_piece_without_a_range_reports_nothing_rather_than_zero() -> void:
 	# The distinction the whole "not applicable is not drawn" rule turns on: a worker has no
 	# gun, which is different from a gun that reaches nowhere.
-	var worker := _piece(WORKER_SCENE)
+	var worker := _piece(WORKER)
 	assert_null(EntityRanges.shape_for(worker, EntityRanges.Kind.ATTACK))
 	assert_eq(EntityRanges.radius_of(worker, EntityRanges.Kind.ATTACK), -1.0)
 
 
 func test_shapes_for_drops_the_kinds_a_piece_lacks() -> void:
-	var worker := _piece(WORKER_SCENE)
-	for pair: Array in EntityRanges.shapes_for(worker, EntityRanges.WEAPON_KINDS):
-		assert_ne(pair[0], EntityRanges.Kind.ATTACK, "an unarmed piece contributes no attack ring")
+	# A piece with sight but no gun: the vision ring is offered and every gun ring is dropped, so
+	# the result is not empty merely because the piece has nothing at all.
+	var worker := _piece(WORKER)
+	var kinds: Array = []
+	for pair: Array in EntityRanges.shapes_for(worker, EntityRanges.WEAPON_KINDS + EntityRanges.VISION_KINDS):
+		kinds.append(pair[0])
+	assert_does_not_have(kinds, EntityRanges.Kind.ATTACK, "an unarmed piece contributes no attack ring")
+	assert_does_not_have(kinds, EntityRanges.Kind.ATTACK_AIR)
+	assert_has(kinds, EntityRanges.Kind.VISION, "while the reach it does have is still offered")
 
 
 func test_an_effect_with_no_reach_draws_no_ring() -> void:
 	# Every effect shipped today acts on its host alone, so this is the state the reveal is
 	# normally in — and it must draw nothing rather than a ring of radius zero.
-	var worker := _piece(WORKER_SCENE)
+	var worker := _piece(WORKER)
 	var effect := SlowStatusEffect.new()
 	worker.add_child(effect)
 	assert_null(EntityRanges.shape_for(worker, EntityRanges.Kind.EFFECT))
 
 
 func test_an_effect_that_reaches_draws_a_ring_at_its_host() -> void:
-	var worker := _piece(WORKER_SCENE)
+	var worker := _piece(WORKER)
 	worker.global_position = Vector3(7.0, 0.0, -3.0)
 	var effect := SlowStatusEffect.new()
 	effect.effect_radius = 4.5
@@ -149,7 +155,7 @@ func test_nothing_hovered_and_nothing_armed_draws_nothing() -> void:
 
 func test_hovering_a_widget_draws_one_band_per_kind_the_piece_has() -> void:
 	var controller: RTSController = _controller()
-	var turret := _piece(TURRET_SCENE)
+	var turret := _piece(TURRET)
 	controller._on_ranges_hovered(turret, EntityRanges.WEAPON_KINDS)
 	var bands: Array[RangeIndicator.Band] = controller.range_bands()
 	assert_eq(bands.size(),
@@ -160,7 +166,7 @@ func test_hovering_a_widget_draws_one_band_per_kind_the_piece_has() -> void:
 
 func test_leaving_the_widget_puts_the_bands_away() -> void:
 	var controller: RTSController = _controller()
-	controller._on_ranges_hovered(_piece(TURRET_SCENE), EntityRanges.WEAPON_KINDS)
+	controller._on_ranges_hovered(_piece(TURRET), EntityRanges.WEAPON_KINDS)
 	controller._on_ranges_unhovered()
 	assert_eq(controller.range_bands().size(), 0)
 
@@ -169,7 +175,7 @@ func test_a_freed_hover_target_draws_nothing_rather_than_crashing() -> void:
 	# The hovered piece can die under the pointer; the bands are recomposed every frame and
 	# must survive the frame that happens on.
 	var controller: RTSController = _controller()
-	var turret: Commandable = load(TURRET_SCENE).instantiate()
+	var turret: Commandable = FakePieces.unit(TURRET)
 	add_child(turret)
 	controller._on_ranges_hovered(turret, EntityRanges.WEAPON_KINDS)
 	turret.free()
