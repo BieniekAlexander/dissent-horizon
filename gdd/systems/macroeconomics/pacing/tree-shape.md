@@ -5,7 +5,7 @@ type: system-note
 
 # Tree shape
 
-**TODO — research, nothing decided.** Part of [pacing](README.md).
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md).
 
 ## Vocabulary
 
@@ -71,29 +71,32 @@ The case made in the brief, restated against the goals:
    one with dead branches, which is worse than an honest linear tree because the dead branches
    still cost learning. Measure the win rate per path in self-play. Every path needs its own
    reason to exist, preferably tied to the matchup (G10) rather than to raw strength.
-3. **Hidden paths turn scouting into guessing.** More paths means more for the defender to
-   scout. If the answers are narrow hard counters, the match becomes a macro-level read, which
-   is the macro solving G13 forbids, just in a different form. Mitigations:
-   - generic answers available to everyone at a low tier (anti-air before any air path),
-   - path structures with a visible silhouette (the tell, `t_tell`),
-   - soft counters rather than hard ones.
-4. **Losing a gate loses its whole branch.** Prerequisites are live
-   (`Commander.has_built_structure`). Many gates means many single points of failure. That is
-   the target choice the design wants, but a snipe that removes a path plus everything
-   downstream of it is a large swing, and G17 wants leads buffered. Options (TODO, pick one):
-   - keep the unlock for pieces already fielded and block only new purchases (the likely
-     behaviour today; worth confirming),
-   - rebuild a lost gate cheaper or faster than the original,
-   - accept it, and let insurance copies be the answer
-     ([building-roles](building-roles.md)).
+3. **More paths means more to scout, and that is fair.** Past the opening, finding the path is
+   the player's job, and a well-hidden tech structure is information the opponent is entitled
+   to withhold ([tech-investment](tech-investment.md) §Tells, decided 2026-09-30). The risk
+   left is the COUNTER structure: if each path's answer is a narrow hard counter, one missed
+   scout loses the match, and play becomes guessing rather than scouting. Keep answers soft
+   and generic (anti-air before any air path), so a missed scout costs efficiency, not the
+   game.
+4. **Losing a gate blocks its branch.** Decided (Alex, 2026-09-30): pieces already fielded
+   stay, and only new purchases are blocked until the gate is rebuilt. Prerequisites are live
+   (`Commander.has_built_structure`). Two things keep the swing acceptable:
+   - **insurance copies** ([building-roles](building-roles.md)) are the defender's answer;
+   - **durability sets when a snipe becomes possible.** Structures are tough, so by the time a
+     player fields enough to kill a gate, the match is late enough for that volatility (G3).
+   The calibration check follows from that: **a snipe must cost a mid-game army.** If an
+   early unit kills a gate cost-effectively, that unit or the gate's armour is what gets
+   retuned ([timings](../../../design-framework/timings.md) §Structure armour has the
+   time-to-kill table).
 5. **Balance cost grows with pairs of paths.** `b` paths per faction across `f` factions means
    interactions scale with `(b·f)²`. Cross-path synergies are the hardest to see. Keep them few
    and deliberate, each written down where it is intended.
 6. **The complexity budget applies.** A path is faction-unique content, and the framework's
    [Tiers](../../../design-framework/README.md) rule spends complexity sparingly there. Many
    paths with many unique rules each is too much to learn.
-7. **Space is a map-generation input.** More structures need more buildable area, which is set
-   by map generation's quotas
+7. **Space is a map-generation input.** Footprint is itself a price
+   ([building-roles](building-roles.md) §Size is a price). More structures need more
+   buildable area, which is set by map generation's quotas
    ([map-generation](../../terrain-and-navigation/map-generation.md)). A dense tree also
    spreads a base, so a raid always finds something unguarded. That favours raiders, and
    static defence has to be priced with it in mind

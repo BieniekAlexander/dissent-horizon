@@ -5,7 +5,7 @@ type: system-note
 
 # Building roles
 
-**TODO — research, nothing decided.** Part of [pacing](README.md).
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md).
 
 **The "what next?" decision is a comparison of marginal values**, and each thing a structure
 confers has its own curve for the Nth copy:
@@ -32,6 +32,34 @@ effect only when a good target exists. Past the rate at which a player finds goo
 more charges add little. A shared pool (one charge granting several abilities) keeps the
 *rate* fixed while widening the *options*; see
 [dominion-and-ordnance](dominion-and-ordnance.md).
+
+## Size is a price
+
+**A footprint costs space, and space is a resource the player defends.** A larger building:
+
+- **has a larger attack surface.** More of its perimeter is reachable, and more sides need
+  covering.
+- **uses up the well-defended ground sooner.** A base's safe ground (behind the choke, inside
+  static cover, near the command centre) is finite, as map generation sets it. Once it is
+  full, the next building goes somewhere more exposed, so the price of a large building
+  includes making *every later* building less safe.
+
+**So footprint is a balancing knob next to energy and build time.** A strong structure can be
+made large rather than expensive. Its price is then paid in exposure and in the base's later
+shape, not up front, and it scales with how contested the map is. That makes it a meso price
+(G4), not a macro one, which is the kind the framework prefers.
+
+Pitfalls of using it:
+
+- **The knob depends on the map.** On a map with generous buildable ground, size costs
+  nothing. Its value is set by map generation's buildable-area quotas
+  ([map-generation](../../terrain-and-navigation/map-generation.md)), so the two have to be
+  calibrated together.
+- **Size also changes pathing.** A large footprint walls off lanes, including the owner's.
+  That can be a benefit (a wall) or a tax, and it interacts with the size-class navmesh
+  ([agent-size-classes](../../terrain-and-navigation/agent-size-classes.md)).
+- **Size says nothing about durability.** A large building is a larger target, not a tougher
+  one. HP and armour stay separate knobs.
 
 ## The rider rule
 
@@ -71,6 +99,7 @@ TODO: no purchased upgrades exist yet, so this section is ahead of the game.
 3. **Correlated loss.** When one structure carries a gate, a weapon and a charge, one snipe
    removes all three. That is more volatile, which is fine late (G3) and bad early (G17).
    Early-tier structures should carry fewer roles than late ones.
-4. **Insurance is dead weight until it is not.** Duplicate gates cost army. The value of that
-   insurance grows with the opponent's ability to snipe (late, and against fast or ranged
+4. **Insurance is dead weight until it is not.** Losing a gate blocks new purchases only;
+   fielded pieces stay (decided, Alex, 2026-09-30). Duplicate gates cost army, and space
+   (§Size is a price). The value of that insurance grows with the opponent's ability to snipe (late, and against fast or ranged
    threats), which is the right shape: the question arises only when it should.

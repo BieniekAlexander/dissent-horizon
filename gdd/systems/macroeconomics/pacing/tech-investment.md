@@ -5,7 +5,7 @@ type: system-note
 
 # Tech investment
 
-**TODO — research, nothing decided.** Part of [pacing](README.md). Symbols follow
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md). Symbols follow
 [timings](../../../design-framework/timings.md) §Symbols.
 
 ## What a tier buys: variance, not just mean
@@ -29,9 +29,9 @@ The axes along which a tier can add volatility, each with the check it needs:
 | Axis | Examples | The check |
 |---|---|---|
 | **Burst and area** | AoE ordnance, splash, chained disables | colocation must be avoidable, and the payoff conditional on the target's state (*counter hit*) |
-| **Reach** | range, and above all map mobility: fast movers, air, transports, drops | equation 2 (scout and answer) must still hold at the new crossing time `τ` |
+| **Reach** | range, and above all map mobility: fast movers, air, transports, drops | in the opening, equation 2 (scout and answer) must still hold at the new crossing time `τ`; after it, see §Tells |
 | **Structure damage** | new damage types against STRONG/MEDIUM | the finish stays late: early units stay inert against infrastructure ([pacing](../../../design-framework/pacing.md)) |
-| **Information** | stealth, detection, scans | every hidden threat has a scoutable answer (G10, M1) |
+| **Information** | stealth, detection, scans | every hidden threat has an answer that exists (G10, M1); finding it is the player's job |
 | **Control** | freezes, stuns, suppression | combo scaling: tier governs duration and area, and chains diminish |
 
 **Volatility has to be two-sided.** Late defensive tools (an ordnance that wipes a committed
@@ -43,6 +43,20 @@ leaves the defender no decision to make, only a dice roll. The goal is a volatil
 *consequence* of a readable decision. Each tier should add volatility along one or two axes
 per piece, not along all of them.
 
+## Tells: only the opening owes one
+
+**Decided (Alex, 2026-09-30).** Macroeconomic timing owes the defender one guarantee: **no
+threat on the doorstep before the defender has had the chance to see the attacker's base.**
+That is what the opening's build times and crossing times are tuned for (timings equations
+1–2), and it is also why the opening must blunt scout denial: early scouts must be able to
+reach the enemy base.
+
+**After the opening, scouting is the player's responsibility, not the design's.** A volatile
+tool needs no built-in tell. A tech structure hidden in a far corner is information the
+opponent earned the right to withhold. Killing scouts to deny information is part of the
+game. So the checks above apply to the *opening*. Later, the requirement is only that an
+answer exists (G10), not that the threat announces itself.
+
 ## How a tech investment is priced
 
 A tech investment costs more than its sticker price. It has three prices:
@@ -53,10 +67,12 @@ A tech investment costs more than its sticker price. It has three prices:
    energy is not army. The deficit at contact is `ΔA ≈ C_k`, but **only when income is the
    binding constraint** (see below). This is timings equation 4 ("what greed costs at the
    moment of contact") with the tech chain as the greed.
-3. **The exposure.** A tech structure is a target whose loss removes its whole branch.
-   Prerequisites are live: `Commander.has_built_structure`. Its HP and position are a price
+3. **The exposure.** A tech structure is a target whose loss blocks new purchases from its
+   branch (pieces already fielded stay). Prerequisites are live: `Commander.has_built_structure`. Its HP and position are a price
    paid again every time the opponent can reach it. Duplicating it as insurance is a real
    option; see [building-roles](building-roles.md).
+4. **The space.** The structure's footprint uses up defended ground, and a larger footprint is
+   a larger surface to defend. See [building-roles](building-roles.md) §Size is a price.
 
 There is no selling ([pacing](../../../design-framework/pacing.md)), so none of the three can
 be walked back. Committing is more final than in a game with refunds, so the sticker price
@@ -118,6 +134,7 @@ Equations give first numbers. The verdict comes from play, not from a GUT test (
 
 - Calibrating tech before fixing `ρ` (see §The hidden discount).
 - A top tier that is efficient rather than volatile, which is a snowball.
-- Mobility bought at a tier that equation 2 was never re-run against.
+- Mobility available in the opening that equation 2 was never re-run against. Later
+  mobility is the scout's problem (§Tells).
 - One-sided volatility: offensive swing with no defensive swing to match.
 - Calibrating against one map distance only.

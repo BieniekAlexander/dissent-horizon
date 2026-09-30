@@ -3,7 +3,7 @@ kind: Faction
 title: Haustoria
 scene: res://scenes/factions/colonial.tscn
 starts_with:
-  - cl_mechLight_dominionGen
+  - cl_bioLight_builder
   - cl_bioLight_builder
   - cl_bioLight_builder
 sanctions:

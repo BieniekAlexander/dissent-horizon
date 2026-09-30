@@ -131,15 +131,17 @@ serve (`K ≥ λτ` means one each), and `μ` only if Compound count should gate
 #### What tempers an immediate high rate
 
 The first Compound is mandatory — it is the Colonial infrastructure building and the barracks
-prerequisite — and the first truck is a starting unit. Neither investment gate bites on the
-opening, so the opening is tempered by:
+prerequisite — and the first truck is one purchase at the Citadel. (It was a starting unit
+until 2026-09-30, when it was dropped for a third Servant: crushing made it too strong a
+threat to be the opening scout.) Neither gate bites hard on the opening, so the opening is
+tempered by:
 
 1. **The ceiling `r·λ·τ`** against the other factions' opening dominion rates. "High" needs a
    reference curve.
 2. **The ramp `τ`.** Under sentences the rate climbs linearly to its ceiling over `τ` after the
    first delivery; under pay-per-delivery there is no ramp.
 3. **The distance floor `t_l`.** With `S_near > 1`, even an adjacent Compound needs more than the
-   starting truck to reach the ceiling.
+   first truck to reach the ceiling.
 4. **Position, not arithmetic.** How many Shelters map generation puts in the near band (possibly
    none), and the positional bonus pulling the Compound against the buildings it supports while
    the Shelter pulls it away.

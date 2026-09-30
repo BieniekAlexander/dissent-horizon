@@ -5,7 +5,7 @@ type: system-note
 
 # Dominion and ordnance
 
-**TODO — research, nothing decided.** Part of [pacing](README.md). The grid's rules are
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md). The grid's rules are
 [sanction-grid](../sanctions/sanction-grid.md). This note is about what dominion should be
 *worth*.
 
@@ -21,7 +21,9 @@ As of 2026-09-30, none of the three numbers the calibration rests on is set:
 - **Starting dominion** is planned to be below the cheapest unlock. Its only job is to make
   the first unlock slightly cheaper.
 
-So everything below is a *shape* to calibrate against, not a set of numbers.
+What is decided is the *shape* of the prices (Alex, 2026-09-30): **higher tiers cost more, and
+the whole grid is more than one match can pay for.** The meter has a cap, and the cap is
+never reached. See §The grid is never finished.
 
 ## The fighting-game model
 
@@ -65,15 +67,16 @@ building is the target), with the general's promotion as the unlock.
 
 ### Time to tier
 
-The breadth toll (two cells in a tier open the next) means a flat price is **not** a flat
-depth cost. Reaching tier `k` costs about `2k` cells:
+The breadth toll (two cells in a tier open the next) means reaching tier `k` takes about two
+cells in each tier above it. With `p_j` the price of a tier-`j` cell, rising with `j`:
 
 ```
-t_tier(k) ≈ (2k · p̄ − D₀) / r_D
+t_tier(k) ≈ ( 2·Σ_{j<k} p_j  −  D₀ ) / r_D
 ```
 
-where `p̄` is the mean cell price, `D₀` the starting dominion and `r_D` the faction's steady
-dominion rate. **Calibrate `r_D` across factions by `t_tier`, not by raw rate.** Each faction
+where `D₀` is the starting dominion and `r_D` the faction's steady dominion rate. Escalating
+`p_j` makes depth cost more than linear, and that growth is the knob that sets *when* the
+game-swinging tier arrives. **Calibrate `r_D` across factions by `t_tier`, not by raw rate.** Each faction
 should reach each tier at a comparable time when uncontested, and be pushed later by the same
 proportion when harassed. A faction whose rate is bursty (paid for damage dealt) has no
 steady `r_D`; use its expected rate in a typical engagement pattern and check it in
@@ -114,22 +117,45 @@ much cheaper, dominion becomes a harassment tax. If it is much dearer, nobody bo
 dominion becomes free income. Each faction's collection method is where this is set
 ([colonial-dominion](../../combat/colonial-dominion.md) for the Colonials).
 
-## Dominion after the grid
+## The grid is never finished
 
-**A finite grid is a hard cap on dominion's value.** A faction's grid holds 14–15 cells. Once
-they are bought, further dominion buys nothing, so contesting dominion stops mattering, and
-that happens late, exactly when G3 wants dominion to matter most. The same happens earlier for
-a player who only wants part of the grid. Options (TODO, pick one):
+**Decided (Alex, 2026-09-30): a cap is fine, and prices put it out of reach.** Escalating tier
+prices make the whole grid cost more than any one match yields, so a finite grid never runs
+dry of things to buy. Two consequences follow:
 
-1. **Size the grid past what a match reaches.** Completion is rare, and the cap never bites in
-   practice. This is the cheapest option, but it only holds while match length holds.
-2. **A recurring dominion sink at the top.** Top-tier casts cost dominion per use, or a charge
-   refills faster when dominion is spent. The meter stays live all match.
-3. **Accept it.** A completed grid means the player won the dominion war, and G8 says dominion
-   benefits the winner.
+- **The choice of cells is the dominion decision.** A player buys a *subset*, and which subset
+  is their dominion strategy: wide and shallow, or deep in one family.
+- **Match length is part of the calibration.** "Infeasible" is relative to how much dominion a
+  long match yields: `Σ p (whole grid) > r_D · T_long`, with margin, for the strongest
+  dominion player. If matches run long (turtling), the grid can be finished and the cap
+  starts to matter. So check the margin in self-play, not only on paper.
 
-Leaning 2: it is the fighting-game shape, since meter is spent per use rather than as a
-lifetime purchase.
+A per-use dominion cost at the top tier, the fighting-game "spend per super", stays open as a
+lever if dominion ever goes quiet late.
+
+## Gating: a tier toll, or a dependency graph
+
+**Today: the tier toll.** Any two cells in a tier open the next ([sanction-grid](../sanctions/sanction-grid.md)).
+It is chosen for flexibility: any combination of shallow cells buys depth, so players reach
+the strong tier by the route that suits their match.
+
+**The alternative, still worth considering: explicit dependency edges between cells** ("Blizzard
+needs Freeze 2 *and* Scan 2"). The grid already has edges *within* a family (`parent`); this
+would add them *across* families.
+
+| | Tier toll | Dependency graph |
+|---|---|---|
+| player routes to depth | many, any two per tier | few, the authored ones |
+| designer control over combos | low: any cell may pair with any | high: a strong cell can require a specific set-up |
+| failure mode | a cheap pair of cells is the universal toll payment, and the others go unbought | the graph dictates the build, becoming a linear tree in disguise (see [tree-shape](tree-shape.md)) |
+| legibility | one rule | an edge list to learn per faction |
+
+A hybrid is possible: the tier toll for access, plus a single dependency edge on the one or
+two cells that need a specific set-up to be fair.
+
+**The toll's own pitfall** is the first row. If one pair of shallow cells is clearly the
+cheapest way through, every player pays the toll the same way. With escalating prices, keep
+the cells *within* a tier close in price, so the pair is chosen for its use, not its cost.
 
 ## Shared pools change what a second sanction is worth
 

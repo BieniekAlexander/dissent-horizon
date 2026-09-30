@@ -5,7 +5,7 @@ type: system-index
 
 # Macroeconomic pacing
 
-**TODO — research, nothing here is decided.** How the economy should shape a match over time:
+**TODO — research. Only items marked Decided are settled.** How the economy should shape a match over time:
 what a tech tier buys, what an investment costs and how to calibrate it, what dominion is
 worth, and what each structure contributes. Every recommendation is a proposal until it is
 answered, and every number named here is a starting guess.
@@ -26,7 +26,8 @@ it borrows are in [design-framework/timings](../../../design-framework/timings.m
 ## The pitfalls, in one place
 
 Each note carries its own list. These are the ones that cut across them, i.e. the risks to
-the design as a whole:
+the design as a whole. A "Decided" item records the answer given (Alex, 2026-09-30) and the
+risk that remains.
 
 1. **A flat tree shortens the build list, not the clock.** Fewer prerequisite structures
    speed the game up only if the price along a path stays the same. If the top tier gets
@@ -39,13 +40,18 @@ the design as a whole:
 3. **A good secondary role turns into the spam building.** If a structure's weapon or charge
    is better per cost than the dedicated piece, copies of it become the default purchase.
    → [building-roles](building-roles.md) §The rider rule
-4. **A finite sanction grid is a meter with a cap.** Once a player owns the whole grid, more
-   dominion is worth nothing, so contesting it stops mattering late in the match, which is
-   exactly when it is meant to matter most. → [dominion-and-ordnance](dominion-and-ordnance.md)
-   §Dominion after the grid
-5. **Every volatile tool needs a tell.** Faster units, more tech paths and bigger area effects
-   all shrink the defender's window to scout and answer (M2).
-   → [tech-investment](tech-investment.md) §What a tier buys
-6. **Losing a gate loses its whole branch.** Prerequisites are checked live
-   (`Commander.has_built_structure`). A dense tree with many gate structures makes a snipe
-   more decisive, and G17 wants that bounded. → [tree-shape](tree-shape.md) §Pitfalls
+4. **A finished grid would silence dominion.** Decided: tier prices escalate so no match
+   can buy the whole grid. The risk left is long, turtled matches that could, so the margin
+   between grid price and a long match's dominion is a calibration check.
+   → [dominion-and-ordnance](dominion-and-ordnance.md) §The grid is never finished
+5. **The opening owes a tell; later play does not.** Decided: macro timing must keep a threat
+   off the doorstep until the defender has had the chance to see the attacker's base. After
+   that, scouting is the player's job. The risk left is hard counters that turn one missed
+   scout into a lost match. → [tech-investment](tech-investment.md) §Tells
+6. **A cheap snipe is a tuning bug.** Decided: losing a gate blocks new purchases, and fielded
+   pieces stay. Structure durability is what keeps a snipe out of the early game, so any
+   early unit that kills a gate cost-effectively gets retuned. → [tree-shape](tree-shape.md)
+   §Pitfalls
+7. **Footprint is a price.** A larger building exposes more surface and fills the defended
+   ground sooner. It is a useful knob, but its value depends on map generation's buildable
+   area. → [building-roles](building-roles.md) §Size is a price
