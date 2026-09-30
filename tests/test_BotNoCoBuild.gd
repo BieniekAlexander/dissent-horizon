@@ -27,10 +27,8 @@ const OTHER: StringName = &"test_barracks"
 
 ## load() inside the test, never a file-scope preload of an entity scene — that runs at PARSE
 ## time and can fire Tool's static registry initialiser before the registry exists (CLAUDE.md).
-const BUILDER_SCENE: String = "res://scenes/entities/units/cl/cl_bioLight_builder.tscn"
-const STRUCTURE_SCENE: String = "res://scenes/entities/structures/cl/cl_infrastructure.tscn"
-
-
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const STRUCTURE_SCENE: Dictionary = FakePieces.BUILDING
 class FakeBot:
 	extends Bot
 	var units: Array = []
@@ -55,8 +53,8 @@ func _economy(a_bot: FakeBot) -> BotEconomy:
 
 ## A real instance, because a bare `Commandable.new()` has none of the component nodes its
 ## @onready lookups expect and pushes errors the moment anything touches it.
-func _instance(a_path: String) -> Commandable:
-	var unit := (load(a_path) as PackedScene).instantiate() as Commandable
+func _instance(a_options: Dictionary) -> Commandable:
+	var unit := FakePieces.make(a_options) as Commandable
 	add_child_autofree(unit)
 	return unit
 

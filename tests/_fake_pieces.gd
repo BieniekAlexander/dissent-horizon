@@ -36,6 +36,10 @@ extends RefCounted
 ##                             frames / armours / movements: int masks, ids: Array
 ##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
 ##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
+##   extraction_site: bool  an `ExtractionSite` marker (`structure()` only)
+##   occupant_dominion: bool  an `OccupantDominionGenerator` (named "DominionGenerator")
+##   shelter: bool          a `Shelter` component that spawns a blank unit
+##   repairs: bool          a `Repairs` component: the piece can mend
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
 ##   selectable: bool        false makes the `Selectable` refuse the player (default true)
 ##   obstruction: bool       a structure blocks line of fire (`structure()` only; default true)
@@ -116,6 +120,17 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		_add_node(piece, visual, "MeshVisual")
 	if a_options.has("selectable"):
 		(piece.get_node("Selectable") as Selectable).selectable_by_player = bool(a_options["selectable"])
+	if a_options.get("extraction_site", false):
+		_add_node(piece, ExtractionSite.new(), "ExtractionSite")
+		piece.add_to_group(&"extraction_site")
+	if a_options.get("occupant_dominion", false):
+		_add_node(piece, OccupantDominionGenerator.new(), "DominionGenerator")
+	if a_options.get("shelter", false):
+		var shelter := Shelter.new()
+		shelter.terrestrial_scene = _blank_projectile()
+		_add_node(piece, shelter, "Shelter")
+	if a_options.get("repairs", false):
+		_add_node(piece, Repairs.new(), "Repairs")
 	if a_options.has("vision"):
 		var vision: Node = _scene("vision_range.tscn")
 		vision.name = "VisionRange"

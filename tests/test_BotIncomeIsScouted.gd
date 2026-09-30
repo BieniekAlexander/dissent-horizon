@@ -5,8 +5,8 @@ extends GutTest
 ## extractor or one in its vision (bot-architecture.md §Income is found by scouting). The pond
 ## half of the same rule is pinned in test_WaterPlacement.gd, beside the pond fixture it needs.
 
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-const WORKER_SCENE: String = "res://scenes/entities/units/cl/cl_bioLight_builder.tscn"
+const SITE_SCENE: Dictionary = {"structure": true, "extraction_site": true}
+const WORKER_SCENE: Dictionary = FakePieces.BUILDER
 const BOT_ID: int = 2
 const ENEMY_ID: int = 1
 const NEAR: Vector3 = Vector3(5.0, 0.0, 0.0)
@@ -42,7 +42,7 @@ func _extractor_at(a_position: Vector3, a_owner_id: int) -> Commandable:
 	var owner: Commander = Commander.new()
 	owner.id = a_owner_id
 	add_child_autofree(owner)
-	var piece: Commandable = (load(WORKER_SCENE) as PackedScene).instantiate() as Commandable
+	var piece: Commandable = FakePieces.make(WORKER_SCENE) as Commandable
 	add_child_autofree(piece)
 	piece.ownership.commander = owner
 	piece.global_position = a_position
@@ -61,7 +61,7 @@ func _remember_structure_at(a_bot: StubBot, a_position: Vector3) -> void:
 ## A real extraction site piece, loaded inside the test (a file-scope preload of an entity
 ## scene can poison the Tool registry — CLAUDE.md).
 func _site_at(a_position: Vector3) -> Entity:
-	var site: Entity = (load(SITE_SCENE) as PackedScene).instantiate() as Entity
+	var site: Entity = FakePieces.make(SITE_SCENE) as Entity
 	add_child_autofree(site)
 	site.global_position = a_position
 	return site

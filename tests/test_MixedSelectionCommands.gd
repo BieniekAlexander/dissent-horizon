@@ -13,17 +13,21 @@ extends GutTest
 ## The command classes are resolved through the controller's STATIC entry points, so no
 ## controller instance, HUD, or map is stood up.
 
-const RECRUIT := preload("res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn")
-const SUPPLY_TRUCK := preload("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
-const WARLORD := preload("res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn")
-const CLIPPER := preload("res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn")
-const IRREGULAR := preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-const MERCURY := preload("res://scenes/entities/units/an/mercury.tscn")
+const RECRUIT: Dictionary = FakePieces.SOLDIER
+## An unarmed carrier that takes one kind of occupant only, and banks prisoners.
+const SUPPLY_TRUCK: Dictionary = {"speed": 2.0, "garrison": {"capacity": 3, "ids": [&"fake_servant"]},
+	"interactions": [Interaction.Type.DEPOSIT]}
+## Ground and air gun.
+const WARLORD: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {"ground": 6.0, "air": 8.0}}
+const CLIPPER: Dictionary = FakePieces.AIRCRAFT
+const IRREGULAR: Dictionary = FakePieces.BUILDER
+## A transport that admits anyone.
+const MERCURY: Dictionary = {"speed": 2.0, "garrison": {"capacity": 4}}
 ## load()ed inside the test, never preloaded: a file-scope preload of a STRUCTURE scene runs
 ## at parse time and fires Tool's static registry before it can be built, which fails every
 ## scene load in the run. See CLAUDE.md §Running and testing.
-const COMPOUND_PATH := "res://scenes/entities/structures/cl/cl_infrastructure.tscn"
-
+const COMPOUND_PATH: Dictionary = {"structure": true, "garrison": {"capacity": 6, "sentence_length": 30.0,
+	"frames": 0, "armours": 0, "movements": 0}}
 const PLAYER: int = 1
 const ENEMY: int = 2
 
@@ -36,8 +40,8 @@ func _commanded(a_id: int) -> Commander:
 ## A live unit owned by [a_commander_id]. Ownership is assigned directly (not through
 ## initialize) so no Map is needed; entering the tree is what resolves its components and
 ## its targetable layers, which weapon matching reads.
-func _unit(a_scene: PackedScene, a_commander_id: int) -> Commandable:
-	var u := a_scene.instantiate() as Commandable
+func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var u := FakePieces.make(a_options) as Commandable
 	add_child_autofree(u)
 	u.ownership.commander = _commanded(a_commander_id)
 	return u
@@ -126,7 +130,7 @@ func test_a_lone_truck_still_deposits():
 	# the truck's own interaction away from it.
 	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
 	truck.garrison.garrison(_unit(RECRUIT, ENEMY))
-	assert_eq(_resolve([truck], _unit(load(COMPOUND_PATH) as PackedScene, PLAYER)), Interact,
+	assert_eq(_resolve([truck], _unit(COMPOUND_PATH, PLAYER)), Interact,
 		"selected alone, the loaded truck banks its prisoners")
 
 ## Capture has no command of its own — driving over the prey IS the mechanic — so the

@@ -15,15 +15,13 @@ extends GutTest
 # repairer replaced it — every unit declaring `repairs: true` is BIO. The frame restriction
 # under test is on the PATIENT, so nothing here needed a mechanical medic to say it.
 ## Repairs; BIO frame.
-const SAPPER := preload("res://scenes/entities/units/an/an_bioLight_antiStructure.tscn")
+const SAPPER: Dictionary = {"speed": 2.0, "repairs": true}
 ## No Repairs; BIO frame.
-const RECRUIT := preload("res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn")
-const MATILDA := preload("res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn")      # MECH
+const RECRUIT: Dictionary = {"speed": 2.0}
+const MATILDA: Dictionary = {"speed": 2.0, "frame": Defense.FrameType.MECH}
 ## MECH frame; carries a garrison.
-const CARAVEL := preload(
-	"res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn"
-)
-const BUILDING := preload("res://scenes/entities/structures/nt/nt_building_square.tscn")
+const CARAVEL: Dictionary = {"speed": 2.0, "frame": Defense.FrameType.MECH, "garrison": {"capacity": 4}}
+const BUILDING: Dictionary = {"structure": true, "frame": Defense.FrameType.MECH}
 
 const PLAYER: int = 1
 const ALLY: int = 1
@@ -39,15 +37,15 @@ func _commanded(a_id: int) -> Commander:
 ## A live entity owned by [a_commander_id]. Ownership is assigned directly rather than
 ## through initialize(), so no Map is needed — the same fixture test_MixedSelectionCommands
 ## and test_Garrison use.
-func _entity(a_scene: PackedScene, a_commander_id: int) -> Commandable:
-	var e := a_scene.instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(a_commander_id)
 	return e
 
 ## An entity of the given scene, owned by [a_commander_id], with `a_damage` hp knocked off.
-func _damaged(a_scene: PackedScene, a_commander_id: int, a_damage: float = 50.0) -> Commandable:
-	var e: Commandable = _entity(a_scene, a_commander_id)
+func _damaged(a_options: Dictionary, a_commander_id: int, a_damage: float = 50.0) -> Commandable:
+	var e: Commandable = _entity(a_options, a_commander_id)
 	e.defense.apply_damage(a_damage)
 	return e
 

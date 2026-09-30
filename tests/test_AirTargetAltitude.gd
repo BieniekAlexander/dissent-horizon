@@ -11,10 +11,9 @@ extends GutTest
 ## Loaded INSIDE the tests, never preloaded at file scope: a file-scope preload of an entity
 ## scene runs at parse time and fires Tool's static registry initialiser before the registry
 ## exists, which makes Tool.for_name return null for every test after it (see CLAUDE.md).
-const CLIPPER: String = "res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn"
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const AIRFIELD: String = "res://scenes/entities/structures/cl/cl_airField.tscn"
-
+const CLIPPER: Dictionary = FakePieces.AIRCRAFT
+const RECRUIT: Dictionary = FakePieces.SOLDIER
+const AIRFIELD: Dictionary = FakePieces.BUILDING
 func _commander(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
@@ -23,8 +22,8 @@ func _commander(a_id: int) -> Commander:
 
 ## A live entity owned by `a_commander`. Ownership is assigned directly rather than through
 ## initialize() so no Map is needed — the shortcut test_DockingBay and test_Garrison take.
-func _entity(a_scene: String, a_commander: Commander) -> Commandable:
-	var e := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e
