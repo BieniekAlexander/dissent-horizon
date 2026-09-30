@@ -59,11 +59,12 @@ func test_the_maps_are_not_all_flat() -> void:
 	assert_gt(heights.size(), 1)
 
 
-## A terrace step is meant to be walked over, so neighbouring regions may differ by at most one.
+## A terrace step is meant to be walked over, so regions the topology left open to each other
+## may differ by at most one. Across an uncarved cut the barrier carries any gap.
 func test_neighbouring_regions_stay_within_one_terrace() -> void:
 	for map: GeneratedMap in _maps():
 		var levels: PackedInt32Array = map.elevation.level_of_node
-		for edge: Vector2i in map.topology.graph.edges:
+		for edge: Vector2i in map.topology.open_edges():
 			assert_lte(absi(levels[edge.x] - levels[edge.y]), 1, "edge %s" % edge)
 
 
