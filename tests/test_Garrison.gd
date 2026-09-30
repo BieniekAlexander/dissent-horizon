@@ -20,7 +20,7 @@ const COMPOUND := preload("res://scenes/entities/structures/cl/cl_infrastructure
 ## longer carries a Garrison at all, so these tests use the neutral building instead — still
 ## an open garrison, and the thing the safehouse conversion upgrades FROM (see Build's
 ## conversion path).
-const OPEN_GARRISON := preload("res://scenes/entities/structures/nt/nt_building.tscn")
+const OPEN_GARRISON := preload("res://scenes/entities/structures/nt/nt_building_square.tscn")
 const MERCURY := preload("res://scenes/entities/units/an/mercury.tscn")
 const RECRUIT := preload("res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn")
 const SERVANT := preload("res://scenes/entities/units/cl/cl_bioLight_builder.tscn")

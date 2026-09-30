@@ -828,11 +828,38 @@
 	},
 	{
 		"faction": "neutral",
-		"id": "nt_building",
+		"id": "nt_building_large",
+		"is_fixture": true,
+		"label": "large building",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_building_large.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_building_long",
+		"is_fixture": true,
+		"label": "long building",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_building_long.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_building_shack",
+		"is_fixture": true,
+		"label": "shack",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_building_shack.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_building_square",
 		"is_fixture": true,
 		"label": "building",
 		"producers": [],
-		"scene": "res://scenes/entities/structures/nt/nt_building.tscn",
+		"scene": "res://scenes/entities/structures/nt/nt_building_square.tscn",
 		"tool": ""
 	},
 	{

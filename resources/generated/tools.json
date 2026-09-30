@@ -277,8 +277,12 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_infrastructure.tscn",
-		"tooltip": "Build Safehouse — 500 energy, 20s",
-		"verbose": "Build Safehouse — 500 energy, 20s\n600 HP · medium armour · mech frame\n2×2 cells · vision 20\nProvides 50 infrastructure"
+		"tooltip": "Build Safehouse — 800 energy, 25s",
+		"variants": [
+			"nt_building_square",
+			"nt_building_long"
+		],
+		"verbose": "Build Safehouse — 800 energy, 25s\n1000 HP · medium armour · mech frame\n4×4 cells · vision 20\nProvides 75 infrastructure"
 	},
 	"command_tool_an_mechLight_transport": {
 		"context": "TRAIN",

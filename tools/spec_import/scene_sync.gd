@@ -671,8 +671,15 @@ func _sync_footprint(a_ctx: Ctx, a_spec: Dictionary) -> void:
 
 
 ## The keys that belong to the ROOT node rather than to any component.
+##
+## A family member's `infrastructure:` is TEMPLATE data — what the piece grants once it is built
+## as another piece — so it is never written here: Commandable.infrastructure is credited to
+## whichever commander owns the node, and a neutral building (or one a garrison captured) must
+## grant nothing. It is published through families.json instead.
 func _sync_root_properties(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	for key: String in ["infrastructure", "occupancy_size"]:
+		if key == "infrastructure" and a_spec.has("family"):
+			continue
 		if a_spec.has(key) and key in a_ctx.inst:
 			var value: int = int(a_spec[key])
 			_set_prop(a_ctx, "", key, a_ctx.inst.get(key), value, str(value))

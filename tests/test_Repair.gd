@@ -23,7 +23,7 @@ const MATILDA := preload("res://scenes/entities/units/cl/cl_mechMedium_antiMech.
 const CARAVEL := preload(
 	"res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn"
 )
-const BUILDING := preload("res://scenes/entities/structures/nt/nt_building.tscn")
+const BUILDING := preload("res://scenes/entities/structures/nt/nt_building_square.tscn")
 
 const PLAYER: int = 1
 const ALLY: int = 1

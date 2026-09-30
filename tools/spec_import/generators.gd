@@ -8,6 +8,7 @@ extends RefCounted
 ##   resources/generated/tools.json          — build/train tool registry
 ##   resources/generated/abilities.json      — the ability definitions
 ##   resources/generated/debug_roster.json   — every placeable piece, for the debug spawner
+##   resources/generated/families.json       — piece families and their members' template data
 ##   resources/generated/shapes/<id>.tres    — the shape library (see generate_shapes)
 ## Everything is emitted in alphabetical id order (per user convention — ids are
 ## named so alphabetical grouping is meaningful). All files carry AUTO-GENERATED
@@ -21,6 +22,7 @@ const TECHNOLOGY_PATH: String = "res://resources/generated/technology.json"
 const TOOLS_PATH: String = "res://resources/generated/tools.json"
 const ABILITIES_PATH: String = "res://resources/generated/abilities.json"
 const DEBUG_ROSTER_PATH: String = "res://resources/generated/debug_roster.json"
+const FAMILIES_PATH: String = "res://resources/generated/families.json"
 ## Where the debug roster looks for piece scenes that no spec names.
 const ENTITY_SCENES_DIR: String = "res://scenes/entities"
 ## A scene folder's faction code → the faction name (a ControlBinding.Faction member, lower
@@ -44,6 +46,7 @@ static func generate_all(registry: RefCounted) -> Array:
 	written.append(_write(TOOLS_PATH, tools_json(registry)))
 	written.append(_write(ABILITIES_PATH, abilities_json(registry)))
 	written.append(_write(DEBUG_ROSTER_PATH, debug_roster_json(registry)))
+	written.append(_write(FAMILIES_PATH, families_json(registry)))
 	return written
 
 
@@ -243,6 +246,39 @@ static func tools_json(registry: RefCounted) -> String:
 		+ JSON.stringify(tools_table(registry), "\t") + "\n"
 
 
+## {"families": {family: [member ids]}, "templates": {member id: {...}}} for every piece
+## naming a `family:`. A member is a TEMPLATE — a piece whose own price, build time and
+## infrastructure are what a DIFFERENT piece takes when it is built from it (`variants:`), or what
+## converting it costs — so its numbers live here, readable without instantiating its scene, and
+## its scene's `infrastructure` stays 0 (see SpecSceneSync._sync_root_properties). Read through
+## PieceFamilies. Members are alphabetical, like every generated list.
+static func families_json(registry: RefCounted) -> String:
+	var ids: Array = registry.pieces.keys()
+	ids.sort()
+	var families: Dictionary = {}
+	var templates: Dictionary = {}
+	for id in ids:
+		var spec: Dictionary = registry.pieces[id]
+		if not spec.has("family") or not spec.has("scene"):
+			continue
+		var family: String = str(spec["family"])
+		if not families.has(family):
+			families[family] = []
+		families[family].append(str(id))
+		var cost: Dictionary = spec["cost"] if spec["cost"] is Dictionary else {}
+		templates[str(id)] = {
+			"family": family,
+			"scene": str(spec["scene"]),
+			"footprint": [int(spec["footprint"][0]), int(spec["footprint"][1])],
+			"hp": float(spec.get("hp", 0)),
+			"energy_cost": int(cost.get("energy", 0)),
+			"build_time_ticks": TimeUtils.ticks_from_seconds(float(spec.get("build_time", 0))),
+			"infrastructure": int(spec.get("infrastructure", 0)),
+		}
+	return _json_header("piece families") \
+		+ JSON.stringify({"families": families, "templates": templates}, "\t") + "\n"
+
+
 ## The tools.json table itself. `require_scene` false keeps pieces the scene sync has yet to
 ## give a scene, which will have a button once it has — the grid review wants those too.
 static func tools_table(registry: RefCounted, require_scene: bool = true) -> Dictionary:
@@ -275,6 +311,11 @@ static func tools_table(registry: RefCounted, require_scene: bool = true) -> Dic
 			"context_grid": _ability_grid(spec, "context_grid"),
 			"needs_docking": _needs_docking(spec),
 		}
+		if spec.has("variants"):
+			var variant_ids: Array = []
+			for variant: Variant in spec["variants"]:
+				variant_ids.append(str(variant))
+			table["command_tool_%s" % id]["variants"] = variant_ids
 	return table
 
 

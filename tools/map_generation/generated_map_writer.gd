@@ -17,11 +17,11 @@ extends RefCounted
 const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
 const SHELTER_SCENE: String = "res://scenes/entities/structures/nt/nt_shelter.tscn"
 const EXTRACTOR_SCENE: String = "res://scenes/entities/structures/nt/nt_extractor.tscn"
-## The neutral pieces building clusters draw from, with draw weights. One piece today; the
-## pool is what widens when more building pieces exist (map-generation.md §Buildings).
-const BUILDING_POOL: Dictionary = {
-	"res://scenes/entities/structures/nt/nt_building.tscn": 1.0,
-}
+## The draw weight of every neutral building in the pool. The pool itself is the whole
+## neutral-building family (PieceFamilies), so a new `nt_building_*` piece joins it by being
+## authored; weights are uniform because no design reason to favour a shape exists yet
+## (map-generation.md §Buildings).
+const BUILDING_WEIGHT: float = 1.0
 const TILE_CATALOG: String = "res://resources/terrain/tile_catalog.tres"
 ## Every Scenario reads its map as `$Map`, so a map scene's root carries that name.
 const MAP_NODE_NAME: String = "Map"
@@ -54,8 +54,8 @@ func apply_piece_facts(a_params: MapGenerationParams) -> void:
 	a_params.site_piece = _piece_from(SITE_SCENE, 1.0)
 	a_params.shelter_piece = _piece_from(SHELTER_SCENE, 1.0)
 	a_params.building_pool = []
-	for path: String in BUILDING_POOL:
-		a_params.building_pool.append(_piece_from(path, BUILDING_POOL[path]))
+	for template: PieceFamilies.Template in PieceFamilies.templates_of(PieceFamilies.NEUTRAL_BUILDING):
+		a_params.building_pool.append(_piece_from(template.scene_path, BUILDING_WEIGHT))
 	var extractor: Node = (load(EXTRACTOR_SCENE) as PackedScene).instantiate()
 	var rate: int = (extractor.get_node("EnergyExtractor") as EnergyExtractor).energy_rate
 	extractor.free()

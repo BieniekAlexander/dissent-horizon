@@ -14,7 +14,7 @@ extends GutTest
 
 const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
 const EXTRACTOR_SCENE: String = "res://scenes/entities/structures/nt/nt_extractor.tscn"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17

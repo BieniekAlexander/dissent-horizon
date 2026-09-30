@@ -51,10 +51,15 @@ var context_grid: Vector2i = Vector2i(-1, -1)
 ## by the HUD's capacity soft gate — which needs the answer every frame and must not
 ## instantiate the unit scene to get it.
 var needs_docking: bool = false
+
+## The piece ids this tool's piece is built FROM, default first (`variants:` in its doc; today
+## only an_infrastructure names any), or empty for a piece built from nothing. A variant's own
+## footprint, HP, price, build time and infrastructure are read through PieceFamilies.template().
+var variants: Array[StringName] = []
 #endregion
 
 #region Lifecycle
-## TODO: twelve parameters, all of them one piece's generated facts. The composition rework
+## TODO: thirteen parameters, all of them one piece's generated facts. The composition rework
 ## (gdd/systems/authoring/composition-rework.md) is what shortens this — a Tool built from
 ## the piece's own spec rather than from a positional argument list. `gdlint` reports it
 ## until then.
@@ -70,7 +75,8 @@ func _init(
 	a_verbose_tooltip: String = "",
 	a_producers: Array = [],
 	a_needs_docking: bool = false,
-	a_context_grid: Vector2i = Vector2i(-1, -1)
+	a_context_grid: Vector2i = Vector2i(-1, -1),
+	a_variants: Array[StringName] = []
 ) -> void:
 	# A tool's card follows from what it does, so it is never authored twice: placing a
 	# structure is an order given to a UNIT and belongs beside that unit's other orders,
@@ -85,6 +91,7 @@ func _init(
 	producers = a_producers
 	needs_docking = a_needs_docking
 	context_grid = a_context_grid
+	variants = a_variants
 
 func faction_mask() -> int:
 	return faction
@@ -142,6 +149,9 @@ static func from_entry(command_name: String, e: Dictionary, scene: PackedScene) 
 	var producer_ids: Array = []
 	for p in e.get("producers", []):
 		producer_ids.append(StringName(str(p)))
+	var variant_ids: Array[StringName] = []
+	for v in e.get("variants", []):
+		variant_ids.append(StringName(str(v)))
 	return Tool.new(
 		command_name,
 		StringName(str(e["id"])),
@@ -154,7 +164,8 @@ static func from_entry(command_name: String, e: Dictionary, scene: PackedScene) 
 		str(e.get("verbose", "")),
 		producer_ids,
 		bool(e.get("needs_docking", false)),
-		_cell(e.get("context_grid", []))
+		_cell(e.get("context_grid", [])),
+		variant_ids
 	)
 
 ## A generated [x, y] pair as a cell, or (-1, -1) when the list is absent or malformed.

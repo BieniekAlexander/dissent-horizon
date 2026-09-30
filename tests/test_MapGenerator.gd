@@ -195,6 +195,61 @@ func _nearest(a_cluster: MapFeature, a_other: MapFeature) -> int:
 	return nearest
 
 
+## A pool of very different footprints — a shack, a long piece, a wide one — as a neutral-building
+## family produces. Fixture pieces, not the authored ones: what is under test is that placement
+## does not assume a square, a small footprint or a single size.
+func _mixed_pool_params() -> MapGenerationParams:
+	var params: MapGenerationParams = _params()
+	params.building_pool = [
+		MapPiece.of(&"shack", Vector2i(2, 2)),
+		MapPiece.of(&"square", Vector2i(4, 4)),
+		MapPiece.of(&"long", Vector2i(3, 5)),
+		MapPiece.of(&"wide", Vector2i(8, 5)),
+	]
+	return params
+
+
+func test_a_mixed_pool_of_non_square_pieces_generates_a_valid_map() -> void:
+	var params: MapGenerationParams = _mixed_pool_params()
+	var drawn: Dictionary = {}
+	for generation_seed: int in _SEEDS:
+		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		assert_true(map.is_valid(), "seed %d: %s" % [generation_seed, map.errors])
+		var claimed: Dictionary = {}
+		for cluster: MapFeature in map.features_of(MapFeature.Kind.BUILDING_CLUSTER):
+			for placement: Dictionary in cluster.placements:
+				var piece: MapPiece = placement.piece
+				drawn[piece.id] = true
+				# The whole footprint, in its authored orientation, is in play and unshared.
+				for cell: Vector2i in PlacementGrid.rect_cells(placement.origin, piece.footprint):
+					assert_true(map.terrain.is_cell_in_play(cell),
+						"seed %d: %s %s out of play" % [generation_seed, piece.id, cell])
+					assert_false(claimed.has(cell),
+						"seed %d: %s claimed twice" % [generation_seed, cell])
+					claimed[cell] = true
+	for piece: MapPiece in params.building_pool:
+		assert_true(drawn.has(piece.id), "%s is drawn across the seeds" % piece.id)
+
+
+func test_a_mixed_pool_keeps_cluster_separation_and_the_building_budget() -> void:
+	var params: MapGenerationParams = _mixed_pool_params()
+	var largest: int = 0
+	for piece: MapPiece in params.building_pool:
+		largest = maxi(largest, piece.cell_count())
+	for generation_seed: int in _SEEDS:
+		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var clusters: Array[MapFeature] = map.features_of(MapFeature.Kind.BUILDING_CLUSTER)
+		var cells: float = 0.0
+		for cluster: MapFeature in clusters:
+			cells += cluster.value
+		assert_gte(cells, params.building_occupancy * map.play_cell_count)
+		assert_lt(cells, params.building_occupancy * map.play_cell_count + largest)
+		for i: int in clusters.size():
+			for j: int in range(i + 1, clusters.size()):
+				assert_gte(_nearest(clusters[i], clusters[j]), params.building_cluster_separation_cells,
+					"seed %d: clusters %d and %d" % [generation_seed, i, j])
+
+
 func test_a_site_cluster_is_one_to_three_sites_edge_to_edge() -> void:
 	for generation_seed: int in _SEEDS:
 		for cluster: MapFeature in _generate(generation_seed).features_of(

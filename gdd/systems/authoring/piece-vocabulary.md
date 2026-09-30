@@ -50,8 +50,9 @@ fixture** (does it claim terrain-grid cells)?
 - **Fixture**: a piece that claims terrain-grid cells. It is fixed in place and cannot move
   while it is one. A **structure** is a commandable fixture (a barracks, an extractor, a
   deployed transformer). A **feature** is an uncommandable one (an extraction site, a
-  shelter). **"Building" is not a category.** It is the name of a specific piece
-  (`nt_building`).
+  shelter). **"Building" is not a category.** It is the name of a family of specific pieces
+  (`nt_building_square`, `_long`, `_shack`, `_large`), recognised as one by the `neutral_building`
+  group they carry.
 - **Figure**: any piece that is not a fixture. A **unit** is a commandable figure. A **token**
   is an uncommandable one (a Recon Drone, a beacon, a rocket).
 

@@ -42,7 +42,8 @@ static func _conversion_target(commander: Commander, message: CommandMessage) ->
 	) as Commandable
 	if host == null or not is_instance_valid(host):
 		return null
-	return host if host.id == EntityIds.NT_BUILDING and host.commander_id == 0 else null
+	return host if PieceFamilies.is_member(host.id, PieceFamilies.NEUTRAL_BUILDING) \
+			and host.commander_id == 0 else null
 
 ## True when this Build is a safehouse conversion: the safehouse tool aimed squarely at a
 ## still-neutral building (see _conversion_target).

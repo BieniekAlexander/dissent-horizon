@@ -129,10 +129,10 @@
 		"requires": []
 	},
 	"an_infrastructure": {
-		"build_time_ticks": 600,
+		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"energy": 500,
+			"energy": 800,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -860,11 +860,38 @@
 		},
 		"requires": []
 	},
-	"nt_building": {
-		"build_time_ticks": 300,
+	"nt_building_large": {
+		"build_time_ticks": 1050,
 		"cost": {
 			"dominion": 0,
-			"energy": 100,
+			"energy": 1200,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_building_long": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 800,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_building_shack": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_building_square": {
+		"build_time_ticks": 750,
+		"cost": {
+			"dominion": 0,
+			"energy": 800,
 			"infrastructure": 0
 		},
 		"requires": []

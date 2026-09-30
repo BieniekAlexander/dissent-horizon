@@ -288,9 +288,10 @@ TODO: the band's bounds are not tuned.
 
 #### Buildings
 
-`nt_building` is one piece today; generation must not assume that. Buildings will be drawn from a
-**pool of neutral pieces with differing footprints**, so a cluster is packed from footprints, not
-from a count, and the pool is a generation parameter.
+The neutral buildings are a family (`nt_building_square`, `_long`, `_shack`, `_large`) of differing
+footprints, and generation must not assume a square. Buildings are drawn from a **pool of neutral
+pieces**, the whole `neutral_building` family at uniform weights, so a cluster is packed from
+footprints, not from a count, and the pool is a generation parameter.
 
 **Cluster size is heavy-tailed**: `1 + NegativeBinomial(cluster_size_successes,
 cluster_size_success_chance)`, capped at `cluster_size_max`. At 2 and 0.4 (mean 4), clusters of

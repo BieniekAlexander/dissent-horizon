@@ -19,7 +19,7 @@ extends GutTest
 
 const SAFEHOUSE_TOOL: String = "command_tool_an_infrastructure"
 const EXTRACTOR_TOOL: String = "command_tool_nt_extractor"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 const EXTRACTION_SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
 
 ## Every piece in play here is 2×2 — the even footprint, which centres on a grid CORNER.

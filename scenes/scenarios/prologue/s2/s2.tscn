@@ -41,7 +41,7 @@
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="37_3gtty"]
 [ext_resource type="PackedScene" uid="uid://b4mg8vf6usyv5" path="res://scenes/scenarios/prologue/lose_dialog.tscn" id="37_7htje"]
 [ext_resource type="PackedScene" uid="uid://csyr8p6ug2rpw" path="res://scenes/entities/structures/nt/nt_shelter.tscn" id="37_q24et"]
-[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building.tscn" id="38_jswnn"]
+[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building_square.tscn" id="38_jswnn"]
 
 [sub_resource type="Resource" id="PlayerSlot_human"]
 script = ExtResource("2_8vkoe")

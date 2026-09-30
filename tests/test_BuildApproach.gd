@@ -12,7 +12,7 @@ extends GutTest
 const EXTRACTOR_TOOL: String = "command_tool_nt_extractor"
 const ORDINARY_TOOL: String = "command_tool_an_barracks"
 const SAFEHOUSE_TOOL: String = "command_tool_an_infrastructure"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
 const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
 

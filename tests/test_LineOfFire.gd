@@ -14,7 +14,7 @@ extends GutTest
 
 const SOLDIER: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
 const AIRCRAFT: String = "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn"
-const BUILDING: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const BUILDING: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 
 ## Far enough apart that the building sits squarely between them, with room either side.
 const SPAN: float = 8.0

@@ -253,7 +253,7 @@ func test_a_piece_that_does_not_grant_work_detail_lends_nothing() -> void:
 	# A structure with a Garrison but no Work Detail grant — a plain shelter, say — must not
 	# start handing out the bonus just because something in it got consumed.
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
-	var plain := load("res://scenes/entities/structures/nt/nt_building.tscn").instantiate() \
+	var plain := load("res://scenes/entities/structures/nt/nt_building_square.tscn").instantiate() \
 		as Commandable
 	_world.add_child(plain)
 	plain.set_physics_process(false)

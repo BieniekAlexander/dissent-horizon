@@ -17,7 +17,7 @@ const HIJACKER := preload("res://scenes/entities/units/an/an_bioMedium_support.t
 const MATILDA := preload("res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn")
 ## BIO unit.
 const RECRUIT := preload("res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn")
-const BUILDING := preload("res://scenes/entities/structures/nt/nt_building.tscn") # MECH structure
+const BUILDING := preload("res://scenes/entities/structures/nt/nt_building_square.tscn") # MECH structure
 
 const OWNER: int = 1
 const ENEMY: int = 2

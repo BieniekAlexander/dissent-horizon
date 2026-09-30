@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://c2s5yo2m20vob"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_inwnv"]
-[ext_resource type="Shape3D" uid="uid://cnsauv686lv3b" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_fkhkx"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_necrp"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_ey3et"]
@@ -26,11 +26,11 @@ size = Vector3(4, 2, 4)
 [sub_resource type="BoxMesh" id="BoxMesh_mixec"]
 size = Vector3(2, 2, 2)
 
-[node name="Structure" type="CharacterBody3D" unique_id=1588153302 groups=["piece", "fixture", "structure"]]
+[node name="Structure" type="CharacterBody3D" unique_id=1588153302 groups=["piece", "fixture", "structure", "neutral_building"]]
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("1_inwnv")
-id = &"nt_building"
+id = &"nt_building_square"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=960624525]
 

@@ -19,7 +19,7 @@ const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.ts
 const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
 ## The Anarchical Stockpile: a structure with no weapons.
 const STOCKPILE: String = "res://scenes/entities/structures/an/an_tech1.tscn"
-const NEUTRAL_BUILDING: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const NEUTRAL_BUILDING: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 
 const DEFENDER: int = 1
 const ENEMY: int = 2
