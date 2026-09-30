@@ -13,23 +13,18 @@ extends GutTest
 ## half needs a live NavigationServer and a real Map, which this suite has no fixture for.
 ## `tools/rearm_probe.gd` is what exercises that end to end.
 
-## PATHS, not preloads. A file-scope preload of an entity scene runs at PARSE time, which
-## fires Tool's static registry initialiser before the registry exists and makes
-## Tool.for_name return null for every test after it (see CLAUDE.md). This file used to
-## carry four such preloads and got away with it only because it sorts late in the
-## directory listing — running it alone with -gtest broke every scene load in the run.
-##
-## They also pointed at res://scenes/entities/units/an/kamikaze.tscn, which was renamed out
-## from under them: the const could then not be typed, the WHOLE FILE stopped parsing, and
-## GUT skipped it in silence. Every test in here had been dead ever since.
-const AIRFIELD: Dictionary = FakePieces.BUILDING
+## Every piece is a fake (tests/_fake_pieces.gd): an airfield with pads and a runway, an
+## aircraft with a charged clip that wants a pad, one that opts out, and a soldier.
+const AIRFIELD: Dictionary = {"structure": true, "production": true, "docking_bay": {"pads": 3, "runways": 1}}
 ## A friendly aircraft with a CHARGED clip (it cannot reload in the field, so it wants a pad).
-const CLIPPER: Dictionary = FakePieces.AIRCRAFT
+## A friendly aircraft with a CHARGED clip (it cannot reload in the field, so it wants a pad).
+const CLIPPER: Dictionary = {"aerial": true, "docking": true, "vision": 8.0,
+	"weapon": {"ground": 6.0, "clip_size": 4, "charged": true}}
 const RECRUIT: Dictionary = FakePieces.SOLDIER
 ## An aircraft that opts out of airfields (Movement.docks) — expended on its first run, so
 ## there is nothing about a pad it could want. FLYING, so it passes every STRUCTURAL test
 ## for docking and is turned away purely on the flag.
-const KAMIKAZE: Dictionary = FakePieces.AIRCRAFT
+const KAMIKAZE: Dictionary = {"aerial": true, "flying": true, "vision": 8.0}  # no Docking: it never wants a pad
 func _commander(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
@@ -499,21 +494,19 @@ func test_a_bay_with_no_runway_still_lifts_straight_off_the_pad() -> void:
 #region No pad, no aircraft
 ## An aircraft that rearms is rolled out ONTO a pad and holds it, so an airfield whose every
 ## pad is spoken for has literally nowhere to put another one.
-func _tool_for(a_id: StringName) -> Tool:
-	for name: String in Tool.command_tool_map:
-		var t: Tool = Tool.command_tool_map[name]
-		if t.type == a_id:
-			return t
-	return null
+## A train button for a piece that does (or does not) take a pad. Built here, not read from the
+## registry: which shipped pieces rearm is content.
+func _tool_for(a_needs_docking: bool) -> Tool:
+	var tool := Tool.new("command_tool_fake", &"fake_unit", null, "fake", Vector2i.ZERO, 0, 0)
+	tool.needs_docking = a_needs_docking
+	return tool
 
 
 func test_training_is_refused_once_every_pad_is_taken() -> void:
 	var cmd: Commander = _commander(1)
 	var field: Commandable = _airfield(cmd)
 	var bay: DockingBay = field.get_node("DockingBay") as DockingBay
-	var docker: Tool = _tool_for(&"cl_aircraftMedium_antiMech")
-	assert_not_null(docker, "the Drake has a train button")
-	assert_true(docker.needs_docking, "and it is an aircraft that rearms")
+	var docker: Tool = _tool_for(true)
 
 	assert_true(Train.has_free_pad_for(field, docker), "an empty airfield can build one")
 	for pad: DockingPad in bay.pads():
@@ -528,18 +521,16 @@ func test_a_piece_that_never_docks_is_never_blocked() -> void:
 	var field: Commandable = _airfield(cmd)
 	for pad: DockingPad in (field.get_node("DockingBay") as DockingBay).pads():
 		pad.claim(_entity(CLIPPER, cmd))
-	var ground: Tool = _tool_for(&"cl_bioLight_antiLight")
-	assert_not_null(ground)
-	assert_false(ground.needs_docking)
+	var ground: Tool = _tool_for(false)
 	assert_true(Train.has_free_pad_for(field, ground))
 
 
 ## A producer with no bay at all cannot be short of pads.
 func test_a_producer_with_no_bay_is_never_blocked() -> void:
 	var cmd: Commander = _commander(1)
-	var barracks: Commandable = _entity("res://scenes/entities/structures/cl/cl_barracks.tscn", cmd)
+	var barracks: Commandable = _entity({"structure": true}, cmd)
 	assert_null(barracks.get_node_or_null("DockingBay"))
-	assert_true(Train.has_free_pad_for(barracks, _tool_for(&"cl_aircraftMedium_antiMech")))
+	assert_true(Train.has_free_pad_for(barracks, _tool_for(true)))
 #endregion
 
 

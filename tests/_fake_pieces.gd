@@ -36,6 +36,8 @@ extends RefCounted
 ##   garrison: Dictionary    a `Garrison`: capacity: int, sentence_length: float, bunker: bool,
 ##                             frames / armours / movements: int masks, ids: Array
 ##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
+##   flying: bool            `Movement.mode` FLYING rather than HOVERING (needs `aerial`)
+##   production: bool       a `Production` component (a producer)
 ##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
 ##   extraction_site: bool  an `ExtractionSite` marker (`structure()` only)
 ##   occupant_dominion: bool  an `OccupantDominionGenerator` (named "DominionGenerator")
@@ -43,6 +45,8 @@ extends RefCounted
 ##   liberator: bool         a `Liberator` converting into a blank unit, with a `LiberationRange`
 ##   stealth: bool           a `Stealth` component (starts stealthed)
 ##   status_visuals: bool    a `StatusVisuals` (badges, tints, pips); pair it with `mesh`
+##   docking: bool           a `Docking`: the aircraft can land at a friendly airfield
+##   docking_bay: Dictionary an airfield: pads: int (default 2), runways: int (default 1)
 ##   shelter: bool          a `Shelter` component that spawns a blank unit
 ##   repairs: bool          a `Repairs` component: the piece can mend
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
@@ -145,11 +149,17 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		var movement := Movement.new()
 		movement.speed = float(a_options.get("speed", 4.0))
 		movement.nav_agent_path = NodePath("../NavigationAgent")
+		movement.turn_rate = float(a_options.get("turn_rate", 360.0))
+		if a_options.get("flying", false):
+			movement.mode = Movement.Mode.FLYING
 		if a_options.has("crush"):
 			movement.crush_class = a_options["crush"]
 		_add_node(piece, movement, "Locomotion")
 	if a_options.get("aerial", false):
-		_add_node(piece, Aerial.new(), "Aerial")
+		var aerial := Aerial.new()
+		if a_options.get("flying", false):
+			aerial.mode = Movement.Mode.FLYING
+		_add_node(piece, aerial, "Aerial")
 	if a_options.get("mesh", false):
 		var visual := MeshVisual.new()
 		var model := MeshInstance3D.new()
@@ -177,6 +187,12 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		_add_node(piece, Stealth.new(), "Stealth")
 	if a_options.get("status_visuals", false):
 		_add_node(piece, StatusVisuals.new(), "StatusVisuals")
+	if a_options.get("production", false):
+		_add_node(piece, Production.new(), "Production")
+	if a_options.get("docking", false):
+		_add_node(piece, Docking.new(), "Docking")
+	if a_options.has("docking_bay"):
+		_add_docking_bay(piece, a_options["docking_bay"] as Dictionary)
 	if a_options.get("shelter", false):
 		var shelter := Shelter.new()
 		shelter.terrestrial_scene = _blank_projectile()
@@ -214,6 +230,23 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		interactor.interactions = list
 		_add_node(piece, interactor, "Interactor")
 	return piece
+
+
+static func _add_docking_bay(a_piece: Commandable, a_spec: Dictionary) -> void:
+	var bay := DockingBay.new()
+	bay.name = "DockingBay"
+	for i: int in int(a_spec.get("pads", 2)):
+		var pad := DockingPad.new()
+		pad.name = "Pad%d" % i
+		pad.position = Vector3(float(i) * 3.0, 0.0, 0.0)
+		bay.add_child(pad)
+	for i: int in int(a_spec.get("runways", 1)):
+		var runway := Runway.new()
+		runway.name = "Runway%d" % i
+		# Beside the apron, so the way from a pad onto the strip is a real taxi.
+		runway.position = Vector3(-6.0, 0.0, -4.0 - float(i) * 3.0)
+		bay.add_child(runway)
+	a_piece.add_child(bay)
 
 
 static func _add_garrison(a_piece: Commandable, a_spec: Dictionary) -> void:
