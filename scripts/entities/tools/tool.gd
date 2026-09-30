@@ -56,6 +56,21 @@ var needs_docking: bool = false
 ## only an_infrastructure names any), or empty for a piece built from nothing. A variant's own
 ## footprint, HP, price, build time and infrastructure are read through PieceFamilies.template().
 var variants: Array[StringName] = []
+
+## The variant this tool is BOUND to, or empty for an ordinary tool. A bound tool is what a Build
+## order carries when its piece has `variants` (see with_variant): it keeps `type` — so the tech
+## tree, the commander's structure accounting, the build card and the hotkey all still see the
+## piece — but its `packed_scene` is the VARIANT's scene, and price/footprint/HP/infrastructure
+## follow the variant. Derive one through with_variant / resolved; never assign it.
+var variant: StringName = &""
+
+## The unbound tool this one was derived from, weakly held (the base owns its bound tools, so a
+## strong back-reference would be a cycle nothing ever frees). Null on a base tool.
+var _base_ref: WeakRef = null
+
+## A base tool's bound tools, one per variant, made on first use: asking twice for the same
+## variant returns the SAME object, so identity comparisons and per-tool caches stay stable.
+var _bound: Dictionary = {}
 #endregion
 
 #region Lifecycle
@@ -95,6 +110,91 @@ func _init(
 
 func faction_mask() -> int:
 	return faction
+
+#region Variants
+## True when this tool is bound to one of its piece's variants.
+func is_variant_bound() -> bool:
+	return variant != &""
+
+## This tool's variant's place in `variants`, or -1 when it is not bound.
+func variant_index() -> int:
+	return variants.find(variant) if is_variant_bound() else -1
+
+## The bound tool for variant `a_index` of this tool's piece. WRAPS (index -1 is the last, an index
+## past the end is the first) so a caller cycling with `variant_index() + 1` needs no bounds check.
+## A tool whose piece has no variants is returned as it is: there is nothing to bind.
+func with_variant(a_index: int) -> Tool:
+	if variants.is_empty():
+		return self
+	var base: Tool = _base()
+	var wrapped: int = posmod(a_index, variants.size())
+	if not base._bound.has(wrapped):
+		base._bound[wrapped] = base._make_bound(variants[wrapped])
+	return base._bound[wrapped]
+
+## The bound tool for the variant after this one, wrapping. From an unbound tool it is the SECOND
+## variant, because an unbound tool already means the first (see resolved).
+func next_variant() -> Tool:
+	return with_variant(maxi(variant_index(), 0) + 1)
+
+## This tool made CONCRETE: a bound tool, or one whose piece has no variants, is itself; an
+## unbound tool of a piece with variants is bound to the first — the default. What an order carries
+## (CommandMessage.tool) and what a preview instance is made from, so nothing downstream ever has
+## to ask "which variant does no variant mean".
+func resolved() -> Tool:
+	return self if is_variant_bound() or variants.is_empty() else with_variant(0)
+
+## The piece id whose technology entry PRICES and TIMES this tool: the variant's when bound, else
+## the tool's own. Prerequisites are always read off `type`.
+func price_id() -> StringName:
+	return variant if is_variant_bound() else type
+
+## The key a per-tool cache (Commander's preview instances, the HUD ghost) should use: distinct
+## for each variant of one piece, which `type` alone is not.
+func preview_key() -> StringName:
+	return StringName("%s:%s" % [type, variant]) if is_variant_bound() else type
+
+## The bound variant's template (footprint, HP, price, infrastructure), or null when unbound.
+func variant_template() -> PieceFamilies.Template:
+	return PieceFamilies.template(variant) if is_variant_bound() else null
+
+## What the HUD calls the bound variant, or "" when unbound.
+func variant_label() -> String:
+	var found: PieceFamilies.Template = variant_template()
+	return found.title if found != null else ""
+
+## A fresh instance of the piece this tool places, ready to enter the world (or to be read as a
+## preview). A bound tool's instance is made from the variant's scene and then given the piece's
+## own properties (Repurposing), so it is the piece — with the variant's footprint, HP and
+## infrastructure — before anything sees it.
+func instantiate() -> Node:
+	if packed_scene == null:
+		return null
+	var instance: Node = packed_scene.instantiate()
+	var found: PieceFamilies.Template = variant_template()
+	if found != null and instance is Commandable:
+		Repurposing.into(instance as Commandable, type)
+	return instance
+
+func _base() -> Tool:
+	if _base_ref == null:
+		return self
+	var base: Object = _base_ref.get_ref()
+	return base as Tool if base != null else self
+
+func _make_bound(a_variant: StringName) -> Tool:
+	var found: PieceFamilies.Template = PieceFamilies.template(a_variant)
+	if found == null:
+		push_error("Tool: %s names variant %s, which is in no family" % [command_name, a_variant])
+		return self
+	var bound := Tool.new(
+		command_name, type, found.load_scene(), label, grid_position, control_context, faction,
+		simple_tooltip, verbose_tooltip, producers, needs_docking, context_grid, variants
+	)
+	bound.variant = a_variant
+	bound._base_ref = weakref(self)
+	return bound
+#endregion
 
 func actor_ids() -> Array:
 	return producers

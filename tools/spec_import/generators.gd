@@ -269,6 +269,7 @@ static func families_json(registry: RefCounted) -> String:
 		templates[str(id)] = {
 			"family": family,
 			"scene": str(spec["scene"]),
+			"title": piece_title(spec),
 			"footprint": [int(spec["footprint"][0]), int(spec["footprint"][1])],
 			"hp": float(spec.get("hp", 0)),
 			"energy_cost": int(cost.get("energy", 0)),

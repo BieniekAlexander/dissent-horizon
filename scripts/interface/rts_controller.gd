@@ -3788,7 +3788,7 @@ func _update_build_preview(a_is_invalid_placement: bool) -> void:
 
 	# (Re)build the ghost sprite when the chosen structure changes.
 	if _build_preview == null or not is_instance_valid(_build_preview) \
-			or command_message.tool.type != _build_preview_tool_type:
+			or command_message.tool.preview_key() != _build_preview_tool_type:
 		_rebuild_build_preview(command_message.tool)
 
 	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
@@ -3863,7 +3863,7 @@ func _footprint_centroid_of(a_source: Node, a_xz: Vector2) -> Variant:
 ## the scene here; the team colour is applied to the copy each frame by
 ## _update_build_preview, which also folds in the valid/invalid signal.
 func _rebuild_build_preview(a_tool: Tool) -> void:
-	_clear_build_preview(a_tool.type)
+	_clear_build_preview(a_tool.preview_key())
 
 	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
 	var commander: Commander = lead.commander if lead != null else null

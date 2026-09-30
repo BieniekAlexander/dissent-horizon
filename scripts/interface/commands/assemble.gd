@@ -68,7 +68,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		if site.commander != null:
 			site.commander.proc_technology()
 		if a_actor.veterancy != null:
-			var spec: TechnologySpec = site.commander.technology_mapping.get(site.id) \
+			var spec: TechnologySpec = site.commander.technology_mapping.get(site.pricing_id()) \
 				if site.commander != null else null
 			var xp: int = roundi(float(spec.energy_cost) * Veterancy.XP_PER_BUILD_ENERGY) if spec != null else 0
 			a_actor.veterancy.gain_experience(xp)

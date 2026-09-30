@@ -251,5 +251,5 @@ func _hovered_spec() -> TechnologySpec:
 	var tool: Tool = _previewed_tool()
 	if tool == null or commander == null:
 		return null
-	return commander.technology_mapping.get(tool.type) as TechnologySpec
+	return commander.technology_mapping.get(tool.price_id()) as TechnologySpec
 #endregion

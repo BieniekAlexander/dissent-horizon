@@ -183,6 +183,7 @@ func is_infrastructure_strained() -> bool:
 func infrastructure_provider_grant() -> int:
 	if faction == null or faction.infrastructure_source == &"":
 		return 0
+	# The default variant's: what the faction's provider is when nothing else is asked.
 	var source := get_build_preview_instance(Tool.for_type(faction.infrastructure_source)) \
 		as Commandable
 	return maxi(source.infrastructure, 0) if source != null else 0
@@ -222,7 +223,23 @@ func get_blocking_need(
 	a_type: Variant,
 	a_allow_deferral: bool = true
 ) -> TechnologySpec.UnmetNeed:
-	var need: TechnologySpec.UnmetNeed = get_unmet_need(a_type)
+	return _blocking_need(a_type, get_unmet_need(a_type), a_allow_deferral)
+
+
+## get_blocking_need for a Tool, priced by its own form (see get_unmet_need_for).
+func get_blocking_need_for(
+	a_tool: Tool,
+	a_allow_deferral: bool = true
+) -> TechnologySpec.UnmetNeed:
+	return _blocking_need(a_tool.type, get_unmet_need_for(a_tool), a_allow_deferral)
+
+
+func _blocking_need(
+	a_type: Variant,
+	a_need: TechnologySpec.UnmetNeed,
+	a_allow_deferral: bool
+) -> TechnologySpec.UnmetNeed:
+	var need: TechnologySpec.UnmetNeed = a_need
 	if not a_allow_deferral:
 		return need
 	if is_deferrable_need(need):
@@ -333,6 +350,18 @@ func has_built_structure(a_id: StringName) -> bool:
 	return _structures_of(a_id).get_values().any(
 		func(s: Commandable): return s.is_built
 	)
+
+## What stops this commander buying `a_tool`: the piece's prerequisites (read off its `type`) and
+## the PRICE of the tool's own form (a variant-bound tool costs what its variant costs).
+func get_unmet_need_for(a_tool: Tool) -> TechnologySpec.UnmetNeed:
+	var spec: TechnologySpec = technology_mapping.get(a_tool.type)
+	if spec == null:
+		return TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+	if spec.unmet_need != TechnologySpec.UnmetNeed.NONE:
+		return spec.unmet_need
+	var priced: TechnologySpec = technology_mapping.get(a_tool.price_id(), spec)
+	return priced.get_unmet_need(self)
+
 
 func get_unmet_need(a_type: Variant) -> TechnologySpec.UnmetNeed:
 	var technology_spec: TechnologySpec = technology_mapping.get(a_type)
@@ -1011,13 +1040,16 @@ var _build_preview_instances: Dictionary = {}
 func get_build_preview_instance(a_tool: Tool) -> Node:
 	if a_tool == null or a_tool.packed_scene == null:
 		return null
-	var cached: Variant = _build_preview_instances.get(a_tool.type)
+	# One instance per VARIANT of a piece: the variants differ in footprint, HP and infrastructure.
+	# An unbound tool of such a piece previews its default.
+	var tool: Tool = a_tool.resolved()
+	var cached: Variant = _build_preview_instances.get(tool.preview_key())
 	if cached != null and is_instance_valid(cached):
 		return cached
-	var instance: Node = a_tool.packed_scene.instantiate()
+	var instance: Node = tool.instantiate()
 	if instance is Entity:
 		(instance as Entity).configure_preview_ownership(self)
-	_build_preview_instances[a_tool.type] = instance
+	_build_preview_instances[tool.preview_key()] = instance
 	return instance
 
 func _notification(a_what: int) -> void:

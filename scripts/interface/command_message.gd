@@ -4,7 +4,12 @@ class_name CommandMessage
 #region Properties
 var map: Map        # the game map, passed for gamestate checks
 var target: Entity      # The entity which will be the recipient of the command
-var tool: Tool        # Any potential thing that is used in the fulfillment of a command
+## Any potential thing that is used in the fulfillment of a command. Always CONCRETE (Tool.resolved):
+## a tool whose piece has variants is stored bound to one — the default unless a caller bound another —
+## so nothing downstream reads a build order and has to ask which variant it means.
+var tool: Tool:
+	set(value):
+		tool = value.resolved() if value != null else null
 var world_position: Vector3  # The raw position at which the command is requested (NOTE: `target` might not always be relevant)
 var ability_type: Variant  # For Ability commands: which Ability.Type to invoke (null otherwise)
 ## For UseSanction: WHICH sanction is being cast. Carried on the message rather than baked

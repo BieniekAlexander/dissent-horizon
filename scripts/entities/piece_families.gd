@@ -30,6 +30,8 @@ class Template extends RefCounted:
 	var id: StringName
 	var family: StringName
 	var scene_path: String
+	## The doc's title — what the HUD calls this form.
+	var title: String
 	## Grid cells, as Structure.dimensions.
 	var footprint: Vector2i
 	var hp: float
@@ -101,6 +103,7 @@ static func parse(a_text: String) -> Table:
 		built.id = StringName(id)
 		built.family = StringName(str(entry["family"]))
 		built.scene_path = str(entry["scene"])
+		built.title = str(entry.get("title", id))
 		built.footprint = Vector2i(int(entry["footprint"][0]), int(entry["footprint"][1]))
 		built.hp = float(entry["hp"])
 		built.energy_cost = int(entry["energy_cost"])

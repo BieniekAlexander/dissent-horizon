@@ -18,7 +18,8 @@
 			],
 			"hp": 1500.0,
 			"infrastructure": 100,
-			"scene": "res://scenes/entities/structures/nt/nt_building_large.tscn"
+			"scene": "res://scenes/entities/structures/nt/nt_building_large.tscn",
+			"title": "large building"
 		},
 		"nt_building_long": {
 			"build_time_ticks": 750,
@@ -30,7 +31,8 @@
 			],
 			"hp": 1000.0,
 			"infrastructure": 75,
-			"scene": "res://scenes/entities/structures/nt/nt_building_long.tscn"
+			"scene": "res://scenes/entities/structures/nt/nt_building_long.tscn",
+			"title": "long building"
 		},
 		"nt_building_shack": {
 			"build_time_ticks": 600,
@@ -42,7 +44,8 @@
 			],
 			"hp": 600.0,
 			"infrastructure": 50,
-			"scene": "res://scenes/entities/structures/nt/nt_building_shack.tscn"
+			"scene": "res://scenes/entities/structures/nt/nt_building_shack.tscn",
+			"title": "shack"
 		},
 		"nt_building_square": {
 			"build_time_ticks": 750,
@@ -54,7 +57,8 @@
 			],
 			"hp": 1000.0,
 			"infrastructure": 75,
-			"scene": "res://scenes/entities/structures/nt/nt_building_square.tscn"
+			"scene": "res://scenes/entities/structures/nt/nt_building_square.tscn",
+			"title": "building"
 		}
 	}
 }

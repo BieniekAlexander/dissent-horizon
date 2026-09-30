@@ -36,6 +36,15 @@ var action_tracker: ActionTracker = ActionTracker.new()
 ## is built and in play (see _sync_infrastructure).
 @export var infrastructure: int = 0
 
+## The piece this one was BUILT FROM when it is another piece made out of it (an_infrastructure
+## out of a neutral building — see Repurposing), or empty. It is what the piece is priced and
+## timed by, since its own id names a piece whose listed numbers belong to a different form.
+var built_from: StringName = &""
+
+## The piece id whose technology entry prices and times this one.
+func pricing_id() -> StringName:
+	return built_from if built_from != &"" else id
+
 ## The commander currently credited with `infrastructure`, or null. Kept rather than derived
 ## because the debit must go to whoever was credited, which ownership changes and teardown
 ## have already moved on from by the time it is due. Untyped: it may hold a freed commander.
@@ -643,7 +652,8 @@ const UNPRICED_BUILD_TIME_TICKS: int = 600
 func effective_build_increment() -> float:
 	var n: int = maxi(1, _active_builders.size())
 	var effective_n: float = 1.0 + MARGINAL_BUILDER_EFFICIENCY * float(n - 1)
-	var spec: TechnologySpec = commander.technology_mapping.get(id) if commander != null else null
+	var spec: TechnologySpec = commander.technology_mapping.get(pricing_id()) \
+		if commander != null else null
 	var base_build_time: int = spec.creation_time if spec != null else UNPRICED_BUILD_TIME_TICKS
 	return (effective_n + 2.0) / (3.0 * float(base_build_time) * float(n))
 var map_cells: Set:
