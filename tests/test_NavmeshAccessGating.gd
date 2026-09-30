@@ -19,13 +19,15 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NavmeshAccessGating.gd -gexit
 
-const PRODUCTION_TOOL: String = "command_tool_an_barracks"
+const PRODUCER_TYPE: StringName = &"fake_producer"
 const PRODUCTION_DIMS: Vector2i = Vector2i(3, 3)
 ## Anarchical, so the anarchical builder below may place it, and with no Production
 ## component — the "everything else" side of the rule-2 scoping.
-const PLAIN_TOOL: String = "command_tool_an_infrastructure"
+const PLAIN_TYPE: StringName = &"fake_plain"
+const TRAINEE_TYPE: StringName = &"fake_trainee"
 const PLAIN_DIMS: Vector2i = Vector2i(2, 2)
-const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0,
+	"builds": [&"fake_producer", &"fake_plain"]}
 ## Height-map corner count; the cell grid is one smaller in each axis. Large enough to hold
 ## three well-separated fixtures (a sealed 3x3 pocket, a sealed 2x2 pocket, and a walled
 ## corridor with a gap) with open ground between and around them.
@@ -58,6 +60,15 @@ var _map: StubMap
 var _commander: Commander
 
 
+var PRODUCTION_TOOL: Tool
+var PLAIN_TOOL: Tool
+var TRAIN_TOOL: Tool
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
+
+
 func before_each() -> void:
 	_world = Node3D.new()
 	_map = _make_map()
@@ -68,8 +79,14 @@ func before_each() -> void:
 	add_child_autofree(_world)
 	_commander.map = _map
 	_commander.add_energy(10000)
-	_commander.technology_mapping[Tool.for_name(PRODUCTION_TOOL).type].required_structures = []
-	_commander.technology_mapping[Tool.for_name(PLAIN_TOOL).type].required_structures = []
+	_commander.technology_mapping = {PRODUCER_TYPE: FakePieces.tech(), PLAIN_TYPE: FakePieces.tech(),
+		TRAINEE_TYPE: FakePieces.tech()}
+	PRODUCTION_TOOL = FakePieces.register_tool(FakePieces.tool(PRODUCER_TYPE,
+		{"structure": true, "production": true, "dimensions": PRODUCTION_DIMS}))
+	PLAIN_TOOL = FakePieces.register_tool(FakePieces.tool(PLAIN_TYPE,
+		{"structure": true, "dimensions": PLAIN_DIMS}))
+	TRAIN_TOOL = FakePieces.register_tool(FakePieces.tool(TRAINEE_TYPE, FakePieces.PLAIN, [],
+		ControlBinding.ControlContext.TRAIN))
 	_commander.set_physics_process(false)
 
 
@@ -132,8 +149,7 @@ func _make_builder() -> Commandable:
 ## A producer registered directly on the grid at `a_origin`, bypassing Build entirely — the
 ## "terrain changed later" and "authored into a pocket" cases Train's own gate exists for.
 func _register_producer(a_origin: Vector2i, a_dims: Vector2i, a_trainee: StringName) -> Commandable:
-	var producer: Commandable = load("res://scenes/entities/structures/an/an_barracks.tscn") \
-		.instantiate() as Commandable
+	var producer: Commandable = FakePieces.structure({"production": true, "dimensions": a_dims})
 	_world.add_child(producer)
 	producer.ownership.commander = _commander
 	producer.map = _map
@@ -150,8 +166,7 @@ func _register_producer(a_origin: Vector2i, a_dims: Vector2i, a_trainee: StringN
 # ─── COMMANDABLE.HAS_NAVMESH_ACCESS ─────────────────────────────────────────
 
 func test_has_navmesh_access_is_true_with_no_map() -> void:
-	var producer: Commandable = load("res://scenes/entities/structures/an/an_barracks.tscn") \
-		.instantiate() as Commandable
+	var producer: Commandable = FakePieces.structure({"production": true, "dimensions": PRODUCTION_DIMS})
 	add_child_autofree(producer)
 	assert_true(producer.has_navmesh_access(), "nothing to ask, so nothing to refuse")
 
@@ -173,9 +188,9 @@ func test_has_navmesh_access_is_false_for_a_sealed_footprint() -> void:
 func test_train_refuses_at_a_sealed_producer() -> void:
 	var origin := Vector2i(10, 10)
 	_seal_pocket(origin, PRODUCTION_DIMS)
-	var trainee: StringName = &"an_bioLight_builder"
+	var trainee: StringName = TRAINEE_TYPE
 	var producer := _register_producer(origin, PRODUCTION_DIMS, trainee)
-	var message := CommandMessage.new(_map, null, Tool.for_id(trainee))
+	var message := CommandMessage.new(_map, null, TRAIN_TOOL)
 	assert_eq(
 		Train.meets_precondition(producer, message),
 		MoveCommand.PreconditionFailureCause.NO_NAVMESH_ACCESS
@@ -183,9 +198,9 @@ func test_train_refuses_at_a_sealed_producer() -> void:
 
 
 func test_train_allows_an_open_producer() -> void:
-	var trainee: StringName = &"an_bioLight_builder"
+	var trainee: StringName = TRAINEE_TYPE
 	var producer := _register_producer(Vector2i(2, 2), PRODUCTION_DIMS, trainee)
-	var message := CommandMessage.new(_map, null, Tool.for_id(trainee))
+	var message := CommandMessage.new(_map, null, TRAIN_TOOL)
 	assert_eq(
 		Train.meets_precondition(producer, message), MoveCommand.PreconditionFailureCause.NONE
 	)
@@ -201,7 +216,7 @@ func test_build_refuses_a_production_structure_with_no_exposed_side() -> void:
 		"guards the fixture: the world position must resolve to the sealed origin")
 	var builder := _make_builder()
 	assert_eq(
-		Build.meets_precondition(builder, CommandMessage.new(_map, null, Tool.for_name(PRODUCTION_TOOL), at)),
+		Build.meets_precondition(builder, CommandMessage.new(_map, null, PRODUCTION_TOOL, at)),
 		MoveCommand.PreconditionFailureCause.INVALID_PLACEMENT
 	)
 
@@ -217,7 +232,7 @@ func test_build_allows_a_non_production_structure_with_no_exposed_side() -> void
 		"guards the fixture")
 	var builder := _make_builder()
 	assert_eq(
-		Build.meets_precondition(builder, CommandMessage.new(_map, null, Tool.for_name(PLAIN_TOOL), at)),
+		Build.meets_precondition(builder, CommandMessage.new(_map, null, PLAIN_TOOL, at)),
 		MoveCommand.PreconditionFailureCause.NONE
 	)
 
@@ -240,7 +255,7 @@ func test_build_refuses_a_placement_that_seals_a_corridor() -> void:
 		"guards the fixture")
 	var builder := _make_builder()
 	assert_eq(
-		Build.meets_precondition(builder, CommandMessage.new(_map, null, Tool.for_name(PLAIN_TOOL), at)),
+		Build.meets_precondition(builder, CommandMessage.new(_map, null, PLAIN_TOOL, at)),
 		MoveCommand.PreconditionFailureCause.INVALID_PLACEMENT
 	)
 
@@ -250,6 +265,6 @@ func test_build_allows_an_ordinary_open_placement() -> void:
 	var at: Vector3 = _world_for_origin(origin, PRODUCTION_DIMS)
 	var builder := _make_builder()
 	assert_eq(
-		Build.meets_precondition(builder, CommandMessage.new(_map, null, Tool.for_name(PRODUCTION_TOOL), at)),
+		Build.meets_precondition(builder, CommandMessage.new(_map, null, PRODUCTION_TOOL, at)),
 		MoveCommand.PreconditionFailureCause.NONE
 	)

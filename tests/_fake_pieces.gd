@@ -394,14 +394,15 @@ static func _add_node(a_piece: Node, a_node: Node, a_name: String) -> void:
 
 
 #region Tools, families and technology
-## A BUILD tool for a fake piece of id `a_type` (built from `a_options`, `id` filled in), with
+## A tool (BUILD unless `a_context` says TRAIN) for a fake piece of id `a_type` (built from `a_options`, `id` filled in), with
 ## optional `a_variants` (piece ids registered with `install_families`).
 static func tool(a_type: StringName, a_options: Dictionary = {},
-		a_variants: Array[StringName] = []) -> Tool:
+		a_variants: Array[StringName] = [],
+		a_context: int = ControlBinding.ControlContext.BUILD) -> Tool:
 	var options: Dictionary = a_options.duplicate()
 	options["id"] = a_type
 	return Tool.new("command_tool_%s" % a_type, a_type, scene_of(options), String(a_type),
-		Vector2i.ZERO, ControlBinding.ControlContext.BUILD, 0, "", "", [], false,
+		Vector2i.ZERO, a_context, 0, "", "", [], false,
 		Vector2i(-1, -1), a_variants)
 
 
