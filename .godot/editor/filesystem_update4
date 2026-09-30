@@ -1,8 +1,0 @@
-res://scenes/scenarios/skirmish.tscn
-res://addons/gut/gui/editor_globals.gd
-res://addons/gut/gui/EditorRadioButton.tres
-res://resources/terrain/tile_catalog.tres
-res://scenes/scenarios/s1.gdshader
-res://scripts/rendering/shaders/fog.gdshader
-res://resources/emissions/soft_puff.tres
-res://resources/emissions/shock_ring.tres

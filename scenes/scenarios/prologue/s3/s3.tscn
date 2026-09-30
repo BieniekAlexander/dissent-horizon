@@ -38,7 +38,7 @@
 [ext_resource type="Script" uid="uid://cp25k7u3b20cs" path="res://scripts/scenario/events/event_command_point.gd" id="32_mtjlh"]
 [ext_resource type="PackedScene" uid="uid://csyr8p6ug2rpw" path="res://scenes/entities/structures/nt/nt_shelter.tscn" id="33_505l5"]
 [ext_resource type="PackedScene" uid="uid://d1u26uh7f0n3t" path="res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn" id="33_w0xsh"]
-[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building.tscn" id="34_6ilpd"]
+[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building_square.tscn" id="34_6ilpd"]
 [ext_resource type="Script" uid="uid://bybghbb1kr1fq" path="res://scripts/scenario/events/event_command_target.gd" id="34_w0xsh"]
 [ext_resource type="PackedScene" uid="uid://cv4uv6vp06to8" path="res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn" id="35_qb6sm"]
 [ext_resource type="Script" uid="uid://bqcqt4gjmnwiy" path="res://scripts/scenario/scenario_tactic.gd" id="40_tactic"]

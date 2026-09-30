@@ -20,7 +20,7 @@ extends GutTest
 ##     -gtest=res://tests/test_CursorPickingAndPrune.gd -gexit
 
 const UNIT_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const STRUCTURE_SCENE: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const STRUCTURE_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 
 
 func _controller() -> RTSController:

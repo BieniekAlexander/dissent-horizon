@@ -17,7 +17,7 @@ const RECRUIT: PackedScene = preload("res://scenes/entities/units/cl/cl_bioLight
 const CLIPPER: PackedScene = preload(
 	"res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn"
 )
-const BUILDING: PackedScene = preload("res://scenes/entities/structures/nt/nt_building.tscn")
+const BUILDING: PackedScene = preload("res://scenes/entities/structures/nt/nt_building_square.tscn")
 
 var _manager: ScenarioTriggerManager
 

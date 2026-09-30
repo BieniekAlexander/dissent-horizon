@@ -109,7 +109,7 @@ bigger body, and they disagreed with each other: a garrisoned building was picke
 attackers slightly farther out than it could pick them up, and its attack order was dropped
 by a centre-measured leash at a range its occupants could still fire.
 
-TODO: `nt_building` and `an_infrastructure` keep the component default target body, a
+TODO: the `nt_building_*` pieces and `an_infrastructure` keep the component default target body, a
 0.5-radius cylinder, rather than one the size of their 4×4 footprint, so every range treats
 them as the point at their centre. A footprint-sized body changes how close everything must
 come to hit them.

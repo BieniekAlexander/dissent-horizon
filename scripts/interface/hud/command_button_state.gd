@@ -192,7 +192,7 @@ static func all_hold_fire(selection: Array) -> bool:
 ## A build or train button: the blocker is a price or a prerequisite, and the commander alone
 ## can answer it — a purchase is commander-global, never per-actor.
 func _classify_purchase(a_tool: Tool, a_commander: Commander, a_defers: bool) -> void:
-	var need: TechnologySpec.UnmetNeed = a_commander.get_unmet_need(a_tool.type)
+	var need: TechnologySpec.UnmetNeed = a_commander.get_unmet_need_for(a_tool)
 	if need == TechnologySpec.UnmetNeed.NONE:
 		# Buyable — but say so when there is no pad free for it. Asked only of pieces that dock,
 		# so the scan costs nothing on the 99% of buttons that are not aircraft.

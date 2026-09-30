@@ -17,7 +17,7 @@ const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.ts
 const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
 const TURRET: String = "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn"
 const BADGER: String = "res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn"
-const SHELTER: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const SHELTER: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 
 const OWN: int = 7
 const ENEMY: int = 8

@@ -12,7 +12,7 @@
 [ext_resource type="Script" uid="uid://rck85holj04" path="res://scripts/interface/commander/player_slot.gd" id="9_pslot"]
 [ext_resource type="PackedScene" uid="uid://csyr8p6ug2rpw" path="res://scenes/entities/structures/nt/nt_shelter.tscn" id="11_shel"]
 [ext_resource type="Script" uid="uid://gl6ex3gwef1y" path="res://scripts/scenario/scenario_trigger_manager.gd" id="12_stm"]
-[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building.tscn" id="13_bldg"]
+[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building_square.tscn" id="13_bldg"]
 [ext_resource type="PackedScene" path="res://scenes/scenarios/start_point.tscn" id="start_point"]
 
 [sub_resource type="Resource" id="PlayerSlot_bot1"]

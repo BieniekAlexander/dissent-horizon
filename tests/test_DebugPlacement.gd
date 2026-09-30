@@ -6,7 +6,7 @@ extends GutTest
 ##
 ## PATHS, not preloads — a file-scope preload of an entity scene poisons the Tool registry.
 
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
 const WALKER_SCENE: String = "res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn"
 const FLIER_SCENE: String = "res://scenes/entities/units/nt/nt_aircraftMedium_transport.tscn"

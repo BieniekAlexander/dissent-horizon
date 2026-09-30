@@ -15,7 +15,7 @@ const SUPPLY_TRUCK := preload("res://scenes/entities/units/cl/cl_mechLight_domin
 const TERRESTRIAL := preload("res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn")
 const COMPOUND := preload("res://scenes/entities/structures/cl/cl_infrastructure.tscn")
 ## A structure with an OPEN garrison — one that holds units but interns nobody.
-const OPEN_GARRISON := preload("res://scenes/entities/structures/nt/nt_building.tscn")
+const OPEN_GARRISON := preload("res://scenes/entities/structures/nt/nt_building_square.tscn")
 
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()

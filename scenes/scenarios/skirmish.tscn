@@ -11,7 +11,7 @@
 [ext_resource type="Script" uid="uid://b3kpqjy633mrn" path="res://scripts/maps/terrain/water_body.gd" id="9_22jj8"]
 [ext_resource type="PackedScene" uid="uid://b0o0qcjj0c1of" path="res://scenes/entities/structures/nt/nt_extractionSite.tscn" id="10_jrwnf"]
 [ext_resource type="PackedScene" uid="uid://csyr8p6ug2rpw" path="res://scenes/entities/structures/nt/nt_shelter.tscn" id="11_uxael"]
-[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building.tscn" id="13_bldg"]
+[ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building_square.tscn" id="13_bldg"]
 [ext_resource type="PackedScene" path="res://scenes/scenarios/start_point.tscn" id="start_point"]
 
 [sub_resource type="Resource" id="PlayerSlot_human"]

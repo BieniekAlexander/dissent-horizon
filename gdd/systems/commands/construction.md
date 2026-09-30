@@ -145,6 +145,24 @@ transaction is the thing the order is stored on, and the job is how the info pan
 
 ---
 
+## A piece built from another piece's form, and conversion
+
+**Some pieces are built FROM a neutral building.** The Anarchical `an_infrastructure` lists `variants:` in its doc — today a square and a long neutral building, default first — and each is a whole underlying piece with its own footprint, HP, price, build time and infrastructure (published as that piece's *template*; see [`piece-vocabulary.md`](../authoring/piece-vocabulary.md)). Building the piece means building one of those forms: the structure is instanced from the FORM's scene, so it has the form's footprint and HP, and then takes everything else from `an_infrastructure`'s own doc — its id, armour and frame, garrison masks and range bonus, vision. Its infrastructure is the form's, not the piece's.
+
+**Which form is a property of the ORDER.** A build order carries a tool bound to one form: the tool still names `an_infrastructure` (so the tech tree, the commander's structure accounting, the build card and the hotkey are untouched) but its scene, footprint, price and build time are the form's. An order that names the piece and no form means the first one, so the CPU commander and any scenario event get the default without knowing forms exist. Placement validity, the blueprint, the site reservation and the builder's approach all read the form's footprint; the price is the form's, including when the purchase is queued and waits for funds; a finished structure is timed by the form that made it, never by the piece's own (default-form) entry. Prerequisites stay the piece's.
+
+**One routine makes a node the piece, and a new build and a conversion both use it.** Which properties it copies is read off the TARGET piece's scene, restricted to its gameplay components; footprint, HP and infrastructure always stay the underlying form's. Retuning `an_infrastructure`'s doc therefore needs no code change, and the two routes cannot drift apart. The routine does not touch the commander: a fresh node has none yet, and a converted one has its books re-keyed by the conversion, in an order it depends on.
+
+**A neutral building grants infrastructure to nobody.** Its scene carries none — its number lives only in its template — so neither standing on the map nor adopting a commander through a garrison credits anything. Infrastructure is conferred once, by becoming an `an_infrastructure`, and is credited to whoever owns it from then on, so losing it withdraws exactly that.
+
+### Conversion
+
+**Building an `an_infrastructure` on a neutral building converts it in place.** The target is the neutral (commander 0) building of the `neutral_building` family whose FOOTPRINT holds the aimed cell — any member, whichever form the tool is armed with. It used to be the building the armed form's own footprint would land squarely on, which made a conversion depend on the armed variant; a shack can now be converted with the long form armed. The node keeps its footprint, HP, garrison and occupants, and gains ownership plus the routine above. Aiming at a building lays no new structure and raises no blueprint.
+
+**A conversion costs the target's own listed energy price times `ENERGY_DISCOUNT` and takes its own listed build time times `BUILD_TIME_DISCOUNT`**, both one half. Converting is priced off the building the player is actually taking, not off a flat figure, because buildings now differ in size and worth; the discount is the reward for finding a building rather than building one. Funding and deferral are the ordinary build rules: with the additive modifier an unaffordable conversion queues, and the builder waits at the building for the money.
+
+**Accepted:** a conversion does not check the piece's prerequisites, as before.
+
 ## An unfinished structure exists, accepts orders, and cannot act
 
 

@@ -99,7 +99,7 @@ const RETIRED_KINDS: Dictionary = {
 ## The consequence worth knowing: an absent `cost:` used to mean "not buildable", and now
 ## means "buildable at the placeholder price". Nothing becomes PURCHASABLE by that alone —
 ## a piece is only offered if it has a `ui:` grid button or sits in a producer's `trains:`
-## list — so the neutral map furniture this affects (nt_extractionSite, nt_building, nt_shelter,
+## list — so the neutral map furniture this affects (nt_extractionSite, nt_building_*, nt_shelter,
 ## nt_bioLight_terrestrial) is priced but unbuyable. What it does fix is the two Colonial defences
 ## (`cl_defense_antiStructure`, `cl_defense_antiAircraft`), which had grid buttons and were
 ## silently free.
@@ -184,6 +184,10 @@ func build(a_docs: Array) -> void:
 	# and before any is validated, so every rule, generator and scene sync downstream reads a
 	# plain number exactly as it did when the docs carried one.
 	_resolve_speed_classes()
+	# Before validation, for the same reason: a piece with `variants:` takes its footprint, hp,
+	# cost, build time and infrastructure from its first variant, and every rule below must see
+	# them as if the doc had authored them.
+	_resolve_variants()
 	for id in specs:
 		_validate(specs[id])
 	_review_training_buttons()
@@ -449,6 +453,8 @@ func _normalize_removals(a_spec: Dictionary) -> void:
 
 ## Fill in a piece's economy keys when its doc names none. See the constants above.
 func _apply_piece_defaults(a_spec: Dictionary) -> void:
+	if a_spec.has("variants"):
+		return   # its price comes from the first variant (_resolve_variants), not a placeholder
 	if not a_spec.has("cost"):
 		a_spec["cost"] = {"energy": DEFAULT_PIECE_COST_ENERGY}
 	if not a_spec.has("build_time"):
@@ -566,6 +572,7 @@ func _validate_piece(a_spec: Dictionary) -> void:
 		_validate_aerial(a_spec, a_spec["aerial"])
 	if a_spec.has("docking"):
 		_validate_docking(a_spec)
+	_validate_family(a_spec)
 	for key in ["requires", "trains", "builds"]:
 		if not a_spec.has(key):
 			continue
@@ -707,6 +714,64 @@ func _asset_facts(a_id: StringName, a_spec: Dictionary, a_is_piece: bool) -> Dic
 	if death != null:
 		facts["has_death_clip"] = death.has_clip(a_id)
 	return facts
+
+
+## The keys a piece with `variants:` must NOT author: each is taken from its first (default)
+## variant, and an authored copy would be a second value that could disagree with it.
+const VARIANT_DERIVED_KEYS: Array = ["footprint", "hp", "cost", "build_time", "infrastructure"]
+
+
+## `variants:` — the underlying pieces a piece is built from (Anarchical `an_infrastructure` is
+## built from a neutral building). Validates the list, then fills the piece's footprint, hp,
+## cost, build time and infrastructure from the FIRST entry, the default variant, so the
+## composed scene, the tool's tooltips and the technology price all describe a real piece.
+## Which variant a given build actually uses is a runtime choice; these are the defaults.
+##
+## A variant must be a structure that belongs to a family: the family is what publishes the
+## variant's template data (resources/generated/families.json) for the runtime to read.
+func _resolve_variants() -> void:
+	for id: Variant in pieces:
+		var spec: Dictionary = pieces[id]
+		if not spec.has("variants"):
+			continue
+		var variants: Variant = spec["variants"]
+		if not (variants is Array) or (variants as Array).is_empty():
+			_err(spec, "variants must be a non-empty list of structure piece ids")
+			continue
+		for key: String in VARIANT_DERIVED_KEYS:
+			if spec.has(key):
+				_err(spec, "%s is taken from the first variant — remove it from the doc"
+					% SpecSchema.doc_key(key))
+		var first: Dictionary = {}
+		for ref: Variant in (variants as Array):
+			var vid: String = str(ref)
+			if not pieces.has(vid):
+				_err(spec, "variants references unknown piece '%s'" % vid)
+			elif not SpecSchema.is_fixture(pieces[vid]):
+				_err(spec, "variants must name structures; '%s' has no footprint:" % vid)
+			elif not pieces[vid].has("family"):
+				_err(spec, "variants must name family members; '%s' has no family:" % vid)
+			elif pieces[vid].has("variants"):
+				_err(spec, "variant '%s' has variants of its own — a variant is a leaf" % vid)
+			elif first.is_empty():
+				first = pieces[vid]
+		if first.is_empty():
+			continue
+		for key: String in VARIANT_DERIVED_KEYS:
+			if first.has(key):
+				var value: Variant = first[key]
+				spec[key] = value.duplicate(true) if value is Array or value is Dictionary else value
+
+
+## `family:` — membership of a named piece family (SpecSchema.FAMILIES). A member is a
+## structure (the family is enumerated for placement and conversion targets).
+func _validate_family(a_spec: Dictionary) -> void:
+	if not a_spec.has("family"):
+		return
+	if not SpecSchema.FAMILIES.has(str(a_spec["family"])):
+		_err(a_spec, "family '%s' is not one of %s" % [a_spec["family"], SpecSchema.FAMILIES])
+	elif not SpecSchema.is_fixture(a_spec):
+		_err(a_spec, "family members must be structures; this piece has no footprint:")
 
 
 ## The `movement:` block — the chassis. Every key is validated against MOVEMENT_KEYS, so an

@@ -137,6 +137,7 @@ A second full-mode run immediately after a first is always a zero-diff no-op
 | `resources/generated/technology.json` | cost / build-time / requires per piece (Commander loads at startup) |
 | `resources/generated/tools.json` | build/train tool registry (Tool loads at startup; command names are `command_tool_<id>`) |
 | `resources/generated/debug_roster.json` | every placeable piece (units, structures, features, plus undocumented piece scenes) for the debug spawner — see `gdd/systems/ux/ui/debug-mode.md` |
+| `resources/generated/families.json` | every `family:` and its members' template data (footprint, hp, price, build time, infrastructure) — read through `PieceFamilies`; see §Families and variants |
 | `resources/generated/shapes/<id>.tres` | one `CylinderShape3D` per shape-library doc; written BEFORE the scene sync, because scenes reference them |
 
 `Entity.id` (a StringName) replaced the old `Entity.Type` enum; hand-written
@@ -298,6 +299,9 @@ weapons:                       # matched by name (the sync key)
     hits: [ground, air]
 trains: [an_bioMedium_dominionGen]   # Production.producible_types
 builds: [an_barracks]          # Builds.buildable_types (builder units use this too)
+variants: [nt_building_square, nt_building_long]   # the family members this piece is built FROM,
+                               # default first; see §Families and variants
+family: neutral_building       # membership of a named piece family (SpecSchema.FAMILIES)
 # What this piece HOLDS. Two independent halves, as in the Garrison component: who may
 # enter (three enum lists -> occupancy bitmasks) and how much room (capacity counts
 # OCCUPANCY, not heads). Only keys you name are written; `garrison: false` removes the
@@ -496,8 +500,29 @@ same number. A doc naming either key keeps exactly what it says, and a partial
 An absent `build.cost:` therefore no longer means "not buildable" — it means
 "buildable at the placeholder price". Nothing becomes PURCHASABLE by that alone:
 a piece is only offered if it has a `ui:` grid button or sits in some producer's
-`trains:` list, so neutral map furniture (`nt_extractionSite`, `nt_building`,
+`trains:` list, so neutral map furniture (`nt_extractionSite`, `nt_building_*`,
 `nt_shelter`, `nt_bioLight_terrestrial`) is priced but unbuyable.
+
+### Families and variants
+
+**`family:`** names a set of pieces that code enumerates or recognises as one thing without
+matching on ids. The value is one of `SpecSchema.FAMILIES` (today `neutral_building`, the
+`nt_building_*` pieces); anything else is an error, and a member must be a structure. The
+importer writes the family name as a **group** on every member's scene root, publishes the
+members and their **template data** — footprint, hp, energy cost, build time in ticks and
+`infrastructure` — in `resources/generated/families.json`, and `PieceFamilies` reads it back.
+
+A family member is a TEMPLATE, so its `infrastructure:` is published there and is **never
+written to the scene root**: `Commandable.infrastructure` is credited to whichever commander owns
+the node, and a neutral (or garrison-captured) building must grant nothing.
+
+**`variants:`** lists the family members a piece is built from, default first (Anarchical
+`an_infrastructure` lists `[nt_building_square, nt_building_long]`). Each entry must be an existing
+structure that has a `family:` and no `variants:` of its own — anything else fails the import. The
+piece takes its footprint, hp, cost, build time and infrastructure from the FIRST variant, so its
+doc must not author them (an authored copy is an error) and the composed scene, its technology price
+and its tool tooltips describe the default variant. The list is published as `variants` on the
+piece's `tools.json` entry (`Tool.variants`); which variant a build uses is a runtime choice.
 
 ### Emissions (`kind: Entity` with emission keys)
 

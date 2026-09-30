@@ -1,14 +1,19 @@
 class_name Build
 extends MoveCommand
 
-## Safehouse conversion: the safehouse build tool aimed at a NEUTRAL building upgrades
-## that building IN PLACE into a safehouse — the same node keeps its HP, footprint and
-## garrison (with any occupants), but gains the converting commander's ownership, a
-## safehouse's infrastructure, and the safehouse sprite. Cheaper/quicker than building one from
-## scratch, and — unlike an Extractor on a site — it is a transition, not an overlay: there
-## is no underlying building left to re-expose if the safehouse is later destroyed.
-const SAFEHOUSE_CONVERSION_ENERGY: int = 50
-const SAFEHOUSE_CONVERSION_SECONDS: float = 5.0
+## Conversion: the an_infrastructure build tool aimed at a NEUTRAL building of the
+## `neutral_building` family — any of them, whichever variant the tool is armed with — upgrades
+## that building IN PLACE into an an_infrastructure. The same node keeps its HP, footprint and
+## garrison (with any occupants), and gains the converting commander's ownership plus the piece's
+## own properties and the building's own infrastructure (Repurposing). Cheaper and quicker than
+## building one from scratch, and — unlike an Extractor on a site — it is a transition, not an
+## overlay: there is no underlying building left to re-expose if it is later destroyed.
+##
+## What it costs is the TARGET's own listed price and build time, discounted. The two discounts are
+## constants here, defined once: the one place the "converting is half of building" design choice
+## lives, so the owner's retune is a one-line edit and not a hunt.
+const ENERGY_DISCOUNT: float = .5
+const BUILD_TIME_DISCOUNT: float = .5
 
 #region Preconditions
 static func tool_applies_to(command_tool_name: String, entity: Entity) -> bool:
@@ -21,41 +26,56 @@ static func tool_applies_to(command_tool_name: String, entity: Entity) -> bool:
 	return builds.can_build(tool.type)
 
 ## The still-neutral building this Build would convert, or null when it isn't a
-## conversion at all. Restricted to BUILDING owned by commander 0, so a building that's
-## already owned (or garrisoned, which adopts a commander) isn't a conversion target.
+## conversion at all. Restricted to a `neutral_building` family member owned by commander 0, so a
+## building that's already owned (or garrisoned, which adopts a commander) isn't a target.
 ##
-## Resolved from the GRID — the structure the safehouse's own footprint would land
-## squarely on top of (Map.concentric_structure) — rather than from whatever the cursor
-## ray happened to hit. Two things follow, and both are the point:
-##   * a conversion has ONE aim per building, the one that leaves the safehouse exactly
-##     where the building stands, so there is no "close enough" that would place a
-##     safehouse offset from the building it converts;
-##   * what counts as aiming at a building is its FOOTPRINT, not the reach of its
-##     selection collider, which is the same thing the placement check reads.
+## Resolved from the GRID — the building whose FOOTPRINT contains the aimed cell — rather than
+## from whatever the cursor ray happened to hit, and NOT from the armed variant's dimensions:
+## a shack can be converted with the long variant armed. What counts as aiming at a building is
+## its footprint, not the reach of its selection collider, which is the same thing the placement
+## check reads. The node keeps its own footprint, so there is no "offset" conversion to guard.
 static func _conversion_target(commander: Commander, message: CommandMessage) -> Commandable:
 	if commander == null or message == null or message.map == null:
 		return null
 	if message.tool == null or message.tool.type != EntityIds.AN_INFRASTRUCTURE:
 		return null
-	var host := message.map.concentric_structure(
-		message.xz_position, _tool_dimensions(commander, message.tool)
-	) as Commandable
+	var cell: Vector2i = message.map.world_to_grid(message.xz_position)
+	if not message.map.grid_coordinates_in_bounds(cell):
+		return null
+	var host := message.map.cell_grid[cell.x][cell.y] as Commandable
 	if host == null or not is_instance_valid(host):
 		return null
-	return host if host.id == EntityIds.NT_BUILDING and host.commander_id == 0 else null
+	return host if PieceFamilies.is_member(host.id, PieceFamilies.NEUTRAL_BUILDING) \
+			and host.commander_id == 0 else null
 
-## True when this Build is a safehouse conversion: the safehouse tool aimed squarely at a
-## still-neutral building (see _conversion_target).
-static func _is_safehouse_conversion(commander: Commander, message: CommandMessage) -> bool:
+## The building `message` would convert, for the HUD: what to mark, and whose price to preview.
+static func conversion_target(a_commander: Commander, a_message: CommandMessage) -> Commandable:
+	return _conversion_target(a_commander, a_message)
+
+## True when this Build is a conversion: the an_infrastructure tool aimed at a still-neutral
+## building (see _conversion_target).
+static func _is_conversion(commander: Commander, message: CommandMessage) -> bool:
 	return _conversion_target(commander, message) != null
 
+## What converting `a_target` costs: its own listed energy price, discounted.
+static func conversion_energy(a_target: Commandable) -> int:
+	var template: PieceFamilies.Template = PieceFamilies.template(a_target.id)
+	return roundi(float(template.energy_cost) * ENERGY_DISCOUNT) if template != null else 0
+
+## How long converting `a_target` takes, in seconds: its own listed build time, discounted.
+static func conversion_seconds(a_target: Commandable) -> float:
+	var template: PieceFamilies.Template = PieceFamilies.template(a_target.id)
+	if template == null:
+		return 0.0
+	return TimeUtils.seconds_from_ticks(template.build_time_ticks) * BUILD_TIME_DISCOUNT
+
 ## True when this build order will lay a NEW structure down at its target position — it
-## has a chosen tool, and it isn't the safehouse conversion (which transitions a building
+## has a chosen tool, and it isn't a conversion (which transitions a building
 ## that already stands there). Read by the HUD to decide whether the site deserves a
 ## blueprint ghost while the builder walks over.
 static func places_new_structure(commander: Commander, message: CommandMessage) -> bool:
 	return message != null and message.tool != null \
-		and not _is_safehouse_conversion(commander, message)
+		and not _is_conversion(commander, message)
 
 static func meets_precondition(actor: Commandable, message: CommandMessage) -> PreconditionFailureCause:
 	if message.tool==null:
@@ -72,17 +92,18 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	if actor == null or not tool_applies_to(message.tool.command_name, actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 
-	# Safehouse-on-building: the safehouse tool aimed at a neutral building converts it
-	# in place rather than placing a new structure, with its own (cheaper) cost and no
-	# empty-cell placement check — analogous to how an Extractor special-cases a site below.
-	# With the additive modifier held an unaffordable conversion is queued rather than
-	# refused, exactly like any other build. Outside it, the price is checked HERE against
-	# the flat conversion cost rather than through get_blocking_need: this purchase is
-	# priced ad-hoc (PurchaseTransaction.for_cost) and has no technology_mapping entry, so
-	# asking the commander about the tool's listed type would gate on the wrong number.
-	if _is_safehouse_conversion(actor.commander, message):
+	# Conversion: the tool aimed at a neutral building converts it in place rather than placing
+	# a new structure, with its own (cheaper) cost and no empty-cell placement check — analogous
+	# to how an Extractor special-cases a site below. With the additive modifier held an
+	# unaffordable conversion is queued rather than refused, exactly like any other build.
+	# Outside it, the price is checked HERE against the target's discounted price rather than
+	# through get_blocking_need: this purchase is priced ad-hoc (PurchaseTransaction.for_cost)
+	# and has no technology_mapping entry, so asking the commander about the tool would gate
+	# on the wrong number.
+	var conversion: Commandable = _conversion_target(actor.commander, message)
+	if conversion != null:
 		if not message.defer_if_unaffordable \
-				and actor.commander != null and actor.commander.energy < SAFEHOUSE_CONVERSION_ENERGY:
+				and actor.commander != null and actor.commander.energy < conversion_energy(conversion):
 			return PreconditionFailureCause.NOT_ENOUGH_ENERGY
 		return PreconditionFailureCause.NONE
 
@@ -132,8 +153,8 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	# which case the purchase is queued on the commander's ProductionQueue and the builder
 	# waits at the site until it's funded (see fulfill_action). The flag defaults to true,
 	# so scenario events and the bot are unaffected.
-	var blocking: TechnologySpec.UnmetNeed = actor.commander.get_blocking_need(
-		message.tool.type, message.defer_if_unaffordable
+	var blocking: TechnologySpec.UnmetNeed = actor.commander.get_blocking_need_for(
+		message.tool, message.defer_if_unaffordable
 	)
 	if blocking != TechnologySpec.UnmetNeed.NONE:
 		return unmet_need_to_precondition[blocking]
@@ -141,24 +162,27 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	return PreconditionFailureCause.NONE
 
 ## The purchase that pays for the build `a_message` describes — the structure's listed
-## cost, or the safehouse conversion's flat energy price. Submitted ONCE per order (not per
-## builder) by whoever issues it, and stamped on the message so every builder in the
-## order shares it.
+## cost (its variant's, for a piece with variants), or a conversion's discounted price.
+## Submitted ONCE per order (not per builder) by whoever issues it, and stamped on the message
+## so every builder in the order shares it.
 static func submit_purchase(
 	commander: Commander,
 	message: CommandMessage
 ) -> PurchaseTransaction:
 	if commander == null or message.tool == null:
 		return null
+	var conversion: Commandable = _conversion_target(commander, message)
 	var transaction: PurchaseTransaction = (
 		PurchaseTransaction.for_cost(
-			commander, PurchaseTransaction.Kind.BUILD, message.tool, SAFEHOUSE_CONVERSION_ENERGY
+			commander, PurchaseTransaction.Kind.BUILD, message.tool, conversion_energy(conversion)
 		)
-		if _is_safehouse_conversion(commander, message)
+		if conversion != null
 		else PurchaseTransaction.for_tool(
 			commander, PurchaseTransaction.Kind.BUILD, message.tool
 		)
 	)
+	if conversion != null:
+		transaction.creation_time = TimeUtils.ticks_from_seconds(conversion_seconds(conversion))
 	message.transaction = transaction
 	return commander.production_queue.submit(transaction)
 
@@ -173,7 +197,7 @@ static func submit_purchase(
 ## purchase: placement consumes it, abandoning the order frees it (see
 ## PurchaseTransaction.discard_planned_structure).
 ##
-## Returns null (and raises nothing) for a safehouse conversion, which transitions a
+## Returns null (and raises nothing) for a conversion, which transitions a
 ## building that already stands there, and for an order with no map/tool/commander.
 static func plan_structure(
 	commander: Commander,
@@ -183,7 +207,7 @@ static func plan_structure(
 		return null
 	if message.tool.packed_scene == null:
 		return null
-	var blueprint: Commandable = message.tool.packed_scene.instantiate() as Commandable
+	var blueprint: Commandable = message.tool.instantiate() as Commandable
 	if blueprint == null:
 		return null
 	# BEFORE initialize(): _ready and _on_commander_changed both read is_planned to skip
@@ -280,7 +304,7 @@ func _pay(a_actor: Commandable) -> void:
 	if message.transaction != null:
 		message.transaction.consume()
 	else:
-		a_actor.commander.use_resources_for(message.tool.type)
+		a_actor.commander.use_resources_for(message.tool.price_id())
 #endregion
 
 #region Private helpers
@@ -405,7 +429,7 @@ func _after_placement(a_new_structure: Commandable, a_map: Map) -> void:
 #endregion
 
 #region Properties
-## Safehouse-conversion progress: seconds the builder has spent converting, and
+## Conversion progress: seconds the builder has spent converting, and
 ## whether the one-time energy cost has been charged yet.
 var _conversion_elapsed: float = 0.0
 var _conversion_paid: bool = false
@@ -439,7 +463,7 @@ func blocked_by_stagger(_a_actor: Commandable) -> bool:
 ## fulfill_action's call to abort, so this cannot turn a walk into a silent cancellation.
 ## The deadlock in full: CLAUDE.md §Command system.
 func get_updated_state(a_actor: Commandable) -> Variant:
-	if not _is_safehouse_conversion(a_actor.commander, message):
+	if not _is_conversion(a_actor.commander, message):
 		var existing: Entity = _structure_on_target_footprint(a_actor)
 		if existing != null and _is_our_cobuilt_structure(existing, a_actor):
 			return Assemble.new(CommandMessage.new(message.map, existing))
@@ -449,7 +473,7 @@ func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
 	return ActionTracker.Action.BUILDING
 
 func can_act(a_actor: Commandable) -> bool:
-	# A safehouse conversion works against the existing building's footprint, not a
+	# A conversion works against the existing building's footprint, not a
 	# would-be placement footprint.
 	var conversion: Commandable = _conversion_target(a_actor.commander, message)
 	if conversion != null:
@@ -457,10 +481,10 @@ func can_act(a_actor: Commandable) -> bool:
 	return SU.unit_is_close_to_footprint(a_actor, message.map, _target_footprint(a_actor))
 
 func fulfill_action(a_actor: Commandable) -> Variant:
-	# Safehouse conversion: spend the cost once, work for SAFEHOUSE_CONVERSION_SECONDS,
-	# then transition the building in place. Handled before the placement logic below,
-	# which doesn't apply (nothing new is built).
-	if _is_safehouse_conversion(a_actor.commander, message):
+	# Conversion: spend the cost once, work for the target's discounted build time, then
+	# transition the building in place. Handled before the placement logic below, which
+	# doesn't apply (nothing new is built).
+	if _is_conversion(a_actor.commander, message):
 		return _fulfill_conversion(a_actor)
 
 	# Co-build guard: by the time this builder arrives the cells may already hold a
@@ -556,7 +580,7 @@ func _place_structure(a_actor: Commandable) -> Commandable:
 		_report_fulfilment(blueprint)
 		return blueprint
 
-	var new_structure: Commandable = message.tool.packed_scene.instantiate()
+	var new_structure: Commandable = message.tool.instantiate()
 	# Mark as under construction before add_entity so that _ready → _on_commander_changed
 	# → add_structure → proc_technology all see is_built = false. begin_construction sets
 	# build_progress (not @onready) so this survives _ready() without being overwritten.
@@ -583,7 +607,7 @@ func _report_fulfilment(a_structure: Commandable) -> void:
 	if message.transaction != null:
 		message.transaction.complete(a_structure)
 
-## A build aimed ON TOP OF an obstruction — the safehouse conversion of a neutral building —
+## A build aimed ON TOP OF an obstruction — the conversion of a neutral building —
 ## walks to the host's nearest approach cell, because the site centre is inside the host and
 ## no builder can stand there. Every other build, an extractor on its walkable site included,
 ## is left to the default resolution (message.position, the site centre).
@@ -605,11 +629,15 @@ func movement_destination(a_actor: Commandable) -> Variant:
 		return null
 	return message.map.grid_to_world(cell)
 
-## The structure standing concentric with this build's footprint, if it blocks movement; null
-## when the target is open ground or a walkable fixture such as an extraction site.
+## The structure this build is aimed on top of, if it blocks movement: the building a conversion
+## targets, else the one standing concentric with the build's footprint. Null when the target is
+## open ground or a walkable fixture such as an extraction site.
 func _obstructing_host(a_actor: Commandable) -> Entity:
 	if message.map == null or message.tool == null:
 		return null
+	var conversion: Commandable = _conversion_target(a_actor.commander, message)
+	if conversion != null:
+		return conversion if conversion.is_grid_obstruction() else null
 	var host: Entity = message.map.concentric_structure(
 		message.xz_position, _tool_dimensions(a_actor.commander, message.tool)
 	)
@@ -629,8 +657,8 @@ func should_move(a_actor: Commandable) -> bool:
 func ends_on_arrival() -> bool:
 	return false
 
-## Tick the in-range safehouse conversion: charge the energy once, accumulate time, and
-## transition the building once SAFEHOUSE_CONVERSION_SECONDS have elapsed. Returns self
+## Tick the in-range conversion: charge the target's discounted energy price once, accumulate
+## time, and transition the building once its discounted build time has elapsed. Returns self
 ## while still working, null when done (or the target is no longer a convertible
 ## building — e.g. another builder finished it first).
 func _fulfill_conversion(a_actor: Commandable) -> Variant:
@@ -644,42 +672,33 @@ func _fulfill_conversion(a_actor: Commandable) -> Variant:
 			return self
 		if message.transaction != null:
 			message.transaction.consume()
-		elif a_actor.commander.energy < SAFEHOUSE_CONVERSION_ENERGY:
+		elif a_actor.commander.energy < conversion_energy(target):
 			return null
 		else:
-			a_actor.commander.add_energy(-SAFEHOUSE_CONVERSION_ENERGY)
+			a_actor.commander.add_energy(-conversion_energy(target))
 		_conversion_paid = true
 	_conversion_elapsed += a_actor.get_physics_process_delta_time()
-	if _conversion_elapsed < SAFEHOUSE_CONVERSION_SECONDS:
+	if _conversion_elapsed < conversion_seconds(target):
 		return self
-	_convert_building_to_safehouse(target, a_actor.commander)
+	_convert_building(target, a_actor.commander)
 	return null
 
-## Transition `building` in place into a safehouse owned by `commander`: it keeps its
-## HP, footprint, garrison and any garrisoned occupants (same node), and gains the
-## commander's ownership, a safehouse's infrastructure, the safehouse type, and the safehouse
-## sprite. The structure_type_map entry is re-keyed BUILDING → SAFEHOUSE so the
-## commander accounts for it as a safehouse.
-func _convert_building_to_safehouse(a_building: Commandable, a_commander: Commander) -> void:
+## Transition `a_building` in place into an an_infrastructure owned by `a_commander`: it keeps its
+## HP, footprint, garrison and any garrisoned occupants (same node), and gains the piece's own
+## properties and the building's own infrastructure (Repurposing), then the commander's ownership.
+##
+## The ORDER is the point. The neutral commander's registry entry is under the building's old id,
+## so it is withdrawn before the id changes; the ownership transfer comes LAST, because it is what
+## registers the node under its new id with the commander and credits the infrastructure the
+## node now carries (Commandable._on_commander_changed), tracked so a later loss withdraws it.
+func _convert_building(a_building: Commandable, a_commander: Commander) -> void:
 	if not is_instance_valid(a_building) or a_commander == null:
 		return
-	# Ownership transfer: reparents under the commander, tints it, re-registers it on
-	# the grid, and (via _on_commander_changed) moves it off the neutral commander.
+	var neutral: Commander = a_building.commander
+	if neutral != null:
+		neutral.remove_structure(a_building)
+	Repurposing.into(a_building, EntityIds.AN_INFRASTRUCTURE)
 	a_building.commander = a_commander
-	# Re-key the commander's structure map from the building type to the safehouse type.
-	a_commander.remove_structure(a_building)
-	a_building.id = EntityIds.AN_INFRASTRUCTURE
-	a_commander.add_structure(a_building)
-	# Grant the safehouse's infrastructure capacity (the building provided none). Sourced from
-	# the safehouse scene's own value so the two stay in sync.
-	var preview := a_commander.get_build_preview_instance(message.tool) as Commandable
-	var safehouse_infrastructure: int = preview.infrastructure if preview != null else 50
-	a_building.infrastructure = safehouse_infrastructure
-	a_commander.add_infrastructure(safehouse_infrastructure)
-	# Swap to the safehouse sprite so it reads as a safehouse.
-	var sprite := a_building.get_node_or_null("Sprite") as Sprite3D
-	if sprite != null:
-		sprite.texture = load("res://assets/entities/safehouse.png")
 #endregion
 
 #region Lifecycle

@@ -329,6 +329,21 @@ The cargo reaches the event through the same optional-property idiom `caster` an
 `sanction_name` already use (`event.set(...)`), so only `EventAirDrop` takes it and an event
 with its own authored cargo keeps it when nothing was chosen.
 
+### A piece with several forms cycles on re-press
+
+A build button whose piece is made from one of several underlying forms (the Anarchical
+infrastructure, built from a neutral building) is still ONE button and ONE hotkey. The first press
+arms the default form; pressing it again while it is armed arms the next form, and past the last
+wraps to the first. Pressing any other tool arms that tool as ever, and re-pressing a piece with a
+single form stays a plain re-arm.
+
+- **A cycle is a choice, not an order.** Nothing is issued or queued, whatever the additive
+  modifier says, and Cancel still puts the whole Build down.
+- **The button and the key are one path**, so they cannot disagree about what a press means.
+- **Which form is armed is said in the armed banner** ("READY · <form>"), because the button
+  looks the same whichever form it would build. The ghost, the placement grid, the prices and the
+  button's availability all follow the form the frame after a press.
+
 ### Sub-contexts
 
 Only PRODUCTION has them: one context per producer TYPE in the selection, on row 0, as radio

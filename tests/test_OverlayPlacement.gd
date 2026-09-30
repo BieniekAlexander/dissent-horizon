@@ -19,7 +19,7 @@ extends GutTest
 
 const SAFEHOUSE_TOOL: String = "command_tool_an_infrastructure"
 const EXTRACTOR_TOOL: String = "command_tool_nt_extractor"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building.tscn"
+const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 const EXTRACTION_SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
 
 ## Every piece in play here is 2×2 — the even footprint, which centres on a grid CORNER.
@@ -208,14 +208,14 @@ func test_safehouse_aimed_at_a_building_converts_it() -> void:
 		"a safehouse squarely on a neutral building converts it instead of placing one")
 
 
-## Off-centre it is no longer a conversion, so it falls through to an ordinary placement —
-## which the building's own cells refuse. Either way the player cannot end up with a
-## safehouse sitting half on top of a building.
-func test_safehouse_off_centre_is_not_a_conversion_and_cannot_be_placed() -> void:
+## Aimed OUTSIDE the building's footprint it is no longer a conversion, so it falls through to
+## an ordinary placement — which the building's own cells refuse. Either way the player cannot
+## end up with a safehouse sitting half on top of a building.
+func test_safehouse_aimed_beside_a_building_is_not_a_conversion_and_cannot_be_placed() -> void:
 	var centre: Vector2 = _place_scene(BUILDING_SCENE, _neutral, Vector2i(6, 6))
 	var message: CommandMessage = _order(SAFEHOUSE_TOOL, centre + Vector2(1, 0))
 	assert_true(Build.places_new_structure(_commander, message),
-		"an off-centre safehouse is not treated as a conversion")
+		"a safehouse aimed off the building is not treated as a conversion")
 	assert_false(Structure.valid_placement(message, DIMS),
 		"and it cannot be placed either, since the building holds those cells")
 #endregion

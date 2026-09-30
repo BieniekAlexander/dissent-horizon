@@ -28,7 +28,7 @@ on the ground has to be one of these or a new entry here.
 | **Extraction site** | `nt_extractionSite` — infinite lithium. Occupies its cells against other builders but is **walkable** (§Occupancy and obstruction) |
 | **Extractor** | `nt_extractor` — the only structure buildable on a site or a pond. On a site it is what **obstructs** the site's cells |
 | **Lithium pond** | a `WaterBody` with a finite budget — [water-bodies.md](water-bodies.md) |
-| **Building** | `nt_building` — neutral, garrisonable, 2×2; generation places them in **clusters** |
+| **Building** | the `nt_building_*` family — neutral, garrisonable, of differing footprints (2×2 to 8×5); generation places them in **clusters** |
 | **Shelter** | `nt_shelter` — 3×3, produces Terrestrials |
 
 **Energy has exactly one collector.** Both the site and the pond are worked by the same

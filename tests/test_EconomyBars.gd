@@ -441,13 +441,17 @@ func test_hovering_a_provider_previews_added_spare_capacity() -> void:
 	var commander := _make_commander()  # required 0, provided BASE_INFRASTRUCTURE (100)
 	bar.commander = commander
 	bar.controller = _hovering("command_tool_an_infrastructure")
-	assert_eq(bar._hovered_infrastructure_delta(), 50)
+	# The provider's grant is its DEFAULT variant's (variants:), so read it there rather than
+	# pinning a number the owner retunes.
+	var grant: int = PieceFamilies.template(Tool.for_name("command_tool_an_infrastructure").variants[0]).infrastructure
+	assert_gt(grant, 0)
+	assert_eq(bar._hovered_infrastructure_delta(), grant)
 	var regions: Array[Dictionary] = bar._preview_regions()
 	assert_eq(regions.size(), 1)
 	assert_eq(regions[0].color, bar._dimmed(InfrastructureBar.SPARE_COLOR))
 	var capacity: float = bar._capacity()
 	assert_almost_eq(regions[0].start_frac, 100.0 / capacity, 0.001, "the current provided edge")
-	assert_almost_eq(regions[0].end_frac, 150.0 / capacity, 0.001, "provided + the 50 delta")
+	assert_almost_eq(regions[0].end_frac, (100.0 + grant) / capacity, 0.001, "provided + the grant")
 
 
 func test_hovering_a_consumer_previews_drawdown_within_spare_capacity() -> void:

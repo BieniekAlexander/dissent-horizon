@@ -15,7 +15,7 @@ extends GutTest
 
 const TRANSPORT_PATH := "res://scenes/entities/units/an/an_mechStrong_transport.tscn"
 const SOLDIER_PATH := "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const OPEN_GARRISON_PATH := "res://scenes/entities/structures/nt/nt_building.tscn"
+const OPEN_GARRISON_PATH := "res://scenes/entities/structures/nt/nt_building_square.tscn"
 
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()

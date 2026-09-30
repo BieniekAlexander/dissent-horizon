@@ -47,13 +47,13 @@ const INDENT_STEP: int = 2
 ## numbers above it, and it is the only block whose entries are prose.
 const TOP_LEVEL_ORDER: Array = [
 	# Identity — what the file is.
-	"kind", "title", "scene", "editor_description", "commandable",
+	"kind", "title", "scene", "editor_description", "commandable", "family",
 	# Flavor, then the macroeconomic transaction.
 	"flavor", "build",
 	# The three value nests.
 	"defense", "senses", "body",
 	# The discriminating component keys — one key per component, deliberately flat.
-	"movement", "aerial", "docking", "footprint", "weapons", "trains", "builds", "garrison",
+	"movement", "aerial", "docking", "footprint", "weapons", "trains", "builds", "variants", "garrison",
 	"deploys", "abilities",
 	"repairs", "stealth", "beacon", "shelter", "extraction_site", "extractor",
 	# Root-node properties: neither belongs to a component.
@@ -214,7 +214,17 @@ static func is_fixture(spec: Dictionary) -> bool:
 
 
 ## The groups the importer owns and derives. Any other group on a scene is authored.
-const DERIVED_GROUPS: Array[String] = ["piece", "unit", "fixture", "structure"]
+## A family's name is also the group its members carry, so it is derived too (see `family`).
+const DERIVED_GROUPS: Array[String] = ["piece", "unit", "fixture", "structure", "neutral_building"]
+
+## The closed set of values `family:` may take. A family is a named set of pieces that gameplay
+## and map generation enumerate or recognise as one thing (every neutral building) without
+## matching on ids. Its name doubles as the group the members carry on their scene root, and
+## the members are published in resources/generated/families.json. A member is also a TEMPLATE
+## (see SpecRegistry._validate_family): its `infrastructure:` is published there, never written to
+## the scene root, so the piece grants nothing merely by standing on the map.
+## Every entry must also be in DERIVED_GROUPS (tests/test_PieceFamilies pins that).
+const FAMILIES: Array[String] = ["neutral_building"]
 
 
 ## A piece's groups, in the order they are written (the nouns are piece-vocabulary.md's): every
@@ -232,6 +242,9 @@ static func derived_groups(spec: Dictionary) -> Array[String]:
 		groups.append("fixture")
 		if is_commandable(spec):
 			groups.append("structure")
+	var family: String = str(spec.get("family", ""))
+	if FAMILIES.has(family):
+		groups.append(family)
 	return groups
 
 

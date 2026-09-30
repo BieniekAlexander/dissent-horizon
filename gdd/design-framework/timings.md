@@ -223,6 +223,10 @@ Ready = rush chain from an empty base, funded from the bank, +10 s overhead. Arr
 `κD/v`. A single unit, not an army. The whole first wave is **time-gated, not money-gated**: 5000
 funds any of these chains at t=0.
 
+TODO: the Safehouse figures in this table and in `core` are its old price (500 energy, 20 s). A
+Safehouse now takes its price and build time from its underlying building variant (default
+800 energy, 25 s), so they are not recomputed here yet.
+
 | Threat | Chain | Ready | D=150 | D=200 | D=250 |
 |---|---|---|---|---|---|
 | AN Toxin Tractor | Safehouse 20 → Chop Shop 15 → 15 | 60 | 103 | 117 | 132 |

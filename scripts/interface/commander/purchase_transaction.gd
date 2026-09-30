@@ -202,8 +202,9 @@ static func for_tool(
 	transaction.kind = kind
 	transaction.tool = tool
 	transaction.type = tool.type if tool != null else &""
-	var spec: TechnologySpec = commander.technology_mapping.get(transaction.type) \
-		if commander != null else null
+	# Priced by the tool's own form: a variant-bound tool costs and takes what its variant does.
+	var spec: TechnologySpec = commander.technology_mapping.get(tool.price_id()) \
+		if commander != null and tool != null else null
 	if spec != null:
 		transaction.energy_cost = spec.energy_cost
 		transaction.dominion_cost = spec.dominion_cost
