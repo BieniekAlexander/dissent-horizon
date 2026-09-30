@@ -563,6 +563,7 @@ func _process(a_delta: float) -> void:
 	_apply_cursor(_cursor_for_precondition(check))
 
 	_update_build_preview(MoveCommand.is_placement_refusal(check))
+	_update_conversion_marker()
 	_update_placement_grid(MoveCommand.is_placement_refusal(check))
 	_update_cursor_readout()
 	_update_waypoint_display()
@@ -1389,7 +1390,14 @@ func _settle_command_family() -> void:
 ## right until the selection changed under it.
 func _announce_card() -> void:
 	if _mode_banner != null:
-		_mode_banner.show_family(_command_family, armed_card_state())
+		_mode_banner.show_family(_command_family, armed_card_state(), armed_variant_label())
+
+
+## Which form of the armed piece is chosen, for the banner: the variant's name, or "" when the
+## armed tool has none (or nothing is armed).
+func armed_variant_label() -> String:
+	var armed: Tool = command_message.tool if command_message != null else null
+	return armed.variant_label() if armed != null else ""
 
 
 ## How far along the armed order is, for the banner: NONE, PENDING (the card is still asking
@@ -2324,6 +2332,13 @@ func process_command(a_command_name: String) -> void:
 
 	var tool: Tool = Tool.for_name(a_command_name)
 	if tool != null:
+		# Pressing the armed piece again is a choice of ITS next form, not a new order: nothing is
+		# issued or queued (whatever the additive modifier says), and the ghost, overlay, prices
+		# and banner follow the tool the next frame.
+		if _is_variant_cycle_press(tool):
+			command_message.tool = command_message.tool.next_variant()
+			upate_hud_buttons()
+			return
 		command_message.tool = tool
 	elif a_command_name.begins_with("command"):
 		# Hotkey commands either fire immediately (no position needed, e.g.
@@ -2349,6 +2364,13 @@ func process_command(a_command_name: String) -> void:
 		)
 
 	upate_hud_buttons()
+
+## Whether pressing `a_tool` now means "the next form of what is armed": that very piece is
+## already armed, bound to one of its variants. A piece without variants is never bound, so
+## re-pressing it stays the plain re-arm it always was.
+func _is_variant_cycle_press(a_tool: Tool) -> bool:
+	var armed: Tool = command_message.tool if command_message != null else null
+	return armed != null and armed.is_variant_bound() and armed.type == a_tool.type
 
 ## Toggle hold fire across every piece in `actors` that offers it — those with a weapon. If
 ## all of them already hold, all are released; otherwise (none, or some) all are set. The rest
@@ -3766,6 +3788,39 @@ func _cursor_readout_text() -> String:
 	return "energy: %d" % body.energy
 
 
+## The neutral building the armed Build would convert if issued at the cursor, or null when the
+## armed order is not a conversion (or is not a Build at all).
+func armed_conversion_target() -> Commandable:
+	if command_message == null or current_command_type != Build:
+		return null
+	return Build.conversion_target(_selection_commander(), command_message)
+
+
+## The energy a conversion at the cursor would cost, or -1 when nothing is being converted or a
+## button is hovered (a hover previews ITS purchase outright, see previewed_tool).
+func previewed_conversion_energy() -> int:
+	if hovered_command_name() != &"":
+		return -1
+	var target: Commandable = armed_conversion_target()
+	return Build.conversion_energy(target) if target != null else -1
+
+
+## The building currently wearing the conversion marker.
+var _conversion_marked: Commandable = null
+
+## Mark the building the armed Build would convert, using the marker a single-unit ability
+## uses for its target: "this is what the order lands on".
+func _update_conversion_marker() -> void:
+	var target: Commandable = armed_conversion_target()
+	if target == _conversion_marked:
+		return
+	if is_instance_valid(_conversion_marked):
+		_conversion_marked.set_ability_targeted(false)
+	if target != null:
+		target.set_ability_targeted(true)
+	_conversion_marked = target
+
+
 ## Show / refresh / hide the translucent build-placement ghost. Called every
 ## frame from _process. The ghost is visible only while the armed command is
 ## Build and the player has chosen a Tool; it snaps to the same cell the
@@ -3777,9 +3832,12 @@ func _update_build_preview(a_is_invalid_placement: bool) -> void:
 	if is_drop_armed():
 		_update_drop_preview()
 		return
+	# No ghost over a conversion: nothing new is placed there, and a placement verdict drawn on
+	# the building would say something false about it (the target's marker says it instead).
 	var should_show: bool = (
 		current_command_type == Build
 		and command_message.tool != null
+		and armed_conversion_target() == null
 	)
 	if not should_show:
 		if _build_preview != null and is_instance_valid(_build_preview):

@@ -65,6 +65,14 @@ by `RTSController._update_placement_grid`), after StarCraft II's:
   another Opticon, standing or pending, or under one of your fixtures, standing or planned
   (`DominionRoute.site_claim`). A future ground-claiming piece needs no HUD work.
 
+### Aimed at a building it would convert
+
+Building the Anarchical infrastructure on a neutral building converts that building instead of
+placing a new one. While it is aimed at one, no ghost and no placement grid are drawn — the
+new-structure verdict (footprint, red or green) would say something false about a building that is
+already there — and the target wears the same marker an aimed single-unit ability does. The energy
+bar previews the conversion's own, discounted price, not the price of building the form new.
+
 ### Range rings while placing
 
 Range circles ride along, around the ghost: every weapon's reach and detection always, and

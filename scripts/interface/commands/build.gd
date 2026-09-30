@@ -48,6 +48,10 @@ static func _conversion_target(commander: Commander, message: CommandMessage) ->
 	return host if PieceFamilies.is_member(host.id, PieceFamilies.NEUTRAL_BUILDING) \
 			and host.commander_id == 0 else null
 
+## The building `message` would convert, for the HUD: what to mark, and whose price to preview.
+static func conversion_target(a_commander: Commander, a_message: CommandMessage) -> Commandable:
+	return _conversion_target(a_commander, a_message)
+
 ## True when this Build is a conversion: the an_infrastructure tool aimed at a still-neutral
 ## building (see _conversion_target).
 static func _is_conversion(commander: Commander, message: CommandMessage) -> bool:

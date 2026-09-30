@@ -106,6 +106,10 @@ func _fill_color(a_frac: float) -> Color:
 	return base
 
 func _preview_cost() -> float:
+	# A conversion is priced by the building it lands on, not by the tool that would build one new.
+	var conversion: int = controller.previewed_conversion_energy() if controller != null else -1
+	if conversion >= 0:
+		return float(conversion)
 	var spec: TechnologySpec = _hovered_spec()
 	return float(spec.energy_cost) if spec != null else 0.0
 
