@@ -6,7 +6,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ConditionGroupCount.gd -gexit
 
-const UNIT: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
+const UNIT: Dictionary = FakePieces.BUILDER
 const GROUP: StringName = &"test_ambush_wave"
 
 var _manager: ScenarioTriggerManager
@@ -97,7 +97,7 @@ func test_a_node_dying_this_frame_is_not_counted() -> void:
 # --- Highlights -----------------------------------------------------------------
 
 func test_at_most_marks_the_members_that_can_be_marked() -> void:
-	var entity: Commandable = UNIT.instantiate()
+	var entity: Commandable = FakePieces.make(UNIT)
 	entity.add_to_group(GROUP)
 	add_child_autofree(entity)
 	_member()  # a plain Node in the same group — nothing to point at
@@ -108,7 +108,7 @@ func test_at_most_marks_the_members_that_can_be_marked() -> void:
 
 
 func test_at_least_marks_nothing() -> void:
-	var entity: Commandable = UNIT.instantiate()
+	var entity: Commandable = FakePieces.make(UNIT)
 	entity.add_to_group(GROUP)
 	add_child_autofree(entity)
 	var condition := _condition(ConditionGroupCount.Comparison.AT_LEAST, 3)
@@ -122,7 +122,7 @@ func test_spawn_groups_label_everything_the_event_produced() -> void:
 	event.spawn_groups = [GROUP, &"test_second_label"] as Array[StringName]
 	add_child_autofree(event)
 
-	var spawned: Commandable = UNIT.instantiate()
+	var spawned: Commandable = FakePieces.make(UNIT)
 	event._apply_spawn_groups(spawned)
 	autofree(spawned)
 

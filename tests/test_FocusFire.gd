@@ -11,18 +11,19 @@ extends GutTest
 ## Scenes are load()ed INSIDE the tests, never preloaded at file scope — see CLAUDE.md
 ## §Running and testing for the registry poisoning a file-scope preload can cause.
 
-const SHOOTER_PATH := "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const BUILDER_PATH := "res://scenes/entities/units/cl/cl_bioLight_builder.tscn"
-const ANTI_AIR_PATH := "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
-
+const SHOOTER_PATH: Dictionary = FakePieces.SOLDIER
+## Unarmed.
+const BUILDER_PATH: Dictionary = FakePieces.PLAIN
+## A gun that reaches the air alone.
+const ANTI_AIR_PATH: Dictionary = {"structure": true, "weapon": {"air": 8.0}}
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
 	add_child_autofree(c)
 	return c
 
-func _entity(a_path: String) -> Commandable:
-	var e := (load(a_path) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary) -> Commandable:
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(1)
 	return e

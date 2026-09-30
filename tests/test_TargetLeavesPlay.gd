@@ -21,10 +21,9 @@ extends GutTest
 ## load() inside each test, never a file-scope preload: a preload of an entity scene runs at
 ## PARSE time and can fire Tool's static registry initialiser before the registry exists,
 ## which takes out every test after it (CLAUDE.md).
-const TRUCK_SCENE: String = "res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn"
-const TROOPER_SCENE: String = "res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn"
-
-
+## A carrier with a cage.
+const TRUCK_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "garrison": {"capacity": 3, "bunker": false}}
+const TROOPER_SCENE: Dictionary = FakePieces.SOLDIER
 func _commander(a_id: int) -> Commander:
 	var commander := Commander.new()
 	commander.id = a_id
@@ -32,8 +31,8 @@ func _commander(a_id: int) -> Commander:
 	return commander
 
 
-func _entity(a_path: String, a_commander_id: int) -> Commandable:
-	var entity := (load(a_path) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var entity := FakePieces.make(a_options) as Commandable
 	add_child_autofree(entity)
 	entity.ownership.commander = _commander(a_commander_id)
 	return entity

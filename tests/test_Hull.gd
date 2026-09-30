@@ -13,8 +13,7 @@ extends GutTest
 ##
 ## PATHS, not preloads (see CLAUDE.md). The scene is a HARNESS: the box body is set here.
 
-const SOLDIER: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-
+const SOLDIER: Dictionary = FakePieces.SOLDIER
 const EPSILON: float = 0.0001
 
 
@@ -87,7 +86,7 @@ func _commander(a_id: int) -> Commander:
 
 
 func _soldier(a_commander: Commander, a_at: Vector3) -> Commandable:
-	var piece := (load(SOLDIER) as PackedScene).instantiate() as Commandable
+	var piece := FakePieces.make(SOLDIER) as Commandable
 	add_child_autofree(piece)
 	piece.ownership.commander = a_commander
 	piece.global_position = a_at

@@ -23,21 +23,22 @@ extends GutTest
 ##     -gtest=res://tests/test_CrushAvoidance.gd
 
 ## MEDIUM crush class, and a hold — the piece the reported bug was seen on.
-const CRUSHER_PATH: String = "res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn"
+const CRUSHER_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "crush": Movement.CrushClass.LARGE}
 ## TINY: two classes below the crusher, so it is crushable.
-const VICTIM_PATH: String = "res://scenes/entities/units/cl/cl_bioLight_builder.tscn"
+## Light infantry: small enough to be crushed.
+const VICTIM_PATH: Dictionary = {"speed": 1.0, "vision": 8.0}
 ## MEDIUM, same class as the crusher: outside the crush gap, so it is not crushable.
-const PEER_PATH: String = "res://scenes/entities/units/an/an_mechMedium_antiBio.tscn"
-
+## As big as the crusher, so not crushable.
+const PEER_PATH: Dictionary = {"speed": 1.0, "vision": 8.0, "crush": Movement.CrushClass.LARGE}
 const PLAYER: int = 1
 const ENEMY: int = 2
 
 
-func _entity(a_path: String, a_commander_id: int, a_at: Vector3) -> Commandable:
+func _entity(a_options: Dictionary, a_commander_id: int, a_at: Vector3) -> Commandable:
 	var c := Commander.new()
 	c.id = a_commander_id
 	add_child_autofree(c)
-	var e := (load(a_path) as PackedScene).instantiate() as Commandable
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = c
 	e.global_position = a_at

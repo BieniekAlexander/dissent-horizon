@@ -23,6 +23,7 @@ extends RefCounted
 ##   speed: float            gives it a navigated `Movement` at this speed (default: immobile)
 ##   vision: float           radius of a `VisionRange` cylinder (default: none)
 ##   weapon: Dictionary      a `Loadout` with one `Weapon`:
+##                             projectile: bool  ranged (default when it has reach) or melee
 ##                             damage: float  per hit (default 0: a fake gun wounds nobody)
 ##                             ground: float  radius of its ground reach (0 = none)
 ##                             air: float     radius of its air reach (0 = none)
@@ -141,6 +142,7 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		for type: Variant in a_options["interactions"] as Array:
 			var interaction := Interaction.new()
 			interaction.type = type
+			interaction.interact_shape = _cylinder(2.0)
 			list.append(interaction)
 		interactor.interactions = list
 		_add_node(piece, interactor, "Interactor")
@@ -179,6 +181,9 @@ static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:
 	loadout.add_child(weapon)
 	var ground: float = float(a_weapon.get("ground", 0.0))
 	var air: float = float(a_weapon.get("air", 0.0))
+	# A gun that reaches somewhere is ranged and fires SOMETHING; `projectile: false` makes it melee.
+	if bool(a_weapon.get("projectile", ground > 0.0 or air > 0.0)):
+		weapon.projectile_scene = _blank_projectile()
 	# Reach on both layers is two named shapes, one each; reach on one layer is a lone shape whose
 	# weapon's target_mask names the layer it serves.
 	if ground > 0.0 and air > 0.0:
@@ -197,6 +202,15 @@ static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:
 	# A piece that can shoot will pick a fight on its own, out to about as far as it reaches.
 	_add_aggro(a_piece, "AggroRangeGround", ground)
 	_add_aggro(a_piece, "AggroRangeAir", air)
+
+
+## A scene with nothing in it: enough for a weapon to count as ranged, and to launch into.
+static func _blank_projectile() -> PackedScene:
+	var blank := Node3D.new()
+	var scene := PackedScene.new()
+	scene.pack(blank)
+	blank.free()
+	return scene
 
 
 static func _add_aggro(a_piece: Commandable, a_name: String, a_radius: float) -> void:
