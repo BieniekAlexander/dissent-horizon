@@ -497,12 +497,12 @@ static func restore_abilities() -> void:
 static func tool(a_type: StringName, a_options: Dictionary = {},
 		a_variants: Array[StringName] = [],
 		a_context: int = ControlBinding.ControlContext.BUILD,
-		a_producers: Array = []) -> Tool:
+		a_producers: Array = [], a_context_grid: Vector2i = Vector2i(-1, -1)) -> Tool:
 	var options: Dictionary = a_options.duplicate()
 	options["id"] = a_type
 	return Tool.new("command_tool_%s" % a_type, a_type, scene_of(options), String(a_type),
 		Vector2i.ZERO, a_context, 0, "", "", a_producers, false,
-		Vector2i(-1, -1), a_variants)
+		a_context_grid, a_variants)
 
 
 ## What each registered name held before the test (null: nothing), so `restore_tools` puts the
