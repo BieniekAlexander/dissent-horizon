@@ -101,11 +101,19 @@ scenario list, a piece's stats — these are content, not mechanics, and a test 
 fails on every honest edit while isolating no logic. When such a test goes red the reflex is
 to update the number, which is the wrong repair: it treats content drift as a regression.
 
-Two rules follow:
+Three rules follow:
 
 - **Test the mechanic against a fixture you built.** `test_EventRevealRegion` is the model —
   eleven tests drive the event against a synthetic group it creates itself. The one test that
   reached into `s1.tscn` to count camps was deleted; it told you nothing the eleven did not.
+- **Build pieces with `FakePieces`, never by loading a shipped scene.** `tests/_fake_pieces.gd`
+  makes a `Commandable` (or feature, or emission) with exactly the components a test names —
+  `FakePieces.unit({"speed": 2.0, "weapon": {"ground": 6.0}})` — plus fake tools, families,
+  technology and abilities for the code that looks those up (`register_tool`, `install_families`,
+  `install_ability`; each has a `restore_*` for `after_each`). A test that loads
+  `cl_bioLight_antiLight.tscn` breaks the day that piece is renamed, retuned or deleted, and
+  says nothing the fake would not. Shipped ids appear only where CODE keys on one
+  (`EntityIds.AN_INFRASTRUCTURE` for the conversion rule).
 - **An authored scene may be a HARNESS, never the subject.** Instantiating `main_menu.tscn`
   to get a `MainMenu` and then feeding it synthetic entries is fine. Asserting how many
   scenarios the shipped menu ships is not.

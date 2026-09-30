@@ -454,6 +454,12 @@ static func emission(a_options: Dictionary = {}) -> Entity:
 	return shell
 
 
+## A PackedScene of a fake emission, for code that takes a scene (a weapon's `projectile_scene`,
+## a spawn event's `emission_scene`).
+static func emission_scene(a_options: Dictionary = {}) -> PackedScene:
+	return _packed(emission(a_options))
+
+
 ## Make ability `a_id` throw a fake emission, in addition to `a_entry`'s own keys.
 static func install_emitting_ability(a_id: StringName, a_entry: Dictionary = {}) -> void:
 	var path: String = "fake://emission/%s" % a_id

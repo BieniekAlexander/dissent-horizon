@@ -208,7 +208,7 @@ func test_a_spawn_event_puts_its_emission_where_it_stands() -> void:
 	manager.map = Map.new()
 	autofree(manager.map)
 	var event: EventSpawnEmission = EventSpawnEmission.new()
-	event.emission_scene = load("res://scenes/entities/projectiles/radiation.tscn")
+	event.emission_scene = FakePieces.emission_scene()
 	add_child_autofree(event)
 	event.global_position = Vector3(4.0, 0.0, 2.0)
 	event.execute(manager)
