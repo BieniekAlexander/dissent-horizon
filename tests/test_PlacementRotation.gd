@@ -1,6 +1,6 @@
 extends GutTest
 
-## PLACING A STRUCTURE: press `command_issue` to set it down, drag to turn it, release to order it.
+## PLACING A STRUCTURE: press `command_armed_issue` to set it down, drag to turn it, release to order it.
 ## Driven through RTSController._unhandled_input on a controller that was never put in a scene tree,
 ## the way test_VariantCycle drives the card; the per-frame half (the cursor's ground point) is
 ## covered by its pure parts in test_FootprintRotation.
@@ -156,7 +156,7 @@ func test_the_rotate_keys_do_nothing_when_it_is_not_a_build() -> void:
 
 func test_the_press_orders_nothing() -> void:
 	_aim()
-	_press(&"command_issue")
+	_press(&"command_armed_issue")
 	assert_true(_controller._placing, "the structure is set down and waiting")
 	assert_signal_not_emitted(_controller, "command_issued")
 	assert_null(_ordered_build())
@@ -164,7 +164,7 @@ func test_the_press_orders_nothing() -> void:
 
 func test_the_press_freezes_the_placement_where_it_landed() -> void:
 	_aim()
-	_press(&"command_issue")
+	_press(&"command_armed_issue")
 	# The cursor moves on; the per-frame update must not carry the placement with it.
 	_controller.command_message.world_position = Vector3(30.0, 0.0, 30.0)
 	_controller._freeze_placement()
@@ -174,8 +174,8 @@ func test_the_press_freezes_the_placement_where_it_landed() -> void:
 func test_the_release_orders_the_build_with_the_turn_it_ended_on() -> void:
 	_aim()
 	_press(&"rotate_left")
-	_press(&"command_issue")
-	_release(&"command_issue")
+	_press(&"command_armed_issue")
+	_release(&"command_armed_issue")
 	assert_signal_emitted(_controller, "command_issued")
 	var build: Build = _ordered_build()
 	assert_not_null(build, "the builder was given the order")
@@ -189,8 +189,8 @@ func test_a_plain_click_orders_the_build_at_the_facing_already_chosen() -> void:
 	_aim()
 	_press(&"rotate_left")
 	_press(&"rotate_left")
-	_press(&"command_issue")
-	_release(&"command_issue")
+	_press(&"command_armed_issue")
+	_release(&"command_armed_issue")
 	var build: Build = _ordered_build()
 	assert_not_null(build)
 	if build != null:
@@ -201,14 +201,14 @@ func test_the_release_behaves_as_the_press_used_to_about_staying_armed() -> void
 	# Issuing puts the tool down, and the additive modifier keeps it for the next — unchanged by
 	# moving the order from the press to the release.
 	_aim()
-	_press(&"command_issue")
-	_release(&"command_issue")
+	_press(&"command_armed_issue")
+	_release(&"command_armed_issue")
 	assert_null(_controller.command_message.tool, "an ordinary order puts the tool down")
 	_controller.command_message.tool = Tool.for_name(TOOL_NAME).with_variant(1)
 	_controller.additive_latched = true
 	_controller.command_message.world_position = Vector3(-8.0, 0.0, -8.0)
-	_press(&"command_issue")
-	_release(&"command_issue")
+	_press(&"command_armed_issue")
+	_release(&"command_armed_issue")
 	assert_not_null(_controller.command_message.tool, "held, it stays for the next")
 
 
@@ -228,16 +228,16 @@ func test_a_turn_that_lands_on_something_is_refused_and_the_tool_stays_armed() -
 	assert_ne(only_turned, Vector2i(-1, -1), "guards the fixture: the two footprints must differ")
 	_map.cell_grid[only_turned.x][only_turned.y] = Node.new()
 	_press(&"rotate_left")
-	_press(&"command_issue")
-	_release(&"command_issue")
+	_press(&"command_armed_issue")
+	_release(&"command_armed_issue")
 	assert_signal_not_emitted(_controller, "command_issued")
 	assert_null(_ordered_build(), "nothing was submitted")
 	assert_not_null(_controller.command_message.tool, "the Build is still armed with the same tool")
 	assert_eq(_controller.placement_quarter_turns, 1, "and the facing is as it was left")
 	# Turned back, the same spot is fine and orders normally.
 	_press(&"rotate_right")
-	_press(&"command_issue")
-	_release(&"command_issue")
+	_press(&"command_armed_issue")
+	_release(&"command_armed_issue")
 	assert_signal_emitted(_controller, "command_issued")
 
 
@@ -245,10 +245,10 @@ func test_a_turn_that_lands_on_something_is_refused_and_the_tool_stays_armed() -
 
 func test_disarming_mid_press_orders_nothing_when_the_button_comes_up() -> void:
 	_aim()
-	_press(&"command_issue")
+	_press(&"command_armed_issue")
 	_controller.disarm_command()
 	assert_false(_controller._placing)
-	_release(&"command_issue")
+	_release(&"command_armed_issue")
 	assert_signal_not_emitted(_controller, "command_issued")
 	assert_null(_ordered_build())
 	assert_null(_controller.command_message.tool)
@@ -264,7 +264,7 @@ func test_putting_the_tool_down_forgets_the_turn() -> void:
 
 func test_a_drag_turns_the_structure_to_face_the_cursor() -> void:
 	_aim()
-	_press(&"command_issue")
+	_press(&"command_armed_issue")
 	var press: Vector3 = Vector3(2.0, 0.0, 3.0)
 	var far: float = RTSController.PLACEMENT_ROTATE_DEADZONE * 4.0
 	_controller._turn_placement_toward(press + Vector3(far, 0.0, 0.0))
@@ -280,7 +280,7 @@ func test_a_drag_turns_the_structure_to_face_the_cursor() -> void:
 func test_a_wobble_inside_the_dead_zone_keeps_the_facing_the_keys_chose() -> void:
 	_aim()
 	_press(&"rotate_left")
-	_press(&"command_issue")
+	_press(&"command_armed_issue")
 	var press: Vector3 = Vector3(2.0, 0.0, 3.0)
 	_controller._turn_placement_toward(press + Vector3(-RTSController.PLACEMENT_ROTATE_DEADZONE * 0.5, 0.0, 0.0))
 	assert_eq(_controller.placement_quarter_turns, 1)
@@ -288,10 +288,10 @@ func test_a_wobble_inside_the_dead_zone_keeps_the_facing_the_keys_chose() -> voi
 
 func test_the_order_carries_the_turn_the_drag_ended_on() -> void:
 	_aim()
-	_press(&"command_issue")
+	_press(&"command_armed_issue")
 	_controller._turn_placement_toward(Vector3(2.0, 0.0, 3.0) \
 		+ Vector3(RTSController.PLACEMENT_ROTATE_DEADZONE * 4.0, 0.0, 0.0))
-	_release(&"command_issue")
+	_release(&"command_armed_issue")
 	var build: Build = _ordered_build()
 	assert_not_null(build)
 	if build != null:

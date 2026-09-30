@@ -230,7 +230,7 @@ const PLACEMENT_ROTATE_DEADZONE: float = 1.0
 ## carries is command_message.quarter_turns, which is this where rotation applies at all.
 var placement_quarter_turns: int = 0
 
-## True from the press of `command_issue` that starts placing a structure until it is released.
+## True from the press of `command_armed_issue` that starts placing a structure until it is released.
 ## While it is, the placement point is FROZEN where the press landed (below) and the cursor's job
 ## is to aim the structure, not to move it.
 var _placing: bool = false
@@ -416,6 +416,7 @@ func _ready():
 	# get carried out until the world resumes (execution is _physics_process work). Every
 	# child Control inherits this, which is what keeps the info panel and minimap live too.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	ControlScheme.apply()
 	_register_hud_cursor()
 	_apply_cursor(FREE_CURSOR)
 	# Map each SELECT-context grid command to its selection routine. Must be built
@@ -549,7 +550,7 @@ func _process(a_delta: float) -> void:
 	if _placing:
 		# The release is normally delivered as an event, but a HUD panel can swallow one; the
 		# action itself cannot be intercepted, so polling it is the backstop (see _update_drag).
-		if Input.is_action_pressed("command_issue"):
+		if Input.is_action_pressed(ControlScheme.ARMED_ISSUE):
 			_update_placing()
 		else:
 			_finish_placing_structure()
@@ -953,17 +954,27 @@ func _notification(a_what: int) -> void:
 func _unhandled_input(a_event: InputEvent) -> void:
 	if a_event is InputEventMouseMotion:
 		mouse_position = a_event.position
+	elif is_command_armed() and ControlScheme.matches(a_event, ControlScheme.ARMED_CANCEL):
+		# Which button this is depends on the control scheme (ControlScheme): the left click in
+		# the classic one, the right in the swapped one. Either way it puts the order down and
+		# changes the selection not at all. A player who has armed the wrong thing wants out of
+		# it, and making them find the right key first is the friction this removes. See
+		# ui/control-matrices.md §Context 1a and §Armed-order scheme.
+		if _armed_press_belongs_to_ui(a_event):
+			return
+		disarm_command()
+	elif is_command_armed() and ControlScheme.matches(a_event, ControlScheme.ARMED_ISSUE):
+		if _armed_press_belongs_to_ui(a_event):
+			return
+		_issue_current_command()
+	elif _placing and ControlScheme.matches(a_event, ControlScheme.ARMED_ISSUE, false):
+		# BEFORE the plain world_select release below, which would otherwise take it when the
+		# armed-issue button is the left one.
+		_finish_placing_structure()
 	elif a_event.is_action_pressed("world_select"):
 		# A press that starts on a HUD panel isn't a world-selection drag — ignore it so
-		# the panel's own controls (or nothing) handle the click.
+		# the panel's own controls (or nothing) handle the click. Armed presses were taken above.
 		if _pointer_over_blocking_ui():
-			return
-		# LEFT CLICK IS THE UNIVERSAL CANCEL while an order is armed, and it changes the
-		# selection not at all. A player who has armed the wrong thing wants out of it, and
-		# making them find the right key first is the friction this removes; every RTS spends
-		# the left button this way. See ui/control-matrices.md §Context 1a.
-		if is_command_armed():
-			disarm_command()
 			return
 		begin_drag_at(live_pointer_position())
 	elif a_event.is_action_released("world_select"):
@@ -987,28 +998,10 @@ func _unhandled_input(a_event: InputEvent) -> void:
 		# is a pointer button rather than a grid command — reaching the dispatcher would make
 		# right-click press whatever sits in a command cell. See
 		# gdd/systems/ux/ui/input-action-naming.md §The exception the prefix rule now carries.
-		if _begin_placing_structure():
-			pass
-		elif is_debug_piece_armed():
-			_place_debug_piece()
-		elif is_drop_armed():
-			_place_drop()
-		elif _pending_sanction != null:
-			_activate_pending_sanction()
-		elif not pending_selection.is_empty():
-			# A PHANTOM is what is selected, so the order is stored on its purchase rather than
-			# issued to anything. See assign_command_to_pending.
-			assign_command_to_pending(current_command_type, command_message, additive_latched)
-		elif _selection_owned_by_player():
-			# Only the player's own units take commands; an enemy/neutral
-			# info-selection ignores the move/command click.
-			assign_command_to_units(
-				current_command_type,
-				command_message,
-				additive_latched
-			)
-	elif a_event.is_action_released("command_issue") and _placing:
-		_finish_placing_structure()
+		#
+		# Armed, this button was taken above, whichever scheme it is; what reaches here is the
+		# default order, so both schemes agree on it.
+		_issue_current_command()
 	elif a_event.is_action_pressed("rotate_left") and _placement_rotation_applies():
 		placement_quarter_turns = posmod(placement_quarter_turns + 1, 4)
 	elif a_event.is_action_pressed("rotate_right") and _placement_rotation_applies():
@@ -1035,6 +1028,39 @@ func _unhandled_input(a_event: InputEvent) -> void:
 		_dispatch_control_group(get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX))
 	elif get_action_names_by_prefix(a_event, "command_").size()>0:
 		_dispatch_command_hotkey(get_action_names_by_prefix(a_event, "command_"))
+#endregion
+
+#region Issuing the current order
+## Whether a press of an armed-scheme button belongs to the HUD under the cursor. Only a click on
+## the world counts as the player's answer, and only the left button can land on a panel, so a
+## right-button press is never held back.
+func _armed_press_belongs_to_ui(a_event: InputEvent) -> bool:
+	return a_event.is_action_pressed("world_select") and _pointer_over_blocking_ui()
+
+
+## Carry out the current order: what the armed tool, sanction, drop or debug piece is for, or the
+## default order for the cursor when nothing is armed.
+func _issue_current_command() -> void:
+	if _begin_placing_structure():
+		pass
+	elif is_debug_piece_armed():
+		_place_debug_piece()
+	elif is_drop_armed():
+		_place_drop()
+	elif _pending_sanction != null:
+		_activate_pending_sanction()
+	elif not pending_selection.is_empty():
+		# A PHANTOM is what is selected, so the order is stored on its purchase rather than
+		# issued to anything. See assign_command_to_pending.
+		assign_command_to_pending(current_command_type, command_message, additive_latched)
+	elif _selection_owned_by_player():
+		# Only the player's own units take commands; an enemy/neutral
+		# info-selection ignores the move/command click.
+		assign_command_to_units(
+			current_command_type,
+			command_message,
+			additive_latched
+		)
 #endregion
 
 #region Placing a structure: press to set it down, drag to turn it, release to order it
@@ -1203,6 +1229,8 @@ static func is_click_gesture(from: Vector2, to: Vector2) -> bool:
 ## _unhandled_input, and motion over a HUD panel is swallowed by the panel — so the
 ## cached value is stale (still a world point) exactly when we need to know we're over UI.
 func _pointer_over_blocking_ui() -> bool:
+	if not is_inside_tree():
+		return false
 	return pointer_over_blocking_ui(get_tree(), get_viewport().get_mouse_position())
 
 
