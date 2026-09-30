@@ -16,8 +16,8 @@ extends GutTest
 ## foundation, being killed en route) needs a live map and navmesh; only its bookkeeping
 ## — funding, holder counting, refund on abandonment — is covered here.
 
-const IRREGULAR: StringName = &"an_bioLight_builder"
-const VANGUARD: StringName = &"tc_bioLight_antiMech"
+const IRREGULAR: StringName = &"fake_trainee_a"
+const VANGUARD: StringName = &"fake_trainee_b"
 
 
 func _make_commander(a_energy: int = 0) -> Commander:
@@ -397,7 +397,7 @@ func test_clear_all_empties_both_tiers() -> void:
 func test_clearing_drops_a_build_that_is_still_waiting_on_energy() -> void:
 	var commander := _make_commander(0)
 	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"tc_armory"), 60
+		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
 	))
 	commander.production_queue.clear_all()
 	assert_true(commander.production_queue.is_empty())
@@ -413,7 +413,7 @@ func test_clearing_drops_a_build_that_is_still_waiting_on_energy() -> void:
 func test_clearing_does_not_reach_an_already_funded_build() -> void:
 	var commander := _make_commander(100)
 	commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"tc_armory"), 60
+		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
 	))
 	assert_true(commander.production_queue.is_empty(), "a funded build isn't queued any more")
 	commander.production_queue.clear_all()
@@ -488,7 +488,7 @@ func test_a_dispatched_standing_entry_does_not_itself_repeat() -> void:
 func test_build_purchase_reserves_without_consuming() -> void:
 	var commander := _make_commander(100)
 	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"tc_armory"), 60
+		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
 	))
 	assert_true(transaction.is_funded(), "the cost is reserved ahead of the builder arriving")
 	assert_eq(commander.energy, 40)
@@ -499,7 +499,7 @@ func test_build_purchase_reserves_without_consuming() -> void:
 func test_abandoned_build_refunds_its_reservation() -> void:
 	var commander := _make_commander(100)
 	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"tc_armory"), 60
+		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
 	))
 	# Two builders were sent; both lose the order before either lays the foundation.
 	transaction.retain_holder()
@@ -513,7 +513,7 @@ func test_abandoned_build_refunds_its_reservation() -> void:
 func test_consumed_build_is_not_refunded() -> void:
 	var commander := _make_commander(100)
 	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"tc_armory"), 60
+		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
 	))
 	transaction.retain_holder()
 	transaction.consume()  # the builder laid the foundation
@@ -677,7 +677,7 @@ func test_refund_on_cancel_can_withhold_a_refund() -> void:
 	# created the entry.
 	var commander := _make_commander(100)
 	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"tc_armory"), 60
+		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
 	))
 	transaction.refund_on_cancel = false
 	transaction.cancel()
@@ -816,7 +816,7 @@ func test_a_rotated_standing_entry_still_yields_to_a_one_off() -> void:
 
 func _build_purchase(a_commander: Commander, a_energy: int) -> PurchaseTransaction:
 	return PurchaseTransaction.for_cost(
-		a_commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"tc_armory"), a_energy
+		a_commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), a_energy
 	)
 
 

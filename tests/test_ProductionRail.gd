@@ -10,8 +10,8 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ProductionRail.gd -gexit
 
-const IRREGULAR: StringName = &"an_bioLight_builder"
-const VANGUARD: StringName = &"tc_bioLight_antiMech"
+const IRREGULAR: StringName = &"fake_trainee_a"
+const VANGUARD: StringName = &"fake_trainee_b"
 
 
 func _purchase(a_type: StringName) -> PurchaseTransaction:
