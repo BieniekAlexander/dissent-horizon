@@ -149,8 +149,9 @@ func test_the_toggle_key_is_not_also_a_grid_cell() -> void:
 ## A live-ish slice: `_settle_command_family` reads nothing but `selection` and
 ## `_available_commands`, so it runs on a bare controller that was never put in a tree.
 
-const BARRACKS: String = "res://scenes/entities/structures/cl/cl_barracks.tscn"
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
+## Fakes: a stationary producer of one trainee, a soldier, a producer that also casts, and a gun.
+const BARRACKS: Dictionary = {"structure": true, "produces": [&"fake_trainee"]}
+const RECRUIT: Dictionary = {"speed": 2.0, "weapon": {"ground": 6.0}}
 
 
 ## A controller that was never put in a scene tree — the card rules read nothing but
@@ -178,11 +179,22 @@ func _controller(a_selection: Array) -> RTSController:
 ## and the card decision reads nothing else. Loaded rather than preloaded — a file-scope
 ## preload of an entity scene fires Tool's static registry initialiser at parse time and
 ## makes Tool.for_name null for the whole run (see CLAUDE.md).
-func _entity(a_scene: String) -> Commandable:
+func before_each() -> void:
+	FakePieces.register_tool(FakePieces.tool(&"fake_trainee", FakePieces.PLAIN, [],
+		ControlBinding.ControlContext.TRAIN, [&"fake_barracks"]))
+	FakePieces.install_ability(&"bombard", {"command": "command_bombard", "grid": [0, 0], "range": 30.0})
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
+	FakePieces.restore_abilities()
+
+
+func _entity(a_options: Dictionary) -> Commandable:
 	var commander := Commander.new()
 	commander.id = 1
 	add_child_autofree(commander)
-	var entity := (load(a_scene) as PackedScene).instantiate() as Commandable
+	var entity := FakePieces.make(a_options) as Commandable
 	add_child_autofree(entity)
 	entity.ownership.commander = commander
 	return entity
@@ -221,8 +233,9 @@ func test_a_mixed_selection_opens_on_the_active_card() -> void:
 ## PRODUCTION, while the ability it was pressed for is drawn on ACTIVE. `_command_is_available`
 ## refuses a command the visible card is not drawing, so the button selected the casters and
 ## then silently did nothing. `_show_card_for_command` is what closes that.
-const CITADEL: String = "res://scenes/entities/structures/cl/cl_commandCenter.tscn"
-const CANNON: String = "res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn"
+const CITADEL: Dictionary = {"structure": true, "produces": [&"fake_trainee"],
+	"abilities": [{"grants": [&"bombard"]}]}
+const CANNON: Dictionary = {"structure": true, "abilities": [{"grants": [&"bombard"]}]}
 
 
 func test_a_producer_that_also_carries_abilities_settles_on_production() -> void:
@@ -255,7 +268,7 @@ func test_turning_to_a_card_the_selection_cannot_fill_is_refused() -> void:
 	var recruit: Commandable = _entity(RECRUIT)
 	var controller: RTSController = _controller([recruit])
 	assert_eq(controller.command_family, ControlBinding.CommandFamily.ACTIVE)
-	controller._show_card_for_command("command_tool_cl_bioLight_antiLight")
+	controller._show_card_for_command("command_tool_fake_trainee")
 	assert_eq(controller.command_family, ControlBinding.CommandFamily.ACTIVE,
 		"a soldier has no production card to turn to")
 
