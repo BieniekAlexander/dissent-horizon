@@ -13,9 +13,8 @@ extends GutTest
 ##
 ## PATHS, not preloads (see CLAUDE.md).
 
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
+const RECRUIT: Dictionary = FakePieces.SOLDIER
+const IRREGULAR: Dictionary = FakePieces.BUILDER
 const GROUND: int = CollisionLayers.Mask.TARGETABLE_GROUND
 const AIR: int = CollisionLayers.Mask.TARGETABLE_AIR
 
@@ -40,8 +39,8 @@ func _commander(a_id: int, a_bot: bool = false) -> Commander:
 	return c
 
 
-func _unit(a_scene: String, a_commander: Commander, a_at: Vector3) -> Commandable:
-	var u := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _unit(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Commandable:
+	var u := FakePieces.make(a_options) as Commandable
 	add_child_autofree(u)
 	u.ownership.commander = a_commander
 	u.global_position = a_at

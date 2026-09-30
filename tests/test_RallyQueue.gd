@@ -16,7 +16,7 @@ extends GutTest
 func _make_structure() -> Commandable:
 	var structure := autofree(Commandable.new()) as Commandable
 	var production := Production.new()
-	production.producible_types = [&"an_bioLight_builder"]
+	production.producible_types = [&"fake_trainee_a"]
 	structure.add_child(production)
 	structure.production = production
 	structure.command_receiver = CommandReceiver.new()

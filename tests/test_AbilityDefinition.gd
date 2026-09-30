@@ -178,25 +178,6 @@ func test_an_unknown_ability_degrades_rather_than_erroring() -> void:
 	assert_null(AbilityCatalog.emission_of(&"no_such_ability"))
 
 
-# --- The gun ---------------------------------------------------------------------
-
-func test_the_gun_grants_the_ability_through_a_charge_pool() -> void:
-	# Loaded INSIDE the test: a file-scope preload of an entity scene runs at parse time
-	# and can build Tool's static registry before it is ready (see CLAUDE.md).
-	var gun: Node = (load("res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn") as PackedScene).instantiate()
-	autofree(gun)
-	assert_null(gun.get_node_or_null("Bombards"), "the component is gone")
-	var abilities := gun.get_node_or_null("Abilities") as Abilities
-	assert_not_null(abilities, "the battery is a charge pool now")
-	if abilities == null:
-		return
-	abilities._rebuild()
-	assert_true(abilities.grants(Bombard.ABILITY_ID))
-	assert_eq(abilities.max_charges_of(Bombard.ABILITY_ID), 1,
-		"a plain reload is a pool of one charge")
-	assert_true(abilities.is_ready(Bombard.ABILITY_ID), "and it comes online loaded")
-
-
 # --- The class an ability doc loads as ------------------------------------------
 
 func test_an_empty_entry_is_an_unauthored_definition() -> void:

@@ -19,22 +19,20 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_CursorPickingAndPrune.gd -gexit
 
-const UNIT_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const STRUCTURE_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-
-
+const UNIT_SCENE: Dictionary = FakePieces.BUILDER
+const STRUCTURE_SCENE: Dictionary = FakePieces.BUILDING
 func _controller() -> RTSController:
 	return autofree(RTSController.new()) as RTSController
 
 
 func _unit() -> Entity:
-	var unit := (load(UNIT_SCENE) as PackedScene).instantiate() as Entity
+	var unit := FakePieces.make(UNIT_SCENE) as Entity
 	add_child_autofree(unit)
 	return unit
 
 
 func _structure() -> Entity:
-	var structure := (load(STRUCTURE_SCENE) as PackedScene).instantiate() as Entity
+	var structure := FakePieces.make(STRUCTURE_SCENE) as Entity
 	add_child_autofree(structure)
 	return structure
 

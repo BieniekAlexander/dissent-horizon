@@ -66,8 +66,7 @@ func test_the_debug_view_lets_the_player_command_anyone() -> void:
 	neutral.id = 0
 	neutral.set_physics_process(false)
 	add_child_autofree(neutral)
-	var foreign: Entity = load("res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn") \
-		.instantiate() as Entity
+	var foreign: Entity = FakePieces.unit()
 	neutral.add_child(foreign)
 	foreign.commander = neutral
 	var player_id: int = RTSController.PLAYER_COMMANDER_ID

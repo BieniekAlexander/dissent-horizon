@@ -12,8 +12,8 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_InfrastructureStrain.gd -gexit
 
-const TURRET_SCENE: String = "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
-const UNIT_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
+const TURRET_SCENE: Dictionary = FakePieces.BUILDING
+const UNIT_SCENE: Dictionary = FakePieces.BUILDER
 const POOLED_ABILITY: StringName = &"scan"
 
 var _commander: Commander
@@ -32,8 +32,8 @@ func _strain() -> void:
 	assert_true(_commander.is_infrastructure_strained(), "the fixture is actually strained")
 
 
-func _piece(a_scene: String) -> Commandable:
-	var piece: Commandable = load(a_scene).instantiate()
+func _piece(a_options: Dictionary) -> Commandable:
+	var piece: Commandable = FakePieces.make(a_options)
 	add_child_autofree(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -67,7 +67,7 @@ func test_a_unit_is_never_unpowered() -> void:
 
 func test_an_unowned_structure_is_never_unpowered() -> void:
 	# Neutral map furniture has no commander to be short of anything.
-	var turret: Commandable = load(TURRET_SCENE).instantiate()
+	var turret: Commandable = FakePieces.make(TURRET_SCENE)
 	add_child_autofree(turret)
 	turret.set_physics_process(false)
 	assert_false(turret.is_unpowered())

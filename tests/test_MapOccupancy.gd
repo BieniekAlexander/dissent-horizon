@@ -12,10 +12,11 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_MapOccupancy.gd -gexit
 
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-const EXTRACTOR_SCENE: String = "res://scenes/entities/structures/nt/nt_extractor.tscn"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-
+## A walkable feature that occupies its cells without obstructing them.
+const SITE_SCENE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false,
+	"dimensions": Vector2i(2, 2)}
+const EXTRACTOR_SCENE: Dictionary = {"structure": true, "extractor": true, "dimensions": Vector2i(2, 2)}
+const BUILDING_SCENE: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
@@ -95,8 +96,8 @@ func _dismiss_missing_flavor_text() -> void:
 
 ## A piece of `a_scene`, owned by `a_commander` and placed through Map.add_structure on the
 ## DIMS footprint at ORIGIN.
-func _place(a_scene: String, a_commander: Commander) -> Entity:
-	var entity: Entity = load(a_scene).instantiate() as Entity
+func _place(a_options: Dictionary, a_commander: Commander) -> Entity:
+	var entity: Entity = FakePieces.make(a_options) as Entity
 	a_commander.add_child(entity)
 	entity.initialize(_map, a_commander)
 	_dismiss_missing_flavor_text()

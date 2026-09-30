@@ -18,11 +18,9 @@ func _commanded(a_id: int) -> Commander:
 	return commander
 
 
-## A live unit. `load()` inside the test, never a file-scope preload — that poisons the Tool
-## registry for the whole run (CLAUDE.md §A file-scope preload…).
+## A live unit (a fake: tests/_fake_pieces.gd).
 func _unit(a_commander: Commander) -> Commandable:
-	var scene: PackedScene = load("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-	var unit := scene.instantiate() as Commandable
+	var unit: Commandable = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(unit)
 	unit.ownership.commander = a_commander
 	return unit

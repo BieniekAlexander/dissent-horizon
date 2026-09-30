@@ -10,28 +10,40 @@ extends GutTest
 ## Supersession is what makes upgrading free — the level that replaces its parent carries the
 ## same pieces at higher counts — so these tests read the counts as the design, not as balance.
 
-const CITADEL: String = "res://scenes/entities/structures/cl/cl_commandCenter.tscn"
-const RECRUIT: StringName = &"cl_bioLight_antiLight"
-const APC: StringName = &"cl_mechMedium_antiLight"
-const MATILDA: StringName = &"cl_mechMedium_antiMech"
+## Fake cargo: three pieces, registered as train tools for each test, and three fake levels of a
+## sanction that carries them — level 1 one piece, each later level more (the counts are the design
+## here, not balance).
+const RECRUIT: StringName = &"fake_infantry"
+const APC: StringName = &"fake_carrier"
+const MATILDA: StringName = &"fake_tank"
 
 
-## The Colonial faction's authored Drop levels, in order.
+func before_each() -> void:
+	for id: StringName in [RECRUIT, APC, MATILDA]:
+		FakePieces.register_tool(FakePieces.tool(id, FakePieces.PLAIN, [],
+			ControlBinding.ControlContext.TRAIN))
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
+
+
+func _level(a_level: int, a_payloads: Array[Dictionary]) -> Sanction:
+	var sanction := Sanction.new()
+	sanction.sanction_name = "Fake Drop %d" % a_level
+	sanction.ability_id = &"fake_drop"
+	sanction.ability_level = a_level
+	sanction.payloads = a_payloads
+	return sanction
+
+
 func _drop_levels() -> Array[Sanction]:
-	var faction: Faction = (load("res://scenes/factions/colonial.tscn") as PackedScene) \
-		.instantiate() as Faction
-	add_child_autofree(faction)
-	var out: Array[Sanction] = []
-	for unlock: SanctionUnlock in faction.sanction_unlocks:
-		if unlock.sanction != null and unlock.sanction.ability_id == &"drop":
-			out.append(unlock.sanction)
-	out.sort_custom(func(a: Sanction, b: Sanction) -> bool:
-		return a.ability_level < b.ability_level)
-	return out
-
-
-func test_the_three_drop_levels_are_authored() -> void:
-	assert_eq(_drop_levels().size(), 3)
+	return [
+		_level(1, [{"piece": RECRUIT, "count": 2}] as Array[Dictionary]),
+		_level(2, [{"piece": RECRUIT, "count": 4}, {"piece": APC, "count": 1}] as Array[Dictionary]),
+		_level(3, [{"piece": RECRUIT, "count": 6}, {"piece": APC, "count": 2},
+			{"piece": MATILDA, "count": 1}] as Array[Dictionary]),
+	]
 
 
 ## Level 1 offers one thing; each level after it offers strictly more.
@@ -52,7 +64,7 @@ func test_a_carried_over_piece_arrives_in_greater_numbers() -> void:
 
 
 func test_a_piece_a_level_does_not_offer_counts_zero() -> void:
-	assert_eq(_drop_levels()[0].count_of(MATILDA), 0, "Drop 1 flies no vehicles")
+	assert_eq(_drop_levels()[0].count_of(MATILDA), 0, "level 1 carries no vehicles")
 
 
 func test_only_a_sanction_with_payloads_takes_one() -> void:

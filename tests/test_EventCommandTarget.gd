@@ -12,12 +12,11 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_EventCommandTarget.gd -gexit
 
 ## BIO frame.
-const RECRUIT: PackedScene = preload("res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn")
+const RECRUIT: Dictionary = FakePieces.SOLDIER
 ## MECH frame.
-const CLIPPER: PackedScene = preload(
-	"res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn"
-)
-const BUILDING: PackedScene = preload("res://scenes/entities/structures/nt/nt_building_square.tscn")
+## A metallic flier, against the soldier's biological frame.
+const CLIPPER: Dictionary = {"aerial": true, "vision": 8.0, "frame": Defense.FrameType.MECH}
+const BUILDING: Dictionary = FakePieces.BUILDING
 
 var _manager: ScenarioTriggerManager
 
@@ -30,8 +29,8 @@ func before_each() -> void:
 
 ## A live Commandable owned by `commander_id`, in the "unit" group (mirrors what Map.add_entity
 ## does for a real spawn).
-func _unit(a_scene: PackedScene, a_commander_id: int) -> Commandable:
-	var unit: Commandable = a_scene.instantiate()
+func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var unit: Commandable = FakePieces.make(a_options)
 	add_child_autofree(unit)
 	# The Commander must already be IN THE TREE: setting .commander fires
 	# Ownership.commander_changed, which auto-reparents the entity to live under its commander
@@ -48,7 +47,7 @@ func _unit(a_scene: PackedScene, a_commander_id: int) -> Commandable:
 ## A live structure Commandable owned by `commander_id`, in the "structure" group, positioned
 ## at `pos`.
 func _structure(a_commander_id: int, a_pos: Vector3) -> Commandable:
-	var structure: Commandable = BUILDING.instantiate()
+	var structure: Commandable = FakePieces.make(BUILDING)
 	add_child_autofree(structure)
 	var owner_commander := Commander.new()
 	owner_commander.id = a_commander_id

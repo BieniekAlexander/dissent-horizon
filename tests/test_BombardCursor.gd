@@ -11,14 +11,19 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_BombardCursor.gd -gexit
 
-const BOMBARD_SCENE: PackedScene = preload(
-	"res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn"
-)
+## A gun that spots the ground around itself and carries a charge of the bombard ability.
+const GUN: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2), "beacon_range": 30.0,
+	"abilities": [{"grants": [Bombard.ABILITY_ID], "cooldown_ticks": 100}]}
 
 var _commander: Commander
 
 
+func after_each() -> void:
+	FakePieces.restore_abilities()
+
+
 func before_each() -> void:
+	FakePieces.install_ability(Bombard.ABILITY_ID, {"range": 30.0})
 	_commander = Commander.new()
 	_commander.id = 1
 	add_child_autofree(_commander)
@@ -29,7 +34,7 @@ func _bombard() -> Commandable:
 	# BASE_INFRASTRUCTURE cannot cover two of them — an unpowered building casts nothing
 	# (see tests/test_InfrastructureStrain.gd), which is not what is under test here.
 	_commander.add_infrastructure(1000)
-	var gun: Commandable = BOMBARD_SCENE.instantiate()
+	var gun: Commandable = FakePieces.structure(GUN)
 	_commander.add_child(gun)
 	autofree(gun)
 	gun.top_level = true

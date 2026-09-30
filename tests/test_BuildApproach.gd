@@ -9,13 +9,20 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_BuildApproach.gd -gexit
 
-const EXTRACTOR_TOOL: String = "command_tool_nt_extractor"
-const ORDINARY_TOOL: String = "command_tool_an_barracks"
-const SAFEHOUSE_TOOL: String = "command_tool_an_infrastructure"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-
+## Fake pieces. The safehouse tool keeps the ONE id the conversion rule is keyed on in code, and the
+## neutral building the id the registry lists as a neutral building (Build._conversion_target).
+const EXTRACTOR: Dictionary = {"structure": true, "extractor": true, "dimensions": Vector2i(2, 2)}
+const ORDINARY: Dictionary = {"structure": true, "dimensions": Vector2i(3, 3)}
+const SAFEHOUSE: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
+var EXTRACTOR_TOOL: Tool
+var ORDINARY_TOOL: Tool
+var SAFEHOUSE_TOOL: Tool
+var BUILDING_SCENE: Dictionary:
+	get: return {"structure": true, "dimensions": Vector2i(2, 2),
+		"id": PieceFamilies.members(PieceFamilies.NEUTRAL_BUILDING)[0]}
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const SITE_SCENE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false,
+	"dimensions": Vector2i(2, 2)}
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
@@ -48,7 +55,14 @@ var _map: StubMap
 var _commander: Commander
 
 
+func after_each() -> void:
+	FakePieces.restore_tools()
+
+
 func before_each() -> void:
+	EXTRACTOR_TOOL = FakePieces.register_tool(FakePieces.tool(&"fake_extractor", EXTRACTOR))
+	ORDINARY_TOOL = FakePieces.register_tool(FakePieces.tool(&"fake_ordinary", ORDINARY))
+	SAFEHOUSE_TOOL = FakePieces.register_tool(FakePieces.tool(EntityIds.AN_INFRASTRUCTURE, SAFEHOUSE))
 	_world = Node3D.new()
 	_map = _make_map()
 	_world.add_child(_map)
@@ -81,7 +95,7 @@ func _make_map() -> StubMap:
 ## Register an ExtractionSite occupying `a_dims` cells from `a_origin`, exactly as
 ## Map.add_structure would — the real host an Extractor overlays.
 func _occupy(a_origin: Vector2i, a_dims: Vector2i) -> Entity:
-	var host: Entity = load(SITE_SCENE).instantiate() as Entity
+	var host: Entity = FakePieces.make(SITE_SCENE) as Entity
 	_world.add_child(host)
 	var cells: Array[Vector2i] = []
 	for dx: int in a_dims.x:
@@ -96,7 +110,7 @@ func _occupy(a_origin: Vector2i, a_dims: Vector2i) -> Entity:
 
 
 func _make_builder(a_at: Vector3) -> Commandable:
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map
@@ -104,14 +118,14 @@ func _make_builder(a_at: Vector3) -> Commandable:
 	return builder
 
 
-func _build(a_tool_name: String, a_at: Vector3) -> Build:
-	return Build.new(CommandMessage.new(_map, null, Tool.for_name(a_tool_name), a_at))
+func _build(a_tool: Tool, a_at: Vector3) -> Build:
+	return Build.new(CommandMessage.new(_map, null, a_tool, a_at))
 
 
 ## The footprint size the extractor tool places, so the host it overlays is the same shape
 ## — concentric_structure only reports a host whose footprint is centred on the same point.
 func _extractor_dimensions() -> Vector2i:
-	var preview: Node = _commander.get_build_preview_instance(Tool.for_name(EXTRACTOR_TOOL))
+	var preview: Node = _commander.get_build_preview_instance(EXTRACTOR_TOOL)
 	return (preview.get_node("Structure") as Structure).dimensions
 
 
@@ -123,7 +137,7 @@ func _neutral_building(a_origin: Vector2i) -> Entity:
 	_world.add_child(neutral)
 	neutral.map = _map
 	neutral.set_physics_process(false)
-	var building: Entity = load(BUILDING_SCENE).instantiate() as Entity
+	var building: Entity = FakePieces.make(BUILDING_SCENE) as Entity
 	neutral.add_child(building)
 	building.initialize(_map, neutral)
 	for tracked in get_errors():
@@ -206,7 +220,7 @@ func test_a_second_builder_joins_the_extractor_already_on_the_site() -> void:
 	var origin := Vector2i(8, 8)
 	var host: Entity = _occupy(origin, dims)
 	var site: Vector3 = _map.footprint_centroid(origin, dims)
-	var tool: Tool = Tool.for_name(EXTRACTOR_TOOL)
+	var tool: Tool = EXTRACTOR_TOOL
 
 	var bound: Commandable = tool.packed_scene.instantiate() as Commandable
 	bound.begin_construction()

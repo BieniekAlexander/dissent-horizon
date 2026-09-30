@@ -14,9 +14,11 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ProjectedDominionRate.gd -gexit
 
-const TRUCK := preload("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
-const SHELTER := preload("res://scenes/entities/structures/nt/nt_shelter.tscn")
-const COMPOUND := preload("res://scenes/entities/structures/cl/cl_infrastructure.tscn")
+const TRUCK: Dictionary = {"speed": 2.0, "garrison": {"capacity": 3, "bunker": false},
+	"interactions": [Interaction.Type.DEPOSIT]}
+const SHELTER: Dictionary = {"structure": true, "shelter": true}
+const COMPOUND: Dictionary = {"structure": true, "occupant_dominion": true, "garrison": {"capacity": 6,
+	"sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}}
 
 var _world: Node3D
 var _commander: Commander
@@ -32,7 +34,7 @@ func before_each() -> void:
 
 
 func _shelter(a_spawn_interval: float, a_position: Vector3 = Vector3.ZERO) -> Entity:
-	var shelter: Entity = SHELTER.instantiate()
+	var shelter: Entity = FakePieces.make(SHELTER)
 	_world.add_child(shelter)
 	shelter.set_physics_process(false)
 	shelter.top_level = true
@@ -42,7 +44,7 @@ func _shelter(a_spawn_interval: float, a_position: Vector3 = Vector3.ZERO) -> En
 
 
 func _compound(a_position: Vector3 = Vector3.ZERO) -> Commandable:
-	var compound: Commandable = COMPOUND.instantiate()
+	var compound: Commandable = FakePieces.make(COMPOUND)
 	_world.add_child(compound)
 	compound.set_physics_process(false)
 	compound.top_level = true
@@ -53,7 +55,7 @@ func _compound(a_position: Vector3 = Vector3.ZERO) -> Commandable:
 
 ## A truck tasked on `a_shelter`, at `a_position`.
 func _tasked_truck(a_shelter: Entity, a_position: Vector3 = Vector3.ZERO) -> Commandable:
-	var truck: Commandable = TRUCK.instantiate()
+	var truck: Commandable = FakePieces.make(TRUCK)
 	_world.add_child(truck)
 	truck.set_physics_process(false)
 	truck.top_level = true

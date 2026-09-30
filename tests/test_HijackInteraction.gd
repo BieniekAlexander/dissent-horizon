@@ -12,12 +12,12 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_HijackInteraction.gd -gexit
 
-const HIJACKER := preload("res://scenes/entities/units/an/an_bioMedium_support.tscn")
+const HIJACKER: Dictionary = {"speed": 2.0, "interactions": [Interaction.Type.HIJACK]}
 ## MECH unit.
-const MATILDA := preload("res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn")
+const MATILDA: Dictionary = {"speed": 2.0, "frame": Defense.FrameType.MECH}
 ## BIO unit.
-const RECRUIT := preload("res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn")
-const BUILDING := preload("res://scenes/entities/structures/nt/nt_building_square.tscn") # MECH structure
+const RECRUIT: Dictionary = {"speed": 2.0}
+const BUILDING: Dictionary = {"structure": true, "frame": Defense.FrameType.MECH}  # a MECH structure
 
 const OWNER: int = 1
 const ENEMY: int = 2
@@ -31,8 +31,8 @@ func _commanded(a_id: int) -> Commander:
 
 ## A live entity owned by [a_commander_id]. Ownership is assigned directly rather than
 ## through initialize(), so no Map is needed — the fixture test_Interaction uses.
-func _unit(a_scene: PackedScene, a_commander_id: int) -> Commandable:
-	var u := a_scene.instantiate() as Commandable
+func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var u := FakePieces.make(a_options) as Commandable
 	add_child_autofree(u)
 	u.ownership.commander = _commanded(a_commander_id)
 	return u

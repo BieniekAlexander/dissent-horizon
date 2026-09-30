@@ -13,18 +13,17 @@ extends GutTest
 ## before the registry exists, poisoning every test after it. See CLAUDE.md §Running and
 ## testing.
 
-const TRANSPORT_PATH := "res://scenes/entities/units/an/an_mechStrong_transport.tscn"
-const SOLDIER_PATH := "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const OPEN_GARRISON_PATH := "res://scenes/entities/structures/nt/nt_building_square.tscn"
-
+const TRANSPORT_PATH: Dictionary = FakePieces.PLAIN
+const SOLDIER_PATH: Dictionary = FakePieces.SOLDIER
+const OPEN_GARRISON_PATH: Dictionary = FakePieces.BUILDING
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
 	add_child_autofree(c)
 	return c
 
-func _entity(a_path: String, a_commander_id: int) -> Commandable:
-	var e := (load(a_path) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(a_commander_id)
 	return e

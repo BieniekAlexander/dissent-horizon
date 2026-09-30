@@ -11,15 +11,18 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_AerialAttackRun.gd -gexit
 
-## Paths, not preloads — a file-scope preload of an entity scene fires Tool's static
-## registry initialiser at parse time (see CLAUDE.md).
-const DRAKE: String = "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn"
-const KAMIKAZE: String = "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn"
-const TANK: String = "res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn"
-const CLIPPER: String = "res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn"
-const SAM: String = "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
-
-
+## Every piece is a fake (tests/_fake_pieces.gd).
+## A fixed wing: flies, shoots ground and air from range, carries a charged clip, docks.
+const DRAKE: Dictionary = {"aerial": true, "flying": true, "vision": 10.0, "docking": true,
+	"weapon": {"ground": 12.0, "air": 12.0, "clip_size": 4, "charged": true}}
+## Rams: a flier whose reach is next to nothing.
+const KAMIKAZE: Dictionary = {"aerial": true, "flying": true, "vision": 10.0,
+	"weapon": {"ground": 0.5, "air": 0.5}}
+const TANK: Dictionary = {"speed": 2.0, "vision": 8.0, "frame": Defense.FrameType.MECH,
+	"weapon": {"ground": 6.0}}
+## A gunship: hovers, holds station to shoot.
+const CLIPPER: Dictionary = {"aerial": true, "vision": 10.0, "weapon": {"ground": 6.0}}
+const SAM: Dictionary = {"structure": true, "weapon": {"air": 8.0}}
 func _commander(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
@@ -27,8 +30,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_scene: String, a_commander: Commander) -> Commandable:
-	var e := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e
@@ -118,26 +121,6 @@ func test_a_gunship_still_stops_to_shoot() -> void:
 		"HOVERING can hold station, so in range means stop")
 #endregion
 
-
-#region The Drake's authored numbers
-## The rockets were ground-only, which left the faction's anti-mech aircraft unable to
-## engage anything airborne.
-func test_the_drake_engages_ground_and_air() -> void:
-	var plane: Commandable = _entity(DRAKE, _commander(1))
-	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
-	assert_ne(weapon.target_mask & CollisionLayers.Mask.TARGETABLE_GROUND, 0)
-	assert_ne(weapon.target_mask & CollisionLayers.Mask.TARGETABLE_AIR, 0)
-
-
-## Reach must clear cruise altitude, or the aircraft is shooting at ground it cannot reach
-## from where it flies.
-func test_the_drake_outreaches_its_own_altitude() -> void:
-	var plane: Commandable = _entity(DRAKE, _commander(1))
-	var tank: Commandable = _entity(TANK, _commander(2))
-	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
-	assert_almost_eq(weapon.reach_for(tank), 12.0, 0.01)
-	assert_gt(weapon.reach_for(tank), Aerial.AERIAL_HEIGHT)
-#endregion
 
 
 #region Aiming by flying

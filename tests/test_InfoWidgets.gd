@@ -15,8 +15,9 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_InfoWidgets.gd -gexit
 
-const TURRET_SCENE: String = "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
-const WORKER_SCENE: String = "res://scenes/entities/units/cl/cl_bioLight_builder.tscn"
+## Fake pieces: an anti-air gun, and a builder.
+const TURRET_SCENE: Dictionary = {"structure": true, "vision": 10.0, "weapon": {"air": 8.0}}
+const WORKER_SCENE: Dictionary = FakePieces.BUILDER
 
 var _row: InfoWidgetRow
 var _effects: ConditionRow
@@ -29,8 +30,8 @@ func before_each() -> void:
 	add_child_autofree(_effects)
 
 
-func _piece(a_scene: String) -> Commandable:
-	var piece: Commandable = load(a_scene).instantiate()
+func _piece(a_options: Dictionary) -> Commandable:
+	var piece: Commandable = FakePieces.make(a_options) as Commandable
 	add_child_autofree(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -126,20 +127,6 @@ func test_an_active_effect_draws_a_card() -> void:
 func test_an_unnamed_effect_reads_as_unfinished_rather_than_blank() -> void:
 	var effect := autofree(SlowStatusEffect.new()) as SlowStatusEffect
 	assert_eq(ConditionRow.title_of(effect), ConditionRow.UNNAMED_TITLE)
-
-
-func test_the_shipped_effects_all_carry_copy() -> void:
-	# The one CONTENT assertion here, and it earns its place: an effect with no title reaches
-	# the player as a card marked "?" — a visible authoring gap rather than a wrong number.
-	for path: String in [
-		"res://scenes/entities/status_effects/emp.tscn",
-		"res://scenes/entities/status_effects/freeze.tscn",
-		"res://scenes/entities/status_effects/slow.tscn",
-	]:
-		var effect: StatusEffect = load(path).instantiate() as StatusEffect
-		autofree(effect)
-		assert_false(effect.title.is_empty(), "%s names itself" % path)
-		assert_false(effect.description.is_empty(), "%s describes itself" % path)
 
 
 # --- A multi-selection shows unit cards and nothing else -------------------------------

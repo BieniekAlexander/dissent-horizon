@@ -17,11 +17,20 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_OverlayPlacement.gd -gexit
 
-const SAFEHOUSE_TOOL: String = "command_tool_an_infrastructure"
-const EXTRACTOR_TOOL: String = "command_tool_nt_extractor"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-const EXTRACTION_SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
+## Fake pieces and fake tools. Two rules are keyed on ids in code, and those are kept: a build of
+## `EntityIds.AN_INFRASTRUCTURE` aimed at a neutral building CONVERTS it (Build._conversion_target),
+## so the building carries whichever id the registry lists as a neutral building.
+const SITE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false,
+	"dimensions": Vector2i(2, 2)}
+const EXTRACTOR: Dictionary = {"structure": true, "extractor": true, "dimensions": Vector2i(2, 2)}
+const SAFEHOUSE: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
+var BUILDING_SCENE: Dictionary:
+	get: return {"structure": true, "dimensions": Vector2i(2, 2),
+		"id": PieceFamilies.members(PieceFamilies.NEUTRAL_BUILDING)[0]}
+const EXTRACTION_SITE_SCENE: Dictionary = SITE
 
+var SAFEHOUSE_TOOL: Tool
+var EXTRACTOR_TOOL: Tool
 ## Every piece in play here is 2×2 — the even footprint, which centres on a grid CORNER.
 const DIMS: Vector2i = Vector2i(2, 2)
 const CELLS: int = 16
@@ -41,7 +50,14 @@ var _neutral: Commander
 var _controller: RTSController = null
 
 
+func _fake_tool(a_type: StringName, a_options: Dictionary) -> Tool:
+	return Tool.new("command_tool_fake_%s" % a_type, a_type, FakePieces.scene_of(a_options),
+		"fake", Vector2i.ZERO, 0, 0)
+
+
 func before_each() -> void:
+	SAFEHOUSE_TOOL = _fake_tool(EntityIds.AN_INFRASTRUCTURE, SAFEHOUSE)
+	EXTRACTOR_TOOL = _fake_tool(&"fake_extractor", EXTRACTOR)
 	_controller = null
 	_world = Node3D.new()
 	_map = _make_map()
@@ -104,8 +120,8 @@ func _register(a_structure: Entity, a_origin: Vector2i) -> Vector2:
 	return VU.inXZ(centre)
 
 
-func _order(a_tool_name: String, a_at: Vector2) -> CommandMessage:
-	return CommandMessage.new(_map, null, Tool.for_name(a_tool_name), Vector3(a_at.x, 0.0, a_at.y))
+func _order(a_tool: Tool, a_at: Vector2) -> CommandMessage:
+	return CommandMessage.new(_map, null, a_tool, Vector3(a_at.x, 0.0, a_at.y))
 
 
 ## Several of the scenes instanced here (the neutral building, the extractor) still ship without
@@ -122,8 +138,8 @@ func _dismiss_missing_flavor_text() -> void:
 
 ## A real entity of `scene`, owned by `owner_commander` and registered on the DIMS
 ## footprint at `origin` exactly as Map.add_structure would. Returns its world-space centre.
-func _place_scene(a_scene: String, a_owner_commander: Commander, a_origin: Vector2i) -> Vector2:
-	var entity: Entity = load(a_scene).instantiate() as Entity
+func _place_scene(a_options: Dictionary, a_owner_commander: Commander, a_origin: Vector2i) -> Vector2:
+	var entity: Entity = FakePieces.make(a_options) as Entity
 	a_owner_commander.add_child(entity)
 	entity.initialize(_map, a_owner_commander)
 	_dismiss_missing_flavor_text()
@@ -135,14 +151,14 @@ func _place_scene(a_scene: String, a_owner_commander: Commander, a_origin: Vecto
 ## Map's, so asserting against a re-implementation here would prove nothing. The controller
 ## is never added to the tree — its @onready members would want a whole scenario — and
 ## _footprint_centroid needs only `map`.
-func _ghost_position(a_tool_name: String, a_at: Vector2) -> Variant:
+func _ghost_position(a_tool: Tool, a_at: Vector2) -> Variant:
 	if _controller == null:
 		_controller = autofree(RTSController.new()) as RTSController
 		# selection_box's default value builds a ColorRect that only the player scene ever
 		# adopts, so on a bare instance it would outlive the test as an orphan.
 		autofree(_controller.selection_box)
 		_controller.map = _map
-	return _controller._footprint_centroid(_commander, Tool.for_name(a_tool_name), a_at)
+	return _controller._footprint_centroid(_commander, a_tool, a_at)
 
 
 #region One placement resolution

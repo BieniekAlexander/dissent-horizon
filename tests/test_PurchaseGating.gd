@@ -17,9 +17,9 @@ extends GutTest
 ## Commandables), the same way test_ProductionQueue.gd does it, and priced explicitly so
 ## nothing here rides on gdd-authored costs.
 
-const TRAINEE: StringName = &"an_bioLight_builder"
-const GATED: StringName = &"tc_bioLight_antiMech"
-const PREREQ_STRUCTURE: StringName = &"barracks"
+const TRAINEE: StringName = &"fake_trainee"
+const GATED: StringName = &"fake_gated"
+const PREREQ_STRUCTURE: StringName = &"fake_prerequisite"
 
 
 func _make_commander(a_energy: int = 0) -> Commander:

@@ -25,9 +25,10 @@ extends GutTest
 ## PATHS, not preloads — a file-scope preload of an entity scene poisons the Tool registry
 ## for the whole run (CLAUDE.md §A file-scope `preload`…).
 
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const BUILD_TOOL: String = "command_tool_an_barracks"
+## A fixture that takes no orders (an `Entity`, NOT a `Commandable`): an extraction-site stand-in.
+const SITE_SCENE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false}
+const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": [&"fake_barracks"]}
+const BUILD_TYPE: StringName = &"fake_barracks"
 
 const GRID: int = 17
 ## Where the site is planted. Well inside the grid so it has neighbours on all sides.
@@ -69,6 +70,7 @@ var _world: Node3D
 var _map: StubMap
 var _commander: Commander
 var _site: Entity
+var _tool: Tool
 
 
 func before_each() -> void:
@@ -81,9 +83,14 @@ func before_each() -> void:
 	add_child_autofree(_world)
 	_commander.map = _map
 	_commander.add_energy(10000)
-	_commander.technology_mapping[Tool.for_name(BUILD_TOOL).type].required_structures = []
+	_commander.technology_mapping = {BUILD_TYPE: FakePieces.tech()}
+	_tool = FakePieces.register_tool(FakePieces.tool(BUILD_TYPE, {"structure": true, "dimensions": Vector2i(3, 3)}))
 	_commander.set_physics_process(false)
 	_site = _make_site()
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
 
 
 func _make_map() -> StubMap:
@@ -111,7 +118,7 @@ func _make_map() -> StubMap:
 
 ## A NEUTRAL ExtractionSite on the grid — the fixture the whole file is about.
 func _make_site() -> Entity:
-	var site: Entity = (load(SITE_SCENE) as PackedScene).instantiate() as Entity
+	var site: Entity = FakePieces.make(SITE_SCENE) as Entity
 	_world.add_child(site)
 	site.global_position = _map.grid_to_world(SITE_CELL)
 	_map.add_structure(site, VU.inXZ(site.global_position))
@@ -119,10 +126,10 @@ func _make_site() -> Entity:
 
 
 func _make_builder(a_cell: Vector2i) -> Commandable:
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
-	builds.buildable_types = [Tool.for_name(BUILD_TOOL).type]
+	builds.buildable_types = [BUILD_TYPE]
 	builder.ownership.commander = _commander
 	builder.map = _map
 	builder.global_position = _map.grid_to_world(a_cell)
@@ -131,7 +138,7 @@ func _make_builder(a_cell: Vector2i) -> Commandable:
 
 ## An order issued with the cursor over the site: target is the site, position is the site.
 func _order_targeting_the_site() -> CommandMessage:
-	return CommandMessage.new(_map, _site, Tool.for_name(BUILD_TOOL),
+	return CommandMessage.new(_map, _site, _tool,
 		_map.grid_to_world(SITE_CELL))
 
 
@@ -231,7 +238,7 @@ func test_a_builder_ordered_beside_an_extraction_site_actually_starts_building()
 	# It is NOT the discriminating regression — it passed before the fix too. The
 	# discriminating one is the destination, above: an order whose TARGET is the site.
 	var free_cell := Vector2i(SITE_CELL.x + 3, SITE_CELL.y)
-	var message := CommandMessage.new(_map, null, Tool.for_name(BUILD_TOOL),
+	var message := CommandMessage.new(_map, null, _tool,
 		_map.grid_to_world(free_cell))
 	Build.submit_purchase(_commander, message)
 	Build.plan_structure(_commander, message)

@@ -16,7 +16,7 @@ extends GutTest
 func _make_structure() -> Commandable:
 	var structure := autofree(Commandable.new()) as Commandable
 	var production := Production.new()
-	production.producible_types = [&"an_bioLight_builder"]
+	production.producible_types = [&"fake_trainee_a"]
 	structure.add_child(production)
 	structure.production = production
 	return structure
@@ -43,7 +43,7 @@ func test_a_job_in_progress_does_not_change_the_unhovered_line() -> void:
 	var controller := autofree(RTSController.new()) as RTSController
 	var structure := _make_structure()
 	structure.rally_commands.assign([_move_to(9, 9)])
-	structure.production.enqueue(10, null, &"an_bioLight_builder", [_move_to(1, 1)])
+	structure.production.enqueue(10, null, &"fake_trainee_a", [_move_to(1, 1)])
 	var commands: Array = controller._rally_commands_to_draw(structure, [])
 	assert_eq(commands, structure.rally_commands,
 		"the configured rally, not the chain captured for the unit being trained")
@@ -59,7 +59,7 @@ func test_hovering_a_job_draws_that_jobs_own_chain() -> void:
 	var structure := _make_structure()
 	structure.rally_commands.assign([_move_to(9, 9)])
 	var head_order := _move_to(1, 1)
-	structure.production.enqueue(10, null, &"an_bioLight_builder", [head_order])
+	structure.production.enqueue(10, null, &"fake_trainee_a", [head_order])
 	var commands: Array = controller._rally_commands_to_draw(structure, [structure, 0])
 	assert_eq(commands, [head_order], "hovering the card draws the job's own chain")
 
@@ -69,7 +69,7 @@ func test_hover_on_a_different_structure_is_ignored() -> void:
 	var structure := _make_structure()
 	var other := _make_structure()
 	structure.rally_commands.assign([_move_to(9, 9)])
-	structure.production.enqueue(10, null, &"an_bioLight_builder", [_move_to(1, 1)])
+	structure.production.enqueue(10, null, &"fake_trainee_a", [_move_to(1, 1)])
 	var commands: Array = controller._rally_commands_to_draw(structure, [other, 0])
 	assert_eq(commands, structure.rally_commands,
 		"the hover names a different structure, so this one draws its configured rally")

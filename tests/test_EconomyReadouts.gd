@@ -14,7 +14,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_EconomyReadouts.gd -gexit
 
-const IRREGULAR: StringName = &"an_bioLight_builder"
+const IRREGULAR: StringName = &"fake_unit"
 
 ## Both generators bank on the same period, so a rate of N per tick-period is N/5 per second.
 const PERIOD_SECONDS: float = 5.0
@@ -22,7 +22,11 @@ const PERIOD_SECONDS: float = 5.0
 
 ## Any piece whose scene provides infrastructure — a harness for the faction-source rule, not a
 ## figure under test.
-const PROVIDER_ID: StringName = &"lb_infrastructure"
+const PROVIDER_ID: StringName = &"fake_provider"
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
 
 
 func _make_commander(a_energy: int = 0) -> Commander:
@@ -371,6 +375,7 @@ func test_the_grant_is_the_dedicated_providers_whether_or_not_one_stands() -> vo
 	var faction := autofree(Faction.new()) as Faction
 	faction.infrastructure_source = PROVIDER_ID
 	commander.faction = faction
+	FakePieces.register_tool(FakePieces.tool(PROVIDER_ID, {"structure": true, "infrastructure": 40}))
 	var own_grant: int = (commander.get_build_preview_instance(Tool.for_type(PROVIDER_ID))
 		as Commandable).infrastructure
 	assert_gt(own_grant, 0, "guards the fixture: the source provides")

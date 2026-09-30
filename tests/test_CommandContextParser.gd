@@ -15,6 +15,17 @@ extends GutTest
 
 ## --- Helpers ---------------------------------------------------------------
 
+func before_each() -> void:
+	# The pieces these tests name are fakes, each with a train tool so the parser can offer it.
+	for id: StringName in [&"fake_builder_a", &"fake_builder_b", &"fake_soldier"]:
+		FakePieces.register_tool(FakePieces.tool(id, FakePieces.PLAIN, [],
+			ControlBinding.ControlContext.TRAIN))
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
+
+
 func _make_entity(a_type: StringName, a_groups: PackedStringArray = PackedStringArray()) -> Entity:
 	var e := Entity.new()
 	e.id = a_type
@@ -129,7 +140,7 @@ func test_unit_with_movement_gets_movement_commands():
 	# UNIT_IRREGULAR with both a Movement and an Loadout child stands in for a
 	# generic combat unit. command_move comes from Movement; the attack-flavored
 	# commands come from Loadout.
-	var e := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_a", ["unit"])
 	_add_movement(e)
 	_add_loadout(e)
 	var cmds := CommandContextParser.commands_for(e)
@@ -141,7 +152,7 @@ func test_unit_with_movement_gets_movement_commands():
 func test_attack_range_without_movement_still_has_combat_commands():
 	# The turret-like shape: an armed entity with no Movement node loses
 	# command_move but keeps every combat command — stop, attack, AND attack-move.
-	var e := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_a", ["unit"])
 	_add_loadout(e)
 	var cmds := CommandContextParser.commands_for(e)
 	assert_false(cmds.has("command_move"))
@@ -159,7 +170,7 @@ func test_attack_range_without_movement_still_has_combat_commands():
 ## flattens what it drives over as a physics contact, which is not a reason to offer it an
 ## attack order.
 func test_an_unarmed_unit_is_not_offered_attack_move():
-	var e := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_a", ["unit"])
 	_add_movement(e)
 	_add_loadout(e, false)
 
@@ -171,7 +182,7 @@ func test_an_unarmed_unit_is_not_offered_attack_move():
 
 func test_arming_the_same_unit_gives_it_attack_move_back():
 	# The other half, so the test above is pinning the WEAPON and not the fixture.
-	var e := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_a", ["unit"])
 	_add_movement(e)
 	_add_loadout(e, true)
 
@@ -187,7 +198,7 @@ func test_arming_the_same_unit_gives_it_attack_move_back():
 ## ACTIVE-card command on every barracks in the game, which is what hid their training behind
 ## the card toggle.
 func test_a_stationary_producer_trains_and_advertises_no_move():
-	var e := _make_entity(EntityIds.AN_BARRACKS, ["structure"])
+	var e := _make_entity(&"fake_barracks", ["structure"])
 	_add_named_child(e, "Production")
 	var cmds := CommandContextParser.commands_for(e)
 	assert_true(cmds.has("command_train"), "production-bearing structure can train")
@@ -199,7 +210,7 @@ func test_a_stationary_producer_trains_and_advertises_no_move():
 ## The other half of the same rule: a producer that CAN move reaches both cards, getting
 ## `command_move` from the Movement rule like anything else that moves.
 func test_a_mobile_producer_still_advertises_a_move():
-	var e := _make_entity(EntityIds.AN_BARRACKS, ["unit"])
+	var e := _make_entity(&"fake_barracks", ["unit"])
 	_add_named_child(e, "Production")
 	_add_movement(e)
 	var cmds := CommandContextParser.commands_for(e)
@@ -207,27 +218,27 @@ func test_a_mobile_producer_still_advertises_a_move():
 	assert_true(cmds.has("command_move"), "and it can be told where to go")
 
 func test_compound_advertises_only_its_train_tools():
-	var e := _make_entity(EntityIds.AN_BARRACKS, ["structure"])
+	var e := _make_entity(&"fake_barracks", ["structure"])
 	# The Production component's producible_types is the source of truth for what
 	# the structure can train.
-	_add_production(e, [EntityIds.AN_BIO_LIGHT_BUILDER, EntityIds.TC_BIO_LIGHT_ANTI_MECH])
+	_add_production(e, [&"fake_builder_a", &"fake_soldier"])
 	var cmds := CommandContextParser.commands_for(e)
-	assert_true(cmds.has("command_tool_an_bioLight_builder"))
-	assert_true(cmds.has("command_tool_tc_bioLight_antiMech"))
-	assert_false(cmds.has("command_tool_tc_bioLight_builder"))
+	assert_true(cmds.has("command_tool_fake_builder_a"))
+	assert_true(cmds.has("command_tool_fake_soldier"))
+	assert_false(cmds.has("command_tool_fake_builder_b"))
 
 func test_structure_advertises_only_its_producibles():
-	var e := _make_entity(EntityIds.AN_COMMAND_CENTER, ["structure"])
-	_add_production(e, [EntityIds.TC_BIO_LIGHT_BUILDER])
+	var e := _make_entity(&"fake_command_center", ["structure"])
+	_add_production(e, [&"fake_builder_b"])
 	var cmds := CommandContextParser.commands_for(e)
-	assert_true(cmds.has("command_tool_tc_bioLight_builder"))
-	assert_false(cmds.has("command_tool_an_bioLight_builder"))
-	assert_false(cmds.has("command_tool_tc_bioLight_antiMech"))
+	assert_true(cmds.has("command_tool_fake_builder_b"))
+	assert_false(cmds.has("command_tool_fake_builder_a"))
+	assert_false(cmds.has("command_tool_fake_soldier"))
 
 ## --- Technician (Anima) ----------------------------------------------------
 
 func test_technician_has_build_ability_and_inventory_actions():
-	var e := _make_entity(EntityIds.TC_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_b", ["unit"])
 	_add_movement(e)
 	_add_loadout(e)
 	# Build capability is component-driven: command_ability/command_build are
@@ -248,7 +259,7 @@ func test_technician_has_build_ability_and_inventory_actions():
 ## --- Vanguard --------------------------------------------------------------
 
 func test_vanguard_has_launch_and_interact():
-	var e := _make_entity(EntityIds.TC_BIO_LIGHT_ANTI_MECH, ["unit"])
+	var e := _make_entity(&"fake_soldier", ["unit"])
 	_add_movement(e)
 	_add_loadout(e)
 	# command_launch is sourced from the Abilities pool, not the unit type — the unit must
@@ -266,7 +277,7 @@ func test_vanguard_has_launch_and_interact():
 ## --- command_available -----------------------------------------------------
 
 func test_command_available_matches_commands_for():
-	var e := _make_entity(EntityIds.TC_BIO_LIGHT_ANTI_MECH, ["unit"])
+	var e := _make_entity(&"fake_soldier", ["unit"])
 	_add_movement(e)
 	_add_loadout(e)
 	_add_abilities(e, [&"irradiate"])
@@ -283,25 +294,25 @@ func test_command_available_on_null_returns_false():
 func test_selection_union_combines_disparate_unit_types():
 	# Anima + Compound: parser should expose technician-specific commands AND
 	# compound-train commands in the union.
-	var anima := _make_entity(EntityIds.TC_BIO_LIGHT_BUILDER, ["unit"])
+	var anima := _make_entity(&"fake_builder_b", ["unit"])
 	_add_movement(anima)
 	_add_named_child(anima, "Builds")
-	var compound := _make_entity(EntityIds.AN_BARRACKS, ["structure"])
-	_add_production(compound, [EntityIds.AN_BIO_LIGHT_BUILDER, EntityIds.TC_BIO_LIGHT_ANTI_MECH])
+	var compound := _make_entity(&"fake_barracks", ["structure"])
+	_add_production(compound, [&"fake_builder_a", &"fake_soldier"])
 
 	var cmds := CommandContextParser.commands_for_selection([anima, compound])
 	assert_true(cmds.has("command_ability"), "anima contributes ability")
 	assert_true(cmds.has("command_train"), "compound contributes train")
-	assert_true(cmds.has("command_tool_an_bioLight_builder"), "compound contributes its tools")
+	assert_true(cmds.has("command_tool_fake_builder_a"), "compound contributes its tools")
 	assert_true(cmds.has("command_stop"), "shared unit command appears once")
 
 func test_selection_deduplicates_shared_commands():
 	# Two units of the same type — every shared command name should appear
 	# exactly once in the union.
-	var a := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var a := _make_entity(&"fake_builder_a", ["unit"])
 	_add_movement(a)
 	_add_loadout(a)
-	var b := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var b := _make_entity(&"fake_builder_a", ["unit"])
 	_add_movement(b)
 	_add_loadout(b)
 	var cmds := CommandContextParser.commands_for_selection([a, b])
@@ -309,7 +320,7 @@ func test_selection_deduplicates_shared_commands():
 	assert_eq(occurrences, 1, "shared command appears once in the union")
 
 func test_selection_ignores_invalid_entries():
-	var e := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_a", ["unit"])
 	_add_movement(e)
 	_add_loadout(e)
 	# Mix in nulls and a non-Entity object; parser should skip them silently.
@@ -331,7 +342,7 @@ func test_technician_build_tools_are_the_buildable_structures():
 	# invisible). What is under test is the mirroring, and the mirroring does not care which
 	# structures the roster currently ships.
 	var structures: Array = _some_build_tools(3)
-	var e := _make_entity(EntityIds.TC_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_b", ["unit"])
 	_add_builds(e, structures.map(func(t: Tool) -> StringName: return t.type))
 	var tools := CommandContextParser.tools_for(e, ControlBinding.ControlContext.BUILD)
 	for t: Tool in structures:
@@ -339,7 +350,7 @@ func test_technician_build_tools_are_the_buildable_structures():
 	assert_eq(tools.size(), structures.size(), "and nothing it cannot build is")
 
 func test_non_builder_has_no_build_tools():
-	var e := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_a", ["unit"])
 	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.BUILD), [])
 
 func test_build_tools_for_null_is_empty():
@@ -349,7 +360,7 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 	# Build tools live behind the Build sub-menu (queried via build_tools_for),
 	# NOT in the unit's base command set — otherwise they'd clutter the flat HUD
 	# and the selection union. The Build entry point itself must still be there.
-	var e := _make_entity(EntityIds.TC_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_b", ["unit"])
 	_add_movement(e)
 	_add_named_child(e, "Builds")
 	var cmds := CommandContextParser.commands_for(e)
@@ -362,13 +373,13 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 ## --- train_tools_for: production-driven menu -------------------------------
 
 func test_train_tools_for_reads_production_component():
-	var e := _make_entity(EntityIds.AN_BARRACKS, ["structure"])
-	_add_production(e, [EntityIds.AN_BIO_LIGHT_BUILDER])
-	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), ["command_tool_an_bioLight_builder"])
+	var e := _make_entity(&"fake_barracks", ["structure"])
+	_add_production(e, [&"fake_builder_a"])
+	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), ["command_tool_fake_builder_a"])
 
 func test_train_tools_for_entity_without_production_is_empty():
 	# A producer-less entity (e.g. a plain unit) offers no train tools.
-	var e := _make_entity(EntityIds.AN_BIO_LIGHT_BUILDER, ["unit"])
+	var e := _make_entity(&"fake_builder_a", ["unit"])
 	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), [])
 
 func test_train_tools_for_null_is_empty():
@@ -380,19 +391,19 @@ func test_train_tools_for_null_is_empty():
 ## surfacing line up for a given producible_types set.
 
 func test_technician_producer_surfaces_technician_tool():
-	var producer := _make_entity(EntityIds.AN_COMMAND_CENTER, ["structure"])
-	_add_production(producer, [EntityIds.TC_BIO_LIGHT_BUILDER])
-	assert_true(producer.get_node("Production").can_produce(EntityIds.TC_BIO_LIGHT_BUILDER),
+	var producer := _make_entity(&"fake_command_center", ["structure"])
+	_add_production(producer, [&"fake_builder_b"])
+	assert_true(producer.get_node("Production").can_produce(&"fake_builder_b"),
 		"a producer with TECHNICIAN in producible_types trains technicians")
-	assert_true(CommandContextParser.commands_for(producer).has("command_tool_tc_bioLight_builder"))
+	assert_true(CommandContextParser.commands_for(producer).has("command_tool_fake_builder_b"))
 
 func test_irregular_and_vanguard_producer_surfaces_both_tools():
-	var producer := _make_entity(EntityIds.AN_BARRACKS, ["structure"])
-	_add_production(producer, [EntityIds.AN_BIO_LIGHT_BUILDER, EntityIds.TC_BIO_LIGHT_ANTI_MECH])
+	var producer := _make_entity(&"fake_barracks", ["structure"])
+	_add_production(producer, [&"fake_builder_a", &"fake_soldier"])
 	var prod := producer.get_node("Production") as Production
-	assert_true(prod.can_produce(EntityIds.AN_BIO_LIGHT_BUILDER), "produces irregulars")
-	assert_true(prod.can_produce(EntityIds.TC_BIO_LIGHT_ANTI_MECH), "produces vanguards")
-	assert_false(prod.can_produce(EntityIds.TC_BIO_LIGHT_BUILDER), "does not produce technicians")
+	assert_true(prod.can_produce(&"fake_builder_a"), "produces irregulars")
+	assert_true(prod.can_produce(&"fake_soldier"), "produces vanguards")
+	assert_false(prod.can_produce(&"fake_builder_b"), "does not produce technicians")
 	var cmds := CommandContextParser.commands_for(producer)
-	assert_true(cmds.has("command_tool_an_bioLight_builder"))
-	assert_true(cmds.has("command_tool_tc_bioLight_antiMech"))
+	assert_true(cmds.has("command_tool_fake_builder_a"))
+	assert_true(cmds.has("command_tool_fake_soldier"))

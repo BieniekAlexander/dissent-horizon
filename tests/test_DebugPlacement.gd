@@ -6,11 +6,10 @@ extends GutTest
 ##
 ## PATHS, not preloads — a file-scope preload of an entity scene poisons the Tool registry.
 
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-const WALKER_SCENE: String = "res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn"
-const FLIER_SCENE: String = "res://scenes/entities/units/nt/nt_aircraftMedium_transport.tscn"
-
+const BUILDING_SCENE: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
+const SITE_SCENE: Dictionary = {"feature": true, "extraction_site": true}
+const WALKER_SCENE: Dictionary = FakePieces.PLAIN
+const FLIER_SCENE: Dictionary = {"aerial": true, "vision": 8.0}
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
 ## A cell well inside the map, with room around it for a 2×2 footprint.
@@ -74,8 +73,8 @@ func after_each() -> void:
 
 
 ## An out-of-tree instance, as the controller holds for the armed piece.
-func _source(a_scene: String) -> Entity:
-	var entity: Entity = load(a_scene).instantiate() as Entity
+func _source(a_options: Dictionary) -> Entity:
+	var entity: Entity = FakePieces.make(a_options) as Entity
 	_sources.append(entity)
 	return entity
 
@@ -119,7 +118,7 @@ func test_nothing_goes_off_the_map() -> void:
 
 func test_a_placed_structure_stands_finished_on_its_cells() -> void:
 	var xz: Vector2 = _at(OPEN_CELL).xz_position
-	var structure: Entity = DebugPlacement.spawn(load(BUILDING_SCENE), _map, _commander, xz)
+	var structure: Entity = DebugPlacement.spawn(FakePieces.scene_of(BUILDING_SCENE), _map, _commander, xz)
 	_dismiss_content_errors()
 	assert_eq(structure.commander, _commander, "it is the owner's")
 	assert_false(structure.is_planned, "and finished, not a blueprint")
@@ -128,7 +127,7 @@ func test_a_placed_structure_stands_finished_on_its_cells() -> void:
 
 ## A delete is a death: a piece with no Commandable tick to notice its hit points dies at once.
 func test_delete_kills_a_selected_feature() -> void:
-	var site: Entity = DebugPlacement.spawn(load(SITE_SCENE), _map, _commander,
+	var site: Entity = DebugPlacement.spawn(FakePieces.scene_of(SITE_SCENE), _map, _commander,
 		_at(OPEN_CELL).xz_position)
 	_dismiss_content_errors()
 	var controller := RTSController.new()
@@ -148,7 +147,7 @@ func test_a_bot_counts_a_spawned_unit_as_its_own() -> void:
 	_world.add_child(bot)
 	bot.map = _map
 	bot.set_physics_process(false)
-	var unit: Entity = DebugPlacement.spawn(load(WALKER_SCENE), _map, bot,
+	var unit: Entity = DebugPlacement.spawn(FakePieces.scene_of(WALKER_SCENE), _map, bot,
 		_at(OPEN_CELL).xz_position)
 	_dismiss_content_errors()
 	assert_true(bot.get_units().has(unit))
@@ -160,7 +159,7 @@ func test_the_selection_owner_pays_for_its_purchases() -> void:
 	bot.id = 2
 	_world.add_child(bot)
 	bot.set_physics_process(false)
-	var unit: Entity = DebugPlacement.spawn(load(WALKER_SCENE), _map, bot,
+	var unit: Entity = DebugPlacement.spawn(FakePieces.scene_of(WALKER_SCENE), _map, bot,
 		_at(OPEN_CELL).xz_position)
 	_dismiss_content_errors()
 	var controller := RTSController.new()

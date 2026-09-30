@@ -19,8 +19,7 @@ extends GutTest
 ## PATHS, not preloads (see CLAUDE.md): a file-scope preload of an entity scene poisons the
 ## Tool registry for the whole run, and this file sorts early.
 
-const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
+const IRREGULAR: Dictionary = FakePieces.BUILDER
 ## A cross-script const is not a constant expression in GDScript, and a file that will not
 ## parse is SKIPPED by GUT rather than failed — so this is a var on purpose.
 var PLAYER: int = RTSController.PLAYER_COMMANDER_ID
@@ -46,7 +45,7 @@ func _fog(a_watching_id: int) -> Fog:
 
 
 func _unit(a_commander_id: int) -> Commandable:
-	var u := (load(IRREGULAR) as PackedScene).instantiate() as Commandable
+	var u := FakePieces.make(IRREGULAR) as Commandable
 	add_child_autofree(u)
 	var c := Commander.new()
 	c.id = a_commander_id

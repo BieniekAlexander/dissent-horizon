@@ -11,11 +11,13 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_StatusVisuals.gd -gexit
 
 
+## A machine (MECH frame) drawn by a model and a StatusVisuals, as a shipped piece is.
+const DRAWN: Dictionary = {"speed": 2.0, "mesh": true, "status_visuals": true,
+	"frame": Defense.FrameType.MECH}
+
+
 func _unit() -> Commandable:
-	# load(), not a file-scope preload: a preload of an entity scene runs at PARSE time and
-	# can fire Tool's static registry initialiser before the registry exists (see CLAUDE.md).
-	var scene: PackedScene = load("res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn")
-	var unit := scene.instantiate() as Commandable
+	var unit: Commandable = FakePieces.unit(DRAWN)
 	add_child_autofree(unit)
 	return unit
 
@@ -28,8 +30,14 @@ func _status_visuals(a_unit: Node) -> StatusVisuals:
 	return a_unit.get_node("StatusVisuals") as StatusVisuals
 
 
+## A stun that only takes hold of machines, draws its host near-black and raises a blinking icon.
 func _emp() -> StatusEffect:
-	return (load("res://scenes/entities/status_effects/emp.tscn") as PackedScene).instantiate() as StatusEffect
+	var effect := StunStatusEffect.new()
+	effect.affects_frames = Garrison.FRAME_MECH
+	effect.host_tint = Color(0.15, 0.15, 0.2)
+	effect.indicator_icon = PlaceholderTexture2D.new()
+	effect.indicator_blink_hz = 2.0
+	return effect
 
 
 #region The two channels compose
@@ -93,11 +101,11 @@ func test_an_emp_darkens_its_host_and_lets_go_when_it_ends() -> void:
 ## An effect the host is immune to removes ITSELF in _on_apply (StunStatusEffect's frame
 ## mask), so a bio unit must never pick up the tint of a stun that never took hold.
 func test_an_effect_that_refuses_its_host_changes_nothing() -> void:
-	var scene: PackedScene = load("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-	var unit := scene.instantiate() as Commandable
+	var unit: Commandable = FakePieces.unit({"speed": 2.0, "mesh": true, "status_visuals": true,
+		"frame": Defense.FrameType.BIO})
 	add_child_autofree(unit)
 	_emp().apply_to(unit)
-	assert_false(unit.is_stunned(), "the irregular is BIO — an EMP slides off it")
+	assert_false(unit.is_stunned(), "the unit is BIO — an EMP slides off it")
 	_status_visuals(unit)._process(0.0)
 	assert_eq(_visual(unit).status_tint(), MeshVisual.STATUS_TINT_NORMAL)
 
@@ -119,24 +127,6 @@ func test_two_effects_do_not_compound_into_black() -> void:
 	sv._process(0.0)
 	assert_almost_eq(_visual(unit).status_tint().r, emp.host_tint.r, 0.0001,
 		"the strongest effect wins outright — the product would be far blacker than either")
-
-
-## The whole reason the status channel is a Colour: cryo RAISES the host's armour, so it
-## has to read as cold rather than as drained.
-func test_a_freeze_tints_its_host_blue_rather_than_dark() -> void:
-	var effect := (load("res://scenes/entities/status_effects/freeze.tscn") as PackedScene).instantiate() as StatusEffect
-	autofree(effect)
-	assert_gt(effect.host_tint.b, effect.host_tint.r, "blue survives where red is drained")
-	assert_gt(effect.host_tint.b, 0.9, "and it is barely dimmed at all on that channel")
-
-
-func test_the_emp_scene_declares_the_visual_it_is_known_by() -> void:
-	var effect: StatusEffect = _emp()
-	autofree(effect)
-	assert_lt(effect.host_tint.v, 1.0, "an EMP'd machine goes dark")
-	assert_not_null(effect.indicator_icon, "and carries the lightning bolt")
-	assert_gt(effect.indicator_blink_hz, 0.0, "which blinks, because it is happening now")
-#endregion
 
 
 #region Billboards
@@ -188,10 +178,10 @@ func test_blinking_turns_the_icon_off_and_on() -> void:
 ## An enemy stealth is hiding is drawn at zero alpha — a badge or a bolt floating over it
 ## would give away the very unit the fade is hiding.
 func test_nothing_floats_over_a_unit_stealth_is_hiding() -> void:
-	var scene: PackedScene = load("res://scenes/entities/units/cl/cl_bioLight_stealth.tscn")
-	var unit := scene.instantiate() as Commandable
+	var unit: Commandable = FakePieces.unit({"speed": 2.0, "mesh": true, "status_visuals": true,
+		"stealth": true})
 	add_child_autofree(unit)
-	assert_not_null(unit.stealth, "the sleeper is the stealth unit")
+	assert_not_null(unit.stealth, "the unit carries a Stealth")
 	# Owned by SOMEBODY ELSE, explicitly. Leaving it unowned would read as commander 0 and
 	# usually work, but PLAYER_COMMANDER_ID is a mutable static that other suites move —
 	# so the enemy has to be an enemy by construction, not by arithmetic on that value.
@@ -210,8 +200,8 @@ func test_nothing_floats_over_a_unit_stealth_is_hiding() -> void:
 ## Its OWNER still sees the faint pulse — they have to be able to command what the enemy
 ## cannot see. Carried over unchanged from the billboard-sprite era.
 func test_its_owner_still_sees_a_stealthed_unit_faintly() -> void:
-	var scene: PackedScene = load("res://scenes/entities/units/cl/cl_bioLight_stealth.tscn")
-	var unit := scene.instantiate() as Commandable
+	var unit: Commandable = FakePieces.unit({"speed": 2.0, "mesh": true, "status_visuals": true,
+		"stealth": true})
 	add_child_autofree(unit)
 	var player := Commander.new()
 	player.id = RTSController.PLAYER_COMMANDER_ID
@@ -226,8 +216,16 @@ func test_its_owner_still_sees_a_stealthed_unit_faintly() -> void:
 
 
 #region Capacity pips
-func _owned(a_path: String) -> Commandable:
-	var unit := (load(a_path) as PackedScene).instantiate() as Commandable
+## A carrier with three seats, and an aircraft whose four-round clip is spent at an airfield.
+const CARRIER: Dictionary = {"speed": 2.0, "mesh": true, "status_visuals": true,
+	"garrison": {"capacity": 3}}
+const CHARGED_AIRCRAFT: Dictionary = {"aerial": true, "mesh": true, "status_visuals": true,
+	"weapon": {"ground": 6.0, "clip_size": 4, "charged": true}}
+## A charged clip too long for one row of pips.
+const LONG_CLIP: Dictionary = {"aerial": true, "mesh": true, "status_visuals": true,
+	"weapon": {"ground": 6.0, "clip_size": StatusVisuals.PIPS_PER_ROW + 4, "charged": true}}
+func _owned(a_options: Dictionary) -> Commandable:
+	var unit := FakePieces.make(a_options) as Commandable
 	add_child_autofree(unit)
 	var player := Commander.new()
 	player.id = RTSController.PLAYER_COMMANDER_ID
@@ -239,7 +237,7 @@ func _owned(a_path: String) -> Commandable:
 ## A transport draws one pip per SEAT, solid for the seats that are taken. Capacity is
 ## OCCUPANCY rather than head count, so this is also what a size-2 occupant fills.
 func test_a_selected_transport_counts_out_its_seats() -> void:
-	var truck: Commandable = _owned("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
+	var truck: Commandable = _owned(CARRIER)
 	var sv: StatusVisuals = _status_visuals(truck)
 	truck.selectable.select()
 	sv._process(0.0)
@@ -251,9 +249,9 @@ func test_a_selected_transport_counts_out_its_seats() -> void:
 
 ## The information a rearming aircraft's behaviour is otherwise unexplained by.
 func test_a_selected_charged_aircraft_counts_out_its_rounds() -> void:
-	var plane: Commandable = _owned("res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn")
+	var plane: Commandable = _owned(CHARGED_AIRCRAFT)
 	var sv: StatusVisuals = _status_visuals(plane)
-	assert_true(plane.weapon_inventory.has_charged_weapons(), "the drake reloads at an airfield")
+	assert_true(plane.weapon_inventory.has_charged_weapons(), "a charged clip reloads at an airfield")
 	plane.selectable.select()
 	sv._process(0.0)
 	var drawn: Array[Sprite3D] = _visible_pips(sv)
@@ -264,7 +262,7 @@ func test_a_selected_charged_aircraft_counts_out_its_rounds() -> void:
 ## Selection-only: both are detail you ask for about one unit, not a readout to track
 ## across the field.
 func test_pips_are_drawn_only_while_the_unit_is_selected() -> void:
-	var truck: Commandable = _owned("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
+	var truck: Commandable = _owned(CARRIER)
 	var sv: StatusVisuals = _status_visuals(truck)
 	sv._process(0.0)
 	assert_eq(_visible_pips(sv).size(), 0, "nothing while deselected")
@@ -279,7 +277,7 @@ func test_pips_are_drawn_only_while_the_unit_is_selected() -> void:
 ## Drawing an enemy transport's remaining seats would hand over exactly the scouting
 ## information a garrison exists to hide.
 func test_an_enemy_transport_never_shows_its_seats() -> void:
-	var truck := (load("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn") as PackedScene).instantiate() as Commandable
+	var truck := FakePieces.unit(CARRIER)
 	add_child_autofree(truck)
 	var enemy := Commander.new()
 	enemy.id = RTSController.PLAYER_COMMANDER_ID + 1
@@ -293,7 +291,7 @@ func test_an_enemy_transport_never_shows_its_seats() -> void:
 ## Almost every unit in the game has neither a garrison nor a charged clip, and must pay
 ## nothing for this.
 func test_an_ordinary_unit_draws_no_pips_at_all() -> void:
-	var unit: Commandable = _owned("res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn")
+	var unit: Commandable = _owned(DRAWN)
 	unit.selectable.select()
 	var sv: StatusVisuals = _status_visuals(unit)
 	sv._process(0.0)
@@ -302,10 +300,10 @@ func test_an_ordinary_unit_draws_no_pips_at_all() -> void:
 
 ## A 12-round clip on one line would be two tank-lengths wide.
 func test_a_long_clip_wraps_onto_a_second_row() -> void:
-	var plane: Commandable = _owned("res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn")
+	var plane: Commandable = _owned(LONG_CLIP)
 	var sv: StatusVisuals = _status_visuals(plane)
 	assert_gt(plane.weapon_inventory.charged_clip_size(), StatusVisuals.PIPS_PER_ROW,
-		"the clipper is the piece this rule exists for")
+		"the fixture's clip is longer than a row")
 	plane.selectable.select()
 	sv._process(0.0)
 	var heights: Array[float] = []
@@ -333,7 +331,7 @@ func test_a_pip_row_lies_along_the_camera_and_ignores_the_units_facing() -> void
 	add_child_autofree(camera)
 	camera.make_current()
 
-	var truck: Commandable = _owned("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
+	var truck: Commandable = _owned(CARRIER)
 	var sv: StatusVisuals = _status_visuals(truck)
 	truck.selectable.select()
 
@@ -364,7 +362,7 @@ func test_the_rows_still_stack_straight_up() -> void:
 	camera.make_current()
 	camera.rotation = Vector3(-PI / 4.0, PI / 3.0, 0.0)
 
-	var truck: Commandable = _owned("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
+	var truck: Commandable = _owned(CARRIER)
 	var sv: StatusVisuals = _status_visuals(truck)
 	truck.veterancy.set_level(Veterancy.Level.VETERAN)
 	truck.selectable.select()

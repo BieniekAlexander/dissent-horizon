@@ -275,8 +275,7 @@ func _economy_with(a_map: Map, a_units: Array) -> BotEconomy:
 
 ## A builder holding a Build aimed at `a_world`, which is what makes it read as in flight.
 func _builder_building_at(a_map: Map, a_world: Vector3) -> Commandable:
-	var unit := (load("res://scenes/entities/units/cl/cl_bioLight_builder.tscn") as PackedScene) \
-		.instantiate() as Commandable
+	var unit := FakePieces.unit(FakePieces.BUILDER)
 	add_child_autofree(unit)
 	var tool := Tool.new("command_tool_x", &"test_extractor", null, "x", Vector2i.ZERO, 0, 0)
 	unit.update_commands(
@@ -339,8 +338,7 @@ func test_a_pond_taken_out_of_sight_still_reads_open() -> void:
 	var enemy: Commander = Commander.new()
 	enemy.id = 1
 	add_child_autofree(enemy)
-	var claimant := (load("res://scenes/entities/units/cl/cl_bioLight_builder.tscn") \
-		as PackedScene).instantiate() as Commandable
+	var claimant := FakePieces.unit(FakePieces.BUILDER)
 	add_child_autofree(claimant)
 	claimant.ownership.commander = enemy
 	water.extractor = claimant

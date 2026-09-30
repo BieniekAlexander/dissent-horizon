@@ -101,7 +101,7 @@ func test_no_bounty_without_a_passive() -> void:
 func test_a_commander_with_no_sanctions_pays_nothing() -> void:
 	# Commander 0 (neutral) and any faction-less commander have no sanction grid at all.
 	assert_eq(_cmdr.kill_bounty_rate(), 0.0)
-	assert_eq(_cmdr.kill_bounty_for(EntityIds.AN_BIO_LIGHT_BUILDER), 0)
+	assert_eq(_cmdr.kill_bounty_for(&"fake_piece"), 0)
 
 
 func test_unlocking_the_first_tier_sets_the_rate() -> void:
@@ -124,13 +124,11 @@ func test_the_upgrade_replaces_rather_than_stacks() -> void:
 # --- The payout ------------------------------------------------------------------
 
 func test_the_bounty_is_a_share_of_the_pieces_build_cost() -> void:
-	# Derived from technology.json rather than hardcoded, so rebalancing a unit's price
-	# rebalances its bounty instead of breaking this test.
+	# A fake piece with a stated price: the bounty is a share of it.
 	var sanction_grid := _sanction_grid()
 	sanction_grid.try_unlock(sanction_grid.entries[0])
-	var spec: TechnologySpec = _cmdr.technology_mapping.get(EntityIds.AN_BIO_LIGHT_BUILDER)
-	assert_not_null(spec, "the Irregular is priced")
-	assert_eq(_cmdr.kill_bounty_for(EntityIds.AN_BIO_LIGHT_BUILDER), roundi(spec.energy_cost * 0.10))
+	_cmdr.technology_mapping[&"fake_piece"] = FakePieces.tech(120)
+	assert_eq(_cmdr.kill_bounty_for(&"fake_piece"), roundi(120 * 0.10))
 
 
 func test_an_unpriced_piece_pays_nothing() -> void:

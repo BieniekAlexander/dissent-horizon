@@ -7,11 +7,12 @@ extends GutTest
 ## came from and only a purchase could say WHY. These tests pin the classification and the
 ## colours; the drawing is `VerboseTooltipButton.show_availability`, covered below.
 ##
-## PATHS, not preloads: a file-scope preload of an entity scene fires Tool's static registry
-## initialiser at parse time and makes Tool.for_name null for the whole run (see CLAUDE.md).
+## Every piece and tool is a fake (tests/_fake_pieces.gd).
 
-const CANNON: String = "res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn"
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
+## A gun carrying the bombard ability pool; a plain unit that cannot cast it.
+const CANNON: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2),
+	"abilities": [{"grants": [&"bombard"], "cooldown_ticks": 300}]}
+const RECRUIT: Dictionary = FakePieces.PLAIN
 
 const PLAYER: int = 1
 ## The Bombard's battery: the one ability that names its OWN grid command
@@ -24,15 +25,30 @@ const HELD: bool = true
 const NOT_HELD: bool = false
 
 
+const _TRAINEE_COMMAND: String = "command_tool_fake_trainee"
+
+
+func before_each() -> void:
+	FakePieces.register_tool(FakePieces.tool(&"fake_trainee", FakePieces.PLAIN, [],
+		ControlBinding.ControlContext.TRAIN))
+	FakePieces.install_ability(POOLED_ABILITY, {"command": "command_bombard", "range": 30.0})
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
+	FakePieces.restore_abilities()
+
+
 func _commander() -> Commander:
 	var commander := Commander.new()
 	commander.id = PLAYER
+	commander.technology_mapping = {&"fake_trainee": FakePieces.tech(100)}
 	add_child_autofree(commander)
 	return commander
 
 
-func _entity(a_scene: String) -> Commandable:
-	var entity := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary) -> Commandable:
+	var entity: Commandable = FakePieces.make(a_options) as Commandable
 	add_child_autofree(entity)
 	entity.ownership.commander = _commander()
 	return entity
@@ -48,10 +64,8 @@ func _state(a_command: String, a_selection: Array, a_commander: Commander,
 func test_an_affordable_unlocked_purchase_is_not_blocked() -> void:
 	var commander: Commander = _commander()
 	commander.energy = 100000
-	var tool: Tool = Tool.for_name("command_tool_cl_bioLight_antiLight")
-	assert_not_null(tool, "guards the fixture: the registry loaded")
-	# The Cannon is what unlocks the barracks line; without it the piece reads LOCKED, which
-	# is a different test.
+	var tool: Tool = Tool.for_name(_TRAINEE_COMMAND)
+	assert_not_null(tool, "guards the fixture: the fake tool is registered")
 	var state: CommandButtonState = _state(tool.command_name, [], commander, NOT_HELD)
 	assert_eq(state.blocker, CommandButtonState.Blocker.NONE,
 		"paid for and unrestricted by this bare commander's technology")
@@ -70,13 +84,13 @@ func test_an_unaffordable_purchase_is_amber_and_lit_under_the_modifier() -> void
 	var commander: Commander = _commander()
 	commander.energy = 0
 	var refused: CommandButtonState = _state(
-		"command_tool_cl_bioLight_antiLight", [], commander, NOT_HELD)
+		_TRAINEE_COMMAND, [], commander, NOT_HELD)
 	assert_eq(refused.blocker, CommandButtonState.Blocker.UNAFFORDABLE)
 	assert_true(refused.is_waitable)
 	assert_false(refused.is_queueable, "clicking now is refused")
 	assert_eq(refused.tint(), CommandButtonState.TINT_QUEUEABLE)
 	var queued: CommandButtonState = _state(
-		"command_tool_cl_bioLight_antiLight", [], commander, HELD)
+		_TRAINEE_COMMAND, [], commander, HELD)
 	assert_true(queued.is_queueable, "the same refusal, now queueable")
 	assert_eq(queued.tint(), CommandButtonState.TINT_AVAILABLE)
 
@@ -90,7 +104,7 @@ func test_a_blocker_waiting_cannot_clear_keeps_its_own_colour_under_the_modifier
 
 func test_a_purchase_carries_no_charges() -> void:
 	var state: CommandButtonState = _state(
-		"command_tool_cl_bioLight_antiLight", [], _commander(), NOT_HELD)
+		_TRAINEE_COMMAND, [], _commander(), NOT_HELD)
 	assert_false(state.shows_charges(), "a price is not a pool")
 	assert_false(state.shows_timer())
 
@@ -149,7 +163,7 @@ func test_one_loaded_caster_keeps_the_button_lit() -> void:
 ## selected. With no caster anywhere it is NO_CASTER; see that section below.
 func test_a_selection_that_cannot_cast_falls_through_to_the_commander() -> void:
 	var cannon: Commandable = _entity(CANNON)
-	var recruit := (load(RECRUIT) as PackedScene).instantiate() as Commandable
+	var recruit := FakePieces.unit(RECRUIT)
 	add_child_autofree(recruit)
 	recruit.ownership.commander = cannon.commander
 	var state: CommandButtonState = _state(

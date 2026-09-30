@@ -16,14 +16,12 @@ extends GutTest
 ## dereferenced a freed script instance and hard-crashed the process. See
 ## CommandReceiver._release_speed_cap.
 
-const UNIT: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-
 var _unit: Node
 var _movement: Movement
 
 
 func before_each() -> void:
-	_unit = UNIT.instantiate()
+	_unit = FakePieces.unit({"speed": 3.0})
 	add_child_autofree(_unit)
 	_movement = _unit.movement
 

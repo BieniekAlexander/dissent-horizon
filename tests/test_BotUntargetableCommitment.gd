@@ -10,7 +10,7 @@ extends GutTest
 ##    units had received a command to attack it … their weapons can't target it, so they
 ##    sort of waited near their target until it had expired."
 ##
-## The scan drone (`scenes/entities/scout.tscn`) is the perfect witness: it is HOVERING, so
+## A hovering fake piece is the perfect witness: it is HOVERING, so
 ## `Entity._apply_targetable_layers` files it on TARGETABLE_AIR alone, and a ground-only
 ## loadout has no targeting mode for it whatsoever. That is a DIFFERENT fact from a damage
 ## multiplier of zero — `Bot.unit_effectiveness_vs` answers 0 for both — and the difference
@@ -37,10 +37,7 @@ extends GutTest
 ## tests/test_BotHostileTargets.gd. The scan drone is the REAL scene, because the reported
 ## bug is about that piece's real layers.
 
-## The scan drone's scene, loaded INSIDE a test rather than preloaded at file scope: a
-## file-scope preload of an entity scene fires Tool's static registry initialiser too early
-## (see CLAUDE.md and tests/test_AirTargetAltitude.gd).
-const SCOUT_SCENE: String = "res://scenes/entities/nt_aircraftLight_recon.tscn"
+
 
 
 ## A Commandable with the children Entity/Commandable resolve with a hard `$`, and nothing
@@ -176,7 +173,7 @@ func _flak(a_x: float = 0.0, a_z: float = 0.0) -> Commandable:
 ## a test with no physics running — it would otherwise sit at 0 and file itself as a GROUND
 ## target, which would make every assertion here pass for the wrong reason.
 func _scan_drone(a_x: float, a_z: float) -> Commandable:
-	var drone: Commandable = (load(SCOUT_SCENE) as PackedScene).instantiate() as Commandable
+	var drone: Commandable = FakePieces.unit({"aerial": true, "vision": 8.0})
 	_foe.add_child(drone)
 	autofree(drone)
 	drone.ownership.commander = _foe

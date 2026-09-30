@@ -177,10 +177,8 @@ func test_selecting_the_same_phantom_twice_holds_it_once() -> void:
 ## anything had happened — indistinguishable from a dead button.
 func test_selecting_a_phantom_keeps_the_live_selection() -> void:
 	var controller: RTSController = _controller()
-	# A REAL unit: the selection paths ask each member for its Selectable. `load()` inside the
-	# test — see test_SelectionModifiers.
-	var scene: PackedScene = load("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-	var unit := add_child_autofree(scene.instantiate()) as Commandable
+	# A live unit: the selection paths ask each member for its Selectable.
+	var unit := add_child_autofree(FakePieces.unit(FakePieces.PLAIN)) as Commandable
 	controller.selection = [unit] as Array[Node]
 	controller.select_pending([_transaction()], false)
 	assert_eq(controller.selection, [unit] as Array[Node],
@@ -191,8 +189,7 @@ func test_selecting_a_phantom_keeps_the_live_selection() -> void:
 ## goes to the phantoms whenever any are selected, which is what clicking their card asked for.
 func test_both_channels_can_be_held_at_once() -> void:
 	var controller: RTSController = _controller()
-	var scene: PackedScene = load("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-	var unit := add_child_autofree(scene.instantiate()) as Commandable
+	var unit := add_child_autofree(FakePieces.unit(FakePieces.PLAIN)) as Commandable
 	controller.selection = [unit] as Array[Node]
 	var transaction: PurchaseTransaction = _transaction()
 	controller.select_pending([transaction], false)

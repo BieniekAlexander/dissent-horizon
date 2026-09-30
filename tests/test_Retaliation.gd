@@ -10,15 +10,17 @@ extends GutTest
 ## already reaches. And an attack whose target, once seen, drops out of the side's vision is
 ## dropped. Why: gdd/systems/combat/target-acquisition.md §Retaliation answers fire from past aggro.
 ##
-## PATHS, not preloads (see CLAUDE.md). Every scene is a HARNESS: distances are set against
+## Every piece is a fake. Each is a HARNESS: distances are set against
 ## reach buckets the test reads back, never against a number pinned here.
 
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const TURRET: String = "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn"
-const BADGER: String = "res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn"
-const SHELTER: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-
+const RECRUIT: Dictionary = FakePieces.SOLDIER
+const IRREGULAR: Dictionary = FakePieces.PLAIN
+## A gun that cannot move.
+const TURRET: Dictionary = {"structure": true, "vision": 10.0, "weapon": {"ground": 8.0}}
+## A gun that outreaches the aggro cap.
+const BADGER: Dictionary = {"speed": 2.0, "vision": 30.0, "weapon": {"ground": 30.0}}
+## An unarmed host that answers through what it holds.
+const SHELTER: Dictionary = {"structure": true, "garrison": {"capacity": 4, "bunker": true}}
 const OWN: int = 7
 const ENEMY: int = 8
 
@@ -42,8 +44,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _piece(a_scene: String, a_commander: Commander, a_at: Vector3) -> Commandable:
-	var p := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _piece(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Commandable:
+	var p := FakePieces.make(a_options) as Commandable
 	add_child_autofree(p)
 	p.ownership.commander = a_commander
 	p.global_position = a_at
@@ -130,7 +132,7 @@ func test_a_turret_ignores_an_attacker_out_of_its_reach() -> void:
 
 
 ## An unarmed shelter answers through its occupants, at their reach plus its bonus.
-func _manned_shelter(a_occupant: String = RECRUIT) -> Commandable:
+func _manned_shelter(a_occupant: Dictionary = RECRUIT) -> Commandable:
 	var shelter: Commandable = _piece(SHELTER, _commander(OWN), Vector3.ZERO)
 	var occupant: Commandable = _piece(a_occupant, shelter.ownership.commander, Vector3(0, 0, FAR))
 	await wait_physics_frames(2)  # let the occupant's deferred initialisation run in the tree

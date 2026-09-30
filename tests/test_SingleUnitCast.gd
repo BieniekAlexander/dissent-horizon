@@ -9,7 +9,6 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_SingleUnitCast.gd -gexit
 
-const UNIT_SCENE_PATH: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
 const OWN: int = 1
 const FOE: int = 2
 
@@ -34,7 +33,7 @@ func _commander(a_id: int) -> Commander:
 
 
 func _unit(a_commander_id: int) -> Commandable:
-	var unit: Commandable = load(UNIT_SCENE_PATH).instantiate()
+	var unit: Commandable = FakePieces.unit()
 	add_child_autofree(unit)
 	unit.top_level = true
 	unit.ownership.commander = _commander(a_commander_id)

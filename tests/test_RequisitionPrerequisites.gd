@@ -15,9 +15,9 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_RequisitionPrerequisites.gd -gexit
 
-const DOWNSTREAM: StringName = &"an_tech1"        # requires an_warFactory
-const PREREQUISITE: StringName = &"an_warFactory"
-const PREREQUISITE_SCENE: String = "res://scenes/entities/structures/an/an_warFactory.tscn"
+## A fake tech tree: DOWNSTREAM requires PREREQUISITE, and a three-deep chain A <- B <- C.
+const DOWNSTREAM: StringName = &"fake_downstream"
+const PREREQUISITE: StringName = &"fake_prerequisite"
 
 var _commander: Commander
 
@@ -28,12 +28,16 @@ func before_each() -> void:
 	add_child_autofree(_commander)
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
+	_commander.technology_mapping = {
+		PREREQUISITE: FakePieces.tech(), DOWNSTREAM: FakePieces.tech(0, 0, 0, 30, [PREREQUISITE]),
+		CHAIN_B: FakePieces.tech(0, 0, 0, 30, [CHAIN_A]),
+		CHAIN_C: FakePieces.tech(0, 0, 0, 30, [CHAIN_B])}
 	_commander.proc_technology()
 
 
 ## A war factory owned by the commander, either finished or still going up.
 func _prerequisite(a_built: bool) -> Commandable:
-	var structure: Commandable = load(PREREQUISITE_SCENE).instantiate()
+	var structure: Commandable = FakePieces.structure({"id": PREREQUISITE})
 	_commander.add_child(structure)
 	autofree(structure)
 	structure.ownership.commander = _commander
@@ -106,7 +110,7 @@ func test_every_missing_prerequisite_must_be_incoming() -> void:
 	# Faked by adding a second requirement nothing is building.
 	_prerequisite(false)
 	_commander.technology_mapping[DOWNSTREAM].required_structures = \
-		[PREREQUISITE, &"an_tech1"]
+		[PREREQUISITE, &"fake_never_built"]
 	assert_false(_commander.missing_prerequisites_are_incoming(DOWNSTREAM),
 		"one of the two is not coming, so the order would strand its builder")
 
@@ -139,17 +143,16 @@ func test_a_queued_TRAIN_purchase_does_not_count() -> void:
 ## and "a builder has walked over and laid it", B was on its way by every ordinary meaning
 ## of the words and invisible to both of the checks that existed.
 
-const CHAIN_A: StringName = &"an_warFactory"
-const CHAIN_B: StringName = &"an_tech1"          # requires an_warFactory
-const CHAIN_C: StringName = &"an_support3"       # requires an_tech1
-const CHAIN_B_SCENE: String = "res://scenes/entities/structures/an/an_tech1.tscn"
+const CHAIN_A: StringName = PREREQUISITE
+const CHAIN_B: StringName = &"fake_chain_b"        # requires A
+const CHAIN_C: StringName = &"fake_chain_c"        # requires B
 
 
 ## A BLUEPRINT of `a_id`: ordered and standing on its site, with no foundation laid.
 ## plan_construction() runs before ownership for the reason Build.plan_structure documents —
 ## _on_commander_changed reads is_planned to decide what registration to skip.
-func _blueprint(a_scene: String) -> Commandable:
-	var structure: Commandable = load(a_scene).instantiate()
+func _blueprint(a_type: StringName) -> Commandable:
+	var structure: Commandable = FakePieces.structure({"id": a_type})
 	structure.plan_construction()
 	_commander.add_child(structure)
 	autofree(structure)
@@ -165,14 +168,14 @@ func test_the_chain_fixture_is_three_deep() -> void:
 
 
 func test_a_blueprint_counts_as_incoming() -> void:
-	_blueprint(CHAIN_B_SCENE)
+	_blueprint(CHAIN_B)
 	assert_true(_commander.has_planned_structure(CHAIN_B), "the blueprint is standing")
 	assert_true(_commander.has_incoming_structure(CHAIN_B))
 
 
 func test_a_blueprint_is_not_a_BUILT_structure() -> void:
 	# The two must stay distinct: a blueprint satisfies "on its way", never "you have one".
-	_blueprint(CHAIN_B_SCENE)
+	_blueprint(CHAIN_B)
 	assert_false(_commander.has_built_structure(CHAIN_B))
 	assert_eq(_commander.get_blocking_need(CHAIN_C, false),
 		TechnologySpec.UnmetNeed.MISSING_STRUCTURE,
@@ -183,7 +186,7 @@ func test_the_third_link_may_be_ordered_once_the_second_is() -> void:
 	# The reported case: A under construction, B ordered (a blueprint, its purchase already
 	# funded and gone from the queue), C refused.
 	_prerequisite(false)
-	_blueprint(CHAIN_B_SCENE)
+	_blueprint(CHAIN_B)
 	assert_eq(_commander.get_blocking_need(CHAIN_C, true), TechnologySpec.UnmetNeed.NONE,
 		"C is queued, because B is on its way")
 

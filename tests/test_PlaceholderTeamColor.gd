@@ -56,9 +56,7 @@ func test_a_shader_material_surface_is_still_skipped() -> void:
 
 ## The whole point, on a real piece: a unit still wearing the importer's stand-in.
 func test_a_piece_wearing_a_placeholder_takes_the_team_colour() -> void:
-	var scene: PackedScene = load("res://scenes/entities/units/tc/tc_bioLight_antiMech.tscn")
-	var unit: Node = scene \
-		.instantiate()
+	var unit: Node = FakePieces.unit({"mesh": true})
 	add_child_autofree(unit)
 	var visual := unit.get_node("MeshVisual") as MeshVisual
 	assert_not_null(unit.get_node_or_null("MeshVisual/PlaceholderModel"),

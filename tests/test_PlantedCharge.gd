@@ -12,10 +12,11 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_PlantedCharge.gd \
 ##       -gdir=res://tests/none -gexit
 
-const SAPPER_PATH := "res://scenes/entities/units/an/an_bioLight_antiStructure.tscn"
-const TANK_PATH := "res://scenes/entities/units/lb/lb_mechLight_antiLight1.tscn"
-const SOLDIER_PATH := "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-
+## A unit carrying the plant ability; a machine to ride on; a plain soldier.
+const SAPPER_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "repairs": true,
+	"abilities": [{"grants": [Plant.ABILITY_ID], "cooldown_ticks": 90}]}
+const TANK_PATH: Dictionary = FakePieces.MACHINE
+const SOLDIER_PATH: Dictionary = FakePieces.PLAIN
 var _commanders: Dictionary = {}
 
 
@@ -28,12 +29,17 @@ func _commander(a_id: int) -> Commander:
 	return _commanders[a_id]
 
 
+func after_each() -> void:
+	FakePieces.restore_abilities()
+
+
 func before_each() -> void:
+	FakePieces.install_ability(Plant.ABILITY_ID, {"range": 5.0})
 	_commanders = {}
 
 
-func _piece(a_path: String, a_commander_id: int) -> Commandable:
-	var piece := (load(a_path) as PackedScene).instantiate() as Commandable
+func _piece(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var piece := FakePieces.make(a_options) as Commandable
 	add_child_autofree(piece)
 	piece.ownership.commander = _commander(a_commander_id)
 	return piece

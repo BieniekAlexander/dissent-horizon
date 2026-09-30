@@ -17,8 +17,10 @@ extends GutTest
 ## CLAUDE.md). This file sorts near the front of the directory, so it would be the one that
 ## poisons it.
 
-const SERVANT: String = "res://scenes/entities/units/cl/cl_bioLight_builder.tscn"
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
+## A piece that builds (whatever the registry's first build tool is) and one that cannot.
+const RECRUIT: Dictionary = {"speed": 2.0, "weapon": {"ground": 6.0}}
+var SERVANT: Dictionary:
+	get: return {"speed": 2.0, "builds": [FakePieces.a_buildable_type()]}
 
 const PLAYER: int = 1
 
@@ -32,8 +34,8 @@ func _commander() -> Commander:
 
 ## A live unit. Ownership is assigned directly rather than through initialize(), so no Map
 ## is needed; entering the tree is what resolves its components.
-func _unit(a_scene: String) -> Commandable:
-	var u := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _unit(a_options: Dictionary) -> Commandable:
+	var u: Commandable = FakePieces.unit(a_options)
 	add_child_autofree(u)
 	u.ownership.commander = _commander()
 	return u

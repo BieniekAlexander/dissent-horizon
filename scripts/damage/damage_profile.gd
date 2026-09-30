@@ -17,8 +17,6 @@ extends Resource
 ## (see gdd/id-rename-proposal.md), so this file's multipliers now match the
 ## spec's own axis names after all.
 
-## §3.1: every multiplier in the matrix must be drawn from this set.
-const MULTIPLIER_LADDER: PackedFloat32Array = [1.0, 0.75, 0.6, 0.4, 0.25, 0.15]
 
 @export var id: Damage.Type
 

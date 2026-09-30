@@ -14,17 +14,17 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Attackable.gd -gexit
 
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
+
 
 
 ## The extraction site, optionally given a Defense before it enters the tree so the
 ## @onready that resolves `defense` sees it.
 func _site(a_with_defense: bool) -> Entity:
-	var site: Entity = (load(SITE_SCENE) as PackedScene).instantiate()
-	if a_with_defense:
-		var defense := Defense.new()
-		defense.name = "Defense"
-		site.add_child(defense)
+	var site: Entity = FakePieces.feature({"extraction_site": true, "obstruction": false})
+	if not a_with_defense:
+		var defense: Node = site.get_node("Defense")
+		site.remove_child(defense)
+		defense.free()
 	add_child_autofree(site)
 	return site
 

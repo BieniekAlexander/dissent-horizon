@@ -11,13 +11,13 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Deploy.gd \
 ##       -gdir=res://tests/none -gexit
 
-const SOLDIER_PATH := "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
+const SOLDIER_PATH: Dictionary = FakePieces.SOLDIER
 const DEPLOY_TICKS: int = 3
 const UNDEPLOY_TICKS: int = 2
 
 
 func _unit(a_is_cancellable: bool = false) -> Commandable:
-	var unit := (load(SOLDIER_PATH) as PackedScene).instantiate() as Commandable
+	var unit := FakePieces.make(SOLDIER_PATH) as Commandable
 	var deployable := Deployable.new()
 	deployable.name = "Deployable"
 	deployable.deploy_ticks = DEPLOY_TICKS

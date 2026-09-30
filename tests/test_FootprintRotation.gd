@@ -11,12 +11,13 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_FootprintRotation.gd -gexit
 
-const LONG_SCENE: String = "res://scenes/entities/structures/nt/nt_building_long.tscn"
+const LONG_SCENE: Dictionary = {"structure": true, "dimensions": Vector2i(3, 5)}
 ## The an_infrastructure tool's second variant is the long (3×5) neutral building.
-const VARIANT_TOOL: String = "command_tool_an_infrastructure"
+const TOOL_TYPE: StringName = &"fake_building"
+const SQUARE: StringName = &"fake_square"
+const LONG: StringName = &"fake_long"
 const LONG_DIMS: Vector2i = Vector2i(3, 5)
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
+const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": [&"fake_building"]}
 const MAP_CORNERS: int = 41
 const GRID_CELLS: int = MAP_CORNERS - 1
 
@@ -44,7 +45,13 @@ var _map: StubMap
 var _commander: Commander
 
 
+var _tool: Tool
+
+
 func before_each() -> void:
+	FakePieces.install_families([
+		{"id": SQUARE, "footprint": Vector2i(4, 4)}, {"id": LONG, "footprint": LONG_DIMS}])
+	_tool = FakePieces.register_tool(FakePieces.tool(TOOL_TYPE, {}, [SQUARE, LONG]))
 	_world = Node3D.new()
 	_map = _make_map()
 	_world.add_child(_map)
@@ -55,6 +62,13 @@ func before_each() -> void:
 	_commander.map = _map
 	_commander.add_energy(10000)
 	_commander.set_physics_process(false)
+	_commander.technology_mapping = {TOOL_TYPE: FakePieces.tech(), SQUARE: FakePieces.tech(),
+		LONG: FakePieces.tech()}
+
+
+func after_each() -> void:
+	FakePieces.restore_families()
+	FakePieces.restore_tools()
 
 
 func _make_map() -> StubMap:
@@ -83,7 +97,7 @@ func _world_for_origin(a_origin: Vector2i, a_dims: Vector2i) -> Vector2:
 
 
 func _long_building() -> Commandable:
-	var building: Commandable = load(LONG_SCENE).instantiate() as Commandable
+	var building: Commandable = FakePieces.make(LONG_SCENE) as Commandable
 	_world.add_child(building)
 	building.ownership.commander = _commander
 	building.map = _map
@@ -98,7 +112,7 @@ func _give_box_shape(a_piece: Commandable) -> void:
 
 
 func _make_builder() -> Commandable:
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map
@@ -237,7 +251,7 @@ func test_a_scene_placed_piece_reads_its_count_from_its_yaw() -> void:
 # ─── THE ORDER ──────────────────────────────────────────────────────────────
 
 func _long_tool() -> Tool:
-	return Tool.for_name(VARIANT_TOOL).with_variant(1)
+	return _tool.with_variant(1)
 
 
 func test_a_message_defaults_to_no_turn_and_copies_its_count() -> void:
@@ -248,7 +262,6 @@ func test_a_message_defaults_to_no_turn_and_copies_its_count() -> void:
 
 
 func test_build_reads_the_turned_footprint_when_it_judges_a_placement() -> void:
-	_commander.technology_mapping[Tool.for_name(VARIANT_TOOL).type].required_structures = []
 	var builder := _make_builder()
 	# Aim so the 3×5 footprint sits at origin (10, 10). Turned a quarter, the same aim gives a 5×3
 	# footprint whose origin the map re-derives — so block a cell only the turned one covers.
@@ -275,7 +288,6 @@ func test_build_reads_the_turned_footprint_when_it_judges_a_placement() -> void:
 
 
 func test_a_blueprint_stands_on_and_faces_the_turned_footprint() -> void:
-	_commander.technology_mapping[Tool.for_name(VARIANT_TOOL).type].required_structures = []
 	var at: Vector2 = _world_for_origin(Vector2i(12, 12), Vector2i(5, 3))
 	var message := CommandMessage.new(_map, null, _long_tool(), Vector3(at.x, 0.0, at.y))
 	message.quarter_turns = 1

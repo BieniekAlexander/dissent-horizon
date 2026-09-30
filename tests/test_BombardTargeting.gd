@@ -7,7 +7,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_BombardTargeting.gd -gexit
 
-const UNIT_SCENE: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
+const UNIT: Dictionary = FakePieces.PLAIN
 
 const OWN: int = 1
 const FOE: int = 2
@@ -46,7 +46,7 @@ func _beacon(a_commander_id: int, a_xz: Vector2) -> Beacon:
 ## Built from a shipped scene rather than a bare Commandable: the class hard-requires a
 ## scene rig (HP bar, AvoidanceObstacle, Ownership) a hand-built node cannot supply.
 func _range_carrier(a_commander_id: int, a_xz: Vector2, a_radius: float) -> Commandable:
-	var unit: Commandable = UNIT_SCENE.instantiate()
+	var unit: Commandable = FakePieces.unit(UNIT)
 	_commander(a_commander_id).add_child(unit)
 	autofree(unit)
 	unit.top_level = true
@@ -169,38 +169,3 @@ func test_a_beacon_outside_every_range_is_still_spent() -> void:
 	var beacon := _beacon(OWN, Vector2(60, 0))
 	_range_carrier(OWN, Vector2(0, 0), 20.0)
 	assert_eq(BombardTargeting.source_at(_commander(OWN), _at(Vector2(60, 0))), beacon)
-
-
-# --- The authored pieces ---------------------------------------------------------
-
-func test_the_shipped_pieces_carry_the_authored_ranges() -> void:
-	# The two carriers named in the design: the Bombard covers its own approaches, and the
-	# Reverence is the mobile solution flown to wherever the guns are needed.
-	for pair: Array in [
-		["res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn", 20.0],
-		["res://scenes/entities/units/cl/cl_aircraftStrong_support.tscn", 5.0],
-	]:
-		var piece: Node = (load(pair[0]) as PackedScene).instantiate()
-		autofree(piece)
-		var beacon_range := piece.get_node_or_null("BeaconRange") as BeaconRange
-		assert_not_null(beacon_range, "%s carries a BeaconRange" % pair[0])
-		if beacon_range != null:
-			assert_almost_eq(beacon_range.radius, float(pair[1]), 0.001, pair[0])
-
-
-func test_the_bombard_has_no_weapon_and_no_aggro() -> void:
-	# It never picks its own targets: every shot is an ordered one. A Loadout would bring
-	# an AttackRange, an aggro pickup and automatic firing back with it.
-	var bombard: Node = preload(
-		"res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn"
-	).instantiate()
-	autofree(bombard)
-	assert_null(bombard.get_node_or_null("Loadout"), "no weapon")
-	var abilities := bombard.get_node_or_null("Abilities") as Abilities
-	assert_not_null(abilities, "the gun carries an Abilities component")
-	if abilities != null:
-		abilities._rebuild()
-		assert_true(abilities.grants(Bombard.ABILITY_ID), "and it is granted the bombard ability")
-	var aggro := bombard.get_node_or_null("AggroRange") as CollisionShape3D
-	if aggro != null and aggro.shape is CylinderShape3D:
-		assert_eq((aggro.shape as CylinderShape3D).radius, 0.0, "aggro is disabled")

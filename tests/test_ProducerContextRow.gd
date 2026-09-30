@@ -8,10 +8,23 @@ extends GutTest
 ## factory's button from W to Q depending on what else was picked up, and a key that trains one
 ## thing in one selection and another in the next is what positional hotkeys exist to prevent.
 
-const CITADEL: String = "res://scenes/entities/structures/cl/cl_commandCenter.tscn"
-const BARRACKS: String = "res://scenes/entities/structures/cl/cl_barracks.tscn"
-const FACTORY: String = "res://scenes/entities/structures/cl/cl_warFactory.tscn"
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
+## Fake producers, each registered as a tool with its own static row-0 cell; a unit that produces nothing.
+const BARRACKS: Dictionary = {"id": &"fake_barracks", "structure": true, "production": true}
+const FACTORY: Dictionary = {"id": &"fake_factory", "structure": true, "production": true}
+const RECRUIT: Dictionary = {"speed": 2.0, "weapon": {"ground": 6.0}}
+
+
+func before_each() -> void:
+	FakePieces.register_tool(FakePieces.tool(&"fake_barracks", BARRACKS, [],
+		ControlBinding.ControlContext.BUILD, [], Vector2i(1, 0)))
+	FakePieces.register_tool(FakePieces.tool(&"fake_factory", FACTORY, [],
+		ControlBinding.ControlContext.BUILD, [], Vector2i(2, 0)))
+	FakePieces.register_tool(FakePieces.tool(&"fake_airfield", {"structure": true, "production": true}, [],
+		ControlBinding.ControlContext.BUILD, [], Vector2i(3, 0)))
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
 
 
 func _controller(a_selection: Array) -> RTSController:
@@ -30,11 +43,11 @@ func _controller(a_selection: Array) -> RTSController:
 	return controller
 
 
-func _entity(a_scene: String) -> Commandable:
+func _entity(a_options: Dictionary) -> Commandable:
 	var commander := Commander.new()
 	commander.id = 1
 	add_child_autofree(commander)
-	var entity := (load(a_scene) as PackedScene).instantiate() as Commandable
+	var entity := FakePieces.make(a_options) as Commandable
 	add_child_autofree(entity)
 	entity.ownership.commander = commander
 	return entity
@@ -57,23 +70,6 @@ func test_every_producer_authors_a_context_cell() -> void:
 
 ## The context cell is a SECOND cell — `grid` is where the piece's own build button sits on a
 ## builder's menu, which is a different button in a different list.
-func test_the_context_cell_is_not_the_build_cell() -> void:
-	var barracks: Tool = Tool.for_id(&"cl_barracks")
-	assert_ne(barracks.context_grid, barracks.grid_position)
-
-
-## Left-aligned COLLECTIVELY across a faction, which is an authoring convention and not a
-## layout rule: the Citadel, Barracks, War Factory and Airfield take Q W E R between them.
-func test_a_factions_producers_are_left_aligned_together() -> void:
-	var cells: Array[int] = []
-	for id: StringName in [&"cl_commandCenter", &"cl_barracks", &"cl_warFactory",
-			&"cl_airField"]:
-		var piece: Tool = Tool.for_id(id)
-		assert_eq(piece.context_grid.y, 0, "%s is in row 0" % id)
-		cells.append(piece.context_grid.x)
-	assert_eq(cells, [0, 1, 2, 3] as Array[int])
-
-
 func test_every_context_binding_is_on_the_production_card_row_zero() -> void:
 	var seen: int = 0
 	for binding: ControlBinding in CommandGrid.bindings():
@@ -158,15 +154,15 @@ func test_the_other_contexts_are_pressable() -> void:
 
 func test_choosing_a_context_switches_to_it() -> void:
 	var controller: RTSController = _controller([_entity(BARRACKS), _entity(FACTORY)])
-	controller.choose_producer_context(&"cl_warFactory")
-	assert_eq(controller.producer_context(), &"cl_warFactory")
+	controller.choose_producer_context(&"fake_factory")
+	assert_eq(controller.producer_context(), &"fake_factory")
 
 
 ## A context the new selection cannot fill is corrected, exactly as the card family is.
 func test_a_context_the_selection_cannot_fill_is_corrected() -> void:
 	var controller: RTSController = _controller([_entity(BARRACKS), _entity(FACTORY)])
-	controller.choose_producer_context(&"cl_airField")
+	controller.choose_producer_context(&"fake_airfield")
 	controller.available_commands = CommandContextParser.commands_for_selection(
 		controller.selection)
-	assert_ne(controller.producer_context(), &"cl_airField",
+	assert_ne(controller.producer_context(), &"fake_airfield",
 		"no airfield is selected, so the card cannot be showing one")

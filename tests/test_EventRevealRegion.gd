@@ -10,7 +10,8 @@ extends GutTest
 ## than the resulting fog texture, which needs a Map and a physics frame to rebuild. The fog
 ## itself is exercised by test_ScoutVision.
 
-const SCOUT: PackedScene = preload("res://scenes/entities/nt_aircraftLight_recon.tscn")
+## A watcher: a fake piece with a vision cylinder.
+const SCOUT: Dictionary = {"vision": 12.0}
 const GROUP: StringName = &"test_reveal_targets"
 
 var _event: EventRevealRegion
@@ -89,7 +90,7 @@ func test_an_empty_group_reveals_nothing() -> void:
 
 func test_the_area_is_a_cylinder_of_the_configured_radius() -> void:
 	_event.radius = 10.0
-	var scout: Commandable = SCOUT.instantiate()
+	var scout: Commandable = FakePieces.unit(SCOUT)
 	add_child_autofree(scout)
 	_event._resize_vision(scout)
 	assert_almost_eq(_vision_shape(scout).radius, 10.0, 0.001)
@@ -99,16 +100,18 @@ func test_resizing_one_area_does_not_resize_the_scout_scene() -> void:
 	# A PackedScene's sub-resources are SHARED across its instances, so writing the radius in
 	# place would resize the Radar Scan sanction's scouts and every other reveal along with
 	# this one. _resize_vision duplicates the shape first.
-	var pristine: Commandable = SCOUT.instantiate()
-	var original: float = _vision_shape(pristine).radius
-	pristine.free()
+	# Two instances sharing ONE shape resource, as two instances of one scene do.
+	var shared := CylinderShape3D.new()
+	shared.radius = 12.0
+	var original: float = shared.radius
+	var resized: Commandable = FakePieces.unit(SCOUT)
+	(resized.get_node("VisionRange") as CollisionShape3D).shape = shared
+	var untouched: Commandable = FakePieces.unit(SCOUT)
+	(untouched.get_node("VisionRange") as CollisionShape3D).shape = shared
 
 	_event.radius = 99.0
-	var resized: Commandable = SCOUT.instantiate()
 	add_child_autofree(resized)
 	_event._resize_vision(resized)
-
-	var untouched: Commandable = SCOUT.instantiate()
 	add_child_autofree(untouched)
 	assert_almost_eq(_vision_shape(resized).radius, 99.0, 0.001, "this one grew")
 	assert_almost_eq(_vision_shape(untouched).radius, original, 0.001, "the scene did not")

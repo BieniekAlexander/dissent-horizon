@@ -25,8 +25,27 @@ class _StubBar extends EconomyBar:
 		return Color.WHITE
 
 
+func before_each() -> void:
+	FakePieces.install_families([{"id": _PROVIDER_VARIANT, "footprint": Vector2i(2, 2),
+		"infrastructure": _PROVIDER_GRANT}])
+	FakePieces.register_tool(FakePieces.tool(_UNIT_TYPE, FakePieces.PLAIN, [],
+		ControlBinding.ControlContext.TRAIN))
+	FakePieces.register_tool(FakePieces.tool(_PROVIDER_TYPE, {"structure": true,
+		"dimensions": Vector2i(2, 2)}, [_PROVIDER_VARIANT]))
+	FakePieces.register_tool(FakePieces.tool(_CONSUMER_TYPE, {"structure": true,
+		"dimensions": Vector2i(2, 2), "infrastructure": -_CONSUMER_DRAW}))
+
+
+func after_each() -> void:
+	FakePieces.restore_families()
+	FakePieces.restore_tools()
+
+
 func _make_commander(a_energy: int = 0, a_dominion: int = 0) -> Commander:
 	var commander := autofree(Commander.new()) as Commander
+	commander.technology_mapping = {_UNIT_TYPE: FakePieces.tech(_IRREGULAR_ENERGY_COST),
+		_PROVIDER_TYPE: FakePieces.tech(), _PROVIDER_VARIANT: FakePieces.tech(),
+		_CONSUMER_TYPE: FakePieces.tech(_CONSUMER_ENERGY_COST)}
 	commander.energy = a_energy
 	commander.dominion = a_dominion
 	return commander
@@ -141,20 +160,20 @@ func test_nothing_hovered_or_armed_previews_nothing() -> void:
 
 func test_an_armed_tool_previews_with_nothing_hovered() -> void:
 	var controller := _arming(_IRREGULAR_COMMAND)
-	assert_eq(controller.previewed_tool().type, StringName("an_bioLight_builder"))
+	assert_eq(controller.previewed_tool().type, _UNIT_TYPE)
 
 
 func test_a_hovered_tool_previews_with_nothing_armed() -> void:
 	var controller := _hovering(_IRREGULAR_COMMAND)
-	assert_eq(controller.previewed_tool().type, StringName("an_bioLight_builder"))
+	assert_eq(controller.previewed_tool().type, _UNIT_TYPE)
 
 
 func test_hovering_a_different_tool_than_the_armed_one_previews_only_the_hover() -> void:
 	var controller := _arming(_IRREGULAR_COMMAND)  # armed: Irregular
 	var button := autofree(Control.new()) as Control
-	button.name = "command_tool_an_infrastructure"  # hovered: Safehouse
+	button.name = _PROVIDER_COMMAND  # hovered: Safehouse
 	controller.hovered_command_button = button
-	assert_eq(controller.previewed_tool().type, StringName("an_infrastructure"),
+	assert_eq(controller.previewed_tool().type, _PROVIDER_TYPE,
 		"the hover wins outright — never both, never a sum of the two costs")
 
 
@@ -165,7 +184,7 @@ func test_hovering_a_verb_falls_through_to_the_armed_tool() -> void:
 	var button := autofree(Control.new()) as Control
 	button.name = "command_attack"
 	controller.hovered_command_button = button
-	assert_eq(controller.previewed_tool().type, StringName("an_bioLight_builder"))
+	assert_eq(controller.previewed_tool().type, _UNIT_TYPE)
 
 
 # --- EnergyBar --------------------------------------------------------------------
@@ -204,8 +223,20 @@ func test_energy_past_the_threshold_oscillates() -> void:
 ## here (rather than only through _StubBar) is what proves _previewed_tool()/_hovered_spec()
 ## actually resolve a live command name to a real cost, not just that the maths is right once
 ## a cost is handed to it.
-const _IRREGULAR_COMMAND: String = "command_tool_an_bioLight_builder"
+## Three fake purchases, registered as real tools for the duration of each test: a unit (100
+## energy), a provider of infrastructure (a structure with one variant), and a consumer that costs
+## a lot of energy and draws infrastructure down.
+const _UNIT_TYPE: StringName = &"fake_unit"
+const _PROVIDER_TYPE: StringName = &"fake_provider"
+const _PROVIDER_VARIANT: StringName = &"fake_provider_variant"
+const _CONSUMER_TYPE: StringName = &"fake_consumer"
+const _IRREGULAR_COMMAND: String = "command_tool_fake_unit"
+const _PROVIDER_COMMAND: String = "command_tool_fake_provider"
+const _CONSUMER_COMMAND: String = "command_tool_fake_consumer"
 const _IRREGULAR_ENERGY_COST: int = 100
+const _CONSUMER_ENERGY_COST: int = 1000
+const _PROVIDER_GRANT: int = 50
+const _CONSUMER_DRAW: int = 40
 
 
 func test_hovering_an_affordable_unit_previews_its_cost() -> void:
@@ -251,7 +282,7 @@ func test_hovering_a_different_purchase_overrides_an_armed_one_never_sums_them()
 	bar.commander = commander
 	var controller := _arming(_IRREGULAR_COMMAND)  # armed: 100 energy
 	var button := autofree(Control.new()) as Control
-	button.name = "command_tool_an_barracks"  # hovered: 1000 energy — a different cost
+	button.name = _CONSUMER_COMMAND  # hovered: 1000 energy — a different cost
 	controller.hovered_command_button = button
 	bar.controller = controller
 	var regions: Array[Dictionary] = bar._preview_regions()
@@ -260,7 +291,7 @@ func test_hovering_a_different_purchase_overrides_an_armed_one_never_sums_them()
 	# consumed] + [hover cost missing] added together.
 	assert_almost_eq(regions[0].start_frac, 500.0 / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
 		0.001)
-	assert_almost_eq(regions[0].end_frac, 1000.0 / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
+	assert_almost_eq(regions[0].end_frac, float(_CONSUMER_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
 		0.001)
 
 
@@ -440,10 +471,10 @@ func test_hovering_a_provider_previews_added_spare_capacity() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
 	var commander := _make_commander()  # required 0, provided BASE_INFRASTRUCTURE (100)
 	bar.commander = commander
-	bar.controller = _hovering("command_tool_an_infrastructure")
+	bar.controller = _hovering(_PROVIDER_COMMAND)
 	# The provider's grant is its DEFAULT variant's (variants:), so read it there rather than
 	# pinning a number the owner retunes.
-	var grant: int = PieceFamilies.template(Tool.for_name("command_tool_an_infrastructure").variants[0]).infrastructure
+	var grant: int = PieceFamilies.template(Tool.for_name(_PROVIDER_COMMAND).variants[0]).infrastructure
 	assert_gt(grant, 0)
 	assert_eq(bar._hovered_infrastructure_delta(), grant)
 	var regions: Array[Dictionary] = bar._preview_regions()
@@ -456,16 +487,19 @@ func test_hovering_a_provider_previews_added_spare_capacity() -> void:
 
 func test_hovering_a_consumer_previews_drawdown_within_spare_capacity() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
-	var commander := _make_commander()  # required 0, provided 100 — the Redoubt's 40 fits
+	var commander := _make_commander()  # required 0, provided 100 — the draw must fit
 	bar.commander = commander
-	bar.controller = _hovering("command_tool_an_barracks")
-	assert_eq(bar._hovered_infrastructure_delta(), -40)
+	bar.controller = _hovering(_CONSUMER_COMMAND)
+	# The draw is the piece's own, read rather than pinned: it is a number the owner retunes.
+	var draw: int = -bar._hovered_infrastructure_delta()
+	assert_gt(draw, 0, "a consumer draws infrastructure down")
+	assert_lt(draw, 100, "guards the fixture: it fits inside the spare capacity")
 	var regions: Array[Dictionary] = bar._preview_regions()
 	assert_eq(regions.size(), 1, "the whole increment still fits inside existing spare capacity")
 	assert_eq(regions[0].color, bar._dimmed(InfrastructureBar.USED_COLOR))
 	var capacity: float = bar._capacity()
 	assert_almost_eq(regions[0].start_frac, 0.0, 0.001)
-	assert_almost_eq(regions[0].end_frac, 40.0 / capacity, 0.001)
+	assert_almost_eq(regions[0].end_frac, float(draw) / capacity, 0.001)
 
 
 func test_hovering_a_consumer_that_would_cause_a_deficit_previews_it_steadily() -> void:
@@ -473,7 +507,7 @@ func test_hovering_a_consumer_that_would_cause_a_deficit_previews_it_steadily() 
 	var commander := _make_commander()
 	commander.add_infrastructure(-90)  # required 90, provided 100 — only 10 spare left
 	bar.commander = commander
-	bar.controller = _hovering("command_tool_an_barracks")  # -40, more than the 10 left
+	bar.controller = _hovering(_CONSUMER_COMMAND)  # -40, more than the 10 left
 	var regions: Array[Dictionary] = bar._preview_regions()
 	assert_eq(regions.size(), 2, "part still fits in spare, part is a genuine preview deficit")
 	assert_eq(regions[0].color, bar._dimmed(InfrastructureBar.USED_COLOR))
@@ -627,14 +661,13 @@ func _make_tasked_commander() -> Commander:
 	world.add_child(commander)
 	commander.set_physics_process(false)
 
-	var shelter: Entity = load("res://scenes/entities/structures/nt/nt_shelter.tscn").instantiate()
+	var shelter: Entity = FakePieces.make(FakePieces.SHELTER)
 	world.add_child(shelter)
 	shelter.set_physics_process(false)
 	shelter.top_level = true
 	(shelter.get_node("Shelter") as Shelter).spawn_interval = 10.0
 
-	var compound: Commandable = load(
-		"res://scenes/entities/structures/cl/cl_infrastructure.tscn").instantiate()
+	var compound: Commandable = FakePieces.make(FakePieces.COMPOUND) as Commandable
 	world.add_child(compound)
 	compound.set_physics_process(false)
 	compound.top_level = true
@@ -643,8 +676,7 @@ func _make_tasked_commander() -> Commander:
 	compound.garrison.capacity = 100
 	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).dominion_per_unit = 2
 
-	var truck: Commandable = load(
-		"res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn").instantiate()
+	var truck: Commandable = FakePieces.make(FakePieces.TRUCK) as Commandable
 	world.add_child(truck)
 	truck.set_physics_process(false)
 	truck.top_level = true

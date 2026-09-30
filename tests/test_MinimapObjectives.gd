@@ -11,7 +11,7 @@ extends GutTest
 ## would have computed and then drive the objective pass directly — the part under test is the
 ## stamping, not the bounds maths (which the terrain tests already cover).
 
-const UNIT: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
+const UNIT: Dictionary = FakePieces.PLAIN
 
 ## Half-extents of the pretend map, in world units. 96 wide over 192 pixels = 0.5 world units
 ## per pixel, which keeps the pixel arithmetic in these tests easy to read.
@@ -77,7 +77,7 @@ func test_nothing_is_stamped_when_nothing_is_highlighted() -> void:
 
 
 func test_a_marked_entity_gets_a_green_ring() -> void:
-	var unit: Commandable = UNIT.instantiate()
+	var unit: Commandable = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	unit.global_position = Vector3.ZERO
 	var entities: Array[Entity] = [unit]
@@ -95,7 +95,7 @@ func test_a_marked_entity_gets_a_green_ring() -> void:
 func test_the_ring_is_hollow_so_the_team_dot_shows_through() -> void:
 	# The marker says "this one matters", not "this one is green" — ownership must stay
 	# readable underneath it.
-	var unit: Commandable = UNIT.instantiate()
+	var unit: Commandable = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	unit.global_position = Vector3.ZERO
 	var entities: Array[Entity] = [unit]
@@ -143,7 +143,7 @@ func test_the_region_outline_is_continuous() -> void:
 func test_markers_use_the_highlights_own_colour() -> void:
 	# The minimap reads each highlight's colour rather than assuming green, so a highlight
 	# that means something other than "objective" still agrees with its world markers.
-	var unit: Commandable = UNIT.instantiate()
+	var unit: Commandable = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	unit.global_position = Vector3.ZERO
 	var entities: Array[Entity] = [unit]
@@ -157,7 +157,7 @@ func test_markers_use_the_highlights_own_colour() -> void:
 
 
 func test_entities_that_left_the_world_are_not_stamped() -> void:
-	var unit: Commandable = UNIT.instantiate()
+	var unit: Commandable = FakePieces.unit(UNIT)
 	add_child(unit)
 	unit.global_position = Vector3.ZERO
 	var entities: Array[Entity] = [unit]

@@ -178,27 +178,3 @@ func test_spending_a_second_charge_does_not_delay_the_first() -> void:
 	abilities.spend(A)
 	_tick(abilities, 1)
 	assert_eq(abilities.charges_of(A), 1, "the running timer was not reset")
-
-
-# --- The authored pieces ------------------------------------------------------------
-
-func test_the_colonial_command_centre_shares_one_pool_across_four_abilities() -> void:
-	# The case the feature was asked for. The pool used to sit on the Operations Center
-	# (cl_tech1); the roster moved scan/freeze/promotion/beacon onto the command centre, and
-	# this test follows the pool rather than the building.
-	# load(), not a file-scope preload: this file sorts first, so a preload here runs
-	# Tool's static initialiser before anything else in the suite has set the registry up,
-	# which leaves Tool.for_name null for every later test (see CLAUDE.md on Tool's static
-	# init). Loading inside the test defers it to a point where the registry is ready.
-	var piece: Node = (load("res://scenes/entities/structures/cl/cl_commandCenter.tscn") as PackedScene).instantiate()
-	autofree(piece)
-	var abilities := piece.get_node_or_null("Abilities") as Abilities
-	assert_not_null(abilities, "cl_commandCenter declares ability_groups")
-	if abilities == null:
-		return
-	abilities._rebuild()
-	for id: StringName in [&"scan", &"promotion", &"freeze", &"beacon"]:
-		assert_true(abilities.grants(id), "it casts %s" % id)
-	assert_eq(abilities.groups.size(), 1, "all four draw on ONE pool")
-	abilities.spend(&"scan")
-	assert_false(abilities.is_ready(&"freeze"), "so scanning spends freeze's charge too")

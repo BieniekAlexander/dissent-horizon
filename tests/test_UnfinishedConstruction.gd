@@ -7,17 +7,18 @@ extends GutTest
 ## out the moment it finishes, which is what makes "queue work at this building while it
 ## goes up" mean anything.
 ##
-## The bug this was written for: a `cl_defense_antiAircraft` shot down aircraft while it
+## The bug this was written for: an anti-aircraft turret shot down aircraft while it
 ## was still a 10%-health foundation.
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_UnfinishedConstruction.gd -gexit
 
-const SAM: PackedScene = preload("res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn")
+## A gun-carrying structure that sees.
+const SAM: Dictionary = {"structure": true, "vision": 10.0, "weapon": {"air": 8.0}}
 
 
 func _sam(a_built: bool) -> Commandable:
-	var turret: Commandable = SAM.instantiate()
+	var turret: Commandable = FakePieces.make(SAM)
 	add_child_autofree(turret)
 	turret.top_level = true
 	turret.build_progress = 1.0 if a_built else Commandable.INITIAL_BUILD_PROGRESS
@@ -35,9 +36,7 @@ func test_a_unit_is_always_built() -> void:
 	# is_built is group-keyed: only members of "structure" have construction to finish, so
 	# the gate is inert for everything else — including a unit whose build_progress was
 	# never touched.
-	var unit: Commandable = preload(
-		"res://scenes/entities/units/an/an_bioLight_builder.tscn"
-	).instantiate()
+	var unit: Commandable = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(unit)
 	assert_true(unit.is_built)
 
@@ -58,10 +57,10 @@ func test_finishing_construction_turns_its_vision_on() -> void:
 func test_a_commander_counts_only_finished_structures_as_eyes() -> void:
 	var commander := Commander.new()
 	add_child_autofree(commander)
-	var foundation: Commandable = SAM.instantiate()
+	var foundation: Commandable = FakePieces.make(SAM)
 	foundation.build_progress = Commandable.INITIAL_BUILD_PROGRESS
 	commander.add_child(foundation)
-	var finished: Commandable = SAM.instantiate()
+	var finished: Commandable = FakePieces.make(SAM)
 	commander.add_child(finished)
 	assert_eq(commander._owned_vision_sources(), [finished])
 
@@ -102,16 +101,9 @@ func test_an_unfinished_garrison_admits_nobody() -> void:
 	# A building still going up has no inside to stand in. Checked on the Garrison rather
 	# than only in Occupy, so capture and deposit — which put units in WITHOUT consent —
 	# agree with the command that asks.
-	var host: Commandable = preload(
-		"res://scenes/entities/structures/an/an_infrastructure.tscn"
-	).instantiate()
+	var host: Commandable = FakePieces.structure({"garrison": {"capacity": 4}})
 	add_child_autofree(host)
-	if host.garrison == null:
-		pass_test("this piece has no garrison; nothing to check")
-		return
-	var occupant: Commandable = preload(
-		"res://scenes/entities/units/an/an_bioLight_builder.tscn"
-	).instantiate()
+	var occupant: Commandable = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(occupant)
 	host.build_progress = Commandable.INITIAL_BUILD_PROGRESS
 	assert_false(host.garrison.admits(occupant), "not while it is a foundation")

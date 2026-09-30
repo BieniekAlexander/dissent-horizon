@@ -14,9 +14,8 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_VariantBuild.gd -gexit
 
 const TOOL_NAME: String = "command_tool_an_infrastructure"
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const EXTRACTION_SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-
+const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": [&"an_infrastructure", &"fake_plain"]}
+const EXTRACTION_SITE_SCENE: Dictionary = FakePieces.BUILDING
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
@@ -69,9 +68,28 @@ var _world: Node3D
 var _map: StubMap
 var _commander: Commander
 var _neutral: Commander
+## The fake neutral-building family the tool's variants are drawn from, and a tool with none.
+const FAMILY: Array[Dictionary] = [
+	{"id": &"fake_nb_square", "family": &"neutral_building", "footprint": Vector2i(4, 4),
+		"options": {"garrison": {"capacity": 4}, "vision": 6.0}},
+	{"id": &"fake_nb_long", "family": &"neutral_building", "footprint": Vector2i(3, 5),
+		"options": {"garrison": {"capacity": 4}, "vision": 6.0}},
+]
+
+
+func after_each() -> void:
+	FakePieces.restore_families()
+	FakePieces.restore_tools()
 
 
 func before_each() -> void:
+	FakePieces.install_families(FAMILY)
+	var variants: Array[StringName] = [&"fake_nb_square", &"fake_nb_long"]
+	FakePieces.register_tool(FakePieces.tool(EntityIds.AN_INFRASTRUCTURE,
+		{"structure": true, "dimensions": Vector2i(4, 4),
+			"vision": 12.0, "garrison": {"capacity": 4, "frames": Garrison.FRAME_BIO}}, variants))
+	FakePieces.register_tool(FakePieces.tool(&"fake_plain",
+		{"structure": true, "dimensions": Vector2i(3, 3)}))
 	_world = Node3D.new()
 	_map = _make_map()
 	_world.add_child(_map)
@@ -87,6 +105,9 @@ func before_each() -> void:
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
 	_neutral.set_physics_process(false)
+	_commander.technology_mapping = {EntityIds.AN_INFRASTRUCTURE: FakePieces.tech(),
+		&"fake_plain": FakePieces.tech(), &"fake_nb_square": FakePieces.tech(20),
+		&"fake_nb_long": FakePieces.tech(30)}
 
 
 func _make_map() -> StubMap:
@@ -121,7 +142,7 @@ func _template(a_id: StringName) -> PieceFamilies.Template:
 ## A builder that may build the piece, standing at `a_at`.
 func _make_builder(a_at: Variant) -> Commandable:
 	var at: Vector2 = _xz(a_at)
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
 	builds.buildable_types = [_base_tool().type]
@@ -265,7 +286,7 @@ func test_each_variant_previews_under_its_own_key() -> void:
 
 
 func test_a_tool_of_a_piece_without_variants_is_unchanged_by_all_of_it() -> void:
-	var plain: Tool = Tool.for_name("command_tool_an_barracks")
+	var plain: Tool = Tool.for_name("command_tool_fake_plain")
 	assert_same(plain.resolved(), plain)
 	assert_same(plain.with_variant(3), plain)
 	assert_same(plain.next_variant(), plain)
@@ -535,7 +556,7 @@ func test_only_a_neutral_family_member_is_a_target() -> void:
 	var aim: Vector2 = VU.inXZ(building.global_position)
 	building.commander = _commander
 	assert_null(Build._conversion_target(_commander, _order(_base_tool(), aim)), "an owned building is not")
-	var site: Entity = load(EXTRACTION_SITE_SCENE).instantiate() as Entity
+	var site: Entity = FakePieces.make(EXTRACTION_SITE_SCENE) as Entity
 	_neutral.add_child(site)
 	site.initialize(_map, _neutral)
 	_dismiss_known_errors()

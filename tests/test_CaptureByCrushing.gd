@@ -17,12 +17,15 @@ extends GutTest
 ## before the registry exists, poisoning every test after it. See CLAUDE.md §Running and
 ## testing.
 
-const TRUCK_PATH := "res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn"
-const TERRESTRIAL_PATH := "res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn"
-const RECRUIT_PATH := "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
+## A crusher with a cage; light infantry; a machine as big as the crusher; a structure.
+const TRUCK_PATH: Dictionary = {"speed": 2.0, "crush": Movement.CrushClass.LARGE,
+	"garrison": {"capacity": 3, "bunker": false}}
+const TERRESTRIAL_PATH: Dictionary = {"speed": 1.0}
+const RECRUIT_PATH: Dictionary = {"speed": 1.0, "weapon": {"ground": 6.0}}
 ## A MECH-frame vehicle of the truck's own crush class — too big to run over, and not flesh.
-const VEHICLE_PATH := "res://scenes/entities/units/an/an_mechMedium_antiBio.tscn"
-const COMPOUND_PATH := "res://scenes/entities/structures/cl/cl_infrastructure.tscn"
+const VEHICLE_PATH: Dictionary = {"speed": 1.0, "frame": Defense.FrameType.MECH,
+	"armour": Defense.ArmourType.MEDIUM, "crush": Movement.CrushClass.LARGE}
+const COMPOUND_PATH: Dictionary = {"structure": true}
 
 const PLAYER: int = 1
 const ENEMY: int = 2
@@ -34,8 +37,8 @@ func _commanded(a_id: int) -> Commander:
 	add_child_autofree(c)
 	return c
 
-func _entity(a_path: String, a_commander_id: int) -> Commandable:
-	var e := (load(a_path) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var e: Commandable = FakePieces.structure(a_options) if a_options.has("structure") else FakePieces.unit(a_options)
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(a_commander_id)
 	return e

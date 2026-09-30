@@ -124,14 +124,10 @@ func test_an_unregistered_structure_has_no_neighbours() -> void:
 
 # --- What the passive is worth -----------------------------------------------------
 
-## A real Colonial structure (the SAM) placed on the grid and owned by `a_commander`, with
-## an Abilities pool bolted on. A shipped scene rather than bare nodes: Commandable's own
-## _ready validates the piece — an id, its required children — and a hand-built stand-in
-## fails all of it noisily without being any clearer.
+## A fake structure placed on the grid and owned by `a_commander`, with an Abilities pool
+## bolted on.
 func _structure(a_commander: Commander, a_origin: Vector2i, a_grants: Array) -> Commandable:
-	var piece: Commandable = load(
-		"res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
-	).instantiate()
+	var piece: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2)})
 	_world.add_child(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -145,12 +141,12 @@ func _structure(a_commander: Commander, a_origin: Vector2i, a_grants: Array) -> 
 	return piece
 
 
-## A real Compound placed on the grid and owned by `a_commander`. No occupants needed: the
+## A fake compound (a closed hold) placed on the grid and owned by `a_commander`. No occupants needed: the
 ## bonus is a flat per-completion event now, not scaled by how many are held.
 func _compound(a_commander: Commander, a_origin: Vector2i) -> Commandable:
-	var piece: Commandable = load(
-		"res://scenes/entities/structures/cl/cl_infrastructure.tscn"
-	).instantiate()
+	var piece: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2), "occupant_dominion": true,
+		"abilities": [{"grants": [Abilities.SUPPORT_ABILITY]}],
+		"garrison": {"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}})
 	_world.add_child(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -253,8 +249,8 @@ func test_a_piece_that_does_not_grant_work_detail_lends_nothing() -> void:
 	# A structure with a Garrison but no Work Detail grant — a plain shelter, say — must not
 	# start handing out the bonus just because something in it got consumed.
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
-	var plain := load("res://scenes/entities/structures/nt/nt_building_square.tscn").instantiate() \
-		as Commandable
+	var plain: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2),
+		"garrison": {"capacity": 4}})
 	_world.add_child(plain)
 	plain.set_physics_process(false)
 	plain.top_level = true

@@ -15,11 +15,11 @@ extends GutTest
 ##
 ## PATHS, not preloads (see CLAUDE.md).
 
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
+const RECRUIT: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {"ground": 6.0}}
+const IRREGULAR: Dictionary = {"speed": 2.0, "vision": 8.0}
 ## The Anarchical Stockpile: a structure with no weapons.
-const STOCKPILE: String = "res://scenes/entities/structures/an/an_tech1.tscn"
-const NEUTRAL_BUILDING: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
+const STOCKPILE: Dictionary = {"structure": true}  # unarmed
+const NEUTRAL_BUILDING: Dictionary = {"structure": true}
 
 const DEFENDER: int = 1
 const ENEMY: int = 2
@@ -36,8 +36,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _piece(a_scene: String, a_commander_id: int, a_at: Vector3) -> Entity:
-	var e := (load(a_scene) as PackedScene).instantiate() as Entity
+func _piece(a_options: Dictionary, a_commander_id: int, a_at: Vector3) -> Entity:
+	var e: Entity = FakePieces.structure(a_options) if a_options.has("structure") else FakePieces.unit(a_options)
 	add_child_autofree(e)
 	if a_commander_id != 0:
 		e.ownership.commander = _commander(a_commander_id)

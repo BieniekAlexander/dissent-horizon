@@ -55,9 +55,7 @@ func test_repair_is_blocked_by_stagger():
 ## affected — advance_build_progress writes hp directly.
 
 func _wounded_patient() -> Commandable:
-	var patient: Commandable = load(
-		"res://scenes/entities/units/an/an_bioLight_builder.tscn"
-	).instantiate()
+	var patient: Commandable = FakePieces.unit({"hp": 80.0})
 	add_child_autofree(patient)
 	patient.defense.hp = patient.defense.hp_max * 0.5
 	return patient

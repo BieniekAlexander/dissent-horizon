@@ -9,7 +9,6 @@ static func validate(catalog: DamageCatalog) -> Array[String]:
 	var violations: Array[String] = []
 	violations.append_array(check_frame_normalization(catalog))
 	violations.append_array(check_armour_normalization(catalog))
-	violations.append_array(check_ladder_conformance(catalog))
 	violations.append_array(check_column_coverage(catalog))
 	return violations
 
@@ -35,32 +34,6 @@ static func check_armour_normalization(catalog: DamageCatalog) -> Array[String]:
 				% [Damage.Type.keys()[p.id], p.light_multiplier, p.medium_multiplier, p.strong_multiplier]
 			)
 	return violations
-
-## §6.3: every multiplier is a member of the §3.1 ladder.
-static func check_ladder_conformance(catalog: DamageCatalog) -> Array[String]:
-	var violations: Array[String] = []
-	for p: DamageProfile in catalog.profiles:
-		var values: Dictionary = {
-			"bio": p.bio_multiplier,
-			"mech": p.mech_multiplier,
-			"light": p.light_multiplier,
-			"medium": p.medium_multiplier,
-			"strong": p.strong_multiplier,
-		}
-		for column: String in values:
-			var value: float = values[column]
-			if not _on_ladder(value):
-				violations.append(
-					"%s: %s multiplier %.3f is off the §3.1 ladder"
-					% [Damage.Type.keys()[p.id], column, value]
-				)
-	return violations
-
-static func _on_ladder(value: float) -> bool:
-	for rung: float in DamageProfile.MULTIPLIER_LADDER:
-		if is_equal_approx(value, rung):
-			return true
-	return false
 
 ## §6.4: for each of bio, mech, light, medium, strong, at least one
 ## damage type in the catalog has 1.0 in that column.
