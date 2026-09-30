@@ -19,6 +19,7 @@ extends RefCounted
 ##
 ## Options (every one optional):
 ##   id: StringName          the piece's `Entity.id` (default `&"fake_unit"`)
+##   infrastructure: int     `Commandable.infrastructure`: what it provides (+) or draws (-)
 ##   occupancy: int          `Entity.occupancy_size`, how much of a garrison it fills (default 1)
 ##   hp: float               `Defense.hp_max`
 ##   speed: float            gives it a navigated `Movement` at this speed (default: immobile)
@@ -148,6 +149,8 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	var piece := Commandable.new()
 	piece.name = "FakeStructure" if a_structure else "FakeUnit"
 	piece.id = a_options.get("id", &"fake_structure" if a_structure else &"fake_unit")
+	if a_options.has("infrastructure"):
+		piece.infrastructure = int(a_options["infrastructure"])
 	if a_options.has("occupancy"):
 		piece.occupancy_size = int(a_options["occupancy"])
 	piece.add_to_group(&"piece", true)
@@ -538,6 +541,8 @@ static func install_families(a_entries: Array[Dictionary]) -> void:
 		var options: Dictionary = (entry.get("options", {}) as Dictionary).duplicate()
 		options["id"] = template.id
 		options["structure"] = true
+		if template.infrastructure != 0:
+			options["infrastructure"] = template.infrastructure
 		options["dimensions"] = template.footprint
 		template.scene = scene_of(options)
 		table.templates[template.id] = template
