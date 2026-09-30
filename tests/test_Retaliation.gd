@@ -13,12 +13,11 @@ extends GutTest
 ## PATHS, not preloads (see CLAUDE.md). Every scene is a HARNESS: distances are set against
 ## reach buckets the test reads back, never against a number pinned here.
 
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const TURRET: String = "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn"
-const BADGER: String = "res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn"
-const SHELTER: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-
+const RECRUIT: Dictionary = FakePieces.SOLDIER
+const IRREGULAR: Dictionary = FakePieces.BUILDER
+const TURRET: Dictionary = FakePieces.BUILDING
+const BADGER: Dictionary = FakePieces.SOLDIER
+const SHELTER: Dictionary = FakePieces.BUILDING
 const OWN: int = 7
 const ENEMY: int = 8
 
@@ -42,8 +41,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _piece(a_scene: String, a_commander: Commander, a_at: Vector3) -> Commandable:
-	var p := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _piece(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Commandable:
+	var p := FakePieces.make(a_options) as Commandable
 	add_child_autofree(p)
 	p.ownership.commander = a_commander
 	p.global_position = a_at

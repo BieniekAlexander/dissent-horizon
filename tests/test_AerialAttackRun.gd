@@ -13,13 +13,11 @@ extends GutTest
 
 ## Paths, not preloads — a file-scope preload of an entity scene fires Tool's static
 ## registry initialiser at parse time (see CLAUDE.md).
-const DRAKE: String = "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn"
-const KAMIKAZE: String = "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn"
-const TANK: String = "res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn"
-const CLIPPER: String = "res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn"
-const SAM: String = "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
-
-
+const DRAKE: Dictionary = FakePieces.AIRCRAFT
+const KAMIKAZE: Dictionary = FakePieces.AIRCRAFT
+const TANK: Dictionary = FakePieces.SOLDIER
+const CLIPPER: Dictionary = FakePieces.AIRCRAFT
+const SAM: Dictionary = FakePieces.BUILDING
 func _commander(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
@@ -27,8 +25,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_scene: String, a_commander: Commander) -> Commandable:
-	var e := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e

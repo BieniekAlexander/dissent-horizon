@@ -13,11 +13,11 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_UnfinishedConstruction.gd -gexit
 
-const SAM: PackedScene = preload("res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn")
+const SAM: Dictionary = FakePieces.BUILDING
 
 
 func _sam(a_built: bool) -> Commandable:
-	var turret: Commandable = SAM.instantiate()
+	var turret: Commandable = FakePieces.make(SAM)
 	add_child_autofree(turret)
 	turret.top_level = true
 	turret.build_progress = 1.0 if a_built else Commandable.INITIAL_BUILD_PROGRESS
@@ -58,10 +58,10 @@ func test_finishing_construction_turns_its_vision_on() -> void:
 func test_a_commander_counts_only_finished_structures_as_eyes() -> void:
 	var commander := Commander.new()
 	add_child_autofree(commander)
-	var foundation: Commandable = SAM.instantiate()
+	var foundation: Commandable = FakePieces.make(SAM)
 	foundation.build_progress = Commandable.INITIAL_BUILD_PROGRESS
 	commander.add_child(foundation)
-	var finished: Commandable = SAM.instantiate()
+	var finished: Commandable = FakePieces.make(SAM)
 	commander.add_child(finished)
 	assert_eq(commander._owned_vision_sources(), [finished])
 

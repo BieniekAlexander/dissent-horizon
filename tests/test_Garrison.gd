@@ -13,23 +13,23 @@ extends GutTest
 ## a hold with every mask cleared still fills — that is what makes it a cage rather
 ## than a shelter.
 
-const SUPPLY_TRUCK := preload("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
-const COMPOUND := preload("res://scenes/entities/structures/cl/cl_infrastructure.tscn")
+const SUPPLY_TRUCK: Dictionary = FakePieces.PLAIN
+const COMPOUND: Dictionary = FakePieces.BUILDING
 ## A structure with an OPEN garrison, as the counterpart to the Compound's closed one.
 ## This was the Anarchical safehouse; that piece became `an_infrastructure`, which no
 ## longer carries a Garrison at all, so these tests use the neutral building instead — still
 ## an open garrison, and the thing the safehouse conversion upgrades FROM (see Build's
 ## conversion path).
-const OPEN_GARRISON := preload("res://scenes/entities/structures/nt/nt_building_square.tscn")
-const MERCURY := preload("res://scenes/entities/units/an/mercury.tscn")
-const RECRUIT := preload("res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn")
-const SERVANT := preload("res://scenes/entities/units/cl/cl_bioLight_builder.tscn")
-const TERRESTRIAL := preload("res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn")
+const OPEN_GARRISON: Dictionary = FakePieces.BUILDING
+const MERCURY: Dictionary = FakePieces.SOLDIER
+const RECRUIT: Dictionary = FakePieces.SOLDIER
+const SERVANT: Dictionary = FakePieces.BUILDER
+const TERRESTRIAL: Dictionary = FakePieces.PLAIN
 ## The size-2 occupant. Was `collective.tscn`, a scene that no longer exists — which made
 ## this whole FILE unparseable, and GUT skips (rather than fails) a test script it cannot
 ## parse, so every test here had been silently not running. See CLAUDE.md §6.4.
-const COLLECTIVE := preload("res://scenes/entities/units/an/an_mechStrong_transport.tscn")
-const CLIPPER := preload("res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn")
+const COLLECTIVE: Dictionary = FakePieces.PLAIN
+const CLIPPER: Dictionary = FakePieces.AIRCRAFT
 
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
@@ -39,8 +39,8 @@ func _commanded(a_id: int) -> Commander:
 
 ## A live entity instance owned by [a_commander_id]. Ownership is assigned directly (not
 ## through initialize) so no Map is needed, mirroring test_Interaction's helper.
-func _entity(a_scene: PackedScene, a_commander_id: int) -> Commandable:
-	var e := a_scene.instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(a_commander_id)
 	return e
@@ -132,7 +132,7 @@ func test_the_stock_truck_cage_admits_servants_and_nobody_else_by_order():
 	assert_null(truck.get_node_or_null("Inventory"), "the carried-items Inventory is gone")
 
 func test_the_compound_is_a_closed_hold_that_sentences_what_is_deposited():
-	var compound: Commandable = COMPOUND.instantiate()
+	var compound: Commandable = FakePieces.make(COMPOUND)
 	var hold: Garrison = compound.get_node("Garrison") as Garrison
 	assert_true(hold.is_closed(), "deposit is the only way in — nothing may be ordered into it")
 	assert_true(hold.occupiable_ids.is_empty(),
@@ -159,7 +159,7 @@ func test_an_empty_allowlist_restricts_nothing():
 	assert_true(g.admits(_entity(RECRUIT, 1)), "which means everyone the masks allow")
 
 func test_an_ordinary_garrison_is_not_closed():
-	var shelter: Commandable = OPEN_GARRISON.instantiate()
+	var shelter: Commandable = FakePieces.make(OPEN_GARRISON)
 	assert_false((shelter.get_node("Garrison") as Garrison).is_closed(),
 		"an ordinary garrison is shelter, not a prison")
 	shelter.free()
@@ -564,7 +564,7 @@ func test_an_event_authored_under_a_host_loads_its_garrison_at_scenario_start():
 	scenario.add_child(manager)
 	add_child_autofree(scenario)
 
-	var compound: Commandable = COMPOUND.instantiate()
+	var compound: Commandable = FakePieces.make(COMPOUND)
 	camp_commander.add_child(compound)
 	compound.map = map
 	compound.ownership.commander = camp_commander
@@ -599,7 +599,7 @@ func test_a_starting_event_under_a_host_is_not_run_twice():
 	scenario.add_child(manager)
 	add_child_autofree(scenario)
 
-	var truck: Commandable = SUPPLY_TRUCK.instantiate()
+	var truck: Commandable = FakePieces.make(SUPPLY_TRUCK)
 	commander.add_child(truck)
 	truck.map = map
 	truck.ownership.commander = commander

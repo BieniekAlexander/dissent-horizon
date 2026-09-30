@@ -22,15 +22,14 @@ extends GutTest
 ## They also pointed at res://scenes/entities/units/an/kamikaze.tscn, which was renamed out
 ## from under them: the const could then not be typed, the WHOLE FILE stopped parsing, and
 ## GUT skipped it in silence. Every test in here had been dead ever since.
-const AIRFIELD: String = "res://scenes/entities/structures/cl/cl_airField.tscn"
+const AIRFIELD: Dictionary = FakePieces.BUILDING
 ## A friendly aircraft with a CHARGED clip (it cannot reload in the field, so it wants a pad).
-const CLIPPER: String = "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn"
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
+const CLIPPER: Dictionary = FakePieces.AIRCRAFT
+const RECRUIT: Dictionary = FakePieces.SOLDIER
 ## An aircraft that opts out of airfields (Movement.docks) — expended on its first run, so
 ## there is nothing about a pad it could want. FLYING, so it passes every STRUCTURAL test
 ## for docking and is turned away purely on the flag.
-const KAMIKAZE: String = "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn"
-
+const KAMIKAZE: Dictionary = FakePieces.AIRCRAFT
 func _commander(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
@@ -39,8 +38,8 @@ func _commander(a_id: int) -> Commander:
 
 ## A live entity owned by `a_commander`. Ownership is assigned directly rather than through
 ## initialize() so no Map is needed — the same shortcut test_Garrison takes.
-func _entity(a_scene: String, a_commander: Commander) -> Commandable:
-	var e := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
+	var e := FakePieces.make(a_options) as Commandable
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e

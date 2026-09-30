@@ -6,11 +6,10 @@ extends GutTest
 ##
 ## PATHS, not preloads — a file-scope preload of an entity scene poisons the Tool registry.
 
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-const WALKER_SCENE: String = "res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn"
-const FLIER_SCENE: String = "res://scenes/entities/units/nt/nt_aircraftMedium_transport.tscn"
-
+const BUILDING_SCENE: Dictionary = FakePieces.BUILDING
+const SITE_SCENE: Dictionary = FakePieces.BUILDING
+const WALKER_SCENE: Dictionary = FakePieces.PLAIN
+const FLIER_SCENE: Dictionary = FakePieces.AIRCRAFT
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
 ## A cell well inside the map, with room around it for a 2×2 footprint.
@@ -74,8 +73,8 @@ func after_each() -> void:
 
 
 ## An out-of-tree instance, as the controller holds for the armed piece.
-func _source(a_scene: String) -> Entity:
-	var entity: Entity = load(a_scene).instantiate() as Entity
+func _source(a_options: Dictionary) -> Entity:
+	var entity: Entity = FakePieces.make(a_options) as Entity
 	_sources.append(entity)
 	return entity
 

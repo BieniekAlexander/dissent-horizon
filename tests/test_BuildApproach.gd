@@ -12,10 +12,9 @@ extends GutTest
 const EXTRACTOR_TOOL: String = "command_tool_nt_extractor"
 const ORDINARY_TOOL: String = "command_tool_an_barracks"
 const SAFEHOUSE_TOOL: String = "command_tool_an_infrastructure"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-
+const BUILDING_SCENE: Dictionary = FakePieces.BUILDING
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const SITE_SCENE: Dictionary = FakePieces.BUILDING
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
@@ -81,7 +80,7 @@ func _make_map() -> StubMap:
 ## Register an ExtractionSite occupying `a_dims` cells from `a_origin`, exactly as
 ## Map.add_structure would — the real host an Extractor overlays.
 func _occupy(a_origin: Vector2i, a_dims: Vector2i) -> Entity:
-	var host: Entity = load(SITE_SCENE).instantiate() as Entity
+	var host: Entity = FakePieces.make(SITE_SCENE) as Entity
 	_world.add_child(host)
 	var cells: Array[Vector2i] = []
 	for dx: int in a_dims.x:
@@ -96,7 +95,7 @@ func _occupy(a_origin: Vector2i, a_dims: Vector2i) -> Entity:
 
 
 func _make_builder(a_at: Vector3) -> Commandable:
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map
@@ -123,7 +122,7 @@ func _neutral_building(a_origin: Vector2i) -> Entity:
 	_world.add_child(neutral)
 	neutral.map = _map
 	neutral.set_physics_process(false)
-	var building: Entity = load(BUILDING_SCENE).instantiate() as Entity
+	var building: Entity = FakePieces.make(BUILDING_SCENE) as Entity
 	neutral.add_child(building)
 	building.initialize(_map, neutral)
 	for tracked in get_errors():

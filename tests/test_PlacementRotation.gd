@@ -13,8 +13,7 @@ extends GutTest
 const TOOL_NAME: String = "command_tool_an_infrastructure"
 ## The long neutral building the tool's second variant places.
 const LONG_DIMS: Vector2i = Vector2i(3, 5)
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
 const MAP_CORNERS: int = 41
 const GRID_CELLS: int = MAP_CORNERS - 1
 
@@ -60,7 +59,7 @@ func before_each() -> void:
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
 	_commander.technology_mapping[Tool.for_name(TOOL_NAME).type].required_structures = []
-	_builder = load(BUILDER_SCENE).instantiate() as Commandable
+	_builder = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(_builder)
 	(_builder.get_node("Builds") as Builds).buildable_types = [Tool.for_name(TOOL_NAME).type]
 	_builder.ownership.commander = _commander

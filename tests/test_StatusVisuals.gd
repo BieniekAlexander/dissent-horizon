@@ -226,8 +226,8 @@ func test_its_owner_still_sees_a_stealthed_unit_faintly() -> void:
 
 
 #region Capacity pips
-func _owned(a_path: String) -> Commandable:
-	var unit := (load(a_path) as PackedScene).instantiate() as Commandable
+func _owned(a_options: Dictionary) -> Commandable:
+	var unit := FakePieces.make(a_options) as Commandable
 	add_child_autofree(unit)
 	var player := Commander.new()
 	player.id = RTSController.PLAYER_COMMANDER_ID

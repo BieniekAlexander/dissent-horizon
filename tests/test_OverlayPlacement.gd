@@ -19,9 +19,8 @@ extends GutTest
 
 const SAFEHOUSE_TOOL: String = "command_tool_an_infrastructure"
 const EXTRACTOR_TOOL: String = "command_tool_nt_extractor"
-const BUILDING_SCENE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-const EXTRACTION_SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-
+const BUILDING_SCENE: Dictionary = FakePieces.BUILDING
+const EXTRACTION_SITE_SCENE: Dictionary = FakePieces.BUILDING
 ## Every piece in play here is 2×2 — the even footprint, which centres on a grid CORNER.
 const DIMS: Vector2i = Vector2i(2, 2)
 const CELLS: int = 16
@@ -122,8 +121,8 @@ func _dismiss_missing_flavor_text() -> void:
 
 ## A real entity of `scene`, owned by `owner_commander` and registered on the DIMS
 ## footprint at `origin` exactly as Map.add_structure would. Returns its world-space centre.
-func _place_scene(a_scene: String, a_owner_commander: Commander, a_origin: Vector2i) -> Vector2:
-	var entity: Entity = load(a_scene).instantiate() as Entity
+func _place_scene(a_options: Dictionary, a_owner_commander: Commander, a_origin: Vector2i) -> Vector2:
+	var entity: Entity = FakePieces.make(a_options) as Entity
 	a_owner_commander.add_child(entity)
 	entity.initialize(_map, a_owner_commander)
 	_dismiss_missing_flavor_text()

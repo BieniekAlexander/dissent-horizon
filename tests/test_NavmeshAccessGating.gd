@@ -25,8 +25,7 @@ const PRODUCTION_DIMS: Vector2i = Vector2i(3, 3)
 ## component — the "everything else" side of the rule-2 scoping.
 const PLAIN_TOOL: String = "command_tool_an_infrastructure"
 const PLAIN_DIMS: Vector2i = Vector2i(2, 2)
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
 ## Height-map corner count; the cell grid is one smaller in each axis. Large enough to hold
 ## three well-separated fixtures (a sealed 3x3 pocket, a sealed 2x2 pocket, and a walled
 ## corridor with a gap) with open ground between and around them.
@@ -123,7 +122,7 @@ func _seal_pocket(a_interior_origin: Vector2i, a_dims: Vector2i) -> void:
 
 
 func _make_builder() -> Commandable:
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map

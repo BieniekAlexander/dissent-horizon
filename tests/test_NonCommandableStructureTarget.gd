@@ -25,8 +25,8 @@ extends GutTest
 ## PATHS, not preloads — a file-scope preload of an entity scene poisons the Tool registry
 ## for the whole run (CLAUDE.md §A file-scope `preload`…).
 
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
+const SITE_SCENE: Dictionary = FakePieces.BUILDING
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
 const BUILD_TOOL: String = "command_tool_an_barracks"
 
 const GRID: int = 17
@@ -111,7 +111,7 @@ func _make_map() -> StubMap:
 
 ## A NEUTRAL ExtractionSite on the grid — the fixture the whole file is about.
 func _make_site() -> Entity:
-	var site: Entity = (load(SITE_SCENE) as PackedScene).instantiate() as Entity
+	var site: Entity = FakePieces.make(SITE_SCENE) as Entity
 	_world.add_child(site)
 	site.global_position = _map.grid_to_world(SITE_CELL)
 	_map.add_structure(site, VU.inXZ(site.global_position))
@@ -119,7 +119,7 @@ func _make_site() -> Entity:
 
 
 func _make_builder(a_cell: Vector2i) -> Commandable:
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
 	builds.buildable_types = [Tool.for_name(BUILD_TOOL).type]

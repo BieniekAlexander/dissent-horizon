@@ -38,6 +38,8 @@ extends RefCounted
 ##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
 ##   extraction_site: bool  an `ExtractionSite` marker (`structure()` only)
 ##   occupant_dominion: bool  an `OccupantDominionGenerator` (named "DominionGenerator")
+##   liberatable: bool       a `Liberatable`: neutral, it sits on the liberation layer
+##   liberator: bool         a `Liberator` converting into a blank unit, with a `LiberationRange`
 ##   shelter: bool          a `Shelter` component that spawns a blank unit
 ##   repairs: bool          a `Repairs` component: the piece can mend
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
@@ -56,6 +58,18 @@ const BUILDER: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": true}
 const PLAIN: Dictionary = {"speed": 2.0, "vision": 8.0}
 ## A structure with a hold.
 const BUILDING: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
+## A crusher-sized carrier with a cage and a DEPOSIT errand (no gun).
+const TRUCK: Dictionary = {"speed": 2.0, "vision": 8.0, "crush": Movement.CrushClass.LARGE,
+	"garrison": {"capacity": 3, "bunker": false}, "interactions": [Interaction.Type.DEPOSIT]}
+## A structure that spawns residents.
+const SHELTER: Dictionary = {"structure": true, "shelter": true}
+## A closed hold that sentences captives and banks dominion for them.
+const COMPOUND: Dictionary = {"structure": true, "occupant_dominion": true,
+	"garrison": {"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}}
+## A neutral structure that holds an extractor.
+const SITE: Dictionary = {"structure": true, "extraction_site": true}
+## A mobile machine (MECH frame).
+const MACHINE: Dictionary = {"speed": 2.0, "vision": 8.0, "frame": Defense.FrameType.MECH}
 ## A flying piece with a ground gun.
 const AIRCRAFT: Dictionary = {"aerial": true, "vision": 8.0, "weapon": {"ground": 6.0}}
 
@@ -125,6 +139,15 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		piece.add_to_group(&"extraction_site")
 	if a_options.get("occupant_dominion", false):
 		_add_node(piece, OccupantDominionGenerator.new(), "DominionGenerator")
+	if a_options.get("liberatable", false):
+		_add_node(piece, Liberatable.new(), "Liberatable")
+	if a_options.get("liberator", false):
+		var liberator := Liberator.new()
+		liberator.converted_scene = _blank_projectile()
+		_add_node(piece, liberator, "Liberator")
+		var reach := CollisionShape3D.new()
+		reach.shape = _cylinder(4.0)
+		_add_node(piece, reach, "LiberationRange")
 	if a_options.get("shelter", false):
 		var shelter := Shelter.new()
 		shelter.terrestrial_scene = _blank_projectile()

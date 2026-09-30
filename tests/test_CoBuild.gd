@@ -23,9 +23,7 @@ extends GutTest
 ## the active command on arrival regardless of whether can_act has become true.
 
 const BUILD_TOOL: String = "command_tool_an_barracks"
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
-
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
 class StubMap extends Map:
 	var placed: Array = []
 	func _ready() -> void:
@@ -94,7 +92,7 @@ func _make_map() -> StubMap:
 ## Veterancy, AvoidanceObstacle), so a hand-assembled stand-in errors its way through
 ## every frame. `buildable_types` is widened to the structure under test.
 func _make_builder(a_at: Vector2) -> Commandable:
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
 	builds.buildable_types = [Tool.for_name(BUILD_TOOL).type]

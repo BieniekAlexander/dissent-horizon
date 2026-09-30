@@ -14,9 +14,8 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_VariantBuild.gd -gexit
 
 const TOOL_NAME: String = "command_tool_an_infrastructure"
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const EXTRACTION_SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const EXTRACTION_SITE_SCENE: Dictionary = FakePieces.BUILDING
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
@@ -121,7 +120,7 @@ func _template(a_id: StringName) -> PieceFamilies.Template:
 ## A builder that may build the piece, standing at `a_at`.
 func _make_builder(a_at: Variant) -> Commandable:
 	var at: Vector2 = _xz(a_at)
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
 	builds.buildable_types = [_base_tool().type]
@@ -535,7 +534,7 @@ func test_only_a_neutral_family_member_is_a_target() -> void:
 	var aim: Vector2 = VU.inXZ(building.global_position)
 	building.commander = _commander
 	assert_null(Build._conversion_target(_commander, _order(_base_tool(), aim)), "an owned building is not")
-	var site: Entity = load(EXTRACTION_SITE_SCENE).instantiate() as Entity
+	var site: Entity = FakePieces.make(EXTRACTION_SITE_SCENE) as Entity
 	_neutral.add_child(site)
 	site.initialize(_map, _neutral)
 	_dismiss_known_errors()

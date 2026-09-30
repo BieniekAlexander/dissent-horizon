@@ -13,7 +13,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_SanctionPayloads.gd -gexit
 
-const UNIT_SCENE: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
+const UNIT_SCENE: Dictionary = FakePieces.BUILDER
 
 const OWN: int = 1
 const FOE: int = 2
@@ -58,7 +58,7 @@ func _commander(a_id: int) -> Commander:
 ## eligibility, which these tests do not exercise.
 func _unit(a_commander_id: int, a_at: Vector2, a_armour: Defense.ArmourType = Defense.ArmourType.LIGHT,
 		a_frame: Defense.FrameType = Defense.FrameType.BIO) -> Commandable:
-	var unit: Commandable = UNIT_SCENE.instantiate()
+	var unit: Commandable = FakePieces.make(UNIT_SCENE)
 	add_child_autofree(unit)
 	unit.top_level = true
 	unit.ownership.commander = _commander(a_commander_id)

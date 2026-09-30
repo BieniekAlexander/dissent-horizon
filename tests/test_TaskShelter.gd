@@ -16,10 +16,10 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_TaskShelter.gd -gexit
 
-const TRUCK := preload("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
-const SHELTER := preload("res://scenes/entities/structures/nt/nt_shelter.tscn")
-const COMPOUND := preload("res://scenes/entities/structures/cl/cl_infrastructure.tscn")
-const TERRESTRIAL := preload("res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn")
+const TRUCK: Dictionary = FakePieces.TRUCK
+const SHELTER: Dictionary = FakePieces.SHELTER
+const COMPOUND: Dictionary = FakePieces.COMPOUND
+const TERRESTRIAL: Dictionary = FakePieces.PLAIN
 
 var _world: Node3D
 var _commander: Commander
@@ -38,7 +38,7 @@ func before_each() -> void:
 ## naming `a_shelter` at sequence `a_sequence` — stamped directly, mirroring what
 ## RTSController.assign_command_to_units does at issue time.
 func _tasked_truck(a_shelter: Entity, a_position: Vector3, a_sequence: int) -> Commandable:
-	var truck: Commandable = TRUCK.instantiate()
+	var truck: Commandable = FakePieces.make(TRUCK)
 	_world.add_child(truck)
 	truck.set_physics_process(false)
 	truck.top_level = true
@@ -51,13 +51,13 @@ func _tasked_truck(a_shelter: Entity, a_position: Vector3, a_sequence: int) -> C
 
 
 func _shelter_with_residents(a_count: int) -> Entity:
-	var shelter: Entity = SHELTER.instantiate()
+	var shelter: Entity = FakePieces.make(SHELTER)
 	_world.add_child(shelter)
 	shelter.set_physics_process(false)
 	shelter.top_level = true
 	var comp := shelter.get_node("Shelter") as Shelter
 	for _i: int in a_count:
-		var resident: Commandable = TERRESTRIAL.instantiate()
+		var resident: Commandable = FakePieces.make(TERRESTRIAL)
 		_world.add_child(resident)
 		resident.top_level = true
 		comp.register(resident)
@@ -65,7 +65,7 @@ func _shelter_with_residents(a_count: int) -> Entity:
 
 
 func _compound(a_commander: Commander) -> Commandable:
-	var compound: Commandable = COMPOUND.instantiate()
+	var compound: Commandable = FakePieces.make(COMPOUND)
 	_world.add_child(compound)
 	compound.set_physics_process(false)
 	compound.top_level = true
@@ -210,7 +210,7 @@ func test_a_direct_player_order_clears_the_task_entirely() -> void:
 #region Precondition
 func test_meets_precondition_for_a_garrisoned_actor_and_a_shelter_target() -> void:
 	var shelter := _shelter_with_residents(0)
-	var truck: Commandable = TRUCK.instantiate()
+	var truck: Commandable = FakePieces.make(TRUCK)
 	_world.add_child(truck)
 	assert_eq(
 		TaskShelter.meets_precondition(truck, CommandMessage.new(null, shelter)),
@@ -219,9 +219,9 @@ func test_meets_precondition_for_a_garrisoned_actor_and_a_shelter_target() -> vo
 
 
 func test_meets_precondition_refuses_a_non_shelter_target() -> void:
-	var truck: Commandable = TRUCK.instantiate()
+	var truck: Commandable = FakePieces.make(TRUCK)
 	_world.add_child(truck)
-	var other: Commandable = TRUCK.instantiate()
+	var other: Commandable = FakePieces.make(TRUCK)
 	_world.add_child(other)
 	assert_ne(
 		TaskShelter.meets_precondition(truck, CommandMessage.new(null, other)),
@@ -231,7 +231,7 @@ func test_meets_precondition_refuses_a_non_shelter_target() -> void:
 
 func test_meets_precondition_refuses_an_actor_with_no_garrison() -> void:
 	var shelter := _shelter_with_residents(0)
-	var soldier: Commandable = TERRESTRIAL.instantiate()
+	var soldier: Commandable = FakePieces.make(TERRESTRIAL)
 	_world.add_child(soldier)
 	assert_ne(
 		TaskShelter.meets_precondition(soldier, CommandMessage.new(null, shelter)),
@@ -242,7 +242,7 @@ func test_meets_precondition_refuses_an_actor_with_no_garrison() -> void:
 
 ## A bare neutral Commandable, for filling a cage without caring who it is.
 func _entity(a_commander_id: int) -> Commandable:
-	var e := TERRESTRIAL.instantiate() as Commandable
+	var e := FakePieces.make(TERRESTRIAL) as Commandable
 	_world.add_child(e)
 	e.top_level = true
 	e.commander = _commanded(a_commander_id)

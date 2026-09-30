@@ -13,7 +13,7 @@ extends GutTest
 const TOOL_NAME: String = "command_tool_an_infrastructure"
 ## A tool whose piece has no variants, to prove re-pressing it is unchanged.
 const PLAIN_TOOL_NAME: String = "command_tool_an_barracks"
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
 const BUILD_COMMAND: String = "command_ability"
 
 const MAP_CORNERS: int = 17
@@ -79,7 +79,7 @@ func before_each() -> void:
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
 	_neutral.set_physics_process(false)
-	_builder = load(BUILDER_SCENE).instantiate() as Commandable
+	_builder = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(_builder)
 	var builds := _builder.get_node("Builds") as Builds
 	builds.buildable_types = [_base_tool().type, Tool.for_name(PLAIN_TOOL_NAME).type]

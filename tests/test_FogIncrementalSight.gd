@@ -15,8 +15,7 @@ extends GutTest
 ##
 ## PATHS, not preloads (see CLAUDE.md).
 
-const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
+const IRREGULAR: Dictionary = FakePieces.BUILDER
 const VIEWER: int = 3
 const OTHER: int = 4
 const SIZE_PX: int = 48
@@ -62,7 +61,7 @@ func _commander(a_id: int) -> Commander:
 
 
 func _unit(a_owner: Commander, a_at: Vector3) -> Commandable:
-	var u := (load(IRREGULAR) as PackedScene).instantiate() as Commandable
+	var u := FakePieces.make(IRREGULAR) as Commandable
 	add_child_autofree(u)
 	u.ownership.commander = a_owner
 	u.global_position = a_at

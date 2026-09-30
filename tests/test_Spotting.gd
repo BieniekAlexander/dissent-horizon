@@ -15,7 +15,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Spotting.gd -gexit
 
-const RECRUIT: PackedScene = preload("res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn")
+const RECRUIT: Dictionary = FakePieces.SOLDIER
 
 ## A Map that answers only the one question _raise_beacon asks. A real one needs a
 ## heightmap before terrain_height_at means anything, and none of that would make these
@@ -43,7 +43,7 @@ func after_each() -> void:
 
 ## A real Recruit — the piece granted Spot in the shipped roster.
 func _recruit(a_at: Vector2 = Vector2.ZERO) -> Commandable:
-	var unit: Commandable = RECRUIT.instantiate()
+	var unit: Commandable = FakePieces.make(RECRUIT)
 	_commander.add_child(unit)
 	autofree(unit)
 	unit.top_level = true

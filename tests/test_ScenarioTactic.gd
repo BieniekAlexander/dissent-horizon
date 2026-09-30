@@ -12,7 +12,7 @@ extends GutTest
 ## formation offsets) is EventIssueCommand's existing, separately-owned behaviour and needs
 ## no Map/navmesh fixture here.
 
-const UNIT: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
+const UNIT: Dictionary = FakePieces.BUILDER
 const GROUP: StringName = &"test_tactic_cluster"
 
 
@@ -45,7 +45,7 @@ func after_each() -> void:
 
 
 func _member(a_group: StringName = GROUP) -> Commandable:
-	var unit: Commandable = UNIT.instantiate()
+	var unit: Commandable = FakePieces.make(UNIT)
 	unit.add_to_group(a_group)
 	add_child_autofree(unit)
 	return unit

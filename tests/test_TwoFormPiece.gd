@@ -15,9 +15,8 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_TwoFormPiece.gd -gexit
 
-const PIECE_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const SITE_SCENE: String = "res://scenes/entities/structures/nt/nt_extractionSite.tscn"
-
+const PIECE_SCENE: Dictionary = FakePieces.BUILDER
+const SITE_SCENE: Dictionary = FakePieces.BUILDING
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
@@ -82,7 +81,7 @@ func _make_map() -> StubMap:
 
 ## The builder, given a one-cell footprint before it enters the tree, owned and on the map.
 func _two_form_piece() -> Commandable:
-	var piece: Commandable = load(PIECE_SCENE).instantiate() as Commandable
+	var piece: Commandable = FakePieces.make(PIECE_SCENE) as Commandable
 	var structure := Structure.new()
 	structure.name = "Structure"
 	piece.add_child(structure)
@@ -115,7 +114,7 @@ func test_a_site_with_no_opinion_spawns_it_mobile() -> void:
 
 
 func test_a_one_form_piece_has_one_form() -> void:
-	var site: Entity = load(SITE_SCENE).instantiate() as Entity
+	var site: Entity = FakePieces.make(SITE_SCENE) as Entity
 	autofree(site)
 	assert_false(site.has_two_forms())
 	assert_true(site.spawns_deployed(), "a fixture-only piece still deploys where it spawns")
@@ -166,7 +165,7 @@ func test_deploying_moves_it_between_the_groups_and_the_registry() -> void:
 
 func test_deploying_onto_an_occupied_cell_is_refused() -> void:
 	var piece := _two_form_piece()
-	var site: Entity = load(SITE_SCENE).instantiate() as Entity
+	var site: Entity = FakePieces.make(SITE_SCENE) as Entity
 	_world.add_child(site)
 	_map.cell_grid[DEPLOY_CELL.x][DEPLOY_CELL.y] = site
 	assert_false(piece.deploy(_deploy_center()))

@@ -11,12 +11,11 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_FootprintRotation.gd -gexit
 
-const LONG_SCENE: String = "res://scenes/entities/structures/nt/nt_building_long.tscn"
+const LONG_SCENE: Dictionary = FakePieces.BUILDING
 ## The an_infrastructure tool's second variant is the long (3×5) neutral building.
 const VARIANT_TOOL: String = "command_tool_an_infrastructure"
 const LONG_DIMS: Vector2i = Vector2i(3, 5)
-const BUILDER_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-
+const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
 const MAP_CORNERS: int = 41
 const GRID_CELLS: int = MAP_CORNERS - 1
 
@@ -83,7 +82,7 @@ func _world_for_origin(a_origin: Vector2i, a_dims: Vector2i) -> Vector2:
 
 
 func _long_building() -> Commandable:
-	var building: Commandable = load(LONG_SCENE).instantiate() as Commandable
+	var building: Commandable = FakePieces.make(LONG_SCENE) as Commandable
 	_world.add_child(building)
 	building.ownership.commander = _commander
 	building.map = _map
@@ -98,7 +97,7 @@ func _give_box_shape(a_piece: Commandable) -> void:
 
 
 func _make_builder() -> Commandable:
-	var builder: Commandable = load(BUILDER_SCENE).instantiate() as Commandable
+	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map

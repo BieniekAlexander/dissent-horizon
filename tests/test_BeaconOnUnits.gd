@@ -12,10 +12,10 @@ const FOE: int = 2
 
 ## Scenes are loaded inside the tests rather than preloaded at file scope (CLAUDE.md §A
 ## file-scope preload of an entity scene in a test can poison the whole run).
-const MECH_GROUND: String = "res://scenes/entities/units/cl/cl_mechMedium_antiMech.tscn"
-const MECH_AIR: String = "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn"
-const BIO_GROUND: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const STRUCTURE: String = "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
+const MECH_GROUND: Dictionary = FakePieces.SOLDIER
+const MECH_AIR: Dictionary = FakePieces.AIRCRAFT
+const BIO_GROUND: Dictionary = FakePieces.SOLDIER
+const STRUCTURE: Dictionary = FakePieces.BUILDING
 const SHELL: String = "res://scenes/entities/projectiles/cl/cannon_shell.tscn"
 
 
@@ -52,8 +52,8 @@ func _at(a_xz: Vector2) -> Vector3:
 	return Vector3(a_xz.x, 0.0, a_xz.y)
 
 
-func _piece(a_path: String, a_commander_id: int, a_xz: Vector2) -> Commandable:
-	var piece: Commandable = (load(a_path) as PackedScene).instantiate()
+func _piece(a_options: Dictionary, a_commander_id: int, a_xz: Vector2) -> Commandable:
+	var piece: Commandable = FakePieces.make(a_options)
 	_commander(a_commander_id).add_child(piece)
 	autofree(piece)
 	piece.top_level = true
