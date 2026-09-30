@@ -188,6 +188,9 @@ func _gui_input(a_event: InputEvent) -> void:
 		return
 	if a_event is InputEventMouseButton:
 		var mb: InputEventMouseButton = a_event as InputEventMouseButton
+		if _handle_armed_press(mb):
+			accept_event()
+			return
 		match mb.button_index:
 			MOUSE_BUTTON_MIDDLE:
 				# Middle click recentres the camera on the clicked world position
@@ -215,6 +218,24 @@ func _gui_input(a_event: InputEvent) -> void:
 	elif a_event is InputEventMouseMotion and _drag_selecting:
 		_drag_current_pixel = _event_pixel((a_event as InputEventMouseMotion).position)
 		accept_event()
+
+## While the controller has an order armed, a press of the pointer buttons means what the control
+## scheme says it does everywhere else (ControlScheme): the armed-issue button carries the order
+## out at the clicked world position and the armed-cancel button puts it down. Otherwise the
+## minimap's own reading stands — right click orders, left click box-selects. Only a PRESS is
+## taken, so a box-select begun before the order was armed still resolves on its release.
+## True when the press was taken.
+func _handle_armed_press(a_mb: InputEventMouseButton) -> bool:
+	if _controller == null or not a_mb.pressed or not _controller.is_command_armed():
+		return false
+	if ControlScheme.matches(a_mb, ControlScheme.ARMED_CANCEL):
+		_controller.disarm_command()
+		return true
+	if ControlScheme.matches(a_mb, ControlScheme.ARMED_ISSUE):
+		_controller.issue_command_at_world_position(_pixel_to_world(a_mb.position))
+		return true
+	return false
+
 
 func _process(_a_delta: float) -> void:
 	if not _ready_to_draw:

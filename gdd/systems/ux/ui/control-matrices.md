@@ -26,6 +26,26 @@ combination; where it says *leaks*, something else reads it that probably should
 | `isometric_camera_drag`             | MMB              | `RTSCamera3D._input`                                                                     |
 | `isometric_camera_zoom_in` / `_out` | wheel, `=` / `-` | `RTSCamera3D`                                                                            |
 
+**Armed-order scheme.** Unarmed, the two buttons never change: `world_select` selects and
+`command_issue` gives the default order. What they mean once an order is ARMED is a setting,
+`ControlScheme.Kind`, read through two actions the code uses instead of the buttons:
+
+| Action | `CLASSIC` sources it from | `ARMED_SWAP` sources it from |
+|---|---|---|
+| `command_armed_issue` — carry out the armed order | `command_issue` (RMB, `M`) | `world_select` (LMB) |
+| `command_armed_cancel` — put it down | `world_select` (LMB) | `command_issue` (RMB, `M`) |
+
+`ARMED_SWAP` is the scheme most RTS games use and is faster for players who know it; `CLASSIC` is
+the one this game shipped with and reads more naturally to a newcomer, so both stay. The default is
+hardcoded to `ARMED_SWAP` (`ControlScheme.active`); **TODO — read it from settings and expose it in
+the options menu**, when the game has either. `ControlScheme.apply` copies the source button's events
+onto the armed actions at startup and whenever `active` changes, so a rebinding of a button carries
+through. The armed actions ARE named `command_*`, so like `command_issue` they are handled in
+`RTSController._unhandled_input` ahead of the grid hotkey dispatcher. The minimap follows it too: while an order is armed, its
+armed-issue press orders at the clicked world point and its armed-cancel press puts the order
+down (`Minimap._handle_armed_press`); unarmed it keeps right click = order, left drag = box-select.
+Tests: `tests/test_ControlScheme.gd`, `tests/test_MinimapArmedClicks.gd`.
+
 **Placement rotation.** Two keys, only meaningful while a Build tool is armed:
 
 | Action | Key | Effect |
@@ -34,7 +54,7 @@ combination; where it says *leaks*, something else reads it that probably should
 | `rotate_right` | `]` | a quarter turn clockwise |
 
 Neither is named `command_*`: they turn a placement rather than order anything, so they stay out of
-the grid hotkey dispatcher, for the reason `modifier_narrow` does. With a tool armed `command_issue`
+the grid hotkey dispatcher, for the reason `modifier_narrow` does. With a tool armed `command_armed_issue`
 is also a GESTURE — press sets the structure down, drag turns it, release orders it — described in
 [construction](../../commands/construction.md) §Placing and turning a structure.
 
@@ -167,6 +187,11 @@ charged casters when it is ALL — so the rings and the order cannot come to dis
 `tests/test_CastArity.gd`.
 
 ### Left click is the universal CANCEL, and the card has three states
+
+*Under the default `ARMED_SWAP` scheme (§Armed-order scheme) the two buttons trade places while an
+order is armed: the RIGHT click is the cancel and the left issues. What follows describes
+`CLASSIC`, and every other reference in this note to a click that cancels or issues an armed order
+means the button its scheme sources.*
 
 **A left click anywhere on the map puts the armed order down** — the sub-mode, the tool and
 the sanction together (`RTSController.disarm_command`) — and does nothing else. It does not
