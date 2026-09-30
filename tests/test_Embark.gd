@@ -8,14 +8,11 @@ extends GutTest
 ## which one of several collects it, and that the masks question is asked in exactly one
 ## place (Occupy.host_admits) so the two directions of the mechanic cannot disagree.
 ##
-## Scenes are load()ed INSIDE the tests rather than preloaded at file scope — a file-scope
-## preload of an entity scene runs at parse time and can fire Tool's static registry build
-## before the registry exists, poisoning every test after it. See CLAUDE.md §Running and
-## testing.
+## Every piece is a fake (tests/_fake_pieces.gd).
 
-const TRANSPORT_PATH: Dictionary = FakePieces.PLAIN
+const TRANSPORT_PATH: Dictionary = {"speed": 2.0, "garrison": {"capacity": 4}}
 const SOLDIER_PATH: Dictionary = FakePieces.SOLDIER
-const OPEN_GARRISON_PATH: Dictionary = FakePieces.BUILDING
+const OPEN_GARRISON_PATH: Dictionary = {"structure": true, "garrison": {"capacity": 4}}
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id

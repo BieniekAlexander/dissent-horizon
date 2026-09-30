@@ -12,9 +12,11 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_MapOccupancy.gd -gexit
 
-const SITE_SCENE: Dictionary = FakePieces.BUILDING
-const EXTRACTOR_SCENE: Dictionary = FakePieces.BUILDING
-const BUILDING_SCENE: Dictionary = FakePieces.BUILDING
+## A walkable feature that occupies its cells without obstructing them.
+const SITE_SCENE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false,
+	"dimensions": Vector2i(2, 2)}
+const EXTRACTOR_SCENE: Dictionary = {"structure": true, "extractor": true, "dimensions": Vector2i(2, 2)}
+const BUILDING_SCENE: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1

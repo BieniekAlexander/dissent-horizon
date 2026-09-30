@@ -37,6 +37,7 @@ extends RefCounted
 ##                             frames / armours / movements: int masks, ids: Array
 ##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
 ##   flying: bool            `Movement.mode` FLYING rather than HOVERING (needs `aerial`)
+##   extractor: bool         an `EnergyExtractor` and `Extractor`: built over an extraction site, it works it
 ##   production: bool       a `Production` component (a producer)
 ##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
 ##   extraction_site: bool  an `ExtractionSite` marker (`structure()` only)
@@ -105,6 +106,7 @@ static func feature(a_options: Dictionary = {}) -> Entity:
 	_add_node(piece, defense, "Defense")
 	var body := Structure.new()
 	body.dimensions = a_options.get("dimensions", Vector2i(1, 1))
+	body.is_obstruction = bool(a_options.get("obstruction", true))
 	_add_node(piece, body, "Structure")
 	if a_options.get("extraction_site", false):
 		_add_node(piece, ExtractionSite.new(), "ExtractionSite")
@@ -213,6 +215,9 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		_add_node(piece, Stealth.new(), "Stealth")
 	if a_options.get("status_visuals", false):
 		_add_node(piece, StatusVisuals.new(), "StatusVisuals")
+	if a_options.get("extractor", false):
+		_add_node(piece, EnergyExtractor.new(), "EnergyExtractor")
+		_add_node(piece, Extractor.new(), "Extractor")
 	if a_options.get("production", false):
 		_add_node(piece, Production.new(), "Production")
 	if a_options.get("docking", false):
