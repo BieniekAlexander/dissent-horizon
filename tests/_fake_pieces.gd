@@ -41,6 +41,8 @@ extends RefCounted
 ##   occupant_dominion: bool  an `OccupantDominionGenerator` (named "DominionGenerator")
 ##   liberatable: bool       a `Liberatable`: neutral, it sits on the liberation layer
 ##   liberator: bool         a `Liberator` converting into a blank unit, with a `LiberationRange`
+##   stealth: bool           a `Stealth` component (starts stealthed)
+##   status_visuals: bool    a `StatusVisuals` (badges, tints, pips); pair it with `mesh`
 ##   shelter: bool          a `Shelter` component that spawns a blank unit
 ##   repairs: bool          a `Repairs` component: the piece can mend
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
@@ -171,6 +173,10 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		var reach := CollisionShape3D.new()
 		reach.shape = _cylinder(4.0)
 		_add_node(piece, reach, "LiberationRange")
+	if a_options.get("stealth", false):
+		_add_node(piece, Stealth.new(), "Stealth")
+	if a_options.get("status_visuals", false):
+		_add_node(piece, StatusVisuals.new(), "StatusVisuals")
 	if a_options.get("shelter", false):
 		var shelter := Shelter.new()
 		shelter.terrestrial_scene = _blank_projectile()
