@@ -411,6 +411,51 @@ static func _add_node(a_piece: Node, a_node: Node, a_name: String) -> void:
 
 #region Abilities
 static var _saved_abilities: Dictionary = {}
+static var _fake_emissions: Array[String] = []
+
+
+## An EMISSION (a shell): an `Entity` flying a two-phase `PhasedLocomotion` — a flight, then an
+## impact that does not end on arrival — carrying a `Payload`. The smallest piece an ability
+## can throw; nothing about what a shipped shell looks like or hits for.
+static func emission() -> Entity:
+	var shell := Entity.new()
+	shell.name = "FakeShell"
+	shell.id = &"fake_shell"
+	_add_node(shell, Ownership.new(), "Ownership")
+	var hit := CollisionShape3D.new()
+	hit.shape = _cylinder(0.5)
+	_add_node(shell, hit, "HitShape")
+	var flight := EmissionPhase.new()
+	flight.speed = 9.0
+	flight.gravity_mps2 = 4.5
+	flight.tracks_goal = true
+	_add_node(shell, flight, "Flight")
+	var impact := EmissionPhase.new()
+	impact.ends_on_arrival = false
+	impact.lifespan_seconds = 2.6
+	impact.applies_payload = true
+	_add_node(shell, impact, "Impact")
+	_add_node(shell, PhasedLocomotion.new(), "Locomotion")
+	_add_node(shell, Payload.new(), "Payload")
+	_claim_for_packing(shell, shell)
+	return shell
+
+
+## Make ability `a_id` throw a fake emission, in addition to `a_entry`'s own keys.
+static func install_emitting_ability(a_id: StringName, a_entry: Dictionary = {}) -> void:
+	var path: String = "fake://emission/%s" % a_id
+	AbilityCatalog._emission_cache[path] = _packed(emission())
+	_fake_emissions.append(path)
+	var entry: Dictionary = a_entry.duplicate()
+	entry["emits"] = path
+	install_ability(a_id, entry)
+
+
+static func _packed(a_root: Node) -> PackedScene:
+	var scene := PackedScene.new()
+	scene.pack(a_root)
+	a_root.free()
+	return scene
 
 
 ## Define (or redefine) ability `a_id` in the catalog for this test: `a_entry` takes the keys of
@@ -431,6 +476,9 @@ static func restore_abilities() -> void:
 		else:
 			AbilityCatalog._definitions[String(id)] = _saved_abilities[id]
 	_saved_abilities.clear()
+	for path: String in _fake_emissions:
+		AbilityCatalog._emission_cache.erase(path)
+	_fake_emissions.clear()
 #endregion
 
 
@@ -447,21 +495,27 @@ static func tool(a_type: StringName, a_options: Dictionary = {},
 		Vector2i(-1, -1), a_variants)
 
 
-static var _registered_tools: Array[String] = []
+## What each registered name held before the test (null: nothing), so `restore_tools` puts the
+## shipped entry back rather than deleting it.
+static var _registered_tools: Dictionary = {}
 
 
 ## Make `a_tool` findable by name and id (`Tool.for_name` / `Tool.for_id`), for code that looks
 ## a tool up rather than being handed one. `restore_tools` takes every such tool out again.
 static func register_tool(a_tool: Tool) -> Tool:
+	if not _registered_tools.has(a_tool.command_name):
+		_registered_tools[a_tool.command_name] = Tool.command_tool_map.get(a_tool.command_name)
 	Tool.command_tool_map[a_tool.command_name] = a_tool
-	_registered_tools.append(a_tool.command_name)
 	Tool._by_id_cache = {}
 	return a_tool
 
 
 static func restore_tools() -> void:
 	for name: String in _registered_tools:
-		Tool.command_tool_map.erase(name)
+		if _registered_tools[name] == null:
+			Tool.command_tool_map.erase(name)
+		else:
+			Tool.command_tool_map[name] = _registered_tools[name]
 	_registered_tools.clear()
 	Tool._by_id_cache = {}
 

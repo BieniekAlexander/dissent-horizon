@@ -12,11 +12,11 @@ const FOE: int = 2
 
 ## Scenes are loaded inside the tests rather than preloaded at file scope (CLAUDE.md §A
 ## file-scope preload of an entity scene in a test can poison the whole run).
-const MECH_GROUND: Dictionary = FakePieces.SOLDIER
-const MECH_AIR: Dictionary = FakePieces.AIRCRAFT
-const BIO_GROUND: Dictionary = FakePieces.SOLDIER
+const MECH_GROUND: Dictionary = FakePieces.MACHINE
+const MECH_AIR: Dictionary = {"aerial": true, "vision": 8.0, "frame": Defense.FrameType.MECH}
+const BIO_GROUND: Dictionary = {"speed": 2.0, "vision": 8.0, "abilities": [{"grants": [&"spot"]}]}
 const STRUCTURE: Dictionary = FakePieces.BUILDING
-const SHELL: String = "res://scenes/entities/projectiles/cl/cannon_shell.tscn"
+
 
 
 ## Answers the one map question beacon placement asks.
@@ -30,10 +30,13 @@ var _map: Map
 
 
 func before_each() -> void:
+	FakePieces.install_emitting_ability(Bombard.ABILITY_ID, {"range": 100.0})
+	FakePieces.install_ability(&"spot", {"range": 30.0})
 	_commanders = {}
 
 
 func after_each() -> void:
+	FakePieces.restore_abilities()
 	if _map != null and is_instance_valid(_map):
 		_map.free()
 		_map = null
@@ -136,7 +139,7 @@ func test_a_used_beacon_cannot_be_spent_again() -> void:
 
 func test_the_beacon_is_dismissed_when_the_shell_hands_over_to_its_impact() -> void:
 	var beacon := _beacon(OWN, Vector2(0, 0))
-	var shell: Entity = (load(SHELL) as PackedScene).instantiate()
+	var shell: Entity = FakePieces.emission()
 	autofree(shell)
 	beacon.dismiss_on_landing(shell)
 	var phased := shell.get_node("Locomotion") as PhasedLocomotion
@@ -148,7 +151,7 @@ func test_the_beacon_is_dismissed_when_the_shell_hands_over_to_its_impact() -> v
 
 func test_the_beacon_is_dismissed_when_the_shell_leaves_play() -> void:
 	var beacon := _beacon(OWN, Vector2(0, 0))
-	var shell: Entity = (load(SHELL) as PackedScene).instantiate()
+	var shell: Entity = FakePieces.emission()
 	add_child(shell)
 	beacon.dismiss_on_landing(shell)
 	shell.free()
@@ -157,7 +160,7 @@ func test_the_beacon_is_dismissed_when_the_shell_leaves_play() -> void:
 
 func test_a_shell_outliving_its_beacon_is_harmless() -> void:
 	var beacon := _beacon(OWN, Vector2(0, 0))
-	var shell: Entity = (load(SHELL) as PackedScene).instantiate()
+	var shell: Entity = FakePieces.emission()
 	add_child(shell)
 	beacon.dismiss_on_landing(shell)
 	beacon.host().free()
@@ -170,8 +173,8 @@ func test_a_shell_outliving_its_beacon_is_harmless() -> void:
 
 func _gun() -> Commandable:
 	_commander(OWN).add_infrastructure(1000)
-	var gun := _piece("res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn",
-		OWN, Vector2.ZERO)
+	var gun := _piece({"structure": true, "dimensions": Vector2i(2, 2), "beacon_range": 20.0,
+		"abilities": [{"grants": [Bombard.ABILITY_ID]}]}, OWN, Vector2.ZERO)
 	gun.build_progress = 1.0
 	if _map == null:
 		_map = StubMap.new()
