@@ -13,22 +13,29 @@ extends GutTest
 ## a hold with every mask cleared still fills — that is what makes it a cage rather
 ## than a shelter.
 
-const SUPPLY_TRUCK: Dictionary = FakePieces.PLAIN
-const COMPOUND: Dictionary = FakePieces.BUILDING
+## The stock cage: three seats, servants only, banks prisoners.
+const SUPPLY_TRUCK: Dictionary = {"speed": 2.0, "vision": 8.0, "crush": Movement.CrushClass.LARGE,
+	"garrison": {"capacity": 3, "bunker": false, "ids": [&"fake_servant"]},
+	"interactions": [Interaction.Type.DEPOSIT]}
+const COMPOUND: Dictionary = FakePieces.COMPOUND
 ## A structure with an OPEN garrison, as the counterpart to the Compound's closed one.
 ## This was the Anarchical safehouse; that piece became `an_infrastructure`, which no
 ## longer carries a Garrison at all, so these tests use the neutral building instead — still
 ## an open garrison, and the thing the safehouse conversion upgrades FROM (see Build's
 ## conversion path).
-const OPEN_GARRISON: Dictionary = FakePieces.BUILDING
-const MERCURY: Dictionary = FakePieces.SOLDIER
-const RECRUIT: Dictionary = FakePieces.SOLDIER
-const SERVANT: Dictionary = FakePieces.BUILDER
-const TERRESTRIAL: Dictionary = FakePieces.PLAIN
+const OPEN_GARRISON: Dictionary = {"structure": true, "garrison": {"capacity": 4}}
+## A transport that admits any grounded soldier.
+const MERCURY: Dictionary = {"speed": 2.0, "garrison": {"capacity": 4}}
+const RECRUIT: Dictionary = {"speed": 2.0, "vision": 8.0}
+## The piece the truck's allowlist names: the same body as a recruit, another id.
+const SERVANT: Dictionary = {"id": &"fake_servant", "speed": 2.0, "vision": 8.0}
+const TERRESTRIAL: Dictionary = {"speed": 1.0}
 ## The size-2 occupant. Was `collective.tscn`, a scene that no longer exists — which made
 ## this whole FILE unparseable, and GUT skips (rather than fails) a test script it cannot
 ## parse, so every test here had been silently not running. See CLAUDE.md §6.4.
-const COLLECTIVE: Dictionary = FakePieces.PLAIN
+## The size-2 occupant: a machine, medium armour.
+const COLLECTIVE: Dictionary = {"speed": 2.0, "frame": Defense.FrameType.MECH,
+	"armour": Defense.ArmourType.MEDIUM, "occupancy": 2}
 const CLIPPER: Dictionary = FakePieces.AIRCRAFT
 
 func _commanded(a_id: int) -> Commander:
@@ -149,7 +156,7 @@ func test_the_allowlist_rejects_a_unit_the_masks_would_admit():
 	# A Recruit is the same frame, armour and locomotion as a Servant — the masks cannot
 	# tell them apart, which is the whole reason occupiable_ids exists.
 	var g: Garrison = _garrison(4)
-	g.occupiable_ids = [EntityIds.CL_BIO_LIGHT_BUILDER] as Array[StringName]
+	g.occupiable_ids = [&"fake_servant"] as Array[StringName]
 	assert_true(g.admits(_entity(SERVANT, 1)), "the named piece is admitted")
 	assert_false(g.admits(_entity(RECRUIT, 1)), "an identical body with another id is not")
 
@@ -373,7 +380,7 @@ func test_deposit_moves_prisoners_into_the_compound_unconverted():
 	assert_eq(compound.garrison.occupants(), captives,
 		"the SAME units — a transfer, not a conversion")
 	for occupant: Commandable in compound.garrison.occupants():
-		assert_eq(occupant.id, EntityIds.NT_BIO_LIGHT_TERRESTRIAL,
+		assert_eq(occupant.id, TERRESTRIAL.get("id", &"fake_unit"),
 			"each stays what it was; the Compound no longer produces Servants")
 		assert_eq(occupant.commander.id, 0,
 			"ownership is untouched — still the side it was taken from, not the depositor's")
@@ -571,7 +578,7 @@ func test_an_event_authored_under_a_host_loads_its_garrison_at_scenario_start():
 
 	var event := EventSpawnEntities.new()
 	event.commander_id = prisoner_commander.id
-	event.entity_scenes = [TERRESTRIAL]
+	event.entity_scenes = [FakePieces.scene_of(TERRESTRIAL)]
 	event.count = 3
 	event.garrison_host = compound
 	compound.add_child(event)
@@ -606,7 +613,7 @@ func test_a_starting_event_under_a_host_is_not_run_twice():
 
 	var event := EventSpawnEntities.new()
 	event.commander_id = commander.id
-	event.entity_scenes = [TERRESTRIAL]
+	event.entity_scenes = [FakePieces.scene_of(TERRESTRIAL)]
 	event.count = 2
 	event.garrison_host = truck
 	truck.add_child(event)

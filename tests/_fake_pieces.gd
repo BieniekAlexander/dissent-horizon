@@ -19,6 +19,7 @@ extends RefCounted
 ##
 ## Options (every one optional):
 ##   id: StringName          the piece's `Entity.id` (default `&"fake_unit"`)
+##   occupancy: int          `Entity.occupancy_size`, how much of a garrison it fills (default 1)
 ##   hp: float               `Defense.hp_max`
 ##   speed: float            gives it a navigated `Movement` at this speed (default: immobile)
 ##   vision: float           radius of a `VisionRange` cylinder (default: none)
@@ -65,7 +66,7 @@ const TRUCK: Dictionary = {"speed": 2.0, "vision": 8.0, "crush": Movement.CrushC
 const SHELTER: Dictionary = {"structure": true, "shelter": true}
 ## A closed hold that sentences captives and banks dominion for them.
 const COMPOUND: Dictionary = {"structure": true, "occupant_dominion": true,
-	"garrison": {"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}}
+	"garrison": {"capacity": 6, "bunker": false, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}}
 ## A neutral structure that holds an extractor.
 const SITE: Dictionary = {"structure": true, "extraction_site": true}
 ## A mobile machine (MECH frame).
@@ -77,6 +78,26 @@ const AIRCRAFT: Dictionary = {"aerial": true, "vision": 8.0, "weapon": {"ground"
 ## Whichever of `unit` / `structure` the options name (`"structure": true` picks the latter).
 static func make(a_options: Dictionary = {}) -> Commandable:
 	return _build(a_options, bool(a_options.get("structure", false)))
+
+
+## A PackedScene of the piece `a_options` describes, for code that takes scenes (a spawn event's
+## `entity_scenes`) rather than instances. Each call packs a fresh copy.
+static func scene_of(a_options: Dictionary = {}) -> PackedScene:
+	var piece: Commandable = make(a_options)
+	_claim_for_packing(piece, piece)
+	var scene := PackedScene.new()
+	scene.pack(piece)
+	piece.free()
+	return scene
+
+
+static func _claim_for_packing(a_root: Node, a_node: Node) -> void:
+	for child: Node in a_node.get_children():
+		if child.owner == null:
+			child.owner = a_root
+		# Nodes inside an instanced component keep that instance as their owner.
+		if child.scene_file_path.is_empty():
+			_claim_for_packing(a_root, child)
 
 
 static func unit(a_options: Dictionary = {}) -> Commandable:
@@ -91,6 +112,8 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	var piece := Commandable.new()
 	piece.name = "FakeStructure" if a_structure else "FakeUnit"
 	piece.id = a_options.get("id", &"fake_structure" if a_structure else &"fake_unit")
+	if a_options.has("occupancy"):
+		piece.occupancy_size = int(a_options["occupancy"])
 	piece.add_to_group(&"piece")
 	piece.add_to_group(&"structure" if a_structure else &"unit")
 	if a_structure:
