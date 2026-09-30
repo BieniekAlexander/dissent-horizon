@@ -40,6 +40,7 @@ extends RefCounted
 ##   flying: bool            `Movement.mode` FLYING rather than HOVERING (needs `aerial`)
 ##   extractor: bool         an `EnergyExtractor` and `Extractor`: built over an extraction site, it works it
 ##   production: bool       a `Production` component (a producer)
+##   produces: Array         `Production.producible_types` (implies `production`)
 ##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
 ##   extraction_site: bool  an `ExtractionSite` marker (`structure()` only)
 ##   occupant_dominion: bool  an `OccupantDominionGenerator` (named "DominionGenerator")
@@ -224,8 +225,13 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	if a_options.get("extractor", false):
 		_add_node(piece, EnergyExtractor.new(), "EnergyExtractor")
 		_add_node(piece, Extractor.new(), "Extractor")
-	if a_options.get("production", false):
-		_add_node(piece, Production.new(), "Production")
+	if a_options.get("production", false) or a_options.has("produces"):
+		var production := Production.new()
+		var produced: Array[StringName] = []
+		for id: Variant in a_options.get("produces", []) as Array:
+			produced.append(StringName(id))
+		production.producible_types = produced
+		_add_node(piece, production, "Production")
 	if a_options.get("docking", false):
 		_add_node(piece, Docking.new(), "Docking")
 	if a_options.has("docking_bay"):
@@ -490,11 +496,12 @@ static func restore_abilities() -> void:
 ## optional `a_variants` (piece ids registered with `install_families`).
 static func tool(a_type: StringName, a_options: Dictionary = {},
 		a_variants: Array[StringName] = [],
-		a_context: int = ControlBinding.ControlContext.BUILD) -> Tool:
+		a_context: int = ControlBinding.ControlContext.BUILD,
+		a_producers: Array = []) -> Tool:
 	var options: Dictionary = a_options.duplicate()
 	options["id"] = a_type
 	return Tool.new("command_tool_%s" % a_type, a_type, scene_of(options), String(a_type),
-		Vector2i.ZERO, a_context, 0, "", "", [], false,
+		Vector2i.ZERO, a_context, 0, "", "", a_producers, false,
 		Vector2i(-1, -1), a_variants)
 
 

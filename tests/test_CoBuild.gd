@@ -22,8 +22,8 @@ extends GutTest
 ## the site. See CommandReceiver._process_commands' navigation-arrival branch, which nulls
 ## the active command on arrival regardless of whether can_act has become true.
 
-const BUILD_TOOL: String = "command_tool_an_barracks"
-const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const BUILD_TYPE: StringName = &"fake_building"
+const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": [&"fake_building"]}
 class StubMap extends Map:
 	var placed: Array = []
 	func _ready() -> void:
@@ -49,6 +49,7 @@ class StubMap extends Map:
 var _world: Node3D
 var _map: StubMap
 var _commander: Commander
+var _tool: Tool
 
 
 func before_each() -> void:
@@ -65,8 +66,14 @@ func before_each() -> void:
 	# and nothing else. Build now waits at the site until its prerequisites are actually
 	# standing (that is what lets requisition mode order a downstream structure while its
 	# dependency is still going up), so without this every placement here would stall.
-	_commander.technology_mapping[Tool.for_name(BUILD_TOOL).type].required_structures = []
+	_commander.technology_mapping = {BUILD_TYPE: FakePieces.tech()}
+	_tool = FakePieces.register_tool(FakePieces.tool(BUILD_TYPE, {"structure": true,
+		"dimensions": Vector2i(3, 3)}))
 	_commander.set_physics_process(false)
+
+
+func after_each() -> void:
+	FakePieces.restore_tools()
 
 
 func _make_map() -> StubMap:
@@ -95,7 +102,7 @@ func _make_builder(a_at: Vector2) -> Commandable:
 	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
-	builds.buildable_types = [Tool.for_name(BUILD_TOOL).type]
+	builds.buildable_types = [BUILD_TYPE]
 	builder.ownership.commander = _commander
 	builder.map = _map
 	builder.global_position = Vector3(a_at.x, 0.0, a_at.y)
@@ -103,7 +110,7 @@ func _make_builder(a_at: Vector2) -> Commandable:
 
 
 func _order(a_at: Vector2) -> CommandMessage:
-	var message := CommandMessage.new(_map, null, Tool.for_name(BUILD_TOOL), Vector3(a_at.x, 0.0, a_at.y))
+	var message := CommandMessage.new(_map, null, _tool, Vector3(a_at.x, 0.0, a_at.y))
 	Build.submit_purchase(_commander, message)
 	Build.plan_structure(_commander, message)
 	return message

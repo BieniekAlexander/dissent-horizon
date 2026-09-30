@@ -14,38 +14,13 @@ extends GutTest
 
 ## A producing structure, so the same blueprint covers both the "can it be selected and
 ## queued at" and the "does it stay out of the economy" questions.
-const BUILD_TOOL: String = "command_tool_an_barracks"
-## RESOLVED AT RUNTIME, not hardcoded: whichever of the producer's trainees currently has
-## no `requires:`. These tests are about blueprints accepting orders, not about tech
-## gating, but Train.meets_precondition checks both — so naming a specific unit made the
-## fixture hostage to roster design. It broke twice in as many sessions: first when the
-## Sapper gained an an_tech1 prerequisite, then again when the Sharpshooter that replaced
-## it gained one too and the Sapper lost its own. Asking the tech mapping removes the
-## whole class of breakage; only a producer whose ENTIRE roster is gated would fail now,
-## and that fails loudly in _ready rather than as a puzzling MISSING_STRUCTURE.
-static var _trained_type: StringName = &""
-
-static func _requirement_free_trainee() -> StringName:
-	var producer: Tool = Tool.for_name(BUILD_TOOL)
-	var preview: Node = producer.packed_scene.instantiate() if producer != null else null
-	var production := preview.get_node_or_null("Production") as Production if preview != null else null
-	var mapping: Dictionary = Commander._load_technology()
-	var chosen: StringName = &""
-	if production != null:
-		for candidate: StringName in production.producible_types:
-			var spec: TechnologySpec = mapping.get(candidate)
-			if spec != null and spec.required_structures.is_empty():
-				chosen = candidate
-				break
-	if preview != null:
-		preview.free()
-	assert(chosen != &"", "%s has no requirement-free trainee to test with" % BUILD_TOOL)
-	return chosen
+## A fake producer structure with a fake trainee, both registered as real tools for each test.
+const PRODUCER_TYPE: StringName = &"fake_producer"
+const TRAINEE_TYPE: StringName = &"fake_trainee"
+var _trained_type: StringName = TRAINEE_TYPE
+var _producer_tool: Tool
 
 
-## A Map that answers the footprint math for real (via a small heightmap) but records
-## registration instead of performing it — TerrainGrid/navmesh rebuilds are Map's own
-## business and have their own tests.
 class StubMap extends Map:
 	var placed: Array = []
 	func _ready() -> void:
@@ -69,8 +44,9 @@ var _commander: Commander
 
 
 
-func before_all() -> void:
-	_trained_type = _requirement_free_trainee()
+func after_each() -> void:
+	FakePieces.restore_tools()
+
 
 func before_each() -> void:
 	_world = Node3D.new()
@@ -82,6 +58,11 @@ func before_each() -> void:
 	add_child_autofree(_world)
 	_commander.map = _map
 	_commander.add_energy(10000)
+	_commander.technology_mapping = {PRODUCER_TYPE: FakePieces.tech(200), TRAINEE_TYPE: FakePieces.tech(100)}
+	_producer_tool = FakePieces.register_tool(FakePieces.tool(PRODUCER_TYPE,
+		{"structure": true, "produces": [TRAINEE_TYPE], "vision": 10.0, "dimensions": Vector2i(3, 3)}))
+	FakePieces.register_tool(FakePieces.tool(TRAINEE_TYPE, FakePieces.PLAIN, [],
+		ControlBinding.ControlContext.TRAIN, [PRODUCER_TYPE]))
 	# These tests drive production_queue.tick() themselves and await frames to let
 	# queue_free settle; the commander's own _physics_process would also run its fog /
 	# blackboard perception pass, which needs a scenario rig none of this stands up.
@@ -109,7 +90,7 @@ func _make_map() -> StubMap:
 
 
 func _tool() -> Tool:
-	return Tool.for_name(BUILD_TOOL)
+	return _producer_tool
 
 
 ## The message one build order is issued from, as the controller builds it.
