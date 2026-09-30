@@ -16,7 +16,7 @@ confers has its own curve for the Nth copy:
 | **Production** | full | full: throughput and a second rally position | barracks, factories |
 | **Weapon** | full | full, but local: covers a different spot | statics, the Bombard |
 | **Ability charges** | full | full, unless uses outrun opportunities to use them (see below) | Citadel, Storm Cell, Hideout |
-| **Purchased upgrade** | the upgrade | tempo only: two upgrades researched at once | TODO: none built yet |
+| **Purchased upgrade** | the upgrade | tempo only: two upgrades researched at once | the Operations Center ([upgrades](../upgrades.md)) |
 | **Infrastructure / economy** | full | full, until the cap it feeds | the infrastructure structure, extractors |
 | **Staying in the game** (win condition, if adopted) | everything | insurance, worth more as the opponent's finishing tools arrive | command centre |
 
@@ -86,7 +86,8 @@ pitfall is purely one of **price**: if the structure is cheap relative to the up
 two is always bought, and the queue becomes a solved checklist. Price structures that offer
 upgrades well above the upgrades themselves.
 
-TODO: no purchased upgrades exist yet, so this section is ahead of the game.
+The first upgrade exists now ([upgrades](../upgrades.md)): one per structure so far, so the
+tempo question has not arisen yet.
 
 ## Pitfalls
 

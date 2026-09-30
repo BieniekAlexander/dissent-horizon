@@ -227,7 +227,7 @@ func _update_details(a_selection: Array) -> void:
 		if c.production != null:
 			for i in c.production.job_count():
 				jobs.append([c, i])
-				sig += "job:%d:%s|" % [c.get_instance_id(), c.production.job_scene(i).resource_path]
+				sig += "job:%d:%s|" % [c.get_instance_id(), c.production.job_type(i)]
 
 	# Garrison occupants only when exactly one unit is selected (single-unit detail view).
 	if a_selection.size() == 1:

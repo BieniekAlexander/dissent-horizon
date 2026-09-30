@@ -167,7 +167,10 @@ func bind_training(a_producer: Commandable, a_job_index: int) -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	tooltip_text = "Click to cancel (refunds cost)"
 	if a_producer.production != null and a_job_index < a_producer.production.job_count():
-		set_icon(_letter(a_producer.production.job_scene(a_job_index).resource_path))
+		# A RESEARCH job has no scene — nothing is spawned — so it is lettered by its id.
+		var scene: PackedScene = a_producer.production.job_scene(a_job_index)
+		set_icon(_letter(scene.resource_path) if scene != null
+			else _first_letter(String(a_producer.production.job_type(a_job_index))))
 	_refresh_training()
 
 ## Represent a purchase still queued on the commander's global production queue: icon

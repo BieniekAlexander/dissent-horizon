@@ -16,8 +16,12 @@ type: system-note
   is what sets *when* the volatile tools arrive.
 
 A **linear** tree has breadth ≈ 1: one line of purchases leads to the strongest tools, with
-side branches. A **dense** tree, as proposed, has a low diameter and a high breadth: several
-deep paths, each reachable in a few structures.
+side branches. A **dense** tree has a low diameter and a high breadth: several deep paths, each
+reachable in a few structures.
+
+**Decided (Alex, 2026-09-30): the tree is dense and shallow, and costed appropriately.** The
+pitfalls below are what "appropriately" has to guard against, the first above all: each path
+still has to cost a full climb.
 
 ## Where the game is today
 

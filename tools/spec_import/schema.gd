@@ -53,7 +53,7 @@ const TOP_LEVEL_ORDER: Array = [
 	# The three value nests.
 	"defense", "senses", "body",
 	# The discriminating component keys — one key per component, deliberately flat.
-	"movement", "aerial", "docking", "footprint", "weapons", "trains", "builds", "variants", "garrison",
+	"movement", "aerial", "docking", "footprint", "weapons", "trains", "researches", "builds", "variants", "garrison",
 	"deploys", "abilities",
 	"repairs", "stealth", "beacon", "shelter", "extraction_site", "extractor",
 	# Root-node properties: neither belongs to a component.
@@ -70,6 +70,8 @@ const TOP_LEVEL_ORDER: Array = [
 	# have (`column`/`levels`). Neither kind is a game piece, so the component
 	# rule has nothing to say about them.
 	"passive", "hud_button", "command", "range", "cast_by", "reveals", "valence", "emits", "column", "levels",
+	# Upgrade docs: what the research changes.
+	"modifies",
 	# Shape-library docs: a bare radius.
 	"radius",
 ]

@@ -11,6 +11,7 @@ flavor:
     A LOCAL ability: it is an order given to the spotter, not something the commander calls in,
     so it has no cell on the ORDNANCE card.
 command: command_spot
+range: 10
 cast_by: ALL
 ---
 # Spot
@@ -18,11 +19,16 @@ cast_by: ALL
 The Colonial half of the bombardment loop — see
 [bombardment](../../../systems/combat/bombardment.md).
 
-Folded out of the `Spotter` component, whose PRESENCE was the whole capability. The range and
-channel time stay [constant](../../../../scripts/interface/commands/spot.gd) rather than
-becoming doc keys: exactly one piece spots, and a value that never varies is not a
-configuration. They move back into the schema on the day a second, longer-ranged spotter
-exists.
+Folded out of the `Spotter` component, whose PRESENCE was the whole capability.
+
+**The reach is this doc's `range:`**, read through `AbilityCatalog.range_for`, so an upgrade can
+raise it: [[advanced_targetting|Advanced Targetting]] takes the Recruit's to
+`ground_range_siege`. It was a constant until then, on the grounds that a value that never varied
+was not a configuration; the upgrade is what made it vary. The reach sets both how close the
+spotter walks before it starts calling the strike in and the leash on a beacon riding a unit.
+
+The channel time stays a [constant](../../../../scripts/interface/commands/spot.gd): nothing
+varies it yet.
 
 The pool is one charge on a one-tick cooldown — that is "no cooldown", spelled in the one
 vocabulary every ability uses, rather than a second concept meaning the same thing.

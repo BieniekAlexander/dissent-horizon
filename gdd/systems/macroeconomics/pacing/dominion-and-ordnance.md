@@ -25,6 +25,10 @@ What is decided is the *shape* of the prices (Alex, 2026-09-30): **higher tiers 
 the whole grid is more than one match can pay for.** The meter has a cap, and the cap is
 never reached. See §The grid is never finished.
 
+**Decided: the numbers are found in playtesting, not derived here** (Alex, 2026-09-30).
+Sanction prices, generation rates and ordnance strength are too early to tune on paper. The
+formulas below are what to watch while playtesting, not targets to type in.
+
 ## The fighting-game model
 
 Dominion is a **super meter** (G6, the burst-meter shape). In fighting games, meter:
@@ -104,11 +108,20 @@ State the target as the fraction of an engagement a charge can swing, rising wit
 | middle | tips a fair army fight | combo extender |
 | top | wipes an army or kills a structure, **only if landed** | super: a tell, a delay, a counter |
 
-Then bound the aggregate: **the ordnance value a player can deploy per minute should stay a
-modest fraction of their energy income per minute.** A starting band would be well under a
-tenth at tier 0 and a few tenths at the top (TODO: a guess to test, not a decision). The
-aggregate multiplies charge value by caster count, which is why caster price is part of
-dominion's calibration.
+**The question per caster** (Alex, 2026-09-30): *if a structure costs `n` energy, which
+ordnances does it provide, and how long are their cooldowns?* That frames ordnance in the same
+currency as everything else. A caster is a purchase whose return is `charges × value per charge`
+over the match, to be weighed against `n` energy of army. Its answer is found in playtesting.
+The shapes worth keeping in view while playtesting:
+
+- **Return per energy should not beat army.** A caster that out-returns the same energy spent on
+  units becomes the spam building (the rider rule, [building-roles](building-roles.md)).
+- **Cooldown sets the rate, and caster count multiplies it.** Several casters means several
+  independent charges, so a short cooldown on a cheap caster is the combination to watch.
+- **A shared pool** adds options without adding uses (§Shared pools below), so a caster granting
+  several ordnances can carry a longer cooldown than one granting one.
+
+Ordnance strength itself is tuned in playtesting too.
 
 ### Contesting collection
 
@@ -175,7 +188,9 @@ The brief's design: command centres are the player's "hitpoints" (if the win con
 units, and cast the lowest-tier ordnance from a shared pool. The first one is free, and extra
 copies have low marginal value.
 
-**Why low marginal value is the right target:**
+**Decided (Alex, 2026-09-30): a command centre is priced so that another one is a poor
+investment compared with the same energy in military units.** Low marginal value is the design,
+and the reasons below are why it is the right target.
 
 - **Insurance is priced by the threat.** An extra centre is worth little early and more once
   the opponent has finishing tools. So the purchase arises naturally late, *as a response to a
@@ -187,16 +202,17 @@ copies have low marginal value.
 **Pitfalls:**
 
 1. **Turtling by centre count.** If centres are cheap relative to the finishing tools, stacking
-   them makes a match unfinishable, against G8. Options (TODO): an escalating price per centre
-   owned, or finishing tools (the STRONG revisit, deferred 1.20) scaled so N centres cost N
-   times the effort but no more.
+   them makes a match unfinishable, against G8. The price rule above is the answer: while a
+   centre costs more than the army it displaces is worth, stacking them loses the war it is
+   meant to survive. Worth checking in playtesting against the finishing tools (the STRONG
+   revisit, deferred 1.20).
 2. **The ordnance battery.** If tier-0 ordnance is strong, extra centres become a durable
    (STRONG) caster farm. The rider rule ([building-roles](building-roles.md)) applies:
    another centre must be a worse ordnance buy than any dedicated caster.
-3. **The hidden last centre.** A centre tucked into a far corner drags out a lost match, the
-   classic hidden-building endgame. StarCraft's answer is to reveal a player who has lost every
-   town hall. The equivalent here would be revealing the last centre, or every centre once the
-   player is down to one. TODO if the win condition is adopted.
+3. **REJECTED: revealing a hidden last centre** (Alex, 2026-09-30). A centre tucked into a far
+   corner could drag out a lost match. StarCraft II reveals the structures of a player with no
+   resource-gathering buildings left, but that is not wanted here: centres are large and hard to
+   hide, and every RTS already lets a player linger on a single structure.
 4. **Forward centres.** If centres can be built anywhere, a forward centre is a forward
    builder factory and caster. Check it against the forward-production concerns in
    [pacing](../../../design-framework/pacing.md) (Zero Hour chinook builders, GLA tunnels).

@@ -42,6 +42,7 @@ const KIND_FAMILIES: Dictionary = {
 	"StatusEffect": "status_effect",
 	"Faction": "faction",
 	"AbilityDefinition": "ability",
+	"Upgrade": "upgrade",
 }
 
 ## The ONE doc that holds the whole shape library: every reach, vision, detection and
@@ -124,6 +125,9 @@ var factions: Dictionary = {}
 ## column it occupies and the `levels` that are its cells, in chain order; one
 ## that is free, or bought at a structure, names neither.
 var abilities: Dictionary = {}
+## kind: Upgrade docs, keyed by id — one-time commander-wide research, bought at a structure
+## that names it under `researches:` (gdd/systems/macroeconomics/upgrades.md).
+var upgrades: Dictionary = {}
 ## Shape-library entries (the `shapes:` of the `kind: ShapeLibrary` doc), keyed by id. A weapon's `reach:` names one of
 ## these instead of carrying a radius of its own, so reaches come in a few shared buckets.
 var shapes: Dictionary = {}
@@ -292,6 +296,8 @@ func _register(a_path: String, a_data: Dictionary) -> void:
 			factions[id] = spec
 		"ability":
 			abilities[id] = spec
+		"upgrade":
+			upgrades[id] = spec
 		"shape":
 			shapes[id] = spec
 
@@ -550,6 +556,8 @@ func _validate(a_spec: Dictionary) -> void:
 			_validate_faction(a_spec)
 		"ability":
 			_validate_ability(a_spec)
+		"upgrade":
+			_validate_upgrade(a_spec)
 		"shape":
 			_validate_shape(a_spec)
 
@@ -573,6 +581,8 @@ func _validate_piece(a_spec: Dictionary) -> void:
 	if a_spec.has("docking"):
 		_validate_docking(a_spec)
 	_validate_family(a_spec)
+	if a_spec.has("researches"):
+		_validate_researches(a_spec)
 	for key in ["requires", "trains", "builds"]:
 		if not a_spec.has(key):
 			continue
@@ -1369,6 +1379,109 @@ func _validate_ability(a_spec: Dictionary) -> void:
 	_check_piece_placeholders(a_spec, str(a_spec.get("verbose", "")), "flavor.verbose")
 	if a_spec.has("column") or a_spec.has("levels"):
 		_validate_sanction_route(a_spec)
+
+
+## Every key a `kind: Upgrade` doc may carry, as the internal (normalized) names. Whitelisted
+## for the reason `weapons:` entries are: an unknown key would read as configuring something.
+const UPGRADE_KEYS: Array = ["kind", "title", "description", "verbose", "cost", "build_time",
+	"requires", "modifies", "ui"]
+## Every key a `modifies:` entry may carry. `range` is the only value an upgrade can change
+## today; a new one is added here together with the reader that honours it.
+const MODIFIER_KEYS: Array = ["piece", "ability", "range"]
+
+
+## An UPGRADE: one-time commander-wide research. Priced and timed like a piece (`build:`),
+## researched at every structure whose `researches:` names it, and doing what its `modifies:`
+## entries say. Why: gdd/systems/macroeconomics/upgrades.md.
+func _validate_upgrade(a_spec: Dictionary) -> void:
+	for key: Variant in a_spec:
+		var k: String = str(key)
+		# `id` and the `_`-prefixed keys are the registry's own bookkeeping, never authored.
+		if k == "id" or k.begins_with("_") or UPGRADE_KEYS.has(k):
+			continue
+		_err(a_spec, "an upgrade may not carry `%s:` (expected one of %s)"
+			% [SpecSchema.doc_key(k), UPGRADE_KEYS])
+	if not (a_spec.get("cost") is Dictionary):
+		_err(a_spec, "an upgrade needs build.cost: — a mapping of energy/dominion")
+	if not _is_number(a_spec.get("build_time")) or float(a_spec.get("build_time", 0)) <= 0.0:
+		_err(a_spec, "an upgrade needs a positive build.time: — how long the research takes")
+	for ref: Variant in a_spec.get("requires", []):
+		var rid: String = str(ref)
+		if not pieces.has(rid):
+			_err(a_spec, "build.requires references unknown piece '%s'" % rid)
+		elif not SpecSchema.is_fixture(pieces[rid]):
+			_err(a_spec, "build.requires must name structures; '%s' has no footprint:" % rid)
+	if not (a_spec.get("modifies") is Array) or (a_spec["modifies"] as Array).is_empty():
+		_err(a_spec, "an upgrade needs a modifies: list — an upgrade that changes nothing buys nothing")
+	else:
+		for entry: Variant in a_spec["modifies"]:
+			_validate_modifier(a_spec, entry)
+	if not (a_spec.get("ui") is Dictionary) or not (a_spec["ui"] as Dictionary).has("grid"):
+		_err(a_spec, "an upgrade needs ui.grid — it is drawn on its researching structure's card")
+	else:
+		_validate_ui(a_spec, a_spec["ui"])
+	var researched_at: bool = false
+	for id: Variant in pieces:
+		if (pieces[id].get("researches", []) as Array).has(a_spec["id"]):
+			researched_at = true
+			break
+	if not researched_at:
+		warnings.append("%s [%s]: no structure researches it — its button can never be drawn"
+			% [a_spec["_doc_path"], a_spec["id"]])
+
+
+## One `modifies:` entry: {piece, ability, range}. The piece must exist and be granted the
+## ability, or the modifier could never apply; `range` names a shape from the library and is
+## resolved to its radius here, so the runtime reads a number.
+func _validate_modifier(a_spec: Dictionary, a_entry: Variant) -> void:
+	if not (a_entry is Dictionary):
+		_err(a_spec, "each modifies: entry must be a mapping of %s" % [MODIFIER_KEYS])
+		return
+	var entry: Dictionary = a_entry
+	for key: Variant in entry:
+		if not MODIFIER_KEYS.has(str(key)):
+			_err(a_spec, "modifies: entry has an unknown key '%s' (expected one of %s)"
+				% [key, MODIFIER_KEYS])
+	var piece_id: String = str(entry.get("piece", ""))
+	var ability_id: String = str(entry.get("ability", ""))
+	if not pieces.has(piece_id):
+		_err(a_spec, "modifies: names unknown piece '%s'" % piece_id)
+		return
+	if not abilities.has(ability_id):
+		_err(a_spec, "modifies: names unknown ability '%s'" % ability_id)
+		return
+	if not _piece_grants(pieces[piece_id], ability_id):
+		_err(a_spec, "modifies: '%s' is not granted '%s' (its abilities: pools name no such grant)"
+			% [piece_id, ability_id])
+	if not entry.has("range"):
+		_err(a_spec, "modifies: entry for %s.%s changes nothing — give it a range:"
+			% [piece_id, ability_id])
+		return
+	var radius: float = _library_radius(a_spec, "modifies.range", entry["range"])
+	if radius > 0.0:
+		entry["range_metres"] = radius
+
+
+## Whether a piece's `abilities:` pools grant `a_ability`.
+static func _piece_grants(a_piece: Dictionary, a_ability: String) -> bool:
+	for pool: Variant in a_piece.get("ability_groups", []):
+		if pool is Dictionary and ((pool as Dictionary).get("grants", []) as Array).has(a_ability):
+			return true
+	return false
+
+
+## `researches:` on a structure — the upgrades researched there. Each must be an upgrade doc,
+## and only a fixture can research: the job runs on the structure's Production component.
+func _validate_researches(a_spec: Dictionary) -> void:
+	if not (a_spec["researches"] is Array):
+		_err(a_spec, "researches must be a list of upgrade ids")
+		return
+	if not SpecSchema.is_fixture(a_spec):
+		_err(a_spec, "researches: needs a footprint: — only a structure researches")
+	for ref: Variant in a_spec["researches"]:
+		var rid: String = str(ref)
+		if not upgrades.has(rid):
+			_err(a_spec, "researches references unknown upgrade '%s' (expected a kind: Upgrade doc of that name)" % rid)
 
 
 ## `payloads:` — the CHOICES a level offers, when the sanction is one the player picks a

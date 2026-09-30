@@ -826,10 +826,10 @@ func _armed_ability_bands() -> Array[RangeIndicator.Band]:
 		return bands
 
 	if _armed_reach_is_a_distance():
-		var reach: float = AbilityCatalog.range_of(ability)
 		for caster: Commandable in armed_ability_casters():
 			bands.append(RangeIndicator.Band.of(
-				HighlightShape.circle(caster.xz_position, reach), ARMED_REACH_COLOR
+				HighlightShape.circle(caster.xz_position, AbilityCatalog.range_for(ability, caster)),
+				ARMED_REACH_COLOR
 			))
 
 	var area: float = _armed_effect_radius(ability)
@@ -1834,7 +1834,7 @@ func _is_builder_unit(a_c: Commandable) -> bool:
 
 ## "Production structure": a structure that can train units (has Production).
 func _is_producer_structure(a_c: Commandable) -> bool:
-	return a_c.is_in_group("structure") and a_c.production != null
+	return a_c.is_in_group("structure") and a_c.production != null and a_c.production.trains_units()
 
 # --- Idle predicates (a Commandable in that category has nothing to do) --------
 ## Idle unit: no active command.

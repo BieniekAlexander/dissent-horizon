@@ -150,8 +150,13 @@ func test_tools_take_their_family_from_their_context() -> void:
 ## Row 1 of the PRODUCTION card is the training row (see CommandGrid's row idioms). A train
 ## button anywhere else is drawn where the player has learned to expect something else.
 func test_train_tools_all_sit_in_the_training_row() -> void:
+	# PRODUCTION card rows: training on row 1, research on row 2
+	# (gdd/systems/ux/ui/command-card-and-hotkeys.md §Three cards, two keys).
 	for tool: Tool in Tool.command_tool_map.values():
-		if (tool.control_context & ControlBinding.ControlContext.TRAIN) != 0:
-			assert_eq(tool.grid_position.y, 1,
-				"%s is in the training row" % tool.command_name)
+		if (tool.control_context & ControlBinding.ControlContext.TRAIN) == 0:
+			continue
+		if tool.is_upgrade:
+			assert_eq(tool.grid_position.y, 2, "%s is in the research row" % tool.command_name)
+		else:
+			assert_eq(tool.grid_position.y, 1, "%s is in the training row" % tool.command_name)
 #endregion

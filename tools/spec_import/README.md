@@ -3,7 +3,7 @@
 The Obsidian docs in `gdd/` are the **governing source** for game-piece data.
 A markdown file is a spec **if and only if its YAML frontmatter names a `kind`**,
 whose value is the Godot class the spec loads as — `Entity`,
-`StatusEffect`, `Faction`, `AbilityDefinition`, `CylinderShape3D` — spelled as the class is
+`StatusEffect`, `Faction`, `AbilityDefinition`, `Upgrade`, `CylinderShape3D` — spelled as the class is
 (`SpecRegistry.KIND_FAMILIES`). An EMPTY `kind:` names nothing, so the doc is not a spec and
 is skipped — a stray Obsidian "Untitled" note never blocks an import. An unknown non-empty kind
 is a hard error. The importer applies it to the Godot project — one-way (the old Godot→YAML
@@ -134,7 +134,8 @@ A second full-mode run immediately after a first is always a zero-diff no-op
 | --- | --- |
 | `scripts/generated/entity_ids.gd` | `EntityIds` — one StringName const per piece, alphabetical |
 | `scripts/generated/status_effect_ids.gd` | `StatusEffectIds` consts |
-| `resources/generated/technology.json` | cost / build-time / requires per piece (Commander loads at startup) |
+| `resources/generated/technology.json` | cost / build-time / requires per piece and per upgrade (Commander loads at startup) |
+| `resources/generated/upgrades.json` | each upgrade's title and `modifies:` entries, ranges resolved to radii (`UpgradeCatalog` loads at startup) |
 | `resources/generated/tools.json` | build/train tool registry (Tool loads at startup; command names are `command_tool_<id>`) |
 | `resources/generated/debug_roster.json` | every placeable piece (units, structures, features, plus undocumented piece scenes) for the debug spawner — see `gdd/systems/ux/ui/debug-mode.md` |
 | `resources/generated/families.json` | every `family:` and its members' template data (footprint, hp, price, build time, infrastructure) — read through `PieceFamilies`; see §Families and variants |
@@ -729,6 +730,38 @@ Every ability doc also produces an entry in **`resources/generated/abilities.jso
 read at runtime by `AbilityCatalog`. That is where a free ability's definition lives —
 a dominion-unlocked one additionally has its per-CELL copy baked onto the faction
 scene's `Sanction` sub-resources, which is why the two carry different things.
+
+### kind: Upgrade
+
+An UPGRADE is one-time, commander-wide research, bought at a structure. The rules are
+[`gdd/systems/macroeconomics/upgrades.md`](../../gdd/systems/macroeconomics/upgrades.md).
+
+```yaml
+# file: advanced_targetting.md    <- the upgrade's id, in the one shared namespace
+kind: Upgrade
+title: Advanced Targetting
+flavor: {description: Recruits call in firing solutions from much farther away.}
+build:
+  cost: {energy: 800}             # required: an upgrade is never priced by default
+  time: 45                        # required, seconds
+  requires: []                    # optional structures, as for a piece
+modifies:                         # required, at least one entry
+  - piece: cl_bioLight_antiLight  # must be granted `ability` by its abilities: pools
+    ability: spot
+    range: ground_range_siege     # a shape-library id; generated as its radius
+ui: {grid: [0, 2], factions: [colonial]}   # required: row 2 of the researching structure's card
+```
+
+It is researched wherever a structure lists it: **`researches: [advanced_targetting]`** on the
+structure's doc. That key gives the structure a `Production` component (or extends the one its
+`trains:` already gives it), because a research job runs in the same global queue as training.
+
+Validation refuses any other top-level key, an empty or absent `modifies:`, a modifier on a
+piece that is not granted the ability, and a `researches:` entry that is not an upgrade. An
+upgrade nothing researches is a warning, since its button can never be drawn.
+
+`range` is the only thing a modifier can change today (`SpecRegistry.MODIFIER_KEYS`). A new one
+is added there together with the runtime reader that honours it.
 
 ### kind: ShapeLibrary
 

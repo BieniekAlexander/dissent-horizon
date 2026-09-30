@@ -133,7 +133,8 @@ serve (`K ≥ λτ` means one each), and `μ` only if Compound count should gate
 The first Compound is mandatory — it is the Colonial infrastructure building and the barracks
 prerequisite — and the first truck is one purchase at the Citadel. (It was a starting unit
 until 2026-09-30, when it was dropped for a third Servant: crushing made it too strong a
-threat to be the opening scout.) Neither gate bites hard on the opening, so the opening is
+threat to be the opening scout. The Citadel can train a truck from the start, and that is the
+Colonial opening scout now.) Neither gate bites hard on the opening, so the opening is
 tempered by:
 
 1. **The ceiling `r·λ·τ`** against the other factions' opening dominion rates. "High" needs a

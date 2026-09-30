@@ -89,7 +89,10 @@ func test_a_structure_builds_and_a_unit_trains() -> void:
 	for t: Tool in Tool.tools_in_context(ControlBinding.ControlContext.BUILD):
 		assert_string_contains(t.simple_tooltip, "Build ", "%s is built" % t.command_name)
 	for t: Tool in Tool.tools_in_context(ControlBinding.ControlContext.TRAIN):
-		assert_string_contains(t.simple_tooltip, "Train ", "%s is trained" % t.command_name)
+		if t.is_upgrade:
+			assert_string_contains(t.simple_tooltip, "Research ", "%s is researched" % t.command_name)
+		else:
+			assert_string_contains(t.simple_tooltip, "Train ", "%s is trained" % t.command_name)
 
 func test_for_name_unknown_is_null() -> void:
 	assert_null(Tool.for_name("command_tool_nope"))

@@ -47,6 +47,9 @@ enum PreconditionFailureCause {
 	## NO_FREE_PAD, whose remedy is the same shape (nowhere for the trained thing to go) but a
 	## different fact (a full airfield, not a walled-in building).
 	NO_NAVMESH_ACCESS,
+	## An upgrade the commander already owns or is already researching. Its own cause because
+	## nothing clears it: an upgrade is bought once (see Commander.is_research_taken).
+	ALREADY_RESEARCHED,
 }
 
 ## The causes a player can clear BY MOVING THE POINTER — the order is fine, this spot is not.
@@ -91,6 +94,7 @@ static var precondition_message_map: Dictionary = {
 	PreconditionFailureCause.NO_VALID_TARGET: "No valid target",
 	PreconditionFailureCause.SITE_PLANNED: "Already planned there",
 	PreconditionFailureCause.NO_NAVMESH_ACCESS: "Nowhere for the unit to appear",
+	PreconditionFailureCause.ALREADY_RESEARCHED: "Already researched",
 }
 
 static var unmet_need_to_precondition: Dictionary = {
@@ -100,6 +104,7 @@ static var unmet_need_to_precondition: Dictionary = {
 		PreconditionFailureCause.NOT_ENOUGH_INFRASTRUCTURE,
 	TechnologySpec.UnmetNeed.NOT_ENOUGH_DOMINION: PreconditionFailureCause.NOT_ENOUGH_DOMINION,
 	TechnologySpec.UnmetNeed.MISSING_STRUCTURE: PreconditionFailureCause.MISSING_STRUCTURE,
+	TechnologySpec.UnmetNeed.ALREADY_RESEARCHED: PreconditionFailureCause.ALREADY_RESEARCHED,
 }
 #endregion
 

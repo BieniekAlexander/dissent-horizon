@@ -1,4 +1,13 @@
 {
+	"advanced_targetting": {
+		"build_time_ticks": 1350,
+		"cost": {
+			"dominion": 0,
+			"energy": 800,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
 	"an_airField": {
 		"build_time_ticks": 750,
 		"cost": {

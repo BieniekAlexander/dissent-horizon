@@ -86,7 +86,10 @@ func submit(a_transaction: PurchaseTransaction) -> PurchaseTransaction:
 	#
 	# A repeating BUILD has no meaningful site or builder, so a build asking to be standing
 	# is demoted to an ordinary one-off rather than refused.
-	if a_transaction.kind == PurchaseTransaction.Kind.BUILD:
+	# An upgrade is bought once, so a standing research would have nothing to repeat: demoted the
+	# same way.
+	if a_transaction.kind == PurchaseTransaction.Kind.BUILD \
+			or UpgradeCatalog.is_upgrade(a_transaction.type):
 		a_transaction.standing = false
 	_insert(a_transaction)
 	_charge_on_submit(a_transaction)
@@ -278,6 +281,16 @@ func blocker_for(a_transaction: PurchaseTransaction) -> Blocker:
 func has_pending_build(a_id: StringName) -> bool:
 	for transaction: PurchaseTransaction in entries:
 		if transaction.kind == PurchaseTransaction.Kind.BUILD and transaction.type == a_id:
+			return true
+	return false
+
+
+## Whether a TRAIN purchase for `a_id` is still queued. Read by Commander.is_research_taken, so
+## an upgrade waiting in the queue cannot be ordered a second time.
+func has_pending_train(a_id: StringName) -> bool:
+	for transaction: PurchaseTransaction in entries:
+		if transaction.kind == PurchaseTransaction.Kind.TRAIN and transaction.type == a_id \
+				and not transaction.is_settled():
 			return true
 	return false
 

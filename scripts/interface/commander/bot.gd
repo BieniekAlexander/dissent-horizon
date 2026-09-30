@@ -122,7 +122,7 @@ func get_structures_of_type(a_type: StringName) -> Array:
 ## production.tick() is gated on is_built and their queues won't advance.
 func get_production_structures() -> Array:
 	return _owned_structures().filter(
-		func(s: Commandable): return s.production != null and s.is_built
+		func(s: Commandable): return s.production != null and s.production.trains_units() and s.is_built
 	)
 
 
@@ -960,7 +960,7 @@ func buildable_structure_types() -> Array:
 ## throughput buildings the economy expands (Redoubt, Hangar, …).
 func buildable_production_structure_types() -> Array:
 	return buildable_structure_types().filter(
-		func(t): return _type_has_component(t, "Production")
+		func(t): return Production.node_trains_units(_preview_for_type(t))
 	)
 
 

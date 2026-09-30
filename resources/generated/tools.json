@@ -1,4 +1,25 @@
 {
+	"command_tool_advanced_targetting": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			2
+		],
+		"id": "advanced_targetting",
+		"label": "Advanced Targetting",
+		"needs_docking": false,
+		"producers": [
+			"cl_tech1"
+		],
+		"scene": "",
+		"tooltip": "Research Advanced Targetting — 800 energy, 45s",
+		"upgrade": true,
+		"verbose": "Research Advanced Targetting — 800 energy, 45s\nRecruits call in firing solutions from much farther away.\nRecruit's Spot reach becomes 24\nResearched once, for every unit it affects; kept if the building is lost"
+	},
 	"command_tool_an_airField": {
 		"context": "BUILD",
 		"context_grid": [
@@ -926,7 +947,10 @@
 	},
 	"command_tool_cl_tech1": {
 		"context": "BUILD",
-		"context_grid": [],
+		"context_grid": [
+			4,
+			0
+		],
 		"factions": [
 			"colonial"
 		],
@@ -940,7 +964,7 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_tech1.tscn",
 		"tooltip": "Build Operations Center — 1200 energy, 25s",
-		"verbose": "Build Operations Center — 1200 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
+		"verbose": "Build Operations Center — 1200 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nResearches: Advanced Targetting"
 	},
 	"command_tool_cl_tech2": {
 		"context": "BUILD",

@@ -17,7 +17,7 @@ is the state, and Tab (`card_toggle_family`) flips it.
 | | row 0 | row 1 | row 2 |
 | --- | --- | --- | --- |
 | **ACTIVE** | abilities | the generic verbs — attack-move, stop, defend, fire, go | abilities |
-| **PRODUCTION** | production contexts — one radio button per producer type | training | upgrades (none exist yet) |
+| **PRODUCTION** | production contexts — one radio button per producer type | training | upgrades ([upgrades](../../macroeconomics/upgrades.md)) |
 | **ORDNANCE** | minor | mid | major |
 
 **ORDNANCE's rows are POWER TIERS**, following how deep an ability sits in the tech tree and
@@ -150,7 +150,7 @@ clicked.
 | card | holds | owned by |
 | --- | --- | --- |
 | **ACTIVE** | what an existing commandable DOES — the verbs, its abilities, Build and the structure list it drills into | the selection |
-| **PRODUCTION** | training and (later) upgrades: what a producer commits energy to | the selection |
+| **PRODUCTION** | training and research: what a producer commits energy to | the selection |
 | **ORDNANCE** | the COMMANDER's reach — abilities you cannot walk a unit to | the **commander** |
 
 **Two keys, three destinations, and both keys SET rather than toggle.** That is the whole

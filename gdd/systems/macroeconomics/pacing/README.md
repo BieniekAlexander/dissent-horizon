@@ -20,8 +20,11 @@ it borrows are in [design-framework/timings](../../../design-framework/timings.m
 |---|---|
 | [tech-investment](tech-investment.md) | what a higher tier should buy (volatility, not just efficiency), how a tech investment is priced, and how to calibrate it between "nobody techs" and "everybody techs" |
 | [tree-shape](tree-shape.md) | linear versus dense tech trees: diameter, breadth, and what a many-path tree costs |
+| [income-and-cost](income-and-cost.md) | what a minute of income buys: one unit versus an army, replacement time, permanent versus temporary income, and an order to calibrate them in |
 | [building-roles](building-roles.md) | marginal value of each copy of a structure, by what the structure confers; multi-purpose buildings |
 | [dominion-and-ordnance](dominion-and-ordnance.md) | dominion as a super meter, the sanction-as-permission / structure-as-charges split, shared pools, and the command centre |
+
+Upgrades, which several of these notes discuss, are built: [upgrades](../upgrades.md).
 
 ## The pitfalls, in one place
 
@@ -36,7 +39,8 @@ risk that remains.
 2. **Tech is free while income outruns production.** When income exceeds what the producers
    can spend, the surplus has no other use, so no tech price is felt at all. Calibrating tech
    is pointless until the income-to-throughput ratio is settled (deferred 1.23).
-   → [tech-investment](tech-investment.md) §The hidden discount
+   → [tech-investment](tech-investment.md) §The hidden discount, and
+   [income-and-cost](income-and-cost.md) for the whole gather-rate revisit
 3. **A good secondary role turns into the spam building.** If a structure's weapon or charge
    is better per cost than the dedicated piece, copies of it become the default purchase.
    → [building-roles](building-roles.md) §The rider rule

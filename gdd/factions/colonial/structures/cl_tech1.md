@@ -13,6 +13,7 @@ defense:
 senses:
   vision: vision_ground_large
 footprint: [4, 4]
+researches: [advanced_targetting]
 infrastructure: -50
-ui: {grid: [0, 2], factions: [colonial]}
+ui: {grid: [0, 2], factions: [colonial], context_grid: [4, 0]}
 ---
