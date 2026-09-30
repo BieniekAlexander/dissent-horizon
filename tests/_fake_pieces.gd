@@ -486,6 +486,7 @@ static func install_ability(a_id: StringName, a_entry: Dictionary = {}) -> void:
 	if not _saved_abilities.has(a_id):
 		_saved_abilities[a_id] = AbilityCatalog._definitions.get(String(a_id))
 	AbilityCatalog._definitions[String(a_id)] = AbilityDefinition.from_entry(a_id, a_entry)
+	AbilityBinding._bindings = AbilityBinding._build()  # the ordnance buttons derive from the catalog
 
 
 static func restore_abilities() -> void:
@@ -495,6 +496,7 @@ static func restore_abilities() -> void:
 		else:
 			AbilityCatalog._definitions[String(id)] = _saved_abilities[id]
 	_saved_abilities.clear()
+	AbilityBinding._bindings = AbilityBinding._build()
 	for path: String in _fake_emissions:
 		AbilityCatalog._emission_cache.erase(path)
 	_fake_emissions.clear()
