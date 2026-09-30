@@ -6,7 +6,7 @@ extends GutTest
 
 ## load() inside each test, never a file-scope preload: a preload of an entity scene runs at
 ## PARSE time and can fire Tool's static registry initialiser before the registry exists.
-const TRUCK_SCENE: String = "res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn"
+const TRUCK: Dictionary = {"speed": 2.0, "vision": 8.0, "garrison": {"capacity": 3}}
 const LOW_HEALTH: float = 0.1
 const FULL_HEALTH: float = 1.0
 const FAR_AWAY: Vector3 = Vector3(30.0, 0.0, 0.0)
@@ -134,7 +134,7 @@ func _truck() -> Commandable:
 	var commander: Commander = Commander.new()
 	commander.id = 1
 	add_child_autofree(commander)
-	var truck: Commandable = (load(TRUCK_SCENE) as PackedScene).instantiate() as Commandable
+	var truck: Commandable = FakePieces.unit(TRUCK)
 	add_child_autofree(truck)
 	truck.ownership.commander = commander
 	return truck

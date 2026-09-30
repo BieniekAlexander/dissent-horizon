@@ -288,9 +288,7 @@ func _killed_condition_manager() -> ScenarioTriggerManager:
 
 func test_entity_killed_is_false_while_the_entity_stands() -> void:
 	var manager := _killed_condition_manager()
-	var entity: Commandable = preload(
-		"res://scenes/entities/units/an/an_bioLight_builder.tscn"
-	).instantiate()
+	var entity: Commandable = FakePieces.unit(FakePieces.PLAIN)
 	entity.name = "Watched"
 	add_child_autofree(entity)
 
@@ -307,9 +305,7 @@ func test_entity_killed_becomes_true_once_the_entity_is_freed() -> void:
 	# passed in the sliver where the node was out of the tree but not yet freed, which
 	# queue_free() does not leave open.
 	var manager := _killed_condition_manager()
-	var entity: Commandable = preload(
-		"res://scenes/entities/units/an/an_bioLight_builder.tscn"
-	).instantiate()
+	var entity: Commandable = FakePieces.unit(FakePieces.PLAIN)
 	entity.name = "Watched"
 	add_child(entity)
 
