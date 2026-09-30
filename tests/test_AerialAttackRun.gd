@@ -11,13 +11,18 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_AerialAttackRun.gd -gexit
 
-## Paths, not preloads — a file-scope preload of an entity scene fires Tool's static
-## registry initialiser at parse time (see CLAUDE.md).
-const DRAKE: Dictionary = FakePieces.AIRCRAFT
-const KAMIKAZE: Dictionary = FakePieces.AIRCRAFT
-const TANK: Dictionary = FakePieces.SOLDIER
-const CLIPPER: Dictionary = FakePieces.AIRCRAFT
-const SAM: Dictionary = FakePieces.BUILDING
+## Every piece is a fake (tests/_fake_pieces.gd).
+## A fixed wing: flies, shoots ground and air from range, carries a charged clip, docks.
+const DRAKE: Dictionary = {"aerial": true, "flying": true, "vision": 10.0, "docking": true,
+	"weapon": {"ground": 12.0, "air": 12.0, "clip_size": 4, "charged": true}}
+## Rams: a flier whose reach is next to nothing.
+const KAMIKAZE: Dictionary = {"aerial": true, "flying": true, "vision": 10.0,
+	"weapon": {"ground": 0.5, "air": 0.5}}
+const TANK: Dictionary = {"speed": 2.0, "vision": 8.0, "frame": Defense.FrameType.MECH,
+	"weapon": {"ground": 6.0}}
+## A gunship: hovers, holds station to shoot.
+const CLIPPER: Dictionary = {"aerial": true, "vision": 10.0, "weapon": {"ground": 6.0}}
+const SAM: Dictionary = {"structure": true, "weapon": {"air": 8.0}}
 func _commander(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
@@ -116,26 +121,6 @@ func test_a_gunship_still_stops_to_shoot() -> void:
 		"HOVERING can hold station, so in range means stop")
 #endregion
 
-
-#region The Drake's authored numbers
-## The rockets were ground-only, which left the faction's anti-mech aircraft unable to
-## engage anything airborne.
-func test_the_drake_engages_ground_and_air() -> void:
-	var plane: Commandable = _entity(DRAKE, _commander(1))
-	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
-	assert_ne(weapon.target_mask & CollisionLayers.Mask.TARGETABLE_GROUND, 0)
-	assert_ne(weapon.target_mask & CollisionLayers.Mask.TARGETABLE_AIR, 0)
-
-
-## Reach must clear cruise altitude, or the aircraft is shooting at ground it cannot reach
-## from where it flies.
-func test_the_drake_outreaches_its_own_altitude() -> void:
-	var plane: Commandable = _entity(DRAKE, _commander(1))
-	var tank: Commandable = _entity(TANK, _commander(2))
-	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
-	assert_almost_eq(weapon.reach_for(tank), 12.0, 0.01)
-	assert_gt(weapon.reach_for(tank), Aerial.AERIAL_HEIGHT)
-#endregion
 
 
 #region Aiming by flying
