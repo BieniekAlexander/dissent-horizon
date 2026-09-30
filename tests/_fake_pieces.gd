@@ -167,6 +167,7 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	_add_scene(piece, "selectable.tscn", "Selectable")
 	_add_scene(piece, "hp_bar.tscn", "HPBar")
 	_add_scene(piece, "target_indicator.tscn", "TargetIndicator")
+	_add_scene(piece, "avoidance_obstacle.tscn", "AvoidanceObstacle")
 
 	if a_structure:
 		var body := Structure.new()
