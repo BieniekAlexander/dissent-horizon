@@ -111,6 +111,7 @@ static func feature(a_options: Dictionary = {}) -> Entity:
 	if a_options.get("extraction_site", false):
 		_add_node(piece, ExtractionSite.new(), "ExtractionSite")
 		piece.add_to_group(&"extraction_site", true)
+	_claim_for_packing(piece, piece)
 	return piece
 
 
@@ -118,7 +119,6 @@ static func feature(a_options: Dictionary = {}) -> Entity:
 ## `entity_scenes`) rather than instances. Each call packs a fresh copy.
 static func scene_of(a_options: Dictionary = {}) -> PackedScene:
 	var piece: Entity = make(a_options)
-	_claim_for_packing(piece, piece)
 	var scene := PackedScene.new()
 	scene.pack(piece)
 	piece.free()
@@ -261,6 +261,7 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 			list.append(interaction)
 		interactor.interactions = list
 		_add_node(piece, interactor, "Interactor")
+	_claim_for_packing(piece, piece)
 	return piece
 
 
