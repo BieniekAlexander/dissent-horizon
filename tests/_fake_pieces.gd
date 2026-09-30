@@ -391,3 +391,81 @@ static func _add_scene(a_piece: Node, a_file: String, a_name: String) -> void:
 static func _add_node(a_piece: Node, a_node: Node, a_name: String) -> void:
 	a_node.name = a_name
 	a_piece.add_child(a_node)
+
+
+#region Tools, families and technology
+## A BUILD tool for a fake piece of id `a_type` (built from `a_options`, `id` filled in), with
+## optional `a_variants` (piece ids registered with `install_families`).
+static func tool(a_type: StringName, a_options: Dictionary = {},
+		a_variants: Array[StringName] = []) -> Tool:
+	var options: Dictionary = a_options.duplicate()
+	options["id"] = a_type
+	return Tool.new("command_tool_%s" % a_type, a_type, scene_of(options), String(a_type),
+		Vector2i.ZERO, ControlBinding.ControlContext.BUILD, 0, "", "", [], false,
+		Vector2i(-1, -1), a_variants)
+
+
+static var _registered_tools: Array[String] = []
+
+
+## Make `a_tool` findable by name and id (`Tool.for_name` / `Tool.for_id`), for code that looks
+## a tool up rather than being handed one. `restore_tools` takes every such tool out again.
+static func register_tool(a_tool: Tool) -> Tool:
+	Tool.command_tool_map[a_tool.command_name] = a_tool
+	_registered_tools.append(a_tool.command_name)
+	Tool._by_id_cache = {}
+	return a_tool
+
+
+static func restore_tools() -> void:
+	for name: String in _registered_tools:
+		Tool.command_tool_map.erase(name)
+	_registered_tools.clear()
+	Tool._by_id_cache = {}
+
+
+## Replace `PieceFamilies`' table with the pieces named in `a_entries`, each
+## `{id, family, footprint: Vector2i, options: Dictionary}`. The scene a variant tool places is
+## `scene_of(options)`. Call `restore_families` in `after_each`.
+static func install_families(a_entries: Array[Dictionary]) -> void:
+	var table := PieceFamilies.Table.new()
+	for entry: Dictionary in a_entries:
+		var template := _FakeTemplate.new()
+		template.id = entry["id"]
+		template.family = entry.get("family", &"fake_family")
+		template.title = String(entry["id"])
+		template.footprint = entry.get("footprint", Vector2i(1, 1))
+		template.hp = float(entry.get("hp", 100.0))
+		template.energy_cost = int(entry.get("energy_cost", 0))
+		template.build_time_ticks = int(entry.get("build_time_ticks", 30))
+		template.infrastructure = int(entry.get("infrastructure", 0))
+		var options: Dictionary = (entry.get("options", {}) as Dictionary).duplicate()
+		options["id"] = template.id
+		options["structure"] = true
+		options["dimensions"] = template.footprint
+		template.scene = scene_of(options)
+		table.templates[template.id] = template
+		var members: Array = table.members.get(template.family, [])
+		members.append(template.id)
+		table.members[template.family] = members
+	PieceFamilies._table = table
+
+
+## Put `PieceFamilies` back to reading the shipped table (on its next use).
+static func restore_families() -> void:
+	PieceFamilies._table = null
+
+
+## A `TechnologySpec` with nothing to pay and nothing required unless a test says so.
+static func tech(a_energy: int = 0, a_infrastructure: int = 0, a_dominion: int = 0,
+		a_ticks: int = 30, a_requires: Array = []) -> TechnologySpec:
+	return TechnologySpec.new(a_energy, a_infrastructure, a_dominion, a_ticks, a_requires)
+
+
+## A `PieceFamilies.Template` that hands back a scene built in memory, not one loaded by path.
+class _FakeTemplate extends PieceFamilies.Template:
+	var scene: PackedScene
+
+	func load_scene() -> PackedScene:
+		return scene
+#endregion

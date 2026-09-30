@@ -11,7 +11,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_FootprintRotation.gd -gexit
 
-const LONG_SCENE: Dictionary = FakePieces.BUILDING
+const LONG_SCENE: Dictionary = {"structure": true, "dimensions": Vector2i(3, 5)}
 ## The an_infrastructure tool's second variant is the long (3×5) neutral building.
 const VARIANT_TOOL: String = "command_tool_an_infrastructure"
 const LONG_DIMS: Vector2i = Vector2i(3, 5)

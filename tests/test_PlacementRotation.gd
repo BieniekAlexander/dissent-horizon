@@ -10,10 +10,13 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_PlacementRotation.gd -gexit
 
-const TOOL_NAME: String = "command_tool_an_infrastructure"
+## A fake build tool with two variants: a square one and the long one a quarter turn changes.
+const TOOL_TYPE: StringName = &"fake_building"
+const SQUARE: StringName = &"fake_square"
+const LONG: StringName = &"fake_long"
 ## The long neutral building the tool's second variant places.
 const LONG_DIMS: Vector2i = Vector2i(3, 5)
-const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": [&"fake_building"]}
 const MAP_CORNERS: int = 41
 const GRID_CELLS: int = MAP_CORNERS - 1
 
@@ -42,6 +45,7 @@ var _commander: Commander
 var _controller: RTSController
 var _builder: Commandable
 var _saved_player_id: int = 0
+var _tool: Tool
 
 
 func before_each() -> void:
@@ -58,10 +62,14 @@ func before_each() -> void:
 	_commander.map = _map
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
-	_commander.technology_mapping[Tool.for_name(TOOL_NAME).type].required_structures = []
+	FakePieces.install_families([
+		{"id": SQUARE, "footprint": Vector2i(4, 4)}, {"id": LONG, "footprint": LONG_DIMS}])
+	_tool = FakePieces.register_tool(FakePieces.tool(TOOL_TYPE, {}, [SQUARE, LONG]))
+	_commander.technology_mapping = {TOOL_TYPE: FakePieces.tech(), SQUARE: FakePieces.tech(),
+		LONG: FakePieces.tech()}
 	_builder = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(_builder)
-	(_builder.get_node("Builds") as Builds).buildable_types = [Tool.for_name(TOOL_NAME).type]
+	(_builder.get_node("Builds") as Builds).buildable_types = [TOOL_TYPE]
 	_builder.ownership.commander = _commander
 	_builder.map = _map
 	_controller = autofree(RTSController.new()) as RTSController
@@ -70,12 +78,14 @@ func before_each() -> void:
 	_controller.selection = [_builder]
 	_controller.map = _map
 	# The long (3×5) variant, so a quarter turn changes the cells.
-	_controller.command_message.tool = Tool.for_name(TOOL_NAME).with_variant(1)
+	_controller.command_message.tool = _tool.with_variant(1)
 	_controller.current_command_type = Build
 	watch_signals(_controller)
 
 
 func after_each() -> void:
+	FakePieces.restore_families()
+	FakePieces.restore_tools()
 	RTSController.PLAYER_COMMANDER_ID = _saved_player_id
 
 
@@ -203,7 +213,7 @@ func test_the_release_behaves_as_the_press_used_to_about_staying_armed() -> void
 	_press(&"command_armed_issue")
 	_release(&"command_armed_issue")
 	assert_null(_controller.command_message.tool, "an ordinary order puts the tool down")
-	_controller.command_message.tool = Tool.for_name(TOOL_NAME).with_variant(1)
+	_controller.command_message.tool = _tool.with_variant(1)
 	_controller.additive_latched = true
 	_controller.command_message.world_position = Vector3(-8.0, 0.0, -8.0)
 	_press(&"command_armed_issue")
