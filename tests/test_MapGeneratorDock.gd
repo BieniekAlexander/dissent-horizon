@@ -78,6 +78,26 @@ func test_every_parameter_is_in_exactly_one_group() -> void:
 	assert_eq(filed.keys(), [], "groups name parameters that no longer exist")
 
 
+## Every knob has hover text, and the form shows it on both the name and the editor.
+func test_every_parameter_has_a_description() -> void:
+	var params := MapGenerationParams.new()
+	for property: Dictionary in params.get_property_list():
+		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			assert_false(String(MapGenerationParams.DESCRIPTIONS.get(String(property.name), "")).is_empty(),
+				"%s has no entry in DESCRIPTIONS" % property.name)
+	for property_name: String in MapGenerationParams.DESCRIPTIONS:
+		assert_true(property_name in params, "DESCRIPTIONS names %s, which does not exist" % property_name)
+
+
+func test_a_field_shows_its_description_on_hover() -> void:
+	var expected: String = MapGenerationParams.DESCRIPTIONS["building_occupancy"]
+	assert_eq(_field("building_occupancy").tooltip_text, expected)
+	var form: Array[Node] = _dock._form.get_children()
+	var label: Label = form[form.find(_field("building_occupancy")) - 1] as Label
+	assert_eq(label.tooltip_text, expected)
+	assert_eq(label.mouse_filter, Control.MOUSE_FILTER_STOP, "a Label ignores the mouse by default")
+
+
 func test_the_form_is_sectioned_by_group() -> void:
 	var headings: Array[String] = []
 	for child: Node in _dock._form.get_children():
