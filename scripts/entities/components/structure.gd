@@ -12,6 +12,18 @@ extends Node
 ## Footprint origin is the min-x/min-z corner (top-left in grid space).
 @export var dimensions: Vector2i = Vector2i(1, 1)
 
+## Which way the piece is turned, in quarter turns: 0…3, each a 90° step COUNTER-CLOCKWISE seen
+## from above (the sense of Godot's positive yaw). 0 faces +Z, the piece's canonical front — the
+## direction Movement.get_facing treats as forward — so 1 faces +X, 2 faces -Z and 3 faces -X.
+##
+## Held as an integer rather than read back from `rotation.y`: the grid registers whole cells, and
+## a yaw that drifted by an epsilon must never change which ones. Setting it turns the piece's
+## root, so the model, selection shape and hull (all children) follow. It is state of a PLACED
+## piece: chosen when it is laid, never changed after. `dimensions` stays the size at 0; what the
+## piece actually claims is footprint_dimensions().
+## Why, and everything else that reads it: gdd/systems/terrain-and-navigation/footprint-rotation.md
+var quarter_turns: int = 0: set = set_quarter_turns
+
 ## Determines whether a structure can be placed on uneven terrain
 @export var allow_uneven: bool = false
 
@@ -38,6 +50,61 @@ extends Node
 ## (gdd/systems/authoring/composition-rework.md §Which form a piece spawns in). Always true
 ## for a piece with no Movement; a transformer's is switched by Entity.set_deployed.
 var is_active: bool = true
+#endregion
+
+#region Rotation
+## `a_dimensions` as they lie on the grid once turned `a_quarter_turns`: width and depth swap on an
+## odd count and are untouched on an even one, so a 180° turn claims the cells a 0° one does. THE
+## one place that swaps — like Map.footprint_origin is the one place that resolves parity — so a
+## caller that needs the footprint asks here and never re-derives it.
+static func oriented_dimensions(a_dimensions: Vector2i, a_quarter_turns: int) -> Vector2i:
+	return Vector2i(a_dimensions.y, a_dimensions.x) if posmod(a_quarter_turns, 2) == 1 \
+		else a_dimensions
+
+
+## The yaw, in radians, of a piece turned `a_quarter_turns` (see `quarter_turns`).
+static func yaw_of(a_quarter_turns: int) -> float:
+	return posmod(a_quarter_turns, 4) * PI * 0.5
+
+
+## The count a yaw is nearest to, wrapped to 0…3. What a scene-placed piece's authored
+## `rotation.y` means once it has to live on the grid.
+static func quarter_turns_of_yaw(a_yaw: float) -> int:
+	return posmod(roundi(a_yaw / (PI * 0.5)), 4)
+
+
+## The count whose front points most nearly along `a_direction` (a world-XZ vector; x is world X,
+## y is world Z), or `a_fallback` when there is no direction to read — a zero vector. Used to turn
+## a drag into a rotation. A diagonal resolves to the Z axis, so the answer never flickers on a
+## tie.
+static func quarter_turns_facing(a_direction: Vector2, a_fallback: int = 0) -> int:
+	if a_direction.is_zero_approx():
+		return a_fallback
+	if absf(a_direction.x) > absf(a_direction.y):
+		return 1 if a_direction.x > 0.0 else 3
+	return 0 if a_direction.y >= 0.0 else 2
+
+
+## The world-XZ unit vector a piece turned `a_quarter_turns` faces: (0, 1) at 0, then (1, 0),
+## (0, -1), (-1, 0). Inverse of quarter_turns_facing on the four axes.
+static func facing_of(a_quarter_turns: int) -> Vector2:
+	match posmod(a_quarter_turns, 4):
+		1: return Vector2.RIGHT
+		2: return Vector2.UP
+		3: return Vector2.LEFT
+	return Vector2.DOWN
+
+
+## What this piece claims on the grid: `dimensions` turned by `quarter_turns`.
+func footprint_dimensions() -> Vector2i:
+	return oriented_dimensions(dimensions, quarter_turns)
+
+
+func set_quarter_turns(a_turns: int) -> void:
+	quarter_turns = posmod(a_turns, 4)
+	var root: Node3D = get_parent() as Node3D
+	if root != null:
+		root.rotation.y = yaw_of(quarter_turns)
 #endregion
 
 #region Checks

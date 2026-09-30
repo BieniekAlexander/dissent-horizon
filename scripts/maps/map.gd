@@ -516,7 +516,7 @@ func add_entities(
 		# piece spawns MOBILE here: this site has no opinion about its form.
 		if entity.spawns_deployed():
 			entity.initialize(self, a_commander)
-			add_structure(entity, a_location, 0, false)
+			add_structure(entity, a_location, -1, false)
 		else:
 			units.append(entity)
 
@@ -579,12 +579,18 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 ## scene auto-init use — so a structure occupies the identical cells and lands at the
 ## identical position in every case (even-sized footprints centre on a grid corner,
 ## odd on a cell).
-func add_structure(a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true) -> void:
-	# Footprint size from the Structure component (1×1 fallback). footprint_origin
-	# centres the structure parity-correctly; footprint_centroid is the same point
-	# the editor terrain-snap plugin snaps to.
+##
+## `a_quarter_turns` orients the footprint (Structure.quarter_turns; the piece is turned to match).
+## The default, -1, means "as the piece already is" — its own count, and its yaw left alone — which
+## is what a placed blueprint, an event's spawn and a deploy all want. gdd/systems/terrain-and-navigation/footprint-rotation.md
+func add_structure(a_structure: Entity, a_world_center: Vector2, a_quarter_turns: int = -1, _a_rebake: bool = true) -> void:
+	# Footprint size from the Structure component (1×1 fallback), turned to the piece's
+	# orientation. footprint_origin centres the structure parity-correctly; footprint_centroid is
+	# the same point the editor terrain-snap plugin snaps to.
 	var obs := a_structure.get_node_or_null("Structure") as Structure
-	var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
+	if obs != null and a_quarter_turns >= 0:
+		obs.quarter_turns = a_quarter_turns
+	var dims: Vector2i = obs.footprint_dimensions() if obs != null else Vector2i.ONE
 	var footprint: Array[Vector2i] = footprint_cells(a_world_center, dims)
 
 	# OCCUPANCY and OBSTRUCTION are written separately. `cell_grid` names one occupant per cell,
@@ -1504,9 +1510,10 @@ func entity_terrain_cells(a_node: Node3D) -> Array[Vector2i]:
 	if structure == null:
 		cells.append(world_to_grid(xz))
 		return cells
-	var origin := footprint_origin(xz, structure.dimensions)
-	for w: int in range(structure.dimensions.x):
-		for l: int in range(structure.dimensions.y):
+	var dims: Vector2i = structure.footprint_dimensions()
+	var origin := footprint_origin(xz, dims)
+	for w: int in range(dims.x):
+		for l: int in range(dims.y):
 			cells.append(Vector2i(origin.x + w, origin.y + l))
 	return cells
 

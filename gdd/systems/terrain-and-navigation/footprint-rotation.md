@@ -7,10 +7,10 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**PLANNED 2026-09-30.** Indexed as [`deferred.md`](../../deferred.md) 2.4. Nothing here is built.
-**How the player asks for a rotation is deliberately not planned yet** — the control scheme is about
-to change, so §The seam is the interface the controller will call, and no key, button or gesture is
-proposed. Everything else is.
+**BUILT 2026-09-30 (slices 1–3 and the control); the bot and replay recording are still PLANNED.** Indexed as
+[`deferred.md`](../../deferred.md) 2.4. The control is decided: `[` / `]` turn the structure and
+`command_issue` is a press-drag-release gesture — see [construction](../commands/construction.md)
+§Placing and turning a structure, which owns those rules.
 
 ## What exists
 
@@ -92,13 +92,16 @@ Runway geometry and pad layout are audited for that in slice 2.
 
 ## The seam
 
-The one interface a control scheme has to know: **`CommandMessage.quarter_turns`, and a preview that
-shows the footprint at that count.** Whatever the player does to choose the number, the ghost redraws
-from `Structure.oriented_dimensions` and `Build` refuses or accepts against the same. The controller
-holds one `placement_quarter_turns: int`; whether it survives between placements, resets per tool, or
-is remembered per piece is a controls decision and is left open on purpose.
+The interface between the control and the rest is **`CommandMessage.quarter_turns`, and a preview
+that shows the footprint at that count.** The controller holds one `placement_quarter_turns`
+(`RTSController`), reset to 0 whenever the tool is put down; the ghost, the placement grid and
+`Build` all read oriented dimensions from `Structure.oriented_dimensions`.
 
 ## Slices, in order
+
+Slices 1–3 and the control half of 5 are built (`tests/test_FootprintRotation.gd`,
+`tests/test_PlacementRotation.gd`). Left: slice 4 (the bot) and the replay half of slice 5. The editor
+`terrain_snap` plugin reads a node's yaw as a quarter turn, as `Entity._auto_initialize` does.
 
 Each slice ends green and is useful alone. All tests build their own fixtures (a synthetic Map, a
 synthetic structure) — none reads an authored scene, per CLAUDE.md §A unit test does not assert facts

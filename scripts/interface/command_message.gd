@@ -55,6 +55,12 @@ var transaction: PurchaseTransaction = null
 ## tests), which instantiate their structure at placement time as before.
 var planned_structure: Commandable = null
 
+## BUILD only — how the structure is to be turned when it is laid, as Structure.quarter_turns
+## (0…3, counter-clockwise from above; 0 faces +Z). The footprint the order claims is the tool's
+## dimensions turned by this. An integer, so a recorded order carries no float. Default 0 is what
+## every order that never chose a facing — scenario events, the bot — has always meant.
+var quarter_turns: int = 0
+
 ## True when an unaffordable purchase issued by this command should be QUEUED rather
 ## than refused — the ADDITIVE MODIFIER (RTSController._purchase_defers). Read by
 ## Train/Build.meets_precondition, which passes it to Commander.get_blocking_need.
@@ -151,6 +157,7 @@ static func deep_copy(message: CommandMessage) -> CommandMessage:
 		message.ability_type
 	)
 	copy.persist = message.persist
+	copy.quarter_turns = message.quarter_turns
 	# A region shape can be freed while messages still name it — a Defend region once its last
 	# lease is released, a unit's own aggro shape once the unit dies — and assigning a freed
 	# object to the typed field errors, so it is scrubbed like `target` above.

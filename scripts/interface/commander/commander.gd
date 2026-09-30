@@ -1015,7 +1015,7 @@ func planned_footprint_cells(a_except: Commandable = null) -> Dictionary:
 		if piece == a_except or not piece.is_planned or piece.is_queued_for_deletion():
 			continue
 		var obs := piece.get_node_or_null("Structure") as Structure
-		var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
+		var dims: Vector2i = obs.footprint_dimensions() if obs != null else Vector2i.ONE
 		for cell: Vector2i in map.footprint_cells(VU.inXZ(piece.global_position), dims):
 			out[cell] = true
 	return out
