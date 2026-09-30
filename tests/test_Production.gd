@@ -54,12 +54,12 @@ func test_tick_returns_false_on_empty_queue():
 
 func test_enqueue_stores_type_for_refund():
 	var p := _make_production()
-	p.enqueue(10, null, EntityIds.AN_BIO_LIGHT_BUILDER)
-	assert_eq(p.job_type(0), EntityIds.AN_BIO_LIGHT_BUILDER)
+	p.enqueue(10, null, &"fake_builder_a")
+	assert_eq(p.job_type(0), &"fake_builder_a")
 
 func test_cancel_removes_the_job():
 	var p := _make_production()
-	p.enqueue(5, null, EntityIds.AN_BIO_LIGHT_BUILDER)
+	p.enqueue(5, null, &"fake_builder_a")
 	assert_true(p.cancel(0), "cancel returns true when a job is removed")
 	assert_eq(p.job_count(), 0, "the job is gone")
 	assert_true(p.is_free(), "and the producer can take another")
@@ -82,7 +82,7 @@ func test_job_commands_defaults_to_empty():
 func test_job_commands_returns_the_enqueued_chain():
 	var p := _make_production()
 	var move := MoveCommand.new(CommandMessage.new(null, null, null, Vector3(5, 0, 5)))
-	p.enqueue(10, null, EntityIds.AN_BIO_LIGHT_BUILDER, [move])
+	p.enqueue(10, null, &"fake_builder_a", [move])
 	assert_eq(p.job_commands(0), [move])
 
 ## --- producible_types / can_produce ---------------------------------------
@@ -92,11 +92,11 @@ func test_job_commands_returns_the_enqueued_chain():
 func test_default_producible_types_is_empty():
 	var p := _make_production()
 	assert_eq(p.producible_types.size(), 0)
-	assert_false(p.can_produce(EntityIds.TC_BIO_LIGHT_BUILDER))
+	assert_false(p.can_produce(&"fake_builder_b"))
 
 func test_can_produce_reflects_configured_types():
 	var p := _make_production()
-	p.producible_types.assign([EntityIds.AN_BIO_LIGHT_BUILDER, EntityIds.TC_BIO_LIGHT_ANTI_MECH])
-	assert_true(p.can_produce(EntityIds.AN_BIO_LIGHT_BUILDER))
-	assert_true(p.can_produce(EntityIds.TC_BIO_LIGHT_ANTI_MECH))
-	assert_false(p.can_produce(EntityIds.TC_BIO_LIGHT_BUILDER), "type not in the list is not producible")
+	p.producible_types.assign([&"fake_builder_a", &"fake_soldier"])
+	assert_true(p.can_produce(&"fake_builder_a"))
+	assert_true(p.can_produce(&"fake_soldier"))
+	assert_false(p.can_produce(&"fake_builder_b"), "type not in the list is not producible")
