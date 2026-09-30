@@ -12,9 +12,11 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_PlantedCharge.gd \
 ##       -gdir=res://tests/none -gexit
 
-const SAPPER_PATH: Dictionary = FakePieces.SOLDIER
-const TANK_PATH: Dictionary = FakePieces.SOLDIER
-const SOLDIER_PATH: Dictionary = FakePieces.SOLDIER
+## A unit carrying the plant ability; a machine to ride on; a plain soldier.
+const SAPPER_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "repairs": true,
+	"abilities": [{"grants": [Plant.ABILITY_ID], "cooldown_ticks": 90}]}
+const TANK_PATH: Dictionary = FakePieces.MACHINE
+const SOLDIER_PATH: Dictionary = FakePieces.PLAIN
 var _commanders: Dictionary = {}
 
 
@@ -27,7 +29,12 @@ func _commander(a_id: int) -> Commander:
 	return _commanders[a_id]
 
 
+func after_each() -> void:
+	FakePieces.restore_abilities()
+
+
 func before_each() -> void:
+	FakePieces.install_ability(Plant.ABILITY_ID, {"range": 5.0})
 	_commanders = {}
 
 
