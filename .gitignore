@@ -389,3 +389,6 @@ $RECYCLE.BIN/
 # Generated maps for review: reproduced from seed + parameters by
 # tools/map_generation/generate_maps.tscn, never hand-edited.
 /scenes/scenarios/generated/
+
+# The Visual Studio [Dd]ebug/ rule above would otherwise swallow the game's own debug scripts.
+!scripts/debug/
