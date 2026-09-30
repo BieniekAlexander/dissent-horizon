@@ -157,11 +157,11 @@ transaction is the thing the order is stored on, and the job is how the info pan
 
 ### Conversion
 
-**Building an `an_infrastructure` on a neutral building converts it in place.** The target is the neutral (commander 0) building of the `neutral_building` family whose FOOTPRINT holds the aimed cell — any member, whichever form the tool is armed with. It used to be the building the armed form's own footprint would land squarely on, which made a conversion depend on the armed variant; a shack can now be converted with the large form armed. The node keeps its footprint, HP, garrison and occupants, and gains ownership plus the routine above. Aiming at a building lays no new structure and raises no blueprint.
+**Building an `an_infrastructure` on a neutral building converts it in place.** The target is the neutral (commander 0) building of the `neutral_building` family whose FOOTPRINT holds the aimed cell — any member, whichever form the tool is armed with. It used to be the building the armed form's own footprint would land squarely on, which made a conversion depend on the armed variant; a shack can now be converted with the long form armed. The node keeps its footprint, HP, garrison and occupants, and gains ownership plus the routine above. Aiming at a building lays no new structure and raises no blueprint.
 
 **A conversion costs the target's own listed energy price times `ENERGY_DISCOUNT` and takes its own listed build time times `BUILD_TIME_DISCOUNT`**, both one half. Converting is priced off the building the player is actually taking, not off a flat figure, because buildings now differ in size and worth; the discount is the reward for finding a building rather than building one. Funding and deferral are the ordinary build rules: with the additive modifier an unaffordable conversion queues, and the builder waits at the building for the money.
 
-**Accepted:** a conversion does not check the piece's prerequisites, as before, and the HUD's price preview shows the tool's full price rather than the discounted one while the cursor is on a building.
+**Accepted:** a conversion does not check the piece's prerequisites, as before.
 
 ## An unfinished structure exists, accepts orders, and cannot act
 
