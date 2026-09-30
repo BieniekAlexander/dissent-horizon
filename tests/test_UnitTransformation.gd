@@ -12,12 +12,14 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_UnitTransformation.gd -gexit
 
-const IRREGULAR: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-const WARLORD: PackedScene = preload("res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn")
+## One piece that builds and one that does not.
+var IRREGULAR: Dictionary:
+	get: return {"speed": 2.0, "builds": [FakePieces.a_buildable_type()]}
+const WARLORD: Dictionary = {"speed": 2.0}
 
 
-func _unit(a_scene: PackedScene) -> Commandable:
-	var unit: Commandable = a_scene.instantiate()
+func _unit(a_options: Dictionary) -> Commandable:
+	var unit: Commandable = FakePieces.unit(a_options)
 	add_child_autofree(unit)
 	unit.top_level = true
 	return unit

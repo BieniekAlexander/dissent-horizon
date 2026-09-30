@@ -27,7 +27,11 @@ extends RefCounted
 ##                             air: float     radius of its air reach (0 = none)
 ##                             clip_size: int, charged: bool, reload_ticks: int
 ##   builds: Array           `Builds.buildable_types`, which also adds the `Builds` component
-##   garrison: Dictionary    a `Garrison`: capacity: int
+##   frame / armour: int     `Defense.frame_type` / `Defense.armour_type` (defaults BIO / LIGHT)
+##   crush: int              `Movement.crush_class` (needs `speed`)
+##   interactions: Array     `Interaction.Type`s, which adds an `Interactor`
+##   garrison: Dictionary    a `Garrison`: capacity: int, sentence_length: float, bunker: bool,
+##                             frames / armours / movements: int masks, ids: Array
 ##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
 ##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
@@ -61,10 +65,13 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	_add_node(piece, Ownership.new(), "Ownership")
 	var defense := Defense.new()
 	defense.hp_max = float(a_options.get("hp", 100.0))
+	defense.frame_type = a_options.get("frame", Defense.FrameType.BIO)
+	defense.armour_type = a_options.get("armour", Defense.ArmourType.LIGHT)
 	_add_node(piece, defense, "Defense")
 	_add_node(piece, Veterancy.new(), "Veterancy")
 	_add_scene(piece, "selectable.tscn", "Selectable")
 	_add_scene(piece, "hp_bar.tscn", "HPBar")
+	_add_scene(piece, "target_indicator.tscn", "TargetIndicator")
 
 	if a_structure:
 		var body := Structure.new()
@@ -75,6 +82,8 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		var movement := Movement.new()
 		movement.speed = float(a_options.get("speed", 4.0))
 		movement.nav_agent_path = NodePath("../NavigationAgent")
+		if a_options.has("crush"):
+			movement.crush_class = a_options["crush"]
 		_add_node(piece, movement, "Locomotion")
 	if a_options.get("aerial", false):
 		_add_node(piece, Aerial.new(), "Aerial")
@@ -102,10 +111,36 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		builds.buildable_types = types
 		_add_node(piece, builds, "Builds")
 	if a_options.has("garrison"):
-		var garrison := Garrison.new()
-		garrison.capacity = int((a_options["garrison"] as Dictionary).get("capacity", 1))
-		_add_node(piece, garrison, "Garrison")
+		_add_garrison(piece, a_options["garrison"] as Dictionary)
+	if a_options.has("interactions"):
+		var interactor := Interactor.new()
+		var list: Array[Interaction] = []
+		for type: Variant in a_options["interactions"] as Array:
+			var interaction := Interaction.new()
+			interaction.type = type
+			list.append(interaction)
+		interactor.interactions = list
+		_add_node(piece, interactor, "Interactor")
 	return piece
+
+
+static func _add_garrison(a_piece: Commandable, a_spec: Dictionary) -> void:
+	var garrison := Garrison.new()
+	garrison.capacity = int(a_spec.get("capacity", 1))
+	garrison.sentence_length = float(a_spec.get("sentence_length", 0.0))
+	garrison.bunker = bool(a_spec.get("bunker", true))
+	if a_spec.has("frames"):
+		garrison.occupiable_frames = int(a_spec["frames"])
+	if a_spec.has("armours"):
+		garrison.occupiable_armours = int(a_spec["armours"])
+	if a_spec.has("movements"):
+		garrison.occupiable_movements = int(a_spec["movements"])
+	if a_spec.has("ids"):
+		var ids: Array[StringName] = []
+		for id: Variant in a_spec["ids"] as Array:
+			ids.append(StringName(id))
+		garrison.occupiable_ids = ids
+	_add_node(a_piece, garrison, "Garrison")
 
 
 static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:

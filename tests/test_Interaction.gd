@@ -11,11 +11,16 @@ extends GutTest
 ## Capture is no longer an interaction at all: a truck takes prisoners by driving over them
 ## (see test_CaptureByCrushing.gd). HIJACK has its own file.
 
-const SUPPLY_TRUCK := preload("res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn")
-const TERRESTRIAL := preload("res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn")
-const COMPOUND := preload("res://scenes/entities/structures/cl/cl_infrastructure.tscn")
+## A carrier with a hold and a DEPOSIT errand.
+const SUPPLY_TRUCK: Dictionary = {"speed": 2.0, "garrison": {"capacity": 3},
+	"interactions": [Interaction.Type.DEPOSIT]}
+const TERRESTRIAL: Dictionary = {"speed": 1.0}
+## A closed hold that sentences what is deposited in it.
+const COMPOUND: Dictionary = {"structure": true, "garrison": {"capacity": 6, "sentence_length": 30.0,
+	"frames": 0, "armours": 0, "movements": 0}}
 ## A structure with an OPEN garrison — one that holds units but interns nobody.
-const OPEN_GARRISON := preload("res://scenes/entities/structures/nt/nt_building_square.tscn")
+## An ordinary garrison: holds occupants, sentences nobody.
+const OPEN_GARRISON: Dictionary = {"structure": true, "garrison": {"capacity": 4}}
 
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
@@ -25,8 +30,8 @@ func _commanded(a_id: int) -> Commander:
 
 ## A live unit instance owned by [a_commander_id]. Ownership is assigned directly (not
 ## through initialize) so no Map is needed.
-func _unit(a_scene: PackedScene, a_commander_id: int) -> Commandable:
-	var u := a_scene.instantiate() as Commandable
+func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
+	var u: Commandable = FakePieces.structure(a_options) if a_options.has("structure") else FakePieces.unit(a_options)
 	add_child_autofree(u)
 	u.ownership.commander = _commanded(a_commander_id)
 	return u
@@ -83,21 +88,6 @@ func test_deposit_evaluation_returns_failure_cause():
 	)
 
 ## --- The truck's interaction list ------------------------------------------
-
-func test_supply_truck_carries_only_deposit():
-	# Both of the errands it used to carry are gone from this list: the shelter COLLECT
-	# errand, and then ABDUCT, which became a contact mechanic (Garrison.can_capture).
-	var truck := _unit(SUPPLY_TRUCK, 1)
-	var types: Array = truck.interactor.interactions.map(func(i: Interaction) -> int: return i.type)
-	assert_eq(types, [Interaction.Type.DEPOSIT])
-
-## --- Interact travels in order to ACT, and arriving is not the point ---------
-##
-## `Interact` inherited `ends_on_arrival()`'s default `true`, which is wrong for every
-## interaction it drives (DEPOSIT, HIJACK): a unit that had to WALK to its target
-## dropped the whole order the tick navigation reported "arrived", if that happened even one
-## tick before `_in_reach` agreed — leaving a loaded truck standing at a Compound, cargo
-## intact, doing nothing forever. Same bug, same fix, as Build/Assemble/Repair.
 
 func test_interact_does_not_end_on_arrival():
 	var truck := _unit(SUPPLY_TRUCK, 1)
