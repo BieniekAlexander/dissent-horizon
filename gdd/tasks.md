@@ -72,7 +72,7 @@ generator makes the draw sequence depend on iteration order, so anything that it
 > Step 4 scoped and your answers recorded as a PLANNED plan: `gdd/systems/commands/recording-and-replay.md`, indexed as `deferred.md` 2.46, with pointers from the harness, debug-mode and dialogs notes.
 > Also in the plan since: "Save replay" on end-of-scenario dialogs (name prefilled, editable), a replay list on the start screen, and three rotating autosaves named `autosaved_replay_<UTC timestamp>`.
 > **Not done:** nothing built. Two TODOs stay in the note: which standard compression codec (and whether Godot's gzip output is plain gzip), and measuring cross-platform determinism.
-## CPU Bot Behavior Work #wip #needs-input
+## CPU Bot Behavior Work #wip
 I've made significant progress on the implementation of the game since starting the Bot Behavior modules. Now, I would say that the set of possible actions from a player will not change that much, so I'd like to revisit, fix, and improve how it works.
 ### High Level Goals
 - Difficulty: Support various difficulty levels. The current set of difficulties in `player_slot.gd` is fine. The goals are:
@@ -418,7 +418,7 @@ I've made significant progress on the implementation of the game since starting 
     - I see that the stock trucks aren't being used for scouting at all, which is surprising to me because they're fast, and they don't really have anything to do. Right now, it just looks like they idle and move around in a very small area on the map for much of the game.
     - Interestingly, I'm also seeing armies of units moving out to other parts of the map, but they don't really approach the enemy to engage in battle. It actually appears that the only units getting caught in combat are units which are scouting (though I'm not positive). Also, interestingly, the players do seem to be scouting the map, but for a very long amount of time into the game, they are not reaching the enemy spawn point in scouting. I don't know why that would happen.
     - Bot units appear to be receiving commands to attack targets which aren't applicable for their weapon. For example, I placed a scan drone near the enemy base, and several units had received a command to attack it (I believe an attack move command), but their weapons can't target it, so they sort of waited near their target until it had expired.
-> [!question] Q — 2026-09-11
+> [!done] Q — resolved — 2026-09-30
 > Where should a unit spawn from a production structure with no navmesh access?
 > **Why it matters:** you flagged this as undecided and nobody has decided it. The bot can no longer create the situation — every structure it places must keep a whole side on walkable ground in the region its own units stand on — but it is still reachable three ways: a PLAYER builds a production structure and seals it in with later buildings; terrain changes under an existing structure (rubble, a destroyed bridge, a scripted block); or a structure is scene-placed in a pocket by a scenario author. The code path is not dead, so something has to happen when a unit finishes training there.
 > **Options:**
@@ -429,9 +429,20 @@ I've made significant progress on the implementation of the game since starting 
 >
 > **Leaning:** 4 + 1 — prevention where it is cheap, and a refusal rather than a teleport for the cases prevention cannot reach. A greyed button is a rule the player can learn; a unit walking out of solid rock is a bug they will report.
 >
-> **Answer:** 
+> **Answer:** 4 + 1
+> **Resolved:** options 4 + 1 — `Build.meets_precondition` now asks `NavPlacement` (rule 1 for
+> every structure, rule 2 scoped to a `Production` component) via the new
+> `Build._placement_keeps_navmesh_access`, refusing with `INVALID_PLACEMENT`; and
+> `Commandable.has_navmesh_access()` + `Train.meets_precondition`'s new `NO_NAVMESH_ACCESS`
+> refuse training at a producer the grid can show is already sealed in (terrain changed under
+> it, or scene-authored into a pocket — the cases placement can no longer create but cannot
+> prevent either). `tests/test_NavmeshAccessGating.gd`; write-up in
+> `gdd/systems/commands/construction.md` §Placement keeps navigation intact. **Not verified
+> against a live Godot run** — this session's environment has no `godot` binary, so the change
+> is reviewed by hand and against the existing NavPlacement/Build/Train tests' fixtures rather
+> than executed; please run the suite before trusting it.
 
-> [!question] Q — 2026-09-11
+> [!done] Q — resolved — 2026-09-30
 > What should a spectator session show by default now that the fog mesh actually renders?
 > **Why it matters:** the all-bot fog bug is fixed (`Fog._physics_process` gated the terrain-material update on the local human, and in a spectator session `PLAYER_COMMANDER_ID` stays 0 while every bot fog resolves to 1, 2, … — so the test matched nobody and `fog_enabled` was never set). `Scenario._init_spectator_fog` sets `active_commander_id` to the first bot, which until now had no visible consequence. It does now: opening an all-bot match to watch shows a mostly black map with one bot's revealed bubble until you press a button. Changing it is one line; leaving it is also a decision.
 > **Options:**
@@ -441,9 +452,12 @@ I've made significant progress on the implementation of the game since starting 
 >
 > **Leaning:** 2 — the reason you ran the match was to watch both bots play, and the first-bot default was chosen when it had no visible consequence.
 >
-> **Answer:**
+> **Answer:** 1
+> **Resolved:** option 1 — kept as shipped (`Scenario._init_spectator_fog` still defaults to
+> the first bot's POV). No code changed; the "No Fog" button remains the way to watch both
+> sides.
 
-> [!question] Q — 2026-09-11
+> [!done] Q — resolved — 2026-09-30
 > Should `CommanderBlackboard` drop a UNIT belief the commander has walked to and found empty, rather than only the ATTACK objective ignoring it?
 > **Why it matters:** `Bot.belief_is_disproved` is asked at the objective, so a disproved belief still counts toward `believed_enemy_army_value` (which gates every attack wave) and toward `enemy_demand_map` (what the bot builds to counter). That is defensible — the sighting is still evidence the unit EXISTS, just not about where — but it means one belief is simultaneously true enough to build against and false enough not to march on. Moving the test into `CommanderBlackboard.update` would make unit beliefs behave exactly like structure beliefs, at the cost of the bot forgetting enemies faster and reading the enemy army as smaller than it is — which, under the humility prior, makes it MORE aggressive.
 > **Options:**
@@ -453,9 +467,13 @@ I've made significant progress on the implementation of the game since starting 
 >
 > **Leaning:** 1 — it is the change that is already measured, and 2 moves a number that gates the attack-wave commit rule with nothing measured about the effect.
 >
-> **Answer:**
+> **Answer:** 1
+> **Resolved:** option 1 — no code changed; a unit belief is still disqualified only at the
+> objective (`Bot.belief_is_disproved`), and still counts toward `believed_enemy_army_value`
+> and `enemy_demand_map`. `bot-architecture.md` §…and it has to be something the army can ACT
+> on already describes this as the current, unchanged rule.
 
-> [!question] Q — 2026-09-11
+> [!done] Q — resolved — 2026-09-30
 > May the bot treat the map's authored start points as prior knowledge when choosing where to scout?
 > **Why it matters:** the shipped scouting fix makes a scout prefer frontier far from *its own base* — a belief derived only from what the bot can see ("the opponent is not next to me, because I can see next to me"). It finds the enemy base in 95–110 s, against 265 s before and only 2 of 8 matches finding it at all. Reading `Skirmish.START_POINT_GROUP` instead would make the search exact, but it is the bot knowing a fact about the scenario rather than about the game state — and `nearest_believed_enemy_structure_position` was deliberately made fog-limited to remove exactly that. It also changes behaviour on maps where the prior is wrong (asymmetric, 3+ players, a bot pushed off its start).
 > **Options:**
@@ -466,7 +484,11 @@ I've made significant progress on the implementation of the game since starting 
 >
 > **Leaning:** 1 — it already produces the behaviour you asked for, and it is the only option needing no argument about what the bot is allowed to know. If 95–110 s is still too slow, 3 is the next move, because it turns the question into a tier rather than a rule.
 >
-> **Answer:**
+> **Answer:** 1
+> **Resolved:** option 1 — no code changed; `BotScout` still knows nothing of
+> `Skirmish.START_POINT_GROUP`. Closed the "open" note in `bot-architecture.md` §Where this
+> sits relative to the fog with the decision and the fallback (`scout_knows_start_points`) if
+> it's ever revisited.
 
 > [!check] Progress — 2026-09-11
 > All four of your match observations worked, plus repairs. Write-ups: `gdd/systems/ai/bot-architecture.md` (§Where a building goes, §Scouting, the attack-objective subsection), `bot-engagement-fixes.md`, `bot-parameter-space.md`, and a new `CLAUDE.md` §Regenerating data. Four questions above; heading re-tagged `#needs-input`.
@@ -504,6 +526,44 @@ I've made significant progress on the implementation of the game since starting 
 > **Tests: 8 failing, 1 pending** — exactly your long-standing set (`test_CommandCard`, both `test_ControlBinding`, both `test_DamageCatalog`, `test_DamageTable::test_calculate_damage_applies_the_penalty_columns`, both `test_RequisitionPrerequisites`), and `test_SourceFilesParse` is now green.
 >
 > **Also worth knowing:** `CLAUDE.md:829` cites `tests/test_IndentationConsistency.gd`, which does not exist — the real guard is `tests/test_SourceFilesParse.gd`, which checks *parsing* rather than indentation on purpose. Left alone because CLAUDE.md is dirty in your tree.
+
+> [!check] Progress — 2026-09-30
+> Picked up all four answered questions above; nothing else on this task was determined
+> without a decision from you, so nothing else was touched. Worked on `feature/bot-behavior-work`.
+>
+> **BUILT — the navmesh-spawn question (4 + 1).** `Build.meets_precondition` now asks
+> `NavPlacement` of every ordinary placement — rule 1 (no splitting the walkable surface) for
+> anything, rule 2 (a whole side on walkable ground) scoped to a `Production` component — and
+> refuses with `INVALID_PLACEMENT` exactly as the geometric check does
+> (`Build._placement_keeps_navmesh_access`, `scripts/interface/commands/build.gd`). For the
+> cases placement can no longer create but can't prevent either — terrain changing under a
+> standing structure, one scene-authored into a pocket — `Commandable.has_navmesh_access()`
+> and a new `NO_NAVMESH_ACCESS` cause make `Train.meets_precondition` refuse the same way an
+> unaffordable order does. `tests/test_NavmeshAccessGating.gd`; write-up in
+> `gdd/systems/commands/construction.md` §Placement keeps navigation intact.
+>
+> **The other three questions needed no code.** Each answer kept the shipped behaviour: the
+> spectator default stays the first bot's POV, a unit belief is still disqualified only at the
+> ATTACK objective, and the scout still does not read the map's authored start points. Closed
+> each in place above, and closed the "open" note about start points in `bot-architecture.md`
+> §Where this sits relative to the fog with the decision and its fallback
+> (`scout_knows_start_points`, undone) if it's ever revisited.
+>
+> **Not run: the test suite.** This session's environment has no `godot` binary, so
+> `tests/test_NavmeshAccessGating.gd` and the touched files (`build.gd`, `train.gd`,
+> `move_command.gd`, `commandable.gd`) are reviewed by hand — traced against
+> `test_NavPlacement.gd`'s own fixtures, and against every existing caller of
+> `Build.meets_precondition` / `Train.meets_precondition` in `tests/` for a map that might be
+> null or missing a `terrain_grid` (both `has_navmesh_access()` and the new Build check are
+> written to pass through rather than refuse when there's nothing real to ask, for exactly
+> that reason) — but not executed. **Please run the full suite before trusting this**, in
+> particular `tests/test_PurchaseGating.gd`, `tests/test_PlannedStructures.gd`,
+> `tests/test_CoBuild.gd`, `tests/test_BuildApproach.gd` and the new file.
+>
+> **Not done:** everything else the heading's High Level Goals / Modeling / Training sections
+> describe — those are the standing vision this task tracks against, not a to-do list with an
+> end state, and nothing in them was determined into a buildable decision this session.
+> `#needs-input` is cleared (no open question remains); the heading stays `#wip`.
 
 ### Importer and scene questions (2026-09-11) — NOT part of CPU Bot Behavior Work
 

@@ -110,6 +110,15 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 
+	# The cells can be geometrically legal and still be a bad idea: NavPlacement asks what
+	# Structure.valid_placement does not — would this footprint split the walkable surface,
+	# and, for a structure that trains units, does it still leave itself a side to put them
+	# on. The bot has asked both since bot-economy's build-spot search; player placement
+	# wants the same answers, so a wall-in the bot could never create should not be one the
+	# player can either. gdd/systems/commands/construction.md §Placement keeps navigation intact.
+	if not _placement_keeps_navmesh_access(message, preview, obs.dimensions):
+		return PreconditionFailureCause.INVALID_PLACEMENT
+
 	# A site this side already means to build on is taken, though nothing stands there yet: the
 	# second plan is refused, not merged. Enemy plans are not ours to know about, so an enemy on
 	# the site is found only when the builder arrives (see fulfill_action).
@@ -213,6 +222,25 @@ static func _tool_dimensions(commander: Commander, tool: Tool) -> Vector2i:
 	var preview: Node = commander.get_build_preview_instance(tool)
 	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
 	return obs.dimensions if obs != null else Vector2i.ONE
+
+## Whether laying `dimensions` down at `message`'s target keeps the map's navigation intact —
+## NavPlacement's two rules (scripts/maps/nav_placement.gd), asked for every ordinary
+## placement. Rule 1 (the footprint may not split the walkable surface) applies regardless of
+## what is being built; rule 2 (a whole side left on walkable ground) is asked only of a
+## structure with a Production component — `a_needs_access` narrowed to the case the reported
+## bug actually was, a building units cannot leave. Rule 3 (the wide-unit class check) stays
+## bot-only, as `bot-architecture.md` §Where a building goes already documents.
+##
+## True (no refusal) whenever there is no real map/grid to ask — an out-of-tree preview or a
+## test fixture with no terrain — so this only ever narrows an ALREADY-VALID placement.
+static func _placement_keeps_navmesh_access(
+	message: CommandMessage, preview: Node, dimensions: Vector2i
+) -> bool:
+	if message.map == null or message.map.terrain_grid == null:
+		return true
+	var footprint: Array = message.map.footprint_cells(message.xz_position, dimensions)
+	var needs_access: bool = preview != null and preview.get_node_or_null("Production") != null
+	return NavPlacement.accepts(message.map.terrain_grid, footprint, needs_access)
 #endregion
 
 #region Purchase

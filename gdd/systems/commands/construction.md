@@ -234,6 +234,40 @@ deploys do not check planned sites either.
 
 ---
 
+## Placement keeps navigation intact
+
+`Structure.valid_placement` answers geometry alone — in bounds, unoccupied, flat, dry enough.
+It says nothing about what the footprint does to the units already on the map, which is a
+separate question `NavPlacement` (`scripts/maps/nav_placement.gd`) answers and
+`Build.meets_precondition` now asks of every ordinary placement, human or bot:
+
+1. **A footprint may not split the walkable surface.** Applies regardless of what is being
+   built — a wall-in strands whatever was on the far side, the placing builder included.
+2. **A structure with a `Production` component must keep a whole side on walkable ground.**
+   Scoped to producers rather than every structure: a unit finishing training needs somewhere
+   to appear, and that is the case a real match hit — a bot's barracks with all four sides
+   walled, training units into nowhere. Narrower than the bot's OWN placement rule, which
+   applies rule 2 to everything it builds for a different reason (a building nothing can walk
+   to cannot be repaired or garrisoned either) — see
+   [bot-architecture](../ai/bot-architecture.md) §Where a building goes.
+
+Both rules were bot-only until now (`BotEconomy._placement_ok`); `Build._placement_keeps_navmesh_access`
+is the same two rules asked in world terms, refusing with `INVALID_PLACEMENT` exactly as the
+geometric check does. Rule 3 (`NavPlacement.accepts_for_class`, the wide-unit-agent check) stays
+bot-only — the bot keeps its own base passable for the widest class any faction fields, which
+is a policy rather than a fact every player placement must obey.
+
+**Placement closes off the common case, not every case.** A structure already standing can
+still end up with no navmesh side — terrain changing under it, or one scene-authored into a
+pocket — so `Commandable.has_navmesh_access()` asks the same question of an already-registered
+footprint, and `Train.meets_precondition` refuses with `NO_NAVMESH_ACCESS` when it says no. The
+training button greys out exactly as an unaffordable purchase does; nothing spawns into a
+sealed room.
+
+Tests: `tests/test_NavmeshAccessGating.gd`.
+
+---
+
 ## PLANNED — Placement is judged against what the commander knows
 
 Decided 2026-09-24. Today `Build.meets_precondition` judges a footprint against the TRUE grid,

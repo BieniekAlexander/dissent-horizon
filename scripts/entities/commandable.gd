@@ -648,6 +648,25 @@ func effective_build_increment() -> float:
 	return (effective_n + 2.0) / (3.0 * float(base_build_time) * float(n))
 var map_cells: Set:
 	get: return map.structure_cell_map.get(self, null) if map != null else null
+
+## Whether this structure currently has a whole side reachable from walkable ground —
+## NavPlacement's rule 2 (scripts/maps/nav_placement.gd), asked of a footprint already on the
+## grid rather than a candidate one. Build.meets_precondition keeps a NEW production
+## structure from ever failing this; a structure can still end up here later — terrain
+## changing under it, or one authored into a pocket — which is what Train.meets_precondition
+## asks this to refuse.
+##
+## True whenever there is nothing real to ask — no map, no terrain grid, or no footprint
+## registered yet (a blueprint still PLANNED, an out-of-tree preview, a test double). This
+## check only ever REFUSES a structure the grid can show is actually sealed in; it is not the
+## thing that decides whether Train may fire at all.
+func has_navmesh_access() -> bool:
+	if map == null or map.terrain_grid == null:
+		return true
+	var footprint: Array = map.structure_cell_map.get(self, [])
+	if footprint.is_empty():
+		return true
+	return NavPlacement.has_navmesh_side(map.terrain_grid, footprint)
 #endregion
 
 #region Grid placement

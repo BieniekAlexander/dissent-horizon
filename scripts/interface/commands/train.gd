@@ -34,6 +34,12 @@ static func meets_precondition(
 	if actor == null or actor.production == null \
 			or not actor.production.can_produce(message.tool.type):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	# Placement can no longer create this producer with no navmesh side (Build asks
+	# NavPlacement for every new structure), so reaching it means terrain changed under a
+	# standing one or it was authored into a pocket. Rare either way, but a spawned unit has
+	# nowhere to appear if it happens, so this is checked before anything commander-specific.
+	if not actor.has_navmesh_access():
+		return PreconditionFailureCause.NO_NAVMESH_ACCESS
 	if actor.commander == null:
 		return PreconditionFailureCause.NONE
 	# Ordering at a blueprint whose own BUILD has not been paid for yet is itself a

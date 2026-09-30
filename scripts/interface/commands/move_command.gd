@@ -39,6 +39,14 @@ enum PreconditionFailureCause {
 	## the ground is free, but something has claimed it. Its own cause so the refusal says so;
 	## it reddens the placement ghost exactly as INVALID_PLACEMENT does (see is_placement_refusal).
 	SITE_PLANNED,
+	## A producer with no whole side left on walkable ground: a unit finishing training here
+	## would have nowhere to appear. Placement can no longer create this (NavPlacement, asked
+	## by Build.meets_precondition), so reaching it takes terrain changing under a standing
+	## structure or one authored into a pocket — rare, but the training order still has to
+	## refuse rather than spawn a unit into a sealed room. Its own cause rather than
+	## NO_FREE_PAD, whose remedy is the same shape (nowhere for the trained thing to go) but a
+	## different fact (a full airfield, not a walled-in building).
+	NO_NAVMESH_ACCESS,
 }
 
 ## The causes a player can clear BY MOVING THE POINTER — the order is fine, this spot is not.
@@ -82,6 +90,7 @@ static var precondition_message_map: Dictionary = {
 	PreconditionFailureCause.UNPOWERED: "Not enough infrastructure to power it",
 	PreconditionFailureCause.NO_VALID_TARGET: "No valid target",
 	PreconditionFailureCause.SITE_PLANNED: "Already planned there",
+	PreconditionFailureCause.NO_NAVMESH_ACCESS: "Nowhere for the unit to appear",
 }
 
 static var unmet_need_to_precondition: Dictionary = {

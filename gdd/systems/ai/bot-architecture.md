@@ -234,9 +234,16 @@ EXPIRED, which is what keeps an unreachable cell from trapping a scout.
 **The prior is about distance from the bot's own base, not about where the enemy starts.**
 The scout walks toward open map and learns nothing until it arrives and looks; the ATTACK
 objective is still a belief written by a real sighting (§The attack objective is a belief),
-and a bot that has not found anybody still has no offensive. Whether the bot may instead be
-told where the map's start points ARE — they are authored `Skirmish` markers, and a human
-sees them before the match begins — is a separate and larger question, and it is open.
+and a bot that has not found anybody still has no offensive.
+
+**Decided: the bot does not read the map's authored start points.** It was asked whether
+`BotScout` may treat `Skirmish.START_POINT_GROUP` as prior knowledge — exact rather than
+inferred, at the cost of the bot knowing a fact about the SCENARIO rather than about game
+state, and of nothing to fall back on where the prior is wrong (asymmetric maps, 3+ players, a
+bot pushed off its start). Kept as shipped: the 95–110 s search above already delivers the
+behaviour asked for, and it is the only option that needs no argument about what the bot is
+allowed to know. `scout_knows_start_points` as a difficulty parameter is the next move if that
+search is ever judged too slow — it turns the question into a tier rather than a rule.
 
 ### Measured, before and after
 
