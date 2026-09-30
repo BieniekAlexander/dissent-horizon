@@ -43,9 +43,12 @@ Rotation changes the cells a piece claims only when the footprint is **not squar
 `nt_building_long` (3×5), `nt_building_large` (8×5), `cl_airField` (6×4) and `an_tech2` (1×4);
 every other piece is square, for which a rotation is purely visual and directional. Any future
 non-square piece, and every neutral-building variant a player can build as `an_infrastructure`
-(square 4×4, long 3×5), is affected the same way. Rectangles only: irregular footprints are still
-the open item in [structure-footprints](structure-footprints.md) §2 and rotate by the same rule
-when they arrive (§Open, last item).
+(square 4×4, long 3×5), is affected the same way.
+
+**Every footprint is a rectangle, and that is not going to change.** So this note has no offset list,
+no irregular-shape case and no per-cell rotation: a footprint is `Structure.dimensions` and nothing
+more. (The offset-list proposal in [structure-footprints](structure-footprints.md) §2 is superseded
+by that decision, not by this note.)
 
 ## Decisions
 
@@ -72,6 +75,15 @@ determinism surface.
 registered footprint holds cells and, possibly, units and navmesh; re-registering it is a rebuild
 the game has no reason to offer. This also keeps `structure_cell_map` (registered cells) and
 `quarter_turns` trivially consistent.
+
+**All four counts are real, 180° included, and always axis-aligned.** A rotation is a multiple of 90°,
+so a footprint never leaves the terrain grid. 0° and 180° claim the same cells and differ only in the
+way the piece faces; 90° and 270° likewise, with swapped dimensions. The model offers all four and the
+control decides how they are reached.
+
+**The whole piece rotates, model included.** A piece's model is a child of the root, so yawing the root
+turns the 3D model, the selection shape, the hull and everything else with it. Nothing is rotated
+separately, and nothing asks the art pipeline for a per-orientation asset.
 
 **A piece owns its orientation, so things orient with it.** The airfield's `Runway` marker, its
 docking pads, and any door or side a piece has are children of the root, so they turn with it and
@@ -101,7 +113,7 @@ about authored content.
    rotated footprint is refused; `Hull` of a rotated piece equals the oriented rectangle.
 2. **Order and gates.** `Build` and its helpers (`_tool_dimensions`, `_build_reach`, the planned-footprint
    comparison, `_placement_keeps_navmesh_access`) all read oriented dimensions; `Commander.planned_footprint_cells`
-   and `Deployment` do the same. `NavPlacement` needs no change of its own — it already takes cells —
+   do the same (`Deployment` is left alone; see §Deferred). `NavPlacement` needs no change of its own — it already takes cells —
    but its tests gain rotated cases, including a rotation that seals a producer in and one that
    frees it. The airfield's runway and pads are audited for world-direction assumptions.
 3. **Preview and scene authoring.** The ghost, `FootprintVisualizer`, `ProducerAffinityIndicator`,
@@ -134,21 +146,12 @@ about authored content.
   count through a shift and reflect it through a mirror (slice 4's rule). Neither is exercised until
   a rotated structure exists on an authored map.
 
-## Open
-
-**TODO — is a 180° turn a real choice?** It claims the same cells as 0°, so it changes only which way
-the piece faces (an airfield's runway, a directional model). If art is not directional and nothing
-else faces, offering it is noise. Leaning: allow all four in the model (it is free), and let the
-CONTROL decide how many are offered.
+## Deferred
 
 **TODO — two-form pieces (deploy).** A deployed piece takes its footprint where the unit stands, and a
-unit has an arbitrary `rotation.y`. Leaning: deploy at the unit's facing rounded to the nearest
-quarter turn — "the way it was pointing" — with the deploy preview showing the result.
+unit has an arbitrary `rotation.y`. Two-form pieces are not built out yet, so `Deployment` keeps
+dimensions at rotation 0 and this waits for them. When they exist the obvious start is the unit's facing
+rounded to the nearest quarter turn — "the way it was pointing" — with the deploy preview showing it.
 
-**TODO — irregular footprints.** Out of scope here, but the rule is already known: rotate the offsets by
-`(x, z) → (z, -x)` and re-normalise to non-negative (the proposal in
-[structure-footprints](structure-footprints.md) §12), which reduces to `oriented_dimensions` for a
-rectangle.
-
-**TODO — directional art.** Whether the game's models are directional decides how much rotation is
-worth to a player who is not laying out a wall. Not a code question; it belongs with the art pipeline.
+That is the only open item; the earlier questions about 180° turns, irregular footprints and
+directional art are settled above.
