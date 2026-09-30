@@ -31,6 +31,7 @@ extends RefCounted
 ##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
 ##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
+##   selectable: bool        false makes the `Selectable` refuse the player (default true)
 ##   obstruction: bool       a structure blocks line of fire (`structure()` only; default true)
 
 const _COMPONENTS: String = "res://scenes/components/"
@@ -84,6 +85,8 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		model.mesh = BoxMesh.new()
 		visual.add_child(model)
 		_add_node(piece, visual, "MeshVisual")
+	if a_options.has("selectable"):
+		(piece.get_node("Selectable") as Selectable).selectable_by_player = bool(a_options["selectable"])
 	if a_options.has("vision"):
 		var vision: Node = _scene("vision_range.tscn")
 		vision.name = "VisionRange"
@@ -128,6 +131,26 @@ static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:
 		weapon.target_mask = CollisionLayers.Mask.TARGETABLE_AIR
 		_add_reach(weapon, "AttackRange", air)
 	a_piece.add_child(loadout)
+	# A piece that can shoot will pick a fight on its own, out to about as far as it reaches.
+	if ground > 0.0:
+		_add_aggro(a_piece, "AggroRangeGround", ground)
+	if air > 0.0:
+		_add_aggro(a_piece, "AggroRangeAir", air)
+
+
+static func _add_aggro(a_piece: Commandable, a_name: String, a_radius: float) -> void:
+	var aggro: Node = _scene("aggro_range.tscn")
+	aggro.name = a_name
+	(aggro as CollisionShape3D).shape = _cylinder(a_radius)
+	a_piece.add_child(aggro)
+
+
+## The type of some tool a builder could be given, read from the registry so a test names a
+## tool that exists without naming WHICH one: the registry's contents are content.
+static func a_buildable_type() -> StringName:
+	var tools: Array = Tool.tools_in_context(ControlBinding.ControlContext.BUILD)
+	assert(not tools.is_empty(), "the tool registry holds at least one build tool")
+	return (tools[0] as Tool).type
 
 
 static func _add_reach(a_weapon: Weapon, a_name: String, a_radius: float) -> void:

@@ -18,7 +18,7 @@ extends GutTest
 
 ## Loaded INSIDE the tests, never preloaded at file scope — see CLAUDE.md on the Tool
 ## registry a file-scope preload poisons.
-const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
+const RECRUIT: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {"ground": 6.0}}
 
 
 func _commander(a_id: int) -> Commander:
@@ -28,8 +28,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_scene: String, a_commander: Commander) -> Commandable:
-	var e := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
+	var e: Commandable = FakePieces.unit(a_options)
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e
