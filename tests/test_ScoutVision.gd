@@ -13,8 +13,6 @@ extends GutTest
 ## `scenes/scenarios/test/test_scout_coverage.tscn` ("every scout point seen at least once
 ## within 3000 ticks"), run from tools/simulation/run_scenarios.gd.
 
-const SCOUT_SCENE: PackedScene = preload("res://scenes/entities/nt_aircraftLight_recon.tscn")
-
 var _cmdr: Commander
 
 
@@ -24,7 +22,7 @@ func before_each() -> void:
 
 
 func _add_scout_at(a_world_xz: Vector2) -> Commandable:
-	var scout: Commandable = SCOUT_SCENE.instantiate()
+	var scout: Commandable = FakePieces.unit({"vision": 12.0})
 	_cmdr.add_child(scout)
 	scout.global_position = Vector3(a_world_xz.x, 0.0, a_world_xz.y)
 	return scout

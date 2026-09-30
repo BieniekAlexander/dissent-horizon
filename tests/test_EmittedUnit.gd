@@ -6,7 +6,6 @@ extends GutTest
 ##
 ## PATHS, not preloads (CLAUDE.md §A file-scope `preload`…).
 
-const UNIT_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
 const EMITTER_ID: int = 1
 const TARGET_ID: int = 2
 
@@ -20,7 +19,7 @@ func _commander(a_id: int) -> Commander:
 
 ## A unit put into play the way an emitter does it: instanced and initialised, then launched.
 func _emitted_unit() -> Commandable:
-	var unit: Commandable = (load(UNIT_SCENE) as PackedScene).instantiate()
+	var unit: Commandable = FakePieces.unit({"speed": 2.0, "weapon": {"ground": 6.0}})
 	unit.initialize(null, _commander(EMITTER_ID))
 	autofree(unit)
 	return unit
@@ -28,7 +27,7 @@ func _emitted_unit() -> Commandable:
 
 func test_launched_at_an_entity_it_attacks_it() -> void:
 	var unit: Commandable = _emitted_unit()
-	var target: Commandable = (load(UNIT_SCENE) as PackedScene).instantiate()
+	var target: Commandable = FakePieces.unit({"speed": 2.0, "weapon": {"ground": 6.0}})
 	target.initialize(null, _commander(TARGET_ID))
 	autofree(target)
 	Emitter.launch(unit, null, target)

@@ -15,11 +15,8 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_CommandMessageDeepCopy.gd -gexit
 
-const UNIT: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-
-
 func test_deep_copy_scrubs_a_freed_target_instead_of_crashing() -> void:
-	var target: Commandable = UNIT.instantiate()
+	var target: Commandable = FakePieces.unit()
 	add_child(target)  # freed explicitly below — not autofree, which would free it too late
 	var message := CommandMessage.new(null, target, null, Vector3(3, 0, 4))
 
@@ -35,7 +32,7 @@ func test_deep_copy_scrubs_a_freed_target_instead_of_crashing() -> void:
 
 
 func test_deep_copy_still_carries_a_live_target() -> void:
-	var target: Commandable = UNIT.instantiate()
+	var target: Commandable = FakePieces.unit()
 	add_child_autofree(target)
 	var message := CommandMessage.new(null, target)
 

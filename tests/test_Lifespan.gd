@@ -6,7 +6,6 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Lifespan.gd -gexit
 
-const DRONE_PATH: String = "res://scenes/entities/nt_aircraftLight_recon.tscn"
 
 ## Seconds used where the value itself does not matter, only that it is a whole number of
 ## ticks at any sensible physics rate.
@@ -14,7 +13,7 @@ const SOME_SECONDS: float = 1.0
 
 
 func _drone() -> Entity:
-	var drone: Entity = (load(DRONE_PATH) as PackedScene).instantiate()
+	var drone: Entity = FakePieces.unit()
 	return drone
 
 

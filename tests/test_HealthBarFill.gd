@@ -9,15 +9,13 @@ extends GutTest
 ## geometry now lives in the sprite's own 2D plane (region_rect + offset), which the
 ## billboard carries along, and the node transform is left alone entirely.
 
-const UNIT: PackedScene = preload("res://scenes/entities/units/an/an_bioLight_builder.tscn")
-
 var _unit: Node
 var _fill: Sprite3D
 var _width: float
 
 
 func before_each() -> void:
-	_unit = UNIT.instantiate()
+	_unit = FakePieces.unit({"hp": 80.0})
 	add_child_autofree(_unit)   # in-tree so _ready wires hp_changed
 	_fill = _unit.get_node("HPBar/HPBarFill")
 	_width = _fill.texture.get_size().x

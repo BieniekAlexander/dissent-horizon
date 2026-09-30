@@ -28,7 +28,10 @@ extends RefCounted
 ##                             clip_size: int, charged: bool, reload_ticks: int
 ##   builds: Array           `Builds.buildable_types`, which also adds the `Builds` component
 ##   garrison: Dictionary    a `Garrison`: capacity: int
-##   structure: bool         a fixture-and-structure rather than a unit (groups only)
+##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
+##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
+##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
+##   obstruction: bool       a structure blocks line of fire (`structure()` only; default true)
 
 const _COMPONENTS: String = "res://scenes/components/"
 
@@ -62,11 +65,25 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	_add_scene(piece, "selectable.tscn", "Selectable")
 	_add_scene(piece, "hp_bar.tscn", "HPBar")
 
-	if a_options.has("speed"):
+	if a_structure:
+		var body := Structure.new()
+		body.dimensions = a_options.get("dimensions", Vector2i(1, 1))
+		body.is_obstruction = bool(a_options.get("obstruction", true))
+		_add_node(piece, body, "Structure")
+	if a_options.has("speed") or a_options.get("aerial", false):
 		var movement := Movement.new()
-		movement.speed = float(a_options["speed"])
+		movement.speed = float(a_options.get("speed", 4.0))
 		movement.nav_agent_path = NodePath("../NavigationAgent")
 		_add_node(piece, movement, "Locomotion")
+	if a_options.get("aerial", false):
+		_add_node(piece, Aerial.new(), "Aerial")
+	if a_options.get("mesh", false):
+		var visual := MeshVisual.new()
+		var model := MeshInstance3D.new()
+		model.name = "PlaceholderModel"
+		model.mesh = BoxMesh.new()
+		visual.add_child(model)
+		_add_node(piece, visual, "MeshVisual")
 	if a_options.has("vision"):
 		var vision: Node = _scene("vision_range.tscn")
 		vision.name = "VisionRange"

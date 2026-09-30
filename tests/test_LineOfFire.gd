@@ -12,9 +12,8 @@ extends GutTest
 ## PATHS, not preloads (see CLAUDE.md). Every scene is a HARNESS: the building's obstruction
 ## flag and every position are set here.
 
-const SOLDIER: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
-const AIRCRAFT: String = "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn"
-const BUILDING: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
+const SOLDIER: Dictionary = {"speed": 2.0, "weapon": {"ground": 6.0}}
+const AIRCRAFT: Dictionary = {"aerial": true, "weapon": {"ground": 6.0}}
 
 ## Far enough apart that the building sits squarely between them, with room either side.
 const SPAN: float = 8.0
@@ -27,8 +26,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _piece(a_scene: String, a_commander: Commander, a_at: Vector3) -> Commandable:
-	var piece := (load(a_scene) as PackedScene).instantiate() as Commandable
+func _piece(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Commandable:
+	var piece: Commandable = FakePieces.unit(a_options)
 	add_child_autofree(piece)
 	piece.ownership.commander = a_commander
 	piece.global_position = a_at
@@ -38,7 +37,9 @@ func _piece(a_scene: String, a_commander: Commander, a_at: Vector3) -> Commandab
 ## A finished building halfway between two points on the line, which is an obstruction
 ## unless `a_is_obstruction` says otherwise.
 func _building_between(a_is_obstruction: bool = true) -> Commandable:
-	var building: Commandable = _piece(BUILDING, _commander(0), Vector3.ZERO)
+	var building: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2)})
+	add_child_autofree(building)
+	building.ownership.commander = _commander(0)
 	(building.get_node("Structure") as Structure).is_obstruction = a_is_obstruction
 	building._apply_targetable_layers()
 	return building
