@@ -14,7 +14,7 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_VariantBuild.gd -gexit
 
 const TOOL_NAME: String = "command_tool_an_infrastructure"
-const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
+const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": [&"an_infrastructure", &"fake_plain"]}
 const EXTRACTION_SITE_SCENE: Dictionary = FakePieces.BUILDING
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
@@ -68,9 +68,28 @@ var _world: Node3D
 var _map: StubMap
 var _commander: Commander
 var _neutral: Commander
+## The fake neutral-building family the tool's variants are drawn from, and a tool with none.
+const FAMILY: Array[Dictionary] = [
+	{"id": &"fake_nb_square", "family": &"neutral_building", "footprint": Vector2i(4, 4),
+		"options": {"garrison": {"capacity": 4}, "vision": 6.0}},
+	{"id": &"fake_nb_long", "family": &"neutral_building", "footprint": Vector2i(3, 5),
+		"options": {"garrison": {"capacity": 4}, "vision": 6.0}},
+]
+
+
+func after_each() -> void:
+	FakePieces.restore_families()
+	FakePieces.restore_tools()
 
 
 func before_each() -> void:
+	FakePieces.install_families(FAMILY)
+	var variants: Array[StringName] = [&"fake_nb_square", &"fake_nb_long"]
+	FakePieces.register_tool(FakePieces.tool(EntityIds.AN_INFRASTRUCTURE,
+		{"structure": true, "dimensions": Vector2i(4, 4),
+			"vision": 12.0, "garrison": {"capacity": 4, "frames": Garrison.FRAME_BIO}}, variants))
+	FakePieces.register_tool(FakePieces.tool(&"fake_plain",
+		{"structure": true, "dimensions": Vector2i(3, 3)}))
 	_world = Node3D.new()
 	_map = _make_map()
 	_world.add_child(_map)
@@ -86,6 +105,9 @@ func before_each() -> void:
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
 	_neutral.set_physics_process(false)
+	_commander.technology_mapping = {EntityIds.AN_INFRASTRUCTURE: FakePieces.tech(),
+		&"fake_plain": FakePieces.tech(), &"fake_nb_square": FakePieces.tech(20),
+		&"fake_nb_long": FakePieces.tech(30)}
 
 
 func _make_map() -> StubMap:
@@ -264,7 +286,7 @@ func test_each_variant_previews_under_its_own_key() -> void:
 
 
 func test_a_tool_of_a_piece_without_variants_is_unchanged_by_all_of_it() -> void:
-	var plain: Tool = Tool.for_name("command_tool_an_barracks")
+	var plain: Tool = Tool.for_name("command_tool_fake_plain")
 	assert_same(plain.resolved(), plain)
 	assert_same(plain.with_variant(3), plain)
 	assert_same(plain.next_variant(), plain)
