@@ -41,7 +41,10 @@ hardcoded to `ARMED_SWAP` (`ControlScheme.active`); **TODO — read it from sett
 the options menu**, when the game has either. `ControlScheme.apply` copies the source button's events
 onto the armed actions at startup and whenever `active` changes, so a rebinding of a button carries
 through. The armed actions ARE named `command_*`, so like `command_issue` they are handled in
-`RTSController._unhandled_input` ahead of the grid hotkey dispatcher. Tests: `tests/test_ControlScheme.gd`.
+`RTSController._unhandled_input` ahead of the grid hotkey dispatcher. The minimap follows it too: while an order is armed, its
+armed-issue press orders at the clicked world point and its armed-cancel press puts the order
+down (`Minimap._handle_armed_press`); unarmed it keeps right click = order, left drag = box-select.
+Tests: `tests/test_ControlScheme.gd`, `tests/test_MinimapArmedClicks.gd`.
 
 **Placement rotation.** Two keys, only meaningful while a Build tool is armed:
 
