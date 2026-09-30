@@ -487,8 +487,17 @@ halved the map's widest corridor — gen_02 went from 17 cells to 9, below `MIN_
   > **REJECTED — ranking the noise** instead of stretching it. Ranking spreads the groups evenly
   > over the ladder, which puts neighbouring regions at opposite ends; the one-step limit below
   > then squashes them back together and whole maps came out at a single height.
-- **Neighbouring regions differ by at most one terrace**, since a terrace is meant to be walked
-  over. A relaxation pulls violators together, holding the starts.
+- **Regions the topology left open to each other differ by at most one terrace**, since a
+  terrace is meant to be walked over. A relaxation pulls violators together, holding the starts.
+  **Across an uncarved cut there is no limit** (Alex, 2026-09-30): pass 4 already put a barrier
+  there, and a height difference that divides the two sides only agrees with it. The rule is
+  about keeping elevation inside the topology, not about making every boundary walkable.
+  **Every re-level holds it again** — a repair that copies one region's height onto a stranded
+  group reruns the relaxation, holding the starts, the moved groups and the region they were
+  levelled to, so the join the repair made stands and the step it opened on the far side is
+  pulled back to one. An open edge still more than a terrace apart at the end rejects the map.
+  Seed 2004 of `test_MapElevation` shipped exactly that: a routes re-level lifted two groups two
+  terraces clear of their open neighbours, and nothing looked again.
 - **What must share a height.** Reserved zones within a couple of cells of each other are one
   group, and so are the two sides of a carved cut. A closer pair on different heights would
   leave a sliver of ground walled in, and a carve is an opening a cliff would close again.

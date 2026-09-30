@@ -73,9 +73,11 @@ func _build_controls() -> void:
 	add_child(header)
 	_alliances = _spin_box(MIN_ALLIANCES, MAX_ALLIANCES, 1.0)
 	_alliances.value_changed.connect(func(value: float) -> void: _reset_params(int(value)))
-	_labelled(header, "Alliances", _alliances)
+	_labelled(header, "Alliances", _alliances,
+		MapGenerationParams.DESCRIPTIONS.get("alliance_count", ""))
 	_seed = _spin_box(0, MAX_SEED, 1.0)
-	_labelled(header, "Seed", _seed)
+	_labelled(header, "Seed", _seed,
+		"The random seed. The same seed and parameters always make the same map.")
 
 	var buttons := HBoxContainer.new()
 	add_child(buttons)
@@ -135,11 +137,13 @@ func _reset_params(a_alliances: int) -> void:
 func _add_group(a_title: String, a_properties: Array[Dictionary]) -> void:
 	var fields: Array[Control] = []
 	var labels: Array[String] = []
+	var tooltips: Array[String] = []
 	for property: Dictionary in a_properties:
 		var editor: Control = _field_for(property)
 		if editor != null:
 			fields.append(editor)
 			labels.append(String(property.name).capitalize())
+			tooltips.append(MapGenerationParams.DESCRIPTIONS.get(String(property.name), ""))
 	if fields.is_empty():
 		return
 	var heading := Label.new()
@@ -148,7 +152,7 @@ func _add_group(a_title: String, a_properties: Array[Dictionary]) -> void:
 	_form.add_child(heading)
 	_form.add_child(Control.new())  # the grid is two columns wide; a heading spans one row
 	for i: int in fields.size():
-		_labelled(_form, labels[i], fields[i])
+		_labelled(_form, labels[i], fields[i], tooltips[i])
 
 
 ## An editor for one int, float, enum or bool property, bound to _params; null for anything
@@ -212,9 +216,17 @@ func _spin_box(a_min: int, a_max: int, a_step: float) -> SpinBox:
 	return spin
 
 
-func _labelled(a_grid: GridContainer, a_text: String, a_editor: Control) -> void:
+## A label and its editor, both showing `a_tooltip` on hover. A Label ignores the mouse by
+## default, so it is set to take it — the name is where a reader points.
+func _labelled(
+	a_grid: GridContainer, a_text: String, a_editor: Control, a_tooltip: String = ""
+) -> void:
 	var label := Label.new()
 	label.text = a_text
+	if not a_tooltip.is_empty():
+		label.tooltip_text = a_tooltip
+		label.mouse_filter = Control.MOUSE_FILTER_STOP
+		a_editor.tooltip_text = a_tooltip
 	a_grid.add_child(label)
 	a_grid.add_child(a_editor)
 

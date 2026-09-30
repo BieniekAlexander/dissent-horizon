@@ -124,6 +124,7 @@ static func run(
 	elevation._widen_narrow_ramps()
 	elevation._settle()
 	elevation._check_routes()
+	elevation._check_terraces()
 	return elevation
 
 
@@ -155,6 +156,15 @@ func _check_routes() -> void:
 					< _params.min_routes:
 				errors.append("starts %d and %d cannot keep %d routes across levels"
 					% [a, b, _params.min_routes])
+
+
+## The terrace invariant, on the final levels: a re-level holds it where it can, and where it
+## cannot the map is rejected rather than shipped with a step the topology never asked for.
+func _check_terraces() -> void:
+	for edge: Vector2i in _topology.open_edges():
+		if absi(level_of_node[edge.x] - level_of_node[edge.y]) > 1:
+			errors.append("regions %d and %d are open to each other but %d terraces apart"
+				% [edge.x, edge.y, absi(level_of_node[edge.x] - level_of_node[edge.y])])
 
 
 #region Levels
@@ -228,19 +238,24 @@ func _assign_levels(a_start_count: int, a_owned: Array) -> void:
 	_find_plateaus()
 
 
-## Terraces are walked over, so neighbours may differ by at most one step. Relaxation: pull each
-## group to within one of its neighbours, holding the starts, until nothing moves. It converges
-## because every round strictly narrows the spread, and the levels are bounded.
+## Terraces are walked over, so neighbours the topology left OPEN to each other may differ by at
+## most one step. Across an uncarved cut a barrier already divides them, and any gap is its to
+## carry (Alex, 2026-09-30). Relaxation: pull each group to within one of its open neighbours,
+## holding `a_fixed` (groups), until nothing moves. It converges because every round strictly
+## narrows the spread, and the levels are bounded. An edge whose two ends are both held is left
+## as it is — `_check_terraces` rejects the map if one survives.
 func _limit_terrace_steps(a_fixed: Dictionary) -> void:
+	var open: Array[Vector2i] = _topology.open_edges()
 	for _round: int in _params.elevation_levels * _TERRACE_ROUNDS:
 		var changed: bool = false
-		for edge: Vector2i in _topology.graph.edges:
+		for edge: Vector2i in open:
 			var gap: int = level_of_node[edge.x] - level_of_node[edge.y]
 			if absi(gap) <= 1:
 				continue
 			var high: int = edge.x if gap > 0 else edge.y
 			var low: int = edge.y if gap > 0 else edge.x
-			# Move whichever end is free; if the starts hold both, the other has to give.
+			if a_fixed.has(_group_of_node[low]) and a_fixed.has(_group_of_node[high]):
+				continue
 			var moved: int = low if not a_fixed.has(_group_of_node[low]) else high
 			var toward: int = 1 if moved == low else -1
 			_set_group_level(_group_of_node[moved], level_of_node[moved] + toward)
@@ -955,12 +970,19 @@ func _relevel_groups_in(a_stretch: Array[Vector2i]) -> bool:
 
 
 ## Give every node in `a_groups` the tier and terrace of `a_node`, so their ground comes level
-## with its.
+## with its. The re-levelled groups' OTHER open neighbours can now be terraces away, so the
+## terrace limit is run again, holding the starts, the moved groups and `a_node`'s own — the
+## join the re-level made is the point of it.
 func _set_groups_to(a_groups: Dictionary, a_node: int) -> void:
 	for node: int in level_of_node.size():
 		if a_groups.has(_group_of_node[node]):
 			level_of_node[node] = level_of_node[a_node]
 			tier_of_node[node] = tier_of_node[a_node]
+	var held: Dictionary = a_groups.duplicate()
+	held[_group_of_node[a_node]] = true
+	for node: int in _start_count:
+		held[_group_of_node[node]] = true
+	_limit_terrace_steps(held)
 
 
 func _relevel_stranded(a_cell: Vector2i) -> bool:
@@ -1023,6 +1045,7 @@ func reown(a_owned: Array) -> void:
 				_owner[cell] = node
 	_relabel()
 	_settle()
+	_check_terraces()
 
 
 ## Walkable cells after elevation: pass 4's, less the cliffs.
