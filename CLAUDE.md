@@ -74,6 +74,8 @@ pointer discipline is what keeps it small.
 
 No CLI build script. Open the project in Godot 4.7 by pointing the editor at `project.godot`.
 
+Web sessions get Godot from `.claude/hooks/session-start.sh`, which runs `tools/install_godot.sh`: the version is read from `project.godot`'s `config/features` (an optional `.godot-version` pins a patch release, e.g. `4.7.1-stable`), and the script also imports the project. `.godot/` is git-ignored **except `.godot/imported/`** — that holds the `.blend` scenes (importing needs Blender) and s3tc textures a headless import cannot rebuild, and a clone without it fails ~800 tests.
+
 Tests use the [GUT](https://github.com/bitwes/Gut) addon. Run all tests headlessly:
 ```
 godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit

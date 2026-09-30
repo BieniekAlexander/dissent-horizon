@@ -26,6 +26,18 @@ combination; where it says *leaks*, something else reads it that probably should
 | `isometric_camera_drag`             | MMB              | `RTSCamera3D._input`                                                                     |
 | `isometric_camera_zoom_in` / `_out` | wheel, `=` / `-` | `RTSCamera3D`                                                                            |
 
+**Placement rotation.** Two keys, only meaningful while a Build tool is armed:
+
+| Action | Key | Effect |
+|---|---|---|
+| `rotate_left` | `[` | turn the structure being placed a quarter turn counter-clockwise (seen from above) |
+| `rotate_right` | `]` | a quarter turn clockwise |
+
+Neither is named `command_*`: they turn a placement rather than order anything, so they stay out of
+the grid hotkey dispatcher, for the reason `modifier_narrow` does. With a tool armed `command_issue`
+is also a GESTURE — press sets the structure down, drag turns it, release orders it — described in
+[construction](../../commands/construction.md) §Placing and turning a structure.
+
 **Modifiers.** Three, all held rather than latched as gestures:
 
 | Action | Key | How it is read |

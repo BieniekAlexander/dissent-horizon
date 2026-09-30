@@ -122,7 +122,13 @@ func _dimensions(node: Node) -> Vector2i:
 	if obs == null:
 		return Vector2i.ONE
 	var d: Variant = obs.get("dimensions")
-	return d if d is Vector2i else Vector2i.ONE
+	if not d is Vector2i:
+		return Vector2i.ONE
+	# A piece yawed in the editor is read as the nearest quarter turn, exactly as
+	# Entity._auto_initialize will read it at load — so it snaps onto the cells it will register.
+	if node is Node3D:
+		return Structure.oriented_dimensions(d, Structure.quarter_turns_of_yaw((node as Node3D).rotation.y))
+	return d
 
 
 ## Find the Map in the edited scene: the root itself, a child named "Map", or the

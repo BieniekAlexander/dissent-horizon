@@ -707,8 +707,10 @@ func _auto_initialize() -> void:
 	# pre_init_pos is the visual centre; add_structure resolves the footprint from it
 	# via Map.footprint_origin — identical to the editor terrain-snap plugin, so an
 	# even-sized structure registers on the same cells it snapped to (no load shift).
+	# A scene-placed piece is turned in the editor by yawing its root; the grid can only hold a
+	# quarter turn, so the authored yaw is read as the nearest one (and the piece squared up to it).
 	if spawns_deployed() and not found_map.structure_cell_map.has(self):
-		found_map.add_structure(self, VU.inXZ(pre_init_pos), 0, false)
+		found_map.add_structure(self, VU.inXZ(pre_init_pos), Structure.quarter_turns_of_yaw(rotation.y), false)
 
 func _on_commander_changed(_a_old_commander: Commander, a_new_commander: Commander) -> void:
 	_apply_team_tint()

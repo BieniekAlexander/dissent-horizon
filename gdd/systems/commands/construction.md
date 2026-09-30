@@ -252,6 +252,37 @@ deploys do not check planned sites either.
 
 ---
 
+## Placing and turning a structure
+
+With a Build tool armed, `command_issue` is a gesture rather than a click
+(`RTSController._begin_placing_structure` / `_finish_placing_structure`):
+
+1. **Press** sets the structure DOWN — the placement point is frozen where the press landed, so the
+   cursor stops moving the structure — and orders nothing.
+2. **Drag** turns it. The cursor's direction from the press point picks the nearest of the four axes
+   (`Structure.quarter_turns_facing`), and the ghost, the placement grid and the order all follow. A
+   drag shorter than `RTSController.PLACEMENT_ROTATE_DEADZONE` (one cell) changes nothing, so a plain
+   click keeps whatever facing the keys gave it. The `rotate_left` / `rotate_right` keys (`[` and
+   `]`) turn it a quarter step at any time, held or not.
+3. **Release** orders the build with the turn it ended on. If that turn made the footprint illegal
+   (`Build.meets_precondition` refuses the placement), nothing is submitted and the tool STAYS armed
+   with the same facing, so the player can turn it back or aim elsewhere. Otherwise the order is issued
+   as a click used to be: the tool is put down, or kept under the additive modifier.
+4. A left click (`world_select`) while a tool is armed still disarms it and changes the selection not
+   at all — pressed part-way through a placement press, it cancels the placement, and the release then
+   builds nothing.
+
+**Front is +Z.** A piece's model faces +Z at rotation 0 — the direction `Movement.get_facing` already
+treats as forward — and a quarter turn is 90° counter-clockwise seen from above, so count 1 faces +X,
+2 faces -Z and 3 faces -X. Art is authored to that convention; the whole piece (model, selection shape,
+hull) turns because they are children of the root. The count lives on `Structure.quarter_turns`, travels
+on `CommandMessage.quarter_turns`, and is what the blueprint and `Map.add_structure` register.
+
+Rotation does not apply to a conversion (an upgrade in place, nothing new is laid) or to an extractor
+(it takes the site or pond it lies on); both are placed as before, at the press position, on release.
+The preview and the tool state reset to 0 whenever the tool is put down. Design and the rest of the plan:
+[footprint-rotation](../terrain-and-navigation/footprint-rotation.md).
+
 ## Placement keeps navigation intact
 
 `Structure.valid_placement` answers geometry alone — in bounds, unoccupied, flat, dry enough.

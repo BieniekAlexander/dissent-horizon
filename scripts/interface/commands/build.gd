@@ -113,6 +113,8 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	# placement first, then fall through to the resource/tech gate.
 	var preview := actor.commander.get_build_preview_instance(message.tool)
 	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
+	# What the order claims is the tool's footprint turned the way the player set it.
+	var dims: Vector2i = Structure.oriented_dimensions(obs.dimensions, message.quarter_turns)
 
 	# A Extractor is asked a DIFFERENT placement question, because it has two kinds of home. On
 	# an ExtractionSite it is an OVERLAY: the site stays the cells' occupant and the extractor
@@ -123,11 +125,11 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	# addition to it.
 	if Extractor.of(preview) != null:
 		if not EnergyExtractor.valid_placement(
-			message, obs.dimensions, obs.allow_uneven, obs.allow_submerged
+			message, dims, obs.allow_uneven, obs.allow_submerged
 		):
 			return PreconditionFailureCause.INVALID_PLACEMENT
 	elif not Structure.valid_placement(
-		message, obs.dimensions, obs.allow_uneven, obs.allow_submerged
+		message, dims, obs.allow_uneven, obs.allow_submerged
 	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 
@@ -137,14 +139,14 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	# on. The bot has asked both since bot-economy's build-spot search; player placement
 	# wants the same answers, so a wall-in the bot could never create should not be one the
 	# player can either. gdd/systems/commands/construction.md §Placement keeps navigation intact.
-	if not _placement_keeps_navmesh_access(message, preview, obs.dimensions):
+	if not _placement_keeps_navmesh_access(message, preview, dims):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 
 	# A site this side already means to build on is taken, though nothing stands there yet: the
 	# second plan is refused, not merged. Enemy plans are not ours to know about, so an enemy on
 	# the site is found only when the builder arrives (see fulfill_action).
 	var planned: Dictionary = actor.commander.planned_footprint_cells(message.planned_structure)
-	if message.map.footprint_cells(message.xz_position, obs.dimensions).any(
+	if message.map.footprint_cells(message.xz_position, dims).any(
 			func(c: Vector2i) -> bool: return planned.has(c)):
 		return PreconditionFailureCause.SITE_PLANNED
 
@@ -216,7 +218,12 @@ static func plan_structure(
 	blueprint.initialize(message.map, commander)
 	# Stand it where the structure will actually land — the same footprint centre
 	# Map.add_structure will resolve when the builder commits it.
-	var dims: Vector2i = _tool_dimensions(commander, message.tool)
+	# Turn it the way the order says BEFORE reading the footprint, so the blueprint stands on the
+	# oriented cells, faces the right way, and commit_construction registers exactly these.
+	var blueprint_structure := blueprint.get_node_or_null("Structure") as Structure
+	if blueprint_structure != null:
+		blueprint_structure.quarter_turns = message.quarter_turns
+	var dims: Vector2i = _tool_dimensions(commander, message.tool, message.quarter_turns)
 	blueprint.global_position = message.map.footprint_centroid(
 		message.map.footprint_origin(message.xz_position, dims), dims
 	)
@@ -240,12 +247,12 @@ static func plan_structure(
 		blueprint.set_awaiting_funds(message.transaction.is_pending())
 	return blueprint
 
-## Footprint size of the structure `a_tool` places, read off the commander's cached
-## preview instance (1×1 when the scene declares no Structure component).
-static func _tool_dimensions(commander: Commander, tool: Tool) -> Vector2i:
+## Footprint size of the structure `a_tool` places once turned `a_quarter_turns`, read off the
+## commander's cached preview instance (1×1 when the scene declares no Structure component).
+static func _tool_dimensions(commander: Commander, tool: Tool, a_quarter_turns: int = 0) -> Vector2i:
 	var preview: Node = commander.get_build_preview_instance(tool)
 	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
-	return obs.dimensions if obs != null else Vector2i.ONE
+	return Structure.oriented_dimensions(obs.dimensions, a_quarter_turns) if obs != null else Vector2i.ONE
 
 ## Whether laying `dimensions` down at `message`'s target keeps the map's navigation intact —
 ## NavPlacement's two rules (scripts/maps/nav_placement.gd), asked for every ordinary
@@ -320,7 +327,7 @@ func _target_footprint(a_actor: Commandable) -> Array:
 	var host: Entity = _target_host(a_actor)
 	if host != null:
 		return message.map.structure_cell_map.get(host, [])
-	return message.map.footprint_cells(message.xz_position, _tool_dimensions(a_actor.commander, message.tool))
+	return message.map.footprint_cells(message.xz_position, _tool_dimensions(a_actor.commander, message.tool, message.quarter_turns))
 
 ## For an OVERLAY build (an Extractor), the host it will bind onto — the ExtractionSite already
 ## standing on the target cells. Null for every ordinary build, which has no host.
@@ -331,7 +338,7 @@ func _target_host(a_actor: Commandable) -> Entity:
 		return null
 	if Extractor.of(a_actor.commander.get_build_preview_instance(message.tool)) == null:
 		return null
-	return message.map.concentric_structure(message.xz_position, _tool_dimensions(a_actor.commander, message.tool))
+	return message.map.concentric_structure(message.xz_position, _tool_dimensions(a_actor.commander, message.tool, message.quarter_turns))
 
 ## Whether this build's lithium pond is already worked by somebody else's extractor.
 ##
@@ -343,7 +350,7 @@ func _target_pond_is_taken(a_actor: Commandable) -> bool:
 		return false
 	if Extractor.of(a_actor.commander.get_build_preview_instance(message.tool)) == null:
 		return false
-	var dimensions: Vector2i = _tool_dimensions(a_actor.commander, message.tool)
+	var dimensions: Vector2i = _tool_dimensions(a_actor.commander, message.tool, message.quarter_turns)
 	var body: WaterBody = EnergyExtractor.water_body_under(
 		message.map, message.xz_position, dimensions
 	)
@@ -585,6 +592,9 @@ func _place_structure(a_actor: Commandable) -> Commandable:
 	# → add_structure → proc_technology all see is_built = false. begin_construction sets
 	# build_progress (not @onready) so this survives _ready() without being overwritten.
 	new_structure.begin_construction()
+	var new_structure_component := new_structure.get_node_or_null("Structure") as Structure
+	if new_structure_component != null:
+		new_structure_component.quarter_turns = message.quarter_turns
 	_pay(a_actor)
 
 	# Pass the raw clicked world XZ; add_entity → add_structure resolves the footprint
@@ -639,7 +649,7 @@ func _obstructing_host(a_actor: Commandable) -> Entity:
 	if conversion != null:
 		return conversion if conversion.is_grid_obstruction() else null
 	var host: Entity = message.map.concentric_structure(
-		message.xz_position, _tool_dimensions(a_actor.commander, message.tool)
+		message.xz_position, _tool_dimensions(a_actor.commander, message.tool, message.quarter_turns)
 	)
 	return host if host != null and host.is_grid_obstruction() else null
 

@@ -218,6 +218,26 @@ var current_command_type: Script = null
 ## button visibility and the button-press dispatch.
 var _select_command_handlers: Dictionary = {}
 
+#region Placement rotation
+## How far from the placement point the cursor must be dragged before the drag turns the
+## structure, in world units (cells). A plain click, or a wobble, leaves the facing the player
+## already chose with the rotate keys.
+const PLACEMENT_ROTATE_DEADZONE: float = 1.0
+
+## How the structure about to be placed is turned, as Structure.quarter_turns (0…3, counter-
+## clockwise from above; 0 faces +Z). Held while a Build tool stays armed and put back to 0 when
+## it is put down. Written by the rotate keys and by a placement drag; what an order actually
+## carries is command_message.quarter_turns, which is this where rotation applies at all.
+var placement_quarter_turns: int = 0
+
+## True from the press of `command_issue` that starts placing a structure until it is released.
+## While it is, the placement point is FROZEN where the press landed (below) and the cursor's job
+## is to aim the structure, not to move it.
+var _placing: bool = false
+var _placing_world: Vector3 = Vector3.ZERO
+var _placing_target: Entity = null
+#endregion
+
 ## Double-click tracking: the player unit hit by the previous click and when
 ## (engine ms) it was clicked. A second click on the same unit within
 ## DOUBLE_CLICK_SECONDS selects all on-screen units of that type.
@@ -526,6 +546,13 @@ func _process(a_delta: float) -> void:
 	command_message.target = cursor_result if cursor_result is Entity else null
 	command_message.world_position = cursor_result if cursor_result is Vector3 \
 		else _cursor_ground_point(mouse_position)
+	if _placing:
+		# The release is normally delivered as an event, but a HUD panel can swallow one; the
+		# action itself cannot be intercepted, so polling it is the backstop (see _update_drag).
+		if Input.is_action_pressed("command_issue"):
+			_update_placing()
+		else:
+			_finish_placing_structure()
 	_update_ability_target()
 
 	var pruned: bool = prune_selection()
@@ -552,6 +579,11 @@ func _process(a_delta: float) -> void:
 		selection,
 		command_message
 	) if _selection_owned_by_player() else null
+
+	if command_message.tool == null:
+		# However the tool was put down (issued, replaced, cancelled), the next one starts unturned.
+		placement_quarter_turns = 0
+	command_message.quarter_turns = placement_quarter_turns if _placement_rotation_applies() else 0
 
 	var check: MoveCommand.PreconditionFailureCause = selection_precondition(
 		current_command_type, selection, command_message
@@ -730,7 +762,7 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 			_placement_layer_key = null
 		return
 	var obs := source.get_node_or_null("Structure") as Structure
-	var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
+	var dims: Vector2i = _placement_dimensions(obs)
 	var origin: Vector2i = map.footprint_origin(_placement_aim(), dims)
 	var placer: Commander = _placement_commander()
 	var route: DominionRoute = placer.dominion_route() if placer != null else null
@@ -955,7 +987,9 @@ func _unhandled_input(a_event: InputEvent) -> void:
 		# is a pointer button rather than a grid command — reaching the dispatcher would make
 		# right-click press whatever sits in a command cell. See
 		# gdd/systems/ux/ui/input-action-naming.md §The exception the prefix rule now carries.
-		if is_debug_piece_armed():
+		if _begin_placing_structure():
+			pass
+		elif is_debug_piece_armed():
 			_place_debug_piece()
 		elif is_drop_armed():
 			_place_drop()
@@ -973,6 +1007,12 @@ func _unhandled_input(a_event: InputEvent) -> void:
 				command_message,
 				additive_latched
 			)
+	elif a_event.is_action_released("command_issue") and _placing:
+		_finish_placing_structure()
+	elif a_event.is_action_pressed("rotate_left") and _placement_rotation_applies():
+		placement_quarter_turns = posmod(placement_quarter_turns + 1, 4)
+	elif a_event.is_action_pressed("rotate_right") and _placement_rotation_applies():
+		placement_quarter_turns = posmod(placement_quarter_turns - 1, 4)
 	elif a_event.is_action_pressed(DEBUG_DELETE_ACTION) and DebugMode.is_active():
 		delete_selection()
 	elif _drop_for_event(a_event) >= 0:
@@ -995,6 +1035,89 @@ func _unhandled_input(a_event: InputEvent) -> void:
 		_dispatch_control_group(get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX))
 	elif get_action_names_by_prefix(a_event, "command_").size()>0:
 		_dispatch_command_hotkey(get_action_names_by_prefix(a_event, "command_"))
+#endregion
+
+#region Placing a structure: press to set it down, drag to turn it, release to order it
+## Whether the armed Build tool takes a facing at all. Not a conversion (that upgrades a
+## building that already stands, so there is nothing to turn) and not an extractor (which lies on
+## the site or pond it is aimed at and takes that ground's orientation, never one of its own).
+func _placement_rotation_applies() -> bool:
+	if current_command_type != Build or command_message == null or command_message.tool == null:
+		return false
+	if armed_conversion_target() != null or selection.is_empty():
+		return false
+	var lead: Entity = selection[0] as Entity
+	var commander: Commander = lead.commander if lead != null else null
+	if commander == null:
+		return false
+	return Extractor.of(commander.get_build_preview_instance(command_message.tool)) == null
+
+
+## The armed structure's footprint on the grid, turned as the player has it.
+func _placement_dimensions(a_structure: Structure) -> Vector2i:
+	if a_structure == null:
+		return Vector2i.ONE
+	return Structure.oriented_dimensions(a_structure.dimensions, command_message.quarter_turns)
+
+
+## The press of `command_issue` with a Build tool armed: put the structure DOWN — freeze where it
+## stands — and wait for the release to order it, so the drag between the two can turn it. True
+## when it took the press, so the caller issues nothing else.
+func _begin_placing_structure() -> bool:
+	if is_debug_piece_armed() or is_drop_armed() or _pending_sanction != null:
+		return false
+	if not pending_selection.is_empty() or not _selection_owned_by_player():
+		return false
+	if current_command_type != Build or command_message.tool == null \
+			or armed_conversion_target() != null:
+		return false
+	_placing = true
+	_placing_world = command_message.world_position
+	_placing_target = command_message.target
+	return true
+
+
+## While the press is down: keep the placement where it landed, and turn the structure to face the
+## cursor.
+func _update_placing() -> void:
+	_freeze_placement()
+	if _placement_rotation_applies():
+		_turn_placement_toward(_cursor_ground_point(live_pointer_position()))
+
+
+## The placement stays where the press put it, whatever the cursor does.
+func _freeze_placement() -> void:
+	command_message.target = _placing_target if is_instance_valid(_placing_target) else null
+	command_message.world_position = _placing_world
+
+
+## Turn the structure to face `a_point` (a world position the cursor is over). The direction is
+## measured from the PRESS point rather than the snapped centre — the centre moves by half a cell
+## when a turn swaps an even footprint's axes, and a reference that moves with the answer would
+## flicker at the boundary. Inside the dead zone nothing changes, so a click keeps the facing the
+## rotate keys gave it.
+func _turn_placement_toward(a_point: Vector3) -> void:
+	var direction: Vector2 = VU.inXZ(a_point - _placing_world)
+	if direction.length() < PLACEMENT_ROTATE_DEADZONE:
+		return
+	placement_quarter_turns = Structure.quarter_turns_facing(direction, placement_quarter_turns)
+	command_message.quarter_turns = placement_quarter_turns
+
+
+## The release: order the build as it now stands. A footprint the turn made illegal is REFUSED
+## here — nothing is submitted, and the tool stays armed so the player can turn it back or aim
+## elsewhere. A press that was disarmed meanwhile never reaches this (disarm_command clears it).
+func _finish_placing_structure() -> void:
+	_placing = false
+	if current_command_type != Build or command_message.tool == null:
+		return
+	command_message.quarter_turns = placement_quarter_turns if _placement_rotation_applies() else 0
+	var check: MoveCommand.PreconditionFailureCause = selection_precondition(
+		current_command_type, selection, command_message
+	)
+	if MoveCommand.is_placement_refusal(check):
+		return
+	assign_command_to_units(current_command_type, command_message, additive_latched)
 #endregion
 
 #region Box-select drag
@@ -3254,6 +3377,10 @@ func disarm_command() -> void:
 	_pending_sanction = null
 	disarm_debug_piece()
 	disarm_drop()
+	# Nothing is built: a placement press still down when this happens ends with nothing issued
+	# (the release finds _placing false), and the next tool starts unturned.
+	_placing = false
+	placement_quarter_turns = 0
 	if command_message != null:
 		command_message.tool = null
 	available_commands = CommandContextParser.commands_for_selection(selection)
@@ -3859,11 +3986,14 @@ func _update_build_preview(a_is_invalid_placement: bool) -> void:
 
 	# Snap to the footprint centre; hide if any of its cells is off-map so we never
 	# index the heightmap out of bounds (grid_to_world reads map_data directly).
-	var centroid: Variant = _footprint_centroid(commander, command_message.tool, command_message.xz_position)
+	var turns: int = command_message.quarter_turns
+	var centroid: Variant = _footprint_centroid(commander, command_message.tool,
+		command_message.xz_position, turns)
 	if centroid == null:
 		_build_preview.visible = false
 		return
 	_build_preview.global_position = centroid
+	_build_preview.rotation.y = Structure.yaw_of(turns)
 	_tint_build_preview(Entity.TEAM_COLOR_MAP[commander.id], a_is_invalid_placement)
 	_build_preview.visible = true
 
@@ -3895,19 +4025,21 @@ func _tint_build_preview(a_team_color: Color, a_is_invalid_placement: bool) -> v
 ##
 ## Every cell is bounds-checked, not just the centre one, since that can be in bounds
 ## while the rest of the footprint spills off the edge near a map border.
-func _footprint_centroid(a_commander: Commander, a_tool: Tool, a_xz: Vector2) -> Variant:
+func _footprint_centroid(a_commander: Commander, a_tool: Tool, a_xz: Vector2,
+		a_quarter_turns: int = 0) -> Variant:
 	if map == null or a_tool == null:
 		return null
 	var source: Node = a_commander.get_build_preview_instance(a_tool) if a_commander != null else null
-	return _footprint_centroid_of(source, a_xz)
+	return _footprint_centroid_of(source, a_xz, a_quarter_turns)
 
 
 ## As _footprint_centroid, for the structure `a_source` is an out-of-tree instance of.
-func _footprint_centroid_of(a_source: Node, a_xz: Vector2) -> Variant:
+func _footprint_centroid_of(a_source: Node, a_xz: Vector2, a_quarter_turns: int = 0) -> Variant:
 	if map == null:
 		return null
 	var obs := a_source.get_node_or_null("Structure") as Structure if a_source != null else null
-	var dims: Vector2i = obs.dimensions if obs != null else Vector2i.ONE
+	var dims: Vector2i = Structure.oriented_dimensions(obs.dimensions, a_quarter_turns) \
+		if obs != null else Vector2i.ONE
 	var origin: Vector2i = map.footprint_origin(a_xz, dims)
 	for w in range(dims.x):
 		for l in range(dims.y):
