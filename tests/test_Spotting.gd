@@ -15,7 +15,9 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Spotting.gd -gexit
 
-const RECRUIT: Dictionary = FakePieces.SOLDIER
+## A piece granted Spot.
+const RECRUIT: Dictionary = {"speed": 2.0, "vision": 8.0,
+	"abilities": [{"grants": [Spot.ABILITY_ID]}]}
 
 ## A Map that answers only the one question _raise_beacon asks. A real one needs a
 ## heightmap before terrain_height_at means anything, and none of that would make these
@@ -30,18 +32,20 @@ var _map: Map
 
 
 func before_each() -> void:
+	FakePieces.install_ability(Spot.ABILITY_ID, {"range": Spot.TARGET_RANGE, "command": "command_spot"})
 	_commander = Commander.new()
 	_commander.id = 1
 	add_child_autofree(_commander)
 
 
 func after_each() -> void:
+	FakePieces.restore_abilities()
 	if _map != null and is_instance_valid(_map):
 		_map.free()
 		_map = null
 
 
-## A real Recruit — the piece granted Spot in the shipped roster.
+## A unit granted Spot.
 func _recruit(a_at: Vector2 = Vector2.ZERO) -> Commandable:
 	var unit: Commandable = FakePieces.make(RECRUIT)
 	_commander.add_child(unit)
@@ -85,7 +89,7 @@ func test_the_recruit_is_a_spotter() -> void:
 
 
 func test_a_unit_without_the_component_cannot_spot() -> void:
-	var badger: Commandable = preload("res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn").instantiate()
+	var badger: Commandable = FakePieces.unit({"speed": 2.0, "weapon": {"ground": 6.0}})
 	autofree(badger)
 	assert_ne(Spot.meets_precondition(badger, null), MoveCommand.PreconditionFailureCause.NONE)
 	assert_false(CommandContextParser.commands_for(badger).has("command_spot"))
