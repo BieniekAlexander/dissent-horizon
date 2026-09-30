@@ -48,6 +48,7 @@ extends RefCounted
 ##   status_visuals: bool    a `StatusVisuals` (badges, tints, pips); pair it with `mesh`
 ##   docking: bool           a `Docking`: the aircraft can land at a friendly airfield
 ##   docking_bay: Dictionary an airfield: pads: int (default 2), runways: int (default 1)
+##   abilities: Array        an `Abilities` pool per entry: {grants: [ids], max_charges, cooldown_ticks}
 ##   shelter: bool          a `Shelter` component that spawns a blank unit
 ##   repairs: bool          a `Repairs` component: the piece can mend
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
@@ -225,6 +226,15 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		_add_node(piece, Docking.new(), "Docking")
 	if a_options.has("docking_bay"):
 		_add_docking_bay(piece, a_options["docking_bay"] as Dictionary)
+	if a_options.has("abilities"):
+		var pool := Abilities.new()
+		var groups: Array[Dictionary] = []
+		for entry: Variant in a_options["abilities"] as Array:
+			var group: Dictionary = {"max_charges": 1, "cooldown_ticks": 100}
+			group.merge(entry as Dictionary, true)
+			groups.append(group)
+		pool.groups = groups
+		_add_node(piece, pool, "Abilities")
 	if a_options.get("shelter", false):
 		var shelter := Shelter.new()
 		shelter.terrestrial_scene = _blank_projectile()
