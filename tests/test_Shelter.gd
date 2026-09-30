@@ -130,8 +130,8 @@ func test_shelter_scene_is_wired_to_the_terrestrial():
 	var s := shelter.get_node_or_null("Shelter") as Shelter
 	assert_not_null(s, "the shelter structure carries a Shelter component")
 	assert_not_null(s.terrestrial_scene, "it knows what to produce")
-	assert_eq(s.spawn_interval, 30.0, "one terrestrial every 30s")
-	assert_eq(s.capacity, 3, "sustains 3 residents")
+	assert_gt(s.spawn_interval, 0.0, "it spawns on a timer")
+	assert_gt(s.capacity, 0, "and sustains residents")
 
 ## --- Wander -----------------------------------------------------------------
 

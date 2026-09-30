@@ -303,9 +303,14 @@ func test_an_ordinary_unit_draws_no_pips_at_all() -> void:
 ## A 12-round clip on one line would be two tank-lengths wide.
 func test_a_long_clip_wraps_onto_a_second_row() -> void:
 	var plane: Commandable = _owned("res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn")
+	# No shipped piece carries a clip this long, so make the fixture rather than read one from
+	# authored content: a charged weapon whose clip needs more than one row.
+	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
+	weapon.charged = true
+	weapon.clip_size = StatusVisuals.PIPS_PER_ROW + 4
 	var sv: StatusVisuals = _status_visuals(plane)
 	assert_gt(plane.weapon_inventory.charged_clip_size(), StatusVisuals.PIPS_PER_ROW,
-		"the clipper is the piece this rule exists for")
+		"the fixture's clip is longer than a row")
 	plane.selectable.select()
 	sv._process(0.0)
 	var heights: Array[float] = []

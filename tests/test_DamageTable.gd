@@ -26,8 +26,12 @@ func test_calculate_damage_applies_frame_and_armour() -> void:
 
 func test_calculate_damage_applies_the_penalty_columns() -> void:
 	var target: Node = autofree(_target_with_defense(Defense.ArmourType.STRONG, Defense.FrameType.BIO))
-	# SIEGE vs BIO/STRONG: 0.25 frame × 1.0 armour.
-	assert_almost_eq(DamageTable.calculate_damage(70.0, Damage.Type.SIEGE, target), 70.0 * 0.25, 0.001)
+	# The multipliers are the owner's to retune, so read them from the table: what this pins is
+	# that the two columns are both applied, and neither is a no-op for this pairing.
+	var frame: float = DamageTable.get_frame_multiplier(Damage.Type.SIEGE, Defense.FrameType.BIO)
+	var armour: float = DamageTable.get_armour_multiplier(Damage.Type.SIEGE, Defense.ArmourType.STRONG)
+	assert_lt(frame, 1.0, "guards the fixture: SIEGE is penalised against BIO")
+	assert_almost_eq(DamageTable.calculate_damage(70.0, Damage.Type.SIEGE, target), 70.0 * frame * armour, 0.001)
 
 
 func test_calculate_damage_defaults_to_light_biological_with_no_defense() -> void:

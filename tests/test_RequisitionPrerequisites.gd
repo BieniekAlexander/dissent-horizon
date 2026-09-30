@@ -141,7 +141,7 @@ func test_a_queued_TRAIN_purchase_does_not_count() -> void:
 
 const CHAIN_A: StringName = &"an_warFactory"
 const CHAIN_B: StringName = &"an_tech1"          # requires an_warFactory
-const CHAIN_C: StringName = &"an_support3"       # requires an_tech1
+const CHAIN_C: StringName = &"an_support2"       # requires an_tech1
 const CHAIN_B_SCENE: String = "res://scenes/entities/structures/an/an_tech1.tscn"
 
 

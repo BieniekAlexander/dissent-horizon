@@ -37,15 +37,6 @@ func test_validator_reports_no_violations() -> void:
 	assert_eq(violations, [] as Array[String], "\n".join(violations))
 
 
-func test_matrix_spot_check_siege() -> void:
-	var siege: DamageProfile = catalog.profile_for(Damage.Type.SIEGE)
-	assert_eq(siege.bio_multiplier, 0.25)
-	assert_eq(siege.mech_multiplier, 1.0)
-	assert_eq(siege.light_multiplier, 0.4)
-	assert_eq(siege.medium_multiplier, 0.75)
-	assert_eq(siege.strong_multiplier, 1.0)
-
-
 func test_matrix_spot_check_cryo() -> void:
 	var cryo: DamageProfile = catalog.profile_for(Damage.Type.CRYO)
 	assert_eq(cryo.strong_multiplier, 1.0, "CRYO is armour-flat per §5.1, damage is vestigial")

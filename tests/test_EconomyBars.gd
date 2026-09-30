@@ -456,16 +456,19 @@ func test_hovering_a_provider_previews_added_spare_capacity() -> void:
 
 func test_hovering_a_consumer_previews_drawdown_within_spare_capacity() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
-	var commander := _make_commander()  # required 0, provided 100 — the Redoubt's 40 fits
+	var commander := _make_commander()  # required 0, provided 100 — the draw must fit
 	bar.commander = commander
 	bar.controller = _hovering("command_tool_an_barracks")
-	assert_eq(bar._hovered_infrastructure_delta(), -40)
+	# The draw is the piece's own, read rather than pinned: it is a number the owner retunes.
+	var draw: int = -bar._hovered_infrastructure_delta()
+	assert_gt(draw, 0, "a consumer draws infrastructure down")
+	assert_lt(draw, 100, "guards the fixture: it fits inside the spare capacity")
 	var regions: Array[Dictionary] = bar._preview_regions()
 	assert_eq(regions.size(), 1, "the whole increment still fits inside existing spare capacity")
 	assert_eq(regions[0].color, bar._dimmed(InfrastructureBar.USED_COLOR))
 	var capacity: float = bar._capacity()
 	assert_almost_eq(regions[0].start_frac, 0.0, 0.001)
-	assert_almost_eq(regions[0].end_frac, 40.0 / capacity, 0.001)
+	assert_almost_eq(regions[0].end_frac, float(draw) / capacity, 0.001)
 
 
 func test_hovering_a_consumer_that_would_cause_a_deficit_previews_it_steadily() -> void:

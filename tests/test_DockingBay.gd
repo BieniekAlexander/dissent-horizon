@@ -23,7 +23,8 @@ extends GutTest
 ## from under them: the const could then not be typed, the WHOLE FILE stopped parsing, and
 ## GUT skipped it in silence. Every test in here had been dead ever since.
 const AIRFIELD: String = "res://scenes/entities/structures/cl/cl_airField.tscn"
-const CLIPPER: String = "res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn"
+## A friendly aircraft with a CHARGED clip (it cannot reload in the field, so it wants a pad).
+const CLIPPER: String = "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn"
 const RECRUIT: String = "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
 ## An aircraft that opts out of airfields (Movement.docks) — expended on its first run, so
 ## there is nothing about a pad it could want. FLYING, so it passes every STRUCTURAL test
@@ -183,7 +184,7 @@ func test_only_an_arrived_aircraft_is_recharged() -> void:
 	var field: Commandable = _airfield(cmd)
 	var plane: Commandable = _entity(CLIPPER, cmd)
 	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
-	assert_true(weapon.charged, "the Clipper's weapon is charged (the fixture this needs)")
+	assert_true(weapon.charged, "the aircraft's weapon is charged (the fixture this needs)")
 	for i in weapon.clip_size:
 		weapon.consume_round()
 	field.docking_bay.reserve(plane)
@@ -204,7 +205,7 @@ func test_spare_capacity_counts_charged_aircraft_against_pads() -> void:
 	assert_true(cmd.has_spare_docking_capacity(), "empty commander, room to spare")
 	for i in pads:
 		_entity(CLIPPER, cmd).reparent(cmd)
-	assert_eq(cmd.charged_aircraft_count(), pads, "every Clipper wants a pad")
+	assert_eq(cmd.charged_aircraft_count(), pads, "every charged aircraft wants a pad")
 	assert_false(cmd.has_spare_docking_capacity(), "and the gate closes at parity")
 
 func test_units_that_reload_themselves_never_count_against_capacity() -> void:
