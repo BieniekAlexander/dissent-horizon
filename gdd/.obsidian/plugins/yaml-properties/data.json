@@ -291,6 +291,10 @@
     "shapes/shapes.md": false,
     "movement/movement.md": false,
     "factions/libertarian/structures/lb_commandCenter.md": false,
-    "factions/colonial/structures/cl_defense_antiLight.md": false
+    "factions/colonial/structures/cl_defense_antiLight.md": false,
+    "factions/neutral/structures/nt_building_shack.md": false,
+    "factions/neutral/structures/nt_building_long.md": false,
+    "factions/neutral/structures/nt_building_square.md": false,
+    "factions/neutral/structures/nt_building_large.md": false
   }
 }

@@ -37,15 +37,11 @@ weapons:
     reload_time: 1.8
     clip_size: 10
     reach: {ground: ground_range_long, air: air_range_siege}
-    hits:
-      - ground
-      - air
+    hits: [ground, air]
 garrison:
-  capacity: 3
-  frames:
-    - BIO
-  armours:
-    - LIGHT
+  capacity: 6
+  frames: [BIO]
+  armours: [LIGHT]
 ui:
   grid:
     - 0

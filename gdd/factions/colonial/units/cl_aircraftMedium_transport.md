@@ -8,7 +8,7 @@ flavor:
 build:
   cost:
     energy: 500
-  time: 25
+  time: 15
   requires: []
 defense:
   hp: 180
@@ -22,7 +22,8 @@ movement:
   max_acceleration: 2
   max_deceleration: -3
   reverse_speed_ratio: 0.35
-aerial: {mode: HOVERING}
+aerial:
+  mode: HOVERING
 docking: true
 garrison:
   capacity: 8

@@ -153,7 +153,7 @@ debug_color = Color(0.85, 0.01, 0, 0.42)
 script = ExtResource("4_garrison")
 occupiable_frames = 1
 occupiable_armours = 1
-capacity = 3
+capacity = 6
 
 [editable path="Selectable"]
 [editable path="HPBar"]

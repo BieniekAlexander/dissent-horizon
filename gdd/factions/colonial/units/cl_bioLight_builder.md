@@ -8,7 +8,7 @@ flavor:
 build:
   cost:
     energy: 500
-  time: 10
+  time: 8
   requires: []
 defense:
   hp: 120
@@ -42,9 +42,7 @@ builds:
   - cl_support3
 repairs: true
 ui:
-  grid:
-    - 1
-    - 1
+  grid: [0, 1]
   factions:
     - colonial
 ---

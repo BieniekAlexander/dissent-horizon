@@ -125,7 +125,7 @@ billboard = 2
 [node name="Garrison" type="Node" parent="." unique_id=1453613225]
 script = ExtResource("1_spec")
 occupiable_frames = 1
-capacity = 3
+capacity = 5
 bunker = false
 
 [editable path="Selectable"]

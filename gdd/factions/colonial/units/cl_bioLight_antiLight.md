@@ -5,7 +5,7 @@ scene: res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn
 build:
   cost:
     energy: 100
-  time: 8
+  time: 5
   requires: []
 defense:
   hp: 120

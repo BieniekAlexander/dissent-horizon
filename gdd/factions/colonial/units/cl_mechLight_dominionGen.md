@@ -32,9 +32,7 @@ garrison:
   bunker: false
   pieces: [cl_bioLight_builder]
 ui:
-  grid:
-    - 0
-    - 1
+  grid: [1, 1]
   factions:
     - colonial
 ---

@@ -179,8 +179,8 @@
 			"an_commandCenter"
 		],
 		"scene": "res://scenes/entities/units/an/an_bioLight_builder.tscn",
-		"tooltip": "Train Irregular — 100 energy, 8s",
-		"verbose": "Train Irregular — 100 energy, 8s\n80 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBuilds: Extractor, Stronghold, Hangar, Safehouse, Redoubt, Chop Shop, Hideout, Distress Signal, EMP Device, Stockpile, Clandestine Lab\nBallisticWeapon: 5 lead, reach 8"
+		"tooltip": "Train Irregular — 100 energy, 5s",
+		"verbose": "Train Irregular — 100 energy, 5s\n80 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBuilds: Extractor, Stronghold, Hangar, Safehouse, Redoubt, Chop Shop, Hideout, Distress Signal, EMP Device, Stockpile, Clandestine Lab\nBallisticWeapon: 5 lead, reach 8"
 	},
 	"command_tool_an_bioMedium_antiMech": {
 		"context": "TRAIN",
@@ -219,8 +219,8 @@
 			"an_commandCenter"
 		],
 		"scene": "res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn",
-		"tooltip": "Train Warlord — 250 energy, 15s",
-		"verbose": "Train Warlord — 250 energy, 15s\n160 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nWeapon: 40 explosive, reach 12"
+		"tooltip": "Train Warlord — 250 energy, 8s",
+		"verbose": "Train Warlord — 250 energy, 8s\n160 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nWeapon: 40 explosive, reach 12"
 	},
 	"command_tool_an_bioMedium_support": {
 		"context": "TRAIN",
@@ -280,8 +280,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_commandCenter.tscn",
-		"tooltip": "Build Stronghold — 1500 energy, 40s",
-		"verbose": "Build Stronghold — 1500 energy, 40s\n2500 HP · strong armour · mech frame\n4×4 cells · vision 24\nProvides 100 infrastructure\nTrains: Warlord, Irregular"
+		"tooltip": "Build Stronghold — 1500 energy, 30s",
+		"verbose": "Build Stronghold — 1500 energy, 30s\n2500 HP · strong armour · mech frame\n4×4 cells · vision 24\nProvides 100 infrastructure\nTrains: Warlord, Irregular"
 	},
 	"command_tool_an_infrastructure": {
 		"context": "BUILD",
@@ -554,8 +554,8 @@
 			"cl_airField"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn",
-		"tooltip": "Train drake — 1000 energy, 25s",
-		"verbose": "Train drake — 1000 energy, 25s\n150 HP · medium armour · mech frame\nflying, speed 5.25 · vision 18\nWeapon: 35 explosive, reach 12"
+		"tooltip": "Train drake — 1000 energy, 15s",
+		"verbose": "Train drake — 1000 energy, 15s\n150 HP · medium armour · mech frame\nflying, speed 5.25 · vision 18\nWeapon: 35 explosive, reach 12"
 	},
 	"command_tool_cl_aircraftMedium_transport": {
 		"context": "TRAIN",
@@ -574,8 +574,8 @@
 			"cl_airField"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn",
-		"tooltip": "Train caravel — 500 energy, 25s",
-		"verbose": "Train caravel — 500 energy, 25s\n180 HP · medium armour · mech frame\nhovering, speed 4 · vision 22"
+		"tooltip": "Train caravel — 500 energy, 15s",
+		"verbose": "Train caravel — 500 energy, 15s\n180 HP · medium armour · mech frame\nhovering, speed 4 · vision 22"
 	},
 	"command_tool_cl_aircraftStrong_support": {
 		"context": "TRAIN",
@@ -635,8 +635,8 @@
 			"cl_barracks"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
-		"tooltip": "Train Recruit — 100 energy, 8s",
-		"verbose": "Train Recruit — 100 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 7.5 lead, reach 8"
+		"tooltip": "Train Recruit — 100 energy, 5s",
+		"verbose": "Train Recruit — 100 energy, 5s\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 7.5 lead, reach 8"
 	},
 	"command_tool_cl_bioLight_antiMech": {
 		"context": "TRAIN",
@@ -655,8 +655,8 @@
 			"cl_barracks"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn",
-		"tooltip": "Train Badger — 200 energy, 10s",
-		"verbose": "Train Badger — 200 energy, 10s\n100 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nWeapon: 40 explosive, reach 12"
+		"tooltip": "Train Badger — 200 energy, 7s",
+		"verbose": "Train Badger — 200 energy, 7s\n100 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nWeapon: 40 explosive, reach 12"
 	},
 	"command_tool_cl_bioLight_builder": {
 		"context": "TRAIN",
@@ -665,7 +665,7 @@
 			"colonial"
 		],
 		"grid": [
-			1,
+			0,
 			1
 		],
 		"id": "cl_bioLight_builder",
@@ -675,8 +675,8 @@
 			"cl_commandCenter"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_builder.tscn",
-		"tooltip": "Train Servant — 500 energy, 10s",
-		"verbose": "Train Servant — 500 energy, 10s\n120 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nBuilds: Citadel, Extractor, Compound, Barracks, Sam, Watch Tower, Bombard, Sky Port, Production Yard, Operations Center, Academy, Annex, Supply Beacon, Storm Cell\nRepairs damaged mechanical units and structures"
+		"tooltip": "Train Servant — 500 energy, 8s",
+		"verbose": "Train Servant — 500 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nBuilds: Citadel, Extractor, Compound, Barracks, Sam, Watch Tower, Bombard, Sky Port, Production Yard, Operations Center, Academy, Annex, Supply Beacon, Storm Cell\nRepairs damaged mechanical units and structures"
 	},
 	"command_tool_cl_bioLight_stealth": {
 		"context": "TRAIN",
@@ -818,7 +818,7 @@
 			"colonial"
 		],
 		"grid": [
-			0,
+			1,
 			1
 		],
 		"id": "cl_mechLight_dominionGen",

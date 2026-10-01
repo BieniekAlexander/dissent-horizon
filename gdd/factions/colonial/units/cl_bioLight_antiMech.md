@@ -5,7 +5,7 @@ scene: res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn
 build:
   cost:
     energy: 200
-  time: 10
+  time: 7
   requires: []
 defense:
   hp: 100
@@ -30,7 +30,10 @@ weapons:
       hitscan: false
       bio_ground_aim: true
       phases:
-        - motion: {preset: LINEAR, speed: BLAZING, jitter: 3}
+        - motion:
+            preset: LINEAR
+            speed: BLAZING
+            jitter: 3
           lifespan: 2
         - lifespan: 1.6
           payload: once
@@ -38,7 +41,8 @@ weapons:
     reload_time: 1.5
     clip_size: 1
     reach: ground_range_long
-    hits: [ground]
+    hits:
+      - ground
 ui:
   grid:
     - 1

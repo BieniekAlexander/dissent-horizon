@@ -1,0 +1,11 @@
+views:
+  - type: table
+    name: Table
+    filters:
+      and:
+        - file.name.containsAny("cl_", "an_")
+        - movement.isEmpty()
+    order:
+      - file.name
+      - build.time
+    sort: []

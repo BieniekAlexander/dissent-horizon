@@ -80,7 +80,7 @@
 		"requires": []
 	},
 	"an_bioLight_builder": {
-		"build_time_ticks": 240,
+		"build_time_ticks": 150,
 		"cost": {
 			"dominion": 0,
 			"energy": 100,
@@ -98,7 +98,7 @@
 		"requires": []
 	},
 	"an_bioMedium_dominionGen": {
-		"build_time_ticks": 450,
+		"build_time_ticks": 240,
 		"cost": {
 			"dominion": 0,
 			"energy": 250,
@@ -129,7 +129,7 @@
 		]
 	},
 	"an_commandCenter": {
-		"build_time_ticks": 1200,
+		"build_time_ticks": 900,
 		"cost": {
 			"dominion": 0,
 			"energy": 1500,
@@ -282,7 +282,7 @@
 		"requires": []
 	},
 	"cl_aircraftMedium_antiMech": {
-		"build_time_ticks": 750,
+		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
 			"energy": 1000,
@@ -291,7 +291,7 @@
 		"requires": []
 	},
 	"cl_aircraftMedium_transport": {
-		"build_time_ticks": 750,
+		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
 			"energy": 500,
@@ -322,7 +322,7 @@
 		]
 	},
 	"cl_bioLight_antiLight": {
-		"build_time_ticks": 240,
+		"build_time_ticks": 150,
 		"cost": {
 			"dominion": 0,
 			"energy": 100,
@@ -331,7 +331,7 @@
 		"requires": []
 	},
 	"cl_bioLight_antiMech": {
-		"build_time_ticks": 300,
+		"build_time_ticks": 210,
 		"cost": {
 			"dominion": 0,
 			"energy": 200,
@@ -340,7 +340,7 @@
 		"requires": []
 	},
 	"cl_bioLight_builder": {
-		"build_time_ticks": 300,
+		"build_time_ticks": 240,
 		"cost": {
 			"dominion": 0,
 			"energy": 500,

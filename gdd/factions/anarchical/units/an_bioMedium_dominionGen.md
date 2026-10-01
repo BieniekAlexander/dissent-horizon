@@ -7,7 +7,7 @@ flavor:
   verbose: dominion-claiming infantry unit, armed with a rocket launcher. Effective against armored units, and weak against infantry. Acquire dominion by staying close to allied infantry units.
 build:
   cost: {energy: 250}
-  time: 15
+  time: 8
   requires: []
 defense:
   hp: 160

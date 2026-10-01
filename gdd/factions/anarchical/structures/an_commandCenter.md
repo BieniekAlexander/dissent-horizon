@@ -3,8 +3,9 @@ kind: Entity
 title: Stronghold
 scene: res://scenes/entities/structures/an/an_commandCenter.tscn
 build:
-  cost: {energy: 1500}
-  time: 40
+  cost:
+    energy: 1500
+  time: 30
   requires: []
 defense:
   hp: 2500
@@ -12,12 +13,26 @@ defense:
   frame: MECH
 senses:
   vision: vision_ground_large
-footprint: [4, 4]
-trains: [an_bioMedium_dominionGen, an_bioLight_builder]
+footprint:
+  - 4
+  - 4
+trains:
+  - an_bioMedium_dominionGen
+  - an_bioLight_builder
 abilities:
   - max_charges: 1
     cooldown: 60
-    grants: [dignify, informant]
+    grants:
+      - dignify
+      - informant
 infrastructure: 100
-ui: {grid: [1, 0], factions: [anarchists], context_grid: [0, 0]}
+ui:
+  grid:
+    - 1
+    - 0
+  context_grid:
+    - 0
+    - 0
+  factions:
+    - anarchists
 ---

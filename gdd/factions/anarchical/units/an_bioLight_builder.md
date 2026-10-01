@@ -7,7 +7,7 @@ flavor:
   verbose: Guerilla fighter armed with a light rifle. Cheap and strong in numbers, effective against other infantry. Can also build structures.
 build:
   cost: {energy: 100}
-  time: 8
+  time: 5
   requires: []
 defense:
   hp: 80
