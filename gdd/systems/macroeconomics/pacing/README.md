@@ -21,6 +21,7 @@ it borrows are in [design-framework/timings](../../../design-framework/timings.m
 | [tech-investment](tech-investment.md) | what a higher tier should buy (volatility, not just efficiency), how a tech investment is priced, and how to calibrate it between "nobody techs" and "everybody techs" |
 | [tree-shape](tree-shape.md) | linear versus dense tech trees: diameter, breadth, and what a many-path tree costs |
 | [income-and-cost](income-and-cost.md) | what a minute of income buys: one unit versus an army, replacement time, permanent versus temporary income, and an order to calibrate them in |
+| [resource-allotment](resource-allotment.md) | how much energy a map should give each player, compared with Zero Hour and StarCraft II army and base costs |
 | [building-roles](building-roles.md) | marginal value of each copy of a structure, by what the structure confers; multi-purpose buildings |
 | [dominion-and-ordnance](dominion-and-ordnance.md) | dominion as a super meter, the sanction-as-permission / structure-as-charges split, shared pools, and the command centre |
 

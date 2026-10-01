@@ -121,7 +121,7 @@ above turned into these values:
 | Quantity | Value | Was | Why |
 |---|---|---|---|
 | first-contact army | ~10 `c₀` (1000) | — | the decided ten basic units |
-| medium army `A_med` | 20–30 `c₀` (2000–3000) | — | two to three first-contact armies |
+| medium army `A_med` | 20–30 `c₀` (2000–3000); TODO: likely too small by half, see [resource-allotment](resource-allotment.md) | — | two to three first-contact armies |
 | pond charge `Q` | 1500–3900 (30–60 cells × 50–65) | 1500–7500 | about a medium army; the smallest nets 1000 after its extractor |
 | site rate `r_s` | 6/s (`EnergyExtractor.energy_rate` 30 per 5 s) | 20/s | two home sites (12/s) about match one producer training baseline units (100 per 8 s = 12.5/s) |
 | pond rate `r_p` | 4 `r_s` = 24/s (`WaterBody.POND_RATE_MULTIPLIER` 4) | 2 `r_s` = 40/s | ponds are clearly the faster short-term income |
