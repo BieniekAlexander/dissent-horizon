@@ -8,6 +8,9 @@ enum UnmetNeed {
 	NOT_ENOUGH_INFRASTRUCTURE,
 	NOT_ENOUGH_DOMINION,
 	MISSING_STRUCTURE,
+	## An UPGRADE this commander already owns, or is already researching. A one-time purchase:
+	## the second copy of a research would buy nothing, so it is refused rather than queued.
+	ALREADY_RESEARCHED,
 }
 
 static var unmet_need_message_map: Dictionary = {
@@ -16,6 +19,7 @@ static var unmet_need_message_map: Dictionary = {
 	UnmetNeed.NOT_ENOUGH_INFRASTRUCTURE: "Not enough infrastructure",
 	UnmetNeed.NOT_ENOUGH_DOMINION: "Not enough dominion",
 	UnmetNeed.MISSING_STRUCTURE: "Required structure missing",
+	UnmetNeed.ALREADY_RESEARCHED: "Already researched",
 }
 #endregion
 

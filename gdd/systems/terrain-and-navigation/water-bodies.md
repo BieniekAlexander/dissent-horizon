@@ -111,7 +111,7 @@ second collector type would be a sibling of that abstraction rather than an inst
 | Host geometry | a 2×2 structure; the extractor must sit **concentric** on it | a whole basin; the extractor stands anywhere shallow in it |
 | Grid | the site occupies the cells; the extractor **overlays** it | nothing occupies the cells; the extractor **obstructs** like any structure |
 | Supply | infinite | `WaterBody.energy`, finite, never replenished |
-| Rate | the extractor's own `energy_rate` | `POND_RATE_MULTIPLIER` (2) × that rate |
+| Rate | the extractor's own `energy_rate` | `POND_RATE_MULTIPLIER` (3) × that rate |
 
 Those two placement cases are why `EnergyExtractor.valid_placement` asks a different question
 from `Structure.valid_placement` and is used *instead of* it: an overlay's target cells are
@@ -128,7 +128,7 @@ a pond's *area* worth something — it is the fast, contested half of the energy
 intended shape. It is also simply what the model already says: the pond is a reservoir, not a
 socket.
 
-A hand-authored pond's charge is a flat number (`WaterBody.NOMINAL_ENERGY`, 5000). A GENERATED
+A hand-authored pond's charge is a flat number (`WaterBody.NOMINAL_ENERGY`, 4500). A GENERATED
 pond's is `cell_count × richness_factor` ([map-generation.md](map-generation.md) §3); the two
 rules are deliberately separate.
 

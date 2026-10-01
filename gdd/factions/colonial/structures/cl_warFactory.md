@@ -3,7 +3,7 @@ kind: Entity
 title: Production Yard
 scene: res://scenes/entities/structures/cl/cl_warFactory.tscn
 build:
-  cost: {energy: 2000}
+  cost: {energy: 1200}
   time: 15
   requires: [cl_barracks]
 defense:

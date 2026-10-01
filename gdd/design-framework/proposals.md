@@ -131,15 +131,19 @@ serve (`K ≥ λτ` means one each), and `μ` only if Compound count should gate
 #### What tempers an immediate high rate
 
 The first Compound is mandatory — it is the Colonial infrastructure building and the barracks
-prerequisite — and the first truck is a starting unit. Neither investment gate bites on the
-opening, so the opening is tempered by:
+prerequisite — and the first truck is one purchase at the Citadel. (It was a starting unit
+until 2026-09-30, when it was dropped for a third Servant: crushing made it too strong a
+threat to be the opening scout. The Citadel trains one once a Compound stands: gated on
+`cl_infrastructure` since 2026-10-01, so no truck reaches an enemy base before a defence can
+exist.) Neither gate bites hard on the opening, so the opening is
+tempered by:
 
 1. **The ceiling `r·λ·τ`** against the other factions' opening dominion rates. "High" needs a
    reference curve.
 2. **The ramp `τ`.** Under sentences the rate climbs linearly to its ceiling over `τ` after the
    first delivery; under pay-per-delivery there is no ramp.
 3. **The distance floor `t_l`.** With `S_near > 1`, even an adjacent Compound needs more than the
-   starting truck to reach the ceiling.
+   first truck to reach the ceiling.
 4. **Position, not arithmetic.** How many Shelters map generation puts in the near band (possibly
    none), and the positional bonus pulling the Compound against the buildings it supports while
    the Shelter pulls it away.
@@ -147,10 +151,12 @@ opening, so the opening is tempered by:
 TODO: pick payout model, then targets `S_near`, `S_far`, `d_near`, `d_far` and the opening
 ceiling; derive the rest.
 
-**Truck speed: slow, decided.** The truck now sits just above infantry speed, which puts the
-Colonial "slow to traverse the map" identity on the dominion route itself. The accepted costs are
-the ones a fast truck was keeping: it is no longer a scout, and capturing an enemy soldier is
-opportunistic rather than a chase. Its armour rises a step to pay for the roads it now lives on.
+**Truck speed: fast again, gated instead** (Alex, 2026-10-01). It was slowed to just above
+infantry speed to stop it being oppressive early. It is back at `QUICK`, and requiring the
+Compound is what keeps it from arriving before a defence can exist. Its armour stays a step up
+for the roads it lives on. TODO: its price may rise too. See
+[systems/combat/colonial-dominion](../systems/combat/colonial-dominion.md) §The pieces this
+changes.
 
 **Warlord interaction: unchanged.** Both factions draw on the same Shelter population, so an
 Anarchist liberating Terrestrials starves the Colonial trucks working that Shelter — the

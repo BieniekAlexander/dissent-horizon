@@ -32,7 +32,7 @@ var _map: Map
 
 
 func before_each() -> void:
-	FakePieces.install_ability(Spot.ABILITY_ID, {"range": Spot.TARGET_RANGE, "command": "command_spot"})
+	FakePieces.install_ability(Spot.ABILITY_ID, {"range": 10.0, "command": "command_spot"})
 	_commander = Commander.new()
 	_commander.id = 1
 	add_child_autofree(_commander)
@@ -95,9 +95,12 @@ func test_a_unit_without_the_component_cannot_spot() -> void:
 	assert_false(CommandContextParser.commands_for(badger).has("command_spot"))
 
 
-func test_the_authored_reach_and_channel() -> void:
-	# 10 units, 10 seconds — 30 physics ticks to the second.
-	assert_almost_eq(Spot.TARGET_RANGE, 10.0, 0.001)
+func test_the_reach_is_the_ability_docs_range_and_the_channel_is_ten_seconds() -> void:
+	# The reach is read off the spot ability's `range:` (10 in this fixture); the channel is
+	# 10 seconds — 30 physics ticks to the second.
+	var recruit: Commandable = FakePieces.unit({"abilities": [{"grants": [Spot.ABILITY_ID]}]})
+	autofree(recruit)
+	assert_almost_eq(Spot.target_range(recruit), 10.0, 0.001)
 	assert_eq(Spot.CHANNEL_TICKS, 300)
 
 

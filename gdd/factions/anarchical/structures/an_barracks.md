@@ -3,7 +3,7 @@ kind: Entity
 title: Redoubt
 scene: res://scenes/entities/structures/an/an_barracks.tscn
 build:
-  cost: {energy: 1000}
+  cost: {energy: 400}
   time: 20
   requires: [an_infrastructure]
 defense:

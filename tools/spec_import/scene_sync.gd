@@ -688,11 +688,14 @@ func _sync_root_properties(a_ctx: Ctx, a_spec: Dictionary) -> void:
 ## The components a piece may or may not carry. A `removed:` key takes the component OUT,
 ## which is why each pair is an if/elif rather than two independent tests.
 func _sync_optional_components(a_ctx: Ctx, a_spec: Dictionary) -> void:
+	# ONE Production component runs both lists: a research job is an ordinary job in the global
+	# queue that completes by granting an upgrade instead of spawning a unit
+	# (gdd/systems/macroeconomics/upgrades.md), so `researches:` extends what it produces.
 	if _is_removed(a_spec, "trains"):
 		_remove_component(a_ctx, "Production")
-	elif a_spec.has("trains"):
+	elif a_spec.has("trains") or a_spec.has("researches"):
 		_sync_id_list_component(a_ctx, "Production", "Node", SCRIPT_PRODUCTION,
-			"producible_types", a_spec["trains"])
+			"producible_types", a_spec.get("trains", []) + a_spec.get("researches", []))
 	if _is_removed(a_spec, "builds"):
 		_remove_component(a_ctx, "Builds")
 	elif a_spec.has("builds"):

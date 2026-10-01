@@ -585,7 +585,7 @@
 		"hud_button": false,
 		"levels": [],
 		"passive": false,
-		"range": 5.0,
+		"range": 10.0,
 		"reveals": "",
 		"title": "Spot",
 		"valence": "NEUTRAL",

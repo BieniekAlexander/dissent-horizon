@@ -245,7 +245,7 @@ func test_a_carrier_driving_off_the_leash_drops_the_beacon() -> void:
 	var order := _spot(recruit, tank)
 	order.fulfill_action(recruit)
 	assert_false(order._beacon.is_leaving(), "within the leash it stands")
-	tank.global_position = _at(Vector2(Spot.TARGET_RANGE + 1.0, 0))
+	tank.global_position = _at(Vector2(Spot.target_range(recruit) + 1.0, 0))
 	order.fulfill_action(recruit)
 	assert_true(order._beacon.is_leaving(), "past the leash it is dropped")
 

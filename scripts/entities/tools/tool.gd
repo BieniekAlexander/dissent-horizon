@@ -63,6 +63,10 @@ var variants: Array[StringName] = []
 ## piece — but its `packed_scene` is the VARIANT's scene, and price/footprint/HP/infrastructure
 ## follow the variant. Derive one through with_variant / resolved; never assign it.
 var variant: StringName = &""
+## True when this tool RESEARCHES an upgrade rather than training a piece. It has no scene —
+## finishing the job spawns nothing (Production._complete_research) — so it is the one TRAIN
+## tool whose `packed_scene` is null by design. See UpgradeCatalog.
+var is_upgrade: bool = false
 
 ## The unbound tool this one was derived from, weakly held (the base owns its bound tools, so a
 ## strong back-reference would be a cycle nothing ever frees). Null on a base tool.
@@ -222,6 +226,9 @@ static func _load_registry() -> Dictionary:
 		return out
 	for command_name in parsed:
 		var e: Dictionary = parsed[command_name]
+		if bool(e.get("upgrade", false)):
+			out[String(command_name)] = from_entry(String(command_name), e, null)
+			continue
 		var scene: PackedScene = load(str(e["scene"]))
 		if scene == null:
 			push_error("Tool: %s scene missing: %s" % [command_name, e["scene"]])
@@ -252,7 +259,7 @@ static func from_entry(command_name: String, e: Dictionary, scene: PackedScene) 
 	var variant_ids: Array[StringName] = []
 	for v in e.get("variants", []):
 		variant_ids.append(StringName(str(v)))
-	return Tool.new(
+	var tool: Tool = Tool.new(
 		command_name,
 		StringName(str(e["id"])),
 		scene,
@@ -267,6 +274,8 @@ static func from_entry(command_name: String, e: Dictionary, scene: PackedScene) 
 		_cell(e.get("context_grid", [])),
 		variant_ids
 	)
+	tool.is_upgrade = bool(e.get("upgrade", false))
+	return tool
 
 ## A generated [x, y] pair as a cell, or (-1, -1) when the list is absent or malformed.
 static func _cell(value: Variant) -> Vector2i:

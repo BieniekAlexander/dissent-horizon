@@ -4,7 +4,7 @@ title: shack
 scene: res://scenes/entities/structures/nt/nt_building_shack.tscn
 family: neutral_building
 build:
-  cost: {energy: 500}
+  cost: {energy: 300}
   time: 20
 defense:
   hp: 600

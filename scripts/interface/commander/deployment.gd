@@ -172,7 +172,7 @@ func is_production(a_drop: Drop) -> bool:
 
 func _preview_has_production(a_drop: Drop) -> bool:
 	var probe: Node = preview_scene(a_drop).instantiate()
-	var has_production: bool = probe.has_node("Production")
+	var has_production: bool = Production.node_trains_units(probe)
 	probe.free()
 	return has_production
 

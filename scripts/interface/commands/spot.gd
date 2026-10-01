@@ -33,15 +33,16 @@ static func meets_precondition(
 	return PreconditionFailureCause.NONE
 
 
-## How close the spotter must get to its chosen point before it starts calling the strike in,
-## in world units. It walks to within this distance and then stops.
+## How close `a_actor` must get to its chosen point before it starts calling the strike in, in
+## world units. It walks to within this distance and then stops, and a beacon riding a unit
+## stands only while its carrier stays within it (the leash).
 ##
-## A CONSTANT rather than a per-piece export, and it stayed one through the ability-module
-## fold: exactly one piece in the game spots, and a value that never varies is not a
-## configuration — exporting it would make the inspector claim a choice nobody makes and the
-## doc schema govern a number with one possible value. It becomes `spotting: {reach: ...}` on
-## the day a second, longer-ranged spotter exists.
-const TARGET_RANGE: float = 10.0
+## The spot ability doc's `range:`, raised by any upgrade its commander owns that modifies this
+## piece's spotting (Advanced Targetting — see UpgradeCatalog). It used to be a constant, on the
+## grounds that a value that never varied was not a configuration; an upgrade is what made it
+## vary.
+static func target_range(a_actor: Commandable) -> float:
+	return AbilityCatalog.range_for(ABILITY_ID, a_actor)
 
 ## How long the call takes once in position, in physics ticks (30/second). The channel is the
 ## cost of the mechanic: a spotter is stationary and exposed while it runs, and any new order
@@ -122,7 +123,7 @@ func can_act(a_actor: Commandable) -> bool:
 		# Holding. can_act stays true so the receiver keeps handing us ticks instead of
 		# treating the unit as idle and letting aggro pick a target for it.
 		return true
-	return a_actor.xz_position.distance_to(message.xz_position) <= Spot.TARGET_RANGE
+	return a_actor.xz_position.distance_to(message.xz_position) <= Spot.target_range(a_actor)
 
 
 func fulfill_action(a_actor: Commandable) -> Variant:
@@ -181,12 +182,12 @@ func _raise_beacon(a_actor: Commandable) -> Beacon:
 
 
 ## THE LEASH: a beacon riding on a unit stands only while that unit stays within the
-## spotter's TARGET_RANGE. A carrier that drives out of it drops the beacon — and a shell
+## spotter's target_range. A carrier that drives out of it drops the beacon — and a shell
 ## already tracking it lands where it last was. A point beacon has no leash.
 func _hold_leash(a_actor: Commandable) -> void:
 	if not is_instance_valid(_beacon):
 		return
 	var carrier: Entity = _beacon.carrier()
-	if carrier != null and a_actor.xz_position.distance_to(carrier.xz_position) > Spot.TARGET_RANGE:
+	if carrier != null and a_actor.xz_position.distance_to(carrier.xz_position) > Spot.target_range(a_actor):
 		_beacon.dismiss()
 #endregion

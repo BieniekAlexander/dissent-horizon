@@ -657,6 +657,9 @@ Commander resources, technology gating, the global production queue and requisit
 (the requisition toggle was replaced by the additive modifier —
 [`requisition-as-a-modifier.md`](gdd/systems/macroeconomics/requisition-as-a-modifier.md))
 
+Upgrades — one-time commander-wide research at a structure (`kind: Upgrade`, `researches:`).
+→ **[`gdd/systems/macroeconomics/upgrades.md`](gdd/systems/macroeconomics/upgrades.md)**
+
 ## A spent charge is refused; the modifier is what queues it
 
 Why an ability with no charge is refused like an unaffordable purchase, and what greys the button.

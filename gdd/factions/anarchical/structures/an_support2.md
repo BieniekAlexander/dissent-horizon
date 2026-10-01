@@ -3,7 +3,7 @@ kind: Entity
 title: Distress Signal
 scene: res://scenes/entities/structures/an/an_support2.tscn
 build:
-  cost: {energy: 2000}
+  cost: {energy: 1200}
   time: 30
   requires: [an_tech1]
 defense:

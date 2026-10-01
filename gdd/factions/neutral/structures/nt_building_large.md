@@ -4,7 +4,7 @@ title: large building
 scene: res://scenes/entities/structures/nt/nt_building_large.tscn
 family: neutral_building
 build:
-  cost: {energy: 1200}
+  cost: {energy: 750}
   time: 35
 defense:
   hp: 1500

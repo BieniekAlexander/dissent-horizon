@@ -3,7 +3,7 @@ kind: Entity
 title: Storm Cell
 scene: res://scenes/entities/structures/cl/cl_support3.tscn
 build:
-  cost: {energy: 2500}
+  cost: {energy: 2000}
   time: 30
   requires: [cl_tech2]
 defense:

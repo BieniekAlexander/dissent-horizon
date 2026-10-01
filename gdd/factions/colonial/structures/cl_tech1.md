@@ -3,7 +3,7 @@ kind: Entity
 title: Operations Center
 scene: res://scenes/entities/structures/cl/cl_tech1.tscn
 build:
-  cost: {energy: 1200}
+  cost: {energy: 800}
   time: 25
   requires: [cl_barracks]
 defense:
@@ -13,6 +13,7 @@ defense:
 senses:
   vision: vision_ground_large
 footprint: [4, 4]
+researches: [advanced_targetting]
 infrastructure: -50
-ui: {grid: [0, 2], factions: [colonial]}
+ui: {grid: [0, 2], factions: [colonial], context_grid: [4, 0]}
 ---

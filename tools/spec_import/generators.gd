@@ -7,6 +7,7 @@ extends RefCounted
 ##   resources/generated/technology.json     — cost / build time / requires
 ##   resources/generated/tools.json          — build/train tool registry
 ##   resources/generated/abilities.json      — the ability definitions
+##   resources/generated/upgrades.json       — the upgrade definitions (what each one modifies)
 ##   resources/generated/debug_roster.json   — every placeable piece, for the debug spawner
 ##   resources/generated/families.json       — piece families and their members' template data
 ##   resources/generated/shapes/<id>.tres    — the shape library (see generate_shapes)
@@ -21,6 +22,7 @@ const STATUS_EFFECT_IDS_PATH: String = "res://scripts/generated/status_effect_id
 const TECHNOLOGY_PATH: String = "res://resources/generated/technology.json"
 const TOOLS_PATH: String = "res://resources/generated/tools.json"
 const ABILITIES_PATH: String = "res://resources/generated/abilities.json"
+const UPGRADES_PATH: String = "res://resources/generated/upgrades.json"
 const DEBUG_ROSTER_PATH: String = "res://resources/generated/debug_roster.json"
 const FAMILIES_PATH: String = "res://resources/generated/families.json"
 ## Where the debug roster looks for piece scenes that no spec names.
@@ -45,6 +47,7 @@ static func generate_all(registry: RefCounted) -> Array:
 	written.append(_write(TECHNOLOGY_PATH, technology_json(registry)))
 	written.append(_write(TOOLS_PATH, tools_json(registry)))
 	written.append(_write(ABILITIES_PATH, abilities_json(registry)))
+	written.append(_write(UPGRADES_PATH, upgrades_json(registry)))
 	written.append(_write(DEBUG_ROSTER_PATH, debug_roster_json(registry)))
 	written.append(_write(FAMILIES_PATH, families_json(registry)))
 	return written
@@ -204,11 +207,13 @@ static func status_effect_ids_text(registry: RefCounted) -> String:
 ## {id: {"cost": {...}, "build_time_ticks": int, "requires": [...]}} for every
 ## piece with economy data (a cost: key). Pieces without cost are not buildable.
 static func technology_json(registry: RefCounted) -> String:
-	var ids: Array = registry.pieces.keys()
+	# Upgrades are priced, timed and gated exactly as pieces are — a research is a purchase in
+	# the same queue — so they share the table. Ids share one namespace, so they cannot collide.
+	var ids: Array = registry.pieces.keys() + registry.upgrades.keys()
 	ids.sort()
 	var table: Dictionary = {}
 	for id in ids:
-		var spec: Dictionary = registry.pieces[id]
+		var spec: Dictionary = registry.pieces[id] if registry.pieces.has(id) else registry.upgrades[id]
 		if not spec.has("cost"):
 			continue
 		var cost: Dictionary = spec["cost"] if spec["cost"] is Dictionary else {}
@@ -317,6 +322,32 @@ static func tools_table(registry: RefCounted, require_scene: bool = true) -> Dic
 			for variant: Variant in spec["variants"]:
 				variant_ids.append(str(variant))
 			table["command_tool_%s" % id]["variants"] = variant_ids
+	# RESEARCH buttons. An upgrade is a TRAIN tool with no scene: it sits on its researching
+	# structure's production card, and finishing it spawns nothing (Production._complete_research).
+	var upgrade_ids: Array = registry.upgrades.keys()
+	upgrade_ids.sort()
+	for id in upgrade_ids:
+		var spec: Dictionary = registry.upgrades[id]
+		if not (spec.get("ui") is Dictionary):
+			continue
+		var ui: Dictionary = spec["ui"]
+		var factions: Array = []
+		for f in ui.get("factions", []):
+			factions.append(str(f))
+		table["command_tool_%s" % id] = {
+			"id": id,
+			"scene": "",
+			"upgrade": true,
+			"label": piece_title(spec),
+			"grid": [int(ui["grid"][0]), int(ui["grid"][1])] if ui.has("grid") else [0, 0],
+			"context": "TRAIN",
+			"factions": factions,
+			"tooltip": str(ui.get("tooltip", upgrade_tooltip(spec))),
+			"verbose": str(ui.get("verbose", upgrade_verbose_tooltip(registry, spec))),
+			"producers": producers.get(id, []),
+			"context_grid": [],
+			"needs_docking": false,
+		}
 	return table
 
 
@@ -336,7 +367,9 @@ static func grid_collisions(registry: RefCounted) -> Array:
 		tools.append(Tool.from_entry(command_name, table[command_name], null))
 	var docs: Dictionary = {}
 	for tool: Tool in tools:
-		var path: String = str(registry.pieces[String(tool.type)].get("_doc_path", tool.type))
+		var spec: Dictionary = registry.pieces.get(String(tool.type),
+			registry.upgrades.get(String(tool.type), {}))
+		var path: String = str(spec.get("_doc_path", tool.type))
 		docs[tool.command_name] = path
 		docs[ProducerContextBinding.PREFIX + String(tool.type)] = path + " (ui.context_grid)"
 	var out: Array = []
@@ -571,7 +604,8 @@ static func _producers_by_trainee(registry: RefCounted) -> Dictionary:
 	var producer_ids: Array = registry.pieces.keys()
 	producer_ids.sort()
 	for producer_id in producer_ids:
-		for trainee in registry.pieces[producer_id].get("trains", []):
+		for trainee in registry.pieces[producer_id].get("trains", []) \
+				+ registry.pieces[producer_id].get("researches", []):
 			var trainee_id: String = str(trainee)
 			if not out.has(trainee_id):
 				out[trainee_id] = []
@@ -650,6 +684,12 @@ static func tool_verbose_tooltip(registry: RefCounted, spec: Dictionary) -> Stri
 	var trains: Array = _titles_of(registry, spec.get("trains", []))
 	if not trains.is_empty():
 		lines.append("Trains: %s" % ", ".join(trains))
+	var researches: Array = []
+	for ref: Variant in spec.get("researches", []):
+		if registry.upgrades.has(str(ref)):
+			researches.append(piece_title(registry.upgrades[str(ref)]))
+	if not researches.is_empty():
+		lines.append("Researches: %s" % ", ".join(researches))
 	var builds: Array = _titles_of(registry, spec.get("builds", []))
 	if not builds.is_empty():
 		lines.append("Builds: %s" % ", ".join(builds))
@@ -660,6 +700,59 @@ static func tool_verbose_tooltip(registry: RefCounted, spec: Dictionary) -> Stri
 		lines.append(line)
 
 	return "\n".join(lines)
+
+
+## Tier one for an upgrade: what it researches and what it costs, in one line.
+static func upgrade_tooltip(spec: Dictionary) -> String:
+	return "Research %s — %s, %s" % [piece_title(spec), _cost_phrase(spec),
+		_seconds(float(spec.get("build_time", 0)))]
+
+
+## Tier two for an upgrade: the one-liner, its description, and what it modifies.
+static func upgrade_verbose_tooltip(registry: RefCounted, spec: Dictionary) -> String:
+	var lines: Array = [upgrade_tooltip(spec)]
+	var description: String = str(spec.get("description", "")).strip_edges()
+	if not description.is_empty():
+		lines.append(description)
+	var requires: Array = _titles_of(registry, spec.get("requires", []))
+	if not requires.is_empty():
+		lines.append("Requires: %s" % ", ".join(requires))
+	for entry: Variant in spec.get("modifies", []):
+		if not (entry is Dictionary) or not (entry as Dictionary).has("range_metres"):
+			continue
+		var piece: Dictionary = registry.pieces.get(str(entry.get("piece", "")), {})
+		var ability: Dictionary = registry.abilities.get(str(entry.get("ability", "")), {})
+		lines.append("%s's %s reach becomes %s" % [
+			piece_title(piece) if not piece.is_empty() else str(entry.get("piece", "")),
+			piece_title(ability) if not ability.is_empty() else str(entry.get("ability", "")),
+			_number(float(entry["range_metres"])),
+		])
+	lines.append("Researched once, for every unit it affects; kept if the building is lost")
+	return "\n".join(lines)
+
+
+## `{id: {"title", "modifies": [{"piece", "ability", "range"}]}}` for every upgrade doc — what
+## UpgradeCatalog reads. A `modifies.range` names a library shape in the doc and arrives here as
+## that shape's radius, so the runtime reads a number.
+static func upgrades_json(registry: RefCounted) -> String:
+	var ids: Array = registry.upgrades.keys()
+	ids.sort()
+	var table: Dictionary = {}
+	for id in ids:
+		var spec: Dictionary = registry.upgrades[id]
+		var modifies: Array = []
+		for entry: Variant in spec.get("modifies", []):
+			if not (entry is Dictionary):
+				continue
+			var m: Dictionary = {
+				"piece": str(entry.get("piece", "")),
+				"ability": str(entry.get("ability", "")),
+			}
+			if (entry as Dictionary).has("range_metres"):
+				m["range"] = float(entry["range_metres"])
+			modifies.append(m)
+		table[id] = {"title": piece_title(spec), "modifies": modifies}
+	return _json_header("upgrade definitions") + JSON.stringify(table, "\t") + "\n"
 
 
 ## "500 energy", "600 energy · 2 dominion", or "free" — every resource the doc charges.

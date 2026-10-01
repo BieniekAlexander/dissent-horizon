@@ -3,7 +3,7 @@ kind: Entity
 title: Hangar
 scene: res://scenes/entities/structures/an/an_airField.tscn
 build:
-  cost: {energy: 800}
+  cost: {energy: 700}
   time: 25
   requires: [an_infrastructure]
 defense:

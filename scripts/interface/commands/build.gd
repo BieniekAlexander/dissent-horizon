@@ -270,7 +270,8 @@ static func _placement_keeps_navmesh_access(
 	if message.map == null or message.map.terrain_grid == null:
 		return true
 	var footprint: Array = message.map.footprint_cells(message.xz_position, dimensions)
-	var needs_access: bool = preview != null and preview.get_node_or_null("Production") != null
+	# A walkable side is for somewhere a trained unit can appear; research spawns nothing.
+	var needs_access: bool = Production.node_trains_units(preview)
 	return NavPlacement.accepts(message.map.terrain_grid, footprint, needs_access)
 #endregion
 

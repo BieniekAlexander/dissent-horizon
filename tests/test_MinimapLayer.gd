@@ -81,8 +81,8 @@ func test_nothing_paints_outside_the_play_area() -> void:
 
 
 func test_pond_shade_follows_richness() -> void:
-	var poor: Color = MinimapLayer.pond_color(30 * 50, 30)
-	var rich: Color = MinimapLayer.pond_color(30 * 100, 30)
+	var poor: Color = MinimapLayer.pond_color(roundi(30 * MinimapLayer.POOR_ENERGY_PER_CELL), 30)
+	var rich: Color = MinimapLayer.pond_color(roundi(30 * MinimapLayer.RICH_ENERGY_PER_CELL), 30)
 	assert_true(poor.is_equal_approx(MinimapLayer.POND_POOR))
 	assert_true(rich.is_equal_approx(MinimapLayer.POND_RICH))
 	assert_eq(MinimapLayer.pond_color(0, 30), MinimapLayer.PLAIN_WATER)

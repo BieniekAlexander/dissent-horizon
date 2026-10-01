@@ -116,6 +116,32 @@ func is_free() -> bool:
 func can_produce(a_type: StringName) -> bool:
 	return producible_types.has(a_type)
 
+## Whether anything this producer makes is a UNIT, as opposed to only researching upgrades.
+## Ask this, not `production != null`, wherever the question is "does this train units": the
+## rally point, the idle-producer hotkey, the bot's throughput buildings and a placement's need
+## for a walkable side. A research-only structure (the Operations Center) has a Production
+## component only because research runs as a job in the same queue.
+##
+## Only a RESEARCH-ONLY list says no. An empty one still reads as a producer, as every
+## Production did before upgrades existed: a producer whose trainees are not authored yet.
+func trains_units() -> bool:
+	return producible_types.is_empty() \
+		or producible_types.any(func(t: StringName) -> bool: return not UpgradeCatalog.is_upgrade(t))
+
+
+## trains_units for any node that may carry a Production child: a live piece or an
+## out-of-tree preview, whose @onready never resolved.
+static func node_trains_units(a_node: Node) -> bool:
+	var production: Production = a_node.get_node_or_null("Production") as Production \
+		if a_node != null else null
+	return production != null and production.trains_units()
+
+
+## Whether the job running here is `a_type`. Read by Commander.is_research_taken, so an upgrade
+## already being researched cannot be ordered again.
+func is_producing(a_type: StringName) -> bool:
+	return not training_queue.is_empty() and training_queue[0][JOB_TYPE] == a_type
+
 ## Number of units queued (the first is actively training; the rest wait).
 func job_count() -> int:
 	return training_queue.size()
@@ -202,6 +228,10 @@ func tick() -> bool:
 	training_queue[0][0] -= 1
 	if training_queue[0][0] <= 0:
 		var spec: Variant = training_queue.pop_front()
+		if UpgradeCatalog.is_upgrade(spec[JOB_TYPE]):
+			_complete_research(StringName(str(spec[JOB_TYPE])),
+				spec[JOB_TRANSACTION] as PurchaseTransaction)
+			return true
 		_spawn_unit(
 			spec[JOB_SCENE],
 			spec[JOB_COMMANDS],
@@ -292,6 +322,17 @@ func _spawn_unit(
 	unit.update_commands(chain if not chain.is_empty() else null)
 	if a_transaction != null:
 		a_transaction.complete(unit)
+
+
+## A finished RESEARCH job: nothing appears, the commander simply owns the upgrade. The
+## transaction completes with no product, which is what its `fulfilled` signal allows.
+## Why: gdd/systems/macroeconomics/upgrades.md.
+func _complete_research(a_id: StringName, a_transaction: PurchaseTransaction) -> void:
+	var entity: Entity = get_parent() as Entity
+	if entity != null and entity.commander != null:
+		entity.commander.complete_upgrade(a_id)
+	if a_transaction != null:
+		a_transaction.complete(null)
 
 
 ## Park `unit` on one of this structure's free docking pads, returning true when it did.

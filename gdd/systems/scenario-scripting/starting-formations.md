@@ -182,4 +182,5 @@ Decided 2026-09-28.
 
 `scenes/factions/formations/`, named by shape and size and shared across factions:
 `single`, `pair`, `wedge_3`, `wedge_4`. A wedge puts the faction's FIRST starting unit at the
-point, which is the leader in every current roster (the Warlord, the Stock Truck).
+point, which is the leader where a roster has one (the Warlord). The Colonial roster is three
+Servants, so its point is just the first of them.

@@ -4,7 +4,7 @@ title: Barracks
 scene: res://scenes/entities/structures/cl/cl_barracks.tscn
 build:
   cost:
-    energy: 500
+    energy: 300
   time: 10
   requires:
     - cl_infrastructure

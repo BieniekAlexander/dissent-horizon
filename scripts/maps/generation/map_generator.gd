@@ -213,7 +213,9 @@ func _pond_plans() -> Array[FeaturePlan]:
 
 
 func _energy_total() -> float:
-	return _params.energy_value_per_alliance * _params.alliance_count
+	# Per PLAYER: a team game gives every player as much as a duel. Placement still balances
+	# access per alliance, whose share is then its members' sum.
+	return _params.energy_value_per_player * _params.start_count()
 
 
 ## Site clusters for the energy the ponds left, largest first.
@@ -270,18 +272,45 @@ static func _stochastic_round(rng: RandomNumberGenerator, value: float) -> int:
 func _pond_plan() -> FeaturePlan:
 	var plan := FeaturePlan.new()
 	plan.kind = MapFeature.Kind.POND
-	plan.pond_cells = roundi(GenerationRandom.skew_normal(_rng,
-		_params.pond_cells_location, _params.pond_cells_scale, _params.pond_cells_skew,
-		_params.pond_cells_min, _params.pond_cells_max))
-	var size_t: float = inverse_lerp(
-		float(_params.pond_cells_min), float(_params.pond_cells_max), float(plan.pond_cells))
-	var weights := PackedFloat32Array()
-	for k: int in _params.pond_richness_weights.size():
-		var fade: float = exp(-_params.pond_richness_size_decay * k * size_t)
-		weights.append(_params.pond_richness_weights[k] * fade)
-	plan.pond_richness = _params.pond_richness_factors[GenerationRandom.weighted_index(_rng, weights)]
+	# CHARGE FIRST: how long the pond lasts is the design target (3 to 8 minutes for one
+	# extractor). Then a richness category that can hold that charge within its own size bounds,
+	# and the size follows as charge over richness, so a rich pond is compact.
+	var charge: float = GenerationRandom.skew_normal(_rng,
+		_params.pond_charge_location, _params.pond_charge_scale, _params.pond_charge_skew,
+		_params.pond_charge_min, _params.pond_charge_max)
+	var category: int = _pond_category(charge)
+	plan.pond_richness = _params.pond_richness_factors[category]
+	plan.pond_cells = clampi(roundi(charge / plan.pond_richness),
+		maxi(_params.pond_richness_cells_min[category], _params.pond_cells_min),
+		mini(_params.pond_richness_cells_max[category], _params.pond_cells_max))
 	plan.value = _params.pond_value(plan.pond_cells * plan.pond_richness)
 	return plan
+
+
+## A richness category for a pond of `a_charge`, drawn by weight among the categories whose size
+## bounds can hold it. Falls back to the nearest fit when none can, so a parameter mistake bends a
+## pond's charge rather than failing generation.
+func _pond_category(a_charge: float) -> int:
+	var weights := PackedFloat32Array()
+	var any_fits: bool = false
+	for k: int in _params.pond_richness_factors.size():
+		var cells: float = a_charge / _params.pond_richness_factors[k]
+		var fits: bool = cells >= _params.pond_richness_cells_min[k] - 0.5 \
+			and cells <= _params.pond_richness_cells_max[k] + 0.5
+		weights.append(_params.pond_richness_weights[k] if fits else 0.0)
+		any_fits = any_fits or fits
+	if any_fits:
+		return GenerationRandom.weighted_index(_rng, weights)
+	var nearest: int = 0
+	var nearest_gap: float = INF
+	for k: int in _params.pond_richness_factors.size():
+		var cells: float = a_charge / _params.pond_richness_factors[k]
+		var gap: float = maxf(_params.pond_richness_cells_min[k] - cells,
+			cells - _params.pond_richness_cells_max[k])
+		if gap < nearest_gap:
+			nearest_gap = gap
+			nearest = k
+	return nearest
 
 
 func _shelter_plans() -> Array[FeaturePlan]:

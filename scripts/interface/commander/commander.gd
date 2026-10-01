@@ -343,6 +343,53 @@ static func _load_technology() -> Dictionary:
 	return out
 
 
+#region Upgrades
+## Emitted once when an upgrade finishes researching and becomes owned.
+signal upgrade_researched(a_id: StringName)
+
+## The upgrades this commander has finished researching, as a set (id -> true). Commander-wide
+## and permanent: losing the structure that researched one does not take it back
+## (gdd/systems/macroeconomics/upgrades.md).
+var _owned_upgrades: Dictionary = {}
+
+
+func has_upgrade(a_id: StringName) -> bool:
+	return _owned_upgrades.has(a_id)
+
+
+func owned_upgrades() -> Array:
+	return _owned_upgrades.keys()
+
+
+## Mark `a_id` researched. The single write point: Production calls it when a research job
+## finishes, and scenario setup or tests may call it directly. Idempotent.
+func complete_upgrade(a_id: StringName) -> void:
+	if _owned_upgrades.has(a_id):
+		return
+	_owned_upgrades[a_id] = true
+	upgrade_researched.emit(a_id)
+	resources_changed.emit()
+
+
+## True when `a_type` is an upgrade this commander may not buy again: already owned, queued in
+## the production queue, or running on one of its producers. An upgrade is bought once, so a
+## second order would buy nothing — it is refused (ALREADY_RESEARCHED) rather than queued.
+## False for anything that is not an upgrade.
+func is_research_taken(a_type: Variant) -> bool:
+	if not UpgradeCatalog.is_upgrade(a_type):
+		return false
+	var id: StringName = StringName(str(a_type))
+	if has_upgrade(id):
+		return true
+	if production_queue != null and production_queue.has_pending_train(id):
+		return true
+	for commandable: Commandable in _owned_commandables():
+		if commandable.production != null and commandable.production.is_producing(id):
+			return true
+	return false
+#endregion
+
+
 ## True iff this commander owns at least one FINISHED (is_built) structure of the
 ## given piece id. Single source of truth for "is this structure prereq met?",
 ## shared by proc_technology and ConditionStructureBuilt.
@@ -357,6 +404,8 @@ func get_unmet_need_for(a_tool: Tool) -> TechnologySpec.UnmetNeed:
 	var spec: TechnologySpec = technology_mapping.get(a_tool.type)
 	if spec == null:
 		return TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+	if is_research_taken(a_tool.type):
+		return TechnologySpec.UnmetNeed.ALREADY_RESEARCHED
 	if spec.unmet_need != TechnologySpec.UnmetNeed.NONE:
 		return spec.unmet_need
 	var priced: TechnologySpec = technology_mapping.get(a_tool.price_id(), spec)
@@ -367,6 +416,8 @@ func get_unmet_need(a_type: Variant) -> TechnologySpec.UnmetNeed:
 	var technology_spec: TechnologySpec = technology_mapping.get(a_type)
 	if technology_spec == null:
 		return TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+	if is_research_taken(a_type):
+		return TechnologySpec.UnmetNeed.ALREADY_RESEARCHED
 	return technology_spec.get_unmet_need(self)
 
 func has_resources_for(a_type: Variant) -> bool:

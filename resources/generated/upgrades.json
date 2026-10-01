@@ -1,0 +1,12 @@
+{
+	"advanced_targetting": {
+		"modifies": [
+			{
+				"ability": "spot",
+				"piece": "cl_bioLight_antiLight",
+				"range": 24.0
+			}
+		],
+		"title": "Advanced Targetting"
+	}
+}

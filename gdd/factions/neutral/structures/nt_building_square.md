@@ -4,7 +4,7 @@ title: building
 scene: res://scenes/entities/structures/nt/nt_building_square.tscn
 family: neutral_building
 build:
-  cost: {energy: 800}
+  cost: {energy: 500}
   time: 25
 defense:
   hp: 1000

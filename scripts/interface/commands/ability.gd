@@ -32,7 +32,7 @@ extends MoveCommand
 static func is_in_range(actor: Commandable, message: CommandMessage) -> bool:
 	if actor == null or message == null:
 		return false
-	var reach: float = AbilityCatalog.range_of(_ability_of(message))
+	var reach: float = AbilityCatalog.range_for(_ability_of(message), actor)
 	return (actor.xz_position - message.xz_position).length_squared() < reach * reach
 
 

@@ -4,7 +4,7 @@ title: Citadel
 scene: res://scenes/entities/structures/cl/cl_commandCenter.tscn
 build:
   cost:
-    energy: 2000
+    energy: 1500
   time: 30
   requires: []
 defense:

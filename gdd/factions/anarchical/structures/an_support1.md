@@ -3,7 +3,7 @@ kind: Entity
 title: Hideout
 scene: res://scenes/entities/structures/an/an_support1.tscn
 build:
-  cost: {energy: 1000}
+  cost: {energy: 600}
   time: 30
   requires: [an_barracks]
 defense:

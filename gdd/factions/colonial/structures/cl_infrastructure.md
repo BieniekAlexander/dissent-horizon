@@ -7,7 +7,7 @@ flavor:
   verbose: Supplies infrastructure, and banks dominion for every prisoner serving its sentence in it
 build:
   cost:
-    energy: 1000
+    energy: 600
   time: 20
 defense:
   hp: 750

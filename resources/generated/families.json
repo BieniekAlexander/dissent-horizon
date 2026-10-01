@@ -10,7 +10,7 @@
 	"templates": {
 		"nt_building_large": {
 			"build_time_ticks": 1050,
-			"energy_cost": 1200,
+			"energy_cost": 750,
 			"family": "neutral_building",
 			"footprint": [
 				8,
@@ -23,7 +23,7 @@
 		},
 		"nt_building_long": {
 			"build_time_ticks": 750,
-			"energy_cost": 800,
+			"energy_cost": 500,
 			"family": "neutral_building",
 			"footprint": [
 				3,
@@ -36,7 +36,7 @@
 		},
 		"nt_building_shack": {
 			"build_time_ticks": 600,
-			"energy_cost": 500,
+			"energy_cost": 300,
 			"family": "neutral_building",
 			"footprint": [
 				2,
@@ -49,7 +49,7 @@
 		},
 		"nt_building_square": {
 			"build_time_ticks": 750,
-			"energy_cost": 800,
+			"energy_cost": 500,
 			"family": "neutral_building",
 			"footprint": [
 				4,

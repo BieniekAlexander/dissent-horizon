@@ -17,6 +17,8 @@ func _params() -> MapGenerationParams:
 	params.last_pass = MapGenerationParams.Pass.TERRAIN
 	params.play_size_min = 80
 	params.play_size_max = 90
+	# A small map keeps these tests fast, so the energy budget is scaled to its area.
+	params.energy_value_per_player = 13000.0
 	params.building_pool = [MapPiece.of(&"building", Vector2i(4, 4))]
 	params.cut_fraction = 0.4
 	return params

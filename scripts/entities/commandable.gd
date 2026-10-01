@@ -352,7 +352,7 @@ func _defer_unshootable_orders() -> void:
 ## any commandable — structure or mobile unit — that can hold occupants in a
 ## Garrison (e.g. a transport).
 func can_rally() -> bool:
-	return production != null or garrison != null
+	return (production != null and production.trains_units()) or garrison != null
 
 ## PRE-ISSUED command queue for a stationary can_rally() commandable (movement == null):
 ## the orders every unit it produces or releases inherits, in order, as though the player

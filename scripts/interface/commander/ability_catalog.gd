@@ -89,6 +89,19 @@ static func range_of(id: StringName) -> float:
 	return definition(id).range_metres
 
 
+## range_of as `a_caster` reaches: the authored reach, raised by any upgrade the caster's
+## commander owns that modifies this piece's use of this ability (UpgradeCatalog.range_for).
+## Ask this rather than range_of wherever a caster is known, so an upgrade reaches every
+## reader of the range at once.
+static func range_for(id: StringName, a_caster: Entity) -> float:
+	var base: float = range_of(id)
+	# An out-of-tree piece (a build preview, a test fixture) never resolved its @onready
+	# Ownership, so it has no commander to own an upgrade.
+	if a_caster == null or not is_instance_valid(a_caster) or a_caster.ownership == null:
+		return base
+	return UpgradeCatalog.range_for(a_caster.commander, a_caster.id, id, base)
+
+
 ## HOW MANY SELECTED CASTERS FIRE THIS ABILITY when no modifier is held — `cast_by:` on the
 ## ability's doc, defaulting to SINGLE.
 ##
