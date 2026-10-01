@@ -502,9 +502,9 @@ func test_an_uncharged_body_yields_nothing() -> void:
 ## has to be measured against the body's FULL charge rather than against whatever is left.
 func test_charge_fraction_tracks_the_draw_down() -> void:
 	var map: Map = _make_map()
-	var water: WaterBody = _add_water(map, 1000)
+	var water: WaterBody = _add_water(map, 200 * WaterBody.POND_RATE_MULTIPLIER)
 	assert_eq(water.charge_fraction(), 1.0, "a full pond is fully tinted")
-	water.extract(500 / WaterBody.POND_RATE_MULTIPLIER)  # draws half of 1000
+	water.extract(100)  # draws 100 x POND_RATE_MULTIPLIER: half the charge
 	assert_almost_eq(water.charge_fraction(), 0.5, 0.001, "half drained is half tinted")
 #endregion
 

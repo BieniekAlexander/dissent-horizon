@@ -115,6 +115,10 @@ Decided with Alex, 2026-10-01:
 
 ## The applied economy (2026-10-01)
 
+**Superseded the same day** by [resource-allotment](resource-allotment.md) §Second pass: sites 5/s,
+ponds 3×, charges 2700–7200 and a per-player budget. The table below is the first pass, kept for
+its reasoning.
+
 **Applied, Alex, 2026-10-01; every number is a starting point for playtesting.** The targets
 above turned into these values:
 

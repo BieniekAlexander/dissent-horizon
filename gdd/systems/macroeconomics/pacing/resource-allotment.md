@@ -118,7 +118,7 @@ is the current fault.
 
 ## A proposal
 
-**TODO, not applied.** Numbers are starting points for playtesting:
+**Superseded by §Second pass below**, which was applied. Kept for the reasoning:
 
 | Knob | Proposal | Today |
 |---|---|---|
@@ -155,9 +155,10 @@ per player. If not, cheaper structures lower the target instead.
 - **Size and richness are related.** A rich pond may have a capped size, and a pond's size changes
   how hard it is to defend.
 
-**TODO, a proposal, not applied.** The knobs and what follows from them:
+**Applied (Alex, 2026-10-01), as a starting point for playtesting.** The knobs and what follows
+from them:
 
-| Knob | Proposal | Today |
+| Knob | Value | Was |
 |---|---|---|
 | site rate | 5/s (`energy_rate` 25 per 5 s) | 6/s |
 | pond rate | 3× a site, 15/s (`POND_RATE_MULTIPLIER` 3) | 4×, 24/s |
@@ -166,8 +167,11 @@ per player. If not, cheaper structures lower the target instead.
 | generated sites per player | ~5 (plus the two home sites) | ~2.5 |
 | budget | per player: ~25k in ponds (5–6 ponds averaging ~4500) plus the sites | 12000 per alliance |
 
-As generator values, that is `energy_value_per_player` ≈ 32500 with ponds taking about 0.77 of
-it (a site is valued at 5/s × 300 s = 1500).
+As generator values: `value_horizon_seconds` rises from 300 to 480 (the largest pond's drain time;
+at 300 s a pond's value was capped at 4500 and large ponds were undervalued), so a site is valued
+at 5/s × 480 s = 2400. Then `energy_value_per_player` = 37000 with ponds taking 0.676 of it: 25000
+in ponds and five sites. The authored pond charge (`WaterBody.NOMINAL_ENERGY`) is 4500, a mean
+generated pond.
 
 **Richness by category,** each with its own size bounds, which is what caps a rich pond:
 
@@ -190,9 +194,7 @@ What follows:
   proposed in [structure-costs](structure-costs.md), the spend in §What a player spends in a match
   falls to about 46k, so the economy is in range. Self-play is what will say.
 
-**What it needs from map generation:**
-- a per-player budget (`× start_count` rather than `× alliance_count`);
-- the charge drawn first, then cells from richness, with per-category size bounds (replacing the
-  independent size and richness draws);
-- room for five or six ponds and about five sites per player on a 1v1 map, which may need
-  `play_size` or `feature_spacing` revisited.
+**What changed in map generation:** the budget is per player (`× start count`); the charge is
+drawn first and the size follows from richness with per-category bounds, replacing the
+independent size and richness draws. See
+[map-generation](../../terrain-and-navigation/map-generation.md) §Budget and §Pond sizing.

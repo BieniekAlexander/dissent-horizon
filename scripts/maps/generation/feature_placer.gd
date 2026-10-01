@@ -185,7 +185,9 @@ func _propose_pond(a_plan: FeaturePlan) -> MapFeature:
 	feature.pond_cells = cells
 	feature.pond_seed_cell = seed_cell
 	feature.pond_richness = a_plan.pond_richness
-	feature.pond_charge = cells.size() * a_plan.pond_richness
+	# Capped: filling the pan's holes can add a few cells past the planned size, and the charge
+	# bounds are a design promise (map-generation.md §Pond sizing and charge).
+	feature.pond_charge = mini(cells.size() * a_plan.pond_richness, _params.pond_charge_max)
 	feature.value = _params.pond_value(feature.pond_charge)
 	var floor_height: float = _params.ground_height - POND_SINK
 	feature.pond_level = floor_height + POND_SINK * POND_LEVEL_FRACTION

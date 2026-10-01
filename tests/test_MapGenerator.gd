@@ -20,6 +20,9 @@ func _params() -> MapGenerationParams:
 	params.last_pass = MapGenerationParams.Pass.TERRAIN
 	params.play_size_min = 75
 	params.play_size_max = 90
+	# A small map keeps these tests fast, so the energy budget is scaled to its area (about a
+	# third of a shipped 1v1 map's). The tests check the mechanics, not the shipped amounts.
+	params.energy_value_per_player = 13000.0
 	params.building_pool = [
 		MapPiece.of(&"small_building", Vector2i(2, 2), 3.0),
 		MapPiece.of(&"large_building", Vector2i(3, 3), 1.0),
@@ -352,11 +355,15 @@ func test_a_pond_rim_is_walkable_but_not_flat() -> void:
 				assert_almost_eq(map.terrain.cell_height_spread(rim), TerrainGrid.MAX_SLOPE_DIFF, 1e-6)
 
 
-func test_pond_charge_is_cells_times_richness() -> void:
+## Cells times richness, capped at the charge bound: filling the pan's holes can grow a pond a
+## few cells past its planned size, and the bound is a design promise.
+func test_pond_charge_is_cells_times_richness_within_the_bound() -> void:
 	var params: MapGenerationParams = _params()
 	for generation_seed: int in _SEEDS:
 		for pond: MapFeature in _generate(generation_seed).features_of(MapFeature.Kind.POND):
 			assert_has(params.pond_richness_factors, pond.pond_richness)
-			assert_eq(pond.pond_charge, pond.pond_cells.size() * pond.pond_richness)
+			assert_eq(pond.pond_charge,
+				mini(pond.pond_cells.size() * pond.pond_richness, params.pond_charge_max))
+			assert_lte(pond.pond_charge, params.pond_charge_max)
 			assert_gte(pond.pond_cells.size(), params.pond_cells_min)
 #endregion

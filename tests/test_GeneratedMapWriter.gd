@@ -40,6 +40,8 @@ func _params() -> MapGenerationParams:
 	params.last_pass = MapGenerationParams.Pass.RESOURCES
 	params.play_size_min = 70
 	params.play_size_max = 80
+	# Scaled to the small map's area, or a shipped 1v1 budget crowds it out of balance.
+	params.energy_value_per_player = 12000.0
 	return params
 
 

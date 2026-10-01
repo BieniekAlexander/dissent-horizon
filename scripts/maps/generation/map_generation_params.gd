@@ -45,15 +45,15 @@ const PROPERTY_GROUPS: Array = [
 		name = "Value",
 		properties = [
 			"site_energy_per_second", "pond_rate_multiplier", "value_horizon_seconds",
-			"energy_value_per_alliance", "pond_value_fraction",
+			"energy_value_per_player", "pond_value_fraction",
 		],
 	},
 	{
 		name = "Ponds",
 		properties = [
-			"pond_cells_min", "pond_cells_max", "pond_cells_location", "pond_cells_scale",
-			"pond_cells_skew", "pond_richness_factors", "pond_richness_weights",
-			"pond_richness_size_decay",
+			"pond_charge_min", "pond_charge_max", "pond_charge_location", "pond_charge_scale",
+			"pond_charge_skew", "pond_cells_min", "pond_cells_max", "pond_richness_factors",
+			"pond_richness_weights", "pond_richness_cells_min", "pond_richness_cells_max",
 		],
 	},
 	{
@@ -119,17 +119,20 @@ const DESCRIPTIONS: Dictionary = {
 	"start_attempts": "How many start layouts to try before generation fails.",
 	"site_energy_per_second": "An extraction site's income. Read from the piece, not edited here.",
 	"pond_rate_multiplier": "A pond's rate as a multiple of a site's. Read from the game, not edited here.",
-	"value_horizon_seconds": "The time window a pond's value is compared with a site's over.",
-	"energy_value_per_alliance": "Total energy value the map places per alliance.",
+	"value_horizon_seconds": "The time window a pond's value is compared with a site's over. Match it to the largest pond's drain time, or large ponds are undervalued.",
+	"energy_value_per_player": "Total energy value the map places per player, so a team game gives every player as much as a duel.",
 	"pond_value_fraction": "Share of the energy value placed as ponds rather than sites.",
-	"pond_cells_min": "Smallest pond, in cells.",
-	"pond_cells_max": "Largest pond, in cells.",
-	"pond_cells_location": "Centre of the pond-size draw, in cells.",
-	"pond_cells_scale": "Spread of the pond-size draw, in cells.",
-	"pond_cells_skew": "Skew of the pond-size draw. Positive makes small ponds more common.",
-	"pond_richness_factors": "Charge per cell for each pond richness category.",
-	"pond_richness_weights": "How often each richness category is drawn. Richer is rarer.",
-	"pond_richness_size_decay": "How quickly the rich categories become rarer as ponds get larger.",
+	"pond_charge_min": "Smallest pond's energy: about 3 minutes for one extractor.",
+	"pond_charge_max": "Largest pond's energy: about 8 minutes for one extractor.",
+	"pond_charge_location": "Centre of the pond-charge draw, in energy.",
+	"pond_charge_scale": "Spread of the pond-charge draw, in energy.",
+	"pond_charge_skew": "Skew of the pond-charge draw. Positive makes small ponds more common.",
+	"pond_cells_min": "Smallest pond any category may make, in cells.",
+	"pond_cells_max": "Largest pond any category may make, in cells.",
+	"pond_richness_factors": "Charge per cell for each pond richness category. A pond's size is its charge over its richness, so rich ponds are compact.",
+	"pond_richness_weights": "How often each richness category is drawn, among those that can hold the charge.",
+	"pond_richness_cells_min": "Smallest pond of each richness category, in cells.",
+	"pond_richness_cells_max": "Largest pond of each richness category, in cells. Caps how large a rich pond grows.",
 	"shelters_per_alliance_min": "Fewest shelters per alliance.",
 	"shelters_per_alliance_extra": "Random extra shelters per alliance, on top of the minimum.",
 	"building_occupancy": "Share of the play area covered by buildings. Keep it low: too high and placement runs out of room.",
@@ -192,12 +195,12 @@ var last_pass: Pass = Pass.ELEVATION
 #region Extent
 ## Default play-size bounds, in diamonds per axis, by start count. A heuristic starting point:
 ## TODO: only two players have a range, and it is untuned (map-generation.md §Parameters).
-const PLAY_SIZE_RANGE_BY_START_COUNT: Dictionary = {2: Vector2i(75, 120)}
+const PLAY_SIZE_RANGE_BY_START_COUNT: Dictionary = {2: Vector2i(120, 150)}
 
 ## Each axis of the play rectangle is drawn uniformly in [min, max] diamonds; the corner grid
 ## is derived from the result (TerrainData). Equal bounds pin the size.
-var play_size_min: int = 75
-var play_size_max: int = 120
+var play_size_min: int = 120
+var play_size_max: int = 150
 ## Height of the flat ground: high enough that a chasm sunk chasm_depth into it stays inside
 ## the brush's height range (0 and up).
 var ground_height: float = 4.0
@@ -231,33 +234,39 @@ var start_attempts: int = 64
 #region Value
 ## A site's income. The shell sets this from nt_extractor, so the generator never hardcodes a
 ## piece stat.
-var site_energy_per_second: float = 6.0
+var site_energy_per_second: float = 5.0
 ## A pond's rate as a multiple of a site's (WaterBody.POND_RATE_MULTIPLIER, set by the shell).
-var pond_rate_multiplier: float = 4.0
-## The window a pond is priced against a site over (map-generation.md §Energy value).
-var value_horizon_seconds: float = 300.0
-## Ponds take 7200 of it and sites the rest. Sites are priced by rate, ponds by charge, so a
-## site-rate change rescales only the site share (pacing/income-and-cost.md).
-var energy_value_per_alliance: float = 12000.0
+var pond_rate_multiplier: float = 3.0
+## The window a pond is priced against a site over (map-generation.md §Energy value). It is the
+## largest pond's drain time, so every pond is valued at its full charge.
+var value_horizon_seconds: float = 480.0
+## Per PLAYER, so a team game gives each player as much as a duel; placement still balances
+## access per alliance. Ponds take 25000 of it (5-6 ponds) and sites the rest: about five
+## generated sites at 5/s x 480 s = 2400 each, beside the two home sites
+## (pacing/resource-allotment.md §Second pass).
+var energy_value_per_player: float = 37000.0
 ## Share of the energy budget spent on ponds.
-var pond_value_fraction: float = 0.6
+var pond_value_fraction: float = 0.676
 #endregion
 
 #region Ponds
+## A pond's energy is drawn first, from a right-skewed normal over [min, max]: 2700-7200 is 3 to 8
+## minutes for one extractor at 15/s (pacing/resource-allotment.md §Second pass).
+var pond_charge_min: int = 2700
+var pond_charge_max: int = 7200
+var pond_charge_location: float = 3500.0
+var pond_charge_scale: float = 2000.0
+var pond_charge_skew: float = 4.0
+## Bounds on any pond's size, whatever its category: the union of the per-category bounds.
 var pond_cells_min: int = 30
-var pond_cells_max: int = 60
-## Skew-normal shape of the pond size draw: right-skewed, so small ponds are common.
-var pond_cells_location: float = 32.0
-var pond_cells_scale: float = 18.0
-var pond_cells_skew: float = 4.0
-## Charge = cells x factor. With 30-60 cells that is 1500-3900: a pond is worth about a medium
-## army, and the smallest still nets 1000 after the extractor (pacing/income-and-cost.md).
-var pond_richness_factors: PackedInt32Array = PackedInt32Array([50, 55, 60, 65])
-## Base draw weight per richness category; richer is rarer.
-var pond_richness_weights: PackedFloat32Array = PackedFloat32Array([0.4, 0.3, 0.2, 0.1])
-## How much faster rich categories fade as a pond grows: category k is weighted by
-## exp(-decay * k * t), t the pond's size in [0, 1] between the bounds.
-var pond_richness_size_decay: float = 1.0
+var pond_cells_max: int = 80
+## Richness categories (poor, standard, rich): charge per cell, base draw weight, and size bounds.
+## A pond's cells are its charge over its richness, so the category is drawn only among those
+## whose bounds can hold the charge, and a rich pond is compact: easy to hold, quick to lose.
+var pond_richness_factors: PackedInt32Array = PackedInt32Array([60, 90, 120])
+var pond_richness_weights: PackedFloat32Array = PackedFloat32Array([0.35, 0.45, 0.2])
+var pond_richness_cells_min: PackedInt32Array = PackedInt32Array([45, 30, 30])
+var pond_richness_cells_max: PackedInt32Array = PackedInt32Array([80, 70, 60])
 #endregion
 
 #region Shelters

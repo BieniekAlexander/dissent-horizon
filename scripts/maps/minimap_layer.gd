@@ -29,8 +29,8 @@ const FIXTURE_COLORS: Dictionary = {
 }
 ## Energy per cell at the poorest and richest pond shades — the ends of the map generator's
 ## richness factors, so a generated pond's shade is its richness category.
-const POOR_ENERGY_PER_CELL: float = 50.0
-const RICH_ENERGY_PER_CELL: float = 65.0
+const POOR_ENERGY_PER_CELL: float = 60.0
+const RICH_ENERGY_PER_CELL: float = 120.0
 ## How strongly a start area tints the cells under it.
 const START_TINT: float = 0.35
 ## How much an explored-but-unseen cell is darkened, 0..1.

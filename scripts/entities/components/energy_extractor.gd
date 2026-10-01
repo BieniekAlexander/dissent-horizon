@@ -6,9 +6,10 @@ extends Node
 ## that sits on an energy-bearing cell.
 
 #region Properties
-## Energy paid per cycle: 30 per 5 s is 6/s on an extraction site, low on purpose so that
-## working lithium ponds is necessary early (gdd/systems/macroeconomics/pacing/income-and-cost.md).
-@export var energy_rate: int = 30
+## Energy paid per cycle: 25 per 5 s is 5/s on an extraction site, low on purpose: a site pays
+## back slowly and working lithium ponds is necessary early
+## (gdd/systems/macroeconomics/pacing/resource-allotment.md §Second pass).
+@export var energy_rate: int = 25
 ## Seconds between payouts. A const as well as the tick count below, because editor tools read
 ## it without running this script's static initialiser.
 const CYCLE_SECONDS: float = 5.0

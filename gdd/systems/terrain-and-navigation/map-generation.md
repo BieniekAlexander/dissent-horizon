@@ -192,11 +192,13 @@ generator so open ground is generally ample, not a reserved box.
 of the others'; only buildings' PLACEMENT depends on what came before (§Collocation).
 
 **Budget.** For each currency, the generator places features until the total value reaches
-`k × value_per_alliance`, `k` the alliance count:
+`k × value_per_alliance`, `k` the alliance count (energy is the exception: per player, below):
 
-- **energy** — `value_per_alliance` is a parameter. Ponds are drawn until they reach
-  `pond_value_fraction` of it, and the rest is extraction sites, grouped into site clusters
-  (§Extraction sites).
+- **energy** — the budget is **per player**: `energy_value_per_player × start count`, so a team
+  game gives every player as much as a duel (Alex, 2026-10-01; it was per alliance, which halved
+  each player's share in a 2v2). Placement still balances access per alliance. Ponds are drawn
+  until they reach `pond_value_fraction` of it, and the rest is extraction sites, grouped into
+  site clusters (§Extraction sites).
 - **shelters** — the count is drawn directly: `round(k × (1 + 1.5 × randf()))`, i.e. 1 … 2.5 per
   alliance. See §Shelters for the ones tied to starts.
 - **buildings** — the budget is an **occupancy**: `building_occupancy`, the fraction of the play
@@ -212,13 +214,22 @@ of the others'; only buildings' PLACEMENT depends on what came before (§Colloca
   shelters, start squares and cluster separation have taken theirs, whatever the budget asks.
   Every run finished in under a second.
 
-**Pond sizing and charge.** A pond's size and charge are drawn before it is placed, because the
-charge is its value:
+**Pond sizing and charge.** A pond's charge is drawn first, because how long it lasts is the
+design target (Alex, 2026-10-01: about 3 minutes for a small pond and 8 for a large one, with one
+extractor):
 
-- **size** — a cell count from a right-skewed normal, clamped to `[pond_cells_min, pond_cells_max]`;
-- **richness** — one of `pond_richness_factors` (`[50, 55, 60, 65]`). Richer categories are rarer,
-  and they grow rarer still as the pond gets bigger;
-- **charge** — `cell_count × richness_factor`.
+- **charge** — a right-skewed normal over `[pond_charge_min, pond_charge_max]` (2700 … 7200: 3
+  to 8 minutes at 15/s). Small ponds are common;
+- **richness** — one of `pond_richness_factors` (poor 60, standard 90, rich 120), drawn by
+  `pond_richness_weights` among the categories whose own size bounds
+  (`pond_richness_cells_min` / `_max`: poor 45–80, standard 30–70, rich 30–60) can hold that
+  charge;
+- **size** — `charge / richness`, clamped to the category's bounds. The stored charge is then
+  `cell_count × richness_factor`, capped at `pond_charge_max`: filling the pan's holes at
+  placement can add a few cells past the planned size.
+
+**Richness sets size, and size sets how hard a pond is to hold.** A rich pond is compact, so a few
+pieces cover it; a poor one sprawls. The per-category bounds are what cap a rich pond's size.
 
 The charge is a balance knob of the generator. Hand-authored ponds keep their flat authored charge
 (`WaterBody.NOMINAL_ENERGY`); this rule is for generated ponds only.
@@ -667,22 +678,24 @@ produce a map outside them is a better failure than one that produces a bad map 
 
 | Parameter | Bracket | Why the bracket |
 |---|---|---|
-| `play_size` per axis | drawn per map from a range by start count; 75 … 120 diamonds at 2 starts | the corner grid is square with side `s + t`, so 120 + 120 is a 241² grid. TODO: only the 2-start range exists, and it may be revisited |
+| `play_size` per axis | drawn per map from a range by start count; 120 … 150 diamonds at 2 starts (was 75 … 120; widened 2026-10-01 to hold the per-player economy) | the corner grid is square with side `s + t`, so 150 + 150 is a 301² grid. TODO: only the 2-start range exists, and it may be revisited |
 | `start_count` | 2 … 8 | |
 | `start_min_center` | ≥ 0.25 × the side length | a start near the middle has no rear and meets the enemy too early |
 | `start_angle_jitter` | 0 … 0.5 × the equal-spacing angle | wide on purpose; `start_separation` is what stops two starts crowding |
 | `start_clear_radius_cells` | 6 (L∞; a 12×12 box) | holds the largest starting structure (8×8) while it still spawns on the start; the starting-site row it once also held is gone |
 | `start_edge_margin` | ≥ 10 cells | a base backed onto the void has no rear |
 | `start_separation` | ≥ 0.25 × play diagonal at 2 starts, scaled by `√(2/start_count)` | keeps early aggression a decision rather than a default. 0.35 was unsatisfiable: a ring inside the margin cannot put two starts that far apart |
-| `value_horizon_seconds` | | the window over which a pond is priced against a site |
-| `value_per_alliance` (energy) | | how much energy every alliance can reach; shelters and buildings draw theirs (below) |
+| `value_horizon_seconds` | 480 | the window over which a pond is priced against a site; the largest pond's drain time, so every pond is valued at its charge |
+| `energy_value_per_player` | 37000 | how much energy every player can reach: about 25000 in 5–6 ponds and about five generated sites (2400 each), beside the two home sites |
 | shelter count | `round(k × (1 + 1.5 × randf()))` | 1 … 2.5 per alliance; not a parameter. TODO: may fall short of one per start (§Shelters) |
 | `shelter_start_band_min_cells` / `_max_cells` | PLANNED; untuned | the band every start's own shelter lies in (§Shelters) |
-| `pond_value_fraction` | 0.6 of energy value (`energy_value_per_alliance` 12000) | ponds are finite, so they are the prize; they are also the early engine, because a site pays little on purpose ([pacing/income-and-cost](../macroeconomics/pacing/income-and-cost.md), 2026-10-01). Ponds are priced by charge and sites by rate, so a site-rate change rescales only the site share |
-| `pond_cells_min` / `pond_cells_max` | 30 / 60 | below ~30 a basin has little floor left once the rim is taken |
-| pond size skew, location, scale | | right-skewed: small ponds common, large ones rare |
-| `pond_richness_factors` | `[50, 55, 60, 65]` | charge = cells × factor; 1 500 … 3 900 across the bounds: about a medium army, and the smallest still nets 1 000 after its extractor (decided 2026-10-01) |
-| richness category weights | | richer is rarer, and rarer still in larger ponds |
+| `pond_value_fraction` | 0.676 | ponds are finite, so they are the prize; they are also the early engine, because a site pays little on purpose ([pacing/resource-allotment](../macroeconomics/pacing/resource-allotment.md) §Second pass, 2026-10-01) |
+| `pond_charge_min` / `pond_charge_max` | 2700 / 7200 | 3 to 8 minutes for one extractor at 15/s |
+| pond charge location, scale, skew | 3500, 2000, 4 | right-skewed: small ponds common, large ones rare |
+| `pond_cells_min` / `pond_cells_max` | 30 / 80 | the union of the category bounds; below ~30 a basin has little floor left once the rim is taken |
+| `pond_richness_factors` | `[60, 90, 120]` | poor, standard, rich: charge per cell |
+| `pond_richness_cells_min` / `_max` | `[45, 30, 30]` / `[80, 70, 60]` | each category's size bounds; they cap a rich pond's size |
+| `pond_richness_weights` | `[0.35, 0.45, 0.2]` | drawn among the categories that can hold the charge; rich is rarest |
 | `placement_candidates` | 16 … 64 per feature | the best-candidate budget; bounds the pass's work |
 | `feature_spacing` | ≥ 6 cells | two features closer than this read as one |
 | `favor_tolerance` | | how far an alliance's accessible value may sit from its target |
