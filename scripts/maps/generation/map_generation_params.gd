@@ -231,25 +231,28 @@ var start_attempts: int = 64
 #region Value
 ## A site's income. The shell sets this from nt_extractor, so the generator never hardcodes a
 ## piece stat.
-var site_energy_per_second: float = 20.0
+var site_energy_per_second: float = 6.0
 ## A pond's rate as a multiple of a site's (WaterBody.POND_RATE_MULTIPLIER, set by the shell).
-var pond_rate_multiplier: float = 2.0
+var pond_rate_multiplier: float = 4.0
 ## The window a pond is priced against a site over (map-generation.md §Energy value).
 var value_horizon_seconds: float = 300.0
-var energy_value_per_alliance: float = 24000.0
+## Ponds take 7200 of it and sites the rest. Sites are priced by rate, ponds by charge, so a
+## site-rate change rescales only the site share (pacing/income-and-cost.md).
+var energy_value_per_alliance: float = 12000.0
 ## Share of the energy budget spent on ponds.
-var pond_value_fraction: float = 0.3
+var pond_value_fraction: float = 0.6
 #endregion
 
 #region Ponds
 var pond_cells_min: int = 30
-var pond_cells_max: int = 75
+var pond_cells_max: int = 60
 ## Skew-normal shape of the pond size draw: right-skewed, so small ponds are common.
 var pond_cells_location: float = 32.0
 var pond_cells_scale: float = 18.0
 var pond_cells_skew: float = 4.0
-## Charge = cells x factor.
-var pond_richness_factors: PackedInt32Array = PackedInt32Array([50, 75, 90, 100])
+## Charge = cells x factor. With 30-60 cells that is 1500-3900: a pond is worth about a medium
+## army, and the smallest still nets 1000 after the extractor (pacing/income-and-cost.md).
+var pond_richness_factors: PackedInt32Array = PackedInt32Array([50, 55, 60, 65])
 ## Base draw weight per richness category; richer is rarer.
 var pond_richness_weights: PackedFloat32Array = PackedFloat32Array([0.4, 0.3, 0.2, 0.1])
 ## How much faster rich categories fade as a pond grows: category k is weighted by

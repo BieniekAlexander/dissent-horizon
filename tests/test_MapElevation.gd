@@ -20,7 +20,7 @@ func _params() -> MapGenerationParams:
 	params.site_piece = MapPiece.of(&"site", Vector2i(2, 2))
 	params.shelter_piece = MapPiece.of(&"shelter", Vector2i(3, 3))
 	params.building_pool = [MapPiece.of(&"building", Vector2i(4, 4))]
-	params.site_energy_per_second = 20.0
+	params.site_energy_per_second = 6.0
 	return params
 
 

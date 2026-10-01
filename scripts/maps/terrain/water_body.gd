@@ -20,14 +20,16 @@ extends Node3D
 #region Constants
 ## What a lithium pond yields per extraction cycle, as a multiple of the extractor's own
 ## rate. The pond is the fast-but-finite half of the energy economy (gdd/setting/resources.md
-## §Lithium ponds), so it pays faster than an inexhaustible extraction site does.
-const POND_RATE_MULTIPLIER: int = 2
+## §Lithium ponds), so it pays faster than an inexhaustible extraction site does — four times as
+## fast, so the pond is clearly the better short-term income
+## (gdd/systems/macroeconomics/pacing/income-and-cost.md).
+const POND_RATE_MULTIPLIER: int = 4
 
 ## The energy an authored lithium pond is normally charged with. NOT the property default —
 ## a plain body of water holds none, and a pond is a body someone deliberately filled.
 ## Generated ponds are priced differently (cells × richness) — see
 ## gdd/systems/terrain-and-navigation/map-generation.md.
-const NOMINAL_ENERGY: int = 5000
+const NOMINAL_ENERGY: int = 2500
 
 ## The non-blue surface colours a charged pond picks from — the pinks, ochres and greens of a
 ## real lithium evaporation pond. Picked once when a body is authored and stored on it, so a

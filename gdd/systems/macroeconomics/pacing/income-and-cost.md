@@ -95,10 +95,11 @@ and random maps are allowed to skew it (G13).
 
 Decided with Alex, 2026-10-01:
 
-- **The baseline unit costs 100.** The Recruit, the Anarchical builder and units like them sit
-  at 100 and act as the game's unit of account, the way a villager or worker does at 50
-  elsewhere. They need not fight alike; their value lies partly outside direct combat. Below,
-  `c₀` = 100, and every price reads as a multiple of it.
+- **The baseline unit costs 100.** Light BIO units with ballistic weapons sit at 100 and act as
+  the game's unit of account, the way a villager or worker does at 50 elsewhere; the Recruit is
+  one. Below, `c₀` = 100, and every price reads as a multiple of it. **Builders are not tied to
+  it:** their prices differ by faction on purpose, because the factions are asymmetric, and are
+  to be revisited.
 - **About ten basic units at first contact**, not thirty (G9, G11).
 - **Today's replacement time is too low.**
 - **First contact no earlier than about 60 seconds.** By then a player can field a couple of
@@ -112,44 +113,53 @@ Decided with Alex, 2026-10-01:
   turtling. The gap between the pond rate and the site rate may widen to make ponds the better
   short-term income.
 
-## What the targets imply: a worked proposal
+## The applied economy (2026-10-01)
 
-**TODO: a proposal, not applied.** It turns the targets above into numbers. Every number is a
-starting point for playtesting.
+**Applied, Alex, 2026-10-01; every number is a starting point for playtesting.** The targets
+above turned into these values:
 
-| Quantity | Proposal | Today | Why |
+| Quantity | Value | Was | Why |
 |---|---|---|---|
 | first-contact army | ~10 `c₀` (1000) | — | the decided ten basic units |
 | medium army `A_med` | 20–30 `c₀` (2000–3000) | — | two to three first-contact armies |
-| pond charge `Q` | 15–40 `c₀` (1500–4000) | 1500–7500 | a medium army, with the largest about 1.5 of one |
-| site rate `r_s` | ~6/s | 20/s | two home sites (~12/s) about match one producer training baseline units (100 per 8 s = 12.5/s) |
-| pond rate `r_p` | ~4 `r_s` (~24/s) | 2 `r_s` (40/s) | ponds are clearly the faster short-term income |
+| pond charge `Q` | 1500–3900 (30–60 cells × 50–65) | 1500–7500 | about a medium army; the smallest nets 1000 after its extractor |
+| site rate `r_s` | 6/s (`EnergyExtractor.energy_rate` 30 per 5 s) | 20/s | two home sites (12/s) about match one producer training baseline units (100 per 8 s = 12.5/s) |
+| pond rate `r_p` | 4 `r_s` = 24/s (`WaterBody.POND_RATE_MULTIPLIER` 4) | 2 `r_s` = 40/s | ponds are clearly the faster short-term income |
+| energy per alliance | 12000, 60% ponds | 24000, 30% ponds | the same ponds' worth of energy (7200) and the same number of sites (~2.7), in smaller ponds |
+| authored pond charge | 2500 (`WaterBody.NOMINAL_ENERGY`) | 5000 | a medium army, like a generated one |
 
-What follows from those numbers:
+**A pond's worth is net of its extractor.** The extractor costs 500 (5 `c₀`), so a pond's
+effective value is `Q − 500`: 1000 to 3400. The lower bound is set by that net value, which
+Alex fixed at 1000, so the smallest pond (30 cells × 50) is 1500.
+
+**The map's energy budget mixes two currencies.** Map generation values a site by rate
+(`r_s × value_horizon_seconds`, 1800 now) and a pond by its charge. So cutting the site rate
+rescales only the site share: `energy_value_per_alliance` falls from 24000 to 12000 and
+`pond_value_fraction` rises from 0.3 to 0.6. That keeps 7200 of ponds per alliance and about
+2.7 sites, where scaling the whole budget would have shrunk the ponds as well.
+
+What follows:
 
 - **Replacement time.** A medium army of 2500 takes about 210 s to replace on home income
-  alone, and about 70 s with one pond worked. That is the decided shape: working a pond is what
-  brings replacement into the 60–120 s band, so ponds are necessary rather than optional.
-- **Extractor payback.** On a site, an extractor (5 `c₀`) pays back in about 85 s plus its
-  20 s build, well after first contact, so expanding has a window. On a pond it pays back in
-  about 20 s, but the pond is finite and contested.
-- **Throughput.** Home income runs about one producer; one pond more runs about three. That
+  alone, and about 70 s with one pond worked. Working a pond is what brings replacement into
+  the 60–120 s band, so ponds are necessary rather than optional.
+- **Extractor payback.** On a site, an extractor pays back in about 85 s plus its 20 s build,
+  well after first contact, so expanding has a window. On a pond it pays back in about 20 s,
+  but the pond is finite and contested.
+- **Throughput.** Home income runs about one producer, and one pond more runs about three. That
   matches the opening menu deferred 1.23 asks for: one producer a given, two reasonable, three
   over-invested.
-- **A pond drains** in about 100 s with one extractor at a 2500 charge, so holding it is a
-  fight of its own.
+- **A pond drains** in about 100 s with one extractor at a 2500 charge, so holding it is a fight
+  of its own.
+- **The starting bank (5000) is not a measure of army.** Much of it goes on structures: the
+  infrastructure building, a producer, extractors. What reaches the field is what is left over.
 
-What has to move with it, or the proposal breaks:
+Not changed, and worth a look:
 
-- **Map generation prices sites by rate.** Its value per site is
-  `site_energy_per_second × value_horizon_seconds`, so cutting `r_s` to a third without cutting
-  `energy_value_per_alliance` by the same factor places about three times as many sites.
-  `pond_value_fraction` (0.3 today) should rise too, since ponds become the engine.
-- **The pond bounds are two knobs multiplied.** `Q = cells × richness`, so the upper bound is
-  `pond_cells_max × max(pond_richness_factors)`. Holding that product near 4000 (for example
-  60 cells × 65) caps the largest pond.
-- **The starting bank** (5000) is 50 `c₀`, five first-contact armies. With income cut to a
-  third it weighs relatively more, and may want to shrink with it.
+- **Authored scenarios keep their own pond charges.** `skirmish.tscn` has one at 4275, above the
+  generated range. They are content, so they were left alone.
+- **TODO: build times** that guarantee first contact no earlier than about 60 s are still to be
+  revisited (above).
 
 ## Pitfalls
 

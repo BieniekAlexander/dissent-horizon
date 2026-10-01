@@ -504,7 +504,7 @@ func test_charge_fraction_tracks_the_draw_down() -> void:
 	var map: Map = _make_map()
 	var water: WaterBody = _add_water(map, 1000)
 	assert_eq(water.charge_fraction(), 1.0, "a full pond is fully tinted")
-	water.extract(250)  # 250 * POND_RATE_MULTIPLIER == half of 1000
+	water.extract(500 / WaterBody.POND_RATE_MULTIPLIER)  # draws half of 1000
 	assert_almost_eq(water.charge_fraction(), 0.5, 0.001, "half drained is half tinted")
 #endregion
 

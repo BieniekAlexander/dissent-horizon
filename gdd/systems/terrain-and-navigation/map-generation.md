@@ -216,7 +216,7 @@ of the others'; only buildings' PLACEMENT depends on what came before (§Colloca
 charge is its value:
 
 - **size** — a cell count from a right-skewed normal, clamped to `[pond_cells_min, pond_cells_max]`;
-- **richness** — one of `pond_richness_factors` (`[50, 75, 90, 100]`). Richer categories are rarer,
+- **richness** — one of `pond_richness_factors` (`[50, 55, 60, 65]`). Richer categories are rarer,
   and they grow rarer still as the pond gets bigger;
 - **charge** — `cell_count × richness_factor`.
 
@@ -678,10 +678,10 @@ produce a map outside them is a better failure than one that produces a bad map 
 | `value_per_alliance` (energy) | | how much energy every alliance can reach; shelters and buildings draw theirs (below) |
 | shelter count | `round(k × (1 + 1.5 × randf()))` | 1 … 2.5 per alliance; not a parameter. TODO: may fall short of one per start (§Shelters) |
 | `shelter_start_band_min_cells` / `_max_cells` | PLANNED; untuned | the band every start's own shelter lies in (§Shelters) |
-| `pond_value_fraction` | 0 … 0.5 of energy value | ponds are finite, so they are the prize, not the baseline income |
-| `pond_cells_min` / `pond_cells_max` | 30 / 75 | below ~30 a basin has little floor left once the rim is taken |
+| `pond_value_fraction` | 0.6 of energy value (`energy_value_per_alliance` 12000) | ponds are finite, so they are the prize; they are also the early engine, because a site pays little on purpose ([pacing/income-and-cost](../macroeconomics/pacing/income-and-cost.md), 2026-10-01). Ponds are priced by charge and sites by rate, so a site-rate change rescales only the site share |
+| `pond_cells_min` / `pond_cells_max` | 30 / 60 | below ~30 a basin has little floor left once the rim is taken |
 | pond size skew, location, scale | | right-skewed: small ponds common, large ones rare |
-| `pond_richness_factors` | `[50, 75, 90, 100]` | charge = cells × factor; 1 500 … 7 500 across the bounds |
+| `pond_richness_factors` | `[50, 55, 60, 65]` | charge = cells × factor; 1 500 … 3 900 across the bounds: about a medium army, and the smallest still nets 1 000 after its extractor (decided 2026-10-01) |
 | richness category weights | | richer is rarer, and rarer still in larger ponds |
 | `placement_candidates` | 16 … 64 per feature | the best-candidate budget; bounds the pass's work |
 | `feature_spacing` | ≥ 6 cells | two features closer than this read as one |
