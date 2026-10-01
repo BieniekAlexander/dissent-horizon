@@ -569,7 +569,10 @@ Map, terrain grid, navmesh, pathing, terrain authoring, mesh baking and water.
 - [`gdd/systems/terrain-and-navigation/mesh-baked-terrain.md`](gdd/systems/terrain-and-navigation/mesh-baked-terrain.md)
 - [`gdd/systems/terrain-and-navigation/water-bodies.md`](gdd/systems/terrain-and-navigation/water-bodies.md)
 - [`gdd/systems/terrain-and-navigation/map-composition.md`](gdd/systems/terrain-and-navigation/map-composition.md)
-- [`gdd/systems/terrain-and-navigation/map-generation.md`](gdd/systems/terrain-and-navigation/map-generation.md) — passes 1–6 built, 7 TODO
+- [`gdd/systems/terrain-and-navigation/map-generation.md`](gdd/systems/terrain-and-navigation/map-generation.md) — passes 1–7 built
+- [`gdd/systems/terrain-and-navigation/visual-facets.md`](gdd/systems/terrain-and-navigation/visual-facets.md) — pass 7: decoration derived at load, never saved; cosmetic only
+
+Lighting and terrain shading → [`gdd/systems/ux/aesthetics/lighting.md`](gdd/systems/ux/aesthetics/lighting.md), [`terrain-readability.md`](gdd/systems/ux/aesthetics/terrain-readability.md). Preview renders without a display: `tools/terrain_visuals/render.sh`.
 
 ## Scripted scenarios: objectives, dialogs, pause, highlights
 

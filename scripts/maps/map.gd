@@ -134,6 +134,15 @@ var water_bodies: Array[WaterBody] = []
 ## index is rebuilt about as often as the map is loaded.
 var _water_body_by_cell: Dictionary = {}  # Vector2i -> WaterBody
 
+## The cosmetic layer — ground paint, trails, doodads — derived from this map by
+## MapDecorationPlanner (map generation pass 7). Null until rebuild_decoration runs, and never
+## saved: see gdd/systems/terrain-and-navigation/visual-facets.md.
+var decorator: MapDecorator = null
+
+## Whether the editor derives the decoration when the map opens. It costs a second or two on a
+## large map, which is the reason to turn it off while sculpting.
+@export var decorate_in_editor: bool = true
+
 
 ## Trims the inspector down to what an author actually sets, and keeps derived values out of
 ## the scene file. Three rules, each stated at the branch that applies it; between them the
@@ -606,6 +615,8 @@ func add_structure(a_structure: Entity, a_world_center: Vector2, a_quarter_turns
 		if cell_grid[cell.x][cell.y] == null:
 			cell_grid[cell.x][cell.y] = a_structure
 	structure_cell_map[a_structure] = footprint
+	if decorator != null:
+		decorator.clear_cells(footprint)
 	if obs == null or obs.is_obstruction:
 		terrain_grid.place_building(footprint, a_structure)
 	a_structure.map = self
@@ -724,6 +735,8 @@ func fogged_materials() -> Array[ShaderMaterial]:
 	var terrain: ShaderMaterial = terrain_material()
 	if terrain != null:
 		result.append(terrain)
+	if decorator != null:
+		result.append_array(decorator.doodad_materials())
 	for body: WaterBody in water_bodies:
 		if not is_instance_valid(body):
 			continue
@@ -731,6 +744,21 @@ func fogged_materials() -> Array[ShaderMaterial]:
 		if surface != null:
 			result.append(surface)
 	return result
+
+
+## Derive this map's decoration (pass 7) from its current terrain, water and pieces, and draw
+## it: props under a MapDecorator child, ground paint into the terrain material. Rebuilt whole;
+## the old decoration is discarded.
+func rebuild_decoration() -> void:
+	var planned: MapDecoration = MapDecorationPlanner.plan(MapDecorationInput.from_map(self))
+	if decorator == null:
+		decorator = MapDecorator.new()
+		decorator.name = "Decoration"
+		# Unowned: a derived node must never be written into the scene.
+		add_child(decorator)
+	decorator.show_decoration(planned,
+		Vector2i(terrain_data.grid_width(), terrain_data.grid_depth()))
+	TerrainShading.push_ground_overlay(terrain_material(), planned.ground_overlay)
 
 
 ## Hand every WaterBody in the scene its map and derive the water layer once. Runs after the
@@ -855,6 +883,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		if terrain_data != null:
 			_sync_from_terrain_data()
+			if decorate_in_editor:
+				rebuild_decoration()
 		# Only NOW may an inspector trigger act: everything a .tscn stored has already been
 		# assigned by this point, so nothing that arrives with the scene can fire one.
 		_triggers_armed = true
@@ -895,6 +925,11 @@ func _ready() -> void:
 	# After the grid exists and before the first navmesh bake: deep water is an impassability
 	# reason like any other, and the initial mesh should already be cut around it.
 	_initialize_water_bodies()
+
+	# Before anything collects fogged_materials (Fog does on its own initialisation), so the
+	# props are shrouded from the first frame.
+	if terrain_data != null:
+		rebuild_decoration()
 
 #endregion
 

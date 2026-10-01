@@ -16,7 +16,8 @@ The ground, and how things move over it.
 | [tile-types.md](tile-types.md) | the `TerrainData` tile-type model and its migration |
 | [water-bodies.md](water-bodies.md) | bodies of water: basins, wade depth, lithium ponds, the water surface, the Water brush |
 | [map-composition.md](map-composition.md) | the map features, occupancy vs obstruction, and ground materials |
-| [map-generation.md](map-generation.md) | PLANNED: the procedural pipeline, its topological pass and its parameter bounds |
+| [map-generation.md](map-generation.md) | the procedural pipeline, its topological pass and its parameter bounds |
+| [visual-facets.md](visual-facets.md) | pass 7: the derived cosmetic layer — ground paint, trails, doodads, dressing sites — and the shortlist of what to dress |
 | [agent-size-classes.md](agent-size-classes.md) | per-size navmesh erosion and clearance |
 | [structure-footprints.md](structure-footprints.md) | multi-cell structures on the grid |
 | [terrain-representation-rationale.md](terrain-representation-rationale.md) | why 3D, why a heightfield, why plateaus work the way they do |

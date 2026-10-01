@@ -7,9 +7,10 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**Passes 1–6 are built**: the pure core is `scripts/maps/generation/` (`MapGenerator`);
+**Passes 1–7 are built**: the pure core is `scripts/maps/generation/` (`MapGenerator`);
 `GeneratedMapWriter` (`tools/map_generation/`) turns a result into a skirmish scene; and maps are
-generated from the editor's Map Generator dock (§Interface). **TODO: pass 7**, visual facets.
+generated from the editor's Map Generator dock (§Interface). Pass 7, visual facets, is a
+proof of concept with its own note.
 It supersedes the sketch in [tile-types.md](tile-types.md) §Stage 2, and it assumes the feature
 and water models in [map-composition.md](map-composition.md) — a generator can only place things
 that note defines.
@@ -703,8 +704,12 @@ Elsewhere, regions need:
 
 ### 7. Visual facets
 
-TODO: not built, and out of scope for now (Alex, 2026-09-19) — doodads, ground materials, water
-surface appearance, river flow, mountain models laid over impassable cells as decoration.
+Cosmetic only, and derived: the same planner runs here and at every map load, so nothing it makes
+is written into the map scene. Ground paint, trails between settlements, doodads, and the sites
+of later dressing (cliff faces, ramps, mountains, shores, waterfalls) →
+[visual-facets.md](visual-facets.md), which also holds the shortlist of what is worth building.
+
+*Invariant:* none on the map — it cannot fail a generation.
 
 ---
 
@@ -806,7 +811,7 @@ produce a map outside them is a better failure than one that produces a bad map 
 | `cluster_capacity_overshoot` | 2 | how far a cluster's last building may carry it past its drawn capacity |
 | `cluster_large_building_bias` | 0.5 | at the top band a 10-capacity building is drawn about 1.8× as often, relative to a 3, as the pool weights it |
 | `cluster_packing_density` | 0.3 … 0.5 | denser packings fail to fit often enough to reject whole seeds |
-| `last_pass` | a named pass: extent, starts, resources, topology, terrain, elevation | stop after that pass to inspect it. A `Pass` enum, numbered as this doc numbers them, so the dock offers the names and a report reads the same as §The pipeline |
+| `last_pass` | a named pass: extent, starts, resources, topology, terrain, elevation, visuals | stop after that pass to inspect it. A `Pass` enum, numbered as this doc numbers them, so the dock offers the names and a report reads the same as §The pipeline |
 | `ground_height` | 4.0 | high enough that a chasm sunk `chasm_depth` stays above 0 |
 | `cut_fraction` | 0.15 … 0.45 of graph edges; 0.45 | 0 is a featureless field; above ~0.5 the map is an SC2 partition, which this game explicitly is not. At the top because only uncarved cuts grow into regions (§Obstacle regions) |
 | `target_traversable_fraction` / `traversable_tolerance` | 0.8 / 0.05 | Alex, 2026-10-01; a finished map outside the band is rejected |

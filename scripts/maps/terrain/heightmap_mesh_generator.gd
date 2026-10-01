@@ -89,6 +89,9 @@ func _sync_shader_params() -> void:
 		sm.set_shader_parameter("grid_width", shape.map_width - 1)
 		sm.set_shader_parameter("grid_depth", shape.map_depth - 1)
 
+	var td: TerrainData = _terrain_data()
+	if td != null:
+		TerrainShading.push_terrain_uniforms(sm, td, _grid_center())
 	var cat := _catalog()
 	if cat == null:
 		sm.set_shader_parameter("tile_count", 0)
@@ -98,13 +101,20 @@ func _sync_shader_params() -> void:
 		_tex_array = built["array"]
 		_tex_flags = built["flags"]
 		_tex_source_catalog = cat
+	sm.set_shader_parameter("tile_colors", cat.map_color_array(TerrainSurface.MAX_TILE_TYPES))
 	if _tex_array == null:
 		# Catalog present but no type has a texture yet — stay on flat colours.
 		sm.set_shader_parameter("tile_count", 0)
 		return
+	sm.set_shader_parameter("tile_colors", cat.map_color_array(TerrainSurface.MAX_TILE_TYPES))
 	sm.set_shader_parameter("tile_textures", _tex_array)
 	sm.set_shader_parameter("tile_has_texture", _tex_flags)
 	sm.set_shader_parameter("tile_count", cat.count())
+
+## World XZ the cell grid is centred on: this node's position (it sits at the terrain body's
+## origin, which is the Map's), or the origin while out of the tree.
+func _grid_center() -> Vector2:
+	return VU.inXZ(global_position) if is_inside_tree() else Vector2.ZERO
 
 ## The active tile catalog (from the override or the owning Map), or null when neither.
 func _catalog() -> TerrainTileCatalog:
@@ -185,8 +195,10 @@ func _build_mesh() -> ArrayMesh:
 			colors.append(col)
 			colors.append(col)
 
-			var fn: Vector3 = (verts[base + 1] - verts[base]) \
-								.cross(verts[base + 3] - verts[base]).normalized()
+			# (+z edge) x (+x edge) is the UPWARD normal; the reverse order points into the
+			# ground and leaves every lit material black under a sun.
+			var fn: Vector3 = (verts[base + 3] - verts[base]) \
+								.cross(verts[base + 1] - verts[base]).normalized()
 			normals.append(fn)
 			normals.append(fn)
 			normals.append(fn)

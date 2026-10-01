@@ -1,0 +1,23 @@
+[gd_resource type="Environment" load_steps=3 format=3]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_hemi"]
+sky_top_color = Color(0.56, 0.66, 0.8, 1)
+sky_horizon_color = Color(0.72, 0.74, 0.76, 1)
+ground_bottom_color = Color(0.3, 0.26, 0.21, 1)
+ground_horizon_color = Color(0.5, 0.47, 0.42, 1)
+sun_angle_max = 0.0
+
+[sub_resource type="Sky" id="Sky_hemi"]
+sky_material = SubResource("ProceduralSkyMaterial_hemi")
+radiance_size = 0
+
+[resource]
+background_mode = 1
+background_color = Color(0.09, 0.1, 0.12, 1)
+sky = SubResource("Sky_hemi")
+ambient_light_source = 3
+ambient_light_energy = 0.7
+ambient_light_sky_contribution = 1.0
+reflected_light_source = 1
+tonemap_mode = 2
+tonemap_white = 6.0

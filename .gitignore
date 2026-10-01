@@ -400,3 +400,6 @@ $RECYCLE.BIN/
 # a headless import elsewhere cannot rebuild — a clone without it fails ~800 tests.
 .godot/*
 !.godot/imported/
+
+# Terrain-visual preview renders (tools/terrain_visuals/visual_preview.gd)
+/tools/terrain_visuals/out/

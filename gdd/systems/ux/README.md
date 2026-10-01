@@ -159,9 +159,10 @@ token has no such slot at all, which is different from being `EXEMPT`.
 |---|---|---|
 | Surface per tile type | the tile-type catalog | TODO: `deferred.md` 2.7 — `TileType.texture` is reserved and unread |
 | Water | water bodies | built — [water-bodies](../terrain-and-navigation/water-bodies.md) |
-| Decoration per obstacle kind (mountain model over impassable cells, shoreline) | obstacle kinds: ridges and mountains, chasms and lakes | TODO: map generation pass 7, out of scope for now; the kinds come from [map-generation](../terrain-and-navigation/map-generation.md) §Obstacle regions |
+| Decoration per obstacle kind (mountain model over impassable cells, shoreline) | obstacle kinds: ridges and mountains, chasms and lakes | placeholder doodads and ground paint built; dressing PLANNED per facet — [visual-facets](../terrain-and-navigation/visual-facets.md) §Shortlist |
+| Doodad per kind (trees, rocks, shrubs) | `DoodadLibrary.Kind` | PLACEHOLDER: primitive-shape stand-ins built in code |
 | Fog of war | — | built — `scripts/maps/fog.gd` |
-| Environment per map (sky, light, atmosphere) | maps | TODO: scenes carry a `Sun` and no `WorldEnvironment` |
+| Environment per map (sky, light, atmosphere) | scenarios | PLACEHOLDER: one default rig and Environment for every scenario that authors none — [aesthetics/lighting](aesthetics/lighting.md); per-map presets TODO |
 
 ### Interface and presentation
 

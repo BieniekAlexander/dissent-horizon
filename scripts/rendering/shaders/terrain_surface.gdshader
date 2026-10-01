@@ -14,32 +14,19 @@ shader_type spatial;
 //   * THE PLAY BOUNDARY is tested analytically against the play rectangle (a 45-degree
 //     rotated rectangle in world XZ), so the edge of the world is a clean straight line
 //     rather than a staircase at cell resolution.
-//   * CLIFF SHADING is BINARY and comes from the cell_data steep flag, which is literally the
-//     test the navmesh runs (corner spread vs TerrainGrid.MAX_SLOPE_DIFF). Green means a unit
-//     can walk here; black means it cannot. There is deliberately no gradient: impassability is
-//     a yes/no fact about a cell, and a soft ramp between the two states misreports where the
-//     boundary actually is. An earlier version inferred steepness from the interpolated surface
-//     normal — smooth, but both soft-edged and subtly offset, since vertex normals are a
-//     central difference spanning neighbouring cells.
+//   * IMPASSABILITY is BINARY and comes from the cell_data steep flag, which is literally the
+//     test the navmesh runs (corner spread vs TerrainGrid.MAX_SLOPE_DIFF). An impassable cell
+//     is rock, and an ink line on the passable side marks the boundary exactly. Everything
+//     else — slope, height, cavity — is free to be soft; the yes/no fact never is. An earlier
+//     version inferred steepness from the interpolated surface normal — smooth, but both
+//     soft-edged and subtly offset, since vertex normals are a central difference spanning
+//     neighbouring cells.
+//
+// The shading itself is shared with s1.gdshader: terrain_common.gdshaderinc.
 
 render_mode cull_disabled, specular_disabled;
 
-const int MAX_TILE_TYPES = 256;
-
-// Cell-indexed per-cell data. R = tile type index / 255, G = 1 when the cell is too steep to
-// traverse. Nearest-filtered: both are per-cell facts and must not blend across boundaries.
-uniform sampler2D cell_data : filter_nearest, repeat_disable;
-// (min_x, min_z, size_x, size_z) of the cell grid in world XZ — maps world -> cell_data UV.
-uniform vec4 terrain_rect = vec4(0.0, 0.0, 1.0, 1.0);
-
-// Flat colour per tile type, indexed by the tile index in cell_data.
-uniform vec4 tile_colors[MAX_TILE_TYPES];
-uniform sampler2DArray tile_textures : source_color, filter_linear, repeat_enable;
-uniform int tile_count = 0;
-uniform float tile_has_texture[MAX_TILE_TYPES];
-// World units per texture tile, so a repeating ground texture is scaled in WORLD space
-// rather than per cell (a source mesh has no per-cell UVs to key off).
-uniform float texture_scale = 4.0;
+#include "res://scripts/rendering/shaders/terrain_common.gdshaderinc"
 
 // The play rectangle, in its own frame: centre, two perpendicular unit axes, half-extents.
 // Fragments outside it are discarded, so the playable area reads against the background the
@@ -49,15 +36,6 @@ uniform vec2 play_axis_a = vec2(1.0, 0.0);
 uniform vec2 play_axis_b = vec2(0.0, 1.0);
 uniform vec2 play_half = vec2(1e9);
 uniform float play_bounds_enabled = 1.0;
-
-// Colour for ground a unit cannot traverse.
-uniform vec4 cliff_color : source_color = vec4(0.10, 0.09, 0.08, 1.0);
-
-// Fog of war, sampled by WORLD position so the shroud conforms to terrain height. Same
-// contract as s1.gdshader: r = 0 in sight .. 0.5 explored .. 1 unseen.
-uniform sampler2D fog_texture : filter_linear, repeat_disable;
-uniform vec4 fog_rect = vec4(0.0, 0.0, 1.0, 1.0);
-uniform float fog_enabled = 0.0;
 
 varying vec3 v_world;
 
@@ -82,23 +60,10 @@ void fragment() {
 		impassable = step(0.5, cell.g);
 	}
 
-	vec3 albedo = tile_colors[idx].rgb;
-	if (tile_count > 0 && idx < tile_count && tile_has_texture[idx] > 0.5) {
-		albedo = texture(tile_textures, vec3(v_world.xz / texture_scale, float(idx))).rgb;
-	}
-
-	// Untraversable ground reads as rock — a hard switch, not a blend.
-	albedo = mix(albedo, cliff_color.rgb, impassable);
-
-	if (fog_enabled > 0.5) {
-		vec2 fuv = vec2(
-			(v_world.x - fog_rect.x + fog_rect.z) / (2.0 * fog_rect.z),
-			(v_world.z - fog_rect.y + fog_rect.w) / (2.0 * fog_rect.w)
-		);
-		albedo *= (1.0 - texture(fog_texture, fuv).r);
-	}
-
-	ALBEDO = albedo;
+	// The surface mesh carries its own authored normals; the height field's are only a
+	// fallback for a material that has heights but no usable mesh normal.
+	vec3 n = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	ALBEDO = th_apply_fog(th_shade(v_world, idx, impassable, uv, n), v_world.xz);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 }

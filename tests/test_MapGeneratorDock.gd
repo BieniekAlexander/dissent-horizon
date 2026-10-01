@@ -115,7 +115,7 @@ func test_the_last_pass_is_chosen_from_named_passes() -> void:
 	assert_not_null(menu, "last_pass is an enum, so the form gives it a menu")
 	assert_eq(menu.item_count, MapGenerationParams.Pass.size())
 	assert_eq(menu.get_item_text(0), "Extent")
-	assert_eq(menu.get_item_id(menu.selected), int(MapGenerationParams.Pass.ELEVATION),
+	assert_eq(menu.get_item_id(menu.selected), int(MapGenerationParams.Pass.VISUALS),
 		"the default runs every pass")
 	menu.item_selected.emit(menu.get_item_index(MapGenerationParams.Pass.TOPOLOGY))
 	assert_eq(_dock._params.last_pass, MapGenerationParams.Pass.TOPOLOGY)

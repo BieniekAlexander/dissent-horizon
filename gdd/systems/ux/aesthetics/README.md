@@ -13,6 +13,11 @@ answer — does this silhouette say "unarmed"? — lives here, keyed to the same
 command, or more distinctively part of this world? If it does none of those, it is a
 lower-priority asset.
 
+| Note | Covers |
+|---|---|
+| [lighting.md](lighting.md) | the default lighting rig and Environment, the research behind them, options not taken |
+| [terrain-readability.md](terrain-readability.md) | how the terrain shader shows height and passability |
+
 ## Considerations, by slot kind
 
 A consideration that a program can check becomes an audit rule (`tools/ui_audit.gd` already

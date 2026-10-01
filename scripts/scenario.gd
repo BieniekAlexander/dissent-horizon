@@ -82,6 +82,7 @@ func _ready() -> void:
 	# reproducible if it is seeded ahead of every consumer.
 	seed_simulation()
 	_create_debug_mode()
+	_ensure_lighting()
 	if map == null:
 		push_error("%s has no Map child: a scenario plays on a map, and every system here "
 			% name + "resolves it as $Map. Instance a map scene under this node.")
@@ -231,6 +232,21 @@ func seed_simulation() -> void:
 #endregion
 
 #region Private helpers
+## The key/fill sun pair a scenario gets when it authors no light of its own. Ambient light is
+## not part of it: that is the project's default Environment, which applies wherever a scene
+## has no WorldEnvironment. See gdd/systems/ux/aesthetics/lighting.md.
+const DEFAULT_LIGHTING_SCENE: String = "res://scenes/environment/default_lighting.tscn"
+
+
+## Add the default lighting rig unless the scenario (or its map) already carries a sun. A
+## scenario that lights itself keeps exactly what it authored.
+func _ensure_lighting() -> void:
+	if not find_children("*", "DirectionalLight3D", true, false).is_empty():
+		return
+	var rig: Node = (load(DEFAULT_LIGHTING_SCENE) as PackedScene).instantiate()
+	add_child(rig)
+
+
 ## Hook for subclasses to spawn each player slot's opening force at runtime. Base
 ## Scenario authors its starting entities directly in the scene tree, so this is a
 ## no-op; Skirmish overrides it to build each slot's structure + units from its

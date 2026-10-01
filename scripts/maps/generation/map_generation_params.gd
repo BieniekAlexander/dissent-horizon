@@ -17,7 +17,7 @@ const BUILDING_CAPACITY_FAILURE: int = 250
 ## is as unwalkable as its sides — a flat crest would be a plateau nothing can reach.
 const RIDGE_ROUGHNESS: float = 1.0
 ## The last pass there is. Derived from the enum, so adding a pass moves it.
-const PASS_COUNT: int = Pass.ELEVATION
+const PASS_COUNT: int = Pass.VISUALS
 ## No walkable passage between two barriers, or between a barrier and the edge of the play
 ## area, is narrower than this many cells. A constant, not a knob: it is the floor that keeps a
 ## unit column moving through every choke on every map, and a carve samples its width from it.
@@ -208,11 +208,12 @@ enum Pass {
 	TOPOLOGY = 4,
 	TERRAIN = 5,
 	ELEVATION = 6,
+	VISUALS = 7,
 }
 
 ## The last pass to run: an earlier stop leaves the map as that pass left it, so each pass can
 ## be inspected alone. Passes run in order and none can be skipped.
-var last_pass: Pass = Pass.ELEVATION
+var last_pass: Pass = Pass.VISUALS
 #endregion
 
 #region Extent

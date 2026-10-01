@@ -247,6 +247,9 @@ static func report(map: GeneratedMap, title: String) -> PackedStringArray:
 	var lines := PackedStringArray([
 		"## %s — seed %d, play %s, passes run %d" % [
 			title, map.generation_seed, map.play_size, map.passes_run], ""])
+	if map.decoration != null:
+		lines.append("Decoration (pass 7, cosmetic): %s" % map.decoration.summary())
+		lines.append("")
 	if map.topology != null:
 		var flooded: int = map.topology.flooded.count(true)
 		lines.append(("%d of %d graph edges cut (%d flooded, %d ridges), %d carved open, "

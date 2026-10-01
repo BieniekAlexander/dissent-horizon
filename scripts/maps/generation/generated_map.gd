@@ -34,6 +34,9 @@ var traversable_fraction: float = -1.0
 var buildable_fraction: float = -1.0
 ## Impassable cells per alliance, each split by MapFavor.access_share: the cost each carries.
 var obstructed := PackedFloat32Array()
+## Pass 7's cosmetic layer, or null when generation stopped earlier. Derived, never written into
+## the map scene: a loaded map derives the same decoration itself (visual-facets.md).
+var decoration: MapDecoration = null
 ## The last pass that ran (MapGenerationParams.last_pass, or earlier if one failed).
 var passes_run: int = 0
 

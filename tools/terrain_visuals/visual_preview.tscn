@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/terrain_visuals/visual_preview.gd" id="1_prev"]
+
+[node name="VisualPreview" type="Node"]
+script = ExtResource("1_prev")

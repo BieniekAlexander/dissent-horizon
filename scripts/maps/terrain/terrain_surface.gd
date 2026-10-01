@@ -96,15 +96,9 @@ func _push_parameters(a_data: TerrainData) -> void:
 	if sm == null:
 		return
 
-	sm.set_shader_parameter("cell_data", a_data.cell_data_texture())
-
-	# World-XZ rectangle the cell grid covers, so the shader can turn a world position into a
-	# cell lookup. Derived the same way Map.world_bounds does: a W-corner grid spans W-1 cells.
 	var map: Map = _find_map()
 	var center: Vector2 = VU.inXZ(map.global_position) if map != null else Vector2.ZERO
-	var span := Vector2(float(a_data.grid_width()), float(a_data.grid_depth())) * Map.CELL_SIZE
-	sm.set_shader_parameter("terrain_rect",
-		Vector4(center.x - span.x * 0.5, center.y - span.y * 0.5, span.x, span.y))
+	TerrainShading.push_terrain_uniforms(sm, a_data, center)
 
 	var catalog: TerrainTileCatalog = a_data.catalog
 	if catalog != null:

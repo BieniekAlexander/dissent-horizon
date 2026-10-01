@@ -63,7 +63,7 @@ func _run() -> GeneratedMap:
 	# doubles as how many of these to run.
 	var passes: Array[Callable] = [
 		_make_extent, _place_starts, _place_resources, _run_topology, _realise_terrain,
-		_raise_elevation]
+		_raise_elevation, _decorate]
 	assert(passes.size() == MapGenerationParams.PASS_COUNT,
 		"a pass in the Pass enum with nothing here to run would stop the generator early")
 	for index: int in mini(_params.last_pass, passes.size()):
@@ -75,6 +75,13 @@ func _run() -> GeneratedMap:
 	if _result.passes_run >= MapGenerationParams.Pass.TERRAIN:
 		_validate_obstruction()
 	return _result
+
+
+## Pass 7: the cosmetic layer, from the same planner a loaded map runs, so what the dock shows
+## is what the game will show. It constrains nothing and cannot fail a map.
+func _decorate() -> bool:
+	_result.decoration = MapDecorationPlanner.plan(MapDecorationInput.from_generated(_result))
+	return true
 
 
 ## Pass 3.
