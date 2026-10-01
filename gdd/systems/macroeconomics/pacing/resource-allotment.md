@@ -143,3 +143,56 @@ And one question it raises: **is the structure overhead intended?** Colonial str
 Zero Hour prices while units cost half of Zero Hour's, so a base takes about twice the share of a
 player's energy that it does there. If that is intended, it is part of why the map needs ~50k
 per player. If not, cheaper structures lower the target instead.
+
+## Second pass: ponds held for part of a match (2026-10-01)
+
+**Decided (Alex, 2026-10-01):**
+- **A pond is held for part of a match, not all of it.** A small pond takes about 3 minutes to
+  work out and a large one about 8, as rough targets, not fixed numbers.
+- **Infinite sites need not be scarce.** Their return should be slow, and they should sit in
+  spread-out, contested positions. About 2.5 generated sites per player (beside the two home
+  sites, which bring their own) is low.
+- **Size and richness are related.** A rich pond may have a capped size, and a pond's size changes
+  how hard it is to defend.
+
+**TODO, a proposal, not applied.** The knobs and what follows from them:
+
+| Knob | Proposal | Today |
+|---|---|---|
+| site rate | 5/s (`energy_rate` 25 per 5 s) | 6/s |
+| pond rate | 3× a site, 15/s (`POND_RATE_MULTIPLIER` 3) | 4×, 24/s |
+| pond charge | 2700–7200: 3 to 8 minutes at 15/s | 1500–3900 |
+| size from richness | the charge is drawn, richness picks compactness: `cells = charge / richness`. Rich ponds are small and easy to hold; poor ones sprawl | size and richness drawn apart |
+| generated sites per player | ~5 (plus the two home sites) | ~2.5 |
+| budget | per player: ~25k in ponds (5–6 ponds averaging ~4500) plus the sites | 12000 per alliance |
+
+As generator values, that is `energy_value_per_player` ≈ 32500 with ponds taking about 0.77 of
+it (a site is valued at 5/s × 300 s = 1500).
+
+**Richness by category,** each with its own size bounds, which is what caps a rich pond:
+
+| Category | Richness (per cell) | Cells | Charge |
+|---|---|---|---|
+| poor | 60 | 45–80 | 2700–4800 |
+| standard | 90 | 30–70 | 2700–6300 |
+| rich | 120 | 30–60 | 3600–7200 |
+
+What follows:
+
+- **Pond time.** At 15/s with one extractor, the smallest pond lasts 3 minutes and the largest 8.
+- **Site payback.** An extractor (500) on a site pays back in 100 s plus its 20 s build: slow, as
+  wanted, so a forward site is a commitment.
+- **Income ladder.** Home sites alone give 10/s. One pond gives 25/s, and two ponds with two sites
+  about 50/s. A 6000 medium army replaces in about 2 minutes at the top of that ladder and 4 at the
+  bottom.
+- **Over a 20-minute match** a player realises roughly 35k–40k: about 12k from home sites, ~8k
+  from contested sites and ~15k–20k from the ponds they actually hold. With the structure costs
+  proposed in [structure-costs](structure-costs.md), the spend in §What a player spends in a match
+  falls to about 46k, so the economy is in range. Self-play is what will say.
+
+**What it needs from map generation:**
+- a per-player budget (`× start_count` rather than `× alliance_count`);
+- the charge drawn first, then cells from richness, with per-category size bounds (replacing the
+  independent size and richness draws);
+- room for five or six ponds and about five sites per player on a 1v1 map, which may need
+  `play_size` or `feature_spacing` revisited.
