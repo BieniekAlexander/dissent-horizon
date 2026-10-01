@@ -19,8 +19,12 @@ func _params() -> MapGenerationParams:
 	params.play_size_max = 90
 	# A small map keeps these tests fast, so the energy budget is scaled to its area.
 	params.energy_value_per_player = 13000.0
-	params.building_pool = [MapPiece.of(&"building", Vector2i(4, 4))]
+	params.building_pool = [MapPiece.of(&"building", Vector2i(4, 4), 1.0, 5)]
 	params.cut_fraction = 0.4
+	# Regions grow (lakes are part of what these tests check), but the shares they aim at are
+	# tested in test_ObstacleRegions, not gated here.
+	params.traversable_tolerance = 1.0
+	params.obstruction_tolerance = 1.0
 	return params
 
 
@@ -147,21 +151,27 @@ func test_all_flooded_cuts_make_chasm_water_and_no_ridges() -> void:
 		peak = maxf(peak, height)
 	assert_eq(peak, params.ground_height, "a ridge was raised")
 ## A chasm's water must stay in its chasm: the level is measured from the surrounding rim, so a
-## chasm lifted onto a high level cannot pour over its cliff and drown the levels below.
+## chasm lifted onto a high level cannot pour over its cliff and drown the levels below. A lake
+## also floods its shelf, lake_shelf_cells wide.
 func test_chasm_water_stays_in_its_chasm() -> void:
-	for map: GeneratedMap in [MapGenerator.generate(_params(), _SEEDS[0])]:
-		var chasms: Dictionary = {}
+	var params: MapGenerationParams = _params()
+	for map: GeneratedMap in [MapGenerator.generate(params, _SEEDS[0])]:
+		var reach_of: Dictionary = {}
 		for cell: Vector2i in map.topology.barrier_of:
-			if map.topology.flooded[map.topology.barrier_of[cell]]:
-				chasms[cell] = true
+			var cut: int = map.topology.barrier_of[cell]
+			if map.topology.flooded[cut]:
+				reach_of[cell] = 1 + (params.lake_shelf_cells if map.topology.grown[cut] else 0)
 		for water: Dictionary in map.chasm_waters:
 			var basin: WaterBasin = WaterBasin.fill(map.terrain, water.seed_cell, water.level)
 			for cell: Vector2i in basin.depth_by_cell:
 				# A cell touching the chasm shares its sunk corners, so it may flood too.
 				var near_chasm: bool = false
-				for dx: int in range(-1, 2):
-					for dz: int in range(-1, 2):
-						near_chasm = near_chasm or chasms.has(cell + Vector2i(dx, dz))
+				var reach: int = 1 + params.lake_shelf_cells
+				for dx: int in range(-reach, reach + 1):
+					for dz: int in range(-reach, reach + 1):
+						var chasm: Vector2i = cell + Vector2i(dx, dz)
+						near_chasm = near_chasm or (reach_of.has(chasm)
+							and maxi(absi(dx), absi(dz)) <= reach_of[chasm])
 				assert_true(near_chasm, "water at %s is away from any chasm" % cell)
 #endregion
 

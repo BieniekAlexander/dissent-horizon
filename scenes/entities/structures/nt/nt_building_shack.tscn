@@ -104,3 +104,4 @@ script = ExtResource("13_spec")
 [node name="Garrison" type="Node" parent="."]
 script = ExtResource("18_spec")
 range_bonus = 4.0
+capacity = 3

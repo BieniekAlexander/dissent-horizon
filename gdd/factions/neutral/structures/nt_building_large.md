@@ -13,6 +13,6 @@ defense:
 senses:
   vision: vision_ground_large
 footprint: [8, 5]
-garrison: {range_bonus: {from: ground_range_medium, to: ground_range_long}}
+garrison: {capacity: 10, range_bonus: {from: ground_range_medium, to: ground_range_long}}
 infrastructure: 100
 ---

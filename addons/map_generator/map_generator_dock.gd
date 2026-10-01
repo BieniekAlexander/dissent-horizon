@@ -33,6 +33,10 @@ const REPLACE_WARNING: String = ("%s already has a Map. Generating replaces it, 
 const HIDDEN_PROPERTIES: Array[StringName] = [
 	&"alliance_count", &"site_energy_per_second", &"pond_rate_multiplier",
 ]
+const STALE_WARNING: String = ("The generation parameters changed on disk since this form was "
+	+ "built. Generate resets it to the new defaults first.")
+const STALE_RESET_NOTICE: String = ("The generation parameters changed on disk, so the form was "
+	+ "reset to the new defaults; any edits made to it before then are gone.")
 const MIN_ALLIANCES: int = 2
 const MAX_ALLIANCES: int = 8
 const MAX_SEED: int = 2147483647
@@ -203,8 +207,20 @@ func _enum_field(a_property: StringName, a_hint: String) -> Control:
 
 
 func _refresh_warnings() -> void:
-	_warnings.text = "\n".join(_params.warnings())
+	_warnings.text = STALE_WARNING if _params_are_stale() else "\n".join(_params.warnings())
 	_warnings.visible = not _warnings.text.is_empty()
+
+
+## True when MapGenerationParams was reloaded since _params was built. A hot-reloaded @tool
+## instance gets null for a member the new script added, not its initializer, so a renamed or
+## new knob reads as nothing: a renamed energy budget once generated maps with no resources.
+func _params_are_stale() -> bool:
+	var fresh := MapGenerationParams.new()
+	for property: Dictionary in fresh.get_property_list():
+		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE \
+				and typeof(_params.get(property.name)) != typeof(fresh.get(property.name)):
+			return true
+	return false
 
 
 func _spin_box(a_min: int, a_max: int, a_step: float) -> SpinBox:
@@ -266,8 +282,13 @@ func _generate() -> void:
 func _generate_into(a_scenario: Node) -> void:
 	if a_scenario == null:
 		return
+	var was_stale: bool = _params_are_stale()
+	if was_stale:
+		_reset_params(int(_alliances.value))
 	_map = MapGenerator.generate(_params, int(_seed.value))
 	_report.text = "\n".join(GeneratedMapWriter.report(_map, "generated"))
+	if was_stale:
+		_report.text = STALE_RESET_NOTICE + "\n\n" + _report.text
 	_save_button.disabled = not _map.is_valid()
 	if not _map.is_valid():
 		return

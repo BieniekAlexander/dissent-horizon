@@ -10,9 +10,9 @@ extends RefCounted
 ## The generator knows the alliance count and these values — nothing about factions.
 
 #region Constants
-## Building occupancy at and above which placement is known to run out of room on default
-## maps — measured, not derived; see map-generation.md §3.
-const BUILDING_OCCUPANCY_FAILURE: float = 0.10
+## Garrison capacity per player at and above which building placement is known to run out of
+## room on default 1v1 maps — measured, not derived; see map-generation.md §3.
+const BUILDING_CAPACITY_FAILURE: int = 250
 ## Extra height on alternate ridge corners. Above TerrainGrid.MAX_SLOPE_DIFF, so a ridge's top
 ## is as unwalkable as its sides — a flat crest would be a plateau nothing can reach.
 const RIDGE_ROUGHNESS: float = 1.0
@@ -63,8 +63,10 @@ const PROPERTY_GROUPS: Array = [
 	{
 		name = "Buildings",
 		properties = [
-			"building_occupancy", "cluster_size_successes", "cluster_size_success_chance",
-			"cluster_size_max", "cluster_packing_density", "building_cluster_separation_cells",
+			"building_capacity_per_player", "cluster_capacity_band_edges",
+			"cluster_capacity_band_weights", "cluster_capacity_overshoot",
+			"cluster_large_building_bias", "cluster_packing_density",
+			"building_cluster_separation_cells",
 			"building_pool",
 		],
 	},
@@ -88,6 +90,15 @@ const PROPERTY_GROUPS: Array = [
 		properties = [
 			"cut_fraction", "flooded_cut_fraction", "barrier_width_cells", "min_routes",
 			"correction_radius_cells", "ridge_height", "chasm_depth", "flat_fraction",
+		],
+	},
+	{
+		name = "Obstacle regions",
+		properties = [
+			"target_traversable_fraction", "traversable_tolerance", "region_width_min_cells",
+			"region_width_max_cells", "region_edge_noise", "region_noise_scale_cells",
+			"region_lake_fraction", "lake_shelf_cells", "mountain_rise_per_cell",
+			"mountain_rise_max", "obstruction_tolerance",
 		],
 	},
 	{
@@ -135,10 +146,11 @@ const DESCRIPTIONS: Dictionary = {
 	"pond_richness_cells_max": "Largest pond of each richness category, in cells. Caps how large a rich pond grows.",
 	"shelters_per_alliance_min": "Fewest shelters per alliance.",
 	"shelters_per_alliance_extra": "Random extra shelters per alliance, on top of the minimum.",
-	"building_occupancy": "Share of the play area covered by buildings. Keep it low: too high and placement runs out of room.",
-	"cluster_size_successes": "Shape of the buildings-per-cluster draw. Higher gives larger clusters.",
-	"cluster_size_success_chance": "Shape of the buildings-per-cluster draw. Higher gives smaller clusters.",
-	"cluster_size_max": "Most buildings in one cluster.",
+	"building_capacity_per_player": "Total garrison capacity of the neutral buildings placed per player. Too high and placement runs out of room.",
+	"cluster_capacity_band_edges": "Garrison-capacity bands a cluster's size is drawn from: band i runs from edge i to edge i+1.",
+	"cluster_capacity_band_weights": "How often each capacity band is drawn. Falling band by band, so small clusters are common.",
+	"cluster_capacity_overshoot": "How far a cluster's last building may carry it past its drawn capacity.",
+	"cluster_large_building_bias": "How much a large cluster favours large buildings. 0 draws every cluster from the pool's own weights.",
 	"cluster_packing_density": "How tightly a cluster's buildings are packed. Lower spreads them out.",
 	"building_cluster_separation_cells": "Least gap between buildings of two different clusters.",
 	"building_pool": "The neutral buildings a cluster draws from.",
@@ -162,6 +174,17 @@ const DESCRIPTIONS: Dictionary = {
 	"correction_radius_cells": "How far a feature may move to rebalance once barriers lengthen paths.",
 	"ridge_height": "How high a ridge rises above the ground.",
 	"chasm_depth": "How deep a chasm sinks below the ground. Its water fills half of it.",
+	"target_traversable_fraction": "Share of the play area left traversable. Cuts grow into mountains and lakes until it is reached.",
+	"traversable_tolerance": "How far a finished map's traversable share may sit from the target before the map is rejected.",
+	"region_width_min_cells": "Narrowest a grown cut reaches from equidistant between its two nodes.",
+	"region_width_max_cells": "Widest a grown cut reaches from equidistant between its two nodes.",
+	"region_edge_noise": "How ragged a region's edge is, as a fraction of its width.",
+	"region_noise_scale_cells": "Size of the bumps along a region's edge.",
+	"region_lake_fraction": "Share of grown area that is lakes rather than mountains.",
+	"lake_shelf_cells": "Width of the shallow, wadeable shelf around a lake's deep core.",
+	"mountain_rise_per_cell": "How much a mountain rises for each cell further from its edge.",
+	"mountain_rise_max": "The most a mountain rises above an ordinary ridge.",
+	"obstruction_tolerance": "How unevenly impassable ground may fall between alliances before the map is rejected.",
 	"flat_fraction": "Least share of walkable ground that must be flat enough to build on.",
 	"elevation_levels": "Terrace levels the ground steps through. 1 keeps each tier level.",
 	"elevation_step": "Height of one terrace step. Keep it under the walkable slope limit, or every step becomes a cliff.",
@@ -276,23 +299,27 @@ var shelters_per_alliance_extra: float = 1.5
 #endregion
 
 #region Buildings
-## Fraction of the play area's cells covered by building footprints. The building count
-## follows map area and footprint sizes, not player count. Low values are the sensible range:
-## from BUILDING_OCCUPANCY_FAILURE up, placement runs out of room (see warnings()).
-var building_occupancy: float = 0.03
-## Buildings per cluster: 1 + a negative binomial (failures before `successes` successes of
-## chance `success_chance`), capped. At 2 and 0.4 the mean is 4: 1-3 is about half of all
-## clusters, 4-7 about a third, 8-10 about one per two players and 11-16 about one match in
-## three.
-var cluster_size_successes: int = 2
-var cluster_size_success_chance: float = 0.4
-var cluster_size_max: int = 16
+## Total garrison capacity of the neutral buildings, per PLAYER like the energy budget. 75 is
+## about seven clusters per player at the bands below, which is what their stated frequencies
+## assume. From BUILDING_CAPACITY_FAILURE up, placement runs out of room (see warnings()).
+var building_capacity_per_player: int = 75
+## A cluster is sized by GARRISON CAPACITY, not building count, because the buildings differ:
+## a band is drawn by weight, then a capacity uniformly within it. Up to 10 is about half of all
+## clusters, 10-15 about a third, 15-20 about one per two players and 20-25 about one match in
+## three (map-generation.md §Buildings).
+var cluster_capacity_band_edges: PackedInt32Array = PackedInt32Array([3, 10, 15, 20, 25])
+var cluster_capacity_band_weights: PackedFloat32Array = PackedFloat32Array([0.55, 0.36, 0.07, 0.02])
+## A building is drawn only if it lands the cluster at most this far past its capacity.
+var cluster_capacity_overshoot: int = 2
+## A building's draw weight is scaled by capacity^(bias × t), t the cluster's capacity across the
+## bands in [0, 1]: a small cluster draws from the pool as weighted, a large one leans large.
+var cluster_large_building_bias: float = 0.5
 ## Fraction of a cluster's disc its buildings fill, gap included. The scatter radius is
 ## derived from it, so a cluster of eight spreads wider than a cluster of three.
 var cluster_packing_density: float = 0.35
 ## Least L1 distance, in cells, between the nearest buildings of two different clusters —
 ## what keeps neighbouring clusters from reading as one.
-var building_cluster_separation_cells: int = 10
+var building_cluster_separation_cells: int = 20
 #endregion
 
 #region Extraction sites
@@ -334,8 +361,10 @@ var footprint_gap_cells: int = 1
 #endregion
 
 #region Topology and terrain (passes 4-5)
-## Share of feature-graph edges cut by a barrier.
-var cut_fraction: float = 0.3
+## Share of feature-graph edges cut by a barrier. 0.45, the top of its bracket, because only
+## uncarved cuts grow into obstacle regions, and at 0.3 growing every one of them still left
+## 81-88% of a 1v1 map traversable, short of the 80% target.
+var cut_fraction: float = 0.45
 ## Share of cuts drawn as flooded chasms; the rest are ridges.
 var flooded_cut_fraction: float = 0.5
 ## How far from equidistant between its two nodes a barrier reaches: roughly its thickness.
@@ -351,6 +380,30 @@ var ridge_height: float = 3.0
 var chasm_depth: float = 2.0
 ## Least share of in-play dry walkable cells that must be buildable (all corners level).
 var flat_fraction: float = 0.55
+#endregion
+
+#region Obstacle regions (pass 4, shaped in pass 5)
+## The finished map's traversable share: in play, not steep, not deep water, not a footprint.
+## Shallow water counts as traversable (map-generation.md §Obstacle regions).
+var target_traversable_fraction: float = 0.8
+var traversable_tolerance: float = 0.05
+## A grown cut keeps its Voronoi band out to a gap drawn in [min, max]: the cells whose two
+## nearest nodes are the cut's pair, at most that much closer to one than the other.
+var region_width_min_cells: float = 5.0
+var region_width_max_cells: float = 14.0
+## The gap is scaled by 1 + noise × this, from coherent noise this many cells across, so an
+## edge is ragged rather than following the Voronoi boundary exactly.
+var region_edge_noise: float = 0.35
+var region_noise_scale_cells: float = 12.0
+## Cuts are grown as lakes (flooded) or mountains (ridges) to keep this share of grown cells lakes.
+var region_lake_fraction: float = 0.5
+## A lake's deep core is ringed by this many cells sunk to a pond's pan: shallow, wadeable water.
+var lake_shelf_cells: int = 2
+## A mountain cell rises this much per cell of distance from the region's edge, up to the max.
+var mountain_rise_per_cell: float = 0.5
+var mountain_rise_max: float = 2.0
+## Worst relative deviation of any alliance's share of impassable ground from even.
+var obstruction_tolerance: float = 0.15
 #endregion
 
 #region Elevation (pass 6)
@@ -411,9 +464,12 @@ func warnings() -> PackedStringArray:
 		found.append("A terrace step of %.2f is steeper than %.2f, so every terrace boundary "
 			% [elevation_step, TerrainGrid.MAX_SLOPE_DIFF]
 			+ "becomes a cliff and elevation will divide ground pass 4 left open.")
-	if building_occupancy >= BUILDING_OCCUPANCY_FAILURE:
-		found.append("Building occupancy of %d%% or more leaves no room: building placement "
-			% roundi(BUILDING_OCCUPANCY_FAILURE * 100.0) + "will fail for lack of space.")
+	if not energy_value_per_player > 0.0:
+		found.append("An energy value per player of %s places no ponds or sites, so generation "
+			% energy_value_per_player + "will fail.")
+	if building_capacity_per_player >= BUILDING_CAPACITY_FAILURE:
+		found.append("A building capacity of %d or more per player leaves no room: building "
+			% BUILDING_CAPACITY_FAILURE + "placement will fail for lack of space.")
 	return found
 
 

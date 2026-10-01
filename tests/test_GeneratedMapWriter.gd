@@ -42,6 +42,10 @@ func _params() -> MapGenerationParams:
 	params.play_size_max = 80
 	# Scaled to the small map's area, or a shipped 1v1 budget crowds it out of balance.
 	params.energy_value_per_player = 12000.0
+	# Obstacle regions are tested in test_ObstacleRegions: off here, and their checks with them.
+	params.target_traversable_fraction = 1.0
+	params.traversable_tolerance = 1.0
+	params.obstruction_tolerance = 1.0
 	return params
 
 

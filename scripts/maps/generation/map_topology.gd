@@ -36,10 +36,16 @@ var cuts: Array[int] = []
 ## Per cut: flooded chasm rather than ridge, and whether it has been carved open.
 var flooded: Array[bool] = []
 var carved: Array[bool] = []
+## Per cut: grown into an obstacle region (ObstacleRegions): a ridge into a mountain, a chasm
+## into a lake. An ungrown flooded cut is a river.
+var grown: Array[bool] = []
 ## Cell -> cut index, for every cell that stays a barrier.
 var barrier_of: Dictionary = {}
 ## Cells a carve opened, so nothing placed later can close them again.
 var carved_cells: Dictionary = {}
+## Cell -> nearest_two() for every barrier-eligible cell, kept from drawing the barriers so
+## ObstacleRegions can widen a cut without measuring every cell against every node again.
+var nearest_of: Dictionary = {}
 var errors := PackedStringArray()
 
 var _params: MapGenerationParams
@@ -47,6 +53,7 @@ var _rng: RandomNumberGenerator
 var _terrain: TerrainData
 var _grid: PlacementGrid
 var _start_count: int = 0
+var _in_play := PackedByteArray()
 #endregion
 
 
@@ -73,6 +80,7 @@ static func run(
 	for i: int in topology.cuts.size():
 		if topology.carved[i]:
 			topology._carve_band(i, topology._nearest_barrier_cell(i, topology._midpoint(i)))
+	ObstacleRegions.grow(topology, params, rng, terrain, grid, starts, features)
 	topology._repair_connectivity()
 	topology._enforce_choke_width()
 	return topology
@@ -89,6 +97,7 @@ func _choose_cuts() -> void:
 		cuts.append(order[i])
 		flooded.append(_rng.randf() < _params.flooded_cut_fraction)
 		carved.append(false)
+		grown.append(false)
 
 
 ## Carve cuts until every pair of starts has min_routes vertex-disjoint routes over the open
@@ -136,21 +145,33 @@ func open_edges() -> Array[Vector2i]:
 ## A cell next to anything reserved is left out: pass 5 moves a barrier cell's corners, which
 ## it shares with its neighbours, and a footprint or a start's box must stay level.
 func _draw_barriers() -> void:
-	var cut_of_pair: Dictionary = {}
-	for i: int in cuts.size():
-		cut_of_pair[graph.edges[cuts[i]]] = i
+	var cut_by_pair: Dictionary = cut_of_pair()
 	for z: int in _grid.depth:
 		for x: int in _grid.width:
 			var cell := Vector2i(x, z)
-			if not _is_barrier_eligible(cell):
+			if not is_barrier_eligible(cell):
 				continue
 			var pair: Vector3 = nearest_two(Vector2(cell) + Vector2(0.5, 0.5))
-			var key := Vector2i(mini(int(pair.x), int(pair.y)), maxi(int(pair.x), int(pair.y)))
-			if cut_of_pair.has(key) and pair.z <= _params.barrier_width_cells:
-				barrier_of[cell] = cut_of_pair[key]
+			nearest_of[cell] = pair
+			var key: Vector2i = pair_key(pair)
+			if cut_by_pair.has(key) and pair.z <= _params.barrier_width_cells:
+				barrier_of[cell] = cut_by_pair[key]
 
 
-func _is_barrier_eligible(a_cell: Vector2i) -> bool:
+## Graph edge (lower node, higher node) -> cut index, for every cut.
+func cut_of_pair() -> Dictionary:
+	var of_pair: Dictionary = {}
+	for i: int in cuts.size():
+		of_pair[graph.edges[cuts[i]]] = i
+	return of_pair
+
+
+## The pair of nodes a cell's nearest_two names, ordered as graph edges are.
+static func pair_key(pair: Vector3) -> Vector2i:
+	return Vector2i(mini(int(pair.x), int(pair.y)), maxi(int(pair.x), int(pair.y)))
+
+
+func is_barrier_eligible(a_cell: Vector2i) -> bool:
 	for dx: int in range(-1, 2):
 		for dz: int in range(-1, 2):
 			if not _grid.is_free(a_cell + Vector2i(dx, dz)):
@@ -343,11 +364,7 @@ func _drop_fragments() -> void:
 ## Walkable cells: in play, and neither a barrier nor bordering one. Feature footprints count as
 ## walkable — they are islands in open ground, and the paths around them are pass 5's navmesh.
 func passable_mask(a_steep: Dictionary = {}) -> PackedByteArray:
-	var mask := PackedByteArray()
-	mask.resize(_grid.width * _grid.depth)
-	for z: int in _grid.depth:
-		for x: int in _grid.width:
-			mask[z * _grid.width + x] = 1 if _terrain.is_cell_in_play(Vector2i(x, z)) else 0
+	var mask: PackedByteArray = in_play_mask().duplicate()
 	for cell: Vector2i in barrier_of:
 		for dx: int in range(-1, 2):
 			for dz: int in range(-1, 2):
@@ -357,6 +374,17 @@ func passable_mask(a_steep: Dictionary = {}) -> PackedByteArray:
 	for cell: Vector2i in a_steep:
 		mask[cell.y * _grid.width + cell.x] = 0
 	return mask
+
+
+## 1 per cell in play. Memoized: the play area never changes within a run, and the mask is asked
+## for on every connectivity check, where testing each cell against the play area dominated.
+func in_play_mask() -> PackedByteArray:
+	if _in_play.is_empty():
+		_in_play.resize(_grid.width * _grid.depth)
+		for z: int in _grid.depth:
+			for x: int in _grid.width:
+				_in_play[z * _grid.width + x] = 1 if _terrain.is_cell_in_play(Vector2i(x, z)) else 0
+	return _in_play
 
 
 ## Carve until the walkable ground is one component containing every node — invariants (1) and

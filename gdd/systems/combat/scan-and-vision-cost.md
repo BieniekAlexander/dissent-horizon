@@ -129,6 +129,13 @@ instead. That is cheaper, and it would agree with what the fog actually shows. I
 the scout's stricter terrain occlusion, which is a behaviour change, so it is a separate
 decision.
 
+**TODO — the scout and the fog disagree about terrain.** The scout's raycasts stop on terrain;
+the fog ignores it. So ground behind a ridge, or behind a mountain once
+[obstacle regions](../terrain-and-navigation/map-generation.md) §Obstacle regions are built,
+is never counted as scouted, though the bot's fog shows it as seen. Whether terrain blocks
+sight at all is open ([target-acquisition](target-acquisition.md) §Line of fire); this resolves
+with it, or with the follow-on above.
+
 ## Beyond both: the simulation rate
 
 **TODO — Alex to decide, not proposed.** SC2 pays its per-tick costs 22.4 times a real

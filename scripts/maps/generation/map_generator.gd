@@ -30,6 +30,10 @@ const _LEVEL_NEIGHBOUR_MARGIN: int = 4
 const _CHASM_LIP_CELLS: int = 2
 ## Where a body's surface sits between its floor and the ground it is cut into.
 const WATER_LEVEL_FRACTION: float = 0.5
+## The eight cells around a cell.
+const _NEIGHBOURS: Array[Vector2i] = [
+	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+	Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]
 #endregion
 
 #region Properties
@@ -38,6 +42,9 @@ var _rng := RandomNumberGenerator.new()
 var _result := GeneratedMap.new()
 var _area: PlayArea
 var _grid: PlacementGrid
+## Cell -> cut, for every lake's shallow shelf; rebuilt with the terrain each time pass 5 shapes
+## it, so the water fill knows which shallows belong to which lake.
+var _lake_shelf: Dictionary = {}
 #endregion
 
 
@@ -65,11 +72,18 @@ func _run() -> GeneratedMap:
 		_result.passes_run = index + 1
 	if _result.passes_run >= 3:
 		_validate_balance()
+	if _result.passes_run >= MapGenerationParams.Pass.TERRAIN:
+		_validate_obstruction()
 	return _result
 
 
 ## Pass 3.
 func _place_resources() -> bool:
+	# A map with no energy is unplayable, and would otherwise pass as valid: refuse it.
+	if not _energy_total() > 0.0:
+		_result.errors.append("the energy budget is %s, so the map would have no ponds or sites"
+			% _energy_total())
+		return false
 	var placer := FeaturePlacer.new(_params, _rng, _grid, _result.starts)
 	var pond_plans: Array[FeaturePlan] = _pond_plans()
 	var currencies: Array = [
@@ -326,37 +340,84 @@ func _shelter_plans() -> Array[FeaturePlan]:
 	return plans
 
 
-## A footprint budget as a fraction of the play area, then clusters of heavy-tailed size
-## drawn until it is spent. The last cluster is cut short at the budget, so the total overshoots
-## by less than one building; every alliance's target is an even share of it.
+## A garrison-capacity budget per player, then clusters drawn until it is spent, each packed to
+## a drawn capacity. The last cluster is cut short at the budget, so the total overshoots by less
+## than one building. A cluster's balance value is its capacity.
 func _building_plans() -> Array[FeaturePlan]:
 	var plans: Array[FeaturePlan] = []
 	if _params.building_pool.is_empty():
 		return plans
-	var weights := PackedFloat32Array()
-	for piece: MapPiece in _params.building_pool:
-		weights.append(piece.weight)
-	var total: float = _params.building_occupancy * _result.play_cell_count
+	var total: float = _params.building_capacity_per_player * _params.start_count()
 	var planned: float = 0.0
 	while planned < total:
 		var plan := FeaturePlan.new()
 		plan.kind = MapFeature.Kind.BUILDING_CLUSTER
-		for _i: int in _cluster_size():
-			if planned >= total:
+		var capacity: float = cluster_capacity(_rng, _params.cluster_capacity_band_edges,
+			_params.cluster_capacity_band_weights)
+		var weights: PackedFloat32Array = building_weights(_params.building_pool,
+			_params.cluster_capacity_band_edges, _params.cluster_large_building_bias, capacity)
+		var remaining: float = capacity
+		while remaining > 0.0 and planned < total:
+			var index: int = GenerationRandom.weighted_index(
+				_rng, _fitting_weights(weights, remaining))
+			if index < 0:
 				break
-			var piece: MapPiece = _params.building_pool[GenerationRandom.weighted_index(_rng, weights)]
+			var piece: MapPiece = _params.building_pool[index]
 			plan.cluster_pieces.append(piece)
-			plan.value += piece.cell_count()
-			planned += piece.cell_count()
+			plan.value += piece.capacity
+			planned += maxi(piece.capacity, 1)
+			# At least 1, so a piece with no garrison still fills its cluster and ends it.
+			remaining -= maxi(piece.capacity, 1)
+		if plan.cluster_pieces.is_empty():
+			# Nothing in the pool fits the drawn capacity; the smallest piece stands alone.
+			var smallest: MapPiece = _smallest_building()
+			plan.cluster_pieces.append(smallest)
+			plan.value = smallest.capacity
+			planned += maxi(smallest.capacity, 1)
 		plans.append(plan)
 	plans.sort_custom(func(a: FeaturePlan, b: FeaturePlan) -> bool: return a.value > b.value)
 	return plans
 
 
-func _cluster_size() -> int:
-	var drawn: int = 1 + GenerationRandom.negative_binomial(
-		_rng, _params.cluster_size_successes, _params.cluster_size_success_chance)
-	return mini(drawn, _params.cluster_size_max)
+## A cluster's garrison capacity: band i (edges i to i+1) by `weights`, then uniformly within it.
+static func cluster_capacity(
+	rng: RandomNumberGenerator, edges: PackedInt32Array, weights: PackedFloat32Array
+) -> float:
+	var band: int = GenerationRandom.weighted_index(rng, weights)
+	return rng.randf_range(edges[band], edges[band + 1])
+
+
+## `pool`'s draw weights for a cluster of `capacity`: each piece's weight times
+## capacity^(bias × t), t the cluster's capacity across `edges` in [0, 1], so a cluster leans
+## toward large buildings as it climbs the bands.
+static func building_weights(
+	pool: Array[MapPiece], edges: PackedInt32Array, bias: float, capacity: float
+) -> PackedFloat32Array:
+	var t: float = clampf(
+		inverse_lerp(float(edges[0]), float(edges[edges.size() - 1]), capacity), 0.0, 1.0)
+	var weights := PackedFloat32Array()
+	for piece: MapPiece in pool:
+		weights.append(piece.weight * pow(maxf(piece.capacity, 1.0), bias * t))
+	return weights
+
+
+## `a_weights` with every piece zeroed that would carry the cluster more than the overshoot past
+## `a_remaining`.
+func _fitting_weights(a_weights: PackedFloat32Array, a_remaining: float) -> PackedFloat32Array:
+	var fitting := PackedFloat32Array()
+	for i: int in a_weights.size():
+		var fits: bool = _params.building_pool[i].capacity \
+			<= a_remaining + _params.cluster_capacity_overshoot
+		fitting.append(a_weights[i] if fits else 0.0)
+	return fitting
+
+
+func _smallest_building() -> MapPiece:
+	var smallest: MapPiece = _params.building_pool[0]
+	for piece: MapPiece in _params.building_pool:
+		if piece.capacity < smallest.capacity:
+			smallest = piece
+	return smallest
 #endregion
 
 
@@ -585,22 +646,78 @@ func _shape_terrain(a_offsets: PackedFloat32Array) -> void:
 			+ _offset_at(a_offsets, feature.pond_seed_cell, width)
 	var topology: MapTopology = _result.topology
 	var chasm_cells: Dictionary = {}
+	_lake_shelf.clear()
 	if topology != null:
+		var depth_of: Dictionary = _mountain_depths(topology)
 		for cell: Vector2i in topology.barrier_of:
 			var is_chasm: bool = topology.flooded[topology.barrier_of[cell]]
 			if is_chasm:
 				chasm_cells[cell] = topology.barrier_of[cell]
+			var rise: float = minf((depth_of.get(cell, 1) - 1) * _params.mountain_rise_per_cell,
+				_params.mountain_rise_max)
 			for corner: Vector2i in PlacementGrid.rect_cells(cell, Vector2i(2, 2)):
 				var roughness: float = MapGenerationParams.RIDGE_ROUGHNESS \
 					if (corner.x + corner.y) % 2 == 0 else 0.0
 				heights[corner.y * width + corner.x] = \
 					_params.ground_height - _params.chasm_depth if is_chasm \
-					else _params.ground_height + _params.ridge_height + roughness
+					else maxf(heights[corner.y * width + corner.x],
+						_params.ground_height + _params.ridge_height + roughness + rise)
+		_lake_shelf = _lake_shelves(topology)
+		for cell: Vector2i in _lake_shelf:
+			for corner: Vector2i in PlacementGrid.rect_cells(cell, Vector2i(2, 2)):
+				var index: int = corner.y * width + corner.x
+				heights[index] = minf(heights[index], pan)
 	if not a_offsets.is_empty():
 		for i: int in heights.size():
 			heights[i] += a_offsets[i]
 	terrain.heights = heights
 	_flood_chasms(chasm_cells, width)
+
+
+## Per grown ridge cell, its distance in cells from the mountain's edge: 1 on the edge.
+static func _mountain_depths(topology: MapTopology) -> Dictionary:
+	var depth_of: Dictionary = {}
+	var frontier: Array[Vector2i] = []
+	for cell: Vector2i in topology.barrier_of:
+		var cut: int = topology.barrier_of[cell]
+		if not topology.grown[cut] or topology.flooded[cut]:
+			continue
+		for step: Vector2i in _NEIGHBOURS:
+			if topology.barrier_of.get(cell + step, -1) != cut:
+				depth_of[cell] = 1
+				frontier.append(cell)
+				break
+	var head: int = 0
+	while head < frontier.size():
+		var at: Vector2i = frontier[head]
+		head += 1
+		for step: Vector2i in _NEIGHBOURS:
+			var next: Vector2i = at + step
+			if topology.barrier_of.get(next, -1) == topology.barrier_of[at] \
+					and not depth_of.has(next):
+				depth_of[next] = depth_of[at] + 1
+				frontier.append(next)
+	return depth_of
+
+
+## Per lake, the free ground within lake_shelf_cells of its deep core: sunk to a pond's pan, so
+## its water is shallow. Kept off reserved ground like any barrier cell.
+func _lake_shelves(a_topology: MapTopology) -> Dictionary:
+	var shelf: Dictionary = {}
+	var reach: int = _params.lake_shelf_cells
+	for cell: Vector2i in a_topology.barrier_of:
+		var cut: int = a_topology.barrier_of[cell]
+		if not (a_topology.grown[cut] and a_topology.flooded[cut]):
+			continue
+		for dx: int in range(-reach, reach + 1):
+			for dz: int in range(-reach, reach + 1):
+				var near: Vector2i = cell + Vector2i(dx, dz)
+				if shelf.has(near) or a_topology.barrier_of.has(near) \
+						or not _result.terrain.is_cell_in_play(near) \
+						or not a_topology.is_barrier_eligible(near):
+					continue
+				shelf[near] = cut
+	return shelf
 
 
 ## Corner offset under a cell's minimum corner; 0 without offsets.
@@ -635,9 +752,14 @@ func _flood_chasms(a_cells: Dictionary, a_width: int) -> void:
 		if seen.has(cell):
 			continue
 		_chasm_stretch(cell, offset_of, seen)
-		var level: float = _params.ground_height + offset_of[cell] \
-			- _params.chasm_depth * WATER_LEVEL_FRACTION
-		if _water_escapes(cell, level, a_cells):
+		var cut: int = a_cells[cell]
+		var is_lake: bool = _result.topology.grown[cut]
+		# A lake stands at a pond's level, so its shelf is shallow; a river halfway up its chasm.
+		var level: float = _params.ground_height + offset_of[cell] + (
+			FeaturePlacer.POND_SINK * (FeaturePlacer.POND_LEVEL_FRACTION - 1.0) if is_lake
+			else -_params.chasm_depth * WATER_LEVEL_FRACTION)
+		var holds: Dictionary = a_cells.merged(_lake_shelf) if is_lake else a_cells
+		if _water_escapes(cell, level, holds):
 			continue  # a dry chasm: still a barrier, just without water
 		_result.chasm_waters.append({seed_cell = cell, level = level})
 
@@ -801,6 +923,56 @@ static func _grown(cells: Array[Vector2i], margin: int) -> Array[Vector2i]:
 	var grown: Array[Vector2i] = []
 	grown.assign(seen.keys())
 	return grown
+
+
+## The traversable share within traversable_tolerance of its target, and impassable ground
+## within obstruction_tolerance of even between alliances. Measured on the finished terrain: a
+## cell is traversable when it is in play, not steep, not under deep water and not a footprint.
+func _validate_obstruction() -> void:
+	var terrain: TerrainData = _result.terrain
+	var deep: Dictionary = {}
+	for water: Dictionary in _result.chasm_waters:
+		var basin: WaterBasin = WaterBasin.fill(terrain, water.seed_cell, water.level)
+		for cell: Vector2i in basin.depth_by_cell:
+			if basin.depth_by_cell[cell] > WaterBasin.WADE_DEPTH:
+				deep[cell] = true
+	var footprints: Dictionary = {}
+	for feature: MapFeature in _result.features:
+		for cell: Vector2i in feature.structure_cells():
+			footprints[cell] = true
+	var traversable: int = 0
+	var buildable: int = 0
+	_result.obstructed.resize(_params.alliance_count)
+	_result.obstructed.fill(0.0)
+	for z: int in terrain.grid_depth():
+		for x: int in terrain.grid_width():
+			var cell := Vector2i(x, z)
+			if not terrain.is_cell_in_play(cell) or footprints.has(cell):
+				continue
+			if terrain.cell_height_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF or deep.has(cell):
+				var share: PackedFloat32Array = MapFavor.access_share(
+					Vector2(cell) + Vector2(0.5, 0.5), _result.starts, _params.alliance_count)
+				for a: int in share.size():
+					_result.obstructed[a] += share[a]
+				continue
+			traversable += 1
+			buildable += 1 if terrain.cell_is_flat(cell) else 0
+	var play: float = maxf(_result.play_cell_count, 1)
+	_result.traversable_fraction = traversable / play
+	_result.buildable_fraction = buildable / play
+	if absf(_result.traversable_fraction - _params.target_traversable_fraction) \
+			> _params.traversable_tolerance:
+		_result.errors.append("%.0f%% of the play area is traversable (target %.0f%% ± %.0f%%)" % [
+			100.0 * _result.traversable_fraction, 100.0 * _params.target_traversable_fraction,
+			100.0 * _params.traversable_tolerance])
+	var total: float = 0.0
+	for value: float in _result.obstructed:
+		total += value
+	var deviation: float = MapFavor.worst_deviation(
+		_result.obstructed, total / _params.alliance_count)
+	if deviation > _params.obstruction_tolerance:
+		_result.errors.append("impassable ground off even by %.0f%% (tolerance %.0f%%)" % [
+			deviation * 100.0, _params.obstruction_tolerance * 100.0])
 
 
 ## Every currency's accessible value within tolerance of its even split — the pass 3
