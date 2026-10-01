@@ -42,6 +42,9 @@ const STUMP_CHANCE: float = 0.008
 ## A water cell this far above ground within WATERFALL_REACH_CELLS is a waterfall's lip.
 const WATERFALL_DROP: float = 1.0
 const WATERFALL_REACH_CELLS: int = 3
+## How far either side of a sloped cell a cliff may stand for the cell to count as a ramp —
+## pass 6 ramps are MIN_CHOKE_WIDTH to twice that wide.
+const RAMP_SIDE_REACH_CELLS: int = 20
 ## Steep cells at least this deep inside an impassable region are mountain core.
 const MOUNTAIN_CORE_CELLS: float = 3.0
 
@@ -531,16 +534,25 @@ class _Grid:
 					return true
 		return false
 
-	## A sloped, walkable cell with cliff on at least two sides: a ramp through a cliff line.
+	## A sloped, walkable cell squeezed between cliff on OPPOSITE sides: a slope cut through a
+	## cliff line. (Cliff on any two sides also caught every graded cell along a cliff foot.)
 	func is_ramp(cell: Vector2i) -> bool:
 		if _terrain.cell_height_spread(cell) <= 0.0:
 			return false
-		var steep_neighbours: int = 0
-		for step: Vector2i in MapDecorationPlanner._AROUND:
-			var n: Vector2i = cell + step
-			if in_bounds(n) and flags[index(n)] & _STEEP != 0:
-				steep_neighbours += 1
-		return steep_neighbours >= 2
+		for axis: Vector2i in [Vector2i(1, 0), Vector2i(0, 1)]:
+			if _steep_within(cell, axis) and _steep_within(cell, -axis):
+				return true
+		return false
+
+	## Whether a steep cell lies within RAMP_SIDE_REACH_CELLS of `cell` along `direction`.
+	func _steep_within(cell: Vector2i, direction: Vector2i) -> bool:
+		for reach: int in range(1, MapDecorationPlanner.RAMP_SIDE_REACH_CELLS + 1):
+			var n: Vector2i = cell + direction * reach
+			if not in_bounds(n):
+				return false
+			if flags[index(n)] & _STEEP != 0:
+				return true
+		return false
 
 
 ## Binary min-heap of (cell index, priority) for A*.

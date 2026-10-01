@@ -63,7 +63,7 @@ today (ridges, chasms, mountains, lakes, rivers, ponds, tiers, ramps, settlement
 | # | Facet | Terrain it follows | State |
 |---|---|---|---|
 | 1 | **Cliff faces** — rock-face meshes along a cliff run | tier cliffs, barrier edges (`Facet.CLIFF_FACE`) | PLANNED: sites detected; today the shader's rock bands and ink line stand in |
-| 2 | **Ramps** — a worn path or steps on the way up | pass 6 ramps (`Facet.RAMP`) | PLANNED: sites detected (heuristic: a sloped walkable cell with cliff on two sides) |
+| 2 | **Ramps** — a worn path or steps on the way up | pass 6 ramps (`Facet.RAMP`) | PLANNED: sites detected (heuristic: a sloped walkable cell with cliff on opposite sides within 20 cells; TODO: unvalidated against pass 6's own ramp list, which a loaded map does not keep) |
 | 3 | **Mountain massifs** — peak models over a grown ridge's core | obstacle-region mountains (`Facet.MOUNTAIN`) | PLANNED: core detected; trees and boulders stand in |
 | 4 | **Shorelines** — wet band, reeds, foam | lakes, rivers, ponds (`Facet.SHORE`) | built as paint and reeds; foam PLANNED |
 | 5 | **Waterfalls** — where chasm water stops short of a level drop | the dry two-cell gap of [map-generation](map-generation.md) §5 (`Facet.WATERFALL`) | PLANNED: lip detection built; it found none on the review maps, which is unverified rather than proven correct (TODO) |

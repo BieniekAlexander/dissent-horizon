@@ -15,6 +15,7 @@ extends Node
 ##   shots=   semicolon-separated `name:x,z,size` (world XZ focus, orthographic size);
 ##            defaults to a whole-map overview plus a game-zoom shot at the map centre
 ##   rig=     0 to render with no lighting rig added (the scene's own lights only)
+##   facets=  1 to draw MapDecorator's facet markers (where later dressing would go)
 ##
 ## A tool, not a test: what it checks is whether the picture reads, which only a person can
 ## judge (CLAUDE.md "Seeing the HUD without a screen" is the same idea for the HUD).
@@ -46,6 +47,9 @@ func _run() -> void:
 	holder.name = "Preview"
 	add_child(holder)
 	holder.add_child(map)
+	if String(args.get("facets", "0")) == "1" and map.decorator != null:
+		map.decorator.show_facet_markers = true
+		map.rebuild_decoration()
 	if String(args.get("rig", "1")) != "0" and ResourceLoader.exists(DEFAULT_RIG):
 		holder.add_child((load(DEFAULT_RIG) as PackedScene).instantiate())
 
