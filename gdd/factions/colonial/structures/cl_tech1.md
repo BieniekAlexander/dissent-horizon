@@ -3,7 +3,7 @@ kind: Entity
 title: Operations Center
 scene: res://scenes/entities/structures/cl/cl_tech1.tscn
 build:
-  cost: {energy: 1200}
+  cost: {energy: 800}
   time: 25
   requires: [cl_barracks]
 defense:

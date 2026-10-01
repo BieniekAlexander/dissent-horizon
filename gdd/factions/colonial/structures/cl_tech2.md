@@ -3,7 +3,7 @@ kind: Entity
 title: Academy
 scene: res://scenes/entities/structures/cl/cl_tech2.tscn
 build:
-  cost: {energy: 2000}
+  cost: {energy: 1200}
   time: 40
   requires: [cl_warFactory]
 defense:

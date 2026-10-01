@@ -4,7 +4,7 @@ title: Annex
 scene: res://scenes/entities/structures/cl/cl_support1.tscn
 build:
   cost:
-    energy: 1000
+    energy: 500
   time: 20
   requires:
     - cl_tech1

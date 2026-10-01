@@ -5,7 +5,7 @@ type: system-note
 
 # Structure costs
 
-**TODO — research, a proposal, not applied.** Part of [pacing](README.md). The question (Alex,
+**Applied (Alex, 2026-10-01)**, as a starting point for playtesting. Part of [pacing](README.md). The question (Alex,
 2026-10-01): Colonial structures cost Zero Hour prices while units cost about half of Zero
 Hour's, so a base takes twice the share of a player's energy it does there
 ([resource-allotment](resource-allotment.md)). Revisit the prices, with half of Zero Hour as a
@@ -53,7 +53,9 @@ structures from 12400 to 8100: about 17% of a 46k match.
 
 ## Anarchical
 
-The same roles give: Safehouse (`an_infrastructure`) 800 → 500, Redoubt (`an_barracks`) 1000 →
+The same roles give: Safehouse (`an_infrastructure`) 800 → 500 (it takes its price from the
+neutral buildings it converts, so that family was scaled by the same factor: large 1200 → 750,
+long and square 800 → 500, shack 500 → 300), Redoubt (`an_barracks`) 1000 →
 400, Chop Shop (`an_warFactory`) 2000 → 1200, Hangar (`an_airField`) 800 → 700, Stockpile
 (`an_tech1`) 1200 → 800, Clandestine Lab (`an_tech2`) 2000 → 1200, supports 1000 / 2000 / 3000
 → 600 / 1200 / 2000, command centre 1500 unchanged.

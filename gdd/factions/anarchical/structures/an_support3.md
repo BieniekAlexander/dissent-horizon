@@ -3,7 +3,7 @@ kind: Entity
 title: EMP Device
 scene: res://scenes/entities/structures/an/an_support3.tscn
 build:
-  cost: {energy: 3000}
+  cost: {energy: 2000}
   time: 60
   requires: [an_tech2]
 defense:

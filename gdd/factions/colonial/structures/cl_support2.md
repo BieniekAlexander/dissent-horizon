@@ -3,7 +3,7 @@ kind: Entity
 title: Supply Beacon
 scene: res://scenes/entities/structures/cl/cl_support2.tscn
 build:
-  cost: {energy: 1200}
+  cost: {energy: 800}
   time: 20
   requires: [cl_airField]
 defense:

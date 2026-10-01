@@ -3,7 +3,7 @@ kind: Entity
 title: Stockpile
 scene: res://scenes/entities/structures/an/an_tech1.tscn
 build:
-  cost: {energy: 1200}
+  cost: {energy: 800}
   time: 25
   requires: [an_warFactory]
 defense:

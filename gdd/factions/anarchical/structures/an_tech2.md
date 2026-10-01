@@ -3,7 +3,7 @@ kind: Entity
 title: Clandestine Lab
 scene: res://scenes/entities/structures/an/an_tech2.tscn
 build:
-  cost: {energy: 2000}
+  cost: {energy: 1200}
   time: 40
   requires: [an_airField]
 defense:

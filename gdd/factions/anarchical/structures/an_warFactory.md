@@ -3,7 +3,7 @@ kind: Entity
 title: Chop Shop
 scene: res://scenes/entities/structures/an/an_warFactory.tscn
 build:
-  cost: {energy: 2000}
+  cost: {energy: 1200}
   time: 15
   requires: [an_infrastructure]
 defense:

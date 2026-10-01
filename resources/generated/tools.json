@@ -38,8 +38,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_airField.tscn",
-		"tooltip": "Build Hangar — 800 energy, 25s",
-		"verbose": "Build Hangar — 800 energy, 25s\nRequires: Safehouse\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Kamikaze, Raven, Condor"
+		"tooltip": "Build Hangar — 700 energy, 25s",
+		"verbose": "Build Hangar — 700 energy, 25s\nRequires: Safehouse\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Kamikaze, Raven, Condor"
 	},
 	"command_tool_an_aircraftLight_antiMech": {
 		"context": "TRAIN",
@@ -119,8 +119,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_barracks.tscn",
-		"tooltip": "Build Redoubt — 1000 energy, 20s",
-		"verbose": "Build Redoubt — 1000 energy, 20s\nRequires: Safehouse\n750 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 50 infrastructure upkeep\nTrains: Sapper, Shock Trooper, Sharpshooter, Juggernaut, Hijacker"
+		"tooltip": "Build Redoubt — 400 energy, 20s",
+		"verbose": "Build Redoubt — 400 energy, 20s\nRequires: Safehouse\n750 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 50 infrastructure upkeep\nTrains: Sapper, Shock Trooper, Sharpshooter, Juggernaut, Hijacker"
 	},
 	"command_tool_an_bioLight_antiBio": {
 		"context": "TRAIN",
@@ -298,12 +298,12 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_infrastructure.tscn",
-		"tooltip": "Build Safehouse — 800 energy, 25s",
+		"tooltip": "Build Safehouse — 500 energy, 25s",
 		"variants": [
 			"nt_building_square",
 			"nt_building_long"
 		],
-		"verbose": "Build Safehouse — 800 energy, 25s\n1000 HP · medium armour · mech frame\n4×4 cells · vision 20\nProvides 75 infrastructure"
+		"verbose": "Build Safehouse — 500 energy, 25s\n1000 HP · medium armour · mech frame\n4×4 cells · vision 20\nProvides 75 infrastructure"
 	},
 	"command_tool_an_mechLight_transport": {
 		"context": "TRAIN",
@@ -400,8 +400,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_support1.tscn",
-		"tooltip": "Build Hideout — 1000 energy, 30s",
-		"verbose": "Build Hideout — 1000 energy, 30s\nRequires: Redoubt\n1500 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 75 infrastructure upkeep"
+		"tooltip": "Build Hideout — 600 energy, 30s",
+		"verbose": "Build Hideout — 600 energy, 30s\nRequires: Redoubt\n1500 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 75 infrastructure upkeep"
 	},
 	"command_tool_an_support2": {
 		"context": "BUILD",
@@ -418,8 +418,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_support2.tscn",
-		"tooltip": "Build Distress Signal — 2000 energy, 30s",
-		"verbose": "Build Distress Signal — 2000 energy, 30s\nRequires: Stockpile\n1500 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 100 infrastructure upkeep"
+		"tooltip": "Build Distress Signal — 1200 energy, 30s",
+		"verbose": "Build Distress Signal — 1200 energy, 30s\nRequires: Stockpile\n1500 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 100 infrastructure upkeep"
 	},
 	"command_tool_an_support3": {
 		"context": "BUILD",
@@ -436,8 +436,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_support3.tscn",
-		"tooltip": "Build EMP Device — 3000 energy, 60s",
-		"verbose": "Build EMP Device — 3000 energy, 60s\nRequires: Clandestine Lab\n2000 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 200 infrastructure upkeep"
+		"tooltip": "Build EMP Device — 2000 energy, 60s",
+		"verbose": "Build EMP Device — 2000 energy, 60s\nRequires: Clandestine Lab\n2000 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 200 infrastructure upkeep"
 	},
 	"command_tool_an_tech1": {
 		"context": "BUILD",
@@ -454,8 +454,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_tech1.tscn",
-		"tooltip": "Build Stockpile — 1200 energy, 25s",
-		"verbose": "Build Stockpile — 1200 energy, 25s\nRequires: Chop Shop\n1000 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 50 infrastructure upkeep"
+		"tooltip": "Build Stockpile — 800 energy, 25s",
+		"verbose": "Build Stockpile — 800 energy, 25s\nRequires: Chop Shop\n1000 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 50 infrastructure upkeep"
 	},
 	"command_tool_an_tech2": {
 		"context": "BUILD",
@@ -472,8 +472,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_tech2.tscn",
-		"tooltip": "Build Clandestine Lab — 2000 energy, 40s",
-		"verbose": "Build Clandestine Lab — 2000 energy, 40s\nRequires: Hangar\n1200 HP · medium armour · mech frame\n1×4 cells · vision 20\nCosts 75 infrastructure upkeep"
+		"tooltip": "Build Clandestine Lab — 1200 energy, 40s",
+		"verbose": "Build Clandestine Lab — 1200 energy, 40s\nRequires: Hangar\n1200 HP · medium armour · mech frame\n1×4 cells · vision 20\nCosts 75 infrastructure upkeep"
 	},
 	"command_tool_an_warFactory": {
 		"context": "BUILD",
@@ -493,8 +493,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/an/an_warFactory.tscn",
-		"tooltip": "Build Chop Shop — 2000 energy, 15s",
-		"verbose": "Build Chop Shop — 2000 energy, 15s\nRequires: Safehouse\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Collective, Toxin Tractor, War Wagon, MLRS"
+		"tooltip": "Build Chop Shop — 1200 energy, 15s",
+		"verbose": "Build Chop Shop — 1200 energy, 15s\nRequires: Safehouse\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Collective, Toxin Tractor, War Wagon, MLRS"
 	},
 	"command_tool_cl_airField": {
 		"context": "BUILD",
@@ -514,8 +514,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_airField.tscn",
-		"tooltip": "Build Sky Port — 1000 energy, 25s",
-		"verbose": "Build Sky Port — 1000 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n6×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Clipper, drake, caravel, Reverence"
+		"tooltip": "Build Sky Port — 700 energy, 25s",
+		"verbose": "Build Sky Port — 700 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n6×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Clipper, drake, caravel, Reverence"
 	},
 	"command_tool_cl_aircraftLight_antiLight": {
 		"context": "TRAIN",
@@ -615,8 +615,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_barracks.tscn",
-		"tooltip": "Build Barracks — 500 energy, 10s",
-		"verbose": "Build Barracks — 500 energy, 10s\nRequires: Compound\n600 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nTrains: Recruit, Badger, Constable, sleeper"
+		"tooltip": "Build Barracks — 300 energy, 10s",
+		"verbose": "Build Barracks — 300 energy, 10s\nRequires: Compound\n600 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nTrains: Recruit, Badger, Constable, sleeper"
 	},
 	"command_tool_cl_bioLight_antiLight": {
 		"context": "TRAIN",
@@ -736,8 +736,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_commandCenter.tscn",
-		"tooltip": "Build Citadel — 2000 energy, 30s",
-		"verbose": "Build Citadel — 2000 energy, 30s\n3000 HP · strong armour · mech frame\n8×8 cells · vision 30\nProvides 100 infrastructure\nTrains: Stock Truck, Servant"
+		"tooltip": "Build Citadel — 1500 energy, 30s",
+		"verbose": "Build Citadel — 1500 energy, 30s\n3000 HP · strong armour · mech frame\n8×8 cells · vision 30\nProvides 100 infrastructure\nTrains: Stock Truck, Servant"
 	},
 	"command_tool_cl_defense_antiAircraft": {
 		"context": "BUILD",
@@ -808,8 +808,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_infrastructure.tscn",
-		"tooltip": "Build Compound — 1000 energy, 20s",
-		"verbose": "Build Compound — 1000 energy, 20s\n750 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 100 infrastructure"
+		"tooltip": "Build Compound — 600 energy, 20s",
+		"verbose": "Build Compound — 600 energy, 20s\n750 HP · medium armour · mech frame\n4×4 cells · vision 24\nProvides 100 infrastructure"
 	},
 	"command_tool_cl_mechLight_dominionGen": {
 		"context": "TRAIN",
@@ -906,8 +906,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_support1.tscn",
-		"tooltip": "Build Annex — 1000 energy, 20s",
-		"verbose": "Build Annex — 1000 energy, 20s\nRequires: Operations Center\n500 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
+		"tooltip": "Build Annex — 500 energy, 20s",
+		"verbose": "Build Annex — 500 energy, 20s\nRequires: Operations Center\n500 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
 	},
 	"command_tool_cl_support2": {
 		"context": "BUILD",
@@ -924,8 +924,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_support2.tscn",
-		"tooltip": "Build Supply Beacon — 1200 energy, 20s",
-		"verbose": "Build Supply Beacon — 1200 energy, 20s\nRequires: Sky Port\n600 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 100 infrastructure upkeep"
+		"tooltip": "Build Supply Beacon — 800 energy, 20s",
+		"verbose": "Build Supply Beacon — 800 energy, 20s\nRequires: Sky Port\n600 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 100 infrastructure upkeep"
 	},
 	"command_tool_cl_support3": {
 		"context": "BUILD",
@@ -942,8 +942,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_support3.tscn",
-		"tooltip": "Build Storm Cell — 2500 energy, 30s",
-		"verbose": "Build Storm Cell — 2500 energy, 30s\nRequires: Academy\n1500 HP · strong armour · mech frame\n5×5 cells · vision 24\nCosts 200 infrastructure upkeep"
+		"tooltip": "Build Storm Cell — 2000 energy, 30s",
+		"verbose": "Build Storm Cell — 2000 energy, 30s\nRequires: Academy\n1500 HP · strong armour · mech frame\n5×5 cells · vision 24\nCosts 200 infrastructure upkeep"
 	},
 	"command_tool_cl_tech1": {
 		"context": "BUILD",
@@ -963,8 +963,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_tech1.tscn",
-		"tooltip": "Build Operations Center — 1200 energy, 25s",
-		"verbose": "Build Operations Center — 1200 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nResearches: Advanced Targetting"
+		"tooltip": "Build Operations Center — 800 energy, 25s",
+		"verbose": "Build Operations Center — 800 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nResearches: Advanced Targetting"
 	},
 	"command_tool_cl_tech2": {
 		"context": "BUILD",
@@ -981,8 +981,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_tech2.tscn",
-		"tooltip": "Build Academy — 2000 energy, 40s",
-		"verbose": "Build Academy — 2000 energy, 40s\nRequires: Production Yard\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
+		"tooltip": "Build Academy — 1200 energy, 40s",
+		"verbose": "Build Academy — 1200 energy, 40s\nRequires: Production Yard\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
 	},
 	"command_tool_cl_warFactory": {
 		"context": "BUILD",
@@ -1002,8 +1002,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_warFactory.tscn",
-		"tooltip": "Build Production Yard — 2000 energy, 15s",
-		"verbose": "Build Production Yard — 2000 energy, 15s\nRequires: Barracks\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: sloop, Matilda, avalanche"
+		"tooltip": "Build Production Yard — 1200 energy, 15s",
+		"verbose": "Build Production Yard — 1200 energy, 15s\nRequires: Barracks\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: sloop, Matilda, avalanche"
 	},
 	"command_tool_lb_airField": {
 		"context": "BUILD",

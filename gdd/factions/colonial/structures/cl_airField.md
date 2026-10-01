@@ -3,7 +3,7 @@ kind: Entity
 title: Sky Port
 scene: res://scenes/entities/structures/cl/cl_airField.tscn
 build:
-  cost: {energy: 1000}
+  cost: {energy: 700}
   time: 25
   requires: [cl_barracks]
 defense:

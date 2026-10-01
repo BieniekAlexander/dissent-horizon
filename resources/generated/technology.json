@@ -12,7 +12,7 @@
 		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"energy": 800,
+			"energy": 700,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -52,7 +52,7 @@
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"energy": 1000,
+			"energy": 400,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -141,7 +141,7 @@
 		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"energy": 800,
+			"energy": 500,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -199,7 +199,7 @@
 		"build_time_ticks": 900,
 		"cost": {
 			"dominion": 0,
-			"energy": 1000,
+			"energy": 600,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -210,7 +210,7 @@
 		"build_time_ticks": 900,
 		"cost": {
 			"dominion": 0,
-			"energy": 2000,
+			"energy": 1200,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -221,7 +221,7 @@
 		"build_time_ticks": 1800,
 		"cost": {
 			"dominion": 0,
-			"energy": 3000,
+			"energy": 2000,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -232,7 +232,7 @@
 		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"energy": 1200,
+			"energy": 800,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -243,7 +243,7 @@
 		"build_time_ticks": 1200,
 		"cost": {
 			"dominion": 0,
-			"energy": 2000,
+			"energy": 1200,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -254,7 +254,7 @@
 		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
-			"energy": 2000,
+			"energy": 1200,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -265,7 +265,7 @@
 		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"energy": 1000,
+			"energy": 700,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -314,7 +314,7 @@
 		"build_time_ticks": 300,
 		"cost": {
 			"dominion": 0,
-			"energy": 500,
+			"energy": 300,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -374,7 +374,7 @@
 		"build_time_ticks": 900,
 		"cost": {
 			"dominion": 0,
-			"energy": 2000,
+			"energy": 1500,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -416,7 +416,7 @@
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"energy": 1000,
+			"energy": 600,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -465,7 +465,7 @@
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"energy": 1000,
+			"energy": 500,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -476,7 +476,7 @@
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"energy": 1200,
+			"energy": 800,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -487,7 +487,7 @@
 		"build_time_ticks": 900,
 		"cost": {
 			"dominion": 0,
-			"energy": 2500,
+			"energy": 2000,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -498,7 +498,7 @@
 		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"energy": 1200,
+			"energy": 800,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -509,7 +509,7 @@
 		"build_time_ticks": 1200,
 		"cost": {
 			"dominion": 0,
-			"energy": 2000,
+			"energy": 1200,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -520,7 +520,7 @@
 		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
-			"energy": 2000,
+			"energy": 1200,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -875,7 +875,7 @@
 		"build_time_ticks": 1050,
 		"cost": {
 			"dominion": 0,
-			"energy": 1200,
+			"energy": 750,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -884,7 +884,7 @@
 		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"energy": 800,
+			"energy": 500,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -893,7 +893,7 @@
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"energy": 500,
+			"energy": 300,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -902,7 +902,7 @@
 		"build_time_ticks": 750,
 		"cost": {
 			"dominion": 0,
-			"energy": 800,
+			"energy": 500,
 			"infrastructure": 0
 		},
 		"requires": []
