@@ -159,6 +159,7 @@ token has no such slot at all, which is different from being `EXEMPT`.
 |---|---|---|
 | Surface per tile type | the tile-type catalog | TODO: `deferred.md` 2.7 — `TileType.texture` is reserved and unread |
 | Water | water bodies | built — [water-bodies](../terrain-and-navigation/water-bodies.md) |
+| Decoration per obstacle kind (mountain model over impassable cells, shoreline) | obstacle kinds: ridges and mountains, chasms and lakes | TODO: map generation pass 7, out of scope for now; the kinds come from [map-generation](../terrain-and-navigation/map-generation.md) §Obstacle regions |
 | Fog of war | — | built — `scripts/maps/fog.gd` |
 | Environment per map (sky, light, atmosphere) | maps | TODO: scenes carry a `Sun` and no `WorldEnvironment` |
 
@@ -168,7 +169,7 @@ The standing HUD is [ui/](ui/README.md), and each of its notes is its own row.
 
 | Slot kind | State |
 |---|---|
-| Minimap | built in code (`scripts/maps/minimap.gd`); TODO: it has no note |
+| Minimap | built — [ui/hud-layout](ui/hud-layout.md) §The minimap |
 | Menu screen per entry point (title, match setup, settings, loading, post-match) | TODO: a main menu exists (`scenes/menu/main_menu.tscn`); the rest is unscoped, and the win/lose screen is `deferred.md` 2.9 |
 | Campaign presentation (briefings, portraits) | TODO: follows `gdd/modes/campaign/` |
 | Accessibility variant per signal (colourblind team palettes, a shape beside every colour) | TODO |

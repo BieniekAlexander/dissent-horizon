@@ -128,6 +128,12 @@ building), never by piece id.
 **The debug view (`show_debug_info`) reveals the whole minimap too** — every cell in
 sight and every actor drawn — matching what it does to the world.
 
+**PLANNED: impassable terrain on the map layer** (Alex, 2026-10-01). Today ridges, cliffs and
+deep water chasms draw as plain ground, so a barrier is invisible on the minimap; the
+[obstacle regions](../../terrain-and-navigation/map-generation.md) §Obstacle regions would make
+far more of the map impassable. The plan is a layer read from the terrain grid's steep and
+submerged cells.
+
 TODO: the visual details are provisional — they were carried over unchanged from the map
 generator's former review images, and want revisiting (symbol shapes, the palette against the
 team colours, whether start tints should outlive the opening).

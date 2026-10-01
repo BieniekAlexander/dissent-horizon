@@ -201,18 +201,16 @@ of the others'; only buildings' PLACEMENT depends on what came before (§Colloca
   site clusters (§Extraction sites).
 - **shelters** — the count is drawn directly: `round(k × (1 + 1.5 × randf()))`, i.e. 1 … 2.5 per
   alliance. See §Shelters for the ones tied to starts.
-- **buildings** — the budget is an **occupancy**: `building_occupancy`, the fraction of the play
-  area's cells covered by building footprints (3% by default), shared evenly between alliances.
-  Clusters are drawn until it is spent, the last one cut short at the budget. It is set by map
-  area, not player count — it replaced a per-player calibration — and an occupancy rather than a
-  count because it stays meaningful as the pool gains footprints of other sizes.
+- **buildings** — the budget is **garrison capacity per player**:
+  `building_capacity_per_player × start count` (Alex, 2026-10-01; it was a footprint share of
+  the play area, 3%, which gave about 19 clusters per player). Clusters are drawn until it is
+  spent, the last one cut short at the budget. At 75, a 1v1 map gets about 7.5 clusters and 16
+  buildings per player.
 
-  **High occupancies fail loudly; they do not crash or hang.** Measured on default 2-player maps
-  with today's pieces: 5% and 10% generate; from about 12% up, a building cluster finds no valid
-  position and the generation fails with `no valid position for BUILDING_CLUSTER i of n`. The
-  ceiling is room, not time — about 90–140 4×4 buildings fit on a 75–120 map once sites, ponds,
-  shelters, start squares and cluster separation have taken theirs, whatever the budget asks.
-  Every run finished in under a second.
+  **High budgets fail loudly; they do not crash or hang.** Measured on default 1v1 maps with
+  the neutral-building pool: 225 per player generates 13 seeds in 15, 250 nine, 275 two, and
+  300 none — `no valid position for BUILDING_CLUSTER i of n`. The dock warns from 250
+  (`BUILDING_CAPACITY_FAILURE`). The ceiling is room, mostly the 20-cell cluster separation.
 
 **Pond sizing and charge.** A pond's charge is drawn first, because how long it lasts is the
 design target (Alex, 2026-10-01: about 3 minutes for a small pond and 8 for a large one, with one
@@ -304,11 +302,27 @@ footprints, and generation must not assume a square. Buildings are drawn from a 
 pieces**, the whole `neutral_building` family at uniform weights, so a cluster is packed from
 footprints, not from a count, and the pool is a generation parameter.
 
-**Cluster size is heavy-tailed**: `1 + NegativeBinomial(cluster_size_successes,
-cluster_size_success_chance)`, capped at `cluster_size_max`. At 2 and 0.4 (mean 4), clusters of
-1–3 are about half of all clusters, 4–7 about a third, 8–10 about one per two players, and 11–16
-about one per three matches. Uniform sizes in a narrow band — what this superseded — made every
-cluster the same landmark, and a map had only one or two of them.
+**A cluster is sized by garrison capacity, not building count** (Alex, 2026-10-01), because the
+buildings differ: a shack holds 3 and a large building 10. Each piece's capacity is read from its
+scene's `Garrison`, like its footprint. A cluster draws a capacity, then buildings until it is
+reached:
+
+- **capacity** — a band by `cluster_capacity_band_weights`, then uniformly within it
+  (`cluster_capacity_band_edges` 3–10–15–20–25, weights 0.55, 0.36, 0.07, 0.02): up to 10 is
+  about half of all clusters, 10–15 about a third, and the two upper bands are the rare
+  landmarks. Banded rather than a skew-normal or gamma, which could not hold the 20–25 tail
+  without inflating the bands below it;
+- **buildings** — drawn from the pool, each only if it lands the cluster at most
+  `cluster_capacity_overshoot` past its capacity. The pool's weights are scaled by
+  `capacity^(cluster_large_building_bias × t)`, `t` the cluster's capacity across the bands, so a
+  small cluster draws as the pool is weighted and a large one leans toward large buildings.
+
+A cluster's balance value is its capacity. Two earlier forms are superseded: uniform sizes in a
+narrow band made every cluster the same landmark, and a building-count draw
+(`1 + NegativeBinomial(2, 0.4)`) stopped meaning a cluster's size once buildings held 3 to 10.
+
+With the budget at 75 per player, a 60-seed sample of 1v1 maps gave per player 4.4 clusters up
+to 10, 2.2 at 10–15 and 0.64 at 15–20, and 0.4 clusters of 20–25 per match.
 
 TODO: balancing constraints on buildings are not designed — guaranteeing some number of clusters
 of given sizes, and positioning clusters relative to the starts (ideally as the same kind of
@@ -322,9 +336,7 @@ still sprawl into each other.
 
 A cluster's scatter radius is derived
 from its members' footprints (gap included) at `cluster_packing_density`, so a cluster of eight
-spreads wider than a cluster of three. A building's value is its footprint cell
-count — an approximation, and the reason a 3×3 is worth more than a 2×2 without anyone pricing
-garrison slots.
+spreads wider than a cluster of three.
 
 #### Collocation
 
@@ -451,7 +463,7 @@ make ground unbuildable, and height has no gameplay effect yet (Alex, 2026-09-19
       chasm beside a cliff stands above the ground below it, and a cliff cell is steep but not
       TALL: its middle can sit under the water, so the fill walks over it. Predicting that from
       rim heights means re-deriving the fill, so the fill itself is the test. A dry chasm is a
-      barrier like any other — see §Water as a feature kind, where dry and wet are one thing.
+      barrier like any other — see §Obstacle regions, where dry and wet are one thing.
     - The water is seeded per **4-connected** stretch, because that is how a basin fills: an arm
       joined only across a corner would take no water and stay walkable chasm.
 - Every cell bordering a barrier shares a moved corner, so it is steep too.
@@ -581,34 +593,111 @@ that cannot meet them is rejected, not patched.**
 
 ---
 
-## Water as a feature kind — PLANNED
+## Obstacle regions: mountains and lakes
 
-Decided 2026-09-19 (Alex), not built. Today water arrives only as a flooded pass-4 cut, plus
-the lithium ponds of pass 3.
+Decided 2026-10-01 (Alex), and built (`ObstacleRegions`, in pass 4; shaped in pass 5). It folds
+in the water-as-a-feature plan of 2026-09-19.
 
-**A chasm and a river are the same thing**: a cut shaped as a trench, which may or may not hold
-water. The gameplay difference is thin — forded with dry land a crossing is buildable, forded
-with shallow water it is not — and it does not earn a second mechanism. So pass 4 keeps deciding
-where a cut goes, and hands its shape to the water system.
+**Why.** Before regions, a generated 1v1 map was about 90% traversable (88–92% over five seeds:
+ridges and cliffs 6.2%, water barriers 2.2%, footprints 1.4%). The open ground was not
+gathered into large voids: a typical open cell was about 5 cells from something. The whole map
+was simply mostly open. Wider cuts were measured and do not fix this: at 6 cells wide instead
+of 3, obstruction went from 9% to 14%, but open ground stayed as close to things as before,
+because cuts are clipped short around features and fill ground that was already near
+something.
 
-- **Water is its own feature kind**, placed like a resource, and **balanced as a COST**: each
-  alliance should carry about the same water near it, because water is buildable ground taken
-  away rather than a prize. Same favor machinery, read with the opposite sign.
-- **Placement sits with the passes that shape navigation** — a lake changes walking distances
-  the way a ridge does, while its balance effect is small.
-- **Every body is a basin: a deep core with a shallow margin.** Size decides whether there is a
-  deep core at all, so small bodies come out entirely shallow. Shallow is walkable and
-  unbuildable, deep is neither (see [water-bodies.md](water-bodies.md)) — so shallow water is
-  the cheap kind of cost and deep water is a barrier.
-- **Shapes: lines, regions, and fords.** Lines are rivers and channels, regions are lakes and
-  marshes, and a ford is a shallow crossing cut into a deep line, the way pass 4 carves a gap in
-  a ridge.
-- **The total is capped as a share of the play area** (`water_fraction`), shallow and deep
-  together, checked like `flat_fraction`: most walkable ground must stay buildable.
-- **A body never spans levels.** Where one would, it breaks into a body per level at its own
-  height — the rule pass 5 already follows for chasms.
+**Target: 80% ± 5% of the play area traversable** (`target_traversable_fraction`,
+`traversable_tolerance`). A traversable cell is in play, not steep, not under deep water and not
+a footprint, so a lake's shallow shelf counts and its deep core does not. The finished terrain is
+measured, and **a map outside the band is rejected**. Unbuildable ground is tracked as well
+(the report states both shares). It is bounded only by `flat_fraction`, as a share of walkable
+ground.
+
+**There is no separate cap on water** (Alex, 2026-10-01). Ground left unbuildable by a slope
+and ground left unbuildable by shallow water play the same, because elevation has no combat
+effect and none is planned. So one bound covers both, `flat_fraction`. This supersedes the
+`water_fraction` cap of the 2026-09-19 plan.
+
+### A region is an aggregation of cuts
+
+Alex's framing: a set of cuts that isolates a piece of the navmesh, with that piece then made
+impassable entirely. Ridges and regions both make ground untraversable; their shapes differ,
+and so does what they do to the ground around them. So regions are **grown from pass 4's
+cuts**, not placed as free blobs:
+
+- **A cut grows by widening its Voronoi band.** A plain cut is the cells whose two nearest nodes
+  are its pair, within `barrier_width_cells` of equidistant. A grown cut keeps the same cells out
+  to a gap drawn in `region_width_min_cells … _max_cells`, ragged by coherent noise
+  (`region_edge_noise`, `region_noise_scale_cells`). Widening thickens the cut and lengthens it
+  toward the Voronoi vertices, where neighbouring grown cuts meet.
+- **Ground the growth closes off is filled**, when it holds no start, feature footprint or pond
+  and lies outside every start's buffer. A growth that would close off any of those is undone.
+  This is the "isolated piece made impassable".
+- **A cell whose nearest pair is an OPEN edge is never taken**, so the corridors the graph's
+  routes run through stay open. Only uncarved cuts grow: a carved cut is one the routes need.
+- **The growth happens in pass 4**, after carving and before the connectivity repair and the
+  choke floor, so those cover regions exactly as they cover cuts. Cuts grow, then the choke
+  floor trims, for up to three rounds, until the share is reached or no cut is left.
+- **Regions keep out of a start's clear box plus `feature_spacing`**. A cut's own thin band,
+  drawn before any growth, follows the plain barrier rule and may come closer.
+- **No choke is narrower than `MIN_CHOKE_WIDTH`**, regions included, and a region keeps that far
+  from the play edge.
+
+**`cut_fraction` is 0.45, the top of its bracket.** Only uncarved cuts grow, and at 0.3 growing
+every one of them still left 81–88% of a 1v1 map traversable. At 0.45 a full generation lands at
+79–81%.
+
+### Mountains and lakes
+
+- **A grown ridge is a mountain**: a rough massif, raised and steep everywhere like a ridge, and
+  `mountain_rise_per_cell` taller for each cell from its edge, up to `mountain_rise_max`. Not a
+  plateau with an unreachable flat top.
+- **A grown chasm is a lake**: its cells are the deep core, sunk like a chasm. Free ground within
+  `lake_shelf_cells` of it is sunk to a pond's pan, and the water stands at a pond's level, so the
+  shelf is shallow and wadeable but unbuildable. Deep is impassable
+  (see [water-bodies.md](water-bodies.md)). Where no shelf fits, a lake is deep to its edge.
+- **An ungrown flooded cut stays a river**, its water halfway up its chasm as before.
+- **Which kind grows next** is the kind further below its share of the cells grown so far,
+  `region_lake_fraction` of them lakes.
+- **A body never spans levels.** A lake follows the chasm rule of pass 5: the stretch on one
+  level holds water, and water that would run out of its lake is not placed, leaving the core dry
+  (a dry chasm is still a barrier).
 - **Waterfalls are deferred**: later, an upper line and a lower line are joined by decoration.
-  Nothing about the water model waits on them.
+
+Carried over unchanged from the 2026-09-19 water plan: a chasm and a river are the same thing,
+a cut shaped as a trench that may or may not hold water. The gameplay difference is thin (a dry
+crossing is buildable, a shallow one is not) and does not earn a second mechanism. A ford is a
+shallow crossing cut into deep water, the way pass 4 carves a gap in a ridge.
+
+### Obstruction is a cost balanced per alliance
+
+How much impassable ground lies near a player matters to that player, so it falls about evenly
+between alliances: mountains, lakes, ridges and cliffs together. Each impassable cell is split
+between alliances by the same access share the resources use (`MapFavor.access_share`). The
+next cut to grow is the one leaning most toward the alliance with the least so far, drawn from
+the best three so neighbouring seeds differ. **A map whose worst alliance is more than
+`obstruction_tolerance` (15%) from even is rejected.** Measured: 6–8% on five 1v1 seeds.
+
+TODO: the check for closed-off ground is local. Each piece of ground beside a growth is flooded
+up to 5000 cells, and a piece that large counts as open, so a growth that split the open ground
+into two such halves is not caught there. The connectivity repair then carves it open, possibly
+through the region. None has been seen.
+
+TODO: pass 6 rejects about one seed in five on routes between the starts (seed 2004 at the
+shipped defaults); whether `cut_fraction` 0.45 raised that rate is unmeasured.
+
+TODO: a generation takes 22–63 s on today's 120–150 maps. That cost is pass 6's grading, not
+regions: with regions off, a sample seed took 62 s (the doc's 6–18 s predates the larger maps).
+
+TODO: map-size parameters are still being calibrated. Keep the current `play_size` bounds for
+now. The parameterization will need reworking once resource and pseudo-resource allocation,
+the distances between spawns, and the share of openly traversable ground are settled together.
+
+Elsewhere, regions need:
+- the minimap to draw impassable terrain ([ui/hud-layout](../ux/ui/hud-layout.md) §The minimap);
+- an answer to whether terrain blocks shots or sight; it is open, and today it blocks neither
+  ([combat/target-acquisition](../combat/target-acquisition.md) §Line of fire);
+- a decoration slot kind per obstacle kind ([ux](../ux/README.md) §World).
 
 ---
 
@@ -659,9 +748,15 @@ count, a seed, and a form of every generation parameter, grouped.
 - **A failed generation changes nothing**: the report lists the broken invariants, the open
   scenario keeps the map it had, and Save stays disabled.
 - **Known-bad values are warned about as they are typed**: `MapGenerationParams.warnings()`
-  names each one, and the dock shows them under its buttons — a building occupancy at or above
-  `BUILDING_OCCUPANCY_FAILURE` (10%), a terrace step steeper than `MAX_SLOPE_DIFF`, and a
+  names each one, and the dock shows them under its buttons — a building capacity at or above
+  `BUILDING_CAPACITY_FAILURE` (250 per player), a terrace step steeper than `MAX_SLOPE_DIFF`, an energy
+  budget of zero (refused by pass 3: a map with no ponds or sites is not a map), and a
   `last_pass` short of the last pass, which the warning names.
+- **The form resets when `MapGenerationParams` changes on disk.** The editor hot-reloads the
+  script into the dock's live instance, and a knob the new script added or renamed reads as
+  null there rather than as its default — which once generated maps with no resources at all,
+  after the energy budget was renamed. Generate rebuilds the form from the new defaults first,
+  and the report says so.
 
 `tools/map_generation/generate_maps.tscn` is the batch form of the same pipeline: five
 two-player MAP scenes from fixed seeds, plus `report.md`, for reviewing the defaults. They land
@@ -701,18 +796,26 @@ produce a map outside them is a better failure than one that produces a bad map 
 | `favor_tolerance` | | how far an alliance's accessible value may sit from its target |
 | `correction_radius` | | how far pass 4 may move a feature to restore its favor |
 | `building_pool` | neutral pieces + weights | footprints vary; see §Buildings |
-| `building_occupancy` | 0.03 of play-area cells; warned at 0.10, fails from ~0.10–0.12 | about 12–20 of today's 4×4 buildings per player on a 2-player map; see §3 for the ceiling |
-| `building_cluster_separation_cells` | 10 | L1 between the nearest buildings of two clusters; below this they read as one |
+| `building_capacity_per_player` | 75; warned at 250, fails from ~225–300 | about 7.5 clusters and 16 buildings per player on a 1v1 map, which is what the capacity bands' stated frequencies assume; see §3 for the ceiling |
+| `building_cluster_separation_cells` | 20 (was 10; Alex, 2026-10-01) | L1 between the nearest buildings of two clusters; below this they read as one |
 | `site_triple_fraction` / `site_pair_fraction` | 0.2 … 0.4 each, drawn per map | share of sites in threes and in twos; the rest stand alone |
 | `site_cluster_separation_cells` | 50 | L1 between the nearest sites of two site clusters |
-| building-cells skew, location, scale | | |
 | `collocation_affinity` | per ordered kind pair: `[−1, 1]` + radius | only kinds placed earlier can be named |
 | `collocation_weight` | | how much affinity may cost in favor error |
-| `cluster_size` | 1 + NegBin(2, 0.4), capped at 16 | small clusters common, a large one a rarity rather than a fixture |
+| `cluster_capacity_band_edges` / `_weights` | 3–10–15–20–25 / 0.55, 0.36, 0.07, 0.02 | garrison capacity per cluster; small clusters common, a large one a rarity rather than a fixture |
+| `cluster_capacity_overshoot` | 2 | how far a cluster's last building may carry it past its drawn capacity |
+| `cluster_large_building_bias` | 0.5 | at the top band a 10-capacity building is drawn about 1.8× as often, relative to a 3, as the pool weights it |
 | `cluster_packing_density` | 0.3 … 0.5 | denser packings fail to fit often enough to reject whole seeds |
 | `last_pass` | a named pass: extent, starts, resources, topology, terrain, elevation | stop after that pass to inspect it. A `Pass` enum, numbered as this doc numbers them, so the dock offers the names and a report reads the same as §The pipeline |
 | `ground_height` | 4.0 | high enough that a chasm sunk `chasm_depth` stays above 0 |
-| `cut_fraction` | 0.15 … 0.45 of graph edges; 0.3 | 0 is a featureless field; above ~0.5 the map is an SC2 partition, which this game explicitly is not |
+| `cut_fraction` | 0.15 … 0.45 of graph edges; 0.45 | 0 is a featureless field; above ~0.5 the map is an SC2 partition, which this game explicitly is not. At the top because only uncarved cuts grow into regions (§Obstacle regions) |
+| `target_traversable_fraction` / `traversable_tolerance` | 0.8 / 0.05 | Alex, 2026-10-01; a finished map outside the band is rejected |
+| `region_width_min_cells` / `_max_cells` | 5 / 14 | a grown cut's reach from equidistant; wider did little, as cuts ran out before width did |
+| `region_edge_noise` / `region_noise_scale_cells` | 0.35 / 12 | ragged edges rather than the straight Voronoi boundary |
+| `region_lake_fraction` | 0.5 | share of grown cells that are lakes |
+| `lake_shelf_cells` | 2 | the wadeable shelf around a lake's core |
+| `mountain_rise_per_cell` / `mountain_rise_max` | 0.5 / 2.0 | a mountain is taller toward its core |
+| `obstruction_tolerance` | 0.15 | "somewhat fairly" (Alex); measured 6–8% |
 | `flooded_cut_fraction` | 0 … 1; 0.5 | share of cuts that are chasms rather than ridges |
 | `barrier_width_cells` | 2 … 5; 3 | roughly a barrier's thickness |
 | `MIN_CHOKE_WIDTH` (const) | 10 | no passage between barriers, or a barrier and the edge, is narrower; carves are 10–20 |

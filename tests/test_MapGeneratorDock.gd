@@ -33,7 +33,7 @@ func _field(a_property: String) -> Control:
 
 func test_the_form_offers_generation_knobs_but_not_piece_facts() -> void:
 	assert_not_null(_field("play_size_min"))
-	assert_not_null(_field("building_occupancy"))
+	assert_not_null(_field("building_capacity_per_player"))
 	assert_null(_field("site_energy_per_second"))
 	assert_null(_field("alliance_count"))
 
@@ -41,8 +41,8 @@ func test_the_form_offers_generation_knobs_but_not_piece_facts() -> void:
 func test_editing_a_field_edits_the_parameters() -> void:
 	(_field("play_size_max") as SpinBox).value = 101
 	assert_eq(_dock._params.play_size_max, 101)
-	(_field("building_occupancy") as SpinBox).value = 0.03
-	assert_almost_eq(_dock._params.building_occupancy, 0.03, 1e-6)
+	(_field("cluster_large_building_bias") as SpinBox).value = 0.25
+	assert_almost_eq(_dock._params.cluster_large_building_bias, 0.25, 1e-6)
 
 
 func test_changing_the_alliance_count_resets_to_its_defaults() -> void:
@@ -52,13 +52,13 @@ func test_changing_the_alliance_count_resets_to_its_defaults() -> void:
 	assert_ne(_dock._params.play_size_max, 101)
 
 
-func test_a_building_occupancy_at_the_failure_point_is_warned() -> void:
-	var occupancy: SpinBox = _field("building_occupancy") as SpinBox
-	occupancy.value = MapGenerationParams.BUILDING_OCCUPANCY_FAILURE - 0.01
+func test_a_building_capacity_at_the_failure_point_is_warned() -> void:
+	var capacity: SpinBox = _field("building_capacity_per_player") as SpinBox
+	capacity.value = MapGenerationParams.BUILDING_CAPACITY_FAILURE - 1
 	assert_false(_dock._warnings.visible)
-	occupancy.value = MapGenerationParams.BUILDING_OCCUPANCY_FAILURE
+	capacity.value = MapGenerationParams.BUILDING_CAPACITY_FAILURE
 	assert_true(_dock._warnings.visible)
-	assert_string_contains(_dock._warnings.text, "10%")
+	assert_string_contains(_dock._warnings.text, str(MapGenerationParams.BUILDING_CAPACITY_FAILURE))
 
 
 ## Every knob belongs to exactly one group. A new parameter that nobody filed still appears —
@@ -90,10 +90,10 @@ func test_every_parameter_has_a_description() -> void:
 
 
 func test_a_field_shows_its_description_on_hover() -> void:
-	var expected: String = MapGenerationParams.DESCRIPTIONS["building_occupancy"]
-	assert_eq(_field("building_occupancy").tooltip_text, expected)
+	var expected: String = MapGenerationParams.DESCRIPTIONS["building_capacity_per_player"]
+	assert_eq(_field("building_capacity_per_player").tooltip_text, expected)
 	var form: Array[Node] = _dock._form.get_children()
-	var label: Label = form[form.find(_field("building_occupancy")) - 1] as Label
+	var label: Label = form[form.find(_field("building_capacity_per_player")) - 1] as Label
 	assert_eq(label.tooltip_text, expected)
 	assert_eq(label.mouse_filter, Control.MOUSE_FILTER_STOP, "a Label ignores the mouse by default")
 

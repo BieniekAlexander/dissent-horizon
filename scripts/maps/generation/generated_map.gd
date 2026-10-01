@@ -10,7 +10,7 @@ extends RefCounted
 var generation_seed: int = 0
 ## The play rectangle drawn for this map, in diamonds.
 var play_size: Vector2i = Vector2i.ZERO
-## Cells inside the play rectangle — what the building occupancy is a fraction of.
+## Cells inside the play rectangle.
 var play_cell_count: int = 0
 var terrain: TerrainData = null
 var starts: Array[MapStart] = []
@@ -28,6 +28,12 @@ var elevation: MapElevation = null
 ## The water standing in flooded chasms: one {seed_cell: Vector2i, level: float} per connected
 ## stretch, written as uncharged WaterBodies.
 var chasm_waters: Array[Dictionary] = []
+## Shares of the play area a unit can cross, and can build on — measured on the finished
+## terrain (map-generation.md §Obstacle regions); -1 before pass 5 has shaped it.
+var traversable_fraction: float = -1.0
+var buildable_fraction: float = -1.0
+## Impassable cells per alliance, each split by MapFavor.access_share: the cost each carries.
+var obstructed := PackedFloat32Array()
 ## The last pass that ran (MapGenerationParams.last_pass, or earlier if one failed).
 var passes_run: int = 0
 

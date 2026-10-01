@@ -158,6 +158,23 @@ closes or goes round (`Attack._obstruction_on_line`).
 **Superseded:** every finished fixture was cover, occupant-only ones included, and it was cover
 against aircraft too.
 
+**Terrain blocks neither shots nor sight today.** `Attack._obstruction_on_line` queries only
+`STRUCTURE_BLOCKER`, so a unit may be ordered to shoot through a ridge, a cliff, or (once
+[obstacle regions](../terrain-and-navigation/map-generation.md) §Obstacle regions are built) a
+mountain. Only an emission whose flight tests contact stops on terrain, and only after it has
+been fired.
+
+TODO: whether, and which, terrain obstructs a shot is Alex's to resolve (deferred 2026-10-01).
+Any rule would be for a grounded shooter and a grounded target only, the same air exemption as
+obstructions. The cases as Alex framed them:
+
+- **A ridge between the two:** nothing should obstruct the shot.
+- **Sufficiently high terrain between them, such as a mountain:** it probably should.
+- **The two at different elevations, with a cliff between them:** it probably should not.
+- **Artillery:** may fire over obstructions, and be exempt.
+- **Vision:** terrain obstructing vision is also open, subject to performance (fog stamping
+  would need occlusion), balance, and visual fidelity.
+
 ## A Defend order also considers every enemy structure
 
 Aggro skips a candidate ranked worse than the command's floor

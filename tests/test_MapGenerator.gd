@@ -23,9 +23,16 @@ func _params() -> MapGenerationParams:
 	# A small map keeps these tests fast, so the energy budget is scaled to its area (about a
 	# third of a shipped 1v1 map's). The tests check the mechanics, not the shipped amounts.
 	params.energy_value_per_player = 13000.0
+	# Likewise the building clusters' separation: at the shipped 20 cells a map this small runs
+	# out of room for the clusters.
+	params.building_cluster_separation_cells = 10
+	# Obstacle regions are tested in test_ObstacleRegions: off here, and their checks with them.
+	params.target_traversable_fraction = 1.0
+	params.traversable_tolerance = 1.0
+	params.obstruction_tolerance = 1.0
 	params.building_pool = [
-		MapPiece.of(&"small_building", Vector2i(2, 2), 3.0),
-		MapPiece.of(&"large_building", Vector2i(3, 3), 1.0),
+		MapPiece.of(&"small_building", Vector2i(2, 2), 3.0, 3),
+		MapPiece.of(&"large_building", Vector2i(3, 3), 1.0, 6),
 	]
 	return params
 
@@ -156,19 +163,19 @@ func test_shelter_count_follows_alliance_count() -> void:
 		assert_between(count, 2, 5)
 
 
-func test_building_footprint_is_the_drawn_share_of_the_play_area() -> void:
+func test_building_capacity_is_the_per_player_budget() -> void:
 	var params: MapGenerationParams = _params()
 	var largest: int = 0
 	for piece: MapPiece in params.building_pool:
-		largest = maxi(largest, piece.cell_count())
+		largest = maxi(largest, piece.capacity)
+	var budget: int = params.building_capacity_per_player * params.start_count()
 	for generation_seed: int in _SEEDS:
-		var cells: float = 0.0
+		var capacity: float = 0.0
 		var map: GeneratedMap = _generate(generation_seed)
 		for cluster: MapFeature in map.features_of(MapFeature.Kind.BUILDING_CLUSTER):
-			cells += cluster.value
-			assert_between(cluster.placements.size(), 1, params.cluster_size_max)
-		assert_gte(cells, params.building_occupancy * map.play_cell_count)
-		assert_lt(cells, params.building_occupancy * map.play_cell_count + largest)
+			capacity += cluster.value
+		assert_gte(capacity, budget)
+		assert_lt(capacity, budget + largest)
 
 
 func test_clusters_keep_their_separation() -> void:
@@ -204,10 +211,10 @@ func _nearest(a_cluster: MapFeature, a_other: MapFeature) -> int:
 func _mixed_pool_params() -> MapGenerationParams:
 	var params: MapGenerationParams = _params()
 	params.building_pool = [
-		MapPiece.of(&"shack", Vector2i(2, 2)),
-		MapPiece.of(&"square", Vector2i(4, 4)),
-		MapPiece.of(&"long", Vector2i(3, 5)),
-		MapPiece.of(&"wide", Vector2i(8, 5)),
+		MapPiece.of(&"shack", Vector2i(2, 2), 1.0, 3),
+		MapPiece.of(&"square", Vector2i(4, 4), 1.0, 5),
+		MapPiece.of(&"long", Vector2i(3, 5), 1.0, 5),
+		MapPiece.of(&"wide", Vector2i(8, 5), 1.0, 10),
 	]
 	return params
 
@@ -238,19 +245,64 @@ func test_a_mixed_pool_keeps_cluster_separation_and_the_building_budget() -> voi
 	var params: MapGenerationParams = _mixed_pool_params()
 	var largest: int = 0
 	for piece: MapPiece in params.building_pool:
-		largest = maxi(largest, piece.cell_count())
+		largest = maxi(largest, piece.capacity)
 	for generation_seed: int in _SEEDS:
 		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
 		var clusters: Array[MapFeature] = map.features_of(MapFeature.Kind.BUILDING_CLUSTER)
-		var cells: float = 0.0
+		var capacity: float = 0.0
 		for cluster: MapFeature in clusters:
-			cells += cluster.value
-		assert_gte(cells, params.building_occupancy * map.play_cell_count)
-		assert_lt(cells, params.building_occupancy * map.play_cell_count + largest)
+			capacity += cluster.value
+		var budget: int = params.building_capacity_per_player * params.start_count()
+		assert_gte(capacity, budget)
+		assert_lt(capacity, budget + largest)
 		for i: int in clusters.size():
 			for j: int in range(i + 1, clusters.size()):
 				assert_gte(_nearest(clusters[i], clusters[j]), params.building_cluster_separation_cells,
 					"seed %d: clusters %d and %d" % [generation_seed, i, j])
+
+
+func test_a_building_cluster_is_sized_by_capacity_not_count() -> void:
+	var params: MapGenerationParams = _mixed_pool_params()
+	var edges: PackedInt32Array = params.cluster_capacity_band_edges
+	var top: int = edges[edges.size() - 1] + params.cluster_capacity_overshoot
+	for generation_seed: int in _SEEDS:
+		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var clusters: Array[MapFeature] = map.features_of(MapFeature.Kind.BUILDING_CLUSTER)
+		# The last cluster may be cut short at the budget, so only the ceiling holds for all.
+		for cluster: MapFeature in clusters:
+			var capacity: int = 0
+			for placement: Dictionary in cluster.placements:
+				capacity += (placement.piece as MapPiece).capacity
+			assert_eq(float(capacity), cluster.value, "a cluster's value is its capacity")
+			assert_lte(capacity, top, "seed %d" % generation_seed)
+
+
+func test_cluster_capacity_bands_hold_in_expectation() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var edges := PackedInt32Array([3, 10, 15, 20, 25])
+	var weights := PackedFloat32Array([0.55, 0.36, 0.07, 0.02])
+	var counts: Array[int] = [0, 0, 0, 0]
+	var draws: int = 20000
+	for _i: int in draws:
+		var capacity: float = MapGenerator.cluster_capacity(rng, edges, weights)
+		assert_between(capacity, float(edges[0]), float(edges[4]))
+		counts[clampi(edges.bsearch(int(capacity), false) - 1, 0, 3)] += 1
+	for band: int in weights.size():
+		assert_almost_eq(counts[band] / float(draws), weights[band], 0.015, "band %d" % band)
+
+
+func test_a_larger_cluster_leans_toward_larger_buildings() -> void:
+	var pool: Array[MapPiece] = [
+		MapPiece.of(&"small", Vector2i(2, 2), 1.0, 3), MapPiece.of(&"big", Vector2i(8, 5), 1.0, 10)]
+	var edges := PackedInt32Array([3, 10, 15, 20, 25])
+	var smallest: PackedFloat32Array = MapGenerator.building_weights(pool, edges, 0.5, 3.0)
+	var largest: PackedFloat32Array = MapGenerator.building_weights(pool, edges, 0.5, 25.0)
+	assert_almost_eq(smallest[1] / smallest[0], 1.0, 0.001,
+		"the smallest cluster keeps the pool's weights")
+	assert_gt(largest[1] / largest[0], 1.0, "the largest cluster favours the big building")
+	var flat: PackedFloat32Array = MapGenerator.building_weights(pool, edges, 0.0, 25.0)
+	assert_almost_eq(flat[1] / flat[0], 1.0, 0.001, "no bias, no lean")
 
 
 func test_a_site_cluster_is_one_to_three_sites_edge_to_edge() -> void:
@@ -324,6 +376,25 @@ func test_an_impossible_map_fails_loudly() -> void:
 	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
 	assert_false(map.is_valid())
 	assert_gt(map.errors.size(), 0)
+
+
+func test_a_map_with_no_energy_budget_fails_loudly() -> void:
+	var params: MapGenerationParams = _params()
+	params.energy_value_per_player = 0.0
+	assert_gt(params.warnings().size(), 0, "the form warns before generating")
+	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
+	assert_false(map.is_valid(), "a map with no ponds or sites is not a valid map")
+	assert_eq(map.features_of(MapFeature.Kind.POND).size(), 0)
+	assert_eq(map.features_of(MapFeature.Kind.SITE_CLUSTER).size(), 0)
+
+
+func test_a_positive_energy_budget_places_ponds_and_sites() -> void:
+	for generation_seed: int in _SEEDS:
+		var map: GeneratedMap = _generate(generation_seed)
+		assert_true(map.is_valid(), "seed %d: %s" % [generation_seed, map.errors])
+		assert_gt(map.features_of(MapFeature.Kind.POND).size(), 0, "seed %d" % generation_seed)
+		assert_gt(map.features_of(MapFeature.Kind.SITE_CLUSTER).size(), 0,
+			"seed %d" % generation_seed)
 #endregion
 
 

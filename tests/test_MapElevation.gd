@@ -19,13 +19,17 @@ func _params() -> MapGenerationParams:
 	var params: MapGenerationParams = MapGenerationParams.for_start_count(2)
 	params.site_piece = MapPiece.of(&"site", Vector2i(2, 2))
 	params.shelter_piece = MapPiece.of(&"shelter", Vector2i(3, 3))
-	params.building_pool = [MapPiece.of(&"building", Vector2i(4, 4))]
+	params.building_pool = [MapPiece.of(&"building", Vector2i(4, 4), 1.0, 5)]
 	params.site_energy_per_second = 5.0
 	# The pre-2026-10-01 map size and an energy budget scaled to it: these tests check elevation,
 	# and a larger map only makes them slower.
 	params.play_size_min = 75
 	params.play_size_max = 120
 	params.energy_value_per_player = 20000.0
+	# Obstacle regions are tested in test_ObstacleRegions: off here, and their checks with them.
+	params.target_traversable_fraction = 1.0
+	params.traversable_tolerance = 1.0
+	params.obstruction_tolerance = 1.0
 	return params
 
 

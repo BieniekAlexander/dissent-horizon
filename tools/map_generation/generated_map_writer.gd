@@ -48,8 +48,8 @@ func default_params(a_start_count: int) -> MapGenerationParams:
 	return params
 
 
-## Overwrite the parameters that are facts about pieces — footprints, the building pool, the
-## extractor's income — from the piece scenes, so none is typed by hand.
+## Overwrite the parameters that are facts about pieces — footprints, garrison capacities, the
+## building pool, the extractor's income — from the piece scenes, so none is typed by hand.
 func apply_piece_facts(a_params: MapGenerationParams) -> void:
 	a_params.site_piece = _piece_from(SITE_SCENE, 1.0)
 	a_params.shelter_piece = _piece_from(SHELTER_SCENE, 1.0)
@@ -67,7 +67,9 @@ func _piece_from(a_path: String, a_weight: float) -> MapPiece:
 	var scene := load(a_path) as PackedScene
 	var entity := scene.instantiate() as Entity
 	var footprint: Vector2i = (entity.get_node("Structure") as Structure).dimensions
-	var piece := MapPiece.of(entity.id, footprint, a_weight)
+	var garrison := entity.get_node_or_null("Garrison") as Garrison
+	var capacity: int = garrison.capacity if garrison != null else 0
+	var piece := MapPiece.of(entity.id, footprint, a_weight, capacity)
 	entity.free()
 	_scenes[piece.id] = scene
 	return piece
@@ -252,6 +254,21 @@ static func report(map: GeneratedMap, title: String) -> PackedStringArray:
 			map.topology.cuts.size(), map.topology.graph.edges.size(), flooded,
 			map.topology.cuts.size() - flooded, map.topology.carved.count(true),
 			map.topology.barrier_of.size()])
+		var lakes: int = 0
+		var mountains: int = 0
+		for cut: int in map.topology.cuts.size():
+			if map.topology.grown[cut]:
+				lakes += 1 if map.topology.flooded[cut] else 0
+				mountains += 0 if map.topology.flooded[cut] else 1
+		lines.append("%d cuts grown into regions: %d mountains, %d lakes" % [
+			lakes + mountains, mountains, lakes])
+	if map.traversable_fraction >= 0.0:
+		var obstructed := PackedStringArray()
+		for value: float in map.obstructed:
+			obstructed.append("%.0f" % value)
+		lines.append("%.1f%% of the play area traversable, %.1f%% buildable; impassable cells "
+			% [100.0 * map.traversable_fraction, 100.0 * map.buildable_fraction]
+			+ "per alliance %s" % ", ".join(obstructed))
 	if map.elevation != null:
 		var terraces: Dictionary = {}
 		var tiers: Dictionary = {}
