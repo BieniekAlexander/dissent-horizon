@@ -635,8 +635,8 @@
 			"cl_barracks"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
-		"tooltip": "Train Recruit — 120 energy, 8s",
-		"verbose": "Train Recruit — 120 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 7.5 lead, reach 8"
+		"tooltip": "Train Recruit — 100 energy, 8s",
+		"verbose": "Train Recruit — 100 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 7.5 lead, reach 8"
 	},
 	"command_tool_cl_bioLight_antiMech": {
 		"context": "TRAIN",
@@ -829,7 +829,7 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_mechLight_dominionGen.tscn",
 		"tooltip": "Train Stock Truck — 500 energy, 15s",
-		"verbose": "Train Stock Truck — 500 energy, 15s\n300 HP · medium armour · mech frame\ngrounded, speed 4 · vision 20"
+		"verbose": "Train Stock Truck — 500 energy, 15s\nRequires: Compound\n300 HP · medium armour · mech frame\ngrounded, speed 4 · vision 20"
 	},
 	"command_tool_cl_mechMedium_antiLight": {
 		"context": "TRAIN",

@@ -325,7 +325,7 @@
 		"build_time_ticks": 240,
 		"cost": {
 			"dominion": 0,
-			"energy": 120,
+			"energy": 100,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -428,7 +428,9 @@
 			"energy": 500,
 			"infrastructure": 0
 		},
-		"requires": []
+		"requires": [
+			"cl_infrastructure"
+		]
 	},
 	"cl_mechMedium_antiLight": {
 		"build_time_ticks": 360,

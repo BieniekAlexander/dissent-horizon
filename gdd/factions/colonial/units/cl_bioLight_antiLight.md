@@ -4,7 +4,7 @@ title: Recruit
 scene: res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn
 build:
   cost:
-    energy: 120
+    energy: 100
   time: 8
   requires: []
 defense:

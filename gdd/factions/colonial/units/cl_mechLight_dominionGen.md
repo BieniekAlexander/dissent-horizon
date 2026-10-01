@@ -9,7 +9,7 @@ build:
   cost:
     energy: 500
   time: 15
-  requires: []
+  requires: [cl_infrastructure]
 defense:
   hp: 300
   armour: MEDIUM

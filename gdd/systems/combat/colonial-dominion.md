@@ -107,11 +107,15 @@ Target values for the change; once applied, the spec docs own them.
 
 | Piece | Change | Consequence |
 |---|---|---|
-| Stock Truck | armour `MEDIUM`; speed `1.75` | survives the roads it now spends its life on (the damage table's anti-light types all fall a step against MEDIUM); barely outpaces infantry, so it stops being a scout and capturing an enemy soldier becomes opportunistic rather than a chase |
+| Stock Truck | armour `MEDIUM`; speed back to `QUICK` (see below) | survives the roads it now spends its life on (the damage table's anti-light types all fall a step against MEDIUM) |
 | Shelter | spawn interval `10`, capacity unchanged | arrivals become frequent and small, which is what makes route length bind at map distances rather than only at absurd ones; the population cap still buffers a Shelter left alone, for a third as long |
 
-The truck's speed is also what puts the Colonial "slow to traverse the map" identity on the
-dominion route itself — see [design-framework/matchups](../../design-framework/matchups.md).
+**The truck is fast again, and gated instead (Alex, 2026-10-01).** It was slowed to `1.75` to
+stop it being oppressive at the start of a match, which also put the Colonial "slow to traverse
+the map" identity on the dominion route ([design-framework/matchups](../../design-framework/matchups.md)).
+That job now falls to its prerequisite: the truck requires the Compound (`cl_infrastructure`),
+so it is not available immediately, and its speed is back at `QUICK`. It scouts and chases again.
+TODO: its price may rise too.
 
 ## What it depends on
 
@@ -129,7 +133,7 @@ Tasking a truck on a Shelter is its own system, and the first consumer of it:
 2. ✅ **The positional bonus.** Emitted on completion (`Garrison._emit_positional_bonus` →
    `Abilities.reduce_all_cooldowns`); the passive recharge-rate constant is retired and
    `work_detail`'s ability doc rewritten around the event.
-3. ✅ **Piece values.** Stock Truck (`armour: MEDIUM`, `speed: 1.75`) via the spec doc and an
+3. ✅ **Piece values.** Stock Truck (`armour: MEDIUM`; its speed has since returned to `QUICK`) via the spec doc and an
    importer run; Shelter's `spawn_interval` (10s) hand-authored on `nt_shelter.tscn` directly —
    Shelter is not yet part of the spec-doc schema (`tools/spec_import/README.md` §Doc schema).
 4. ✅ **Tasking.** [commands/unit-tasking](../commands/unit-tasking.md) — `TaskShelter`. The bot
