@@ -773,7 +773,7 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn",
 		"tooltip": "Build Watch Tower — 400 energy, 30s",
-		"verbose": "Build Watch Tower — 400 energy, 30s\nRequires: Compound\n500 HP · medium armour · mech frame\n1×1 cells · vision 24\nCosts 50 infrastructure upkeep\nBallisticWeapon: 15 lead, reach 12"
+		"verbose": "Build Watch Tower — 400 energy, 30s\nRequires: Compound\n500 HP · medium armour · mech frame\n1×1 cells · vision 24\nCosts 50 infrastructure upkeep\nBallisticWeapon: 25 lead, reach 12"
 	},
 	"command_tool_cl_defense_antiStructure": {
 		"context": "BUILD",
