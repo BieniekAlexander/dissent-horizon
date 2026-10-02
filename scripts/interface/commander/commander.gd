@@ -6,7 +6,8 @@ extends Node
 
 #region Identifiers
 const NUM_MAX_COMMANDERS: int = 8
-@export_range(0, NUM_MAX_COMMANDERS+1) var id: int
+@export_range(0, NUM_MAX_COMMANDERS + 1) var id: int
+
 
 ## Whether `a_commander_id` is on this commander's side — whose pending pieces this one's HUD
 ## shows, and whose planned sites it may not build over.
@@ -14,6 +15,8 @@ const NUM_MAX_COMMANDERS: int = 8
 ## (gdd/systems/combat/target-acquisition.md §Alliances); then an ally answers true too.
 func shares_side_with(a_commander_id: int) -> bool:
 	return a_commander_id == id
+
+
 #endregion
 
 #region Faction
@@ -44,6 +47,7 @@ var sanction_grid: SanctionGrid = null
 ## Null means this commander's scenario places its base some other way (authored, or none).
 var deployment: Deployment = null
 
+
 ## This commander's dominion route, or null when its faction has none. Memoized per faction
 ## instance, because the HUD asks every frame and the search walks a subtree; a faction's route
 ## never changes once instanced. Unmemoized before the faction exists (test harnesses).
@@ -54,6 +58,7 @@ func dominion_route() -> DominionRoute:
 		_dominion_route_faction_id = faction.get_instance_id()
 		_dominion_route = DominionRoute.for_commander(self)
 	return _dominion_route if is_instance_valid(_dominion_route) else null
+
 
 var _dominion_route: DominionRoute = null
 var _dominion_route_faction_id: int = 0
@@ -104,22 +109,26 @@ var infrastructure_provided: int = BASE_INFRASTRUCTURE
 var infrastructure_required: int = 0
 ## Spare capacity (capacity minus upkeep); negative when strained.
 var infrastructure:
-	get: return infrastructure_provided-infrastructure_required
+	get:
+		return infrastructure_provided - infrastructure_required
 
 ## Emitted whenever any resource pool changes. Lets the HUD (and any other
 ## listener) update on change instead of polling every frame. All resource
 ## mutation goes through the mutators below so this fires consistently.
 signal resources_changed
 
+
 ## Add `amount` energy (negative to spend). Single write-point for the energy pool.
 func add_energy(a_amount: int) -> void:
 	energy += a_amount
 	resources_changed.emit()
 
+
 ## Add `amount` dominion (negative to spend). Single write-point for the dominion pool.
 func add_dominion(a_amount: int) -> void:
 	dominion += a_amount
 	resources_changed.emit()
+
 
 ## The fraction of a killed enemy's energy cost this commander is paid, from the standing
 ## (passive) sanctions it has unlocked — the Anarchists' Scavenge family. 0.0 when it owns
@@ -158,10 +167,12 @@ func kill_bounty_for(a_type: StringName) -> int:
 func add_infrastructure(a_infrastructure: int) -> void:
 	_apply_infrastructure(a_infrastructure, 1)
 
+
 ## Withdraw a contribution previously passed to add_infrastructure — on death or when the
 ## commandable changes hands. Pass the commandable's own (unnegated) infrastructure.
 func remove_infrastructure(a_infrastructure: int) -> void:
 	_apply_infrastructure(a_infrastructure, -1)
+
 
 func _apply_infrastructure(a_infrastructure: int, a_sign: int) -> void:
 	if a_infrastructure > 0:
@@ -170,10 +181,12 @@ func _apply_infrastructure(a_infrastructure: int, a_sign: int) -> void:
 		infrastructure_required += -a_infrastructure * a_sign
 	resources_changed.emit()
 
+
 ## True when upkeep exceeds capacity. Production structures build at reduced speed
 ## while this holds (see Production.tick).
 func is_infrastructure_strained() -> bool:
 	return infrastructure_required > infrastructure_provided
+
 
 ## One infrastructure provider's grant — the segment size InfrastructureBar divides by. Read off
 ## the faction's DEDICATED provider (Faction.infrastructure_source) whether or not one stands
@@ -184,9 +197,12 @@ func infrastructure_provider_grant() -> int:
 	if faction == null or faction.infrastructure_source == &"":
 		return 0
 	# The default variant's: what the faction's provider is when nothing else is asked.
-	var source := get_build_preview_instance(Tool.for_type(faction.infrastructure_source)) \
-		as Commandable
+	var source := (
+		get_build_preview_instance(Tool.for_type(faction.infrastructure_source)) as Commandable
+	)
 	return maxi(source.infrastructure, 0) if source != null else 0
+
+
 #endregion
 
 #region Production queue
@@ -196,8 +212,10 @@ func infrastructure_provider_grant() -> int:
 ## never add the commander to a tree.
 var production_queue: ProductionQueue
 
+
 func _init() -> void:
 	production_queue = ProductionQueue.new(self)
+
 
 ## Unmet needs the production queue can WAIT OUT: the spendable pools. A purchase
 ## blocked only by these is queued, not refused. Infrastructure is in the list because it is
@@ -205,9 +223,12 @@ func _init() -> void:
 ## strained. Anything else (a missing prerequisite structure) is a hard refusal at
 ## order time, since waiting can't resolve it.
 static func is_deferrable_need(need: TechnologySpec.UnmetNeed) -> bool:
-	return need == TechnologySpec.UnmetNeed.NOT_ENOUGH_ENERGY \
-		or need == TechnologySpec.UnmetNeed.NOT_ENOUGH_DOMINION \
+	return (
+		need == TechnologySpec.UnmetNeed.NOT_ENOUGH_ENERGY
+		or need == TechnologySpec.UnmetNeed.NOT_ENOUGH_DOMINION
 		or need == TechnologySpec.UnmetNeed.NOT_ENOUGH_INFRASTRUCTURE
+	)
+
 
 ## The unmet need that should BLOCK an order for `a_type`, or NONE. Tech prerequisites
 ## always fail here. Resource shortfalls fail here only when `allow_deferral` is false —
@@ -219,25 +240,17 @@ static func is_deferrable_need(need: TechnologySpec.UnmetNeed) -> bool:
 ## that and refused outright when they haven't. It defaults to true so every caller that
 ## isn't a player order (scenario events, the bot's actuator, tests) keeps the original
 ## always-defer behavior without having to opt in.
-func get_blocking_need(
-	a_type: Variant,
-	a_allow_deferral: bool = true
-) -> TechnologySpec.UnmetNeed:
+func get_blocking_need(a_type: Variant, a_allow_deferral: bool = true) -> TechnologySpec.UnmetNeed:
 	return _blocking_need(a_type, get_unmet_need(a_type), a_allow_deferral)
 
 
 ## get_blocking_need for a Tool, priced by its own form (see get_unmet_need_for).
-func get_blocking_need_for(
-	a_tool: Tool,
-	a_allow_deferral: bool = true
-) -> TechnologySpec.UnmetNeed:
+func get_blocking_need_for(a_tool: Tool, a_allow_deferral: bool = true) -> TechnologySpec.UnmetNeed:
 	return _blocking_need(a_tool.type, get_unmet_need_for(a_tool), a_allow_deferral)
 
 
 func _blocking_need(
-	a_type: Variant,
-	a_need: TechnologySpec.UnmetNeed,
-	a_allow_deferral: bool
+	a_type: Variant, a_need: TechnologySpec.UnmetNeed, a_allow_deferral: bool
 ) -> TechnologySpec.UnmetNeed:
 	var need: TechnologySpec.UnmetNeed = a_need
 	if not a_allow_deferral:
@@ -248,8 +261,10 @@ func _blocking_need(
 	# That is the distinction the whole feature turns on: "I have not built the tech lab"
 	# is a refusal, while "the tech lab is going up right now" is a queue. Without it a
 	# player could order the whole tech tree from an empty base and watch nothing happen.
-	if need == TechnologySpec.UnmetNeed.MISSING_STRUCTURE \
-			and missing_prerequisites_are_incoming(a_type):
+	if (
+		need == TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+		and missing_prerequisites_are_incoming(a_type)
+	):
 		return TechnologySpec.UnmetNeed.NONE
 	return need
 
@@ -301,14 +316,16 @@ func has_planned_structure(a_id: StringName) -> bool:
 			return c.id == a_id and c.is_planned and not c.is_queued_for_deletion()
 	)
 
+
 ## True when `a_type` may be ORDERED — its tech prerequisites are met. Says nothing
 ## about affordability: an unaffordable purchase is queued, not refused.
 func can_order(a_type: Variant) -> bool:
 	return get_blocking_need(a_type) == TechnologySpec.UnmetNeed.NONE
-#endregion
+
 
 #endregion
 
+#endregion
 
 #region Technology
 ## What a commander can construct: piece id (StringName — see EntityIds) ->
@@ -318,6 +335,7 @@ func can_order(a_type: Variant) -> bool:
 const TECHNOLOGY_JSON_PATH: String = "res://resources/generated/technology.json"
 
 var technology_mapping: Dictionary = _load_technology()
+
 
 ## PIECE KEYS ONLY. It used to carry int `Ability.Type` values alongside them, as the gate
 ## for the one hard-coded ability; abilities are doc-governed now and a granted pool is the
@@ -387,6 +405,8 @@ func is_research_taken(a_type: Variant) -> bool:
 		if commandable.production != null and commandable.production.is_producing(id):
 			return true
 	return false
+
+
 #endregion
 
 
@@ -394,9 +414,8 @@ func is_research_taken(a_type: Variant) -> bool:
 ## given piece id. Single source of truth for "is this structure prereq met?",
 ## shared by proc_technology and ConditionStructureBuilt.
 func has_built_structure(a_id: StringName) -> bool:
-	return _structures_of(a_id).get_values().any(
-		func(s: Commandable): return s.is_built
-	)
+	return _structures_of(a_id).get_values().any(func(s: Commandable): return s.is_built)
+
 
 ## What stops this commander buying `a_tool`: the piece's prerequisites (read off its `type`) and
 ## the PRICE of the tool's own form (a variant-bound tool costs what its variant costs).
@@ -420,8 +439,10 @@ func get_unmet_need(a_type: Variant) -> TechnologySpec.UnmetNeed:
 		return TechnologySpec.UnmetNeed.ALREADY_RESEARCHED
 	return technology_spec.get_unmet_need(self)
 
+
 func has_resources_for(a_type: Variant) -> bool:
 	return get_unmet_need(a_type) == TechnologySpec.UnmetNeed.NONE
+
 
 func use_resources_for(a_type: Variant) -> void:
 	var technology_spec: TechnologySpec = technology_mapping.get(a_type)
@@ -429,6 +450,7 @@ func use_resources_for(a_type: Variant) -> void:
 	add_dominion(-technology_spec.dominion_cost)
 	# Infrastructure is upkeep, not a one-time spend — it's adjusted when structures are
 	# built/lost (see Commandable), not deducted per train.
+
 
 ## Refund the cost of `a_type` — the inverse of use_resources_for. Used when a queued
 ## training job is cancelled. A no-op for an unknown type. Infrastructure is upkeep (adjusted
@@ -440,6 +462,7 @@ func refund_resources_for(a_type: Variant) -> void:
 	add_energy(technology_spec.energy_cost)
 	add_dominion(technology_spec.dominion_cost)
 
+
 func proc_technology() -> void:
 	# updates the tech tree of the commander according to changes in ownership.
 	# A spec with no required_structures has all() return true → NONE.
@@ -449,8 +472,9 @@ func proc_technology() -> void:
 			if tech.required_structures.all(func(t): return has_built_structure(t))
 			else TechnologySpec.UnmetNeed.MISSING_STRUCTURE
 		)
-#endregion
 
+
+#endregion
 
 #region Commandables
 
@@ -459,29 +483,39 @@ func proc_technology() -> void:
 ## structure ids are first seen (ids are open-ended, unlike the old enum).
 var structure_type_map: Dictionary = {}
 
+
 func _structures_of(a_id: StringName) -> Set:
 	if not structure_type_map.has(a_id):
 		structure_type_map[a_id] = Set.new()
 	return structure_type_map[a_id]
 
+
 func add_structure(a_structure: Commandable) -> void:
 	_structures_of(a_structure.id).add(a_structure)
 	proc_technology()
 
+
 func remove_structure(a_structure: Commandable) -> void:
 	_structures_of(a_structure.id).remove(a_structure)
 	proc_technology()
+
+
 #endregion
+
 
 ## Whether this commander still has anything in play — the basis for Scenario's implicit
 ## "you have been wiped out" loss. Three things it deliberately does NOT count:
 ##
-## Why it works this way: gdd/systems/scenario-scripting/objectives-and-completion.md §What counts as still being in play.
+## Why it works this way: gdd/systems/scenario-scripting/objectives-and-completion.md §What counts
+## as still being in play.
 func has_anything_in_play() -> bool:
 	return _owned_commandables().any(
 		func(c: Commandable) -> bool:
-			return not c.is_queued_for_deletion() and not c.is_planned \
+			return (
+				not c.is_queued_for_deletion()
+				and not c.is_planned
 				and (c.selectable == null or c.selectable.is_reachable())
+			)
 	)
 
 
@@ -508,6 +542,8 @@ func has_production_base() -> bool:
 		func(c: Commandable) -> bool:
 			return c.structure_is_active() and not c.is_queued_for_deletion() and not c.is_planned
 	)
+
+
 #endregion
 
 
@@ -550,15 +586,15 @@ func casters_of(a_sanction: Sanction) -> Array:
 	return casters_of_ability(a_sanction.ability_id) if a_sanction != null else []
 
 
-## Every commandable this commander owns that can train anything.## Every commandable this commander owns that can train anything. What an unfenced
+## Every commandable this commander owns that can train anything.## Every commandable this commander
+## owns that can train anything. What an unfenced
 ## purchase resolves against (see PurchaseTransaction.dispatch_filter): a train order given
 ## with nothing selected is eligible at any of these, and blueprints are INCLUDED because a
 ## unit ordered at a building that hasn't been started yet legitimately waits for it — the
 ## `is_built` gate belongs at dispatch (ready_producers), not here.
 func owned_producers() -> Array:
 	return _owned_commandables().filter(
-		func(c: Commandable) -> bool:
-			return not c.is_queued_for_deletion() and c.production != null
+		func(c: Commandable) -> bool: return not c.is_queued_for_deletion() and c.production != null
 	)
 
 
@@ -572,8 +608,12 @@ func owned_producers() -> Array:
 func get_deposit_structures() -> Array:
 	return _owned_commandables().filter(
 		func(s: Commandable) -> bool:
-			return s.structure_is_active() and s.is_built \
-				and s.garrison != null and s.garrison.can_intern()
+			return (
+				s.structure_is_active()
+				and s.is_built
+				and s.garrison != null
+				and s.garrison.can_intern()
+			)
 	)
 
 
@@ -585,6 +625,7 @@ func get_deposit_structures() -> Array:
 ## rather than inferred. Never reset, so sequence numbers stay unique for this commander's
 ## whole life. See gdd/systems/commands/unit-tasking.md §Arbitration is by task age.
 var _next_task_sequence: int = 1
+
 
 func next_task_sequence() -> int:
 	var sequence: int = _next_task_sequence
@@ -608,9 +649,13 @@ func trucks_tasked_on(a_shelter: Entity) -> Array[Commandable]:
 				break
 	var tasked: Array[Commandable] = []
 	tasked.assign(sequence_of.keys())
-	tasked.sort_custom(func(a: Commandable, b: Commandable) -> bool:
-		return int(sequence_of[a]) < int(sequence_of[b]))
+	tasked.sort_custom(
+		func(a: Commandable, b: Commandable) -> bool:
+			return int(sequence_of[a]) < int(sequence_of[b])
+	)
 	return tasked
+
+
 #endregion
 
 
@@ -626,6 +671,7 @@ func docking_bays() -> Array[DockingBay]:
 		if c.docking_bay != null:
 			result.append(c.docking_bay)
 	return result
+
 
 ## The airfield `unit` should head for: the closest one with a free pad, or — when every
 ## pad is taken — the closest that would admit it at all, so a unit sent out with all
@@ -653,6 +699,7 @@ func nearest_docking_bay_for(a_unit: Commandable) -> DockingBay:
 			best_free = bay
 	return best_free if best_free != null else best_any
 
+
 ## Total pads across every finished airfield this commander owns — the denominator of the
 ## capacity soft gate.
 func total_docking_capacity() -> int:
@@ -660,6 +707,7 @@ func total_docking_capacity() -> int:
 	for bay: DockingBay in docking_bays():
 		total += bay.capacity()
 	return total
+
 
 ## Aircraft this commander owns that need a pad to rearm at — anything that CAN dock and
 ## carries a CHARGED weapon. Both halves exclude real cases: a unit whose weapons reload on
@@ -676,6 +724,7 @@ func charged_aircraft_count() -> int:
 		if c.weapon_inventory != null and c.weapon_inventory.has_charged_weapons():
 			total += 1
 	return total
+
 
 ## True when this commander has a pad spare for one more charged aircraft.
 ##
@@ -705,8 +754,9 @@ static func _needs_docking(a_piece: Commandable) -> bool:
 static func _pad_count_of(a_piece: Commandable) -> float:
 	var bay := a_piece.get_node_or_null("DockingBay") as DockingBay
 	return float(bay.capacity()) if bay != null else 0.0
-#endregion
 
+
+#endregion
 
 #region Economy readouts
 ## Three figures about where this commander's energy is going. They PARTITION cleanly, which
@@ -718,6 +768,7 @@ static func _pad_count_of(a_piece: Commandable) -> float:
 ## has already taken its energy out of the pool; a wait-mode one has not. Without a figure
 ## naming what has been promised, the resource display means different things depending on
 ## which mode the entries behind it were made in.
+
 
 ## Energy promised to purchases that are queued and not yet paid for. Reject-mode entries are
 ## excluded automatically rather than by a mode check: they debit at REQUEST time, so they
@@ -731,6 +782,7 @@ func energy_committed() -> int:
 			total += transaction.energy_cost
 	return total
 
+
 ## The dominion equivalent. A purchase costs energy OR dominion, never both, so the two are
 ## disjoint sums over the same queue.
 func dominion_committed() -> int:
@@ -739,6 +791,7 @@ func dominion_committed() -> int:
 		if transaction.is_pending() and not transaction.standing:
 			total += transaction.dominion_cost
 	return total
+
 
 ## Energy per second arriving from owned structures. Derived from the live EnergyExtractor
 ## components rather than sampled from the energy pool over a window: exact, and it responds
@@ -757,7 +810,10 @@ static func _extraction_rate_of(a_piece: Commandable) -> float:
 	var extractor := a_piece.get_node_or_null("EnergyExtractor") as EnergyExtractor
 	if extractor == null:
 		return 0.0
-	return float(extractor.energy_rate) * Engine.physics_ticks_per_second / EnergyExtractor.TICK_RATE
+	return (
+		float(extractor.energy_rate) * Engine.physics_ticks_per_second / EnergyExtractor.TICK_RATE
+	)
+
 
 ## Dominion per second from owned structures — the DominionGenerator equivalent.
 func dominion_collection_rate() -> float:
@@ -780,6 +836,7 @@ func _route_rate() -> float:
 	var route: DominionRoute = dominion_route()
 	return route.collection_rate() if route != null else 0.0
 
+
 ## How many owned structures are extracting energy — the extractor count. Attribution for
 ## energy_collection_rate: a bare "+14/s" is trivia, "+14/s · 4 extractors" explains itself
 ## and tells
@@ -789,6 +846,7 @@ func energy_source_count() -> int:
 	return _count_over(
 		func(c: Commandable) -> bool: return c.get_node_or_null("EnergyExtractor") != null
 	)
+
 
 ## How many owned structures generate dominion. ZERO means there is no steady dominion rate
 ## to report at all, and the readout should omit the line rather than print "+0/s".
@@ -803,6 +861,7 @@ func dominion_source_count() -> int:
 		func(c: Commandable) -> bool: return c.get_node_or_null("DominionGenerator") != null
 	)
 
+
 ## What the dominion rate is made OF, summed across the commander's generators — prisoners
 ## held, units inside a warlord's range, whatever the faction's generator counts (see
 ## DominionGenerator.contributor_count). Returns DominionGenerator.NO_ATTRIBUTION when no
@@ -811,10 +870,15 @@ func dominion_contributor_count() -> int:
 	var total: int = 0
 	var any_reported: bool = false
 	for commandable: Commandable in _owned_commandables():
-		if commandable.is_queued_for_deletion() or commandable.is_planned or not commandable.is_built:
+		if (
+			commandable.is_queued_for_deletion()
+			or commandable.is_planned
+			or not commandable.is_built
+		):
 			continue
-		var generator: DominionGenerator = \
+		var generator: DominionGenerator = (
 			commandable.get_node_or_null("DominionGenerator") as DominionGenerator
+		)
 		if generator == null:
 			continue
 		var count: int = generator.contributor_count()
@@ -892,15 +956,17 @@ func _projected_rate_for_shelter(a_shelter: Entity, a_trucks: Array) -> float:
 	# A Compound built adjacent to its Shelter has nothing transport-side to bound the rate —
 	# the trucks' own throughput is then unbounded and the Shelter's regeneration is the only
 	# limit left, which is exactly what letting this term go to INF expresses.
-	var truck_throughput: float = float(a_trucks.size()) / round_trip_seconds \
-		if round_trip_seconds > 0.0 else INF
+	var truck_throughput: float = (
+		float(a_trucks.size()) / round_trip_seconds if round_trip_seconds > 0.0 else INF
+	)
 	var arrival_rate: float = minf(1.0 / shelter.spawn_interval, truck_throughput)
 	var sentence_length: float = compound.garrison.sentence_length
 	var generator := compound.get_node_or_null("DominionGenerator") as OccupantDominionGenerator
 	if generator == null or sentence_length <= 0.0:
 		return 0.0
 	var sustained_occupancy: float = minf(
-		arrival_rate * sentence_length, float(compound.garrison.capacity))
+		arrival_rate * sentence_length, float(compound.garrison.capacity)
+	)
 	return float(generator.dominion_per_unit) * sustained_occupancy
 
 
@@ -922,15 +988,21 @@ func energy_spend_rate() -> float:
 			return float(spec.energy_cost) * Engine.physics_ticks_per_second / ticks
 	)
 
+
 ## Sum `a_per_structure` over every built, non-blueprint structure this commander owns.
 ## Blueprints are excluded because a plan neither collects nor spends.
 func _rate_over(a_per_structure: Callable) -> float:
 	var total: float = 0.0
 	for commandable: Commandable in _owned_commandables():
-		if commandable.is_queued_for_deletion() or commandable.is_planned or not commandable.is_built:
+		if (
+			commandable.is_queued_for_deletion()
+			or commandable.is_planned
+			or not commandable.is_built
+		):
 			continue
 		total += a_per_structure.call(commandable) as float
 	return total
+
 
 ## Count the built, non-blueprint structures this commander owns that satisfy `a_predicate`.
 ## Same exclusions as _rate_over, so an attribution count and the rate it explains always
@@ -938,11 +1010,16 @@ func _rate_over(a_per_structure: Callable) -> float:
 func _count_over(a_predicate: Callable) -> int:
 	var total: int = 0
 	for commandable: Commandable in _owned_commandables():
-		if commandable.is_queued_for_deletion() or commandable.is_planned or not commandable.is_built:
+		if (
+			commandable.is_queued_for_deletion()
+			or commandable.is_planned
+			or not commandable.is_built
+		):
 			continue
 		if a_predicate.call(commandable):
 			total += 1
 	return total
+
 
 ## How long, in seconds, until the queue's committed energy is covered by net income — or -1.0
 ## when it never will be at the current rate. What "clears in ~40s" is computed from.
@@ -959,6 +1036,8 @@ func energy_clearance_seconds() -> float:
 	if net <= 0.0:
 		return -1.0
 	return float(owed) / net
+
+
 #endregion
 
 
@@ -976,12 +1055,16 @@ func pending_pieces() -> Array[Commandable]:
 	# Memoized per frame: every economy bar and each aircraft button asks, every frame, and each
 	# answer is a walk over every owned piece and the whole queue. Keyed on the piece and queue
 	# counts as well, so an order placed earlier in the same frame is not missed.
-	var key: Array = [Engine.get_process_frames(), get_child_count(),
-		production_queue.entries.size() if production_queue != null else 0]
+	var key: Array = [
+		Engine.get_process_frames(),
+		get_child_count(),
+		production_queue.entries.size() if production_queue != null else 0
+	]
 	if key != _pending_pieces_key:
 		_pending_pieces_key = key
 		_pending_pieces = _collect_pending_pieces()
 	return _pending_pieces
+
 
 var _pending_pieces_key: Array = []
 var _pending_pieces: Array[Commandable] = []
@@ -1002,8 +1085,10 @@ func _collect_pending_pieces() -> Array[Commandable]:
 	for transaction: PurchaseTransaction in production_queue.pending():
 		if transaction.standing or transaction.is_settled():
 			continue
-		if transaction.kind == PurchaseTransaction.Kind.BUILD \
-				and is_instance_valid(transaction.planned_structure):
+		if (
+			transaction.kind == PurchaseTransaction.Kind.BUILD
+			and is_instance_valid(transaction.planned_structure)
+		):
 			continue  # its blueprint is already in `out`
 		_append_preview(out, transaction.tool)
 	return out
@@ -1030,14 +1115,16 @@ func _count_pending(a_predicate: Callable) -> int:
 
 ## Infrastructure capacity pending pieces will add once they are up.
 func pending_infrastructure_provided() -> int:
-	return roundi(_sum_pending(
-		func(p: Commandable) -> float: return float(maxi(p.infrastructure, 0))))
+	return roundi(
+		_sum_pending(func(p: Commandable) -> float: return float(maxi(p.infrastructure, 0)))
+	)
 
 
 ## Infrastructure upkeep pending pieces will add once they are up.
 func pending_infrastructure_required() -> int:
-	return roundi(_sum_pending(
-		func(p: Commandable) -> float: return float(maxi(-p.infrastructure, 0))))
+	return roundi(
+		_sum_pending(func(p: Commandable) -> float: return float(maxi(-p.infrastructure, 0)))
+	)
 
 
 ## Energy/s the pending extractors will add once they run.
@@ -1070,8 +1157,9 @@ func planned_footprint_cells(a_except: Commandable = null) -> Dictionary:
 		for cell: Vector2i in map.footprint_cells(VU.inXZ(piece.global_position), dims):
 			out[cell] = true
 	return out
-#endregion
 
+
+#endregion
 
 #region Build previews
 ## Live, out-of-tree instances of each buildable structure, kept so the build
@@ -1083,6 +1171,7 @@ func planned_footprint_cells(a_except: Commandable = null) -> Dictionary:
 ## runtime changes to a building type (e.g. an upgraded sprite) flow through to
 ## the preview automatically.
 var _build_preview_instances: Dictionary = {}
+
 
 ## Return (creating and caching on first use) a live, team-tinted instance of the
 ## structure for the given Tool, for use as a placement-preview source. The
@@ -1103,6 +1192,7 @@ func get_build_preview_instance(a_tool: Tool) -> Node:
 	_build_preview_instances[tool.preview_key()] = instance
 	return instance
 
+
 func _notification(a_what: int) -> void:
 	if a_what == NOTIFICATION_PREDELETE:
 		for inst in _build_preview_instances.values():
@@ -1111,6 +1201,8 @@ func _notification(a_what: int) -> void:
 		_build_preview_instances.clear()
 		if blackboard != null:
 			blackboard.free_visuals()
+
+
 #endregion
 
 
@@ -1121,6 +1213,7 @@ func _notification(a_what: int) -> void:
 func _owned_commandables() -> Array:
 	return get_children().filter(func(n): return n is Commandable)
 
+
 ## Owned entities that contribute VISION right now — see Entity.grants_vision.
 ## Broader than _owned_commandables(): it also includes non-Commandable vision
 ## sources such as the Scout spawned by the Radar Scan sanction. Geometric-vision
@@ -1130,9 +1223,8 @@ func _owned_commandables() -> Array:
 ## Commandables. Without this a Scout would poke a hole in the fog but never trigger the
 ## sight checks that record structure snapshots.
 func _owned_vision_sources() -> Array:
-	return get_children().filter(
-		func(n): return n is Entity and (n as Entity).grants_vision()
-	)
+	return get_children().filter(func(n): return n is Entity and (n as Entity).grants_vision())
+
 
 # Gathers all commandables owned by an arbitrary list of commanders using the same
 # child-based convention.
@@ -1144,13 +1236,13 @@ func _commandables_of(a_commanders: Array) -> Array:
 				result.append(child)
 	return result
 
+
 # Every Commander with id != 0 (neutral) and id != self.id is an enemy.
 func _enemy_commanders() -> Array:
 	if scenario == null:
 		return []
-	return scenario.commanders.filter(
-		func(c: Commander): return c.id != id and c.id != 0
-	)
+	return scenario.commanders.filter(func(c: Commander): return c.id != id and c.id != 0)
+
 
 ## All enemy commandables within [radius] world units of [position]. An ENEMY is
 ## owned by a different, non-neutral commander (excluding neutral id 0 matches
@@ -1158,11 +1250,13 @@ func _enemy_commanders() -> Array:
 func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 	if map == null:
 		return []
-	return SU.get_nearby_entities(
+	var nearby: Array = SU.get_nearby_entities(
 		map.get_world_3d(), a_position, a_radius, CollisionLayers.TARGETABLE_ANY
-	).filter(
+	)
+	return nearby.filter(
 		func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0
 	)
+
 
 ## Structures currently within this commander's vision that it does NOT own —
 ## INCLUDING neutral (id 0) ones (extractors, mountains, Shelters, ExtractionSites). Unlike
@@ -1182,10 +1276,15 @@ func visible_foreign_structures() -> Array:
 		# any-cell rule fog.gd uses to show it) — not just the cell under its origin.
 		# is_planned skips another commander's blueprints: they aren't physically there, so
 		# they're neither perceivable nor worth remembering as a fog-of-war snapshot.
-		if s.structure_is_active() and s.commander_id != id and not s.is_planned \
-				and (fog == null or fog.structure_in_vision(s)):
+		if (
+			s.structure_is_active()
+			and s.commander_id != id
+			and not s.is_planned
+			and (fog == null or fog.structure_in_vision(s))
+		):
 			result.append(s)
 	return result
+
 
 ## Enemy commandables this commander can currently SEE: those within the VisionRange
 ## of any owned unit or structure. Deduplicated. This is the fog-of-war boundary for
@@ -1203,6 +1302,7 @@ func visible_enemies() -> Array:
 				result.append(e)
 	return result
 
+
 ## True when the fog pixel covering [world_pos] is currently revealed in this
 ## commander's fog — the SAME pixel-quantized disc fog.gd uses, NOT a geometric
 ## distance (which would disagree with the rasterized disc at the boundary). Used
@@ -1215,6 +1315,7 @@ func has_vision_at(a_world_pos: Vector3) -> bool:
 		return true
 	return fog.fog_clear_at(VU.inXZ(a_world_pos))
 
+
 ## True when [world_pos] has ever been in this commander's vision — what it can know is on
 ## the map without having been told. Returns true when this commander has no fog, as
 ## has_vision_at does.
@@ -1224,16 +1325,19 @@ func has_explored(a_world_pos: Vector3) -> bool:
 		return true
 	return fog.explored_at(VU.inXZ(a_world_pos))
 
+
 ## This commander's Fog of war. Null for a commander with no Fog (the neutral/world owner,
 ## or no rig / editor).
 func _fog() -> Fog:
 	return Fog.for_commander(id)
+
 
 ## World-space XZ radius of [entity]'s VisionRange — the SAME reveal radius the fog
 ## of war uses (fog.gd reads vision_range_shape identically). 0 when the entity has
 ## no vision shape.
 func vision_radius(a_entity: Entity) -> float:
 	return _shape_xz_radius(a_entity.vision_range_shape) if a_entity != null else 0.0
+
 
 ## XZ radius of a CollisionShape3D (cylinder/sphere radius × node X-scale), or 0.
 func _shape_xz_radius(a_shape_node: CollisionShape3D) -> float:
@@ -1247,12 +1351,15 @@ func _shape_xz_radius(a_shape_node: CollisionShape3D) -> float:
 		return (shp as SphereShape3D).radius * scale
 	return 0.0
 
+
 ## Seconds elapsed since the scenario started, from the physics-tick counter. The rate is
 ## TimeUtils', never restated here.
 func seconds_elapsed() -> float:
 	if scenario == null:
 		return 0.0
 	return TimeUtils.seconds_from_ticks(scenario.tick)
+
+
 #endregion
 
 
@@ -1278,6 +1385,7 @@ func _ready() -> void:
 	# this frame — making the memory the exact complement of what fog shows.
 	process_physics_priority = 100
 
+
 ## Resolve [map] and [scenario] from the expected position Scenario/Players/<self>.
 ## Scenario._ready() places all commanders under a "Players" node that is a direct
 ## child of Scenario, so two get_parent() calls suffice. No-ops on already-set refs
@@ -1289,11 +1397,13 @@ func _resolve_scene_references() -> void:
 	if scenario != null and map == null:
 		map = scenario.map
 
+
 ## Explicit injection alternative to the tree-walk in _ready(), for when references
 ## must be wired before any _ready() callbacks fire.
 func initialize(a_map: Map, a_scenario: Scenario) -> void:
 	map = a_map
 	scenario = a_scenario
+
 
 func _physics_process(_a_delta: float) -> void:
 	if Engine.is_editor_hint():
@@ -1318,6 +1428,7 @@ func _physics_process(_a_delta: float) -> void:
 	_ticks_since_blackboard = 0
 	blackboard.update()
 
+
 ## Instance this commander's faction_scene as a child and cache it in `faction`.
 ## A null faction_scene is legitimate ONLY for the neutral world commander (id 0),
 ## which has no player slot; every slot-built commander is guaranteed one by
@@ -1330,6 +1441,7 @@ func _instance_faction() -> void:
 	add_child(instance)
 	if faction != null:
 		sanction_grid = SanctionGrid.new(self, faction.sanction_unlocks)
+
 
 ## Repaint the persistent resource bars. Only the human-controlled commander carries the HUD
 ## rig (Controller + the three bars), and it can now be any id — or none, in spectator mode.

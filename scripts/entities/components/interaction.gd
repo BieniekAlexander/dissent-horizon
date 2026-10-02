@@ -65,7 +65,8 @@ enum DurationType { CONSTANT = 0, BY_HP = 1 }
 ## while also tolerating a height gap). Null = the default near-touch contact. Matters
 ## for unit targets (e.g. HIJACK): RVO avoidance keeps units apart, so a touch-only reach
 ## makes a mobile target impossible to catch — give such an interaction a shape with some
-## radius so it can be performed without colliding. Ignored for structure targets, which use footprint
+## radius so it can be performed without colliding. Ignored for structure targets, which use
+## footprint
 ## adjacency regardless.
 @export var interact_shape: Shape3D
 #endregion
@@ -77,10 +78,14 @@ enum DurationType { CONSTANT = 0, BY_HP = 1 }
 ## Interact.blocked_by_stagger via the resolved interaction.
 const _STAGGER_BLOCKED_TYPES: Array[Type] = [Type.HIJACK]
 
+
 ## Whether this interaction's completion is blocked while the actor is staggered.
 func blocks_while_staggered() -> bool:
 	return type in _STAGGER_BLOCKED_TYPES
+
+
 #endregion
+
 
 #region Helpers
 ## The Garrison component on `target`, or null. The deposit target (e.g. a
@@ -88,16 +93,22 @@ func blocks_while_staggered() -> bool:
 static func target_garrison(target: Node) -> Garrison:
 	return target.get_node_or_null("Garrison") as Garrison if target != null else null
 
+
 ## Physics ticks the actor must remain interacting before this interaction completes,
 ## resolved against duration_type:
 ## - CONSTANT: `duration` seconds converted to ticks via the physics tick rate.
 ## - BY_HP: hp_factor × the target's current hp (a tougher target takes proportionally
 ##   longer). Falls back to the CONSTANT value when the target has no Defense.
 func required_ticks(a_target: Entity) -> float:
-	if duration_type == DurationType.BY_HP \
-			and is_instance_valid(a_target) and a_target.defense != null:
+	if (
+		duration_type == DurationType.BY_HP
+		and is_instance_valid(a_target)
+		and a_target.defense != null
+	):
 		return hp_factor * a_target.defense.hp
 	return duration * Engine.physics_ticks_per_second
+
+
 #endregion
 
 #region Evaluation
@@ -106,46 +117,68 @@ func required_ticks(a_target: Entity) -> float:
 ## Built lazily — static-var class-resolution order is fragile at init time.
 static var _evaluators: Dictionary
 
+
 static func _build_evaluators() -> Dictionary:
 	return {
-		# Deposit into a structure whose garrison SENTENCES its occupants — one that names a
-		# positive sentence_length (Garrison.can_intern) — when we are holding captives and
-		# it has room. That is what marks a prison (a Compound) apart from an ordinary
-		# garrison; prisoners are not dropped off in a safehouse.
-		Type.DEPOSIT: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
-			return MoveCommand.PreconditionFailureCause.NONE \
-				if is_instance_valid(a_message.target) and a_message.target.structure_is_active() \
-					and a_actor.garrison != null and a_actor.garrison.garrisoned_count() > 0 \
-					and target_garrison(a_message.target) != null \
-					and target_garrison(a_message.target).can_intern() \
-				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
-
-		# Take over a MECH-frame UNIT. Non-friendly (so neutral vehicles qualify too) and
-		# non-structure, mirroring the capture rule the Stock Truck runs on, with the frame axis
-		# flipped: a capture takes the crew, HIJACK takes the machine. Structures are excluded
-		# outright; a building changing hands is Capture, which has its own registry / infrastructure /
-		# grid bookkeeping.
-		Type.HIJACK: func(a_actor: Commandable, a_message: CommandMessage) -> MoveCommand.PreconditionFailureCause:
-			return MoveCommand.PreconditionFailureCause.NONE \
-				if is_instance_valid(a_message.target) and a_message.target is Commandable \
-					and not a_message.target.is_friendly_to(a_actor) \
-					and not a_message.target.structure_is_active() \
-					and PlantedCharge.of(a_message.target) == null \
-					and a_message.target.defense != null \
-					and a_message.target.defense.frame_type == Defense.FrameType.MECH \
-				else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
+		Type.DEPOSIT: _deposit_precondition,
+		Type.HIJACK: _hijack_precondition,
 	}
+
+
+## Deposit into a structure whose garrison SENTENCES its occupants — one that names a
+## positive sentence_length (Garrison.can_intern) — when we are holding captives and
+## it has room. That is what marks a prison (a Compound) apart from an ordinary
+## garrison; prisoners are not dropped off in a safehouse.
+static func _deposit_precondition(
+	a_actor: Commandable, a_message: CommandMessage
+) -> MoveCommand.PreconditionFailureCause:
+	return (
+		MoveCommand.PreconditionFailureCause.NONE
+		if (
+			is_instance_valid(a_message.target)
+			and a_message.target.structure_is_active()
+			and a_actor.garrison != null
+			and a_actor.garrison.garrisoned_count() > 0
+			and target_garrison(a_message.target) != null
+			and target_garrison(a_message.target).can_intern()
+		)
+		else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	)
+
+
+## Take over a MECH-frame UNIT. Non-friendly (so neutral vehicles qualify too) and
+## non-structure, mirroring the capture rule the Stock Truck runs on, with the frame axis
+## flipped: a capture takes the crew, HIJACK takes the machine. Structures are excluded
+## outright; a building changing hands is Capture, which has its own registry /
+## infrastructure / grid bookkeeping.
+static func _hijack_precondition(
+	a_actor: Commandable, a_message: CommandMessage
+) -> MoveCommand.PreconditionFailureCause:
+	return (
+		MoveCommand.PreconditionFailureCause.NONE
+		if (
+			is_instance_valid(a_message.target)
+			and a_message.target is Commandable
+			and not a_message.target.is_friendly_to(a_actor)
+			and not a_message.target.structure_is_active()
+			and PlantedCharge.of(a_message.target) == null
+			and a_message.target.defense != null
+			and a_message.target.defense.frame_type == Defense.FrameType.MECH
+		)
+		else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	)
+
 
 static func _evaluator_for(type: Interaction.Type) -> Callable:
 	if _evaluators.is_empty():
 		_evaluators = _build_evaluators()
 	return _evaluators[type]
 
+
 ## Evaluate this interaction's applicability for the given actor/message, using
 ## the function mapped to its `type`.
 func meets_precondition(
-	a_actor: Commandable,
-	a_message: CommandMessage
+	a_actor: Commandable, a_message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return _evaluator_for(type).call(a_actor, a_message)
 #endregion

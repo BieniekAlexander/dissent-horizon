@@ -68,7 +68,9 @@ func test_starting_resources_come_from_the_slot() -> void:
 	var c: Commander = _scn.commanders[1]
 	assert_eq(c.energy, 321, "starting energy is applied from the slot")
 	assert_eq(c.dominion, 654, "starting dominion is applied from the slot")
-	assert_eq((_scn.commanders[0] as Commander).dominion, 0, "the neutral commander has no slot, so zero")
+	assert_eq(
+		(_scn.commanders[0] as Commander).dominion, 0, "the neutral commander has no slot, so zero"
+	)
 
 
 func test_spectator_when_every_slot_is_a_bot() -> void:
@@ -85,7 +87,8 @@ func test_faction_is_propagated_onto_the_commander() -> void:
 	_scn._build_commanders()
 
 	assert_eq(
-		(_scn.commanders[1] as Commander).faction_scene, slots[0].faction,
+		(_scn.commanders[1] as Commander).faction_scene,
+		slots[0].faction,
 		"the slot's faction is set on its commander"
 	)
 
@@ -97,7 +100,11 @@ func test_faction_is_propagated_onto_the_commander() -> void:
 func test_no_missing_factions_when_every_slot_names_one() -> void:
 	_scn.player_slots = [_bot_slot(), _bot_slot()] as Array[PlayerSlot]
 
-	assert_eq(_scn._missing_faction_slots(), [] as Array[int], "fully configured slots report nothing missing")
+	assert_eq(
+		_scn._missing_faction_slots(),
+		[] as Array[int],
+		"fully configured slots report nothing missing"
+	)
 
 
 func test_slot_without_a_faction_is_reported_by_its_commander_id() -> void:
@@ -105,7 +112,8 @@ func test_slot_without_a_faction_is_reported_by_its_commander_id() -> void:
 	_scn.player_slots = [_bot_slot(), bare] as Array[PlayerSlot]
 
 	assert_eq(
-		_scn._missing_faction_slots(), [2] as Array[int],
+		_scn._missing_faction_slots(),
+		[2] as Array[int],
 		"the second slot (commander id 2) is reported, 1-based like the commander ids"
 	)
 
@@ -114,7 +122,8 @@ func test_every_offending_slot_is_reported_not_just_the_first() -> void:
 	_scn.player_slots = [PlayerSlot.new(), _bot_slot(), PlayerSlot.new()] as Array[PlayerSlot]
 
 	assert_eq(
-		_scn._missing_faction_slots(), [1, 3] as Array[int],
+		_scn._missing_faction_slots(),
+		[1, 3] as Array[int],
 		"an author sees every misconfigured slot in one pass"
 	)
 
@@ -122,7 +131,9 @@ func test_every_offending_slot_is_reported_not_just_the_first() -> void:
 func test_an_empty_array_row_counts_as_missing() -> void:
 	_scn.player_slots = [null, _bot_slot()] as Array[PlayerSlot]
 
-	assert_eq(_scn._missing_faction_slots(), [1] as Array[int], "a null slot is reported, not skipped")
+	assert_eq(
+		_scn._missing_faction_slots(), [1] as Array[int], "a null slot is reported, not skipped"
+	)
 
 
 ## PASSIVE is a KIND of opponent, not an absent one. It used to leave the brain inert, which
@@ -145,7 +156,11 @@ func test_non_passive_difficulty_keeps_the_brain_active() -> void:
 	_scn._attach_brain(bot, PlayerSlot.Difficulty.HARD, true)
 
 	var brain := bot.get_node("BotBrain") as BotBrain
-	assert_eq(brain.difficulty, PlayerSlot.Difficulty.HARD, "difficulty is maintained for non-passive tiers")
+	assert_eq(
+		brain.difficulty,
+		PlayerSlot.Difficulty.HARD,
+		"difficulty is maintained for non-passive tiers"
+	)
 	assert_true(brain.active, "a non-PASSIVE bot thinks")
 	assert_true(brain.config.may_attack)
 
@@ -165,41 +180,65 @@ func test_the_tiers_are_a_monotone_ramp() -> void:
 		var config: BotDifficulty = BotDifficulty.for_tier(tier)
 		assert_true(config.may_attack, "every non-passive tier attacks")
 		if previous != null:
-			for period: String in ["combat_period_seconds", "strategy_period_seconds",
-					"scout_period_seconds"]:
-				assert_lte(config.get(period), previous.get(period),
-					"a harder bot reacts no slower (%s)" % period)
-			assert_lte(config.army_commit_threshold, previous.army_commit_threshold,
-				"a harder bot commits no later")
-			assert_lte(config.retarget_switch_margin, previous.retarget_switch_margin,
-				"a harder bot micros no less")
-			assert_lte(config.economy_reserve, previous.economy_reserve,
-				"a harder bot banks no more before expanding")
-			assert_gte(config.scout_unit_budget, previous.scout_unit_budget,
-				"a harder bot is willing to spend no fewer units looking")
-			assert_gte(_concurrency_rank(config), _concurrency_rank(previous),
-				"a harder bot runs no fewer construction jobs at once")
+			for period: String in [
+				"combat_period_seconds", "strategy_period_seconds", "scout_period_seconds"
+			]:
+				assert_lte(
+					config.get(period),
+					previous.get(period),
+					"a harder bot reacts no slower (%s)" % period
+				)
+			assert_lte(
+				config.army_commit_threshold,
+				previous.army_commit_threshold,
+				"a harder bot commits no later"
+			)
+			assert_lte(
+				config.retarget_switch_margin,
+				previous.retarget_switch_margin,
+				"a harder bot micros no less"
+			)
+			assert_lte(
+				config.economy_reserve,
+				previous.economy_reserve,
+				"a harder bot banks no more before expanding"
+			)
+			assert_gte(
+				config.scout_unit_budget,
+				previous.scout_unit_budget,
+				"a harder bot is willing to spend no fewer units looking"
+			)
+			assert_gte(
+				_concurrency_rank(config),
+				_concurrency_rank(previous),
+				"a harder bot runs no fewer construction jobs at once"
+			)
 		previous = config
 
 
 ## `build_concurrency` carries a sentinel (-1 = UNCAPPED), so it cannot be compared raw on a
 ## ramp — uncapped is the TOP, not the bottom. Same shape as preserve_min_cost's -1.
 func _concurrency_rank(a_config: BotDifficulty) -> int:
-	return 9999 if BotDifficulty.is_build_uncapped(a_config.build_concurrency) \
+	return (
+		9999
+		if BotDifficulty.is_build_uncapped(a_config.build_concurrency)
 		else a_config.build_concurrency
+	)
 
 
 ## It was 1 on EVERY tier — a constant wearing a parameter's clothes, and a visible one: a
 ## Colonial opening pairs two Servants, so the second stood idle all match because nothing
 ## else in the bot claims an unarmed unit.
 func test_build_concurrency_is_a_real_ramp_and_not_a_flat_one() -> void:
-	var values: Array = [
+	var tiers: Array = [
 		PlayerSlot.Difficulty.PASSIVE,
 		PlayerSlot.Difficulty.EASY,
 		PlayerSlot.Difficulty.MEDIUM,
 		PlayerSlot.Difficulty.HARD,
-	].map(func(t: PlayerSlot.Difficulty) -> int:
-		return BotDifficulty.for_tier(t).build_concurrency)
+	]
+	var values: Array = tiers.map(
+		func(t: PlayerSlot.Difficulty) -> int: return BotDifficulty.for_tier(t).build_concurrency
+	)
 	assert_gt(values.max(), values.min(), "the tiers do not all build the same amount at once")
 	assert_gt(values.max(), 1, "and the ceiling is above the one-at-a-time it shipped with")
 
@@ -207,12 +246,16 @@ func test_build_concurrency_is_a_real_ramp_and_not_a_flat_one() -> void:
 func test_the_hardest_tier_is_uncapped_rather_than_merely_large() -> void:
 	assert_true(
 		BotDifficulty.is_build_uncapped(
-			BotDifficulty.for_tier(PlayerSlot.Difficulty.IMPOSSIBLE).build_concurrency),
-		"IMPOSSIBLE builds with everything it can spare")
+			BotDifficulty.for_tier(PlayerSlot.Difficulty.IMPOSSIBLE).build_concurrency
+		),
+		"IMPOSSIBLE builds with everything it can spare"
+	)
 	assert_false(
 		BotDifficulty.is_build_uncapped(
-			BotDifficulty.for_tier(PlayerSlot.Difficulty.MEDIUM).build_concurrency),
-		"and a middling tier is still throttled")
+			BotDifficulty.for_tier(PlayerSlot.Difficulty.MEDIUM).build_concurrency
+		),
+		"and a middling tier is still throttled"
+	)
 
 
 func test_the_concurrency_sentinel_is_never_read_as_a_count() -> void:
@@ -228,24 +271,34 @@ func test_the_concurrency_sentinel_is_never_read_as_a_count() -> void:
 ## clothes. It has to actually MOVE across the ramp, or the knob means nothing, and with a
 ## fog-limited attack objective a bot that cannot look cannot attack.
 func test_the_scout_budget_is_a_real_ramp_and_not_a_flat_one() -> void:
-	var budgets: Array = [
+	var tiers: Array = [
 		PlayerSlot.Difficulty.EASY,
 		PlayerSlot.Difficulty.MEDIUM,
 		PlayerSlot.Difficulty.HARD,
 		PlayerSlot.Difficulty.IMPOSSIBLE,
-	].map(func(t: PlayerSlot.Difficulty) -> int: return BotDifficulty.for_tier(t).scout_unit_budget)
+	]
+	var budgets: Array = tiers.map(
+		func(t: PlayerSlot.Difficulty) -> int: return BotDifficulty.for_tier(t).scout_unit_budget
+	)
 	assert_gt(budgets.max(), budgets.min(), "the tiers do not all scout the same amount")
 	assert_gt(budgets.max(), 1, "and the ceiling is above the one-scout maximum it shipped with")
-	assert_eq(BotDifficulty.for_tier(PlayerSlot.Difficulty.PASSIVE).scout_unit_budget, 0,
-		"PASSIVE still plays blind")
+	assert_eq(
+		BotDifficulty.for_tier(PlayerSlot.Difficulty.PASSIVE).scout_unit_budget,
+		0,
+		"PASSIVE still plays blind"
+	)
 
 
 func test_preservation_is_a_threshold_rather_than_a_tier_check() -> void:
 	# -1 means "never", which is how the easy tiers express it — not a branch on the tier.
-	assert_false(BotDifficulty.for_tier(PlayerSlot.Difficulty.EASY)
-		.preserves_unit_costing(10_000), "EASY abandons anything")
-	assert_true(BotDifficulty.for_tier(PlayerSlot.Difficulty.HARD)
-		.preserves_unit_costing(0), "HARD saves everything")
+	assert_false(
+		BotDifficulty.for_tier(PlayerSlot.Difficulty.EASY).preserves_unit_costing(10_000),
+		"EASY abandons anything"
+	)
+	assert_true(
+		BotDifficulty.for_tier(PlayerSlot.Difficulty.HARD).preserves_unit_costing(0),
+		"HARD saves everything"
+	)
 	var medium: BotDifficulty = BotDifficulty.for_tier(PlayerSlot.Difficulty.MEDIUM)
 	assert_false(medium.preserves_unit_costing(medium.preserve_min_cost - 1))
 	assert_true(medium.preserves_unit_costing(medium.preserve_min_cost))

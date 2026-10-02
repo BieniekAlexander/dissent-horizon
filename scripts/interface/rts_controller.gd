@@ -34,7 +34,7 @@ const BUILD_PREVIEW_ALPHA: float = MeshVisual.OPACITY_PLANNED
 ## Multiplied over the team colour to flag a spot the structure cannot go. The alpha
 ## carried here is used by the Sprite (billboard) path only; a MeshVisual ghost takes its
 ## alpha from set_opacity instead.
-const BUILD_PREVIEW_VALID_TINT:   Color = Color(1.0, 1.0, 1.0, BUILD_PREVIEW_ALPHA)
+const BUILD_PREVIEW_VALID_TINT: Color = Color(1.0, 1.0, 1.0, BUILD_PREVIEW_ALPHA)
 const BUILD_PREVIEW_INVALID_TINT: Color = Color(1.0, 0.25, 0.25, BUILD_PREVIEW_ALPHA)
 
 const _INDICATOR_POOL_SIZE: int = 16
@@ -129,14 +129,14 @@ signal command_issued(entity: Entity, command_type: Script)
 ## The four PERSISTENT panels — visible in every selection state, because each answers a
 ## question you can ask with nothing selected. Optional (get_node_or_null) so a session
 ## running without the full HUD rig still works.
-@onready var _production_rail: ProductionRail = get_node_or_null("ProductionRail") \
-	as ProductionRail
+@onready var _production_rail: ProductionRail = get_node_or_null("ProductionRail") as ProductionRail
 ## The three persistent resource bars — see gdd/systems/ux/ui/economy-bars.md. Optional like
 ## every other panel here, for the same reason.
 @onready var _dominion_bar: DominionBar = get_node_or_null("DominionBar") as DominionBar
 @onready var _energy_bar: EnergyBar = get_node_or_null("EnergyBar") as EnergyBar
-@onready var _infrastructure_bar: InfrastructureBar = \
+@onready var _infrastructure_bar: InfrastructureBar = (
 	get_node_or_null("InfrastructureBar") as InfrastructureBar
+)
 ## Occupies the same screen rect as InfoSection, as its SIBLING rather than its child, so
 ## the info panel can hide wholesale — a hidden panel is one that stops blocking world
 ## clicks (pointer_over_blocking_ui gates on is_visible_in_tree), and a still-visible
@@ -144,8 +144,8 @@ signal command_issued(entity: Entity, command_type: Script)
 @onready var _selector_panel: SelectorPanel = get_node_or_null("Selectors") as SelectorPanel
 ## The fourth: "what have I got squadded up" is a question you ask precisely when the current
 ## selection is WRONG, so it cannot be selection-owned (see ControlGroupPanel).
-@onready var _control_group_panel: ControlGroupPanel = get_node_or_null("ControlGroups") \
-	as ControlGroupPanel
+@onready
+var _control_group_panel: ControlGroupPanel = get_node_or_null("ControlGroups") as ControlGroupPanel
 
 var cursor_target: Variant = Vector3.ZERO
 var mouse_position: Vector2 = Vector2.ZERO
@@ -157,12 +157,14 @@ var mouse_position: Vector2 = Vector2.ZERO
 ## is_instance_valid() in hovered_command_name() rather than left pointing at nothing.
 var hovered_command_button: Control = null
 
+
 ## The name of hovered_command_button, or "" when nothing is hovered or the reference has
 ## gone stale. The persistent resource bars read this to resolve a Tool to preview.
 func hovered_command_name() -> StringName:
 	if hovered_command_button == null or not is_instance_valid(hovered_command_button):
 		return &""
 	return hovered_command_button.name
+
 
 ## The sanction-grid UNLOCK cell currently under the pointer, or null — set/cleared by
 ## _build_sanction_button's own mouse_entered/mouse_exited (a separate button-building path
@@ -171,6 +173,7 @@ func hovered_command_name() -> StringName:
 ## dominion, so it has nothing for DominionBar to preview. DominionBar is the only reader —
 ## see gdd/systems/ux/ui/economy-bars.md §Hover previews.
 var hovered_sanction_unlock: SanctionGrid.Entry = null
+
 
 ## The Tool a resource bar should preview right now: whatever is hovered in the UI, or —
 ## failing that — whatever tool is ARMED (command_message.tool, from choosing a Build/Train
@@ -183,6 +186,7 @@ func previewed_tool() -> Tool:
 	if hovered != null:
 		return hovered
 	return command_message.tool if command_message != null else null
+
 
 ## The cursor image last handed to the DisplayServer, and a standing demand to hand it over
 ## again even though it hasn't changed. Both exist for _apply_cursor — see the comment there
@@ -230,7 +234,8 @@ const PLACEMENT_ROTATE_DEADZONE: float = 1.0
 ## carries is command_message.quarter_turns, which is this where rotation applies at all.
 var placement_quarter_turns: int = 0
 
-## True from the press of `command_armed_issue` that starts placing a structure until it is released.
+## True from the press of `command_armed_issue` that starts placing a structure until it is
+## released.
 ## While it is, the placement point is FROZEN where the press landed (below) and the cursor's job
 ## is to aim the structure, not to move it.
 var _placing: bool = false
@@ -250,7 +255,8 @@ var _last_click_time_ms: int = -1
 ## the merged CommandContext that the controller used to consult.
 var _available_commands: Array = []
 var available_commands: Array:
-	get: return _available_commands
+	get:
+		return _available_commands
 	set(value):
 		_available_commands = value
 		# Settle the card BEFORE drawing: which buttons are visible is filtered by the card on
@@ -273,7 +279,8 @@ var available_commands: Array:
 ## the card somewhere useless neither by keypress nor by the selection changing under it.
 var _command_family: int = ControlBinding.CommandFamily.ACTIVE
 var command_family: int:
-	get: return _command_family
+	get:
+		return _command_family
 
 ## A hotkey like `command_attack_move` puts the controller into a "pending"
 ## sub-mode where the next right-click resolves to AttackMove (or Attack on a
@@ -300,7 +307,7 @@ var pending_selection: Array[PurchaseTransaction] = []
 ## One WaypointIndicator node per active CommandMessage snapshot, pooled to
 ## avoid per-command allocations.  All indicator nodes live under the Map node.
 var _active_indicators: Dictionary = {}  # CommandMessage -> WaypointIndicator
-var _indicator_pool: Array = []          # idle WaypointIndicator nodes
+var _indicator_pool: Array = []  # idle WaypointIndicator nodes
 
 #region Range display
 ## Draws REACH on the ground — what the player is currently asking "how far does this go?"
@@ -379,11 +386,13 @@ var _sanction_menu_panel: PanelContainer = null
 ## differ for a free ability, which has no cell. `entry` is the cell currently in play for
 ## that ability (null for a free one), tracked so the tooltips are rebuilt only when an
 ## unlock changes which level the button stands for.
-var _deploy_buttons: Array = []  # Array of { "button": Button, "ability": StringName, "entry": Entry }
+# Array of { "button": Button, "ability": StringName, "entry": Entry }
+var _deploy_buttons: Array = []
 var _unlock_buttons: Array = []  # Array of { "button": Button, "entry": Entry }
 
-@onready var _event_manager: ScenarioTriggerManager = \
+@onready var _event_manager: ScenarioTriggerManager = (
 	_session_root().find_child("ScenarioTriggerManager") as ScenarioTriggerManager
+)
 
 ## The session this controller plays in: its local player, its clock (see
 ## _update_scenario_timer). Null when this controller is previewed outside a real scenario
@@ -407,6 +416,7 @@ var _producer_affinity_indicator: ProducerAffinityIndicator = null
 var _build_preview: Node3D = null
 var _build_preview_tool_type: Variant = null
 #endregion
+
 
 #region Lifecycle
 func _ready():
@@ -498,6 +508,7 @@ func _ready():
 	_mode_banner.set_backdrop($CommandsSection/CommandsBorder as ColorRect)
 	_mode_banner.show_family(_command_family)
 
+
 ## The persistent panels that show one commander. Each is a child of this controller, and
 ## each needs something the scene can't give it: the rail needs the commander, the resource
 ## bars need both the commander and this controller (for the hover preview — see
@@ -545,8 +556,9 @@ func _process(a_delta: float) -> void:
 	var cursor_result: Variant = get_cursor_target(mouse_position)
 	cursor_target = cursor_result
 	command_message.target = cursor_result if cursor_result is Entity else null
-	command_message.world_position = cursor_result if cursor_result is Vector3 \
-		else _cursor_ground_point(mouse_position)
+	command_message.world_position = (
+		cursor_result if cursor_result is Vector3 else _cursor_ground_point(mouse_position)
+	)
 	if _placing:
 		# The release is normally delivered as an event, but a HUD panel can swallow one; the
 		# action itself cannot be intercepted, so polling it is the backstop (see _update_drag).
@@ -575,11 +587,11 @@ func _process(a_delta: float) -> void:
 	# Resolved across the WHOLE selection (see resolve_command_class_for_selection), so a
 	# mixed group reads the click as whatever its capable members can do rather than as
 	# whatever selection[0] happens to be able to do.
-	current_command_type = resolve_command_class_for_selection(
-		pending_command_name,
-		selection,
-		command_message
-	) if _selection_owned_by_player() else null
+	current_command_type = (
+		resolve_command_class_for_selection(pending_command_name, selection, command_message)
+		if _selection_owned_by_player()
+		else null
+	)
 
 	if command_message.tool == null:
 		# However the tool was put down (issued, replaced, cancelled), the next one starts unturned.
@@ -590,8 +602,11 @@ func _process(a_delta: float) -> void:
 		current_command_type, selection, command_message
 	)
 
-	$CommandErrorMessage.text = MoveCommand.precondition_message_map[check] \
-		if not is_drop_armed() else _drop_refusal_message()
+	$CommandErrorMessage.text = (
+		MoveCommand.precondition_message_map[check]
+		if not is_drop_armed()
+		else _drop_refusal_message()
+	)
 
 	_apply_cursor(_cursor_for_precondition(check))
 
@@ -609,6 +624,7 @@ func _process(a_delta: float) -> void:
 	if _production_rail != null:
 		_production_rail.update(selection)
 	_update_producer_affinity()
+
 
 #region Range display
 ## An info widget is being hovered: remember what it asked about. Nothing is drawn here —
@@ -680,8 +696,11 @@ func _placement_bands() -> Array[RangeIndicator.Band]:
 	for kind: int in kinds:
 		var reach: Array[float] = _distinct_radii(source, kind)
 		for radius: float in reach:
-			bands.append(RangeIndicator.Band.of(
-				HighlightShape.circle(centre, radius), EntityRanges.color_of(kind)))
+			bands.append(
+				RangeIndicator.Band.of(
+					HighlightShape.circle(centre, radius), EntityRanges.color_of(kind)
+				)
+			)
 		if reach.is_empty():
 			continue
 		var widest: float = reach.max()
@@ -689,9 +708,14 @@ func _placement_bands() -> Array[RangeIndicator.Band]:
 			var pending: bool = neighbour.is_planned or not neighbour.is_built
 			for radius: float in _distinct_radii(neighbour, kind):
 				if centre.distance_to(neighbour.xz_position) < widest + radius:
-					bands.append(RangeIndicator.Band.of(
-						HighlightShape.circle(neighbour.xz_position, radius),
-						EntityRanges.color_of(kind), false, pending))
+					bands.append(
+						RangeIndicator.Band.of(
+							HighlightShape.circle(neighbour.xz_position, radius),
+							EntityRanges.color_of(kind),
+							false,
+							pending
+						)
+					)
 	return bands
 
 
@@ -699,8 +723,9 @@ func _placement_bands() -> Array[RangeIndicator.Band]:
 ## gun's ground and air reach, would only draw the same circle twice.
 func _distinct_radii(a_piece: Entity, a_kind: int) -> Array[float]:
 	var out: Array[float] = []
-	for node: CollisionShape3D in EntityRanges.shape_nodes_in_group(a_piece,
-			EntityRanges.GROUPS[a_kind]):
+	for node: CollisionShape3D in EntityRanges.shape_nodes_in_group(
+		a_piece, EntityRanges.GROUPS[a_kind]
+	):
 		var radius: float = RangeShapes.xz_radius(node)
 		if radius > 0.0 and not out.has(radius):
 			out.append(radius)
@@ -716,8 +741,11 @@ func _placement_neighbours() -> Array[Commandable]:
 		return out
 	for node: Node in get_tree().get_nodes_in_group("structure"):
 		var piece := node as Commandable
-		if piece != null and not piece.is_queued_for_deletion() \
-				and placer.shares_side_with(piece.commander_id):
+		if (
+			piece != null
+			and not piece.is_queued_for_deletion()
+			and placer.shares_side_with(piece.commander_id)
+		):
 			out.append(piece)
 	return out
 
@@ -727,16 +755,27 @@ func _placement_neighbours() -> Array[Commandable]:
 ## marks off every other armed order. A drop registers on the grid like a building, so it gets
 ## the same marks.
 func _placement_source() -> Entity:
-	if _build_preview == null or not is_instance_valid(_build_preview) or not _build_preview.visible:
+	if (
+		_build_preview == null
+		or not is_instance_valid(_build_preview)
+		or not _build_preview.visible
+	):
 		return null
 	if is_drop_armed():
 		return _drop_source as Entity
-	if current_command_type != Build or command_message == null or command_message.tool == null \
-			or selection.is_empty():
+	if (
+		current_command_type != Build
+		or command_message == null
+		or command_message.tool == null
+		or selection.is_empty()
+	):
 		return null
 	var commander: Commander = (selection[0] as Entity).commander
-	return commander.get_build_preview_instance(command_message.tool) as Entity \
-		if commander != null else null
+	return (
+		commander.get_build_preview_instance(command_message.tool) as Entity
+		if commander != null
+		else null
+	)
 
 
 ## Where the fixture being placed is aimed, and whose it is — a drop's is the player's own.
@@ -770,8 +809,12 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 	if is_drop_armed():
 		a_is_invalid_placement = _drop_refusal_message() != ""
 	_update_claim_layer(route)
-	var key: Array = [_build_preview_tool_type, origin, a_is_invalid_placement,
-		route.claim_key() if route != null else null]
+	var key: Array = [
+		_build_preview_tool_type,
+		origin,
+		a_is_invalid_placement,
+		route.claim_key() if route != null else null
+	]
 	if key == _placement_grid_key:
 		return
 	_placement_grid_key = key
@@ -783,22 +826,34 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 	for cell: Vector2i in PlacementGridOverlay.dilate(footprint, PlacementGridOverlay.MARGIN_CELLS):
 		lit[cell] = PlacementGridOverlay.NEUTRAL_COLOR
 	var washed: Dictionary = {}
-	var claim: Dictionary = route.site_claim(source, VU.inXZ(_build_preview.global_position)) \
-		if route != null and route.structure_sources.has(source.id) else {}
+	var claim: Dictionary = (
+		route.site_claim(source, VU.inXZ(_build_preview.global_position))
+		if route != null and route.structure_sources.has(source.id)
+		else {}
+	)
 	for cell: Vector2i in claim:
-		lit[cell] = PlacementGridOverlay.NEUTRAL_COLOR if claim[cell] \
+		lit[cell] = (
+			PlacementGridOverlay.NEUTRAL_COLOR
+			if claim[cell]
 			else PlacementGridOverlay.WORTHLESS_COLOR
+		)
 		if not claim[cell]:
 			washed[cell] = PlacementGridOverlay.WORTHLESS_COLOR
 	# An extractor is judged as a whole (it overlays a site, or takes a pond), so its cells share
 	# the order's verdict; anything else is judged cell by cell, as valid_placement does.
 	var per_cell: bool = Extractor.of(source) == null and obs != null
-	var planned: Dictionary = placer.planned_footprint_cells() \
-		if placer != null and not is_drop_armed() else {}
+	var planned: Dictionary = (
+		placer.planned_footprint_cells() if placer != null and not is_drop_armed() else {}
+	)
 	for cell: Vector2i in footprint:
-		var ok: bool = Structure.cell_admits_structure(map, cell, obs.allow_uneven,
-			obs.allow_submerged) and not planned.has(cell) if per_cell \
+		var ok: bool = (
+			(
+				Structure.cell_admits_structure(map, cell, obs.allow_uneven, obs.allow_submerged)
+				and not planned.has(cell)
+			)
+			if per_cell
 			else not a_is_invalid_placement
+		)
 		lit[cell] = PlacementGridOverlay.VALID_COLOR if ok else PlacementGridOverlay.INVALID_COLOR
 		# Washed as well as outlined: the ghost stands over these cells, and thin lines under it
 		# do not carry the verdict on their own.
@@ -827,17 +882,24 @@ func _armed_ability_bands() -> Array[RangeIndicator.Band]:
 
 	if _armed_reach_is_a_distance():
 		for caster: Commandable in armed_ability_casters():
-			bands.append(RangeIndicator.Band.of(
-				HighlightShape.circle(caster.xz_position, AbilityCatalog.range_for(ability, caster)),
-				ARMED_REACH_COLOR
-			))
+			bands.append(
+				RangeIndicator.Band.of(
+					HighlightShape.circle(
+						caster.xz_position, AbilityCatalog.range_for(ability, caster)
+					),
+					ARMED_REACH_COLOR
+				)
+			)
 
 	var area: float = _armed_effect_radius(ability)
 	if area > 0.0 and command_message != null:
-		bands.append(RangeIndicator.Band.of(
-			HighlightShape.circle(VU.inXZ(command_message.world_position), area),
-			ARMED_AREA_COLOR, true
-		))
+		bands.append(
+			RangeIndicator.Band.of(
+				HighlightShape.circle(VU.inXZ(command_message.world_position), area),
+				ARMED_AREA_COLOR,
+				true
+			)
+		)
 	return bands
 
 
@@ -938,7 +1000,10 @@ func _armed_effect_radius(a_ability: StringName) -> float:
 			return 0.0
 		return maxf(_pending_sanction.effect_radius, 0.0)
 	return EntityRanges.emission_radius(AbilityCatalog.emission_of(a_ability))
+
+
 #endregion
+
 
 ## The pointer coming back to us, or the window becoming key again, are the moments the OS
 ## has just decided for itself what the cursor looks like. Whatever it chose, the custom one
@@ -950,6 +1015,7 @@ func _notification(a_what: int) -> void:
 			disarm_debug_piece()
 		NOTIFICATION_WM_MOUSE_ENTER, NOTIFICATION_WM_WINDOW_FOCUS_IN, NOTIFICATION_APPLICATION_FOCUS_IN:
 			_cursor_needs_reassert = true
+
 
 func _unhandled_input(a_event: InputEvent) -> void:
 	if a_event is InputEventMouseMotion:
@@ -1021,14 +1087,17 @@ func _unhandled_input(a_event: InputEvent) -> void:
 		# prefix into the grid, and flipping the card is not a command the selection carries
 		# out. Same reason modifier_narrow / modifier_broaden avoid the prefix.
 		toggle_command_family()
-	elif get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX).size()>0:
+	elif get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX).size() > 0:
 		# Deliberately NOT named `command_*` either: a control group changes the selection
 		# rather than acting on it, which is the same reason the selectors keep their own
 		# names. Placed above the prefix branch so the reading is never ambiguous.
 		_dispatch_control_group(get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX))
-	elif get_action_names_by_prefix(a_event, "command_").size()>0:
+	elif get_action_names_by_prefix(a_event, "command_").size() > 0:
 		_dispatch_command_hotkey(get_action_names_by_prefix(a_event, "command_"))
+
+
 #endregion
+
 
 #region Issuing the current order
 ## Whether a press of an armed-scheme button belongs to the HUD under the cursor. Only a click on
@@ -1056,12 +1125,11 @@ func _issue_current_command() -> void:
 	elif _selection_owned_by_player():
 		# Only the player's own units take commands; an enemy/neutral
 		# info-selection ignores the move/command click.
-		assign_command_to_units(
-			current_command_type,
-			command_message,
-			additive_latched
-		)
+		assign_command_to_units(current_command_type, command_message, additive_latched)
+
+
 #endregion
+
 
 #region Placing a structure: press to set it down, drag to turn it, release to order it
 ## Whether the armed Build tool takes a facing at all. Not a conversion (that upgrades a
@@ -1094,8 +1162,11 @@ func _begin_placing_structure() -> bool:
 		return false
 	if not pending_selection.is_empty() or not _selection_owned_by_player():
 		return false
-	if current_command_type != Build or command_message.tool == null \
-			or armed_conversion_target() != null:
+	if (
+		current_command_type != Build
+		or command_message.tool == null
+		or armed_conversion_target() != null
+	):
 		return false
 	_placing = true
 	_placing_world = command_message.world_position
@@ -1144,7 +1215,10 @@ func _finish_placing_structure() -> void:
 	if MoveCommand.is_placement_refusal(check):
 		return
 	assign_command_to_units(current_command_type, command_message, additive_latched)
+
+
 #endregion
+
 
 #region Box-select drag
 ## Start a box-select at `a_position`. Only ever reached from a press over the world —
@@ -1216,7 +1290,10 @@ func live_pointer_position() -> Vector2:
 static func is_click_gesture(from: Vector2, to: Vector2) -> bool:
 	var delta: Vector2 = (to - from).abs()
 	return delta.x < CLICK_SLOP_PX and delta.y < CLICK_SLOP_PX
+
+
 #endregion
+
 
 #region Selection
 ## True when the LIVE cursor position lies inside any visible HUD panel in the
@@ -1243,9 +1320,14 @@ func _pointer_over_blocking_ui() -> bool:
 static func pointer_over_blocking_ui(tree: SceneTree, screen_pos: Vector2) -> bool:
 	for node: Node in tree.get_nodes_in_group(SELECTION_BLOCKING_UI_GROUP):
 		var panel: Control = node as Control
-		if panel != null and panel.is_visible_in_tree() and panel.get_global_rect().has_point(screen_pos):
+		if (
+			panel != null
+			and panel.is_visible_in_tree()
+			and panel.get_global_rect().has_point(screen_pos)
+		):
 			return true
 	return false
+
 
 ## Return all Selectable nodes whose projected screen position falls within screen_rect.
 func query_box_collisions(a_screen_rect: Rect2) -> Array:
@@ -1254,12 +1336,14 @@ func query_box_collisions(a_screen_rect: Rect2) -> Array:
 			return a_screen_rect.has_point(camera.unproject_position(selectable.global_position))
 	)
 
+
 func deselect():
 	for c in selection:
 		if is_instance_valid(c):
 			c.selectable.deselect()
 	selection = []
 	pending_command_name = ""
+
 
 ## Make `commandable` the sole selection (used by the info panel's summary cards). Clears
 ## the current selection, selects just this one, and refreshes the HUD to match.
@@ -1271,12 +1355,16 @@ func select_only(a_commandable: Commandable) -> void:
 	if not selection.is_empty():
 		unit_selected.emit(selection[0] as Entity)
 
+
 ## Add `commandable` to the current selection, keeping what is already there — the additive
 ## reading of an occupant card's right click. Selecting anything live drops the pending
 ## selection, the same as every other way of picking a unit.
 func add_to_selection(a_commandable: Commandable) -> void:
-	if a_commandable == null or not is_instance_valid(a_commandable) \
-			or selection.has(a_commandable):
+	if (
+		a_commandable == null
+		or not is_instance_valid(a_commandable)
+		or selection.has(a_commandable)
+	):
 		return
 	_select_units([a_commandable])
 
@@ -1289,6 +1377,7 @@ func remove_from_selection(a_commandable: Commandable) -> void:
 			a_commandable.selectable.deselect()
 		selection.erase(a_commandable)
 	_refresh_available_commands()
+
 
 func set_selection(a_selection_start_position: Vector2, a_selection_end_position: Vector2):
 	var drag_distance = abs(a_selection_start_position - a_selection_end_position)
@@ -1313,17 +1402,20 @@ func set_selection(a_selection_start_position: Vector2, a_selection_end_position
 					selection.append(entity)
 			# A shift-click on an enemy/neutral unit is ignored (falls through).
 	else:
-		var boxed: Array = query_box_collisions(
-			Rect2(a_selection_start_position, a_selection_end_position - a_selection_start_position).abs()
-		).filter(
-			func(s: Selectable) -> bool:
-				return is_player_commandable(s.get_entity())
+		var box := (
+			Rect2(a_selection_start_position, a_selection_end_position - a_selection_start_position)
+			. abs()
+		)
+		var boxed: Array = query_box_collisions(box).filter(
+			func(s: Selectable) -> bool: return is_player_commandable(s.get_entity())
 		)
 		# A box that catches any unit skips structures, so dragging over a mixed group
 		# selects only the mobile units (structures are picked individually). Consider
 		# the current selection too, so an additive box behaves the same.
-		var has_unit: bool = selection.any(func(e): return not e.structure_is_active()) \
+		var has_unit: bool = (
+			selection.any(func(e): return not e.structure_is_active())
 			or boxed.any(func(s: Selectable): return not s.get_entity().structure_is_active())
+		)
 		for selectable: Selectable in boxed:
 			var entity := selectable.get_entity()
 			if has_unit and entity.structure_is_active():
@@ -1336,6 +1428,7 @@ func set_selection(a_selection_start_position: Vector2, a_selection_end_position
 		# Picking anything live puts the phantoms down — see pending_selection.
 		clear_pending_selection()
 		unit_selected.emit(selection[0] as Entity)
+
 
 ## Select every player-owned unit whose world XZ falls inside `world_rect` (a
 ## rectangle in the XZ plane, world units). Mirrors the box branch of
@@ -1355,14 +1448,19 @@ func select_units_in_world_rect(a_world_rect: Rect2, a_additive: bool) -> void:
 	var boxed: Array = get_tree().get_nodes_in_group("selectables").filter(
 		func(s: Selectable) -> bool:
 			var e: Entity = s.get_entity()
-			return is_player_commandable(e) and _is_perceptible(e) \
+			return (
+				is_player_commandable(e)
+				and _is_perceptible(e)
 				and a_world_rect.has_point(VU.inXZ(e.global_position))
+			)
 	)
 	# A box that catches any unit skips structures, so a drag over a mixed group
 	# selects only the mobile units (mirrors set_selection). Consider the current
 	# selection too, so an additive drag behaves the same.
-	var has_unit: bool = selection.any(func(e): return not e.structure_is_active()) \
+	var has_unit: bool = (
+		selection.any(func(e): return not e.structure_is_active())
 		or boxed.any(func(s: Selectable): return not s.get_entity().structure_is_active())
+	)
 	for selectable: Selectable in boxed:
 		var entity: Entity = selectable.get_entity()
 		if has_unit and entity.structure_is_active():
@@ -1375,6 +1473,7 @@ func select_units_in_world_rect(a_world_rect: Rect2, a_additive: bool) -> void:
 		clear_pending_selection()
 		unit_selected.emit(selection[0] as Entity)
 
+
 ## Take every selected unit standing inside [a_world_rect] OUT of the selection — the
 ## `modifier_narrow` reading of a minimap drag, and the world-space twin of _deselect_gesture.
 ##
@@ -1385,8 +1484,11 @@ func select_units_in_world_rect(a_world_rect: Rect2, a_additive: bool) -> void:
 func _deselect_in_world_rect(a_world_rect: Rect2) -> void:
 	for node: Node in selection.duplicate():
 		var commandable := node as Commandable
-		if commandable != null and is_instance_valid(commandable) \
-				and a_world_rect.has_point(VU.inXZ(commandable.global_position)):
+		if (
+			commandable != null
+			and is_instance_valid(commandable)
+			and a_world_rect.has_point(VU.inXZ(commandable.global_position))
+		):
 			remove_from_selection(commandable)
 	_refresh_available_commands()
 
@@ -1395,17 +1497,21 @@ func _deselect_in_world_rect(a_world_rect: Rect2) -> void:
 ## orders: its own pieces, or — while the debug view is up — anyone's (see
 ## gdd/systems/ux/ui/debug-mode.md §Commanding any piece). The piece keeps its commander.
 static func is_player_commandable(a_entity: Entity) -> bool:
-	return a_entity != null \
-		and (a_entity.commander_id == PLAYER_COMMANDER_ID or DebugMode.is_active())
+	return (
+		a_entity != null and (a_entity.commander_id == PLAYER_COMMANDER_ID or DebugMode.is_active())
+	)
+
 
 ## True when the current selection is the player's own — the only selection the
 ## player can issue commands to. Enemy/neutral selections are info-only.
 func _selection_owned_by_player() -> bool:
 	return not selection.is_empty() and is_player_commandable(selection[0] as Entity)
 
+
 ## True when the current selection is a single enemy/neutral (non-player) unit.
 func _has_enemy_selected() -> bool:
 	return not selection.is_empty() and not is_player_commandable(selection[0] as Entity)
+
 
 ## Recomputes the command set for the current selection, and refreshes HUD button
 ## visibility via the setter. Empty for an enemy selection — the player can look
@@ -1435,15 +1541,22 @@ var _selection_commands_age: float = 0.0
 ## a Sapper whose charge is in play has nothing to plant, so the shared cell reads Detonate.
 static func selection_commands(a_selection: Array) -> Array:
 	var names: Array = CommandContextParser.commands_for_selection(a_selection)
-	if names.has("command_plant") and names.has("command_detonate") \
-			and not a_selection.any(_can_plant_now):
+	if (
+		names.has("command_plant")
+		and names.has("command_detonate")
+		and not a_selection.any(_can_plant_now)
+	):
 		names.erase("command_plant")
 	return names
 
 
 static func _can_plant_now(a_node: Variant) -> bool:
-	return is_instance_valid(a_node) and a_node is Commandable and Plant.meets_precondition(
-		a_node, null) == MoveCommand.PreconditionFailureCause.NONE
+	return (
+		is_instance_valid(a_node)
+		and a_node is Commandable
+		and Plant.meets_precondition(a_node, null) == MoveCommand.PreconditionFailureCause.NONE
+	)
+
 
 #region Command card family
 ## Which cards the current selection has anything to draw on, as a CommandFamily bitmask.
@@ -1458,11 +1571,13 @@ func available_families() -> int:
 			mask |= binding.family
 	return mask
 
+
 ## The families a settle or a Tab may land on: the SELECTION-owned two. ORDNANCE is the
 ## commander's card and is reached by its own key, so it is masked out of every path that
 ## chooses a card on the player's behalf.
 func selection_owned_families() -> int:
 	return available_families() & ~ControlBinding.CommandFamily.ORDNANCE
+
 
 ## Show `a_family`, if the selection has anything to put on it. Returns whether the card
 ## changed, which is what makes the toggle's no-op observable to a caller that cares.
@@ -1477,14 +1592,17 @@ func set_command_family(a_family: int) -> bool:
 	# the reason on them (see CommandButtonState) rather than removed, because "you have none of
 	# these yet" is an answer the player asked for by pressing the key — and a key that silently
 	# does nothing reads as broken. Every other family still has to have something to draw.
-	if a_family != ControlBinding.CommandFamily.ORDNANCE \
-			and (selection_owned_families() & a_family) == 0:
+	if (
+		a_family != ControlBinding.CommandFamily.ORDNANCE
+		and (selection_owned_families() & a_family) == 0
+	):
 		return false
 	_command_family = a_family
 	pending_command_name = ""
 	_announce_card()
 	upate_hud_buttons()
 	return true
+
 
 ## Flip to the other card. Bound to `card_toggle_family` (Tab) and to nothing else; a
 ## no-op when the selection has nothing to show there, which is the whole reason it is safe
@@ -1497,10 +1615,13 @@ func toggle_command_family() -> bool:
 	if _command_family == ControlBinding.CommandFamily.ORDNANCE:
 		return _leave_the_ordnance_card()
 	return set_command_family(
-		ControlBinding.CommandFamily.PRODUCTION \
-			if _command_family == ControlBinding.CommandFamily.ACTIVE \
+		(
+			ControlBinding.CommandFamily.PRODUCTION
+			if _command_family == ControlBinding.CommandFamily.ACTIVE
 			else ControlBinding.CommandFamily.ACTIVE
+		)
 	)
+
 
 ## Land the card on the one the current selection was picked up FOR.
 ##
@@ -1522,8 +1643,10 @@ func _settle_command_family() -> void:
 	# just pressed it on. An EMPTY selection leaves it alone too: deselecting is not picking
 	# something else, and the commander's card is not about the selection in the first place.
 	if _command_family == ControlBinding.CommandFamily.ORDNANCE:
-		if not selection.is_empty() \
-				and (available_families() & ControlBinding.CommandFamily.ORDNANCE) == 0:
+		if (
+			not selection.is_empty()
+			and (available_families() & ControlBinding.CommandFamily.ORDNANCE) == 0
+		):
 			_leave_the_ordnance_card()
 		return
 	var families: int = selection_owned_families()
@@ -1535,6 +1658,7 @@ func _settle_command_family() -> void:
 	_command_family = preferred
 	pending_command_name = ""
 	_announce_card()
+
 
 ## Tell the banner which card is up. Called from BOTH writers of `_command_family` — the
 ## explicit set and the settle — because a banner that tracked only one of them would be
@@ -1559,8 +1683,10 @@ func armed_variant_label() -> String:
 func armed_card_state() -> CardModeBanner.ArmedState:
 	if not is_command_armed():
 		return CardModeBanner.ArmedState.NONE
-	return CardModeBanner.ArmedState.READY if is_command_ready() \
-		else CardModeBanner.ArmedState.PENDING
+	return (
+		CardModeBanner.ArmedState.READY if is_command_ready() else CardModeBanner.ArmedState.PENDING
+	)
+
 
 ## Go from the commander's card back to the selection's, and say which. Falls back to ACTIVE
 ## when the selection has nothing on either card — including when there is no selection at
@@ -1572,12 +1698,16 @@ func armed_card_state() -> CardModeBanner.ArmedState:
 ## thing that does.
 func _leave_the_ordnance_card() -> bool:
 	var families: int = selection_owned_families()
-	_command_family = _preferred_command_family(families) if families != 0 \
+	_command_family = (
+		_preferred_command_family(families)
+		if families != 0
 		else ControlBinding.CommandFamily.ACTIVE
+	)
 	pending_command_name = ""
 	_announce_card()
 	upate_hud_buttons()
 	return true
+
 
 ## Which card a fresh selection opens on, given what it has to draw.
 ##
@@ -1591,18 +1721,28 @@ func _leave_the_ordnance_card() -> bool:
 ## unconditionally hid every train button behind the toggle. The mobility test is what
 ## separates "has a ACTIVE command" from "was selected in order to be given one".
 func _preferred_command_family(a_families: int) -> int:
-	if (a_families & ControlBinding.CommandFamily.PRODUCTION) != 0 \
-			and not _selection_takes_orders():
+	if (
+		(a_families & ControlBinding.CommandFamily.PRODUCTION) != 0
+		and not _selection_takes_orders()
+	):
 		return ControlBinding.CommandFamily.PRODUCTION
-	return ControlBinding.CommandFamily.ACTIVE \
-		if (a_families & ControlBinding.CommandFamily.ACTIVE) != 0 \
+	return (
+		ControlBinding.CommandFamily.ACTIVE
+		if (a_families & ControlBinding.CommandFamily.ACTIVE) != 0
 		else ControlBinding.CommandFamily.PRODUCTION
+	)
+
 
 ## Whether anything in the selection can be sent somewhere — the one question that
 ## distinguishes a group being commanded from a building being run.
 func _selection_takes_orders() -> bool:
-	return selection.any(func(entity: Node) -> bool: return (entity as Entity).live_movement() != null)
+	return selection.any(
+		func(entity: Node) -> bool: return (entity as Entity).live_movement() != null
+	)
+
+
 #endregion
+
 
 ## Resolves a left-click release into either a double-click (select all on-screen
 ## units of the clicked unit's type) or a normal single-click / box selection.
@@ -1648,6 +1788,7 @@ func _handle_select_release(a_end_position: Vector2) -> void:
 	_last_click_target = target if is_player_unit else null
 	_last_click_time_ms = Time.get_ticks_msec()
 
+
 ## Take everything this gesture caught OUT of the selection — the `modifier_narrow` reading of
 ## a left click or a box drag, and the inverse of what the same gesture does unmodified.
 ##
@@ -1658,14 +1799,15 @@ func _handle_select_release(a_end_position: Vector2) -> void:
 ## Nothing is selected here, so nothing filters on ownership beyond what the selection already
 ## holds: a unit that is not in the selection cannot be removed from it, and the removal loop
 ## is the only ownership rule this needs.
-func _deselect_gesture(a_start: Vector2, a_end: Vector2, a_target: Entity, a_is_click: bool) -> void:
+func _deselect_gesture(
+	a_start: Vector2, a_end: Vector2, a_target: Entity, a_is_click: bool
+) -> void:
 	var caught: Array = []
 	if a_is_click:
 		if a_target != null:
 			caught.append(a_target)
 	else:
-		for selectable: Selectable in query_box_collisions(
-				Rect2(a_start, a_end - a_start).abs()):
+		for selectable: Selectable in query_box_collisions(Rect2(a_start, a_end - a_start).abs()):
 			var entity: Entity = selectable.get_entity()
 			if entity != null:
 				caught.append(entity)
@@ -1678,9 +1820,12 @@ func _deselect_gesture(a_start: Vector2, a_end: Vector2, a_target: Entity, a_is_
 
 ## True when `target` is the same unit clicked last, within DOUBLE_CLICK_SECONDS.
 func _is_double_click(a_target: Entity) -> bool:
-	return a_target == _last_click_target \
-		and _last_click_time_ms >= 0 \
+	return (
+		a_target == _last_click_target
+		and _last_click_time_ms >= 0
 		and (Time.get_ticks_msec() - _last_click_time_ms) <= int(DOUBLE_CLICK_SECONDS * 1000.0)
+	)
+
 
 ## Replaces the selection (or adds, when additive) with every on-screen,
 ## player-owned commandable whose entity type matches `entity_type`.
@@ -1689,11 +1834,14 @@ func _select_on_screen_units_of_type(a_entity_type: StringName) -> void:
 		deselect()
 	var candidates: Array = get_tree().get_nodes_in_group("piece").filter(
 		func(c: Variant) -> bool:
-			return c is Entity \
-				and (c as Entity).id == a_entity_type \
+			return (
+				c is Entity
+				and (c as Entity).id == a_entity_type
 				and is_player_commandable(c as Entity)
+			)
 	)
 	_select_units(commandables_on_screen(candidates))
+
 
 ## Where this controller's map and trigger host are looked up: its scenario, else the running
 ## scene (a HUD previewed on its own).
@@ -1701,12 +1849,14 @@ func _session_root() -> Node:
 	var scenario: Scenario = Scenario.of(self)
 	return scenario if scenario != null else get_tree().current_scene
 
+
 ## The Commander this controller drives: the scenario's local player, which debug mode can
 ## change mid-match. A controller outside a scenario (a test rig, a HUD preview) drives the
 ## Commander it is a child of (see player.tscn).
 func _commander() -> Commander:
 	var local: Commander = _scenario.local_player() if _scenario != null else null
 	return local if local != null else get_parent() as Commander
+
 
 ## Kill everything selected, whoever owns it. A DEATH rather than a removal: `_on_death` is
 ## the one complete teardown (grid cells, commander bookkeeping), and triggers and tallies
@@ -1724,11 +1874,13 @@ func delete_selection() -> void:
 	deselect()
 	_refresh_available_commands()
 
+
 ## Whose economy the selection's purchases draw on: its owner's. The local player's own,
 ## except when the debug view lets them select another commander's pieces.
 func _selection_commander() -> Commander:
 	var first: Entity = selection[0] as Entity if not selection.is_empty() else null
 	return first.commander if first != null and first.commander != null else _commander()
+
 
 ## True while the additive modifier is held: an unaffordable purchase issued right now is
 ## QUEUED rather than refused, and a command issued right now is appended rather than
@@ -1742,6 +1894,7 @@ func _selection_commander() -> Commander:
 func _purchase_defers() -> bool:
 	return additive_modifier_held()
 
+
 ## How many of a thing one press of its train button buys — BULK_PURCHASE_COUNT while
 ## `modifier_broaden` is held, one otherwise. Broaden takes the wider action here as it does
 ## everywhere else; see ui/control-matrices.md §Context 3b.
@@ -1751,6 +1904,7 @@ func _purchase_defers() -> bool:
 func bulk_purchase_count() -> int:
 	return BULK_PURCHASE_COUNT if Input.is_action_pressed(MODIFIER_BROADEN) else 1
 
+
 ## True while the additive modifier is held, asked of the INPUT SINGLETON rather than of
 ## `additive_latched`. Anything issued from a HUD Control — a grid button's press, the
 ## minimap's drag-select — has to ask this way: the modifier keypress that precedes the
@@ -1758,6 +1912,7 @@ func bulk_purchase_count() -> int:
 ## latch can miss it entirely.
 func additive_modifier_held() -> bool:
 	return Input.is_action_pressed(MODIFIER_ADDITIVE)
+
 
 ## One-shot: the next purchase issued is a STANDING order — an entry that re-issues itself
 ## forever, always behind every one-off purchase, so idle income has somewhere to go.
@@ -1772,12 +1927,14 @@ func additive_modifier_held() -> bool:
 ## the click knows which button was which.
 var _next_purchase_standing: bool = false
 
+
 ## Read and clear the standing flag. Cleared on read so an abandoned right-click (a build
 ## tool armed and then never placed) can't turn a later purchase standing by surprise.
 func _take_purchase_standing() -> bool:
 	var standing: bool = _next_purchase_standing
 	_next_purchase_standing = false
 	return standing
+
 
 ## Show the selection-owned panels only while something IS selected, and the selectors only
 ## while nothing is.
@@ -1797,10 +1954,12 @@ func _update_selection_owned_panels() -> void:
 	# wholesale on an empty selection, but the ORDNANCE card is the COMMANDER's — its whole
 	# point is that you reach an ability without first hunting down something that can cast it,
 	# so it has to stand with nothing selected at all.
-	$CommandsSection.visible = has_selection \
-		or _command_family == ControlBinding.CommandFamily.ORDNANCE
+	$CommandsSection.visible = (
+		has_selection or _command_family == ControlBinding.CommandFamily.ORDNANCE
+	)
 	if _selector_panel != null:
 		_selector_panel.visible = not has_selection
+
 
 ## Elapsed h:mm:ss, hours segment omitted until the scenario has actually run one — a pure
 ## function so the format is testable without a live Scenario node.
@@ -1812,6 +1971,7 @@ static func format_scenario_time(total_seconds: int) -> String:
 		return "%d:%02d:%02d" % [hours, minutes, seconds]
 	return "%d:%02d" % [minutes, seconds]
 
+
 ## Scenario.tick only advances in _physics_process, which a SimulationClock hold
 ## suspends along with the rest of the simulation (see CLAUDE.md §Pausing the simulation)
 ## — so ticks / tick-rate is already elapsed RUNTIME excluding paused time, with no
@@ -1822,56 +1982,68 @@ func _update_scenario_timer() -> void:
 	var total_seconds: int = int(TimeUtils.seconds_from_ticks(_scenario.tick))
 	$ScenarioTimerLabel.text = format_scenario_time(total_seconds)
 
+
 # --- Category predicates (a Commandable satisfies the category) ---------------
 ## "Army" unit: a unit carrying at least one Weapon in its Loadout.
 func _is_army_unit(a_c: Commandable) -> bool:
 	var loadout: Loadout = a_c.get_node_or_null("Loadout") as Loadout
 	return a_c.is_in_group("unit") and loadout != null and loadout.has_weapons()
 
+
 ## "Builder" unit: a unit with a Builds component.
 func _is_builder_unit(a_c: Commandable) -> bool:
 	return a_c.is_in_group("unit") and a_c.has_node("Builds")
 
+
 ## "Production structure": a structure that can train units (has Production).
 func _is_producer_structure(a_c: Commandable) -> bool:
 	return a_c.is_in_group("structure") and a_c.production != null and a_c.production.trains_units()
+
 
 # --- Idle predicates (a Commandable in that category has nothing to do) --------
 ## Idle unit: no active command.
 func _is_idle_unit(a_c: Commandable) -> bool:
 	return a_c._command == null
 
+
 ## Idle production structure: can produce but has neither a job training nor a queued
 ## purchase waiting to land on it — a structure named by a pending transaction is spoken
 ## for, not wasted throughput.
 func _is_idle_producer(a_c: Commandable) -> bool:
-	return a_c.production.is_free() \
+	return (
+		a_c.production.is_free()
 		and (_commander() == null or _commander().production_queue.pending_count_for(a_c) == 0)
+	)
+
 
 # --- The three selectors ------------------------------------------------------
 ## F1 / F2 / F3. Each takes the whole matrix; the modifiers held decide which cell.
 func select_army() -> void:
 	_run_selector(_is_army_unit, _is_idle_unit)
 
+
 func select_builders() -> void:
 	_run_selector(_is_builder_unit, _is_idle_unit)
+
 
 func select_production_structures() -> void:
 	_run_selector(_is_producer_structure, _is_idle_producer)
 
+
 ## The selector rules. TWO axes, each owned by one modifier, both ABSOLUTE:
 ##
-## Why it works this way: gdd/systems/ux/ui/selection-and-input.md §How a selector resolves its candidate set.
+## Why it works this way: gdd/systems/ux/ui/selection-and-input.md §How a selector resolves its
+## candidate set.
 func _run_selector(a_category: Callable, a_idle: Callable) -> void:
 	var idle_only: bool = Input.is_action_pressed(MODIFIER_NARROW)
 	var predicate: Callable = a_category
 	if idle_only:
-		predicate = func(c: Commandable) -> bool:
-			return a_category.call(c) and a_idle.call(c)
+		predicate = func(c: Commandable) -> bool: return a_category.call(c) and a_idle.call(c)
 	if Input.is_action_pressed(MODIFIER_BROADEN):
 		_select_all_matching(predicate)
 		return
 	_cycle_one_matching(predicate)
+
 
 ## The three families, as [category, idle] predicate pairs. Indexed by SelectorFamily, and
 ## built here rather than as a const because the predicates are instance methods.
@@ -1879,6 +2051,7 @@ var _selector_predicates: Array = []
 
 ## Which family a selector button drives. Ordered to match _selector_predicates.
 enum SelectorFamily { ARMY, BUILDER, PRODUCTION }
+
 
 ## What pressing a family's selector would yield RIGHT NOW, as {count, label}, given the
 ## modifiers currently held.
@@ -1907,11 +2080,15 @@ func selector_preview(a_family: int) -> Dictionary:
 	# label is built HERE rather than in the panel so the two can't drift.
 	var verb: String = "select" if take_all else "cycle"
 	var subject: String = "idle" if idle_only else ""
-	var label: String = ("%s %s" % [verb, subject]).strip_edges() if count == 0 \
+	var label: String = (
+		("%s %s" % [verb, subject]).strip_edges()
+		if count == 0
 		else ("%s %d %s" % [verb, count, subject]).strip_edges()
+	)
 	if count == 0:
 		label = "no %s" % ("idle" if idle_only else "members")
 	return {"count": count, "label": label}
+
 
 ## Run a family's selector — the button path, matching what its F-key does.
 func run_selector_family(a_family: int) -> void:
@@ -1919,6 +2096,7 @@ func run_selector_family(a_family: int) -> void:
 		return
 	var pair: Array = _selector_predicates[a_family]
 	_run_selector(pair[0] as Callable, pair[1] as Callable)
+
 
 # --- Shared selection machinery -----------------------------------------------
 ## Select every player-owned commandable satisfying `predicate` (replacing the current
@@ -1930,6 +2108,7 @@ func _select_all_matching(a_predicate: Callable) -> void:
 	_select_units(candidates)
 	_look_at_selection(candidates)
 
+
 ## Every selectable commandable this player owns that satisfies `predicate`.
 ##
 ## Always the whole map: scope is no longer a selector axis (see _run_selector). The single
@@ -1940,9 +2119,9 @@ func _owned_matching(a_predicate: Callable) -> Array:
 	return get_tree().get_nodes_in_group("piece").filter(
 		func(node: Variant) -> bool:
 			var c: Commandable = node as Commandable
-			return is_player_commandable(c) \
-				and c.selectable != null and a_predicate.call(c)
+			return is_player_commandable(c) and c.selectable != null and a_predicate.call(c)
 	)
+
 
 ## Selects each commandable in `entities` (skipping already-selected ones) and
 ## refreshes the HUD / available-command state. Shared selection finalizer.
@@ -1961,6 +2140,7 @@ func _select_units(a_entities: Array) -> void:
 	available_commands = CommandContextParser.commands_for_selection(selection)
 	if not selection.is_empty():
 		unit_selected.emit(selection[0] as Entity)
+
 
 ## The "cycle one" half of the cardinality axis. Picks one commandable satisfying
 ## `predicate`, makes it the sole selection (unless additive) and brings the camera to it.
@@ -1996,6 +2176,7 @@ func _cycle_one_matching(a_predicate: Callable) -> Commandable:
 	_look_at_selection([best])
 	return best
 
+
 ## Which of `a_last_selected_times` the cycler takes: the least-recently-selected, or -1 for
 ## an empty set. Selecting the pick bumps its time, so repeated presses walk the whole group
 ## once before returning to the front of it.
@@ -2011,6 +2192,8 @@ static func cycle_index(last_selected_times: Array) -> int:
 			best = i
 			best_time = last_selected
 	return best
+
+
 #endregion
 
 #region Control groups
@@ -2052,11 +2235,13 @@ enum ControlGroupGesture {
 ## in a scene tree.
 var _control_groups: Array = _empty_groups()
 
+
 static func _empty_groups() -> Array:
 	var out: Array = []
 	for i: int in CONTROL_GROUP_COUNT:
 		out.append([])
 	return out
+
 
 ## Which gesture the modifiers currently held ask for.
 ##
@@ -2073,15 +2258,14 @@ static func _empty_groups() -> Array:
 ## Additive is not read on the narrow row — the table leaves that cell unused, and an
 ## unused cell is better spent doing the row's obvious thing than refusing the press.
 static func control_group_gesture(
-	is_additive: bool,
-	is_narrow: bool,
-	is_broaden: bool
+	is_additive: bool, is_narrow: bool, is_broaden: bool
 ) -> ControlGroupGesture:
 	if is_narrow:
 		return ControlGroupGesture.REMOVE_FROM_GROUP
 	if is_broaden:
 		return ControlGroupGesture.EXTEND_GROUP if is_additive else ControlGroupGesture.ASSIGN_GROUP
 	return ControlGroupGesture.EXTEND_SELECTION if is_additive else ControlGroupGesture.RECALL
+
 
 ## Which gesture a CONTROL-GROUP BUTTON press asks for. The panel's table, not the keyboard's.
 ##
@@ -2101,16 +2285,18 @@ static func control_group_gesture(
 ## is the same claim control_group_gesture makes for the keyboard. Narrow is tested first for
 ## the same reason it is there: the two writes are opposites and cannot compose.
 static func control_group_button_gesture(
-	is_write: bool,
-	is_additive: bool,
-	is_narrow: bool
+	is_write: bool, is_additive: bool, is_narrow: bool
 ) -> ControlGroupGesture:
 	if is_narrow:
-		return ControlGroupGesture.REMOVE_FROM_GROUP if is_write \
+		return (
+			ControlGroupGesture.REMOVE_FROM_GROUP
+			if is_write
 			else ControlGroupGesture.REMOVE_FROM_SELECTION
+		)
 	if is_additive:
-		return ControlGroupGesture.EXTEND_GROUP if is_write \
-			else ControlGroupGesture.EXTEND_SELECTION
+		return (
+			ControlGroupGesture.EXTEND_GROUP if is_write else ControlGroupGesture.EXTEND_SELECTION
+		)
 	return ControlGroupGesture.ASSIGN_GROUP if is_write else ControlGroupGesture.RECALL
 
 
@@ -2119,11 +2305,14 @@ static func control_group_button_gesture(
 ## run_control_group polls: a modifier keydown that lands while a HUD Control has focus never
 ## reaches _unhandled_input, and a HUD button press is exactly that case.
 func run_control_group_button(a_index: int, a_is_write: bool) -> void:
-	apply_control_group_gesture(a_index, control_group_button_gesture(
-		a_is_write,
-		Input.is_action_pressed(MODIFIER_ADDITIVE),
-		Input.is_action_pressed(MODIFIER_NARROW)
-	))
+	apply_control_group_gesture(
+		a_index,
+		control_group_button_gesture(
+			a_is_write,
+			Input.is_action_pressed(MODIFIER_ADDITIVE),
+			Input.is_action_pressed(MODIFIER_NARROW)
+		)
+	)
 
 
 ## The zero-based group `a_action` addresses, or -1 if it is not a control-group action.
@@ -2138,9 +2327,11 @@ static func control_group_index_from_action(action: String) -> int:
 	var number: int = int(suffix)
 	return number - 1 if number >= 1 and number <= CONTROL_GROUP_COUNT else -1
 
+
 ## The action addressing group `a_index`. Inverse of control_group_index_from_action.
 static func control_group_action(index: int) -> StringName:
 	return StringName("%s%d" % [CONTROL_GROUP_ACTION_PREFIX, index + 1])
+
 
 ## Every control-group action the game expects to exist — the list a rebinding screen would
 ## enumerate, and what test_ControlGroups checks project.godot against.
@@ -2150,9 +2341,11 @@ static func control_group_actions() -> Array:
 		out.append(control_group_action(i))
 	return out
 
+
 ## `a_group` with every member of `a_removed` taken out, by identity.
 static func without_members(group: Array, removed: Array) -> Array:
 	return group.filter(func(member: Variant) -> bool: return not removed.has(member))
+
 
 ## `a_group` with `a_added` appended, skipping anything already in it. Order-preserving and
 ## de-duplicating: a unit added to a group twice is in it once.
@@ -2163,6 +2356,7 @@ static func with_members(group: Array, added: Array) -> Array:
 			out.append(member)
 	return out
 
+
 ## `a_group` minus anything that has died or left the world. Pruned on READ rather than
 ## watched for: hooking every member's tree_exiting to keep ten arrays exact would be a lot of
 ## bookkeeping for a filter.
@@ -2172,15 +2366,18 @@ static func with_members(group: Array, added: Array) -> Array:
 static func live_members(group: Array) -> Array:
 	return group.filter(
 		func(member: Variant) -> bool:
-			return is_instance_valid(member) and member is Node \
-				and (member as Node).is_inside_tree()
+			return (
+				is_instance_valid(member) and member is Node and (member as Node).is_inside_tree()
+			)
 	)
+
 
 ## The live membership of group `a_index`, or empty for an index out of range.
 func control_group(a_index: int) -> Array:
 	if a_index < 0 or a_index >= _control_groups.size():
 		return []
 	return live_members(_control_groups[a_index])
+
 
 ## Run a control-group press: read the modifiers, then apply the gesture they name.
 ##
@@ -2189,11 +2386,15 @@ func control_group(a_index: int) -> Array:
 ## focus never reaches _unhandled_input, so the Shift latch can miss it. A control-group
 ## press is a keyboard press like a selector's, so it reads them the same way.
 func run_control_group(a_index: int) -> void:
-	apply_control_group_gesture(a_index, control_group_gesture(
-		Input.is_action_pressed(MODIFIER_ADDITIVE),
-		Input.is_action_pressed(MODIFIER_NARROW),
-		Input.is_action_pressed(MODIFIER_BROADEN)
-	))
+	apply_control_group_gesture(
+		a_index,
+		control_group_gesture(
+			Input.is_action_pressed(MODIFIER_ADDITIVE),
+			Input.is_action_pressed(MODIFIER_NARROW),
+			Input.is_action_pressed(MODIFIER_BROADEN)
+		)
+	)
+
 
 ## Apply one gesture to one group. Split from run_control_group so the effect can be
 ## exercised without pressing keys.
@@ -2228,6 +2429,7 @@ func apply_control_group_gesture(a_index: int, a_gesture: ControlGroupGesture) -
 				if commandable != null:
 					remove_from_selection(commandable)
 
+
 ## Route a control-group key press. Mirrors _dispatch_command_hotkey: the action names the
 ## group, and the modifiers decide what happens to it.
 func _dispatch_control_group(a_actions: Array) -> void:
@@ -2237,6 +2439,8 @@ func _dispatch_control_group(a_actions: Array) -> void:
 			continue
 		run_control_group(index)
 		return
+
+
 #endregion
 
 #region Camera follow
@@ -2259,6 +2463,7 @@ enum CameraFollow {
 }
 
 var camera_follow_selection: CameraFollow = CameraFollow.WHEN_NEEDED
+
 
 ## Bring the camera to `a_commandables` if the player would otherwise have selected something
 ## off screen.
@@ -2288,7 +2493,10 @@ func _look_at_selection(a_commandables: Array) -> void:
 		counted += 1
 	if counted > 0:
 		camera.center_on(centroid / float(counted))
+
+
 #endregion
+
 
 #region Screen queries
 ## Returns the subset of `commandables` that are currently on screen. A
@@ -2303,6 +2511,7 @@ func commandables_on_screen(a_commandables: Array) -> Array:
 		func(c: Variant) -> bool:
 			return c is Commandable and _selection_shape_in_view(c as Commandable, viewport_rect)
 	)
+
 
 ## True when the commandable's selection shape projects onto `viewport_rect` at
 ## all (any overlap — a partially-visible shape still counts as on screen).
@@ -2323,8 +2532,10 @@ func _selection_shape_in_view(a_commandable: Commandable, a_viewport_rect: Rect2
 	# Non-sphere shapes fall back to a point test (radius 0).
 	var world_radius: float = 0.0
 	if shape_node.shape is SphereShape3D:
-		world_radius = (shape_node.shape as SphereShape3D).radius \
+		world_radius = (
+			(shape_node.shape as SphereShape3D).radius
 			* shape_node.global_transform.basis.x.length()
+		)
 
 	# Screen-space radius: project a point one world-radius to the camera's right
 	# and measure the pixel gap. This derives the on-screen size without assuming
@@ -2341,6 +2552,7 @@ func _selection_shape_in_view(a_commandable: Commandable, a_viewport_rect: Rect2
 	)
 	return a_viewport_rect.intersects(shape_rect)
 
+
 ## The CollisionShape3D defining a Selectable's selection area (its first
 ## CollisionShape3D child), or null.
 func _selection_shape_node(a_selectable: Selectable) -> CollisionShape3D:
@@ -2348,7 +2560,10 @@ func _selection_shape_node(a_selectable: Selectable) -> CollisionShape3D:
 		if child is CollisionShape3D:
 			return child as CollisionShape3D
 	return null
+
+
 #endregion
+
 
 #region Command processing
 ## The control context(s) currently active for tool/command availability, as a
@@ -2361,6 +2576,7 @@ func current_context() -> int:
 		return ControlBinding.ControlContext.BUILD
 	return ControlBinding.ControlContext.ACT | ControlBinding.ControlContext.TRAIN
 
+
 ## The sanction whose CARGO MENU is open, or null. A sanction that offers payloads is armed
 ## in two steps exactly as Build is — the button drills into a list, the pick sets the tool,
 ## and the right-click delivers it — so the menu is "armed, with nothing chosen yet".
@@ -2372,6 +2588,7 @@ func pending_payload_sanction() -> Sanction:
 	if _pending_sanction == null or not _pending_sanction.takes_a_payload():
 		return null
 	return _pending_sanction if command_message.tool == null else null
+
 
 ## The piece ids a payload menu is currently offering, as their TOOL command names. Empty
 ## when no menu is open.
@@ -2390,6 +2607,7 @@ func payload_menu_commands() -> Array:
 		if tool != null:
 			out.append(tool.command_name)
 	return out
+
 
 ## Whether `command_name` is a unit command the current selection can act on right
 ## now — the gate shared by button visibility, the hotkey dispatcher, and
@@ -2421,9 +2639,15 @@ func _command_is_available(a_command_name: String) -> bool:
 		return _command_is_on_current_card(a_command_name)
 	if payload_menu_commands().has(a_command_name):
 		return true
-	return current_context() == ControlBinding.ControlContext.BUILD \
-		and CommandContextParser.tools_for_selection(
-			selection, ControlBinding.ControlContext.BUILD).has(a_command_name)
+	return (
+		current_context() == ControlBinding.ControlContext.BUILD
+		and (
+			CommandContextParser
+			. tools_for_selection(selection, ControlBinding.ControlContext.BUILD)
+			. has(a_command_name)
+		)
+	)
+
 
 ## Runs the "command_" input action a key press triggered.
 ##
@@ -2450,6 +2674,7 @@ func _dispatch_command_hotkey(a_command_actions: Array) -> void:
 		if command_name != "" and _command_is_available(command_name):
 			process_command(command_name)
 			return
+
 
 func process_command(a_command_name: String) -> void:
 	# A press on the COMMANDER's card finds its own casters and arms the ability, exactly as the
@@ -2508,13 +2733,10 @@ func process_command(a_command_name: String) -> void:
 	)
 
 	if command != null and not command.requires_position():
-		assign_command_to_units(
-			command,
-			command_message,
-			additive_latched
-		)
+		assign_command_to_units(command, command_message, additive_latched)
 
 	upate_hud_buttons()
+
 
 ## Whether pressing `a_tool` now means "the next form of what is armed": that very piece is
 ## already armed, bound to one of its variants. A piece without variants is never bound, so
@@ -2523,6 +2745,7 @@ func _is_variant_cycle_press(a_tool: Tool) -> bool:
 	var armed: Tool = command_message.tool if command_message != null else null
 	return armed != null and armed.is_variant_bound() and armed.type == a_tool.type
 
+
 ## Toggle hold fire across every piece in `actors` that offers it — those with a weapon. If
 ## all of them already hold, all are released; otherwise (none, or some) all are set. The rest
 ## are left alone, so a mixed selection is not an error.
@@ -2530,9 +2753,13 @@ static func toggle_hold_fire(actors: Array) -> void:
 	var is_holding: bool = not CommandButtonState.all_hold_fire(actors)
 	for node: Variant in actors:
 		var actor := node as Commandable
-		if actor != null and is_instance_valid(actor) and CommandContextParser.commands_for(
-				actor).has(CommandContextParser.HOLD_FIRE_COMMAND):
+		if (
+			actor != null
+			and is_instance_valid(actor)
+			and CommandContextParser.commands_for(actor).has(CommandContextParser.HOLD_FIRE_COMMAND)
+		):
 			actor.is_holding_fire = is_holding
+
 
 ## Hotkey name -> the command class arming it selects, for every sub-mode whose answer is
 ## the same whatever the cursor is over. Two hotkeys are deliberately absent because a name
@@ -2595,9 +2822,7 @@ static var DELEGATED_BRANCHES: Array = [Repair, Rearm, Occupy, Embark, TaskShelt
 ## under the cursor (the default ladder). The full ladder, and the reasoning behind its
 ## order, is gdd/systems/commands/the-click-ladder.md.
 static func _resolve_command_class(
-	pending: String,
-	actor: Entity,
-	message: CommandMessage
+	pending: String, actor: Entity, message: CommandMessage
 ) -> Variant:
 	if actor == null:
 		return null
@@ -2611,8 +2836,11 @@ static func _resolve_command_class(
 static func _resolve_hotkey_command(pending: String, message: CommandMessage) -> Variant:
 	# TARGET-SENSITIVE: an attack-move onto something attackable is simply an attack.
 	if pending == "command_attack_move":
-		return Attack if message.target is Entity and (message.target as Entity).is_attackable() \
+		return (
+			Attack
+			if message.target is Entity and (message.target as Entity).is_attackable()
 			else AttackMove
+		)
 	# WRITES TO THE MESSAGE, which is why it cannot be a table row: Ability resolves its
 	# payload and its charges from the id carried there. (Map further hotkeys to their
 	# ability ids here as abilities are added.)
@@ -2637,30 +2865,44 @@ static func _resolve_target_command(actor: Entity, message: CommandMessage) -> V
 	# generalises the former per-type special cases (technician -> Star PickUp, technician ->
 	# Outpost DropOff, vanguard -> Lab collect): what a unit can interact with lives in its
 	# Interactor's list, and the Interact precondition gates on encampment availability.
-	if actor_cmd != null and actor_cmd.interactor != null and target is Entity \
-			and actor_cmd.interactor.can_interact(actor_cmd, message):
+	if (
+		actor_cmd != null
+		and actor_cmd.interactor != null
+		and target is Entity
+		and actor_cmd.interactor.can_interact(actor_cmd, message)
+	):
 		return Interact
 
 	# Builder targeting a friendly under-construction structure -> resume construction. The
 	# click is unambiguous (same-commander, not-yet-built, actor can build that type), so it
 	# short-circuits ahead of the generic fallthrough.
 	var target_cmd := target as Commandable
-	if target_cmd != null and target_cmd.commander_id == actor.commander_id \
-			and not target_cmd.is_built and actor.has_node("Builds") \
-			and (actor.get_node("Builds") as Builds).can_build(target.id):
+	if (
+		target_cmd != null
+		and target_cmd.commander_id == actor.commander_id
+		and not target_cmd.is_built
+		and actor.has_node("Builds")
+		and (actor.get_node("Builds") as Builds).can_build(target.id)
+	):
 		return Assemble
 
 	if actor_cmd != null:
 		for branch: Variant in DELEGATED_BRANCHES:
-			if branch.meets_precondition(actor_cmd, message) \
-					== MoveCommand.PreconditionFailureCause.NONE:
+			if (
+				branch.meets_precondition(actor_cmd, message)
+				== MoveCommand.PreconditionFailureCause.NONE
+			):
 				return branch
 
 	# Hostile, weapon-matched target. Above the rally fallback so a combatant structure whose
 	# can_rally() would otherwise swallow the click still takes an explicit attack order.
-	if target is Entity and (target as Entity).is_attackable() and actor.is_enemy_of(target) \
-			and actor.weapon_inventory != null \
-			and actor.weapon_inventory.weapon_for_target(target) != null:
+	if (
+		target is Entity
+		and (target as Entity).is_attackable()
+		and actor.is_enemy_of(target)
+		and actor.weapon_inventory != null
+		and actor.weapon_inventory.weapon_for_target(target) != null
+	):
 		return Attack
 
 	return MoveCommand
@@ -2681,9 +2923,7 @@ static func _resolve_target_command(actor: Entity, message: CommandMessage) -> V
 ## Falls back to the LEAD unit's resolution when no unit can execute anything, so the
 ## cursor and the error line still name a concrete reason instead of going blank.
 static func resolve_command_class_for_selection(
-	pending: String,
-	selection: Array,
-	message: CommandMessage
+	pending: String, selection: Array, message: CommandMessage
 ) -> Variant:
 	var best: Variant = null
 	var best_rank: int = 0x7FFFFFFF
@@ -2756,14 +2996,14 @@ static func _command_specificity(command_type: Script) -> int:
 ## Whether `a_actor` could carry out `a_command_type` right now. COMMAND_PENDING_TOOL
 ## counts: it means "armed, waiting on the player's tool pick", not a failure (see
 ## MoveCommand.PreconditionFailureCause).
-static func _can_execute(
-	command_type: Script,
-	actor: Commandable,
-	message: CommandMessage
-) -> bool:
-	var cause: MoveCommand.PreconditionFailureCause = command_type.meets_precondition(actor, message)
-	return cause == MoveCommand.PreconditionFailureCause.NONE \
+static func _can_execute(command_type: Script, actor: Commandable, message: CommandMessage) -> bool:
+	var cause: MoveCommand.PreconditionFailureCause = command_type.meets_precondition(
+		actor, message
+	)
+	return (
+		cause == MoveCommand.PreconditionFailureCause.NONE
 		or cause == MoveCommand.PreconditionFailureCause.COMMAND_PENDING_TOOL
+	)
 
 
 ## The failure cause to SHOW for the current selection (cursor + error line): the command
@@ -2772,21 +3012,25 @@ static func _can_execute(
 ## nobody can act do we surface a real cause, taken from the lead unit so the message
 ## names something concrete.
 static func selection_precondition(
-	command_type: Script,
-	selection: Array,
-	message: CommandMessage
+	command_type: Script, selection: Array, message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	if command_type == null or selection.is_empty():
 		return MoveCommand.PreconditionFailureCause.NONE
-	var lead_cause: MoveCommand.PreconditionFailureCause = MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	var lead_cause: MoveCommand.PreconditionFailureCause = (
+		MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	)
 	var have_lead: bool = false
 	for node: Node in selection:
 		var actor := node as Commandable
 		if actor == null or not is_instance_valid(actor):
 			continue
-		var cause: MoveCommand.PreconditionFailureCause = command_type.meets_precondition(actor, message)
-		if cause == MoveCommand.PreconditionFailureCause.NONE \
-				or cause == MoveCommand.PreconditionFailureCause.COMMAND_PENDING_TOOL:
+		var cause: MoveCommand.PreconditionFailureCause = command_type.meets_precondition(
+			actor, message
+		)
+		if (
+			cause == MoveCommand.PreconditionFailureCause.NONE
+			or cause == MoveCommand.PreconditionFailureCause.COMMAND_PENDING_TOOL
+		):
 			return cause
 		if not have_lead:
 			lead_cause = cause
@@ -2812,11 +3056,7 @@ static func selection_precondition(
 ##
 ## Why the NEAREST IDLE one:
 ## gdd/systems/ux/ui/selection-and-input.md §The narrow modifier picks the nearest IDLE actor.
-func _narrowed_actors(
-	a_command_type: Script,
-	a_actors: Array,
-	a_message: CommandMessage
-) -> Array:
+func _narrowed_actors(a_command_type: Script, a_actors: Array, a_message: CommandMessage) -> Array:
 	if a_actors.size() <= 1 or a_command_type == Train:
 		return a_actors
 	if cast_arity_for(a_command_type, a_message) == MoveCommand.CastArity.ALL:
@@ -2844,9 +3084,7 @@ func _narrowed_actors(
 ## Public, and takes the message, because the aiming preview asks the same question to decide
 ## how many casters' ranges to draw — the ring the player sees and the actors that fire have
 ## to be the same answer.
-func cast_arity_for(
-	a_command_type: Script, a_message: CommandMessage
-) -> MoveCommand.CastArity:
+func cast_arity_for(a_command_type: Script, a_message: CommandMessage) -> MoveCommand.CastArity:
 	if a_command_type == null:
 		return MoveCommand.CastArity.ALL
 	return modified_arity(a_command_type.default_cast_arity(a_message))
@@ -2880,19 +3118,18 @@ func armed_cast_arity() -> MoveCommand.CastArity:
 ##
 ## Static and node-free so the RULE can be pinned without a live entity: the positions and
 ## idleness are the only things it depends on.
-static func narrowed_index(
-	candidates: Array,
-	target: Vector2,
-	prefer_idle: bool
-) -> int:
+static func narrowed_index(candidates: Array, target: Vector2, prefer_idle: bool) -> int:
 	var best: int = -1
 	var best_distance: float = INF
 	var best_is_idle: bool = false
 	for i: int in candidates.size():
 		var idle: bool = prefer_idle and candidates[i][1] as bool
 		var distance: float = (candidates[i][0] as Vector2).distance_to(target)
-		if best == -1 or (idle and not best_is_idle) \
-				or (idle == best_is_idle and distance < best_distance):
+		if (
+			best == -1
+			or (idle and not best_is_idle)
+			or (idle == best_is_idle and distance < best_distance)
+		):
 			best = i
 			best_distance = distance
 			best_is_idle = idle
@@ -2900,12 +3137,11 @@ static func narrowed_index(
 
 
 func assign_command_to_units(
-	a_command_type: Script,
-	a_command_message: CommandMessage,
-	a_add_to_queue: bool
+	a_command_type: Script, a_command_message: CommandMessage, a_add_to_queue: bool
 ) -> bool:
 	# Returns whether or not the command was successfully assigned to any units
-	selection = selection.filter(func(u): return is_instance_valid(u)) # TODO refactor so I dont have to do this smh
+	# TODO refactor so I dont have to do this smh
+	selection = selection.filter(func(u): return is_instance_valid(u))
 
 	if selection.size() == 0:
 		push_error("no selections")
@@ -2922,7 +3158,10 @@ func assign_command_to_units(
 	# incapable units are silently skipped.
 	var capable: Array = selection.filter(
 		func(c: Commandable) -> bool:
-			return a_command_type.meets_precondition(c, a_command_message) == MoveCommand.PreconditionFailureCause.NONE
+			return (
+				a_command_type.meets_precondition(c, a_command_message)
+				== MoveCommand.PreconditionFailureCause.NONE
+			)
 	)
 
 	if capable.is_empty():
@@ -2968,8 +3207,13 @@ func assign_command_to_units(
 		# whole and the treasury funds it in order. That is the whole of "buy what you can afford
 		# and requisition the remainder"; neither half needed a rule of its own.
 		for i: int in bulk_purchase_count():
-			if i > 0 and Train.meets_precondition(capable[0] as Commandable, a_command_message) \
-					!= MoveCommand.PreconditionFailureCause.NONE:
+			if (
+				i > 0
+				and (
+					Train.meets_precondition(capable[0] as Commandable, a_command_message)
+					!= MoveCommand.PreconditionFailureCause.NONE
+				)
+			):
 				break
 			commander.production_queue.submit_train(a_command_message.tool, capable, standing)
 		# Same teardown the normal path runs below: clearing the tool is what makes the
@@ -3003,7 +3247,8 @@ func assign_command_to_units(
 		a_command_message.match_group_speed = true
 
 	var unit_to_destination: Dictionary = _fanned_destinations(
-		a_command_type, capable, a_command_message)
+		a_command_type, capable, a_command_message
+	)
 
 	# For a Defend order, build ONE region collider — a hard copy of the group's widest
 	# aggro shape, pinned at the target centre — that every defender scans against. A copy
@@ -3050,9 +3295,11 @@ func assign_command_to_units(
 		snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
 		if a_command_type.requires_position():
 			_register_indicator(snapshot)
-		var new_cmd: MoveCommand = Patrol.for_actor(c, snapshot) \
-				if a_command_type == Patrol \
-				else a_command_type.new(snapshot)
+		var new_cmd: MoveCommand = (
+			Patrol.for_actor(c, snapshot)
+			if a_command_type == Patrol
+			else a_command_type.new(snapshot)
+		)
 		# Sequencing is a fact about WHEN this order was handed out, not about the order
 		# itself — stamped here, once per recipient, rather than in TaskShelter's own
 		# constructor (see Commander.next_task_sequence).
@@ -3104,6 +3351,7 @@ func assign_command_to_units(
 
 	return true
 
+
 ## Give every selected commandable that is NOT in `a_recipients` a plain move at the same
 ## target. The other half of MoveCommand.bystanders_move — see there for why an order ever
 ## wants this, and Embark for the one that does today.
@@ -3113,9 +3361,7 @@ func assign_command_to_units(
 ## "as normal" has to mean. Bystanders are not fanned out either — they are all heading for
 ## one unit, and following it is what the receiver makes of a move at a friendly.
 func _order_bystanders_to_move(
-	a_recipients: Array,
-	a_command_message: CommandMessage,
-	a_add_to_queue: bool
+	a_recipients: Array, a_command_message: CommandMessage, a_add_to_queue: bool
 ) -> void:
 	for node: Node in selection:
 		var actor := node as Commandable
@@ -3148,9 +3394,7 @@ static func _slowest_group_speed(capable: Array) -> float:
 ##
 ## Why it works this way: gdd/systems/ux/ui/selection-and-input.md §Group destinations fan out.
 func _fanned_destinations(
-	a_command_type: Script,
-	a_capable: Array,
-	a_command_message: CommandMessage
+	a_command_type: Script, a_capable: Array, a_command_message: CommandMessage
 ) -> Dictionary:
 	# Build is EXCLUDED: a build order has one destination by definition — the site of the
 	# one structure being placed. Fanning it out gave each builder a different target cell,
@@ -3165,14 +3409,19 @@ func _fanned_destinations(
 	# world_position — fanning it would have each unit shell a slightly different patch of
 	# ground, which is not the order that was given. Stacking is not a problem here anyway:
 	# the actors stop as soon as they are in range, which is a long way short of the point.
-	if a_command_type == Build or a_command_type == FocusFire \
-			or not a_command_type.requires_position() or a_capable.size() <= 1:
+	if (
+		a_command_type == Build
+		or a_command_type == FocusFire
+		or not a_command_type.requires_position()
+		or a_capable.size() <= 1
+	):
 		return {}
 
 	var representative := a_capable[0] as Entity
 	var radius: float = representative.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 	var region_radius: float = maxf(
-		MIN_FAN_OUT_RADIUS, radius * FAN_OUT_RADIUS_PER_UNIT * float(a_capable.size()))
+		MIN_FAN_OUT_RADIUS, radius * FAN_OUT_RADIUS_PER_UNIT * float(a_capable.size())
+	)
 	var destination_centroid: Vector2 = a_command_message.xz_position
 	var destinations: Array[Vector2] = SU.get_nonoverlapping_points(
 		map,
@@ -3197,16 +3446,20 @@ func _fanned_destinations(
 	# formation-preserving paths by construction.
 	destinations.sort_custom(
 		func(a: Vector2, b: Vector2) -> bool:
-			return atan2(a.x - destination_centroid.x, a.y - destination_centroid.y) \
-					< atan2(b.x - destination_centroid.x, b.y - destination_centroid.y)
+			return (
+				atan2(a.x - destination_centroid.x, a.y - destination_centroid.y)
+				< atan2(b.x - destination_centroid.x, b.y - destination_centroid.y)
+			)
 	)
 	var sorted_capable: Array = a_capable.duplicate()
 	sorted_capable.sort_custom(
 		func(a: Commandable, b: Commandable) -> bool:
 			var a_xz: Vector2 = VU.inXZ((a as Entity).global_position)
 			var b_xz: Vector2 = VU.inXZ((b as Entity).global_position)
-			return atan2(a_xz.x - selection_centroid.x, a_xz.y - selection_centroid.y) \
-					< atan2(b_xz.x - selection_centroid.x, b_xz.y - selection_centroid.y)
+			return (
+				atan2(a_xz.x - selection_centroid.x, a_xz.y - selection_centroid.y)
+				< atan2(b_xz.x - selection_centroid.x, b_xz.y - selection_centroid.y)
+			)
 	)
 
 	# If scatter found fewer points than units, only the first min(destinations, units) get
@@ -3265,12 +3518,14 @@ func issue_command_at_world_position(a_world_xz: Vector2) -> void:
 		return
 	assign_command_to_units(command, msg, additive_latched)
 
+
 ## World point at `world_xz`, lifted onto the terrain so waypoint indicators and
 ## any Y-sensitive consumers sit at the ground height rather than Y=0.
 func _world_point(a_world_xz: Vector2) -> Vector3:
 	var p: Vector3 = VU.fromXZ(a_world_xz)
 	p.y = map.terrain_height_at(a_world_xz)
 	return p
+
 
 ## Whether issuing `a_command_type` should put the armed sub-mode and tool DOWN.
 ##
@@ -3319,8 +3574,11 @@ func select_pending(a_transactions: Array, a_additive: bool) -> void:
 		pending_selection.clear()
 	for entry: Variant in a_transactions:
 		var transaction := entry as PurchaseTransaction
-		if transaction != null and transaction.awaits_its_unit() \
-				and not pending_selection.has(transaction):
+		if (
+			transaction != null
+			and transaction.awaits_its_unit()
+			and not pending_selection.has(transaction)
+		):
 			pending_selection.append(transaction)
 	upate_hud_buttons()
 
@@ -3349,8 +3607,9 @@ func is_pending_selected(a_transaction: PurchaseTransaction) -> bool:
 ## One command instance per transaction, each with its own deep-copied message — the same rule
 ## live orders follow, and for the same reason: two units sharing a command instance trade
 ## destinations through it.
-func assign_command_to_pending(a_command_type: Script, a_command_message: CommandMessage,
-		a_add_to_queue: bool) -> bool:
+func assign_command_to_pending(
+	a_command_type: Script, a_command_message: CommandMessage, a_add_to_queue: bool
+) -> bool:
 	var command_type: Script = a_command_type if a_command_type != null else MoveCommand
 	var ordered: bool = false
 	for transaction: PurchaseTransaction in pending_selection.duplicate():
@@ -3366,7 +3625,10 @@ func assign_command_to_pending(a_command_type: Script, a_command_message: Comman
 	if not a_add_to_queue:
 		_reset_pending_state()
 	return ordered
+
+
 #endregion
+
 
 ## Whether the controller is holding an order waiting for a click to land it — a sub-mode, an
 ## armed sanction, or a chosen tool — as against the DEFAULT state, where a right-click reads
@@ -3378,9 +3640,13 @@ func assign_command_to_pending(a_command_type: Script, a_command_message: Comman
 ## — which is how most of this file's rules are tested. Guarded rather than asserted: "nothing
 ## armed" is the honest answer for a controller with no message to arm anything on.
 func is_command_armed() -> bool:
-	return pending_command_name != "" or _pending_sanction != null \
-		or (command_message != null and command_message.tool != null) \
-		or is_debug_piece_armed() or is_drop_armed()
+	return (
+		pending_command_name != ""
+		or _pending_sanction != null
+		or (command_message != null and command_message.tool != null)
+		or is_debug_piece_armed()
+		or is_drop_armed()
+	)
 
 
 ## Whether the armed order has nothing left to ask for — a tool is chosen, or the order takes
@@ -3391,8 +3657,10 @@ func is_command_ready() -> bool:
 		return false
 	if command_message != null and command_message.tool != null:
 		return true
-	return current_context() != ControlBinding.ControlContext.BUILD \
+	return (
+		current_context() != ControlBinding.ControlContext.BUILD
 		and payload_menu_commands().is_empty()
+	)
 
 
 ## Put every armed thing down: the sub-mode, the tool and the sanction, in one call.
@@ -3413,7 +3681,10 @@ func disarm_command() -> void:
 		command_message.tool = null
 	available_commands = CommandContextParser.commands_for_selection(selection)
 	upate_hud_buttons()
+
+
 #endregion
+
 
 #region HUD
 ## The command whose button is drawn in [a_cell] right now, or "" if the cell is empty.
@@ -3429,10 +3700,14 @@ func visible_command_in_cell(a_cell: Vector2i) -> String:
 	if visible_names.is_empty():
 		return ""
 	for binding: ControlBinding in CommandGrid.bindings():
-		if binding.grid_position == a_cell and (binding.family & _command_family) != 0 \
-				and visible_names.has(binding.command_name):
+		if (
+			binding.grid_position == a_cell
+			and (binding.family & _command_family) != 0
+			and visible_names.has(binding.command_name)
+		):
 			return binding.command_name
 	return ""
+
 
 func upate_hud_buttons() -> void:
 	# Here rather than only at the two family writers: the READY state is a card change the
@@ -3450,13 +3725,14 @@ func upate_hud_buttons() -> void:
 		for subchild: Button in child.get_children():
 			# The BUTTON's own family, not its command's: one command may be drawn on two cards
 			# from two bindings, and only the one belonging to the card on show may appear.
-			var on_this_card: bool = (int(subchild.get_meta(
-				CommandGrid.BUTTON_FAMILY_META, 0)) & _command_family) != 0
-			subchild.visible = not cell_taken and on_this_card \
-				and visible_names.has(subchild.name)
+			var on_this_card: bool = (
+				(int(subchild.get_meta(CommandGrid.BUTTON_FAMILY_META, 0)) & _command_family) != 0
+			)
+			subchild.visible = not cell_taken and on_this_card and visible_names.has(subchild.name)
 			if subchild.visible:
 				cell_taken = true
 				_apply_button_availability(subchild)
+
 
 #region Command-button availability
 ## WHY each visible grid button is dark, and what it draws — delegated whole to
@@ -3468,8 +3744,12 @@ func upate_hud_buttons() -> void:
 ## its colours and the reasoning for both are in that class.
 func _apply_button_availability(a_button: Button) -> void:
 	var state: CommandButtonState = CommandButtonState.of(
-		a_button.name, selection, _selection_commander(), additive_modifier_held(),
-		ProducerContextBinding.PREFIX + String(_producer_context))
+		a_button.name,
+		selection,
+		_selection_commander(),
+		additive_modifier_held(),
+		ProducerContextBinding.PREFIX + String(_producer_context)
+	)
 	# The radio button for the producer on show is not pressable — there is nowhere for it to
 	# go. Greying it without disabling it would say "you are here" and still accept the click.
 	a_button.disabled = state.blocker == CommandButtonState.Blocker.CURRENT
@@ -3479,6 +3759,7 @@ func _apply_button_availability(a_button: Button) -> void:
 	else:
 		a_button.modulate = state.tint()
 
+
 ## Restyle the visible buttons without recomputing which ones are visible. Availability
 ## tracks income and cooldowns, which change continuously with nothing to signal them — so
 ## this runs per frame from _process, where the rest of the live HUD refresh happens.
@@ -3487,7 +3768,10 @@ func _refresh_button_availability() -> void:
 		for subchild: Button in child.get_children():
 			if subchild.visible:
 				_apply_button_availability(subchild)
+
+
 #endregion
+
 
 ## The command names whose HUD buttons should be visible for the current state.
 ##
@@ -3529,6 +3813,7 @@ func _visible_command_names() -> Array:
 		names.append_array(producer_context_names())
 	return names
 
+
 ## The MENU an armed order is still offering: the builder's structure list, or a sanction's
 ## cargo. Empty for an order that asks nothing (every plain verb), which is what makes that
 ## card one Cancel button.
@@ -3541,8 +3826,10 @@ func armed_card_menu() -> Array:
 		return payload_menu
 	if current_context() == ControlBinding.ControlContext.BUILD:
 		return CommandContextParser.tools_for_selection(
-			selection, ControlBinding.ControlContext.BUILD)
+			selection, ControlBinding.ControlContext.BUILD
+		)
 	return []
+
 
 ## Whether `a_command_name` belongs to the card currently on show. A command with no
 ## binding in the grid (command_move, command_attack — the ones resolved by right-clicking
@@ -3550,6 +3837,7 @@ func armed_card_menu() -> Array:
 ## before by having no cell to be placed in.
 func _command_is_on_current_card(a_command_name: String) -> bool:
 	return (CommandGrid.families_for(a_command_name) & _command_family) != 0
+
 
 ## Every ordnance the game has, always — the ORDNANCE card is the one place that draws a
 ## button for something the player cannot use yet.
@@ -3582,6 +3870,7 @@ func ordnance_card_names() -> Array:
 				chosen[id] = entry.sanction.command_name()
 	return chosen.values()
 
+
 ## Whether this commander's faction could EVER have `a_ability_id` — whether it belongs on the
 ## card at all, as against being drawn dark. A FREE ability has no grid cell to be found in and
 ## is always offered; whether the commander has anything to cast it with is NO_CASTER's
@@ -3592,15 +3881,20 @@ func _faction_offers_ordnance(a_ability_id: StringName) -> bool:
 		return true
 	return _sanction_grid != null and _sanction_grid.has_route_to(a_ability_id)
 
+
 ## The ability an ORDNANCE-card command casts, or &"" when the name is not one. What routes a
 ## press on that card to the caster-finding path rather than to the ordinary command pipeline.
 func ordnance_ability_for(a_command_name: String) -> StringName:
 	for binding: ControlBinding in CommandGrid.bindings():
 		var ability := binding as AbilityBinding
-		if ability != null and ability.family == ControlBinding.CommandFamily.ORDNANCE \
-				and ability.command_name == a_command_name:
+		if (
+			ability != null
+			and ability.family == ControlBinding.CommandFamily.ORDNANCE
+			and ability.command_name == a_command_name
+		):
 			return ability.ability_id
 	return &""
+
 
 ## The producer TYPES in the selection that author a context cell, as their binding names.
 ##
@@ -3613,7 +3907,11 @@ func producer_context_names() -> Array:
 	var seen: Dictionary = {}
 	for node: Node in selection:
 		var entity := node as Entity
-		if entity == null or not is_instance_valid(entity) or entity.get_node_or_null("Production") == null:
+		if (
+			entity == null
+			or not is_instance_valid(entity)
+			or entity.get_node_or_null("Production") == null
+		):
 			continue
 		var tool: Tool = Tool.for_id(entity.id)
 		if tool != null and tool.context_grid.x >= 0:
@@ -3624,6 +3922,7 @@ func producer_context_names() -> Array:
 	for id: StringName in seen:
 		out.append(ProducerContextBinding.PREFIX + String(id))
 	return out
+
 
 ## Narrow the card's training buttons to the chosen producer. A no-op when no context is
 ## chosen or the row is not being drawn, which is what keeps a single-producer selection
@@ -3640,9 +3939,12 @@ func _narrow_to_producer_context(a_names: Array) -> Array:
 	if producer == null:
 		return a_names
 	var offered: Array = CommandContextParser.tools_for(
-		producer, ControlBinding.ControlContext.TRAIN)
-	return a_names.filter(func(name: String) -> bool:
-		return Tool.for_name(name) == null or offered.has(name))
+		producer, ControlBinding.ControlContext.TRAIN
+	)
+	return a_names.filter(
+		func(name: String) -> bool: return Tool.for_name(name) == null or offered.has(name)
+	)
+
 
 ## Show the training of `a_producer_id`. The row is a RADIO: one is always set, and pressing
 ## the one already set does nothing rather than clearing it — there is no "no producer chosen"
@@ -3653,8 +3955,10 @@ func choose_producer_context(a_producer_id: StringName) -> void:
 	_producer_context = a_producer_id
 	upate_hud_buttons()
 
+
 func producer_context() -> StringName:
 	return _producer_context
+
 
 ## Correct a context the selection cannot fill, and settle on one when the row is up with
 ## none chosen. Called from the available_commands setter beside _settle_command_family, for
@@ -3669,15 +3973,16 @@ func _settle_producer_context() -> void:
 	var wanted: String = ProducerContextBinding.PREFIX + String(_producer_context)
 	if names.has(wanted):
 		return
-	_producer_context = StringName(
-		String(names[0]).trim_prefix(ProducerContextBinding.PREFIX))
+	_producer_context = StringName(String(names[0]).trim_prefix(ProducerContextBinding.PREFIX))
+
 
 func _on_control_button_pressed(a_control_name: String) -> void:
 	# A context button acts on the CARD, not on the selection, so it never reaches
 	# process_command — the same bypass the SELECT-context selectors take below.
 	if a_control_name.begins_with(ProducerContextBinding.PREFIX):
 		choose_producer_context(
-			StringName(a_control_name.trim_prefix(ProducerContextBinding.PREFIX)))
+			StringName(a_control_name.trim_prefix(ProducerContextBinding.PREFIX))
+		)
 		return
 	# The SELECT-context buttons don't act on the current selection — they change
 	# it — so they bypass the selection-gated process_command pipeline.
@@ -3685,6 +3990,7 @@ func _on_control_button_pressed(a_control_name: String) -> void:
 		_select_command_handlers[a_control_name].call()
 		return
 	process_command(a_control_name)
+
 
 ## Right-click on a grid button: buy the thing as a STANDING order — an entry that
 ## re-issues itself forever, behind everything else in the queue.
@@ -3701,7 +4007,10 @@ func _on_control_button_alternate_pressed(a_control_name: String) -> void:
 	# and a repeating build has no meaningful site, so the flag has no business surviving
 	# this call. A TRAIN tool has already consumed it inside process_command.
 	_next_purchase_standing = false
+
+
 #endregion
+
 
 #region Private helpers
 ## Give the ONE non-arrow shape the HUD uses its own game art, once.
@@ -3714,6 +4023,7 @@ func _on_control_button_alternate_pressed(a_control_name: String) -> void:
 ## tests/test_CursorArt.gd.
 func _register_hud_cursor() -> void:
 	Input.set_custom_mouse_cursor(FREE_CURSOR, Input.CURSOR_POINTING_HAND)
+
 
 ## Show [a_cursor], and make sure the OS is actually showing it.
 ##
@@ -3749,6 +4059,7 @@ func _cursor_for_precondition(a_cause: MoveCommand.PreconditionFailureCause) -> 
 		return FREE_CURSOR
 	return UNKNOWN_CURSOR if MoveCommand.is_positional_failure(a_cause) else INVALID_CURSOR
 
+
 ## The cursor follows the RESOLVED command, never a re-derived guess about the thing
 ## under the pointer. A move that resolved to MoveCommand shows a move cursor even
 ## with an entity under the cursor — notably a NEUTRAL one, which
@@ -3757,20 +4068,21 @@ func _cursor_for_precondition(a_cause: MoveCommand.PreconditionFailureCause) -> 
 ## attack the click would not actually issue — for neutrals, and for an unarmed
 ## actor clicking an enemy.)
 static func cursor_evaluator(command_type: Script, command_message: CommandMessage) -> Resource:
-	if command_type==null or command_type==MoveCommand:
+	if command_type == null or command_type == MoveCommand:
 		if command_message.target == null:
 			return FREE_CURSOR
 		if command_message.target.commander_id == PLAYER_COMMANDER_ID:
 			return SELECTION_CURSOR
 		return FREE_CURSOR
-	elif command_type==Attack or command_type==AttackMove or command_type==FocusFire:
+	elif command_type == Attack or command_type == AttackMove or command_type == FocusFire:
 		return ATTACK_CURSOR
-	elif command_type==Embark:
+	elif command_type == Embark:
 		# A friendly-target order, so it reads as one — the same cursor a plain move at your
 		# own unit shows.
 		return SELECTION_CURSOR
 	else:
 		return UNKNOWN_CURSOR
+
 
 ## True when the player can currently perceive `entity` — so the cursor may target
 ## it. Own units are always known; a fog-tracked Commandable is perceptible only
@@ -3791,6 +4103,7 @@ static func _is_perceptible(entity: Entity) -> bool:
 	if entity is Commandable:
 		return (entity as Commandable).in_sight_range
 	return entity.visible
+
 
 ## Drop selection entries that are no longer selectable, and report whether any went.
 ##
@@ -3822,13 +4135,19 @@ func prune_selection() -> bool:
 			pruned = true
 			continue
 		var commandable: Commandable = entity as Commandable
-		if commandable != null and is_player_commandable(commandable) \
-				and not _is_perceptible(commandable):
+		if (
+			commandable != null
+			and is_player_commandable(commandable)
+			and not _is_perceptible(commandable)
+		):
 			commandable.selectable.deselect()
 			selection.remove_at(i)
 			pruned = true
-		elif commandable != null and not is_player_commandable(commandable) \
-				and not commandable.is_visible_to(PLAYER_COMMANDER_ID):
+		elif (
+			commandable != null
+			and not is_player_commandable(commandable)
+			and not commandable.is_visible_to(PLAYER_COMMANDER_ID)
+		):
 			commandable.selectable.deselect()
 			selection.remove_at(i)
 			pruned = true
@@ -3896,9 +4215,10 @@ func get_cursor_target(a_mouse_position: Vector2) -> Variant:
 
 	var terrain_hit = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.TERRAIN)
 	if terrain_hit:
-		return terrain_hit['position']
+		return terrain_hit["position"]
 
 	return null
+
 
 ## The terrain under the cursor, looking THROUGH any piece in front of it; the height-0 plane
 ## when the ray finds no terrain. The plane alone is wrong on raised ground: it lands the point
@@ -3908,8 +4228,7 @@ func _cursor_ground_point(a_mouse_position: Vector2) -> Vector3:
 	if map != null:
 		var ray_origin: Vector3 = camera.project_ray_origin(a_mouse_position)
 		var ray_end: Vector3 = ray_origin + camera.project_ray_normal(a_mouse_position) * 1000.0
-		var terrain_hit: Variant = map.line_hit(ray_origin, ray_end,
-			CollisionLayers.Mask.TERRAIN)
+		var terrain_hit: Variant = map.line_hit(ray_origin, ray_end, CollisionLayers.Mask.TERRAIN)
 		if terrain_hit != null:
 			return (terrain_hit as Dictionary)["position"]
 	return camera.get_mouse_world_position(a_mouse_position)
@@ -3963,6 +4282,7 @@ func previewed_conversion_energy() -> int:
 ## The building currently wearing the conversion marker.
 var _conversion_marked: Commandable = null
 
+
 ## Mark the building the armed Build would convert, using the marker a single-unit ability
 ## uses for its target: "this is what the order lands on".
 func _update_conversion_marker() -> void:
@@ -4000,8 +4320,11 @@ func _update_build_preview(a_is_invalid_placement: bool) -> void:
 		return
 
 	# (Re)build the ghost sprite when the chosen structure changes.
-	if _build_preview == null or not is_instance_valid(_build_preview) \
-			or command_message.tool.preview_key() != _build_preview_tool_type:
+	if (
+		_build_preview == null
+		or not is_instance_valid(_build_preview)
+		or command_message.tool.preview_key() != _build_preview_tool_type
+	):
 		_rebuild_build_preview(command_message.tool)
 
 	var lead: Entity = (selection[0] as Entity) if not selection.is_empty() else null
@@ -4015,8 +4338,9 @@ func _update_build_preview(a_is_invalid_placement: bool) -> void:
 	# Snap to the footprint centre; hide if any of its cells is off-map so we never
 	# index the heightmap out of bounds (grid_to_world reads map_data directly).
 	var turns: int = command_message.quarter_turns
-	var centroid: Variant = _footprint_centroid(commander, command_message.tool,
-		command_message.xz_position, turns)
+	var centroid: Variant = _footprint_centroid(
+		commander, command_message.tool, command_message.xz_position, turns
+	)
 	if centroid == null:
 		_build_preview.visible = false
 		return
@@ -4028,10 +4352,9 @@ func _update_build_preview(a_is_invalid_placement: bool) -> void:
 
 ## Colour the ghost as `a_team_color`, reddened when the placement is invalid.
 func _tint_build_preview(a_team_color: Color, a_is_invalid_placement: bool) -> void:
-	var tint: Color = a_team_color * (
-		BUILD_PREVIEW_INVALID_TINT \
-		if a_is_invalid_placement \
-		else BUILD_PREVIEW_VALID_TINT
+	var tint: Color = (
+		a_team_color
+		* (BUILD_PREVIEW_INVALID_TINT if a_is_invalid_placement else BUILD_PREVIEW_VALID_TINT)
 	)
 	for child in _build_preview.get_children():
 		if child is MeshVisual:
@@ -4040,6 +4363,7 @@ func _tint_build_preview(a_team_color: Color, a_is_invalid_placement: bool) -> v
 			(child as MeshVisual).set_team_color(Color(tint.r, tint.g, tint.b, 1.0))
 		elif child is Sprite3D:
 			child.modulate = tint
+
 
 ## World-space centre of the footprint the structure behind `a_tool` would occupy if
 ## placed at `a_xz`, or null when any of its cells falls off the map.
@@ -4053,11 +4377,14 @@ func _tint_build_preview(a_team_color: Color, a_is_invalid_placement: bool) -> v
 ##
 ## Every cell is bounds-checked, not just the centre one, since that can be in bounds
 ## while the rest of the footprint spills off the edge near a map border.
-func _footprint_centroid(a_commander: Commander, a_tool: Tool, a_xz: Vector2,
-		a_quarter_turns: int = 0) -> Variant:
+func _footprint_centroid(
+	a_commander: Commander, a_tool: Tool, a_xz: Vector2, a_quarter_turns: int = 0
+) -> Variant:
 	if map == null or a_tool == null:
 		return null
-	var source: Node = a_commander.get_build_preview_instance(a_tool) if a_commander != null else null
+	var source: Node = (
+		a_commander.get_build_preview_instance(a_tool) if a_commander != null else null
+	)
 	return _footprint_centroid_of(source, a_xz, a_quarter_turns)
 
 
@@ -4066,14 +4393,18 @@ func _footprint_centroid_of(a_source: Node, a_xz: Vector2, a_quarter_turns: int 
 	if map == null:
 		return null
 	var obs := a_source.get_node_or_null("Structure") as Structure if a_source != null else null
-	var dims: Vector2i = Structure.oriented_dimensions(obs.dimensions, a_quarter_turns) \
-		if obs != null else Vector2i.ONE
+	var dims: Vector2i = (
+		Structure.oriented_dimensions(obs.dimensions, a_quarter_turns)
+		if obs != null
+		else Vector2i.ONE
+	)
 	var origin: Vector2i = map.footprint_origin(a_xz, dims)
 	for w in range(dims.x):
 		for l in range(dims.y):
 			if not map.grid_coordinates_in_bounds(Vector2i(origin.x + w, origin.y + l)):
 				return null
 	return map.footprint_centroid(origin, dims)
+
 
 ## Rebuild the ghost's model from the structure's own scene so the preview always matches
 ## the real building art. The source is the builder's Commander's preview instance (kept
@@ -4090,6 +4421,7 @@ func _rebuild_build_preview(a_tool: Tool) -> void:
 		return
 	_add_ghost_visual(_build_preview, source, Entity.TEAM_COLOR_MAP.get(commander.id, Color.WHITE))
 
+
 ## Make sure the ghost node exists, empty it, and record what it is about to show.
 func _clear_build_preview(a_key: Variant) -> void:
 	if _build_preview == null or not is_instance_valid(_build_preview):
@@ -4100,6 +4432,7 @@ func _clear_build_preview(a_key: Variant) -> void:
 	for child in _build_preview.get_children():
 		child.free()
 	_build_preview_tool_type = a_key
+
 
 ## Copy `source`'s visual — its 3D MeshVisual subtree, or its Sprite3D for billboard art —
 ## under `container` as a translucent, inert ghost: model only, so no colliders, no
@@ -4131,11 +4464,13 @@ func _add_ghost_visual(a_container: Node3D, a_source: Node, a_tint: Color) -> vo
 		ghost_sprite.modulate = Color(a_tint.r, a_tint.g, a_tint.b, BUILD_PREVIEW_ALPHA)
 		a_container.add_child(ghost_sprite)
 
+
 func _make_indicator() -> WaypointIndicator:
 	var ind := WaypointIndicator.new()
 	map.add_child(ind)
 	ind.visible = false
 	return ind
+
 
 func _register_indicator(a_msg: CommandMessage) -> void:
 	if map == null:
@@ -4146,6 +4481,7 @@ func _register_indicator(a_msg: CommandMessage) -> void:
 	_active_indicators[a_msg] = ind
 	a_msg.unreferenced.connect(_on_message_unreferenced.bind(a_msg), CONNECT_ONE_SHOT)
 
+
 func _on_message_unreferenced(a_msg: CommandMessage) -> void:
 	var ind = _active_indicators.get(a_msg)
 	if ind == null:
@@ -4153,6 +4489,7 @@ func _on_message_unreferenced(a_msg: CommandMessage) -> void:
 	ind.visible = false
 	_active_indicators.erase(a_msg)
 	_indicator_pool.append(ind)
+
 
 ## Show waypoint indicators for the current selection.  Called every frame so
 ## the line from a moving unit to its first waypoint stays accurate.
@@ -4181,6 +4518,7 @@ func _update_waypoint_display() -> void:
 				configured[msg] = true
 			prev_pos = msg.position
 
+
 ## Ring the structures that could build the queued purchase the cursor is over — the world
 ## half of producer affinity, answering "where will this purchase go?". Cleared whenever
 ## nothing is hovered. BUILD purchases are skipped: they have no producers, only a site and
@@ -4189,12 +4527,14 @@ func _update_waypoint_display() -> void:
 func _update_producer_affinity() -> void:
 	if _producer_affinity_indicator == null:
 		return
-	var hovered: PurchaseTransaction = _production_rail.hovered_transaction() \
-		if _production_rail != null else null
+	var hovered: PurchaseTransaction = (
+		_production_rail.hovered_transaction() if _production_rail != null else null
+	)
 	if hovered == null or hovered.kind != PurchaseTransaction.Kind.TRAIN:
 		_producer_affinity_indicator.update_producers([])
 		return
 	_producer_affinity_indicator.update_producers(hovered.candidate_producers())
+
 
 ## Draw each selected rally-capable STRUCTURE's rally-point sequence, anchored at the
 ## structure and following whichever chain is currently relevant to it (see
@@ -4217,6 +4557,7 @@ func _update_rally_indicator() -> void:
 		chains.append(points)
 	_rally_indicator.update_chains(chains)
 
+
 ## The command chain to draw for [a_structure] — two cases, and only two: the hovered unit's
 ## OWN pre-issued chain while the player hovers that unit's production card, and otherwise
 ## the structure's live `rally_commands`, the rally as CONFIGURED.
@@ -4231,12 +4572,15 @@ func _rally_commands_to_draw(a_structure: Commandable, a_hovered: Array) -> Arra
 			return job_commands if not job_commands.is_empty() else a_structure.rally_commands
 	return a_structure.rally_commands
 
+
 static func get_action_names_by_prefix(event: InputEvent, event_prefix: String) -> Array:
-	return InputMap.get_actions().filter(
-		func(action_name: String): return event_prefix in action_name
-	).filter(
-		func(action_name: String): return event.is_action_pressed(action_name, true)
+	return (
+		InputMap
+		. get_actions()
+		. filter(func(action_name: String): return event_prefix in action_name)
+		. filter(func(action_name: String): return event.is_action_pressed(action_name, true))
 	)
+
 
 ## Returns the CollisionShape3D with the largest aggro radius among `a_units`.
 ## Used so a group Defend order scans with the widest aggro coverage available.
@@ -4251,6 +4595,7 @@ static func _largest_aggro_shape(units: Array) -> CollisionShape3D:
 				best = shape
 	return best
 
+
 ## Builds a standalone defended-region collider from `template` (the widest group aggro
 ## shape), pinned at `center`. The geometry is hard-copied so it's independent of the unit
 ## it came from, and it's added to the tree before positioning because an out-of-tree
@@ -4264,6 +4609,7 @@ func _make_defend_region_shape(a_template: CollisionShape3D, a_center: Vector3) 
 	region.global_transform = Transform3D(Basis.IDENTITY, a_center)
 	return region
 
+
 ## Ties the region collider's lifetime to the Defend messages that reference it: once every
 ## one has been released (its owning command replaced, the unit reassigned or destroyed),
 ## nothing is defending the region, so the collider frees. Uses the same per-message
@@ -4276,12 +4622,17 @@ static func _lease_region_shape(region: CollisionShape3D, messages: Array[Comman
 		return
 	var remaining: Array[int] = [messages.size()]
 	for m: CommandMessage in messages:
-		m.unreferenced.connect(func() -> void:
-			remaining[0] -= 1
-			if remaining[0] <= 0 and is_instance_valid(region):
-				region.queue_free()
-		, CONNECT_ONE_SHOT)
+		m.unreferenced.connect(
+			func() -> void:
+				remaining[0] -= 1
+				if remaining[0] <= 0 and is_instance_valid(region):
+					region.queue_free(),
+			CONNECT_ONE_SHOT
+		)
+
+
 #endregion
+
 
 #region Commander sanctions
 ## Source the sanction grid from the local commander, so what the player sees and can
@@ -4310,6 +4661,7 @@ func _teardown_commander_sanctions() -> void:
 	_sanction_bar = null
 	_sanction_menu = null
 	_pending_sanction = null
+
 
 #region The deploy bar
 ## A full-width CenterContainer holding a shrink-to-fit ROW, rather than one full-width
@@ -4362,6 +4714,7 @@ func _setup_sanction_bar() -> void:
 		_deploy_buttons.append({"button": btn, "ability": ability, "entry": null})
 		_refresh_deploy_tooltips(_deploy_buttons[-1])
 
+
 ## A VerboseTooltipButton rather than a plain Button, so a sanction tooltip looks and
 ## behaves like every other HUD tooltip (same delay, same popup, same verbose tier) —
 ## the command grid builds its buttons the same way, see
@@ -4388,11 +4741,13 @@ func _build_sanction_button(a_entry: SanctionGrid.Entry, a_deploys: bool) -> Ver
 		# (gdd/systems/ux/ui/economy-bars.md §Hover previews). The deploy/cast button never sets
 		# this: casting spends a charge, not dominion.
 		btn.mouse_entered.connect(func(): hovered_sanction_unlock = a_entry)
-		btn.mouse_exited.connect(func():
-			if hovered_sanction_unlock == a_entry:
-				hovered_sanction_unlock = null
+		btn.mouse_exited.connect(
+			func():
+				if hovered_sanction_unlock == a_entry:
+					hovered_sanction_unlock = null
 		)
 	return btn
+
 
 ## The held-key tier for a sanction button: the authored description plus the numbers a
 ## player weighs it by — what unlocking costs, how often it can be used, how much ground
@@ -4407,27 +4762,39 @@ func _sanction_verbose_tooltip(a_entry: SanctionGrid.Entry, a_deploys: bool) -> 
 	# The authored long tier replaces the short one here rather than joining it — it is a
 	# fuller telling of the same thing, so showing both would repeat the first sentence.
 	# The synthesized number lines below are appended either way.
-	var prose: String = sanction.verbose_description if not sanction.verbose_description.is_empty() \
+	var prose: String = (
+		sanction.verbose_description
+		if not sanction.verbose_description.is_empty()
 		else sanction.description
+	)
 	if not prose.is_empty():
 		lines.append(prose)
 	if a_entry.unlock != null and a_entry.unlock.dominion_cost > 0:
 		lines.append("Unlock: %d dominion" % a_entry.unlock.dominion_cost)
-	lines.append("Cooldown: %ds · effect radius %s" % [
-		roundi(sanction.cooldown_duration), String.num(sanction.effect_radius, 1)
-	])
+	lines.append(
+		(
+			"Cooldown: %ds · effect radius %s"
+			% [roundi(sanction.cooldown_duration), String.num(sanction.effect_radius, 1)]
+		)
+	)
 	# Only the exception is stated. Needing vision is the rule every sanction follows
 	# (see Sanction.needs_vision), so saying so on every button would be noise, while a
 	# scan the player CAN aim into the shroud is otherwise only discoverable by trying.
 	if not sanction.needs_vision:
 		lines.append("Can be aimed into unexplored ground.")
 	if a_deploys:
-		lines.append("Click to arm, then click the map to aim it. Clicking the button again cancels.")
+		lines.append(
+			"Click to arm, then click the map to aim it. Clicking the button again cancels."
+		)
 	else:
-		lines.append("Tier %d, column %d. Unlocking it replaces whatever it upgrades." % [
-			a_entry.tier(), a_entry.column()
-		])
+		lines.append(
+			(
+				"Tier %d, column %d. Unlocking it replaces whatever it upgrades."
+				% [a_entry.tier(), a_entry.column()]
+			)
+		)
 	return "\n".join(lines)
+
 
 ## Per-frame upkeep for both surfaces.
 ##
@@ -4440,6 +4807,7 @@ func _tick_sanctions(_a_delta: float) -> void:
 	if _sanction_grid != null and _sanction_menu != null and _sanction_menu.visible:
 		for pair: Dictionary in _unlock_buttons:
 			_paint_unlock_button(pair["button"] as Button, pair["entry"] as SanctionGrid.Entry)
+
 
 ## How many of the commander's pieces granted `a_ability_id` are charged, and how many
 ## exist at all.
@@ -4455,6 +4823,7 @@ func _ability_readiness(a_ability_id: StringName) -> Vector2i:
 			ready += 1
 	return Vector2i(ready, casters.size())
 
+
 ## A bar button is SHOWN only once the commander owns a piece that can use the ability —
 ## and, for a DOMINION-unlocked one, once the sanction grid holds a cell of it in play. An
 ## ability with nowhere to be used from is not an ability the player has.
@@ -4464,8 +4833,9 @@ func _ability_readiness(a_ability_id: StringName) -> Vector2i:
 func _paint_deploy_button(a_pair: Dictionary) -> void:
 	var btn: Button = a_pair["button"] as Button
 	var ability: StringName = a_pair["ability"]
-	var entry: SanctionGrid.Entry = _sanction_grid.deployable_entry_for(ability) \
-		if _sanction_grid != null else null
+	var entry: SanctionGrid.Entry = (
+		_sanction_grid.deployable_entry_for(ability) if _sanction_grid != null else null
+	)
 	if entry != a_pair["entry"]:
 		# The cell in play changed — an unlock, or an upgrade superseding what was there. The
 		# tooltips are authored data and are rebuilt HERE rather than every frame.
@@ -4478,8 +4848,9 @@ func _paint_deploy_button(a_pair: Dictionary) -> void:
 	btn.visible = readiness.y > 0
 	if not btn.visible:
 		return
-	var label: String = entry.sanction.sanction_name if entry != null \
-		else AbilityCatalog.title_of(ability)
+	var label: String = (
+		entry.sanction.sanction_name if entry != null else AbilityCatalog.title_of(ability)
+	)
 	if entry != null and _pending_sanction == entry.sanction:
 		btn.text = "%s [click target]" % label
 	elif readiness.x == 0:
@@ -4518,6 +4889,7 @@ func _refresh_deploy_tooltips(a_pair: Dictionary) -> void:
 	lines.append("Click to arm, then click the map to aim it. Clicking the button again cancels.")
 	btn.verbose_tooltip = "\n".join(lines)
 
+
 ## The bar is a SHORTCUT, not a second way to fire. Pressing a button selects every
 ## building that can cast the ability and arms it, leaving the player one right-click from
 ## the same order they could have given by selecting the building themselves.
@@ -4529,8 +4901,9 @@ func _on_deploy_button_pressed(a_ability_id: StringName) -> void:
 	var commander: Commander = _commander()
 	if commander == null:
 		return
-	var entry: SanctionGrid.Entry = _sanction_grid.deployable_entry_for(a_ability_id) \
-		if _sanction_grid != null else null
+	var entry: SanctionGrid.Entry = (
+		_sanction_grid.deployable_entry_for(a_ability_id) if _sanction_grid != null else null
+	)
 	if AbilityCatalog.is_dominion_unlocked(a_ability_id) and entry == null:
 		return
 	var casters: Array = commander.casters_of_ability(a_ability_id)
@@ -4566,6 +4939,7 @@ func _on_deploy_button_pressed(a_ability_id: StringName) -> void:
 		_issue_sanction(entry.sanction, Vector3.ZERO)
 	upate_hud_buttons()
 
+
 ## Turn the command grid to whichever card `a_command_name` is drawn on, if the current
 ## selection can fill it. A no-op for a command with no grid binding, and for one already on
 ## show — set_command_family refuses a family the selection has nothing for, which is what
@@ -4580,6 +4954,7 @@ func _show_card_for_command(a_command_name: String) -> void:
 	if binding != null:
 		set_command_family(binding.family)
 
+
 ## Give every selected caster the order to cast `a_sanction` at `a_position`.
 func _issue_sanction(a_sanction: Sanction, a_position: Vector3) -> void:
 	command_message.sanction = a_sanction
@@ -4587,16 +4962,19 @@ func _issue_sanction(a_sanction: Sanction, a_position: Vector3) -> void:
 	assign_command_to_units(UseSanction, command_message, additive_latched)
 	_pending_sanction = null
 
+
 #region Single-unit ability targeting
 ## The unit the armed single-unit ability would act on if issued now — the unit under the
 ## cursor that the ability accepts — or null. Null too when nothing of that kind is armed.
 var ability_target: Commandable = null
+
 
 ## Whether the armed order is a cast that acts on exactly one unit (see
 ## Sanction.targets_one_unit). Such an order is aimed at a UNIT: it has no area to draw, and
 ## it is not issued while no unit is targeted.
 func armed_targets_one_unit() -> bool:
 	return _pending_sanction != null and _pending_sanction.targets_one_unit()
+
 
 ## Re-resolve `ability_target` from the cursor, move the marker onto it, and make it the
 ## message's target — so the precondition, the error line and the cursor all describe the
@@ -4609,9 +4987,14 @@ func _update_ability_target() -> void:
 		var commander: Commander = _commander()
 		var origin: Vector3 = camera.project_ray_origin(mouse_position)
 		var end: Vector3 = origin + camera.project_ray_normal(mouse_position) * 1000.0
-		found = _pick_cursor_entity(origin, end,
-			func(a_entity: Entity) -> bool: return sanction.accepts_target(a_entity, commander)
-		) as Commandable
+		found = (
+			_pick_cursor_entity(
+				origin,
+				end,
+				func(a_entity: Entity) -> bool: return sanction.accepts_target(a_entity, commander)
+			)
+			as Commandable
+		)
 		command_message.target = found
 	if found != ability_target:
 		if is_instance_valid(ability_target):
@@ -4619,6 +5002,8 @@ func _update_ability_target() -> void:
 		if found != null:
 			found.set_ability_targeted(true)
 		ability_target = found
+
+
 #endregion
 
 
@@ -4638,7 +5023,10 @@ func _activate_pending_sanction() -> void:
 	if armed_targets_one_unit() and ability_target == null:
 		return
 	_issue_sanction(_pending_sanction, command_message.world_position)
+
+
 #endregion
+
 
 #region The unlock menu
 ## The menu draws the sanction grid AS THE AUTHORED GRID: one row per tier, one column per
@@ -4688,9 +5076,12 @@ func _setup_sanction_menu() -> void:
 
 	var hint := Label.new()
 	hint.name = "Hint"
-	hint.text = "Own %d in a tier to open the next. An upgrade replaces what it upgrades." % \
-		SanctionGrid.UNLOCKS_TO_OPEN_NEXT_TIER
+	hint.text = (
+		"Own %d in a tier to open the next. An upgrade replaces what it upgrades."
+		% SanctionGrid.UNLOCKS_TO_OPEN_NEXT_TIER
+	)
 	column.add_child(hint)
+
 
 func _build_sanction_grid() -> GridContainer:
 	var width: int = maxi(1, _sanction_grid.used_columns())
@@ -4718,6 +5109,7 @@ func _build_sanction_grid() -> GridContainer:
 			_unlock_buttons.append({"button": btn, "entry": entry})
 	return grid
 
+
 ## Show or hide the sanction grid. Arming is dropped on the way in: the menu is a planning
 ## surface, and a right-click made while it is open should not fire a sanction the
 ## player armed before opening it.
@@ -4727,6 +5119,7 @@ func toggle_sanction_menu() -> void:
 	_sanction_menu.visible = not _sanction_menu.visible
 	if _sanction_menu.visible:
 		_pending_sanction = null
+
 
 ## What each cell says. Every locked state NAMES what is missing rather than reading
 ## "locked", because the player can act on each of them differently: buy the parent,
@@ -4749,16 +5142,19 @@ func _paint_unlock_button(a_btn: Button, a_entry: SanctionGrid.Entry) -> void:
 			a_btn.text = "%s — needs %s" % [label, a_entry.unlock.parent.sanction.sanction_name]
 			a_btn.disabled = true
 		SanctionGrid.Requirement.TIER_LOCKED:
-			a_btn.text = "%s — %d more in T%d" % [
-				label, _sanction_grid.unlocks_needed_to_open(a_entry.tier()), a_entry.tier() - 1
-			]
+			a_btn.text = (
+				"%s — %d more in T%d"
+				% [label, _sanction_grid.unlocks_needed_to_open(a_entry.tier()), a_entry.tier() - 1]
+			)
 			a_btn.disabled = true
+
 
 func _on_unlock_button_pressed(a_entry: SanctionGrid.Entry) -> void:
 	_sanction_grid.try_unlock(a_entry)
-#endregion
-#endregion
 
+
+#endregion
+#endregion
 
 #region Debug placement
 ## The roster entry the debug spawner has armed (see DebugRoster), or {} when none. Placing
@@ -4814,11 +5210,18 @@ func debug_placement_owner() -> Commander:
 ## with no message. The additive modifier keeps it armed for the next one.
 func _place_debug_piece() -> void:
 	var owner_commander: Commander = debug_placement_owner()
-	if map == null or owner_commander == null \
-			or not DebugPlacement.admits(_debug_piece_source, command_message):
+	if (
+		map == null
+		or owner_commander == null
+		or not DebugPlacement.admits(_debug_piece_source, command_message)
+	):
 		return
-	DebugPlacement.spawn(load(_debug_piece["scene"]) as PackedScene, map, owner_commander,
-		command_message.xz_position)
+	DebugPlacement.spawn(
+		load(_debug_piece["scene"]) as PackedScene,
+		map,
+		owner_commander,
+		command_message.xz_position
+	)
 	if not additive_latched:
 		disarm_command()
 
@@ -4827,24 +5230,30 @@ func _place_debug_piece() -> void:
 func _update_debug_preview() -> void:
 	var owner_commander: Commander = debug_placement_owner()
 	var is_fixture: bool = _debug_piece_source.spawns_deployed()
-	var centroid: Variant = _footprint_centroid_of(_debug_piece_source,
-		command_message.xz_position) if is_fixture else null
+	var centroid: Variant = (
+		_footprint_centroid_of(_debug_piece_source, command_message.xz_position)
+		if is_fixture
+		else null
+	)
 	if centroid == null or owner_commander == null:
 		if _build_preview != null and is_instance_valid(_build_preview):
 			_build_preview.visible = false
 		return
 	var key: String = "debug:" + String(_debug_piece["scene"])
 	var team_color: Color = Entity.TEAM_COLOR_MAP.get(owner_commander.id, Color.WHITE)
-	if _build_preview == null or not is_instance_valid(_build_preview) \
-			or _build_preview_tool_type != key:
+	if (
+		_build_preview == null
+		or not is_instance_valid(_build_preview)
+		or _build_preview_tool_type != key
+	):
 		_clear_build_preview(key)
 		_add_ghost_visual(_build_preview, _debug_piece_source, team_color)
 	_build_preview.global_position = centroid
-	_tint_build_preview(team_color,
-		not DebugPlacement.admits(_debug_piece_source, command_message))
+	_tint_build_preview(team_color, not DebugPlacement.admits(_debug_piece_source, command_message))
 	_build_preview.visible = true
-#endregion
 
+
+#endregion
 
 #region Deployment drops
 ## The drop armed from the deployment panel or its hotkey, or NO_DROP. Placed like the build
@@ -4938,8 +5347,7 @@ func _drop_for_event(a_event: InputEvent) -> int:
 
 
 func _drop_refusal_message() -> String:
-	return DROP_REFUSALS[_bound_deployment.verdict(_armed_drop as Deployment.Drop,
-		_drop_aim())]
+	return DROP_REFUSALS[_bound_deployment.verdict(_armed_drop as Deployment.Drop, _drop_aim())]
 
 
 ## The ghost of the armed drop, reddened where it may not land.
@@ -4952,8 +5360,11 @@ func _update_drop_preview() -> void:
 		return
 	var key: String = "drop:%d" % _armed_drop
 	var team_color: Color = Entity.TEAM_COLOR_MAP.get(commander.id, Color.WHITE)
-	if _build_preview == null or not is_instance_valid(_build_preview) \
-			or _build_preview_tool_type != key:
+	if (
+		_build_preview == null
+		or not is_instance_valid(_build_preview)
+		or _build_preview_tool_type != key
+	):
 		_clear_build_preview(key)
 		_add_ghost_visual(_build_preview, _drop_source, team_color)
 	_build_preview.global_position = centroid

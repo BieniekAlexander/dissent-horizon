@@ -15,13 +15,24 @@ const SCENE_ROOT: String = "res://scenes"
 
 
 func test_a_placed_instance_carrying_a_derived_group_is_found() -> void:
-	var text: String = "\n".join([
-		'[node name="Site" parent="." groups=["extraction_site", "structure"] instance=ExtResource("1")]',
-		'[node name="Camp" parent="." groups=["remaining_camps"] instance=ExtResource("2")]',
-		'[node name="Root" type="CharacterBody3D" groups=["piece", "structure"]]',
-	])
-	assert_eq(_derived_group_lines(text), [1] as Array[int],
-		"only the instance line, and only for a derived group — a piece's own root is its scene's")
+	var text: String = (
+		"\n"
+		. join(
+			[
+				(
+					'[node name="Site" parent="." groups=["extraction_site", "structure"] '
+					+ 'instance=ExtResource("1")]'
+				),
+				'[node name="Camp" parent="." groups=["remaining_camps"] instance=ExtResource("2")]',
+				'[node name="Root" type="CharacterBody3D" groups=["piece", "structure"]]',
+			]
+		)
+	)
+	assert_eq(
+		_derived_group_lines(text),
+		[1] as Array[int],
+		"only the instance line, and only for a derived group — a piece's own root is its scene's"
+	)
 
 
 func test_no_scene_stores_a_derived_group_on_a_placed_instance() -> void:
@@ -29,8 +40,11 @@ func test_no_scene_stores_a_derived_group_on_a_placed_instance() -> void:
 	for path: String in _scenes_under(SCENE_ROOT):
 		for line_number: int in _derived_group_lines(FileAccess.get_file_as_string(path)):
 			offenders.append("%s:%d" % [path, line_number])
-	assert_eq(offenders, [] as Array[String],
-		"remove the derived groups from these instances; the piece scene supplies them")
+	assert_eq(
+		offenders,
+		[] as Array[String],
+		"remove the derived groups from these instances; the piece scene supplies them"
+	)
 
 
 ## Line numbers (1-based) of instance nodes in `a_text` that store a derived group.
@@ -45,8 +59,9 @@ func _derived_group_lines(a_text: String) -> Array[int]:
 		if at < 0:
 			continue
 		var groups: String = line.substr(at, line.find("]", at) - at)
-		if SpecSchema.DERIVED_GROUPS.any(func(g: String) -> bool:
-				return groups.contains('"%s"' % g)):
+		if SpecSchema.DERIVED_GROUPS.any(
+			func(g: String) -> bool: return groups.contains('"%s"' % g)
+		):
 			found.append(i + 1)
 	return found
 

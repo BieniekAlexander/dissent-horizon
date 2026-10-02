@@ -39,17 +39,12 @@ const _FACING_ALIGNMENT_EPSILON: float = 0.001
 ## How the piece moves: on the ground, or which kind of flight. The locomotion vocabulary the
 ## rest of the game reads (garrison admission, the command grid, visuals); the value lives on
 ## the Aerial component, and a piece without one is GROUNDED.
-enum Mode {
-	GROUNDED = 0x0,
-	HOVERING = 0x10,
-	FLYING = 0x11
-}
+enum Mode { GROUNDED = 0x0, HOVERING = 0x10, FLYING = 0x11 }
 
 var mode: Mode:
 	get:
 		var aerial: Aerial = _aerial()
 		return aerial.mode if aerial != null else Mode.GROUNDED
-
 
 ## Crush size classes (see can_crush()). Independent of nav_agent_class (navmesh
 ## erosion) and the body's real bounding_radius — this is purely the crush-eligibility
@@ -58,7 +53,6 @@ enum CrushClass { TINY = 0, SMALL = 1, MEDIUM = 2, LARGE = 3, HUGE = 4 }
 
 ## Set in the inspector to size this unit for the crush mechanic (see can_crush()).
 @export var crush_class: CrushClass = CrushClass.SMALL
-
 
 # --- Shared across all modes (ungrouped) ---
 
@@ -85,7 +79,6 @@ var speed_cap: float = 0.0
 ## GROUNDED: limits facing rotation before velocity reflects the new direction.
 ## INF (default) means no limit — the body snaps to face its heading instantly.
 @export var turn_rate: float = INF
-
 
 @export_group("Grounded")
 ## Path (relative to this Movement node) to the NavigationAgent3D used in
@@ -121,7 +114,8 @@ var speed_cap: float = 0.0
 # --- Internal state (not exported) ---
 
 ## Collision size class — which space-eroded navmesh this unit navigates on (see
-## NavAgentClass / gdd/systems/terrain-and-navigation/agent-size-classes.md). NOT authored: configure_for_map()
+## NavAgentClass / gdd/systems/terrain-and-navigation/agent-size-classes.md). NOT authored:
+## configure_for_map()
 ## derives it from the unit's MovementBody footprint radius (the smallest class
 ## large enough for the body), so it always matches the unit's real size.
 var nav_agent_class: NavAgentClass.Size = NavAgentClass.Size.MEDIUM
@@ -184,8 +178,10 @@ var is_final_leg: bool = false
 var target_position: Vector3:
 	get:
 		match mode:
-			Mode.GROUNDED: return _nav_agent.target_position if _nav_agent != null else Vector3.ZERO
-			Mode.HOVERING, Mode.FLYING:  return _hovering_target
+			Mode.GROUNDED:
+				return _nav_agent.target_position if _nav_agent != null else Vector3.ZERO
+			Mode.HOVERING, Mode.FLYING:
+				return _hovering_target
 		return Vector3.ZERO
 	set(value):
 		match mode:
@@ -212,6 +208,8 @@ func _ready() -> void:
 func _physics_process(_a_delta: float) -> void:
 	if _is_parachuting:
 		_tick_parachute()
+
+
 #endregion
 
 
@@ -222,8 +220,9 @@ func can_move() -> bool:
 
 ## A navigated goal primes the agent's target AT ONCE: a fresh agent reports its navigation
 ## finished, so a command checked before the next tick would read as already arrived.
-func set_goal(a_position: Vector3, a_arrival: Arrival = Arrival.STOP,
-		a_entity: Entity = null) -> void:
+func set_goal(
+	a_position: Vector3, a_arrival: Arrival = Arrival.STOP, a_entity: Entity = null
+) -> void:
 	super.set_goal(a_position, a_arrival, a_entity)
 	if target_position != a_position:
 		set_target_position(a_position)
@@ -277,8 +276,9 @@ func settle(a_anchor: Variant = null) -> void:
 ## clean 2D input; vertical terrain tracking is Commandable's, per tick.
 func velocity_toward_next_path_position() -> Vector3:
 	var owner_node: Node3D = _owner_node()
-	var velocity: Vector3 = owner_node.global_position.direction_to(get_next_path_position()) \
-			* effective_max_speed()
+	var velocity: Vector3 = (
+		owner_node.global_position.direction_to(get_next_path_position()) * effective_max_speed()
+	)
 	velocity.y = 0.0
 	return velocity
 
@@ -288,10 +288,15 @@ func velocity_toward_next_path_position() -> Vector3:
 func _body_touches(a_other: Entity) -> bool:
 	var me: Entity = _owner_node() as Entity
 	var gap: float = VU.inXZ(me.global_position).distance_to(VU.inXZ(a_other.global_position))
-	var reach: float = me.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION) \
-			+ a_other.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+	var reach: float = (
+		me.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+		+ a_other.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
+	)
 	return gap <= reach
+
+
 #endregion
+
 
 #region Parachute descent
 ## Release this unit [a_altitude] world-units above the ground, to float down under a canopy
@@ -339,6 +344,8 @@ func _tick_parachute() -> void:
 	_parachute_landed = Callable()
 	if landed.is_valid():
 		landed.call()
+
+
 #endregion
 #region Navigation
 ## The travel speed CommandReceiver should drive toward: speed_cap when a group
@@ -355,6 +362,7 @@ func _effective_turn_rate() -> float:
 	if turn_rate == INF or aerial == null:
 		return turn_rate
 	return turn_rate * aerial.turn_rate_multiplier()
+
 
 func set_target_position(a_world_position: Vector3) -> void:
 	target_position = a_world_position
@@ -402,8 +410,10 @@ func is_navigation_finished() -> bool:
 		Mode.HOVERING, Mode.FLYING:
 			var pos_xz := Vector2(get_parent().global_position.x, get_parent().global_position.z)
 			var tgt_xz := Vector2(_hovering_target.x, _hovering_target.z)
-			return pos_xz.distance_squared_to(tgt_xz) \
+			return (
+				pos_xz.distance_squared_to(tgt_xz)
 				< HOVERING_ARRIVAL_DISTANCE * HOVERING_ARRIVAL_DISTANCE
+			)
 	return true
 
 
@@ -436,6 +446,8 @@ func set_current_velocity(a_velocity: Vector3) -> void:
 ## Height still to fall under a canopy, or 0 when not descending.
 func descent_altitude() -> float:
 	return _parachute_altitude if _is_parachuting else 0.0
+
+
 #endregion
 
 
@@ -460,6 +472,8 @@ func get_next_path_position() -> Vector3:
 			flat.y = get_parent().global_position.y
 			return flat
 	return Vector3.ZERO
+
+
 #endregion
 
 #region Crush
@@ -467,6 +481,7 @@ func get_next_path_position() -> Vector3:
 ## one, so crushing is reserved for a clear size mismatch — e.g. LARGE crushes
 ## TINY/SMALL but not MEDIUM.
 const CRUSH_CLASS_GAP: int = 2
+
 
 ## True when this unit can crush (instant-kill on contact, and steer through rather
 ## than avoid) `other`.
@@ -483,6 +498,7 @@ func can_crush(a_other: Movement) -> bool:
 		return false
 	return int(crush_class) >= int(a_other.crush_class) + CRUSH_CLASS_GAP
 
+
 ## True when this unit outranks the SMALLEST class by the crush gap — i.e. there is
 ## some unit it could crush. Lets Commandable skip the whole per-tick crush scan for
 ## the majority of units, which can never crush anything whatever is next to them.
@@ -492,6 +508,8 @@ func can_crush_anything() -> bool:
 	if is_aerial_mode():
 		return false
 	return int(crush_class) >= int(CrushClass.TINY) + CRUSH_CLASS_GAP
+
+
 #endregion
 
 #region RVO avoidance
@@ -547,10 +565,12 @@ var avoidance_obstacle: NavigationObstacle3D = null
 ## null = none.
 var _avoidance_follow: Commandable = null
 
+
 ## The NavigationAgent3D as an AvoidanceAgent3D, or null if it isn't one (e.g. a
 ## plain agent in a unit test). Gates the per-pair avoidance-exception API.
 func avoidance_agent() -> AvoidanceAgent3D:
 	return _nav_agent as AvoidanceAgent3D
+
 
 ## Turn on RVO avoidance for `commander_id`'s team. Called once ownership is
 ## established. Each commander owns one avoidance team bit; a unit avoids its own
@@ -559,6 +579,7 @@ func enable_avoidance(a_commander_id: int) -> void:
 	var agent := avoidance_agent()
 	if mode == Mode.GROUNDED and agent != null:
 		agent.enable_avoidance(a_commander_id)
+
 
 ## Avoidance priority for a unit standing its ground to fire. The engine's ceiling, so it
 ## gives way to nobody and the units behind it must be walked clear by the player.
@@ -606,10 +627,12 @@ func set_avoidance_follow_target(a_other: Commandable) -> void:
 	if next != null:
 		agent.add_avoidance_exception_with(next)
 
+
 func _follow_agent(a_c: Commandable) -> AvoidanceAgent3D:
 	if a_c == null or not is_instance_valid(a_c) or a_c.movement == null:
 		return null
 	return a_c.movement.avoidance_agent()
+
 
 ## Zero this agent's broadcast layers and its obstacle layers so no other agent
 ## RVO-steers around it. Used by Occupy to let the approaching unit walk into
@@ -624,6 +647,7 @@ func suppress_avoidance_layers() -> void:
 		_saved_obstacle_layers = avoidance_obstacle.avoidance_layers
 		avoidance_obstacle.avoidance_layers = 0
 
+
 ## Restore the avoidance_layers cleared by suppress_avoidance_layers.
 func restore_avoidance_layers() -> void:
 	if mode != Mode.GROUNDED or _nav_agent == null or _saved_avoidance_layers == 0:
@@ -633,7 +657,10 @@ func restore_avoidance_layers() -> void:
 	if avoidance_obstacle != null and _saved_obstacle_layers != 0:
 		avoidance_obstacle.avoidance_layers = _saved_obstacle_layers
 		_saved_obstacle_layers = 0
+
+
 #endregion
+
 
 ## Size the RVO avoidance radius to the body's real footprint so agents keep
 ## a correct distance from one another. No-op in HOVERING mode (no NavAgent).
@@ -677,7 +704,6 @@ func configure_for_map(a_map: Map, a_nav_manager: NavManager, a_shape_radius: fl
 	nav_agent_class = NavAgentClass.class_for_radius(a_shape_radius, Map.CELL_SIZE)
 	_nav_agent.navigation_layers = a_nav_manager.layer_for(nav_agent_class)
 	_nav_agent.path_search_max_polygons = PATH_SEARCH_MAX_POLYGONS
-
 
 
 ## The tightest circle this unit can fly at cruise, in world units. 0 for an instant turn.
@@ -851,8 +877,13 @@ func _apply_accel_limits(a_desired: Vector3) -> Vector3:
 
 	var needs_alignment: bool = _hovering_needs_alignment(a_desired)
 	var needs_facing: bool = _hovering_needs_facing(a_desired)
-	if max_acceleration == INF and max_deceleration == -INF and turn_rate == INF \
-			and not needs_alignment and not needs_facing:
+	if (
+		max_acceleration == INF
+		and max_deceleration == -INF
+		and turn_rate == INF
+		and not needs_alignment
+		and not needs_facing
+	):
 		return a_desired  # fast path — no clamping, no braking, no turn-rate limit
 
 	var desired_speed: float = _turn_limited_speed(_braking_capped_speed(a_desired.length()))
@@ -874,7 +905,7 @@ func _apply_accel_limits(a_desired: Vector3) -> Vector3:
 	var clamped_delta: float = clampf(
 		desired_speed - current_speed,
 		max_deceleration / tps,  # negative bound (deceleration)
-		max_acceleration / tps   # positive bound (acceleration)
+		max_acceleration / tps,  # positive bound (acceleration)
 	)
 	var new_speed: float = maxf(0.0, current_speed + clamped_delta)
 	if new_speed < 1e-4:
@@ -889,16 +920,21 @@ func _braking_capped_speed(a_speed: float) -> float:
 	if not is_final_leg or max_deceleration == -INF:
 		return a_speed
 	var distance: float = _distance_to_target()
-	var braking_speed: float = sqrt(2.0 * absf(max_deceleration) * distance) \
-		if distance > 0.0 else 0.0
+	var braking_speed: float = (
+		sqrt(2.0 * absf(max_deceleration) * distance) if distance > 0.0 else 0.0
+	)
 	return minf(a_speed, braking_speed)
 
 
 ## THE OLD hovering rule (reverse_speed_ratio == 0): the unit must turn to face the target
 ## before accelerating, and misalignment scales its speed toward zero.
 func _hovering_needs_alignment(a_desired: Vector3) -> bool:
-	return mode == Mode.HOVERING and reverse_speed_ratio == 0.0 \
-		and not _current_velocity.is_zero_approx() and not a_desired.is_zero_approx()
+	return (
+		mode == Mode.HOVERING
+		and reverse_speed_ratio == 0.0
+		and not _current_velocity.is_zero_approx()
+		and not a_desired.is_zero_approx()
+	)
 
 
 ## THE HELICOPTER rule (reverse_speed_ratio > 0 and a finite turn_rate): speed is capped by
@@ -907,15 +943,21 @@ func _hovering_needs_alignment(a_desired: Vector3) -> bool:
 ## Both hovering rules are false when turn_rate is INF, which is what keeps the fast path in
 ## _apply_accel_limits available.
 func _hovering_needs_facing(a_desired: Vector3) -> bool:
-	return mode == Mode.HOVERING and reverse_speed_ratio > 0.0 and turn_rate != INF \
+	return (
+		mode == Mode.HOVERING
+		and reverse_speed_ratio > 0.0
+		and turn_rate != INF
 		and not a_desired.is_zero_approx()
+	)
 
 
 ## Whether the unit is currently moving OPPOSITE to where it is being sent, so it has to
 ## brake before it can set off — phase 1 of the helicopter rule.
 func _is_braking_for_reversal(a_desired: Vector3) -> bool:
-	return not _current_velocity.is_zero_approx() \
+	return (
+		not _current_velocity.is_zero_approx()
 		and _current_velocity.normalized().dot(a_desired.normalized()) < 0.0
+	)
 
 
 ## Phase 2 of the helicopter rule: cap [a_speed] by how well the OWNER's current facing
@@ -933,8 +975,9 @@ func _facing_capped_speed(a_desired: Vector3, a_speed: float) -> float:
 ## applied for smooth intermediate-waypoint curves — skipped for HOVERING with
 ## reverse_speed_ratio > 0, where velocity direction changes freely and body facing is
 ## tracked separately by _update_facing().
-func _heading_for(a_desired: Vector3, a_decelerate_in_current_dir: bool,
-		a_ticks_per_second: float) -> Vector3:
+func _heading_for(
+	a_desired: Vector3, a_decelerate_in_current_dir: bool, a_ticks_per_second: float
+) -> Vector3:
 	var dir: Vector3
 	if a_decelerate_in_current_dir and not _current_velocity.is_zero_approx():
 		dir = _current_velocity.normalized()
@@ -942,8 +985,11 @@ func _heading_for(a_desired: Vector3, a_decelerate_in_current_dir: bool,
 		dir = a_desired.normalized()
 	else:
 		dir = _current_velocity.normalized()
-	if (mode == Mode.FLYING or (mode == Mode.HOVERING and reverse_speed_ratio == 0.0)) \
-			and turn_rate != INF and not _current_velocity.is_zero_approx():
+	if (
+		(mode == Mode.FLYING or (mode == Mode.HOVERING and reverse_speed_ratio == 0.0))
+		and turn_rate != INF
+		and not _current_velocity.is_zero_approx()
+	):
 		var max_angle: float = deg_to_rad(_effective_turn_rate()) / a_ticks_per_second
 		dir = _turn_heading_toward(_current_velocity, dir, max_angle)
 	return dir
@@ -997,8 +1043,9 @@ func _turn_heading_toward(a_from: Vector3, a_toward: Vector3, a_max_angle: float
 func _turn_limited_speed(a_desired_speed: float) -> float:
 	if turn_rate == INF:
 		return a_desired_speed
-	var slerp_steered: bool = mode == Mode.FLYING \
-		or (mode == Mode.HOVERING and reverse_speed_ratio == 0.0)
+	var slerp_steered: bool = (
+		mode == Mode.FLYING or (mode == Mode.HOVERING and reverse_speed_ratio == 0.0)
+	)
 	if not slerp_steered or is_navigation_finished():
 		return a_desired_speed
 	var owner_node: Node3D = _owner_node()
@@ -1109,7 +1156,6 @@ func _approach_signed_speed(a_s: float, a_target: float, a_tps: float) -> float:
 
 #endregion
 
-
 #region Path following
 ## The ground unit's own path: queried with the agent's settings, followed with the agent's
 ## waypoint and arrival rules (NavigationAgent3D._update_navigation, Godot 4.7). What differs
@@ -1124,6 +1170,7 @@ func _approach_signed_speed(a_s: float, a_target: float, a_tps: float) -> float:
 ## query, and its own "finished" transition then stops it passing velocities to avoidance — the
 ## agent keeps a target only so that it keeps doing so. No API can stop a caller making those
 ## calls; every path question goes through this class instead.
+
 
 ## The path as this unit is following it; empty when it has none. For probes and debugging.
 func current_path() -> PackedVector3Array:
@@ -1168,8 +1215,12 @@ func _update_path() -> void:
 ## navigation-and-pathing.md §A path is the straight line whenever the unit can walk it.
 func _plan_path(a_origin: Vector3) -> void:
 	var target: Vector3 = _nav_agent.target_position
-	if string_pull and _map != null and _map.terrain_grid != null \
-			and _line_is_navigable(a_origin, target):
+	if (
+		string_pull
+		and _map != null
+		and _map.terrain_grid != null
+		and _line_is_navigable(a_origin, target)
+	):
 		_path_change_serial = _nav_manager.landed_serial() if _nav_manager != null else 0
 		_path = PackedVector3Array([a_origin, target])
 		_path_index = 0
@@ -1210,8 +1261,9 @@ func _has_strayed_from_path(a_origin: Vector3) -> bool:
 	if _path_index <= 0 or _path_index >= _path.size():
 		return false
 	var offset := Vector3(0.0, _nav_agent.path_height_offset, 0.0)
-	var closest: Vector3 = Geometry3D.get_closest_point_to_segment(a_origin,
-		_path[_path_index - 1] - offset, _path[_path_index] - offset)
+	var closest: Vector3 = Geometry3D.get_closest_point_to_segment(
+		a_origin, _path[_path_index - 1] - offset, _path[_path_index] - offset
+	)
 	return a_origin.distance_to(closest) >= _nav_agent.path_max_distance
 
 
@@ -1222,7 +1274,9 @@ func _has_strayed_from_path(a_origin: Vector3) -> bool:
 func _is_crossed_by_a_change(a_origin: Vector3) -> bool:
 	if _nav_manager == null:
 		return false
-	var changes: Array[NavManager.NavChange] = _nav_manager.landed_changes_since(_path_change_serial)
+	var changes: Array[NavManager.NavChange] = _nav_manager.landed_changes_since(
+		_path_change_serial
+	)
 	if changes.is_empty():
 		return false
 	var is_forgotten: bool = _nav_manager.has_forgotten(_path_change_serial)
@@ -1231,11 +1285,13 @@ func _is_crossed_by_a_change(a_origin: Vector3) -> bool:
 		return true
 	if not _is_target_reachable():
 		var target: Vector3 = _nav_agent.target_position
-		var reach: float = VU.inXZ(_final_path_position()).distance_to(VU.inXZ(target)) \
-			+ Map.CELL_SIZE
+		var reach: float = (
+			VU.inXZ(_final_path_position()).distance_to(VU.inXZ(target)) + Map.CELL_SIZE
+		)
 		return changes.any(func(c: NavManager.NavChange) -> bool: return c.is_near(target, reach))
-	return changes.any(func(c: NavManager.NavChange) -> bool:
-		return c.crosses(a_origin, _path, _path_index))
+	return changes.any(
+		func(c: NavManager.NavChange) -> bool: return c.crosses(a_origin, _path, _path_index)
+	)
 
 
 ## Move the cursor past every waypoint already within `path_desired_distance`.
@@ -1253,8 +1309,10 @@ func _advance_waypoints(a_origin: Vector3) -> void:
 ## Whether the path ends within `target_desired_distance` of the target — false for a path that
 ## stops short because the target cannot be reached.
 func _is_target_reachable() -> bool:
-	return _nav_agent.target_desired_distance >= _final_path_position().distance_to(
-		_nav_agent.target_position)
+	return (
+		_nav_agent.target_desired_distance
+		>= _final_path_position().distance_to(_nav_agent.target_position)
+	)
 
 
 func _final_path_position() -> Vector3:
@@ -1282,8 +1340,9 @@ func _finish_path() -> void:
 	NavigationServer3D.agent_set_velocity_forced(rid, Vector3.ZERO)
 	# A velocity handed to the agent earlier this tick would otherwise reach avoidance next tick.
 	_nav_agent.set_velocity(Vector3.ZERO)
-#endregion
 
+
+#endregion
 
 #region Path straightening (string-pull)
 ## Steer at the FURTHEST waypoint the unit can reach in a straight line, instead of at the
@@ -1338,10 +1397,12 @@ func _string_pulled_target() -> Vector3:
 	var tick: int = Engine.get_physics_frames()
 	# Reuse the cached answer unless it has aged out or the unit has travelled far enough that
 	# the geometry it was computed from no longer applies.
-	if _pulled_target != Vector3.INF \
-		and tick - _pulled_tick < STRING_PULL_RECHECK_TICKS \
-		and _pulled_from != Vector3.INF \
-		and VU.inXZ(here).distance_squared_to(VU.inXZ(_pulled_from)) < 1.0:
+	if (
+		_pulled_target != Vector3.INF
+		and tick - _pulled_tick < STRING_PULL_RECHECK_TICKS
+		and _pulled_from != Vector3.INF
+		and VU.inXZ(here).distance_squared_to(VU.inXZ(_pulled_from)) < 1.0
+	):
 		return _pulled_target
 
 	_pulled_tick = tick
@@ -1354,11 +1415,17 @@ func _string_pulled_target() -> Vector3:
 	var next_index: int = _path_index
 	var reach: float = STRING_PULL_REACH_CELLS * Map.CELL_SIZE
 	var reach_index: int = next_index
-	while reach_index + 1 < path.size() \
-			and VU.inXZ(here).distance_to(VU.inXZ(path[reach_index + 1])) <= reach:
+	while (
+		reach_index + 1 < path.size()
+		and VU.inXZ(here).distance_to(VU.inXZ(path[reach_index + 1])) <= reach
+	):
 		reach_index += 1
-	var index: int = pulled_waypoint_index(path.size(), next_index, reach_index,
-		func(i: int) -> bool: return _line_is_navigable(here, path[i]))
+	var index: int = pulled_waypoint_index(
+		path.size(),
+		next_index,
+		reach_index,
+		func(i: int) -> bool: return _line_is_navigable(here, path[i])
+	)
 	if index >= 0:
 		_pulled_target = path[index]
 	return _pulled_target
@@ -1370,8 +1437,9 @@ func _string_pulled_target() -> Vector3:
 ## from the furthest candidate, not forward from the nearest, is what lets a unit cut across to
 ## a waypoint that comes back into view past a bend — a forward search stops at the first one
 ## out of sight, and measured ~6% longer routes around an obstacle.
-static func pulled_waypoint_index(path_size: int, next_index: int, reach_index: int,
-		is_reachable: Callable) -> int:
+static func pulled_waypoint_index(
+	path_size: int, next_index: int, reach_index: int, is_reachable: Callable
+) -> int:
 	var last: int = path_size - 1
 	if last < 0:
 		return -1
@@ -1394,7 +1462,8 @@ func first_reachable(a_points: Array, a_tolerance: float) -> Variant:
 	var from: Vector3 = (owner as Node3D).global_position
 	for point: Vector3 in a_points:
 		var path: PackedVector3Array = NavigationServer3D.map_get_path(
-			nav_map, from, point, true, _nav_agent.navigation_layers)
+			nav_map, from, point, true, _nav_agent.navigation_layers
+		)
 		if path.is_empty():
 			continue
 		if VU.inXZ(path[path.size() - 1]).distance_to(VU.inXZ(point)) <= a_tolerance:
@@ -1412,7 +1481,9 @@ func first_reachable(a_points: Array, a_tolerance: float) -> Variant:
 func _line_is_navigable(a_from: Vector3, a_to: Vector3) -> bool:
 	var cs: float = Map.CELL_SIZE
 	return _map.terrain_grid.is_segment_navigable_for(
-		_map.world_to_grid_point(VU.inXZ(a_from)), _map.world_to_grid_point(VU.inXZ(a_to)),
+		_map.world_to_grid_point(VU.inXZ(a_from)),
+		_map.world_to_grid_point(VU.inXZ(a_to)),
 		NavAgentClass.erosion_rings(nav_agent_class, cs),
-		NavAgentClass.required_clearance(nav_agent_class, cs))
+		NavAgentClass.required_clearance(nav_agent_class, cs)
+	)
 #endregion

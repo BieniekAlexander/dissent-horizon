@@ -63,11 +63,11 @@ var _samples: Array = []
 var _wall_start_usec: int = 0
 #endregion
 
-
 ## The project setting that puts RVO avoidance on worker threads. Forced OFF for a harness
 ## process — see _force_single_threaded_avoidance.
-const AVOIDANCE_THREADS_SETTING: String = \
-	"navigation/avoidance/thread_model/avoidance_use_multiple_threads"
+const AVOIDANCE_THREADS_SETTING: String = (
+	"navigation/avoidance/thread_model/" + "avoidance_use_multiple_threads"
+)
 
 
 ## Take avoidance off its worker threads FOR THIS PROCESS — a declaration of intent more than
@@ -155,10 +155,14 @@ func _load_config() -> bool:
 func _configure_slots() -> String:
 	var slot_configs: Array = _config.get("slots", [])
 	if slot_configs.size() != _scenario.player_slots.size():
-		return "config names %d slots; %s has %d" % [
-			slot_configs.size(), _config.get("scenario", DEFAULT_SCENARIO),
-			_scenario.player_slots.size()
-		]
+		return (
+			"config names %d slots; %s has %d"
+			% [
+				slot_configs.size(),
+				_config.get("scenario", DEFAULT_SCENARIO),
+				_scenario.player_slots.size()
+			]
+		)
 	var faction_path: String = _config.get("faction", DEFAULT_FACTION)
 	var faction := load(faction_path) as PackedScene
 	if faction == null:
@@ -172,9 +176,10 @@ func _configure_slots() -> String:
 		var wanted: Dictionary = slot_configs[i]
 		var tier: Variant = _tier_from_name(wanted.get("difficulty", "MEDIUM"))
 		if tier == null:
-			return "slot %d: unknown difficulty %s (expected one of %s)" % [
-				i, wanted.get("difficulty"), ", ".join(PlayerSlot.Difficulty.keys())
-			]
+			return (
+				"slot %d: unknown difficulty %s (expected one of %s)"
+				% [i, wanted.get("difficulty"), ", ".join(PlayerSlot.Difficulty.keys())]
+			)
 		slot.difficulty = tier
 		if wanted.has("starting_energy"):
 			slot.starting_energy = int(wanted["starting_energy"])
@@ -241,9 +246,12 @@ func _field_value(a_config: BotDifficulty, a_name: String) -> Variant:
 ## holds, so `"army_commit_threshold": 3.0` sets an int and `"may_attack": 1` sets a bool.
 func _coerce(a_value: Variant, a_type: int) -> Variant:
 	match a_type:
-		TYPE_INT: return int(a_value)
-		TYPE_FLOAT: return float(a_value)
-		TYPE_BOOL: return bool(a_value)
+		TYPE_INT:
+			return int(a_value)
+		TYPE_FLOAT:
+			return float(a_value)
+		TYPE_BOOL:
+			return bool(a_value)
 	return a_value
 
 
@@ -275,8 +283,10 @@ func _strip_spectator_hud() -> void:
 			continue
 		for connection: Dictionary in commander.resources_changed.get_connections():
 			var callable: Callable = connection["callable"]
-			if callable.get_object() == _scenario \
-					and callable.get_method() == &"_refresh_spectator_label":
+			if (
+				callable.get_object() == _scenario
+				and callable.get_method() == &"_refresh_spectator_label"
+			):
 				commander.resources_changed.disconnect(callable)
 	hud.free()
 
@@ -325,14 +335,20 @@ func _start_point_markers() -> Array[Node3D]:
 			points.append(spatial)
 	points.sort_custom(func(a: Node3D, b: Node3D) -> bool: return String(a.name) < String(b.name))
 	return points
+
+
 #endregion
 
 
 #region The match
 func _run_match() -> void:
-	var max_sim_seconds: float = float(_config.get("max_simulated_seconds", DEFAULT_MAX_SIMULATED_SECONDS))
+	var max_sim_seconds: float = float(
+		_config.get("max_simulated_seconds", DEFAULT_MAX_SIMULATED_SECONDS)
+	)
 	var max_wall_seconds: float = float(_config.get("max_wall_seconds", DEFAULT_MAX_WALL_SECONDS))
-	var sample_interval: float = float(_config.get("sample_interval_seconds", DEFAULT_SAMPLE_INTERVAL_SECONDS))
+	var sample_interval: float = float(
+		_config.get("sample_interval_seconds", DEFAULT_SAMPLE_INTERVAL_SECONDS)
+	)
 	var sample_every_ticks: int = maxi(1, TimeUtils.ticks_from_seconds(sample_interval))
 	var max_ticks: int = TimeUtils.ticks_from_seconds(max_sim_seconds)
 
@@ -413,6 +429,8 @@ func _surviving_slot(a_eliminated: Array[int]) -> int:
 		if not a_eliminated.has(i):
 			return i
 	return -1
+
+
 #endregion
 
 
@@ -510,18 +528,21 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	# has not FOUND the enemy cannot attack it however large its army grows. Reading the live
 	# scene here (as this did while the objective was omniscient) would report a committed bot
 	# that is in fact massing at home.
-	var has_target: bool = bot.nearest_believed_enemy_structure_position() != null \
+	var has_target: bool = (
+		bot.nearest_believed_enemy_structure_position() != null
 		or bot.nearest_believed_enemy_unit_position(bot.base_centroid()) != null
+	)
 	return {
-		"posture": BotMilitary.Posture.keys()[military.current_posture()] if military != null else "",
+		"posture":
+		BotMilitary.Posture.keys()[military.current_posture()] if military != null else "",
 		"has_attack_objective": has_target,
 		"believed_enemy_army_value": bot.believed_enemy_army_value(),
 		# Alongside the belief's VALUE (units only), the count of believed enemy STRUCTURES —
 		# which is what the fog-limited attack objective actually turns on. Without it a sample
 		# cannot distinguish "marching on their base" from "walking to where a scout was seen",
 		# and those are the two things `has_attack_objective` collapses together.
-		"believed_enemy_structures": bot.blackboard.believed_structures().size() \
-			if bot.blackboard != null else 0,
+		"believed_enemy_structures":
+		bot.blackboard.believed_structures().size() if bot.blackboard != null else 0,
 		"scout_observed_fraction": scout.observed_fraction() if scout != null else 0.0,
 		"scouts_out": (scout._scouts as Array).size() if scout != null else 0,
 		"momentum_loss_rate": momentum.loss_rate() if momentum != null else 0.0,
@@ -566,14 +587,28 @@ func _state_string() -> String:
 			if entity == null or entity.is_queued_for_deletion():
 				continue
 			var hp: float = entity.defense.hp if entity.defense != null else 0.0
-			entities.append("%s@%.3f,%.3f,%.3f#%.2f" % [
-				entity.id, entity.global_position.x, entity.global_position.y,
-				entity.global_position.z, hp,
-			])
+			(
+				entities
+				. append(
+					(
+						"%s@%.3f,%.3f,%.3f#%.2f"
+						% [
+							entity.id,
+							entity.global_position.x,
+							entity.global_position.y,
+							entity.global_position.z,
+							hp,
+						]
+					)
+				)
+			)
 		entities.sort()
-		parts.append("c%d:e%d:d%d:%s" % [
-			commander.id, commander.energy, commander.dominion, "|".join(entities)
-		])
+		parts.append(
+			(
+				"c%d:e%d:d%d:%s"
+				% [commander.id, commander.energy, commander.dominion, "|".join(entities)]
+			)
+		)
 	return "|".join(parts)
 
 
@@ -583,8 +618,11 @@ func _dump_state(a_tick: int) -> void:
 	var path: String = _config.get("state_dump_path", "")
 	if path.is_empty():
 		return
-	var file: FileAccess = FileAccess.open(path, FileAccess.READ_WRITE) \
-		if FileAccess.file_exists(path) else FileAccess.open(path, FileAccess.WRITE)
+	var file: FileAccess = (
+		FileAccess.open(path, FileAccess.READ_WRITE)
+		if FileAccess.file_exists(path)
+		else FileAccess.open(path, FileAccess.WRITE)
+	)
 	if file == null:
 		return
 	file.seek_end()
@@ -594,6 +632,8 @@ func _dump_state(a_tick: int) -> void:
 
 func _wall_seconds() -> float:
 	return float(Time.get_ticks_usec() - _wall_start_usec) / 1_000_000.0
+
+
 #endregion
 
 
@@ -635,12 +675,17 @@ func _result_slots() -> Array:
 			for property: Dictionary in brain.config.get_property_list():
 				if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
 					config[property["name"]] = brain.config.get(property["name"])
-		out.append({
-			"slot": i,
-			"commander_id": i + 1,
-			"difficulty": PlayerSlot.Difficulty.keys()[slot.difficulty],
-			"config": config,
-		})
+		(
+			out
+			. append(
+				{
+					"slot": i,
+					"commander_id": i + 1,
+					"difficulty": PlayerSlot.Difficulty.keys()[slot.difficulty],
+					"config": config,
+				}
+			)
+		)
 	return out
 
 

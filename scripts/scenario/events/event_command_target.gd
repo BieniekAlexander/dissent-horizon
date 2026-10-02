@@ -20,15 +20,15 @@ const _CLUSTER_DISTANCE_THRESHOLD := 10.0
 ## Which enemy entity group to cluster.
 enum Type {
 	BASE,  ## Structures (is_in_group("structure"))
-	ARMY   ## Units (is_in_group("unit"))
+	ARMY,  ## Units (is_in_group("unit"))
 }
 
 ## How to rank the resulting clusters when selecting one.
 enum Priority {
-	CLOSEST,       ## Cluster whose centroid is nearest to the spawn point
-	FARTHEST,      ## Cluster whose centroid is farthest from the spawn point
-	WEAKEST,       ## Cluster with the lowest total current HP
-	MOST_VALUABLE  ## Cluster with the highest total max HP
+	CLOSEST,  ## Cluster whose centroid is nearest to the spawn point
+	FARTHEST,  ## Cluster whose centroid is farthest from the spawn point
+	WEAKEST,  ## Cluster with the lowest total current HP
+	MOST_VALUABLE,  ## Cluster with the highest total max HP
 }
 #endregion
 
@@ -43,8 +43,11 @@ enum Priority {
 @export var frame_filter: int = -1
 #endregion
 
+
 #region Public API
-func to_command(a_manager: ScenarioTriggerManager, _a_post_offset: Vector3 = Vector3.ZERO) -> MoveCommand:
+func to_command(
+	a_manager: ScenarioTriggerManager, _a_post_offset: Vector3 = Vector3.ZERO
+) -> MoveCommand:
 	var spawning_id: int = _spawning_commander_id()
 	var candidates: Array = _enemy_candidates(a_manager, spawning_id)
 	if candidates.is_empty():
@@ -75,7 +78,10 @@ func to_command(a_manager: ScenarioTriggerManager, _a_post_offset: Vector3 = Vec
 	var dest: Vector3 = NavigationServer3D.map_get_closest_point(nav_map, centroid)
 	var msg := CommandMessage.new(a_manager.map, null, null, dest)
 	return AttackMove.new(msg)
+
+
 #endregion
+
 
 #region Private helpers
 func _spawning_commander_id() -> int:
@@ -85,6 +91,7 @@ func _spawning_commander_id() -> int:
 	if p is EventSpawnEntities:
 		return (p as EventSpawnEntities).commander_id
 	return 0
+
 
 func _enemy_candidates(a_manager: ScenarioTriggerManager, a_spawning_id: int) -> Array:
 	var group: String = "structure" if type == Type.BASE else "unit"
@@ -100,6 +107,7 @@ func _enemy_candidates(a_manager: ScenarioTriggerManager, a_spawning_id: int) ->
 		result.append(c)
 	return result
 
+
 func _select_cluster(a_clusters: Array, _a_manager: ScenarioTriggerManager) -> Array:
 	if a_clusters.is_empty():
 		return []
@@ -107,22 +115,41 @@ func _select_cluster(a_clusters: Array, _a_manager: ScenarioTriggerManager) -> A
 
 	match priority:
 		Priority.CLOSEST:
-			return a_clusters.reduce(func(best: Array, c: Array) -> Array:
-				return c if _centroid(c).distance_squared_to(ref_pos) < _centroid(best).distance_squared_to(ref_pos) else best
+			return a_clusters.reduce(
+				func(best: Array, c: Array) -> Array:
+					return (
+						c
+						if (
+							_centroid(c).distance_squared_to(ref_pos)
+							< _centroid(best).distance_squared_to(ref_pos)
+						)
+						else best
+					)
 			)
 		Priority.FARTHEST:
-			return a_clusters.reduce(func(best: Array, c: Array) -> Array:
-				return c if _centroid(c).distance_squared_to(ref_pos) > _centroid(best).distance_squared_to(ref_pos) else best
+			return a_clusters.reduce(
+				func(best: Array, c: Array) -> Array:
+					return (
+						c
+						if (
+							_centroid(c).distance_squared_to(ref_pos)
+							> _centroid(best).distance_squared_to(ref_pos)
+						)
+						else best
+					)
 			)
 		Priority.WEAKEST:
-			return a_clusters.reduce(func(best: Array, c: Array) -> Array:
-				return c if _total_hp(c) < _total_hp(best) else best
+			return a_clusters.reduce(
+				func(best: Array, c: Array) -> Array:
+					return c if _total_hp(c) < _total_hp(best) else best
 			)
 		Priority.MOST_VALUABLE:
-			return a_clusters.reduce(func(best: Array, c: Array) -> Array:
-				return c if _total_hp_max(c) > _total_hp_max(best) else best
+			return a_clusters.reduce(
+				func(best: Array, c: Array) -> Array:
+					return c if _total_hp_max(c) > _total_hp_max(best) else best
 			)
 	return a_clusters[0]
+
 
 static func _centroid(cluster: Array) -> Vector3:
 	var sum := Vector3.ZERO
@@ -130,15 +157,20 @@ static func _centroid(cluster: Array) -> Vector3:
 		sum += (node as Commandable).global_position
 	return sum / float(cluster.size())
 
+
 ## The single member of `cluster` nearest to `ref_pos` — the specific entity an Attack (as
 ## opposed to an AttackMove toward the cluster's averaged centroid) locks onto.
 static func _closest_in(cluster: Array, ref_pos: Vector3) -> Commandable:
 	var best: Commandable = cluster[0]
 	for node in cluster:
 		var c := node as Commandable
-		if c.global_position.distance_squared_to(ref_pos) < best.global_position.distance_squared_to(ref_pos):
+		if (
+			c.global_position.distance_squared_to(ref_pos)
+			< best.global_position.distance_squared_to(ref_pos)
+		):
 			best = c
 	return best
+
 
 static func _total_hp(cluster: Array) -> float:
 	var total: float = 0.0
@@ -147,6 +179,7 @@ static func _total_hp(cluster: Array) -> float:
 		if c.defense != null:
 			total += c.defense.hp
 	return total
+
 
 static func _total_hp_max(cluster: Array) -> float:
 	var total: float = 0.0

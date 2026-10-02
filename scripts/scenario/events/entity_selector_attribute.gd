@@ -9,10 +9,11 @@ extends EntitySelector
 @export var attribute: Entity.Attribute = Entity.Attribute.MECH
 @export var require_present: bool = true
 
+
 func filter(a_entities: Array[Entity], _a_manager: ScenarioTriggerManager) -> Array[Entity]:
 	var result: Array[Entity] = []
-	result.assign(a_entities.filter(func(e: Entity) -> bool:
+	var matches := func(e: Entity) -> bool:
 		var has: bool = e.attributes != null and e.attributes.contains(attribute)
 		return has == require_present
-	))
+	result.assign(a_entities.filter(matches))
 	return result

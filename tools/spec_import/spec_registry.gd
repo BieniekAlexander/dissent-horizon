@@ -64,17 +64,24 @@ const SPEED_LIBRARY_KIND: String = "SpeedLibrary"
 ## The top-level keys a SpeedLibrary doc may carry.
 const SPEED_LIBRARY_KEYS: Array = ["kind", "title", "speeds"]
 
-const EMISSION_IS_AN_ENTITY: String = \
-	"Entity — an emission is an Entity whose doc names emission keys (phases:, damage:, …)"
+const EMISSION_IS_AN_ENTITY: String = (
+	"Entity — an emission is an Entity whose doc names emission keys " + "(phases:, damage:, …)"
+)
 
-const PIECE_ROLE_IS_DERIVED: String = \
-	"Entity — whether a piece is a unit or a structure is derived from footprint: and movement:"
+const PIECE_ROLE_IS_DERIVED: String = (
+	"Entity — whether a piece is a unit or a structure is derived from "
+	+ "footprint: and movement:"
+)
 
 ## A retired `kind:` value and what to say about it. Refused rather than aliased, like every
 ## other retired spelling: a doc still saying `unit` believes it is declaring a category,
 ## and under composition a category is something a piece's components decide.
 const RETIRED_KINDS: Dictionary = {
-	"sanction": "AbilityDefinition — a sanction is a dominion UNLOCK ROUTE (`column:`/`levels:`) on an ability doc, not a kind of its own",
+	"sanction":
+	(
+		"AbilityDefinition — a sanction is a dominion UNLOCK ROUTE (`column:`/`levels:`) "
+		+ "on an ability doc, not a kind of its own"
+	),
 	"ability": "AbilityDefinition",
 	"CylinderShape3D": "ShapeLibrary — a shape is an entry of gdd/shapes/shapes.md",
 	"SphereShape3D": "ShapeLibrary — a shape is an entry of gdd/shapes/shapes.md",
@@ -116,7 +123,7 @@ var specs: Dictionary = {}
 ## scene path -> the id of the doc that names it, for the one-scene-one-doc check in _validate.
 var _scene_owners: Dictionary = {}
 ## id -> spec, restricted per kind for iteration convenience.
-var pieces: Dictionary = {}          # every kind: Entity doc
+var pieces: Dictionary = {}  # every kind: Entity doc
 var projectiles: Dictionary = {}
 var status_effects: Dictionary = {}
 var factions: Dictionary = {}
@@ -128,7 +135,8 @@ var abilities: Dictionary = {}
 ## kind: Upgrade docs, keyed by id — one-time commander-wide research, bought at a structure
 ## that names it under `researches:` (gdd/systems/macroeconomics/upgrades.md).
 var upgrades: Dictionary = {}
-## Shape-library entries (the `shapes:` of the `kind: ShapeLibrary` doc), keyed by id. A weapon's `reach:` names one of
+## Shape-library entries (the `shapes:` of the `kind: ShapeLibrary` doc), keyed by id. A weapon's
+## `reach:` names one of
 ## these instead of carrying a radius of its own, so reaches come in a few shared buckets.
 var shapes: Dictionary = {}
 ## The speed ladder: class name -> world units per second, from the `kind: SpeedLibrary` doc.
@@ -165,7 +173,7 @@ func scan(a_root: String = "res://gdd") -> RefCounted:
 				errors.append("%s: %s" % [path, result["error"]])
 			continue
 		if not _names_a_kind(result["data"]):
-			continue   # not a spec (discovery is by the `kind` key)
+			continue  # not a spec (discovery is by the `kind` key)
 		docs.append({"path": path, "data": result["data"]})
 	build(docs)
 	return self
@@ -223,11 +231,22 @@ func _review_training_buttons() -> void:
 			continue
 		var has_button: bool = spec.has("ui") and spec["ui"] is Dictionary
 		if has_button and not trained.has(str(id)):
-			warnings.append("%s [%s]: has a ui: block but no structure trains it — its command-grid button can never be drawn"
-				% [spec["_doc_path"], id])
+			warnings.append(
+				(
+					(
+						"%s [%s]: has a ui: block but no structure trains it — its "
+						+ "command-grid button can never be drawn"
+					)
+					% [spec["_doc_path"], id]
+				)
+			)
 		elif trained.has(str(id)) and not has_button:
-			warnings.append("%s [%s]: trained by %s but has no ui: block — the player has no button for it"
-				% [spec["_doc_path"], id, trained[str(id)]])
+			warnings.append(
+				(
+					"%s [%s]: trained by %s but has no ui: block — the player has no button for it"
+					% [spec["_doc_path"], id, trained[str(id)]]
+				)
+			)
 
 
 # --------------------------------------------------------------------------- #
@@ -239,15 +258,33 @@ func _review_training_buttons() -> void:
 func _register(a_path: String, a_data: Dictionary) -> void:
 	var id: String = a_path.get_file().get_basename()
 	if a_data.has("id"):
-		errors.append("%s: remove the `id:` key — a spec's file name is its id (this doc is '%s')" % [a_path, id])
+		errors.append(
+			(
+				"%s: remove the `id:` key — a spec's file name is its id (this doc is '%s')"
+				% [a_path, id]
+			)
+		)
 		return
 	if not _valid_id(id):
-		errors.append("%s: invalid file name — it is the spec's id, so it must start with a lowercase letter and contain only letters, digits, and underscores: [a-z][a-zA-Z0-9_]*" % a_path)
+		errors.append(
+			(
+				(
+					"%s: invalid file name — it is the spec's id, so it must start "
+					+ "with a lowercase letter and contain only letters, digits, and "
+					+ "underscores: [a-z][a-zA-Z0-9_]*"
+				)
+				% a_path
+			)
+		)
 		return
 	var kind: String = str(a_data.get("kind", ""))
 	if RETIRED_KINDS.has(kind):
-		errors.append("%s [%s]: `kind: %s` is retired — use `kind: %s`" % [
-			a_path, id, kind, RETIRED_KINDS[kind]])
+		errors.append(
+			(
+				"%s [%s]: `kind: %s` is retired — use `kind: %s`"
+				% [a_path, id, kind, RETIRED_KINDS[kind]]
+			)
+		)
 		return
 	if kind == SHAPE_LIBRARY_KIND:
 		_register_shape_library(a_path, a_data)
@@ -262,7 +299,12 @@ func _register(a_path: String, a_data: Dictionary) -> void:
 		# Ids share one namespace across kinds and the whole tree, so basenames
 		# must be globally unique — two docs with the same name in different
 		# folders collide, however unrelated their directories look.
-		errors.append("%s: duplicate id '%s' (a doc of that name also exists at %s)" % [a_path, id, specs[id]["_doc_path"]])
+		errors.append(
+			(
+				"%s: duplicate id '%s' (a doc of that name also exists at %s)"
+				% [a_path, id, specs[id]["_doc_path"]]
+			)
+		)
 		return
 	var spec: Dictionary = a_data.duplicate(true)
 	spec["id"] = id
@@ -270,9 +312,15 @@ func _register(a_path: String, a_data: Dictionary) -> void:
 	spec["_kind"] = KIND_FAMILIES[kind]
 	if spec["_kind"] == "piece" and SpecSchema.is_emission(a_data):
 		if a_data.has("footprint") or a_data.has("movement"):
-			errors.append(("%s [%s]: an emission moves by its phase list, so it cannot also"
-				+ " declare footprint: or movement:")
-				% [a_path, id])
+			errors.append(
+				(
+					(
+						"%s [%s]: an emission moves by its phase list, so it cannot also"
+						+ " declare footprint: or movement:"
+					)
+					% [a_path, id]
+				)
+			)
 			return
 		spec["_kind"] = "projectile"
 	# The authored shape is nested (see SpecSchema); everything below this line reads the
@@ -310,33 +358,45 @@ func _register(a_path: String, a_data: Dictionary) -> void:
 func _register_shape_library(a_path: String, a_data: Dictionary) -> void:
 	for key: Variant in a_data:
 		if not SHAPE_LIBRARY_KEYS.has(str(key)):
-			errors.append("%s: unknown ShapeLibrary key '%s' (expected one of %s)"
-				% [a_path, key, SHAPE_LIBRARY_KEYS])
+			errors.append(
+				(
+					"%s: unknown ShapeLibrary key '%s' (expected one of %s)"
+					% [a_path, key, SHAPE_LIBRARY_KEYS]
+				)
+			)
 	var entries: Variant = a_data.get("shapes")
 	if not (entries is Dictionary) or (entries as Dictionary).is_empty():
-		errors.append("%s: a ShapeLibrary needs shapes: — a mapping of shape id to its keys"
-			% a_path)
+		errors.append(
+			"%s: a ShapeLibrary needs shapes: — a mapping of shape id to its keys" % a_path
+		)
 		return
 	for key: Variant in entries:
 		var id: String = str(key)
 		var entry: Variant = entries[key]
 		if not _valid_id(id):
-			errors.append("%s: invalid shape id '%s' — it must match [a-z][a-zA-Z0-9_]*"
-				% [a_path, id])
+			errors.append(
+				"%s: invalid shape id '%s' — it must match [a-z][a-zA-Z0-9_]*" % [a_path, id]
+			)
 			continue
 		if specs.has(id):
-			errors.append("%s: duplicate id '%s' (also defined at %s)"
-				% [a_path, id, specs[id]["_doc_path"]])
+			errors.append(
+				"%s: duplicate id '%s' (also defined at %s)" % [a_path, id, specs[id]["_doc_path"]]
+			)
 			continue
 		if not (entry is Dictionary):
-			errors.append("%s [%s]: a shape entry must be a mapping, e.g. {radius: 1}"
-				% [a_path, id])
+			errors.append(
+				"%s [%s]: a shape entry must be a mapping, e.g. {radius: 1}" % [a_path, id]
+			)
 			continue
 		var spec: Dictionary = (entry as Dictionary).duplicate(true)
 		var shape_kind: String = str(spec.get("kind", "CylinderShape3D"))
 		if not SHAPE_CLASSES.has(shape_kind):
-			errors.append("%s [%s]: a shape's kind must be one of %s, got '%s'"
-				% [a_path, id, SHAPE_CLASSES, shape_kind])
+			errors.append(
+				(
+					"%s [%s]: a shape's kind must be one of %s, got '%s'"
+					% [a_path, id, SHAPE_CLASSES, shape_kind]
+				)
+			)
 			continue
 		spec["kind"] = shape_kind
 		spec["id"] = id
@@ -351,29 +411,49 @@ func _register_shape_library(a_path: String, a_data: Dictionary) -> void:
 ## non-negative numbers of world units per second. There is exactly one ladder.
 func _register_speed_library(a_path: String, a_data: Dictionary) -> void:
 	if _speed_library_path != "":
-		errors.append("%s: a second SpeedLibrary — the speed ladder already lives in %s"
-			% [a_path, _speed_library_path])
+		errors.append(
+			(
+				"%s: a second SpeedLibrary — the speed ladder already lives in %s"
+				% [a_path, _speed_library_path]
+			)
+		)
 		return
 	_speed_library_path = a_path
 	for key: Variant in a_data:
 		if not SPEED_LIBRARY_KEYS.has(str(key)):
-			errors.append("%s: unknown SpeedLibrary key '%s' (expected one of %s)"
-				% [a_path, key, SPEED_LIBRARY_KEYS])
+			errors.append(
+				(
+					"%s: unknown SpeedLibrary key '%s' (expected one of %s)"
+					% [a_path, key, SPEED_LIBRARY_KEYS]
+				)
+			)
 	var entries: Variant = a_data.get("speeds")
 	if not (entries is Dictionary) or (entries as Dictionary).is_empty():
-		errors.append("%s: a SpeedLibrary needs speeds: — a mapping of class name to world "
-			% a_path + "units per second")
+		errors.append(
+			(
+				"%s: a SpeedLibrary needs speeds: — a mapping of class name to world " % a_path
+				+ "units per second"
+			)
+		)
 		return
 	var upper_snake := RegEx.create_from_string("^[A-Z][A-Z0-9_]*$")
 	for key: Variant in entries:
 		var name: String = str(key)
 		var value: Variant = entries[key]
 		if upper_snake.search(name) == null:
-			errors.append("%s: invalid speed class '%s' — it must be UPPER_SNAKE, e.g. BRISK"
-				% [a_path, name])
+			errors.append(
+				"%s: invalid speed class '%s' — it must be UPPER_SNAKE, e.g. BRISK" % [a_path, name]
+			)
 		elif not _is_number(value) or float(value) < 0.0:
-			errors.append("%s [%s]: a speed must be a non-negative number of world units per "
-				% [a_path, name] + "second, got '%s'" % value)
+			errors.append(
+				(
+					(
+						"%s [%s]: a speed must be a non-negative number of world units per "
+						% [a_path, name]
+					)
+					+ "second, got '%s'" % value
+				)
+			)
 		else:
 			speeds[name] = float(value)
 
@@ -411,8 +491,16 @@ func _speed_of(a_spec: Dictionary, a_where: String, a_value: Variant) -> Variant
 		return speeds[a_value]
 	var known: String = ", ".join(PackedStringArray(speeds.keys()))
 	if _is_number(a_value):
-		_err(a_spec, "%s must NAME a speed class (one of %s), not a number — the values live in "
-			% [a_where, known] + "the SpeedLibrary doc, gdd/movement/speed_classes.md")
+		_err(
+			a_spec,
+			(
+				(
+					"%s must NAME a speed class (one of %s), not a number — the values live in "
+					% [a_where, known]
+				)
+				+ "the SpeedLibrary doc, gdd/movement/speed_classes.md"
+			)
+		)
 	else:
 		_err(a_spec, "%s '%s' is not a speed class (one of %s)" % [a_where, a_value, known])
 	return a_value
@@ -424,10 +512,17 @@ func _speed_of(a_spec: Dictionary, a_where: String, a_value: Variant) -> Variant
 func _unknown_kind_message(a_kind: String) -> String:
 	for class_kind: String in KIND_FAMILIES:
 		if class_kind.to_lower() == a_kind.to_lower().replace("_", ""):
-			return ("`kind: %s` names the class the spec loads as, so it is spelled as the "
-				+ "class is: `kind: %s`") % [a_kind, class_kind]
-	return "unknown kind '%s' (expected one of %s)" % [a_kind,
-		KIND_FAMILIES.keys() + [SHAPE_LIBRARY_KIND, SPEED_LIBRARY_KIND]]
+			return (
+				(
+					"`kind: %s` names the class the spec loads as, so it is spelled as the "
+					+ "class is: `kind: %s`"
+				)
+				% [a_kind, class_kind]
+			)
+	return (
+		"unknown kind '%s' (expected one of %s)"
+		% [a_kind, KIND_FAMILIES.keys() + [SHAPE_LIBRARY_KIND, SPEED_LIBRARY_KIND]]
+	)
 
 
 ## Collection keys whose component an EMPTY LIST removes. Their components (Production,
@@ -449,8 +544,16 @@ func _normalize_removals(a_spec: Dictionary) -> void:
 		if not a_spec.has(key):
 			continue
 		if a_spec[key] is bool:
-			_err(a_spec, "%s: %s is not a value — name the list, or write `%s: []` to remove "
-				% [key, a_spec[key], key] + "the component")
+			_err(
+				a_spec,
+				(
+					(
+						"%s: %s is not a value — name the list, or write `%s: []` to remove "
+						% [key, a_spec[key], key]
+					)
+					+ "the component"
+				)
+			)
 			a_spec[key] = []
 		if a_spec[key] is Array and (a_spec[key] as Array).is_empty():
 			removed.append(key)
@@ -460,7 +563,7 @@ func _normalize_removals(a_spec: Dictionary) -> void:
 ## Fill in a piece's economy keys when its doc names none. See the constants above.
 func _apply_piece_defaults(a_spec: Dictionary) -> void:
 	if a_spec.has("variants"):
-		return   # its price comes from the first variant (_resolve_variants), not a placeholder
+		return  # its price comes from the first variant (_resolve_variants), not a placeholder
 	if not a_spec.has("cost"):
 		a_spec["cost"] = {"energy": DEFAULT_PIECE_COST_ENERGY}
 	if not a_spec.has("build_time"):
@@ -493,10 +596,24 @@ func _hoist_inline_projectiles(a_spec: Dictionary) -> void:
 ## persist a resolved scene path back into (see SpecSceneSync._ensure_projectile_scene).
 func _register_inline_projectile(a_doc_path: String, a_id: String, a_data: Dictionary) -> void:
 	if not _valid_id(a_id):
-		errors.append("%s: invalid inline projectile id '%s' (must start with a lowercase letter and contain only letters, digits, and underscores: [a-z][a-zA-Z0-9_]*)" % [a_doc_path, a_id])
+		errors.append(
+			(
+				(
+					"%s: invalid inline projectile id '%s' (must start with a "
+					+ "lowercase letter and contain only letters, digits, and "
+					+ "underscores: [a-z][a-zA-Z0-9_]*)"
+				)
+				% [a_doc_path, a_id]
+			)
+		)
 		return
 	if specs.has(a_id):
-		errors.append("%s: duplicate id '%s' (also defined in %s)" % [a_doc_path, a_id, specs[a_id]["_doc_path"]])
+		errors.append(
+			(
+				"%s: duplicate id '%s' (also defined in %s)"
+				% [a_doc_path, a_id, specs[a_id]["_doc_path"]]
+			)
+		)
 		return
 	var spec: Dictionary = a_data.duplicate(true)
 	spec["id"] = a_id
@@ -518,7 +635,12 @@ static func _valid_id(id: String) -> bool:
 		return false
 	for i in id.length():
 		var c: String = id[i]
-		if not ((c >= "a" and c <= "z") or (c >= "A" and c <= "Z") or (c >= "0" and c <= "9") or c == "_"):
+		if not (
+			(c >= "a" and c <= "z")
+			or (c >= "A" and c <= "Z")
+			or (c >= "0" and c <= "9")
+			or c == "_"
+		):
 			return false
 	return true
 
@@ -535,8 +657,13 @@ func _validate(a_spec: Dictionary) -> void:
 		# One scene, one doc: two docs naming a scene each rewrite it on every run, the last one
 		# winning, so the import never converges.
 		elif _scene_owners.has(scene) and _scene_owners[scene] != a_spec["id"]:
-			_err(a_spec, "scene '%s' is already the scene of '%s' — every doc needs its own"
-				% [scene, _scene_owners[scene]])
+			_err(
+				a_spec,
+				(
+					"scene '%s' is already the scene of '%s' — every doc needs its own"
+					% [scene, _scene_owners[scene]]
+				)
+			)
 		else:
 			_scene_owners[scene] = a_spec["id"]
 		# A scene: naming a file that does not exist yet is NOT an error: every
@@ -564,14 +691,24 @@ func _validate(a_spec: Dictionary) -> void:
 
 func _validate_piece(a_spec: Dictionary) -> void:
 	if not SpecSchema.has_discriminator(a_spec):
-		_err(a_spec, "declares no body and no sense — a piece needs footprint:, movement: "
-			+ "or senses.vision:")
+		_err(
+			a_spec,
+			(
+				"declares no body and no sense — a piece needs footprint:, movement: "
+				+ "or senses.vision:"
+			)
+		)
 	# A scalar here (the old flat `cost: 1000` spelling, or a plain typo) is silently
 	# read as "not a Dictionary" by every consumer (technology_json, _cost_phrase) and
 	# priced as free — see CLAUDE.md §10, validation must fail loud rather than half-apply.
 	if a_spec.has("cost") and not (a_spec["cost"] is Dictionary):
-		_err(a_spec, "%s must be a mapping of energy/infrastructure/dominion, got %s" %
-			[SpecSchema.doc_key("cost"), a_spec["cost"]])
+		_err(
+			a_spec,
+			(
+				"%s must be a mapping of energy/infrastructure/dominion, got %s"
+				% [SpecSchema.doc_key("cost"), a_spec["cost"]]
+			)
+		)
 	_check_enum(a_spec, "armour", Defense.ArmourType)
 	_check_enum(a_spec, "frame", Defense.FrameType)
 	if a_spec.has("movement"):
@@ -683,23 +820,67 @@ func _apply_calibration_rules() -> void:
 		for entry: Dictionary in SpecRules.evaluate(spec, facts):
 			match int(entry["verdict"]):
 				SpecRules.Verdict.UNACCEPTED:
-					_err(spec, "%s [%s]: %s. Fix the numbers%s"
-						% [entry["id"], entry["severity"], entry["detail"],
-							"" if str(entry["severity"]) == SpecRules.STRUCTURAL
-							else (", or declare the departure:\n      exceptions:\n        %s: <why this piece is built that way>" % entry["id"])])
+					_err(
+						spec,
+						(
+							"%s [%s]: %s. Fix the numbers%s"
+							% [
+								entry["id"],
+								entry["severity"],
+								entry["detail"],
+								(
+									""
+									if str(entry["severity"]) == SpecRules.STRUCTURAL
+									else (
+										(
+											", or declare the departure:\n      "
+											+ "exceptions:\n        %s: <why this piece is "
+											+ "built that way>"
+										)
+										% entry["id"]
+									)
+								)
+							]
+						)
+					)
 				SpecRules.Verdict.STALE:
-					_err(spec, "exceptions declares '%s' but %s — delete the declaration (a waiver that outlives the value it waived reads as deliberate when it is not)"
-						% [entry["id"], entry["detail"]])
+					_err(
+						spec,
+						(
+							(
+								"exceptions declares '%s' but %s — delete the "
+								+ "declaration (a waiver that outlives the value it waived "
+								+ "reads as deliberate when it is not)"
+							)
+							% [entry["id"], entry["detail"]]
+						)
+					)
 				SpecRules.Verdict.EXCEPTIONAL:
-					exceptional.append({
-						"id": str(id), "rule": str(entry["id"]), "what": str(entry["what"]),
-						"detail": str(entry["detail"]), "reason": str(entry["reason"]),
-					})
+					(
+						exceptional
+						. append(
+							{
+								"id": str(id),
+								"rule": str(entry["id"]),
+								"what": str(entry["what"]),
+								"detail": str(entry["detail"]),
+								"reason": str(entry["reason"]),
+							}
+						)
+					)
 				SpecRules.Verdict.INCOMPLETE:
-					incomplete.append({
-						"id": str(id), "rule": str(entry["id"]), "what": str(entry["what"]),
-						"detail": str(entry["detail"]), "state": entry["asset_state"],
-					})
+					(
+						incomplete
+						. append(
+							{
+								"id": str(id),
+								"rule": str(entry["id"]),
+								"what": str(entry["what"]),
+								"detail": str(entry["detail"]),
+								"state": entry["asset_state"],
+							}
+						)
+					)
 
 
 ## The facts SpecRules' ASSET rules judge, gathered for every piece and emission: whether its
@@ -750,10 +931,15 @@ func _resolve_variants() -> void:
 			continue
 		for key: String in VARIANT_DERIVED_KEYS:
 			if spec.has(key):
-				_err(spec, "%s is taken from the first variant — remove it from the doc"
-					% SpecSchema.doc_key(key))
+				_err(
+					spec,
+					(
+						"%s is taken from the first variant — remove it from the doc"
+						% SpecSchema.doc_key(key)
+					)
+				)
 		var first: Dictionary = {}
-		for ref: Variant in (variants as Array):
+		for ref: Variant in variants as Array:
 			var vid: String = str(ref)
 			if not pieces.has(vid):
 				_err(spec, "variants references unknown piece '%s'" % vid)
@@ -770,7 +956,9 @@ func _resolve_variants() -> void:
 		for key: String in VARIANT_DERIVED_KEYS:
 			if first.has(key):
 				var value: Variant = first[key]
-				spec[key] = value.duplicate(true) if value is Array or value is Dictionary else value
+				spec[key] = (
+					value.duplicate(true) if value is Array or value is Dictionary else value
+				)
 
 
 ## `family:` — membership of a named piece family (SpecSchema.FAMILIES). A member is a
@@ -793,14 +981,24 @@ func _validate_family(a_spec: Dictionary) -> void:
 ## in scenes, invisible to the docs that claim to govern the piece — and a doc that tries to
 ## set one and is ignored is worse than one that never tried, because it reads as authority
 ## it does not have. A typo in `turn_rate` has exactly the same shape.
-const MOVEMENT_KEYS: Array = ["speed", "turn_rate", "max_acceleration",
-	"max_deceleration", "crush_class", "min_turn_speed_ratio", "reverse_speed_ratio"]
+const MOVEMENT_KEYS: Array = [
+	"speed",
+	"turn_rate",
+	"max_acceleration",
+	"max_deceleration",
+	"crush_class",
+	"min_turn_speed_ratio",
+	"reverse_speed_ratio"
+]
 
 ## `movement:` keys that moved to another component's key, and where. Named, not merely
 ## unknown, so a doc written before the move says what to write instead.
 const MOVEMENT_KEYS_MOVED: Dictionary = {
-	"mode": "aerial.mode — a piece that flies names its mode under `aerial:`; one that does "
-		+ "not names none",
+	"mode":
+	(
+		"aerial.mode — a piece that flies names its mode under `aerial:`; one that does "
+		+ "not names none"
+	),
 	"orbit_radius": "aerial.orbit_radius",
 	"orbit_speed": "aerial.orbit_speed",
 	"docks": "docking: true — a piece that docks says so; `docks: false` is simply no key",
@@ -811,6 +1009,7 @@ const MOVEMENT_KEYS_MOVED: Dictionary = {
 ## which is not a stance any chassis has — `an_mechStrong_transport` carried 1.5 for exactly
 ## as long as nothing checked.
 const MOVEMENT_RATIO_KEYS: Array = ["min_turn_speed_ratio", "reverse_speed_ratio"]
+
 
 func _validate_movement(a_spec: Dictionary, a_m: Variant) -> void:
 	if not (a_m is Dictionary):
@@ -827,15 +1026,22 @@ func _validate_movement(a_spec: Dictionary, a_m: Variant) -> void:
 	for key: String in ["speed", "turn_rate"]:
 		if m.has(key) and (not _is_number(m[key]) or float(m[key]) < 0.0):
 			_err(a_spec, "movement.%s must be a non-negative number" % key)
-	if m.has("max_acceleration") and (not _is_number(m["max_acceleration"]) \
-			or float(m["max_acceleration"]) <= 0.0):
+	if (
+		m.has("max_acceleration")
+		and (not _is_number(m["max_acceleration"]) or float(m["max_acceleration"]) <= 0.0)
+	):
 		_err(a_spec, "movement.max_acceleration must be a positive number of world-units/s^2")
 	# Signed, and NEGATIVE — it is the floor on a rate of change, not a magnitude, and the
 	# component compares against it directly (`-INF` is the unbounded default). A doc that
 	# writes it positive has said "may not slow below +3 u/s^2", which stops the unit dead.
-	if m.has("max_deceleration") and (not _is_number(m["max_deceleration"]) \
-			or float(m["max_deceleration"]) >= 0.0):
-		_err(a_spec, "movement.max_deceleration must be NEGATIVE (it is a signed floor, not a magnitude)")
+	if (
+		m.has("max_deceleration")
+		and (not _is_number(m["max_deceleration"]) or float(m["max_deceleration"]) >= 0.0)
+	):
+		_err(
+			a_spec,
+			"movement.max_deceleration must be NEGATIVE (it is a signed floor, not a magnitude)"
+		)
 	for key: String in MOVEMENT_RATIO_KEYS:
 		if not m.has(key):
 			continue
@@ -861,10 +1067,11 @@ const MOVEMENT_MODE_ONLY: Dictionary = {
 	"aerial.orbit_speed": ["FLYING"],
 }
 
+
 func _validate_movement_modes(a_spec: Dictionary, a_m: Dictionary) -> void:
 	var mode: String = _mode_of(a_spec)
 	if not Movement.Mode.has(mode):
-		return   # already reported; do not pile a second error on one typo
+		return  # already reported; do not pile a second error on one typo
 	for key: String in MOVEMENT_MODE_ONLY:
 		var parts: PackedStringArray = key.split(".")
 		var block: Variant = a_spec.get("aerial") if parts.size() > 1 else a_m
@@ -872,8 +1079,13 @@ func _validate_movement_modes(a_spec: Dictionary, a_m: Dictionary) -> void:
 			continue
 		var modes: Array = MOVEMENT_MODE_ONLY[key]
 		if not modes.has(mode):
-			_err(a_spec, "%s is read only in %s, and this piece is %s — the value would be inert"
-				% [key if parts.size() > 1 else "movement." + key, " / ".join(modes), mode])
+			_err(
+				a_spec,
+				(
+					"%s is read only in %s, and this piece is %s — the value would be inert"
+					% [key if parts.size() > 1 else "movement." + key, " / ".join(modes), mode]
+				)
+			)
 
 
 ## The piece's locomotion mode: its `aerial.mode`, or GROUNDED for a piece that does not fly.
@@ -886,6 +1098,7 @@ static func _mode_of(a_spec: Dictionary) -> String:
 ## kind and is required, since GROUNDED is not a way of flying.
 const AERIAL_KEYS: Array = ["mode", "orbit_radius", "orbit_speed"]
 const AERIAL_MODES: Array = ["HOVERING", "FLYING"]
+
 
 func _validate_aerial(a_spec: Dictionary, a_a: Variant) -> void:
 	if not (a_a is Dictionary):
@@ -962,9 +1175,20 @@ static func _is_number(value: Variant) -> bool:
 ## nothing (see Garrison.occupiable_ids). `sentence_length:` is what makes a garrison a
 ## prison — a captive deposited here serves that many seconds before being consumed (see
 ## Garrison.can_intern) — replacing the old `interns:` conversion marker.
-const GARRISON_KEYS: Array = ["capacity", "frames", "armours", "movements", "closed",
-	"releasable", "bunker", "preserve_occupants", "range_bonus", "reach_by_piece", "pieces",
-	"sentence_length"]
+const GARRISON_KEYS: Array = [
+	"capacity",
+	"frames",
+	"armours",
+	"movements",
+	"closed",
+	"releasable",
+	"bunker",
+	"preserve_occupants",
+	"range_bonus",
+	"reach_by_piece",
+	"pieces",
+	"sentence_length"
+]
 const GARRISON_MASK_KEYS: Array = ["frames", "armours", "movements"]
 const GARRISON_ENUMS: Dictionary = {
 	"frames": ["BIO", "MECH"],
@@ -973,6 +1197,7 @@ const GARRISON_ENUMS: Dictionary = {
 	# locomotion vocabulary serves both.
 	"movements": ["GROUNDED", "HOVERING", "FLYING"],
 }
+
 
 func _validate_garrison(a_spec: Dictionary, a_g: Variant) -> void:
 	# `false` removes the component outright, mirroring `repairs: false`. `true` is NOT
@@ -1010,12 +1235,24 @@ func _validate_garrison(a_spec: Dictionary, a_g: Variant) -> void:
 	if bool(g.get("closed", false)):
 		for key: String in GARRISON_MASK_KEYS:
 			if g.has(key):
-				_err(a_spec, "garrison.closed is every mask cleared — remove `%s`, or drop `closed` and list what may enter" % key)
+				_err(
+					a_spec,
+					(
+						(
+							"garrison.closed is every mask cleared — remove `%s`, or "
+							+ "drop `closed` and list what may enter"
+						)
+						% key
+					)
+				)
 		# Same reasoning one step further out: an allowlist narrows what the masks admit, and
 		# a closed hold admits nothing to narrow. The pair reads as "only Servants may enter,
 		# and nobody may enter".
 		if g.has("pieces"):
-			_err(a_spec, "garrison.closed admits nobody, so `pieces` can never apply — drop one of them")
+			_err(
+				a_spec,
+				"garrison.closed admits nobody, so `pieces` can never apply — drop one of them"
+			)
 	# An allowlist of piece ids. Validated against the registry like every other id
 	# reference, so a renamed piece fails the import rather than silently shutting the
 	# host's door.
@@ -1030,9 +1267,13 @@ func _validate_garrison(a_spec: Dictionary, a_g: Variant) -> void:
 	# Ids are checked against the registry for the same reason `pieces` is.
 	if g.has("reach_by_piece"):
 		_resolve_reach_by_piece(a_spec, g)
-	if g.has("sentence_length") and not (
+	if (
+		g.has("sentence_length")
+		and not (
 			(g["sentence_length"] is int or g["sentence_length"] is float)
-			and float(g["sentence_length"]) > 0.0):
+			and float(g["sentence_length"]) > 0.0
+		)
+	):
 		_err(a_spec, "garrison.sentence_length must be a positive number of seconds")
 
 
@@ -1046,16 +1287,28 @@ func _resolve_range_bonus(a_spec: Dictionary, a_g: Dictionary) -> void:
 	var keys: Array = (pair as Dictionary).keys().map(str) if pair is Dictionary else []
 	keys.sort()
 	if keys != ["from", "to"]:
-		_err(a_spec, "garrison.range_bonus names two reach buckets, {from: <id>, to: <id>}; "
-			+ "the bonus is the gap between them, got '%s'" % str(pair))
+		_err(
+			a_spec,
+			(
+				"garrison.range_bonus names two reach buckets, {from: <id>, to: <id>}; "
+				+ "the bonus is the gap between them, got '%s'" % str(pair)
+			)
+		)
 		return
-	var radii: Array = ["from", "to"].map(func(k: String) -> float:
-		return _library_radius(a_spec, "garrison.range_bonus.%s" % k, pair[k]))
+	var radii: Array = ["from", "to"].map(
+		func(k: String) -> float:
+			return _library_radius(a_spec, "garrison.range_bonus.%s" % k, pair[k])
+	)
 	if radii.has(-1.0):
 		return
 	if radii[1] < radii[0]:
-		_err(a_spec, "garrison.range_bonus lifts from a shorter bucket to a longer one, "
-			+ "but '%s' is shorter than '%s'" % [pair["to"], pair["from"]])
+		_err(
+			a_spec,
+			(
+				"garrison.range_bonus lifts from a shorter bucket to a longer one, "
+				+ "but '%s' is shorter than '%s'" % [pair["to"], pair["from"]]
+			)
+		)
 		return
 	a_g["range_bonus"] = radii[1] - radii[0]
 
@@ -1073,7 +1326,8 @@ func _resolve_reach_by_piece(a_spec: Dictionary, a_g: Dictionary) -> void:
 		if not pieces.has(str(ref)):
 			_err(a_spec, "garrison.reach_by_piece references unknown piece '%s'" % str(ref))
 		var radius: float = _library_radius(
-			a_spec, "garrison.reach_by_piece.%s" % str(ref), by_piece[ref])
+			a_spec, "garrison.reach_by_piece.%s" % str(ref), by_piece[ref]
+		)
 		if radius >= 0.0:
 			radii[str(ref)] = radius
 	a_g["reach_by_piece"] = radii
@@ -1083,8 +1337,13 @@ func _resolve_reach_by_piece(a_spec: Dictionary, a_g: Dictionary) -> void:
 ## `a_key`) when it names none.
 func _library_radius(a_spec: Dictionary, a_key: String, a_shape_id: Variant) -> float:
 	if not (a_shape_id is String) or not shapes.has(a_shape_id):
-		_err(a_spec, "%s must name a shape from the library (one of %s), got '%s'"
-			% [a_key, _sorted_keys(shapes), a_shape_id])
+		_err(
+			a_spec,
+			(
+				"%s must name a shape from the library (one of %s), got '%s'"
+				% [a_key, _sorted_keys(shapes), a_shape_id]
+			)
+		)
 		return -1.0
 	return float(shapes[a_shape_id].get("radius", -1.0))
 
@@ -1107,8 +1366,13 @@ func _validate_charged_can_rearm(a_spec: Dictionary) -> void:
 	if not has_charged:
 		return
 	if not bool(a_spec.get("docking", false)):
-		_err(a_spec, "has a charged weapon but no `docking: true` — it would fire its clip "
-			+ "once and be unarmed for the rest of its life")
+		_err(
+			a_spec,
+			(
+				"has a charged weapon but no `docking: true` — it would fire its clip "
+				+ "once and be unarmed for the rest of its life"
+			)
+		)
 
 
 ## The `ui:` block: what the piece looks like in the command grid.
@@ -1121,8 +1385,13 @@ func _validate_charged_can_rearm(a_spec: Dictionary) -> void:
 ## as the `id:` key: the old form can never silently win over the new one.
 func _validate_ui(a_spec: Dictionary, a_ui: Dictionary) -> void:
 	if a_ui.has("label"):
-		_err(a_spec, "remove `ui.label` — a grid button is titled by the doc's `title:` (this doc's is '%s')"
-			% str(a_spec.get("title", "")))
+		_err(
+			a_spec,
+			(
+				"remove `ui.label` — a grid button is titled by the doc's `title:` (this doc's is '%s')"
+				% str(a_spec.get("title", ""))
+			)
+		)
 	# `context_grid` is a PRODUCER's cell in row 0 of the PRODUCTION card — the radio button
 	# that picks whose training the card is showing. A second cell rather than a reuse of
 	# `grid`, because `grid` is already spoken for: it is where this piece's own BUILD button
@@ -1140,8 +1409,13 @@ func _validate_ui(a_spec: Dictionary, a_ui: Dictionary) -> void:
 		if not (g is Array and g.size() == 2 and g[0] is int and g[1] is int):
 			_err(a_spec, "ui.%s must be [column, row] ints" % key)
 		elif not ControlBinding.position_in_bounds(Vector2i(int(g[0]), int(g[1]))):
-			_err(a_spec, "ui.%s %s is outside the %dx%d command grid"
-				% [key, g, ControlBinding.GRID_WIDTH, ControlBinding.GRID_HEIGHT])
+			_err(
+				a_spec,
+				(
+					"ui.%s %s is outside the %dx%d command grid"
+					% [key, g, ControlBinding.GRID_WIDTH, ControlBinding.GRID_HEIGHT]
+				)
+			)
 	# Every faction name must have a ControlBinding.Faction member. Without this the name
 	# silently fell through to FACTION_ANY, which made the piece collide with every other
 	# piece in its cell — the grid review was drowning in 216 such reports before the four
@@ -1150,16 +1424,25 @@ func _validate_ui(a_spec: Dictionary, a_ui: Dictionary) -> void:
 	# the previous run's tools.json.)
 	for fname in a_ui.get("factions", []):
 		if not ControlBinding.Faction.has(str(fname).to_upper()):
-			_err(a_spec, "unknown ui faction '%s' — add it to ControlBinding.Faction (have: %s)"
-				% [fname, ", ".join(ControlBinding.Faction.keys()).to_lower()])
+			_err(
+				a_spec,
+				(
+					"unknown ui faction '%s' — add it to ControlBinding.Faction (have: %s)"
+					% [fname, ", ".join(ControlBinding.Faction.keys()).to_lower()]
+				)
+			)
 	# A piece IN the grid is one the player reads off a button, so an unauthored title
 	# leaves them looking at a raw id. A title that merely REPEATS the id is the same
 	# thing spelled out, so both are reported. A warning, not an error: a placeholder
 	# piece must still be placeable while its copy is being written.
 	var title: String = str(a_spec.get("title", "")).strip_edges()
 	if title.is_empty() or title == str(a_spec["id"]):
-		warnings.append("%s [%s]: no display title — its grid button reads as the raw id"
-			% [a_spec["_doc_path"], a_spec["id"]])
+		warnings.append(
+			(
+				"%s [%s]: no display title — its grid button reads as the raw id"
+				% [a_spec["_doc_path"], a_spec["id"]]
+			)
+		)
 
 
 ## Every key a `weapons:` entry may carry. Whitelisted for the same reason `movement:` is —
@@ -1167,17 +1450,35 @@ func _validate_ui(a_spec: Dictionary, a_ui: Dictionary) -> void:
 ## reading as authoritative. It is also what retires a key cleanly: `dive:` is gone (a dive
 ## is now derived from the weapon's reach, see Weapon.is_melee_ranged), and without this a
 ## doc still carrying it would quietly do nothing.
-const WEAPON_KEYS: Array = ["name", "projectile", "melee_damage", "melee_damage_type",
-	"split_time", "reload_time", "startup_time", "clip_size", "charged", "turret", "turret_turn_rate", "reach",
-	"hits"]
+const WEAPON_KEYS: Array = [
+	"name",
+	"projectile",
+	"melee_damage",
+	"melee_damage_type",
+	"split_time",
+	"reload_time",
+	"startup_time",
+	"clip_size",
+	"charged",
+	"turret",
+	"turret_turn_rate",
+	"reach",
+	"hits"
+]
+
 
 func _validate_weapon(a_spec: Dictionary, a_weapon: Dictionary, a_seen: Dictionary) -> void:
 	for key in a_weapon:
 		if not WEAPON_KEYS.has(str(key)):
 			var hint: String = ""
 			if str(key) == "dive":
-				hint = " — a dive is now DERIVED from the weapon's reach (Weapon.is_melee_ranged), so remove the key"
-			_err(a_spec, "unknown weapon key '%s' (expected one of %s)%s" % [key, WEAPON_KEYS, hint])
+				hint = (
+					" — a dive is now DERIVED from the weapon's reach "
+					+ "(Weapon.is_melee_ranged), so remove the key"
+				)
+			_err(
+				a_spec, "unknown weapon key '%s' (expected one of %s)%s" % [key, WEAPON_KEYS, hint]
+			)
 	var wname: String = str(a_weapon.get("name", ""))
 	if wname == "":
 		_err(a_spec, "every weapon needs a name (it is the sync key)")
@@ -1190,8 +1491,17 @@ func _validate_weapon(a_spec: Dictionary, a_weapon: Dictionary, a_seen: Dictiona
 			_err(a_spec, "weapon '%s' references unknown projectile '%s'" % [wname, pid])
 	elif not a_weapon.has("melee_damage"):
 		_err(a_spec, "weapon '%s' needs either projectile: or melee_damage:" % wname)
-	if a_weapon.has("melee_damage_type") and not Damage.Type.has(str(a_weapon["melee_damage_type"])):
-		_err(a_spec, "weapon '%s' melee_damage_type '%s' is not a Damage.Type" % [wname, a_weapon["melee_damage_type"]])
+	if (
+		a_weapon.has("melee_damage_type")
+		and not Damage.Type.has(str(a_weapon["melee_damage_type"]))
+	):
+		_err(
+			a_spec,
+			(
+				"weapon '%s' melee_damage_type '%s' is not a Damage.Type"
+				% [wname, a_weapon["melee_damage_type"]]
+			)
+		)
 	if a_weapon.has("hits"):
 		for h in a_weapon["hits"]:
 			if str(h) not in ["ground", "air"]:
@@ -1203,10 +1513,17 @@ func _validate_weapon(a_spec: Dictionary, a_weapon: Dictionary, a_seen: Dictiona
 	if a_weapon.has("turret_turn_rate"):
 		if not bool(a_weapon.get("turret", false)):
 			_err(a_spec, "weapon '%s' has turret_turn_rate but is not `turret: true`" % wname)
-		elif not (a_weapon["turret_turn_rate"] is float or a_weapon["turret_turn_rate"] is int) \
-				or float(a_weapon["turret_turn_rate"]) <= 0.0:
-			_err(a_spec, "weapon '%s' turret_turn_rate must be a positive number of degrees "
-				% wname + "per second, got '%s'" % a_weapon["turret_turn_rate"])
+		elif (
+			not (a_weapon["turret_turn_rate"] is float or a_weapon["turret_turn_rate"] is int)
+			or float(a_weapon["turret_turn_rate"]) <= 0.0
+		):
+			_err(
+				a_spec,
+				(
+					"weapon '%s' turret_turn_rate must be a positive number of degrees " % wname
+					+ "per second, got '%s'" % a_weapon["turret_turn_rate"]
+				)
+			)
 
 
 ## A weapon's `reach:` resolved to {layer: radius}. It names shape-library ids — one id for
@@ -1228,8 +1545,16 @@ func _resolve_reach(a_spec: Dictionary, a_wname: String, a_reach: Variant) -> Di
 	for layer: String in by_layer:
 		var shape_id: Variant = by_layer[layer]
 		if not (shape_id is String) or not shapes.has(shape_id):
-			_err(a_spec, ("weapon '%s' reach must name a shape from the range library "
-				+ "(one of %s), got '%s'") % [a_wname, _sorted_keys(shapes), shape_id])
+			_err(
+				a_spec,
+				(
+					(
+						"weapon '%s' reach must name a shape from the range library "
+						+ "(one of %s), got '%s'"
+					)
+					% [a_wname, _sorted_keys(shapes), shape_id]
+				)
+			)
 			continue
 		radii[layer] = float(shapes[shape_id].get("radius", -1.0))
 	return radii
@@ -1243,6 +1568,7 @@ static func _sorted_keys(a_dict: Dictionary) -> Array:
 
 ## Every key a shape-library doc may carry. `height` is a cylinder's only, and optional.
 const SHAPE_KEYS: Array = ["kind", "title", "radius", "height"]
+
 
 ## A shape-library entry is a radius, plus a height for a cylinder that wants one. An
 ## unstated height is SpecSceneSync.SHAPE_HEIGHT — far taller than the world, so a slope or
@@ -1272,8 +1598,13 @@ func _resolve_shape_key(a_spec: Dictionary, a_key: String) -> void:
 	if value == null or value is bool:
 		return
 	if not (value is String) or not shapes.has(value):
-		_err(a_spec, "%s must name a shape from the library (one of %s), got '%s'"
-			% [SpecSchema.doc_key(a_key), _sorted_keys(shapes), value])
+		_err(
+			a_spec,
+			(
+				"%s must name a shape from the library (one of %s), got '%s'"
+				% [SpecSchema.doc_key(a_key), _sorted_keys(shapes), value]
+			)
+		)
 		a_spec.erase(a_key)
 		return
 	if not a_spec.has("_shape_ids"):
@@ -1302,8 +1633,13 @@ func _validate_projectile(a_spec: Dictionary) -> void:
 	if a_spec.has("blast") and a_spec.get("hitscan", false) == true:
 		_err(a_spec, "blast: and hitscan: true are incompatible — a hitscan shot hits one target")
 	if a_spec.get("bio_ground_aim", false) == true and a_spec.get("hitscan", false) == true:
-		_err(a_spec, "bio_ground_aim: and hitscan: true are incompatible — a hitscan shot lands "
-			+ "on its target whatever it hits")
+		_err(
+			a_spec,
+			(
+				"bio_ground_aim: and hitscan: true are incompatible — a hitscan shot lands "
+				+ "on its target whatever it hits"
+			)
+		)
 	if a_spec.has("status_effects"):
 		for ref in a_spec["status_effects"]:
 			if not status_effects.has(str(ref)):
@@ -1321,8 +1657,13 @@ func _validate_faction(a_spec: Dictionary) -> void:
 		if not pieces.has(rid):
 			_err(a_spec, "starts_with references unknown piece '%s'" % rid)
 		elif SpecSchema.is_fixture(pieces[rid]):
-			_err(a_spec, "starts_with names the structure '%s' — a faction starts with units "
-				% rid + "only; its command centre is dropped")
+			_err(
+				a_spec,
+				(
+					"starts_with names the structure '%s' — a faction starts with units " % rid
+					+ "only; its command centre is dropped"
+				)
+			)
 	# `sanctions:` is the faction's DOMINION SHOP: the abilities it sells through the
 	# sanction grid. An ability doc with no `levels:` has no cells to draw, so naming one
 	# here is an authoring mistake rather than an empty column.
@@ -1335,9 +1676,28 @@ func _validate_faction(a_spec: Dictionary) -> void:
 				if not _valid_id(oid):
 					_err(a_spec, "sanction id '%s' must be snake_case" % oid)
 				elif not abilities.has(oid):
-					_err(a_spec, "sanctions references unknown ability doc '%s' (expected a kind: AbilityDefinition file of that name)" % oid)
+					_err(
+						a_spec,
+						(
+							(
+								"sanctions references unknown ability doc '%s' (expected "
+								+ "a kind: AbilityDefinition file of that name)"
+							)
+							% oid
+						)
+					)
 				elif not abilities[oid].has("levels"):
-					_err(a_spec, "sanctions names '%s', which authors no levels: — an ability with no dominion unlock route has no sanction grid cells to draw" % oid)
+					_err(
+						a_spec,
+						(
+							(
+								"sanctions names '%s', which authors no levels: — an "
+								+ "ability with no dominion unlock route has no sanction "
+								+ "grid cells to draw"
+							)
+							% oid
+						)
+					)
 
 
 ## An ABILITY: a thing a piece can do. What it IS lives at the doc's top level; how a
@@ -1372,9 +1732,15 @@ func _validate_ability(a_spec: Dictionary) -> void:
 	# tool does — one `ui:` vocabulary across every kind of doc that reaches the grid.
 	if a_spec.has("ui") and a_spec["ui"] is Dictionary:
 		_validate_ui(a_spec, a_spec["ui"])
-	if a_spec.has("ui") and bool(a_spec.get("hud_button", false)) \
-			and not (a_spec["ui"] as Dictionary).has("grid"):
-		_err(a_spec, "an ordnance (`hud_button: true`) needs `ui.grid` — it is drawn on the ORDNANCE card")
+	if (
+		a_spec.has("ui")
+		and bool(a_spec.get("hud_button", false))
+		and not (a_spec["ui"] as Dictionary).has("grid")
+	):
+		_err(
+			a_spec,
+			"an ordnance (`hud_button: true`) needs `ui.grid` — it is drawn on the ORDNANCE card"
+		)
 	_check_piece_placeholders(a_spec, str(a_spec.get("description", "")), "flavor.description")
 	_check_piece_placeholders(a_spec, str(a_spec.get("verbose", "")), "flavor.verbose")
 	if a_spec.has("column") or a_spec.has("levels"):
@@ -1383,8 +1749,9 @@ func _validate_ability(a_spec: Dictionary) -> void:
 
 ## Every key a `kind: Upgrade` doc may carry, as the internal (normalized) names. Whitelisted
 ## for the reason `weapons:` entries are: an unknown key would read as configuring something.
-const UPGRADE_KEYS: Array = ["kind", "title", "description", "verbose", "cost", "build_time",
-	"requires", "modifies", "ui"]
+const UPGRADE_KEYS: Array = [
+	"kind", "title", "description", "verbose", "cost", "build_time", "requires", "modifies", "ui"
+]
 ## Every key a `modifies:` entry may carry. `range` is the only value an upgrade can change
 ## today; a new one is added here together with the reader that honours it.
 const MODIFIER_KEYS: Array = ["piece", "ability", "range"]
@@ -1399,8 +1766,13 @@ func _validate_upgrade(a_spec: Dictionary) -> void:
 		# `id` and the `_`-prefixed keys are the registry's own bookkeeping, never authored.
 		if k == "id" or k.begins_with("_") or UPGRADE_KEYS.has(k):
 			continue
-		_err(a_spec, "an upgrade may not carry `%s:` (expected one of %s)"
-			% [SpecSchema.doc_key(k), UPGRADE_KEYS])
+		_err(
+			a_spec,
+			(
+				"an upgrade may not carry `%s:` (expected one of %s)"
+				% [SpecSchema.doc_key(k), UPGRADE_KEYS]
+			)
+		)
 	if not (a_spec.get("cost") is Dictionary):
 		_err(a_spec, "an upgrade needs build.cost: — a mapping of energy/dominion")
 	if not _is_number(a_spec.get("build_time")) or float(a_spec.get("build_time", 0)) <= 0.0:
@@ -1412,7 +1784,10 @@ func _validate_upgrade(a_spec: Dictionary) -> void:
 		elif not SpecSchema.is_fixture(pieces[rid]):
 			_err(a_spec, "build.requires must name structures; '%s' has no footprint:" % rid)
 	if not (a_spec.get("modifies") is Array) or (a_spec["modifies"] as Array).is_empty():
-		_err(a_spec, "an upgrade needs a modifies: list — an upgrade that changes nothing buys nothing")
+		_err(
+			a_spec,
+			"an upgrade needs a modifies: list — an upgrade that changes nothing buys nothing"
+		)
 	else:
 		for entry: Variant in a_spec["modifies"]:
 			_validate_modifier(a_spec, entry)
@@ -1426,8 +1801,12 @@ func _validate_upgrade(a_spec: Dictionary) -> void:
 			researched_at = true
 			break
 	if not researched_at:
-		warnings.append("%s [%s]: no structure researches it — its button can never be drawn"
-			% [a_spec["_doc_path"], a_spec["id"]])
+		warnings.append(
+			(
+				"%s [%s]: no structure researches it — its button can never be drawn"
+				% [a_spec["_doc_path"], a_spec["id"]]
+			)
+		)
 
 
 ## One `modifies:` entry: {piece, ability, range}. The piece must exist and be granted the
@@ -1440,8 +1819,13 @@ func _validate_modifier(a_spec: Dictionary, a_entry: Variant) -> void:
 	var entry: Dictionary = a_entry
 	for key: Variant in entry:
 		if not MODIFIER_KEYS.has(str(key)):
-			_err(a_spec, "modifies: entry has an unknown key '%s' (expected one of %s)"
-				% [key, MODIFIER_KEYS])
+			_err(
+				a_spec,
+				(
+					"modifies: entry has an unknown key '%s' (expected one of %s)"
+					% [key, MODIFIER_KEYS]
+				)
+			)
 	var piece_id: String = str(entry.get("piece", ""))
 	var ability_id: String = str(entry.get("ability", ""))
 	if not pieces.has(piece_id):
@@ -1451,11 +1835,18 @@ func _validate_modifier(a_spec: Dictionary, a_entry: Variant) -> void:
 		_err(a_spec, "modifies: names unknown ability '%s'" % ability_id)
 		return
 	if not _piece_grants(pieces[piece_id], ability_id):
-		_err(a_spec, "modifies: '%s' is not granted '%s' (its abilities: pools name no such grant)"
-			% [piece_id, ability_id])
+		_err(
+			a_spec,
+			(
+				"modifies: '%s' is not granted '%s' (its abilities: pools name no such grant)"
+				% [piece_id, ability_id]
+			)
+		)
 	if not entry.has("range"):
-		_err(a_spec, "modifies: entry for %s.%s changes nothing — give it a range:"
-			% [piece_id, ability_id])
+		_err(
+			a_spec,
+			"modifies: entry for %s.%s changes nothing — give it a range:" % [piece_id, ability_id]
+		)
 		return
 	var radius: float = _library_radius(a_spec, "modifies.range", entry["range"])
 	if radius > 0.0:
@@ -1481,7 +1872,13 @@ func _validate_researches(a_spec: Dictionary) -> void:
 	for ref: Variant in a_spec["researches"]:
 		var rid: String = str(ref)
 		if not upgrades.has(rid):
-			_err(a_spec, "researches references unknown upgrade '%s' (expected a kind: Upgrade doc of that name)" % rid)
+			_err(
+				a_spec,
+				(
+					"researches references unknown upgrade '%s' (expected a kind: Upgrade doc of that name)"
+					% rid
+				)
+			)
 
 
 ## `payloads:` — the CHOICES a level offers, when the sanction is one the player picks a
@@ -1539,7 +1936,6 @@ func _validate_ability_range(a_spec: Dictionary) -> void:
 ## a spelling mistake.
 const CAST_BY_VALUES: Array = ["SINGLE", "ALL"]
 
-
 ## `reveals:` — the REACH this ability paints when the player hovers its card.
 ##
 ## Names an `EntityRanges.Kind`, which is a shape the piece already carries: a passive with
@@ -1551,13 +1947,20 @@ const CAST_BY_VALUES: Array = ["SINGLE", "ALL"]
 ## the HUD. A name added there and not here fails this check, which is the right failure —
 ## the schema is a promise about what a doc may say.
 const REVEALS_VALUES: Array = [
-	"VISION", "DETECTION", "AGGRO", "ATTACK", "LIBERATION", "DOMINION", "EFFECT",
+	"VISION",
+	"DETECTION",
+	"AGGRO",
+	"ATTACK",
+	"LIBERATION",
+	"DOMINION",
+	"EFFECT",
 ]
 
 ## `valence:` — is this GOOD or BAD for the piece carrying it, which is what accents its
 ## info card. NEUTRAL when unsaid, and that is a real answer rather than a missing one: a
 ## condition can genuinely be neither.
 const VALENCE_VALUES: Array = ["NEUTRAL", "BOON", "BANE"]
+
 
 func _validate_ability_valence(a_spec: Dictionary) -> void:
 	if not a_spec.has("valence"):
@@ -1573,6 +1976,7 @@ func _validate_ability_reveals(a_spec: Dictionary) -> void:
 	var value: String = str(a_spec["reveals"])
 	if not REVEALS_VALUES.has(value):
 		_err(a_spec, "reveals must be one of %s, got '%s'" % [REVEALS_VALUES, value])
+
 
 func _validate_ability_cast_by(a_spec: Dictionary) -> void:
 	if not a_spec.has("cast_by"):
@@ -1599,7 +2003,10 @@ func _validate_ability_command(a_spec: Dictionary) -> void:
 	elif a_spec.has("levels"):
 		# The two are different arming paths, and an ability cannot take both: a cell is
 		# armed as the sanction it unlocked, at the level the commander owns.
-		_err(a_spec, "command: and levels: are alternatives — a dominion-unlocked ability is armed as its own cell")
+		_err(
+			a_spec,
+			"command: and levels: are alternatives — a dominion-unlocked ability is armed as its own cell"
+		)
 
 
 ## `emits:` — the piece this ability throws on each use, named the way a weapon names
@@ -1634,9 +2041,18 @@ func _validate_ability_emission(a_spec: Dictionary) -> void:
 ## express — see CLAUDE.md §The sanction grid.
 func _validate_sanction_route(a_spec: Dictionary) -> void:
 	_check_grid_index(a_spec, "column", SanctionGrid.NUM_COLUMNS)
-	if not a_spec.has("levels") or not (a_spec["levels"] is Array) \
-			or (a_spec["levels"] as Array).is_empty():
-		_err(a_spec, "column: is the dominion unlock route, so it needs a non-empty levels: list (one entry per grid cell)")
+	if (
+		not a_spec.has("levels")
+		or not (a_spec["levels"] is Array)
+		or (a_spec["levels"] as Array).is_empty()
+	):
+		_err(
+			a_spec,
+			(
+				"column: is the dominion unlock route, so it needs a non-empty levels: "
+				+ "list (one entry per grid cell)"
+			)
+		)
 		return
 	var previous_tier: int = -1
 	for i in (a_spec["levels"] as Array).size():
@@ -1646,7 +2062,10 @@ func _validate_sanction_route(a_spec: Dictionary) -> void:
 			continue
 		var where: String = "levels[%d]" % i
 		if not level.has("title") or str(level["title"]).strip_edges() == "":
-			_err(a_spec, "%s needs a title: — it is the cell's name in the scene and on its button" % where)
+			_err(
+				a_spec,
+				"%s needs a title: — it is the cell's name in the scene and on its button" % where
+			)
 		_check_grid_index(a_spec, "tier", SanctionGrid.NUM_TIERS, level, where)
 		_validate_payloads(a_spec, level, where)
 		# A level continues the one above it, so it must sit strictly lower in the grid.
@@ -1654,7 +2073,16 @@ func _validate_sanction_route(a_spec: Dictionary) -> void:
 		# SanctionGrid reports as a fault no commander could ever walk past.
 		var tier: int = int(level.get("tier", -1))
 		if i > 0 and tier <= previous_tier and tier >= 0:
-			_err(a_spec, "%s is at tier %d, which is not below the level before it (tier %d) — a level continues the one above it" % [where, tier, previous_tier])
+			_err(
+				a_spec,
+				(
+					(
+						"%s is at tier %d, which is not below the level before it (tier "
+						+ "%d) — a level continues the one above it"
+					)
+					% [where, tier, previous_tier]
+				)
+			)
 		previous_tier = tier
 		if level.has("cost") and not (level["cost"] is int or level["cost"] is float):
 			_err(a_spec, "%s cost must be a number (dominion)" % where)
@@ -1664,7 +2092,13 @@ func _validate_sanction_route(a_spec: Dictionary) -> void:
 			# Passivity belongs to the ABILITY, not to one of its tiers: Scavenge 2 is not
 			# more passive than Scavenge 1. Refused rather than read, so a doc cannot end up
 			# saying it twice and disagreeing with itself.
-			_err(a_spec, "%s: `passive:` is a property of the ability — move it to the doc's top level" % where)
+			_err(
+				a_spec,
+				(
+					"%s: `passive:` is a property of the ability — move it to the doc's top level"
+					% where
+				)
+			)
 		for flag: String in ["needs_vision", "needs_target"]:
 			if level.has(flag) and not (level[flag] is bool):
 				_err(a_spec, "%s %s must be true or false" % [where, flag])
@@ -1673,15 +2107,27 @@ func _validate_sanction_route(a_spec: Dictionary) -> void:
 			if not (bounty is int or bounty is float) or float(bounty) < 0.0 or float(bounty) > 1.0:
 				_err(a_spec, "%s kill_bounty must be a fraction between 0 and 1" % where)
 			elif not bool(a_spec.get("passive", false)):
-				_err(a_spec, "%s names a kill_bounty but the ability is not passive: — a standing benefit needs a cell that is never deployed" % where)
-		_check_piece_placeholders(a_spec, str(level.get("description", "")), "%s description" % where)
+				_err(
+					a_spec,
+					(
+						(
+							"%s names a kill_bounty but the ability is not passive: — a "
+							+ "standing benefit needs a cell that is never deployed"
+						)
+						% where
+					)
+				)
+		_check_piece_placeholders(
+			a_spec, str(level.get("description", "")), "%s description" % where
+		)
 		_check_piece_placeholders(a_spec, str(level.get("verbose", "")), "%s verbose" % where)
 
 
 ## A 0-based grid index that must fall inside the sanction grid's fixed shape. Reads from
 ## `a_level` when given (a level's `tier`), otherwise from the spec itself (`column`).
-func _check_grid_index(a_spec: Dictionary, a_key: String, a_limit: int,
-		a_level: Variant = null, a_where: String = "") -> void:
+func _check_grid_index(
+	a_spec: Dictionary, a_key: String, a_limit: int, a_level: Variant = null, a_where: String = ""
+) -> void:
 	var source: Dictionary = a_level if a_level is Dictionary else a_spec
 	var label: String = a_key if a_where == "" else "%s %s" % [a_where, a_key]
 	if not source.has(a_key):
@@ -1717,7 +2163,8 @@ func _check_piece_placeholders(a_spec: Dictionary, a_text: String, a_where: Stri
 ## plain cooldown is still `{cooldown, grants}`.
 ##
 ## Validated against the ABILITY registry, so a typo names an ability nothing defines and
-## is caught here rather than becoming a button that never appears. Every kind: AbilityDefinition doc
+## is caught here rather than becoming a button that never appears. Every kind: AbilityDefinition
+## doc
 ## is eligible, however it is unlocked — a piece may be granted an ability it pays dominion
 ## for, one it gets free, and one it buys at a structure, and this key cannot tell them
 ## apart because the pool it describes does not care.
@@ -1738,7 +2185,10 @@ func _validate_ability_groups(a_spec: Dictionary) -> void:
 			# Superseded by the max_charges / initial_charges pair. Rejected rather than
 			# aliased: silently reading it as one of the two would make a doc that still
 			# says `charges:` mean something the author never wrote.
-			_err(a_spec, "%s: `charges` is now `max_charges` (with optional `initial_charges`)" % where)
+			_err(
+				a_spec,
+				"%s: `charges` is now `max_charges` (with optional `initial_charges`)" % where
+			)
 		if group.has("max_charges"):
 			if not (group["max_charges"] is int) or int(group["max_charges"]) < 1:
 				# There is no such thing as a zero-capacity ability: an ability that is
@@ -1751,15 +2201,25 @@ func _validate_ability_groups(a_spec: Dictionary) -> void:
 			if not (group["initial_charges"] is int) or int(group["initial_charges"]) < 0:
 				_err(a_spec, "%s initial_charges must be a whole number of 0 or more" % where)
 			elif int(group["initial_charges"]) > cap:
-				_err(a_spec, "%s initial_charges (%d) exceeds max_charges (%d)" % [
-					where, int(group["initial_charges"]), cap])
+				_err(
+					a_spec,
+					(
+						"%s initial_charges (%d) exceeds max_charges (%d)"
+						% [where, int(group["initial_charges"]), cap]
+					)
+				)
 		if not group.has("cooldown"):
 			_err(a_spec, "%s needs a cooldown: (seconds)" % where)
-		elif not (group["cooldown"] is int or group["cooldown"] is float) \
-				or float(group["cooldown"]) <= 0.0:
+		elif (
+			not (group["cooldown"] is int or group["cooldown"] is float)
+			or float(group["cooldown"]) <= 0.0
+		):
 			_err(a_spec, "%s cooldown must be a positive number of seconds" % where)
-		if not group.has("grants") or not (group["grants"] is Array) \
-				or (group["grants"] as Array).is_empty():
+		if (
+			not group.has("grants")
+			or not (group["grants"] is Array)
+			or (group["grants"] as Array).is_empty()
+		):
 			_err(a_spec, "%s needs a non-empty grants: list of ability ids" % where)
 			continue
 		for ability in group["grants"]:
@@ -1791,18 +2251,32 @@ func _check_radius(a_spec: Dictionary, a_key: String, a_zero_disables: bool) -> 
 	if (r == null or (r is bool and not bool(r))) and a_zero_disables:
 		a_spec[a_key] = 0
 	elif not (r is int or r is float):
-		_err(a_spec, "%s must be a number (cylinder radius in world units)%s" % [
-			SpecSchema.doc_key(a_key),
-			", or false / left empty to remove the volume" if a_zero_disables else ""])
+		_err(
+			a_spec,
+			(
+				"%s must be a number (cylinder radius in world units)%s"
+				% [
+					SpecSchema.doc_key(a_key),
+					", or false / left empty to remove the volume" if a_zero_disables else ""
+				]
+			)
+		)
 	elif float(r) < 0.0 or (float(r) == 0.0 and not a_zero_disables):
-		_err(a_spec, "%s must be a %s radius in world units" % [
-			SpecSchema.doc_key(a_key), "non-negative" if a_zero_disables else "positive"])
+		_err(
+			a_spec,
+			(
+				"%s must be a %s radius in world units"
+				% [SpecSchema.doc_key(a_key), "non-negative" if a_zero_disables else "positive"]
+			)
+		)
 
 
 func _check_enum(a_spec: Dictionary, a_key: String, a_enum: Dictionary) -> void:
 	if a_spec.has(a_key) and not a_enum.has(str(a_spec[a_key])):
-		_err(a_spec, "%s '%s' is not one of %s" % [
-			SpecSchema.doc_key(a_key), a_spec[a_key], a_enum.keys()])
+		_err(
+			a_spec,
+			"%s '%s' is not one of %s" % [SpecSchema.doc_key(a_key), a_spec[a_key], a_enum.keys()]
+		)
 
 
 func _err(a_spec: Dictionary, a_message: String) -> void:
@@ -1826,7 +2300,7 @@ func _raw_frontmatter_has_kind(a_path: String) -> bool:
 			if stripped == "---":
 				in_fence = true
 				continue
-			break   # no opening fence -> no frontmatter
+			break  # no opening fence -> no frontmatter
 		if stripped == "---" or stripped == "...":
 			break
 		if stripped.begins_with("kind:"):

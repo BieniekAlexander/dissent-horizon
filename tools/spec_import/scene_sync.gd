@@ -84,13 +84,26 @@ const SCRIPT_EMISSION_PHASE: String = "res://scripts/entities/tools/emission_pha
 const SCRIPT_SPAWN_EMISSION: String = "res://scripts/scenario/events/event_spawn_emission.gd"
 ## Emission-root properties the phase list replaced. Stripped from every emission scene the
 ## pass touches, so each fact is stated once — on its phase.
-const RETIRED_EMISSION_PROPERTIES: Array[String] = ["speed", "trajectory",
-	"pre_impact_lifespan", "post_impact_lifespan", "tick_rate"]
+const RETIRED_EMISSION_PROPERTIES: Array[String] = [
+	"speed", "trajectory", "pre_impact_lifespan", "post_impact_lifespan", "tick_rate"
+]
 ## The EmissionPhase properties the doc governs, all of them, in the order they are written.
-const PHASE_PROPERTIES: Array[String] = ["speed", "gravity_mps2", "launch_pitch_degrees",
-	"turn_rate_degrees_per_second", "launch_speed_ratio", "acceleration_mps2", "min_speed",
-	"ends_on_arrival", "lifespan_seconds", "impact_mask", "applies_payload",
-	"payload_period_seconds", "event_period_seconds", "visuals"]
+const PHASE_PROPERTIES: Array[String] = [
+	"speed",
+	"gravity_mps2",
+	"launch_pitch_degrees",
+	"turn_rate_degrees_per_second",
+	"launch_speed_ratio",
+	"acceleration_mps2",
+	"min_speed",
+	"ends_on_arrival",
+	"lifespan_seconds",
+	"impact_mask",
+	"applies_payload",
+	"payload_period_seconds",
+	"event_period_seconds",
+	"visuals"
+]
 ## The child an `emits:` phase runs on its cadence.
 const PHASE_EMIT_NODE: String = "Emit"
 
@@ -117,8 +130,12 @@ const REMOVABLE_SHAPE_KEYS: Array[String] = ["vision"]
 ## genuinely varies across the roster, which is the whole test for belonging in the schema,
 ## and `an_mechStrong_transport` carried an out-of-range 1.5 for as long as nothing looked.
 const MOVEMENT_FLOATS: Array[String] = [
-	"speed", "turn_rate", "max_acceleration", "max_deceleration",
-	"min_turn_speed_ratio", "reverse_speed_ratio",
+	"speed",
+	"turn_rate",
+	"max_acceleration",
+	"max_deceleration",
+	"min_turn_speed_ratio",
+	"reverse_speed_ratio",
 ]
 
 ## `aerial:` keys that are a plain float, written straight onto the Aerial component.
@@ -128,7 +145,11 @@ const AERIAL_FLOATS: Array[String] = ["orbit_radius", "orbit_speed"]
 ## still stores them on its Locomotion node, where nothing reads them any more; the sync
 ## strips them so the only copy is the one the doc writes.
 const RETIRED_LOCOMOTION_PROPERTIES: Array[String] = [
-	"mode", "docks", "orbit_radius", "orbit_speed", "dive_distance",
+	"mode",
+	"docks",
+	"orbit_radius",
+	"orbit_speed",
+	"dive_distance",
 	"dive_turn_rate_multiplier",
 ]
 
@@ -166,8 +187,9 @@ var report: Dictionary = {"changed": [], "created": [], "warnings": [], "errors"
 var _pending_scene_writebacks: Dictionary = {}
 
 
-static func sync_all(registry: RefCounted, mode: String,
-		rebake_visuals: bool = false) -> Dictionary:
+static func sync_all(
+	registry: RefCounted, mode: String, rebake_visuals: bool = false
+) -> Dictionary:
 	var sync: RefCounted = new()
 	sync.registry = registry
 	sync.mode = mode
@@ -246,22 +268,41 @@ func _section_for(a_ctx: Ctx, a_node_path: String) -> Dictionary:
 	var node: Node = a_ctx.inst.get_node_or_null(a_node_path) if a_node_path != "" else a_ctx.inst
 	if node == null:
 		return {}
-	var parent_attr: String = "." if not a_node_path.contains("/") \
-		else a_node_path.substr(0, a_node_path.rfind("/"))
+	var parent_attr: String = (
+		"." if not a_node_path.contains("/") else a_node_path.substr(0, a_node_path.rfind("/"))
+	)
 	a_ctx.dirty = true
-	return a_ctx.doc.add_node([
-		["name", node.name], ["parent", parent_attr], ["index", str(node.get_index())],
-	], {})
+	return (
+		a_ctx
+		. doc
+		. add_node(
+			[
+				["name", node.name],
+				["parent", parent_attr],
+				["index", str(node.get_index())],
+			],
+			{}
+		)
+	)
 
 
 ## Sets a property when the live value differs from the target. `a_raw` is the
 ## .tscn literal to write. Nodes created this run always take the write.
-func _set_prop(a_ctx: Ctx, a_node_path: String, a_prop: String, a_current: Variant, a_target: Variant, a_raw: String) -> void:
+func _set_prop(
+	a_ctx: Ctx,
+	a_node_path: String,
+	a_prop: String,
+	a_current: Variant,
+	a_target: Variant,
+	a_raw: String
+) -> void:
 	if not a_ctx.created_nodes.has(a_node_path) and _values_equal(a_current, a_target):
 		return
 	var section: Dictionary = _section_for(a_ctx, a_node_path)
 	if section.is_empty():
-		report["warnings"].append("%s: node %s not found; cannot set %s" % [a_ctx.path, a_node_path, a_prop])
+		report["warnings"].append(
+			"%s: node %s not found; cannot set %s" % [a_ctx.path, a_node_path, a_prop]
+		)
 		return
 	if a_ctx.doc.get_prop(section, a_prop) == a_raw:
 		return
@@ -283,7 +324,9 @@ func _sync_editor_description(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if not a_spec.has("editor_description"):
 		return
 	var target: String = str(a_spec["editor_description"])
-	var current: String = String(a_ctx.inst.editor_description) if "editor_description" in a_ctx.inst else ""
+	var current: String = (
+		String(a_ctx.inst.editor_description) if "editor_description" in a_ctx.inst else ""
+	)
 	_set_prop(a_ctx, "", "editor_description", current, target, TscnDoc.fmt_string(target))
 
 
@@ -296,10 +339,19 @@ func _sync_editor_description(a_ctx: Ctx, a_spec: Dictionary) -> void:
 func _sync_flavor_text(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if a_spec.has("description") and "description" in a_ctx.inst:
 		var target: String = str(a_spec["description"])
-		_set_prop(a_ctx, "", "description", String(a_ctx.inst.description), target, TscnDoc.fmt_string(target))
+		_set_prop(
+			a_ctx,
+			"",
+			"description",
+			String(a_ctx.inst.description),
+			target,
+			TscnDoc.fmt_string(target)
+		)
 	if a_spec.has("verbose") and "verbose" in a_ctx.inst:
 		var target: String = str(a_spec["verbose"])
-		_set_prop(a_ctx, "", "verbose", String(a_ctx.inst.verbose), target, TscnDoc.fmt_string(target))
+		_set_prop(
+			a_ctx, "", "verbose", String(a_ctx.inst.verbose), target, TscnDoc.fmt_string(target)
+		)
 
 
 ## uid for a res:// path: sibling .uid file for scripts, header uid for scenes.
@@ -312,7 +364,7 @@ static func _uid_for(path: String) -> String:
 			var header: String = f.get_line()
 			f.close()
 			var regex: RegEx = RegEx.new()
-			regex.compile("uid=\"([^\"]+)\"")
+			regex.compile('uid="([^"]+)"')
 			var m: RegExMatch = regex.search(header)
 			if m != null:
 				return m.get_string(1)
@@ -335,7 +387,7 @@ func _ensure_component(a_ctx: Ctx, a_name: String, a_type: String, a_script_path
 	var script_id: String = _ensure_ext(a_ctx, "Script", a_script_path)
 	a_ctx.doc.add_node(
 		[["name", a_name], ["type", a_type], ["parent", "."]],
-		{"script": "ExtResource(\"%s\")" % script_id}
+		{"script": 'ExtResource("%s")' % script_id}
 	)
 	a_ctx.created_nodes[a_name] = true
 	a_ctx.dirty = true
@@ -352,10 +404,13 @@ func _ensure_component(a_ctx: Ctx, a_name: String, a_type: String, a_script_path
 ## nodes are likewise never edited in place — the node gets its own.
 func _set_shape_radius(a_ctx: Ctx, a_node_path: String, a_radius: float) -> void:
 	var node: Node = a_ctx.inst.get_node_or_null(a_node_path)
-	if node is CollisionShape3D and node.shape is CylinderShape3D \
-			and is_equal_approx(node.shape.radius, a_radius) \
-			and is_equal_approx(node.shape.height, SHAPE_HEIGHT) \
-			and not a_ctx.created_nodes.has(a_node_path):
+	if (
+		node is CollisionShape3D
+		and node.shape is CylinderShape3D
+		and is_equal_approx(node.shape.radius, a_radius)
+		and is_equal_approx(node.shape.height, SHAPE_HEIGHT)
+		and not a_ctx.created_nodes.has(a_node_path)
+	):
 		return
 	var section: Dictionary = _section_for(a_ctx, a_node_path)
 	if section.is_empty():
@@ -363,7 +418,7 @@ func _set_shape_radius(a_ctx: Ctx, a_node_path: String, a_radius: float) -> void
 		return
 	var raw: String = a_ctx.doc.get_prop(section, "shape")
 	var regex: RegEx = RegEx.new()
-	regex.compile("^SubResource\\(\"([^\"]+)\"\\)$")
+	regex.compile('^SubResource\\("([^"]+)"\\)$')
 	var m: RegExMatch = regex.search(raw)
 	if m != null and _sub_resource_ref_count(a_ctx, m.get_string(1)) == 1:
 		for sub in a_ctx.doc.sections_of("sub_resource"):
@@ -378,9 +433,10 @@ func _set_shape_radius(a_ctx: Ctx, a_node_path: String, a_radius: float) -> void
 			# to a fresh cylinder, leaving no orphan sub_resource behind.
 			a_ctx.doc.remove_sub_resource(m.get_string(1))
 			break
-	var sid: String = a_ctx.doc.add_sub_resource("CylinderShape3D",
-		a_node_path.get_file().to_snake_case(), _cylinder_props(a_radius))
-	a_ctx.doc.set_prop(section, "shape", "SubResource(\"%s\")" % sid)
+	var sid: String = a_ctx.doc.add_sub_resource(
+		"CylinderShape3D", a_node_path.get_file().to_snake_case(), _cylinder_props(a_radius)
+	)
+	a_ctx.doc.set_prop(section, "shape", 'SubResource("%s")' % sid)
 	a_ctx.dirty = true
 
 
@@ -390,7 +446,7 @@ static func _cylinder_props(radius: float) -> Dictionary:
 
 
 func _sub_resource_ref_count(a_ctx: Ctx, a_id: String) -> int:
-	var needle: String = "SubResource(\"%s\")" % a_id
+	var needle: String = 'SubResource("%s")' % a_id
 	var count: int = 0
 	for section in a_ctx.doc.sections:
 		for line in section["lines"]:
@@ -422,8 +478,14 @@ func _sync_piece(a_spec: Dictionary) -> void:
 
 	_rename_legacy_components(ctx)
 	_sync_composition(ctx, a_spec)
-	_set_prop(ctx, "", "id", String(ctx.inst.id), String(a_spec["id"]),
-		TscnDoc.fmt_string_name(a_spec["id"]))
+	_set_prop(
+		ctx,
+		"",
+		"id",
+		String(ctx.inst.id),
+		String(a_spec["id"]),
+		TscnDoc.fmt_string_name(a_spec["id"])
+	)
 	_sync_editor_description(ctx, a_spec)
 	_sync_flavor_text(ctx, a_spec)
 	_sync_groups(ctx, a_spec)
@@ -464,33 +526,42 @@ func _rename_legacy_components(a_ctx: Ctx) -> void:
 		for child: Dictionary in a_ctx.doc.sections_of("node"):
 			var parent: String = String(child["attrs"].get("parent", ""))
 			if parent == old_name or parent.begins_with(old_name + "/"):
-				a_ctx.doc.set_header_attr(child, "parent",
-					TscnDoc.fmt_string(new_name + parent.substr(old_name.length())))
+				a_ctx.doc.set_header_attr(
+					child, "parent", TscnDoc.fmt_string(new_name + parent.substr(old_name.length()))
+				)
 		a_ctx.inst.get_node(old_name).name = new_name
 		a_ctx.dirty = true
 
 
 func _sync_composition(a_ctx: Ctx, a_spec: Dictionary, a_entries: Variant = null) -> void:
-	var entries: Array[Dictionary] = a_entries if a_entries != null \
-		else SpecComposition.components(a_spec)
+	var entries: Array[Dictionary] = (
+		a_entries if a_entries != null else SpecComposition.components(a_spec)
+	)
 	for entry: Dictionary in entries:
 		var name: String = entry["name"]
 		if a_ctx.inst.get_node_or_null(name) != null or a_ctx.created_nodes.has(name):
 			continue
 		if entry.has("scene"):
 			var scene_id: String = _ensure_ext(
-				a_ctx, "PackedScene", SpecComposition.scene_path(entry))
-			a_ctx.doc.add_node([["name", name], ["parent", "."],
-				["instance", "ExtResource(\"%s\")" % scene_id]], {})
+				a_ctx, "PackedScene", SpecComposition.scene_path(entry)
+			)
+			a_ctx.doc.add_node(
+				[["name", name], ["parent", "."], ["instance", 'ExtResource("%s")' % scene_id]], {}
+			)
 			if SpecComposition.is_mobile(a_spec):
 				_write_instance_overrides(a_ctx, name, entry.get("mobile_props", {}))
 		else:
 			var props: Dictionary = (entry.get("props", {}) as Dictionary).duplicate()
 			if entry.has("script"):
-				props["script"] = "ExtResource(\"%s\")" % _ensure_ext(a_ctx, "Script",
-					SpecComposition.script_path(entry))
-			a_ctx.doc.add_node([["name", name], ["type", entry["type"]], ["parent", "."]], props,
-				str(entry.get("after", "")))
+				props["script"] = (
+					'ExtResource("%s")'
+					% _ensure_ext(a_ctx, "Script", SpecComposition.script_path(entry))
+				)
+			a_ctx.doc.add_node(
+				[["name", name], ["type", entry["type"]], ["parent", "."]],
+				props,
+				str(entry.get("after", ""))
+			)
 		a_ctx.created_nodes[name] = true
 		a_ctx.dirty = true
 
@@ -517,18 +588,19 @@ func _write_instance_overrides(a_ctx: Ctx, a_instance: String, a_overrides: Dict
 func _sync_groups(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	var root: Dictionary = a_ctx.doc.root_node()
 	var authored: Array[String] = []
-	var regex: RegEx = RegEx.create_from_string("\"([^\"]+)\"")
+	var regex: RegEx = RegEx.create_from_string('"([^"]+)"')
 	for found: RegExMatch in regex.search_all(str(root["attrs"].get("groups", ""))):
 		authored.append(found.get_string(1))
-	var kept: Array[String] = authored.filter(func(g: String) -> bool:
-		return not SpecSchema.DERIVED_GROUPS.has(g))
+	var kept: Array[String] = authored.filter(
+		func(g: String) -> bool: return not SpecSchema.DERIVED_GROUPS.has(g)
+	)
 	var wanted: Array[String] = SpecSchema.derived_groups(a_spec)
 	var groups: Array[String] = wanted + kept
 	if groups == authored:
 		return
 	var quoted: PackedStringArray = []
 	for group: String in groups:
-		quoted.append("\"%s\"" % group)
+		quoted.append('"%s"' % group)
 	a_ctx.doc.set_header_attr(root, "groups", "[%s]" % ", ".join(quoted))
 	a_ctx.dirty = true
 
@@ -539,8 +611,14 @@ func _sync_defense(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if defense == null:
 		return
 	if a_spec.has("hp"):
-		_set_prop(a_ctx, "Defense", "hp_max", defense.hp_max, float(a_spec["hp"]),
-			TscnDoc.fmt_float(float(a_spec["hp"])))
+		_set_prop(
+			a_ctx,
+			"Defense",
+			"hp_max",
+			defense.hp_max,
+			float(a_spec["hp"]),
+			TscnDoc.fmt_float(float(a_spec["hp"]))
+		)
 	if a_spec.has("armour"):
 		var armour: int = Defense.ArmourType[str(a_spec["armour"])]
 		_set_prop(a_ctx, "Defense", "armour_type", defense.armour_type, armour, str(armour))
@@ -566,8 +644,9 @@ func _sync_shapes(a_ctx: Ctx, a_spec: Dictionary) -> void:
 		if radius <= 0.0 and REMOVABLE_SHAPE_KEYS.has(key):
 			_remove_component(a_ctx, SHAPE_PATHS[key])
 		elif _library_id(a_spec, key) != "":
-			_set_shape_resource(a_ctx, SHAPE_PATHS[key],
-				SpecGenerators.shape_path(_library_id(a_spec, key)))
+			_set_shape_resource(
+				a_ctx, SHAPE_PATHS[key], SpecGenerators.shape_path(_library_id(a_spec, key))
+			)
 		else:
 			_set_shape_radius(a_ctx, SHAPE_PATHS[key], radius)
 	if a_spec.has("detection"):
@@ -590,7 +669,8 @@ func _sync_movement(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	var movement: Node = a_ctx.inst.get_node_or_null("Locomotion")
 	if not (movement is Movement):
 		report["warnings"].append(
-			"%s: has movement: but no navigated Locomotion (structures don't move)" % a_ctx.path)
+			"%s: has movement: but no navigated Locomotion (structures don't move)" % a_ctx.path
+		)
 		return
 	var m: Dictionary = a_spec["movement"]
 	for key: String in MOVEMENT_FLOATS:
@@ -643,8 +723,14 @@ func _sync_aerial(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	for key: String in AERIAL_FLOATS:
 		if a.has(key):
 			var value: float = float(a[key])
-			_set_prop(a_ctx, "Aerial", key, aerial.get(key) if aerial != null else INF, value,
-				TscnDoc.fmt_float(value))
+			_set_prop(
+				a_ctx,
+				"Aerial",
+				key,
+				aerial.get(key) if aerial != null else INF,
+				value,
+				TscnDoc.fmt_float(value)
+			)
 
 
 ## `docking:` — presence only. The component carries no authored values.
@@ -665,9 +751,14 @@ func _sync_footprint(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	_ensure_component(a_ctx, "Structure", "Node", SCRIPT_STRUCTURE)
 	var structure: Node = _live_node(a_ctx, "Structure")
 	var target: Vector2i = Vector2i(int(a_spec["footprint"][0]), int(a_spec["footprint"][1]))
-	_set_prop(a_ctx, "Structure", "dimensions",
-		structure.dimensions if structure != null else Vector2i.ZERO, target,
-		"Vector2i(%d, %d)" % [target.x, target.y])
+	_set_prop(
+		a_ctx,
+		"Structure",
+		"dimensions",
+		structure.dimensions if structure != null else Vector2i.ZERO,
+		target,
+		"Vector2i(%d, %d)" % [target.x, target.y]
+	)
 
 
 ## The keys that belong to the ROOT node rather than to any component.
@@ -694,21 +785,33 @@ func _sync_optional_components(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if _is_removed(a_spec, "trains"):
 		_remove_component(a_ctx, "Production")
 	elif a_spec.has("trains") or a_spec.has("researches"):
-		_sync_id_list_component(a_ctx, "Production", "Node", SCRIPT_PRODUCTION,
-			"producible_types", a_spec.get("trains", []) + a_spec.get("researches", []))
+		_sync_id_list_component(
+			a_ctx,
+			"Production",
+			"Node",
+			SCRIPT_PRODUCTION,
+			"producible_types",
+			a_spec.get("trains", []) + a_spec.get("researches", [])
+		)
 	if _is_removed(a_spec, "builds"):
 		_remove_component(a_ctx, "Builds")
 	elif a_spec.has("builds"):
-		_sync_id_list_component(a_ctx, "Builds", "Node", SCRIPT_BUILDS,
-			"buildable_types", a_spec["builds"])
+		_sync_id_list_component(
+			a_ctx, "Builds", "Node", SCRIPT_BUILDS, "buildable_types", a_spec["builds"]
+		)
 	if a_spec.has("repairs"):
 		_sync_flag_component(a_ctx, "Repairs", "Node", SCRIPT_REPAIRS, bool(a_spec["repairs"]))
 	if a_spec.has("stealth"):
 		_sync_flag_component(a_ctx, "Stealth", "Node", SCRIPT_STEALTH, bool(a_spec["stealth"]))
 	for key: String in IDENTITY_COMPONENTS:
 		if a_spec.has(key):
-			_sync_flag_component(a_ctx, IDENTITY_COMPONENTS[key][0], "Node",
-				IDENTITY_COMPONENTS[key][1], bool(a_spec[key]))
+			_sync_flag_component(
+				a_ctx,
+				IDENTITY_COMPONENTS[key][0],
+				"Node",
+				IDENTITY_COMPONENTS[key][1],
+				bool(a_spec[key])
+			)
 	if a_spec.has("beacon_range"):
 		_sync_beacon_range(a_ctx, a_spec["beacon_range"])
 	_sync_ability_groups(a_ctx, a_spec)
@@ -723,7 +826,9 @@ func _sync_optional_components(a_ctx: Ctx, a_spec: Dictionary) -> void:
 ## import modes never differ here — true creates the node, false removes it, and an
 ## OMITTED key never touches the scene, exactly like every other spec key. The removal
 ## itself is _remove_component's, below.
-func _sync_flag_component(a_ctx: Ctx, a_name: String, a_type: String, a_script: String, a_enabled: bool) -> void:
+func _sync_flag_component(
+	a_ctx: Ctx, a_name: String, a_type: String, a_script: String, a_enabled: bool
+) -> void:
 	if a_enabled:
 		_ensure_component(a_ctx, a_name, a_type, a_script)
 		return
@@ -749,8 +854,9 @@ func _remove_component(a_ctx: Ctx, a_name: String) -> void:
 	if a_ctx.inst.get_node_or_null(a_name) == null and not a_ctx.created_nodes.has(a_name):
 		return
 	if a_ctx.doc.find_node(a_name).is_empty():
-		report["warnings"].append("%s: %s comes from a base scene; cannot remove via text override"
-			% [a_ctx.path, a_name])
+		report["warnings"].append(
+			"%s: %s comes from a base scene; cannot remove via text override" % [a_ctx.path, a_name]
+		)
 		return
 	a_ctx.doc.remove_node(a_name)
 	a_ctx.created_nodes.erase(a_name)
@@ -768,9 +874,11 @@ func _remove_component(a_ctx: Ctx, a_name: String) -> void:
 ## Seconds are converted to TICKS here, as every other time in this schema is, so nothing
 ## downstream has to know which unit the doc used.
 func _sync_ability_groups(a_ctx: Ctx, a_spec: Dictionary) -> void:
-	var declared: bool = a_spec.has("ability_groups") \
-		and (a_spec["ability_groups"] is Array) \
+	var declared: bool = (
+		a_spec.has("ability_groups")
+		and (a_spec["ability_groups"] is Array)
 		and not (a_spec["ability_groups"] as Array).is_empty()
+	)
 	_sync_flag_component(a_ctx, "Abilities", "Node", SCRIPT_ABILITIES, declared)
 	if not declared:
 		return
@@ -780,12 +888,20 @@ func _sync_ability_groups(a_ctx: Ctx, a_spec: Dictionary) -> void:
 		for ability in group["grants"]:
 			grants.append(TscnDoc.fmt_string_name(str(ability)))
 		var max_charges: int = maxi(1, int(group.get("max_charges", Abilities.DEFAULT_MAX_CHARGES)))
-		parts.append('{ "initial_charges": %d, "max_charges": %d, "cooldown_ticks": %d, "grants": [%s] }' % [
-			clampi(int(group.get("initial_charges", max_charges)), 0, max_charges),
-			max_charges,
-			maxi(1, TimeUtils.ticks_from_seconds(float(group["cooldown"]))),
-			", ".join(grants),
-		])
+		(
+			parts
+			. append(
+				(
+					'{ "initial_charges": %d, "max_charges": %d, "cooldown_ticks": %d, "grants": [%s] }'
+					% [
+						clampi(int(group.get("initial_charges", max_charges)), 0, max_charges),
+						max_charges,
+						maxi(1, TimeUtils.ticks_from_seconds(float(group["cooldown"]))),
+						", ".join(grants),
+					]
+				)
+			)
+		)
 	var raw: String = "Array[Dictionary]([%s])" % ", ".join(parts)
 	var node: Node = a_ctx.inst.get_node_or_null("Abilities")
 	var current: Variant = node.groups if node != null else null
@@ -808,12 +924,23 @@ func _sync_deploys(a_ctx: Ctx, a_value: Variant) -> void:
 	var node: Node = a_ctx.inst.get_node_or_null("Deployable")
 	for pair: Array in [["deploy_ticks", "time"], ["undeploy_ticks", "undeploy_time"]]:
 		var ticks: int = maxi(1, TimeUtils.ticks_from_seconds(float(a_value[pair[1]])))
-		_set_prop(a_ctx, "Deployable", pair[0], node.get(pair[0]) if node != null else -1,
-			ticks, str(ticks))
+		_set_prop(
+			a_ctx,
+			"Deployable",
+			pair[0],
+			node.get(pair[0]) if node != null else -1,
+			ticks,
+			str(ticks)
+		)
 	var is_cancellable: bool = bool(a_value["cancellable"])
-	_set_prop(a_ctx, "Deployable", "is_cancellable",
-		node.is_cancellable if node != null else not is_cancellable, is_cancellable,
-		"true" if is_cancellable else "false")
+	_set_prop(
+		a_ctx,
+		"Deployable",
+		"is_cancellable",
+		node.is_cancellable if node != null else not is_cancellable,
+		is_cancellable,
+		"true" if is_cancellable else "false"
+	)
 
 
 ## `beacon_range: 20` — the persistent bombardable bubble this piece projects (see
@@ -827,9 +954,9 @@ func _sync_beacon_range(a_ctx: Ctx, a_value: Variant) -> void:
 	_ensure_component(a_ctx, "BeaconRange", "Node", SCRIPT_BEACON_RANGE)
 	var node: Node = a_ctx.inst.get_node_or_null("BeaconRange")
 	var current: float = node.radius if node != null else -1.0
-	_set_prop(a_ctx, "BeaconRange", "radius", current, float(a_value),
-		TscnDoc.fmt_float(float(a_value)))
-
+	_set_prop(
+		a_ctx, "BeaconRange", "radius", current, float(a_value), TscnDoc.fmt_float(float(a_value))
+	)
 
 
 ## The `garrison:` block — the Garrison component and its two independent halves: WHO may
@@ -856,16 +983,30 @@ func _sync_garrison(a_ctx: Ctx, a_g: Variant) -> void:
 	var node: Node = a_ctx.inst.get_node_or_null("Garrison")
 	if g.has("capacity"):
 		var cap: int = int(g["capacity"])
-		_set_prop(a_ctx, "Garrison", "capacity", node.capacity if node != null else -1, cap, str(cap))
+		_set_prop(
+			a_ctx, "Garrison", "capacity", node.capacity if node != null else -1, cap, str(cap)
+		)
 	for flag: String in ["bunker", "preserve_occupants", "releasable"]:
 		if g.has(flag):
 			var v: bool = bool(g[flag])
-			_set_prop(a_ctx, "Garrison", flag, node.get(flag) if node != null else null, v,
-				"true" if v else "false")
+			_set_prop(
+				a_ctx,
+				"Garrison",
+				flag,
+				node.get(flag) if node != null else null,
+				v,
+				"true" if v else "false"
+			)
 	if g.has("range_bonus"):
 		var rb: float = float(g["range_bonus"])
-		_set_prop(a_ctx, "Garrison", "range_bonus", node.range_bonus if node != null else -1.0,
-			rb, TscnDoc.fmt_float(rb))
+		_set_prop(
+			a_ctx,
+			"Garrison",
+			"range_bonus",
+			node.range_bonus if node != null else -1.0,
+			rb,
+			TscnDoc.fmt_float(rb)
+		)
 	_sync_reach_by_piece(a_ctx, node, g)
 	_sync_occupiable_ids(a_ctx, node, g)
 	_sync_sentence_length(a_ctx, node, g)
@@ -877,7 +1018,9 @@ func _sync_garrison(a_ctx: Ctx, a_g: Variant) -> void:
 		return
 	_sync_occupancy_mask(a_ctx, node, g, "frames", "occupiable_frames", GARRISON_FRAME_BITS)
 	_sync_occupancy_mask(a_ctx, node, g, "armours", "occupiable_armours", GARRISON_ARMOUR_BITS)
-	_sync_occupancy_mask(a_ctx, node, g, "movements", "occupiable_movements", GARRISON_MOVEMENT_BITS)
+	_sync_occupancy_mask(
+		a_ctx, node, g, "movements", "occupiable_movements", GARRISON_MOVEMENT_BITS
+	)
 
 
 ## The `pieces:` ALLOWLIST — which named pieces this host admits, on top of the masks. An
@@ -893,8 +1036,7 @@ func _sync_occupiable_ids(a_ctx: Ctx, a_node: Node, a_g: Dictionary) -> void:
 	if a_node != null:
 		for t in a_node.occupiable_ids:
 			current.append(t)
-	_set_prop(a_ctx, "Garrison", "occupiable_ids", current, target,
-		_string_name_array_raw(target))
+	_set_prop(a_ctx, "Garrison", "occupiable_ids", current, target, _string_name_array_raw(target))
 
 
 ## The `reach_by_piece:` mapping — the reach one occupant piece fires out with, keyed by id,
@@ -915,10 +1057,17 @@ func _sync_reach_by_piece(a_ctx: Ctx, a_node: Node, a_g: Dictionary) -> void:
 	if a_node != null:
 		for id in a_node.reach_by_piece:
 			current[StringName(id)] = float(a_node.reach_by_piece[id])
-	var same: bool = current.size() == target.size() and target.keys().all(
-		func(k: Variant) -> bool: return current.has(k) and is_equal_approx(current[k], target[k]))
-	_set_prop(a_ctx, "Garrison", "reach_by_piece", target if same else current, target,
-		"Dictionary[StringName, float]({%s})" % ", ".join(parts))
+	var is_unchanged := func(k: Variant) -> bool:
+		return current.has(k) and is_equal_approx(current[k], target[k])
+	var same: bool = current.size() == target.size() and target.keys().all(is_unchanged)
+	_set_prop(
+		a_ctx,
+		"Garrison",
+		"reach_by_piece",
+		target if same else current,
+		target,
+		"Dictionary[StringName, float]({%s})" % ", ".join(parts)
+	)
 
 
 ## The `sentence_length:` key — how many seconds a deposited captive serves before this
@@ -929,8 +1078,14 @@ func _sync_sentence_length(a_ctx: Ctx, a_node: Node, a_g: Dictionary) -> void:
 	if not a_g.has("sentence_length"):
 		return
 	var seconds: float = float(a_g["sentence_length"])
-	_set_prop(a_ctx, "Garrison", "sentence_length",
-		a_node.sentence_length if a_node != null else -1.0, seconds, TscnDoc.fmt_float(seconds))
+	_set_prop(
+		a_ctx,
+		"Garrison",
+		"sentence_length",
+		a_node.sentence_length if a_node != null else -1.0,
+		seconds,
+		TscnDoc.fmt_float(seconds)
+	)
 
 
 ## Enum-name bits for the three occupancy masks. Spelled out here rather than read off
@@ -938,20 +1093,24 @@ func _sync_sentence_length(a_ctx: Ctx, a_node: Node, a_g: Dictionary) -> void:
 ## entries; keep the two in step if either enum grows a member.
 const GARRISON_FRAME_BITS: Dictionary = {"BIO": 1 << 0, "MECH": 1 << 1}
 const GARRISON_ARMOUR_BITS: Dictionary = {"LIGHT": 1 << 0, "MEDIUM": 1 << 1, "STRONG": 1 << 2}
-const GARRISON_MOVEMENT_BITS: Dictionary = {"GROUNDED": 1 << 0, "HOVERING": 1 << 1, "FLYING": 1 << 2}
+const GARRISON_MOVEMENT_BITS: Dictionary = {
+	"GROUNDED": 1 << 0, "HOVERING": 1 << 1, "FLYING": 1 << 2
+}
 
 
 ## Assemble one occupancy mask from a list of enum names. An EMPTY list is meaningful —
 ## it clears that mask — so absence, not emptiness, is what leaves the scene alone.
-func _sync_occupancy_mask(a_ctx: Ctx, a_node: Node, a_g: Dictionary, a_key: String,
-		a_prop: String, a_bits: Dictionary) -> void:
+func _sync_occupancy_mask(
+	a_ctx: Ctx, a_node: Node, a_g: Dictionary, a_key: String, a_prop: String, a_bits: Dictionary
+) -> void:
 	if not a_g.has(a_key):
 		return
 	var mask: int = 0
 	for name in a_g[a_key]:
 		mask |= int(a_bits.get(str(name), 0))
-	_set_prop(a_ctx, "Garrison", a_prop, a_node.get(a_prop) if a_node != null else -1,
-		mask, str(mask))
+	_set_prop(
+		a_ctx, "Garrison", a_prop, a_node.get(a_prop) if a_node != null else -1, mask, str(mask)
+	)
 
 
 ## The DetectionRange volume — what this piece sees stealthed units with.
@@ -968,11 +1127,17 @@ func _sync_detection_range(a_ctx: Ctx, a_radius: float, a_shape_id: String) -> v
 	if a_radius <= 0.0:
 		_remove_component(a_ctx, "DetectionRange")
 		return
-	if a_ctx.inst.get_node_or_null("DetectionRange") == null \
-			and not a_ctx.created_nodes.has("DetectionRange"):
+	if (
+		a_ctx.inst.get_node_or_null("DetectionRange") == null
+		and not a_ctx.created_nodes.has("DetectionRange")
+	):
 		a_ctx.doc.add_node(
-			[["name", "DetectionRange"], ["type", "CollisionShape3D"], ["parent", "."],
-				["groups", "[\"debug_shape_detection_range\"]"]],
+			[
+				["name", "DetectionRange"],
+				["type", "CollisionShape3D"],
+				["parent", "."],
+				["groups", '["debug_shape_detection_range"]']
+			],
 			{"disabled": "true"}
 		)
 		a_ctx.created_nodes["DetectionRange"] = true
@@ -981,7 +1146,9 @@ func _sync_detection_range(a_ctx: Ctx, a_radius: float, a_shape_id: String) -> v
 
 
 ## trains/builds: an id-list export on a component that may need creating.
-func _sync_id_list_component(a_ctx: Ctx, a_name: String, a_type: String, a_script: String, a_prop: String, a_ids: Array) -> void:
+func _sync_id_list_component(
+	a_ctx: Ctx, a_name: String, a_type: String, a_script: String, a_prop: String, a_ids: Array
+) -> void:
 	var target: Array = []
 	for id in a_ids:
 		target.append(StringName(str(id)))
@@ -1009,7 +1176,7 @@ func _sync_weapons(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	_ensure_component(a_ctx, "Loadout", "Node3D", SCRIPT_LOADOUT)
 	var loadout: Node = a_ctx.inst.get_node_or_null("Loadout")
 
-	var scene_weapons: Dictionary = {}   # name -> Weapon node
+	var scene_weapons: Dictionary = {}  # name -> Weapon node
 	if loadout != null:
 		for w in loadout.get_children():
 			if w is Weapon:
@@ -1025,11 +1192,18 @@ func _sync_weapons(a_ctx: Ctx, a_spec: Dictionary) -> void:
 				continue
 			var wpath: String = "Loadout/%s" % wname
 			if a_ctx.doc.find_node(wpath).is_empty():
-				report["warnings"].append("%s: weapon %s comes from a base scene; cannot remove via text override" % [a_ctx.path, wname])
+				report["warnings"].append(
+					(
+						"%s: weapon %s comes from a base scene; cannot remove via text override"
+						% [a_ctx.path, wname]
+					)
+				)
 			else:
 				a_ctx.doc.remove_node(wpath)
 				a_ctx.dirty = true
-				report["warnings"].append("%s: removed weapon %s (not in spec; full mode)" % [a_ctx.path, wname])
+				report["warnings"].append(
+					"%s: removed weapon %s (not in spec; full mode)" % [a_ctx.path, wname]
+				)
 
 
 func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node) -> void:
@@ -1038,7 +1212,7 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 		var script_id: String = _ensure_ext(a_ctx, "Script", SCRIPT_WEAPON)
 		a_ctx.doc.add_node(
 			[["name", a_name], ["type", "Node3D"], ["parent", "Loadout"]],
-			{"script": "ExtResource(\"%s\")" % script_id}
+			{"script": 'ExtResource("%s")' % script_id}
 		)
 		a_ctx.created_nodes[wpath] = true
 		a_ctx.dirty = true
@@ -1084,23 +1258,35 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 		var cur_startup: int = a_node.startup_time_ticks if a_node != null else -1
 		_set_prop(a_ctx, wpath, "startup_time_ticks", cur_startup, ticks, str(ticks))
 	if a_w.has("clip_size"):
-		_set_prop(a_ctx, wpath, "clip_size", cur_clip, int(a_w["clip_size"]), str(int(a_w["clip_size"])))
+		_set_prop(
+			a_ctx, wpath, "clip_size", cur_clip, int(a_w["clip_size"]), str(int(a_w["clip_size"]))
+		)
 
 	if a_w.has("projectile"):
 		var proj_spec: Dictionary = registry.projectiles[str(a_w["projectile"])]
 		var proj_path: String = str(proj_spec["scene"])
-		var cur_path: String = a_node.projectile_scene.resource_path \
-			if (a_node != null and a_node.projectile_scene != null) else ""
+		var cur_path: String = (
+			a_node.projectile_scene.resource_path
+			if (a_node != null and a_node.projectile_scene != null)
+			else ""
+		)
 		if created or cur_path != proj_path:
 			var pid: String = _ensure_ext(a_ctx, "PackedScene", proj_path)
 			var section: Dictionary = _section_for(a_ctx, wpath)
-			a_ctx.doc.set_prop(section, "projectile_scene", "ExtResource(\"%s\")" % pid)
+			a_ctx.doc.set_prop(section, "projectile_scene", 'ExtResource("%s")' % pid)
 			a_ctx.doc.set_prop(section, "melee_damage", "0.0")
 			a_ctx.dirty = true
 	else:
 		if a_w.has("melee_damage"):
 			var cur: float = a_node.melee_damage if a_node != null else -1.0
-			_set_prop(a_ctx, wpath, "melee_damage", cur, float(a_w["melee_damage"]), TscnDoc.fmt_float(float(a_w["melee_damage"])))
+			_set_prop(
+				a_ctx,
+				wpath,
+				"melee_damage",
+				cur,
+				float(a_w["melee_damage"]),
+				TscnDoc.fmt_float(float(a_w["melee_damage"]))
+			)
 		if a_w.has("melee_damage_type"):
 			var v: int = Damage.Type[str(a_w["melee_damage_type"])]
 			var cur: int = a_node.melee_damage_type if a_node != null else -1
@@ -1134,9 +1320,11 @@ func _sync_reach(a_ctx: Ctx, a_wpath: String, a_reach: Variant, a_node: Node) ->
 
 	if a_reach is Dictionary:
 		var ground: String = SpecGenerators.shape_path(
-			str(a_reach.get("ground", a_reach.get("air", ""))))
+			str(a_reach.get("ground", a_reach.get("air", "")))
+		)
 		var air: String = SpecGenerators.shape_path(
-			str(a_reach.get("air", a_reach.get("ground", ""))))
+			str(a_reach.get("air", a_reach.get("ground", "")))
+		)
 		if has_ground or has_air:
 			if has_ground:
 				_set_shape_resource(a_ctx, a_wpath + "/AttackRangeGround", ground)
@@ -1145,9 +1333,15 @@ func _sync_reach(a_ctx: Ctx, a_wpath: String, a_reach: Variant, a_node: Node) ->
 		elif has_single and not _declares_node(a_ctx, a_wpath + "/AttackRange"):
 			# An inherited node cannot be removed (CLAUDE.md §An inherited node can be neither
 			# removed nor repointed), so only a locally declared one is split below.
-			report["warnings"].append(("%s: %s inherits one AttackRange but spec wants split "
-				+ "ground/air reach — split the shapes in the base scene first")
-				% [a_ctx.path, a_wpath])
+			report["warnings"].append(
+				(
+					(
+						"%s: %s inherits one AttackRange but spec wants split "
+						+ "ground/air reach — split the shapes in the base scene first"
+					)
+					% [a_ctx.path, a_wpath]
+				)
+			)
 		else:
 			if has_single:
 				a_ctx.doc.remove_node(a_wpath + "/AttackRange")
@@ -1177,21 +1371,25 @@ func _declares_node(a_ctx: Ctx, a_node_path: String) -> bool:
 ## sub_resource it used to own once nothing else names it.
 func _set_shape_resource(a_ctx: Ctx, a_node_path: String, a_shape_path: String) -> void:
 	var node: Node = a_ctx.inst.get_node_or_null(a_node_path)
-	if node is CollisionShape3D and node.shape != null \
-			and node.shape.resource_path == a_shape_path \
-			and not a_ctx.created_nodes.has(a_node_path):
+	if (
+		node is CollisionShape3D
+		and node.shape != null
+		and node.shape.resource_path == a_shape_path
+		and not a_ctx.created_nodes.has(a_node_path)
+	):
 		return
 	var section: Dictionary = _section_for(a_ctx, a_node_path)
 	if section.is_empty():
-		report["warnings"].append("%s: no node %s for shape %s"
-			% [a_ctx.path, a_node_path, a_shape_path])
+		report["warnings"].append(
+			"%s: no node %s for shape %s" % [a_ctx.path, a_node_path, a_shape_path]
+		)
 		return
 	var raw: String = a_ctx.doc.get_prop(section, "shape")
 	var regex: RegEx = RegEx.new()
-	regex.compile("^SubResource\\(\"([^\"]+)\"\\)$")
+	regex.compile('^SubResource\\("([^"]+)"\\)$')
 	var m: RegExMatch = regex.search(raw)
 	var eid: String = _ensure_ext(a_ctx, _library_shape_class(a_shape_path), a_shape_path)
-	a_ctx.doc.set_prop(section, "shape", "ExtResource(\"%s\")" % eid)
+	a_ctx.doc.set_prop(section, "shape", 'ExtResource("%s")' % eid)
 	# Counted AFTER the write, so the reference just replaced is not counted as a user.
 	if m != null and _sub_resource_ref_count(a_ctx, m.get_string(1)) == 0:
 		a_ctx.doc.remove_sub_resource(m.get_string(1))
@@ -1209,9 +1407,13 @@ func _library_shape_class(a_shape_path: String) -> String:
 func _create_range_shape(a_ctx: Ctx, a_wpath: String, a_name: String, a_shape_path: String) -> void:
 	var eid: String = _ensure_ext(a_ctx, _library_shape_class(a_shape_path), a_shape_path)
 	a_ctx.doc.add_node(
-		[["name", a_name], ["type", "CollisionShape3D"], ["parent", a_wpath],
-		["groups", "[\"debug_shape_attack_range\"]"]],
-		{"visible": "false", "shape": "ExtResource(\"%s\")" % eid, "disabled": "true"}
+		[
+			["name", a_name],
+			["type", "CollisionShape3D"],
+			["parent", a_wpath],
+			["groups", '["debug_shape_attack_range"]']
+		],
+		{"visible": "false", "shape": 'ExtResource("%s")' % eid, "disabled": "true"}
 	)
 	a_ctx.created_nodes[a_wpath + "/" + a_name] = true
 	a_ctx.dirty = true
@@ -1262,21 +1464,44 @@ func _sync_payload(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	var payload: Node = _live_node(a_ctx, "Payload")
 	if a_spec.has("damage"):
 		var damage: float = float(a_spec["damage"])
-		_set_prop(a_ctx, "Payload", "base_damage",
-			payload.base_damage if payload != null else INF, damage, TscnDoc.fmt_float(damage))
+		_set_prop(
+			a_ctx,
+			"Payload",
+			"base_damage",
+			payload.base_damage if payload != null else INF,
+			damage,
+			TscnDoc.fmt_float(damage)
+		)
 	if a_spec.has("damage_type"):
 		var damage_type: int = Damage.Type[str(a_spec["damage_type"])]
-		_set_prop(a_ctx, "Payload", "damage_type",
-			payload.damage_type if payload != null else -1, damage_type, str(damage_type))
+		_set_prop(
+			a_ctx,
+			"Payload",
+			"damage_type",
+			payload.damage_type if payload != null else -1,
+			damage_type,
+			str(damage_type)
+		)
 	if a_spec.has("hitscan"):
 		var hitscan: bool = bool(a_spec["hitscan"])
-		_set_prop(a_ctx, "Payload", "hitscan", payload.hitscan if payload != null else not hitscan,
-			hitscan, "true" if hitscan else "false")
+		_set_prop(
+			a_ctx,
+			"Payload",
+			"hitscan",
+			payload.hitscan if payload != null else not hitscan,
+			hitscan,
+			"true" if hitscan else "false"
+		)
 	if a_spec.has("bio_ground_aim"):
 		var aims: bool = bool(a_spec["bio_ground_aim"])
-		_set_prop(a_ctx, "Payload", "bio_ground_aim",
-			payload.bio_ground_aim if payload != null else not aims, aims,
-			"true" if aims else "false")
+		_set_prop(
+			a_ctx,
+			"Payload",
+			"bio_ground_aim",
+			payload.bio_ground_aim if payload != null else not aims,
+			aims,
+			"true" if aims else "false"
+		)
 
 
 ## A hitscan emission lands on the one piece it was fired at, so it has no blast volume and no
@@ -1299,9 +1524,15 @@ func _sync_phases(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	var wanted: Array[String] = []
 	wanted.assign(phases.map(func(p: Dictionary) -> String: return str(p["name"])))
 	var existing: Array[String] = []
-	existing.assign(a_ctx.inst.get_children() \
-		.filter(func(c: Node) -> bool: return c is EmissionPhase) \
-		.map(func(c: Node) -> String: return str(c.name)))
+	existing.assign(
+		(
+			a_ctx
+			. inst
+			. get_children()
+			. filter(func(c: Node) -> bool: return c is EmissionPhase)
+			. map(func(c: Node) -> String: return str(c.name))
+		)
+	)
 	var kept: Array[String] = existing.filter(func(n: String) -> bool: return wanted.has(n))
 	var is_in_order: bool = kept == wanted.slice(0, kept.size())
 	for node_name: String in existing:
@@ -1316,8 +1547,10 @@ func _sync_one_phase(a_ctx: Ctx, a_phase: Dictionary) -> void:
 	var node: Node = _live_node(a_ctx, path)
 	if node == null and not a_ctx.created_nodes.has(path):
 		var script_id: String = _ensure_ext(a_ctx, "Script", SCRIPT_EMISSION_PHASE)
-		a_ctx.doc.add_node([["name", path], ["type", "Node3D"], ["parent", "."]],
-			{"script": "ExtResource(\"%s\")" % script_id})
+		a_ctx.doc.add_node(
+			[["name", path], ["type", "Node3D"], ["parent", "."]],
+			{"script": 'ExtResource("%s")' % script_id}
+		)
 		a_ctx.created_nodes[path] = true
 		a_ctx.dirty = true
 	var defaults: EmissionPhase = EmissionPhase.new()
@@ -1331,7 +1564,9 @@ func _sync_one_phase(a_ctx: Ctx, a_phase: Dictionary) -> void:
 		var current: Variant = node.get(property) if node != null else defaults.get(property)
 		if node == null and _values_equal(current, values[property]):
 			continue
-		_set_prop(a_ctx, path, property, current, values[property], _phase_literal(values[property]))
+		_set_prop(
+			a_ctx, path, property, current, values[property], _phase_literal(values[property])
+		)
 	defaults.free()
 	_sync_phase_emit(a_ctx, path, str(a_phase["emits"]))
 
@@ -1346,16 +1581,20 @@ func _sync_phase_emit(a_ctx: Ctx, a_phase_path: String, a_emission_id: String) -
 	var node: Node = _live_node(a_ctx, path)
 	if node == null and not a_ctx.created_nodes.has(path):
 		var script_id: String = _ensure_ext(a_ctx, "Script", SCRIPT_SPAWN_EMISSION)
-		a_ctx.doc.add_node([["name", PHASE_EMIT_NODE], ["type", "Sprite3D"],
-			["parent", a_phase_path]], {"script": "ExtResource(\"%s\")" % script_id})
+		a_ctx.doc.add_node(
+			[["name", PHASE_EMIT_NODE], ["type", "Sprite3D"], ["parent", a_phase_path]],
+			{"script": 'ExtResource("%s")' % script_id}
+		)
 		a_ctx.created_nodes[path] = true
 		a_ctx.dirty = true
-	var current: String = node.emission_scene.resource_path \
-		if node != null and node.emission_scene != null else ""
+	var current: String = (
+		node.emission_scene.resource_path if node != null and node.emission_scene != null else ""
+	)
 	if a_ctx.created_nodes.has(path) or current != scene_path:
 		var scene_id: String = _ensure_ext(a_ctx, "PackedScene", scene_path)
-		a_ctx.doc.set_prop(_section_for(a_ctx, path), "emission_scene",
-			"ExtResource(\"%s\")" % scene_id)
+		a_ctx.doc.set_prop(
+			_section_for(a_ctx, path), "emission_scene", 'ExtResource("%s")' % scene_id
+		)
 		a_ctx.dirty = true
 
 
@@ -1365,8 +1604,9 @@ func _sync_phase_emit(a_ctx: Ctx, a_phase_path: String, a_emission_id: String) -
 ## name is the duplicate that segfaults at teardown (see CLAUDE.md). An emission scene can
 ## inherit another emission's phases — recruit_bullet.tscn inherits irregular_bullet.tscn.
 func _live_node(a_ctx: Ctx, a_path: String) -> Node:
-	var is_removed: bool = a_ctx.removed_nodes.keys().any(func(removed: String) -> bool:
-		return a_path == removed or a_path.begins_with(removed + "/"))
+	var is_removed: bool = a_ctx.removed_nodes.keys().any(
+		func(removed: String) -> bool: return a_path == removed or a_path.begins_with(removed + "/")
+	)
 	if a_ctx.created_nodes.has(a_path) or is_removed:
 		return null
 	return a_ctx.inst.get_node_or_null(a_path)
@@ -1381,7 +1621,7 @@ static func _phase_literal(value: Variant) -> String:
 		return TscnDoc.fmt_float(value)
 	var paths: PackedStringArray = []
 	for path: NodePath in value:
-		paths.append("NodePath(\"%s\")" % path)
+		paths.append('NodePath("%s")' % path)
 	return "Array[NodePath]([%s])" % ", ".join(paths)
 
 
@@ -1410,11 +1650,16 @@ func _set_blast_shape(a_ctx: Ctx, a_shape_path: String) -> void:
 		report["warnings"].append("%s: has blast: but no HitShape node" % a_ctx.path)
 		return
 	_set_shape_resource(a_ctx, "HitShape", a_shape_path)
-	if (node as Node3D).transform.is_equal_approx(Transform3D.IDENTITY) \
-			and not a_ctx.created_nodes.has("HitShape"):
+	if (
+		(node as Node3D).transform.is_equal_approx(Transform3D.IDENTITY)
+		and not a_ctx.created_nodes.has("HitShape")
+	):
 		return
-	a_ctx.doc.set_prop(_section_for(a_ctx, "HitShape"), "transform",
-		"Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)")
+	a_ctx.doc.set_prop(
+		_section_for(a_ctx, "HitShape"),
+		"transform",
+		"Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)"
+	)
 	a_ctx.dirty = true
 
 
@@ -1422,7 +1667,7 @@ func _set_blast_shape(a_ctx: Ctx, a_shape_path: String) -> void:
 ## EffectApplicator, matched by scene path. Embedded (non-instanced) effect
 ## nodes are opaque to the doc layer — warned, never touched.
 func _sync_status_effects(a_ctx: Ctx, a_effect_ids: Array) -> void:
-	var want: Dictionary = {}   # scene path -> effect id
+	var want: Dictionary = {}  # scene path -> effect id
 	for id in a_effect_ids:
 		var spec: Dictionary = registry.status_effects[str(id)]
 		want[str(spec["scene"])] = str(id)
@@ -1432,26 +1677,37 @@ func _sync_status_effects(a_ctx: Ctx, a_effect_ids: Array) -> void:
 		var script_id: String = _ensure_ext(a_ctx, "Script", SCRIPT_EFFECT_APPLICATOR)
 		a_ctx.doc.add_node(
 			[["name", "EffectApplicator"], ["type", "Sprite3D"], ["parent", "."]],
-			{"script": "ExtResource(\"%s\")" % script_id}
+			{"script": 'ExtResource("%s")' % script_id}
 		)
 		a_ctx.created_nodes["EffectApplicator"] = true
 		a_ctx.dirty = true
 
-	var have: Dictionary = {}   # scene path -> child name
+	var have: Dictionary = {}  # scene path -> child name
 	if applicator != null:
 		for child in applicator.get_children():
 			if child.scene_file_path != "":
 				have[child.scene_file_path] = String(child.name)
 			elif child is StatusEffect:
-				report["warnings"].append("%s: embedded status effect %s is not doc-governable (extract it to a scene)" % [a_ctx.path, child.name])
+				(
+					report["warnings"]
+					. append(
+						(
+							"%s: embedded status effect %s is not doc-governable (extract it to a scene)"
+							% [a_ctx.path, child.name]
+						)
+					)
+				)
 
 	for scene_path in want:
 		if have.has(scene_path):
 			continue
 		var eid: String = _ensure_ext(a_ctx, "PackedScene", scene_path)
 		a_ctx.doc.add_node(
-			[["name", str(want[scene_path]).to_pascal_case()], ["parent", "EffectApplicator"],
-				["instance", "ExtResource(\"%s\")" % eid]],
+			[
+				["name", str(want[scene_path]).to_pascal_case()],
+				["parent", "EffectApplicator"],
+				["instance", 'ExtResource("%s")' % eid]
+			],
 			{}
 		)
 		a_ctx.dirty = true
@@ -1462,11 +1718,18 @@ func _sync_status_effects(a_ctx: Ctx, a_effect_ids: Array) -> void:
 				continue
 			var child_path: String = "EffectApplicator/%s" % have[scene_path]
 			if a_ctx.doc.find_node(child_path).is_empty():
-				report["warnings"].append("%s: %s comes from a base scene; cannot remove" % [a_ctx.path, child_path])
+				report["warnings"].append(
+					"%s: %s comes from a base scene; cannot remove" % [a_ctx.path, child_path]
+				)
 			else:
 				a_ctx.doc.remove_node(child_path)
 				a_ctx.dirty = true
-				report["warnings"].append("%s: removed status effect %s (not in spec; full mode)" % [a_ctx.path, have[scene_path]])
+				report["warnings"].append(
+					(
+						"%s: removed status effect %s (not in spec; full mode)"
+						% [a_ctx.path, have[scene_path]]
+					)
+				)
 
 
 # --------------------------------------------------------------------------- #
@@ -1486,8 +1749,14 @@ func _sync_faction(a_spec: Dictionary) -> void:
 	# `title` is the user-facing display name; for a faction that is its
 	# faction_name (the id stays a generic, non-flavor identifier).
 	if a_spec.has("title"):
-		_set_prop(ctx, "", "faction_name", ctx.inst.faction_name, str(a_spec["title"]),
-			TscnDoc.fmt_string(str(a_spec["title"])))
+		_set_prop(
+			ctx,
+			"",
+			"faction_name",
+			ctx.inst.faction_name,
+			str(a_spec["title"]),
+			TscnDoc.fmt_string(str(a_spec["title"]))
+		)
 
 	if a_spec.has("starts_with"):
 		var unit_scenes: Array = []
@@ -1500,7 +1769,7 @@ func _sync_faction(a_spec: Dictionary) -> void:
 		if cur_units != unit_scenes:
 			var parts: Array = []
 			for path in unit_scenes:
-				parts.append("ExtResource(\"%s\")" % _ensure_ext(ctx, "PackedScene", path))
+				parts.append('ExtResource("%s")' % _ensure_ext(ctx, "PackedScene", path))
 			var root: Dictionary = _section_for(ctx, "")
 			ctx.doc.set_prop(root, "starting_units", "Array[PackedScene]([%s])" % ", ".join(parts))
 			ctx.dirty = true
@@ -1538,11 +1807,13 @@ func _sync_sanctions(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	# so a doc level finds the cell it belongs to however the array is ordered.
 	var unlock_ids: Dictionary = _unlock_sub_ids(a_ctx)
 	if unlock_ids.is_empty() and not a_ctx.inst.sanction_unlocks.is_empty():
-		report["warnings"].append("%s: cannot match sanction_unlocks to sub_resources — left untouched" % a_ctx.path)
+		report["warnings"].append(
+			"%s: cannot match sanction_unlocks to sub_resources — left untouched" % a_ctx.path
+		)
 		return
 
-	var order: Array = []          # unlock sub_resource ids, in doc order
-	var by_key: Dictionary = {}    # level key -> unlock sub_resource id
+	var order: Array = []  # unlock sub_resource ids, in doc order
+	var by_key: Dictionary = {}  # level key -> unlock sub_resource id
 	for cell: Dictionary in cells:
 		var key: String = str(cell["title"]).to_snake_case()
 		var unlock_id: String = unlock_ids.get(key, "")
@@ -1566,8 +1837,15 @@ func _grid_cells(a_spec: Dictionary) -> Array:
 	for oid in a_spec["sanctions"]:
 		var doc: Dictionary = registry.abilities.get(str(oid), {})
 		if doc.is_empty():
-			report["errors"].append("%s [%s]: sanctions names '%s' but no kind: AbilityDefinition doc of that name exists" % [
-				a_spec["_doc_path"], a_spec["id"], str(oid)])
+			(
+				report["errors"]
+				. append(
+					(
+						"%s [%s]: sanctions names '%s' but no kind: AbilityDefinition doc of that name exists"
+						% [a_spec["_doc_path"], a_spec["id"], str(oid)]
+					)
+				)
+			)
 			return []
 		var parent_key: String = ""
 		for level_index: int in (doc["levels"] as Array).size():
@@ -1614,7 +1892,7 @@ func _unlock_array_ids(a_ctx: Ctx) -> Array:
 	var root: Dictionary = _section_for(a_ctx, "")
 	var raw: String = a_ctx.doc.get_prop(root, "sanction_unlocks")
 	var regex := RegEx.new()
-	regex.compile("SubResource\\(\"([^\"]+)\"\\)")
+	regex.compile('SubResource\\("([^"]+)"\\)')
 	var ids: Array = []
 	for m: RegExMatch in regex.search_all(raw):
 		ids.append(m.get_string(1))
@@ -1629,23 +1907,42 @@ func _create_sanction_cell(a_ctx: Ctx, a_cell: Dictionary) -> String:
 	var unlock_script: String = _ensure_ext(a_ctx, "Script", SCRIPT_SANCTION_UNLOCK)
 	var stub: String = _ensure_ext(a_ctx, "PackedScene", SANCTION_STUB_SCENE)
 	var hint: String = str(a_cell["title"]).to_snake_case()
-	var sanction_id: String = a_ctx.doc.add_sub_resource("Resource", "sanction_%s" % hint, {
-		"script": "ExtResource(\"%s\")" % sanction_script,
-		"sanction_name": TscnDoc.fmt_string(str(a_cell["title"])),
-		"event_scene": "ExtResource(\"%s\")" % stub,
-	})
-	var unlock_id: String = a_ctx.doc.add_sub_resource("Resource", "unlock_%s" % hint, {
-		"script": "ExtResource(\"%s\")" % unlock_script,
-		"sanction": "SubResource(\"%s\")" % sanction_id,
-	})
+	var sanction_id: String = (
+		a_ctx
+		. doc
+		. add_sub_resource(
+			"Resource",
+			"sanction_%s" % hint,
+			{
+				"script": 'ExtResource("%s")' % sanction_script,
+				"sanction_name": TscnDoc.fmt_string(str(a_cell["title"])),
+				"event_scene": 'ExtResource("%s")' % stub,
+			}
+		)
+	)
+	var unlock_id: String = (
+		a_ctx
+		. doc
+		. add_sub_resource(
+			"Resource",
+			"unlock_%s" % hint,
+			{
+				"script": 'ExtResource("%s")' % unlock_script,
+				"sanction": 'SubResource("%s")' % sanction_id,
+			}
+		)
+	)
 	a_ctx.dirty = true
-	report["created"].append("%s: sanction cell '%s' (payload: stub)" % [a_ctx.path, a_cell["title"]])
+	report["created"].append(
+		"%s: sanction cell '%s' (payload: stub)" % [a_ctx.path, a_cell["title"]]
+	)
 	return unlock_id
 
 
 ## Write one cell's doc-governed fields onto its unlock and the Sanction it wraps.
-func _write_sanction_cell(a_ctx: Ctx, a_unlock_id: String, a_cell: Dictionary,
-		a_by_key: Dictionary) -> void:
+func _write_sanction_cell(
+	a_ctx: Ctx, a_unlock_id: String, a_cell: Dictionary, a_by_key: Dictionary
+) -> void:
 	var unlock: Dictionary = _sub_section(a_ctx, a_unlock_id)
 	if unlock.is_empty():
 		return
@@ -1661,32 +1958,47 @@ func _write_sanction_cell(a_ctx: Ctx, a_unlock_id: String, a_cell: Dictionary,
 			a_ctx.doc.remove_prop(unlock, "parent")
 			a_ctx.dirty = true
 	elif a_by_key.has(parent_key):
-		_set_sub_prop(a_ctx, unlock, "parent", "SubResource(\"%s\")" % a_by_key[parent_key])
+		_set_sub_prop(a_ctx, unlock, "parent", 'SubResource("%s")' % a_by_key[parent_key])
 
 	var sanction_id: String = _sub_ref(a_ctx, unlock, "sanction")
 	if sanction_id == "":
-		report["warnings"].append("%s: unlock '%s' has no sanction sub_resource" % [a_ctx.path, a_cell["title"]])
+		report["warnings"].append(
+			"%s: unlock '%s' has no sanction sub_resource" % [a_ctx.path, a_cell["title"]]
+		)
 		return
 	var sanction: Dictionary = _sub_section(a_ctx, sanction_id)
 	if sanction.is_empty():
 		return
 	_set_sub_prop(a_ctx, sanction, "sanction_name", TscnDoc.fmt_string(str(a_cell["title"])))
-	_set_sub_prop(a_ctx, sanction, "ability_id",
-		TscnDoc.fmt_string_name(str(a_cell.get("ability", ""))))
+	_set_sub_prop(
+		a_ctx, sanction, "ability_id", TscnDoc.fmt_string_name(str(a_cell.get("ability", "")))
+	)
 	_set_sub_prop(a_ctx, sanction, "ability_level", str(int(a_cell.get("ability_level", 1))))
 	if a_cell.has("description"):
-		_set_sub_prop(a_ctx, sanction, "description",
-			TscnDoc.fmt_string(_render_placeholders(str(a_cell["description"]))))
+		_set_sub_prop(
+			a_ctx,
+			sanction,
+			"description",
+			TscnDoc.fmt_string(_render_placeholders(str(a_cell["description"])))
+		)
 	if a_cell.has("verbose"):
-		_set_sub_prop(a_ctx, sanction, "verbose_description",
-			TscnDoc.fmt_string(_render_placeholders(str(a_cell["verbose"]))))
+		_set_sub_prop(
+			a_ctx,
+			sanction,
+			"verbose_description",
+			TscnDoc.fmt_string(_render_placeholders(str(a_cell["verbose"])))
+		)
 	if a_cell.has("cooldown"):
-		_set_sub_prop(a_ctx, sanction, "cooldown_duration", TscnDoc.fmt_float(float(a_cell["cooldown"])))
+		_set_sub_prop(
+			a_ctx, sanction, "cooldown_duration", TscnDoc.fmt_float(float(a_cell["cooldown"]))
+		)
 	for flag: String in ["needs_vision", "needs_target", "passive"]:
 		if a_cell.has(flag):
 			_set_sub_prop(a_ctx, sanction, flag, "true" if bool(a_cell[flag]) else "false")
 	if a_cell.has("kill_bounty"):
-		_set_sub_prop(a_ctx, sanction, "kill_bounty_fraction", TscnDoc.fmt_float(float(a_cell["kill_bounty"])))
+		_set_sub_prop(
+			a_ctx, sanction, "kill_bounty_fraction", TscnDoc.fmt_float(float(a_cell["kill_bounty"]))
+		)
 	if a_cell.has("payloads"):
 		_set_sub_prop(a_ctx, sanction, "payloads", _payloads_literal(a_cell["payloads"]))
 
@@ -1695,13 +2007,21 @@ func _write_sanction_cell(a_ctx: Ctx, a_unlock_id: String, a_cell: Dictionary,
 ## Sanction.payloads for why no PackedScene goes in here.
 func _payloads_literal(a_payloads: Variant) -> String:
 	var parts: Array = []
-	for entry: Variant in (a_payloads if a_payloads is Array else []):
+	for entry: Variant in a_payloads if a_payloads is Array else []:
 		if not (entry is Dictionary):
 			continue
-		parts.append('{ "piece": %s, "count": %d }' % [
-			TscnDoc.fmt_string_name(str(entry.get("piece", ""))),
-			maxi(1, int(entry.get("count", 1))),
-		])
+		(
+			parts
+			. append(
+				(
+					'{ "piece": %s, "count": %d }'
+					% [
+						TscnDoc.fmt_string_name(str(entry.get("piece", ""))),
+						maxi(1, int(entry.get("count", 1))),
+					]
+				)
+			)
+		)
 	return "Array[Dictionary]([%s])" % ", ".join(parts)
 
 
@@ -1725,7 +2045,7 @@ func _sub_section(a_ctx: Ctx, a_id: String) -> Dictionary:
 ## The SubResource id a property points at, or "".
 func _sub_ref(a_ctx: Ctx, a_section: Dictionary, a_prop: String) -> String:
 	var regex := RegEx.new()
-	regex.compile("SubResource\\(\"([^\"]+)\"\\)")
+	regex.compile('SubResource\\("([^"]+)"\\)')
 	var m: RegExMatch = regex.search(a_ctx.doc.get_prop(a_section, a_prop))
 	return m.get_string(1) if m != null else ""
 
@@ -1752,10 +2072,12 @@ func _rewrite_unlock_array(a_ctx: Ctx, a_order: Array) -> void:
 				final_order.append(existing)
 	var parts: Array = []
 	for unlock_id in final_order:
-		parts.append("SubResource(\"%s\")" % unlock_id)
+		parts.append('SubResource("%s")' % unlock_id)
 	var root: Dictionary = _section_for(a_ctx, "")
-	var raw: String = "Array[ExtResource(\"%s\")]([%s])" % [
-		_ensure_ext(a_ctx, "Script", SCRIPT_SANCTION_UNLOCK), ", ".join(parts)]
+	var raw: String = (
+		'Array[ExtResource("%s")]([%s])'
+		% [_ensure_ext(a_ctx, "Script", SCRIPT_SANCTION_UNLOCK), ", ".join(parts)]
+	)
 	if a_ctx.doc.get_prop(root, "sanction_unlocks") == raw:
 		return
 	a_ctx.doc.set_prop(root, "sanction_unlocks", raw)
@@ -1786,7 +2108,15 @@ func _ensure_scene(a_spec: Dictionary) -> void:
 		dir = dir.path_join(sub)
 	var path: String = dir.path_join(str(a_spec["id"]) + ".tscn")
 	if FileAccess.file_exists(path):
-		report["errors"].append("%s [%s]: wants a new scene at %s but the file already exists — link it explicitly with scene: or rename" % [a_spec["_doc_path"], a_spec["id"], path])
+		report["errors"].append(
+			(
+				(
+					"%s [%s]: wants a new scene at %s but the file already exists — "
+					+ "link it explicitly with scene: or rename"
+				)
+				% [a_spec["_doc_path"], a_spec["id"], path]
+			)
+		)
 		return
 	if not _write_skeleton(path, _piece_root_body(a_spec)):
 		return
@@ -1820,7 +2150,15 @@ func _ensure_projectile_scene(a_spec: Dictionary) -> void:
 		# projectile would instead have short-circuited above via its persisted
 		# scene: field, so for one of those this really is a name collision.
 		if not a_spec.get("_inline", false):
-			report["errors"].append("%s [%s]: wants a new scene at %s but the file already exists — link it explicitly with scene: or rename" % [a_spec["_doc_path"], a_spec["id"], path])
+			report["errors"].append(
+				(
+					(
+						"%s [%s]: wants a new scene at %s but the file already "
+						+ "exists — link it explicitly with scene: or rename"
+					)
+					% [a_spec["_doc_path"], a_spec["id"], path]
+				)
+			)
 			return
 		a_spec["scene"] = path
 		return
@@ -1863,37 +2201,41 @@ func _missing_declared_scene(a_spec: Dictionary) -> String:
 func _piece_root_body(a_spec: Dictionary) -> Array:
 	var script: String = SpecComposition.root_script(a_spec)
 	var body: Array = [
-		"[ext_resource type=\"Script\" uid=\"%s\" path=\"%s\" id=\"1_root\"]" % [
-			_uid_for(script), script],
+		'[ext_resource type="Script" uid="%s" path="%s" id="1_root"]' % [_uid_for(script), script],
 		"",
-		"[node name=\"%s\" type=\"CharacterBody3D\"]" % str(a_spec["id"]).to_pascal_case(),
+		'[node name="%s" type="CharacterBody3D"]' % str(a_spec["id"]).to_pascal_case(),
 	]
 	var props: Dictionary = SpecComposition.root_props(a_spec)
 	for key: String in props:
 		body.append("%s = %s" % [key, props[key]])
-	body.append("script = ExtResource(\"1_root\")")
+	body.append('script = ExtResource("1_root")')
 	body.append("id = %s" % TscnDoc.fmt_string_name(str(a_spec["id"])))
 	return body
 
 
 ## Skeleton body for an emission: an Entity root, a hit shape for the blast pass to fill (or
-## the presence pass to remove from a hitscan shot), and its Ownership. Locomotion, Payload, phases and visuals are the sync's.
+## the presence pass to remove from a hitscan shot), and its Ownership. Locomotion, Payload, phases
+## and visuals are the sync's.
 func _projectile_root_body(a_spec: Dictionary) -> Array:
 	return [
-		"[ext_resource type=\"Script\" uid=\"%s\" path=\"%s\" id=\"1_root\"]" % [
-			_uid_for(SpecComposition.SCRIPT_ENTITY), SpecComposition.SCRIPT_ENTITY],
-		"[ext_resource type=\"Script\" uid=\"%s\" path=\"%s\" id=\"2_own\"]" % [
-			_uid_for(SpecComposition.SCRIPT_OWNERSHIP), SpecComposition.SCRIPT_OWNERSHIP],
+		(
+			'[ext_resource type="Script" uid="%s" path="%s" id="1_root"]'
+			% [_uid_for(SpecComposition.SCRIPT_ENTITY), SpecComposition.SCRIPT_ENTITY]
+		),
+		(
+			'[ext_resource type="Script" uid="%s" path="%s" id="2_own"]'
+			% [_uid_for(SpecComposition.SCRIPT_OWNERSHIP), SpecComposition.SCRIPT_OWNERSHIP]
+		),
 		"",
-		"[node name=\"%s\" type=\"CharacterBody3D\"]" % str(a_spec["id"]).to_pascal_case(),
+		'[node name="%s" type="CharacterBody3D"]' % str(a_spec["id"]).to_pascal_case(),
 		"collision_layer = 0",
 		"collision_mask = 2",
-		"script = ExtResource(\"1_root\")",
+		'script = ExtResource("1_root")',
 		"",
-		"[node name=\"HitShape\" type=\"CollisionShape3D\" parent=\".\"]",
+		'[node name="HitShape" type="CollisionShape3D" parent="."]',
 		"",
-		"[node name=\"Ownership\" type=\"Node\" parent=\".\"]",
-		"script = ExtResource(\"2_own\")",
+		'[node name="Ownership" type="Node" parent="."]',
+		'script = ExtResource("2_own")',
 	]
 
 
@@ -1901,11 +2243,13 @@ func _projectile_root_body(a_spec: Dictionary) -> Array:
 ## (factions, status effects) rather than an inherited base scene.
 func _script_root_body(a_spec: Dictionary, a_script: String, a_res_id: String) -> Array:
 	return [
-		"[ext_resource type=\"Script\" uid=\"%s\" path=\"%s\" id=\"%s\"]" % [
-			_uid_for(a_script), a_script, a_res_id],
+		(
+			'[ext_resource type="Script" uid="%s" path="%s" id="%s"]'
+			% [_uid_for(a_script), a_script, a_res_id]
+		),
 		"",
-		"[node name=\"%s\" type=\"Node\"]" % str(a_spec["id"]).to_pascal_case(),
-		"script = ExtResource(\"%s\")" % a_res_id,
+		'[node name="%s" type="Node"]' % str(a_spec["id"]).to_pascal_case(),
+		'script = ExtResource("%s")' % a_res_id,
 	]
 
 
@@ -1924,7 +2268,7 @@ func _faction_subdir(a_spec: Dictionary) -> String:
 func _write_skeleton(a_path: String, a_body: Array) -> bool:
 	var uid_int: int = ResourceUID.create_id()
 	var uid: String = ResourceUID.id_to_text(uid_int)
-	var lines: Array = ["[gd_scene load_steps=2 format=3 uid=\"%s\"]" % uid, ""]
+	var lines: Array = ['[gd_scene load_steps=2 format=3 uid="%s"]' % uid, ""]
 	lines.append_array(a_body)
 	lines.append("")
 	DirAccess.make_dir_recursive_absolute(a_path.get_base_dir())
@@ -2033,7 +2377,8 @@ func _sync_piece_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	var visual_class: int = VisualDefaults.classify_piece(
 		_piece_frame_type(a_ctx, a_spec),
 		_piece_movement_mode(a_ctx, a_spec),
-		a_ctx.inst.has_node("Structure"))
+		a_ctx.inst.has_node("Structure")
+	)
 	var footprint: Vector2i = _piece_footprint(a_ctx, a_spec)
 	var measurement: Dictionary = VisualMeasure.measure(a_ctx.inst)
 	if SpecSchema.wants_no_visual(a_spec):
@@ -2043,8 +2388,13 @@ func _sync_piece_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 		# the scene would stop meaning what the doc says.
 		_remove_component(a_ctx, VisualMeasure.MESH_VISUAL_PATH)
 	elif VisualMeasure.needs_placeholder_mesh(a_ctx.inst, measurement):
-		measurement = _bake_placeholder_mesh(a_ctx, visual_class, footprint,
-			VisualMeasure.MESH_VISUAL_PATH, VisualMeasure.PLACEHOLDER_NODE)
+		measurement = _bake_placeholder_mesh(
+			a_ctx,
+			visual_class,
+			footprint,
+			VisualMeasure.MESH_VISUAL_PATH,
+			VisualMeasure.PLACEHOLDER_NODE
+		)
 	_bake_selection_shape(a_ctx, visual_class, measurement, footprint)
 	_bake_hp_bar(a_ctx, measurement)
 
@@ -2058,20 +2408,32 @@ func _sync_piece_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 ## particle effect — wants no stand-in either.
 func _sync_projectile_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if SpecSchema.wants_no_visual(a_spec):
-		for node_name: String in [VisualMeasure.IN_FLIGHT_MESH_NODE,
-				VisualMeasure.POST_IMPACT_MESH_NODE]:
+		for node_name: String in [
+			VisualMeasure.IN_FLIGHT_MESH_NODE, VisualMeasure.POST_IMPACT_MESH_NODE
+		]:
 			_remove_component(a_ctx, node_name)
 		return
 	var visual_class: int = VisualDefaults.classify_projectile(EmissionPhases.first_motion(a_spec))
-	if a_ctx.inst.get_node_or_null(VisualMeasure.IN_FLIGHT_MESH_NODE) == null \
-			and not VisualMeasure.has_tracer_beam(a_ctx.inst):
-		_bake_placeholder_mesh(a_ctx, visual_class, Vector2i.ONE, ".",
-			VisualMeasure.IN_FLIGHT_MESH_NODE)
-	if _projectile_persists(a_ctx, a_spec) \
-			and a_ctx.inst.get_node_or_null(VisualMeasure.POST_IMPACT_MESH_NODE) == null \
-			and not VisualMeasure.has_impact_effect(a_ctx.inst):
-		_bake_placeholder_mesh(a_ctx, visual_class, Vector2i.ONE, ".",
-			VisualMeasure.POST_IMPACT_MESH_NODE, VisualDefaults.impact_burst_mesh())
+	if (
+		a_ctx.inst.get_node_or_null(VisualMeasure.IN_FLIGHT_MESH_NODE) == null
+		and not VisualMeasure.has_tracer_beam(a_ctx.inst)
+	):
+		_bake_placeholder_mesh(
+			a_ctx, visual_class, Vector2i.ONE, ".", VisualMeasure.IN_FLIGHT_MESH_NODE
+		)
+	if (
+		_projectile_persists(a_ctx, a_spec)
+		and a_ctx.inst.get_node_or_null(VisualMeasure.POST_IMPACT_MESH_NODE) == null
+		and not VisualMeasure.has_impact_effect(a_ctx.inst)
+	):
+		_bake_placeholder_mesh(
+			a_ctx,
+			visual_class,
+			Vector2i.ONE,
+			".",
+			VisualMeasure.POST_IMPACT_MESH_NODE,
+			VisualDefaults.impact_burst_mesh()
+		)
 
 
 ## Adds the class's stand-in model and returns the measurement it implies, so the selection
@@ -2084,38 +2446,57 @@ func _sync_projectile_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 ## centred on its own origin — and projectiles are not, having no ground to stand on.
 ## `a_descriptor` overrides the class's own mesh, for the one slot that does not want it —
 ## a projectile's impact burst, which must not look like the shell that caused it.
-func _bake_placeholder_mesh(a_ctx: Ctx, a_visual_class: int, a_footprint: Vector2i,
-		a_parent_path: String, a_node_name: String, a_descriptor: Dictionary = {}) -> Dictionary:
+func _bake_placeholder_mesh(
+	a_ctx: Ctx,
+	a_visual_class: int,
+	a_footprint: Vector2i,
+	a_parent_path: String,
+	a_node_name: String,
+	a_descriptor: Dictionary = {}
+) -> Dictionary:
 	var empty: Dictionary = {
-		"has_mesh": false, "mesh_count": 0, "size": Vector3.ZERO, "top": 0.0,
+		"has_mesh": false,
+		"mesh_count": 0,
+		"size": Vector3.ZERO,
+		"top": 0.0,
 		"is_placeholder": false,
 	}
 	if a_parent_path != "." and a_ctx.inst.get_node_or_null(a_parent_path) == null:
-		report["warnings"].append("%s: no %s node — cannot add a placeholder model"
-			% [a_ctx.path, a_parent_path])
+		report["warnings"].append(
+			"%s: no %s node — cannot add a placeholder model" % [a_ctx.path, a_parent_path]
+		)
 		return empty
-	var descriptor: Dictionary = a_descriptor if not a_descriptor.is_empty() \
+	var descriptor: Dictionary = (
+		a_descriptor
+		if not a_descriptor.is_empty()
 		else VisualDefaults.placeholder_mesh(a_visual_class, a_footprint)
+	)
 	var size: Vector3 = VisualDefaults.placeholder_size(descriptor)
 	var is_grounded: bool = not VisualDefaults.is_projectile_class(a_visual_class)
 	var mesh_id: String = a_ctx.doc.add_sub_resource(
-		String(descriptor["type"]), "placeholder", _raw_props(descriptor["props"]))
+		String(descriptor["type"]), "placeholder", _raw_props(descriptor["props"])
+	)
 	var props: Dictionary = {
-		"mesh": "SubResource(\"%s\")" % mesh_id,
+		"mesh": 'SubResource("%s")' % mesh_id,
 		"metadata/%s" % VisualMeasure.STAMP_MESH:
-			TscnDoc.fmt_string(String(VisualDefaults.CLASS_NAMES[a_visual_class])),
+		TscnDoc.fmt_string(String(VisualDefaults.CLASS_NAMES[a_visual_class])),
 	}
 	if is_grounded:
 		props["transform"] = TscnDoc.fmt_transform(
-			Transform3D(Basis.IDENTITY, Vector3(0.0, size.y / 2.0, 0.0)))
+			Transform3D(Basis.IDENTITY, Vector3(0.0, size.y / 2.0, 0.0))
+		)
 	a_ctx.doc.add_node(
-		[["name", a_node_name], ["type", "MeshInstance3D"], ["parent", a_parent_path]], props)
-	var full_path: String = a_node_name if a_parent_path == "." \
-		else "%s/%s" % [a_parent_path, a_node_name]
+		[["name", a_node_name], ["type", "MeshInstance3D"], ["parent", a_parent_path]], props
+	)
+	var full_path: String = (
+		a_node_name if a_parent_path == "." else "%s/%s" % [a_parent_path, a_node_name]
+	)
 	a_ctx.created_nodes[full_path] = true
 	a_ctx.dirty = true
 	return {
-		"has_mesh": true, "mesh_count": 1, "size": size,
+		"has_mesh": true,
+		"mesh_count": 1,
+		"size": size,
 		"top": size.y if is_grounded else size.y / 2.0,
 		"is_placeholder": true,
 	}
@@ -2123,24 +2504,35 @@ func _bake_placeholder_mesh(a_ctx: Ctx, a_visual_class: int, a_footprint: Vector
 
 ## The click target. Skipped entirely unless the slot is CLEARED — a scene that already
 ## carries a shape carries somebody's decision, whether they typed it or accepted ours.
-func _bake_selection_shape(a_ctx: Ctx, a_visual_class: int, a_measurement: Dictionary,
-		a_footprint: Vector2i) -> void:
-	if not _wants_bake(VisualMeasure.selection_is_cleared(a_ctx.inst),
-			VisualMeasure.selection_is_owned(a_ctx.inst)):
+func _bake_selection_shape(
+	a_ctx: Ctx, a_visual_class: int, a_measurement: Dictionary, a_footprint: Vector2i
+) -> void:
+	if not _wants_bake(
+		VisualMeasure.selection_is_cleared(a_ctx.inst), VisualMeasure.selection_is_owned(a_ctx.inst)
+	):
 		return
 	var descriptor: Dictionary = VisualDefaults.selection_shape(
-		a_visual_class, a_measurement["size"], a_footprint)
+		a_visual_class, a_measurement["size"], a_footprint
+	)
 	var section: Dictionary = _section_for(a_ctx, VisualMeasure.SELECTION_SHAPE_PATH)
 	if section.is_empty():
-		report["warnings"].append("%s: no %s node — cannot size selection"
-			% [a_ctx.path, VisualMeasure.SELECTION_SHAPE_PATH])
+		report["warnings"].append(
+			(
+				"%s: no %s node — cannot size selection"
+				% [a_ctx.path, VisualMeasure.SELECTION_SHAPE_PATH]
+			)
+		)
 		return
 	_drop_orphan_shape(a_ctx, section)
 	var shape_id: String = a_ctx.doc.add_sub_resource(
-		String(descriptor["type"]), "selection", _raw_props(descriptor["props"]))
-	a_ctx.doc.set_prop(section, "shape", "SubResource(\"%s\")" % shape_id)
-	a_ctx.doc.set_prop(section, "metadata/%s" % VisualMeasure.STAMP_SELECTION,
-		TscnDoc.fmt_string(String(descriptor["type"])))
+		String(descriptor["type"]), "selection", _raw_props(descriptor["props"])
+	)
+	a_ctx.doc.set_prop(section, "shape", 'SubResource("%s")' % shape_id)
+	a_ctx.doc.set_prop(
+		section,
+		"metadata/%s" % VisualMeasure.STAMP_SELECTION,
+		TscnDoc.fmt_string(String(descriptor["type"]))
+	)
 	a_ctx.dirty = true
 
 
@@ -2152,26 +2544,28 @@ func _bake_selection_shape(a_ctx: Ctx, a_visual_class: int, a_measurement: Dicti
 ## the x scale and the origin are written: y and z carry the bar's authored thickness and
 ## are none of this pass's business.
 func _bake_hp_bar(a_ctx: Ctx, a_measurement: Dictionary) -> void:
-	if not _wants_bake(VisualMeasure.hp_bar_is_cleared(a_ctx.inst),
-			VisualMeasure.hp_bar_is_owned(a_ctx.inst)):
+	if not _wants_bake(
+		VisualMeasure.hp_bar_is_cleared(a_ctx.inst), VisualMeasure.hp_bar_is_owned(a_ctx.inst)
+	):
 		return
 	var bar: Node3D = a_ctx.inst.get_node_or_null(VisualMeasure.HP_BAR_PATH) as Node3D
 	var scale_per_unit: float = VisualMeasure.hp_bar_scale_per_world_unit(a_ctx.inst)
 	if bar == null or scale_per_unit <= 0.0:
-		report["warnings"].append("%s: no measurable HP bar fill — bar left as authored"
-			% a_ctx.path)
+		report["warnings"].append(
+			"%s: no measurable HP bar fill — bar left as authored" % a_ctx.path
+		)
 		return
 	var width: float = VisualDefaults.hp_bar_width(VisualMeasure.model_width(a_measurement))
 	var authored: Vector3 = bar.transform.basis.get_scale()
-	var basis: Basis = Basis.from_scale(
-		Vector3(width * scale_per_unit, authored.y, authored.z))
+	var basis: Basis = Basis.from_scale(Vector3(width * scale_per_unit, authored.y, authored.z))
 	var origin: Vector3 = VisualDefaults.hp_bar_origin(float(a_measurement["top"]))
 	var section: Dictionary = _section_for(a_ctx, VisualMeasure.HP_BAR_PATH)
 	if section.is_empty():
 		return
 	a_ctx.doc.set_prop(section, "transform", TscnDoc.fmt_transform(Transform3D(basis, origin)))
-	a_ctx.doc.set_prop(section, "metadata/%s" % VisualMeasure.STAMP_HP_BAR,
-		TscnDoc.fmt_float(width))
+	a_ctx.doc.set_prop(
+		section, "metadata/%s" % VisualMeasure.STAMP_HP_BAR, TscnDoc.fmt_float(width)
+	)
 	a_ctx.dirty = true
 
 
@@ -2191,7 +2585,7 @@ func _wants_bake(a_is_cleared: bool, a_is_owned: bool) -> bool:
 func _drop_orphan_shape(a_ctx: Ctx, a_section: Dictionary) -> void:
 	var raw: String = a_ctx.doc.get_prop(a_section, "shape")
 	var regex: RegEx = RegEx.new()
-	regex.compile("^SubResource\\(\"([^\"]+)\"\\)$")
+	regex.compile('^SubResource\\("([^"]+)"\\)$')
 	var match_result: RegExMatch = regex.search(raw)
 	if match_result != null and _sub_resource_ref_count(a_ctx, match_result.get_string(1)) == 1:
 		a_ctx.doc.remove_sub_resource(match_result.get_string(1))
@@ -2237,6 +2631,10 @@ func _projectile_persists(_a_ctx: Ctx, a_spec: Dictionary) -> bool:
 	if a_spec.has("blast") and float(a_spec["blast"]) > 0.0:
 		return true
 	var later: Array[Dictionary] = EmissionPhases.expand(a_spec).slice(1)
-	return later.any(func(p: Dictionary) -> bool:
-		return is_inf(float(p["lifespan_seconds"])) \
-			or TimeUtils.ticks_from_seconds(float(p["lifespan_seconds"])) > 1)
+	return later.any(
+		func(p: Dictionary) -> bool:
+			return (
+				is_inf(float(p["lifespan_seconds"]))
+				or TimeUtils.ticks_from_seconds(float(p["lifespan_seconds"])) > 1
+			)
+	)

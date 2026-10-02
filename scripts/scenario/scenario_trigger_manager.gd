@@ -68,6 +68,7 @@ var _fog: Node  # fog.gd MeshInstance3D; cached on first get_fog() call
 var reaction_source: Entity = null
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	# Conditions must keep being evaluated while a SimulationClock hold freezes the world:
@@ -141,7 +142,8 @@ func _ready() -> void:
 
 ## Clear every authored Condition's runtime state, once, at the start of this session.
 ##
-## Why it works this way: gdd/systems/scenario-scripting/conditions-and-regions.md §Resetting conditions between sessions.
+## Why it works this way: gdd/systems/scenario-scripting/conditions-and-regions.md §Resetting
+## conditions between sessions.
 func _reset_session_conditions() -> void:
 	for trigger: GlobalTrigger in global_triggers:
 		trigger.reset_conditions()
@@ -214,7 +216,10 @@ func _arm_satisfied_triggers() -> void:
 			continue
 		if trigger.prerequisites_satisfied():
 			trigger.set_active(true, self)
+
+
 #endregion
+
 
 #region Prerequisite validation
 ## Report any cycle in the prerequisite graph, naming the loop.
@@ -241,9 +246,13 @@ func _walk_prerequisites(a_trigger: GlobalTrigger, a_marks: Dictionary, a_path: 
 		var names: Array = loop.map(func(t: GlobalTrigger) -> String: return String(t.name))
 		names.append(String(a_trigger.name))
 		push_error(
-			"ScenarioTriggerManager: prerequisite cycle %s — every trigger in it waits on "
-			% " -> ".join(names)
-			+ "another, so none of them will ever arm."
+			(
+				(
+					"ScenarioTriggerManager: prerequisite cycle %s — every trigger in it waits on "
+					% " -> ".join(names)
+				)
+				+ "another, so none of them will ever arm."
+			)
 		)
 		return
 	a_marks[a_trigger] = 1
@@ -252,7 +261,10 @@ func _walk_prerequisites(a_trigger: GlobalTrigger, a_marks: Dictionary, a_path: 
 		_walk_prerequisites(prerequisite, a_marks, a_path)
 	a_path.pop_back()
 	a_marks[a_trigger] = 2
+
+
 #endregion
+
 
 #region Public API
 ## Number of GlobalTriggers still active (enabled) — i.e. waiting to fire or able to
@@ -308,11 +320,10 @@ func triggers_in_scope(a_scope: GlobalTrigger.ObjectiveScope) -> Array[GlobalTri
 ## refresh()) can't disagree about the order, and so a test can assert it without a HUD.
 func visible_objective_triggers() -> Array[GlobalTrigger]:
 	var result: Array[GlobalTrigger] = []
+	var is_revealed := func(t: GlobalTrigger) -> bool:
+		return t.objective_state() != GlobalTrigger.ObjectiveState.PENDING
 	for scope: GlobalTrigger.ObjectiveScope in SCOPE_DISPLAY_ORDER:
-		result.append_array(triggers_in_scope(scope).filter(
-			func(t: GlobalTrigger) -> bool:
-				return t.objective_state() != GlobalTrigger.ObjectiveState.PENDING
-		))
+		result.append_array(triggers_in_scope(scope).filter(is_revealed))
 	return result
 
 
@@ -325,8 +336,9 @@ func all_objectives_complete() -> bool:
 	var objectives: Array[GlobalTrigger] = global_triggers.filter(
 		func(t: GlobalTrigger) -> bool: return t.counts_toward_completion()
 	)
-	return not objectives.is_empty() and objectives.all(
-		func(t: GlobalTrigger) -> bool: return t.has_fired
+	return (
+		not objectives.is_empty()
+		and objectives.all(func(t: GlobalTrigger) -> bool: return t.has_fired)
 	)
 
 
@@ -353,7 +365,10 @@ func get_fog() -> Node:
 		return _fog
 	_fog = get_tree().current_scene.find_child("Fog", true, false)
 	return _fog
+
+
 #endregion
+
 
 #region Event execution
 ## Run an AbstractEvent that is already in the tree and positioned: execute it, then

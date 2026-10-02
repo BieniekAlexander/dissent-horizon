@@ -9,19 +9,35 @@ enum Type {
 }
 
 static var evaluators: Dictionary = {
-	Type.IS_GROUNDED: func(e: Node) -> bool:
-		var m: Movement = e.get_node_or_null("Locomotion") as Movement
-		return m == null or not m.is_active or m.mode == Movement.Mode.GROUNDED,
-	Type.IS_FLYING: func(e: Node) -> bool:
-		var m: Movement = e.get_node_or_null("Locomotion") as Movement
-		return m != null and m.is_active \
-			and (m.mode == Movement.Mode.FLYING or m.mode == Movement.Mode.HOVERING),
-	Type.HAS_STEALTH: func(e: Node) -> bool:
-		return e.get_node_or_null("Stealth") != null,
-	Type.IS_BIOLOGICAL: func(e: Node) -> bool:
-		var d: Defense = e.get_node_or_null("Defense") as Defense
-		return d != null and d.frame_type == Defense.FrameType.BIO,
+	Type.IS_GROUNDED: _is_grounded,
+	Type.IS_FLYING: _is_flying,
+	Type.HAS_STEALTH: _has_stealth,
+	Type.IS_BIOLOGICAL: _is_biological,
 }
+
+
+static func _is_grounded(e: Node) -> bool:
+	var m: Movement = e.get_node_or_null("Locomotion") as Movement
+	return m == null or not m.is_active or m.mode == Movement.Mode.GROUNDED
+
+
+static func _is_flying(e: Node) -> bool:
+	var m: Movement = e.get_node_or_null("Locomotion") as Movement
+	return (
+		m != null
+		and m.is_active
+		and (m.mode == Movement.Mode.FLYING or m.mode == Movement.Mode.HOVERING)
+	)
+
+
+static func _has_stealth(e: Node) -> bool:
+	return e.get_node_or_null("Stealth") != null
+
+
+static func _is_biological(e: Node) -> bool:
+	var d: Defense = e.get_node_or_null("Defense") as Defense
+	return d != null and d.frame_type == Defense.FrameType.BIO
+
 
 static func evaluate(attribute: Type, entity: Node) -> bool:
 	var fn: Callable = evaluators.get(attribute)

@@ -33,7 +33,6 @@ var _signals: Array = []
 var switch_margin: float = 1.3
 var scan_radius: float = DEFAULT_SCAN_RADIUS
 
-
 ## Default per-signal weights (the relative importance dial). Each signal is roughly
 ## normalised so the weights are comparable: threat 0/1, effectiveness ~a damage multiplier
 ## centred on 1, finishability 0..1, proximity 0..1.
@@ -47,7 +46,6 @@ const W_THREAT: float = 1.0
 const W_EFFECTIVENESS: float = 1.0
 const W_FINISHABILITY: float = 1.0
 const W_PROXIMITY: float = 0.5
-
 
 ## The owner name this module claims units under (BotClaims): a unit it has sent at a
 ## specific target is engaged, and the army's rally must not override it mid-fight.
@@ -146,10 +144,14 @@ func _retarget(a_unit: Commandable) -> void:
 	# the footprint gap then decides, as for every range (SU.hull_gap).
 	var radius: float = _engage_radius(a_unit)
 	var from: Hull = a_unit.hull()
-	var candidates: Array = _bot.get_enemies_near(a_unit.global_position,
-			radius + from.extent()).filter(
-		func(c: Commandable): return a_unit.weapon_inventory.weapon_for_target(c) != null \
-			and c.is_visible_to(_bot.id) and Hull.gap(from, c.hull()) <= radius
+	var nearby: Array = _bot.get_enemies_near(a_unit.global_position, radius + from.extent())
+	var candidates: Array = nearby.filter(
+		func(c: Commandable):
+			return (
+				a_unit.weapon_inventory.weapon_for_target(c) != null
+				and c.is_visible_to(_bot.id)
+				and Hull.gap(from, c.hull()) <= radius
+			)
 	)
 	_work += candidates.size() * CANDIDATE_WORK_UNITS
 	if candidates.is_empty():
@@ -212,7 +214,9 @@ func _current_target(a_unit: Commandable) -> Commandable:
 ## Highest-scoring candidate that clears the commitment margin over the current
 ## target, or null to keep the current target. A null current target (attack-moving)
 ## means any positively-scored candidate qualifies.
-func _best_candidate(a_unit: Commandable, a_current: Commandable, a_candidates: Array) -> Commandable:
+func _best_candidate(
+	a_unit: Commandable, a_current: Commandable, a_candidates: Array
+) -> Commandable:
 	var threshold: float = _score(a_unit, a_current) * switch_margin if a_current != null else 0.0
 	var best: Commandable = null
 	var best_score: float = threshold
@@ -236,6 +240,7 @@ func _score(a_unit: Commandable, a_candidate: Commandable) -> float:
 # ─── SIGNALS ────────────────────────────────────────────────────────────────
 # Each signal is static, (unit, candidate) -> float, higher = more desirable to
 # attack. Keep them cheap (they run per unit per candidate per think).
+
 
 ## THREAT — does `candidate` pose a present danger to `unit`: it can target `unit`
 ## AND is currently positioned to hit it. A harmless target (a building, or an enemy
