@@ -115,7 +115,10 @@ faction.
 
 ### Time to tier
 
-Assume the dominion rate climbs as the player invests in it. A target rate ramp, in site-equivalents:
+Assume the dominion rate climbs as the player invests in it. A target rate ramp, in site-equivalents.
+**It is an UNCONTESTED ceiling.** Dominion gathering is designed to be vulnerable to interference
+(Alex, 2026-10-02), so in a real match every arrival time below slips by however much the opponent
+disrupts collection:
 
 | Match time | Rate | Site-equivalents | Cumulative dominion |
 |---|---|---|---|
@@ -151,10 +154,13 @@ The volatility of the abilities should usually end a match before then. Collecti
 dominion will mostly happen in casual, lower-skill play and in relaxed matches against easy bots.
 This supersedes [dominion-and-ordnance](dominion-and-ordnance.md) §The grid is never finished.
 
-**Price alone barely separates the first T4 from the second.** Late in a match dominion arrives at
-about 12/s, so a second 2500 cell is only about 3.5 minutes behind the first (about 16.5 min
-above). Pricing T4 high enough to push the second to about 24 minutes (about 5000 each) would
-push the *first* to about 16.5 minutes too. Three levers, in order of preference:
+**Decided (Alex, 2026-10-02): about three minutes between the first and second T4 is fine.** Late
+in a match dominion arrives at about 12/s, so a second 2500 cell is about 3.5 minutes behind the
+first (about 16.5 min above) when collection goes uncontested. Because collection is meant to be
+interfered with, the real gap is longer, and a player who wins the second T4 has usually won the
+fight over their dominion too. **So price alone is the starting point, with no new mechanic.**
+
+The levers, should self-play show second T4s arriving too often:
 
 1. **The caster gate, which already exists.** Each T4 cell is cast from its own expensive,
    slow-charging building: the Storm Cell (2000 energy, 240 s cooldown) for Blizzard and the EMP
@@ -163,8 +169,7 @@ push the *first* to about 16.5 minutes too. Three levers, in order of preference
    anything.
 2. **Price T4 at the top of its band** (3000). It costs the first T4 about a minute.
 3. **An escalating T4 price**: each T4 owned multiplies the next one's price (×2 puts the second
-   at about 20 minutes on the ramp above). This is a new mechanic and needs code, so it is held in
-   reserve.
+   at about 20 minutes on the ramp above). Not wanted for now; it would need code.
 
 Whole-grid prices on the proposed grids below, at the band midpoints (T1 225, T2 550, T3 1200,
 T4 2500), with no escalation:
@@ -225,8 +230,9 @@ infantry unit's sight (`vision_ground_small`, 16), so it feels useless.
 | Scan 1 | T1 | permanent, **visible** | larger radius | none |
 | Scan 2 | T2 | permanent, possibly **stealthed** | same | yes |
 
-- **Radius candidates** from [shapes](../../../shapes/shapes.md): `vision_ground_medium` (20) or
-  `vision_ground_large` (24). For Scan 2's detection, `detection_medium` (16) keeps it below
+- **Decided (Alex, 2026-10-02): the reveal grows to a named vision shape** from
+  [shapes](../../../shapes/shapes.md): `vision_ground_medium` (20) or `vision_ground_large` (24),
+  up from 10. For Scan 2's detection, `detection_medium` (16) keeps it below
   dedicated detectors, and `detection_large` (24) makes it one.
 - **Counterplay is the observer itself.** It is a Recon Drone, visible and shootable by
   anti-air, so a permanent reveal costs the opponent an anti-air response rather than nothing.
@@ -253,10 +259,10 @@ Supply Beacon (800 energy, 60 s cooldown):
 | *extractor on a site* | — | — | 5 | 1.0%/s |
 
 **Decided (Alex, 2026-10-02): make the Supply Beacon a very expensive investment**, after Zero
-Hour's Supply Drop Zone. **Proposed rule:** a caster that delivers units should pay back no faster
-than an extractor at its *top* level. Drop 3 at 16.7/s then wants a Supply Beacon of at least
-about 1700 energy. Pricing it about 2000–2500 makes Drop 1 a slow investment (a 400–500 s payback)
-that only the deeper levels justify.
+Hour's Supply Drop Zone, **priced about 2000–2500 energy.** The rule behind it: a caster that
+delivers units should pay back no faster than an extractor at its *top* level. Drop 3 at 16.7/s
+then needs a Supply Beacon of at least about 1700 energy. At 2000–2500, Drop 1 is a slow
+investment (a 400–500 s payback) that only the deeper levels justify.
 
 Ambush, for comparison, is safe today: the Hideout (600 energy, 180 s) yields 1.7/s at 3
 Irregulars and 4.4/s at 8.
@@ -278,9 +284,9 @@ Listed so the later change is complete. None of it is done.
 - Re-price every sanction doc from the ladder.
 - `PlayerSlot.starting_dominion` default 300 → about 100 (Decided: 300 was a placeholder), and
   the scenarios that set their own values.
-- Scan: two levels, permanent lifetime, new radius, detection on level 2.
+- Scan: two levels, permanent lifetime, radius 10 → 20 or 24, detection on level 2.
 - Ambush: two levels, 3 and 8.
-- Supply Beacon (`cl_support2`) price.
+- Supply Beacon (`cl_support2`) price, 800 → 2000–2500.
 - Overcharge: remove from the Anarchical grid; re-home it with a faction that has a low-tier EMP.
 - Dominion rates per §Fungibility, and the Technocratic dominion extractor.
 - [sanction-grid](../sanctions/sanction-grid.md)'s worked examples (Freeze 2 "two tiers below
@@ -291,5 +297,4 @@ Listed so the later change is complete. None of it is done.
 - Technocratic dominion extractors: allowed on ponds? Is the energy/dominion choice permanent?
 - Drop's tier placement: T2–T4, or T1–T3?
 - Beacon: keep three levels, or merge levels 2 and 3?
-- Scan 2: stealthed observer or not, and which detection radius?
-- Second T4: is the caster gate enough, or is an escalating T4 price wanted?
+- Scan: reveal radius 20 or 24? Scan 2: stealthed observer or not, and which detection radius?
