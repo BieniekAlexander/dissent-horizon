@@ -15,6 +15,9 @@ extends Node
 ##   shots=   semicolon-separated `name:x,z,size` (world XZ focus, orthographic size);
 ##            defaults to a whole-map overview plus a game-zoom shot at the map centre
 ##   rig=     0 to render with no lighting rig added (the scene's own lights only)
+##   sun_elevation=  degrees above the horizon for the rig's key light (default: as authored)
+##   ambient=        the fallback Environment's ambient energy (default: as authored)
+##   terrain_specular=  the terrain material's specular_strength; also turns on the key's specular
 ##   facets=  1 to draw MapDecorator's facet markers (where later dressing would go)
 ##
 ## A tool, not a test: what it checks is whether the picture reads, which only a person can
@@ -52,6 +55,7 @@ func _run() -> void:
 		map.rebuild_decoration()
 	if String(args.get("rig", "1")) != "0" and ResourceLoader.exists(DEFAULT_RIG):
 		holder.add_child((load(DEFAULT_RIG) as PackedScene).instantiate())
+	_apply_lighting_overrides(args, holder, map)
 
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -73,6 +77,30 @@ func _run() -> void:
 		get_viewport().get_texture().get_image().save_png(path)
 		print("visual_preview: wrote ", path)
 	get_tree().quit(0)
+
+
+## Lighting knobs for A/B comparisons; each is left as authored unless its argument is given.
+func _apply_lighting_overrides(a_args: Dictionary, a_holder: Node, a_map: Map) -> void:
+	var key := a_holder.find_child("KeySun", true, false) as DirectionalLight3D
+	if a_args.has("sun_elevation") and key != null:
+		# Keep the authored azimuth; change only how far above the horizon the sun stands.
+		var shine: Vector3 = -key.global_transform.basis.z
+		var flat := Vector3(shine.x, 0.0, shine.z).normalized()
+		var elevation: float = deg_to_rad(float(a_args.sun_elevation))
+		var direction: Vector3 = flat * cos(elevation) + Vector3.DOWN * sin(elevation)
+		key.look_at(key.global_position + direction, Vector3.UP)
+		print("visual_preview: key light shines along ", direction)
+	if a_args.has("ambient"):
+		var env: Environment = get_viewport().find_world_3d().fallback_environment
+		if env != null:
+			env.ambient_light_energy = float(a_args.ambient)
+			print("visual_preview: ambient energy ", env.ambient_light_energy)
+	if a_args.has("terrain_specular"):
+		var material: ShaderMaterial = a_map.terrain_material()
+		if material != null:
+			material.set_shader_parameter("specular_strength", float(a_args.terrain_specular))
+		if key != null:
+			key.light_specular = 1.0
 
 
 func _load_map(a_path: String) -> Map:

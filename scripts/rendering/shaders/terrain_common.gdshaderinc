@@ -79,6 +79,10 @@ uniform float hachure_spacing = 0.45;  // world units between strokes
 uniform float hachure_strength = 0.7;
 uniform float hachure_gradient_min = 0.02;
 uniform float hachure_gradient_max = 0.12;
+// Terrain specular: 0 is matte. Broad and weak on purpose: a sheen on ground tilted to bounce
+// the sun at the camera, broken up by the grain so it reads as grass catching light.
+uniform float specular_strength = 0.0;
+uniform float specular_roughness = 0.55;
 uniform vec4 hachure_color : source_color = vec4(0.11, 0.17, 0.07, 1.0);
 
 float th_hash(vec2 p) {
@@ -173,6 +177,16 @@ float th_hachure(vec2 p, vec3 n) {
 	float stroke = 1.0 - smoothstep(0.1, 0.32, abs(fract(u) - 0.5 - offset));
 	float dash = step(0.3, th_value_noise(vec2(lane * 1.7, v / 1.4)));
 	return stroke * dash * fade;
+}
+
+// SPECULAR and ROUGHNESS for a fragment: matte when specular_strength is 0.
+vec2 th_specular(vec2 p, float impassable) {
+	if (specular_strength <= 0.0) {
+		return vec2(0.0, 1.0);
+	}
+	float clump = th_grain(p);
+	return vec2(specular_strength * mix(0.4, 1.0, clump) * (1.0 - 0.5 * impassable),
+		specular_roughness);
 }
 
 // 1 on a pixel within `contour_pixels` of a contour level, antialiased; 0 elsewhere.

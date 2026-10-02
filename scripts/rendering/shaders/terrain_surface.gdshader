@@ -24,7 +24,7 @@ shader_type spatial;
 //
 // The shading itself is shared with s1.gdshader: terrain_common.gdshaderinc.
 
-render_mode cull_disabled, specular_disabled;
+render_mode cull_disabled;
 
 #include "res://scripts/rendering/shaders/terrain_common.gdshaderinc"
 
@@ -65,6 +65,8 @@ void fragment() {
 	vec3 n = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	NORMAL = normalize((VIEW_MATRIX * vec4(th_grain_normal(v_world.xz, n, impassable), 0.0)).xyz);
 	ALBEDO = th_apply_fog(th_shade(v_world, idx, impassable, uv, n), v_world.xz);
-	ROUGHNESS = 1.0;
+	vec2 spec = th_specular(v_world.xz, impassable);
+	SPECULAR = spec.x;
+	ROUGHNESS = spec.y;
 	METALLIC = 0.0;
 }

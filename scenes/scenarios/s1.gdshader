@@ -11,7 +11,7 @@ shader_type spatial;
 // and lighting its facets renders a smooth grade as a staircase. Cliffs stay sharp anyway,
 // because they are coloured by the per-cell steep flag rather than by the normal.
 
-render_mode cull_back, specular_disabled;
+render_mode cull_back;
 
 #include "res://scripts/rendering/shaders/terrain_common.gdshaderinc"
 
@@ -35,6 +35,8 @@ void fragment() {
 		: normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	NORMAL = normalize((VIEW_MATRIX * vec4(th_grain_normal(v_world.xz, n, impassable), 0.0)).xyz);
 	ALBEDO = th_apply_fog(th_shade(v_world, idx, impassable, uv, n), v_world.xz);
-	ROUGHNESS = 1.0;
+	vec2 spec = th_specular(v_world.xz, impassable);
+	SPECULAR = spec.x;
+	ROUGHNESS = spec.y;
 	METALLIC = 0.0;
 }

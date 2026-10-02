@@ -66,6 +66,19 @@ func test_an_unlit_scenario_gets_the_default_rig() -> void:
 	scenario.free()
 
 
+## Regression: the rig shipped with both suns pointing along the horizon (the scene's
+## Transform3D was written column-major), so the key never lit flat ground at all.
+func test_the_key_sun_shines_down_from_the_upper_left_of_the_screen() -> void:
+	var rig: Node = (load(Scenario.DEFAULT_LIGHTING_SCENE) as PackedScene).instantiate()
+	var key := rig.get_node("KeySun") as DirectionalLight3D
+	var shine: Vector3 = -key.transform.basis.z
+	assert_lt(shine.y, -0.5, "the key shines downward, from well above the horizon")
+	assert_gt(shine.x, 0.0, "from the -X side: the upper left of the game camera's view")
+	var fill := rig.get_node("FillSun") as DirectionalLight3D
+	assert_lt((-fill.transform.basis.z).y, 0.0, "the fill shines downward too")
+	rig.free()
+
+
 func test_a_scenario_that_lights_itself_keeps_its_own_light() -> void:
 	var scenario := Scenario.new()
 	var sun := DirectionalLight3D.new()
