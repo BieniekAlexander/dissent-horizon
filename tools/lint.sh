@@ -8,10 +8,8 @@
 # enforce. scripts/generated/ is excluded because it is generated — the generator's
 # output style is the generator's business (see ~/.claude/CLAUDE.md §10).
 #
-# NOTE: gdformat, gdtoolkit's formatter, is still deliberately NOT run here. Indentation is
-# only one of the things it rewrites — it also re-wraps calls, splits `class X extends Y:`
-# in two, and inserts blank lines before every `#endregion`, which this tree uses heavily.
-# See gdd/systems/authoring/linting.md.
+# gdformat's layout is the house style (gdd/systems/authoring/linting.md): this checks it and
+# never rewrites. To format: gdformat -l 100 <files>.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -21,6 +19,10 @@ while IFS= read -r f; do FILES+=("$f"); done \
 
 status=0
 gdlint "${FILES[@]}" || status=1
+gdformat --check -l 100 "${FILES[@]}" > /dev/null 2>&1 || {
+  gdformat --check -l 100 "${FILES[@]}" 2>&1 | grep -v "^would be left unchanged" | tail -20
+  status=1
+}
 
 # --- Tab indentation -----------------------------------------------------------------
 # GDScript's official style guide specifies tabs, and this is what holds the tree to it.

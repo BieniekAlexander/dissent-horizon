@@ -5,7 +5,7 @@ type: system-note
 
 # Linting and formatting
 
-`gdlint` runs; `gdformat` is adopted but not yet run (§PLANNED below). Both come from
+`gdlint` and `gdformat --check` both run from `tools/lint.sh`. Both come from
 [gdtoolkit](https://github.com/Scony/godot-gdscript-toolkit) 4.x:
 
 ```
@@ -42,29 +42,46 @@ fails, which is the case §3.2 forbids.
 
 ## What is still outstanding
 
-As of this note the tree reports **397 findings**, down from 982 before the config existed
-and before the small classes were fixed:
+The tree reports **5 findings** (2026-10-02), down from 449 and from 982 before the config
+existed. Both are recorded at the code:
 
 | Finding | Count | State |
 |---|--:|---|
-| `max-line-length` | 392 | 347 code lines, 45 comments. PLANNED: `gdformat` re-wraps every one of them (below). |
-| `function-name` | 4 | `VU.inXZ` / `onXZ` / `fromXZ` / `l1Norm`. Genuine §3.2 violations; 174 call sites. PLANNED: the rename is approved (2026-09-24). |
-| `function-arguments-number` | 1 | `Tool._init` takes eleven. The composition rework is what shortens it. |
-
-Both remaining classes carry a `TODO` at the code that causes them.
+| `function-name` | 4 | `VU.inXZ` / `onXZ` / `fromXZ` / `l1Norm`. Genuine §3.2 violations; ~174 call sites. PLANNED: the rename is approved (2026-09-24), not yet done. |
+| `function-arguments-number` | 1 | `Tool._init` takes thirteen. The composition rework is what shortens it. |
 
 ---
 
-## PLANNED — adopting `gdformat`
+## gdformat is the house style
 
-**Decided 2026-09-24: the project adopts gdtoolkit's house style.** Not yet run. Its choices
-are opinionated where the hand-written code is not — a `push_error("…" % [...])` becomes a
-double-parenthesised block, a ternary assignment grows two lines of wrapping — and that was
-accepted with the decision.
+**Decided 2026-09-24, run 2026-10-02.** Every hand-written script is formatted by gdformat at
+line length 100 with tabs, and `tools/lint.sh` fails when `gdformat --check` would change a
+file. Format with:
 
-Run it with tabs (§Indentation below), **alone, in its own commit, never alongside logic**.
-The last measurement, 43,000 diff lines across 373 files, was taken before the tree moved to
-tabs; re-measure before running.
+```
+gdformat -l 100 <files>
+```
+
+Its choices are opinionated — a `push_error("…" % [...])` becomes a parenthesised block, a
+ternary grows wrapping, `class X extends Y:` splits in two, `#endregion` gets blank lines —
+and that was accepted with the decision. gdformat neither wraps comments nor splits string
+literals; a line it leaves over 100 columns is wrapped by hand, and must stay as gdformat
+leaves it.
+
+**Three gdformat failure modes, found in the run** — write code so it never meets them:
+
+- **A multiline lambda nested two brackets deep** formats to a closing line Godot rejects
+  ("Unindent doesn't match the previous indentation level"); gdtoolkit's own parser accepts
+  it, so lint passes and the game does not compile. Hoist the lambda to a local first.
+- **Comments inside a dictionary of multiline lambdas, or just above a statement whose
+  dictionary gdformat reflows,** are duplicated or moved — in one file ~150 times. Use named
+  functions, or build the dictionary first, already in its final shape.
+- **An enum or argument list with inline comments and no trailing comma** is joined onto one
+  line with every comment stacked at the end. Keep the trailing comma.
+
+The run was verified by token-comparing every file against the commit before it, comparing
+every comment word for word, and `godot --check-only` on every script, then the whole suite.
+Do the same for any bulk reformat.
 
 ## Indentation is enforced, and gdlint is not what enforces it
 

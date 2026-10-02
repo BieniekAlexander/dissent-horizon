@@ -125,7 +125,8 @@ when a spec cannot be parsed or built.
 ./tools/lint.sh
 ```
 
-`gdlint` plus a hand-rolled indentation check. The tree is **tab**-indented; the extra check
+`gdlint`, `gdformat --check` (gdformat's layout is the house style — format with
+`gdformat -l 100 <files>`), and a hand-rolled indentation check. The tree is **tab**-indented; the extra check
 exists because Godot can silently reindent files it merely has open, which `gdlint` cannot
 detect on its own.
 
