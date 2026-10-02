@@ -11,6 +11,11 @@ type: system-note
 
 ## The inputs are all placeholders
 
+**Superseded in part (2026-10-02)** by [sanction-calibration](sanction-calibration.md): a
+first-pass price ladder, a four-tier grid, starting dominion and a dominion-to-energy exchange
+rate, all as starting points for playtesting. The section below is kept as the 2026-09-30
+state.
+
 As of 2026-09-30, none of the three numbers the calibration rests on is set:
 
 - **Sanction prices are test values.** Most cells are 500, one is 250, and two Anarchical
@@ -88,6 +93,10 @@ self-play.
 
 ### Starting dominion
 
+**Decided (Alex, 2026-10-02): one flat starting amount for every player**, about 100 — see
+[sanction-calibration](sanction-calibration.md) §Price ladder. It is an equal head start once
+each faction's rate is calibrated by time to tier, which answers the first point below.
+
 `D₀ < p_min` does what the plan says: it shortens the wait for the first unlock by `D₀ / r_D`.
 Two things to watch:
 
@@ -131,6 +140,11 @@ dominion becomes free income. Each faction's collection method is where this is 
 ([colonial-dominion](../../combat/colonial-dominion.md) for the Colonials).
 
 ## The grid is never finished
+
+**Superseded (Alex, 2026-10-02)** by [sanction-calibration](sanction-calibration.md)
+§Finishing the grid: the whole grid MAY be bought in a very drawn-out match, and a second T4
+cell should be prohibitively expensive in any other. There is no plan for a per-use cost, so
+the per-use lever in the last paragraph below is retired. Kept for its reasoning.
 
 **Decided (Alex, 2026-09-30): a cap is fine, and prices put it out of reach.** Escalating tier
 prices make the whole grid cost more than any one match yields, so a finite grid never runs
