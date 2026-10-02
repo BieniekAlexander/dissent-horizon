@@ -141,7 +141,9 @@ Readings from the table:
   tower still dies having killed one.
 - **The 6 × 25 burst** holds four Badgers and kills all four before falling. It is the candidate
   starting point. It also raises DPS by about half against everything else, LEAD's floor included
-  (about 17 against light mechs, up from 11): check that against invariant 1.
+  (about 17 against light mechs, up from 11). **Decided (Alex, 2026-10-02): a static's reach into
+  its non-preferred classes is governed by the damage-type multipliers**, so invariant 1 is held
+  by tuning LEAD's row rather than by keeping the tower's gun weak.
 - **Past `N*` alpha stops mattering.** Five or more Badgers kill most 500 HP variants on their
   third volley (3.8 s): 13 rockets kill the tower, and five Badgers fire 15 in three volleys. That
   is the intended late-game shape.
