@@ -297,7 +297,7 @@ func _preview(a_children: Dictionary) -> Node:
 	return root
 
 
-func test_a_type_that_builds_is_recognised_from_its_Builds_component() -> void:
+func test_a_type_that_builds_is_recognised_from_its_builds_component() -> void:
 	var bot := autofree(PreviewBot.new()) as PreviewBot
 	bot.previews = {
 		BUILDER: _preview({"Builds": Builds.new()}),

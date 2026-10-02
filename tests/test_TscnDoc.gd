@@ -12,7 +12,7 @@ const TscnDoc := preload("res://tools/spec_import/tscn_doc.gd")
 
 const FIXTURE: String = """[gd_scene load_steps=4 format=3 uid="uid://fixture001"]
 
-[ext_resource type="PackedScene" uid="uid://base001" path="res://scenes/entities/units/unit.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/unit.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/entities/components/loadout.gd" id="2_load"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_vis"]

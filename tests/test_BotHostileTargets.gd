@@ -143,7 +143,7 @@ func test_neutral_pieces_are_neither_enemy_units_nor_enemy_structures() -> void:
 	assert_eq(_bot.get_enemy_structures(), [])
 
 
-func test_a_hostile_piece_is_an_enemy_and_is_classified_by_its_Structure_component() -> void:
+func test_a_hostile_piece_is_an_enemy_classified_by_its_structure_component() -> void:
 	var unit: Commandable = _piece(_foe, false, 10.0, 0.0)
 	var base: Commandable = _piece(_foe, true, 12.0, 0.0)
 	assert_eq(_bot.get_enemy_units(), [unit])

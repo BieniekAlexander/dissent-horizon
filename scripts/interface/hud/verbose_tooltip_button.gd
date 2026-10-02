@@ -147,7 +147,13 @@ func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_dismiss)
 	tree_exiting.connect(_dismiss)
-	visibility_changed.connect(func() -> void: if not is_visible_in_tree(): _dismiss())
+	visibility_changed.connect(_on_visibility_changed)
+
+## A hidden button cannot keep a tooltip open: hiding it is as good as the mouse leaving.
+func _on_visibility_changed() -> void:
+	if not is_visible_in_tree():
+		_dismiss()
+
 
 func _on_mouse_entered() -> void:
 	# Arm the hover delay; the tooltip appears when it elapses.

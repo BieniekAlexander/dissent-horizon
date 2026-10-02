@@ -247,7 +247,7 @@ func _aim_at(a_building: Commandable) -> void:
 	_controller.command_message.world_position = a_building.global_position
 
 
-func test_aimed_at_a_neutral_building_the_conversion_target_is_found_and_priced_discounted() -> void:
+func test_aiming_at_a_neutral_building_finds_and_discounts_its_conversion() -> void:
 	_controller.process_command(TOOL_NAME)
 	for template: PieceFamilies.Template in PieceFamilies.templates_of(PieceFamilies.NEUTRAL_BUILDING):
 		var building: Commandable = _neutral_building(template.id)

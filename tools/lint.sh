@@ -11,8 +11,7 @@
 # NOTE: gdformat, gdtoolkit's formatter, is still deliberately NOT run here. Indentation is
 # only one of the things it rewrites — it also re-wraps calls, splits `class X extends Y:`
 # in two, and inserts blank lines before every `#endregion`, which this tree uses heavily.
-# Measured: it would rewrite 477 of 493 files, and it cannot parse one of them at all
-# (verbose_tooltip_button.gd's inline `if …: _dismiss()`). See gdd/systems/authoring/linting.md.
+# See gdd/systems/authoring/linting.md.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
