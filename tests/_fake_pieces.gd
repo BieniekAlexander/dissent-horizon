@@ -543,21 +543,19 @@ static func tool(
 	var options: Dictionary = a_options.duplicate()
 	options["id"] = a_type
 	# Row 1 of its card, never the producer-context row 0, whatever the grid does with it.
-	return Tool.new(
+	var made := Tool.new(
 		"command_tool_%s" % a_type,
 		a_type,
 		scene_of(options),
 		String(a_type),
 		Vector2i(0, 1),
 		a_context,
-		0,
-		"",
-		"",
-		a_producers,
-		false,
-		a_context_grid,
-		a_variants
+		0
 	)
+	made.producers = a_producers
+	made.context_grid = a_context_grid
+	made.variants = a_variants
+	return made
 
 
 ## What each registered name held before the test (null: nothing), so `restore_tools` puts the

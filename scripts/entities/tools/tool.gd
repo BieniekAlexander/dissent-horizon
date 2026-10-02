@@ -79,10 +79,9 @@ var _bound: Dictionary = {}
 
 
 #region Lifecycle
-## TODO: thirteen parameters, all of them one piece's generated facts. The composition rework
-## (gdd/systems/authoring/composition-rework.md) is what shortens this — a Tool built from
-## the piece's own spec rather than from a positional argument list. `gdlint` reports it
-## until then.
+## A tool from the facts every tool has. The optional ones — tooltips, producers,
+## needs_docking, context_grid, variants, is_upgrade — are assigned after construction by
+## whoever has them: from_entry for the generated registry, _make_bound for a variant.
 func _init(
 	a_command_name: String,
 	a_type: StringName,
@@ -91,12 +90,6 @@ func _init(
 	a_grid_position: Vector2i,
 	a_control_context: int,
 	a_faction: int,
-	a_simple_tooltip: String = "",
-	a_verbose_tooltip: String = "",
-	a_producers: Array = [],
-	a_needs_docking: bool = false,
-	a_context_grid: Vector2i = Vector2i(-1, -1),
-	a_variants: Array[StringName] = []
 ) -> void:
 	# A tool's card follows from what it does, so it is never authored twice: placing a
 	# structure is an order given to a UNIT and belongs beside that unit's other orders,
@@ -106,22 +99,10 @@ func _init(
 		if (a_control_context & ControlContext.TRAIN) != 0
 		else CommandFamily.ACTIVE
 	)
-	super(
-		a_command_name,
-		a_label,
-		a_grid_position,
-		a_control_context,
-		a_simple_tooltip,
-		a_verbose_tooltip,
-		command_family
-	)
+	super(a_command_name, a_label, a_grid_position, a_control_context, "", "", command_family)
 	type = a_type
 	packed_scene = a_packed_scene
 	faction = a_faction
-	producers = a_producers
-	needs_docking = a_needs_docking
-	context_grid = a_context_grid
-	variants = a_variants
 
 
 func faction_mask() -> int:
@@ -216,20 +197,14 @@ func _make_bound(a_variant: StringName) -> Tool:
 		push_error("Tool: %s names variant %s, which is in no family" % [command_name, a_variant])
 		return self
 	var bound := Tool.new(
-		command_name,
-		type,
-		found.load_scene(),
-		label,
-		grid_position,
-		control_context,
-		faction,
-		simple_tooltip,
-		verbose_tooltip,
-		producers,
-		needs_docking,
-		context_grid,
-		variants
+		command_name, type, found.load_scene(), label, grid_position, control_context, faction
 	)
+	bound.simple_tooltip = simple_tooltip
+	bound.verbose_tooltip = verbose_tooltip
+	bound.producers = producers
+	bound.needs_docking = needs_docking
+	bound.context_grid = context_grid
+	bound.variants = variants
 	bound.variant = a_variant
 	bound._base_ref = weakref(self)
 	return bound
@@ -313,14 +288,14 @@ static func from_entry(command_name: String, e: Dictionary, scene: PackedScene) 
 		str(e["label"]),
 		Vector2i(int(e["grid"][0]), int(e["grid"][1])),
 		ControlContext.BUILD if str(e["context"]) == "BUILD" else ControlContext.TRAIN,
-		mask,
-		str(e.get("tooltip", "")),
-		str(e.get("verbose", "")),
-		producer_ids,
-		bool(e.get("needs_docking", false)),
-		_cell(e.get("context_grid", [])),
-		variant_ids
+		mask
 	)
+	tool.simple_tooltip = str(e.get("tooltip", ""))
+	tool.verbose_tooltip = str(e.get("verbose", ""))
+	tool.producers = producer_ids
+	tool.needs_docking = bool(e.get("needs_docking", false))
+	tool.context_grid = _cell(e.get("context_grid", []))
+	tool.variants = variant_ids
 	tool.is_upgrade = bool(e.get("upgrade", false))
 	return tool
 
