@@ -33,7 +33,8 @@ void fragment() {
 
 	vec3 n = has_heights > 0.5 ? th_normal(v_world.xz)
 		: normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	NORMAL = normalize((VIEW_MATRIX * vec4(th_grain_normal(v_world.xz, n, impassable), 0.0)).xyz);
+	vec3 lit = th_grain_normal(v_world.xz, th_relief_normal(n, impassable), impassable);
+	NORMAL = normalize((VIEW_MATRIX * vec4(lit, 0.0)).xyz);
 	ALBEDO = th_apply_fog(th_shade(v_world, idx, impassable, uv, n), v_world.xz);
 	vec2 spec = th_specular(v_world.xz, impassable);
 	SPECULAR = spec.x;

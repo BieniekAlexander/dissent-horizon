@@ -54,16 +54,27 @@ uniform float outline_width = 0.12;   // world units
 // generator's terraces rather than on them — each terrace step then carries exactly one line.
 uniform float contour_interval = 0.4;
 uniform float contour_offset = 0.2;
-uniform float contour_strength = 0.35;
+uniform float contour_strength = 0.2;
 uniform float contour_pixels = 1.2;    // line width in screen pixels
+// Relief exaggeration: the LIT normal's tilt is multiplied by this on walkable ground, the way
+// RTS terrain overstates its hillshade. A terrace grade tilts the ground only a few degrees,
+// which a 50-degree sun barely separates from flat; overstated, the sunward side of every grade
+// lifts and the far side falls into shade. Smooth by construction, so it cannot alias.
+uniform float relief_exaggeration = 8.0;
 // Hypsometric tint: brightness ramp from the lowest to the highest ground.
 uniform float hypsometric_low = 0.85;
 uniform float hypsometric_high = 1.12;
 // Cavity shading: ground below its surroundings darkens, ground above brightens slightly.
-uniform float cavity_strength = 0.2;
+uniform float cavity_strength = 0.35;
 uniform float cavity_mip = 3.0;
-// Slope shading on passable ground: graded ground tends toward rock as it steepens.
-uniform float slope_rock_blend = 1.6;
+// Banks: graded walkable ground is darkened in VALUE only, keeping the hue of the ground around
+// it, as RTS ramps are (a ramp is the same floor, lit differently, never a different material).
+// Faded in over a GRADIENT (rise per unit run) read from the smoothed height field, with a
+// noisy edge so a bank is a painted patch rather than a ruled band. Which side is light and
+// which dark is the relief lighting's job, not this one's.
+uniform float bank_gradient_min = 0.03;
+uniform float bank_gradient_max = 0.13;
+uniform float bank_darkening = 0.12;
 // Two-octave value noise in world space, so no region is one flat colour.
 uniform float noise_strength = 0.14;
 // Ground grain: a fine stipple (clumps of grass, grit) in albedo AND in the lit normal. Lit
@@ -78,7 +89,7 @@ uniform float grain_bump = 0.55;       // how far the grain tilts the lit normal
 uniform float hachure_spacing = 0.45;  // world units between stroke centres
 uniform float hachure_length = 0.32;   // half a stroke's length, world units
 uniform float hachure_width = 0.05;    // a stroke's half-width at its uphill end
-uniform float hachure_strength = 0.7;
+uniform float hachure_strength = 0.0;  // off: see terrain-readability.md
 uniform float hachure_gradient_min = 0.02;
 uniform float hachure_gradient_max = 0.12;
 // Terrain specular: 0 is matte. Broad and weak on purpose: a sheen on ground tilted to bounce
@@ -113,13 +124,59 @@ float th_height(vec2 p) {
 	return texture(height_texture, th_height_uv(p)).r;
 }
 
+// Cubic B-spline weights for a texel fraction `f`.
+vec4 th_bspline_weights(float f) {
+	vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - f;
+	vec4 s = n * n * n;
+	float x = s.x;
+	float y = s.y - 4.0 * s.x;
+	float z = s.z - 4.0 * s.y + 6.0 * s.x;
+	return vec4(x, y, z, 6.0 - x - y - z) / 6.0;
+}
+
+// The height field B-spline filtered (four bilinear taps): continuous in slope, where the
+// bilinear field kinks at every cell edge. Anything drawn from the height's DERIVATIVES (lit
+// normals, contours, banks) uses this one — off the bilinear field those lines zigzag cell by
+// cell. It smooths the terrace steps slightly, which no gameplay fact depends on.
+float th_height_smooth(vec2 p) {
+	vec2 size = vec2(textureSize(height_texture, 0));
+	vec2 tc = th_height_uv(p) * size - 0.5;
+	vec2 f = fract(tc);
+	tc -= f;
+	vec4 xw = th_bspline_weights(f.x);
+	vec4 yw = th_bspline_weights(f.y);
+	vec4 c = tc.xxyy + vec2(-0.5, 1.5).xyxy;
+	vec4 s = vec4(xw.xz + xw.yw, yw.xz + yw.yw);
+	vec4 o = (c + vec4(xw.yw, yw.yw) / s) / size.xxyy;
+	float t0 = textureLod(height_texture, o.xz, 0.0).r;
+	float t1 = textureLod(height_texture, o.yz, 0.0).r;
+	float t2 = textureLod(height_texture, o.xw, 0.0).r;
+	float t3 = textureLod(height_texture, o.yw, 0.0).r;
+	float sx = s.x / (s.x + s.y);
+	float sy = s.z / (s.z + s.w);
+	return mix(mix(t3, t2, sx), mix(t1, t0, sx), sy);
+}
+
+// The smoothed height field's gradient (rise per unit run) at `p`.
+vec2 th_gradient(vec2 p) {
+	float e = 0.35;
+	float hx = th_height_smooth(p + vec2(e, 0.0)) - th_height_smooth(p - vec2(e, 0.0));
+	float hz = th_height_smooth(p + vec2(0.0, e)) - th_height_smooth(p - vec2(0.0, e));
+	return vec2(hx, hz) / (2.0 * e);
+}
+
 // World-space normal from the height field: smooth across cells, which is what lets lighting
 // show relief instead of a staircase of flat quads.
 vec3 th_normal(vec2 p) {
-	float e = 0.5;
-	float hx = th_height(p + vec2(e, 0.0)) - th_height(p - vec2(e, 0.0));
-	float hz = th_height(p + vec2(0.0, e)) - th_height(p - vec2(0.0, e));
-	return normalize(vec3(-hx, 2.0 * e, -hz));
+	vec2 g = th_gradient(p);
+	return normalize(vec3(-g.x, 1.0, -g.y));
+}
+
+// `n` with its tilt overstated by relief_exaggeration on walkable ground. Cliffs keep their
+// true normal: they are already steep, and their rock banding does their relief.
+vec3 th_relief_normal(vec3 n, float impassable) {
+	float k = mix(relief_exaggeration, 1.0, impassable);
+	return normalize(vec3(n.x * k, n.y, n.z * k));
 }
 
 // World units one screen pixel covers at `p`. Fragment stage only (fwidth).
@@ -187,7 +244,7 @@ vec2 th_coarse_gradient(vec2 p) {
 // is a function of position, and wherever the downhill direction turns, the stripes compress
 // into bands and moire. A stamp's direction is one number, so turning ground only rotates it.
 float th_hachure(vec2 p) {
-	if (has_heights < 0.5) {
+	if (has_heights < 0.5 || hachure_strength <= 0.0) {
 		return 0.0;
 	}
 	float px = th_pixel(p);
@@ -245,15 +302,20 @@ vec2 th_specular(vec2 p, float impassable) {
 		specular_roughness);
 }
 
-// 1 on a pixel within `contour_pixels` of a contour level, antialiased; 0 elsewhere.
+// 1 on a pixel within `contour_pixels` of a contour level, antialiased; 0 elsewhere. `h` must
+// be the SMOOTHED height, or the line kinks at every cell edge. The edge ramps over one pixel
+// measured in screen space; where levels crowd closer than a few pixels (steep ground, far
+// zoom) they would only moire, so they fade out.
 float th_contour(float h) {
-	float w = fwidth(h) * contour_pixels;
-	if (w < 1e-5) {
+	float per_pixel = fwidth(h);
+	if (per_pixel < 1e-6) {
 		return 0.0;
 	}
 	float d = (h - contour_offset) / contour_interval;
-	float dist = abs(fract(d + 0.5) - 0.5) * contour_interval;
-	return 1.0 - smoothstep(0.0, w, dist);
+	float dist_pixels = abs(fract(d + 0.5) - 0.5) * contour_interval / per_pixel;
+	float half_width = 0.5 * contour_pixels;
+	float line = 1.0 - smoothstep(half_width - 0.5, half_width + 0.5, dist_pixels);
+	return line * min(1.0, half_width + 0.5) * smoothstep(3.0, 6.0, contour_interval / per_pixel);
 }
 
 float th_steep_at(vec2 cell_uv) {
@@ -304,10 +366,12 @@ vec3 th_shade(vec3 w, int idx, float impassable, vec2 uv, vec3 n) {
 		albedo = mix(albedo, trail_color.rgb, smoothstep(0.35, 0.55, o.g + (n2 - 0.5) * 0.25));
 	}
 
-	// Graded (walkable but sloped) ground leans toward rock and carries hachures, so a
-	// terrace step reads as one and shows which way it falls.
-	float slope = 1.0 - n.y;
-	albedo = mix(albedo, scree_color.rgb, clamp(slope * slope_rock_blend, 0.0, 0.35) * (1.0 - impassable));
+	// Graded (walkable but sloped) ground is a shade darker, so a terrace step reads at a glance.
+	float h_smooth = has_heights > 0.5 ? th_height_smooth(p) : h;
+	float steepness = has_heights > 0.5 ? length(th_gradient(p)) : length(n.xz) / max(n.y, 1e-3);
+	float bank = smoothstep(bank_gradient_min, bank_gradient_max,
+		steepness + (th_value_noise(p * 0.8) - 0.5) * 0.08);
+	albedo *= 1.0 - bank * bank_darkening * (1.0 - impassable);
 	albedo = mix(albedo, hachure_color.rgb, th_hachure(p) * hachure_strength * (1.0 - impassable));
 
 	// Impassable ground is rock, banded by height so cliff faces show their own relief.
@@ -330,7 +394,7 @@ vec3 th_shade(vec3 w, int idx, float impassable, vec2 uv, vec3 n) {
 		albedo *= clamp(1.0 - (around - h) * cavity_strength, 0.72, 1.12);
 	}
 
-	albedo *= 1.0 - contour_strength * th_contour(h) * (1.0 - impassable);
+	albedo *= 1.0 - contour_strength * th_contour(h_smooth) * (1.0 - impassable);
 	albedo = mix(albedo, outline_color.rgb, th_outline(p, uv) * (1.0 - impassable));
 	return albedo;
 }
