@@ -75,7 +75,9 @@ uniform float grain_bump = 0.55;       // how far the grain tilts the lit normal
 // Hachures: strokes running DOWNHILL on sloped walkable ground, the cartographer's cue for
 // which way and how steeply the ground falls. They fade in over a GRADIENT (rise per unit run),
 // because a terrace grade climbs only about a tenth of a unit per cell.
-uniform float hachure_spacing = 0.45;  // world units between strokes
+uniform float hachure_spacing = 0.45;  // world units between stroke centres
+uniform float hachure_length = 0.32;   // half a stroke's length, world units
+uniform float hachure_width = 0.05;    // a stroke's half-width at its uphill end
 uniform float hachure_strength = 0.7;
 uniform float hachure_gradient_min = 0.02;
 uniform float hachure_gradient_max = 0.12;
@@ -147,37 +149,59 @@ vec3 th_grain_normal(vec2 p, vec3 n, float impassable) {
 	return normalize(n + vec3(-gx, 0.0, -gz) * k);
 }
 
-// 0..1 hachure stroke at `p` on ground whose (unperturbed) normal is `n`: thin strokes along
-// the downhill direction, broken up so they read as drawn rather than ruled.
-float th_hachure(vec2 p, vec3 n) {
-	float gradient = length(n.xz) / max(n.y, 1e-3);
-	float fade = smoothstep(hachure_gradient_min, hachure_gradient_max, gradient);
-	if (fade <= 0.0) {
+// The height field's gradient (rise per unit run) at `p`, read from a coarse mip so a stroke's
+// direction follows the grade, not every cell-sized wobble in it.
+vec2 th_coarse_gradient(vec2 p) {
+	float e = 1.0;
+	vec2 ex = vec2(e, 0.0) / height_rect.zw;
+	vec2 ez = vec2(0.0, e) / height_rect.zw;
+	vec2 uv = th_height_uv(p);
+	float hx = textureLod(height_texture, uv + ex, 1.5).r - textureLod(height_texture, uv - ex, 1.5).r;
+	float hz = textureLod(height_texture, uv + ez, 1.5).r - textureLod(height_texture, uv - ez, 1.5).r;
+	return vec2(hx, hz) / (2.0 * e);
+}
+
+// 0..1 hachure ink at `p`: short strokes stamped on a jittered grid, each pointing straight
+// downhill at its own centre. Stamped rather than drawn as stripes: a stripe pattern's phase
+// is a function of position, and wherever the downhill direction turns, the stripes compress
+// into bands and moire. A stamp's direction is one number, so turning ground only rotates it.
+float th_hachure(vec2 p) {
+	if (has_heights < 0.5) {
 		return 0.0;
 	}
-	// Stroke direction from a coarser read of the height field, so strokes run straight down
-	// the grade instead of swirling with every cell-sized wobble in the fine normal.
-	vec2 down = normalize(n.xz);
-	if (has_heights > 0.5) {
-		vec2 uv = th_height_uv(p);
-		vec2 texel = 1.0 / vec2(textureSize(height_texture, 0));
-		float hx = textureLod(height_texture, uv + vec2(2.0 * texel.x, 0.0), 1.5).r
-			- textureLod(height_texture, uv - vec2(2.0 * texel.x, 0.0), 1.5).r;
-		float hz = textureLod(height_texture, uv + vec2(0.0, 2.0 * texel.y), 1.5).r
-			- textureLod(height_texture, uv - vec2(0.0, 2.0 * texel.y), 1.5).r;
-		if (abs(hx) + abs(hz) > 1e-4) {
-			down = -normalize(vec2(hx, hz));
+	vec2 base = floor(p / hachure_spacing);
+	float ink = 0.0;
+	for (int dz = -1; dz <= 1; dz++) {
+		for (int dx = -1; dx <= 1; dx++) {
+			vec2 cell = base + vec2(float(dx), float(dz));
+			vec2 jitter = vec2(th_hash(cell + 7.0), th_hash(cell + 13.0));
+			vec2 centre = (cell + 0.2 + 0.6 * jitter) * hachure_spacing;
+			// Whether to ink is the ground's OWN steepness at the stamp; which way to point is the
+			// coarse grade around it. Fading by the coarse grade too bleeds strokes onto the flat
+			// ground beside every slope.
+			vec3 local = th_normal(centre);
+			float steepness = length(local.xz) / max(local.y, 1e-3);
+			float fade = smoothstep(hachure_gradient_min, hachure_gradient_max, steepness);
+			vec2 gradient = th_coarse_gradient(centre);
+			if (fade <= 0.0 || dot(gradient, gradient) < 1e-8) {
+				continue;
+			}
+			vec2 down = -normalize(gradient);
+			vec2 d = p - centre;
+			float along = dot(d, down);
+			float across = dot(d, vec2(-down.y, down.x));
+			float half_length = hachure_length * mix(0.7, 1.0, th_hash(cell + 29.0));
+			// A wedge: full width uphill, tapering to a point at the downhill end.
+			float t = clamp(along / half_length * 0.5 + 0.5, 0.0, 1.0);
+			float width = hachure_width * mix(1.0, 0.25, t);
+			float body = 1.0 - smoothstep(width * 0.6, width, abs(across));
+			float ends = 1.0 - smoothstep(half_length * 0.85, half_length, abs(along));
+			ink = max(ink, body * ends * fade);
 		}
 	}
-	vec2 across = vec2(-down.y, down.x);
-	float u = dot(p, across) / hachure_spacing;
-	float v = dot(p, down);
-	float lane = floor(u);
-	float offset = (th_hash(vec2(lane, 3.0)) - 0.5) * 0.3;
-	float stroke = 1.0 - smoothstep(0.1, 0.32, abs(fract(u) - 0.5 - offset));
-	float dash = step(0.3, th_value_noise(vec2(lane * 1.7, v / 1.4)));
-	return stroke * dash * fade;
+	return ink;
 }
+
 
 // SPECULAR and ROUGHNESS for a fragment: matte when specular_strength is 0.
 vec2 th_specular(vec2 p, float impassable) {
@@ -248,7 +272,7 @@ vec3 th_shade(vec3 w, int idx, float impassable, vec2 uv, vec3 n) {
 	// terrace step reads as one and shows which way it falls.
 	float slope = 1.0 - n.y;
 	albedo = mix(albedo, scree_color.rgb, clamp(slope * slope_rock_blend, 0.0, 0.35) * (1.0 - impassable));
-	albedo = mix(albedo, hachure_color.rgb, th_hachure(p, n) * hachure_strength * (1.0 - impassable));
+	albedo = mix(albedo, hachure_color.rgb, th_hachure(p) * hachure_strength * (1.0 - impassable));
 
 	// Impassable ground is rock, banded by height so cliff faces show their own relief.
 	vec3 rock = mix(rock_dark.rgb, rock_light.rgb, noise);
