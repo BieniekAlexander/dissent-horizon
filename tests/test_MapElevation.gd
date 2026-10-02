@@ -10,7 +10,7 @@ extends GutTest
 
 ## Seeds that generate on these parameters. A seed may legitimately fail an invariant — that is
 ## a loud rejection, not a bug — so the property tests run on ones known to pass.
-const _SEEDS: Array[int] = [2002, 2003, 2004]
+const _SEEDS: Array[int] = [2003, 2004, 2005]
 ## Erosion rounds the corridor measure gives up after; wider than MIN_CHOKE_WIDTH either way.
 const _CORRIDOR_LIMIT: int = 12
 
@@ -23,8 +23,8 @@ func _params() -> MapGenerationParams:
 	params.site_energy_per_second = 5.0
 	# The pre-2026-10-01 map size and an energy budget scaled to it: these tests check elevation,
 	# and a larger map only makes them slower.
-	params.play_size_min = 75
-	params.play_size_max = 120
+	params.play_size_min = Vector2i(75, 75)
+	params.play_size_max = Vector2i(120, 120)
 	params.energy_value_per_player = 20000.0
 	# Obstacle regions are tested in test_ObstacleRegions: off here, and their checks with them.
 	params.target_traversable_fraction = 1.0
@@ -280,3 +280,23 @@ func test_chasm_water_stays_in_its_chasm() -> void:
 					for dz: int in range(-1, 2):
 						near_chasm = near_chasm or chasms.has(cell + Vector2i(dx, dz))
 				assert_true(near_chasm, "water at %s is away from any chasm" % cell)
+
+
+## A barrier is impassable on the finished map, however its water fared: a chasm that cannot
+## hold water is raised as a ridge, not left as a dry pit whose flat floor is walkable.
+func test_every_barrier_cell_is_impassable() -> void:
+	for map: GeneratedMap in _maps():
+		var deep: Dictionary = {}
+		for water: Dictionary in map.chasm_waters:
+			var basin: WaterBasin = WaterBasin.fill(map.terrain, water.seed_cell, water.level)
+			for cell: Vector2i in basin.depth_by_cell:
+				if basin.depth_by_cell[cell] > WaterBasin.WADE_DEPTH:
+					deep[cell] = true
+		var walkable: Array[Vector2i] = []
+		for cell: Vector2i in map.topology.barrier_of:
+			if (
+				map.terrain.cell_height_spread(cell) <= TerrainGrid.MAX_SLOPE_DIFF
+				and not deep.has(cell)
+			):
+				walkable.append(cell)
+		assert_eq(walkable, [] as Array[Vector2i], "seed %d" % map.generation_seed)

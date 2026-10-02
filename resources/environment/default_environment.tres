@@ -1,4 +1,4 @@
-[gd_resource type="Environment" load_steps=3 format=3]
+[gd_resource type="Environment" format=3 uid="uid://cy6o7pun8ey5y"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_hemi"]
 sky_top_color = Color(0.56, 0.66, 0.8, 1)
@@ -17,7 +17,6 @@ background_color = Color(0.09, 0.1, 0.12, 1)
 sky = SubResource("Sky_hemi")
 ambient_light_source = 3
 ambient_light_energy = 0.7
-ambient_light_sky_contribution = 1.0
 reflected_light_source = 1
 tonemap_mode = 2
 tonemap_white = 6.0

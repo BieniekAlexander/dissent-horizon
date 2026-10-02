@@ -204,8 +204,8 @@ func test_a_generated_map_and_its_scene_decorate_identically() -> void:
 	var writer := GeneratedMapWriter.new()
 	var params: MapGenerationParams = writer.default_params(2)
 	params.last_pass = MapGenerationParams.Pass.RESOURCES
-	params.play_size_min = 70
-	params.play_size_max = 80
+	params.play_size_min = Vector2i(70, 70)
+	params.play_size_max = Vector2i(80, 80)
 	params.energy_value_per_player = 12000.0
 	params.target_traversable_fraction = 1.0
 	params.traversable_tolerance = 1.0

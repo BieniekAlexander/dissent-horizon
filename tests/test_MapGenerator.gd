@@ -18,8 +18,8 @@ func _params() -> MapGenerationParams:
 	var params := MapGenerationParams.new()
 	# Passes 1-5: pass 6 moves heights, and has its own tests (test_MapElevation).
 	params.last_pass = MapGenerationParams.Pass.TERRAIN
-	params.play_size_min = 75
-	params.play_size_max = 90
+	params.play_size_min = Vector2i(75, 75)
+	params.play_size_max = Vector2i(90, 90)
 	# A small map keeps these tests fast, so the energy budget is scaled to its area (about a
 	# third of a shipped 1v1 map's). The tests check the mechanics, not the shipped amounts.
 	params.energy_value_per_player = 13000.0
@@ -82,15 +82,23 @@ func test_play_size_is_drawn_within_its_bounds() -> void:
 	var params: MapGenerationParams = _params()
 	for generation_seed: int in _SEEDS:
 		var size: Vector2i = _generate(generation_seed).play_size
-		assert_between(size.x, params.play_size_min, params.play_size_max)
-		assert_between(size.y, params.play_size_min, params.play_size_max)
+		assert_between(size.x, params.play_size_min.x, params.play_size_max.x)
+		assert_between(size.y, params.play_size_min.y, params.play_size_max.y)
+
+
+## Each axis has its own range, so a long map can be asked for.
+func test_each_axis_is_drawn_within_its_own_bounds() -> void:
+	var params: MapGenerationParams = _params()
+	params.play_size_min = Vector2i(70, 90)
+	params.play_size_max = Vector2i(70, 90)
+	assert_eq(MapGenerator.generate(params, _SEEDS[0]).play_size, Vector2i(70, 90))
 
 
 func test_start_count_defaults_come_from_the_table() -> void:
-	var bounds: Vector2i = MapGenerationParams.PLAY_SIZE_RANGE_BY_START_COUNT[2]
+	var bounds: Array = MapGenerationParams.PLAY_SIZE_RANGE_BY_START_COUNT[2]
 	var params: MapGenerationParams = MapGenerationParams.for_start_count(2)
-	assert_eq(params.play_size_min, bounds.x)
-	assert_eq(params.play_size_max, bounds.y)
+	assert_eq(params.play_size_min, bounds[0])
+	assert_eq(params.play_size_max, bounds[1])
 
 
 func test_one_start_per_alliance_in_a_two_alliance_map() -> void:
@@ -412,8 +420,8 @@ func test_no_buildings_without_a_pool() -> void:
 
 func test_an_impossible_map_fails_loudly() -> void:
 	var params: MapGenerationParams = _params()
-	params.play_size_min = 12
-	params.play_size_max = 12
+	params.play_size_min = Vector2i(12, 12)
+	params.play_size_max = Vector2i(12, 12)
 	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
 	assert_false(map.is_valid())
 	assert_gt(map.errors.size(), 0)

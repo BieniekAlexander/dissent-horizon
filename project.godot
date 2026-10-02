@@ -386,5 +386,5 @@ common/physics_ticks_per_second=30
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_environment="res://resources/environment/default_environment.tres"
 environment/defaults/default_clear_color=Color(0.48621997, 0.2852, 0.92, 1)
+environment/defaults/default_environment="res://resources/environment/default_environment.tres"

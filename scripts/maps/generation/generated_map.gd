@@ -32,6 +32,10 @@ var chasm_waters: Array[Dictionary] = []
 ## terrain (map-generation.md §Obstacle regions); -1 before pass 5 has shaped it.
 var traversable_fraction: float = -1.0
 var buildable_fraction: float = -1.0
+## How open the traversable ground is — clearance and chokes, with footprints counted as walkable
+## since their chokes are not held to the rule (map-generation.md §Openness); null before pass 5
+## has shaped the terrain.
+var openness: MapOpenness = null
 ## Impassable cells per alliance, each split by MapFavor.access_share: the cost each carries.
 var obstructed := PackedFloat32Array()
 ## Pass 7's cosmetic layer, or null when generation stopped earlier. Derived, never written into

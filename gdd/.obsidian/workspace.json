@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "factions/colonial/units/cl_bioLight_builder.md",
+                "file": "systems/terrain-and-navigation/map-generation.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "cl_bioLight_builder"
+              "title": "map-generation"
             }
           }
         ]
@@ -157,7 +157,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "factions/colonial/units/cl_bioLight_builder.md",
+                "file": "systems/terrain-and-navigation/map-generation.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -187,6 +187,11 @@
   },
   "active": "15e6c72ff7fc52ba",
   "lastOpenFiles": [
+    "systems/ux/aesthetics/lighting.md",
+    "systems/ux/ui/construction-visuals.md",
+    "factions/colonial/units/cl_bioLight_builder.md",
+    "systems/ux/aesthetics/terrain-readability.md",
+    "systems/terrain-and-navigation/visual-facets.md",
     "Untitled.base",
     "refactoring-plan.md",
     "spreadsheet.base",
@@ -206,14 +211,10 @@
     "factions/anarchical/structures/an_infrastructure.md",
     "systems/ai/bot-architecture.md",
     "systems/macroeconomics/pacing/building-roles.md",
-    "factions/colonial/units/cl_bioLight_builder.md",
     "factions/colonial/units/cl_mechMedium_antiLight.md",
     "factions/libertarian/units/lb_mechLight_antiLight.md",
     "systems/macroeconomics/upgrades.md",
     "systems/macroeconomics/pacing/tree-shape.md",
-    "systems/macroeconomics/pacing/tech-investment.md",
-    "systems/macroeconomics/pacing/structure-costs.md",
-    "systems/macroeconomics/pacing/resource-allotment.md",
     "systems/macroeconomics/pacing",
     "factions/colonial/upgrades",
     "movement",

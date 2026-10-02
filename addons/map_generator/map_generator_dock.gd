@@ -159,8 +159,8 @@ func _add_group(a_title: String, a_properties: Array[Dictionary]) -> void:
 		_labelled(_form, labels[i], fields[i], tooltips[i])
 
 
-## An editor for one int, float, enum or bool property, bound to _params; null for anything
-## else. An enum-typed parameter reports its names in the property's hint, so it gets a menu of
+## An editor for one int, float, enum, bool or Vector2i property, bound to _params; null for
+## anything else. An enum-typed parameter reports its names in the property's hint, so it gets a menu of
 ## them rather than a number nobody can read.
 func _field_for(a_property: Dictionary) -> Control:
 	var property_name: StringName = a_property.name
@@ -184,7 +184,28 @@ func _field_for(a_property: Dictionary) -> Control:
 				_params.set(property_name, value if is_float else int(value))
 				_refresh_warnings())
 			return spin
+		TYPE_VECTOR2I:
+			return _vector2i_field(property_name)
 	return null
+
+
+## Two whole-number boxes side by side, x then y, editing one Vector2i property.
+func _vector2i_field(a_property: StringName) -> Control:
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var current: Vector2i = _params.get(a_property)
+	for axis: int in 2:
+		var spin: SpinBox = _spin_box(0, 0, 1.0)
+		spin.allow_greater = true
+		spin.allow_lesser = true
+		spin.value = current[axis]
+		spin.value_changed.connect(func(value: float) -> void:
+			var vector: Vector2i = _params.get(a_property)
+			vector[axis] = int(value)
+			_params.set(a_property, vector)
+			_refresh_warnings())
+		row.add_child(spin)
+	return row
 
 
 ## A menu over one enum property. `a_hint` is Godot's "Name:value,Name:value" listing, which is

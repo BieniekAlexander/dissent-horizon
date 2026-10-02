@@ -38,18 +38,35 @@ func test_the_form_offers_generation_knobs_but_not_piece_facts() -> void:
 	assert_null(_field("alliance_count"))
 
 
+## One box of a two-box Vector2i field: x is 0, y is 1.
+func _axis(a_property: String, a_axis: int) -> SpinBox:
+	return _field(a_property).get_child(a_axis) as SpinBox
+
+
 func test_editing_a_field_edits_the_parameters() -> void:
-	(_field("play_size_max") as SpinBox).value = 101
-	assert_eq(_dock._params.play_size_max, 101)
+	(_field("building_capacity_per_player") as SpinBox).value = 101
+	assert_eq(_dock._params.building_capacity_per_player, 101)
 	(_field("cluster_large_building_bias") as SpinBox).value = 0.25
 	assert_almost_eq(_dock._params.cluster_large_building_bias, 0.25, 1e-6)
 
 
+func test_a_vector_field_edits_each_axis_alone() -> void:
+	var before: Vector2i = _dock._params.play_size_max
+	_axis("play_size_max", 1).value = 133
+	assert_eq(_dock._params.play_size_max, Vector2i(before.x, 133))
+
+
+func test_a_play_size_minimum_above_its_maximum_is_warned() -> void:
+	_axis("play_size_min", 0).value = _dock._params.play_size_max.x + 1
+	assert_true(_dock._warnings.visible)
+	assert_string_contains(_dock._warnings.text, "exceeds the maximum")
+
+
 func test_changing_the_alliance_count_resets_to_its_defaults() -> void:
-	(_field("play_size_max") as SpinBox).value = 101
+	_axis("play_size_max", 0).value = 101
 	_dock._alliances.value = 3
 	assert_eq(_dock._params.alliance_count, 3)
-	assert_ne(_dock._params.play_size_max, 101)
+	assert_ne(_dock._params.play_size_max.x, 101)
 
 
 func test_a_building_capacity_at_the_failure_point_is_warned() -> void:

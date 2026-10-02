@@ -18,13 +18,16 @@ func _params() -> MapGenerationParams:
 	var params := MapGenerationParams.new()
 	# Passes 1-5: pass 6's cliffs move the share, and have their own tests (test_MapElevation).
 	params.last_pass = MapGenerationParams.Pass.TERRAIN
-	params.play_size_min = 80
-	params.play_size_max = 90
+	params.play_size_min = Vector2i(80, 80)
+	params.play_size_max = Vector2i(90, 90)
 	# A small map keeps these tests fast, so the budgets are scaled to its area.
 	params.energy_value_per_player = 13000.0
 	params.building_cluster_separation_cells = 10
 	params.building_pool = [MapPiece.of(&"building", Vector2i(4, 4), 1.0, 5)]
 	params.cut_fraction = 0.45
+	# A target well below what these small maps leave open on their own, so regions must grow.
+	params.target_traversable_fraction = 0.8
+	params.traversable_tolerance = 0.05
 	return params
 
 
@@ -115,6 +118,46 @@ func test_regions_keep_clear_of_every_start() -> void:
 					clear - 1.0,
 					"seed %d: %s is inside a start's clearance" % [generation_seed, cell]
 				)
+
+
+## Measured in the play area's own axes, which run diagonal to the grid's.
+func test_no_mass_spans_more_than_its_share_of_either_side() -> void:
+	for generation_seed: int in _SEEDS:
+		var params: MapGenerationParams = _params()
+		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var play: PlayArea = map.topology.play_area()
+		for mass: Array[Vector2i] in ObstacleRegions.masses(map.topology.barrier_of):
+			assert_lte(
+				ObstacleRegions.span_fraction(mass, play),
+				params.max_obstacle_span_fraction,
+				"seed %d: a mass at %s" % [generation_seed, mass[0]]
+			)
+
+
+func test_span_is_measured_along_the_play_area_axes() -> void:
+	var play := PlayArea.screen_aligned(Vector2(50, 50), Vector2(100, 100), 1.0)
+	# A run of cells along the grid's x axis lies diagonal to the play area's: its extent along
+	# either play axis is its length over root two.
+	var row: Array[Vector2i] = []
+	for x: int in range(40, 61):
+		row.append(Vector2i(x, 50))
+	var side: float = 2.0 * play.half.x
+	assert_almost_eq(
+		ObstacleRegions.span_fraction(row, play), 20.0 * PlayArea.INV_SQRT2 / side, 1e-4
+	)
+
+
+## The perimeter is not a guaranteed lane: across a few maps, some mass meets the play edge.
+func test_some_mass_closes_onto_the_play_edge() -> void:
+	var touching: int = 0
+	for generation_seed: int in _SEEDS:
+		var map: GeneratedMap = MapGenerator.generate(_params(), generation_seed)
+		var play: PlayArea = map.topology.play_area()
+		for cell: Vector2i in map.topology.barrier_of:
+			if MapTopology.edge_gap(cell, play) < MapTopology.EDGE_TOUCH_GAP:
+				touching += 1
+				break
+	assert_gt(touching, 0)
 
 
 func test_the_kind_furthest_below_its_share_grows_next() -> void:

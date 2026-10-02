@@ -27,6 +27,9 @@ const _SAME_OBSTACLE_REACH: int = 2
 ## A barrier fragment smaller than this, left by trimming, is dropped rather than kept as a
 ## lone steep stub.
 const _MIN_FRAGMENT_CELLS: int = 4
+## An obstacle with a cell this close to the play edge, in walkable cells, touches it: what lies
+## between is its own steep border, so it closes that side rather than leaving a sliver.
+const EDGE_TOUCH_GAP: float = 1.0
 #endregion
 
 #region Properties
@@ -54,6 +57,7 @@ var _terrain: TerrainData
 var _grid: PlacementGrid
 var _start_count: int = 0
 var _in_play := PackedByteArray()
+var _play: PlayArea = null
 #endregion
 
 
@@ -259,11 +263,11 @@ func _carve_band(a_cut: int, a_through: Vector2i) -> void:
 
 #region Choke width
 ## Trim barriers until no walkable passage between two of them, or between one and the edge of
-## the play area, is narrower than MIN_CHOKE_WIDTH. Trimming only removes barrier, so the
+## the play area, is narrower than open_gap_cells. Trimming only removes barrier, so the
 ## connectivity and routes already settled survive it.
 ##
-## TODO: a narrow bay inside ONE bent barrier is not measured — only gaps between separate
-## obstacles. Barriers are near-straight today, so none has been seen.
+## TODO: a narrow bay inside ONE bent obstacle is not measured — only gaps between separate
+## obstacles (map-generation.md §4).
 func _enforce_choke_width() -> void:
 	enforce_choke_width({})
 
@@ -271,11 +275,13 @@ func _enforce_choke_width() -> void:
 ## As above, with `a_cliffs` — cells a later pass made steep — as obstacles that never give way:
 ## a barrier too close to one is trimmed whatever the sizes.
 func enforce_choke_width(a_cliffs: Dictionary) -> void:
-	var play := PlayArea.screen_aligned(
-		Vector2(_grid.width, _grid.depth) * 0.5, _terrain.play_half_extents(), Map.CELL_SIZE
-	)
 	while true:
-		var doomed: Dictionary = too_narrow_cells(barrier_of, play, a_cliffs)
+		var doomed: Dictionary = too_narrow_cells(
+			barrier_of,
+			play_area(),
+			a_cliffs,
+			maxf(_params.open_gap_cells, MapGenerationParams.MIN_CHOKE_WIDTH)
+		)
 		if doomed.is_empty():
 			break
 		for cell: Vector2i in doomed:
@@ -283,33 +289,53 @@ func enforce_choke_width(a_cliffs: Dictionary) -> void:
 	_drop_fragments()
 
 
-## Barrier cells that leave a passage narrower than MIN_CHOKE_WIDTH: every cell too close to the
-## play edge, every cell too close to a `fixed` obstacle cell, and — of two barrier obstacles too
-## close together — the cells of the smaller one that are. Fixed cells (cliffs) are never
-## returned, and a cliff may meet the play edge: it closes that side rather than narrowing it.
+## The play rectangle in grid coordinates. Memoized: it never changes within a run.
+func play_area() -> PlayArea:
+	if _play == null:
+		_play = PlayArea.screen_aligned(
+			Vector2(_grid.width, _grid.depth) * 0.5, _terrain.play_half_extents(), Map.CELL_SIZE
+		)
+	return _play
+
+
+## Barrier cells that leave a passage narrower than `width`: every cell too close to the play
+## edge — unless its obstacle TOUCHES the edge, closing that side rather than narrowing it —
+## every cell within MIN_CHOKE_WIDTH of a `fixed` obstacle cell, and — of two barrier
+## obstacles too close together — the cells of the smaller one that are. Fixed cells (cliffs)
+## are never returned, and a cliff may meet the play edge: it closes that side rather than
+## narrowing it. A cliff is held only to the floor because it follows a barrier rather than
+## standing as a mass of its own; held to the open gap, it trimmed a third of a map's barriers.
 static func too_narrow_cells(
-	cells: Dictionary, play: PlayArea, fixed: Dictionary = {}
+	cells: Dictionary,
+	play: PlayArea,
+	fixed: Dictionary = {},
+	width: float = MapGenerationParams.MIN_CHOKE_WIDTH
 ) -> Dictionary:
-	var width: float = MapGenerationParams.MIN_CHOKE_WIDTH
 	var everything: Dictionary = cells.merged(fixed)
 	var obstacle_of: Dictionary = obstacles(everything)
 	var sizes: Dictionary = {}
 	for cell: Vector2i in obstacle_of:
 		sizes[obstacle_of[cell]] = sizes.get(obstacle_of[cell], 0) + 1
 	# Cells bucketed at the width that matters, so each is compared only with its neighbourhood.
-	var bucket_size: int = ceili(width + 2.0 * _OBSTACLE_REACH)
+	var bucket_size: int = ceili(
+		maxf(width, MapGenerationParams.MIN_CHOKE_WIDTH) + 2.0 * _OBSTACLE_REACH
+	)
 	var buckets: Dictionary = {}
 	for cell: Vector2i in everything:
 		var key: Vector2i = cell / bucket_size
 		if not buckets.has(key):
 			buckets[key] = []
 		buckets[key].append(cell)
+	var touching: Dictionary = {}
+	for cell: Vector2i in cells:
+		if edge_gap(cell, play) < EDGE_TOUCH_GAP:
+			touching[obstacle_of[cell]] = true
 	var doomed: Dictionary = {}
 	for cell: Vector2i in cells:
-		if edge_gap(cell, play) < width:
+		var mine: int = obstacle_of[cell]
+		if edge_gap(cell, play) < width and not touching.has(mine):
 			doomed[cell] = true
 			continue
-		var mine: int = obstacle_of[cell]
 		var key: Vector2i = cell / bucket_size
 		for dx: int in range(-1, 2):
 			for dz: int in range(-1, 2):
@@ -317,8 +343,10 @@ static func too_narrow_cells(
 					var theirs: int = obstacle_of[other]
 					if theirs == mine:
 						continue
-					var other_reach: float = _CLIFF_REACH if fixed.has(other) else _OBSTACLE_REACH
-					if walkable_gap(cell, other, _OBSTACLE_REACH, other_reach) >= width:
+					var is_fixed: bool = fixed.has(other)
+					var other_reach: float = _CLIFF_REACH if is_fixed else _OBSTACLE_REACH
+					var needed: float = MapGenerationParams.MIN_CHOKE_WIDTH if is_fixed else width
+					if walkable_gap(cell, other, _OBSTACLE_REACH, other_reach) >= needed:
 						continue
 					var smaller: bool = (
 						sizes[mine] < sizes[theirs]

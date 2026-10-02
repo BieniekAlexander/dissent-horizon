@@ -122,8 +122,8 @@ func _place_resources() -> bool:
 func _make_extent() -> bool:
 	var terrain := TerrainData.new()
 	_result.play_size = Vector2i(
-		_rng.randi_range(_params.play_size_min, _params.play_size_max),
-		_rng.randi_range(_params.play_size_min, _params.play_size_max)
+		_rng.randi_range(_params.play_size_min.x, _params.play_size_max.x),
+		_rng.randi_range(_params.play_size_min.y, _params.play_size_max.y)
 	)
 	terrain.play_size = _result.play_size
 	var heights := PackedFloat32Array()
@@ -850,11 +850,11 @@ func _flood_chasms(a_cells: Dictionary, a_width: int) -> void:
 	terrain.heights = heights
 	# One water per 4-CONNECTED stretch, because that is how a basin fills: an arm joined only
 	# across a corner takes no water from the other's seed, and would be walkable chasm.
+	var wet: Array[Dictionary] = []
 	var seen: Dictionary = {}
 	for cell: Vector2i in offset_of:
 		if seen.has(cell):
 			continue
-		_chasm_stretch(cell, offset_of, seen)
 		var cut: int = a_cells[cell]
 		var is_lake: bool = _result.topology.grown[cut]
 		# A lake stands at a pond's level, so its shelf is shallow; a river halfway up its chasm.
@@ -867,10 +867,92 @@ func _flood_chasms(a_cells: Dictionary, a_width: int) -> void:
 				else -_params.chasm_depth * WATER_LEVEL_FRACTION
 			)
 		)
-		var holds: Dictionary = a_cells.merged(_lake_shelf) if is_lake else a_cells
-		if _water_escapes(cell, level, holds):
-			continue  # a dry chasm: still a barrier, just without water
-		_result.chasm_waters.append({seed_cell = cell, level = level})
+		(
+			wet
+			. append(
+				{
+					cells = _chasm_stretch(cell, offset_of, seen),
+					level = level,
+					holds = a_cells.merged(_lake_shelf) if is_lake else a_cells,
+				}
+			)
+		)
+	_settle_chasm_water(wet, a_cells, a_width)
+
+
+## Place each stretch's water, raising as a ridge every stretch that cannot hold it, until no
+## raise disturbs another. Diagonal stretches share a corner, so raising one can lift the seed of
+## the next or cut part of it off from its water. The loop ends with no cell of `a_chasm` left
+## walkable and dry — a lip or a cell beside a ridge included, which hold no water and are
+## assumed steep but need not be — since that is a pit floor a unit can stand in.
+func _settle_chasm_water(a_wet: Array[Dictionary], a_chasm: Dictionary, a_width: int) -> void:
+	for _round: int in a_wet.size() + 1:
+		_result.chasm_waters.clear()
+		var raised: bool = false
+		var deep: Dictionary = {}
+		for stretch: Dictionary in a_wet.duplicate():
+			var seed_cell: Vector2i = _floor_cell(stretch.cells)
+			if (
+				seed_cell == Vector2i(-1, -1)
+				or _water_escapes(seed_cell, stretch.level, stretch.holds)
+			):
+				_raise_dry_stretch(stretch.cells, a_width)
+				a_wet.erase(stretch)
+				raised = true
+				continue
+			_result.chasm_waters.append({seed_cell = seed_cell, level = stretch.level})
+			var basin: WaterBasin = WaterBasin.fill(_result.terrain, seed_cell, stretch.level)
+			for cell: Vector2i in basin.depth_by_cell:
+				if basin.depth_by_cell[cell] > WaterBasin.WADE_DEPTH:
+					deep[cell] = true
+		var stranded: Array[Vector2i] = []
+		for cell: Vector2i in a_chasm:
+			if (
+				not deep.has(cell)
+				and _result.terrain.cell_height_spread(cell) <= TerrainGrid.MAX_SLOPE_DIFF
+			):
+				stranded.append(cell)
+		if not stranded.is_empty():
+			_raise_dry_stretch(stranded, a_width)
+			raised = true
+		if not raised:
+			return
+
+
+## A cell of `a_cells` whose four corners are still level — the chasm floor, not a cell a raised
+## neighbour has lifted a corner of; (-1, -1) if none is left.
+func _floor_cell(a_cells: Array[Vector2i]) -> Vector2i:
+	for cell: Vector2i in a_cells:
+		if _result.terrain.cell_is_flat(cell):
+			return cell
+	return Vector2i(-1, -1)
+
+
+## A chasm that cannot hold its water is raised as a ridge instead. Left sunk and dry, a stretch
+## more than two cells across has a flat floor — walkable ground in a pit, ringed by a one-cell
+## cliff — which pass 4 counted as obstruction and the finished map does not.
+func _raise_dry_stretch(a_stretch: Array[Vector2i], a_width: int) -> void:
+	var terrain: TerrainData = _result.terrain
+	var heights: PackedFloat32Array = terrain.heights
+	var offsets: PackedFloat32Array = (
+		_result.elevation.offsets if _result.elevation != null else PackedFloat32Array()
+	)
+	for cell: Vector2i in a_stretch:
+		for corner: Vector2i in PlacementGrid.rect_cells(cell, Vector2i(2, 2)):
+			var roughness: float = (
+				MapGenerationParams.RIDGE_ROUGHNESS if (corner.x + corner.y) % 2 == 0 else 0.0
+			)
+			var index: int = corner.y * a_width + corner.x
+			heights[index] = maxf(
+				heights[index],
+				(
+					_params.ground_height
+					+ _params.ridge_height
+					+ roughness
+					+ _offset_at(offsets, corner, a_width)
+				)
+			)
+	terrain.heights = heights
 
 
 ## Whether water seeded at `a_cell` reaches ground that is not chasm. A chasm beside a cliff
@@ -927,8 +1009,10 @@ func _level_chasm_cells(a_cells: Dictionary, a_width: int) -> Dictionary:
 	return offset_of
 
 
-## The 4-connected chasm cells reached from `a_from`, marked in `a_seen`.
-static func _chasm_stretch(a_from: Vector2i, cells: Dictionary, seen: Dictionary) -> void:
+## The 4-connected chasm cells reached from `a_from`, each marked in `seen`.
+static func _chasm_stretch(
+	a_from: Vector2i, cells: Dictionary, seen: Dictionary
+) -> Array[Vector2i]:
 	var stretch: Array[Vector2i] = [a_from]
 	seen[a_from] = true
 	var index: int = 0
@@ -940,6 +1024,7 @@ static func _chasm_stretch(a_from: Vector2i, cells: Dictionary, seen: Dictionary
 			if cells.has(next) and not seen.has(next):
 				seen[next] = true
 				stretch.append(next)
+	return stretch
 
 
 ## The terrain invariant: at least flat_fraction of in-play walkable cells are buildable.
@@ -1065,12 +1150,21 @@ func _validate_obstruction() -> void:
 	var buildable: int = 0
 	_result.obstructed.resize(_params.alliance_count)
 	_result.obstructed.fill(0.0)
+	var width: int = terrain.grid_width()
+	var open_ground := PackedByteArray()
+	open_ground.resize(width * terrain.grid_depth())
 	for z: int in terrain.grid_depth():
-		for x: int in terrain.grid_width():
+		for x: int in width:
 			var cell := Vector2i(x, z)
-			if not terrain.is_cell_in_play(cell) or footprints.has(cell):
+			if not terrain.is_cell_in_play(cell):
 				continue
-			if terrain.cell_height_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF or deep.has(cell):
+			var is_impassable: bool = (
+				terrain.cell_height_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF or deep.has(cell)
+			)
+			open_ground[z * width + x] = 0 if is_impassable else 1
+			if footprints.has(cell):
+				continue
+			if is_impassable:
 				var share: PackedFloat32Array = MapFavor.access_share(
 					Vector2(cell) + Vector2(0.5, 0.5), _result.starts, _params.alliance_count
 				)
@@ -1079,6 +1173,7 @@ func _validate_obstruction() -> void:
 				continue
 			traversable += 1
 			buildable += 1 if terrain.cell_is_flat(cell) else 0
+	_result.openness = MapOpenness.measure(open_ground, width, terrain.grid_depth())
 	var play: float = maxf(_result.play_cell_count, 1)
 	_result.traversable_fraction = traversable / play
 	_result.buildable_fraction = buildable / play

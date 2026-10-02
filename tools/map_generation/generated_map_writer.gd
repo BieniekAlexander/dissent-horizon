@@ -36,6 +36,8 @@ const PLACED: PackedScene.GenEditState = PackedScene.GEN_EDIT_STATE_INSTANCE
 ## A start column's colour: a random hue, vivid enough to find at a glance.
 const START_COLOR_SATURATION: float = 0.8
 const START_COLOR_VALUE: float = 0.95
+## The report's open-ground radius: a field 25 cells across, room for an army to stand and turn.
+const _REPORT_OPEN_RADIUS: int = 12
 #endregion
 
 #region Properties
@@ -308,6 +310,20 @@ static func report(map: GeneratedMap, title: String) -> PackedStringArray:
 					% [100.0 * map.traversable_fraction, 100.0 * map.buildable_fraction]
 				)
 				+ "per alliance %s" % ", ".join(obstructed)
+			)
+		)
+	if map.openness != null:
+		var widths: Array = map.openness.chokes.map(
+			func(choke: Dictionary) -> int: return roundi(choke.width)
+		)
+		widths.sort()
+		lines.append(
+			(
+				(
+					"open ground: %.0f%% of the walkable cells lie in a clear disc of radius %d, "
+					% [100.0 * map.openness.open_share(_REPORT_OPEN_RADIUS), _REPORT_OPEN_RADIUS]
+				)
+				+ "%d chokes between open areas, widths %s" % [widths.size(), widths]
 			)
 		)
 	if map.elevation != null:

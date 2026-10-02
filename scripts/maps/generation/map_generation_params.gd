@@ -138,6 +138,8 @@ const PROPERTY_GROUPS: Array = [
 		[
 			"target_traversable_fraction",
 			"traversable_tolerance",
+			"open_gap_cells",
+			"max_obstacle_span_fraction",
 			"region_width_min_cells",
 			"region_width_max_cells",
 			"region_edge_noise",
@@ -172,8 +174,8 @@ const PROPERTY_GROUPS: Array = [
 const DESCRIPTIONS: Dictionary = {
 	"last_pass": "The last pass to run. Stop early to inspect a pass on its own.",
 	"play_size_min":
-	"Smallest play-area side, in diamonds. Each axis is drawn between min and max.",
-	"play_size_max": "Largest play-area side, in diamonds. Equal to min pins the size.",
+	"Smallest play-area sides (s, t), in diamonds. Each axis is drawn between its min and max.",
+	"play_size_max": "Largest play-area sides (s, t), in diamonds. Equal to min pins the size.",
 	"ground_height": "Height of the flat ground. It must leave room for a chasm to sink below it.",
 	"alliance_count": "Number of alliances. Changing it resets the defaults that depend on it.",
 	"starts_per_alliance": "Starting positions each alliance gets.",
@@ -267,6 +269,9 @@ const DESCRIPTIONS: Dictionary = {
 	"Share of the play area left traversable. Cuts grow into mountains and lakes until it is reached.",
 	"traversable_tolerance":
 	"How far a finished map's traversable share may sit from the target before the map is rejected.",
+	"max_obstacle_span_fraction":
+	"Largest share of either side of the map one mass of mountains and lakes may span.",
+	"open_gap_cells": "Narrowest gap kept between two obstacles, or an obstacle and the map edge.",
 	"region_width_min_cells":
 	"Narrowest a grown cut reaches from equidistant between its two nodes.",
 	"region_width_max_cells": "Widest a grown cut reaches from equidistant between its two nodes.",
@@ -316,14 +321,18 @@ var last_pass: Pass = Pass.VISUALS
 #endregion
 
 #region Extent
-## Default play-size bounds, in diamonds per axis, by start count. A heuristic starting point:
-## TODO: only two players have a range, and it is untuned (map-generation.md §Parameters).
-const PLAY_SIZE_RANGE_BY_START_COUNT: Dictionary = {2: Vector2i(120, 150)}
+## Default play-size bounds by start count: [min, max], each (s, t) in diamonds. A heuristic
+## starting point. TODO: only two players have a range, and it is untuned (map-generation.md
+## §Parameters).
+const PLAY_SIZE_RANGE_BY_START_COUNT: Dictionary = {
+	2: [Vector2i(100, 100), Vector2i(120, 120)],
+}
 
-## Each axis of the play rectangle is drawn uniformly in [min, max] diamonds; the corner grid
-## is derived from the result (TerrainData). Equal bounds pin the size.
-var play_size_min: int = 120
-var play_size_max: int = 150
+## The play rectangle's s side is drawn uniformly in [min.x, max.x] diamonds and its t side in
+## [min.y, max.y]; the corner grid is derived from the result (TerrainData). Equal bounds pin
+## the size, and unequal axes shape a long map.
+var play_size_min: Vector2i = Vector2i(100, 100)
+var play_size_max: Vector2i = Vector2i(120, 120)
 ## Height of the flat ground: high enough that a chasm sunk chasm_depth into it stays inside
 ## the brush's height range (0 and up).
 var ground_height: float = 8.0
@@ -463,7 +472,7 @@ var footprint_gap_cells: int = 1
 #region Topology and terrain (passes 4-5)
 ## Share of feature-graph edges cut by a barrier. 0.45, the top of its bracket, because only
 ## uncarved cuts grow into obstacle regions, and at 0.3 growing every one of them still left
-## 81-88% of a 1v1 map traversable, short of the 80% target.
+## 81-88% of a 1v1 map traversable, short of the old 80% target. TODO: not re-measured at 85%.
 var cut_fraction: float = 0.45
 ## Share of cuts drawn as flooded chasms; the rest are ridges.
 var flooded_cut_fraction: float = 0.5
@@ -485,12 +494,20 @@ var flat_fraction: float = 0.55
 #region Obstacle regions (pass 4, shaped in pass 5)
 ## The finished map's traversable share: in play, not steep, not deep water, not a footprint.
 ## Shallow water counts as traversable (map-generation.md §Obstacle regions).
-var target_traversable_fraction: float = 0.8
-var traversable_tolerance: float = 0.05
+var target_traversable_fraction: float = 0.85
+var traversable_tolerance: float = 0.025
+## Pass 4 trims an obstacle back until every gap it leaves — to another obstacle, or to the play
+## edge — is at least this wide, so masses either merge or stand well apart. Trimmed to
+## MIN_CHOKE_WIDTH instead, the floor became the commonest passage width (map-generation.md
+## §Openness). Carves and ramps are still MIN_CHOKE_WIDTH and up: the deliberate chokes.
+var open_gap_cells: float = 20.0
+## No obstacle mass's bounding box, in the play area's own axes, spans more than this share of
+## either side: a larger one is a long walk round for ground units and hands the map to air.
+var max_obstacle_span_fraction: float = 0.3
 ## A grown cut keeps its Voronoi band out to a gap drawn in [min, max]: the cells whose two
 ## nearest nodes are the cut's pair, at most that much closer to one than the other.
-var region_width_min_cells: float = 5.0
-var region_width_max_cells: float = 14.0
+var region_width_min_cells: float = 8.0
+var region_width_max_cells: float = 22.0
 ## The gap is scaled by 1 + noise × this, from coherent noise this many cells across, so an
 ## edge is ragged rather than following the Voronoi boundary exactly.
 var region_edge_noise: float = 0.35
@@ -548,11 +565,11 @@ var collocation_rules: Array[CollocationRule] = [
 static func for_start_count(start_count: int) -> MapGenerationParams:
 	var params := MapGenerationParams.new()
 	params.alliance_count = start_count
-	var bounds: Vector2i = PLAY_SIZE_RANGE_BY_START_COUNT.get(
-		start_count, Vector2i(params.play_size_min, params.play_size_max)
+	var bounds: Array = PLAY_SIZE_RANGE_BY_START_COUNT.get(
+		start_count, [params.play_size_min, params.play_size_max]
 	)
-	params.play_size_min = bounds.x
-	params.play_size_max = bounds.y
+	params.play_size_min = bounds[0]
+	params.play_size_max = bounds[1]
 	return params
 
 
@@ -565,6 +582,13 @@ func warnings() -> PackedStringArray:
 			(
 				"Generation stops after pass %d of %d, %s."
 				% [clampi(last_pass, 1, PASS_COUNT), PASS_COUNT, pass_name(last_pass)]
+			)
+		)
+	if play_size_min.x > play_size_max.x or play_size_min.y > play_size_max.y:
+		found.append(
+			(
+				"The play-size minimum %s exceeds the maximum %s on an axis."
+				% [play_size_min, play_size_max]
 			)
 		)
 	if elevation_step > TerrainGrid.MAX_SLOPE_DIFF:

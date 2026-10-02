@@ -15,8 +15,8 @@ func _params() -> MapGenerationParams:
 	var params := MapGenerationParams.new()
 	# Passes 4-5: pass 6 moves heights, and has its own tests (test_MapElevation).
 	params.last_pass = MapGenerationParams.Pass.TERRAIN
-	params.play_size_min = 80
-	params.play_size_max = 90
+	params.play_size_min = Vector2i(80, 80)
+	params.play_size_max = Vector2i(90, 90)
 	# A small map keeps these tests fast, so the energy budget is scaled to its area.
 	params.energy_value_per_player = 13000.0
 	params.building_pool = [MapPiece.of(&"building", Vector2i(4, 4), 1.0, 5)]
@@ -215,6 +215,41 @@ func test_barriers_too_close_are_trimmed_from_the_smaller() -> void:
 	assert_false(doomed.has(Vector2i(40, 49)), "the wall stays")
 
 
+func test_barriers_are_trimmed_to_the_width_asked_for() -> void:
+	var play := PlayArea.axis_aligned(Vector2(50, 50), Vector2(50, 50))
+	var cells: Dictionary = {}
+	for z: int in range(35, 65):
+		cells[Vector2i(40, z)] = 0  # a long wall
+	for z: int in range(48, 51):
+		cells[Vector2i(58, z)] = 1  # a short stub fifteen walkable cells from it
+	assert_false(MapTopology.too_narrow_cells(cells, play).has(Vector2i(58, 49)), "the floor")
+	assert_true(
+		MapTopology.too_narrow_cells(cells, play, {}, 20.0).has(Vector2i(58, 49)),
+		"a twenty-cell gap"
+	)
+
+
+## A cliff follows a barrier rather than standing as a mass of its own, so a barrier keeps only
+## the floor from one, whatever width barriers keep from each other.
+func test_a_cliff_is_held_only_to_the_floor() -> void:
+	var play := PlayArea.axis_aligned(Vector2(50, 50), Vector2(50, 50))
+	var cliffs: Dictionary = {}
+	for z: int in range(35, 65):
+		cliffs[Vector2i(40, z)] = true
+	var near: Dictionary = {Vector2i(46, 50): 0}
+	var far: Dictionary = {Vector2i(56, 50): 0}
+	assert_true(MapTopology.too_narrow_cells(near, play, cliffs, 20.0).has(Vector2i(46, 50)))
+	assert_false(MapTopology.too_narrow_cells(far, play, cliffs, 20.0).has(Vector2i(56, 50)))
+
+
+func test_a_barrier_touching_the_play_edge_is_kept() -> void:
+	var play := PlayArea.axis_aligned(Vector2(50, 50), Vector2(50, 50))
+	var cells: Dictionary = {}
+	for x: int in range(1, 12):
+		cells[Vector2i(x, 50)] = 0  # runs from the edge inward
+	assert_true(MapTopology.too_narrow_cells(cells, play, {}, 20.0).is_empty())
+
+
 func test_a_barrier_near_the_play_edge_is_trimmed() -> void:
 	var play := PlayArea.axis_aligned(Vector2(50, 50), Vector2(50, 50))
 	var cells: Dictionary = {Vector2i(5, 50): 0, Vector2i(30, 50): 0}
@@ -223,10 +258,11 @@ func test_a_barrier_near_the_play_edge_is_trimmed() -> void:
 	assert_false(doomed.has(Vector2i(30, 50)))
 
 
-## Independent of the trimmer: every pair of cells from different obstacles, and every cell
-## and the play edge, leave at least MIN_CHOKE_WIDTH walkable.
-func test_no_generated_choke_is_narrower_than_the_minimum() -> void:
-	var width: float = MapGenerationParams.MIN_CHOKE_WIDTH
+## Independent of the trimmer: every pair of cells from different obstacles leaves at least
+## open_gap_cells walkable, and so does every cell and the play edge, unless its obstacle
+## touches the edge — closed, not narrowed.
+func test_no_generated_gap_is_narrower_than_the_open_gap() -> void:
+	var width: float = _params().open_gap_cells
 	for generation_seed: int in _SEEDS:
 		var map: GeneratedMap = MapGenerator.generate(_params(), generation_seed)
 		var cells: Dictionary = map.topology.barrier_of
@@ -236,13 +272,18 @@ func test_no_generated_choke_is_narrower_than_the_minimum() -> void:
 			Map.CELL_SIZE
 		)
 		var obstacle_of: Dictionary = MapTopology.obstacles(cells)
+		var touching: Dictionary = {}
+		for cell: Vector2i in cells:
+			if MapTopology.edge_gap(cell, play) < MapTopology.EDGE_TOUCH_GAP:
+				touching[obstacle_of[cell]] = true
 		var keys: Array = cells.keys()
 		for i: int in keys.size():
-			assert_gte(
-				MapTopology.edge_gap(keys[i], play),
-				width,
-				"seed %d: %s near the edge" % [generation_seed, keys[i]]
-			)
+			if not touching.has(obstacle_of[keys[i]]):
+				assert_gte(
+					MapTopology.edge_gap(keys[i], play),
+					width,
+					"seed %d: %s near the edge" % [generation_seed, keys[i]]
+				)
 			for j: int in range(i + 1, keys.size()):
 				if obstacle_of[keys[i]] != obstacle_of[keys[j]]:
 					assert_gte(

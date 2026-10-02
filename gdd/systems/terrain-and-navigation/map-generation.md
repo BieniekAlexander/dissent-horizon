@@ -397,21 +397,25 @@ TODO: test (3)'s subject — routes between STARTS — is the rule most likely t
 wording ("routes to the features nearest equal favor") was too vague to build; Alex chose starts
 (2026-09-19) and expects to revisit it.
 
-**No choke is narrower than `MIN_CHOKE_WIDTH` (10 cells).** A choke is the walkable gap between
-two separate obstacles — barriers, each with its steep border, and the edge of the play area.
-After carving, any barrier that leaves a narrower gap is trimmed back (the smaller of two
-barriers gives way; a barrier gives way to the edge), and fragments under four cells are
-dropped. Trimming only removes barrier, so connectivity and routes survive it. Chokes made by
-resource footprints — buildings, shelters, sites — are not held to the rule, and ponds are
-walkable.
+**No gap between two obstacles is narrower than `open_gap_cells` (20).** A gap is the walkable
+ground between two separate obstacles — barriers, each with its steep border, and the edge of
+the play area. After carving, any barrier that leaves a narrower one is trimmed back (the
+smaller of two barriers gives way; a barrier gives way to the edge unless its mass touches it),
+and fragments under four cells are dropped. Trimming only removes barrier, so connectivity and routes survive it. So two
+masses either merge into one or stand a field apart; see §Openness for why the trim width is
+not the choke floor. Chokes made by resource footprints — buildings, shelters, sites — are not
+held to the rule, and ponds are walkable.
 
-It is a constant, not a knob: the floor keeps a unit column moving through every choke on every
-map, and carve widths are sampled from it. Width above the floor is still the strongest balance
-lever on the map — narrow is the StarCraft ramp that makes melee viable, wide is the open field
-that makes it worthless.
+**The deliberate chokes are carves and ramps**, and those are drawn from `MIN_CHOKE_WIDTH`
+(10 cells) up to twice that. The floor is a constant, not a knob: it keeps a unit column moving
+through every choke on every map. Width above the floor is still the strongest balance lever on
+the map — narrow is the StarCraft ramp that makes melee viable, wide is the open field that
+makes it worthless.
 
-TODO: a narrow bay inside ONE bent barrier is not measured, only gaps between separate
-obstacles. Barriers are near-straight today, so none has been seen.
+TODO: a narrow bay inside ONE bent obstacle is not measured, only gaps between separate
+obstacles. Grown masses bend, so these now appear: a C-shaped mountain with a 7–10-cell mouth,
+about one map in three (§Openness). Filling a bay whose mouth is narrower than the open gap
+would close them.
 
 **Favor correction.** Pass 3 aimed at straight-line favor; barriers make some features farther by
 foot than by line. Once cuts and carves are fixed, every feature's share is re-measured by
@@ -460,11 +464,17 @@ make ground unbuildable, and height has no gameplay effect yet (Alex, 2026-09-19
       cliff — impassable, and the barrier still divides. Two cells, because the row touching the
       water shares its sunk corners and floods with it. This is where a waterfall goes when one
       is built.
-    - **A body that will not stay in its chasm is not placed, and that chasm is left dry.** A
-      chasm beside a cliff stands above the ground below it, and a cliff cell is steep but not
-      TALL: its middle can sit under the water, so the fill walks over it. Predicting that from
-      rim heights means re-deriving the fill, so the fill itself is the test. A dry chasm is a
-      barrier like any other — see §Obstacle regions, where dry and wet are one thing.
+    - **A body that will not stay in its chasm is not placed, and that stretch is raised as a
+      ridge.** A chasm beside a cliff stands above the ground below it, and a cliff cell is steep
+      but not TALL: its middle can sit under the water, so the fill walks over it. Predicting
+      that from rim heights means re-deriving the fill, so the fill itself is the test.
+    - **A dry chasm is not left sunk.** Its floor is flat, so anything over two cells across is
+      walkable ground in a pit ringed by a one-cell cliff — pass 4 counted it as obstruction, the
+      finished map did not, and the ring drew thin enclosures across the map (seed 2003 of
+      `test_MapElevation` had 17 such cells before 2026-10-02). Raising one stretch lifts a corner
+      it shares with a diagonal neighbour, which can strand that neighbour's seed or cut part of
+      it off from its water, so the fill is settled: re-tested from a seed still on its floor,
+      until no chasm cell is left walkable and dry — lips and cells beside a ridge included.
     - The water is seeded per **4-connected** stretch, because that is how a basin fills: an arm
       joined only across a corner would take no water and stay walkable chasm.
 - Every cell bordering a barrier shares a moved corner, so it is steep too.
@@ -565,8 +575,11 @@ The rest of the pass is unchanged, and checks the same three things:
 2. **Walkable ground is one piece.** A stranded stretch first gets a ramp on a cliff beside it,
    then the groups owning it are re-levelled, then the stretch itself. A stretch under 25 cells
    is left unreachable, like a ridge top: no ramp fits one, and chasing them piles up ramps.
-3. **The choke floor holds**, with cliffs as fixed obstacles: a barrier too near a cliff is
-   trimmed. Trimming frees cells and a new ramp adds walls, so the floor and test 2 alternate
+3. **The choke floor holds**, with cliffs as fixed obstacles: a barrier within
+   `MIN_CHOKE_WIDTH` of a cliff is trimmed. Only the floor, not the open gap pass 4 keeps
+   between barriers — a cliff follows a barrier rather than standing as a mass of its own, and
+   held to the open gap it trimmed a third of a map's barriers away after pass 4 had met its
+   share. Trimming frees cells and a new ramp adds walls, so the floor and test 2 alternate
    for a few rounds until neither changes anything. Test 1 is judged last, on the settled map.
 
 A feature that ends on a cliff or a ramp, or too near another feature, is **moved and rebalanced
@@ -607,8 +620,9 @@ of 3, obstruction went from 9% to 14%, but open ground stayed as close to things
 because cuts are clipped short around features and fill ground that was already near
 something.
 
-**Target: 80% ± 5% of the play area traversable** (`target_traversable_fraction`,
-`traversable_tolerance`). A traversable cell is in play, not steep, not under deep water and not
+**Target: 85% ± 2.5% of the play area traversable** (`target_traversable_fraction`,
+`traversable_tolerance`; Alex, 2026-10-02 — it was 80% ± 5%, and the masses that took grew
+large enough to make ground units walk a long way round, handing the map to air). A traversable cell is in play, not steep, not under deep water and not
 a footprint, so a lake's shallow shelf counts and its deep core does not. The finished terrain is
 measured, and **a map outside the band is rejected**. Unbuildable ground is tracked as well
 (the report states both shares). It is bounded only by `flat_fraction`, as a share of walkable
@@ -637,16 +651,21 @@ cuts**, not placed as free blobs:
 - **A cell whose nearest pair is an OPEN edge is never taken**, so the corridors the graph's
   routes run through stay open. Only uncarved cuts grow: a carved cut is one the routes need.
 - **The growth happens in pass 4**, after carving and before the connectivity repair and the
-  choke floor, so those cover regions exactly as they cover cuts. Cuts grow, then the choke
-  floor trims, for up to three rounds, until the share is reached or no cut is left.
+  choke floor, so those cover regions exactly as they cover cuts. Cuts grow, then the trim to
+  the open gap, for up to six rounds, until the share is reached. Once every uncarved cut has
+  grown, the grown ones grow again, each round reaching further: the trim gave back what a cut
+  lost to its neighbours, and only room away from every other obstacle survives the next trim.
+- **A growth that would strand a feature or a start is retried shorter**, twice, before it is
+  dropped. Undoing it whole threw away most regrowth, which reaches far enough to close pockets.
 - **Regions keep out of a start's clear box plus `feature_spacing`**. A cut's own thin band,
   drawn before any growth, follows the plain barrier rule and may come closer.
-- **No choke is narrower than `MIN_CHOKE_WIDTH`**, regions included, and a region keeps that far
-  from the play edge.
+- **No gap is narrower than `open_gap_cells`**, regions included; a mass near the play edge is
+  closed onto it instead, and no mass spans more than `max_obstacle_span_fraction` of either
+  side (§Openness).
 
 **`cut_fraction` is 0.45, the top of its bracket.** Only uncarved cuts grow, and at 0.3 growing
-every one of them still left 81–88% of a 1v1 map traversable. At 0.45 a full generation lands at
-79–81%.
+every one of them still left 81–88% of a 1v1 map traversable, short of the old 80% target.
+TODO: not re-measured at the 85% target, where fewer cuts may do.
 
 ### Mountains and lakes
 
@@ -661,8 +680,8 @@ every one of them still left 81–88% of a 1v1 map traversable. At 0.45 a full g
 - **Which kind grows next** is the kind further below its share of the cells grown so far,
   `region_lake_fraction` of them lakes.
 - **A body never spans levels.** A lake follows the chasm rule of pass 5: the stretch on one
-  level holds water, and water that would run out of its lake is not placed, leaving the core dry
-  (a dry chasm is still a barrier).
+  level holds water, and a stretch whose water would run out of its lake is raised as a
+  mountain instead.
 - **Waterfalls are deferred**: later, an upper line and a lower line are joined by decoration.
 
 Carried over unchanged from the 2026-09-19 water plan: a chasm and a river are the same thing,
@@ -676,8 +695,21 @@ How much impassable ground lies near a player matters to that player, so it fall
 between alliances: mountains, lakes, ridges and cliffs together. Each impassable cell is split
 between alliances by the same access share the resources use (`MapFavor.access_share`). The
 next cut to grow is the one leaning most toward the alliance with the least so far, drawn from
-the best three so neighbouring seeds differ. **A map whose worst alliance is more than
-`obstruction_tolerance` (15%) from even is rejected.** Measured: 6–8% on five 1v1 seeds.
+the best three so neighbouring seeds differ — or simply the best, once the split leans past a
+third of the tolerance. **A map whose worst alliance is more than `obstruction_tolerance` (15%)
+from even is rejected.**
+
+- **A cut's lean is the mean share of the cells it can grow into**, not of its graph edge's
+  midpoint: the Voronoi boundary a cut grows along can sit far from that midpoint, and steering
+  by it made balancing worse.
+- **The tally is recounted after every trim**, over everything blocked (a barrier and its steep
+  ring). A running sum of what growth added kept counting what the trim had taken away.
+- **Then a balancing phase**, because masses are large and the split can still lean hard when
+  the target is met: below the target the next move grows toward the light side, through an
+  uncut graph edge if no cut is left there (kept only if every pair of starts keeps its
+  routes); at or above it, the move un-grows the grown cut leaning hardest toward the heavy
+  side. Each move is kept only if it evens the split and leaves the blocked share within half
+  the traversable tolerance of its target, at most twelve moves.
 
 TODO: the check for closed-off ground is local. Each piece of ground beside a growth is flooded
 up to 5000 cells, and a piece that large counts as open, so a growth that split the open ground
@@ -687,12 +719,88 @@ through the region. None has been seen.
 TODO: pass 6 rejects about one seed in five on routes between the starts (seed 2004 at the
 shipped defaults); whether `cut_fraction` 0.45 raised that rate is unmeasured.
 
-TODO: a generation takes 22–63 s on today's 120–150 maps. That cost is pass 6's grading, not
+TODO: a generation took 22–63 s on the 120–150 maps of 2026-10-01, and 8–63 s (33 s mean) at
+100–120. That cost is pass 6's grading, not
 regions: with regions off, a sample seed took 62 s (the doc's 6–18 s predates the larger maps).
 
 TODO: map-size parameters are still being calibrated. Keep the current `play_size` bounds for
 now. The parameterization will need reworking once resource and pseudo-resource allocation,
 the distances between spawns, and the share of openly traversable ground are settled together.
+
+### Openness
+
+Decided 2026-10-02 (Alex): obstruction should leave **large, open, connected fields**, with
+narrow passages rare. Occasional narrow chokes are fine; a map threaded with them is not.
+
+**How it is measured** (`MapOpenness`, on the finished terrain, footprints counted as walkable
+because their chokes are not held to the rule):
+
+- **Clearance** — per walkable cell, the distance to the nearest cell a unit cannot stand on.
+  A passage `k` cells wide has clearance `(k + 1) / 2` down its middle.
+- **Open share at radius r** — the walkable cells inside some clear disc of radius `r`: what is
+  left after a morphological opening. The report gives it at 12, a field 25 cells across.
+- **Chokes** — found as BWEM finds them for StarCraft. Cells are grown into areas from the most
+  clear down, a watershed on clearance. Where two areas meet, the meeting cell's clearance is
+  the half-width of the narrowest passage between them. It is a choke when both areas are open
+  ground (clearance at least 8, i.e. 15 cells across) and the passage is at most 0.7 of the
+  smaller one's clearance; otherwise it is a waist in one field, or the mouth of an alcove.
+
+**What was wrong.** Pass 4 trimmed every gap between two obstacles to exactly the 10-cell
+floor, so the floor became the commonest passage width. And obstruction came as 15–25 separate
+walls, one per cut, so the gaps between them were many. Measured on 16 default 1v1 seeds
+before the change: 8.3 chokes per map under 16 cells (1.7 under 10), and 75% of walkable
+ground in a 25-cell field. A third of the narrow chokes were obstacle-to-edge, a third
+obstacle-to-obstacle; chokes beside footprints were left out, by the rule above.
+
+**The rule now: a gap is closed or open.** Two obstacles either merge into one mass or keep
+`open_gap_cells` (20) apart. The narrow passages left are the deliberate ones — carves and
+ramps, 10–20 cells. Holding the share with fewer, wider gaps means fewer, larger masses:
+regions reach further (8–22 cells), regrow, and retry shorter rather than give up (§A region is
+an aggregation of cuts). Consolidating masses made the obstruction split lumpier, which is why
+balancing grew a second phase (§Obstruction is a cost balanced per alliance).
+
+**The play edge follows the same rule** (Alex, 2026-10-02). A mass within `open_gap_cells` of
+the edge is closed onto it: the ground between, walked straight out along the play area's own
+axis, becomes part of it, with any pocket that encloses. A band of open ground round the whole
+perimeter tells a player the edge is always a way through, and that should not always hold. A
+mass whose fill would take a reserved cell (a footprint, a start's buffer, a carve) or strand a
+feature is trimmed back from the edge instead. A mass touches the edge when no walkable cell is
+left between them (`MapTopology.EDGE_TOUCH_GAP`): a cell out of play is reserved, so a barrier
+can stand no nearer than the second row, and its steep border covers the first.
+
+**No mass is too large to walk round** (Alex, 2026-10-02). A mass's bounding box, in the play
+area's own axes — the diagonals of the engine's grid — may span at most
+`max_obstacle_span_fraction` (30%) of either side. After every growth, a larger mass is broken
+by one of two moves:
+
+- **delete one of its cuts** — "of two mountains and a lake, delete a mountain". That cut's
+  graph edge is marked carved, so nothing grows it again and pass 6 treats it as open;
+- **cut a passage** `open_gap_cells` wide across its longer side, through the median of its
+  cells, so it splits in two of about equal size. The passage is carved ground; across a lake,
+  the lake shelf rule gives it shallow margins.
+
+**The cheaper move wins**: of those that bring every piece under the cap, the one losing fewest
+cells; failing that, the one leaving the largest piece smallest. Deletion first, as built at
+first, threw away whole mountains — a third of a small map's obstruction on the last round,
+with nothing left to grow it back (two of 16 seeds at 100–120 came out at 88% traversable).
+
+Measured on the same 16 seeds after both rounds: 0.4 chokes per map under 16 cells (against
+8.3 before any of it), 92% of walkable ground in a 25-cell field (75%), traversable 83–87%, the
+widest mass at most 30% of a side, and 3–9 masses per map on the edge. 15 of 16 seeds generate,
+as before; the failure is pass 4's routes. A generation takes 37 s mean against 57 s before:
+there is less to grow.
+
+At the 100–120 play size (2026-10-02), the same 16 seeds: 15 generate (the failure is pass 6's
+routes), traversable 83–87% around a mean of 85%, 0.2 chokes per map under 16 cells, 90% of
+walkable ground in a 25-cell field, 10–11 masses per map with 3–7 on the edge, 33 s mean.
+
+TODO: openness is reported, not enforced (`GeneratedMapWriter.report` lists every choke's
+width) — whether a map with too many narrow chokes is rejected, and at what width and count, is
+open; see [deferred](../../deferred.md) 1.64. What remains narrow is mostly the bay inside one
+bent mass (§4, the TODO under the choke rule).
+
+TODO: the thresholds — the open gap, the open-area clearance, the 0.7 ratio — are first
+guesses, not tuned against play.
 
 Elsewhere, regions need:
 - the minimap to draw impassable terrain ([ui/hud-layout](../ux/ui/hud-layout.md) §The minimap);
@@ -786,9 +894,14 @@ height and were kept at their old values (Alex, 2026-10-02): doubled, they tower
 Their crest roughness is still doubled, because it is what keeps a crest steeper than the
 slope limit.
 
+TODO: hand-authored and saved terrains (`s1`, `blue_hole`, `skirmish_map`, `generated_639364842`,
+the `mesh_*` test terrains) were NOT rescaled when the slope limit doubled, so some of their cliffs
+are now walkable — Alex accepted losing them (2026-10-02); regenerate or rescale before reuse.
+Also undecided: `chasm_depth` is still doubled (4); halving it needs `WADE_DEPTH` moved too.
+
 | Parameter | Bracket | Why the bracket |
 |---|---|---|
-| `play_size` per axis | drawn per map from a range by start count; 120 … 150 diamonds at 2 starts (was 75 … 120; widened 2026-10-01 to hold the per-player economy) | the corner grid is square with side `s + t`, so 150 + 150 is a 301² grid. TODO: only the 2-start range exists, and it may be revisited |
+| `play_size_min` / `_max` | `Vector2i` (s, t) bounds, each axis drawn in its own range, by start count; 100 … 120 diamonds at 2 starts (Alex, 2026-10-02; it was 120 … 150, widened 2026-10-01 to hold the per-player economy, and 75 … 120 before that) | the corner grid is square with side `s + t`, so 120 + 120 is a 241² grid; unequal axes give a long map. TODO: only the 2-start range exists, and the per-player budgets were not shrunk with it |
 | `start_count` | 2 … 8 | |
 | `start_min_center` | ≥ 0.25 × the side length | a start near the middle has no rear and meets the enemy too early |
 | `start_angle_jitter` | 0 … 0.5 × the equal-spacing angle | wide on purpose; `start_separation` is what stops two starts crowding |
@@ -824,8 +937,10 @@ slope limit.
 | `last_pass` | a named pass: extent, starts, resources, topology, terrain, elevation, visuals | stop after that pass to inspect it. A `Pass` enum, numbered as this doc numbers them, so the dock offers the names and a report reads the same as §The pipeline |
 | `ground_height` | 8.0 | high enough that a chasm sunk `chasm_depth` stays above 0 |
 | `cut_fraction` | 0.15 … 0.45 of graph edges; 0.45 | 0 is a featureless field; above ~0.5 the map is an SC2 partition, which this game explicitly is not. At the top because only uncarved cuts grow into regions (§Obstacle regions) |
-| `target_traversable_fraction` / `traversable_tolerance` | 0.8 / 0.05 | Alex, 2026-10-01; a finished map outside the band is rejected |
-| `region_width_min_cells` / `_max_cells` | 5 / 14 | a grown cut's reach from equidistant; wider did little, as cuts ran out before width did |
+| `target_traversable_fraction` / `traversable_tolerance` | 0.85 / 0.025 | Alex, 2026-10-02 (was 0.8 / 0.05: masses large enough to favour air); a finished map outside the band is rejected |
+| `open_gap_cells` | 20 | the least gap pass 4 leaves between two obstacles, or an obstacle and the edge it does not touch; at 10 the floor was the commonest passage width (§Openness) |
+| `max_obstacle_span_fraction` | 0.3 | Alex, 2026-10-02: the widest a mass's bounding box may run along either play-area axis, as a share of that side |
+| `region_width_min_cells` / `_max_cells` | 8 / 22 (was 5 / 14) | a grown cut's reach from equidistant; widened with the open gap, which trims more away, so fewer, larger masses make up the share |
 | `region_edge_noise` / `region_noise_scale_cells` | 0.35 / 12 | ragged edges rather than the straight Voronoi boundary |
 | `region_lake_fraction` | 0.5 | share of grown cells that are lakes |
 | `lake_shelf_cells` | 2 | the wadeable shelf around a lake's core |
@@ -833,7 +948,7 @@ slope limit.
 | `obstruction_tolerance` | 0.15 | "somewhat fairly" (Alex); measured 6–8% |
 | `flooded_cut_fraction` | 0 … 1; 0.5 | share of cuts that are chasms rather than ridges |
 | `barrier_width_cells` | 2 … 5; 3 | roughly a barrier's thickness |
-| `MIN_CHOKE_WIDTH` (const) | 10 | no passage between barriers, or a barrier and the edge, is narrower; carves are 10–20 |
+| `MIN_CHOKE_WIDTH` (const) | 10 | no passage is narrower; carves and ramps are 10–20, and a barrier keeps this from a cliff |
 | `min_routes` | ≥ 2 | one route between two starts is a funnel |
 | `correction_radius_cells` | 12 | how far pass 4 may move a feature to restore its favor |
 | `ridge_height` / `chasm_depth` | 3.0 / 4.0 | anything above `MAX_SLOPE_DIFF` blocks; these read as terrain |
