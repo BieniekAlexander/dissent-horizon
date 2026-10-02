@@ -17,7 +17,7 @@ type: system-note
 
 **"Sanction" means exactly one thing: an ability unlocked with the DOMINION resource, through this grid.** It is an unlock ROUTE, not a kind of thing — what a cell grants is an ABILITY, and abilities also arrive for free (the Bombard's battery — owning the gun is the unlock) or bought at a structure through the ordinary purchase queue. Nothing about an ability changes with the route it took: it still lives in an `Abilities` pool on the piece that uses it, and it is still defined by a `kind: AbilityDefinition` doc. What the route decides is who may buy it and what it costs.
 
-A sanction grants either an ACTIVE ability (Scan, Ambush) or a PASSIVE one (Scavenge). A commander-level sanction is unlocked with dominion, then aimed at a map position. The set a faction offers is a **GRID** — `SanctionGrid.NUM_TIERS` rows by `NUM_COLUMNS` columns, one `SanctionUnlock` per cell — and the two axes carry two different rules. Keeping them separate is the whole design. Two grids are authored — the tables in `gdd/factions/colonial/colonial.md` (14 cells) and `gdd/factions/anarchical/anarchical.md` (15) — TODO: both used to be pinned cell by cell in `tests/test_FactionRosters.gd`; that test was cut as an authored-content test (CLAUDE.md §A unit test does not assert facts about authored content). **Nothing now catches a `.tscn` edit drifting from the table**, and the table IS the design — if that drift matters, it wants a check that reads the doc rather than one that hard-codes the cells.
+A sanction grants either an ACTIVE ability (Scan, Ambush) or a PASSIVE one (Scavenge). A commander-level sanction is unlocked with dominion, then aimed at a map position. The set a faction offers is a **GRID** — `SanctionGrid.NUM_TIERS` rows by `NUM_COLUMNS` columns, one `SanctionUnlock` per cell — and the two axes carry two different rules. Keeping them separate is the whole design. Two grids are authored — the tables in `gdd/factions/colonial/colonial.md` (13 cells) and `gdd/factions/anarchical/anarchical.md` (13) — TODO: both used to be pinned cell by cell in `tests/test_FactionRosters.gd`; that test was cut as an authored-content test (CLAUDE.md §A unit test does not assert facts about authored content). **Nothing now catches a `.tscn` edit drifting from the table**, and the table IS the design — if that drift matters, it wants a check that reads the doc rather than one that hard-codes the cells.
 
 | Axis | Means | Rule |
 | --- | --- | --- |
@@ -26,9 +26,9 @@ A sanction grants either an ACTIVE ability (Scan, Ambush) or a PASSIVE one (Scav
 
 **Depth costs breadth, and that is the point of having two axes.** The tier gate counts unlocks without caring which, so it can never be satisfied by rushing one family — you have to buy across the sanction grid to get down it. A single edge list cannot say this: `prerequisites: Array[SanctionUnlock]` with any-of semantics was what this replaced, and it expressed breadth only by pointing every deep node at every shallow one, left a genuine chain indistinguishable from a fan-in, and had no way at all to say which unlock an upgrade upgrades.
 
-**A parent need not sit in the tier directly above.** The Colonials' Freeze 2 is two tiers below Freeze 1, and Blizzard two below that. Non-adjacency is what makes the tier rule bite — continuing a family late still means paying the breadth toll to get down there.
+**A parent need not sit in the tier directly above.** The Anarchists' Informant 3 is two tiers below Informant 2. (Blizzard, two tiers below Freeze 2, shares the Freeze column without continuing it.) Non-adjacency is what makes the tier rule bite — continuing a family late still means paying the breadth toll to get down there.
 
-**Sharing a column does NOT imply an edge.** Gunship sits under Scan 3 in the same column with no parent; it is in the scan family's column because that is where it belongs on screen, not because it continues it.
+**Sharing a column does NOT imply an edge.** Gunship sits under Scan 2 in the same column with no parent; it is in the scan family's column because that is where it belongs on screen, not because it continues it.
 
 **An unlock SUPERSEDES a LOWER LEVEL OF THE SAME ABILITY** (`SanctionGrid.is_superseded`, off `effective_level`). Freeze 2 replaces Freeze 1 in the deployable set rather than joining it, so a column is one sanction the player improves and the deploy bar stays at roughly one button per family however deep they go. Two consequences worth knowing:
 
@@ -44,7 +44,7 @@ A sanction grants either an ACTIVE ability (Scan, Ambush) or a PASSIVE one (Scav
 
 `Sanction.can_target` refuses a target the commander does not have **live** vision of — explored-once is not enough, so a strike cannot be called down blind into the shroud. That is scouting's whole job, which is why the gate is stated as a default a sanction opts OUT of (`Sanction.needs_vision`, **true**) rather than one it opts into: an un-authored sanction is fog-gated, and forgetting the flag costs a little reach rather than silently repealing scouting.
 
-**False is for the sanctions whose job IS to see.** The Colonials' whole Scan family sets it, because a reveal you may only aim at ground you can already see is useful precisely where it is not needed. It is set on all three cells rather than only the first: a column is one sanction the player improves (see supersession above), so Scan 2 and Scan 3 inheriting the gate would re-break the thing at the exact moment the player paid to make it better.
+**False is for the sanctions whose job IS to see.** The Colonials' whole Scan family sets it, because a reveal you may only aim at ground you can already see is useful precisely where it is not needed. It is set on both cells rather than only the first: a column is one sanction the player improves (see supersession above), so Scan 2 inheriting the gate would re-break the thing at the exact moment the player paid to make it better.
 
 Two things keep it honest:
 
@@ -92,7 +92,7 @@ the ability, so the two cannot disagree.
 | `needs_vision`, `needs_target`, `kill_bounty` (per level) | |
 | `passive`, `hud_button` — the ability's own, at the doc's TOP level | |
 
-A doc is one FAMILY — a chain down one column, each level superseding the one above it — so **`parent` is never authored by hand: it IS the level ordering**, and a level must sit strictly lower in the grid than the one before it. A family is not the same thing as a column: unrelated sanctions sharing a column (Gunship under Scan 3, Overcharge under Scavenge 3) are separate docs carrying the same `column`, which is exactly the "sharing a column does NOT imply an edge" rule made structural.
+A doc is one FAMILY — a chain down one column, each level superseding the one above it — so **`parent` is never authored by hand: it IS the level ordering**, and a level must sit strictly lower in the grid than the one before it. A family is not the same thing as a column: unrelated sanctions sharing a column (Gunship under Scan 2, Global EMP under Scavenge 3) are separate docs carrying the same `column`, which is exactly the "sharing a column does NOT imply an edge" rule made structural.
 
 The split is where it is because a sanction's behaviour is an EVENT SCENE, which is not a value anyone can type into YAML. So the doc carries the numbers and the prose, and the doc BODY stages the human-readable spec for the mechanic — which is what a stubbed cell has instead of an implementation.
 

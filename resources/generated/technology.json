@@ -476,7 +476,7 @@
 		"build_time_ticks": 600,
 		"cost": {
 			"dominion": 0,
-			"energy": 800,
+			"energy": 2000,
 			"infrastructure": 0
 		},
 		"requires": [

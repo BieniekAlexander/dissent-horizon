@@ -2035,7 +2035,7 @@ func _validate_ability_emission(a_spec: Dictionary) -> void:
 ## column's cells in CHAIN order — level N+1 continues and supersedes level N.
 ##
 ## A family is not the same thing as a column: several unrelated abilities may share a
-## column (the Colonials' Gunship sits under Scan 3 without continuing it), and those are
+## column (the Colonials' Gunship sits under Scan 2 without continuing it), and those are
 ## separate docs carrying the same `column`. Sharing a column is layout; being a level is
 ## a dependency. Splitting them is exactly what the flat `prerequisites` list could not
 ## express — see CLAUDE.md §The sanction grid.

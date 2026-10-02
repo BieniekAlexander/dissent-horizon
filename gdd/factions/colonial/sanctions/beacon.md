@@ -21,7 +21,7 @@ levels:
       The beacon is spent by the first shell that uses it, exactly like a spotter's.
   - title: Beacon 2
     tier: 2
-    cost: 500
+    cost: 1000
     cooldown: 60
     description: The same solution, and it now lights the fog around itself (radius 2). Replaces Beacon 1.
     verbose: |
@@ -30,7 +30,7 @@ levels:
       usually what you wanted to shell.
   - title: Beacon 3
     tier: 3
-    cost: 500
+    cost: 2000
     cooldown: 60
     description: The solution now stands until a shell spends it, rather than expiring. Replaces Beacon 2.
     verbose: |

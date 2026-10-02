@@ -16,19 +16,14 @@
 		"hud_button": true,
 		"levels": [
 			{
-				"description": "Drops 4 × Irregular at the target point. Use it to reinforce a failing defence, or to open a second front behind the enemy line.",
+				"description": "Drops 3 × Irregular at the target point. Use it to reinforce a failing defence, or to open a second front behind the enemy line.",
 				"title": "Ambush 1",
 				"verbose": "The Anarchists' bodies-anywhere sanction. The squad arrives under your control and\nis yours to keep."
 			},
 			{
 				"description": "Drops 8 × Irregular at the target point, replacing Ambush 1.",
 				"title": "Ambush 2",
-				"verbose": "Twice the squad for the same click. Replaces Ambush 1 outright."
-			},
-			{
-				"description": "Drops 16 × Irregular at the target point, replacing Ambush 2.",
-				"title": "Ambush 3",
-				"verbose": "A full war band dropped in one go — enough to decide an engagement outright, which\nis what the bottom of the Ambush column is for."
+				"verbose": "A war band rather than a squad — enough to swing an engagement. Replaces Ambush 1\noutright."
 			}
 		],
 		"passive": false,
@@ -517,19 +512,14 @@
 		"hud_button": true,
 		"levels": [
 			{
-				"description": "Reveals the fog of war within 10 units of the target point for 15 seconds, then fades. Scouting without risking a unit.",
+				"description": "Leaves a permanent observer over the target point, revealing the fog within 24 units. Scouting without risking a unit — until the enemy shoots it down.",
 				"title": "Scan 1",
-				"verbose": "The one family that may be aimed into ground you cannot see — a reveal that could\nonly be pointed at what you already had eyes on would be useful precisely where it\nis not needed.\n\nThe reveal is a real vision source for its lifetime, not a one-off snapshot, so\nanything that moves through the circle is seen while it is up."
+				"verbose": "The one family that may be aimed into ground you cannot see — a reveal that could\nonly be pointed at what you already had eyes on would be useful precisely where it\nis not needed.\n\nThe observer never expires. It is a real vision source, so anything that moves\nthrough its circle is seen, and it is a real target: anti-air can shoot it down,\nwhich ends the reveal."
 			},
 			{
-				"description": "Reveals the fog around the target point for 15 seconds and exposes any stealthed units caught in it, replacing Scan 1.",
+				"description": "The same permanent observer, now also exposing stealthed units within 16 units of it. Replaces Scan 1.",
 				"title": "Scan 2",
-				"verbose": "The same circle, now with detection: stealthed units inside it are revealed for as\nlong as the scan lasts. The counter to an opponent leaning on stealth."
-			},
-			{
-				"description": "Leaves a permanent eye over the target point — the same reveal and stealth detection, held indefinitely. Replaces Scan 2.",
-				"title": "Scan 3",
-				"verbose": "A hovering observer that never expires. It cannot be commanded or selected, and it\nwatches the ground it was placed over for the rest of the match, unless the enemy\nshoots it down."
+				"verbose": "Adds detection to the observer: stealthed units near it are revealed for as long as\nit stands. The counter to an opponent leaning on stealth."
 			}
 		],
 		"passive": false,

@@ -22,7 +22,7 @@ levels:
       - {piece: cl_bioLight_antiLight, count: 3}
   - title: Drop 2
     tier: 2
-    cost: 500
+    cost: 1200
     cooldown: 60
     description: Flies in a shipment of your choosing — 5 × {{ cl_bioLight_antiLight }}, or a {{ cl_mechMedium_antiLight }}.
     verbose: |
@@ -37,7 +37,7 @@ levels:
       - {piece: cl_mechMedium_antiLight, count: 1}
   - title: Drop 3
     tier: 3
-    cost: 500
+    cost: 2000
     cooldown: 60
     description: Flies in a shipment of your choosing, up to a {{ cl_mechMedium_antiMech }}.
     verbose: |
