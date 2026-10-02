@@ -230,9 +230,8 @@ infantry unit's sight (`vision_ground_small`, 16), so it feels useless.
 | Scan 1 | T1 | permanent, **visible** | larger radius | none |
 | Scan 2 | T2 | permanent, possibly **stealthed** | same | yes |
 
-- **Decided (Alex, 2026-10-02): the reveal grows to a named vision shape** from
-  [shapes](../../../shapes/shapes.md): `vision_ground_medium` (20) or `vision_ground_large` (24),
-  up from 10. For Scan 2's detection, `detection_medium` (16) keeps it below
+- **Decided (Alex, 2026-10-02): the reveal grows to `vision_ground_large` (24) for now**, up from
+  10 — the structure vision shape in [shapes](../../../shapes/shapes.md). For Scan 2's detection, `detection_medium` (16) keeps it below
   dedicated detectors, and `detection_large` (24) makes it one.
 - **Counterplay is the observer itself.** It is a Recon Drone, visible and shootable by
   anti-air, so a permanent reveal costs the opponent an anti-air response rather than nothing.
@@ -284,7 +283,7 @@ Listed so the later change is complete. None of it is done.
 - Re-price every sanction doc from the ladder.
 - `PlayerSlot.starting_dominion` default 300 → about 100 (Decided: 300 was a placeholder), and
   the scenarios that set their own values.
-- Scan: two levels, permanent lifetime, radius 10 → 20 or 24, detection on level 2.
+- Scan: two levels, permanent lifetime, radius 10 → `vision_ground_large` (24), detection on level 2.
 - Ambush: two levels, 3 and 8.
 - Supply Beacon (`cl_support2`) price, 800 → 2000–2500.
 - Overcharge: remove from the Anarchical grid; re-home it with a faction that has a low-tier EMP.
@@ -297,4 +296,4 @@ Listed so the later change is complete. None of it is done.
 - Technocratic dominion extractors: allowed on ponds? Is the energy/dominion choice permanent?
 - Drop's tier placement: T2–T4, or T1–T3?
 - Beacon: keep three levels, or merge levels 2 and 3?
-- Scan: reveal radius 20 or 24? Scan 2: stealthed observer or not, and which detection radius?
+- Scan 2: stealthed observer or not, and which detection radius?
