@@ -31,5 +31,12 @@ REJECTED — hachures as continuous stripes, phased by position across the downh
 compress into bands and moire. Stamped strokes carry one direction each, so turning ground only
 rotates them.
 
+**Antialiasing.** Every hard edge the shader draws (hachure strokes, grain clumps, the cliff
+outline, rock bands, contours) ramps over one screen pixel, measured with `fwidth`. Strokes
+thinner than a pixel are drawn a pixel wide and fainter rather than breaking into dashes, and
+the grain's clumps and the hachures fade out once they shrink to a few pixels, where they would
+only crawl and sparkle (2026-10-02). Geometry edges (doodads, buildings, the cell-shaped
+coastlines) are outside the shader's reach; that is the renderer's MSAA setting, still off.
+
 TODO: the cues are tuned by eye in the Compatibility renderer under xvfb
 (`tools/terrain_visuals/render.sh`), not in Forward+ on real hardware.

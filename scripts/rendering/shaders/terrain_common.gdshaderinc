@@ -122,30 +122,51 @@ vec3 th_normal(vec2 p) {
 	return normalize(vec3(-hx, 2.0 * e, -hz));
 }
 
+// World units one screen pixel covers at `p`. Fragment stage only (fwidth).
+float th_pixel(vec2 p) {
+	vec2 w = fwidth(p);
+	return max(max(w.x, w.y), 1e-5);
+}
+
 // One layer of grain: jittered clumps of random size on a grid rotated off the screen axes,
 // so no row or column of the lattice lines up with the camera.
-float th_grain_layer(vec2 p, float cells, float angle) {
+float th_grain_layer(vec2 p, float cells, float angle, float px) {
 	vec2 q = mat2(vec2(cos(angle), sin(angle)), vec2(-sin(angle), cos(angle))) * p / cells;
 	vec2 cell = floor(q);
 	vec2 centre = vec2(th_hash(cell + 7.0), th_hash(cell + 13.0)) * 0.6 + 0.2;
 	float radius = mix(0.18, 0.45, th_hash(cell + 29.0));
-	float dome = 1.0 - smoothstep(radius * 0.4, radius, length(fract(q) - centre));
+	float aa = px / cells;
+	float dome = 1.0 - smoothstep(radius * 0.4 - aa, radius + aa, length(fract(q) - centre));
 	return dome * mix(0.4, 1.0, th_hash(cell));
 }
 
+// The clump layers' mean (0.55 + 0.35 times one layer's 0.114, measured), which they fade to.
+const float TH_GRAIN_CLUMP_MEAN = 0.103;
+
+// How much of the grain's clumps survive at pixel footprint `px`: all of them while a clump
+// spans several pixels, none once it shrinks toward one. Sub-pixel clumps only alias (crawl
+// and sparkle as the camera moves), so zoomed out they fade to their mean.
+float th_grain_detail(float px) {
+	return smoothstep(2.0, 5.0, grain_cells / px);
+}
+
 // The grain's height at `p`: two clump layers and a coarse wash, deliberately not smooth.
-float th_grain(vec2 p) {
-	return 0.55 * th_grain_layer(p, grain_cells, 0.52)
-		+ 0.35 * th_grain_layer(p, grain_cells * 0.61, 1.31)
-		+ 0.3 * th_value_noise(p / (grain_cells * 4.0));
+// `px` is th_pixel at the fragment.
+float th_grain(vec2 p, float px) {
+	float clumps = 0.55 * th_grain_layer(p, grain_cells, 0.52, px)
+		+ 0.35 * th_grain_layer(p, grain_cells * 0.61, 1.31, px);
+	clumps = mix(TH_GRAIN_CLUMP_MEAN, clumps, th_grain_detail(px));
+	return clumps + 0.3 * th_value_noise(p / (grain_cells * 4.0));
 }
 
 // `n` tilted by the grain's gradient, so the lighting picks the stipple out.
 vec3 th_grain_normal(vec2 p, vec3 n, float impassable) {
-	float e = grain_cells * 0.18;
-	float gx = th_grain(p + vec2(e, 0.0)) - th_grain(p - vec2(e, 0.0));
-	float gz = th_grain(p + vec2(0.0, e)) - th_grain(p - vec2(0.0, e));
-	float k = grain_bump * (1.0 - 0.6 * impassable);
+	float px = th_pixel(p);
+	// Differencing no finer than a pixel: finer steps resolve edges the pixel can't show.
+	float e = max(grain_cells * 0.18, px);
+	float gx = th_grain(p + vec2(e, 0.0), px) - th_grain(p - vec2(e, 0.0), px);
+	float gz = th_grain(p + vec2(0.0, e), px) - th_grain(p - vec2(0.0, e), px);
+	float k = grain_bump * (1.0 - 0.6 * impassable) * (grain_cells * 0.18 / e);
 	return normalize(n + vec3(-gx, 0.0, -gz) * k);
 }
 
@@ -167,6 +188,12 @@ vec2 th_coarse_gradient(vec2 p) {
 // into bands and moire. A stamp's direction is one number, so turning ground only rotates it.
 float th_hachure(vec2 p) {
 	if (has_heights < 0.5) {
+		return 0.0;
+	}
+	float px = th_pixel(p);
+	// Zoomed out until strokes are a few pixels apart, they read as hatching noise: fade them.
+	float detail = smoothstep(3.0, 6.0, hachure_spacing / px);
+	if (detail <= 0.0) {
 		return 0.0;
 	}
 	vec2 base = floor(p / hachure_spacing);
@@ -194,12 +221,17 @@ float th_hachure(vec2 p) {
 			// A wedge: full width uphill, tapering to a point at the downhill end.
 			float t = clamp(along / half_length * 0.5 + 0.5, 0.0, 1.0);
 			float width = hachure_width * mix(1.0, 0.25, t);
-			float body = 1.0 - smoothstep(width * 0.6, width, abs(across));
-			float ends = 1.0 - smoothstep(half_length * 0.85, half_length, abs(along));
+			// Antialiased: the edge ramps over a pixel, and a stroke thinner than a pixel is
+			// drawn a pixel wide but fainter (its coverage), rather than breaking into dashes.
+			float drawn = max(width, 0.5 * px);
+			float body = (1.0 - smoothstep(drawn - 0.5 * px, drawn + 0.5 * px, abs(across)))
+				* (width / drawn);
+			float ends = 1.0 - smoothstep(half_length - max(0.15 * half_length, px), half_length,
+				abs(along));
 			ink = max(ink, body * ends * fade);
 		}
 	}
-	return ink;
+	return ink * detail;
 }
 
 
@@ -208,7 +240,7 @@ vec2 th_specular(vec2 p, float impassable) {
 	if (specular_strength <= 0.0) {
 		return vec2(0.0, 1.0);
 	}
-	float clump = th_grain(p);
+	float clump = th_grain(p, th_pixel(p));
 	return vec2(specular_strength * mix(0.4, 1.0, clump) * (1.0 - 0.5 * impassable),
 		specular_roughness);
 }
@@ -235,11 +267,15 @@ float th_steep_at(vec2 cell_uv) {
 float th_outline(vec2 p, vec2 uv) {
 	vec2 texel = 1.0 / vec2(textureSize(cell_data, 0));
 	vec2 f = fract(p - terrain_rect.xy);
+	// The line's inner edge ramps over a pixel instead of stepping, so it doesn't stair-step.
+	float aa = 0.5 * th_pixel(p);
+	vec2 near = 1.0 - smoothstep(vec2(outline_width - aa), vec2(outline_width + aa), f);
+	vec2 far = 1.0 - smoothstep(vec2(outline_width - aa), vec2(outline_width + aa), 1.0 - f);
 	float line = 0.0;
-	line = max(line, th_steep_at(uv + vec2(-texel.x, 0.0)) * (1.0 - step(outline_width, f.x)));
-	line = max(line, th_steep_at(uv + vec2(texel.x, 0.0)) * (1.0 - step(outline_width, 1.0 - f.x)));
-	line = max(line, th_steep_at(uv + vec2(0.0, -texel.y)) * (1.0 - step(outline_width, f.y)));
-	line = max(line, th_steep_at(uv + vec2(0.0, texel.y)) * (1.0 - step(outline_width, 1.0 - f.y)));
+	line = max(line, th_steep_at(uv + vec2(-texel.x, 0.0)) * near.x);
+	line = max(line, th_steep_at(uv + vec2(texel.x, 0.0)) * far.x);
+	line = max(line, th_steep_at(uv + vec2(0.0, -texel.y)) * near.y);
+	line = max(line, th_steep_at(uv + vec2(0.0, texel.y)) * far.y);
 	return line;
 }
 
@@ -276,11 +312,15 @@ vec3 th_shade(vec3 w, int idx, float impassable, vec2 uv, vec3 n) {
 
 	// Impassable ground is rock, banded by height so cliff faces show their own relief.
 	vec3 rock = mix(rock_dark.rgb, rock_light.rgb, noise);
-	rock *= 0.88 + 0.12 * step(0.5, fract(h * 1.25));
+	// Bands antialiased: a triangle wave's distance from the band edge, ramped over a pixel.
+	float band_x = h * 1.25;
+	float band_aa = max(fwidth(band_x), 1e-4);
+	float band = 1.0 - smoothstep(0.25 - band_aa, 0.25 + band_aa, abs(fract(band_x - 0.25) - 0.5));
+	rock *= 0.88 + 0.12 * band;
 	albedo = mix(albedo, rock, impassable);
 
 	albedo *= 1.0 + noise_strength * (noise - 0.5);
-	albedo *= 1.0 + grain_albedo * (th_grain(p) - 0.55);
+	albedo *= 1.0 + grain_albedo * (th_grain(p, th_pixel(p)) - 0.55);
 
 	float t = clamp((h - height_range.x) / max(height_range.y - height_range.x, 1e-3), 0.0, 1.0);
 	albedo *= mix(hypsometric_low, hypsometric_high, t);

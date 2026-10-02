@@ -16,6 +16,9 @@ extends Node
 ##            defaults to a whole-map overview plus a game-zoom shot at the map centre
 ##   rig=     0 to render with no lighting rig added (the scene's own lights only)
 ##   sun_elevation=  degrees above the horizon for the rig's key light (default: as authored)
+##   sun_from=       where the key light stands, degrees clockwise from the top of the screen
+##                   (0 top / back-lit, 90 right, -90 left; default: as authored)
+##   msaa=           the viewport's 3D MSAA: 0 off, 1 2x, 2 4x, 3 8x (default: project setting)
 ##   ambient=        the fallback Environment's ambient energy (default: as authored)
 ##   terrain_specular=  the terrain material's specular_strength; also turns on the key's specular
 ##   facets=  1 to draw MapDecorator's facet markers (where later dressing would go)
@@ -56,6 +59,7 @@ func _run() -> void:
 	if String(args.get("rig", "1")) != "0" and ResourceLoader.exists(DEFAULT_RIG):
 		holder.add_child((load(DEFAULT_RIG) as PackedScene).instantiate())
 	_apply_lighting_overrides(args, holder, map)
+	print("visual_preview: map world bounds ", map.world_bounds())
 
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -82,14 +86,22 @@ func _run() -> void:
 ## Lighting knobs for A/B comparisons; each is left as authored unless its argument is given.
 func _apply_lighting_overrides(a_args: Dictionary, a_holder: Node, a_map: Map) -> void:
 	var key := a_holder.find_child("KeySun", true, false) as DirectionalLight3D
-	if a_args.has("sun_elevation") and key != null:
-		# Keep the authored azimuth; change only how far above the horizon the sun stands.
+	if (a_args.has("sun_elevation") or a_args.has("sun_from")) and key != null:
+		# Each knob left out keeps the authored value.
 		var shine: Vector3 = -key.global_transform.basis.z
 		var flat := Vector3(shine.x, 0.0, shine.z).normalized()
-		var elevation: float = deg_to_rad(float(a_args.sun_elevation))
+		var elevation: float = asin(clampf(-shine.y, -1.0, 1.0))
+		if a_args.has("sun_from"):
+			flat = _shine_from_screen(float(a_args.sun_from))
+		if a_args.has("sun_elevation"):
+			elevation = deg_to_rad(float(a_args.sun_elevation))
 		var direction: Vector3 = flat * cos(elevation) + Vector3.DOWN * sin(elevation)
 		key.look_at(key.global_position + direction, Vector3.UP)
 		print("visual_preview: key light shines along ", direction)
+	if a_args.has("msaa"):
+		# 0 off, 1 2x, 2 4x, 3 8x (Viewport.MSAA_*): edges of geometry, which no shader smooths.
+		get_viewport().msaa_3d = int(a_args.msaa) as Viewport.MSAA
+		print("visual_preview: msaa_3d ", get_viewport().msaa_3d)
 	if a_args.has("ambient"):
 		var env: Environment = get_viewport().find_world_3d().fallback_environment
 		if env != null:
@@ -101,6 +113,17 @@ func _apply_lighting_overrides(a_args: Dictionary, a_holder: Node, a_map: Map) -
 			material.set_shader_parameter("specular_strength", float(a_args.terrain_specular))
 		if key != null:
 			key.light_specular = 1.0
+
+
+## The flat direction a sun shines in when it stands `a_degrees` clockwise from the top of the
+## screen at the game camera's yaw: 0 is from the top (shining toward the viewer, back-lit),
+## 90 from the right, -90 from the left.
+static func _shine_from_screen(a_degrees: float) -> Vector3:
+	var back: Vector3 = RTSCamera3D.initial_position()
+	var screen_up := Vector3(-back.x, 0.0, -back.z).normalized()
+	var screen_right: Vector3 = screen_up.cross(Vector3.UP).normalized()
+	var angle: float = deg_to_rad(a_degrees)
+	return -(screen_up * cos(angle) + screen_right * sin(angle))
 
 
 func _load_map(a_path: String) -> Map:
