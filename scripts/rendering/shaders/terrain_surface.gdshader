@@ -63,6 +63,7 @@ void fragment() {
 	// The surface mesh carries its own authored normals; the height field's are only a
 	// fallback for a material that has heights but no usable mesh normal.
 	vec3 n = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	NORMAL = normalize((VIEW_MATRIX * vec4(th_grain_normal(v_world.xz, n, impassable), 0.0)).xyz);
 	ALBEDO = th_apply_fog(th_shade(v_world, idx, impassable, uv, n), v_world.xz);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;

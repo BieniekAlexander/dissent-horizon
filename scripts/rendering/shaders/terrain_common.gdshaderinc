@@ -66,6 +66,20 @@ uniform float cavity_mip = 3.0;
 uniform float slope_rock_blend = 1.6;
 // Two-octave value noise in world space, so no region is one flat colour.
 uniform float noise_strength = 0.14;
+// Ground grain: a fine stipple (clumps of grass, grit) in albedo AND in the lit normal. Lit
+// grain is what makes a slope read on flat-coloured ground: the same bumps catch the sun
+// differently once the surface under them tilts.
+uniform float grain_cells = 0.22;      // world units per grain clump
+uniform float grain_albedo = 0.22;     // albedo contrast of the grain
+uniform float grain_bump = 0.55;       // how far the grain tilts the lit normal
+// Hachures: strokes running DOWNHILL on sloped walkable ground, the cartographer's cue for
+// which way and how steeply the ground falls. They fade in over a GRADIENT (rise per unit run),
+// because a terrace grade climbs only about a tenth of a unit per cell.
+uniform float hachure_spacing = 0.45;  // world units between strokes
+uniform float hachure_strength = 0.7;
+uniform float hachure_gradient_min = 0.02;
+uniform float hachure_gradient_max = 0.12;
+uniform vec4 hachure_color : source_color = vec4(0.11, 0.17, 0.07, 1.0);
 
 float th_hash(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -100,6 +114,65 @@ vec3 th_normal(vec2 p) {
 	float hx = th_height(p + vec2(e, 0.0)) - th_height(p - vec2(e, 0.0));
 	float hz = th_height(p + vec2(0.0, e)) - th_height(p - vec2(0.0, e));
 	return normalize(vec3(-hx, 2.0 * e, -hz));
+}
+
+// One layer of grain: jittered clumps of random size on a grid rotated off the screen axes,
+// so no row or column of the lattice lines up with the camera.
+float th_grain_layer(vec2 p, float cells, float angle) {
+	vec2 q = mat2(vec2(cos(angle), sin(angle)), vec2(-sin(angle), cos(angle))) * p / cells;
+	vec2 cell = floor(q);
+	vec2 centre = vec2(th_hash(cell + 7.0), th_hash(cell + 13.0)) * 0.6 + 0.2;
+	float radius = mix(0.18, 0.45, th_hash(cell + 29.0));
+	float dome = 1.0 - smoothstep(radius * 0.4, radius, length(fract(q) - centre));
+	return dome * mix(0.4, 1.0, th_hash(cell));
+}
+
+// The grain's height at `p`: two clump layers and a coarse wash, deliberately not smooth.
+float th_grain(vec2 p) {
+	return 0.55 * th_grain_layer(p, grain_cells, 0.52)
+		+ 0.35 * th_grain_layer(p, grain_cells * 0.61, 1.31)
+		+ 0.3 * th_value_noise(p / (grain_cells * 4.0));
+}
+
+// `n` tilted by the grain's gradient, so the lighting picks the stipple out.
+vec3 th_grain_normal(vec2 p, vec3 n, float impassable) {
+	float e = grain_cells * 0.18;
+	float gx = th_grain(p + vec2(e, 0.0)) - th_grain(p - vec2(e, 0.0));
+	float gz = th_grain(p + vec2(0.0, e)) - th_grain(p - vec2(0.0, e));
+	float k = grain_bump * (1.0 - 0.6 * impassable);
+	return normalize(n + vec3(-gx, 0.0, -gz) * k);
+}
+
+// 0..1 hachure stroke at `p` on ground whose (unperturbed) normal is `n`: thin strokes along
+// the downhill direction, broken up so they read as drawn rather than ruled.
+float th_hachure(vec2 p, vec3 n) {
+	float gradient = length(n.xz) / max(n.y, 1e-3);
+	float fade = smoothstep(hachure_gradient_min, hachure_gradient_max, gradient);
+	if (fade <= 0.0) {
+		return 0.0;
+	}
+	// Stroke direction from a coarser read of the height field, so strokes run straight down
+	// the grade instead of swirling with every cell-sized wobble in the fine normal.
+	vec2 down = normalize(n.xz);
+	if (has_heights > 0.5) {
+		vec2 uv = th_height_uv(p);
+		vec2 texel = 1.0 / vec2(textureSize(height_texture, 0));
+		float hx = textureLod(height_texture, uv + vec2(2.0 * texel.x, 0.0), 1.5).r
+			- textureLod(height_texture, uv - vec2(2.0 * texel.x, 0.0), 1.5).r;
+		float hz = textureLod(height_texture, uv + vec2(0.0, 2.0 * texel.y), 1.5).r
+			- textureLod(height_texture, uv - vec2(0.0, 2.0 * texel.y), 1.5).r;
+		if (abs(hx) + abs(hz) > 1e-4) {
+			down = -normalize(vec2(hx, hz));
+		}
+	}
+	vec2 across = vec2(-down.y, down.x);
+	float u = dot(p, across) / hachure_spacing;
+	float v = dot(p, down);
+	float lane = floor(u);
+	float offset = (th_hash(vec2(lane, 3.0)) - 0.5) * 0.3;
+	float stroke = 1.0 - smoothstep(0.1, 0.32, abs(fract(u) - 0.5 - offset));
+	float dash = step(0.3, th_value_noise(vec2(lane * 1.7, v / 1.4)));
+	return stroke * dash * fade;
 }
 
 // 1 on a pixel within `contour_pixels` of a contour level, antialiased; 0 elsewhere.
@@ -157,9 +230,11 @@ vec3 th_shade(vec3 w, int idx, float impassable, vec2 uv, vec3 n) {
 		albedo = mix(albedo, trail_color.rgb, smoothstep(0.35, 0.55, o.g + (n2 - 0.5) * 0.25));
 	}
 
-	// Graded (walkable but sloped) ground leans toward rock, so a terrace step reads as one.
+	// Graded (walkable but sloped) ground leans toward rock and carries hachures, so a
+	// terrace step reads as one and shows which way it falls.
 	float slope = 1.0 - n.y;
-	albedo = mix(albedo, scree_color.rgb, clamp(slope * slope_rock_blend, 0.0, 0.6) * (1.0 - impassable));
+	albedo = mix(albedo, scree_color.rgb, clamp(slope * slope_rock_blend, 0.0, 0.35) * (1.0 - impassable));
+	albedo = mix(albedo, hachure_color.rgb, th_hachure(p, n) * hachure_strength * (1.0 - impassable));
 
 	// Impassable ground is rock, banded by height so cliff faces show their own relief.
 	vec3 rock = mix(rock_dark.rgb, rock_light.rgb, noise);
@@ -167,6 +242,7 @@ vec3 th_shade(vec3 w, int idx, float impassable, vec2 uv, vec3 n) {
 	albedo = mix(albedo, rock, impassable);
 
 	albedo *= 1.0 + noise_strength * (noise - 0.5);
+	albedo *= 1.0 + grain_albedo * (th_grain(p) - 0.55);
 
 	float t = clamp((h - height_range.x) / max(height_range.y - height_range.x, 1e-3), 0.0, 1.0);
 	albedo *= mix(hypsometric_low, hypsometric_high, t);

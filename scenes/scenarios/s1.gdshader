@@ -33,9 +33,7 @@ void fragment() {
 
 	vec3 n = has_heights > 0.5 ? th_normal(v_world.xz)
 		: normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	if (has_heights > 0.5) {
-		NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
-	}
+	NORMAL = normalize((VIEW_MATRIX * vec4(th_grain_normal(v_world.xz, n, impassable), 0.0)).xyz);
 	ALBEDO = th_apply_fog(th_shade(v_world, idx, impassable, uv, n), v_world.xz);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
