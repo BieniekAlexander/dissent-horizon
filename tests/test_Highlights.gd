@@ -42,6 +42,13 @@ func before_each() -> void:
 	assert_push_warning("expected parent to be Scenario")
 
 
+## Engine errors and warnings this test raised that no assert_push_* claimed. Not
+## get_logger().get_errors(): that also counts the expected, already-asserted warning
+## before_each raises, so a check against it could never pass.
+func _unexpected_errors() -> Array:
+	return get_errors().filter(func(tracked: GutTrackedError) -> bool: return not tracked.handled)
+
+
 func after_each() -> void:
 	if _manager.simulation_clock != null:
 		_manager.simulation_clock.clear()
@@ -288,7 +295,7 @@ func test_unscoped_unit_count_does_not_warn() -> void:
 
 	trigger.arm(_manager)
 	assert_eq(
-		get_logger().get_errors().size(), 0,
+		_unexpected_errors().size(), 0,
 		"an optional region left unset is normal authoring, not a mistake"
 	)
 
@@ -311,7 +318,7 @@ func test_painter_survives_its_last_marked_entity_dying() -> void:
 	entity.get_parent().remove_child(entity)
 	highlight.highlight()._redraw()
 	assert_eq(
-		get_logger().get_errors().size(), 0,
+		_unexpected_errors().size(), 0,
 		"drawing a stale, now-empty target list must not touch the mesh at all"
 	)
 	entity.free()

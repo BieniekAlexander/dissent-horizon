@@ -156,77 +156,77 @@ seed_cell = Vector2i(46, 140)
 energy = 3420
 charge_color = Color(0.92, 0.78, 0.33, 1)
 
-[node name="nt_extractionSite1" type="CharacterBody3D" parent="." unique_id=1970929826 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite1" type="CharacterBody3D" parent="." unique_id=1970929826 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.5, 7.1, 13.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite2" type="CharacterBody3D" parent="." unique_id=209782956 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite2" type="CharacterBody3D" parent="." unique_id=209782956 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.5, 7.1, 13.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite3" type="CharacterBody3D" parent="." unique_id=701560571 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite3" type="CharacterBody3D" parent="." unique_id=701560571 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.5, 7.1, 15.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite4" type="CharacterBody3D" parent="." unique_id=298863299 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite4" type="CharacterBody3D" parent="." unique_id=298863299 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.5, 6.3, -37.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite5" type="CharacterBody3D" parent="." unique_id=488260261 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite5" type="CharacterBody3D" parent="." unique_id=488260261 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.5, 6.3, -37.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite6" type="CharacterBody3D" parent="." unique_id=1301249962 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite6" type="CharacterBody3D" parent="." unique_id=1301249962 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.5, 6.7, -12.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite7" type="CharacterBody3D" parent="." unique_id=1361818945 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite7" type="CharacterBody3D" parent="." unique_id=1361818945 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.5, 6.7, -12.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite8" type="CharacterBody3D" parent="." unique_id=304081419 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite8" type="CharacterBody3D" parent="." unique_id=304081419 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.5, 6.3, -57.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite9" type="CharacterBody3D" parent="." unique_id=1182223092 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite9" type="CharacterBody3D" parent="." unique_id=1182223092 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.5, 6.3, 63.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_extractionSite10" type="CharacterBody3D" parent="." unique_id=1833304366 groups=["extraction_site", "fixture", "piece"] instance=ExtResource("9_w5vf6")]
+[node name="nt_extractionSite10" type="CharacterBody3D" parent="." unique_id=1833304366 groups=["extraction_site"] instance=ExtResource("9_w5vf6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.5, 6.3, -4.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_extractionSite"
 
-[node name="nt_shelter1" type="CharacterBody3D" parent="." unique_id=1119858882 groups=["fixture", "piece", "shelter"] instance=ExtResource("11_kj85o")]
+[node name="nt_shelter1" type="CharacterBody3D" parent="." unique_id=1119858882 groups=["shelter"] instance=ExtResource("11_kj85o")]
 editor_description = "Neutral map feature that houses and repopulates Terrestrials."
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, 6.3107595, -37)
 collision_layer = 0
@@ -234,7 +234,7 @@ collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_shelter"
 
-[node name="nt_shelter2" type="CharacterBody3D" parent="." unique_id=1207772512 groups=["fixture", "piece", "shelter"] instance=ExtResource("11_kj85o")]
+[node name="nt_shelter2" type="CharacterBody3D" parent="." unique_id=1207772512 groups=["shelter"] instance=ExtResource("11_kj85o")]
 editor_description = "Neutral map feature that houses and repopulates Terrestrials."
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 6.3, -65)
 collision_layer = 0
@@ -242,7 +242,7 @@ collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_shelter"
 
-[node name="nt_shelter3" type="CharacterBody3D" parent="." unique_id=315250006 groups=["fixture", "piece", "shelter"] instance=ExtResource("11_kj85o")]
+[node name="nt_shelter3" type="CharacterBody3D" parent="." unique_id=315250006 groups=["shelter"] instance=ExtResource("11_kj85o")]
 editor_description = "Neutral map feature that houses and repopulates Terrestrials."
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43, 6.6755953, 24)
 collision_layer = 0
@@ -250,385 +250,385 @@ collision_mask = 0
 script = ExtResource("10_lsq13")
 id = &"nt_shelter"
 
-[node name="nt_building_large1" type="CharacterBody3D" parent="." unique_id=1580380244 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large1" type="CharacterBody3D" parent="." unique_id=1580380244 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.5, 6.6755953, 15)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_long1" type="CharacterBody3D" parent="." unique_id=781721088 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long1" type="CharacterBody3D" parent="." unique_id=781721088 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33, 6.6755953, 34)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_long2" type="CharacterBody3D" parent="." unique_id=640315633 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long2" type="CharacterBody3D" parent="." unique_id=640315633 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 6.6755953, 29)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_large2" type="CharacterBody3D" parent="." unique_id=1713798228 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large2" type="CharacterBody3D" parent="." unique_id=1713798228 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.5, 6.6755953, 31)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_large3" type="CharacterBody3D" parent="." unique_id=616906575 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large3" type="CharacterBody3D" parent="." unique_id=616906575 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.5, 6.6755953, 27)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_large4" type="CharacterBody3D" parent="." unique_id=1094378607 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large4" type="CharacterBody3D" parent="." unique_id=1094378607 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.5, 6.6755953, 40)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_square1" type="CharacterBody3D" parent="." unique_id=1588153302 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square1" type="CharacterBody3D" parent="." unique_id=1588153302 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.5, 6.6755953, 38.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_square2" type="CharacterBody3D" parent="." unique_id=87147082 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square2" type="CharacterBody3D" parent="." unique_id=87147082 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.5, 6.6755953, 36.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_large5" type="CharacterBody3D" parent="." unique_id=2021883871 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large5" type="CharacterBody3D" parent="." unique_id=2021883871 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.5, 6.3107595, -29)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_large6" type="CharacterBody3D" parent="." unique_id=1198133583 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large6" type="CharacterBody3D" parent="." unique_id=1198133583 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.5, 6.3107595, -42)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_long3" type="CharacterBody3D" parent="." unique_id=159514106 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long3" type="CharacterBody3D" parent="." unique_id=159514106 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 6.3107595, -31)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_long4" type="CharacterBody3D" parent="." unique_id=1253248253 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long4" type="CharacterBody3D" parent="." unique_id=1253248253 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91, 6.3107595, -42)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_large7" type="CharacterBody3D" parent="." unique_id=1767598942 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large7" type="CharacterBody3D" parent="." unique_id=1767598942 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93.5, 6.3107595, -36)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_shack1" type="CharacterBody3D" parent="." unique_id=836657097 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack1" type="CharacterBody3D" parent="." unique_id=836657097 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -78.5, 6.3107595, -24.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_large8" type="CharacterBody3D" parent="." unique_id=804702924 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large8" type="CharacterBody3D" parent="." unique_id=804702924 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 6.3, -58)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_shack2" type="CharacterBody3D" parent="." unique_id=952961031 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack2" type="CharacterBody3D" parent="." unique_id=952961031 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 6.3, -48.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_square3" type="CharacterBody3D" parent="." unique_id=777812001 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square3" type="CharacterBody3D" parent="." unique_id=777812001 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 6.3, -43.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_large9" type="CharacterBody3D" parent="." unique_id=1012688833 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large9" type="CharacterBody3D" parent="." unique_id=1012688833 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 6.3, -43)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_large10" type="CharacterBody3D" parent="." unique_id=1293417537 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large10" type="CharacterBody3D" parent="." unique_id=1293417537 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 6.3, -51)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_shack3" type="CharacterBody3D" parent="." unique_id=1483064069 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack3" type="CharacterBody3D" parent="." unique_id=1483064069 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.5, 6.7, -7.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack4" type="CharacterBody3D" parent="." unique_id=2077440239 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack4" type="CharacterBody3D" parent="." unique_id=2077440239 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.5, 6.7, -10.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_square4" type="CharacterBody3D" parent="." unique_id=777489617 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square4" type="CharacterBody3D" parent="." unique_id=777489617 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.5, 6.7, -22.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_shack5" type="CharacterBody3D" parent="." unique_id=2093892490 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack5" type="CharacterBody3D" parent="." unique_id=2093892490 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.5, 6.7, -4.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack6" type="CharacterBody3D" parent="." unique_id=2008632652 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack6" type="CharacterBody3D" parent="." unique_id=2008632652 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.5, 6.7, -1.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_square5" type="CharacterBody3D" parent="." unique_id=1913776562 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square5" type="CharacterBody3D" parent="." unique_id=1913776562 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.5, 6.7, -8.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_square6" type="CharacterBody3D" parent="." unique_id=1506440734 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square6" type="CharacterBody3D" parent="." unique_id=1506440734 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.5, 6.7, -15.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_square7" type="CharacterBody3D" parent="." unique_id=822626552 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square7" type="CharacterBody3D" parent="." unique_id=822626552 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5, 6.7, -18.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_large11" type="CharacterBody3D" parent="." unique_id=550114216 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large11" type="CharacterBody3D" parent="." unique_id=550114216 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.5, 6.7, -3)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_square8" type="CharacterBody3D" parent="." unique_id=1369087256 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square8" type="CharacterBody3D" parent="." unique_id=1369087256 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 6.3, -68.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_shack7" type="CharacterBody3D" parent="." unique_id=188342119 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack7" type="CharacterBody3D" parent="." unique_id=188342119 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 6.3, -71.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_large12" type="CharacterBody3D" parent="." unique_id=164856604 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large12" type="CharacterBody3D" parent="." unique_id=164856604 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 6.3, -75)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_shack8" type="CharacterBody3D" parent="." unique_id=1024634387 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack8" type="CharacterBody3D" parent="." unique_id=1024634387 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.5, 6.718491, -12.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_long5" type="CharacterBody3D" parent="." unique_id=5263398 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long5" type="CharacterBody3D" parent="." unique_id=5263398 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100, 6.718491, -2)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_large13" type="CharacterBody3D" parent="." unique_id=1228216865 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large13" type="CharacterBody3D" parent="." unique_id=1228216865 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.5, 6.718491, -8)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_shack9" type="CharacterBody3D" parent="." unique_id=2037894936 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack9" type="CharacterBody3D" parent="." unique_id=2037894936 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.5, 7.773757, -16.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack10" type="CharacterBody3D" parent="." unique_id=1816324415 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack10" type="CharacterBody3D" parent="." unique_id=1816324415 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 7.773757, -19.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_large14" type="CharacterBody3D" parent="." unique_id=946733991 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large14" type="CharacterBody3D" parent="." unique_id=946733991 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.5, 7.773757, -11)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_square9" type="CharacterBody3D" parent="." unique_id=412454657 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square9" type="CharacterBody3D" parent="." unique_id=412454657 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.5, 6.7, 45.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_long6" type="CharacterBody3D" parent="." unique_id=1972271961 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long6" type="CharacterBody3D" parent="." unique_id=1972271961 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 6.7, 44)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_long7" type="CharacterBody3D" parent="." unique_id=353731749 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long7" type="CharacterBody3D" parent="." unique_id=353731749 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 6.7, 45)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_long8" type="CharacterBody3D" parent="." unique_id=1789842530 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long8" type="CharacterBody3D" parent="." unique_id=1789842530 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74, 6.331203, -2)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_shack11" type="CharacterBody3D" parent="." unique_id=301687575 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack11" type="CharacterBody3D" parent="." unique_id=301687575 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -85.5, 6.331203, -8.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack12" type="CharacterBody3D" parent="." unique_id=1938217251 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack12" type="CharacterBody3D" parent="." unique_id=1938217251 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -79.5, 6.331203, -12.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack13" type="CharacterBody3D" parent="." unique_id=294296679 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack13" type="CharacterBody3D" parent="." unique_id=294296679 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -85.5, 6.331203, -5.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack14" type="CharacterBody3D" parent="." unique_id=348592156 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack14" type="CharacterBody3D" parent="." unique_id=348592156 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -79.5, 6.331203, -5.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack15" type="CharacterBody3D" parent="." unique_id=993926948 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack15" type="CharacterBody3D" parent="." unique_id=993926948 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -72.5, 6.331203, -6.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack16" type="CharacterBody3D" parent="." unique_id=1449036740 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack16" type="CharacterBody3D" parent="." unique_id=1449036740 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -82.5, 6.331203, -4.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_shack17" type="CharacterBody3D" parent="." unique_id=975386816 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack17" type="CharacterBody3D" parent="." unique_id=975386816 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -88.5, 6.331203, -2.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_large15" type="CharacterBody3D" parent="." unique_id=115784150 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("12_0ptrc")]
+[node name="nt_building_large15" type="CharacterBody3D" parent="." unique_id=115784150 instance=ExtResource("12_0ptrc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42.5, 6.7, -36)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_large"
 
-[node name="nt_building_square10" type="CharacterBody3D" parent="." unique_id=1022863311 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square10" type="CharacterBody3D" parent="." unique_id=1022863311 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.5, 6.3, -63.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_long9" type="CharacterBody3D" parent="." unique_id=2051493176 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long9" type="CharacterBody3D" parent="." unique_id=2051493176 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58, 6.3, -57)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_shack18" type="CharacterBody3D" parent="." unique_id=66356660 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("16_ebqkc")]
+[node name="nt_building_shack18" type="CharacterBody3D" parent="." unique_id=66356660 instance=ExtResource("16_ebqkc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.5, 6.3, -67.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_shack"
 
-[node name="nt_building_square11" type="CharacterBody3D" parent="." unique_id=1883701194 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("15_4gd6h")]
+[node name="nt_building_square11" type="CharacterBody3D" parent="." unique_id=1883701194 instance=ExtResource("15_4gd6h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.5, 6.3, -24.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_square"
 
-[node name="nt_building_long10" type="CharacterBody3D" parent="." unique_id=538486101 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long10" type="CharacterBody3D" parent="." unique_id=538486101 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 6.3, -96)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("13_kdtj6")
 id = &"nt_building_long"
 
-[node name="nt_building_long11" type="CharacterBody3D" parent="." unique_id=1437574690 groups=["fixture", "neutral_building", "piece", "structure"] instance=ExtResource("14_221sn")]
+[node name="nt_building_long11" type="CharacterBody3D" parent="." unique_id=1437574690 instance=ExtResource("14_221sn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 8.2, -44)
 collision_layer = 0
 collision_mask = 0

@@ -28,6 +28,11 @@ const MAP_NODE_NAME: String = "Map"
 const TERRAIN_SHADER: String = "res://scenes/scenarios/s1.gdshader"
 const TERRAIN_SUFFIX: String = "_terrain.tres"
 const START_POINT_SCENE: String = "res://scenes/scenarios/start_point.tscn"
+## How a placed piece is instanced. With edit state, packing the map stores only what the
+## placement CHANGED; without it, every group the piece's own scene declares is copied onto the
+## instance — derived groups included, which then outlive any change to the piece
+## (tests/test_DerivedGroupsStayOnPieces).
+const PLACED: PackedScene.GenEditState = PackedScene.GEN_EDIT_STATE_INSTANCE
 ## A start column's colour: a random hue, vivid enough to find at a glance.
 const START_COLOR_SATURATION: float = 0.8
 const START_COLOR_VALUE: float = 0.95
@@ -98,7 +103,7 @@ func build_map(a_map: GeneratedMap, a_terrain_path: String) -> Map:
 	rng.seed = a_map.generation_seed
 	var grid_half := Vector2(terrain.grid_width(), terrain.grid_depth()) * 0.5
 	for i: int in a_map.starts.size():
-		var marker: Node3D = (load(START_POINT_SCENE) as PackedScene).instantiate()
+		var marker: Node3D = (load(START_POINT_SCENE) as PackedScene).instantiate(PLACED)
 		marker.name = "StartPoint%d" % (i + 1)
 		var start: Vector2 = a_map.starts[i].position
 		marker.position = _world(start, grid_half, _height_under(terrain, start))
@@ -112,7 +117,7 @@ func build_map(a_map: GeneratedMap, a_terrain_path: String) -> Map:
 			continue
 		for placement: Dictionary in feature.placements:
 			var piece: MapPiece = placement.piece
-			var entity: Node3D = (_scenes[piece.id] as PackedScene).instantiate()
+			var entity: Node3D = (_scenes[piece.id] as PackedScene).instantiate(PLACED)
 			counts[piece.id] = counts.get(piece.id, 0) + 1
 			entity.name = "%s%d" % [String(piece.id), counts[piece.id]]
 			var center: Vector2 = Vector2(placement.origin) + Vector2(piece.footprint) * 0.5
