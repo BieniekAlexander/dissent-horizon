@@ -637,11 +637,6 @@ static func wants_lake(
 	return lake_short > mountain_short
 
 
-func _midpoint(a_cut: int) -> Vector2:
-	var edge: Vector2i = _topology.graph.edges[_topology.cuts[a_cut]]
-	return (_topology.graph.positions[edge.x] + _topology.graph.positions[edge.y]) * 0.5
-
-
 ## Widen `a_cut`, its drawn width scaled by `a_reach_scale`, and fill what it encloses. A growth
 ## that would strand a feature or a start is retried shorter, and dropped if even the shortest
 ## would: undoing it whole threw away most regrowth, which reaches far enough to close pockets.

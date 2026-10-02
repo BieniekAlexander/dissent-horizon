@@ -97,19 +97,6 @@ func test_dirichlet_is_a_distribution() -> void:
 		assert_almost_eq(draw[0] + draw[1] + draw[2], 1.0, 1e-5)
 
 
-func test_negative_binomial_has_its_mean() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	var draws: int = 4000
-	var total: int = 0
-	for _i: int in draws:
-		var value: int = GenerationRandom.negative_binomial(rng, 2, 0.4)
-		assert_gte(value, 0)
-		total += value
-	# Mean r(1 - p) / p = 3; the tolerance is several standard errors at this draw count.
-	assert_almost_eq(float(total) / draws, 3.0, 0.2)
-
-
 func test_weighted_index_never_picks_a_zero_weight() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7

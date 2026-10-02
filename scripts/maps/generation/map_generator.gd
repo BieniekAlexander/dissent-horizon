@@ -52,6 +52,10 @@ var _grid: PlacementGrid
 ## Cell -> cut, for every lake's shallow shelf; rebuilt with the terrain each time pass 5 shapes
 ## it, so the water fill knows which shallows belong to which lake.
 var _lake_shelf: Dictionary = {}
+## Per terrain corner, its distance in cells from the nearest ground a unit can stand on: what
+## the occlusion cap on an obstacle's height is measured from. Rebuilt with the terrain, like
+## _lake_shelf, so a dry chasm raised later is capped the same way.
+var _walk_distance := PackedFloat32Array()
 #endregion
 
 
@@ -82,14 +86,49 @@ func _run() -> GeneratedMap:
 		"a pass in the Pass enum with nothing here to run would stop the generator early"
 	)
 	for index: int in mini(_params.last_pass, passes.size()):
+		# Validated before the cosmetic pass, which a rejected map would only waste.
+		if index + 1 == MapGenerationParams.Pass.VISUALS and not _validate():
+			return _result
 		if not passes[index].call():
 			return _result
 		_result.passes_run = index + 1
-	if _result.passes_run >= 3:
+	if _result.passes_run < MapGenerationParams.Pass.VISUALS:
+		_validate()
+	return _result
+
+
+## The end-of-generation invariants, against whatever distances and terrain the last pass left;
+## true when none failed.
+func _validate() -> bool:
+	if _result.passes_run >= MapGenerationParams.Pass.RESOURCES:
 		_validate_balance()
 	if _result.passes_run >= MapGenerationParams.Pass.TERRAIN:
 		_validate_obstruction()
-	return _result
+		_validate_ponds()
+	return _result.errors.is_empty()
+
+
+## Every pond can be walked into: a pond nobody can reach is a resource nobody can take, and its
+## rim is sunk to exactly the walkable limit, so any rounding or a moved limit seals it silently.
+func _validate_ponds() -> void:
+	for pond: MapFeature in _result.features_of(MapFeature.Kind.POND):
+		if not is_walkable_into(_result.terrain, pond.pond_seed_cell, pond.pond_level):
+			_result.errors.append("the pond at %s cannot be walked into" % pond.center)
+
+
+## Whether the water filled from `seed_cell` to `level` has a walkable, dry cell beside it.
+static func is_walkable_into(terrain: TerrainData, seed_cell: Vector2i, level: float) -> bool:
+	var basin: WaterBasin = WaterBasin.fill(terrain, seed_cell, level)
+	for cell: Vector2i in basin.depth_by_cell:
+		for step: Vector2i in _NEIGHBOURS:
+			var near: Vector2i = cell + step
+			if (
+				not basin.depth_by_cell.has(near)
+				and terrain.is_cell_in_play(near)
+				and terrain.cell_height_spread(near) <= TerrainGrid.MAX_SLOPE_DIFF
+			):
+				return true
+	return false
 
 
 ## Pass 7: the cosmetic layer, from the same planner a loaded map runs, so what the dock shows
@@ -740,24 +779,38 @@ func _shape_terrain(a_offsets: PackedFloat32Array) -> void:
 	_lake_shelf.clear()
 	if topology != null:
 		var depth_of: Dictionary = _mountain_depths(topology)
+		_walk_distance = _corner_walk_distances(topology)
 		for cell: Vector2i in topology.barrier_of:
-			var is_chasm: bool = topology.flooded[topology.barrier_of[cell]]
+			var cut: int = topology.barrier_of[cell]
+			var is_cliff: bool = _result.elevation != null and _result.elevation.is_cliff(cut)
+			var is_chasm: bool = topology.flooded[cut] and not is_cliff
 			if is_chasm:
-				chasm_cells[cell] = topology.barrier_of[cell]
-			var rise: float = minf(
-				(depth_of.get(cell, 1) - 1) * _params.mountain_rise_per_cell,
-				_params.mountain_rise_max
+				chasm_cells[cell] = cut
+			# A cliff's band is low talus either side of its face; anything else is a ridge,
+			# rising toward a mountain's core.
+			var rise: float = (
+				0.0
+				if is_cliff
+				else minf(
+					(
+						_params.ridge_height
+						+ (depth_of.get(cell, 1) - 1) * _params.mountain_rise_per_cell
+					),
+					_params.ridge_height + _params.mountain_rise_max
+				)
+			)
+			var roughness: float = (
+				MapGenerationParams.TALUS_ROUGHNESS
+				if is_cliff
+				else MapGenerationParams.RIDGE_ROUGHNESS
 			)
 			for corner: Vector2i in PlacementGrid.rect_cells(cell, Vector2i(2, 2)):
-				var roughness: float = (
-					MapGenerationParams.RIDGE_ROUGHNESS if (corner.x + corner.y) % 2 == 0 else 0.0
-				)
 				heights[corner.y * width + corner.x] = (
 					_params.ground_height - _params.chasm_depth
 					if is_chasm
 					else maxf(
 						heights[corner.y * width + corner.x],
-						_params.ground_height + _params.ridge_height + roughness + rise
+						_params.ground_height + _obstacle_rise(corner, width, rise, roughness)
 					)
 				)
 		_lake_shelf = _lake_shelves(topology)
@@ -770,6 +823,60 @@ func _shape_terrain(a_offsets: PackedFloat32Array) -> void:
 			heights[i] += a_offsets[i]
 	terrain.heights = heights
 	_flood_chasms(chasm_cells, width)
+
+
+## How far above its ground an obstacle's corner stands: `a_rise`, and on alternate corners
+## `a_roughness` more, so no cell can be stood on — but never above the occlusion cap at that
+## corner, `occlusion_allowance` plus its walk distance times the tangent of the lowest camera
+## pitch, so no obstacle hides what stands at its foot. Where the cap leaves no room above, the
+## alternate corner stands a roughness BELOW instead, or on the ground; a corner with nothing
+## raised (talus) is lifted to the cap. Either way the cell's corners differ by more than a
+## walker can climb.
+func _obstacle_rise(a_corner: Vector2i, a_width: int, a_rise: float, a_roughness: float) -> float:
+	var cap: float = (
+		_params.occlusion_allowance
+		+ (
+			_walk_distance[a_corner.y * a_width + a_corner.x]
+			* tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
+		)
+	)
+	var top: float = minf(a_rise, cap)
+	if (a_corner.x + a_corner.y) % 2 != 0:
+		return top
+	if top + a_roughness <= cap:
+		return top + a_roughness
+	if top - a_roughness >= 0.0:
+		return top - a_roughness
+	if top > 0.0:
+		return 0.0
+	return cap
+
+
+## Per terrain corner, the distance in cells from the centre of the nearest cell a unit can stand
+## on — in play, and neither a barrier nor its steep border — to the nearest cell touching the
+## corner. 0 for a corner of standable ground.
+func _corner_walk_distances(a_topology: MapTopology) -> PackedFloat32Array:
+	var cells_wide: int = _grid.width
+	var cells_deep: int = _grid.depth
+	var passable: PackedByteArray = a_topology.passable_mask()
+	var blocked := PackedByteArray()
+	blocked.resize(passable.size())
+	for i: int in passable.size():
+		blocked[i] = 1 if passable[i] == 0 else 0
+	var squared: PackedInt32Array = MapOpenness.squared_clearance(
+		blocked, cells_wide, cells_deep, false
+	)
+	var corners_wide: int = cells_wide + 1
+	var distances := PackedFloat32Array()
+	distances.resize(corners_wide * (cells_deep + 1))
+	distances.fill(INF)
+	for z: int in cells_deep:
+		for x: int in cells_wide:
+			var cell_distance: float = sqrt(float(squared[z * cells_wide + x]))
+			for corner: Vector2i in PlacementGrid.rect_cells(Vector2i(x, z), Vector2i(2, 2)):
+				var at: int = corner.y * corners_wide + corner.x
+				distances[at] = minf(distances[at], cell_distance)
+	return distances
 
 
 ## Per grown ridge cell, its distance in cells from the mountain's edge: 1 on the edge.
@@ -939,16 +1046,14 @@ func _raise_dry_stretch(a_stretch: Array[Vector2i], a_width: int) -> void:
 	)
 	for cell: Vector2i in a_stretch:
 		for corner: Vector2i in PlacementGrid.rect_cells(cell, Vector2i(2, 2)):
-			var roughness: float = (
-				MapGenerationParams.RIDGE_ROUGHNESS if (corner.x + corner.y) % 2 == 0 else 0.0
-			)
 			var index: int = corner.y * a_width + corner.x
 			heights[index] = maxf(
 				heights[index],
 				(
 					_params.ground_height
-					+ _params.ridge_height
-					+ roughness
+					+ _obstacle_rise(
+						corner, a_width, _params.ridge_height, MapGenerationParams.RIDGE_ROUGHNESS
+					)
 					+ _offset_at(offsets, corner, a_width)
 				)
 			)

@@ -316,7 +316,9 @@ static func too_narrow_cells(
 	var sizes: Dictionary = {}
 	for cell: Vector2i in obstacle_of:
 		sizes[obstacle_of[cell]] = sizes.get(obstacle_of[cell], 0) + 1
-	# Cells bucketed at the width that matters, so each is compared only with its neighbourhood.
+	# Cells bucketed at the width that matters, so each is compared only with its neighbourhood,
+	# and within a bucket by obstacle, so a cell skips its own obstacle's cells — most of any
+	# bucket — without visiting them.
 	var bucket_size: int = ceili(
 		maxf(width, MapGenerationParams.MIN_CHOKE_WIDTH) + 2.0 * _OBSTACLE_REACH
 	)
@@ -324,8 +326,11 @@ static func too_narrow_cells(
 	for cell: Vector2i in everything:
 		var key: Vector2i = cell / bucket_size
 		if not buckets.has(key):
-			buckets[key] = []
-		buckets[key].append(cell)
+			buckets[key] = {}
+		var id: int = obstacle_of[cell]
+		if not buckets[key].has(id):
+			buckets[key][id] = [[] as Array[Vector2i], [] as Array[Vector2i]]
+		buckets[key][id][0 if fixed.has(cell) else 1].append(cell)
 	var touching: Dictionary = {}
 	for cell: Vector2i in cells:
 		if edge_gap(cell, play) < EDGE_TOUCH_GAP:
@@ -339,22 +344,35 @@ static func too_narrow_cells(
 		var key: Vector2i = cell / bucket_size
 		for dx: int in range(-1, 2):
 			for dz: int in range(-1, 2):
-				for other: Vector2i in buckets.get(key + Vector2i(dx, dz), []):
-					var theirs: int = obstacle_of[other]
-					if theirs == mine:
-						continue
-					var is_fixed: bool = fixed.has(other)
-					var other_reach: float = _CLIFF_REACH if is_fixed else _OBSTACLE_REACH
-					var needed: float = MapGenerationParams.MIN_CHOKE_WIDTH if is_fixed else width
-					if walkable_gap(cell, other, _OBSTACLE_REACH, other_reach) >= needed:
+				var by_obstacle: Dictionary = buckets.get(key + Vector2i(dx, dz), {})
+				for theirs: int in by_obstacle:
+					if theirs == mine or doomed.has(cell):
 						continue
 					var smaller: bool = (
 						sizes[mine] < sizes[theirs]
 						or (sizes[mine] == sizes[theirs] and mine < theirs)
 					)
-					if fixed.has(other) or smaller:
+					if _is_within(cell, by_obstacle[theirs], smaller, width):
 						doomed[cell] = true
 	return doomed
+
+
+## Whether `cell` stands too close to one obstacle's cells in a bucket, `lists` being its
+## [fixed cells, barrier cells]: a fixed cell (a cliff) gives way to nothing, so it is held to the
+## floor whatever the sizes; a barrier cell narrows the passage only for the smaller obstacle,
+## held to `width`.
+static func _is_within(cell: Vector2i, lists: Array, is_smaller: bool, width: float) -> bool:
+	for other: Vector2i in lists[0]:
+		if (
+			walkable_gap(cell, other, _OBSTACLE_REACH, _CLIFF_REACH)
+			< MapGenerationParams.MIN_CHOKE_WIDTH
+		):
+			return true
+	if is_smaller:
+		for other: Vector2i in lists[1]:
+			if walkable_gap(cell, other) < width:
+				return true
+	return false
 
 
 ## Walkable cells between two obstacle cells, along the line joining them; barrier cells by

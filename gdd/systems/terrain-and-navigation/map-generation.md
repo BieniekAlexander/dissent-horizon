@@ -446,9 +446,11 @@ Only now does anything become heights and water levels. **Open ground stays flat
 `ground_height`**: a cell is buildable only when its four corners are equal, so any rolling would
 make ground unbuildable, and height has no gameplay effect yet (Alex, 2026-09-19).
 
-- **Ponds** are sunk as flat pans one 0.5 step below the ground, water just above the floor, so
+- **Ponds** are sunk as flat pans exactly `MAX_SLOPE_DIFF` below the ground, water just above the floor, so
   their cells are shallow and the rim is passable-but-unbuildable
-  (see [map-composition.md](map-composition.md) §The basin).
+  (see [map-composition.md](map-composition.md) §The basin). **A map with a pond units cannot walk into is
+  rejected**: the rim sits at exactly the walkable limit, so rounding, or a limit moved under a
+  saved map, seals it silently.
 - **Each cut** is a ridge or a flooded chasm, drawn at random by `flooded_cut_fraction`:
   - a **ridge** raises its cells' corners `ridge_height`, every other corner a further
     `RIDGE_ROUGHNESS` — so the crest is as steep as the sides, not a plateau nothing can reach;
@@ -495,49 +497,51 @@ Pass 6 then lifts this flat ground onto discrete levels; within a level it stays
 > **REJECTED — gently rolled relief** (the original sketch): ground that rolls is unbuildable
 > wherever it rolls. Pass 6's discrete levels joined by ramps are what replaced it.
 
-### 6. Elevation — tiers, terraces and cliffs
+### 6. Elevation — terraces and cliffs
 
 The ground is lifted off the flat. **Levels come from the feature graph**, not from a free
-heightmap (Alex, 2026-09-19): every start and feature is a node, and each node gets a height.
-
-A height is two ladders, because a step means two different things:
-
-| | step | what it is |
-|---|---|---|
-| **terrace** | `elevation_step`, at or under `MAX_SLOPE_DIFF` | walked over. The map's relief; only the cells on the step lose their buildability |
-| **tier** | `cliff_step`, well above it | a cliff |
+heightmap (Alex, 2026-09-19): every start and feature is a node, and each node gets a terrace
+level, `elevation_step` apart, at or under `MAX_SLOPE_DIFF` — walked over, so only the cells on
+a step lose their buildability.
 
 **A cliff may stand only where a barrier does** (Alex, 2026-09-19). Elevation marks divisions the
 topology already decided; it adds none of its own. Pass 6 used to draw a full step at every
 boundary between differing regions, which cliffed about three-quarters of them on nothing, and
 halved the map's widest corridor — gen_02 went from 17 cells to 9, below `MIN_CHOKE_WIDTH`.
 
+> **REJECTED — a second ladder of cliff TIERS** (built 2026-09-19, retired 2026-10-02). A tier
+> changed only across a cut but was crossed elsewhere on graded ground, and under the tan 30°
+> walkable limit a tier's drop graded over about twelve cells: the long ramps Alex did not want,
+> and wide bands that squeezed reserved zones into slivers and narrowed the map. Its drop also
+> hid inside the ridge it stood behind, so no generated map showed a cliff.
+
 - **Where levels come from.** Coherent noise sampled at each node, `elevation_scale_cells`
-  across, stretched so the whole ladder gets used — raw noise bunches near its middle. TIERS are
-  then smoothed: a group matching none of its neighbours takes their commonest tier, so tiers
-  form broad plateaus rather than one-group islands. **Terraces are not smoothed** — the
-  one-step limit below already holds them together, and smoothing on top of it dragged whole
-  maps onto the starts' terrace, leaving three of six seeds with no relief at all.
+  across, stretched so the whole ladder gets used — raw noise bunches near its middle. Each
+  group asks for that level and is given the nearest the rules below allow, solved as difference
+  constraints over the groups (`LevelConstraints`), so assignment never paints itself into a
+  corner.
   > **REJECTED — ranking the noise** instead of stretching it. Ranking spreads the groups evenly
   > over the ladder, which puts neighbouring regions at opposite ends; the one-step limit below
   > then squashes them back together and whole maps came out at a single height.
-- **Regions the topology left open to each other differ by at most one terrace**, since a
-  terrace is meant to be walked over. A relaxation pulls violators together, holding the starts.
-  **Across an uncarved cut there is no limit** (Alex, 2026-09-30): pass 4 already put a barrier
-  there, and a height difference that divides the two sides only agrees with it. The rule is
-  about keeping elevation inside the topology, not about making every boundary walkable.
-  **Every re-level holds it again** — a repair that copies one region's height onto a stranded
-  group reruns the relaxation, holding the starts, the moved groups and the region they were
-  levelled to, so the join the repair made stands and the step it opened on the far side is
-  pulled back to one. An open edge still more than a terrace apart at the end rejects the map.
-  Seed 2004 of `test_MapElevation` shipped exactly that: a routes re-level lifted two groups two
-  terraces clear of their open neighbours, and nothing looked again.
+  > **REJECTED — smoothing the levels** toward neighbours' commonest: with the one-step limit
+  > already holding them together it dragged whole maps onto the starts' level, leaving three of
+  > six seeds with no relief at all.
+- **Regions a walker can cross between differ by at most one terrace** (Alex, 2026-10-02), so
+  no slope is longer than a terrace graded. That is every open graph edge, and every pair whose
+  ground touches where no barrier stands — a cut whose barrier was clipped or trimmed short is
+  crossed there all the same. **Across a barrier there is no limit** (Alex, 2026-09-30): a
+  height difference that divides the two sides only agrees with the topology. The one exception
+  is a cliff's ends (§Cliffs). **Every re-level holds it again** — a repair that copies one
+  region's height onto a stranded group reruns a relaxation, holding the starts, the moved
+  groups and the region they were levelled to. A pair still more than a terrace apart at the end
+  rejects the map. Seed 2004 of `test_MapElevation` shipped exactly that once: a routes re-level
+  lifted two groups two terraces clear of their open neighbours, and nothing looked again.
 - **What must share a height.** Reserved zones within a couple of cells of each other are one
   group, and so are the two sides of a carved cut. A closer pair on different heights would
   leave a sliver of ground walled in, and a carve is an opening a cliff would close again.
-- **Starts all share one height**: the middle tier, and a terrace from
-  `start_level_fraction_min … _max` — high ground, but not always the top (Alex). Height has no
-  gameplay effect yet, and when it has, no start should begin below another.
+- **Starts all share one height**: a terrace from `start_level_fraction_min … _max`, high but
+  not always the top (Alex). Height has no gameplay effect yet, and when it has, no start should
+  begin below another.
 - **Each cell takes its region's height**: reserved ground (footprints, pond rims, start boxes)
   outranks barrier cells, which outrank free ground. A corner shared by cells of different
   heights takes the highest-ranked cell's. **So a step never falls inside a footprint.**
@@ -548,8 +552,8 @@ sweep like a distance transform, until the drop is spread over a band a walker c
 things are held out of it:
 
 - **A barrier is where a drop may land whole.** Its cells are excluded, so they neither grade nor
-  drag the ground either side toward them — the tier step lands across the barrier, and that is
-  the cliff. Ground out of play is held out for the same reason.
+  drag the ground either side toward them — a step across a barrier lands on the barrier, and on
+  a cliff that is its face. Ground out of play is held out for the same reason.
 - **A reserved zone is held flat**, then settled onto the graded ground: every cell of a zone
   takes the mean height of the free ground around it — one height, so the footprint stays
   buildable — and the grade is swept again to meet it. Per zone, not per group: a group can hold
@@ -587,8 +591,11 @@ per currency** exactly as in pass 4, against walking distance on the levelled gr
 shaping is then re-run on top of the offsets: a pond or a chasm floods at its own level, and the
 `flat_fraction` invariant is checked again.
 
-A generation costs **6–18 seconds** at the defaults, most of it grading; it was 40 before the
-grading sweeps were restricted to the cells near a height change.
+A generation costs **5–11 seconds** at the defaults (22 seeds at 100–120, 7 s mean, 2026-10-02),
+about two-fifths of it pass 6, a quarter pass 4 and a fifth pass 7. It was 16–53 s before the
+grading sweep stopped visiting cells that cannot move and testing play and barriers per
+neighbour — grading was nine-tenths of a generation, run twice per relabel and once per ramp
+tried.
 
 *Invariants:* tests 1–3 above, pass 4's balance, and **elevation does not narrow the map** — the
 widest corridor from one side to the other is no smaller than it was on the flat map. **A map
@@ -605,6 +612,85 @@ that cannot meet them is rejected, not patched.**
   heights between them flattened. Flattening would always succeed but erase the relief exactly
   where the starts meet; whether that trade is wanted is Alex's call.
 
+#### Cliffs — a way of realising a barrier
+
+Decided and built 2026-10-02 (Alex). **Topology decides where ground is untraversable; elevation
+decides how.** A cliff is one way pass 6 realises an untraversable cut: its two sides stand
+several terraces apart and the band between them is the face, where a ridge or a river would
+otherwise stand between ground at one height. Before this, a drop hid inside the ridge it stood
+behind, and of seeds 2000–2011 four had no visible drop at all.
+
+- **Which cuts.** A thin cut — ungrown, uncarved — between two groups whose ground touches round
+  the barrier's ends along at most a fifth of the barrier's length. Pass 4's barriers are short
+  walls, so a cut's sides usually touch somewhere; where they touch a lot, the slope round the
+  wall would be the long ramp the one-terrace rule exists to prevent.
+- **Pass 6 chooses, deliberately.** `cliff_cut_fraction` of the candidate group pairs is drawn,
+  each held a drop apart in the level constraints, the side whose noise asks higher on top. A
+  thin cut's kind — ridge, river or cliff — is decided here; a grown region keeps the kind pass 4
+  gave it, because the lake share steers growth.
+- **Drop: 2 to 4 terraces** (`cliff_drop_terraces_min` / `_max`, 1.0 to 2.0), drawn per cliff and
+  tried smaller when the way round cannot climb it: every open route round a cut climbs at most
+  a terrace per region it crosses, and on most cuts the shortest is two or three regions.
+- **Ends are graded** (Alex, 2026-10-02): where the two sides touch, the drop is spread over a
+  slope — about four cells for two terraces, eight for four. The one exception to the
+  one-terrace rule.
+- **Shape: a face, talus and a crest.** Each band cell stands at its own side's level, so the step
+  falls on the band's midline. Below the face the band keeps the cells the drop hides from the
+  lowest camera pitch, so the only ground a cliff hides is its own; above it, a one-cell crest;
+  the rest of the band becomes ground of its own side. The kept cells are low rubble, spiked
+  `TALUS_ROUGHNESS` on alternate corners — enough to stand on none of them, far under a ridge.
+- **A chosen cliff the levels cannot hold**, or that a repair's re-level flattens, is drawn as the
+  cut's ridge or river and counted in the report.
+- **At `last_pass = TERRAIN`** a cliff cut shows as a ridge: stopping early is a debugging
+  convenience, not a map anyone plays.
+- **Reported, not enforced**: the report gives each map's cliffs, their band cells and the ones
+  that stayed ridges or rivers. 1–5 cliffs per map on seeds 2000–2011.
+- **No trees on a cliff** (pass 7): a tall prop stands only on steep ground well above the
+  walkable ground near it — a mountain's flank, never a face, talus, ridge foot or rim.
+
+- TODO: **a cliff still reads as a rocky strip rather than a face.** At one height sample per
+  cell a 1.0–1.5 drop is barely taller than the talus spikes beside it, and pass 7 scatters
+  boulders over the band where trees were. Candidates: smoother talus (the least roughness that
+  stays impassable), fewer rocks on cliff bands, the planned rock-face meshes
+  ([visual-facets](visual-facets.md) §Shortlist 1), or a taller minimum drop (fewer cliffs).
+  Alex judged it fine for now (2026-10-02).
+- TODO: **the face of a grown mass is not built.** Alex's answer included a mountain or lake's
+  face where it borders a level change; only thin cuts become cliffs.
+- TODO: **two `test_MapElevation` seeds are pending.** Since cliffs replaced tiers, seed 2003
+  narrows the map by one cell (11 against 12 flat) and seed 2004 leaves one barrier cell
+  walkable — a corner the talus, the occlusion cap and a neighbouring barrier share.
+- PLANNED: incremental relabel ([map-generation-review](map-generation-review.md) P1), approved
+  and waiting on this rewrite.
+- A cliff need not show its whole face to the camera, but must not hide units (§Seeing the
+  ground, below).
+
+#### Seeing the ground
+
+Decided 2026-10-02 (Alex): **a walkable slope must be wholly visible to the camera, and terrain
+should not hide units behind it** — at the default view, with no rotation needed. The camera's
+free yaw is the player's option, never a requirement, so the rules hold from every side. An
+untraversable face need not be seen whole.
+
+The camera is orthographic, pitched between 30° and 45° below the horizontal, with free yaw.
+Comparable titles: Warcraft III about 56°, Age of Empires II's 2:1 tiles about 30°.
+
+- **Walkable slopes against the pitch.** Alex set the camera below 45° (40° on 2026-10-02) and
+  expects it to stay between 30° and 45°. A slope steeper than the pitch, facing away, is hidden
+  outright, and one equal to it is seen edge-on, so the walkable limit is derived from the 30°
+  floor (§Parameters), and `test_ViewPitchFloor` keeps the camera above it. Before, the limit
+  was 45° and about 3% of a generated map's walkable cells — pond rims, the steepest graded
+  ground, terrace steps — stood steeper than a 40° camera; now none do.
+- **An obstacle's height is capped by its distance from walkable ground** (Alex, 2026-10-02). At pitch θ an obstacle h above the ground hides the h / tan θ cells behind it;
+  a mountain's edge stands about 4 above its foot (ridge 3 plus roughness 1.1), hiding up to
+  about 7 cells at 30°. So a cell of an obstacle may stand no higher above the nearest walkable ground
+  than its distance from it × tan θ, plus `occlusion_allowance` (0.5, the part of a unit at the
+  foot it may hide): masses rise toward their middle, not at their edge. θ is the lowest camera
+  pitch, `MIN_VIEW_PITCH_DEGREES`, so the cap holds wherever the camera sits. Where the cap
+  leaves no room for the roughness above, an alternate corner stands below instead, so a capped
+  cell stays impassable. For a cliff it means the apron is
+  at least `drop / tan θ` wide, so the only ground a cliff hides is its own impassable apron.
+  Units are drawn as silhouettes through terrain today, which softens a miss; the heights are
+  the fix.
 ---
 
 ## Obstacle regions: mountains and lakes
@@ -677,6 +763,7 @@ TODO: not re-measured at the 85% target, where fewer cuts may do.
   shelf is shallow and wadeable but unbuildable. Deep is impassable
   (see [water-bodies.md](water-bodies.md)). Where no shelf fits, a lake is deep to its edge.
 - **An ungrown flooded cut stays a river**, its water halfway up its chasm as before.
+- **A thin cut may instead be a cliff**, chosen in pass 6 (§6, Cliffs).
 - **Which kind grows next** is the kind further below its share of the cells grown so far,
   `region_lake_fraction` of them lakes.
 - **A body never spans levels.** A lake follows the chasm rule of pass 5: the stretch on one
@@ -716,12 +803,9 @@ up to 5000 cells, and a piece that large counts as open, so a growth that split 
 into two such halves is not caught there. The connectivity repair then carves it open, possibly
 through the region. None has been seen.
 
-TODO: pass 6 rejects about one seed in five on routes between the starts (seed 2004 at the
-shipped defaults); whether `cut_fraction` 0.45 raised that rate is unmeasured.
-
-TODO: a generation took 22–63 s on the 120–150 maps of 2026-10-01, and 8–63 s (33 s mean) at
-100–120. That cost is pass 6's grading, not
-regions: with regions off, a sample seed took 62 s (the doc's 6–18 s predates the larger maps).
+TODO: pass 6 rejected about one seed in five on routes between the starts; at the defaults of
+2026-10-02 it rejected one of seeds 2000–2021 (2016, on routes and terraces), and 2004 now
+generates. Whether `cut_fraction` 0.45 moves that rate is unmeasured.
 
 TODO: map-size parameters are still being calibrated. Keep the current `play_size` bounds for
 now. The parameterization will need reworking once resource and pseudo-resource allocation,
@@ -787,12 +871,11 @@ with nothing left to grow it back (two of 16 seeds at 100–120 came out at 88% 
 Measured on the same 16 seeds after both rounds: 0.4 chokes per map under 16 cells (against
 8.3 before any of it), 92% of walkable ground in a 25-cell field (75%), traversable 83–87%, the
 widest mass at most 30% of a side, and 3–9 masses per map on the edge. 15 of 16 seeds generate,
-as before; the failure is pass 4's routes. A generation takes 37 s mean against 57 s before:
-there is less to grow.
+as before; the failure is pass 4's routes.
 
 At the 100–120 play size (2026-10-02), the same 16 seeds: 15 generate (the failure is pass 6's
 routes), traversable 83–87% around a mean of 85%, 0.2 chokes per map under 16 cells, 90% of
-walkable ground in a 25-cell field, 10–11 masses per map with 3–7 on the edge, 33 s mean.
+walkable ground in a 25-cell field, 10–11 masses per map with 3–7 on the edge.
 
 TODO: openness is reported, not enforced (`GeneratedMapWriter.report` lists every choke's
 width) — whether a map with too many narrow chokes is rejected, and at what width and count, is
@@ -884,20 +967,30 @@ TODO: **none of these are tuned.** They are starting brackets with a stated reas
 maps are generated and played. The point of writing them down is that a generator refusing to
 produce a map outside them is a better failure than one that produces a bad map silently.
 
-**Every height scales together** (Alex, 2026-10-02). Relief was doubled because, under the
-45-degree camera, a height h moves the ground only about 0.7h on screen and a 0.4 terrace read as
-flat. `TerrainGrid.MAX_SLOPE_DIFF` and `WaterBasin.WADE_DEPTH` doubled with the heights below, and
-every generator decision compares heights with each other or with those two, so a seed's layout
-is unchanged — only taller. Change one, change them all. The exception is the height of
-ridges and mountains (`ridge_height`, `mountain_rise_*`), which are impassable whatever their
-height and were kept at their old values (Alex, 2026-10-02): doubled, they towered over the play.
-Their crest roughness is still doubled, because it is what keeps a crest steeper than the
-slope limit.
+**The walkable slope limit comes from the camera; the heights are authored** (Alex, 2026-10-02).
+`TerrainGrid.MAX_SLOPE_DIFF` is the tangent of the lowest pitch the camera may take
+(`MIN_VIEW_PITCH_DEGREES`, 30°), rounded down to a value float32 holds exactly, so that no
+walkable slope can face away from the camera and hide (§6, Seeing the ground). What derives from
+the limit follows it — a pond's sink, a crest's roughness, the grade per cell, a ramp's run.
+What is authored does not: relief was doubled earlier that day because a 0.4 terrace read as flat
+under the camera, and it kept that height when the limit fell from 1.0, taking more and gentler
+steps instead (six terraces of 0.5, where five of 0.8 had been). So a terrace or a graded slope
+covers more cells than it did, and a seed's layout changed with the limit. Ridges and mountains
+(`ridge_height`, `mountain_rise_*`) are impassable whatever their height and keep their old
+values: doubled, they towered over the play.
+
+The limit is exact in float32 because a pond's rim is sunk by exactly the limit to be walkable
+but unbuildable; at tan 30° unrounded, the stored heights rounded a hair past it, and every
+pond and lake shelf rim silently turned impassable (about two points of traversable ground).
 
 TODO: hand-authored and saved terrains (`s1`, `blue_hole`, `skirmish_map`, `generated_639364842`,
-the `mesh_*` test terrains) were NOT rescaled when the slope limit doubled, so some of their cliffs
-are now walkable — Alex accepted losing them (2026-10-02); regenerate or rescale before reuse.
-Also undecided: `chasm_depth` is still doubled (4); halving it needs `WADE_DEPTH` moved too.
+the `mesh_*` test terrains) are not regenerated. When the limit doubled (1.0), some of their
+cliffs became walkable — Alex accepted losing them; when it fell to tan 30°, 1.4–2.8% of their
+walkable cells (none on the flat, disc and plateau meshes) turned steep. **Every pond on a map
+generated before the fall is sealed** — its rim was sunk 1.0, now past the limit — so units
+cannot enter it; `skirmish.tscn` as saved on 2026-10-02 had all eleven sealed. A narrow ramp may
+no longer join its levels either. Regenerate or rescale before reuse. Also undecided:
+`chasm_depth` is still 4; halving it needs `WADE_DEPTH` moved too.
 
 | Parameter | Bracket | Why the bracket |
 |---|---|---|
@@ -953,10 +1046,11 @@ Also undecided: `chasm_depth` is still doubled (4); halving it needs `WADE_DEPTH
 | `correction_radius_cells` | 12 | how far pass 4 may move a feature to restore its favor |
 | `ridge_height` / `chasm_depth` | 3.0 / 4.0 | anything above `MAX_SLOPE_DIFF` blocks; these read as terrain |
 | `flat_fraction` | ≥ 0.55 of in-play walkable cells | structures need flat ground and slopes cost it |
-| `elevation_levels` | 1 … 6; 5 | terrace levels; 1 leaves the ground level within a tier |
-| `elevation_step` | ≤ `MAX_SLOPE_DIFF`; 0.8 | a terrace step is walked over. Above the limit every boundary cliffs, and elevation starts dividing ground pass 4 left open — the dock warns |
-| `cliff_levels` | 1 … 4; 3 | tiers, each a cliff apart. A map whose cuts divide it into fewer regions simply uses fewer |
-| `cliff_step` | 3.0 | three `MAX_SLOPE_DIFF`s: a tier step is a cliff and reads as one. Keep it above `chasm_depth / 2` |
+| `elevation_levels` | 1 … 6; 6 | terrace levels, the map's whole relief; 1 leaves the ground level. Seven or more failed the one-terrace rule on a quarter of seeds while tiers stood (2026-10-02); not re-measured since |
+| `elevation_step` | ≤ `MAX_SLOPE_DIFF`; 0.5 | a terrace step is walked over. Above the limit every boundary cliffs, and elevation starts dividing ground pass 4 left open — the dock warns |
+| `cliff_cut_fraction` | 0 … 1; 0.5 | share of candidate cuts drawn as cliffs (§Cliffs) |
+| `cliff_drop_terraces_min` / `_max` | 2 / 4 | a cliff's drop: at least two or it is walked over; at most what the apron hides from the lowest camera — the dock warns past either |
+| `occlusion_allowance` | 0.5 | the part of a unit at an obstacle's foot the obstacle may hide (§Seeing the ground) |
 | `elevation_scale_cells` | 40 … 90; 60 | the noise's feature size; smaller breaks the map into more plateaus and needs more ramps |
 | `start_level_fraction_min` / `_max` | 0.5 / 0.75 | starts on high ground, not always the highest (Alex) |
 

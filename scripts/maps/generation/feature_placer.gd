@@ -11,9 +11,12 @@ extends RefCounted
 ## narrows the next; see PlacementGrid for why that state is kept rather than recomputed.
 
 #region Constants
-## A pond's pan is sunk exactly one slope step: its rim cells then spread exactly
-## MAX_SLOPE_DIFF, which is walkable but not flat (map-composition.md §The basin).
-const POND_SINK: float = TerrainGrid.MAX_SLOPE_DIFF
+## A pond's rim must be walkable but not flat (map-composition.md §The basin). Sunk to exactly
+## MAX_SLOPE_DIFF, float32 rounding of the height pass 6 lifts it by tips the rim past the limit
+## and seals the pond; this much under it is far above that rounding and too small to see.
+const POND_SINK_MARGIN: float = 1.0 / 64.0
+## A pond's pan is sunk just under one slope step, so its rim cells are walkable but not flat.
+const POND_SINK: float = TerrainGrid.MAX_SLOPE_DIFF - POND_SINK_MARGIN
 ## Water level above the pan floor, as a fraction of the sink. A rim cell's mean height is at
 ## least a quarter-sink above the floor (three of its corners lowered at most), so any fraction
 ## below 0.25 floods the pan and nothing else.

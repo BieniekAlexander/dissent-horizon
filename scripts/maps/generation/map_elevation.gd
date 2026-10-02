@@ -4,13 +4,14 @@ extends RefCounted
 
 ## Pass 6 of gdd/systems/terrain-and-navigation/map-generation.md: discrete ground levels.
 ## Every start and feature — a node of pass 4's FeatureGraph — gets a height, and each cell takes
-## the height of the region it lies in. A height is a TIER and a TERRACE:
+## the height of the region it lies in. A height is a TERRACE level, and a terrace step is under
+## MAX_SLOPE_DIFF, so it is walked over.
 ##
-## - a **terrace** step is under MAX_SLOPE_DIFF, so the boundary is walked over. Terraces vary
-##   freely: this is the map's relief.
-## - a **tier** step is a cliff, and a tier changes ONLY across a cut pass 4 made. **Elevation
-##   may not divide ground the topology left open** — cliffs mark barriers that were already
-##   decided, and a boundary nobody asked for steps gently instead (Alex, 2026-09-19).
+## - **Regions a walker can cross between differ by at most one terrace** (Alex, 2026-10-02): a
+##   larger step would be graded into a long slope. **Elevation may not divide ground the
+##   topology left open** (Alex, 2026-09-19).
+## - **A cliff is a cut pass 4 made whose two sides end several terraces apart** — one way of
+##   realising a barrier, chosen here. The levels are solved as constraints (LevelConstraints).
 ##
 ## Ramps are then chosen the way pass 4 carves: until every pair of starts keeps its routes and
 ## all walkable ground is one piece.
@@ -33,9 +34,6 @@ const _SETTLE_ROUNDS: int = 4
 ## ring, so footprints within about four cells of each other end up level: a closer pair on
 ## different levels leaves a sliver of ground walled in by cliff.
 const _UNION_REACH: int = 2
-## Rounds of tier smoothing, pulling a group matching none of its neighbours to their commonest
-## tier, so tiers form broad plateaus instead of one-region islands.
-const _SMOOTHING_ROUNDS: int = 3
 ## Walkable ground cut off in a sliver smaller than this — a cell or two trapped between a
 ## barrier's border and a cliff — is left unreachable, like a ridge top: no ramp fits one, and
 ## chasing them only piles up ramps. Anything larger must be joined.
@@ -52,18 +50,33 @@ const _WIDEN_ROUNDS: int = 24
 ## steps, and anything above half the limit reads as a cliff.
 const _GRADE_PER_CELL: float = TerrainGrid.MAX_SLOPE_DIFF * 0.45
 ## Sweeps of the grading relaxation. Each spreads a band by a cell in every direction, so this
-## caps how wide a graded slope can get — a tier's drop needs about cliff_step / _GRADE_PER_CELL.
+## caps how wide a graded slope can get — a terrace's step needs about two sweeps.
 const _GRADE_SWEEPS: int = 12
 ## How much a too-narrow ramp is widened before it is given up on.
 const _WIDEN_FACTOR: float = 1.6
 const _NONE: int = -1
+## A cut may be a cliff while its two sides touch, round its ends, along at most this share of
+## its barrier's length: there the drop is graded into a short slope (Alex, 2026-10-02). Past it
+## the barrier is a short wall in open ground, and the slope round it would be the long ramp the
+## one-terrace rule exists to prevent.
+const _CLIFF_END_SHARE: float = 0.2
+## Cells of a cliff's band kept above its face: one is enough to hold the crest steep.
+const _CLIFF_CREST_CELLS: float = 1.0
+## Half of a cell's eight neighbours — right and the three below — so a scan visits each
+## neighbouring pair once.
+const _FORWARD_NEIGHBOURS: Array[Vector2i] = [
+	Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)
+]
 #endregion
 
 #region Properties
 ## Terrace level per graph node, and per union group of nodes that must share one.
 var level_of_node := PackedInt32Array()
-## Cliff tier per graph node: it changes only across a pass-4 cut.
-var tier_of_node := PackedInt32Array()
+## Cut index -> true, for each cut chosen as a cliff; it stands as one only while its sides stay
+## a cliff's drop apart (is_cliff), and is drawn as the ridge or river it was otherwise.
+var cliff_cuts: Dictionary = {}
+## Cuts tried as cliffs that the levels could not hold apart, so stayed ridges or rivers.
+var cliff_fallbacks: int = 0
 ## Plateau per graph node: nodes joined by graph edges on one level. A ramp joins two plateaus
 ## anywhere along their shared boundary, which is long where a single pair's is short.
 var plateau_of_node := PackedInt32Array()
@@ -91,7 +104,7 @@ var _depth: int = 0
 ## Cell -> owning node, for reserved ground that must stay level with its owner.
 var _owner: Dictionary = {}
 var _height := PackedFloat32Array()
-## Cell -> the node whose height it took, so a re-level can copy that node's tier and terrace.
+## Cell -> the node whose height it took, so a re-level can copy that node's terrace.
 var _source := PackedInt32Array()
 var _priority := PackedInt32Array()
 ## Cell -> nearest node, for free ground.
@@ -120,8 +133,9 @@ static func run(
 	elevation._width = terrain.grid_width()
 	elevation._depth = terrain.grid_depth()
 	elevation._start_count = start_count
-	elevation._assign_levels(start_count, a_owned)
 	elevation._index_nearest()
+	elevation._assign_levels(start_count, a_owned)
+	elevation._narrow_cliff_bands()
 	elevation._relabel()
 	elevation._ramp_for_routes(start_count)
 	elevation._settle()
@@ -140,7 +154,6 @@ func _settle() -> void:
 		var barriers: int = _topology.barrier_of.size()
 		var ramps: int = _ramps.size()
 		var levels: PackedInt32Array = level_of_node.duplicate()
-		var tiers: PackedInt32Array = tier_of_node.duplicate()
 		_topology.enforce_choke_width(cliff_cells)
 		if _topology.barrier_of.size() != barriers:
 			_relabel()
@@ -150,7 +163,6 @@ func _settle() -> void:
 			_topology.barrier_of.size() == barriers
 			and _ramps.size() == ramps
 			and level_of_node == levels
-			and tier_of_node == tiers
 		):
 			return
 
@@ -172,15 +184,17 @@ func _check_routes() -> void:
 				)
 
 
-## The terrace invariant, on the final levels: a re-level holds it where it can, and where it
-## cannot the map is rejected rather than shipped with a step the topology never asked for.
+## The terrace invariant, on the final levels and the final barriers: a re-level holds it where
+## it can, and where it cannot the map is rejected rather than shipped with a step the topology
+## never asked for — or with the long slope it would be graded into.
 func _check_terraces() -> void:
-	for edge: Vector2i in _topology.open_edges():
-		if absi(level_of_node[edge.x] - level_of_node[edge.y]) > 1:
+	# A group's root is one of its own nodes, and every node of a group shares its level.
+	for pair: Vector2i in _level_pairs():
+		if absi(level_of_node[pair.x] - level_of_node[pair.y]) > 1:
 			errors.append(
 				(
 					"regions %d and %d are open to each other but %d terraces apart"
-					% [edge.x, edge.y, absi(level_of_node[edge.x] - level_of_node[edge.y])]
+					% [pair.x, pair.y, absi(level_of_node[pair.x] - level_of_node[pair.y])]
 				)
 			)
 
@@ -208,12 +222,12 @@ func start_level() -> int:
 
 ## Nodes whose reserved ground touches, and the two sides of every carved pass-4 cut, share a
 ## height: a step between them would split a footprint or block a passage already promised.
-## Each group takes a terrace from smooth noise at its first node, or the start's if it holds a
-## start, and then a tier.
+## Each group asks for a terrace from smooth noise at its first node, or the start's if it holds
+## a start, and gets the nearest the rules allow (_solve_levels).
 ##
-## Terraces are NOT smoothed the way tiers are. Smoothing pulls a group to its neighbours'
-## commonest level, and with the one-step limit already holding terraces together it only
-## dragged whole maps onto the start's terrace — three of six seeds came out with no relief.
+## REJECTED — smoothing the noise, pulling a group to its neighbours' commonest level: with the
+## one-step limit already holding terraces together it dragged whole maps onto the start's
+## terrace, and three of six seeds came out with no relief.
 func _assign_levels(a_start_count: int, a_owned: Array) -> void:
 	var positions: PackedVector2Array = _topology.graph.positions
 	var parent := PackedInt32Array()
@@ -233,40 +247,289 @@ func _assign_levels(a_start_count: int, a_owned: Array) -> void:
 		if _topology.carved[i]:
 			var edge: Vector2i = _topology.graph.edges[_topology.cuts[i]]
 			_union(parent, edge.x, edge.y)
-	var noise := FastNoiseLite.new()
-	noise.seed = _rng.randi()
-	noise.frequency = 1.0 / _params.elevation_scale_cells
-	var starts_level: int = start_level()
-	var group_level: Dictionary = {}
-	var fixed: Dictionary = {}
-	for node: int in a_start_count:
-		group_level[_find(parent, node)] = starts_level
-		fixed[_find(parent, node)] = true
-	var samples: Array[Vector2] = []  # (noise, group)
-	for node: int in positions.size():
-		var root: int = _find(parent, node)
-		var is_sampled: bool = samples.any(func(v: Vector2) -> bool: return int(v.y) == root)
-		if not group_level.has(root) and not is_sampled:
-			samples.append(Vector2(noise.get_noise_2dv(positions[node]), root))
-	_spread_over_levels(samples, group_level, _params.elevation_levels)
-	level_of_node.resize(positions.size())
 	_group_of_node.resize(positions.size())
 	for node: int in positions.size():
 		_group_of_node[node] = _find(parent, node)
-		level_of_node[node] = group_level[_group_of_node[node]]
-	_limit_terrace_steps(fixed)
-	_assign_tiers(parent, a_start_count)
+	_solve_levels(_wanted_levels(a_start_count), a_start_count)
 	_find_plateaus()
 
 
-## Terraces are walked over, so neighbours the topology left OPEN to each other may differ by at
-## most one step. Across an uncarved cut a barrier already divides them, and any gap is its to
-## carry (Alex, 2026-09-30). Relaxation: pull each group to within one of its open neighbours,
+## Group -> the level its noise sample asks for, stretched over the ladder; the starts' groups
+## ask for the start level.
+func _wanted_levels(a_start_count: int) -> Dictionary:
+	var positions: PackedVector2Array = _topology.graph.positions
+	var noise := FastNoiseLite.new()
+	noise.seed = _rng.randi()
+	noise.frequency = 1.0 / _params.elevation_scale_cells
+	var wanted: Dictionary = {}
+	var starts_level: int = start_level()
+	for node: int in a_start_count:
+		wanted[_group_of_node[node]] = starts_level
+	var samples: Array[Vector2] = []  # (noise, group)
+	var sampled: Dictionary = {}
+	for node: int in positions.size():
+		var group: int = _group_of_node[node]
+		if not wanted.has(group) and not sampled.has(group):
+			sampled[group] = true
+			samples.append(Vector2(noise.get_noise_2dv(positions[node]), group))
+	_spread_over_levels(samples, wanted, _params.elevation_levels)
+	return wanted
+
+
+## Every group's level, as near the one it wants as the rules allow: walkable neighbours within
+## one terrace, the starts at their level, and each cut chosen as a cliff its drop apart.
+func _solve_levels(a_wanted: Dictionary, a_start_count: int) -> void:
+	var groups: Array = a_wanted.keys()
+	groups.sort()
+	var index_of: Dictionary = {}
+	for i: int in groups.size():
+		index_of[groups[i]] = i
+	var system := LevelConstraints.new(groups.size(), _params.elevation_levels - 1)
+	for node: int in a_start_count:
+		system.fix(index_of[_group_of_node[node]], a_wanted[_group_of_node[node]])
+	var contact: Dictionary = _group_contacts()
+	var candidates: Array[int] = _cliff_candidates(contact)
+	var deferred: Dictionary = {}
+	for cut: int in candidates:
+		deferred[_group_pair(cut)] = true
+	for pair: Vector2i in contact:
+		if not deferred.has(pair):
+			system.within(index_of[pair.x], index_of[pair.y], 1)
+	_choose_cliffs(system, index_of, candidates, contact, a_wanted)
+	var wanted_levels := PackedInt32Array()
+	for group: int in groups:
+		wanted_levels.append(a_wanted[group])
+	var levels: PackedInt32Array = system.solve(wanted_levels)
+	if levels.is_empty():
+		# Unreachable while every rule is added only if the system stays solvable; a level
+		# ladder too short for the starts' band is the one way left to get here.
+		errors.append("no terrace levels satisfy the walkable-neighbour and cliff rules")
+		levels.resize(groups.size())
+		levels.fill(a_wanted[_group_of_node[0]])
+	level_of_node.resize(_group_of_node.size())
+	for node: int in _group_of_node.size():
+		level_of_node[node] = levels[index_of[_group_of_node[node]]]
+
+
+## The cuts that may be cliffs: thin, uncarved, between two groups, and with a barrier that
+## dominates the ground the groups share — they touch along at most _CLIFF_END_SHARE of it.
+func _cliff_candidates(a_contact: Dictionary) -> Array[int]:
+	var barrier_cells: Dictionary = {}
+	for cell: Vector2i in _topology.barrier_of:
+		var cut: int = _topology.barrier_of[cell]
+		barrier_cells[cut] = barrier_cells.get(cut, 0) + 1
+	var candidates: Array[int] = []
+	for i: int in _topology.cuts.size():
+		var pair: Vector2i = _group_pair(i)
+		if (
+			_topology.carved[i]
+			or _topology.grown[i]
+			or not barrier_cells.has(i)
+			or pair.x == pair.y
+			or a_contact.get(pair, 0) > _CLIFF_END_SHARE * barrier_cells[i]
+		):
+			continue
+		candidates.append(i)
+	return candidates
+
+
+## Draw cliff_cut_fraction of the candidate group pairs as cliffs, each a drawn drop apart, the
+## side whose noise asks higher on top. A pair not drawn, or that no drop in range fits, holds
+## within a terrace where its ground touches — unless the cliffs already standing force it
+## apart, when it is a cliff all the same. Every cut between a cliff pair is a cliff.
+func _choose_cliffs(
+	a_system: LevelConstraints,
+	a_index_of: Dictionary,
+	a_candidates: Array[int],
+	a_contact: Dictionary,
+	a_wanted: Dictionary
+) -> void:
+	var cuts_of_pair: Dictionary = {}
+	for cut: int in a_candidates:
+		var pair: Vector2i = _group_pair(cut)
+		if not cuts_of_pair.has(pair):
+			cuts_of_pair[pair] = [] as Array[int]
+		cuts_of_pair[pair].append(cut)
+	var pairs: Array[Vector2i] = []
+	pairs.assign(cuts_of_pair.keys())
+	pairs.sort()
+	_shuffle_pairs(pairs)
+	var tried: int = roundi(_params.cliff_cut_fraction * pairs.size())
+	for i: int in range(tried, pairs.size()):
+		_hold_within(a_system, a_index_of, pairs[i], a_contact, cuts_of_pair[pairs[i]])
+	for i: int in tried:
+		var pair: Vector2i = pairs[i]
+		if _try_cliff(a_system, a_index_of, pair, a_wanted):
+			for cut: int in cuts_of_pair[pair]:
+				cliff_cuts[cut] = true
+		else:
+			cliff_fallbacks += 1
+			_hold_within(a_system, a_index_of, pair, a_contact, cuts_of_pair[pair])
+
+
+## Hold `a_pair` within a terrace where its ground touches; when the system cannot — cliffs
+## already standing force the pair apart — `a_cuts` are cliffs instead.
+func _hold_within(
+	a_system: LevelConstraints,
+	a_index_of: Dictionary,
+	a_pair: Vector2i,
+	a_contact: Dictionary,
+	a_cuts: Array
+) -> void:
+	if not a_contact.has(a_pair):
+		return
+	var before: int = a_system.mark()
+	a_system.within(a_index_of[a_pair.x], a_index_of[a_pair.y], 1)
+	if a_system.is_feasible():
+		return
+	a_system.rollback(before)
+	for cut: int in a_cuts:
+		cliff_cuts[cut] = true
+
+
+## Hold `a_pair` a drop apart: the drawn drop or, failing it, each smaller one in range, the side
+## whose noise asks higher on top or else the other way up. False, with nothing added, when no
+## drop in range fits the ways round.
+func _try_cliff(
+	a_system: LevelConstraints, a_index_of: Dictionary, a_pair: Vector2i, a_wanted: Dictionary
+) -> bool:
+	var high: int = a_index_of[a_pair.x]
+	var low: int = a_index_of[a_pair.y]
+	if a_wanted[a_pair.y] > a_wanted[a_pair.x]:
+		var held: int = high
+		high = low
+		low = held
+	var drawn: int = _rng.randi_range(
+		_params.cliff_drop_terraces_min, _params.cliff_drop_terraces_max
+	)
+	for drop: int in range(drawn, _params.cliff_drop_terraces_min - 1, -1):
+		if _holds_apart(a_system, high, low, drop) or _holds_apart(a_system, low, high, drop):
+			return true
+	return false
+
+
+func _shuffle_pairs(a_values: Array[Vector2i]) -> void:
+	for i: int in range(a_values.size() - 1, 0, -1):
+		var j: int = _rng.randi_range(0, i)
+		var held: Vector2i = a_values[i]
+		a_values[i] = a_values[j]
+		a_values[j] = held
+
+
+## The two groups either side of cut `a_cut`, lower first.
+func _group_pair(a_cut: int) -> Vector2i:
+	var edge: Vector2i = _topology.graph.edges[_topology.cuts[a_cut]]
+	var g: int = _group_of_node[edge.x]
+	var h: int = _group_of_node[edge.y]
+	return Vector2i(mini(g, h), maxi(g, h))
+
+
+## Group pairs, lower first, whose ground a walker crosses between -> how many neighbouring cell
+## pairs they share where no barrier stands (at least 1 for an open graph edge). A cut whose
+## barrier was clipped or trimmed short is crossed there all the same.
+func _group_contacts() -> Dictionary:
+	var contact: Dictionary = {}
+	for edge: Vector2i in _topology.open_edges():
+		var g: int = _group_of_node[edge.x]
+		var h: int = _group_of_node[edge.y]
+		if g != h:
+			var pair := Vector2i(mini(g, h), maxi(g, h))
+			contact[pair] = maxi(contact.get(pair, 0), 1)
+	for z: int in _depth:
+		for x: int in _width:
+			var mine: int = _region_of(Vector2i(x, z))
+			if mine == _NONE:
+				continue
+			for step: Vector2i in _FORWARD_NEIGHBOURS:
+				var theirs: int = _region_of(Vector2i(x + step.x, z + step.y))
+				if theirs == _NONE:
+					continue
+				var g: int = _group_of_node[mine]
+				var h: int = _group_of_node[theirs]
+				if g != h:
+					var pair := Vector2i(mini(g, h), maxi(g, h))
+					contact[pair] = contact.get(pair, 0) + 1
+	return contact
+
+
+## Group pairs held within one terrace: every pair a walker crosses between, but the two sides of
+## a standing cliff, whose ends are graded across its drop.
+func _level_pairs() -> Array[Vector2i]:
+	var across_cliffs: Dictionary = {}
+	for cut: int in cliff_cuts:
+		if is_cliff(cut):
+			across_cliffs[_group_pair(cut)] = true
+	var pairs: Array[Vector2i] = []
+	for pair: Vector2i in _group_contacts():
+		if not across_cliffs.has(pair):
+			pairs.append(pair)
+	return pairs
+
+
+## Add "`a_high` at least `a_drop` above `a_low`" to `a_system`, and keep it only if the system
+## stays solvable.
+func _holds_apart(a_system: LevelConstraints, a_high: int, a_low: int, a_drop: int) -> bool:
+	var before: int = a_system.mark()
+	a_system.apart(a_high, a_low, a_drop, _params.cliff_drop_terraces_max)
+	if a_system.is_feasible():
+		return true
+	a_system.rollback(before)
+	return false
+
+
+## Pull each cliff's band in to its face (Alex, 2026-10-02): a six-cell band of talus either side
+## buried a one- or two-unit drop. Below the face it keeps the cells the drop hides from the
+## lowest camera pitch, so the ground a cliff hides is still its own; above it, a one-cell crest.
+## The rest becomes ground of its own side. Measured on the band's own Voronoi gap, which is
+## twice a cell's distance from the midline.
+func _narrow_cliff_bands() -> void:
+	var view_slope: float = tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
+	for cell: Vector2i in _topology.barrier_of.keys():
+		var cut: int = _topology.barrier_of[cell]
+		if not is_cliff(cut):
+			continue
+		var edge: Vector2i = _topology.graph.edges[_topology.cuts[cut]]
+		var high: int = edge.x if level_of_node[edge.x] > level_of_node[edge.y] else edge.y
+		var drop: float = absf(node_height(edge.x) - node_height(edge.y))
+		var keep: float = (
+			_CLIFF_CREST_CELLS
+			if _nearest[cell.y * _width + cell.x] == high
+			else ceilf(drop / view_slope)
+		)
+		if (_topology.nearest_of[cell] as Vector3).z * 0.5 > keep:
+			_topology.barrier_of.erase(cell)
+
+
+## Whether cut `a_cut` stands as a cliff: chosen as one, and its sides still a cliff's drop apart
+## after every re-level since.
+func is_cliff(a_cut: int) -> bool:
+	if not cliff_cuts.has(a_cut):
+		return false
+	var edge: Vector2i = _topology.graph.edges[_topology.cuts[a_cut]]
+	return absi(level_of_node[edge.x] - level_of_node[edge.y]) >= _params.cliff_drop_terraces_min
+
+
+## The node whose ground `a_cell` is — its owner, or the nearest — or _NONE for a barrier cell or
+## one out of play.
+func _region_of(a_cell: Vector2i) -> int:
+	if a_cell.x < 0 or a_cell.y < 0 or a_cell.x >= _width or a_cell.y >= _depth:
+		return _NONE
+	if _topology.in_play_mask()[a_cell.y * _width + a_cell.x] == 0:
+		return _NONE
+	if _topology.barrier_of.has(a_cell):
+		return _NONE
+	return _owner.get(a_cell, _nearest[a_cell.y * _width + a_cell.x])
+
+
+## Terraces are walked over, so regions a walker crosses between may differ by at most one step.
+## Across an uncarved cut a barrier already divides them, and any gap is its to carry (Alex,
+## 2026-09-30). The levels are solved to this; a re-level breaks it near the groups it moves, and
+## this restores it. Relaxation: pull each group to within one of its walkable neighbours,
 ## holding `a_fixed` (groups), until nothing moves. It converges because every round strictly
 ## narrows the spread, and the levels are bounded. An edge whose two ends are both held is left
 ## as it is — `_check_terraces` rejects the map if one survives.
 func _limit_terrace_steps(a_fixed: Dictionary) -> void:
-	var open: Array[Vector2i] = _topology.open_edges()
+	var open: Array[Vector2i] = _level_pairs()
 	for _round: int in _params.elevation_levels * _TERRACE_ROUNDS:
 		var changed: bool = false
 		for edge: Vector2i in open:
@@ -291,41 +554,9 @@ func _set_group_level(a_group: int, a_level: int) -> void:
 			level_of_node[node] = clampi(a_level, 0, _params.elevation_levels - 1)
 
 
-## A tier is a cliff's worth of height, ranked from the same kind of noise as the terraces and
-## smoothed into broad plateaus. **A tier boundary is not automatically a cliff**: where a barrier
-## stands along it the ground steps outright, and everywhere else `_grade_free_ground` spreads
-## the drop into a walkable slope — so elevation never divides ground pass 4 left open.
-func _assign_tiers(a_parent: PackedInt32Array, a_start_count: int) -> void:
-	var noise := FastNoiseLite.new()
-	noise.seed = _rng.randi()
-	noise.frequency = 1.0 / _params.elevation_scale_cells
-	var samples: Array[Vector2] = []  # (noise, group)
-	var seen: Dictionary = {}
-	var fixed: Dictionary = {}
-	# Every start on one tier, the middle one: a start below another is not a fair map, and the
-	# terrace band is read against the whole height range.
-	var start_tier: int = (_params.cliff_levels - 1) / 2
-	var tier_of_group: Dictionary = {}
-	for node: int in a_start_count:
-		tier_of_group[_find(a_parent, node)] = start_tier
-		fixed[_find(a_parent, node)] = true
-	for node: int in level_of_node.size():
-		var root: int = _find(a_parent, node)
-		if not seen.has(root) and not tier_of_group.has(root):
-			seen[root] = true
-			samples.append(Vector2(noise.get_noise_2dv(_topology.graph.positions[node]), root))
-	_spread_over_levels(samples, tier_of_group, _params.cliff_levels)
-	_smooth(a_parent, tier_of_group, fixed)
-	tier_of_node.resize(level_of_node.size())
-	for node: int in level_of_node.size():
-		tier_of_node[node] = tier_of_group[_find(a_parent, node)]
-
-
-## A node's ground height above the pass-5 ground: its tier's cliffs plus its terrace's steps.
+## A node's ground height above the pass-5 ground: its terrace's steps.
 func node_height(a_node: int) -> float:
-	return (
-		tier_of_node[a_node] * _params.cliff_step + level_of_node[a_node] * _params.elevation_step
-	)
+	return level_of_node[a_node] * _params.elevation_step
 
 
 ## Whether the step between two nodes is a cliff rather than something a walker crosses.
@@ -343,42 +574,6 @@ func _find_plateaus() -> void:
 	plateau_of_node.resize(level_of_node.size())
 	for node: int in level_of_node.size():
 		plateau_of_node[node] = _find(parent, node)
-
-
-## A group whose tier matches none of its graph neighbours takes their commonest tier, so tiers
-## form broad plateaus instead of one-group islands. Groups holding a start keep the start's.
-func _smooth(a_parent: PackedInt32Array, a_group_level: Dictionary, a_fixed: Dictionary) -> void:
-	var neighbours: Dictionary = {}
-	for edge: Vector2i in _topology.graph.edges:
-		var a: int = _find(a_parent, edge.x)
-		var b: int = _find(a_parent, edge.y)
-		if a == b:
-			continue
-		for pair: Vector2i in [Vector2i(a, b), Vector2i(b, a)]:
-			if not neighbours.has(pair.x):
-				neighbours[pair.x] = []
-			neighbours[pair.x].append(pair.y)
-	for _round: int in _SMOOTHING_ROUNDS:
-		var changed: bool = false
-		for group: int in neighbours:
-			if a_fixed.has(group):
-				continue
-			var counts: Dictionary = {}
-			for other: int in neighbours[group]:
-				var level: int = a_group_level[other]
-				counts[level] = counts.get(level, 0) + 1
-			if counts.has(a_group_level[group]):
-				continue
-			var commonest: int = a_group_level[group]
-			var most: int = 0
-			for level: int in counts:
-				if counts[level] > most or (counts[level] == most and level < commonest):
-					most = counts[level]
-					commonest = level
-			a_group_level[group] = commonest
-			changed = true
-		if not changed:
-			break
 
 
 ## Map each group's noise sample onto a level, stretched so the whole ladder gets used: raw
@@ -442,10 +637,15 @@ func _relabel() -> void:
 			elif _topology.barrier_of.has(cell):
 				var cut: int = _topology.barrier_of[cell]
 				var edge: Vector2i = _topology.graph.edges[_topology.cuts[cut]]
-				# A chasm sits at the lower side's level and a ridge rises from the higher.
+				# A cliff's cells stand at their own side's level, so the step falls on the
+				# band's midline; a chasm sits at the lower side's level and a ridge rises from
+				# the higher.
 				var wants_low: bool = _topology.flooded[cut]
 				var lower: bool = node_height(edge.x) <= node_height(edge.y)
-				_source[at] = edge.x if lower == wants_low else edge.y
+				if is_cliff(cut):
+					_source[at] = _nearest[at]
+				else:
+					_source[at] = edge.x if lower == wants_low else edge.y
 				_height[at] = node_height(_source[at])
 				_priority[at] = _BARRIER
 			else:
@@ -463,13 +663,14 @@ func _relabel() -> void:
 				ramp_offsets[corner] if ramp_offsets.has(corner) else _corner_height(corner)
 			)
 	cliff_cells.clear()
+	var in_play: PackedByteArray = _topology.in_play_mask()
 	for z: int in _depth:
 		for x: int in _width:
 			var cell := Vector2i(x, z)
 			if (
-				_terrain.is_cell_in_play(cell)
-				and not _topology.barrier_of.has(cell)
+				in_play[z * _width + x] == 1
 				and _offset_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF
+				and not _topology.barrier_of.has(cell)
 			):
 				cliff_cells[cell] = true
 
@@ -523,84 +724,89 @@ func _settle_owned_zones() -> void:
 			_height[at] = total[group] / count[group]
 
 
+## Hot: it runs twice per _relabel, and ramp-building relabels once per ramp it tries, so it was
+## nine-tenths of a generation. It therefore visits only the cells that can move, in index order
+## and then reversed — the row-major sweep the grid walk did — with every per-cell test read from
+## a mask built once.
 func _sweep_grade() -> void:
+	var in_play: PackedByteArray = _topology.in_play_mask()
+	var cell_count: int = _width * _depth
 	var fixed := PackedByteArray()
-	fixed.resize(_width * _depth)
-	for z: int in _depth:
-		for x: int in _width:
-			var cell := Vector2i(x, z)
-			fixed[z * _width + x] = (
-				1 if _priority[z * _width + x] != _FREE or not _terrain.is_cell_in_play(cell) else 0
-			)
-	var active: PackedByteArray = _grading_frontier(fixed)
+	fixed.resize(cell_count)
+	# A barrier is the one place a drop may land whole, so its own height must not drag the
+	# ground either side toward it. Ground out of play is never graded, so it must not drag the
+	# edge either. Neither is read as a neighbour.
+	var ignored := PackedByteArray()
+	ignored.resize(cell_count)
+	for at: int in cell_count:
+		fixed[at] = 1 if _priority[at] != _FREE or in_play[at] == 0 else 0
+		ignored[at] = 1 if _priority[at] == _BARRIER or in_play[at] == 0 else 0
+	var active: PackedInt32Array = _grading_frontier(fixed)
+	var last: int = active.size() - 1
 	for _sweep: int in _GRADE_SWEEPS:
 		var moved: bool = false
 		for pass_index: int in 2:
-			var order: Array = range(_depth) if pass_index == 0 else range(_depth - 1, -1, -1)
-			for z: int in order:
-				var row: Array = range(_width) if pass_index == 0 else range(_width - 1, -1, -1)
-				for x: int in row:
-					var at: int = z * _width + x
-					if fixed[at] == 1 or active[at] == 0:
-						continue
-					var low: float = INF
-					var high: float = -INF
-					for dx: int in range(-1, 2):
-						for dz: int in range(-1, 2):
-							var nx: int = x + dx
-							var nz: int = z + dz
-							if nx < 0 or nz < 0 or nx >= _width or nz >= _depth:
-								continue
-							# A barrier is the one place a drop may land whole, so its own
-							# height must not drag the ground either side toward it. Ground out
-							# of play is never graded, so it must not drag the edge either.
-							if (
-								_priority[nz * _width + nx] == _BARRIER
-								or not _terrain.is_cell_in_play(Vector2i(nx, nz))
-							):
-								continue
-							low = minf(low, _height[nz * _width + nx])
-							high = maxf(high, _height[nz * _width + nx])
-					if is_inf(low):
-						continue  # walled in by barriers: nothing to grade against
-					var floor_height: float = high - _GRADE_PER_CELL
-					var ceiling: float = low + _GRADE_PER_CELL
-					# Squeezed between a high neighbour and a low one: sit between them and let
-					# the next sweep pull both ends toward this.
-					var graded: float = (
-						(low + high) * 0.5
-						if floor_height > ceiling
-						else clampf(_height[at], floor_height, ceiling)
-					)
-					if not is_equal_approx(graded, _height[at]):
-						_height[at] = graded
-						moved = true
+			for k: int in active.size():
+				var at: int = active[k] if pass_index == 0 else active[last - k]
+				var x: int = at % _width
+				var z: int = at / _width
+				var low: float = INF
+				var high: float = -INF
+				for nz: int in range(maxi(z - 1, 0), mini(z + 2, _depth)):
+					for nx: int in range(maxi(x - 1, 0), mini(x + 2, _width)):
+						var near: int = nz * _width + nx
+						if ignored[near] == 1:
+							continue
+						low = minf(low, _height[near])
+						high = maxf(high, _height[near])
+				if is_inf(low):
+					continue  # walled in by barriers: nothing to grade against
+				var floor_height: float = high - _GRADE_PER_CELL
+				var ceiling: float = low + _GRADE_PER_CELL
+				# Squeezed between a high neighbour and a low one: sit between them and let the
+				# next sweep pull both ends toward this.
+				var graded: float = (
+					(low + high) * 0.5
+					if floor_height > ceiling
+					else clampf(_height[at], floor_height, ceiling)
+				)
+				if not is_equal_approx(graded, _height[at]):
+					_height[at] = graded
+					moved = true
 		if not moved:
 			return
 
 
-## The cells a grade can reach: those beside a height change, and everything within a slope's
-## length of them. The rest of the map is one flat height and cannot move, so sweeping it is the
-## difference between a generation taking seconds and taking a minute.
-func _grading_frontier(a_fixed: PackedByteArray) -> PackedByteArray:
+## The cells a grade can reach, as ascending indices: those beside a height change, and
+## everything within a slope's length of them, less `a_fixed`. The rest of the map is one flat
+## height and cannot move, so sweeping it is the difference between a generation taking seconds
+## and taking a minute.
+func _grading_frontier(a_fixed: PackedByteArray) -> PackedInt32Array:
 	var active := PackedByteArray()
 	active.resize(_width * _depth)
 	var frontier: Array[Vector2i] = []
+	# Two cells differ symmetrically, so each pair is compared once, from the cell above-left of
+	# it: right, and the three below.
 	for z: int in _depth:
 		for x: int in _width:
 			var at: int = z * _width + x
-			var differs: bool = false
-			for dx: int in range(-1, 2):
-				for dz: int in range(-1, 2):
-					var nx: int = x + dx
-					var nz: int = z + dz
-					if nx < 0 or nz < 0 or nx >= _width or nz >= _depth:
-						continue
-					differs = differs or not is_equal_approx(_height[nz * _width + nx], _height[at])
-			if differs:
-				active[at] = 1
-				frontier.append(Vector2i(x, z))
-	var reach: int = ceili(_params.cliff_step / _GRADE_PER_CELL) + 2
+			for step: Vector2i in _FORWARD_NEIGHBOURS:
+				var nx: int = x + step.x
+				var nz: int = z + step.y
+				if nx < 0 or nz >= _depth or nx >= _width:
+					continue
+				var near: int = nz * _width + nx
+				if not is_equal_approx(_height[near], _height[at]):
+					active[at] = 1
+					active[near] = 1
+	for at: int in active.size():
+		if active[at] == 1:
+			frontier.append(Vector2i(at % _width, at / _width))
+	# Walkable neighbours differ by at most a terrace, but a cliff's ends grade across its whole
+	# drop; a drop to a barrier is not graded.
+	var reach: int = (
+		ceili(_params.cliff_drop_terraces_max * _params.elevation_step / _GRADE_PER_CELL) + 2
+	)
 	for _ring: int in reach:
 		var next: Array[Vector2i] = []
 		for cell: Vector2i in frontier:
@@ -614,7 +820,11 @@ func _grading_frontier(a_fixed: PackedByteArray) -> PackedByteArray:
 						active[at] = 1
 						next.append(near)
 		frontier = next
-	return active
+	var movable := PackedInt32Array()
+	for at: int in active.size():
+		if active[at] == 1 and a_fixed[at] == 0:
+			movable.append(at)
+	return movable
 
 
 ## The height of the highest-priority cell touching `corner`; among equals, the highest ground.
@@ -637,14 +847,13 @@ func _corner_height(a_corner: Vector2i) -> float:
 
 
 func _offset_spread(a_cell: Vector2i) -> float:
-	var wide: int = _width + 1
-	var low: float = INF
-	var high: float = -INF
-	for corner: Vector2i in PlacementGrid.rect_cells(a_cell, Vector2i(2, 2)):
-		var value: float = offsets[corner.y * wide + corner.x]
-		low = minf(low, value)
-		high = maxf(high, value)
-	return high - low
+	var top: int = a_cell.y * (_width + 1) + a_cell.x
+	var bottom: int = top + _width + 1
+	var h00: float = offsets[top]
+	var h10: float = offsets[top + 1]
+	var h01: float = offsets[bottom]
+	var h11: float = offsets[bottom + 1]
+	return maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))
 
 
 #endregion
@@ -1049,7 +1258,7 @@ func _relevel_groups_in(a_stretch: Array[Vector2i]) -> bool:
 	return true
 
 
-## Give every node in `a_groups` the tier and terrace of `a_node`, so their ground comes level
+## Give every node in `a_groups` the terrace of `a_node`, so their ground comes level
 ## with its. The re-levelled groups' OTHER open neighbours can now be terraces away, so the
 ## terrace limit is run again, holding the starts, the moved groups and `a_node`'s own — the
 ## join the re-level made is the point of it.
@@ -1057,7 +1266,6 @@ func _set_groups_to(a_groups: Dictionary, a_node: int) -> void:
 	for node: int in level_of_node.size():
 		if a_groups.has(_group_of_node[node]):
 			level_of_node[node] = level_of_node[a_node]
-			tier_of_node[node] = tier_of_node[a_node]
 	var held: Dictionary = a_groups.duplicate()
 	held[_group_of_node[a_node]] = true
 	for node: int in _start_count:

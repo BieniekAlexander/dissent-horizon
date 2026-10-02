@@ -479,9 +479,7 @@ func test_a_pond_rim_is_walkable_but_not_flat() -> void:
 				var rim: Vector2i = cell + Vector2i(dx, dz)
 				if pan.has(rim):
 					continue
-				assert_almost_eq(
-					map.terrain.cell_height_spread(rim), TerrainGrid.MAX_SLOPE_DIFF, 1e-6
-				)
+				assert_almost_eq(map.terrain.cell_height_spread(rim), FeaturePlacer.POND_SINK, 1e-5)
 
 
 ## Cells times richness, capped at the charge bound: filling the pan's holes can grow a pond a

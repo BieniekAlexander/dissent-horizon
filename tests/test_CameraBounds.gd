@@ -237,11 +237,13 @@ func test_the_default_camera_looks_along_the_negative_s_axis() -> void:
 
 
 func test_headroom_is_the_flier_displacement_at_this_camera_angle() -> void:
-	# At 45 degrees of elevation a unit at height h is drawn h of ground distance further up
-	# the screen, so the headroom is the cruise altitude times the slack.
+	# At elevation θ a unit at height h is drawn h / tan θ of ground distance further up the
+	# screen, so the headroom is that, at cruise altitude, times the slack.
+	var offset: Vector3 = RTSCamera3D.initial_position()
+	var elevation: float = atan2(offset.y, Vector2(offset.x, offset.z).length())
 	assert_almost_eq(
 		RTSCamera3D.altitude_headroom(),
-		Aerial.AERIAL_HEIGHT * RTSCamera3D.ALTITUDE_HEADROOM_SLACK,
+		Aerial.AERIAL_HEIGHT / tan(elevation) * RTSCamera3D.ALTITUDE_HEADROOM_SLACK,
 		0.01
 	)
 

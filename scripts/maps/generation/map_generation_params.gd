@@ -18,6 +18,10 @@ const BUILDING_CAPACITY_FAILURE: int = 250
 ## for pass 6's offsets. Derived because it is a passability rule, not a look: it scales with the
 ## slope limit, where ridge_height is free to be tuned by eye.
 const RIDGE_ROUGHNESS: float = TerrainGrid.MAX_SLOPE_DIFF * 2.0
+## Extra height on alternate corners of a cliff's talus apron and crest: over the slope limit, so
+## no cell of the band can be stood on, and half again for margin, but far under a ridge so the
+## band does not hide the face it flanks.
+const TALUS_ROUGHNESS: float = TerrainGrid.MAX_SLOPE_DIFF * 1.5
 ## The last pass there is. Derived from the enum, so adding a pass moves it.
 const PASS_COUNT: int = Pass.VISUALS
 ## No walkable passage between two barriers, or between a barrier and the edge of the play
@@ -157,8 +161,10 @@ const PROPERTY_GROUPS: Array = [
 		[
 			"elevation_levels",
 			"elevation_step",
-			"cliff_levels",
-			"cliff_step",
+			"cliff_cut_fraction",
+			"cliff_drop_terraces_min",
+			"cliff_drop_terraces_max",
+			"occlusion_allowance",
 			"elevation_scale_cells",
 			"start_level_fraction_min",
 			"start_level_fraction_max",
@@ -284,14 +290,18 @@ const DESCRIPTIONS: Dictionary = {
 	"obstruction_tolerance":
 	"How unevenly impassable ground may fall between alliances before the map is rejected.",
 	"flat_fraction": "Least share of walkable ground that must be flat enough to build on.",
-	"elevation_levels": "Terrace levels the ground steps through. 1 keeps each tier level.",
+	"elevation_levels": "Terrace levels the ground steps through. 1 keeps the ground level.",
 	"elevation_step":
 	(
 		"Height of one terrace step. Keep it under the walkable slope limit, or every "
 		+ "step becomes a cliff."
 	),
-	"cliff_levels": "Cliff tiers, the map's large height changes.",
-	"cliff_step": "Height of one cliff tier. It is a cliff only where a barrier stands.",
+	"cliff_cut_fraction":
+	"Share of eligible barriers realised as cliffs rather than ridges or rivers.",
+	"cliff_drop_terraces_min": "Smallest cliff drop, in terrace steps.",
+	"cliff_drop_terraces_max": "Largest cliff drop, in terrace steps.",
+	"occlusion_allowance":
+	"How much of a unit at a mountain's foot the mountain may hide. Masses rise from there.",
 	"elevation_scale_cells": "Size of the highs and lows, in cells. Larger gives broader ones.",
 	"start_level_fraction_min": "Lowest the starts' shared terrace can be (0 bottom, 1 top).",
 	"start_level_fraction_max": "Highest the starts' shared terrace can be (0 bottom, 1 top).",
@@ -524,24 +534,29 @@ var obstruction_tolerance: float = 0.15
 #endregion
 
 #region Elevation (pass 6)
-## Terrace levels the ground steps through, 0 lowest; 1 keeps the ground level within a tier.
-var elevation_levels: int = 5
+## Terrace levels the ground steps through, 0 lowest; 1 leaves the ground level. The map's whole
+## relief: regions a walker can cross between differ by at most one, and a cliff is where a cut's
+## sides end several apart (map-generation.md §6).
+var elevation_levels: int = 6
 ## Height between neighbouring terrace levels. **Keep it at or under TerrainGrid.MAX_SLOPE_DIFF**:
 ## a terrace step is meant to be walked over, so elevation may not divide ground that pass 4
 ## left open. Only the cells on the step lose their buildability.
-var elevation_step: float = 0.8
-## Cliff tiers, each a cliff_step above the last: the map's big relief. A tier's drop is a cliff
-## only where a barrier carries it — everywhere else pass 6 grades the drop into a walkable
-## slope, so elevation never divides ground the topology left open.
-var cliff_levels: int = 3
-## Height between neighbouring tiers: a cliff, so well above MAX_SLOPE_DIFF. Keep it above
-## chasm_depth / 2 — a chasm's water stands that far above its floor, and must not reach the
-## floor of a chasm one tier up.
-var cliff_step: float = 3.0
+var elevation_step: float = 0.5
+## Share of the eligible cuts — thin, uncarved, and not already crossed on foot — pass 6 tries to
+## realise as cliffs rather than as the ridge or river pass 4 drew. One whose sides cannot be
+## held far enough apart stays a ridge or river.
+var cliff_cut_fraction: float = 0.5
+## A cliff's drop in terrace steps, drawn per cliff. At least two, or the step would be walked
+## over; at most what the way round can climb a terrace per region, and what the apron hides.
+var cliff_drop_terraces_min: int = 2
+var cliff_drop_terraces_max: int = 4
+## How much of a unit standing at an obstacle's foot the obstacle may hide, in height. An
+## obstacle cell may stand at most this plus its distance from walkable ground times the tangent
+## of the lowest camera pitch above that ground, so masses rise toward their middle.
+var occlusion_allowance: float = 0.5
 ## Size of the noise features that decide levels, in cells: larger gives broad highs and lows.
 var elevation_scale_cells: float = 60.0
 ## The band of the terrace range the starts' shared level is drawn from: 0 lowest, 1 highest.
-## Their tier is the middle one, so the band reads against the whole height range.
 var start_level_fraction_min: float = 0.5
 var start_level_fraction_max: float = 0.75
 #endregion
@@ -619,6 +634,41 @@ func warnings() -> PackedStringArray:
 					% BUILDING_CAPACITY_FAILURE
 				)
 				+ "placement will fail for lack of space."
+			)
+		)
+	found.append_array(_cliff_warnings())
+	return found
+
+
+## A cliff must step more than a walker can, and must hide no walkable ground: the ground a drop
+## hides from the lowest camera pitch has to fall on its own apron and steep border.
+func _cliff_warnings() -> PackedStringArray:
+	var found := PackedStringArray()
+	if cliff_drop_terraces_min > cliff_drop_terraces_max:
+		found.append("The smallest cliff drop exceeds the largest.")
+	if cliff_drop_terraces_min * elevation_step <= TerrainGrid.MAX_SLOPE_DIFF:
+		found.append(
+			(
+				"A cliff drop of %d terraces is walkable, so the smallest cliffs will not divide."
+				% cliff_drop_terraces_min
+			)
+		)
+	var hidden_cells: float = (
+		cliff_drop_terraces_max
+		* elevation_step
+		/ tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
+	)
+	if hidden_cells > barrier_width_cells + 1.0:
+		(
+			found
+			. append(
+				(
+					(
+						"A %d-terrace cliff hides %.1f cells behind it, past its %.0f-cell apron: units "
+						% [cliff_drop_terraces_max, hidden_cells, barrier_width_cells + 1.0]
+					)
+					+ "below it can be hidden."
+				)
 			)
 		)
 	return found

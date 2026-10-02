@@ -17,6 +17,7 @@ The ground, and how things move over it.
 | [water-bodies.md](water-bodies.md) | bodies of water: basins, wade depth, lithium ponds, the water surface, the Water brush |
 | [map-composition.md](map-composition.md) | the map features, occupancy vs obstruction, and ground materials |
 | [map-generation.md](map-generation.md) | the procedural pipeline, its topological pass and its parameter bounds |
+| [map-generation-review.md](map-generation-review.md) | **review list** (2026-10-02) — the generator's speed, pass structure and parameterisation; what was built, and the proposals awaiting a decision |
 | [visual-facets.md](visual-facets.md) | pass 7: the derived cosmetic layer — ground paint, trails, doodads, dressing sites — and the shortlist of what to dress |
 | [agent-size-classes.md](agent-size-classes.md) | per-size navmesh erosion and clearance |
 | [structure-footprints.md](structure-footprints.md) | multi-cell structures on the grid |

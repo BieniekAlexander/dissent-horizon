@@ -62,7 +62,7 @@ today (ridges, chasms, mountains, lakes, rivers, ponds, tiers, ramps, settlement
 
 | # | Facet | Terrain it follows | State |
 |---|---|---|---|
-| 1 | **Cliff faces** — rock-face meshes along a cliff run | tier cliffs, barrier edges (`Facet.CLIFF_FACE`) | PLANNED: sites detected; today the shader's rock bands and ink line stand in |
+| 1 | **Cliff faces** — rock-face meshes along a cliff run | tier cliffs, barrier edges, and PLANNED cliff cuts ([map-generation](map-generation.md) §6, Cliffs) (`Facet.CLIFF_FACE`) | PLANNED: sites detected; today the shader's rock bands and ink line stand in. A cliff cut is recognised from the heights alone — a steep run with walkable ground either side at clearly different levels — never from a stored kind, so decoration stays derived (Alex, 2026-10-02). It need not show the whole face, but must read as a cliff from any yaw |
 | 2 | **Ramps** — a worn path or steps on the way up | pass 6 ramps (`Facet.RAMP`) | PLANNED: sites detected (heuristic: a sloped walkable cell with cliff on opposite sides within 20 cells; TODO: unvalidated against pass 6's own ramp list, which a loaded map does not keep) |
 | 3 | **Mountain massifs** — peak models over a grown ridge's core | obstacle-region mountains (`Facet.MOUNTAIN`) | PLANNED: core detected; trees and boulders stand in |
 | 4 | **Shorelines** — wet band, reeds, foam | lakes, rivers, ponds (`Facet.SHORE`) | built as paint and reeds; foam PLANNED |

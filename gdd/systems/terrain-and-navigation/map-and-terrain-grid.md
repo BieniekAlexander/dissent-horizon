@@ -49,7 +49,7 @@ pre-clears them. Grid beyond the play area is invisible, unwalkable, unauthorabl
 
 
 Derives the navigable cell grid from the heightmap. A `HeightMapShape3D` with `map_width` W and `map_depth` D yields **(W−1) × (D−1) navigable cells** (one quad per adjacent corner pair). Passability is one `_cell_state: PackedByteArray` (a per-cell bitmask of impassability *reasons*); a cell is passable iff its byte is `0`, so the check is a single byte read. Each source flips only its own bit:
-- `_STEEP` — corner-height spread > `MAX_SLOPE_DIFF = 0.5` (the cliff layer; precomputed at startup)
+- `_STEEP` — corner-height spread > `MAX_SLOPE_DIFF`, derived from the lowest camera pitch (the cliff layer; precomputed at startup)
 - `_BUILDING` — a structure occupies the cell (`place_building` / `remove_building`; `_building_footprints` maps each structure → its cells)
 - `_BLOCKED` — the cell is out of play (past the play rectangle, or void where the mesh bake found no ground), fed from `terrain_data.blocked_mask()` via `Map.set_blocked_mask`. Ground material never blocks — [map-composition](map-composition.md)
 

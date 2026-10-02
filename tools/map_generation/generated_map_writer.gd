@@ -328,28 +328,36 @@ static func report(map: GeneratedMap, title: String) -> PackedStringArray:
 		)
 	if map.elevation != null:
 		var terraces: Dictionary = {}
-		var tiers: Dictionary = {}
 		for node: int in map.elevation.level_of_node.size():
 			terraces[map.elevation.level_of_node[node]] = true
-			tiers[map.elevation.tier_of_node[node]] = true
 		var terrace_keys: Array = terraces.keys()
 		terrace_keys.sort()
-		var tier_keys: Array = tiers.keys()
-		tier_keys.sort()
-		lines.append(
-			(
+		var cliff_cuts: int = 0
+		var cliff_band_cells: int = 0
+		for cut: int in map.elevation.cliff_cuts:
+			if map.elevation.is_cliff(cut):
+				cliff_cuts += 1
+		for cell: Vector2i in map.topology.barrier_of:
+			if map.elevation.is_cliff(map.topology.barrier_of[cell]):
+				cliff_band_cells += 1
+		(
+			lines
+			. append(
 				(
-					"starts on tier %d terrace %d; tiers used %s, terraces %s; "
-					+ "%d ramps, %d cliff cells"
+					(
+						"starts on terrace %d; terraces used %s; %d cliffs (%d band cells, "
+						+ "%d tried that stayed ridges or rivers); %d ramps, %d steep cells off barriers"
+					)
+					% [
+						map.elevation.level_of_node[0],
+						terrace_keys,
+						cliff_cuts,
+						cliff_band_cells,
+						map.elevation.cliff_fallbacks,
+						map.elevation.ramp_count,
+						map.elevation.cliff_cells.size()
+					]
 				)
-				% [
-					map.elevation.tier_of_node[0],
-					map.elevation.level_of_node[0],
-					tier_keys,
-					terrace_keys,
-					map.elevation.ramp_count,
-					map.elevation.cliff_cells.size()
-				]
 			)
 		)
 	if map.topology != null:

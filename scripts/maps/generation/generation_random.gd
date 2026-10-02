@@ -29,17 +29,6 @@ static func skew_normal(
 	return clampf(value, low, high)
 
 
-## Failures before `successes` successes of chance `success_chance` — a sum of geometric
-## draws, each by inversion.
-static func negative_binomial(
-	rng: RandomNumberGenerator, successes: int, success_chance: float
-) -> int:
-	var failures: int = 0
-	for _i: int in successes:
-		failures += floori(log(1.0 - rng.randf()) / log(1.0 - success_chance))
-	return failures
-
-
 ## A Gamma(shape, 1) draw — Marsaglia and Tsang, with the shape < 1 boost.
 static func gamma(rng: RandomNumberGenerator, shape: float) -> float:
 	if shape < 1.0:

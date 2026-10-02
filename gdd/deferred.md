@@ -70,6 +70,7 @@ These need an answer before anything can be built on them.
 | 1.62 | **Map-size parameterization.** The `play_size` bounds are 100 … 120 per axis (2026-10-02), now `Vector2i` per-axis ranges; rework them together with resource and pseudo-resource allocation, spawn distances, and the share of openly traversable ground. | [terrain-and-navigation/map-generation](systems/terrain-and-navigation/map-generation.md) §Obstacle regions | |
 | 1.63 | **The bot's scout and its fog disagree about terrain.** Scout raycasts stop on terrain and fog does not, so ground behind a ridge or mountain is never counted as scouted. Resolves with 1.61 or the scout-reads-fog follow-on. | [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) | |
 | 1.64 | **Should openness be a map invariant?** Built: obstacles keep a 20-cell gap, and the report lists every choke between open areas; nothing rejects a map for them. Open: whether a map with too many chokes under some width is rejected, and what the width and the count are. | [terrain-and-navigation/map-generation](systems/terrain-and-navigation/map-generation.md) §Openness | |
+| 1.65 | **Cliffs: what is left.** Built 2026-10-02 (thin cuts realised as cliffs in pass 6). Open: a cliff reads as a rocky strip rather than a face; a grown mass's face is not built; two `test_MapElevation` seeds pending; incremental relabel PLANNED after it. | [terrain-and-navigation/map-generation](systems/terrain-and-navigation/map-generation.md) §6, Cliffs | |
 
 ---
 

@@ -17,10 +17,17 @@ extends Node
 ## impassable if any other reason still applies — no separate maps to keep in sync.
 
 #region Constants
-## Maximum heightmap-unit spread across a cell's four corners before the cell
-## is considered too steep to traverse.  Raw map_data units (multiply by
-## terrain_body.scale.y to convert to world-space metres).
-const MAX_SLOPE_DIFF: float = 1.0
+## The lowest the camera may look down on the ground, in degrees below the horizontal. A slope
+## steeper than the camera's pitch is hidden when it faces away, and one equal to it is seen
+## edge-on, so every walkable slope must be gentler than this from any yaw (Alex, 2026-10-02).
+## The camera stays above it (test_ViewPitchFloor); the walkable limit derives from it.
+const MIN_VIEW_PITCH_DEGREES: float = 30.0
+
+## Maximum heightmap-unit spread across a cell's four corners before the cell is considered too
+## steep to traverse. The spread bounds the steepest slope over the cell, so this keeps every
+## walkable slope at or under MIN_VIEW_PITCH_DEGREES, per cell (Map.CELL_SIZE is 1). Raw map_data
+## units (multiply by terrain_body.scale.y to convert to world-space metres).
+const MAX_SLOPE_DIFF: float = tan(deg_to_rad(MIN_VIEW_PITCH_DEGREES))
 
 ## Impassability reasons OR-ed into each cell's `_cell_state` byte.
 const _STEEP: int = 1 << 0  ## corner-height spread exceeds MAX_SLOPE_DIFF (static)

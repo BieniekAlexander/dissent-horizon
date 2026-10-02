@@ -47,6 +47,12 @@ const WATERFALL_REACH_CELLS: int = 3
 const RAMP_SIDE_REACH_CELLS: int = 20
 ## Steep cells at least this deep inside an impassable region are mountain core.
 const MOUNTAIN_CORE_CELLS: float = 3.0
+## A tree stands only on impassable ground at least this far above the highest walkable ground
+## within TALL_PROP_GROUND_REACH_CELLS: a mountain's flank, never a cliff's face or talus, a
+## ridge's foot or a steep rim, where a tree hides the very edge the terrain reads by (Alex,
+## 2026-10-02). Lower steep ground gets rocks.
+const TALL_PROP_MIN_RISE: float = 1.5
+const TALL_PROP_GROUND_REACH_CELLS: int = 3
 
 ## Cell flags.
 const _IN_PLAY: int = 1
@@ -277,7 +283,7 @@ static func _pick_kind(
 		if roll >= TALL_PER_IMPASSABLE_CELL * (0.6 + stand):
 			return -1
 		var pick: float = rng.randf()
-		if stand > -0.1:
+		if stand > -0.1 and grid.rise[grid.index(cell)] >= TALL_PROP_MIN_RISE:
 			return (
 				DoodadLibrary.Kind.CONIFER
 				if pick < 0.6
@@ -351,6 +357,9 @@ class _Grid:
 	var flags := PackedByteArray()
 	var trail := PackedFloat32Array()
 	var water_level := PackedFloat32Array()
+	## Per cell, how far its highest corner stands above the highest walkable ground within
+	## TALL_PROP_GROUND_REACH_CELLS; INF with no walkable ground that near.
+	var rise := PackedFloat32Array()
 	var _terrain: TerrainData = null
 	var _wander: FastNoiseLite = null
 
@@ -386,6 +395,38 @@ class _Grid:
 			for cell: Vector2i in fixture.cells:
 				if _terrain.is_cell_in_bounds(cell):
 					flags[index(cell)] |= _FIXTURE | (_SETTLEMENT if settled else 0)
+		_measure_rise()
+
+	## `rise` for every cell: a separable max filter of walkable ground heights, rows then
+	## columns, so the reach costs two passes rather than a window per cell.
+	func _measure_rise() -> void:
+		var reach: int = MapDecorationPlanner.TALL_PROP_GROUND_REACH_CELLS
+		var ground := PackedFloat32Array()
+		ground.resize(size)
+		for i: int in size:
+			var walkable: bool = flags[i] & _IN_PLAY != 0 and flags[i] & (_STEEP | _WET) == 0
+			ground[i] = (
+				_terrain.cell_mean_height(Vector2i(i % width, i / width)) if walkable else -INF
+			)
+		var across := PackedFloat32Array()
+		across.resize(size)
+		for z: int in depth:
+			for x: int in width:
+				var high: float = -INF
+				for dx: int in range(maxi(x - reach, 0), mini(x + reach + 1, width)):
+					high = maxf(high, ground[z * width + dx])
+				across[z * width + x] = high
+		rise.resize(size)
+		var corners_wide: int = width + 1
+		for z: int in depth:
+			for x: int in width:
+				var high: float = -INF
+				for dz: int in range(maxi(z - reach, 0), mini(z + reach + 1, depth)):
+					high = maxf(high, across[dz * width + x])
+				var top: float = -INF
+				for corner: Vector2i in PlacementGrid.rect_cells(Vector2i(x, z), Vector2i(2, 2)):
+					top = maxf(top, _terrain.heights[corner.y * corners_wide + corner.x])
+				rise[z * width + x] = INF if is_inf(high) else top - high
 
 	func index(cell: Vector2i) -> int:
 		return cell.y * width + cell.x
@@ -555,7 +596,9 @@ class _Grid:
 		var wading: float = (
 			MapDecorationPlanner.TRAIL_SHALLOW_COST if flags[index(cell)] & _SHALLOW != 0 else 1.0
 		)
-		var slope: float = 1.0 + 2.0 * _terrain.cell_height_spread(cell) / TerrainGrid.MAX_SLOPE_DIFF
+		var slope: float = (
+			1.0 + 2.0 * _terrain.cell_height_spread(cell) / TerrainGrid.MAX_SLOPE_DIFF
+		)
 		return length * wander * wading * slope
 
 	func _walk_back(parent: PackedInt32Array, goal: int) -> PackedVector2Array:

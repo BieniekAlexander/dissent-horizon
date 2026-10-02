@@ -117,8 +117,9 @@ A pond is a flat floor with sloped sides, and both halves matter:
 - **The floor must be flat.** `is_flat` demands all four corner heights *identical*, so an extractor
   can only stand on a level basin floor. Generation sinks a pond as a flat pan, not a smooth bowl.
 - **The rim is passable but not buildable — and that is the GENERATOR's job to guarantee.**
-  `MAX_SLOPE_DIFF` is 0.5, so a rim whose corner spread is exactly 0.5 is not `_STEEP` (units walk
-  in and out) and not `is_flat` (nothing is built there). **A sink steeper than 0.5 per cell-ring
+  A rim whose corner spread is exactly `MAX_SLOPE_DIFF` is not `_STEEP` (units walk in and out)
+  and not `is_flat` (nothing is built there), which is why the limit is exact in float32
+  (map-generation.md §Parameters). **A sink steeper than `MAX_SLOPE_DIFF` per cell-ring
   makes the rim a cliff instead**, which walls the pond off; a deeper basin must be spread over
   more rings. That is the knob separating a wadeable pond from a lake.
 
