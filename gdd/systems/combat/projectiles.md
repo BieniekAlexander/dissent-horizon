@@ -240,6 +240,113 @@ emission. TODO: an emitted UNIT, handed a command rather than a goal, is not bui
 - **Lifespans are authored in seconds and rounded to ticks**, so a phase lasts a whole number of
   ticks and never less than one.
 
+## Rocket calibration: the no-escape zone
+
+**TODO — research. Only items marked Decided are settled.** A paper calculation (2D pursuit, no
+jitter or terrain, hit radius 0.7 for vehicles and 0.8 for aircraft), not self-play. Every number
+is a starting point to check in play.
+
+### What is wanted (Alex, 2026-10-02)
+
+- **Badger rockets keep up with almost every ground target.** Only the fastest grounded class
+  (QUICK, `vehicle_light`) may outmanoeuvre one, and **whether it can depends on how far away it
+  was when the rocket was fired.**
+- **Warlord rockets are slower than the Badger's but live longer**, because they must also hit
+  aircraft.
+- Turn rate and acceleration are part of the model.
+
+### The model: escape distance
+
+Missile design calls this the **no-escape zone**: inside some firing distance a target cannot
+escape whatever it does; beyond it, a target that turns away early enough outruns the rocket.
+Measure it per target class as
+
+```
+d_esc   the shortest firing distance from which the target escapes
+```
+
+with the target starting across the line of fire at full speed and evading in either of two
+ways: holding its course, or turning (at its own turn rate) to flee directly away. Wanted: for
+the Badger, `d_esc` beyond its reach (12) for STEADY and BRISK and somewhere inside it for QUICK.
+
+Each knob shapes `d_esc` differently:
+
+| Knob | What it sets |
+|---|---|
+| speed while closing | how fast the rocket covers the distance: flight time, so how far a target gets before it arrives |
+| speed late in flight | whether a long shot can be outrun at all. A target faster than it escapes a tail chase |
+| `turn_rate` | close-range reliability. The rocket's turning circle is `speed / turn_rate`, and a target that can turn inside it dodges at close range, which is the opposite of the distance rule wanted |
+| lifespan | the hard ceiling on a chase |
+| `acceleration`, `min_speed` | an overshoot penalty: speed is lost while the target is behind the rocket and regained once it is ahead |
+| `launch_speed_ratio` | a slow launch. At close range the target may outrun the rocket before it is up to speed |
+
+**One speed cannot separate QUICK from BRISK.** With a single flight speed `s` and lifespan `L`,
+a fleeing target escapes from about `(s − v) · L`, and BRISK's and QUICK's escape distances
+differ only by the ratio `(s − 3) / (s − 4)`. Any useful rocket speed puts them almost
+together. Faster, briefer rockets cut both off at the edge of reach; slower ones let QUICK dodge
+at *close* range by turning inside the rocket's circle:
+
+| Badger rocket, one phase | STEADY | BRISK | QUICK | flight to 12 |
+|---|---|---|---|---|
+| today: 15, unsteered, 2 s | 5 | 4 | 3 | misses a crossing target |
+| 15, turn 45°/s, 2 s | never | never | never | 0.77 s |
+| 15, turn 60°/s, 0.9 s | never | never | 12 | 0.77 s |
+| 7.2, turn 60°/s, 2.2 s | never | 10.5 | 2 (dodged up close) | 1.83 s |
+| 5.25, turn 90°/s, 4 s | never | 10.5 | 6.5 | 3.07 s |
+
+**Boost, then coast, separates them.** A rocket that flies fast for a moment and then slows to
+a sustained speed covers short distances before anything can react, and leaves a long shot
+outrunnable only by a target faster than the sustained speed allows for:
+
+| Badger rocket | STEADY | BRISK | QUICK | flight to 12 |
+|---|---|---|---|---|
+| **boost 15 for 0.4 s → 7.2, turn 60°/s, 2.2 s** | never | never | **7.5** | 1.27 s |
+| boost 15 for 0.4 s → 5.25, turn 60°/s, 2.4 s | never | 8.5 | 8.5 | 1.80 s |
+
+The first row is the shape wanted: STEADY and BRISK never escape, and a QUICK vehicle fired on
+from beyond about 7.5 can escape by turning away at once, while one fired on from closer cannot.
+The boost time moves that threshold (a longer boost pushes it out), and the coast speed sets
+which classes can use it.
+
+### The Warlord
+
+Against aircraft (QUICK `flyer_heavy`, FAST `flyer_medium`, BLAZING `flyer_light`) and ground,
+with its reach 12:
+
+| Warlord rocket | QUICK air | FAST air | BLAZING air | ground (all) | flight to 12, FAST air |
+|---|---|---|---|---|---|
+| today (the SAM missile): 7.2, turn 75°/s, launch at half speed, 5 s | 1.5 | 1.0 | 1.0 | BRISK 1.5, QUICK 1.0 | 4.1 s |
+| **7.2, turn 120°/s, launch at half speed, 5 s** | never | **9.5** | 1.0 | never | 4.1 s |
+| 10, turn 120°/s, launch at half speed, 4 s | never | never | 1.0 | never | 1.9 s |
+
+- **Today's missile can be escaped from any distance by a crossing aircraft.** It launches at
+  half speed and turns at 75°/s, so its turning circle (about 5.5 units at full speed) is wider
+  than a close target's path. The SAM fires the same missile, so this applies to it too.
+  Model-predicted; worth checking in play.
+- **The middle row is the shape wanted.** It needs no new knob: slower than the Badger's boost,
+  a 5 s life against the Badger's 2.2, no escape for QUICK aircraft or anything on the ground, a
+  distance-dependent escape for FAST aircraft, and BLAZING aircraft always escape, as the speed
+  ladder intends.
+- **The Warlord needs its own emission before this is tuned.** It fires `sam_missile` today, so
+  any change moves the SAM too, and the planned salvo upgrade would as well.
+
+### What boost-then-coast needs from the engine
+
+Both are code changes, not authoring:
+
+1. **A contact in a flight phase hands over to the NEXT phase, not the payload phase.**
+   `_end_by_contact` ends the live phase only. A rocket written as boost → coast → burst that
+   strikes during the boost enters the coast phase, so the payload never fires and the rocket
+   flies on from the contact point.
+2. **A new phase re-aims at the original destination.** `_enter_next_phase` relaunches with
+   `launch_velocity(position, goal_position)` instead of keeping the flight's heading and speed.
+
+**Proposed instead: a burn knob on one phase's motion**: `burn_seconds` and a `coast_speed`
+class, after which the speed cap drops (at once, or at a rate) to the coast speed. One phase
+keeps contact handling and heading as they are, and the boost-then-coast rows above are exactly
+this knob. Until it exists, **15, turn 45°/s, 2 s** fixes the misses with existing knobs, with no
+distance dependence yet.
+
 ## Where an emission leaves from
 
 **A weapon's emissions leave from its LAUNCH POINTS, the Marker3D children of the Weapon node,
