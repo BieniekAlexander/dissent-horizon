@@ -308,6 +308,28 @@ from beyond about 7.5 can escape by turning away at once, while one fired on fro
 The boost time moves that threshold (a longer boost pushes it out), and the coast speed sets
 which classes can use it.
 
+### A slow ignition (Alex, 2026-10-02: wanted if it fits)
+
+A rocket that leaves the tube slowly and then accelerates hard. **Existing knobs already express
+it**: `launch_speed_ratio` sets the launch speed, and `acceleration` builds speed while the target
+is ahead. Launching at about 2 u/s with an acceleration of 40 u/s² reaches 15 in about 0.33 s.
+
+**It fits, provided the turn rate is at least 60°/s.** A slow rocket that turns slowly gives a
+QUICK vehicle a dodge *up close*, the opposite of the distance rule. At 60°/s the slow start costs
+nothing, because a slow rocket also has a tight turning circle:
+
+| Badger rocket (launch 2 u/s, acceleration 40, coast 7.2 after the burn, 2.2 s) | STEADY | BRISK | QUICK | flight to 12 |
+|---|---|---|---|---|
+| burn 0.5 s, turn 45°/s | never | 9 | 2 (dodged up close) | 1.47 s |
+| **burn 0.5 s, turn 60°/s** | never | never | **7** | 1.43 s |
+| burn 0.6 s, turn 60°/s | never | never | 8 | 1.33 s |
+| burn 0.8 s, turn 60°/s | never | never | 11.5 | 1.00 s |
+| slow ignition alone, no coast (15, turn 45°/s, 2 s) | never | never | 2 (dodged up close) | 0.90 s |
+
+The burn time, counted from launch and including the ramp, is now the knob that places QUICK's
+escape distance. The ignition adds about 0.13 s to every flight (a 2-unit shot takes 0.2 s
+against 0.07 s), and the visible pop before the rocket takes off is a readable tell.
+
 ### The Warlord
 
 Against aircraft (QUICK `flyer_heavy`, FAST `flyer_medium`, BLAZING `flyer_light`) and ground,
@@ -344,7 +366,8 @@ Both are code changes, not authoring:
 **Proposed instead: a burn knob on one phase's motion**: `burn_seconds` and a `coast_speed`
 class, after which the speed cap drops (at once, or at a rate) to the coast speed. One phase
 keeps contact handling and heading as they are, and the boost-then-coast rows above are exactly
-this knob. Until it exists, **15, turn 45°/s, 2 s** fixes the misses with existing knobs, with no
+this knob. With the slow ignition, the candidate is **launch 2 u/s, acceleration 40, BLAZING, coast to
+RAPID after 0.5 s, turn 60°/s, 2.2 s**. Until the knob exists, **15, turn 45°/s, 2 s** fixes the misses with existing knobs, with no
 distance dependence yet.
 
 ## Where an emission leaves from
