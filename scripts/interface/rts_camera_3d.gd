@@ -12,6 +12,16 @@ const CAMERA_ANGLE_DEGREES: float = -135.0
 ## elevation. Only affects how zoomed-out the framing is, not the angle.
 const INITIAL_DISTANCE: float = 30.0
 
+## How far an ORTHOGRAPHIC camera stands back from the ground point it looks at. Under an
+## orthographic projection the distance changes nothing on screen — `size` is the zoom — so it
+## is bounded only by what it must clear, at both ends:
+## - NEAR: everything between the camera and the ground, the tallest peak plus a flier above it
+##   (about 35 up, so about 50 nearer along a 45-degree view, plus half a zoomed-out view). At
+##   INITIAL_DISTANCE the camera sat 21 up and doubled relief cut mountains open on the near plane.
+## - FAR: a DirectionalLight3D draws shadows only out to its shadow max distance FROM THE CAMERA,
+##   100 by default, so the far edge of a zoomed-out view (this plus about 15) must stay inside it.
+const ORTHOGRAPHIC_STANDOFF: float = 80.0
+
 ## The camera's yaw — rotation about the global Y axis, in degrees. At 0° the
 ## camera looks straight down a world axis, so the axis-aligned terrain grid
 ## renders as screen-aligned squares. At 45° it looks down the grid's diagonal,
@@ -224,6 +234,8 @@ func _ready() -> void:
 	# Only the orientation is anchored here; Scenario start-framing and the minimap
 	# re-center translation via center_on(), which preserves this orientation.
 	global_position = initial_position()
+	if projection == PROJECTION_ORTHOGONAL:
+		global_position = global_position.normalized() * ORTHOGRAPHIC_STANDOFF
 	look_at(Vector3.ZERO, Vector3.UP)
 
 

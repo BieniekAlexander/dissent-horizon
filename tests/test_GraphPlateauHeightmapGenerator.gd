@@ -15,11 +15,11 @@ extends GutTest
 ##   4. Generation is deterministic for a fixed seed.
 ##
 ## "Passable" mirrors TerrainGrid: a cell is passable when its four corner heights
-## span no more than MAX_SLOPE_DIFF (0.5).
+## span no more than MAX_SLOPE_DIFF.
 
 const WIDTH: int = 30
 const DEPTH: int = 30
-const MAX_SLOPE_DIFF: float = 0.5
+const MAX_SLOPE_DIFF: float = TerrainGrid.MAX_SLOPE_DIFF
 
 
 func _make(a_seed_val: int, a_height_levels: int = 3) -> GraphPlateauHeightmapGenerator:

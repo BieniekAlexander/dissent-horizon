@@ -16,7 +16,7 @@ extends Node3D
 
 #region Constants
 ## Mirrors TerrainGrid.MAX_SLOPE_DIFF — cells steeper than this are impassable.
-const MAX_SLOPE_DIFF: float = 0.5
+const MAX_SLOPE_DIFF: float = TerrainGrid.MAX_SLOPE_DIFF
 #endregion
 
 #region Properties

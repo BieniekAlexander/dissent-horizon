@@ -10,7 +10,7 @@ extends GutTest
 
 const WIDTH: int = 30
 const DEPTH: int = 30
-const MAX_SLOPE_DIFF: float = 0.5
+const MAX_SLOPE_DIFF: float = TerrainGrid.MAX_SLOPE_DIFF
 
 
 func _heights(a_seed_val: int) -> PackedFloat32Array:

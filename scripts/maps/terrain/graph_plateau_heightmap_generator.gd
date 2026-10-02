@@ -21,7 +21,7 @@ extends HeightmapGenerator
 ##      through the cliff, independent of triple-junction geometry.
 ##
 ## Passability is emergent, via TerrainGrid: a cell is impassable when its four
-## corner heights span more than MAX_SLOPE_DIFF (0.5 raw units).
+## corner heights span more than MAX_SLOPE_DIFF.
 ##   * A bare one-level step (height_step) is a CLIFF when height_step > 0.5.
 ##   * A ramp spreads that rise over `ramp_run` corners, so the slope is
 ##     height_step / ramp_run per corner.  A diagonal channel can compound the
@@ -44,7 +44,7 @@ extends HeightmapGenerator
 @export var height_levels: int = 3
 
 ## Height increment per tier in HeightMapShape3D local space.
-@export var height_step: float = 1.0
+@export var height_step: float = 2.0
 
 ## Length, in heightmap corners, of a ramp's sloped section (the climb direction).
 ## Larger = gentler, longer slopes.  Keep >= 3*height_step so ramp cells stay
@@ -306,7 +306,7 @@ func _connect_nearest(
 func _carve_corridor(a_data: PackedFloat32Array, a_path: Array[Vector2i]) -> void:
 	var gw: int = width - 1
 	var gh: int = depth - 1
-	var max_slope: float = 0.5  # TerrainGrid.MAX_SLOPE_DIFF
+	var max_slope: float = TerrainGrid.MAX_SLOPE_DIFF
 	if a_path.size() < 2:
 		return
 	var ha: float = _cell_height(a_data, a_path[0].x, a_path[0].y)

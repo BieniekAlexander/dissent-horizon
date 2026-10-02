@@ -776,6 +776,16 @@ TODO: **none of these are tuned.** They are starting brackets with a stated reas
 maps are generated and played. The point of writing them down is that a generator refusing to
 produce a map outside them is a better failure than one that produces a bad map silently.
 
+**Every height scales together** (Alex, 2026-10-02). Relief was doubled because, under the
+45-degree camera, a height h moves the ground only about 0.7h on screen and a 0.4 terrace read as
+flat. `TerrainGrid.MAX_SLOPE_DIFF` and `WaterBasin.WADE_DEPTH` doubled with the heights below, and
+every generator decision compares heights with each other or with those two, so a seed's layout
+is unchanged — only taller. Change one, change them all. The exception is the height of
+ridges and mountains (`ridge_height`, `mountain_rise_*`), which are impassable whatever their
+height and were kept at their old values (Alex, 2026-10-02): doubled, they towered over the play.
+Their crest roughness is still doubled, because it is what keeps a crest steeper than the
+slope limit.
+
 | Parameter | Bracket | Why the bracket |
 |---|---|---|
 | `play_size` per axis | drawn per map from a range by start count; 120 … 150 diamonds at 2 starts (was 75 … 120; widened 2026-10-01 to hold the per-player economy) | the corner grid is square with side `s + t`, so 150 + 150 is a 301² grid. TODO: only the 2-start range exists, and it may be revisited |
@@ -812,7 +822,7 @@ produce a map outside them is a better failure than one that produces a bad map 
 | `cluster_large_building_bias` | 0.5 | at the top band a 10-capacity building is drawn about 1.8× as often, relative to a 3, as the pool weights it |
 | `cluster_packing_density` | 0.3 … 0.5 | denser packings fail to fit often enough to reject whole seeds |
 | `last_pass` | a named pass: extent, starts, resources, topology, terrain, elevation, visuals | stop after that pass to inspect it. A `Pass` enum, numbered as this doc numbers them, so the dock offers the names and a report reads the same as §The pipeline |
-| `ground_height` | 4.0 | high enough that a chasm sunk `chasm_depth` stays above 0 |
+| `ground_height` | 8.0 | high enough that a chasm sunk `chasm_depth` stays above 0 |
 | `cut_fraction` | 0.15 … 0.45 of graph edges; 0.45 | 0 is a featureless field; above ~0.5 the map is an SC2 partition, which this game explicitly is not. At the top because only uncarved cuts grow into regions (§Obstacle regions) |
 | `target_traversable_fraction` / `traversable_tolerance` | 0.8 / 0.05 | Alex, 2026-10-01; a finished map outside the band is rejected |
 | `region_width_min_cells` / `_max_cells` | 5 / 14 | a grown cut's reach from equidistant; wider did little, as cuts ran out before width did |
@@ -826,12 +836,12 @@ produce a map outside them is a better failure than one that produces a bad map 
 | `MIN_CHOKE_WIDTH` (const) | 10 | no passage between barriers, or a barrier and the edge, is narrower; carves are 10–20 |
 | `min_routes` | ≥ 2 | one route between two starts is a funnel |
 | `correction_radius_cells` | 12 | how far pass 4 may move a feature to restore its favor |
-| `ridge_height` / `chasm_depth` | 3.0 / 2.0 | anything above `MAX_SLOPE_DIFF` blocks; these read as terrain |
+| `ridge_height` / `chasm_depth` | 3.0 / 4.0 | anything above `MAX_SLOPE_DIFF` blocks; these read as terrain |
 | `flat_fraction` | ≥ 0.55 of in-play walkable cells | structures need flat ground and slopes cost it |
 | `elevation_levels` | 1 … 6; 5 | terrace levels; 1 leaves the ground level within a tier |
-| `elevation_step` | ≤ `MAX_SLOPE_DIFF`; 0.4 | a terrace step is walked over. Above the limit every boundary cliffs, and elevation starts dividing ground pass 4 left open — the dock warns |
+| `elevation_step` | ≤ `MAX_SLOPE_DIFF`; 0.8 | a terrace step is walked over. Above the limit every boundary cliffs, and elevation starts dividing ground pass 4 left open — the dock warns |
 | `cliff_levels` | 1 … 4; 3 | tiers, each a cliff apart. A map whose cuts divide it into fewer regions simply uses fewer |
-| `cliff_step` | 1.5 | three `MAX_SLOPE_DIFF`s: a tier step is a cliff and reads as one. Keep it above `chasm_depth / 2` |
+| `cliff_step` | 3.0 | three `MAX_SLOPE_DIFF`s: a tier step is a cliff and reads as one. Keep it above `chasm_depth / 2` |
 | `elevation_scale_cells` | 40 … 90; 60 | the noise's feature size; smaller breaks the map into more plateaus and needs more ramps |
 | `start_level_fraction_min` / `_max` | 0.5 / 0.75 | starts on high ground, not always the highest (Alex) |
 

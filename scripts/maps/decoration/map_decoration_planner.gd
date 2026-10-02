@@ -40,7 +40,7 @@ const FLOWER_CHANCE: float = 0.05
 const GRASS_TUFT_CHANCE: float = 0.04
 const STUMP_CHANCE: float = 0.008
 ## A water cell this far above ground within WATERFALL_REACH_CELLS is a waterfall's lip.
-const WATERFALL_DROP: float = 1.0
+const WATERFALL_DROP: float = 2.0
 const WATERFALL_REACH_CELLS: int = 3
 ## How far either side of a sloped cell a cliff may stand for the cell to count as a ramp —
 ## pass 6 ramps are MIN_CHOKE_WIDTH to twice that wide.
@@ -555,7 +555,7 @@ class _Grid:
 		var wading: float = (
 			MapDecorationPlanner.TRAIL_SHALLOW_COST if flags[index(cell)] & _SHALLOW != 0 else 1.0
 		)
-		var slope: float = 1.0 + 4.0 * _terrain.cell_height_spread(cell)
+		var slope: float = 1.0 + 2.0 * _terrain.cell_height_spread(cell) / TerrainGrid.MAX_SLOPE_DIFF
 		return length * wander * wading * slope
 
 	func _walk_back(parent: PackedInt32Array, goal: int) -> PackedVector2Array:

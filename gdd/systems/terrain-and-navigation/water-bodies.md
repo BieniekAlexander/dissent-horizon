@@ -52,7 +52,7 @@ empty, which `WaterBasin.is_valid()` reports and the tool refuses to build from.
 
 ## Passability falls out of depth
 
-One project-wide constant — `WaterBasin.WADE_DEPTH`, 0.5 — and one level per body:
+One project-wide constant — `WaterBasin.WADE_DEPTH`, 1.0 — and one level per body:
 
 | Cell | Rule | Result |
 |---|---|---|

@@ -20,7 +20,7 @@ extends Node
 ## Maximum heightmap-unit spread across a cell's four corners before the cell
 ## is considered too steep to traverse.  Raw map_data units (multiply by
 ## terrain_body.scale.y to convert to world-space metres).
-const MAX_SLOPE_DIFF: float = 0.5
+const MAX_SLOPE_DIFF: float = 1.0
 
 ## Impassability reasons OR-ed into each cell's `_cell_state` byte.
 const _STEEP: int = 1 << 0  ## corner-height spread exceeds MAX_SLOPE_DIFF (static)

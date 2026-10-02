@@ -52,28 +52,28 @@ uniform float outline_width = 0.12;   // world units
 // --- Elevation cues -----------------------------------------------------------------------
 // Contour lines: one every `contour_interval` of height, offset so a level sits BETWEEN the
 // generator's terraces rather than on them — each terrace step then carries exactly one line.
-uniform float contour_interval = 0.4;
-uniform float contour_offset = 0.2;
+uniform float contour_interval = 0.8;
+uniform float contour_offset = 0.4;
 uniform float contour_strength = 0.2;
 uniform float contour_pixels = 1.2;    // line width in screen pixels
 // Relief exaggeration: the LIT normal's tilt is multiplied by this on walkable ground, the way
 // RTS terrain overstates its hillshade. A terrace grade tilts the ground only a few degrees,
 // which a 50-degree sun barely separates from flat; overstated, the sunward side of every grade
 // lifts and the far side falls into shade. Smooth by construction, so it cannot alias.
-uniform float relief_exaggeration = 8.0;
+uniform float relief_exaggeration = 4.0;
 // Hypsometric tint: brightness ramp from the lowest to the highest ground.
 uniform float hypsometric_low = 0.85;
 uniform float hypsometric_high = 1.12;
 // Cavity shading: ground below its surroundings darkens, ground above brightens slightly.
-uniform float cavity_strength = 0.35;
+uniform float cavity_strength = 0.175;
 uniform float cavity_mip = 3.0;
 // Banks: graded walkable ground is darkened in VALUE only, keeping the hue of the ground around
 // it, as RTS ramps are (a ramp is the same floor, lit differently, never a different material).
 // Faded in over a GRADIENT (rise per unit run) read from the smoothed height field, with a
 // noisy edge so a bank is a painted patch rather than a ruled band. Which side is light and
 // which dark is the relief lighting's job, not this one's.
-uniform float bank_gradient_min = 0.03;
-uniform float bank_gradient_max = 0.13;
+uniform float bank_gradient_min = 0.06;
+uniform float bank_gradient_max = 0.26;
 uniform float bank_darkening = 0.12;
 // Two-octave value noise in world space, so no region is one flat colour.
 uniform float noise_strength = 0.14;
@@ -85,13 +85,13 @@ uniform float grain_albedo = 0.22;     // albedo contrast of the grain
 uniform float grain_bump = 0.55;       // how far the grain tilts the lit normal
 // Hachures: strokes running DOWNHILL on sloped walkable ground, the cartographer's cue for
 // which way and how steeply the ground falls. They fade in over a GRADIENT (rise per unit run),
-// because a terrace grade climbs only about a tenth of a unit per cell.
+// because a terrace grade climbs only a fraction of a unit per cell.
 uniform float hachure_spacing = 0.45;  // world units between stroke centres
 uniform float hachure_length = 0.32;   // half a stroke's length, world units
 uniform float hachure_width = 0.05;    // a stroke's half-width at its uphill end
 uniform float hachure_strength = 0.0;  // off: see terrain-readability.md
-uniform float hachure_gradient_min = 0.02;
-uniform float hachure_gradient_max = 0.12;
+uniform float hachure_gradient_min = 0.04;
+uniform float hachure_gradient_max = 0.24;
 // Terrain specular: 0 is matte. Broad and weak on purpose: a sheen on ground tilted to bounce
 // the sun at the camera, broken up by the grain so it reads as grass catching light.
 uniform float specular_strength = 0.0;
@@ -377,7 +377,7 @@ vec3 th_shade(vec3 w, int idx, float impassable, vec2 uv, vec3 n) {
 	// Impassable ground is rock, banded by height so cliff faces show their own relief.
 	vec3 rock = mix(rock_dark.rgb, rock_light.rgb, noise);
 	// Bands antialiased: a triangle wave's distance from the band edge, ramped over a pixel.
-	float band_x = h * 1.25;
+	float band_x = h * 0.625;
 	float band_aa = max(fwidth(band_x), 1e-4);
 	float band = 1.0 - smoothstep(0.25 - band_aa, 0.25 + band_aa, abs(fract(band_x - 0.25) - 0.5));
 	rock *= 0.88 + 0.12 * band;

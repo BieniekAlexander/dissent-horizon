@@ -26,7 +26,7 @@ const TERRAIN_DIR := "res://resources/terrain/"
 const DISC_RADIUS: float = 55.0
 ## A shallow paraboloid rather than a flat plate, so the scenario actually exercises height
 ## sampling and unit terrain-following. Max slope is 2*H/R = 0.09 per unit, comfortably under
-## TerrainGrid.MAX_SLOPE_DIFF (0.5), so the whole dome stays passable.
+## TerrainGrid.MAX_SLOPE_DIFF, so the whole dome stays passable.
 const DISC_HEIGHT: float = 2.5
 const DISC_RINGS: int = 64
 const DISC_SEGMENTS: int = 128

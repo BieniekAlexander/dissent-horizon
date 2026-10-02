@@ -14,7 +14,7 @@ extends RefCounted
 ## TerrainGrid's mask layout.
 
 #region Constants
-const MAX_SLOPE_DIFF: float = 0.5
+const MAX_SLOPE_DIFF: float = TerrainGrid.MAX_SLOPE_DIFF
 
 const _NEIGHBOURS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 #endregion

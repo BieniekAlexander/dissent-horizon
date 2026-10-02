@@ -17,7 +17,7 @@ extends RefCounted
 ## How deep a cell may be submerged and still be walked through. Deeper than this and the
 ## cell is impassable — the chasm a lake is. One project-wide number: every water body
 ## shares it, and only the LEVEL is per-body.
-const WADE_DEPTH: float = 0.5
+const WADE_DEPTH: float = 1.0
 
 ## 4-connected, matching how the navmesh stitches adjacent cells and how TerrainGrid labels
 ## its passable components. Water that only meets at a corner is two bodies.

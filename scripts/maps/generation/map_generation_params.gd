@@ -13,9 +13,11 @@ extends RefCounted
 ## Garrison capacity per player at and above which building placement is known to run out of
 ## room on default 1v1 maps — measured, not derived; see map-generation.md §3.
 const BUILDING_CAPACITY_FAILURE: int = 250
-## Extra height on alternate ridge corners. Above TerrainGrid.MAX_SLOPE_DIFF, so a ridge's top
-## is as unwalkable as its sides — a flat crest would be a plateau nothing can reach.
-const RIDGE_ROUGHNESS: float = 1.0
+## Extra height on alternate ridge corners. Twice TerrainGrid.MAX_SLOPE_DIFF, so a ridge's top
+## is as unwalkable as its sides — a flat crest would be a plateau nothing can reach — with margin
+## for pass 6's offsets. Derived because it is a passability rule, not a look: it scales with the
+## slope limit, where ridge_height is free to be tuned by eye.
+const RIDGE_ROUGHNESS: float = TerrainGrid.MAX_SLOPE_DIFF * 2.0
 ## The last pass there is. Derived from the enum, so adding a pass moves it.
 const PASS_COUNT: int = Pass.VISUALS
 ## No walkable passage between two barriers, or between a barrier and the edge of the play
@@ -324,7 +326,7 @@ var play_size_min: int = 120
 var play_size_max: int = 150
 ## Height of the flat ground: high enough that a chasm sunk chasm_depth into it stays inside
 ## the brush's height range (0 and up).
-var ground_height: float = 4.0
+var ground_height: float = 8.0
 #endregion
 
 #region Starts
@@ -475,7 +477,7 @@ var correction_radius_cells: float = 12.0
 ## RIDGE_ROUGHNESS, so no ridge cell is flat enough to stand on.
 var ridge_height: float = 3.0
 ## How far below the ground a chasm is sunk; its water stands halfway up.
-var chasm_depth: float = 2.0
+var chasm_depth: float = 4.0
 ## Least share of in-play dry walkable cells that must be buildable (all corners level).
 var flat_fraction: float = 0.55
 #endregion
@@ -510,7 +512,7 @@ var elevation_levels: int = 5
 ## Height between neighbouring terrace levels. **Keep it at or under TerrainGrid.MAX_SLOPE_DIFF**:
 ## a terrace step is meant to be walked over, so elevation may not divide ground that pass 4
 ## left open. Only the cells on the step lose their buildability.
-var elevation_step: float = 0.4
+var elevation_step: float = 0.8
 ## Cliff tiers, each a cliff_step above the last: the map's big relief. A tier's drop is a cliff
 ## only where a barrier carries it — everywhere else pass 6 grades the drop into a walkable
 ## slope, so elevation never divides ground the topology left open.
@@ -518,7 +520,7 @@ var cliff_levels: int = 3
 ## Height between neighbouring tiers: a cliff, so well above MAX_SLOPE_DIFF. Keep it above
 ## chasm_depth / 2 — a chasm's water stands that far above its floor, and must not reach the
 ## floor of a chasm one tier up.
-var cliff_step: float = 1.5
+var cliff_step: float = 3.0
 ## Size of the noise features that decide levels, in cells: larger gives broad highs and lows.
 var elevation_scale_cells: float = 60.0
 ## The band of the terrace range the starts' shared level is drawn from: 0 lowest, 1 highest.
