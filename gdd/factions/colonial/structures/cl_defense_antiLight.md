@@ -61,6 +61,8 @@ in the faction's coverage, and why it is built ahead of a threat rather than in 
 - **Detection** is `detection_medium` — the Colonial answer to invariant 6.
 - **Spots for the Bombard.** `beacon: 12` is a `BeaconRange`: a Bombard may fire into anywhere
   within 12 of the tower without spending a beacon. See [[bombardment]].
+- **Alpha strike** — statics carry a high alpha; today's gun loses to small Badger groups. The
+  calibration and candidate guns are in [[static-defence]] §Alpha strike.
 - TODO calibrate: every number above is a first pass modelled on the SAM — cost, the long build
   time (structures are meant to build slowly so forward placement is expensive), the gun, and the
   spotting radius, which should stay at or below the tower's vision.
