@@ -34,13 +34,13 @@ metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 
 [node name="Flight" type="Node3D" parent="."]
 script = ExtResource("1_spec")
-speed = 24.0
-turn_rate_degrees_per_second = 75.0
+speed = 7.2
+turn_rate_degrees_per_second = 120.0
 launch_speed_ratio = 0.5
 acceleration_mps2 = 2.25
 min_speed = 0.15
 jitter_degrees = 4
-lifespan_seconds = 2.0
+lifespan_seconds = 5.0
 visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh")])
 
 [node name="Impact" type="Node3D" parent="."]
@@ -56,5 +56,5 @@ script = ExtResource("2_spec")
 [node name="Payload" type="Node" parent="."]
 script = ExtResource("mig_payload")
 bio_ground_aim = true
-base_damage = 25.0
+base_damage = 40.0
 damage_type = 6

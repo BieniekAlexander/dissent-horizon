@@ -34,8 +34,14 @@ metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 script = ExtResource("1_spec")
 speed = 15.0
 jitter_degrees = 3
-lifespan_seconds = 2.0
+lifespan_seconds = 2.2
 visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh")])
+turn_rate_degrees_per_second = 60.0
+launch_speed_ratio = 0.1333
+acceleration_mps2 = 40.0
+min_speed = 2.0
+burn_seconds = 0.5
+coast_speed = 7.2
 
 [node name="Impact" type="Node3D" parent="."]
 script = ExtResource("1_spec")

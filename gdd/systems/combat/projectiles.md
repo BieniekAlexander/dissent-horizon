@@ -85,6 +85,8 @@ that same spot.
 | `launch_speed_ratio` | — | fraction of `speed` it launches at |
 | `acceleration` | u/s² | while steering: gained toward `speed` facing the target, lost toward `min_speed` facing away |
 | `min_speed` | u/s | the floor it slows to |
+| `burn` | seconds | when the motor burns out, counted from the start of the phase; zero never burns out |
+| `coast_speed` | a speed class | the speed it is held to after `burn`. Comes paired with `burn`, and a falling motion cannot have either |
 
 Every default describes a straight, constant-speed flight, so a motion names only what it adds.
 
@@ -363,11 +365,15 @@ Both are code changes, not authoring:
 2. **A new phase re-aims at the original destination.** `_enter_next_phase` relaunches with
    `launch_velocity(position, goal_position)` instead of keeping the flight's heading and speed.
 
-**Proposed instead: a burn knob on one phase's motion**: `burn_seconds` and a `coast_speed`
-class, after which the speed cap drops (at once, or at a rate) to the coast speed. One phase
+**Built (2026-10-02): a burn knob on one phase's motion**, `burn:` and `coast_speed:` (a speed
+class), after which the speed is held to the coast speed (`EmissionPhase.burnt_velocity`,
+applied after steering, so a steered phase's own acceleration rule still runs under the cap).
+The drop is immediate. One phase
 keeps contact handling and heading as they are, and the boost-then-coast rows above are exactly
-this knob. With the slow ignition, the candidate is **launch 2 u/s, acceleration 40, BLAZING, coast to
-RAPID after 0.5 s, turn 60°/s, 2.2 s**. Until the knob exists, **15, turn 45°/s, 2 s** fixes the misses with existing knobs, with no
+this knob. **Applied (2026-10-02):** the Badger rocket is **launch 2 u/s, acceleration 40, BLAZING, coast
+to RAPID after 0.5 s, turn 60°/s, 2.2 s** (min speed 2), and the Warlord fires its own
+`warlord_rocket` (**RAPID, turn 120°/s, half-speed launch, 5 s**) instead of the SAM's missile.
+Both are starting points for play. Before the knob existed, **15, turn 45°/s, 2 s** fixed the misses with existing knobs, with no
 distance dependence yet.
 
 ## Where an emission leaves from

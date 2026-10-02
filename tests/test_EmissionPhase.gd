@@ -185,3 +185,34 @@ func test_periods_convert_to_ticks_with_a_one_tick_floor() -> void:
 	assert_eq(phase.duration_ticks(), TimeUtils.ticks_per_second())
 	phase.payload_period_seconds = 0.5
 	assert_eq(phase.payload_period_ticks(), TimeUtils.ticks_per_second() / 2)
+
+
+# --- Burn-out ----------------------------------------------------------------------------
+
+
+func test_a_phase_flies_at_full_speed_until_it_burns_out() -> void:
+	var phase: EmissionPhase = _phase({"speed": 15.0, "burn_seconds": 0.5, "coast_speed": 6.0})
+	var velocity: Vector3 = Vector3(15.0 / TimeUtils.ticks_per_second(), 0.0, 0.0)
+	assert_eq(phase.burnt_velocity(velocity, 0.4), velocity, "still burning")
+
+
+func test_a_burnt_out_phase_is_held_to_its_coast_speed() -> void:
+	var phase: EmissionPhase = _phase({"speed": 15.0, "burn_seconds": 0.5, "coast_speed": 6.0})
+	var velocity: Vector3 = Vector3(0.0, 0.0, 15.0 / TimeUtils.ticks_per_second())
+	var burnt: Vector3 = phase.burnt_velocity(velocity, 0.5)
+	assert_almost_eq(
+		burnt.length(), 6.0 / TimeUtils.ticks_per_second(), FLOAT_TOLERANCE, "coast speed"
+	)
+	assert_almost_eq(burnt.normalized(), velocity.normalized(), Vector3.ONE * FLOAT_TOLERANCE)
+
+
+func test_burning_out_never_speeds_a_slow_emission_up() -> void:
+	var phase: EmissionPhase = _phase({"speed": 15.0, "burn_seconds": 0.5, "coast_speed": 6.0})
+	var slow: Vector3 = Vector3(2.0 / TimeUtils.ticks_per_second(), 0.0, 0.0)
+	assert_eq(phase.burnt_velocity(slow, 1.0), slow)
+
+
+func test_a_phase_without_a_burn_never_burns_out() -> void:
+	var phase: EmissionPhase = _phase({"speed": 15.0})
+	var velocity: Vector3 = Vector3(15.0 / TimeUtils.ticks_per_second(), 0.0, 0.0)
+	assert_eq(phase.burnt_velocity(velocity, 99.0), velocity)

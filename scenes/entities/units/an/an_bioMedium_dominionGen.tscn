@@ -111,7 +111,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48632813, 0.1538086)
 script = ExtResource("4_qd6od")
 split_time_ticks = 45
 reload_time_ticks = 45
-projectile_scene = ExtResource("7_spec")
+projectile_scene = ExtResource("5_qd6od")
 melee_damage = 0.0
 target_mask = 6
 
