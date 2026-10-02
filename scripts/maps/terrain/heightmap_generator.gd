@@ -13,12 +13,17 @@ extends Resource
 
 ## Axis accessors for `dimensions`, used throughout the generator implementations.
 var width: int:
-	get: return dimensions.x
-	set(value): dimensions.x = value
+	get:
+		return dimensions.x
+	set(value):
+		dimensions.x = value
 var depth: int:
-	get: return dimensions.y
-	set(value): dimensions.y = value
+	get:
+		return dimensions.y
+	set(value):
+		dimensions.y = value
 #endregion
+
 
 #region Public API
 ## Return a PackedFloat32Array of size width*depth with corner heights in

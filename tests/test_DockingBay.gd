@@ -15,21 +15,31 @@ extends GutTest
 
 ## Every piece is a fake (tests/_fake_pieces.gd): an airfield with pads and a runway, an
 ## aircraft with a charged clip that wants a pad, one that opts out, and a soldier.
-const AIRFIELD: Dictionary = {"structure": true, "production": true, "docking_bay": {"pads": 3, "runways": 1}}
+const AIRFIELD: Dictionary = {
+	"structure": true, "production": true, "docking_bay": {"pads": 3, "runways": 1}
+}
 ## A friendly aircraft with a CHARGED clip (it cannot reload in the field, so it wants a pad).
 ## A friendly aircraft with a CHARGED clip (it cannot reload in the field, so it wants a pad).
-const CLIPPER: Dictionary = {"aerial": true, "docking": true, "vision": 8.0,
-	"weapon": {"ground": 6.0, "clip_size": 4, "charged": true}}
+const CLIPPER: Dictionary = {
+	"aerial": true,
+	"docking": true,
+	"vision": 8.0,
+	"weapon": {"ground": 6.0, "clip_size": 4, "charged": true}
+}
 const RECRUIT: Dictionary = FakePieces.SOLDIER
 ## An aircraft that opts out of airfields (Movement.docks) — expended on its first run, so
 ## there is nothing about a pad it could want. FLYING, so it passes every STRUCTURAL test
 ## for docking and is turned away purely on the flag.
-const KAMIKAZE: Dictionary = {"aerial": true, "flying": true, "vision": 8.0}  # no Docking: it never wants a pad
+# no Docking: it never wants a pad
+const KAMIKAZE: Dictionary = {"aerial": true, "flying": true, "vision": 8.0}
+
+
 func _commander(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
 	add_child_autofree(c)
 	return c
+
 
 ## A live entity owned by `a_commander`. Ownership is assigned directly rather than through
 ## initialize() so no Map is needed — the same shortcut test_Garrison takes.
@@ -39,6 +49,7 @@ func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
 	e.ownership.commander = a_commander
 	return e
 
+
 ## A FINISHED airfield. `is_built` is derived from build_progress, not settable, so a
 ## structure is finished by completing it — editor-placed structures already default to
 ## 1.0, and this is here to say so at the call site.
@@ -46,6 +57,7 @@ func _airfield(a_commander: Commander) -> Commandable:
 	var f: Commandable = _entity(AIRFIELD, a_commander)
 	f.build_progress = 1.0
 	return f
+
 
 #region Capacity comes from the pads
 func test_capacity_is_the_pad_count() -> void:
@@ -56,18 +68,23 @@ func test_capacity_is_the_pad_count() -> void:
 	assert_eq(bay.capacity(), bay.pads().size(), "capacity IS the pad count")
 	assert_gt(bay.capacity(), 0, "and the shipped airfield has pads on it")
 
+
 func test_a_fresh_bay_has_every_pad_free() -> void:
 	var bay: DockingBay = _airfield(_commander(1)).docking_bay
 	assert_eq(bay.free_pads().size(), bay.capacity(), "nothing is claimed yet")
 	assert_true(bay.has_free_pad())
 	assert_eq(bay.claimants().size(), 0)
+
+
 #endregion
+
 
 #region Who a bay admits
 func test_a_bay_admits_a_friendly_aerial_unit() -> void:
 	var cmd: Commander = _commander(1)
 	var bay: DockingBay = _airfield(cmd).docking_bay
 	assert_true(bay.admits(_entity(CLIPPER, cmd)), "a friendly helicopter docks")
+
 
 func test_a_bay_refuses_a_ground_unit() -> void:
 	# A runway is for aircraft. Asked of Movement.is_aerial_mode(), matching the axis
@@ -76,11 +93,13 @@ func test_a_bay_refuses_a_ground_unit() -> void:
 	var bay: DockingBay = _airfield(cmd).docking_bay
 	assert_false(bay.admits(_entity(RECRUIT, cmd)), "infantry does not dock")
 
+
 func test_a_bay_refuses_another_commander_s_aircraft() -> void:
 	# Unlike a garrison, which also takes neutral hosts, an airfield is a service and
 	# services are not shared.
 	var bay: DockingBay = _airfield(_commander(1)).docking_bay
 	assert_false(bay.admits(_entity(CLIPPER, _commander(2))), "an enemy aircraft is refused")
+
 
 func test_a_bay_refuses_an_aircraft_that_opts_out_of_airfields() -> void:
 	# The kamikaze is FLYING and friendly, so it clears every structural test; only its
@@ -93,14 +112,20 @@ func test_a_bay_refuses_an_aircraft_that_opts_out_of_airfields() -> void:
 	assert_false(bay.admits(drone), "but it does not use airfields")
 	assert_null(bay.reserve(drone), "so it is handed no pad")
 
+
 func test_an_unfinished_airfield_admits_nothing() -> void:
 	var cmd: Commander = _commander(1)
 	var field: Commandable = _entity(AIRFIELD, cmd)
 	field.build_progress = 0.5
 	assert_false(field.is_built, "half-built (the fixture this test needs)")
-	assert_false(field.docking_bay.admits(_entity(CLIPPER, cmd)),
-		"a half-built airfield has no deck to land on")
+	assert_false(
+		field.docking_bay.admits(_entity(CLIPPER, cmd)),
+		"a half-built airfield has no deck to land on"
+	)
+
+
 #endregion
+
 
 #region Reserving and releasing pads
 func test_reserving_claims_one_pad_and_is_idempotent() -> void:
@@ -115,6 +140,7 @@ func test_reserving_claims_one_pad_and_is_idempotent() -> void:
 	assert_same(bay.reserve(plane), pad, "re-reserving returns the same pad")
 	assert_eq(bay.free_pads().size(), bay.capacity() - 1, "and claims no second one")
 
+
 func test_two_aircraft_get_different_pads() -> void:
 	var cmd: Commander = _commander(1)
 	var bay: DockingBay = _airfield(cmd).docking_bay
@@ -122,6 +148,7 @@ func test_two_aircraft_get_different_pads() -> void:
 	var b: DockingPad = bay.reserve(_entity(CLIPPER, cmd))
 	assert_not_null(b)
 	assert_ne(a, b, "no two aircraft converge on one space")
+
 
 func test_a_full_bay_hands_out_nothing_but_still_admits() -> void:
 	# admits / has_room / accepts, exactly as Garrison splits them: a full bay still ADMITS
@@ -136,6 +163,7 @@ func test_a_full_bay_hands_out_nothing_but_still_admits() -> void:
 	assert_true(bay.admits(latecomer), "but the aircraft is still one this bay serves")
 	assert_false(bay.accepts(latecomer), "it just cannot be taken right now")
 
+
 func test_releasing_returns_the_pad() -> void:
 	var cmd: Commander = _commander(1)
 	var bay: DockingBay = _airfield(cmd).docking_bay
@@ -143,6 +171,7 @@ func test_releasing_returns_the_pad() -> void:
 	bay.reserve(plane)
 	bay.release(plane)
 	assert_eq(bay.free_pads().size(), bay.capacity(), "the space is free again")
+
 
 func test_a_stale_release_cannot_evict_the_current_occupant() -> void:
 	# A Rearm torn down after its aircraft already left and another arrived must not throw
@@ -157,6 +186,7 @@ func test_a_stale_release_cannot_evict_the_current_occupant() -> void:
 	pad.release(first)  # the stale release
 	assert_same(pad.claimed_by(), second, "the current occupant keeps its pad")
 
+
 func test_a_destroyed_claimant_does_not_strand_its_pad() -> void:
 	# An aircraft shot down on final approach still holds a claim; a freed claimant must
 	# read as gone rather than reserving a space forever.
@@ -168,7 +198,10 @@ func test_a_destroyed_claimant_does_not_strand_its_pad() -> void:
 	doomed.free()
 	assert_true(pad.is_free(), "and free again once its claimant is gone")
 	assert_null(pad.claimed_by(), "with no dangling reference reported")
+
+
 #endregion
+
 
 #region Recharging on the pad
 func test_only_an_arrived_aircraft_is_recharged() -> void:
@@ -185,9 +218,14 @@ func test_only_an_arrived_aircraft_is_recharged() -> void:
 	for i in 60:
 		field.docking_bay.tick_recharge()
 	assert_eq(weapon.ammo(), 0, "an inbound aircraft takes on nothing")
-	assert_false(plane.docking.is_docked_at(field.docking_bay.pads()[0]),
-		"and does not count as docked merely for holding a pad")
+	assert_false(
+		plane.docking.is_docked_at(field.docking_bay.pads()[0]),
+		"and does not count as docked merely for holding a pad"
+	)
+
+
 #endregion
+
 
 #region The capacity soft gate
 func test_spare_capacity_counts_charged_aircraft_against_pads() -> void:
@@ -202,6 +240,7 @@ func test_spare_capacity_counts_charged_aircraft_against_pads() -> void:
 	assert_eq(cmd.charged_aircraft_count(), pads, "every charged aircraft wants a pad")
 	assert_false(cmd.has_spare_docking_capacity(), "and the gate closes at parity")
 
+
 func test_units_that_reload_themselves_never_count_against_capacity() -> void:
 	# The gate is about aircraft that MUST dock, not about aircraft. Infantry — and any
 	# aircraft whose weapons reload in the field — are irrelevant to it.
@@ -211,6 +250,7 @@ func test_units_that_reload_themselves_never_count_against_capacity() -> void:
 		_entity(RECRUIT, cmd).reparent(cmd)
 	assert_eq(cmd.charged_aircraft_count(), 0, "infantry does not want a pad")
 	assert_true(cmd.has_spare_docking_capacity())
+
 
 func test_opted_out_aircraft_do_not_consume_capacity() -> void:
 	# A unit that can never occupy a pad must not reserve one in the arithmetic. Without
@@ -222,12 +262,14 @@ func test_opted_out_aircraft_do_not_consume_capacity() -> void:
 	assert_eq(cmd.charged_aircraft_count(), 0, "drones want no pads")
 	assert_true(cmd.has_spare_docking_capacity(), "so the gate stays open")
 
+
 func test_an_opted_out_aircraft_is_sent_to_no_airfield() -> void:
 	var cmd: Commander = _commander(1)
 	_airfield(cmd).reparent(cmd)
 	var drone: Commandable = _entity(KAMIKAZE, cmd)
 	drone.reparent(cmd)
 	assert_null(cmd.nearest_docking_bay_for(drone), "there is nowhere it would go")
+
 
 func test_a_commander_with_no_airfield_has_no_capacity_and_no_bay_to_send_to() -> void:
 	var cmd: Commander = _commander(1)
@@ -236,7 +278,10 @@ func test_a_commander_with_no_airfield_has_no_capacity_and_no_bay_to_send_to() -
 	assert_eq(cmd.total_docking_capacity(), 0)
 	assert_false(cmd.has_spare_docking_capacity(), "one aircraft, nowhere to put it")
 	assert_null(cmd.nearest_docking_bay_for(plane), "and nowhere to send it")
+
+
 #endregion
+
 
 #region Choosing a bay
 func test_the_nearest_bay_with_a_free_pad_wins() -> void:
@@ -252,6 +297,7 @@ func test_the_nearest_bay_with_a_free_pad_wins() -> void:
 	plane.global_position = Vector3.ZERO
 	assert_same(cmd.nearest_docking_bay_for(plane), near.docking_bay, "the close one")
 
+
 func test_a_full_near_bay_still_beats_no_bay_at_all() -> void:
 	# With every pad taken the unit queues at the nearest rather than refusing to go —
 	# the same "a full host is a queue, not a refusal" rule Occupy follows.
@@ -263,8 +309,9 @@ func test_a_full_near_bay_still_beats_no_bay_at_all() -> void:
 	for i in only.docking_bay.capacity():
 		only.docking_bay.reserve(_entity(CLIPPER, cmd))
 	assert_false(only.docking_bay.has_free_pad(), "full")
-	assert_same(cmd.nearest_docking_bay_for(plane), only.docking_bay,
-		"still the one to head for")
+	assert_same(cmd.nearest_docking_bay_for(plane), only.docking_bay, "still the one to head for")
+
+
 #endregion
 
 
@@ -282,8 +329,12 @@ func test_the_sky_port_authors_a_runway_along_its_apron() -> void:
 	var strip: Runway = _runway_of(field)
 	assert_not_null(strip, "the Sky Port has a strip")
 	assert_almost_eq(strip.heading().length(), 1.0, 0.001, "which points somewhere")
-	assert_almost_eq(strip.takeoff_point().distance_to(strip.inner_point()), strip.length,
-		0.01, "and runs its authored length from the threshold")
+	assert_almost_eq(
+		strip.takeoff_point().distance_to(strip.inner_point()),
+		strip.length,
+		0.01,
+		"and runs its authored length from the threshold"
+	)
 
 
 ## Where a departing aircraft joins the strip, and where an arriving one leaves it.
@@ -299,11 +350,19 @@ func test_the_nearest_point_lands_on_the_strip_and_is_clamped_to_it() -> void:
 
 	# Miles off either end still clamps onto the tarmac rather than running off it.
 	var beyond: Vector3 = strip.takeoff_point() - strip.heading() * 500.0
-	assert_almost_eq(strip.nearest_point(beyond).distance_to(strip.takeoff_point()), 0.0,
-		0.01, "past the threshold clamps to the threshold")
+	assert_almost_eq(
+		strip.nearest_point(beyond).distance_to(strip.takeoff_point()),
+		0.0,
+		0.01,
+		"past the threshold clamps to the threshold"
+	)
 	var past: Vector3 = strip.inner_point() + strip.heading() * 500.0
-	assert_almost_eq(strip.nearest_point(past).distance_to(strip.inner_point()), 0.0,
-		0.01, "and past the far end clamps to the far end")
+	assert_almost_eq(
+		strip.nearest_point(past).distance_to(strip.inner_point()),
+		0.0,
+		0.01,
+		"and past the far end clamps to the far end"
+	)
 
 
 ## AN ARRIVAL MEETS THE TARMAC POINTING THE WAY A REAL ONE WOULD. The fix sits out beyond
@@ -317,10 +376,19 @@ func test_the_approach_fix_lies_beyond_the_threshold_on_the_centreline() -> void
 
 	assert_almost_eq(fix.distance_to(strip.takeoff_point()), 10.0, 0.01, "ten units out")
 	var to_threshold: Vector3 = (strip.takeoff_point() - fix).normalized()
-	assert_almost_eq(to_threshold.dot(strip.heading()), 1.0, 0.001,
-		"and flying from it to the threshold means flying DOWN the runway")
-	assert_gt(fix.distance_to(strip.inner_point()), strip.length,
-		"so the fix is outside the field, not over the apron")
+	assert_almost_eq(
+		to_threshold.dot(strip.heading()),
+		1.0,
+		0.001,
+		"and flying from it to the threshold means flying DOWN the runway"
+	)
+	assert_gt(
+		fix.distance_to(strip.inner_point()),
+		strip.length,
+		"so the fix is outside the field, not over the apron"
+	)
+
+
 #endregion
 
 
@@ -334,8 +402,8 @@ func test_taxiing_walks_the_aircraft_along_its_path_and_stops() -> void:
 
 	var arrived: Array[bool] = [false]
 	plane.aerial.taxi_along(
-		[Vector3(5.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0)],
-		func() -> void: arrived[0] = true)
+		[Vector3(5.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0)], func() -> void: arrived[0] = true
+	)
 	assert_true(plane.aerial.is_taxiing(), "rolling")
 	assert_false(plane.aerial.is_docked(), "taxiing is not parked")
 
@@ -344,8 +412,12 @@ func test_taxiing_walks_the_aircraft_along_its_path_and_stops() -> void:
 			break
 		plane.aerial._physics_process(0.0)
 	assert_true(arrived[0], "it reached the end of the path")
-	assert_almost_eq(VU.inXZ(plane.global_position).length(), 0.0, 0.01,
-		"parked exactly on the last waypoint, not near it")
+	assert_almost_eq(
+		VU.inXZ(plane.global_position).length(),
+		0.0,
+		0.01,
+		"parked exactly on the last waypoint, not near it"
+	)
 	assert_true(plane.aerial.is_docked(), "and is back to being parked when it stops")
 
 
@@ -367,6 +439,8 @@ func test_an_airborne_unit_cannot_be_told_to_taxi() -> void:
 	var plane: Commandable = _entity(CLIPPER, cmd)
 	plane.aerial.taxi_along([Vector3(0.0, 0.0, 0.0)], Callable())
 	assert_false(plane.aerial.is_taxiing())
+
+
 #endregion
 
 
@@ -384,8 +458,11 @@ func test_a_new_aircraft_is_rolled_out_onto_a_free_pad() -> void:
 	assert_true(_production_of(field)._spawn_on_pad(field, plane), "the bay took it")
 	assert_true(plane.aerial.is_docked(), "and it is standing on the deck, not over it")
 	assert_not_null(plane.docking.docked_pad, "holding the pad it was given")
-	assert_eq(VU.inXZ(plane.global_position), VU.inXZ(plane.docking.docked_pad.dock_position()),
-		"parked on the mark")
+	assert_eq(
+		VU.inXZ(plane.global_position),
+		VU.inXZ(plane.docking.docked_pad.dock_position()),
+		"parked on the mark"
+	)
 
 
 ## The pad is HELD, so the next aircraft off the line gets a different one rather than
@@ -432,6 +509,8 @@ func test_leaving_a_dock_you_are_not_in_does_nothing() -> void:
 	var plane: Commandable = _entity(CLIPPER, cmd)
 	plane.docking.leave_dock()
 	assert_null(plane.docking.docked_pad)
+
+
 #endregion
 
 
@@ -451,14 +530,23 @@ func test_leaving_a_pad_taxis_to_the_runway_before_climbing() -> void:
 	plane.docking.leave_dock()
 	assert_true(plane.aerial.is_taxiing(), "it rolls, it does not jump")
 	assert_false(plane.aerial.is_airborne())
-	assert_eq(plane.aerial._taxi_path.size(), 2,
-		"two legs: across the apron onto the strip, then down it")
-	assert_almost_eq(strip.distance_to(plane.aerial._taxi_path[0]), 0.0, 0.01,
-		"the first leg ends ON the strip")
-	assert_almost_eq(plane.aerial._taxi_path[1].distance_to(strip.takeoff_point()), 0.0,
-		0.01, "and the second at the threshold it climbs from")
-	assert_ne(started_at, plane.aerial._taxi_path[0],
-		"the join is somewhere other than the pad, or there is no taxi at all")
+	assert_eq(
+		plane.aerial._taxi_path.size(), 2, "two legs: across the apron onto the strip, then down it"
+	)
+	assert_almost_eq(
+		strip.distance_to(plane.aerial._taxi_path[0]), 0.0, 0.01, "the first leg ends ON the strip"
+	)
+	assert_almost_eq(
+		plane.aerial._taxi_path[1].distance_to(strip.takeoff_point()),
+		0.0,
+		0.01,
+		"and the second at the threshold it climbs from"
+	)
+	assert_ne(
+		started_at,
+		plane.aerial._taxi_path[0],
+		"the join is somewhere other than the pad, or there is no taxi at all"
+	)
 
 
 ## The pad goes back the moment it leaves, not when it finishes taxiing — otherwise a space
@@ -488,6 +576,8 @@ func test_a_bay_with_no_runway_still_lifts_straight_off_the_pad() -> void:
 	plane.docking.leave_dock()
 	assert_false(plane.aerial.is_taxiing(), "nothing to roll along")
 	assert_false(plane.aerial.is_docked(), "but it did leave")
+
+
 #endregion
 
 
@@ -531,6 +621,8 @@ func test_a_producer_with_no_bay_is_never_blocked() -> void:
 	var barracks: Commandable = _entity({"structure": true}, cmd)
 	assert_null(barracks.get_node_or_null("DockingBay"))
 	assert_true(Train.has_free_pad_for(barracks, _tool_for(true)))
+
+
 #endregion
 
 
@@ -590,6 +682,8 @@ func test_a_busy_runway_keeps_the_departing_aircraft_on_its_pad() -> void:
 	waiting.docking.leave_dock()
 	assert_true(waiting.aerial.is_taxiing(), "and rolls the moment the strip is clear")
 	assert_eq(strip.claimed_by(), waiting)
+
+
 #endregion
 
 
@@ -608,16 +702,24 @@ func test_a_taxiing_unit_turns_before_it_moves() -> void:
 	plane.aerial.taxi_along([Vector3(0.0, 0.0, -10.0)], Callable())
 
 	plane.aerial._physics_process(0.0)
-	assert_almost_eq(plane.global_position.length(), 0.0, 0.001,
-		"it has not moved a millimetre while it is still swinging round")
+	assert_almost_eq(
+		plane.global_position.length(),
+		0.0,
+		0.001,
+		"it has not moved a millimetre while it is still swinging round"
+	)
 
 	for _i: int in 400:
 		plane.aerial._physics_process(0.0)
 		if plane.global_position.length() > 0.01:
 			break
 	assert_gt(plane.global_position.length(), 0.01, "and once pointed, it rolls")
-	assert_true(plane.movement.is_facing_within(Vector3(0.0, 0.0, -10.0), 0.05),
-		"pointed the way it is going, not crabbing sideways")
+	assert_true(
+		plane.movement.is_facing_within(Vector3(0.0, 0.0, -10.0), 0.05),
+		"pointed the way it is going, not crabbing sideways"
+	)
+
+
 #endregion
 
 
@@ -631,18 +733,21 @@ func test_an_aircraft_waiting_for_the_runway_keeps_its_order() -> void:
 	var cmd: Commander = _commander(1)
 	var field: Commandable = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	strip.claim(_entity(CLIPPER, cmd))          # somebody else has the strip
+	strip.claim(_entity(CLIPPER, cmd))  # somebody else has the strip
 
 	var waiting: Commandable = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, waiting)
-	waiting.update_commands(MoveCommand.new(
-		CommandMessage.new(null, null, null, Vector3(40.0, 0.0, 40.0))))
+	waiting.update_commands(
+		MoveCommand.new(CommandMessage.new(null, null, null, Vector3(40.0, 0.0, 40.0)))
+	)
 	assert_false(waiting.command_receiver.is_idle(), "it took the order")
 
 	for _i: int in 30:
 		waiting.command_receiver._process_commands()
-	assert_false(waiting.command_receiver.is_idle(),
-		"and still has it after thirty ticks of being unable to roll")
+	assert_false(
+		waiting.command_receiver.is_idle(),
+		"and still has it after thirty ticks of being unable to roll"
+	)
 	assert_true(waiting.aerial.is_docked(), "because it never left its pad")
 
 
@@ -667,6 +772,8 @@ func test_the_strip_is_released_once_the_departing_aircraft_is_airborne() -> voi
 			break
 	plane.docking.release_runway()
 	assert_true(strip.is_free(), "and handed back the moment it is airborne")
+
+
 #endregion
 
 
@@ -674,7 +781,7 @@ func test_the_strip_is_released_once_the_departing_aircraft_is_airborne() -> voi
 ## A live Rearm with its pad already claimed, as the first tick of one would leave it.
 func _rearm_on(a_actor: Commandable, a_field: Commandable) -> Rearm:
 	var order := Rearm.new(CommandMessage.new(null, a_field, null, a_field.global_position))
-	order.get_updated_state(a_actor)   # claims a pad
+	order.get_updated_state(a_actor)  # claims a pad
 	return order
 
 
@@ -697,7 +804,9 @@ func test_a_rearm_cut_short_hands_the_pad_over_instead_of_taking_off() -> void:
 
 	order.on_released(plane)
 	assert_true(plane.aerial.is_docked(), "it is still standing on the deck")
-	assert_eq(plane.docking.docked_pad, pad, "and now owns the pad itself — the command let go of it")
+	assert_eq(
+		plane.docking.docked_pad, pad, "and now owns the pad itself — the command let go of it"
+	)
 	assert_null(order._pad, "so the command no longer holds it")
 	assert_true(plane.docking.is_docked_on_pad(), "so its departure will go through leave_dock")
 
@@ -711,6 +820,8 @@ func test_a_rearm_cut_short_in_the_air_still_takes_off() -> void:
 	order.on_released(plane)
 	assert_null(plane.docking.docked_pad, "nothing to hand over — it never parked")
 	assert_true(order._pad == null or order._pad.is_free(), "and the pad went back")
+
+
 #endregion
 
 
@@ -728,9 +839,10 @@ func test_a_parked_idle_aircraft_turns_toward_its_taxiway() -> void:
 
 	for _i: int in 400:
 		plane.docking.aim_parked_at_runway()
-	assert_true(plane.movement.is_facing_within(
-		Vector3(join.x, plane.global_position.y, join.z), 0.05),
-		"it has come round to face the way it will leave")
+	assert_true(
+		plane.movement.is_facing_within(Vector3(join.x, plane.global_position.y, join.z), 0.05),
+		"it has come round to face the way it will leave"
+	)
 
 
 ## The apron is a crawl; the strip is a takeoff roll. An aircraft that trundled to the
@@ -749,10 +861,19 @@ func test_the_last_leg_of_a_departure_opens_up_to_flight_speed() -> void:
 		fastest = maxf(fastest, VU.inXZ(plane.movement._current_velocity).length())
 		if not plane.aerial.is_taxiing():
 			break
-	assert_gt(fastest, plane.movement.speed * Aerial.TAXI_SPEED_FACTOR + 0.5,
-		"it went faster than a taxi somewhere along the way")
-	assert_almost_eq(fastest, plane.movement.speed, plane.movement.speed * 0.35,
-		"and got near flight speed by the threshold")
+	assert_gt(
+		fastest,
+		plane.movement.speed * Aerial.TAXI_SPEED_FACTOR + 0.5,
+		"it went faster than a taxi somewhere along the way"
+	)
+	assert_almost_eq(
+		fastest,
+		plane.movement.speed,
+		plane.movement.speed * 0.35,
+		"and got near flight speed by the threshold"
+	)
+
+
 #endregion
 
 
@@ -768,8 +889,9 @@ func _approaching(a_field: Commandable, a_plane: Commandable) -> Rearm:
 	return order
 
 
-func _place_on_final(a_plane: Commandable, a_strip: Runway, a_out: float,
-		a_lateral: float, a_reversed: bool) -> void:
+func _place_on_final(
+	a_plane: Commandable, a_strip: Runway, a_out: float, a_lateral: float, a_reversed: bool
+) -> void:
 	var along: Vector3 = a_strip.heading()
 	var side := Vector3(-along.z, 0.0, along.x)
 	a_plane.global_position = a_strip.takeoff_point() - along * a_out + side * a_lateral
@@ -798,8 +920,10 @@ func test_an_aircraft_pointed_away_may_not() -> void:
 	var plane: Commandable = _entity(CLIPPER, cmd)
 	var order: Rearm = _approaching(field, plane)
 	_place_on_final(plane, strip, 4.0, 0.0, true)
-	assert_false(order._is_established_on_final(plane),
-		"sitting on the centreline is not enough if it is heading out of the field")
+	assert_false(
+		order._is_established_on_final(plane),
+		"sitting on the centreline is not enough if it is heading out of the field"
+	)
 
 
 ## Nor from the wrong side of the threshold — it is past the numbers.
@@ -825,8 +949,10 @@ func test_the_corridor_admits_an_aircraft_that_has_just_turned_around() -> void:
 	var diameter: float = plane.movement.turn_radius() * 2.0
 	assert_gt(diameter, 0.0, "the clipper has a finite turn rate")
 	_place_on_final(plane, strip, 4.0, diameter * 0.9, false)
-	assert_true(order._is_established_on_final(plane),
-		"a turn-diameter offset is a correction the descent can converge, not a rejection")
+	assert_true(
+		order._is_established_on_final(plane),
+		"a turn-diameter offset is a correction the descent can converge, not a rejection"
+	)
 
 
 ## Miles off to the side is still a rejection, though.
@@ -838,6 +964,8 @@ func test_far_off_the_centreline_is_still_refused() -> void:
 	var order: Rearm = _approaching(field, plane)
 	_place_on_final(plane, strip, 4.0, 40.0, false)
 	assert_false(order._is_established_on_final(plane))
+
+
 #endregion
 
 
@@ -885,11 +1013,13 @@ func test_a_refuelling_aircraft_already_faces_its_taxiway() -> void:
 	var join: Vector3 = strip.nearest_point(plane.global_position)
 	for _i: int in 600:
 		plane.docking.aim_parked_at_runway()
-	assert_true(plane.movement.is_facing_within(
-		Vector3(join.x, plane.global_position.y, join.z), 0.05),
-		"pointed the way it will leave while it is still taking on fuel")
-#endregion
+	assert_true(
+		plane.movement.is_facing_within(Vector3(join.x, plane.global_position.y, join.z), 0.05),
+		"pointed the way it will leave while it is still taking on fuel"
+	)
 
+
+#endregion
 
 #region Losing the deck under you
 ## An airfield destroyed with aircraft parked on it. The pads go with it, so the claim a
@@ -901,6 +1031,7 @@ func test_a_refuelling_aircraft_already_faces_its_taxiway() -> void:
 ## The rule (see gdd/systems/combat/aerial-operations/docking-bays-and-pads.md): give up the
 ## space that no longer exists, then go and stand somewhere else — or hold over the wreck
 ## when there is nowhere else to stand.
+
 
 ## Kill `a_field` outright and let the frees settle, so its pads are genuinely gone.
 func _demolish(a_field: Commandable) -> void:
@@ -978,8 +1109,11 @@ func test_with_nowhere_left_to_go_it_holds_over_the_wreck() -> void:
 	plane.docking.release_lost_dock()
 
 	assert_null(plane.current_command(), "no airfield to be sent to")
-	assert_eq(VU.inXZ(plane.aerial._anchor), VU.inXZ(parked_at),
-		"so it orbits where its airfield used to be")
+	assert_eq(
+		VU.inXZ(plane.aerial._anchor),
+		VU.inXZ(parked_at),
+		"so it orbits where its airfield used to be"
+	)
 
 
 func test_a_rearm_whose_airfield_dies_ends_instead_of_crashing() -> void:

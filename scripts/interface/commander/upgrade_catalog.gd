@@ -52,10 +52,7 @@ static func title_of(a_id: StringName) -> String:
 ## The LONGEST rather than the latest: two upgrades extending one reach should never shorten
 ## it by being researched in the other order.
 static func range_for(
-	a_commander: Commander,
-	a_piece_id: StringName,
-	a_ability: StringName,
-	a_base: float
+	a_commander: Commander, a_piece_id: StringName, a_ability: StringName, a_base: float
 ) -> float:
 	if a_commander == null:
 		return a_base
@@ -63,9 +60,11 @@ static func range_for(
 	for upgrade_id: StringName in a_commander.owned_upgrades():
 		for modifier: Variant in (_entries.get(upgrade_id, {}) as Dictionary).get("modifies", []):
 			var m: Dictionary = modifier if modifier is Dictionary else {}
-			if StringName(str(m.get("piece", ""))) != a_piece_id \
-					or StringName(str(m.get("ability", ""))) != a_ability \
-					or not m.has("range"):
+			if (
+				StringName(str(m.get("piece", ""))) != a_piece_id
+				or StringName(str(m.get("ability", ""))) != a_ability
+				or not m.has("range")
+			):
 				continue
 			best = maxf(best, float(m["range"]))
 	return best

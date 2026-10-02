@@ -18,6 +18,7 @@ func _sanction(a_description: String) -> Sanction:
 
 # --- The field ------------------------------------------------------------------
 
+
 func test_description_defaults_to_blank() -> void:
 	# An un-described sanction must degrade to "no tooltip", not to an empty popup.
 	assert_eq(Sanction.new().description, "")
@@ -32,6 +33,7 @@ func test_description_survives_the_per_commander_duplicate() -> void:
 
 
 # --- The tooltip button ---------------------------------------------------------
+
 
 ## A button gets its copy before it joins the tree, the way every HUD builder does it
 ## (see ButtonSpec.create_button_from_spec) — _ready is the deadline, and reports a
@@ -87,6 +89,7 @@ func test_the_built_in_tooltip_stays_suppressed() -> void:
 
 # --- The authored factions ------------------------------------------------------
 
+
 func _descriptions_of(a_faction_scene: PackedScene) -> Dictionary:
 	var faction: Node = a_faction_scene.instantiate()
 	autofree(faction)
@@ -101,13 +104,17 @@ func test_every_anarchical_sanction_is_described() -> void:
 	var descriptions: Dictionary = _descriptions_of(ANARCHICAL)
 	assert_gt(descriptions.size(), 0, "the faction authors some sanctions")
 	for sanction_name: String in descriptions:
-		assert_false((descriptions[sanction_name] as String).is_empty(),
-			"%s has a tooltip description" % sanction_name)
+		assert_false(
+			(descriptions[sanction_name] as String).is_empty(),
+			"%s has a tooltip description" % sanction_name
+		)
 
 
 func test_every_colonial_sanction_is_described() -> void:
 	var descriptions: Dictionary = _descriptions_of(COLONIAL)
 	assert_gt(descriptions.size(), 0, "the faction authors some sanctions")
 	for sanction_name: String in descriptions:
-		assert_false((descriptions[sanction_name] as String).is_empty(),
-			"%s has a tooltip description" % sanction_name)
+		assert_false(
+			(descriptions[sanction_name] as String).is_empty(),
+			"%s has a tooltip description" % sanction_name
+		)

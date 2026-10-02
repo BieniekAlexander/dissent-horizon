@@ -21,11 +21,14 @@ var _manager: ScenarioTriggerManager
 
 ## A condition whose result is set directly by the test, counting its own resets — same
 ## idiom as test_Triggers.gd.
-class StubCondition extends Condition:
+class StubCondition:
+	extends Condition
 	var result: bool = false
 	var reset_count: int = 0
+
 	func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
 		return result
+
 	func reset() -> void:
 		super.reset()
 		reset_count += 1
@@ -84,6 +87,7 @@ func _tick() -> void:
 
 # --- The premise ---------------------------------------------------------------
 
+
 func test_condition_subresources_are_shared_between_scene_instances() -> void:
 	# Why any of this is needed: instantiating a scene twice does NOT give each instance its
 	# own copy of an authored sub-resource, so the second run of a scenario gets the first
@@ -98,7 +102,8 @@ func test_condition_subresources_are_shared_between_scene_instances() -> void:
 	var from_first: Condition = first.conditions[0]
 	var from_second: Condition = second.conditions[0]
 	assert_eq(
-		from_first.get_instance_id(), from_second.get_instance_id(),
+		from_first.get_instance_id(),
+		from_second.get_instance_id(),
 		"two instances of one scene share the same Condition object"
 	)
 
@@ -109,6 +114,7 @@ func test_condition_subresources_are_shared_between_scene_instances() -> void:
 
 
 # --- What the session reset clears ---------------------------------------------
+
 
 func test_a_countdown_left_running_restarts_from_the_new_session() -> void:
 	var timer := _timer(SECONDS, ConditionTimer.Mode.COUNTDOWN)
@@ -183,6 +189,7 @@ func test_tactic_rule_conditions_are_reset_too() -> void:
 
 
 # --- What it must NOT clear -----------------------------------------------------
+
 
 func test_re_arming_mid_session_keeps_accumulated_state() -> void:
 	# An EventChainTrigger switching a trigger off and on again is not a new session: a

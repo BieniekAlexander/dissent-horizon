@@ -6,6 +6,7 @@ extends RefCounted
 ## likes — the bot spreads that asking over several thinks, so the snapshot is what keeps one
 ## search's answers consistent with each other.
 
+
 ## Dominion per cycle a new source would ADD standing at `a_world_xz`.
 func gain_at(_a_world_xz: Vector2) -> float:
 	return 0.0

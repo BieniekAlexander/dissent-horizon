@@ -41,6 +41,7 @@ const MAX_PER_TICK: int = 4
 const QUERY_LIMIT: int = 32
 #endregion
 
+
 #region Public API
 ## Convert up to [MAX_PER_TICK] of the liberatable units currently in reach; any
 ## beyond that are picked up on following ticks. Called once per physics frame from
@@ -56,8 +57,15 @@ func tick() -> void:
 		return
 	# No exclude list: the host is not on LIBERATABLE (it carries no Liberatable), so it
 	# cannot come back from its own query the way it did on the shared targeting layer.
-	var found: Array[Entity] = SU.entities_within(host.get_world_3d(), host.hull(),
-		reach.shape, reach.global_position, CollisionLayers.Mask.LIBERATABLE, [], QUERY_LIMIT)
+	var found: Array[Entity] = SU.entities_within(
+		host.get_world_3d(),
+		host.hull(),
+		reach.shape,
+		reach.global_position,
+		CollisionLayers.Mask.LIBERATABLE,
+		[],
+		QUERY_LIMIT
+	)
 	var converted: int = 0
 	for candidate: Entity in found:
 		if converted >= MAX_PER_TICK:
@@ -66,11 +74,15 @@ func tick() -> void:
 			continue
 		_liberate(host, candidate)
 		converted += 1
+
+
 #endregion
+
 
 #region Private helpers
 func _reach_shape(a_host: Commandable) -> CollisionShape3D:
 	return a_host.get_node_or_null("LiberationRange") as CollisionShape3D
+
 
 ## The only thing still worth re-testing at the call site: that the candidate is still
 ## there. Everything the LIBERATABLE layer encodes (kind, neutrality) is already true of
@@ -79,6 +91,7 @@ func _reach_shape(a_host: Commandable) -> CollisionShape3D:
 ## queries until the tree flush.
 func _is_liberatable(a_entity: Entity) -> bool:
 	return is_instance_valid(a_entity) and not a_entity.is_queued_for_deletion()
+
 
 ## Swap `a_entity` for a [converted_scene] instance owned by the host's commander,
 ## then set the recruit following its liberator.
@@ -99,6 +112,7 @@ func _liberate(a_host: Commandable, a_entity: Entity) -> void:
 		return
 	a_host.map.add_entity(recruit, spot, a_host.commander)
 	_follow(recruit, a_host)
+
 
 ## Give [a_recruit] a plain MoveCommand TARGETING its liberator, which CommandReceiver
 ## reads as a follow: the recruit trails the warlord, stopping once their bodies would

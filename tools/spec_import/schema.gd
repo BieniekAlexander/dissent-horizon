@@ -33,7 +33,6 @@ const SpecFrontmatter := preload("res://tools/spec_import/frontmatter.gd")
 ## Sub-keys are indented by two spaces, matching every nest already in the roster.
 const INDENT_STEP: int = 2
 
-
 # --------------------------------------------------------------------------- #
 # Canonical order
 # --------------------------------------------------------------------------- #
@@ -47,29 +46,71 @@ const INDENT_STEP: int = 2
 ## numbers above it, and it is the only block whose entries are prose.
 const TOP_LEVEL_ORDER: Array = [
 	# Identity — what the file is.
-	"kind", "title", "scene", "editor_description", "commandable", "family",
+	"kind",
+	"title",
+	"scene",
+	"editor_description",
+	"commandable",
+	"family",
 	# Flavor, then the macroeconomic transaction.
-	"flavor", "build",
+	"flavor",
+	"build",
 	# The three value nests.
-	"defense", "senses", "body",
+	"defense",
+	"senses",
+	"body",
 	# The discriminating component keys — one key per component, deliberately flat.
-	"movement", "aerial", "docking", "footprint", "weapons", "trains", "researches", "builds", "variants", "garrison",
-	"deploys", "abilities",
-	"repairs", "stealth", "beacon", "shelter", "extraction_site", "extractor",
+	"movement",
+	"aerial",
+	"docking",
+	"footprint",
+	"weapons",
+	"trains",
+	"researches",
+	"builds",
+	"variants",
+	"garrison",
+	"deploys",
+	"abilities",
+	"repairs",
+	"stealth",
+	"beacon",
+	"shelter",
+	"extraction_site",
+	"extractor",
 	# Root-node properties: neither belongs to a component.
-	"infrastructure", "occupancy_size",
+	"infrastructure",
+	"occupancy_size",
 	# Presentation and meta.
-	"ui", "exceptions",
+	"ui",
+	"exceptions",
 	# Emissions (today's `kind: projectile`): the payload, then the flat motion shorthand,
 	# then the phase list that replaces the shorthand when present.
-	"damage", "damage_type", "blast", "status_effects", "speed", "trajectory", "hitscan",
-	"bio_ground_aim", "phases",
+	"damage",
+	"damage_type",
+	"blast",
+	"status_effects",
+	"speed",
+	"trajectory",
+	"hitscan",
+	"bio_ground_aim",
+	"phases",
 	# Faction docs.
-	"starts_with", "sanctions",
+	"starts_with",
+	"sanctions",
 	# Ability docs: what the ability IS, then the dominion unlock route it may
 	# have (`column`/`levels`). Neither kind is a game piece, so the component
 	# rule has nothing to say about them.
-	"passive", "hud_button", "command", "range", "cast_by", "reveals", "valence", "emits", "column", "levels",
+	"passive",
+	"hud_button",
+	"command",
+	"range",
+	"cast_by",
+	"reveals",
+	"valence",
+	"emits",
+	"column",
+	"levels",
 	# Upgrade docs: what the research changes.
 	"modifies",
 	# Shape-library docs: a bare radius.
@@ -90,33 +131,103 @@ const NESTED_ORDER: Dictionary = {
 	"defense": ["hp", "armour", "frame"],
 	"senses": ["vision", "detection"],
 	"body": ["radius", "target"],
-	"movement": ["speed", "turn_rate", "max_acceleration", "max_deceleration",
-		"crush_class", "min_turn_speed_ratio", "reverse_speed_ratio"],
+	"movement":
+	[
+		"speed",
+		"turn_rate",
+		"max_acceleration",
+		"max_deceleration",
+		"crush_class",
+		"min_turn_speed_ratio",
+		"reverse_speed_ratio"
+	],
 	"aerial": ["mode", "orbit_radius", "orbit_speed"],
-	"garrison": ["capacity", "frames", "armours", "movements", "closed", "releasable", "bunker",
-		"preserve_occupants", "range_bonus", "reach_by_piece", "pieces", "sentence_length"],
-	"weapons": ["name", "emits", "melee_damage", "melee_damage_type", "split_time",
-		"reload_time", "startup_time", "clip_size", "charged", "turret", "turret_turn_rate", "reach", "hits"],
+	"garrison":
+	[
+		"capacity",
+		"frames",
+		"armours",
+		"movements",
+		"closed",
+		"releasable",
+		"bunker",
+		"preserve_occupants",
+		"range_bonus",
+		"reach_by_piece",
+		"pieces",
+		"sentence_length"
+	],
+	"weapons":
+	[
+		"name",
+		"emits",
+		"melee_damage",
+		"melee_damage_type",
+		"split_time",
+		"reload_time",
+		"startup_time",
+		"clip_size",
+		"charged",
+		"turret",
+		"turret_turn_rate",
+		"reach",
+		"hits"
+	],
 	# An INLINE emission, written where the weapon fires it. `id`/`title`/`scene`
 	# come first for the same reason they do at top level; the rest is the
-	# emission order above.
-	"emits": ["id", "title", "scene", "damage", "damage_type", "blast", "status_effects",
-		"speed", "trajectory", "hitscan", "bio_ground_aim", "phases"],
+	"emits":
+	[
+		# emission order above.
+		"id",
+		"title",
+		"scene",
+		"damage",
+		"damage_type",
+		"blast",
+		"status_effects",
+		"speed",
+		"trajectory",
+		"hitscan",
+		"bio_ground_aim",
+		"phases"
+	],
 	# One phase of an emission, in the order it is read: how it moves, what ends it, what it does.
-	"phases": ["name", "motion", "ends_on_arrival", "lifespan", "impact_mask", "payload",
-		"emits", "visuals"],
-	"motion": ["preset", "speed", "gravity", "launch_pitch", "turn_rate", "launch_speed_ratio",
-		"acceleration", "min_speed", "jitter", "jitter_frequency"],
+	"phases":
+	["name", "motion", "ends_on_arrival", "lifespan", "impact_mask", "payload", "emits", "visuals"],
+	"motion":
+	[
+		"preset",
+		"speed",
+		"gravity",
+		"launch_pitch",
+		"turn_rate",
+		"launch_speed_ratio",
+		"acceleration",
+		"min_speed",
+		"jitter",
+		"jitter_frequency"
+	],
 	"reach": ["ground", "air"],
 	"deploys": ["time", "undeploy_time", "cancellable"],
 	"abilities": ["max_charges", "initial_charges", "cooldown", "grants"],
 	"ui": ["grid", "active_grid", "context_grid", "factions", "tooltip", "verbose"],
-	"levels": ["title", "tier", "cost", "cooldown", "description", "verbose",
-		"needs_vision", "needs_target", "kill_bounty", "ability", "ability_level",
-		"payloads"],
+	"levels":
+	[
+		"title",
+		"tier",
+		"cost",
+		"cooldown",
+		"description",
+		"verbose",
+		"needs_vision",
+		"needs_target",
+		"kill_bounty",
+		"ability",
+		"ability_level",
+		"payloads"
+	],
 	"payloads": ["piece", "count"],
 }
-
 
 # --------------------------------------------------------------------------- #
 # The doc shape -> the internal shape
@@ -126,8 +237,8 @@ const NESTED_ORDER: Dictionary = {
 ## moved no code — see the class docs for why that seam is here and only here.
 const NESTS: Dictionary = {
 	"flavor": {"description": "description", "verbose": "verbose"},
-	"build": {"cost": "cost", "time": "build_time", "requires": "requires",
-		"completes_as": "completes_as"},
+	"build":
+	{"cost": "cost", "time": "build_time", "requires": "requires", "completes_as": "completes_as"},
 	"defense": {"hp": "hp", "armour": "armour", "frame": "frame"},
 	"senses": {"vision": "vision", "detection": "detection"},
 	"body": {"radius": "movement_radius", "target": "target_radius"},
@@ -135,37 +246,53 @@ const NESTS: Dictionary = {
 
 ## Top-level keys that are renamed rather than nested: {authored: internal}.
 const RENAMES: Dictionary = {
-	"abilities": "ability_groups",   # the `_groups` suffix described the YAML, not the component
-	"beacon": "beacon_range",        # a bare radius, so the `_range` suffix was noise
+	"abilities": "ability_groups",  # the `_groups` suffix described the YAML, not the component
+	"beacon": "beacon_range",  # a bare radius, so the `_range` suffix was noise
 }
 
 ## Keys that no longer exist at all, and what replaces each. Refused rather than
 ## ignored, for the reason the retired flat spellings are: a doc still naming one
 ## believes it is configuring something.
 const RETIRED: Dictionary = {
-	"bombards": "abilities: — a battery is an ability with a per-use `emits:`, not a component of its own",
-	"visual": "exceptions: {has_mesh_visual: <why>} — the opt-out from a model is a waiver, "
-		+ "so it goes STALE when the piece grows art",
-	"spotting": "abilities: — grant `spot`; calling a firing solution is an ability like any other, not a marker component",
+	"bombards":
+	"abilities: — a battery is an ability with a per-use `emits:`, not a component of its own",
+	"visual":
+	(
+		"exceptions: {has_mesh_visual: <why>} — the opt-out from a model is a waiver, "
+		+ "so it goes STALE when the piece grows art"
+	),
+	"spotting":
+	(
+		"abilities: — grant `spot`; calling a firing solution is an ability like any "
+		+ "other, not a marker component"
+	),
 }
 
 ## Nested keys that no longer exist, keyed by their doc path, and what replaces each.
 const RETIRED_NESTED: Dictionary = {
 	"senses.aggro":
-		"aggro is derived from weapon reach at runtime (RangeShapes), so remove the key",
+	"aggro is derived from weapon reach at runtime (RangeShapes), so remove the key",
 }
 
 ## internal key -> the DOC path that now carries it. Read both ways: a doc still
 ## naming the internal key is a hard error that names the new path, and every
 ## message that mentions a key spells it the way the author writes it.
 const DOC_KEY: Dictionary = {
-	"description": "flavor.description", "verbose": "flavor.verbose",
-	"cost": "build.cost", "build_time": "build.time", "requires": "build.requires",
+	"description": "flavor.description",
+	"verbose": "flavor.verbose",
+	"cost": "build.cost",
+	"build_time": "build.time",
+	"requires": "build.requires",
 	"completes_as": "build.completes_as",
-	"hp": "defense.hp", "armour": "defense.armour", "frame": "defense.frame",
-	"vision": "senses.vision", "detection": "senses.detection",
-	"movement_radius": "body.radius", "target_radius": "body.target",
-	"ability_groups": "abilities", "beacon_range": "beacon",
+	"hp": "defense.hp",
+	"armour": "defense.armour",
+	"frame": "defense.frame",
+	"vision": "senses.vision",
+	"detection": "senses.detection",
+	"movement_radius": "body.radius",
+	"target_radius": "body.target",
+	"ability_groups": "abilities",
+	"beacon_range": "beacon",
 }
 
 ## What a built piece stands up as once construction finishes. STRUCTURE is the
@@ -200,8 +327,17 @@ static func is_commandable(spec: Dictionary) -> bool:
 
 ## The keys only an emission has. An `Entity` doc naming any of them is an emission: a piece put
 ## into the world by an emitter and moved by its phase list (composition-rework §The name).
-const EMISSION_KEYS: Array[String] = ["phases", "speed", "trajectory", "damage", "damage_type",
-	"blast", "hitscan", "bio_ground_aim", "status_effects"]
+const EMISSION_KEYS: Array[String] = [
+	"phases",
+	"speed",
+	"trajectory",
+	"damage",
+	"damage_type",
+	"blast",
+	"hitscan",
+	"bio_ground_aim",
+	"status_effects"
+]
 
 
 static func is_emission(spec: Dictionary) -> bool:
@@ -307,7 +443,7 @@ static func _lift_nest(spec: Dictionary, nest: String, errors: Array) -> void:
 	if not (value is Dictionary):
 		errors.append("%s must be a mapping of %s" % [nest, members.keys()])
 		return
-	for key in (value as Dictionary):
+	for key in value as Dictionary:
 		var path: String = "%s.%s" % [nest, key]
 		if RETIRED_NESTED.has(path):
 			errors.append("`%s:` is retired — %s" % [path, RETIRED_NESTED[path]])
@@ -324,7 +460,7 @@ static func _lift_nest(spec: Dictionary, nest: String, errors: Array) -> void:
 static func _normalize_weapons(spec: Dictionary, errors: Array) -> void:
 	if not (spec.get("weapons") is Array):
 		return
-	for entry in (spec["weapons"] as Array):
+	for entry in spec["weapons"] as Array:
 		if not (entry is Dictionary):
 			continue
 		var weapon: Dictionary = entry
@@ -342,7 +478,12 @@ static func _normalize_weapons(spec: Dictionary, errors: Array) -> void:
 ## body, and none of them has a consumer yet — see the README's schema section.
 static func _check_new_keys(spec: Dictionary, errors: Array) -> void:
 	if spec.has("commandable") and not (spec["commandable"] is bool):
-		errors.append("commandable must be true or false (it is an OVERRIDE of the derivation, not a declaration)")
+		(
+			errors
+			. append(
+				"commandable must be true or false (it is an OVERRIDE of the derivation, not a declaration)"
+			)
+		)
 	if spec.has("completes_as"):
 		var completes: String = str(spec["completes_as"])
 		if not COMPLETES_AS.has(completes):
@@ -379,8 +520,7 @@ static func reorder_frontmatter(text: String) -> String:
 ## One MAPPING level, at exactly `a_indent`. Returns the level's lines reordered,
 ## or the lines untouched when the level is not a shape this understands.
 static func _reorder_level(lines: Array, indent: int, parent_key: String) -> Array:
-	var order: Array = NESTED_ORDER.get(parent_key, []) if parent_key != "" \
-		else TOP_LEVEL_ORDER
+	var order: Array = NESTED_ORDER.get(parent_key, []) if parent_key != "" else TOP_LEVEL_ORDER
 	var blocks: Array = []
 	# Blank and comment lines waiting for the key they introduce. A key's own TRAILING
 	# blanks never reach here — _absorb_body keeps those with their block.
@@ -395,16 +535,18 @@ static func _reorder_level(lines: Array, indent: int, parent_key: String) -> Arr
 			i += 1
 			continue
 		if line_indent != indent:
-			return lines   # irregular indentation: leave the level exactly as authored
+			return lines  # irregular indentation: leave the level exactly as authored
 		var content: String = line.substr(line_indent)
 		if content.begins_with("- ") or content == "-":
-			return lines   # a sequence, not a mapping — handled by _reorder_sequence
+			return lines  # a sequence, not a mapping — handled by _reorder_sequence
 		var colon: int = SpecFrontmatter.key_colon(content)
 		if colon == -1:
 			return lines
 		var block: Dictionary = {
 			"key": _unquote(content.substr(0, colon).strip_edges()),
-			"trivia": pending, "lines": [line], "orig": blocks.size(),
+			"trivia": pending,
+			"lines": [line],
+			"orig": blocks.size(),
 		}
 		pending = []
 		i = _absorb_body(lines, i + 1, indent, block["lines"])
@@ -413,15 +555,17 @@ static func _reorder_level(lines: Array, indent: int, parent_key: String) -> Arr
 		return lines
 	for block: Dictionary in blocks:
 		_reorder_block_body(block, indent)
-	blocks.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var ra: int = _rank(str(a["key"]), order)
-		var rb: int = _rank(str(b["key"]), order)
-		return int(a["orig"]) < int(b["orig"]) if ra == rb else ra < rb)
+	blocks.sort_custom(
+		func(a: Dictionary, b: Dictionary) -> bool:
+			var ra: int = _rank(str(a["key"]), order)
+			var rb: int = _rank(str(b["key"]), order)
+			return int(a["orig"]) < int(b["orig"]) if ra == rb else ra < rb
+	)
 	var out: Array = []
 	for block: Dictionary in blocks:
 		out.append_array(block["trivia"])
 		out.append_array(block["lines"])
-	out.append_array(pending)   # trailing trivia belongs to no key
+	out.append_array(pending)  # trailing trivia belongs to no key
 	return out
 
 
@@ -433,8 +577,9 @@ static func _reorder_level(lines: Array, indent: int, parent_key: String) -> Arr
 ## sequence written at its own indent (YAML allows it and two docs in the roster do
 ## it), so it takes those; a sequence ITEM must not, or the first item would swallow
 ## every item after it.
-static func _absorb_body(lines: Array, start: int, indent: int, out: Array,
-		take_same_indent_items: bool = true) -> int:
+static func _absorb_body(
+	lines: Array, start: int, indent: int, out: Array, take_same_indent_items: bool = true
+) -> int:
 	var i: int = start
 	var pending: Array = []
 	while i < lines.size():
@@ -446,9 +591,14 @@ static func _absorb_body(lines: Array, start: int, indent: int, out: Array,
 			continue
 		var line_indent: int = _indent_of(line)
 		var content: String = line.substr(line_indent)
-		var belongs: bool = line_indent > indent \
-			or (take_same_indent_items and line_indent == indent \
-				and (content.begins_with("- ") or content == "-"))
+		var belongs: bool = (
+			line_indent > indent
+			or (
+				take_same_indent_items
+				and line_indent == indent
+				and (content.begins_with("- ") or content == "-")
+			)
+		)
 		if not belongs:
 			break
 		out.append_array(pending)
@@ -474,16 +624,18 @@ static func _reorder_block_body(block: Dictionary, _indent: int) -> void:
 		return
 	var rest: String = key_line.substr(_indent_of(key_line) + colon + 1).strip_edges()
 	if rest != "":
-		return   # an inline value, or a block scalar — its body is not a mapping
+		return  # an inline value, or a block scalar — its body is not a mapping
 	var body: Array = lines.slice(1)
 	var first: int = _first_content(body)
 	if first == -1:
 		return
 	var body_indent: int = _indent_of(str(body[first]))
 	var content: String = str(body[first]).substr(body_indent)
-	var reordered: Array = _reorder_sequence(body, body_indent, str(block["key"])) \
-		if (content.begins_with("- ") or content == "-") \
+	var reordered: Array = (
+		_reorder_sequence(body, body_indent, str(block["key"]))
+		if (content.begins_with("- ") or content == "-")
 		else _reorder_level(body, body_indent, str(block["key"]))
+	)
 	var out: Array = [key_line]
 	out.append_array(reordered)
 	block["lines"] = out
@@ -501,8 +653,11 @@ static func _reorder_sequence(lines: Array, indent: int, parent_key: String) -> 
 		var stripped: String = line.strip_edges()
 		var line_indent: int = _indent_of(line)
 		var content: String = line.substr(line_indent)
-		var starts_item: bool = stripped != "" and line_indent == indent \
+		var starts_item: bool = (
+			stripped != ""
+			and line_indent == indent
 			and (content.begins_with("- ") or content == "-")
+		)
 		if starts_item:
 			if not item.is_empty():
 				out.append_array(_reorder_item(item, indent, parent_key))
@@ -510,10 +665,10 @@ static func _reorder_sequence(lines: Array, indent: int, parent_key: String) -> 
 			i = _absorb_body(lines, i + 1, indent, item, false)
 			continue
 		if item.is_empty():
-			out.append(line)   # leading trivia
+			out.append(line)  # leading trivia
 			i += 1
 			continue
-		return lines   # something at the item level that is not an item
+		return lines  # something at the item level that is not an item
 	if not item.is_empty():
 		out.append_array(_reorder_item(item, indent, parent_key))
 	return out
@@ -526,13 +681,13 @@ static func _reorder_item(item: Array, indent: int, parent_key: String) -> Array
 		return item
 	var content_col: int = indent + INDENT_STEP
 	if SpecFrontmatter.key_colon(content.substr(2)) == -1:
-		return item   # a scalar item; it has no keys to order
+		return item  # a scalar item; it has no keys to order
 	var virtual: Array = [" ".repeat(content_col) + content.substr(2)]
 	virtual.append_array(item.slice(1))
 	var reordered: Array = _reorder_level(virtual, content_col, parent_key)
 	var head: String = str(reordered[0])
 	if head.strip_edges().begins_with("#") or _indent_of(head) != content_col:
-		return item   # the dash would land on a comment; leave the item alone
+		return item  # the dash would land on a comment; leave the item alone
 	var out: Array = [" ".repeat(indent) + "- " + head.substr(content_col)]
 	out.append_array(reordered.slice(1))
 	return out
@@ -565,7 +720,9 @@ static func _first_content(lines: Array) -> int:
 
 
 static func _unquote(text: String) -> String:
-	if (text.begins_with("\"") and text.ends_with("\"") and text.length() >= 2) \
-			or (text.begins_with("'") and text.ends_with("'") and text.length() >= 2):
+	if (
+		(text.begins_with('"') and text.ends_with('"') and text.length() >= 2)
+		or (text.begins_with("'") and text.ends_with("'") and text.length() >= 2)
+	):
 		return text.substr(1, text.length() - 2)
 	return text

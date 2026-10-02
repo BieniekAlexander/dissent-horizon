@@ -56,8 +56,10 @@ func _refit_layers(a_old_dims: Vector2i) -> void:
 	if new_dims == a_old_dims:
 		return
 	var old_cells: int = (a_old_dims.x - 1) * (a_old_dims.y - 1)
-	var consistent: bool = heights.size() == a_old_dims.x * a_old_dims.y \
+	var consistent: bool = (
+		heights.size() == a_old_dims.x * a_old_dims.y
 		and (tile_types.is_empty() or tile_types.size() == old_cells)
+	)
 	if not consistent:
 		return
 	_remap_layers(a_old_dims, new_dims)
@@ -89,6 +91,7 @@ func _remap_layers(a_old_dims: Vector2i, a_new_dims: Vector2i) -> void:
 		tile_types = new_types
 	# The void layer is the mesh bake's output and a resize invalidates it; re-bake instead.
 	void_cells = PackedByteArray()
+
 
 ## Per-corner heights, size W*D, index z*W + x (local-space Y, = HeightMapShape3D.map_data).
 @export var heights: PackedFloat32Array = PackedFloat32Array()
@@ -166,10 +169,12 @@ func bake_source_mesh(a_mesh: Mesh, a_mesh_to_local: Transform3D = Transform3D()
 	var voided: int = 0
 	for z: int in gd:
 		for x: int in gw:
-			var covered: bool = result.hit[z * dims.x + x] == 1 \
-				and result.hit[z * dims.x + x + 1] == 1 \
-				and result.hit[(z + 1) * dims.x + x] == 1 \
+			var covered: bool = (
+				result.hit[z * dims.x + x] == 1
+				and result.hit[z * dims.x + x + 1] == 1
+				and result.hit[(z + 1) * dims.x + x] == 1
 				and result.hit[(z + 1) * dims.x + x + 1] == 1
+			)
 			if not covered:
 				voids[z * gw + x] = 1
 				voided += 1
@@ -184,14 +189,28 @@ func bake_source_mesh(a_mesh: Mesh, a_mesh_to_local: Transform3D = Transform3D()
 		"triangles": result.triangle_count,
 		"skipped_triangles": result.skipped_triangles,
 	}
+
+
 #endregion
 
 
 #region Dimensions
-func map_width() -> int:  return dimensions.x
-func map_depth() -> int:  return dimensions.y
-func grid_width() -> int: return dimensions.x - 1
-func grid_depth() -> int: return dimensions.y - 1
+func map_width() -> int:
+	return dimensions.x
+
+
+func map_depth() -> int:
+	return dimensions.y
+
+
+func grid_width() -> int:
+	return dimensions.x - 1
+
+
+func grid_depth() -> int:
+	return dimensions.y - 1
+
+
 #endregion
 
 
@@ -227,8 +246,10 @@ func cell_map_color(a_cell: Vector2i) -> Color:
 ## The grid is sized to the play rectangle, so this is never vacuously true: the four (x, z)
 ## grid corners lie outside the rectangle for ANY play_size and are always chopped.
 func is_cell_in_play(a_cell: Vector2i) -> bool:
-	return StaggeredGrid.screen_rect_contains(a_cell, _play_center_st(), _play_half()) \
+	return (
+		StaggeredGrid.screen_rect_contains(a_cell, _play_center_st(), _play_half())
 		and not is_cell_void(a_cell)
+	)
 
 
 ## Centre of the play rectangle in screen (s = x+z, t = x-z) space — the grid's middle cell.
@@ -259,12 +280,16 @@ func play_bounds_grid_corners() -> PackedVector2Array:
 	var h: Vector2 = _play_half()
 	var corners := PackedVector2Array()
 	for st: Vector2 in [
-		Vector2(c.x - h.x, c.y - h.y), Vector2(c.x + h.x, c.y - h.y),
-		Vector2(c.x + h.x, c.y + h.y), Vector2(c.x - h.x, c.y + h.y),
+		Vector2(c.x - h.x, c.y - h.y),
+		Vector2(c.x + h.x, c.y - h.y),
+		Vector2(c.x + h.x, c.y + h.y),
+		Vector2(c.x - h.x, c.y + h.y),
 	]:
 		# (s, t) -> continuous (x, z): x = (s + t) / 2, z = (s - t) / 2.
 		corners.append(Vector2((st.x + st.y) * 0.5, (st.x - st.y) * 0.5))
 	return corners
+
+
 #endregion
 
 
@@ -340,7 +365,8 @@ func cell_data_texture() -> ImageTexture:
 			data[at + 1] = steep
 
 	return ImageTexture.create_from_image(
-		Image.create_from_data(maxi(gw, 1), maxi(gd, 1), false, Image.FORMAT_RG8, data))
+		Image.create_from_data(maxi(gw, 1), maxi(gd, 1), false, Image.FORMAT_RG8, data)
+	)
 
 
 ## The cell-indexed impassability mask (index = z*grid_width()+x, 1 = blocked) that
@@ -357,6 +383,8 @@ func blocked_mask() -> PackedByteArray:
 			if not is_cell_in_play(cell):
 				mask[z * gw + x] = 1
 	return mask
+
+
 #endregion
 
 
@@ -387,11 +415,14 @@ func cell_mean_height(a_cell: Vector2i) -> float:
 	var w: int = dimensions.x
 	if not is_cell_in_bounds(a_cell) or heights.size() != w * dimensions.y:
 		return 0.0
-	return 0.25 * (
-		heights[a_cell.y * w + a_cell.x]
-		+ heights[a_cell.y * w + a_cell.x + 1]
-		+ heights[(a_cell.y + 1) * w + a_cell.x]
-		+ heights[(a_cell.y + 1) * w + a_cell.x + 1]
+	return (
+		0.25
+		* (
+			heights[a_cell.y * w + a_cell.x]
+			+ heights[a_cell.y * w + a_cell.x + 1]
+			+ heights[(a_cell.y + 1) * w + a_cell.x]
+			+ heights[(a_cell.y + 1) * w + a_cell.x + 1]
+		)
 	)
 
 
@@ -428,8 +459,9 @@ func cell_supports_entity(a_cell: Vector2i) -> bool:
 	if not is_cell_in_play(a_cell):
 		return false
 	return cell_height_spread(a_cell) <= TerrainGrid.MAX_SLOPE_DIFF
-#endregion
 
+
+#endregion
 
 #region Region translation
 ## Which layer(s) a region operation touches. A layer left out is returned unchanged, so
@@ -485,13 +517,21 @@ func translate_region(
 		return result
 
 	var dest_cells := Rect2i(a_dest_origin, a_source_cells.size)
-	var flip_x: bool = a_transform == RegionTransform.FLIP_X or a_transform == RegionTransform.FLIP_BOTH
-	var flip_z: bool = a_transform == RegionTransform.FLIP_Z or a_transform == RegionTransform.FLIP_BOTH
+	var flip_x: bool = (
+		a_transform == RegionTransform.FLIP_X or a_transform == RegionTransform.FLIP_BOTH
+	)
+	var flip_z: bool = (
+		a_transform == RegionTransform.FLIP_Z or a_transform == RegionTransform.FLIP_BOTH
+	)
 
 	if a_layers & LAYER_HEIGHTS:
-		result["heights"] = _translate_heights(a_source_cells, a_dest_origin, dest_cells, flip_x, flip_z, a_clear_source)
+		result["heights"] = _translate_heights(
+			a_source_cells, a_dest_origin, dest_cells, flip_x, flip_z, a_clear_source
+		)
 	if a_layers & LAYER_TILE_TYPES:
-		result["tile_types"] = _translate_tile_types(a_source_cells, a_dest_origin, dest_cells, flip_x, flip_z, a_clear_source)
+		result["tile_types"] = _translate_tile_types(
+			a_source_cells, a_dest_origin, dest_cells, flip_x, flip_z, a_clear_source
+		)
 	return result
 
 
@@ -499,8 +539,12 @@ func translate_region(
 ## flip reverses corner index i to (w - i), not (w - 1 - i), because a w-cell span has
 ## w+1 corners.
 func _translate_heights(
-	a_source_cells: Rect2i, a_dest_origin: Vector2i, a_dest_cells: Rect2i,
-	a_flip_x: bool, a_flip_z: bool, a_clear_source: bool
+	a_source_cells: Rect2i,
+	a_dest_origin: Vector2i,
+	a_dest_cells: Rect2i,
+	a_flip_x: bool,
+	a_flip_z: bool,
+	a_clear_source: bool
 ) -> PackedFloat32Array:
 	var mw: int = dimensions.x
 	var md: int = dimensions.y
@@ -540,8 +584,12 @@ func _translate_heights(
 
 ## The tile-types half of translate_region.
 func _translate_tile_types(
-	a_source_cells: Rect2i, a_dest_origin: Vector2i, a_dest_cells: Rect2i,
-	a_flip_x: bool, a_flip_z: bool, a_clear_source: bool
+	a_source_cells: Rect2i,
+	a_dest_origin: Vector2i,
+	a_dest_cells: Rect2i,
+	a_flip_x: bool,
+	a_flip_z: bool,
+	a_clear_source: bool
 ) -> PackedByteArray:
 	var gw: int = grid_width()
 	var out: PackedByteArray = _materialized_tile_types()
@@ -579,9 +627,7 @@ func _translate_tile_types(
 ## The corner grid shifts by the same integer offset as the cell grid, since corner (x, z)
 ## and cell (x, z) share an origin.
 func shift_all(
-	a_offset: Vector2i,
-	a_layers: int = LAYER_ALL,
-	a_edge_policy: EdgePolicy = EdgePolicy.CLIP
+	a_offset: Vector2i, a_layers: int = LAYER_ALL, a_edge_policy: EdgePolicy = EdgePolicy.CLIP
 ) -> Dictionary:
 	var result: Dictionary = {"heights": heights, "tile_types": tile_types}
 	if a_offset == Vector2i.ZERO:

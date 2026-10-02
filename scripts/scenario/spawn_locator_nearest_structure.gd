@@ -9,6 +9,7 @@ extends SpawnLocator
 
 @export var commander_id: int = -1
 
+
 func resolve(a_source: Entity, a_manager: ScenarioTriggerManager) -> Vector3:
 	if a_source == null:
 		return Vector3.ZERO

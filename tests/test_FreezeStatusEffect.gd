@@ -5,7 +5,8 @@ extends GutTest
 ## (see the effect's own docs for why STRONG and structures are excluded).
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_FreezeStatusEffect.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_FreezeStatusEffect.gd -gexit
+
 
 func _unit(a_armour: Defense.ArmourType, a_structure: bool = false) -> Commandable:
 	var unit := Commandable.new()
@@ -34,6 +35,7 @@ func _freeze(a_unit: Commandable, a_ticks: int = 450) -> FreezeStatusEffect:
 
 # --- Admission ------------------------------------------------------------------
 
+
 func test_a_light_unit_can_be_frozen() -> void:
 	var unit := _unit(Defense.ArmourType.LIGHT)
 	var effect := _freeze(unit)
@@ -60,14 +62,19 @@ func test_a_structure_cannot_be_frozen() -> void:
 func test_can_freeze_is_the_same_question_the_effect_asks() -> void:
 	# The sanction filters candidates with the static; the effect re-checks on apply.
 	# They must agree, or a click would pick a unit the effect then refuses.
-	for armour: Defense.ArmourType in [Defense.ArmourType.LIGHT, Defense.ArmourType.MEDIUM,
-			Defense.ArmourType.STRONG]:
+	for armour: Defense.ArmourType in [
+		Defense.ArmourType.LIGHT, Defense.ArmourType.MEDIUM, Defense.ArmourType.STRONG
+	]:
 		var unit := _unit(armour)
-		assert_eq(FreezeStatusEffect.can_freeze(unit), _freeze(unit).is_active(),
-			"predicate and apply agree for armour %d" % armour)
+		assert_eq(
+			FreezeStatusEffect.can_freeze(unit),
+			_freeze(unit).is_active(),
+			"predicate and apply agree for armour %d" % armour
+		)
 
 
 # --- Effect ---------------------------------------------------------------------
+
 
 func test_freezing_raises_armour_one_step() -> void:
 	var unit := _unit(Defense.ArmourType.LIGHT)
@@ -78,8 +85,11 @@ func test_freezing_raises_armour_one_step() -> void:
 func test_medium_becomes_strong() -> void:
 	var unit := _unit(Defense.ArmourType.MEDIUM)
 	_freeze(unit)
-	assert_eq(unit.defense.armour_type, Defense.ArmourType.STRONG,
-		"STRONG is the ceiling a freeze can raise something TO, just not FROM")
+	assert_eq(
+		unit.defense.armour_type,
+		Defense.ArmourType.STRONG,
+		"STRONG is the ceiling a freeze can raise something TO, just not FROM"
+	)
 
 
 func test_thawing_restores_the_original_armour() -> void:
@@ -102,8 +112,10 @@ func test_a_frozen_unit_is_stunned() -> void:
 func test_a_refused_freeze_does_not_stun() -> void:
 	var unit := _unit(Defense.ArmourType.STRONG)
 	_freeze(unit)
-	assert_false(unit.is_stunned(),
-		"is_active() must never lie about a unit being frozen — nor must is_stunned()")
+	assert_false(
+		unit.is_stunned(),
+		"is_active() must never lie about a unit being frozen — nor must is_stunned()"
+	)
 
 
 func test_refreezing_does_not_stack_armour() -> void:
@@ -121,5 +133,8 @@ func test_refreezing_does_not_stack_armour() -> void:
 func test_the_default_duration_is_fifteen_seconds() -> void:
 	# 30 physics ticks per second; the doc specifies 15 seconds.
 	assert_eq(FreezeStatusEffect.DEFAULT_FREEZE_TICKS, 450)
-	assert_eq(FreezeStatusEffect.new().duration_ticks, 450,
-		"a freshly constructed freeze already carries it")
+	assert_eq(
+		FreezeStatusEffect.new().duration_ticks,
+		450,
+		"a freshly constructed freeze already carries it"
+	)

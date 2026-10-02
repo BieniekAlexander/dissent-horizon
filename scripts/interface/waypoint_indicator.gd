@@ -2,9 +2,9 @@ class_name WaypointIndicator
 extends Node3D
 
 #region Constants
-const Y_OFFSET    := 0.2
+const Y_OFFSET := 0.2
 const MARKER_SIZE := 0.5
-const COLOR       := Color(1.0, 0.85, 0.1)  # gold
+const COLOR := Color(1.0, 0.85, 0.1)  # gold
 #endregion
 
 #region Properties
@@ -12,6 +12,7 @@ var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
 var _from_world: Vector3
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
@@ -25,7 +26,10 @@ func _ready() -> void:
 	_mesh_instance.material_override = mat
 	_mesh_instance.get_active_material(0).render_priority = RenderPriority.WAYPOINT_PRIORITY
 	add_child(_mesh_instance)
+
+
 #endregion
+
 
 #region Public API
 ## Position the indicator at `destination` and draw a line from `from_pos`.
@@ -33,7 +37,10 @@ func configure(a_destination: Vector3, a_from_pos: Vector3) -> void:
 	global_position = a_destination
 	_from_world = a_from_pos
 	_redraw()
+
+
 #endregion
+
 
 #region Private helpers
 func _redraw() -> void:
@@ -41,8 +48,8 @@ func _redraw() -> void:
 	_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
 	_mesh.surface_set_color(COLOR)
 
-	var dest_local  := Vector3(0.0, Y_OFFSET, 0.0)
-	var from_local  := to_local(_from_world) + Vector3(0.0, Y_OFFSET, 0.0)
+	var dest_local := Vector3(0.0, Y_OFFSET, 0.0)
+	var from_local := to_local(_from_world) + Vector3(0.0, Y_OFFSET, 0.0)
 
 	# Line from predecessor position to this waypoint
 	_mesh.surface_add_vertex(from_local)
@@ -50,14 +57,14 @@ func _redraw() -> void:
 
 	# Diamond marker at destination
 	var r := MARKER_SIZE
-	_mesh.surface_add_vertex(dest_local + Vector3(-r, 0.0,  0.0))
-	_mesh.surface_add_vertex(dest_local + Vector3( 0.0, 0.0,  r))
-	_mesh.surface_add_vertex(dest_local + Vector3( 0.0, 0.0,  r))
-	_mesh.surface_add_vertex(dest_local + Vector3( r, 0.0,  0.0))
-	_mesh.surface_add_vertex(dest_local + Vector3( r, 0.0,  0.0))
-	_mesh.surface_add_vertex(dest_local + Vector3( 0.0, 0.0, -r))
-	_mesh.surface_add_vertex(dest_local + Vector3( 0.0, 0.0, -r))
-	_mesh.surface_add_vertex(dest_local + Vector3(-r, 0.0,  0.0))
+	_mesh.surface_add_vertex(dest_local + Vector3(-r, 0.0, 0.0))
+	_mesh.surface_add_vertex(dest_local + Vector3(0.0, 0.0, r))
+	_mesh.surface_add_vertex(dest_local + Vector3(0.0, 0.0, r))
+	_mesh.surface_add_vertex(dest_local + Vector3(r, 0.0, 0.0))
+	_mesh.surface_add_vertex(dest_local + Vector3(r, 0.0, 0.0))
+	_mesh.surface_add_vertex(dest_local + Vector3(0.0, 0.0, -r))
+	_mesh.surface_add_vertex(dest_local + Vector3(0.0, 0.0, -r))
+	_mesh.surface_add_vertex(dest_local + Vector3(-r, 0.0, 0.0))
 
 	_mesh.surface_end()
 #endregion

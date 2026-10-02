@@ -84,11 +84,15 @@ func build() -> Dictionary:
 	var err: int = ResourceSaver.save(packed, scene_path)
 	root.free()
 
-	return {"scene_path": scene_path, "ok": err == OK, "blocked": blocked, "cells": (w - 1) * (d - 1)}
+	return {
+		"scene_path": scene_path, "ok": err == OK, "blocked": blocked, "cells": (w - 1) * (d - 1)
+	}
 
 
 ## A MultiMeshInstance3D of red boxes, one per blocked cell, sitting on the surface.
-func _build_block_overlay(a_heights: PackedFloat32Array, a_mask: PackedByteArray, a_w: int, a_d: int) -> MultiMeshInstance3D:
+func _build_block_overlay(
+	a_heights: PackedFloat32Array, a_mask: PackedByteArray, a_w: int, a_d: int
+) -> MultiMeshInstance3D:
 	var gw: int = a_w - 1
 	var gh: int = a_d - 1
 	var half_w: float = (a_w - 1) * 0.5
@@ -99,8 +103,15 @@ func _build_block_overlay(a_heights: PackedFloat32Array, a_mask: PackedByteArray
 		for x: int in gw:
 			if a_mask[z * gw + x] == 0:
 				continue
-			var hc: float = (a_heights[z * a_w + x] + a_heights[z * a_w + x + 1]
-				+ a_heights[(z + 1) * a_w + x] + a_heights[(z + 1) * a_w + x + 1]) * 0.25
+			var hc: float = (
+				(
+					a_heights[z * a_w + x]
+					+ a_heights[z * a_w + x + 1]
+					+ a_heights[(z + 1) * a_w + x]
+					+ a_heights[(z + 1) * a_w + x + 1]
+				)
+				* 0.25
+			)
 			var pos := Vector3(x + 0.5 - half_w, hc + 0.15, z + 0.5 - half_d)
 			transforms.append(Transform3D(Basis.IDENTITY, pos))
 

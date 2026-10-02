@@ -10,10 +10,10 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_StatusVisuals.gd -gexit
 
-
 ## A machine (MECH frame) drawn by a model and a StatusVisuals, as a shipped piece is.
-const DRAWN: Dictionary = {"speed": 2.0, "mesh": true, "status_visuals": true,
-	"frame": Defense.FrameType.MECH}
+const DRAWN: Dictionary = {
+	"speed": 2.0, "mesh": true, "status_visuals": true, "frame": Defense.FrameType.MECH
+}
 
 
 func _unit() -> Commandable:
@@ -61,8 +61,11 @@ func test_construction_and_status_opacities_multiply() -> void:
 	var visual: MeshVisual = _visual(unit)
 	visual.set_opacity(MeshVisual.OPACITY_CONSTRUCTING)
 	visual.set_status_opacity(0.4)
-	assert_eq(visual.opacity(), MeshVisual.OPACITY_CONSTRUCTING,
-		"opacity() keeps meaning the CONSTRUCTION fade — its callers ask nothing else")
+	assert_eq(
+		visual.opacity(),
+		MeshVisual.OPACITY_CONSTRUCTING,
+		"opacity() keeps meaning the CONSTRUCTION fade — its callers ask nothing else"
+	)
 	assert_almost_eq(visual.effective_opacity(), 0.2, 0.0001)
 
 
@@ -79,6 +82,8 @@ func test_a_status_fade_suppresses_the_silhouette() -> void:
 	visual.set_status_opacity(MeshVisual.STATUS_OPACITY_NORMAL)
 	for rec: Dictionary in visual._surfaces:
 		assert_eq((rec["mat"] as BaseMaterial3D).stencil_mode, BaseMaterial3D.STENCIL_MODE_XRAY)
+
+
 #endregion
 
 
@@ -94,15 +99,19 @@ func test_an_emp_darkens_its_host_and_lets_go_when_it_ends() -> void:
 
 	effect.remove()
 	sv._process(0.0)
-	assert_eq(_visual(unit).status_tint(), MeshVisual.STATUS_TINT_NORMAL,
-		"and its colour comes back the moment the effect ends")
+	assert_eq(
+		_visual(unit).status_tint(),
+		MeshVisual.STATUS_TINT_NORMAL,
+		"and its colour comes back the moment the effect ends"
+	)
 
 
 ## An effect the host is immune to removes ITSELF in _on_apply (StunStatusEffect's frame
 ## mask), so a bio unit must never pick up the tint of a stun that never took hold.
 func test_an_effect_that_refuses_its_host_changes_nothing() -> void:
-	var unit: Commandable = FakePieces.unit({"speed": 2.0, "mesh": true, "status_visuals": true,
-		"frame": Defense.FrameType.BIO})
+	var unit: Commandable = FakePieces.unit(
+		{"speed": 2.0, "mesh": true, "status_visuals": true, "frame": Defense.FrameType.BIO}
+	)
 	add_child_autofree(unit)
 	_emp().apply_to(unit)
 	assert_false(unit.is_stunned(), "the unit is BIO — an EMP slides off it")
@@ -125,8 +134,12 @@ func test_two_effects_do_not_compound_into_black() -> void:
 	milder.duration_ticks = 0
 	milder.apply_to(unit)
 	sv._process(0.0)
-	assert_almost_eq(_visual(unit).status_tint().r, emp.host_tint.r, 0.0001,
-		"the strongest effect wins outright — the product would be far blacker than either")
+	assert_almost_eq(
+		_visual(unit).status_tint().r,
+		emp.host_tint.r,
+		0.0001,
+		"the strongest effect wins outright — the product would be far blacker than either"
+	)
 
 
 #region Billboards
@@ -140,8 +153,11 @@ func test_veterancy_raises_a_chevron_badge_only_once_promoted() -> void:
 	sv._process(0.0)
 	assert_not_null(sv._veterancy_sprite, "a promoted one gets a badge")
 	assert_true(sv._veterancy_sprite.visible)
-	assert_eq(sv._veterancy_sprite.texture, StatusVisuals.VETERANCY_ICONS[Veterancy.Level.ELITE],
-		"two chevrons for the second rank")
+	assert_eq(
+		sv._veterancy_sprite.texture,
+		StatusVisuals.VETERANCY_ICONS[Veterancy.Level.ELITE],
+		"two chevrons for the second rank"
+	)
 
 
 func test_an_effect_with_an_icon_raises_one_sprite_and_drops_it_again() -> void:
@@ -178,8 +194,9 @@ func test_blinking_turns_the_icon_off_and_on() -> void:
 ## An enemy stealth is hiding is drawn at zero alpha — a badge or a bolt floating over it
 ## would give away the very unit the fade is hiding.
 func test_nothing_floats_over_a_unit_stealth_is_hiding() -> void:
-	var unit: Commandable = FakePieces.unit({"speed": 2.0, "mesh": true, "status_visuals": true,
-		"stealth": true})
+	var unit: Commandable = FakePieces.unit(
+		{"speed": 2.0, "mesh": true, "status_visuals": true, "stealth": true}
+	)
 	add_child_autofree(unit)
 	assert_not_null(unit.stealth, "the unit carries a Stealth")
 	# Owned by SOMEBODY ELSE, explicitly. Leaving it unowned would read as commander 0 and
@@ -200,8 +217,9 @@ func test_nothing_floats_over_a_unit_stealth_is_hiding() -> void:
 ## Its OWNER still sees the faint pulse — they have to be able to command what the enemy
 ## cannot see. Carried over unchanged from the billboard-sprite era.
 func test_its_owner_still_sees_a_stealthed_unit_faintly() -> void:
-	var unit: Commandable = FakePieces.unit({"speed": 2.0, "mesh": true, "status_visuals": true,
-		"stealth": true})
+	var unit: Commandable = FakePieces.unit(
+		{"speed": 2.0, "mesh": true, "status_visuals": true, "stealth": true}
+	)
 	add_child_autofree(unit)
 	var player := Commander.new()
 	player.id = RTSController.PLAYER_COMMANDER_ID
@@ -212,18 +230,30 @@ func test_its_owner_still_sees_a_stealthed_unit_faintly() -> void:
 	var alpha: float = _visual(unit).status_opacity()
 	assert_gt(alpha, 0.0, "the owner sees something")
 	assert_lt(alpha, 0.5, "but only just — it is a pulse, not a solid unit")
-#endregion
 
+
+#endregion
 
 #region Capacity pips
 ## A carrier with three seats, and an aircraft whose four-round clip is spent at an airfield.
-const CARRIER: Dictionary = {"speed": 2.0, "mesh": true, "status_visuals": true,
-	"garrison": {"capacity": 3}}
-const CHARGED_AIRCRAFT: Dictionary = {"aerial": true, "mesh": true, "status_visuals": true,
-	"weapon": {"ground": 6.0, "clip_size": 4, "charged": true}}
+const CARRIER: Dictionary = {
+	"speed": 2.0, "mesh": true, "status_visuals": true, "garrison": {"capacity": 3}
+}
+const CHARGED_AIRCRAFT: Dictionary = {
+	"aerial": true,
+	"mesh": true,
+	"status_visuals": true,
+	"weapon": {"ground": 6.0, "clip_size": 4, "charged": true}
+}
 ## A charged clip too long for one row of pips.
-const LONG_CLIP: Dictionary = {"aerial": true, "mesh": true, "status_visuals": true,
-	"weapon": {"ground": 6.0, "clip_size": StatusVisuals.PIPS_PER_ROW + 4, "charged": true}}
+const LONG_CLIP: Dictionary = {
+	"aerial": true,
+	"mesh": true,
+	"status_visuals": true,
+	"weapon": {"ground": 6.0, "clip_size": StatusVisuals.PIPS_PER_ROW + 4, "charged": true}
+}
+
+
 func _owned(a_options: Dictionary) -> Commandable:
 	var unit := FakePieces.make(a_options) as Commandable
 	add_child_autofree(unit)
@@ -251,7 +281,9 @@ func test_a_selected_transport_counts_out_its_seats() -> void:
 func test_a_selected_charged_aircraft_counts_out_its_rounds() -> void:
 	var plane: Commandable = _owned(CHARGED_AIRCRAFT)
 	var sv: StatusVisuals = _status_visuals(plane)
-	assert_true(plane.weapon_inventory.has_charged_weapons(), "a charged clip reloads at an airfield")
+	assert_true(
+		plane.weapon_inventory.has_charged_weapons(), "a charged clip reloads at an airfield"
+	)
 	plane.selectable.select()
 	sv._process(0.0)
 	var drawn: Array[Sprite3D] = _visible_pips(sv)
@@ -302,8 +334,11 @@ func test_an_ordinary_unit_draws_no_pips_at_all() -> void:
 func test_a_long_clip_wraps_onto_a_second_row() -> void:
 	var plane: Commandable = _owned(LONG_CLIP)
 	var sv: StatusVisuals = _status_visuals(plane)
-	assert_gt(plane.weapon_inventory.charged_clip_size(), StatusVisuals.PIPS_PER_ROW,
-		"the fixture's clip is longer than a row")
+	assert_gt(
+		plane.weapon_inventory.charged_clip_size(),
+		StatusVisuals.PIPS_PER_ROW,
+		"the fixture's clip is longer than a row"
+	)
 	plane.selectable.select()
 	sv._process(0.0)
 	var heights: Array[float] = []
@@ -319,6 +354,8 @@ func _visible_pips(a_sv: StatusVisuals) -> Array[Sprite3D]:
 		if sprite.visible:
 			out.append(sprite)
 	return out
+
+
 #endregion
 
 
@@ -344,14 +381,26 @@ func test_a_pip_row_lies_along_the_camera_and_ignores_the_units_facing() -> void
 
 	var facing_forward: Vector3 = spread_at.call(0.0)
 	var turned: Vector3 = spread_at.call(PI / 2.0)
-	assert_almost_eq(facing_forward.length(), turned.length(), 0.0001,
-		"the row is the same width however the truck is pointing")
-	assert_almost_eq((facing_forward - turned).length(), 0.0, 0.0001,
-		"and it runs in the same world direction — the unit's yaw does not carry it round")
+	assert_almost_eq(
+		facing_forward.length(),
+		turned.length(),
+		0.0001,
+		"the row is the same width however the truck is pointing"
+	)
+	assert_almost_eq(
+		(facing_forward - turned).length(),
+		0.0,
+		0.0001,
+		"and it runs in the same world direction — the unit's yaw does not carry it round"
+	)
 
 	var right: Vector3 = camera.global_basis.x
-	assert_almost_eq(absf(facing_forward.normalized().dot(right)), 1.0, 0.0001,
-		"that direction is the camera's screen-right")
+	assert_almost_eq(
+		absf(facing_forward.normalized().dot(right)),
+		1.0,
+		0.0001,
+		"that direction is the camera's screen-right"
+	)
 
 
 ## Y stays WORLD up: taking the camera's up as well would tilt the whole rig by the

@@ -5,7 +5,8 @@ class_name Sanction extends Resource
 ##
 ## "Sanction" means exactly one thing — unlocked with the DOMINION resource — so this is an
 ## UNLOCK ROUTE and not a kind of thing. What it grants is an ABILITY, defined by a
-## `kind: AbilityDefinition` doc and read at runtime through [AbilityCatalog]; the same ability could
+## `kind: AbilityDefinition` doc and read at runtime through [AbilityCatalog]; the same ability
+## could
 ## as easily have been free or bought at a structure, and nothing else about it would
 ## change. The per-CELL facts (this level's copy, cooldown and aim rules) live here because
 ## they belong to the level rather than to the ability.
@@ -103,7 +104,6 @@ enum Targeting {
 ## 1-based. 0 for a passive, which is never cast and so has no level to be at.
 @export var ability_level: int = 1
 
-
 ## PASSIVITY IS THE ABILITY'S, and this is a SNAPSHOT of it. It is authored once at the top
 ## of the ability doc — Scavenge 2 is not more passive than Scavenge 1 — and the importer
 ## stamps it onto every cell of that ability, so there is one authored fact and no way for
@@ -173,8 +173,10 @@ enum Targeting {
 ## a second place for the same fact to live.
 const COMMAND_PREFIX: String = "command_sanction_"
 
+
 func command_name() -> String:
 	return command_name_for(sanction_name)
+
 
 ## The command name a sanction CALLED `a_sanction_name` is armed as. Static so the grid can
 ## build a binding for a level it has only the TITLE of (from abilities.json) without
@@ -246,20 +248,24 @@ func can_target(a_position: Vector3, a_commander: Commander) -> bool:
 ## anyone's) is authored per event SCENE, not per script: Freeze 1 and Freeze 2 share one.
 var _prototype: AbstractEvent = null
 
+
 func _notification(a_what: int) -> void:
 	if a_what == NOTIFICATION_PREDELETE and is_instance_valid(_prototype):
 		_prototype.free()
+
 
 func _event_prototype() -> AbstractEvent:
 	if _prototype == null and event_scene != null:
 		_prototype = event_scene.instantiate() as AbstractEvent
 	return _prototype
 
+
 ## Whether this sanction acts on exactly one unit, which the order must name — true for every
 ## sanction whose event is an EventTargetUnit. Such a cast has no area and nothing to search:
 ## it is aimed at a UNIT, not at a point (see EventTargetUnit).
 func targets_one_unit() -> bool:
 	return _event_prototype() is EventTargetUnit
+
 
 ## Whether `a_candidate` is a unit this sanction may be cast on for `a_commander`. False for
 ## a sanction that does not target a single unit. Untyped, like EventTargetUnit.accepts.
@@ -268,6 +274,8 @@ func accepts_target(a_candidate: Variant, a_commander: Commander) -> bool:
 	if event == null or a_commander == null:
 		return false
 	return event.accepts(a_candidate, a_commander.id)
+
+
 #endregion
 
 

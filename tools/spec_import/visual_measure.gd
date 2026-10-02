@@ -87,8 +87,11 @@ static func model_width(measurement: Dictionary) -> float:
 static func _is_stand_in(entity: Node3D, mesh_instance: MeshInstance3D) -> bool:
 	var node: Node = mesh_instance
 	while node != null and node != entity:
-		if node.has_meta(STAMP_MESH) or node.name == PLACEHOLDER_NODE \
-				or node.scene_file_path == DUMMY_STRUCTURE_SCENE:
+		if (
+			node.has_meta(STAMP_MESH)
+			or node.name == PLACEHOLDER_NODE
+			or node.scene_file_path == DUMMY_STRUCTURE_SCENE
+		):
 			return true
 		node = node.get_parent()
 	return false
@@ -150,15 +153,18 @@ static func has_authored_mesh(entity: Node) -> bool:
 			var node: Node = entity.get_node_or_null(node_name)
 			if node != null:
 				candidates.append(node)
-	return candidates.any(func(n: Node) -> bool:
-		return n.name != PLACEHOLDER_NODE and not n.has_meta(STAMP_MESH))
+	return candidates.any(
+		func(n: Node) -> bool: return n.name != PLACEHOLDER_NODE and not n.has_meta(STAMP_MESH)
+	)
 
 
 ## Whether a Tracer draws the emission in flight. A beam is art the player sees, so an
 ## emission that has one wants no in-flight stand-in.
 static func has_tracer_beam(entity: Node) -> bool:
-	return entity.get_node_or_null(TRACER_NODE) != null \
+	return (
+		entity.get_node_or_null(TRACER_NODE) != null
 		and entity.get_node_or_null(BEAM_MESH_NODE) != null
+	)
 
 
 ## Whether an authored particle effect fills the emission's post-impact state: a particle
@@ -168,9 +174,13 @@ static func has_impact_effect(entity: Node) -> bool:
 	var node: Node = entity.get_node_or_null(POST_IMPACT_PARTICLES_NODE)
 	if node == null:
 		return false
-	return EmissionPhase.particle_systems_in(node).any(func(n: Node) -> bool:
-		return (n is GPUParticles3D and (n as GPUParticles3D).draw_pass_1 != null) \
-			or (n is CPUParticles3D and (n as CPUParticles3D).mesh != null))
+	return EmissionPhase.particle_systems_in(node).any(
+		func(n: Node) -> bool:
+			return (
+				(n is GPUParticles3D and (n as GPUParticles3D).draw_pass_1 != null)
+				or (n is CPUParticles3D and (n as CPUParticles3D).mesh != null)
+			)
+	)
 
 
 ## Whether this scene still wants a stand-in model.

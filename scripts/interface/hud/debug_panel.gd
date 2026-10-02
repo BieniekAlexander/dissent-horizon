@@ -99,8 +99,10 @@ func _build_players() -> void:
 			_player_option.add_item("Commander %d" % commander.id, commander.id)
 	_player_option.add_item(NEUTRAL_LABEL, NEUTRAL_ID)
 	var owner_id: int = RTSController.PLAYER_COMMANDER_ID
-	if _controller != null \
-			and _controller.debug_placement_owner_id != RTSController.DEBUG_OWNER_IS_PLAYER:
+	if (
+		_controller != null
+		and _controller.debug_placement_owner_id != RTSController.DEBUG_OWNER_IS_PLAYER
+	):
 		owner_id = _controller.debug_placement_owner_id
 	_player_option.select(_player_option.get_item_index(owner_id))
 
@@ -134,8 +136,10 @@ func _build_bots() -> void:
 			picker.add_item(tier.capitalize(), PlayerSlot.Difficulty[tier])
 		picker.select(picker.get_item_index(brain.difficulty))
 		var id: int = commander.id
-		picker.item_selected.connect(func(a_index: int) -> void:
-			_scenario.set_bot_difficulty(id, picker.get_item_id(a_index)))
+		picker.item_selected.connect(
+			func(a_index: int) -> void:
+				_scenario.set_bot_difficulty(id, picker.get_item_id(a_index))
+		)
 		row.add_child(picker)
 		_bot_rows.add_child(row)
 
@@ -149,8 +153,11 @@ func _remember_starting_player() -> void:
 ## starting force is as good a witness as the Faction's own list. A spectator has no seat, and
 ## the card stays where it is.
 func _select_player_faction() -> void:
-	if _scenario == null or _starting_player_id <= NEUTRAL_ID \
-			or _starting_player_id >= _scenario.commanders.size():
+	if (
+		_scenario == null
+		or _starting_player_id <= NEUTRAL_ID
+		or _starting_player_id >= _scenario.commanders.size()
+	):
 		return
 	var player: Commander = _scenario.commanders[_starting_player_id]
 	if player == null:
@@ -205,6 +212,8 @@ func _piece_button(a_entry: Dictionary) -> VerboseTooltipButton:
 	button.verbose_tooltip = tool.verbose_tooltip if tool != null else String(a_entry["scene"])
 	button.pressed.connect(func() -> void: _controller.arm_debug_piece(a_entry))
 	return button
+
+
 #endregion
 
 

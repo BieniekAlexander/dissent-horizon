@@ -81,8 +81,9 @@ func _active_task(a_truck: Commandable) -> TaskShelter:
 func test_holds_when_the_shelter_has_no_residents() -> void:
 	var shelter := _shelter_with_residents(0)
 	var truck := _tasked_truck(shelter, Vector3.ZERO, 0)
-	assert_eq(_active_task(truck).get_updated_state(truck), _active_task(truck),
-		"nothing to chase yet")
+	assert_eq(
+		_active_task(truck).get_updated_state(truck), _active_task(truck), "nothing to chase yet"
+	)
 
 
 func test_full_truck_with_no_compound_holds() -> void:
@@ -90,21 +91,28 @@ func test_full_truck_with_no_compound_holds() -> void:
 	var truck := _tasked_truck(shelter, Vector3.ZERO, 0)
 	for _i: int in truck.garrison.capacity:
 		truck.garrison.garrison(_entity(0))
-	assert_eq(_active_task(truck).get_updated_state(truck), _active_task(truck),
-		"full, and nowhere to deposit — hold rather than error")
+	assert_eq(
+		_active_task(truck).get_updated_state(truck),
+		_active_task(truck),
+		"full, and nowhere to deposit — hold rather than error"
+	)
 
 
 func test_a_holding_truck_away_from_its_shelter_heads_back() -> void:
 	var shelter := _shelter_with_residents(0)
 	var truck := _tasked_truck(shelter, Vector3(12.0, 0.0, 12.0), 0)
-	assert_true(_active_task(truck).should_move(truck),
-		"a truck left at the Compound waits at the Shelter, not where the deposit left it")
+	assert_true(
+		_active_task(truck).should_move(truck),
+		"a truck left at the Compound waits at the Shelter, not where the deposit left it"
+	)
 
 
 func test_a_holding_truck_at_its_shelter_stays_put() -> void:
 	var shelter := _shelter_with_residents(0)
 	var truck := _tasked_truck(shelter, shelter.global_position, 0)
 	assert_false(_active_task(truck).should_move(truck))
+
+
 #endregion
 
 
@@ -113,8 +121,10 @@ func test_a_lone_tasked_truck_is_pushed_to_chase_the_resident() -> void:
 	var shelter := _shelter_with_residents(1)
 	var truck := _tasked_truck(shelter, Vector3.ZERO, 0)
 	var errand: Variant = _active_task(truck).get_updated_state(truck)
-	assert_true(errand is MoveCommand and not (errand is TaskShelter),
-		"a plain move — the capture order is the contact, not a special command")
+	assert_true(
+		errand is MoveCommand and not (errand is TaskShelter),
+		"a plain move — the capture order is the contact, not a special command"
+	)
 	assert_eq((errand as MoveCommand).message.target, shelter.get_node("Shelter").residents()[0])
 
 
@@ -122,10 +132,15 @@ func test_only_the_earliest_tasked_truck_chases_the_resident() -> void:
 	var shelter := _shelter_with_residents(1)
 	var late := _tasked_truck(shelter, Vector3.ZERO, 5)
 	var early := _tasked_truck(shelter, Vector3.ZERO, 1)
-	assert_true(_active_task(early).get_updated_state(early) is MoveCommand,
-		"sequence 1 is earliest among the two — it claims the resident")
-	assert_eq(_active_task(late).get_updated_state(late), _active_task(late),
-		"sequence 5 waits, by task age, never by distance")
+	assert_true(
+		_active_task(early).get_updated_state(early) is MoveCommand,
+		"sequence 1 is earliest among the two — it claims the resident"
+	)
+	assert_eq(
+		_active_task(late).get_updated_state(late),
+		_active_task(late),
+		"sequence 5 waits, by task age, never by distance"
+	)
 
 
 func test_the_claim_lapses_once_the_earliest_truck_fills() -> void:
@@ -136,8 +151,12 @@ func test_the_claim_lapses_once_the_earliest_truck_fills() -> void:
 		early.garrison.garrison(_entity(0))
 	# The earliest truck is now FULL, so it drops out of the resident comparison entirely —
 	# the next in line becomes earliest among the LIVE claimants.
-	assert_true(_active_task(late).get_updated_state(late) is MoveCommand,
-		"the earliest claim lapsed (full) — the next truck in line takes it")
+	assert_true(
+		_active_task(late).get_updated_state(late) is MoveCommand,
+		"the earliest claim lapsed (full) — the next truck in line takes it"
+	)
+
+
 #endregion
 
 
@@ -179,6 +198,8 @@ func test_a_full_compound_is_not_offered_as_a_deposit_target() -> void:
 		truck.garrison.garrison(_entity(0))
 	var errand: Interact = _active_task(truck).get_updated_state(truck) as Interact
 	assert_eq(errand.message.target, open_compound, "the nearer one is full — go past it")
+
+
 #endregion
 
 
@@ -190,9 +211,13 @@ func test_the_task_resumes_behind_the_errand_it_pushed() -> void:
 	truck.command_receiver._process_commands()
 	assert_true(
 		truck.current_command() is MoveCommand and not (truck.current_command() is TaskShelter),
-		"the errand is now active")
-	assert_eq(truck.get_command_chain(), [truck.current_command(), task] as Array[MoveCommand],
-		"and the task itself is queued right behind it, to resume once the errand ends")
+		"the errand is now active"
+	)
+	assert_eq(
+		truck.get_command_chain(),
+		[truck.current_command(), task] as Array[MoveCommand],
+		"and the task itself is queued right behind it, to resume once the errand ends"
+	)
 
 
 func test_a_direct_player_order_clears_the_task_entirely() -> void:
@@ -201,9 +226,15 @@ func test_a_direct_player_order_clears_the_task_entirely() -> void:
 	truck.command_receiver._process_commands()  # push the chase errand; task now queued behind it
 	assert_true(truck.has_command())
 	truck.update_commands(MoveCommand.new(CommandMessage.new(null, null)))
-	assert_eq(truck.get_command_chain().size(), 1, "one order — the new one, nothing queued behind it")
-	assert_false(truck.get_command_chain().any(func(c: MoveCommand) -> bool: return c is TaskShelter),
-		"the task is gone, not merely displaced")
+	assert_eq(
+		truck.get_command_chain().size(), 1, "one order — the new one, nothing queued behind it"
+	)
+	assert_false(
+		truck.get_command_chain().any(func(c: MoveCommand) -> bool: return c is TaskShelter),
+		"the task is gone, not merely displaced"
+	)
+
+
 #endregion
 
 
@@ -237,6 +268,8 @@ func test_meets_precondition_refuses_an_actor_with_no_garrison() -> void:
 		TaskShelter.meets_precondition(soldier, CommandMessage.new(null, shelter)),
 		MoveCommand.PreconditionFailureCause.NONE
 	)
+
+
 #endregion
 
 

@@ -4,7 +4,8 @@ class_name NavAgentClass
 ##
 ## One NavigationMesh (and one region on the shared NavigationServer3D map) is baked
 ## per class, eroded for that class's radius; an agent navigates on the mesh for its
-## class. See gdd/systems/terrain-and-navigation/agent-size-classes.md for the full design and the research
+## class. See gdd/systems/terrain-and-navigation/agent-size-classes.md for the full design and the
+## research
 ## (StarCraft / AoE2 / clearance-based pathfinding) behind it.
 ##
 ## The classes ARE corridor-width tiers: the enum value is the corridor width, in
@@ -17,9 +18,9 @@ class_name NavAgentClass
 #region Constants
 ## Collision size classes. The value IS the required corridor width in cells.
 enum Size {
-	SMALL  = 1,  ## fits a 1-cell corridor
+	SMALL = 1,  ## fits a 1-cell corridor
 	MEDIUM = 2,  ## needs a 2-cell corridor
-	LARGE  = 3,  ## needs a 3-cell corridor
+	LARGE = 3,  ## needs a 3-cell corridor
 }
 
 ## Wall clearance (world units) every unit keeps from an obstacle. It is also the
@@ -33,6 +34,7 @@ enum Size {
 const CLEARANCE_MARGIN: float = 0.05
 #endregion
 
+
 #region Public API
 ## Effective radius of a size class for cell size `cs`: the corridor half-width
 ## (tier * cs / 2) minus the clearance margin. This single value is BOTH the largest
@@ -40,6 +42,7 @@ const CLEARANCE_MARGIN: float = 0.05
 ## mesh is space-eroded (see erosion_rings / inset), so the two always agree.
 static func radius(size: Size, cs: float) -> float:
 	return int(size) * cs * 0.5 - CLEARANCE_MARGIN
+
 
 ## The size class a unit of footprint `shape_radius` belongs to: the smallest tier
 ## whose effective radius still covers it (so the body keeps CLEARANCE_MARGIN of wall
@@ -52,16 +55,19 @@ static func class_for_radius(shape_radius: float, cs: float) -> Size:
 			return size
 	return Size.LARGE
 
+
 ## Minimum corridor width, in whole cells, the class can traverse — the covering gate
 ## (admit_k) fed to TerrainGrid.get_navigable_cells. This IS the tier: the enum value.
 static func required_clearance(size: Size, _cs: float) -> int:
 	return int(size)
+
 
 ## Whole-cell layers to strip around obstacles before building the class's mesh —
 ## the integer part of the erosion radius, floor(radius/cs). The sub-cell remainder
 ## is applied as a vertex inset. At cs=1: SMALL/MEDIUM=0, LARGE=1.
 static func erosion_rings(size: Size, cs: float) -> int:
 	return maxi(0, floori(radius(size, cs) / cs))
+
 
 ## Sub-cell distance (world units) to inset the built mesh's boundary vertices — the
 ## part of the erosion radius not covered by whole-cell ring-erosion. Always < cs

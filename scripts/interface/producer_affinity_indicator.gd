@@ -35,6 +35,7 @@ const COLOR: Color = RallyIndicator.COLOR
 var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
 
+
 func _ready() -> void:
 	_mesh = ImmediateMesh.new()
 	_mesh_instance = MeshInstance3D.new()
@@ -48,6 +49,7 @@ func _ready() -> void:
 	material.render_priority = RenderPriority.WAYPOINT_PRIORITY
 	_mesh_instance.material_override = material
 	add_child(_mesh_instance)
+
 
 ## Redraw a ring around each commandable in `a_producers`. An empty array clears the mesh,
 ## which is how the indicator turns itself off when the cursor leaves a chip.
@@ -65,6 +67,7 @@ func update_producers(a_producers: Array) -> void:
 		_add_ring(node as Commandable)
 	_mesh.surface_end()
 
+
 ## One closed ring on the ground around `a_producer`, sized to its footprint.
 ##
 ## Height is sampled per VERTEX from the terrain rather than taken once from the structure's
@@ -80,11 +83,9 @@ func _add_ring(a_producer: Commandable) -> void:
 		_mesh.surface_add_vertex(to_local(current))
 		previous = current
 
+
 func _ring_point(
-	a_producer: Commandable,
-	a_centre: Vector2,
-	a_radius: float,
-	a_index: int
+	a_producer: Commandable, a_centre: Vector2, a_radius: float, a_index: int
 ) -> Vector3:
 	var angle: float = TAU * float(a_index) / float(RING_SEGMENTS)
 	var xz: Vector2 = a_centre + Vector2(cos(angle), sin(angle)) * a_radius
@@ -92,6 +93,7 @@ func _ring_point(
 	if a_producer.map != null:
 		height = a_producer.map.terrain_height_at(xz)
 	return Vector3(xz.x, height + Y_OFFSET, xz.y)
+
 
 ## A ring big enough to contain the structure it marks. Multi-cell structures declare their
 ## footprint on their Structure component; anything without one gets the default.

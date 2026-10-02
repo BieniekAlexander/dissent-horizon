@@ -56,9 +56,11 @@ func _highlight(a_entities: Array[Entity], a_shapes: Array[HighlightShape]) -> S
 ## is_equal_approx is far too strict to compare against the authored Color.
 func _is(a_pixel: Color, a_color: Color) -> bool:
 	const EPSILON: float = 1.5 / 255.0
-	return absf(a_pixel.r - a_color.r) < EPSILON \
-		and absf(a_pixel.g - a_color.g) < EPSILON \
+	return (
+		absf(a_pixel.r - a_color.r) < EPSILON
+		and absf(a_pixel.g - a_color.g) < EPSILON
 		and absf(a_pixel.b - a_color.b) < EPSILON
+	)
 
 
 ## How many pixels of the minimap image match `color`.
@@ -106,8 +108,7 @@ func test_the_ring_is_hollow_so_the_team_dot_shows_through() -> void:
 	_minimap._image.set_pixel(centre.x, centre.y, Color.RED)
 	_minimap._draw_objective_markers()
 	assert_eq(
-		_minimap._image.get_pixel(centre.x, centre.y), Color.RED,
-		"the centre pixel is untouched"
+		_minimap._image.get_pixel(centre.x, centre.y), Color.RED, "the centre pixel is untouched"
 	)
 
 

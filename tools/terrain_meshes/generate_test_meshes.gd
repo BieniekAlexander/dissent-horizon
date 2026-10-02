@@ -56,7 +56,9 @@ func _initialize() -> void:
 
 
 ## Save `mesh`, bake it into a TerrainData, save that too, and report coverage.
-func _emit(a_mesh_name: String, a_mesh: ArrayMesh, a_catalog: TerrainTileCatalog, a_terrain_name: String) -> void:
+func _emit(
+	a_mesh_name: String, a_mesh: ArrayMesh, a_catalog: TerrainTileCatalog, a_terrain_name: String
+) -> void:
 	var mesh_path: String = MESH_DIR + a_mesh_name + ".res"
 	var err: int = ResourceSaver.save(a_mesh, mesh_path)
 	if err != OK:
@@ -76,10 +78,23 @@ func _emit(a_mesh_name: String, a_mesh: ArrayMesh, a_catalog: TerrainTileCatalog
 		return
 
 	print("%s -> %s" % [mesh_path, terrain_path])
-	print("   grid %dx%d corners | triangles %d (%d vertical, skipped)" % [
-		data.dimensions.x, data.dimensions.y, report["triangles"], report["skipped_triangles"]])
-	print("   corners covered %d/%d | cells voided %d/%d" % [
-		report["covered"], report["corners"], report["voided"], report["cells"]])
+	print(
+		(
+			"   grid %dx%d corners | triangles %d (%d vertical, skipped)"
+			% [
+				data.dimensions.x,
+				data.dimensions.y,
+				report["triangles"],
+				report["skipped_triangles"]
+			]
+		)
+	)
+	print(
+		(
+			"   corners covered %d/%d | cells voided %d/%d"
+			% [report["covered"], report["corners"], report["voided"], report["cells"]]
+		)
+	)
 	var lo: float = INF
 	var hi: float = -INF
 	for h: float in data.heights:
@@ -93,10 +108,16 @@ func _emit(a_mesh_name: String, a_mesh: ArrayMesh, a_catalog: TerrainTileCatalog
 ## navigation or steering rather than to the terrain.
 func _build_flat() -> ArrayMesh:
 	var s: float = SQUARE_HALF
-	var verts := PackedVector3Array([
-		Vector3(-s, 0.0, -s), Vector3(s, 0.0, -s), Vector3(s, 0.0, s),
-		Vector3(-s, 0.0, -s), Vector3(s, 0.0, s), Vector3(-s, 0.0, s),
-	])
+	var verts := PackedVector3Array(
+		[
+			Vector3(-s, 0.0, -s),
+			Vector3(s, 0.0, -s),
+			Vector3(s, 0.0, s),
+			Vector3(-s, 0.0, -s),
+			Vector3(s, 0.0, s),
+			Vector3(-s, 0.0, s),
+		]
+	)
 	var normals := PackedVector3Array()
 	for _i: int in 6:
 		normals.append(Vector3.UP)
@@ -157,10 +178,19 @@ func _build_plateau() -> ArrayMesh:
 	var normals := PackedVector3Array()
 
 	var s: float = SQUARE_HALF
-	verts.append_array([
-		Vector3(-s, 0.0, -s), Vector3(s, 0.0, -s), Vector3(s, 0.0, s),
-		Vector3(-s, 0.0, -s), Vector3(s, 0.0, s), Vector3(-s, 0.0, s),
-	])
+	(
+		verts
+		. append_array(
+			[
+				Vector3(-s, 0.0, -s),
+				Vector3(s, 0.0, -s),
+				Vector3(s, 0.0, s),
+				Vector3(-s, 0.0, -s),
+				Vector3(s, 0.0, s),
+				Vector3(-s, 0.0, s),
+			]
+		)
+	)
 	for _i: int in 6:
 		normals.append(Vector3.UP)
 

@@ -5,6 +5,7 @@ extends "res://tools/selfplay/run_match.gd"
 ## and what the production queue is holding. Sample at the think cadence
 ## (`sample_interval_seconds` = combat_period_seconds) to read the combat jobs.
 
+
 func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	var base: Dictionary = super._brain_sample(a_brain)
 	if a_brain == null or a_brain.bot == null:

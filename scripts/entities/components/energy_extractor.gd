@@ -28,6 +28,7 @@ var _ticks_elapsed: int = 0
 var reservoir: WaterBody = null
 #endregion
 
+
 #region Public API
 func tick() -> void:
 	_ticks_elapsed += 1
@@ -40,7 +41,10 @@ func tick() -> void:
 		return
 	var commandable := get_parent() as Commandable
 	commandable.commander.add_energy(paid)
+
+
 #endregion
+
 
 #region Checks
 ## An extractor has TWO kinds of place it may go, and they are checked differently because
@@ -114,9 +118,7 @@ static func in_water(a_map: Map, a_world_center: Vector2, a_dimensions: Vector2i
 ## The single WaterBody covering every cell of the footprint, or null when the footprint is
 ## dry or spans more than one body. This is what an extractor's reservoir is bound to.
 static func water_body_under(
-	a_map: Map,
-	a_world_center: Vector2,
-	a_dimensions: Vector2i
+	a_map: Map, a_world_center: Vector2, a_dimensions: Vector2i
 ) -> WaterBody:
 	var body: WaterBody = null
 	for cell: Vector2i in a_map.footprint_cells(a_world_center, a_dimensions):

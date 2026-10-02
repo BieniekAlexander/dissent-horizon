@@ -99,6 +99,7 @@ func test_the_window_drops_history_older_than_it() -> void:
 
 # ─── THE FIRST CONSUMER: ARMY RETREAT ────────────────────────────────────────
 
+
 func _military() -> BotMilitary:
 	var military := BotMilitary.new(_bot, null, _momentum)
 	military._wave_launch_value = 1000.0
@@ -107,14 +108,17 @@ func _military() -> BotMilitary:
 
 func test_a_wave_bleeding_badly_is_called_off() -> void:
 	_losing()
-	assert_true(_military()._should_abort_wave(650.0),
-		"a third of the army gone and still bleeding — leave")
+	assert_true(
+		_military()._should_abort_wave(650.0), "a third of the army gone and still bleeding — leave"
+	)
 
 
 func test_a_wave_that_has_barely_been_scratched_presses_on() -> void:
 	_losing()
-	assert_false(_military()._should_abort_wave(950.0),
-		"losing fast but nothing spent yet is not a failed push")
+	assert_false(
+		_military()._should_abort_wave(950.0),
+		"losing fast but nothing spent yet is not a failed push"
+	)
 
 
 func test_a_costly_wave_that_is_not_bleeding_presses_on() -> void:
@@ -129,8 +133,10 @@ func test_a_military_with_no_momentum_never_retreats() -> void:
 	_losing()
 	var military := BotMilitary.new(_bot, null)
 	military._wave_launch_value = 1000.0
-	assert_false(military._should_abort_wave(100.0),
-		"unconfigured behaves exactly as it did before retreat existed")
+	assert_false(
+		military._should_abort_wave(100.0),
+		"unconfigured behaves exactly as it did before retreat existed"
+	)
 
 
 func test_calling_off_a_wave_opens_a_regroup_window() -> void:

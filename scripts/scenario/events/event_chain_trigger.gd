@@ -9,6 +9,7 @@ extends AbstractEvent
 @export var enable: bool = true
 #endregion
 
+
 #region Public API
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	if target_event == null:

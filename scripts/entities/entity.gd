@@ -29,6 +29,7 @@ extends CharacterBody3D
 func is_abstract() -> bool:
 	return id.is_empty()
 
+
 const TEAM_COLOR_MAP: Dictionary = {
 	0: Color.WHITE,
 	1: Color(.2, 1, 1),
@@ -79,12 +80,15 @@ var _trigger_manager: ScenarioTriggerManager
 @onready var ownership: Ownership = $Ownership
 
 var commander: Commander:
-	get: return ownership.commander
+	get:
+		return ownership.commander
 	set(value):
 		ownership.commander = value
 
 var commander_id: int:
-	get: return ownership.commander_id
+	get:
+		return ownership.commander_id
+
 
 ## Ownership-relationship helpers. commander_id 0 is the neutral/world owner (see
 ## CLAUDE.md): neither friend nor foe. These centralize the commander_id
@@ -93,13 +97,17 @@ var commander_id: int:
 func is_neutral() -> bool:
 	return commander_id == 0
 
+
 func is_friendly_to(a_other: Entity) -> bool:
 	return a_other != null and commander_id == a_other.commander_id
+
 
 ## True when `other` is an enemy of this entity: owned (not neutral) by a different
 ## commander.
 func is_enemy_of(a_other: Entity) -> bool:
 	return a_other != null and a_other.commander_id > 0 and a_other.commander_id != commander_id
+
+
 #endregion
 
 #region Components
@@ -122,8 +130,12 @@ func is_enemy_of(a_other: Entity) -> bool:
 ## and also while it is inactive (a transformer in its deployed form). Ask it only for what is
 ## particular to navigated movers (modes, the nav agent, landing); "can this move?" is can_move.
 var movement: Movement:
-	get: return movement_component \
-		if movement_component != null and movement_component.is_active else null
+	get:
+		return (
+			movement_component
+			if movement_component != null and movement_component.is_active
+			else null
+		)
 	set(a_value):
 		movement_component = a_value
 		locomotion_component = a_value
@@ -131,7 +143,8 @@ var movement: Movement:
 ## The piece's live locomotion, whatever its strategy, or null when it has none or it is
 ## switched off (a transformer in its deployed form).
 var locomotion: Locomotion:
-	get: return movement if locomotion_component is Movement else locomotion_component
+	get:
+		return movement if locomotion_component is Movement else locomotion_component
 
 
 ## Whether this piece can move at all right now: it has live locomotion, and that locomotion
@@ -139,6 +152,7 @@ var locomotion: Locomotion:
 func can_move() -> bool:
 	var live: Locomotion = locomotion
 	return live != null and live.can_move()
+
 
 ## Stealth component — present on entities that can be hidden from enemies.
 ## Null for entities that are always fully visible.
@@ -155,7 +169,6 @@ func can_move() -> bool:
 ## Null for entities that carry no weapons (structures without AttackRange,
 ## plain workers, etc.). All weapon queries go through this node.
 @onready var weapon_inventory: Loadout = get_node_or_null("Loadout") as Loadout
-
 
 ## Selectable component — owns the per-entity "is selected" bit and joins the
 ## "selectables" group. Optional: present on units, structures, and any other
@@ -180,8 +193,10 @@ enum Attribute { MECH, BIO, UNMANNED }
 var attributes: Set
 
 var xz_position: Vector2:
-	get: return VU.inXZ(global_position)
-	set(value): global_position = VU.fromXZ(value)
+	get:
+		return VU.inXZ(global_position)
+	set(value):
+		global_position = VU.fromXZ(value)
 
 var map: Map
 var pc_set: Set = Set.new()
@@ -210,10 +225,10 @@ var is_planned: bool = false
 ## the issuing command's floor and sort the survivors by this. See
 ## `target_priority` and CommandMessage.target_priority.
 enum TargetPriority {
-	COMBAT_UNITS = 0,          ## non-structure entity that has weapons
-	COMBAT_STRUCTURES = 1,     ## structure that has weapons
-	NON_COMBAT_UNITS = 2,      ## non-structure entity with no weapons
-	NON_COMBAT_STRUCTURES = 3, ## structure with no weapons
+	COMBAT_UNITS = 0,  ## non-structure entity that has weapons
+	COMBAT_STRUCTURES = 1,  ## structure that has weapons
+	NON_COMBAT_UNITS = 2,  ## non-structure entity with no weapons
+	NON_COMBAT_STRUCTURES = 3,  ## structure with no weapons
 }
 
 ## This entity's TargetPriority, derived from whether it currently occupies the terrain
@@ -222,8 +237,11 @@ var target_priority: TargetPriority:
 	get:
 		var armed: bool = is_armed()
 		if structure_is_active():
-			return TargetPriority.COMBAT_STRUCTURES if armed else TargetPriority.NON_COMBAT_STRUCTURES
+			return (
+				TargetPriority.COMBAT_STRUCTURES if armed else TargetPriority.NON_COMBAT_STRUCTURES
+			)
 		return TargetPriority.COMBAT_UNITS if armed else TargetPriority.NON_COMBAT_UNITS
+
 
 ## Whether this entity can currently project weapon fire — by default, its own equipped
 ## weapons. Commandable overrides this to ALSO count a bunker garrison that is actively
@@ -231,6 +249,7 @@ var target_priority: TargetPriority:
 ## that override rather than an inline check.
 func is_armed() -> bool:
 	return weapon_inventory != null and weapon_inventory.has_weapons()
+
 
 ## True iff this entity is a FIXTURE right now: it has a Structure component and that
 ## component is live (gdd/systems/authoring/piece-vocabulary.md §Facets). Callers that mean
@@ -241,22 +260,26 @@ func structure_is_active() -> bool:
 	var structure := get_node_or_null("Structure") as Structure
 	return structure != null and structure.is_active
 
+
 ## The Movement component if it is LIVE, else null. Resolved inline, unlike `movement`, so it
 ## answers for an instance outside the tree too — a build preview, a test fixture.
 func live_movement() -> Movement:
 	var locomotion := get_node_or_null("Locomotion") as Movement
 	return locomotion if locomotion != null and locomotion.is_active else null
 
+
 ## Whether this piece can stand in BOTH forms — it carries a footprint and locomotion — and
 ## so is in exactly one of them at a time: a structure while deployed, a unit while mobile.
 func has_two_forms() -> bool:
 	return has_node("Structure") and get_node_or_null("Locomotion") is Movement
+
 
 ## Whether a spawn site with no opinion of its own should register this piece on the grid.
 ## Only a fixture-only piece: a two-form piece that nobody asked to deploy spawns MOBILE, the
 ## form with no registration to reconcile (composition-rework §Which form a piece spawns in).
 func spawns_deployed() -> bool:
 	return has_node("Structure") and not has_node("Locomotion")
+
 
 ## Deploy a mobile two-form piece onto the footprint centred on `a_world_center`. Refused —
 ## false, nothing changed — unless that footprint passes the same placement check a build
@@ -267,10 +290,12 @@ func deploy(a_world_center: Vector2) -> bool:
 		return false
 	var message := CommandMessage.new(map, null, null, VU.fromXZ(a_world_center))
 	if not Structure.valid_placement(
-			message, structure.dimensions, structure.allow_uneven, structure.allow_submerged):
+		message, structure.dimensions, structure.allow_uneven, structure.allow_submerged
+	):
 		return false
 	map.add_structure(self, a_world_center)
 	return true
+
 
 ## Take a deployed two-form piece off the grid and back to its mobile form, giving its cells
 ## and navmesh hole back.
@@ -280,6 +305,7 @@ func undeploy() -> void:
 	if map != null:
 		map.remove_structure(self)
 	set_deployed(false)
+
 
 ## Switch a two-form piece's form. Grid registration is NOT done here — deploy and a build
 ## order's Map.add_structure do that, and undeploy undoes it; this flips everything that
@@ -302,6 +328,7 @@ func set_deployed(a_deployed: bool) -> void:
 	_apply_targetable_layers()
 	refresh_aggro_shapes()
 	_on_form_changed(a_deployed)
+
 
 ## Whether this entity currently reveals fog for its owner. A PLANNED structure never does:
 ## ordering a build must not scout the site. Commandable narrows it further.
@@ -340,13 +367,22 @@ func hostiles_in_aggro(a_max_results: int = 32) -> Array[Entity]:
 	var out: Array[Entity] = []
 	var from: Hull = hull()
 	var exclude: Array = [target_body.get_rid()] if target_body != null else []
-	for pass_spec: Array in [[aggro_shape_ground, CollisionLayers.Mask.TARGETABLE_GROUND],
-			[aggro_shape_air, CollisionLayers.Mask.TARGETABLE_AIR]]:
+	for pass_spec: Array in [
+		[aggro_shape_ground, CollisionLayers.Mask.TARGETABLE_GROUND],
+		[aggro_shape_air, CollisionLayers.Mask.TARGETABLE_AIR]
+	]:
 		var node: CollisionShape3D = pass_spec[0]
 		if node == null or node.shape == null:
 			continue
-		for e: Entity in SU.entities_within(get_world_3d(), from, node.shape, global_position,
-				CollisionLayers.hostile_mask(pass_spec[1], commander_id), exclude, a_max_results):
+		for e: Entity in SU.entities_within(
+			get_world_3d(),
+			from,
+			node.shape,
+			global_position,
+			CollisionLayers.hostile_mask(pass_spec[1], commander_id),
+			exclude,
+			a_max_results
+		):
 			if not out.has(e):
 				out.append(e)
 	return out
@@ -369,22 +405,29 @@ func refresh_aggro_shapes() -> void:
 	var is_mobile: bool = can_move()
 	if aggro_shape_ground != null:
 		aggro_shape_ground.shape = RangeShapes.aggro_shape_for_reach(
-			reach_on_layer(CollisionLayers.Mask.TARGETABLE_GROUND), is_mobile)
+			reach_on_layer(CollisionLayers.Mask.TARGETABLE_GROUND), is_mobile
+		)
 	if aggro_shape_air != null:
 		aggro_shape_air.shape = RangeShapes.aggro_shape_for_reach(
-			reach_on_layer(CollisionLayers.Mask.TARGETABLE_AIR), is_mobile)
+			reach_on_layer(CollisionLayers.Mask.TARGETABLE_AIR), is_mobile
+		)
+
+
 #endregion
+
 
 ## Hook for what a subclass keeps in step with the form (Commandable: its commander's
 ## structure registry). Runs after every set_deployed.
 func _on_form_changed(_a_deployed: bool) -> void:
 	pass
 
+
 ## Settle a two-form piece into the form its spawn chose: DEPLOYED if a validated footprint
 ## already registered it, MOBILE otherwise.
 func _resolve_initial_form() -> void:
 	if has_two_forms():
 		set_deployed(is_on_grid())
+
 
 ## Whether this entity's body should stop a shot passing THROUGH it — the
 ## STRUCTURE_BLOCKER layer Attack's line-of-fire raycast queries.
@@ -399,7 +442,10 @@ func _resolve_initial_form() -> void:
 ## the tick it is placed.
 func blocks_line_of_fire() -> bool:
 	return structure_is_active() and has_obstructing_footprint()
+
+
 #endregion
+
 
 #region Spatial queries
 ## The entity's primary collision shape. Commandables name their movement shape
@@ -410,6 +456,7 @@ func _resolve_collider() -> CollisionShape3D:
 	if node == null:
 		node = get_node_or_null("MovementBody")
 	return node as CollisionShape3D
+
 
 ## Resolve a physics-query collider to its owning Entity. Because the targetable
 ## layers / STRUCTURE_BLOCKER now live on the child TargetBody, query hits are that child
@@ -422,6 +469,7 @@ static func entity_from_collider(node: Object) -> Entity:
 		return (node as Node).get_parent() as Entity
 	return null
 
+
 ## Circumscribed radius of the collision shape on the physics object that
 ## participates in `layer`: the smallest circle (in XZ) that fully contains the
 ## shape. Use this for conservative packing/spacing (e.g. placing bodies so they
@@ -432,34 +480,49 @@ func bounding_radius(a_layer: int) -> float:
 	if shape == null:
 		push_error("%s has no collision shape on layer %d" % [name, a_layer])
 		return -1.0
-	if shape is SphereShape3D: return shape.radius
-	if shape is CylinderShape3D: return shape.radius
-	if shape is BoxShape3D: return Vector2(shape.size.x, shape.size.z).length() * 0.5
+	if shape is SphereShape3D:
+		return shape.radius
+	if shape is CylinderShape3D:
+		return shape.radius
+	if shape is BoxShape3D:
+		return Vector2(shape.size.x, shape.size.z).length() * 0.5
 	push_error("unhandled collider type %s" % typeof(shape))
 	return -1.0
+
 
 ## This piece's footprint on the XZ plane, from its TargetBody's shape: what every
 ## piece-to-piece range is measured from (see Hull). A piece with no targetable shape is
 ## measured as the point it stands on.
 func hull() -> Hull:
-	var node: CollisionShape3D = target_body.get_node_or_null("TargetShape") as CollisionShape3D \
-		if target_body != null else null
+	var node: CollisionShape3D = (
+		target_body.get_node_or_null("TargetShape") as CollisionShape3D
+		if target_body != null
+		else null
+	)
 	if node == null or node.shape == null:
 		return Hull.point(xz_position)
 	# Out of the tree (a build preview) global_transform is unavailable; compose it instead.
-	var xform: Transform3D = node.global_transform if node.is_inside_tree() \
+	var xform: Transform3D = (
+		node.global_transform
+		if node.is_inside_tree()
 		else global_transform * target_body.transform * node.transform
+	)
 	var at: Vector2 = VU.inXZ(xform.origin)
 	var shape: Shape3D = node.shape
 	if shape is BoxShape3D:
 		var size: Vector3 = (shape as BoxShape3D).size
-		return Hull.rect(at,
+		return Hull.rect(
+			at,
 			Vector2(size.x * xform.basis.x.length(), size.z * xform.basis.z.length()) * 0.5,
-			VU.inXZ(xform.basis.x), VU.inXZ(xform.basis.z))
+			VU.inXZ(xform.basis.x),
+			VU.inXZ(xform.basis.z)
+		)
 	var round_radius: float = RangeShapes.radius_of(shape)
 	if shape is CapsuleShape3D:
 		round_radius = (shape as CapsuleShape3D).radius
-	assert(round_radius >= 0.0, "%s: a target shape must be a box, cylinder, sphere or capsule" % name)
+	assert(
+		round_radius >= 0.0, "%s: a target shape must be a box, cylinder, sphere or capsule" % name
+	)
 	return Hull.circle(at, round_radius * xform.basis.x.length())
 
 
@@ -485,7 +548,8 @@ func _collision_shape_for_layer(a_layer: int) -> Shape3D:
 
 ## The root CharacterBody3D acts as a MOVEMENT_OBSTRUCTION only while the entity
 ## is NOT registered on the terrain grid. Registered fixtures are obstacles via the
-## navmesh (or, if they do not obstruct, walkable ground), so their root carries no collision layer — which is
+## navmesh (or, if they do not obstruct, walkable ground), so their root carries no collision layer
+## — which is
 ## what stops moving units from running into building corners. Re-run whenever
 ## grid registration changes (initialize / Map.add_structure / remove_structure).
 func refresh_movement_collision() -> void:
@@ -501,15 +565,18 @@ func refresh_movement_collision() -> void:
 	if not is_on_grid():
 		collision_layer |= CollisionLayers.Mask.MOVEMENT_OBSTRUCTION
 
+
 ## True when this entity is registered on the terrain grid — a placed fixture, an extractor
 ## overlaying its site included. Units and unplaced entities never are.
 func is_on_grid() -> bool:
 	return map != null and map.structure_cell_map.has(self)
 
+
 ## True when this entity is on the grid AND its cells leave the navmesh. An occupant-only
 ## fixture (`Structure.is_obstruction` false) is on the grid without obstructing.
 func is_grid_obstruction() -> bool:
 	return is_on_grid() and has_obstructing_footprint()
+
 
 ## True when this piece's footprint, once placed, takes its cells out of the navmesh — an
 ## OBSTRUCTION rather than an occupant-only fixture. Read from the piece itself rather than
@@ -517,6 +584,7 @@ func is_grid_obstruction() -> bool:
 func has_obstructing_footprint() -> bool:
 	var structure := get_node_or_null("Structure") as Structure
 	return structure == null or structure.is_obstruction
+
 
 ## Whether this entity is high enough off the ground to be an AIR target — THE definition of
 ## "airborne" for targeting, and the only one. ALTITUDE, not locomotion mode: an AERIAL unit
@@ -568,10 +636,13 @@ func _apply_targetable_layers() -> void:
 	if target_body == null:
 		return
 	# Clear the bits we own here, then recompute, leaving any unrelated bits intact.
-	var layers: int = target_body.collision_layer & ~(
-		CollisionLayers.TARGETABLE_ANY
-		| CollisionLayers.all_side_bits(CollisionLayers.TARGETABLE_ANY)
-		| CollisionLayers.Mask.STRUCTURE_BLOCKER
+	var layers: int = (
+		target_body.collision_layer
+		& ~(
+			CollisionLayers.TARGETABLE_ANY
+			| CollisionLayers.all_side_bits(CollisionLayers.TARGETABLE_ANY)
+			| CollisionLayers.Mask.STRUCTURE_BLOCKER
+		)
 	)
 	# A planned structure exposes nothing to shoot at or fire through — it isn't there. Nor
 	# does a charge riding on another piece: shooting at it is shooting at its carrier.
@@ -596,11 +667,13 @@ func _apply_targetable_layers() -> void:
 	layers |= CollisionLayers.side_bits(layers & CollisionLayers.TARGETABLE_ANY, commander_id)
 	target_body.collision_layer = layers
 
+
 ## The ATTACKABLE facet: a weapon can lock onto it and it can take damage
 ## (gdd/systems/authoring/piece-vocabulary.md §Facets). Deliberately says nothing about
 ## commandability — an uncommandable token with a Defense is as shootable as a unit.
 func is_attackable() -> bool:
 	return defense != null and targetable_layers() != 0
+
 
 ## Whether commander [a_viewer_commander_id] can currently perceive this entity: its fog
 ## pixel is clear for that commander AND it is not stealthed. Looks up the viewer's own Fog
@@ -613,6 +686,7 @@ func is_visible_to(a_viewer_commander_id: int) -> bool:
 	if fog == null:
 		return true
 	return fog.fog_clear_at(VU.inXZ(global_position))
+
 
 ## The TARGETABLE_GROUND / TARGETABLE_AIR bits this entity currently exposes, or 0
 ## when it isn't targetable. A weapon may attack it iff its target_mask intersects
@@ -633,7 +707,10 @@ func targetable_layers() -> int:
 ## because a parachuting soldier does not fly and a parked jet does.
 func is_airborne() -> bool:
 	return aerial != null and aerial.is_airborne()
+
+
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
@@ -667,13 +744,18 @@ func _ready() -> void:
 
 	_validate()
 
+
 func _validate() -> void:
 	# Abstract base scenes never enter the tree themselves, so an in-tree
 	# unit/structure with an empty id is a piece missing its spec-doc identity.
 	if id.is_empty() and (is_in_group("unit") or is_in_group("fixture")):
-		push_warning("Entity '%s' has an empty id (scene: %s) — set it from the piece's gdd doc." % [
-			name, scene_file_path if scene_file_path != "" else "<not from a scene file>"
-		])
+		push_warning(
+			(
+				"Entity '%s' has an empty id (scene: %s) — set it from the piece's gdd doc."
+				% [name, scene_file_path if scene_file_path != "" else "<not from a scene file>"]
+			)
+		)
+
 
 ## Finds the Map and the Commander matching default_commander_id in the scene
 ## tree and calls initialize() on this entity. Only runs when map is still null
@@ -697,7 +779,9 @@ func _auto_initialize() -> void:
 			found_commander = node
 			break
 	if found_commander == null:
-		push_warning("%s: auto-init skipped — no Commander with id=%d" % [name, default_commander_id])
+		push_warning(
+			"%s: auto-init skipped — no Commander with id=%d" % [name, default_commander_id]
+		)
 		return
 	# Capture position before initialize(), which reparents via _on_commander_changed.
 	var pre_init_pos := global_position
@@ -710,7 +794,10 @@ func _auto_initialize() -> void:
 	# A scene-placed piece is turned in the editor by yawing its root; the grid can only hold a
 	# quarter turn, so the authored yaw is read as the nearest one (and the piece squared up to it).
 	if spawns_deployed() and not found_map.structure_cell_map.has(self):
-		found_map.add_structure(self, VU.inXZ(pre_init_pos), Structure.quarter_turns_of_yaw(rotation.y), false)
+		found_map.add_structure(
+			self, VU.inXZ(pre_init_pos), Structure.quarter_turns_of_yaw(rotation.y), false
+		)
+
 
 func _on_commander_changed(_a_old_commander: Commander, a_new_commander: Commander) -> void:
 	_apply_team_tint()
@@ -720,6 +807,7 @@ func _on_commander_changed(_a_old_commander: Commander, a_new_commander: Command
 	# the not-yet-in-tree case.
 	if a_new_commander != null and is_inside_tree() and get_parent() != a_new_commander:
 		reparent(a_new_commander, true)
+
 
 ## This entity's owning team's colour. Resolves the Ownership node DIRECTLY (rather than
 ## via the @onready `ownership` shim) so it also works on out-of-tree instances — e.g.
@@ -733,6 +821,7 @@ func team_color() -> Color:
 	var own := get_node_or_null("Ownership") as Ownership
 	return TEAM_COLOR_MAP.get(own.commander_id if own != null else 0, Color.WHITE)
 
+
 func _apply_team_tint() -> void:
 	# Previously this lived inline in the commander setter, which meant the setter had to
 	# know about the entity's art. Now it's a separate concern driven by Ownership's
@@ -740,6 +829,7 @@ func _apply_team_tint() -> void:
 	var mesh_visual := get_node_or_null("MeshVisual") as MeshVisual
 	if mesh_visual != null:
 		mesh_visual.set_team_color(team_color())
+
 
 ## Configure this entity as a commander-owned visual preview (the build
 ## placement "ghost") without the full initialize() / tree-entry path: assign
@@ -751,6 +841,7 @@ func configure_preview_ownership(a_commander: Commander) -> void:
 	if own != null:
 		own.commander = a_commander
 	_apply_team_tint()
+
 
 func initialize(a_map: Map, a_commander: Commander):
 	map = a_map
@@ -775,6 +866,7 @@ func initialize(a_map: Map, a_commander: Commander):
 	# as MOVEMENT_OBSTRUCTION. Map.add_structure re-runs this once a structure is
 	# registered, clearing the layer so units don't collide with it.
 	refresh_movement_collision()
+
 
 func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
 	if defense == null:
@@ -811,16 +903,19 @@ func _pay_kill_bounty(a_from: Commandable) -> void:
 	if bounty > 0:
 		a_from.commander.add_energy(bounty)
 
+
 ## Leave play because a Lifespan ran out — not a death, so no death reaction, bounty or
 ## death sound. Anything that must hear it go listens for the free itself — a Beacon
 ## component signals its spotter as its host is freed.
 func expire() -> void:
 	queue_free()
 
+
 ## Leave play by dying — the death reaction, sound and teardown. What a component calls when the
 ## piece it belongs to is finished (an emission whose last phase has ended).
 func die() -> void:
 	_on_death()
+
 
 func _on_death() -> void:
 	# Fire the death reaction FIRST, while map / global_position / commander are
@@ -841,7 +936,10 @@ func _on_death() -> void:
 		map.spatial_partition_grid[coords.x][coords.y].remove(self)
 
 	queue_free()
+
+
 #endregion
+
 
 #region Lifecycle occurrence dispatch
 ## Announce that `occurrence` happened on this entity: emit the entity_occurrence signal,
@@ -860,6 +958,7 @@ func _fire_entity_occurrence(a_occurrence: EntityOccurrence) -> void:
 	if trigger != null:
 		trigger.fire(manager, self)
 
+
 ## The child EntityTrigger to fire for `occurrence`: the first matching one. Null when no
 ## trigger matches. EntityTriggers live under the "#####TRIGGERS#####" organizational
 ## header (see commandable.tscn) when present, else directly under this entity.
@@ -873,13 +972,15 @@ func _trigger_for(a_occurrence: EntityOccurrence) -> EntityTrigger:
 		return trigger
 	return null
 
+
 ## The node whose children are this entity's EntityTriggers: the "#####TRIGGERS#####"
 ## header node if it exists, otherwise the entity itself.
 func _triggers_root() -> Node:
 	for child in get_children():
-		if child.name == "#####TRIGGERS#####": # TODO refactor - the agent did this too literally
+		if child.name == "#####TRIGGERS#####":  # TODO refactor - the agent did this too literally
 			return child
 	return self
+
 
 ## Lazily resolve (and cache) the scene's ScenarioTriggerManager. Returns null when
 ## the current scene has none (reactions are then skipped; the signal still fires).
@@ -888,6 +989,8 @@ func _resolve_trigger_manager() -> ScenarioTriggerManager:
 		return _trigger_manager
 	var scene_root := get_tree().current_scene if is_inside_tree() else null
 	if scene_root != null:
-		_trigger_manager = scene_root.get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
+		_trigger_manager = (
+			scene_root.get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
+		)
 	return _trigger_manager
 #endregion

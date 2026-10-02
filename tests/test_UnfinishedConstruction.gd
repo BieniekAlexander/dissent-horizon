@@ -11,7 +11,8 @@ extends GutTest
 ## was still a 10%-health foundation.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_UnfinishedConstruction.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_UnfinishedConstruction.gd
+## -gexit
 
 ## A gun-carrying structure that sees.
 const SAM: Dictionary = {"structure": true, "vision": 10.0, "weapon": {"air": 8.0}}
@@ -26,6 +27,7 @@ func _sam(a_built: bool) -> Commandable:
 
 
 # --- is_built is the gate ---------------------------------------------------------
+
 
 func test_a_structure_under_construction_is_not_built() -> void:
 	assert_false(_sam(false).is_built)
@@ -42,6 +44,7 @@ func test_a_unit_is_always_built() -> void:
 
 
 # --- It cannot see ----------------------------------------------------------------
+
 
 func test_a_foundation_grants_no_vision() -> void:
 	# A foundation is not a watchtower: fog and the commander's sight checks both ask this.
@@ -67,6 +70,7 @@ func test_a_commander_counts_only_finished_structures_as_eyes() -> void:
 
 # --- It cannot act ----------------------------------------------------------------
 
+
 func test_an_unfinished_structure_processes_no_commands() -> void:
 	# The same total stop a stun applies, and for the same reason: no get_updated_state,
 	# no can_act, no fulfill_action. A half-built SAM firing was the reported bug.
@@ -74,8 +78,10 @@ func test_an_unfinished_structure_processes_no_commands() -> void:
 	var message := CommandMessage.new(null, null, null, Vector3(5.0, 0.0, 0.0))
 	turret.update_commands(MoveCommand.new(message), false)
 	turret._process_commands()
-	assert_false(turret.command_receiver.is_idle(),
-		"the order is HELD, not dropped — it runs when construction finishes")
+	assert_false(
+		turret.command_receiver.is_idle(),
+		"the order is HELD, not dropped — it runs when construction finishes"
+	)
 
 
 func test_a_finished_structure_processes_commands_again() -> void:
@@ -85,17 +91,21 @@ func test_a_finished_structure_processes_commands_again() -> void:
 
 # --- It still accepts orders ------------------------------------------------------
 
+
 func test_an_unfinished_structure_still_takes_orders() -> void:
 	# The precedent this follows: a half-built barracks accepts training orders and works
 	# through them once it is up. Every other command behaves the same way now.
 	var turret := _sam(false)
 	var message := CommandMessage.new(null, null, null, Vector3(5.0, 0.0, 0.0))
 	turret.update_commands(MoveCommand.new(message), false)
-	assert_true(turret.command_receiver.has_pending_work(),
-		"the order is queued against the unfinished structure")
+	assert_true(
+		turret.command_receiver.has_pending_work(),
+		"the order is queued against the unfinished structure"
+	)
 
 
 # --- It cannot be entered ---------------------------------------------------------
+
 
 func test_an_unfinished_garrison_admits_nobody() -> void:
 	# A building still going up has no inside to stand in. Checked on the Garrison rather
@@ -113,6 +123,7 @@ func test_an_unfinished_garrison_admits_nobody() -> void:
 
 # --- It is not cover ---------------------------------------------------------------
 
+
 func _target_body(a_turret: Commandable) -> StaticBody3D:
 	return a_turret.get_node_or_null("TargetBody") as StaticBody3D
 
@@ -125,10 +136,16 @@ func test_a_foundation_is_shootable_but_is_not_cover() -> void:
 	turret._apply_targetable_layers()
 	var body := _target_body(turret)
 	assert_not_null(body, "the SAM has a TargetBody to carry the layers")
-	assert_eq(body.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER, 0,
-		"a foundation is not cover")
-	assert_ne(body.collision_layer & CollisionLayers.Mask.TARGETABLE_GROUND, 0,
-		"but it can still be shot at")
+	assert_eq(
+		body.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER,
+		0,
+		"a foundation is not cover"
+	)
+	assert_ne(
+		body.collision_layer & CollisionLayers.Mask.TARGETABLE_GROUND,
+		0,
+		"but it can still be shot at"
+	)
 
 
 func test_finishing_construction_makes_it_cover() -> void:
@@ -137,8 +154,11 @@ func test_finishing_construction_makes_it_cover() -> void:
 	var turret := _sam(false)
 	turret._apply_targetable_layers()
 	assert_true(turret.advance_build_progress(1.0), "the completing tick")
-	assert_ne(_target_body(turret).collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER, 0,
-		"a finished building blocks line of fire")
+	assert_ne(
+		_target_body(turret).collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER,
+		0,
+		"a finished building blocks line of fire"
+	)
 
 
 # --- Infrastructure follows FINISHING, not starting ---------------------------------
@@ -147,6 +167,7 @@ func test_finishing_construction_makes_it_cover() -> void:
 ## (gdd/factions/colonial/structures/cl_defense_antiAircraft.md). A foundation draws no
 ## power yet, so it must not be charged for it — same "exists but does not act" idiom the
 ## rest of this file covers, applied to the economy rather than to commands.
+
 
 func _owned_sam(a_built: bool, a_commander: Commander) -> Commandable:
 	var turret := _sam(a_built)
@@ -168,8 +189,11 @@ func test_finishing_construction_credits_infrastructure() -> void:
 	var turret := _owned_sam(false, commander)
 	var before: int = commander.infrastructure
 	assert_true(turret.advance_build_progress(1.0), "the completing tick")
-	assert_eq(commander.infrastructure, before + turret.infrastructure,
-		"credited exactly on the tick construction finishes, not before")
+	assert_eq(
+		commander.infrastructure,
+		before + turret.infrastructure,
+		"credited exactly on the tick construction finishes, not before"
+	)
 
 
 func test_a_structure_placed_already_built_credits_infrastructure_immediately() -> void:
@@ -189,8 +213,11 @@ func test_killing_an_unfinished_structure_refunds_nothing_it_was_never_charged()
 	var turret := _owned_sam(false, commander)
 	var before: int = commander.infrastructure
 	turret._on_death()
-	assert_eq(commander.infrastructure, before,
-		"nothing was ever debited, so nothing should be credited back")
+	assert_eq(
+		commander.infrastructure,
+		before,
+		"nothing was ever debited, so nothing should be credited back"
+	)
 
 
 func test_killing_a_finished_structure_returns_its_infrastructure() -> void:

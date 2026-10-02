@@ -24,8 +24,9 @@ var _phases: PackedFloat32Array
 ## A wobble with phases drawn from `a_rng` — the seeded gameplay generator in play, so a
 ## scenario replays the same flights.
 func _init(a_rng: RandomNumberGenerator) -> void:
-	_phases = PackedFloat32Array([a_rng.randf() * TAU, a_rng.randf() * TAU,
-		a_rng.randf() * TAU, a_rng.randf() * TAU])
+	_phases = PackedFloat32Array(
+		[a_rng.randf() * TAU, a_rng.randf() * TAU, a_rng.randf() * TAU, a_rng.randf() * TAU]
+	)
 
 
 ## `velocity` turned by the wobble at `elapsed_seconds` into `phase`. Speed is kept; only the
@@ -33,8 +34,9 @@ func _init(a_rng: RandomNumberGenerator) -> void:
 func perturbed(phase: EmissionPhase, elapsed_seconds: float, velocity: Vector3) -> Vector3:
 	if not phase.has_jitter() or velocity.length_squared() < 0.0000001:
 		return velocity
-	var amplitude: float = deg_to_rad(phase.jitter_degrees) \
-		* clampf(elapsed_seconds / RAMP_IN_SECONDS, 0.0, 1.0)
+	var amplitude: float = (
+		deg_to_rad(phase.jitter_degrees) * clampf(elapsed_seconds / RAMP_IN_SECONDS, 0.0, 1.0)
+	)
 	if amplitude <= 0.0:
 		return velocity
 	var angle: float = TAU * phase.jitter_frequency_hz * elapsed_seconds
@@ -42,10 +44,13 @@ func perturbed(phase: EmissionPhase, elapsed_seconds: float, velocity: Vector3) 
 	var up_hint: Vector3 = Vector3.FORWARD if absf(forward.dot(Vector3.UP)) > 0.999 else Vector3.UP
 	var right: Vector3 = forward.cross(up_hint).normalized()
 	var up: Vector3 = right.cross(forward).normalized()
-	return velocity.rotated(up, amplitude * _wave(angle, _phases[0], _phases[1])) \
-		.rotated(right, amplitude * _wave(angle, _phases[2], _phases[3]))
+	return velocity.rotated(up, amplitude * _wave(angle, _phases[0], _phases[1])).rotated(
+		right, amplitude * _wave(angle, _phases[2], _phases[3])
+	)
 
 
 static func _wave(angle: float, first_phase: float, second_phase: float) -> float:
-	return FIRST_WAVE_SHARE * sin(angle + first_phase) \
+	return (
+		FIRST_WAVE_SHARE * sin(angle + first_phase)
 		+ SECOND_WAVE_SHARE * sin(angle * SECOND_WAVE_RATIO + second_phase)
+	)

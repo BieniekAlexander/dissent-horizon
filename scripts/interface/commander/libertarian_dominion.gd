@@ -22,6 +22,7 @@ var _carry: float = 0.0
 var _ticks_elapsed: int = 0
 #endregion
 
+
 #region Public API
 ## The Opticons this commander owns that are finished and standing.
 func sources() -> Array[Commandable]:
@@ -30,9 +31,14 @@ func sources() -> Array[Commandable]:
 		return out
 	for node: Node in commander.get_children():
 		var piece := node as Commandable
-		if piece != null and structure_sources.has(piece.id) and piece.is_built \
-				and not piece.is_planned and not piece.is_queued_for_deletion() \
-				and piece.is_inside_tree():
+		if (
+			piece != null
+			and structure_sources.has(piece.id)
+			and piece.is_built
+			and not piece.is_planned
+			and not piece.is_queued_for_deletion()
+			and piece.is_inside_tree()
+		):
 			out.append(piece)
 	return out
 
@@ -45,8 +51,12 @@ func pending_sources() -> Array[Commandable]:
 		return out
 	for node: Node in commander.get_children():
 		var piece := node as Commandable
-		if piece != null and structure_sources.has(piece.id) and not piece.is_queued_for_deletion() \
-				and (piece.is_planned or not piece.is_built):
+		if (
+			piece != null
+			and structure_sources.has(piece.id)
+			and not piece.is_queued_for_deletion()
+			and (piece.is_planned or not piece.is_built)
+		):
 			out.append(piece)
 	return out
 
@@ -93,7 +103,9 @@ static func cells_claimed_by(a_source: Commandable) -> Array[Vector2i]:
 		return []
 	return cells_within(
 		a_source.map.world_to_grid_point(VU.inXZ(a_source.global_position)),
-		claim_radius_cells(a_source), grid_size_of(a_source.map))
+		claim_radius_cells(a_source),
+		grid_size_of(a_source.map)
+	)
 
 
 ## The claim's radius in cells: the piece's vision shape. Read by node name rather than through
@@ -114,7 +126,7 @@ static func grid_size_of(a_map: Map) -> Vector2i:
 ## Every in-bounds cell whose CENTRE lies within `radius_cells` of `centre` (continuous grid
 ## coordinates). Terrain is not consulted: an unbuildable tile is claimed like any other.
 static func cells_within(
-		centre: Vector2, radius_cells: float, grid_size: Vector2i
+	centre: Vector2, radius_cells: float, grid_size: Vector2i
 ) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	var reach: int = ceili(radius_cells)
@@ -144,8 +156,13 @@ func site_survey(a_preview: Entity) -> DominionSiteSurvey:
 	if map == null:
 		return null
 	var snapshot: Dictionary = _snapshot(map)
-	return OpticonSurvey.new(map, snapshot["projected"], snapshot["shielded"],
-		claim_radius_cells(a_preview), dominion_per_tile)
+	return OpticonSurvey.new(
+		map,
+		snapshot["projected"],
+		snapshot["shielded"],
+		claim_radius_cells(a_preview),
+		dominion_per_tile
+	)
 
 
 ## Every tile a new Opticon at `a_world_xz` would claim, marked with whether it would pay: not
@@ -157,8 +174,9 @@ func site_claim(a_preview: Entity, a_world_xz: Vector2) -> Dictionary:
 		return {}
 	var snapshot: Dictionary = _snapshot(map)
 	var out: Dictionary = {}
-	for cell: Vector2i in cells_within(map.world_to_grid_point(a_world_xz),
-			claim_radius_cells(a_preview), grid_size_of(map)):
+	for cell: Vector2i in cells_within(
+		map.world_to_grid_point(a_world_xz), claim_radius_cells(a_preview), grid_size_of(map)
+	):
 		out[cell] = not snapshot["projected"].has(cell) and not snapshot["shielded"].has(cell)
 	return out
 
@@ -189,14 +207,20 @@ class OpticonSurvey:
 	var _paying: Dictionary
 	var _per_tile: float
 
-	func _init(a_map: Map, a_paying: Dictionary, a_shielded: Dictionary,
-			a_radius_cells: float, a_per_tile: float) -> void:
+	func _init(
+		a_map: Map,
+		a_paying: Dictionary,
+		a_shielded: Dictionary,
+		a_radius_cells: float,
+		a_per_tile: float
+	) -> void:
 		_map = a_map
 		_paying = a_paying
 		_per_tile = a_per_tile
 		var size: Vector2i = LibertarianDominion.grid_size_of(a_map)
-		_blocks = Vector2i(ceili(float(size.x) / SURVEY_BLOCK_CELLS),
-			ceili(float(size.y) / SURVEY_BLOCK_CELLS))
+		_blocks = Vector2i(
+			ceili(float(size.x) / SURVEY_BLOCK_CELLS), ceili(float(size.y) / SURVEY_BLOCK_CELLS)
+		)
 		# Every block starts full and loses the cells that pay or are shielded — rather than asking
 		# of every cell on the map, which is tens of thousands of lookups for a few thousand hits.
 		_free.resize(_blocks.x * _blocks.y)
@@ -204,9 +228,10 @@ class OpticonSurvey:
 		for bz: int in _blocks.y:
 			for bx: int in _blocks.x:
 				if (bx + 1) * SURVEY_BLOCK_CELLS > size.x or (bz + 1) * SURVEY_BLOCK_CELLS > size.y:
-					_free[bz * _blocks.x + bx] = \
-						(mini(size.x, (bx + 1) * SURVEY_BLOCK_CELLS) - bx * SURVEY_BLOCK_CELLS) \
+					_free[bz * _blocks.x + bx] = (
+						(mini(size.x, (bx + 1) * SURVEY_BLOCK_CELLS) - bx * SURVEY_BLOCK_CELLS)
 						* (mini(size.y, (bz + 1) * SURVEY_BLOCK_CELLS) - bz * SURVEY_BLOCK_CELLS)
+					)
 		for taken: Dictionary in [a_paying, a_shielded]:
 			for cell: Vector2i in taken:
 				if cell.x >= 0 and cell.y >= 0 and cell.x < size.x and cell.y < size.y:
@@ -234,7 +259,10 @@ class OpticonSurvey:
 func full_site_gain(a_preview: Entity) -> float:
 	var r: float = claim_radius_cells(a_preview)
 	return PI * r * r * dominion_per_tile
+
+
 #endregion
+
 
 #region Private helpers
 ## Tiles under a fixture this commander's side owns, the Opticons included. Enemy and neutral
@@ -242,8 +270,10 @@ func full_site_gain(a_preview: Entity) -> float:
 func _allied_fixture_cells(a_map: Map) -> Dictionary:
 	var out: Dictionary = {}
 	for fixture: Variant in a_map.structure_cell_map:
-		if not is_instance_valid(fixture) \
-				or not commander.shares_side_with((fixture as Entity).commander_id):
+		if (
+			not is_instance_valid(fixture)
+			or not commander.shares_side_with((fixture as Entity).commander_id)
+		):
 			continue
 		for cell: Vector2i in a_map.structure_cell_map[fixture]:
 			out[cell] = true
@@ -262,16 +292,23 @@ func _snapshot(a_map: Map) -> Dictionary:
 	if key == _snapshot_key:
 		return _snapshot_value
 	_snapshot_key = key
-	_snapshot_value = claim_states(sources().map(cells_claimed_by),
-		pending_sources().map(cells_claimed_by), _allied_fixture_cells(a_map),
-		commander.planned_footprint_cells())
+	_snapshot_value = claim_states(
+		sources().map(cells_claimed_by),
+		pending_sources().map(cells_claimed_by),
+		_allied_fixture_cells(a_map),
+		commander.planned_footprint_cells()
+	)
 	return _snapshot_value
 
 
 ## The snapshot's rule, pure: from the standing and pending sources' claims (arrays of cells) and
 ## the standing and planned fixtures' cells (sets), the four sets _snapshot describes.
-static func claim_states(a_standing_claims: Array, a_pending_claims: Array,
-		a_standing_fixtures: Dictionary, a_planned_fixtures: Dictionary) -> Dictionary:
+static func claim_states(
+	a_standing_claims: Array,
+	a_pending_claims: Array,
+	a_standing_fixtures: Dictionary,
+	a_planned_fixtures: Dictionary
+) -> Dictionary:
 	var shielded: Dictionary = a_standing_fixtures.duplicate()
 	shielded.merge(a_planned_fixtures)
 	var paying: Dictionary = union_excluding(a_standing_claims, a_standing_fixtures)
@@ -283,6 +320,7 @@ static func claim_states(a_standing_claims: Array, a_pending_claims: Array,
 		if not projected.has(cell):
 			layer[cell] = ClaimState.PENDING_LOSS
 	return {"paying": paying, "projected": projected, "shielded": shielded, "layer": layer}
+
 
 var _snapshot_key: Variant = []
 var _snapshot_value: Dictionary = {}
@@ -299,9 +337,12 @@ func claim_key() -> Variant:
 		var piece := node as Commandable
 		if piece != null and piece.is_planned:
 			planned.append([piece.get_instance_id(), piece.global_position])
-	return [sources().map(func(c: Commandable) -> int: return c.get_instance_id()),
+	return [
+		sources().map(func(c: Commandable) -> int: return c.get_instance_id()),
 		pending_sources().map(func(c: Commandable) -> int: return c.get_instance_id()),
-		planned, map.structure_cell_map.size()]
+		planned,
+		map.structure_cell_map.size()
+	]
 
 
 func _proc() -> void:
@@ -310,7 +351,10 @@ func _proc() -> void:
 	if whole > 0:
 		_carry -= whole
 		commander.add_dominion(whole)
+
+
 #endregion
+
 
 #region Lifecycle
 func _physics_process(_a_delta: float) -> void:

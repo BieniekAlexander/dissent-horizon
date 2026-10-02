@@ -53,7 +53,9 @@ var _share_of: Callable
 
 
 func _init(
-	a_params: MapGenerationParams, a_rng: RandomNumberGenerator, a_grid: PlacementGrid,
+	a_params: MapGenerationParams,
+	a_rng: RandomNumberGenerator,
+	a_grid: PlacementGrid,
 	a_starts: Array[MapStart]
 ) -> void:
 	_params = a_params
@@ -72,7 +74,8 @@ func _init(
 func restrict(a_center: Vector2, a_radius: float, a_share_of: Callable) -> void:
 	var low := Vector2i((a_center - Vector2.ONE * a_radius).floor()).max(Vector2i.ZERO)
 	var high := Vector2i((a_center + Vector2.ONE * a_radius).ceil()).min(
-		Vector2i(_grid.width, _grid.depth))
+		Vector2i(_grid.width, _grid.depth)
+	)
 	_window = Rect2i(low, (high - low).max(Vector2i.ONE))
 	_share_of = a_share_of
 
@@ -103,8 +106,14 @@ func place(a_plan: FeaturePlan, a_target: PackedFloat32Array, a_freedom: float =
 			continue
 		found += 1
 		candidate.realised_share = _share_of.call(candidate.center)
-		var score: float = MapFavor.share_error(candidate.realised_share, a_target) \
-			- _params.collocation_weight * a_freedom * _collocation(candidate.kind, candidate.center)
+		var score: float = (
+			MapFavor.share_error(candidate.realised_share, a_target)
+			- (
+				_params.collocation_weight
+				* a_freedom
+				* _collocation(candidate.kind, candidate.center)
+			)
+		)
 		if score < best_score:
 			best_score = score
 			best = candidate
@@ -121,7 +130,8 @@ func place(a_plan: FeaturePlan, a_target: PackedFloat32Array, a_freedom: float =
 func _random_origin(a_dims: Vector2i) -> Vector2i:
 	return Vector2i(
 		_rng.randi_range(_window.position.x, maxi(_window.position.x, _window.end.x - a_dims.x)),
-		_rng.randi_range(_window.position.y, maxi(_window.position.y, _window.end.y - a_dims.y)))
+		_rng.randi_range(_window.position.y, maxi(_window.position.y, _window.end.y - a_dims.y))
+	)
 
 
 func _propose(a_plan: FeaturePlan) -> MapFeature:
@@ -200,7 +210,8 @@ func _propose_pond(a_plan: FeaturePlan) -> MapFeature:
 func _propose_cluster(a_plan: FeaturePlan) -> MapFeature:
 	var center := Vector2(
 		_rng.randf_range(_window.position.x, _window.end.x),
-		_rng.randf_range(_window.position.y, _window.end.y))
+		_rng.randf_range(_window.position.y, _window.end.y)
+	)
 	if not _grid.is_free(Vector2i(center)) or not _is_spaced(center):
 		return null
 	var radius: float = _cluster_radius(a_plan)
@@ -236,7 +247,8 @@ func _propose_site_cluster(a_plan: FeaturePlan) -> MapFeature:
 		return null
 	var origins: Array[Vector2i] = [first]
 	var steps: Array[Vector2i] = [
-		Vector2i(dims.x, 0), Vector2i(-dims.x, 0), Vector2i(0, dims.y), Vector2i(0, -dims.y)]
+		Vector2i(dims.x, 0), Vector2i(-dims.x, 0), Vector2i(0, dims.y), Vector2i(0, -dims.y)
+	]
 	for _member: int in range(1, a_plan.cluster_pieces.size()):
 		var next: Vector2i = _adjacent_site(origins, steps, dims)
 		if next == Vector2i(-1, -1):
@@ -263,8 +275,9 @@ func _adjacent_site(
 	a_origins: Array[Vector2i], a_steps: Array[Vector2i], a_dims: Vector2i
 ) -> Vector2i:
 	for _i: int in SITE_ADJACENCY_DRAWS:
-		var next: Vector2i = a_origins[_rng.randi() % a_origins.size()] \
-			+ a_steps[_rng.randi() % a_steps.size()]
+		var next: Vector2i = (
+			a_origins[_rng.randi() % a_origins.size()] + a_steps[_rng.randi() % a_steps.size()]
+		)
 		if not a_origins.has(next) and _grid.is_rect_free(next, a_dims):
 			return next
 	return Vector2i(-1, -1)
@@ -327,6 +340,8 @@ func _fit_cluster_member(
 		if clear:
 			return origin
 	return Vector2i(-1, -1)
+
+
 #endregion
 
 
@@ -373,8 +388,11 @@ static func _fill_pan_holes(region: Dictionary) -> void:
 		var cell: Vector2i = corner
 		if region.has(cell):
 			continue
-		if lowered.has(cell + Vector2i(1, 0)) and lowered.has(cell + Vector2i(0, 1)) \
-				and lowered.has(cell + Vector2i(1, 1)):
+		if (
+			lowered.has(cell + Vector2i(1, 0))
+			and lowered.has(cell + Vector2i(0, 1))
+			and lowered.has(cell + Vector2i(1, 1))
+		):
 			holes.append(cell)
 	for cell: Vector2i in holes:
 		region[cell] = true
@@ -391,6 +409,8 @@ static func _holds_block(region: Dictionary, dims: Vector2i) -> bool:
 		if whole:
 			return true
 	return false
+
+
 #endregion
 
 
@@ -423,5 +443,6 @@ func _commit(a_feature: MapFeature) -> void:
 			_cluster_rects[a_feature.kind] = []
 		for placement: Dictionary in a_feature.placements:
 			_cluster_rects[a_feature.kind].append(
-				Rect2i(placement.origin, (placement.piece as MapPiece).footprint))
+				Rect2i(placement.origin, (placement.piece as MapPiece).footprint)
+			)
 #endregion

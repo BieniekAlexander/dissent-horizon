@@ -45,6 +45,7 @@ var commander_id: int = 1
 var caster: Commandable = null
 #endregion
 
+
 #region Public API
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var commander: Commander = a_manager.get_commander(commander_id)
@@ -63,7 +64,10 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 
 	var drop_point := Vector3(drop_xz.x, map.terrain_height_at(drop_xz), drop_xz.y)
 	transport.update_commands(AirDropRun.new(CommandMessage.new(map, null, null, drop_point)))
+
+
 #endregion
+
 
 #region Private helpers
 ## Put the transport in the air at `entry_xz`, already pointed at the drop.
@@ -105,8 +109,12 @@ func _launch_transport(
 func _load_cargo(a_transport: Commandable, a_map: Map, a_commander: Commander) -> void:
 	var hold: Garrison = a_transport.get_node_or_null("Garrison") as Garrison
 	if hold == null:
-		push_error("EventAirDrop '%s': transport '%s' has no Garrison to carry the drop"
-			% [name, a_transport.name])
+		push_error(
+			(
+				"EventAirDrop '%s': transport '%s' has no Garrison to carry the drop"
+				% [name, a_transport.name]
+			)
+		)
 		return
 	for packed: PackedScene in entity_scenes:
 		if packed == null:
@@ -117,8 +125,12 @@ func _load_cargo(a_transport: Commandable, a_map: Map, a_commander: Commander) -
 				continue
 			unit.initialize(a_map, a_commander)
 			if not hold.has_room_for(unit):
-				push_error("EventAirDrop '%s': transport hold is full — '%s' left behind"
-					% [name, unit.name])
+				push_error(
+					(
+						"EventAirDrop '%s': transport hold is full — '%s' left behind"
+						% [name, unit.name]
+					)
+				)
 				unit.queue_free()
 				continue
 			hold.garrison(unit)

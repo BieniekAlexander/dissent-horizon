@@ -172,27 +172,58 @@ func _build_jobs() -> void:
 	var strategy: Callable = func() -> float: return config.strategy_period_seconds
 	var scouting: Callable = func() -> float: return config.scout_period_seconds
 	_jobs = [
-		BotJob.new(&"deployment", self, strategy, JOB_PRIORITY_DEPLOYMENT, _deployment.tick,
-			_deployment.is_pending),
+		BotJob.new(
+			&"deployment",
+			self,
+			strategy,
+			JOB_PRIORITY_DEPLOYMENT,
+			_deployment.tick,
+			_deployment.is_pending
+		),
 		BotJob.new(&"momentum", self, combat, JOB_PRIORITY_MOMENTUM, _unit_work(_momentum.tick)),
 		BotJob.new(&"targeting", self, combat, JOB_PRIORITY_TARGETING, _unit_work(_targeting.tick)),
 		BotJob.new(&"military", self, combat, JOB_PRIORITY_MILITARY, _unit_work(_military.tick)),
 		BotJob.new(&"sanction", self, combat, JOB_PRIORITY_SANCTION, _unit_work(_sanction.tick)),
-		BotJob.new(&"kamikaze", self, func() -> float: return BotKamikaze.EVAL_PERIOD_SECONDS,
-			JOB_PRIORITY_KAMIKAZE, _unit_work(_kamikaze.tick)),
-		BotJob.new(&"preservation", self, func() -> float: return PRESERVATION_PERIOD_SECONDS,
-			JOB_PRIORITY_PRESERVATION, _unit_work(_tick_preservation)),
-		BotJob.new(&"opportunist", self, strategy, JOB_PRIORITY_OPPORTUNIST,
-			_unit_work(_opportunist.tick)),
-		BotJob.new(&"economy", self, strategy, JOB_PRIORITY_ECONOMY, _economy.tick,
-			_economy.has_pending_search),
-		BotJob.new(&"production", self, strategy, JOB_PRIORITY_PRODUCTION,
-			_unit_work(_production.tick)),
+		BotJob.new(
+			&"kamikaze",
+			self,
+			func() -> float: return BotKamikaze.EVAL_PERIOD_SECONDS,
+			JOB_PRIORITY_KAMIKAZE,
+			_unit_work(_kamikaze.tick)
+		),
+		BotJob.new(
+			&"preservation",
+			self,
+			func() -> float: return PRESERVATION_PERIOD_SECONDS,
+			JOB_PRIORITY_PRESERVATION,
+			_unit_work(_tick_preservation)
+		),
+		BotJob.new(
+			&"opportunist", self, strategy, JOB_PRIORITY_OPPORTUNIST, _unit_work(_opportunist.tick)
+		),
+		BotJob.new(
+			&"economy",
+			self,
+			strategy,
+			JOB_PRIORITY_ECONOMY,
+			_economy.tick,
+			_economy.has_pending_search
+		),
+		BotJob.new(
+			&"production", self, strategy, JOB_PRIORITY_PRODUCTION, _unit_work(_production.tick)
+		),
 		# Seeing comes before dispatching, so a scout is sent on from what was just seen.
-		BotJob.new(&"scout_sight", self, scouting, JOB_PRIORITY_SCOUT + 1, _scout.sweep_sight,
-			_scout.is_sight_pending),
-		BotJob.new(&"scout", self, scouting, JOB_PRIORITY_SCOUT, _scout.tick,
-			_scout.is_dispatch_pending),
+		BotJob.new(
+			&"scout_sight",
+			self,
+			scouting,
+			JOB_PRIORITY_SCOUT + 1,
+			_scout.sweep_sight,
+			_scout.is_sight_pending
+		),
+		BotJob.new(
+			&"scout", self, scouting, JOB_PRIORITY_SCOUT, _scout.tick, _scout.is_dispatch_pending
+		),
 	]
 
 
@@ -301,6 +332,7 @@ func _ensure_managers() -> bool:
 
 
 # ─── UNIT PRESERVATION ──────────────────────────────────────────────────────
+
 
 ## Whether this bot should attempt to save [unit] from destruction — a PARAMETER now
 ## (`BotDifficulty.preserve_min_cost`) rather than a match on the tier, so the threshold is

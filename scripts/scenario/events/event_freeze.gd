@@ -25,8 +25,10 @@ const FREEZE_EFFECT: PackedScene = preload("res://scenes/entities/status_effects
 ## How long the freeze lasts, in physics ticks (30/second). Authored per tier.
 @export var duration_ticks: int = FreezeStatusEffect.DEFAULT_FREEZE_TICKS
 
+
 func _qualifies(a_candidate: Commandable) -> bool:
 	return FreezeStatusEffect.can_freeze(a_candidate)
+
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var target: Commandable = _find_target_unit(a_manager)

@@ -11,6 +11,7 @@ extends GutTest
 ## vehicle is picked up with no bot change — and pin the one place the rule deliberately does
 ## NOT apply, `BotScout._applicable_responsibility_count`.
 
+
 ## A Commandable that can live in the tree without a scene behind it — the same shape
 ## tests/test_BotHostileTargets.gd uses, and for the same reason.
 class StubPiece:
@@ -18,9 +19,11 @@ class StubPiece:
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
-		for pair: Array in [["Ownership", Ownership.new()],
-				["AvoidanceObstacle", NavigationObstacle3D.new()],
-				["Veterancy", Veterancy.new()]]:
+		for pair: Array in [
+			["Ownership", Ownership.new()],
+			["AvoidanceObstacle", NavigationObstacle3D.new()],
+			["Veterancy", Veterancy.new()]
+		]:
 			var node: Node = pair[1]
 			node.name = pair[0]
 			piece.add_child(node)
@@ -77,6 +80,7 @@ func _military() -> BotMilitary:
 
 # ─── THE SENSES ──────────────────────────────────────────────────────────────
 
+
 func test_a_loadout_with_no_weapon_is_not_armed() -> void:
 	assert_false(_bot.unit_is_armed(_unit(0.0, Movement.CrushClass.SMALL)))
 
@@ -95,8 +99,10 @@ func test_a_large_enough_unit_can_crush() -> void:
 
 
 func test_an_unarmed_crusher_has_combat_utility() -> void:
-	assert_true(_bot.unit_has_combat_utility(_unit(0.0, Movement.CrushClass.LARGE)),
-		"the Stock Truck case: no weapon, but it drives over infantry")
+	assert_true(
+		_bot.unit_has_combat_utility(_unit(0.0, Movement.CrushClass.LARGE)),
+		"the Stock Truck case: no weapon, but it drives over infantry"
+	)
 
 
 func test_an_unarmed_uncrushing_unit_has_no_combat_utility() -> void:
@@ -105,16 +111,23 @@ func test_an_unarmed_uncrushing_unit_has_no_combat_utility() -> void:
 
 # ─── WHAT THE ARMY CLAIMS ────────────────────────────────────────────────────
 
+
 func test_the_army_claims_an_unarmed_crusher() -> void:
 	var truck: Commandable = _unit(0.0, Movement.CrushClass.LARGE)
-	assert_eq(_military()._combat_units(_bot.get_units()), [truck],
-		"nobody else wanted it, and it is not harmless")
+	assert_eq(
+		_military()._combat_units(_bot.get_units()),
+		[truck],
+		"nobody else wanted it, and it is not harmless"
+	)
 
 
 func test_the_army_still_leaves_a_genuinely_harmless_unit_alone() -> void:
 	_unit(0.0, Movement.CrushClass.TINY)
-	assert_eq(_military()._combat_units(_bot.get_units()), [],
-		"a unit with no weapon and no weight is not marched to its death")
+	assert_eq(
+		_military()._combat_units(_bot.get_units()),
+		[],
+		"a unit with no weapon and no weight is not marched to its death"
+	)
 
 
 func test_the_army_claims_armed_and_crushing_units_together() -> void:
@@ -128,6 +141,7 @@ func test_the_army_claims_armed_and_crushing_units_together() -> void:
 
 # ─── AND WHERE THE RULE DELIBERATELY DOES NOT APPLY ──────────────────────────
 
+
 func test_crushing_does_not_make_a_unit_wanted_elsewhere() -> void:
 	# BotScout scores a candidate DOWN for every other job that currently wants it, and the
 	# Stock Truck is the right opening scout precisely because nothing does. Crushing is
@@ -136,7 +150,7 @@ func test_crushing_does_not_make_a_unit_wanted_elsewhere() -> void:
 	var truck: Commandable = _unit(0.0, Movement.CrushClass.LARGE)
 	var soldier: Commandable = _unit(10.0, Movement.CrushClass.SMALL)
 	var scout := BotScout.new(_bot, null)
-	assert_eq(scout._applicable_responsibility_count(truck), 0,
-		"the crusher is nobody's first call")
-	assert_eq(scout._applicable_responsibility_count(soldier), 1,
-		"the soldier is the army's")
+	assert_eq(
+		scout._applicable_responsibility_count(truck), 0, "the crusher is nobody's first call"
+	)
+	assert_eq(scout._applicable_responsibility_count(soldier), 1, "the soldier is the army's")

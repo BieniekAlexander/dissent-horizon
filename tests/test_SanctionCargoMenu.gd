@@ -20,8 +20,9 @@ const MATILDA: StringName = &"fake_tank"
 
 func before_each() -> void:
 	for id: StringName in [RECRUIT, APC, MATILDA]:
-		FakePieces.register_tool(FakePieces.tool(id, FakePieces.PLAIN, [],
-			ControlBinding.ControlContext.TRAIN))
+		FakePieces.register_tool(
+			FakePieces.tool(id, FakePieces.PLAIN, [], ControlBinding.ControlContext.TRAIN)
+		)
 
 
 func after_each() -> void:
@@ -40,9 +41,20 @@ func _level(a_level: int, a_payloads: Array[Dictionary]) -> Sanction:
 func _drop_levels() -> Array[Sanction]:
 	return [
 		_level(1, [{"piece": RECRUIT, "count": 2}] as Array[Dictionary]),
-		_level(2, [{"piece": RECRUIT, "count": 4}, {"piece": APC, "count": 1}] as Array[Dictionary]),
-		_level(3, [{"piece": RECRUIT, "count": 6}, {"piece": APC, "count": 2},
-			{"piece": MATILDA, "count": 1}] as Array[Dictionary]),
+		_level(
+			2, [{"piece": RECRUIT, "count": 4}, {"piece": APC, "count": 1}] as Array[Dictionary]
+		),
+		_level(
+			3,
+			(
+				[
+					{"piece": RECRUIT, "count": 6},
+					{"piece": APC, "count": 2},
+					{"piece": MATILDA, "count": 1}
+				]
+				as Array[Dictionary]
+			)
+		),
 	]
 
 
@@ -85,6 +97,7 @@ func test_a_payload_is_stored_as_an_id_and_resolves_through_the_tool_registry() 
 
 # --- The two-step arming ----------------------------------------------------------
 
+
 func _controller_with(a_sanction: Sanction) -> RTSController:
 	var controller := autofree(RTSController.new()) as RTSController
 	controller.command_message = CommandMessage.new(null)
@@ -95,15 +108,16 @@ func _controller_with(a_sanction: Sanction) -> RTSController:
 func test_arming_a_cargo_sanction_opens_its_menu() -> void:
 	var controller: RTSController = _controller_with(_drop_levels()[2])
 	assert_not_null(controller.pending_payload_sanction(), "the menu is up")
-	assert_eq(controller.payload_menu_commands().size(), 3,
-		"one button per piece the level offers")
+	assert_eq(controller.payload_menu_commands().size(), 3, "one button per piece the level offers")
 
 
 func test_picking_a_cargo_closes_the_menu() -> void:
 	var controller: RTSController = _controller_with(_drop_levels()[2])
 	controller.command_message.tool = Tool.for_id(APC)
-	assert_null(controller.pending_payload_sanction(),
-		"chosen, so the card goes back to what it was showing")
+	assert_null(
+		controller.pending_payload_sanction(),
+		"chosen, so the card goes back to what it was showing"
+	)
 
 
 ## The click that would otherwise fire it lands while the menu is still up. Firing then would

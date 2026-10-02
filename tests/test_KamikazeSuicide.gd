@@ -113,15 +113,26 @@ func test_kamikaze_detonates_and_dies_to_its_own_blast() -> void:
 	gut.error_tracker.disabled = false
 
 	assert_true(fired, "the drone actually fired its bomb")
-	assert_true(died_at >= 0,
-		"the drone died to its own blast within %d ticks (still alive = the blast caught " % RUN_TICKS
-		+ "nobody, so SuicideStatusEffect never ran)")
+	assert_true(
+		died_at >= 0,
+		(
+			(
+				"the drone died to its own blast within %d ticks (still alive = the blast caught "
+				% RUN_TICKS
+			)
+			+ "nobody, so SuicideStatusEffect never ran)"
+		)
+	)
 	# The point of the dive rework: a ramming attack has to happen ON the target, not six
 	# units above it. Every AttackRange is a 100-tall cylinder, so the range check alone
 	# said "in range" from cruise altitude and the drone detonated in mid-air.
-	assert_true(altitude_at_launch >= 0.0 and altitude_at_launch <= reach,
-		"detonated in contact (altitude %.2f <= reach %.2f), not from cruise altitude"
-			% [altitude_at_launch, reach])
+	assert_true(
+		altitude_at_launch >= 0.0 and altitude_at_launch <= reach,
+		(
+			"detonated in contact (altitude %.2f <= reach %.2f), not from cruise altitude"
+			% [altitude_at_launch, reach]
+		)
+	)
 
 
 ## Emissions currently alive under `a_root`. Bombs are parented to the FIRING COMMANDER,
@@ -148,4 +159,3 @@ func _silence_brains(a_scenario: Scenario) -> void:
 		var brain := commander.get_node_or_null("BotBrain") as BotBrain
 		if brain != null:
 			brain.active = false
-

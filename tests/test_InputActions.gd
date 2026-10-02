@@ -57,16 +57,13 @@ func test_command_issue_is_not_a_grid_cell_action() -> void:
 
 
 func test_command_issue_is_handled_before_the_prefix_branch() -> void:
-	var source: String = FileAccess.get_file_as_string(
-		"res://scripts/interface/rts_controller.gd"
-	)
+	var source: String = FileAccess.get_file_as_string("res://scripts/interface/rts_controller.gd")
 	assert_ne(source, "", "the controller source is readable")
 	var explicit: int = source.find('is_action_pressed("command_issue")')
 	# The dispatcher is matched by a REGEX that skips whatever the event argument is
 	# called. Pinning the parameter's name made this test fail the day the controller's
 	# parameters took the `a_` prefix — a naming change, not the ordering this is about.
-	var dispatcher := RegEx.create_from_string(
-		'get_action_names_by_prefix\\([^,]+, "command_"\\)')
+	var dispatcher := RegEx.create_from_string('get_action_names_by_prefix\\([^,]+, "command_"\\)')
 	var match_found: RegExMatch = dispatcher.search(source)
 	var prefix: int = match_found.get_start() if match_found != null else -1
 	assert_gt(explicit, -1, "the explicit branch exists")

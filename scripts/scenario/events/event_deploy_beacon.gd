@@ -30,6 +30,7 @@ class_name EventDeployBeacon extends AbstractEvent
 ## clears. Set by the activating Sanction before execute.
 var commander_id: int = 1
 
+
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var commander: Commander = a_manager.get_commander(commander_id)
 	var map: Map = a_manager.map
@@ -49,8 +50,12 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## The enemy unit a beacon dropped here lands ON: the nearest one within Beacon.ATTACH_RADIUS
 ## that can carry a beacon (a grounded MECH unit). Null leaves the beacon on the ground.
 func _carrier_near(a_beacon: Entity) -> Entity:
-	var nearby: Array = SU.get_nearby_entities(a_beacon.get_world_3d(), a_beacon.global_position,
-		Beacon.ATTACH_RADIUS, CollisionLayers.TARGETABLE_ANY)
+	var nearby: Array = SU.get_nearby_entities(
+		a_beacon.get_world_3d(),
+		a_beacon.global_position,
+		Beacon.ATTACH_RADIUS,
+		CollisionLayers.TARGETABLE_ANY
+	)
 	var best: Entity = null
 	var best_distance: float = INF
 	for candidate: Variant in nearby:

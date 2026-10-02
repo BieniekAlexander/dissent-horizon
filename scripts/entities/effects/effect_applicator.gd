@@ -23,6 +23,7 @@ extends AbstractEvent
 ##   * Under a GlobalTrigger: it extends AbstractEvent, so the trigger fires execute(),
 ##     which seeds with EVERY unit in the scene and lets the selectors do the scoping.
 
+
 #region Public API
 ## Trigger-driven entry point (GlobalTrigger.fire → ScenarioTriggerManager.run_event).
 ## Seeds with all scene units; the selector pipeline scopes them.
@@ -36,7 +37,9 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## selector pipeline, not a constraint on this base type. `a_source` is the inflictor (for
 ## damage attribution); `manager` is forwarded to selectors that need it (most ignore it)
 ## and may be null (e.g. projectile impact).
-func apply(a_seed: Array[Entity], a_source: Commandable = null, a_manager: ScenarioTriggerManager = null) -> void:
+func apply(
+	a_seed: Array[Entity], a_source: Commandable = null, a_manager: ScenarioTriggerManager = null
+) -> void:
 	var recipients: Array[Entity] = a_seed
 	for sel: EntitySelector in _selectors():
 		recipients = sel.filter(recipients, a_manager)
@@ -47,7 +50,10 @@ func apply(a_seed: Array[Entity], a_source: Commandable = null, a_manager: Scena
 		for template: StatusEffect in templates:
 			var effect: StatusEffect = template.duplicate() as StatusEffect
 			effect.apply_to(entity, a_source)
+
+
 #endregion
+
 
 #region Children
 func _selectors() -> Array[EntitySelector]:

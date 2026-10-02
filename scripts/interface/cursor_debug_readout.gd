@@ -28,6 +28,7 @@ extends Label
 ## Delete this file once the cursor is fixed. It is instrumentation with a question to
 ## answer, not a debug view worth keeping.
 
+
 func _ready() -> void:
 	# Above the world and outside the HUD's layout, like the other debug surfaces.
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -50,15 +51,38 @@ func _process(_a_delta: float) -> void:
 static func readout(viewport: Viewport, window: Window) -> String:
 	var lines: Array[String] = []
 	if viewport != null:
-		lines.append("viewport  size %s   mouse %s" % [
-			viewport.get_visible_rect().size, viewport.get_mouse_position()])
-	lines.append("window    size %s   mouse %s" % [
-		DisplayServer.window_get_size(), DisplayServer.mouse_get_position()])
+		lines.append(
+			(
+				"viewport  size %s   mouse %s"
+				% [viewport.get_visible_rect().size, viewport.get_mouse_position()]
+			)
+		)
+	lines.append(
+		(
+			"window    size %s   mouse %s"
+			% [DisplayServer.window_get_size(), DisplayServer.mouse_get_position()]
+		)
+	)
 	if window != null:
-		lines.append("stretch   scale_size %s   scale_factor %s   mode %d   aspect %d" % [
-			window.content_scale_size, window.content_scale_factor,
-			window.content_scale_mode, window.content_scale_aspect])
-	lines.append("screen    size %s   scale %s   dpi %d" % [
-		DisplayServer.screen_get_size(), DisplayServer.screen_get_scale(),
-		DisplayServer.screen_get_dpi()])
+		lines.append(
+			(
+				"stretch   scale_size %s   scale_factor %s   mode %d   aspect %d"
+				% [
+					window.content_scale_size,
+					window.content_scale_factor,
+					window.content_scale_mode,
+					window.content_scale_aspect
+				]
+			)
+		)
+	lines.append(
+		(
+			"screen    size %s   scale %s   dpi %d"
+			% [
+				DisplayServer.screen_get_size(),
+				DisplayServer.screen_get_scale(),
+				DisplayServer.screen_get_dpi()
+			]
+		)
+	)
 	return "\n".join(lines)

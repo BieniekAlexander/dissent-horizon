@@ -12,7 +12,9 @@ const ImportPipelineScript := preload("res://tools/spec_import/import_pipeline.g
 
 const UNIT: Dictionary = {"movement": {"speed": 3.0}}
 const STRUCTURE: Dictionary = {"footprint": [2, 2]}
-const TOKEN: Dictionary = {"commandable": false, "movement": {"speed": 0.0}, "aerial": {"mode": "HOVERING"}}
+const TOKEN: Dictionary = {
+	"commandable": false, "movement": {"speed": 0.0}, "aerial": {"mode": "HOVERING"}
+}
 const VOICED: Dictionary = {"missing_line_types": [], "has_death_clip": true}
 const MUTE: Dictionary = {
 	"missing_line_types": ["SELECTED", "ISSUED_ATTACK"],
@@ -21,8 +23,9 @@ const MUTE: Dictionary = {
 
 
 func _entries(a_spec: Dictionary, a_facts: Dictionary, a_rule: String) -> Array:
-	return SpecRules.evaluate(a_spec, a_facts) \
-		.filter(func(e: Dictionary) -> bool: return e["id"] == a_rule)
+	return SpecRules.evaluate(a_spec, a_facts).filter(
+		func(e: Dictionary) -> bool: return e["id"] == a_rule
+	)
 
 
 func _waived(a_spec: Dictionary, a_rule: String) -> Dictionary:
@@ -40,8 +43,12 @@ func test_an_unvoiced_unit_is_missing_and_names_the_lines() -> void:
 
 
 func test_a_voiced_unit_is_silent() -> void:
-	assert_eq(SpecRules.evaluate(UNIT, VOICED).filter(
-		func(e: Dictionary) -> bool: return e["severity"] == SpecRules.ASSET), [])
+	assert_eq(
+		SpecRules.evaluate(UNIT, VOICED).filter(
+			func(e: Dictionary) -> bool: return e["severity"] == SpecRules.ASSET
+		),
+		[]
+	)
 
 
 func test_voice_lines_do_not_exist_on_structures_or_tokens() -> void:
@@ -73,8 +80,12 @@ func test_a_waiver_on_a_slot_that_does_not_exist_is_stale() -> void:
 
 
 func test_an_asset_rule_without_its_fact_says_nothing() -> void:
-	assert_eq(SpecRules.evaluate(UNIT, {}).filter(
-		func(e: Dictionary) -> bool: return e["severity"] == SpecRules.ASSET), [])
+	assert_eq(
+		SpecRules.evaluate(UNIT, {}).filter(
+			func(e: Dictionary) -> bool: return e["severity"] == SpecRules.ASSET
+		),
+		[]
+	)
 
 
 func test_an_asset_waiver_is_well_formed() -> void:
@@ -83,12 +94,27 @@ func test_an_asset_waiver_is_well_formed() -> void:
 
 func test_the_summary_groups_by_rule_and_state() -> void:
 	var incomplete: Array = [
-		{"id": "b", "rule": "has_voice_lines", "what": "w", "detail": "",
-			"state": SpecRules.AssetState.MISSING},
-		{"id": "a", "rule": "has_voice_lines", "what": "w", "detail": "",
-			"state": SpecRules.AssetState.MISSING},
-		{"id": "a", "rule": "has_mesh_visual", "what": "m", "detail": "",
-			"state": SpecRules.AssetState.PLACEHOLDER},
+		{
+			"id": "b",
+			"rule": "has_voice_lines",
+			"what": "w",
+			"detail": "",
+			"state": SpecRules.AssetState.MISSING
+		},
+		{
+			"id": "a",
+			"rule": "has_voice_lines",
+			"what": "w",
+			"detail": "",
+			"state": SpecRules.AssetState.MISSING
+		},
+		{
+			"id": "a",
+			"rule": "has_mesh_visual",
+			"what": "m",
+			"detail": "",
+			"state": SpecRules.AssetState.PLACEHOLDER
+		},
 	]
 	var lines: Array[String] = ImportPipelineScript.incomplete_asset_lines(incomplete)
 	assert_eq(lines.size(), 5, "a header, then two lines per group: %s" % [lines])

@@ -59,7 +59,9 @@ func apply_piece_facts(a_params: MapGenerationParams) -> void:
 	a_params.site_piece = _piece_from(SITE_SCENE, 1.0)
 	a_params.shelter_piece = _piece_from(SHELTER_SCENE, 1.0)
 	a_params.building_pool = []
-	for template: PieceFamilies.Template in PieceFamilies.templates_of(PieceFamilies.NEUTRAL_BUILDING):
+	for template: PieceFamilies.Template in PieceFamilies.templates_of(
+		PieceFamilies.NEUTRAL_BUILDING
+	):
 		a_params.building_pool.append(_piece_from(template.scene_path, BUILDING_WEIGHT))
 	var extractor: Node = (load(EXTRACTOR_SCENE) as PackedScene).instantiate()
 	var rate: int = (extractor.get_node("EnergyExtractor") as EnergyExtractor).energy_rate
@@ -78,6 +80,8 @@ func _piece_from(a_path: String, a_weight: float) -> MapPiece:
 	entity.free()
 	_scenes[piece.id] = scene
 	return piece
+
+
 #endregion
 
 
@@ -242,6 +246,8 @@ static func _height_under(terrain: TerrainData, point: Vector2) -> float:
 ## Cell space to Map-local world: the Map sits at the origin and its grid is centred on it.
 static func _world(point: Vector2, grid_half: Vector2, height: float) -> Vector3:
 	return Vector3(point.x - grid_half.x, height, point.y - grid_half.y)
+
+
 #endregion
 
 
@@ -249,34 +255,61 @@ static func _world(point: Vector2, grid_half: Vector2, height: float) -> Vector3
 ## A markdown balance report: per-currency access, cluster sizes, and every feature's favor.
 ## Lists the errors instead when the map failed an invariant.
 static func report(map: GeneratedMap, title: String) -> PackedStringArray:
-	var lines := PackedStringArray([
-		"## %s — seed %d, play %s, passes run %d" % [
-			title, map.generation_seed, map.play_size, map.passes_run], ""])
+	var lines := PackedStringArray(
+		[
+			(
+				"## %s — seed %d, play %s, passes run %d"
+				% [title, map.generation_seed, map.play_size, map.passes_run]
+			),
+			""
+		]
+	)
 	if map.decoration != null:
 		lines.append("Decoration (pass 7, cosmetic): %s" % map.decoration.summary())
 		lines.append("")
 	if map.topology != null:
 		var flooded: int = map.topology.flooded.count(true)
-		lines.append(("%d of %d graph edges cut (%d flooded, %d ridges), %d carved open, "
-			+ "%d barrier cells") % [
-			map.topology.cuts.size(), map.topology.graph.edges.size(), flooded,
-			map.topology.cuts.size() - flooded, map.topology.carved.count(true),
-			map.topology.barrier_of.size()])
+		lines.append(
+			(
+				(
+					"%d of %d graph edges cut (%d flooded, %d ridges), %d carved open, "
+					+ "%d barrier cells"
+				)
+				% [
+					map.topology.cuts.size(),
+					map.topology.graph.edges.size(),
+					flooded,
+					map.topology.cuts.size() - flooded,
+					map.topology.carved.count(true),
+					map.topology.barrier_of.size()
+				]
+			)
+		)
 		var lakes: int = 0
 		var mountains: int = 0
 		for cut: int in map.topology.cuts.size():
 			if map.topology.grown[cut]:
 				lakes += 1 if map.topology.flooded[cut] else 0
 				mountains += 0 if map.topology.flooded[cut] else 1
-		lines.append("%d cuts grown into regions: %d mountains, %d lakes" % [
-			lakes + mountains, mountains, lakes])
+		lines.append(
+			(
+				"%d cuts grown into regions: %d mountains, %d lakes"
+				% [lakes + mountains, mountains, lakes]
+			)
+		)
 	if map.traversable_fraction >= 0.0:
 		var obstructed := PackedStringArray()
 		for value: float in map.obstructed:
 			obstructed.append("%.0f" % value)
-		lines.append("%.1f%% of the play area traversable, %.1f%% buildable; impassable cells "
-			% [100.0 * map.traversable_fraction, 100.0 * map.buildable_fraction]
-			+ "per alliance %s" % ", ".join(obstructed))
+		lines.append(
+			(
+				(
+					"%.1f%% of the play area traversable, %.1f%% buildable; impassable cells "
+					% [100.0 * map.traversable_fraction, 100.0 * map.buildable_fraction]
+				)
+				+ "per alliance %s" % ", ".join(obstructed)
+			)
+		)
 	if map.elevation != null:
 		var terraces: Dictionary = {}
 		var tiers: Dictionary = {}
@@ -287,10 +320,22 @@ static func report(map: GeneratedMap, title: String) -> PackedStringArray:
 		terrace_keys.sort()
 		var tier_keys: Array = tiers.keys()
 		tier_keys.sort()
-		lines.append(("starts on tier %d terrace %d; tiers used %s, terraces %s; "
-			+ "%d ramps, %d cliff cells") % [
-			map.elevation.tier_of_node[0], map.elevation.level_of_node[0], tier_keys,
-			terrace_keys, map.elevation.ramp_count, map.elevation.cliff_cells.size()])
+		lines.append(
+			(
+				(
+					"starts on tier %d terrace %d; tiers used %s, terraces %s; "
+					+ "%d ramps, %d cliff cells"
+				)
+				% [
+					map.elevation.tier_of_node[0],
+					map.elevation.level_of_node[0],
+					tier_keys,
+					terrace_keys,
+					map.elevation.ramp_count,
+					map.elevation.cliff_cells.size()
+				]
+			)
+		)
 	if map.topology != null:
 		lines.append("")
 	if not map.is_valid():
@@ -312,8 +357,15 @@ static func report(map: GeneratedMap, title: String) -> PackedStringArray:
 		var row: String = "| %s |" % MapFeature.Currency.keys()[currency]
 		for value: float in accessible:
 			row += " %.1f |" % value
-		lines.append(row + " %.1f | %.1f%% |" % [
-			target, MapFavor.worst_deviation(accessible, target) * 100.0])
+		lines.append(
+			(
+				row
+				+ (
+					" %.1f | %.1f%% |"
+					% [target, MapFavor.worst_deviation(accessible, target) * 100.0]
+				)
+			)
+		)
 	var sizes: Array[int] = []
 	for cluster: MapFeature in map.features_of(MapFeature.Kind.BUILDING_CLUSTER):
 		sizes.append(cluster.placements.size())
@@ -322,19 +374,37 @@ static func report(map: GeneratedMap, title: String) -> PackedStringArray:
 	var building_count: int = sizes.reduce(func(total: int, n: int) -> int: return total + n, 0)
 	lines.append("")
 	lines.append("%d buildings in %d clusters, sizes %s" % [building_count, sizes.size(), sizes])
-	lines.append_array(PackedStringArray(["",
-		"| feature | value | target favor | realised favor | detail |", "|---|---|---|---|---|"]))
+	lines.append_array(
+		PackedStringArray(
+			[
+				"",
+				"| feature | value | target favor | realised favor | detail |",
+				"|---|---|---|---|---|"
+			]
+		)
+	)
 	for feature: MapFeature in map.features:
 		var detail: String = ""
 		if feature.kind == MapFeature.Kind.POND:
-			detail = "%d cells x %d = %d charge" % [
-				feature.pond_cells.size(), feature.pond_richness, feature.pond_charge]
+			detail = (
+				"%d cells x %d = %d charge"
+				% [feature.pond_cells.size(), feature.pond_richness, feature.pond_charge]
+			)
 		elif feature.kind == MapFeature.Kind.BUILDING_CLUSTER:
 			detail = "%d buildings" % feature.placements.size()
 		elif feature.kind == MapFeature.Kind.SITE_CLUSTER:
 			detail = "%d sites" % feature.placements.size()
-		lines.append("| %s | %.0f | %+.2f | %+.2f | %s |" % [
-			MapFeature.Kind.keys()[feature.kind], feature.value, feature.target_favor(),
-			feature.realised_favor(), detail])
+		lines.append(
+			(
+				"| %s | %.0f | %+.2f | %+.2f | %s |"
+				% [
+					MapFeature.Kind.keys()[feature.kind],
+					feature.value,
+					feature.target_favor(),
+					feature.realised_favor(),
+					detail
+				]
+			)
+		)
 	return lines
 #endregion

@@ -38,8 +38,11 @@ func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
 ## A recruit's rifle: ground-only, so it has no AIR range shape at all.
 func _ground_only_weapon(a_shooter: Commandable) -> Weapon:
 	var weapon: Weapon = a_shooter.weapon_inventory.get_weapons()[0] as Weapon
-	assert_eq(weapon.target_mask & CollisionLayers.Mask.TARGETABLE_AIR, 0,
-		"fixture: the rifle cannot hit air at all")
+	assert_eq(
+		weapon.target_mask & CollisionLayers.Mask.TARGETABLE_AIR,
+		0,
+		"fixture: the rifle cannot hit air at all"
+	)
 	return weapon
 
 
@@ -68,7 +71,9 @@ func test_a_ground_only_weapon_has_no_reach_against_an_air_target() -> void:
 	var shooter: Commandable = _entity(RECRUIT, cmd)
 	var victim: Commandable = _entity(RECRUIT, cmd)
 	var weapon: Weapon = _ground_only_weapon(shooter)
-	assert_not_null(weapon.get_range_for_target(victim), "precondition: it reaches it on the ground")
+	assert_not_null(
+		weapon.get_range_for_target(victim), "precondition: it reaches it on the ground"
+	)
 
 	_lift_without_refiling(victim)
 

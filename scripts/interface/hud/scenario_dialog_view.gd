@@ -90,6 +90,7 @@ var _help_index: int = 0
 var _clock: SimulationClock = null
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	layer = LAYER
@@ -111,7 +112,10 @@ func bind(a_manager: ScenarioTriggerManager) -> void:
 func bind_help_book(a_book: HelpBook) -> void:
 	_book = a_book
 	_refresh()
+
+
 #endregion
+
 
 #region Public API — event dialogs
 ## The event dialog currently on screen, or null when none is queued.
@@ -154,7 +158,10 @@ func choose_secondary_current() -> void:
 	dialog.choose_secondary()
 	_refresh()
 	dialog_dismissed.emit(dialog)
+
+
 #endregion
+
 
 #region Public API — help book
 ## Whether the help book is open.
@@ -218,7 +225,10 @@ func _go_to_help_page(a_index: int) -> void:
 		return
 	_help_index = clamped
 	_refresh()
+
+
 #endregion
+
 
 #region Request handling
 func _on_dialog_requested(a_dialog: ScenarioDialog) -> void:
@@ -234,7 +244,10 @@ func _on_dialog_requested(a_dialog: ScenarioDialog) -> void:
 		close_help()
 	_queue.append(a_dialog)
 	_refresh()
+
+
 #endregion
+
 
 #region UI
 func _build_ui() -> void:
@@ -336,7 +349,9 @@ func _build_ui() -> void:
 
 ## One page-navigation arrow: a glyph button whose meaning lives entirely in its tooltip.
 ## No verbose tier — there is nothing longer to say about "back a page".
-func _nav_button(a_name: String, a_glyph: String, a_tooltip: String, a_handler: Callable) -> VerboseTooltipButton:
+func _nav_button(
+	a_name: String, a_glyph: String, a_tooltip: String, a_handler: Callable
+) -> VerboseTooltipButton:
 	var button := VerboseTooltipButton.new()
 	button.name = a_name
 	button.text = a_glyph
@@ -359,7 +374,11 @@ func _build_help_button() -> void:
 	_help_button.name = "HelpButton"
 	_help_button.text = HELP_BUTTON_TEXT
 	_help_button.simple_tooltip = "Open the mission's help pages"
-	_help_button.verbose_tooltip = "Open the help book: the mission's reference pages, readable at any time.\nThe simulation keeps running behind it — press the button again, or the close button, to put it away."
+	_help_button.verbose_tooltip = (
+		"Open the help book: the mission's reference pages, readable at any time.\nThe "
+		+ "simulation keeps running behind it — press the button again, or the close "
+		+ "button, to put it away."
+	)
 	_help_button.custom_minimum_size = HELP_BUTTON_SIZE
 	_help_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_help_button.offset_left = -(HELP_BUTTON_SIZE.x + HELP_BUTTON_MARGIN.x)
@@ -385,7 +404,10 @@ func _on_primary_pressed() -> void:
 		acknowledge_current()
 	else:
 		close_help()
+
+
 #endregion
+
 
 #region Rendering
 ## Put the right page on screen for whatever mode we're in, or hide the panel entirely.

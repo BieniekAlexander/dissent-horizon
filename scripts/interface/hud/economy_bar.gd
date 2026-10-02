@@ -51,6 +51,7 @@ var _value_label: Label
 var _verbose_label: Label
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	custom_minimum_size = Vector2(bar_width, BAR_HEIGHT + VERBOSE_FONT_SIZE + 4.0)
@@ -82,9 +83,13 @@ func _ready() -> void:
 
 	refresh()
 
+
 func _process(_a_delta: float) -> void:
 	refresh()
+
+
 #endregion
+
 
 #region Public API
 func refresh() -> void:
@@ -95,7 +100,10 @@ func refresh() -> void:
 	_verbose_label.visible = Input.is_action_pressed("ui_verbose") and _has_verbose_text()
 	if _verbose_label.visible:
 		_verbose_label.text = _verbose_text()
+
+
 #endregion
+
 
 #region Drawing
 ## Paints the regions _fill_regions() describes, then _rate_regions() (a PERSISTENT
@@ -115,6 +123,7 @@ func _draw_fill() -> void:
 		_fill.draw_line(Vector2(x, 0.0), Vector2(x, BAR_HEIGHT), SEGMENT_LINE_COLOR, 1.0)
 	_draw_regions(_preview_regions())
 
+
 func _draw_regions(a_regions: Array[Dictionary]) -> void:
 	for region: Dictionary in a_regions:
 		var x0: float = bar_width * clampf(region.start_frac, 0.0, 1.0)
@@ -122,23 +131,29 @@ func _draw_regions(a_regions: Array[Dictionary]) -> void:
 		if x1 > x0:
 			_fill.draw_rect(Rect2(x0, 0.0, x1 - x0 + 0.5, BAR_HEIGHT), region.color as Color)
 
+
 func _make_label(a_font_size: int, a_color: Color) -> Label:
 	var label := Label.new()
 	label.add_theme_font_size_override("font_size", a_font_size)
 	label.add_theme_color_override("font_color", a_color)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
+
+
 #endregion
+
 
 #region Overridable
 ## The pool's current amount.
 func _current_value() -> float:
 	return 0.0
 
+
 ## The bar's visual full scale — what "100% filled" means. Never the true unbounded maximum
 ## for a pool that has none (energy); see each subclass for what it picks.
 func _capacity() -> float:
 	return 1.0
+
 
 ## The flat-coloured regions to paint, each `{start_frac, end_frac, color}` in fractions of
 ## _capacity(). The default is ONE region, [0, value/capacity], in _fill_color()'s colour at
@@ -151,28 +166,34 @@ func _fill_regions() -> Array[Dictionary]:
 		return []
 	return [{"start_frac": 0.0, "end_frac": frac, "color": _fill_color(frac)}]
 
+
 ## The fill's colour at `a_frac` of the capacity scale (already clamped to [0, 1]). Only
 ## consulted by the default _fill_regions() above.
 func _fill_color(_a_frac: float) -> Color:
 	return Color.WHITE
+
 
 ## The width, in the same units as _capacity(), of one segment divider — e.g. one
 ## infrastructure provider's grant. 0 (the default) draws no dividers.
 func _segment_size() -> float:
 	return 0.0
 
+
 ## The right-hand numeric readout.
 func _value_text() -> String:
 	return ""
+
 
 ## Whether _verbose_text() has anything to say — a faction with no dominion generators, say,
 ## has no rate line to show even while ui_verbose is held.
 func _has_verbose_text() -> bool:
 	return false
 
+
 ## The ui_verbose-only line beneath the bar.
 func _verbose_text() -> String:
 	return ""
+
 
 ## The dim, temporary regions showing what a hovered purchase would do to this pool — see
 ## gdd/systems/ux/ui/economy-bars.md §Hover previews. Same shape as _fill_regions().
@@ -191,17 +212,21 @@ func _preview_regions() -> Array[Dictionary]:
 	var start: float = value - cost if cost <= value else value
 	var end: float = value if cost <= value else cost
 	var end_frac: float = clampf(end / capacity, 0.0, 1.0)
-	return [{
-		"start_frac": clampf(start / capacity, 0.0, 1.0),
-		"end_frac": end_frac,
-		"color": _dimmed(_fill_color(end_frac)),
-	}]
+	return [
+		{
+			"start_frac": clampf(start / capacity, 0.0, 1.0),
+			"end_frac": end_frac,
+			"color": _dimmed(_fill_color(end_frac)),
+		}
+	]
+
 
 ## The cost, in this bar's own unit, of whatever purchase is currently hovered — 0 (the
 ## default: no preview) when nothing relevant is hovered. Consulted only by the default
 ## _preview_regions() above.
 func _preview_cost() -> float:
 	return 0.0
+
 
 ## A PERSISTENT region past the real fill, at RATE_BAR_ALPHA — a projection, always on
 ## screen, as against _preview_regions()'s TEMPORARY hover-only one. Empty by default; only
@@ -212,10 +237,12 @@ func _preview_cost() -> float:
 func _rate_regions() -> Array[Dictionary]:
 	return []
 
+
 ## `a_color` with its alpha replaced by `a_alpha` — what a persistent rate projection looks
 ## like (RATE_BAR_ALPHA), as plain alpha rather than _dimmed()'s background mix.
 func _at_alpha(a_color: Color, a_alpha: float) -> Color:
 	return Color(a_color.r, a_color.g, a_color.b, a_alpha)
+
 
 ## `a_color`, mixed PREVIEW_MIX of the way toward the panel background and drawn fully
 ## OPAQUE — what "not yet real" looks like everywhere a bar draws a hover preview.
@@ -228,10 +255,12 @@ func _at_alpha(a_color: Color, a_alpha: float) -> Color:
 ## dimmer shade of the real colour whether it lands on top of the real fill (affordable) or on
 ## bare background past it (unaffordable) — see gdd/systems/ux/ui/economy-bars.md §Hover previews.
 func _dimmed(a_color: Color) -> Color:
-	var muted: Color = a_color.lerp(Color(BAR_BG_COLOR.r, BAR_BG_COLOR.g, BAR_BG_COLOR.b),
-		PREVIEW_MIX)
+	var muted: Color = a_color.lerp(
+		Color(BAR_BG_COLOR.r, BAR_BG_COLOR.g, BAR_BG_COLOR.b), PREVIEW_MIX
+	)
 	muted.a = 1.0
 	return muted
+
 
 ## The Tool a purchase preview should be read against: whatever is hovered in the UI, or —
 ## if nothing purchase-shaped is hovered — whatever tool is currently ARMED
@@ -242,6 +271,7 @@ func _previewed_tool() -> Tool:
 	if controller == null:
 		return null
 	return controller.previewed_tool()
+
 
 ## The TechnologySpec for _previewed_tool(), or null. What EnergyBar/DominionBar's
 ## _preview_cost() reads; InfrastructureBar reads _previewed_tool() directly instead, since

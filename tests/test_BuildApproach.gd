@@ -18,11 +18,16 @@ var EXTRACTOR_TOOL: Tool
 var ORDINARY_TOOL: Tool
 var SAFEHOUSE_TOOL: Tool
 var BUILDING_SCENE: Dictionary:
-	get: return {"structure": true, "dimensions": Vector2i(2, 2),
-		"id": PieceFamilies.members(PieceFamilies.NEUTRAL_BUILDING)[0]}
+	get:
+		return {
+			"structure": true,
+			"dimensions": Vector2i(2, 2),
+			"id": PieceFamilies.members(PieceFamilies.NEUTRAL_BUILDING)[0]
+		}
 const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
-const SITE_SCENE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false,
-	"dimensions": Vector2i(2, 2)}
+const SITE_SCENE: Dictionary = {
+	"feature": true, "extraction_site": true, "obstruction": false, "dimensions": Vector2i(2, 2)
+}
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
@@ -32,7 +37,9 @@ const GRID_CELLS: int = MAP_CORNERS - 1
 ## none of the navmesh/terrain loading. grid_to_world / world_to_grid / footprint_* are the
 ## REAL ones — the point of the test is which cell a destination lands in, so the two
 ## directions have to be genuine inverses.
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		cell_grid = []
 		for x: int in GRID_CELLS:
@@ -46,8 +53,12 @@ class StubMap extends Map:
 		add_child(terrain_grid)
 
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
-		return a_coords.x >= 0 and a_coords.x < GRID_CELLS \
-			and a_coords.y >= 0 and a_coords.y < GRID_CELLS
+		return (
+			a_coords.x >= 0
+			and a_coords.x < GRID_CELLS
+			and a_coords.y >= 0
+			and a_coords.y < GRID_CELLS
+		)
 
 
 var _world: Node3D
@@ -62,7 +73,9 @@ func after_each() -> void:
 func before_each() -> void:
 	EXTRACTOR_TOOL = FakePieces.register_tool(FakePieces.tool(&"fake_extractor", EXTRACTOR))
 	ORDINARY_TOOL = FakePieces.register_tool(FakePieces.tool(&"fake_ordinary", ORDINARY))
-	SAFEHOUSE_TOOL = FakePieces.register_tool(FakePieces.tool(EntityIds.AN_INFRASTRUCTURE, SAFEHOUSE))
+	SAFEHOUSE_TOOL = FakePieces.register_tool(
+		FakePieces.tool(EntityIds.AN_INFRASTRUCTURE, SAFEHOUSE)
+	)
 	_world = Node3D.new()
 	_map = _make_map()
 	_world.add_child(_map)
@@ -189,8 +202,10 @@ func test_an_extractor_on_a_site_names_no_destination_of_its_own() -> void:
 	var site: Vector3 = _map.footprint_centroid(origin, dims)
 	var builder := _make_builder(site - Vector3(5.0, 0.0, 0.0))
 
-	assert_null(_build(EXTRACTOR_TOOL, site).movement_destination(builder),
-		"the site does not block the builder")
+	assert_null(
+		_build(EXTRACTOR_TOOL, site).movement_destination(builder),
+		"the site does not block the builder"
+	)
 
 
 ## An ORDINARY build names nothing and keeps the default resolution (the site centre).
@@ -206,6 +221,7 @@ func test_an_ordinary_build_names_no_destination_of_its_own() -> void:
 
 
 # --- The overlay CO-BUILD handover --------------------------------------------------
+
 
 ## A second builder ordered onto a site one of ours is already bound to JOINS it.
 ##

@@ -2,6 +2,7 @@
 class_name SpawnLocator
 extends Resource
 
+
 ## Strategy for choosing where an EntityTrigger's event is anchored, given the entity the
 ## trigger fired on. The base returns the source entity's own position; subclasses
 ## override resolve() for "nearest structure", a fixed offset, etc. Assign one to

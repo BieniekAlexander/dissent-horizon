@@ -2,21 +2,25 @@
 class_name CommandMessage
 
 #region Properties
-var map: Map        # the game map, passed for gamestate checks
-var target: Entity      # The entity which will be the recipient of the command
-## Any potential thing that is used in the fulfillment of a command. Always CONCRETE (Tool.resolved):
-## a tool whose piece has variants is stored bound to one — the default unless a caller bound another —
+var map: Map  # the game map, passed for gamestate checks
+var target: Entity  # The entity which will be the recipient of the command
+## Any potential thing that is used in the fulfillment of a command. Always CONCRETE
+## (Tool.resolved):
+## a tool whose piece has variants is stored bound to one — the default unless a caller bound
+## another —
 ## so nothing downstream reads a build order and has to ask which variant it means.
 var tool: Tool:
 	set(value):
 		tool = value.resolved() if value != null else null
-var world_position: Vector3  # The raw position at which the command is requested (NOTE: `target` might not always be relevant)
+# The raw position at which the command is requested (NOTE: `target` might not always be relevant)
+var world_position: Vector3
 var ability_type: Variant  # For Ability commands: which Ability.Type to invoke (null otherwise)
 ## For UseSanction: WHICH sanction is being cast. Carried on the message rather than baked
 ## into a command subclass because sanctions are authored data — a faction adds one by
 ## writing a doc, and one command class serves every one of them.
 var sanction: Sanction = null
-var aggro_shape: CollisionShape3D  # Largest aggro shape in the issuing group (Defend); null → each unit uses its own
+# Largest aggro shape in the issuing group (Defend); null → each unit uses its own
+var aggro_shape: CollisionShape3D
 
 ## Where `aggro_shape` is centred, in world space, or null to use the shape node's own
 ## origin. A Vector3.
@@ -105,32 +109,45 @@ var position: Vector3:
 		# so position-based renderers (waypoint + command-line indicators) sit at
 		# the target's height instead of a constant Y=0. xz_position drops Y anyway,
 		# and nav targets snap to the navmesh, so those consumers are unaffected.
-		if target!=null and is_instance_valid(target):
+		if target != null and is_instance_valid(target):
 			return target.global_position
 		else:
 			return world_position
 
 var xz_position: Vector2:
-	get: return VU.inXZ(position)
+	get:
+		return VU.inXZ(position)
 #endregion
 
+
 #region Lifecycle
-func _init(a_map: Map, a_target: Entity = null, a_tool: Tool = null, a_world_position: Vector3 = Vector3.ZERO, a_ability_type: Variant = null) -> void:
+func _init(
+	a_map: Map,
+	a_target: Entity = null,
+	a_tool: Tool = null,
+	a_world_position: Vector3 = Vector3.ZERO,
+	a_ability_type: Variant = null
+) -> void:
 	map = a_map
 	target = a_target
 	tool = a_tool
 	world_position = a_world_position
 	ability_type = a_ability_type
+
+
 #endregion
+
 
 #region Public API
 func retain() -> void:
 	_ref_count += 1
 
+
 func release() -> void:
 	_ref_count -= 1
 	if _ref_count <= 0:
 		unreferenced.emit()
+
 
 func clear() -> void:
 	target = null
@@ -138,6 +155,7 @@ func clear() -> void:
 	ability_type = null
 	transaction = null
 	planned_structure = null
+
 
 static func deep_copy(message: CommandMessage) -> CommandMessage:
 	# `target` can go stale: rally_commands are long-lived templates (kept until the player
@@ -150,11 +168,7 @@ static func deep_copy(message: CommandMessage) -> CommandMessage:
 	# null, so a copy with a scrubbed target still points somewhere sensible.
 	var live_target: Entity = message.target if is_instance_valid(message.target) else null
 	var copy := CommandMessage.new(
-		message.map,
-		live_target,
-		message.tool,
-		message.world_position,
-		message.ability_type
+		message.map, live_target, message.tool, message.world_position, message.ability_type
 	)
 	copy.persist = message.persist
 	copy.quarter_turns = message.quarter_turns

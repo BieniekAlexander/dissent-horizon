@@ -12,11 +12,13 @@ extends GutTest
 ## squarely on its extraction site, which Map.footprint_origin decides. A stub that rounded
 ## world→grid its own way would pass while the game misplaced every extractor.
 ##
-## The overlay binding at build time (extractor references the extraction site, extraction site references the
+## The overlay binding at build time (extractor references the extraction site, extraction site
+## references the
 ## extractor, extractor not grid-registered) is exercised by the headless s1.tscn run; here we pin
 ## down WHEN an extractor may be placed.
 
-## Cells across the test map, and the size of an extraction site / extractor footprint (both 2×2 in the
+## Cells across the test map, and the size of an extraction site / extractor footprint (both 2×2 in
+## the
 ## game — an even footprint, which centres on a grid CORNER rather than on a cell).
 const _CELLS: int = 4
 const _DIMS: Vector2i = Vector2i(2, 2)
@@ -26,7 +28,9 @@ const _DIMS: Vector2i = Vector2i(2, 2)
 ## and a NavManager, which the coordinate helpers under test never touch and which would
 ## drag the navigation server into a unit test. Everything that decides where a structure
 ## lands (footprint_origin, footprint_cells, concentric_structure) is the real thing.
-class TestMap extends Map:
+class TestMap:
+	extends Map
+
 	func _ready() -> void:
 		pass
 
@@ -91,36 +95,45 @@ func _extraction_site(a_map: Map, a_origin: Vector2i) -> Array:
 
 func test_rejects_bare_ground() -> void:
 	var map: Map = _make_map()
-	assert_false(EnergyExtractor.valid_placement(_msg(map, Vector2.ZERO), _DIMS),
-		"an extractor may not be built on empty cells")
+	assert_false(
+		EnergyExtractor.valid_placement(_msg(map, Vector2.ZERO), _DIMS),
+		"an extractor may not be built on empty cells"
+	)
 
 
 func test_rejects_non_site_structure() -> void:
 	var map: Map = _make_map()
 	var other: Commandable = autofree(Commandable.new()) as Commandable
 	var centre: Vector2 = _place(map, other, Vector2i(1, 1))
-	assert_false(EnergyExtractor.valid_placement(_msg(map, centre), _DIMS),
-		"an extractor may not be built on a non-site structure")
+	assert_false(
+		EnergyExtractor.valid_placement(_msg(map, centre), _DIMS),
+		"an extractor may not be built on a non-site structure"
+	)
 
 
 func test_accepts_free_site_aimed_dead_centre() -> void:
 	var map: Map = _make_map()
 	var centre: Vector2 = _extraction_site(map, Vector2i(1, 1))[1]
-	assert_true(EnergyExtractor.valid_placement(_msg(map, centre), _DIMS),
-		"an extractor may be built on a free extraction site when aimed at its centre")
+	assert_true(
+		EnergyExtractor.valid_placement(_msg(map, centre), _DIMS),
+		"an extractor may be built on a free extraction site when aimed at its centre"
+	)
 
 
 ## The rule this file exists for: overlapping the extraction site is NOT enough. An aim half a
 ## cell off resolves to a footprint that still covers two of the extraction site's four cells, and
-## is refused — otherwise the extractor would be accepted here and then snap onto the extraction site at
+## is refused — otherwise the extractor would be accepted here and then snap onto the extraction
+## site at
 ## placement, moving out from under the player's cursor.
 func test_rejects_partial_overlap() -> void:
 	var map: Map = _make_map()
 	var centre: Vector2 = _extraction_site(map, Vector2i(1, 1))[1]
 	for offset: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
 		var aim: Vector2 = centre + offset * Map.CELL_SIZE
-		assert_false(EnergyExtractor.valid_placement(_msg(map, aim), _DIMS),
-			"an extractor offset by %s only partly covers the extraction site" % offset)
+		assert_false(
+			EnergyExtractor.valid_placement(_msg(map, aim), _DIMS),
+			"an extractor offset by %s only partly covers the extraction site" % offset
+		)
 
 
 ## Half a cell either way still resolves to the extraction site's own footprint (footprint_origin
@@ -130,19 +143,25 @@ func test_accepts_aim_within_half_a_cell() -> void:
 	var centre: Vector2 = _extraction_site(map, Vector2i(1, 1))[1]
 	for offset: Vector2 in [Vector2(0.4, 0), Vector2(-0.4, 0), Vector2(0, 0.4), Vector2(0, -0.4)]:
 		var aim: Vector2 = centre + offset * Map.CELL_SIZE
-		assert_true(EnergyExtractor.valid_placement(_msg(map, aim), _DIMS),
-			"an aim %s off still resolves to the extraction site's own footprint" % offset)
+		assert_true(
+			EnergyExtractor.valid_placement(_msg(map, aim), _DIMS),
+			"an aim %s off still resolves to the extraction site's own footprint" % offset
+		)
 
 
 func test_rejects_already_worked_site() -> void:
 	var map: Map = _make_map()
 	var placed: Array = _extraction_site(map, Vector2i(1, 1))
 	ExtractionSite.of(placed[0]).extractor = autofree(Commandable.new()) as Commandable
-	assert_false(EnergyExtractor.valid_placement(_msg(map, placed[1] as Vector2), _DIMS),
-		"no second extractor on an extraction site that already has one")
+	assert_false(
+		EnergyExtractor.valid_placement(_msg(map, placed[1] as Vector2), _DIMS),
+		"no second extractor on an extraction site that already has one"
+	)
 
 
 func test_rejects_out_of_bounds() -> void:
 	var map: Map = _make_map()
-	assert_false(EnergyExtractor.valid_placement(_msg(map, Vector2(99, 99)), _DIMS),
-		"an extractor may not be built off the grid")
+	assert_false(
+		EnergyExtractor.valid_placement(_msg(map, Vector2(99, 99)), _DIMS),
+		"an extractor may not be built off the grid"
+	)

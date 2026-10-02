@@ -38,8 +38,9 @@ static func _load() -> Dictionary:
 	if parsed is Dictionary:
 		for id: Variant in parsed:
 			var entry: Variant = parsed[id]
-			definitions[str(id)] = AbilityDefinition.from_entry(StringName(id),
-				entry if entry is Dictionary else {})
+			definitions[str(id)] = AbilityDefinition.from_entry(
+				StringName(id), entry if entry is Dictionary else {}
+			)
 	return definitions
 
 
@@ -212,20 +213,33 @@ static func buttons_of(id: StringName) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var own: String = command_of(id)
 	if not own.is_empty():
-		out.append({
-			"command": own, "label": title_of(id),
-			"description": description_of(id), "verbose": verbose_of(id),
-		})
+		(
+			out
+			. append(
+				{
+					"command": own,
+					"label": title_of(id),
+					"description": description_of(id),
+					"verbose": verbose_of(id),
+				}
+			)
+		)
 	for level: Dictionary in definition(id).levels:
 		var title: String = str(level.get("title", ""))
 		var command: String = Sanction.command_name_for(title)
 		if commands_carry(out, command):
 			continue
-		out.append({
-			"command": command, "label": title,
-			"description": str(level.get("description", "")),
-			"verbose": str(level.get("verbose", "")),
-		})
+		(
+			out
+			. append(
+				{
+					"command": command,
+					"label": title,
+					"description": str(level.get("description", "")),
+					"verbose": str(level.get("verbose", "")),
+				}
+			)
+		)
 	return out
 
 

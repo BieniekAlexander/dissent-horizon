@@ -149,6 +149,7 @@ func _production() -> BotProduction:
 
 # ─── THE RESERVE IS A FLOOR ─────────────────────────────────────────────────
 
+
 func test_training_is_refused_when_it_would_breach_the_reserve() -> void:
 	# 700 banked, a 200 trooper: affordable, but it would leave 500 — under the reserve.
 	_bot.energy = 700
@@ -184,6 +185,7 @@ func test_the_floor_is_not_a_second_affordability_check() -> void:
 
 
 # ─── INCOME IS A FALL-THROUGH, NOT ONLY THE ELSE OF SURPLUS ─────────────────
+
 
 func test_a_surplus_with_nothing_to_add_to_throughput_buys_income() -> void:
 	# THE BUG: the bot is above its reserve (so `surplus` is true) and has no production

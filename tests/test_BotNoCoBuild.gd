@@ -29,6 +29,8 @@ const OTHER: StringName = &"test_barracks"
 ## time and can fire Tool's static registry initialiser before the registry exists (CLAUDE.md).
 const BUILDER_SCENE: Dictionary = FakePieces.BUILDER
 const STRUCTURE_SCENE: Dictionary = FakePieces.BUILDING
+
+
 class FakeBot:
 	extends Bot
 	var units: Array = []
@@ -79,8 +81,11 @@ func _assemble_on(a_structure: Commandable) -> MoveCommand:
 func test_a_build_order_reports_the_type_it_is_raising() -> void:
 	var bot: FakeBot = autofree(FakeBot.new())
 	bot.units = [_builder_running(_build_at(DOMINION, Vector3.ZERO))]
-	assert_eq(_economy(bot)._types_under_way(), [DOMINION] as Array[StringName],
-		"a type is claimed from the moment it is ORDERED, not when it is placed")
+	assert_eq(
+		_economy(bot)._types_under_way(),
+		[DOMINION] as Array[StringName],
+		"a type is claimed from the moment it is ORDERED, not when it is placed"
+	)
 
 
 func test_an_assemble_reports_the_structure_it_is_finishing() -> void:
@@ -98,6 +103,8 @@ func test_an_idle_builder_claims_nothing() -> void:
 	bot.units = [_instance(BUILDER_SCENE)]
 	assert_eq(_economy(bot)._types_under_way(), [] as Array[StringName])
 	assert_false(_economy(bot)._is_claimed_spot(Vector3.ZERO))
+
+
 #endregion
 
 
@@ -106,15 +113,21 @@ func test_a_site_an_in_flight_job_is_aimed_at_is_claimed() -> void:
 	var bot: FakeBot = autofree(FakeBot.new())
 	bot.units = [_builder_running(_build_at(DOMINION, Vector3(10.0, 0.0, 10.0)))]
 	assert_true(_economy(bot)._is_claimed_spot(Vector3(10.0, 0.0, 10.0)), "the same spot")
-	assert_true(_economy(bot)._is_claimed_spot(Vector3(11.0, 0.0, 10.0)),
-		"and one close enough to be racing for the same cells")
+	assert_true(
+		_economy(bot)._is_claimed_spot(Vector3(11.0, 0.0, 10.0)),
+		"and one close enough to be racing for the same cells"
+	)
 
 
 func test_a_site_well_clear_of_every_job_is_free() -> void:
 	var bot: FakeBot = autofree(FakeBot.new())
 	bot.units = [_builder_running(_build_at(DOMINION, Vector3(10.0, 0.0, 10.0)))]
-	assert_false(_economy(bot)._is_claimed_spot(Vector3(40.0, 0.0, 40.0)),
-		"the rule must not make the map unbuildable")
+	assert_false(
+		_economy(bot)._is_claimed_spot(Vector3(40.0, 0.0, 40.0)),
+		"the rule must not make the map unbuildable"
+	)
+
+
 #endregion
 
 
@@ -124,20 +137,25 @@ func test_the_dominion_rung_offers_nothing_while_one_is_already_ordered() -> voi
 	# the in-flight check this rung offers it again and a second builder joins the first.
 	var bot: FakeBot = autofree(FakeBot.new())
 	bot.units = [_builder_running(_build_at(DOMINION, Vector3.ZERO))]
-	assert_null(_economy(bot)._dominion_structure_to_build(),
-		"an ordered Compound counts as owned")
+	assert_null(_economy(bot)._dominion_structure_to_build(), "an ordered Compound counts as owned")
 
 
 func test_the_dominion_rung_still_offers_one_when_nothing_is_under_way() -> void:
 	# The control — the guard must not switch the rung off altogether.
 	var bot: FakeBot = autofree(FakeBot.new())
-	assert_eq(_economy(bot)._dominion_structure_to_build(), DOMINION,
-		"with no job in flight the bot still builds its dominion structure")
+	assert_eq(
+		_economy(bot)._dominion_structure_to_build(),
+		DOMINION,
+		"with no job in flight the bot still builds its dominion structure"
+	)
 
 
 func test_a_job_for_a_different_type_does_not_block_the_dominion_rung() -> void:
 	var bot: FakeBot = autofree(FakeBot.new())
 	bot.units = [_builder_running(_build_at(OTHER, Vector3.ZERO))]
-	assert_eq(_economy(bot)._dominion_structure_to_build(), DOMINION,
-		"only the SAME type counts as already handled")
+	assert_eq(
+		_economy(bot)._dominion_structure_to_build(),
+		DOMINION,
+		"only the SAME type counts as already handled"
+	)
 #endregion

@@ -46,6 +46,7 @@ var _phase: Phase = Phase.APPROACH
 var _egress_point: Vector3 = Vector3.ZERO
 #endregion
 
+
 #region State updates
 ## Always flying — a transport on a delivery run has no idle state.
 func should_move(_a_actor: Commandable) -> bool:
@@ -81,7 +82,10 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	_egress_point = _resolve_egress_point(a_actor)
 	_phase = Phase.EGRESS
 	return self
+
+
 #endregion
+
 
 #region Private helpers
 ## Tip everything aboard out over the drop point, each under a canopy.
@@ -112,8 +116,9 @@ func _release_cargo(a_actor: Commandable) -> void:
 ## which this command was never told. They are the same line — the transport has flown
 ## straight down it — and the facing is the one the player can see.
 func _resolve_egress_point(a_actor: Commandable) -> Vector3:
-	var heading: Vector2 = VU.inXZ(a_actor.movement.get_facing()) if a_actor.movement != null \
-		else Vector2.ZERO
+	var heading: Vector2 = (
+		VU.inXZ(a_actor.movement.get_facing()) if a_actor.movement != null else Vector2.ZERO
+	)
 	var exit_xz: Vector2 = OffMapArrival.exit_xz(message.map, a_actor.xz_position, heading)
 	return Vector3(exit_xz.x, a_actor.global_position.y, exit_xz.y)
 
@@ -142,7 +147,10 @@ func _attach_canopy(a_unit: Commandable) -> Node3D:
 func _cut_canopy(a_canopy: Node3D) -> void:
 	if a_canopy != null and is_instance_valid(a_canopy):
 		a_canopy.queue_free()
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

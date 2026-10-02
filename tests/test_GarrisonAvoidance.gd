@@ -16,11 +16,14 @@ extends GutTest
 const TRANSPORT_PATH: Dictionary = FakePieces.PLAIN
 const SOLDIER_PATH: Dictionary = FakePieces.SOLDIER
 const OPEN_GARRISON_PATH: Dictionary = FakePieces.BUILDING
+
+
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
 	add_child_autofree(c)
 	return c
+
 
 func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
 	var e := FakePieces.make(a_options) as Commandable
@@ -28,23 +31,30 @@ func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
 	e.ownership.commander = _commanded(a_commander_id)
 	return e
 
+
 func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
+
 
 #region What each order names
 func test_a_plain_move_names_nobody() -> void:
 	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
-	assert_null(MoveCommand.new(_message_for(_entity(TRANSPORT_PATH, 1))).avoidance_exception(soldier))
+	assert_null(
+		MoveCommand.new(_message_for(_entity(TRANSPORT_PATH, 1))).avoidance_exception(soldier)
+	)
+
 
 func test_an_occupy_names_its_host() -> void:
 	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
 	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
 	assert_eq(Occupy.new(_message_for(transport)).avoidance_exception(soldier), transport)
 
+
 func test_an_embark_names_its_passenger() -> void:
 	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
 	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
 	assert_eq(Embark.new(_message_for(soldier)).avoidance_exception(transport), soldier)
+
 
 ## The order outlives the thing it was aimed at by a tick or two; a freed host is nobody.
 func test_a_host_that_has_gone_names_nobody() -> void:
@@ -53,7 +63,10 @@ func test_a_host_that_has_gone_names_nobody() -> void:
 	var command := Occupy.new(_message_for(transport))
 	transport.free()
 	assert_null(command.avoidance_exception(soldier))
+
+
 #endregion
+
 
 #region What the receiver does with it
 ## Reaches for the private resolver deliberately: precedence between the order's answer and
@@ -65,6 +78,7 @@ func test_the_order_beats_the_follow_rule() -> void:
 	soldier.update_commands(Occupy.new(_message_for(transport)))
 	assert_eq(soldier.command_receiver._avoidance_exception_target(), transport)
 
+
 ## The case the follow rule cannot cover: a commanderless host is not a friendly unit, so
 ## nothing would have exempted the pair before.
 func test_a_neutral_host_is_exempted_too() -> void:
@@ -73,9 +87,11 @@ func test_a_neutral_host_is_exempted_too() -> void:
 	soldier.update_commands(Occupy.new(_message_for(shelter)))
 	assert_eq(soldier.command_receiver._avoidance_exception_target(), shelter)
 
+
 func test_an_idle_unit_names_nobody() -> void:
 	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
 	assert_null(soldier.command_receiver._avoidance_exception_target())
+
 
 ## A plain move at a friendly unit still gets its exemption from the follow rule — the new
 ## hook adds a case, it does not replace one.
@@ -84,7 +100,10 @@ func test_the_follow_rule_still_answers_for_a_plain_move() -> void:
 	var follower: Commandable = _entity(SOLDIER_PATH, 1)
 	follower.update_commands(MoveCommand.new(_message_for(leader)))
 	assert_eq(follower.command_receiver._avoidance_exception_target(), leader)
+
+
 #endregion
+
 
 #region Teardown
 ## Regression: a unit taken prisoner in the middle of an Occupy still holds it, and a Compound
@@ -118,6 +137,8 @@ func test_a_replaced_occupy_releases_the_exceptions() -> void:
 	assert_true(soldier.get_collision_exceptions().has(transport), "the approach exempts the host")
 	soldier.update_commands(null)
 	assert_false(soldier.get_collision_exceptions().has(transport), "released with the order")
+
+
 #endregion
 
 
@@ -128,8 +149,9 @@ func test_a_displaced_occupy_dropped_from_the_queue_releases_the_exceptions() ->
 	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
 	soldier.update_commands(Occupy.new(_message_for(transport)))
 	soldier.current_command().get_updated_state(soldier)
-	soldier.update_commands(MoveCommand.new(CommandMessage.new(null, null, null, Vector3.ONE)),
-		false, true)
+	soldier.update_commands(
+		MoveCommand.new(CommandMessage.new(null, null, null, Vector3.ONE)), false, true
+	)
 	assert_true(soldier.get_collision_exceptions().has(transport), "displaced, it will resume")
 	soldier.update_commands(null)
 	assert_false(soldier.get_collision_exceptions().has(transport), "dropped, it is released")

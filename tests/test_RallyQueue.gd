@@ -37,20 +37,26 @@ func _destinations(a_commands: Array) -> Array:
 
 ## --- absorbing move orders ----------------------------------------------------
 
+
 func test_a_move_order_becomes_the_rally_queue() -> void:
 	var structure := _make_structure()
 	structure.update_commands(_move_to(5, 5))
 	assert_eq(_destinations(structure.rally_commands), [Vector3(5, 0, 5)])
-	assert_null(structure.current_command(),
-		"the structure takes no command of its own — it can't walk anywhere")
+	assert_null(
+		structure.current_command(),
+		"the structure takes no command of its own — it can't walk anywhere"
+	)
 
 
 func test_a_second_move_order_replaces_the_queue() -> void:
 	var structure := _make_structure()
 	structure.update_commands(_move_to(5, 5))
 	structure.update_commands(_move_to(9, 1))
-	assert_eq(_destinations(structure.rally_commands), [Vector3(9, 0, 1)],
-		"a plain right-click overwrites the whole queue")
+	assert_eq(
+		_destinations(structure.rally_commands),
+		[Vector3(9, 0, 1)],
+		"a plain right-click overwrites the whole queue"
+	)
 
 
 func test_an_additive_move_order_appends() -> void:
@@ -91,6 +97,7 @@ func test_a_non_move_command_is_not_absorbed() -> void:
 
 ## --- handing the queue to a unit ----------------------------------------------
 
+
 func test_rally_chain_hands_out_copies_not_the_templates() -> void:
 	var structure := _make_structure()
 	structure.update_commands(_move_to(5, 5))
@@ -101,12 +108,18 @@ func test_rally_chain_hands_out_copies_not_the_templates() -> void:
 	assert_eq(_destinations(first), [Vector3(5, 0, 5), Vector3(9, 0, 1)], "same orders")
 	assert_eq(_destinations(second), _destinations(first))
 	for i in first.size():
-		assert_false(is_same(first[i], second[i]),
-			"two units off one rally must not share a command instance")
-		assert_false(is_same(first[i].message, second[i].message),
-			"nor a message — each unit owns its own destination")
-		assert_false(is_same(first[i], structure.rally_commands[i]),
-			"and neither of them is the structure's template")
+		assert_false(
+			is_same(first[i], second[i]),
+			"two units off one rally must not share a command instance"
+		)
+		assert_false(
+			is_same(first[i].message, second[i].message),
+			"nor a message — each unit owns its own destination"
+		)
+		assert_false(
+			is_same(first[i], structure.rally_commands[i]),
+			"and neither of them is the structure's template"
+		)
 
 
 func test_rally_chain_drops_the_order_identity_token() -> void:
@@ -115,16 +128,21 @@ func test_rally_chain_drops_the_order_identity_token() -> void:
 	order.message.origin = CommandMessage.new(null)
 	structure.update_commands(order)
 	var chain: Array[MoveCommand] = structure.rally_chain()
-	assert_null(chain[0].message.origin,
-		"a unit that merely inherited a rally isn't a sibling of the order that set it")
+	assert_null(
+		chain[0].message.origin,
+		"a unit that merely inherited a rally isn't a sibling of the order that set it"
+	)
 
 
 func test_rally_destination_is_the_first_leg() -> void:
 	var structure := _make_structure()
 	structure.update_commands(_move_to(5, 5))
 	structure.update_commands(_move_to(9, 1), true)
-	assert_eq(structure.rally_destination().message.position, Vector3(5, 0, 5),
-		"the spawn-side bias follows the first leg of the chain")
+	assert_eq(
+		structure.rally_destination().message.position,
+		Vector3(5, 0, 5),
+		"the spawn-side bias follows the first leg of the chain"
+	)
 
 
 func test_no_rally_yields_an_empty_chain() -> void:

@@ -45,18 +45,25 @@ func test_flat_quad_covers_every_corner_at_one_height():
 func test_tilted_plane_interpolates_linearly():
 	# Height ramps with x: y = x, over a quad spanning well past the grid.
 	var h: float = 10.0
-	var tris := PackedVector3Array([
-		Vector3(-h, -h, -h), Vector3(h, h, -h), Vector3(h, h, h),
-		Vector3(-h, -h, -h), Vector3(h, h, h), Vector3(-h, -h, h),
-	])
+	var tris := PackedVector3Array(
+		[
+			Vector3(-h, -h, -h),
+			Vector3(h, h, -h),
+			Vector3(h, h, h),
+			Vector3(-h, -h, -h),
+			Vector3(h, h, h),
+			Vector3(-h, -h, h),
+		]
+	)
 	var dims := Vector2i(9, 9)
 	var res = MeshHeightfieldBaker.bake(_mesh_from_tris(tris), dims)
 	assert_true(res.is_fully_covered())
 	# Corner (cx, cz) sits at local x = cx - 4, so its height should be cx - 4.
 	for cz: int in 9:
 		for cx: int in 9:
-			assert_almost_eq(_height_at(res, dims, cx, cz), float(cx) - 4.0, 0.0001,
-				"corner (%d, %d)" % [cx, cz])
+			assert_almost_eq(
+				_height_at(res, dims, cx, cz), float(cx) - 4.0, 0.0001, "corner (%d, %d)" % [cx, cz]
+			)
 
 
 func test_uncovered_corners_are_reported_as_missing():
@@ -84,7 +91,8 @@ func test_grid_with_no_coverage_stays_flat():
 	var dims := Vector2i(5, 5)
 	# A quad far off to the side of the grid.
 	var res = MeshHeightfieldBaker.bake(
-		_mesh_from_tris(_quad(1.0, 7.0)), dims, Transform3D(Basis(), Vector3(500, 0, 500)))
+		_mesh_from_tris(_quad(1.0, 7.0)), dims, Transform3D(Basis(), Vector3(500, 0, 500))
+	)
 	assert_eq(res.hit_count(), 0, "nothing covered")
 	for i: int in res.heights.size():
 		assert_almost_eq(res.heights[i], 0.0, 0.0001, "stays flat rather than erroring")
@@ -93,9 +101,13 @@ func test_grid_with_no_coverage_stays_flat():
 ## The property a vertical-walled plateau depends on: a wall projects to zero XZ area, so it
 ## is never the surface and must not contribute a height.
 func test_vertical_triangles_are_skipped():
-	var wall := PackedVector3Array([
-		Vector3(0, 0, 0), Vector3(0, 5, 0), Vector3(0, 5, 2),
-	])
+	var wall := PackedVector3Array(
+		[
+			Vector3(0, 0, 0),
+			Vector3(0, 5, 0),
+			Vector3(0, 5, 2),
+		]
+	)
 	var dims := Vector2i(5, 5)
 	var res = MeshHeightfieldBaker.bake(_mesh_from_tris(wall), dims)
 	assert_eq(res.triangle_count, 1)
@@ -106,7 +118,7 @@ func test_vertical_triangles_are_skipped():
 ## A modelled plateau is a solid: a cap above a floor. The playable surface is the top.
 func test_highest_surface_wins_over_a_lower_one():
 	var tris := _quad(10.0, 0.0)
-	tris.append_array(_quad(2.0, 4.0))   # a raised cap over the middle
+	tris.append_array(_quad(2.0, 4.0))  # a raised cap over the middle
 	var dims := Vector2i(9, 9)
 	var res = MeshHeightfieldBaker.bake(_mesh_from_tris(tris), dims)
 	assert_true(res.is_fully_covered())

@@ -22,8 +22,11 @@ func _visual_with_bare_mesh() -> MeshVisual:
 
 
 func test_a_mesh_with_no_material_is_still_gathered() -> void:
-	assert_eq(_visual_with_bare_mesh()._surfaces.size(), 1,
-		"the bare surface is tintable rather than skipped")
+	assert_eq(
+		_visual_with_bare_mesh()._surfaces.size(),
+		1,
+		"the bare surface is tintable rather than skipped"
+	)
 
 
 func test_a_mesh_with_no_material_starts_white() -> void:
@@ -59,8 +62,10 @@ func test_a_piece_wearing_a_placeholder_takes_the_team_colour() -> void:
 	var unit: Node = FakePieces.unit({"mesh": true})
 	add_child_autofree(unit)
 	var visual := unit.get_node("MeshVisual") as MeshVisual
-	assert_not_null(unit.get_node_or_null("MeshVisual/PlaceholderModel"),
-		"guards the fixture: this piece has no art yet")
+	assert_not_null(
+		unit.get_node_or_null("MeshVisual/PlaceholderModel"),
+		"guards the fixture: this piece has no art yet"
+	)
 	assert_gt(visual._surfaces.size(), 0, "the stand-in is tintable")
 	visual.set_team_color(PLAYER_RED)
 	for record: Dictionary in visual._surfaces:

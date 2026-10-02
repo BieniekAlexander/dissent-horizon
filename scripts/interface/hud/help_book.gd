@@ -19,6 +19,7 @@ extends Node
 @export var pages: Array[PackedScene] = []
 #endregion
 
+
 #region Public API
 ## Whether there is anything to show. The help button hides itself when there isn't.
 func is_empty() -> bool:
@@ -35,7 +36,10 @@ func page_at(a_index: int) -> PackedScene:
 	if a_index < 0 or a_index >= valid.size():
 		return null
 	return valid[a_index]
+
+
 #endregion
+
 
 #region Internal
 ## The authored list with empty slots dropped — an Array[PackedScene] export shows a blank

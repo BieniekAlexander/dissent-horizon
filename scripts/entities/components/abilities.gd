@@ -109,8 +109,10 @@ func hold_recharge(a_ability_id: StringName, a_holder: Node) -> void:
 func _is_held(a_index: int) -> bool:
 	if not _holders.has(a_index):
 		return false
-	var live: Array = (_holders[a_index] as Array).filter(func(holder: Variant) -> bool:
-		return is_instance_valid(holder) and not (holder as Node).is_queued_for_deletion())
+	var live: Array = (_holders[a_index] as Array).filter(
+		func(holder: Variant) -> bool:
+			return is_instance_valid(holder) and not (holder as Node).is_queued_for_deletion()
+	)
 	if live.is_empty():
 		_holders.erase(a_index)
 		return false
@@ -122,6 +124,8 @@ func _is_held(a_index: int) -> bool:
 func is_recharge_held(a_ability_id: StringName) -> bool:
 	var index: int = int(_pool_of.get(a_ability_id, -1))
 	return index >= 0 and _is_held(index)
+
+
 #endregion
 
 #region Positional support
@@ -151,7 +155,10 @@ func reduce_all_cooldowns(a_fraction: float) -> void:
 		while _timers[i] <= 0.0 and _charges[i] < _max_charges(pool):
 			_charges[i] += 1
 			_timers[i] += float(_cooldown_ticks(pool))
+
+
 #endregion
+
 
 #region Pool fields
 ## The three authored numbers, each read through one accessor so a missing or nonsensical
@@ -168,6 +175,8 @@ static func _initial_charges(pool: Dictionary) -> int:
 
 static func _cooldown_ticks(pool: Dictionary) -> int:
 	return maxi(1, int(pool.get("cooldown_ticks", 1)))
+
+
 #endregion
 
 
@@ -226,6 +235,8 @@ func recharge_remaining(a_ability_id: StringName) -> int:
 	if index < 0 or _charges[index] >= max_charges_of(a_ability_id):
 		return 0
 	return ceili(_timers[index])
+
+
 #endregion
 
 

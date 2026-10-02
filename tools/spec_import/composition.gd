@@ -49,47 +49,98 @@ const COMPONENTS: Array[Dictionary] = [
 	{"name": "MovementBody", "scene": "movement_body", "tiers": ACTOR, "when": "mobile"},
 	{"name": "TargetBody", "scene": "target_body", "tiers": PHYSICAL},
 	{"name": "AggroRangeGround", "scene": "aggro_range", "tiers": ACTOR},
-	{"name": "VisionRange", "scene": "vision_range", "tiers": [Tier.COMMANDABLE, Tier.BODILESS],
-		"when": "sighted"},
+	{
+		"name": "VisionRange",
+		"scene": "vision_range",
+		"tiers": [Tier.COMMANDABLE, Tier.BODILESS],
+		"when": "sighted"
+	},
 	{"name": "Ownership", "type": "Node", "script": "ownership", "tiers": ALL},
-	{"name": "Locomotion", "type": "Node", "script": "movement", "tiers": ACTOR, "when": "mobile",
-		"props": {"nav_agent_path": "NodePath(\"../NavigationAgent\")"}},
+	{
+		"name": "Locomotion",
+		"type": "Node",
+		"script": "movement",
+		"tiers": ACTOR,
+		"when": "mobile",
+		"props": {"nav_agent_path": 'NodePath("../NavigationAgent")'}
+	},
 	# Straight after the locomotion it flies, so it ticks next in tree order, as the flight code
 	# did when it lived inside Movement.
-	{"name": "Aerial", "type": "Node", "script": "aerial", "tiers": ACTOR, "when": "aerial",
-		"after": "Locomotion"},
-	{"name": "Docking", "type": "Node", "script": "docking", "tiers": ACTOR, "when": "docking",
-		"after": "Aerial"},
-	{"name": "Structure", "type": "Node", "script": "structure", "tiers": PHYSICAL,
-		"when": "fixture"},
+	{
+		"name": "Aerial",
+		"type": "Node",
+		"script": "aerial",
+		"tiers": ACTOR,
+		"when": "aerial",
+		"after": "Locomotion"
+	},
+	{
+		"name": "Docking",
+		"type": "Node",
+		"script": "docking",
+		"tiers": ACTOR,
+		"when": "docking",
+		"after": "Aerial"
+	},
+	{
+		"name": "Structure",
+		"type": "Node",
+		"script": "structure",
+		"tiers": PHYSICAL,
+		"when": "fixture"
+	},
 	{"name": "Defense", "type": "Node", "script": "defense", "tiers": ACTOR},
 	{"name": "Veterancy", "type": "Node", "script": "veterancy", "tiers": ACTOR},
 	{"name": "#####CONTROLS#####", "type": "Node", "tiers": PHYSICAL},
 	{"name": "Selectable", "scene": "selectable", "tiers": PHYSICAL},
 	{"name": "#####VISUALS#####", "type": "Node", "tiers": PHYSICAL},
-	{"name": "HPBar", "scene": "hp_bar", "tiers": ACTOR,
-		"mobile_props": {".": {"billboard": "2"}, "HPBarFill": {"billboard": "2"},
-			"HPBarBack": {"billboard": "2"}}},
+	{
+		"name": "HPBar",
+		"scene": "hp_bar",
+		"tiers": ACTOR,
+		"mobile_props":
+		{".": {"billboard": "2"}, "HPBarFill": {"billboard": "2"}, "HPBarBack": {"billboard": "2"}}
+	},
 	{"name": "SelectionIndicator", "scene": "selection_indicator", "tiers": PHYSICAL},
-	{"name": "CommandLineIndicator", "type": "Node3D", "script": "command_line_indicator",
-		"tiers": ACTOR},
-	{"name": "MeshVisual", "type": "Node3D", "script": "mesh_visual", "tiers": PHYSICAL,
-		"when": "visible"},
-	{"name": "AltitudeIndicator", "type": "Node3D", "script": "altitude_indicator",
-		"tiers": ACTOR, "when": "mobile"},
+	{
+		"name": "CommandLineIndicator",
+		"type": "Node3D",
+		"script": "command_line_indicator",
+		"tiers": ACTOR
+	},
+	{
+		"name": "MeshVisual",
+		"type": "Node3D",
+		"script": "mesh_visual",
+		"tiers": PHYSICAL,
+		"when": "visible"
+	},
+	{
+		"name": "AltitudeIndicator",
+		"type": "Node3D",
+		"script": "altitude_indicator",
+		"tiers": ACTOR,
+		"when": "mobile"
+	},
 	{"name": "StatusVisuals", "type": "Node3D", "script": "status_visuals", "tiers": ACTOR},
 	{"name": "#####DEBUG#####", "type": "Node", "tiers": PHYSICAL},
-	{"name": "DebugLabel", "scene": "debug_label", "tiers": PHYSICAL,
-		"mobile_props": {".": {"billboard": "2"}}},
-	{"name": "AvoidanceObstacle", "scene": "avoidance_obstacle", "tiers": ACTOR,
-		"when": "mobile"},
+	{
+		"name": "DebugLabel",
+		"scene": "debug_label",
+		"tiers": PHYSICAL,
+		"mobile_props": {".": {"billboard": "2"}}
+	},
+	{"name": "AvoidanceObstacle", "scene": "avoidance_obstacle", "tiers": ACTOR, "when": "mobile"},
 	{"name": "#####TRIGGERS#####", "type": "Node", "tiers": ACTOR},
 	{"name": "TargetIndicator", "scene": "target_indicator", "tiers": ACTOR},
 	{"name": "AggroRangeAir", "scene": "aggro_range", "tiers": ACTOR},
-	{"name": "FootprintVisualizer", "scene": "footprint_visualizer", "tiers": PHYSICAL,
-		"when": "fixture"},
+	{
+		"name": "FootprintVisualizer",
+		"scene": "footprint_visualizer",
+		"tiers": PHYSICAL,
+		"when": "fixture"
+	},
 ]
-
 
 ## What every emission is guaranteed besides its root, its Ownership and its phases: the
 ## locomotion that runs the phase list, and what it does to what it reaches.
@@ -129,8 +180,10 @@ static func root_script(spec: Dictionary) -> String:
 ## carries no physics layer of its own — Entity.refresh_movement_collision decides at runtime.
 static func root_props(spec: Dictionary) -> Dictionary:
 	var mobile_actor: bool = tier(spec) == Tier.COMMANDABLE and is_mobile(spec)
-	return {"collision_layer": "1" if mobile_actor else "0",
-		"collision_mask": "1" if mobile_actor else "0"}
+	return {
+		"collision_layer": "1" if mobile_actor else "0",
+		"collision_mask": "1" if mobile_actor else "0"
+	}
 
 
 ## The guaranteed components for `spec`, in child order.

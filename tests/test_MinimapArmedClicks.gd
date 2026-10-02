@@ -5,10 +5,11 @@ extends GutTest
 ## The handler is driven directly with synthetic clicks; the pixel-to-world maths is injected.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_MinimapArmedClicks.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_MinimapArmedClicks.gd -gexit
 
 
-class RecordingController extends RTSController:
+class RecordingController:
+	extends RTSController
 	var issued_at: Array[Vector2] = []
 
 	func issue_command_at_world_position(a_world_xz: Vector2) -> void:

@@ -56,8 +56,12 @@ func _commander(a_id: int) -> Commander:
 ## fake. Armour, frame and owner are overridden afterwards, which is all these payloads
 ## read; the piece it happens to be is irrelevant except to Informant's tier-1
 ## eligibility, which these tests do not exercise.
-func _unit(a_commander_id: int, a_at: Vector2, a_armour: Defense.ArmourType = Defense.ArmourType.LIGHT,
-		a_frame: Defense.FrameType = Defense.FrameType.BIO) -> Commandable:
+func _unit(
+	a_commander_id: int,
+	a_at: Vector2,
+	a_armour: Defense.ArmourType = Defense.ArmourType.LIGHT,
+	a_frame: Defense.FrameType = Defense.FrameType.BIO
+) -> Commandable:
 	var unit: Commandable = FakePieces.make(UNIT_SCENE)
 	add_child_autofree(unit)
 	unit.top_level = true
@@ -78,6 +82,7 @@ func _run(a_event: EventTargetUnit, a_target: Commandable) -> void:
 
 
 # --- Freeze ----------------------------------------------------------------------
+
 
 func test_freeze_1_takes_only_your_own_units() -> void:
 	var mine := _unit(OWN, Vector2(0, 0))
@@ -123,6 +128,7 @@ func test_nothing_named_does_nothing() -> void:
 
 # --- Promotion -------------------------------------------------------------------
 
+
 func test_promotion_only_takes_an_unblooded_unit() -> void:
 	var veteran := _unit(OWN, Vector2(0, 0))
 	veteran.veterancy.set_level(Veterancy.Level.VETERAN)
@@ -137,11 +143,13 @@ func test_promotion_is_never_a_shortcut_to_heroic() -> void:
 	var unit := _unit(OWN, Vector2(0, 0))
 	_run(EventPromote.new(), unit)
 	_run(EventPromote.new(), unit)
-	assert_eq(unit.veterancy.level, Veterancy.Level.VETERAN,
-		"the later levels stay earned in combat")
+	assert_eq(
+		unit.veterancy.level, Veterancy.Level.VETERAN, "the later levels stay earned in combat"
+	)
 
 
 # --- Informant -------------------------------------------------------------------
+
 
 func test_informant_2_takes_any_bio_unit() -> void:
 	var mech := _unit(OWN, Vector2(0, 0), Defense.ArmourType.LIGHT, Defense.FrameType.MECH)
@@ -175,6 +183,7 @@ func test_informant_refuses_an_already_stealthed_unit() -> void:
 
 # --- Overcharge ------------------------------------------------------------------
 
+
 func _stun(a_unit: Commandable) -> void:
 	var effect := StunStatusEffect.new()
 	effect.affects_frames = Garrison.FRAME_ANY
@@ -199,8 +208,9 @@ func test_overcharge_does_nothing_to_an_awake_unit() -> void:
 	var event := EventOvercharge.new()
 	event.scope = EventTargetUnit.Scope.ANY
 	_run(event, awake)
-	assert_eq(awake.defense.hp, 1000.0,
-		"worth nothing on its own — it is the second half of a pair")
+	assert_eq(
+		awake.defense.hp, 1000.0, "worth nothing on its own — it is the second half of a pair"
+	)
 
 
 func test_overcharge_reaches_a_frozen_unit() -> void:
@@ -216,6 +226,7 @@ func test_overcharge_reaches_a_frozen_unit() -> void:
 
 
 # --- Global EMP ------------------------------------------------------------------
+
 
 func test_global_emp_stuns_machines_anywhere_on_the_map() -> void:
 	var far_mech := _unit(FOE, Vector2(500, 500), Defense.ArmourType.LIGHT, Defense.FrameType.MECH)
@@ -242,5 +253,6 @@ func test_global_emp_catches_your_own_machines_too() -> void:
 	# No commander_id is set, and the event has no such field: Global EMP is the one
 	# sanction that neither aims nor takes sides.
 	event.execute(_manager)
-	assert_true(mine.is_stunned(),
-		"sparing the caster's own vehicles would erase the cost of firing it")
+	assert_true(
+		mine.is_stunned(), "sparing the caster's own vehicles would erase the cost of firing it"
+	)

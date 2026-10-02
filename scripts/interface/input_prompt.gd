@@ -41,6 +41,7 @@ const PATTERN: String = "\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}"
 static var _regex: RegEx = null
 #endregion
 
+
 #region Public API
 ## Replace every `{{ action }}` in `text` with that action's current binding, as plain text.
 ##
@@ -70,8 +71,13 @@ static func format(text: String) -> String:
 			result += binding
 		else:
 			push_warning(
-				"InputPrompt: '%s' is neither an InputMap action nor a command in the grid; leaving the placeholder in place."
-				% m.get_string(1)
+				(
+					(
+						"InputPrompt: '%s' is neither an InputMap action nor a command "
+						+ "in the grid; leaving the placeholder in place."
+					)
+					% m.get_string(1)
+				)
 			)
 			result += m.get_string()
 		cursor = m.get_end()
@@ -118,7 +124,10 @@ static func referenced_actions(text: String) -> Array[StringName]:
 		if action not in result:
 			result.append(action)
 	return result
+
+
 #endregion
+
 
 #region Internal
 ## One event as player-facing text.

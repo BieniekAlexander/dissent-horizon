@@ -70,10 +70,12 @@ func test_weight_beats_headcount() -> void:
 
 # ─── GROUPING ────────────────────────────────────────────────────────────────
 
+
 ## A stand-in enemy: no position (it never enters the tree, so it has none), but real
 ## health, weaponry, velocity and a price — everything the valuation half reads.
-func _enemy(a_cost: int, a_damage: float, a_hp_fraction: float,
-		a_velocity: Vector3 = Vector3.ZERO) -> Commandable:
+func _enemy(
+	a_cost: int, a_damage: float, a_hp_fraction: float, a_velocity: Vector3 = Vector3.ZERO
+) -> Commandable:
 	var c: Commandable = autofree(Commandable.new()) as Commandable
 	c.velocity = a_velocity
 	c.id = StringName("stand_in_%d_%d" % [a_cost, int(a_damage)])
@@ -103,7 +105,9 @@ func test_an_empty_group_has_no_centre() -> void:
 
 
 func test_a_group_is_priced_at_what_destroying_it_is_worth() -> void:
-	var profile: Dictionary = _bot._cluster_profile([_enemy(100, 10.0, 1.0), _enemy(250, 10.0, 1.0)])
+	var profile: Dictionary = _bot._cluster_profile(
+		[_enemy(100, 10.0, 1.0), _enemy(250, 10.0, 1.0)]
+	)
 	assert_eq(profile["energy_value"], 350.0)
 
 
@@ -121,10 +125,15 @@ func test_an_unarmed_force_is_priced_but_rates_as_no_threat() -> void:
 
 
 func test_a_groups_heading_is_the_mean_of_its_velocities() -> void:
-	var profile: Dictionary = _bot._cluster_profile([
-		_enemy(100, 10.0, 1.0, Vector3(1, 0, 0)),
-		_enemy(100, 10.0, 1.0, Vector3(3, 0, 0)),
-	])
+	var profile: Dictionary = (
+		_bot
+		. _cluster_profile(
+			[
+				_enemy(100, 10.0, 1.0, Vector3(1, 0, 0)),
+				_enemy(100, 10.0, 1.0, Vector3(3, 0, 0)),
+			]
+		)
+	)
 	assert_almost_eq((profile["heading"] as Vector3).x, 2.0, 0.01)
 
 

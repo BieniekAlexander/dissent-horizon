@@ -13,7 +13,8 @@ extends GutTest
 
 ## A condition whose truth the test sets directly, announcing the change the way a real push
 ## condition would.
-class StubCondition extends Condition:
+class StubCondition:
+	extends Condition
 	var result: bool = false
 
 	func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
@@ -74,11 +75,13 @@ func _start() -> void:
 
 # --- GlobalTrigger objective state --------------------------------------------
 
+
 func test_a_plain_trigger_is_not_an_objective() -> void:
 	var trigger := GlobalTrigger.new()
 	autofree(trigger)
 	assert_eq(
-		trigger.scope, GlobalTrigger.ObjectiveScope.NONE,
+		trigger.scope,
+		GlobalTrigger.ObjectiveScope.NONE,
 		"machinery triggers stay out of the checklist by default"
 	)
 	assert_false(trigger.is_player_facing())
@@ -127,6 +130,7 @@ func test_only_a_primary_counts_toward_completion() -> void:
 
 # --- Manager collection -------------------------------------------------------
 
+
 func test_manager_lists_only_the_flagged_triggers() -> void:
 	var machinery := GlobalTrigger.new()
 	machinery.name = "AmbushWave"
@@ -142,12 +146,14 @@ func test_manager_lists_only_the_flagged_triggers() -> void:
 func test_pending_objectives_are_hidden_from_the_player() -> void:
 	_start()
 	assert_eq(
-		_manager.visible_objective_triggers().size(), 1,
+		_manager.visible_objective_triggers().size(),
+		1,
 		"an unrevealed step would spoil what's coming, so only the live one shows"
 	)
 
 
 # --- Scenario completion ------------------------------------------------------
+
 
 func test_scenario_completes_when_every_objective_has_fired() -> void:
 	_start()
@@ -193,6 +199,7 @@ func test_unflagged_triggers_do_not_hold_up_completion() -> void:
 
 
 # --- Chain sequencing ---------------------------------------------------------
+
 
 func test_chain_collects_its_steps_in_order() -> void:
 	_start()
@@ -258,6 +265,7 @@ func test_step_events_run_on_completion() -> void:
 
 # --- ObjectiveView ------------------------------------------------------------
 
+
 func _bound_view() -> ObjectiveView:
 	# The SCENE, not ObjectiveView.new(): the layout is authored now, and the script looks its
 	# parts up by scene-unique name.
@@ -277,10 +285,14 @@ func test_view_crosses_off_completed_objectives() -> void:
 	var view := _bound_view()
 	_conditions[0].satisfy()
 
-	assert_eq(view.rows(), [
-		"%s step 0" % ObjectiveView.MARK_COMPLETE,
-		"%s step 1" % ObjectiveView.MARK_ACTIVE,
-	], "the finished step stays listed, ticked, and the next one appears")
+	assert_eq(
+		view.rows(),
+		[
+			"%s step 0" % ObjectiveView.MARK_COMPLETE,
+			"%s step 1" % ObjectiveView.MARK_ACTIVE,
+		],
+		"the finished step stays listed, ticked, and the next one appears"
+	)
 
 
 func test_view_repaints_without_being_told() -> void:
@@ -333,6 +345,7 @@ func test_rows_are_duplicated_from_the_authored_template() -> void:
 
 # --- Scopes -------------------------------------------------------------------
 
+
 ## Add a player-facing trigger straight under the manager (not the chain, so it has no
 ## prerequisite and is live from the first arm). Must be called before _start().
 func _scoped(a_scope: GlobalTrigger.ObjectiveScope, a_text: String) -> GlobalTrigger:
@@ -364,11 +377,14 @@ func test_the_checklist_reads_failure_then_primary_then_secondary() -> void:
 	_scoped(GlobalTrigger.ObjectiveScope.FAILURE, "lose")
 	_start()
 
-	assert_eq(_bound_view().rows(), [
-		"%s lose" % ObjectiveView.MARK_FAILURE,
-		"%s step 0" % ObjectiveView.MARK_ACTIVE,
-		"%s optional" % ObjectiveView.MARK_ACTIVE,
-	])
+	assert_eq(
+		_bound_view().rows(),
+		[
+			"%s lose" % ObjectiveView.MARK_FAILURE,
+			"%s step 0" % ObjectiveView.MARK_ACTIVE,
+			"%s optional" % ObjectiveView.MARK_ACTIVE,
+		]
+	)
 
 
 func test_a_failure_condition_is_bulleted_rather_than_checkboxed() -> void:

@@ -12,15 +12,22 @@ extends Node
 @export var interactions: Array[Interaction] = []
 #endregion
 
+
 #region Public API
 ## The first listed interaction whose evaluation passes (returns NONE) for the
 ## given actor/message, or null when none applies.
 func applicable_interaction(a_actor: Commandable, a_message: CommandMessage) -> Interaction:
 	for interaction: Interaction in interactions:
-		if interaction != null \
-				and interaction.meets_precondition(a_actor, a_message) == MoveCommand.PreconditionFailureCause.NONE:
+		if (
+			interaction != null
+			and (
+				interaction.meets_precondition(a_actor, a_message)
+				== MoveCommand.PreconditionFailureCause.NONE
+			)
+		):
 			return interaction
 	return null
+
 
 ## True when this interactor has an interaction applicable to the actor/message.
 func can_interact(a_actor: Commandable, a_message: CommandMessage) -> bool:

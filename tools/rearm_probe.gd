@@ -68,22 +68,40 @@ func _run() -> void:
 	map.add_structure(field, Vector2(centre.x, centre.y))
 	await get_tree().physics_frame
 	var bay: DockingBay = field.get_node("DockingBay") as DockingBay
-	print("airfield at %s | built=%s | pads=%d | free=%s" % [
-		field.global_position, field.is_built, bay.capacity(), bay.has_free_pad()])
+	print(
+		(
+			"airfield at %s | built=%s | pads=%d | free=%s"
+			% [field.global_position, field.is_built, bay.capacity(), bay.has_free_pad()]
+		)
+	)
 	for pad: DockingPad in _pads(bay):
 		print("  pad %s -> %s deck=%.2f" % [pad.name, pad.dock_position(), pad.deck_height])
 	for strip: Runway in bay.runways():
-		print("  runway %s threshold=%s heading=%s inner=%s" % [
-			strip.name, strip.takeoff_point(), strip.heading(), strip.inner_point()])
+		print(
+			(
+				"  runway %s threshold=%s heading=%s inner=%s"
+				% [strip.name, strip.takeoff_point(), strip.heading(), strip.inner_point()]
+			)
+		)
 
 	var unit := (load(_unit_scene) as PackedScene).instantiate() as Commandable
 	unit.initialize(map, player)
 	unit.global_position = Vector3(centre.x + _start_distance, 0.0, centre.y + _offset)
 	await get_tree().physics_frame
-	print("unit %s at %s | mode=%s | can_dock=%s | admits=%s | clip=%d/%d" % [
-		unit.id, unit.global_position, unit.movement.mode, (unit.docking != null),
-		bay.admits(unit), unit.weapon_inventory.charged_ammo(),
-		unit.weapon_inventory.charged_clip_size()])
+	print(
+		(
+			"unit %s at %s | mode=%s | can_dock=%s | admits=%s | clip=%d/%d"
+			% [
+				unit.id,
+				unit.global_position,
+				unit.movement.mode,
+				unit.docking != null,
+				bay.admits(unit),
+				unit.weapon_inventory.charged_ammo(),
+				unit.weapon_inventory.charged_clip_size()
+			]
+		)
+	)
 
 	if not _keep_clip:
 		# Empty the clip, so the docking actually has something to do.
@@ -101,27 +119,44 @@ func _run() -> void:
 		await get_tree().physics_frame
 		var cmd: MoveCommand = unit.current_command()
 		var live := cmd as Rearm
-		var label: String = ("%s/%s" % [
-			Rearm.DockState.keys()[live.state] if live != null else "-",
-			Aerial.LandingState.keys()[unit.aerial._landing_state],
-		])
+		var label: String = (
+			"%s/%s"
+			% [
+				Rearm.DockState.keys()[live.state] if live != null else "-",
+				Aerial.LandingState.keys()[unit.aerial._landing_state],
+			]
+		)
 		if label != last or tick % SAMPLE_EVERY == 0:
 			var strip: Runway = bay.runways()[0] if not bay.runways().is_empty() else null
-			var fix_d: float = VU.inXZ(unit.global_position).distance_to(
-				VU.inXZ(strip.approach_point(4.77))) if strip != null else -1.0
-			print("t%4d %-22s pos=(%6.2f,%6.2f) h=%5.2f dFix=%6.2f vel=%5.2f rw=%-5s clip=%d" % [
-				tick, label,
-				unit.global_position.x, unit.global_position.z,
-				unit.aerial._current_height_offset,
-				fix_d,
-				VU.inXZ(unit.velocity).length(),
-				unit.docking.claimed_runway != null,
-				unit.weapon_inventory.charged_ammo(),
-			])
+			var fix_d: float = (
+				VU.inXZ(unit.global_position).distance_to(VU.inXZ(strip.approach_point(4.77)))
+				if strip != null
+				else -1.0
+			)
+			print(
+				(
+					"t%4d %-22s pos=(%6.2f,%6.2f) h=%5.2f dFix=%6.2f vel=%5.2f rw=%-5s clip=%d"
+					% [
+						tick,
+						label,
+						unit.global_position.x,
+						unit.global_position.z,
+						unit.aerial._current_height_offset,
+						fix_d,
+						VU.inXZ(unit.velocity).length(),
+						unit.docking.claimed_runway != null,
+						unit.weapon_inventory.charged_ammo(),
+					]
+				)
+			)
 			last = label
 		if cmd == null:
-			print("--- command finished at tick %d, clip=%d ---" % [
-				tick, unit.weapon_inventory.charged_ammo()])
+			print(
+				(
+					"--- command finished at tick %d, clip=%d ---"
+					% [tick, unit.weapon_inventory.charged_ammo()]
+				)
+			)
 			await _watch_idle(unit, bay)
 			break
 	get_tree().quit()
@@ -154,11 +189,18 @@ func _watch_idle(a_unit: Commandable, a_bay: DockingBay) -> void:
 		if tick % 10 == 0:
 			var parts: PackedStringArray = PackedStringArray()
 			for plane: Commandable in _fleet:
-				parts.append("%s h=%4.1f v=%4.1f %s%s" % [
-					_state_of(plane), plane.height_offset(),
-					VU.inXZ(plane.velocity).length(),
-					"cmd" if plane.current_command() != null else "---",
-					"R" if plane.docking.claimed_runway != null else " "])
+				parts.append(
+					(
+						"%s h=%4.1f v=%4.1f %s%s"
+						% [
+							_state_of(plane),
+							plane.height_offset(),
+							VU.inXZ(plane.velocity).length(),
+							"cmd" if plane.current_command() != null else "---",
+							"R" if plane.docking.claimed_runway != null else " "
+						]
+					)
+				)
 			print("go+%3d  %s" % [tick, " | ".join(parts)])
 
 

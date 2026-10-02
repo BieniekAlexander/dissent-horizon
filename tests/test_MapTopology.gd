@@ -30,8 +30,9 @@ func _params() -> MapGenerationParams:
 
 #region Feature graph
 func test_a_square_triangulates_into_its_sides_and_one_diagonal() -> void:
-	var graph: FeatureGraph = FeatureGraph.build(PackedVector2Array([
-		Vector2(0, 0), Vector2(10, 0), Vector2(10, 10), Vector2(0, 11)]))
+	var graph: FeatureGraph = FeatureGraph.build(
+		PackedVector2Array([Vector2(0, 0), Vector2(10, 0), Vector2(10, 10), Vector2(0, 11)])
+	)
 	assert_eq(graph.edges.size(), 5)
 
 
@@ -41,9 +42,13 @@ func test_disjoint_paths_counts_separate_routes() -> void:
 	graph.positions = PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
 	var edges: Array[Vector2i] = [Vector2i(0, 1), Vector2i(0, 2), Vector2i(1, 3), Vector2i(2, 3)]
 	assert_eq(graph.disjoint_paths(0, 3, edges, 5), 2)
-	var through_one: Array[Vector2i] = [Vector2i(0, 1), Vector2i(0, 2), Vector2i(1, 3), Vector2i(2, 1)]
+	var through_one: Array[Vector2i] = [
+		Vector2i(0, 1), Vector2i(0, 2), Vector2i(1, 3), Vector2i(2, 1)
+	]
 	assert_eq(graph.disjoint_paths(0, 3, through_one, 5), 1, "both routes pass node 1")
 	assert_eq(graph.disjoint_paths(0, 3, edges, 1), 1, "counting stops at enough")
+
+
 #endregion
 
 
@@ -72,6 +77,8 @@ func test_a_wall_lengthens_the_path_and_a_closed_one_cuts_it() -> void:
 	mask[9 * 10 + 5] = 0
 	var closed: PathField = PathField.from_seeds(mask, 10, 10, seeds)
 	assert_true(is_inf(closed.distance(Vector2i(9, 0))))
+
+
 #endregion
 
 
@@ -95,8 +102,11 @@ func test_every_pair_of_starts_keeps_its_routes() -> void:
 		var topology: MapTopology = map.topology
 		assert_not_null(topology, str(map.errors))
 		assert_gt(topology.cuts.size(), 0)
-		assert_gte(topology.graph.disjoint_paths(0, 1, topology.open_edges(), params.min_routes),
-			params.min_routes, "seed %d" % generation_seed)
+		assert_gte(
+			topology.graph.disjoint_paths(0, 1, topology.open_edges(), params.min_routes),
+			params.min_routes,
+			"seed %d" % generation_seed
+		)
 
 
 func test_the_walkable_ground_is_one_piece() -> void:
@@ -118,8 +128,10 @@ func test_every_barrier_cell_is_impassable_terrain() -> void:
 		# the ridge stand too high to flood, and are steep instead.
 		for cell: Vector2i in map.topology.barrier_of:
 			var steep: bool = map.terrain.cell_height_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF
-			assert_true(steep or chasms.has(cell),
-				"seed %d: barrier cell %s is walkable" % [generation_seed, cell])
+			assert_true(
+				steep or chasms.has(cell),
+				"seed %d: barrier cell %s is walkable" % [generation_seed, cell]
+			)
 
 
 func test_no_barrier_touches_a_feature() -> void:
@@ -129,8 +141,10 @@ func test_no_barrier_touches_a_feature() -> void:
 			for cell: Vector2i in feature.structure_cells() + feature.pond_cells:
 				for dx: int in range(-1, 2):
 					for dz: int in range(-1, 2):
-						assert_false(map.topology.barrier_of.has(cell + Vector2i(dx, dz)),
-							"seed %d: barrier next to %s" % [generation_seed, cell])
+						assert_false(
+							map.topology.barrier_of.has(cell + Vector2i(dx, dz)),
+							"seed %d: barrier next to %s" % [generation_seed, cell]
+						)
 
 
 func test_no_cuts_leaves_the_ground_flat() -> void:
@@ -150,6 +164,8 @@ func test_all_flooded_cuts_make_chasm_water_and_no_ridges() -> void:
 	for height: float in map.terrain.heights:
 		peak = maxf(peak, height)
 	assert_eq(peak, params.ground_height, "a ridge was raised")
+
+
 ## A chasm's water must stay in its chasm: the level is measured from the surrounding rim, so a
 ## chasm lifted onto a high level cannot pour over its cliff and drown the levels below. A lake
 ## also floods its shelf, lake_shelf_cells wide.
@@ -170,9 +186,13 @@ func test_chasm_water_stays_in_its_chasm() -> void:
 				for dx: int in range(-reach, reach + 1):
 					for dz: int in range(-reach, reach + 1):
 						var chasm: Vector2i = cell + Vector2i(dx, dz)
-						near_chasm = near_chasm or (reach_of.has(chasm)
-							and maxi(absi(dx), absi(dz)) <= reach_of[chasm])
+						near_chasm = (
+							near_chasm
+							or (reach_of.has(chasm) and maxi(absi(dx), absi(dz)) <= reach_of[chasm])
+						)
 				assert_true(near_chasm, "water at %s is away from any chasm" % cell)
+
+
 #endregion
 
 
@@ -212,14 +232,22 @@ func test_no_generated_choke_is_narrower_than_the_minimum() -> void:
 		var cells: Dictionary = map.topology.barrier_of
 		var play := PlayArea.screen_aligned(
 			Vector2(map.terrain.grid_width(), map.terrain.grid_depth()) * 0.5,
-			map.terrain.play_half_extents(), Map.CELL_SIZE)
+			map.terrain.play_half_extents(),
+			Map.CELL_SIZE
+		)
 		var obstacle_of: Dictionary = MapTopology.obstacles(cells)
 		var keys: Array = cells.keys()
 		for i: int in keys.size():
-			assert_gte(MapTopology.edge_gap(keys[i], play), width,
-				"seed %d: %s near the edge" % [generation_seed, keys[i]])
+			assert_gte(
+				MapTopology.edge_gap(keys[i], play),
+				width,
+				"seed %d: %s near the edge" % [generation_seed, keys[i]]
+			)
 			for j: int in range(i + 1, keys.size()):
 				if obstacle_of[keys[i]] != obstacle_of[keys[j]]:
-					assert_gte(MapTopology.walkable_gap(keys[i], keys[j]), width,
-						"seed %d: %s and %s" % [generation_seed, keys[i], keys[j]])
+					assert_gte(
+						MapTopology.walkable_gap(keys[i], keys[j]),
+						width,
+						"seed %d: %s and %s" % [generation_seed, keys[i], keys[j]]
+					)
 #endregion

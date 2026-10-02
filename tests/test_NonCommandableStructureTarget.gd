@@ -39,7 +39,8 @@ const SITE_CELL: Vector2i = Vector2i(8, 8)
 ## passable, and faking that would fake the thing under test. Map's own coordinate helpers
 ## are left ALONE — grid_to_world, world_to_grid and footprint_origin have to agree with each
 ## other or the footprint maths lands somewhere else entirely.
-class StubMap extends Map:
+class StubMap:
+	extends Map
 	var placed: Array = []
 
 	func _ready() -> void:
@@ -50,8 +51,9 @@ class StubMap extends Map:
 				col.append(null)
 			cell_grid.append(col)
 
-	func add_structure(a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0,
-			_a_rebake: bool = true) -> void:
+	func add_structure(
+		a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true
+	) -> void:
 		placed.append(a_structure)
 		var cell: Vector2i = world_to_grid(a_world_center)
 		structure_cell_map[a_structure] = [cell]
@@ -84,7 +86,9 @@ func before_each() -> void:
 	_commander.map = _map
 	_commander.add_energy(10000)
 	_commander.technology_mapping = {BUILD_TYPE: FakePieces.tech()}
-	_tool = FakePieces.register_tool(FakePieces.tool(BUILD_TYPE, {"structure": true, "dimensions": Vector2i(3, 3)}))
+	_tool = FakePieces.register_tool(
+		FakePieces.tool(BUILD_TYPE, {"structure": true, "dimensions": Vector2i(3, 3)})
+	)
 	_commander.set_physics_process(false)
 	_site = _make_site()
 
@@ -138,21 +142,28 @@ func _make_builder(a_cell: Vector2i) -> Commandable:
 
 ## An order issued with the cursor over the site: target is the site, position is the site.
 func _order_targeting_the_site() -> CommandMessage:
-	return CommandMessage.new(_map, _site, _tool,
-		_map.grid_to_world(SITE_CELL))
+	return CommandMessage.new(_map, _site, _tool, _map.grid_to_world(SITE_CELL))
 
 
 ## The predicate exactly as it read BEFORE the fix, so the regression is demonstrated
 ## rather than described.
 func _pre_fix_branch_taken(a_target: Variant) -> bool:
-	return a_target != null and is_instance_valid(a_target) \
-		and a_target is Commandable and (a_target as Node).is_in_group("structure")
+	return (
+		a_target != null
+		and is_instance_valid(a_target)
+		and a_target is Commandable
+		and (a_target as Node).is_in_group("structure")
+	)
 
 
 ## And as it reads now.
 func _fixed_branch_taken(a_target: Variant) -> bool:
-	return a_target != null and is_instance_valid(a_target) \
-		and a_target is Entity and (a_target as Node).is_in_group("fixture")
+	return (
+		a_target != null
+		and is_instance_valid(a_target)
+		and a_target is Entity
+		and (a_target as Node).is_in_group("fixture")
+	)
 
 
 #region The fixture fact
@@ -168,15 +179,21 @@ func test_a_failing_narrowing_cast_is_silent() -> void:
 	# The trapdoor itself, in one line: no error, no warning, just null.
 	var narrowed: Commandable = _site as Commandable
 	assert_null(narrowed, "`as Commandable` on a non-Commandable structure yields null quietly")
+
+
 #endregion
 
 
 #region The predicate
 func test_the_pre_fix_predicate_skipped_an_extraction_site() -> void:
-	assert_false(_pre_fix_branch_taken(_site),
-		"pre-fix: the footprint-adjacency branch was not taken for a site")
-	assert_true(_fixed_branch_taken(_site),
-		"fixed: it is taken, because the FIXTURE GROUP decides, not the class")
+	assert_false(
+		_pre_fix_branch_taken(_site),
+		"pre-fix: the footprint-adjacency branch was not taken for a site"
+	)
+	assert_true(
+		_fixed_branch_taken(_site),
+		"fixed: it is taken, because the FIXTURE GROUP decides, not the class"
+	)
 
 
 func test_the_predicate_still_ignores_a_non_structure() -> void:
@@ -184,6 +201,8 @@ func test_the_predicate_still_ignores_a_non_structure() -> void:
 	var unit: Commandable = _make_builder(Vector2i(2, 2))
 	assert_false(_fixed_branch_taken(unit), "a unit target is still a plain point")
 	assert_false(_fixed_branch_taken(null), "and so is a ground click")
+
+
 #endregion
 
 
@@ -196,12 +215,17 @@ func test_a_builder_targeting_an_extraction_site_is_sent_to_a_cell_it_can_stand_
 	var destination: Vector3 = builder.command_receiver._resolve_movement_target(command)
 	var cell: Vector2i = _map.world_to_grid(VU.inXZ(destination))
 
-	assert_false(_map.terrain_grid.is_passable(SITE_CELL),
-		"the site's own cell is not navigable — a building occupies it")
-	assert_true(_map.terrain_grid.is_passable(cell),
-		"so the destination must be a cell the builder can actually reach")
-	assert_eq(SU.linf_distance(cell, SITE_CELL), 1,
-		"and it is immediately beside the site's footprint")
+	assert_false(
+		_map.terrain_grid.is_passable(SITE_CELL),
+		"the site's own cell is not navigable — a building occupies it"
+	)
+	assert_true(
+		_map.terrain_grid.is_passable(cell),
+		"so the destination must be a cell the builder can actually reach"
+	)
+	assert_eq(
+		SU.linf_distance(cell, SITE_CELL), 1, "and it is immediately beside the site's footprint"
+	)
 
 
 func test_the_pre_fix_destination_was_a_cell_no_unit_could_reach() -> void:
@@ -209,10 +233,15 @@ func test_the_pre_fix_destination_was_a_cell_no_unit_could_reach() -> void:
 	var builder: Commandable = _make_builder(Vector2i(2, 2))
 	var command := Build.new(_order_targeting_the_site())
 	var pre_fix: Vector3 = command.message.position  # the branch was skipped, so: the fallback
-	assert_false(_map.terrain_grid.is_passable(_map.world_to_grid(VU.inXZ(pre_fix))),
-		"pre-fix the builder was aimed at an impassable cell — it could never arrive")
-	assert_ne(builder.command_receiver._resolve_movement_target(command), pre_fix,
-		"fixed: it is no longer sent there")
+	assert_false(
+		_map.terrain_grid.is_passable(_map.world_to_grid(VU.inXZ(pre_fix))),
+		"pre-fix the builder was aimed at an impassable cell — it could never arrive"
+	)
+	assert_ne(
+		builder.command_receiver._resolve_movement_target(command),
+		pre_fix,
+		"fixed: it is no longer sent there"
+	)
 
 
 func test_the_destination_is_per_actor_not_one_shared_spot() -> void:
@@ -224,7 +253,10 @@ func test_the_destination_is_per_actor_not_one_shared_spot() -> void:
 	assert_ne(
 		near_west.command_receiver._resolve_movement_target(command),
 		near_east.command_receiver._resolve_movement_target(command),
-		"two builders on opposite sides approach from opposite sides")
+		"two builders on opposite sides approach from opposite sides"
+	)
+
+
 #endregion
 
 
@@ -238,8 +270,7 @@ func test_a_builder_ordered_beside_an_extraction_site_actually_starts_building()
 	# It is NOT the discriminating regression — it passed before the fix too. The
 	# discriminating one is the destination, above: an order whose TARGET is the site.
 	var free_cell := Vector2i(SITE_CELL.x + 3, SITE_CELL.y)
-	var message := CommandMessage.new(_map, null, _tool,
-		_map.grid_to_world(free_cell))
+	var message := CommandMessage.new(_map, null, _tool, _map.grid_to_world(free_cell))
 	Build.submit_purchase(_commander, message)
 	Build.plan_structure(_commander, message)
 
@@ -248,8 +279,10 @@ func test_a_builder_ordered_beside_an_extraction_site_actually_starts_building()
 	builder._process_commands()
 
 	assert_eq(_map.placed.size(), 2, "the site, plus the structure the builder just laid down")
-	assert_true(builder.current_command() is Assemble,
-		"and the builder is now building it rather than still trying to get there")
+	assert_true(
+		builder.current_command() is Assemble,
+		"and the builder is now building it rather than still trying to get there"
+	)
 
 
 func test_a_build_aimed_AT_the_site_is_refused_rather_than_stalling() -> void:

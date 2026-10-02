@@ -47,6 +47,7 @@ const REASON_PAUSE_MENU: StringName = &"pause_menu"
 var _holds: Dictionary = {}
 #endregion
 
+
 #region Public API
 ## Take a hold in `reason`'s name, freezing simulation. Re-entrant: two holders of the
 ## same reason each need to release before the world resumes.
@@ -88,7 +89,10 @@ func is_held_by(a_reason: StringName) -> bool:
 ## Outstanding hold count for `reason` (0 when not held).
 func hold_count(a_reason: StringName) -> int:
 	return int(_holds.get(a_reason, 0))
+
+
 #endregion
+
 
 #region Private helpers
 ## Push the aggregate state onto the SceneTree and announce real transitions only.

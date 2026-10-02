@@ -10,9 +10,10 @@ extends Node
 enum Level { NONE = 0, VETERAN = 1, ELITE = 2, HEROIC = 3 }
 
 ## XP-scaling balance knobs — raise to promote faster veterancy progression.
-const XP_PER_DAMAGE: float = 0.05      ## XP per point of damage dealt (ON_DEAL_DAMAGE)
-const XP_PER_KILL_HP: float = 0.05     ## XP per point of killed unit's max HP (ON_KILL)
-const XP_PER_BUILD_ENERGY: float = 0.05  ## XP per energy cost of a completed structure (ON_FINISH_BUILD)
+const XP_PER_DAMAGE: float = 0.05  ## XP per point of damage dealt (ON_DEAL_DAMAGE)
+const XP_PER_KILL_HP: float = 0.05  ## XP per point of killed unit's max HP (ON_KILL)
+## XP per energy cost of a completed structure (ON_FINISH_BUILD)
+const XP_PER_BUILD_ENERGY: float = 0.05
 
 var experience: int = 0
 @export var level: Level = Level.NONE
@@ -22,12 +23,15 @@ var experience: int = 0
 # should scale with the power it confers. Deferred; see design-framework/elasticity.md §Veterancy.
 const _LEVEL_THRESHOLDS: Array[int] = [0, 20, 50, 100]
 
+
 func _ready() -> void:
 	experience = _LEVEL_THRESHOLDS[int(level)]
+
 
 func gain_experience(a_amount: int) -> void:
 	experience += a_amount
 	_update_level()
+
 
 ## Set veterancy to exactly `new_level`, syncing `experience` to that level's
 ## threshold. Used to transfer a rank wholesale (e.g. the Dignify sanction carries an
@@ -36,10 +40,12 @@ func set_level(a_new_level: Level) -> void:
 	level = a_new_level
 	experience = _LEVEL_THRESHOLDS[int(a_new_level)]
 
+
 ## Advance one veterancy level, capped at HEROIC. Used by the Promote sanction.
 func promote() -> void:
 	if level < Level.HEROIC:
 		set_level((int(level) + 1) as Level)
+
 
 func _update_level() -> void:
 	var new_level: Level

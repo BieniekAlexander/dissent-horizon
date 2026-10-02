@@ -22,14 +22,20 @@ const WAIVED: Dictionary = {"exceptions": {"has_mesh_visual": "a trigger volume,
 
 
 func _verdicts(a_spec: Dictionary, a_view: Dictionary) -> Array:
-	return SpecRules.evaluate(a_spec, a_view) \
-		.filter(func(e: Dictionary) -> bool: return e["id"] == "has_mesh_visual") \
-		.map(func(e: Dictionary) -> int: return e["verdict"])
+	return (
+		SpecRules
+		. evaluate(a_spec, a_view)
+		. filter(func(e: Dictionary) -> bool: return e["id"] == "has_mesh_visual")
+		. map(func(e: Dictionary) -> int: return e["verdict"])
+	)
 
 
 func test_an_undeclared_piece_without_art_is_incomplete_not_failed() -> void:
-	assert_eq(_verdicts({}, {"has_authored_mesh": false}), [SpecRules.Verdict.INCOMPLETE],
-		"it wears the placeholder — reported, never an error")
+	assert_eq(
+		_verdicts({}, {"has_authored_mesh": false}),
+		[SpecRules.Verdict.INCOMPLETE],
+		"it wears the placeholder — reported, never an error"
+	)
 
 
 func test_an_undeclared_piece_with_art_is_silent() -> void:
@@ -52,8 +58,10 @@ func test_the_waiver_is_the_opt_out() -> void:
 func test_the_old_key_is_retired() -> void:
 	var spec: Dictionary = {"visual": "none"}
 	var errors: Array = SpecSchema.normalize(spec)
-	assert_true(errors.any(func(e: String) -> bool: return e.contains("has_mesh_visual")),
-		"refused, naming the replacement: %s" % [errors])
+	assert_true(
+		errors.any(func(e: String) -> bool: return e.contains("has_mesh_visual")),
+		"refused, naming the replacement: %s" % [errors]
+	)
 
 
 func _piece_with(a_children: Array[Node]) -> Node3D:
@@ -92,11 +100,11 @@ func test_an_emission_is_judged_by_its_unstamped_meshes() -> void:
 func test_a_waived_piece_is_composed_without_a_mesh_visual() -> void:
 	var piece: Dictionary = {"kind": "Entity", "footprint": [1, 1]}
 	var names: Array = SpecComposition.components(piece).map(
-		func(e: Dictionary) -> String: return e["name"])
+		func(e: Dictionary) -> String: return e["name"]
+	)
 	assert_true(names.has(VisualMeasure.MESH_VISUAL_PATH), "default-on")
 	piece.merge(WAIVED)
-	names = SpecComposition.components(piece).map(
-		func(e: Dictionary) -> String: return e["name"])
+	names = SpecComposition.components(piece).map(func(e: Dictionary) -> String: return e["name"])
 	assert_false(names.has(VisualMeasure.MESH_VISUAL_PATH), "the waiver removes the node itself")
 
 

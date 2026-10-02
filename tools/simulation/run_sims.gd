@@ -110,6 +110,8 @@ func _load_specs() -> Array:
 			continue
 		specs.append(SimSpec.parse_file("%s/%s" % [sims_dir, file]))
 	return specs
+
+
 #endregion
 
 
@@ -132,14 +134,19 @@ func _run_spec(a_spec: SimSpec, a_trials: int) -> void:
 		if result.has("build_errors"):
 			_broken += 1
 			break
-	_report.append({
-		"spec": a_spec.id,
-		"ok": true,
-		"trials": trials,
-		"passed": trials.reduce(
-			func(total: int, t: Dictionary) -> int: return total + (1 if t.get("passed", false) else 0), 0
-		),
-	})
+	_report.append(
+		{
+			"spec": a_spec.id,
+			"ok": true,
+			"trials": trials,
+			"passed":
+			trials.reduce(
+				func(total: int, t: Dictionary) -> int:
+					return total + (1 if t.get("passed", false) else 0),
+				0
+			),
+		}
+	)
 
 
 ## Seed for trial `a_index`: the CLI's base, else the spec's authored seed, else a fresh
@@ -182,6 +189,8 @@ func _run_trial(a_spec: SimSpec, a_seed: int) -> Dictionary:
 	arena.queue_free()
 	await get_tree().process_frame
 	return result
+
+
 #endregion
 
 
@@ -196,8 +205,14 @@ func _trace_frame(a_spec: SimSpec, a_seed: int, a_arena: Node, a_frame: int) -> 
 			continue
 		var at: Vector3 = piece.global_position
 		var hp: float = piece.defense.hp if piece.defense != null else 0.0
-		_trace.store_line("%s %d %d %s %.3f %.3f %.3f %.1f" % [a_spec.id, a_seed, a_frame,
-			piece.name, at.x, at.y, at.z, hp])
+		_trace.store_line(
+			(
+				"%s %d %d %s %.3f %.3f %.3f %.1f"
+				% [a_spec.id, a_seed, a_frame, piece.name, at.x, at.y, at.z, hp]
+			)
+		)
+
+
 #endregion
 
 

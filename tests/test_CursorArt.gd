@@ -50,8 +50,7 @@ func _code_lines(a_script_path: String) -> Array[String]:
 
 
 func test_no_control_asks_for_a_shape_with_no_art_behind_it() -> void:
-	var re := RegEx.create_from_string(
-		"mouse_default_cursor_shape\\s*=\\s*Control\\.(\\w+)")
+	var re := RegEx.create_from_string("mouse_default_cursor_shape\\s*=\\s*Control\\.(\\w+)")
 	var offenders: Array[String] = []
 	var seen: int = 0
 	for script_path: String in _script_paths(INTERFACE_DIR):
@@ -63,8 +62,11 @@ func test_no_control_asks_for_a_shape_with_no_art_behind_it() -> void:
 			if not SHAPES_WITH_ART.has(m.get_string(1)):
 				offenders.append("%s -> %s" % [script_path.get_file(), m.get_string(1)])
 	assert_gt(seen, 0, "guards the fixture: the HUD does mark its clickable controls")
-	assert_eq(offenders, [] as Array[String],
-		"a shape with no registered image shows the OS cursor instead of the game's")
+	assert_eq(
+		offenders,
+		[] as Array[String],
+		"a shape with no registered image shows the OS cursor instead of the game's"
+	)
 
 
 ## The other half of the same rule: the shape the HUD names is one the controller actually
@@ -72,16 +74,24 @@ func test_no_control_asks_for_a_shape_with_no_art_behind_it() -> void:
 ## nobody would think to trace back to a constant.
 func test_the_hud_shape_is_one_the_controller_registers() -> void:
 	assert_true(SHAPES_WITH_ART.has("CURSOR_POINTING_HAND"))
-	assert_eq(Control.CURSOR_POINTING_HAND, Input.CURSOR_POINTING_HAND,
-		"Control and Input agree on the shape's value, which _register_hud_cursor relies on")
-	var source: String = FileAccess.get_file_as_string(
-		"res://scripts/interface/rts_controller.gd")
-	assert_true(source.contains("Input.CURSOR_POINTING_HAND"),
-		"_register_hud_cursor still gives that shape an image")
+	assert_eq(
+		Control.CURSOR_POINTING_HAND,
+		Input.CURSOR_POINTING_HAND,
+		"Control and Input agree on the shape's value, which _register_hud_cursor relies on"
+	)
+	var source: String = FileAccess.get_file_as_string("res://scripts/interface/rts_controller.gd")
+	assert_true(
+		source.contains("Input.CURSOR_POINTING_HAND"),
+		"_register_hud_cursor still gives that shape an image"
+	)
 
 
 func test_every_cursor_image_the_controller_can_show_is_loadable() -> void:
-	for cursor: Resource in [RTSController.FREE_CURSOR, RTSController.SELECTION_CURSOR,
-			RTSController.ATTACK_CURSOR, RTSController.INVALID_CURSOR,
-			RTSController.UNKNOWN_CURSOR]:
+	for cursor: Resource in [
+		RTSController.FREE_CURSOR,
+		RTSController.SELECTION_CURSOR,
+		RTSController.ATTACK_CURSOR,
+		RTSController.INVALID_CURSOR,
+		RTSController.UNKNOWN_CURSOR
+	]:
 		assert_not_null(cursor)

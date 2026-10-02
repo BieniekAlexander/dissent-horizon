@@ -66,7 +66,7 @@ static func groups(entries: Array, faction: String) -> Array[Dictionary]:
 			fixtures.append(entry)
 		elif entry["producers"].is_empty():
 			untrained.append(entry)
-		for producer: String in ([] if entry["is_fixture"] else entry["producers"]):
+		for producer: String in [] if entry["is_fixture"] else entry["producers"]:
 			if not by_producer.has(producer):
 				by_producer[producer] = []
 			by_producer[producer].append(entry)

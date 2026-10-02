@@ -12,7 +12,9 @@ const WOUNDED_MOVING_CLIP: StringName = &"moving_wounded"
 
 
 func requests_for(a_context: AnimationContext) -> Array[AnimationRequest]:
-	if a_context.action == ActionTracker.Action.MOVING \
-			and a_context.health_fraction <= wounded_health_fraction:
+	if (
+		a_context.action == ActionTracker.Action.MOVING
+		and a_context.health_fraction <= wounded_health_fraction
+	):
 		return [AnimationRequest.new(BODY_LAYER, WOUNDED_MOVING_CLIP)]
 	return super(a_context)

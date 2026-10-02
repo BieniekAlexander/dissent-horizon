@@ -15,6 +15,7 @@ extends Condition
 ##
 ## Authoring one explicitly is legal and means the same thing. It is simply never necessary.
 
+
 #region Public API
 func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
 	return true

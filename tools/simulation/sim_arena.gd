@@ -181,6 +181,8 @@ func _faction_scene(a_settings: SimSpec.CommanderSettings) -> PackedScene:
 	if scene == null:
 		build_errors.append("cannot load faction scene '%s'" % path)
 	return scene
+
+
 #endregion
 
 
@@ -204,6 +206,8 @@ func _ready() -> void:
 	# The view is tilted 45°, so the ground it covers is deeper than the ortho size; the
 	# margin is what keeps a group placed at an anchor clear of the edge.
 	camera.size = spec.arena_size_cells * Map.CELL_SIZE * CAMERA_FIT_FRACTION
+
+
 #endregion
 
 
@@ -235,6 +239,8 @@ func _silence_unthinking_brains() -> void:
 		var brain: BotBrain = (commander as Node).get_node_or_null("BotBrain") as BotBrain
 		if brain != null:
 			brain.active = false
+
+
 #endregion
 
 
@@ -272,8 +278,10 @@ func _resolve_origin(a_reference: String, a_seen: Array[String]) -> Vector2:
 	var origin: Vector2 = _resolve_placement(group.placement, seen_here)
 	if absf(origin.x) > _half_extent() or absf(origin.y) > _half_extent():
 		build_errors.append(
-			"group %s resolves to %v, outside a %d-cell arena — widen `setting.size`"
-			% [a_reference, origin, spec.arena_size_cells]
+			(
+				"group %s resolves to %v, outside a %d-cell arena — widen `setting.size`"
+				% [a_reference, origin, spec.arena_size_cells]
+			)
 		)
 	_group_origins[a_reference] = origin
 	return origin
@@ -326,8 +334,10 @@ func _formation_offsets(a_group: SimSpec.Group) -> Array[Vector2]:
 				var column: int = index % side
 				var row: int = index / side
 				offsets.append(
-					Vector2(float(column), float(row)) * FORMATION_SPACING
-					- Vector2(float(side - 1), float(side - 1)) * FORMATION_SPACING * 0.5
+					(
+						Vector2(float(column), float(row)) * FORMATION_SPACING
+						- Vector2(float(side - 1), float(side - 1)) * FORMATION_SPACING * 0.5
+					)
 				)
 		_:
 			# "line" and the default: a rank centred on the origin, running north-south so a
@@ -336,6 +346,8 @@ func _formation_offsets(a_group: SimSpec.Group) -> Array[Vector2]:
 				var along: float = (float(index) - float(count - 1) * 0.5) * FORMATION_SPACING
 				offsets.append(Vector2(0.0, along))
 	return offsets
+
+
 #endregion
 
 
@@ -367,6 +379,8 @@ func _spawn_one(a_group: SimSpec.Group, a_piece: String, a_at: Vector2) -> void:
 	add_child(entity)
 	entity.position = Vector3(a_at.x, 0.0, a_at.y)
 	roster.add(a_group.qualified_name(), entity, a_piece)
+
+
 #endregion
 
 
@@ -418,7 +432,9 @@ func _chain_for(a_group: SimSpec.Group, a_offset: Vector2) -> Array[MoveCommand]
 		if named != "" and not order.approaches:
 			_append_entity_commands(chain, order, roster.living(named))
 			continue
-		var positional: MoveCommand = _make_command(order.command, null, _destination_of(order, a_offset))
+		var positional: MoveCommand = _make_command(
+			order.command, null, _destination_of(order, a_offset)
+		)
 		if positional != null:
 			chain.append(positional)
 	return chain
@@ -511,7 +527,7 @@ func _pulled_back_to_edge(a_placement: SimSpec.Placement, a_point: Vector2) -> V
 	var radius: float = 0.0
 	for member: Commandable in roster.living(reference):
 		radius = maxf(radius, VU.inXZ(member.global_position - (centre as Vector3)).length())
-	var inward: Vector2 = (Vector2.ZERO - a_point)
+	var inward: Vector2 = Vector2.ZERO - a_point
 	if inward.length() < 0.001:
 		return a_point
 	return a_point + inward.normalized() * (radius + APPROACH_STANDOFF)
@@ -530,6 +546,8 @@ func _make_command(a_name: String, a_target: Commandable, a_position: Vector3) -
 			return Stop.new(message)
 		_:
 			return MoveCommand.new(message)
+
+
 #endregion
 
 
@@ -543,11 +561,14 @@ func _compile_checks() -> Array[SimulationCheck]:
 	var leaves: Array[SimSpec.Check] = spec.expect_root.leaves()
 	var by_leaf: Dictionary = {}
 	for leaf: SimSpec.Check in leaves:
-		var check := SimulationCheck.new(
-			leaf.describe(),
-			SimCheckLibrary.predicate(leaf, roster),
-			_mode_of(leaf),
-			int(round(leaf.deadline_seconds * Engine.physics_ticks_per_second)),
+		var check := (
+			SimulationCheck
+			. new(
+				leaf.describe(),
+				SimCheckLibrary.predicate(leaf, roster),
+				_mode_of(leaf),
+				int(round(leaf.deadline_seconds * Engine.physics_ticks_per_second)),
+			)
 		)
 		by_leaf[leaf] = check
 		compiled.append(check)

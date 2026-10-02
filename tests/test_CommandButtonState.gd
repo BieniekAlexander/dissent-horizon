@@ -10,8 +10,11 @@ extends GutTest
 ## Every piece and tool is a fake (tests/_fake_pieces.gd).
 
 ## A gun carrying the bombard ability pool; a plain unit that cannot cast it.
-const CANNON: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2),
-	"abilities": [{"grants": [&"bombard"], "cooldown_ticks": 300}]}
+const CANNON: Dictionary = {
+	"structure": true,
+	"dimensions": Vector2i(2, 2),
+	"abilities": [{"grants": [&"bombard"], "cooldown_ticks": 300}]
+}
 const RECRUIT: Dictionary = FakePieces.PLAIN
 
 const PLAYER: int = 1
@@ -24,13 +27,13 @@ const POOLED_ABILITY: StringName = &"bombard"
 const HELD: bool = true
 const NOT_HELD: bool = false
 
-
 const _TRAINEE_COMMAND: String = "command_tool_fake_trainee"
 
 
 func before_each() -> void:
-	FakePieces.register_tool(FakePieces.tool(&"fake_trainee", FakePieces.PLAIN, [],
-		ControlBinding.ControlContext.TRAIN))
+	FakePieces.register_tool(
+		FakePieces.tool(&"fake_trainee", FakePieces.PLAIN, [], ControlBinding.ControlContext.TRAIN)
+	)
 	FakePieces.install_ability(POOLED_ABILITY, {"command": "command_bombard", "range": 30.0})
 
 
@@ -54,12 +57,14 @@ func _entity(a_options: Dictionary) -> Commandable:
 	return entity
 
 
-func _state(a_command: String, a_selection: Array, a_commander: Commander,
-		a_defers: bool) -> CommandButtonState:
+func _state(
+	a_command: String, a_selection: Array, a_commander: Commander, a_defers: bool
+) -> CommandButtonState:
 	return CommandButtonState.of(a_command, a_selection, a_commander, a_defers)
 
 
 # --- Purchases -------------------------------------------------------------------
+
 
 func test_an_affordable_unlocked_purchase_is_not_blocked() -> void:
 	var commander: Commander = _commander()
@@ -67,8 +72,11 @@ func test_an_affordable_unlocked_purchase_is_not_blocked() -> void:
 	var tool: Tool = Tool.for_name(_TRAINEE_COMMAND)
 	assert_not_null(tool, "guards the fixture: the fake tool is registered")
 	var state: CommandButtonState = _state(tool.command_name, [], commander, NOT_HELD)
-	assert_eq(state.blocker, CommandButtonState.Blocker.NONE,
-		"paid for and unrestricted by this bare commander's technology")
+	assert_eq(
+		state.blocker,
+		CommandButtonState.Blocker.NONE,
+		"paid for and unrestricted by this bare commander's technology"
+	)
 
 
 func test_a_locked_piece_is_grey() -> void:
@@ -83,14 +91,12 @@ func test_a_locked_piece_is_grey() -> void:
 func test_an_unaffordable_purchase_is_amber_and_lit_under_the_modifier() -> void:
 	var commander: Commander = _commander()
 	commander.energy = 0
-	var refused: CommandButtonState = _state(
-		_TRAINEE_COMMAND, [], commander, NOT_HELD)
+	var refused: CommandButtonState = _state(_TRAINEE_COMMAND, [], commander, NOT_HELD)
 	assert_eq(refused.blocker, CommandButtonState.Blocker.UNAFFORDABLE)
 	assert_true(refused.is_waitable)
 	assert_false(refused.is_queueable, "clicking now is refused")
 	assert_eq(refused.tint(), CommandButtonState.TINT_QUEUEABLE)
-	var queued: CommandButtonState = _state(
-		_TRAINEE_COMMAND, [], commander, HELD)
+	var queued: CommandButtonState = _state(_TRAINEE_COMMAND, [], commander, HELD)
 	assert_true(queued.is_queueable, "the same refusal, now queueable")
 	assert_eq(queued.tint(), CommandButtonState.TINT_AVAILABLE)
 
@@ -103,20 +109,21 @@ func test_a_blocker_waiting_cannot_clear_keeps_its_own_colour_under_the_modifier
 
 
 func test_a_purchase_carries_no_charges() -> void:
-	var state: CommandButtonState = _state(
-		_TRAINEE_COMMAND, [], _commander(), NOT_HELD)
+	var state: CommandButtonState = _state(_TRAINEE_COMMAND, [], _commander(), NOT_HELD)
 	assert_false(state.shows_charges(), "a price is not a pool")
 	assert_false(state.shows_timer())
 
 
 # --- Abilities -------------------------------------------------------------------
 
+
 func test_a_loaded_ability_is_not_blocked() -> void:
 	var cannon: Commandable = _entity(CANNON)
 	var pool := cannon.get_node("Abilities") as Abilities
 	assert_true(pool.grants(POOLED_ABILITY), "guards the fixture")
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.NONE)
 	assert_eq(state.tint(), CommandButtonState.TINT_AVAILABLE)
 
@@ -126,10 +133,14 @@ func test_a_spent_pool_reads_recharging_with_a_countdown() -> void:
 	var pool := cannon.get_node("Abilities") as Abilities
 	assert_true(pool.spend(POOLED_ABILITY), "guards the fixture: the charge was there")
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.RECHARGING)
-	assert_eq(state.tint(), CommandButtonState.TINT_QUEUEABLE,
-		"waitable: the click is refused, and the modifier would queue it")
+	assert_eq(
+		state.tint(),
+		CommandButtonState.TINT_QUEUEABLE,
+		"waitable: the click is refused, and the modifier would queue it"
+	)
 	assert_gt(state.recharge_ticks, 0, "it says how long")
 	assert_true(state.shows_timer())
 
@@ -141,7 +152,8 @@ func test_a_recharging_ability_is_queueable_while_the_modifier_is_held() -> void
 	var cannon: Commandable = _entity(CANNON)
 	(cannon.get_node("Abilities") as Abilities).spend(POOLED_ABILITY)
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, HELD
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.RECHARGING, "still the same reason")
 	assert_true(state.is_queueable, "but clicking now queues it")
 	assert_eq(state.tint(), CommandButtonState.TINT_AVAILABLE)
@@ -154,7 +166,8 @@ func test_one_loaded_caster_keeps_the_button_lit() -> void:
 	var loaded: Commandable = _entity(CANNON)
 	(spent.get_node("Abilities") as Abilities).spend(POOLED_ABILITY)
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [spent, loaded], loaded.commander, NOT_HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [spent, loaded], loaded.commander, NOT_HELD
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.NONE)
 
 
@@ -167,17 +180,23 @@ func test_a_selection_that_cannot_cast_falls_through_to_the_commander() -> void:
 	add_child_autofree(recruit)
 	recruit.ownership.commander = cannon.commander
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [recruit], cannon.commander, NOT_HELD)
-	assert_eq(state.blocker, CommandButtonState.Blocker.NONE,
-		"a Recruit cannot bombard, but the commander's gun can")
+		AbilityCatalog.command_of(POOLED_ABILITY), [recruit], cannon.commander, NOT_HELD
+	)
+	assert_eq(
+		state.blocker,
+		CommandButtonState.Blocker.NONE,
+		"a Recruit cannot bombard, but the commander's gun can"
+	)
 
 
 # --- Charge pips -----------------------------------------------------------------
 
+
 func test_a_single_charge_pool_draws_no_pips() -> void:
 	var cannon: Commandable = _entity(CANNON)
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD
+	)
 	assert_eq(state.max_charges, 1, "guards the fixture")
 	assert_false(state.shows_charges(), "'1/1' says nothing a lit button does not")
 
@@ -185,13 +204,18 @@ func test_a_single_charge_pool_draws_no_pips() -> void:
 func test_a_multi_charge_pool_draws_its_pips() -> void:
 	var cannon: Commandable = _entity(CANNON)
 	var pool := cannon.get_node("Abilities") as Abilities
-	pool.groups = [{
-		"initial_charges": 2, "max_charges": 3, "cooldown_ticks": 600,
-		"grants": [POOLED_ABILITY],
-	}]
+	pool.groups = [
+		{
+			"initial_charges": 2,
+			"max_charges": 3,
+			"cooldown_ticks": 600,
+			"grants": [POOLED_ABILITY],
+		}
+	]
 	pool._rebuild()
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD
+	)
 	assert_eq(state.charges, 2)
 	assert_eq(state.max_charges, 3)
 	assert_true(state.shows_charges())
@@ -199,6 +223,7 @@ func test_a_multi_charge_pool_draws_its_pips() -> void:
 
 
 # --- Units ------------------------------------------------------------------------
+
 
 ## Ticks are what Abilities counts in; seconds are what a player reads. The factor is READ
 ## from the engine rather than typed, so a change to the physics rate cannot silently make
@@ -221,6 +246,7 @@ func test_no_recharge_is_no_timer() -> void:
 ## the overlays exist, carry the right text, fill the button rather than sitting beside it,
 ## and never eat the click. The full-rect + alignment construction is chosen precisely so
 ## there is no arithmetic left to get wrong.
+
 
 func _button_showing(a_state: CommandButtonState) -> VerboseTooltipButton:
 	var button := VerboseTooltipButton.new()
@@ -257,15 +283,19 @@ func test_a_recharging_button_writes_a_countdown() -> void:
 	var state := CommandButtonState.new()
 	state.blocker = CommandButtonState.Blocker.RECHARGING
 	state.recharge_ticks = Engine.physics_ticks_per_second * 4
-	assert_true(_overlay_texts(_button_showing(state)).has("4.0"),
-		"one decimal under ten seconds, so a short cooldown does not read as stalled")
+	assert_true(
+		_overlay_texts(_button_showing(state)).has("4.0"),
+		"one decimal under ten seconds, so a short cooldown does not read as stalled"
+	)
 
 
 func test_a_long_countdown_drops_the_decimal() -> void:
 	var state := CommandButtonState.new()
 	state.recharge_ticks = Engine.physics_ticks_per_second * 45
-	assert_true(_overlay_texts(_button_showing(state)).has("45"),
-		"hundredths on a minute-long cooldown are noise")
+	assert_true(
+		_overlay_texts(_button_showing(state)).has("45"),
+		"hundredths on a minute-long cooldown are noise"
+	)
 
 
 func test_the_button_takes_its_tint_from_the_state() -> void:
@@ -286,8 +316,11 @@ func test_the_overlays_fill_the_button_and_never_take_the_click() -> void:
 		if label == null:
 			continue
 		labels += 1
-		assert_eq(label.mouse_filter, Control.MOUSE_FILTER_IGNORE,
-			"an overlay that took the click would kill the button under it")
+		assert_eq(
+			label.mouse_filter,
+			Control.MOUSE_FILTER_IGNORE,
+			"an overlay that took the click would kill the button under it"
+		)
 		assert_eq(label.anchor_right, 1.0, "fills the button horizontally")
 		assert_eq(label.anchor_bottom, 1.0, "and vertically — no corner box to mis-size")
 	assert_eq(labels, 2, "both overlays exist once they are asked for")
@@ -311,6 +344,7 @@ func test_the_overlays_are_built_once_and_reused() -> void:
 ## not anything is selected, so "you own nothing that can do this" and "you never bought this"
 ## become answerable questions rather than buttons that are simply absent.
 
+
 func test_no_caster_and_locked_are_told_apart() -> void:
 	# Different remedies, so different colours: LOCKED wants dominion, NO_CASTER wants a piece.
 	assert_ne(CommandButtonState.TINT_NO_CASTER, CommandButtonState.TINT_LOCKED)
@@ -324,9 +358,11 @@ func test_no_caster_and_locked_are_told_apart() -> void:
 func test_an_unlocked_ability_with_nothing_to_cast_it_reads_no_caster() -> void:
 	var commander: Commander = _commander()
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [], commander, NOT_HELD)
-	assert_eq(state.blocker, CommandButtonState.Blocker.NO_CASTER,
-		"the battery is yours; you have no gun")
+		AbilityCatalog.command_of(POOLED_ABILITY), [], commander, NOT_HELD
+	)
+	assert_eq(
+		state.blocker, CommandButtonState.Blocker.NO_CASTER, "the battery is yours; you have no gun"
+	)
 
 
 ## The button speaks for the commander's casters when none is SELECTED — which is the state
@@ -334,16 +370,21 @@ func test_an_unlocked_ability_with_nothing_to_cast_it_reads_no_caster() -> void:
 func test_an_unselected_caster_still_lights_the_button() -> void:
 	var cannon: Commandable = _entity(CANNON)
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [], cannon.commander, NOT_HELD)
-	assert_eq(state.blocker, CommandButtonState.Blocker.NONE,
-		"you own a gun, so the button is live even with nothing selected")
+		AbilityCatalog.command_of(POOLED_ABILITY), [], cannon.commander, NOT_HELD
+	)
+	assert_eq(
+		state.blocker,
+		CommandButtonState.Blocker.NONE,
+		"you own a gun, so the button is live even with nothing selected"
+	)
 
 
 func test_an_unselected_caster_reports_its_cooldown() -> void:
 	var cannon: Commandable = _entity(CANNON)
 	(cannon.get_node("Abilities") as Abilities).spend(POOLED_ABILITY)
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [], cannon.commander, NOT_HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [], cannon.commander, NOT_HELD
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.RECHARGING)
 	assert_gt(state.recharge_ticks, 0)
 
@@ -354,25 +395,31 @@ func test_an_unselected_caster_reports_its_cooldown() -> void:
 ## briefly lines in the info panel's summary instead, which makes a player look away from the
 ## button to find out about the button.
 
+
 func test_a_partly_filled_pool_still_counts_down() -> void:
 	var cannon: Commandable = _entity(CANNON)
 	var pool := cannon.get_node("Abilities") as Abilities
-	pool.groups = [{
-		"initial_charges": 1, "max_charges": 3, "cooldown_ticks": 600,
-		"grants": [POOLED_ABILITY],
-	}]
+	pool.groups = [
+		{
+			"initial_charges": 1,
+			"max_charges": 3,
+			"cooldown_ticks": 600,
+			"grants": [POOLED_ABILITY],
+		}
+	]
 	pool._rebuild()
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.NONE, "one charge left, so pressable")
 	assert_true(state.shows_charges(), "and it says 1/3")
-	assert_true(state.shows_timer(),
-		"'when is the next charge' is asked of a button you CAN press")
+	assert_true(state.shows_timer(), "'when is the next charge' is asked of a button you CAN press")
 
 
 func test_a_full_pool_counts_down_to_nothing() -> void:
 	var cannon: Commandable = _entity(CANNON)
 	var state: CommandButtonState = _state(
-		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD)
+		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD
+	)
 	assert_eq(state.recharge_ticks, 0, "nothing is owed at capacity")
 	assert_false(state.shows_timer())

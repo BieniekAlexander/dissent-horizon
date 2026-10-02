@@ -108,11 +108,12 @@ const MOVEMENT_NOTES: String = (
 ## this row only says what is being asked about.
 signal ranges_hovered(entity: Entity, kinds: Array)
 ## Raised when the pointer leaves such a widget.
-signal ranges_unhovered()
+signal ranges_unhovered
 
 ## The piece currently drawn, so an unchanged selection costs no rebuild.
 var _drawn: int = 0
 #endregion
+
 
 #region Public API
 ## Redraw for `a_selection`. Anything other than exactly one Commandable empties the row.
@@ -128,7 +129,10 @@ func update(a_selection: Array) -> void:
 	visible = piece != null
 	if piece != null:
 		_refresh_values(piece)
+
+
 #endregion
+
 
 #region Building
 func _rebuild(a_piece: Commandable) -> void:
@@ -138,16 +142,29 @@ func _rebuild(a_piece: Commandable) -> void:
 	if a_piece == null:
 		return
 
-	_add_widget("name", _piece_title(a_piece),
-		a_piece.resolved_description(), a_piece.resolved_verbose(), NAME_MIN_WIDTH)
+	_add_widget(
+		"name",
+		_piece_title(a_piece),
+		a_piece.resolved_description(),
+		a_piece.resolved_verbose(),
+		NAME_MIN_WIDTH
+	)
 
 	if a_piece.defense != null:
 		_add_widget("hp", "", _defense_tooltip(a_piece), DEFENSE_NOTES, PAIR_MIN_WIDTH)
 
 	var weapon: Weapon = EntityRanges.first_weapon(a_piece)
 	if weapon != null:
-		_add_widget("weapon", _damage_type_name(weapon), _weapon_tooltip(weapon), WEAPON_NOTES,
-			WORD_MIN_WIDTH).set_meta(&"range_kinds", EntityRanges.WEAPON_KINDS)
+		(
+			_add_widget(
+				"weapon",
+				_damage_type_name(weapon),
+				_weapon_tooltip(weapon),
+				WEAPON_NOTES,
+				WORD_MIN_WIDTH
+			)
+			. set_meta(&"range_kinds", EntityRanges.WEAPON_KINDS)
+		)
 
 	if a_piece.movement != null:
 		_add_widget("speed", "", _movement_tooltip(a_piece.movement), MOVEMENT_NOTES)
@@ -158,21 +175,37 @@ func _rebuild(a_piece: Commandable) -> void:
 		# both rings. A piece with no detection sweep says so by reporting one figure under the
 		# plain caption rather than by drawing a second, empty widget.
 		var detects: bool = EntityRanges.radius_of(a_piece, EntityRanges.Kind.DETECTION) >= 0.0
-		_add_widget(
-			"sight", "",
-			"How far this piece sees, and how close a hidden enemy must come to be spotted." \
-				if detects else "How far this piece sees. It cannot pick out a hidden enemy.",
-			DETECTION_NOTES, WIDGET_MIN_WIDTH, "sight · detect" if detects else "sight"
-		).set_meta(&"range_kinds", EntityRanges.VISION_KINDS)
+		(
+			_add_widget(
+				"sight",
+				"",
+				(
+					"How far this piece sees, and how close a hidden enemy must come to be spotted."
+					if detects
+					else "How far this piece sees. It cannot pick out a hidden enemy."
+				),
+				DETECTION_NOTES,
+				WIDGET_MIN_WIDTH,
+				"sight · detect" if detects else "sight"
+			)
+			. set_meta(&"range_kinds", EntityRanges.VISION_KINDS)
+		)
 
 	# GARRISON. A ubiquitous mechanic rather than a faction one — transports, bunkers, the
 	# Compound and the stock truck's cage are all the same component — so it earns a widget.
 	var garrison: Garrison = a_piece.get_node_or_null("Garrison") as Garrison
 	if garrison != null:
-		_add_widget(
-			"hold", "", _garrison_tooltip(garrison), GARRISON_NOTES,
-			PAIR_MIN_WIDTH, "bunker" if garrison.bunker else "hold"
-		).set_meta(&"range_kinds", EntityRanges.WEAPON_KINDS if garrison.bunker else [])
+		(
+			_add_widget(
+				"hold",
+				"",
+				_garrison_tooltip(garrison),
+				GARRISON_NOTES,
+				PAIR_MIN_WIDTH,
+				"bunker" if garrison.bunker else "hold"
+			)
+			. set_meta(&"range_kinds", EntityRanges.WEAPON_KINDS if garrison.bunker else [])
+		)
 
 
 ## One widget: a caption naming the topic and the figure under it.
@@ -185,8 +218,12 @@ func _rebuild(a_piece: Commandable) -> void:
 ## there is a detection sweep to report — while the key must not, or the live refresh would
 ## lose track of its own label.
 func _add_widget(
-	a_key: String, a_value: String, a_tooltip: String, a_verbose: String,
-	a_min_width: float = WIDGET_MIN_WIDTH, a_caption: String = ""
+	a_key: String,
+	a_value: String,
+	a_tooltip: String,
+	a_verbose: String,
+	a_min_width: float = WIDGET_MIN_WIDTH,
+	a_caption: String = ""
 ) -> VerboseTooltipButton:
 	var widget := VerboseTooltipButton.new()
 	widget.name = "Widget_%s" % a_key.capitalize()
@@ -201,9 +238,11 @@ func _add_widget(
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	box.add_theme_constant_override("separation", 0)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(_make_label(
-		a_caption if not a_caption.is_empty() else a_key, CAPTION_FONT_SIZE, CAPTION_COLOR
-	))
+	box.add_child(
+		_make_label(
+			a_caption if not a_caption.is_empty() else a_key, CAPTION_FONT_SIZE, CAPTION_COLOR
+		)
+	)
 	var value_label: Label = _make_label(a_value, LABEL_FONT_SIZE, TEXT_COLOR)
 	value_label.name = "Value"
 	box.add_child(value_label)
@@ -227,16 +266,17 @@ static func _make_label(a_text: String, a_size: int, a_color: Color) -> Label:
 	label.clip_text = true
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
+
+
 #endregion
+
 
 #region Live values
 ## The figures that move while the selection stands still. Rebuilding the widgets for these
 ## would rebuild them every frame, so the labels are written in place instead.
 func _refresh_values(a_piece: Commandable) -> void:
 	if a_piece.defense != null:
-		_set_value("hp", "%d/%d" % [
-			roundi(a_piece.defense.hp), roundi(a_piece.defense.hp_max)
-		])
+		_set_value("hp", "%d/%d" % [roundi(a_piece.defense.hp), roundi(a_piece.defense.hp_max)])
 	if a_piece.movement != null:
 		_set_value("speed", "%.1f" % a_piece.movement.speed)
 	_set_value("sight", _sight_value(a_piece))
@@ -262,8 +302,11 @@ func _refresh_weapon_state(a_piece: Commandable) -> void:
 	if weapon == null or not _weapon_can_run_dry(weapon):
 		widget.modulate = CommandButtonState.TINT_AVAILABLE
 		return
-	widget.modulate = CommandButtonState.TINT_LOCKED if weapon.is_out_of_ammo() \
+	widget.modulate = (
+		CommandButtonState.TINT_LOCKED
+		if weapon.is_out_of_ammo()
 		else CommandButtonState.TINT_AVAILABLE
+	)
 
 
 static func _weapon_can_run_dry(a_weapon: Weapon) -> bool:
@@ -273,12 +316,13 @@ static func _weapon_can_run_dry(a_weapon: Weapon) -> bool:
 ## Write a widget's figure in place. A no-op for a widget this piece never got, so a caller
 ## need not repeat the applicability test the rebuild already made.
 func _set_value(a_caption: String, a_text: String) -> void:
-	var label := get_node_or_null(
-		"Widget_%s/Box/Value" % a_caption.capitalize()
-	) as Label
+	var label := get_node_or_null("Widget_%s/Box/Value" % a_caption.capitalize()) as Label
 	if label != null:
 		label.text = a_text
+
+
 #endregion
+
 
 #region Copy
 static func _piece_title(a_piece: Commandable) -> String:
@@ -297,11 +341,15 @@ static func _sight_value(a_piece: Commandable) -> String:
 
 static func _defense_tooltip(a_piece: Commandable) -> String:
 	var defense: Defense = a_piece.defense
-	return "%d/%d hp  ·  %s armour  ·  %s frame" % [
-		roundi(defense.hp), roundi(defense.hp_max),
-		_enum_name(Defense.ArmourType, defense.armour_type),
-		_enum_name(Defense.FrameType, defense.frame_type),
-	]
+	return (
+		"%d/%d hp  ·  %s armour  ·  %s frame"
+		% [
+			roundi(defense.hp),
+			roundi(defense.hp_max),
+			_enum_name(Defense.ArmourType, defense.armour_type),
+			_enum_name(Defense.FrameType, defense.frame_type),
+		]
+	)
 
 
 ## Rate of fire and reload are AUTHORED IN TICKS and read here in seconds, because seconds
@@ -315,9 +363,12 @@ static func _weapon_tooltip(a_weapon: Weapon) -> String:
 	]
 	# A one-round clip makes reload and rate of fire the same pause said twice.
 	if a_weapon.clip_size > 1:
-		parts.append("%d-round clip, %.1fs reload" % [
-			a_weapon.clip_size, float(a_weapon.reload_time_ticks) / ticks
-		])
+		parts.append(
+			(
+				"%d-round clip, %.1fs reload"
+				% [a_weapon.clip_size, float(a_weapon.reload_time_ticks) / ticks]
+			)
+		)
 	return "  ·  ".join(parts)
 
 
@@ -327,15 +378,17 @@ static func _movement_tooltip(a_movement: Movement) -> String:
 	var parts: Array[String] = [
 		"%.2f speed" % a_movement.speed,
 		_enum_name(Movement.Mode, a_movement.mode),
-		"%s — drives over anything smaller, stopped by its own class and above"
-			% _enum_name(Movement.CrushClass, a_movement.crush_class),
+		(
+			"%s — drives over anything smaller, stopped by its own class and above"
+			% _enum_name(Movement.CrushClass, a_movement.crush_class)
+		),
 	]
 	# GROUNDED only, and only when it is not the default — a piece that pivots on the spot
 	# has nothing to say about how it corners.
 	if a_movement.mode == Movement.Mode.GROUNDED and a_movement.min_turn_speed_ratio > 0.0:
-		parts.append("holds %d%% speed while turning" % roundi(
-			a_movement.min_turn_speed_ratio * 100.0
-		))
+		parts.append(
+			"holds %d%% speed while turning" % roundi(a_movement.min_turn_speed_ratio * 100.0)
+		)
 	return "  ·  ".join(parts)
 
 
@@ -364,7 +417,10 @@ static func _enum_name(a_enum: Dictionary, a_value: int) -> String:
 		if int(a_enum[key]) == a_value:
 			return key.to_lower().replace("_", " ")
 	return "?"
+
+
 #endregion
+
 
 #region Hover
 ## `has_meta` before `get_meta`: Godot reports a missing key as an ERROR even when a default

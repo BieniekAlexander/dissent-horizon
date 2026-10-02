@@ -28,7 +28,10 @@ extends GutTest
 ## whole source tree by asking the engine.
 
 const ROOTS: Array[String] = [
-	"res://scripts", "res://tests", "res://tools", "res://addons/terrain_brush",
+	"res://scripts",
+	"res://tests",
+	"res://tools",
+	"res://addons/terrain_brush",
 ]
 
 ## GUT is vendored third-party code and is not this project's to keep green.
@@ -59,8 +62,11 @@ func test_every_gd_file_in_the_project_parses() -> void:
 	for error: Variant in get_errors():
 		error.handled = true
 
-	assert_eq(broken, [] as Array[String],
-		"these scripts do not parse — everything that depends on them is dead until they do")
+	assert_eq(
+		broken,
+		[] as Array[String],
+		"these scripts do not parse — everything that depends on them is dead until they do"
+	)
 
 
 func test_the_walk_actually_reaches_the_tree() -> void:
@@ -69,8 +75,10 @@ func test_the_walk_actually_reaches_the_tree() -> void:
 	var files: Array[String] = _all_gd_files()
 	assert_gt(files.size(), 300, "the walk reaches the source tree")
 	assert_true(files.has("res://scripts/maps/fog.gd"), "and a known file is in it")
-	assert_true(files.has("res://scripts/damage/damage_table.gd"),
-		"including the autoload whose failure took the project down")
+	assert_true(
+		files.has("res://scripts/damage/damage_table.gd"),
+		"including the autoload whose failure took the project down"
+	)
 
 
 #region Helpers

@@ -29,15 +29,19 @@ extends EconomyBar
 ## what does the "increase in saturation" the task asked for, not these on their own.
 static var _gradient: Gradient = _build_gradient()
 
+
 static func _build_gradient() -> Gradient:
 	var g := Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
-	g.colors = PackedColorArray([
-		Color(0.039, 0.729, 0.710),  # tiffany blue
-		Color(0.624, 0.886, 0.749),  # seafoam green
-		Color(0.96, 0.80, 0.25),     # canary gold
-	])
+	g.colors = PackedColorArray(
+		[
+			Color(0.039, 0.729, 0.710),  # tiffany blue
+			Color(0.624, 0.886, 0.749),  # seafoam green
+			Color(0.96, 0.80, 0.25),  # canary gold
+		]
+	)
 	return g
+
 
 ## The energy-per-second full scale for the rate indicator's two mini-bars. No existing
 ## constant answers "what counts as a fast rate" — this is a placeholder worth tuning against
@@ -49,6 +53,7 @@ const CONSUMPTION_COLOR: Color = Color(0.86, 0.55, 0.30)
 
 var _rate_indicator: RateIndicator
 
+
 func _ready() -> void:
 	bar_width = 208.0
 	super._ready()
@@ -57,20 +62,30 @@ func _ready() -> void:
 	_rate_indicator.position = Vector2(bar_width + LABEL_GUTTER + 60.0, 0.0)
 	add_child(_rate_indicator)
 
+
 func refresh() -> void:
 	super.refresh()
 	if commander == null or _rate_indicator == null:
 		return
 	_rate_indicator.bars = [
-		{"color": PRODUCTION_COLOR, "value": commander.energy_collection_rate(),
-			"pending": commander.pending_energy_collection_rate(), "scale": RATE_VISUAL_SCALE},
-		{"color": CONSUMPTION_COLOR, "value": commander.energy_spend_rate(),
-			"scale": RATE_VISUAL_SCALE},
+		{
+			"color": PRODUCTION_COLOR,
+			"value": commander.energy_collection_rate(),
+			"pending": commander.pending_energy_collection_rate(),
+			"scale": RATE_VISUAL_SCALE
+		},
+		{
+			"color": CONSUMPTION_COLOR,
+			"value": commander.energy_spend_rate(),
+			"scale": RATE_VISUAL_SCALE
+		},
 	]
 	_rate_indicator.queue_redraw()
 
+
 func _current_value() -> float:
 	return float(commander.energy)
+
 
 ## The drawing scale: the real threshold, unless a hovered purchase costs more than it — in
 ## which case the bar grows to fit the preview rather than clipping it (see
@@ -79,6 +94,7 @@ func _current_value() -> float:
 ## silently stop a genuinely-over-threshold bar from pulsing.
 func _capacity() -> float:
 	return maxf(float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), _preview_cost())
+
 
 ## The fill, with the slice queued purchases have already spoken for drawn in PendingStyle at
 ## its right end: that energy is banked but promised (Commander.energy_committed), so it reads as
@@ -90,8 +106,9 @@ func _fill_regions() -> Array[Dictionary]:
 	if frac <= 0.0:
 		return []
 	var color: Color = _fill_color(frac)
-	var free_frac: float = clampf((value - float(commander.energy_committed())) / capacity,
-		0.0, frac)
+	var free_frac: float = clampf(
+		(value - float(commander.energy_committed())) / capacity, 0.0, frac
+	)
 	var regions: Array[Dictionary] = []
 	if free_frac > 0.0:
 		regions.append({"start_frac": 0.0, "end_frac": free_frac, "color": color})
@@ -99,11 +116,13 @@ func _fill_regions() -> Array[Dictionary]:
 		regions.append({"start_frac": free_frac, "end_frac": frac, "color": PendingStyle.of(color)})
 	return regions
 
+
 func _fill_color(a_frac: float) -> Color:
 	var base: Color = BarGradient.with_saturation_ramp(_gradient.sample(a_frac), a_frac)
 	if commander.energy > ResourcePressure.ENERGY_SURPLUS_THRESHOLD:
 		return ResourcePressure.pulse_between(base, base.lightened(0.5))
 	return base
+
 
 func _preview_cost() -> float:
 	# A conversion is priced by the building it lands on, not by the tool that would build one new.
@@ -113,15 +132,21 @@ func _preview_cost() -> float:
 	var spec: TechnologySpec = _hovered_spec()
 	return float(spec.energy_cost) if spec != null else 0.0
 
+
 func _value_text() -> String:
 	return str(commander.energy)
+
 
 func _has_verbose_text() -> bool:
 	return true
 
+
 func _verbose_text() -> String:
-	return "+%.1f/s  −%.1f/s  ·  %d extractors" % [
-		commander.energy_collection_rate(),
-		commander.energy_spend_rate(),
-		commander.energy_source_count(),
-	]
+	return (
+		"+%.1f/s  −%.1f/s  ·  %d extractors"
+		% [
+			commander.energy_collection_rate(),
+			commander.energy_spend_rate(),
+			commander.energy_source_count(),
+		]
+	)

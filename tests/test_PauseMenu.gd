@@ -32,7 +32,9 @@ func after_each() -> void:
 ## the menu wherever it likes. If this stops holding, the clock is silently never supplied
 ## and the pause menu stops pausing.
 func test_it_joins_the_group_scenario_binds_by() -> void:
-	assert_true(_menu.is_in_group(PauseMenu.GROUP), "Scenario can find it without knowing where it is")
+	assert_true(
+		_menu.is_in_group(PauseMenu.GROUP), "Scenario can find it without knowing where it is"
+	)
 
 
 func test_it_starts_closed_and_hidden() -> void:
@@ -112,4 +114,6 @@ func test_it_works_without_a_clock() -> void:
 	_menu.open()
 	assert_true(_menu.is_open(), "a rig with no trigger manager can still open the menu")
 	_menu.close()
-	assert_false(_menu.is_open(), "and close it — being unable to pause is not being unable to quit")
+	assert_false(
+		_menu.is_open(), "and close it — being unable to pause is not being unable to quit"
+	)

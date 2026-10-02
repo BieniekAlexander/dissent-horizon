@@ -22,7 +22,8 @@ extends Node
 ## piece: chosen when it is laid, never changed after. `dimensions` stays the size at 0; what the
 ## piece actually claims is footprint_dimensions().
 ## Why, and everything else that reads it: gdd/systems/terrain-and-navigation/footprint-rotation.md
-var quarter_turns: int = 0: set = set_quarter_turns
+var quarter_turns: int = 0:
+	set = set_quarter_turns
 
 ## Determines whether a structure can be placed on uneven terrain
 @export var allow_uneven: bool = false
@@ -52,14 +53,18 @@ var quarter_turns: int = 0: set = set_quarter_turns
 var is_active: bool = true
 #endregion
 
+
 #region Rotation
 ## `a_dimensions` as they lie on the grid once turned `a_quarter_turns`: width and depth swap on an
 ## odd count and are untouched on an even one, so a 180° turn claims the cells a 0° one does. THE
 ## one place that swaps — like Map.footprint_origin is the one place that resolves parity — so a
 ## caller that needs the footprint asks here and never re-derives it.
 static func oriented_dimensions(a_dimensions: Vector2i, a_quarter_turns: int) -> Vector2i:
-	return Vector2i(a_dimensions.y, a_dimensions.x) if posmod(a_quarter_turns, 2) == 1 \
+	return (
+		Vector2i(a_dimensions.y, a_dimensions.x)
+		if posmod(a_quarter_turns, 2) == 1
 		else a_dimensions
+	)
 
 
 ## The yaw, in radians, of a piece turned `a_quarter_turns` (see `quarter_turns`).
@@ -89,9 +94,12 @@ static func quarter_turns_facing(a_direction: Vector2, a_fallback: int = 0) -> i
 ## (0, -1), (-1, 0). Inverse of quarter_turns_facing on the four axes.
 static func facing_of(a_quarter_turns: int) -> Vector2:
 	match posmod(a_quarter_turns, 4):
-		1: return Vector2.RIGHT
-		2: return Vector2.UP
-		3: return Vector2.LEFT
+		1:
+			return Vector2.RIGHT
+		2:
+			return Vector2.UP
+		3:
+			return Vector2.LEFT
 	return Vector2.DOWN
 
 
@@ -105,7 +113,10 @@ func set_quarter_turns(a_turns: int) -> void:
 	var root: Node3D = get_parent() as Node3D
 	if root != null:
 		root.rotation.y = yaw_of(quarter_turns)
+
+
 #endregion
+
 
 #region Checks
 ## True iff every cell of the structure's footprint is in-bounds, unoccupied,
@@ -127,8 +138,12 @@ static func valid_placement(
 	var origin: Vector2i = placement_map.footprint_origin(command_message.xz_position, dimensions)
 	for w in range(dimensions.x):
 		for l in range(dimensions.y):
-			if not cell_admits_structure(placement_map, Vector2i(origin.x + w, origin.y + l),
-					allow_uneven_terrain, allow_submerged_terrain):
+			if not cell_admits_structure(
+				placement_map,
+				Vector2i(origin.x + w, origin.y + l),
+				allow_uneven_terrain,
+				allow_submerged_terrain
+			):
 				return false
 	return true
 
@@ -137,10 +152,7 @@ static func valid_placement(
 ## ground is allowed, and dry or shallow as the piece permits. valid_placement asks it of every
 ## footprint cell; the build preview asks it per cell to colour the grid.
 static func cell_admits_structure(
-	a_map: Map,
-	a_cell: Vector2i,
-	a_allow_uneven: bool = false,
-	a_allow_submerged: bool = false
+	a_map: Map, a_cell: Vector2i, a_allow_uneven: bool = false, a_allow_submerged: bool = false
 ) -> bool:
 	if not a_map.grid_coordinates_in_bounds(a_cell):
 		return false
@@ -155,11 +167,7 @@ static func cell_admits_structure(
 ## does only for a piece that declares allow_submerged; deep water never does, since it is
 ## impassable ground. Split out because the build preview, the placement check and the bot's
 ## site search all have to answer it the same way.
-static func cell_admits_submersion(
-	a_map: Map,
-	a_cell: Vector2i,
-	a_allow_submerged: bool
-) -> bool:
+static func cell_admits_submersion(a_map: Map, a_cell: Vector2i, a_allow_submerged: bool) -> bool:
 	var body: WaterBody = a_map.water_body_at(a_cell)
 	if body == null:
 		return true

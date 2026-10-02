@@ -9,6 +9,7 @@ static var rng = RandomNumberGenerator.new()
 const _NAV_SNAP_TOLERANCE: float = 0.5
 #endregion
 
+
 #region Public API
 ## Run a shape overlap and return the owning Entities of everything it hit on
 ## `collision_mask`, with nulls (non-entity colliders) dropped. The single
@@ -30,18 +31,26 @@ static func query_shape_for_entities(
 	params.exclude = exclude
 	var result: Array[Entity] = []
 	result.assign(
-		world_3d.direct_space_state.intersect_shape(params, max_results).map(
-			func(d: Dictionary) -> Entity: return Entity.entity_from_collider(d["collider"])
-		).filter(func(e: Entity) -> bool: return e != null)
+		(
+			world_3d
+			. direct_space_state
+			. intersect_shape(params, max_results)
+			. map(func(d: Dictionary) -> Entity: return Entity.entity_from_collider(d["collider"]))
+			. filter(func(e: Entity) -> bool: return e != null)
+		)
 	)
 	return result
 
-static func get_nearby_entities(world_3d: World3D, position: Vector3, radius: float, collision_mask: int) -> Array:
+
+static func get_nearby_entities(
+	world_3d: World3D, position: Vector3, radius: float, collision_mask: int
+) -> Array:
 	var shape := SphereShape3D.new()
 	shape.radius = radius
 	return query_shape_for_entities(
 		world_3d, shape, Transform3D(Basis(), position), collision_mask, [], 10
 	)
+
 
 ## The gap between two pieces' footprints (Entity.hull), or 0.0 when they touch. EVERY
 ## piece-to-piece range is this gap against a radius, from whichever end it is asked, so no
@@ -70,14 +79,16 @@ static func entities_within(
 	if radius < 0.0:
 		return []
 	var broad: Shape3D = _grow_shape_radius(shape, from.extent())
-	var found: Array[Entity] = query_shape_for_entities(world_3d, broad,
-		Transform3D(Basis.IDENTITY, origin), collision_mask, exclude, max_results)
+	var found: Array[Entity] = query_shape_for_entities(
+		world_3d, broad, Transform3D(Basis.IDENTITY, origin), collision_mask, exclude, max_results
+	)
 	return found.filter(func(e: Entity) -> bool: return Hull.gap(from, e.hull()) <= radius)
 
 
 static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 	var diff = (pos1 - pos2).abs()
 	return max(diff.x, diff.y)
+
 
 ## Whether `attacker` can reach `target` with `weapon` from where it stands: the weapon has
 ## a range for the layer the target is on, and the gap between the two footprints is within
@@ -120,7 +131,9 @@ static func _grow_shape_radius(shape: Shape3D, amount: float) -> Shape3D:
 	return shape
 
 
-static func unit_is_close_to_target(unit: Commandable, target: Variant, distance_squared: float = .001) -> bool:
+static func unit_is_close_to_target(
+	unit: Commandable, target: Variant, distance_squared: float = .001
+) -> bool:
 	# Group-based, not type-based: a structure may be an Entity that is NOT a Commandable
 	# (e.g. ShelterStructure / ExtractionSite), and it still wants footprint-adjacency proximity
 	# rather than the strict touch-the-target-body check used for mobile units.
@@ -134,12 +147,18 @@ static func unit_is_close_to_target(unit: Commandable, target: Variant, distance
 		push_error("unsuported distance target type")
 		return false
 
-static func unit_is_close_to_position(unit: Commandable, position: Vector2, _distance_squared: float = .001) -> bool:
+
+static func unit_is_close_to_position(
+	unit: Commandable, position: Vector2, _distance_squared: float = .001
+) -> bool:
 	# The navigation agent stops at the destination rather than overshooting, so
 	# arrival is just a position-equality check — no collision radius needed.
 	return unit.xz_position.is_equal_approx(position)
 
-static func unit_is_close_to_structure(unit: Commandable, structure: Entity, _distance_squared: float = .001) -> bool:
+
+static func unit_is_close_to_structure(
+	unit: Commandable, structure: Entity, _distance_squared: float = .001
+) -> bool:
 	# A unit counts as close to a structure when its grid cell lies within the
 	# structure's footprint or is immediately adjacent to it (see
 	# unit_is_close_to_footprint). Measuring against the whole footprint makes
@@ -153,6 +172,7 @@ static func unit_is_close_to_structure(unit: Commandable, structure: Entity, _di
 		# Footprint not registered yet — fall back to the structure's origin cell.
 		footprint = [placement_map.world_to_grid(VU.inXZ(structure.global_position))]
 	return unit_is_close_to_footprint(unit, placement_map, footprint)
+
 
 ## The grid cells to measure build/repair proximity against for a structure.
 ## The structure's own registered footprint; an Extractor not yet registered but already
@@ -168,6 +188,7 @@ static func structure_footprint(map: Map, structure: Entity) -> Array:
 	if extractor != null and extractor.extraction_site != null:
 		return map.structure_cell_map.get(extractor.extraction_site, [])
 	return []
+
 
 ## Every OTHER entity registered on a grid cell that shares an EDGE with `structure`'s
 ## footprint — the buildings it physically touches. De-duplicated; never contains
@@ -201,6 +222,7 @@ static func edge_adjacent_structures(map: Map, structure: Entity) -> Array[Entit
 			out.append(occupant)
 	return out
 
+
 ## True when a_unit's grid cell lies within (L∞ ≤ 1 of) any cell in `footprint` —
 ## i.e. on the footprint or immediately adjacent. The shared "close enough to
 ## build / repair / work on" predicate. Build measures against the would-be
@@ -222,16 +244,19 @@ static func unit_is_close_to_footprint(unit: Commandable, map: Map, footprint: A
 			return true
 	return _within_class_standoff(unit, map, footprint)
 
+
 ## How far past its class navmesh's edge a unit may come to rest and still count as having
 ## got as close as navigation allows: the agent halts short of its mesh's nearest point
 ## (measured ~0.5), and the inset is a chamfer rather than a true offset, so corners sit
 ## further out still. One cell covers both without reaching a second cell's worth of ground.
 const CLASS_STANDOFF_SLACK: float = Map.CELL_SIZE
 
+
 ## How far a unit of NavAgentClass.Size `nav_class` may be left from a point its navmesh
 ## steers it toward and still be as close as that class gets — its erosion plus the slack.
 static func class_standoff_reach(nav_class: int) -> float:
 	return NavAgentClass.radius(nav_class, Map.CELL_SIZE) + CLASS_STANDOFF_SLACK
+
 
 ## Whether `unit` is within the closest distance its navigation size class can bring it to
 ## `footprint` — NavAgentClass.radius (the erosion of its class mesh) plus
@@ -250,20 +275,34 @@ static func _within_class_standoff(unit: Commandable, map: Map, footprint: Array
 			return true
 	return false
 
+
 ## Whether `target` lies within an interaction's authored reach `shape` (e.g. a Cylinder)
 ## of `unit`: the footprint gap within the shape's radius, with the shape's height kept by
 ## the broad phase (see entities_within). False when the shape or target is missing.
 static func unit_shape_overlaps_target(unit: Commandable, target: Entity, shape: Shape3D) -> bool:
 	if shape == null or not is_instance_valid(target):
 		return false
-	return target in entities_within(unit.get_world_3d(), unit.hull(), shape,
-		unit.global_position, CollisionLayers.TARGETABLE_ANY, [unit])
+	return (
+		target
+		in entities_within(
+			unit.get_world_3d(),
+			unit.hull(),
+			shape,
+			unit.global_position,
+			CollisionLayers.TARGETABLE_ANY,
+			[unit]
+		)
+	)
+
 
 ## Engagement proximity: the two footprints touch, within a slack whose SQUARE is
 ## `distance_squared`.
-static func unit_is_close_to_unit(unit: Commandable, an_entity: Entity, distance_squared: float = .001) -> bool:
+static func unit_is_close_to_unit(
+	unit: Commandable, an_entity: Entity, distance_squared: float = .001
+) -> bool:
 	var gap: float = hull_gap(unit, an_entity)
 	return gap * gap < distance_squared
+
 
 ## Return all unique grid cells that are directly adjacent (L∞-distance 1) to
 ## any cell in `a_structure`'s footprint, are in-bounds, and are currently
@@ -280,6 +319,7 @@ static func passable_cells_adjacent_to(structure: Entity, map: Map) -> Array[Vec
 	var result: Array[Vector2i] = _passable_footprint_neighbors(structure, map)
 	result.shuffle()
 	return result
+
 
 ## The nearest of `candidates` (Commandables) to `from`, by XZ distance, or null when
 ## `candidates` is empty. A small generic query — TaskShelter's nearest-Compound-with-room
@@ -316,13 +356,11 @@ static func nearest_of(candidates: Array, from: Entity) -> Commandable:
 ##
 ## `nav_class`, when given, is the walker's NavAgentClass.Size — see footprint_approach_cells.
 static func nearest_footprint_adjacent_cell(
-	dest: Vector3,
-	structure: Entity,
-	map: Map,
-	nav_class: int = NO_NAV_CLASS
+	dest: Vector3, structure: Entity, map: Map, nav_class: int = NO_NAV_CLASS
 ) -> Vector2i:
 	var cells: Array[Vector2i] = footprint_approach_cells(dest, structure, map, nav_class)
 	return cells.front() if not cells.is_empty() else Vector2i(-1, -1)
+
 
 ## Every passable cell EDGE-adjacent to `structure`'s footprint, nearest to `dest` first.
 ##
@@ -333,10 +371,7 @@ static func nearest_footprint_adjacent_cell(
 ## other buildings passes this test — which is why CommandReceiver checks the ranked list
 ## against a real path before committing to one.
 static func footprint_approach_cells(
-	dest: Vector3,
-	structure: Entity,
-	map: Map,
-	nav_class: int = NO_NAV_CLASS
+	dest: Vector3, structure: Entity, map: Map, nav_class: int = NO_NAV_CLASS
 ) -> Array[Vector2i]:
 	var footprint: Array = structure_footprint(map, structure)
 	var candidates: Array[Vector2i] = []
@@ -352,10 +387,15 @@ static func footprint_approach_cells(
 				standable.append(cell)
 		if not standable.is_empty():
 			candidates = standable
-	candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		return map.grid_to_world(a).distance_squared_to(dest) \
-			< map.grid_to_world(b).distance_squared_to(dest))
+	candidates.sort_custom(
+		func(a: Vector2i, b: Vector2i) -> bool:
+			return (
+				map.grid_to_world(a).distance_squared_to(dest)
+				< map.grid_to_world(b).distance_squared_to(dest)
+			)
+	)
 	return candidates
+
 
 ## `nearest_footprint_adjacent_cell`'s "no walker class" — NavAgentClass.Size starts at 1.
 const NO_NAV_CLASS: int = 0
@@ -371,6 +411,7 @@ static func _edge_adjacent_to_any(cell: Vector2i, footprint: Array) -> bool:
 		if diff.x + diff.y == 1:
 			return true
 	return false
+
 
 ## How far (in XZ world units) a candidate point may drift from the navmesh
 ## closest-point snap before it is considered off-navmesh.  Half a cell width
@@ -409,7 +450,12 @@ static func get_nonoverlapping_points(
 	var seed_radius: float = _radius_at(point_radii, 0, point_radius)
 	probe_shape.radius = seed_radius
 	var center_ground := _project_to_nav_surface(map, center)
-	if center_ground != Vector3.INF and _shape_has_space(Transform3D(Basis(), center_ground), probe_shape, world_3d, collision_mask):
+	if (
+		center_ground != Vector3.INF
+		and _shape_has_space(
+			Transform3D(Basis(), center_ground), probe_shape, world_3d, collision_mask
+		)
+	):
 		ret_points.append(center)
 		about_points.append(center)
 		about_radii.append(seed_radius)
@@ -441,7 +487,9 @@ static func get_nonoverlapping_points(
 				continue  # not on a valid surface
 
 			# Check for overlaps at grounded position.
-			if _shape_has_space(Transform3D(Basis(), ground_pos), probe_shape, world_3d, collision_mask):
+			if _shape_has_space(
+				Transform3D(Basis(), ground_pos), probe_shape, world_3d, collision_mask
+			):
 				about_points.insert(0, new_point)
 				about_radii.insert(0, new_radius)
 				ret_points.append(new_point)
@@ -456,7 +504,9 @@ static func get_nonoverlapping_points(
 			about_points.remove_at(0)
 			about_radii.remove_at(0)
 
-	push_error("Not enough points collected - requested %s, got %s" % [max_points, ret_points.size()])
+	push_error(
+		"Not enough points collected - requested %s, got %s" % [max_points, ret_points.size()]
+	)
 	return ret_points
 
 
@@ -464,7 +514,10 @@ static func get_nonoverlapping_points(
 ## else the uniform `fallback`.
 static func _radius_at(point_radii: Array[float], idx: int, fallback: float) -> float:
 	return point_radii[idx] if idx < point_radii.size() else fallback
+
+
 #endregion
+
 
 #region Private helpers
 ## All in-bounds, passable grid cells adjacent (L∞ = 1) to any cell in
@@ -502,6 +555,7 @@ static func _passable_footprint_neighbors(structure: Entity, map: Map) -> Array[
 				result.append(neighbor)
 	return result
 
+
 ## Project an XZ world position onto the navmesh using NavigationServer3D.
 ## Returns the snapped Vector3 if the closest navmesh point is within
 ## _NAV_SNAP_TOLERANCE in XZ; returns Vector3.INF if the point is off-navmesh
@@ -515,16 +569,14 @@ static func _project_to_nav_surface(map: Map, point_xz: Vector2) -> Vector3:
 		return Vector3.INF  # candidate is off the navmesh
 	return snapped
 
+
 ## Returns true if `shape`, placed at `shape_transform`, overlaps nothing on
 ## `collision_mask`. The caller supplies both the collision shape and its full
 ## transform, so placement is tested against the body's actual footprint and
 ## orientation — any Shape3D works, not just circular ones (a rotated box is
 ## probed as a rotated box rather than collapsed to an axis-aligned bound).
 static func _shape_has_space(
-	shape_transform: Transform3D,
-	shape: Shape3D,
-	world_3d: World3D,
-	collision_mask: int
+	shape_transform: Transform3D, shape: Shape3D, world_3d: World3D, collision_mask: int
 ) -> bool:
 	var space_state := world_3d.direct_space_state
 

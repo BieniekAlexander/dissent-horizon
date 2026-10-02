@@ -12,6 +12,7 @@ class_name TimeUtils
 ## every value expressed in the copy is silently wrong with nothing to report it. The spec
 ## importer held four such copies (`* 30.0`), which is what this replaced.
 
+
 #region Public API
 ## Physics ticks in one second. Not a `const` because the rate is a project setting the
 ## engine owns, and a const could only restate it — which is the failure this class exists

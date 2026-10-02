@@ -3,6 +3,7 @@ extends GutTest
 ## Bit layout: bits 0..7 = agent team channels, bits 8..15 = obstacle channels,
 ## bits 16..31 = exception pool. See AvoidanceAgent3D for the full design.
 
+
 ## Compute the expected default avoidance_mask for a given commander.
 ## = own team bit + all FOREIGN obstacle bits (not own) + exception pool
 func _expected_mask(a_commander_id: int) -> int:
@@ -57,16 +58,22 @@ func test_agent_sees_all_foreign_obstacle_bits():
 	for id: int in range(Commander.NUM_MAX_COMMANDERS):
 		if id == 1:
 			continue  # own commander — obstacle excluded to avoid self-avoidance
-		assert_ne(a.avoidance_mask & AvoidanceAgent3D.obstacle_bit(id), 0,
-			"a sees obstacle from commander %d" % id)
+		assert_ne(
+			a.avoidance_mask & AvoidanceAgent3D.obstacle_bit(id),
+			0,
+			"a sees obstacle from commander %d" % id
+		)
 
 
 func test_agent_does_not_see_own_obstacle_bit():
 	# Own obstacle is co-located with the agent; including it in the mask would
 	# produce degenerate (zero-distance) avoidance.
 	var a := _agent(1)
-	assert_eq(a.avoidance_mask & AvoidanceAgent3D.obstacle_bit(1), 0,
-		"a does not see its own obstacle bit")
+	assert_eq(
+		a.avoidance_mask & AvoidanceAgent3D.obstacle_bit(1),
+		0,
+		"a does not see its own obstacle bit"
+	)
 
 
 func test_exception_is_mutual_and_isolated():
@@ -106,4 +113,6 @@ func test_freeing_one_restores_the_other():
 	a.free()  # PREDELETE should restore b
 	assert_eq(b.avoidance_mask, _expected_mask(1), "b mask restored after partner freed")
 	assert_eq(b.avoidance_layers, AvoidanceAgent3D.team_bit(1), "b returned to its team bit")
-	assert_ne(b_layer, AvoidanceAgent3D.team_bit(1), "(sanity) b had a unique bit during the exception")
+	assert_ne(
+		b_layer, AvoidanceAgent3D.team_bit(1), "(sanity) b had a unique bit during the exception"
+	)

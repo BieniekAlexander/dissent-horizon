@@ -1,6 +1,7 @@
 extends GutTest
 
-## UPGRADES: one-time, commander-wide research at a structure (gdd/systems/macroeconomics/upgrades.md).
+## UPGRADES: one-time, commander-wide research at a structure
+## (gdd/systems/macroeconomics/upgrades.md).
 ##
 ## Three halves, each against fixtures rather than the shipped Advanced Targetting doc:
 ##   * the importer — a `kind: Upgrade` doc, `researches:` on a structure, and what they generate;
@@ -9,7 +10,8 @@ extends GutTest
 ##   * the effect — UpgradeCatalog.range_for and the Spot reach it raises.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Upgrades.gd -gdir=res://tests/none -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Upgrades.gd
+## -gdir=res://tests/none -gexit
 
 const UPGRADE: StringName = &"fake_upgrade"
 const SPOTTER: StringName = &"fake_spotter"
@@ -47,10 +49,13 @@ func _owned(a_options: Dictionary, a_id: StringName = &"") -> Commandable:
 
 
 func _research_purchase(a_producer: Commandable, a_energy: int = 100) -> PurchaseTransaction:
-	var tool := Tool.new("command_tool_%s" % UPGRADE, UPGRADE, null, "Fake Upgrade", Vector2i.ZERO, 0, 0)
+	var tool := Tool.new(
+		"command_tool_%s" % UPGRADE, UPGRADE, null, "Fake Upgrade", Vector2i.ZERO, 0, 0
+	)
 	tool.is_upgrade = true
 	var transaction := PurchaseTransaction.for_cost(
-		_commander, PurchaseTransaction.Kind.TRAIN, tool, a_energy)
+		_commander, PurchaseTransaction.Kind.TRAIN, tool, a_energy
+	)
 	transaction.creation_time = 3
 	transaction.dispatch_filter.assign([a_producer])
 	return transaction
@@ -63,6 +68,7 @@ func _tick(a_producer: Commandable, a_times: int) -> void:
 
 # --- The effect -----------------------------------------------------------------
 
+
 func test_an_unowned_upgrade_leaves_the_reach_at_the_ability_docs_range() -> void:
 	var spotter: Commandable = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
 	assert_almost_eq(Spot.target_range(spotter), 10.0, 0.001)
@@ -71,8 +77,12 @@ func test_an_unowned_upgrade_leaves_the_reach_at_the_ability_docs_range() -> voi
 func test_an_owned_upgrade_raises_the_reach_of_existing_units() -> void:
 	var spotter: Commandable = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
 	_commander.complete_upgrade(UPGRADE)
-	assert_almost_eq(Spot.target_range(spotter), 24.0, 0.001,
-		"a unit already on the field reads the upgraded reach — no per-unit state")
+	assert_almost_eq(
+		Spot.target_range(spotter),
+		24.0,
+		0.001,
+		"a unit already on the field reads the upgraded reach — no per-unit state"
+	)
 
 
 func test_an_upgrade_modifies_only_the_piece_it_names() -> void:
@@ -92,7 +102,8 @@ func test_an_upgrade_belongs_to_its_commander() -> void:
 
 func test_the_longest_reach_wins_whatever_order_upgrades_arrive_in() -> void:
 	UpgradeCatalog._entries[&"fake_short"] = {
-		"modifies": [{"piece": String(SPOTTER), "ability": String(Spot.ABILITY_ID), "range": 15.0}]}
+		"modifies": [{"piece": String(SPOTTER), "ability": String(Spot.ABILITY_ID), "range": 15.0}]
+	}
 	var spotter: Commandable = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
 	_commander.complete_upgrade(UPGRADE)
 	_commander.complete_upgrade(&"fake_short")
@@ -100,6 +111,7 @@ func test_the_longest_reach_wins_whatever_order_upgrades_arrive_in() -> void:
 
 
 # --- Ownership ------------------------------------------------------------------
+
 
 func test_completing_an_upgrade_is_idempotent_and_announced_once() -> void:
 	watch_signals(_commander)
@@ -110,6 +122,7 @@ func test_completing_an_upgrade_is_idempotent_and_announced_once() -> void:
 
 
 # --- The purchase ---------------------------------------------------------------
+
 
 func test_research_runs_as_a_job_and_grants_the_upgrade_instead_of_spawning() -> void:
 	var lab: Commandable = _owned({"structure": true, "produces": [UPGRADE]})
@@ -185,33 +198,63 @@ func test_a_structure_that_also_trains_is_a_unit_producer() -> void:
 
 # --- The importer ---------------------------------------------------------------
 
+
 func _doc(a_path: String, a_data: Dictionary) -> Dictionary:
 	return {"path": a_path, "data": a_data}
 
 
 ## A lab that researches `a_upgrade`, a spotter granted `spot`, the spot ability and a shape.
 func _registry(a_upgrade: Dictionary, a_lab_extra: Dictionary = {}) -> RefCounted:
-	var lab: Dictionary = {"kind": "Entity", "title": "Lab", "footprint": [2, 2],
-		"researches": ["fake_upgrade"], "ui": {"grid": [0, 0]}}
+	var lab: Dictionary = {
+		"kind": "Entity",
+		"title": "Lab",
+		"footprint": [2, 2],
+		"researches": ["fake_upgrade"],
+		"ui": {"grid": [0, 0]}
+	}
 	lab.merge(a_lab_extra, true)
 	var r: RefCounted = SpecRegistry.new()
-	r.build([
-		_doc("res://gdd/x/shapes.md", {"kind": "ShapeLibrary", "title": "Shapes",
-			"shapes": {"far_reach": {"radius": 24}}}),
-		_doc("res://gdd/x/spot.md", {"kind": "AbilityDefinition", "title": "Spot", "range": 10}),
-		_doc("res://gdd/x/fake_spotter.md", {"kind": "Entity", "title": "Spotter",
-			"movement": {"speed": 2.0}, "abilities": [{"grants": ["spot"]}]}),
-		_doc("res://gdd/x/fake_lab.md", lab),
-		_doc("res://gdd/x/fake_upgrade.md", a_upgrade),
-	])
+	(
+		r
+		. build(
+			[
+				_doc(
+					"res://gdd/x/shapes.md",
+					{
+						"kind": "ShapeLibrary",
+						"title": "Shapes",
+						"shapes": {"far_reach": {"radius": 24}}
+					}
+				),
+				_doc(
+					"res://gdd/x/spot.md",
+					{"kind": "AbilityDefinition", "title": "Spot", "range": 10}
+				),
+				_doc(
+					"res://gdd/x/fake_spotter.md",
+					{
+						"kind": "Entity",
+						"title": "Spotter",
+						"movement": {"speed": 2.0},
+						"abilities": [{"grants": ["spot"]}]
+					}
+				),
+				_doc("res://gdd/x/fake_lab.md", lab),
+				_doc("res://gdd/x/fake_upgrade.md", a_upgrade),
+			]
+		)
+	)
 	return r
 
 
 func _upgrade_doc(a_extra: Dictionary = {}) -> Dictionary:
-	var doc: Dictionary = {"kind": "Upgrade", "title": "Fake Upgrade",
+	var doc: Dictionary = {
+		"kind": "Upgrade",
+		"title": "Fake Upgrade",
 		"build": {"cost": {"energy": 800}, "time": 45},
 		"modifies": [{"piece": "fake_spotter", "ability": "spot", "range": "far_reach"}],
-		"ui": {"grid": [0, 1]}}
+		"ui": {"grid": [0, 1]}
+	}
 	doc.merge(a_extra, true)
 	return doc
 
@@ -249,13 +292,22 @@ func test_an_upgrade_that_modifies_nothing_is_refused() -> void:
 
 
 func test_a_modifier_on_a_piece_not_granted_the_ability_is_refused() -> void:
-	var doc: Dictionary = _upgrade_doc({"modifies": [
-		{"piece": "fake_lab", "ability": "spot", "range": "far_reach"}]})
+	var doc: Dictionary = _upgrade_doc(
+		{"modifies": [{"piece": "fake_lab", "ability": "spot", "range": "far_reach"}]}
+	)
 	assert_eq(_errors_mentioning(_registry(doc), "is not granted 'spot'").size(), 1)
 
 
 func test_an_unknown_upgrade_key_is_refused() -> void:
-	assert_eq(_errors_mentioning(_registry(_upgrade_doc({"footprint": [2, 2]})), "may not carry `footprint:`").size(), 1)
+	assert_eq(
+		(
+			_errors_mentioning(
+				_registry(_upgrade_doc({"footprint": [2, 2]})), "may not carry `footprint:`"
+			)
+			. size()
+		),
+		1
+	)
 
 
 func test_researches_must_name_an_upgrade() -> void:

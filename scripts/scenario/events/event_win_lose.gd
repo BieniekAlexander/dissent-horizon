@@ -7,6 +7,7 @@ extends AbstractEvent
 @export var player_wins: bool = true
 #endregion
 
+
 #region Public API
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	a_manager.game_over.emit(player_wins)

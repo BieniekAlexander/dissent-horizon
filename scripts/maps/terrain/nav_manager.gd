@@ -70,6 +70,7 @@ const CHANGE_HISTORY: int = 64
 signal navmesh_ready
 #endregion
 
+
 #region Inner classes
 ## One eroded mesh — the base or a size class — and the chunk regions it is cut into.
 class ChunkedMesh:
@@ -88,8 +89,9 @@ class ChunkedMesh:
 	## nobody, so the count is kept here for base_polygon_count).
 	var polygon_counts: Dictionary = {}
 
-	func _init(a_layer: int, a_rings: int, a_admit_k: int, a_inset_cells: float,
-			a_grid_offset: int) -> void:
+	func _init(
+		a_layer: int, a_rings: int, a_admit_k: int, a_inset_cells: float, a_grid_offset: int
+	) -> void:
 		layer = a_layer
 		rings = a_rings
 		admit_k = a_admit_k
@@ -101,6 +103,8 @@ class ChunkedMesh:
 	## reads the cells one further.
 	func reach_cells() -> int:
 		return maxi(rings, admit_k - 1) + 1
+
+
 #endregion
 
 #region Properties
@@ -188,16 +192,18 @@ class NavChange:
 				return false
 		return true
 
+
 #region Lifecycle
 func _ready() -> void:
 	assert(navigation_region != null, "NavManager: navigation_region export must be set")
-	assert(terrain_grid      != null, "NavManager: terrain_grid export must be set")
+	assert(terrain_grid != null, "NavManager: terrain_grid export must be set")
 	_init_meshes()
 	terrain_grid.cells_changed.connect(_on_cells_changed)
 	# Defer so all _ready() calls finish before the first build.
 	call_deferred("_rebuild_navmesh")
 	# Physics processing is only needed for the one-shot first-build force-sync below.
 	set_physics_process(false)
+
 
 ## After the first mesh build, force a map sync each physics frame (map_force_update is
 ## only valid during the physics step) and probe a known-navigable point until the map
@@ -215,9 +221,12 @@ func _physics_process(_a_delta: float) -> void:
 			_ready_announced = true
 			navmesh_ready.emit()
 	_advance_changes()
-	if not _pending_first_sync and not _changes.any(func(c: NavChange) -> bool:
-			return not c.is_landed):
+	if (
+		not _pending_first_sync
+		and not _changes.any(func(c: NavChange) -> bool: return not c.is_landed)
+	):
 		set_physics_process(false)
+
 
 ## True once map_get_closest_point on `nm` resolves a point that IS navigable back to (near)
 ## itself — i.e. the map's query structure has incorporated the region mesh. An empty/unsynced
@@ -232,6 +241,7 @@ func _map_resolves_navigable_point(a_nm: RID) -> bool:
 	var snapped: Vector3 = NavigationServer3D.map_get_closest_point(a_nm, probe)
 	return snapped.distance_to(probe) < Map.CELL_SIZE
 
+
 ## World-space centre of an arbitrary navigable cell, or Vector3.INF if the terrain has no
 ## navigable cells. Used as a probe to detect when the navigation map is queryable.
 func _sample_navigable_world_point() -> Vector3:
@@ -243,17 +253,25 @@ func _sample_navigable_world_point() -> Vector3:
 	var hs: HeightMapShape3D = terrain_grid.height_shape()
 	var fx: float = idx % bounds.size.x + 0.5
 	var fz: float = idx / bounds.size.x + 0.5
-	return terrain_grid.terrain_body.global_transform * Vector3(
-		fx - (hs.map_width - 1) * 0.5,
-		_height_at(fx, fz, hs.map_data, hs.map_width, hs.map_depth),
-		fz - (hs.map_depth - 1) * 0.5)
+	return (
+		terrain_grid.terrain_body.global_transform
+		* Vector3(
+			fx - (hs.map_width - 1) * 0.5,
+			_height_at(fx, fz, hs.map_data, hs.map_width, hs.map_depth),
+			fz - (hs.map_depth - 1) * 0.5
+		)
+	)
+
 
 func _exit_tree() -> void:
 	for mesh: ChunkedMesh in _meshes:
 		for region: RID in mesh.regions.values():
 			NavigationServer3D.free_rid(region)
 		mesh.regions.clear()
+
+
 #endregion
+
 
 #region Public API
 ## The changes after serial `a_seen`, oldest first, that path queries can already see —
@@ -294,15 +312,18 @@ func request_rebuild() -> void:
 	_rebuild_pending = true
 	call_deferred("_rebuild_navmesh")
 
+
 ## NavigationAgent3D.navigation_layers value that selects the space-eroded mesh for
 ## `size`: one distinct bit per class (SMALL -> 1<<0 ... LARGE -> 1<<2).
 func layer_for(a_size: NavAgentClass.Size) -> int:
 	return 1 << (int(a_size) - 1)
 
+
 ## True once the first populated navmesh has been built and synchronized — i.e. the nav
 ## map is queryable. Callers that may run before the first build await navmesh_ready.
 func is_ready() -> bool:
 	return _ready_announced
+
 
 ## Polygons in the base (un-eroded) mesh, summed over its chunks — one per navigable cell.
 func base_polygon_count() -> int:
@@ -312,6 +333,7 @@ func base_polygon_count() -> int:
 	for count: int in _meshes[0].polygon_counts.values():
 		total += count
 	return total
+
 
 ## Await until every point in `probes` is confirmed excluded from the navmesh —
 ## i.e. map_get_closest_point no longer resolves it back to (near) itself. Pass
@@ -346,10 +368,17 @@ func await_excluded(a_probes: Array[Vector3], a_max_iterations: int = 30) -> boo
 				break
 		if all_excluded:
 			return true
-	push_warning("NavManager.await_excluded: %d probe(s) never confirmed excluded after %d iterations"
-		% [a_probes.size(), a_max_iterations])
+	push_warning(
+		(
+			"NavManager.await_excluded: %d probe(s) never confirmed excluded after %d iterations"
+			% [a_probes.size(), a_max_iterations]
+		)
+	)
 	return false
+
+
 #endregion
+
 
 #region Private helpers
 ## Describe the base mesh and one mesh per size class, each with its own chunk-grid offset.
@@ -365,12 +394,16 @@ func _init_meshes() -> void:
 	_meshes.append(ChunkedMesh.new(_BASE_LAYER, 0, 1, 0.0, 0))
 	for i: int in sizes.size():
 		var size: NavAgentClass.Size = sizes[i]
-		_meshes.append(ChunkedMesh.new(
-			layer_for(size),
-			NavAgentClass.erosion_rings(size, cs),
-			NavAgentClass.required_clearance(size, cs),
-			NavAgentClass.inset(size, cs) / cs,
-			(i + 1) * CHUNK_SIZE_CELLS / count))
+		_meshes.append(
+			ChunkedMesh.new(
+				layer_for(size),
+				NavAgentClass.erosion_rings(size, cs),
+				NavAgentClass.required_clearance(size, cs),
+				NavAgentClass.inset(size, cs) / cs,
+				(i + 1) * CHUNK_SIZE_CELLS / count
+			)
+		)
+
 
 func _on_cells_changed(a_cells: Array) -> void:
 	if a_cells.is_empty():
@@ -384,6 +417,7 @@ func _on_cells_changed(a_cells: Array) -> void:
 	_dirty = _dirty.merge(changed) if _has_dirty else changed
 	_has_dirty = true
 	request_rebuild()
+
 
 ## Rebuild every chunk the changes since the last rebuild can reach — the whole map the first
 ## time.
@@ -401,8 +435,9 @@ func _rebuild_navmesh() -> void:
 	for mesh: ChunkedMesh in _meshes:
 		widest_reach = maxi(widest_reach, mesh.reach_cells())
 	if not is_first_build:
-		_recording = NavChange.new(_next_change_serial,
-			_world_rect(changed.grow(widest_reach).intersection(bounds)))
+		_recording = NavChange.new(
+			_next_change_serial, _world_rect(changed.grow(widest_reach).intersection(bounds))
+		)
 		_next_change_serial += 1
 	for mesh: ChunkedMesh in _meshes:
 		var area: Rect2i = changed.grow(mesh.reach_cells()).intersection(bounds)
@@ -424,20 +459,25 @@ func _rebuild_navmesh() -> void:
 		_pending_first_sync = true
 		set_physics_process(true)
 
+
 ## First cell of chunk `a_index` along one axis, for a grid starting at `a_offset`. Chunk 0
 ## is the (possibly narrower, possibly empty) strip before the offset.
 static func _chunk_start(a_index: int, a_offset: int) -> int:
 	return maxi(0, a_offset + (a_index - 1) * CHUNK_SIZE_CELLS)
 
+
 static func _chunk_of(a_cell: int, a_offset: int) -> int:
 	return (a_cell - a_offset + CHUNK_SIZE_CELLS) / CHUNK_SIZE_CELLS
+
 
 ## Rebuild and hand over every chunk of `a_mesh` that overlaps `a_area`.
 func _rebuild_chunks(a_mesh: ChunkedMesh, a_area: Rect2i, a_context: _BuildContext) -> void:
 	var bounds: Rect2i = terrain_grid.get_bounds_rect()
 	var off: int = a_mesh.grid_offset
 	for cz: int in range(_chunk_of(a_area.position.y, off), _chunk_of(a_area.end.y - 1, off) + 1):
-		for cx: int in range(_chunk_of(a_area.position.x, off), _chunk_of(a_area.end.x - 1, off) + 1):
+		for cx: int in range(
+			_chunk_of(a_area.position.x, off), _chunk_of(a_area.end.x - 1, off) + 1
+		):
 			var start := Vector2i(_chunk_start(cx, off), _chunk_start(cz, off))
 			var end := Vector2i(_chunk_start(cx + 1, off), _chunk_start(cz + 1, off))
 			var rect: Rect2i = Rect2i(start, end - start).intersection(bounds)
@@ -450,9 +490,12 @@ func _rebuild_chunks(a_mesh: ChunkedMesh, a_area: Rect2i, a_context: _BuildConte
 				a_mesh.regions[chunk] = region
 			var nav_mesh: NavigationMesh = _build_chunk(a_mesh, rect, a_context)
 			if _recording != null and not _recording.pending_regions.has(region):
-				_recording.pending_regions[region] = NavigationServer3D.region_get_iteration_id(region)
+				_recording.pending_regions[region] = NavigationServer3D.region_get_iteration_id(
+					region
+				)
 			NavigationServer3D.region_set_navigation_mesh(region, nav_mesh)
 			a_mesh.polygon_counts[chunk] = nav_mesh.get_polygon_count()
+
 
 ## Mark each waiting change ready once all its regions have processed their meshes, and landed
 ## once the map has published an iteration that includes them. A SYNCHRONOUS map (the project's
@@ -467,8 +510,10 @@ func _advance_changes() -> void:
 			continue
 		if change.ready_map_iteration < 0:
 			for region: RID in change.pending_regions.keys():
-				if NavigationServer3D.region_get_iteration_id(region) \
-						!= int(change.pending_regions[region]):
+				if (
+					NavigationServer3D.region_get_iteration_id(region)
+					!= int(change.pending_regions[region])
+				):
 					change.pending_regions.erase(region)
 			if change.pending_regions.is_empty():
 				change.ready_map_iteration = map_iteration
@@ -482,7 +527,9 @@ func _world_rect(a_cells: Rect2i) -> Rect2:
 	var hs: HeightMapShape3D = terrain_grid.height_shape()
 	var to_world: Transform3D = terrain_grid.terrain_body.global_transform
 	var half := Vector2((hs.map_width - 1) * 0.5, (hs.map_depth - 1) * 0.5)
-	var a: Vector3 = to_world * Vector3(a_cells.position.x - half.x, 0.0, a_cells.position.y - half.y)
+	var a: Vector3 = (
+		to_world * Vector3(a_cells.position.x - half.x, 0.0, a_cells.position.y - half.y)
+	)
 	var b: Vector3 = to_world * Vector3(a_cells.end.x - half.x, 0.0, a_cells.end.y - half.y)
 	return Rect2(VU.inXZ(a), Vector2.ZERO).expand(VU.inXZ(b))
 
@@ -496,6 +543,7 @@ func _create_region(a_layer: int) -> RID:
 	# gaps, bleeding one class's mesh into another's.
 	NavigationServer3D.region_set_use_edge_connections(region, false)
 	return region
+
 
 ## What every chunk of one rebuild shares: the heightfield and the corner→region transform.
 class _BuildContext:
@@ -515,8 +563,11 @@ class _BuildContext:
 		map_depth = hs.map_depth
 		half_w = (map_width - 1) * 0.5
 		half_d = (map_depth - 1) * 0.5
-		to_region = a_manager.navigation_region.global_transform.affine_inverse() \
+		to_region = (
+			a_manager.navigation_region.global_transform.affine_inverse()
 			* a_manager.terrain_grid.terrain_body.global_transform
+		)
+
 
 ## Build the mesh for the cells of `a_rect`: one quad per navigable cell, each boundary vertex
 ## inset toward the walkable interior.
@@ -551,13 +602,16 @@ func _build_chunk(a_mesh: ChunkedMesh, a_rect: Rect2i, a_context: _BuildContext)
 				var slot: int = (cz - a_rect.position.y) * corners_w + (cx - a_rect.position.x)
 				if corner_index[slot] < 0:
 					corner_index[slot] = verts.size()
-					verts.append(_corner_position(cx, cz, a_mesh.inset_cells, mask, read, a_context))
+					verts.append(
+						_corner_position(cx, cz, a_mesh.inset_cells, mask, read, a_context)
+					)
 				polygon[i] = corner_index[slot]
 			polygons.append(polygon)
 	var nav_mesh := NavigationMesh.new()
 	nav_mesh.vertices = verts
 	nav_mesh.set("polygons", polygons)  # the storage property; no typed setter takes them whole
 	return nav_mesh
+
 
 ## DO NOT merge cells into larger convex polygons here. It looks like the obvious fix for
 ## the L-shaped paths agents walk (Godot's polygon A* picks one cell corridor out of many
@@ -585,6 +639,7 @@ func _build_chunk(a_mesh: ChunkedMesh, a_rect: Rect2i, a_context: _BuildContext)
 ## Straightening paths has to happen somewhere other than the mesh: string-pulling the
 ## returned path against the navmesh (Map.get_navmesh_line_hit) is the standing candidate.
 
+
 ## Region-local position of heightmap corner (cx, cz), shifted toward the walkable interior by
 ## `a_inset_cells`. The shift direction is the normalised sum of directions to the corner's
 ## NAVIGABLE incident cells, so a convex tip is pulled in, a straight wall is pushed
@@ -592,8 +647,14 @@ func _build_chunk(a_mesh: ChunkedMesh, a_rect: Rect2i, a_context: _BuildContext)
 ## the unit from clipping that corner. Interior corners (all four cells navigable) cancel to
 ## zero and don't move. The vertex is shared, so moving it here moves it for every quad that
 ## references it.
-func _corner_position(a_cx: int, a_cz: int, a_inset_cells: float, a_mask: PackedByteArray,
-		a_read: Rect2i, a_context: _BuildContext) -> Vector3:
+func _corner_position(
+	a_cx: int,
+	a_cz: int,
+	a_inset_cells: float,
+	a_mask: PackedByteArray,
+	a_read: Rect2i,
+	a_context: _BuildContext
+) -> Vector3:
 	var fx: float = a_cx
 	var fz: float = a_cz
 	if a_inset_cells > 0.0:
@@ -603,21 +664,30 @@ func _corner_position(a_cx: int, a_cz: int, a_inset_cells: float, a_mask: Packed
 		var sz: float = 0.0
 		for az: int in range(a_cz - 1, a_cz + 1):
 			for ax: int in range(a_cx - 1, a_cx + 1):
-				if a_read.has_point(Vector2i(ax, az)) \
-						and a_mask[(az - a_read.position.y) * a_read.size.x + (ax - a_read.position.x)] != 0:
+				if (
+					a_read.has_point(Vector2i(ax, az))
+					and (
+						a_mask[(az - a_read.position.y) * a_read.size.x + (ax - a_read.position.x)]
+						!= 0
+					)
+				):
 					sx += (ax + 0.5) - a_cx
 					sz += (az + 0.5) - a_cz
 		var length: float = sqrt(sx * sx + sz * sz)
 		if length > 0.0:
 			fx += a_inset_cells * sx / length
 			fz += a_inset_cells * sz / length
-	var height: float = _height_at(fx, fz, a_context.heights, a_context.map_width, a_context.map_depth)
+	var height: float = _height_at(
+		fx, fz, a_context.heights, a_context.map_width, a_context.map_depth
+	)
 	return a_context.to_region * Vector3(fx - a_context.half_w, height, fz - a_context.half_d)
+
 
 ## Bilinearly sample the heightfield at fractional corner coordinates, so an inset vertex stays
 ## on the terrain surface instead of snapping to a corner.
-static func _height_at(fx: float, fz: float, heights: PackedFloat32Array, width: int,
-		depth: int) -> float:
+static func _height_at(
+	fx: float, fz: float, heights: PackedFloat32Array, width: int, depth: int
+) -> float:
 	var lx: float = clampf(fx, 0.0, width - 1)
 	var lz: float = clampf(fz, 0.0, depth - 1)
 	var x0: int = floori(lx)

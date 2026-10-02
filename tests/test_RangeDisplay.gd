@@ -39,20 +39,29 @@ func _piece(a_options: Dictionary) -> Commandable:
 
 # --- Which shape a kind resolves to -------------------------------------------------
 
+
 func test_a_turret_reports_its_weapon_and_vision_reach() -> void:
 	var turret := _piece(TURRET)
-	assert_gt(EntityRanges.radius_of(turret, EntityRanges.Kind.ATTACK_AIR), 0.0,
-		"a SAM has a reach against aircraft")
-	assert_eq(EntityRanges.radius_of(turret, EntityRanges.Kind.ATTACK), -1.0,
-		"and none against the ground, so no ground ring")
+	assert_gt(
+		EntityRanges.radius_of(turret, EntityRanges.Kind.ATTACK_AIR),
+		0.0,
+		"a SAM has a reach against aircraft"
+	)
+	assert_eq(
+		EntityRanges.radius_of(turret, EntityRanges.Kind.ATTACK),
+		-1.0,
+		"and none against the ground, so no ground ring"
+	)
 	assert_gt(EntityRanges.radius_of(turret, EntityRanges.Kind.VISION), 0.0)
 
 
 # --- Ground and air reach --------------------------------------------------------------
 
+
 func _attack_bands(a_piece: Entity) -> Array[RangeIndicator.Band]:
-	return RangeIndicator.bands_for_entity(a_piece,
-		[EntityRanges.Kind.ATTACK, EntityRanges.Kind.ATTACK_AIR])
+	return RangeIndicator.bands_for_entity(
+		a_piece, [EntityRanges.Kind.ATTACK, EntityRanges.Kind.ATTACK_AIR]
+	)
 
 
 func test_a_ground_only_gun_draws_no_air_ring() -> void:
@@ -95,7 +104,9 @@ func test_equal_ground_and_air_reach_draw_one_alternating_ring() -> void:
 func test_the_two_alternating_dash_patterns_cover_the_line_between_them() -> void:
 	var line: Array[Vector2] = [Vector2.ZERO, Vector2(10.0, 0.0)]
 	var total: float = 0.0
-	for pieces: Array in [RangeIndicator.dash(line, 1.0, 1.0), RangeIndicator.dash(line, 1.0, 1.0, 1.0)]:
+	for pieces: Array in [
+		RangeIndicator.dash(line, 1.0, 1.0), RangeIndicator.dash(line, 1.0, 1.0, 1.0)
+	]:
 		for piece: Array in pieces:
 			total += (piece[0] as Vector2).distance_to(piece[1])
 	assert_almost_eq(total, 10.0, 0.01)
@@ -114,9 +125,13 @@ func test_shapes_for_drops_the_kinds_a_piece_lacks() -> void:
 	# the result is not empty merely because the piece has nothing at all.
 	var worker := _piece(WORKER)
 	var kinds: Array = []
-	for pair: Array in EntityRanges.shapes_for(worker, EntityRanges.WEAPON_KINDS + EntityRanges.VISION_KINDS):
+	for pair: Array in EntityRanges.shapes_for(
+		worker, EntityRanges.WEAPON_KINDS + EntityRanges.VISION_KINDS
+	):
 		kinds.append(pair[0])
-	assert_does_not_have(kinds, EntityRanges.Kind.ATTACK, "an unarmed piece contributes no attack ring")
+	assert_does_not_have(
+		kinds, EntityRanges.Kind.ATTACK, "an unarmed piece contributes no attack ring"
+	)
 	assert_does_not_have(kinds, EntityRanges.Kind.ATTACK_AIR)
 	assert_has(kinds, EntityRanges.Kind.VISION, "while the reach it does have is still offered")
 
@@ -145,6 +160,7 @@ func test_an_effect_that_reaches_draws_a_ring_at_its_host() -> void:
 
 # --- The bands the controller composes -----------------------------------------------
 
+
 func _controller() -> RTSController:
 	return autofree(RTSController.new()) as RTSController
 
@@ -158,8 +174,7 @@ func test_hovering_a_widget_draws_one_band_per_kind_the_piece_has() -> void:
 	var turret := _piece(TURRET)
 	controller._on_ranges_hovered(turret, EntityRanges.WEAPON_KINDS)
 	var bands: Array[RangeIndicator.Band] = controller.range_bands()
-	assert_eq(bands.size(),
-		EntityRanges.shapes_for(turret, EntityRanges.WEAPON_KINDS).size())
+	assert_eq(bands.size(), EntityRanges.shapes_for(turret, EntityRanges.WEAPON_KINDS).size())
 	for band: RangeIndicator.Band in bands:
 		assert_false(band.filled, "a REACH is an outline; only an area of effect is washed in")
 
@@ -183,6 +198,7 @@ func test_a_freed_hover_target_draws_nothing_rather_than_crashing() -> void:
 
 
 # --- The armed ability ---------------------------------------------------------------
+
 
 func test_nothing_armed_names_no_ability() -> void:
 	assert_eq(_controller().armed_ability_id(), &"")
@@ -220,6 +236,7 @@ func test_an_ordinary_ability_reach_is_a_distance() -> void:
 
 # --- Pending rings -------------------------------------------------------------------
 
+
 ## A pending piece's ring is dashed: on for the dash, off for the gap, measured along the line.
 func test_a_dash_alternates_along_the_line() -> void:
 	var line: Array[Vector2] = [Vector2.ZERO, Vector2(5.0, 0.0)]
@@ -231,8 +248,9 @@ func test_a_dash_alternates_along_the_line() -> void:
 
 ## The phase carries across vertices, so a circle tessellated into short edges dashes evenly.
 func test_a_dash_carries_its_phase_across_short_edges() -> void:
-	var line: Array[Vector2] = [Vector2.ZERO, Vector2(0.5, 0.0), Vector2(1.0, 0.0),
-		Vector2(1.5, 0.0), Vector2(2.0, 0.0)]
+	var line: Array[Vector2] = [
+		Vector2.ZERO, Vector2(0.5, 0.0), Vector2(1.0, 0.0), Vector2(1.5, 0.0), Vector2(2.0, 0.0)
+	]
 	var drawn: float = 0.0
 	for piece: Array in RangeIndicator.dash(line, 1.0, 1.0):
 		drawn += (piece[0] as Vector2).distance_to(piece[1])

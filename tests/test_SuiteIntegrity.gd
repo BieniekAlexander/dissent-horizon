@@ -20,7 +20,7 @@ const TESTS_DIR: String = "res://tests"
 
 ## `preload("res://…")` and `load("res://…")`, capturing the path. Deliberately text-matched
 ## rather than resolved through the parser — see the note above.
-const RESOURCE_CALL: String = "(?:pre)?load\\(\\s*\"(res://[^\"]+)\""
+const RESOURCE_CALL: String = '(?:pre)?load\\(\\s*"(res://[^"]+)"'
 
 ## A path built by concatenation or interpolation cannot be checked statically and is skipped
 ## rather than guessed at.
@@ -72,8 +72,11 @@ func test_every_resource_a_test_file_names_actually_exists() -> void:
 		for path: String in _referenced_paths(script_path):
 			if not ResourceLoader.exists(path):
 				missing.append("%s -> %s" % [script_path.get_file(), path])
-	assert_eq(missing, [] as Array[String],
-		"every res:// path named in tests/ resolves; a missing one silently removes a whole file")
+	assert_eq(
+		missing,
+		[] as Array[String],
+		"every res:// path named in tests/ resolves; a missing one silently removes a whole file"
+	)
 
 
 func test_the_suite_has_not_quietly_shrunk() -> void:
@@ -83,8 +86,15 @@ func test_the_suite_has_not_quietly_shrunk() -> void:
 	#
 	# Counts files rather than tests: a file is the unit GUT skips.
 	var scripts: Array[String] = _test_scripts()
-	assert_gte(scripts.size(), SUITE_FLOOR,
-		"tests/ holds at least %d scripts; a drop means a file was deleted or stopped parsing" % SUITE_FLOOR)
+	assert_gte(
+		scripts.size(),
+		SUITE_FLOOR,
+		(
+			"tests/ holds at least %d scripts; a drop means a file was deleted or stopped parsing"
+			% SUITE_FLOOR
+		)
+	)
+
 
 ## Raise this when the suite grows past it by a comfortable margin. It is a ratchet against
 ## silent LOSS, so it is set just under the real count rather than at it.
@@ -102,8 +112,11 @@ func test_a_non_gut_script_in_tests_is_named_so_it_reads_as_deliberate() -> void
 		var is_gut_test: bool = text.contains("extends GutTest")
 		if not is_gut_test and not script_path.get_file().begins_with("_"):
 			uncollected.append(script_path.get_file())
-	assert_eq(uncollected, [] as Array[String],
-		"a script in tests/ that does not extend GutTest is prefixed with _ so the skip reads as intended")
+	assert_eq(
+		uncollected,
+		[] as Array[String],
+		"a script in tests/ that does not extend GutTest is prefixed with _ so the skip reads as intended"
+	)
 
 
 func test_no_test_file_mixes_tabs_and_spaces_for_indentation() -> void:
@@ -134,8 +147,14 @@ func test_no_test_file_mixes_tabs_and_spaces_for_indentation() -> void:
 			depth = maxi(0, depth + _bracket_delta(line))
 		if has_tab and has_space:
 			mixed.append(script_path.get_file())
-	assert_eq(mixed, [] as Array[String],
-		"no test file indents with both tabs and spaces; GDScript rejects the file and GUT skips it silently")
+	assert_eq(
+		mixed,
+		[] as Array[String],
+		(
+			"no test file indents with both tabs and spaces; GDScript rejects the file "
+			+ "and GUT skips it silently"
+		)
+	)
 
 
 ## How many brackets `line` opens minus how many it closes, with string literals and trailing
@@ -143,7 +162,7 @@ func test_no_test_file_mixes_tabs_and_spaces_for_indentation() -> void:
 ## design — it only has to be right often enough to tell a continuation line from a statement.
 static func _bracket_delta(line: String) -> int:
 	var code: String = line
-	for pattern: String in ["\"[^\"]*\"", "'[^']*'"]:
+	for pattern: String in ['"[^"]*"', "'[^']*'"]:
 		code = RegEx.create_from_string(pattern).sub(code, "", true)
 	var hash_at: int = code.find("#")
 	if hash_at >= 0:

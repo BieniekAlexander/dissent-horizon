@@ -40,23 +40,35 @@ static func compiled(a_script: GDScript) -> bool:
 ## regenerates the selection shapes and HP bars this importer does not own, i.e. ones that
 ## predate the pass. Off by default — the standing rule is that a value already in a scene
 ## belongs to whoever put it there.
-static func run(mode: String, gdd_root: String = "res://gdd",
-		rebake_visuals: bool = false) -> Dictionary:
+static func run(
+	mode: String, gdd_root: String = "res://gdd", rebake_visuals: bool = false
+) -> Dictionary:
 	var log: Array = []
 	var broken: Array = broken_stages()
 	if not broken.is_empty():
-		log.append("import: ABORTED before reading anything — these importer scripts failed to"
-			+ " compile: %s. The cause is the FIRST script error printed above this line (often"
-			+ " in a game script they depend on). In the editor a dependency that failed once can"
-			+ " stay failed after it is fixed: Project > Reload Current Project clears it."
-			% ", ".join(broken))
+		(
+			log
+			. append(
+				(
+					"import: ABORTED before reading anything — these importer scripts failed to"
+					+ " compile: %s. The cause is the FIRST script error printed above this line (often"
+					+ " in a game script they depend on). In the editor a dependency that failed once can"
+					+ (
+						" stay failed after it is fixed: Project > Reload Current Project clears it."
+						% ", ".join(broken)
+					)
+				)
+			)
+		)
 		return {"ok": false, "log": log}
 	var registry: RefCounted = SpecRegistry.new().scan(gdd_root)
 
 	for w in registry.warnings:
 		log.append("WARN: %s" % w)
 	if not registry.errors.is_empty():
-		log.append("import: validation FAILED (%d errors) — nothing was written:" % registry.errors.size())
+		log.append(
+			"import: validation FAILED (%d errors) — nothing was written:" % registry.errors.size()
+		)
 		for e in registry.errors:
 			log.append("  ERROR: %s" % e)
 		return {"ok": false, "log": log}
@@ -66,23 +78,44 @@ static func run(mode: String, gdd_root: String = "res://gdd",
 	# refused here, before anything is written, rather than found by playing.
 	var collisions: Array = SpecGenerators.grid_collisions(registry)
 	if not collisions.is_empty():
-		log.append("import: grid review FAILED (%d buttons share a cell) — nothing was written:"
-			% collisions.size())
+		log.append(
+			(
+				"import: grid review FAILED (%d buttons share a cell) — nothing was written:"
+				% collisions.size()
+			)
+		)
 		for c in collisions:
 			log.append("  ERROR: %s" % c)
 		return {"ok": false, "log": log}
 
-	log.append(("import: %d pieces, %d projectiles, %d status effects, %d factions, "
-		+ "%d shapes (mode=%s)") % [
-		registry.pieces.size(), registry.projectiles.size(),
-		registry.status_effects.size(), registry.factions.size(), registry.shapes.size(), mode])
+	log.append(
+		(
+			(
+				"import: %d pieces, %d projectiles, %d status effects, %d factions, "
+				+ "%d shapes (mode=%s)"
+			)
+			% [
+				registry.pieces.size(),
+				registry.projectiles.size(),
+				registry.status_effects.size(),
+				registry.factions.size(),
+				registry.shapes.size(),
+				mode
+			]
+		)
+	)
 
 	# Every declared departure from a calibration norm, in one place. Printed on a SUCCESSFUL
 	# run rather than buried among warnings, because that is what the mechanism is for: a
 	# waiver is only worth requiring if somebody reads the resulting list, and the list is
 	# the roster's answer to "which pieces are built against type, and why".
 	if not registry.exceptional.is_empty():
-		log.append("import: %d declared exception(s) to the calibration norms:" % registry.exceptional.size())
+		log.append(
+			(
+				"import: %d declared exception(s) to the calibration norms:"
+				% registry.exceptional.size()
+			)
+		)
 		for e: Dictionary in registry.exceptional:
 			log.append("  ~ %s breaks `%s` (%s)" % [e["id"], e["rule"], e["what"]])
 			log.append("      %s" % e["detail"])
@@ -96,13 +129,22 @@ static func run(mode: String, gdd_root: String = "res://gdd",
 	for path in shape_report["written"]:
 		log.append("  generated %s" % path)
 	for path in shape_report["removed"]:
-		log.append("import: removed %s — its doc is gone; a hand-authored scene still naming it"
-			% path + " will not load")
+		log.append(
+			(
+				"import: removed %s — its doc is gone; a hand-authored scene still naming it" % path
+				+ " will not load"
+			)
+		)
 
 	# Scene sync runs BEFORE the other generators: skeleton creation can add scene:
 	# fields the generated tools.json needs.
 	if rebake_visuals:
-		log.append("import: REBAKING visual defaults the importer does not own — selection shapes and HP bars that predate the pass will be replaced")
+		log.append(
+			(
+				"import: REBAKING visual defaults the importer does not own — "
+				+ "selection shapes and HP bars that predate the pass will be replaced"
+			)
+		)
 	var sync_report: Dictionary = SpecSceneSync.sync_all(registry, mode, rebake_visuals)
 	for w in sync_report["warnings"]:
 		log.append("WARN: %s" % w)
@@ -128,10 +170,18 @@ static func run(mode: String, gdd_root: String = "res://gdd",
 	for path in SpecGenerators.generate_all(registry):
 		log.append("  generated %s" % path)
 	for removal: Dictionary in removals:
-		log.append("import: %s drops %d id(s) no longer in the docs: %s" % [
-			removal["scope"], removal["consts"].size(), ", ".join(removal["consts"])])
-		log.append("    a file still naming one of those does not PARSE — and an unparseable"
-			+ " test file leaves the suite silently. Grep for them.")
+		log.append(
+			(
+				"import: %s drops %d id(s) no longer in the docs: %s"
+				% [removal["scope"], removal["consts"].size(), ", ".join(removal["consts"])]
+			)
+		)
+		log.append(
+			(
+				"    a file still naming one of those does not PARSE — and an unparseable"
+				+ " test file leaves the suite silently. Grep for them."
+			)
+		)
 
 	log.append("import: done")
 	return {"ok": true, "log": log}

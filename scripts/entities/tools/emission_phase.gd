@@ -20,8 +20,8 @@ const PRESETS: Dictionary = {
 	"LINEAR": {},
 	"BALLISTIC": {"gravity": BALLISTIC_GRAVITY_MPS2},
 	"LOFTED": {"gravity": BALLISTIC_GRAVITY_MPS2, "launch_pitch": LOFTED_PITCH_DEGREES},
-	"HOMING": {"turn_rate": 75.0, "launch_speed_ratio": 0.5, "acceleration": 2.25,
-		"min_speed": 0.15},
+	"HOMING":
+	{"turn_rate": 75.0, "launch_speed_ratio": 0.5, "acceleration": 2.25, "min_speed": 0.15},
 }
 ## The arc every ballistic shell in the roster was tuned against.
 const BALLISTIC_GRAVITY_MPS2: float = 4.5
@@ -97,6 +97,7 @@ const NEAR_VERTICAL_COSINE: float = 0.9
 @export var visuals: Array[NodePath] = []
 #endregion
 
+
 #region Public API
 func duration_ticks() -> int:
 	return _ticks_or_unbounded(lifespan_seconds)
@@ -146,8 +147,9 @@ static func particle_systems_in(node: Node) -> Array[Node]:
 	var candidates: Array[Node] = [node]
 	candidates.append_array(node.find_children("*", "", true, false))
 	var found: Array[Node] = []
-	found.assign(candidates.filter(func(n: Node) -> bool:
-		return n is GPUParticles3D or n is CPUParticles3D))
+	found.assign(
+		candidates.filter(func(n: Node) -> bool: return n is GPUParticles3D or n is CPUParticles3D)
+	)
 	return found
 
 
@@ -179,8 +181,11 @@ func is_straight() -> bool:
 ## The velocity, per tick, that this phase starts `a_origin` on toward `a_destination`.
 func launch_velocity(a_origin: Vector3, a_destination: Vector3) -> Vector3:
 	if gravity_mps2 > 0.0:
-		return _lob_velocity(a_origin, a_destination) if launch_pitch_degrees > 0.0 \
+		return (
+			_lob_velocity(a_origin, a_destination)
+			if launch_pitch_degrees > 0.0
 			else _ballistic_velocity(a_origin, a_destination, _speed_per_tick())
+		)
 	return a_origin.direction_to(a_destination) * _speed_per_tick() * launch_speed_ratio
 
 
@@ -212,8 +217,9 @@ func tracked_velocity(a_velocity: Vector3, a_position: Vector3, a_goal: Variant)
 
 ## One tick of steering at `a_target`, before the move. Unchanged when unsteered or targetless.
 func steered_velocity(a_velocity: Vector3, a_position: Vector3, a_target: Entity) -> Vector3:
-	return steered_toward(a_velocity, a_position,
-		a_target.global_position if a_target != null else null)
+	return steered_toward(
+		a_velocity, a_position, a_target.global_position if a_target != null else null
+	)
 
 
 ## One tick of steering at the point `a_goal`, before the move. Unchanged when unsteered or
@@ -225,16 +231,26 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 	# Dead astern a turn has no axis — the slerp between opposed vectors never leaves the
 	# heading — so a shot that overflew its goal would fly straight on forever. Commit to a side.
 	if a_velocity.normalized().dot(goal_direction) < DEAD_ASTERN_COSINE:
-		var axis: Vector3 = Vector3.UP \
-			if absf(goal_direction.dot(Vector3.UP)) < NEAR_VERTICAL_COSINE else Vector3.RIGHT
+		var axis: Vector3 = (
+			Vector3.UP
+			if absf(goal_direction.dot(Vector3.UP)) < NEAR_VERTICAL_COSINE
+			else Vector3.RIGHT
+		)
 		goal_direction = goal_direction.rotated(axis, DEAD_ASTERN_NUDGE_RADIANS)
 	var is_facing: bool = a_velocity.normalized().dot(goal_direction.normalized()) >= 0
-	var turned: Vector3 = VU.get_rotated_vector_3d(a_velocity, goal_direction,
-		deg_to_rad(turn_rate_degrees_per_second / float(TimeUtils.ticks_per_second())))
+	var turned: Vector3 = VU.get_rotated_vector_3d(
+		a_velocity,
+		goal_direction,
+		deg_to_rad(turn_rate_degrees_per_second / float(TimeUtils.ticks_per_second()))
+	)
 	var step: float = acceleration_mps2 / float(_ticks_squared())
-	return turned.normalized() * (
-		minf(turned.length() + step, _speed_per_tick()) if is_facing
-		else maxf(turned.length() - step, min_speed / float(TimeUtils.ticks_per_second()))
+	return (
+		turned.normalized()
+		* (
+			minf(turned.length() + step, _speed_per_tick())
+			if is_facing
+			else maxf(turned.length() - step, min_speed / float(TimeUtils.ticks_per_second()))
+		)
 	)
 
 
@@ -246,15 +262,24 @@ func fallen_velocity(a_velocity: Vector3) -> Vector3:
 ## Whether the emission has reached where it was going. A steered phase aims at its target
 ## and never arrives without one; a falling one lands on crossing its destination's height
 ## on the way down; anything else arrives within one step of the destination.
-func has_arrived(a_position: Vector3, a_velocity: Vector3, a_destination: Vector3,
-		a_target: Entity) -> bool:
+func has_arrived(
+	a_position: Vector3, a_velocity: Vector3, a_destination: Vector3, a_target: Entity
+) -> bool:
 	if is_steered():
-		return a_target != null and a_position.distance_squared_to(a_target.global_position) \
-			< STEERED_ARRIVAL_RADIUS * STEERED_ARRIVAL_RADIUS
+		return (
+			a_target != null
+			and (
+				a_position.distance_squared_to(a_target.global_position)
+				< STEERED_ARRIVAL_RADIUS * STEERED_ARRIVAL_RADIUS
+			)
+		)
 	if gravity_mps2 > 0.0:
 		return a_velocity.y < 0 and a_position.y <= a_destination.y
 	return a_position.distance_to(a_destination) <= _speed_per_tick()
+
+
 #endregion
+
 
 #region Private helpers
 func _speed_per_tick() -> float:
@@ -275,16 +300,20 @@ static func _ticks_or_unbounded(seconds: float) -> int:
 ## The launch that reaches `a_destination` under gravity, travelling horizontally at
 ## `a_horizontal_step` per tick. The first tick's gravity is folded into the launch so the
 ## discrete arc lands on the destination's height exactly when it arrives over it.
-func _ballistic_velocity(a_origin: Vector3, a_destination: Vector3,
-		a_horizontal_step: float) -> Vector3:
+func _ballistic_velocity(
+	a_origin: Vector3, a_destination: Vector3, a_horizontal_step: float
+) -> Vector3:
 	var to_target_xz: Vector2 = VU.inXZ(a_destination) - VU.inXZ(a_origin)
 	var fall_per_tick: float = -gravity_mps2 / float(_ticks_squared())
 	# A shot at its own position would take zero ticks; one tick lands it next tick instead.
 	var ticks_to_target: float = maxf(to_target_xz.length() / a_horizontal_step, 1.0)
-	var vertical: float = (a_destination.y - a_origin.y) / ticks_to_target \
-		- fall_per_tick * ticks_to_target / 2
-	return VU.fromXZ(to_target_xz.normalized() * a_horizontal_step) \
+	var vertical: float = (
+		(a_destination.y - a_origin.y) / ticks_to_target - fall_per_tick * ticks_to_target / 2
+	)
+	return (
+		VU.fromXZ(to_target_xz.normalized() * a_horizontal_step)
 		+ (vertical + fall_per_tick) * Vector3.UP
+	)
 
 
 ## A lob at `launch_pitch_degrees`: the flight time that pitch implies under gravity, then the
@@ -292,8 +321,9 @@ func _ballistic_velocity(a_origin: Vector3, a_destination: Vector3,
 ## plain ballistic arc at `speed` instead.
 func _lob_velocity(a_origin: Vector3, a_destination: Vector3) -> Vector3:
 	var horizontal: float = (VU.inXZ(a_destination) - VU.inXZ(a_origin)).length()
-	var rise: float = horizontal * tan(deg_to_rad(launch_pitch_degrees)) \
-		- (a_destination.y - a_origin.y)
+	var rise: float = (
+		horizontal * tan(deg_to_rad(launch_pitch_degrees)) - (a_destination.y - a_origin.y)
+	)
 	if rise <= 0.0 or horizontal <= 0.0:
 		return _ballistic_velocity(a_origin, a_destination, _speed_per_tick())
 	var ticks_to_target: float = sqrt(2.0 * rise * _ticks_squared() / gravity_mps2)

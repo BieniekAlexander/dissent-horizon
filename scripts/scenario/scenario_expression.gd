@@ -77,12 +77,26 @@ static func evaluate_float(
 	if expression.has_execute_failed():
 		# The usual cause is a name that isn't in INPUT_NAMES — Expression reports it as an
 		# "Invalid named index", which is opaque on its own, so list what IS available.
-		push_warning("%s: could not evaluate \"%s\" (%s). Available: %s. Using %s."
-			% [where, source, expression.get_error_text(), ", ".join(PackedStringArray(INPUT_NAMES)), fallback])
+		push_warning(
+			(
+				'%s: could not evaluate "%s" (%s). Available: %s. Using %s.'
+				% [
+					where,
+					source,
+					expression.get_error_text(),
+					", ".join(PackedStringArray(INPUT_NAMES)),
+					fallback
+				]
+			)
+		)
 		return fallback
 	if not (result is int or result is float):
-		push_warning("%s: \"%s\" produced %s, not a number. Using %s."
-			% [where, source, type_string(typeof(result)), fallback])
+		push_warning(
+			(
+				'%s: "%s" produced %s, not a number. Using %s.'
+				% [where, source, type_string(typeof(result)), fallback]
+			)
+		)
 		return fallback
 	return float(result)
 
@@ -106,9 +120,10 @@ static func validation_error(source: String) -> String:
 		return "cannot be parsed (%s)" % expression.get_error_text()
 	var result: Variant = expression.execute([0, 0.0, 0], null, false)
 	if expression.has_execute_failed():
-		return "cannot be evaluated (%s) — the available variables are %s" % [
-			expression.get_error_text(), ", ".join(PackedStringArray(INPUT_NAMES))
-		]
+		return (
+			"cannot be evaluated (%s) — the available variables are %s"
+			% [expression.get_error_text(), ", ".join(PackedStringArray(INPUT_NAMES))]
+		)
 	if not (result is int or result is float):
 		return "produces %s, not a number" % type_string(typeof(result))
 	return ""
@@ -124,6 +139,8 @@ static func evaluate_int(
 	where: String = "scenario expression"
 ) -> int:
 	return int(roundf(evaluate_float(source, float(fallback), manager, fires, where)))
+
+
 #endregion
 
 
@@ -134,8 +151,12 @@ static func _parse(source: String, where: String) -> Expression:
 		return _parsed[source]
 	var expression := Expression.new()
 	if expression.parse(source, PackedStringArray(INPUT_NAMES)) != OK:
-		push_warning("%s: could not parse \"%s\" (%s). Using the authored value instead."
-			% [where, source, expression.get_error_text()])
+		push_warning(
+			(
+				'%s: could not parse "%s" (%s). Using the authored value instead.'
+				% [where, source, expression.get_error_text()]
+			)
+		)
 		_parsed[source] = null
 		return null
 	_parsed[source] = expression

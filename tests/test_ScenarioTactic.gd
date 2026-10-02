@@ -17,17 +17,27 @@ const GROUP: StringName = &"test_tactic_cluster"
 
 
 ## A condition whose result is set directly by the test — same idiom as test_Triggers.gd.
-class StubCondition extends Condition:
+class StubCondition:
+	extends Condition
 	var result: bool = false
+
 	func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
 		return result
 
 
 ## Records every issue_commands_to() call instead of building a real command chain.
-class SpyTacticRule extends TacticRule:
+class SpyTacticRule:
+	extends TacticRule
 	var issued_calls: Array[Dictionary] = []
-	func issue_commands_to(a_units: Array[Commandable], _a_manager: ScenarioTriggerManager, a_p_commander_id_context: int = -1) -> void:
-		issued_calls.append({"units": a_units.duplicate(), "commander_id": a_p_commander_id_context})
+
+	func issue_commands_to(
+		a_units: Array[Commandable],
+		_a_manager: ScenarioTriggerManager,
+		a_p_commander_id_context: int = -1
+	) -> void:
+		issued_calls.append(
+			{"units": a_units.duplicate(), "commander_id": a_p_commander_id_context}
+		)
 
 
 var _manager: ScenarioTriggerManager
@@ -63,6 +73,7 @@ func _tactic(a_unit_group: StringName, a_rules: Array[TacticRule]) -> ScenarioTa
 
 # --- No-op guards -------------------------------------------------------------
 
+
 func test_empty_unit_group_never_issues() -> void:
 	var fallback := SpyTacticRule.new()
 	var tactic := _tactic(&"", [fallback])
@@ -89,6 +100,7 @@ func test_no_matching_rule_does_nothing() -> void:
 
 # --- Rule selection -------------------------------------------------------------
 
+
 func test_unconditional_rule_is_a_fallback_when_nothing_else_matches() -> void:
 	var gated := SpyTacticRule.new()
 	gated.condition = StubCondition.new()  # false
@@ -114,6 +126,7 @@ func test_first_matching_rule_in_authored_order_wins() -> void:
 
 
 # --- Reissue gating --------------------------------------------------------------
+
 
 func test_rule_change_redirects_every_current_member_even_a_busy_one() -> void:
 	var defend := SpyTacticRule.new()
@@ -177,6 +190,7 @@ func test_same_rule_with_no_idle_members_does_not_reissue() -> void:
 
 
 # --- Commander id plumbing --------------------------------------------------------
+
 
 func test_commander_id_is_read_from_the_first_live_member() -> void:
 	var fallback := SpyTacticRule.new()

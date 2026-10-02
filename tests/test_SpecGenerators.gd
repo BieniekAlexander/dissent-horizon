@@ -59,6 +59,8 @@ func test_the_enum_is_rebuilt_from_the_registry_so_a_deleted_piece_is_dropped() 
 func test_ids_are_emitted_alphabetically() -> void:
 	var text: String = SpecGenerators.entity_ids_text(_registry(["zz_last", "aa_first"]))
 	assert_lt(text.find("AA_FIRST"), text.find("ZZ_LAST"), "alphabetical, per the header")
+
+
 #endregion
 
 
@@ -73,17 +75,27 @@ func test_declared_ids_reads_the_consts_out_of_a_generated_file() -> void:
 func test_declared_ids_of_a_missing_file_is_empty() -> void:
 	# A first run has nothing to compare against and must therefore remove nothing.
 	assert_eq(SpecGenerators.declared_ids("user://no_such_generated_file.gd"), {})
+
+
 #endregion
 
 
 #region Reporting the removal
 func test_removal_for_names_the_ids_a_run_would_drop() -> void:
-	_write(SpecGenerators.entity_ids_text(
-		_registry(["an_barracks", "tc_armory", "tc_barracks", "tc_lab"])))
-	var removal: Dictionary = SpecGenerators.removal_for(SCRATCH, "EntityIds", {"an_barracks": true})
+	_write(
+		SpecGenerators.entity_ids_text(
+			_registry(["an_barracks", "tc_armory", "tc_barracks", "tc_lab"])
+		)
+	)
+	var removal: Dictionary = SpecGenerators.removal_for(
+		SCRATCH, "EntityIds", {"an_barracks": true}
+	)
 	assert_eq(removal["ids"], ["tc_armory", "tc_barracks", "tc_lab"], "sorted, and only the dead")
-	assert_eq(removal["consts"], ["TC_ARMORY", "TC_BARRACKS", "TC_LAB"],
-		"reported as the CONST names, because that is what hand-written code names")
+	assert_eq(
+		removal["consts"],
+		["TC_ARMORY", "TC_BARRACKS", "TC_LAB"],
+		"reported as the CONST names, because that is what hand-written code names"
+	)
 	assert_eq(removal["scope"], "EntityIds")
 	assert_eq(removal["path"], SCRATCH)
 
@@ -91,15 +103,22 @@ func test_removal_for_names_the_ids_a_run_would_drop() -> void:
 func test_a_file_that_loses_nothing_reports_nothing() -> void:
 	# An ordinary import must stay quiet, or the line stops being read.
 	_write(SpecGenerators.entity_ids_text(_registry(["an_barracks"])))
-	assert_eq(SpecGenerators.removal_for(SCRATCH, "EntityIds",
-		{"an_barracks": true, "an_new_piece": true}), {}, "an ADDED piece is not a removal")
+	assert_eq(
+		SpecGenerators.removal_for(
+			SCRATCH, "EntityIds", {"an_barracks": true, "an_new_piece": true}
+		),
+		{},
+		"an ADDED piece is not a removal"
+	)
 
 
 func test_the_comparison_is_against_the_file_on_disk() -> void:
 	# The file on disk is what hand-written code last compiled against, and that is what a
 	# removal breaks — so the diff is against the file, not against some earlier registry.
-	_write("class_name EntityIds\nconst HAND_EDITED := &\"hand_edited\"\n")
+	_write('class_name EntityIds\nconst HAND_EDITED := &"hand_edited"\n')
 	assert_eq(SpecGenerators.removal_for(SCRATCH, "EntityIds", {})["consts"], ["HAND_EDITED"])
+
+
 #endregion
 
 
@@ -109,8 +128,11 @@ func test_the_comparison_is_against_the_file_on_disk() -> void:
 ## file rather than asserted, so this pins the plumbing and not the content.
 func test_pending_removals_is_empty_when_the_registry_still_defines_everything() -> void:
 	var registry: SpecRegistry = _registry_matching_the_generated_ids()
-	assert_eq(SpecGenerators.pending_removals(registry), [],
-		"a registry holding exactly what the file declares removes nothing")
+	assert_eq(
+		SpecGenerators.pending_removals(registry),
+		[],
+		"a registry holding exactly what the file declares removes nothing"
+	)
 
 
 func test_pending_removals_reports_a_piece_taken_out_of_the_registry() -> void:
@@ -134,8 +156,9 @@ func _registry_matching_the_generated_ids() -> SpecRegistry:
 	var effects: Dictionary = SpecGenerators.declared_ids(SpecGenerators.STATUS_EFFECT_IDS_PATH)
 	assert_false(pieces.is_empty(), "the generated entity ids file was read")
 	return _registry(pieces.keys(), effects.keys())
-#endregion
 
+
+#endregion
 
 #region The grid review
 ## WHY THE IMPORT REFUSES A SHARED CELL. The HUD draws only the first button a cell holds
@@ -144,11 +167,16 @@ func _registry_matching_the_generated_ids() -> SpecRegistry:
 ## ControlBinding.grid_collisions already defines — faction, context and producer — against
 ## synthetic docs, never the shipped roster.
 
+
 ## A piece carrying just what the tool table reads: a cell, a faction, and optionally a
 ## footprint (which makes it BUILT unless something trains it) and a `trains:` list.
 func _piece(a_id: String, a_grid: Array, a_faction: String, a_extra: Dictionary = {}) -> Dictionary:
-	var spec: Dictionary = {"id": a_id, "_kind": "piece", "_doc_path": "res://gdd/%s.md" % a_id,
-		"ui": {"grid": a_grid, "factions": [a_faction]}}
+	var spec: Dictionary = {
+		"id": a_id,
+		"_kind": "piece",
+		"_doc_path": "res://gdd/%s.md" % a_id,
+		"ui": {"grid": a_grid, "factions": [a_faction]}
+	}
 	spec.merge(a_extra, true)
 	return spec
 
@@ -161,10 +189,17 @@ func _grid_registry(a_specs: Array) -> SpecRegistry:
 
 
 func test_two_buildings_of_one_faction_in_one_cell_are_refused_naming_both_docs() -> void:
-	var collisions: Array = SpecGenerators.grid_collisions(_grid_registry([
-		_piece("lb_relay", [0, 2], "libertarian", {"footprint": [5, 5]}),
-		_piece("lb_opticon", [0, 2], "libertarian", {"footprint": [1, 1]}),
-	]))
+	var collisions: Array = (
+		SpecGenerators
+		. grid_collisions(
+			_grid_registry(
+				[
+					_piece("lb_relay", [0, 2], "libertarian", {"footprint": [5, 5]}),
+					_piece("lb_opticon", [0, 2], "libertarian", {"footprint": [1, 1]}),
+				]
+			)
+		)
+	)
 	assert_eq(collisions.size(), 1, "one shared cell, one report")
 	assert_string_contains(collisions[0], "res://gdd/lb_relay.md")
 	assert_string_contains(collisions[0], "res://gdd/lb_opticon.md")
@@ -172,54 +207,133 @@ func test_two_buildings_of_one_faction_in_one_cell_are_refused_naming_both_docs(
 
 func test_a_piece_with_no_scene_yet_is_still_reviewed() -> void:
 	# The scene sync gives a new doc its scene AFTER validation; its button exists from then on.
-	var registry: SpecRegistry = _grid_registry([
-		_piece("lb_relay", [0, 2], "libertarian", {"footprint": [5, 5], "scene": "res://x.tscn"}),
-		_piece("lb_opticon", [0, 2], "libertarian", {"footprint": [1, 1]}),
-	])
+	var registry: SpecRegistry = _grid_registry(
+		[
+			_piece(
+				"lb_relay", [0, 2], "libertarian", {"footprint": [5, 5], "scene": "res://x.tscn"}
+			),
+			_piece("lb_opticon", [0, 2], "libertarian", {"footprint": [1, 1]}),
+		]
+	)
 	assert_eq(SpecGenerators.grid_collisions(registry).size(), 1)
 
 
 func test_different_factions_may_share_a_cell() -> void:
-	assert_eq(SpecGenerators.grid_collisions(_grid_registry([
-		_piece("lb_relay", [0, 2], "libertarian", {"footprint": [5, 5]}),
-		_piece("cl_citadel", [0, 2], "colonial", {"footprint": [5, 5]}),
-	])), [])
+	assert_eq(
+		(
+			SpecGenerators
+			. grid_collisions(
+				_grid_registry(
+					[
+						_piece("lb_relay", [0, 2], "libertarian", {"footprint": [5, 5]}),
+						_piece("cl_citadel", [0, 2], "colonial", {"footprint": [5, 5]}),
+					]
+				)
+			)
+		),
+		[]
+	)
 
 
 func test_units_trained_by_different_producers_may_share_a_cell() -> void:
-	assert_eq(SpecGenerators.grid_collisions(_grid_registry([
-		_piece("lb_barracks", [1, 0], "libertarian", {"footprint": [3, 3], "trains": ["lb_rifle"]}),
-		_piece("lb_airfield", [2, 0], "libertarian", {"footprint": [3, 3], "trains": ["lb_jet"]}),
-		_piece("lb_rifle", [0, 1], "libertarian"),
-		_piece("lb_jet", [0, 1], "libertarian"),
-	])), [])
+	assert_eq(
+		(
+			SpecGenerators
+			. grid_collisions(
+				_grid_registry(
+					[
+						_piece(
+							"lb_barracks",
+							[1, 0],
+							"libertarian",
+							{"footprint": [3, 3], "trains": ["lb_rifle"]}
+						),
+						_piece(
+							"lb_airfield",
+							[2, 0],
+							"libertarian",
+							{"footprint": [3, 3], "trains": ["lb_jet"]}
+						),
+						_piece("lb_rifle", [0, 1], "libertarian"),
+						_piece("lb_jet", [0, 1], "libertarian"),
+					]
+				)
+			)
+		),
+		[]
+	)
 
 
 func test_units_trained_by_one_producer_may_not_share_a_cell() -> void:
-	assert_eq(SpecGenerators.grid_collisions(_grid_registry([
-		_piece("lb_barracks", [1, 0], "libertarian", {"footprint": [3, 3],
-			"trains": ["lb_rifle", "lb_medic"]}),
-		_piece("lb_rifle", [0, 1], "libertarian"),
-		_piece("lb_medic", [0, 1], "libertarian"),
-	])).size(), 1)
+	assert_eq(
+		(
+			SpecGenerators
+			. grid_collisions(
+				_grid_registry(
+					[
+						_piece(
+							"lb_barracks",
+							[1, 0],
+							"libertarian",
+							{"footprint": [3, 3], "trains": ["lb_rifle", "lb_medic"]}
+						),
+						_piece("lb_rifle", [0, 1], "libertarian"),
+						_piece("lb_medic", [0, 1], "libertarian"),
+					]
+				)
+			)
+			. size()
+		),
+		1
+	)
 
 
 func test_a_trained_unit_may_not_sit_on_its_producers_context_button() -> void:
 	# Row 0 of the PRODUCTION card holds the producer radio buttons (ui.context_grid).
-	var collisions: Array = SpecGenerators.grid_collisions(_grid_registry([
-		_piece("lb_barracks", [1, 0], "libertarian", {"footprint": [3, 3],
-			"trains": ["lb_rifle"], "ui": {"grid": [1, 0], "factions": ["libertarian"],
-				"context_grid": [1, 0]}}),
-		_piece("lb_rifle", [1, 0], "libertarian"),
-	]))
+	var collisions: Array = (
+		SpecGenerators
+		. grid_collisions(
+			_grid_registry(
+				[
+					_piece(
+						"lb_barracks",
+						[1, 0],
+						"libertarian",
+						{
+							"footprint": [3, 3],
+							"trains": ["lb_rifle"],
+							"ui":
+							{"grid": [1, 0], "factions": ["libertarian"], "context_grid": [1, 0]}
+						}
+					),
+					_piece("lb_rifle", [1, 0], "libertarian"),
+				]
+			)
+		)
+	)
 	assert_eq(collisions.size(), 1)
 	assert_string_contains(collisions[0], "ui.context_grid")
 
 
 func test_a_building_and_a_unit_never_collide() -> void:
 	# BUILD and TRAIN are different contexts on different cards.
-	assert_eq(SpecGenerators.grid_collisions(_grid_registry([
-		_piece("lb_barracks", [0, 1], "libertarian", {"footprint": [3, 3], "trains": ["lb_rifle"]}),
-		_piece("lb_rifle", [0, 1], "libertarian"),
-	])), [])
+	assert_eq(
+		(
+			SpecGenerators
+			. grid_collisions(
+				_grid_registry(
+					[
+						_piece(
+							"lb_barracks",
+							[0, 1],
+							"libertarian",
+							{"footprint": [3, 3], "trains": ["lb_rifle"]}
+						),
+						_piece("lb_rifle", [0, 1], "libertarian"),
+					]
+				)
+			)
+		),
+		[]
+	)
 #endregion

@@ -115,8 +115,11 @@ func release_lost_dock() -> void:
 	if airfield != null:
 		# PREPENDED, like the automatic rearm: whatever the unit was going to do next is still
 		# what it wants, it just has to find somewhere to stand first.
-		piece.update_commands(Rearm.new(CommandMessage.new(
-			piece.map, airfield, null, airfield.global_position)), true, true)
+		piece.update_commands(
+			Rearm.new(CommandMessage.new(piece.map, airfield, null, airfield.global_position)),
+			true,
+			true
+		)
 		return
 	# Nowhere left to go: hold over the wreck rather than flying off, which is where the
 	# player last saw it and where they will come looking.
@@ -152,8 +155,12 @@ func aim_parked_at_runway() -> void:
 	# time the clip is full. Taxiing is excluded — is_on_deck() is false then — so this never
 	# fights the taxi's own rotation.
 	var piece: Commandable = host()
-	if not is_on_deck() or docked_pad == null or not is_instance_valid(docked_pad) \
-			or piece.movement == null:
+	if (
+		not is_on_deck()
+		or docked_pad == null
+		or not is_instance_valid(docked_pad)
+		or piece.movement == null
+	):
 		return
 	var strip: Runway = _departure_runway(docked_pad)
 	if strip == null:

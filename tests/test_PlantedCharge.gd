@@ -13,8 +13,12 @@ extends GutTest
 ##       -gdir=res://tests/none -gexit
 
 ## A unit carrying the plant ability; a machine to ride on; a plain soldier.
-const SAPPER_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "repairs": true,
-	"abilities": [{"grants": [Plant.ABILITY_ID], "cooldown_ticks": 90}]}
+const SAPPER_PATH: Dictionary = {
+	"speed": 2.0,
+	"vision": 8.0,
+	"repairs": true,
+	"abilities": [{"grants": [Plant.ABILITY_ID], "cooldown_ticks": 90}]
+}
 const TANK_PATH: Dictionary = FakePieces.MACHINE
 const SOLDIER_PATH: Dictionary = FakePieces.PLAIN
 var _commanders: Dictionary = {}
@@ -88,10 +92,16 @@ func test_the_plant_charge_does_not_recharge_while_the_charge_is_in_play() -> vo
 
 func test_a_sapper_with_no_charge_ready_cannot_plant() -> void:
 	var sapper: Commandable = _piece(SAPPER_PATH, 1)
-	assert_eq(Plant.meets_precondition(sapper, _message()), MoveCommand.PreconditionFailureCause.NONE)
+	assert_eq(
+		Plant.meets_precondition(sapper, _message()), MoveCommand.PreconditionFailureCause.NONE
+	)
 	_plant(sapper)
-	assert_eq(Plant.meets_precondition(sapper, _message()),
-		MoveCommand.PreconditionFailureCause.ABILITY_NO_CHARGES)
+	assert_eq(
+		Plant.meets_precondition(sapper, _message()),
+		MoveCommand.PreconditionFailureCause.ABILITY_NO_CHARGES
+	)
+
+
 #endregion
 
 
@@ -132,6 +142,8 @@ func test_a_charge_destroyed_where_it_stands_goes_off() -> void:
 	var charge: PlantedCharge = _plant(_piece(SAPPER_PATH, 1))
 	charge.host().die()
 	assert_true(charge.is_resolved(), "resolved by its own death, not a second one")
+
+
 #endregion
 
 
@@ -145,6 +157,8 @@ func test_detonate_is_for_a_charge_or_its_planter() -> void:
 	assert_eq(Detonate.meets_precondition(charge.host(), _message()), none, "and so can it")
 	Detonate.new(_message()).fulfill_action(sapper)
 	assert_true(charge.is_resolved())
+
+
 #endregion
 
 
@@ -210,6 +224,8 @@ func test_a_staggered_piece_sheds_nothing() -> void:
 	assert_true(tank.is_staggered(), "guards the fixture")
 	assert_false(tank.defense.restore(1.0), "a mender stands by")
 	assert_false(charge.is_resolved())
+
+
 #endregion
 
 
@@ -224,8 +240,12 @@ func test_a_charge_cannot_be_hijacked() -> void:
 	var charge: PlantedCharge = _plant(_piece(SAPPER_PATH, 1))
 	var hijack := Interaction.new()
 	hijack.type = Interaction.Type.HIJACK
-	assert_ne(hijack.meets_precondition(_piece(SAPPER_PATH, 2), _message(charge.host())),
-		MoveCommand.PreconditionFailureCause.NONE)
+	assert_ne(
+		hijack.meets_precondition(_piece(SAPPER_PATH, 2), _message(charge.host())),
+		MoveCommand.PreconditionFailureCause.NONE
+	)
+
+
 #endregion
 
 
@@ -263,8 +283,10 @@ func test_detonate_takes_the_cell_once_no_sapper_can_plant() -> void:
 func test_a_recharging_sapper_alone_still_draws_plant() -> void:
 	var sapper: Commandable = _piece(SAPPER_PATH, 1)
 	_plant(sapper).host().free()
-	assert_true(RTSController.selection_commands([sapper]).has("command_plant"),
-		"drawn dark, recharging — there is nothing to detonate")
+	assert_true(
+		RTSController.selection_commands([sapper]).has("command_plant"),
+		"drawn dark, recharging — there is nothing to detonate"
+	)
 
 
 func test_plant_outranks_detonate_in_their_cell() -> void:
@@ -272,17 +294,22 @@ func test_plant_outranks_detonate_in_their_cell() -> void:
 	var detonate: ControlBinding = CommandGrid.binding_for("command_detonate")
 	assert_eq(plant.grid_position, detonate.grid_position)
 	var names: Array = CommandGrid.bindings().map(
-		func(binding: ControlBinding) -> String: return binding.command_name)
+		func(binding: ControlBinding) -> String: return binding.command_name
+	)
 	assert_lt(names.find("command_plant"), names.find("command_detonate"))
 
 
 func test_each_stance_has_its_badge() -> void:
 	assert_eq(StatusVisuals.stance_badge(Deployable.Stance.MOBILE), [])
-	for stance: Deployable.Stance in [Deployable.Stance.DEPLOYING, Deployable.Stance.DEPLOYED,
-			Deployable.Stance.UNDEPLOYING]:
+	for stance: Deployable.Stance in [
+		Deployable.Stance.DEPLOYING, Deployable.Stance.DEPLOYED, Deployable.Stance.UNDEPLOYING
+	]:
 		assert_eq(StatusVisuals.stance_badge(stance).size(), 2, "a badge for %s" % stance)
-	assert_eq(StatusVisuals.stance_badge(Deployable.Stance.DEPLOYED)[1], 0.0,
-		"the settled stance holds steady; the transitions flash")
+	assert_eq(
+		StatusVisuals.stance_badge(Deployable.Stance.DEPLOYED)[1],
+		0.0,
+		"the settled stance holds steady; the transitions flash"
+	)
 	assert_gt(StatusVisuals.stance_badge(Deployable.Stance.DEPLOYING)[1], 0.0)
 
 

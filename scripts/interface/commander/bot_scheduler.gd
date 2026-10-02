@@ -39,8 +39,9 @@ var _balance: int = 0
 ## The scheduler serving `a_node`'s scene tree, created as a child of `a_host` if there is
 ## none yet.
 static func find_or_create(a_node: Node, a_host: Node) -> BotScheduler:
-	var found: Node = a_node.get_tree().get_first_node_in_group(GROUP) if a_node.is_inside_tree() \
-		else null
+	var found: Node = (
+		a_node.get_tree().get_first_node_in_group(GROUP) if a_node.is_inside_tree() else null
+	)
 	if found != null:
 		return found as BotScheduler
 	var scheduler := BotScheduler.new()
@@ -99,12 +100,14 @@ func _due_jobs() -> Array[BotJob]:
 	var order: Dictionary = {}
 	for i: int in _jobs.size():
 		order[_jobs[i]] = i
-	due.sort_custom(func(a: BotJob, b: BotJob) -> bool:
-		if a.due_tick != b.due_tick:
-			return a.due_tick < b.due_tick
-		if a.priority != b.priority:
-			return a.priority > b.priority
-		return order[a] < order[b])
+	due.sort_custom(
+		func(a: BotJob, b: BotJob) -> bool:
+			if a.due_tick != b.due_tick:
+				return a.due_tick < b.due_tick
+			if a.priority != b.priority:
+				return a.priority > b.priority
+			return order[a] < order[b]
+	)
 	return due
 
 
@@ -113,9 +116,17 @@ func _due_jobs() -> Array[BotJob]:
 func report() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for job: BotJob in _jobs:
-		out.append({
-			"brain": job.brain.get_instance_id(), "name": job.name,
-			"units": job.last_units, "usec": job.last_usec, "due_in": job.due_tick - _tick,
-			"ran_this_tick": job.last_run_tick == _tick,
-		})
+		(
+			out
+			. append(
+				{
+					"brain": job.brain.get_instance_id(),
+					"name": job.name,
+					"units": job.last_units,
+					"usec": job.last_usec,
+					"due_in": job.due_tick - _tick,
+					"ran_this_tick": job.last_run_tick == _tick,
+				}
+			)
+		)
 	return out

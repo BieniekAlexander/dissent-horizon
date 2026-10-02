@@ -39,7 +39,7 @@ signal select_pending_requested(transactions: Array, additive: bool)
 ## and the EntityRanges.Kind values it wants shown; and when it leaves. The controller owns
 ## the world-space indicator — this panel only says what is being asked about.
 signal ranges_hovered(entity: Entity, kinds: Array)
-signal ranges_unhovered()
+signal ranges_unhovered
 
 @onready var _summary_name: Label = $Summary/NameLabel
 @onready var _summary_cards: HFlowContainer = $Summary/Cards
@@ -73,9 +73,11 @@ func _ready() -> void:
 	for row: Node in [_widgets, _effects, _passives]:
 		if row == null:
 			continue
-		row.ranges_hovered.connect(func(a_entity: Entity, a_kinds: Array) -> void:
-			ranges_hovered.emit(a_entity, a_kinds))
+		row.ranges_hovered.connect(
+			func(a_entity: Entity, a_kinds: Array) -> void: ranges_hovered.emit(a_entity, a_kinds)
+		)
 		row.ranges_unhovered.connect(func() -> void: ranges_unhovered.emit())
+
 
 ## Called every frame by the controller with the current selection. [a_commander] is the
 ## local player's, and only the passive row reads it — whether a standing benefit has been
@@ -91,6 +93,7 @@ func update(a_selection: Array, a_commander: Commander = null) -> void:
 	if _passives != null:
 		_passives.update(a_selection, a_commander)
 
+
 ## The specific queued unit whose production card the mouse is currently over, as
 ## [producer, job_index] — empty when nothing is hovered. Read every frame by
 ## RTSController's rally indicator, which prefers this unit's own pre-issued commands
@@ -102,6 +105,7 @@ func hovered_training_target() -> Array:
 		if c != null and c.is_hovered_training():
 			return [c.training_producer(), c.training_job_index()]
 	return []
+
 
 func _update_summary(a_selection: Array) -> void:
 	var commandables: Array = []
@@ -141,6 +145,7 @@ func _update_summary(a_selection: Array) -> void:
 		_summary_name.visible = true
 		_summary_cards.visible = false
 
+
 ## Generic single-unit blurb: the unit's node name, its flavor text (description, or
 ## verbose while ui_verbose is held — see Commandable.resolved_description/verbose), an
 ## HP line when it has a Defense component, an occupancy line when it has a Garrison
@@ -155,14 +160,19 @@ func _single_unit_text(a_commandable: Commandable) -> String:
 	# nothing at all.
 	if _widgets == null:
 		text = String((a_commandable as Node).name)
-		text += "\n" + (
-			a_commandable.resolved_verbose() if Input.is_action_pressed("ui_verbose")
-			else a_commandable.resolved_description()
+		text += (
+			"\n"
+			+ (
+				a_commandable.resolved_verbose()
+				if Input.is_action_pressed("ui_verbose")
+				else a_commandable.resolved_description()
+			)
 		)
 		if a_commandable.defense != null:
-			text += "\nHP %d/%d" % [
-				roundi(a_commandable.defense.hp), roundi(a_commandable.defense.hp_max)
-			]
+			text += (
+				"\nHP %d/%d"
+				% [roundi(a_commandable.defense.hp), roundi(a_commandable.defense.hp_max)]
+			)
 	var garrison: Garrison = a_commandable.get_node_or_null("Garrison") as Garrison
 	if garrison != null:
 		text += "\nHolding %d/%d" % [garrison.occupied_size(), garrison.capacity]
@@ -173,6 +183,7 @@ func _single_unit_text(a_commandable: Commandable) -> String:
 	if a_commandable.production != null:
 		text += "\n" + _production_line(a_commandable)
 	return text
+
 
 ## What a selected producer is doing, and how much of the commander's queue is pointed at it.
 ##
@@ -202,6 +213,7 @@ func _production_line(a_commandable: Commandable) -> String:
 	# first. Claiming otherwise would re-suggest the per-structure queues that were removed.
 	return "%s  ·  %d more can land here" % [line, waiting]
 
+
 ## Left click on a summary card: shift removes that unit from the selection; a plain
 ## click makes it the sole selection. The controller applies the change, and the next
 ## update() rebuilds the cards to match.
@@ -210,6 +222,7 @@ func _on_summary_card_activated(a_commandable: Commandable, a_shift_held: bool) 
 		deselect_requested.emit(a_commandable)
 	else:
 		select_only_requested.emit(a_commandable)
+
 
 func _update_details(a_selection: Array) -> void:
 	# Flatten every training job of every selected producer into [producer, index], and —
@@ -262,6 +275,7 @@ func _update_details(a_selection: Array) -> void:
 		# gdd/systems/ux/ui/control-matrices.md §Context 6.
 		occ_card.select_requested.connect(_on_occupant_select_requested)
 
+
 ## Paint the green border on every job card whose unit is selected. Every frame rather than
 ## on the rebuild gate, because the SELECTION changes without the card set changing — the
 ## cards are the same, and which of them is picked is not.
@@ -273,8 +287,9 @@ func _refresh_pending_borders() -> void:
 		if card == null or card.training_producer() == null:
 			continue
 		var production: Production = card.training_producer().production
-		var transaction: PurchaseTransaction = production.job_transaction(card.training_job_index()) \
-			if production != null else null
+		var transaction: PurchaseTransaction = (
+			production.job_transaction(card.training_job_index()) if production != null else null
+		)
 		card.set_pending_selected(controller.is_pending_selected(transaction))
 
 

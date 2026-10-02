@@ -21,6 +21,8 @@ extends GutTest
 
 const UNIT_SCENE: Dictionary = FakePieces.BUILDER
 const STRUCTURE_SCENE: Dictionary = FakePieces.BUILDING
+
+
 func _controller() -> RTSController:
 	return autofree(RTSController.new()) as RTSController
 
@@ -76,6 +78,8 @@ func test_nothing_hit_resolves_to_nothing() -> void:
 		RTSController.preferred_cursor_entity([] as Array[Entity]),
 		"an empty candidate list means the caller falls through to the terrain hit"
 	)
+
+
 #endregion
 
 

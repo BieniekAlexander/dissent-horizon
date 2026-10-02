@@ -35,21 +35,22 @@ extends RefCounted
 ## The reaches worth showing. Each is a separate hoverable fact on the info card, so they
 ## are named rather than being an untyped list of shapes.
 enum Kind {
-	VISION,     ## what this piece reveals of the fog
+	VISION,  ## what this piece reveals of the fog
 	DETECTION,  ## how close a stealthed enemy has to come to be seen
-	AGGRO,      ## how far it will start a fight on its own
-	ATTACK,     ## how far its FIRST weapon carries against GROUND targets
-	ATTACK_AIR, ## how far its first air-capable weapon carries against AIR targets
-	LIBERATION, ## how close a Terrestrial has to be to be converted
-	DOMINION,   ## the Warlord's aura, over which colocated infantry bank dominion
-	EFFECT,     ## how far an active status effect on it reaches (see StatusEffect.effect_radius)
+	AGGRO,  ## how far it will start a fight on its own
+	ATTACK,  ## how far its FIRST weapon carries against GROUND targets
+	ATTACK_AIR,  ## how far its first air-capable weapon carries against AIR targets
+	LIBERATION,  ## how close a Terrestrial has to be to be converted
+	DOMINION,  ## the Warlord's aura, over which colocated infantry bank dominion
+	EFFECT,  ## how far an active status effect on it reaches (see StatusEffect.effect_radius)
 }
 
 ## The kinds measured from the piece's footprint rather than its centre (SU.entities_within,
 ## SU.is_in_attack_range). VISION is not: fog is stamped from the centre. EFFECT is not:
 ## an effect's reach is a number on the effect, measured from the host's position.
-const HULL_MEASURED: Array = [Kind.DETECTION, Kind.AGGRO, Kind.ATTACK, Kind.ATTACK_AIR,
-	Kind.LIBERATION, Kind.DOMINION]
+const HULL_MEASURED: Array = [
+	Kind.DETECTION, Kind.AGGRO, Kind.ATTACK, Kind.ATTACK_AIR, Kind.LIBERATION, Kind.DOMINION
+]
 
 ## The scene group each kind's shape carries. EFFECT is absent deliberately: an effect's
 ## reach is a NUMBER on the effect rather than a body, so it is the one kind built rather
@@ -80,6 +81,7 @@ const TITLES: Dictionary = {
 	Kind.EFFECT: "effect",
 }
 
+
 ## The colour a kind is drawn in — READ FROM THE EDITOR'S OWN TABLE, brightened, because the
 ## debug colours are authored as translucent fills and these are drawn as outlines.
 ##
@@ -92,6 +94,7 @@ static func color_of(a_kind: Kind) -> Color:
 		return ATTACK_AIR_COLOR
 	var color: Variant = DebugShapeColors.GROUP_COLOR.get(String(GROUPS.get(a_kind, &"")))
 	return (color as Color) if color is Color else Color.WHITE
+
 
 ## EFFECT has no debug shape and so no entry in that table — it is the one colour named here.
 const EFFECT_COLOR: Color = Color(0.56, 0.94, 0.72)
@@ -111,10 +114,17 @@ const VISION_KINDS: Array = [Kind.VISION, Kind.DETECTION]
 const EFFECT_KINDS: Array = [Kind.EFFECT]
 ## Everything a piece projects, for a caller that wants the lot rather than one card's worth.
 const ALL_KINDS: Array = [
-	Kind.VISION, Kind.DETECTION, Kind.AGGRO, Kind.ATTACK, Kind.ATTACK_AIR,
-	Kind.LIBERATION, Kind.DOMINION, Kind.EFFECT,
+	Kind.VISION,
+	Kind.DETECTION,
+	Kind.AGGRO,
+	Kind.ATTACK,
+	Kind.ATTACK_AIR,
+	Kind.LIBERATION,
+	Kind.DOMINION,
+	Kind.EFFECT,
 ]
 #endregion
+
 
 #region Queries
 ## Every StatusEffect currently acting on `a_entity`. Effects are children of the entity
@@ -139,8 +149,7 @@ static func active_effects(a_entity: Entity) -> Array[StatusEffect]:
 ## a box body is widened as the circle about it, which never under-states the reach.
 static func shape_for(a_entity: Entity, a_kind: Kind) -> HighlightShape:
 	var shape: HighlightShape = _reach_shape(a_entity, a_kind)
-	if shape == null or shape.kind != HighlightShape.Kind.CIRCLE \
-			or not HULL_MEASURED.has(a_kind):
+	if shape == null or shape.kind != HighlightShape.Kind.CIRCLE or not HULL_MEASURED.has(a_kind):
 		return shape
 	return HighlightShape.circle(shape.center, shape.radius + a_entity.hull().extent())
 
@@ -173,8 +182,11 @@ static func radius_of(a_entity: Entity, a_kind: Kind) -> float:
 	var shape: HighlightShape = _reach_shape(a_entity, a_kind)
 	if shape == null:
 		return -1.0
-	return shape.radius if shape.kind == HighlightShape.Kind.CIRCLE \
+	return (
+		shape.radius
+		if shape.kind == HighlightShape.Kind.CIRCLE
 		else maxf(shape.half_extents.x, shape.half_extents.y)
+	)
 
 
 ## Whether `a_entity` has anything at all to show for `a_kinds`.
@@ -231,11 +243,11 @@ static func emission_radius(a_scene: PackedScene) -> float:
 	if hit != null and RangeShapes.radius_of(hit.shape) >= 0.0 and root != null:
 		# Out of tree, so local transforms: the blast scales with the emission root and with
 		# the shape node's own X axis. Same reading Bot._projectile_blast_radius takes.
-		radius = RangeShapes.radius_of(hit.shape) * root.scale.x \
-			* hit.transform.basis.x.length()
+		radius = RangeShapes.radius_of(hit.shape) * root.scale.x * hit.transform.basis.x.length()
 	probe.free()
 	_emission_radii[a_scene] = radius
 	return radius
+
 
 static var _emission_radii: Dictionary = {}
 
@@ -249,7 +261,10 @@ static func first_weapon(a_entity: Entity) -> Weapon:
 		if weapon != null:
 			return weapon
 	return null
+
+
 #endregion
+
 
 #region Private helpers
 ## EFFECT is the one kind with no collision shape behind it: an effect's reach is a NUMBER
@@ -281,8 +296,9 @@ static func _shape_node(a_entity: Entity, a_kind: Kind) -> CollisionShape3D:
 ## serves both layers is returned for both, which is how the reveal learns the two reaches
 ## are the same ring.
 static func _attack_node(a_entity: Entity, a_air: bool) -> CollisionShape3D:
-	var layer: int = CollisionLayers.Mask.TARGETABLE_AIR if a_air \
-		else CollisionLayers.Mask.TARGETABLE_GROUND
+	var layer: int = (
+		CollisionLayers.Mask.TARGETABLE_AIR if a_air else CollisionLayers.Mask.TARGETABLE_GROUND
+	)
 	for node: CollisionShape3D in shape_nodes_in_group(a_entity, GROUPS[Kind.ATTACK]):
 		var weapon := node.get_parent() as Weapon
 		if weapon == null or node.shape == null:

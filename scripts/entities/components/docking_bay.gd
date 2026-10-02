@@ -28,13 +28,15 @@ extends Node3D
 
 #region Properties
 ## How fast this bay recharges a docked unit's weapons, as a multiplier on the rate
-## Weapon.reload_time_ticks implies. 1.0 means a unit takes exactly its weapon's reload_time_ticks to
+## Weapon.reload_time_ticks implies. 1.0 means a unit takes exactly its weapon's reload_time_ticks
+## to
 ## refill; a faction whose airfields service faster raises it. Kept on the BAY rather than
 ## on the weapon because it describes the facility, not the gun — the same aircraft should
 ## turn around faster at a better airfield.
 @export var charge_rate: float = 1.0
 
 #endregion
+
 
 #region Public API
 ## Every pad on this bay, in scene-tree order. That order is the authored one, so a bay
@@ -46,19 +48,23 @@ func pads() -> Array[DockingPad]:
 			result.append(c as DockingPad)
 	return result
 
+
 ## How many aircraft this bay can hold at once — the pad count, never a separate number.
 func capacity() -> int:
 	return pads().size()
 
+
 ## Pads with no live claimant.
 func free_pads() -> Array[DockingPad]:
 	return pads().filter(func(p: DockingPad) -> bool: return p.is_free())
+
 
 func has_free_pad() -> bool:
 	for p: DockingPad in pads():
 		if p.is_free():
 			return true
 	return false
+
 
 ## The units currently holding a pad here — parked or inbound.
 func claimants() -> Array[Commandable]:
@@ -69,6 +75,7 @@ func claimants() -> Array[Commandable]:
 			result.append(c)
 	return result
 
+
 ## The pad `unit` already holds here, or null. Checked before reserving so a Rearm command
 ## re-entering its own approach reclaims its space rather than taking a second one.
 func pad_held_by(a_unit: Commandable) -> DockingPad:
@@ -76,6 +83,7 @@ func pad_held_by(a_unit: Commandable) -> DockingPad:
 		if p.claimed_by() == a_unit:
 			return p
 	return null
+
 
 ## Whether this bay would take `unit` at all, ignoring how full it is. Three requirements,
 ## each doing distinct work:
@@ -102,11 +110,13 @@ func admits(a_unit: Commandable) -> bool:
 		return false
 	return true
 
+
 ## Both questions at once: may this unit dock here, and is there room right now. The
 ## admits / has_room / accepts trio mirrors Garrison's, so the two mechanics answer the
 ## same three questions under the same three names.
 func accepts(a_unit: Commandable) -> bool:
 	return admits(a_unit) and (has_free_pad() or pad_held_by(a_unit) != null)
+
 
 ## Claim a pad here for `unit`, returning it — or null when the bay is full. Idempotent:
 ## a unit that already holds a pad here gets the same one back, so a command re-reserving
@@ -122,11 +132,13 @@ func reserve(a_unit: Commandable) -> DockingPad:
 			return p
 	return null
 
+
 ## Drop whatever pad `unit` holds here. Safe to call for a unit that holds none.
 func release(a_unit: Commandable) -> void:
 	for p: DockingPad in pads():
 		if p.claimed_by() == a_unit:
 			p.release(a_unit)
+
 
 ## Recharge everything parked on this bay's pads by one tick's worth. Called from the
 ## STRUCTURE's per-tick update rather than from each docked unit's, so a unit that is
@@ -143,6 +155,7 @@ func tick_recharge() -> void:
 			continue
 		if unit.weapon_inventory != null:
 			unit.weapon_inventory.recharge(charge_rate)
+
 
 ## Every runway this airfield carries, in scene order. An airfield may have several; an
 ## aircraft uses the one nearest whichever pad it is assigned (see runway_for).
@@ -170,6 +183,7 @@ func runway_for(a_pad: DockingPad) -> Runway:
 			best_distance = d
 			best = strip
 	return best
+
 
 ## The Commandable this bay belongs to. Structures put their components directly under the
 ## entity root, so this is just the parent — resolved through a helper rather than inline

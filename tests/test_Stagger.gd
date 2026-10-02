@@ -12,38 +12,49 @@ extends GutTest
 ## The allow-set is the core spec: HIJACK waits out a stagger; DEPOSIT proceeds
 ## regardless.
 
+
 func _interaction(a_type: Interaction.Type) -> Interaction:
 	var ix := Interaction.new()
 	ix.type = a_type
 	return ix
 
+
 func test_plant_is_blocked_while_staggered():
 	var plant := Plant.new(CommandMessage.new(null, null, null, Vector3.ZERO))
 	assert_true(plant.blocked_by_stagger(null))
 
+
 func test_hijack_is_blocked_while_staggered():
 	assert_true(_interaction(Interaction.Type.HIJACK).blocks_while_staggered())
+
 
 func test_deposit_is_not_blocked_while_staggered():
 	assert_false(_interaction(Interaction.Type.DEPOSIT).blocks_while_staggered())
 
+
 ## --- Which commands opt into stagger blocking --------------------------------
+
 
 func _message() -> CommandMessage:
 	return CommandMessage.new(null, null)
+
 
 func test_plain_move_is_not_blocked_by_stagger():
 	# The default: most actions ignore stagger.
 	assert_false(MoveCommand.new(_message()).blocked_by_stagger(null))
 
+
 func test_build_is_blocked_by_stagger():
 	assert_true(Build.new(_message()).blocked_by_stagger(null))
+
 
 func test_assemble_is_blocked_by_stagger():
 	assert_true(Assemble.new(_message()).blocked_by_stagger(null))
 
+
 func test_repair_is_blocked_by_stagger():
 	assert_true(Repair.new(_message()).blocked_by_stagger(null))
+
 
 ## Interact itself has no fixed answer — it defers to the resolved interaction's
 ## blocks_while_staggered (see the Interaction.Type tests above), so a staggered actor
@@ -54,11 +65,13 @@ func test_repair_is_blocked_by_stagger():
 ## command and the heal aura cannot disagree. Construction is NOT healing and is not
 ## affected — advance_build_progress writes hp directly.
 
+
 func _wounded_patient() -> Commandable:
 	var patient: Commandable = FakePieces.unit({"hp": 80.0})
 	add_child_autofree(patient)
 	patient.defense.hp = patient.defense.hp_max * 0.5
 	return patient
+
 
 func test_restore_is_refused_while_staggered():
 	var patient := _wounded_patient()
@@ -67,6 +80,7 @@ func test_restore_is_refused_while_staggered():
 	var after_hit: float = patient.defense.hp
 	assert_false(patient.defense.restore(10.0), "reports not-full, so a mender stands by")
 	assert_almost_eq(patient.defense.hp, after_hit, 0.001, "no hp was restored")
+
 
 func test_restore_resumes_once_the_stagger_wears_off():
 	# Cleared directly rather than by ticking out STAGGER_SECONDS of physics: the countdown

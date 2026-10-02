@@ -14,6 +14,7 @@ extends GutTest
 ## (Commandable.is_holding_fire) actually stops a pickup. These tests are the unit-level
 ## half: that the manager sets, clears and enforces the flag at the right moments.
 
+
 ## A Commandable with the four children Entity/Commandable resolve with a hard `$`, and
 ## nothing else — same stub shape as tests/test_BotHostileTargets.gd.
 class StubPiece:
@@ -21,9 +22,11 @@ class StubPiece:
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
-		for pair: Array in [["Ownership", Ownership.new()],
-				["AvoidanceObstacle", NavigationObstacle3D.new()],
-				["Veterancy", Veterancy.new()]]:
+		for pair: Array in [
+			["Ownership", Ownership.new()],
+			["AvoidanceObstacle", NavigationObstacle3D.new()],
+			["Veterancy", Veterancy.new()]
+		]:
 			var node: Node = pair[1]
 			node.name = pair[0]
 			piece.add_child(node)
@@ -71,8 +74,10 @@ func test_a_piece_acquires_targets_by_default() -> void:
 func test_holding_a_drone_suppresses_its_own_target_acquisition() -> void:
 	var drone: Commandable = _drone()
 	_kamikaze._hold(drone)
-	assert_true(drone.is_holding_fire,
-		"no blast is worth it, so the drone waits rather than taking what is nearest")
+	assert_true(
+		drone.is_holding_fire,
+		"no blast is worth it, so the drone waits rather than taking what is nearest"
+	)
 
 
 func test_holding_drops_an_engagement_aggro_already_committed_to() -> void:

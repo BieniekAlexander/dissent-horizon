@@ -19,8 +19,9 @@ const EPSILON: float = 0.0001
 
 #region Geometry
 func test_two_circles_are_apart_by_their_centres_less_both_radii() -> void:
-	assert_almost_eq(Hull.gap(Hull.circle(Vector2.ZERO, 1.0), Hull.circle(Vector2(5, 0), 1.5)),
-		2.5, EPSILON)
+	assert_almost_eq(
+		Hull.gap(Hull.circle(Vector2.ZERO, 1.0), Hull.circle(Vector2(5, 0), 1.5)), 2.5, EPSILON
+	)
 
 
 func test_touching_or_overlapping_footprints_have_no_gap() -> void:
@@ -33,15 +34,20 @@ func test_a_box_is_measured_to_its_nearest_edge_not_its_centre() -> void:
 	var box := Hull.rect(Vector2.ZERO, Vector2(2, 1), Vector2.RIGHT, Vector2.DOWN)
 	assert_almost_eq(box.distance_to_point(Vector2(5, 0)), 3.0, EPSILON, "off the long face")
 	assert_almost_eq(box.distance_to_point(Vector2(0, 4)), 3.0, EPSILON, "off the short face")
-	assert_almost_eq(box.distance_to_point(Vector2(5, 5)), Vector2(3, 4).length(), EPSILON,
-		"off a corner")
+	assert_almost_eq(
+		box.distance_to_point(Vector2(5, 5)), Vector2(3, 4).length(), EPSILON, "off a corner"
+	)
 
 
 func test_a_rotated_box_is_measured_in_its_own_frame() -> void:
 	var diagonal := Vector2(1, 1).normalized()
 	var box := Hull.rect(Vector2.ZERO, Vector2(1, 1), diagonal, diagonal.orthogonal())
-	assert_almost_eq(box.distance_to_point(Vector2(3, 0)), 3.0 - sqrt(2.0), EPSILON,
-		"a corner now points along +X")
+	assert_almost_eq(
+		box.distance_to_point(Vector2(3, 0)),
+		3.0 - sqrt(2.0),
+		EPSILON,
+		"a corner now points along +X"
+	)
 
 
 func test_two_boxes_that_cross_without_a_corner_inside_still_overlap() -> void:
@@ -72,8 +78,11 @@ func test_the_gap_reads_the_same_from_either_end() -> void:
 
 func test_extent_is_the_farthest_reach_from_the_centre() -> void:
 	assert_eq(Hull.circle(Vector2.ZERO, 2.0).extent(), 2.0)
-	assert_almost_eq(Hull.rect(Vector2.ZERO, Vector2(3, 4), Vector2.RIGHT, Vector2.DOWN).extent(),
-		5.0, EPSILON)
+	assert_almost_eq(
+		Hull.rect(Vector2.ZERO, Vector2(3, 4), Vector2.RIGHT, Vector2.DOWN).extent(), 5.0, EPSILON
+	)
+
+
 #endregion
 
 
@@ -123,12 +132,14 @@ func test_a_round_body_and_a_box_reach_each_other_at_the_same_separations() -> v
 			await wait_physics_frames(1)
 			var one_way: bool = SU.is_in_attack_range(round_gun, round_piece, box_piece)
 			var other_way: bool = SU.is_in_attack_range(box_gun, box_piece, round_piece)
-			assert_eq(one_way, other_way, "reach at %s, %s deg" % [
-				box_piece.global_position, angle_deg])
+			assert_eq(
+				one_way, other_way, "reach at %s, %s deg" % [box_piece.global_position, angle_deg]
+			)
 			var sees_one: bool = round_piece.hostiles_in_aggro().has(box_piece)
 			var sees_other: bool = box_piece.hostiles_in_aggro().has(round_piece)
-			assert_eq(sees_one, sees_other, "aggro at %s, %s deg" % [
-				box_piece.global_position, angle_deg])
+			assert_eq(
+				sees_one, sees_other, "aggro at %s, %s deg" % [box_piece.global_position, angle_deg]
+			)
 			both_reached += int(one_way and other_way)
 			neither_reached += int(not one_way and not other_way)
 	assert_gt(both_reached, 0, "guards the fixture: the sweep starts in range")

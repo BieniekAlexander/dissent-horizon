@@ -41,8 +41,11 @@ func test_non_structure_entity_gets_the_xray_stencil() -> void:
 	var mats: Array[BaseMaterial3D] = _materials_of(visual)
 	assert_false(mats.is_empty(), "the irregular model has at least one tintable surface")
 	for mat: BaseMaterial3D in mats:
-		assert_eq(mat.stencil_mode, BaseMaterial3D.STENCIL_MODE_XRAY,
-			"a unit's surfaces are drawn through whatever hides them")
+		assert_eq(
+			mat.stencil_mode,
+			BaseMaterial3D.STENCIL_MODE_XRAY,
+			"a unit's surfaces are drawn through whatever hides them"
+		)
 
 
 func test_structure_entity_has_no_silhouette() -> void:
@@ -53,8 +56,11 @@ func test_structure_entity_has_no_silhouette() -> void:
 	assert_false(mats.is_empty(), "the command center model has at least one tintable surface")
 	assert_false(visual._silhouette, "a Structure sibling opts the model out")
 	for mat: BaseMaterial3D in mats:
-		assert_eq(mat.stencil_mode, BaseMaterial3D.STENCIL_MODE_DISABLED,
-			"structures obstructing structures is left to mesh design, not drawn around")
+		assert_eq(
+			mat.stencil_mode,
+			BaseMaterial3D.STENCIL_MODE_DISABLED,
+			"structures obstructing structures is left to mesh design, not drawn around"
+		)
 
 
 func test_silhouette_color_tracks_team_tint() -> void:
@@ -67,8 +73,12 @@ func test_silhouette_color_tracks_team_tint() -> void:
 		assert_eq(mat.stencil_color.r, team_color.r)
 		assert_eq(mat.stencil_color.g, team_color.g)
 		assert_eq(mat.stencil_color.b, team_color.b)
-		assert_almost_eq(mat.stencil_color.a, MeshVisual.SILHOUETTE_ALPHA, 0.001,
-			"alpha is fixed, not tied to construction opacity")
+		assert_almost_eq(
+			mat.stencil_color.a,
+			MeshVisual.SILHOUETTE_ALPHA,
+			0.001,
+			"alpha is fixed, not tied to construction opacity"
+		)
 
 
 ## A faded material is transparent, so it writes neither depth nor stencil — leaving the
@@ -79,12 +89,18 @@ func test_silhouette_is_suppressed_while_the_model_is_faded() -> void:
 	var visual: MeshVisual = _mesh_visual_of(unit)
 	visual.set_opacity(MeshVisual.OPACITY_CONSTRUCTING)
 	for mat: BaseMaterial3D in _materials_of(visual):
-		assert_eq(mat.stencil_mode, BaseMaterial3D.STENCIL_MODE_DISABLED,
-			"no silhouette while translucent")
+		assert_eq(
+			mat.stencil_mode,
+			BaseMaterial3D.STENCIL_MODE_DISABLED,
+			"no silhouette while translucent"
+		)
 	visual.set_opacity(MeshVisual.OPACITY_BUILT)
 	for mat: BaseMaterial3D in _materials_of(visual):
-		assert_eq(mat.stencil_mode, BaseMaterial3D.STENCIL_MODE_XRAY,
-			"and it comes back when the model is solid again")
+		assert_eq(
+			mat.stencil_mode,
+			BaseMaterial3D.STENCIL_MODE_XRAY,
+			"and it comes back when the model is solid again"
+		)
 
 
 func test_each_entity_keeps_its_own_silhouette_colour() -> void:

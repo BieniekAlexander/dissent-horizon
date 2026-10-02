@@ -62,7 +62,8 @@ func _sync() -> void:
 func _path_length(a_from: Vector3, a_to: Vector3, a_layers: int) -> float:
 	var nav_map: RID = _nav.navigation_region.get_navigation_map()
 	var path: PackedVector3Array = NavigationServer3D.map_get_path(
-		nav_map, a_from, a_to, true, a_layers)
+		nav_map, a_from, a_to, true, a_layers
+	)
 	if path.is_empty() or VU.inXZ(path[path.size() - 1]).distance_to(VU.inXZ(a_to)) > 0.5:
 		return INF
 	var total: float = 0.0
@@ -107,14 +108,19 @@ func test_a_placement_is_routed_around_and_its_removal_restores_the_path() -> vo
 	for layers: int in _every_layer():
 		var detour: float = _path_length(from, to, layers)
 		assert_lt(detour, INF, "still reachable around the wall, layers %d" % layers)
-		assert_gt(detour, from.distance_to(to) * MAX_PATH_EXCESS, "routed around, layers %d" % layers)
+		assert_gt(
+			detour, from.distance_to(to) * MAX_PATH_EXCESS, "routed around, layers %d" % layers
+		)
 
 	_grid.remove_building(owner)
 	await get_tree().process_frame
 	await _sync()
 	for layers: int in _every_layer():
-		assert_lt(_path_length(from, to, layers), from.distance_to(to) * MAX_PATH_EXCESS,
-			"straight again once the wall is gone, layers %d" % layers)
+		assert_lt(
+			_path_length(from, to, layers),
+			from.distance_to(to) * MAX_PATH_EXCESS,
+			"straight again once the wall is gone, layers %d" % layers
+		)
 
 
 ## Every chunk region the manager has made. Read through `_meshes` because the regions are
@@ -128,8 +134,9 @@ func _chunk_regions(a_nav: NavManager) -> Array[RID]:
 
 
 func _async_flags(a_nav: NavManager) -> Array:
-	return _chunk_regions(a_nav).map(func(r: RID) -> bool:
-		return NavigationServer3D.region_get_use_async_iterations(r))
+	return _chunk_regions(a_nav).map(
+		func(r: RID) -> bool: return NavigationServer3D.region_get_use_async_iterations(r)
+	)
 
 
 ## Replay needs every navmesh change to land on the tick that asked for it, so navigation is
@@ -141,5 +148,6 @@ func test_the_navmesh_is_synchronous() -> void:
 	var nav_map: RID = _nav.navigation_region.get_navigation_map()
 	assert_false(NavigationServer3D.map_get_use_async_iterations(nav_map), "the map")
 	assert_false(_async_flags(_nav).is_empty(), "the build made regions")
-	assert_true(_async_flags(_nav).all(func(f: bool) -> bool: return not f),
-		"and every chunk region")
+	assert_true(
+		_async_flags(_nav).all(func(f: bool) -> bool: return not f), "and every chunk region"
+	)

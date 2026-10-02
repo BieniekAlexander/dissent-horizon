@@ -78,7 +78,9 @@ func test_aim_reinforce_on_defense_targets_the_anchor() -> void:
 	ord.targeting = Sanction.Targeting.REINFORCE
 	var anchor := Vector3(5, 0, 5)
 	var zone := {"mode": BotSanction.Mode.DEFEND, "enemies": [_unit_at(5, 5)], "anchor": anchor}
-	assert_eq(_bo._aim(ord, zone), anchor, "defensive reinforcements spawn at the defended structure")
+	assert_eq(
+		_bo._aim(ord, zone), anchor, "defensive reinforcements spawn at the defended structure"
+	)
 
 
 func test_aim_reinforce_on_attack_lands_between_us_and_them() -> void:
@@ -88,7 +90,7 @@ func test_aim_reinforce_on_attack_lands_between_us_and_them() -> void:
 	var zone := {
 		"mode": BotSanction.Mode.ATTACK,
 		"enemies": [_unit_at(10, 0)],  # their cluster
-		"anchor": Vector3(0, 0, 0),    # our army
+		"anchor": Vector3(0, 0, 0),  # our army
 	}
 	var target: Vector3 = _bo._aim(ord, zone)
 	# REINFORCE_PUSH = 0.5 → midway toward the enemy: allies land on our side of the front.

@@ -8,6 +8,7 @@ extends GutTest
 
 # --- with_saturation_ramp --------------------------------------------------------
 
+
 func test_no_gain_at_frac_zero_leaves_saturation_unchanged() -> void:
 	var muted := Color.from_hsv(0.5, 0.4, 0.8)
 	var boosted: Color = BarGradient.with_saturation_ramp(muted, 0.0)
@@ -28,6 +29,7 @@ func test_saturation_never_exceeds_one() -> void:
 
 
 # --- segment_fractions ------------------------------------------------------------
+
 
 func test_capacity_divides_evenly_into_segments() -> void:
 	var fractions: PackedFloat32Array = BarGradient.segment_fractions(500.0, 125.0)

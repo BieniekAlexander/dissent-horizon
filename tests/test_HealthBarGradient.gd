@@ -10,7 +10,6 @@ extends GutTest
 ## cache hasn't rescanned new files (headless runs don't refresh it).
 const HealthBarGradient := preload("res://scripts/rendering/health_bar_gradient.gd")
 
-
 ## Assertions go through HUE, not raw channels: a red -> yellow -> green ramp has
 ## MORE red at its yellow stop (0.93) than at its red one (0.85), so "red decreases
 ## with health" is not an invariant of this ramp — the hue sweep is. Hue is 0.0 at
@@ -38,9 +37,13 @@ func test_hue_sweeps_monotonically_from_red_to_green() -> void:
 	var previous: float = HealthBarGradient.color_for(0.0).h
 	for step in range(1, 21):
 		var current: float = HealthBarGradient.color_for(step / 20.0).h
-		assert_true(current >= previous - 0.001,
-			"hue at %.2f (%.3f) is no redder than the step below it (%.3f)"
-				% [step / 20.0, current, previous])
+		assert_true(
+			current >= previous - 0.001,
+			(
+				"hue at %.2f (%.3f) is no redder than the step below it (%.3f)"
+				% [step / 20.0, current, previous]
+			)
+		)
 		previous = current
 	assert_almost_eq(previous, _GREEN_HUE, 0.04, "ends on green")
 
@@ -48,8 +51,11 @@ func test_hue_sweeps_monotonically_from_red_to_green() -> void:
 func test_stays_saturated_across_the_ramp() -> void:
 	# A washed-out midpoint would read as "no color" rather than a warning state.
 	for step in range(0, 21):
-		assert_gt(HealthBarGradient.color_for(step / 20.0).s, 0.5,
-			"fraction %.2f stays saturated" % (step / 20.0))
+		assert_gt(
+			HealthBarGradient.color_for(step / 20.0).s,
+			0.5,
+			"fraction %.2f stays saturated" % (step / 20.0)
+		)
 
 
 func test_out_of_range_fractions_clamp() -> void:

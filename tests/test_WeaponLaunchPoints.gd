@@ -30,8 +30,9 @@ func _marker(a_at: Vector3) -> Marker3D:
 
 func test_without_launch_points_the_weapon_itself_launches() -> void:
 	assert_almost_eq(_weapon.next_launch_position(), CARRIER_AT + WEAPON_AT, TOLERANCE)
-	assert_almost_eq(_weapon.next_launch_position(), CARRIER_AT + WEAPON_AT, TOLERANCE,
-		"every time")
+	assert_almost_eq(
+		_weapon.next_launch_position(), CARRIER_AT + WEAPON_AT, TOLERANCE, "every time"
+	)
 
 
 func test_launch_points_are_walked_as_a_ring() -> void:
@@ -56,23 +57,30 @@ func test_only_markers_are_launch_points() -> void:
 func test_launch_points_turn_with_the_carrier() -> void:
 	_carrier.rotation.y = PI / 2.0
 	# Forward is +Z; a quarter turn about Y carries +Z onto +X.
-	assert_almost_eq(_weapon.next_launch_position(),
-		CARRIER_AT + Vector3(WEAPON_AT.z, WEAPON_AT.y, 0.0), TOLERANCE)
+	assert_almost_eq(
+		_weapon.next_launch_position(),
+		CARRIER_AT + Vector3(WEAPON_AT.z, WEAPON_AT.y, 0.0),
+		TOLERANCE
+	)
 
 
 func test_a_scaled_weapon_places_its_points_in_world_units() -> void:
 	# A weapon's basis carries its range shapes' scale; its launch points ignore it.
 	_weapon.scale = Vector3(0.2, 2.5, 0.5)
 	_marker(Vector3(0.3, 0, 0))
-	assert_almost_eq(_weapon.next_launch_position(),
-		CARRIER_AT + WEAPON_AT + Vector3(0.3, 0, 0), TOLERANCE)
+	assert_almost_eq(
+		_weapon.next_launch_position(), CARRIER_AT + WEAPON_AT + Vector3(0.3, 0, 0), TOLERANCE
+	)
 
 
 func test_a_turret_without_a_model_turns_its_weapon_by_its_yaw() -> void:
 	_weapon.turret = true
 	_weapon.turret_yaw = PI / 2.0
-	assert_almost_eq(_weapon.next_launch_position(),
-		CARRIER_AT + Vector3(WEAPON_AT.z, WEAPON_AT.y, 0.0), TOLERANCE)
+	assert_almost_eq(
+		_weapon.next_launch_position(),
+		CARRIER_AT + Vector3(WEAPON_AT.z, WEAPON_AT.y, 0.0),
+		TOLERANCE
+	)
 
 
 func test_a_turret_model_is_the_frame() -> void:
@@ -82,9 +90,12 @@ func test_a_turret_model_is_the_frame() -> void:
 	turret_model.scale = Vector3.ONE * 0.45
 	turret_model.rotation.y = PI / 2.0
 	_weapon._turret_visual = turret_model
-	assert_almost_eq(_weapon.next_launch_position(),
-		CARRIER_AT + Vector3(0, 0.4, 0) + Vector3(WEAPON_AT.z, WEAPON_AT.y, 0.0), TOLERANCE,
-		"the barrel's frame, in world units")
+	assert_almost_eq(
+		_weapon.next_launch_position(),
+		CARRIER_AT + Vector3(0, 0.4, 0) + Vector3(WEAPON_AT.z, WEAPON_AT.y, 0.0),
+		TOLERANCE,
+		"the barrel's frame, in world units"
+	)
 
 
 func test_launching_from_the_origin_is_detected() -> void:

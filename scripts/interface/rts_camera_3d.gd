@@ -69,6 +69,7 @@ const EDGE_OVERSCROLL_RATIO: float = 0.35
 const ALTITUDE_HEADROOM_SLACK: float = 1.25
 #endregion
 
+
 #region Public API
 ## The camera's canonical starting position: INITIAL_DISTANCE from the origin
 ## along the elevation implied by CAMERA_ANGLE_DEGREES, so that looking at the
@@ -80,6 +81,8 @@ static func initial_position() -> Vector3:
 	var pitch: float = deg_to_rad(CAMERA_ANGLE_DEGREES)
 	var elevated: Vector3 = Vector3(0.0, -sin(pitch), -cos(pitch)) * INITIAL_DISTANCE
 	return Basis(Vector3.UP, deg_to_rad(CAMERA_YAW_DEGREES)) * elevated
+
+
 #endregion
 
 #region Properties
@@ -130,26 +133,32 @@ var _min_size: float = 0.0
 ## simply isn't bounded.
 var _map: Map = null
 
+
 func zoom_in_orthogonal(_a_delta: float, a_zoom_speed: float) -> void:
-	size /= (100+a_zoom_speed)/100
+	size /= (100 + a_zoom_speed) / 100
+
 
 func zoom_out_orthogonal(_a_delta: float, a_zoom_speed: float) -> void:
-	size *= (100+a_zoom_speed)/100
+	size *= (100 + a_zoom_speed) / 100
+
 
 func zoom_in_perspective(a_delta: float, a_zoom_speed: float) -> void:
 	zoom_velocity = -global_transform.basis.z * a_zoom_speed * a_delta
 	zoom_velocity = lerp(zoom_velocity, Vector3.ZERO, (a_zoom_speed / 2) * a_delta)
 	position += zoom_velocity
 
+
 func zoom_out_perspective(a_delta: float, a_zoom_speed: float) -> void:
 	zoom_velocity = global_transform.basis.z * a_zoom_speed * a_delta
 	zoom_velocity = lerp(zoom_velocity, Vector3.ZERO, (a_zoom_speed / 2) * a_delta)
 	position += zoom_velocity
 
+
 ## Conditional control function reference
 var zoom_in: Callable
 var zoom_out: Callable
 #endregion
+
 
 #region Public API
 ## Move the camera (translation only, orientation preserved) so its forward ray
@@ -165,8 +174,10 @@ func center_on(a_world_xz: Vector2) -> void:
 	var k: float = y / f.y
 	global_position = Vector3(a_world_xz.x + k * f.x, y, a_world_xz.y + k * f.z)
 
+
 func get_screen_position_normalized(a_screen_position_raw: Vector2) -> Vector2:
-	return (a_screen_position_raw*2/get_viewport().get_visible_rect().size)-Vector2.ONE
+	return (a_screen_position_raw * 2 / get_viewport().get_visible_rect().size) - Vector2.ONE
+
 
 ## Raycast the cursor against the horizontal plane at `height`. Works for any
 ## camera orientation and projection (orthographic or perspective), so it no
@@ -178,7 +189,10 @@ func get_mouse_world_position(a_screen_position: Vector2, a_height: float = 0) -
 		return project_position(a_screen_position, 0.0)
 	var t: float = (a_height - ray_origin.y) / ray_dir.y
 	return ray_origin + ray_dir * t
+
+
 #endregion
+
 
 #region Lifecycle
 func _init():
@@ -189,7 +203,13 @@ func _init():
 		zoom_in = zoom_in_orthogonal
 		zoom_out = zoom_out_orthogonal
 	else:
-		push_error("Cannot set zoom functionality, unsupported Camera3D projection setting: %s" % projection)
+		push_error(
+			(
+				"Cannot set zoom functionality, unsupported Camera3D projection setting: %s"
+				% projection
+			)
+		)
+
 
 func _ready() -> void:
 	# Pan / zoom / rotate keep working while a SimulationClock hold pauses the world: a
@@ -206,14 +226,17 @@ func _ready() -> void:
 	global_position = initial_position()
 	look_at(Vector3.ZERO, Vector3.UP)
 
+
 ## Unit XZ (ground-plane) right/forward vectors for the current yaw, so panning is
 ## relative to what's on screen rather than to world axes. At yaw 0 these are the
 ## world +X / -Z axes, reproducing the original world-axis panning exactly.
 func _ground_right() -> Vector3:
 	return Vector3(global_transform.basis.x.x, 0.0, global_transform.basis.x.z).normalized()
 
+
 func _ground_forward() -> Vector3:
 	return Vector3(-global_transform.basis.z.x, 0.0, -global_transform.basis.z.z).normalized()
+
 
 func _input(a_event: InputEvent):
 	if a_event.is_action_pressed("isometric_camera_drag"):
@@ -226,20 +249,24 @@ func _input(a_event: InputEvent):
 			var new_mouse_pos: Vector2 = get_screen_position_normalized(a_event.position)
 			var d: Vector2 = new_mouse_pos - move_reference_position
 			global_position += (
-				-_ground_right() * d.x + _ground_forward() * d.y
-			) * size * movement_speed * drag_pan_factor()
+				(-_ground_right() * d.x + _ground_forward() * d.y)
+				* size
+				* movement_speed
+				* drag_pan_factor()
+			)
 			move_reference_position = new_mouse_pos
 
 	if a_event.is_action_pressed("isometric_camera_left", true):
-		global_position += -_ground_right()*10
+		global_position += -_ground_right() * 10
 	if a_event.is_action_pressed("isometric_camera_right", true):
-		global_position += _ground_right()*10
+		global_position += _ground_right() * 10
 	if a_event.is_action_pressed("isometric_camera_up", true):
-		global_position += _ground_forward()*10
+		global_position += _ground_forward() * 10
 	if a_event.is_action_pressed("isometric_camera_down", true):
-		global_position += -_ground_forward()*10
+		global_position += -_ground_forward() * 10
 
 	_handle_zoom_input(a_event)
+
 
 ## How far this drag pans, per unit of mouse travel — 1.0 unmodified.
 ##
@@ -276,6 +303,8 @@ func _process(a_delta: float) -> void:
 	_clamp_zoom()
 	_apply_edge_pan(a_delta)
 	_clamp_to_map_bounds()
+
+
 #endregion
 
 
@@ -330,7 +359,10 @@ func _pointer_over_ui() -> bool:
 	if viewport == null:
 		return false
 	return RTSController.pointer_over_blocking_ui(get_tree(), viewport.get_mouse_position())
+
+
 #endregion
+
 
 #region Zoom limits
 ## Hold the zoom inside the authored framing scaled by MIN_ZOOM_IN_FACTOR..MAX_ZOOM_OUT_FACTOR.
@@ -341,7 +373,10 @@ func _clamp_zoom() -> void:
 	if projection != PROJECTION_ORTHOGONAL or _max_size <= 0.0:
 		return
 	size = clampf(size, _min_size, _max_size)
+
+
 #endregion
+
 
 #region Map bounds
 ## Keep the view on the play area, give or take EDGE_OVERSCROLL_RATIO.
@@ -402,10 +437,12 @@ func clamped_focus(
 	# that axis the headroom extends, and by how much of it.
 	var headroom: Vector2 = a_look_local * altitude_headroom()
 	var local: Vector2 = a_area.to_local(a_focus)
-	return a_area.to_world(Vector2(
-		_clamp_with_headroom(local.x, limit.x, headroom.x),
-		_clamp_with_headroom(local.y, limit.y, headroom.y)
-	))
+	return a_area.to_world(
+		Vector2(
+			_clamp_with_headroom(local.x, limit.x, headroom.x),
+			_clamp_with_headroom(local.y, limit.y, headroom.y)
+		)
+	)
 
 
 ## Ground distance an aerial unit at cruise altitude appears displaced toward the top of the
@@ -414,8 +451,8 @@ func clamped_focus(
 ## further up the screen and needs more of it.
 static func altitude_headroom() -> float:
 	var pitch: float = deg_to_rad(CAMERA_ANGLE_DEGREES)
-	var up: float = -sin(pitch)      # how much of the camera offset is elevation
-	var back: float = -cos(pitch)    # …and how much is ground distance
+	var up: float = -sin(pitch)  # how much of the camera offset is elevation
+	var back: float = -cos(pitch)  # …and how much is ground distance
 	if is_zero_approx(up):
 		return 0.0  # a horizontal camera has no vertical foreshortening to correct
 	return Aerial.AERIAL_HEIGHT * absf(back / up) * ALTITUDE_HEADROOM_SLACK
@@ -481,7 +518,10 @@ func _resolve_map() -> Map:
 		return null
 	_map = scene.find_child("Map") as Map
 	return _map
+
+
 #endregion
+
 
 #region Edge panning
 ## Pan while the cursor rests within EDGE_PAN_MARGIN_PX of a screen edge, in the direction

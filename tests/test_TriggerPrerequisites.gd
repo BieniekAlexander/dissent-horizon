@@ -4,11 +4,13 @@ extends GutTest
 ## the manager walking the graph forward as triggers fire.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_TriggerPrerequisites.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_TriggerPrerequisites.gd
+## -gexit
 
 
 ## A condition the test flips by hand, announcing the change the way a push condition would.
-class StubCondition extends Condition:
+class StubCondition:
+	extends Condition
 	var result: bool = false
 
 	func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
@@ -41,7 +43,9 @@ func after_each() -> void:
 
 
 ## Add a trigger named `name`, depending on the named triggers in `prerequisites`.
-func _add(a_name: String, a_prerequisites: Array = [], a_mode: int = GlobalTrigger.PrerequisiteMode.ALL_OF) -> GlobalTrigger:
+func _add(
+	a_name: String, a_prerequisites: Array = [], a_mode: int = GlobalTrigger.PrerequisiteMode.ALL_OF
+) -> GlobalTrigger:
 	var trigger := GlobalTrigger.new()
 	trigger.name = a_name
 	trigger.prerequisite_mode = a_mode
@@ -73,6 +77,7 @@ func _armed(a_name: String) -> bool:
 
 
 # --- Gating --------------------------------------------------------------------
+
 
 func test_a_trigger_with_no_prerequisites_arms_at_the_start() -> void:
 	_add("Root")
@@ -112,6 +117,7 @@ func test_a_chain_advances_one_step_at_a_time() -> void:
 
 
 # --- Graph shapes ---------------------------------------------------------------
+
 
 func test_all_of_waits_for_every_prerequisite() -> void:
 	# A join: C needs both branches done.
@@ -157,6 +163,7 @@ func test_a_null_row_does_not_wedge_the_mission() -> void:
 
 # --- Interaction with the other gates -------------------------------------------
 
+
 func test_an_imperatively_disabled_trigger_is_not_silently_re_armed() -> void:
 	# An ungated trigger switched OFF by an EventChainTrigger has nothing outstanding, so the
 	# DAG walk must leave it alone — otherwise the next fire anywhere in the scenario would
@@ -195,6 +202,7 @@ func test_a_fired_trigger_is_not_re_armed() -> void:
 
 
 # --- Cycles ---------------------------------------------------------------------
+
 
 func test_a_cycle_is_reported() -> void:
 	# Nothing else would notice: every trigger in the loop waits on another, so the mission

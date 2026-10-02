@@ -25,6 +25,7 @@ extends RefCounted
 ## spawned is never immediately judged to have left.
 const EXTERIOR_MARGIN: float = 10.0
 
+
 ## The world XZ a piece called in by a caster at `caster_xz` enters from: the point on the
 ## play-area perimeter nearest the caster, EXTERIOR_MARGIN further out along that ray.
 ##

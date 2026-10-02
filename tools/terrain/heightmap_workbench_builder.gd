@@ -102,7 +102,12 @@ func build() -> Dictionary:
 	var err: int = ResourceSaver.save(packed, SCENE_PATH)
 	root.free()
 
-	return {"scene_path": SCENE_PATH, "ok": err == OK, "generator": GENERATOR_PATH, "terrain": TERRAIN_PATH}
+	return {
+		"scene_path": SCENE_PATH,
+		"ok": err == OK,
+		"generator": GENERATOR_PATH,
+		"terrain": TERRAIN_PATH
+	}
 
 
 func _ensure_dirs() -> void:

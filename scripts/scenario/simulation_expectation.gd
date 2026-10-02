@@ -44,8 +44,10 @@ func compile(a_manager: ScenarioTriggerManager) -> SimulationCheck:
 		# let the run report say which one.
 		push_error("SimulationExpectation '%s' names no condition" % description)
 		return SimulationCheck.new(
-			"%s <no condition>" % description, func() -> bool: return false,
-			SimulationCheck.Mode.LIVENESS, deadline_ticks
+			"%s <no condition>" % description,
+			func() -> bool: return false,
+			SimulationCheck.Mode.LIVENESS,
+			deadline_ticks
 		)
 	condition.reset()
 	condition.arm(a_manager)

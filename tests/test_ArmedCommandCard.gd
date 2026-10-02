@@ -18,6 +18,7 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_ArmedCommandCard.gd -gexit
 
+
 func _controller() -> RTSController:
 	return autofree(RTSController.new()) as RTSController
 
@@ -25,8 +26,10 @@ func _controller() -> RTSController:
 #region What counts as armed
 func test_a_bare_controller_is_not_armed() -> void:
 	var controller: RTSController = _controller()
-	assert_false(controller.is_command_armed(),
-		"command_message is null off-tree, and that is not a reason to claim something is armed")
+	assert_false(
+		controller.is_command_armed(),
+		"command_message is null off-tree, and that is not a reason to claim something is armed"
+	)
 	assert_false(controller.is_command_ready())
 
 
@@ -40,6 +43,8 @@ func test_an_armed_sanction_is_armed() -> void:
 	var controller: RTSController = _controller()
 	controller._pending_sanction = autofree(Sanction.new()) as Sanction
 	assert_true(controller.is_command_armed())
+
+
 #endregion
 
 
@@ -50,8 +55,9 @@ func test_a_build_with_no_tool_yet_is_not_ready() -> void:
 	var controller: RTSController = _controller()
 	controller.pending_command_name = "command_ability"
 	assert_true(controller.is_command_armed(), "a Build IS armed")
-	assert_false(controller.is_command_ready(),
-		"but the card still has a question to ask — which structure?")
+	assert_false(
+		controller.is_command_ready(), "but the card still has a question to ask — which structure?"
+	)
 
 
 ## A sanction offering a cargo menu is the same shape: armed, unanswered.
@@ -64,6 +70,8 @@ func test_a_sanction_awaiting_its_payload_is_not_ready() -> void:
 	else:
 		# No payload to pick means nothing left to ask, which is state 3.
 		assert_true(controller.is_command_ready())
+
+
 #endregion
 
 
@@ -79,8 +87,11 @@ func test_a_toolless_verb_offers_only_cancel() -> void:
 	# It asked nothing, so there is no menu to keep up beside the way out.
 	var controller: RTSController = _controller()
 	controller.pending_command_name = "command_attack_move"
-	assert_eq(controller._visible_command_names(), [RTSController.CANCEL_COMMAND],
-		"aiming is the only thing left to do, so it is the only thing offered")
+	assert_eq(
+		controller._visible_command_names(),
+		[RTSController.CANCEL_COMMAND],
+		"aiming is the only thing left to do, so it is the only thing offered"
+	)
 
 
 ## THE RULE THIS FILE EXISTS FOR NOW: the menu does not close when it is answered. Picking
@@ -89,8 +100,11 @@ func test_a_toolless_verb_offers_only_cancel() -> void:
 func test_the_build_menu_stays_up_while_the_build_is_armed() -> void:
 	var controller: RTSController = _controller()
 	controller.pending_command_name = "command_ability"
-	assert_eq(controller.current_context(), ControlBinding.ControlContext.BUILD,
-		"the fixture is in the build sub-menu")
+	assert_eq(
+		controller.current_context(),
+		ControlBinding.ControlContext.BUILD,
+		"the fixture is in the build sub-menu"
+	)
 	# With no selection there are no tools to list, so what is pinned here is the SHAPE:
 	# whatever the menu holds, Cancel is on the card beside it rather than instead of it.
 	var names: Array = controller._visible_command_names()
@@ -104,17 +118,27 @@ func test_the_banner_distinguishes_pending_from_ready() -> void:
 	var controller: RTSController = _controller()
 	assert_eq(controller.armed_card_state(), CardModeBanner.ArmedState.NONE)
 	controller.pending_command_name = "command_ability"
-	assert_eq(controller.armed_card_state(), CardModeBanner.ArmedState.PENDING,
-		"a Build with nothing chosen is still asking")
+	assert_eq(
+		controller.armed_card_state(),
+		CardModeBanner.ArmedState.PENDING,
+		"a Build with nothing chosen is still asking"
+	)
 	controller.pending_command_name = "command_attack_move"
-	assert_eq(controller.armed_card_state(), CardModeBanner.ArmedState.READY,
-		"a verb that takes no tool is answered the moment it is armed")
+	assert_eq(
+		controller.armed_card_state(),
+		CardModeBanner.ArmedState.READY,
+		"a verb that takes no tool is answered the moment it is armed"
+	)
 
 
 func test_the_unarmed_card_does_not_show_cancel() -> void:
 	var controller: RTSController = _controller()
-	assert_false(controller._visible_command_names().has(RTSController.CANCEL_COMMAND),
-		"there is nothing to put down")
+	assert_false(
+		controller._visible_command_names().has(RTSController.CANCEL_COMMAND),
+		"there is nothing to put down"
+	)
+
+
 #endregion
 
 
@@ -125,8 +149,10 @@ func test_cancel_is_available_exactly_while_something_is_armed() -> void:
 	var controller: RTSController = _controller()
 	assert_false(controller._command_is_available(RTSController.CANCEL_COMMAND))
 	controller.pending_command_name = "command_attack_move"
-	assert_true(controller._command_is_available(RTSController.CANCEL_COMMAND),
-		"and with an empty selection, which the ordinary availability gate would refuse")
+	assert_true(
+		controller._command_is_available(RTSController.CANCEL_COMMAND),
+		"and with an empty selection, which the ordinary availability gate would refuse"
+	)
 
 
 ## ARMED, not answered. Needing to finish choosing a structure before you are allowed to
@@ -156,6 +182,8 @@ func test_disarming_leaves_the_selection_alone() -> void:
 	controller.pending_command_name = "command_attack_move"
 	controller.disarm_command()
 	assert_eq(controller.selection, [unit] as Array[Node])
+
+
 #endregion
 
 
@@ -165,16 +193,20 @@ func test_disarming_leaves_the_selection_alone() -> void:
 func test_cancel_sits_bottom_right() -> void:
 	var binding: ControlBinding = CommandGrid.binding_for(RTSController.CANCEL_COMMAND)
 	assert_not_null(binding, "the Cancel button has a binding")
-	assert_eq(binding.grid_position,
-		Vector2i(ControlBinding.GRID_WIDTH - 1, ControlBinding.GRID_HEIGHT - 1))
+	assert_eq(
+		binding.grid_position,
+		Vector2i(ControlBinding.GRID_WIDTH - 1, ControlBinding.GRID_HEIGHT - 1)
+	)
 
 
 func test_its_cell_hotkey_is_n() -> void:
 	var action: StringName = ControlBinding.cell_action(
-		Vector2i(ControlBinding.GRID_WIDTH - 1, ControlBinding.GRID_HEIGHT - 1))
+		Vector2i(ControlBinding.GRID_WIDTH - 1, ControlBinding.GRID_HEIGHT - 1)
+	)
 	assert_true(InputMap.has_action(action), "the cell has an action")
 	var keys: Array = InputMap.action_get_events(action).filter(
-		func(e: InputEvent) -> bool: return e is InputEventKey)
+		func(e: InputEvent) -> bool: return e is InputEventKey
+	)
 	assert_false(keys.is_empty(), "and the action is bound to a key")
 	assert_eq((keys[0] as InputEventKey).physical_keycode, KEY_N)
 
@@ -186,8 +218,12 @@ func test_it_is_exempt_from_the_collision_review() -> void:
 	var binding: ControlBinding = CommandGrid.binding_for(RTSController.CANCEL_COMMAND)
 	assert_true(binding.wins_its_cell())
 	for collision: String in ControlBinding.grid_collisions(CommandGrid.bindings()):
-		assert_false(collision.contains(RTSController.CANCEL_COMMAND),
-			"a button drawn alone cannot collide: %s" % collision)
+		assert_false(
+			collision.contains(RTSController.CANCEL_COMMAND),
+			"a button drawn alone cannot collide: %s" % collision
+		)
+
+
 #endregion
 
 
@@ -206,7 +242,8 @@ func test_the_h_cells_hotkey_is_h() -> void:
 	var action: StringName = ControlBinding.cell_action(Vector2i(5, 1))
 	assert_true(InputMap.has_action(action))
 	var keys: Array = InputMap.action_get_events(action).filter(
-		func(e: InputEvent) -> bool: return e is InputEventKey)
+		func(e: InputEvent) -> bool: return e is InputEventKey
+	)
 	assert_false(keys.is_empty())
 	assert_eq((keys[0] as InputEventKey).physical_keycode, KEY_H)
 

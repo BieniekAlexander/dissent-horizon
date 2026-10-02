@@ -104,12 +104,26 @@ func _run() -> void:
 	await get_tree().physics_frame
 
 	if _target_moves:
-		target.update_commands(MoveCommand.new(
-			CommandMessage.new(map, null, null, target.global_position + Vector3(0.0, 0.0, 60.0))))
+		target.update_commands(
+			MoveCommand.new(
+				CommandMessage.new(
+					map, null, null, target.global_position + Vector3(0.0, 0.0, 60.0)
+				)
+			)
+		)
 	var weapon: Weapon = unit.weapon_inventory.get_weapons()[0]
-	print("attacker %s (%s) reach=%.2f | target %s at %s" % [
-		unit.id, _mode_name(unit.movement.mode), weapon.reach_for(target),
-		target.id, target.global_position])
+	print(
+		(
+			"attacker %s (%s) reach=%.2f | target %s at %s"
+			% [
+				unit.id,
+				_mode_name(unit.movement.mode),
+				weapon.reach_for(target),
+				target.id,
+				target.global_position
+			]
+		)
+	)
 
 	if _start_empty:
 		for w: Weapon in unit.weapon_inventory.charged_weapons():
@@ -119,8 +133,12 @@ func _run() -> void:
 	# A destination well AWAY from the airfield, so obeying it is distinguishable from
 	# being dragged home.
 	var away := Vector3(centre.x - 30.0, 0.0, centre.y - 30.0)
-	var message := CommandMessage.new(map, null if (_attack_move or _move_order) else target,
-		null, away if _move_order else target.global_position)
+	var message := CommandMessage.new(
+		map,
+		null if (_attack_move or _move_order) else target,
+		null,
+		away if _move_order else target.global_position
+	)
 	var order: MoveCommand
 	if _defend:
 		order = Defend.new(CommandMessage.new(map, null, null, away))
@@ -131,9 +149,20 @@ func _run() -> void:
 	else:
 		order = Attack.new(message)
 	unit.update_commands(order)
-	print("--- ordered %s from %.1f units | airfield at %s ---" % [
-("Defend" if _defend else ("Move" if _move_order else ("AttackMove" if _attack_move else "Attack"))),
-		_distance, field.global_position])
+	print(
+		(
+			"--- ordered %s from %.1f units | airfield at %s ---"
+			% [
+				(
+					"Defend"
+					if _defend
+					else ("Move" if _move_order else ("AttackMove" if _attack_move else "Attack"))
+				),
+				_distance,
+				field.global_position
+			]
+		)
+	)
 
 	var start_ammo: int = weapon.ammo()
 	var shots: int = 0
@@ -145,38 +174,73 @@ func _run() -> void:
 			break
 		if live == null:
 			if tick % 5 == 0:
-				print("t%4d pos=(%6.2f,%6.2f) h=%5.2f v=%4.2f | dField=%6.2f docked=%-5s | ammo=%2d %s" % [
-					tick, unit.global_position.x, unit.global_position.z,
-					unit.height_offset(), VU.inXZ(unit.velocity).length(),
-					VU.inXZ(unit.global_position).distance_to(field_xz),
-					unit.aerial.is_docked(), weapon.ammo(),
-					"%s%s tgt=%s" % [
-						cmd.get_script().get_global_name() if cmd != null else "IDLE",
-						("/" + Rearm.DockState.keys()[(cmd as Rearm).state]) if cmd is Rearm else "",
-						unit.movement.target_position]])
+				print(
+					(
+						"t%4d pos=(%6.2f,%6.2f) h=%5.2f v=%4.2f | dField=%6.2f docked=%-5s | ammo=%2d %s"
+						% [
+							tick,
+							unit.global_position.x,
+							unit.global_position.z,
+							unit.height_offset(),
+							VU.inXZ(unit.velocity).length(),
+							VU.inXZ(unit.global_position).distance_to(field_xz),
+							unit.aerial.is_docked(),
+							weapon.ammo(),
+							(
+								"%s%s tgt=%s"
+								% [
+									cmd.get_script().get_global_name() if cmd != null else "IDLE",
+									(
+										("/" + Rearm.DockState.keys()[(cmd as Rearm).state])
+										if cmd is Rearm
+										else ""
+									),
+									unit.movement.target_position
+								]
+							)
+						]
+					)
+				)
 			continue
 		if tick % 5 == 0:
 			var to_target: Vector2 = VU.inXZ(target.global_position) - VU.inXZ(unit.global_position)
-			var bearing: Vector2 = (VU.inXZ(target.global_position) - VU.inXZ(unit.global_position)).normalized()
+			var bearing: Vector2 = (
+				(VU.inXZ(target.global_position) - VU.inXZ(unit.global_position)).normalized()
+			)
 			var nose: Vector2 = VU.inXZ(unit.movement.get_facing())
-			var off_axis: float = rad_to_deg(absf(nose.angle_to(bearing))) if not nose.is_zero_approx() else -1.0
-			print("t%4d pos=(%6.2f,%6.2f) d=%6.2f off=%5.1fdeg | range=%-5s facing=%-5s ready=%-5s canact=%-5s | ammo=%d %s" % [
-				tick,
-				unit.global_position.x, unit.global_position.z,
-				to_target.length(),
-				off_axis,
-				SU.is_in_attack_range(weapon, unit, target),
-				unit.movement.is_facing(target.global_position),
-				weapon.is_ready(),
-				live.can_act(unit),
-				weapon.ammo(),
-				cmd.get_script().get_global_name(),
-			])
+			var off_axis: float = (
+				rad_to_deg(absf(nose.angle_to(bearing))) if not nose.is_zero_approx() else -1.0
+			)
+			print(
+				(
+					(
+						"t%4d pos=(%6.2f,%6.2f) d=%6.2f off=%5.1fdeg | range=%-5s "
+						+ "facing=%-5s ready=%-5s canact=%-5s | ammo=%d %s"
+					)
+					% [
+						tick,
+						unit.global_position.x,
+						unit.global_position.z,
+						to_target.length(),
+						off_axis,
+						SU.is_in_attack_range(weapon, unit, target),
+						unit.movement.is_facing(target.global_position),
+						weapon.is_ready(),
+						live.can_act(unit),
+						weapon.ammo(),
+						cmd.get_script().get_global_name(),
+					]
+				)
+			)
 		if weapon.ammo() < start_ammo and shots == 0:
 			shots = 1
 			print("*** FIRED at tick %d ***" % tick)
-	print("--- ended: target hp %.1f/%.1f, attacker ammo %d ---" % [
-		target.defense.hp, target.defense.hp_max, weapon.ammo()])
+	print(
+		(
+			"--- ended: target hp %.1f/%.1f, attacker ammo %d ---"
+			% [target.defense.hp, target.defense.hp_max, weapon.ammo()]
+		)
+	)
 	get_tree().quit()
 
 

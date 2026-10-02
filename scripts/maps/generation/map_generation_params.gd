@@ -35,25 +35,43 @@ const PROPERTY_GROUPS: Array = [
 	{name = "Extent", properties = ["play_size_min", "play_size_max", "ground_height"]},
 	{
 		name = "Starts",
-		properties = [
-			"starts_per_alliance", "start_min_center_fraction", "start_angle_jitter_fraction",
-			"start_clear_radius_cells", "start_edge_margin_cells",
-			"start_separation_diagonal_fraction", "start_attempts",
+		properties =
+		[
+			"starts_per_alliance",
+			"start_min_center_fraction",
+			"start_angle_jitter_fraction",
+			"start_clear_radius_cells",
+			"start_edge_margin_cells",
+			"start_separation_diagonal_fraction",
+			"start_attempts",
 		],
 	},
 	{
 		name = "Value",
-		properties = [
-			"site_energy_per_second", "pond_rate_multiplier", "value_horizon_seconds",
-			"energy_value_per_player", "pond_value_fraction",
+		properties =
+		[
+			"site_energy_per_second",
+			"pond_rate_multiplier",
+			"value_horizon_seconds",
+			"energy_value_per_player",
+			"pond_value_fraction",
 		],
 	},
 	{
 		name = "Ponds",
-		properties = [
-			"pond_charge_min", "pond_charge_max", "pond_charge_location", "pond_charge_scale",
-			"pond_charge_skew", "pond_cells_min", "pond_cells_max", "pond_richness_factors",
-			"pond_richness_weights", "pond_richness_cells_min", "pond_richness_cells_max",
+		properties =
+		[
+			"pond_charge_min",
+			"pond_charge_max",
+			"pond_charge_location",
+			"pond_charge_scale",
+			"pond_charge_skew",
+			"pond_cells_min",
+			"pond_cells_max",
+			"pond_richness_factors",
+			"pond_richness_weights",
+			"pond_richness_cells_min",
+			"pond_richness_cells_max",
 		],
 	},
 	{
@@ -62,50 +80,84 @@ const PROPERTY_GROUPS: Array = [
 	},
 	{
 		name = "Buildings",
-		properties = [
-			"building_capacity_per_player", "cluster_capacity_band_edges",
-			"cluster_capacity_band_weights", "cluster_capacity_overshoot",
-			"cluster_large_building_bias", "cluster_packing_density",
+		properties =
+		[
+			"building_capacity_per_player",
+			"cluster_capacity_band_edges",
+			"cluster_capacity_band_weights",
+			"cluster_capacity_overshoot",
+			"cluster_large_building_bias",
+			"cluster_packing_density",
 			"building_cluster_separation_cells",
 			"building_pool",
 		],
 	},
 	{
 		name = "Extraction sites",
-		properties = [
-			"site_triple_fraction_min", "site_triple_fraction_max", "site_pair_fraction_min",
-			"site_pair_fraction_max", "site_cluster_separation_cells",
+		properties =
+		[
+			"site_triple_fraction_min",
+			"site_triple_fraction_max",
+			"site_pair_fraction_min",
+			"site_pair_fraction_max",
+			"site_cluster_separation_cells",
 		],
 	},
 	{name = "Pieces", properties = ["site_piece", "shelter_piece"]},
 	{
 		name = "Favor and placement",
-		properties = [
-			"favor_concentration", "favor_tolerance", "placement_candidates",
-			"candidate_draw_factor", "feature_spacing_cells", "footprint_gap_cells",
+		properties =
+		[
+			"favor_concentration",
+			"favor_tolerance",
+			"placement_candidates",
+			"candidate_draw_factor",
+			"feature_spacing_cells",
+			"footprint_gap_cells",
 		],
 	},
 	{
 		name = "Topology and terrain",
-		properties = [
-			"cut_fraction", "flooded_cut_fraction", "barrier_width_cells", "min_routes",
-			"correction_radius_cells", "ridge_height", "chasm_depth", "flat_fraction",
+		properties =
+		[
+			"cut_fraction",
+			"flooded_cut_fraction",
+			"barrier_width_cells",
+			"min_routes",
+			"correction_radius_cells",
+			"ridge_height",
+			"chasm_depth",
+			"flat_fraction",
 		],
 	},
 	{
 		name = "Obstacle regions",
-		properties = [
-			"target_traversable_fraction", "traversable_tolerance", "region_width_min_cells",
-			"region_width_max_cells", "region_edge_noise", "region_noise_scale_cells",
-			"region_lake_fraction", "lake_shelf_cells", "mountain_rise_per_cell",
-			"mountain_rise_max", "obstruction_tolerance",
+		properties =
+		[
+			"target_traversable_fraction",
+			"traversable_tolerance",
+			"region_width_min_cells",
+			"region_width_max_cells",
+			"region_edge_noise",
+			"region_noise_scale_cells",
+			"region_lake_fraction",
+			"lake_shelf_cells",
+			"mountain_rise_per_cell",
+			"mountain_rise_max",
+			"obstruction_tolerance",
 		],
 	},
 	{
 		name = "Elevation",
-		properties = [
-			"elevation_levels", "elevation_step", "cliff_levels", "cliff_step",
-			"elevation_scale_cells", "start_level_fraction_min", "start_level_fraction_max",
+		properties =
+		[
+			"elevation_levels",
+			"elevation_step",
+			"cliff_levels",
+			"cliff_step",
+			"elevation_scale_cells",
+			"start_level_fraction_min",
+			"start_level_fraction_max",
 		],
 	},
 	{name = "Collocation", properties = ["collocation_weight", "collocation_rules"]},
@@ -117,21 +169,34 @@ const PROPERTY_GROUPS: Array = [
 ## is the short version. test_MapGeneratorDock checks every property has one.
 const DESCRIPTIONS: Dictionary = {
 	"last_pass": "The last pass to run. Stop early to inspect a pass on its own.",
-	"play_size_min": "Smallest play-area side, in diamonds. Each axis is drawn between min and max.",
+	"play_size_min":
+	"Smallest play-area side, in diamonds. Each axis is drawn between min and max.",
 	"play_size_max": "Largest play-area side, in diamonds. Equal to min pins the size.",
 	"ground_height": "Height of the flat ground. It must leave room for a chasm to sink below it.",
 	"alliance_count": "Number of alliances. Changing it resets the defaults that depend on it.",
 	"starts_per_alliance": "Starting positions each alliance gets.",
-	"start_min_center_fraction": "Least distance of a start from the map centre, as a fraction of the side.",
-	"start_angle_jitter_fraction": "How far starts wander from even angular spacing, as a fraction of it.",
+	"start_min_center_fraction":
+	"Least distance of a start from the map centre, as a fraction of the side.",
+	"start_angle_jitter_fraction":
+	"How far starts wander from even angular spacing, as a fraction of it.",
 	"start_clear_radius_cells": "Half-width of the flat, empty box kept around each start.",
 	"start_edge_margin_cells": "Least distance of a start from the edge of the play area.",
-	"start_separation_diagonal_fraction": "Least distance between starts, as a fraction of the play diagonal.",
+	"start_separation_diagonal_fraction":
+	"Least distance between starts, as a fraction of the play diagonal.",
 	"start_attempts": "How many start layouts to try before generation fails.",
 	"site_energy_per_second": "An extraction site's income. Read from the piece, not edited here.",
-	"pond_rate_multiplier": "A pond's rate as a multiple of a site's. Read from the game, not edited here.",
-	"value_horizon_seconds": "The time window a pond's value is compared with a site's over. Match it to the largest pond's drain time, or large ponds are undervalued.",
-	"energy_value_per_player": "Total energy value the map places per player, so a team game gives every player as much as a duel.",
+	"pond_rate_multiplier":
+	"A pond's rate as a multiple of a site's. Read from the game, not edited here.",
+	"value_horizon_seconds":
+	(
+		"The time window a pond's value is compared with a site's over. Match it to the "
+		+ "largest pond's drain time, or large ponds are undervalued."
+	),
+	"energy_value_per_player":
+	(
+		"Total energy value the map places per player, so a team game gives every player "
+		+ "as much as a duel."
+	),
 	"pond_value_fraction": "Share of the energy value placed as ponds rather than sites.",
 	"pond_charge_min": "Smallest pond's energy: about 3 minutes for one extractor.",
 	"pond_charge_max": "Largest pond's energy: about 8 minutes for one extractor.",
@@ -140,18 +205,36 @@ const DESCRIPTIONS: Dictionary = {
 	"pond_charge_skew": "Skew of the pond-charge draw. Positive makes small ponds more common.",
 	"pond_cells_min": "Smallest pond any category may make, in cells.",
 	"pond_cells_max": "Largest pond any category may make, in cells.",
-	"pond_richness_factors": "Charge per cell for each pond richness category. A pond's size is its charge over its richness, so rich ponds are compact.",
-	"pond_richness_weights": "How often each richness category is drawn, among those that can hold the charge.",
+	"pond_richness_factors":
+	(
+		"Charge per cell for each pond richness category. A pond's size is its charge "
+		+ "over its richness, so rich ponds are compact."
+	),
+	"pond_richness_weights":
+	"How often each richness category is drawn, among those that can hold the charge.",
 	"pond_richness_cells_min": "Smallest pond of each richness category, in cells.",
-	"pond_richness_cells_max": "Largest pond of each richness category, in cells. Caps how large a rich pond grows.",
+	"pond_richness_cells_max":
+	"Largest pond of each richness category, in cells. Caps how large a rich pond grows.",
 	"shelters_per_alliance_min": "Fewest shelters per alliance.",
 	"shelters_per_alliance_extra": "Random extra shelters per alliance, on top of the minimum.",
-	"building_capacity_per_player": "Total garrison capacity of the neutral buildings placed per player. Too high and placement runs out of room.",
-	"cluster_capacity_band_edges": "Garrison-capacity bands a cluster's size is drawn from: band i runs from edge i to edge i+1.",
-	"cluster_capacity_band_weights": "How often each capacity band is drawn. Falling band by band, so small clusters are common.",
-	"cluster_capacity_overshoot": "How far a cluster's last building may carry it past its drawn capacity.",
-	"cluster_large_building_bias": "How much a large cluster favours large buildings. 0 draws every cluster from the pool's own weights.",
-	"cluster_packing_density": "How tightly a cluster's buildings are packed. Lower spreads them out.",
+	"building_capacity_per_player":
+	(
+		"Total garrison capacity of the neutral buildings placed per player. Too high "
+		+ "and placement runs out of room."
+	),
+	"cluster_capacity_band_edges":
+	"Garrison-capacity bands a cluster's size is drawn from: band i runs from edge i to edge i+1.",
+	"cluster_capacity_band_weights":
+	"How often each capacity band is drawn. Falling band by band, so small clusters are common.",
+	"cluster_capacity_overshoot":
+	"How far a cluster's last building may carry it past its drawn capacity.",
+	"cluster_large_building_bias":
+	(
+		"How much a large cluster favours large buildings. 0 draws every cluster from "
+		+ "the pool's own weights."
+	),
+	"cluster_packing_density":
+	"How tightly a cluster's buildings are packed. Lower spreads them out.",
 	"building_cluster_separation_cells": "Least gap between buildings of two different clusters.",
 	"building_pool": "The neutral buildings a cluster draws from.",
 	"site_triple_fraction_min": "Least share of extraction sites standing in groups of three.",
@@ -161,22 +244,29 @@ const DESCRIPTIONS: Dictionary = {
 	"site_cluster_separation_cells": "Least gap between sites of two different site groups.",
 	"site_piece": "The extraction-site piece and its footprint.",
 	"shelter_piece": "The shelter piece and its footprint.",
-	"favor_concentration": "How evenly each feature is shared between alliances. Lower lets features lean one way.",
+	"favor_concentration":
+	"How evenly each feature is shared between alliances. Lower lets features lean one way.",
 	"favor_tolerance": "How far an alliance's share of value may stray from fair, as a fraction.",
-	"placement_candidates": "Candidate spots scored for each feature. More is slower but better placed.",
+	"placement_candidates":
+	"Candidate spots scored for each feature. More is slower but better placed.",
 	"candidate_draw_factor": "Draws allowed per candidate before placement stops looking.",
 	"feature_spacing_cells": "Least centre-to-centre distance between features.",
 	"footprint_gap_cells": "Clear cells kept between any two structures.",
 	"cut_fraction": "Share of connections between features blocked by a ridge or chasm.",
-	"flooded_cut_fraction": "Share of blocked connections that are water chasms rather than ridges.",
+	"flooded_cut_fraction":
+	"Share of blocked connections that are water chasms rather than ridges.",
 	"barrier_width_cells": "Rough thickness of a ridge or chasm.",
 	"min_routes": "Separate routes every start keeps to every other start.",
-	"correction_radius_cells": "How far a feature may move to rebalance once barriers lengthen paths.",
+	"correction_radius_cells":
+	"How far a feature may move to rebalance once barriers lengthen paths.",
 	"ridge_height": "How high a ridge rises above the ground.",
 	"chasm_depth": "How deep a chasm sinks below the ground. Its water fills half of it.",
-	"target_traversable_fraction": "Share of the play area left traversable. Cuts grow into mountains and lakes until it is reached.",
-	"traversable_tolerance": "How far a finished map's traversable share may sit from the target before the map is rejected.",
-	"region_width_min_cells": "Narrowest a grown cut reaches from equidistant between its two nodes.",
+	"target_traversable_fraction":
+	"Share of the play area left traversable. Cuts grow into mountains and lakes until it is reached.",
+	"traversable_tolerance":
+	"How far a finished map's traversable share may sit from the target before the map is rejected.",
+	"region_width_min_cells":
+	"Narrowest a grown cut reaches from equidistant between its two nodes.",
 	"region_width_max_cells": "Widest a grown cut reaches from equidistant between its two nodes.",
 	"region_edge_noise": "How ragged a region's edge is, as a fraction of its width.",
 	"region_noise_scale_cells": "Size of the bumps along a region's edge.",
@@ -184,17 +274,24 @@ const DESCRIPTIONS: Dictionary = {
 	"lake_shelf_cells": "Width of the shallow, wadeable shelf around a lake's deep core.",
 	"mountain_rise_per_cell": "How much a mountain rises for each cell further from its edge.",
 	"mountain_rise_max": "The most a mountain rises above an ordinary ridge.",
-	"obstruction_tolerance": "How unevenly impassable ground may fall between alliances before the map is rejected.",
+	"obstruction_tolerance":
+	"How unevenly impassable ground may fall between alliances before the map is rejected.",
 	"flat_fraction": "Least share of walkable ground that must be flat enough to build on.",
 	"elevation_levels": "Terrace levels the ground steps through. 1 keeps each tier level.",
-	"elevation_step": "Height of one terrace step. Keep it under the walkable slope limit, or every step becomes a cliff.",
+	"elevation_step":
+	(
+		"Height of one terrace step. Keep it under the walkable slope limit, or every "
+		+ "step becomes a cliff."
+	),
 	"cliff_levels": "Cliff tiers, the map's large height changes.",
 	"cliff_step": "Height of one cliff tier. It is a cliff only where a barrier stands.",
 	"elevation_scale_cells": "Size of the highs and lows, in cells. Larger gives broader ones.",
 	"start_level_fraction_min": "Lowest the starts' shared terrace can be (0 bottom, 1 top).",
 	"start_level_fraction_max": "Highest the starts' shared terrace can be (0 bottom, 1 top).",
-	"collocation_weight": "How much the feature-neighbour rules count against fairness when placing.",
-	"collocation_rules": "Which feature kinds attract or repel one another, and over what distance.",
+	"collocation_weight":
+	"How much the feature-neighbour rules count against fairness when placing.",
+	"collocation_rules":
+	"Which feature kinds attract or repel one another, and over what distance.",
 }
 #endregion
 
@@ -437,7 +534,9 @@ var collocation_rules: Array[CollocationRule] = [
 	CollocationRule.of(MapFeature.Kind.POND, MapFeature.Kind.POND, -0.8, 30.0),
 	CollocationRule.of(MapFeature.Kind.SHELTER, MapFeature.Kind.SHELTER, -0.8, 25.0),
 	CollocationRule.of(MapFeature.Kind.BUILDING_CLUSTER, MapFeature.Kind.SHELTER, 1.0, 14.0),
-	CollocationRule.of(MapFeature.Kind.BUILDING_CLUSTER, MapFeature.Kind.BUILDING_CLUSTER, -0.6, 18.0),
+	CollocationRule.of(
+		MapFeature.Kind.BUILDING_CLUSTER, MapFeature.Kind.BUILDING_CLUSTER, -0.6, 18.0
+	),
 ]
 #endregion
 
@@ -448,7 +547,8 @@ static func for_start_count(start_count: int) -> MapGenerationParams:
 	var params := MapGenerationParams.new()
 	params.alliance_count = start_count
 	var bounds: Vector2i = PLAY_SIZE_RANGE_BY_START_COUNT.get(
-		start_count, Vector2i(params.play_size_min, params.play_size_max))
+		start_count, Vector2i(params.play_size_min, params.play_size_max)
+	)
 	params.play_size_min = bounds.x
 	params.play_size_max = bounds.y
 	return params
@@ -459,18 +559,42 @@ static func for_start_count(start_count: int) -> MapGenerationParams:
 func warnings() -> PackedStringArray:
 	var found := PackedStringArray()
 	if last_pass < PASS_COUNT:
-		found.append("Generation stops after pass %d of %d, %s."
-			% [clampi(last_pass, 1, PASS_COUNT), PASS_COUNT, pass_name(last_pass)])
+		found.append(
+			(
+				"Generation stops after pass %d of %d, %s."
+				% [clampi(last_pass, 1, PASS_COUNT), PASS_COUNT, pass_name(last_pass)]
+			)
+		)
 	if elevation_step > TerrainGrid.MAX_SLOPE_DIFF:
-		found.append("A terrace step of %.2f is steeper than %.2f, so every terrace boundary "
-			% [elevation_step, TerrainGrid.MAX_SLOPE_DIFF]
-			+ "becomes a cliff and elevation will divide ground pass 4 left open.")
+		found.append(
+			(
+				(
+					"A terrace step of %.2f is steeper than %.2f, so every terrace boundary "
+					% [elevation_step, TerrainGrid.MAX_SLOPE_DIFF]
+				)
+				+ "becomes a cliff and elevation will divide ground pass 4 left open."
+			)
+		)
 	if not energy_value_per_player > 0.0:
-		found.append("An energy value per player of %s places no ponds or sites, so generation "
-			% energy_value_per_player + "will fail.")
+		found.append(
+			(
+				(
+					"An energy value per player of %s places no ponds or sites, so generation "
+					% energy_value_per_player
+				)
+				+ "will fail."
+			)
+		)
 	if building_capacity_per_player >= BUILDING_CAPACITY_FAILURE:
-		found.append("A building capacity of %d or more per player leaves no room: building "
-			% BUILDING_CAPACITY_FAILURE + "placement will fail for lack of space.")
+		found.append(
+			(
+				(
+					"A building capacity of %d or more per player leaves no room: building "
+					% BUILDING_CAPACITY_FAILURE
+				)
+				+ "placement will fail for lack of space."
+			)
+		)
 	return found
 
 
@@ -492,4 +616,6 @@ func site_value() -> float:
 
 ## A pond's value: its charge, capped at what it could pay out within the horizon.
 func pond_value(a_charge: int) -> float:
-	return minf(float(a_charge), site_energy_per_second * pond_rate_multiplier * value_horizon_seconds)
+	return minf(
+		float(a_charge), site_energy_per_second * pond_rate_multiplier * value_horizon_seconds
+	)

@@ -37,7 +37,6 @@ static var lines: Dictionary[StringName, Array] = {
 	EntityIds.AN_BIO_MEDIUM_DOMINION_GEN: [_DEATH],
 	EntityIds.CL_MECH_MEDIUM_ANTI_MECH: [_DEATH],
 	EntityIds.CL_MECH_STRONG_SUPPORT: [_DEATH],
-
 	EntityIds.AN_AIRCRAFT_MEDIUM_SUPPORT: [_DEATH],
 	EntityIds.AN_BIO_STRONG_ANTI_LIGHT: [_DEATH],
 	EntityIds.AN_BIO_MEDIUM_ANTI_MECH: [_DEATH],
@@ -50,15 +49,13 @@ static var lines: Dictionary[StringName, Array] = {
 	EntityIds.CL_BIO_LIGHT_STEALTH: [_DEATH],
 	EntityIds.CL_BIO_MEDIUM_ANTI_LIGHT: [_DEATH],
 	EntityIds.CL_MECH_MEDIUM_ANTI_LIGHT: [_DEATH],
-
 	EntityIds.AN_BIO_MEDIUM_SUPPORT: [_DEATH],
-
 	# The Drop sanction's off-map transport. It has the bark: being shot down on the
 	# run-in is the counterplay to the whole Drop column, and it should be audible.
 	EntityIds.NT_AIRCRAFT_MEDIUM_TRANSPORT: [_DEATH],
-
 }
 #endregion
+
 
 #region Public interface
 ## Plays `entity_id`'s death clip (if it has one) as a fresh, non-positional

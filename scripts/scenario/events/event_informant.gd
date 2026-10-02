@@ -18,12 +18,13 @@ class_name EventInformant extends EventTargetUnit
 
 ## Which friendly units this tier may stealth.
 enum Eligibility {
-	BUILDER = 0,   ## Irregulars only
-	ANY_BIO = 1,   ## any biological unit
-	ANY = 2,       ## anything you own
+	BUILDER = 0,  ## Irregulars only
+	ANY_BIO = 1,  ## any biological unit
+	ANY = 2,  ## anything you own
 }
 
 @export var eligibility: Eligibility = Eligibility.BUILDER
+
 
 func _qualifies(a_candidate: Commandable) -> bool:
 	# Already stealthed is not a candidate, so a click near a mixed group finds a unit the
@@ -34,9 +35,12 @@ func _qualifies(a_candidate: Commandable) -> bool:
 		Eligibility.BUILDER:
 			return a_candidate.id == EntityIds.AN_BIO_LIGHT_BUILDER
 		Eligibility.ANY_BIO:
-			return a_candidate.defense != null \
+			return (
+				a_candidate.defense != null
 				and a_candidate.defense.frame_type == Defense.FrameType.BIO
+			)
 	return true
+
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var target: Commandable = _find_target_unit(a_manager)

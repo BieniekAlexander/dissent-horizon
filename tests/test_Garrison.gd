@@ -14,9 +14,13 @@ extends GutTest
 ## than a shelter.
 
 ## The stock cage: three seats, servants only, banks prisoners.
-const SUPPLY_TRUCK: Dictionary = {"speed": 2.0, "vision": 8.0, "crush": Movement.CrushClass.LARGE,
+const SUPPLY_TRUCK: Dictionary = {
+	"speed": 2.0,
+	"vision": 8.0,
+	"crush": Movement.CrushClass.LARGE,
 	"garrison": {"capacity": 3, "bunker": false, "ids": [&"fake_servant"]},
-	"interactions": [Interaction.Type.DEPOSIT]}
+	"interactions": [Interaction.Type.DEPOSIT]
+}
 const COMPOUND: Dictionary = FakePieces.COMPOUND
 ## A structure with an OPEN garrison, as the counterpart to the Compound's closed one.
 ## This was the Anarchical safehouse; that piece became `an_infrastructure`, which no
@@ -34,15 +38,21 @@ const TERRESTRIAL: Dictionary = {"speed": 1.0}
 ## this whole FILE unparseable, and GUT skips (rather than fails) a test script it cannot
 ## parse, so every test here had been silently not running. See CLAUDE.md §6.4.
 ## The size-2 occupant: a machine, medium armour.
-const COLLECTIVE: Dictionary = {"speed": 2.0, "frame": Defense.FrameType.MECH,
-	"armour": Defense.ArmourType.MEDIUM, "occupancy": 2}
+const COLLECTIVE: Dictionary = {
+	"speed": 2.0,
+	"frame": Defense.FrameType.MECH,
+	"armour": Defense.ArmourType.MEDIUM,
+	"occupancy": 2
+}
 const CLIPPER: Dictionary = FakePieces.AIRCRAFT
+
 
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
 	add_child_autofree(c)
 	return c
+
 
 ## A live entity instance owned by [a_commander_id]. Ownership is assigned directly (not
 ## through initialize) so no Map is needed, mirroring test_Interaction's helper.
@@ -52,22 +62,27 @@ func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
 	e.ownership.commander = _commanded(a_commander_id)
 	return e
 
+
 ## A host-less Garrison with the given capacity, for the pure capacity/mask arithmetic.
 func _garrison(a_capacity: int) -> Garrison:
 	var g := Garrison.new()
 	g.capacity = a_capacity
 	return autofree(g)
 
+
 func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
 
+
 ## --- Occupancy masks -------------------------------------------------------
+
 
 func test_default_masks_admit_a_grounded_soldier():
 	# GROUNDED + any frame + any armour is the default, i.e. what every garrison
 	# authored before the masks existed still means.
 	var g: Garrison = _garrison(4)
 	assert_true(g.admits(_entity(RECRUIT, 1)), "a grounded soldier is admitted by default")
+
 
 func test_default_masks_reject_an_aerial_unit():
 	var g: Garrison = _garrison(4)
@@ -77,17 +92,20 @@ func test_default_masks_reject_an_aerial_unit():
 	g.occupiable_movements |= Garrison.MOVEMENT_HOVERING
 	assert_true(g.admits(clipper), "a hangar-style garrison takes hovering units")
 
+
 func test_frame_mask_rejects_the_wrong_frame():
 	var g: Garrison = _garrison(4)
 	g.occupiable_frames = Garrison.FRAME_BIO
 	assert_true(g.admits(_entity(RECRUIT, 1)), "a biological unit fits a flesh-only hold")
 	assert_false(g.admits(_entity(COLLECTIVE, 1)), "a metallic unit does not")
 
+
 func test_armour_mask_rejects_heavier_armour():
 	var g: Garrison = _garrison(4)
 	g.occupiable_armours = Garrison.ARMOUR_LIGHT
 	assert_true(g.admits(_entity(RECRUIT, 1)), "light armour fits a light-only hold")
 	assert_false(g.admits(_entity(COLLECTIVE, 1)), "heavier armour does not")
+
 
 func test_a_garrison_with_every_mask_cleared_admits_nobody():
 	var g: Garrison = _garrison(4)
@@ -98,13 +116,17 @@ func test_a_garrison_with_every_mask_cleared_admits_nobody():
 	assert_false(g.admits(_entity(RECRUIT, 1)), "a closed hold admits nobody")
 	assert_true(g.has_room_for(_entity(RECRUIT, 1)), "but it still has room to be filled")
 
+
 ## --- Occupancy size --------------------------------------------------------
+
 
 func test_occupancy_size_defaults_to_one():
 	assert_eq(_entity(RECRUIT, 1).occupancy_size, 1, "an ordinary soldier is size 1")
 
+
 func test_a_collective_takes_two_slots():
 	assert_eq(_entity(COLLECTIVE, 1).occupancy_size, 2, "a war wagon is size 2")
+
 
 func test_capacity_is_spent_in_occupancy_size_not_head_count():
 	var g: Garrison = _garrison(4)
@@ -117,6 +139,7 @@ func test_capacity_is_spent_in_occupancy_size_not_head_count():
 	assert_false(g.has_room_for(_entity(RECRUIT, 1)), "not even a size-1 soldier fits now")
 	assert_false(g.can_garrison(), "and the host reports itself full")
 
+
 func test_a_bulky_unit_needs_two_free_slots():
 	var g: Garrison = _garrison(4)
 	g.garrison(_entity(RECRUIT, 1))
@@ -126,7 +149,9 @@ func test_a_bulky_unit_needs_two_free_slots():
 	assert_false(g.has_room_for(_entity(COLLECTIVE, 1)), "a size-2 occupant needs 2 free")
 	assert_true(g.has_room_for(_entity(RECRUIT, 1)), "a size-1 occupant still fits")
 
+
 ## --- The stock truck / Compound holds -------------------------------
+
 
 func test_the_stock_truck_cage_admits_servants_and_nobody_else_by_order():
 	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
@@ -138,19 +163,24 @@ func test_the_stock_truck_cage_admits_servants_and_nobody_else_by_order():
 	assert_false(cage.bunker, "and prisoners never fire out of it")
 	assert_null(truck.get_node_or_null("Inventory"), "the carried-items Inventory is gone")
 
+
 func test_the_compound_is_a_closed_hold_that_sentences_what_is_deposited():
 	var compound: Commandable = FakePieces.make(COMPOUND)
 	var hold: Garrison = compound.get_node("Garrison") as Garrison
 	assert_true(hold.is_closed(), "deposit is the only way in — nothing may be ordered into it")
-	assert_true(hold.occupiable_ids.is_empty(),
-		"no allowlist: a captive is held as itself, never a Servant")
+	assert_true(
+		hold.occupiable_ids.is_empty(), "no allowlist: a captive is held as itself, never a Servant"
+	)
 	assert_gt(hold.capacity, 0, "it has room to hold what is deposited")
 	assert_false(hold.bunker)
 	assert_true(hold.can_intern(), "it takes deposited captives")
 	assert_gt(hold.sentence_length, 0.0, "a captive serves a term before being consumed")
-	assert_true(compound.get_node("DominionGenerator") is OccupantDominionGenerator,
-		"its dominion is generated per occupant")
+	assert_true(
+		compound.get_node("DominionGenerator") is OccupantDominionGenerator,
+		"its dominion is generated per occupant"
+	)
 	compound.free()
+
 
 func test_the_allowlist_rejects_a_unit_the_masks_would_admit():
 	# A Recruit is the same frame, armour and locomotion as a Servant — the masks cannot
@@ -160,21 +190,27 @@ func test_the_allowlist_rejects_a_unit_the_masks_would_admit():
 	assert_true(g.admits(_entity(SERVANT, 1)), "the named piece is admitted")
 	assert_false(g.admits(_entity(RECRUIT, 1)), "an identical body with another id is not")
 
+
 func test_an_empty_allowlist_restricts_nothing():
 	var g: Garrison = _garrison(4)
 	assert_true(g.occupiable_ids.is_empty(), "the default names nobody")
 	assert_true(g.admits(_entity(RECRUIT, 1)), "which means everyone the masks allow")
 
+
 func test_an_ordinary_garrison_is_not_closed():
 	var shelter: Commandable = FakePieces.make(OPEN_GARRISON)
-	assert_false((shelter.get_node("Garrison") as Garrison).is_closed(),
-		"an ordinary garrison is shelter, not a prison")
+	assert_false(
+		(shelter.get_node("Garrison") as Garrison).is_closed(),
+		"an ordinary garrison is shelter, not a prison"
+	)
 	shelter.free()
+
 
 ## --- The two directions of the door ----------------------------------------
 ##
 ## `is_closed()` is entry; `can_release()` is exit, and `can_release_occupant()` which of the
 ## occupants an order lets out — see gdd/systems/combat/garrison-and-transport.md.
+
 
 func test_occupy_into_a_stock_truck_is_for_servants_only():
 	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
@@ -194,6 +230,7 @@ func test_occupy_into_a_stock_truck_is_for_servants_only():
 		"nor another side's Servant"
 	)
 
+
 func test_occupy_is_allowed_for_an_open_garrison():
 	var recruit: Commandable = _entity(RECRUIT, 1)
 	var mercury: Commandable = _entity(MERCURY, 1)
@@ -202,6 +239,7 @@ func test_occupy_is_allowed_for_an_open_garrison():
 		MoveCommand.PreconditionFailureCause.NONE,
 		"a transport still takes a grounded soldier"
 	)
+
 
 func test_occupy_is_refused_when_the_movement_mask_rejects_the_unit():
 	var clipper: Commandable = _entity(CLIPPER, 1)
@@ -217,6 +255,7 @@ func test_occupy_is_refused_when_the_movement_mask_rejects_the_unit():
 		MoveCommand.PreconditionFailureCause.NONE,
 		"widening the movement mask lets it in"
 	)
+
 
 ## The Compound separates the two directions: closed to entry, open to exit.
 func test_evacuate_is_allowed_for_a_closed_hold():
@@ -268,8 +307,12 @@ func test_a_servant_let_out_of_a_compound_leaves_the_prisoners_serving():
 	hold.evacuate_by_order(null)
 	assert_true(servant.is_inside_tree(), "released before its sentence ended, back in the game")
 	assert_eq(hold.occupants(), [captive] as Array[Commandable])
-	assert_almost_eq(hold._sentence_remaining[captive], hold.sentence_length - 1.0, 0.001,
-		"the prisoner's term carries on where it was")
+	assert_almost_eq(
+		hold._sentence_remaining[captive],
+		hold.sentence_length - 1.0,
+		0.001,
+		"the prisoner's term carries on where it was"
+	)
 
 
 func test_evacuating_only_captives_releases_nobody():
@@ -299,6 +342,7 @@ func test_a_garrison_can_be_authored_shut_in_the_exit_direction():
 	assert_false(g.can_release())
 	assert_false(g.is_closed(), "which says nothing about who may enter")
 
+
 func test_evacuate_is_allowed_for_an_open_garrison():
 	var mercury: Commandable = _entity(MERCURY, 1)
 	assert_eq(
@@ -306,6 +350,7 @@ func test_evacuate_is_allowed_for_an_open_garrison():
 		MoveCommand.PreconditionFailureCause.NONE,
 		"a transport can still be told to unload"
 	)
+
 
 func test_nobody_may_be_ordered_into_a_compound():
 	# Sentences reworked the camp back into a closed hold (2026-09-17): a captive is held as
@@ -331,16 +376,18 @@ func test_nobody_may_be_ordered_into_a_compound():
 		"but the compound can still be told to let its own side out early"
 	)
 
+
 ## --- Capture fills the cage ------------------------------------------------
 ## Who is capturable, and the contact that does it, live in test_CaptureByCrushing.gd; what
 ## is pinned here is the CAGE side — a closed hold filling up regardless of its own masks.
 
+
 func test_capture_applies_while_the_cage_has_room():
 	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
 	assert_true(
-		Garrison.can_capture(truck, _entity(TERRESTRIAL, 0)),
-		"an empty truck can take a prisoner"
+		Garrison.can_capture(truck, _entity(TERRESTRIAL, 0)), "an empty truck can take a prisoner"
 	)
+
 
 func test_capture_stops_applying_once_the_cage_is_full():
 	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
@@ -349,9 +396,9 @@ func test_capture_stops_applying_once_the_cage_is_full():
 		cage.garrison(_entity(TERRESTRIAL, 0))
 	assert_eq(cage.garrisoned_count(), 3, "the cage holds its three")
 	assert_false(
-		Garrison.can_capture(truck, _entity(TERRESTRIAL, 0)),
-		"a full truck can't take another"
+		Garrison.can_capture(truck, _entity(TERRESTRIAL, 0)), "a full truck can't take another"
 	)
+
 
 func test_a_captured_unit_leaves_the_world_but_stays_alive():
 	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
@@ -361,7 +408,9 @@ func test_a_captured_unit_leaves_the_world_but_stays_alive():
 	assert_true(is_instance_valid(captive), "but not freed")
 	assert_eq(truck.garrison.occupants(), [captive] as Array[Commandable])
 
+
 ## --- Deposit moves the truck's captives into the compound, unconverted ----------
+
 
 ## A captor loaded with `a_count` neutral terrestrials.
 func _loaded_truck(a_count: int) -> Commandable:
@@ -370,6 +419,7 @@ func _loaded_truck(a_count: int) -> Commandable:
 		truck.garrison.garrison(_entity(TERRESTRIAL, 0))
 	return truck
 
+
 func test_deposit_moves_prisoners_into_the_compound_unconverted():
 	var truck: Commandable = _loaded_truck(2)
 	var captives: Array[Commandable] = truck.garrison.occupants().duplicate()
@@ -377,13 +427,21 @@ func test_deposit_moves_prisoners_into_the_compound_unconverted():
 	assert_eq(compound.garrison.deposit_from(truck.garrison), 2, "both captives are moved")
 	assert_eq(truck.garrison.garrisoned_count(), 0, "the truck is empty again")
 	assert_eq(compound.garrison.garrisoned_count(), 2, "the compound holds two")
-	assert_eq(compound.garrison.occupants(), captives,
-		"the SAME units — a transfer, not a conversion")
+	assert_eq(
+		compound.garrison.occupants(), captives, "the SAME units — a transfer, not a conversion"
+	)
 	for occupant: Commandable in compound.garrison.occupants():
-		assert_eq(occupant.id, TERRESTRIAL.get("id", &"fake_unit"),
-			"each stays what it was; the Compound no longer produces Servants")
-		assert_eq(occupant.commander.id, 0,
-			"ownership is untouched — still the side it was taken from, not the depositor's")
+		assert_eq(
+			occupant.id,
+			TERRESTRIAL.get("id", &"fake_unit"),
+			"each stays what it was; the Compound no longer produces Servants"
+		)
+		assert_eq(
+			occupant.commander.id,
+			0,
+			"ownership is untouched — still the side it was taken from, not the depositor's"
+		)
+
 
 func test_a_deposit_takes_the_servants_riding_along_and_sentences_them():
 	var truck: Commandable = _loaded_truck(1)
@@ -393,10 +451,15 @@ func test_a_deposit_takes_the_servants_riding_along_and_sentences_them():
 	var hold: Garrison = compound.garrison
 	assert_eq(hold.deposit_from(truck.garrison), 2, "the prisoner and the Servant")
 	assert_true(servant in hold.occupants())
-	assert_almost_eq(hold._sentence_remaining[servant], hold.sentence_length, 0.001,
-		"a Servant serves a sentence like a prisoner")
+	assert_almost_eq(
+		hold._sentence_remaining[servant],
+		hold.sentence_length,
+		0.001,
+		"a Servant serves a sentence like a prisoner"
+	)
 	hold._physics_process(hold.sentence_length + 1.0)
 	assert_false(is_instance_valid(servant), "and is consumed at the end of it")
+
 
 func test_a_deposited_captive_serves_a_sentence():
 	var truck: Commandable = _loaded_truck(1)
@@ -404,8 +467,13 @@ func test_a_deposited_captive_serves_a_sentence():
 	var hold: Garrison = compound.garrison
 	hold.deposit_from(truck.garrison)
 	var captive: Commandable = hold.occupants()[0]
-	assert_almost_eq(hold._sentence_remaining[captive], hold.sentence_length, 0.001,
-		"the term starts fresh on arrival")
+	assert_almost_eq(
+		hold._sentence_remaining[captive],
+		hold.sentence_length,
+		0.001,
+		"the term starts fresh on arrival"
+	)
+
 
 func test_a_finished_sentence_consumes_the_captive():
 	var compound: Commandable = _entity(COMPOUND, 1)
@@ -417,6 +485,7 @@ func test_a_finished_sentence_consumes_the_captive():
 	assert_eq(hold.garrisoned_count(), 0, "the term is up — the captive leaves the hold")
 	assert_false(is_instance_valid(captive), "and is consumed, not returned to the world")
 
+
 func test_a_sentence_not_yet_finished_survives_a_tick():
 	var compound: Commandable = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
@@ -427,6 +496,7 @@ func test_a_sentence_not_yet_finished_survives_a_tick():
 	assert_eq(hold.garrisoned_count(), 1, "nine seconds still to serve")
 	assert_true(is_instance_valid(captive))
 
+
 func test_internment_is_partial_when_the_camp_is_nearly_full():
 	var truck: Commandable = _loaded_truck(2)
 	var compound: Commandable = _entity(COMPOUND, 1)
@@ -434,20 +504,29 @@ func test_internment_is_partial_when_the_camp_is_nearly_full():
 	assert_eq(compound.garrison.deposit_from(truck.garrison), 1, "only what fits is taken")
 	assert_eq(truck.garrison.garrisoned_count(), 1, "the truck keeps the rest")
 
+
 func test_a_garrison_with_no_sentence_length_takes_no_deposit():
 	var truck: Commandable = _loaded_truck(1)
 	var shelter: Commandable = _entity(OPEN_GARRISON, 1)
-	assert_false((shelter.get_node("Garrison") as Garrison).can_intern(),
-		"an ordinary garrison is shelter, not a camp")
-	assert_eq((shelter.get_node("Garrison") as Garrison).deposit_from(truck.garrison), 0,
-		"and it takes nothing")
+	assert_false(
+		(shelter.get_node("Garrison") as Garrison).can_intern(),
+		"an ordinary garrison is shelter, not a camp"
+	)
+	assert_eq(
+		(shelter.get_node("Garrison") as Garrison).deposit_from(truck.garrison),
+		0,
+		"and it takes nothing"
+	)
 	assert_eq(truck.garrison.garrisoned_count(), 1, "the truck still has its captive")
+
 
 func test_deposit_applies_to_a_camp_and_not_to_a_safehouse():
 	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
 	truck.garrison.garrison(_entity(TERRESTRIAL, 0))
 	var compound: Commandable = _entity(COMPOUND, 1)
-	var resolved: Interaction = truck.interactor.applicable_interaction(truck, _message_for(compound))
+	var resolved: Interaction = truck.interactor.applicable_interaction(
+		truck, _message_for(compound)
+	)
 	assert_not_null(resolved, "a loaded truck can deposit at a compound")
 	assert_eq(resolved.type, Interaction.Type.DEPOSIT)
 	# An ordinary building is a garrison too, but one that interns nothing — it is shelter
@@ -457,6 +536,7 @@ func test_deposit_applies_to_a_camp_and_not_to_a_safehouse():
 		"an open garrison is not a deposit target"
 	)
 
+
 func test_deposit_does_not_apply_to_an_empty_truck():
 	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
 	assert_null(
@@ -464,7 +544,9 @@ func test_deposit_does_not_apply_to_an_empty_truck():
 		"there is nothing to deposit"
 	)
 
+
 ## --- Release ---------------------------------------------------------------
+
 
 func test_destroying_the_holder_returns_prisoners_to_their_own_commander():
 	# The release path a destroyed truck / compound takes (Commandable._on_death →
@@ -476,10 +558,14 @@ func test_destroying_the_holder_returns_prisoners_to_their_own_commander():
 	var captive_commander: Commander = captive.commander
 	truck.garrison.garrison(captive)
 	truck.garrison.evacuate(null)
-	assert_eq(captive.get_parent(), captive_commander,
-		"a released prisoner goes back to its OWN commander, not its captor's")
+	assert_eq(
+		captive.get_parent(),
+		captive_commander,
+		"a released prisoner goes back to its OWN commander, not its captor's"
+	)
 	assert_ne(captive.get_parent(), captor_commander)
 	assert_eq(truck.garrison.garrisoned_count(), 0, "the cage is empty")
+
 
 func test_a_prisoner_is_freed_when_it_has_no_commander_to_return_to():
 	# A captive whose commander is gone can't be returned to the world; it must be freed
@@ -490,6 +576,7 @@ func test_a_prisoner_is_freed_when_it_has_no_commander_to_return_to():
 	captive.ownership.commander = null
 	truck.garrison.evacuate(null)
 	assert_false(is_instance_valid(captive), "the prisoner is freed, not orphaned")
+
 
 func test_a_destroyed_camp_releases_its_prisoners_to_the_world():
 	# The STRUCTURE release path (Garrison._evacuate_from_structure), which a destroyed
@@ -511,25 +598,36 @@ func test_a_destroyed_camp_releases_its_prisoners_to_the_world():
 	assert_true(captive_b.is_inside_tree())
 	assert_eq(captive_b.get_parent(), captive_b.commander)
 
+
 ## --- Starting loads authored in the editor ----------------------------------
+
 
 ## A Map that answers placement queries without a navmesh (see test_PlannedStructures for
 ## the same idea): enough for Garrison's evacuation and for EventSpawnEntities to run.
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		pass
+
 	func grid_to_world(a_cell: Vector2i) -> Vector3:
 		return Vector3(a_cell.x, 0.0, a_cell.y)
+
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
 		return a_coords.x >= 0 and a_coords.x < 17 and a_coords.y >= 0 and a_coords.y < 17
+
 	func terrain_height_at(_a_world_xz: Vector2) -> float:
 		return 0.0
 
+
 ## A Scenario that skips its heavy boot; the manager only needs it for `map` and for
 ## get_commander() to resolve ids against `commanders`.
-class StubScenario extends Scenario:
+class StubScenario:
+	extends Scenario
+
 	func _ready() -> void:
 		pass
+
 
 ## Map resolves its terrain collider and nav region through @onready node paths on tree
 ## entry, so the stub carries those children plus a heightmap (same rig as
@@ -551,6 +649,7 @@ func _stub_map() -> StubMap:
 	heights.map_depth = 17
 	stub.height_map = heights
 	return stub
+
 
 func test_an_event_authored_under_a_host_loads_its_garrison_at_scenario_start():
 	# What scene authoring looks like for a starting load: an EventSpawnEntities dropped
@@ -585,11 +684,17 @@ func test_an_event_authored_under_a_host_loads_its_garrison_at_scenario_start():
 
 	manager.run_starting_events()
 
-	assert_eq(compound.garrison.garrisoned_count(), 3, "the authored units start inside the compound")
+	assert_eq(
+		compound.garrison.garrisoned_count(), 3, "the authored units start inside the compound"
+	)
 	for occupant: Commandable in compound.garrison.occupants():
-		assert_eq(occupant.commander, prisoner_commander,
-			"each is owned by the event's commander, not the compound's")
+		assert_eq(
+			occupant.commander,
+			prisoner_commander,
+			"each is owned by the event's commander, not the compound's"
+		)
 		assert_false(occupant.is_inside_tree(), "and is held out of the world")
+
 
 func test_a_starting_event_under_a_host_is_not_run_twice():
 	# Guards the double-spawn: the pass is a one-time scenario-start step, so a second
@@ -621,7 +726,9 @@ func test_a_starting_event_under_a_host_is_not_run_twice():
 	manager.run_starting_events()
 	assert_eq(truck.garrison.garrisoned_count(), 2, "the authored load, once")
 
+
 ## --- Dominion per prisoner -------------------------------------------------
+
 
 func test_the_camp_banks_dominion_per_occupant():
 	var compound: Commandable = _entity(COMPOUND, 1)
@@ -631,8 +738,12 @@ func test_the_camp_banks_dominion_per_occupant():
 	var before: int = compound.commander.dominion
 	generator.ticks_elapsed = DominionGenerator.TICK_RATE - 1
 	generator.tick()
-	assert_eq(compound.commander.dominion - before, 2 * generator.dominion_per_unit,
-		"each prisoner banks its own dominion each cycle")
+	assert_eq(
+		compound.commander.dominion - before,
+		2 * generator.dominion_per_unit,
+		"each prisoner banks its own dominion each cycle"
+	)
+
 
 func test_an_empty_camp_banks_nothing():
 	var compound: Commandable = _entity(COMPOUND, 1)

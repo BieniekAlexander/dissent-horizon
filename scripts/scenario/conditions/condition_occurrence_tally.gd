@@ -20,6 +20,7 @@ extends Condition
 var _tally: int = 0
 #endregion
 
+
 #region Push wiring
 func arm(a_manager: ScenarioTriggerManager) -> void:
 	if not a_manager.entity_occurrence.is_connected(_on_entity_occurrence):
@@ -29,7 +30,10 @@ func arm(a_manager: ScenarioTriggerManager) -> void:
 func disarm(a_manager: ScenarioTriggerManager) -> void:
 	if a_manager.entity_occurrence.is_connected(_on_entity_occurrence):
 		a_manager.entity_occurrence.disconnect(_on_entity_occurrence)
+
+
 #endregion
+
 
 #region Public API
 func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
@@ -39,7 +43,10 @@ func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
 func reset() -> void:
 	super.reset()
 	_tally = 0
+
+
 #endregion
+
 
 #region Private helpers
 func _on_entity_occurrence(a_an_occurrence: Entity.EntityOccurrence, a_source: Entity) -> void:

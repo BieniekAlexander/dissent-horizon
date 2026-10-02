@@ -79,8 +79,11 @@ func test_a_map_packs_as_a_scene_of_its_own() -> void:
 	var before: int = map.get_child_count()
 	assert_eq(GeneratedMapWriter.pack(map, _SCENE_PATH), OK)
 	var state: SceneState = (load(_SCENE_PATH) as PackedScene).get_state()
-	assert_eq(state.get_node_name(0), StringName(GeneratedMapWriter.MAP_NODE_NAME),
-		"a Scenario reads its map as $Map")
+	assert_eq(
+		state.get_node_name(0),
+		StringName(GeneratedMapWriter.MAP_NODE_NAME),
+		"a Scenario reads its map as $Map"
+	)
 	var children: int = 0
 	var start_points: int = 0
 	for i: int in range(1, state.get_node_count()):

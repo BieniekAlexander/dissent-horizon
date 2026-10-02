@@ -23,19 +23,23 @@ extends RefCounted
 ## is an L1 (diamond) region in (x, z): precisely the play-area shape, with the grid corners
 ## excluded for free. `screen_rect_contains` is that test.
 
+
 ## Cell (x, z) -> screen-aligned (s, t) = (x + z, x - z). `cell` follows the project's
 ## Vector2i(x, z) convention (x = .x, z = .y).
 static func to_screen(cell: Vector2i) -> Vector2i:
 	return Vector2i(cell.x + cell.y, cell.x - cell.y)
+
 
 ## Screen-aligned (s, t) -> cell (x, z). Only meaningful when `is_valid_screen(screen)`;
 ## otherwise the /2 truncates and the result is one of the two nearest cells.
 static func to_grid(screen: Vector2i) -> Vector2i:
 	return Vector2i((screen.x + screen.y) / 2, (screen.x - screen.y) / 2)
 
+
 ## True when an (s, t) pair lands on a real cell (equal parity, s + t even).
 static func is_valid_screen(screen: Vector2i) -> bool:
 	return ((screen.x + screen.y) & 1) == 0
+
 
 ## Whether `cell` falls inside the screen-aligned rectangle centred at `center` (in (s, t)
 ## space) with the given half-extents — i.e. inside the corresponding (x, z) play diamond.

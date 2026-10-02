@@ -42,10 +42,16 @@ static func from_generated(generated: GeneratedMap) -> MapDecorationInput:
 			continue
 		for placement: Dictionary in feature.placements:
 			var piece: MapPiece = placement.piece
-			input.fixtures.append({
-				"kind": kind_of_piece(piece.id),
-				"cells": footprint(placement.origin, piece.footprint),
-			})
+			(
+				input
+				. fixtures
+				. append(
+					{
+						"kind": kind_of_piece(piece.id),
+						"cells": footprint(placement.origin, piece.footprint),
+					}
+				)
+			)
 	for water: Dictionary in generated.chasm_waters:
 		input.waters.append({"seed_cell": water.seed_cell, "level": water.level})
 	return input
@@ -71,11 +77,19 @@ static func from_map(map: Map) -> MapDecorationInput:
 			var dims: Vector2i = structure.footprint_dimensions()
 			var xz: Vector2 = _map_local_xz(node as Node3D, map) + grid_half
 			var origin := Vector2i(roundi(xz.x - dims.x * 0.5), roundi(xz.y - dims.y * 0.5))
-			input.fixtures.append({
-				"kind": kind_of_piece((node as Entity).id),
-				"cells": footprint(origin, dims),
-			})
+			(
+				input
+				. fixtures
+				. append(
+					{
+						"kind": kind_of_piece((node as Entity).id),
+						"cells": footprint(origin, dims),
+					}
+				)
+			)
 	return input
+
+
 #endregion
 
 

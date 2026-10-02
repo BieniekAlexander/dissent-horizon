@@ -9,8 +9,10 @@ const _WARLORD_SCENE: PackedScene = preload(
 	"res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn"
 )
 
+
 func _qualifies(a_candidate: Commandable) -> bool:
 	return a_candidate.id == EntityIds.AN_BIO_LIGHT_BUILDER
+
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var commander: Commander = a_manager.get_commander(commander_id)

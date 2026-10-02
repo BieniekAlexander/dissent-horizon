@@ -18,9 +18,10 @@ const BIO_GROUND: Dictionary = {"speed": 2.0, "vision": 8.0, "abilities": [{"gra
 const STRUCTURE: Dictionary = FakePieces.BUILDING
 
 
-
 ## Answers the one map question beacon placement asks.
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func terrain_height_at(_a_world_xz: Vector2) -> float:
 		return 0.0
 
@@ -76,6 +77,7 @@ func _beacon(a_commander_id: int, a_xz: Vector2) -> Beacon:
 
 # --- Who can carry one --------------------------------------------------------------
 
+
 func test_a_grounded_mech_unit_can_carry_a_beacon() -> void:
 	assert_true(Beacon.can_carry(_piece(MECH_GROUND, FOE, Vector2.ZERO)))
 
@@ -97,6 +99,7 @@ func test_nothing_cannot() -> void:
 
 
 # --- Riding along --------------------------------------------------------------------
+
 
 func test_an_attached_beacon_moves_with_its_carrier() -> void:
 	var tank := _piece(MECH_GROUND, FOE, Vector2(10, 10))
@@ -129,11 +132,14 @@ func test_a_beacon_outlives_its_carrier_where_it_last_was() -> void:
 
 # --- A shot claims its beacon --------------------------------------------------------
 
+
 func test_a_used_beacon_cannot_be_spent_again() -> void:
 	var beacon := _beacon(OWN, Vector2(60, 0))
 	beacon.mark_used()
-	assert_null(BombardTargeting.source_at(_commander(OWN), _at(Vector2(60, 0))),
-		"a second battery may not claim a beacon a shell is already coming for")
+	assert_null(
+		BombardTargeting.source_at(_commander(OWN), _at(Vector2(60, 0))),
+		"a second battery may not claim a beacon a shell is already coming for"
+	)
 	assert_false(BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(60, 0))))
 
 
@@ -171,10 +177,19 @@ func test_a_shell_outliving_its_beacon_is_harmless() -> void:
 
 # --- The Bombard fires on a beacon --------------------------------------------------
 
+
 func _gun() -> Commandable:
 	_commander(OWN).add_infrastructure(1000)
-	var gun := _piece({"structure": true, "dimensions": Vector2i(2, 2), "beacon_range": 20.0,
-		"abilities": [{"grants": [Bombard.ABILITY_ID]}]}, OWN, Vector2.ZERO)
+	var gun := _piece(
+		{
+			"structure": true,
+			"dimensions": Vector2i(2, 2),
+			"beacon_range": 20.0,
+			"abilities": [{"grants": [Bombard.ABILITY_ID]}]
+		},
+		OWN,
+		Vector2.ZERO
+	)
 	gun.build_progress = 1.0
 	if _map == null:
 		_map = StubMap.new()
@@ -200,6 +215,7 @@ func test_firing_on_ground_a_range_covers_claims_no_beacon() -> void:
 
 
 # --- Spotting a unit ------------------------------------------------------------------
+
 
 func _recruit(a_xz: Vector2) -> Commandable:
 	var recruit := _piece(BIO_GROUND, OWN, a_xz)
@@ -252,6 +268,7 @@ func test_a_carrier_driving_off_the_leash_drops_the_beacon() -> void:
 
 # --- Secrecy ---------------------------------------------------------------------------
 
+
 func test_a_beacon_is_stealthed_until_detected() -> void:
 	var beacon := _beacon(FOE, Vector2(0, 0))
 	var stealth: Stealth = beacon.host().stealth
@@ -268,8 +285,14 @@ func test_a_detector_can_find_a_beacon() -> void:
 	await wait_physics_frames(2)
 	var shape := SphereShape3D.new()
 	shape.radius = 2.0
-	var found: Array[Entity] = SU.query_shape_for_entities(beacon.host().get_world_3d(), shape,
-		Transform3D(Basis(), _at(Vector2(0, 0))), CollisionLayers.Mask.STEALTH, [], 8)
+	var found: Array[Entity] = SU.query_shape_for_entities(
+		beacon.host().get_world_3d(),
+		shape,
+		Transform3D(Basis(), _at(Vector2(0, 0))),
+		CollisionLayers.Mask.STEALTH,
+		[],
+		8
+	)
 	assert_has(found, beacon.host(), "the stealth layer query a detector runs finds it")
 
 
@@ -298,11 +321,14 @@ func test_the_used_marker_shows_only_to_the_owners_side() -> void:
 		beacon._physics_process(0.0)
 		beacon._process(0.0)
 	assert_true(mine.host().get_node("MeshVisual/UsedMarker").visible)
-	assert_false(theirs.host().get_node("MeshVisual/UsedMarker").visible,
-		"an opponent sees no change when a beacon is fired on")
+	assert_false(
+		theirs.host().get_node("MeshVisual/UsedMarker").visible,
+		"an opponent sees no change when a beacon is fired on"
+	)
 
 
 # --- The shell follows its goal -------------------------------------------------------
+
 
 func _falling_phase(a_tracks: bool) -> EmissionPhase:
 	var phase := EmissionPhase.new()
@@ -332,8 +358,9 @@ func test_tracking_a_still_goal_keeps_roughly_the_launch_heading() -> void:
 	var goal := Vector3(20, 0, 5)
 	var launched := phase.launch_velocity(Vector3.ZERO, goal)
 	var tracked := phase.tracked_velocity(launched, Vector3.ZERO, goal)
-	assert_almost_eq(VU.inXZ(tracked).normalized(), VU.inXZ(launched).normalized(),
-		Vector2.ONE * 0.001)
+	assert_almost_eq(
+		VU.inXZ(tracked).normalized(), VU.inXZ(launched).normalized(), Vector2.ONE * 0.001
+	)
 
 
 func test_a_phase_that_does_not_track_is_left_alone() -> void:
@@ -350,6 +377,7 @@ func test_a_flight_with_no_goal_is_left_alone() -> void:
 
 # --- Per-occupant garrison reach -------------------------------------------------------
 
+
 func test_a_garrison_sets_reach_per_occupant_piece() -> void:
 	var garrison := Garrison.new()
 	autofree(garrison)
@@ -358,9 +386,15 @@ func test_a_garrison_sets_reach_per_occupant_piece() -> void:
 	var favoured := _piece(MECH_GROUND, OWN, Vector2.ZERO)
 	favoured.id = &"favoured"
 	var other := _piece(MECH_GROUND, OWN, Vector2.ZERO)
-	assert_almost_eq(garrison.reach_bonus_for(favoured, 0.5), 11.5, 0.001,
-		"the favoured piece fires at its set reach, whatever its own, and the host bonus is not added")
-	assert_almost_eq(garrison.reach_bonus_for(other, 0.5), 1.0, 0.001, "everyone else gets the host's")
+	assert_almost_eq(
+		garrison.reach_bonus_for(favoured, 0.5),
+		11.5,
+		0.001,
+		"the favoured piece fires at its set reach, whatever its own, and the host bonus is not added"
+	)
+	assert_almost_eq(
+		garrison.reach_bonus_for(other, 0.5), 1.0, 0.001, "everyone else gets the host's"
+	)
 
 
 func test_a_set_reach_never_shortens_an_occupant() -> void:
@@ -373,6 +407,7 @@ func test_a_set_reach_never_shortens_an_occupant() -> void:
 
 
 # --- In flight -------------------------------------------------------------------------
+
 
 ## A flat TERRAIN plane for a free flight to strike.
 func _ground() -> void:

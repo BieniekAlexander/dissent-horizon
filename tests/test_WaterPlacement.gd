@@ -34,13 +34,16 @@ const _DRY_ORIGIN: Vector2i = Vector2i(2, 2)
 ## test_Extractor uses, and for the same reason: Map._ready would drag the navigation server
 ## into a unit test, while everything that decides where a structure lands is the real thing.
 ## The TerrainGrid is built by hand here because the placement rule reads is_flat off it.
-class TestMap extends Map:
+class TestMap:
+	extends Map
+
 	func _ready() -> void:
 		pass
 
 
 ## Enough of a Bot for BotEconomy's pond search: a map, a base, and a unit list.
-class StubBot extends Bot:
+class StubBot:
+	extends Bot
 	var units: Array = []
 	var base: Vector3 = Vector3.ZERO
 
@@ -196,6 +199,8 @@ func test_a_drained_pond_is_not_worth_working() -> void:
 	var map: Map = _make_map()
 	var water: WaterBody = _add_water(map, 0)
 	assert_false(water.is_workable(), "no charge left to take")
+
+
 #endregion
 
 
@@ -216,8 +221,12 @@ func test_the_node_is_centred_on_its_basin() -> void:
 	var centre: Vector3 = _basin_centre(map, water)
 	assert_almost_eq(water.global_position.x, centre.x, 0.001, "centred in X")
 	assert_almost_eq(water.global_position.z, centre.z, 0.001, "centred in Z")
-	assert_almost_eq(water.global_position.y, water.level, 0.001,
-		"and sits at the water's own surface, not on the ground under it")
+	assert_almost_eq(
+		water.global_position.y,
+		water.level,
+		0.001,
+		"and sits at the water's own surface, not on the ground under it"
+	)
 
 
 func test_recentring_does_not_move_the_water() -> void:
@@ -227,8 +236,12 @@ func test_recentring_does_not_move_the_water() -> void:
 	var water: WaterBody = _add_water(map)
 	var surface: Node3D = water.get_node_or_null(^"Surface") as Node3D
 	assert_not_null(surface, "the generated surface child exists")
-	assert_almost_eq(surface.global_position.distance_to(map.global_position), 0.0, 0.001,
-		"the surface stays in the Map's frame however the body node is placed")
+	assert_almost_eq(
+		surface.global_position.distance_to(map.global_position),
+		0.0,
+		0.001,
+		"the surface stays in the Map's frame however the body node is placed"
+	)
 
 
 func test_recentring_does_not_move_the_footprint() -> void:
@@ -248,10 +261,15 @@ func test_the_transform_is_derived_and_never_saved() -> void:
 	var water: WaterBody = autofree(WaterBody.new())
 	for property: Dictionary in water.get_property_list():
 		if property["name"] == "transform":
-			assert_eq(int(property["usage"]) & PROPERTY_USAGE_STORAGE, 0,
-				"a derived transform is not authored content")
+			assert_eq(
+				int(property["usage"]) & PROPERTY_USAGE_STORAGE,
+				0,
+				"a derived transform is not authored content"
+			)
 			return
 	fail_test("Node3D no longer exposes `transform` — this guard needs rewriting")
+
+
 #endregion
 
 
@@ -289,8 +307,11 @@ func test_a_pond_an_in_flight_job_is_aimed_into_is_reported() -> void:
 	var water: WaterBody = _add_water(map, WaterBody.NOMINAL_ENERGY)
 	var aim: Vector3 = map.grid_to_world(_SHALLOW_ORIGIN)
 	var economy: BotEconomy = _economy_with(map, [_builder_building_at(map, aim)])
-	assert_eq(economy._ponds_under_way(), [water] as Array,
-		"a body is claimed from the moment a builder is SENT, not when it arrives")
+	assert_eq(
+		economy._ponds_under_way(),
+		[water] as Array,
+		"a body is claimed from the moment a builder is SENT, not when it arrives"
+	)
 
 
 func test_a_pond_already_under_way_is_not_offered_again() -> void:
@@ -298,8 +319,10 @@ func test_a_pond_already_under_way_is_not_offered_again() -> void:
 	_add_water(map, WaterBody.NOMINAL_ENERGY)
 	var aim: Vector3 = map.grid_to_world(_SHALLOW_ORIGIN)
 	var economy: BotEconomy = _economy_with(map, [_builder_building_at(map, aim)])
-	assert_null(economy._nearest_workable_pond_spot(),
-		"the only pond is spoken for, so there is nowhere to send a second builder")
+	assert_null(
+		economy._nearest_workable_pond_spot(),
+		"the only pond is spoken for, so there is nowhere to send a second builder"
+	)
 
 
 func test_an_unworked_pond_is_offered_when_nothing_is_under_way() -> void:
@@ -307,8 +330,10 @@ func test_an_unworked_pond_is_offered_when_nothing_is_under_way() -> void:
 	var map: Map = _make_map()
 	_add_water(map, WaterBody.NOMINAL_ENERGY)
 	var economy: BotEconomy = _economy_with(map, [])
-	assert_not_null(economy._nearest_workable_pond_spot(),
-		"with no job in flight the bot still reaches for the pond")
+	assert_not_null(
+		economy._nearest_workable_pond_spot(),
+		"with no job in flight the bot still reaches for the pond"
+	)
 
 
 func test_an_unexplored_pond_is_never_offered() -> void:
@@ -316,8 +341,10 @@ func test_an_unexplored_pond_is_never_offered() -> void:
 	_add_water(map, WaterBody.NOMINAL_ENERGY)
 	var economy: BotEconomy = _economy_with(map, [])
 	(economy._bot as StubBot).explored_filter = func(_a_pos: Vector3) -> bool: return false
-	assert_null(economy._nearest_workable_pond_spot(),
-		"a pond the bot has never had in vision is one it does not know exists")
+	assert_null(
+		economy._nearest_workable_pond_spot(),
+		"a pond the bot has never had in vision is one it does not know exists"
+	)
 
 
 func test_a_partly_explored_pond_is_offered_only_where_it_was_seen() -> void:
@@ -327,9 +354,11 @@ func test_a_partly_explored_pond_is_offered_only_where_it_was_seen() -> void:
 	var seen: Vector3 = map.grid_to_world(_SHALLOW_ORIGIN)
 	(economy._bot as StubBot).explored_filter = func(a_pos: Vector3) -> bool:
 		return a_pos.is_equal_approx(seen)
-	assert_eq(economy._nearest_workable_pond_spot(), seen,
-		"the spot offered is a cell the bot has actually looked at")
-
+	assert_eq(
+		economy._nearest_workable_pond_spot(),
+		seen,
+		"the spot offered is a cell the bot has actually looked at"
+	)
 
 
 func test_a_pond_taken_out_of_sight_still_reads_open() -> void:
@@ -342,8 +371,10 @@ func test_a_pond_taken_out_of_sight_still_reads_open() -> void:
 	add_child_autofree(claimant)
 	claimant.ownership.commander = enemy
 	water.extractor = claimant
-	assert_not_null(_economy_with(map, [])._nearest_workable_pond_spot(),
-		"the bot has not seen the enemy extractor, so it believes the pond is free")
+	assert_not_null(
+		_economy_with(map, [])._nearest_workable_pond_spot(),
+		"the bot has not seen the enemy extractor, so it believes the pond is free"
+	)
 
 
 func test_a_remembered_structure_in_the_water_claims_the_pond() -> void:
@@ -355,15 +386,21 @@ func test_a_remembered_structure_in_the_water_claims_the_pond() -> void:
 	entry.is_structure = true
 	entry.last_known_location = map.grid_to_world(_SHALLOW_ORIGIN)
 	economy._bot.blackboard._entries[entry.instance_id] = entry
-	assert_null(economy._nearest_workable_pond_spot(),
-		"it last saw an enemy structure standing in the pond, and has not looked since")
+	assert_null(
+		economy._nearest_workable_pond_spot(),
+		"it last saw an enemy structure standing in the pond, and has not looked since"
+	)
 
 
 func test_a_drained_pond_is_never_offered() -> void:
 	var map: Map = _make_map()
 	_add_water(map, 0)
-	assert_null(_economy_with(map, [])._nearest_workable_pond_spot(),
-		"a spent pond is dry ground with a surface on it")
+	assert_null(
+		_economy_with(map, [])._nearest_workable_pond_spot(),
+		"a spent pond is dry ground with a surface on it"
+	)
+
+
 #endregion
 
 
@@ -394,10 +431,14 @@ func test_water_and_the_blocked_mask_are_independent() -> void:
 	var water: WaterBody = _add_water(map)
 	map.terrain_grid.set_blocked(_SHALLOW_ORIGIN, true)
 	water.level = _GROUND + 1.0  # republishes the whole water layer
-	assert_true(map.terrain_grid.is_blocked(_SHALLOW_ORIGIN), "the blocked bit survives a water edit")
+	assert_true(
+		map.terrain_grid.is_blocked(_SHALLOW_ORIGIN), "the blocked bit survives a water edit"
+	)
 	map.terrain_grid.set_blocked(_DEEP_ORIGIN, true)
 	map.terrain_grid.set_submerged_mask(PackedByteArray())
 	assert_true(map.terrain_grid.is_blocked(_DEEP_ORIGIN), "clearing the water layer leaves it")
+
+
 #endregion
 
 
@@ -465,6 +506,8 @@ func test_a_footprint_half_out_of_the_water_is_refused() -> void:
 		EnergyExtractor.valid_placement(_msg(map, _aim(map, Vector2i(5, 6))), _DIMS, false, true),
 		"an extractor must be entirely inside one body of water"
 	)
+
+
 #endregion
 
 
@@ -474,11 +517,13 @@ func test_a_pond_pays_the_multiple_of_the_extractor_rate() -> void:
 	var water: WaterBody = _add_water(map, WaterBody.NOMINAL_ENERGY)
 	var rate: int = 100
 	assert_eq(
-		water.extract(rate), rate * WaterBody.POND_RATE_MULTIPLIER,
+		water.extract(rate),
+		rate * WaterBody.POND_RATE_MULTIPLIER,
 		"a pond yields the pond multiple of the extractor's own rate"
 	)
 	assert_eq(
-		water.energy, WaterBody.NOMINAL_ENERGY - rate * WaterBody.POND_RATE_MULTIPLIER,
+		water.energy,
+		WaterBody.NOMINAL_ENERGY - rate * WaterBody.POND_RATE_MULTIPLIER,
 		"and debits itself by exactly what it paid"
 	)
 
@@ -506,6 +551,8 @@ func test_charge_fraction_tracks_the_draw_down() -> void:
 	assert_eq(water.charge_fraction(), 1.0, "a full pond is fully tinted")
 	water.extract(100)  # draws 100 x POND_RATE_MULTIPLIER: half the charge
 	assert_almost_eq(water.charge_fraction(), 0.5, 0.001, "half drained is half tinted")
+
+
 #endregion
 
 
@@ -527,7 +574,8 @@ func test_a_body_re_added_to_the_tree_still_responds_to_level() -> void:
 	water.level = _GROUND + WaterBasin.WADE_DEPTH  # a deeper pond than it had
 	assert_true(map.water_bodies.has(water), "editing it after re-entry re-binds it to the map")
 	assert_gt(
-		water.basin.covered_cells().size(), before,
+		water.basin.covered_cells().size(),
+		before,
 		"raising the level after a remove/re-add actually re-floods the basin"
 	)
 	water.free()
@@ -540,7 +588,9 @@ func test_a_basin_reports_its_depth_and_where_terrain_breaks_through() -> void:
 	var map: Map = _make_map()
 	var water: WaterBody = _add_water(map)
 	assert_almost_eq(
-		water.basin.max_depth, WaterBasin.WADE_DEPTH * 3.0, 0.001,
+		water.basin.max_depth,
+		WaterBasin.WADE_DEPTH * 3.0,
+		0.001,
 		"max_depth is the deepest cell, which is the well, not the pan"
 	)
 	# The SHORELINE always pierces — that ring is where the ground meets the level by
@@ -550,7 +600,8 @@ func test_a_basin_reports_its_depth_and_where_terrain_breaks_through() -> void:
 	var pierced_before: int = water.basin.cells_pierced_by_terrain
 	assert_gt(pierced_before, 0, "the shoreline ring breaks the surface, as it must")
 	assert_lt(
-		pierced_before * 2, covered,
+		pierced_before * 2,
+		covered,
 		"a pond with a real floor is mostly open water, not mostly shoreline"
 	)
 
@@ -565,7 +616,8 @@ func test_a_basin_reports_its_depth_and_where_terrain_breaks_through() -> void:
 	td.heights = heights
 	water.rebuild()
 	assert_gt(
-		water.basin.cells_pierced_by_terrain, pierced_before,
+		water.basin.cells_pierced_by_terrain,
+		pierced_before,
 		"terrain raised through the surface is counted, which is what warns an author off"
 	)
 #endregion

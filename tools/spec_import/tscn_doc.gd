@@ -21,13 +21,23 @@ extends RefCounted
 ## engine's job, not this parser's.
 
 ## Section: {
-##   "tag": String              — gd_scene / ext_resource / sub_resource / node / connection / editable
+## "tag": String              — gd_scene / ext_resource / sub_resource / node / connection /
+## editable
 ##   "attrs": Dictionary        — parsed header attributes (String -> raw String, quotes stripped)
 ##   "lines": Array[String]     — verbatim lines, header first, incl. trailing blank lines
 ## }
 var sections: Array = []
 
-const _HEADER_TAGS: Array = ["gd_scene", "gd_resource", "ext_resource", "sub_resource", "node", "connection", "editable", "resource"]
+const _HEADER_TAGS: Array = [
+	"gd_scene",
+	"gd_resource",
+	"ext_resource",
+	"sub_resource",
+	"node",
+	"connection",
+	"editable",
+	"resource"
+]
 
 
 # --------------------------------------------------------------------------- #
@@ -90,7 +100,14 @@ static func _header_tag(line: String) -> String:
 	if not line.begins_with("["):
 		return ""
 	for tag in _HEADER_TAGS:
-		if line.begins_with("[" + tag) and (line.length() == tag.length() + 2 or line[tag.length() + 1] == " " or line[tag.length() + 1] == "]"):
+		if (
+			line.begins_with("[" + tag)
+			and (
+				line.length() == tag.length() + 2
+				or line[tag.length() + 1] == " "
+				or line[tag.length() + 1] == "]"
+			)
+		):
 			if line.rstrip(" ").ends_with("]"):
 				return tag
 	return ""
@@ -111,7 +128,7 @@ static func _parse_attrs(header: String) -> Dictionary:
 			continue
 		var key: String = pair.substr(0, eq)
 		var value: String = pair.substr(eq + 1)
-		if value.begins_with("\"") and value.ends_with("\"") and value.length() >= 2:
+		if value.begins_with('"') and value.ends_with('"') and value.length() >= 2:
 			value = value.substr(1, value.length() - 2)
 		attrs[key] = value
 	return attrs
@@ -127,11 +144,11 @@ static func _split_attrs(text: String) -> Array:
 		var c: String = text[i]
 		if in_quote:
 			current += c
-			if c == "\"":
+			if c == '"':
 				in_quote = false
 			continue
 		match c:
-			"\"":
+			'"':
 				in_quote = true
 				current += c
 			"(", "[":
@@ -184,7 +201,10 @@ func find_node(a_path: String) -> Dictionary:
 	parts.remove_at(parts.size() - 1)
 	var parent_attr: String = "." if parts.is_empty() else "/".join(parts)
 	for section in sections_of("node"):
-		if section["attrs"].get("name", "") == node_name and section["attrs"].get("parent", "") == parent_attr:
+		if (
+			section["attrs"].get("name", "") == node_name
+			and section["attrs"].get("parent", "") == parent_attr
+		):
 			return section
 	return {}
 
@@ -209,8 +229,13 @@ func get_prop(a_section: Dictionary, a_key: String) -> String:
 	var span: Vector2i = _prop_span(a_section, a_key)
 	if span.x < 0:
 		return ""
-	var value_lines: Array = [String(a_section["lines"][span.x]).substr(
-		String(a_section["lines"][span.x]).find("=") + 1).strip_edges()]
+	var value_lines: Array = [
+		(
+			String(a_section["lines"][span.x])
+			. substr(String(a_section["lines"][span.x]).find("=") + 1)
+			. strip_edges()
+		)
+	]
 	for i in range(span.x + 1, span.y):
 		value_lines.append(a_section["lines"][i])
 	return "\n".join(value_lines)
@@ -272,9 +297,9 @@ static func _value_end(a_lines: Array, a_start: int) -> int:
 					escaped = false
 				elif c == "\\":
 					escaped = true
-				elif c == "\"":
+				elif c == '"':
 					in_string = false
-			elif c == "\"":
+			elif c == '"':
 				in_string = true
 			elif c in "([{":
 				depth += 1
@@ -303,7 +328,9 @@ static func _prop_key(line: String) -> String:
 	var key: String = line.substr(0, eq)
 	for i in key.length():
 		var c: String = key[i]
-		if not (c.to_lower() != c.to_upper() or c.is_valid_int() or c == "_" or c == "/" or c == "."):
+		if not (
+			c.to_lower() != c.to_upper() or c.is_valid_int() or c == "_" or c == "/" or c == "."
+		):
 			return ""
 	return key
 
@@ -322,10 +349,12 @@ func ensure_ext_resource(a_type: String, a_path: String, a_uid: String = "") -> 
 	var id: String = _fresh_ext_id()
 	var header: String
 	if a_uid != "":
-		header = "[ext_resource type=\"%s\" uid=\"%s\" path=\"%s\" id=\"%s\"]" % [a_type, a_uid, a_path, id]
+		header = '[ext_resource type="%s" uid="%s" path="%s" id="%s"]' % [a_type, a_uid, a_path, id]
 	else:
-		header = "[ext_resource type=\"%s\" path=\"%s\" id=\"%s\"]" % [a_type, a_path, id]
-	var section: Dictionary = {"tag": "ext_resource", "attrs": _parse_attrs(header), "lines": [header]}
+		header = '[ext_resource type="%s" path="%s" id="%s"]' % [a_type, a_path, id]
+	var section: Dictionary = {
+		"tag": "ext_resource", "attrs": _parse_attrs(header), "lines": [header]
+	}
 	var ext: Array = sections_of("ext_resource")
 	if ext.is_empty():
 		# After the gd_scene header section; keep its trailing blank line, then a
@@ -353,8 +382,10 @@ func remove_sub_resource(a_id: String) -> void:
 ## Adds a [sub_resource] with the given raw properties; returns its id.
 func add_sub_resource(a_type: String, a_id_hint: String, a_props: Dictionary) -> String:
 	var id: String = _fresh_sub_id("%s_%s" % [a_type, a_id_hint])
-	var header: String = "[sub_resource type=\"%s\" id=\"%s\"]" % [a_type, id]
-	var section: Dictionary = {"tag": "sub_resource", "attrs": _parse_attrs(header), "lines": [header]}
+	var header: String = '[sub_resource type="%s" id="%s"]' % [a_type, id]
+	var section: Dictionary = {
+		"tag": "sub_resource", "attrs": _parse_attrs(header), "lines": [header]
+	}
 	for key in a_props:
 		section["lines"].append("%s = %s" % [key, a_props[key]])
 	section["lines"].append("")
@@ -457,11 +488,14 @@ func ensure_editable(a_path: String) -> void:
 	for section in sections_of("editable"):
 		if section["attrs"].get("path", "") == a_path:
 			return
-	var header: String = "[editable path=\"%s\"]" % a_path
+	var header: String = '[editable path="%s"]' % a_path
 	var lines: Array = [header]
 	# Godot writes editable lines consecutively, with the file's closing newline after the last.
-	if not sections.is_empty() and sections.back()["tag"] == "editable" \
-			and String(sections.back()["lines"].back()) == "":
+	if (
+		not sections.is_empty()
+		and sections.back()["tag"] == "editable"
+		and String(sections.back()["lines"].back()) == ""
+	):
 		sections.back()["lines"].pop_back()
 	lines.append("")
 	sections.append({"tag": "editable", "attrs": _parse_attrs(header), "lines": lines})
@@ -504,8 +538,8 @@ func remove_node(a_path: String) -> void:
 ## Reachability is transitive: a sub_resource may reference other resources (a mesh naming
 ## its material), so the live set is grown to a fixpoint before anything is dropped.
 func _prune_orphaned_resources() -> void:
-	var live: Dictionary = {}          # resource id -> true, ext and sub alike
-	var pending: Array = []            # sub_resource ids already scanned for further refs
+	var live: Dictionary = {}  # resource id -> true, ext and sub alike
+	var pending: Array = []  # sub_resource ids already scanned for further refs
 	for section in sections:
 		if section["tag"] == "ext_resource" or section["tag"] == "sub_resource":
 			continue
@@ -587,8 +621,10 @@ static func fmt_float(value: float) -> String:
 static func fmt_string(value: String) -> String:
 	# Godot reads \n / \t escapes inside a quoted .tscn string, so an authored
 	# multi-line value (e.g. an editor_description) round-trips on one line.
-	return "\"%s\"" % value.replace("\\", "\\\\").replace("\"", "\\\"") \
-		.replace("\n", "\\n").replace("\t", "\\t")
+	return (
+		'"%s"'
+		% value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+	)
 
 
 static func fmt_string_name(value: String) -> String:
@@ -603,8 +639,7 @@ static func fmt_string_name_array(values: Array) -> String:
 
 
 static func fmt_vector3(value: Vector3) -> String:
-	return "Vector3(%s, %s, %s)" % [
-		fmt_float(value.x), fmt_float(value.y), fmt_float(value.z)]
+	return "Vector3(%s, %s, %s)" % [fmt_float(value.x), fmt_float(value.y), fmt_float(value.z)]
 
 
 ## A Transform3D literal: the basis in COLUMN-MAJOR order (x axis, y axis, z axis), then
@@ -638,7 +673,7 @@ static func _fmt_attr(value: Variant) -> String:
 		var s: String = String(value)
 		if s.begins_with("ExtResource(") or s.begins_with("SubResource(") or s.begins_with("["):
 			return s
-		return "\"%s\"" % s
+		return '"%s"' % s
 	if value is int or value is float or value is bool:
 		return str(value)
 	return str(value)
@@ -682,8 +717,9 @@ func _update_load_steps() -> void:
 	var regex: RegEx = RegEx.new()
 	regex.compile("load_steps=\\d+")
 	if regex.search(header) != null:
-		header = regex.sub(header, "load_steps=%d " % steps).replace("load_steps=1 ", "") \
-			.replace("  ", " ")
+		header = regex.sub(header, "load_steps=%d " % steps).replace("load_steps=1 ", "").replace(
+			"  ", " "
+		)
 	elif steps > 1:
 		header = header.replace("[%s " % head["tag"], "[%s load_steps=%d " % [head["tag"], steps])
 	head["lines"][0] = header

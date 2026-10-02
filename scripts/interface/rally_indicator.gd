@@ -22,6 +22,7 @@ const COLOR: Color = Color(0.3, 0.9, 0.95)
 var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
 
+
 func _ready() -> void:
 	_mesh = ImmediateMesh.new()
 	_mesh_instance = MeshInstance3D.new()
@@ -33,6 +34,7 @@ func _ready() -> void:
 	mat.render_priority = RenderPriority.WAYPOINT_PRIORITY
 	_mesh_instance.material_override = mat
 	add_child(_mesh_instance)
+
 
 ## Redraws every chain. `chains` is an Array of Array[Vector3] polylines, each expected to
 ## start with its structure's own position (see the Garrison-occupancy rally task's Q2:
@@ -58,6 +60,7 @@ func update_chains(a_chains: Array) -> void:
 			_mesh.surface_add_vertex(to_local(b))
 			_add_marker(b)
 	_mesh.surface_end()
+
 
 ## A small diamond marker at a waypoint, in the same PRIMITIVE_LINES surface as the line
 ## segments (mirrors WaypointIndicator, which mixes both in one surface).

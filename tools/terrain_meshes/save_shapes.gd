@@ -8,6 +8,7 @@ extends SceneTree
 ## Run with:
 ##   godot --headless -s res://tools/terrain_meshes/save_shapes.gd
 
+
 func _initialize() -> void:
 	for name: String in ["mesh_flat_terrain", "mesh_disc_terrain", "mesh_plateau_terrain"]:
 		var path: String = "res://resources/terrain/%s.tres" % name

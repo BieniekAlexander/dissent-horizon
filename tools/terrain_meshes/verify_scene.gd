@@ -5,7 +5,8 @@ extends Node3D
 ## it, and a unit ordered across the map gets there.
 ##
 ## Run with:
-##   godot --headless res://tools/terrain_meshes/verify_scene.tscn -- <res://scene.tscn> [move_x] [move_z]
+## godot --headless res://tools/terrain_meshes/verify_scene.tscn -- <res://scene.tscn> [move_x]
+## [move_z]
 ##
 ## Needs a real main loop (not `godot -s`) because the game's autoloads — DamageTable,
 ## SceneManager — only exist for a scene main loop, and Scenario touches them on the way up.
@@ -88,8 +89,12 @@ func _report_terrain() -> void:
 	for h: float in data.heights:
 		lo = minf(lo, h)
 		hi = maxf(hi, h)
-	print("terrain   : %dx%d cells | passable %d | steep %d | height %.2f..%.2f" % [
-		gw, gd, passable, steep, lo, hi])
+	print(
+		(
+			"terrain   : %dx%d cells | passable %d | steep %d | height %.2f..%.2f"
+			% [gw, gd, passable, steep, lo, hi]
+		)
+	)
 	if passable == 0:
 		_fail("no passable cells — nothing could ever move")
 
@@ -149,8 +154,11 @@ func _report_movement() -> void:
 		return
 	var unit: Commandable = units[0]
 	var start: Vector3 = unit.global_position
-	var goal := Vector3(_move_target.x, _map.terrain_height_at(
-		Vector2(_move_target.x, _move_target.z)), _move_target.z)
+	var goal := Vector3(
+		_move_target.x,
+		_map.terrain_height_at(Vector2(_move_target.x, _move_target.z)),
+		_move_target.z
+	)
 
 	var message := CommandMessage.new(_map, null, null, goal)
 	unit.update_commands(MoveCommand.new(message))
@@ -179,26 +187,45 @@ func _report_movement() -> void:
 	# or off the surface, the unit CANNOT reach it and the shortfall is the map's, not a bug.
 	var reachable: Vector3 = _map.nearest_navmesh_point(goal)
 	var goal_offset: float = Vector2(reachable.x - goal.x, reachable.z - goal.z).length()
-	print("movement  : %s from (%.1f, %.1f) -> ordered (%.1f, %.1f)" % [
-		unit.id, start.x, start.z, goal.x, goal.z])
-	print("            travelled %.1f of %.1f units in %d ticks | closest approach %.2f" % [
-		travelled, ordered, ticks, best])
+	print(
+		(
+			"movement  : %s from (%.1f, %.1f) -> ordered (%.1f, %.1f)"
+			% [unit.id, start.x, start.z, goal.x, goal.z]
+		)
+	)
+	print(
+		(
+			"            travelled %.1f of %.1f units in %d ticks | closest approach %.2f"
+			% [travelled, ordered, ticks, best]
+		)
+	)
 	print("            terrain-following Y: start %.2f, end %.2f" % [start.y, end_pos.y])
 	# Walked distance vs the straight line. A detour ratio well over 1 is the evidence that
 	# the unit went AROUND an obstacle rather than through where one should have been.
-	print("            walked %.1f units for a %.1f straight line (detour x%.2f)" % [
-		path_length, ordered, path_length / maxf(ordered, 0.001)])
+	print(
+		(
+			"            walked %.1f units for a %.1f straight line (detour x%.2f)"
+			% [path_length, ordered, path_length / maxf(ordered, 0.001)]
+		)
+	)
 	print("            remaining-distance trace: %s" % " ".join(trace))
-	print("            nearest navmesh point to goal is %.2f away | nav finished %s | idle %s" % [
-		goal_offset,
-		unit.movement.is_navigation_finished() if unit.movement != null else "n/a",
-		unit.command_receiver.is_idle()])
+	print(
+		(
+			"            nearest navmesh point to goal is %.2f away | nav finished %s | idle %s"
+			% [
+				goal_offset,
+				unit.movement.is_navigation_finished() if unit.movement != null else "n/a",
+				unit.command_receiver.is_idle()
+			]
+		)
+	)
 	# Judge against what is actually reachable — a goal 8 units inside a building is not a
 	# movement failure, and scoring it as one would make the harness lie.
 	var allowed: float = ARRIVAL_EPSILON + goal_offset
 	if best > allowed:
-		_fail("unit did not reach its ordered point (closest %.2f, needed <= %.2f)" % [
-			best, allowed])
+		_fail(
+			"unit did not reach its ordered point (closest %.2f, needed <= %.2f)" % [best, allowed]
+		)
 
 
 ## Whether the navigation map can path from `from` to `to`. Used to ask structural questions
@@ -231,8 +258,12 @@ func _navmesh_connects(a_from: Vector3, a_to: Vector3) -> bool:
 	var big: PackedVector3Array = result.path
 	if not big.is_empty():
 		var last: Vector3 = big[big.size() - 1]
-		print("            (budget 1M: %d points, ends %.1f from the target)" % [
-			big.size(), Vector2(last.x - a_to.x, last.z - a_to.z).length()])
+		print(
+			(
+				"            (budget 1M: %d points, ends %.1f from the target)"
+				% [big.size(), Vector2(last.x - a_to.x, last.z - a_to.z).length()]
+			)
+		)
 	return gap <= 2.0
 
 
@@ -245,18 +276,38 @@ func _report_probe() -> void:
 	a.y = _map.terrain_height_at(Vector2(a.x, a.z))
 	b.y = _map.terrain_height_at(Vector2(b.x, b.z))
 	var connected: bool = _navmesh_connects(a, b)
-	print("probe     : (%.0f, %.0f) y=%.2f -> (%.0f, %.0f) y=%.2f | %s (expected %s)" % [
-		a.x, a.z, a.y, b.x, b.z, b.y, "connected" if connected else "isolated", _probe_expect])
+	print(
+		(
+			"probe     : (%.0f, %.0f) y=%.2f -> (%.0f, %.0f) y=%.2f | %s (expected %s)"
+			% [
+				a.x,
+				a.z,
+				a.y,
+				b.x,
+				b.z,
+				b.y,
+				"connected" if connected else "isolated",
+				_probe_expect
+			]
+		)
+	)
 	if (_probe_expect == "connected") != connected:
-		_fail("probe expected %s but the navmesh reports %s" % [
-			_probe_expect, "connected" if connected else "isolated"])
+		_fail(
+			(
+				"probe expected %s but the navmesh reports %s"
+				% [_probe_expect, "connected" if connected else "isolated"]
+			)
+		)
 
 
 func _owned_units(a_commander: Node) -> Array:
 	var out: Array = []
 	for child: Node in a_commander.get_children():
-		if child is Commandable and child.is_in_group("unit") \
-			and not child.is_queued_for_deletion():
+		if (
+			child is Commandable
+			and child.is_in_group("unit")
+			and not child.is_queued_for_deletion()
+		):
 			out.append(child)
 	return out
 

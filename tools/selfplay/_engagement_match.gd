@@ -37,7 +37,6 @@ var _deaths_army: Array[int] = [0, 0]
 var _deaths_scout_combat: Array[int] = [0, 0]
 var _deaths_army_combat: Array[int] = [0, 0]
 
-
 ## Ticks between roster scans. Not every tick: the scan walks both rosters and costs real
 ## time in a harness whose whole point is running many matches, and a unit cannot be born,
 ## fight and die inside a third of a second.
@@ -78,7 +77,7 @@ func _refresh_ledger() -> void:
 			var rec: Dictionary = _tracked.get(key, {"slot": i, "scouting": false, "hurt": false})
 			rec["slot"] = i
 			if scouting.has(key):
-				rec["scouting"] = true      # STICKY: it was scouting when it met the enemy
+				rec["scouting"] = true  # STICKY: it was scouting when it met the enemy
 			if u.defense != null and u.defense.hp < u.defense.hp_max:
 				rec["hurt"] = true
 			_tracked[key] = rec
@@ -116,11 +115,16 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	var stalled: int = 0
 	var beside_untargetable: int = 0
 	for u: Commandable in army:
-		var is_attacking: bool = u.has_command() and u.current_command() is Attack \
+		var is_attacking: bool = (
+			u.has_command()
+			and u.current_command() is Attack
 			and is_instance_valid((u.current_command() as Attack).message.target)
+		)
 		if is_attacking:
 			attacking += 1
-		var near_objective: bool = VU.inXZ(u.global_position).distance_to(VU.inXZ(objective)) <= ARRIVE_RADIUS
+		var near_objective: bool = (
+			VU.inXZ(u.global_position).distance_to(VU.inXZ(objective)) <= ARRIVE_RADIUS
+		)
 		if near_objective:
 			arrived += 1
 			if not is_attacking:
@@ -227,7 +231,7 @@ func _is_beside_untargetable(a_bot: Bot, a_unit: Commandable) -> bool:
 		if c == null or not c.is_visible_to(a_bot.id):
 			continue
 		if a_unit.weapon_inventory.weapon_for_target(c) != null:
-			return false          # something here it CAN hurt: not the failure mode
+			return false  # something here it CAN hurt: not the failure mode
 		saw_untargetable = true
 	return saw_untargetable
 

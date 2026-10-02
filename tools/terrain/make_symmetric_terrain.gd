@@ -38,13 +38,21 @@ func _initialize() -> void:
 	var w: int = dims.x
 	var d: int = dims.y
 	if src.heights.size() != w * d:
-		push_error("make_symmetric_terrain: %s heights are %d, expected %d"
-			% [SRC_TRES, src.heights.size(), w * d])
+		push_error(
+			(
+				"make_symmetric_terrain: %s heights are %d, expected %d"
+				% [SRC_TRES, src.heights.size(), w * d]
+			)
+		)
 		quit(1)
 		return
 
-	print("source %s: play_size=%s corner grid %dx%d, height range [%.3f, %.3f]"
-		% [SRC_TRES.get_file(), src.play_size, w, d, _min(src.heights), _max(src.heights)])
+	print(
+		(
+			"source %s: play_size=%s corner grid %dx%d, height range [%.3f, %.3f]"
+			% [SRC_TRES.get_file(), src.play_size, w, d, _min(src.heights), _max(src.heights)]
+		)
+	)
 
 	var heights: PackedFloat32Array = _symmetrize_heights(src.heights, w, d)
 	var tiles: PackedByteArray = _symmetrize_tiles(src, w - 1, d - 1)
@@ -124,12 +132,23 @@ func _verify_rebake_is_noop(a_expected: PackedFloat32Array, a_w: int, a_d: int) 
 	var after_bake: float = _max_abs_diff(data.heights, a_expected)
 	var asym: float = _asymmetry(data.heights, a_w, a_d)
 
-	print("rebake: %d/%d corners covered, %d/%d cells voided (%d triangles, %d vertical)"
-		% [report["covered"], report["corners"], report["voided"], report["cells"],
-				report["triangles"], report["skipped_triangles"]])
+	print(
+		(
+			"rebake: %d/%d corners covered, %d/%d cells voided (%d triangles, %d vertical)"
+			% [
+				report["covered"],
+				report["corners"],
+				report["voided"],
+				report["cells"],
+				report["triangles"],
+				report["skipped_triangles"]
+			]
+		)
+	)
 	print("residual  saved-vs-computed   %.9f" % on_disk)
-	print("residual  rebaked-vs-computed %.9f   <- must be 0 for a rebake to be a no-op"
-		% after_bake)
+	print(
+		"residual  rebaked-vs-computed %.9f   <- must be 0 for a rebake to be a no-op" % after_bake
+	)
 	print("residual  point-reflection    %.9f" % asym)
 
 	var ok: bool = on_disk == 0.0 and after_bake == 0.0 and asym == 0.0
@@ -151,8 +170,9 @@ func _asymmetry(a_heights: PackedFloat32Array, a_w: int, a_d: int) -> float:
 	var worst: float = 0.0
 	for j: int in a_d:
 		for i: int in a_w:
-			worst = maxf(worst, absf(
-				a_heights[j * a_w + i] - a_heights[(a_d - 1 - j) * a_w + (a_w - 1 - i)]))
+			worst = maxf(
+				worst, absf(a_heights[j * a_w + i] - a_heights[(a_d - 1 - j) * a_w + (a_w - 1 - i)])
+			)
 	return worst
 
 

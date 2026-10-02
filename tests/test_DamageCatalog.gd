@@ -10,14 +10,12 @@ extends GutTest
 ## fixture, so this also exercises the authored data — a typo in a multiplier
 ## there fails here, not just at balance-review time.
 
-
 var catalog: DamageCatalog
 
 
 func before_each() -> void:
 	catalog = DamageCatalog.from_tsv(
-		"res://resources/damage/damage_vs_armour.tsv",
-		"res://resources/damage/damage_vs_frame.tsv"
+		"res://resources/damage/damage_vs_armour.tsv", "res://resources/damage/damage_vs_frame.tsv"
 	)
 
 
@@ -53,8 +51,7 @@ func test_electric_row_carries_the_spec_electricity_numbers() -> void:
 func test_net_new_types_are_present() -> void:
 	for id: Damage.Type in [Damage.Type.INCENDIARY, Damage.Type.HIGH_EXPLOSIVE, Damage.Type.CRYO]:
 		assert_not_null(
-			catalog.profile_for(id),
-			"%s should be parsed from the TSVs" % Damage.Type.keys()[id]
+			catalog.profile_for(id), "%s should be parsed from the TSVs" % Damage.Type.keys()[id]
 		)
 
 

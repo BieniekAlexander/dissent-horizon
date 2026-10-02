@@ -22,7 +22,9 @@ const MAP_CORNERS: int = 41
 const GRID_CELLS: int = MAP_CORNERS - 1
 
 
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		cell_grid = []
 		for x: int in GRID_CELLS:
@@ -36,21 +38,25 @@ class StubMap extends Map:
 		add_child(terrain_grid)
 
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
-		return a_coords.x >= 0 and a_coords.x < GRID_CELLS \
-			and a_coords.y >= 0 and a_coords.y < GRID_CELLS
+		return (
+			a_coords.x >= 0
+			and a_coords.x < GRID_CELLS
+			and a_coords.y >= 0
+			and a_coords.y < GRID_CELLS
+		)
 
 
 var _world: Node3D
 var _map: StubMap
 var _commander: Commander
 
-
 var _tool: Tool
 
 
 func before_each() -> void:
-	FakePieces.install_families([
-		{"id": SQUARE, "footprint": Vector2i(4, 4)}, {"id": LONG, "footprint": LONG_DIMS}])
+	FakePieces.install_families(
+		[{"id": SQUARE, "footprint": Vector2i(4, 4)}, {"id": LONG, "footprint": LONG_DIMS}]
+	)
 	_tool = FakePieces.register_tool(FakePieces.tool(TOOL_TYPE, {}, [SQUARE, LONG]))
 	_world = Node3D.new()
 	_map = _make_map()
@@ -62,8 +68,9 @@ func before_each() -> void:
 	_commander.map = _map
 	_commander.add_energy(10000)
 	_commander.set_physics_process(false)
-	_commander.technology_mapping = {TOOL_TYPE: FakePieces.tech(), SQUARE: FakePieces.tech(),
-		LONG: FakePieces.tech()}
+	_commander.technology_mapping = {
+		TOOL_TYPE: FakePieces.tech(), SQUARE: FakePieces.tech(), LONG: FakePieces.tech()
+	}
 
 
 func after_each() -> void:
@@ -121,10 +128,13 @@ func _make_builder() -> Commandable:
 
 # ─── THE ARITHMETIC ─────────────────────────────────────────────────────────
 
+
 func test_an_odd_count_swaps_the_dimensions_and_an_even_one_does_not() -> void:
 	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 0), Vector2i(3, 5))
 	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 1), Vector2i(5, 3))
-	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 2), Vector2i(3, 5), "180° claims the same cells")
+	assert_eq(
+		Structure.oriented_dimensions(LONG_DIMS, 2), Vector2i(3, 5), "180° claims the same cells"
+	)
 	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 3), Vector2i(5, 3))
 	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 4), Vector2i(3, 5), "wraps")
 	assert_eq(Structure.oriented_dimensions(LONG_DIMS, -1), Vector2i(5, 3), "and wraps below zero")
@@ -134,7 +144,11 @@ func test_a_count_is_a_counter_clockwise_yaw_from_above() -> void:
 	for turns: int in 4:
 		assert_almost_eq(Structure.yaw_of(turns), turns * PI * 0.5, 0.0001)
 	assert_eq(Structure.quarter_turns_of_yaw(0.0), 0)
-	assert_eq(Structure.quarter_turns_of_yaw(PI * 0.5 + 0.01), 1, "a near-quarter yaw is read as the quarter")
+	assert_eq(
+		Structure.quarter_turns_of_yaw(PI * 0.5 + 0.01),
+		1,
+		"a near-quarter yaw is read as the quarter"
+	)
 	assert_eq(Structure.quarter_turns_of_yaw(PI), 2)
 	assert_eq(Structure.quarter_turns_of_yaw(-PI * 0.5), 3, "a negative yaw wraps")
 
@@ -177,13 +191,16 @@ func test_a_diagonal_resolves_the_same_way_every_time() -> void:
 
 # ─── REGISTERING A TURNED PIECE ─────────────────────────────────────────────
 
+
 func test_add_structure_registers_the_unturned_cells_by_default() -> void:
 	var building := _long_building()
 	var origin := Vector2i(10, 10)
 	_map.add_structure(building, _world_for_origin(origin, LONG_DIMS))
 	assert_eq(_map.structure_cell_map[building].size(), 15)
 	assert_eq(_map.structure_cell_map[building].has(origin + Vector2i(2, 4)), true)
-	assert_eq(_map.structure_cell_map[building].has(origin + Vector2i(4, 2)), false, "3 wide, 5 deep")
+	assert_eq(
+		_map.structure_cell_map[building].has(origin + Vector2i(4, 2)), false, "3 wide, 5 deep"
+	)
 
 
 func test_add_structure_registers_the_turned_cells() -> void:
@@ -195,7 +212,9 @@ func test_add_structure_registers_the_turned_cells() -> void:
 	assert_true(cells.has(origin + Vector2i(4, 2)), "5 wide, 3 deep after a quarter turn")
 	assert_false(cells.has(origin + Vector2i(2, 4)))
 	assert_eq((building.get_node("Structure") as Structure).quarter_turns, 1)
-	assert_almost_eq(building.rotation.y, PI * 0.5, 0.0001, "the piece itself is turned, model and all")
+	assert_almost_eq(
+		building.rotation.y, PI * 0.5, 0.0001, "the piece itself is turned, model and all"
+	)
 
 
 func test_a_half_turn_claims_the_cells_an_unturned_one_does() -> void:
@@ -250,6 +269,7 @@ func test_a_scene_placed_piece_reads_its_count_from_its_yaw() -> void:
 
 # ─── THE ORDER ──────────────────────────────────────────────────────────────
 
+
 func _long_tool() -> Tool:
 	return _tool.with_variant(1)
 
@@ -276,15 +296,23 @@ func test_build_reads_the_turned_footprint_when_it_judges_a_placement() -> void:
 	assert_ne(only_turned, Vector2i(-1, -1), "guards the fixture: the two footprints must differ")
 	_map.cell_grid[only_turned.x][only_turned.y] = Node.new()
 	var message := CommandMessage.new(_map, null, _long_tool(), Vector3(at.x, 0.0, at.y))
-	assert_eq(Build.meets_precondition(builder, message), MoveCommand.PreconditionFailureCause.NONE,
-		"unturned, the footprint clears the obstruction")
+	assert_eq(
+		Build.meets_precondition(builder, message),
+		MoveCommand.PreconditionFailureCause.NONE,
+		"unturned, the footprint clears the obstruction"
+	)
 	message.quarter_turns = 1
-	assert_eq(Build.meets_precondition(builder, message),
+	assert_eq(
+		Build.meets_precondition(builder, message),
 		MoveCommand.PreconditionFailureCause.INVALID_PLACEMENT,
-		"turned, it lands on it and is refused")
+		"turned, it lands on it and is refused"
+	)
 	message.quarter_turns = 2
-	assert_eq(Build.meets_precondition(builder, message), MoveCommand.PreconditionFailureCause.NONE,
-		"a half turn claims what the unturned one did")
+	assert_eq(
+		Build.meets_precondition(builder, message),
+		MoveCommand.PreconditionFailureCause.NONE,
+		"a half turn claims what the unturned one did"
+	)
 
 
 func test_a_blueprint_stands_on_and_faces_the_turned_footprint() -> void:

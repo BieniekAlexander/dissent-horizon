@@ -29,11 +29,11 @@ const SOLDIER: StringName = &"test_soldier"
 
 class FakeBot:
 	extends Bot
-	var builders: Dictionary = {}       ## type -> true
+	var builders: Dictionary = {}  ## type -> true
 	var capturers: Dictionary = {}
 	var combat_capable: Dictionary = {}
 	var utility: Dictionary = {}
-	var owned: Dictionary = {}          ## type -> count
+	var owned: Dictionary = {}  ## type -> count
 	var clusters: int = 0
 	var has_camp: bool = true
 	var idle_producers: Array = []
@@ -154,6 +154,7 @@ func _producer_of(a_types: Array[StringName]) -> Commandable:
 
 # ─── DEMAND IS THE SUM OF THE LIVE ERRANDS ──────────────────────────────────
 
+
 func test_a_builder_is_wanted_per_concurrent_build_job_plus_a_spare() -> void:
 	var production := _production()
 	production.build_concurrency = 3
@@ -173,8 +174,11 @@ func test_a_carrier_is_wanted_per_capturable_cluster() -> void:
 
 func test_a_carrier_with_no_prey_in_sight_is_wanted_only_as_the_spare() -> void:
 	_bot.clusters = 0
-	assert_eq(_production()._utility_demand_for(CARRIER), 1,
-		"a utility unit with no errand is the definition of too many")
+	assert_eq(
+		_production()._utility_demand_for(CARRIER),
+		1,
+		"a utility unit with no errand is the definition of too many"
+	)
 
 
 func test_capture_demand_is_zero_without_somewhere_to_bank_prisoners() -> void:
@@ -189,20 +193,22 @@ func test_the_cluster_count_is_computed_once_per_think() -> void:
 	# Clustering is O(n²) over visible prey and the utility rung runs per idle producer.
 	var production := _production()
 	_bot.clusters = 2
-	_bot.idle_producers = [_producer_of([CARRIER] as Array[StringName]), _producer_of([CARRIER] as Array[StringName])]
+	_bot.idle_producers = [
+		_producer_of([CARRIER] as Array[StringName]), _producer_of([CARRIER] as Array[StringName])
+	]
 	production.tick()
 	assert_eq(production._capture_errands, 2, "cached, and cached at the real value")
 
 
 # ─── THE TWO CORRECTIONS ────────────────────────────────────────────────────
 
+
 func test_a_crusher_is_wanted_one_deeper_because_it_is_army_as_well_as_errand() -> void:
 	# BotMilitary._combat_units claims anything with combat utility, so a Stock Truck between
 	# capture errands is in the attack wave rather than standing idle.
 	_bot.clusters = 0
 	var production := _production()
-	assert_eq(production._utility_demand_for(CRUSHER),
-		production._utility_demand_for(CARRIER) + 1)
+	assert_eq(production._utility_demand_for(CRUSHER), production._utility_demand_for(CARRIER) + 1)
 
 
 func test_the_scout_allowance_raises_demand_only_while_the_pool_is_short_of_it() -> void:
@@ -225,6 +231,7 @@ func test_a_blind_bot_never_gets_the_scouting_allowance() -> void:
 
 
 # ─── THE CAP IS A CEILING, NOT THE DECISION ─────────────────────────────────
+
 
 func test_the_cap_bounds_a_demand_that_would_otherwise_run_away() -> void:
 	_bot.clusters = 50  # a map strewn with capturable infantry
@@ -339,8 +346,7 @@ func test_combat_utility_is_armed_or_able_to_crush() -> void:
 	}
 	assert_true(bot.unit_type_can_crush(CRUSHER))
 	assert_false(bot.unit_type_can_crush(BUILDER))
-	assert_true(bot.unit_type_has_combat_utility(CRUSHER),
-		"unarmed, and not harmless")
+	assert_true(bot.unit_type_has_combat_utility(CRUSHER), "unarmed, and not harmless")
 	assert_false(bot.unit_type_has_combat_utility(BUILDER))
 
 
@@ -365,9 +371,11 @@ class StubPiece:
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
-		for pair: Array in [["Ownership", Ownership.new()],
-				["AvoidanceObstacle", NavigationObstacle3D.new()],
-				["Veterancy", Veterancy.new()]]:
+		for pair: Array in [
+			["Ownership", Ownership.new()],
+			["AvoidanceObstacle", NavigationObstacle3D.new()],
+			["Veterancy", Veterancy.new()]
+		]:
 			var node: Node = pair[1]
 			node.name = pair[0]
 			piece.add_child(node)

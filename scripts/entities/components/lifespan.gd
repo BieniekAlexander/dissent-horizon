@@ -21,6 +21,7 @@ extends Node
 var _ticks_alive: int = 0
 #endregion
 
+
 #region Public API
 ## Give `a_entity` a Lifespan of `a_seconds`, or nothing when `a_seconds` is negative (the
 ## piece is permanent). Call before the entity enters the tree, as the spawning events do;
@@ -38,7 +39,10 @@ static func attach(a_entity: Entity, a_seconds: float) -> Lifespan:
 ## Whether the host has stood its full time.
 func is_expired() -> bool:
 	return _ticks_alive >= TimeUtils.ticks_from_seconds(lifespan_seconds)
+
+
 #endregion
+
 
 #region Lifecycle
 func _physics_process(_a_delta: float) -> void:

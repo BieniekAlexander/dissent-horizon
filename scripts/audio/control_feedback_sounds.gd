@@ -1,11 +1,7 @@
 class_name ControlFeedbackSounds
 
 #region Constants
-enum LineType {
-	SELECTED,
-	ISSUED_COMMAND,
-	ISSUED_ATTACK
-}
+enum LineType { SELECTED, ISSUED_COMMAND, ISSUED_ATTACK }
 
 const _SELECT := preload("res://assets/audio/barks/select0.awchacon.wav")
 const _ATTACK := preload("res://assets/audio/barks/attack0.otterbahn.wav")
@@ -19,108 +15,129 @@ const _MOVE_1 := preload("res://assets/audio/barks/move1.otterbahn.wav")
 ## individually (rather than shared off one constant dict) so a future piece can diverge
 ## without restructuring this file.
 static var lines: Dictionary = {
-	EntityIds.CL_BIO_LIGHT_ANTI_MECH: {
+	EntityIds.CL_BIO_LIGHT_ANTI_MECH:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.LB_AIRCRAFT_LIGHT_BUILDER: {
+	EntityIds.LB_AIRCRAFT_LIGHT_BUILDER:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.AN_AIRCRAFT_LIGHT_TRANSPORT: {
+	EntityIds.AN_AIRCRAFT_LIGHT_TRANSPORT:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.AN_MECH_STRONG_TRANSPORT: {
+	EntityIds.AN_MECH_STRONG_TRANSPORT:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.LB_AIRCRAFT_LIGHT_ANTI_MECH: {
+	EntityIds.LB_AIRCRAFT_LIGHT_ANTI_MECH:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.AN_BIO_LIGHT_BUILDER: {
+	EntityIds.AN_BIO_LIGHT_BUILDER:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.AN_AIRCRAFT_LIGHT_ANTI_MECH: {
+	EntityIds.AN_AIRCRAFT_LIGHT_ANTI_MECH:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.CL_AIRCRAFT_LIGHT_ANTI_LIGHT: {
+	EntityIds.CL_AIRCRAFT_LIGHT_ANTI_LIGHT:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.CL_BIO_LIGHT_ANTI_LIGHT: {
+	EntityIds.CL_BIO_LIGHT_ANTI_LIGHT:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.AN_BIO_LIGHT_ANTI_STRUCTURE: {
+	EntityIds.AN_BIO_LIGHT_ANTI_STRUCTURE:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.LB_AIRCRAFT_MEDIUM_ANTI_BIO: {
+	EntityIds.LB_AIRCRAFT_MEDIUM_ANTI_BIO:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.AN_BIO_LIGHT_ANTI_BIO: {
+	EntityIds.AN_BIO_LIGHT_ANTI_BIO:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.CL_BIO_LIGHT_BUILDER: {
+	EntityIds.CL_BIO_LIGHT_BUILDER:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.CL_MECH_LIGHT_DOMINION_GEN: {
+	EntityIds.CL_MECH_LIGHT_DOMINION_GEN:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.TC_BIO_LIGHT_BUILDER: {
+	EntityIds.TC_BIO_LIGHT_BUILDER:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.NT_BIO_LIGHT_TERRESTRIAL: {
+	EntityIds.NT_BIO_LIGHT_TERRESTRIAL:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.TC_BIO_LIGHT_ANTI_MECH: {
+	EntityIds.TC_BIO_LIGHT_ANTI_MECH:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.AN_BIO_MEDIUM_DOMINION_GEN: {
+	EntityIds.AN_BIO_MEDIUM_DOMINION_GEN:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.CL_MECH_MEDIUM_ANTI_MECH: {
+	EntityIds.CL_MECH_MEDIUM_ANTI_MECH:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
-	EntityIds.CL_MECH_STRONG_SUPPORT: {
+	EntityIds.CL_MECH_STRONG_SUPPORT:
+	{
 		LineType.SELECTED: [_SELECT],
 		LineType.ISSUED_COMMAND: [_MOVE_0, _MOVE_1],
 		LineType.ISSUED_ATTACK: [_ATTACK],
 	},
 }
 #endregion
+
 
 #region Public interface
 ## The LineType names `entity_id` has no clip for — every one when it has no entry. Empty

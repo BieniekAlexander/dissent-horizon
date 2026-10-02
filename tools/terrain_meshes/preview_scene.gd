@@ -6,7 +6,7 @@ extends Node3D
 ##
 ## Run with (no --headless — this needs a renderer):
 ##   godot res://tools/terrain_meshes/preview_scene.tscn --write-movie <out.png> \
-##     --fixed-fps 30 --quit-after 200 --resolution 1400x790 -- <res://scene.tscn> [overview|closeup]
+## --fixed-fps 30 --quit-after 200 --resolution 1400x790 -- <res://scene.tscn> [overview|closeup]
 ##
 ## Uses its own Camera3D rather than the game's RTSCamera3D: that one clamps zoom to twice its
 ## authored framing and pans inside the play bounds, which is right for play and far too tight

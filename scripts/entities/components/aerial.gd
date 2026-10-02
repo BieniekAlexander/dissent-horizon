@@ -173,8 +173,8 @@ enum LandingState {
 
 @export_group("Flying")
 ## Orbit parameters for FLYING mode. The unit circles the anchor while idle.
-@export var orbit_radius: float = 3.0 ## desired orbit distance of this unit
-@export var orbit_speed: float = 1.5 ## speed of unit while orbiting, world-units/second
+@export var orbit_radius: float = 3.0  ## desired orbit distance of this unit
+@export var orbit_speed: float = 1.5  ## speed of unit while orbiting, world-units/second
 
 ## Horizontal distance (world units) at which a FLYING unit COMMITS to its dive-attack
 ## descent. Outside it the unit holds cruise altitude; inside, it noses over and descends
@@ -195,7 +195,8 @@ enum LandingState {
 
 ## Orbit angular speed in degrees/second (derived from orbit_speed / orbit_radius).
 var orbit_angular_speed: float:
-	get: return rad_to_deg(orbit_speed / orbit_radius)
+	get:
+		return rad_to_deg(orbit_speed / orbit_radius)
 
 ## The point a FLYING unit orbits while idle — the last command destination, set whenever a
 ## command ends. Seeded from the host's position in _ready.
@@ -313,6 +314,7 @@ var _prev_flying_yaw: float = NAN
 var _dive_committed: bool = false
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	var host: Node3D = _host()
@@ -391,7 +393,10 @@ func _physics_process(_a_delta: float) -> void:
 			_apply_hover_tilt(_step_height_offset(AERIAL_HEIGHT))
 			if _current_height_offset >= AERIAL_HEIGHT:
 				_landing_state = LandingState.AIRBORNE
+
+
 #endregion
+
 
 #region Public API
 ## `a_piece`'s Aerial component, or null when it does not fly.
@@ -462,7 +467,10 @@ func is_docked() -> bool:
 ## True while rolling along a taxi path. Distinct from is_docked(), which means PARKED.
 func is_taxiing() -> bool:
 	return _landing_state == LandingState.TAXIING
+
+
 #endregion
+
 
 #region Talking to locomotion
 ## Whether a commanded velocity must be ignored this tick. Landing, being on the ground,
@@ -471,10 +479,12 @@ func is_taxiing() -> bool:
 ## an order. TAKING_OFF is deliberately NOT suppressed — an aircraft that has left the runway
 ## is flying, and an order may steer it from the first tick of the climb.
 func suppresses_commanded_velocity() -> bool:
-	return _landing_state == LandingState.LANDING \
-		or _landing_state == LandingState.GROUNDED_TEMP \
-		or _landing_state == LandingState.TAXIING \
+	return (
+		_landing_state == LandingState.LANDING
+		or _landing_state == LandingState.GROUNDED_TEMP
+		or _landing_state == LandingState.TAXIING
 		or _pending_land
+	)
 
 
 ## A commanded velocity, after acceleration limits, as this aircraft will actually fly it.
@@ -491,7 +501,10 @@ func shape_commanded_velocity(a_velocity: Vector3) -> Vector3:
 ## terminal guidance while committed, otherwise 1.
 func turn_rate_multiplier() -> float:
 	return dive_turn_rate_multiplier if _dive_committed else 1.0
+
+
 #endregion
+
 
 #region Landing
 ## Begin a smooth descent to terrain level. `on_complete` is called once the
@@ -789,7 +802,10 @@ func _settle_on_deck() -> void:
 	_dive_rate = 0.0
 	_dive_committed = false
 	_level_body()
+
+
 #endregion
+
 
 #region Taxi
 ## Advance one tick of the roll. Reaching the last waypoint hands over to the completion
@@ -811,8 +827,9 @@ func _tick_taxi() -> void:
 	# toward flight speed, because that is what leaving the ground requires.
 	var rolling: bool = _taxi_roll_from >= 0 and _taxi_index >= _taxi_roll_from
 	var target_speed: float = movement.speed if rolling else movement.speed * TAXI_SPEED_FACTOR
-	var accel: float = movement.max_acceleration if movement.max_acceleration != INF \
-		else movement.speed
+	var accel: float = (
+		movement.max_acceleration if movement.max_acceleration != INF else movement.speed
+	)
 	_taxi_speed = move_toward(_taxi_speed, target_speed, accel * dt)
 	var step: float = _taxi_speed * dt
 	# Arriving SNAPS to the mark rather than stopping near it: a waypoint is a spot, not a
@@ -857,7 +874,10 @@ func _finish_taxi() -> void:
 	# _settle_on_deck on the next tick instead.
 	if done.is_valid():
 		done.call()
+
+
 #endregion
+
 
 #region FLYING orbit
 ## Set the anchor that a FLYING unit circles while idle. Initialises _orbit_angle
@@ -922,18 +942,20 @@ func compute_orbit_velocity() -> Vector3:
 	# Outward radial. Sitting exactly on the anchor there is no bearing to read, so fall back
 	# to the orbit clock — which set_anchor() seeded from the unit's heading precisely for
 	# this tick, so it sets off the way it is already pointing.
-	var outward: Vector2 = offset / radius_now if radius_now > 1e-3 \
-		else Vector2(cos(_orbit_angle), sin(_orbit_angle))
+	var outward: Vector2 = (
+		offset / radius_now if radius_now > 1e-3 else Vector2(cos(_orbit_angle), sin(_orbit_angle))
+	)
 	var tangent: Vector2 = Vector2(-outward.y, outward.x)  # +90 deg: the CCW orbit direction
-	var radial_weight: float = clampf(
-		(orbit_radius - radius_now) / orbit_radius, -1.0, 1.0)
-	var dir: Vector2 = outward * radial_weight \
-		+ tangent * sqrt(1.0 - radial_weight * radial_weight)
+	var radial_weight: float = clampf((orbit_radius - radius_now) / orbit_radius, -1.0, 1.0)
+	var dir: Vector2 = outward * radial_weight + tangent * sqrt(1.0 - radial_weight * radial_weight)
 	# Keep the clock in step with where the unit actually is, so anything reading it (and the
 	# centre fallback above) stays meaningful.
 	_orbit_angle = atan2(outward.y, outward.x)
 	return VU.fromXZ(dir) * orbit_speed
+
+
 #endregion
+
 
 #region FLYING dive-attack
 ## Ask a FLYING unit to dive toward `target_xz` (a world XZ) this tick: it descends from
@@ -969,8 +991,7 @@ func _update_flying_height() -> void:
 	# still tracks the turn — a cruising aircraft banks through its course changes.
 	_dive_committed = false
 	_dive_rate = 0.0
-	_current_height_offset = move_toward(
-		_current_height_offset, AERIAL_HEIGHT, LANDING_SPEED * dt)
+	_current_height_offset = move_toward(_current_height_offset, AERIAL_HEIGHT, LANDING_SPEED * dt)
 	_apply_flying_attitude(0.0, VU.inXZ(_velocity()).length(), dt)
 
 
@@ -979,8 +1000,9 @@ func _update_flying_height() -> void:
 ## unit's current speed and takes `dive_distance` as its floor. Computed from AERIAL_HEIGHT
 ## rather than the current altitude, so it does not shrink as the unit descends.
 func _dive_commit_distance(a_horizontal_speed: float) -> float:
-	var descent_time: float = AERIAL_HEIGHT / DIVE_MAX_DESCENT_RATE \
-		+ DIVE_MAX_DESCENT_RATE / DIVE_ACCEL
+	var descent_time: float = (
+		AERIAL_HEIGHT / DIVE_MAX_DESCENT_RATE + DIVE_MAX_DESCENT_RATE / DIVE_ACCEL
+	)
 	return maxf(dive_distance, a_horizontal_speed * descent_time)
 
 
@@ -1000,7 +1022,10 @@ func _descend_toward_dive(a_dist: float, a_dt: float) -> void:
 	_dive_rate = move_toward(_dive_rate, desired, DIVE_ACCEL * a_dt)
 	_current_height_offset = maxf(0.0, _current_height_offset - _dive_rate * a_dt)
 	_apply_flying_attitude(_dive_rate, horizontal_speed, a_dt)
+
+
 #endregion
+
 
 #region Attitude
 ## Fly a FLYING unit's MODEL like an aircraft: nose along the flight path, banked into the
@@ -1011,8 +1036,7 @@ func _descend_toward_dive(a_dist: float, a_dt: float) -> void:
 ## Roll is the coordinated-turn bank for the yaw rate it is currently pulling. Both ease in
 ## at FLYING_ATTITUDE_RESPONSE. Applied to the model only (see _attitude_node) — no-op
 ## without a MeshVisual. See the constants block for the cosmetic-bank caveat.
-func _apply_flying_attitude(a_descent_rate: float, a_horizontal_speed: float,
-		a_dt: float) -> void:
+func _apply_flying_attitude(a_descent_rate: float, a_horizontal_speed: float, a_dt: float) -> void:
 	var host: Node3D = _host()
 	var yaw_rate: float = 0.0
 	if host != null:
@@ -1031,8 +1055,8 @@ func _apply_flying_attitude(a_descent_rate: float, a_horizontal_speed: float,
 	# the left wing down; +rotation.z lifts the +X (right) side, so the sign lines up
 	# directly. Clamped so a hard course reversal doesn't roll past vertical.
 	var target_roll: float = clampf(
-		atan(a_horizontal_speed * yaw_rate / FLYING_BANK_GRAVITY),
-		-FLYING_MAX_BANK, FLYING_MAX_BANK)
+		atan(a_horizontal_speed * yaw_rate / FLYING_BANK_GRAVITY), -FLYING_MAX_BANK, FLYING_MAX_BANK
+	)
 
 	attitude.rotation.x = lerpf(attitude.rotation.x, target_pitch, FLYING_ATTITUDE_RESPONSE)
 	attitude.rotation.z = lerpf(attitude.rotation.z, target_roll, FLYING_ATTITUDE_RESPONSE)
@@ -1089,7 +1113,7 @@ func _apply_hover_bank() -> void:
 	var accel: Vector3 = (velocity - _prev_tilt_velocity) * tps
 	_prev_tilt_velocity = velocity
 	accel.y = 0.0
-	var facing: Vector3 = movement.get_facing()             # +Z forward, unit XZ vector
+	var facing: Vector3 = movement.get_facing()  # +Z forward, unit XZ vector
 	var right: Vector3 = Vector3(facing.z, 0.0, -facing.x)  # facing turned 90° clockwise
 
 	# The lean, in body axes: x = along facing, y = along right.
@@ -1115,7 +1139,10 @@ func _level_body() -> void:
 		return
 	attitude.rotation.x = lerpf(attitude.rotation.x, 0.0, HOVER_BANK_RESPONSE)
 	attitude.rotation.z = lerpf(attitude.rotation.z, 0.0, HOVER_BANK_RESPONSE)
+
+
 #endregion
+
 
 #region Height
 ## Advance the aerial terrain-following height one tick. Eases _smoothed_terrain_y toward the
@@ -1182,9 +1209,7 @@ func _step_height_offset(a_target_offset: float) -> float:
 	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
 	var previous: float = _current_height_offset
 	var gap: float = a_target_offset - _current_height_offset
-	var approach: float = signf(gap) * minf(
-		LANDING_SPEED, sqrt(2.0 * LANDING_ACCEL * absf(gap))
-	)
+	var approach: float = signf(gap) * minf(LANDING_SPEED, sqrt(2.0 * LANDING_ACCEL * absf(gap)))
 	var dv_max: float = LANDING_ACCEL * dt
 	_landing_rate += clampf(approach - _landing_rate, -dv_max, dv_max)
 	var stepped: float = _current_height_offset + _landing_rate * dt
@@ -1213,7 +1238,10 @@ func _seconds_to_change_offset(a_distance: float) -> float:
 	if d <= ramp_distance:
 		return 2.0 * sqrt(d / LANDING_ACCEL)  # triangular — never reaches the cap
 	return 2.0 * LANDING_SPEED / LANDING_ACCEL + (d - ramp_distance) / LANDING_SPEED
+
+
 #endregion
+
 
 #region The ground below
 ## Called before starting a descent. If the unit's current cell (or the predicted
@@ -1311,8 +1339,7 @@ func _cap_xz_for_ascent(a_v: Vector3) -> Vector3:
 		return a_v
 	var xz_speed := xz.length()
 	var dir := xz.normalized()
-	var seconds_remaining: float = _seconds_to_change_offset(
-		AERIAL_HEIGHT - _current_height_offset)
+	var seconds_remaining: float = _seconds_to_change_offset(AERIAL_HEIGHT - _current_height_offset)
 	if seconds_remaining <= 0.0:
 		return a_v
 	var max_dist: float = xz_speed * seconds_remaining
@@ -1345,10 +1372,12 @@ func _cap_xz_for_ascent(a_v: Vector3) -> Vector3:
 	# t-distance (local units) to each axis's first boundary, then per-cell step.
 	var frac_x: float = lx - cur_x
 	var frac_z: float = lz - cur_z
-	var t_max_x: float = ((1.0 - frac_x) / dx) if dx > 1e-6 else \
-						(frac_x / -dx)          if dx < -1e-6 else INF
-	var t_max_z: float = ((1.0 - frac_z) / dz) if dz > 1e-6 else \
-						(frac_z / -dz)          if dz < -1e-6 else INF
+	var t_max_x: float = (
+		((1.0 - frac_x) / dx) if dx > 1e-6 else (frac_x / -dx) if dx < -1e-6 else INF
+	)
+	var t_max_z: float = (
+		((1.0 - frac_z) / dz) if dz > 1e-6 else (frac_z / -dz) if dz < -1e-6 else INF
+	)
 	var t_delta_x: float = (1.0 / absf(dx)) if absf(dx) > 1e-6 else INF
 	var t_delta_z: float = (1.0 / absf(dz)) if absf(dz) > 1e-6 else INF
 
@@ -1365,12 +1394,17 @@ func _cap_xz_for_ascent(a_v: Vector3) -> Vector3:
 		if t >= max_dist:
 			break
 		var next_cell := Vector2i(cur_x, cur_z)
-		if not map.terrain_grid.is_in_bounds(next_cell) \
-				or map.terrain_grid.is_building_at(next_cell):
+		if (
+			not map.terrain_grid.is_in_bounds(next_cell)
+			or map.terrain_grid.is_building_at(next_cell)
+		):
 			var capped_speed: float = t / seconds_remaining if seconds_remaining > 1e-6 else 0.0
 			return Vector3(dir.x * capped_speed, a_v.y, dir.y * capped_speed)
 	return a_v
+
+
 #endregion
+
 
 #region Private helpers
 func _host() -> Node3D:

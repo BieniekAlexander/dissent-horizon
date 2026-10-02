@@ -40,7 +40,8 @@ const MAX_SLOPE_DIFF: float = 0.5
 
 ## Click to rebuild the mesh from the current `shape`.
 @export var run_build: bool:
-	set(value): build()
+	set(value):
+		build()
 
 ## Optional explicit TerrainData. When set, it is used instead of walking up to the owning
 ## Map — so the generator can build standalone (editor tools, previews, tests) with no Map
@@ -48,13 +49,17 @@ const MAX_SLOPE_DIFF: float = 0.5
 @export var terrain_data_override: TerrainData
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	if shape != null:
 		build()
 	else:
 		_apply_to_instance()
+
+
 #endregion
+
 
 #region Public API
 ## Build the mesh from the current `shape` and store it in `mesh`.
@@ -66,6 +71,8 @@ func build() -> void:
 	if material != null:
 		mesh.surface_set_material(0, material)
 	_sync_shader_params()
+
+
 #endregion
 
 #region Private helpers
@@ -76,6 +83,7 @@ func build() -> void:
 var _tex_source_catalog: TerrainTileCatalog = null
 var _tex_array: Texture2DArray = null
 var _tex_flags: PackedFloat32Array = PackedFloat32Array()
+
 
 ## Push the terrain shader's parameters: the tile Texture2DArray + per-layer "has texture"
 ## flags (so the shader samples a real texture where one exists and falls back to the baked
@@ -111,15 +119,18 @@ func _sync_shader_params() -> void:
 	sm.set_shader_parameter("tile_has_texture", _tex_flags)
 	sm.set_shader_parameter("tile_count", cat.count())
 
+
 ## World XZ the cell grid is centred on: this node's position (it sits at the terrain body's
 ## origin, which is the Map's), or the origin while out of the tree.
 func _grid_center() -> Vector2:
 	return VU.inXZ(global_position) if is_inside_tree() else Vector2.ZERO
 
+
 ## The active tile catalog (from the override or the owning Map), or null when neither.
 func _catalog() -> TerrainTileCatalog:
 	var td := _terrain_data()
 	return td.catalog if td != null else null
+
 
 ## The TerrainData driving this build: the explicit override if set, else the owning Map's.
 func _terrain_data() -> TerrainData:
@@ -127,6 +138,7 @@ func _terrain_data() -> TerrainData:
 		return terrain_data_override
 	var map := _find_map()
 	return map.terrain_data if map != null else null
+
 
 func _apply_to_instance() -> void:
 	var mi: MeshInstance3D = get_node_or_null("GeneratedMesh")
@@ -137,6 +149,7 @@ func _apply_to_instance() -> void:
 	mi.mesh = mesh
 	mi.material_override = material
 	_sync_shader_params()
+
 
 ## One quad per cell, with its own four vertices — no sharing, so tile boundaries are hard
 ## and every cell carries its own per-vertex data. What the three cell fates are (gap, black
@@ -152,11 +165,11 @@ func _build_mesh() -> ArrayMesh:
 	var data: PackedFloat32Array = shape.map_data
 	var td: TerrainData = _terrain_data()
 
-	var verts   := PackedVector3Array()
-	var uvs     := PackedVector2Array()
-	var uv2s    := PackedVector2Array()
+	var verts := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var uv2s := PackedVector2Array()
 	var normals := PackedVector3Array()
-	var colors  := PackedColorArray()
+	var colors := PackedColorArray()
 	var indices := PackedInt32Array()
 
 	for z in gd:
@@ -166,17 +179,17 @@ func _build_mesh() -> ArrayMesh:
 			# the background rather than being framed in black.
 			if td != null and not td.is_cell_in_play(cell):
 				continue
-			var h00: float = data[ z      * w + x    ]
-			var h10: float = data[ z      * w + x + 1]
+			var h00: float = data[z * w + x]
+			var h10: float = data[z * w + x + 1]
 			var h11: float = data[(z + 1) * w + x + 1]
-			var h01: float = data[(z + 1) * w + x    ]
+			var h01: float = data[(z + 1) * w + x]
 			var col: Color = _cell_color(td, cell, _corner_spread(h00, h10, h11, h01))
 			var base: int = verts.size()
 
-			verts.append(Vector3(x     - hw, h00, z     - hd))
-			verts.append(Vector3(x + 1 - hw, h10, z     - hd))
+			verts.append(Vector3(x - hw, h00, z - hd))
+			verts.append(Vector3(x + 1 - hw, h10, z - hd))
 			verts.append(Vector3(x + 1 - hw, h11, z + 1 - hd))
-			verts.append(Vector3(x     - hw, h01, z + 1 - hd))
+			verts.append(Vector3(x - hw, h01, z + 1 - hd))
 
 			# Per-cell UVs: each cell spans the full 0..1 texture space.
 			uvs.append(Vector2(0.0, 0.0))
@@ -185,10 +198,10 @@ func _build_mesh() -> ArrayMesh:
 			uvs.append(Vector2(0.0, 1.0))
 
 			# Global UVs preserved in UV2 for whole-map overlays.
-			uv2s.append(Vector2(float(x    ) / gw, float(z    ) / gd))
-			uv2s.append(Vector2(float(x + 1) / gw, float(z    ) / gd))
+			uv2s.append(Vector2(float(x) / gw, float(z) / gd))
+			uv2s.append(Vector2(float(x + 1) / gw, float(z) / gd))
 			uv2s.append(Vector2(float(x + 1) / gw, float(z + 1) / gd))
-			uv2s.append(Vector2(float(x    ) / gw, float(z + 1) / gd))
+			uv2s.append(Vector2(float(x) / gw, float(z + 1) / gd))
 
 			colors.append(col)
 			colors.append(col)
@@ -197,23 +210,24 @@ func _build_mesh() -> ArrayMesh:
 
 			# (+z edge) x (+x edge) is the UPWARD normal; the reverse order points into the
 			# ground and leaves every lit material black under a sun.
-			var fn: Vector3 = (verts[base + 3] - verts[base]) \
-								.cross(verts[base + 1] - verts[base]).normalized()
+			var fn: Vector3 = (
+				(verts[base + 3] - verts[base]).cross(verts[base + 1] - verts[base]).normalized()
+			)
 			normals.append(fn)
 			normals.append(fn)
 			normals.append(fn)
 			normals.append(fn)
 
-			indices.append_array([base, base+1, base+2, base, base+2, base+3])
+			indices.append_array([base, base + 1, base + 2, base, base + 2, base + 3])
 
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX]   = verts
-	arrays[Mesh.ARRAY_NORMAL]   = normals
-	arrays[Mesh.ARRAY_TEX_UV]   = uvs
-	arrays[Mesh.ARRAY_TEX_UV2]  = uv2s
-	arrays[Mesh.ARRAY_COLOR]    = colors
-	arrays[Mesh.ARRAY_INDEX]    = indices
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_TEX_UV2] = uv2s
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = indices
 
 	var result := ArrayMesh.new()
 	result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
@@ -232,8 +246,11 @@ static func _corner_spread(h00: float, h10: float, h11: float, h01: float) -> fl
 func _cell_color(a_terrain_data: TerrainData, a_cell: Vector2i, a_spread: float) -> Color:
 	if a_spread > MAX_SLOPE_DIFF:
 		return Color(0.0, 0.0, 0.0, 1.0)
-	var col: Color = a_terrain_data.cell_map_color(a_cell) if a_terrain_data != null \
+	var col: Color = (
+		a_terrain_data.cell_map_color(a_cell)
+		if a_terrain_data != null
 		else TileType.DEFAULT_MAP_COLOR
+	)
 	col.a = (a_terrain_data.tile_at(a_cell) if a_terrain_data != null else 0) / 255.0
 	return col
 

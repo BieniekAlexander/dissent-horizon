@@ -16,7 +16,7 @@ var _width: float
 
 func before_each() -> void:
 	_unit = FakePieces.unit({"hp": 80.0})
-	add_child_autofree(_unit)   # in-tree so _ready wires hp_changed
+	add_child_autofree(_unit)  # in-tree so _ready wires hp_changed
 	_fill = _unit.get_node("HPBar/HPBarFill")
 	_width = _fill.texture.get_size().x
 
@@ -34,15 +34,20 @@ func _left_edge() -> float:
 func test_left_edge_never_moves_as_damage_accumulates() -> void:
 	for step in range(10, -1, -1):
 		_damage_to(step / 10.0)
-		assert_almost_eq(_left_edge(), -_width / 2.0, 0.001,
-			"left edge stays put at %d%% health" % (step * 10))
+		assert_almost_eq(
+			_left_edge(), -_width / 2.0, 0.001, "left edge stays put at %d%% health" % (step * 10)
+		)
 
 
 func test_width_tracks_the_health_fraction() -> void:
 	for step in range(10, -1, -1):
 		_damage_to(step / 10.0)
-		assert_almost_eq(_fill.region_rect.size.x, _width * step / 10.0, 0.001,
-			"fill width at %d%% health" % (step * 10))
+		assert_almost_eq(
+			_fill.region_rect.size.x,
+			_width * step / 10.0,
+			0.001,
+			"fill width at %d%% health" % (step * 10)
+		)
 
 
 func test_node_transform_is_never_touched() -> void:

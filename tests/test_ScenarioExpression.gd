@@ -5,7 +5,7 @@ extends GutTest
 ## randomized spawn anchor.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ScenarioExpression.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ScenarioExpression.gd -gexit
 
 var _scenario: Scenario
 var _manager: ScenarioTriggerManager
@@ -30,6 +30,7 @@ func after_each() -> void:
 
 # --- ScenarioExpression ---------------------------------------------------------
 
+
 func test_plain_arithmetic() -> void:
 	assert_eq(ScenarioExpression.evaluate_float("1 + 2 * 3", 0.0, _manager), 7.0)
 	assert_eq(ScenarioExpression.evaluate_int("10 / 4.0", 0, _manager), 3, "rounds, not truncates")
@@ -46,8 +47,11 @@ func test_builtin_functions_are_available() -> void:
 func test_tick_and_seconds_inputs() -> void:
 	_scenario.tick = 90
 	assert_eq(ScenarioExpression.evaluate_float("tick", 0.0, _manager), 90.0)
-	assert_eq(ScenarioExpression.evaluate_float("seconds", 0.0, _manager), 3.0,
-		"90 ticks at 30 ticks/second is 3 seconds")
+	assert_eq(
+		ScenarioExpression.evaluate_float("seconds", 0.0, _manager),
+		3.0,
+		"90 ticks at 30 ticks/second is 3 seconds"
+	)
 
 
 func test_fires_input() -> void:
@@ -83,11 +87,12 @@ func test_engine_singletons_are_not_reachable() -> void:
 
 
 func test_non_numeric_result_falls_back() -> void:
-	assert_eq(ScenarioExpression.evaluate_float("\"hello\"", 5.0, _manager), 5.0)
+	assert_eq(ScenarioExpression.evaluate_float('"hello"', 5.0, _manager), 5.0)
 	assert_push_warning("not a number")
 
 
 # --- ConditionTimer.seconds_expression ------------------------------------------
+
 
 func _countdown(a_expression: String) -> ConditionTimer:
 	var condition := ConditionTimer.new()
@@ -109,8 +114,7 @@ func test_a_blank_interval_means_the_default() -> void:
 	var condition := _countdown("")
 	_scenario.tick = 0
 	condition.evaluate(_manager)
-	assert_eq(condition._target_ticks,
-		TimeUtils.ticks_from_seconds(ConditionTimer.DEFAULT_SECONDS))
+	assert_eq(condition._target_ticks, TimeUtils.ticks_from_seconds(ConditionTimer.DEFAULT_SECONDS))
 
 
 func test_countdown_resolves_its_interval_once_per_cycle() -> void:
@@ -140,9 +144,11 @@ func test_a_bad_expression_falls_back_to_the_default() -> void:
 	_scenario.tick = 0
 	condition.evaluate(_manager)
 	assert_push_warning("could not parse")
-	assert_eq(condition._target_ticks,
+	assert_eq(
+		condition._target_ticks,
 		TimeUtils.ticks_from_seconds(ConditionTimer.DEFAULT_SECONDS),
-		"a typo degrades to the default, it does not break the mission")
+		"a typo degrades to the default, it does not break the mission"
+	)
 
 
 func test_legacy_seconds_property_migrates_to_the_expression() -> void:
@@ -161,6 +167,7 @@ func test_an_authored_expression_survives_a_legacy_seconds_value() -> void:
 
 
 # --- fire_count -----------------------------------------------------------------
+
 
 func test_fire_count_counts_cycles() -> void:
 	var trigger := GlobalTrigger.new()
@@ -195,6 +202,7 @@ func test_an_unowned_condition_reports_zero_fires() -> void:
 
 
 # --- EventSpawnEntities.count_expression ----------------------------------------
+
 
 func _spawner() -> EventSpawnEntities:
 	var event := EventSpawnEntities.new()
@@ -277,6 +285,7 @@ func test_a_nested_event_finds_the_trigger_above_its_parent_event() -> void:
 
 # --- Randomized spawn anchor ----------------------------------------------------
 
+
 func _marker(a_at: Vector3) -> Node3D:
 	var node := Node3D.new()
 	node.position = a_at
@@ -329,8 +338,11 @@ func test_non_node3d_children_are_skipped() -> void:
 	# The marker's position is LOCAL, so the anchor is the parent's (3,0,3) plus the
 	# child's (9,0,9) — the anchor must be a global position, not a local one.
 	for _i: int in 20:
-		assert_eq(event.resolve_spawn_anchor(), Vector3(12.0, 0.0, 12.0),
-			"only the Node3D child is a candidate, resolved globally")
+		assert_eq(
+			event.resolve_spawn_anchor(),
+			Vector3(12.0, 0.0, 12.0),
+			"only the Node3D child is a candidate, resolved globally"
+		)
 
 
 func test_a_spawn_position_with_only_non_node3d_children_uses_itself() -> void:
@@ -341,11 +353,15 @@ func test_a_spawn_position_with_only_non_node3d_children_uses_itself() -> void:
 	parent.add_child(Node.new())
 	event.spawn_position = parent
 
-	assert_eq(event.resolve_spawn_anchor(), Vector3(4.0, 0.0, 4.0),
-		"no usable children, so the node itself is the anchor")
+	assert_eq(
+		event.resolve_spawn_anchor(),
+		Vector3(4.0, 0.0, 4.0),
+		"no usable children, so the node itself is the anchor"
+	)
 
 
 # --- Editor-time validation -----------------------------------------------------
+
 
 func test_a_good_expression_has_no_validation_error() -> void:
 	assert_eq(ScenarioExpression.validation_error("1 + fires"), "")
@@ -362,7 +378,7 @@ func test_a_misnamed_variable_is_reported_with_the_available_names() -> void:
 
 func test_unparseable_and_non_numeric_are_reported() -> void:
 	assert_string_contains(ScenarioExpression.validation_error("1 +"), "cannot be parsed")
-	assert_string_contains(ScenarioExpression.validation_error("\"text\""), "not a number")
+	assert_string_contains(ScenarioExpression.validation_error('"text"'), "not a number")
 
 
 func test_a_spawn_event_warns_in_the_scene_dock() -> void:

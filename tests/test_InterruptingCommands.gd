@@ -16,6 +16,7 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_InterruptingCommands.gd -gexit
 
+
 func _receiver() -> CommandReceiver:
 	# Never given an owner: none of the queue arithmetic below reads one.
 	return CommandReceiver.new()
@@ -47,8 +48,11 @@ func test_an_ordinary_command_replaces() -> void:
 
 
 func test_evacuate_interrupts() -> void:
-	assert_true(Evacuate.is_interrupt(),
-		"turning the garrison out is an aside, not a change of plan")
+	assert_true(
+		Evacuate.is_interrupt(), "turning the garrison out is an aside, not a change of plan"
+	)
+
+
 #endregion
 
 
@@ -62,11 +66,16 @@ func test_an_interrupt_pushes_the_running_order_to_the_front() -> void:
 
 	receiver.update_commands(_order(Vector2(9, 9)), false, true)
 
-	assert_eq(_destinations(receiver.get_command_chain())[0], Vector2(9, 9),
-		"the interrupt takes over now")
-	assert_eq(_destinations(receiver.get_command_chain()),
+	assert_eq(
+		_destinations(receiver.get_command_chain())[0],
+		Vector2(9, 9),
+		"the interrupt takes over now"
+	)
+	assert_eq(
+		_destinations(receiver.get_command_chain()),
 		[Vector2(9, 9), Vector2(1, 1), Vector2(2, 2)],
-		"and the whole previous plan is still there, in order, behind it")
+		"and the whole previous plan is still there, in order, behind it"
+	)
 
 
 ## Non-additive and non-interrupting is unchanged: the queue is cleared.
@@ -98,8 +107,11 @@ func test_a_chain_interrupt_keeps_the_running_order_behind_it() -> void:
 	var receiver: CommandReceiver = autofree(_receiver()) as CommandReceiver
 	receiver.update_commands(_order(Vector2(1, 1)))
 	receiver.update_commands(_chain([_order(Vector2(8, 8)), _order(Vector2(9, 9))]), false, true)
-	assert_eq(_destinations(receiver.get_command_chain()),
-		[Vector2(8, 8), Vector2(9, 9), Vector2(1, 1)])
+	assert_eq(
+		_destinations(receiver.get_command_chain()), [Vector2(8, 8), Vector2(9, 9), Vector2(1, 1)]
+	)
+
+
 #endregion
 
 
@@ -109,8 +121,10 @@ func test_a_chain_interrupt_keeps_the_running_order_behind_it() -> void:
 func test_a_positional_command_stays_armed_while_additive_is_held() -> void:
 	var controller := autofree(RTSController.new()) as RTSController
 	assert_true(Build.requires_position())
-	assert_false(controller._arming_should_end(Build, true),
-		"holding the modifier keeps the tool armed, so five sites take five clicks")
+	assert_false(
+		controller._arming_should_end(Build, true),
+		"holding the modifier keeps the tool armed, so five sites take five clicks"
+	)
 
 
 func test_a_positional_command_disarms_without_the_modifier() -> void:
@@ -123,10 +137,13 @@ func test_a_positional_command_disarms_without_the_modifier() -> void:
 func test_a_position_less_command_disarms_even_when_additive_is_held() -> void:
 	var controller := autofree(RTSController.new()) as RTSController
 	for command_type: Script in [Stop, Evacuate, Train]:
-		assert_false(command_type.requires_position(),
-			"%s fires on the press" % command_type)
-		assert_true(controller._arming_should_end(command_type, true),
-			"%s has nothing to stay armed for" % command_type)
+		assert_false(command_type.requires_position(), "%s fires on the press" % command_type)
+		assert_true(
+			controller._arming_should_end(command_type, true),
+			"%s has nothing to stay armed for" % command_type
+		)
+
+
 #endregion
 
 

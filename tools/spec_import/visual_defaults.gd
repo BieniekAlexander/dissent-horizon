@@ -124,29 +124,43 @@ static func is_projectile_class(visual_class: VisualClass) -> bool:
 ## in a line of finished art is the right order of magnitude rather than a landmark.
 ## STRUCTURE's size is a base only — structure_mesh() replaces it from the footprint.
 const PLACEHOLDER_MESHES: Dictionary = {
-	VisualClass.BIO_UNIT: {
-		"type": "CapsuleMesh", "props": {"radius": 0.18, "height": 0.9},
+	VisualClass.BIO_UNIT:
+	{
+		"type": "CapsuleMesh",
+		"props": {"radius": 0.18, "height": 0.9},
 	},
-	VisualClass.MECH_UNIT: {
-		"type": "BoxMesh", "props": {"size": Vector3(0.9, 0.6, 1.4)},
+	VisualClass.MECH_UNIT:
+	{
+		"type": "BoxMesh",
+		"props": {"size": Vector3(0.9, 0.6, 1.4)},
 	},
-	VisualClass.AERIAL_UNIT: {
-		"type": "PrismMesh", "props": {"size": Vector3(1.2, 0.25, 1.4)},
+	VisualClass.AERIAL_UNIT:
+	{
+		"type": "PrismMesh",
+		"props": {"size": Vector3(1.2, 0.25, 1.4)},
 	},
-	VisualClass.STRUCTURE: {
-		"type": "BoxMesh", "props": {"size": Vector3(CELL_SIZE, 1.0, CELL_SIZE)},
+	VisualClass.STRUCTURE:
+	{
+		"type": "BoxMesh",
+		"props": {"size": Vector3(CELL_SIZE, 1.0, CELL_SIZE)},
 	},
-	VisualClass.BALLISTIC_PROJECTILE: {
-		"type": "SphereMesh", "props": {"radius": 0.09, "height": 0.18},
+	VisualClass.BALLISTIC_PROJECTILE:
+	{
+		"type": "SphereMesh",
+		"props": {"radius": 0.09, "height": 0.18},
 	},
-	VisualClass.LINEAR_PROJECTILE: {
+	VisualClass.LINEAR_PROJECTILE:
+	{
 		"type": "CylinderMesh",
 		"props": {"top_radius": 0.03, "bottom_radius": 0.03, "height": 0.5},
 	},
-	VisualClass.LOFTED_PROJECTILE: {
-		"type": "CapsuleMesh", "props": {"radius": 0.07, "height": 0.24},
+	VisualClass.LOFTED_PROJECTILE:
+	{
+		"type": "CapsuleMesh",
+		"props": {"radius": 0.07, "height": 0.24},
 	},
-	VisualClass.HOMING_PROJECTILE: {
+	VisualClass.HOMING_PROJECTILE:
+	{
 		"type": "CylinderMesh",
 		"props": {"top_radius": 0.0, "bottom_radius": 0.07, "height": 0.34},
 	},
@@ -169,8 +183,13 @@ static func placeholder_mesh(visual_class: VisualClass, footprint_cells: Vector2
 	var cells: Vector2i = _at_least_one_cell(footprint_cells)
 	return {
 		"type": entry["type"],
-		"props": {"size": Vector3(
-			float(cells.x) * CELL_SIZE, STRUCTURE_PLACEHOLDER_HEIGHT, float(cells.y) * CELL_SIZE)},
+		"props":
+		{
+			"size":
+			Vector3(
+				float(cells.x) * CELL_SIZE, STRUCTURE_PLACEHOLDER_HEIGHT, float(cells.y) * CELL_SIZE
+			)
+		},
 	}
 
 
@@ -203,17 +222,30 @@ const MIN_CLICK_HEIGHT: float = 0.6
 ## footprint is what the building actually occupies, and a mesh that overhangs it (a roof,
 ## a radar dish) should not become clickable ground.
 static func selection_shape(
-		visual_class: VisualClass, model_size: Vector3, footprint_cells: Vector2i) -> Dictionary:
+	visual_class: VisualClass, model_size: Vector3, footprint_cells: Vector2i
+) -> Dictionary:
 	if visual_class == VisualClass.STRUCTURE:
 		var cells: Vector2i = _at_least_one_cell(footprint_cells)
-		return {"type": "BoxShape3D", "props": {"size": Vector3(
-			float(cells.x) * CELL_SIZE,
-			maxf(model_size.y, MIN_CLICK_HEIGHT),
-			float(cells.y) * CELL_SIZE)}}
-	return {"type": "CylinderShape3D", "props": {
-		"radius": maxf(_horizontal_radius(model_size), MIN_CLICK_RADIUS),
-		"height": maxf(model_size.y, MIN_CLICK_HEIGHT),
-	}}
+		return {
+			"type": "BoxShape3D",
+			"props":
+			{
+				"size":
+				Vector3(
+					float(cells.x) * CELL_SIZE,
+					maxf(model_size.y, MIN_CLICK_HEIGHT),
+					float(cells.y) * CELL_SIZE
+				)
+			}
+		}
+	return {
+		"type": "CylinderShape3D",
+		"props":
+		{
+			"radius": maxf(_horizontal_radius(model_size), MIN_CLICK_RADIUS),
+			"height": maxf(model_size.y, MIN_CLICK_HEIGHT),
+		}
+	}
 
 
 ## Half the model's larger horizontal extent — the radius of the smallest upright cylinder

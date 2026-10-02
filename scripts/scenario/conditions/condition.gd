@@ -18,11 +18,13 @@ extends Resource
 ## colliding with Resource's built-in `changed` signal.
 signal state_changed
 
+
 #region Public API
 ## Current truth, computed live. PULL subclasses inspect game state here; PUSH
 ## subclasses return cached state maintained by their bus handler. Must be idempotent.
 func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
 	return false
+
 
 ## Cached truth — the last value seen by poll() or a push handler. The owning trigger
 ## aggregates THIS rather than re-calling evaluate(), so a side-effecting evaluate()
@@ -30,15 +32,18 @@ func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
 func is_met() -> bool:
 	return _last
 
+
 ## Subscribe to whatever drives this condition. DEFAULT = pull: register with the
 ## manager's ConditionPoller. PUSH subclasses override to connect a bus instead.
 func arm(a_manager: ScenarioTriggerManager) -> void:
 	a_manager.condition_poller.add(self)
 
+
 ## Undo arm(). DEFAULT = pull: deregister from the poller. PUSH subclasses override to
 ## disconnect their bus.
 func disarm(a_manager: ScenarioTriggerManager) -> void:
 	a_manager.condition_poller.remove(self)
+
 
 ## Called when the owning GlobalTrigger resets after firing (repeating triggers only).
 ## Override to clear per-fire state, and call super() to keep edge tracking consistent.
@@ -71,7 +76,10 @@ func owner_fire_count() -> int:
 ## override of Godot's node-only hook.
 func configuration_warning() -> String:
 	return ""
+
+
 #endregion
+
 
 #region Player-facing description (highlights)
 ## The entities this condition is ABOUT, for an EventHighlight to mark in the world — e.g.
@@ -93,6 +101,8 @@ func highlight_entities(_a_manager: ScenarioTriggerManager) -> Array[Entity]:
 func highlight_shapes(_a_manager: ScenarioTriggerManager) -> Array[HighlightShape]:
 	var none: Array[HighlightShape] = []
 	return none
+
+
 #endregion
 
 #region Pull plumbing
@@ -102,6 +112,7 @@ var _last: bool = false
 ## The owning trigger, injected by bind_trigger() at arm time. Not serialized — a Resource
 ## must not hold a scene node across a save.
 var _trigger: GlobalTrigger
+
 
 ## Edge-detected re-check, called once per physics frame by the ConditionPoller for pull
 ## conditions. Updates the cache and emits state_changed only on a transition — a steady

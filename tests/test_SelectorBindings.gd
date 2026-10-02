@@ -32,6 +32,7 @@ const _RETIRED_ACTIONS: Array[String] = [
 	"command_select_production_all",
 ]
 
+
 ## Every key the command grid is bound to. A selector sharing one of these would resurrect
 ## the collision.
 ##
@@ -41,6 +42,7 @@ const _RETIRED_ACTIONS: Array[String] = [
 ## that no longer exist, and this check would pass by finding no keys to compare against.
 static func _grid_actions() -> Array:
 	return ControlBinding.cell_actions()
+
 
 func _physical_keycodes(a_action: String) -> Array[int]:
 	var out: Array[int] = []
@@ -53,6 +55,7 @@ func _physical_keycodes(a_action: String) -> Array[int]:
 
 # --- The three selector keys --------------------------------------------------
 
+
 func test_the_three_selectors_are_bound_to_f1_f2_f3() -> void:
 	assert_eq(_physical_keycodes(RTSController.CMD_SELECT_ARMY), [KEY_F1] as Array[int])
 	assert_eq(_physical_keycodes(RTSController.CMD_SELECT_BUILDER), [KEY_F2] as Array[int])
@@ -63,8 +66,9 @@ func test_selectors_are_off_the_alphabetical_block() -> void:
 	# The point of the F-row: a letter can never be both a verb and a selector again.
 	for action: String in _SELECTOR_ACTIONS:
 		for keycode: int in _physical_keycodes(action):
-			assert_true(keycode >= KEY_F1 and keycode <= KEY_F12,
-				"%s is bound to a function key" % action)
+			assert_true(
+				keycode >= KEY_F1 and keycode <= KEY_F12, "%s is bound to a function key" % action
+			)
 
 
 func test_no_selector_shares_a_key_with_the_command_grid() -> void:
@@ -74,8 +78,9 @@ func test_no_selector_shares_a_key_with_the_command_grid() -> void:
 	assert_false(grid_keys.is_empty(), "the grid has keys to compare against")
 	for action: String in _SELECTOR_ACTIONS:
 		for keycode: int in _physical_keycodes(action):
-			assert_false(grid_keys.has(keycode),
-				"%s does not share a key with a grid cell" % action)
+			assert_false(
+				grid_keys.has(keycode), "%s does not share a key with a grid cell" % action
+			)
 
 
 func test_the_nine_letter_bound_selectors_are_gone() -> void:
@@ -84,6 +89,7 @@ func test_the_nine_letter_bound_selectors_are_gone() -> void:
 
 
 # --- The two broadening modifiers ---------------------------------------------
+
 
 func test_the_broadening_modifiers_exist() -> void:
 	assert_true(InputMap.has_action(RTSController.MODIFIER_NARROW))
@@ -111,14 +117,18 @@ func test_modifiers_are_keyboard_only() -> void:
 
 # --- The selectors have left the command grid ---------------------------------
 
+
 func test_the_command_grid_holds_no_selectors() -> void:
 	# Selectors were three SELECT-context cells in row 0, shown only while nothing was
 	# selected — backwards, since a selector is reached for precisely when the current
 	# selection is wrong. They are SelectorPanel now, and vacating row 0 is what frees it
 	# for the production contexts.
 	for binding: ControlBinding in CommandGrid.bindings():
-		assert_ne(binding.control_context, ControlBinding.ControlContext.SELECT,
-			"%s is not a grid binding any more" % binding.command_name)
+		assert_ne(
+			binding.control_context,
+			ControlBinding.ControlContext.SELECT,
+			"%s is not a grid binding any more" % binding.command_name
+		)
 
 
 func test_the_selector_panel_offers_one_button_per_family() -> void:
@@ -140,6 +150,7 @@ func test_the_selector_panel_offers_one_button_per_family() -> void:
 ## the idle set while one member was idle, and the unmodified press would become identical to
 ## modifier_narrow exactly whenever that modifier would have mattered. The filter belongs to
 ## the modifier; the order belongs here.
+
 
 func test_an_empty_set_has_no_pick() -> void:
 	assert_eq(RTSController.cycle_index([]), -1)

@@ -144,15 +144,17 @@ func _unlock_affordable() -> void:
 func _ready_caster(a_sanction: Sanction) -> Commandable:
 	for caster: Commandable in _bot.casters_of(a_sanction):
 		var store: Abilities = _store_of(caster)
-		if store != null and store.is_ready(a_sanction.ability_id) \
-				and not (caster.current_command() is UseSanction):
+		if (
+			store != null
+			and store.is_ready(a_sanction.ability_id)
+			and not (caster.current_command() is UseSanction)
+		):
 			return caster
 	return null
 
 
 func _store_of(a_caster: Commandable) -> Abilities:
-	return a_caster.get_node_or_null("Abilities") as Abilities \
-		if a_caster != null else null
+	return a_caster.get_node_or_null("Abilities") as Abilities if a_caster != null else null
 
 
 ## The current engagement to focus sanctions on, as

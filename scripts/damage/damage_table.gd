@@ -27,25 +27,34 @@ var _catalog: DamageCatalog
 ## Consulted by the bot's targeting + production effectiveness via matchup_override().
 var _matchup_table: Dictionary = {}
 
+
 func _ready() -> void:
 	_load_catalog()
 	_load_matchup_table()
+
 
 func get_armour_multiplier(a_damage_type: Damage.Type, a_armour_type: Defense.ArmourType) -> float:
 	var profile: DamageProfile = _catalog.profile_for(a_damage_type) if _catalog != null else null
 	return profile.armour_multiplier(a_armour_type) if profile != null else 1.0
 
+
 func get_frame_multiplier(a_damage_type: Damage.Type, a_frame_type: Defense.FrameType) -> float:
 	var profile: DamageProfile = _catalog.profile_for(a_damage_type) if _catalog != null else null
 	return profile.frame_multiplier(a_frame_type) if profile != null else 1.0
 
+
 func calculate_damage(a_base: float, a_damage_type: Damage.Type, a_target: Node) -> float:
 	var defense: Defense = a_target.get_node_or_null("Defense") as Defense
-	var armour: Defense.ArmourType = defense.armour_type if defense != null else Defense.ArmourType.LIGHT
+	var armour: Defense.ArmourType = (
+		defense.armour_type if defense != null else Defense.ArmourType.LIGHT
+	)
 	var frame: Defense.FrameType = defense.frame_type if defense != null else Defense.FrameType.BIO
-	return a_base \
-		* get_armour_multiplier(a_damage_type, armour) \
+	return (
+		a_base
+		* get_armour_multiplier(a_damage_type, armour)
 		* get_frame_multiplier(a_damage_type, frame)
+	)
+
 
 ## Hand-set effectiveness multiplier for [attacker_type] vs [target_type], or null
 ## when no override is authored (callers then use the computed damage-table value).
@@ -53,8 +62,10 @@ func calculate_damage(a_base: float, a_damage_type: Damage.Type, a_target: Node)
 func matchup_override(a_attacker_type: StringName, a_target_type: StringName) -> Variant:
 	return _matchup_table.get(a_attacker_type, {}).get(a_target_type)
 
+
 func _load_catalog() -> void:
 	_catalog = DamageCatalog.from_tsv(ARMOUR_TSV_PATH, FRAME_TSV_PATH)
+
 
 ## Optional per-matchup override table: rows = attacker piece ids, columns =
 ## target piece ids (matching the gdd spec docs / EntityIds — lowercase-first,
@@ -63,18 +74,28 @@ func _load_catalog() -> void:
 ## means no overrides. Old-style enum names (UPPERCASE) are flagged so a stale
 ## table doesn't silently stop matching.
 func _load_matchup_table() -> void:
-	var file: FileAccess = FileAccess.open("res://resources/damage/matchup_overrides.tsv", FileAccess.READ)
+	var file: FileAccess = FileAccess.open(
+		"res://resources/damage/matchup_overrides.tsv", FileAccess.READ
+	)
 	if file == null:
 		return
 
 	var header: PackedStringArray = file.get_csv_line("\t")
-	var col_map: Dictionary = {} # col_index -> target piece id StringName
+	var col_map: Dictionary = {}  # col_index -> target piece id StringName
 	for i: int in range(1, header.size()):
 		var col_name: String = header[i].strip_edges()
 		if col_name.is_empty():
 			continue
 		if col_name[0] != col_name[0].to_lower():
-			push_warning("matchup_overrides.tsv: column '%s' is not a piece id (starts uppercase — looks like a stale enum name) — ignored" % col_name)
+			push_warning(
+				(
+					(
+						"matchup_overrides.tsv: column '%s' is not a piece id (starts "
+						+ "uppercase — looks like a stale enum name) — ignored"
+					)
+					% col_name
+				)
+			)
 			continue
 		col_map[i] = StringName(col_name)
 
@@ -86,7 +107,15 @@ func _load_matchup_table() -> void:
 		if row_name.is_empty():
 			continue
 		if row_name[0] != row_name[0].to_lower():
-			push_warning("matchup_overrides.tsv: row '%s' is not a piece id (starts uppercase — looks like a stale enum name) — ignored" % row_name)
+			push_warning(
+				(
+					(
+						"matchup_overrides.tsv: row '%s' is not a piece id (starts "
+						+ "uppercase — looks like a stale enum name) — ignored"
+					)
+					% row_name
+				)
+			)
 			continue
 		var attacker_id: StringName = StringName(row_name)
 		var override_row: Dictionary = {}

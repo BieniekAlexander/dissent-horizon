@@ -39,11 +39,11 @@ const SNAPSHOT_FOG_TINT: Color = Color(0.45, 0.45, 0.55)
 ## One remembered enemy entity.
 class Entry:
 	var instance_id: int
-	var type: StringName                # piece id (see EntityIds)
+	var type: StringName  # piece id (see EntityIds)
 	var is_structure: bool
 	var last_known_location: Vector3
-	var last_seen_time: float           # seconds (Commander.seconds_elapsed) of last sighting
-	var entity: Commandable             # live ref; may become invalid (use is_instance_valid)
+	var last_seen_time: float  # seconds (Commander.seconds_elapsed) of last sighting
+	var entity: Commandable  # live ref; may become invalid (use is_instance_valid)
 
 
 ## One remembered structure image at a specific grid cell. A single structure may
@@ -51,11 +51,11 @@ class Entry:
 ## was re-seen elsewhere" case), so snapshots are keyed by (structure_id, cell).
 class Snapshot:
 	var structure_id: int
-	var cell: Vector2i                  # representative grid cell (map.world_to_grid of last-known pos)
+	var cell: Vector2i  # representative grid cell (map.world_to_grid of last-known pos)
 	# Live ref to the real structure. Entity (NOT Commandable) — Shelters/ExtractionSites are
 	# structures that derive from Entity. is_instance_valid may go false on destruction.
 	var entity: Entity
-	var node: Node3D                    # duplicated MeshVisual, world-positioned in the container
+	var node: Node3D  # duplicated MeshVisual, world-positioned in the container
 	# Captured at creation (stays valid after `entity` is freed): an ExtractionSite yields its
 	# cell to any structure overlaid on it (an Extractor) when both are remembered — see
 	# _suppress_overlapping_snapshots.
@@ -63,8 +63,8 @@ class Snapshot:
 
 
 var _commander: Commander
-var _entries: Dictionary = {}           # instance_id -> Entry
-var _snapshots: Dictionary = {}         # "id:cell" -> Snapshot
+var _entries: Dictionary = {}  # instance_id -> Entry
+var _snapshots: Dictionary = {}  # "id:cell" -> Snapshot
 ## Lazily created Node3D under the map that parents every snapshot MeshVisual. Freed
 ## by free_visuals() (called from Commander's PREDELETE).
 var _snapshot_container: Node3D = null
@@ -103,9 +103,11 @@ func update() -> void:
 func believed() -> Array:
 	return _entries.values()
 
+
 ## Believed enemy structures (last-known locations; persist until verified gone).
 func believed_structures() -> Array:
 	return _entries.values().filter(func(e: Entry): return e.is_structure)
+
 
 ## Believed enemy units (last-known locations; expire after BLACKBOARD_EXPIRATION).
 func believed_units() -> Array:
@@ -180,8 +182,9 @@ func refresh_snapshots() -> void:
 		if _commander.has_vision_at(snap.node.global_position):
 			# The cell is scouted again: keep the memory only while the real structure
 			# is still there. Otherwise it's stale — destroyed, or moved away.
-			var still_here: bool = real_alive \
-				and map.world_to_grid(VU.inXZ(snap.entity.global_position)) == snap.cell
+			var still_here: bool = (
+				real_alive and map.world_to_grid(VU.inXZ(snap.entity.global_position)) == snap.cell
+			)
 			if not still_here:
 				snap.node.queue_free()
 				_snapshots.erase(key)
@@ -207,7 +210,7 @@ func refresh_snapshots() -> void:
 ## hide the rest — so an Extractor's remembered image, not the ExtractionSite it was built on, is
 ## what renders.
 func _suppress_overlapping_snapshots() -> void:
-	var winner_by_cell: Dictionary = {}   # Vector2i -> Snapshot
+	var winner_by_cell: Dictionary = {}  # Vector2i -> Snapshot
 	for key: String in _snapshots:
 		var snap: Snapshot = _snapshots[key]
 		if not is_instance_valid(snap.node) or not snap.node.visible:

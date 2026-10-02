@@ -46,14 +46,18 @@ func _decoration_input(a_td: TerrainData, a_fixtures: Array[Dictionary] = []) ->
 
 
 func _building(a_origin: Vector2i, a_size: Vector2i) -> Dictionary:
-	return {"kind": MapDecorationInput.FixtureKind.BUILDING,
-		"cells": MapDecorationInput.footprint(a_origin, a_size)}
+	return {
+		"kind": MapDecorationInput.FixtureKind.BUILDING,
+		"cells": MapDecorationInput.footprint(a_origin, a_size)
+	}
 
 
 func _ridged() -> TerrainData:
 	var td: TerrainData = _flat()
 	_ridge(td, 20, 8, 32)
 	return td
+
+
 #endregion
 
 
@@ -62,17 +66,26 @@ func test_tall_props_are_never_admissible_on_walkable_ground() -> void:
 	var walkable: int = MapDecorationPlanner._IN_PLAY
 	var steep: int = MapDecorationPlanner._IN_PLAY | MapDecorationPlanner._STEEP
 	for kind: DoodadLibrary.Kind in DoodadLibrary.all_kinds():
-		assert_eq(MapDecorationPlanner.is_admissible(kind, walkable), DoodadLibrary.is_low(kind),
-			"%s on walkable ground" % DoodadLibrary.Kind.keys()[kind])
-		assert_true(MapDecorationPlanner.is_admissible(kind, steep),
-			"anything may stand where no unit walks")
+		assert_eq(
+			MapDecorationPlanner.is_admissible(kind, walkable),
+			DoodadLibrary.is_low(kind),
+			"%s on walkable ground" % DoodadLibrary.Kind.keys()[kind]
+		)
+		assert_true(
+			MapDecorationPlanner.is_admissible(kind, steep),
+			"anything may stand where no unit walks"
+		)
 
 
 func test_nothing_stands_on_a_fixture_trail_or_deep_water() -> void:
-	for flag: int in [MapDecorationPlanner._FIXTURE, MapDecorationPlanner._TRAIL,
-			MapDecorationPlanner._DEEP]:
-		assert_false(MapDecorationPlanner.is_admissible(DoodadLibrary.Kind.GRASS_TUFT,
-			MapDecorationPlanner._IN_PLAY | flag))
+	for flag: int in [
+		MapDecorationPlanner._FIXTURE, MapDecorationPlanner._TRAIL, MapDecorationPlanner._DEEP
+	]:
+		assert_false(
+			MapDecorationPlanner.is_admissible(
+				DoodadLibrary.Kind.GRASS_TUFT, MapDecorationPlanner._IN_PLAY | flag
+			)
+		)
 
 
 func test_every_planned_prop_obeys_the_height_rule() -> void:
@@ -81,8 +94,11 @@ func test_every_planned_prop_obeys_the_height_rule() -> void:
 	assert_gt(planned.doodads.size(), 0, "a ridged field gets some props")
 	for doodad: DoodadPlacement in planned.doodads:
 		if not DoodadLibrary.is_low(doodad.kind):
-			assert_gt(td.cell_height_spread(doodad.cell), TerrainGrid.MAX_SLOPE_DIFF,
-				"a tall prop at %s stands on walkable ground" % doodad.cell)
+			assert_gt(
+				td.cell_height_spread(doodad.cell),
+				TerrainGrid.MAX_SLOPE_DIFF,
+				"a tall prop at %s stands on walkable ground" % doodad.cell
+			)
 
 
 func test_no_prop_stands_on_or_beside_a_fixture() -> void:
@@ -90,17 +106,25 @@ func test_no_prop_stands_on_or_beside_a_fixture() -> void:
 	var fixtures: Array[Dictionary] = [_building(Vector2i(10, 10), Vector2i(4, 4))]
 	var planned: MapDecoration = MapDecorationPlanner.plan(_decoration_input(td, fixtures))
 	for doodad: DoodadPlacement in planned.doodads:
-		var inside: bool = doodad.cell.x >= 9 and doodad.cell.x <= 14 \
-			and doodad.cell.y >= 9 and doodad.cell.y <= 14
+		var inside: bool = (
+			doodad.cell.x >= 9
+			and doodad.cell.x <= 14
+			and doodad.cell.y >= 9
+			and doodad.cell.y <= 14
+		)
 		assert_false(inside, "prop at %s is on the footprint or its margin" % doodad.cell)
 
 
 func test_props_sit_on_the_ground() -> void:
 	var td: TerrainData = _ridged()
 	for doodad: DoodadPlacement in MapDecorationPlanner.plan(_decoration_input(td)).doodads:
-		var lo: float = minf(td.corner_height(doodad.cell), td.corner_height(doodad.cell + Vector2i.ONE))
+		var lo: float = minf(
+			td.corner_height(doodad.cell), td.corner_height(doodad.cell + Vector2i.ONE)
+		)
 		assert_between(doodad.position.y, _GROUND - 0.01, _GROUND + _RIDGE_RISE + 0.01)
 		assert_true(doodad.position.y >= lo - _RIDGE_RISE, "not buried")
+
+
 #endregion
 
 
@@ -108,32 +132,39 @@ func test_props_sit_on_the_ground() -> void:
 func test_a_trail_joins_two_settlements_over_walkable_ground() -> void:
 	var td: TerrainData = _ridged()
 	var fixtures: Array[Dictionary] = [
-		_building(Vector2i(8, 18), Vector2i(3, 3)), _building(Vector2i(30, 18), Vector2i(3, 3))]
+		_building(Vector2i(8, 18), Vector2i(3, 3)), _building(Vector2i(30, 18), Vector2i(3, 3))
+	]
 	var planned: MapDecoration = MapDecorationPlanner.plan(_decoration_input(td, fixtures))
 	assert_eq(planned.trails.size(), 1, "two settlements, one edge of the tree")
 	var trail: PackedVector2Array = planned.trails[0]
 	assert_lt(trail[0].distance_to(Vector2(9.5, 19.5)), 4.0, "starts at one settlement")
 	assert_lt(trail[trail.size() - 1].distance_to(Vector2(31.5, 19.5)), 4.0, "ends at the other")
 	for point: Vector2 in trail:
-		assert_true(td.cell_height_spread(Vector2i(point)) <= TerrainGrid.MAX_SLOPE_DIFF,
-			"trail crosses the ridge at %s instead of going round" % point)
+		assert_true(
+			td.cell_height_spread(Vector2i(point)) <= TerrainGrid.MAX_SLOPE_DIFF,
+			"trail crosses the ridge at %s instead of going round" % point
+		)
 
 
 func test_buildings_close_together_are_one_settlement() -> void:
 	var td: TerrainData = _flat()
 	var fixtures: Array[Dictionary] = [
-		_building(Vector2i(10, 10), Vector2i(2, 2)), _building(Vector2i(14, 10), Vector2i(2, 2))]
+		_building(Vector2i(10, 10), Vector2i(2, 2)), _building(Vector2i(14, 10), Vector2i(2, 2))
+	]
 	assert_eq(MapDecorationPlanner.plan(_decoration_input(td, fixtures)).trails.size(), 0)
 
 
 func test_the_ground_paint_covers_the_grid_and_marks_trails() -> void:
 	var td: TerrainData = _flat()
 	var fixtures: Array[Dictionary] = [
-		_building(Vector2i(5, 18), Vector2i(2, 2)), _building(Vector2i(33, 18), Vector2i(2, 2))]
+		_building(Vector2i(5, 18), Vector2i(2, 2)), _building(Vector2i(33, 18), Vector2i(2, 2))
+	]
 	var planned: MapDecoration = MapDecorationPlanner.plan(_decoration_input(td, fixtures))
 	assert_eq(planned.ground_overlay.get_size(), Vector2i(td.grid_width(), td.grid_depth()))
 	var on_trail := Vector2i(planned.trails[0][planned.trails[0].size() / 2])
 	assert_eq(planned.ground_overlay.get_pixelv(on_trail).g, 1.0, "trail strength in G")
+
+
 #endregion
 
 
@@ -141,8 +172,12 @@ func test_the_ground_paint_covers_the_grid_and_marks_trails() -> void:
 func test_a_ridge_has_cliff_faces_on_both_sides() -> void:
 	var planned: MapDecoration = MapDecorationPlanner.plan(_decoration_input(_ridged()))
 	var faces: Array = planned.facets[MapDecoration.Facet.CLIFF_FACE]
-	assert_true(faces.has(Vector2i(19, 20)) and faces.has(Vector2i(20, 20)),
-		"both cells sharing the raised corners face walkable ground")
+	assert_true(
+		faces.has(Vector2i(19, 20)) and faces.has(Vector2i(20, 20)),
+		"both cells sharing the raised corners face walkable ground"
+	)
+
+
 #endregion
 
 
@@ -178,7 +213,8 @@ func test_a_generated_map_and_its_scene_decorate_identically() -> void:
 	var generated: GeneratedMap = MapGenerator.generate(params, _SEED)
 	assert_true(generated.is_valid(), str(generated.errors))
 	var from_generator: MapDecoration = MapDecorationPlanner.plan(
-		MapDecorationInput.from_generated(generated))
+		MapDecorationInput.from_generated(generated)
+	)
 	var terrain_path: String = "user://test_decoration_terrain.tres"
 	var map: Map = writer.build_map(generated, terrain_path)
 	var from_scene: MapDecoration = MapDecorationPlanner.plan(MapDecorationInput.from_map(map))

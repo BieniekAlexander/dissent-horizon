@@ -13,9 +13,12 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_MapOccupancy.gd -gexit
 
 ## A walkable feature that occupies its cells without obstructing them.
-const SITE_SCENE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false,
-	"dimensions": Vector2i(2, 2)}
-const EXTRACTOR_SCENE: Dictionary = {"structure": true, "extractor": true, "dimensions": Vector2i(2, 2)}
+const SITE_SCENE: Dictionary = {
+	"feature": true, "extraction_site": true, "obstruction": false, "dimensions": Vector2i(2, 2)
+}
+const EXTRACTOR_SCENE: Dictionary = {
+	"structure": true, "extractor": true, "dimensions": Vector2i(2, 2)
+}
 const BUILDING_SCENE: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
 ## Height-map corner count; the cell grid is one smaller in each axis.
 const MAP_CORNERS: int = 17
@@ -27,7 +30,9 @@ const ORIGIN: Vector2i = Vector2i(6, 6)
 
 ## A Map with a real TerrainGrid, so passability — the navmesh's input — answers truthfully,
 ## and a hand-managed cell grid; none of the terrain or navmesh loading.
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		cell_grid = []
 		for x: int in GRID_CELLS:
@@ -41,8 +46,12 @@ class StubMap extends Map:
 		add_child(terrain_grid)
 
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
-		return a_coords.x >= 0 and a_coords.x < GRID_CELLS \
-			and a_coords.y >= 0 and a_coords.y < GRID_CELLS
+		return (
+			a_coords.x >= 0
+			and a_coords.x < GRID_CELLS
+			and a_coords.y >= 0
+			and a_coords.y < GRID_CELLS
+		)
 
 
 var _world: Node3D
@@ -89,8 +98,10 @@ func _make_map() -> StubMap:
 ## push_error that GUT would count against the test. Dismissed by message only.
 func _dismiss_missing_flavor_text() -> void:
 	for tracked in get_errors():
-		if tracked.contains_text("was given an empty description") \
-			or tracked.contains_text("was given an empty verbose description"):
+		if (
+			tracked.contains_text("was given an empty description")
+			or tracked.contains_text("was given an empty verbose description")
+		):
 			tracked.handled = true
 
 
@@ -127,6 +138,7 @@ func _all_occupied_by(a_entity: Entity) -> bool:
 
 # --- An ordinary structure -----------------------------------------------------------
 
+
 func test_an_ordinary_structure_occupies_and_obstructs() -> void:
 	var building: Entity = _place(BUILDING_SCENE, _neutral)
 	assert_true(_all_occupied_by(building))
@@ -144,6 +156,7 @@ func test_removing_an_ordinary_structure_frees_its_cells() -> void:
 
 # --- The extraction site: occupant, not obstruction ---------------------------------
 
+
 func test_a_site_occupies_its_cells_without_obstructing_them() -> void:
 	var site: Entity = _place(SITE_SCENE, _neutral)
 	assert_true(_all_occupied_by(site), "nothing else may be placed there")
@@ -154,18 +167,25 @@ func test_a_site_occupies_its_cells_without_obstructing_them() -> void:
 
 func test_a_site_does_not_collide_with_units() -> void:
 	var site: Entity = _place(SITE_SCENE, _neutral)
-	assert_eq(site.collision_layer & CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, 0,
-		"a walkable fixture must not stop units with its body either")
+	assert_eq(
+		site.collision_layer & CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
+		0,
+		"a walkable fixture must not stop units with its body either"
+	)
 
 
 # --- An extractor over its site ------------------------------------------------------
+
 
 func test_an_extractor_on_a_site_obstructs_the_sites_cells() -> void:
 	var site: Entity = _place(SITE_SCENE, _neutral)
 	var extractor: Entity = _place(EXTRACTOR_SCENE, _commander)
 	assert_true(_all_occupied_by(site), "the site stays the cells' occupant")
-	assert_eq(_map.structure_cell_map.get(extractor, []), _map.structure_cell_map[site],
-		"the extractor registers the site's footprint")
+	assert_eq(
+		_map.structure_cell_map.get(extractor, []),
+		_map.structure_cell_map[site],
+		"the extractor registers the site's footprint"
+	)
 	assert_true(_none_passable(), "and it is what obstructs them")
 	assert_true(extractor.is_grid_obstruction())
 	assert_eq(ExtractionSite.of(site).extractor, extractor, "the two are bound")

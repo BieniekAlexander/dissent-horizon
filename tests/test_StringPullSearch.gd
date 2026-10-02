@@ -9,7 +9,8 @@ extends GutTest
 ## table of which waypoints are in sight and count the tests it asks for. The cost is the point:
 ## it used to search back from the far end of the whole path, paying one line test per waypoint
 ## whenever the destination was out of sight — around an obstacle A* returns about one waypoint
-## per cell, so that was the path's length in tests, every recheck. Why: gdd/systems/terrain-and-navigation/navigation-and-pathing.md
+## per cell, so that was the path's length in tests, every recheck. Why:
+## gdd/systems/terrain-and-navigation/navigation-and-pathing.md
 ## §Path straightening.
 
 
@@ -58,8 +59,11 @@ func test_waypoints_already_passed_are_not_considered() -> void:
 
 func test_nothing_in_sight_answers_none() -> void:
 	var sight := Sight.new([true, false, false, false])
-	assert_eq(Movement.pulled_waypoint_index(4, 1, 3, sight.is_reachable), -1,
-		"the caller then steers at the agent's own next waypoint")
+	assert_eq(
+		Movement.pulled_waypoint_index(4, 1, 3, sight.is_reachable),
+		-1,
+		"the caller then steers at the agent's own next waypoint"
+	)
 
 
 func test_an_empty_path_answers_none_without_testing() -> void:

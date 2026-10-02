@@ -12,6 +12,9 @@ const RECOIL_CLIP: StringName = &"recoil"
 
 func requests_for_cue(a_cue: StringName, a_context: AnimationContext) -> Array[AnimationRequest]:
 	if a_cue == ActionTracker.CUE_EMITTED:
-		return [AnimationRequest.new(TURRET_LAYER, RECOIL_CLIP,
-			AnimationRequest.DEFAULT_SPEED_SCALE, true)]
+		return [
+			AnimationRequest.new(
+				TURRET_LAYER, RECOIL_CLIP, AnimationRequest.DEFAULT_SPEED_SCALE, true
+			)
+		]
 	return super(a_cue, a_context)

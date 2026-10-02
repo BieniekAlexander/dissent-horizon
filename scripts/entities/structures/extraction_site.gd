@@ -18,11 +18,13 @@ var extractor: Commandable = null:
 		extractor = value
 		# Hide the site's model while an extractor covers it (the extractor's own model shows
 		# on top); reveal it again when released.
-		var mesh_visual: Node3D = get_parent().get_node_or_null("MeshVisual") as Node3D \
-			if get_parent() != null else null
+		var mesh_visual: Node3D = (
+			get_parent().get_node_or_null("MeshVisual") as Node3D if get_parent() != null else null
+		)
 		if mesh_visual != null:
 			mesh_visual.visible = value == null
 #endregion
+
 
 #region Public API
 ## `a_node`'s ExtractionSite component, or null when it is not an extraction site (or is

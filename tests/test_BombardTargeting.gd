@@ -61,6 +61,7 @@ func _range_carrier(a_commander_id: int, a_xz: Vector2, a_radius: float) -> Comm
 
 # --- Nothing spotted ------------------------------------------------------------
 
+
 func test_unspotted_ground_cannot_be_bombarded() -> void:
 	assert_false(BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(50, 50))))
 
@@ -72,6 +73,7 @@ func test_a_null_commander_spots_nothing() -> void:
 
 
 # --- Beacons --------------------------------------------------------------------
+
 
 func test_a_beacon_spots_the_ground_it_stands_on() -> void:
 	_beacon(OWN, Vector2(20, 20))
@@ -89,8 +91,10 @@ func test_a_beacon_spots_a_small_area_around_itself() -> void:
 
 func test_an_enemy_beacon_spots_nothing_for_you() -> void:
 	_beacon(FOE, Vector2(20, 20))
-	assert_false(BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(20, 20))),
-		"a firing solution belongs to the side that placed it")
+	assert_false(
+		BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(20, 20))),
+		"a firing solution belongs to the side that placed it"
+	)
 
 
 func test_a_beacon_is_the_thing_a_strike_spends() -> void:
@@ -108,8 +112,10 @@ func test_the_nearest_beacon_is_the_one_spent() -> void:
 func test_a_dismissed_beacon_stops_spotting() -> void:
 	var beacon := _beacon(OWN, Vector2(20, 20))
 	beacon.dismiss()
-	assert_false(BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(20, 20))),
-		"queue_free is end-of-frame, so the check must skip a beacon on its way out")
+	assert_false(
+		BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(20, 20))),
+		"queue_free is end-of-frame, so the check must skip a beacon on its way out"
+	)
 
 
 func test_dismiss_announces_itself_once() -> void:
@@ -123,6 +129,7 @@ func test_dismiss_announces_itself_once() -> void:
 
 
 # --- Beacon ranges --------------------------------------------------------------
+
 
 func test_a_beacon_range_spots_everything_around_its_carrier() -> void:
 	_range_carrier(OWN, Vector2(0, 0), 20.0)
@@ -145,13 +152,18 @@ func test_an_enemy_beacon_range_spots_nothing_for_you() -> void:
 func test_a_beacon_range_is_never_spent() -> void:
 	# The persistent half: unlimited strikes, nothing to consume.
 	_range_carrier(OWN, Vector2(0, 0), 20.0)
-	assert_null(BombardTargeting.source_at(_commander(OWN), _at(Vector2(5, 0))),
-		"there is nothing for the shot to consume")
-	assert_true(BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(5, 0))),
-		"and it still spots the ground afterwards")
+	assert_null(
+		BombardTargeting.source_at(_commander(OWN), _at(Vector2(5, 0))),
+		"there is nothing for the shot to consume"
+	)
+	assert_true(
+		BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(5, 0))),
+		"and it still spots the ground afterwards"
+	)
 
 
 # --- The two together -----------------------------------------------------------
+
 
 func test_a_permanent_range_is_preferred_over_a_beacon() -> void:
 	# The load-bearing ordering: spending a beacon the player walked a Recruit across the
@@ -160,8 +172,10 @@ func test_a_permanent_range_is_preferred_over_a_beacon() -> void:
 	var beacon := _beacon(OWN, Vector2(5, 0))
 	_range_carrier(OWN, Vector2(0, 0), 20.0)
 	assert_true(BombardTargeting.is_spotted(_commander(OWN), _at(Vector2(5, 0))))
-	assert_null(BombardTargeting.source_at(_commander(OWN), _at(Vector2(5, 0))),
-		"the covered point spends nothing")
+	assert_null(
+		BombardTargeting.source_at(_commander(OWN), _at(Vector2(5, 0))),
+		"the covered point spends nothing"
+	)
 	assert_true(is_instance_valid(beacon), "so the beacon is still standing")
 
 

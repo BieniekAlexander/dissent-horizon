@@ -59,6 +59,8 @@ func slot_of(a_commander_id: int) -> String:
 		if int(_slot_ids[slot]) == a_commander_id:
 			return slot
 	return ""
+
+
 #endregion
 
 
@@ -113,6 +115,8 @@ func centroid(a_reference: String, a_piece: String = "") -> Variant:
 	for entity: Commandable in alive:
 		total += entity.global_position
 	return total / float(alive.size())
+
+
 #endregion
 
 

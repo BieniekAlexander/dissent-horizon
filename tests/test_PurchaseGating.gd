@@ -65,6 +65,7 @@ func _make_message(a_type: StringName, a_defer: bool) -> CommandMessage:
 
 ## --- the gate itself --------------------------------------------------------
 
+
 func test_shortfall_is_waived_when_deferral_is_allowed() -> void:
 	var commander := _make_commander(0)
 	assert_eq(
@@ -114,6 +115,7 @@ func test_missing_structure_blocks_regardless_of_deferral() -> void:
 
 ## --- the wiring: message flag → precondition --------------------------------
 
+
 func test_message_defaults_to_deferring() -> void:
 	assert_true(
 		CommandMessage.new(null).defer_if_unaffordable,
@@ -161,6 +163,7 @@ func test_train_precondition_accepts_affordable_order_without_the_modifier() -> 
 
 
 ## --- the tell: awaiting-funds shade -----------------------------------------
+
 
 func test_shade_reflects_awaiting_funds() -> void:
 	var blueprint := autofree(Commandable.new()) as Commandable
@@ -212,6 +215,7 @@ func test_mesh_visual_shade_roundtrips_and_clamps() -> void:
 
 
 ## --- ordering at an unfunded blueprint --------------------------------------
+
 
 ## A blueprint whose own BUILD purchase is still PENDING can't produce anything until that
 ## structure is funded, built and finished. With no modifier held that order is refused,

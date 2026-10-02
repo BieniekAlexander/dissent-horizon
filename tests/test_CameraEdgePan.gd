@@ -39,6 +39,7 @@ func _along(a_direction: Vector3, a_axis: Vector3) -> float:
 
 # --- Not near an edge ----------------------------------------------------------
 
+
 func test_the_middle_of_the_screen_asks_for_nothing() -> void:
 	assert_eq(_camera.edge_pan_direction(RECT * 0.5, RECT), Vector3.ZERO)
 
@@ -46,7 +47,8 @@ func test_the_middle_of_the_screen_asks_for_nothing() -> void:
 func test_just_inside_the_margin_asks_for_nothing() -> void:
 	var just_inside: float = RTSCamera3D.EDGE_PAN_MARGIN_PX + 1.0
 	assert_eq(
-		_camera.edge_pan_direction(Vector2(just_inside, RECT.y * 0.5), RECT), Vector3.ZERO,
+		_camera.edge_pan_direction(Vector2(just_inside, RECT.y * 0.5), RECT),
+		Vector3.ZERO,
 		"a pixel beyond the band is still the playfield"
 	)
 
@@ -58,6 +60,7 @@ func test_a_degenerate_viewport_asks_for_nothing() -> void:
 
 
 # --- The four edges -------------------------------------------------------------
+
 
 func test_the_right_edge_pans_right() -> void:
 	var direction: Vector3 = _camera.edge_pan_direction(Vector2(RECT.x - 1.0, RECT.y * 0.5), RECT)
@@ -111,18 +114,21 @@ func test_a_horizontal_edge_pans_purely_vertically() -> void:
 
 # --- Shape of the result --------------------------------------------------------
 
+
 func test_the_direction_is_always_unit_length() -> void:
 	# Speed belongs to edge_pan_speed. An un-normalized centre-to-cursor vector would make a
 	# corner pan far faster than an edge midpoint, and every speed resolution-dependent.
 	for cursor: Vector2 in [
-		Vector2(1.0, RECT.y * 0.5),          # left edge
-		Vector2(1.0, 1.0),                    # corner
+		Vector2(1.0, RECT.y * 0.5),  # left edge
+		Vector2(1.0, 1.0),  # corner
 		Vector2(RECT.x - 1.0, RECT.y - 1.0),  # opposite corner
-		Vector2(RECT.x * 0.5, 1.0),           # top edge
+		Vector2(RECT.x * 0.5, 1.0),  # top edge
 		Vector2(RECT.x * 0.9, RECT.y - 1.0),  # bottom edge, off-centre
 	]:
 		assert_almost_eq(
-			_camera.edge_pan_direction(cursor, RECT).length(), 1.0, 0.001,
+			_camera.edge_pan_direction(cursor, RECT).length(),
+			1.0,
+			0.001,
 			"unit length at %s" % cursor
 		)
 
@@ -152,6 +158,7 @@ func test_the_direction_follows_the_cameras_yaw() -> void:
 
 # --- Guards ---------------------------------------------------------------------
 
+
 func test_an_in_progress_drag_suppresses_edge_panning() -> void:
 	# Both steer from the same mouse, and a drag routinely ends near an edge.
 	_camera.global_position = Vector3.ZERO
@@ -168,6 +175,7 @@ func test_disabling_edge_pan_stops_it() -> void:
 
 
 # --- How far it moves -----------------------------------------------------------
+
 
 func test_the_pan_step_scales_with_zoom_and_frame_time() -> void:
 	# Scaled by `size` for the same reason drag panning is: zoomed out, a screen-edge nudge

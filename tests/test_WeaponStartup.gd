@@ -53,8 +53,10 @@ func test_holding_twice_in_one_frame_counts_once() -> void:
 func test_a_lock_kept_held_survives_any_wait() -> void:
 	# The reload: the weapon is not ready, but the command keeps holding the target throughout.
 	_hold(_target, 1, STARTUP_TICKS + 300)
-	assert_true(_weapon.is_locked_on(_target, STARTUP_TICKS + 300),
-		"a target held through the reload is fired on again without re-waiting")
+	assert_true(
+		_weapon.is_locked_on(_target, STARTUP_TICKS + 300),
+		"a target held through the reload is fired on again without re-waiting"
+	)
 
 
 func test_a_skipped_frame_breaks_the_lock() -> void:
@@ -68,8 +70,10 @@ func test_switching_target_starts_again() -> void:
 	_hold(_target, 1, STARTUP_TICKS)
 	_hold(_other, STARTUP_TICKS + 1, STARTUP_TICKS + 1)
 	assert_false(_weapon.is_locked_on(_other, STARTUP_TICKS + 1))
-	assert_false(_weapon.is_locked_on(_target, STARTUP_TICKS + 1),
-		"returning to the first target is a new startup")
+	assert_false(
+		_weapon.is_locked_on(_target, STARTUP_TICKS + 1),
+		"returning to the first target is a new startup"
+	)
 
 
 func test_ground_fire_locks_on_a_point() -> void:

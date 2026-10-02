@@ -25,9 +25,14 @@ func _phase(a_values: Dictionary) -> EmissionPhase:
 
 func _preset_phase(a_preset: String, a_speed: float) -> EmissionPhase:
 	var values: Dictionary = {"speed": a_speed}
-	var names: Dictionary = {"gravity": "gravity_mps2", "launch_pitch": "launch_pitch_degrees",
-		"turn_rate": "turn_rate_degrees_per_second", "launch_speed_ratio": "launch_speed_ratio",
-		"acceleration": "acceleration_mps2", "min_speed": "min_speed"}
+	var names: Dictionary = {
+		"gravity": "gravity_mps2",
+		"launch_pitch": "launch_pitch_degrees",
+		"turn_rate": "turn_rate_degrees_per_second",
+		"launch_speed_ratio": "launch_speed_ratio",
+		"acceleration": "acceleration_mps2",
+		"min_speed": "min_speed"
+	}
 	var preset: Dictionary = EmissionPhase.PRESETS[a_preset]
 	for key: String in preset:
 		values[names[key]] = preset[key]
@@ -61,25 +66,41 @@ func _fly(a_phase: EmissionPhase, a_target: Entity = null) -> Dictionary:
 func test_the_defaults_are_a_straight_constant_speed_flight() -> void:
 	var phase: EmissionPhase = _phase({"speed": 30.0})
 	var launch: Vector3 = phase.launch_velocity(ORIGIN, DESTINATION)
-	assert_almost_eq(launch.length(), 30.0 / TimeUtils.ticks_per_second(), FLOAT_TOLERANCE,
-		"launches at full speed, per tick")
-	assert_almost_eq(launch.normalized().dot(ORIGIN.direction_to(DESTINATION)), 1.0,
-		FLOAT_TOLERANCE, "straight at the destination")
+	assert_almost_eq(
+		launch.length(),
+		30.0 / TimeUtils.ticks_per_second(),
+		FLOAT_TOLERANCE,
+		"launches at full speed, per tick"
+	)
+	assert_almost_eq(
+		launch.normalized().dot(ORIGIN.direction_to(DESTINATION)),
+		1.0,
+		FLOAT_TOLERANCE,
+		"straight at the destination"
+	)
 	assert_eq(phase.fallen_velocity(launch), launch, "no gravity")
 	assert_eq(phase.steered_velocity(launch, ORIGIN, null), launch, "no steering")
 	assert_true(phase.is_straight())
 	var flight: Dictionary = _fly(phase)
 	assert_true(flight["arrived"], "arrives")
-	assert_almost_eq(flight["position"].distance_to(DESTINATION), 0.0,
-		30.0 / TimeUtils.ticks_per_second(), "within one step of the destination")
+	assert_almost_eq(
+		flight["position"].distance_to(DESTINATION),
+		0.0,
+		30.0 / TimeUtils.ticks_per_second(),
+		"within one step of the destination"
+	)
 
 
 func test_a_ballistic_arc_lands_on_its_destination() -> void:
 	var flight: Dictionary = _fly(_preset_phase("BALLISTIC", 9.0))
 	assert_true(flight["arrived"], "lands")
 	var landed: Vector3 = flight["position"]
-	assert_almost_eq(Vector2(landed.x, landed.z).distance_to(Vector2(DESTINATION.x, DESTINATION.z)),
-		0.0, 9.0 / TimeUtils.ticks_per_second(), "over the destination")
+	assert_almost_eq(
+		Vector2(landed.x, landed.z).distance_to(Vector2(DESTINATION.x, DESTINATION.z)),
+		0.0,
+		9.0 / TimeUtils.ticks_per_second(),
+		"over the destination"
+	)
 	assert_lt(landed.y, DESTINATION.y + FLOAT_TOLERANCE, "at or below its height")
 
 
@@ -101,8 +122,11 @@ func test_a_lob_leaves_at_its_pitch_and_lands_on_its_destination() -> void:
 	var flight: Dictionary = _fly(phase)
 	assert_true(flight["arrived"], "lands")
 	var landed: Vector3 = flight["position"]
-	assert_lt(Vector2(landed.x, landed.z).distance_to(Vector2(DESTINATION.x, DESTINATION.z)),
-		0.5, "over the destination")
+	assert_lt(
+		Vector2(landed.x, landed.z).distance_to(Vector2(DESTINATION.x, DESTINATION.z)),
+		0.5,
+		"over the destination"
+	)
 
 
 func test_a_lob_too_steep_for_its_target_falls_back_to_an_arc() -> void:
@@ -110,8 +134,12 @@ func test_a_lob_too_steep_for_its_target_falls_back_to_an_arc() -> void:
 	phase.launch_pitch_degrees = 1.0
 	var high: Vector3 = Vector3(12.0, 40.0, 5.0)
 	var launch: Vector3 = phase.launch_velocity(ORIGIN, high)
-	assert_almost_eq(Vector2(launch.x, launch.z).length(), 9.0 / TimeUtils.ticks_per_second(),
-		FLOAT_TOLERANCE, "flown at its authored speed instead")
+	assert_almost_eq(
+		Vector2(launch.x, launch.z).length(),
+		9.0 / TimeUtils.ticks_per_second(),
+		FLOAT_TOLERANCE,
+		"flown at its authored speed instead"
+	)
 
 
 func test_a_homer_launches_slow_and_speeds_up_while_facing_its_target() -> void:
@@ -132,14 +160,20 @@ func test_a_homer_turns_at_most_its_turn_rate_per_tick() -> void:
 	var heading: Vector3 = Vector3(0.1, 0.0, 0.0)
 	var steered: Vector3 = phase.steered_velocity(heading, ORIGIN, entity)
 	var turned: float = rad_to_deg(heading.angle_to(steered))
-	assert_almost_eq(turned, phase.turn_rate_degrees_per_second / TimeUtils.ticks_per_second(),
-		FLOAT_TOLERANCE, "one tick of turn")
+	assert_almost_eq(
+		turned,
+		phase.turn_rate_degrees_per_second / TimeUtils.ticks_per_second(),
+		FLOAT_TOLERANCE,
+		"one tick of turn"
+	)
 
 
 func test_a_homer_without_a_target_never_arrives() -> void:
 	var phase: EmissionPhase = _preset_phase("HOMING", 24.0)
-	assert_false(phase.has_arrived(DESTINATION, Vector3.ZERO, DESTINATION, null),
-		"its lifespan ends it instead")
+	assert_false(
+		phase.has_arrived(DESTINATION, Vector3.ZERO, DESTINATION, null),
+		"its lifespan ends it instead"
+	)
 
 
 func test_periods_convert_to_ticks_with_a_one_tick_floor() -> void:

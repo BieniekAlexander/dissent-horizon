@@ -30,8 +30,10 @@ func test_units_from_the_same_order_are_siblings() -> void:
 
 
 func test_units_from_different_orders_are_not_siblings() -> void:
-	assert_false(MoveCommand.is_same_order(_snapshot(_order()), _snapshot(_order())),
-		"two separate player orders must never swap destinations")
+	assert_false(
+		MoveCommand.is_same_order(_snapshot(_order()), _snapshot(_order())),
+		"two separate player orders must never swap destinations"
+	)
 
 
 func test_identical_looking_orders_are_still_separate() -> void:
@@ -46,8 +48,10 @@ func test_identical_looking_orders_are_still_separate() -> void:
 
 func test_untagged_commands_never_swap() -> void:
 	# Single-unit and script-issued commands carry no token.
-	assert_false(MoveCommand.is_same_order(_snapshot(null), _snapshot(null)),
-		"a null origin is nobody's sibling, not even another null")
+	assert_false(
+		MoveCommand.is_same_order(_snapshot(null), _snapshot(null)),
+		"a null origin is nobody's sibling, not even another null"
+	)
 	assert_false(MoveCommand.is_same_order(_snapshot(null), _snapshot(_order())))
 	assert_false(MoveCommand.is_same_order(_snapshot(_order()), _snapshot(null)))
 

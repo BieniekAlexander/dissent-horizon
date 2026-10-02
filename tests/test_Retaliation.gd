@@ -77,8 +77,11 @@ func _is_attack_on(a_command: MoveCommand, a_target: Entity) -> bool:
 func test_an_idle_unit_answers_an_attacker_past_its_aggro() -> void:
 	var pair: Array = await _pair(FAR)
 	var shooter: Commandable = pair[0]
-	assert_gt(VU.inXZ(shooter.global_position).distance_to(VU.inXZ(pair[1].global_position)),
-		shooter.aggro_radius(), "guards the fixture: the attacker is past aggro")
+	assert_gt(
+		VU.inXZ(shooter.global_position).distance_to(VU.inXZ(pair[1].global_position)),
+		shooter.aggro_radius(),
+		"guards the fixture: the attacker is past aggro"
+	)
 	shooter.receive_damage(Damage.new(1.0), pair[1])
 	assert_true(_is_attack_on(shooter.current_command(), pair[1]))
 
@@ -111,6 +114,8 @@ func test_a_friendly_hit_is_not_answered() -> void:
 	var friend: Commandable = _piece(IRREGULAR, shooter.ownership.commander, Vector3(FAR, 0, 0))
 	await wait_physics_frames(2)
 	assert_null(shooter._retaliation_against(friend))
+
+
 #endregion
 
 
@@ -153,6 +158,8 @@ func test_a_manned_shelter_ignores_what_its_occupants_cannot_reach() -> void:
 	var attacker: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(FAR, 0, 0))
 	await wait_physics_frames(2)
 	assert_null(shelter._retaliation_against(attacker))
+
+
 #endregion
 
 
@@ -164,13 +171,18 @@ func test_a_bunker_keeps_an_order_on_a_target_its_occupants_reach() -> void:
 	var shelter: Commandable = await _manned_shelter(BADGER)
 	var reach: float = shelter.reach_on_layer(CollisionLayers.Mask.TARGETABLE_GROUND)
 	var at: float = reach - 1.0
-	assert_gt(at, shelter.aggro_radius() * Attack._LEASH_HYSTERESIS,
-		"guards the fixture: past where an aggro-based leash would let go")
+	assert_gt(
+		at,
+		shelter.aggro_radius() * Attack._LEASH_HYSTERESIS,
+		"guards the fixture: past where an aggro-based leash would let go"
+	)
 	var foe: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(at, 0, 0))
 	await wait_physics_frames(2)
 	assert_true(shelter.garrison.can_reach(shelter, foe), "guards the fixture: within reach")
 	var attack := Attack.new(CommandMessage.new(null, foe, null))
 	assert_same(attack.get_updated_state(shelter), attack)
+
+
 #endregion
 
 
@@ -187,6 +199,9 @@ func test_an_attack_on_a_target_never_seen_is_kept() -> void:
 	var pair: Array = await _pair(FAR)
 	_blind(OWN)
 	var attack := Attack.new(CommandMessage.new(null, pair[1], null))
-	assert_same(attack.get_updated_state(pair[0]), attack,
-		"an order on a fogged target is pursued until the target is first seen")
+	assert_same(
+		attack.get_updated_state(pair[0]),
+		attack,
+		"an order on a fogged target is pursued until the target is first seen"
+	)
 #endregion

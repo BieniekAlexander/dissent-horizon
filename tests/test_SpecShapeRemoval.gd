@@ -94,12 +94,14 @@ func test_an_empty_radius_is_still_refused_where_the_volume_is_not_optional() ->
 	# Every piece pushes through the world and every piece is shootable, so there is no
 	# "no MovementBody" to ask for.
 	var registry := SpecRegistry.new()
-	registry._check_radius({"_doc_path": "doc.md", "id": "p", "movement_radius": null},
-		"movement_radius", false)
+	registry._check_radius(
+		{"_doc_path": "doc.md", "id": "p", "movement_radius": null}, "movement_radius", false
+	)
 
 	assert_eq(registry.errors.size(), 1, "emptying a mandatory volume is still an error")
-	assert_false(registry.errors[0].contains("left empty"),
-		"and it is not offered as an option there")
+	assert_false(
+		registry.errors[0].contains("left empty"), "and it is not offered as an option there"
+	)
 
 
 func test_true_is_still_refused() -> void:
@@ -108,6 +110,8 @@ func test_true_is_still_refused() -> void:
 	registry._check_radius({"_doc_path": "doc.md", "id": "p", "vision": true}, "vision", true)
 
 	assert_eq(registry.errors.size(), 1, "true is not a radius")
+
+
 #endregion
 
 
@@ -120,8 +124,10 @@ func test_removal_deletes_the_node_rather_than_collapsing_the_shape() -> void:
 
 	var text: String = ctx.doc.to_text()
 	assert_false(text.contains('[node name="VisionRange"'), "the volume is gone, not emptied")
-	assert_false(text.contains("radius = 0"),
-		"a radius-nothing cylinder is a detector in the inspector and not one in the game")
+	assert_false(
+		text.contains("radius = 0"),
+		"a radius-nothing cylinder is a detector in the inspector and not one in the game"
+	)
 	assert_true(ctx.dirty, "the scene is rewritten")
 
 
@@ -131,8 +137,10 @@ func test_removal_drops_the_sub_resource_it_was_the_only_user_of() -> void:
 
 	sync._sync_shapes(ctx, {"vision": 0})
 
-	assert_false(ctx.doc.to_text().contains("CylinderShape3D_vision"),
-		"nothing references it any more, so it does not stay behind as an orphan")
+	assert_false(
+		ctx.doc.to_text().contains("CylinderShape3D_vision"),
+		"nothing references it any more, so it does not stay behind as an orphan"
+	)
 
 
 func test_removing_an_absent_volume_changes_nothing() -> void:
@@ -146,12 +154,16 @@ func test_removing_an_absent_volume_changes_nothing() -> void:
 
 
 func test_composition_gives_an_unsighted_piece_no_vision_range() -> void:
-	var names: Array = SpecComposition.components({"kind": "Entity", "vision": 0}) \
-		.map(func(e: Dictionary) -> String: return e["name"])
+	var names: Array = SpecComposition.components({"kind": "Entity", "vision": 0}).map(
+		func(e: Dictionary) -> String: return e["name"]
+	)
 	assert_false(names.has("VisionRange"), "switched off in the doc, never composed")
-	names = SpecComposition.components({"kind": "Entity", "vision": 8}) \
-		.map(func(e: Dictionary) -> String: return e["name"])
+	names = SpecComposition.components({"kind": "Entity", "vision": 8}).map(
+		func(e: Dictionary) -> String: return e["name"]
+	)
 	assert_true(names.has("VisionRange"), "a sighted piece still gets one")
+
+
 #endregion
 
 
@@ -168,6 +180,9 @@ func test_a_named_shape_points_at_the_library() -> void:
 
 
 func test_only_the_detection_volumes_are_removable() -> void:
-	assert_eq(SceneSync.REMOVABLE_SHAPE_KEYS, ["vision"] as Array[String],
-		"the physical bodies are not optional — _check_radius refuses zero for them")
+	assert_eq(
+		SceneSync.REMOVABLE_SHAPE_KEYS,
+		["vision"] as Array[String],
+		"the physical bodies are not optional — _check_radius refuses zero for them"
+	)
 #endregion

@@ -11,6 +11,7 @@ var manager: ScenarioTriggerManager
 
 var _conditions: Array[Condition] = []
 
+
 #region Registration
 func add(a_condition: Condition) -> void:
 	if a_condition not in _conditions:
@@ -19,7 +20,10 @@ func add(a_condition: Condition) -> void:
 
 func remove(a_condition: Condition) -> void:
 	_conditions.erase(a_condition)
+
+
 #endregion
+
 
 #region Lifecycle
 func _physics_process(_a_delta: float) -> void:

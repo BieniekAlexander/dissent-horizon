@@ -24,8 +24,12 @@ extends GutTest
 
 const BUILD_TYPE: StringName = &"fake_building"
 const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": [&"fake_building"]}
-class StubMap extends Map:
+
+
+class StubMap:
+	extends Map
 	var placed: Array = []
+
 	func _ready() -> void:
 		cell_grid = []
 		for x: int in 17:
@@ -33,15 +37,20 @@ class StubMap extends Map:
 			for y: int in 17:
 				col.append(null)
 			cell_grid.append(col)
+
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
 		return a_coords.x >= 0 and a_coords.x < 17 and a_coords.y >= 0 and a_coords.y < 17
-	func add_structure(a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true) -> void:
+
+	func add_structure(
+		a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true
+	) -> void:
 		placed.append({"structure": a_structure, "center": a_world_center})
 		var cell: Vector2i = world_to_grid(a_world_center)
 		structure_cell_map[a_structure] = [cell]
 		cell_grid[cell.x][cell.y] = a_structure
 		a_structure.map = self
 		a_structure.refresh_movement_collision()
+
 	func remove_structure(a_structure: Entity, _a_rebake: bool = true) -> void:
 		structure_cell_map.erase(a_structure)
 
@@ -67,8 +76,9 @@ func before_each() -> void:
 	# standing (that is what lets requisition mode order a downstream structure while its
 	# dependency is still going up), so without this every placement here would stall.
 	_commander.technology_mapping = {BUILD_TYPE: FakePieces.tech()}
-	_tool = FakePieces.register_tool(FakePieces.tool(BUILD_TYPE, {"structure": true,
-		"dimensions": Vector2i(3, 3)}))
+	_tool = FakePieces.register_tool(
+		FakePieces.tool(BUILD_TYPE, {"structure": true, "dimensions": Vector2i(3, 3)})
+	)
 	_commander.set_physics_process(false)
 
 
@@ -157,9 +167,7 @@ func test_every_builder_registers_but_the_second_buys_no_tempo() -> void:
 	a._process_commands()
 	b._process_commands()
 	var two_builder_step: float = structure.build_progress - before
-	var solo_step: float = 1.0 / float(
-		_commander.technology_mapping[structure.id].creation_time
-	)
+	var solo_step: float = 1.0 / float(_commander.technology_mapping[structure.id].creation_time)
 	assert_almost_eq(two_builder_step, solo_step, 1e-6, "two builders build at one builder's rate")
 
 
@@ -194,7 +202,9 @@ func test_co_building_survives_the_post_placement_displacement() -> void:
 ## A Movement that always claims it has arrived. Stands in for the real agent reporting a
 ## finished path — which happens the moment the destination stops being reachable, e.g.
 ## when a co-builder places the structure the approaching builder was walking toward.
-class ArrivedMovement extends Movement:
+class ArrivedMovement:
+	extends Movement
+
 	func is_navigation_finished() -> bool:
 		return true
 
@@ -236,7 +246,9 @@ func test_a_build_survives_arriving_out_of_range() -> void:
 func test_a_plain_move_still_ends_on_arrival() -> void:
 	var b := _make_builder(Vector2(4.0, 4.0))
 	_force_arrived(b)
-	b.update_commands(MoveCommand.new(CommandMessage.new(_map, null, null, Vector3(9.0, 0.0, 9.0))), false)
+	b.update_commands(
+		MoveCommand.new(CommandMessage.new(_map, null, null, Vector3(9.0, 0.0, 9.0))), false
+	)
 
 	b._process_commands()
 
@@ -263,17 +275,23 @@ func test_an_out_of_range_builder_converts_to_assemble() -> void:
 	# The in-range builder lays it down; the far one is nowhere near being able to act.
 	placer._process_commands()
 	assert_eq(_map.placed.size(), 1, "precondition: the structure is down")
-	assert_false(walker.current_command().can_act(walker), "precondition: the walker is out of range")
+	assert_false(
+		walker.current_command().can_act(walker), "precondition: the walker is out of range"
+	)
 
 	walker._process_commands()
 
 	assert_true(
 		walker.current_command() is Assemble,
-		"the walker converts to Assemble while still out of range, so it can approach a cell it can actually reach"
+		(
+			"the walker converts to Assemble while still out of range, so it can "
+			+ "approach a cell it can actually reach"
+		)
 	)
 
 
 # --- The build RATE: extra builders are redundancy, not tempo ------------------------
+
 
 ## A structure on the map, with the tech entry `effective_build_increment` prices it from.
 func _placed_site() -> Commandable:
@@ -301,7 +319,9 @@ func test_a_full_crew_builds_at_one_builders_rate_however_big_it_is() -> void:
 	var expected: float = 1.0 / float(_commander.technology_mapping[site.id].creation_time)
 	for crew: int in [1, 2, 3, 5, 8]:
 		assert_almost_eq(
-			_rate_with_crew(site, crew, crew), expected, 1e-6,
+			_rate_with_crew(site, crew, crew),
+			expected,
+			1e-6,
 			"a crew of %d builds no faster than one" % crew
 		)
 

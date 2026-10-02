@@ -6,13 +6,14 @@ extends Node3D
 
 #region Constants
 const Y_OFFSET := 0.15
-const COLOR    := Color(0.4, 0.8, 1.0)  # light blue
+const COLOR := Color(0.4, 0.8, 1.0)  # light blue
 #endregion
 
 #region Properties
 var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
@@ -26,11 +27,15 @@ func _ready() -> void:
 	_mesh_instance.material_override = mat
 	add_child(_mesh_instance)
 
+
 func _process(_a_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_redraw()
+
+
 #endregion
+
 
 #region Private helpers
 func _redraw() -> void:

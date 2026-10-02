@@ -22,7 +22,8 @@ func _commander() -> Commander:
 ## A funded build purchase on `a_commander`, held by one command.
 func _held_purchase(a_commander: Commander) -> Array:
 	var transaction: PurchaseTransaction = PurchaseTransaction.for_cost(
-		a_commander, PurchaseTransaction.Kind.BUILD, null, ENERGY_COST, DOMINION_COST)
+		a_commander, PurchaseTransaction.Kind.BUILD, null, ENERGY_COST, DOMINION_COST
+	)
 	transaction.fund()
 	var message: CommandMessage = CommandMessage.new(null)
 	message.transaction = transaction
@@ -48,14 +49,18 @@ func test_dropping_the_last_holder_after_the_commander_is_freed_is_harmless() ->
 	var transaction: PurchaseTransaction = held[0]
 	commander.free()
 	held.clear()
-	assert_eq(transaction.state, PurchaseTransaction.State.CANCELLED,
-		"still cancelled, with the refund owed to nobody")
+	assert_eq(
+		transaction.state,
+		PurchaseTransaction.State.CANCELLED,
+		"still cancelled, with the refund owed to nobody"
+	)
 
 
 func test_a_blueprint_freed_first_is_discarded_quietly() -> void:
 	var commander: Commander = _commander()
 	var transaction: PurchaseTransaction = PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, null, ENERGY_COST)
+		commander, PurchaseTransaction.Kind.BUILD, null, ENERGY_COST
+	)
 	var blueprint: Commandable = Commandable.new()
 	transaction.planned_structure = blueprint
 	blueprint.free()

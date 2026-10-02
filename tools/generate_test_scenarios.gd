@@ -35,13 +35,14 @@ func _ready() -> void:
 
 # ─── SCENE 1: kamikaze attacks a cluster ─────────────────────────────────────
 
+
 func _generate_kamikaze_cluster() -> void:
 	var root := SimulationScenario.new()
 	root.name = "TestKamikazeCluster"
 	root.max_ticks = 600
 	root.player_slots = [
-		_slot(PlayerSlot.Difficulty.MEDIUM, 1000),   # commander 1: the bot under test
-		_slot(PlayerSlot.Difficulty.PASSIVE, 0),      # commander 2: inert target irregulars
+		_slot(PlayerSlot.Difficulty.MEDIUM, 1000),  # commander 1: the bot under test
+		_slot(PlayerSlot.Difficulty.PASSIVE, 0),  # commander 2: inert target irregulars
 	]
 	root.add_child(_flat_map(20))
 
@@ -66,13 +67,14 @@ func _generate_kamikaze_cluster() -> void:
 
 # ─── SCENE 2: spread irregulars — kamikaze should NOT be committed ───────────
 
+
 func _generate_kamikaze_no_cluster() -> void:
 	var root := SimulationScenario.new()
 	root.name = "TestKamikazeNoCluster"
 	root.max_ticks = 1200
 	root.player_slots = [
-		_slot(PlayerSlot.Difficulty.MEDIUM, 1000),   # commander 1: the bot under test
-		_slot(PlayerSlot.Difficulty.PASSIVE, 0),      # commander 2: inert, scattered irregulars
+		_slot(PlayerSlot.Difficulty.MEDIUM, 1000),  # commander 1: the bot under test
+		_slot(PlayerSlot.Difficulty.PASSIVE, 0),  # commander 2: inert, scattered irregulars
 	]
 	root.add_child(_flat_map(28))
 
@@ -96,6 +98,7 @@ func _generate_kamikaze_no_cluster() -> void:
 
 
 # ─── SCENE 3: lone unit scouts the whole map ─────────────────────────────────
+
 
 func _generate_scout_coverage() -> void:
 	var root := SimulationScenario.new()
@@ -122,6 +125,7 @@ func _generate_scout_coverage() -> void:
 
 
 # ─── BUILDERS ────────────────────────────────────────────────────────────────
+
 
 func _slot(a_difficulty: PlayerSlot.Difficulty, a_energy: int) -> PlayerSlot:
 	var slot := PlayerSlot.new()
@@ -169,6 +173,7 @@ func _ring_points(a_center: Vector2, a_radius: float, a_count: int) -> Array:
 
 
 # ─── PACK + SAVE ─────────────────────────────────────────────────────────────
+
 
 func _save(a_root: Node, a_file_name: String) -> void:
 	_own_recursive(a_root, a_root)

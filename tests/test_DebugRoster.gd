@@ -7,10 +7,18 @@ extends GutTest
 const SpecGenerators := preload("res://tools/spec_import/generators.gd")
 
 
-func _entry(a_id: String, a_faction: String, a_is_fixture: bool,
-		a_producers: Array = []) -> Dictionary:
-	return {"id": a_id, "label": a_id.capitalize(), "faction": a_faction, "scene": "",
-		"is_fixture": a_is_fixture, "producers": a_producers, "tool": ""}
+func _entry(
+	a_id: String, a_faction: String, a_is_fixture: bool, a_producers: Array = []
+) -> Dictionary:
+	return {
+		"id": a_id,
+		"label": a_id.capitalize(),
+		"faction": a_faction,
+		"scene": "",
+		"is_fixture": a_is_fixture,
+		"producers": a_producers,
+		"tool": ""
+	}
 
 
 func _titles(a_groups: Array[Dictionary]) -> Array:
@@ -28,7 +36,9 @@ func test_fixtures_lead_then_producers_then_the_untrained() -> void:
 		_entry("barracks", "red", true),
 	]
 	var groups: Array[Dictionary] = DebugRoster.groups(entries, "red")
-	assert_eq(_titles(groups), [DebugRoster.FIXTURES_TITLE, "Barracks", DebugRoster.UNTRAINED_TITLE])
+	assert_eq(
+		_titles(groups), [DebugRoster.FIXTURES_TITLE, "Barracks", DebugRoster.UNTRAINED_TITLE]
+	)
 	assert_eq(_ids(groups[1]), ["soldier"], "a trained unit sits under its producer")
 
 
@@ -55,7 +65,9 @@ func test_a_faction_with_nothing_has_no_groups() -> void:
 
 func test_factions_are_listed_once_and_sorted() -> void:
 	var entries: Array = [
-		_entry("a", "red", true), _entry("b", "blue", true), _entry("c", "red", false),
+		_entry("a", "red", true),
+		_entry("b", "blue", true),
+		_entry("c", "red", false),
 	]
 	assert_eq(DebugRoster.factions(entries), ["blue", "red"] as Array[String])
 
@@ -71,7 +83,8 @@ id = &"xx_scout"
 
 func test_an_undocumented_unit_is_read_from_its_root() -> void:
 	var entry: Dictionary = SpecGenerators.untracked_roster_entry(
-		"res://scenes/entities/units/tc/scout.tscn", _UNIT_SCENE)
+		"res://scenes/entities/units/tc/scout.tscn", _UNIT_SCENE
+	)
 	assert_eq(entry["id"], "xx_scout")
 	assert_eq(entry["faction"], "technocracy", "the folder code names the faction")
 	assert_false(entry["is_fixture"])
@@ -88,11 +101,14 @@ func test_a_scene_with_no_id_is_an_abstract_base() -> void:
 
 
 func test_a_folder_naming_no_faction_lists_under_neutral() -> void:
-	assert_eq(SpecGenerators.folder_faction("res://scenes/entities/parachute.tscn"),
-		SpecGenerators.DEFAULT_ROSTER_FACTION)
+	assert_eq(
+		SpecGenerators.folder_faction("res://scenes/entities/parachute.tscn"),
+		SpecGenerators.DEFAULT_ROSTER_FACTION
+	)
 
 
 # --- The local player's faction ----------------------------------------------------------
+
 
 func test_a_players_faction_is_found_by_the_scenes_of_its_pieces() -> void:
 	var soldier := _entry("soldier", "red", false)
@@ -107,9 +123,16 @@ func test_the_first_matching_scene_decides() -> void:
 	soldier["scene"] = "res://red/soldier.tscn"
 	var tank := _entry("tank", "blue", false)
 	tank["scene"] = "res://blue/tank.tscn"
-	assert_eq(DebugRoster.faction_of_scenes([soldier, tank],
-		["res://nowhere.tscn", "res://red/soldier.tscn", "res://blue/tank.tscn"]), "red")
+	assert_eq(
+		DebugRoster.faction_of_scenes(
+			[soldier, tank],
+			["res://nowhere.tscn", "res://red/soldier.tscn", "res://blue/tank.tscn"]
+		),
+		"red"
+	)
 
 
 func test_no_matching_scene_names_no_faction() -> void:
-	assert_eq(DebugRoster.faction_of_scenes([_entry("soldier", "red", false)], ["res://x.tscn"]), "")
+	assert_eq(
+		DebugRoster.faction_of_scenes([_entry("soldier", "red", false)], ["res://x.tscn"]), ""
+	)

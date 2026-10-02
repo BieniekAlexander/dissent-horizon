@@ -25,12 +25,16 @@ var height: float = 18.0
 var bars: Array = []
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	custom_minimum_size = Vector2(WIDTH, height)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	draw.connect(_on_draw)
+
+
 #endregion
+
 
 #region Drawing
 func _on_draw() -> void:
@@ -49,9 +53,13 @@ func _on_draw() -> void:
 			draw_rect(Rect2(x, height - fill_height, bar_width, fill_height), color)
 		var pending_frac: float = clampf(
 			(float(entry.get("value", 0.0)) + maxf(float(entry.get("pending", 0.0)), 0.0)) / scale,
-			0.0, 1.0)
+			0.0,
+			1.0
+		)
 		var pending_height: float = height * pending_frac - fill_height
 		if pending_height > 0.0:
-			draw_rect(Rect2(x, height - fill_height - pending_height, bar_width, pending_height),
-				PendingStyle.of(color))
+			draw_rect(
+				Rect2(x, height - fill_height - pending_height, bar_width, pending_height),
+				PendingStyle.of(color)
+			)
 #endregion

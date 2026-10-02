@@ -22,7 +22,9 @@ func _terrain() -> TerrainData:
 
 
 ## Flat at `low`, except x >= step_x which sits at `high` — two levels to bridge.
-func _two_levels(a_td: TerrainData, a_low: float, a_high: float, a_step_x: int) -> PackedFloat32Array:
+func _two_levels(
+	a_td: TerrainData, a_low: float, a_high: float, a_step_x: int
+) -> PackedFloat32Array:
 	var h := PackedFloat32Array()
 	h.resize(a_td.map_width() * a_td.map_depth())
 	for z: int in a_td.map_depth():
@@ -105,8 +107,9 @@ func test_ramp_respects_its_width():
 	PLUGIN._stamp_ramp(td, h, Vector2i(8, 20), Vector2i(32, 20), 3.0, 0.0)
 	# Well outside the half-width, nothing moved.
 	for z: int in [10, 30]:
-		assert_almost_eq(_at(td, h, 18, z), _at(td, before, 18, z), 0.0001,
-			"row %d is outside the ramp" % z)
+		assert_almost_eq(
+			_at(td, h, 18, z), _at(td, before, 18, z), 0.0001, "row %d is outside the ramp" % z
+		)
 
 
 func test_feather_softens_the_long_sides():

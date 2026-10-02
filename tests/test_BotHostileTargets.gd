@@ -128,12 +128,14 @@ func _believe(a_piece: Commandable) -> Commandable:
 
 # ─── THE COMMANDER SET ───────────────────────────────────────────────────────
 
+
 func test_the_neutral_commander_is_not_an_enemy() -> void:
 	var ids: Array = _bot._enemy_commanders().map(func(c: Commander): return c.id)
 	assert_eq(ids, [2], "only the other PLAYER is an enemy — not id 0, and not the bot itself")
 
 
 # ─── THE SENSES ──────────────────────────────────────────────────────────────
+
 
 func test_neutral_pieces_are_neither_enemy_units_nor_enemy_structures() -> void:
 	_piece(_neutral, false, 1.0, 1.0)
@@ -163,8 +165,11 @@ func test_a_neutral_army_does_not_raise_the_threat_level() -> void:
 	_arm(_piece(_bot, false, 0.0, 0.0), 10.0)
 	for i: int in 5:
 		_arm(_piece(_neutral, false, float(i), 1.0), 40.0)
-	assert_eq(_bot.relative_threat_level(), 0.0,
-		"neutral combatants are a capture target for the Opportunist, not a threat")
+	assert_eq(
+		_bot.relative_threat_level(),
+		0.0,
+		"neutral combatants are a capture target for the Opportunist, not a threat"
+	)
 
 
 func test_a_hostile_army_does_raise_the_threat_level() -> void:
@@ -175,6 +180,7 @@ func test_a_hostile_army_does_raise_the_threat_level() -> void:
 
 # ─── THE OBJECTIVE THE SENSES FEED ───────────────────────────────────────────
 
+
 func test_a_map_of_neutrals_gives_the_army_no_attack_objective() -> void:
 	# The failure this file exists for: a true attack objective the bot can never resolve.
 	# Neutrals are never believed (the blackboard folds in visible_enemies only), so a map of
@@ -182,8 +188,10 @@ func test_a_map_of_neutrals_gives_the_army_no_attack_objective() -> void:
 	_piece(_bot, true, 0.0, 0.0)
 	_piece(_neutral, true, 3.0, 0.0)
 	_arm(_piece(_neutral, false, 4.0, 0.0), 10.0)
-	assert_null(_military()._objective_for(BotMilitary.Posture.ATTACK),
-		"nothing to attack — the military falls back to MASS rather than marching on furniture")
+	assert_null(
+		_military()._objective_for(BotMilitary.Posture.ATTACK),
+		"nothing to attack — the military falls back to MASS rather than marching on furniture"
+	)
 
 
 func test_an_UNSCOUTED_hostile_base_gives_the_army_no_attack_objective() -> void:
@@ -192,8 +200,10 @@ func test_an_UNSCOUTED_hostile_base_gives_the_army_no_attack_objective() -> void
 	_piece(_bot, true, 0.0, 0.0)
 	_piece(_foe, true, 60.0, 0.0)
 	_arm(_piece(_foe, false, 55.0, 0.0), 10.0)
-	assert_null(_military()._objective_for(BotMilitary.Posture.ATTACK),
-		"an enemy it has not found is not an objective")
+	assert_null(
+		_military()._objective_for(BotMilitary.Posture.ATTACK),
+		"an enemy it has not found is not an objective"
+	)
 
 
 func test_the_attack_objective_is_the_hostile_base_once_it_has_been_SEEN() -> void:
@@ -220,8 +230,11 @@ func test_a_remembered_base_stays_the_objective_after_it_is_destroyed() -> void:
 	hostile_base.get_parent().remove_child(hostile_base)
 	hostile_base.free()
 	assert_eq(_bot.get_enemy_structures(), [], "the building really is gone")
-	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), remembered,
-		"the bot still marches on where it last saw the base")
+	assert_eq(
+		_military()._objective_for(BotMilitary.Posture.ATTACK),
+		remembered,
+		"the bot still marches on where it last saw the base"
+	)
 
 
 func test_with_no_believed_structures_the_army_marches_on_a_believed_UNIT() -> void:

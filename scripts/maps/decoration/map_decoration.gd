@@ -36,6 +36,10 @@ func summary() -> String:
 	parts.append("%d doodads" % doodads.size())
 	parts.append("%d trails" % trails.size())
 	for facet: Facet in facets:
-		parts.append("%d %s cells" % [(facets[facet] as Array).size(),
-			String(Facet.keys()[facet]).to_lower()])
+		parts.append(
+			(
+				"%d %s cells"
+				% [(facets[facet] as Array).size(), String(Facet.keys()[facet]).to_lower()]
+			)
+		)
 	return ", ".join(parts)

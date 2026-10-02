@@ -80,6 +80,7 @@ var _held: bool = false
 var _is_debug_hint_up: bool = false
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	# The scenario layer pauses the tree to hold the simulation (see SimulationClock). An
@@ -113,7 +114,10 @@ func _process(_a_delta: float) -> void:
 	_held = held
 	_refresh()
 	_apply_visibility()
+
+
 #endregion
+
 
 #region Public API
 ## True while the large centred panel is the one on screen (ACTION held). The hint is up
@@ -140,7 +144,10 @@ func is_showing_debug_hint() -> bool:
 ## The debug hint copy with its `{{ action }}` placeholders resolved — what the player reads.
 func resolved_debug_hint_text() -> String:
 	return InputPrompt.format(debug_hint_text)
+
+
 #endregion
+
 
 #region Internal
 ## Push the authored copy onto the labels, resolving control placeholders on the way. The

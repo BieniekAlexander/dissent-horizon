@@ -48,8 +48,12 @@ func _ready() -> void:
 	if _failed == 0:
 		print("[run_scenarios] all scenarios passed")
 	else:
-		print("[run_scenarios] %d expectation(s) failed (%d of them on known-flaky scenarios)"
-			% [_failed, _flaky_failed])
+		print(
+			(
+				"[run_scenarios] %d expectation(s) failed (%d of them on known-flaky scenarios)"
+				% [_failed, _flaky_failed]
+			)
+		)
 	get_tree().quit(1 if _failed > _flaky_failed else 0)
 
 
@@ -90,6 +94,13 @@ func _record_failure(a_path: String, a_detail: String) -> void:
 	_failed += 1
 	if a_path in KNOWN_FLAKY:
 		_flaky_failed += 1
-	print("[run_scenarios] FAIL %s — %s%s" % [
-		a_path.get_file(), a_detail, " (known flaky)" if a_path in KNOWN_FLAKY else "",
-	])
+	print(
+		(
+			"[run_scenarios] FAIL %s — %s%s"
+			% [
+				a_path.get_file(),
+				a_detail,
+				" (known flaky)" if a_path in KNOWN_FLAKY else "",
+			]
+		)
+	)

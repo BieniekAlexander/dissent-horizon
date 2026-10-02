@@ -18,6 +18,7 @@ extends StatusEffect
 ## own blast, so there is always a recipient. If that geometry changes, this effect can
 ## silently stop firing.
 
+
 func _on_apply() -> void:
 	# `source` (the firer) is assigned by apply_to() before this hook runs. We apply once
 	# per blast recipient, so this can run several times against the same dying source —

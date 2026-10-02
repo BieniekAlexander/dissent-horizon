@@ -36,6 +36,7 @@ const PRODUCER: String = "res://scenes/entities/structures/an/an_barracks.tscn"
 ## dispatch.
 const QUEUED_PIECE: StringName = &"an_bioLight_antiStructure"
 
+
 func _ready() -> void:
 	var player: Commander = PLAYER.instantiate() as Commander
 	player.faction_scene = ANARCHICAL
@@ -48,6 +49,7 @@ func _ready() -> void:
 		piece.build_progress = 1.0
 		pieces.append(piece)
 	_drive(player, pieces)
+
 
 func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 	# The controller wires its panels out of its own _ready, and the faction scene lands a
@@ -73,8 +75,9 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 		a_player.dominion = 10000
 		for entry: SanctionGrid.Entry in a_player.sanction_grid.entries:
 			if entry.sanction != null and entry.sanction.passive:
-				prints("unlock", entry.sanction.sanction_name,
-					a_player.sanction_grid.try_unlock(entry))
+				prints(
+					"unlock", entry.sanction.sanction_name, a_player.sanction_grid.try_unlock(entry)
+				)
 
 	# A selection is what makes the InfoSection (and so the passive row) visible at all.
 	# _refresh_available_commands, because assigning `selection` directly skips the refresh the
@@ -91,8 +94,9 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 	# would silently never appear.
 	if "--afflict" in OS.get_cmdline_user_args():
 		var effect: StatusEffect = (
-			load("res://scenes/entities/status_effects/slow.tscn") as PackedScene
-		).instantiate() as StatusEffect
+			(load("res://scenes/entities/status_effects/slow.tscn") as PackedScene).instantiate()
+			as StatusEffect
+		)
 		a_pieces[2].add_child(effect)
 		effect.apply_to(a_pieces[2] as Entity)
 	controller.selection = [a_pieces[2]] as Array[Node] if single else a_pieces.duplicate()
@@ -107,8 +111,14 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 	var info: InfoView = controller.get_node("InfoSection") as InfoView
 	var widgets: InfoWidgetRow = info.get_node_or_null("Widgets") as InfoWidgetRow
 	if widgets != null:
-		prints("widget row rect:", widgets.get_global_rect(),
-			"visible:", widgets.is_visible_in_tree(), "widgets:", widgets.get_child_count())
+		prints(
+			"widget row rect:",
+			widgets.get_global_rect(),
+			"visible:",
+			widgets.is_visible_in_tree(),
+			"widgets:",
+			widgets.get_child_count()
+		)
 		for widget: Node in widgets.get_children():
 			prints("  ", widget.name, (widget as Control).get_global_rect())
 	var row: PassiveAbilityRow = info.get_node_or_null("Passives") as PassiveAbilityRow
@@ -132,7 +142,8 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 			for i: int in 3:
 				a_player.production_queue.submit_train(tool, [], false)
 			var queued: Array = a_player.production_queue.entries.filter(
-				func(e: PurchaseTransaction) -> bool: return e.awaits_its_unit())
+				func(e: PurchaseTransaction) -> bool: return e.awaits_its_unit()
+			)
 			prints("entries:", a_player.production_queue.entries.size(), "queued:", queued.size())
 			if not queued.is_empty():
 				controller.select_pending([queued.back()], false)
@@ -177,43 +188,72 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	prints("PROBE host.commander_id:", host.commander_id,
-		"PLAYER_COMMANDER_ID:", RTSController.PLAYER_COMMANDER_ID)
-	prints("PROBE garrison node:", host.get_node_or_null("Garrison"),
-		"garrison var:", host.garrison,
-		"occupants:", garrison.occupants().size())
-	prints("PROBE selection size:", a_controller.selection.size(),
-		"info visible:", info.is_visible_in_tree())
+	prints(
+		"PROBE host.commander_id:",
+		host.commander_id,
+		"PLAYER_COMMANDER_ID:",
+		RTSController.PLAYER_COMMANDER_ID
+	)
+	prints(
+		"PROBE garrison node:",
+		host.get_node_or_null("Garrison"),
+		"garrison var:",
+		host.garrison,
+		"occupants:",
+		garrison.occupants().size()
+	)
+	prints(
+		"PROBE selection size:",
+		a_controller.selection.size(),
+		"info visible:",
+		info.is_visible_in_tree()
+	)
 	var details: Node = info.get_node("Details/Cards")
 	prints("PROBE detail cards:", details.get_child_count())
 	for node: Node in details.get_children():
 		var card := node as CommandableCard
 		if card == null:
 			continue
-		prints("  card connections select_requested:",
+		prints(
+			"  card connections select_requested:",
 			card.select_requested.get_connections().size(),
-			"pending_selected:", card.pending_selected.get_connections().size())
+			"pending_selected:",
+			card.pending_selected.get_connections().size()
+		)
 		var event := InputEventMouseButton.new()
 		event.button_index = MOUSE_BUTTON_RIGHT
 		event.pressed = true
 		card._gui_input(event)
-		prints("PROBE immediately after click: selection=", a_controller.selection.size(),
-			"holds occupant:", a_controller.selection.has(occupant),
-			"occupant selectable state:", occupant.selectable.is_selected(),
-			"enabled:", occupant.selectable.enabled,
-			"by_player:", occupant.selectable.selectable_by_player,
-			"in_tree:", occupant.is_inside_tree())
+		prints(
+			"PROBE immediately after click: selection=",
+			a_controller.selection.size(),
+			"holds occupant:",
+			a_controller.selection.has(occupant),
+			"occupant selectable state:",
+			occupant.selectable.is_selected(),
+			"enabled:",
+			occupant.selectable.enabled,
+			"by_player:",
+			occupant.selectable.selectable_by_player,
+			"in_tree:",
+			occupant.is_inside_tree()
+		)
 	await get_tree().process_frame
-	prints("PROBE one frame later: selection=", a_controller.selection.size(),
-		"holds occupant:", a_controller.selection.has(occupant))
+	prints(
+		"PROBE one frame later: selection=",
+		a_controller.selection.size(),
+		"holds occupant:",
+		a_controller.selection.has(occupant)
+	)
 
 	# THE ACCEPTANCE TEST: order the selected occupant, then evacuate, and see what it does.
 	# Ordered directly rather than through assign_command_to_units: this harness has no Map,
 	# and that path stamps terrain height. What is under test here is the RELEASE side.
 	var msg := CommandMessage.new(null, null, null, Vector3(42, 0, 42))
 	occupant.update_commands(MoveCommand.new(msg))
-	prints("PROBE occupant chain after ordering:",
-		occupant.command_receiver.get_command_chain().size())
+	prints(
+		"PROBE occupant chain after ordering:", occupant.command_receiver.get_command_chain().size()
+	)
 	garrison.evacuate(a_controller.map)
 	await get_tree().process_frame
 	var chain: Array = occupant.command_receiver.get_command_chain()
@@ -221,8 +261,9 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 	for c: MoveCommand in chain:
 		dests.append(VU.inXZ(c.message.position))
 	prints("PROBE occupant chain after evacuation:", dests)
-	prints("PROBE still garrisoned:", occupant.is_garrisoned(),
-		"in tree:", occupant.is_inside_tree())
+	prints(
+		"PROBE still garrisoned:", occupant.is_garrisoned(), "in tree:", occupant.is_inside_tree()
+	)
 
 	# --- the actively-training unit -------------------------------------------------------
 	var producer: Commandable = (load(PRODUCER) as PackedScene).instantiate() as Commandable
@@ -234,8 +275,12 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 	a_player.production_queue.submit_train(tool, [producer], false)
 	a_player.production_queue.tick()
 	await get_tree().process_frame
-	prints("PROBE producer job_count:", producer.production.job_count(),
-		"job_transaction:", producer.production.job_transaction(0))
+	prints(
+		"PROBE producer job_count:",
+		producer.production.job_count(),
+		"job_transaction:",
+		producer.production.job_transaction(0)
+	)
 
 	a_controller.select_only(producer)
 	await get_tree().process_frame
@@ -246,15 +291,18 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 		var card := node as CommandableCard
 		if card == null or card.training_producer() == null:
 			continue
-		prints("  job card pending_selected connections:",
-			card.pending_selected.get_connections().size())
+		prints(
+			"  job card pending_selected connections:",
+			card.pending_selected.get_connections().size()
+		)
 		var event := InputEventMouseButton.new()
 		event.button_index = MOUSE_BUTTON_RIGHT
 		event.pressed = true
 		card._gui_input(event)
 	await get_tree().process_frame
-	prints("PROBE pending_selection after training right-click:",
-		a_controller.pending_selection.size())
+	prints(
+		"PROBE pending_selection after training right-click:", a_controller.pending_selection.size()
+	)
 	prints("PROBE selection after training right-click:", a_controller.selection.size())
 	info.update(a_controller.selection, a_player)
 	await get_tree().process_frame
@@ -263,15 +311,23 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 		if c == null or c.training_producer() == null:
 			continue
 		var txn2: PurchaseTransaction = c.training_producer().production.job_transaction(
-			c.training_job_index())
-		prints("PROBE border check: job_index=", c.training_job_index(),
-			"txn=", txn2, "is_pending_selected=", a_controller.is_pending_selected(txn2),
-			"border child count=", c.get_child_count())
+			c.training_job_index()
+		)
+		prints(
+			"PROBE border check: job_index=",
+			c.training_job_index(),
+			"txn=",
+			txn2,
+			"is_pending_selected=",
+			a_controller.is_pending_selected(txn2),
+			"border child count=",
+			c.get_child_count()
+		)
 		prints("PROBE card rect:", c.get_global_rect())
 
 	# --- the QUEUED unit on the production rail -------------------------------------------
 	a_controller.clear_pending_selection()
-	a_player.energy = 0                     # keep the next purchases PENDING, not dispatched
+	a_player.energy = 0  # keep the next purchases PENDING, not dispatched
 	for i: int in 3:
 		a_player.production_queue.submit_train(tool, [producer], false)
 	var rail: ProductionRail = a_controller.get_node_or_null("ProductionRail") as ProductionRail
@@ -286,9 +342,14 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 		if card == null or card.hovered_transaction() == null:
 			continue
 		chips_found += 1
-		prints("  rail card txn:", card.hovered_transaction().id,
-			"state:", card.hovered_transaction().state,
-			"pending_selected conns:", card.pending_selected.get_connections().size())
+		prints(
+			"  rail card txn:",
+			card.hovered_transaction().id,
+			"state:",
+			card.hovered_transaction().state,
+			"pending_selected conns:",
+			card.pending_selected.get_connections().size()
+		)
 		var ev := InputEventMouseButton.new()
 		ev.button_index = MOUSE_BUTTON_RIGHT
 		ev.pressed = true
@@ -296,15 +357,18 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 		break
 	prints("PROBE rail chips found:", chips_found)
 	await get_tree().process_frame
-	prints("PROBE pending_selection after rail right-click:",
-		a_controller.pending_selection.size())
+	prints("PROBE pending_selection after rail right-click:", a_controller.pending_selection.size())
 	await get_tree().process_frame
 	for node: Node in _all_cards(rail):
 		var c2 := node as CommandableCard
 		if c2 == null or c2.hovered_transaction() == null:
 			continue
-		prints("PROBE rail card rect:", c2.get_global_rect(),
-			"selected:", a_controller.is_pending_selected(c2.hovered_transaction()))
+		prints(
+			"PROBE rail card rect:",
+			c2.get_global_rect(),
+			"selected:",
+			a_controller.is_pending_selected(c2.hovered_transaction())
+		)
 
 	if "--probe-hold" in OS.get_cmdline_user_args():
 		return  # leave the HUD showing the selected training card, for --write-movie
@@ -314,8 +378,7 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 	var ordered: bool = a_controller.assign_command_to_pending(MoveCommand, pmsg, false)
 	prints("PROBE assign_command_to_pending ->", ordered)
 	var txn: PurchaseTransaction = producer.production.job_transaction(0)
-	prints("PROBE transaction player_commands:",
-		txn.player_commands.size() if txn != null else -1)
+	prints("PROBE transaction player_commands:", txn.player_commands.size() if txn != null else -1)
 
 	producer.production.training_queue[0][Production.JOB_REMAINING] = 1
 	for i: int in 12:

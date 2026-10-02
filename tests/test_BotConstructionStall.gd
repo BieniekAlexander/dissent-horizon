@@ -99,8 +99,9 @@ class StuckBuilder:
 	func current_command() -> MoveCommand:
 		return order
 
-	func update_commands(a_command: Variant, _a_queue: bool = false,
-			_a_notify: bool = false) -> void:
+	func update_commands(
+		a_command: Variant, _a_queue: bool = false, _a_notify: bool = false
+	) -> void:
 		order = a_command as Build
 
 
@@ -133,7 +134,7 @@ func after_each() -> void:
 
 
 func test_a_job_inside_the_timeout_keeps_its_slot() -> void:
-	_economy.tick()                                   # first sighting: the clock starts
+	_economy.tick()  # first sighting: the clock starts
 	_bot.clock = BotEconomy.CONSTRUCTION_JOB_TIMEOUT_SECONDS - 1.0
 	_economy.tick()
 	assert_true(_builder.has_command(), "a builder that is merely slow is left alone")
@@ -148,15 +149,15 @@ func test_a_job_past_the_timeout_gives_its_slot_back() -> void:
 
 func test_the_frozen_economy_resumes_once_the_slot_is_free() -> void:
 	# THE ACTUAL SYMPTOM: not a wasted builder, a bot that stops doing anything at all.
-	_economy.income_offer = null   # nothing any rung can act on, so only the slot is in play
+	_economy.income_offer = null  # nothing any rung can act on, so only the slot is in play
 	for _i: int in 5:
 		_economy.tick()
 	assert_eq(_act.builds.size(), 0, "nothing could be ordered while the slot was held")
 
 	_bot.clock = BotEconomy.CONSTRUCTION_JOB_TIMEOUT_SECONDS + 1.0
-	_economy.tick()                            # releases the slot
+	_economy.tick()  # releases the slot
 	_economy.income_offer = EXTRACTOR
-	_economy.site_spot = Vector3(9, 0, 9)      # somewhere the bot has not written off
+	_economy.site_spot = Vector3(9, 0, 9)  # somewhere the bot has not written off
 	_economy.tick()
 	assert_eq(_act.builds.size(), 1, "and the ladder runs again once it is released")
 
@@ -168,8 +169,9 @@ func test_the_written_off_spot_is_not_ordered_again() -> void:
 	_bot.clock = BotEconomy.CONSTRUCTION_JOB_TIMEOUT_SECONDS + 1.0
 	_economy.tick()
 	assert_true(_economy._is_abandoned_spot(STUCK_AT))
-	assert_false(_economy._is_abandoned_spot(Vector3(80, 0, 80)),
-		"somewhere else is still fair game")
+	assert_false(
+		_economy._is_abandoned_spot(Vector3(80, 0, 80)), "somewhere else is still fair game"
+	)
 
 
 func test_a_finished_job_is_forgotten_rather_than_accumulating() -> void:

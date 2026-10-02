@@ -11,6 +11,7 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_OccupantOrders.gd -gexit
 
+
 func _commanded(a_id: int) -> Commander:
 	var commander := Commander.new()
 	commander.id = a_id
@@ -53,8 +54,12 @@ func test_ordering_an_occupant_leaves_it_inside() -> void:
 
 	occupant.update_commands(_order(Vector2(9, 9)))
 	assert_eq(garrison.occupants().size(), 1, "and giving it an order left it there")
-	assert_false(occupant.is_inside_tree(),
-		"a garrisoned unit is off the tree, which is why nothing acts on the order")
+	assert_false(
+		occupant.is_inside_tree(),
+		"a garrisoned unit is off the tree, which is why nothing acts on the order"
+	)
+
+
 #endregion
 
 
@@ -92,6 +97,8 @@ func test_releasing_clears_the_back_pointer() -> void:
 
 	garrison.evacuate(null)
 	assert_false(occupant.is_garrisoned(), "out again, so the prune may drop it if it dies")
+
+
 #endregion
 
 
@@ -109,10 +116,12 @@ func test_a_unit_selected_when_it_boards_can_still_be_selected_inside() -> void:
 	garrison.capacity = 4
 	host.add_child(garrison)
 
-	occupant.selectable.select()      # the player had it selected...
-	garrison.garrison(occupant)       # ...and then ordered it aboard
-	assert_false(occupant.selectable.is_selected(),
-		"boarding clears the flag, or it can never be picked again")
+	occupant.selectable.select()  # the player had it selected...
+	garrison.garrison(occupant)  # ...and then ordered it aboard
+	assert_false(
+		occupant.selectable.is_selected(),
+		"boarding clears the flag, or it can never be picked again"
+	)
 
 	var controller := autofree(RTSController.new()) as RTSController
 	controller.select_only(occupant)
@@ -131,6 +140,8 @@ func test_an_unselected_occupant_selects_too() -> void:
 	var controller := autofree(RTSController.new()) as RTSController
 	controller.select_only(occupant)
 	assert_eq(controller.selection.size(), 1)
+
+
 #endregion
 
 
@@ -141,13 +152,16 @@ func test_its_own_orders_win_over_the_hosts_rally() -> void:
 	var commander: Commander = _commanded(1)
 	var host: Commandable = _unit(commander)
 	var occupant: Commandable = _unit(commander)
-	host.update_commands(_order(Vector2(1, 1)))          # the host's rally
-	occupant.update_commands(_order(Vector2(9, 9)))      # the occupant's own
+	host.update_commands(_order(Vector2(1, 1)))  # the host's rally
+	occupant.update_commands(_order(Vector2(9, 9)))  # the occupant's own
 
 	var chain: Array = Garrison._release_commands(occupant, host, null, Vector3(2, 0, 2))
 
-	assert_eq(_destinations(chain), [Vector2(2, 2), Vector2(9, 9)],
-		"the exit-point move first, then what the player told THIS unit")
+	assert_eq(
+		_destinations(chain),
+		[Vector2(2, 2), Vector2(9, 9)],
+		"the exit-point move first, then what the player told THIS unit"
+	)
 
 
 ## And a unit nobody ordered still follows the host, which is what makes this additive rather
@@ -160,8 +174,11 @@ func test_an_unordered_occupant_follows_the_host() -> void:
 
 	var chain: Array = Garrison._release_commands(occupant, host, null, Vector3(2, 0, 2))
 
-	assert_eq(_destinations(chain), [Vector2(2, 2), Vector2(1, 1)],
-		"the exit-point move, then the host's rally")
+	assert_eq(
+		_destinations(chain),
+		[Vector2(2, 2), Vector2(1, 1)],
+		"the exit-point move, then the host's rally"
+	)
 
 
 func test_no_orders_anywhere_is_just_the_exit_move() -> void:
@@ -169,8 +186,7 @@ func test_no_orders_anywhere_is_just_the_exit_move() -> void:
 	var host: Commandable = _unit(commander)
 	var occupant: Commandable = _unit(commander)
 	var chain: Array = Garrison._release_commands(occupant, host, null, Vector3(2, 0, 2))
-	assert_eq(_destinations(chain), [Vector2(2, 2)],
-		"it clears the host and stands there")
+	assert_eq(_destinations(chain), [Vector2(2, 2)], "it clears the host and stands there")
 
 
 ## The evacuee gets its OWN copies, so a group released together never shares instances —

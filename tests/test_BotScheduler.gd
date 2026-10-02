@@ -17,14 +17,23 @@ func before_each() -> void:
 
 
 ## A job that records itself and reports `a_units`.
-func _job(a_name: StringName, a_period_ticks: int, a_priority: int = 0, a_units: int = 1,
-		a_brain: BotBrain = null) -> BotJob:
+func _job(
+	a_name: StringName,
+	a_period_ticks: int,
+	a_priority: int = 0,
+	a_units: int = 1,
+	a_brain: BotBrain = null
+) -> BotJob:
 	var seconds: float = float(a_period_ticks) / Engine.physics_ticks_per_second
-	var job := BotJob.new(a_name, a_brain if a_brain != null else _brain,
-		func() -> float: return seconds, a_priority,
+	var job := BotJob.new(
+		a_name,
+		a_brain if a_brain != null else _brain,
+		func() -> float: return seconds,
+		a_priority,
 		func(_allowance: int) -> int:
 			_ran.append(a_name)
-			return a_units)
+			return a_units
+	)
 	_scheduler.register(job)
 	return job
 
@@ -74,12 +83,17 @@ func test_an_overspend_is_paid_off_before_anything_else_runs() -> void:
 
 func test_a_pending_sweep_resumes_next_tick_and_only_then_waits_its_period() -> void:
 	var remaining: Array[int] = [3]  # three slices of work
-	var job := BotJob.new(&"sweep", _brain, func() -> float: return 1.0, 0,
+	var job := BotJob.new(
+		&"sweep",
+		_brain,
+		func() -> float: return 1.0,
+		0,
 		func(_allowance: int) -> int:
 			remaining[0] -= 1
 			_ran.append(&"sweep")
 			return 1,
-		func() -> bool: return remaining[0] > 0)
+		func() -> bool: return remaining[0] > 0
+	)
 	_scheduler.register(job)
 	_steps(3)
 	assert_eq(_ran.size(), 3, "it stays due while part-way through")

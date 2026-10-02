@@ -33,6 +33,7 @@ var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	_mesh = ImmediateMesh.new()
@@ -45,11 +46,15 @@ func _ready() -> void:
 	_mesh_instance.material_override = mat
 	add_child(_mesh_instance)
 
+
 func _process(_a_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_redraw()
+
+
 #endregion
+
 
 #region Private helpers
 func _redraw() -> void:

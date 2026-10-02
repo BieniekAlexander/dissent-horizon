@@ -10,10 +10,12 @@ extends Area3D
 
 var _parent_entity: Entity = null
 
+
 func _ready() -> void:
 	collision_layer = 0
 	collision_mask = CollisionLayers.Mask.MOVEMENT_OBSTRUCTION
 	_parent_entity = get_parent() as Entity
+
 
 func _physics_process(_a_delta: float) -> void:
 	var effective_id: int = _parent_entity.commander_id if _parent_entity != null else commander_id

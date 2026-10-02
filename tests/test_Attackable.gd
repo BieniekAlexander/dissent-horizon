@@ -15,8 +15,6 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Attackable.gd -gexit
 
 
-
-
 ## The extraction site, optionally given a Defense before it enters the tree so the
 ## @onready that resolves `defense` sees it.
 func _site(a_with_defense: bool) -> Entity:
@@ -48,5 +46,7 @@ func test_a_target_layer_without_a_defense_is_not_attackable() -> void:
 func test_a_defense_makes_an_uncommandable_piece_attackable() -> void:
 	var site := _site(true)
 	assert_true(site.is_attackable())
-	assert_true(Attack._target_attackable(_attack_message(site)),
-		"Attack no longer asks whether the target takes orders")
+	assert_true(
+		Attack._target_attackable(_attack_message(site)),
+		"Attack no longer asks whether the target takes orders"
+	)

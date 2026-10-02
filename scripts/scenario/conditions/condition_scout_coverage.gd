@@ -18,13 +18,17 @@ extends Condition
 @export_range(0.0, 1.0) var minimum_fraction: float = 1.0
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var scout: BotScout = _resolve_scout(a_manager)
 	if scout == null:
 		return false
 	return scout.observed_fraction() >= minimum_fraction
+
+
 #endregion
+
 
 #region Internal
 ## Walk commander → BotBrain → BotScout, or null if any link is missing (e.g. the brain

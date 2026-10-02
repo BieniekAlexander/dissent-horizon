@@ -11,7 +11,8 @@ extends Node
 ##
 ## | Placed by | Lifespan | Sight |
 ## | --- | --- | --- |
-## | a Spotter | until consumed, or until the spotter is re-ordered | none (the spotter is standing there) |
+## | a Spotter | until consumed, or until the spotter is re-ordered | none (the spotter is standing
+## there) |
 ## | Beacon Drop 1 | 15 seconds | none |
 ## | Beacon Drop 2 | 15 seconds | radius 2 |
 ## | Beacon Drop 3 | until consumed | radius 2 |
@@ -135,10 +136,15 @@ static func can_carry(a_entity: Variant) -> bool:
 	if a_entity == null or not is_instance_valid(a_entity) or not (a_entity is Commandable):
 		return false
 	var unit := a_entity as Commandable
-	return unit.is_inside_tree() and not unit.is_queued_for_deletion() \
-		and not unit.structure_is_active() and unit.aerial == null \
-		and unit.live_movement() != null \
-		and unit.defense != null and unit.defense.frame_type == Defense.FrameType.MECH
+	return (
+		unit.is_inside_tree()
+		and not unit.is_queued_for_deletion()
+		and not unit.structure_is_active()
+		and unit.aerial == null
+		and unit.live_movement() != null
+		and unit.defense != null
+		and unit.defense.frame_type == Defense.FrameType.MECH
+	)
 
 
 ## The live beacons riding on `a_unit`.
@@ -204,8 +210,10 @@ func _on_shell_phase_entered(a_index: int) -> void:
 
 func _is_allied_to_local_player() -> bool:
 	var owner_commander: Commander = host().commander
-	return owner_commander != null \
+	return (
+		owner_commander != null
 		and owner_commander.shares_side_with(RTSController.PLAYER_COMMANDER_ID)
+	)
 
 
 ## True when a strike aimed at `world_position` may spend this beacon.

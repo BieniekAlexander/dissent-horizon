@@ -41,6 +41,7 @@ const DASH_MIN_STEP: float = 0.0001
 const ALTERNATE_METRES: float = 1.0
 #endregion
 
+
 #region Bands
 ## ONE RANGE TO DRAW. A footprint, a colour, and whether its interior is washed in.
 ##
@@ -61,14 +62,17 @@ class Band:
 	var alternate_color: Color = Color(0, 0, 0, 0)
 	var is_alternating: bool = false
 
-	static func of(a_shape: HighlightShape, a_color: Color, a_filled: bool = false,
-			a_is_pending: bool = false) -> Band:
+	static func of(
+		a_shape: HighlightShape, a_color: Color, a_filled: bool = false, a_is_pending: bool = false
+	) -> Band:
 		var band := Band.new()
 		band.shape = a_shape
 		band.color = a_color
 		band.filled = a_filled
 		band.is_pending = a_is_pending
 		return band
+
+
 #endregion
 
 #region Properties
@@ -80,6 +84,7 @@ var _bands: Array[Band] = []
 var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
@@ -97,7 +102,10 @@ func _ready() -> void:
 	material.render_priority = RenderPriority.HIGHLIGHT_PRIORITY
 	_mesh_instance.material_override = material
 	add_child(_mesh_instance)
+
+
 #endregion
+
 
 #region Public API
 ## Replace everything drawn with `a_bands`. Called every frame with the whole list, so
@@ -147,9 +155,14 @@ static func same_footprint(a: HighlightShape, b: HighlightShape) -> bool:
 		return false
 	if a.kind == HighlightShape.Kind.CIRCLE:
 		return is_equal_approx(a.radius, b.radius)
-	return a.half_extents.is_equal_approx(b.half_extents) \
+	return (
+		a.half_extents.is_equal_approx(b.half_extents)
 		and is_equal_approx(a.rotation_y, b.rotation_y)
+	)
+
+
 #endregion
+
 
 #region Drawing
 func _redraw() -> void:
@@ -189,8 +202,11 @@ func _add_outline(a_band: Band) -> void:
 		_add_pieces(dash(closed, ALTERNATE_METRES, ALTERNATE_METRES), color)
 		_add_pieces(dash(closed, ALTERNATE_METRES, ALTERNATE_METRES, ALTERNATE_METRES), other)
 		return
-	var pieces: Array = dash(closed, PendingStyle.DASH_METRES, PendingStyle.GAP_METRES) \
-		if a_band.is_pending else _edges(closed)
+	var pieces: Array = (
+		dash(closed, PendingStyle.DASH_METRES, PendingStyle.GAP_METRES)
+		if a_band.is_pending
+		else _edges(closed)
+	)
 	_add_pieces(pieces, color)
 
 
@@ -213,8 +229,9 @@ static func _edges(polyline: Array[Vector2]) -> Array:
 ## measured along its length — the phase carries across vertices, so a finely tessellated
 ## circle dashes evenly rather than restarting at every short edge. `a_offset` shifts where the
 ## pattern starts along the line, in metres.
-static func dash(polyline: Array[Vector2], dash_length: float, gap_length: float,
-		a_offset: float = 0.0) -> Array:
+static func dash(
+	polyline: Array[Vector2], dash_length: float, gap_length: float, a_offset: float = 0.0
+) -> Array:
 	var out: Array = []
 	var period: float = dash_length + gap_length
 	if period <= 0.0:
@@ -229,8 +246,9 @@ static func dash(polyline: Array[Vector2], dash_length: float, gap_length: float
 			var phase: float = fposmod(travelled + along + a_offset, period)
 			var is_on: bool = phase < dash_length
 			# Floored so float error at a phase boundary cannot stall the walk.
-			var step: float = maxf(minf((dash_length if is_on else period) - phase,
-				length - along), DASH_MIN_STEP)
+			var step: float = maxf(
+				minf((dash_length if is_on else period) - phase, length - along), DASH_MIN_STEP
+			)
 			if is_on:
 				out.append([a.lerp(b, along / length), a.lerp(b, (along + step) / length)])
 			along += step
@@ -257,8 +275,11 @@ func _add_fill(a_band: Band) -> void:
 ## A circle is tessellated finely and needs no further sampling; a rectangle's four corners
 ## do, or a long edge cuts straight through a hill.
 func _points(a_shape: HighlightShape) -> Array[Vector2]:
-	return a_shape.outline(RING_SEGMENTS) if a_shape.kind == HighlightShape.Kind.CIRCLE \
+	return (
+		a_shape.outline(RING_SEGMENTS)
+		if a_shape.kind == HighlightShape.Kind.CIRCLE
 		else a_shape.perimeter_points(SAMPLE_STEP)
+	)
 
 
 func _ground_point(a_xz: Vector2) -> Vector3:

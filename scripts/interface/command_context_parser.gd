@@ -41,6 +41,7 @@ const HOLD_FIRE_COMMAND: String = "command_hold_fire"
 ## tools_for(entity, ControlContext.TRAIN), folded into commands_for() below.
 static var _rules: Array
 
+
 ## Whether `a_entity` has something to shoot WITH — a Loadout actually holding a Weapon, or
 ## a bunker garrison whose occupants' fire it propagates (Commandable.is_armed).
 ##
@@ -58,7 +59,10 @@ static func _is_armed(a_entity: Entity) -> bool:
 static func _build_rules() -> Array:
 	return [
 		[func(e: Entity): return e.live_movement() != null, "command_move"],
-		[func(e: Entity): return e.live_movement() != null or e.has_node("Loadout"), "command_stop"],
+		[
+			func(e: Entity): return e.live_movement() != null or e.has_node("Loadout"),
+			"command_stop"
+		],
 		[func(e: Entity): return e.has_node("Loadout"), "command_attack"],
 		# ATTACK-MOVE NEEDS SOMETHING TO SHOOT WITH, not merely a Loadout node. An unarmed
 		# vehicle carries an empty one, and offering it an attack-move handed it an order it
@@ -84,8 +88,10 @@ static func _build_rules() -> Array:
 		# no entity at a bare point to land on (see Weapon.can_fire_at_ground).
 		[CommandContextParser._can_focus_fire, "command_focus_fire"],
 		[func(e: Entity): return e.live_movement() != null, "command_patrol"],
-		[func(e: Entity): return e.live_movement() != null and e.has_node("Loadout"), "command_defend"],
-
+		[
+			func(e: Entity): return e.live_movement() != null and e.has_node("Loadout"),
+			"command_defend"
+		],
 		[func(e: Entity): return e.has_node("Production"), "command_train"],
 		# NO rally entry for Production. A producer accepts a bare MoveCommand as a RALLY
 		# (Commandable._absorb_rally_commands) and always did, but that is resolved by the
@@ -95,7 +101,6 @@ static func _build_rules() -> Array:
 		# barracks on a card holding one dead button and hid its training behind the toggle.
 		# A producer that CAN move gets `command_move` from the Movement rule above, like
 		# anything else that moves, so a mobile producer still reaches both cards.
-
 		[func(e: Entity): return e.has_node("Builds"), "command_ability"],
 		[func(e: Entity): return e.has_node("Builds"), "command_build"],
 		# Finishing a placed structure is the second half of a build order, so it belongs to
@@ -116,13 +121,11 @@ static func _build_rules() -> Array:
 		[CommandContextParser._can_plant, "command_plant"],
 		[CommandContextParser._can_detonate, "command_detonate"],
 		[CommandContextParser._can_bombard, "command_bombard"],
-
 		[CommandContextParser._can_irradiate, "command_launch"],
 		# Any unit with an Interactor advertises the generalised interact command;
 		# the specific targets it applies to come from the interactor's list
 		# (replaces the former per-type pick_up / drop_off / collect rules).
 		[func(e: Entity): return e.has_node("Interactor"), "command_interact"],
-
 		# Occupy applies to anything that can move (see _can_occupy); WHICH garrisons will
 		# take it is the target garrison's own occupancy masks, checked per-target in
 		# Occupy.meets_precondition rather than per-actor here.
@@ -151,24 +154,30 @@ static func _build_rules() -> Array:
 		[CommandContextParser._can_task_shelter, "command_task_shelter"],
 	]
 
+
 ## Radiate and Spot are ordinary granted abilities, asked the same way Bombard is. Both used
 ## to have a component of their own — an `Inventory` of `ToolSpec`s for one, a bare `Spotter`
 ## marker for the other — which is what the ability module fold retired.
 static func _can_irradiate(e: Entity) -> bool:
 	return _grants(e, &"irradiate")
 
+
 static func _can_spot(e: Entity) -> bool:
 	return _grants(e, &"spot")
+
 
 static func _can_plant(e: Entity) -> bool:
 	return _grants(e, Plant.ABILITY_ID) and PlantedCharge.planted_by(e) == null
 
+
 static func _can_detonate(e: Entity) -> bool:
 	return e is Commandable and Detonate.charge_of(e as Commandable) != null
+
 
 static func _grants(e: Entity, ability_id: StringName) -> bool:
 	var abilities := e.get_node_or_null("Abilities") as Abilities
 	return abilities != null and abilities.grants(ability_id)
+
 
 ## Bombard applies to a piece granted the bombard ability. Whether it is LOADED is a
 ## separate question, asked per-order in Bombard.meets_precondition — an empty pool greys
@@ -194,12 +203,14 @@ static func _can_embark(e: Entity) -> bool:
 	var garrison := e.get_node_or_null("Garrison") as Garrison
 	return garrison != null and not garrison.is_closed()
 
+
 ## Evacuate applies to a garrison whose occupants can be let out by order — `releasable`,
 ## which is a different question from is_closed(). Which occupants leave is per-occupant
 ## (Garrison.can_release_occupant): the host's own side, never a captive.
 static func _can_evacuate(e: Entity) -> bool:
 	var garrison := e.get_node_or_null("Garrison") as Garrison
 	return garrison != null and garrison.can_release()
+
 
 ## FocusFire applies to anything carrying a weapon that can be aimed at bare ground. The
 ## Loadout is walked here rather than trusting `has_node("Loadout")` because an unarmed
@@ -208,18 +219,25 @@ static func _can_focus_fire(e: Entity) -> bool:
 	var loadout := e.get_node_or_null("Loadout") as Loadout
 	return loadout != null and loadout.can_fire_at_ground()
 
+
 static func _can_deploy(e: Entity) -> bool:
 	var deployable: Deployable = Deployable.of(e)
 	return deployable != null and not deployable.settles_deployed()
+
 
 static func _can_undeploy(e: Entity) -> bool:
 	var deployable: Deployable = Deployable.of(e)
 	return deployable != null and deployable.settles_deployed()
 
+
 static func _can_land(e: Entity) -> bool:
 	var aerial: Aerial = Aerial.of(e)
-	return aerial != null and aerial.mode == Movement.Mode.HOVERING \
+	return (
+		aerial != null
+		and aerial.mode == Movement.Mode.HOVERING
 		and not aerial.is_permanently_grounded()
+	)
+
 
 ## Rearm applies to airfield-using aircraft carrying at least one CHARGED weapon — the ones
 ## that cannot reload themselves and must dock. Only the capability is asked here, as
@@ -230,6 +248,7 @@ static func _can_rearm(e: Entity) -> bool:
 		return false
 	var loadout := e.get_node_or_null("Loadout") as Loadout
 	return loadout != null and loadout.has_charged_weapons()
+
 
 ## TaskShelter applies to anything with a Garrison that can hold captives at all — the same
 ## capacity check TaskShelter.meets_precondition asks of the actor.
@@ -242,6 +261,8 @@ static func _rules_table() -> Array:
 	if _rules == null or _rules.is_empty():
 		_rules = _build_rules()
 	return _rules
+
+
 #endregion
 
 #region Command identity
@@ -260,6 +281,7 @@ static func _rules_table() -> Array:
 ## capability question to ask about them. `name_for` returns "" and `actor_can_perform`
 ## treats that as portable.
 static var _command_names: Dictionary
+
 
 static func _build_command_names() -> Dictionary:
 	return {
@@ -328,7 +350,10 @@ static func actor_can_perform(actor: Commandable, command: MoveCommand) -> bool:
 	if name.is_empty():
 		return true
 	return commands_for(actor).has(name)
+
+
 #endregion
+
 
 #region Public API
 ## Returns the deduplicated list of command names applicable to a single
@@ -352,8 +377,12 @@ static func commands_for(entity: Entity) -> Array:
 	# Ordered so the CHEAP, always-safe checks come first: Entity.commander reads through
 	# the Ownership component, which a bare out-of-tree node has not resolved yet.
 	var caster := entity as Commandable
-	if caster != null and caster.get_node_or_null("Abilities") != null \
-			and caster.ownership != null and caster.commander != null:
+	if (
+		caster != null
+		and caster.get_node_or_null("Abilities") != null
+		and caster.ownership != null
+		and caster.commander != null
+	):
 		for sanction: Sanction in caster.commander.sanctions_castable_by(caster):
 			var sanction_command: String = sanction.command_name()
 			if not result.has(sanction_command):
@@ -365,6 +394,7 @@ static func commands_for(entity: Entity) -> Array:
 		if not result.has(tool_name):
 			result.append(tool_name)
 	return result
+
 
 ## Union of `commands_for` across a selection. A command is available to the
 ## selection if *any* member can issue it — matches the original
@@ -382,12 +412,14 @@ static func commands_for_selection(entities: Array) -> Array:
 				result.append(command_name)
 	return result
 
+
 ## Convenience predicate the controller calls for the HUD-button visibility
 ## check and the "is this hotkey allowed right now" gate inside
 ## process_command(). Equivalent to `command_name in commands_for(entity)`
 ## but written out for readability at call sites.
 static func command_available(command_name: String, entity: Entity) -> bool:
 	return commands_for(entity).has(command_name)
+
 
 ## The tool command names available to `a_entity` in the given control context(s),
 ## in menu order. Single context-filtered query that replaces the former
@@ -413,6 +445,7 @@ static func tools_for(entity: Entity, context: int) -> Array:
 			if production != null and production.can_produce(tool.type):
 				result.append(tool.command_name)
 	return result
+
 
 ## Union of `tools_for` across a selection, in menu order — the same "any member can" rule
 ## `commands_for_selection` applies to verbs.

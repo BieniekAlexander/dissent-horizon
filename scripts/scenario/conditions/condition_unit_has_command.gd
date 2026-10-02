@@ -24,6 +24,7 @@ enum Quantifier { ANY, ALL }
 @export var quantifier: Quantifier = Quantifier.ANY
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var commander: Commander = a_manager.get_commander(commander_id)
@@ -31,8 +32,11 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 		return false
 	var units: Array = commander.get_children().filter(
 		func(n: Node) -> bool:
-			return n is Commandable and (n as Commandable).is_in_group("unit") \
+			return (
+				n is Commandable
+				and (n as Commandable).is_in_group("unit")
 				and (unit_type == &"" or (n as Commandable).id == unit_type)
+			)
 	)
 	if units.is_empty():
 		return false
@@ -42,7 +46,10 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	if quantifier == Quantifier.ALL:
 		return units.all(holds_command)
 	return units.any(holds_command)
+
+
 #endregion
+
 
 #region Internal
 ## The runtime class_name of a MoveCommand instance (e.g. "Attack"), or "" if unavailable.

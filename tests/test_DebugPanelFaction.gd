@@ -14,8 +14,15 @@ func after_each() -> void:
 
 
 func _entry(a_id: String, a_faction: String, a_scene: String) -> Dictionary:
-	return {"id": a_id, "label": a_id, "faction": a_faction, "scene": a_scene,
-		"is_fixture": false, "producers": [], "tool": ""}
+	return {
+		"id": a_id,
+		"label": a_id,
+		"faction": a_faction,
+		"scene": a_scene,
+		"is_fixture": false,
+		"producers": [],
+		"tool": ""
+	}
 
 
 ## A commander whose faction starts with `a_scene`, which is what names its faction.
@@ -48,9 +55,11 @@ func _panel() -> DebugPanel:
 		panel._faction_option.add_item(faction)
 	panel._faction_option.select(0)
 	var scenario: Scenario = autofree(Scenario.new())
-	scenario.commanders = [_commander_starting_with(0, ""),
+	scenario.commanders = [
+		_commander_starting_with(0, ""),
 		_commander_starting_with(PLAYER_ID, "res://blue/tank.tscn"),
-		_commander_starting_with(OTHER_ID, "res://red/soldier.tscn")]
+		_commander_starting_with(OTHER_ID, "res://red/soldier.tscn")
+	]
 	panel._scenario = scenario
 	panel._starting_player_id = PLAYER_ID
 	return panel

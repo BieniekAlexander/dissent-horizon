@@ -9,7 +9,9 @@ const W: int = 24  # small map for speed
 
 
 # A minimal generator with NO `seed` property, to exercise the seedless path.
-class SeedlessGen extends HeightmapGenerator:
+class SeedlessGen:
+	extends HeightmapGenerator
+
 	func generate() -> PackedFloat32Array:
 		var d := PackedFloat32Array()
 		d.resize(width * depth)

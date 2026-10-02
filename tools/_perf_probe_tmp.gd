@@ -14,21 +14,36 @@ extends Node
 ##   * fog and bot-brain nodes are taken OVER (their own _physics_process disabled and
 ##     driven from hooks at the same relative priority) so their share is timed directly.
 
-class Hook extends Node:
+
+class Hook:
+	extends Node
 	var cb: Callable
 	var prio: int = 0
+
 	func _init(a_prio: int, a_cb: Callable) -> void:
 		prio = a_prio
 		cb = a_cb
+
 	func _ready() -> void:
 		process_physics_priority = prio
+
 	func _physics_process(a_delta: float) -> void:
 		cb.call(a_delta)
 
+
 ## BotBrain's job names (BotBrain._build_jobs); a job's microseconds are summed across bots.
 const STAGES: Array[String] = [
-	"momentum", "targeting", "military", "sanction", "kamikaze", "preservation",
-	"opportunist", "economy", "production", "scout_sight", "scout",
+	"momentum",
+	"targeting",
+	"military",
+	"sanction",
+	"kamikaze",
+	"preservation",
+	"opportunist",
+	"economy",
+	"production",
+	"scout_sight",
+	"scout",
 ]
 
 var out_path: String = "res://tools/_perf_probe_out.csv"
@@ -72,14 +87,37 @@ func _ready() -> void:
 		push_error("perf probe: cannot open %s" % out_path)
 		get_tree().quit(1)
 		return
-	var header: PackedStringArray = PackedStringArray([
-		"tick", "wall_us", "sample_us", "script_us", "fog_us", "brain_us", "think",
-		"phys_ms", "proc_ms", "nav_ms",
-		"commandables", "units", "structures", "projectiles", "los",
-		"nodes", "orphans", "objects", "mem_mb",
-		"phys_active", "phys_pairs", "phys_islands", "nav_agents", "nav_polys",
-		"cells_changed", "e1", "e2",
-	])
+	var header: PackedStringArray = PackedStringArray(
+		[
+			"tick",
+			"wall_us",
+			"sample_us",
+			"script_us",
+			"fog_us",
+			"brain_us",
+			"think",
+			"phys_ms",
+			"proc_ms",
+			"nav_ms",
+			"commandables",
+			"units",
+			"structures",
+			"projectiles",
+			"los",
+			"nodes",
+			"orphans",
+			"objects",
+			"mem_mb",
+			"phys_active",
+			"phys_pairs",
+			"phys_islands",
+			"nav_agents",
+			"nav_polys",
+			"cells_changed",
+			"e1",
+			"e2",
+		]
+	)
 	for s: String in STAGES:
 		header.append("s_" + s)
 	header.append("keys_us")
@@ -105,16 +143,26 @@ func _parse_args() -> void:
 		var key: String = parts[0].trim_prefix("--")
 		var val: String = parts[1] if parts.size() > 1 else ""
 		match key:
-			"out": out_path = val
-			"ticks": tick_limit = val.to_int()
-			"scene": scene_path = val
-			"mode": mode = val
-			"brains": brains_enabled = val.to_int() != 0
-			"sweep-step": sweep_step = val.to_int()
-			"sweep-period": sweep_period = val.to_int()
-			"sweep-max": sweep_max = val.to_int()
-			"time-scale": time_scale = val.to_float()
-			"fprof-keys": fprof_keys = PackedStringArray(val.split(","))
+			"out":
+				out_path = val
+			"ticks":
+				tick_limit = val.to_int()
+			"scene":
+				scene_path = val
+			"mode":
+				mode = val
+			"brains":
+				brains_enabled = val.to_int() != 0
+			"sweep-step":
+				sweep_step = val.to_int()
+			"sweep-period":
+				sweep_period = val.to_int()
+			"sweep-max":
+				sweep_max = val.to_int()
+			"time-scale":
+				time_scale = val.to_float()
+			"fprof-keys":
+				fprof_keys = PackedStringArray(val.split(","))
 
 
 ## Every slot becomes a bot so the session is a spectator match that needs no input.
@@ -153,6 +201,7 @@ func _bind() -> void:
 
 # ─── HOOKS ──────────────────────────────────────────────────────────────────
 
+
 func _hook_start(_a_delta: float) -> void:
 	_bind()
 	if Engine.has_meta(&"fprof"):
@@ -175,7 +224,9 @@ func _hook_fog(a_delta: float) -> void:
 ## Read what the scheduler's jobs cost this tick. The scheduler runs at its own priority, before
 ## this hook (priority 90) only if its priority is lower; it is 0, so by now it has run.
 func _hook_brains(_a_delta: float) -> void:
-	var scheduler: BotScheduler = get_tree().get_first_node_in_group(BotScheduler.GROUP) as BotScheduler
+	var scheduler: BotScheduler = (
+		get_tree().get_first_node_in_group(BotScheduler.GROUP) as BotScheduler
+	)
 	if scheduler == null:
 		return
 	for entry: Dictionary in scheduler.report():
@@ -187,8 +238,9 @@ func _hook_brains(_a_delta: float) -> void:
 		_think_this_tick += 1
 		# Calibration totals: microseconds against reported work units, per job.
 		var totals: Array = _job_totals.get(name, [0, 0, 0])
-		_job_totals[name] = [totals[0] + int(entry["usec"]), totals[1] + int(entry["units"]),
-			totals[2] + 1]
+		_job_totals[name] = [
+			totals[0] + int(entry["usec"]), totals[1] + int(entry["units"]), totals[2] + 1
+		]
 
 
 ## Timed functions (wrap.py keys, e.g. "movement.is_navigation_finished") whose time this tick
@@ -221,17 +273,30 @@ func _hook_end(_a_delta: float) -> void:
 			if d > 0:
 				spike[key] = d
 		if not spike.is_empty():
-			var spikes := FileAccess.open(out_path + ".spikes.jsonl", FileAccess.READ_WRITE \
-				if FileAccess.file_exists(out_path + ".spikes.jsonl") else FileAccess.WRITE)
+			var spikes := FileAccess.open(
+				out_path + ".spikes.jsonl",
+				(
+					FileAccess.READ_WRITE
+					if FileAccess.file_exists(out_path + ".spikes.jsonl")
+					else FileAccess.WRITE
+				)
+			)
 			spikes.seek_end()
-			spikes.store_line(JSON.stringify({"tick": _tick + 1, "script_us": _script_us,
-				"timings": spike}))
+			spikes.store_line(
+				JSON.stringify({"tick": _tick + 1, "script_us": _script_us, "timings": spike})
+			)
 			spikes.close()
 	if _tick > 0 and _tick % FPROF_WINDOW_TICKS == 0 and Engine.has_meta(&"fprof"):
 		var timings: Dictionary = Engine.get_meta(&"fprof")
 		if not timings.is_empty():
-			var dump := FileAccess.open(out_path + ".fprof.jsonl", FileAccess.READ_WRITE \
-				if FileAccess.file_exists(out_path + ".fprof.jsonl") else FileAccess.WRITE)
+			var dump := FileAccess.open(
+				out_path + ".fprof.jsonl",
+				(
+					FileAccess.READ_WRITE
+					if FileAccess.file_exists(out_path + ".fprof.jsonl")
+					else FileAccess.WRITE
+				)
+			)
 			dump.seek_end()
 			dump.store_line(JSON.stringify({"tick": _tick, "timings": timings}))
 			dump.close()
@@ -254,6 +319,7 @@ var _job_totals: Dictionary = {}
 var _sample_us: int = 0
 var _proj_cache: int = 0
 
+
 func _write_row(a_wall: int) -> void:
 	var sample_t0: int = Time.get_ticks_usec()
 	var tree: SceneTree = get_tree()
@@ -272,23 +338,37 @@ func _write_row(a_wall: int) -> void:
 			e1 = cs[1].get_children().size()
 		if cs.size() > 2 and is_instance_valid(cs[2]):
 			e2 = cs[2].get_children().size()
-	var row: PackedStringArray = PackedStringArray([
-		str(_tick), str(a_wall), str(_sample_us), str(_script_us), str(_fog_us), str(_brain_us), str(_think_this_tick),
-		"%.4f" % (Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0),
-		"%.4f" % (Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0),
-		"%.4f" % (Performance.get_monitor(Performance.TIME_NAVIGATION_PROCESS) * 1000.0),
-		str(commandables), str(units), str(structures), str(projectiles), str(los),
-		str(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))),
-		str(int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))),
-		str(int(Performance.get_monitor(Performance.OBJECT_COUNT))),
-		"%.2f" % (Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0),
-		str(int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))),
-		str(int(Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS))),
-		str(int(Performance.get_monitor(Performance.PHYSICS_3D_ISLAND_COUNT))),
-		str(int(Performance.get_monitor(Performance.NAVIGATION_3D_AGENT_COUNT))),
-		str(int(Performance.get_monitor(Performance.NAVIGATION_3D_POLYGON_COUNT))),
-		str(_cells_changed), str(e1), str(e2),
-	])
+	var row: PackedStringArray = PackedStringArray(
+		[
+			str(_tick),
+			str(a_wall),
+			str(_sample_us),
+			str(_script_us),
+			str(_fog_us),
+			str(_brain_us),
+			str(_think_this_tick),
+			"%.4f" % (Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0),
+			"%.4f" % (Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0),
+			"%.4f" % (Performance.get_monitor(Performance.TIME_NAVIGATION_PROCESS) * 1000.0),
+			str(commandables),
+			str(units),
+			str(structures),
+			str(projectiles),
+			str(los),
+			str(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))),
+			str(int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))),
+			str(int(Performance.get_monitor(Performance.OBJECT_COUNT))),
+			"%.2f" % (Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0),
+			str(int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))),
+			str(int(Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS))),
+			str(int(Performance.get_monitor(Performance.PHYSICS_3D_ISLAND_COUNT))),
+			str(int(Performance.get_monitor(Performance.NAVIGATION_3D_AGENT_COUNT))),
+			str(int(Performance.get_monitor(Performance.NAVIGATION_3D_POLYGON_COUNT))),
+			str(_cells_changed),
+			str(e1),
+			str(e2),
+		]
+	)
 	for s: String in STAGES:
 		row.append(str(int(_stage_us.get(s, 0))))
 	row.append(str(_keys_us))
@@ -296,9 +376,18 @@ func _write_row(a_wall: int) -> void:
 	_sample_us = Time.get_ticks_usec() - sample_t0
 	if _tick % 300 == 0:
 		_f.flush()
-		print("[probe] tick=%d cmd=%d script_us=%d brain_us=%d nodes=%d" % [
-			_tick, commandables, _script_us, _brain_us, int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
-		])
+		print(
+			(
+				"[probe] tick=%d cmd=%d script_us=%d brain_us=%d nodes=%d"
+				% [
+					_tick,
+					commandables,
+					_script_us,
+					_brain_us,
+					int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
+				]
+			)
+		)
 
 
 func _count_projectiles() -> int:
@@ -309,6 +398,7 @@ func _count_projectiles() -> int:
 
 
 # ─── SWEEP MODE ─────────────────────────────────────────────────────────────
+
 
 ## Spawn `sweep_step` more units per commander every `sweep_period` ticks, so the tick
 ## cost can be read against a known population instead of whatever the match happens
@@ -357,6 +447,7 @@ func _commander_origin(a_commander: Node) -> Vector2:
 
 # ─── SHUTDOWN ───────────────────────────────────────────────────────────────
 
+
 func _finish() -> void:
 	# One-off measurement of a navmesh rebuild, which is deferred and so never lands
 	# inside the sampled window.
@@ -371,8 +462,12 @@ func _finish() -> void:
 	_f.store_line("# rebuild_us=%s total_wall_s=%.2f ticks=%d" % [str(rebuild_us), total_s, _tick])
 	for name: String in _job_totals:
 		var t: Array = _job_totals[name]
-		_f.store_line("# job %s runs=%d usec=%d units=%d usec_per_unit=%.3f" % [
-			name, t[2], t[0], t[1], float(t[0]) / maxf(1.0, float(t[1]))])
+		_f.store_line(
+			(
+				"# job %s runs=%d usec=%d units=%d usec_per_unit=%.3f"
+				% [name, t[2], t[0], t[1], float(t[0]) / maxf(1.0, float(t[1]))]
+			)
+		)
 	_f.flush()
 	_f.close()
 	print("[probe] DONE ticks=%d wall=%.1fs rebuild_us=%s" % [_tick, total_s, str(rebuild_us)])

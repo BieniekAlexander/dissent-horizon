@@ -5,15 +5,18 @@ extends Node3D
 ## Weapon represents one weapon slot. Methods here are the single place that
 ## walks this list so callers don't do ad-hoc child iteration.
 
+
 #region Public API
 func get_weapons() -> Array:
 	return get_children().filter(func(c: Node) -> bool: return c is Weapon)
+
 
 func has_weapons() -> bool:
 	for c in get_children():
 		if c is Weapon:
 			return true
 	return false
+
 
 ## Returns the first Weapon child whose can_target() returns true for `target`,
 ## or null if none match.
@@ -23,8 +26,10 @@ func weapon_for_target(a_target: Entity) -> Weapon:
 			return c
 	return null
 
+
 func any_weapon_can_target(a_target: Entity) -> bool:
 	return weapon_for_target(a_target) != null
+
 
 ## The first Weapon child that can be aimed at bare ground (see Weapon.can_fire_at_ground),
 ## or null. Asked per-actor by FocusFire; the same first-match rule weapon_for_target uses.
@@ -34,8 +39,10 @@ func weapon_for_ground_fire() -> Weapon:
 			return c
 	return null
 
+
 func can_fire_at_ground() -> bool:
 	return weapon_for_ground_fire() != null
+
 
 ## Sum of each weapon's rough per-shot damage (see Weapon.per_shot_damage) — a
 ## coarse combat-power figure for AI estimates (e.g. Bot.estimate_army_strength).
@@ -47,12 +54,14 @@ func total_damage() -> float:
 		total += w.per_shot_damage()
 	return total
 
+
 #region Charged ammo
 ## Every CHARGED weapon this loadout holds (see Weapon.charged) — the ones that must be
 ## recharged from outside rather than reloading on a timer. Empty for the large majority
 ## of units, which is what makes the rearm checks below cheap to run every tick.
 func charged_weapons() -> Array:
 	return get_weapons().filter(func(w: Weapon) -> bool: return w.charged)
+
 
 ## True when this unit has any weapon that must be recharged externally. The capability
 ## question — "could this unit ever need an airfield?" — as opposed to whether it needs
@@ -63,6 +72,7 @@ func has_charged_weapons() -> bool:
 			return true
 	return false
 
+
 ## True when any charged weapon is below a full clip: there is something for a docking bay
 ## to do. This is the DOCKING test — a unit sent to rearm sits on the pad until every
 ## charged weapon is full, so a partial clip is still worth the trip.
@@ -71,6 +81,7 @@ func needs_recharge() -> bool:
 		if c is Weapon and (c as Weapon).needs_recharge():
 			return true
 	return false
+
 
 ## True when EVERY charged weapon is dry, and there is at least one. This is the
 ## AUTO-rearm test, and deliberately stricter than needs_recharge(): a unit that can still
@@ -85,6 +96,7 @@ func is_out_of_ammo() -> bool:
 				return false
 	return found
 
+
 ## Advance every charged weapon's recharge by `ticks`. Returns true once they are all
 ## full — the signal the docking sequence waits on before releasing the pad.
 func recharge(a_ticks: float = 1.0) -> bool:
@@ -93,6 +105,7 @@ func recharge(a_ticks: float = 1.0) -> bool:
 		if c is Weapon and (c as Weapon).charged:
 			complete = (c as Weapon).recharge(a_ticks) and complete
 	return complete
+
 
 ## Rounds currently loaded across every charged weapon, and the rounds a full load would
 ## be. The pair the HUD's ammo pips count out — one pip per round of `charged_clip_size()`,

@@ -11,16 +11,21 @@ extends GutTest
 ## Scenes are load()ed INSIDE the tests, never preloaded at file scope — see CLAUDE.md
 ## §Running and testing for the registry poisoning a file-scope preload can cause.
 
-const SHOOTER_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {"ground": 6.0, "projectile": true}}
+const SHOOTER_PATH: Dictionary = {
+	"speed": 2.0, "vision": 8.0, "weapon": {"ground": 6.0, "projectile": true}
+}
 ## Unarmed.
 const BUILDER_PATH: Dictionary = FakePieces.PLAIN
 ## A gun that reaches the air alone.
 const ANTI_AIR_PATH: Dictionary = {"structure": true, "weapon": {"air": 8.0}}
+
+
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
 	add_child_autofree(c)
 	return c
+
 
 func _entity(a_options: Dictionary) -> Commandable:
 	var e := FakePieces.make(a_options) as Commandable
@@ -28,17 +33,21 @@ func _entity(a_options: Dictionary) -> Commandable:
 	e.ownership.commander = _commanded(1)
 	return e
 
+
 #region Which weapons can be aimed at ground
 func test_a_ground_capable_projectile_weapon_can_shell_a_point() -> void:
 	assert_not_null(FocusFire.ground_weapon_of(_entity(SHOOTER_PATH)))
+
 
 func test_an_anti_air_weapon_cannot() -> void:
 	# It is not allowed at the ground layer at all, so there is nothing for it to shoot at
 	# down there whatever the shot would have done.
 	assert_null(FocusFire.ground_weapon_of(_entity(ANTI_AIR_PATH)))
 
+
 func test_an_unarmed_unit_cannot() -> void:
 	assert_null(FocusFire.ground_weapon_of(_entity(BUILDER_PATH)))
+
 
 ## A melee weapon applies its damage straight to a target entity, and a map coordinate is
 ## not one — a bayonet has nothing it could do to a point.
@@ -49,6 +58,7 @@ func test_a_melee_weapon_cannot() -> void:
 	assert_null(weapon.projectile_scene, "the case being described: no projectile")
 	assert_false(weapon.can_fire_at_ground())
 
+
 func test_firing_a_melee_weapon_at_a_point_spends_nothing() -> void:
 	var weapon := autofree(Weapon.new()) as Weapon
 	weapon.target_mask = CollisionLayers.Mask.TARGETABLE_GROUND
@@ -56,7 +66,10 @@ func test_firing_a_melee_weapon_at_a_point_spends_nothing() -> void:
 	weapon.fill_clip()
 	weapon.fire_at_position(null, Vector3.ZERO)
 	assert_eq(weapon.ammo(), 3, "a round the weapon cannot use is not spent")
+
+
 #endregion
+
 
 #region Range
 ## The gap from the firer's footprint to the point, against the range radius: a point is a
@@ -67,16 +80,21 @@ func test_within_reach_is_the_radius() -> void:
 	assert_true(FocusFire.within_reach(at_origin, Vector2(3.0, 4.0), 5.1))
 	assert_false(FocusFire.within_reach(at_origin, Vector2(3.0, 4.0), 4.9))
 
+
 func test_within_reach_is_measured_from_the_firer_s_footprint() -> void:
 	var firer := Hull.circle(Vector2(10.0, 10.0), 1.0)
 	assert_true(FocusFire.within_reach(firer, Vector2(14.0, 10.0), 3.0), "3 past its edge")
 	assert_false(FocusFire.within_reach(firer, Vector2(14.5, 10.0), 3.0))
 
+
 ## -1.0 is what a weapon with no ground range shape reports, and it must never read as
 ## "in range everywhere".
 func test_no_ground_range_is_never_in_reach() -> void:
 	assert_false(FocusFire.within_reach(Hull.point(Vector2.ZERO), Vector2.ZERO, -1.0))
+
+
 #endregion
+
 
 #region The aim point
 ## The regression: the controller writes the piece under the cursor onto `message.target` for
@@ -91,6 +109,7 @@ func test_the_aim_point_is_the_clicked_ground_not_the_piece_under_the_cursor() -
 	assert_eq(message.position, aircraft.global_position, "fixture: position prefers the piece")
 	assert_eq(FocusFire.aim_point(message), ground)
 
+
 func test_the_order_turns_and_ranges_on_the_ground_point() -> void:
 	var shooter := _entity(SHOOTER_PATH)
 	shooter.global_position = Vector3.ZERO
@@ -99,14 +118,19 @@ func test_the_order_turns_and_ranges_on_the_ground_point() -> void:
 	var order := FocusFire.new(CommandMessage.new(null, hovering, null, Vector3(40.0, 0.0, 0.0)))
 	assert_true(order.should_move(shooter), "the ground point is out of reach, so it closes")
 	assert_eq(str(order), "FocusFire: %s" % Vector3(40.0, 0.0, 0.0))
+
+
 #endregion
+
 
 #region Capability
 func test_a_shooter_advertises_the_command() -> void:
 	assert_true(CommandContextParser.commands_for(_entity(SHOOTER_PATH)).has("command_focus_fire"))
 
+
 func test_an_unarmed_unit_does_not() -> void:
 	assert_false(CommandContextParser.commands_for(_entity(BUILDER_PATH)).has("command_focus_fire"))
+
 
 ## An anti-air battery keeps Attack and attack-move — it has a Loadout — and loses only the
 ## order it could not carry out.
@@ -115,10 +139,14 @@ func test_an_anti_air_battery_keeps_attack_but_not_focus_fire() -> void:
 	assert_true(commands.has("command_attack"))
 	assert_false(commands.has("command_focus_fire"))
 
+
 func test_a_live_focus_fire_names_itself() -> void:
 	var command := FocusFire.new(CommandMessage.new(null))
 	assert_eq(CommandContextParser.name_for(command), "command_focus_fire")
+
+
 #endregion
+
 
 #region The grid
 ## F, beside the other orders every unit answers to. It took the cell Evacuate used to
@@ -126,6 +154,7 @@ func test_a_live_focus_fire_names_itself() -> void:
 func test_fire_is_on_f_and_evacuate_moved_to_v() -> void:
 	assert_eq(InputPrompt.action_text(CommandGrid.action_for_command("command_focus_fire")), "F")
 	assert_eq(InputPrompt.action_text(CommandGrid.action_for_command("command_evacuate")), "V")
+
 
 ## The other half of the same row rearrangement: a plain move is orderable at last.
 func test_go_is_on_g() -> void:

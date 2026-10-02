@@ -16,9 +16,12 @@ const TINT_MIN: float = 0.85
 const TINT_MAX: float = 1.1
 ## Foliage sway, as DoodadLibrary heights go (doodad.gdshader sway_amount).
 const SWAY_BY_KIND: Dictionary = {
-	DoodadLibrary.Kind.CONIFER: 0.015, DoodadLibrary.Kind.BROADLEAF: 0.02,
-	DoodadLibrary.Kind.BUSH: 0.05, DoodadLibrary.Kind.GRASS_TUFT: 0.25,
-	DoodadLibrary.Kind.FLOWERS: 0.25, DoodadLibrary.Kind.REEDS: 0.2,
+	DoodadLibrary.Kind.CONIFER: 0.015,
+	DoodadLibrary.Kind.BROADLEAF: 0.02,
+	DoodadLibrary.Kind.BUSH: 0.05,
+	DoodadLibrary.Kind.GRASS_TUFT: 0.25,
+	DoodadLibrary.Kind.FLOWERS: 0.25,
+	DoodadLibrary.Kind.REEDS: 0.2,
 }
 ## A collapsed instance: how a cleared prop is hidden without reindexing the MultiMesh.
 const _HIDDEN := Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3.ZERO)
@@ -26,7 +29,8 @@ const _HIDDEN := Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Ve
 const FACET_COLORS: Dictionary = {
 	MapDecoration.Facet.CLIFF_FACE: Color(0.9, 0.5, 0.1),
 	MapDecoration.Facet.SHORE: Color(0.2, 0.8, 0.9),
-	MapDecoration.Facet.WATERFALL: Color(1, 1, 1), MapDecoration.Facet.MOUNTAIN: Color(0.6, 0.3, 0.8),
+	MapDecoration.Facet.WATERFALL: Color(1, 1, 1),
+	MapDecoration.Facet.MOUNTAIN: Color(0.6, 0.3, 0.8),
 	MapDecoration.Facet.RAMP: Color(1, 0.9, 0.1),
 }
 #endregion
@@ -78,6 +82,8 @@ func clear_cells(a_cells: Array[Vector2i]) -> void:
 			var multimesh: MultiMesh = _multimeshes[entry[0]]
 			multimesh.set_instance_transform(entry[1], _HIDDEN)
 		_by_cell.erase(cell)
+
+
 #endregion
 
 
@@ -134,8 +140,13 @@ func _build_facet_markers(a_decoration: MapDecoration, grid_half: Vector2) -> vo
 		for i: int in cells.size():
 			var cell: Vector2i = cells[i]
 			var y: float = map.terrain_data.cell_mean_height(cell) if map != null else 0.0
-			multimesh.set_instance_transform(i, Transform3D(Basis.IDENTITY,
-				Vector3(cell.x + 0.5 - grid_half.x, y + 0.3, cell.y + 0.5 - grid_half.y)))
+			multimesh.set_instance_transform(
+				i,
+				Transform3D(
+					Basis.IDENTITY,
+					Vector3(cell.x + 0.5 - grid_half.x, y + 0.3, cell.y + 0.5 - grid_half.y)
+				)
+			)
 		var node := MultiMeshInstance3D.new()
 		node.name = "Facet" + String(MapDecoration.Facet.keys()[facet]).to_pascal_case()
 		node.multimesh = multimesh

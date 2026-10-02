@@ -18,10 +18,10 @@ extends MoveCommand
 ## So unlocking Scan does not let the commander scan; it lets every Operations Center they
 ## own scan, once each, on independent timers. Losing the building loses the ability.
 
+
 #region Preconditions
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	var sanction: Sanction = message.sanction if message != null else null
 	if actor == null or sanction == null or actor.commander == null:
@@ -31,8 +31,10 @@ static func meets_precondition(
 	if abilities == null or not abilities.grants(sanction.ability_id) or not actor.is_built:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	# Not unlocked (or superseded by an upgrade).
-	if actor.commander.sanction_grid == null \
-			or not actor.commander.sanction_grid.is_unlocked(sanction):
+	if (
+		actor.commander.sanction_grid == null
+		or not actor.commander.sanction_grid.is_unlocked(sanction)
+	):
 		return PreconditionFailureCause.MISSING_STRUCTURE
 	# A DARK BUILDING CASTS NOTHING. Never deferred, unlike a spent charge: waiting closes a
 	# cooldown, not an infrastructure shortfall. See Abilities.is_operational.
@@ -61,8 +63,9 @@ static func requires_position() -> bool:
 ## so it must not answer this differently.
 static func default_cast_arity(message: CommandMessage) -> CastArity:
 	var sanction: Sanction = message.sanction if message != null else null
-	return AbilityCatalog.cast_arity_of(sanction.ability_id) if sanction != null \
-		else CastArity.SINGLE
+	return (
+		AbilityCatalog.cast_arity_of(sanction.ability_id) if sanction != null else CastArity.SINGLE
+	)
 
 
 ## The charge is spent, so the button greys; the order is still accepted and waits.
@@ -82,9 +85,11 @@ static func actor_is_recharging(actor: Commandable) -> bool:
 
 
 static func _abilities_of(actor: Commandable) -> Abilities:
-	return actor.get_node_or_null("Abilities") as Abilities \
-		if actor != null else null
+	return actor.get_node_or_null("Abilities") as Abilities if actor != null else null
+
+
 #endregion
+
 
 #region State updates
 ## A building does not travel to its target — its reach is the sanction's own.
@@ -94,8 +99,11 @@ func should_move(_a_actor: Commandable) -> bool:
 
 func can_act(a_actor: Commandable) -> bool:
 	var abilities: Abilities = _abilities_of(a_actor)
-	return abilities != null and message.sanction != null \
+	return (
+		abilities != null
+		and message.sanction != null
 		and abilities.is_ready(message.sanction.ability_id)
+	)
 
 
 ## One order, one casting. Returning null ends the command rather than leaving the building

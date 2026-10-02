@@ -45,10 +45,14 @@ var secondary_text: String = ""
 var _acknowledged: bool = false
 #endregion
 
+
 #region Lifecycle
 func _init(a_page: PackedScene = null) -> void:
 	page = a_page
+
+
 #endregion
+
 
 #region Public API
 ## Accept the dialog. Idempotent — the second call does nothing, so a double-click on the

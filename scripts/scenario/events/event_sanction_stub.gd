@@ -27,6 +27,13 @@ extends AbstractEvent
 
 
 func execute(_a_manager: ScenarioTriggerManager) -> void:
-	print("[sanction stub] '%s' fired at %s for commander %d — no payload built yet." % [
-		sanction_name if not sanction_name.is_empty() else name, global_position, commander_id
-	])
+	print(
+		(
+			"[sanction stub] '%s' fired at %s for commander %d — no payload built yet."
+			% [
+				sanction_name if not sanction_name.is_empty() else name,
+				global_position,
+				commander_id
+			]
+		)
+	)

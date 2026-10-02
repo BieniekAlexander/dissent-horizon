@@ -1,9 +1,11 @@
 class_name Occupy
 extends MoveCommand
 
+
 #region Preconditions
 static func requires_position() -> bool:
 	return true
+
 
 ## Valid when:
 ##   - the target is a Commandable that owns a Garrison component and is either
@@ -16,14 +18,15 @@ static func requires_position() -> bool:
 ## Remaining capacity is deliberately NOT part of the precondition — it is checked in
 ## can_act(), so a unit ordered into a full garrison walks over and waits for a slot.
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if not is_instance_valid(message.target) or not (message.target is Commandable):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	return PreconditionFailureCause.NONE \
-		if host_admits(actor, message.target as Commandable) \
+	return (
+		PreconditionFailureCause.NONE
+		if host_admits(actor, message.target as Commandable)
 		else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	)
 
 
 ## Whether `a_occupant` may be ordered into `a_host`'s garrison — the whole of this
@@ -56,6 +59,8 @@ static func host_admits(occupant: Commandable, host: Commandable) -> bool:
 	# Own-team garrisons and commanderless (neutral) garrisons are both occupiable;
 	# an enemy-held garrison is not.
 	return host.commander_id == occupant.commander_id or host.commander_id == 0
+
+
 #endregion
 
 #region Properties
@@ -82,22 +87,31 @@ var _garrison_registered_actor: Commandable = null
 var _rvo_suppressed_actor: Commandable = null
 #endregion
 
+
 #region Private helpers
 func _ensure_collision_exception(a_actor: Commandable) -> void:
 	if _excluded_actor != null:
 		return
-	if is_instance_valid(a_actor) and is_instance_valid(message.target) \
-			and message.target is CollisionObject3D:
+	if (
+		is_instance_valid(a_actor)
+		and is_instance_valid(message.target)
+		and message.target is CollisionObject3D
+	):
 		a_actor.add_collision_exception_with(message.target)
 		_excluded_actor = a_actor
+
 
 ## Restore normal collision between the actor and the target. Safe to call
 ## multiple times and when either node is already gone.
 func _clear_collision_exception() -> void:
-	if is_instance_valid(_excluded_actor) and is_instance_valid(message.target) \
-			and message.target is CollisionObject3D:
+	if (
+		is_instance_valid(_excluded_actor)
+		and is_instance_valid(message.target)
+		and message.target is CollisionObject3D
+	):
 		_excluded_actor.remove_collision_exception_with(message.target)
 	_excluded_actor = null
+
 
 func _ensure_rvo_suppression(a_actor: Commandable) -> void:
 	if _rvo_suppressed_actor != null:
@@ -110,6 +124,7 @@ func _ensure_rvo_suppression(a_actor: Commandable) -> void:
 		if target != null and target.movement != null:
 			target.movement.suppress_avoidance_layers()
 
+
 func _clear_rvo_suppression() -> void:
 	if is_instance_valid(_rvo_suppressed_actor) and _rvo_suppressed_actor.movement != null:
 		_rvo_suppressed_actor.movement.restore_avoidance_layers()
@@ -118,7 +133,10 @@ func _clear_rvo_suppression() -> void:
 		var target := message.target as Commandable
 		if target != null and target.movement != null:
 			target.movement.restore_avoidance_layers()
+
+
 #endregion
+
 
 #region State updates
 ## Cancel if the target is destroyed while the unit is en route.
@@ -132,13 +150,17 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	_ensure_collision_exception(a_actor)
 	_ensure_rvo_suppression(a_actor)
 	var host := message.target as Commandable
-	if host != null and host.aerial != null \
-			and host.aerial.mode == Movement.Mode.HOVERING \
-			and host.garrison != null \
-			and _garrison_registered_actor == null:
+	if (
+		host != null
+		and host.aerial != null
+		and host.aerial.mode == Movement.Mode.HOVERING
+		and host.garrison != null
+		and _garrison_registered_actor == null
+	):
 		host.garrison.register_garrison_intent(a_actor)
 		_garrison_registered_actor = a_actor
 	return self
+
 
 ## The host, for the whole life of the order. A passenger must not steer around the very
 ## thing it is climbing into, and the host driving to meet it must not shove it aside.
@@ -150,6 +172,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 func avoidance_exception(_a_actor: Commandable) -> Commandable:
 	return message.target as Commandable if is_instance_valid(message.target) else null
 
+
 ## While the host is a HOVERING unit that has not yet grounded, keep approaching
 ## unconditionally so the actor tracks the host's moving XZ position.
 ## Once grounded, fall back to the normal proximity check.
@@ -157,11 +180,15 @@ func should_move(a_actor: Commandable) -> bool:
 	if not is_instance_valid(message.target):
 		return false
 	var host := message.target as Commandable
-	if host != null and host.aerial != null \
-			and host.aerial.mode == Movement.Mode.HOVERING \
-			and not host.aerial.is_grounded_temp():
+	if (
+		host != null
+		and host.aerial != null
+		and host.aerial.mode == Movement.Mode.HOVERING
+		and not host.aerial.is_grounded_temp()
+	):
 		return true
 	return not SU.unit_is_close_to_target(a_actor, message.target)
+
 
 ## Occupy once adjacent and the garrison still has room.
 ## For HOVERING hosts the host descends automatically (driven by
@@ -177,11 +204,15 @@ func can_act(a_actor: Commandable) -> bool:
 	if garrison == null or not garrison.accepts(a_actor):
 		return false
 	var host := message.target as Commandable
-	if host != null and host.aerial != null \
-			and host.aerial.mode == Movement.Mode.HOVERING \
-			and not host.aerial.is_grounded_temp():
+	if (
+		host != null
+		and host.aerial != null
+		and host.aerial.mode == Movement.Mode.HOVERING
+		and not host.aerial.is_grounded_temp()
+	):
 		return false
 	return true
+
 
 ## Remove the acting unit from the scene tree into the garrison.
 func fulfill_action(a_actor: Commandable) -> Variant:
@@ -193,8 +224,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if garrison == null:
 		return null
 	var host := message.target as Commandable
-	if host != null and host.aerial != null \
-			and host.aerial.mode == Movement.Mode.HOVERING:
+	if host != null and host.aerial != null and host.aerial.mode == Movement.Mode.HOVERING:
 		# Only accept units that are still registered; units that died during
 		# the descent removed themselves from the list via tree_exiting.
 		if not a_actor in garrison._pending_garrison_units:
@@ -203,7 +233,10 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		_garrison_registered_actor = null
 	garrison.garrison(a_actor)
 	return null
+
+
 #endregion
+
 
 #region Lifecycle
 ## Replaced mid-approach (the player issued a new order), the command leaves without completing,
@@ -230,7 +263,10 @@ func _notification(a_what: int) -> void:
 		if target != null and target.movement != null:
 			target.movement.restore_avoidance_layers()
 	super._notification(a_what)
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

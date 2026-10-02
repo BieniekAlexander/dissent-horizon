@@ -47,6 +47,7 @@ func _captions() -> Array[String]:
 
 # --- Which widgets a piece gets ------------------------------------------------------
 
+
 func test_a_single_selection_draws_the_row() -> void:
 	_row.update([_piece(TURRET_SCENE)])
 	assert_true(_row.visible)
@@ -88,8 +89,11 @@ func test_every_widget_carries_a_tooltip() -> void:
 	for child: Node in _row.get_children():
 		var button := child as VerboseTooltipButton
 		assert_not_null(button, "%s is a tooltip button" % child.name)
-		assert_ne(button.simple_tooltip, VerboseTooltipButton.MISSING_TOOLTIP,
-			"%s has real copy" % child.name)
+		assert_ne(
+			button.simple_tooltip,
+			VerboseTooltipButton.MISSING_TOOLTIP,
+			"%s has real copy" % child.name
+		)
 
 
 func test_only_the_range_bearing_widgets_ask_for_a_reveal() -> void:
@@ -98,11 +102,11 @@ func test_only_the_range_bearing_widgets_ask_for_a_reveal() -> void:
 	_row.update([_piece(TURRET_SCENE)])
 	for child: Node in _row.get_children():
 		var expected: bool = String(child.name) in ["Widget_Weapon", "Widget_Sight"]
-		assert_eq(child.has_meta(&"range_kinds"), expected,
-			"%s asks for a reveal" % child.name)
+		assert_eq(child.has_meta(&"range_kinds"), expected, "%s asks for a reveal" % child.name)
 
 
 # --- The status effect row -----------------------------------------------------------
+
 
 func test_an_unaffected_piece_draws_no_effect_row() -> void:
 	_effects.update([_piece(WORKER_SCENE)])
@@ -133,6 +137,7 @@ func test_an_unnamed_effect_reads_as_unfinished_rather_than_blank() -> void:
 ## Every row in the panel is single-selection only. A group has no single answer to any of
 ## the questions a row asks, and a merged description would describe a unit that is not on
 ## the field — so what a multi-selection shows is WHO is selected.
+
 
 func test_the_widget_row_hides_for_a_group() -> void:
 	_row.update([_piece(TURRET_SCENE), _piece(WORKER_SCENE)])

@@ -31,13 +31,13 @@ const EXTRACTOR_DROP_CHARGES: int = 2
 ## the Anarchists'. A faction missing here cannot deploy by drop.
 const COMMAND_CENTRE_SCENES: Dictionary = {
 	"res://scenes/factions/anarchical.tscn":
-		"res://scenes/entities/structures/an/an_commandCenter.tscn",
+	"res://scenes/entities/structures/an/an_commandCenter.tscn",
 	"res://scenes/factions/colonial.tscn":
-		"res://scenes/entities/structures/cl/cl_commandCenter.tscn",
+	"res://scenes/entities/structures/cl/cl_commandCenter.tscn",
 	"res://scenes/factions/libertarian.tscn":
-		"res://scenes/entities/structures/lb/lb_commandCenter.tscn",
+	"res://scenes/entities/structures/lb/lb_commandCenter.tscn",
 	"res://scenes/factions/technocratic.tscn":
-		"res://scenes/entities/structures/an/an_commandCenter.tscn",
+	"res://scenes/entities/structures/an/an_commandCenter.tscn",
 }
 
 ## What an extractor drop puts down: a neutral site, and the slot's extractor on it. The pair the
@@ -99,6 +99,8 @@ func has_landed_command_centre() -> bool:
 ## Whether every drop has been spent; the deployment panel goes with the last one.
 func is_spent() -> bool:
 	return _charges.values().all(func(a_count: int) -> bool: return a_count <= 0)
+
+
 #endregion
 
 
@@ -120,8 +122,9 @@ func verdict(a_drop: Drop, a_xz: Vector2) -> Verdict:
 	if not Structure.valid_placement(message, dims, rule["allow_uneven"], false):
 		return Verdict.BAD_FOOTPRINT
 	var cells: Array[Vector2i] = map.footprint_cells(a_xz, dims)
-	if not cells.all(func(a_cell: Vector2i) -> bool:
-			return _commander.has_vision_at(map.grid_to_world(a_cell))):
+	if not cells.all(
+		func(a_cell: Vector2i) -> bool: return _commander.has_vision_at(map.grid_to_world(a_cell))
+	):
 		return Verdict.OUT_OF_VISION
 	if _has_foreign_units_on(footprint_area(map, map.footprint_origin(a_xz, dims), dims)):
 		return Verdict.UNITS_IN_THE_WAY
@@ -152,8 +155,13 @@ func _footprint_scene(a_drop: Drop) -> PackedScene:
 
 func _footprint_rule(a_drop: Drop) -> Dictionary:
 	if not _footprint_rules.has(a_drop):
-		assert(_footprint_scene(a_drop) != null, "Deployment: nothing to drop for %s — a faction "
-			% Drop.keys()[a_drop] + "missing from COMMAND_CENTRE_SCENES")
+		assert(
+			_footprint_scene(a_drop) != null,
+			(
+				"Deployment: nothing to drop for %s — a faction " % Drop.keys()[a_drop]
+				+ "missing from COMMAND_CENTRE_SCENES"
+			)
+		)
 		var probe: Node = _footprint_scene(a_drop).instantiate()
 		var structure := probe.get_node_or_null("Structure") as Structure
 		_footprint_rules[a_drop] = {
@@ -187,26 +195,35 @@ static func footprint_area(a_map: Map, a_origin: Vector2i, a_dims: Vector2i) -> 
 
 ## Every ground unit whose body overlaps `a_area`. A flier over a spot does not stand on it.
 func units_on(a_area: Rect2) -> Array:
-	return _ground_units().filter(func(a_unit: Commandable) -> bool:
-		return overlaps(VU.inXZ(a_unit.global_position),
-			a_unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION), a_area))
+	return _ground_units().filter(
+		func(a_unit: Commandable) -> bool:
+			return overlaps(
+				VU.inXZ(a_unit.global_position),
+				a_unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION),
+				a_area
+			)
+	)
 
 
 func _has_foreign_units_on(a_area: Rect2) -> bool:
-	return units_on(a_area).any(func(a_unit: Commandable) -> bool:
-		return a_unit.commander_id != _commander.id)
+	return units_on(a_area).any(
+		func(a_unit: Commandable) -> bool: return a_unit.commander_id != _commander.id
+	)
 
 
 ## Every unit on the map that stands on the ground, whoever owns it.
 func _ground_units() -> Array:
-	return _commander.get_tree().get_nodes_in_group("unit").filter(func(a_node: Node) -> bool:
-		return a_node is Commandable and Aerial.of(a_node) == null)
+	return _commander.get_tree().get_nodes_in_group("unit").filter(
+		func(a_node: Node) -> bool: return a_node is Commandable and Aerial.of(a_node) == null
+	)
 
 
 ## Whether a body of `a_radius` standing at `a_xz` reaches into `a_area`.
 static func overlaps(a_xz: Vector2, a_radius: float, a_area: Rect2) -> bool:
 	var nearest: Vector2 = a_xz.clamp(a_area.position, a_area.end)
 	return a_area.has_point(a_xz) or a_xz.distance_to(nearest) < a_radius
+
+
 #endregion
 
 
@@ -254,8 +271,9 @@ func _land(a_scene: PackedScene, a_centre: Vector2) -> Commandable:
 ## Put a neutral extraction site at `a_centre`, for an extractor drop to stand on.
 func _land_site(a_centre: Vector2) -> void:
 	var neutral: Commander = _commander.scenario.commanders[0]
-	_commander.map.add_entities([(load(EXTRACTION_SITE_SCENE) as PackedScene).instantiate()],
-		a_centre, neutral)
+	_commander.map.add_entities(
+		[(load(EXTRACTION_SITE_SCENE) as PackedScene).instantiate()], a_centre, neutral
+	)
 
 
 ## Move `a_unit` to the nearest ground its size class can stand on, searching outward from where
@@ -266,8 +284,11 @@ static func _step_off(a_unit: Commandable, a_map: Map, a_max_rings: int) -> void
 		var best: Variant = null
 		var best_distance: float = INF
 		for cell: Vector2i in _ring_cells(at, ring):
-			var xz: Vector2 = VU.inXZ(a_map.grid_to_world(cell)) \
-				if a_map.grid_coordinates_in_bounds(cell) else Vector2.INF
+			var xz: Vector2 = (
+				VU.inXZ(a_map.grid_to_world(cell))
+				if a_map.grid_coordinates_in_bounds(cell)
+				else Vector2.INF
+			)
 			if xz == Vector2.INF or not DebugPlacement.figure_admits(a_unit, a_map, xz):
 				continue
 			var distance: float = xz.distance_squared_to(VU.inXZ(a_unit.global_position))

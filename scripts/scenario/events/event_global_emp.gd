@@ -30,6 +30,7 @@ const EMP_EFFECT: PackedScene = preload("res://scenes/entities/status_effects/em
 ## duration: a superweapon holds a battlefield far longer than one shock-trooper arc.
 @export var duration_ticks: int = 150
 
+
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	for node: Node in a_manager.get_tree().get_nodes_in_group("unit"):
 		var unit := node as Commandable

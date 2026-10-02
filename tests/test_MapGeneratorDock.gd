@@ -72,8 +72,10 @@ func test_every_parameter_is_in_exactly_one_group() -> void:
 	var params := MapGenerationParams.new()
 	for property: Dictionary in params.get_property_list():
 		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
-			assert_true(filed.has(String(property.name)),
-				"%s is in no group — file it in PROPERTY_GROUPS" % property.name)
+			assert_true(
+				filed.has(String(property.name)),
+				"%s is in no group — file it in PROPERTY_GROUPS" % property.name
+			)
 			filed.erase(String(property.name))
 	assert_eq(filed.keys(), [], "groups name parameters that no longer exist")
 
@@ -83,10 +85,14 @@ func test_every_parameter_has_a_description() -> void:
 	var params := MapGenerationParams.new()
 	for property: Dictionary in params.get_property_list():
 		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
-			assert_false(String(MapGenerationParams.DESCRIPTIONS.get(String(property.name), "")).is_empty(),
-				"%s has no entry in DESCRIPTIONS" % property.name)
+			assert_false(
+				String(MapGenerationParams.DESCRIPTIONS.get(String(property.name), "")).is_empty(),
+				"%s has no entry in DESCRIPTIONS" % property.name
+			)
 	for property_name: String in MapGenerationParams.DESCRIPTIONS:
-		assert_true(property_name in params, "DESCRIPTIONS names %s, which does not exist" % property_name)
+		assert_true(
+			property_name in params, "DESCRIPTIONS names %s, which does not exist" % property_name
+		)
 
 
 func test_a_field_shows_its_description_on_hover() -> void:
@@ -101,8 +107,12 @@ func test_a_field_shows_its_description_on_hover() -> void:
 func test_the_form_is_sectioned_by_group() -> void:
 	var headings: Array[String] = []
 	for child: Node in _dock._form.get_children():
-		if child is Label and MapGenerationParams.PROPERTY_GROUPS.any(
-				func(group: Dictionary) -> bool: return group.name == (child as Label).text):
+		if (
+			child is Label
+			and MapGenerationParams.PROPERTY_GROUPS.any(
+				func(group: Dictionary) -> bool: return group.name == (child as Label).text
+			)
+		):
 			headings.append((child as Label).text)
 	assert_has(headings, "Elevation")
 	assert_has(headings, "Ponds")
@@ -115,8 +125,11 @@ func test_the_last_pass_is_chosen_from_named_passes() -> void:
 	assert_not_null(menu, "last_pass is an enum, so the form gives it a menu")
 	assert_eq(menu.item_count, MapGenerationParams.Pass.size())
 	assert_eq(menu.get_item_text(0), "Extent")
-	assert_eq(menu.get_item_id(menu.selected), int(MapGenerationParams.Pass.VISUALS),
-		"the default runs every pass")
+	assert_eq(
+		menu.get_item_id(menu.selected),
+		int(MapGenerationParams.Pass.VISUALS),
+		"the default runs every pass"
+	)
 	menu.item_selected.emit(menu.get_item_index(MapGenerationParams.Pass.TOPOLOGY))
 	assert_eq(_dock._params.last_pass, MapGenerationParams.Pass.TOPOLOGY)
 	assert_string_contains(_dock._warnings.text, "topology")

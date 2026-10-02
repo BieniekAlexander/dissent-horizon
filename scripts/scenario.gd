@@ -76,6 +76,7 @@ var commanders: Array = []
 @onready var map: Map = $Map
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	# FIRST, before anything that could draw: the simulation's pseudo-randomness is only
@@ -84,8 +85,12 @@ func _ready() -> void:
 	_create_debug_mode()
 	_ensure_lighting()
 	if map == null:
-		push_error("%s has no Map child: a scenario plays on a map, and every system here "
-			% name + "resolves it as $Map. Instance a map scene under this node.")
+		push_error(
+			(
+				"%s has no Map child: a scenario plays on a map, and every system here " % name
+				+ "resolves it as $Map. Instance a map scene under this node."
+			)
+		)
 		return
 
 	_build_commanders()
@@ -111,7 +116,7 @@ func _ready() -> void:
 	_create_bot_fogs()
 
 	var has_view_camera: bool = false
-	for commander: Commander in commanders: # setting camera
+	for commander: Commander in commanders:  # setting camera
 		if commander.has_node("Camera"):
 			commander.get_node("Camera").make_current()
 			var camera: Node3D = commander.get_node("Camera")
@@ -159,11 +164,15 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		set_physics_process(false)
 
+
 func _physics_process(_a_delta: float) -> void:
 	tick += 1
 	_check_player_eliminated()
 	# $Map.nav_region.bake_navigation_mesh(false)
+
+
 #endregion
+
 
 #region Elimination
 ## The implicit loss every scenario gets for free: owning no units and no structures is a
@@ -205,6 +214,8 @@ func local_player() -> Commander:
 	if pid < 1 or pid >= commanders.size():
 		return null
 	return commanders[pid]
+
+
 #endregion
 
 #region Determinism
@@ -213,6 +224,7 @@ func local_player() -> Commander:
 ## the golden-ratio constant used as a bit-mixer everywhere; nothing depends on which
 ## constant it is, only that it is fixed.
 const _GLOBAL_STREAM_SALT: int = 0x9E3779B9
+
 
 ## Seed every generator the simulation draws from, from this scenario's `rng_seed`.
 ##
@@ -229,6 +241,8 @@ const _GLOBAL_STREAM_SALT: int = 0x9E3779B9
 func seed_simulation() -> void:
 	SU.rng.seed = rng_seed
 	seed(rng_seed ^ _GLOBAL_STREAM_SALT)
+
+
 #endregion
 
 #region Private helpers
@@ -289,8 +303,10 @@ func _validate_player_slots() -> void:
 	if missing.is_empty():
 		return
 	var message: String = (
-		"%s: player slot(s) %s have no faction configured. Every slot must name one — "
-		% [name, str(missing)]
+		(
+			"%s: player slot(s) %s have no faction configured. Every slot must name one — "
+			% [name, str(missing)]
+		)
 		+ "a commander's faction is scenario configuration and has no default."
 	)
 	push_error(message)
@@ -429,18 +445,20 @@ func _setup_spectator_hud() -> void:
 
 func _wire_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
 	var no_fog_btn: Button = a_fog_row.get_node("FogBtn_NoFog")
-	no_fog_btn.pressed.connect(func() -> void:
-		Fog.active_commander_id = -2
-		_refresh_spectator_fog_buttons(a_fog_row)
+	no_fog_btn.pressed.connect(
+		func() -> void:
+			Fog.active_commander_id = -2
+			_refresh_spectator_fog_buttons(a_fog_row)
 	)
 	for commander: Commander in commanders:
 		if commander.id == 0 or not commander is Bot:
 			continue
 		var btn: Button = a_fog_row.get_node("FogBtn_%d" % commander.id)
 		var cid: int = commander.id
-		btn.pressed.connect(func() -> void:
-			Fog.active_commander_id = cid
-			_refresh_spectator_fog_buttons(a_fog_row)
+		btn.pressed.connect(
+			func() -> void:
+				Fog.active_commander_id = cid
+				_refresh_spectator_fog_buttons(a_fog_row)
 		)
 
 
@@ -460,7 +478,8 @@ func _refresh_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
 ## Repaint one commander's spectator resource panel.
 func _refresh_spectator_label(a_label: RichTextLabel, a_commander: Commander) -> void:
 	a_label.text = (
-		"Commander %d:\n\tenergy: %s\n\tinfrastructure: %s\n\tdominion: %s" % [
+		"Commander %d:\n\tenergy: %s\n\tinfrastructure: %s\n\tdominion: %s"
+		% [
 			a_commander.id,
 			a_commander.energy,
 			"%s/%s" % [a_commander.infrastructure_required, a_commander.infrastructure_provided],
@@ -645,7 +664,10 @@ func _on_game_over(a_won: bool) -> void:
 func _on_scenario_completed() -> void:
 	print("[Scenario] All objectives complete.")
 	_on_game_over(true)
+
+
 #endregion
+
 
 #region Debug control
 ## The Scenario `a_node` belongs to: its nearest Scenario ancestor, else the running scene
@@ -657,7 +679,6 @@ static func of(a_node: Node) -> Scenario:
 			return node as Scenario
 		node = node.get_parent()
 	return a_node.get_tree().current_scene as Scenario if a_node.is_inside_tree() else null
-
 
 
 ## Switch `a_bot`'s brain on or off. Switching one ON rebuilds it from scratch, keeping its

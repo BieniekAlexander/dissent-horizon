@@ -2,10 +2,7 @@ class_name CommandReceiver
 extends RefCounted
 
 #region Constants
-enum Disposition {
-	PASSIVE,
-	AGGRESSIVE
-}
+enum Disposition { PASSIVE, AGGRESSIVE }
 #endregion
 
 #region Properties
@@ -26,8 +23,7 @@ var _command: MoveCommand = null:
 		# pushed it into the queue, since it will resume later and should keep its pace.
 		# Callers that displace a command into the queue do so before assigning here, so
 		# the queue check below sees it.
-		if outgoing != null and not is_same(outgoing, value) \
-				and not _command_queue.has(outgoing):
+		if outgoing != null and not is_same(outgoing, value) and not _command_queue.has(outgoing):
 			_release_speed_cap()
 			# Same moment, same test: the command has left for good rather than been pushed
 			# aside, so anything it was holding on the world's behalf (a Spot's beacon) is
@@ -52,10 +48,12 @@ var _approach_command: MoveCommand = null
 var _approach_cell: Vector2i = Vector2i(-1, -1)
 #endregion
 
+
 #region Public API
 func initialize(a_owner: Commandable) -> void:
 	owner = a_owner
 	_command_queue = []
+
 
 ## Drop the group-move speed cap set by RTSController.assign_command_to_units, so a unit whose
 ## group order has ended goes back to its own speed.
@@ -68,8 +66,10 @@ func _release_speed_cap() -> void:
 	if owner != null and is_instance_valid(owner) and owner.movement != null:
 		owner.movement.speed_cap = 0.0
 
+
 func has_pending_work() -> bool:
 	return _command != null or not _command_queue.is_empty()
+
 
 ## Returns the active command followed by any queued commands, in execution order.
 func get_command_chain() -> Array[MoveCommand]:
@@ -78,6 +78,7 @@ func get_command_chain() -> Array[MoveCommand]:
 		chain.append(_command)
 	chain.append_array(_command_queue)
 	return chain
+
 
 ## The part of this receiver's command chain that [a_recipient] could carry out, as fresh
 ## copies — for a unit TRANSFORMATION, where the piece changes but the player's standing
@@ -101,6 +102,7 @@ func portable_chain_for(a_recipient: Commandable) -> Array[MoveCommand]:
 ## running the fallback placeholder. Queued commands count as non-idle.
 func is_idle() -> bool:
 	return _command_queue.is_empty() and (_command == null)
+
 
 ## Stand down the ACTIVE order if it only makes sense with ammunition: push it to the front
 ## of the queue and stop driving it. Reports whether anything moved.
@@ -133,6 +135,7 @@ func awaiting_only_ammo_dependent_work() -> bool:
 			return false
 	return true
 
+
 func has_patrol_command() -> bool:
 	if _command is Patrol:
 		return true
@@ -140,6 +143,7 @@ func has_patrol_command() -> bool:
 		if cmd is Patrol:
 			return true
 	return false
+
 
 ## Pops and returns the positions of every leading Patrol command from the front
 ## of the queue (stopping at the first non-Patrol entry). Used by Patrol.fulfill_action
@@ -164,13 +168,18 @@ func consume_leading_patrol_positions() -> Array[Vector3]:
 ## interrupt and then dropped kept its unit's collision exception with the host.
 func _release_dropped(a_before: Array[MoveCommand]) -> void:
 	for dropped: MoveCommand in a_before:
-		if dropped.has_been_active and not is_same(dropped, _command) \
-				and not _command_queue.has(dropped):
+		if (
+			dropped.has_been_active
+			and not is_same(dropped, _command)
+			and not _command_queue.has(dropped)
+		):
 			dropped.on_released(owner)
+
 
 func load_destination(a_command: MoveCommand) -> void:
 	if owner.can_move():
 		owner.locomotion.set_goal(_resolve_movement_target(a_command), _arrival_for(a_command))
+
 
 ## The nav-mesh point a command should actually walk toward. For a structure
 ## target, that's the structure's footprint-adjacent cell closest to THIS actor
@@ -186,14 +195,19 @@ func _resolve_movement_target(a_command: MoveCommand) -> Vector3:
 		return named
 	var target: Entity = a_command.message.target
 	# TODO undo swapping or with and
-	if target != null and is_instance_valid(target) and target is Entity \
-			and target.is_in_group("fixture"):
+	if (
+		target != null
+		and is_instance_valid(target)
+		and target is Entity
+		and target.is_in_group("fixture")
+	):
 		var map: Map = a_command.message.map
 		if map != null:
 			var cell: Vector2i = _resolve_structure_approach(a_command, target as Entity, map)
 			if cell != Vector2i(-1, -1):
 				return map.grid_to_world(cell)
 	return a_command.message.position
+
 
 ## The footprint-adjacent cell `a_command` should walk to: the nearest one this unit's own
 ## class navmesh can actually path to, else the nearest one outright. Nearest-by-distance
@@ -202,27 +216,36 @@ func _resolve_movement_target(a_command: MoveCommand) -> Vector3:
 ## tick, and a loaded Stock Truck sat there for good. Memoized per command — see
 ## _approach_command — and re-asked only if the chosen cell has since been built over.
 func _resolve_structure_approach(a_command: MoveCommand, a_target: Entity, a_map: Map) -> Vector2i:
-	if is_same(_approach_command, a_command) and _approach_cell != Vector2i(-1, -1) \
-			and a_map.terrain_grid.is_passable(_approach_cell):
+	if (
+		is_same(_approach_command, a_command)
+		and _approach_cell != Vector2i(-1, -1)
+		and a_map.terrain_grid.is_passable(_approach_cell)
+	):
 		return _approach_cell
-	var nav_class: int = owner.movement.nav_agent_class if owner.movement != null \
-			else SU.NO_NAV_CLASS
+	var nav_class: int = (
+		owner.movement.nav_agent_class if owner.movement != null else SU.NO_NAV_CLASS
+	)
 	var cells: Array[Vector2i] = SU.footprint_approach_cells(
-		owner.global_position, a_target, a_map, nav_class)
+		owner.global_position, a_target, a_map, nav_class
+	)
 	if cells.is_empty():
 		return Vector2i(-1, -1)
 	var chosen: Vector2i = cells.front()
 	if owner.movement != null:
 		var points: Array = cells.map(func(c: Vector2i) -> Vector3: return a_map.grid_to_world(c))
 		var reachable: Variant = owner.movement.first_reachable(
-			points, SU.class_standoff_reach(nav_class))
+			points, SU.class_standoff_reach(nav_class)
+		)
 		if reachable != null:
 			chosen = cells[points.find(reachable)]
 	_approach_command = a_command
 	_approach_cell = chosen
 	return chosen
 
-func update_commands(a_commands: Variant, a_add_to_queue: bool = false, a_prepend: bool = false) -> void:
+
+func update_commands(
+	a_commands: Variant, a_add_to_queue: bool = false, a_prepend: bool = false
+) -> void:
 	var queued_before: Array[MoveCommand] = _command_queue.duplicate()
 	_update_commands(a_commands, a_add_to_queue, a_prepend)
 	_release_dropped(queued_before)
@@ -270,7 +293,10 @@ func _update_commands(a_commands: Variant, a_add_to_queue: bool, a_prepend: bool
 			_command = a_commands[0]
 	else:
 		push_error("MoveCommand argument is unsupported, arg=%s" % a_commands)
+
+
 #endregion
+
 
 #region Command processing
 ## One tick of the active order, reported to the owner's ActionTracker as what the tick was
@@ -345,8 +371,11 @@ static func _target_has_left_play(a_message: CommandMessage) -> bool:
 ## Why each: gdd/systems/commands/the-command-tick.md §Three things suspend command
 ## processing.
 func _command_processing_suspended() -> bool:
-	return owner.is_stunned() or not owner.is_built \
+	return (
+		owner.is_stunned()
+		or not owner.is_built
 		or (owner.movement != null and owner.movement.is_parachuting())
+	)
 
 
 ## Stop the owner where it stands. No-op for a commandable with no Movement (a structure).
@@ -375,8 +404,12 @@ static func _last_goal_of(a_command: MoveCommand) -> Variant:
 	if a_command == null:
 		return null
 	var target: Variant = a_command.message.target
-	if target != null and is_instance_valid(target) and target is Node \
-			and not (target as Node).is_inside_tree():
+	if (
+		target != null
+		and is_instance_valid(target)
+		and target is Node
+		and not (target as Node).is_inside_tree()
+	):
 		return null
 	return a_command.message.position
 
@@ -438,8 +471,11 @@ func _drive_movement() -> void:
 	else:
 		# Not following, or no longer. `_follow_cmd` (a RefCounted we hold) is the reliable
 		# "we WERE following" flag; `_followed` reads as null once freed, so it cannot gate this.
-		var target_died: bool = _follow_cmd != null and is_same(_follow_cmd, _command) \
-				and not is_instance_valid(_followed)
+		var target_died: bool = (
+			_follow_cmd != null
+			and is_same(_follow_cmd, _command)
+			and not is_instance_valid(_followed)
+		)
 		_followed = null
 		_follow_cmd = null
 		if target_died:
@@ -456,8 +492,9 @@ func _drive_movement() -> void:
 ## Stop at the goal only on the FINAL queued destination, and never for an attack or a patrol,
 ## which carry on past the point they aim at.
 func _arrival_for(a_command: MoveCommand) -> Locomotion.Arrival:
-	var is_final: bool = _command_queue.is_empty() \
-			and not (a_command is Attack) and not (a_command is Patrol)
+	var is_final: bool = (
+		_command_queue.is_empty() and not (a_command is Attack) and not (a_command is Patrol)
+	)
 	return Locomotion.Arrival.STOP if is_final else Locomotion.Arrival.PASS_THROUGH
 
 
@@ -528,7 +565,10 @@ func _update_state() -> void:
 	owner._process_commands()
 
 	_reconcile_follow_avoidance()
+
+
 #endregion
+
 
 #region Private helpers
 ## The friendly unit this unit is currently "following" — i.e. its active command
@@ -539,11 +579,17 @@ func _follow_target() -> Commandable:
 		return null
 	var t: Entity = _command.message.target
 	# TODO remove the hacky check
-	if t != null and is_instance_valid(t) and t is Commandable \
-				and t != owner and t.is_in_group("unit") \
-			and (t as Commandable).commander_id == owner.commander_id:
+	if (
+		t != null
+		and is_instance_valid(t)
+		and t is Commandable
+		and t != owner
+		and t.is_in_group("unit")
+		and (t as Commandable).commander_id == owner.commander_id
+	):
 		return t as Commandable
 	return null
+
 
 ## Suppress reciprocal RVO avoidance between this unit and the one it follows so
 ## the follower can close in without the pair shoving each other apart. Recomputed
@@ -552,6 +598,7 @@ func _reconcile_follow_avoidance() -> void:
 	if owner.movement == null:
 		return
 	owner.movement.set_avoidance_follow_target(_avoidance_exception_target())
+
 
 ## The one commandable this unit ignores in RVO this tick: whatever its active command names
 ## (a garrison order names the other half of itself — see MoveCommand.avoidance_exception),

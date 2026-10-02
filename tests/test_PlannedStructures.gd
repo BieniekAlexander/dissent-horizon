@@ -21,19 +21,27 @@ var _trained_type: StringName = TRAINEE_TYPE
 var _producer_tool: Tool
 
 
-class StubMap extends Map:
+class StubMap:
+	extends Map
 	var placed: Array = []
+
 	func _ready() -> void:
 		pass
+
 	func grid_to_world(a_cell: Vector2i) -> Vector3:
 		return Vector3(a_cell.x, 0.0, a_cell.y)
+
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
 		return a_coords.x >= 0 and a_coords.x < 17 and a_coords.y >= 0 and a_coords.y < 17
-	func add_structure(a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true) -> void:
+
+	func add_structure(
+		a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true
+	) -> void:
 		placed.append({"structure": a_structure, "center": a_world_center})
 		structure_cell_map[a_structure] = [world_to_grid(a_world_center)]
 		a_structure.map = self
 		a_structure.refresh_movement_collision()
+
 	func remove_structure(a_structure: Entity, _a_rebake: bool = true) -> void:
 		structure_cell_map.erase(a_structure)
 
@@ -41,7 +49,6 @@ class StubMap extends Map:
 var _world: Node3D
 var _map: StubMap
 var _commander: Commander
-
 
 
 func after_each() -> void:
@@ -58,11 +65,25 @@ func before_each() -> void:
 	add_child_autofree(_world)
 	_commander.map = _map
 	_commander.add_energy(10000)
-	_commander.technology_mapping = {PRODUCER_TYPE: FakePieces.tech(200), TRAINEE_TYPE: FakePieces.tech(100)}
-	_producer_tool = FakePieces.register_tool(FakePieces.tool(PRODUCER_TYPE,
-		{"structure": true, "produces": [TRAINEE_TYPE], "vision": 10.0, "dimensions": Vector2i(3, 3)}))
-	FakePieces.register_tool(FakePieces.tool(TRAINEE_TYPE, FakePieces.PLAIN, [],
-		ControlBinding.ControlContext.TRAIN, [PRODUCER_TYPE]))
+	_commander.technology_mapping = {
+		PRODUCER_TYPE: FakePieces.tech(200), TRAINEE_TYPE: FakePieces.tech(100)
+	}
+	_producer_tool = FakePieces.register_tool(
+		FakePieces.tool(
+			PRODUCER_TYPE,
+			{
+				"structure": true,
+				"produces": [TRAINEE_TYPE],
+				"vision": 10.0,
+				"dimensions": Vector2i(3, 3)
+			}
+		)
+	)
+	FakePieces.register_tool(
+		FakePieces.tool(
+			TRAINEE_TYPE, FakePieces.PLAIN, [], ControlBinding.ControlContext.TRAIN, [PRODUCER_TYPE]
+		)
+	)
 	# These tests drive production_queue.tick() themselves and await frames to let
 	# queue_free settle; the commander's own _physics_process would also run its fog /
 	# blackboard perception pass, which needs a scenario rig none of this stands up.
@@ -119,8 +140,11 @@ func test_every_builder_in_an_order_shares_one_blueprint() -> void:
 	for i in range(4):
 		snapshots.append(CommandMessage.deep_copy(message))
 	for snapshot: CommandMessage in snapshots:
-		assert_same(snapshot.planned_structure, blueprint,
-			"each builder's snapshot points at the one blueprint")
+		assert_same(
+			snapshot.planned_structure,
+			blueprint,
+			"each builder's snapshot points at the one blueprint"
+		)
 
 
 func test_blueprint_stands_on_the_footprint_centre() -> void:
@@ -129,29 +153,43 @@ func test_blueprint_stands_on_the_footprint_centre() -> void:
 	var expected: Vector3 = _map.footprint_centroid(
 		_map.footprint_origin(Vector2(2.0, 3.0), Vector2i(3, 3)), Vector2i(3, 3)
 	)
-	assert_eq(blueprint.global_position, expected,
-		"the blueprint stands where the structure will land")
+	assert_eq(
+		blueprint.global_position, expected, "the blueprint stands where the structure will land"
+	)
 
 
 ## The safehouse conversion transitions a building that already stands there; there is no
 ## site to mark, so no blueprint is raised.
 func test_no_blueprint_without_a_chosen_structure() -> void:
-	assert_null(Build.plan_structure(_commander, CommandMessage.new(_map)),
-		"a Build with no tool yet plans nothing")
+	assert_null(
+		Build.plan_structure(_commander, CommandMessage.new(_map)),
+		"a Build with no tool yet plans nothing"
+	)
+
+
 #endregion
 
 
 #region Not physically there
 func test_blueprint_is_intangible() -> void:
 	var blueprint: Commandable = _plan()
-	assert_eq(blueprint.collision_layer & CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, 0,
-		"units walk through a building that isn't there yet")
+	assert_eq(
+		blueprint.collision_layer & CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
+		0,
+		"units walk through a building that isn't there yet"
+	)
 	var target_body := blueprint.get_node_or_null("TargetBody") as StaticBody3D
 	if target_body != null:
-		assert_eq(target_body.collision_layer & CollisionLayers.TARGETABLE_ANY, 0,
-			"nothing can target a blueprint")
-		assert_eq(target_body.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER, 0,
-			"a blueprint doesn't block line of fire")
+		assert_eq(
+			target_body.collision_layer & CollisionLayers.TARGETABLE_ANY,
+			0,
+			"nothing can target a blueprint"
+		)
+		assert_eq(
+			target_body.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER,
+			0,
+			"a blueprint doesn't block line of fire"
+		)
 
 
 func test_blueprint_occupies_no_cells() -> void:
@@ -172,25 +210,37 @@ func test_blueprint_is_not_registered_with_the_commander() -> void:
 	var infrastructure_before: int = _commander.infrastructure_required
 	var blueprint: Commandable = _plan()
 	assert_eq(blueprint.commander, _commander, "it is owned")
-	assert_eq(_commander.infrastructure_required, infrastructure_before,
-		"a blueprint costs no infrastructure upkeep")
-	assert_false(_commander.structure_type_map.get(blueprint.id, Set.new()).contains(blueprint),
-		"and isn't in the structure registry")
+	assert_eq(
+		_commander.infrastructure_required,
+		infrastructure_before,
+		"a blueprint costs no infrastructure upkeep"
+	)
+	assert_false(
+		_commander.structure_type_map.get(blueprint.id, Set.new()).contains(blueprint),
+		"and isn't in the structure registry"
+	)
 
 
 func test_blueprint_runs_no_per_tick_logic() -> void:
 	var blueprint: Commandable = _plan()
-	assert_false(blueprint.is_physics_processing(),
-		"nothing to produce, shoot or die — physics is off until it's placed")
+	assert_false(
+		blueprint.is_physics_processing(),
+		"nothing to produce, shoot or die — physics is off until it's placed"
+	)
 
 
 func test_blueprint_is_drawn_at_the_planned_opacity() -> void:
 	var blueprint: Commandable = _plan()
-	assert_eq(blueprint.construction_opacity(), MeshVisual.OPACITY_PLANNED,
-		"fainter than a structure under construction")
+	assert_eq(
+		blueprint.construction_opacity(),
+		MeshVisual.OPACITY_PLANNED,
+		"fainter than a structure under construction"
+	)
 	var visual := blueprint.get_node_or_null("MeshVisual") as MeshVisual
 	if visual != null:
 		assert_eq(visual.opacity(), MeshVisual.OPACITY_PLANNED, "and the model shows it")
+
+
 #endregion
 
 
@@ -230,6 +280,8 @@ func test_units_queued_at_a_blueprint_wait_for_it() -> void:
 	assert_true(purchase.is_funded(), "but it is paid for")
 	assert_lt(_commander.energy, energy_before, "so the energy has left the pool")
 	assert_true(_commander.production_queue.pending().has(purchase), "it stays queued")
+
+
 #endregion
 
 
@@ -247,12 +299,22 @@ func test_committing_makes_the_same_node_the_real_structure() -> void:
 	# Infrastructure follows FINISHING, not starting (see Commandable.advance_build_progress
 	# and tests/test_UnfinishedConstruction.gd) — a foundation is not yet a working relay or a
 	# load-bearing upkeep, so laying it must not move the pool at all.
-	assert_eq(_commander.infrastructure_required, infrastructure_before,
-		"a foundation does not carry its infrastructure upkeep yet")
-	assert_almost_eq(blueprint.build_progress, Commandable.INITIAL_BUILD_PROGRESS, 0.0001,
-		"construction has started")
-	assert_eq(blueprint.construction_opacity(), MeshVisual.OPACITY_CONSTRUCTING,
-		"and it is drawn as under construction")
+	assert_eq(
+		_commander.infrastructure_required,
+		infrastructure_before,
+		"a foundation does not carry its infrastructure upkeep yet"
+	)
+	assert_almost_eq(
+		blueprint.build_progress,
+		Commandable.INITIAL_BUILD_PROGRESS,
+		0.0001,
+		"construction has started"
+	)
+	assert_eq(
+		blueprint.construction_opacity(),
+		MeshVisual.OPACITY_CONSTRUCTING,
+		"and it is drawn as under construction"
+	)
 
 
 func test_committing_starts_construction_hp() -> void:
@@ -276,6 +338,8 @@ func test_a_consumed_purchase_no_longer_owns_the_blueprint() -> void:
 	purchase.cancel()
 	assert_true(is_instance_valid(blueprint), "the placed structure survives the cancel")
 	assert_false(blueprint.is_queued_for_deletion(), "and isn't queued for deletion")
+
+
 #endregion
 
 
@@ -309,8 +373,10 @@ func test_cancelling_the_order_drops_units_queued_at_the_blueprint() -> void:
 	await get_tree().process_frame  # queue_free settles
 
 	_commander.production_queue.tick()
-	assert_false(_commander.production_queue.pending().has(train),
-		"the unit purchase is dropped with the building it was queued at")
+	assert_false(
+		_commander.production_queue.pending().has(train),
+		"the unit purchase is dropped with the building it was queued at"
+	)
 	assert_true(train.is_settled(), "and settled, not left dangling")
 	assert_gte(_commander.energy, energy_after_order, "no energy was kept for it")
 
@@ -326,8 +392,11 @@ func test_destroying_a_producer_refunds_its_queued_jobs() -> void:
 	structure.production.enqueue(100, null, _trained_type)
 
 	structure._on_death()
-	assert_eq(_commander.energy, energy_before + cost,
-		"the queued unit's cost comes back when its barracks dies")
+	assert_eq(
+		_commander.energy,
+		energy_before + cost,
+		"the queued unit's cost comes back when its barracks dies"
+	)
 
 
 ## ...and purchases still waiting in the commander's global queue for that producer are
@@ -347,14 +416,18 @@ func test_destroying_a_producer_drops_purchases_waiting_on_it() -> void:
 	await get_tree().process_frame  # queue_free settles
 
 	_commander.production_queue.tick()
-	assert_false(_commander.production_queue.pending().has(train),
-		"the purchase is dropped once its only producer is gone")
+	assert_false(
+		_commander.production_queue.pending().has(train),
+		"the purchase is dropped once its only producer is gone"
+	)
 	assert_true(train.is_settled(), "and refunded/settled")
-#endregion
 
+
+#endregion
 
 #region A plan claims its site
 const CLAIM_AT: Vector2 = Vector2(-4.0, -4.0)
+
 
 ## A blueprint holds no grid cells, but its footprint is spoken for: this is what refuses a
 ## second plan on the same ground (Build.meets_precondition → SITE_PLANNED).

@@ -1,6 +1,7 @@
 class_name Capture
 extends MoveCommand
 
+
 #region Preconditions
 static func evaluator(actor: Commandable, message: CommandMessage) -> Variant:
 	if meets_precondition(actor, message):
@@ -8,25 +9,33 @@ static func evaluator(actor: Commandable, message: CommandMessage) -> Variant:
 	else:
 		return null
 
+
 static func meets_precondition(
-	_actor: Commandable,
-	message: CommandMessage
+	_actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	return (
 		PreconditionFailureCause.NONE
-		if message.target is Commandable and message.target.is_in_group("structure") and message.target.commander_id==0
+		if (
+			message.target is Commandable
+			and message.target.is_in_group("structure")
+			and message.target.commander_id == 0
+		)
 		else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	)
+
+
 #endregion
+
 
 #region State updates
 func can_act(a_actor: Commandable) -> bool:
 	return SU.unit_is_close_to_structure(a_actor, message.target)
 
+
 func fulfill_action(a_actor: Commandable) -> Variant:
 	message.target.build_progress += .00222222222
 
-	if message.target.build_progress<2:
+	if message.target.build_progress < 2:
 		return self
 	else:
 		# Transferring ownership re-runs Commandable._on_commander_changed, which moves

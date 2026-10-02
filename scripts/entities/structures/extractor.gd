@@ -21,6 +21,7 @@ extends Node
 var _site_disabled_shapes: Array[CollisionShape3D] = []
 #endregion
 
+
 #region Public API
 ## `a_node`'s Extractor component, or null. Untyped because a caller may hold a freed
 ## reference.
@@ -54,12 +55,16 @@ func bind_extraction_site(a_site: Entity) -> void:
 func bind_water_body(a_body: WaterBody) -> void:
 	if a_body == null:
 		return
-	var collector: EnergyExtractor = get_parent().get_node_or_null("EnergyExtractor") \
-		as EnergyExtractor
+	var collector: EnergyExtractor = (
+		get_parent().get_node_or_null("EnergyExtractor") as EnergyExtractor
+	)
 	if collector != null:
 		collector.reservoir = a_body
 	a_body.extractor = host()
+
+
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
@@ -83,8 +88,9 @@ func _release() -> void:
 	if site != null:
 		_set_site_interaction_disabled(false)
 		site.extractor = null
-	var collector: EnergyExtractor = get_parent().get_node_or_null("EnergyExtractor") \
-		as EnergyExtractor
+	var collector: EnergyExtractor = (
+		get_parent().get_node_or_null("EnergyExtractor") as EnergyExtractor
+	)
 	if collector != null:
 		# Read into a Variant first: `reservoir` is typed WaterBody, and a typed read of a
 		# freed object errors before any guard can run (CLAUDE.md §A freed object cannot be
@@ -92,7 +98,10 @@ func _release() -> void:
 		var pond: Variant = collector.reservoir
 		if pond != null and is_instance_valid(pond):
 			(pond as WaterBody).extractor = null
+
+
 #endregion
+
 
 #region Extraction-site overlay
 ## Suppress (or restore) the site's interaction colliders — the CollisionShape3Ds under its
@@ -122,7 +131,10 @@ func _site_interaction_shapes() -> Array[CollisionShape3D]:
 			for node: Node in component.find_children("*", "CollisionShape3D", true, false):
 				result.append(node as CollisionShape3D)
 	return result
+
+
 #endregion
+
 
 #region Editor helpers
 ## When an extractor is authored into a scene without a site, auto-create a linked site
@@ -134,11 +146,15 @@ func _ensure_editor_extraction_site() -> void:
 	var extractor_piece: Node3D = get_parent() as Node3D
 	# owner == null means the extractor piece is itself the scene being edited, not an
 	# instance placed inside another scene — nothing to attach to.
-	if extractor_piece == null or extractor_piece.owner == null \
-			or extractor_piece.get_parent() == null:
+	if (
+		extractor_piece == null
+		or extractor_piece.owner == null
+		or extractor_piece.get_parent() == null
+	):
 		return
-	var site: Entity = load("res://scenes/entities/structures/nt/nt_extractionSite.tscn") \
-		.instantiate()
+	var site: Entity = (
+		load("res://scenes/entities/structures/nt/nt_extractionSite.tscn").instantiate()
+	)
 	extractor_piece.get_parent().add_child(site)
 	site.owner = extractor_piece.owner
 	site.global_transform = extractor_piece.global_transform

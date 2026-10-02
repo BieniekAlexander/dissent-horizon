@@ -24,7 +24,9 @@ var _after: Array[Vector3] = []
 var _nav_loaded: bool = false
 
 
-func _init(a_message: CommandMessage, a_p_before: Array[Vector3] = [], a_p_after: Array[Vector3] = []) -> void:
+func _init(
+	a_message: CommandMessage, a_p_before: Array[Vector3] = [], a_p_after: Array[Vector3] = []
+) -> void:
 	super(a_message)
 	_before = a_p_before.duplicate()
 	_after = a_p_after.duplicate()
@@ -52,9 +54,7 @@ func should_move(_a_actor: Commandable) -> bool:
 
 
 func can_act(a_actor: Commandable) -> bool:
-	return _nav_loaded \
-			and a_actor.movement != null \
-			and a_actor.movement.is_navigation_finished()
+	return _nav_loaded and a_actor.movement != null and a_actor.movement.is_navigation_finished()
 
 
 func fulfill_action(a_actor: Commandable) -> Variant:
@@ -78,6 +78,8 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		var next: Vector3 = new_after.pop_front()
 		var new_msg: CommandMessage = CommandMessage.new(message.map, null, null, next)
 		return Patrol.new(new_msg, [message.position], new_after)
+
+
 #endregion
 
 

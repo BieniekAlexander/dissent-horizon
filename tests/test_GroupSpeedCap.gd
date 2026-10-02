@@ -37,8 +37,8 @@ func test_uncapped_unit_travels_at_its_own_speed() -> void:
 
 func test_cap_applied_after_the_command_survives() -> void:
 	_issue_command()
-	_issue_command()                      # the re-order that used to wipe the cap
-	_movement.speed_cap = 1.0             # applied AFTER the handover
+	_issue_command()  # the re-order that used to wipe the cap
+	_movement.speed_cap = 1.0  # applied AFTER the handover
 	assert_almost_eq(_movement.speed_cap, 1.0, 0.001, "cap not wiped by the outgoing command")
 	assert_almost_eq(_movement.effective_max_speed(), 1.0, 0.001, "travel speed honours the cap")
 
@@ -57,10 +57,9 @@ func test_cap_applied_before_the_command_is_wiped_by_the_outgoing_one() -> void:
 	# executable documentation of why RTSController.assign_command_to_units orders those
 	# two steps as it does.
 	_issue_command()
-	_movement.speed_cap = 1.0             # capped BEFORE the handover...
-	_issue_command()                      # ...which replaces the previous command
-	assert_eq(_movement.speed_cap, 0.0,
-		"the handover releases a cap applied before it")
+	_movement.speed_cap = 1.0  # capped BEFORE the handover...
+	_issue_command()  # ...which replaces the previous command
+	assert_eq(_movement.speed_cap, 0.0, "the handover releases a cap applied before it")
 
 
 func test_cap_clears_when_the_command_goes_away() -> void:
@@ -78,6 +77,8 @@ func test_cap_survives_an_interrupt_that_queues_the_group_move() -> void:
 	_issue_command()
 	_movement.speed_cap = 1.0
 	_unit.command_receiver.update_commands(
-		MoveCommand.new(CommandMessage.new(null, null, null)), true, true)
-	assert_almost_eq(_movement.speed_cap, 1.0, 0.001,
-		"a displaced (not dropped) command keeps its group pace")
+		MoveCommand.new(CommandMessage.new(null, null, null)), true, true
+	)
+	assert_almost_eq(
+		_movement.speed_cap, 1.0, 0.001, "a displaced (not dropped) command keeps its group pace"
+	)

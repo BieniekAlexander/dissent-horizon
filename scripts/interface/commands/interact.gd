@@ -16,22 +16,26 @@ extends MoveCommand
 var _elapsed_ticks: float = 0.0
 #endregion
 
+
 #region Preconditions
 static func requires_position() -> bool:
 	return true
 
+
 ## Valid when the actor has an Interactor with an applicable interaction (per the
 ## interaction type's mapped precondition).
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if not is_instance_valid(message.target) or not (message.target is Entity):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	if actor.interactor == null or not actor.interactor.can_interact(actor, message):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
+
+
 #endregion
+
 
 #region Private helpers
 ## The interaction the actor would perform on the current target, or null.
@@ -39,7 +43,10 @@ func _interaction_for(a_actor: Commandable) -> Interaction:
 	if a_actor.interactor == null:
 		return null
 	return a_actor.interactor.applicable_interaction(a_actor, message)
+
+
 #endregion
+
 
 #region State updates
 ## Some interactions are channeled/vulnerable (HIJACK) and pause while the actor is
@@ -49,6 +56,7 @@ func blocked_by_stagger(a_actor: Commandable) -> bool:
 	var interaction := _interaction_for(a_actor)
 	return interaction != null and interaction.blocks_while_staggered()
 
+
 ## Drop the command if the target vanished or the interaction no longer applies.
 func get_updated_state(a_actor: Commandable) -> Variant:
 	if not is_instance_valid(message.target):
@@ -57,8 +65,10 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 		return null
 	return self
 
+
 func should_move(a_actor: Commandable) -> bool:
 	return is_instance_valid(message.target) and not _in_reach(a_actor)
+
 
 ## Interact travels in order to ACT in range — deposit, plant, hijack — arriving is never
 ## the point of it. Without this, a truck (or technician, or saboteur) that had to WALK to
@@ -69,15 +79,20 @@ func should_move(a_actor: Commandable) -> bool:
 func ends_on_arrival() -> bool:
 	return false
 
+
 func can_act(a_actor: Commandable) -> bool:
 	return is_instance_valid(message.target) and _in_reach(a_actor)
+
 
 ## A deposit is unloading captives; every other interaction is interacting.
 func acting_action(a_actor: Commandable) -> ActionTracker.Action:
 	var interaction: Interaction = _interaction_for(a_actor)
-	return ActionTracker.Action.UNLOADING \
-		if interaction != null and interaction.type == Interaction.Type.DEPOSIT \
+	return (
+		ActionTracker.Action.UNLOADING
+		if interaction != null and interaction.type == Interaction.Type.DEPOSIT
 		else ActionTracker.Action.INTERACTING
+	)
+
 
 ## Whether the actor is close enough to the target to perform the interaction.
 ## Structure targets always use footprint adjacency (scale- and size-class-aware). For a
@@ -93,6 +108,7 @@ func _in_reach(a_actor: Commandable) -> bool:
 		return SU.unit_shape_overlaps_target(a_actor, target, interaction.interact_shape)
 	return SU.unit_is_close_to_target(a_actor, target)
 
+
 ## Accumulate interaction time while in range; perform the event once the
 ## interaction's duration has elapsed, then end the command.
 func fulfill_action(a_actor: Commandable) -> Variant:
@@ -105,6 +121,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	_complete(a_actor, interaction)
 	return null
 
+
 ## Run the interaction's completion effect, dispatched by type. DEPOSIT moves what the
 ## actor holds into the target's Garrison; HIJACK takes the target over.
 func _complete(a_actor: Commandable, a_interaction: Interaction) -> void:
@@ -113,6 +130,7 @@ func _complete(a_actor: Commandable, a_interaction: Interaction) -> void:
 			_deposit(a_actor)
 		Interaction.Type.HIJACK:
 			_hijack(a_actor)
+
 
 ## Take the targeted vehicle over: it changes hands to the actor's commander, and the
 ## actor is expended doing it.
@@ -140,7 +158,10 @@ func _deposit(a_actor: Commandable) -> void:
 	if source == null or sink == null:
 		return
 	sink.deposit_from(source)
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

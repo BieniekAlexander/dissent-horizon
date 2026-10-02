@@ -128,9 +128,16 @@ static func _clean_lines(lines: Array[String]) -> Variant:
 			i += 1
 			continue
 		var gathered: Dictionary = _gather_block_scalar(lines, i + 1, indent, header["folded"])
-		rows.append({
-			"indent": indent, "text": "%s:" % header["key"], "scalar": gathered["value"],
-		})
+		(
+			rows
+			. append(
+				{
+					"indent": indent,
+					"text": "%s:" % header["key"],
+					"scalar": gathered["value"],
+				}
+			)
+		)
 		i = gathered["next"]
 	return rows
 
@@ -145,8 +152,14 @@ static func _block_scalar_header(text: String) -> Dictionary:
 	if colon == -1:
 		return {}
 	var rest: String = text.substr(colon + 1).strip_edges()
-	if rest != "|" and rest != ">" and rest != "|-" and rest != ">-" \
-			and rest != "|+" and rest != ">+":
+	if (
+		rest != "|"
+		and rest != ">"
+		and rest != "|-"
+		and rest != ">-"
+		and rest != "|+"
+		and rest != ">+"
+	):
 		return {}
 	return {
 		"key": _unquote(text.substr(0, colon).strip_edges()),
@@ -160,8 +173,9 @@ static func _block_scalar_header(text: String) -> Dictionary:
 ## Blank lines are KEPT (they are paragraph breaks in the value) even though the row
 ## scanner drops them elsewhere, and comments are NOT stripped — a `#` inside prose is
 ## content, not a comment. Returns {"value": String, "next": int}.
-static func _gather_block_scalar(lines: Array[String], start: int, key_indent: int,
-		folded: bool) -> Dictionary:
+static func _gather_block_scalar(
+	lines: Array[String], start: int, key_indent: int, folded: bool
+) -> Dictionary:
 	var raw: Array[String] = []
 	var i: int = start
 	var block_indent: int = -1
@@ -215,7 +229,7 @@ static func _strip_comment(line: String) -> String:
 			if c == in_quote:
 				in_quote = ""
 			continue
-		if c == "\"" or c == "'":
+		if c == '"' or c == "'":
 			in_quote = c
 		elif c == "#" and (i == 0 or line[i - 1] == " " or line[i - 1] == "\t"):
 			return line.substr(0, i)
@@ -273,8 +287,11 @@ static func _parse_mapping(rows: Array, start: int, indent: int) -> Dictionary:
 				return nested
 			map[key] = nested["value"]
 			i = nested["next"]
-		elif i < rows.size() and rows[i]["indent"] == indent \
-				and (rows[i]["text"].begins_with("- ") or rows[i]["text"] == "-"):
+		elif (
+			i < rows.size()
+			and rows[i]["indent"] == indent
+			and (rows[i]["text"].begins_with("- ") or rows[i]["text"] == "-")
+		):
 			# YAML allows sequence items at the SAME indent as their key.
 			var seq: Dictionary = _parse_sequence(rows, i, indent)
 			if seq.has("error"):
@@ -295,7 +312,7 @@ static func _parse_sequence(rows: Array, start: int, indent: int) -> Dictionary:
 			if row["indent"] >= indent and (row["text"].begins_with("- ") or row["text"] == "-"):
 				return {"error": "misaligned sequence item: %s" % row["text"]}
 			break
-		var rest: String = row["text"].substr(1).strip_edges()   # after the dash
+		var rest: String = row["text"].substr(1).strip_edges()  # after the dash
 		# Gather this item's continuation lines (deeper-indented block under the dash).
 		var block_end: int = i + 1
 		while block_end < rows.size() and rows[block_end]["indent"] > indent:
@@ -309,7 +326,9 @@ static func _parse_sequence(rows: Array, start: int, indent: int) -> Dictionary:
 					return nested
 				seq.append(nested["value"])
 			i = block_end
-		elif _find_key_colon(rest) != -1 and not rest.begins_with("{") and not rest.begins_with("["):
+		elif (
+			_find_key_colon(rest) != -1 and not rest.begins_with("{") and not rest.begins_with("[")
+		):
 			# Mapping whose first entry sits on the dash line. Re-parse the item as
 			# its own mini-document: the dash-line content dedented to the
 			# continuation indent, followed by the continuation lines.
@@ -383,7 +402,7 @@ static func _split_flow(text: String) -> Array:
 				in_quote = ""
 			continue
 		match c:
-			"\"", "'":
+			'"', "'":
 				in_quote = c
 				current += c
 			"{", "[":
@@ -408,8 +427,10 @@ static func _parse_scalar(text: String) -> Variant:
 	var s: String = text.strip_edges()
 	if s == "" or s == "~" or s == "null":
 		return null
-	if (s.begins_with("\"") and s.ends_with("\"") and s.length() >= 2) \
-			or (s.begins_with("'") and s.ends_with("'") and s.length() >= 2):
+	if (
+		(s.begins_with('"') and s.ends_with('"') and s.length() >= 2)
+		or (s.begins_with("'") and s.ends_with("'") and s.length() >= 2)
+	):
 		return strip_wikilink(s.substr(1, s.length() - 2))
 	if s == "true":
 		return true
@@ -436,7 +457,7 @@ static func _find_key_colon(text: String) -> int:
 			if c == in_quote:
 				in_quote = ""
 			continue
-		if c == "\"" or c == "'":
+		if c == '"' or c == "'":
 			in_quote = c
 		elif c == ":" and (i == text.length() - 1 or text[i + 1] == " "):
 			return i
@@ -444,8 +465,10 @@ static func _find_key_colon(text: String) -> int:
 
 
 static func _unquote(text: String) -> String:
-	if (text.begins_with("\"") and text.ends_with("\"") and text.length() >= 2) \
-			or (text.begins_with("'") and text.ends_with("'") and text.length() >= 2):
+	if (
+		(text.begins_with('"') and text.ends_with('"') and text.length() >= 2)
+		or (text.begins_with("'") and text.ends_with("'") and text.length() >= 2)
+	):
 		return text.substr(1, text.length() - 2)
 	return text
 

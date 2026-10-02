@@ -23,7 +23,13 @@ var _travel_weight: float
 ## opportunistic errands (capture/collect) where a nearer target is clearly better. Pass
 ## 0.0 for "bring it home" actions like depositing, which must happen regardless of how
 ## far the carrier wandered — otherwise distance would veto banking prisoners.
-func _init(a_actor: Commandable, a_target: Entity, a_value: float, a_label: String, a_travel_weight: float = TRAVEL_COST_PER_UNIT) -> void:
+func _init(
+	a_actor: Commandable,
+	a_target: Entity,
+	a_value: float,
+	a_label: String,
+	a_travel_weight: float = TRAVEL_COST_PER_UNIT
+) -> void:
 	actor = a_actor
 	_target = a_target
 	_value = a_value

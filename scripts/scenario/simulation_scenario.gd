@@ -92,6 +92,8 @@ func _physics_process(a_delta: float) -> void:
 		check.advance(elapsed)
 	if _window_elapsed(elapsed) or _may_finish_early():
 		_finish()
+
+
 #endregion
 
 
@@ -113,6 +115,8 @@ func _compile_checks() -> Array[SimulationCheck]:
 ## place a spec-driven run issues its opening orders.
 func _on_armed() -> void:
 	pass
+
+
 #endregion
 
 
@@ -146,9 +150,16 @@ func _finish() -> void:
 	for check: SimulationCheck in _checks:
 		check.finish(elapsed)
 	_all_passed = _resolve_verdict()
-	print("[SimulationScenario] %s — %s (%d ticks)" % [
-		name, "PASS" if _all_passed else "FAIL", elapsed,
-	])
+	print(
+		(
+			"[SimulationScenario] %s — %s (%d ticks)"
+			% [
+				name,
+				"PASS" if _all_passed else "FAIL",
+				elapsed,
+			]
+		)
+	)
 	for check: SimulationCheck in _checks:
 		print("    %s" % check.report_line())
 	completed.emit(_all_passed, _build_results())
@@ -168,13 +179,20 @@ func _resolve_verdict() -> bool:
 func _build_results() -> Array:
 	var results: Array = []
 	for check: SimulationCheck in _checks:
-		results.append({
-			"description": check.description,
-			"passed": check.passed(),
-			"met_tick": check.met_tick,
-			"mode": check.mode,
-		})
+		(
+			results
+			. append(
+				{
+					"description": check.description,
+					"passed": check.passed(),
+					"met_tick": check.met_tick,
+					"mode": check.mode,
+				}
+			)
+		)
 	return results
+
+
 #endregion
 
 

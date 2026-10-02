@@ -33,6 +33,7 @@ func _edge(a_card: ConditionCard) -> ColorRect:
 
 # --- Valence -------------------------------------------------------------------------
 
+
 func test_a_neutral_condition_draws_no_edge() -> void:
 	# Absence is the signal. A grey edge would read as a third state rather than as none.
 	assert_null(_edge(_card(Valence.Kind.NEUTRAL, false)))
@@ -56,6 +57,7 @@ func test_a_bane_wears_its_edge_at_the_bottom() -> void:
 
 # --- Duration ------------------------------------------------------------------------
 
+
 func test_a_persistent_condition_draws_no_sweep() -> void:
 	# Not a full bar — a full bar reads as "just started", and a passive never started.
 	assert_null(_card(Valence.Kind.BOON, false)._sweep)
@@ -73,8 +75,11 @@ func test_the_sweep_clears_a_banes_edge() -> void:
 	# an affliction only read as one once it was nearly over.
 	var bane: ConditionCard = _card(Valence.Kind.BANE, true)
 	var boon: ConditionCard = _card(Valence.Kind.BOON, true)
-	assert_lt(bane._sweep.offset_bottom, boon._sweep.offset_bottom,
-		"the bane's sweep sits higher, clear of its edge")
+	assert_lt(
+		bane._sweep.offset_bottom,
+		boon._sweep.offset_bottom,
+		"the bane's sweep sits higher, clear of its edge"
+	)
 
 
 func test_remaining_is_clamped() -> void:
@@ -87,16 +92,21 @@ func test_remaining_is_clamped() -> void:
 
 # --- Availability --------------------------------------------------------------------
 
+
 func test_an_unavailable_condition_greys() -> void:
 	var card: ConditionCard = _card(Valence.Kind.BOON, false)
 	card.refresh(1.0, false)
-	assert_eq(card.modulate, CommandButtonState.TINT_LOCKED,
-		"the same grey an unbought ability's own button wears")
+	assert_eq(
+		card.modulate,
+		CommandButtonState.TINT_LOCKED,
+		"the same grey an unbought ability's own button wears"
+	)
 	card.refresh(1.0, true)
 	assert_eq(card.modulate, CommandButtonState.TINT_AVAILABLE)
 
 
 # --- What the two constructs report --------------------------------------------------
+
 
 func test_a_status_effect_reports_itself_as_temporary_when_it_has_a_duration() -> void:
 	var effect := autofree(SlowStatusEffect.new()) as SlowStatusEffect

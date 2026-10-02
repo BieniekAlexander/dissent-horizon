@@ -49,12 +49,15 @@ const DEFAULT_VISUAL_SCALE: float = 500.0
 const PROJECTION_SECONDS: float = 60.0
 #endregion
 
+
 func _ready() -> void:
 	bar_width = 208.0
 	super._ready()
 
+
 func _current_value() -> float:
 	return float(commander.dominion)
+
 
 ## The drawing scale: the affordability threshold, unless a hovered purchase costs more than
 ## it — in which case the bar grows to fit the preview rather than clipping it (see
@@ -64,13 +67,16 @@ func _capacity() -> float:
 	var scale: float = float(dearest) if dearest >= 0 else DEFAULT_VISUAL_SCALE
 	return maxf(scale, _preview_cost())
 
+
 func _fill_color(_a_frac: float) -> Color:
 	if ResourcePressure.can_afford_dearest_sanction(commander):
-		return ResourcePressure.pulse_between(SATURATED_ORANGE_RED,
-			SATURATED_ORANGE_RED.lightened(0.4))
+		return ResourcePressure.pulse_between(
+			SATURATED_ORANGE_RED, SATURATED_ORANGE_RED.lightened(0.4)
+		)
 	if ResourcePressure.can_afford_cheapest_sanction(commander):
 		return SATURATED_ORANGE
 	return PALE_YELLOW
+
 
 ## A translucent region picking up exactly where the real fill ends, PROJECTION_SECONDS of
 ## `projected_dominion_rate()` wide — "if my tasked trucks keep working at this distance,
@@ -93,16 +99,28 @@ func _rate_regions() -> Array[Dictionary]:
 	var start_frac: float = clampf(value / capacity, 0.0, 1.0)
 	var rate_frac: float = clampf((value + rate * PROJECTION_SECONDS) / capacity, 0.0, 1.0)
 	var pending_frac: float = clampf(
-		(value + (rate + pending) * PROJECTION_SECONDS) / capacity, 0.0, 1.0)
+		(value + (rate + pending) * PROJECTION_SECONDS) / capacity, 0.0, 1.0
+	)
 	var color: Color = _fill_color(start_frac)
 	var regions: Array[Dictionary] = []
 	if rate_frac > start_frac:
-		regions.append({"start_frac": start_frac, "end_frac": rate_frac,
-			"color": _at_alpha(color, RATE_BAR_ALPHA)})
+		regions.append(
+			{
+				"start_frac": start_frac,
+				"end_frac": rate_frac,
+				"color": _at_alpha(color, RATE_BAR_ALPHA)
+			}
+		)
 	if pending_frac > rate_frac:
-		regions.append({"start_frac": rate_frac, "end_frac": pending_frac,
-			"color": _at_alpha(color, RATE_BAR_ALPHA * PendingStyle.ALPHA)})
+		regions.append(
+			{
+				"start_frac": rate_frac,
+				"end_frac": pending_frac,
+				"color": _at_alpha(color, RATE_BAR_ALPHA * PendingStyle.ALPHA)
+			}
+		)
 	return regions
+
 
 func _preview_cost() -> float:
 	if controller != null and controller.hovered_sanction_unlock != null:
@@ -112,11 +130,14 @@ func _preview_cost() -> float:
 	var spec: TechnologySpec = _hovered_spec()
 	return float(spec.dominion_cost) if spec != null else 0.0
 
+
 func _value_text() -> String:
 	return str(commander.dominion)
 
+
 func _has_verbose_text() -> bool:
 	return commander.dominion_collection_rate() > 0.0 or commander.dominion_source_count() > 0
+
 
 func _verbose_text() -> String:
 	var text: String = "+%.1f/s" % commander.dominion_collection_rate()
@@ -124,6 +145,7 @@ func _verbose_text() -> String:
 	if contributors != DominionGenerator.NO_ATTRIBUTION:
 		text += "  ·  %d feeding" % contributors
 	return text
+
 
 func _dearest_available_cost() -> int:
 	if commander.sanction_grid == null:

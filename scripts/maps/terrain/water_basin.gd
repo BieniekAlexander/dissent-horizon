@@ -51,6 +51,7 @@ var cells_pierced_by_terrain: int = 0
 var reaches_play_edge: bool = false
 #endregion
 
+
 #region Construction
 ## Flood `a_terrain` from `a_seed_cell` at water level `a_level`.
 ##
@@ -63,8 +64,11 @@ var reaches_play_edge: bool = false
 static func fill(a_terrain: TerrainData, a_seed_cell: Vector2i, a_level: float) -> WaterBasin:
 	var basin := WaterBasin.new()
 	basin.level = a_level
-	if a_terrain == null or not a_terrain.is_cell_in_bounds(a_seed_cell) \
-			or not a_terrain.is_cell_in_play(a_seed_cell):
+	if (
+		a_terrain == null
+		or not a_terrain.is_cell_in_bounds(a_seed_cell)
+		or not a_terrain.is_cell_in_play(a_seed_cell)
+	):
 		return basin
 
 	var stack: Array[Vector2i] = [a_seed_cell]
@@ -75,7 +79,10 @@ static func fill(a_terrain: TerrainData, a_seed_cell: Vector2i, a_level: float) 
 			var neighbour: Vector2i = cell + step
 			if basin.depth_by_cell.has(neighbour):
 				continue
-			if not a_terrain.is_cell_in_bounds(neighbour) or not a_terrain.is_cell_in_play(neighbour):
+			if (
+				not a_terrain.is_cell_in_bounds(neighbour)
+				or not a_terrain.is_cell_in_play(neighbour)
+			):
 				basin.reaches_play_edge = true
 				continue
 			var depth: float = a_level - a_terrain.cell_mean_height(neighbour)
@@ -99,7 +106,10 @@ func _measure_relief(a_terrain: TerrainData) -> void:
 			if a_terrain.corner_height(cell + step) >= level:
 				cells_pierced_by_terrain += 1
 				break
+
+
 #endregion
+
 
 #region Queries
 ## Whether this basin holds water at all. A click on a hilltop, on the floor of a bowl, or

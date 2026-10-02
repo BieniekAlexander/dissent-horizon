@@ -112,6 +112,7 @@ var _last_veterancy_level: int = -1
 var _elapsed: float = 0.0
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	_host = get_parent() as Commandable
@@ -138,7 +139,10 @@ func _process(a_delta: float) -> void:
 	_update_veterancy(hidden)
 	_update_status_icons(effects, hidden)
 	_update_capacity_pips(hidden)
+
+
 #endregion
+
 
 #region Mesh channels
 ## How visible stealth leaves this unit, as a factor on the model's alpha. Carried over
@@ -187,7 +191,10 @@ func _active_effects() -> Array[StatusEffect]:
 		if child is StatusEffect and (child as StatusEffect).is_active():
 			out.append(child as StatusEffect)
 	return out
+
+
 #endregion
+
 
 #region Orientation
 ## Point this node's own X axis along the camera's screen-right, so a ROW of icons is
@@ -217,7 +224,10 @@ func _face_rows_at_camera() -> void:
 	# Right-handed, so Z = X × Y. Writing global_basis rather than rotation keeps this
 	# independent of whatever the entity's own facing is doing this frame.
 	global_basis = Basis(right, Vector3.UP, right.cross(Vector3.UP))
+
+
 #endregion
+
 
 #region Floating billboards
 func _update_veterancy(a_hidden: bool) -> void:
@@ -309,8 +319,11 @@ func _shows_hold_fire() -> bool:
 ## paid for. An enemy's plans are never shown to anyone else.
 func _shows_awaiting_funds() -> bool:
 	var viewer: Commander = _host.commander
-	return _host.awaiting_funds and viewer != null \
+	return (
+		_host.awaiting_funds
+		and viewer != null
 		and viewer.shares_side_with(RTSController.PLAYER_COMMANDER_ID)
+	)
 
 
 ## Whether a blinking icon is in its ON half this frame. 0 Hz never blinks off — a steady
@@ -325,7 +338,10 @@ func _blink_is_on(a_hz: float) -> bool:
 ## puts its markers at its origin rather than nowhere.
 func _model_top() -> float:
 	return _mesh_visual.model_top_offset() if _mesh_visual != null else 0.0
+
+
 #endregion
+
 
 #region Capacity pips
 ## A row of tokens saying how full something on this unit is: one pip per SLOT, solid for
@@ -372,8 +388,11 @@ func _update_capacity_pips(a_hidden: bool) -> void:
 ## Whether the local player is entitled to this readout: it is theirs, and they have it
 ## selected. Ownership first — the cheaper test, and the one that is true far less often.
 func _shows_capacity() -> bool:
-	return _host.commander_id == RTSController.PLAYER_COMMANDER_ID \
-		and _host.selectable != null and _host.selectable.is_selected()
+	return (
+		_host.commander_id == RTSController.PLAYER_COMMANDER_ID
+		and _host.selectable != null
+		and _host.selectable.is_selected()
+	)
 
 
 ## The pip textures to draw, in order: garrison seats then charged rounds. Empty for a
@@ -396,7 +415,10 @@ func _capacity_slots() -> Array:
 		for i: int in loadout.charged_clip_size():
 			out.append(AMMO_FILLED if i < rounds else AMMO_EMPTY)
 	return out
+
+
 #endregion
+
 
 #region Sprite pool
 func _ensure_veterancy_sprite() -> Sprite3D:

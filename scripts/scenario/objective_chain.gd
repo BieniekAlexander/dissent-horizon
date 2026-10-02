@@ -30,6 +30,7 @@ signal chain_completed(chain: ObjectiveChain)
 var steps: Array[GlobalTrigger] = []
 #endregion
 
+
 #region Lifecycle
 ## Wire the chain into dependency edges BEFORE the manager reads them.
 ##
@@ -49,7 +50,10 @@ func _ready() -> void:
 		if i > 0 and steps[i - 1] not in steps[i].prerequisites:
 			steps[i].prerequisites.append(steps[i - 1])
 		steps[i].fired.connect(_on_step_fired.bind(steps[i]))
+
+
 #endregion
+
 
 #region Public API
 ## The step the player is currently working on, or null when the chain is finished (or
@@ -71,7 +75,10 @@ func active_index() -> int:
 
 func is_complete() -> bool:
 	return not steps.is_empty() and steps.all(func(s: GlobalTrigger) -> bool: return s.has_fired)
+
+
 #endregion
+
 
 #region Sequencing
 ## Announce the end of the chain. Revealing the NEXT step is not done here — the edge added in

@@ -23,9 +23,9 @@ extends Node
 const MAX_SLOPE_DIFF: float = 0.5
 
 ## Impassability reasons OR-ed into each cell's `_cell_state` byte.
-const _STEEP: int = 1 << 0      ## corner-height spread exceeds MAX_SLOPE_DIFF (static)
-const _BUILDING: int = 1 << 1   ## a structure occupies the cell
-const _BLOCKED: int = 1 << 2    ## non-height no-go: tile type, out of play, scripted
+const _STEEP: int = 1 << 0  ## corner-height spread exceeds MAX_SLOPE_DIFF (static)
+const _BUILDING: int = 1 << 1  ## a structure occupies the cell
+const _BLOCKED: int = 1 << 2  ## non-height no-go: tile type, out of play, scripted
 ## Submerged past WaterBasin.WADE_DEPTH by some water body — the chasm a lake is.
 ##
 ## Its OWN bit rather than a second writer of _BLOCKED, for the same reason _STEEP is not
@@ -95,58 +95,74 @@ var _has_dirty_rect: bool = false
 var _components_dirty: bool = true
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
-	assert(height_map  != null, "TerrainGrid: height_map must be set before adding to tree")
+	assert(height_map != null, "TerrainGrid: height_map must be set before adding to tree")
 	assert(terrain_body != null, "TerrainGrid: terrain_body must be set before adding to tree")
 	_cell_state.resize(grid_width() * grid_depth())  # zero-initialised → all passable
 	_mark_steep_cells()
+
+
 #endregion
+
 
 #region Shape accessors
 func height_shape() -> HeightMapShape3D:
 	return height_map
 
+
 ## Total number of height-sample columns (X direction).
 func map_width() -> int:
 	return height_shape().map_width
+
 
 ## Total number of height-sample rows (Z direction).
 func map_depth() -> int:
 	return height_shape().map_depth
 
+
 ## Number of navigable cell columns  (= map_width  - 1).
 func grid_width() -> int:
 	return map_width() - 1
+
 
 ## Number of navigable cell rows (= map_depth - 1).
 func grid_depth() -> int:
 	return map_depth() - 1
 
+
 ## Height (Y in terrain-body local space) at corner (cx, cz).
 func get_corner_height(a_cx: int, a_cz: int) -> float:
 	return height_shape().map_data[a_cz * map_width() + a_cx]
+
+
 #endregion
+
 
 #region Cell queries
 func is_in_bounds(a_cell: Vector2i) -> bool:
-	return a_cell.x >= 0 and a_cell.x < grid_width() \
-		and a_cell.y >= 0 and a_cell.y < grid_depth()
+	return a_cell.x >= 0 and a_cell.x < grid_width() and a_cell.y >= 0 and a_cell.y < grid_depth()
+
 
 ## Flat index into _cell_state for an in-bounds cell.
 func _index(a_cell: Vector2i) -> int:
 	return a_cell.y * grid_width() + a_cell.x
 
+
 func is_building_at(a_cell: Vector2i) -> bool:
 	return is_in_bounds(a_cell) and (_cell_state[_index(a_cell)] & _BUILDING) != 0
 
+
 func is_too_steep(a_cell: Vector2i) -> bool:
 	return is_in_bounds(a_cell) and (_cell_state[_index(a_cell)] & _STEEP) != 0
+
 
 ## True when the cell is marked impassable by the blocked mask (water, rubble,
 ## scripted no-go, …), independent of its terrain height.
 func is_blocked(a_cell: Vector2i) -> bool:
 	return is_in_bounds(a_cell) and (_cell_state[_index(a_cell)] & _BLOCKED) != 0
+
 
 ## True iff all four corner heights of the cell are identical (zero spread).
 ## Used by structure placement to enforce that buildings may only be placed on
@@ -155,15 +171,17 @@ func is_flat(a_cell: Vector2i) -> bool:
 	if not is_in_bounds(a_cell):
 		return false
 	var w := height_map.map_width
-	var h00 := height_map.map_data[ a_cell.y      * w + a_cell.x    ]
-	var h10 := height_map.map_data[ a_cell.y      * w + a_cell.x + 1]
-	var h01 := height_map.map_data[(a_cell.y + 1) * w + a_cell.x    ]
+	var h00 := height_map.map_data[a_cell.y * w + a_cell.x]
+	var h10 := height_map.map_data[a_cell.y * w + a_cell.x + 1]
+	var h01 := height_map.map_data[(a_cell.y + 1) * w + a_cell.x]
 	var h11 := height_map.map_data[(a_cell.y + 1) * w + a_cell.x + 1]
 	return h00 == h10 and h10 == h01 and h01 == h11
+
 
 ## A cell is passable iff it is in-bounds and no impassability reason is set.
 func is_passable(a_cell: Vector2i) -> bool:
 	return is_in_bounds(a_cell) and _cell_state[_index(a_cell)] == 0
+
 
 ## Returns all passable cells.  This is the set NavManager uses to build the NavigationMesh.
 func get_all_passable_cells() -> Array:
@@ -174,6 +192,7 @@ func get_all_passable_cells() -> Array:
 			if is_passable(cell):
 				result.append(cell)
 	return result
+
 
 ## Returns [min: Vector2i, max: Vector2i] inclusive cell-index bounds.
 func get_bounds() -> Array:
@@ -219,7 +238,10 @@ func _passable_component_count(a_extra_blocked: Dictionary) -> int:
 					seen[nb] = true
 					stack.append(nb)
 	return count
+
+
 #endregion
+
 
 #region Space-erosion fields
 ## Cells navigable by an agent of a given size class, expressed as the two
@@ -269,7 +291,9 @@ func navigable_mask(a_rect: Rect2i, a_rings: int, a_admit_k: int) -> PackedByteA
 			if ok and a_admit_k > 1:
 				ok = false
 				for az: int in range(maxi(0, z - a_admit_k + 1), mini(z + 1, gh - a_admit_k + 1)):
-					for ax: int in range(maxi(0, x - a_admit_k + 1), mini(x + 1, gw - a_admit_k + 1)):
+					for ax: int in range(
+						maxi(0, x - a_admit_k + 1), mini(x + 1, gw - a_admit_k + 1)
+					):
 						if _clearance[az * gw + ax] >= a_admit_k:
 							ok = true
 							break
@@ -292,12 +316,13 @@ func is_navigable_for(a_cell: Vector2i, a_rings: int, a_admit_k: int) -> bool:
 		return false
 	_ensure_fields()
 	if _cell_state[_index(a_cell)] != 0:
-		return false                                      # impassable
+		return false  # impassable
 	if a_rings > 0 and _dist[_index(a_cell)] <= a_rings:
-		return false                                      # stripped by ring-erosion
+		return false  # stripped by ring-erosion
 	if a_admit_k > 1 and not _coverable(a_cell, a_admit_k):
-		return false                                      # no admit_k block fits here
+		return false  # no admit_k block fits here
 	return true
+
 
 ## Whether every cell the straight segment `a_from` → `a_to` crosses is navigable for this
 ## class (is_navigable_for), with both ends in continuous grid coordinates
@@ -329,8 +354,10 @@ func is_segment_navigable_for(a_from: Vector2, a_to: Vector2, a_rings: int, a_ad
 		if cell == end:
 			return true
 		if is_equal_approx(t_next.x, t_next.y):
-			if not is_navigable_for(cell + Vector2i(step.x, 0), a_rings, a_admit_k) \
-					or not is_navigable_for(cell + Vector2i(0, step.y), a_rings, a_admit_k):
+			if (
+				not is_navigable_for(cell + Vector2i(step.x, 0), a_rings, a_admit_k)
+				or not is_navigable_for(cell + Vector2i(0, step.y), a_rings, a_admit_k)
+			):
 				return false
 			cell += step
 			t_next += t_cell
@@ -344,6 +371,7 @@ func is_segment_navigable_for(a_from: Vector2, a_to: Vector2, a_rings: int, a_ad
 	# caller a straighter path, never a unit steered through something.
 	return false
 
+
 ## Anchored largest-square clearance at a cell (side of the largest all-passable
 ## square with this cell as its top-left corner), saturating at FIELD_CAP_CELLS.
 func clearance_at(a_cell: Vector2i) -> int:
@@ -352,6 +380,7 @@ func clearance_at(a_cell: Vector2i) -> int:
 	_ensure_fields()
 	return _clearance[_index(a_cell)]
 
+
 ## Chebyshev distance in cells from a passable cell to the nearest obstacle /
 ## out-of-bounds cell (0 if the cell itself is impassable), saturating at FIELD_CAP_CELLS.
 func distance_to_obstacle(a_cell: Vector2i) -> int:
@@ -359,6 +388,7 @@ func distance_to_obstacle(a_cell: Vector2i) -> int:
 		return 0
 	_ensure_fields()
 	return _dist[_index(a_cell)]
+
 
 ## True iff some admit_k x admit_k block of in-bounds passable cells contains `cell`.
 ## Such a block exists iff one of the candidate top-left anchors in the k x k window
@@ -375,6 +405,7 @@ func _coverable(a_cell: Vector2i, a_admit_k: int) -> bool:
 			if _clearance[az * gw + ax] >= a_admit_k:
 				return true
 	return false
+
 
 ## Bring _clearance and _dist up to date: the whole grid before the first read, afterwards only
 ## the changed rectangle grown by FIELD_CAP_CELLS — nothing further out can see its capped
@@ -417,6 +448,7 @@ func _ensure_components() -> void:
 	_components_dirty = false
 	_recompute_components()
 
+
 ## Anchored largest-square clearance (top-left corner), capped at FIELD_CAP_CELLS, over
 ## `a_area`. Standard bottom-up DP: clearance(c) = 0 if impassable, else
 ## 1 + min(right, down, down-right). Neighbours outside `a_area` are read as already stored,
@@ -434,6 +466,7 @@ func _recompute_clearance(a_area: Rect2i) -> void:
 			var down: int = _clearance[idx + gw] if z + 1 < gh else 0
 			var diag: int = _clearance[(z + 1) * gw + (x + 1)] if (x + 1 < gw and z + 1 < gh) else 0
 			_clearance[idx] = mini(FIELD_CAP_CELLS, 1 + mini(right, mini(down, diag)))
+
 
 ## Which 4-connected passable region `cell` belongs to, or -1 when it is impassable or
 ## out of bounds. Region ids are opaque and are renumbered on every cells_changed; they are
@@ -558,7 +591,10 @@ func _recompute_distance(a_area: Rect2i) -> void:
 			best = mini(best, (_dist[idx + gw + 1] if (x + 1 < gw and z + 1 < gh) else 0) + 1)
 			best = mini(best, (_dist[idx + gw - 1] if (x > 0 and z + 1 < gh) else 0) + 1)
 			_dist[idx] = best
+
+
 #endregion
+
 
 #region Building management
 ## Mark `cells` as occupied by `building` and emit cells_changed.
@@ -573,6 +609,7 @@ func place_building(a_cells: Array, a_building: Object) -> void:
 	_mark_changed(a_cells)
 	cells_changed.emit(a_cells)
 
+
 ## Free all cells occupied by `building` and emit cells_changed.
 ## No-op if `building` was never registered.
 func remove_building(a_building: Object) -> void:
@@ -585,14 +622,19 @@ func remove_building(a_building: Object) -> void:
 	_mark_changed(freed)
 	cells_changed.emit(freed)
 
+
 ## Returns the cells registered for `building`, or [] if unknown.
 func get_building_cells(a_building: Object) -> Array:
 	return _building_footprints.get(a_building, [])
 
+
 ## Every building registered on the grid.
 func buildings() -> Array:
 	return _building_footprints.keys()
+
+
 #endregion
+
 
 #region Blocked mask
 ## Replace the whole blocked state from `mask` (cell-indexed, index = z*grid_width()+x;
@@ -624,8 +666,10 @@ func set_submerged_mask(a_mask: PackedByteArray) -> void:
 func _set_reason_mask(a_bit: int, a_mask: PackedByteArray, a_name: String) -> void:
 	var gw: int = grid_width()
 	var gh: int = grid_depth()
-	assert(a_mask.is_empty() or a_mask.size() == gw * gh,
-		"TerrainGrid: %s mask must be empty or size grid_width*grid_depth (%d)" % [a_name, gw * gh])
+	assert(
+		a_mask.is_empty() or a_mask.size() == gw * gh,
+		"TerrainGrid: %s mask must be empty or size grid_width*grid_depth (%d)" % [a_name, gw * gh]
+	)
 
 	var changed: Array = []
 	for z: int in gh:
@@ -634,12 +678,15 @@ func _set_reason_mask(a_bit: int, a_mask: PackedByteArray, a_name: String) -> vo
 			var was: bool = (_cell_state[idx] & a_bit) != 0
 			var now: bool = not a_mask.is_empty() and a_mask[idx] != 0
 			if was != now:
-				_cell_state[idx] = (_cell_state[idx] | a_bit) if now else (_cell_state[idx] & ~a_bit)
+				_cell_state[idx] = (
+					(_cell_state[idx] | a_bit) if now else (_cell_state[idx] & ~a_bit)
+				)
 				changed.append(Vector2i(x, z))
 
 	if not changed.is_empty():
 		_mark_changed(changed)
 		cells_changed.emit(changed)
+
 
 ## Block or unblock a single cell.
 func set_blocked(a_cell: Vector2i, a_value: bool) -> void:
@@ -652,26 +699,31 @@ func set_blocked(a_cell: Vector2i, a_value: bool) -> void:
 	_mark_changed([a_cell])
 	cells_changed.emit([a_cell])
 
+
 ## Remove all blocks.
 func clear_blocked_mask() -> void:
 	set_blocked_mask(PackedByteArray())
+
+
 #endregion
+
 
 #region Private helpers
 ## Set the STEEP bit on cells whose corner-height spread exceeds MAX_SLOPE_DIFF.
 ## Called once at _ready() since the heightmap does not change at runtime.
 func _mark_steep_cells() -> void:
 	var hs := height_map
-	var w  := hs.map_width
+	var w := hs.map_width
 	var gw := grid_width()
 	for z in range(grid_depth()):
 		for x in range(gw):
-			var h00 := hs.map_data[ z      * w + x    ]
-			var h10 := hs.map_data[ z      * w + x + 1]
-			var h01 := hs.map_data[(z + 1) * w + x    ]
+			var h00 := hs.map_data[z * w + x]
+			var h10 := hs.map_data[z * w + x + 1]
+			var h01 := hs.map_data[(z + 1) * w + x]
 			var h11 := hs.map_data[(z + 1) * w + x + 1]
-			var spread := maxf(maxf(h00, h10), maxf(h01, h11)) \
-						- minf(minf(h00, h10), minf(h01, h11))
+			var spread := (
+				maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))
+			)
 			if spread > MAX_SLOPE_DIFF:
 				_cell_state[z * gw + x] |= _STEEP
 #endregion

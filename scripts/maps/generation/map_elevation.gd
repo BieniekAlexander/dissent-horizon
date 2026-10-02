@@ -105,8 +105,12 @@ var _start_count: int = 0
 ## `a_owned` maps each node to the cells it reserves (a start's box, a feature's footprint or
 ## pond pan, each grown by the ring whose corners it shares).
 static func run(
-	params: MapGenerationParams, rng: RandomNumberGenerator, terrain: TerrainData,
-	topology: MapTopology, start_count: int, a_owned: Array
+	params: MapGenerationParams,
+	rng: RandomNumberGenerator,
+	terrain: TerrainData,
+	topology: MapTopology,
+	start_count: int,
+	a_owned: Array
 ) -> MapElevation:
 	var elevation := MapElevation.new()
 	elevation._params = params
@@ -142,8 +146,12 @@ func _settle() -> void:
 			_relabel()
 		if not _repair_connectivity():
 			return
-		if _topology.barrier_of.size() == barriers and _ramps.size() == ramps \
-				and level_of_node == levels and tier_of_node == tiers:
+		if (
+			_topology.barrier_of.size() == barriers
+			and _ramps.size() == ramps
+			and level_of_node == levels
+			and tier_of_node == tiers
+		):
 			return
 
 
@@ -152,10 +160,16 @@ func _settle() -> void:
 func _check_routes() -> void:
 	for a: int in _start_count:
 		for b: int in range(a + 1, _start_count):
-			if _topology.graph.disjoint_paths(a, b, open_edges(_ramped), _params.min_routes) \
-					< _params.min_routes:
-				errors.append("starts %d and %d cannot keep %d routes across levels"
-					% [a, b, _params.min_routes])
+			if (
+				_topology.graph.disjoint_paths(a, b, open_edges(_ramped), _params.min_routes)
+				< _params.min_routes
+			):
+				errors.append(
+					(
+						"starts %d and %d cannot keep %d routes across levels"
+						% [a, b, _params.min_routes]
+					)
+				)
 
 
 ## The terrace invariant, on the final levels: a re-level holds it where it can, and where it
@@ -163,8 +177,12 @@ func _check_routes() -> void:
 func _check_terraces() -> void:
 	for edge: Vector2i in _topology.open_edges():
 		if absi(level_of_node[edge.x] - level_of_node[edge.y]) > 1:
-			errors.append("regions %d and %d are open to each other but %d terraces apart"
-				% [edge.x, edge.y, absi(level_of_node[edge.x] - level_of_node[edge.y])])
+			errors.append(
+				(
+					"regions %d and %d are open to each other but %d terraces apart"
+					% [edge.x, edge.y, absi(level_of_node[edge.x] - level_of_node[edge.y])]
+				)
+			)
 
 
 #region Levels
@@ -177,7 +195,10 @@ func start_level() -> int:
 	var inside: Array[int] = []
 	for level: int in _params.elevation_levels:
 		var fraction: float = float(level) / top
-		if fraction >= _params.start_level_fraction_min and fraction <= _params.start_level_fraction_max:
+		if (
+			fraction >= _params.start_level_fraction_min
+			and fraction <= _params.start_level_fraction_max
+		):
 			inside.append(level)
 	if not inside.is_empty():
 		return inside[_rng.randi() % inside.size()]
@@ -302,8 +323,9 @@ func _assign_tiers(a_parent: PackedInt32Array, a_start_count: int) -> void:
 
 ## A node's ground height above the pass-5 ground: its tier's cliffs plus its terrace's steps.
 func node_height(a_node: int) -> float:
-	return tier_of_node[a_node] * _params.cliff_step \
-		+ level_of_node[a_node] * _params.elevation_step
+	return (
+		tier_of_node[a_node] * _params.cliff_step + level_of_node[a_node] * _params.elevation_step
+	)
 
 
 ## Whether the step between two nodes is a cliff rather than something a walker crosses.
@@ -374,8 +396,7 @@ static func _spread_over_levels(
 		low = minf(low, sample.x)
 		high = maxf(high, sample.x)
 	for sample: Vector2 in samples:
-		var fraction: float = 0.5 if is_equal_approx(low, high) \
-			else (sample.x - low) / (high - low)
+		var fraction: float = 0.5 if is_equal_approx(low, high) else (sample.x - low) / (high - low)
 		level_of_group[int(sample.y)] = clampi(roundi(fraction * (levels - 1)), 0, levels - 1)
 
 
@@ -399,6 +420,8 @@ func _index_nearest() -> void:
 	for z: int in _depth:
 		for x: int in _width:
 			_nearest[z * _width + x] = int(_topology.nearest_two(Vector2(x + 0.5, z + 0.5)).x)
+
+
 #endregion
 
 
@@ -436,14 +459,18 @@ func _relabel() -> void:
 	for cz: int in _depth + 1:
 		for cx: int in corners_wide:
 			var corner := Vector2i(cx, cz)
-			offsets[cz * corners_wide + cx] = ramp_offsets[corner] if ramp_offsets.has(corner) \
-				else _corner_height(corner)
+			offsets[cz * corners_wide + cx] = (
+				ramp_offsets[corner] if ramp_offsets.has(corner) else _corner_height(corner)
+			)
 	cliff_cells.clear()
 	for z: int in _depth:
 		for x: int in _width:
 			var cell := Vector2i(x, z)
-			if _terrain.is_cell_in_play(cell) and not _topology.barrier_of.has(cell) \
-					and _offset_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF:
+			if (
+				_terrain.is_cell_in_play(cell)
+				and not _topology.barrier_of.has(cell)
+				and _offset_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF
+			):
 				cliff_cells[cell] = true
 
 
@@ -502,8 +529,9 @@ func _sweep_grade() -> void:
 	for z: int in _depth:
 		for x: int in _width:
 			var cell := Vector2i(x, z)
-			fixed[z * _width + x] = 1 if _priority[z * _width + x] != _FREE \
-				or not _terrain.is_cell_in_play(cell) else 0
+			fixed[z * _width + x] = (
+				1 if _priority[z * _width + x] != _FREE or not _terrain.is_cell_in_play(cell) else 0
+			)
 	var active: PackedByteArray = _grading_frontier(fixed)
 	for _sweep: int in _GRADE_SWEEPS:
 		var moved: bool = false
@@ -526,8 +554,10 @@ func _sweep_grade() -> void:
 							# A barrier is the one place a drop may land whole, so its own
 							# height must not drag the ground either side toward it. Ground out
 							# of play is never graded, so it must not drag the edge either.
-							if _priority[nz * _width + nx] == _BARRIER \
-									or not _terrain.is_cell_in_play(Vector2i(nx, nz)):
+							if (
+								_priority[nz * _width + nx] == _BARRIER
+								or not _terrain.is_cell_in_play(Vector2i(nx, nz))
+							):
 								continue
 							low = minf(low, _height[nz * _width + nx])
 							high = maxf(high, _height[nz * _width + nx])
@@ -537,8 +567,11 @@ func _sweep_grade() -> void:
 					var ceiling: float = low + _GRADE_PER_CELL
 					# Squeezed between a high neighbour and a low one: sit between them and let
 					# the next sweep pull both ends toward this.
-					var graded: float = (low + high) * 0.5 if floor_height > ceiling \
+					var graded: float = (
+						(low + high) * 0.5
+						if floor_height > ceiling
 						else clampf(_height[at], floor_height, ceiling)
+					)
 					if not is_equal_approx(graded, _height[at]):
 						_height[at] = graded
 						moved = true
@@ -563,8 +596,7 @@ func _grading_frontier(a_fixed: PackedByteArray) -> PackedByteArray:
 					var nz: int = z + dz
 					if nx < 0 or nz < 0 or nx >= _width or nz >= _depth:
 						continue
-					differs = differs or not is_equal_approx(
-						_height[nz * _width + nx], _height[at])
+					differs = differs or not is_equal_approx(_height[nz * _width + nx], _height[at])
 			if differs:
 				active[at] = 1
 				frontier.append(Vector2i(x, z))
@@ -595,8 +627,10 @@ func _corner_height(a_corner: Vector2i) -> float:
 			if cell.x < 0 or cell.y < 0 or cell.x >= _width or cell.y >= _depth:
 				continue
 			var at: int = cell.y * _width + cell.x
-			if _priority[at] > best_priority \
-					or (_priority[at] == best_priority and _height[at] > best_height):
+			if (
+				_priority[at] > best_priority
+				or (_priority[at] == best_priority and _height[at] > best_height)
+			):
 				best_priority = _priority[at]
 				best_height = _height[at]
 	return best_height
@@ -611,6 +645,8 @@ func _offset_spread(a_cell: Vector2i) -> float:
 		low = minf(low, value)
 		high = maxf(high, value)
 	return high - low
+
+
 #endregion
 
 
@@ -633,10 +669,15 @@ func _ramp_for_routes(a_start_count: int) -> void:
 	var ramped: Dictionary = _ramped
 	for a: int in a_start_count:
 		for b: int in range(a + 1, a_start_count):
-			while graph.disjoint_paths(a, b, open_edges(ramped), _params.min_routes) \
-					< _params.min_routes:
-				if not _ramp_one_raising(a, b, ramped) and not _ramp_one_extending(a, ramped) \
-						and not _relevel_one_extending(a, ramped):
+			while (
+				graph.disjoint_paths(a, b, open_edges(ramped), _params.min_routes)
+				< _params.min_routes
+			):
+				if (
+					not _ramp_one_raising(a, b, ramped)
+					and not _ramp_one_extending(a, ramped)
+					and not _relevel_one_extending(a, ramped)
+				):
 					return
 
 
@@ -659,8 +700,10 @@ func _ramp_one_raising(a_from: int, a_to: int, a_ramped: Dictionary) -> bool:
 	var before: int = graph.disjoint_paths(a_from, a_to, open_edges(a_ramped), _params.min_routes)
 	for edge: Vector2i in _ramp_candidates(a_ramped):
 		a_ramped[edge] = true
-		if graph.disjoint_paths(a_from, a_to, open_edges(a_ramped), _params.min_routes) > before \
-				and _build_ramp_between(edge.x, edge.y):
+		if (
+			graph.disjoint_paths(a_from, a_to, open_edges(a_ramped), _params.min_routes) > before
+			and _build_ramp_between(edge.x, edge.y)
+		):
 			return true
 		a_ramped.erase(edge)
 	return false
@@ -672,8 +715,11 @@ func _relevel_one_extending(a_from: int, a_ramped: Dictionary) -> bool:
 	var reached: Dictionary = _reached_nodes(a_from, a_ramped)
 	for edge: Vector2i in _topology.open_edges():
 		for pair: Vector2i in [edge, Vector2i(edge.y, edge.x)]:
-			if reached.has(pair.x) and not reached.has(pair.y) \
-					and _relevel_plateau(plateau_of_node[pair.y], pair.x):
+			if (
+				reached.has(pair.x)
+				and not reached.has(pair.y)
+				and _relevel_plateau(plateau_of_node[pair.y], pair.x)
+			):
 				return true
 	return false
 
@@ -712,8 +758,13 @@ func _relevel_plateau(a_plateau: int, a_node: int) -> bool:
 func _ramp_one_extending(a_from: int, a_ramped: Dictionary) -> bool:
 	var reached: Dictionary = _reached_nodes(a_from, a_ramped)
 	var candidates: Array[Vector2i] = _ramp_candidates(a_ramped)
-	candidates.sort_custom(func(p: Vector2i, q: Vector2i) -> bool:
-		return (reached.has(p.x) != reached.has(p.y)) and not (reached.has(q.x) != reached.has(q.y)))
+	candidates.sort_custom(
+		func(p: Vector2i, q: Vector2i) -> bool:
+			return (
+				(reached.has(p.x) != reached.has(p.y))
+				and not (reached.has(q.x) != reached.has(q.y))
+			)
+	)
 	for edge: Vector2i in candidates:
 		if _build_ramp_between(edge.x, edge.y):
 			a_ramped[edge] = true
@@ -727,8 +778,9 @@ func _ramp_one_extending(a_from: int, a_ramped: Dictionary) -> bool:
 func _build_ramp_between(a: int, b: int) -> bool:
 	var positions: PackedVector2Array = _topology.graph.positions
 	var midpoint: Vector2 = (positions[a] + positions[b]) * 0.5
-	var want := Vector2i(mini(plateau_of_node[a], plateau_of_node[b]),
-		maxi(plateau_of_node[a], plateau_of_node[b]))
+	var want := Vector2i(
+		mini(plateau_of_node[a], plateau_of_node[b]), maxi(plateau_of_node[a], plateau_of_node[b])
+	)
 	var boundary: Array[Vector2i] = []
 	for cell: Vector2i in cliff_cells:
 		var pair: Vector3 = _topology.nearest_two(Vector2(cell) + Vector2(0.5, 0.5))
@@ -736,8 +788,12 @@ func _build_ramp_between(a: int, b: int) -> bool:
 		var q: int = plateau_of_node[int(pair.y)]
 		if Vector2i(mini(p, q), maxi(p, q)) == want:
 			boundary.append(cell)
-	boundary.sort_custom(func(p: Vector2i, q: Vector2i) -> bool:
-		return Vector2(p).distance_squared_to(midpoint) < Vector2(q).distance_squared_to(midpoint))
+	boundary.sort_custom(
+		func(p: Vector2i, q: Vector2i) -> bool:
+			return (
+				Vector2(p).distance_squared_to(midpoint) < Vector2(q).distance_squared_to(midpoint)
+			)
+	)
 	for cell: Vector2i in boundary:
 		var pair: Vector3 = _topology.nearest_two(Vector2(cell) + Vector2(0.5, 0.5))
 		if _build_ramp_at(cell, int(pair.x), int(pair.y)):
@@ -754,10 +810,16 @@ func _build_ramp_at(a_at: Vector2i, a: int, b: int, a_half_width: float = 0.0) -
 	var high: int = b if low == a else a
 	var rise: float = node_height(high) - node_height(low)
 	var ramp: Dictionary = {
-		at = a_at, low = low, high = high,
+		at = a_at,
+		low = low,
+		high = high,
 		run = ceilf(rise * sqrt(2.0) / TerrainGrid.MAX_SLOPE_DIFF) + 1.0,
-		half_width = a_half_width if a_half_width > 0.0 \
-			else (MapGenerationParams.MIN_CHOKE_WIDTH * (1.0 + _rng.randf()) + 1.0) * 0.5,
+		half_width =
+		(
+			a_half_width
+			if a_half_width > 0.0
+			else (MapGenerationParams.MIN_CHOKE_WIDTH * (1.0 + _rng.randf()) + 1.0) * 0.5
+		),
 	}
 	var corners: Dictionary = _ramp_corners(ramp)
 	for corner: Vector2i in corners:
@@ -814,11 +876,16 @@ func _rebuild_ramps() -> void:
 func _is_rampable(a_cell: Vector2i, a_low: int, a_high: int) -> bool:
 	if a_cell.x < 0 or a_cell.y < 0 or a_cell.x >= _width or a_cell.y >= _depth:
 		return false
-	if not _terrain.is_cell_in_play(a_cell) or _owner.has(a_cell) \
-			or _topology.barrier_of.has(a_cell):
+	if (
+		not _terrain.is_cell_in_play(a_cell)
+		or _owner.has(a_cell)
+		or _topology.barrier_of.has(a_cell)
+	):
 		return false
 	var region: int = _nearest[a_cell.y * _width + a_cell.x]
 	return not is_step(region, a_low) or not is_step(region, a_high)
+
+
 #endregion
 
 
@@ -848,8 +915,10 @@ func _widen_narrow_ramps() -> void:
 			continue
 		_ramps.erase(wider)
 		_relabel()
-		if not _relevel_plateau(plateau_of_node[narrow.high], narrow.low) \
-				and not _relevel_plateau(plateau_of_node[narrow.low], narrow.high):
+		if (
+			not _relevel_plateau(plateau_of_node[narrow.high], narrow.low)
+			and not _relevel_plateau(plateau_of_node[narrow.low], narrow.high)
+		):
 			errors.append("a ramp is too narrow to cross and its sides cannot be levelled")
 			return
 
@@ -898,6 +967,8 @@ static func _longest_run(a_offsets: Dictionary) -> float:
 		last = offset
 		longest = maxi(longest, run)
 	return float(longest)
+
+
 #endregion
 
 
@@ -911,8 +982,11 @@ func _repair_connectivity() -> bool:
 		var stranded: Array[Vector2i] = _stranded_stretch()
 		if stranded.is_empty():
 			return true
-		if not _ramp_beside(stranded) and not _relevel_groups_in(stranded) \
-				and not _relevel_stranded(stranded[0]):
+		if (
+			not _ramp_beside(stranded)
+			and not _relevel_groups_in(stranded)
+			and not _relevel_stranded(stranded[0])
+		):
 			break
 	if _stranded_stretch().is_empty():
 		return true
@@ -944,7 +1018,8 @@ func _ramp_beside(a_stretch: Array[Vector2i]) -> bool:
 ## Refused if any of those groups holds a start.
 func _relevel_groups_in(a_stretch: Array[Vector2i]) -> bool:
 	var field: PathField = PathField.from_seeds(
-		passable_mask(), _width, _depth, [Vector2i(_topology.graph.positions[0].floor())])
+		passable_mask(), _width, _depth, [Vector2i(_topology.graph.positions[0].floor())]
+	)
 	var target: int = _NONE
 	var groups: Dictionary = {}
 	for cell: Vector2i in a_stretch:
@@ -955,8 +1030,13 @@ func _relevel_groups_in(a_stretch: Array[Vector2i]) -> bool:
 		for dx: int in range(-2, 3):
 			for dz: int in range(-2, 3):
 				var near: Vector2i = cell + Vector2i(dx, dz)
-				if near.x >= 0 and near.y >= 0 and near.x < _width and near.y < _depth \
-						and not is_inf(field.distance(near)):
+				if (
+					near.x >= 0
+					and near.y >= 0
+					and near.x < _width
+					and near.y < _depth
+					and not is_inf(field.distance(near))
+				):
 					target = _source[near.y * _width + near.x]
 	if target == _NONE:
 		return false
@@ -988,11 +1068,15 @@ func _set_groups_to(a_groups: Dictionary, a_node: int) -> void:
 func _relevel_stranded(a_cell: Vector2i) -> bool:
 	var plateau: int = plateau_of_node[_nearest[a_cell.y * _width + a_cell.x]]
 	var field: PathField = PathField.from_seeds(
-		passable_mask(), _width, _depth, [Vector2i(_topology.graph.positions[0].floor())])
+		passable_mask(), _width, _depth, [Vector2i(_topology.graph.positions[0].floor())]
+	)
 	for edge: Vector2i in _topology.graph.edges:
 		for pair: Vector2i in [edge, Vector2i(edge.y, edge.x)]:
-			if plateau_of_node[pair.x] == plateau and plateau_of_node[pair.y] != plateau \
-					and not is_inf(field.distance(Vector2i(_topology.graph.positions[pair.y].floor()))):
+			if (
+				plateau_of_node[pair.x] == plateau
+				and plateau_of_node[pair.y] != plateau
+				and not is_inf(field.distance(Vector2i(_topology.graph.positions[pair.y].floor())))
+			):
 				return _relevel_plateau(plateau, pair.y)
 	return false
 
@@ -1002,7 +1086,8 @@ func _relevel_stranded(a_cell: Vector2i) -> bool:
 func _stranded_stretch() -> Array[Vector2i]:
 	var mask: PackedByteArray = _topology.passable_mask(cliff_cells)
 	var field: PathField = PathField.from_seeds(
-		mask, _width, _depth, [Vector2i(_topology.graph.positions[0].floor())])
+		mask, _width, _depth, [Vector2i(_topology.graph.positions[0].floor())]
+	)
 	var seen: Dictionary = {}
 	for z: int in _depth:
 		for x: int in _width:

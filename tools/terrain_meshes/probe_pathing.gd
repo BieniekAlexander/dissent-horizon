@@ -45,8 +45,7 @@ func _run() -> void:
 		get_tree().quit(2)
 		return
 
-	print("=== %s : (%.0f, %.0f) -> (%.0f, %.0f) ===" % [
-		_scene, _from.x, _from.z, _to.x, _to.z])
+	print("=== %s : (%.0f, %.0f) -> (%.0f, %.0f) ===" % [_scene, _from.x, _from.z, _to.x, _to.z])
 
 	# ISOLATED: park every other unit far away so RVO has nobody to react to.
 	var subject: Commandable = units[0]
@@ -94,11 +93,25 @@ func _measure(a_unit: Commandable, a_label: String) -> void:
 	for p: Vector3 in trail:
 		max_off = maxf(max_off, _distance_to_polyline(_xz(p), path))
 
-	print("%s | straight %6.1f | A* path %6.1f (x%.3f, %d pts) | walked %6.1f (x%.3f) | max body offset from path %5.2f | %d ticks" % [
-		a_label, straight,
-		path_len, path_len / maxf(straight, 0.001), path.size(),
-		walked, walked / maxf(straight, 0.001),
-		max_off, ticks])
+	print(
+		(
+			(
+				"%s | straight %6.1f | A* path %6.1f (x%.3f, %d pts) | walked %6.1f "
+				+ "(x%.3f) | max body offset from path %5.2f | %d ticks"
+			)
+			% [
+				a_label,
+				straight,
+				path_len,
+				path_len / maxf(straight, 0.001),
+				path.size(),
+				walked,
+				walked / maxf(straight, 0.001),
+				max_off,
+				ticks
+			]
+		)
+	)
 
 
 func _player_units() -> Array:
@@ -138,7 +151,10 @@ func _distance_to_polyline(a_p: Vector2, a_pts: PackedVector3Array) -> float:
 		var a: Vector2 = _xz(a_pts[i - 1])
 		var b: Vector2 = _xz(a_pts[i])
 		var ab: Vector2 = b - a
-		var t: float = 0.0 if ab.length_squared() == 0.0 \
+		var t: float = (
+			0.0
+			if ab.length_squared() == 0.0
 			else clampf((a_p - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+		)
 		best = minf(best, a_p.distance_to(a + ab * t))
 	return best

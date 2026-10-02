@@ -78,8 +78,11 @@ func test_count_defaults_to_one() -> void:
 func test_commander_settings_are_read_and_default_to_passive() -> void:
 	var spec: SimSpec = SimSpec.parse(_valid(), "fixture")
 	assert_eq((spec.commanders["A"] as SimSpec.CommanderSettings).difficulty, "MEDIUM")
-	assert_eq((spec.commanders["B"] as SimSpec.CommanderSettings).difficulty, "PASSIVE",
-		"a slot that names no difficulty does not think")
+	assert_eq(
+		(spec.commanders["B"] as SimSpec.CommanderSettings).difficulty,
+		"PASSIVE",
+		"a slot that names no difficulty does not think"
+	)
 
 
 func test_the_run_window_and_seed_are_read() -> void:
@@ -91,6 +94,8 @@ func test_the_run_window_and_seed_are_read() -> void:
 func test_a_spec_naming_no_seed_leaves_the_choice_to_the_runner() -> void:
 	var spec: SimSpec = SimSpec.parse(_valid().replace(", seed: 7", ""), "fixture")
 	assert_eq(spec.seed_value, -1, "-1 means the runner draws and records one")
+
+
 #endregion
 
 
@@ -125,8 +130,7 @@ func test_a_pick_selector_is_accepted_on_an_order() -> void:
 
 func test_near_marks_a_positional_order_as_an_approach() -> void:
 	var text: String = _valid().replace(
-		"orders: [ { move: { target: A.army } } ]",
-		"orders: [ { attack_move: { near: A.army } } ]"
+		"orders: [ { move: { target: A.army } } ]", "orders: [ { attack_move: { near: A.army } } ]"
 	)
 	var spec: SimSpec = SimSpec.parse(text, "fixture")
 	assert_eq(spec.errors, [] as Array[String])
@@ -167,6 +171,8 @@ func test_an_unknown_pick_is_refused() -> void:
 		"target: B.army }", "target: { of: B.army, pick: tallest } }"
 	)
 	assert_true(_has_error(SimSpec.parse(text, "f"), "pick"))
+
+
 #endregion
 
 
@@ -232,6 +238,8 @@ func test_a_not_node_takes_exactly_one_child() -> void:
 		"  - not: [ { of: B.army, check: dead }, { of: A.army, check: dead } ]"
 	)
 	assert_true(_has_error(SimSpec.parse(text, "f"), "exactly one child"))
+
+
 #endregion
 
 
@@ -265,6 +273,8 @@ func test_a_missing_verdict_reads_as_false_rather_than_crashing() -> void:
 	# A leaf that never settled must not take the whole report down with it.
 	var a := _leaf("alive")
 	assert_false(_node(SimSpec.ExpectNode.Kind.ALL, [a]).resolve({}))
+
+
 #endregion
 
 
@@ -290,7 +300,9 @@ func test_a_group_with_no_pieces_is_refused() -> void:
 
 
 func test_a_placement_cycle_is_refused() -> void:
-	var text: String = _valid().replace("at: west", "at: { from: B.army, distance: 5, bearing: west }")
+	var text: String = _valid().replace(
+		"at: west", "at: { from: B.army, distance: 5, bearing: west }"
+	)
 	assert_true(_has_error(SimSpec.parse(text, "f"), "cycle"))
 
 
@@ -337,6 +349,8 @@ func test_unparseable_yaml_is_an_error_rather_than_an_empty_spec() -> void:
 	var spec: SimSpec = SimSpec.parse("given:\n\tA: 1\n", "f")
 	assert_false(spec.is_valid())
 	assert_true(_has_error(spec, "tab"), "the tab-indentation case is named: %s" % str(spec.errors))
+
+
 #endregion
 
 
@@ -347,8 +361,11 @@ func test_every_validated_check_name_has_an_implementation() -> void:
 	# prevent.
 	var declared: Array = SimSpec.CHECK_ARGUMENTS.keys()
 	declared.sort()
-	assert_eq(declared, SimCheckLibrary.implemented_names() as Array,
-		"SimSpec.CHECK_ARGUMENTS and SimCheckLibrary._BUILDERS name the same checks")
+	assert_eq(
+		declared,
+		SimCheckLibrary.implemented_names() as Array,
+		"SimSpec.CHECK_ARGUMENTS and SimCheckLibrary._BUILDERS name the same checks"
+	)
 
 
 func test_the_piece_catalog_resolves_a_known_piece_to_a_scene() -> void:
@@ -359,6 +376,8 @@ func test_the_piece_catalog_resolves_a_known_piece_to_a_scene() -> void:
 func test_the_piece_catalog_does_not_invent_a_scene_for_an_unknown_piece() -> void:
 	assert_false(SimPieceCatalog.has_piece("an_bioLight_wizard"))
 	assert_eq(SimPieceCatalog.scene_path("an_bioLight_wizard"), "")
+
+
 #endregion
 
 

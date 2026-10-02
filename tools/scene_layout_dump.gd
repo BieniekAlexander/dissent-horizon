@@ -60,10 +60,19 @@ func _dump_node(a_root: Node, a_node: Node, a_scene: String, a_lines: PackedStri
 		if not str(group).begins_with("_"):
 			groups.append(str(group))
 	groups.sort()
-	a_lines.append("%s | %s | %s | %s | %s | %s" % [a_scene, a_root.get_path_to(a_node),
-		a_node.get_class(), script.resource_path if script != null else "",
-		",".join(groups),
-		_deep_recorded(a_node) if _deep else _recorded(a_node)])
+	a_lines.append(
+		(
+			"%s | %s | %s | %s | %s | %s"
+			% [
+				a_scene,
+				a_root.get_path_to(a_node),
+				a_node.get_class(),
+				script.resource_path if script != null else "",
+				",".join(groups),
+				_deep_recorded(a_node) if _deep else _recorded(a_node)
+			]
+		)
+	)
 	for child: Node in a_node.get_children():
 		_dump_node(a_root, child, a_scene, a_lines)
 

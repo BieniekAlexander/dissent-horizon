@@ -36,6 +36,7 @@ const DISTANCE_CELLS: float = 3.0
 const AUTHORED_FACING: Vector2 = Vector2(0.0, -1.0)
 #endregion
 
+
 #region Reading a formation scene
 ## The slot offsets in `formation`, in world XZ and in CHILD ORDER — starting unit i takes
 ## child i. Non-Node3D children are ignored, so a formation scene may carry annotations.
@@ -52,7 +53,10 @@ static func offsets_from(formation: Node) -> Array[Vector2]:
 		if slot != null:
 			offsets.append(VU.inXZ(slot.position))
 	return offsets
+
+
 #endregion
+
 
 #region Placing it
 ## The unit heading from `structure_xz` toward `center` — which way "into the map" is from
@@ -99,10 +103,7 @@ const AXIS_EPSILON: float = 1e-6
 ## footprint edge, along the heading into the map. Always INWARD, which is what keeps a
 ## start point in a corner from deploying its units off the edge.
 static func anchor(
-	structure_xz: Vector2,
-	center: Vector2,
-	clearance: float,
-	half_extents: Vector2 = Vector2.ZERO
+	structure_xz: Vector2, center: Vector2, clearance: float, half_extents: Vector2 = Vector2.ZERO
 ) -> Vector2:
 	var heading: Vector2 = heading_toward(structure_xz, center)
 	return structure_xz + heading * (extent_toward(half_extents, heading) + clearance)

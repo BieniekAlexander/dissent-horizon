@@ -24,6 +24,7 @@ var _resolved: bool = false
 var _found: bool = false
 #endregion
 
+
 #region Private helpers
 func _resolve(a_manager: ScenarioTriggerManager) -> void:
 	if _resolved:
@@ -44,8 +45,10 @@ func _resolve(a_manager: ScenarioTriggerManager) -> void:
 	# region causes (see RegionAwareCondition.warn_about_missing_region). The usual cause is
 	# the watched node having been renamed since the trigger was authored.
 	push_warning(
-		"ConditionEntityKilled: no entity named '%s' in the \"piece\" group. " % entity_name
-		+ "This check can never become true; did the node get renamed?"
+		(
+			"ConditionEntityKilled: no entity named '%s' in the \"piece\" group. " % entity_name
+			+ "This check can never become true; did the node get renamed?"
+		)
 	)
 
 
@@ -54,7 +57,10 @@ func _resolve(a_manager: ScenarioTriggerManager) -> void:
 ## for a watched STRUCTURE, being out of the world is the same as being gone).
 func _entity_is_alive() -> bool:
 	return _found and is_instance_valid(_entity_ref) and _entity_ref.is_inside_tree()
+
+
 #endregion
+
 
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
@@ -71,7 +77,10 @@ func reset() -> void:
 	_entity_ref = null
 	_resolved = false
 	_found = false
+
+
 #endregion
+
 
 #region Player-facing description (highlights)
 ## Mark the watched entity while it is still alive — it is precisely the thing the player

@@ -35,6 +35,7 @@ const _SCOUT_SCENE: PackedScene = preload("res://scenes/entities/nt_aircraftLigh
 ## execute, so the same event serves the human player and any bot.
 var commander_id: int = 1
 
+
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var commander: Commander = a_manager.get_commander(commander_id)
 	var map: Map = a_manager.map

@@ -4,14 +4,17 @@ extends GutTest
 ## before the military" is no longer something the code can rely on; these tests pin that the
 ## claim alone keeps a unit where its owner put it.
 
+
 class StubPiece:
 	extends Commandable
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
-		for pair: Array in [["Ownership", Ownership.new()],
-				["AvoidanceObstacle", NavigationObstacle3D.new()],
-				["Veterancy", Veterancy.new()]]:
+		for pair: Array in [
+			["Ownership", Ownership.new()],
+			["AvoidanceObstacle", NavigationObstacle3D.new()],
+			["Veterancy", Veterancy.new()]
+		]:
 			var node: Node = pair[1]
 			node.name = pair[0]
 			piece.add_child(node)
@@ -72,8 +75,11 @@ func test_the_army_leaves_a_claimed_unit_alone() -> void:
 	_claims.claim(scout, BotScout.CLAIM_OWNER, BotClaims.Priority.SCOUT)
 	var military := BotMilitary.new(_bot, null)
 	military.claims = _claims
-	assert_eq(military._combat_units(_bot.get_units()), [free_unit],
-		"a scout is not swept into the rally, whichever manager ran first")
+	assert_eq(
+		military._combat_units(_bot.get_units()),
+		[free_unit],
+		"a scout is not swept into the rally, whichever manager ran first"
+	)
 
 
 func test_a_scout_taken_by_a_stronger_claim_is_given_up() -> void:

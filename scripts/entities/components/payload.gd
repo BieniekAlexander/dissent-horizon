@@ -30,6 +30,7 @@ var from: Commandable
 var target: Entity
 #endregion
 
+
 #region Public API
 ## `a_node`'s Payload component, or null. Untyped because a caller may hold a freed reference.
 static func of(a_node: Variant) -> Payload:
@@ -59,8 +60,12 @@ func get_effects() -> Array:
 
 ## Whether a shot at `a_target` is aimed at the ground under it rather than at it.
 func aims_at_ground_under(a_target: Entity) -> bool:
-	return bio_ground_aim and not hitscan and a_target.defense != null \
+	return (
+		bio_ground_aim
+		and not hitscan
+		and a_target.defense != null
 		and a_target.defense.frame_type == Defense.FrameType.BIO
+	)
 
 
 ## Take aim: `a_from` fired it at `a_target`.
@@ -74,7 +79,8 @@ func arm(a_from: Commandable, a_target: Entity) -> void:
 ## gdd/systems/ai/selfplay-harness.md §Determinism).
 func aim_error(a_velocity: Vector3) -> Vector3:
 	return a_velocity.rotated(
-		Vector3.UP, SU.rng.randf_range(-HITSCAN_MAX_ERROR_ANGLE, HITSCAN_MAX_ERROR_ANGLE))
+		Vector3.UP, SU.rng.randf_range(-HITSCAN_MAX_ERROR_ANGLE, HITSCAN_MAX_ERROR_ANGLE)
+	)
 
 
 ## Pay out once: on the target, or on everything in the blast.
@@ -97,27 +103,44 @@ func apply() -> void:
 	var blast_xform: Transform3D = shape.global_transform
 	blast_xform.basis = Basis.from_scale(blast_xform.basis.get_scale())
 	var victims: Array[Entity] = SU.query_shape_for_entities(
-		host().get_world_3d(), shape.shape, blast_xform,
-		CollisionLayers.TARGETABLE_ANY, [host()], 32)
+		host().get_world_3d(),
+		shape.shape,
+		blast_xform,
+		CollisionLayers.TARGETABLE_ANY,
+		[host()],
+		32
+	)
 	for victim: Entity in victims:
 		if victim.defense != null:
 			victim.receive_damage(damage, source)
 	for effect: EffectApplicator in get_effects():
 		effect.apply(victims, source)
+
+
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
 	# The importer keeps the two in step; a scene that disagrees was edited by hand.
 	if hitscan == has_blast():
-		push_error(("Emission '%s': hitscan is %s but it %s a HitShape — hitscan aims at one"
-			+ " piece, a HitShape is a blast") % [host().id, hitscan,
-				"carries" if has_blast() else "has no"])
+		push_error(
+			(
+				(
+					"Emission '%s': hitscan is %s but it %s a HitShape — hitscan aims at one"
+					+ " piece, a HitShape is a blast"
+				)
+				% [host().id, hitscan, "carries" if has_blast() else "has no"]
+			)
+		)
 	var phased: PhasedLocomotion = _phased()
 	if phased != null:
 		phased.phase_ticking.connect(_on_phase_ticking)
 		phased.struck.connect(_on_struck)
+
+
 #endregion
+
 
 #region Private helpers
 ## The host's phased locomotion, found by name: the host's own reference to it is not yet set

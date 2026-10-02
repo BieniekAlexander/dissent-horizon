@@ -13,6 +13,7 @@ extends GutTest
 ##   - velocity_ready forwards from the agent's velocity_computed
 ##   - set_avoidance_team writes both layers and mask
 
+
 ## The Aerial a flying test Movement sits beside.
 func _air(a_m: Movement) -> Aerial:
 	return a_m.get_parent().get_node("Aerial") as Aerial
@@ -33,9 +34,11 @@ func _make_movement_without_agent() -> Movement:
 	add_child_autofree(m)
 	return m
 
+
 func test_default_target_position_is_zero_without_agent():
 	var m := _make_movement_without_agent()
 	assert_eq(m.target_position, Vector3.ZERO)
+
 
 func test_set_target_position_is_safe_without_agent():
 	# Should not crash — the component is designed to no-op when the agent
@@ -45,15 +48,18 @@ func test_set_target_position_is_safe_without_agent():
 	# target_position still reads as ZERO because there's no agent backing it.
 	assert_eq(m.target_position, Vector3.ZERO)
 
+
 func test_is_navigation_finished_defaults_to_true_without_agent():
 	# Without an agent, "navigation is done" is the safe interpretation —
 	# this prevents callers from spinning on an entity that can't move.
 	var m := _make_movement_without_agent()
 	assert_true(m.is_navigation_finished())
 
+
 func test_get_next_path_position_defaults_to_zero_without_agent():
 	var m := _make_movement_without_agent()
 	assert_eq(m.get_next_path_position(), Vector3.ZERO)
+
 
 func test_nav_agent_path_resolves_on_ready():
 	# Wire a real NavigationAgent3D sibling so we can verify the Movement
@@ -72,6 +78,7 @@ func test_nav_agent_path_resolves_on_ready():
 	# Read it back via the property — confirms _nav_agent is wired up.
 	assert_eq(m.target_position, Vector3(5, 0, 5))
 
+
 func test_enable_avoidance_configures_layers_and_mask():
 	var parent := Node3D.new()
 	add_child_autofree(parent)
@@ -87,9 +94,14 @@ func test_enable_avoidance_configures_layers_and_mask():
 	# own team bit (same-team reciprocal RVO) + every FOREIGN obstacle bit + the
 	# exception pool — NOT a blanket avoid-all. See AvoidanceAgent3D._current_mask.
 	var mask := agent.avoidance_mask
-	assert_ne(mask & AvoidanceAgent3D.team_bit(2), 0, "masks own team bit (same-team reciprocal RVO)")
-	assert_ne(mask & AvoidanceAgent3D.obstacle_bit(1), 0, "masks a foreign commander's obstacle bit")
+	assert_ne(
+		mask & AvoidanceAgent3D.team_bit(2), 0, "masks own team bit (same-team reciprocal RVO)"
+	)
+	assert_ne(
+		mask & AvoidanceAgent3D.obstacle_bit(1), 0, "masks a foreign commander's obstacle bit"
+	)
 	assert_eq(mask & AvoidanceAgent3D.obstacle_bit(2), 0, "does NOT mask its own obstacle bit")
+
 
 func test_velocity_ready_forwards_from_agent_velocity_computed():
 	var parent := Node3D.new()
@@ -106,6 +118,7 @@ func test_velocity_ready_forwards_from_agent_velocity_computed():
 	agent.velocity_computed.emit(Vector3(2, 0, 0))
 	assert_signal_emitted_with_parameters(m, "velocity_ready", [Vector3(2, 0, 0)])
 
+
 #region FLYING dive-attack
 ## Helper: a FLYING Movement under a Node3D parent at `pos`, _ready'd (so its height
 ## offset is seeded to AERIAL_HEIGHT).
@@ -119,16 +132,20 @@ func _make_flying(a_pos: Vector3) -> Movement:
 	parent.add_child(m)  # triggers _ready
 	return m
 
+
 func test_flying_starts_at_cruise_altitude():
 	var m := _make_flying(Vector3(10, 0, 10))
 	assert_almost_eq(_air(m).height_offset(), Aerial.AERIAL_HEIGHT, 0.001)
+
 
 ## Fly `m`'s parent toward `target_xz` at `speed` (world-units/s), requesting a dive every
 ## tick, until it arrives or `max_ticks` elapse. Returns the height offset on arrival.
 ##
 ## This is the case the old flat-rate descent could not do: the dive has to shed the whole
 ## cruise altitude within the seconds the horizontal run actually takes.
-func _fly_dive_run(a_m: Movement, a_target_xz: Vector2, a_speed: float, a_max_ticks: int = 600) -> float:
+func _fly_dive_run(
+	a_m: Movement, a_target_xz: Vector2, a_speed: float, a_max_ticks: int = 600
+) -> float:
 	var parent := a_m.get_parent() as Node3D
 	var tps: float = float(Engine.physics_ticks_per_second)
 	for i in a_max_ticks:
@@ -142,7 +159,9 @@ func _fly_dive_run(a_m: Movement, a_target_xz: Vector2, a_speed: float, a_max_ti
 			return _air(a_m).height_offset()
 		var step: Vector2 = to_target.normalized() * (a_speed / tps)
 		parent.global_position += Vector3(step.x, 0.0, step.y)
-		a_m._current_velocity = Vector3(to_target.normalized().x, 0.0, to_target.normalized().y) * a_speed
+		a_m._current_velocity = (
+			Vector3(to_target.normalized().x, 0.0, to_target.normalized().y) * a_speed
+		)
 		_air(a_m).request_dive(a_target_xz)
 		_air(a_m)._update_flying_height()
 	return _air(a_m).height_offset()
@@ -155,8 +174,11 @@ func test_flying_dive_reaches_the_target_altitude_on_arrival():
 	var m := _make_flying(Vector3(0, 0, 0))
 	var target := Vector2(20.0, 0.0)
 	var offset_on_arrival: float = _fly_dive_run(m, target, 4.0)
-	assert_lt(offset_on_arrival, 0.5,
-		"the drone is level with its target when it gets there, not still at altitude")
+	assert_lt(
+		offset_on_arrival,
+		0.5,
+		"the drone is level with its target when it gets there, not still at altitude"
+	)
 
 
 func test_flying_dive_reaches_the_target_across_a_range_of_speeds():
@@ -182,8 +204,12 @@ func test_flying_holds_cruise_altitude_until_it_commits():
 		m._current_velocity = Vector3(4.0, 0, 0)
 		_air(m).request_dive(target)
 		_air(m)._update_flying_height()
-	assert_almost_eq(_air(m).height_offset(), Aerial.AERIAL_HEIGHT, 0.01,
-		"still at cruise altitude outside the commit window")
+	assert_almost_eq(
+		_air(m).height_offset(),
+		Aerial.AERIAL_HEIGHT,
+		0.01,
+		"still at cruise altitude outside the commit window"
+	)
 
 
 func test_terminal_guidance_sharpens_the_turn_only_while_diving():
@@ -211,10 +237,18 @@ func test_dive_commit_distance_scales_with_speed():
 	# The authored dive_distance is a floor; a faster unit has to nose over sooner because
 	# the descent takes the same seconds either way.
 	var m := _make_flying(Vector3(0, 0, 0))
-	assert_almost_eq(_air(m)._dive_commit_distance(0.0), _air(m).dive_distance, 0.001,
-		"a stationary unit commits at the authored range")
-	assert_gt(_air(m)._dive_commit_distance(8.0), _air(m)._dive_commit_distance(4.0),
-		"a faster unit commits earlier")
+	assert_almost_eq(
+		_air(m)._dive_commit_distance(0.0),
+		_air(m).dive_distance,
+		0.001,
+		"a stationary unit commits at the authored range"
+	)
+	assert_gt(
+		_air(m)._dive_commit_distance(8.0),
+		_air(m)._dive_commit_distance(4.0),
+		"a faster unit commits earlier"
+	)
+
 
 ## Ticks to fully descend/ascend the cruise altitude at LANDING_SPEED, with headroom —
 ## derived from the constants so the tests hold if AERIAL_HEIGHT changes. LANDING_SPEED is
@@ -224,6 +258,7 @@ func _full_height_ticks() -> int:
 	var per_tick: float = Aerial.LANDING_SPEED / float(Engine.physics_ticks_per_second)
 	return int(ceil(Aerial.AERIAL_HEIGHT / per_tick)) + 20
 
+
 func test_flying_dive_onto_target_reaches_ground():
 	# Diving straight onto the target's XZ (distance 0) drops to ~ground level.
 	var m := _make_flying(Vector3(10, 0, 10))
@@ -231,6 +266,7 @@ func test_flying_dive_onto_target_reaches_ground():
 		_air(m).request_dive(Vector2(10.0, 10.0))
 		_air(m)._update_flying_height()
 	assert_almost_eq(_air(m).height_offset(), 0.0, 0.02)
+
 
 func test_flying_climbs_back_when_dive_not_requested():
 	# Dive down, then stop requesting -> eases back to cruise altitude.
@@ -243,6 +279,7 @@ func test_flying_climbs_back_when_dive_not_requested():
 		_air(m)._update_flying_height()  # no request this tick
 	assert_almost_eq(_air(m).height_offset(), Aerial.AERIAL_HEIGHT, 0.02)
 
+
 func test_flying_stays_at_altitude_for_far_target():
 	# A dive request for a target beyond dive_distance keeps the unit at cruise altitude.
 	var m := _make_flying(Vector3(10, 0, 10))
@@ -250,6 +287,7 @@ func test_flying_stays_at_altitude_for_far_target():
 		_air(m).request_dive(Vector2(10.0 + _air(m).dive_distance * 5.0, 10.0))
 		_air(m)._update_flying_height()
 	assert_almost_eq(_air(m).height_offset(), Aerial.AERIAL_HEIGHT, 0.001)
+
 
 #region FLYING airplane attitude
 ## A FLYING Movement with the MeshVisual real units carry, so attitude has somewhere to go.
@@ -271,8 +309,11 @@ func test_flying_noses_over_into_a_dive():
 	var m: Movement = rig[1]
 	var visual: Node3D = rig[2]
 	_fly_dive_run(m, Vector2(20.0, 0.0), 4.0)
-	assert_gt(visual.rotation.x, deg_to_rad(30.0),
-		"a terminal dive points the nose steeply down, not level")
+	assert_gt(
+		visual.rotation.x,
+		deg_to_rad(30.0),
+		"a terminal dive points the nose steeply down, not level"
+	)
 
 
 func test_flying_holds_its_nose_level_in_cruise():
@@ -322,8 +363,9 @@ func test_flying_bank_is_capped():
 		parent.rotation.y += deg_to_rad(720.0) / tps  # absurd turn rate
 		m._current_velocity = Vector3(0, 0, 20.0)
 		_air(m)._update_flying_height()
-	assert_true(absf(visual.rotation.z) <= Aerial.FLYING_MAX_BANK + 1e-3,
-		"bank never rolls past the cap")
+	assert_true(
+		absf(visual.rotation.z) <= Aerial.FLYING_MAX_BANK + 1e-3, "bank never rolls past the cap"
+	)
 
 
 func test_flying_attitude_never_touches_the_physics_body():
@@ -349,6 +391,8 @@ func test_flying_attitude_is_safe_without_a_mesh_visual():
 	m._current_velocity = Vector3(0, 0, 4.0)
 	_air(m)._update_flying_height()
 	assert_almost_eq(_air(m).height_offset(), Aerial.AERIAL_HEIGHT, 0.1, "no crash, no lean")
+
+
 #endregion
 
 
@@ -360,7 +404,10 @@ func test_request_dive_is_noop_outside_flying_mode():
 	aerial.request_dive(Vector2(10, 10))
 	aerial._update_flying_height()
 	assert_almost_eq(aerial.height_offset(), Aerial.AERIAL_HEIGHT, 0.001)
+
+
 #endregion
+
 
 #region Grounded signed-speed acceleration
 ## _approach_signed_speed eases a signed longitudinal speed through zero under the
@@ -369,16 +416,24 @@ func test_request_dive_is_noop_outside_flying_mode():
 func test_approach_signed_speed_selects_accel_and_decel():
 	var m := Movement.new()
 	add_child_autofree(m)
-	m.max_acceleration = 1.5    # accel step 0.05/tick
-	m.max_deceleration = -3.0   # decel step 0.10/tick (authored ≤ 0; used as a magnitude)
+	m.max_acceleration = 1.5  # accel step 0.05/tick
+	m.max_deceleration = -3.0  # decel step 0.10/tick (authored ≤ 0; used as a magnitude)
 	# Braking a forward motion toward a reverse target uses deceleration, not a snap.
-	assert_almost_eq(m._approach_signed_speed(1.8, -1.8, 30.0), 1.7, 1e-4, "forward brakes at decel")
+	assert_almost_eq(
+		m._approach_signed_speed(1.8, -1.8, 30.0), 1.7, 1e-4, "forward brakes at decel"
+	)
 	# Easing straight through zero within one tick stays continuous.
-	assert_almost_eq(m._approach_signed_speed(0.05, -1.8, 30.0), -0.05, 1e-4, "crosses zero smoothly")
+	assert_almost_eq(
+		m._approach_signed_speed(0.05, -1.8, 30.0), -0.05, 1e-4, "crosses zero smoothly"
+	)
 	# Below zero, building reverse speed uses acceleration.
-	assert_almost_eq(m._approach_signed_speed(-0.05, -1.8, 30.0), -0.10, 1e-4, "reverse builds at accel")
+	assert_almost_eq(
+		m._approach_signed_speed(-0.05, -1.8, 30.0), -0.10, 1e-4, "reverse builds at accel"
+	)
 	# Speeding up forward uses acceleration.
-	assert_almost_eq(m._approach_signed_speed(1.0, 1.8, 30.0), 1.05, 1e-4, "forward builds at accel")
+	assert_almost_eq(
+		m._approach_signed_speed(1.0, 1.8, 30.0), 1.05, 1e-4, "forward builds at accel"
+	)
 
 
 ## Regression: a reverse command must NOT flip the emitted velocity straight to full
@@ -387,23 +442,26 @@ func test_approach_signed_speed_selects_accel_and_decel():
 func test_grounded_reverse_command_does_not_snap_velocity():
 	var parent := Node3D.new()
 	add_child_autofree(parent)
-	parent.rotation.y = 0.0            # facing = (0, 0, -1)
+	parent.rotation.y = 0.0  # facing = (0, 0, -1)
 	var m := Movement.new()
 	m.max_acceleration = 1.5
-	m.max_deceleration = -3.0          # decel step 0.10/tick (authored ≤ 0)
+	m.max_deceleration = -3.0  # decel step 0.10/tick (authored ≤ 0)
 	m.turn_rate = 90.0
 	m.min_turn_speed_ratio = 1.0
-	parent.add_child(m)                # _ready keeps the finite turn_rate
+	parent.add_child(m)  # _ready keeps the finite turn_rate
 
 	var facing: Vector3 = m.get_facing()
-	m._current_velocity = facing * 1.8            # driving forward at full speed
+	m._current_velocity = facing * 1.8  # driving forward at full speed
 	# Command points directly behind the unit (reverse).
 	var out: Vector3 = m._apply_grounded_turn(-facing * 1.8)
 
 	# It brakes one decel step (1.8 -> 1.7), it does NOT jump to 1.8 in reverse.
 	assert_almost_eq(out.length(), 1.7, 1e-3, "reverse decelerates by one step, no snap")
 	assert_gt(out.dot(facing), 0.0, "still moving forward this tick, not flipped to reverse")
+
+
 #endregion
+
 
 #region Hovering bank/pitch attitude
 ## Helper: an AIRBORNE HOVERING Movement under a Node3D parent facing +Z (rotation.y
@@ -484,8 +542,12 @@ func test_hover_bank_lean_scales_with_acceleration():
 	var gentle: float = visual.rotation.x
 	_settle_lean(m, Vector2(0.0, 2.0))
 	assert_gt(visual.rotation.x, gentle, "harder thrust leans further")
-	assert_almost_eq(gentle, 1.0 * Aerial.HOVER_TILT_PER_ACCEL, 1e-3,
-		"and the lean is HOVER_TILT_PER_ACCEL radians per unit/s²")
+	assert_almost_eq(
+		gentle,
+		1.0 * Aerial.HOVER_TILT_PER_ACCEL,
+		1e-3,
+		"and the lean is HOVER_TILT_PER_ACCEL radians per unit/s²"
+	)
 
 
 func test_hover_bank_rolls_into_rightward_acceleration():
@@ -506,8 +568,12 @@ func test_hover_bank_leans_diagonally_into_a_diagonal_thrust():
 	_settle_lean(m, Vector2(1.0, 1.0))  # equal parts forward and right
 	assert_gt(visual.rotation.x, 0.0, "the forward half of the thrust noses down")
 	assert_lt(visual.rotation.z, 0.0, "the rightward half banks right")
-	assert_almost_eq(visual.rotation.x, -visual.rotation.z, 1e-6,
-		"equal thrust components produce an equal, i.e. 45°, lean")
+	assert_almost_eq(
+		visual.rotation.x,
+		-visual.rotation.z,
+		1e-6,
+		"equal thrust components produce an equal, i.e. 45°, lean"
+	)
 
 
 func test_hover_bank_caps_the_lean_magnitude_not_each_axis():
@@ -522,8 +588,12 @@ func test_hover_bank_caps_the_lean_magnitude_not_each_axis():
 	assert_almost_eq(straight, Aerial.HOVER_MAX_LEAN, 1e-3, "straight thrust saturates the cap")
 	_settle_lean(m, Vector2(huge, huge))
 	var diagonal: float = Vector2(visual.rotation.x, visual.rotation.z).length()
-	assert_almost_eq(diagonal, Aerial.HOVER_MAX_LEAN, 1e-3,
-		"and a diagonal one saturates at the same total lean, not sqrt(2) past it")
+	assert_almost_eq(
+		diagonal,
+		Aerial.HOVER_MAX_LEAN,
+		1e-3,
+		"and a diagonal one saturates at the same total lean, not sqrt(2) past it"
+	)
 
 
 func test_hover_bank_levels_out_when_thrust_stops():
@@ -580,6 +650,8 @@ func test_attitude_helpers_are_safe_without_a_mesh_visual():
 	_air(m)._apply_hover_tilt(-Aerial.LANDING_SPEED)
 	_air(m)._level_body()
 	assert_almost_eq(parent.rotation.x, 0.0, 1e-9, "no MeshVisual, no lean, no crash")
+
+
 #endregion
 
 
@@ -596,8 +668,9 @@ func test_descent_starts_gently_rather_than_at_full_rate():
 	var m := _make_hovering_movement()
 	var first: float = absf(_air(m)._step_height_offset(0.0))
 	var per_tick_cap: float = Aerial.LANDING_SPEED / float(Engine.physics_ticks_per_second)
-	assert_lt(first, per_tick_cap * 0.5,
-		"the first tick of a descent moves far less than the capped rate")
+	assert_lt(
+		first, per_tick_cap * 0.5, "the first tick of a descent moves far less than the capped rate"
+	)
 	assert_gt(first, 0.0, "but it does start moving")
 
 
@@ -606,10 +679,13 @@ func test_descent_reaches_the_rate_cap_mid_manoeuvre():
 	for i in 60:
 		_air(m)._step_height_offset(0.0)
 	var per_tick_cap: float = Aerial.LANDING_SPEED / float(Engine.physics_ticks_per_second)
-	assert_almost_eq(absf(_air(m)._landing_rate), Aerial.LANDING_SPEED, 1e-3,
-		"mid-descent it is travelling at the rate cap")
-	assert_true(absf(_air(m)._landing_rate) <= Aerial.LANDING_SPEED + 1e-6,
-		"and never exceeds it")
+	assert_almost_eq(
+		absf(_air(m)._landing_rate),
+		Aerial.LANDING_SPEED,
+		1e-3,
+		"mid-descent it is travelling at the rate cap"
+	)
+	assert_true(absf(_air(m)._landing_rate) <= Aerial.LANDING_SPEED + 1e-6, "and never exceeds it")
 	assert_gt(per_tick_cap, 0.0)
 
 
@@ -643,8 +719,10 @@ func test_a_reversal_eases_through_zero_rather_than_snapping():
 	var previous: float = _air(m)._landing_rate
 	for i in 10:
 		_air(m)._step_height_offset(0.0)
-		assert_true(absf(_air(m)._landing_rate - previous) <= dv_max + 1e-6,
-			"the rate changes by at most one acceleration step per tick")
+		assert_true(
+			absf(_air(m)._landing_rate - previous) <= dv_max + 1e-6,
+			"the rate changes by at most one acceleration step per tick"
+		)
 		previous = _air(m)._landing_rate
 
 
@@ -653,15 +731,21 @@ func test_seconds_to_change_offset_matches_a_trapezoidal_profile():
 	assert_almost_eq(_air(m)._seconds_to_change_offset(0.0), 0.0, 1e-9, "no distance, no time")
 	# A full cruise-altitude descent: ramp up, cruise at the cap, ramp down.
 	var ramp: float = Aerial.LANDING_SPEED * Aerial.LANDING_SPEED / Aerial.LANDING_ACCEL
-	var expected: float = 2.0 * Aerial.LANDING_SPEED / Aerial.LANDING_ACCEL \
+	var expected: float = (
+		2.0 * Aerial.LANDING_SPEED / Aerial.LANDING_ACCEL
 		+ (Aerial.AERIAL_HEIGHT - ramp) / Aerial.LANDING_SPEED
+	)
 	assert_almost_eq(_air(m)._seconds_to_change_offset(Aerial.AERIAL_HEIGHT), expected, 1e-6)
 	# A hop shorter than the ramp distance never reaches the cap — triangular profile.
 	var short: float = ramp * 0.25
-	assert_almost_eq(_air(m)._seconds_to_change_offset(short),
-		2.0 * sqrt(short / Aerial.LANDING_ACCEL), 1e-6)
-	assert_eq(_air(m)._seconds_to_change_offset(-Aerial.AERIAL_HEIGHT),
-		_air(m)._seconds_to_change_offset(Aerial.AERIAL_HEIGHT), "direction-agnostic")
+	assert_almost_eq(
+		_air(m)._seconds_to_change_offset(short), 2.0 * sqrt(short / Aerial.LANDING_ACCEL), 1e-6
+	)
+	assert_eq(
+		_air(m)._seconds_to_change_offset(-Aerial.AERIAL_HEIGHT),
+		_air(m)._seconds_to_change_offset(Aerial.AERIAL_HEIGHT),
+		"direction-agnostic"
+	)
 
 
 func test_the_estimate_agrees_with_the_stepper():
@@ -674,9 +758,11 @@ func test_the_estimate_agrees_with_the_stepper():
 		_air(m)._step_height_offset(0.0)
 		ticks += 1
 	var actual: float = float(ticks) / float(Engine.physics_ticks_per_second)
-	assert_almost_eq(actual, predicted, 0.1,
-		"the predicted descent time matches the simulated one")
+	assert_almost_eq(actual, predicted, 0.1, "the predicted descent time matches the simulated one")
+
+
 #endregion
+
 
 #region Aerial altitude smoothing
 ## _step_smoothed_altitude is the acceleration-limited vertical controller that eases an
@@ -730,6 +816,8 @@ func test_altitude_descends_to_lower_target():
 	for i in 300:
 		m._step_smoothed_altitude(1.0)  # ground drops away beneath the unit
 	assert_almost_eq(m._smoothed_terrain_y, 1.0, 0.01, "eases down to the lower terrain")
+
+
 #endregion
 
 
@@ -744,9 +832,13 @@ func _movement_of_class(a_class: Movement.CrushClass) -> Movement:
 func test_can_crush_needs_a_two_tier_gap():
 	# One tier apart is not enough — crushing is reserved for a clear mismatch.
 	var large := _movement_of_class(Movement.CrushClass.LARGE)
-	assert_true(large.can_crush(_movement_of_class(Movement.CrushClass.SMALL)), "LARGE crushes SMALL")
+	assert_true(
+		large.can_crush(_movement_of_class(Movement.CrushClass.SMALL)), "LARGE crushes SMALL"
+	)
 	assert_true(large.can_crush(_movement_of_class(Movement.CrushClass.TINY)), "LARGE crushes TINY")
-	assert_false(large.can_crush(_movement_of_class(Movement.CrushClass.MEDIUM)), "LARGE spares MEDIUM")
+	assert_false(
+		large.can_crush(_movement_of_class(Movement.CrushClass.MEDIUM)), "LARGE spares MEDIUM"
+	)
 	assert_false(large.can_crush(_movement_of_class(Movement.CrushClass.HUGE)), "LARGE spares HUGE")
 
 
@@ -765,8 +857,11 @@ func test_can_crush_anything_gates_the_per_tick_scan():
 		var crushes_something: bool = Movement.CrushClass.values().any(
 			func(other: int) -> bool: return mover.can_crush(_movement_of_class(other))
 		)
-		assert_eq(mover.can_crush_anything(), crushes_something,
-			"can_crush_anything() matches can_crush() for class %d" % c)
+		assert_eq(
+			mover.can_crush_anything(),
+			crushes_something,
+			"can_crush_anything() matches can_crush() for class %d" % c
+		)
 
 
 func _aerial_movement_of_class(a_class: Movement.CrushClass, a_mode: Movement.Mode) -> Movement:
@@ -789,12 +884,18 @@ func test_aerial_units_neither_crush_nor_are_crushed():
 	for aerial_mode: Movement.Mode in [Movement.Mode.HOVERING, Movement.Mode.FLYING]:
 		var air_huge := _aerial_movement_of_class(Movement.CrushClass.HUGE, aerial_mode)
 		var air_tiny := _aerial_movement_of_class(Movement.CrushClass.TINY, aerial_mode)
-		assert_false(air_huge.can_crush(ground_tiny),
-			"an aerial HUGE spares a grounded TINY (mode %d)" % aerial_mode)
-		assert_false(ground_huge.can_crush(air_tiny),
-			"a grounded HUGE spares an aerial TINY (mode %d)" % aerial_mode)
-		assert_false(air_huge.can_crush(air_tiny),
-			"two aerial units never crush each other (mode %d)" % aerial_mode)
+		assert_false(
+			air_huge.can_crush(ground_tiny),
+			"an aerial HUGE spares a grounded TINY (mode %d)" % aerial_mode
+		)
+		assert_false(
+			ground_huge.can_crush(air_tiny),
+			"a grounded HUGE spares an aerial TINY (mode %d)" % aerial_mode
+		)
+		assert_false(
+			air_huge.can_crush(air_tiny),
+			"two aerial units never crush each other (mode %d)" % aerial_mode
+		)
 	# Sanity: the same pairing on the ground still crushes, so the assertions above
 	# are testing the aerial rule and not a broken size gap.
 	assert_true(ground_huge.can_crush(ground_tiny), "grounded HUGE still crushes grounded TINY")
@@ -804,8 +905,12 @@ func test_can_crush_anything_skips_the_scan_for_aerial_units():
 	# _tick_crush() bails on this, so an aerial crusher never runs the per-tick queries.
 	for aerial_mode: Movement.Mode in [Movement.Mode.HOVERING, Movement.Mode.FLYING]:
 		var air := _aerial_movement_of_class(Movement.CrushClass.HUGE, aerial_mode)
-		assert_false(air.can_crush_anything(),
-			"an aerial HUGE can crush nothing, so it skips the scan (mode %d)" % aerial_mode)
+		assert_false(
+			air.can_crush_anything(),
+			"an aerial HUGE can crush nothing, so it skips the scan (mode %d)" % aerial_mode
+		)
+
+
 #endregion
 
 
@@ -840,17 +945,24 @@ func _make_slerp_flyer(a_heading: Vector3) -> Movement:
 func test_aerial_unit_reaches_a_destination_abeam_of_it():
 	# The reported bug: a close destination off to the side sits inside the turning circle
 	# (radius = 4.0 / 120 deg/s = 1.9 units), so the unit laps it forever.
-	var m := _make_slerp_flyer(Vector3(0, 0, 1))   # flying +Z
-	var result: Dictionary = _run_to_destination(m, Vector3(1.0, 0, 0))  # destination abeam, 1 unit out
-	assert_gt(result["tick"], 0,
-		"reaches a destination 1 unit abeam (closest approach %.2f)" % result["closest"])
+	var m := _make_slerp_flyer(Vector3(0, 0, 1))  # flying +Z
+	# destination abeam, 1 unit out
+	var result: Dictionary = _run_to_destination(m, Vector3(1.0, 0, 0))
+	assert_gt(
+		result["tick"],
+		0,
+		"reaches a destination 1 unit abeam (closest approach %.2f)" % result["closest"]
+	)
 
 
 func test_aerial_unit_reaches_a_destination_behind_it():
 	var m := _make_slerp_flyer(Vector3(0, 0, 1))
 	var result: Dictionary = _run_to_destination(m, Vector3(0.5, 0, -1.5))
-	assert_gt(result["tick"], 0,
-		"reaches a destination behind it (closest approach %.2f)" % result["closest"])
+	assert_gt(
+		result["tick"],
+		0,
+		"reaches a destination behind it (closest approach %.2f)" % result["closest"]
+	)
 
 
 func test_aerial_unit_reaches_destinations_all_around_it():
@@ -860,23 +972,27 @@ func test_aerial_unit_reaches_destinations_all_around_it():
 		var a: float = deg_to_rad(float(deg))
 		var target := Vector3(cos(a) * 1.2, 0.0, sin(a) * 1.2)
 		var result: Dictionary = _run_to_destination(m, target)
-		assert_gt(result["tick"], 0,
-			"reaches a destination at %d deg (closest approach %.2f)" % [deg, result["closest"]])
+		assert_gt(
+			result["tick"],
+			0,
+			"reaches a destination at %d deg (closest approach %.2f)" % [deg, result["closest"]]
+		)
 
 
 func test_governor_does_not_slow_a_straight_run_in():
 	# A destination dead ahead needs no turn, so the unit must not be throttled.
 	var m := _make_slerp_flyer(Vector3(0, 0, 1))
 	m.set_target_position(Vector3(0, 0, 20))
-	assert_almost_eq(m._turn_limited_speed(m.speed), m.speed, 1e-3,
-		"a target dead ahead is uncapped")
+	assert_almost_eq(
+		m._turn_limited_speed(m.speed), m.speed, 1e-3, "a target dead ahead is uncapped"
+	)
 
 
 func test_governor_throttles_hardest_for_a_close_abeam_target():
 	var m := _make_slerp_flyer(Vector3(0, 0, 1))
-	m.set_target_position(Vector3(1.0, 0, 0))       # abeam, close
+	m.set_target_position(Vector3(1.0, 0, 0))  # abeam, close
 	var close_cap: float = m._turn_limited_speed(m.speed)
-	m.set_target_position(Vector3(6.0, 0, 0))       # abeam, far
+	m.set_target_position(Vector3(6.0, 0, 0))  # abeam, far
 	var far_cap: float = m._turn_limited_speed(m.speed)
 	assert_lt(close_cap, far_cap, "a closer abeam target demands a tighter turn, so less speed")
 	assert_lt(close_cap, m.speed, "and it is genuinely a cap")
@@ -886,9 +1002,11 @@ func test_governor_leaves_the_idle_orbit_alone():
 	# A FLYING unit deliberately circles its anchor when idle; that is not a stuck orbit and
 	# must not be throttled. Navigation being finished is what distinguishes them.
 	var m := _make_slerp_flyer(Vector3(0, 0, 1))
-	m.set_target_position(m.get_parent().global_position)   # already there
+	m.set_target_position(m.get_parent().global_position)  # already there
 	assert_true(m.is_navigation_finished(), "precondition: navigation finished")
 	assert_almost_eq(m._turn_limited_speed(m.speed), m.speed, 1e-3, "idle orbit is ungoverned")
+
+
 #endregion
 
 
@@ -903,9 +1021,14 @@ func test_aerial_unit_reaches_destinations_with_bounded_acceleration():
 		var a: float = deg_to_rad(float(deg))
 		var target := Vector3(cos(a) * 1.2, 0.0, sin(a) * 1.2)
 		var result: Dictionary = _run_to_destination(m, target)
-		assert_gt(result["tick"], 0,
-			"bounded-accel unit reaches a destination at %d deg (closest %.2f)"
-				% [deg, result["closest"]])
+		assert_gt(
+			result["tick"],
+			0,
+			(
+				"bounded-accel unit reaches a destination at %d deg (closest %.2f)"
+				% [deg, result["closest"]]
+			)
+		)
 
 
 #region Orbit entry after arriving at a destination
@@ -960,9 +1083,14 @@ func test_orbit_entry_does_not_double_back_on_arrival():
 		var m := _arrived_flyer(heading, -VU.inXZ(heading) * 0.05)
 		_air(m).set_anchor(m.get_parent().global_position)
 		var profile: Dictionary = _orbit_entry_profile(m)
-		assert_gt(profile["straightness"], 0.95,
-			"entering the orbit from heading %d deg turns one way throughout (straightness %.2f)"
-				% [deg, profile["straightness"]])
+		assert_gt(
+			profile["straightness"],
+			0.95,
+			(
+				"entering the orbit from heading %d deg turns one way throughout (straightness %.2f)"
+				% [deg, profile["straightness"]]
+			)
+		)
 
 
 func test_orbit_entry_turns_one_consistent_way():
@@ -971,8 +1099,11 @@ func test_orbit_entry_turns_one_consistent_way():
 	var m := _arrived_flyer(Vector3(0, 0, 1), Vector2(0.03, -0.04))
 	_air(m).set_anchor(m.get_parent().global_position)
 	var profile: Dictionary = _orbit_entry_profile(m)
-	assert_gt(profile["straightness"], 0.95,
-		"the entry keeps turning one way rather than turning back on itself")
+	assert_gt(
+		profile["straightness"],
+		0.95,
+		"the entry keeps turning one way rather than turning back on itself"
+	)
 
 
 func test_orbit_entry_from_a_stale_angle_still_follows_the_heading():
@@ -981,8 +1112,12 @@ func test_orbit_entry_from_a_stale_angle_still_follows_the_heading():
 	var m := _arrived_flyer(Vector3(-1, 0, 0), Vector2.ZERO)
 	_air(m)._orbit_angle = 0.0
 	_air(m).set_anchor(m.get_parent().global_position)
-	assert_almost_eq(_air(m)._orbit_angle, PI, 0.01,
-		"the orbit clock is seeded from the heading, not left pointing due +X")
+	assert_almost_eq(
+		_air(m)._orbit_angle,
+		PI,
+		0.01,
+		"the orbit clock is seeded from the heading, not left pointing due +X"
+	)
 
 
 func test_orbit_entry_off_centre_still_uses_its_bearing():
@@ -993,6 +1128,10 @@ func test_orbit_entry_off_centre_still_uses_its_bearing():
 	parent.global_position = Vector3(_air(m).orbit_radius, 0.0, 0.0)
 	m._current_velocity = Vector3(0, 0, _air(m).orbit_speed)
 	_air(m).set_anchor(Vector3.ZERO)
-	assert_almost_eq(_air(m)._orbit_angle, 0.0, 0.01,
-		"seeded from the bearing (due +X of the anchor), not the heading")
+	assert_almost_eq(
+		_air(m)._orbit_angle,
+		0.0,
+		0.01,
+		"seeded from the bearing (due +X of the anchor), not the heading"
+	)
 #endregion

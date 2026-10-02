@@ -11,6 +11,7 @@ extends Condition
 @export var grid_cell: Vector2i = Vector2i(-1, -1)
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var map := a_manager.map
@@ -42,7 +43,10 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 			if commander.has_built_structure(structure_type):
 				return true
 	return false
+
+
 #endregion
+
 
 #region Player-facing description (highlights)
 ## With a cell constraint, the cell itself is the instruction ("build it HERE") — paint the

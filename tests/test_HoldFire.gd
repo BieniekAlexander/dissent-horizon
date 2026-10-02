@@ -11,6 +11,7 @@ extends GutTest
 ## piece's own target acquisition, that gaining stealth sets it, and that the button is lit —
 ## and still pressable — once the whole armed selection is holding.
 
+
 ## A Commandable with the children Entity/Commandable resolve with a hard `$` — the stub shape
 ## tests/test_BotKamikazeHold.gd uses — optionally carrying a Loadout with one Weapon.
 class StubPiece:
@@ -18,9 +19,11 @@ class StubPiece:
 
 	static func make(a_is_armed: bool) -> StubPiece:
 		var piece := StubPiece.new()
-		for pair: Array in [["Ownership", Ownership.new()],
-				["AvoidanceObstacle", NavigationObstacle3D.new()],
-				["Veterancy", Veterancy.new()]]:
+		for pair: Array in [
+			["Ownership", Ownership.new()],
+			["AvoidanceObstacle", NavigationObstacle3D.new()],
+			["Veterancy", Veterancy.new()]
+		]:
 			var node: Node = pair[1]
 			node.name = pair[0]
 			piece.add_child(node)
@@ -67,10 +70,16 @@ func _attack(a_target: Commandable) -> Attack:
 
 
 func test_it_is_offered_to_an_armed_piece_only() -> void:
-	assert_true(CommandContextParser.commands_for(_piece(true)).has(
-		CommandContextParser.HOLD_FIRE_COMMAND), "a piece with a weapon can hold its fire")
-	assert_false(CommandContextParser.commands_for(_piece(false)).has(
-		CommandContextParser.HOLD_FIRE_COMMAND), "a piece with nothing to fire has nothing to hold")
+	assert_true(
+		CommandContextParser.commands_for(_piece(true)).has(CommandContextParser.HOLD_FIRE_COMMAND),
+		"a piece with a weapon can hold its fire"
+	)
+	assert_false(
+		CommandContextParser.commands_for(_piece(false)).has(
+			CommandContextParser.HOLD_FIRE_COMMAND
+		),
+		"a piece with nothing to fire has nothing to hold"
+	)
 
 
 func test_toggling_sets_the_flag_on_armed_pieces_and_skips_the_rest() -> void:
@@ -163,10 +172,14 @@ func test_the_button_is_lit_once_every_armed_piece_holds() -> void:
 	second.is_holding_fire = true
 	var state: CommandButtonState = _state(selection)
 	assert_true(state.is_toggled_on, "the unarmed piece does not count against it")
-	assert_eq(state.blocker, CommandButtonState.Blocker.NONE,
-		"lit is not blocked: pressing it again releases the hold")
+	assert_eq(
+		state.blocker,
+		CommandButtonState.Blocker.NONE,
+		"lit is not blocked: pressing it again releases the hold"
+	)
 
 
 func _state(a_selection: Array) -> CommandButtonState:
 	return CommandButtonState.of(
-		CommandContextParser.HOLD_FIRE_COMMAND, a_selection, _commander, false)
+		CommandContextParser.HOLD_FIRE_COMMAND, a_selection, _commander, false
+	)

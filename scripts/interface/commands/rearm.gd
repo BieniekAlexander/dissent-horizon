@@ -24,12 +24,12 @@ extends MoveCommand
 ## onto the pad — which is what every bay did before the Sky Port's apron gave the taxi
 ## somewhere to happen. See DockingBay.runways / Runway.
 enum DockState {
-	APPROACH,   ## flying to the pad's XZ at cruise altitude
-	DESCEND,    ## coming down onto the deck (Aerial.land_at)
-	TAXI_IN,    ## on the deck, moving to the exact pad position — currently instant
-	DOCKED,     ## parked and recharging
-	TAXI_OUT,   ## leaving the pad for the departure point — currently instant
-	ASCEND,     ## climbing back to cruise altitude
+	APPROACH,  ## flying to the pad's XZ at cruise altitude
+	DESCEND,  ## coming down onto the deck (Aerial.land_at)
+	TAXI_IN,  ## on the deck, moving to the exact pad position — currently instant
+	DOCKED,  ## parked and recharging
+	TAXI_OUT,  ## leaving the pad for the departure point — currently instant
+	ASCEND,  ## climbing back to cruise altitude
 }
 
 ## How close, in world units on XZ, a HOVERING aircraft must be to its pad before it begins
@@ -71,9 +71,11 @@ const FINAL_ARC_DEGREES: float = 45.0
 const MIN_FINAL_DISTANCE: float = 1.0
 #endregion
 
+
 #region Preconditions
 static func requires_position() -> bool:
 	return true
+
 
 ## Valid when the actor is an aerial unit carrying at least one charged weapon and the
 ## target is a friendly, finished structure whose DockingBay admits it.
@@ -83,8 +85,7 @@ static func requires_position() -> bool:
 ## for a full garrison. Having ammo is not checked either, so a player can top a unit up
 ## before it is dry, which is most of what a manual rearm order is for.
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if actor == null or actor.docking == null or actor.aerial == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -94,6 +95,7 @@ static func meets_precondition(
 	if bay == null or not bay.admits(actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
+
 
 ## The DockingBay on `target`, or null when the target is not an airfield (which includes
 ## an airfield that has since been DESTROYED). A static helper so the precondition can ask
@@ -108,6 +110,8 @@ static func _bay_of(target: Variant) -> DockingBay:
 	if not is_instance_valid(target) or not (target is Commandable):
 		return null
 	return (target as Commandable).get_node_or_null("DockingBay") as DockingBay
+
+
 #endregion
 
 #region Properties
@@ -135,6 +139,7 @@ var _excluded: bool = false
 var _finished_docked: bool = false
 #endregion
 
+
 #region State updates
 ## Where the approach flies. Travelling matters only during APPROACH — every later state
 ## positions the aircraft itself, so a destination during them would fight that.
@@ -145,13 +150,14 @@ var _finished_docked: bool = false
 ## bay a QUEUE rather than a refusal.
 ## Why: gdd/systems/combat/aerial-operations/runways.md §The approach fix.
 func movement_destination(a_actor: Commandable) -> Variant:
-	if state != DockState.APPROACH or _pad == null or a_actor == null \
-			or a_actor.movement == null:
+	if state != DockState.APPROACH or _pad == null or a_actor == null or a_actor.movement == null:
 		return null
 	return _approach_position(a_actor)
 
+
 func should_move(_a_actor: Commandable) -> bool:
 	return state == DockState.APPROACH
+
 
 ## A rearm is never finished by arriving — arriving is where it starts. Without this the
 ## receiver would drop the command the tick the approach completed, and the aircraft would
@@ -159,6 +165,7 @@ func should_move(_a_actor: Commandable) -> bool:
 ## override it.
 func ends_on_arrival() -> bool:
 	return false
+
 
 ## Reserve a pad, and abandon the order if the airfield is destroyed under us.
 ##
@@ -181,6 +188,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 		_pad = null
 	return self
 
+
 ## Everything past the approach is "acting": the descent, the wait on the deck, and the
 ## climb out all advance in fulfill_action. During the approach this is the arrival test.
 func can_act(a_actor: Commandable) -> bool:
@@ -200,6 +208,7 @@ func can_act(a_actor: Commandable) -> bool:
 	# every frame and a third aircraft could walk off with a strip somebody was landing on.
 	var strip: Runway = _runway_for_pad()
 	return strip == null or strip.is_free() or strip.claimed_by() == a_actor
+
 
 ## Advance one step of the docking sequence. Returns `self` while the sequence is running
 ## — which the receiver reads as "keep this command" — and null once the aircraft is back
@@ -244,7 +253,10 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 				_clear_collision_exception()
 				return null
 	return self
+
+
 #endregion
+
 
 #region Sequence steps
 ## Roll in off the threshold: down the strip to the point nearest the pad, then across the
@@ -257,14 +269,14 @@ func _tick_taxi_in(a_actor: Commandable) -> void:
 	if a_actor.aerial.is_taxiing():
 		return
 	if state != DockState.TAXI_IN:
-		return   # the completion callback already moved us on
+		return  # the completion callback already moved us on
 	var strip: Runway = _runway_for_pad()
 	if strip == null:
 		_park(a_actor)
 		return
 	a_actor.aerial.taxi_along(
-		[strip.nearest_point(_pad.dock_position()), _pad.dock_position()],
-		_park.bind(a_actor))
+		[strip.nearest_point(_pad.dock_position()), _pad.dock_position()], _park.bind(a_actor)
+	)
 
 
 ## Parked. THE PAD BECOMES THE UNIT'S HERE, not when the recharge finishes.
@@ -282,12 +294,14 @@ func _park(a_actor: Commandable) -> void:
 	_claiming_actor = null
 	state = DockState.DOCKED
 
+
 ## The climb-out is no longer this command's business — an aircraft leaves a pad through
 ## Docking.leave_dock, which taxis it to a threshold and hands over to Aerial. Kept
 ## only so an interrupted sequence has somewhere to fall through to.
 func _tick_taxi_out(a_actor: Commandable) -> void:
 	a_actor.docking.leave_dock()
 	state = DockState.ASCEND
+
 
 ## Take the strip this aircraft is about to land on. True when it has it (or there is no
 ## runway to take, which is the descend-onto-the-pad fallback).
@@ -300,6 +314,7 @@ func _claim_runway(a_actor: Commandable) -> bool:
 	a_actor.docking.claimed_runway = strip
 	return true
 
+
 ## The runway this aircraft should use, chosen by its assigned pad so the roll in and the
 ## roll out are the same strip. Null for a bay with none authored.
 func _runway_for_pad() -> Runway:
@@ -308,6 +323,7 @@ func _runway_for_pad() -> Runway:
 		return null
 	return bay.runway_for(_pad)
 
+
 ## Where the DESCENT ends: the runway threshold, or the pad itself on a bay with no runway.
 func _touchdown_position(a_actor: Commandable) -> Vector3:
 	var strip: Runway = _runway_for_pad()
@@ -315,6 +331,7 @@ func _touchdown_position(a_actor: Commandable) -> Vector3:
 	if a_actor.map != null:
 		pos.y = a_actor.map.terrain_height_at(VU.inXZ(pos))
 	return pos
+
 
 ## How far out on the centreline the final-approach fix sits.
 ##
@@ -327,6 +344,7 @@ func _touchdown_position(a_actor: Commandable) -> Vector3:
 ## is a couple of turn radii.
 func _lineup_distance(a_actor: Commandable) -> float:
 	return maxf(MIN_LINEUP_DISTANCE, a_actor.movement.turn_radius() * LINEUP_TURN_RADII)
+
 
 ## Where the APPROACH ends and the descent begins: out beyond the threshold on the extended
 ## centreline, far enough back that the aircraft is lined up with the strip.
@@ -343,6 +361,7 @@ func _approach_position(a_actor: Commandable) -> Vector3:
 	if a_actor.map != null:
 		pos.y = a_actor.map.terrain_height_at(VU.inXZ(pos))
 	return pos
+
 
 ## Pin the aircraft to its pad's XZ.
 ##
@@ -361,6 +380,7 @@ func _hold_on_pad(a_actor: Commandable, a_pad: Variant = null) -> void:
 	a_actor.global_position.x = pad_xz.x
 	a_actor.global_position.z = pad_xz.z
 
+
 ## The pad's world position with Y resolved against the terrain beneath it, which is the
 ## frame Movement's landing works in (it descends a height OFFSET above the terrain, not
 ## to an absolute altitude).
@@ -369,6 +389,7 @@ func _pad_world_position(a_actor: Commandable) -> Vector3:
 	if a_actor.map != null:
 		pos.y = a_actor.map.terrain_height_at(VU.inXZ(pos))
 	return pos
+
 
 ## Whether the aircraft may start down: it is on the approach side of the threshold, near
 ## the centreline, and POINTED DOWN THE STRIP.
@@ -388,12 +409,12 @@ func _is_established_on_final(a_actor: Commandable) -> bool:
 	if strip == null:
 		return _distance_to_approach(a_actor) <= _approach_radius(a_actor)
 	var along: Vector2 = VU.inXZ(strip.heading())
-	var to_threshold: Vector2 = VU.inXZ(strip.takeoff_point()) \
-		- VU.inXZ(a_actor.global_position)
+	var to_threshold: Vector2 = VU.inXZ(strip.takeoff_point()) - VU.inXZ(a_actor.global_position)
 	# Positive means the threshold is still ahead of us down the strip's own axis.
 	var ahead: float = to_threshold.dot(along)
-	var corridor: float = maxf(MIN_FINAL_CORRIDOR,
-		a_actor.movement.turn_radius() * FINAL_CORRIDOR_TURNS)
+	var corridor: float = maxf(
+		MIN_FINAL_CORRIDOR, a_actor.movement.turn_radius() * FINAL_CORRIDOR_TURNS
+	)
 	if ahead < MIN_FINAL_DISTANCE or ahead > _lineup_distance(a_actor) + corridor:
 		return false
 	if absf(to_threshold.cross(along)) > corridor:
@@ -410,6 +431,7 @@ func _is_established_on_final(a_actor: Commandable) -> bool:
 func _distance_to_approach(a_actor: Commandable) -> float:
 	return VU.inXZ(a_actor.global_position).distance_to(VU.inXZ(_approach_position(a_actor)))
 
+
 ## Where this aircraft's descent begins, and the one place the two aerial modes genuinely
 ## differ: a HOVERING unit arrives overhead and sinks, a FLYING one commits from
 ## `descent_run_distance` so the descent works out as a shallow glide onto the pad. Derived
@@ -425,7 +447,10 @@ func _approach_radius(a_actor: Commandable) -> float:
 	if a_actor.aerial.mode != Movement.Mode.FLYING:
 		return APPROACH_RADIUS
 	return maxf(APPROACH_RADIUS, a_actor.aerial.descent_run_distance(_pad.deck_height))
+
+
 #endregion
+
 
 #region Pad + collision bookkeeping
 func _release_pad() -> void:
@@ -434,24 +459,36 @@ func _release_pad() -> void:
 	_pad = null
 	_claiming_actor = null
 
+
 ## Let the aircraft cross into the airfield's footprint. Its MOVEMENT_OBSTRUCTION body
 ## would otherwise stop it short of the deck — the same approach Occupy takes for a unit
 ## walking into a garrison host.
 func _ensure_collision_exception(a_actor: Commandable) -> void:
 	if _excluded:
 		return
-	if is_instance_valid(a_actor) and is_instance_valid(message.target) \
-			and message.target is CollisionObject3D:
+	if (
+		is_instance_valid(a_actor)
+		and is_instance_valid(message.target)
+		and message.target is CollisionObject3D
+	):
 		a_actor.add_collision_exception_with(message.target)
 		_claiming_actor = a_actor
 		_excluded = true
 
+
 func _clear_collision_exception() -> void:
-	if _excluded and is_instance_valid(_claiming_actor) and is_instance_valid(message.target) \
-			and message.target is CollisionObject3D:
+	if (
+		_excluded
+		and is_instance_valid(_claiming_actor)
+		and is_instance_valid(message.target)
+		and message.target is CollisionObject3D
+	):
 		_claiming_actor.remove_collision_exception_with(message.target)
 	_excluded = false
+
+
 #endregion
+
 
 #region Lifecycle
 ## Everything this command was holding on the world's behalf, dropped at the one moment the
@@ -494,6 +531,7 @@ func on_released(a_actor: Commandable) -> void:
 		a_actor.aerial.take_off()
 	_release_pad()
 
+
 ## Last-resort net for the PAD ALONE — a command built and dropped without ever reaching a
 ## receiver (a scenario event abandoning an order, a test) never gets on_released, and a
 ## stranded pad is a space lost for the rest of the match.
@@ -505,14 +543,21 @@ func _notification(a_what: int) -> void:
 	if a_what == NOTIFICATION_PREDELETE:
 		# Not on a completed rearm — the aircraft is still parked there and now owns the claim
 		# itself (see fulfill_action's DOCKED branch).
-		if not _finished_docked and _pad != null and is_instance_valid(_pad) \
-				and _claiming_actor != null:
+		if (
+			not _finished_docked
+			and _pad != null
+			and is_instance_valid(_pad)
+			and _claiming_actor != null
+		):
 			_pad.release(_claiming_actor)
 		_pad = null
 		_excluded = false
 		_claiming_actor = null
 	super._notification(a_what)
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

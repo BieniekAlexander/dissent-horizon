@@ -18,7 +18,8 @@ const SETTLE_TICKS: int = 4
 
 ## Records the physics frame of every payload application instead of applying one. The
 ## record lives on the emitter, because the emission frees itself when its lifespan ends.
-class RecordingPayload extends Payload:
+class RecordingPayload:
+	extends Payload
 	var hit_frames: Array[int]
 
 	func apply() -> void:
@@ -27,7 +28,8 @@ class RecordingPayload extends Payload:
 
 ## Spawns one emission from its own physics tick, aimed at its own position: a flight phase
 ## `configure` shapes, then a one-tick impact that applies the payload.
-class Shooter extends Node3D:
+class Shooter:
+	extends Node3D
 	var hit_frames: Array[int] = []
 	var spawn_frame: int = -1
 	var configure: Callable
@@ -86,22 +88,24 @@ func _assert_no_hit_on_creation_tick(a_emitter: Shooter) -> void:
 func test_a_point_blank_shot_waits_a_tick() -> void:
 	# LINEAR "arrives" when within one step of its destination; aimed at its own muzzle it has
 	# arrived before it has moved.
-	var emitter: Shooter = await _fire(func(a_flight: EmissionPhase) -> void:
-		a_flight.speed = 30.0)
+	var emitter: Shooter = await _fire(func(a_flight: EmissionPhase) -> void: a_flight.speed = 30.0)
 	_assert_no_hit_on_creation_tick(emitter)
 
 
 func test_an_expired_lifespan_waits_a_tick() -> void:
 	# The shortest flight there is — one tick — never lands on the tick it was fired.
-	var emitter: Shooter = await _fire(func(a_flight: EmissionPhase) -> void:
-		a_flight.speed = 0.0
-		a_flight.lifespan_seconds = 0.0)
+	var emitter: Shooter = await _fire(
+		func(a_flight: EmissionPhase) -> void:
+			a_flight.speed = 0.0
+			a_flight.lifespan_seconds = 0.0
+	)
 	_assert_no_hit_on_creation_tick(emitter)
 
 
 func test_a_shot_ticked_on_its_creation_frame_still_waits() -> void:
 	# The two cases above hold today because Godot does not tick a node on the frame it was
 	# added. This one removes that luck, so only the emission's own rule can pass it.
-	var emitter: Shooter = await _fire(func(a_flight: EmissionPhase) -> void:
-		a_flight.speed = 30.0, true)
+	var emitter: Shooter = await _fire(
+		func(a_flight: EmissionPhase) -> void: a_flight.speed = 30.0, true
+	)
 	_assert_no_hit_on_creation_tick(emitter)

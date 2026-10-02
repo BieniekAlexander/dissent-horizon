@@ -11,22 +11,22 @@ extends GutTest
 
 const CS: float = Map.CELL_SIZE
 
-
 # --- NavAgentClass parameters ----------------------------------------------
+
 
 func test_radii_are_half_corridor_width_minus_margin():
 	# radius = tier * cs / 2 - CLEARANCE_MARGIN. At cs=1, margin=0.05.
 	var m: float = NavAgentClass.CLEARANCE_MARGIN
-	assert_almost_eq(NavAgentClass.radius(NavAgentClass.Size.SMALL,  CS), 0.5 - m, 1e-5)
+	assert_almost_eq(NavAgentClass.radius(NavAgentClass.Size.SMALL, CS), 0.5 - m, 1e-5)
 	assert_almost_eq(NavAgentClass.radius(NavAgentClass.Size.MEDIUM, CS), 1.0 - m, 1e-5)
-	assert_almost_eq(NavAgentClass.radius(NavAgentClass.Size.LARGE,  CS), 1.5 - m, 1e-5)
+	assert_almost_eq(NavAgentClass.radius(NavAgentClass.Size.LARGE, CS), 1.5 - m, 1e-5)
 
 
 func test_required_clearance_is_min_corridor_width():
 	# The tier itself (enum value): SMALL=1-cell, MEDIUM=2-cell, LARGE=3-cell.
-	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.SMALL,  CS), 1)
+	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.SMALL, CS), 1)
 	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.MEDIUM, CS), 2)
-	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.LARGE,  CS), 3)
+	assert_eq(NavAgentClass.required_clearance(NavAgentClass.Size.LARGE, CS), 3)
 
 
 func test_class_for_radius_picks_smallest_large_enough():
@@ -50,22 +50,22 @@ func test_class_for_radius_picks_smallest_large_enough():
 func test_erosion_rings_and_inset():
 	# rings + inset reconstruct the class radius (rings whole cells + a sub-cell
 	# remainder). At cs=1 only LARGE (r=1.45) strips a whole ring.
-	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.SMALL,  CS), 0)
+	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.SMALL, CS), 0)
 	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.MEDIUM, CS), 0)
-	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.LARGE,  CS), 1)
+	assert_eq(NavAgentClass.erosion_rings(NavAgentClass.Size.LARGE, CS), 1)
 
 	var m: float = NavAgentClass.CLEARANCE_MARGIN
-	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.SMALL,  CS), 0.5 - m, 1e-5)
+	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.SMALL, CS), 0.5 - m, 1e-5)
 	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.MEDIUM, CS), 1.0 - m, 1e-5)
-	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.LARGE,  CS), 0.5 - m, 1e-5)
+	assert_almost_eq(NavAgentClass.inset(NavAgentClass.Size.LARGE, CS), 0.5 - m, 1e-5)
 
 	# The inset is always strictly sub-cell, so it can't overshoot an interior vertex.
 	for size: int in NavAgentClass.Size.values():
-		assert_lt(NavAgentClass.inset(size, CS), CS,
-			"inset for size %d must be < CELL_SIZE" % size)
+		assert_lt(NavAgentClass.inset(size, CS), CS, "inset for size %d must be < CELL_SIZE" % size)
 
 
 # --- TerrainGrid clearance / distance fields -------------------------------
+
 
 func _make_grid(a_w: int) -> TerrainGrid:
 	var shape := HeightMapShape3D.new()
@@ -126,6 +126,7 @@ func test_distance_to_obstacle():
 
 # --- Per-class hallway admission -------------------------------------------
 
+
 ## Whether the centre cell of a width-`width` corridor is in the navigable set for
 ## a given size class.
 func _admits(a_width: int, a_size: int) -> bool:
@@ -137,8 +138,8 @@ func _admits(a_width: int, a_size: int) -> bool:
 
 
 func test_one_cell_hallway_admits_small_only():
-	assert_true(_admits(1, NavAgentClass.Size.SMALL),  "SMALL fits a 1-cell hallway")
-	assert_false(_admits(1, NavAgentClass.Size.MEDIUM),"MEDIUM needs a 2-cell hallway")
+	assert_true(_admits(1, NavAgentClass.Size.SMALL), "SMALL fits a 1-cell hallway")
+	assert_false(_admits(1, NavAgentClass.Size.MEDIUM), "MEDIUM needs a 2-cell hallway")
 	assert_false(_admits(1, NavAgentClass.Size.LARGE), "LARGE needs a 3-cell hallway")
 
 
@@ -162,7 +163,7 @@ func test_carronade_radius_traverses_two_cell_not_one():
 		var size: int = NavAgentClass.class_for_radius(r, CS)
 		assert_eq(size, NavAgentClass.Size.MEDIUM, "radius %s -> MEDIUM" % r)
 		assert_false(_admits(1, size), "radius %s excluded from a 1-cell corridor" % r)
-		assert_true(_admits(2, size),  "radius %s admitted to a 2-cell corridor" % r)
+		assert_true(_admits(2, size), "radius %s admitted to a 2-cell corridor" % r)
 
 
 func test_navigable_subset_of_passable():
@@ -172,5 +173,6 @@ func test_navigable_subset_of_passable():
 		var rings: int = NavAgentClass.erosion_rings(size, CS)
 		var admit_k: int = NavAgentClass.required_clearance(size, CS)
 		for cell: Vector2i in grid.get_navigable_cells(rings, admit_k):
-			assert_true(grid.is_passable(cell),
-				"size %d navigable cell %s must be passable" % [size, cell])
+			assert_true(
+				grid.is_passable(cell), "size %d navigable cell %s must be passable" % [size, cell]
+			)

@@ -199,6 +199,7 @@ var retarget_weight_finishability: float = 1.0
 var retarget_weight_proximity: float = 0.5
 #endregion
 
+
 #region Tiers
 ## The tier table, as a monotone ramp from EASY to IMPOSSIBLE.
 ##
@@ -266,7 +267,10 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			# Uncapped: it builds with everything it can spare.
 			config.build_concurrency = -1
 	return config
+
+
 #endregion
+
 
 #region Queries
 ## Set every decision period to `a_seconds`. The tiers ship with one period for everything —

@@ -15,6 +15,7 @@ extends MoveCommand
 const ENERGY_DISCOUNT: float = .5
 const BUILD_TIME_DISCOUNT: float = .5
 
+
 #region Preconditions
 static func tool_applies_to(command_tool_name: String, entity: Entity) -> bool:
 	var builds := entity.get_node_or_null("Builds") as Builds
@@ -24,6 +25,7 @@ static func tool_applies_to(command_tool_name: String, entity: Entity) -> bool:
 	if tool == null:
 		return false
 	return builds.can_build(tool.type)
+
 
 ## The still-neutral building this Build would convert, or null when it isn't a
 ## conversion at all. Restricted to a `neutral_building` family member owned by commander 0, so a
@@ -45,22 +47,32 @@ static func _conversion_target(commander: Commander, message: CommandMessage) ->
 	var host := message.map.cell_grid[cell.x][cell.y] as Commandable
 	if host == null or not is_instance_valid(host):
 		return null
-	return host if PieceFamilies.is_member(host.id, PieceFamilies.NEUTRAL_BUILDING) \
-			and host.commander_id == 0 else null
+	return (
+		host
+		if (
+			PieceFamilies.is_member(host.id, PieceFamilies.NEUTRAL_BUILDING)
+			and host.commander_id == 0
+		)
+		else null
+	)
+
 
 ## The building `message` would convert, for the HUD: what to mark, and whose price to preview.
 static func conversion_target(a_commander: Commander, a_message: CommandMessage) -> Commandable:
 	return _conversion_target(a_commander, a_message)
+
 
 ## True when this Build is a conversion: the an_infrastructure tool aimed at a still-neutral
 ## building (see _conversion_target).
 static func _is_conversion(commander: Commander, message: CommandMessage) -> bool:
 	return _conversion_target(commander, message) != null
 
+
 ## What converting `a_target` costs: its own listed energy price, discounted.
 static func conversion_energy(a_target: Commandable) -> int:
 	var template: PieceFamilies.Template = PieceFamilies.template(a_target.id)
 	return roundi(float(template.energy_cost) * ENERGY_DISCOUNT) if template != null else 0
+
 
 ## How long converting `a_target` takes, in seconds: its own listed build time, discounted.
 static func conversion_seconds(a_target: Commandable) -> float:
@@ -69,16 +81,19 @@ static func conversion_seconds(a_target: Commandable) -> float:
 		return 0.0
 	return TimeUtils.seconds_from_ticks(template.build_time_ticks) * BUILD_TIME_DISCOUNT
 
+
 ## True when this build order will lay a NEW structure down at its target position — it
 ## has a chosen tool, and it isn't a conversion (which transitions a building
 ## that already stands there). Read by the HUD to decide whether the site deserves a
 ## blueprint ghost while the builder walks over.
 static func places_new_structure(commander: Commander, message: CommandMessage) -> bool:
-	return message != null and message.tool != null \
-		and not _is_conversion(commander, message)
+	return message != null and message.tool != null and not _is_conversion(commander, message)
 
-static func meets_precondition(actor: Commandable, message: CommandMessage) -> PreconditionFailureCause:
-	if message.tool==null:
+
+static func meets_precondition(
+	actor: Commandable, message: CommandMessage
+) -> PreconditionFailureCause:
+	if message.tool == null:
 		# Build is entered but the player hasn't chosen which structure to place
 		# yet — a pending selection, not a failure.
 		return PreconditionFailureCause.COMMAND_PENDING_TOOL
@@ -102,8 +117,11 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	# on the wrong number.
 	var conversion: Commandable = _conversion_target(actor.commander, message)
 	if conversion != null:
-		if not message.defer_if_unaffordable \
-				and actor.commander != null and actor.commander.energy < conversion_energy(conversion):
+		if (
+			not message.defer_if_unaffordable
+			and actor.commander != null
+			and actor.commander.energy < conversion_energy(conversion)
+		):
 			return PreconditionFailureCause.NOT_ENOUGH_ENERGY
 		return PreconditionFailureCause.NONE
 
@@ -128,9 +146,7 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 			message, dims, obs.allow_uneven, obs.allow_submerged
 		):
 			return PreconditionFailureCause.INVALID_PLACEMENT
-	elif not Structure.valid_placement(
-		message, dims, obs.allow_uneven, obs.allow_submerged
-	):
+	elif not Structure.valid_placement(message, dims, obs.allow_uneven, obs.allow_submerged):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 
 	# The cells can be geometrically legal and still be a bad idea: NavPlacement asks what
@@ -147,7 +163,8 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 	# the site is found only when the builder arrives (see fulfill_action).
 	var planned: Dictionary = actor.commander.planned_footprint_cells(message.planned_structure)
 	if message.map.footprint_cells(message.xz_position, dims).any(
-			func(c: Vector2i) -> bool: return planned.has(c)):
+		func(c: Vector2i) -> bool: return planned.has(c)
+	):
 		return PreconditionFailureCause.SITE_PLANNED
 
 	# Tech prerequisites always refuse the order. A price the commander can't meet YET
@@ -163,14 +180,12 @@ static func meets_precondition(actor: Commandable, message: CommandMessage) -> P
 
 	return PreconditionFailureCause.NONE
 
+
 ## The purchase that pays for the build `a_message` describes — the structure's listed
 ## cost (its variant's, for a piece with variants), or a conversion's discounted price.
 ## Submitted ONCE per order (not per builder) by whoever issues it, and stamped on the message
 ## so every builder in the order shares it.
-static func submit_purchase(
-	commander: Commander,
-	message: CommandMessage
-) -> PurchaseTransaction:
+static func submit_purchase(commander: Commander, message: CommandMessage) -> PurchaseTransaction:
 	if commander == null or message.tool == null:
 		return null
 	var conversion: Commandable = _conversion_target(commander, message)
@@ -179,14 +194,13 @@ static func submit_purchase(
 			commander, PurchaseTransaction.Kind.BUILD, message.tool, conversion_energy(conversion)
 		)
 		if conversion != null
-		else PurchaseTransaction.for_tool(
-			commander, PurchaseTransaction.Kind.BUILD, message.tool
-		)
+		else PurchaseTransaction.for_tool(commander, PurchaseTransaction.Kind.BUILD, message.tool)
 	)
 	if conversion != null:
 		transaction.creation_time = TimeUtils.ticks_from_seconds(conversion_seconds(conversion))
 	message.transaction = transaction
 	return commander.production_queue.submit(transaction)
+
 
 ## Raise the BLUEPRINT for the order `a_message` describes: an instance of the structure
 ## itself, in the PLANNED state (see Commandable.plan_construction), standing on the
@@ -201,10 +215,7 @@ static func submit_purchase(
 ##
 ## Returns null (and raises nothing) for a conversion, which transitions a
 ## building that already stands there, and for an order with no map/tool/commander.
-static func plan_structure(
-	commander: Commander,
-	message: CommandMessage
-) -> Commandable:
+static func plan_structure(commander: Commander, message: CommandMessage) -> Commandable:
 	if not places_new_structure(commander, message) or commander == null or message.map == null:
 		return null
 	if message.tool.packed_scene == null:
@@ -247,12 +258,20 @@ static func plan_structure(
 		blueprint.set_awaiting_funds(message.transaction.is_pending())
 	return blueprint
 
+
 ## Footprint size of the structure `a_tool` places once turned `a_quarter_turns`, read off the
 ## commander's cached preview instance (1×1 when the scene declares no Structure component).
-static func _tool_dimensions(commander: Commander, tool: Tool, a_quarter_turns: int = 0) -> Vector2i:
+static func _tool_dimensions(
+	commander: Commander, tool: Tool, a_quarter_turns: int = 0
+) -> Vector2i:
 	var preview: Node = commander.get_build_preview_instance(tool)
 	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
-	return Structure.oriented_dimensions(obs.dimensions, a_quarter_turns) if obs != null else Vector2i.ONE
+	return (
+		Structure.oriented_dimensions(obs.dimensions, a_quarter_turns)
+		if obs != null
+		else Vector2i.ONE
+	)
+
 
 ## Whether laying `dimensions` down at `message`'s target keeps the map's navigation intact —
 ## NavPlacement's two rules (scripts/maps/nav_placement.gd), asked for every ordinary
@@ -273,7 +292,10 @@ static func _placement_keeps_navmesh_access(
 	# A walkable side is for somewhere a trained unit can appear; research spawns nothing.
 	var needs_access: bool = Production.node_trains_units(preview)
 	return NavPlacement.accepts(message.map.terrain_grid, footprint, needs_access)
+
+
 #endregion
+
 
 #region Purchase
 ## True when this build may go ahead: its purchase has been funded (the cost is already
@@ -305,6 +327,7 @@ func _prerequisites_met(a_actor: Commandable) -> bool:
 func _is_funded() -> bool:
 	return message.transaction == null or message.transaction.is_funded()
 
+
 ## Settle the cost at the moment the structure is actually laid down: spend the
 ## reservation the queue made, or — for a directly-issued build with no transaction —
 ## deduct inline, exactly as before.
@@ -313,7 +336,10 @@ func _pay(a_actor: Commandable) -> void:
 		message.transaction.consume()
 	else:
 		a_actor.commander.use_resources_for(message.tool.price_id())
+
+
 #endregion
+
 
 #region Private helpers
 ## The grid cells the structure WILL occupy once placed, derived from the tool's
@@ -328,7 +354,11 @@ func _target_footprint(a_actor: Commandable) -> Array:
 	var host: Entity = _target_host(a_actor)
 	if host != null:
 		return message.map.structure_cell_map.get(host, [])
-	return message.map.footprint_cells(message.xz_position, _tool_dimensions(a_actor.commander, message.tool, message.quarter_turns))
+	return message.map.footprint_cells(
+		message.xz_position,
+		_tool_dimensions(a_actor.commander, message.tool, message.quarter_turns)
+	)
+
 
 ## For an OVERLAY build (an Extractor), the host it will bind onto — the ExtractionSite already
 ## standing on the target cells. Null for every ordinary build, which has no host.
@@ -339,7 +369,11 @@ func _target_host(a_actor: Commandable) -> Entity:
 		return null
 	if Extractor.of(a_actor.commander.get_build_preview_instance(message.tool)) == null:
 		return null
-	return message.map.concentric_structure(message.xz_position, _tool_dimensions(a_actor.commander, message.tool, message.quarter_turns))
+	return message.map.concentric_structure(
+		message.xz_position,
+		_tool_dimensions(a_actor.commander, message.tool, message.quarter_turns)
+	)
+
 
 ## Whether this build's lithium pond is already worked by somebody else's extractor.
 ##
@@ -351,7 +385,9 @@ func _target_pond_is_taken(a_actor: Commandable) -> bool:
 		return false
 	if Extractor.of(a_actor.commander.get_build_preview_instance(message.tool)) == null:
 		return false
-	var dimensions: Vector2i = _tool_dimensions(a_actor.commander, message.tool, message.quarter_turns)
+	var dimensions: Vector2i = _tool_dimensions(
+		a_actor.commander, message.tool, message.quarter_turns
+	)
 	var body: WaterBody = EnergyExtractor.water_body_under(
 		message.map, message.xz_position, dimensions
 	)
@@ -380,6 +416,7 @@ func _structure_on_target_footprint(a_actor: Commandable) -> Entity:
 				return occupant
 	return null
 
+
 ## True when `occupant` is the structure THIS build is trying to place, already put down
 ## by a co-builder and still under construction — i.e. safe to join repairing rather than
 ## re-placing. Foreign, finished, or different-type occupants fail the check, so the
@@ -388,10 +425,14 @@ func _is_our_cobuilt_structure(a_occupant: Entity, a_actor: Commandable) -> bool
 	if not (a_occupant is Commandable):
 		return false
 	var s := a_occupant as Commandable
-	return not s.is_built \
-		and s.commander == a_actor.commander \
-		and message.tool != null and message.tool.packed_scene != null \
+	return (
+		not s.is_built
+		and s.commander == a_actor.commander
+		and message.tool != null
+		and message.tool.packed_scene != null
 		and s.scene_file_path == message.tool.packed_scene.resource_path
+	)
+
 
 ## Runs the post-placement fixup. Invoked via call_deferred from
 ## fulfill_action: it MUST run after the command receiver has swapped this Build
@@ -426,14 +467,20 @@ func _after_placement(a_new_structure: Commandable, a_map: Map) -> void:
 	# Prepend a move command to every unit standing inside the blocked footprint.
 	for node in a_map.get_tree().get_nodes_in_group("piece"):
 		var unit: Commandable = node as Commandable
-		if unit == null or not unit.is_in_group("unit") or not unit.can_move() \
-				or unit.is_enemy_of(a_new_structure):
+		if (
+			unit == null
+			or not unit.is_in_group("unit")
+			or not unit.can_move()
+			or unit.is_enemy_of(a_new_structure)
+		):
 			continue
 		var unit_cell: Vector2i = a_map.world_to_grid(VU.inXZ(unit.global_position))
 		if cell_set.has(unit_cell):
 			var nav_point: Vector3 = a_map.nearest_navmesh_point(unit.global_position)
 			var move_msg: CommandMessage = CommandMessage.new(a_map, null, null, nav_point)
 			unit.update_commands(MoveCommand.new(move_msg), true, true)
+
+
 #endregion
 
 #region Properties
@@ -442,6 +489,7 @@ func _after_placement(a_new_structure: Commandable, a_map: Map) -> void:
 var _conversion_elapsed: float = 0.0
 var _conversion_paid: bool = false
 #endregion
+
 
 #region State updates
 ## ONE BUILDER ANSWERS A PLACEMENT. Five of them converging on one site is four builders not
@@ -462,6 +510,7 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 func blocked_by_stagger(_a_actor: Commandable) -> bool:
 	return true
 
+
 ## Convert to Assemble as soon as our structure is standing, WITHOUT waiting to be in range.
 ##
 ## Every tick regardless of range, which is the whole point: a builder still walking to the
@@ -477,8 +526,10 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 			return Assemble.new(CommandMessage.new(message.map, existing))
 	return super(a_actor)
 
+
 func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
 	return ActionTracker.Action.BUILDING
+
 
 func can_act(a_actor: Commandable) -> bool:
 	# A conversion works against the existing building's footprint, not a
@@ -487,6 +538,7 @@ func can_act(a_actor: Commandable) -> bool:
 	if conversion != null:
 		return SU.unit_is_close_to_structure(a_actor, conversion)
 	return SU.unit_is_close_to_footprint(a_actor, message.map, _target_footprint(a_actor))
+
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	# Conversion: spend the cost once, work for the target's discounted build time, then
@@ -502,8 +554,11 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	# structure (co-build) if it's there, or abort if the spot is otherwise taken.
 	var existing: Entity = _structure_on_target_footprint(a_actor)
 	if existing != null:
-		return Assemble.new(CommandMessage.new(message.map, existing)) \
-			if _is_our_cobuilt_structure(existing, a_actor) else null
+		return (
+			Assemble.new(CommandMessage.new(message.map, existing))
+			if _is_our_cobuilt_structure(existing, a_actor)
+			else null
+		)
 
 	# A RESERVOIR may have been claimed while this builder walked. The co-build guard above
 	# only sees the target FOOTPRINT, and a pond is many cells wide — so a second extractor
@@ -538,8 +593,11 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	# ordinary path below. Not a landing callback that swaps in the Assemble: update_commands
 	# would clear the builds queued behind this one and take off again (it lifts a grounded unit
 	# for any moving order). Returning it, as a ground builder does, replaces this command alone.
-	if a_actor.aerial != null and a_actor.aerial.mode == Movement.Mode.HOVERING \
-			and not a_actor.aerial.is_grounded_temp():
+	if (
+		a_actor.aerial != null
+		and a_actor.aerial.mode == Movement.Mode.HOVERING
+		and not a_actor.aerial.is_grounded_temp()
+	):
 		a_actor.aerial.land(Callable())
 		return self
 
@@ -555,6 +613,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 
 	return Assemble.new(CommandMessage.new(message.map, new_structure))
 
+
 ## Whether a unit hostile to `a_actor` stands on this build's footprint — on the ground there,
 ## not held inside something and not flying over.
 func _enemy_on_footprint(a_actor: Commandable) -> bool:
@@ -564,11 +623,16 @@ func _enemy_on_footprint(a_actor: Commandable) -> bool:
 	for node: Node in a_actor.get_tree().get_nodes_in_group("unit"):
 		var unit := node as Commandable
 		# Airborne enemies overfly the site rather than stand on it.
-		if unit != null and a_actor.is_enemy_of(unit) and not unit.is_garrisoned() \
-				and not unit.is_airborne() \
-				and cells.has(message.map.world_to_grid(VU.inXZ(unit.global_position))):
+		if (
+			unit != null
+			and a_actor.is_enemy_of(unit)
+			and not unit.is_garrisoned()
+			and not unit.is_airborne()
+			and cells.has(message.map.world_to_grid(VU.inXZ(unit.global_position)))
+		):
 			return true
 	return false
+
 
 ## Lay the structure down at the target site and return it.
 ##
@@ -602,13 +666,10 @@ func _place_structure(a_actor: Commandable) -> Commandable:
 	# centre via Map.footprint_origin — the same logic the editor snap and the build
 	# preview (Entity.valid_placement) use, so placement matches the preview.
 	# add_entity calls initialize() itself, so we don't re-initialize here.
-	message.map.add_entity(
-		new_structure,
-		message.xz_position,
-		a_actor.commander
-	)
+	message.map.add_entity(new_structure, message.xz_position, a_actor.commander)
 	_report_fulfilment(new_structure)
 	return new_structure
+
 
 ## The BUILD half of the single fulfilment choke point: "the structure this purchase
 ## bought now stands here". The TRAIN half is Production._spawn_unit. Nothing listens
@@ -617,6 +678,7 @@ func _place_structure(a_actor: Commandable) -> Commandable:
 func _report_fulfilment(a_structure: Commandable) -> void:
 	if message.transaction != null:
 		message.transaction.complete(a_structure)
+
 
 ## A build aimed ON TOP OF an obstruction — the conversion of a neutral building —
 ## walks to the host's nearest approach cell, because the site centre is inside the host and
@@ -631,14 +693,16 @@ func movement_destination(a_actor: Commandable) -> Variant:
 	var host: Entity = _obstructing_host(a_actor)
 	if host == null:
 		return null
-	var nav_class: int = a_actor.movement.nav_agent_class if a_actor.movement != null \
-			else SU.NO_NAV_CLASS
+	var nav_class: int = (
+		a_actor.movement.nav_agent_class if a_actor.movement != null else SU.NO_NAV_CLASS
+	)
 	var cell: Vector2i = SU.nearest_footprint_adjacent_cell(
 		a_actor.global_position, host, message.map, nav_class
 	)
 	if cell == Vector2i(-1, -1):
 		return null
 	return message.map.grid_to_world(cell)
+
 
 ## The structure this build is aimed on top of, if it blocks movement: the building a conversion
 ## targets, else the one standing concentric with the build's footprint. Null when the target is
@@ -650,15 +714,18 @@ func _obstructing_host(a_actor: Commandable) -> Entity:
 	if conversion != null:
 		return conversion if conversion.is_grid_obstruction() else null
 	var host: Entity = message.map.concentric_structure(
-		message.xz_position, _tool_dimensions(a_actor.commander, message.tool, message.quarter_turns)
+		message.xz_position,
+		_tool_dimensions(a_actor.commander, message.tool, message.quarter_turns)
 	)
 	return host if host != null and host.is_grid_obstruction() else null
+
 
 func should_move(a_actor: Commandable) -> bool:
 	# Keep approaching until adjacent to the would-be footprint. Because the
 	# footprint cells are the same ones Assemble checks, the builder stops exactly
 	# where it can both place AND continue building — no "placed but out of range".
 	return not can_act(a_actor)
+
 
 ## A build is not finished by arriving at the site — `can_act` (footprint adjacency)
 ## decides that. Especially true here because the point a builder walks toward is the
@@ -667,6 +734,7 @@ func should_move(a_actor: Commandable) -> bool:
 ## range, and ending the command on that would silently discard the build order.
 func ends_on_arrival() -> bool:
 	return false
+
 
 ## Tick the in-range conversion: charge the target's discounted energy price once, accumulate
 ## time, and transition the building once its discounted build time has elapsed. Returns self
@@ -694,6 +762,7 @@ func _fulfill_conversion(a_actor: Commandable) -> Variant:
 	_convert_building(target, a_actor.commander)
 	return null
 
+
 ## Transition `a_building` in place into an an_infrastructure owned by `a_commander`: it keeps its
 ## HP, footprint, garrison and any garrisoned occupants (same node), and gains the piece's own
 ## properties and the building's own infrastructure (Repurposing), then the commander's ownership.
@@ -710,7 +779,10 @@ func _convert_building(a_building: Commandable, a_commander: Commander) -> void:
 		neutral.remove_structure(a_building)
 	Repurposing.into(a_building, EntityIds.AN_INFRASTRUCTURE)
 	a_building.commander = a_commander
+
+
 #endregion
+
 
 #region Lifecycle
 func _init(a_message: CommandMessage) -> void:

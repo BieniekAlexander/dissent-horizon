@@ -7,10 +7,12 @@ extends MoveCommand
 ## the entity's Production node to build the train menu, so this command class
 ## carries only the train action's behavior.
 
+
 #region Preconditions
 static func requires_position() -> bool:
 	## Indicates whether this command requires a specified position to be issued
 	return false
+
 
 ## An actor may take a Train order when it produces the selected type and the
 ## commander's tech prerequisites are met. Two things are deliberately NOT checked,
@@ -26,13 +28,15 @@ static func requires_position() -> bool:
 ## controller submits ONE purchase per click, listing every capable structure as a
 ## candidate, so a stronghold+infantry selection trains from the stronghold alone.
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if message.tool == null:
 		return PreconditionFailureCause.COMMAND_PENDING_TOOL
-	if actor == null or actor.production == null \
-			or not actor.production.can_produce(message.tool.type):
+	if (
+		actor == null
+		or actor.production == null
+		or not actor.production.can_produce(message.tool.type)
+	):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	# Placement can no longer create this producer with no navmesh side (Build asks
 	# NavPlacement for every new structure), so reaching it means terrain changed under a
@@ -58,9 +62,11 @@ static func meets_precondition(
 	)
 	return unmet_need_to_precondition[blocking]
 
+
 ## Whether `a_producer` has somewhere to put the aircraft `a_tool` would build.
 ##
-## Why it works this way: gdd/systems/combat/aerial-operations/docking-bays-and-pads.md §A pad must be free before an aircraft is trained.
+## Why it works this way: gdd/systems/combat/aerial-operations/docking-bays-and-pads.md §A pad must
+## be free before an aircraft is trained.
 static func has_free_pad_for(producer: Commandable, tool: Tool) -> bool:
 	if tool == null or not tool.needs_docking:
 		return true

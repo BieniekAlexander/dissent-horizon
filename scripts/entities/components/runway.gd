@@ -35,6 +35,7 @@ extends Marker3D
 ## aircraft moving at once, which is what a second runway is FOR.
 var _claimant: Commandable = null
 
+
 ## Free when nobody holds it, or when whoever did has been destroyed — a claim cannot
 ## outlive its claimant and strand the strip for the rest of the match.
 func is_free() -> bool:
@@ -60,7 +61,10 @@ func claim(a_unit: Commandable) -> bool:
 func release(a_unit: Commandable) -> void:
 	if claimed_by() == a_unit or not is_instance_valid(_claimant):
 		_claimant = null
+
+
 #endregion
+
 
 #region Public API
 ## The threshold: where a departure starts climbing and an arrival touches down.

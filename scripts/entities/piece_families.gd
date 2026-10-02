@@ -15,7 +15,8 @@ extends RefCounted
 ##     the family's name as a group on every member's scene root.
 ##   * an ID or a whole family: members() / is_member() / template() here.
 ##
-## A template's `infrastructure` is what the piece grants once BUILT AS ANOTHER PIECE (an_infrastructure
+## A template's `infrastructure` is what the piece grants once BUILT AS ANOTHER PIECE
+## (an_infrastructure
 ## takes it from its variant). It is deliberately absent from the member's own scene, whose
 ## Commandable.infrastructure stays 0: a neutral or garrison-captured building grants nothing.
 
@@ -26,7 +27,8 @@ const NEUTRAL_BUILDING: StringName = &"neutral_building"
 
 
 ## One member's spec numbers, as the importer resolved them from its doc.
-class Template extends RefCounted:
+class Template:
+	extends RefCounted
 	var id: StringName
 	var family: StringName
 	var scene_path: String
@@ -46,7 +48,8 @@ class Template extends RefCounted:
 
 ## The parsed families.json: family -> Array[StringName] of member ids (alphabetical, the
 ## generator's order), and piece id -> Template.
-class Table extends RefCounted:
+class Table:
+	extends RefCounted
 	var members: Dictionary = {}
 	var templates: Dictionary = {}
 

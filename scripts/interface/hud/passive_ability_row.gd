@@ -31,7 +31,7 @@ extends HFlowContainer
 ## leaves. Same payload as the other info rows', so the controller has one thing to listen
 ## for (see gdd/systems/ux/ui/range-reveal.md).
 signal ranges_hovered(entity: Entity, kinds: Array)
-signal ranges_unhovered()
+signal ranges_unhovered
 
 ## The set of passives currently drawn, so an unchanged set costs no rebuild.
 var _drawn: String = ""
@@ -49,6 +49,7 @@ var _host: Entity = null
 ## built rather than per frame — finding it is a subtree search. Null for any other faction.
 var _aura_source: AnarchicalDominion = null
 #endregion
+
 
 #region Selection rules
 ## Every PASSIVE ability this selection makes relevant, in AbilityCatalog order so the row is
@@ -126,7 +127,10 @@ static func is_enabled(a_ability_id: StringName, a_commander: Commander) -> bool
 static func letter_for(a_ability_id: StringName) -> String:
 	var title: String = AbilityCatalog.title_of(a_ability_id)
 	return title.substr(0, 1).to_upper() if not title.is_empty() else "?"
+
+
 #endregion
+
 
 #region Public API
 ## Redraw the row for [a_selection]. Cards are rebuilt only when the SET of passives changes,
@@ -170,7 +174,10 @@ func _badge_for(a_ability_id: StringName) -> String:
 	if _aura_source == null or source == null or not is_instance_valid(source):
 		return ""
 	return "+%d" % _aura_source.dominion_for(source)
+
+
 #endregion
+
 
 #region Private helpers
 static func _signature(a_passives: Array[StringName]) -> String:
@@ -207,19 +214,24 @@ func _build_card(a_ability_id: StringName) -> ConditionCard:
 	)
 	button.set_meta(&"ability_id", String(a_ability_id))
 	var description: String = AbilityCatalog.description_of(a_ability_id)
-	button.simple_tooltip = "%s — %s" % [AbilityCatalog.title_of(a_ability_id), description] \
-		if not description.is_empty() else AbilityCatalog.title_of(a_ability_id)
+	button.simple_tooltip = (
+		"%s — %s" % [AbilityCatalog.title_of(a_ability_id), description]
+		if not description.is_empty()
+		else AbilityCatalog.title_of(a_ability_id)
+	)
 	button.verbose_tooltip = AbilityCatalog.verbose_of(a_ability_id)
 
 	# An aura's card paints the collider the simulation actually sweeps. Only an ability that
 	# NAMES a reach asks for one; hovering a card that has none must put the last card's ring
 	# away rather than leaving it up.
 	var reveals: int = AbilityCatalog.reveals_of(a_ability_id)
-	button.mouse_entered.connect(func() -> void:
-		if reveals >= 0 and _host != null and is_instance_valid(_host):
-			ranges_hovered.emit(_host, [reveals])
-		else:
-			ranges_unhovered.emit())
+	button.mouse_entered.connect(
+		func() -> void:
+			if reveals >= 0 and _host != null and is_instance_valid(_host):
+				ranges_hovered.emit(_host, [reveals])
+			else:
+				ranges_unhovered.emit()
+	)
 	button.mouse_exited.connect(func() -> void: ranges_unhovered.emit())
 
 	return button

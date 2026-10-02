@@ -43,6 +43,7 @@ func _make_event(a_pauses: bool = true) -> EventShowDialog:
 
 # --- ScenarioDialog ------------------------------------------------------------
 
+
 func test_acknowledge_emits_once() -> void:
 	var dialog := ScenarioDialog.new(PAGE)
 	watch_signals(dialog)
@@ -53,6 +54,7 @@ func test_acknowledge_emits_once() -> void:
 
 
 # --- EventShowDialog -----------------------------------------------------------
+
 
 func test_event_requests_a_dialog_carrying_its_page() -> void:
 	var seen: Array[ScenarioDialog] = []
@@ -86,7 +88,9 @@ func test_pausing_dialog_holds_until_acknowledged() -> void:
 func test_non_pausing_dialog_takes_no_hold() -> void:
 	_manager.dialog_requested.connect(func(_d: ScenarioDialog) -> void: pass)
 	_fire(_make_event(false))
-	assert_false(_manager.simulation_clock.is_paused(), "an informational dialog doesn't stop the world")
+	assert_false(
+		_manager.simulation_clock.is_paused(), "an informational dialog doesn't stop the world"
+	)
 
 
 func test_dialog_with_no_listener_resolves_itself() -> void:
@@ -100,6 +104,7 @@ func test_dialog_with_no_listener_resolves_itself() -> void:
 
 
 # --- ScenarioDialogView --------------------------------------------------------
+
 
 func test_view_instantiates_the_page_it_is_given() -> void:
 	var view := _bound_view()
@@ -158,6 +163,7 @@ func _book_view() -> ScenarioDialogView:
 
 # --- DialogPage ----------------------------------------------------------------
 
+
 func test_a_page_renders_its_authored_copy() -> void:
 	var page: DialogPage = PAGE.instantiate()
 	add_child_autofree(page)
@@ -183,6 +189,7 @@ func test_the_same_page_scene_serves_an_event_and_the_book() -> void:
 
 
 # --- Help book -----------------------------------------------------------------
+
 
 func test_no_help_button_without_a_book() -> void:
 	var view := _bound_view()
@@ -267,6 +274,7 @@ func test_closing_the_book_releases_only_its_own_hold() -> void:
 
 # --- Window sizing --------------------------------------------------------------
 
+
 ## A page built in code with `line_count` lines of body copy.
 func _sized_page(a_line_count: int) -> DialogPage:
 	var page := DialogPage.new()
@@ -323,7 +331,9 @@ func test_an_over_long_page_scrolls_instead_of_growing_off_screen() -> void:
 	var ceiling: float = screen_height * ScenarioDialogView.MAX_PAGE_HEIGHT_RATIO
 	assert_gt(page.get_combined_minimum_size().y, ceiling, "the page really is oversized")
 	assert_almost_eq(
-		view._page_frame.custom_minimum_size.y, ceiling, 1.0,
+		view._page_frame.custom_minimum_size.y,
+		ceiling,
+		1.0,
 		"and the page area is clamped to the ceiling"
 	)
 
@@ -335,6 +345,8 @@ func test_a_page_that_fits_is_not_clamped() -> void:
 	view._page_frame.add_child(page)
 	view._fit_page_height()
 	assert_almost_eq(
-		view._page_frame.custom_minimum_size.y, page.get_combined_minimum_size().y, 1.0,
+		view._page_frame.custom_minimum_size.y,
+		page.get_combined_minimum_size().y,
+		1.0,
 		"a short page gets exactly the height it asked for"
 	)

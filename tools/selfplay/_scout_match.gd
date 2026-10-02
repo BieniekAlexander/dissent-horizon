@@ -54,8 +54,9 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 
 	# ── candidate scoring ────────────────────────────────────────────────────
 	var all_units: Array = bot.get_units()
-	var scales: Dictionary = sc._score_scales(all_units.filter(
-		func(u: Commandable) -> bool: return u.movement != null))
+	var scales: Dictionary = sc._score_scales(
+		all_units.filter(func(u: Commandable) -> bool: return u.movement != null)
+	)
 	var rows: Array = []
 	var best_id: String = ""
 	var best_score: float = -INF
@@ -66,9 +67,22 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		var avail: bool = sc._unit_is_available(u)
 		var held: bool = sc._scouts.has(u)
 		var resp: int = sc._applicable_responsibility_count(u)
-		rows.append("%s score=%.2f resp=%d avail=%s held=%s cmd=%s spd=%.1f vis=%.0f cost=%d" % [
-			u.id, score, resp, str(avail), str(held), _cmd_name(u),
-			u.movement.speed, bot.vision_radius(u), bot.unit_cost(u.id)])
+		rows.append(
+			(
+				"%s score=%.2f resp=%d avail=%s held=%s cmd=%s spd=%.1f vis=%.0f cost=%d"
+				% [
+					u.id,
+					score,
+					resp,
+					str(avail),
+					str(held),
+					_cmd_name(u),
+					u.movement.speed,
+					bot.vision_radius(u),
+					bot.unit_cost(u.id)
+				]
+			)
+		)
 		# what _pick_best_scout would actually see
 		if avail and not held and not bot.is_suicide_aoe_unit(u) and score > best_score:
 			best_score = score
@@ -94,9 +108,19 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 			var p: Vector3 = u.current_command().message.position
 			dest = str(p.round())
 			to_dest = u.global_position.distance_to(p)
-		slines.append("%s pos=%s cmd=%s dest=%s d_dest=%.1f d_enemy_start=%.1f" % [
-			u.id, str(u.global_position.round()), _cmd_name(u), dest, to_dest,
-			u.global_position.distance_to(enemy_start)])
+		slines.append(
+			(
+				"%s pos=%s cmd=%s dest=%s d_dest=%.1f d_enemy_start=%.1f"
+				% [
+					u.id,
+					str(u.global_position.round()),
+					_cmd_name(u),
+					dest,
+					to_dest,
+					u.global_position.distance_to(enemy_start)
+				]
+			)
+		)
 	base["scouts"] = slines
 
 	# ── frontier geometry ────────────────────────────────────────────────────
@@ -113,7 +137,13 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 			unseen += 1
 			if sc._scout_grid[idx] < thr:
 				unseen_expired += 1
-	base["grid"] = "unseen=%d unseen_expired=%d total=%d nearest_seen_to_enemy=%.1f" % [
-		unseen, unseen_expired, sc._scout_grid.size(),
-		0.0 if nearest_seen == INF else nearest_seen]
+	base["grid"] = (
+		"unseen=%d unseen_expired=%d total=%d nearest_seen_to_enemy=%.1f"
+		% [
+			unseen,
+			unseen_expired,
+			sc._scout_grid.size(),
+			0.0 if nearest_seen == INF else nearest_seen
+		]
+	)
 	return base

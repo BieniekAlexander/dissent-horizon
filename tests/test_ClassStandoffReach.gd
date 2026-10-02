@@ -7,8 +7,7 @@ extends GutTest
 ## standoff. The regression: a Stock Truck parked beside its Compound, loaded, forever.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ClassStandoffReach.gd -gexit
-
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ClassStandoffReach.gd -gexit
 
 const MAP_CORNERS: int = 17
 const GRID_CELLS: int = MAP_CORNERS - 1
@@ -17,7 +16,9 @@ const FOOTPRINT_SIZE: int = 4
 
 
 ## Real grid_to_world / world_to_grid on a flat height map, no navmesh loading.
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		pass
 
@@ -57,8 +58,10 @@ func test_a_medium_unit_where_its_navmesh_leaves_it_is_close() -> void:
 	# 1.5 past the edge is in the SECOND cell out — the grid test says no. Where the reported
 	# truck actually came to rest.
 	var truck := _truck_off_edge(1.5, NavAgentClass.Size.MEDIUM)
-	assert_true(SU.unit_is_close_to_footprint(truck, _map, _footprint),
-		"a MEDIUM unit as close as its eroded navmesh allows counts as adjacent")
+	assert_true(
+		SU.unit_is_close_to_footprint(truck, _map, _footprint),
+		"a MEDIUM unit as close as its eroded navmesh allows counts as adjacent"
+	)
 
 
 func test_a_medium_unit_well_clear_is_not_close() -> void:
@@ -68,11 +71,17 @@ func test_a_medium_unit_well_clear_is_not_close() -> void:
 
 func test_the_standoff_scales_with_size_class() -> void:
 	var distance: float = 1.7
-	assert_false(SU.unit_is_close_to_footprint(
-		_truck_off_edge(distance, NavAgentClass.Size.SMALL), _map, _footprint),
-		"a SMALL unit can reach the adjacent cell, so it gets no extra standoff at this range")
-	assert_true(SU.unit_is_close_to_footprint(
-		_truck_off_edge(distance, NavAgentClass.Size.MEDIUM), _map, _footprint))
+	assert_false(
+		SU.unit_is_close_to_footprint(
+			_truck_off_edge(distance, NavAgentClass.Size.SMALL), _map, _footprint
+		),
+		"a SMALL unit can reach the adjacent cell, so it gets no extra standoff at this range"
+	)
+	assert_true(
+		SU.unit_is_close_to_footprint(
+			_truck_off_edge(distance, NavAgentClass.Size.MEDIUM), _map, _footprint
+		)
+	)
 
 
 func test_the_grid_test_still_answers_for_an_adjacent_cell() -> void:

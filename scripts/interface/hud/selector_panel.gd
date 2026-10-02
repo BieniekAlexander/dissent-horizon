@@ -57,6 +57,7 @@ var controller: RTSController = null
 var _rows: Array = []
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -73,9 +74,13 @@ func _ready() -> void:
 	for entry: Array in FAMILIES:
 		_rows.append(_build_button(row, entry[0] as int, entry[1] as String, entry[2] as String))
 
+
 func _process(_a_delta: float) -> void:
 	refresh()
+
+
 #endregion
+
 
 #region Public API
 ## Repaint every button from the modifiers currently held. Cheap — three predicate scans over
@@ -83,8 +88,10 @@ func _process(_a_delta: float) -> void:
 func refresh() -> void:
 	if controller == null:
 		return
-	var modified: bool = Input.is_action_pressed(RTSController.MODIFIER_NARROW) \
+	var modified: bool = (
+		Input.is_action_pressed(RTSController.MODIFIER_NARROW)
 		or Input.is_action_pressed(RTSController.MODIFIER_BROADEN)
+	)
 	for i in _rows.size():
 		var entry: Array = _rows[i]
 		var button: Button = entry[0]
@@ -97,17 +104,16 @@ func refresh() -> void:
 		# Disabled rather than merely dimmed: a press that would select nothing should do
 		# nothing, not silently widen its own scope to find something.
 		button.disabled = count == 0
-		button.modulate = EMPTY_MODULATE if count == 0 \
-			else (MODIFIED_MODULATE if modified else Color(1, 1, 1))
+		button.modulate = (
+			EMPTY_MODULATE if count == 0 else (MODIFIED_MODULATE if modified else Color(1, 1, 1))
+		)
+
+
 #endregion
 
+
 #region Construction
-func _build_button(
-	a_parent: Node,
-	a_family: int,
-	a_label: String,
-	a_action: String
-) -> Array:
+func _build_button(a_parent: Node, a_family: int, a_label: String, a_action: String) -> Array:
 	var button := VerboseTooltipButton.new()
 	# Name the button BEFORE assigning tooltips, so a tooltip authoring error identifies it.
 	button.name = a_label
@@ -120,19 +126,25 @@ func _build_button(
 	button.simple_tooltip = InputPrompt.format(
 		"Select %s ({{ %s }})" % [a_label.to_lower(), a_action]
 	)
-	button.verbose_tooltip = InputPrompt.format(
-		("On its own this cycles one member at a time, idle ones first and"
-		+ " least-recently-selected within that, so repeated presses walk the whole group.\n"
-		+ "Hold {{ modifier_broaden }} to take every one of them at once, and"
-		+ " {{ modifier_narrow }} to stay strictly among the idle ones; the two combine, and the"
-		+ " button says which set it would take. Hold {{ modifier_additive }} to add to the"
-		+ " current selection instead of replacing it.\n"
-		+ "Every selector searches the whole map — to grab only what you can see, drag a box"
-		+ " over it. The camera comes to the pick when it is off screen.")
+	button.verbose_tooltip = (
+		InputPrompt
+		. format(
+			(
+				"On its own this cycles one member at a time, idle ones first and"
+				+ " least-recently-selected within that, so repeated presses walk the whole group.\n"
+				+ "Hold {{ modifier_broaden }} to take every one of them at once, and"
+				+ " {{ modifier_narrow }} to stay strictly among the idle ones; the two combine, and the"
+				+ " button says which set it would take. Hold {{ modifier_additive }} to add to the"
+				+ " current selection instead of replacing it.\n"
+				+ "Every selector searches the whole map — to grab only what you can see, drag a box"
+				+ " over it. The camera comes to the pick when it is off screen."
+			)
+		)
 	)
-	button.pressed.connect(func() -> void:
-		if controller != null:
-			controller.run_selector_family(a_family)
+	button.pressed.connect(
+		func() -> void:
+			if controller != null:
+				controller.run_selector_family(a_family)
 	)
 
 	var column := VBoxContainer.new()
@@ -149,6 +161,7 @@ func _build_button(
 
 	a_parent.add_child(button)
 	return [button, name_label, scope_label]
+
 
 func _make_label(a_font_size: int, a_color: Color) -> Label:
 	var label := Label.new()

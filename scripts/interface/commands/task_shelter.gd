@@ -24,26 +24,33 @@ extends MoveCommand
 var sequence: int = 0
 #endregion
 
+
 #region Preconditions
 static func requires_position() -> bool:
 	return true
+
 
 ## Valid for any actor with a Garrison that can hold captives at all, aimed at an Entity
 ## carrying a Shelter component. Room right now is NOT asked here — the task manages that
 ## itself, tick to tick, exactly as an empty-handed truck still accepts the order and simply
 ## holds until a resident appears.
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
-	if actor == null or not is_instance_valid(actor) \
-			or actor.garrison == null or actor.garrison.capacity <= 0:
+	if (
+		actor == null
+		or not is_instance_valid(actor)
+		or actor.garrison == null
+		or actor.garrison.capacity <= 0
+	):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if not is_instance_valid(message.target) \
-			or message.target.get_node_or_null("Shelter") == null:
+	if not is_instance_valid(message.target) or message.target.get_node_or_null("Shelter") == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
+
+
 #endregion
+
 
 #region State updates
 ## Never ends on its own (see the class doc). Pushes the next errand when one applies;
@@ -57,10 +64,12 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	var errand: MoveCommand = _next_errand(a_actor, shelter)
 	return errand if errand != null else self
 
+
 ## Never acts on its own account — everything this command does to the world happens
 ## through whatever errand it pushes.
 func can_act(_a_actor: Commandable) -> bool:
 	return false
+
 
 ## A HOLDING truck goes back to its Shelter and waits there, rather than standing wherever its
 ## last errand left it — usually beside the Compound it just emptied into, the far end of the
@@ -68,13 +77,19 @@ func can_act(_a_actor: Commandable) -> bool:
 ## the Shelter's approach cell (CommandReceiver._resolve_movement_target, as for any
 ## structure target), and stops once the truck is close by the same rule an errand would use.
 func should_move(a_actor: Commandable) -> bool:
-	return is_instance_valid(message.target) \
+	return (
+		is_instance_valid(message.target)
 		and not SU.unit_is_close_to_target(a_actor, message.target)
+	)
+
 
 ## Arrival has no meaning for an order with no destination of its own to reach.
 func ends_on_arrival() -> bool:
 	return false
+
+
 #endregion
+
 
 #region Private helpers
 ## The next errand this truck should be pushed onto, or null to hold. See the table in
@@ -84,6 +99,7 @@ func _next_errand(a_actor: Commandable, a_shelter: Shelter) -> MoveCommand:
 		return _errand_to_deposit(a_actor)
 	return _errand_to_resident(a_actor, a_shelter)
 
+
 ## "no room aboard" -> the nearest Compound (of this actor's commander) that can take a
 ## deposit and has room; null to hold if none does. A plain Interact — the ordinary DEPOSIT
 ## order — walks there and deposits on its own; nothing bespoke is needed once it is pushed.
@@ -92,6 +108,7 @@ func _errand_to_deposit(a_actor: Commandable) -> MoveCommand:
 	if compound == null:
 		return null
 	return Interact.new(CommandMessage.new(message.map, compound))
+
 
 ## "room aboard, a resident is available, and this truck is the earliest-tasked truck of
 ## its commander's on this Shelter" -> go take that resident. Arbitration is by TASK AGE,
@@ -111,6 +128,7 @@ func _errand_to_resident(a_actor: Commandable, a_shelter: Shelter) -> MoveComman
 	var resident: Commandable = a_shelter.residents()[0]
 	return MoveCommand.new(CommandMessage.new(message.map, resident))
 
+
 ## The nearest Compound belonging to `a_actor`'s commander that takes a deposit and has
 ## room, or null. Reuses Commander.get_deposit_structures, the same question the bot's
 ## opportunist asks, so a future holding structure is picked up here with no change either.
@@ -118,7 +136,10 @@ func _nearest_available_compound(a_actor: Commandable) -> Commandable:
 	if a_actor.commander == null:
 		return null
 	return SU.nearest_of(a_actor.commander.get_deposit_structures(), a_actor)
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

@@ -13,7 +13,8 @@ extends GutTest
 ## could order the entire tech tree from an empty base.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_RequisitionPrerequisites.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_RequisitionPrerequisites.gd
+## -gexit
 
 ## A fake tech tree: DOWNSTREAM requires PREREQUISITE, and a three-deep chain A <- B <- C.
 const DOWNSTREAM: StringName = &"fake_downstream"
@@ -29,9 +30,11 @@ func before_each() -> void:
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
 	_commander.technology_mapping = {
-		PREREQUISITE: FakePieces.tech(), DOWNSTREAM: FakePieces.tech(0, 0, 0, 30, [PREREQUISITE]),
+		PREREQUISITE: FakePieces.tech(),
+		DOWNSTREAM: FakePieces.tech(0, 0, 0, 30, [PREREQUISITE]),
 		CHAIN_B: FakePieces.tech(0, 0, 0, 30, [CHAIN_A]),
-		CHAIN_C: FakePieces.tech(0, 0, 0, 30, [CHAIN_B])}
+		CHAIN_C: FakePieces.tech(0, 0, 0, 30, [CHAIN_B])
+	}
 	_commander.proc_technology()
 
 
@@ -58,6 +61,7 @@ func _queued(a_kind: PurchaseTransaction.Kind) -> PurchaseTransaction:
 
 # --- The tech gate itself ---------------------------------------------------------
 
+
 func test_the_downstream_piece_requires_the_prerequisite() -> void:
 	# Guards the fixture: if the roster ever drops this dependency these tests say nothing.
 	assert_true(_commander.technology_mapping[DOWNSTREAM].required_structures.has(PREREQUISITE))
@@ -65,18 +69,19 @@ func test_the_downstream_piece_requires_the_prerequisite() -> void:
 
 func test_with_nothing_built_the_order_is_refused() -> void:
 	# Even in requisition mode. Nothing is on its way, so waiting cannot resolve it.
-	assert_eq(_commander.get_blocking_need(DOWNSTREAM, true),
-		TechnologySpec.UnmetNeed.MISSING_STRUCTURE)
+	assert_eq(
+		_commander.get_blocking_need(DOWNSTREAM, true), TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+	)
 	assert_false(_commander.missing_prerequisites_are_incoming(DOWNSTREAM))
 
 
 func test_with_the_prerequisite_built_the_order_is_legal() -> void:
 	_prerequisite(true)
-	assert_eq(_commander.get_blocking_need(DOWNSTREAM, true),
-		TechnologySpec.UnmetNeed.NONE)
+	assert_eq(_commander.get_blocking_need(DOWNSTREAM, true), TechnologySpec.UnmetNeed.NONE)
 
 
 # --- The feature ------------------------------------------------------------------
+
 
 func test_a_prerequisite_under_construction_counts_as_incoming() -> void:
 	_prerequisite(false)
@@ -86,16 +91,20 @@ func test_a_prerequisite_under_construction_counts_as_incoming() -> void:
 
 func test_requisition_lets_the_downstream_order_through() -> void:
 	_prerequisite(false)
-	assert_eq(_commander.get_blocking_need(DOWNSTREAM, true),
-		TechnologySpec.UnmetNeed.NONE, "queued, because the dependency is on its way")
+	assert_eq(
+		_commander.get_blocking_need(DOWNSTREAM, true),
+		TechnologySpec.UnmetNeed.NONE,
+		"queued, because the dependency is on its way"
+	)
 
 
 func test_without_requisition_it_is_still_refused() -> void:
 	# allow_deferral false is what the controller passes with the mode OFF. The prerequisite
 	# being on its way changes nothing: the player has not asked to commit ahead.
 	_prerequisite(false)
-	assert_eq(_commander.get_blocking_need(DOWNSTREAM, false),
-		TechnologySpec.UnmetNeed.MISSING_STRUCTURE)
+	assert_eq(
+		_commander.get_blocking_need(DOWNSTREAM, false), TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+	)
 
 
 func test_a_finished_prerequisite_is_not_incoming() -> void:
@@ -109,13 +118,17 @@ func test_every_missing_prerequisite_must_be_incoming() -> void:
 	# All, not any: a piece waiting on two buildings is only on its way once both are.
 	# Faked by adding a second requirement nothing is building.
 	_prerequisite(false)
-	_commander.technology_mapping[DOWNSTREAM].required_structures = \
-		[PREREQUISITE, &"fake_never_built"]
-	assert_false(_commander.missing_prerequisites_are_incoming(DOWNSTREAM),
-		"one of the two is not coming, so the order would strand its builder")
+	_commander.technology_mapping[DOWNSTREAM].required_structures = [
+		PREREQUISITE, &"fake_never_built"
+	]
+	assert_false(
+		_commander.missing_prerequisites_are_incoming(DOWNSTREAM),
+		"one of the two is not coming, so the order would strand its builder"
+	)
 
 
 # --- The queue counts too ---------------------------------------------------------
+
 
 func test_a_queued_build_purchase_counts_as_incoming() -> void:
 	# A build is committed the moment it is ordered. In practice its blueprint exists from
@@ -144,8 +157,8 @@ func test_a_queued_TRAIN_purchase_does_not_count() -> void:
 ## of the words and invisible to both of the checks that existed.
 
 const CHAIN_A: StringName = PREREQUISITE
-const CHAIN_B: StringName = &"fake_chain_b"        # requires A
-const CHAIN_C: StringName = &"fake_chain_c"        # requires B
+const CHAIN_B: StringName = &"fake_chain_b"  # requires A
+const CHAIN_C: StringName = &"fake_chain_c"  # requires B
 
 
 ## A BLUEPRINT of `a_id`: ordered and standing on its site, with no foundation laid.
@@ -177,9 +190,11 @@ func test_a_blueprint_is_not_a_BUILT_structure() -> void:
 	# The two must stay distinct: a blueprint satisfies "on its way", never "you have one".
 	_blueprint(CHAIN_B)
 	assert_false(_commander.has_built_structure(CHAIN_B))
-	assert_eq(_commander.get_blocking_need(CHAIN_C, false),
+	assert_eq(
+		_commander.get_blocking_need(CHAIN_C, false),
 		TechnologySpec.UnmetNeed.MISSING_STRUCTURE,
-		"without requisition, a blueprint is still not a building")
+		"without requisition, a blueprint is still not a building"
+	)
 
 
 func test_the_third_link_may_be_ordered_once_the_second_is() -> void:
@@ -187,13 +202,17 @@ func test_the_third_link_may_be_ordered_once_the_second_is() -> void:
 	# funded and gone from the queue), C refused.
 	_prerequisite(false)
 	_blueprint(CHAIN_B)
-	assert_eq(_commander.get_blocking_need(CHAIN_C, true), TechnologySpec.UnmetNeed.NONE,
-		"C is queued, because B is on its way")
+	assert_eq(
+		_commander.get_blocking_need(CHAIN_C, true),
+		TechnologySpec.UnmetNeed.NONE,
+		"C is queued, because B is on its way"
+	)
 
 
 func test_the_third_link_is_still_refused_when_the_second_was_never_ordered() -> void:
 	# The line the whole feature turns on has to survive the fix: nothing incoming is a
 	# refusal, however deep in the tree the request sits.
 	_prerequisite(false)
-	assert_eq(_commander.get_blocking_need(CHAIN_C, true),
-		TechnologySpec.UnmetNeed.MISSING_STRUCTURE)
+	assert_eq(
+		_commander.get_blocking_need(CHAIN_C, true), TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+	)

@@ -62,7 +62,7 @@ static func _ensure_loaded() -> void:
 	if not (parsed is Dictionary):
 		push_error("SimPieceCatalog: %s is not a JSON object" % TOOLS_JSON)
 		return
-	for key: String in (parsed as Dictionary):
+	for key: String in parsed as Dictionary:
 		var entry: Variant = (parsed as Dictionary)[key]
 		if not (entry is Dictionary):
 			continue

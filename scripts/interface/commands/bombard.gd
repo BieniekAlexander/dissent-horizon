@@ -24,12 +24,17 @@ extends Ability
 ## than by literal, the same way it names pieces through EntityIds.
 const ABILITY_ID: StringName = &"bombard"
 
+
 #region Reach
 ## Spotted, not near. Asked of the commander's side rather than of this gun, which is what
 ## "vision by proxy" means.
 static func is_in_range(actor: Commandable, message: CommandMessage) -> bool:
-	return actor != null and message != null and actor.commander != null \
+	return (
+		actor != null
+		and message != null
+		and actor.commander != null
 		and BombardTargeting.is_spotted(actor.commander, message.position)
+	)
 
 
 ## No amount of driving makes an unspotted point spotted — and the gun is a structure that
@@ -41,14 +46,16 @@ static func range_closes_by_moving() -> bool:
 ## An unspotted point is not bad PLACEMENT; it has its own cursor and its own refusal.
 static func out_of_range_cause() -> PreconditionFailureCause:
 	return PreconditionFailureCause.TARGET_NOT_SPOTTED
+
+
 #endregion
+
 
 #region Preconditions
 ## The shared ability precondition — granted, charged, in reach — plus the one thing that is
 ## this piece's alone: an unfinished gun does not fire.
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	if actor == null or not actor.is_built:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -63,7 +70,10 @@ static func requires_position() -> bool:
 ## onto every message.
 static func _ability_of(_message: CommandMessage) -> StringName:
 	return ABILITY_ID
+
+
 #endregion
+
 
 #region State updates
 func can_act(a_actor: Commandable) -> bool:

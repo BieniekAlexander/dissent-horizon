@@ -73,6 +73,8 @@ func test_at_end_fails_when_false_at_the_end() -> void:
 	world.value = false
 	check.finish(2)
 	assert_false(check.passed(), "true earlier is not the claim an at-end check makes")
+
+
 #endregion
 
 
@@ -118,6 +120,8 @@ func test_liveness_with_no_deadline_of_its_own_runs_to_the_window() -> void:
 	assert_false(check.is_resolved(), "0 means the run window is the deadline")
 	check.finish(20)
 	assert_false(check.passed())
+
+
 #endregion
 
 
@@ -149,6 +153,8 @@ func test_safety_stops_measuring_once_violated() -> void:
 	for tick: int in 5:
 		check.advance(tick)
 	assert_eq(sequence.calls, 1, "a settled check is not re-evaluated")
+
+
 #endregion
 
 
@@ -159,8 +165,12 @@ func test_only_liveness_can_end_a_run_early() -> void:
 	var always_true := func() -> bool: return true
 	var liveness := SimulationCheck.new("a", always_true, SimulationCheck.Mode.LIVENESS)
 	assert_false(liveness.needs_full_window())
-	assert_true(SimulationCheck.new("b", always_true, SimulationCheck.Mode.AT_END).needs_full_window())
-	assert_true(SimulationCheck.new("c", always_true, SimulationCheck.Mode.SAFETY).needs_full_window())
+	assert_true(
+		SimulationCheck.new("b", always_true, SimulationCheck.Mode.AT_END).needs_full_window()
+	)
+	assert_true(
+		SimulationCheck.new("c", always_true, SimulationCheck.Mode.SAFETY).needs_full_window()
+	)
 
 
 func test_an_unsettled_check_reports_itself_as_unsettled() -> void:

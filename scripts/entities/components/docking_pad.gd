@@ -27,16 +27,19 @@ extends Marker3D
 var _claimant: Commandable = null
 #endregion
 
+
 #region Public API
 ## True when nothing has claimed this pad. A claimant that has since been freed does not
 ## hold the pad — an aircraft shot down on final approach must not strand its space.
 func is_free() -> bool:
 	return not is_instance_valid(_claimant)
 
+
 ## The live unit holding this pad, or null. Collapses the freed-claimant case so callers
 ## never have to repeat the validity check.
 func claimed_by() -> Commandable:
 	return _claimant if is_instance_valid(_claimant) else null
+
 
 ## Claim this pad for `unit`. Returns false, changing nothing, when someone else holds it
 ## — the caller (DockingBay.reserve) is expected to have picked a free pad, so a refusal
@@ -47,12 +50,14 @@ func claim(a_unit: Commandable) -> bool:
 	_claimant = a_unit
 	return true
 
+
 ## Drop `unit`'s claim. A no-op when someone else holds the pad, so a stale release — from
 ## a Rearm command being torn down after its aircraft already left and another arrived —
 ## cannot evict the current occupant.
 func release(a_unit: Commandable) -> void:
 	if claimed_by() == a_unit or not is_instance_valid(_claimant):
 		_claimant = null
+
 
 ## Where an aircraft parked here sits, in world space. XZ is the marker's own position;
 ## Y is left to the caller, which resolves it from the terrain plus deck_height (aerial

@@ -22,26 +22,45 @@ var ability_id: StringName
 var faction: int
 #endregion
 
+
 #region Lifecycle
-func _init(a_command_name: String, a_ability_id: StringName, a_label: String,
-		a_grid_position: Vector2i, a_faction: int, a_simple_tooltip: String = "",
-		a_verbose_tooltip: String = "", a_family: int = CommandFamily.ORDNANCE) -> void:
+func _init(
+	a_command_name: String,
+	a_ability_id: StringName,
+	a_label: String,
+	a_grid_position: Vector2i,
+	a_faction: int,
+	a_simple_tooltip: String = "",
+	a_verbose_tooltip: String = "",
+	a_family: int = CommandFamily.ORDNANCE
+) -> void:
 	# ACT context always: an ordnance is issued to pieces the way any other command is. The
 	# FAMILY is a parameter because an ability may claim a cell on the ACTIVE card as well, and
 	# the two cells are different bindings — see _build.
-	super(a_command_name, a_label, a_grid_position, ControlContext.ACT,
-		a_simple_tooltip, a_verbose_tooltip, a_family)
+	super(
+		a_command_name,
+		a_label,
+		a_grid_position,
+		ControlContext.ACT,
+		a_simple_tooltip,
+		a_verbose_tooltip,
+		a_family
+	)
 	ability_id = a_ability_id
 	faction = a_faction
 
+
 func faction_mask() -> int:
 	return faction
+
 
 ## Every level of one ability is one exclusion group: supersession keeps exactly one of them
 ## in the commander's hands, so they are alternatives in their shared cell rather than a
 ## collision. See ControlBinding.exclusion_group.
 func exclusion_group() -> StringName:
 	return ability_id
+
+
 #endregion
 
 #region Registry
@@ -52,8 +71,10 @@ func exclusion_group() -> StringName:
 ## cell means a LOCAL ability rather than an unfinished ordnance.
 static var _bindings: Array = _build()
 
+
 static func all() -> Array:
 	return _bindings
+
 
 ## The ability a grid command casts, or &"" when no binding names it. Answers for a LOCKED
 ## sanction too, which is what the commander's card needs: it draws every ordnance, and one
@@ -64,6 +85,7 @@ static func ability_for_command(command_name: String) -> StringName:
 		if binding.command_name == command_name:
 			return binding.ability_id
 	return &""
+
 
 static func _build() -> Array:
 	var out: Array = []
@@ -80,12 +102,29 @@ static func _build() -> Array:
 		# One button per LEVEL, each carrying that level's own label and copy — see
 		# AbilityCatalog.buttons_of for why the words are the level's rather than the ability's.
 		for button: Dictionary in AbilityCatalog.buttons_of(id):
-			out.append(AbilityBinding.new(
-				str(button["command"]), id, str(button["label"]), cell, mask,
-				str(button["description"]), str(button["verbose"])))
+			out.append(
+				AbilityBinding.new(
+					str(button["command"]),
+					id,
+					str(button["label"]),
+					cell,
+					mask,
+					str(button["description"]),
+					str(button["verbose"])
+				)
+			)
 			if active_cell.x >= 0:
-				out.append(AbilityBinding.new(
-					str(button["command"]), id, str(button["label"]), active_cell, mask,
-					str(button["description"]), str(button["verbose"]), CommandFamily.ACTIVE))
+				out.append(
+					AbilityBinding.new(
+						str(button["command"]),
+						id,
+						str(button["label"]),
+						active_cell,
+						mask,
+						str(button["description"]),
+						str(button["verbose"]),
+						CommandFamily.ACTIVE
+					)
+				)
 	return out
 #endregion

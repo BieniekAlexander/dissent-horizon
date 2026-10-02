@@ -48,14 +48,22 @@ func tick(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 	var deployment: Deployment = _bot.deployment
 	if deployment == null or deployment.is_spent():
 		return 0
-	var drop: Deployment.Drop = Deployment.Drop.COMMAND_CENTRE \
-		if deployment.has_charge(Deployment.Drop.COMMAND_CENTRE) else Deployment.Drop.EXTRACTOR
+	var drop: Deployment.Drop = (
+		Deployment.Drop.COMMAND_CENTRE
+		if deployment.has_charge(Deployment.Drop.COMMAND_CENTRE)
+		else Deployment.Drop.EXTRACTOR
+	)
 	if _search.is_empty():
 		var anchor: Variant = _anchor_for(drop)
 		if anchor == null:
 			return 0
-		_search = {"drop": drop, "ranking": _economy.start_spot_ranking(
-			anchor, deployment.footprint_dims(drop), deployment.is_production(drop))}
+		_search = {
+			"drop": drop,
+			"ranking":
+			_economy.start_spot_ranking(
+				anchor, deployment.footprint_dims(drop), deployment.is_production(drop)
+			)
+		}
 	var ranking: Dictionary = _search["ranking"]
 	var spent: int = _economy.continue_spot_ranking(ranking, a_allowance)
 	if not ranking["done"]:
@@ -69,12 +77,19 @@ func tick(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 		deployment.drop(drop, found[0])
 		return spent
 	var cost: float = BotEconomy.ranked_cost(found[2])
-	if _best_xz == null or deployment.verdict(drop, _best_xz) != Deployment.Verdict.OK \
-			or cost < _best_cost:
+	if (
+		_best_xz == null
+		or deployment.verdict(drop, _best_xz) != Deployment.Verdict.OK
+		or cost < _best_cost
+	):
 		_best_xz = found[0]
 		_best_cost = cost
-	if _best_cost <= acceptable_cost(_bot.seconds_elapsed(),
-			_economy.spot_cost_bounds(deployment.is_production(drop))):
+	if (
+		_best_cost
+		<= acceptable_cost(
+			_bot.seconds_elapsed(), _economy.spot_cost_bounds(deployment.is_production(drop))
+		)
+	):
 		deployment.drop(drop, _best_xz)
 	return spent
 
@@ -101,8 +116,9 @@ func _anchor_for(a_drop: Deployment.Drop) -> Variant:
 
 ## The first candidate in `a_ranked` the drop may land on, as [world XZ or null, work spent,
 ## the packed candidate]. The ranking is best-first, so the first that lands is the best one.
-func _first_landable(a_deployment: Deployment, a_drop: Deployment.Drop,
-		a_ranked: PackedInt64Array) -> Array:
+func _first_landable(
+	a_deployment: Deployment, a_drop: Deployment.Drop, a_ranked: PackedInt64Array
+) -> Array:
 	var map: Map = _bot.map
 	var dims: Vector2i = a_deployment.footprint_dims(a_drop)
 	var width: int = map.terrain_grid.grid_width()

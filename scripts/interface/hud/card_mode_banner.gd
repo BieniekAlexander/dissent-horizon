@@ -21,14 +21,20 @@ extends Label
 ## this washes a panel that already carries five button tints (see CommandButtonState), and a
 ## backdrop that competes with them would make the buttons harder to read, not easier.
 const MODES: Dictionary = {
-	ControlBinding.CommandFamily.ACTIVE: {
-		"title": "ACTIVE", "color": Color(0.42, 0.52, 0.62),
+	ControlBinding.CommandFamily.ACTIVE:
+	{
+		"title": "ACTIVE",
+		"color": Color(0.42, 0.52, 0.62),
 	},
-	ControlBinding.CommandFamily.PRODUCTION: {
-		"title": "PRODUCTION", "color": Color(0.40, 0.56, 0.44),
+	ControlBinding.CommandFamily.PRODUCTION:
+	{
+		"title": "PRODUCTION",
+		"color": Color(0.40, 0.56, 0.44),
 	},
-	ControlBinding.CommandFamily.ORDNANCE: {
-		"title": "ORDNANCE", "color": Color(0.56, 0.44, 0.60),
+	ControlBinding.CommandFamily.ORDNANCE:
+	{
+		"title": "ORDNANCE",
+		"color": Color(0.56, 0.44, 0.60),
 	},
 }
 
@@ -109,9 +115,14 @@ func set_backdrop(a_backdrop: ColorRect) -> void:
 ##
 ## Unknown families leave the banner blank rather than erroring — a fourth card would be a
 ## design decision, not a crash.
-func show_family(a_family: int, a_armed: ArmedState = ArmedState.NONE, a_detail: String = "") -> void:
-	var mode: Dictionary = MODES.get(a_family, {}) if a_armed == ArmedState.NONE \
+func show_family(
+	a_family: int, a_armed: ArmedState = ArmedState.NONE, a_detail: String = ""
+) -> void:
+	var mode: Dictionary = (
+		MODES.get(a_family, {})
+		if a_armed == ArmedState.NONE
 		else {"title": ARMED_TITLES[a_armed], "color": ARMED_COLORS[a_armed]}
+	)
 	text = str(mode.get("title", ""))
 	# Which FORM is armed, when the armed piece has several: the same button builds any of them,
 	# so the button alone cannot say.
@@ -120,5 +131,6 @@ func show_family(a_family: int, a_armed: ArmedState = ArmedState.NONE, a_detail:
 	var color: Color = mode.get("color", Color.WHITE)
 	add_theme_color_override("font_color", color.lightened(0.45))
 	if _backdrop != null:
-		_backdrop.color = _backdrop_base.lerp(color, BACKDROP_BLEND) if not mode.is_empty() \
-			else _backdrop_base
+		_backdrop.color = (
+			_backdrop_base.lerp(color, BACKDROP_BLEND) if not mode.is_empty() else _backdrop_base
+		)

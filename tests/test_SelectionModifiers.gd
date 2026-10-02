@@ -12,6 +12,7 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_SelectionModifiers.gd -gexit
 
+
 func _controller() -> RTSController:
 	return autofree(RTSController.new()) as RTSController
 
@@ -71,10 +72,13 @@ func test_it_never_selects_anything() -> void:
 
 	controller._deselect_in_world_rect(Rect2(Vector2(-1, -1), Vector2(10, 2)))
 
-	assert_false(controller.selection.has(bystander),
-		"a unit under the box that was not selected stays unselected")
-	assert_true(controller.selection.has(selected),
-		"and one outside it that WAS selected stays selected")
+	assert_false(
+		controller.selection.has(bystander),
+		"a unit under the box that was not selected stays unselected"
+	)
+	assert_true(
+		controller.selection.has(selected), "and one outside it that WAS selected stays selected"
+	)
 
 
 func test_a_rect_over_nothing_selected_changes_nothing() -> void:
@@ -84,6 +88,8 @@ func test_a_rect_over_nothing_selected_changes_nothing() -> void:
 	controller.selection = [kept] as Array[Node]
 	controller._deselect_in_world_rect(Rect2(Vector2(-100, -100), Vector2(1, 1)))
 	assert_eq(controller.selection, [kept] as Array[Node])
+
+
 #endregion
 
 
@@ -99,8 +105,12 @@ func test_an_unmodified_drag_is_unscaled() -> void:
 ## precedence rule where the control-group table needs one.
 func test_the_two_factors_cancel() -> void:
 	var camera := autofree(RTSCamera3D.new()) as RTSCamera3D
-	assert_almost_eq(camera.precise_pan_factor * camera.fast_pan_factor, 1.0, 0.0001,
-		"held together they must come back to unmodified, or the pair needs a winner")
+	assert_almost_eq(
+		camera.precise_pan_factor * camera.fast_pan_factor,
+		1.0,
+		0.0001,
+		"held together they must come back to unmodified, or the pair needs a winner"
+	)
 
 
 ## Narrow restricts and broaden widens, the direction those two carry in every key space.
@@ -108,6 +118,8 @@ func test_narrow_slows_and_broaden_speeds() -> void:
 	var camera := autofree(RTSCamera3D.new()) as RTSCamera3D
 	assert_lt(camera.precise_pan_factor, 1.0, "narrow is fine control")
 	assert_gt(camera.fast_pan_factor, 1.0, "broaden is a fast sweep")
+
+
 #endregion
 
 
@@ -115,11 +127,15 @@ func test_narrow_slows_and_broaden_speeds() -> void:
 ## `modifier_broaden` on a train button buys a batch; unmodified it buys one.
 func test_one_press_buys_one_without_the_modifier() -> void:
 	var controller: RTSController = _controller()
-	assert_eq(controller.bulk_purchase_count(), 1,
-		"no modifier is held in a headless test, which is the unmodified case")
+	assert_eq(
+		controller.bulk_purchase_count(),
+		1,
+		"no modifier is held in a headless test, which is the unmodified case"
+	)
 
 
 func test_the_batch_size_is_a_named_constant() -> void:
-	assert_gt(RTSController.BULK_PURCHASE_COUNT, 1,
-		"a batch of one would make the modifier a no-op")
+	assert_gt(
+		RTSController.BULK_PURCHASE_COUNT, 1, "a batch of one would make the modifier a no-op"
+	)
 #endregion

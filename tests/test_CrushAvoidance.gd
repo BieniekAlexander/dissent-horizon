@@ -63,8 +63,9 @@ func _agent(a_unit: Commandable) -> AvoidanceAgent3D:
 
 
 func _avoids_obstacle_of(a_unit: Commandable, a_other: Commandable) -> bool:
-	return (_agent(a_unit).avoidance_mask
-		& AvoidanceAgent3D.obstacle_bit(a_other.commander_id)) != 0
+	return (
+		(_agent(a_unit).avoidance_mask & AvoidanceAgent3D.obstacle_bit(a_other.commander_id)) != 0
+	)
 
 
 ## Settle the physics space so the shape query in the function under test can see the
@@ -86,8 +87,10 @@ func test_a_crusher_with_no_aggro_volume_still_ignores_what_it_can_crush() -> vo
 
 	await _settle_and_update(crusher)
 
-	assert_false(_avoids_obstacle_of(crusher, victim),
-		"the crusher stops steering around prey it is about to drive over")
+	assert_false(
+		_avoids_obstacle_of(crusher, victim),
+		"the crusher stops steering around prey it is about to drive over"
+	)
 
 
 func test_a_peer_it_cannot_crush_is_still_avoided() -> void:
@@ -98,8 +101,9 @@ func test_a_peer_it_cannot_crush_is_still_avoided() -> void:
 
 	await _settle_and_update(crusher)
 
-	assert_true(_avoids_obstacle_of(crusher, peer),
-		"a vehicle it cannot run over is still an obstacle")
+	assert_true(
+		_avoids_obstacle_of(crusher, peer), "a vehicle it cannot run over is still an obstacle"
+	)
 
 
 func test_prey_outside_the_rvo_neighbourhood_changes_nothing() -> void:
@@ -112,8 +116,9 @@ func test_prey_outside_the_rvo_neighbourhood_changes_nothing() -> void:
 
 	await _settle_and_update(crusher)
 
-	assert_true(_avoids_obstacle_of(crusher, victim),
-		"a distant enemy is still an obstacle")
+	assert_true(_avoids_obstacle_of(crusher, victim), "a distant enemy is still an obstacle")
+
+
 #endregion
 
 
@@ -121,13 +126,15 @@ func test_prey_outside_the_rvo_neighbourhood_changes_nothing() -> void:
 func test_a_friendly_is_never_run_over_and_keeps_reciprocal_rvo() -> void:
 	var crusher: Commandable = _crusher_without_aggro()
 	var friend: Commandable = _entity(VICTIM_PATH, PLAYER, Vector3(1.5, 0, 0))
-	assert_false(crusher._can_run_over(friend),
-		"same team is not prey however big the size gap")
+	assert_false(crusher._can_run_over(friend), "same team is not prey however big the size gap")
 
 	await _settle_and_update(crusher)
 
-	assert_ne(_agent(crusher).avoidance_mask & AvoidanceAgent3D.team_bit(PLAYER), 0,
-		"the crusher still does reciprocal RVO with its own team")
+	assert_ne(
+		_agent(crusher).avoidance_mask & AvoidanceAgent3D.team_bit(PLAYER),
+		0,
+		"the crusher still does reciprocal RVO with its own team"
+	)
 
 
 func test_crushing_prey_does_not_disturb_same_team_rvo() -> void:
@@ -140,8 +147,13 @@ func test_crushing_prey_does_not_disturb_same_team_rvo() -> void:
 
 	await _settle_and_update(crusher)
 
-	assert_ne(_agent(crusher).avoidance_mask & team_bit, 0,
-		"own-team RVO survives an active crush exclusion")
+	assert_ne(
+		_agent(crusher).avoidance_mask & team_bit,
+		0,
+		"own-team RVO survives an active crush exclusion"
+	)
+
+
 #endregion
 
 
@@ -156,8 +168,13 @@ func test_the_victim_still_treats_its_crusher_as_an_obstacle() -> void:
 	await _settle_and_update(crusher)
 	victim._tick_crush()
 
-	assert_true(_avoids_obstacle_of(victim, crusher),
-		"the prey still paths around the thing that would flatten it")
-	assert_eq(_agent(victim)._crush_excluded_obstacles, 0,
-		"and it excludes nothing of its own — it can crush nothing")
+	assert_true(
+		_avoids_obstacle_of(victim, crusher),
+		"the prey still paths around the thing that would flatten it"
+	)
+	assert_eq(
+		_agent(victim)._crush_excluded_obstacles,
+		0,
+		"and it excludes nothing of its own — it can crush nothing"
+	)
 #endregion

@@ -13,7 +13,8 @@ const UNIT: Dictionary = FakePieces.BUILDER
 
 
 ## A condition the test drives directly, with a fixed set of things to point at.
-class StubCondition extends Condition:
+class StubCondition:
+	extends Condition
 	var result: bool = false
 	var entities: Array[Entity] = []
 	var shapes: Array[HighlightShape] = []
@@ -57,6 +58,7 @@ func after_each() -> void:
 
 # --- HighlightShape ------------------------------------------------------------
 
+
 func test_circle_outline_lies_on_the_radius() -> void:
 	var shape := HighlightShape.circle(Vector2(3.0, -2.0), 4.0)
 	for point: Vector2 in shape.outline(16):
@@ -80,8 +82,7 @@ func test_rect_rotation_matches_the_containment_convention() -> void:
 	var expected := Basis(Vector3.UP, PI * 0.5) * Vector3(2.0, 0.0, 1.0)
 	var points: Array[Vector2] = shape.outline()
 	var matched: bool = points.any(
-		func(p: Vector2) -> bool:
-			return p.distance_to(Vector2(expected.x, expected.z)) < 0.001
+		func(p: Vector2) -> bool: return p.distance_to(Vector2(expected.x, expected.z)) < 0.001
 	)
 	assert_true(matched, "rotated corners follow the 3D yaw, not a 2D rotation")
 
@@ -121,6 +122,7 @@ func test_from_collision_shape_tolerates_a_shapeless_node() -> void:
 
 
 # --- Condition self-description ------------------------------------------------
+
 
 func test_region_aware_condition_offers_its_bound_region() -> void:
 	var node := CollisionShape3D.new()
@@ -162,6 +164,7 @@ func test_at_least_count_condition_points_at_nowhere_in_particular() -> void:
 
 
 # --- EventHighlight ------------------------------------------------------------
+
 
 func _armed_trigger_with(a_condition: StubCondition) -> GlobalTrigger:
 	var trigger := GlobalTrigger.new()
@@ -236,7 +239,8 @@ func test_highlight_drops_entities_that_leave_the_world() -> void:
 	entity.get_parent().remove_child(entity)
 	highlight.highlight().refresh()
 	assert_eq(
-		highlight.highlight().marked_entities().size(), 0,
+		highlight.highlight().marked_entities().size(),
+		0,
 		"an entity that left the world stops being marked"
 	)
 	entity.free()
@@ -250,12 +254,14 @@ func test_highlight_ignores_pause() -> void:
 	trigger.add_child(highlight)
 	trigger.arm(_manager)
 	assert_eq(
-		highlight.highlight().process_mode, Node.PROCESS_MODE_ALWAYS,
+		highlight.highlight().process_mode,
+		Node.PROCESS_MODE_ALWAYS,
 		"a beat that stops the world must still show what it is waiting for"
 	)
 
 
 # --- Region wiring guards ------------------------------------------------------
+
 
 func test_unresolvable_region_path_warns_when_the_trigger_arms() -> void:
 	# The silent failure this exists to catch: a path that no longer resolves leaves the
@@ -295,7 +301,8 @@ func test_unscoped_unit_count_does_not_warn() -> void:
 
 	trigger.arm(_manager)
 	assert_eq(
-		_unexpected_errors().size(), 0,
+		_unexpected_errors().size(),
+		0,
 		"an optional region left unset is normal authoring, not a mistake"
 	)
 
@@ -318,13 +325,15 @@ func test_painter_survives_its_last_marked_entity_dying() -> void:
 	entity.get_parent().remove_child(entity)
 	highlight.highlight()._redraw()
 	assert_eq(
-		_unexpected_errors().size(), 0,
+		_unexpected_errors().size(),
+		0,
 		"drawing a stale, now-empty target list must not touch the mesh at all"
 	)
 	entity.free()
 
 
 # --- Objective colour + minimap sourcing --------------------------------------
+
 
 func test_highlights_default_to_the_shared_objective_green() -> void:
 	# One constant backs the world markers and the minimap markers, so "green means this is
@@ -333,7 +342,8 @@ func test_highlights_default_to_the_shared_objective_green() -> void:
 	autofree(event)
 	assert_eq(event.color, ScenarioHighlight.OBJECTIVE_COLOR)
 	assert_gt(
-		ScenarioHighlight.OBJECTIVE_COLOR.g, ScenarioHighlight.OBJECTIVE_COLOR.r,
+		ScenarioHighlight.OBJECTIVE_COLOR.g,
+		ScenarioHighlight.OBJECTIVE_COLOR.r,
 		"the objective colour is green"
 	)
 
@@ -342,11 +352,14 @@ func test_objective_green_is_not_a_team_colour() -> void:
 	# Team 3 is a dark green; an objective marker that reads as somebody's units is worse
 	# than no marker.
 	for team_color: Color in Entity.TEAM_COLOR_MAP.values():
-		var distance: float = Vector3(
-			ScenarioHighlight.OBJECTIVE_COLOR.r - team_color.r,
-			ScenarioHighlight.OBJECTIVE_COLOR.g - team_color.g,
-			ScenarioHighlight.OBJECTIVE_COLOR.b - team_color.b
-		).length()
+		var distance: float = (
+			Vector3(
+				ScenarioHighlight.OBJECTIVE_COLOR.r - team_color.r,
+				ScenarioHighlight.OBJECTIVE_COLOR.g - team_color.g,
+				ScenarioHighlight.OBJECTIVE_COLOR.b - team_color.b
+			)
+			. length()
+		)
 		assert_gt(distance, 0.35, "objective green is distinguishable from team %s" % team_color)
 
 

@@ -26,8 +26,10 @@ class_name EventOvercharge extends EventTargetUnit
 ## the target is opened up, and the armour step a Freeze just added must not blunt it.
 @export var damage: float = 400.0
 
+
 func _qualifies(a_candidate: Commandable) -> bool:
 	return a_candidate.defense != null and a_candidate.defense.hp > 0 and a_candidate.is_stunned()
+
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var target: Commandable = _find_target_unit(a_manager)

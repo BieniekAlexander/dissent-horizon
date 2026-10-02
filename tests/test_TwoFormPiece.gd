@@ -26,7 +26,9 @@ const DEPLOY_CELL: Vector2i = Vector2i(8, 8)
 
 ## A Map with a real TerrainGrid, so passability — the navmesh's input — answers truthfully,
 ## and a hand-managed cell grid; none of the terrain or navmesh loading.
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		cell_grid = []
 		for x: int in GRID_CELLS:
@@ -40,8 +42,12 @@ class StubMap extends Map:
 		add_child(terrain_grid)
 
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
-		return a_coords.x >= 0 and a_coords.x < GRID_CELLS \
-			and a_coords.y >= 0 and a_coords.y < GRID_CELLS
+		return (
+			a_coords.x >= 0
+			and a_coords.x < GRID_CELLS
+			and a_coords.y >= 0
+			and a_coords.y < GRID_CELLS
+		)
 
 
 var _world: Node3D
@@ -102,6 +108,7 @@ func _blocks_line_of_fire(a_piece: Entity) -> bool:
 
 # --- Spawning ---------------------------------------------------------------------
 
+
 func test_a_site_with_no_opinion_spawns_it_mobile() -> void:
 	var piece := _two_form_piece()
 	assert_true(piece.has_two_forms())
@@ -122,6 +129,7 @@ func test_a_one_form_piece_has_one_form() -> void:
 
 # --- Deploying --------------------------------------------------------------------
 
+
 func test_deploying_claims_the_footprint_and_the_navmesh_hole() -> void:
 	var piece := _two_form_piece()
 	assert_true(_map.terrain_grid.is_passable(DEPLOY_CELL), "the premise: open ground")
@@ -136,16 +144,20 @@ func test_a_deployed_piece_reads_as_having_no_movement() -> void:
 	piece.deploy(_deploy_center())
 	assert_null(piece.movement, "a dormant Movement reads as absent")
 	assert_not_null(piece.movement_component, "while the component itself survives")
-	assert_false(piece.movement_component.avoidance_agent().avoidance_enabled,
-		"and its avoidance entry is given back")
+	assert_false(
+		piece.movement_component.avoidance_agent().avoidance_enabled,
+		"and its avoidance entry is given back"
+	)
 
 
 func test_a_deployed_piece_is_offered_no_move_order() -> void:
 	var piece := _two_form_piece()
 	assert_true(CommandContextParser.command_available("command_move", piece))
 	piece.deploy(_deploy_center())
-	assert_false(CommandContextParser.command_available("command_move", piece),
-		"or the player could order a building to walk")
+	assert_false(
+		CommandContextParser.command_available("command_move", piece),
+		"or the player could order a building to walk"
+	)
 
 
 func test_a_deployed_piece_blocks_line_of_fire() -> void:
@@ -181,6 +193,7 @@ func test_deploying_twice_is_refused() -> void:
 
 # --- Undeploying ------------------------------------------------------------------
 
+
 func test_undeploying_gives_everything_back() -> void:
 	var piece := _two_form_piece()
 	piece.deploy(_deploy_center())
@@ -189,8 +202,10 @@ func test_undeploying_gives_everything_back() -> void:
 	assert_false(_map.structure_cell_map.has(piece))
 	assert_true(_map.terrain_grid.is_passable(DEPLOY_CELL), "the navmesh hole closes")
 	assert_not_null(piece.movement)
-	assert_true(piece.movement_component.avoidance_agent().avoidance_enabled,
-		"avoidance is re-armed for its owner")
+	assert_true(
+		piece.movement_component.avoidance_agent().avoidance_enabled,
+		"avoidance is re-armed for its owner"
+	)
 	assert_true(CommandContextParser.command_available("command_move", piece))
 	assert_false(_blocks_line_of_fire(piece))
 	assert_true(piece.is_in_group("unit"))

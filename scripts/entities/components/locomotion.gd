@@ -17,7 +17,7 @@ enum Arrival { STOP, PASS_THROUGH }
 
 ## What `tick` did with the goal this tick.
 enum Progress {
-	MOVING,   ## still on its way
+	MOVING,  ## still on its way
 	ARRIVED,  ## reached the goal
 	HOLDING,  ## chose not to move — already against the piece it is pursuing
 }
@@ -32,8 +32,9 @@ var _goal_entity: Variant = null
 
 ## Set the goal for this tick. Calling it every tick with an unchanged goal is expected and
 ## costs nothing; a strategy acts only on what changed.
-func set_goal(a_position: Vector3, a_arrival: Arrival = Arrival.STOP,
-		a_entity: Entity = null) -> void:
+func set_goal(
+	a_position: Vector3, a_arrival: Arrival = Arrival.STOP, a_entity: Entity = null
+) -> void:
 	goal_position = a_position
 	goal_arrival = a_arrival
 	_goal_entity = a_entity
@@ -43,6 +44,8 @@ func set_goal(a_position: Vector3, a_arrival: Arrival = Arrival.STOP,
 func goal_entity() -> Entity:
 	var entity: Variant = _goal_entity
 	return entity as Entity if entity != null and is_instance_valid(entity) else null
+
+
 #endregion
 
 

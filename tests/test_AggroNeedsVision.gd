@@ -70,15 +70,23 @@ func test_a_visible_enemy_in_aggro_is_picked_up() -> void:
 func test_an_enemy_out_of_vision_is_not_picked_up() -> void:
 	var pair: Array = await _pair(_commander(SEER))
 	_blind(SEER)
-	assert_null((pair[0] as Commandable).get_aggro_near_position(),
-		"inside the aggro radius but outside the side's vision: not a candidate")
+	assert_null(
+		(pair[0] as Commandable).get_aggro_near_position(),
+		"inside the aggro radius but outside the side's vision: not a candidate"
+	)
 
 
 func test_the_bot_does_not_count_an_enemy_it_cannot_see() -> void:
 	var bot: Bot = _commander(SEER, true) as Bot
 	var pair: Array = await _pair(bot)
-	assert_eq(bot.get_enemies_in_aggro_range(pair[0]), [pair[1]],
-		"guards the fixture: no fog, so the bot counts it")
+	assert_eq(
+		bot.get_enemies_in_aggro_range(pair[0]),
+		[pair[1]],
+		"guards the fixture: no fog, so the bot counts it"
+	)
 	_blind(SEER)
-	assert_eq(bot.get_enemies_in_aggro_range(pair[0]), [],
-		"a fogged enemy is not in aggro range for the retreat gate either")
+	assert_eq(
+		bot.get_enemies_in_aggro_range(pair[0]),
+		[],
+		"a fogged enemy is not in aggro range for the retreat gate either"
+	)

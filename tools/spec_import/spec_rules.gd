@@ -176,7 +176,11 @@ static func evaluate(spec: Dictionary, facts: Dictionary = {}) -> Array:
 			# exactly the same way a satisfied rule's is — a spotter-dependence waiver on a piece
 			# with no weapons is a claim about a unit that does not exist.
 			if has_declaration:
-				out.append(_entry(rule, Verdict.STALE, "the rule does not apply to this piece", declared[id]))
+				out.append(
+					_entry(
+						rule, Verdict.STALE, "the rule does not apply to this piece", declared[id]
+					)
+				)
 			continue
 		if not violated:
 			if has_declaration:
@@ -192,7 +196,9 @@ static func evaluate(spec: Dictionary, facts: Dictionary = {}) -> Array:
 	return out
 
 
-static func _entry(rule: Dictionary, verdict: Verdict, detail: String, reason: String) -> Dictionary:
+static func _entry(
+	rule: Dictionary, verdict: Verdict, detail: String, reason: String
+) -> Dictionary:
 	var entry: Dictionary = {
 		"id": str(rule["id"]),
 		"severity": str(rule["severity"]),
@@ -252,9 +258,26 @@ static func validate_exceptions_block(spec: Dictionary) -> Array:
 			complaints.append("exceptions names unknown rule '%s' (known: %s)" % [id, rule_ids()])
 			continue
 		if str((rule as Dictionary)["severity"]) == STRUCTURAL:
-			complaints.append("exceptions cannot waive '%s' — it is STRUCTURAL: %s. A piece that breaks it cannot do its job at all, so the numbers have to change" % [id, (rule as Dictionary)["what"]])
+			complaints.append(
+				(
+					(
+						"exceptions cannot waive '%s' — it is STRUCTURAL: %s. A "
+						+ "piece that breaks it cannot do its job at all, so the "
+						+ "numbers have to change"
+					)
+					% [id, (rule as Dictionary)["what"]]
+				)
+			)
 		if str(raw[key]).strip_edges().is_empty():
-			complaints.append("exceptions['%s'] needs a reason — the whole point of declaring one is the sentence saying why" % id)
+			complaints.append(
+				(
+					(
+						"exceptions['%s'] needs a reason — the whole point of "
+						+ "declaring one is the sentence saying why"
+					)
+					% id
+				)
+			)
 	return complaints
 
 
@@ -353,7 +376,7 @@ static func _check_turn_radius(spec: Dictionary) -> Variant:
 	var speed: float = float(m.get("speed", 0.0))
 	var turn_deg: float = float(m.get("turn_rate", 0.0))
 	if speed <= 0.0 or turn_deg <= 0.0:
-		return null   # an unbounded turn rate has no radius, and a parked piece has no arc
+		return null  # an unbounded turn rate has no radius, and a parked piece has no arc
 	var radius: float = speed / deg_to_rad(turn_deg)
 	var reach: float = _max_reach(spec)
 	if reach < 0.0:
@@ -364,9 +387,13 @@ static func _check_turn_radius(spec: Dictionary) -> Variant:
 	var effective: float = radius / (_dive_turn_multiplier(spec) if boosted else 1.0)
 	if effective < reach:
 		return true
-	return "turns in %s at best (speed %s / %s deg/s%s) but reaches only %s — it can never point at a stationary target" \
-		% [_num(effective), _num(speed), _num(turn_deg),
-				", diving" if boosted else "", _num(reach)]
+	return (
+		(
+			"turns in %s at best (speed %s / %s deg/s%s) but reaches only %s — it can "
+			+ "never point at a stationary target"
+		)
+		% [_num(effective), _num(speed), _num(turn_deg), ", diving" if boosted else "", _num(reach)]
+	)
 
 
 ## A ground unit that shoots at aircraft must do so at range.
@@ -387,8 +414,13 @@ static func _check_grounded_air_melee(spec: Dictionary) -> Variant:
 			offenders.append("%s (%s)" % [str(w.get("name", "?")), _num(reach)])
 	if offenders.is_empty():
 		return true
-	return "is not aerial, but %s hits air at melee reach — an aircraft cruises at %s, so this is a ground unit swinging at the sky" \
+	return (
+		(
+			"is not aerial, but %s hits air at melee reach — an aircraft cruises at %s, "
+			+ "so this is a ground unit swinging at the sky"
+		)
 		% [", ".join(offenders), _num(AERIAL_HEIGHT)]
+	)
 
 
 ## Detection should not out-reach vision.
@@ -409,8 +441,10 @@ static func _check_detection_within_vision(spec: Dictionary) -> Variant:
 	var vision: float = float(spec["vision"])
 	if detection <= vision:
 		return true
-	return "detects stealth to %s but sees only %s — the outer %s reveals units the fog still hides" \
+	return (
+		"detects stealth to %s but sees only %s — the outer %s reveals units the fog still hides"
 		% [_num(detection), _num(vision), _num(detection - vision)]
+	)
 
 
 ## A piece can usually see what it shoots at.
@@ -426,8 +460,10 @@ static func _check_reach_within_vision(spec: Dictionary) -> Variant:
 	var vision: float = float(spec["vision"])
 	if reach < 0.0 or reach <= vision:
 		return true
-	return "reaches %s but sees %s — it depends on another unit's vision for the outer %s" \
+	return (
+		"reaches %s but sees %s — it depends on another unit's vision for the outer %s"
 		% [_num(reach), _num(vision), _num(reach - vision)]
+	)
 
 
 ## Infantry pivots on the spot.
@@ -445,7 +481,10 @@ static func _check_bio_pivots(spec: Dictionary) -> Variant:
 	var ratio: float = float(m["min_turn_speed_ratio"])
 	if is_zero_approx(ratio):
 		return true
-	return "is BIO but keeps %s of its speed through a turn — infantry pivots in place (0.0)" % _num(ratio)
+	return (
+		"is BIO but keeps %s of its speed through a turn — infantry pivots in place (0.0)"
+		% _num(ratio)
+	)
 
 
 ## A ground vehicle stops harder than it starts.
@@ -467,8 +506,13 @@ static func _check_braking(spec: Dictionary) -> Variant:
 	var brake: float = absf(float(m["max_deceleration"]))
 	if accel <= brake:
 		return true
-	return "accelerates at %s but brakes at only %s — a ground chassis should stop at least as hard as it starts" \
+	return (
+		(
+			"accelerates at %s but brakes at only %s — a ground chassis should stop at "
+			+ "least as hard as it starts"
+		)
 		% [_num(accel), _num(brake)]
+	)
 
 
 ## A fixed wing strikes from range rather than by ramming.
@@ -494,15 +538,18 @@ static func _check_aerial_melee(spec: Dictionary) -> Variant:
 			offenders.append("%s (%s)" % [str(w.get("name", "?")), _num(reach)])
 	if offenders.is_empty():
 		return true
-	return "is aerial and carries a melee-reach weapon: %s — it can only attack by flying into its target" \
+	return (
+		"is aerial and carries a melee-reach weapon: %s — it can only attack by flying into its target"
 		% ", ".join(offenders)
+	)
 
 
 ## A clip should take longer to refill than to empty.
 ##
 ## The two rates are what matter, not the two times: firing consumes a round every
 ## `split_time`, while the clip regenerates `clip_size` rounds every `reload_time`. The clip
-## is only real if consumption outpaces regeneration — `reload_time_ticks > split_time_ticks * clip_size`
+## is only real if consumption outpaces regeneration — `reload_time_ticks > split_time_ticks *
+## clip_size`
 ## — and at or below that the weapon fires forever without ever depleting, so its clip size
 ## does nothing at all.
 ##
@@ -515,19 +562,31 @@ static func _check_clip(spec: Dictionary) -> Variant:
 	var applicable: bool = false
 	for w: Dictionary in _weapons(spec):
 		var clip: int = int(w.get("clip_size", 1))
-		if clip <= 1 or bool(w.get("charged", false)) \
-				or not w.has("split_time") or not w.has("reload_time"):
+		if (
+			clip <= 1
+			or bool(w.get("charged", false))
+			or not w.has("split_time")
+			or not w.has("reload_time")
+		):
 			continue
 		applicable = true
 		var burst: float = float(w["split_time"]) * float(clip)
 		var reload: float = float(w["reload_time"])
 		if reload <= burst:
-			offenders.append("%s (empties in %ss, refills in %ss)" % [str(w.get("name", "?")), _num(burst), _num(reload)])
+			offenders.append(
+				(
+					"%s (empties in %ss, refills in %ss)"
+					% [str(w.get("name", "?")), _num(burst), _num(reload)]
+				)
+			)
 	if not applicable:
 		return null
 	if offenders.is_empty():
 		return true
-	return "refills faster than it fires: %s — the clip never runs out, so its size does nothing" % ", ".join(offenders)
+	return (
+		"refills faster than it fires: %s — the clip never runs out, so its size does nothing"
+		% ", ".join(offenders)
+	)
 
 
 # --------------------------------------------------------------------------- #

@@ -63,6 +63,7 @@ func _tick() -> void:
 
 # --- Commander.has_anything_in_play -------------------------------------------
 
+
 func test_a_commander_with_nothing_has_nothing_in_play() -> void:
 	assert_false(_player.has_anything_in_play())
 
@@ -104,13 +105,14 @@ func test_a_scout_does_not_keep_a_wiped_out_commander_alive() -> void:
 	var drone: Commandable = _own()
 	var selectable := Selectable.new()
 	selectable.name = "Selectable"
-	selectable.selectable_by_player = false   # exactly what scout.tscn does
+	selectable.selectable_by_player = false  # exactly what scout.tscn does
 	drone.add_child(selectable)
 	drone.selectable = selectable
 	assert_false(_player.has_anything_in_play())
 
 
 # --- Scenario's armed poll ----------------------------------------------------
+
 
 func test_owning_nothing_at_the_start_is_not_a_defeat() -> void:
 	# Skirmish._spawn_initial_entities defers the opening force to navmesh_ready, so every
@@ -172,6 +174,7 @@ func test_a_blueprint_is_not_a_stay_of_execution() -> void:
 # The second half of the rule: no structures and no production is a defeat, whatever units
 # are still walking around. See Commander.has_production_base for why.
 
+
 func test_units_alone_are_not_a_production_base() -> void:
 	_own()
 	_own()
@@ -207,6 +210,7 @@ func test_a_dying_structure_stops_counting_the_frame_it_dies() -> void:
 
 # --- The base rule inside Scenario's poll -------------------------------------
 
+
 func test_losing_the_last_structure_is_a_defeat_even_with_units_alive() -> void:
 	var base: Commandable = _own_structure()
 	var army: Commandable = _own()
@@ -215,8 +219,10 @@ func test_losing_the_last_structure_is_a_defeat_even_with_units_alive() -> void:
 
 	base.queue_free()
 	_tick()
-	assert_true(_scenario._game_over_seen,
-		"no structures and no production is a defeat, and the surviving unit does not save it")
+	assert_true(
+		_scenario._game_over_seen,
+		"no structures and no production is a defeat, and the surviving unit does not save it"
+	)
 	assert_true(is_instance_valid(army), "the unit is still alive — that is the point")
 
 
@@ -243,4 +249,3 @@ func test_a_rebuild_in_flight_holds_the_verdict_off() -> void:
 	_player.production_queue.entries.clear()
 	_tick()
 	assert_true(_scenario._game_over_seen, "and when it lapses, the verdict lands")
-

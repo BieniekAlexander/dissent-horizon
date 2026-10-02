@@ -19,7 +19,8 @@ func test_a_margin_reaches_diagonally_as_well() -> void:
 
 func test_the_margin_surrounds_a_footprint() -> void:
 	var footprint: Dictionary = _cells(
-		[Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)])
+		[Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]
+	)
 	var lit: Dictionary = PlacementGridOverlay.dilate(footprint, PlacementGridOverlay.MARGIN_CELLS)
 	var side: int = 2 + 2 * PlacementGridOverlay.MARGIN_CELLS
 	assert_eq(lit.size(), side * side)

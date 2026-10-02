@@ -4,7 +4,7 @@ extends GutTest
 ## labelling one wave of spawns so a later check can talk about exactly those things.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ConditionGroupCount.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ConditionGroupCount.gd -gexit
 
 const UNIT: Dictionary = FakePieces.BUILDER
 const GROUP: StringName = &"test_ambush_wave"
@@ -32,7 +32,9 @@ func _member(a_group: StringName = GROUP) -> Node:
 	return node
 
 
-func _condition(a_comparison: int, a_count: int, a_group: StringName = GROUP) -> ConditionGroupCount:
+func _condition(
+	a_comparison: int, a_count: int, a_group: StringName = GROUP
+) -> ConditionGroupCount:
 	var condition := ConditionGroupCount.new()
 	condition.group = a_group
 	condition.comparison = a_comparison
@@ -41,6 +43,7 @@ func _condition(a_comparison: int, a_count: int, a_group: StringName = GROUP) ->
 
 
 # --- Counting -------------------------------------------------------------------
+
 
 func test_at_least_counts_up_to_its_threshold() -> void:
 	var condition := _condition(ConditionGroupCount.Comparison.AT_LEAST, 2)
@@ -96,6 +99,7 @@ func test_a_node_dying_this_frame_is_not_counted() -> void:
 
 # --- Highlights -----------------------------------------------------------------
 
+
 func test_at_most_marks_the_members_that_can_be_marked() -> void:
 	var entity: Commandable = FakePieces.make(UNIT)
 	entity.add_to_group(GROUP)
@@ -116,6 +120,7 @@ func test_at_least_marks_nothing() -> void:
 
 
 # --- EventSpawnEntities.spawn_groups --------------------------------------------
+
 
 func test_spawn_groups_label_everything_the_event_produced() -> void:
 	var event := EventSpawnEntities.new()

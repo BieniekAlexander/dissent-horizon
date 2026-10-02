@@ -22,6 +22,7 @@ const CASTERS: Array[String] = [
 	"res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn",
 ]
 
+
 func _ready() -> void:
 	var player: Commander = PLAYER.instantiate() as Commander
 	player.faction_scene = COLONIAL
@@ -32,6 +33,7 @@ func _ready() -> void:
 		piece.ownership.commander = player
 		piece.build_progress = 1.0
 	_drive(player)
+
 
 func _drive(a_player: Commander) -> void:
 	# The controller defers _setup_commander_sanctions out of its own _ready.

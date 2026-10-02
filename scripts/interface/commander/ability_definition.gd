@@ -53,11 +53,15 @@ static func from_entry(ability_id: StringName, entry: Dictionary) -> AbilityDefi
 	definition.has_hud_button = bool(entry.get("hud_button", false))
 	definition.command = str(entry.get("command", ""))
 	definition.range_metres = float(entry.get("range", DEFAULT_RANGE))
-	definition.cast_arity = MoveCommand.CastArity.ALL \
-		if str(entry.get("cast_by", "")).to_upper() == "ALL" else MoveCommand.CastArity.SINGLE
+	definition.cast_arity = (
+		MoveCommand.CastArity.ALL
+		if str(entry.get("cast_by", "")).to_upper() == "ALL"
+		else MoveCommand.CastArity.SINGLE
+	)
 	var reveals_name: String = str(entry.get("reveals", ""))
-	definition.reveals = int(EntityRanges.Kind[reveals_name]) \
-		if EntityRanges.Kind.has(reveals_name) else -1
+	definition.reveals = (
+		int(EntityRanges.Kind[reveals_name]) if EntityRanges.Kind.has(reveals_name) else -1
+	)
 	definition.valence = Valence.from_name(str(entry.get("valence", "")))
 	definition.emission_path = str(entry.get("emits", ""))
 	definition.is_dominion_unlocked = bool(entry.get("dominion", false))
@@ -72,5 +76,6 @@ static func from_entry(ability_id: StringName, entry: Dictionary) -> AbilityDefi
 
 
 static func _cell(value: Variant) -> Vector2i:
-	return Vector2i(int(value[0]), int(value[1])) if value is Array and value.size() == 2 \
-		else NO_CELL
+	return (
+		Vector2i(int(value[0]), int(value[1])) if value is Array and value.size() == 2 else NO_CELL
+	)

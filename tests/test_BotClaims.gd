@@ -37,15 +37,19 @@ func test_a_claim_is_held_by_its_owner() -> void:
 func test_a_stronger_claim_takes_the_unit() -> void:
 	var unit := _unit()
 	_claims.claim(unit, SCOUT, BotClaims.Priority.SCOUT)
-	assert_true(_claims.claim(unit, TARGETING, BotClaims.Priority.COMBAT), "combat outranks scouting")
+	assert_true(
+		_claims.claim(unit, TARGETING, BotClaims.Priority.COMBAT), "combat outranks scouting"
+	)
 	assert_false(_claims.owns(unit, SCOUT), "and the scout finds it gone")
 
 
 func test_an_equal_claim_does_not_take_the_unit() -> void:
 	var unit := _unit()
 	_claims.claim(unit, ECONOMY, BotClaims.Priority.ERRAND)
-	assert_false(_claims.claim(unit, OPPORTUNIST, BotClaims.Priority.ERRAND),
-		"two errands never steal a unit back and forth")
+	assert_false(
+		_claims.claim(unit, OPPORTUNIST, BotClaims.Priority.ERRAND),
+		"two errands never steal a unit back and forth"
+	)
 	assert_true(_claims.owns(unit, ECONOMY))
 
 

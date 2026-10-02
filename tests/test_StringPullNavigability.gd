@@ -20,7 +20,7 @@ func _make_grid() -> TerrainGrid:
 	shape.map_width = W
 	shape.map_depth = W
 	var data := PackedFloat32Array()
-	data.resize(W * W)          # flat -> every cell passable
+	data.resize(W * W)  # flat -> every cell passable
 	shape.map_data = data
 
 	var body := StaticBody3D.new()
@@ -47,15 +47,18 @@ func test_agrees_with_get_navigable_cells():
 					var cell := Vector2i(x, z)
 					if grid.is_navigable_for(cell, rings, admit_k) != baked.has(cell):
 						mismatches += 1
-			assert_eq(mismatches, 0,
-				"rings=%d admit_k=%d must select the same cells" % [rings, admit_k])
+			assert_eq(
+				mismatches, 0, "rings=%d admit_k=%d must select the same cells" % [rings, admit_k]
+			)
 
 
 func test_an_impassable_cell_is_never_navigable():
 	var grid := _make_grid()
 	grid.place_building([Vector2i(4, 4)], self)
-	assert_false(grid.is_navigable_for(Vector2i(4, 4), 0, 1),
-		"a building cell is refused even with no erosion")
+	assert_false(
+		grid.is_navigable_for(Vector2i(4, 4), 0, 1),
+		"a building cell is refused even with no erosion"
+	)
 
 
 func test_out_of_bounds_is_not_navigable():
@@ -78,10 +81,13 @@ func test_ring_erosion_excludes_cells_beside_an_obstacle():
 	var grid := _make_grid()
 	grid.place_building([Vector2i(5, 5)], self)
 	var beside := Vector2i(6, 5)
-	assert_true(grid.is_navigable_for(beside, 0, 1),
-		"with no erosion, the neighbouring cell is navigable")
-	assert_false(grid.is_navigable_for(beside, 1, 1),
-		"one ring of erosion strips the cell touching the obstacle")
+	assert_true(
+		grid.is_navigable_for(beside, 0, 1), "with no erosion, the neighbouring cell is navigable"
+	)
+	assert_false(
+		grid.is_navigable_for(beside, 1, 1),
+		"one ring of erosion strips the cell touching the obstacle"
+	)
 
 
 ## A corridor one cell wide admits a small unit and refuses a large one — the case where a
@@ -95,8 +101,10 @@ func test_a_narrow_gap_admits_small_but_not_large():
 			wall.append(Vector2i(x, 5))
 	grid.place_building(wall, self)
 	assert_true(grid.is_navigable_for(Vector2i(5, 5), 0, 1), "the gap is open to a 1-cell unit")
-	assert_false(grid.is_navigable_for(Vector2i(5, 5), 0, 2),
-		"a unit needing a 2x2 block cannot use a one-cell gap")
+	assert_false(
+		grid.is_navigable_for(Vector2i(5, 5), 0, 2),
+		"a unit needing a 2x2 block cannot use a one-cell gap"
+	)
 
 
 ## The navmesh builds each chunk from navigable_mask over a SUB-rectangle, so the bulk form must
@@ -106,7 +114,10 @@ func test_navigable_mask_agrees_on_sub_rectangles():
 	var grid := _make_grid()
 	grid.place_building([Vector2i(5, 5), Vector2i(5, 6), Vector2i(0, 3)], self)
 	var rects: Array[Rect2i] = [
-		Rect2i(0, 0, 4, 4), Rect2i(3, 4, 5, 3), Rect2i(7, 7, 4, 4), grid.get_bounds_rect(),
+		Rect2i(0, 0, 4, 4),
+		Rect2i(3, 4, 5, 3),
+		Rect2i(7, 7, 4, 4),
+		grid.get_bounds_rect(),
 	]
 	for rect: Rect2i in rects:
 		for rings: int in [0, 1, 2]:
@@ -146,11 +157,16 @@ func _segment_touches_cell(a: Vector2, b: Vector2, c: Vector2i) -> bool:
 
 
 ## Every cell the segment touches must be navigable — cells off the grid included, which are not.
-func _reference_segment(grid: TerrainGrid, a: Vector2, b: Vector2, rings: int, admit_k: int) -> bool:
+func _reference_segment(
+	grid: TerrainGrid, a: Vector2, b: Vector2, rings: int, admit_k: int
+) -> bool:
 	for z: int in range(-1, grid.grid_depth() + 1):
 		for x: int in range(-1, grid.grid_width() + 1):
 			var cell := Vector2i(x, z)
-			if _segment_touches_cell(a, b, cell) and not grid.is_navigable_for(cell, rings, admit_k):
+			if (
+				_segment_touches_cell(a, b, cell)
+				and not grid.is_navigable_for(cell, rings, admit_k)
+			):
 				return false
 	return true
 
@@ -184,8 +200,10 @@ func test_a_diagonal_cannot_slip_between_two_blocked_cells_meeting_at_a_corner()
 	var grid := _make_grid()
 	grid.place_building([Vector2i(5, 4), Vector2i(4, 5)], self)
 	assert_false(grid.is_segment_navigable_for(Vector2(4.5, 4.5), Vector2(5.5, 5.5), 0, 1))
-	assert_true(grid.is_segment_navigable_for(Vector2(6.5, 6.5), Vector2(7.5, 7.5), 0, 1),
-		"guards the fixture: the same kind of diagonal elsewhere is open")
+	assert_true(
+		grid.is_segment_navigable_for(Vector2(6.5, 6.5), Vector2(7.5, 7.5), 0, 1),
+		"guards the fixture: the same kind of diagonal elsewhere is open"
+	)
 
 
 func test_a_segment_within_one_cell_asks_about_that_cell() -> void:

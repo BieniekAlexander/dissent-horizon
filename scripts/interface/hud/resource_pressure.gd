@@ -32,6 +32,7 @@ const INFRASTRUCTURE_OVER_COLOR: Color = Color(0.98, 0.58, 0.20)
 const PANEL_COLOR: Color = Color(0.055, 0.067, 0.051, 0.87)
 #endregion
 
+
 #region Pulse maths
 ## `a_color1` ↔ `a_color2`, on a smooth PULSE_PERIOD_SECONDS cycle.
 ##
@@ -41,11 +42,14 @@ const PANEL_COLOR: Color = Color(0.055, 0.067, 0.051, 0.87)
 ## are what the bars use — see EnergyBar/InfrastructureBar — rather than pulsing toward white,
 ## which would flash to a colour that means nothing on the bar it is drawn on.
 static func pulse_between(a_color1: Color, a_color2: Color) -> Color:
-	var phase: float = fmod(
-		float(Time.get_ticks_msec()) / 1000.0, PULSE_PERIOD_SECONDS
-	) / PULSE_PERIOD_SECONDS
+	var phase: float = (
+		fmod(float(Time.get_ticks_msec()) / 1000.0, PULSE_PERIOD_SECONDS) / PULSE_PERIOD_SECONDS
+	)
 	return a_color1.lerp(a_color2, 0.5 - 0.5 * cos(phase * TAU))
+
+
 #endregion
+
 
 #region Resource states
 ## Whether the commander's dominion covers the DEAREST cell the sanction grid will currently
@@ -55,6 +59,7 @@ static func can_afford_dearest_sanction(a_commander: Commander) -> bool:
 		return false
 	var dearest: int = a_commander.sanction_grid.dearest_available_cost()
 	return dearest >= 0 and a_commander.dominion >= dearest
+
 
 ## Whether the commander's dominion covers the CHEAPEST cell the grid will currently sell
 ## them — the DominionBar's first colour threshold.

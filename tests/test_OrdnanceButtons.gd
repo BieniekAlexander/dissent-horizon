@@ -21,8 +21,10 @@ const LEVEL_TITLE: String = "Fake Strike 1"
 
 
 func before_each() -> void:
-	FakePieces.install_ability(ABILITY, {"range": 30.0, "dominion": true, "grid": [0, 0],
-		"levels": [{"title": LEVEL_TITLE}]})
+	FakePieces.install_ability(
+		ABILITY,
+		{"range": 30.0, "dominion": true, "grid": [0, 0], "levels": [{"title": LEVEL_TITLE}]}
+	)
 
 
 func after_each() -> void:
@@ -61,9 +63,13 @@ func test_owning_the_caster_does_not_unlock_a_sanction() -> void:
 	var commander: Commander = _commander_offering_the_ability()
 	_caster(commander)
 	var state: CommandButtonState = CommandButtonState.of(
-		Sanction.command_name_for(LEVEL_TITLE), [], commander, false)
-	assert_eq(state.blocker, CommandButtonState.Blocker.LOCKED,
-		"unbought, however many buildings could cast it")
+		Sanction.command_name_for(LEVEL_TITLE), [], commander, false
+	)
+	assert_eq(
+		state.blocker,
+		CommandButtonState.Blocker.LOCKED,
+		"unbought, however many buildings could cast it"
+	)
 
 
 ## Route two: the caster is SELECTED, so its pool answers directly. The pool says the piece can
@@ -72,7 +78,8 @@ func test_selecting_the_caster_does_not_unlock_a_sanction_either() -> void:
 	var commander: Commander = _commander_offering_the_ability()
 	var caster: Commandable = _caster(commander)
 	var state: CommandButtonState = CommandButtonState.of(
-		Sanction.command_name_for(LEVEL_TITLE), [caster], commander, false)
+		Sanction.command_name_for(LEVEL_TITLE), [caster], commander, false
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.LOCKED)
 
 
@@ -84,7 +91,8 @@ func test_unlocking_it_lights_the_button() -> void:
 	commander.dominion = 99999
 	assert_true(grid.try_unlock(grid.entries[0]), "bought")
 	var state: CommandButtonState = CommandButtonState.of(
-		grid.entries[0].sanction.command_name(), [caster], commander, false)
+		grid.entries[0].sanction.command_name(), [caster], commander, false
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.NONE)
 
 
@@ -94,5 +102,7 @@ func test_unlocking_it_lights_the_button() -> void:
 func test_the_card_filter_does_not_key_on_flavour_text() -> void:
 	var faction := autofree(Faction.new()) as Faction
 	faction.faction_name = "Haustoria"
-	assert_false(ControlBinding.Faction.has(faction.faction_name.to_upper()),
-		"a faction's NAME is prose and matches no enum member")
+	assert_false(
+		ControlBinding.Faction.has(faction.faction_name.to_upper()),
+		"a faction's NAME is prose and matches no enum member"
+	)

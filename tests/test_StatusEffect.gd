@@ -18,8 +18,10 @@ extends GutTest
 ## hard-reference $Ownership / $AvoidanceObstacle / $HPBar etc., which don't exist on a
 ## bare instance and would spew errors. None of the effect logic needs the host in the
 ## tree — effects are attached as children and ticked manually — so we keep it out.
-class StubCommandable extends Commandable:
+class StubCommandable:
+	extends Commandable
 	var damage_taken: float = 0.0
+
 	func receive_damage(a_damage: Damage, _a_from: Commandable = null) -> void:
 		damage_taken += a_damage.amount
 
@@ -50,8 +52,13 @@ func _status_children(a_u: Node) -> Array:
 
 ## Apply a fresh slow of the given mode/potency, returning the node actually live on `u`
 ## (a reapply discards the new node and reuses the existing one, so re-resolve it).
-func _apply_slow(a_u: StubCommandable, a_mult: float, a_mode: StatusEffect.ReapplyMode,
-		a_max_stacks: int = 1, a_duration: int = 0) -> SlowStatusEffect:
+func _apply_slow(
+	a_u: StubCommandable,
+	a_mult: float,
+	a_mode: StatusEffect.ReapplyMode,
+	a_max_stacks: int = 1,
+	a_duration: int = 0
+) -> SlowStatusEffect:
 	var s := SlowStatusEffect.new()
 	s.slow_multiplier = a_mult
 	s.reapply_mode = a_mode
@@ -73,6 +80,8 @@ func test_slow_applies_and_restores_on_expiry() -> void:
 	_tick(slow, 3)
 	assert_almost_eq(u.movement.speed, 1.0, 0.0001, "speed restored after duration")
 	assert_false(slow.is_active(), "effect inactive after expiry")
+
+
 #endregion
 
 
@@ -93,6 +102,8 @@ func test_refresh_does_not_stack_and_resets_timer() -> void:
 	assert_almost_eq(u.movement.speed, 0.5, 0.0001, "still active 4 ticks after refresh")
 	_tick(a, 1)
 	assert_almost_eq(u.movement.speed, 1.0, 0.0001, "expires 5 ticks after the refresh")
+
+
 #endregion
 
 
@@ -134,6 +145,8 @@ func test_dot_stacks_scale_damage() -> void:
 
 	_tick(dot, 10)
 	assert_almost_eq(u.damage_taken, 20.0, 0.0001, "2 stacks → 20 damage per tick boundary")
+
+
 #endregion
 
 
@@ -160,6 +173,8 @@ func test_dot_no_free_hit_on_first_tick() -> void:
 	assert_eq(u.damage_taken, 0.0, "no damage before the first tick_rate boundary")
 	_tick(dot, 1)
 	assert_almost_eq(u.damage_taken, 5.0, 0.0001, "first hit lands exactly at tick 10")
+
+
 #endregion
 
 
@@ -184,6 +199,8 @@ func test_max_stacks_editable_in_stack_mode() -> void:
 	e._validate_property(prop)
 	assert_eq(e.max_stacks, 5, "max_stacks preserved in STACK mode")
 	assert_eq(prop.usage & PROPERTY_USAGE_READ_ONLY, 0, "max_stacks editable in STACK mode")
+
+
 #endregion
 
 
@@ -208,6 +225,8 @@ func test_selector_keeps_units_without_attribute() -> void:
 	sel.require_present = false
 	var kept: Array[Entity] = sel.filter([mech, bio], null)
 	assert_eq(kept, [bio] as Array[Entity], "keeps only the non-MECH unit")
+
+
 #endregion
 
 

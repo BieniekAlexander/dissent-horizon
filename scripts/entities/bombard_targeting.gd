@@ -18,12 +18,15 @@ class_name BombardTargeting
 ## covered the spot — would be a silent waste of the more expensive resource. `source_at`
 ## returns null for a covered point precisely so the caller has nothing to consume.
 
+
 ## Whether `commander` may bombard `world_position` at all, by either route.
 static func is_spotted(commander: Commander, world_position: Vector3) -> bool:
 	if commander == null:
 		return false
-	return covering_range(commander, world_position) != null \
+	return (
+		covering_range(commander, world_position) != null
 		or beacon_at(commander, world_position) != null
+	)
 
 
 ## The Beacon a strike on `world_position` should SPEND, or null when it should spend
@@ -51,8 +54,9 @@ static func beacon_at(commander: Commander, world_position: Vector3) -> Beacon:
 			continue
 		if beacon.host().commander_id != commander.id or not beacon.covers(world_position):
 			continue
-		var distance: float = VU.inXZ(beacon.host().global_position) \
-			.distance_to(VU.inXZ(world_position))
+		var distance: float = VU.inXZ(beacon.host().global_position).distance_to(
+			VU.inXZ(world_position)
+		)
 		if distance < best_distance:
 			best_distance = distance
 			best = beacon
@@ -71,7 +75,12 @@ static func covering_range(commander: Commander, world_position: Vector3) -> Bea
 		return null
 	for child: Node in commander.get_children():
 		var entity := child as Commandable
-		if entity == null or entity.is_queued_for_deletion() or entity.is_planned or not entity.is_built:
+		if (
+			entity == null
+			or entity.is_queued_for_deletion()
+			or entity.is_planned
+			or not entity.is_built
+		):
 			continue
 		var range_node := entity.get_node_or_null("BeaconRange") as BeaconRange
 		if range_node != null and range_node.covers(world_position):

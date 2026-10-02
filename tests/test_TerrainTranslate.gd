@@ -13,8 +13,8 @@ const PLAY_SIZE: Vector2i = Vector2i(2, 3)
 
 ## Catalog indices built by _make_catalog.
 const OPEN: int = 0
-const WATER: int = 1   # a second material, so a moved cell is distinguishable
-const CLIFF: int = 2   # a third
+const WATER: int = 1  # a second material, so a moved cell is distinguishable
+const CLIFF: int = 2  # a third
 
 
 func _make_catalog() -> TerrainTileCatalog:
@@ -114,8 +114,11 @@ func test_cut_clears_only_the_part_the_destination_misses():
 
 	# Move a 3x3-cell region right by 1 — source and destination overlap.
 	var out: Dictionary = data.translate_region(
-		Rect2i(0, 0, 3, 3), Vector2i(1, 0),
-		TerrainData.LAYER_ALL, TerrainData.RegionTransform.NONE, true
+		Rect2i(0, 0, 3, 3),
+		Vector2i(1, 0),
+		TerrainData.LAYER_ALL,
+		TerrainData.RegionTransform.NONE,
+		true
 	)
 	data.heights = out["heights"]
 
@@ -129,8 +132,10 @@ func test_flip_x_reverses_the_region():
 
 	# 2 cells wide -> 3 corners; corner 0 maps to corner 2 of the destination.
 	var out: Dictionary = data.translate_region(
-		Rect2i(0, 0, 2, 2), Vector2i(4, 0),
-		TerrainData.LAYER_ALL, TerrainData.RegionTransform.FLIP_X
+		Rect2i(0, 0, 2, 2),
+		Vector2i(4, 0),
+		TerrainData.LAYER_ALL,
+		TerrainData.RegionTransform.FLIP_X
 	)
 	data.heights = out["heights"]
 
@@ -148,6 +153,8 @@ func test_destination_out_of_bounds_is_clipped_not_rejected():
 
 	assert_eq(_height_at(data, W - 1, 0), 7.0, "the in-bounds part still landed")
 	assert_eq(data.heights.size(), W * W, "the layer kept its size")
+
+
 #endregion
 
 
@@ -171,8 +178,10 @@ func test_all_open_tile_layer_stays_empty():
 
 	var out: Dictionary = data.translate_region(Rect2i(0, 0, 3, 3), Vector2i(2, 2))
 
-	assert_true((out["tile_types"] as PackedByteArray).is_empty(),
-		"an all-Open result compacts back to empty")
+	assert_true(
+		(out["tile_types"] as PackedByteArray).is_empty(),
+		"an all-Open result compacts back to empty"
+	)
 
 
 func test_layer_mask_leaves_the_other_layer_alone():
@@ -188,6 +197,8 @@ func test_layer_mask_leaves_the_other_layer_alone():
 
 	assert_eq(_height_at(data, 4, 4), 9.0, "heights moved")
 	assert_eq(data.tile_at(Vector2i(4, 4)), OPEN, "tile types did not")
+
+
 #endregion
 
 
@@ -198,8 +209,9 @@ func test_shift_clip_default_fills_the_exposed_strip():
 		for i: int in W:
 			_set_height(data, i, j, 2.0)
 
-	var out: Dictionary = data.shift_all(Vector2i(2, 0), TerrainData.LAYER_ALL,
-		TerrainData.EdgePolicy.CLIP)
+	var out: Dictionary = data.shift_all(
+		Vector2i(2, 0), TerrainData.LAYER_ALL, TerrainData.EdgePolicy.CLIP
+	)
 	data.heights = out["heights"]
 
 	assert_eq(_height_at(data, 0, 0), 0.0, "newly exposed column default-filled")
@@ -213,8 +225,9 @@ func test_shift_extend_edge_repeats_the_boundary():
 		for i: int in W:
 			_set_height(data, i, j, 2.0)
 
-	var out: Dictionary = data.shift_all(Vector2i(2, 0), TerrainData.LAYER_ALL,
-		TerrainData.EdgePolicy.EXTEND_EDGE)
+	var out: Dictionary = data.shift_all(
+		Vector2i(2, 0), TerrainData.LAYER_ALL, TerrainData.EdgePolicy.EXTEND_EDGE
+	)
 	data.heights = out["heights"]
 
 	assert_eq(_height_at(data, 0, 0), 2.0, "exposed strip continues the terrain")
@@ -226,8 +239,9 @@ func test_shift_wrap_is_invertible():
 	_set_height(data, 3, 2, 6.0)
 	var before: PackedFloat32Array = data.heights.duplicate()
 
-	var out: Dictionary = data.shift_all(Vector2i(3, 1), TerrainData.LAYER_ALL,
-		TerrainData.EdgePolicy.WRAP)
+	var out: Dictionary = data.shift_all(
+		Vector2i(3, 1), TerrainData.LAYER_ALL, TerrainData.EdgePolicy.WRAP
+	)
 	data.heights = out["heights"]
 	assert_ne(data.heights, before, "the shift actually moved something")
 
@@ -250,12 +264,15 @@ func test_shift_moves_tile_types_with_the_heights():
 	var data := _make_data()
 	_set_tile(data, 0, 0, WATER)
 
-	var out: Dictionary = data.shift_all(Vector2i(2, 2), TerrainData.LAYER_ALL,
-		TerrainData.EdgePolicy.CLIP)
+	var out: Dictionary = data.shift_all(
+		Vector2i(2, 2), TerrainData.LAYER_ALL, TerrainData.EdgePolicy.CLIP
+	)
 	data.tile_types = out["tile_types"]
 
 	assert_eq(data.tile_at(Vector2i(2, 2)), WATER)
 	assert_eq(data.tile_at(Vector2i(0, 0)), OPEN, "the vacated cell reads as Open")
+
+
 #endregion
 
 
@@ -265,6 +282,8 @@ func test_terrain_brush_plugin_script_compiles():
 	# type error there would otherwise only surface when someone opens the editor.
 	var script: GDScript = load("res://addons/terrain_brush/terrain_brush_plugin.gd")
 	assert_not_null(script, "the terrain brush plugin script compiles")
+
+
 #endregion
 
 

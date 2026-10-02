@@ -14,7 +14,8 @@ const TOLERANCE: float = 0.6
 
 
 ## Records where each payout happened instead of applying it.
-class RecordingPayload extends Payload:
+class RecordingPayload:
+	extends Payload
 	var hits: Array[Vector3] = []
 
 	func apply() -> void:
@@ -125,11 +126,14 @@ func test_a_shot_at_a_piece_that_moved_misses_and_lands_on_the_ground() -> void:
 	_ground()
 	var target: Entity = _piece(TARGET_AT)
 	await get_tree().physics_frame
-	var hits: Array = await _fly(_emission(), target, func() -> void:
-		_move(target, MOVED_TO))
+	var hits: Array = await _fly(_emission(), target, func() -> void: _move(target, MOVED_TO))
 	assert_eq(hits.size(), 1, "it still bursts")
-	assert_almost_eq(hits[0].z, 0.0, TOLERANCE,
-		"unsteered, it lands where it was aimed, not on the target that left")
+	assert_almost_eq(
+		hits[0].z,
+		0.0,
+		TOLERANCE,
+		"unsteered, it lands where it was aimed, not on the target that left"
+	)
 	assert_almost_eq(hits[0].y, 0.0, 0.05, "on the ground")
 
 
@@ -151,8 +155,9 @@ func test_a_bio_target_is_aimed_at_the_ground_under_it() -> void:
 	Emitter.launch(emission, null, soldier)
 	var locomotion: PhasedLocomotion = emission.get_node("Locomotion")
 	assert_null(locomotion.goal_entity(), "nothing is pursued")
-	assert_almost_eq(locomotion.goal_position, TARGET_AT, Vector3.ONE * 0.001,
-		"the spot it stood on")
+	assert_almost_eq(
+		locomotion.goal_position, TARGET_AT, Vector3.ONE * 0.001, "the spot it stood on"
+	)
 	assert_null((emission.get_node("Payload") as Payload).target)
 
 

@@ -3,7 +3,7 @@ extends GutTest
 ## A NAVMESH CHANGE RE-PLANS ONLY THE UNITS WHOSE PATH IT CROSSES.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NavChangeReplanning.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NavChangeReplanning.gd -gexit
 ##
 ## NavigationAgent3D re-plans whenever the navigation map changes, and every structure placed or
 ## destroyed changes it, so every moving unit used to re-plan in the same tick. NavManager now
@@ -140,24 +140,32 @@ func _await_landing(a_units: Array) -> NavManager.NavChange:
 func test_a_segment_through_the_area_touches_it() -> void:
 	var area := Rect2(Vector2(0, 0), Vector2(2, 2))
 	assert_true(NavManager.NavChange.segment_touches_rect(Vector2(-1, 1), Vector2(3, 1), area))
-	assert_true(NavManager.NavChange.segment_touches_rect(Vector2(1, 1), Vector2(1, 1), area),
-		"a segment inside the area")
+	assert_true(
+		NavManager.NavChange.segment_touches_rect(Vector2(1, 1), Vector2(1, 1), area),
+		"a segment inside the area"
+	)
 	assert_false(NavManager.NavChange.segment_touches_rect(Vector2(-1, 3), Vector2(3, 3), area))
-	assert_false(NavManager.NavChange.segment_touches_rect(Vector2(-3, 1), Vector2(-1, 5), area),
-		"passing beside the corner")
+	assert_false(
+		NavManager.NavChange.segment_touches_rect(Vector2(-3, 1), Vector2(-1, 5), area),
+		"passing beside the corner"
+	)
 
 
 func test_the_leg_from_where_the_unit_stands_counts() -> void:
 	var change := NavManager.NavChange.new(1, Rect2(Vector2(0, -1), Vector2(1, 2)))
 	var path := PackedVector3Array([Vector3(-5, 0, 0), Vector3(5, 0, 0), Vector3(5, 0, 5)])
-	assert_true(change.crosses(Vector3(-5, 0, 0), path, 1),
-		"standing before the area, heading for a waypoint past it")
+	assert_true(
+		change.crosses(Vector3(-5, 0, 0), path, 1),
+		"standing before the area, heading for a waypoint past it"
+	)
 
 
 func test_legs_already_walked_do_not_count() -> void:
 	var change := NavManager.NavChange.new(1, Rect2(Vector2(0, -1), Vector2(1, 2)))
 	var path := PackedVector3Array([Vector3(-5, 0, 0), Vector3(5, 0, 0), Vector3(5, 0, 5)])
 	assert_false(change.crosses(Vector3(5, 0, 1), path, 2), "the area is behind the unit")
+
+
 #endregion
 
 
@@ -174,8 +182,11 @@ func test_a_change_lands_only_once_path_queries_see_it() -> void:
 	var change: NavManager.NavChange = await _await_landing([])
 	assert_not_null(change, "the change lands")
 	var after: PackedVector3Array = NavigationServer3D.map_get_path(nav_map, from, to, true, 1)
-	assert_gt(_length(after), _length(before) + 1.0,
-		"by the time it has landed, a path across it goes around the wall")
+	assert_gt(
+		_length(after),
+		_length(before) + 1.0,
+		"by the time it has landed, a path across it goes around the wall"
+	)
 	assert_eq(_nav.landed_serial(), change.serial)
 
 
@@ -194,8 +205,11 @@ func test_on_an_async_map_a_change_still_lands_only_once_path_queries_see_it() -
 	var after: PackedVector3Array = NavigationServer3D.map_get_path(nav_map, from, to, true, 1)
 	NavigationServer3D.map_set_use_async_iterations(nav_map, false)
 	assert_not_null(change, "the change lands")
-	assert_gt(_length(after), _length(before) + 1.0,
-		"by the time it has landed, a path across it goes around the wall")
+	assert_gt(
+		_length(after),
+		_length(before) + 1.0,
+		"by the time it has landed, a path across it goes around the wall"
+	)
 
 
 func test_changes_are_handed_out_in_order_and_stop_at_one_not_yet_landed() -> void:
@@ -206,8 +220,11 @@ func test_changes_are_handed_out_in_order_and_stop_at_one_not_yet_landed() -> vo
 	nav._next_change_serial = 4
 	nav._changes[0].is_landed = true
 	nav._changes[2].is_landed = true
-	assert_eq(nav.landed_changes_since(0).map(func(c: NavManager.NavChange) -> int:
-		return c.serial), [1], "change 3 waits behind change 2")
+	assert_eq(
+		nav.landed_changes_since(0).map(func(c: NavManager.NavChange) -> int: return c.serial),
+		[1],
+		"change 3 waits behind change 2"
+	)
 	assert_eq(nav.landed_serial(), 1)
 	assert_false(nav.has_forgotten(0))
 	nav._changes.pop_front()
@@ -220,6 +237,8 @@ func _length(a_path: PackedVector3Array) -> float:
 	for i: int in range(1, a_path.size()):
 		total += a_path[i].distance_to(a_path[i - 1])
 	return total
+
+
 #endregion
 
 
@@ -228,7 +247,8 @@ func test_only_a_unit_whose_path_the_change_crosses_re_plans() -> void:
 	await _make_nav()
 	var center: int = (W - 1) / 2
 	var crossing: CountingMovement = await _unit(
-		Vector2i(center - 10, center), Vector2i(center + 10, center))
+		Vector2i(center - 10, center), Vector2i(center + 10, center)
+	)
 	var elsewhere: CountingMovement = await _unit(Vector2i(2, 2), Vector2i(10, 2))
 	assert_gt(elsewhere.current_path().size(), 1, "guards the fixture: both hold a path")
 	_wall(center, center - 4, center + 4)
@@ -244,7 +264,8 @@ func test_nothing_re_plans_before_the_change_has_landed() -> void:
 	await _make_nav()
 	var center: int = (W - 1) / 2
 	var crossing: CountingMovement = await _unit(
-		Vector2i(center - 10, center), Vector2i(center + 10, center))
+		Vector2i(center - 10, center), Vector2i(center + 10, center)
+	)
 	_wall(center, center - 4, center + 4)
 	var queries_while_waiting: int = -1
 	for _i: int in MAX_LANDING_FRAMES:
@@ -275,8 +296,11 @@ func test_a_path_that_stops_short_re_plans_only_on_a_change_around_its_target() 
 	_grid.place_building([gate], gate_owner)
 	await _await_landing([])
 	var boxed_out: CountingMovement = await _unit(Vector2i(4, center), Vector2i(center, center))
-	assert_gt(VU.inXZ(boxed_out.current_path()[-1]).distance_to(VU.inXZ(_cell_world(center, center))),
-		1.0, "guards the fixture: the path stops short of the boxed-in target")
+	assert_gt(
+		VU.inXZ(boxed_out.current_path()[-1]).distance_to(VU.inXZ(_cell_world(center, center))),
+		1.0,
+		"guards the fixture: the path stops short of the boxed-in target"
+	)
 	# A change far from the target cannot open the way.
 	_wall(4, 40, 44)
 	assert_not_null(await _await_landing([boxed_out]))
@@ -287,8 +311,13 @@ func test_a_path_that_stops_short_re_plans_only_on_a_change_around_its_target() 
 	assert_not_null(await _await_landing([boxed_out]))
 	boxed_out.is_navigation_finished()
 	assert_eq(boxed_out.queries, 1, "a change around the target re-plans, even on its far side")
-	assert_lt(VU.inXZ(boxed_out.current_path()[-1]).distance_to(VU.inXZ(_cell_world(center, center))),
-		0.5, "and the new path reaches the target through the gate")
+	assert_lt(
+		VU.inXZ(boxed_out.current_path()[-1]).distance_to(VU.inXZ(_cell_world(center, center))),
+		0.5,
+		"and the new path reaches the target through the gate"
+	)
+
+
 #endregion
 
 
@@ -318,7 +347,8 @@ func test_a_blocked_line_still_queries_the_navmesh() -> void:
 	_wall(center, center - 6, center + 6)
 	await _await_landing([])
 	var unit: CountingMovement = await _unit(
-		Vector2i(center - 8, center), Vector2i(center + 8, center), true)
+		Vector2i(center - 8, center), Vector2i(center + 8, center), true
+	)
 	unit.target_position = _cell_world(center + 8, center + 1)
 	unit.is_navigation_finished()
 	assert_eq(unit.queries, 1)
@@ -329,7 +359,8 @@ func test_a_change_across_a_straight_path_re_plans_around_it() -> void:
 	await _make_nav()
 	var center: int = (W - 1) / 2
 	var unit: CountingMovement = await _unit(
-		Vector2i(center - 8, center), Vector2i(center + 8, center), true)
+		Vector2i(center - 8, center), Vector2i(center + 8, center), true
+	)
 	assert_eq(unit.current_path().size(), 2, "guards the fixture: a straight path")
 	_wall(center, center - 6, center + 6)
 	assert_not_null(await _await_landing([unit]))

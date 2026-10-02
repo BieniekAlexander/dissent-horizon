@@ -16,13 +16,17 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Spotting.gd -gexit
 
 ## A piece granted Spot.
-const RECRUIT: Dictionary = {"speed": 2.0, "vision": 8.0,
-	"abilities": [{"grants": [Spot.ABILITY_ID]}]}
+const RECRUIT: Dictionary = {
+	"speed": 2.0, "vision": 8.0, "abilities": [{"grants": [Spot.ABILITY_ID]}]
+}
+
 
 ## A Map that answers only the one question _raise_beacon asks. A real one needs a
 ## heightmap before terrain_height_at means anything, and none of that would make these
 ## assertions stronger — same fixture idiom as test_CoBuild's StubMap.
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func terrain_height_at(_a_world_xz: Vector2) -> float:
 		return 0.0
 
@@ -79,6 +83,7 @@ func _channel_out(a_actor: Commandable, a_command: Spot) -> Beacon:
 
 # --- Capability ------------------------------------------------------------------
 
+
 func test_the_recruit_is_a_spotter() -> void:
 	var recruit := _recruit()
 	var pool := recruit.get_node_or_null("Abilities") as Abilities
@@ -106,6 +111,7 @@ func test_the_reach_is_the_ability_docs_range_and_the_channel_is_ten_seconds() -
 
 # --- Approach --------------------------------------------------------------------
 
+
 func test_it_walks_until_it_is_in_range() -> void:
 	var recruit := _recruit(Vector2(0, 0))
 	var command := _order(Vector2(40, 0))
@@ -127,6 +133,7 @@ func test_arriving_does_not_end_the_order() -> void:
 
 
 # --- The channel -----------------------------------------------------------------
+
 
 func test_the_beacon_only_appears_after_the_full_channel() -> void:
 	var recruit := _recruit(Vector2(0, 0))
@@ -170,6 +177,7 @@ func test_the_spotters_beacon_never_expires_on_its_own() -> void:
 
 # --- The hold --------------------------------------------------------------------
 
+
 func test_it_does_not_finish_when_the_beacon_goes_up() -> void:
 	# The commitment: a command that ended here would let the unit walk on to its next
 	# queued order while its solution still stood.
@@ -187,7 +195,7 @@ func test_it_finishes_when_the_beacon_is_spent() -> void:
 	var command := _order(Vector2(5, 0))
 	var beacon := _channel_out(recruit, command)
 	beacon.dismiss()
-	beacon.host().free()   # queue_free is end-of-frame; the command tests validity
+	beacon.host().free()  # queue_free is end-of-frame; the command tests validity
 	assert_null(command.get_updated_state(recruit), "the order ends with the shot")
 
 

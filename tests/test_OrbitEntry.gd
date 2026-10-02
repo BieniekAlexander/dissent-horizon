@@ -72,8 +72,9 @@ func test_flying_unit_settles_into_its_orbit_without_doubling_back() -> void:
 			continue
 		total += absf(d)
 		net += d
-		max_radius = maxf(max_radius,
-			VU.inXZ(drone.global_position).distance_to(VU.inXZ(drone.aerial._anchor)))
+		max_radius = maxf(
+			max_radius, VU.inXZ(drone.global_position).distance_to(VU.inXZ(drone.aerial._anchor))
+		)
 		observed += 1
 		if observed >= OBSERVE_TICKS:
 			break
@@ -82,14 +83,27 @@ func test_flying_unit_settles_into_its_orbit_without_doubling_back() -> void:
 	assert_true(arrived, "the unit reached its destination and went idle")
 	assert_gt(total, deg_to_rad(90.0), "precondition: it actually manoeuvred after arriving")
 	var straightness: float = absf(net) / total if total > 1e-6 else 1.0
-	assert_gt(straightness, 0.95,
-		"settles into the orbit turning one way throughout (straightness %.2f; below ~0.8 " % straightness
-		+ "means it turned out and back before settling)")
+	assert_gt(
+		straightness,
+		0.95,
+		(
+			(
+				"settles into the orbit turning one way throughout (straightness %.2f; below ~0.8 "
+				% straightness
+			)
+			+ "means it turned out and back before settling)"
+		)
+	)
 	# It may overshoot the radius slightly while shedding approach speed, but it must not
 	# sail far past and get hauled back — that excursion is the other half of the wobble.
-	assert_lt(max_radius, drone.aerial.orbit_radius * 1.25,
-		"never sails far outside its orbit radius (peak %.2f vs radius %.2f)"
-			% [max_radius, drone.aerial.orbit_radius])
+	assert_lt(
+		max_radius,
+		drone.aerial.orbit_radius * 1.25,
+		(
+			"never sails far outside its orbit radius (peak %.2f vs radius %.2f)"
+			% [max_radius, drone.aerial.orbit_radius]
+		)
+	)
 
 
 ## Leave `a_keep` alone in the world: every other commandable freed, every brain silenced.
@@ -103,4 +117,3 @@ func _empty_the_harness(a_scenario: Scenario, a_keep: Commandable) -> void:
 	for node: Node in get_tree().get_nodes_in_group("piece"):
 		if node != a_keep and node is Commandable:
 			node.queue_free()
-

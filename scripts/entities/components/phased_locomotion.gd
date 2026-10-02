@@ -34,8 +34,8 @@ const EMISSION_GROUP: StringName = &"emission"
 ## What `begin_tick` did with the phase sequence.
 enum Step {
 	CONTINUE,  ## the live phase runs this tick
-	ENTERED,   ## a new phase took over and runs this tick
-	HOLD,      ## nothing runs this tick
+	ENTERED,  ## a new phase took over and runs this tick
+	HOLD,  ## nothing runs this tick
 	FINISHED,  ## the last phase has ended; the emission is spent
 }
 
@@ -78,11 +78,16 @@ var _current_position: Vector3
 
 func _ready() -> void:
 	get_parent().add_to_group(EMISSION_GROUP)
-	_phases.assign(get_parent().get_children().filter(
-		func(c: Node) -> bool: return c is EmissionPhase))
+	_phases.assign(
+		get_parent().get_children().filter(func(c: Node) -> bool: return c is EmissionPhase)
+	)
 	if _phases.is_empty():
-		push_error("Emission '%s' has no EmissionPhase children — it can never act"
-			% (get_parent() as Entity).id)
+		push_error(
+			(
+				"Emission '%s' has no EmissionPhase children — it can never act"
+				% (get_parent() as Entity).id
+			)
+		)
 	_show_visuals_of(0)
 	_current_position = _body().global_position
 
@@ -130,8 +135,9 @@ func can_move() -> bool:
 ##
 ## A FREE flight (`a_free`) can miss: see _free_flight. Its wobble, if any phase has one, is
 ## seeded here from the gameplay generator, so a replay flies it identically.
-func launch(a_destination: Vector3, a_pursued: Entity, a_excluded: Array[RID],
-		a_free: bool = false) -> void:
+func launch(
+	a_destination: Vector3, a_pursued: Entity, a_excluded: Array[RID], a_free: bool = false
+) -> void:
 	set_goal(a_destination, Arrival.PASS_THROUGH, a_pursued)
 	_free_flight = a_free
 	if _phases.any(func(p: EmissionPhase) -> bool: return p.has_jitter()):
@@ -162,9 +168,13 @@ func begin_tick() -> Step:
 	var phase: EmissionPhase = current_phase()
 	if phase == null:
 		return Step.HOLD
-	var has_arrived: bool = phase.ends_on_arrival and not (_free_flight and _had_pursued) \
-		and phase.has_arrived(_body().global_position, _body().velocity, goal_position,
-			goal_entity())
+	var has_arrived: bool = (
+		phase.ends_on_arrival
+		and not (_free_flight and _had_pursued)
+		and phase.has_arrived(
+			_body().global_position, _body().velocity, goal_position, goal_entity()
+		)
+	)
 	if not (_phase_over or has_arrived):
 		return Step.CONTINUE
 	if Engine.get_physics_frames() == _launch_frame:
@@ -183,8 +193,11 @@ func tick() -> Progress:
 	var goal: Variant = _steering_goal()
 	_clean_velocity = phase.tracked_velocity(_clean_velocity, before, goal)
 	_clean_velocity = phase.steered_toward(_clean_velocity, before, goal)
-	body.velocity = _jitter.perturbed(phase, _phase_seconds(), _clean_velocity) \
-		if _jitter != null else _clean_velocity
+	body.velocity = (
+		_jitter.perturbed(phase, _phase_seconds(), _clean_velocity)
+		if _jitter != null
+		else _clean_velocity
+	)
 	body.global_position += body.velocity
 	_flown_velocity = body.velocity
 	_clean_velocity = phase.fallen_velocity(_clean_velocity)
@@ -198,6 +211,8 @@ func tick() -> Progress:
 		_phase_over = true
 		_expired = _phase_index == _phases.size() - 1
 	return Progress.MOVING
+
+
 #endregion
 
 
@@ -236,6 +251,8 @@ func is_expired() -> bool:
 ## the phase's first tick. An unbounded period (-1) falls only on that first tick.
 func is_on_cadence(a_period: int) -> bool:
 	return _phase_ticks == 0 if a_period < 0 else _phase_ticks % a_period == 0
+
+
 #endregion
 
 
@@ -320,8 +337,11 @@ func _enter_next_phase(a_has_arrived: bool) -> bool:
 static func _level(body: Node3D) -> void:
 	var forward: Vector3 = -body.global_basis.z
 	forward.y = 0.0
-	body.global_basis = Basis.IDENTITY if forward.length_squared() < 0.0001 \
+	body.global_basis = (
+		Basis.IDENTITY
+		if forward.length_squared() < 0.0001
 		else Basis.looking_at(forward.normalized(), Vector3.UP)
+	)
 
 
 ## The swept impact test: a ray along this tick's move against the phase's impact mask. A
@@ -329,7 +349,8 @@ static func _level(body: Node3D) -> void:
 func _test_impact(a_phase: EmissionPhase, a_before: Vector3) -> void:
 	var body: CharacterBody3D = _body()
 	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
-		a_before, body.global_position, a_phase.impact_mask, _excluded)
+		a_before, body.global_position, a_phase.impact_mask, _excluded
+	)
 	var hit: Dictionary = body.get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
 		return
@@ -344,12 +365,16 @@ func _test_impact(a_phase: EmissionPhase, a_before: Vector3) -> void:
 func _test_contact(a_phase: EmissionPhase, a_before: Vector3) -> void:
 	var body: CharacterBody3D = _body()
 	var intended: Entity = goal_entity()
-	var mask: int = CollisionLayers.Mask.TERRAIN | a_phase.impact_mask \
+	var mask: int = (
+		CollisionLayers.Mask.TERRAIN
+		| a_phase.impact_mask
 		| (CollisionLayers.TARGETABLE_ANY if intended != null else 0)
+	)
 	var excluded: Array[RID] = _excluded.duplicate()
 	for pass_index: int in MAX_CONTACT_PASSES:
 		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
-			a_before, body.global_position, mask, excluded)
+			a_before, body.global_position, mask, excluded
+		)
 		var hit: Dictionary = body.get_world_3d().direct_space_state.intersect_ray(query)
 		if hit.is_empty():
 			return
@@ -362,8 +387,9 @@ func _test_contact(a_phase: EmissionPhase, a_before: Vector3) -> void:
 ## Whether a free flight stops at `a_collider`: the ground, the piece it was aimed at, or a
 ## layer its phase asks to strike.
 static func _is_contact(a_collider: Object, a_intended: Entity, a_impact_mask: int) -> bool:
-	var layers: int = (a_collider as CollisionObject3D).collision_layer \
-		if a_collider is CollisionObject3D else 0
+	var layers: int = (
+		(a_collider as CollisionObject3D).collision_layer if a_collider is CollisionObject3D else 0
+	)
 	if layers & (CollisionLayers.Mask.TERRAIN | a_impact_mask):
 		return true
 	return a_intended != null and Entity.entity_from_collider(a_collider) == a_intended

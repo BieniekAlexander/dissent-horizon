@@ -54,9 +54,9 @@ var _busy: bool = false
 ## generators that don't expose a `seed` property (e.g. the flat generator).
 @export var random_next_seed: bool = false
 
-@export_tool_button("Generate")
-var _generate_button: Callable = _do_generate
+@export_tool_button("Generate") var _generate_button: Callable = _do_generate
 #endregion
+
 
 #region Private helpers
 func _do_generate() -> void:
@@ -92,6 +92,7 @@ func _do_generate() -> void:
 
 	_busy = false
 
+
 ## Assign a fresh random seed to the generator (when it exposes one) and emit
 ## `changed` so the inspector shows the new value.  Generators without a `seed`
 ## property (e.g. the flat generator) are simply left as-is — nothing to roll.
@@ -102,6 +103,7 @@ func _apply_random_seed() -> void:
 	rng.randomize()
 	_generator.set("seed", int(rng.randi()))
 	_generator.emit_changed()  # refresh the inspector to show the rolled seed
+
 
 func _generator_has_seed() -> bool:
 	for prop: Dictionary in _generator.get_property_list():

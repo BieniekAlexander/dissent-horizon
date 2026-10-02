@@ -13,7 +13,9 @@ extends GutTest
 const W: int = 9  # 9x9 corners; height == corner x index, so height varies along X
 
 
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	# Map._ready builds a TerrainGrid / NavManager and asserts on scene children we don't
 	# want here — this test only exercises the coordinate helpers.
 	func _ready() -> void:
@@ -47,8 +49,9 @@ func _uncached_height(a_map: Map, a_world_xz: Vector2) -> float:
 	var hs: HeightMapShape3D = a_map.height_map
 	var hw: float = (hs.map_width - 1) * 0.5
 	var hd: float = (hs.map_depth - 1) * 0.5
-	var local: Vector3 = a_map.global_transform.affine_inverse() \
-		* Vector3(a_world_xz.x, 0.0, a_world_xz.y)
+	var local: Vector3 = (
+		a_map.global_transform.affine_inverse() * Vector3(a_world_xz.x, 0.0, a_world_xz.y)
+	)
 	var lx: float = clampf(local.x + hw, 0.0, hs.map_width - 1)
 	var lz: float = clampf(local.z + hd, 0.0, hs.map_depth - 1)
 	var x0: int = floori(lx)
@@ -60,7 +63,8 @@ func _uncached_height(a_map: Map, a_world_xz: Vector2) -> float:
 	var h: float = lerpf(
 		lerpf(hs.map_data[z0 * hs.map_width + x0], hs.map_data[z0 * hs.map_width + x1], fx),
 		lerpf(hs.map_data[z1 * hs.map_width + x0], hs.map_data[z1 * hs.map_width + x1], fx),
-		fz)
+		fz
+	)
 	return (a_map.global_transform * Vector3(local.x, h, local.z)).y
 
 
@@ -70,8 +74,9 @@ func test_cached_transform_equals_a_fresh_inverse():
 
 func test_heights_match_the_uncached_computation():
 	for p: Vector2 in [Vector2(0, 0), Vector2(2.5, -1.5), Vector2(-3.25, 3.75)]:
-		assert_almost_eq(_map.terrain_height_at(p), _uncached_height(_map, p), 0.0001,
-			"height at %v" % p)
+		assert_almost_eq(
+			_map.terrain_height_at(p), _uncached_height(_map, p), 0.0001, "height at %v" % p
+		)
 
 
 func test_repeated_reads_are_stable():
@@ -117,8 +122,12 @@ func test_moving_an_ancestor_updates_heights():
 func test_transform_notification_is_not_synchronous():
 	var before: float = _map.terrain_height_at(Vector2(0.0, 0.0))
 	_map.position = Vector3(2.0, 0.0, 0.0)
-	assert_almost_eq(_map.terrain_height_at(Vector2(0.0, 0.0)), before, 0.0001,
-		"read before the transform flush should still see the cached frame")
+	assert_almost_eq(
+		_map.terrain_height_at(Vector2(0.0, 0.0)),
+		before,
+		0.0001,
+		"read before the transform flush should still see the cached frame"
+	)
 	# invalidate_transform_cache is the escape hatch for exactly this case.
 	_map.invalidate_transform_cache()
 	assert_almost_eq(_map.terrain_height_at(Vector2(0.0, 0.0)), 2.0, 0.0001)

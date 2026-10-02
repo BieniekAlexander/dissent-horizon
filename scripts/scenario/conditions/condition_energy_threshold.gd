@@ -10,13 +10,16 @@ enum Comparison { AT_LEAST, AT_MOST }
 @export var amount: int = 500
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var commander: Commander = a_manager.get_commander(commander_id)
 	if commander == null:
 		return false
 	match comparison:
-		Comparison.AT_LEAST: return commander.energy >= amount
-		Comparison.AT_MOST:  return commander.energy <= amount
+		Comparison.AT_LEAST:
+			return commander.energy >= amount
+		Comparison.AT_MOST:
+			return commander.energy <= amount
 	return false
 #endregion

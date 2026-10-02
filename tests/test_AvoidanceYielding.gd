@@ -47,10 +47,16 @@ func _make_movement(a_finished: bool) -> Movement:
 func test_the_tiers_are_strictly_ordered() -> void:
 	# Everything else here rests on this ordering: Godot's avoidance_priority makes an agent
 	# skip adjusting for LOWER-priority neighbours, pushing the adjustment onto them.
-	assert_lt(Movement.AVOIDANCE_PRIORITY_STANDING, Movement.AVOIDANCE_PRIORITY_TRAVELLING,
-		"a standing unit must rank below a travelling one")
-	assert_lt(Movement.AVOIDANCE_PRIORITY_TRAVELLING, Movement.AVOIDANCE_PRIORITY_ENGAGED,
-		"a travelling unit must rank below one holding ground to fire")
+	assert_lt(
+		Movement.AVOIDANCE_PRIORITY_STANDING,
+		Movement.AVOIDANCE_PRIORITY_TRAVELLING,
+		"a standing unit must rank below a travelling one"
+	)
+	assert_lt(
+		Movement.AVOIDANCE_PRIORITY_TRAVELLING,
+		Movement.AVOIDANCE_PRIORITY_ENGAGED,
+		"a travelling unit must rank below one holding ground to fire"
+	)
 
 
 func test_engaged_is_the_engine_ceiling() -> void:
@@ -62,23 +68,32 @@ func test_engaged_is_the_engine_ceiling() -> void:
 func test_a_stationary_unit_yields() -> void:
 	var movement: Movement = _make_movement(true)
 	movement.update_avoidance_priority(false)
-	assert_eq(_agent.avoidance_priority, Movement.AVOIDANCE_PRIORITY_STANDING,
-		"a unit that is not going anywhere gives way")
+	assert_eq(
+		_agent.avoidance_priority,
+		Movement.AVOIDANCE_PRIORITY_STANDING,
+		"a unit that is not going anywhere gives way"
+	)
 
 
 func test_a_travelling_unit_holds_its_rank() -> void:
 	var movement: Movement = _make_movement(false)
 	movement.update_avoidance_priority(false)
-	assert_eq(_agent.avoidance_priority, Movement.AVOIDANCE_PRIORITY_TRAVELLING,
-		"a unit with somewhere to be outranks the ones standing around")
+	assert_eq(
+		_agent.avoidance_priority,
+		Movement.AVOIDANCE_PRIORITY_TRAVELLING,
+		"a unit with somewhere to be outranks the ones standing around"
+	)
 
 
 func test_a_unit_holding_ground_yields_to_nobody() -> void:
 	# Stationary and firing: the agent is finished navigating, but the order says hold.
 	var movement: Movement = _make_movement(true)
 	movement.update_avoidance_priority(true)
-	assert_eq(_agent.avoidance_priority, Movement.AVOIDANCE_PRIORITY_ENGAGED,
-		"a unit firing from where it stands is not shoved aside by its own side")
+	assert_eq(
+		_agent.avoidance_priority,
+		Movement.AVOIDANCE_PRIORITY_ENGAGED,
+		"a unit firing from where it stands is not shoved aside by its own side"
+	)
 
 
 func test_the_rank_follows_what_the_unit_is_doing_now() -> void:
@@ -89,12 +104,18 @@ func test_the_rank_follows_what_the_unit_is_doing_now() -> void:
 	movement.update_avoidance_priority(true)
 	assert_eq(_agent.avoidance_priority, Movement.AVOIDANCE_PRIORITY_ENGAGED)
 	movement.update_avoidance_priority(false)
-	assert_eq(_agent.avoidance_priority, Movement.AVOIDANCE_PRIORITY_STANDING,
-		"ceasing fire drops it to a stander")
+	assert_eq(
+		_agent.avoidance_priority,
+		Movement.AVOIDANCE_PRIORITY_STANDING,
+		"ceasing fire drops it to a stander"
+	)
 	_movement.target_position = Vector3(50, 0, 50)
 	movement.update_avoidance_priority(false)
-	assert_eq(_agent.avoidance_priority, Movement.AVOIDANCE_PRIORITY_TRAVELLING,
-		"setting off restores the traveller's rank")
+	assert_eq(
+		_agent.avoidance_priority,
+		Movement.AVOIDANCE_PRIORITY_TRAVELLING,
+		"setting off restores the traveller's rank"
+	)
 
 
 func test_an_aerial_unit_is_left_alone() -> void:

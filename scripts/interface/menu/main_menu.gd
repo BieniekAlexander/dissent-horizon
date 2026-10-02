@@ -38,11 +38,15 @@ extends Control
 @onready var _button_template: Button = %ButtonTemplate
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	_refresh_title()
 	_build_buttons()
+
+
 #endregion
+
 
 #region Public API
 ## The button labels currently on screen, top to bottom. The testable view of what this
@@ -65,7 +69,10 @@ func open(a_entry: ScenarioEntry) -> void:
 	# same thing here, in the pause menu, and on a victory dialog. SceneManager reports its own
 	# failures.
 	SceneManager.go_to_packed(a_entry.scene)
+
+
 #endregion
+
 
 #region Internal
 ## Every live scenario button — the template is hidden and excluded, so this is exactly the

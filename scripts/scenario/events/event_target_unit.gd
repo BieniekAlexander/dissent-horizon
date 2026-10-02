@@ -40,9 +40,11 @@ var commander_id: int = 1
 ## was named, and the event does nothing.
 var target_unit: Commandable = null
 
+
 ## Extra per-subclass admission test, asked after scope. Default: anything.
 func _qualifies(_a_candidate: Commandable) -> bool:
 	return true
+
 
 ## Whether `a_candidate` is a unit this event may act on for `a_commander_id`: a live unit
 ## (not a structure), inside `scope`, and passing `_qualifies`. Untyped parameter, because
@@ -56,6 +58,7 @@ func accepts(a_candidate: Variant, a_commander_id: int) -> bool:
 	if scope == Scope.OWN and unit.commander_id != a_commander_id:
 		return false
 	return _qualifies(unit)
+
 
 ## The named target, if it is still one this event accepts; otherwise null.
 func _find_target_unit(_a_manager: ScenarioTriggerManager) -> Commandable:

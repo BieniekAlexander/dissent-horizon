@@ -28,6 +28,7 @@ extends RegionAwareCondition
 ## only entities inside that CollisionShape3D count.
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var selected: int = 0
@@ -35,7 +36,10 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 		if candidate.selectable != null and candidate.selectable.is_selected():
 			selected += 1
 	return selected >= count
+
+
 #endregion
+
 
 #region Player-facing description (highlights)
 ## Mark every entity that WOULD satisfy the check, so the player can see what to click.
@@ -45,7 +49,10 @@ func highlight_entities(a_manager: ScenarioTriggerManager) -> Array[Entity]:
 	var result: Array[Entity] = []
 	result.assign(_candidates(a_manager))
 	return result
+
+
 #endregion
+
 
 #region Internal
 ## The commander's entities that pass the kind / type / region filters.
@@ -58,7 +65,10 @@ func _candidates(a_manager: ScenarioTriggerManager) -> Array:
 			var c := n as Commandable
 			if c == null:
 				return false
-			if not c.is_in_group("unit") and not (include_structures and c.is_in_group("structure")):
+			if (
+				not c.is_in_group("unit")
+				and not (include_structures and c.is_in_group("structure"))
+			):
 				return false
 			if unit_type != &"" and c.id != unit_type:
 				return false

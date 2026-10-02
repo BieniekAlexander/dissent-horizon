@@ -52,12 +52,16 @@ const _SCOUT_SCENE: PackedScene = preload("res://scenes/entities/nt_aircraftLigh
 @export var lifespan_seconds: float = -1.0
 #endregion
 
+
 #region Tool
 func _validate_property(a_property: Dictionary) -> void:
 	if a_property.name == "lifespan_seconds" and not clears_fog:
 		# Nothing persists in the explored-only mode, so a duration would be a lie.
 		a_property.usage |= PROPERTY_USAGE_READ_ONLY
+
+
 #endregion
+
 
 #region Public API
 func execute(a_manager: ScenarioTriggerManager) -> void:
@@ -68,7 +72,10 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 		_clear_fog_at(points, a_manager)
 	else:
 		_mark_explored_at(points, a_manager)
+
+
 #endregion
+
 
 #region Internal
 ## Where to open up: every Node3D in `target_group`, or this event's own position when no

@@ -39,7 +39,10 @@ func _cell_passable(a_h: PackedFloat32Array, a_x: int, a_z: int) -> bool:
 	var h10: float = a_h[a_z * WIDTH + a_x + 1]
 	var h01: float = a_h[(a_z + 1) * WIDTH + a_x]
 	var h11: float = a_h[(a_z + 1) * WIDTH + a_x + 1]
-	return (maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))) <= MAX_SLOPE_DIFF
+	return (
+		(maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11)))
+		<= MAX_SLOPE_DIFF
+	)
 
 
 func _cell_flat(a_h: PackedFloat32Array, a_x: int, a_z: int) -> bool:
@@ -66,7 +69,9 @@ func _passable_unblocked_components(a_h: PackedFloat32Array, a_mask: PackedByteA
 				seen[idx] = 1
 				while not stack.is_empty():
 					var c: Vector2i = stack.pop_back()
-					for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
+					for d: Vector2i in [
+						Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)
+					]:
 						var nx: int = c.x + d.x
 						var nz: int = c.y + d.y
 						if nx >= 0 and nx < gw and nz >= 0 and nz < gh:
@@ -100,19 +105,27 @@ func test_blocks_are_flat_passable_when_flat_only():
 	var h: PackedFloat32Array = r["heights"]
 	var mask: PackedByteArray = r["mask"]
 	var gw: int = WIDTH - 1
-	for z: int in (DEPTH - 1):
+	for z: int in DEPTH - 1:
 		for x: int in gw:
 			if mask[z * gw + x] != 0:
-				assert_true(_cell_passable(h, x, z), "blocked cell (%d,%d) must have been passable" % [x, z])
-				assert_true(_cell_flat(h, x, z), "blocked cell (%d,%d) must be flat under flat_only" % [x, z])
+				assert_true(
+					_cell_passable(h, x, z), "blocked cell (%d,%d) must have been passable" % [x, z]
+				)
+				assert_true(
+					_cell_flat(h, x, z),
+					"blocked cell (%d,%d) must be flat under flat_only" % [x, z]
+				)
 
 
 func test_passable_surface_connected_after_blocks():
 	# The whole point: blocks must never strand part of the map.
 	for seed_val: int in [0, 1, 7, 42, 99, 123, 777]:
 		var r: Dictionary = _make_mask(seed_val)
-		assert_eq(_passable_unblocked_components(r["heights"], r["mask"]), 1,
-			"seed %d: passable-minus-blocked must stay a single component" % seed_val)
+		assert_eq(
+			_passable_unblocked_components(r["heights"], r["mask"]),
+			1,
+			"seed %d: passable-minus-blocked must stay a single component" % seed_val
+		)
 
 
 func test_deterministic():

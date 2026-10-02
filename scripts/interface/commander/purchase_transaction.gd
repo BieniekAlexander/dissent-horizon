@@ -44,7 +44,8 @@ enum State { PENDING, FUNDED, CONSUMED, CANCELLED, COMPLETED }
 ##   REJECT — refuse the order outright.
 ##   WAIT   — queue and fulfil when the precondition is met ("spend when you can").
 ##
-## The additive modifier, read at issue time (RTSController._purchase_defers), is what picks between them, per
+## The additive modifier, read at issue time (RTSController._purchase_defers), is what picks between
+## them, per
 ## purchase, at issue time.
 ##
 ## **The policy decides what happens when you CAN'T afford it, and nothing else.** An
@@ -188,14 +189,11 @@ var _ever_held: bool = false
 var planned_structure: Commandable = null
 #endregion
 
+
 #region Construction
 ## A purchase priced from the commander's technology_mapping — the normal path for
 ## anything with a gdd doc (every trainable unit and buildable structure).
-static func for_tool(
-	commander: Commander,
-	kind: Kind,
-	tool: Tool
-) -> PurchaseTransaction:
+static func for_tool(commander: Commander, kind: Kind, tool: Tool) -> PurchaseTransaction:
 	var transaction := PurchaseTransaction.new()
 	transaction.id = _take_id()
 	transaction.commander = commander
@@ -203,22 +201,22 @@ static func for_tool(
 	transaction.tool = tool
 	transaction.type = tool.type if tool != null else &""
 	# Priced by the tool's own form: a variant-bound tool costs and takes what its variant does.
-	var spec: TechnologySpec = commander.technology_mapping.get(tool.price_id()) \
-		if commander != null and tool != null else null
+	var spec: TechnologySpec = (
+		commander.technology_mapping.get(tool.price_id())
+		if commander != null and tool != null
+		else null
+	)
 	if spec != null:
 		transaction.energy_cost = spec.energy_cost
 		transaction.dominion_cost = spec.dominion_cost
 		transaction.creation_time = spec.creation_time
 	return transaction
 
+
 ## A purchase with an AD-HOC price — one that isn't a technology_mapping entry, such as
 ## the safehouse conversion's flat energy cost.
 static func for_cost(
-	commander: Commander,
-	kind: Kind,
-	tool: Tool,
-	energy_cost: int,
-	dominion_cost: int = 0
+	commander: Commander, kind: Kind, tool: Tool, energy_cost: int, dominion_cost: int = 0
 ) -> PurchaseTransaction:
 	var transaction := PurchaseTransaction.new()
 	transaction.id = _take_id()
@@ -229,6 +227,7 @@ static func for_cost(
 	transaction.energy_cost = energy_cost
 	transaction.dominion_cost = dominion_cost
 	return transaction
+
 
 ## A fresh PENDING copy of this transaction, sharing its cost, type and producers, with
 ## an id of its own. A STANDING entry re-issues itself this way: the queued entry stays a
@@ -256,18 +255,25 @@ func clone() -> PurchaseTransaction:
 	copy.player_commands = player_commands.duplicate()
 	return copy
 
+
 static func _take_id() -> int:
 	var next: int = _next_id
 	_next_id += 1
 	return next
+
+
 #endregion
+
 
 #region Ordering
 ## Which of the queue's two tiers this entry sits in. Non-standing entries always outrank
 ## standing ones; within a tier the order is strict FIFO by `sequence`. Lower sorts first.
 func tier() -> int:
 	return 1 if standing else 0
+
+
 #endregion
+
 
 #region Funding
 ## True when the commander can pay for this purchase right now. Only the spendable
@@ -278,6 +284,7 @@ func can_fund() -> bool:
 	if commander == null:
 		return false
 	return commander.energy >= energy_cost and commander.dominion >= dominion_cost
+
 
 ## Deduct the cost and reserve it for this purchase. Caller must have checked can_fund().
 func fund() -> void:
@@ -293,6 +300,7 @@ func fund() -> void:
 	if planned_structure != null and is_instance_valid(planned_structure):
 		planned_structure.set_awaiting_funds(false)
 
+
 ## Mark the reserved cost as spent — the purchase has been handed to whatever produces
 ## it (a Production queue, or a structure actually placed on the map). Terminal: no
 ## refund can follow.
@@ -302,6 +310,7 @@ func consume() -> void:
 	# The blueprint has become the real structure — it outlives this purchase now, so
 	# drop the reference rather than leaving cancel() able to free a placed building.
 	planned_structure = null
+
 
 ## Retire this purchase: the thing it bought now EXISTS. The completion path, rather than
 ## the transaction simply being dropped at fulfilment — `fulfilled` fires before the state
@@ -317,6 +326,7 @@ func complete(a_product: Node = null) -> void:
 	fulfilled.emit(self, a_product)
 	state = State.COMPLETED
 	planned_structure = null
+
 
 ## Drop this purchase, returning any reserved cost to the commander. Safe to call more
 ## than once and on an already-completed transaction (a no-op then).
@@ -336,6 +346,7 @@ func cancel() -> void:
 		state = State.CANCELLED
 	discard_planned_structure()
 
+
 ## Take down the blueprint this purchase raised, if it hasn't been placed. Safe to call
 ## repeatedly. Called on cancel, and available to anything that abandons a build order
 ## before a builder reaches the site.
@@ -347,11 +358,14 @@ func discard_planned_structure() -> void:
 	if is_instance_valid(blueprint) and (blueprint as Commandable).is_planned:
 		(blueprint as Commandable).queue_free()
 
+
 func is_pending() -> bool:
 	return state == State.PENDING
 
+
 func is_funded() -> bool:
 	return state == State.FUNDED
+
 
 ## True once the queue has no further business with this purchase — it has been handed to
 ## a producer, finished, or dropped. What distinguishes CONSUMED from COMPLETED is that
@@ -359,9 +373,13 @@ func is_funded() -> bool:
 func is_settled() -> bool:
 	return state == State.CONSUMED or state == State.CANCELLED or state == State.COMPLETED
 
+
 func is_cancelled() -> bool:
 	return state == State.CANCELLED
+
+
 #endregion
+
 
 #region Producers (TRAIN)
 ## The producers that could still fulfil this purchase EVENTUALLY: alive and able to
@@ -383,10 +401,14 @@ func candidate_producers() -> Array[Commandable]:
 		if not is_instance_valid(candidate):
 			continue
 		var producer := candidate as Commandable
-		if producer != null and producer.production != null \
-				and producer.production.can_produce(type):
+		if (
+			producer != null
+			and producer.production != null
+			and producer.production.can_produce(type)
+		):
 			out.append(producer)
 	return out
+
 
 ## The structures the filter admits, before the can-produce test: whatever it names, or
 ## every commandable the commander owns when it names nothing.
@@ -394,6 +416,7 @@ func _eligible_producers() -> Array:
 	if not dispatch_filter.is_empty():
 		return dispatch_filter
 	return commander.owned_producers() if commander != null else []
+
 
 ## Whether the unit this purchase bought does not exist YET — waiting in the queue, funded,
 ## or actively being built by a producer. The window in which a phantom is selectable and
@@ -435,7 +458,10 @@ func ready_producers() -> Array[Commandable]:
 		if producer.is_built:
 			out.append(producer)
 	return out
+
+
 #endregion
+
 
 #region Holders (BUILD)
 ## Register a live Build command against this purchase. Called from MoveCommand._init
@@ -443,6 +469,7 @@ func ready_producers() -> Array[Commandable]:
 func retain_holder() -> void:
 	_holders += 1
 	_ever_held = true
+
 
 ## Drop a live Build command. When the last one goes and the purchase was never
 ## consumed, its reserved cost is refunded — this is what returns the energy when a
@@ -452,17 +479,29 @@ func release_holder() -> void:
 	if _holders <= 0 and not is_settled():
 		cancel()
 
+
 ## True once every Build command that referenced this purchase is gone. False before
 ## the first one registers, so a transaction dispatched in the same frame it was
 ## submitted (its commands not yet constructed) isn't mistaken for an abandoned one.
 func is_abandoned() -> bool:
 	return kind == Kind.BUILD and _ever_held and _holders <= 0
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:
-	return "PurchaseTransaction(#%d %s %s%s, energy=%d, dominion=%d, state=%d)" % [
-		id, "TRAIN" if kind == Kind.TRAIN else "BUILD", type,
-		" standing" if standing else "", energy_cost, dominion_cost, state
-	]
+	return (
+		"PurchaseTransaction(#%d %s %s%s, energy=%d, dominion=%d, state=%d)"
+		% [
+			id,
+			"TRAIN" if kind == Kind.TRAIN else "BUILD",
+			type,
+			" standing" if standing else "",
+			energy_cost,
+			dominion_cost,
+			state
+		]
+	)
 #endregion

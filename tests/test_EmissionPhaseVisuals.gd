@@ -42,8 +42,10 @@ func test_a_particle_effect_is_switched_by_emitting_and_never_hidden() -> void:
 	assert_true(particles.emitting)
 	phase.show_visuals(_emission, false)
 	assert_false(particles.emitting, "it stops making more")
-	assert_true((_emission.get_node("Trail") as Node3D).visible,
-		"but what it already emitted stays on screen")
+	assert_true(
+		(_emission.get_node("Trail") as Node3D).visible,
+		"but what it already emitted stays on screen"
+	)
 	assert_true(particles.visible)
 
 
@@ -74,8 +76,9 @@ func test_levelling_keeps_the_heading_and_drops_the_pitch() -> void:
 	_emission.look_at(_emission.global_position + Vector3(1, -2, 0), Vector3.UP)
 	PhasedLocomotion._level(_emission)
 	assert_almost_eq(_emission.global_basis.y, Vector3.UP, Vector3.ONE * TOLERANCE, "upright")
-	assert_almost_eq(-_emission.global_basis.z, Vector3.RIGHT, Vector3.ONE * TOLERANCE,
-		"still facing east")
+	assert_almost_eq(
+		-_emission.global_basis.z, Vector3.RIGHT, Vector3.ONE * TOLERANCE, "still facing east"
+	)
 
 
 func test_levelling_a_straight_drop_falls_back_to_the_world_frame() -> void:

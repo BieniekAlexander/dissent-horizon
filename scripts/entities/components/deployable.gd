@@ -30,13 +30,19 @@ var _mobile_obstacle_layers: int = 0
 
 signal stance_changed(a_stance: Stance)
 
+
 ## The orders whose whole point is to go somewhere, which a planted unit cannot carry out.
 ## Named rather than derived from capability because the form an order will meet is the
 ## PROJECTED one (see admit), which the actor's live components do not yet show.
 static func _is_relocating(a_order: MoveCommand) -> bool:
 	var script: Script = a_order.get_script()
-	return script == MoveCommand or script == AttackMove or script == Patrol \
-		or script == Defend or script == Occupy
+	return (
+		script == MoveCommand
+		or script == AttackMove
+		or script == Patrol
+		or script == Defend
+		or script == Occupy
+	)
 
 
 static func of(a_entity: Node) -> Deployable:
@@ -47,16 +53,20 @@ static func of(a_entity: Node) -> Deployable:
 func is_deployed() -> bool:
 	return stance == Stance.DEPLOYED
 
+
 func is_transitioning() -> bool:
 	return stance == Stance.DEPLOYING or stance == Stance.UNDEPLOYING
+
 
 ## Whether this unit's weapons may be used: never mid-transition.
 func can_use_weapons() -> bool:
 	return not is_transitioning()
 
+
 ## Whether the unit stands planted once its current transition, if any, is through.
 func settles_deployed() -> bool:
 	return stance == Stance.DEPLOYED or stance == Stance.DEPLOYING
+
 
 ## Progress through the current transition, 0..1; 1 while settled.
 func transition_fraction() -> float:
@@ -64,7 +74,10 @@ func transition_fraction() -> float:
 	if not is_transitioning() or total <= 0:
 		return 1.0
 	return clampf(float(_progress_ticks) / total, 0.0, 1.0)
+
+
 #endregion
+
 
 #region Order admission
 ## The orders the host should actually take, from `a_orders` given with the additive
@@ -74,8 +87,9 @@ func transition_fraction() -> float:
 ## `keep_active` asks the host to clear the queue but leave the running transition alone.
 ##
 ## Side effect: a cancellable deploy is abandoned here when the first order cancels it.
-func admit(a_orders: Array[MoveCommand], a_add_to_queue: bool,
-		a_chain: Array[MoveCommand]) -> Dictionary:
+func admit(
+	a_orders: Array[MoveCommand], a_add_to_queue: bool, a_chain: Array[MoveCommand]
+) -> Dictionary:
 	var add_to_queue: bool = a_add_to_queue
 	var keep_active: bool = false
 	var projected_deployed: bool
@@ -124,7 +138,10 @@ static func _projected_after(a_chain: Array[MoveCommand], a_deployed: bool) -> b
 		elif order is Undeploy:
 			deployed = false
 	return deployed
+
+
 #endregion
+
 
 #region Ownership
 ## Record the obstacle layers the host's commander gives it. While standing they are held
@@ -135,7 +152,10 @@ func hold_obstacle_layers(a_layers: int) -> bool:
 		return false
 	_mobile_obstacle_layers = a_layers
 	return true
+
+
 #endregion
+
 
 #region Transitions
 ## Start deploying where the unit stands. False, and nothing changed, unless it is MOBILE.
@@ -147,6 +167,7 @@ func begin_deploy() -> bool:
 	_set_stance(Stance.DEPLOYING)
 	return true
 
+
 ## Start undeploying. False, and nothing changed, unless it is DEPLOYED. The armour bonus is
 ## given up at once: it is paid for by being planted, and an undeploying unit is leaving.
 func begin_undeploy() -> bool:
@@ -156,6 +177,7 @@ func begin_undeploy() -> bool:
 	_step_armour(-1)
 	_set_stance(Stance.UNDEPLOYING)
 	return true
+
 
 ## One tick of the current transition. True once it has finished (and on any settled stance).
 func advance() -> bool:
@@ -172,6 +194,7 @@ func advance() -> bool:
 		_stand(false)
 		_set_stance(Stance.MOBILE)
 	return true
+
 
 ## Give up a transition that has not finished: a deploy goes back to MOBILE, an undeploy
 ## back to DEPLOYED (with its armour). No-op while settled.
@@ -198,8 +221,7 @@ func _step_armour(a_steps: int) -> void:
 	if defense == null:
 		return
 	var top: int = Defense.ArmourType.size() - 1
-	defense.armour_type = clampi(int(defense.armour_type) + a_steps, 0, top) \
-		as Defense.ArmourType
+	defense.armour_type = clampi(int(defense.armour_type) + a_steps, 0, top) as Defense.ArmourType
 
 
 ## Plant the host (switch its locomotion off and broadcast it as a standing obstacle that

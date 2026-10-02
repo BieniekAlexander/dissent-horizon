@@ -11,17 +11,21 @@ extends RefCounted
 ## interpolator here would be the sibling §1.3 warns against rather than a second instance of
 ## the one Godot already gives a colour ramp.
 
+
 ## `a_color` with its HSV saturation raised toward 1.0 as `a_frac` (already the fraction used
 ## to pick `a_color` off the gradient) rises from 0 to 1 — the "generally increase in
 ## saturation" half of the lithium-pond idiom, layered on top of the hue lerp above rather
 ## than folded into it, so the two can be reasoned about (and tested) separately.
-static func with_saturation_ramp(a_color: Color, a_frac: float, a_min_gain: float = 0.0,
-		a_max_gain: float = 0.35) -> Color:
+static func with_saturation_ramp(
+	a_color: Color, a_frac: float, a_min_gain: float = 0.0, a_max_gain: float = 0.35
+) -> Color:
 	var frac: float = clampf(a_frac, 0.0, 1.0)
 	var gain: float = lerpf(a_min_gain, a_max_gain, frac)
-	var boosted := Color.from_hsv(a_color.h, clampf(a_color.s + gain, 0.0, 1.0), a_color.v,
-		a_color.a)
+	var boosted := Color.from_hsv(
+		a_color.h, clampf(a_color.s + gain, 0.0, 1.0), a_color.v, a_color.a
+	)
 	return boosted
+
 
 ## The fractions (0, 1] of `a_capacity` at which a segmented fill's divider lines fall, for a
 ## fill made of chunks of `a_segment_size` — e.g. capacity 500, segment 125 → [0.25, 0.5,

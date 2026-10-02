@@ -16,12 +16,14 @@ extends MoveCommand
 ## Build.get_updated_state), and by a right-click from a Builds-capable unit onto a
 ## friendly structure of a type it can build that isn't finished yet.
 
+
 #region Preconditions
 static func meets_precondition(
-	_actor: Commandable,
-	_message: CommandMessage
+	_actor: Commandable, _message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return PreconditionFailureCause.NONE
+
+
 #endregion
 
 #region Properties
@@ -30,11 +32,13 @@ static func meets_precondition(
 var _builder: Commandable = null
 #endregion
 
+
 #region State updates
 ## Finishing construction is a channeled action: a hit staggers the worker,
 ## pausing build progress until the stagger wears off.
 func blocked_by_stagger(_a_actor: Commandable) -> bool:
 	return true
+
 
 func get_updated_state(_a_actor: Commandable) -> Variant:
 	# The structure being built can be destroyed mid-build. Once freed, message.target
@@ -44,17 +48,21 @@ func get_updated_state(_a_actor: Commandable) -> Variant:
 		return null
 	return self
 
+
 func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
 	return ActionTracker.Action.BUILDING
 
+
 func can_act(a_actor: Commandable) -> bool:
 	return SU.unit_is_close_to_target(a_actor, message.target)
+
 
 ## Assembling is not finished by arriving next to the structure — that is where the work
 ## STARTS. Ending on arrival would drop the command the moment the worker stopped moving,
 ## which is the same defect that used to lose a Build order on approach.
 func ends_on_arrival() -> bool:
 	return false
+
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var site: Commandable = message.target
@@ -68,9 +76,16 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		if site.commander != null:
 			site.commander.proc_technology()
 		if a_actor.veterancy != null:
-			var spec: TechnologySpec = site.commander.technology_mapping.get(site.pricing_id()) \
-				if site.commander != null else null
-			var xp: int = roundi(float(spec.energy_cost) * Veterancy.XP_PER_BUILD_ENERGY) if spec != null else 0
+			var spec: TechnologySpec = (
+				site.commander.technology_mapping.get(site.pricing_id())
+				if site.commander != null
+				else null
+			)
+			var xp: int = (
+				roundi(float(spec.energy_cost) * Veterancy.XP_PER_BUILD_ENERGY)
+				if spec != null
+				else 0
+			)
 			a_actor.veterancy.gain_experience(xp)
 			a_actor._fire_entity_occurrence(Entity.EntityOccurrence.ON_FINISH_BUILD)
 		# If this actor landed to build (HOVERING builder in GROUNDED_TEMP), take off.
@@ -80,11 +95,15 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		site.unregister_builder(a_actor)
 		return null
 	return self
+
+
 #endregion
+
 
 #region Lifecycle
 func _init(a_message: CommandMessage) -> void:
 	super(a_message)
+
 
 func _notification(a_what: int) -> void:
 	if a_what == NOTIFICATION_PREDELETE and is_instance_valid(_builder):

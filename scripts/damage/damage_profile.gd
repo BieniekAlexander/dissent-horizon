@@ -17,7 +17,6 @@ extends Resource
 ## (see gdd/id-rename-proposal.md), so this file's multipliers now match the
 ## spec's own axis names after all.
 
-
 @export var id: Damage.Type
 
 @export_group("Frame multipliers")
@@ -29,12 +28,18 @@ extends Resource
 @export var medium_multiplier: float = 1.0
 @export var strong_multiplier: float = 1.0
 
+
 func frame_multiplier(a_frame: Defense.FrameType) -> float:
 	return bio_multiplier if a_frame == Defense.FrameType.BIO else mech_multiplier
 
+
 func armour_multiplier(a_armour: Defense.ArmourType) -> float:
 	match a_armour:
-		Defense.ArmourType.LIGHT: return light_multiplier
-		Defense.ArmourType.MEDIUM: return medium_multiplier
-		Defense.ArmourType.STRONG: return strong_multiplier
-		_: return 1.0
+		Defense.ArmourType.LIGHT:
+			return light_multiplier
+		Defense.ArmourType.MEDIUM:
+			return medium_multiplier
+		Defense.ArmourType.STRONG:
+			return strong_multiplier
+		_:
+			return 1.0

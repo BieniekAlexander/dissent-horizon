@@ -47,11 +47,18 @@ func test_regions_bring_the_traversable_share_to_its_target() -> void:
 		var params: MapGenerationParams = _params()
 		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
 		assert_true(map.is_valid(), "seed %d: %s" % [generation_seed, map.errors])
-		assert_almost_eq(map.traversable_fraction, params.target_traversable_fraction,
-			params.traversable_tolerance, "seed %d" % generation_seed)
+		assert_almost_eq(
+			map.traversable_fraction,
+			params.target_traversable_fraction,
+			params.traversable_tolerance,
+			"seed %d" % generation_seed
+		)
 		var open: GeneratedMap = MapGenerator.generate(_without_regions(_params()), generation_seed)
-		assert_gt(open.traversable_fraction, map.traversable_fraction,
-			"seed %d: regions take ground" % generation_seed)
+		assert_gt(
+			open.traversable_fraction,
+			map.traversable_fraction,
+			"seed %d: regions take ground" % generation_seed
+		)
 		assert_gt(map.topology.grown.count(true), 0, "seed %d" % generation_seed)
 
 
@@ -75,8 +82,11 @@ func test_impassable_ground_is_shared_within_tolerance() -> void:
 		var total: float = 0.0
 		for value: float in map.obstructed:
 			total += value
-		assert_lte(MapFavor.worst_deviation(map.obstructed, total / params.alliance_count),
-			params.obstruction_tolerance, "seed %d" % generation_seed)
+		assert_lte(
+			MapFavor.worst_deviation(map.obstructed, total / params.alliance_count),
+			params.obstruction_tolerance,
+			"seed %d" % generation_seed
+		)
 
 
 ## What growth ADDS keeps clear of every start; a cut's own thin band, drawn before any growth,
@@ -86,16 +96,25 @@ func test_regions_keep_clear_of_every_start() -> void:
 	var clear: float = params.start_clear_radius_cells + params.feature_spacing_cells
 	for generation_seed: int in _SEEDS:
 		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
-		var plain: GeneratedMap = MapGenerator.generate(_without_regions(_params()), generation_seed)
+		var plain: GeneratedMap = MapGenerator.generate(
+			_without_regions(_params()), generation_seed
+		)
 		for cell: Vector2i in map.topology.barrier_of:
-			if not map.topology.grown[map.topology.barrier_of[cell]] \
-					or plain.topology.nearest_of.has(cell) \
-					and (plain.topology.nearest_of[cell] as Vector3).z <= params.barrier_width_cells:
+			if (
+				not map.topology.grown[map.topology.barrier_of[cell]]
+				or (
+					plain.topology.nearest_of.has(cell)
+					and (plain.topology.nearest_of[cell] as Vector3).z <= params.barrier_width_cells
+				)
+			):
 				continue
 			for start: MapStart in map.starts:
 				var offset: Vector2 = (Vector2(cell) + Vector2(0.5, 0.5) - start.position).abs()
-				assert_gt(maxf(offset.x, offset.y), clear - 1.0,
-					"seed %d: %s is inside a start's clearance" % [generation_seed, cell])
+				assert_gt(
+					maxf(offset.x, offset.y),
+					clear - 1.0,
+					"seed %d: %s is inside a start's clearance" % [generation_seed, cell]
+				)
 
 
 func test_the_kind_furthest_below_its_share_grows_next() -> void:
@@ -131,8 +150,9 @@ func test_a_mountain_rises_above_a_plain_ridge() -> void:
 	var params: MapGenerationParams = _params()
 	params.flooded_cut_fraction = 0.0
 	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
-	var ridge_top: float = params.ground_height + params.ridge_height \
-		+ MapGenerationParams.RIDGE_ROUGHNESS
+	var ridge_top: float = (
+		params.ground_height + params.ridge_height + MapGenerationParams.RIDGE_ROUGHNESS
+	)
 	var peak: float = 0.0
 	for height: float in map.terrain.heights:
 		peak = maxf(peak, height)

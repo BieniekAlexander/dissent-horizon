@@ -9,7 +9,7 @@ extends GutTest
 ## test in this suite sets up a navmesh fixture either.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_EventCommandTarget.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_EventCommandTarget.gd -gexit
 
 ## BIO frame.
 const RECRUIT: Dictionary = FakePieces.SOLDIER
@@ -97,6 +97,7 @@ func test_frame_filter_still_respects_commander_exclusion() -> void:
 
 # --- to_command(), Type.BASE: Attack on a specific structure, not AttackMove to a centroid --
 
+
 func test_base_type_returns_an_attack_locked_onto_one_structure() -> void:
 	var target := EventCommandTarget.new()
 	add_child_autofree(target)  # global_position (used as ref_pos) needs target inside the tree
@@ -105,7 +106,11 @@ func test_base_type_returns_an_attack_locked_onto_one_structure() -> void:
 	var far := _structure(2, Vector3(50, 0, 0))  # outside the 10wu cluster threshold: its own cluster
 	var cmd: MoveCommand = target.to_command(_manager)
 	assert_true(cmd is Attack, "BASE locks onto a specific structure, not an AttackMove")
-	assert_eq(cmd.message.target, near, "CLOSEST priority (the default) picks the nearer cluster/structure")
+	assert_eq(
+		cmd.message.target,
+		near,
+		"CLOSEST priority (the default) picks the nearer cluster/structure"
+	)
 	assert_ne(cmd.message.target, far)
 
 
@@ -116,7 +121,11 @@ func test_base_type_ignores_units_entirely() -> void:
 	_unit(RECRUIT, 2)  # an enemy unit, much closer to the origin than the structure
 	var cmd: MoveCommand = target.to_command(_manager)
 	assert_true(cmd is Attack)
-	assert_eq(cmd.message.target, structure, "a BASE-type rule never targets a unit, regardless of proximity")
+	assert_eq(
+		cmd.message.target,
+		structure,
+		"a BASE-type rule never targets a unit, regardless of proximity"
+	)
 
 
 func test_base_type_with_no_enemy_structures_returns_null() -> void:

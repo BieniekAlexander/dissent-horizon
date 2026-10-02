@@ -19,7 +19,6 @@ const IRREGULAR: StringName = &"fake_unit"
 ## Both generators bank on the same period, so a rate of N per tick-period is N/5 per second.
 const PERIOD_SECONDS: float = 5.0
 
-
 ## Any piece whose scene provides infrastructure — a harness for the faction-source rule, not a
 ## figure under test.
 const PROVIDER_ID: StringName = &"fake_provider"
@@ -61,6 +60,7 @@ func _train_purchase(
 
 
 # --- Committed energy ------------------------------------------------------------
+
 
 func test_nothing_queued_commits_nothing() -> void:
 	assert_eq(_make_commander(500).energy_committed(), 0)
@@ -109,6 +109,7 @@ func test_dominion_purchases_commit_dominion_not_energy() -> void:
 
 # --- Collection rate ----------------------------------------------------------
 
+
 func test_no_extractors_collect_nothing() -> void:
 	assert_almost_eq(_make_commander().energy_collection_rate(), 0.0, 0.001)
 
@@ -153,6 +154,7 @@ func test_a_blueprint_extractor_is_pending_income() -> void:
 
 # --- Spend rate ---------------------------------------------------------------
 
+
 func test_an_idle_producer_spends_nothing() -> void:
 	var commander := _make_commander()
 	_make_producer(commander, [IRREGULAR])
@@ -166,9 +168,7 @@ func test_spend_rate_spreads_an_active_job_over_its_build_time() -> void:
 	# 60 energy over 30 ticks, at 30 physics ticks per second, is 60 energy per second.
 	producer.production.enqueue(30, null, IRREGULAR)
 	assert_almost_eq(
-		commander.energy_spend_rate(),
-		60.0 * Engine.physics_ticks_per_second / 30.0,
-		0.001
+		commander.energy_spend_rate(), 60.0 * Engine.physics_ticks_per_second / 30.0, 0.001
 	)
 
 
@@ -189,6 +189,7 @@ func test_a_queued_purchase_is_not_yet_a_spend() -> void:
 ## A rate that explains itself ("+14/s · 4 extractors") is worth far more than a bare one, and
 ## the counts have to describe the SAME set of structures the rate sums over or the two
 ## readings contradict each other.
+
 
 func _make_extractor(a_commander: Commander, a_rate: int = 25) -> Commandable:
 	var extractor := autofree(Commandable.new()) as Commandable
@@ -252,6 +253,7 @@ func test_a_commander_with_no_generators_reports_no_dominion_source() -> void:
 ## the bare `dominion_rate` field directly, which reported a rate that never moved with how
 ## many prisoners were actually held — effectively always the class's unused script default.
 
+
 func _make_occupant_dominion_source(
 	a_commander: Commander, a_dominion_per_unit: int, a_occupant_count: int
 ) -> Commandable:
@@ -288,8 +290,11 @@ func test_the_rate_does_not_read_the_unused_inherited_flat_default() -> void:
 	var generator := host.get_node("DominionGenerator") as OccupantDominionGenerator
 	assert_eq(generator.dominion_rate, 10, "the inherited default — present, but never paid out")
 	var rate_if_it_had_used_the_flat_default: float = 10.0 / PERIOD_SECONDS
-	assert_ne(commander.dominion_collection_rate(), rate_if_it_had_used_the_flat_default,
-		"the bug this guards: representing the Compound as if the flat default applied")
+	assert_ne(
+		commander.dominion_collection_rate(),
+		rate_if_it_had_used_the_flat_default,
+		"the bug this guards: representing the Compound as if the flat default applied"
+	)
 
 
 func test_occupant_generators_contribute_their_head_count() -> void:
@@ -317,11 +322,15 @@ func test_occupant_generators_contribute_their_head_count() -> void:
 		for i in held:
 			var prisoner := autofree(Commandable.new()) as Commandable
 			garrison.garrison(prisoner)
-	assert_eq(commander.dominion_contributor_count(), 4,
-		"prisoners across every camp, since that is what the Colonial rate is made of")
+	assert_eq(
+		commander.dominion_contributor_count(),
+		4,
+		"prisoners across every camp, since that is what the Colonial rate is made of"
+	)
 
 
 # --- Clearance time -----------------------------------------------------------
+
 
 func test_nothing_owed_clears_immediately() -> void:
 	var commander := _make_commander(500)
@@ -355,6 +364,7 @@ func test_no_net_income_never_clears() -> void:
 ## capacity ONE owned provider grants, read off what the commander actually built rather than
 ## assumed from a faction constant.
 
+
 func _make_infrastructure_provider(a_commander: Commander, a_grant: int) -> Commandable:
 	var provider := autofree(Commandable.new()) as Commandable
 	provider.infrastructure = a_grant
@@ -375,17 +385,25 @@ func test_the_grant_is_the_dedicated_providers_whether_or_not_one_stands() -> vo
 	var faction := autofree(Faction.new()) as Faction
 	faction.infrastructure_source = PROVIDER_ID
 	commander.faction = faction
-	FakePieces.register_tool(FakePieces.tool(PROVIDER_ID, {"structure": true, "infrastructure": 40}))
-	var own_grant: int = (commander.get_build_preview_instance(Tool.for_type(PROVIDER_ID))
-		as Commandable).infrastructure
+	FakePieces.register_tool(
+		FakePieces.tool(PROVIDER_ID, {"structure": true, "infrastructure": 40})
+	)
+	var own_grant: int = (
+		(commander.get_build_preview_instance(Tool.for_type(PROVIDER_ID)) as Commandable)
+		. infrastructure
+	)
 	assert_gt(own_grant, 0, "guards the fixture: the source provides")
 	assert_eq(commander.infrastructure_provider_grant(), own_grant, "none standing yet")
 	_make_infrastructure_provider(commander, own_grant * 3)
-	assert_eq(commander.infrastructure_provider_grant(), own_grant,
-		"a different provider standing does not resize the segment")
+	assert_eq(
+		commander.infrastructure_provider_grant(),
+		own_grant,
+		"a different provider standing does not resize the segment"
+	)
 
 
 # --- Pending pieces --------------------------------------------------------------
+
 
 func test_a_blueprint_is_pending_capacity_not_real_capacity() -> void:
 	var commander := _make_commander()
@@ -418,5 +436,3 @@ func test_a_standing_template_commits_nothing() -> void:
 	template.standing = true
 	commander.production_queue.submit(template)
 	assert_eq(commander.energy_committed(), 0)
-
-

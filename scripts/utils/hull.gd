@@ -105,5 +105,7 @@ static func _projected_gap(a: Hull, b: Hull, axis: Vector2) -> float:
 
 
 static func _projected_half(hull: Hull, axis: Vector2) -> float:
-	return hull.half_extents.x * absf(hull.axis_x.dot(axis)) \
+	return (
+		hull.half_extents.x * absf(hull.axis_x.dot(axis))
 		+ hull.half_extents.y * absf(hull.axis_z.dot(axis))
+	)

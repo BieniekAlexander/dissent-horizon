@@ -94,6 +94,7 @@ var _surface: MeshInstance3D = null
 var _material: ShaderMaterial = null
 #endregion
 
+
 #region Lifecycle
 ## _ENTER_TREE, NOT _READY, and that is the fix for "editing `level` sometimes does nothing".
 ##
@@ -114,7 +115,10 @@ func _exit_tree() -> void:
 	if _map != null:
 		_map.unregister_water_body(self)
 		_map = null
+
+
 #endregion
+
 
 #region Public API
 ## Bind this body to `a_map` and derive everything from its terrain. Idempotent: calling it
@@ -227,7 +231,10 @@ func charge_fraction() -> float:
 ## Map.fogged_materials). Null before the first rebuild.
 func surface_material() -> ShaderMaterial:
 	return _material
+
+
 #endregion
+
 
 #region Private helpers
 ## Rebuild the surface plane under an INTERNAL child, so the generated mesh is never written

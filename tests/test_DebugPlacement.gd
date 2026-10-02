@@ -16,7 +16,9 @@ const GRID_CELLS: int = MAP_CORNERS - 1
 const OPEN_CELL: Vector2i = Vector2i(8, 8)
 
 
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		cell_grid = []
 		for x: int in GRID_CELLS:
@@ -30,8 +32,12 @@ class StubMap extends Map:
 		add_child(terrain_grid)
 
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
-		return a_coords.x >= 0 and a_coords.x < GRID_CELLS \
-			and a_coords.y >= 0 and a_coords.y < GRID_CELLS
+		return (
+			a_coords.x >= 0
+			and a_coords.x < GRID_CELLS
+			and a_coords.y >= 0
+			and a_coords.y < GRID_CELLS
+		)
 
 
 var _world: Node3D
@@ -118,7 +124,9 @@ func test_nothing_goes_off_the_map() -> void:
 
 func test_a_placed_structure_stands_finished_on_its_cells() -> void:
 	var xz: Vector2 = _at(OPEN_CELL).xz_position
-	var structure: Entity = DebugPlacement.spawn(FakePieces.scene_of(BUILDING_SCENE), _map, _commander, xz)
+	var structure: Entity = DebugPlacement.spawn(
+		FakePieces.scene_of(BUILDING_SCENE), _map, _commander, xz
+	)
 	_dismiss_content_errors()
 	assert_eq(structure.commander, _commander, "it is the owner's")
 	assert_false(structure.is_planned, "and finished, not a blueprint")
@@ -127,8 +135,9 @@ func test_a_placed_structure_stands_finished_on_its_cells() -> void:
 
 ## A delete is a death: a piece with no Commandable tick to notice its hit points dies at once.
 func test_delete_kills_a_selected_feature() -> void:
-	var site: Entity = DebugPlacement.spawn(FakePieces.scene_of(SITE_SCENE), _map, _commander,
-		_at(OPEN_CELL).xz_position)
+	var site: Entity = DebugPlacement.spawn(
+		FakePieces.scene_of(SITE_SCENE), _map, _commander, _at(OPEN_CELL).xz_position
+	)
 	_dismiss_content_errors()
 	var controller := RTSController.new()
 	autofree(controller)
@@ -147,8 +156,9 @@ func test_a_bot_counts_a_spawned_unit_as_its_own() -> void:
 	_world.add_child(bot)
 	bot.map = _map
 	bot.set_physics_process(false)
-	var unit: Entity = DebugPlacement.spawn(FakePieces.scene_of(WALKER_SCENE), _map, bot,
-		_at(OPEN_CELL).xz_position)
+	var unit: Entity = DebugPlacement.spawn(
+		FakePieces.scene_of(WALKER_SCENE), _map, bot, _at(OPEN_CELL).xz_position
+	)
 	_dismiss_content_errors()
 	assert_true(bot.get_units().has(unit))
 
@@ -159,8 +169,9 @@ func test_the_selection_owner_pays_for_its_purchases() -> void:
 	bot.id = 2
 	_world.add_child(bot)
 	bot.set_physics_process(false)
-	var unit: Entity = DebugPlacement.spawn(FakePieces.scene_of(WALKER_SCENE), _map, bot,
-		_at(OPEN_CELL).xz_position)
+	var unit: Entity = DebugPlacement.spawn(
+		FakePieces.scene_of(WALKER_SCENE), _map, bot, _at(OPEN_CELL).xz_position
+	)
 	_dismiss_content_errors()
 	var controller := RTSController.new()
 	autofree(controller)

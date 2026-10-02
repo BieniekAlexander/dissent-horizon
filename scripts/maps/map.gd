@@ -2,7 +2,6 @@
 class_name Map
 extends Node3D
 
-
 ### SPACE THINGS
 
 #### TERRAIN
@@ -30,7 +29,8 @@ extends Node3D
 var _play_size_fallback: Vector2i = Vector2i(50, 50)
 
 ## The authored/generated source of truth for terrain: corner heights + per-cell tile
-## types in one resource (see gdd/systems/terrain-and-navigation/tile-types.md). When assigned, Map DERIVES the
+## types in one resource (see gdd/systems/terrain-and-navigation/tile-types.md). When assigned, Map
+## DERIVES the
 ## working `height_map` (below) and TerrainGrid's blocked mask from it. Maps not yet
 ## migrated leave this null and assign `height_map` directly.
 @export var terrain_data: TerrainData:
@@ -117,7 +117,8 @@ var structure_cell_map: Dictionary = {}  # Entity -> Array[Vector2i]
 # The permanent per-cell barrier is everything out of play, void included
 # (see TerrainData.blocked_mask); ground material never blocks.
 # The old `blocked_cells` export was cut once s1 was migrated, and terrain is now edited
-# with the Terrain Brush plugin (addons/terrain_brush). See gdd/systems/terrain-and-navigation/tile-types.md.
+# with the Terrain Brush plugin (addons/terrain_brush). See
+# gdd/systems/terrain-and-navigation/tile-types.md.
 
 var terrain_grid: TerrainGrid
 var nav_manager: NavManager
@@ -177,7 +178,6 @@ func _validate_property(a_property: Dictionary) -> void:
 			a_property.usage |= PROPERTY_USAGE_READ_ONLY
 
 
-
 ## The inspector properties that are BUTTONS rather than data. Listed once, because two
 ## separate rules key off the same set (see _validate_property and _fire_trigger).
 const TRIGGER_PROPERTIES: Array[StringName] = [
@@ -204,6 +204,7 @@ var _triggers_armed: bool = false
 func _fire_trigger(a_ticked: bool, a_action: Callable) -> void:
 	if a_ticked and _triggers_armed:
 		a_action.call()
+
 
 # --- Coordinate helpers ----------------------------------------------------
 
@@ -270,19 +271,20 @@ func grid_to_world(a_cell: Vector2i) -> Vector3:
 	var hs := height_map
 	if a_cell.x < 0 or a_cell.y < 0 or a_cell.x > hs.map_width - 2 or a_cell.y > hs.map_depth - 2:
 		return Vector3.INF
-	var hw   := (hs.map_width  - 1) * 0.5
-	var hd   := (hs.map_depth  - 1) * 0.5
+	var hw := (hs.map_width - 1) * 0.5
+	var hd := (hs.map_depth - 1) * 0.5
 	# Cell centre is at the average of its four corners in local space.
-	var cx   := a_cell.x + 0.5
-	var cz   := a_cell.y + 0.5
+	var cx := a_cell.x + 0.5
+	var cz := a_cell.y + 0.5
 	# Bilinear-sample the four surrounding corners for a smoother Y.
-	var h00  := hs.map_data[a_cell.y       * hs.map_width + a_cell.x    ]
-	var h10  := hs.map_data[a_cell.y       * hs.map_width + a_cell.x + 1]
-	var h11  := hs.map_data[(a_cell.y + 1) * hs.map_width + a_cell.x + 1]
-	var h01  := hs.map_data[(a_cell.y + 1) * hs.map_width + a_cell.x    ]
+	var h00 := hs.map_data[a_cell.y * hs.map_width + a_cell.x]
+	var h10 := hs.map_data[a_cell.y * hs.map_width + a_cell.x + 1]
+	var h11 := hs.map_data[(a_cell.y + 1) * hs.map_width + a_cell.x + 1]
+	var h01 := hs.map_data[(a_cell.y + 1) * hs.map_width + a_cell.x]
 	var h_center := (h00 + h10 + h11 + h01) * 0.25
 	var local_pos := Vector3(cx - hw, h_center, cz - hd)
 	return global_transform * local_pos
+
 
 ## The world position of grid CORNER `a_corner` — the point shared by the four cells around it,
 ## at the terrain's authored height there. Corners run 0..map_width-1, one more than cells, so
@@ -290,11 +292,16 @@ func grid_to_world(a_cell: Vector2i) -> Vector3:
 ## For drawing cell borders that lie on the ground rather than cutting through it.
 func grid_corner_to_world(a_corner: Vector2i) -> Vector3:
 	var hs := height_map
-	var c := Vector2i(clampi(a_corner.x, 0, hs.map_width - 1),
-		clampi(a_corner.y, 0, hs.map_depth - 1))
-	var local_pos := Vector3(c.x - (hs.map_width - 1) * 0.5,
-		hs.map_data[c.y * hs.map_width + c.x], c.y - (hs.map_depth - 1) * 0.5)
+	var c := Vector2i(
+		clampi(a_corner.x, 0, hs.map_width - 1), clampi(a_corner.y, 0, hs.map_depth - 1)
+	)
+	var local_pos := Vector3(
+		c.x - (hs.map_width - 1) * 0.5,
+		hs.map_data[c.y * hs.map_width + c.x],
+		c.y - (hs.map_depth - 1) * 0.5
+	)
 	return global_transform * local_pos
+
 
 ## The TerrainSurface drawing this map's authored surface mesh, or null when the map is drawn
 ## by a generated grid mesh instead. Exactly one of the two should ever be present.
@@ -369,24 +376,25 @@ func play_area() -> PlayArea:
 ## the result is in world space.
 func terrain_height_at(a_world_xz: Vector2) -> float:
 	var hs := height_map
-	var hw := (hs.map_width  - 1) * 0.5
-	var hd := (hs.map_depth  - 1) * 0.5
+	var hw := (hs.map_width - 1) * 0.5
+	var hd := (hs.map_depth - 1) * 0.5
 	# Convert world XZ to heightmap corner-index float coordinates.
 	var local := world_to_local_transform() * Vector3(a_world_xz.x, 0.0, a_world_xz.y)
-	var lx    := clampf(local.x + hw, 0.0, hs.map_width  - 1)
-	var lz    := clampf(local.z + hd, 0.0, hs.map_depth  - 1)
-	var cx0   := floori(lx)
-	var cz0   := floori(lz)
-	var cx1   := mini(cx0 + 1, hs.map_width  - 1)
-	var cz1   := mini(cz0 + 1, hs.map_depth  - 1)
-	var fx    := lx - cx0
-	var fz    := lz - cz0
-	var h00   := hs.map_data[cz0 * hs.map_width + cx0]
-	var h10   := hs.map_data[cz0 * hs.map_width + cx1]
-	var h01   := hs.map_data[cz1 * hs.map_width + cx0]
-	var h11   := hs.map_data[cz1 * hs.map_width + cx1]
+	var lx := clampf(local.x + hw, 0.0, hs.map_width - 1)
+	var lz := clampf(local.z + hd, 0.0, hs.map_depth - 1)
+	var cx0 := floori(lx)
+	var cz0 := floori(lz)
+	var cx1 := mini(cx0 + 1, hs.map_width - 1)
+	var cz1 := mini(cz0 + 1, hs.map_depth - 1)
+	var fx := lx - cx0
+	var fz := lz - cz0
+	var h00 := hs.map_data[cz0 * hs.map_width + cx0]
+	var h10 := hs.map_data[cz0 * hs.map_width + cx1]
+	var h01 := hs.map_data[cz1 * hs.map_width + cx0]
+	var h11 := hs.map_data[cz1 * hs.map_width + cx1]
 	var h_local := lerpf(lerpf(h00, h10, fx), lerpf(h01, h11, fx), fz)
 	return (global_transform * Vector3(local.x, h_local, local.z)).y
+
 
 ## Convert a world XZ position to the nearest grid cell indices.
 ## This is the exact inverse of grid_to_world: it undoes the terrain_body
@@ -400,8 +408,8 @@ func world_to_grid(a_world_xz: Vector2) -> Vector2i:
 ## so flooring this is world_to_grid. For walking a segment across cells.
 func world_to_grid_point(a_world_xz: Vector2) -> Vector2:
 	var hs := height_map
-	var hw := (hs.map_width  - 1) * 0.5
-	var hd := (hs.map_depth  - 1) * 0.5
+	var hw := (hs.map_width - 1) * 0.5
+	var hd := (hs.map_depth - 1) * 0.5
 	var local := world_to_local_transform() * Vector3(a_world_xz.x, 0.0, a_world_xz.y)
 	return Vector2(local.x + hw, local.z + hd)
 
@@ -415,8 +423,8 @@ func world_to_grid_point(a_world_xz: Vector2) -> Vector2:
 func footprint_origin(a_world_xz: Vector2, a_dims: Vector2i) -> Vector2i:
 	var hs := height_map
 	var local := world_to_local_transform() * Vector3(a_world_xz.x, 0.0, a_world_xz.y)
-	var cx := local.x + (hs.map_width  - 1) * 0.5
-	var cz := local.z + (hs.map_depth  - 1) * 0.5
+	var cx := local.x + (hs.map_width - 1) * 0.5
+	var cz := local.z + (hs.map_depth - 1) * 0.5
 	return Vector2i(roundi(cx - a_dims.x * 0.5), roundi(cz - a_dims.y * 0.5))
 
 
@@ -494,6 +502,7 @@ func concentric_structure(a_world_center: Vector2, a_dims: Vector2i) -> Entity:
 
 # --- Map bounds ------------------------------------------------------------
 
+
 ## Returns [low: Vector2, high: Vector2] in grid-cell index space.
 ## Compatible with the legacy call shape used by fog.gd.
 func get_min_max() -> Array:
@@ -502,6 +511,7 @@ func get_min_max() -> Array:
 
 
 # --- Entity placement ------------------------------------------------------
+
 
 ## Add a batch of [Entity] instances to the map under [a_commander].
 ## Structures are placed individually via add_structure. Non-structure entities
@@ -545,20 +555,23 @@ func add_entities(
 	# filtered out above. Scattering is what happens when nobody has said where to stand.
 	var points: Array[Vector2] = a_unit_points
 	if points.is_empty() and radius > 0.0:
-		points = SU.get_nonoverlapping_points(
-			self,
-			a_location,
-			radius,
-			get_world_3d(),
-			# STRUCTURE_BLOCKER (in addition to MOVEMENT_OBSTRUCTION) so candidates
-			# also clear any structure's TargetBody — structures drop MOVEMENT_OBSTRUCTION
-			# once grid-registered (see refresh_movement_collision) and rely on the
-			# navmesh for exclusion instead, but a just-placed structure's navmesh
-			# exclusion can still be mid-rebuild/unsynced at this point (see
-			# Skirmish._deploy_all_forces), so this catches it regardless of that timing.
-			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION | CollisionLayers.Mask.STRUCTURE_BLOCKER,
-			region_radius,
-			units.size()
+		points = (
+			SU
+			. get_nonoverlapping_points(
+				self,
+				a_location,
+				radius,
+				get_world_3d(),
+				# STRUCTURE_BLOCKER (in addition to MOVEMENT_OBSTRUCTION) so candidates
+				# also clear any structure's TargetBody — structures drop MOVEMENT_OBSTRUCTION
+				# once grid-registered (see refresh_movement_collision) and rely on the
+				# navmesh for exclusion instead, but a just-placed structure's navmesh
+				# exclusion can still be mid-rebuild/unsynced at this point (see
+				# Skirmish._deploy_all_forces), so this catches it regardless of that timing.
+				CollisionLayers.Mask.MOVEMENT_OBSTRUCTION | CollisionLayers.Mask.STRUCTURE_BLOCKER,
+				region_radius,
+				units.size()
+			)
 		)
 
 	for i: int in units.size():
@@ -567,15 +580,14 @@ func add_entities(
 		# building or other non-navigable cell — e.g. an interaction event that
 		# spawns a unit anchored on the target structure. No-op for points that
 		# are already on the navmesh.
-		var snapped_xz: Vector2 = VU.inXZ(nearest_navmesh_point(
-			Vector3(placement_xz.x, terrain_height_at(placement_xz), placement_xz.y)
-		))
-		units[i].position = Vector3(
-			snapped_xz.x,
-			terrain_height_at(snapped_xz),
-			snapped_xz.y
+		var snapped_xz: Vector2 = VU.inXZ(
+			nearest_navmesh_point(
+				Vector3(placement_xz.x, terrain_height_at(placement_xz), placement_xz.y)
+			)
 		)
+		units[i].position = Vector3(snapped_xz.x, terrain_height_at(snapped_xz), snapped_xz.y)
 		units[i].initialize(self, a_commander)
+
 
 ## Convenience wrapper for placing a single entity. See add_entities.
 func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -> void:
@@ -591,8 +603,11 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 ##
 ## `a_quarter_turns` orients the footprint (Structure.quarter_turns; the piece is turned to match).
 ## The default, -1, means "as the piece already is" — its own count, and its yaw left alone — which
-## is what a placed blueprint, an event's spawn and a deploy all want. gdd/systems/terrain-and-navigation/footprint-rotation.md
-func add_structure(a_structure: Entity, a_world_center: Vector2, a_quarter_turns: int = -1, _a_rebake: bool = true) -> void:
+## is what a placed blueprint, an event's spawn and a deploy all want.
+## gdd/systems/terrain-and-navigation/footprint-rotation.md
+func add_structure(
+	a_structure: Entity, a_world_center: Vector2, a_quarter_turns: int = -1, _a_rebake: bool = true
+) -> void:
 	# Footprint size from the Structure component (1×1 fallback), turned to the piece's
 	# orientation. footprint_origin centres the structure parity-correctly; footprint_centroid is
 	# the same point the editor terrain-snap plugin snaps to.
@@ -625,12 +640,12 @@ func add_structure(a_structure: Entity, a_world_center: Vector2, a_quarter_turns
 		extractor.bind_extraction_site(site)
 		a_structure.global_position = site.global_position
 	else:
-		a_structure.global_position = footprint_centroid(footprint_origin(a_world_center, dims), dims)
+		a_structure.global_position = footprint_centroid(
+			footprint_origin(a_world_center, dims), dims
+		)
 		# A pond-placed extractor draws from the body it now stands in.
 		if extractor != null:
-			extractor.bind_water_body(
-				EnergyExtractor.water_body_under(self, a_world_center, dims)
-			)
+			extractor.bind_water_body(EnergyExtractor.water_body_under(self, a_world_center, dims))
 	# Now registered on the grid — drop MOVEMENT_OBSTRUCTION, so moving units route around it
 	# via the navmesh (or, for a fixture that does not obstruct, walk across it).
 	a_structure.refresh_movement_collision()
@@ -756,8 +771,9 @@ func rebuild_decoration() -> void:
 		decorator.name = "Decoration"
 		# Unowned: a derived node must never be written into the scene.
 		add_child(decorator)
-	decorator.show_decoration(planned,
-		Vector2i(terrain_data.grid_width(), terrain_data.grid_depth()))
+	decorator.show_decoration(
+		planned, Vector2i(terrain_data.grid_width(), terrain_data.grid_depth())
+	)
 	TerrainShading.push_ground_overlay(terrain_material(), planned.ground_overlay)
 
 
@@ -783,8 +799,9 @@ func _collect_water_bodies(a_root: Node) -> Array[WaterBody]:
 	for child: Node in a_root.get_children():
 		result.append_array(_collect_water_bodies(child))
 	return result
-#endregion
 
+
+#endregion
 
 
 ## Snap `world_pos` to the closest point on the navigation mesh. Used when
@@ -804,11 +821,7 @@ func nearest_navmesh_point(a_world_pos: Vector3) -> Vector3:
 
 # Returns the first point on the navmesh along a line, or Vector3.INF if none.
 # from and to are Vector3, nav_map is a RID from a NavigationRegion3D.
-func get_navmesh_line_hit(
-	a_from: Vector3,
-	a_to: Vector3,
-	a_max_step: float = 0.5
-) -> Vector3:
+func get_navmesh_line_hit(a_from: Vector3, a_to: Vector3, a_max_step: float = 0.5) -> Vector3:
 	var nav := NavigationServer3D
 
 	var dir := a_to - a_from
@@ -822,7 +835,8 @@ func get_navmesh_line_hit(
 		var p := a_from + dir * t
 		var nav_p := nav.map_get_closest_point(nav_region.get_navigation_map(), p)
 
-		if nav_p.distance_to(p) < 0.1: return nav_p
+		if nav_p.distance_to(p) < 0.1:
+			return nav_p
 		t += a_max_step
 
 	return Vector3.INF
@@ -830,7 +844,11 @@ func get_navmesh_line_hit(
 
 ### MOVEMENT AND COLLISION
 var units: Array:
-	get: return get_tree().get_nodes_in_group("piece").filter(func(c: Entity): return c.is_in_group("unit"))
+	get:
+		return get_tree().get_nodes_in_group("piece").filter(
+			func(c: Entity): return c.is_in_group("unit")
+		)
+
 
 ## returns a dictionary describing what a line hit in space
 func line_hit(a_from: Vector3, a_to: Vector3, a_layer_mask: int) -> Variant:
@@ -841,6 +859,7 @@ func line_hit(a_from: Vector3, a_to: Vector3, a_layer_mask: int) -> Variant:
 
 	var result: Dictionary = space_state.intersect_ray(query)
 	return null if result.is_empty() else result
+
 
 ## Every collider the segment crosses on `a_layer_mask`, nearest end first.
 ##
@@ -873,8 +892,10 @@ func line_hits(
 # Returns whether `coords` is within the cell_grid bounds.
 func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
 	return (
-		a_coords.x >= 0 and a_coords.x < cell_grid.size()
-		and a_coords.y >= 0 and a_coords.y < (cell_grid[0].size() if not cell_grid.is_empty() else 0)
+		a_coords.x >= 0
+		and a_coords.x < cell_grid.size()
+		and a_coords.y >= 0
+		and a_coords.y < (cell_grid[0].size() if not cell_grid.is_empty() else 0)
 	)
 
 
@@ -894,13 +915,13 @@ func _ready() -> void:
 	# not yet migrated fall back to a directly-assigned height_map.
 	if terrain_data != null:
 		height_map = terrain_data.to_height_shape()
-	assert(height_map   != null, "Map: assign terrain_data (or height_map) in the inspector")
+	assert(height_map != null, "Map: assign terrain_data (or height_map) in the inspector")
 	assert(terrain_body != null, "Map: terrain_body node not found at NavigationRegion/Body")
 
 	_terrain_collision_shape.shape = height_map
 
 	terrain_grid = TerrainGrid.new()
-	terrain_grid.height_map   = height_map
+	terrain_grid.height_map = height_map
 	terrain_grid.terrain_body = terrain_body
 	add_child(terrain_grid)
 
@@ -919,7 +940,7 @@ func _ready() -> void:
 
 	nav_manager = NavManager.new()
 	nav_manager.navigation_region = nav_region
-	nav_manager.terrain_grid      = terrain_grid
+	nav_manager.terrain_grid = terrain_grid
 	add_child(nav_manager)
 
 	# After the grid exists and before the first navmesh bake: deep water is an impassability
@@ -931,8 +952,8 @@ func _ready() -> void:
 	if terrain_data != null:
 		rebuild_decoration()
 
-#endregion
 
+#endregion
 
 # ---------------------------------------------------------------------------
 # Editor pins (editor-only)
@@ -953,7 +974,6 @@ func _ready() -> void:
 ## unit-sized export up to the map, or to recentre one modelled off the origin.
 @export var terrain_source_mesh_transform: Transform3D = Transform3D()
 
-
 ## Height the flat surface `create_terrain_mesh` lays down, in world units.
 @export var terrain_mesh_initial_height: float = 0.0
 
@@ -966,7 +986,8 @@ func _ready() -> void:
 ## per grid corner (25,600 on an s1-sized map), and inlining that in the .tscn would bloat the
 ## scene text and make every diff unreadable.
 @export var create_terrain_mesh: bool:
-	set(v): _fire_trigger(v, _confirm_create_terrain_mesh)
+	set(v):
+		_fire_trigger(v, _confirm_create_terrain_mesh)
 
 
 ## Ask before laying down a flat surface, because this is the only editor action in the file
@@ -979,13 +1000,16 @@ func _confirm_create_terrain_mesh() -> void:
 	var dialog := ConfirmationDialog.new()
 	dialog.title = "Replace the authored terrain surface?"
 	dialog.dialog_text = (
-		"This REPLACES the terrain surface mesh with a flat grid at height %.2f, "
-		+ "overwrites the saved surface next to %s, and flattens every height in the map.\n\n"
-		+ "There is no undo. Use this only when starting a new map."
-	) % [
-		terrain_mesh_initial_height,
-		terrain_data.resource_path.get_file() if terrain_data != null else "(no terrain_data)",
-	]
+		(
+			"This REPLACES the terrain surface mesh with a flat grid at height %.2f, "
+			+ "overwrites the saved surface next to %s, and flattens every height in the map.\n\n"
+			+ "There is no undo. Use this only when starting a new map."
+		)
+		% [
+			terrain_mesh_initial_height,
+			terrain_data.resource_path.get_file() if terrain_data != null else "(no terrain_data)",
+		]
+	)
 	dialog.ok_button_text = "Flatten"
 	EditorInterface.get_base_control().add_child(dialog)
 	dialog.confirmed.connect(_create_terrain_mesh)
@@ -1010,7 +1034,9 @@ func _create_terrain_mesh() -> void:
 
 	var path: String = terrain_data.resource_path
 	if path.is_empty():
-		push_warning("Map.create_terrain_mesh: terrain_data has no file, leaving the surface embedded")
+		push_warning(
+			"Map.create_terrain_mesh: terrain_data has no file, leaving the surface embedded"
+		)
 	else:
 		var out: String = path.get_basename() + "_surface.res"
 		var err: int = ResourceSaver.save(mesh, out)
@@ -1023,8 +1049,12 @@ func _create_terrain_mesh() -> void:
 	terrain_source_mesh = mesh
 	# Bring the gameplay field in line with the surface we just laid down.
 	set_terrain_heights(TerrainMeshGrid.read_heights(mesh, dims))
-	print("Map: brushable surface %dx%d corners at height %.2f" % [
-		dims.x, dims.y, terrain_mesh_initial_height])
+	print(
+		(
+			"Map: brushable surface %dx%d corners at height %.2f"
+			% [dims.x, dims.y, terrain_mesh_initial_height]
+		)
+	)
 
 
 ## Inspector trigger: rasterize terrain_source_mesh into the heightfield.
@@ -1036,7 +1066,8 @@ func _create_terrain_mesh() -> void:
 ## default/revert comparison, and propagates `changed` to its owner — so the trigger could fire
 ## from inspection itself and rebuild the map from inside the inspector's own signal.
 @export var bake_terrain_from_mesh: bool:
-	set(v): _fire_trigger(v, _bake_terrain_from_mesh)
+	set(v):
+		_fire_trigger(v, _bake_terrain_from_mesh)
 
 
 func _bake_terrain_from_mesh() -> void:
@@ -1053,13 +1084,26 @@ func _bake_terrain_from_mesh() -> void:
 		if terrain_data == null:
 			return
 	var report: Dictionary = terrain_data.bake_source_mesh(
-		terrain_source_mesh, terrain_source_mesh_transform)
-	print(("Map: baked %s -> %s: %d/%d corners covered, %d/%d cells voided"
-		+ " (%d triangles, %d vertical)") % [
-		terrain_source_mesh.resource_path.get_file(),
-		terrain_data.resource_path.get_file(),
-		report["covered"], report["corners"], report["voided"], report["cells"],
-		report["triangles"], report["skipped_triangles"]])
+		terrain_source_mesh, terrain_source_mesh_transform
+	)
+	print(
+		(
+			(
+				"Map: baked %s -> %s: %d/%d corners covered, %d/%d cells voided"
+				+ " (%d triangles, %d vertical)"
+			)
+			% [
+				terrain_source_mesh.resource_path.get_file(),
+				terrain_data.resource_path.get_file(),
+				report["covered"],
+				report["corners"],
+				report["voided"],
+				report["cells"],
+				report["triangles"],
+				report["skipped_triangles"]
+			]
+		)
+	)
 	_save_terrain_data()
 	rebuild_terrain_visuals(true)
 
@@ -1078,15 +1122,20 @@ func _bake_terrain_from_mesh() -> void:
 func _save_terrain_data() -> void:
 	var path: String = terrain_data.resource_path
 	if path.is_empty():
-		push_warning("Map.bake_terrain_from_mesh: terrain_data has no file of its own, so the "
-			+ "bake lives only in memory and will be lost on reload. Save it somewhere first.")
+		push_warning(
+			(
+				"Map.bake_terrain_from_mesh: terrain_data has no file of its own, so the "
+				+ "bake lives only in memory and will be lost on reload. Save it somewhere first."
+			)
+		)
 		return
 	var err: int = ResourceSaver.save(terrain_data, path)
 	if err != OK:
 		push_warning("Map.bake_terrain_from_mesh: could not save %s (%d)" % [path, err])
 		return
 	var reloaded: Resource = ResourceLoader.load(
-		path, "TerrainData", ResourceLoader.CACHE_MODE_IGNORE)
+		path, "TerrainData", ResourceLoader.CACHE_MODE_IGNORE
+	)
 	var residual: float = -1.0
 	if reloaded is TerrainData:
 		var disk: PackedFloat32Array = (reloaded as TerrainData).heights
@@ -1105,12 +1154,17 @@ func _save_terrain_data() -> void:
 func _terrain_data_for_source_mesh() -> TerrainData:
 	var source: String = terrain_source_mesh.resource_path
 	if source.is_empty():
-		push_warning("Map.bake_terrain_from_mesh: no terrain_data, and terrain_source_mesh is "
-			+ "embedded in the scene so there is nowhere obvious to put one. Save the surface "
-			+ "mesh to a file first.")
+		push_warning(
+			(
+				"Map.bake_terrain_from_mesh: no terrain_data, and terrain_source_mesh is "
+				+ "embedded in the scene so there is nowhere obvious to put one. Save the surface "
+				+ "mesh to a file first."
+			)
+		)
 		return null
-	var extent: Vector3 = (terrain_source_mesh.get_aabb().size
-		* terrain_source_mesh_transform.basis.get_scale())
+	var extent: Vector3 = (
+		terrain_source_mesh.get_aabb().size * terrain_source_mesh_transform.basis.get_scale()
+	)
 	var cells: int = maxi(int(round(maxf(extent.x, extent.z))), 2)
 	var data := TerrainData.new()
 	data.play_size = Vector2i(maxi((cells - 1) / 2, 1), maxi((cells - 1) / 2, 1))
@@ -1119,8 +1173,12 @@ func _terrain_data_for_source_mesh() -> TerrainData:
 	if err != OK:
 		push_warning("Map.bake_terrain_from_mesh: could not create %s (%d)" % [path, err])
 		return null
-	print("Map: created %s (play_size %s) for %s" % [
-		path.get_file(), data.play_size, source.get_file()])
+	print(
+		(
+			"Map: created %s (play_size %s) for %s"
+			% [path.get_file(), data.play_size, source.get_file()]
+		)
+	)
 	return ResourceLoader.load(path, "TerrainData") as TerrainData
 
 
@@ -1153,7 +1211,8 @@ func source_mesh_bake_residual() -> float:
 ## syncs its shape to height_map and rebuilds the ArrayMesh — so a fresh map gets a
 ## generated mesh, and a mesh that drifted from the heightmap is brought back in sync.
 @export var generate_visual_mesh: bool:
-	set(v): _fire_trigger(v, _regenerate_visual_mesh)
+	set(v):
+		_fire_trigger(v, _regenerate_visual_mesh)
 
 # ---------------------------------------------------------------------------
 # Map mirroring (editor-only authoring tool)
@@ -1184,7 +1243,8 @@ enum MirrorAxis { NONE, HORIZONTAL, VERTICAL }
 ##   3. every game entity on the reference half is duplicated and transformed onto
 ##      the opposite half (commander 1 ↔ 2 swapped on the copies).
 @export var mirror_map: bool:
-	set(v): _fire_trigger(v, _run_mirror)
+	set(v):
+		_fire_trigger(v, _run_mirror)
 
 
 ## Resolve the primary/secondary axis exports into the two booleans the mirror
@@ -1197,8 +1257,7 @@ func _run_mirror() -> void:
 	# A secondary flip only applies when the secondary is the OTHER axis; NONE or
 	# the same-as-primary means a plain mirror.
 	var flip_secondary: bool = (
-		mirror_secondary_axis != MirrorAxis.NONE
-		and mirror_secondary_axis != mirror_primary_axis
+		mirror_secondary_axis != MirrorAxis.NONE and mirror_secondary_axis != mirror_primary_axis
 	)
 	_mirror_map(primary_horizontal, flip_secondary)
 
@@ -1224,7 +1283,8 @@ func _run_mirror() -> void:
 ## Like mirror_map, this is NOT undoable: it is a deliberate whole-map operation, and Map has
 ## no editor undo history of its own. The terrain brush's REGION paste is the undoable path.
 @export var shift_map: bool:
-	set(v): _fire_trigger(v, _run_shift)
+	set(v):
+		_fire_trigger(v, _run_shift)
 
 
 ## Resolve the shift exports and run the op. Zero offset is a no-op.
@@ -1367,8 +1427,7 @@ func _save_resource(a_resource: Resource, a_label: String) -> void:
 		return
 	var err: int = ResourceSaver.save(a_resource, a_resource.resource_path)
 	if err != OK:
-		push_warning("Map: could not save %s to %s (%d)" % [
-			a_label, a_resource.resource_path, err])
+		push_warning("Map: could not save %s to %s (%d)" % [a_label, a_resource.resource_path, err])
 
 
 ## Push terrain_data.heights into a BRUSHABLE terrain_source_mesh as vertex Y, and redraw it.
@@ -1405,6 +1464,7 @@ func set_terrain_tile_types(a_new_types: PackedByteArray) -> void:
 # Region paste / shift + entity reconciliation (editor-only authoring)
 # ---------------------------------------------------------------------------
 
+
 ## Commit both terrain layers at once and reconcile the entities standing on them.
 ##
 ## One method rather than set_terrain_heights + set_terrain_tile_types because a region
@@ -1421,9 +1481,7 @@ func set_terrain_tile_types(a_new_types: PackedByteArray) -> void:
 ## empty means test everything. Re-seating always happens map-wide regardless — it is
 ## idempotent for an entity already sitting at its terrain height.
 func apply_terrain_region_paste(
-	a_new_heights: PackedFloat32Array,
-	a_new_types: PackedByteArray,
-	a_region_cells: Dictionary = {}
+	a_new_heights: PackedFloat32Array, a_new_types: PackedByteArray, a_region_cells: Dictionary = {}
 ) -> Array[Dictionary]:
 	if terrain_data == null:
 		return []
@@ -1445,9 +1503,7 @@ func apply_terrain_region_paste(
 ## which stores call arguments as plain Variants, and a typed Array[Dictionary] parameter
 ## would reject the untyped array it hands back.
 func revert_terrain_region_paste(
-	a_old_heights: PackedFloat32Array,
-	a_old_types: PackedByteArray,
-	a_culled: Array
+	a_old_heights: PackedFloat32Array, a_old_types: PackedByteArray, a_culled: Array
 ) -> void:
 	if terrain_data == null:
 		return
@@ -1461,7 +1517,10 @@ func revert_terrain_region_paste(
 		parent.add_child(node)
 		# Restore tree ORDER, not just membership: add_child appends, so without this an undo
 		# would quietly reshuffle the scene dock every time.
-		parent.move_child(node, mini(record.get("index", parent.get_child_count() - 1), parent.get_child_count() - 1))
+		parent.move_child(
+			node,
+			mini(record.get("index", parent.get_child_count() - 1), parent.get_child_count() - 1)
+		)
 		# A node with a null owner is not saved with the scene — losing this would make the
 		# entity reappear now and vanish again on the next save.
 		var restored_owner: Node = record.get("owner") as Node
@@ -1500,7 +1559,9 @@ func reconcile_entities_with_terrain(a_region_cells: Dictionary = {}) -> Array[D
 		if _terrain_supports_entity(node, cells):
 			continue
 		if node.is_in_group("start_position"):
-			push_warning("Map: start point '%s' now stands on unsupported terrain — move it." % node.name)
+			push_warning(
+				"Map: start point '%s' now stands on unsupported terrain — move it." % node.name
+			)
 			continue
 		doomed[node] = true
 
@@ -1518,17 +1579,26 @@ func reconcile_entities_with_terrain(a_region_cells: Dictionary = {}) -> Array[D
 		var parent: Node = node.get_parent()
 		if parent == null:
 			continue
-		records.append({
-			"node": node,
-			"parent": parent,
-			"index": node.get_index(),
-			"owner": node.owner,
-		})
+		(
+			records
+			. append(
+				{
+					"node": node,
+					"parent": parent,
+					"index": node.get_index(),
+					"owner": node.owner,
+				}
+			)
+		)
 		parent.remove_child(node)
 
 	if not records.is_empty():
-		push_warning("Map: terrain edit removed %d entities that the new ground can't support: %s"
-			% [records.size(), _record_names(records)])
+		push_warning(
+			(
+				"Map: terrain edit removed %d entities that the new ground can't support: %s"
+				% [records.size(), _record_names(records)]
+			)
+		)
 	return records
 
 
@@ -1602,9 +1672,12 @@ func _sync_from_terrain_data() -> void:
 	# deferring the signal is the other half. A bake never changes dimensions, so the common case
 	# now frees nothing at all.
 	var dims: Vector2i = terrain_data.dimensions
-	if height_map != null \
-		and height_map.map_width == dims.x and height_map.map_depth == dims.y \
-		and terrain_data.heights.size() == dims.x * dims.y:
+	if (
+		height_map != null
+		and height_map.map_width == dims.x
+		and height_map.map_depth == dims.y
+		and terrain_data.heights.size() == dims.x * dims.y
+	):
 		height_map.map_data = terrain_data.heights
 	else:
 		height_map = terrain_data.to_height_shape()
@@ -1681,9 +1754,18 @@ func _regenerate_visual_mesh() -> void:
 	# into the material of the mesh that is now hidden behind an unfogged one.
 	if _terrain_surface() != null:
 		_rebuild_visual_mesh()
-		print("Map: refreshed the TerrainSurface from %s" % [
-			terrain_source_mesh.resource_path.get_file() if terrain_source_mesh != null
-			else "(no terrain_source_mesh)"])
+		print(
+			(
+				"Map: refreshed the TerrainSurface from %s"
+				% [
+					(
+						terrain_source_mesh.resource_path.get_file()
+						if terrain_source_mesh != null
+						else "(no terrain_source_mesh)"
+					)
+				]
+			)
+		)
 		return
 	if height_map == null:
 		push_warning("Map.generate_visual_mesh: no height_map assigned")
@@ -1776,7 +1858,7 @@ func _mirror_heights(a_primary_horizontal: bool, a_flip_secondary: bool) -> void
 					var src_x := (w - 1 - x) if a_flip_secondary else x
 					data[z * w + x] = data[mz * w + src_x]
 	terrain_data.heights = data
-	_sync_from_terrain_data()   # re-derive height_map + collider, rebuild mesh
+	_sync_from_terrain_data()  # re-derive height_map + collider, rebuild mesh
 
 
 ## Mirror the per-cell tile types to match the terrain, so the copied half reflects the
@@ -1785,8 +1867,8 @@ func _mirror_heights(a_primary_horizontal: bool, a_flip_secondary: bool) -> void
 func _mirror_tile_types(a_primary_horizontal: bool, a_flip_secondary: bool) -> void:
 	if terrain_data.tile_types.is_empty():
 		return
-	var gw := terrain_data.grid_width()   # navigable cell columns
-	var gd := terrain_data.grid_depth()   # navigable cell rows
+	var gw := terrain_data.grid_width()  # navigable cell columns
+	var gd := terrain_data.grid_depth()  # navigable cell rows
 	var t := terrain_data.tile_types  # a copy; mutate then assign back
 	if a_primary_horizontal:
 		for z in range(gd):
@@ -1823,15 +1905,17 @@ func _mirror_entities(a_primary_horizontal: bool, a_flip_secondary: bool) -> voi
 	# vertical. Free opposite-side entities now; keep reference ones for copying.
 	var reference: Array[Node3D] = []
 	for node: Node3D in _collect_game_entities(root):
-		var coord: float = node.global_position.x if a_primary_horizontal else node.global_position.z
+		var coord: float = (
+			node.global_position.x if a_primary_horizontal else node.global_position.z
+		)
 		var delta: float = coord - axis_val
 		if a_primary_horizontal:
 			# left is reference, so reference sits at negative delta
 			delta = -delta
 		if delta > _MIRROR_AXIS_EPS:
-			reference.append(node)          # reference half — copy across
+			reference.append(node)  # reference half — copy across
 		elif delta < -_MIRROR_AXIS_EPS:
-			node.free()                     # opposite half — erase
+			node.free()  # opposite half — erase
 		# else: on the axis — its own mirror, leave untouched
 
 	# Duplicate each reference entity, transform its position onto the opposite
@@ -1892,9 +1976,13 @@ func _collect_game_entities(a_root: Node) -> Array[Node3D]:
 	var result: Array[Node3D] = []
 	for group: String in ["piece", "fixture", "start_position"]:
 		for node: Node in get_tree().get_nodes_in_group(group):
-			if node is Node3D and not seen.has(node) \
-					and a_root.is_ancestor_of(node) \
-					and node != self and not is_ancestor_of(node):
+			if (
+				node is Node3D
+				and not seen.has(node)
+				and a_root.is_ancestor_of(node)
+				and node != self
+				and not is_ancestor_of(node)
+			):
 				seen[node] = true
 				result.append(node as Node3D)
 	return result

@@ -40,8 +40,15 @@ func _sanction(a_name: String) -> Sanction:
 ## SanctionGrid.is_superseded). `parent` survives only as the unlock GATE. The ability
 ## defaults to the cell's own name, which is the "each cell is its own ability" case; a
 ## chain passes the same `ability` with rising `ability_level`.
-func _unlock(a_name: String, a_tier: int, a_column: int, a_cost: int = 0,
-		a_parent: SanctionUnlock = null, a_ability: String = "", a_ability_level: int = 1) -> SanctionUnlock:
+func _unlock(
+	a_name: String,
+	a_tier: int,
+	a_column: int,
+	a_cost: int = 0,
+	a_parent: SanctionUnlock = null,
+	a_ability: String = "",
+	a_ability_level: int = 1
+) -> SanctionUnlock:
 	var u := SanctionUnlock.new()
 	u.sanction = _sanction(a_name)
 	u.sanction.ability_id = StringName(a_ability if a_ability != "" else a_name.to_snake_case())
@@ -78,13 +85,16 @@ func _entry_named(a_sanction_grid: SanctionGrid, a_name: String) -> SanctionGrid
 
 # --- The grid -------------------------------------------------------------------
 
+
 func test_a_cell_is_addressable_by_tier_and_column() -> void:
 	var scan1 := _unlock("Scan 1", 0, 1)
 	var sanction_grid := _sanction_grid([scan1])
 
 	assert_eq(sanction_grid.cell(0, 1), sanction_grid.entries[0], "the cell holds its entry")
 	assert_null(sanction_grid.cell(0, 0), "an unauthored cell is empty, not the next entry along")
-	assert_null(sanction_grid.cell(-1, 0), "an out-of-grid cell reads as empty rather than erroring")
+	assert_null(
+		sanction_grid.cell(-1, 0), "an out-of-grid cell reads as empty rather than erroring"
+	)
 	assert_null(sanction_grid.cell(0, SanctionGrid.NUM_COLUMNS), "…at either end")
 
 
@@ -122,6 +132,7 @@ func test_an_out_of_grid_slot_is_dropped() -> void:
 
 # --- The parent gate (depth) ----------------------------------------------------
 
+
 func test_a_family_head_is_available_and_its_child_is_not() -> void:
 	# Two LEVELS of one ability — which is what makes the second replace the first. The
 	# parent edge only gates buying; supersession reads the levels.
@@ -129,11 +140,15 @@ func test_a_family_head_is_available_and_its_child_is_not() -> void:
 	var freeze2 := _unlock("Freeze 2", 1, 0, 0, freeze1, "freeze", 2)
 	var sanction_grid := _sanction_grid([freeze1, freeze2] + _tier0_pair())
 
-	assert_true(sanction_grid.is_available(_entry_named(sanction_grid, "Freeze 1")),
-		"a cell with no parent heads its family and is available")
-	assert_eq(sanction_grid.unmet_requirement(_entry_named(sanction_grid, "Freeze 2")),
+	assert_true(
+		sanction_grid.is_available(_entry_named(sanction_grid, "Freeze 1")),
+		"a cell with no parent heads its family and is available"
+	)
+	assert_eq(
+		sanction_grid.unmet_requirement(_entry_named(sanction_grid, "Freeze 2")),
 		SanctionGrid.Requirement.PARENT_LOCKED,
-		"the child is blocked by its parent, not by its tier")
+		"the child is blocked by its parent, not by its tier"
+	)
 
 
 func test_a_child_unlocks_once_its_parent_is_owned() -> void:
@@ -143,11 +158,15 @@ func test_a_child_unlocks_once_its_parent_is_owned() -> void:
 	var sanction_grid := _sanction_grid([freeze1, freeze2] + _tier0_pair())
 	_own_tier0_pair(sanction_grid)  # open tier 1
 
-	assert_false(sanction_grid.try_unlock(_entry_named(sanction_grid, "Freeze 2")),
-		"the child can't be bought before its parent")
+	assert_false(
+		sanction_grid.try_unlock(_entry_named(sanction_grid, "Freeze 2")),
+		"the child can't be bought before its parent"
+	)
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Freeze 1")))
-	assert_true(sanction_grid.is_available(_entry_named(sanction_grid, "Freeze 2")),
-		"owning the parent opens the child")
+	assert_true(
+		sanction_grid.is_available(_entry_named(sanction_grid, "Freeze 2")),
+		"owning the parent opens the child"
+	)
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Freeze 2")))
 
 
@@ -157,19 +176,23 @@ func test_a_parent_may_sit_more_than_one_tier_above() -> void:
 	_cmdr.dominion = 1000
 	var freeze1 := _unlock("Freeze 1", 0, 0)
 	var blizzard := _unlock("Blizzard", 2, 0, 0, freeze1)
-	var sanction_grid := _sanction_grid([freeze1, blizzard] + _tier0_pair() + [
-		_unlock("Toll C", 1, 4), _unlock("Toll D", 1, 5)
-	])
+	var sanction_grid := _sanction_grid(
+		[freeze1, blizzard] + _tier0_pair() + [_unlock("Toll C", 1, 4), _unlock("Toll D", 1, 5)]
+	)
 	_own_tier0_pair(sanction_grid)  # open tier 1
 
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Freeze 1")))
-	assert_eq(sanction_grid.unmet_requirement(_entry_named(sanction_grid, "Blizzard")),
+	assert_eq(
+		sanction_grid.unmet_requirement(_entry_named(sanction_grid, "Blizzard")),
 		SanctionGrid.Requirement.TIER_LOCKED,
-		"its parent is owned; only tier 2 is still shut")
+		"its parent is owned; only tier 2 is still shut"
+	)
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Toll C")))
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Toll D")))
-	assert_true(sanction_grid.is_available(_entry_named(sanction_grid, "Blizzard")),
-		"opening tier 2 reaches a cell whose parent is two tiers up")
+	assert_true(
+		sanction_grid.is_available(_entry_named(sanction_grid, "Blizzard")),
+		"opening tier 2 reaches a cell whose parent is two tiers up"
+	)
 
 
 func test_sharing_a_column_does_not_imply_an_edge() -> void:
@@ -177,11 +200,14 @@ func test_sharing_a_column_does_not_imply_an_edge() -> void:
 	var sanction_grid := _sanction_grid(_tier0_pair() + [_unlock("Gunship", 1, 4)])
 	_own_tier0_pair(sanction_grid)
 
-	assert_true(sanction_grid.is_available(_entry_named(sanction_grid, "Gunship")),
-		"a parentless cell needs only its tier, whoever shares its column")
+	assert_true(
+		sanction_grid.is_available(_entry_named(sanction_grid, "Gunship")),
+		"a parentless cell needs only its tier, whoever shares its column"
+	)
 
 
 # --- The tier gate (breadth) ----------------------------------------------------
+
 
 func test_tier_zero_is_open_from_the_start() -> void:
 	var sanction_grid := _sanction_grid(_tier0_pair())
@@ -197,7 +223,11 @@ func test_a_tier_opens_on_the_second_unlock_in_the_tier_above() -> void:
 	assert_eq(sanction_grid.unlocks_needed_to_open(1), SanctionGrid.UNLOCKS_TO_OPEN_NEXT_TIER)
 	assert_true(sanction_grid.try_unlock(sanction_grid.tier_entries(0)[0]))
 	assert_false(sanction_grid.tier_is_open(1), "one is not enough")
-	assert_eq(sanction_grid.unlocks_needed_to_open(1), 1, "and the shortfall is reported, not just 'locked'")
+	assert_eq(
+		sanction_grid.unlocks_needed_to_open(1),
+		1,
+		"and the shortfall is reported, not just 'locked'"
+	)
 	assert_true(sanction_grid.try_unlock(sanction_grid.tier_entries(0)[1]))
 	assert_true(sanction_grid.tier_is_open(1), "the second opens it")
 	assert_eq(sanction_grid.unlocks_needed_to_open(1), 0)
@@ -207,9 +237,9 @@ func test_which_two_is_the_players_choice() -> void:
 	# The gate counts unlocks in the tier, never particular ones — that is the whole
 	# difference between it and a parent edge.
 	_cmdr.dominion = 1000
-	var sanction_grid := _sanction_grid([
-		_unlock("A", 0, 0), _unlock("B", 0, 1), _unlock("C", 0, 2), _unlock("Deep", 1, 0)
-	])
+	var sanction_grid := _sanction_grid(
+		[_unlock("A", 0, 0), _unlock("B", 0, 1), _unlock("C", 0, 2), _unlock("Deep", 1, 0)]
+	)
 
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "B")))
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "C")))
@@ -228,10 +258,13 @@ func test_a_superseded_cell_still_pays_the_tier_toll() -> void:
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Other")))
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Scan 2")))
 	assert_true(sanction_grid.is_superseded(_entry_named(sanction_grid, "Scan 1")))
-	assert_true(sanction_grid.tier_is_open(1), "tier 1 stays open with a superseded cell paying for it")
+	assert_true(
+		sanction_grid.tier_is_open(1), "tier 1 stays open with a superseded cell paying for it"
+	)
 
 
 # --- Cost -----------------------------------------------------------------------
+
 
 func test_unlock_spends_dominion_and_marks_owned() -> void:
 	_cmdr.dominion = 25
@@ -251,10 +284,13 @@ func test_cannot_unlock_when_unaffordable() -> void:
 	assert_false(sanction_grid.try_unlock(entry), "can't unlock without the dominion")
 	assert_false(entry.owned)
 	assert_eq(_cmdr.dominion, 5, "no dominion spent on a failed unlock")
-	assert_true(sanction_grid.is_available(entry), "…but the gates are open, which is a separate question")
+	assert_true(
+		sanction_grid.is_available(entry), "…but the gates are open, which is a separate question"
+	)
 
 
 # --- Supersession ---------------------------------------------------------------
+
 
 func test_an_upgrade_replaces_what_it_upgrades_on_the_bar() -> void:
 	_cmdr.dominion = 1000
@@ -270,7 +306,9 @@ func test_an_upgrade_replaces_what_it_upgrades_on_the_bar() -> void:
 	assert_eq(deployable.size(), 3, "Freeze 1 plus the two toll cells are deployable")
 
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Freeze 2")))
-	var names: Array = sanction_grid.deployable_sanctions().map(func(o: Sanction): return o.sanction_name)
+	var names: Array = sanction_grid.deployable_sanctions().map(
+		func(o: Sanction): return o.sanction_name
+	)
 	assert_does_not_have(names, "Freeze 1", "the upgraded sanction leaves the deployable set")
 	assert_has(names, "Freeze 2", "and its replacement takes the slot")
 	assert_true(_entry_named(sanction_grid, "Freeze 1").owned, "it is still owned, just superseded")
@@ -286,8 +324,10 @@ func test_an_unowned_child_supersedes_nothing() -> void:
 	var sanction_grid := _sanction_grid([freeze1, freeze2] + _tier0_pair())
 
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Freeze 1")))
-	assert_false(sanction_grid.is_superseded(_entry_named(sanction_grid, "Freeze 1")),
-		"merely HAVING an upgrade authored above it changes nothing")
+	assert_false(
+		sanction_grid.is_superseded(_entry_named(sanction_grid, "Freeze 1")),
+		"merely HAVING an upgrade authored above it changes nothing"
+	)
 	assert_true(sanction_grid.is_deployable(_entry_named(sanction_grid, "Freeze 1")))
 
 
@@ -296,9 +336,9 @@ func test_a_whole_chain_collapses_to_its_deepest_owned_cell() -> void:
 	var d1 := _unlock("Drop 1", 0, 0, 0, null, "drop", 1)
 	var d2 := _unlock("Drop 2", 1, 0, 0, d1, "drop", 2)
 	var d3 := _unlock("Drop 3", 2, 0, 0, d2, "drop", 3)
-	var sanction_grid := _sanction_grid([d1, d2, d3] + _tier0_pair() + [
-		_unlock("Toll C", 1, 4), _unlock("Toll D", 1, 5)
-	])
+	var sanction_grid := _sanction_grid(
+		[d1, d2, d3] + _tier0_pair() + [_unlock("Toll C", 1, 4), _unlock("Toll D", 1, 5)]
+	)
 	_own_tier0_pair(sanction_grid)
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Drop 1")))
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Drop 2")))
@@ -306,13 +346,16 @@ func test_a_whole_chain_collapses_to_its_deepest_owned_cell() -> void:
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Toll D")))
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Drop 3")))
 
-	var names: Array = sanction_grid.deployable_sanctions().map(func(o: Sanction): return o.sanction_name)
+	var names: Array = sanction_grid.deployable_sanctions().map(
+		func(o: Sanction): return o.sanction_name
+	)
 	assert_does_not_have(names, "Drop 1")
 	assert_does_not_have(names, "Drop 2")
 	assert_has(names, "Drop 3", "one button for the family, however deep the player went")
 
 
 # --- Live instances -------------------------------------------------------------
+
 
 func test_deployable_sanctions_are_per_commander_duplicates() -> void:
 	_cmdr.dominion = 100
@@ -334,14 +377,18 @@ func test_deployable_sanctions_are_per_commander_duplicates() -> void:
 
 # --- Authoring faults -----------------------------------------------------------
 
+
 func test_a_parent_outside_the_faction_list_is_reported() -> void:
 	var orphan := _unlock("Orphan parent", 0, 0)
 	var child := _unlock("Child", 1, 0, 0, orphan)
 	var sanction_grid := _sanction_grid([child] + _tier0_pair())
 
 	assert_push_error_count(1, "a parent the faction never listed can never be owned")
-	assert_eq(sanction_grid.unmet_requirement(_entry_named(sanction_grid, "Child")),
-		SanctionGrid.Requirement.PARENT_LOCKED, "and the cell is dead, as reported")
+	assert_eq(
+		sanction_grid.unmet_requirement(_entry_named(sanction_grid, "Child")),
+		SanctionGrid.Requirement.PARENT_LOCKED,
+		"and the cell is dead, as reported"
+	)
 
 
 func test_an_upside_down_edge_is_reported() -> void:
@@ -350,8 +397,9 @@ func test_an_upside_down_edge_is_reported() -> void:
 	# is unreachable by construction — it would be the same cell.)
 	var deep := _unlock("Deep", 2, 0)
 	var shallow := _unlock("Shallow", 1, 0, 0, deep)
-	_sanction_grid([deep, shallow, _unlock("Toll A", 0, 4), _unlock("Toll B", 0, 5),
-		_unlock("Toll C", 1, 4)])
+	_sanction_grid(
+		[deep, shallow, _unlock("Toll A", 0, 4), _unlock("Toll B", 0, 5), _unlock("Toll C", 1, 4)]
+	)
 
 	assert_push_error_count(1, "a parent below its child is reported")
 
@@ -373,6 +421,7 @@ func test_a_tier_that_can_never_open_is_reported() -> void:
 
 # --- Supersession is derived from ABILITY LEVELS --------------------------------
 
+
 func test_a_cell_can_raise_an_ability_it_does_not_sit_under() -> void:
 	# The case the parent chain could not express, and the reason it stopped deciding
 	# supersession: Colonial Drop 2 grants `drop2` AND upgrades `drop1`. Two cells, three
@@ -388,10 +437,14 @@ func test_a_cell_can_raise_an_ability_it_does_not_sit_under() -> void:
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Other")))
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "Drop 1+")))
 
-	assert_true(sanction_grid.is_superseded(_entry_named(sanction_grid, "Drop 1")),
-		"the level-1 cell is out of play even though nothing PARENTED to it was bought")
+	assert_true(
+		sanction_grid.is_superseded(_entry_named(sanction_grid, "Drop 1")),
+		"the level-1 cell is out of play even though nothing PARENTED to it was bought"
+	)
 	assert_eq(sanction_grid.effective_level(&"drop1"), 2)
-	assert_eq(sanction_grid.effective_level(&"drop2"), 0, "an ability nothing unlocked is at level 0")
+	assert_eq(
+		sanction_grid.effective_level(&"drop2"), 0, "an ability nothing unlocked is at level 0"
+	)
 
 
 func test_an_ability_with_no_id_is_never_superseded() -> void:

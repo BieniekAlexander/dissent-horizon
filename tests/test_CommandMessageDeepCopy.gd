@@ -13,7 +13,9 @@ extends GutTest
 ## after.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_CommandMessageDeepCopy.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_CommandMessageDeepCopy.gd
+## -gexit
+
 
 func test_deep_copy_scrubs_a_freed_target_instead_of_crashing() -> void:
 	var target: Commandable = FakePieces.unit()

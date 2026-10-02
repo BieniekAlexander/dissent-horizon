@@ -1,5 +1,6 @@
 class_name CU
 
+
 ## Single-linkage agglomerative clustering.
 ## Merges clusters whose minimum inter-node distance is below the threshold.
 ## Returns an Array of Arrays, each subarray being one cluster.
@@ -23,6 +24,7 @@ static func get_nodes_clustered(nodes: Array, distance_threshold: float) -> Arra
 				break
 
 	return clusters
+
 
 static func _min_distance(a: Array, b: Array) -> float:
 	var min_dist: float = INF

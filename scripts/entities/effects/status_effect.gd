@@ -113,13 +113,15 @@ var source: Commandable = null
 ## Current stack count (>= 1 once applied). Read-only to the outside; subclasses scale
 ## their potency off it. Always 1 unless reapply_mode == STACK.
 var stacks: int:
-	get: return _stacks
+	get:
+		return _stacks
 
 ## The entity this effect is acting on. null while this node is an unapplied template.
 var _entity: Entity = null
 var _elapsed: int = 0
 var _stacks: int = 1
 #endregion
+
 
 #region Tool
 func _validate_property(a_property: Dictionary) -> void:
@@ -133,7 +135,10 @@ func _validate_property(a_property: Dictionary) -> void:
 				a_property.usage |= PROPERTY_USAGE_READ_ONLY
 			else:
 				a_property.usage &= ~PROPERTY_USAGE_READ_ONLY
+
+
 #endregion
+
 
 #region Public API
 ## Attach this effect to `a_entity` (reparenting under it) and enact it. `a_source` is
@@ -187,7 +192,10 @@ func is_temporary() -> bool:
 
 func is_active() -> bool:
 	return _entity != null
+
+
 #endregion
+
 
 #region Lifecycle
 func _physics_process(_a_delta: float) -> void:
@@ -204,7 +212,10 @@ func _physics_process(_a_delta: float) -> void:
 	_elapsed += 1
 	if duration_ticks > 0 and _elapsed >= duration_ticks:
 		remove()
+
+
 #endregion
+
 
 #region Reapplication
 ## Re-enact an already-active effect of this kind. Refreshes the timer in both modes
@@ -226,11 +237,17 @@ func _find_matching(a_entity: Entity) -> StatusEffect:
 	for child: Node in a_entity.get_children():
 		# Skip an effect that has already been removed this frame (queue_free pending)
 		# so we don't refresh/stack onto a dying instance.
-		if child is StatusEffect and child.get_script() == get_script() \
-				and (child as StatusEffect).is_active():
+		if (
+			child is StatusEffect
+			and child.get_script() == get_script()
+			and (child as StatusEffect).is_active()
+		):
 			return child as StatusEffect
 	return null
+
+
 #endregion
+
 
 #region Overridable hooks
 ## Enact the effect when first attached (e.g. apply a slow multiplier for one stack).

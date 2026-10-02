@@ -11,6 +11,7 @@ extends EditorMarkerSprite3D
 ## each event shows a clickable, draggable marker in the 3D editor (hidden at runtime) —
 ## the old hand-drawn _process/ImmediateMesh gizmos have been retired in favour of it.
 
+
 #region Public API
 ## Called when an owning GlobalTrigger fires. Implement effects in subclasses.
 func execute(_a_manager: ScenarioTriggerManager) -> void:

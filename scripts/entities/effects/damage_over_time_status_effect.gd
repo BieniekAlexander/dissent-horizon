@@ -13,6 +13,7 @@ extends StatusEffect
 ## Damage flavour passed to DamageTable for armour/attribute multiplier lookup.
 @export var damage_type: Damage.Type = Damage.Type.PLASMA
 
+
 func _on_tick() -> void:
 	if tick_rate <= 0:
 		return

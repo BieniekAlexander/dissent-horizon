@@ -24,6 +24,7 @@ extends Node
 ## (`repairs: {rate: 12}`) when the first unit needs to differ.
 @export var repair_rate: float = 10.0
 
+
 ## HP this unit restores in `a_delta` seconds.
 func repair_amount(a_delta: float) -> float:
 	return repair_rate * a_delta

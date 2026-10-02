@@ -10,8 +10,9 @@ extends RefCounted
 const EmissionPhaseScript := preload("res://scripts/entities/tools/emission_phase.gd")
 
 ## Keys a `phases:` item may carry.
-const PHASE_KEYS: Array[String] = ["name", "motion", "ends_on_arrival", "lifespan",
-	"impact_mask", "payload", "emits", "visuals"]
+const PHASE_KEYS: Array[String] = [
+	"name", "motion", "ends_on_arrival", "lifespan", "impact_mask", "payload", "emits", "visuals"
+]
 ## Keys a `motion:` mapping may carry, and the EmissionPhase property each one writes.
 const MOTION_PROPERTIES: Dictionary = {
 	"speed": "speed",
@@ -36,8 +37,9 @@ const DEFAULT_PRESET: String = "BALLISTIC"
 ## Visual nodes a phase shows when its item names none: the first phase the in-flight set,
 ## every later one the post-impact set. Only those present in the scene are written.
 const IN_FLIGHT_VISUALS: Array[String] = ["InFlightSprite", "InFlightParticles", "InFlightMesh"]
-const POST_IMPACT_VISUALS: Array[String] = ["PostImpactSprite", "PostImpactParticles",
-	"PostImpactMesh"]
+const POST_IMPACT_VISUALS: Array[String] = [
+	"PostImpactSprite", "PostImpactParticles", "PostImpactMesh"
+]
 ## Scene-node names for phases whose item names none.
 const DEFAULT_NAMES: Array[String] = ["Flight", "Impact"]
 
@@ -67,11 +69,19 @@ static func errors_for(spec: Dictionary) -> Array[String]:
 			errors.append_array(_item_errors(spec["phases"][i], i))
 		return errors
 	if spec.has("trajectory") and not EmissionPhaseScript.PRESETS.has(str(spec["trajectory"])):
-		errors.append("trajectory '%s' is not one of %s" % [spec["trajectory"],
-			", ".join(EmissionPhaseScript.PRESETS.keys())])
+		errors.append(
+			(
+				"trajectory '%s' is not one of %s"
+				% [spec["trajectory"], ", ".join(EmissionPhaseScript.PRESETS.keys())]
+			)
+		)
 	elif _is_steered(_preset(str(spec.get("trajectory", DEFAULT_PRESET)))):
-		errors.append("trajectory %s steers, so its flight needs a lifespan: — write phases:"
-			% spec["trajectory"])
+		errors.append(
+			(
+				"trajectory %s steers, so its flight needs a lifespan: — write phases:"
+				% spec["trajectory"]
+			)
+		)
 	return errors
 
 
@@ -103,8 +113,11 @@ static func _shorthand_items(spec: Dictionary) -> Array:
 static func _expand_item(item: Dictionary, index: int) -> Dictionary:
 	var has_motion: bool = item.has("motion")
 	var phase: Dictionary = _motion_properties(item.get("motion", {}))
-	phase["name"] = str(item.get("name",
-		DEFAULT_NAMES[index] if index < DEFAULT_NAMES.size() else "Phase%d" % index))
+	phase["name"] = str(
+		item.get(
+			"name", DEFAULT_NAMES[index] if index < DEFAULT_NAMES.size() else "Phase%d" % index
+		)
+	)
 	phase["ends_on_arrival"] = bool(item.get("ends_on_arrival", has_motion))
 	phase["lifespan_seconds"] = float(item["lifespan"]) if item.has("lifespan") else INF
 	phase["impact_mask"] = _impact_mask(item.get("impact_mask", []))
@@ -113,8 +126,11 @@ static func _expand_item(item: Dictionary, index: int) -> Dictionary:
 	var emits: Dictionary = item.get("emits", {})
 	phase["emits"] = str(emits.get("id", ""))
 	phase["event_period_seconds"] = _period(emits.get("every", "once"))
-	phase["visual_roles"] = item["visuals"] if item.has("visuals") \
+	phase["visual_roles"] = (
+		item["visuals"]
+		if item.has("visuals")
 		else (IN_FLIGHT_VISUALS if index == 0 else POST_IMPACT_VISUALS)
+	)
 	return phase
 
 
@@ -164,20 +180,30 @@ static func _item_errors(item: Variant, index: int) -> Array[String]:
 		if not PHASE_KEYS.has(str(key)):
 			errors.append("%s: unknown key '%s' (one of %s)" % [where, key, ", ".join(PHASE_KEYS)])
 	errors.append_array(_motion_errors(item.get("motion", {}), where))
-	var motion: Dictionary = _motion_properties(item.get("motion", {})) \
-		if _motion_errors(item.get("motion", {}), where).is_empty() else {}
+	var motion: Dictionary = (
+		_motion_properties(item.get("motion", {}))
+		if _motion_errors(item.get("motion", {}), where).is_empty()
+		else {}
+	)
 	if float(motion.get("turn_rate_degrees_per_second", 0.0)) > 0.0 and not item.has("lifespan"):
-		errors.append("%s: a steered motion needs a lifespan:, or a lost target flies forever"
-			% where)
-	if float(motion.get("launch_pitch_degrees", 0.0)) > 0.0 \
-			and float(motion.get("gravity_mps2", 0.0)) <= 0.0:
+		errors.append(
+			"%s: a steered motion needs a lifespan:, or a lost target flies forever" % where
+		)
+	if (
+		float(motion.get("launch_pitch_degrees", 0.0)) > 0.0
+		and float(motion.get("gravity_mps2", 0.0)) <= 0.0
+	):
 		errors.append("%s: launch_pitch without gravity has no arc to pitch" % where)
 	if item.has("lifespan") and not _is_non_negative_number(item["lifespan"]):
 		errors.append("%s: lifespan must be a number of seconds, 0 or more" % where)
 	for layer_name: Variant in item.get("impact_mask", []):
 		if not IMPACT_LAYERS.has(str(layer_name)):
-			errors.append("%s: impact_mask '%s' is not one of %s" % [where, layer_name,
-				", ".join(IMPACT_LAYERS.keys())])
+			errors.append(
+				(
+					"%s: impact_mask '%s' is not one of %s"
+					% [where, layer_name, ", ".join(IMPACT_LAYERS.keys())]
+				)
+			)
 	if item.has("payload") and not _is_cadence(item["payload"]):
 		errors.append("%s: payload must be `once` or seconds between applications" % where)
 	if item.has("emits"):
@@ -191,8 +217,11 @@ static func _item_errors(item: Variant, index: int) -> Array[String]:
 
 static func _motion_errors(motion: Variant, where: String) -> Array[String]:
 	if motion is String:
-		return [] if EmissionPhaseScript.PRESETS.has(motion) \
+		return (
+			[]
+			if EmissionPhaseScript.PRESETS.has(motion)
 			else ["%s: motion '%s' is not a preset" % [where, motion]]
+		)
 	if not (motion is Dictionary):
 		return ["%s: motion must be a preset name or a mapping" % where]
 	var errors: Array[String] = []

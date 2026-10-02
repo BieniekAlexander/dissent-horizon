@@ -41,6 +41,7 @@ enum Check {
 var _was_inside: bool = false
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var units: Array = _matching_units(a_manager)
@@ -51,8 +52,11 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 		Check.ANY_INSIDE:
 			return any_inside
 		Check.ALL_INSIDE:
-			return not units.is_empty() and units.all(
-				func(u: Commandable) -> bool: return region_contains(u.global_position)
+			return (
+				not units.is_empty()
+				and units.all(
+					func(u: Commandable) -> bool: return region_contains(u.global_position)
+				)
 			)
 		Check.ANY_ENTER:
 			return any_inside and not _was_inside
@@ -79,6 +83,8 @@ func poll(a_manager: ScenarioTriggerManager) -> void:
 func reset() -> void:
 	super.reset()
 	_was_inside = false
+
+
 #endregion
 
 #region Player-facing description (highlights)
@@ -86,6 +92,7 @@ func reset() -> void:
 ## footprint (RegionAwareCondition.highlight_shapes) is the whole story — there is nothing
 ## useful to mark on the units themselves.
 #endregion
+
 
 #region Internal
 ## The commander's units that pass the type filter, before any region test. Region filtering
@@ -96,8 +103,11 @@ func _matching_units(a_manager: ScenarioTriggerManager) -> Array:
 		return []
 	return commander.get_children().filter(
 		func(n: Node) -> bool:
-			return n is Commandable and (n as Commandable).is_in_group("unit") \
+			return (
+				n is Commandable
+				and (n as Commandable).is_in_group("unit")
 				and (unit_type == &"" or (n as Commandable).id == unit_type)
+			)
 	)
 
 

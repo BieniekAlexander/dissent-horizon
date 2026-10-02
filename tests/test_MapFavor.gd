@@ -7,6 +7,7 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_MapFavor.gd \
 ##     -gdir=res://tests/none -gexit
 
+
 func _two_starts() -> Array[MapStart]:
 	var starts: Array[MapStart] = [MapStart.at(Vector2(0, 0), 0), MapStart.at(Vector2(10, 0), 1)]
 	return starts
@@ -35,6 +36,8 @@ func test_an_alliance_takes_its_nearest_start() -> void:
 	starts.append(MapStart.at(Vector2(20, 0), 0))
 	var share: PackedFloat32Array = MapFavor.access_share(Vector2(18, 0), starts, 2)
 	assert_gt(share[0], share[1])
+
+
 #endregion
 
 
@@ -51,10 +54,12 @@ func test_accessible_value_splits_each_feature_by_its_share() -> void:
 
 func test_steer_moves_the_mean_and_stays_a_distribution() -> void:
 	var steered: PackedFloat32Array = MapFavor.steer(
-		PackedFloat32Array([0.5, 0.5]), PackedFloat32Array([0.8, 0.2]))
+		PackedFloat32Array([0.5, 0.5]), PackedFloat32Array([0.8, 0.2])
+	)
 	assert_almost_eq(steered[0], 0.8, 1e-6)
 	var clamped: PackedFloat32Array = MapFavor.steer(
-		PackedFloat32Array([0.1, 0.9]), PackedFloat32Array([1.0, 0.0]))
+		PackedFloat32Array([0.1, 0.9]), PackedFloat32Array([1.0, 0.0])
+	)
 	assert_almost_eq(clamped[0] + clamped[1], 1.0, 1e-6)
 	assert_gte(clamped[1], 0.0)
 
@@ -65,8 +70,13 @@ func test_worst_deviation_is_relative_to_the_target() -> void:
 
 
 func test_share_error_is_half_the_l1_distance() -> void:
-	assert_almost_eq(MapFavor.share_error(
-		PackedFloat32Array([1.0, 0.0]), PackedFloat32Array([0.0, 1.0])), 1.0, 1e-6)
+	assert_almost_eq(
+		MapFavor.share_error(PackedFloat32Array([1.0, 0.0]), PackedFloat32Array([0.0, 1.0])),
+		1.0,
+		1e-6
+	)
+
+
 #endregion
 
 

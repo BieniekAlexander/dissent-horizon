@@ -54,10 +54,10 @@ const BADGE_COLOR: Color = Color(0.86, 0.87, 0.86)
 ## into it — see set_background_color.
 const DEFAULT_BACKGROUND_COLOR: Color = Color(0.1, 0.1, 0.1, 0.5)
 
-const HP_COLOR: Color = Color(0.85, 0.2, 0.2)          ## red
+const HP_COLOR: Color = Color(0.85, 0.2, 0.2)  ## red
 const TRAINING_COLOR: Color = Color(0.25, 0.55, 0.95)  ## blue
-const PURCHASE_COLOR: Color = Color(0.9, 0.7, 0.2)     ## amber — saving up for it
-const FUNDED_COLOR: Color = Color(0.3, 0.8, 0.4)       ## green — paid for, waiting to start
+const PURCHASE_COLOR: Color = Color(0.9, 0.7, 0.2)  ## amber — saving up for it
+const FUNDED_COLOR: Color = Color(0.3, 0.8, 0.4)  ## green — paid for, waiting to start
 const BAR_BG_COLOR: Color = Color(0.0, 0.0, 0.0, 0.6)
 
 ## The border a SELECTED pending purchase wears. Green because that is what the rail already
@@ -100,6 +100,7 @@ var _cancel_target: PurchaseTransaction = null
 ## world", not "show more text".
 var _hovering: bool = false
 
+
 #region Lifecycle
 func _ready() -> void:
 	custom_minimum_size = CARD_SIZE
@@ -132,6 +133,7 @@ func _ready() -> void:
 	_bars_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_bars_box)
 
+
 func _process(_a_delta: float) -> void:
 	if _commandable != null:
 		_refresh_existing()
@@ -139,7 +141,10 @@ func _process(_a_delta: float) -> void:
 		_refresh_training()
 	elif _transaction != null:
 		_refresh_purchase()
+
+
 #endregion
+
 
 #region Binding
 ## Represent a live unit: icon from its scene, red HP bar. When `clickable` is true the
@@ -155,6 +160,7 @@ func bind_existing(a_commandable: Commandable, a_clickable: bool = false) -> voi
 	set_icon(_letter(a_commandable.scene_file_path))
 	_refresh_existing()
 
+
 ## Represent the queued/training unit at `job_index` of `producer`'s queue:
 ## icon from its scene, blue training-progress bar. The card is clickable — a left
 ## click cancels this job (removing it from the queue and refunding its cost).
@@ -169,9 +175,15 @@ func bind_training(a_producer: Commandable, a_job_index: int) -> void:
 	if a_producer.production != null and a_job_index < a_producer.production.job_count():
 		# A RESEARCH job has no scene — nothing is spawned — so it is lettered by its id.
 		var scene: PackedScene = a_producer.production.job_scene(a_job_index)
-		set_icon(_letter(scene.resource_path) if scene != null
-			else _first_letter(String(a_producer.production.job_type(a_job_index))))
+		set_icon(
+			(
+				_letter(scene.resource_path)
+				if scene != null
+				else _first_letter(String(a_producer.production.job_type(a_job_index)))
+			)
+		)
 	_refresh_training()
+
 
 ## Represent a purchase still queued on the commander's global production queue: icon
 ## from the purchased scene, amber bar showing progress toward affording it (green once
@@ -185,11 +197,22 @@ func bind_purchase(a_transaction: PurchaseTransaction, a_queue: ProductionQueue)
 	_job_index = -1
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	tooltip_text = "%s — %d energy\nClick to cancel%s" % [
-		a_transaction.type,
-		a_transaction.energy_cost if a_transaction.energy_cost > 0 else a_transaction.dominion_cost,
-		"\nStanding order — re-issues after every other purchase" if a_transaction.standing else "",
-	]
+	tooltip_text = (
+		"%s — %d energy\nClick to cancel%s"
+		% [
+			a_transaction.type,
+			(
+				a_transaction.energy_cost
+				if a_transaction.energy_cost > 0
+				else a_transaction.dominion_cost
+			),
+			(
+				"\nStanding order — re-issues after every other purchase"
+				if a_transaction.standing
+				else ""
+			),
+		]
+	)
 	# The piece ID is the identity and is always present; the scene path is only preferred
 	# because it is what the other two bind modes have to work from. A purchase whose tool
 	# carries no scene used to fall through and draw a BLANK chip, which is worse than a
@@ -200,6 +223,7 @@ func bind_purchase(a_transaction: PurchaseTransaction, a_queue: ProductionQueue)
 		set_icon(_first_letter(String(a_transaction.type)))
 	_cancel_target = a_transaction
 	_refresh_purchase()
+
 
 ## Represent a RUN of identical queued purchases as one chip, badged ×N.
 ##
@@ -219,9 +243,11 @@ func bind_purchase_group(a_transactions: Array, a_queue: ProductionQueue) -> voi
 	if a_transactions.size() > 1:
 		_cancel_target = a_transactions.back() as PurchaseTransaction
 		set_badge("×%d" % a_transactions.size(), BADGE_COLOR)
-		tooltip_text = "%s ×%d\nClick to cancel one" % [
-			(a_transactions.front() as PurchaseTransaction).type, a_transactions.size()
-		]
+		tooltip_text = (
+			"%s ×%d\nClick to cancel one"
+			% [(a_transactions.front() as PurchaseTransaction).type, a_transactions.size()]
+		)
+
 
 #region Corner overlays
 ## Sets the top-right badge — a run count, or the standing ring's next-up mark.
@@ -230,6 +256,7 @@ func set_badge(a_text: String, a_color: Color) -> void:
 		_badge = _add_corner_label(HORIZONTAL_ALIGNMENT_RIGHT)
 	_badge.text = a_text
 	_badge.add_theme_color_override("font_color", a_color)
+
 
 ## Sets the top-left glyph — what a queued purchase is waiting on. Shown ONLY when a
 ## purchase is actually blocked (see ProductionRail): a glyph on every chip is decoration, a
@@ -240,6 +267,7 @@ func set_glyph(a_text: String, a_color: Color) -> void:
 	_glyph.text = a_text
 	_glyph.add_theme_color_override("font_color", a_color)
 
+
 func _add_corner_label(a_alignment: HorizontalAlignment) -> Label:
 	var label := Label.new()
 	label.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -248,12 +276,16 @@ func _add_corner_label(a_alignment: HorizontalAlignment) -> Label:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(label)
 	return label
+
+
 #endregion
+
 
 ## Repaint the card body, for a card drawn on a surface the default was not chosen against.
 func set_background_color(a_color: Color) -> void:
 	if _background != null:
 		_background.color = a_color
+
 
 ## Shrink (or grow) the card from the default CARD_SIZE. The production rail runs smaller
 ## than the info panel does, because it is on screen permanently and the info panel is not.
@@ -262,6 +294,7 @@ func set_card_size(a_size: Vector2) -> void:
 	size = a_size
 	if _icon != null:
 		_icon.add_theme_font_size_override("font_size", roundi(a_size.y * 0.46))
+
 
 ## Left click handling. A training card cancels its job; a clickable live-unit card
 ## emits `activated` so its owner can act (re-select / evacuate). InfoView rebuilds the
@@ -275,20 +308,29 @@ func _gui_input(a_event: InputEvent) -> void:
 	var mouse_event := a_event as InputEventMouseButton
 	# RIGHT click on a queued purchase SELECTS the phantom it will produce. Consumed whole, the
 	# same way the left click is, so it never also reaches the world as a command.
-	if mouse_event != null and mouse_event.button_index == MOUSE_BUTTON_RIGHT \
-			and _transaction != null:
+	if (
+		mouse_event != null
+		and mouse_event.button_index == MOUSE_BUTTON_RIGHT
+		and _transaction != null
+	):
 		accept_event()
 		if mouse_event.pressed:
 			pending_selected.emit(
 				_pending_group(),
 				Input.is_action_pressed(RTSController.MODIFIER_ADDITIVE),
-				Input.is_action_pressed(RTSController.MODIFIER_BROADEN))
+				Input.is_action_pressed(RTSController.MODIFIER_BROADEN)
+			)
 		return
 	# RIGHT click on a TRAINING job's card selects the unit being built — the same phantom
 	# selection a queued purchase gets, for the one that has left the queue and is on the
 	# producer's own bench.
-	if mouse_event != null and mouse_event.button_index == MOUSE_BUTTON_RIGHT \
-			and _producer != null and is_instance_valid(_producer) and _producer.production != null:
+	if (
+		mouse_event != null
+		and mouse_event.button_index == MOUSE_BUTTON_RIGHT
+		and _producer != null
+		and is_instance_valid(_producer)
+		and _producer.production != null
+	):
 		accept_event()
 		if mouse_event.pressed:
 			var transaction: PurchaseTransaction = _producer.production.job_transaction(_job_index)
@@ -296,16 +338,22 @@ func _gui_input(a_event: InputEvent) -> void:
 				pending_selected.emit(
 					[transaction],
 					Input.is_action_pressed(RTSController.MODIFIER_ADDITIVE),
-					Input.is_action_pressed(RTSController.MODIFIER_BROADEN))
+					Input.is_action_pressed(RTSController.MODIFIER_BROADEN)
+				)
 		return
 	# RIGHT click on a live unit's card asks for it to be SELECTED. Whether anything listens is
 	# the binder's business — the info panel spends it on garrison occupants and nothing else.
-	if mouse_event != null and mouse_event.button_index == MOUSE_BUTTON_RIGHT \
-			and _commandable != null and is_instance_valid(_commandable):
+	if (
+		mouse_event != null
+		and mouse_event.button_index == MOUSE_BUTTON_RIGHT
+		and _commandable != null
+		and is_instance_valid(_commandable)
+	):
 		accept_event()
 		if mouse_event.pressed:
 			select_requested.emit(
-				_commandable, Input.is_action_pressed(RTSController.MODIFIER_ADDITIVE))
+				_commandable, Input.is_action_pressed(RTSController.MODIFIER_ADDITIVE)
+			)
 		return
 	if not (a_event is InputEventMouseButton and a_event.button_index == MOUSE_BUTTON_LEFT):
 		return
@@ -322,7 +370,10 @@ func _gui_input(a_event: InputEvent) -> void:
 			_queue.cancel(_cancel_target if _cancel_target != null else _transaction)
 	elif _commandable != null and is_instance_valid(_commandable):
 		activated.emit(_commandable, (a_event as InputEventMouseButton).shift_pressed)
+
+
 #endregion
+
 
 ## Every transaction this card stands for — the whole collapsed run, not just its head. A
 ## card showing "×5" is five purchases, and selecting it selects all five: the run is
@@ -358,11 +409,13 @@ func set_pending_selected(a_is_selected: bool) -> void:
 		_pending_border.offset_bottom = 0.0
 	_pending_border.visible = a_is_selected
 
+
 #region Hover state
 ## True while this card is bound to a queued unit (bind_training) and the mouse is over
 ## it. See _hovering.
 func is_hovered_training() -> bool:
 	return _hovering and _producer != null
+
 
 ## True while this card is bound to a queued PURCHASE (bind_purchase / bind_purchase_group)
 ## and the mouse is over it. Read by ProductionRail so the world can ring the structures that
@@ -371,25 +424,32 @@ func is_hovered_training() -> bool:
 func is_hovered_purchase() -> bool:
 	return _hovering and _transaction != null
 
+
 ## The purchase this card stands for, or null. For a collapsed run this is the run's FIRST
 ## entry — the one that will be dispatched next, and so the one whose eligible producers are
 ## the ones worth marking.
 func hovered_transaction() -> PurchaseTransaction:
 	return _transaction
 
+
 ## The producer/job_index this card is bound to via bind_training, or null/-1 otherwise.
 func training_producer() -> Commandable:
 	return _producer
 
+
 func training_job_index() -> int:
 	return _job_index
+
+
 #endregion
+
 
 #region Display API
 ## Sets the icon text (for now, the capitalized first letter of a scene name).
 func set_icon(a_text: String) -> void:
 	if _icon != null:
 		_icon.text = a_text
+
 
 ## Creates or updates a bottom bar identified by `key`, filled to `ratio` (0..1).
 func set_bar(a_key: String, a_ratio: float, a_color: Color) -> void:
@@ -399,13 +459,17 @@ func set_bar(a_key: String, a_ratio: float, a_color: Color) -> void:
 	fill.color = a_color
 	fill.anchor_right = clampf(a_ratio, 0.0, 1.0)
 
+
 ## Removes a previously-added bar.
 func remove_bar(a_key: String) -> void:
 	var fill: ColorRect = _bar_fills.get(a_key)
 	if fill != null:
 		fill.get_parent().queue_free()
 		_bar_fills.erase(a_key)
+
+
 #endregion
+
 
 #region Private helpers
 func _refresh_existing() -> void:
@@ -417,6 +481,7 @@ func _refresh_existing() -> void:
 	if defense != null and defense.hp_max > 0.0:
 		set_bar("hp", defense.hp / defense.hp_max, HP_COLOR)
 
+
 func _refresh_training() -> void:
 	if not is_instance_valid(_producer) or _producer.production == null:
 		return
@@ -424,6 +489,7 @@ func _refresh_training() -> void:
 	if _job_index >= _producer.production.job_count():
 		return
 	set_bar("training", _producer.production.job_progress(_job_index), TRAINING_COLOR)
+
 
 ## Fill fraction is how much of the price the commander has banked, so a queued purchase
 ## visibly fills as energy comes in. A funded one (paid for, waiting on its builder) shows a
@@ -435,9 +501,13 @@ func _refresh_purchase() -> void:
 		set_bar("purchase", 1.0, FUNDED_COLOR)
 		return
 	var cost: int = maxi(_transaction.energy_cost, _transaction.dominion_cost)
-	var banked: int = _transaction.commander.energy if _transaction.energy_cost > 0 \
+	var banked: int = (
+		_transaction.commander.energy
+		if _transaction.energy_cost > 0
 		else _transaction.commander.dominion
+	)
 	set_bar("purchase", 1.0 if cost <= 0 else float(banked) / float(cost), PURCHASE_COLOR)
+
 
 ## Adds an empty bar row for `key` and returns its fill ColorRect.
 func _add_bar(a_key: String) -> ColorRect:
@@ -464,9 +534,11 @@ func _add_bar(a_key: String) -> ColorRect:
 	_bar_fills[a_key] = fill
 	return fill
 
+
 ## Capitalized first letter of a scene's file name, e.g. ".../warlord.tscn" -> "W".
 static func _letter(scene_path: String) -> String:
 	return _first_letter(scene_path.get_file().get_basename())
+
 
 ## Capitalized first letter of any identifier, or "?" when there isn't one.
 static func _first_letter(text: String) -> String:

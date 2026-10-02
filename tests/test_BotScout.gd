@@ -126,12 +126,18 @@ func test_an_idle_utility_unit_carries_none() -> void:
 
 func test_the_last_builder_is_needed_but_a_second_one_is_spare() -> void:
 	var only_builder := _make_builder(_owned_unit(4.0, 5.0))
-	assert_eq(_scout._applicable_responsibility_count(only_builder), 1,
-		"pulling the last builder away stalls construction")
+	assert_eq(
+		_scout._applicable_responsibility_count(only_builder),
+		1,
+		"pulling the last builder away stalls construction"
+	)
 
 	_make_builder(_owned_unit(4.0, 5.0))
-	assert_eq(_scout._applicable_responsibility_count(only_builder), 0,
-		"with a second builder owned, neither is the last one")
+	assert_eq(
+		_scout._applicable_responsibility_count(only_builder),
+		0,
+		"with a second builder owned, neither is the last one"
+	)
 
 
 func test_a_unit_carrying_occupants_has_a_delivery_to_make() -> void:
@@ -142,8 +148,11 @@ func test_a_unit_carrying_occupants_has_a_delivery_to_make() -> void:
 	var occupant := Commandable.new()
 	garrison.add_child(occupant)
 	garrison._garrisoned.append(occupant)
-	assert_eq(_scout._applicable_responsibility_count(loaded), 1,
-		"a full transport is on an errand already")
+	assert_eq(
+		_scout._applicable_responsibility_count(loaded),
+		1,
+		"a full transport is on an errand already"
+	)
 
 
 func test_scales_never_divide_by_zero() -> void:
@@ -158,14 +167,16 @@ func test_scales_never_divide_by_zero() -> void:
 # costs. The scout grid is empty here (a bare Bot has no map), so stale_fraction is driven
 # by writing grid points directly — the arithmetic is the subject, not the LOS sweep.
 
+
 ## Make the grid `a_stale_fraction` blind, out of ten points.
 func _set_staleness(a_stale_fraction: float) -> void:
 	var stale_count: int = int(round(a_stale_fraction * 10.0))
 	for i: int in range(10):
 		# seconds_elapsed() is 0 on a bare Bot, so anything below -SCOUT_EXPIRATION_TIMER
 		# has expired and anything above it is fresh.
-		_scout._scout_grid[Vector2i(i, 0)] = \
+		_scout._scout_grid[Vector2i(i, 0)] = (
 			-(BotScout.SCOUT_EXPIRATION_TIMER + 1.0) if i < stale_count else 0.0
+		)
 
 
 ## A candidate scout costing `a_cost` energy.
@@ -178,21 +189,27 @@ func _candidate(a_cost: int) -> Commandable:
 
 func test_a_blind_bot_scouts_even_with_something_valuable() -> void:
 	_set_staleness(1.0)
-	assert_true(_scout._scouting_is_worth_it(_candidate(300)),
-		"knowing nothing is worth risking a lot to fix")
+	assert_true(
+		_scout._scouting_is_worth_it(_candidate(300)),
+		"knowing nothing is worth risking a lot to fix"
+	)
 
 
 func test_a_bot_that_can_see_everything_does_not_bother() -> void:
 	_set_staleness(0.0)
-	assert_false(_scout._scouting_is_worth_it(_candidate(10)),
-		"nothing left to learn, so no absence is worth it")
+	assert_false(
+		_scout._scouting_is_worth_it(_candidate(10)),
+		"nothing left to learn, so no absence is worth it"
+	)
 
 
 func test_a_cheap_unit_is_sent_where_an_expensive_one_is_not() -> void:
 	_set_staleness(0.4)
 	assert_true(_scout._scouting_is_worth_it(_candidate(50)))
-	assert_false(_scout._scouting_is_worth_it(_candidate(600)),
-		"same information, and now it costs more than it is worth")
+	assert_false(
+		_scout._scouting_is_worth_it(_candidate(600)),
+		"same information, and now it costs more than it is worth"
+	)
 
 
 func test_each_extra_scout_is_worth_less_than_the_last() -> void:
@@ -202,8 +219,10 @@ func test_each_extra_scout_is_worth_less_than_the_last() -> void:
 	var candidate := _candidate(300)
 	assert_true(_scout._scouting_is_worth_it(candidate), "the first scout pays")
 	_scout._scouts = [_unit(4.0, 5.0)]
-	assert_false(_scout._scouting_is_worth_it(candidate),
-		"a second scout buys half as much for the same price")
+	assert_false(
+		_scout._scouting_is_worth_it(candidate),
+		"a second scout buys half as much for the same price"
+	)
 
 
 func test_staleness_is_the_fraction_of_the_map_gone_dark() -> void:
@@ -222,6 +241,7 @@ func test_no_allowance_releases_every_scout() -> void:
 	_scout._update_scouts()
 	assert_eq(_scout._scouts.size(), 0, "released, so the military can pick them up")
 
+
 # ─── HOLDING A CLAIM ─────────────────────────────────────────────────────────
 #
 # A scout used to be dropped the moment anything else re-tasked it, which made this the
@@ -229,6 +249,7 @@ func test_no_allowance_releases_every_scout() -> void:
 # whatever it picked to BotMilitary's whole-army sweep — and that sweep takes the Colonial
 # Stock Truck, because a truck can crush. The module now gives a scout up for a real errand
 # or once the absence stops paying, and re-issues the waypoint for anything else.
+
 
 ## An order of `a_class` on `a_unit`, built the way a manager would build it.
 func _order(a_unit: Commandable, a_class: GDScript) -> Commandable:
@@ -257,8 +278,10 @@ func test_an_attack_move_does_not_take_a_scout_away() -> void:
 func test_a_real_errand_takes_a_scout_away() -> void:
 	var truck := _scouting(400, 1.0)
 	_order(truck, Build)
-	assert_false(_scout._still_scouting(truck, 1),
-		"a job somebody decided this unit should do runs to completion")
+	assert_false(
+		_scout._still_scouting(truck, 1),
+		"a job somebody decided this unit should do runs to completion"
+	)
 
 
 func test_a_scout_is_released_once_the_map_is_known() -> void:
@@ -268,8 +291,9 @@ func test_a_scout_is_released_once_the_map_is_known() -> void:
 	assert_true(_scout._still_scouting(truck, 1), "precondition: still worth it while blind")
 
 	_set_staleness(0.0)
-	assert_false(_scout._still_scouting(truck, 1),
-		"nothing left to learn, so the absence stops paying")
+	assert_false(
+		_scout._still_scouting(truck, 1), "nothing left to learn, so the absence stops paying"
+	)
 
 
 func test_a_garrisoned_scout_is_no_longer_scouting() -> void:
@@ -302,11 +326,13 @@ func test_a_held_scout_is_priced_as_the_scout_it_already_is() -> void:
 	var candidate := _candidate(300)
 	_scout._scouts = [candidate]
 	assert_true(_scout._scouting_is_worth_it(candidate, 1), "it is the FIRST scout out")
-	assert_false(_scout._scouting_is_worth_it(candidate),
-		"and would not be worth adding as a second one")
+	assert_false(
+		_scout._scouting_is_worth_it(candidate), "and would not be worth adding as a second one"
+	)
 
 
 # ─── WHICH UNIT IS PICKED ────────────────────────────────────────────────────
+
 
 func test_the_best_scout_the_bot_can_afford_is_picked_not_simply_the_best() -> void:
 	# The scorer rewards capability and the price test punishes replacement cost, so the
@@ -321,10 +347,14 @@ func test_the_best_scout_the_bot_can_afford_is_picked_not_simply_the_best() -> v
 	_bot.technology_mapping[cheap.id] = TechnologySpec.new(50, 0, 0, 30)
 
 	var scales: Dictionary = _scout._score_scales([dear, cheap])
-	assert_gt(_scout._scout_score(dear, scales), _scout._scout_score(cheap, scales),
-		"precondition: the expensive one is the better scout on paper")
-	assert_false(_scout._scouting_is_worth_it(dear),
-		"precondition: and the bot cannot justify losing it")
+	assert_gt(
+		_scout._scout_score(dear, scales),
+		_scout._scout_score(cheap, scales),
+		"precondition: the expensive one is the better scout on paper"
+	)
+	assert_false(
+		_scout._scouting_is_worth_it(dear), "precondition: and the bot cannot justify losing it"
+	)
 	assert_eq(_scout._pick_scout(), cheap, "so it sends the one it can justify")
 
 
@@ -344,6 +374,7 @@ func test_nobody_is_picked_when_nobody_is_worth_sending() -> void:
 # is simply "far along +X".
 
 const EXPIRED: float = -(BotScout.SCOUT_EXPIRATION_TIMER + 1.0)
+
 
 ## Put a grid point at (`a_x`, 0) that was last seen at `a_last_seen`; `a_ever_seen` records
 ## whether it was ever in real line of sight.
@@ -365,8 +396,9 @@ func _errand_from(a_x: float, a_span: float = 100.0) -> Variant:
 	_scout._map_depth = 0.0
 	var window: Array = _scout._vision_window(10.0)
 	var frontier: Variant = _scout._best_errand(Vector2(a_x, 0.0), 3.0, window, true)
-	return frontier if frontier != null \
-		else _scout._best_errand(Vector2(a_x, 0.0), 3.0, window, false)
+	return (
+		frontier if frontier != null else _scout._best_errand(Vector2(a_x, 0.0), 3.0, window, false)
+	)
 
 
 ## The world X of the point the selector chose, or NAN when it chose nothing.
@@ -380,11 +412,10 @@ func test_a_scout_crosses_to_open_map_rather_than_shaving_its_own_frontier() -> 
 	# answer to "find somebody": it spirals, and a spiral fills in the bot's own corner before
 	# it ever starts on the far side. Measured on a Colonial mirror, the closest the seen set
 	# got to the opposing start point did not move at all over the first two minutes.
-	_point(1, 5.0, EXPIRED)                       # the nearest unseen cell, on its own
-	for i: int in range(12, 21):                  # a dark region at the far end
+	_point(1, 5.0, EXPIRED)  # the nearest unseen cell, on its own
+	for i: int in range(12, 21):  # a dark region at the far end
 		_point(i, float(i) * 5.0, EXPIRED)
-	assert_gt(_errand_x(0.0), 40.0,
-		"the open half of the map is where an unfound enemy is")
+	assert_gt(_errand_x(0.0), 40.0, "the open half of the map is where an unfound enemy is")
 
 
 func test_the_nearest_point_is_taken_when_it_is_the_only_frontier_left() -> void:
@@ -392,7 +423,7 @@ func test_the_nearest_point_is_taken_when_it_is_the_only_frontier_left() -> void
 	# everything: with nothing dark in the distance, the near cell is the errand.
 	_point(1, 5.0, EXPIRED)
 	for i: int in range(12, 21):
-		_point(i, float(i) * 5.0, 0.0, true)      # far end: seen, and fresh
+		_point(i, float(i) * 5.0, 0.0, true)  # far end: seen, and fresh
 	assert_eq(_errand_x(0.0), 5.0)
 
 
@@ -402,31 +433,35 @@ func test_a_never_seen_point_beats_a_stale_one_that_is_nearer_and_larger() -> vo
 	# nearer because the bot's own base refreshes a disc around home forever.
 	for i: int in range(1, 6):
 		_point(i, float(i) * 5.0, EXPIRED, true)  # a big stale block, right next door
-	_point(19, 95.0, EXPIRED)                     # one never-seen cell, far away
+	_point(19, 95.0, EXPIRED)  # one never-seen cell, far away
 	assert_eq(_errand_x(0.0), 95.0)
 
 
 func test_a_fresh_point_is_never_an_errand() -> void:
 	_point(1, 5.0, 0.0)
-	assert_eq(_errand_from(0.0), null,
-		"nothing has expired, so there is nothing to go and look at")
+	assert_eq(_errand_from(0.0), null, "nothing has expired, so there is nothing to go and look at")
 
 
 func test_the_enemy_is_likelier_the_further_a_point_is_from_home() -> void:
 	_scout._map_width = 100.0
 	_scout._map_depth = 0.0
 	var home := Vector2.ZERO
-	assert_gt(_scout._enemy_prior(Vector2(90.0, 0.0), home),
+	assert_gt(
+		_scout._enemy_prior(Vector2(90.0, 0.0), home),
 		_scout._enemy_prior(Vector2(10.0, 0.0), home),
-		"the opponent is not standing next to my own base, because I can see my own base")
+		"the opponent is not standing next to my own base, because I can see my own base"
+	)
 
 
 func test_the_bot_does_not_write_its_own_approaches_off_entirely() -> void:
 	_scout._map_width = 100.0
 	_scout._map_depth = 0.0
-	assert_almost_eq(_scout._enemy_prior(Vector2.ZERO, Vector2.ZERO),
-		BotScout.HOME_PRIOR_FLOOR, 0.001, "a raid still has to be noticed")
-
+	assert_almost_eq(
+		_scout._enemy_prior(Vector2.ZERO, Vector2.ZERO),
+		BotScout.HOME_PRIOR_FLOOR,
+		0.001,
+		"a raid still has to be noticed"
+	)
 
 
 ## The errand search may be split across ticks (BotScout._drain_dispatch). Scored one grid

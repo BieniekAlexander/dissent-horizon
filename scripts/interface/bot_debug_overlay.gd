@@ -25,9 +25,9 @@ const STICK_HEIGHT: float = 0.8
 ## Lift markers slightly off the terrain so they don't z-fight the ground.
 const Y_LIFT: float = 0.1
 
-const COLOR_FRESH: Color = Color(0.2, 1.0, 0.3)   # just scouted
-const COLOR_STALE: Color = Color(1.0, 0.2, 0.2)   # about to expire
-const COLOR_NEVER: Color = Color(0.45, 0.45, 0.5) # never in line of sight
+const COLOR_FRESH: Color = Color(0.2, 1.0, 0.3)  # just scouted
+const COLOR_STALE: Color = Color(1.0, 0.2, 0.2)  # about to expire
+const COLOR_NEVER: Color = Color(0.45, 0.45, 0.5)  # never in line of sight
 #endregion
 
 ## The scenario this overlay belongs to; supplies the commander list. Set on creation.
@@ -72,6 +72,7 @@ func _draw_overlay(a_bot: Bot) -> void:
 
 # ─── ACTIVE BOT RESOLUTION ───────────────────────────────────────────────────
 
+
 ## The bot currently selected by the bot-view toggle, or null when the active view isn't a
 ## specific bot (player view = -1, omniscient = -2) or that commander isn't a Bot.
 func _active_bot() -> Bot:
@@ -87,6 +88,7 @@ func _active_bot() -> Bot:
 
 
 # ─── SCOUT COVERAGE LAYER ────────────────────────────────────────────────────
+
 
 func _draw_scout_coverage(a_bot: Bot) -> void:
 	var brain: BotBrain = a_bot.get_node_or_null("BotBrain") as BotBrain

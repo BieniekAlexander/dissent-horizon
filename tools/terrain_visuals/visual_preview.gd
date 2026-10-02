@@ -106,15 +106,25 @@ func _shots(a_args: Dictionary, a_map: Map) -> Array[Dictionary]:
 		for spec: String in String(a_args.shots).split(";", false):
 			var parts: PackedStringArray = spec.split(":")
 			var nums: PackedStringArray = parts[1].split(",")
-			shots.append({
-				"name": parts[0],
-				"focus": Vector2(float(nums[0]), float(nums[1])),
-				"size": float(nums[2]),
-			})
+			(
+				shots
+				. append(
+					{
+						"name": parts[0],
+						"focus": Vector2(float(nums[0]), float(nums[1])),
+						"size": float(nums[2]),
+					}
+				)
+			)
 		return shots
 	var bounds: Rect2 = a_map.world_bounds()
-	shots.append({"name": "overview", "focus": bounds.get_center(),
-		"size": maxf(bounds.size.x, bounds.size.y) * OVERVIEW_FRAMING})
+	shots.append(
+		{
+			"name": "overview",
+			"focus": bounds.get_center(),
+			"size": maxf(bounds.size.x, bounds.size.y) * OVERVIEW_FRAMING
+		}
+	)
 	shots.append({"name": "game_zoom", "focus": bounds.get_center(), "size": GAME_ZOOM_SIZE})
 	return shots
 

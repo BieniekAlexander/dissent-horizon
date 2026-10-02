@@ -71,7 +71,8 @@ func test_the_two_panels_are_never_both_up() -> void:
 	for held: bool in [false, true, false, true]:
 		await _set_held(held)
 		assert_ne(
-			_overlay.get_node("%HintPanel").visible, _overlay.get_node("%HelpPanel").visible,
+			_overlay.get_node("%HintPanel").visible,
+			_overlay.get_node("%HelpPanel").visible,
 			"exactly one panel is visible (held=%s)" % held
 		)
 
@@ -79,30 +80,56 @@ func test_the_two_panels_are_never_both_up() -> void:
 func test_hint_copy_resolves_action_placeholders() -> void:
 	_overlay.hint_text = "hold {{ show_help }} for help"
 
-	assert_eq(_overlay.resolved_hint_text(), "hold F4 for help", "the placeholder becomes the binding")
-	assert_eq(_overlay.get_node("%HintText").text, "hold F4 for help", "and the label carries the resolved copy")
-	assert_eq(_overlay.hint_text, "hold {{ show_help }} for help", "the authored string keeps its placeholder")
+	assert_eq(
+		_overlay.resolved_hint_text(), "hold F4 for help", "the placeholder becomes the binding"
+	)
+	assert_eq(
+		_overlay.get_node("%HintText").text,
+		"hold F4 for help",
+		"and the label carries the resolved copy"
+	)
+	assert_eq(
+		_overlay.hint_text,
+		"hold {{ show_help }} for help",
+		"the authored string keeps its placeholder"
+	)
 
 
 func test_help_copy_resolves_action_placeholders() -> void:
 	_overlay.help_text = "attack-move is {{ command_attack_move }}"
 
-	assert_eq(_overlay.resolved_help_text(), "attack-move is A", "the placeholder becomes the binding")
-	assert_eq(_overlay.get_node("%HelpText").text, "attack-move is A", "and the label carries the resolved copy")
+	assert_eq(
+		_overlay.resolved_help_text(), "attack-move is A", "the placeholder becomes the binding"
+	)
+	assert_eq(
+		_overlay.get_node("%HelpText").text,
+		"attack-move is A",
+		"and the label carries the resolved copy"
+	)
 
 
 func test_copy_without_placeholders_is_passed_through_untouched() -> void:
 	_overlay.hint_text = "plain copy, no braces"
 
-	assert_eq(_overlay.resolved_hint_text(), "plain copy, no braces", "nothing to substitute, nothing changed")
+	assert_eq(
+		_overlay.resolved_hint_text(),
+		"plain copy, no braces",
+		"nothing to substitute, nothing changed"
+	)
 
 
 func test_empty_copy_is_allowed() -> void:
 	_overlay.hint_text = ""
 	_overlay.help_text = ""
 
-	assert_eq(_overlay.resolved_hint_text(), "", "an unauthored hint resolves to empty, not an error")
-	assert_eq(_overlay.resolved_help_text(), "", "an unauthored help panel resolves to empty, not an error")
+	assert_eq(
+		_overlay.resolved_hint_text(), "", "an unauthored hint resolves to empty, not an error"
+	)
+	assert_eq(
+		_overlay.resolved_help_text(),
+		"",
+		"an unauthored help panel resolves to empty, not an error"
+	)
 
 
 func test_the_debug_hint_is_down_in_a_session_that_does_not_allow_debugging() -> void:
@@ -131,5 +158,7 @@ func test_the_debug_hint_drops_once_the_debug_view_is_up() -> void:
 
 func test_the_debug_hint_names_the_toggle_key() -> void:
 	var key: String = InputPrompt.action_text(DebugMode.TOGGLE_ACTION)
-	assert_true(_overlay.resolved_debug_hint_text().contains(key),
-		"the debug hint names the key bound to the toggle")
+	assert_true(
+		_overlay.resolved_debug_hint_text().contains(key),
+		"the debug hint names the key bound to the toggle"
+	)

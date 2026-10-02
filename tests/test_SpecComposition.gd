@@ -23,17 +23,24 @@ func test_a_piece_that_moves_or_occupies_takes_orders() -> void:
 
 
 func test_an_uncommandable_fixture_is_a_feature() -> void:
-	assert_eq(SpecComposition.tier({"footprint": [2, 2], "commandable": false}),
-		SpecComposition.Tier.FEATURE)
+	assert_eq(
+		SpecComposition.tier({"footprint": [2, 2], "commandable": false}),
+		SpecComposition.Tier.FEATURE
+	)
 
 
 func test_anything_that_can_be_damaged_is_an_actor_even_if_not_ordered() -> void:
-	assert_eq(SpecComposition.tier({"movement": MOBILE, "commandable": false,
-		"defense": {"hp": 50}}), SpecComposition.Tier.COMMANDABLE, "the Recon Drone's shape")
+	assert_eq(
+		SpecComposition.tier({"movement": MOBILE, "commandable": false, "defense": {"hp": 50}}),
+		SpecComposition.Tier.COMMANDABLE,
+		"the Recon Drone's shape"
+	)
 
 
 func test_vision_alone_is_bodiless() -> void:
 	assert_eq(SpecComposition.tier({"senses": {"vision": "eyes"}}), SpecComposition.Tier.BODILESS)
+
+
 #endregion
 
 
@@ -48,8 +55,10 @@ func _compose(a_name: String, a_spec: Dictionary) -> Node:
 	var ctx: RefCounted = sync._open(path)
 	sync._sync_composition(ctx, spec)
 	sync._close(ctx)
-	var node: Node = (ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
-		as PackedScene).instantiate()
+	var node: Node = (
+		(ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene)
+		. instantiate()
+	)
 	add_child_autofree(node)
 	return node
 
@@ -77,8 +86,11 @@ func test_a_unit_is_composed_with_the_actor_set_and_locomotion() -> void:
 	assert_false(unit.has_node("Structure"))
 	assert_eq(unit.collision_layer, 1, "a mobile Actor collides like every unit")
 	assert_eq((unit.get_node("HPBar") as Sprite3D).billboard, BaseMaterial3D.BILLBOARD_FIXED_Y)
-	assert_eq((unit.get_node("HPBar/HPBarFill") as Sprite3D).billboard,
-		BaseMaterial3D.BILLBOARD_FIXED_Y, "an override inside a component instance survives")
+	assert_eq(
+		(unit.get_node("HPBar/HPBarFill") as Sprite3D).billboard,
+		BaseMaterial3D.BILLBOARD_FIXED_Y,
+		"an override inside a component instance survives"
+	)
 
 
 func test_a_structure_is_composed_with_its_footprint_and_no_locomotion() -> void:
@@ -114,6 +126,8 @@ func test_composing_a_composed_scene_changes_nothing() -> void:
 	sync._sync_composition(ctx, spec)
 	assert_false(ctx.dirty, "every guaranteed component is already there")
 	sync._close(ctx)
+
+
 #endregion
 
 
@@ -131,7 +145,8 @@ func test_a_renamed_component_is_renamed_in_place_not_duplicated() -> void:
 	sync._close(ctx)
 	# Put the old name back, as a scene from before the rename would have it.
 	var text: String = FileAccess.get_file_as_string(path).replace(
-		'[node name="Locomotion"', '[node name="Movement"')
+		'[node name="Locomotion"', '[node name="Movement"'
+	)
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	file.store_string(text)
 	file.close()
@@ -141,13 +156,20 @@ func test_a_renamed_component_is_renamed_in_place_not_duplicated() -> void:
 	sync._sync_composition(ctx, spec)
 	sync._close(ctx)
 
-	var node: Node = (ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
-		as PackedScene).instantiate()
+	var node: Node = (
+		(ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene)
+		. instantiate()
+	)
 	add_child_autofree(node)
 	assert_false(node.has_node("Movement"), "the old name is gone")
 	assert_true(node.get_node("Locomotion") is Movement, "carried over, not replaced")
-	assert_eq(node.get_children().filter(func(c: Node) -> bool: return c is Movement).size(), 1,
-		"and there is exactly one")
+	assert_eq(
+		node.get_children().filter(func(c: Node) -> bool: return c is Movement).size(),
+		1,
+		"and there is exactly one"
+	)
+
+
 #endregion
 
 

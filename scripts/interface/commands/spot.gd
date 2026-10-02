@@ -21,12 +21,12 @@ extends MoveCommand
 ##   holding it; a spotter told to do something else has stopped spotting, and leaving a
 ##   live beacon behind would let a player place them for free by re-tasking.
 
+
 #region Preconditions
 ## A unit not granted the ability simply cannot do this; anything else about the order
 ## (reachability, whether the ground is worth spotting) is not a precondition's business.
 static func meets_precondition(
-	actor: Commandable,
-	_message: CommandMessage
+	actor: Commandable, _message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	if actor == null or not _can_spot(actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -44,10 +44,12 @@ static func meets_precondition(
 static func target_range(a_actor: Commandable) -> float:
 	return AbilityCatalog.range_for(ABILITY_ID, a_actor)
 
+
 ## How long the call takes once in position, in physics ticks (30/second). The channel is the
 ## cost of the mechanic: a spotter is stationary and exposed while it runs, and any new order
 ## cancels it.
 const CHANNEL_TICKS: int = 300
+
 
 ## Whether `a_actor` is granted Spot at all. It used to be the presence of a `Spotter`
 ## component, whose whole content was these two constants; it is an ordinary granted ability
@@ -55,6 +57,7 @@ const CHANNEL_TICKS: int = 300
 static func _can_spot(actor: Commandable) -> bool:
 	var pool := actor.get_node_or_null("Abilities") as Abilities if actor != null else null
 	return pool != null and pool.grants(ABILITY_ID)
+
 
 ## The `kind: AbilityDefinition` doc this command is the verb of.
 const ABILITY_ID: StringName = &"spot"
@@ -67,6 +70,8 @@ const ABILITY_ID: StringName = &"spot"
 ## Ability's lookup and has to make it itself.
 static func default_cast_arity(_message: CommandMessage) -> CastArity:
 	return AbilityCatalog.cast_arity_of(ABILITY_ID)
+
+
 #endregion
 
 #region Properties
@@ -87,6 +92,7 @@ var _beacon: Beacon = null
 ## Whether the beacon was ever raised — see above.
 var _beacon_raised: bool = false
 #endregion
+
 
 #region State updates
 ## Calling a strike in is a channeled action, so a hit interrupts it exactly as it
@@ -159,7 +165,10 @@ func on_released(_a_actor: Commandable) -> void:
 		_beacon.dismiss()
 	_beacon = null
 	_beacon_raised = false
+
+
 #endregion
+
 
 #region Private helpers
 ## Place the beacon at the ordered point — or, when the order named an enemy unit that can
@@ -188,6 +197,9 @@ func _hold_leash(a_actor: Commandable) -> void:
 	if not is_instance_valid(_beacon):
 		return
 	var carrier: Entity = _beacon.carrier()
-	if carrier != null and a_actor.xz_position.distance_to(carrier.xz_position) > Spot.target_range(a_actor):
+	if (
+		carrier != null
+		and a_actor.xz_position.distance_to(carrier.xz_position) > Spot.target_range(a_actor)
+	):
 		_beacon.dismiss()
 #endregion

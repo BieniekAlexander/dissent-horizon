@@ -36,6 +36,5 @@ func test_is_idempotent_when_a_host_already_exists() -> void:
 	var resolved: ScenarioTriggerManager = _scn._ensure_trigger_manager()
 	assert_same(resolved, authored, "returns the existing host, doesn't create a second")
 	assert_eq(
-		_scn.find_children("*", "ScenarioTriggerManager", true, false).size(), 1,
-		"exactly one host"
+		_scn.find_children("*", "ScenarioTriggerManager", true, false).size(), 1, "exactly one host"
 	)

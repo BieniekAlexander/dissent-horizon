@@ -19,27 +19,32 @@ const VEHICLE_SIZE: Vector3 = Vector3(1.40, 0.60, 2.10)
 # Classification
 # --------------------------------------------------------------------------- #
 func test_grounded_frames_split_bio_from_mech() -> void:
-	assert_eq(VisualDefaults.classify_piece(
-		Defense.FrameType.BIO, Movement.Mode.GROUNDED, false),
-		VisualDefaults.VisualClass.BIO_UNIT)
-	assert_eq(VisualDefaults.classify_piece(
-		Defense.FrameType.MECH, Movement.Mode.GROUNDED, false),
-		VisualDefaults.VisualClass.MECH_UNIT)
+	assert_eq(
+		VisualDefaults.classify_piece(Defense.FrameType.BIO, Movement.Mode.GROUNDED, false),
+		VisualDefaults.VisualClass.BIO_UNIT
+	)
+	assert_eq(
+		VisualDefaults.classify_piece(Defense.FrameType.MECH, Movement.Mode.GROUNDED, false),
+		VisualDefaults.VisualClass.MECH_UNIT
+	)
 
 
 ## The deliberate precedence: what a placeholder says first is "this thing flies".
 func test_aerial_beats_frame_for_both_frames() -> void:
 	for mode: int in [Movement.Mode.FLYING, Movement.Mode.HOVERING]:
 		for frame: int in [Defense.FrameType.BIO, Defense.FrameType.MECH]:
-			assert_eq(VisualDefaults.classify_piece(frame, mode, false),
+			assert_eq(
+				VisualDefaults.classify_piece(frame, mode, false),
 				VisualDefaults.VisualClass.AERIAL_UNIT,
-				"frame %d at mode %d is aerial" % [frame, mode])
+				"frame %d at mode %d is aerial" % [frame, mode]
+			)
 
 
 func test_structure_beats_frame_and_mode() -> void:
-	assert_eq(VisualDefaults.classify_piece(
-		Defense.FrameType.MECH, Movement.Mode.FLYING, true),
-		VisualDefaults.VisualClass.STRUCTURE)
+	assert_eq(
+		VisualDefaults.classify_piece(Defense.FrameType.MECH, Movement.Mode.FLYING, true),
+		VisualDefaults.VisualClass.STRUCTURE
+	)
 
 
 ## Every motion preset's first phase, expanded the way the importer does it.
@@ -56,8 +61,10 @@ func test_every_motion_preset_maps_to_its_own_class() -> void:
 	var phases: Dictionary = _preset_phases()
 	for preset: String in phases:
 		var visual_class: int = VisualDefaults.classify_projectile(phases[preset])
-		assert_true(VisualDefaults.is_projectile_class(visual_class),
-			"%s maps to a projectile class" % preset)
+		assert_true(
+			VisualDefaults.is_projectile_class(visual_class),
+			"%s maps to a projectile class" % preset
+		)
 		assert_false(seen.has(visual_class), "%s is distinct" % preset)
 		seen.append(visual_class)
 	assert_eq(seen.size(), EmissionPhase.PRESETS.size())
@@ -66,8 +73,11 @@ func test_every_motion_preset_maps_to_its_own_class() -> void:
 ## Piece classes must NOT be mistaken for projectile ones — the report groups on this.
 func test_piece_classes_are_not_projectile_classes() -> void:
 	for visual_class: int in [
-			VisualDefaults.VisualClass.BIO_UNIT, VisualDefaults.VisualClass.MECH_UNIT,
-			VisualDefaults.VisualClass.AERIAL_UNIT, VisualDefaults.VisualClass.STRUCTURE]:
+		VisualDefaults.VisualClass.BIO_UNIT,
+		VisualDefaults.VisualClass.MECH_UNIT,
+		VisualDefaults.VisualClass.AERIAL_UNIT,
+		VisualDefaults.VisualClass.STRUCTURE
+	]:
 		assert_false(VisualDefaults.is_projectile_class(visual_class))
 
 
@@ -77,15 +87,20 @@ func test_piece_classes_are_not_projectile_classes() -> void:
 func test_every_class_has_a_placeholder_of_a_primitive_type() -> void:
 	for visual_class: int in VisualDefaults.VisualClass.values():
 		var mesh: Dictionary = VisualDefaults.placeholder_mesh(visual_class, Vector2i.ONE)
-		assert_true(String(mesh["type"]).ends_with("Mesh"),
-			"%s placeholder is a mesh type" % VisualDefaults.CLASS_NAMES[visual_class])
-		assert_false((mesh["props"] as Dictionary).is_empty(),
-			"%s placeholder is dimensioned" % VisualDefaults.CLASS_NAMES[visual_class])
+		assert_true(
+			String(mesh["type"]).ends_with("Mesh"),
+			"%s placeholder is a mesh type" % VisualDefaults.CLASS_NAMES[visual_class]
+		)
+		assert_false(
+			(mesh["props"] as Dictionary).is_empty(),
+			"%s placeholder is dimensioned" % VisualDefaults.CLASS_NAMES[visual_class]
+		)
 
 
 func test_structure_placeholder_takes_the_authored_footprint() -> void:
 	var mesh: Dictionary = VisualDefaults.placeholder_mesh(
-		VisualDefaults.VisualClass.STRUCTURE, Vector2i(6, 4))
+		VisualDefaults.VisualClass.STRUCTURE, Vector2i(6, 4)
+	)
 	var size: Vector3 = mesh["props"]["size"]
 	assert_almost_eq(size.x, 6.0 * VisualDefaults.CELL_SIZE, 0.001)
 	assert_almost_eq(size.z, 4.0 * VisualDefaults.CELL_SIZE, 0.001)
@@ -95,7 +110,8 @@ func test_structure_placeholder_takes_the_authored_footprint() -> void:
 ## A scene that never set `dimensions` must not produce a zero-size box.
 func test_degenerate_footprint_falls_back_to_one_cell() -> void:
 	var mesh: Dictionary = VisualDefaults.placeholder_mesh(
-		VisualDefaults.VisualClass.STRUCTURE, Vector2i.ZERO)
+		VisualDefaults.VisualClass.STRUCTURE, Vector2i.ZERO
+	)
 	var size: Vector3 = mesh["props"]["size"]
 	assert_almost_eq(size.x, VisualDefaults.CELL_SIZE, 0.001)
 	assert_almost_eq(size.z, VisualDefaults.CELL_SIZE, 0.001)
@@ -105,10 +121,12 @@ func test_degenerate_footprint_falls_back_to_one_cell() -> void:
 ## every later caller reads.
 func test_placeholder_descriptors_are_not_shared() -> void:
 	var first: Dictionary = VisualDefaults.placeholder_mesh(
-		VisualDefaults.VisualClass.BIO_UNIT, Vector2i.ONE)
+		VisualDefaults.VisualClass.BIO_UNIT, Vector2i.ONE
+	)
 	first["props"]["radius"] = 99.0
 	var second: Dictionary = VisualDefaults.placeholder_mesh(
-		VisualDefaults.VisualClass.BIO_UNIT, Vector2i.ONE)
+		VisualDefaults.VisualClass.BIO_UNIT, Vector2i.ONE
+	)
 	assert_ne(second["props"]["radius"], 99.0)
 
 
@@ -117,14 +135,16 @@ func test_placeholder_descriptors_are_not_shared() -> void:
 # --------------------------------------------------------------------------- #
 func test_small_models_get_the_minimum_click_target() -> void:
 	var shape: Dictionary = VisualDefaults.selection_shape(
-		VisualDefaults.VisualClass.BIO_UNIT, INFANTRY_SIZE, Vector2i.ONE)
+		VisualDefaults.VisualClass.BIO_UNIT, INFANTRY_SIZE, Vector2i.ONE
+	)
 	assert_eq(shape["type"], "CylinderShape3D")
 	assert_almost_eq(float(shape["props"]["radius"]), VisualDefaults.MIN_CLICK_RADIUS, 0.001)
 
 
 func test_large_models_outgrow_the_floor_and_track_the_mesh() -> void:
 	var shape: Dictionary = VisualDefaults.selection_shape(
-		VisualDefaults.VisualClass.MECH_UNIT, VEHICLE_SIZE, Vector2i.ONE)
+		VisualDefaults.VisualClass.MECH_UNIT, VEHICLE_SIZE, Vector2i.ONE
+	)
 	# The LARGER horizontal axis, so a long hull stays clickable turned side-on.
 	assert_almost_eq(float(shape["props"]["radius"]), VEHICLE_SIZE.z / 2.0, 0.001)
 	assert_gt(float(shape["props"]["radius"]), VisualDefaults.MIN_CLICK_RADIUS)
@@ -133,7 +153,8 @@ func test_large_models_outgrow_the_floor_and_track_the_mesh() -> void:
 func test_selection_height_never_collapses() -> void:
 	var flat: Vector3 = Vector3(2.0, 0.01, 2.0)
 	var shape: Dictionary = VisualDefaults.selection_shape(
-		VisualDefaults.VisualClass.AERIAL_UNIT, flat, Vector2i.ONE)
+		VisualDefaults.VisualClass.AERIAL_UNIT, flat, Vector2i.ONE
+	)
 	assert_almost_eq(float(shape["props"]["height"]), VisualDefaults.MIN_CLICK_HEIGHT, 0.001)
 
 
@@ -142,7 +163,8 @@ func test_selection_height_never_collapses() -> void:
 func test_structure_selection_uses_the_footprint_not_the_mesh() -> void:
 	var overhanging: Vector3 = Vector3(9.0, 3.0, 9.0)
 	var shape: Dictionary = VisualDefaults.selection_shape(
-		VisualDefaults.VisualClass.STRUCTURE, overhanging, Vector2i(2, 2))
+		VisualDefaults.VisualClass.STRUCTURE, overhanging, Vector2i(2, 2)
+	)
 	assert_eq(shape["type"], "BoxShape3D")
 	var size: Vector3 = shape["props"]["size"]
 	assert_almost_eq(size.x, 2.0 * VisualDefaults.CELL_SIZE, 0.001)
@@ -154,9 +176,13 @@ func test_selection_shapes_are_always_trivial_primitives() -> void:
 	const TRIVIAL: Array = ["CylinderShape3D", "BoxShape3D", "SphereShape3D", "CapsuleShape3D"]
 	for visual_class: int in VisualDefaults.VisualClass.values():
 		var shape: Dictionary = VisualDefaults.selection_shape(
-			visual_class, VEHICLE_SIZE, Vector2i.ONE)
-		assert_has(TRIVIAL, shape["type"],
-			"%s selection shape is trivial" % VisualDefaults.CLASS_NAMES[visual_class])
+			visual_class, VEHICLE_SIZE, Vector2i.ONE
+		)
+		assert_has(
+			TRIVIAL,
+			shape["type"],
+			"%s selection shape is trivial" % VisualDefaults.CLASS_NAMES[visual_class]
+		)
 
 
 # --------------------------------------------------------------------------- #
@@ -169,16 +195,18 @@ func test_bar_width_is_two_thirds_of_a_wide_model() -> void:
 
 func test_bar_width_floors_on_narrow_models() -> void:
 	# An infantryman: two thirds of 0.4 is below the floor, so the floor wins.
-	assert_almost_eq(VisualDefaults.hp_bar_width(INFANTRY_SIZE.x),
-		VisualDefaults.HP_BAR_MIN_WIDTH, 0.001)
+	assert_almost_eq(
+		VisualDefaults.hp_bar_width(INFANTRY_SIZE.x), VisualDefaults.HP_BAR_MIN_WIDTH, 0.001
+	)
 
 
 func test_bar_width_never_exceeds_a_model_it_floors_under() -> void:
 	# Above the floor the bar is always narrower than the model it belongs to — the
 	# regression the 2/3 ratio exists to prevent.
 	for width: float in [1.0, 2.0, 4.0, 6.0]:
-		assert_lt(VisualDefaults.hp_bar_width(width), width,
-			"bar narrower than a %.1f-wide model" % width)
+		assert_lt(
+			VisualDefaults.hp_bar_width(width), width, "bar narrower than a %.1f-wide model" % width
+		)
 
 
 func test_bar_clears_the_top_of_the_model() -> void:
@@ -190,8 +218,11 @@ func test_bar_clears_the_top_of_the_model() -> void:
 ## Zero is the CLEARED sentinel, so a real model must never derive it.
 func test_bar_origin_is_never_the_zero_vector() -> void:
 	for top: float in [0.0, 0.5, 2.0, 4.0]:
-		assert_ne(VisualDefaults.hp_bar_origin(top), Vector3.ZERO,
-			"model top %.1f derives a non-zero origin" % top)
+		assert_ne(
+			VisualDefaults.hp_bar_origin(top),
+			Vector3.ZERO,
+			"model top %.1f derives a non-zero origin" % top
+		)
 
 
 # --------------------------------------------------------------------------- #
@@ -219,15 +250,28 @@ func test_every_placeholder_reports_a_positive_size() -> void:
 
 
 func test_placeholder_size_reads_each_primitive_correctly() -> void:
-	assert_eq(VisualDefaults.placeholder_size(
-		{"type": "BoxMesh", "props": {"size": Vector3(1.0, 2.0, 3.0)}}), Vector3(1.0, 2.0, 3.0))
-	assert_eq(VisualDefaults.placeholder_size(
-		{"type": "CapsuleMesh", "props": {"radius": 0.5, "height": 2.0}}), Vector3(1.0, 2.0, 1.0))
+	assert_eq(
+		VisualDefaults.placeholder_size(
+			{"type": "BoxMesh", "props": {"size": Vector3(1.0, 2.0, 3.0)}}
+		),
+		Vector3(1.0, 2.0, 3.0)
+	)
+	assert_eq(
+		VisualDefaults.placeholder_size(
+			{"type": "CapsuleMesh", "props": {"radius": 0.5, "height": 2.0}}
+		),
+		Vector3(1.0, 2.0, 1.0)
+	)
 	# A cone: the wider end sets the width.
-	assert_eq(VisualDefaults.placeholder_size(
-		{"type": "CylinderMesh",
-		"props": {"top_radius": 0.0, "bottom_radius": 0.25, "height": 1.0}}),
-		Vector3(0.5, 1.0, 0.5))
+	assert_eq(
+		VisualDefaults.placeholder_size(
+			{
+				"type": "CylinderMesh",
+				"props": {"top_radius": 0.0, "bottom_radius": 0.25, "height": 1.0}
+			}
+		),
+		Vector3(0.5, 1.0, 0.5)
+	)
 
 
 ## An impact burst that looks like the shell that caused it marks nothing.
@@ -237,7 +281,10 @@ func test_impact_burst_differs_from_every_trajectory_mesh() -> void:
 	var phases: Dictionary = _preset_phases()
 	for preset: String in phases:
 		var in_flight: Dictionary = VisualDefaults.placeholder_mesh(
-			VisualDefaults.classify_projectile(phases[preset]), Vector2i.ONE)
-		assert_ne(VisualDefaults.placeholder_size(in_flight),
+			VisualDefaults.classify_projectile(phases[preset]), Vector2i.ONE
+		)
+		assert_ne(
+			VisualDefaults.placeholder_size(in_flight),
 			VisualDefaults.placeholder_size(burst),
-			"%s's burst is distinguishable from its shell" % preset)
+			"%s's burst is distinguishable from its shell" % preset
+		)

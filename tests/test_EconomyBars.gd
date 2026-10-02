@@ -8,32 +8,47 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_EconomyBars.gd -gexit
 
+
 ## A minimal EconomyBar for exercising the base class's generic preview maths
 ## (_preview_regions()) without any of EnergyBar/DominionBar/InfrastructureBar's own
 ## colour/capacity rules getting in the way — see §Hover previews (generic).
-class _StubBar extends EconomyBar:
+class _StubBar:
+	extends EconomyBar
 	var stub_value: float = 0.0
 	var stub_capacity: float = 100.0
 	var stub_cost: float = 0.0
+
 	func _current_value() -> float:
 		return stub_value
+
 	func _capacity() -> float:
 		return stub_capacity
+
 	func _preview_cost() -> float:
 		return stub_cost
+
 	func _fill_color(_a_frac: float) -> Color:
 		return Color.WHITE
 
 
 func before_each() -> void:
-	FakePieces.install_families([{"id": _PROVIDER_VARIANT, "footprint": Vector2i(2, 2),
-		"infrastructure": _PROVIDER_GRANT}])
-	FakePieces.register_tool(FakePieces.tool(_UNIT_TYPE, FakePieces.PLAIN, [],
-		ControlBinding.ControlContext.TRAIN))
-	FakePieces.register_tool(FakePieces.tool(_PROVIDER_TYPE, {"structure": true,
-		"dimensions": Vector2i(2, 2)}, [_PROVIDER_VARIANT]))
-	FakePieces.register_tool(FakePieces.tool(_CONSUMER_TYPE, {"structure": true,
-		"dimensions": Vector2i(2, 2), "infrastructure": -_CONSUMER_DRAW}))
+	FakePieces.install_families(
+		[{"id": _PROVIDER_VARIANT, "footprint": Vector2i(2, 2), "infrastructure": _PROVIDER_GRANT}]
+	)
+	FakePieces.register_tool(
+		FakePieces.tool(_UNIT_TYPE, FakePieces.PLAIN, [], ControlBinding.ControlContext.TRAIN)
+	)
+	FakePieces.register_tool(
+		FakePieces.tool(
+			_PROVIDER_TYPE, {"structure": true, "dimensions": Vector2i(2, 2)}, [_PROVIDER_VARIANT]
+		)
+	)
+	FakePieces.register_tool(
+		FakePieces.tool(
+			_CONSUMER_TYPE,
+			{"structure": true, "dimensions": Vector2i(2, 2), "infrastructure": -_CONSUMER_DRAW}
+		)
+	)
 
 
 func after_each() -> void:
@@ -43,9 +58,12 @@ func after_each() -> void:
 
 func _make_commander(a_energy: int = 0, a_dominion: int = 0) -> Commander:
 	var commander := autofree(Commander.new()) as Commander
-	commander.technology_mapping = {_UNIT_TYPE: FakePieces.tech(_IRREGULAR_ENERGY_COST),
-		_PROVIDER_TYPE: FakePieces.tech(), _PROVIDER_VARIANT: FakePieces.tech(),
-		_CONSUMER_TYPE: FakePieces.tech(_CONSUMER_ENERGY_COST)}
+	commander.technology_mapping = {
+		_UNIT_TYPE: FakePieces.tech(_IRREGULAR_ENERGY_COST),
+		_PROVIDER_TYPE: FakePieces.tech(),
+		_PROVIDER_VARIANT: FakePieces.tech(),
+		_CONSUMER_TYPE: FakePieces.tech(_CONSUMER_ENERGY_COST)
+	}
 	commander.energy = a_energy
 	commander.dominion = a_dominion
 	return commander
@@ -89,6 +107,7 @@ func _grid_offering(a_commander: Commander, a_costs: Array) -> SanctionGrid:
 
 # --- Hover previews (generic) ------------------------------------------------------
 
+
 func test_no_cost_previews_nothing() -> void:
 	var bar := autofree(_StubBar.new()) as _StubBar
 	bar.commander = _make_commander()
@@ -127,10 +146,17 @@ func test_preview_colour_is_opaque_and_muted_toward_the_background() -> void:
 	bar.stub_capacity = 100.0
 	bar.stub_value = 80.0
 	bar.stub_cost = 10.0
-	assert_almost_eq(bar._preview_regions()[0].color.a, 1.0, 0.001,
-		"opaque, not alpha-blended — see _dimmed()'s comment for why alpha self-cancels")
-	assert_ne(bar._preview_regions()[0].color, Color.WHITE,
-		"_StubBar's real fill is plain white, so a genuinely muted colour must differ from it")
+	assert_almost_eq(
+		bar._preview_regions()[0].color.a,
+		1.0,
+		0.001,
+		"opaque, not alpha-blended — see _dimmed()'s comment for why alpha self-cancels"
+	)
+	assert_ne(
+		bar._preview_regions()[0].color,
+		Color.WHITE,
+		"_StubBar's real fill is plain white, so a genuinely muted colour must differ from it"
+	)
 
 
 func test_dimming_a_colour_that_matches_the_real_fill_still_changes_something_visible() -> void:
@@ -141,9 +167,11 @@ func test_dimming_a_colour_that_matches_the_real_fill_still_changes_something_vi
 	var bar := autofree(_StubBar.new()) as _StubBar
 	var real_fill_color := Color(0.2, 0.6, 0.8)
 	var dimmed: Color = bar._dimmed(real_fill_color)
-	assert_ne(Vector3(dimmed.r, dimmed.g, dimmed.b),
+	assert_ne(
+		Vector3(dimmed.r, dimmed.g, dimmed.b),
 		Vector3(real_fill_color.r, real_fill_color.g, real_fill_color.b),
-		"the RGB itself must move toward the background, not just the alpha")
+		"the RGB itself must move toward the background, not just the alpha"
+	)
 
 
 # --- RTSController.previewed_tool() (hover vs. armed) ------------------------------
@@ -152,6 +180,7 @@ func test_dimming_a_colour_that_matches_the_real_fill_still_changes_something_vi
 ## one — never combined, so pointing at a different button's cost while something is armed
 ## previews only what is under the pointer. An armed tool with nothing hovered still
 ## previews, since it is exactly as pending a purchase as a hovered one.
+
 
 func test_nothing_hovered_or_armed_previews_nothing() -> void:
 	var controller := autofree(RTSController.new()) as RTSController
@@ -173,8 +202,11 @@ func test_hovering_a_different_tool_than_the_armed_one_previews_only_the_hover()
 	var button := autofree(Control.new()) as Control
 	button.name = _PROVIDER_COMMAND  # hovered: Safehouse
 	controller.hovered_command_button = button
-	assert_eq(controller.previewed_tool().type, _PROVIDER_TYPE,
-		"the hover wins outright — never both, never a sum of the two costs")
+	assert_eq(
+		controller.previewed_tool().type,
+		_PROVIDER_TYPE,
+		"the hover wins outright — never both, never a sum of the two costs"
+	)
 
 
 func test_hovering_a_verb_falls_through_to_the_armed_tool() -> void:
@@ -188,6 +220,7 @@ func test_hovering_a_verb_falls_through_to_the_armed_tool() -> void:
 
 
 # --- EnergyBar --------------------------------------------------------------------
+
 
 func test_energy_bars_value_is_the_commanders_energy() -> void:
 	var bar := autofree(EnergyBar.new()) as EnergyBar
@@ -212,9 +245,7 @@ func test_energy_fill_colour_progresses_from_the_low_stop_to_the_high_stop() -> 
 func test_energy_past_the_threshold_oscillates() -> void:
 	var bar := autofree(EnergyBar.new()) as EnergyBar
 	bar.commander = _make_commander(ResourcePressure.ENERGY_SURPLUS_THRESHOLD + 1)
-	var resting: Color = BarGradient.with_saturation_ramp(
-		EnergyBar._gradient.sample(1.0), 1.0
-	)
+	var resting: Color = BarGradient.with_saturation_ramp(EnergyBar._gradient.sample(1.0), 1.0)
 	assert_ne(bar._fill_color(1.0), resting, "past the threshold the fill pulses off its base")
 
 
@@ -246,10 +277,14 @@ func test_hovering_an_affordable_unit_previews_its_cost() -> void:
 	bar.controller = _hovering(_IRREGULAR_COMMAND)
 	var regions: Array[Dictionary] = bar._preview_regions()
 	assert_eq(regions.size(), 1)
-	assert_almost_eq(regions[0].end_frac,
-		500.0 / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), 0.001)
-	assert_almost_eq(regions[0].start_frac,
-		(500.0 - _IRREGULAR_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), 0.001)
+	assert_almost_eq(
+		regions[0].end_frac, 500.0 / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), 0.001
+	)
+	assert_almost_eq(
+		regions[0].start_frac,
+		(500.0 - _IRREGULAR_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
+		0.001
+	)
 
 
 func test_hovering_an_unaffordable_unit_previews_the_shortfall() -> void:
@@ -259,10 +294,14 @@ func test_hovering_an_unaffordable_unit_previews_the_shortfall() -> void:
 	bar.controller = _hovering(_IRREGULAR_COMMAND)
 	var regions: Array[Dictionary] = bar._preview_regions()
 	assert_eq(regions.size(), 1)
-	assert_almost_eq(regions[0].start_frac,
-		40.0 / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), 0.001)
-	assert_almost_eq(regions[0].end_frac,
-		float(_IRREGULAR_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), 0.001)
+	assert_almost_eq(
+		regions[0].start_frac, 40.0 / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), 0.001
+	)
+	assert_almost_eq(
+		regions[0].end_frac,
+		float(_IRREGULAR_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
+		0.001
+	)
 
 
 func test_an_armed_purchase_previews_the_same_as_a_hovered_one() -> void:
@@ -272,8 +311,11 @@ func test_an_armed_purchase_previews_the_same_as_a_hovered_one() -> void:
 	bar.controller = _arming(_IRREGULAR_COMMAND)
 	var regions: Array[Dictionary] = bar._preview_regions()
 	assert_eq(regions.size(), 1)
-	assert_almost_eq(regions[0].start_frac,
-		(500.0 - _IRREGULAR_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), 0.001)
+	assert_almost_eq(
+		regions[0].start_frac,
+		(500.0 - _IRREGULAR_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
+		0.001
+	)
 
 
 func test_hovering_a_different_purchase_overrides_an_armed_one_never_sums_them() -> void:
@@ -289,10 +331,14 @@ func test_hovering_a_different_purchase_overrides_an_armed_one_never_sums_them()
 	assert_eq(regions.size(), 1)
 	# 500 energy against a 1000 cost: unaffordable, so [value, cost] — never [armed cost
 	# consumed] + [hover cost missing] added together.
-	assert_almost_eq(regions[0].start_frac, 500.0 / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
-		0.001)
-	assert_almost_eq(regions[0].end_frac, float(_CONSUMER_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
-		0.001)
+	assert_almost_eq(
+		regions[0].start_frac, 500.0 / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD), 0.001
+	)
+	assert_almost_eq(
+		regions[0].end_frac,
+		float(_CONSUMER_ENERGY_COST) / float(ResourcePressure.ENERGY_SURPLUS_THRESHOLD),
+		0.001
+	)
 
 
 func test_hovering_nothing_previews_nothing() -> void:
@@ -314,8 +360,10 @@ func test_hovering_a_verb_previews_nothing() -> void:
 ## A stubbed cost (no piece in the current content actually crosses the threshold) — see
 ## §Hover previews (generic) above for why stubbing _preview_cost() directly is the reliable
 ## way to test this rather than hunting for content that happens to be expensive enough.
-class _EnergyBarStubCost extends EnergyBar:
+class _EnergyBarStubCost:
+	extends EnergyBar
 	var stub_cost: float = 0.0
+
 	func _preview_cost() -> float:
 		return stub_cost
 
@@ -344,6 +392,7 @@ func test_growing_the_bar_for_a_huge_cost_does_not_itself_trigger_oscillation() 
 
 # --- InfrastructureBar -------------------------------------------------------------
 
+
 func test_infrastructure_bars_value_is_upkeep_not_capacity() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
 	var commander := _make_commander()
@@ -355,8 +404,11 @@ func test_infrastructure_bars_value_is_upkeep_not_capacity() -> void:
 func test_capacity_defaults_to_the_visual_threshold() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
 	bar.commander = _make_commander()
-	assert_eq(bar._capacity(), InfrastructureBar.DEFAULT_VISUAL_THRESHOLD,
-		"base infrastructure (100) is well under the 500 default, so the bar stays at scale")
+	assert_eq(
+		bar._capacity(),
+		InfrastructureBar.DEFAULT_VISUAL_THRESHOLD,
+		"base infrastructure (100) is well under the 500 default, so the bar stays at scale"
+	)
 
 
 func test_capacity_rescales_to_stay_within_the_bar() -> void:
@@ -364,8 +416,11 @@ func test_capacity_rescales_to_stay_within_the_bar() -> void:
 	var commander := _make_commander()
 	commander.add_infrastructure(1000)
 	bar.commander = commander
-	assert_eq(bar._capacity(), float(commander.infrastructure_provided),
-		"provided capacity now exceeds the default, so it becomes the new scale")
+	assert_eq(
+		bar._capacity(),
+		float(commander.infrastructure_provided),
+		"provided capacity now exceeds the default, so it becomes the new scale"
+	)
 
 
 func test_light_use_draws_a_used_region_and_a_grey_spare_region() -> void:
@@ -379,8 +434,12 @@ func test_light_use_draws_a_used_region_and_a_grey_spare_region() -> void:
 	assert_eq(regions[0].color, InfrastructureBar.USED_COLOR)
 	assert_almost_eq(regions[0].end_frac, 40.0 / 700.0, 0.001)
 	assert_eq(regions[1].color, InfrastructureBar.SPARE_COLOR)
-	assert_almost_eq(regions[1].end_frac, 1.0, 0.001,
-		"provided alone now sets the scale, so spare runs to the bar's end")
+	assert_almost_eq(
+		regions[1].end_frac,
+		1.0,
+		0.001,
+		"provided alone now sets the scale, so spare runs to the bar's end"
+	)
 
 
 func test_no_usage_draws_only_the_spare_region() -> void:
@@ -394,9 +453,9 @@ func test_no_usage_draws_only_the_spare_region() -> void:
 func test_approaching_capacity_warns_steadily_in_the_spare_region() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
 	var commander := _make_commander()
-	commander.add_infrastructure(-int(
-		Commander.BASE_INFRASTRUCTURE * ResourcePressure.INFRASTRUCTURE_PRESSURE_FRACTION
-	))
+	commander.add_infrastructure(
+		-int(Commander.BASE_INFRASTRUCTURE * ResourcePressure.INFRASTRUCTURE_PRESSURE_FRACTION)
+	)
 	bar.commander = commander
 	assert_false(commander.is_infrastructure_strained(), "the fixture is not yet over capacity")
 	assert_eq(bar._fill_regions()[1].color, ResourcePressure.INFRASTRUCTURE_PRESSURE_COLOR)
@@ -411,11 +470,18 @@ func test_strained_infrastructure_oscillates_the_excess_region() -> void:
 	bar.commander = commander
 	assert_true(commander.is_infrastructure_strained(), "the fixture is actually strained")
 	var regions: Array[Dictionary] = bar._fill_regions()
-	assert_almost_eq(regions[1].end_frac, 1.0, 0.001,
-		"required alone now sets the scale, so the excess region runs to the bar's end")
+	assert_almost_eq(
+		regions[1].end_frac,
+		1.0,
+		0.001,
+		"required alone now sets the scale, so the excess region runs to the bar's end"
+	)
 	var excess_color: Color = regions[1].color
-	assert_ne(excess_color, ResourcePressure.INFRASTRUCTURE_OVER_COLOR,
-		"pulsing, not the steady over-colour")
+	assert_ne(
+		excess_color,
+		ResourcePressure.INFRASTRUCTURE_OVER_COLOR,
+		"pulsing, not the steady over-colour"
+	)
 	assert_ne(excess_color, ResourcePressure.INFRASTRUCTURE_PRESSURE_COLOR)
 	assert_ne(excess_color, InfrastructureBar.SPARE_COLOR)
 
@@ -433,6 +499,7 @@ func test_segment_size_is_the_commanders_provider_grant() -> void:
 
 # --- Pending pieces --------------------------------------------------------------
 
+
 ## Upkeep a planned building will add eats into today's spare capacity: that stretch changes
 ## from spare to used, and nothing else does.
 func test_pending_upkeep_within_spare_capacity_turns_spare_to_used() -> void:
@@ -447,14 +514,18 @@ func test_pending_capacity_extends_the_bar() -> void:
 
 func test_pending_upkeep_past_capacity_shows_the_coming_deficit() -> void:
 	var changes: Array = InfrastructureBar.projected_changes(400.0, 500.0, 600.0, 500.0)
-	assert_eq(changes, [[400.0, 500.0, InfrastructureBar.Band.USED],
-		[500.0, 600.0, InfrastructureBar.Band.OVER]])
+	assert_eq(
+		changes,
+		[[400.0, 500.0, InfrastructureBar.Band.USED], [500.0, 600.0, InfrastructureBar.Band.OVER]]
+	)
 
 
 func test_pending_capacity_closing_a_deficit_turns_it_used() -> void:
 	var changes: Array = InfrastructureBar.projected_changes(600.0, 500.0, 600.0, 700.0)
-	assert_eq(changes, [[500.0, 600.0, InfrastructureBar.Band.USED],
-		[600.0, 700.0, InfrastructureBar.Band.SPARE]])
+	assert_eq(
+		changes,
+		[[500.0, 600.0, InfrastructureBar.Band.USED], [600.0, 700.0, InfrastructureBar.Band.SPARE]]
+	)
 
 
 func test_nothing_pending_draws_nothing() -> void:
@@ -467,6 +538,7 @@ func test_nothing_pending_draws_nothing() -> void:
 ## wiring EnergyBar's hover tests exercise is proven for infrastructure's very different
 ## delta lookup too.
 
+
 func test_hovering_a_provider_previews_added_spare_capacity() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
 	var commander := _make_commander()  # required 0, provided BASE_INFRASTRUCTURE (100)
@@ -474,7 +546,9 @@ func test_hovering_a_provider_previews_added_spare_capacity() -> void:
 	bar.controller = _hovering(_PROVIDER_COMMAND)
 	# The provider's grant is its DEFAULT variant's (variants:), so read it there rather than
 	# pinning a number the owner retunes.
-	var grant: int = PieceFamilies.template(Tool.for_name(_PROVIDER_COMMAND).variants[0]).infrastructure
+	var grant: int = (
+		PieceFamilies.template(Tool.for_name(_PROVIDER_COMMAND).variants[0]).infrastructure
+	)
 	assert_gt(grant, 0)
 	assert_eq(bar._hovered_infrastructure_delta(), grant)
 	var regions: Array[Dictionary] = bar._preview_regions()
@@ -511,9 +585,14 @@ func test_hovering_a_consumer_that_would_cause_a_deficit_previews_it_steadily() 
 	var regions: Array[Dictionary] = bar._preview_regions()
 	assert_eq(regions.size(), 2, "part still fits in spare, part is a genuine preview deficit")
 	assert_eq(regions[0].color, bar._dimmed(InfrastructureBar.USED_COLOR))
-	assert_eq(regions[1].color, bar._dimmed(ResourcePressure.INFRASTRUCTURE_OVER_COLOR),
-		"the deficit idiom, dimmed and STEADY — a plain constant rather than a pulse_between\n"
-		+ "call, so this equality holds regardless of the wall clock")
+	assert_eq(
+		regions[1].color,
+		bar._dimmed(ResourcePressure.INFRASTRUCTURE_OVER_COLOR),
+		(
+			"the deficit idiom, dimmed and STEADY — a plain constant rather than a pulse_between\n"
+			+ "call, so this equality holds regardless of the wall clock"
+		)
+	)
 
 
 func test_no_infrastructure_change_previews_nothing() -> void:
@@ -524,6 +603,7 @@ func test_no_infrastructure_change_previews_nothing() -> void:
 
 
 # --- DominionBar --------------------------------------------------------------------
+
 
 func test_dominion_bars_value_is_the_commanders_dominion() -> void:
 	var bar := autofree(DominionBar.new()) as DominionBar
@@ -566,8 +646,11 @@ func test_the_dearest_option_oscillates_orange_red() -> void:
 	var commander := _make_commander(0, 900)
 	commander.sanction_grid = _grid_offering(commander, [300, 900])
 	bar.commander = commander
-	assert_ne(bar._fill_color(0.0), DominionBar.SATURATED_ORANGE_RED,
-		"pulsing, not the steady saturated colour")
+	assert_ne(
+		bar._fill_color(0.0),
+		DominionBar.SATURATED_ORANGE_RED,
+		"pulsing, not the steady saturated colour"
+	)
 	assert_ne(bar._fill_color(0.0), DominionBar.PALE_YELLOW)
 	assert_ne(bar._fill_color(0.0), DominionBar.SATURATED_ORANGE)
 
@@ -585,6 +668,7 @@ func test_hovering_a_zero_dominion_cost_purchase_previews_nothing() -> void:
 ## Sanction UNLOCK buttons are the real dominion sink (§the class comment above) — a
 ## different button-building path from the command grid's, tracked on its own controller
 ## field rather than hovered_command_button.
+
 
 func test_hovering_a_sanction_unlock_previews_its_dominion_cost() -> void:
 	var bar := autofree(DominionBar.new()) as DominionBar
@@ -618,8 +702,10 @@ func test_a_hovered_sanction_unlock_grows_the_bar_to_fit_its_cost() -> void:
 
 ## _preview_cost() itself is stubbed here for the same reason EnergyBar's is above: nothing
 ## in the current content actually costs dominion to prove the "grows to fit" rule against.
-class _DominionBarStubCost extends DominionBar:
+class _DominionBarStubCost:
+	extends DominionBar
 	var stub_cost: float = 0.0
+
 	func _preview_cost() -> float:
 		return stub_cost
 
@@ -652,6 +738,7 @@ func test_a_purchase_costing_more_dominion_than_the_scale_grows_the_bar_to_fit()
 ## 60-second projection does not itself hit the bar's own clamp (see
 ## test_an_enormous_income_rate_fills_the_rest_of_the_bar_without_growing_it for that case).
 const EXPECTED_PROJECTED_RATE: float = 4.0
+
 
 func _make_tasked_commander() -> Commander:
 	var world := Node3D.new()
@@ -697,13 +784,18 @@ func test_income_projects_sixty_seconds_ahead_of_the_current_fill() -> void:
 	var commander := _make_tasked_commander()
 	commander.dominion = 100
 	bar.commander = commander
-	assert_almost_eq(commander.projected_dominion_rate(), EXPECTED_PROJECTED_RATE, 0.001,
-		"the fixture actually has a projected rate")
+	assert_almost_eq(
+		commander.projected_dominion_rate(),
+		EXPECTED_PROJECTED_RATE,
+		0.001,
+		"the fixture actually has a projected rate"
+	)
 	var capacity: float = bar._capacity()
 	var regions: Array[Dictionary] = bar._rate_regions()
 	assert_eq(regions.size(), 1)
-	assert_almost_eq(regions[0].start_frac, 100.0 / capacity, 0.001,
-		"picks up exactly where the real fill ends")
+	assert_almost_eq(
+		regions[0].start_frac, 100.0 / capacity, 0.001, "picks up exactly where the real fill ends"
+	)
 	var projected: float = commander.projected_dominion_rate() * DominionBar.PROJECTION_SECONDS
 	assert_almost_eq(regions[0].end_frac, (100.0 + projected) / capacity, 0.001)
 
@@ -715,8 +807,11 @@ func test_the_projection_is_the_fill_colour_at_reduced_alpha() -> void:
 	bar.commander = commander
 	var region_color: Color = bar._rate_regions()[0].color
 	var fill_color: Color = bar._fill_color(0.0)
-	assert_eq(Vector3(region_color.r, region_color.g, region_color.b),
-		Vector3(fill_color.r, fill_color.g, fill_color.b), "same colour as the real fill")
+	assert_eq(
+		Vector3(region_color.r, region_color.g, region_color.b),
+		Vector3(fill_color.r, fill_color.g, fill_color.b),
+		"same colour as the real fill"
+	)
 	assert_almost_eq(region_color.a, EconomyBar.RATE_BAR_ALPHA, 0.001)
 
 
@@ -733,8 +828,12 @@ func test_an_enormous_income_rate_fills_the_rest_of_the_bar_without_growing_it()
 	var regions: Array[Dictionary] = bar._rate_regions()
 	assert_eq(regions.size(), 1)
 	assert_almost_eq(regions[0].end_frac, 1.0, 0.001, "clipped to the bar's own edge")
-	assert_almost_eq(bar._capacity(), capacity_before, 0.001,
-		"a big rate does not rescale the bar the way an expensive hover preview does")
+	assert_almost_eq(
+		bar._capacity(),
+		capacity_before,
+		0.001,
+		"a big rate does not rescale the bar the way an expensive hover preview does"
+	)
 
 
 func test_a_rate_that_would_start_past_the_bar_projects_nothing() -> void:

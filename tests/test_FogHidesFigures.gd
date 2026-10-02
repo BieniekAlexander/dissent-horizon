@@ -108,6 +108,8 @@ func test_a_fogged_beacon_is_not_visible_to_the_logic() -> void:
 	assert_false(beacon.is_visible_to(VIEWER), "an opponent cannot act on a fogged beacon")
 	beacon.global_position.x = FOG_EDGE_X - 1.0
 	assert_true(beacon.is_visible_to(VIEWER), "and can once it is in sight")
+
+
 #endregion
 
 
@@ -118,20 +120,23 @@ func _clear_west_of(a_x: float) -> Callable:
 
 func test_a_beam_with_no_fog_test_is_drawn_whole() -> void:
 	var spans: Array[Vector2] = Tracer.visible_spans(
-		Vector3.ZERO, Vector3(10, 0, 0), SAMPLE_STEP, Callable())
+		Vector3.ZERO, Vector3(10, 0, 0), SAMPLE_STEP, Callable()
+	)
 	assert_eq(spans, [Vector2(0.0, 1.0)] as Array[Vector2])
 
 
 func test_a_beam_entirely_in_fog_is_not_drawn() -> void:
 	var spans: Array[Vector2] = Tracer.visible_spans(
-		Vector3(6, 0, 0), Vector3(10, 0, 0), SAMPLE_STEP, _clear_west_of(FOG_EDGE_X))
+		Vector3(6, 0, 0), Vector3(10, 0, 0), SAMPLE_STEP, _clear_west_of(FOG_EDGE_X)
+	)
 	assert_eq(spans.size(), 0)
 
 
 func test_a_beam_crossing_the_edge_is_cut_off_there() -> void:
 	# Fired from inside the fog at a target in sight: only the near-the-target half is drawn.
 	var spans: Array[Vector2] = Tracer.visible_spans(
-		Vector3(10, 0, 0), Vector3(0, 0, 0), SAMPLE_STEP, _clear_west_of(FOG_EDGE_X))
+		Vector3(10, 0, 0), Vector3(0, 0, 0), SAMPLE_STEP, _clear_west_of(FOG_EDGE_X)
+	)
 	assert_eq(spans.size(), 1)
 	assert_almost_eq(spans[0].x, 0.5, SAMPLE_STEP / 10.0, "it starts at the fog edge")
 	assert_eq(spans[0].y, 1.0, "and runs to the target")
@@ -140,7 +145,8 @@ func test_a_beam_crossing_the_edge_is_cut_off_there() -> void:
 func test_a_fog_gap_splits_the_beam_in_two() -> void:
 	var gap: Callable = func(a_xz: Vector2) -> bool: return a_xz.x < 3.0 or a_xz.x > 7.0
 	var spans: Array[Vector2] = Tracer.visible_spans(
-		Vector3.ZERO, Vector3(10, 0, 0), SAMPLE_STEP, gap)
+		Vector3.ZERO, Vector3(10, 0, 0), SAMPLE_STEP, gap
+	)
 	assert_eq(spans.size(), 2, "one stretch each side of the fogged middle")
 	assert_eq(spans[0].x, 0.0)
 	assert_eq(spans[1].y, 1.0)
@@ -166,9 +172,12 @@ func test_the_drawn_beam_survives_its_emission_being_hidden() -> void:
 	tracer.start(Vector3(10, 0, 0), Vector3.ZERO, true)
 	emission.visible = false
 	var drawn: Array = tracer.get_children().filter(
-		func(c: Node) -> bool: return c is MeshInstance3D and (c as MeshInstance3D).visible)
+		func(c: Node) -> bool: return c is MeshInstance3D and (c as MeshInstance3D).visible
+	)
 	assert_eq(drawn.size(), 1, "one segment for the one stretch in sight")
-	assert_true((drawn[0] as MeshInstance3D).is_visible_in_tree(),
-		"a segment under the tracer is not hidden with the emission")
+	assert_true(
+		(drawn[0] as MeshInstance3D).is_visible_in_tree(),
+		"a segment under the tracer is not hidden with the emission"
+	)
 	assert_false(template.visible, "the authored mesh is only the template")
 #endregion

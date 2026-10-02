@@ -66,6 +66,7 @@ var _sweep_backing: ColorRect = null
 var _sweep: ColorRect = null
 #endregion
 
+
 #region Construction
 ## Build a card. `a_glyph_texture` wins over `a_letter` when both are given — the letter is
 ## the stand-in for a condition with no art yet.
@@ -152,7 +153,10 @@ func _make_sweep_rect(a_color: Color, a_fill: float, a_lift: float) -> ColorRect
 	rect.offset_bottom = -a_lift
 	add_child(rect)
 	return rect
+
+
 #endregion
+
 
 #region Live state
 ## Repaint everything that moves while the selection stands still: how much of a duration is
@@ -164,8 +168,7 @@ func refresh(a_remaining: float, a_enabled: bool, a_badge: String = "") -> void:
 	remaining = clampf(a_remaining, 0.0, 1.0)
 	if _sweep != null:
 		_sweep.anchor_right = remaining
-	modulate = CommandButtonState.TINT_AVAILABLE if a_enabled \
-		else CommandButtonState.TINT_LOCKED
+	modulate = CommandButtonState.TINT_AVAILABLE if a_enabled else CommandButtonState.TINT_LOCKED
 	if a_badge.is_empty():
 		if _badge != null:
 			_badge.visible = false

@@ -7,6 +7,7 @@ extends EntitySelector
 
 @export var area: Area3D
 
+
 func filter(a_entities: Array[Entity], _a_manager: ScenarioTriggerManager) -> Array[Entity]:
 	if area == null:
 		return a_entities

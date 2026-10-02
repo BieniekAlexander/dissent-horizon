@@ -84,6 +84,7 @@ var _map: Map  # cached in _initialize; used to look up structure footprint cell
 var _fogged_materials: Array[ShaderMaterial] = []
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	call_deferred(&"_initialize")
@@ -94,8 +95,9 @@ func _ready() -> void:
 ## place that resolution happens — everything else (the registry key, the reveal loop, the
 ## entity-visibility pass) reads it from here.
 func viewer_commander_id() -> int:
-	return watching_commander_id if watching_commander_id >= 0 \
-		else RTSController.PLAYER_COMMANDER_ID
+	return (
+		watching_commander_id if watching_commander_id >= 0 else RTSController.PLAYER_COMMANDER_ID
+	)
 
 
 ## The live Fog tracking `a_commander_id`'s vision, or null when that commander has none
@@ -110,6 +112,7 @@ func viewer_commander_id() -> int:
 static func for_commander(commander_id: int) -> Fog:
 	var fog: Variant = Fog._fogs_by_commander.get(commander_id)
 	return fog if is_instance_valid(fog) else null
+
 
 func _initialize() -> void:
 	var map: Map = _resolve_map()
@@ -142,7 +145,9 @@ func _initialize() -> void:
 	_allocate_buffers()
 	_build_play_mask()  # holds out-of-play pixels transparent (zeroes them in both byte buffers)
 
-	_fog_image = Image.create_from_data(_img_width, _img_height, false, Image.FORMAT_L8, _explored_bytes)
+	_fog_image = Image.create_from_data(
+		_img_width, _img_height, false, Image.FORMAT_L8, _explored_bytes
+	)
 	_fog_texture = ImageTexture.create_from_image(_fog_image)
 
 	# Fog is now drawn by the terrain shader (height-conformal), not this flat plane: hide the
@@ -150,6 +155,7 @@ func _initialize() -> void:
 	visible = false
 	# Whichever nodes draw this map's world surfaces — see Map.fogged_materials.
 	_fogged_materials = map.fogged_materials()
+
 
 ## The Map this fog answers for, found by walking UP from this node — the same
 ## resolution Commander._resolve_refs uses, and for the same reason.
@@ -186,8 +192,10 @@ func _physics_process(_a_delta: float) -> void:
 
 	var active_id: int = Fog.active_commander_id
 	var viewer_id: int = viewer_commander_id()
-	var is_active: bool = (active_id == -1 and viewer_id == RTSController.PLAYER_COMMANDER_ID) \
+	var is_active: bool = (
+		(active_id == -1 and viewer_id == RTSController.PLAYER_COMMANDER_ID)
 		or viewer_id == active_id
+	)
 
 	# ── Update this commander's sight from its vision sources ──
 	# Runs for every commander's Fog so their data stays current even off-screen. The "los"
@@ -217,8 +225,9 @@ func _physics_process(_a_delta: float) -> void:
 		for entity: Entity in get_tree().get_nodes_in_group("piece"):
 			entity.visible = true
 			if entity is Commandable:
-				var stealthed: bool = entity.stealth != null \
-					and entity.stealth.state == Stealth.State.STEALTHED
+				var stealthed: bool = (
+					entity.stealth != null and entity.stealth.state == Stealth.State.STEALTHED
+				)
 				(entity as Commandable).in_sight_range = not stealthed
 		_apply_figure_visibility(viewer_id, true)
 	elif is_active:
@@ -234,8 +243,11 @@ func _physics_process(_a_delta: float) -> void:
 				#
 				# The one exception is a planted charge, which its owner sees only inside their
 				# own vision — it carries none of its own.
-				entity.visible = debug_view or PlantedCharge.of(entity) == null \
+				entity.visible = (
+					debug_view
+					or PlantedCharge.of(entity) == null
 					or fog_clear_at(VU.inXZ(entity.global_position))
+				)
 				continue
 			# A structure that is merely PLANNED (a blueprint an enemy commander has ordered
 			# but not built) isn't on the map at all — it occupies no cells and can't be shot
@@ -255,10 +267,14 @@ func _physics_process(_a_delta: float) -> void:
 				fog_clear = fog_clear_at(VU.inXZ(entity.global_position))
 			entity.visible = debug_view or fog_clear
 			if entity is Commandable:
-				var stealthed: bool = entity.stealth != null \
-					and entity.stealth.state == Stealth.State.STEALTHED
+				var stealthed: bool = (
+					entity.stealth != null and entity.stealth.state == Stealth.State.STEALTHED
+				)
 				(entity as Commandable).in_sight_range = fog_clear and not stealthed
+
+
 #endregion
+
 
 #region Public API
 ## The test a drawing owned by `a_owner_id` must pass, point by point, to be seen by whoever is
@@ -282,6 +298,7 @@ static func get_active_fog() -> Variant:
 	if active_id == -1:
 		return Fog.for_commander(RTSController.PLAYER_COMMANDER_ID)
 	return Fog.for_commander(active_id)
+
 
 ## Which commander's Fog pushes the shroud into the terrain material: the LOWEST-numbered
 ## one with a live Fog registered. Exactly one node may do this — the material is shared, so
@@ -329,6 +346,7 @@ func terrain_visibility_at(a_world_xz: Vector2) -> TerrainVisibility:
 		return TerrainVisibility.IN_SIGHT
 	return TerrainVisibility.EXPLORED
 
+
 ## Whether [a_world_xz] is currently within this commander's live vision (fog pixel clear).
 ## Unlike terrain_visibility_at this works for any registered commander's Fog, not only the
 ## spectated one — `_fog_bytes` is kept current for every one each physics tick.
@@ -348,6 +366,7 @@ func fog_clear_at(a_world_xz: Vector2) -> bool:
 		return false
 	return _fog_bytes[idx] == 0
 
+
 ## Whether [a_world_xz] has EVER been in this commander's vision — in sight now, or explored.
 ## Works for any registered commander's Fog, since every one keeps its bytes current. Out of
 ## play is never explored (`_apply_stamp` leaves those pixels alone).
@@ -358,6 +377,7 @@ func explored_at(a_world_xz: Vector2) -> bool:
 	if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
 		return false
 	return _explored_bytes[pixel.y * _img_width + pixel.x] != UNEXPLORED_BYTE
+
 
 ## True when ANY grid cell [structure] occupies is currently in this fog's vision.
 ## Structures are discretised into a footprint of terrain cells, so a multi-cell
@@ -375,6 +395,7 @@ func structure_in_vision(a_structure: Node) -> bool:
 		if _fog_bytes[idx] == 0:
 			return true
 	return false
+
 
 ## Permanently reveal a circular area in world-space XZ (lift fog of war).
 ## The pixels are written to _explored_bytes so the reveal persists across frames.
@@ -395,7 +416,10 @@ func reveal_region(a_world_xz: Vector2, a_radius_world: float) -> void:
 			if _sight_counts[idx] == 0:
 				_fog_bytes[idx] = EXPLORED_ALPHA
 				_is_texture_stale = true
+
+
 #endregion
+
 
 #region Sight counts
 ## What one vision source last added to the sight counts, kept so it can be withdrawn exactly.
@@ -477,7 +501,10 @@ func _apply_stamp(a_stamp: SightStamp, a_delta: int) -> void:
 		elif count == 0:
 			_fog_bytes[idx] = _explored_bytes[idx]
 			_is_texture_stale = true
+
+
 #endregion
+
 
 #region Private helpers
 ## Hide the figures the piece pass does not reach — beacons and emissions — under the viewer's
@@ -492,10 +519,14 @@ func _apply_figure_visibility(a_viewer_id: int, a_show_all: bool) -> void:
 			if figure == null:
 				continue
 			var entity: Entity = figure as Entity
-			var owner_id: int = entity.commander_id \
-				if entity != null and entity.ownership != null else 0
-			figure.visible = a_show_all or owner_id == a_viewer_id \
+			var owner_id: int = (
+				entity.commander_id if entity != null and entity.ownership != null else 0
+			)
+			figure.visible = (
+				a_show_all
+				or owner_id == a_viewer_id
 				or fog_clear_at(VU.inXZ(figure.global_position))
+			)
 
 
 ## The in-play pixel indices covering `a_cells`, the footprint `a_structure` holds now.
@@ -516,6 +547,7 @@ func _structure_pixels(a_structure: Node, a_cells: Array) -> PackedInt32Array:
 	_footprint_pixels[key] = [a_cells, pixels]
 	return pixels
 
+
 ## Feed the terrain material the ACTIVE commander's fog so the shroud renders on the ground.
 ## Called only by the elected driver (terrain_fog_driver_id). Disabled (full-bright terrain)
 ## during debug-view or omniscient spectator, or when there is no active fog.
@@ -534,15 +566,18 @@ func _drive_terrain_fog(a_debug_view: bool) -> void:
 		material.set_shader_parameter("fog_rect", af._fog_rect_param())
 		material.set_shader_parameter("fog_enabled", 1.0)
 
+
 ## World-XZ → fog-UV mapping for the terrain shader: (center.x, center.z, half_w, half_d).
 func _fog_rect_param() -> Vector4:
 	return Vector4(_center.x, _center.y, _world_half_w, _world_half_d)
+
 
 func _world_to_pixel(a_world_xz: Vector2) -> Vector2i:
 	return Vector2i(
 		int(round((a_world_xz.x - _center.x + _world_half_w) * POINTS_PER_UNIT)),
 		int(round((a_world_xz.y - _center.y + _world_half_d) * POINTS_PER_UNIT))
 	)
+
 
 ## World XZ at the centre of fog pixel (px, py) — the inverse of _world_to_pixel (which uses
 ## round(), so pixel px is centred at px/PPU, with no half-pixel offset).
@@ -551,6 +586,7 @@ func _pixel_to_world(a_px: int, a_py: int) -> Vector2:
 		float(a_px) / POINTS_PER_UNIT - _world_half_w + _center.x,
 		float(a_py) / POINTS_PER_UNIT - _world_half_d + _center.y
 	)
+
 
 ## Build the per-pixel play mask from the map's play bounds, and pre-clear out-of-play pixels
 ## in both byte buffers to 0 so they start (and stay) fully transparent. No-op — _play_bounds_active
@@ -574,6 +610,7 @@ func _build_play_mask() -> void:
 				_explored_bytes[idx] = 0  # out of play: fully transparent, never shrouded
 				_fog_bytes[idx] = 0
 
+
 func _sight_disc(a_radius_px: int) -> Array:
 	if _sight_disc_cache.has(a_radius_px):
 		return _sight_disc_cache[a_radius_px]
@@ -585,6 +622,7 @@ func _sight_disc(a_radius_px: int) -> Array:
 				disc.append(Vector2i(dx, dy))
 	_sight_disc_cache[a_radius_px] = disc
 	return disc
+
 
 ## Pixel offsets (relative to the vision shape's centre pixel) covered by `vision_shape`
 ## projected onto the XZ plane. The fog is a flat plane, so only the shape's XZ

@@ -20,13 +20,18 @@ extends GutTest
 ## Fake pieces and fake tools. Two rules are keyed on ids in code, and those are kept: a build of
 ## `EntityIds.AN_INFRASTRUCTURE` aimed at a neutral building CONVERTS it (Build._conversion_target),
 ## so the building carries whichever id the registry lists as a neutral building.
-const SITE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false,
-	"dimensions": Vector2i(2, 2)}
+const SITE: Dictionary = {
+	"feature": true, "extraction_site": true, "obstruction": false, "dimensions": Vector2i(2, 2)
+}
 const EXTRACTOR: Dictionary = {"structure": true, "extractor": true, "dimensions": Vector2i(2, 2)}
 const SAFEHOUSE: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
 var BUILDING_SCENE: Dictionary:
-	get: return {"structure": true, "dimensions": Vector2i(2, 2),
-		"id": PieceFamilies.members(PieceFamilies.NEUTRAL_BUILDING)[0]}
+	get:
+		return {
+			"structure": true,
+			"dimensions": Vector2i(2, 2),
+			"id": PieceFamilies.members(PieceFamilies.NEUTRAL_BUILDING)[0]
+		}
 const EXTRACTION_SITE_SCENE: Dictionary = SITE
 
 var SAFEHOUSE_TOOL: Tool
@@ -38,7 +43,9 @@ const CELLS: int = 16
 
 ## A real Map with its terrain/navmesh boot skipped (that needs a scene and the navigation
 ## server); all the footprint math under test is Map's own.
-class TestMap extends Map:
+class TestMap:
+	extends Map
+
 	func _ready() -> void:
 		pass
 
@@ -51,8 +58,15 @@ var _controller: RTSController = null
 
 
 func _fake_tool(a_type: StringName, a_options: Dictionary) -> Tool:
-	return Tool.new("command_tool_fake_%s" % a_type, a_type, FakePieces.scene_of(a_options),
-		"fake", Vector2i.ZERO, 0, 0)
+	return Tool.new(
+		"command_tool_fake_%s" % a_type,
+		a_type,
+		FakePieces.scene_of(a_options),
+		"fake",
+		Vector2i.ZERO,
+		0,
+		0
+	)
 
 
 func before_each() -> void:
@@ -131,14 +145,18 @@ func _order(a_tool: Tool, a_at: Vector2) -> CommandMessage:
 ## placement, so it is dismissed HERE and only by message: any other error still fails.
 func _dismiss_missing_flavor_text() -> void:
 	for tracked in get_errors():
-		if tracked.contains_text("was given an empty description") \
-			or tracked.contains_text("was given an empty verbose description"):
+		if (
+			tracked.contains_text("was given an empty description")
+			or tracked.contains_text("was given an empty verbose description")
+		):
 			tracked.handled = true
 
 
 ## A real entity of `scene`, owned by `owner_commander` and registered on the DIMS
 ## footprint at `origin` exactly as Map.add_structure would. Returns its world-space centre.
-func _place_scene(a_options: Dictionary, a_owner_commander: Commander, a_origin: Vector2i) -> Vector2:
+func _place_scene(
+	a_options: Dictionary, a_owner_commander: Commander, a_origin: Vector2i
+) -> Vector2:
 	var entity: Entity = FakePieces.make(a_options) as Entity
 	a_owner_commander.add_child(entity)
 	entity.initialize(_map, a_owner_commander)
@@ -174,9 +192,12 @@ func test_ghost_and_blueprint_agree_across_a_whole_cell() -> void:
 			assert_not_null(blueprint, "a blueprint went up for aim %s" % aim)
 			var ghost: Variant = _ghost_position(SAFEHOUSE_TOOL, aim)
 			assert_not_null(ghost, "the ghost resolved for aim %s" % aim)
-			assert_almost_eq(VU.inXZ(blueprint.global_position), VU.inXZ(ghost as Vector3),
+			assert_almost_eq(
+				VU.inXZ(blueprint.global_position),
+				VU.inXZ(ghost as Vector3),
 				Vector2(0.001, 0.001),
-				"ghost and blueprint stand in the same place for aim %s" % aim)
+				"ghost and blueprint stand in the same place for aim %s" % aim
+			)
 
 
 ## The other half of the same contract: what the builder finally registers is the footprint
@@ -187,8 +208,14 @@ func test_placement_footprint_matches_the_ghost() -> void:
 	var cells: Array[Vector2i] = _map.footprint_cells(aim, DIMS)
 	var centre: Vector3 = _map.footprint_centroid(_map.footprint_origin(aim, DIMS), DIMS)
 	assert_eq(cells.size(), 4, "a 2×2 build claims four cells")
-	assert_almost_eq(VU.inXZ(ghost as Vector3), VU.inXZ(centre), Vector2(0.001, 0.001),
-		"the ghost stands on the centre of the cells the build will register")
+	assert_almost_eq(
+		VU.inXZ(ghost as Vector3),
+		VU.inXZ(centre),
+		Vector2(0.001, 0.001),
+		"the ghost stands on the centre of the cells the build will register"
+	)
+
+
 #endregion
 
 
@@ -198,30 +225,41 @@ func test_extractor_blueprint_stands_on_its_site() -> void:
 	var site: Entity = _map.cell_grid[4][4] as Entity
 
 	var message: CommandMessage = _order(EXTRACTOR_TOOL, centre)
-	assert_true(EnergyExtractor.valid_placement(message, DIMS),
-		"an extractor aimed at the extraction site's centre is a valid placement")
+	assert_true(
+		EnergyExtractor.valid_placement(message, DIMS),
+		"an extractor aimed at the extraction site's centre is a valid placement"
+	)
 	var blueprint: Commandable = Build.plan_structure(_commander, message)
 	_dismiss_missing_flavor_text()
 	assert_not_null(blueprint, "the extractor order raised a blueprint")
-	assert_almost_eq(VU.inXZ(blueprint.global_position), VU.inXZ(site.global_position),
+	assert_almost_eq(
+		VU.inXZ(blueprint.global_position),
+		VU.inXZ(site.global_position),
 		Vector2(0.001, 0.001),
-		"the extractor's blueprint stands exactly on the extraction site it will be built on")
+		"the extractor's blueprint stands exactly on the extraction site it will be built on"
+	)
 
 
 ## Aimed one cell over, the extractor's footprint still covers half the site — and is refused,
 ## rather than being accepted and then snapped onto the extraction site at placement.
 func test_extractor_refuses_a_partly_overlapping_aim() -> void:
 	var centre: Vector2 = _place_scene(EXTRACTION_SITE_SCENE, _neutral, Vector2i(4, 4))
-	assert_false(EnergyExtractor.valid_placement(_order(EXTRACTOR_TOOL, centre + Vector2(1, 0)), DIMS),
-		"an extractor that only half-covers the extraction site is refused")
+	assert_false(
+		EnergyExtractor.valid_placement(_order(EXTRACTOR_TOOL, centre + Vector2(1, 0)), DIMS),
+		"an extractor that only half-covers the extraction site is refused"
+	)
+
+
 #endregion
 
 
 #region Safehouse on Building
 func test_safehouse_aimed_at_a_building_converts_it() -> void:
 	var centre: Vector2 = _place_scene(BUILDING_SCENE, _neutral, Vector2i(6, 6))
-	assert_false(Build.places_new_structure(_commander, _order(SAFEHOUSE_TOOL, centre)),
-		"a safehouse squarely on a neutral building converts it instead of placing one")
+	assert_false(
+		Build.places_new_structure(_commander, _order(SAFEHOUSE_TOOL, centre)),
+		"a safehouse squarely on a neutral building converts it instead of placing one"
+	)
 
 
 ## Aimed OUTSIDE the building's footprint it is no longer a conversion, so it falls through to
@@ -230,8 +268,12 @@ func test_safehouse_aimed_at_a_building_converts_it() -> void:
 func test_safehouse_aimed_beside_a_building_is_not_a_conversion_and_cannot_be_placed() -> void:
 	var centre: Vector2 = _place_scene(BUILDING_SCENE, _neutral, Vector2i(6, 6))
 	var message: CommandMessage = _order(SAFEHOUSE_TOOL, centre + Vector2(1, 0))
-	assert_true(Build.places_new_structure(_commander, message),
-		"a safehouse aimed off the building is not treated as a conversion")
-	assert_false(Structure.valid_placement(message, DIMS),
-		"and it cannot be placed either, since the building holds those cells")
+	assert_true(
+		Build.places_new_structure(_commander, message),
+		"a safehouse aimed off the building is not treated as a conversion"
+	)
+	assert_false(
+		Structure.valid_placement(message, DIMS),
+		"and it cannot be placed either, since the building holds those cells"
+	)
 #endregion

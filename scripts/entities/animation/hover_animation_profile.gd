@@ -17,8 +17,9 @@ const ROTOR_CLIP: StringName = &"spin"
 
 func requests_for(a_context: AnimationContext) -> Array[AnimationRequest]:
 	var requests: Array[AnimationRequest] = super(a_context)
-	requests.append(AnimationRequest.new(ROTOR_LAYER, ROTOR_CLIP,
-		rotor_speed_scale(a_context.flight_mode)))
+	requests.append(
+		AnimationRequest.new(ROTOR_LAYER, ROTOR_CLIP, rotor_speed_scale(a_context.flight_mode))
+	)
 	return requests
 
 

@@ -13,6 +13,7 @@ extends RefCounted
 ## weapon's `emits:` to be a projectile (SpecRegistry weapon validation, and the projectile
 ## scene it resolves). Nothing emits a unit yet — see composition-rework §The emitted unit.
 
+
 ## Launch `a_emission`, fired by `a_from` (a Commandable, or null for an unattributed shot) at
 ## `a_target` — an Entity to pursue, or a Vector3 to land at.
 static func launch(a_emission: Entity, a_from: Variant, a_target: Variant) -> void:

@@ -63,8 +63,12 @@ func _resync(a_tres: String) -> bool:
 		return false
 	var dims: Vector2i = data.dimensions
 	if data.heights.size() != dims.x * dims.y:
-		push_error("resync_surface_mesh: %s has %d heights, expected %d — refusing to guess"
-			% [a_tres, data.heights.size(), dims.x * dims.y])
+		push_error(
+			(
+				"resync_surface_mesh: %s has %d heights, expected %d — refusing to guess"
+				% [a_tres, data.heights.size(), dims.x * dims.y]
+			)
+		)
 		return false
 
 	var mesh_path: String = a_tres.get_basename() + "_surface.res"
@@ -73,8 +77,12 @@ func _resync(a_tres: String) -> bool:
 		var old: Mesh = ResourceLoader.load(mesh_path, "", ResourceLoader.CACHE_MODE_IGNORE)
 		if old != null:
 			before = _rebake_residual(data, old)
-	print("%s: %dx%d corners, rebake residual BEFORE %s"
-		% [a_tres.get_file(), dims.x, dims.y, "n/a" if is_inf(before) else "%.6f" % before])
+	print(
+		(
+			"%s: %dx%d corners, rebake residual BEFORE %s"
+			% [a_tres.get_file(), dims.x, dims.y, "n/a" if is_inf(before) else "%.6f" % before]
+		)
+	)
 
 	var mesh := ArrayMesh.new()
 	TerrainMeshGrid.write_heights(mesh, dims, data.heights)

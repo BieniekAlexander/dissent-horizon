@@ -12,8 +12,12 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_BombardCursor.gd -gexit
 
 ## A gun that spots the ground around itself and carries a charge of the bombard ability.
-const GUN: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2), "beacon_range": 30.0,
-	"abilities": [{"grants": [Bombard.ABILITY_ID], "cooldown_ticks": 100}]}
+const GUN: Dictionary = {
+	"structure": true,
+	"dimensions": Vector2i(2, 2),
+	"beacon_range": 30.0,
+	"abilities": [{"grants": [Bombard.ABILITY_ID], "cooldown_ticks": 100}]
+}
 
 var _commander: Commander
 
@@ -50,11 +54,14 @@ func _aim(a_at: Vector2) -> CommandMessage:
 
 # --- The precondition ------------------------------------------------------------
 
+
 func test_ground_inside_the_guns_own_range_is_legal() -> void:
 	var gun := _bombard()
 	assert_true(gun.is_built, "the fixture is a finished gun")
-	assert_eq(Bombard.meets_precondition(gun, _aim(Vector2(10, 0))),
-		MoveCommand.PreconditionFailureCause.NONE)
+	assert_eq(
+		Bombard.meets_precondition(gun, _aim(Vector2(10, 0))),
+		MoveCommand.PreconditionFailureCause.NONE
+	)
 
 
 func test_unspotted_ground_names_a_cause() -> void:
@@ -65,35 +72,53 @@ func test_unspotted_ground_names_a_cause() -> void:
 
 func test_the_cause_has_a_message_for_the_player() -> void:
 	# The point of the map: a cause with no entry reaches the error line as "".
-	assert_true(MoveCommand.precondition_message_map.has(
-		MoveCommand.PreconditionFailureCause.TARGET_NOT_SPOTTED))
-	assert_false(String(MoveCommand.precondition_message_map[
-		MoveCommand.PreconditionFailureCause.TARGET_NOT_SPOTTED]).is_empty())
+	assert_true(
+		MoveCommand.precondition_message_map.has(
+			MoveCommand.PreconditionFailureCause.TARGET_NOT_SPOTTED
+		)
+	)
+	assert_false(
+		(
+			String(
+				MoveCommand.precondition_message_map[
+					MoveCommand.PreconditionFailureCause.TARGET_NOT_SPOTTED
+				]
+			)
+			. is_empty()
+		)
+	)
 
 
 # --- The controller's chain ------------------------------------------------------
+
 
 func test_the_armed_command_resolves_even_when_it_cannot_execute() -> void:
 	# resolve_command_class_for_selection falls back to the lead unit's resolution when
 	# nobody can act. If it returned null instead, selection_precondition would answer
 	# NONE and the cursor would stay normal over ground the gun cannot reach.
 	var gun := _bombard()
-	assert_eq(RTSController.resolve_command_class_for_selection(
-		"command_bombard", [gun], _aim(Vector2(200, 200))), Bombard)
+	assert_eq(
+		RTSController.resolve_command_class_for_selection(
+			"command_bombard", [gun], _aim(Vector2(200, 200))
+		),
+		Bombard
+	)
 
 
 func test_the_selection_reports_the_cause_for_unspotted_ground() -> void:
 	var gun := _bombard()
 	assert_eq(
 		RTSController.selection_precondition(Bombard, [gun], _aim(Vector2(200, 200))),
-		MoveCommand.PreconditionFailureCause.TARGET_NOT_SPOTTED)
+		MoveCommand.PreconditionFailureCause.TARGET_NOT_SPOTTED
+	)
 
 
 func test_the_selection_reports_nothing_wrong_inside_range() -> void:
 	var gun := _bombard()
 	assert_eq(
 		RTSController.selection_precondition(Bombard, [gun], _aim(Vector2(10, 0))),
-		MoveCommand.PreconditionFailureCause.NONE)
+		MoveCommand.PreconditionFailureCause.NONE
+	)
 
 
 func test_one_loaded_gun_in_a_pair_keeps_the_order_legal() -> void:
@@ -104,4 +129,5 @@ func test_one_loaded_gun_in_a_pair_keeps_the_order_legal() -> void:
 	far.global_position = Vector3(500.0, 0.0, 500.0)
 	assert_eq(
 		RTSController.selection_precondition(Bombard, [far, near], _aim(Vector2(10, 0))),
-		MoveCommand.PreconditionFailureCause.NONE)
+		MoveCommand.PreconditionFailureCause.NONE
+	)

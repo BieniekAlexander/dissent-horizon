@@ -30,5 +30,5 @@ func _ready() -> void:
 		texture = _DEFAULT_ICON
 	modulate = marker_color
 	billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	no_depth_test = true    # show through terrain so markers are always reachable
+	no_depth_test = true  # show through terrain so markers are always reachable
 	pixel_size = 0.004

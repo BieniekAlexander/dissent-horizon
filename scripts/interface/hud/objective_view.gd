@@ -56,6 +56,7 @@ const MARK_FAILURE: String = "•"
 var _manager: ScenarioTriggerManager
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -75,7 +76,10 @@ func bind(a_manager: ScenarioTriggerManager) -> void:
 	if not a_manager.objectives_changed.is_connected(refresh):
 		a_manager.objectives_changed.connect(refresh)
 	refresh()
+
+
 #endregion
+
 
 #region Public API
 ## The lines currently displayed, top to bottom, as plain text — the view's own account of
@@ -109,7 +113,10 @@ func refresh() -> void:
 	var any: bool = not visible_objectives.is_empty()
 	_title_label.visible = any and not _title_label.text.is_empty()
 	_panel.visible = any
+
+
 #endregion
+
 
 #region Internal
 ## One checklist row, duplicated from the authored template so it inherits whatever styling
@@ -132,8 +139,10 @@ func _row_text(a_trigger: GlobalTrigger) -> String:
 ## Struck through once fulfilled — but never a FAILURE, which is not a box being ticked. A
 ## fired failure condition ends the scenario anyway, so it has no "done" reading to show.
 func _is_struck(a_trigger: GlobalTrigger) -> bool:
-	return a_trigger.scope != GlobalTrigger.ObjectiveScope.FAILURE \
+	return (
+		a_trigger.scope != GlobalTrigger.ObjectiveScope.FAILURE
 		and a_trigger.objective_state() == GlobalTrigger.ObjectiveState.COMPLETE
+	)
 
 
 func _color(a_trigger: GlobalTrigger) -> Color:
@@ -149,7 +158,9 @@ func _color(a_trigger: GlobalTrigger) -> Color:
 func _mark(a_trigger: GlobalTrigger) -> String:
 	if a_trigger.scope == GlobalTrigger.ObjectiveScope.FAILURE:
 		return MARK_FAILURE
-	return MARK_COMPLETE \
-		if a_trigger.objective_state() == GlobalTrigger.ObjectiveState.COMPLETE \
+	return (
+		MARK_COMPLETE
+		if a_trigger.objective_state() == GlobalTrigger.ObjectiveState.COMPLETE
 		else MARK_ACTIVE
+	)
 #endregion

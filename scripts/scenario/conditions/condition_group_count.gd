@@ -25,6 +25,7 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 @export var count: int = 1
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	# An unset group would otherwise count zero, which makes AT_MOST true on the first tick —
@@ -33,11 +34,17 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 		return false
 	var n: int = matching_nodes(a_manager).size()
 	match comparison:
-		Comparison.AT_LEAST: return n >= count
-		Comparison.AT_MOST:  return n <= count
-		Comparison.EXACTLY:  return n == count
+		Comparison.AT_LEAST:
+			return n >= count
+		Comparison.AT_MOST:
+			return n <= count
+		Comparison.EXACTLY:
+			return n == count
 	return false
+
+
 #endregion
+
 
 #region Player-facing description (highlights)
 ## Same rule as the other count conditions: AT_MOST is the "get rid of these" shape, so the
@@ -55,7 +62,10 @@ func highlight_entities(a_manager: ScenarioTriggerManager) -> Array[Entity]:
 		if entity != null:
 			result.append(entity)
 	return result
+
+
 #endregion
+
 
 #region Internal
 ## The group's live members — the set both evaluate() counts and highlight_entities() marks,

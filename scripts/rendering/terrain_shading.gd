@@ -32,8 +32,9 @@ static func push_terrain_uniforms(
 	var corners := Vector2(float(data.map_width()), float(data.map_depth())) * Map.CELL_SIZE
 	var half_cell: float = Map.CELL_SIZE * 0.5
 	material.set_shader_parameter("height_texture", heights)
-	material.set_shader_parameter("height_rect",
-		Vector4(origin.x - half_cell, origin.y - half_cell, corners.x, corners.y))
+	material.set_shader_parameter(
+		"height_rect", Vector4(origin.x - half_cell, origin.y - half_cell, corners.x, corners.y)
+	)
 	material.set_shader_parameter("height_range", height_range(data.heights))
 	material.set_shader_parameter("has_heights", 1.0)
 

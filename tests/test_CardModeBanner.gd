@@ -8,6 +8,7 @@ extends GutTest
 ## CommandableCard status bar below its card for months (CLAUDE.md §Seeing the HUD without a
 ## screen). GUT covers no layout, so the anchors and offsets are asserted directly.
 
+
 func _banner() -> CardModeBanner:
 	var banner := CardModeBanner.new()
 	add_child_autofree(banner)
@@ -16,9 +17,11 @@ func _banner() -> CardModeBanner:
 
 func test_each_card_is_named() -> void:
 	var banner: CardModeBanner = _banner()
-	for family: int in [ControlBinding.CommandFamily.ACTIVE,
-			ControlBinding.CommandFamily.PRODUCTION,
-			ControlBinding.CommandFamily.ORDNANCE]:
+	for family: int in [
+		ControlBinding.CommandFamily.ACTIVE,
+		ControlBinding.CommandFamily.PRODUCTION,
+		ControlBinding.CommandFamily.ORDNANCE
+	]:
 		banner.show_family(family)
 		assert_ne(banner.text, "", "family %d has a title" % family)
 
@@ -44,8 +47,11 @@ func test_the_banner_sits_ABOVE_the_grid_and_never_over_it() -> void:
 
 
 func test_the_banner_never_takes_a_click() -> void:
-	assert_eq(_banner().mouse_filter, Control.MOUSE_FILTER_IGNORE,
-		"a strip over the command panel that ate clicks would be worse than no strip")
+	assert_eq(
+		_banner().mouse_filter,
+		Control.MOUSE_FILTER_IGNORE,
+		"a strip over the command panel that ate clicks would be worse than no strip"
+	)
 
 
 ## Non-destructive: the blend recomputes from the panel's AUTHORED colour every time, so

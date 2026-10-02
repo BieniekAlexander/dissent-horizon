@@ -34,6 +34,7 @@ const MAIN_MENU_SCENE: String = "res://scenes/menu/main_menu.tscn"
 signal scene_change_requested(path: String)
 #endregion
 
+
 #region Public API
 ## Leave whatever is running and return to the title screen. The one way back: both the
 ## pause menu and the victory dialog route here, so there is a single description of what
@@ -70,7 +71,10 @@ func go_to_packed(a_scene: PackedScene) -> Error:
 			"SceneManager: could not open '%s': %s" % [a_scene.resource_path, error_string(result)]
 		)
 	return result
+
+
 #endregion
+
 
 #region Internal
 ## Drop the tree-wide pause before leaving. Written straight onto the SceneTree rather than

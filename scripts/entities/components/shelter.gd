@@ -39,19 +39,23 @@ var _remaining: float = 0.0
 var _residents: Array[Commandable] = []
 #endregion
 
+
 #region Public API
 ## Living residents currently attributed to this shelter (read-only view — callers must
 ## not mutate the returned array). What [TaskShelter] claims from, oldest-registered first.
 func residents() -> Array[Commandable]:
 	return _residents
 
+
 ## Living residents currently attributed to this shelter.
 func resident_count() -> int:
 	return _residents.size()
 
+
 ## True while the shelter is at capacity — the state in which the spawn timer parks.
 func is_full() -> bool:
 	return _residents.size() >= capacity
+
 
 ## Attribute [a_resident] to this shelter. Idempotent. The unit is dropped again the
 ## moment it leaves the scene tree, which covers every way it can be taken out of
@@ -63,15 +67,20 @@ func register(a_resident: Commandable) -> void:
 	_residents.append(a_resident)
 	a_resident.tree_exiting.connect(unregister.bind(a_resident), CONNECT_ONE_SHOT)
 
+
 ## Stop attributing [a_resident] to this shelter, freeing a slot for the next
 ## production. Safe to call for a unit that was never registered.
 func unregister(a_resident: Commandable) -> void:
 	_residents.erase(a_resident)
+
+
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
 	_remaining = spawn_interval
+
 
 func _physics_process(a_delta: float) -> void:
 	_prune()
@@ -87,15 +96,23 @@ func _physics_process(a_delta: float) -> void:
 		_produce_resident(host)
 		_remaining = spawn_interval
 
-@onready var temp_label: Label3D = get_parent().find_child("TempLabel") if get_parent() != null else null
+
+@onready
+var temp_label: Label3D = get_parent().find_child("TempLabel") if get_parent() != null else null
+
+
 func _process(_a_delta: float) -> void:
 	if temp_label != null:
 		temp_label.text = "Shelter %d/%d (%ds)" % [resident_count(), capacity, int(_remaining)]
+
+
 #endregion
+
 
 #region Private helpers
 func _host() -> Entity:
 	return get_parent() as Entity
+
 
 ## Drop residents that were freed without a tree_exiting we saw, or that changed
 ## hands (a capture that leaves the unit in place rather than replacing it) — either
@@ -103,9 +120,9 @@ func _host() -> Entity:
 func _prune() -> void:
 	var host_id: int = _commander_id_of(_host())
 	_residents = _residents.filter(
-		func(r: Commandable) -> bool:
-			return is_instance_valid(r) and _commander_id_of(r) == host_id
+		func(r: Commandable) -> bool: return is_instance_valid(r) and _commander_id_of(r) == host_id
 	)
+
 
 ## Owning commander id of [a_node], resolved through its Ownership child rather than
 ## the Entity.commander_id shim — the shim reads an @onready that never resolves for an
@@ -113,6 +130,7 @@ func _prune() -> void:
 static func _commander_id_of(node: Node) -> int:
 	var own := node.get_node_or_null("Ownership") as Ownership if node != null else null
 	return own.commander_id if own != null else 0
+
 
 ## Place one Terrestrial on the navmesh beside the shelter, register it, and set it
 ## wandering around the building. add_entity snaps the spawn to the nearest navigable

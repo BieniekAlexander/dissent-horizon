@@ -40,6 +40,7 @@ func _tick(a_node: Abilities, a_times: int) -> void:
 
 # --- Granting --------------------------------------------------------------------
 
+
 func test_it_grants_what_its_pools_list() -> void:
 	var abilities := _abilities([_pool([A, B])])
 	assert_true(abilities.grants(A))
@@ -63,6 +64,7 @@ func test_granted_abilities_lists_every_pool() -> void:
 
 
 # --- Sharing: the point of the feature ---------------------------------------------
+
 
 func test_abilities_in_one_pool_share_its_charges() -> void:
 	# The Operations Center case: use Scan and Freeze goes down with it.
@@ -89,6 +91,7 @@ func test_a_shared_pool_recharges_for_everything_at_once() -> void:
 
 
 # --- Charges ----------------------------------------------------------------------
+
 
 func test_a_cooldown_only_ability_is_a_one_charge_pool() -> void:
 	# There is deliberately no way to express an ability without charges.
@@ -132,6 +135,7 @@ func test_a_full_pool_does_not_count_down() -> void:
 
 # --- Capacity vs. starting stock ----------------------------------------------------
 
+
 func test_a_pool_that_says_nothing_holds_one_charge_and_starts_full() -> void:
 	var abilities := _abilities([{"cooldown_ticks": 10, "grants": [A]}])
 	assert_eq(abilities.max_charges_of(A), 1, "max_charges defaults to 1")
@@ -144,9 +148,11 @@ func test_initial_charges_defaults_to_a_full_pool() -> void:
 
 
 func test_a_pool_can_start_below_capacity() -> void:
-	var abilities := _abilities([
-		{"initial_charges": 1, "max_charges": 3, "cooldown_ticks": 10, "grants": [A]},
-	])
+	var abilities := _abilities(
+		[
+			{"initial_charges": 1, "max_charges": 3, "cooldown_ticks": 10, "grants": [A]},
+		]
+	)
 	assert_eq(abilities.charges_of(A), 1)
 	assert_eq(abilities.max_charges_of(A), 3, "capacity is unaffected by the starting stock")
 
@@ -154,18 +160,22 @@ func test_a_pool_can_start_below_capacity() -> void:
 func test_a_pool_can_start_empty_and_fills_after_one_cooldown() -> void:
 	# The battery that must spin up before its first shot. Zero is meaningful for starting
 	# stock even though it is meaningless for capacity.
-	var abilities := _abilities([
-		{"initial_charges": 0, "max_charges": 2, "cooldown_ticks": 10, "grants": [A]},
-	])
+	var abilities := _abilities(
+		[
+			{"initial_charges": 0, "max_charges": 2, "cooldown_ticks": 10, "grants": [A]},
+		]
+	)
 	assert_false(abilities.is_ready(A), "nothing to spend at t=0")
 	_tick(abilities, 10)
 	assert_eq(abilities.charges_of(A), 1, "the cooldown ran from the start, not from a spend")
 
 
 func test_a_starting_stock_above_capacity_is_clamped_to_it() -> void:
-	var abilities := _abilities([
-		{"initial_charges": 9, "max_charges": 2, "cooldown_ticks": 10, "grants": [A]},
-	])
+	var abilities := _abilities(
+		[
+			{"initial_charges": 9, "max_charges": 2, "cooldown_ticks": 10, "grants": [A]},
+		]
+	)
 	assert_eq(abilities.charges_of(A), 2)
 
 

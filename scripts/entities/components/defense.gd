@@ -15,10 +15,14 @@ var hp: float
 signal hp_changed(hp: float, hp_max: float)
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	hp = hp_max
+
+
 #endregion
+
 
 #region Mutators
 ## Lower hp by `amount` (already armour-adjusted by the caller). Returns true when
@@ -30,6 +34,7 @@ func apply_damage(a_amount: float) -> bool:
 	hp -= a_amount
 	hp_changed.emit(hp, hp_max)
 	return was_alive and hp <= 0
+
 
 ## Raise hp by `amount`, never past hp_max. Returns true once the entity is at FULL
 ## health, so a mender (the Repair command, a heal aura) can stop on the tick it finishes
@@ -64,6 +69,7 @@ func restore(a_amount: float) -> bool:
 	hp = minf(hp + a_amount, hp_max)
 	hp_changed.emit(hp, hp_max)
 	return hp >= hp_max
+
 
 ## Drop hp straight to 0 without running the damage pipeline, for effects that must
 ## destroy an entity outright (e.g. SuicideStatusEffect). Death still routes through

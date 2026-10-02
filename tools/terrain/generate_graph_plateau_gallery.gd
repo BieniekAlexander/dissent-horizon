@@ -20,11 +20,19 @@ const GalleryBuilder := preload("res://tools/terrain/graph_plateau_gallery_build
 func _run() -> void:
 	var result: Dictionary = GalleryBuilder.new().build()
 	var entries: Array = result["entries"]
-	print("graph_plateau_gallery: %d variations saved to res://resources/graph_plateau_batch" % entries.size())
+	print(
+		(
+			"graph_plateau_gallery: %d variations saved to res://resources/graph_plateau_batch"
+			% entries.size()
+		)
+	)
 	for e: Dictionary in entries:
-		print("  hm_%s — %d%% passable, %d%% flat, connected=%s" % [
-			e["tag"], e["passable_pct"], e["flat_pct"], e["connected"]
-		])
+		print(
+			(
+				"  hm_%s — %d%% passable, %d%% flat, connected=%s"
+				% [e["tag"], e["passable_pct"], e["flat_pct"], e["connected"]]
+			)
+		)
 	if result["ok"]:
 		print("graph_plateau_gallery: open ", result["scene_path"])
 	else:

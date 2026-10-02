@@ -20,7 +20,8 @@ extends GutTest
 ## A piece that builds (whatever the registry's first build tool is) and one that cannot.
 const RECRUIT: Dictionary = {"speed": 2.0, "weapon": {"ground": 6.0}}
 var SERVANT: Dictionary:
-	get: return {"speed": 2.0, "builds": [FakePieces.a_buildable_type()]}
+	get:
+		return {"speed": 2.0, "builds": [FakePieces.a_buildable_type()]}
 
 const PLAYER: int = 1
 
@@ -43,7 +44,8 @@ func _unit(a_options: Dictionary) -> Commandable:
 
 func _build_tools(a_selection: Array) -> Array:
 	return CommandContextParser.tools_for_selection(
-		a_selection, ControlBinding.ControlContext.BUILD)
+		a_selection, ControlBinding.ControlContext.BUILD
+	)
 
 
 func test_a_builder_alone_offers_its_structures() -> void:
@@ -60,15 +62,21 @@ func test_the_menu_does_not_depend_on_which_unit_was_selected_first() -> void:
 	var expected: Array = _build_tools([servant])
 	assert_gt(expected.size(), 0, "guards the fixture")
 	assert_eq(_build_tools([servant, recruit]), expected, "builder picked first")
-	assert_eq(_build_tools([recruit, servant]), expected,
-		"non-builder picked first — the menu must not depend on click order")
+	assert_eq(
+		_build_tools([recruit, servant]),
+		expected,
+		"non-builder picked first — the menu must not depend on click order"
+	)
 
 
 func test_the_union_is_deduplicated() -> void:
 	var one: Commandable = _unit(SERVANT)
 	var two: Commandable = _unit(SERVANT)
-	assert_eq(_build_tools([one, two]), _build_tools([one]),
-		"two builders of a kind offer one menu, not two")
+	assert_eq(
+		_build_tools([one, two]),
+		_build_tools([one]),
+		"two builders of a kind offer one menu, not two"
+	)
 
 
 func test_the_build_order_is_refused_by_a_non_builder() -> void:
@@ -78,13 +86,17 @@ func test_the_build_order_is_refused_by_a_non_builder() -> void:
 	assert_gt(tools.size(), 0, "guards the fixture")
 	var message := CommandMessage.new(null, null)
 	message.tool = Tool.for_name(tools[0])
-	assert_ne(Build.meets_precondition(recruit, message),
+	assert_ne(
+		Build.meets_precondition(recruit, message),
 		MoveCommand.PreconditionFailureCause.NONE,
-		"a soldier cannot raise a building, whatever else is true")
+		"a soldier cannot raise a building, whatever else is true"
+	)
 
 
 func test_a_build_with_no_tool_chosen_is_still_pending_not_refused() -> void:
 	# The per-actor gate must not swallow the "you haven't picked a structure yet" state,
 	# which is what keeps the sub-menu open instead of flashing an error at the player.
-	assert_eq(Build.meets_precondition(_unit(RECRUIT), CommandMessage.new(null, null)),
-		MoveCommand.PreconditionFailureCause.COMMAND_PENDING_TOOL)
+	assert_eq(
+		Build.meets_precondition(_unit(RECRUIT), CommandMessage.new(null, null)),
+		MoveCommand.PreconditionFailureCause.COMMAND_PENDING_TOOL
+	)

@@ -33,6 +33,7 @@ const MUTED_COLOR: Color = Color(0.60, 0.63, 0.59)
 const EMPTY_MODULATE: Color = Color(1.0, 1.0, 1.0, 0.38)
 #endregion
 
+
 #region Visibility
 ## Whether the button for group `a_index` (0-based) is on screen, given how many members each
 ## group holds. `a_counts` is one head count per group, in group order.
@@ -56,6 +57,8 @@ static func button_is_visible(index: int, counts: Array) -> bool:
 	if int(counts[index]) > 0:
 		return true
 	return int(counts[index - 1]) > 0
+
+
 #endregion
 
 #region Properties
@@ -66,6 +69,7 @@ var controller: RTSController = null
 ## group index -> [button, number Label, count Label]
 var _rows: Array = []
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
@@ -83,9 +87,13 @@ func _ready() -> void:
 	for i: int in RTSController.CONTROL_GROUP_COUNT:
 		_rows.append(_build_button(row, i))
 
+
 func _process(_a_delta: float) -> void:
 	refresh()
+
+
 #endregion
+
 
 #region Public API
 ## Repaint every button from the live group membership. Cheap: ten validity scans over arrays
@@ -105,7 +113,10 @@ func refresh() -> void:
 		# count that means something.
 		(entry[2] as Label).text = str(count) if count > 0 else ""
 		button.modulate = Color(1, 1, 1) if count > 0 else EMPTY_MODULATE
+
+
 #endregion
+
 
 #region Construction
 func _build_button(a_parent: Node, a_index: int) -> Array:
@@ -121,30 +132,43 @@ func _build_button(a_parent: Node, a_index: int) -> Array:
 	button.simple_tooltip = InputPrompt.format(
 		"Control group %d ({{ %s }})" % [a_index + 1, RTSController.control_group_action(a_index)]
 	)
-	button.verbose_tooltip = InputPrompt.format(
-		("LEFT click reads the group and acts on your selection; RIGHT click writes the group."
-		+ "\nHold {{ modifier_additive }} to add rather than replace, or {{ modifier_narrow }}"
-		+ " to remove.\nThe same group answers to {{ %s }} on the keyboard."
-		+ "\nAn empty slot is the next one you can assign to; a group whose members have all"
-		+ " died goes back to being one.") % RTSController.control_group_action(a_index)
+	button.verbose_tooltip = (
+		InputPrompt
+		. format(
+			(
+				(
+					"LEFT click reads the group and acts on your selection; RIGHT click writes the group."
+					+ "\nHold {{ modifier_additive }} to add rather than replace, or {{ modifier_narrow }}"
+					+ " to remove.\nThe same group answers to {{ %s }} on the keyboard."
+					+ "\nAn empty slot is the next one you can assign to; a group whose members have all"
+					+ " died goes back to being one."
+				)
+				% RTSController.control_group_action(a_index)
+			)
+		)
 	)
 	# LEFT reads the group. The modifiers are read at press time — see
 	# RTSController.control_group_button_gesture for the whole table.
-	button.pressed.connect(func() -> void:
-		if controller != null:
-			controller.run_control_group_button(a_index, false)
+	button.pressed.connect(
+		func() -> void:
+			if controller != null:
+				controller.run_control_group_button(a_index, false)
 	)
 	# RIGHT click writes the group. Connected to the `gui_input` SIGNAL rather than by
 	# overriding _gui_input, for the reason ButtonSpec gives: that virtual is BaseButton's, and
 	# a script override would replace the press handling the left click depends on.
-	button.gui_input.connect(func(event: InputEvent) -> void:
-		var mouse_event := event as InputEventMouseButton
-		if mouse_event == null or mouse_event.button_index != MOUSE_BUTTON_RIGHT \
-				or not mouse_event.pressed:
-			return
-		button.accept_event()
-		if controller != null:
-			controller.run_control_group_button(a_index, true)
+	button.gui_input.connect(
+		func(event: InputEvent) -> void:
+			var mouse_event := event as InputEventMouseButton
+			if (
+				mouse_event == null
+				or mouse_event.button_index != MOUSE_BUTTON_RIGHT
+				or not mouse_event.pressed
+			):
+				return
+			button.accept_event()
+			if controller != null:
+				controller.run_control_group_button(a_index, true)
 	)
 
 	var column := VBoxContainer.new()
@@ -161,6 +185,7 @@ func _build_button(a_parent: Node, a_index: int) -> Array:
 
 	a_parent.add_child(button)
 	return [button, number_label, count_label]
+
 
 func _make_label(a_font_size: int, a_color: Color) -> Label:
 	var label := Label.new()

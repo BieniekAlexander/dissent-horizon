@@ -40,6 +40,7 @@ var required_structures: Array = []
 var creation_time: int
 #endregion
 
+
 #region Lifecycle
 func _init(
 	a_energy_cost: int,
@@ -58,7 +59,10 @@ func _init(
 	# proc_technology will refine once a structure event fires.
 	if not a_required_structures.is_empty():
 		unmet_need = UnmetNeed.MISSING_STRUCTURE
+
+
 #endregion
+
 
 #region Public API
 func get_unmet_need(a_commander: Commander) -> UnmetNeed:

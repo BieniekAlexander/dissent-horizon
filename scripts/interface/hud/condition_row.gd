@@ -36,21 +36,23 @@ const UNNAMED_TITLE: String = "?"
 
 ## Seconds in one generation cycle, for the copy. Both generators share the period, and it is
 ## derived from the component rather than typed so a change to it re-words the tooltip.
-static var CYCLE_SECONDS: float = float(DominionGenerator.TICK_RATE) \
-	/ float(Engine.physics_ticks_per_second)
+static var CYCLE_SECONDS: float = (
+	float(DominionGenerator.TICK_RATE) / float(Engine.physics_ticks_per_second)
+)
 #endregion
 
 #region Properties
 ## Raised while the pointer is over a card whose condition reaches past its host, and when it
 ## leaves. Same payload as the other info rows', so the controller has one thing to listen for.
 signal ranges_hovered(entity: Entity, kinds: Array)
-signal ranges_unhovered()
+signal ranges_unhovered
 
 ## The set of cards currently drawn, so an unchanged set costs no rebuild.
 var _drawn: String = ""
 ## The piece the cards belong to — the host of any range a hover asks for.
 var _host: Commandable = null
 #endregion
+
 
 #region Public API
 ## Redraw for `a_selection`. Anything other than exactly one Commandable empties the row, and
@@ -78,14 +80,21 @@ static func letter_for(a_effect: StatusEffect) -> String:
 
 ## Whether `a_piece` banks anything on a cycle — i.e. whether it gets a production card.
 static func _produces(a_piece: Commandable) -> bool:
-	return a_piece != null and is_instance_valid(a_piece) \
+	return (
+		a_piece != null
+		and is_instance_valid(a_piece)
 		and (_extractor_of(a_piece) != null or _generator_of(a_piece) != null)
+	)
 
 
 ## Whether `a_piece` gets a hold-fire card: it is holding, and it is the player's.
 static func _holds_fire(a_piece: Commandable) -> bool:
-	return a_piece != null and is_instance_valid(a_piece) and a_piece.is_holding_fire \
+	return (
+		a_piece != null
+		and is_instance_valid(a_piece)
+		and a_piece.is_holding_fire
 		and a_piece.commander_id == RTSController.PLAYER_COMMANDER_ID
+	)
 
 
 static func _extractor_of(a_piece: Commandable) -> EnergyExtractor:
@@ -94,7 +103,10 @@ static func _extractor_of(a_piece: Commandable) -> EnergyExtractor:
 
 static func _generator_of(a_piece: Commandable) -> DominionGenerator:
 	return a_piece.get_node_or_null("DominionGenerator") as DominionGenerator
+
+
 #endregion
+
 
 #region Private helpers
 ## Identity of the drawn SET: the effect instances, plus which production cards apply.
@@ -124,17 +136,33 @@ func _rebuild(a_effects: Array[StatusEffect]) -> void:
 	if _holds_fire(_host):
 		add_child(_build_hold_fire_card())
 	if _extractor_of(_host) != null:
-		add_child(_build_production_card("Energy", "E",
-			"Extracting energy from the ground under it.",
-			"An extractor pays its commander every %.0f seconds, for as long as it stands. The "
-			% CYCLE_SECONDS
-			+ "figure on this card is what THIS building banks per cycle — the economy panel's rate "
-			+ "is every extractor you own, and never says which."))
+		add_child(
+			_build_production_card(
+				"Energy",
+				"E",
+				"Extracting energy from the ground under it.",
+				(
+					(
+						"An extractor pays its commander every %.0f seconds, for as long as it stands. The "
+						% CYCLE_SECONDS
+					)
+					+ "figure on this card is what THIS building banks per cycle — the economy panel's rate "
+					+ "is every extractor you own, and never says which."
+				)
+			)
+		)
 	if _generator_of(_host) != null:
-		add_child(_build_production_card("Dominion", "D",
-			"Banking dominion every cycle.",
-			"The figure is what THIS piece banks per cycle, and it moves: a Compound pays per "
-			+ "prisoner, so filling it is what raises the number."))
+		add_child(
+			_build_production_card(
+				"Dominion",
+				"D",
+				"Banking dominion every cycle.",
+				(
+					"The figure is what THIS piece banks per cycle, and it moves: a Compound pays per "
+					+ "prisoner, so filling it is what raises the number."
+				)
+			)
+		)
 
 
 ## The two channels that move while the selection stands still — a duration draining, and a
@@ -162,22 +190,30 @@ static func _effect_card_name(a_effect: StatusEffect) -> String:
 
 func _build_effect_card(a_effect: StatusEffect) -> ConditionCard:
 	var card := ConditionCard.build(
-		_effect_card_name(a_effect), letter_for(a_effect), a_effect.indicator_icon,
-		a_effect.valence, a_effect.is_temporary()
+		_effect_card_name(a_effect),
+		letter_for(a_effect),
+		a_effect.indicator_icon,
+		a_effect.valence,
+		a_effect.is_temporary()
 	)
 	var description: String = a_effect.description
-	card.simple_tooltip = "%s — %s" % [title_of(a_effect), description] \
-		if not description.is_empty() else title_of(a_effect)
+	card.simple_tooltip = (
+		"%s — %s" % [title_of(a_effect), description]
+		if not description.is_empty()
+		else title_of(a_effect)
+	)
 	card.verbose_tooltip = a_effect.verbose
 
 	# Only an effect that actually reaches somewhere asks for a reveal; hovering one that acts
 	# on its host alone must not leave a stale ring from the card before it.
 	var reaches: bool = a_effect.effect_radius > 0.0
-	card.mouse_entered.connect(func() -> void:
-		if reaches and _host != null:
-			ranges_hovered.emit(_host, EntityRanges.EFFECT_KINDS)
-		else:
-			ranges_unhovered.emit())
+	card.mouse_entered.connect(
+		func() -> void:
+			if reaches and _host != null:
+				ranges_hovered.emit(_host, EntityRanges.EFFECT_KINDS)
+			else:
+				ranges_unhovered.emit()
+	)
 	card.mouse_exited.connect(func() -> void: ranges_unhovered.emit())
 	return card
 
@@ -188,9 +224,11 @@ func _build_hold_fire_card() -> ConditionCard:
 		"Condition_HoldFire", "H", StatusVisuals.HOLD_FIRE_ICON, Valence.Kind.NEUTRAL, false
 	)
 	card.simple_tooltip = "Holding fire — it will not pick targets on its own."
-	card.verbose_tooltip = "It shoots only when told to. It will not open fire on what comes " \
-		+ "into range, will not shoot back when hit, and will not engage from a Defend or " \
+	card.verbose_tooltip = (
+		"It shoots only when told to. It will not open fire on what comes "
+		+ "into range, will not shoot back when hit, and will not engage from a Defend or "
 		+ "Patrol. An Attack or Attack-move order lifts the hold."
+	)
 	card.mouse_entered.connect(func() -> void: ranges_unhovered.emit())
 	card.mouse_exited.connect(func() -> void: ranges_unhovered.emit())
 	return card

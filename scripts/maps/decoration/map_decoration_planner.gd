@@ -59,10 +59,18 @@ const _SETTLEMENT: int = 64
 const _WET: int = _DEEP | _SHALLOW
 
 const _CARDINAL: Array[Vector2i] = [
-	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)
+]
 const _AROUND: Array[Vector2i] = [
-	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
-	Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
+	Vector2i(1, 0),
+	Vector2i(-1, 0),
+	Vector2i(0, 1),
+	Vector2i(0, -1),
+	Vector2i(1, 1),
+	Vector2i(-1, 1),
+	Vector2i(1, -1),
+	Vector2i(-1, -1)
+]
 #endregion
 
 
@@ -89,6 +97,8 @@ static func is_admissible(kind: DoodadLibrary.Kind, flags: int) -> bool:
 	if flags & _IN_PLAY == 0 or flags & (_FIXTURE | _TRAIL | _DEEP) != 0:
 		return false
 	return flags & _STEEP != 0 or DoodadLibrary.is_low(kind)
+
+
 #endregion
 
 
@@ -117,8 +127,10 @@ static func _settlements(input: MapDecorationInput) -> Array[Vector2]:
 	var points: Array[Vector2] = []
 	for fixture: Dictionary in input.fixtures:
 		var kind: MapDecorationInput.FixtureKind = fixture.kind
-		if kind != MapDecorationInput.FixtureKind.BUILDING \
-				and kind != MapDecorationInput.FixtureKind.SHELTER:
+		if (
+			kind != MapDecorationInput.FixtureKind.BUILDING
+			and kind != MapDecorationInput.FixtureKind.SHELTER
+		):
 			continue
 		var sum := Vector2.ZERO
 		for cell: Vector2i in fixture.cells:
@@ -174,12 +186,16 @@ static func _spanning_tree(points: Array[Vector2]) -> Array[Vector2i]:
 		if best_length <= TRAIL_MAX_LENGTH_CELLS:
 			edges.append(best)
 	return edges
+
+
 #endregion
 
 
 #region Ground paint
 static func _paint(
-	grid: _Grid, settle_dist: PackedFloat32Array, steep_dist: PackedFloat32Array,
+	grid: _Grid,
+	settle_dist: PackedFloat32Array,
+	steep_dist: PackedFloat32Array,
 	water_dist: PackedFloat32Array
 ) -> Image:
 	var patches: FastNoiseLite = _noise(grid.rng_seed, PATCH_NOISE_CELLS)
@@ -196,8 +212,7 @@ static func _paint(
 		var scree: float = 0.0
 		var shore: float = 0.0
 		if land:
-			meadow = clampf(1.0 - settle_dist[i] / MEADOW_RADIUS_CELLS, 0.0, 1.0) \
-				* (0.5 + patch)
+			meadow = clampf(1.0 - settle_dist[i] / MEADOW_RADIUS_CELLS, 0.0, 1.0) * (0.5 + patch)
 			meadow = maxf(meadow, clampf((patch - 0.62) * 3.0, 0.0, 0.8))
 			scree = clampf(1.0 - (steep_dist[i] - 1.0) / SCREE_RADIUS_CELLS, 0.0, 1.0)
 			shore = clampf(1.0 - (water_dist[i] - 1.0) / SHORE_RADIUS_CELLS, 0.0, 1.0)
@@ -208,13 +223,18 @@ static func _paint(
 		data[i * 4 + 2] = int(scree * 255.0)
 		data[i * 4 + 3] = int(shore * 255.0)
 	return Image.create_from_data(grid.width, grid.depth, false, Image.FORMAT_RGBA8, data)
+
+
 #endregion
 
 
 #region Doodads
 static func _scatter(
-	grid: _Grid, rng_seed: int, settle_dist: PackedFloat32Array,
-	steep_dist: PackedFloat32Array, fixture_dist: PackedFloat32Array
+	grid: _Grid,
+	rng_seed: int,
+	settle_dist: PackedFloat32Array,
+	steep_dist: PackedFloat32Array,
+	fixture_dist: PackedFloat32Array
 ) -> Array[DoodadPlacement]:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = rng_seed
@@ -229,17 +249,27 @@ static func _scatter(
 		if kind < 0 or not is_admissible(kind as DoodadLibrary.Kind, flags):
 			continue
 		var at := Vector2(cell) + Vector2(rng.randf_range(0.15, 0.85), rng.randf_range(0.15, 0.85))
-		placed.append(DoodadPlacement.of(kind as DoodadLibrary.Kind,
-			Vector3(at.x, grid.height_at(at), at.y), rng.randf() * TAU,
-			rng.randf_range(0.8, 1.25)))
+		placed.append(
+			DoodadPlacement.of(
+				kind as DoodadLibrary.Kind,
+				Vector3(at.x, grid.height_at(at), at.y),
+				rng.randf() * TAU,
+				rng.randf_range(0.8, 1.25)
+			)
+		)
 	return placed
 
 
 ## The doodad kind for one cell, or -1 for none. Draws from `rng` in a fixed order per branch,
 ## so the result depends only on the map.
 static func _pick_kind(
-	grid: _Grid, cell: Vector2i, flags: int, rng: RandomNumberGenerator, forest: FastNoiseLite,
-	settle: float, steep: float
+	grid: _Grid,
+	cell: Vector2i,
+	flags: int,
+	rng: RandomNumberGenerator,
+	forest: FastNoiseLite,
+	settle: float,
+	steep: float
 ) -> int:
 	var roll: float = rng.randf()
 	if flags & _STEEP != 0:
@@ -248,8 +278,11 @@ static func _pick_kind(
 			return -1
 		var pick: float = rng.randf()
 		if stand > -0.1:
-			return DoodadLibrary.Kind.CONIFER if pick < 0.6 \
+			return (
+				DoodadLibrary.Kind.CONIFER
+				if pick < 0.6
 				else (DoodadLibrary.Kind.BROADLEAF if pick < 0.9 else DoodadLibrary.Kind.DEAD_TREE)
+			)
 		return DoodadLibrary.Kind.BOULDER if pick < 0.65 else DoodadLibrary.Kind.ROCK_PILE
 	if flags & _SHALLOW != 0:
 		return DoodadLibrary.Kind.REEDS if roll < REED_CHANCE and grid.touches(cell, 0) else -1
@@ -264,6 +297,8 @@ static func _pick_kind(
 	if roll < GRASS_TUFT_CHANCE:
 		return DoodadLibrary.Kind.GRASS_TUFT
 	return -1
+
+
 #endregion
 
 
@@ -292,6 +327,8 @@ static func _detect_facets(grid: _Grid) -> Dictionary:
 			if grid.is_ramp(cell):
 				facets[MapDecoration.Facet.RAMP].append(cell)
 	return facets
+
+
 #endregion
 
 
@@ -342,8 +379,10 @@ class _Grid:
 				water_level[i] = basin.level
 		for fixture: Dictionary in input.fixtures:
 			var kind: MapDecorationInput.FixtureKind = fixture.kind
-			var settled: bool = kind == MapDecorationInput.FixtureKind.BUILDING \
+			var settled: bool = (
+				kind == MapDecorationInput.FixtureKind.BUILDING
 				or kind == MapDecorationInput.FixtureKind.SHELTER
+			)
 			for cell: Vector2i in fixture.cells:
 				if _terrain.is_cell_in_bounds(cell):
 					flags[index(cell)] |= _FIXTURE | (_SETTLEMENT if settled else 0)
@@ -357,8 +396,9 @@ class _Grid:
 	## Whether any in-play neighbour has one of `mask`'s flags — or, with `negate`, lacks them
 	## all. A `mask` of 0 asks instead whether any neighbour is dry ground.
 	func touches(cell: Vector2i, mask: int, negate: bool = false, cardinal: bool = true) -> bool:
-		var steps: Array[Vector2i] = MapDecorationPlanner._CARDINAL if cardinal \
-			else MapDecorationPlanner._AROUND
+		var steps: Array[Vector2i] = (
+			MapDecorationPlanner._CARDINAL if cardinal else MapDecorationPlanner._AROUND
+		)
 		for step: Vector2i in steps:
 			var n: Vector2i = cell + step
 			if not in_bounds(n) or flags[index(n)] & _IN_PLAY == 0:
@@ -383,8 +423,13 @@ class _Grid:
 		var c := Vector2i(cx, cz)
 		return lerpf(
 			lerpf(_terrain.corner_height(c), _terrain.corner_height(c + Vector2i(1, 0)), fx),
-			lerpf(_terrain.corner_height(c + Vector2i(0, 1)),
-				_terrain.corner_height(c + Vector2i(1, 1)), fx), fz)
+			lerpf(
+				_terrain.corner_height(c + Vector2i(0, 1)),
+				_terrain.corner_height(c + Vector2i(1, 1)),
+				fx
+			),
+			fz
+		)
 
 	## Chamfer distance (in cells) from every cell to the nearest cell carrying `mask`.
 	func distance_to(mask: int) -> PackedFloat32Array:
@@ -413,19 +458,25 @@ class _Grid:
 		for z: int in depth:
 			for x: int in width:
 				var i: int = z * width + x
-				if x > 0: d[i] = minf(d[i], d[i - 1] + 1.0)
+				if x > 0:
+					d[i] = minf(d[i], d[i - 1] + 1.0)
 				if z > 0:
 					d[i] = minf(d[i], d[i - width] + 1.0)
-					if x > 0: d[i] = minf(d[i], d[i - width - 1] + diag)
-					if x < width - 1: d[i] = minf(d[i], d[i - width + 1] + diag)
+					if x > 0:
+						d[i] = minf(d[i], d[i - width - 1] + diag)
+					if x < width - 1:
+						d[i] = minf(d[i], d[i - width + 1] + diag)
 		for z: int in range(depth - 1, -1, -1):
 			for x: int in range(width - 1, -1, -1):
 				var i: int = z * width + x
-				if x < width - 1: d[i] = minf(d[i], d[i + 1] + 1.0)
+				if x < width - 1:
+					d[i] = minf(d[i], d[i + 1] + 1.0)
 				if z < depth - 1:
 					d[i] = minf(d[i], d[i + width] + 1.0)
-					if x < width - 1: d[i] = minf(d[i], d[i + width + 1] + diag)
-					if x > 0: d[i] = minf(d[i], d[i + width - 1] + diag)
+					if x < width - 1:
+						d[i] = minf(d[i], d[i + width + 1] + diag)
+					if x > 0:
+						d[i] = minf(d[i], d[i + width - 1] + diag)
 		return d
 
 	func is_walkable(i: int) -> bool:
@@ -478,9 +529,14 @@ class _Grid:
 				var n: Vector2i = cell + step
 				if not in_bounds(n) or not is_walkable(index(n)):
 					continue
-				if step.x != 0 and step.y != 0 and not (
+				if (
+					step.x != 0
+					and step.y != 0
+					and not (
 						is_walkable(index(Vector2i(n.x, cell.y)))
-						and is_walkable(index(Vector2i(cell.x, n.y)))):
+						and is_walkable(index(Vector2i(cell.x, n.y)))
+					)
+				):
 					continue
 				var ni: int = index(n)
 				var cost: float = g[current] + _step_cost(n, step)
@@ -492,10 +548,13 @@ class _Grid:
 
 	func _step_cost(cell: Vector2i, step: Vector2i) -> float:
 		var length: float = Vector2(step).length()
-		var wander: float = 1.0 + MapDecorationPlanner.TRAIL_WANDER \
-			* (_wander.get_noise_2dv(Vector2(cell)) * 0.5 + 0.5)
-		var wading: float = MapDecorationPlanner.TRAIL_SHALLOW_COST \
-			if flags[index(cell)] & _SHALLOW != 0 else 1.0
+		var wander: float = (
+			1.0
+			+ MapDecorationPlanner.TRAIL_WANDER * (_wander.get_noise_2dv(Vector2(cell)) * 0.5 + 0.5)
+		)
+		var wading: float = (
+			MapDecorationPlanner.TRAIL_SHALLOW_COST if flags[index(cell)] & _SHALLOW != 0 else 1.0
+		)
 		var slope: float = 1.0 + 4.0 * _terrain.cell_height_spread(cell)
 		return length * wander * wading * slope
 
@@ -529,8 +588,10 @@ class _Grid:
 					break
 				if flags[index(n)] & _WET != 0 and water_level[index(n)] >= level - 0.01:
 					break
-				if level - _terrain.cell_mean_height(n) >= MapDecorationPlanner.WATERFALL_DROP \
-						and flags[index(n)] & _STEEP == 0:
+				if (
+					level - _terrain.cell_mean_height(n) >= MapDecorationPlanner.WATERFALL_DROP
+					and flags[index(n)] & _STEEP == 0
+				):
 					return true
 		return false
 

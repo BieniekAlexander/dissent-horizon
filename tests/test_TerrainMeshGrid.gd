@@ -88,8 +88,10 @@ func test_ramp_normals_tilt_against_the_slope():
 func test_is_grid_mesh_rejects_the_wrong_size():
 	var mesh: ArrayMesh = TerrainMeshGrid.create(DIMS)
 	assert_true(TerrainMeshGrid.is_grid_mesh(mesh, DIMS))
-	assert_false(TerrainMeshGrid.is_grid_mesh(mesh, Vector2i(8, 8)),
-		"a mesh of another size is drawn and baked, but never brushed")
+	assert_false(
+		TerrainMeshGrid.is_grid_mesh(mesh, Vector2i(8, 8)),
+		"a mesh of another size is drawn and baked, but never brushed"
+	)
 	assert_false(TerrainMeshGrid.is_grid_mesh(null, DIMS))
 
 

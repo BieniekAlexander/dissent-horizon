@@ -27,7 +27,13 @@ const BOT_DIR: String = "res://scripts/interface/commander/"
 
 ## The bot builds and issues these itself, through BotActuator.
 const ISSUED: Array = [
-	"MoveCommand", "AttackMove", "Attack", "Build", "Interact", "Occupy", "UseSanction",
+	"MoveCommand",
+	"AttackMove",
+	"Attack",
+	"Build",
+	"Interact",
+	"Occupy",
+	"UseSanction",
 ]
 
 ## The bot causes these WITHOUT constructing the command, each for a stated reason. This
@@ -35,35 +41,47 @@ const ISSUED: Array = [
 ## questions, and only the second one matters.
 const COVERED_OTHERWISE: Dictionary = {
 	"Train":
+	(
 		"submitted straight to Commander.production_queue, so the structure stops reading"
-		+ " as idle in the same tick and the bot cannot re-order what it just ordered",
-	"Assemble":
-		"Build converts itself to Assemble once the structure exists; nobody orders it",
+		+ " as idle in the same tick and the bot cannot re-order what it just ordered"
+	),
+	"Assemble": "Build converts itself to Assemble once the structure exists; nobody orders it",
 	"Stop":
+	(
 		"BotBrain._tick_preservation clears the command with update_commands(null), which"
-		+ " is what Stop does",
+		+ " is what Stop does"
+	),
 	"Capture":
+	(
 		"capturing IS driving over the prey, so the bot issues a plain move — see"
-		+ " BotOpportunist's ContactOpportunity",
+		+ " BotOpportunist's ContactOpportunity"
+	),
 }
 
 ## Commands a commander would never want. Kept short on purpose — every entry here is a
 ## claim about the game, not about the bot's maturity.
 const NOT_THE_BOTS: Dictionary = {
 	"FocusFire":
+	(
 		"a human's manual override of automatic target selection. The bot HAS automatic"
-		+ " target selection (BotTargeting) and no hands to override it with",
+		+ " target selection (BotTargeting) and no hands to override it with"
+	),
 	"Wander":
+	(
 		"world behaviour, issued by the Shelter component to loose neutrals. No commander"
-		+ " ever orders it",
+		+ " ever orders it"
+	),
 }
 
 ## KNOWN GAPS — things a commander plausibly wants and this bot cannot do. Enumerated
 ## rather than discovered, so the cost of each is visible when planning.
 const MISSING: Dictionary = {
 	"Repair": "no repair decision exists at all; damaged structures stay damaged",
-	"Defend": "the bot cannot post a unit to hold a region — its only idle answer is to"
-		+ " sweep the unit into the attack",
+	"Defend":
+	(
+		"the bot cannot post a unit to hold a region — its only idle answer is to"
+		+ " sweep the unit into the attack"
+	),
 	"Patrol": "the other standing order it cannot give",
 	"Ability": "unit abilities are unreachable: Abilities is read only by BotSanction",
 	"Land": "no aerial operations at all",
@@ -77,9 +95,12 @@ const MISSING: Dictionary = {
 	"Detonate": "and so never set off",
 	"Embark": "the bot never loads a transport",
 	"Evacuate": "and so never unloads one",
-	"TaskShelter": "the bot hand-drives its Stock Trucks one capture at a time; it never"
+	"TaskShelter":
+	(
+		"the bot hand-drives its Stock Trucks one capture at a time; it never"
 		+ " issues the standing order — see gdd/systems/commands/unit-tasking.md §Later"
-		+ " consumers, which names the bot's dominion gaps as the same loop",
+		+ " consumers, which names the bot's dominion gaps as the same loop"
+	),
 }
 
 
@@ -127,9 +148,14 @@ func test_every_command_is_classified() -> void:
 	var unclassified: Array = _command_class_names().filter(
 		func(n: String): return not classified.has(n)
 	)
-	assert_eq(unclassified, [],
-		"new command(s) with no stated position on whether the bot should use them —"
-		+ " add each to ISSUED, COVERED_OTHERWISE, NOT_THE_BOTS or MISSING")
+	assert_eq(
+		unclassified,
+		[],
+		(
+			"new command(s) with no stated position on whether the bot should use them —"
+			+ " add each to ISSUED, COVERED_OTHERWISE, NOT_THE_BOTS or MISSING"
+		)
+	)
 
 
 func test_no_classification_names_a_command_that_no_longer_exists() -> void:
@@ -138,14 +164,20 @@ func test_no_classification_names_a_command_that_no_longer_exists() -> void:
 	classified.append_array(COVERED_OTHERWISE.keys())
 	classified.append_array(NOT_THE_BOTS.keys())
 	classified.append_array(MISSING.keys())
-	assert_eq(classified.filter(func(n: String): return not existing.has(n)), [],
-		"classified command(s) that have been renamed or deleted")
+	assert_eq(
+		classified.filter(func(n: String): return not existing.has(n)),
+		[],
+		"classified command(s) that have been renamed or deleted"
+	)
 
 
 func test_every_issued_command_is_actually_issued() -> void:
 	var source: String = _bot_source()
-	assert_eq(ISSUED.filter(func(n: String): return not _issues(source, n)), [],
-		"claimed as issued but constructed nowhere in the bot")
+	assert_eq(
+		ISSUED.filter(func(n: String): return not _issues(source, n)),
+		[],
+		"claimed as issued but constructed nowhere in the bot"
+	)
 
 
 func test_a_gap_that_has_been_filled_is_not_still_listed_as_a_gap() -> void:
@@ -157,9 +189,14 @@ func test_a_gap_that_has_been_filled_is_not_still_listed_as_a_gap() -> void:
 func test_a_command_ruled_out_has_not_quietly_been_adopted() -> void:
 	var source: String = _bot_source()
 	var stale: Array = NOT_THE_BOTS.keys().filter(func(n: String): return _issues(source, n))
-	assert_eq(stale, [],
-		"ruled out as never useful to a commander, yet the bot issues them — one of the"
-		+ " two is wrong")
+	assert_eq(
+		stale,
+		[],
+		(
+			"ruled out as never useful to a commander, yet the bot issues them — one of the"
+			+ " two is wrong"
+		)
+	)
 
 
 func test_the_gap_list_does_not_grow_silently() -> void:
@@ -170,14 +207,21 @@ func test_the_gap_list_does_not_grow_silently() -> void:
 	# Raised 12 -> 16 on 2026-09-29: Deploy/Undeploy and Plant/Detonate, built for the player;
 	# whether the bot should use either is open (gdd/systems/commands/deploying.md,
 	# gdd/systems/combat/planted-explosives.md).
-	assert_lte(MISSING.size(), 16,
-		"more commands the bot cannot use than last time this was reviewed — either wire"
-		+ " it up or raise this number on purpose")
+	assert_lte(
+		MISSING.size(),
+		16,
+		(
+			"more commands the bot cannot use than last time this was reviewed — either wire"
+			+ " it up or raise this number on purpose"
+		)
+	)
 
 
 func test_the_bot_never_queues_commands() -> void:
 	# Queue-building would make the bot decide HOW LONG a plan to build, and that question
 	# has no obviously finite answer. Standing orders (Defend, Patrol, a rally point) are
 	# the queue-free way to keep a unit busy — see the roadmap's decision-surface gaps.
-	assert_false(_bot_source().contains("update_commands(cmd, true"),
-		"the bot appended to a command queue instead of replacing the command")
+	assert_false(
+		_bot_source().contains("update_commands(cmd, true"),
+		"the bot appended to a command queue instead of replacing the command"
+	)

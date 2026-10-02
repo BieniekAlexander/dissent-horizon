@@ -16,6 +16,7 @@ func _watcher() -> Commandable:
 
 # --- Attackable ------------------------------------------------------------------
 
+
 func test_it_is_attackable() -> void:
 	# Aggro and Attack both ask Entity.is_attackable: a target layer and a Defense.
 	var drone := _watcher()
@@ -32,6 +33,7 @@ func test_it_is_air_targetable() -> void:
 
 # --- Not selectable, but still pickable ------------------------------------------
 
+
 func test_it_cannot_be_selected() -> void:
 	var drone := _watcher()
 	assert_not_null(drone.selectable, "the component is there, switched off by a flag")
@@ -45,8 +47,7 @@ func test_it_is_still_pickable_so_it_can_be_ATTACKED() -> void:
 	# (RTSController.get_cursor_target) — so the piece became impossible to right-click
 	# and could not be attacked at all. It has to stay on the layer.
 	var drone := _watcher()
-	assert_ne(drone.selectable.collision_layer, 0,
-		"the cursor must still be able to find it")
+	assert_ne(drone.selectable.collision_layer, 0, "the cursor must still be able to find it")
 
 
 func test_refusing_selection_does_not_depend_on_the_collision_layer() -> void:
@@ -54,6 +55,5 @@ func test_refusing_selection_does_not_depend_on_the_collision_layer() -> void:
 	# layer never actually prevented selection either — a drag still caught it. Both paths
 	# go through select(), which is where the refusal lives.
 	var drone := _watcher()
-	assert_true(drone.selectable.is_in_group("selectables"),
-		"a box drag does find it...")
+	assert_true(drone.selectable.is_in_group("selectables"), "a box drag does find it...")
 	assert_false(drone.selectable.select(), "...and is refused here")

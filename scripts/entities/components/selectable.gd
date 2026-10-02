@@ -70,6 +70,7 @@ var _indicator: Node3D = null
 @onready var last_selected_time: int = Time.get_ticks_msec()
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	add_to_group("selectables")
@@ -79,13 +80,17 @@ func _ready() -> void:
 			set_indicator(node)
 		elif node != null:
 			push_warning("Selectable.indicator_path points at non-Node3D: %s" % node)
+
+
 #endregion
 
 #region Public API
 var state: int:
-	get: return _state
+	get:
+		return _state
 	set(value):
 		set_state(value)
+
 
 func set_state(a_new_state: int) -> bool:
 	## Returns true if the state actually changed.
@@ -101,8 +106,10 @@ func set_state(a_new_state: int) -> bool:
 	state_changed.emit(old, a_new_state)
 	return true
 
+
 func is_selected() -> bool:
 	return _state == State.SELECTED
+
 
 ## Both selection paths — the click in RTSController.set_selection and the box drag below
 ## it — go through here and honour the returned bool, so refusing here is the whole of
@@ -112,20 +119,27 @@ func select() -> bool:
 		return false
 	return set_state(State.SELECTED)
 
+
 func deselect() -> bool:
 	return set_state(State.UNSELECTED)
+
 
 func get_entity() -> Entity:
 	return get_parent() as Entity
 
+
 func set_indicator(a_indicator: Node3D) -> void:
 	_indicator = a_indicator
 	_refresh_indicator()
+
+
 #endregion
+
 
 #region Private helpers
 func _refresh_indicator() -> void:
-	if _indicator == null: return
+	if _indicator == null:
+		return
 	# PREVIEW and SELECTED both show the ring for now. A future SelectionVisual
 	# can differentiate (e.g., dimmed preview ring during box-drag).
 	_indicator.visible = _state == State.SELECTED or _state == State.PREVIEW

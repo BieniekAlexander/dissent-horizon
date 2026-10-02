@@ -33,8 +33,11 @@ func _init(a_map: Map) -> void:
 ## The player's attack-move is untouched — RTSController builds its own CommandMessage — so
 ## this widening is the bot's alone, and it is a DEFAULT rather than a hardcode: a caller
 ## that wants the army to walk past buildings passes the narrower rank.
-func attack_move(a_units: Array, a_world_pos: Vector3,
-		a_target_priority: Entity.TargetPriority = Entity.TargetPriority.NON_COMBAT_STRUCTURES) -> void:
+func attack_move(
+	a_units: Array,
+	a_world_pos: Vector3,
+	a_target_priority: Entity.TargetPriority = Entity.TargetPriority.NON_COMBAT_STRUCTURES
+) -> void:
 	if _map == null:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)

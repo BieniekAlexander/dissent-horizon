@@ -24,9 +24,9 @@ extends RefCounted
 ## check from SimCheckLibrary. Neither route is privileged.
 
 enum Mode {
-	AT_END,    ## sampled once, when the window elapses
+	AT_END,  ## sampled once, when the window elapses
 	LIVENESS,  ## must become true at or before `deadline_ticks`
-	SAFETY,    ## must never be false
+	SAFETY,  ## must never be false
 }
 
 #region Properties
@@ -52,8 +52,12 @@ var _resolved: bool = false
 #endregion
 
 
-func _init(a_description: String, a_predicate: Callable, a_mode: Mode = Mode.AT_END,
-		a_deadline_ticks: int = 0) -> void:
+func _init(
+	a_description: String,
+	a_predicate: Callable,
+	a_mode: Mode = Mode.AT_END,
+	a_deadline_ticks: int = 0
+) -> void:
 	description = a_description
 	_predicate = a_predicate
 	mode = a_mode

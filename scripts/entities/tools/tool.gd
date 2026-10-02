@@ -77,6 +77,7 @@ var _base_ref: WeakRef = null
 var _bound: Dictionary = {}
 #endregion
 
+
 #region Lifecycle
 ## TODO: thirteen parameters, all of them one piece's generated facts. The composition rework
 ## (gdd/systems/authoring/composition-rework.md) is what shortens this — a Tool built from
@@ -100,10 +101,20 @@ func _init(
 	# A tool's card follows from what it does, so it is never authored twice: placing a
 	# structure is an order given to a UNIT and belongs beside that unit's other orders,
 	# while training is what a producer does with energy. See ControlBinding.CommandFamily.
-	var command_family: int = CommandFamily.PRODUCTION \
-		if (a_control_context & ControlContext.TRAIN) != 0 else CommandFamily.ACTIVE
-	super(a_command_name, a_label, a_grid_position, a_control_context,
-		a_simple_tooltip, a_verbose_tooltip, command_family)
+	var command_family: int = (
+		CommandFamily.PRODUCTION
+		if (a_control_context & ControlContext.TRAIN) != 0
+		else CommandFamily.ACTIVE
+	)
+	super(
+		a_command_name,
+		a_label,
+		a_grid_position,
+		a_control_context,
+		a_simple_tooltip,
+		a_verbose_tooltip,
+		command_family
+	)
 	type = a_type
 	packed_scene = a_packed_scene
 	faction = a_faction
@@ -112,17 +123,21 @@ func _init(
 	context_grid = a_context_grid
 	variants = a_variants
 
+
 func faction_mask() -> int:
 	return faction
+
 
 #region Variants
 ## True when this tool is bound to one of its piece's variants.
 func is_variant_bound() -> bool:
 	return variant != &""
 
+
 ## This tool's variant's place in `variants`, or -1 when it is not bound.
 func variant_index() -> int:
 	return variants.find(variant) if is_variant_bound() else -1
+
 
 ## The bound tool for variant `a_index` of this tool's piece. WRAPS (index -1 is the last, an index
 ## past the end is the first) so a caller cycling with `variant_index() + 1` needs no bounds check.
@@ -136,10 +151,12 @@ func with_variant(a_index: int) -> Tool:
 		base._bound[wrapped] = base._make_bound(variants[wrapped])
 	return base._bound[wrapped]
 
+
 ## The bound tool for the variant after this one, wrapping. From an unbound tool it is the SECOND
 ## variant, because an unbound tool already means the first (see resolved).
 func next_variant() -> Tool:
 	return with_variant(maxi(variant_index(), 0) + 1)
+
 
 ## This tool made CONCRETE: a bound tool, or one whose piece has no variants, is itself; an
 ## unbound tool of a piece with variants is bound to the first — the default. What an order carries
@@ -148,24 +165,29 @@ func next_variant() -> Tool:
 func resolved() -> Tool:
 	return self if is_variant_bound() or variants.is_empty() else with_variant(0)
 
+
 ## The piece id whose technology entry PRICES and TIMES this tool: the variant's when bound, else
 ## the tool's own. Prerequisites are always read off `type`.
 func price_id() -> StringName:
 	return variant if is_variant_bound() else type
+
 
 ## The key a per-tool cache (Commander's preview instances, the HUD ghost) should use: distinct
 ## for each variant of one piece, which `type` alone is not.
 func preview_key() -> StringName:
 	return StringName("%s:%s" % [type, variant]) if is_variant_bound() else type
 
+
 ## The bound variant's template (footprint, HP, price, infrastructure), or null when unbound.
 func variant_template() -> PieceFamilies.Template:
 	return PieceFamilies.template(variant) if is_variant_bound() else null
+
 
 ## What the HUD calls the bound variant, or "" when unbound.
 func variant_label() -> String:
 	var found: PieceFamilies.Template = variant_template()
 	return found.title if found != null else ""
+
 
 ## A fresh instance of the piece this tool places, ready to enter the world (or to be read as a
 ## preview). A bound tool's instance is made from the variant's scene and then given the piece's
@@ -180,11 +202,13 @@ func instantiate() -> Node:
 		Repurposing.into(instance as Commandable, type)
 	return instance
 
+
 func _base() -> Tool:
 	if _base_ref == null:
 		return self
 	var base: Object = _base_ref.get_ref()
 	return base as Tool if base != null else self
+
 
 func _make_bound(a_variant: StringName) -> Tool:
 	var found: PieceFamilies.Template = PieceFamilies.template(a_variant)
@@ -192,16 +216,31 @@ func _make_bound(a_variant: StringName) -> Tool:
 		push_error("Tool: %s names variant %s, which is in no family" % [command_name, a_variant])
 		return self
 	var bound := Tool.new(
-		command_name, type, found.load_scene(), label, grid_position, control_context, faction,
-		simple_tooltip, verbose_tooltip, producers, needs_docking, context_grid, variants
+		command_name,
+		type,
+		found.load_scene(),
+		label,
+		grid_position,
+		control_context,
+		faction,
+		simple_tooltip,
+		verbose_tooltip,
+		producers,
+		needs_docking,
+		context_grid,
+		variants
 	)
 	bound.variant = a_variant
 	bound._base_ref = weakref(self)
 	return bound
+
+
 #endregion
+
 
 func actor_ids() -> Array:
 	return producers
+
 
 ## A train button no producer can offer. `producers` is DERIVED from every `trains:` list
 ## in the docs, so for a TRAIN tool it is complete by construction and an empty one is a
@@ -209,6 +248,8 @@ func actor_ids() -> Array:
 ## scenes (Builds.buildable_types), which this registry does not read.
 func is_orphaned() -> bool:
 	return (control_context & ControlContext.TRAIN) != 0 and producers.is_empty()
+
+
 #endregion
 
 #region Registry
@@ -216,6 +257,7 @@ func is_orphaned() -> bool:
 ## on first access. Godot dicts keep insertion order; entries are alphabetical
 ## by command name (the generator's order).
 static var command_tool_map: Dictionary = _load_registry()
+
 
 static func _load_registry() -> Dictionary:
 	var out: Dictionary = {}
@@ -236,6 +278,7 @@ static func _load_registry() -> Dictionary:
 		out[String(command_name)] = from_entry(String(command_name), e, scene)
 	return out
 
+
 ## One tools.json entry as a Tool. `scene` is passed in rather than loaded here so the spec
 ## importer can build its not-yet-written entries (with a null scene) to review the grid
 ## before it writes anything — see SpecGenerators.grid_collisions.
@@ -249,8 +292,12 @@ static func from_entry(command_name: String, e: Dictionary, scene: PackedScene) 
 			# Loud, because the fallback below is the permissive one: an unrecognised name
 			# widens the tool to every faction and so makes it collide with everything in its
 			# cell. Add the member to Faction rather than living with the error.
-			push_error("Tool: %s has unknown ui faction '%s' — add it to ControlBinding.Faction" \
-				% [command_name, fname])
+			push_error(
+				(
+					"Tool: %s has unknown ui faction '%s' — add it to ControlBinding.Faction"
+					% [command_name, fname]
+				)
+			)
 	if mask == 0:
 		mask = ControlBinding.FACTION_ANY
 	var producer_ids: Array = []
@@ -277,33 +324,45 @@ static func from_entry(command_name: String, e: Dictionary, scene: PackedScene) 
 	tool.is_upgrade = bool(e.get("upgrade", false))
 	return tool
 
+
 ## A generated [x, y] pair as a cell, or (-1, -1) when the list is absent or malformed.
 static func _cell(value: Variant) -> Vector2i:
-	return Vector2i(int(value[0]), int(value[1])) \
-		if value is Array and value.size() == 2 else Vector2i(-1, -1)
+	return (
+		Vector2i(int(value[0]), int(value[1]))
+		if value is Array and value.size() == 2
+		else Vector2i(-1, -1)
+	)
+
 
 ## piece id -> Tool. Lazily built; cached after first use.
 static var _by_id_cache: Dictionary = {}
+
 
 static func _by_id() -> Dictionary:
 	if _by_id_cache.is_empty():
 		for t: Tool in command_tool_map.values():
 			_by_id_cache[t.type] = t
 	return _by_id_cache
+
+
 #endregion
+
 
 #region Lookups
 ## The Tool with this command name, or null.
 static func for_name(command_name: String) -> Tool:
 	return command_tool_map.get(command_name)
 
+
 ## The Tool that produces/places this piece id, or null.
 static func for_id(id: StringName) -> Tool:
 	return _by_id().get(id)
 
+
 ## Back-compat alias for for_id (the field is still named `type`).
 static func for_type(id: StringName) -> Tool:
 	return for_id(id)
+
 
 ## Tools (in registry order) whose control_context intersects the given context
 ## bitmask. The single context filter used by command_context_parser.tools_for().

@@ -34,6 +34,7 @@ const _NEIGHBOURS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vec
 @export var flat_only: bool = true
 #endregion
 
+
 #region Public API
 func generate(a_heights: PackedFloat32Array, a_width: int, a_depth: int) -> PackedByteArray:
 	var gw: int = a_width - 1
@@ -80,10 +81,20 @@ func generate(a_heights: PackedFloat32Array, a_width: int, a_depth: int) -> Pack
 				blocked[c.y * gw + c.x] = 0
 
 	return blocked
+
+
 #endregion
 
+
 #region Private helpers
-func _is_eligible(a_cell: Vector2i, a_gw: int, a_gh: int, a_passable: PackedByteArray, a_flat: PackedByteArray, a_blocked: PackedByteArray) -> bool:
+func _is_eligible(
+	a_cell: Vector2i,
+	a_gw: int,
+	a_gh: int,
+	a_passable: PackedByteArray,
+	a_flat: PackedByteArray,
+	a_blocked: PackedByteArray
+) -> bool:
 	if a_cell.x < 0 or a_cell.x >= a_gw or a_cell.y < 0 or a_cell.y >= a_gh:
 		return false
 	var idx: int = a_cell.y * a_gw + a_cell.x
@@ -91,15 +102,33 @@ func _is_eligible(a_cell: Vector2i, a_gw: int, a_gh: int, a_passable: PackedByte
 		return false
 	return a_flat[idx] == 1 if flat_only else true
 
-func _pick_candidate(a_rng: RandomNumberGenerator, a_gw: int, a_gh: int, a_passable: PackedByteArray, a_flat: PackedByteArray, a_blocked: PackedByteArray) -> Vector2i:
+
+func _pick_candidate(
+	a_rng: RandomNumberGenerator,
+	a_gw: int,
+	a_gh: int,
+	a_passable: PackedByteArray,
+	a_flat: PackedByteArray,
+	a_blocked: PackedByteArray
+) -> Vector2i:
 	for _try: int in 60:
 		var cell := Vector2i(a_rng.randi_range(0, a_gw - 1), a_rng.randi_range(0, a_gh - 1))
 		if _is_eligible(cell, a_gw, a_gh, a_passable, a_flat, a_blocked):
 			return cell
 	return Vector2i(-1, -1)
 
+
 ## Random-frontier flood growth — gives organic blob shapes rather than discs.
-func _grow_blob(a_rng: RandomNumberGenerator, a_start: Vector2i, a_target: int, a_gw: int, a_gh: int, a_passable: PackedByteArray, a_flat: PackedByteArray, a_blocked: PackedByteArray) -> Array:
+func _grow_blob(
+	a_rng: RandomNumberGenerator,
+	a_start: Vector2i,
+	a_target: int,
+	a_gw: int,
+	a_gh: int,
+	a_passable: PackedByteArray,
+	a_flat: PackedByteArray,
+	a_blocked: PackedByteArray
+) -> Array:
 	var blob: Array = []
 	var visited: Dictionary = {a_start: true}
 	var frontier: Array = [a_start]
@@ -115,9 +144,12 @@ func _grow_blob(a_rng: RandomNumberGenerator, a_start: Vector2i, a_target: int, 
 				frontier.append(nb)
 	return blob
 
+
 ## True iff the cells that are height-passable AND not blocked form one connected
 ## component (4-neighbour).  Early-outs as soon as a second component appears.
-func _passable_connected(a_gw: int, a_gh: int, a_passable: PackedByteArray, a_blocked: PackedByteArray) -> bool:
+func _passable_connected(
+	a_gw: int, a_gh: int, a_passable: PackedByteArray, a_blocked: PackedByteArray
+) -> bool:
 	var seen := PackedByteArray()
 	seen.resize(a_gw * a_gh)
 	var components: int = 0

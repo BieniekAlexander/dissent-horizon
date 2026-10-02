@@ -210,13 +210,16 @@ func is_sight_pending() -> bool:
 
 # ─── COVERAGE QUERY (used by scenario tests / debug) ─────────────────────────
 
+
 ## Number of scout-grid points that have been in real line of sight at least once.
 func observed_point_count() -> int:
 	return _ever_seen.size()
 
+
 ## Total number of scout-grid points.
 func total_point_count() -> int:
 	return _scout_grid.size()
+
 
 ## Fraction (0–1) of scout-grid points seen at least once; 0 when the grid is empty.
 func observed_fraction() -> float:
@@ -224,9 +227,11 @@ func observed_fraction() -> float:
 		return 0.0
 	return float(_ever_seen.size()) / float(_scout_grid.size())
 
+
 ## True once every scout-grid point has been in line of sight at least once.
 func all_points_seen() -> bool:
 	return not _scout_grid.is_empty() and _ever_seen.size() >= _scout_grid.size()
+
 
 ## Per scout-grid point, for debug visualisation: its world position, the seconds_elapsed()
 ## time it was last observed (negative sentinel until first seen), and whether it has ever
@@ -234,15 +239,21 @@ func all_points_seen() -> bool:
 func debug_points() -> Array:
 	var out: Array = []
 	for idx: Vector2i in _scout_grid:
-		out.append({
-			"position": _scout_grid_positions[idx],
-			"last_seen": _scout_grid[idx],
-			"ever_seen": _ever_seen.has(idx),
-		})
+		(
+			out
+			. append(
+				{
+					"position": _scout_grid_positions[idx],
+					"last_seen": _scout_grid[idx],
+					"ever_seen": _ever_seen.has(idx),
+				}
+			)
+		)
 	return out
 
 
 # ─── GRID CONSTRUCTION ───────────────────────────────────────────────────────
+
 
 func _build_scout_grid() -> void:
 	if _bot.map == null or _bot.map.height_map == null:
@@ -279,6 +290,7 @@ func _grid_world_pos(a_idx: Vector2i) -> Vector3:
 
 
 # ─── LOS UPDATE ──────────────────────────────────────────────────────────────
+
 
 ## Mark the scout-grid points `a_unit` has in real line of sight; returns the work units it
 ## cost. Gated on the unit's ACTUAL vision radius — the same shape the fog of war reveals
@@ -323,6 +335,7 @@ func _mark_seen_by(a_unit: Commandable) -> int:
 
 
 # ─── SCOUT UNIT ASSIGNMENT ───────────────────────────────────────────────────
+
 
 ## Each think: give up the scouts that are no longer ours to keep, claim another if one is
 ## WORTH claiming, and (re-)issue a waypoint to every scout that needs one. Runs every think
@@ -373,8 +386,11 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 		#
 		# TAKEN counts as gone too: a manager with a stronger claim (a build job, a fight) has it
 		# now, and this module learns so here rather than by having run first.
-		if is_instance_valid(entry) and not (entry as Commandable).is_garrisoned() \
-				and not _taken_by_another(entry):
+		if (
+			is_instance_valid(entry)
+			and not (entry as Commandable).is_garrisoned()
+			and not _taken_by_another(entry)
+		):
 			live.append(entry)
 
 	var kept: Array = []
@@ -403,8 +419,10 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 	# as far as this module is concerned: the waypoint is not going to be reached, and standing
 	# there sees nothing.
 	for scout: Commandable in _scouts:
-		if (not scout.has_command() or _was_retasked(scout) or _is_stalled(scout, now)) \
-				and not _dispatch_queue.has(scout):
+		if (
+			(not scout.has_command() or _was_retasked(scout) or _is_stalled(scout, now))
+			and not _dispatch_queue.has(scout)
+		):
 			_dispatch_queue.append(scout)
 	_prune_progress()
 	_drain_dispatch(a_allowance)
@@ -416,8 +434,11 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 func _drain_dispatch(a_allowance: int) -> void:
 	while not _dispatch_queue.is_empty() and _work < a_allowance:
 		var head: Variant = _dispatch_queue[0]
-		if not is_instance_valid(head) or not _scouts.has(head) \
-				or not (head as Node).is_inside_tree():
+		if (
+			not is_instance_valid(head)
+			or not _scouts.has(head)
+			or not (head as Node).is_inside_tree()
+		):
 			_dispatch_queue.pop_front()
 			_errand = {}
 			continue
@@ -548,8 +569,17 @@ func _was_retasked(a_scout: Commandable) -> bool:
 	if not a_scout.has_command():
 		return false  # idle after reaching a waypoint, still ours
 	var c: MoveCommand = a_scout.current_command()
-	return c is Attack or c is AttackMove or c is Build or c is Assemble or c is Repair \
-		or c is Occupy or c is Capture or c is Land or c is Interact
+	return (
+		c is Attack
+		or c is AttackMove
+		or c is Build
+		or c is Assemble
+		or c is Repair
+		or c is Occupy
+		or c is Capture
+		or c is Land
+		or c is Interact
+	)
 
 
 ## WHEN A SCOUT STOPS BEING OURS: it has been given a job that must run to completion.
@@ -565,8 +595,16 @@ func _yields_to_errand(a_scout: Commandable) -> bool:
 	if not a_scout.has_command():
 		return false
 	var c: MoveCommand = a_scout.current_command()
-	return c is Attack or c is Build or c is Assemble or c is Repair \
-		or c is Occupy or c is Capture or c is Land or c is Interact
+	return (
+		c is Attack
+		or c is Build
+		or c is Assemble
+		or c is Repair
+		or c is Occupy
+		or c is Capture
+		or c is Land
+		or c is Interact
+	)
 
 
 ## Among all owned units free to scout, the best-scoring one whose absence the bot can
@@ -592,8 +630,11 @@ func _pick_scout() -> Variant:
 			# how BotMilitary / BotTargeting exclude them.
 			if _bot.is_suicide_aoe_unit(u):
 				return false
-			return not _scouts.has(u) and _unit_is_available(u) \
+			return (
+				not _scouts.has(u)
+				and _unit_is_available(u)
 				and claims.can_claim(u, CLAIM_OWNER, BotClaims.Priority.SCOUT)
+			)
 	)
 	_work += _bot.get_units().size() * CANDIDATE_WORK_UNITS
 	if candidates.is_empty():
@@ -707,8 +748,17 @@ func _unit_is_available(a_u: Commandable) -> bool:
 	if not a_u.has_command():
 		return true
 	var c: MoveCommand = a_u.current_command()
-	return not (c is Attack or c is AttackMove or c is Build or c is Assemble or c is Repair \
-		or c is Occupy or c is Capture or c is Land or c is Interact)
+	return not (
+		c is Attack
+		or c is AttackMove
+		or c is Build
+		or c is Assemble
+		or c is Repair
+		or c is Occupy
+		or c is Capture
+		or c is Land
+		or c is Interact
+	)
 
 
 ## WHERE THE SCOUT GOES NEXT: the errand with the best EXPECTED RETURN — how much it
@@ -776,8 +826,9 @@ func _next_scout_point(a_scout: Commandable) -> Variant:
 ## Takes the scout's FACTS rather than the scout: where it is, how fast it walks and how much
 ## it sees are the whole of what the choice depends on, and passing them keeps the selector
 ## answerable against a synthetic grid without a live unit in the scene tree.
-func _best_errand(a_from_xz: Vector2, a_speed: float, a_window: Array,
-		a_unseen_only: bool) -> Variant:
+func _best_errand(
+	a_from_xz: Vector2, a_speed: float, a_window: Array, a_unseen_only: bool
+) -> Variant:
 	var search: Dictionary = _errand_search(null, a_from_xz, a_speed, a_window, a_unseen_only)
 	_continue_errand_search(search, BotJob.UNLIMITED_WORK_UNITS)
 	return search["best_idx"]
@@ -786,20 +837,33 @@ func _best_errand(a_from_xz: Vector2, a_speed: float, a_window: Array,
 ## A fresh errand search for `a_scout`, from where it stands now — see _errand_search.
 func _start_errand_search(a_scout: Commandable, a_unseen_only: bool) -> Dictionary:
 	var speed: float = maxf(0.1, a_scout.movement.speed) if a_scout.movement != null else 1.0
-	return _errand_search(a_scout, VU.inXZ(a_scout.global_position), speed,
-		_vision_window(_bot.vision_radius(a_scout)), a_unseen_only)
+	return _errand_search(
+		a_scout,
+		VU.inXZ(a_scout.global_position),
+		speed,
+		_vision_window(_bot.vision_radius(a_scout)),
+		a_unseen_only
+	)
 
 
 ## The state of one errand search: the facts it scores against, fixed when it starts, and how
 ## far through the grid it has got. `a_scout` is only which scout it is for (null in a bare
 ## query).
-func _errand_search(a_scout: Variant, a_from_xz: Vector2, a_speed: float, a_window: Array,
-		a_unseen_only: bool) -> Dictionary:
+func _errand_search(
+	a_scout: Variant, a_from_xz: Vector2, a_speed: float, a_window: Array, a_unseen_only: bool
+) -> Dictionary:
 	return {
-		"scout": a_scout, "from": a_from_xz, "speed": a_speed, "window": a_window,
-		"unseen_only": a_unseen_only, "points": _scout_grid.keys(), "cursor": 0,
+		"scout": a_scout,
+		"from": a_from_xz,
+		"speed": a_speed,
+		"window": a_window,
+		"unseen_only": a_unseen_only,
+		"points": _scout_grid.keys(),
+		"cursor": 0,
 		"expiry": _bot.seconds_elapsed() - SCOUT_EXPIRATION_TIMER,
-		"home": VU.inXZ(_home_position()), "best_idx": null, "best_return": 0.0,
+		"home": VU.inXZ(_home_position()),
+		"best_idx": null,
+		"best_return": 0.0,
 	}
 
 
@@ -851,8 +915,14 @@ func _continue_errand_search(a_search: Dictionary, a_allowance: int) -> bool:
 ## many grid cells a vision-wide corridor of this length covers. The alternative — testing
 ## every grid point against every candidate segment — is a thousand-by-thousand sweep on
 ## every dispatch, and this runs inside the think pass.
-func _expected_sightings(a_idx: Vector2i, a_from_xz: Vector2, a_distance: float,
-		a_window: Array, a_unseen_only: bool, a_expiry_threshold: float) -> float:
+func _expected_sightings(
+	a_idx: Vector2i,
+	a_from_xz: Vector2,
+	a_distance: float,
+	a_window: Array,
+	a_unseen_only: bool,
+	a_expiry_threshold: float
+) -> float:
 	var at_destination: float = float(
 		_window_count(a_idx, a_window, a_unseen_only, a_expiry_threshold)
 	)
@@ -895,8 +965,9 @@ func _home_position() -> Vector3:
 
 
 ## Candidate points inside the vision window centred on `a_idx` — what standing there adds.
-func _window_count(a_idx: Vector2i, a_window: Array, a_unseen_only: bool,
-		a_expiry_threshold: float) -> int:
+func _window_count(
+	a_idx: Vector2i, a_window: Array, a_unseen_only: bool, a_expiry_threshold: float
+) -> int:
 	var count: int = 0
 	for offset: Vector2i in a_window:
 		if _is_candidate(a_idx + offset, a_unseen_only, a_expiry_threshold):

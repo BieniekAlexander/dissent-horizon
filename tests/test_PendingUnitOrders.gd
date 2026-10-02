@@ -46,13 +46,18 @@ func _controller() -> RTSController:
 ## watching a progress bar reaches for the unit being built, and stopping at FUNDED made that
 ## the one thing on screen that could not be ordered.
 func test_a_purchase_takes_orders_at_every_stage_before_its_unit_exists() -> void:
-	for state: int in [PurchaseTransaction.State.PENDING, PurchaseTransaction.State.FUNDED,
-			PurchaseTransaction.State.CONSUMED]:
+	for state: int in [
+		PurchaseTransaction.State.PENDING,
+		PurchaseTransaction.State.FUNDED,
+		PurchaseTransaction.State.CONSUMED
+	]:
 		var transaction: PurchaseTransaction = _transaction()
 		transaction.state = state
 		assert_true(transaction.awaits_its_unit(), "state %d is still waiting" % state)
-		assert_true(transaction.queue_player_command(_order(Vector2(5, 5)), true),
-			"state %d takes orders" % state)
+		assert_true(
+			transaction.queue_player_command(_order(Vector2(5, 5)), true),
+			"state %d takes orders" % state
+		)
 
 
 ## CONSUMED is the one that matters: the purchase has left the production queue and is on a
@@ -66,13 +71,14 @@ func test_a_unit_being_trained_still_takes_orders() -> void:
 
 ## Nothing is coming, or it has already arrived and is a unit you order in the world.
 func test_a_finished_or_cancelled_purchase_refuses_orders() -> void:
-	for state: int in [PurchaseTransaction.State.CANCELLED,
-			PurchaseTransaction.State.COMPLETED]:
+	for state: int in [PurchaseTransaction.State.CANCELLED, PurchaseTransaction.State.COMPLETED]:
 		var transaction: PurchaseTransaction = _transaction()
 		transaction.state = state
 		assert_false(transaction.awaits_its_unit(), "state %d is over" % state)
 		assert_false(transaction.queue_player_command(_order(Vector2(5, 5)), true))
 		assert_true(transaction.player_commands.is_empty())
+
+
 #endregion
 
 
@@ -90,8 +96,11 @@ func test_an_additive_order_appends() -> void:
 	var transaction: PurchaseTransaction = _transaction()
 	transaction.queue_player_command(_order(Vector2(1, 1)), true)
 	transaction.queue_player_command(_order(Vector2(9, 9)), false)
-	assert_eq(transaction.player_commands.size(), 2,
-		"a phantom can be given a chain before it exists")
+	assert_eq(
+		transaction.player_commands.size(), 2, "a phantom can be given a chain before it exists"
+	)
+
+
 #endregion
 
 
@@ -100,8 +109,10 @@ func test_an_additive_order_appends() -> void:
 ## `player_commands` is what tells the spawn path to read the producer's rally as it stands.
 func test_a_purchase_nobody_ordered_carries_nothing() -> void:
 	var transaction: PurchaseTransaction = _transaction()
-	assert_true(transaction.player_commands.is_empty(),
-		"no rally is snapshot here; the structure answers for that at spawn")
+	assert_true(
+		transaction.player_commands.is_empty(),
+		"no rally is snapshot here; the structure answers for that at spawn"
+	)
 
 
 func test_an_ordered_purchase_carries_exactly_that_order() -> void:
@@ -119,6 +130,8 @@ func test_a_standing_clone_keeps_the_players_orders() -> void:
 	transaction.queue_player_command(_order(Vector2(4, 4)), true)
 	var clone: PurchaseTransaction = transaction.clone()
 	assert_eq(clone.player_commands.size(), 1)
+
+
 #endregion
 
 
@@ -167,6 +180,8 @@ func test_selecting_the_same_phantom_twice_holds_it_once() -> void:
 	controller.select_pending([transaction], false)
 	controller.select_pending([transaction], true)
 	assert_eq(controller.pending_selection.size(), 1)
+
+
 #endregion
 
 
@@ -181,8 +196,11 @@ func test_selecting_a_phantom_keeps_the_live_selection() -> void:
 	var unit := add_child_autofree(FakePieces.unit(FakePieces.PLAIN)) as Commandable
 	controller.selection = [unit] as Array[Node]
 	controller.select_pending([_transaction()], false)
-	assert_eq(controller.selection, [unit] as Array[Node],
-		"the producer stays selected, so its card — and the phantom's — stay on screen")
+	assert_eq(
+		controller.selection,
+		[unit] as Array[Node],
+		"the producer stays selected, so its card — and the phantom's — stay on screen"
+	)
 
 
 ## They can both be held because the command path is not ambiguous about them: a right-click
@@ -204,6 +222,8 @@ func test_selecting_live_units_drops_the_phantoms() -> void:
 	controller.clear_pending_selection()
 	assert_false(controller.is_pending_selected(transaction))
 	assert_true(controller.pending_selection.is_empty())
+
+
 #endregion
 
 
@@ -229,7 +249,8 @@ func test_each_phantom_gets_its_own_command_instance() -> void:
 	var second: PurchaseTransaction = _transaction()
 	controller.select_pending([first, second], false)
 	controller.assign_command_to_pending(
-		MoveCommand, CommandMessage.new(null, null, null, VU.fromXZ(Vector2(7, 7))), false)
+		MoveCommand, CommandMessage.new(null, null, null, VU.fromXZ(Vector2(7, 7))), false
+	)
 	assert_ne(first.player_commands[0], second.player_commands[0])
 	assert_ne(first.player_commands[0].message, second.player_commands[0].message)
 
@@ -239,7 +260,8 @@ func test_a_null_command_type_falls_back_to_a_plain_move() -> void:
 	var transaction: PurchaseTransaction = _transaction()
 	controller.select_pending([transaction], false)
 	controller.assign_command_to_pending(
-		null, CommandMessage.new(null, null, null, VU.fromXZ(Vector2(2, 2))), false)
+		null, CommandMessage.new(null, null, null, VU.fromXZ(Vector2(2, 2))), false
+	)
 	assert_eq(transaction.player_commands.size(), 1)
 	assert_true(transaction.player_commands[0] is MoveCommand)
 
@@ -251,7 +273,10 @@ func test_an_unorderable_phantom_is_dropped_from_the_selection() -> void:
 	var transaction: PurchaseTransaction = _transaction()
 	controller.select_pending([transaction], false)
 	transaction.state = PurchaseTransaction.State.COMPLETED
-	assert_false(controller.assign_command_to_pending(
-		MoveCommand, CommandMessage.new(null, null, null, Vector3.ZERO), false))
+	assert_false(
+		controller.assign_command_to_pending(
+			MoveCommand, CommandMessage.new(null, null, null, Vector3.ZERO), false
+		)
+	)
 	assert_false(controller.is_pending_selected(transaction))
 #endregion

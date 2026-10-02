@@ -47,6 +47,8 @@ static func predicate(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Calla
 		return func() -> bool: return false
 	var builder: Callable = SimCheckLibrary._BUILDERS[a_check.name]
 	return builder.call(a_check, a_roster)
+
+
 #endregion
 
 
@@ -64,6 +66,8 @@ static func _count_holds(a_check: SimSpec.Check, a_actual: int, a_total: int) ->
 	if arguments.has("at_least") or arguments.has("at_most"):
 		return true
 	return a_actual == a_total
+
+
 #endregion
 
 
@@ -94,11 +98,12 @@ static func _build_hp_fraction(a_check: SimSpec.Check, a_roster: SimGroupRoster)
 			if entity.defense == null or entity.defense.hp_max <= 0.0:
 				continue  # nothing to measure; a piece with no Defense cannot be hurt
 			var fraction: float = entity.defense.hp / entity.defense.hp_max
-			if a_check.arguments.has("at_least") \
-					and fraction < float(a_check.arguments["at_least"]):
+			if (
+				a_check.arguments.has("at_least")
+				and fraction < float(a_check.arguments["at_least"])
+			):
 				return false
-			if a_check.arguments.has("at_most") \
-					and fraction > float(a_check.arguments["at_most"]):
+			if a_check.arguments.has("at_most") and fraction > float(a_check.arguments["at_most"]):
 				return false
 		return true
 
@@ -170,6 +175,8 @@ static func _build_garrisoned_in(a_check: SimSpec.Check, a_roster: SimGroupRoste
 			if not hosts.has(entity.garrisoned_in.get_parent()):
 				return false
 		return true
+
+
 #endregion
 
 

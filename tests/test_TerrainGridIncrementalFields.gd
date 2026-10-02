@@ -45,8 +45,10 @@ func _field_mismatches(a_grid: TerrainGrid, a_reference: TerrainGrid) -> int:
 	for z: int in a_grid.grid_depth():
 		for x: int in a_grid.grid_width():
 			var cell := Vector2i(x, z)
-			if a_grid.distance_to_obstacle(cell) != a_reference.distance_to_obstacle(cell) \
-					or a_grid.clearance_at(cell) != a_reference.clearance_at(cell):
+			if (
+				a_grid.distance_to_obstacle(cell) != a_reference.distance_to_obstacle(cell)
+				or a_grid.clearance_at(cell) != a_reference.clearance_at(cell)
+			):
 				mismatches += 1
 	return mismatches
 
@@ -60,8 +62,9 @@ func test_local_updates_match_a_full_recompute() -> void:
 	for step: int in STEPS:
 		var roll: int = rng.randi_range(0, 2)
 		if roll == 0 or owners.is_empty():
-			var origin := Vector2i(rng.randi_range(0, grid.grid_width() - 1),
-				rng.randi_range(0, grid.grid_depth() - 1))
+			var origin := Vector2i(
+				rng.randi_range(0, grid.grid_width() - 1), rng.randi_range(0, grid.grid_depth() - 1)
+			)
 			var cells: Array = []
 			for dz: int in rng.randi_range(1, MAX_FOOTPRINT_CELLS):
 				for dx: int in rng.randi_range(1, MAX_FOOTPRINT_CELLS):
@@ -76,8 +79,9 @@ func test_local_updates_match_a_full_recompute() -> void:
 		elif roll == 1:
 			grid.remove_building(owners.pop_at(rng.randi_range(0, owners.size() - 1)))
 		else:
-			var cell := Vector2i(rng.randi_range(0, grid.grid_width() - 1),
-				rng.randi_range(0, grid.grid_depth() - 1))
+			var cell := Vector2i(
+				rng.randi_range(0, grid.grid_width() - 1), rng.randi_range(0, grid.grid_depth() - 1)
+			)
 			grid.set_blocked(cell, not grid.is_blocked(cell))
 		assert_eq(_field_mismatches(grid, _fresh_copy(grid)), 0, "step %d" % step)
 
@@ -94,6 +98,9 @@ func test_changes_batched_before_a_read_are_all_absorbed() -> void:
 func test_fields_saturate_at_the_cap() -> void:
 	var grid := _make_grid()
 	var middle := Vector2i(15, 15)
-	assert_eq(grid.distance_to_obstacle(middle), TerrainGrid.FIELD_CAP_CELLS,
-		"open ground further than the cap from any edge reads as the cap")
+	assert_eq(
+		grid.distance_to_obstacle(middle),
+		TerrainGrid.FIELD_CAP_CELLS,
+		"open ground further than the cap from any edge reads as the cap"
+	)
 	assert_eq(grid.clearance_at(Vector2i.ZERO), TerrainGrid.FIELD_CAP_CELLS)

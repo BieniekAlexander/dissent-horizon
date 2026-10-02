@@ -160,6 +160,7 @@ var _was_satisfied: bool = false
 var _implicit_condition: ConditionAlways
 #endregion
 
+
 #region Authoring
 ## Surface each condition's authoring problems on THIS node in the Scene dock. Conditions are
 ## Resources and have no dock entry of their own, so without this a mistyped expression on a
@@ -170,8 +171,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 	# overridden rather than obeyed — so say where the disagreement is, in the dock.
 	if is_unconditional() and not one_shot:
 		warnings.append(
-			"One Shot is off but there are no conditions. A trigger with nothing to wait for "
-			+ "fires as soon as it arms, so it is treated as one-shot regardless."
+			(
+				"One Shot is off but there are no conditions. A trigger with nothing to wait for "
+				+ "fires as soon as it arms, so it is treated as one-shot regardless."
+			)
 		)
 	for condition: Condition in conditions:
 		if condition == null:
@@ -180,7 +183,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 		if not problem.is_empty():
 			warnings.append(problem)
 	return warnings
+
+
 #endregion
+
 
 #region Prerequisites
 ## Whether this trigger's dependencies are met and it may arm. True when it has none.
@@ -200,7 +206,10 @@ func prerequisites_satisfied() -> bool:
 ## dependency" from "waiting on an EventChainTrigger to switch me on".
 func has_prerequisites() -> bool:
 	return prerequisites.any(func(t: GlobalTrigger) -> bool: return t != null)
+
+
 #endregion
+
 
 #region Objectives
 ## How this trigger currently reads to the player. COMPLETE wins over everything: a
@@ -238,7 +247,10 @@ func is_objective_complete() -> bool:
 ## move it: arm, disarm, and fire.
 func _notify_objective_state() -> void:
 	objective_state_changed.emit(self)
+
+
 #endregion
+
 
 #region Conditions
 ## Whether nothing gates this trigger — no conditions were authored, so it fires on arming.
@@ -272,7 +284,10 @@ func reset_conditions() -> void:
 	_was_satisfied = false
 	for condition: Condition in _watched():
 		condition.reset()
+
+
 #endregion
+
 
 #region Arming
 ## Subscribe to this trigger's conditions so it fires reactively when they become
@@ -291,7 +306,9 @@ func arm(a_manager: ScenarioTriggerManager) -> void:
 		# it against this trigger and inject the live CollisionShape3D before the condition runs.
 		if condition is RegionAwareCondition:
 			var region_aware := condition as RegionAwareCondition
-			region_aware.bind_region(get_node_or_null(region_aware.region_shape_path) as CollisionShape3D)
+			region_aware.bind_region(
+				get_node_or_null(region_aware.region_shape_path) as CollisionShape3D
+			)
 			# A region that was asked for but didn't resolve widens the check to the whole map
 			# instead of failing, so say so loudly here rather than leaving it to be discovered
 			# as "my trigger doesn't fire".
@@ -337,7 +354,10 @@ func set_active(a_active: bool, a_manager: ScenarioTriggerManager) -> void:
 		arm(a_manager)
 	else:
 		disarm()
+
+
 #endregion
+
 
 #region Firing
 ## Re-check on a condition's state_changed and fire on the rising edge of the AND/OR
@@ -403,7 +423,10 @@ func fire(a_manager: ScenarioTriggerManager) -> void:
 	fire_count += 1
 	_notify_objective_state()
 	fired.emit()
+
+
 #endregion
+
 
 #region Highlights
 ## Raise or drop the child EventHighlights that track this trigger's armed state, so an

@@ -51,6 +51,8 @@ func test_the_same_seed_makes_the_same_map() -> void:
 	for i: int in first.starts.size():
 		assert_eq(first.starts[i].position, second.starts[i].position)
 	assert_eq(first.terrain.heights, second.terrain.heights)
+
+
 #endregion
 
 
@@ -63,7 +65,9 @@ func test_starts_are_separated_and_inside_the_margin() -> void:
 		assert_eq(map.starts.size(), params.start_count())
 		var area := PlayArea.screen_aligned(
 			Vector2(map.terrain.grid_width(), map.terrain.grid_depth()) * 0.5,
-			map.terrain.play_half_extents(), Map.CELL_SIZE)
+			map.terrain.play_half_extents(),
+			Map.CELL_SIZE
+		)
 		var separation: float = params.start_separation_diagonal_fraction * area.diagonal()
 		assert_gte(map.starts[0].position.distance_to(map.starts[1].position), separation)
 		for start: MapStart in map.starts:
@@ -105,8 +109,10 @@ func test_nothing_is_placed_in_a_start_clear_box() -> void:
 			for cell: Vector2i in cells:
 				for start: MapStart in map.starts:
 					var offset: Vector2 = (Vector2(cell) + Vector2(0.5, 0.5) - start.position).abs()
-					assert_false(offset.x < half and offset.y < half,
-						"seed %d: %s inside a start square" % [generation_seed, cell])
+					assert_false(
+						offset.x < half and offset.y < half,
+						"seed %d: %s inside a start square" % [generation_seed, cell]
+					)
 
 
 func test_a_start_clear_box_is_flat_and_the_radius_wide() -> void:
@@ -123,6 +129,8 @@ func test_a_start_clear_box_is_flat_and_the_radius_wide() -> void:
 				assert_true(map.terrain.is_cell_in_play(cell))
 				assert_eq(map.terrain.cell_height_spread(cell), 0.0)
 				assert_eq(map.terrain.cell_mean_height(cell), params.ground_height)
+
+
 #endregion
 
 
@@ -133,9 +141,13 @@ func test_structures_are_in_play_and_never_touch() -> void:
 		var owner_of: Dictionary = {}
 		for i: int in map.features.size():
 			for cell: Vector2i in map.features[i].structure_cells() + map.features[i].pond_cells:
-				assert_true(map.terrain.is_cell_in_play(cell),
-					"seed %d: %s out of play" % [generation_seed, cell])
-				assert_false(owner_of.has(cell), "seed %d: %s claimed twice" % [generation_seed, cell])
+				assert_true(
+					map.terrain.is_cell_in_play(cell),
+					"seed %d: %s out of play" % [generation_seed, cell]
+				)
+				assert_false(
+					owner_of.has(cell), "seed %d: %s claimed twice" % [generation_seed, cell]
+				)
 				owner_of[cell] = i
 		# The footprint gap: no cell of one feature is 8-adjacent to a cell of another.
 		for cell: Vector2i in owner_of:
@@ -143,8 +155,11 @@ func test_structures_are_in_play_and_never_touch() -> void:
 				for dz: int in range(-1, 2):
 					var neighbour: Vector2i = cell + Vector2i(dx, dz)
 					if owner_of.has(neighbour):
-						assert_eq(owner_of[neighbour], owner_of[cell],
-							"seed %d: features touch at %s" % [generation_seed, cell])
+						assert_eq(
+							owner_of[neighbour],
+							owner_of[cell],
+							"seed %d: features touch at %s" % [generation_seed, cell]
+						)
 
 
 func test_every_currency_is_balanced_within_tolerance() -> void:
@@ -153,8 +168,11 @@ func test_every_currency_is_balanced_within_tolerance() -> void:
 		var map: GeneratedMap = _generate(generation_seed)
 		for currency: int in MapFeature.Currency.values():
 			var accessible: PackedFloat32Array = map.accessible_value[currency]
-			assert_lte(MapFavor.worst_deviation(accessible, map.target_value[currency]),
-				params.favor_tolerance, "seed %d currency %d" % [generation_seed, currency])
+			assert_lte(
+				MapFavor.worst_deviation(accessible, map.target_value[currency]),
+				params.favor_tolerance,
+				"seed %d currency %d" % [generation_seed, currency]
+			)
 
 
 func test_shelter_count_follows_alliance_count() -> void:
@@ -190,8 +208,11 @@ func test_clusters_keep_their_separation() -> void:
 			var clusters: Array[MapFeature] = map.features_of(kind)
 			for i: int in clusters.size():
 				for j: int in range(i + 1, clusters.size()):
-					assert_gte(_nearest(clusters[i], clusters[j]), separation[kind],
-						"seed %d kind %d: clusters %d and %d" % [generation_seed, kind, i, j])
+					assert_gte(
+						_nearest(clusters[i], clusters[j]),
+						separation[kind],
+						"seed %d kind %d: clusters %d and %d" % [generation_seed, kind, i, j]
+					)
 
 
 ## L1 distance between the nearest members of two clusters.
@@ -199,9 +220,13 @@ func _nearest(a_cluster: MapFeature, a_other: MapFeature) -> int:
 	var nearest: int = 1 << 30
 	for a: Dictionary in a_cluster.placements:
 		for b: Dictionary in a_other.placements:
-			nearest = mini(nearest, FeaturePlacer.footprint_l1_distance(
-				Rect2i(a.origin, (a.piece as MapPiece).footprint),
-				Rect2i(b.origin, (b.piece as MapPiece).footprint)))
+			nearest = mini(
+				nearest,
+				FeaturePlacer.footprint_l1_distance(
+					Rect2i(a.origin, (a.piece as MapPiece).footprint),
+					Rect2i(b.origin, (b.piece as MapPiece).footprint)
+				)
+			)
 	return nearest
 
 
@@ -232,10 +257,13 @@ func test_a_mixed_pool_of_non_square_pieces_generates_a_valid_map() -> void:
 				drawn[piece.id] = true
 				# The whole footprint, in its authored orientation, is in play and unshared.
 				for cell: Vector2i in PlacementGrid.rect_cells(placement.origin, piece.footprint):
-					assert_true(map.terrain.is_cell_in_play(cell),
-						"seed %d: %s %s out of play" % [generation_seed, piece.id, cell])
-					assert_false(claimed.has(cell),
-						"seed %d: %s claimed twice" % [generation_seed, cell])
+					assert_true(
+						map.terrain.is_cell_in_play(cell),
+						"seed %d: %s %s out of play" % [generation_seed, piece.id, cell]
+					)
+					assert_false(
+						claimed.has(cell), "seed %d: %s claimed twice" % [generation_seed, cell]
+					)
 					claimed[cell] = true
 	for piece: MapPiece in params.building_pool:
 		assert_true(drawn.has(piece.id), "%s is drawn across the seeds" % piece.id)
@@ -257,8 +285,11 @@ func test_a_mixed_pool_keeps_cluster_separation_and_the_building_budget() -> voi
 		assert_lt(capacity, budget + largest)
 		for i: int in clusters.size():
 			for j: int in range(i + 1, clusters.size()):
-				assert_gte(_nearest(clusters[i], clusters[j]), params.building_cluster_separation_cells,
-					"seed %d: clusters %d and %d" % [generation_seed, i, j])
+				assert_gte(
+					_nearest(clusters[i], clusters[j]),
+					params.building_cluster_separation_cells,
+					"seed %d: clusters %d and %d" % [generation_seed, i, j]
+				)
 
 
 func test_a_building_cluster_is_sized_by_capacity_not_count() -> void:
@@ -294,12 +325,14 @@ func test_cluster_capacity_bands_hold_in_expectation() -> void:
 
 func test_a_larger_cluster_leans_toward_larger_buildings() -> void:
 	var pool: Array[MapPiece] = [
-		MapPiece.of(&"small", Vector2i(2, 2), 1.0, 3), MapPiece.of(&"big", Vector2i(8, 5), 1.0, 10)]
+		MapPiece.of(&"small", Vector2i(2, 2), 1.0, 3), MapPiece.of(&"big", Vector2i(8, 5), 1.0, 10)
+	]
 	var edges := PackedInt32Array([3, 10, 15, 20, 25])
 	var smallest: PackedFloat32Array = MapGenerator.building_weights(pool, edges, 0.5, 3.0)
 	var largest: PackedFloat32Array = MapGenerator.building_weights(pool, edges, 0.5, 25.0)
-	assert_almost_eq(smallest[1] / smallest[0], 1.0, 0.001,
-		"the smallest cluster keeps the pool's weights")
+	assert_almost_eq(
+		smallest[1] / smallest[0], 1.0, 0.001, "the smallest cluster keeps the pool's weights"
+	)
 	assert_gt(largest[1] / largest[0], 1.0, "the largest cluster favours the big building")
 	var flat: PackedFloat32Array = MapGenerator.building_weights(pool, edges, 0.0, 25.0)
 	assert_almost_eq(flat[1] / flat[0], 1.0, 0.001, "no bias, no lean")
@@ -308,7 +341,8 @@ func test_a_larger_cluster_leans_toward_larger_buildings() -> void:
 func test_a_site_cluster_is_one_to_three_sites_edge_to_edge() -> void:
 	for generation_seed: int in _SEEDS:
 		for cluster: MapFeature in _generate(generation_seed).features_of(
-				MapFeature.Kind.SITE_CLUSTER):
+			MapFeature.Kind.SITE_CLUSTER
+		):
 			var rects: Array[Rect2i] = []
 			for placement: Dictionary in cluster.placements:
 				rects.append(Rect2i(placement.origin, (placement.piece as MapPiece).footprint))
@@ -319,11 +353,18 @@ func test_a_site_cluster_is_one_to_three_sites_edge_to_edge() -> void:
 					continue
 				var touches: bool = false
 				for j: int in rects.size():
-					if i != j and FeaturePlacer.footprint_l1_distance(rects[i], rects[j]) == 1 \
-							and (rects[i].position.x == rects[j].position.x \
-								or rects[i].position.y == rects[j].position.y):
+					if (
+						i != j
+						and FeaturePlacer.footprint_l1_distance(rects[i], rects[j]) == 1
+						and (
+							rects[i].position.x == rects[j].position.x
+							or rects[i].position.y == rects[j].position.y
+						)
+					):
 						touches = true
-				assert_true(touches, "seed %d: a site stands apart from its cluster" % generation_seed)
+				assert_true(
+					touches, "seed %d: a site stands apart from its cluster" % generation_seed
+				)
 
 
 func test_site_cluster_sizes_partition_the_site_count() -> void:
@@ -393,8 +434,11 @@ func test_a_positive_energy_budget_places_ponds_and_sites() -> void:
 		var map: GeneratedMap = _generate(generation_seed)
 		assert_true(map.is_valid(), "seed %d: %s" % [generation_seed, map.errors])
 		assert_gt(map.features_of(MapFeature.Kind.POND).size(), 0, "seed %d" % generation_seed)
-		assert_gt(map.features_of(MapFeature.Kind.SITE_CLUSTER).size(), 0,
-			"seed %d" % generation_seed)
+		assert_gt(
+			map.features_of(MapFeature.Kind.SITE_CLUSTER).size(), 0, "seed %d" % generation_seed
+		)
+
+
 #endregion
 
 
@@ -403,11 +447,15 @@ func test_a_pond_floods_exactly_its_pan_and_is_wadeable() -> void:
 	for generation_seed: int in _SEEDS:
 		var map: GeneratedMap = _generate(generation_seed)
 		for pond: MapFeature in map.features_of(MapFeature.Kind.POND):
-			var basin: WaterBasin = WaterBasin.fill(map.terrain, pond.pond_seed_cell, pond.pond_level)
+			var basin: WaterBasin = WaterBasin.fill(
+				map.terrain, pond.pond_seed_cell, pond.pond_level
+			)
 			var flooded: Array[Vector2i] = basin.covered_cells()
 			assert_eq(flooded.size(), pond.pond_cells.size(), "seed %d" % generation_seed)
 			for cell: Vector2i in pond.pond_cells:
-				assert_true(basin.is_shallow(cell), "seed %d: %s not shallow" % [generation_seed, cell])
+				assert_true(
+					basin.is_shallow(cell), "seed %d: %s not shallow" % [generation_seed, cell]
+				)
 
 
 func test_a_pond_rim_is_walkable_but_not_flat() -> void:
@@ -423,7 +471,9 @@ func test_a_pond_rim_is_walkable_but_not_flat() -> void:
 				var rim: Vector2i = cell + Vector2i(dx, dz)
 				if pan.has(rim):
 					continue
-				assert_almost_eq(map.terrain.cell_height_spread(rim), TerrainGrid.MAX_SLOPE_DIFF, 1e-6)
+				assert_almost_eq(
+					map.terrain.cell_height_spread(rim), TerrainGrid.MAX_SLOPE_DIFF, 1e-6
+				)
 
 
 ## Cells times richness, capped at the charge bound: filling the pan's holes can grow a pond a
@@ -433,8 +483,10 @@ func test_pond_charge_is_cells_times_richness_within_the_bound() -> void:
 	for generation_seed: int in _SEEDS:
 		for pond: MapFeature in _generate(generation_seed).features_of(MapFeature.Kind.POND):
 			assert_has(params.pond_richness_factors, pond.pond_richness)
-			assert_eq(pond.pond_charge,
-				mini(pond.pond_cells.size() * pond.pond_richness, params.pond_charge_max))
+			assert_eq(
+				pond.pond_charge,
+				mini(pond.pond_cells.size() * pond.pond_richness, params.pond_charge_max)
+			)
 			assert_lte(pond.pond_charge, params.pond_charge_max)
 			assert_gte(pond.pond_cells.size(), params.pond_cells_min)
 #endregion

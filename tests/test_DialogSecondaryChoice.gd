@@ -70,6 +70,8 @@ func test_an_acknowledged_dialog_cannot_then_take_the_secondary() -> void:
 	dialog.choose_secondary()
 
 	assert_signal_not_emitted(dialog, "secondary_chosen", "the dialog is already resolved")
+
+
 #endregion
 
 

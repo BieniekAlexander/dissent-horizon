@@ -34,6 +34,7 @@ const DEFAULT_FREEZE_TICKS: int = 450
 ## How many armour steps the freeze adds. One, and STRONG is the ceiling — see above.
 const ARMOUR_STEPS: int = 1
 
+
 func _init() -> void:
 	duration_ticks = DEFAULT_FREEZE_TICKS
 
@@ -62,12 +63,15 @@ static func can_freeze(entity: Entity) -> bool:
 ## the very unit it declined to touch — turning "STRONG cannot be frozen" into a debuff.
 var _armour_raised: bool = false
 
+
 func _on_apply() -> void:
 	if not can_freeze(_entity):
 		remove()
 		return
 	var actor := _entity as Commandable
-	actor.defense.armour_type = (int(actor.defense.armour_type) + ARMOUR_STEPS) as Defense.ArmourType
+	actor.defense.armour_type = (
+		(int(actor.defense.armour_type) + ARMOUR_STEPS) as Defense.ArmourType
+	)
 	_armour_raised = true
 	if actor.locomotion != null:
 		actor.locomotion.stop()
@@ -82,4 +86,6 @@ func _on_remove() -> void:
 	var actor := _entity as Commandable
 	if actor == null or not is_instance_valid(actor) or actor.defense == null:
 		return
-	actor.defense.armour_type = (int(actor.defense.armour_type) - ARMOUR_STEPS) as Defense.ArmourType
+	actor.defense.armour_type = (
+		(int(actor.defense.armour_type) - ARMOUR_STEPS) as Defense.ArmourType
+	)

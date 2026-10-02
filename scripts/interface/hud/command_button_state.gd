@@ -91,6 +91,7 @@ var is_toggled_on: bool = false
 var recharge_ticks: int = 0
 #endregion
 
+
 #region Derived
 ## Seconds until the next charge, for display. The tick rate is READ rather than typed, so a
 ## change to the physics rate cannot silently make every timer on screen wrong.
@@ -98,15 +99,19 @@ func recharge_seconds() -> float:
 	var rate: int = Engine.physics_ticks_per_second
 	return float(recharge_ticks) / float(rate) if rate > 0 else 0.0
 
+
 ## Whether the button should draw its charge pips. One-charge pools are the common case and
 ## carry no information — the button being lit already says the charge is there.
 func shows_charges() -> bool:
 	return max_charges > 1
 
+
 ## Whether the button should draw a countdown. True for a partly-filled pool as well as an
 ## empty one: the question "when is the next charge" is the same either way.
 func shows_timer() -> bool:
 	return recharge_ticks > 0
+
+
 #endregion
 
 #region Appearance
@@ -138,19 +143,28 @@ const TINT_UNPOWERED: Color = Color(0.72, 0.60, 0.38)
 const TINT_CURRENT: Color = Color(0.70, 0.70, 0.74)
 const TINT_QUEUEABLE: Color = Color(1.0, 0.78, 0.35)
 
+
 ## Waitability wins over the blocker's own colour wherever it applies, because only it changes
 ## what the click does.
 func tint() -> Color:
 	if is_waitable:
 		return TINT_AVAILABLE if is_queueable else TINT_QUEUEABLE
 	match blocker:
-		Blocker.LOCKED: return TINT_LOCKED
-		Blocker.NO_PAD: return TINT_NO_PAD
-		Blocker.NO_CASTER: return TINT_NO_CASTER
-		Blocker.UNPOWERED: return TINT_UNPOWERED
-		Blocker.CURRENT: return TINT_CURRENT
+		Blocker.LOCKED:
+			return TINT_LOCKED
+		Blocker.NO_PAD:
+			return TINT_NO_PAD
+		Blocker.NO_CASTER:
+			return TINT_NO_CASTER
+		Blocker.UNPOWERED:
+			return TINT_UNPOWERED
+		Blocker.CURRENT:
+			return TINT_CURRENT
 	return TINT_AVAILABLE
+
+
 #endregion
+
 
 #region Classification
 ## The state of `a_command_name` for this selection and commander.
@@ -158,8 +172,13 @@ func tint() -> Color:
 ## `a_defers` is the LIVE reading of the additive modifier, passed in rather than polled so
 ## this stays testable and so the caller keeps the one rule about how that modifier is read
 ## (polled, never latched — see RTSController.additive_modifier_held).
-static func of(command_name: String, selection: Array, commander: Commander,
-		defers: bool, current_context: String = "") -> CommandButtonState:
+static func of(
+	command_name: String,
+	selection: Array,
+	commander: Commander,
+	defers: bool,
+	current_context: String = ""
+) -> CommandButtonState:
 	var state := CommandButtonState.new()
 	# A CARD control rather than an order: the radio button for the producer already showing is
 	# greyed and unpressable, which is what makes "one is always set" visible.
@@ -175,19 +194,26 @@ static func of(command_name: String, selection: Array, commander: Commander,
 		state._classify_ability(command_name, selection, commander, defers)
 	return state
 
+
 ## Whether every piece in `selection` that offers hold fire already holds it — and at least
 ## one does, since an empty "every" would light a button nobody could have pressed.
 static func all_hold_fire(selection: Array) -> bool:
 	var offered_by_any: bool = false
 	for node: Variant in selection:
 		var actor := node as Commandable
-		if actor == null or not is_instance_valid(actor) or not CommandContextParser.commands_for(
-				actor).has(CommandContextParser.HOLD_FIRE_COMMAND):
+		if (
+			actor == null
+			or not is_instance_valid(actor)
+			or not CommandContextParser.commands_for(actor).has(
+				CommandContextParser.HOLD_FIRE_COMMAND
+			)
+		):
 			continue
 		if not actor.is_holding_fire:
 			return false
 		offered_by_any = true
 	return offered_by_any
+
 
 ## A build or train button: the blocker is a price or a prerequisite, and the commander alone
 ## can answer it — a purchase is commander-global, never per-actor.
@@ -206,8 +232,10 @@ func _classify_purchase(a_tool: Tool, a_commander: Commander, a_defers: bool) ->
 	blocker = Blocker.LOCKED
 	# LOCKED would be a lie when the prerequisite is already going up: queued, the builder
 	# waits at the site for it.
-	if need == TechnologySpec.UnmetNeed.MISSING_STRUCTURE \
-			and a_commander.missing_prerequisites_are_incoming(a_tool.type):
+	if (
+		need == TechnologySpec.UnmetNeed.MISSING_STRUCTURE
+		and a_commander.missing_prerequisites_are_incoming(a_tool.type)
+	):
 		_set_waitable(a_defers)
 
 
@@ -216,6 +244,7 @@ func _set_waitable(a_defers: bool) -> void:
 	is_waitable = true
 	is_queueable = a_defers
 
+
 ## A verb or an ability. Charges are read from the SELECTION, because a pool belongs to the
 ## piece rather than to the commander (see Abilities) — two Operations Centers each have
 ## their own, and the button speaks for whichever is readiest.
@@ -223,8 +252,9 @@ func _set_waitable(a_defers: bool) -> void:
 ## Recharging is reported only when EVERY offering actor is reloading, matching
 ## selection_precondition's rule that a command is available as soon as anybody can act on
 ## it. A mixed selection where one battery is loaded can still fire.
-func _classify_ability(a_command_name: String, a_selection: Array, a_commander: Commander,
-		a_defers: bool) -> void:
+func _classify_ability(
+	a_command_name: String, a_selection: Array, a_commander: Commander, a_defers: bool
+) -> void:
 	var ability_id: StringName = _ability_for_command(a_command_name, a_commander)
 	if ability_id == &"":
 		_classify_plain_verb(a_command_name, a_selection, a_defers)
@@ -272,6 +302,7 @@ func _classify_ability(a_command_name: String, a_selection: Array, a_commander: 
 	# Nothing left in the readiest pool, so nothing in any of them.
 	blocker = Blocker.RECHARGING
 	_set_waitable(a_defers)
+
 
 ## The pool with the most charges left among `a_casters`, or null when none of them grants
 ## the ability. "Most charges" rather than "the first": a button speaks for whichever caster
@@ -322,6 +353,7 @@ func _classify_plain_verb(a_command_name: String, a_selection: Array, a_defers: 
 		blocker = Blocker.RECHARGING
 		_set_waitable(a_defers)
 
+
 ## The ability a grid command casts, or &"" when it is not an ability command.
 ##
 ## TWO ROUTES REACH THE GRID and both have to be asked, because a command name is derived
@@ -342,8 +374,11 @@ static func _ability_for_command(command_name: String, commander: Commander) -> 
 	var binding_id: StringName = AbilityBinding.ability_for_command(command_name)
 	if binding_id != &"":
 		return binding_id
-	if commander == null or commander.sanction_grid == null \
-			or not command_name.begins_with(Sanction.COMMAND_PREFIX):
+	if (
+		commander == null
+		or commander.sanction_grid == null
+		or not command_name.begins_with(Sanction.COMMAND_PREFIX)
+	):
 		return &""
 	for sanction: Sanction in commander.sanction_grid.deployable_sanctions():
 		if sanction.command_name() == command_name:

@@ -45,7 +45,8 @@ const BARYCENTRIC_EPSILON: float = 1e-6
 ## What a bake produced. `heights` is always full-size and safe to assign straight to
 ## TerrainData.heights; `hit` records which corners the mesh actually covered, which is the
 ## interesting part for a surface that does not fill its grid (an island, a disc).
-class Result extends RefCounted:
+class Result:
+	extends RefCounted
 	## Per-corner heights, size dims.x * dims.y, index z*W + x — TerrainData.heights' layout.
 	var heights: PackedFloat32Array = PackedFloat32Array()
 	## Per-corner coverage, same indexing. 1 = a triangle was found over/under this corner.
@@ -108,7 +109,7 @@ static func bake(mesh: Mesh, dims: Vector2i, mesh_to_local: Transform3D = Transf
 		var count: int = idx.size() if indexed else verts.size()
 		var i: int = 0
 		while i + 2 < count:
-			var a: Vector3 = mesh_to_local * verts[idx[i]     if indexed else i]
+			var a: Vector3 = mesh_to_local * verts[idx[i] if indexed else i]
 			var b: Vector3 = mesh_to_local * verts[idx[i + 1] if indexed else i + 1]
 			var c: Vector3 = mesh_to_local * verts[idx[i + 2] if indexed else i + 2]
 			result.triangle_count += 1
@@ -134,8 +135,7 @@ static func bake(mesh: Mesh, dims: Vector2i, mesh_to_local: Transform3D = Transf
 ##
 ## Returns false when the triangle was skipped as vertical/degenerate in XZ.
 static func _rasterize(
-	a: Vector3, b: Vector3, c: Vector3, result: Result,
-	w: int, d: int, half_w: float, half_d: float
+	a: Vector3, b: Vector3, c: Vector3, result: Result, w: int, d: int, half_w: float, half_d: float
 ) -> bool:
 	# Corner-index space: corner (cx, cz) sits at local (cx - half_w, y, cz - half_d), so
 	# shifting by the half-extents puts the triangle in the same space as the loop counters.

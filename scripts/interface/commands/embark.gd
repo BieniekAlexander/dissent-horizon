@@ -21,9 +21,11 @@ extends MoveCommand
 ## EXACTLY ONE HOST CARRIES THIS per order, settled at issue time — see nearest_host, and
 ## bystanders_move for what the rest of the selection gets.
 
+
 #region Preconditions
 static func requires_position() -> bool:
 	return true
+
 
 ## Valid when the actor's garrison would take the hovered unit AND has room for it right
 ## now. The masks half is Occupy's rule, asked through Occupy.host_admits so the two sides
@@ -31,8 +33,7 @@ static func requires_position() -> bool:
 ## hovering a unit is asking whether calling it in would achieve anything, and calling one
 ## into a full hold would not.
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if actor == null or not is_instance_valid(actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -45,6 +46,7 @@ static func meets_precondition(
 	if not Occupy.host_admits(occupant, actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
+
 
 ## The one host that takes this order out of `a_hosts`: the applicable one NEAREST the unit
 ## being called. Returned as a list so the caller's per-actor loop needs no special case.
@@ -68,6 +70,7 @@ static func nearest_host(hosts: Array, message: CommandMessage) -> Array:
 			best_distance = distance
 	return [] if best == null else [best]
 
+
 ## The rest of the selection follows the unit too, rather than being skipped the way an
 ## incapable actor normally is. Right-clicking a friendly unit with a transport and four
 ## soldiers selected means "everyone go there, and you pick him up" — dropping the soldiers'
@@ -78,6 +81,8 @@ static func nearest_host(hosts: Array, message: CommandMessage) -> Array:
 ## turned on for this command alone until that redesign lands.
 static func bystanders_move() -> bool:
 	return true
+
+
 #endregion
 
 #region Properties
@@ -86,6 +91,7 @@ static func bystanders_move() -> bool:
 ## place with an actor to issue it from.
 var _occupant_ordered: bool = false
 #endregion
+
 
 #region State updates
 ## Hands the Occupy out on the first tick — not at construction — so a QUEUED Embark does
@@ -104,15 +110,18 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 		_order_occupant(a_actor, occupant)
 	return self
 
+
 ## The passenger it called in. The host side of the same exemption Occupy states: the two are
 ## driving at each other on purpose, so neither may steer around the other.
 func avoidance_exception(_a_actor: Commandable) -> Commandable:
 	return message.target as Commandable if is_instance_valid(message.target) else null
 
+
 ## Only a host that can actually walk goes anywhere. A bunker's whole half of this order is
 ## the Occupy it already handed out, and driving it would be nonsense.
 func should_move(a_actor: Commandable) -> bool:
 	return a_actor.can_move()
+
 
 ## Meeting the passenger is not the end of the order — boarding is — so arriving must not
 ## drop it. (A follow keeps its command on arrival anyway; stating it here means an
@@ -120,11 +129,15 @@ func should_move(a_actor: Commandable) -> bool:
 func ends_on_arrival() -> bool:
 	return false
 
+
 ## Never acts: everything this command does to the world it does through the Occupy it
 ## issued, and the boarding itself is that command's fulfil_action.
 func can_act(_a_actor: Commandable) -> bool:
 	return false
+
+
 #endregion
+
 
 #region Private helpers
 func _order_occupant(a_host: Commandable, a_occupant: Commandable) -> void:
@@ -132,7 +145,10 @@ func _order_occupant(a_host: Commandable, a_occupant: Commandable) -> void:
 	order.target = a_host
 	order.world_position = a_host.global_position
 	a_occupant.update_commands(Occupy.new(order))
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

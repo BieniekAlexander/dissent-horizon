@@ -9,11 +9,13 @@ extends Resource
 
 @export var profiles: Array[DamageProfile] = []
 
+
 func profile_for(a_id: Damage.Type) -> DamageProfile:
 	for p: DamageProfile in profiles:
 		if p.id == a_id:
 			return p
 	return null
+
 
 ## Builds a catalog by parsing the armour/frame multiplier TSVs. §5.3: each row
 ## is its own DamageProfile instance — nothing here is shared by reference, even
@@ -24,7 +26,7 @@ static func from_tsv(armour_tsv_path: String, frame_tsv_path: String) -> DamageC
 	var armour_rows: Dictionary = _parse_multiplier_tsv(armour_tsv_path, Defense.ArmourType)
 	var frame_rows: Dictionary = _parse_multiplier_tsv(frame_tsv_path, Defense.FrameType)
 
-	var damage_types: Dictionary = {} # Damage.Type -> true, de-duplicated across both files
+	var damage_types: Dictionary = {}  # Damage.Type -> true, de-duplicated across both files
 	for damage_type: int in armour_rows:
 		damage_types[damage_type] = true
 	for damage_type: int in frame_rows:
@@ -44,6 +46,7 @@ static func from_tsv(armour_tsv_path: String, frame_tsv_path: String) -> DamageC
 
 	return catalog
 
+
 ## Reads one damage_vs_<axis>.tsv into {Damage.Type -> {axis value -> float}}.
 ## axis_enum is Defense.ArmourType or Defense.FrameType, passed as the raw enum —
 ## GDScript enums double as {name: value} dictionaries, the same trick the
@@ -57,7 +60,7 @@ static func _parse_multiplier_tsv(path: String, axis_enum: Dictionary) -> Dictio
 
 	var header: PackedStringArray = file.get_csv_line("\t")
 	var axis_keys: Array = axis_enum.keys()
-	var col_map: Dictionary = {} # column index -> axis enum value
+	var col_map: Dictionary = {}  # column index -> axis enum value
 	for i: int in range(1, header.size()):
 		var col_name: String = header[i].strip_edges()
 		if col_name in axis_keys:

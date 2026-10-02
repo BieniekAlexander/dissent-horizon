@@ -11,6 +11,7 @@ extends EditorMarkerSprite3D
 ## Extends EditorMarkerSprite3D so each command point shows a clickable, draggable
 ## marker in the 3D editor (hidden at runtime).
 
+
 ## Build a fresh Command for one unit. Called once per spawned unit so each unit
 ## owns its own Command/CommandMessage (they ref-count the message and must never
 ## be shared). Returns null if no valid command can be produced (e.g. no matching
@@ -19,5 +20,7 @@ extends EditorMarkerSprite3D
 ## `post_offset` is a per-unit planar offset applied to positional destinations so a group
 ## fans into a formation instead of stacking on one point (subclasses that target an entity
 ## rather than a position ignore it).
-func to_command(_a_manager: ScenarioTriggerManager, _a_post_offset: Vector3 = Vector3.ZERO) -> MoveCommand:
+func to_command(
+	_a_manager: ScenarioTriggerManager, _a_post_offset: Vector3 = Vector3.ZERO
+) -> MoveCommand:
 	return null

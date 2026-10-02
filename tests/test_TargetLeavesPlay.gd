@@ -22,8 +22,12 @@ extends GutTest
 ## PARSE time and can fire Tool's static registry initialiser before the registry exists,
 ## which takes out every test after it (CLAUDE.md).
 ## A carrier with a cage.
-const TRUCK_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "garrison": {"capacity": 3, "bunker": false}}
+const TRUCK_SCENE: Dictionary = {
+	"speed": 2.0, "vision": 8.0, "garrison": {"capacity": 3, "bunker": false}
+}
 const TROOPER_SCENE: Dictionary = FakePieces.SOLDIER
+
+
 func _commander(a_id: int) -> Commander:
 	var commander := Commander.new()
 	commander.id = a_id
@@ -71,8 +75,10 @@ func test_an_order_is_dropped_once_its_target_is_garrisoned() -> void:
 
 	truck.garrison.garrison(trooper)
 	_tick(truck)
-	assert_false(truck.has_command(),
-		"a target taken off the scene tree cannot be acted on, so the order goes")
+	assert_false(
+		truck.has_command(),
+		"a target taken off the scene tree cannot be acted on, so the order goes"
+	)
 
 
 func test_the_actor_does_not_set_off_for_the_world_origin() -> void:
@@ -109,8 +115,13 @@ func test_the_next_queued_order_takes_over() -> void:
 	_tick(truck)  # drops the first
 	_tick(truck)  # promotes the second
 	assert_true(truck.has_command(), "the queue advances")
-	assert_eq(truck.current_command().message.target, second,
-		"and it advances to the order that was behind it")
+	assert_eq(
+		truck.current_command().message.target,
+		second,
+		"and it advances to the order that was behind it"
+	)
+
+
 #endregion
 
 
@@ -120,8 +131,9 @@ func test_a_dead_target_is_left_to_the_paths_that_already_handle_it() -> void:
 	# target, and a FLYING actor's orbit-on-death anchoring lives in that path. Reporting it
 	# here too would change how a death is handled, which is a separate behaviour.
 	var message := CommandMessage.new(null, null, null, Vector3.ZERO)
-	assert_false(CommandReceiver._target_has_left_play(message),
-		"an absent target is not 'left play'")
+	assert_false(
+		CommandReceiver._target_has_left_play(message), "an absent target is not 'left play'"
+	)
 
 
 func test_a_command_with_no_target_at_all_is_unaffected() -> void:
@@ -139,6 +151,7 @@ func test_a_structure_target_is_never_considered_off_the_field() -> void:
 	# and must always read as in play.
 	var truck: Commandable = _entity(TRUCK_SCENE, 1)
 	var message := CommandMessage.new(null, truck, null, Vector3.ZERO)
-	assert_false(CommandReceiver._target_has_left_play(message),
-		"a target standing in the world is in play")
+	assert_false(
+		CommandReceiver._target_has_left_play(message), "a target standing in the world is in play"
+	)
 #endregion

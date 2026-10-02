@@ -23,12 +23,12 @@ const TICKS_PER_TARGET_HP: float = 0.2
 const GROUND_CHANNEL_TICKS: int = 30
 const REACH: float = 1.5
 
+
 #region Preconditions
 ## A unit granted Plant with its charge ready. Where it plants is not a precondition's
 ## business: a piece that cannot carry a charge has one planted at its feet instead.
 static func meets_precondition(
-	actor: Commandable,
-	_message: CommandMessage
+	actor: Commandable, _message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	var pool := actor.get_node_or_null("Abilities") as Abilities if actor != null else null
 	if pool == null or not pool.grants(ABILITY_ID):
@@ -40,6 +40,8 @@ static func meets_precondition(
 
 static func default_cast_arity(_message: CommandMessage) -> CastArity:
 	return AbilityCatalog.cast_arity_of(ABILITY_ID)
+
+
 #endregion
 
 #region Properties
@@ -48,10 +50,12 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 var _worked: int = 0
 #endregion
 
+
 #region State updates
 ## Rigging a charge is a channeled action: a hit interrupts it as it interrupts building.
 func blocked_by_stagger(_a_actor: Commandable) -> bool:
 	return true
+
 
 ## The order ends if the piece it named has gone, or the charge was spent meanwhile.
 func get_updated_state(a_actor: Commandable) -> Variant:
@@ -61,8 +65,10 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 		return null
 	return self
 
+
 func ends_on_arrival() -> bool:
 	return false
+
 
 func can_act(a_actor: Commandable) -> bool:
 	var carrier: Commandable = _carrier_of(a_actor)
@@ -75,6 +81,7 @@ func can_act(a_actor: Commandable) -> bool:
 		_worked = 0
 	return in_reach
 
+
 func fulfill_action(a_actor: Commandable) -> Variant:
 	_worked += 1
 	if _worked < _required_ticks(a_actor):
@@ -84,18 +91,23 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		return null
 	_place_charge(a_actor)
 	return null
+
+
 #endregion
+
 
 #region Private helpers
 ## The piece the charge will ride on, or null for a charge on the ground.
 func _carrier_of(_a_actor: Commandable) -> Commandable:
 	return message.target as Commandable if PlantedCharge.can_carry(message.target) else null
 
+
 func _required_ticks(a_actor: Commandable) -> int:
 	var carrier: Commandable = _carrier_of(a_actor)
 	if carrier == null or carrier.defense == null:
 		return GROUND_CHANNEL_TICKS
 	return maxi(1, ceili(TICKS_PER_TARGET_HP * carrier.defense.hp))
+
 
 func _place_charge(a_actor: Commandable) -> void:
 	var map: Map = message.map if message.map != null else a_actor.map
@@ -108,7 +120,10 @@ func _place_charge(a_actor: Commandable) -> void:
 	var charge: PlantedCharge = PlantedCharge.of(piece)
 	if charge != null:
 		charge.arm(a_actor, _carrier_of(a_actor))
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

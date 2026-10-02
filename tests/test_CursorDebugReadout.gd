@@ -8,6 +8,7 @@ extends GutTest
 ## `--write-movie`, so if this silently reported nothing, the next round of cursor work would
 ## be guesswork again.
 
+
 func test_the_readout_names_every_pair_it_promises() -> void:
 	var text: String = CursorDebugReadout.readout(get_viewport(), get_window())
 	for label: String in ["viewport", "window", "stretch", "screen"]:

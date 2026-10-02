@@ -60,8 +60,9 @@ func test_the_grid_mesh_faces_up() -> void:
 func test_an_unlit_scenario_gets_the_default_rig() -> void:
 	var scenario := Scenario.new()
 	scenario._ensure_lighting()
-	assert_eq(scenario.find_children("*", "DirectionalLight3D", true, false).size(), 2,
-		"key and fill")
+	assert_eq(
+		scenario.find_children("*", "DirectionalLight3D", true, false).size(), 2, "key and fill"
+	)
 	scenario.free()
 
 

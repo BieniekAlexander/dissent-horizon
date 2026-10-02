@@ -50,8 +50,11 @@ func after_each() -> void:
 
 func test_the_roster_still_has_a_passive_to_test_with() -> void:
 	assert_ne(_passive_id, &"", "no ability is marked passive — the rest of this file is vacuous")
-	assert_ne(_dominion_passive_id, &"",
-		"no passive is dominion-unlocked — the greying tests below are vacuous")
+	assert_ne(
+		_dominion_passive_id,
+		&"",
+		"no passive is dominion-unlocked — the greying tests below are vacuous"
+	)
 
 
 ## A grid holding one passive cell for `a_ability_id`, plus an ordinary cell so tier 1 opens.
@@ -98,14 +101,20 @@ func _other_commander() -> Commander:
 
 #region Which cards appear
 func test_no_commander_means_no_cards() -> void:
-	assert_eq(PassiveAbilityRow.passives_in([], null), [] as Array[StringName],
-		"the row is about THIS commander's standing benefits, and there is none")
+	assert_eq(
+		PassiveAbilityRow.passives_in([], null),
+		[] as Array[StringName],
+		"the row is about THIS commander's standing benefits, and there is none"
+	)
 
 
 func test_an_empty_selection_draws_nothing() -> void:
 	_grid_offering(_passive_id)
-	assert_eq(PassiveAbilityRow.passives_in([], _commander), [] as Array[StringName],
-		"a commander-wide passive still needs one of the player's own pieces selected")
+	assert_eq(
+		PassiveAbilityRow.passives_in([], _commander),
+		[] as Array[StringName],
+		"a commander-wide passive still needs one of the player's own pieces selected"
+	)
 
 
 func test_a_faction_that_offers_it_draws_it_unbought() -> void:
@@ -114,13 +123,17 @@ func test_a_faction_that_offers_it_draws_it_unbought() -> void:
 	assert_eq(
 		PassiveAbilityRow.passives_in([_unit(_commander)], _commander),
 		[_passive_id] as Array[StringName],
-		"drawing it unbought is how the player learns it exists")
+		"drawing it unbought is how the player learns it exists"
+	)
 
 
 func test_a_faction_with_no_route_to_it_draws_nothing() -> void:
 	_grid_offering(&"not_a_real_ability")
-	assert_eq(PassiveAbilityRow.passives_in([_unit(_commander)], _commander), [] as Array[StringName],
-		"absent means 'not for you'; grey would say 'work toward it'")
+	assert_eq(
+		PassiveAbilityRow.passives_in([_unit(_commander)], _commander),
+		[] as Array[StringName],
+		"absent means 'not for you'; grey would say 'work toward it'"
+	)
 
 
 func test_another_commanders_pieces_do_not_count() -> void:
@@ -128,14 +141,18 @@ func test_another_commanders_pieces_do_not_count() -> void:
 	assert_eq(
 		PassiveAbilityRow.passives_in([_unit(_other_commander())], _commander),
 		[] as Array[StringName],
-		"an enemy's standing benefits are not the player's business")
+		"an enemy's standing benefits are not the player's business"
+	)
 
 
 func test_one_card_per_ability_however_many_units_carry_it() -> void:
 	_grid_offering(_passive_id)
 	var drawn: Array[StringName] = PassiveAbilityRow.passives_in(
-		[_unit(_commander), _unit(_commander), _unit(_commander)], _commander)
+		[_unit(_commander), _unit(_commander), _unit(_commander)], _commander
+	)
 	assert_eq(drawn.size(), 1, "the card is about the ability, not about the unit")
+
+
 #endregion
 
 
@@ -148,8 +165,10 @@ func test_an_unbought_dominion_passive_is_greyed() -> void:
 func test_buying_it_lights_it() -> void:
 	var grid: SanctionGrid = _grid_offering(_dominion_passive_id)
 	assert_true(grid.try_unlock(grid.entries[0]), "the cell is affordable and open")
-	assert_true(PassiveAbilityRow.is_enabled(_dominion_passive_id, _commander),
-		"an owned passive STANDS — see SanctionGrid.standing_sanctions")
+	assert_true(
+		PassiveAbilityRow.is_enabled(_dominion_passive_id, _commander),
+		"an owned passive STANDS — see SanctionGrid.standing_sanctions"
+	)
 
 
 func test_a_free_passive_is_always_lit() -> void:
@@ -162,8 +181,12 @@ func test_a_free_passive_is_always_lit() -> void:
 
 
 func test_no_commander_greys_a_dominion_passive() -> void:
-	assert_false(PassiveAbilityRow.is_enabled(_dominion_passive_id, null),
-		"nothing has bought it, because there is nobody to have bought it")
+	assert_false(
+		PassiveAbilityRow.is_enabled(_dominion_passive_id, null),
+		"nothing has bought it, because there is nobody to have bought it"
+	)
+
+
 #endregion
 
 
@@ -171,8 +194,10 @@ func test_no_commander_greys_a_dominion_passive() -> void:
 ## TODO in PassiveAbilityRow: the letter is a placeholder for an icon. Pinned so the
 ## placeholder is at least derived from the ability rather than hand-written per card.
 func test_the_letter_is_the_titles_first_letter_uppercased() -> void:
-	assert_eq(PassiveAbilityRow.letter_for(_passive_id),
-		AbilityCatalog.title_of(_passive_id).substr(0, 1).to_upper())
+	assert_eq(
+		PassiveAbilityRow.letter_for(_passive_id),
+		AbilityCatalog.title_of(_passive_id).substr(0, 1).to_upper()
+	)
 
 
 func test_an_unknown_ability_still_gets_a_glyph() -> void:

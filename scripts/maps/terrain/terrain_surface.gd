@@ -48,13 +48,18 @@ const MAX_TILE_TYPES: int = 256
 
 ## Inspector trigger: re-read the terrain and push everything to the material.
 @export var rebuild: bool:
-	set(_v): refresh()
+	set(_v):
+		refresh()
 #endregion
+
 
 #region Lifecycle
 func _ready() -> void:
 	refresh()
+
+
 #endregion
+
 
 #region Public API
 ## Adopt the terrain's source mesh and push every shader parameter derived from the terrain.
@@ -88,7 +93,10 @@ func set_fog(a_texture: Texture2D, a_rect: Vector4) -> void:
 	sm.set_shader_parameter("fog_texture", a_texture)
 	sm.set_shader_parameter("fog_rect", a_rect)
 	sm.set_shader_parameter("fog_enabled", 1.0 if a_texture != null else 0.0)
+
+
 #endregion
+
 
 #region Private helpers
 func _push_parameters(a_data: TerrainData) -> void:
@@ -109,8 +117,9 @@ func _push_parameters(a_data: TerrainData) -> void:
 		sm.set_shader_parameter("tile_textures", array)
 		sm.set_shader_parameter("tile_count", catalog.count() if array != null else 0)
 	else:
-		sm.set_shader_parameter("tile_colors",
-			TerrainTileCatalog.new().map_color_array(MAX_TILE_TYPES))
+		sm.set_shader_parameter(
+			"tile_colors", TerrainTileCatalog.new().map_color_array(MAX_TILE_TYPES)
+		)
 		sm.set_shader_parameter("tile_count", 0)
 
 	_push_play_bounds(a_data, center)

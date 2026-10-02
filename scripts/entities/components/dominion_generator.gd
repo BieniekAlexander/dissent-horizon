@@ -14,6 +14,7 @@ var build_up: int = 0
 var build_up_max: int = 10
 #endregion
 
+
 #region Public API
 func tick() -> void:
 	ticks_elapsed += 1
@@ -22,6 +23,7 @@ func tick() -> void:
 		commandable.commander.add_dominion(dominion_rate)
 		ticks_elapsed = 0
 		build_up += 1
+
 
 ## How many things are feeding this generator right now, or NO_ATTRIBUTION when the
 ## question doesn't apply. The economy readout shows it beside the dominion rate, because
@@ -37,6 +39,7 @@ func tick() -> void:
 ## structures, say — owns no DominionGenerator at all, so it reports no rate and no count
 ## and needs no special case here. See Commander.dominion_source_count.
 const NO_ATTRIBUTION: int = -1
+
 
 func contributor_count() -> int:
 	return NO_ATTRIBUTION

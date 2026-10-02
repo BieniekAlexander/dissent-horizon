@@ -11,10 +11,19 @@ extends GutTest
 
 ## --- Cards ------------------------------------------------------------------
 
+
 func test_the_verbs_are_all_on_the_active_card() -> void:
-	for command_name: String in ["command_attack_move", "command_stop", "command_defend",
-			"command_move", "command_focus_fire", "command_evacuate", "command_launch",
-			"command_land", "command_ability"]:
+	for command_name: String in [
+		"command_attack_move",
+		"command_stop",
+		"command_defend",
+		"command_move",
+		"command_focus_fire",
+		"command_evacuate",
+		"command_launch",
+		"command_land",
+		"command_ability"
+	]:
 		var binding: ControlBinding = CommandGrid.binding_for(command_name)
 		assert_not_null(binding, command_name)
 		assert_eq(binding.family, ControlBinding.CommandFamily.ACTIVE, command_name)
@@ -24,8 +33,9 @@ func test_the_verbs_are_all_on_the_active_card() -> void:
 ## economic sense: it is an order given to a unit, mid-fight, beside that unit's other
 ## orders. Moving it would mean flipping cards to tell a builder what to do.
 func test_build_and_its_structure_list_stay_on_the_active_card() -> void:
-	assert_eq(CommandGrid.binding_for("command_ability").family,
-		ControlBinding.CommandFamily.ACTIVE)
+	assert_eq(
+		CommandGrid.binding_for("command_ability").family, ControlBinding.CommandFamily.ACTIVE
+	)
 	for tool: Tool in Tool.command_tool_map.values():
 		if (tool.control_context & ControlBinding.ControlContext.BUILD) != 0:
 			assert_eq(tool.family, ControlBinding.CommandFamily.ACTIVE, tool.command_name)
@@ -46,19 +56,26 @@ func test_training_is_the_production_card() -> void:
 ## Row 1 is the generic verbs on the ACTIVE card and training on the PRODUCTION one; the
 ## ability rows are 0 and 2.
 
+
 func test_the_generic_verbs_occupy_row_one() -> void:
 	# A S D F G: the orders every unit answers to. Evacuate used to sit at F and does not
 	# belong here — it needs a garrison, so it is an ability of whatever owns one.
-	for command_name: String in ["command_attack_move", "command_stop", "command_defend",
-			"command_focus_fire", "command_move"]:
+	for command_name: String in [
+		"command_attack_move",
+		"command_stop",
+		"command_defend",
+		"command_focus_fire",
+		"command_move"
+	]:
 		assert_eq(CommandGrid.binding_for(command_name).grid_position.y, 1, command_name)
 
 
 func test_unit_abilities_are_off_the_verb_row() -> void:
 	# Radiate, Land and Evacuate belong to whichever pieces happen to carry the component
 	# behind them, so they are abilities rather than orders every unit answers to.
-	for command_name: String in ["command_launch", "command_land", "command_ability",
-			"command_evacuate"]:
+	for command_name: String in [
+		"command_launch", "command_land", "command_ability", "command_evacuate"
+	]:
 		assert_ne(CommandGrid.binding_for(command_name).grid_position.y, 1, command_name)
 
 
@@ -69,23 +86,30 @@ func test_unit_abilities_are_off_the_verb_row() -> void:
 func test_the_production_context_row_holds_only_contexts() -> void:
 	var contexts: int = 0
 	for binding: ControlBinding in CommandGrid.bindings():
-		if binding.family != ControlBinding.CommandFamily.PRODUCTION \
-				or binding.grid_position.y != 0:
+		if (
+			binding.family != ControlBinding.CommandFamily.PRODUCTION
+			or binding.grid_position.y != 0
+		):
 			continue
-		assert_true(binding is ProducerContextBinding,
-			"%s is not squatting in the context row" % binding.command_name)
+		assert_true(
+			binding is ProducerContextBinding,
+			"%s is not squatting in the context row" % binding.command_name
+		)
 		contexts += 1
 	assert_gt(contexts, 0, "the row is populated")
 
 
 ## --- Positional hotkeys -----------------------------------------------------
 
+
 ## A command has no key of its own — it has a cell, and the cell has the key. This is what
 ## makes one key mean different things on the two cards, and it is the property the whole
 ## family gate rests on.
 func test_a_command_resolves_to_the_key_of_the_cell_it_occupies() -> void:
-	assert_eq(CommandGrid.action_for_command("command_attack_move"),
-		ControlBinding.cell_action(Vector2i(0, 1)))
+	assert_eq(
+		CommandGrid.action_for_command("command_attack_move"),
+		ControlBinding.cell_action(Vector2i(0, 1))
+	)
 	assert_eq(InputPrompt.action_text(CommandGrid.action_for_command("command_attack_move")), "A")
 	assert_eq(InputPrompt.action_text(CommandGrid.action_for_command("command_stop")), "S")
 
@@ -106,8 +130,9 @@ func test_one_cell_carries_a_command_on_each_card() -> void:
 func test_a_command_with_no_button_has_no_key() -> void:
 	# These are resolved by right-clicking, never pressed. command_embark is deliberately
 	# among them: it names its subject by hovering it, so a button could not say who.
-	for command_name: String in ["command_attack", "command_interact", "command_occupy",
-			"command_embark"]:
+	for command_name: String in [
+		"command_attack", "command_interact", "command_occupy", "command_embark"
+	]:
 		assert_eq(CommandGrid.action_for_command(command_name), &"", command_name)
 
 
@@ -115,12 +140,12 @@ func test_a_command_with_no_button_has_no_key() -> void:
 ## hotkeys, because InputPrompt resolves a command through its cell. Without this every
 ## tooltip and dialog naming a verb would render literal braces.
 func test_copy_can_still_name_a_command() -> void:
-	assert_eq(InputPrompt.format("attack-move is {{ command_attack_move }}"),
-		"attack-move is A")
+	assert_eq(InputPrompt.format("attack-move is {{ command_attack_move }}"), "attack-move is A")
 	assert_eq(InputPrompt.format("halt with {{ command_stop }}"), "halt with S")
 
 
 ## --- The toggle -------------------------------------------------------------
+
 
 func test_the_card_toggle_is_bound_and_is_not_a_command() -> void:
 	assert_true(InputMap.has_action("card_toggle_family"))
@@ -140,8 +165,10 @@ func test_the_toggle_key_is_not_also_a_grid_cell() -> void:
 		for event: InputEvent in InputMap.action_get_events(action):
 			var key := event as InputEventKey
 			if key != null:
-				assert_false(toggle_keys.has(key.physical_keycode),
-					"%s does not collide with the card toggle" % action)
+				assert_false(
+					toggle_keys.has(key.physical_keycode),
+					"%s does not collide with the card toggle" % action
+				)
 
 
 ## --- Which card a selection opens on ----------------------------------------
@@ -180,9 +207,18 @@ func _controller(a_selection: Array) -> RTSController:
 ## preload of an entity scene fires Tool's static registry initialiser at parse time and
 ## makes Tool.for_name null for the whole run (see CLAUDE.md).
 func before_each() -> void:
-	FakePieces.register_tool(FakePieces.tool(&"fake_trainee", FakePieces.PLAIN, [],
-		ControlBinding.ControlContext.TRAIN, [&"fake_barracks"]))
-	FakePieces.install_ability(&"bombard", {"command": "command_bombard", "grid": [0, 0], "range": 30.0})
+	FakePieces.register_tool(
+		FakePieces.tool(
+			&"fake_trainee",
+			FakePieces.PLAIN,
+			[],
+			ControlBinding.ControlContext.TRAIN,
+			[&"fake_barracks"]
+		)
+	)
+	FakePieces.install_ability(
+		&"bombard", {"command": "command_bombard", "grid": [0, 0], "range": 30.0}
+	)
 
 
 func after_each() -> void:
@@ -213,16 +249,17 @@ func test_a_stationary_producer_opens_on_its_training() -> void:
 
 
 func test_a_unit_opens_on_the_active_card() -> void:
-	assert_eq(_controller([_entity(RECRUIT)]).command_family,
-		ControlBinding.CommandFamily.ACTIVE)
+	assert_eq(_controller([_entity(RECRUIT)]).command_family, ControlBinding.CommandFamily.ACTIVE)
 
 
 ## A group picked up mid-fight is picked up to be ORDERED, even when a structure came along
 ## with it — having to press a key before you can tell it to move is a tax on the common
 ## case to serve the rare one.
 func test_a_mixed_selection_opens_on_the_active_card() -> void:
-	assert_eq(_controller([_entity(BARRACKS), _entity(RECRUIT)]).command_family,
-		ControlBinding.CommandFamily.ACTIVE)
+	assert_eq(
+		_controller([_entity(BARRACKS), _entity(RECRUIT)]).command_family,
+		ControlBinding.CommandFamily.ACTIVE
+	)
 
 
 ## --- The ability bar reaches past the card ----------------------------------
@@ -233,8 +270,9 @@ func test_a_mixed_selection_opens_on_the_active_card() -> void:
 ## PRODUCTION, while the ability it was pressed for is drawn on ACTIVE. `_command_is_available`
 ## refuses a command the visible card is not drawing, so the button selected the casters and
 ## then silently did nothing. `_show_card_for_command` is what closes that.
-const CITADEL: Dictionary = {"structure": true, "produces": [&"fake_trainee"],
-	"abilities": [{"grants": [&"bombard"]}]}
+const CITADEL: Dictionary = {
+	"structure": true, "produces": [&"fake_trainee"], "abilities": [{"grants": [&"bombard"]}]
+}
 const CANNON: Dictionary = {"structure": true, "abilities": [{"grants": [&"bombard"]}]}
 
 
@@ -243,8 +281,7 @@ func test_a_producer_that_also_carries_abilities_settles_on_production() -> void
 	var citadel: Commandable = _entity(CITADEL)
 	assert_true(citadel.has_node("Production"), "it trains")
 	assert_true(citadel.has_node("Abilities"), "and it casts")
-	assert_eq(_controller([citadel]).command_family,
-		ControlBinding.CommandFamily.PRODUCTION)
+	assert_eq(_controller([citadel]).command_family, ControlBinding.CommandFamily.PRODUCTION)
 
 
 ## A Citadel selected beside a Cannon: the Citadel trains (PRODUCTION), the Cannon carries the
@@ -255,12 +292,17 @@ func test_a_producer_that_also_carries_abilities_settles_on_production() -> void
 ## card settles on PRODUCTION while the ability the bar was pressed for is drawn elsewhere.
 func test_arming_a_command_turns_the_grid_to_its_card() -> void:
 	var controller: RTSController = _controller([_entity(CITADEL), _entity(CANNON)])
-	assert_eq(controller.command_family, ControlBinding.CommandFamily.PRODUCTION,
-		"guards the fixture: it starts on another card")
+	assert_eq(
+		controller.command_family,
+		ControlBinding.CommandFamily.PRODUCTION,
+		"guards the fixture: it starts on another card"
+	)
 	controller._show_card_for_command("command_bombard")
 	assert_eq(controller.command_family, ControlBinding.CommandFamily.ORDNANCE)
-	assert_true(controller._command_is_available("command_bombard"),
-		"and the command the bar armed can now actually be issued")
+	assert_true(
+		controller._command_is_available("command_bombard"),
+		"and the command the bar armed can now actually be issued"
+	)
 
 
 func test_turning_to_a_card_the_selection_cannot_fill_is_refused() -> void:
@@ -269,8 +311,11 @@ func test_turning_to_a_card_the_selection_cannot_fill_is_refused() -> void:
 	var controller: RTSController = _controller([recruit])
 	assert_eq(controller.command_family, ControlBinding.CommandFamily.ACTIVE)
 	controller._show_card_for_command("command_tool_fake_trainee")
-	assert_eq(controller.command_family, ControlBinding.CommandFamily.ACTIVE,
-		"a soldier has no production card to turn to")
+	assert_eq(
+		controller.command_family,
+		ControlBinding.CommandFamily.ACTIVE,
+		"a soldier has no production card to turn to"
+	)
 
 
 ## --- Leaving the commander's card -------------------------------------------
@@ -279,14 +324,18 @@ func test_turning_to_a_card_the_selection_cannot_fill_is_refused() -> void:
 ## but two things take you OFF it, and both had to be asked for after the first build shipped
 ## them wrong.
 
+
 func test_tab_off_the_ordnance_card_lands_on_active_even_with_nothing_selected() -> void:
 	# It used to REFUSE here (ACTIVE has nothing to draw for an empty selection), which left
 	# the player on ORDNANCE unsure whether the key had registered. Landing on an empty ACTIVE
 	# hides the panel, which is the close gesture.
 	var controller: RTSController = _controller([])
 	controller.set_command_family(ControlBinding.CommandFamily.ORDNANCE)
-	assert_eq(controller.command_family, ControlBinding.CommandFamily.ORDNANCE,
-		"the commander's card is always enterable")
+	assert_eq(
+		controller.command_family,
+		ControlBinding.CommandFamily.ORDNANCE,
+		"the commander's card is always enterable"
+	)
 	controller.toggle_command_family()
 	assert_eq(controller.command_family, ControlBinding.CommandFamily.ACTIVE)
 
@@ -295,8 +344,11 @@ func test_tab_off_the_ordnance_card_prefers_the_selections_own_card() -> void:
 	var controller: RTSController = _controller([_entity(BARRACKS)])
 	controller.set_command_family(ControlBinding.CommandFamily.ORDNANCE)
 	controller.toggle_command_family()
-	assert_eq(controller.command_family, ControlBinding.CommandFamily.PRODUCTION,
-		"a barracks was picked up to be told what to make")
+	assert_eq(
+		controller.command_family,
+		ControlBinding.CommandFamily.PRODUCTION,
+		"a barracks was picked up to be told what to make"
+	)
 
 
 ## Selecting something with no ordnances of its own is an act of "I want to command THIS", and
@@ -307,7 +359,8 @@ func test_selecting_a_piece_with_no_ordnances_leaves_the_commander_card() -> voi
 	controller.set_command_family(ControlBinding.CommandFamily.ORDNANCE)
 	controller.selection.assign([_entity(RECRUIT)])
 	controller.available_commands = CommandContextParser.commands_for_selection(
-		controller.selection)
+		controller.selection
+	)
 	assert_eq(controller.command_family, ControlBinding.CommandFamily.ACTIVE)
 
 
@@ -323,5 +376,4 @@ func test_an_empty_selection_leaves_the_commander_card_alone() -> void:
 ## ordnances of its own.
 func test_the_commander_card_is_never_offered_to_a_chooser() -> void:
 	var controller: RTSController = _controller([_entity(RECRUIT)])
-	assert_eq(controller.selection_owned_families()
-		& ControlBinding.CommandFamily.ORDNANCE, 0)
+	assert_eq(controller.selection_owned_families() & ControlBinding.CommandFamily.ORDNANCE, 0)

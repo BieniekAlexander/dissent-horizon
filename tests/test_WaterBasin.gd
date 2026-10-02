@@ -136,8 +136,7 @@ func test_diagonal_contact_does_not_join_two_pits() -> void:
 	assert_false(basin.covers_cell(Vector2i(10, 9)), "the cells between the two are dry")
 	assert_false(basin.covers_cell(Vector2i(9, 10)), "the cells between the two are dry")
 	assert_false(
-		basin.covers_cell(Vector2i(10, 10)),
-		"a hollow touching only at a corner is a separate body"
+		basin.covers_cell(Vector2i(10, 10)), "a hollow touching only at a corner is a separate body"
 	)
 
 
@@ -171,10 +170,13 @@ func test_an_out_of_bounds_seed_floods_nothing() -> void:
 func test_the_shade_ramp_is_centred_on_wade_depth() -> void:
 	assert_eq(WaterSurfaceMesh.shade_factor(0.0), 0.0, "dry water is fully light")
 	assert_almost_eq(
-		WaterSurfaceMesh.shade_factor(WaterBasin.WADE_DEPTH), 0.5, 0.001,
+		WaterSurfaceMesh.shade_factor(WaterBasin.WADE_DEPTH),
+		0.5,
+		0.001,
 		"wading depth sits halfway between the two blues"
 	)
 	assert_eq(
-		WaterSurfaceMesh.shade_factor(WaterBasin.WADE_DEPTH * 5.0), 1.0,
+		WaterSurfaceMesh.shade_factor(WaterBasin.WADE_DEPTH * 5.0),
+		1.0,
 		"well past wading depth is fully dark"
 	)

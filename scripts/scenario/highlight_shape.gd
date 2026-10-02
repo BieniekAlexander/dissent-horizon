@@ -31,6 +31,7 @@ var half_extents: Vector2 = Vector2.ONE
 var rotation_y: float = 0.0
 #endregion
 
+
 #region Constructors
 static func circle(center: Vector2, radius: float) -> HighlightShape:
 	var s := HighlightShape.new()
@@ -66,9 +67,7 @@ static func from_collision_shape(node: CollisionShape3D) -> HighlightShape:
 	var shape: Shape3D = node.shape
 	if shape is BoxShape3D:
 		var half: Vector3 = (shape as BoxShape3D).size * 0.5
-		return HighlightShape.rect(
-			center_xz, Vector2(half.x * scale.x, half.z * scale.z), yaw
-		)
+		return HighlightShape.rect(center_xz, Vector2(half.x * scale.x, half.z * scale.z), yaw)
 	# Sphere / Cylinder / Capsule all reduce to a disc on XZ. Non-uniform scale would make
 	# that an ellipse; use the larger axis so the paint never under-states the region.
 	var planar_scale: float = maxf(absf(scale.x), absf(scale.z))
@@ -83,7 +82,10 @@ static func from_collision_shape(node: CollisionShape3D) -> HighlightShape:
 	return HighlightShape.rect(
 		center_xz, Vector2(aabb.size.x * 0.5 * scale.x, aabb.size.z * 0.5 * scale.z), yaw
 	)
+
+
 #endregion
+
 
 #region Geometry
 ## The footprint's outline as world-space XZ points, closed implicitly (the caller loops

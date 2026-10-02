@@ -68,10 +68,14 @@ var _next_sequence: int = 1
 var _commander: Commander
 #endregion
 
+
 #region Lifecycle
 func _init(a_commander: Commander) -> void:
 	_commander = a_commander
+
+
 #endregion
+
 
 #region Submission
 ## Queue a purchase, in the position its own flags call for. Drains immediately so an
@@ -88,18 +92,22 @@ func submit(a_transaction: PurchaseTransaction) -> PurchaseTransaction:
 	# is demoted to an ordinary one-off rather than refused.
 	# An upgrade is bought once, so a standing research would have nothing to repeat: demoted the
 	# same way.
-	if a_transaction.kind == PurchaseTransaction.Kind.BUILD \
-			or UpgradeCatalog.is_upgrade(a_transaction.type):
+	if (
+		a_transaction.kind == PurchaseTransaction.Kind.BUILD
+		or UpgradeCatalog.is_upgrade(a_transaction.type)
+	):
 		a_transaction.standing = false
 	_insert(a_transaction)
 	_charge_on_submit(a_transaction)
 	tick()
 	return a_transaction
 
+
 ## Take the money NOW, at request time, for any one-off purchase the commander can afford —
 ## whether or not anything is free to start on it yet.
 ##
-## Why it works this way: gdd/systems/macroeconomics/production-and-economy.md §Debit timing: charging on submit.
+## Why it works this way: gdd/systems/macroeconomics/production-and-economy.md §Debit timing:
+## charging on submit.
 func _charge_on_submit(a_transaction: PurchaseTransaction) -> void:
 	if a_transaction.standing or not a_transaction.is_pending():
 		return
@@ -107,6 +115,7 @@ func _charge_on_submit(a_transaction: PurchaseTransaction) -> void:
 		return
 	if a_transaction.can_fund():
 		a_transaction.fund()
+
 
 ## True when some entry AHEAD of `a_transaction` in dispatch order has not been paid for yet.
 ##
@@ -128,14 +137,13 @@ func _unfunded_entry_ahead_of(a_transaction: PurchaseTransaction) -> bool:
 			return true
 	return false
 
+
 ## Queue a unit purchase. `a_dispatch_filter` restricts which structures may fulfil it —
 ## normally the production structures that were selected when the order was issued. An
 ## EMPTY filter is not "nowhere" but "anywhere the commander can make it"; see
 ## PurchaseTransaction.dispatch_filter.
 func submit_train(
-	a_tool: Tool,
-	a_dispatch_filter: Array,
-	a_standing: bool = false
+	a_tool: Tool, a_dispatch_filter: Array, a_standing: bool = false
 ) -> PurchaseTransaction:
 	if a_tool == null:
 		return null
@@ -145,6 +153,7 @@ func submit_train(
 	transaction.dispatch_filter.assign(a_dispatch_filter)
 	transaction.standing = a_standing
 	return submit(transaction)
+
 
 ## Place `a_transaction` in tier order, stamping its sequence number. Front-insertion is
 ## within the entry's OWN tier: a standing entry asking for the front still sits behind
@@ -167,6 +176,7 @@ func _insert(a_transaction: PurchaseTransaction, a_assign_sequence: bool = true)
 		index += 1
 	entries.insert(index, a_transaction)
 
+
 ## Drop `a_transaction` from the queue, refunding any reserved cost. Returns whether it
 ## was found. A dispatched TRAIN purchase is no longer here — cancel that through the
 ## producer it was handed to (Production.cancel), which refunds it.
@@ -178,6 +188,7 @@ func cancel(a_transaction: PurchaseTransaction) -> bool:
 	a_transaction.cancel()
 	return true
 
+
 ## The queued purchase with this id, or null. The queue is addressable by ID rather than
 ## by position because positions shift under every dispatch and cancellation.
 func find_by_id(a_id: int) -> PurchaseTransaction:
@@ -186,18 +197,22 @@ func find_by_id(a_id: int) -> PurchaseTransaction:
 			return transaction
 	return null
 
+
 ## Cancel every ONE-OFF purchase, refunding anything reserved. Standing entries are left
 ## alone, so standing production resumes from them on the next tick.
 func clear_queued() -> void:
 	_clear(func(t: PurchaseTransaction) -> bool: return not t.standing)
 
+
 ## Cancel every STANDING entry, refunding anything reserved.
 func clear_standing() -> void:
 	_clear(func(t: PurchaseTransaction) -> bool: return t.standing)
 
+
 ## Cancel everything the commander has committed to buying.
 func clear_all() -> void:
 	_clear(func(_t: PurchaseTransaction) -> bool: return true)
+
 
 func _clear(a_predicate: Callable) -> void:
 	for i: int in range(entries.size() - 1, -1, -1):
@@ -205,21 +220,27 @@ func _clear(a_predicate: Callable) -> void:
 		if a_predicate.call(transaction):
 			entries.remove_at(i)
 			transaction.cancel()
+
+
 #endregion
+
 
 #region Queries
 ## Every queued purchase, in dispatch order — what the HUD lists.
 func pending() -> Array[PurchaseTransaction]:
 	return entries.duplicate()
 
+
 ## The one-off entries, in order. The queue's first tier.
 func queued() -> Array[PurchaseTransaction]:
 	return entries.filter(func(t: PurchaseTransaction) -> bool: return not t.standing)
+
 
 ## The standing entries in DISPATCH order — the queue's second tier, as `entries` holds it.
 ## Its front is whichever template dispatches next, which rotates every cycle.
 func standing() -> Array[PurchaseTransaction]:
 	return entries.filter(func(t: PurchaseTransaction) -> bool: return t.standing)
+
 
 ## The standing entries in AUTHORED order: the ring as the player built it, sorted by the
 ## submission `sequence` that _insert now preserves across rotations.
@@ -230,10 +251,10 @@ func standing() -> Array[PurchaseTransaction]:
 func standing_ring() -> Array[PurchaseTransaction]:
 	var ring: Array[PurchaseTransaction] = standing()
 	ring.sort_custom(
-		func(a: PurchaseTransaction, b: PurchaseTransaction) -> bool:
-			return a.sequence < b.sequence
+		func(a: PurchaseTransaction, b: PurchaseTransaction) -> bool: return a.sequence < b.sequence
 	)
 	return ring
+
 
 ## The standing template that dispatches next, or null when the ring is empty. This is the
 ## cursor into standing_ring() — the ring itself never reorders, this moves.
@@ -241,8 +262,10 @@ func standing_next() -> PurchaseTransaction:
 	var dispatch_order: Array[PurchaseTransaction] = standing()
 	return dispatch_order.front() if not dispatch_order.is_empty() else null
 
+
 func is_empty() -> bool:
 	return entries.is_empty()
+
 
 ## Why a queued purchase hasn't been dispatched yet. A blocked entry has to NAME what it
 ## is waiting on rather than just reading "waiting": the two blockers have completely
@@ -257,6 +280,7 @@ enum Blocker {
 	NO_FREE_PRODUCER,
 }
 
+
 func blocker_for(a_transaction: PurchaseTransaction) -> Blocker:
 	if a_transaction == null or a_transaction.is_settled():
 		return Blocker.NONE
@@ -264,12 +288,15 @@ func blocker_for(a_transaction: PurchaseTransaction) -> Blocker:
 	# request time (see _charge_on_submit), the normal state of a unit waiting for a busy
 	# barracks is PAID-and-waiting — gating this on is_pending() would report such an entry as
 	# unblocked and leave the readout silent about the only thing actually holding it up.
-	if a_transaction.kind == PurchaseTransaction.Kind.TRAIN \
-			and _free_producer(a_transaction) == null:
+	if (
+		a_transaction.kind == PurchaseTransaction.Kind.TRAIN
+		and _free_producer(a_transaction) == null
+	):
 		return Blocker.NO_FREE_PRODUCER
 	if a_transaction.is_pending() and not a_transaction.can_fund():
 		return Blocker.UNAFFORDABLE
 	return Blocker.NONE
+
 
 ## How many queued purchases could still land on `a_producer`. A structure with pending
 ## work isn't idle even though it isn't training anything yet, so the "select an idle
@@ -289,8 +316,11 @@ func has_pending_build(a_id: StringName) -> bool:
 ## an upgrade waiting in the queue cannot be ordered a second time.
 func has_pending_train(a_id: StringName) -> bool:
 	for transaction: PurchaseTransaction in entries:
-		if transaction.kind == PurchaseTransaction.Kind.TRAIN and transaction.type == a_id \
-				and not transaction.is_settled():
+		if (
+			transaction.kind == PurchaseTransaction.Kind.TRAIN
+			and transaction.type == a_id
+			and not transaction.is_settled()
+		):
 			return true
 	return false
 
@@ -298,10 +328,14 @@ func has_pending_train(a_id: StringName) -> bool:
 func pending_count_for(a_producer: Commandable) -> int:
 	var count: int = 0
 	for transaction: PurchaseTransaction in entries:
-		if transaction.kind == PurchaseTransaction.Kind.TRAIN \
-				and transaction.candidate_producers().has(a_producer):
+		if (
+			transaction.kind == PurchaseTransaction.Kind.TRAIN
+			and transaction.candidate_producers().has(a_producer)
+		):
 			count += 1
 	return count
+
+
 #endregion
 
 #region Ticking
@@ -339,6 +373,7 @@ enum DispatchResult {
 	## Viable, but not yet affordable. Holds the queue, deliberately.
 	WAIT_FUNDS,
 }
+
 
 ## Advance the queue. Walks entries in tier order, dispatching what it can, skipping past
 ## what is only waiting on a producer, and stopping at the first entry that cannot be paid
@@ -382,6 +417,7 @@ func tick() -> void:
 				index += 1
 			DispatchResult.WAIT_FUNDS:
 				return
+
 
 ## Try to fulfil `a_transaction`, reporting what the queue should do next — see
 ## DispatchResult, which is where the two WAIT reasons are distinguished and why.
@@ -433,6 +469,7 @@ func _dispatch(a_transaction: PurchaseTransaction) -> DispatchResult:
 			return DispatchResult.ADVANCE
 	return DispatchResult.ADVANCE
 
+
 ## An eligible producer that can start this purchase RIGHT NOW: finished building, and
 ## not already training something. Ties go to the earliest in the transaction's producer
 ## list (the selection order), so a selection of idle strongholds fills in that order as
@@ -444,12 +481,14 @@ func _dispatch(a_transaction: PurchaseTransaction) -> DispatchResult:
 ## busy in exactly the way a barracks mid-job is busy, so the purchase waits here rather
 ## than being refused when the player asked for it.
 func _free_producer(a_transaction: PurchaseTransaction) -> Commandable:
-	var tool: Tool = a_transaction.tool if a_transaction.tool != null \
-		else Tool.for_id(a_transaction.type)
+	var tool: Tool = (
+		a_transaction.tool if a_transaction.tool != null else Tool.for_id(a_transaction.type)
+	)
 	for producer: Commandable in a_transaction.ready_producers():
 		if producer.production.is_free() and Train.has_free_pad_for(producer, tool):
 			return producer
 	return null
+
 
 ## Drop transactions that can no longer be fulfilled, so they neither block the head of
 ## the queue nor keep reserved resources tied up.
@@ -457,6 +496,7 @@ func _prune() -> void:
 	for i: int in range(entries.size() - 1, -1, -1):
 		if not _is_live(entries[i]):
 			entries.remove_at(i)
+
 
 func _is_live(a_transaction: PurchaseTransaction) -> bool:
 	if a_transaction.is_settled():
@@ -466,8 +506,10 @@ func _is_live(a_transaction: PurchaseTransaction) -> bool:
 		return false
 	# Candidates, not free producers: a purchase waiting on a structure that is still under
 	# construction or merely busy is alive, not orphaned.
-	if a_transaction.kind == PurchaseTransaction.Kind.TRAIN \
-			and a_transaction.candidate_producers().is_empty():
+	if (
+		a_transaction.kind == PurchaseTransaction.Kind.TRAIN
+		and a_transaction.candidate_producers().is_empty()
+	):
 		a_transaction.cancel()
 		return false
 	return true

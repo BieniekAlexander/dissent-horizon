@@ -1,26 +1,32 @@
 class_name Attack
 extends MoveCommand
 
+
 #region Preconditions
 static func requires_position() -> bool:
 	return true
 
+
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if not _target_attackable(message):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	if actor == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if actor.weapon_inventory != null \
-			and actor.weapon_inventory.any_weapon_can_target(message.target):
+	if (
+		actor.weapon_inventory != null
+		and actor.weapon_inventory.any_weapon_can_target(message.target)
+	):
 		return PreconditionFailureCause.NONE
 	var garrison := actor.garrison
 	if garrison != null and garrison.any_garrison_can_target(message.target):
 		return PreconditionFailureCause.NONE
 	return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+
+
 #endregion
+
 
 #region Private helpers
 static func _target_attackable(message: CommandMessage) -> bool:
@@ -32,6 +38,7 @@ static func _target_attackable(message: CommandMessage) -> bool:
 	var t: Entity = message.target
 	return is_instance_valid(t) and t.is_attackable()
 
+
 ## True when an obstruction's body lies on the line between a_actor and a_target
 ## (excluding a_target itself, so attacking a structure directly is never blocked by that
 ## same structure). Only between two pieces on the ground: when either is an AIR target, the
@@ -42,9 +49,7 @@ static func _obstruction_on_line(actor: Commandable, target: Entity) -> bool:
 		return false
 	var space_state := actor.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(
-		actor.global_position,
-		target.global_position,
-		CollisionLayers.Mask.STRUCTURE_BLOCKER
+		actor.global_position, target.global_position, CollisionLayers.Mask.STRUCTURE_BLOCKER
 	)
 	# STRUCTURE_BLOCKER lives on the target's TargetBody child, so exclude that
 	# (and the root) to avoid the target's own body counting as line-of-fire cover.
@@ -54,6 +59,7 @@ static func _obstruction_on_line(actor: Commandable, target: Entity) -> bool:
 	query.exclude = excludes
 	return not space_state.intersect_ray(query).is_empty()
 
+
 ## Returns the weapon from a_actor's inventory that can target message.target,
 ## or null if none can.
 func _weapon_for(a_actor: Commandable) -> Weapon:
@@ -61,12 +67,14 @@ func _weapon_for(a_actor: Commandable) -> Weapon:
 		return null
 	return a_actor.weapon_inventory.weapon_for_target(message.target)
 
+
 ## True when a_actor is acting as a bunker: it owns a Garrison with bunker fire
 ## enabled and at least one unit garrisoned, so its garrisoned units' weapons can
 ## fire at the target even when the actor itself carries no weapon.
 func _is_bunker(a_actor: Commandable) -> bool:
 	var garrison := a_actor.garrison
 	return garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
+
 
 ## True when a_actor's own weapon can fire at message.target this tick. Requires
 ## the actor's body to already be facing the target — see _update_facing — so a
@@ -80,12 +88,15 @@ func _own_weapon_can_fire(a_actor: Commandable) -> bool:
 	var weapon := _weapon_for(a_actor)
 	if weapon == null or not a_actor.can_use_weapons():
 		return false
-	var is_held: bool = SU.is_in_attack_range(weapon, a_actor, message.target) \
-		and _dive_contact_made(a_actor, weapon) \
+	var is_held: bool = (
+		SU.is_in_attack_range(weapon, a_actor, message.target)
+		and _dive_contact_made(a_actor, weapon)
 		and _is_aimed_at_target(a_actor)
+	)
 	if is_held:
 		weapon.hold_target(message.target)
 	return is_held and weapon.is_ready() and weapon.is_locked_on(message.target)
+
 
 ## How far off its nose, in degrees, a unit that AIMS BY FLYING may shoot.
 ##
@@ -100,6 +111,7 @@ func _own_weapon_can_fire(a_actor: Commandable) -> bool:
 ## aircraft still visibly points at what it is shooting rather than firing off its beam.
 const FLYING_AIM_ARC_DEGREES: float = 20.0
 
+
 ## Whether the actor is pointing close enough at its target to shoot, by the standard that
 ## suits how it aims: exact alignment for anything that can stop and turn, a forward arc for
 ## anything that aims by flying.
@@ -108,11 +120,13 @@ func _is_aimed_at_target(a_actor: Commandable) -> bool:
 	if weapon != null and weapon.turret:
 		return weapon.is_turret_aimed_at(a_actor, message.target.global_position)
 	if a_actor.movement == null:
-		return true   # a turret structure has no facing to wait on
+		return true  # a turret structure has no facing to wait on
 	if a_actor.movement.can_hold_still():
 		return a_actor.movement.is_facing(message.target.global_position)
 	return a_actor.movement.is_facing_within(
-		message.target.global_position, deg_to_rad(FLYING_AIM_ARC_DEGREES))
+		message.target.global_position, deg_to_rad(FLYING_AIM_ARC_DEGREES)
+	)
+
 
 ## True unless a DIVING attacker is still too high above its target to have reached it.
 ##
@@ -137,6 +151,7 @@ func _dive_contact_made(a_actor: Commandable, a_weapon: Weapon) -> bool:
 	# the gap the dive has to close.
 	return aerial.height_offset() <= a_weapon.reach_for(message.target)
 
+
 ## Drive a FLYING actor's dive-attack descent for this tick: while ramming a ground
 ## (non-air) target, ask Movement to dive toward it so the unit drops out of the sky as it
 ## closes in. A no-op unless the weapon is melee-ranged — i.e. unless it can only be
@@ -152,8 +167,9 @@ func _update_flying_dive(a_actor: Commandable) -> void:
 		return
 	if not is_instance_valid(message.target):
 		return
-	var target_is_air: bool = \
+	var target_is_air: bool = (
 		(message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR) != 0
+	)
 	if target_is_air:
 		return
 	# Asked AFTER the target-validity check: reach is measured against the target, so there
@@ -161,6 +177,7 @@ func _update_flying_dive(a_actor: Commandable) -> void:
 	if not weapon.is_melee_ranged(message.target):
 		return
 	aerial.request_dive(VU.inXZ(message.target.global_position))
+
 
 ## Aim [a_actor] at the target. A TURRET weapon (Weapon.turret) swings itself every tick —
 ## on the approach too, so it is already on target when the unit arrives — and the body
@@ -182,6 +199,8 @@ func _update_facing(a_actor: Commandable) -> void:
 	a_actor.movement.stop()
 	if not turreted:
 		a_actor.movement.face_toward(message.target.global_position)
+
+
 #endregion
 
 #region Properties
@@ -190,11 +209,13 @@ func _update_facing(a_actor: Commandable) -> void:
 var _melee_landing_started: bool = false
 #endregion
 
+
 ## This order exists in order to shoot, so an empty charged loadout makes it undoable for
 ## now. The receiver stands it down into the queue rather than have the unit fly at
 ## something it cannot touch — it resumes once the unit has been back to an airfield.
 func requires_ammo() -> bool:
 	return true
+
 
 #region State updates
 func get_updated_state(a_actor: Commandable) -> Variant:
@@ -227,10 +248,12 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	_update_facing(a_actor)
 	return self
 
+
 ## Whether the target has been seen during this attack. Per-command state because "lost
 ## from sight" is a transition: an order may name a target nobody on the side can see yet —
 ## a scripted assault on a fogged base — and that one is pursued until it is first seen.
 var _target_was_seen: bool = false
+
 
 ## True once a target this attack has SEEN is no longer visible to the actor's side — it
 ## ran into the fog or went stealthed — so the attack is dropped, persistent or not. The same
@@ -241,11 +264,13 @@ func _target_lost_from_sight(a_actor: Commandable) -> bool:
 	_target_was_seen = _target_was_seen or is_seen
 	return is_lost
 
+
 ## Hysteresis factor applied to the weapon-range leash. The target is acquired at the
 ## (smaller) aggro range but only released past weapon-range × this factor, so a target
 ## jittering at the boundary doesn't churn acquire→drop — the cause of the Attack↔NULL
 ## flicker. > 1.0.
 const _LEASH_HYSTERESIS: float = 1.25
+
 
 ## True when message.target is still close enough to keep pursuing a non-persistent
 ## attack. Two regimes:
@@ -263,8 +288,11 @@ const _LEASH_HYSTERESIS: float = 1.25
 ##     hysteresis that absorbs boundary jitter.
 func _target_within_leash(a_actor: Commandable) -> bool:
 	if message.aggro_shape != null:
-		var origin: Vector3 = message.aggro_center if message.aggro_center is Vector3 \
+		var origin: Vector3 = (
+			message.aggro_center
+			if message.aggro_center is Vector3
 			else message.aggro_shape.global_transform.origin
+		)
 		var radius: float = _shape_node_xz_radius(message.aggro_shape)
 		if radius < 0.0:
 			return true
@@ -274,6 +302,7 @@ func _target_within_leash(a_actor: Commandable) -> bool:
 	if leash < 0.0:
 		return true
 	return SU.hull_gap(a_actor, message.target) <= leash
+
 
 ## The pursue radius for an ordinary attack: max(firing weapon's AttackRange, actor's
 ## aggro range) XZ radius × _LEASH_HYSTERESIS, or -1.0 when neither is known (treated as
@@ -285,21 +314,28 @@ func _leash_radius(a_actor: Commandable) -> float:
 	# targets the occupants could still hit.
 	var weapon := _weapon_for(a_actor)
 	if weapon == null:
-		var layer: int = CollisionLayers.Mask.TARGETABLE_AIR \
-			if message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR != 0 \
+		var layer: int = (
+			CollisionLayers.Mask.TARGETABLE_AIR
+			if message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR != 0
 			else CollisionLayers.Mask.TARGETABLE_GROUND
-		var base_reach: float = maxf(a_actor.reach_on_layer(layer),
-			_shape_node_xz_radius(a_actor.aggro_shape_for(message.target)))
+		)
+		var base_reach: float = maxf(
+			a_actor.reach_on_layer(layer),
+			_shape_node_xz_radius(a_actor.aggro_shape_for(message.target))
+		)
 		return base_reach * _LEASH_HYSTERESIS if base_reach >= 0.0 else -1.0
 	# TODO: this asks for the reach against A_ACTOR, not against message.target — so a flying
 	# attacker leashes by its AIR reach while chasing something on the ground. Looks like a
 	# slip rather than a decision, but correcting it changes pursuit distances for every
 	# air/ground pairing, so it wants a deliberate pass rather than a drive-by fix.
-	var range_shape: CollisionShape3D = weapon.get_range_for_target(a_actor) if weapon != null else null
+	var range_shape: CollisionShape3D = (
+		weapon.get_range_for_target(a_actor) if weapon != null else null
+	)
 	var weapon_radius: float = _shape_node_xz_radius(range_shape) if range_shape != null else -1.0
 	var aggro_radius: float = _shape_node_xz_radius(a_actor.aggro_shape_for(message.target))
 	var base: float = maxf(weapon_radius, aggro_radius)
 	return base * _LEASH_HYSTERESIS if base >= 0.0 else -1.0
+
 
 ## XZ radius of a CollisionShape3D node (shape radius × the node's X-axis scale), or
 ## -1.0 for a null node or unsupported shape.
@@ -318,6 +354,7 @@ static func _shape_xz_radius(shape: Shape3D, scale: float) -> float:
 	if sph != null:
 		return sph.radius * scale
 	return -1.0
+
 
 ## Whether the actor should still be closing on its target.
 ##
@@ -340,15 +377,18 @@ func should_move(a_actor: Commandable) -> bool:
 		or _obstruction_on_line(a_actor, message.target)
 	)
 
+
 func releases_hold_fire() -> bool:
 	return true
 
+
 func holds_ground(a_actor: Commandable) -> bool:
-	return _target_attackable(message) and _weapon_for(a_actor) != null \
-		and not should_move(a_actor)
+	return _target_attackable(message) and _weapon_for(a_actor) != null and not should_move(a_actor)
+
 
 func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
 	return ActionTracker.Action.ATTACKING
+
 
 func can_act(a_actor: Commandable) -> bool:
 	if not _target_attackable(message) or message.target == a_actor:
@@ -358,8 +398,11 @@ func can_act(a_actor: Commandable) -> bool:
 	# Act when either the actor's own weapon or — for a bunker — any garrisoned
 	# unit's weapon is loaded and in range. A weaponless bunker has no own weapon,
 	# so the garrison branch is the only one that fires.
-	return _own_weapon_can_fire(a_actor) \
+	return (
+		_own_weapon_can_fire(a_actor)
 		or (_is_bunker(a_actor) and a_actor.garrison.can_fire_at(a_actor, message.target))
+	)
+
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	# Fire the actor's own weapon when it is loaded and in range.
@@ -369,20 +412,25 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 		# land first.  The strike fires from the landing callback; this branch
 		# returns self to keep the command alive while the descent is in progress.
 		# Once the callback fires the command is cleared by update_commands(null).
-		var target_is_air: bool = (message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR) != 0
-		if weapon.projectile_scene == null \
-				and a_actor.aerial != null \
-				and a_actor.aerial.mode == Movement.Mode.HOVERING \
-				and not target_is_air:
+		var target_is_air: bool = (
+			(message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR) != 0
+		)
+		if (
+			weapon.projectile_scene == null
+			and a_actor.aerial != null
+			and a_actor.aerial.mode == Movement.Mode.HOVERING
+			and not target_is_air
+		):
 			if not _melee_landing_started:
 				_melee_landing_started = true
-				a_actor.aerial.land(func() -> void:
-					if not is_instance_valid(a_actor) or not is_instance_valid(message.target):
-						return
-					weapon.fire(a_actor, message.target)
-					if a_actor.stealth != null:
-						a_actor.stealth.unstealth()
-					a_actor.update_commands(null)
+				a_actor.aerial.land(
+					func() -> void:
+						if not is_instance_valid(a_actor) or not is_instance_valid(message.target):
+							return
+						weapon.fire(a_actor, message.target)
+						if a_actor.stealth != null:
+							a_actor.stealth.unstealth()
+						a_actor.update_commands(null)
 				)
 			return self
 		weapon.fire(a_actor, message.target)
@@ -394,7 +442,10 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if _is_bunker(a_actor):
 		a_actor.garrison.tick_bunker_fire(a_actor, message.target)
 	return self
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

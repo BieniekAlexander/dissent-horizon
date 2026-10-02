@@ -129,6 +129,7 @@ func _economy(a_momentum: BotMomentum = null) -> StubEconomy:
 
 # ─── THE TARGET IS A NUMBER, AND IT OUTRANKS THROUGHPUT ─────────────────────
 
+
 func test_income_is_bought_before_production_capacity_while_below_the_target() -> void:
 	# THE OPENING QUESTION. Both rungs are affordable and both have somewhere to go; the bot
 	# used to take the redoubt every time and finish its first extractor at a mean of 125 s.
@@ -183,6 +184,7 @@ func test_an_unaffordable_extractor_falls_through_rather_than_banking() -> void:
 
 # ─── SAFETY IS WHAT BENDS IT ────────────────────────────────────────────────
 
+
 func test_an_unseen_opponent_reads_as_safe() -> void:
 	# Deliberate, and the same argument the fog-limited ATTACK objective rests on: believing
 	# in no enemy means expanding, and being wrong about that is what makes scouting pay.
@@ -228,6 +230,7 @@ func test_a_missing_momentum_simply_drops_that_term() -> void:
 
 # ─── THE TWO HALVES TOGETHER ────────────────────────────────────────────────
 
+
 func test_the_effective_target_is_the_parameter_scaled_by_safety() -> void:
 	_bot.own_army_value = 1000.0
 	_bot.believed_value = 1000.0  # safety 0.5
@@ -264,6 +267,7 @@ func test_the_same_bot_takes_the_extractor_when_the_attack_stops() -> void:
 
 # ─── THE KNOB HAS TO REACH THE MANAGER ──────────────────────────────────────
 
+
 ## A SILENT KNOB is the failure mode a passing suite cannot otherwise catch
 ## (gdd/systems/ai/bot-parameter-space.md §Proving the defaults): a field the harness can
 ## inject and set, which no manager ever reads, reports a result for an experiment that did
@@ -279,9 +283,9 @@ func test_the_new_parameters_are_pushed_into_their_managers() -> void:
 	assert_ne(source, "", "the brain's source is readable")
 	for field: String in [
 		"config.income_structure_target",  # → BotEconomy, the target itself
-		"config.defend_threat_radius",     # → BotEconomy.safety, its third consumer
-		"config.build_concurrency",        # → BotProduction, the builder demand
-		"config.scout_unit_budget",        # → BotProduction, the scouting term
+		"config.defend_threat_radius",  # → BotEconomy.safety, its third consumer
+		"config.build_concurrency",  # → BotProduction, the builder demand
+		"config.scout_unit_budget",  # → BotProduction, the scouting term
 	]:
 		assert_true(source.contains(field), "%s is read by _apply_config" % field)
 

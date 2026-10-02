@@ -75,11 +75,15 @@ var _progress_accum: float = 0.0
 var _train_bar: Node3D
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	if not train_bar_path.is_empty():
 		_train_bar = get_node_or_null(train_bar_path) as Node3D
+
+
 #endregion
+
 
 #region Public API
 ## Start a training job. Called by the commander's ProductionQueue when a purchase is
@@ -107,14 +111,17 @@ func enqueue(
 	)
 	return true
 
+
 ## Whether this producer can take a job right now — nothing is being built here.
 func is_free() -> bool:
 	return training_queue.is_empty()
+
 
 ## Whether this producer can train the given unit type. Source of truth for the
 ## "what can this build" question across the codebase (HUD train menu, AI).
 func can_produce(a_type: StringName) -> bool:
 	return producible_types.has(a_type)
+
 
 ## Whether anything this producer makes is a UNIT, as opposed to only researching upgrades.
 ## Ask this, not `production != null`, wherever the question is "does this train units": the
@@ -125,15 +132,20 @@ func can_produce(a_type: StringName) -> bool:
 ## Only a RESEARCH-ONLY list says no. An empty one still reads as a producer, as every
 ## Production did before upgrades existed: a producer whose trainees are not authored yet.
 func trains_units() -> bool:
-	return producible_types.is_empty() \
-		or producible_types.any(func(t: StringName) -> bool: return not UpgradeCatalog.is_upgrade(t))
+	return (
+		producible_types.is_empty()
+		or producible_types.any(
+			func(t: StringName) -> bool: return not UpgradeCatalog.is_upgrade(t)
+		)
+	)
 
 
 ## trains_units for any node that may carry a Production child: a live piece or an
 ## out-of-tree preview, whose @onready never resolved.
 static func node_trains_units(a_node: Node) -> bool:
-	var production: Production = a_node.get_node_or_null("Production") as Production \
-		if a_node != null else null
+	var production: Production = (
+		a_node.get_node_or_null("Production") as Production if a_node != null else null
+	)
 	return production != null and production.trains_units()
 
 
@@ -142,18 +154,22 @@ static func node_trains_units(a_node: Node) -> bool:
 func is_producing(a_type: StringName) -> bool:
 	return not training_queue.is_empty() and training_queue[0][JOB_TYPE] == a_type
 
+
 ## Number of units queued (the first is actively training; the rest wait).
 func job_count() -> int:
 	return training_queue.size()
+
 
 ## The unit scene for queued job `i`.
 func job_scene(a_i: int) -> PackedScene:
 	return training_queue[a_i][JOB_SCENE] as PackedScene
 
+
 ## The Entity.Type for queued job `i` (used to refund cost on cancel). May be null
 ## if the job was enqueued without a type.
 func job_type(a_i: int) -> Variant:
 	return training_queue[a_i][JOB_TYPE]
+
 
 ## The purchase job `a_i` came from, or null. The job is how a unit that is ALREADY BEING
 ## BUILT is reached — it has left the production queue, so its transaction is no longer in
@@ -172,6 +188,7 @@ func job_transaction(a_i: int) -> PurchaseTransaction:
 func job_commands(a_i: int) -> Array:
 	return training_queue[a_i][JOB_COMMANDS] as Array
 
+
 ## Cancel the queued job at `index`: remove it from the queue and refund its cost to
 ## the owning commander. A no-op (returns false) for an out-of-range index. Cancelling
 ## any job refunds the full cost — including the head job that's partway trained.
@@ -182,7 +199,9 @@ func cancel(a_index: int) -> bool:
 	# The purchase this job came from is CONSUMED, so it is past refunding itself; the
 	# refund below is the one that applies. Marking it cancelled is what stops anything
 	# still holding it from believing a unit is on the way.
-	var transaction: PurchaseTransaction = training_queue[a_index][JOB_TRANSACTION] as PurchaseTransaction
+	var transaction: PurchaseTransaction = (
+		training_queue[a_index][JOB_TRANSACTION] as PurchaseTransaction
+	)
 	if transaction != null:
 		transaction.state = PurchaseTransaction.State.CANCELLED
 	training_queue.remove_at(a_index)
@@ -195,6 +214,7 @@ func cancel(a_index: int) -> bool:
 		entity.commander.refund_resources_for(unit_type)
 	return true
 
+
 ## Ticks of work left here — the active job's remaining ticks, or 0 when free. Still a sum
 ## because the job list is still an array (see training_queue), and correct either way.
 ## Deliberately ignores the infrastructure-strain rate, which applies to all of one commander's
@@ -205,6 +225,7 @@ func remaining_ticks() -> int:
 		total += job[JOB_REMAINING] as int
 	return total
 
+
 ## Training progress (0..1) of queued job `i`: 0 when just enqueued, 1 when done.
 ## Only the head job (i == 0) actually advances; the rest sit at 0 until promoted.
 func job_progress(a_i: int) -> float:
@@ -213,11 +234,13 @@ func job_progress(a_i: int) -> float:
 		return 0.0
 	return clampf(1.0 - float(training_queue[a_i][JOB_REMAINING]) / float(total), 0.0, 1.0)
 
+
 ## Advance the queue by one tick. Returns true if a unit was completed and
 ## spawned this call. Called once per physics frame from the parent's
 ## _update_state.
 func tick() -> bool:
-	if training_queue.is_empty(): return false
+	if training_queue.is_empty():
+		return false
 	# Advance by the current build rate (1.0 normally, STRAINED_RATE while the
 	# commander is over its infrastructure upkeep). The fractional accumulator turns a 0.5
 	# rate into "advance one tick of progress every other frame" = half speed.
@@ -229,23 +252,28 @@ func tick() -> bool:
 	if training_queue[0][0] <= 0:
 		var spec: Variant = training_queue.pop_front()
 		if UpgradeCatalog.is_upgrade(spec[JOB_TYPE]):
-			_complete_research(StringName(str(spec[JOB_TYPE])),
-				spec[JOB_TRANSACTION] as PurchaseTransaction)
+			_complete_research(
+				StringName(str(spec[JOB_TYPE])), spec[JOB_TRANSACTION] as PurchaseTransaction
+			)
 			return true
 		_spawn_unit(
-			spec[JOB_SCENE],
-			spec[JOB_COMMANDS],
-			spec[JOB_TRANSACTION] as PurchaseTransaction
+			spec[JOB_SCENE], spec[JOB_COMMANDS], spec[JOB_TRANSACTION] as PurchaseTransaction
 		)
 		return true
 	return false
 
+
 ## Normal speed, halved while the owning commander is infrastructure-strained.
 func _build_rate() -> float:
 	var entity: Entity = get_parent() as Entity
-	if entity != null and entity.commander != null and entity.commander.is_infrastructure_strained():
+	if (
+		entity != null
+		and entity.commander != null
+		and entity.commander.is_infrastructure_strained()
+	):
 		return STRAINED_RATE
 	return 1.0
+
 
 ## Update the train bar's visibility and fill scale. Called from _process.
 ## `parent_scale_x` is the entity's scale.x — needed so the fill bar's
@@ -253,17 +281,23 @@ func _build_rate() -> float:
 ## the math that used to live inline in Structure._process; folding it into
 ## a dedicated TrainBar component is on the followups list.)
 func update_bar(a_parent_scale_x: float) -> void:
-	if _train_bar == null: return
+	if _train_bar == null:
+		return
 	_train_bar.visible = !training_queue.is_empty()
-	if not _train_bar.visible: return
+	if not _train_bar.visible:
+		return
 	var fill: Node3D = _train_bar.get_node_or_null("TrainBarFill") as Node3D
-	if fill == null: return
+	if fill == null:
+		return
 	# Fraction of training time remaining (bar shrinks toward completion), now
 	# sourced from the job's own total tick count rather than a magic constant.
 	var total: int = training_queue[0][JOB_TOTAL]
 	fill.scale.x = float(training_queue[0][JOB_REMAINING]) / float(maxi(1, total))
 	fill.position.x = -a_parent_scale_x * (1 - fill.scale.x)
+
+
 #endregion
+
 
 #region Private helpers
 ## Spawn the finished unit and hand it its orders.
@@ -283,19 +317,21 @@ func update_bar(a_parent_scale_x: float) -> void:
 ## This is the SINGLE FULFILMENT CHOKE POINT for a trained unit: `transaction.complete` below
 ## is the one place "the unit this purchase bought now exists" is announced.
 func _spawn_unit(
-	a_scene: PackedScene,
-	a_commands: Array = [],
-	a_transaction: PurchaseTransaction = null
+	a_scene: PackedScene, a_commands: Array = [], a_transaction: PurchaseTransaction = null
 ) -> void:
 	var entity: Entity = get_parent() as Entity
-	if entity == null: return
+	if entity == null:
+		return
 	var owner_cmd: Commandable = entity as Commandable
 	# READ AT SPAWN, not at dispatch: the player can select a unit that is already being built
 	# and order it, so the transaction's orders are asked for HERE rather than trusted from the
 	# copy taken when the job was enqueued. Same reason the rally is read here — see the note
 	# above. [a_commands] is what the job was given, and remains the fallback.
-	var orders: Array = a_transaction.player_commands \
-		if a_transaction != null and not a_transaction.player_commands.is_empty() else a_commands
+	var orders: Array = (
+		a_transaction.player_commands
+		if a_transaction != null and not a_transaction.player_commands.is_empty()
+		else a_commands
+	)
 	var chain: Array[MoveCommand] = []
 	for command: MoveCommand in orders:
 		chain.append(command.duplicated())
@@ -316,8 +352,7 @@ func _spawn_unit(
 	# Everything else goes to the nearest navigable ground, as before.
 	if not _spawn_on_pad(owner_cmd, unit):
 		unit.global_position = NavigationServer3D.map_get_closest_point(
-			entity.get_world_3d().navigation_map,
-			entity.global_position + spawn_bias
+			entity.get_world_3d().navigation_map, entity.global_position + spawn_bias
 		)
 	unit.update_commands(chain if not chain.is_empty() else null)
 	if a_transaction != null:

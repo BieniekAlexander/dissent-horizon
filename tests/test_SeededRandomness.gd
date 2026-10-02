@@ -19,7 +19,11 @@ extends GutTest
 ## Names that draw from Godot's GLOBAL generator when called bare. `SU.rng.randf()` is fine
 ## (it is prefixed); `randf()` is not.
 const _GLOBAL_DRAW_NAMES: Array[String] = [
-	"randf", "randf_range", "randi", "randi_range", "randomize",
+	"randf",
+	"randf_range",
+	"randi",
+	"randi_range",
+	"randomize",
 ]
 
 ## Scripts permitted to call a global draw anyway, each with the reason. EMPTY, deliberately:
@@ -32,13 +36,11 @@ const _ACKNOWLEDGED_GLOBAL_DRAWS: Array[String] = []
 
 #region The seed reproduces a run
 func test_the_same_seed_reproduces_the_gameplay_stream() -> void:
-	assert_eq(_gameplay_draws(4242), _gameplay_draws(4242),
-		"same seed, same gameplay draws")
+	assert_eq(_gameplay_draws(4242), _gameplay_draws(4242), "same seed, same gameplay draws")
 
 
 func test_a_different_seed_produces_a_different_stream() -> void:
-	assert_ne(_gameplay_draws(4242), _gameplay_draws(4243),
-		"a different seed is a different match")
+	assert_ne(_gameplay_draws(4242), _gameplay_draws(4243), "a different seed is a different match")
 
 
 ## The other half of the pair, and the one that is easy to forget: an authored scenario
@@ -46,10 +48,12 @@ func test_a_different_seed_produces_a_different_stream() -> void:
 ## the @GlobalScope built-ins itself and cannot be pointed at SU.rng. seed_simulation() seeds
 ## that generator too, which is the only thing that makes a wave's interval replayable.
 func test_the_same_seed_reproduces_an_authored_expression() -> void:
-	assert_eq(_expression_draws(99), _expression_draws(99),
-		"same seed, same wave intervals")
-	assert_ne(_expression_draws(99), _expression_draws(100),
-		"a different seed rolls different wave intervals")
+	assert_eq(_expression_draws(99), _expression_draws(99), "same seed, same wave intervals")
+	assert_ne(
+		_expression_draws(99),
+		_expression_draws(100),
+		"a different seed rolls different wave intervals"
+	)
 
 
 ## Hitscan spread was the ORIGINAL offender: it called the global `randf_range`, so the same
@@ -78,8 +82,13 @@ func test_a_barrage_scatters_its_muzzles_reproducibly() -> void:
 	SU.rng.seed = 11
 	var first: Vector2 = EventMortarBarrage._launch_offset()
 	SU.rng.seed = 11
-	assert_eq(EventMortarBarrage._launch_offset(), first,
-		"the same seed lands the shells on the same arcs")
+	assert_eq(
+		EventMortarBarrage._launch_offset(),
+		first,
+		"the same seed lands the shells on the same arcs"
+	)
+
+
 #endregion
 
 
@@ -107,6 +116,8 @@ func test_the_two_streams_are_not_the_same_stream() -> void:
 	for _i: int in 8:
 		global_stream.append(randi_range(0, 1_000_000))
 	assert_ne(gameplay, global_stream, "salted, so the two generators are not one generator")
+
+
 #endregion
 
 
@@ -121,8 +132,13 @@ func test_no_script_draws_from_the_global_generator() -> void:
 			continue
 		for line_number: int in _global_draw_lines(path):
 			offenders.append("%s:%d" % [path, line_number])
-	assert_eq(offenders, ([] as Array[String]),
-		"unseeded global RNG draw(s) — route through SU.rng, or acknowledge with a reason")
+	assert_eq(
+		offenders,
+		[] as Array[String],
+		"unseeded global RNG draw(s) — route through SU.rng, or acknowledge with a reason"
+	)
+
+
 #endregion
 
 
@@ -190,7 +206,7 @@ func _strip_strings_and_comments(a_line: String) -> String:
 			if ch == quote:
 				quote = ""
 			continue
-		if ch == "\"" or ch == "'":
+		if ch == '"' or ch == "'":
 			quote = ch
 			continue
 		if ch == "#":

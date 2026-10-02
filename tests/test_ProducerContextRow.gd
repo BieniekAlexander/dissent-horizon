@@ -8,19 +8,34 @@ extends GutTest
 ## factory's button from W to Q depending on what else was picked up, and a key that trains one
 ## thing in one selection and another in the next is what positional hotkeys exist to prevent.
 
-## Fake producers, each registered as a tool with its own static row-0 cell; a unit that produces nothing.
+## Fake producers, each registered as a tool with its own static row-0 cell; a unit that produces
+## nothing.
 const BARRACKS: Dictionary = {"id": &"fake_barracks", "structure": true, "production": true}
 const FACTORY: Dictionary = {"id": &"fake_factory", "structure": true, "production": true}
 const RECRUIT: Dictionary = {"speed": 2.0, "weapon": {"ground": 6.0}}
 
 
 func before_each() -> void:
-	FakePieces.register_tool(FakePieces.tool(&"fake_barracks", BARRACKS, [],
-		ControlBinding.ControlContext.BUILD, [], Vector2i(1, 0)))
-	FakePieces.register_tool(FakePieces.tool(&"fake_factory", FACTORY, [],
-		ControlBinding.ControlContext.BUILD, [], Vector2i(2, 0)))
-	FakePieces.register_tool(FakePieces.tool(&"fake_airfield", {"structure": true, "production": true}, [],
-		ControlBinding.ControlContext.BUILD, [], Vector2i(3, 0)))
+	FakePieces.register_tool(
+		FakePieces.tool(
+			&"fake_barracks", BARRACKS, [], ControlBinding.ControlContext.BUILD, [], Vector2i(1, 0)
+		)
+	)
+	FakePieces.register_tool(
+		FakePieces.tool(
+			&"fake_factory", FACTORY, [], ControlBinding.ControlContext.BUILD, [], Vector2i(2, 0)
+		)
+	)
+	FakePieces.register_tool(
+		FakePieces.tool(
+			&"fake_airfield",
+			{"structure": true, "production": true},
+			[],
+			ControlBinding.ControlContext.BUILD,
+			[],
+			Vector2i(3, 0)
+		)
+	)
 
 
 func after_each() -> void:
@@ -55,6 +70,7 @@ func _entity(a_options: Dictionary) -> Commandable:
 
 # --- The cells are authored and static --------------------------------------------
 
+
 func test_every_producer_authors_a_context_cell() -> void:
 	var producers: Dictionary = {}
 	for tool: Tool in Tool.command_tool_map.values():
@@ -64,8 +80,9 @@ func test_every_producer_authors_a_context_cell() -> void:
 	for id: StringName in producers:
 		var piece: Tool = Tool.for_id(id)
 		assert_not_null(piece, id)
-		assert_ne(piece.context_grid, Vector2i(-1, -1),
-			"%s is a producer, so it needs a row-0 cell" % id)
+		assert_ne(
+			piece.context_grid, Vector2i(-1, -1), "%s is a producer, so it needs a row-0 cell" % id
+		)
 
 
 ## The context cell is a SECOND cell — `grid` is where the piece's own build button sits on a
@@ -89,14 +106,18 @@ func test_a_context_button_is_not_a_command() -> void:
 
 # --- The row appears only when there is a choice ----------------------------------
 
+
 ## A single producer still draws its button, greyed as the radio already set. A row that
 ## appeared only for two kinds of producer would come and go under the player's hand.
 func test_one_producer_selected_still_draws_its_button() -> void:
 	var controller: RTSController = _controller([_entity(BARRACKS)])
 	assert_eq(controller.producer_context_names().size(), 1)
 	var current: String = ProducerContextBinding.PREFIX + String(controller.producer_context())
-	assert_eq(CommandButtonState.of(current, controller.selection, null, false, current).blocker,
-		CommandButtonState.Blocker.CURRENT, "and it is the greyed, unpressable one")
+	assert_eq(
+		CommandButtonState.of(current, controller.selection, null, false, current).blocker,
+		CommandButtonState.Blocker.CURRENT,
+		"and it is the greyed, unpressable one"
+	)
 
 
 func test_two_producer_types_draw_the_row() -> void:
@@ -106,37 +127,49 @@ func test_two_producer_types_draw_the_row() -> void:
 
 func test_two_of_the_same_producer_are_one_context() -> void:
 	var controller: RTSController = _controller([_entity(BARRACKS), _entity(BARRACKS)])
-	assert_eq(controller.producer_context_names().size(), 1,
-		"two barracks are one kind of producer, so one button speaks for both")
+	assert_eq(
+		controller.producer_context_names().size(),
+		1,
+		"two barracks are one kind of producer, so one button speaks for both"
+	)
 
 
 func test_a_selection_with_no_producer_draws_no_row() -> void:
-	assert_eq(_controller([_entity(RECRUIT)]).producer_context_names(), [] as Array,
-		"nothing to show, so nothing is drawn")
+	assert_eq(
+		_controller([_entity(RECRUIT)]).producer_context_names(),
+		[] as Array,
+		"nothing to show, so nothing is drawn"
+	)
 
 
 func test_a_unit_alongside_producers_is_not_a_context() -> void:
 	var controller: RTSController = _controller(
-		[_entity(BARRACKS), _entity(FACTORY), _entity(RECRUIT)])
+		[_entity(BARRACKS), _entity(FACTORY), _entity(RECRUIT)]
+	)
 	assert_eq(controller.producer_context_names().size(), 2, "only producers get a row")
 
 
 # --- Radio semantics --------------------------------------------------------------
+
 
 ## Exactly one is always set. There is no "nothing chosen" state to fall into, which is why
 ## the settle runs from the available_commands setter beside the card's own.
 func test_a_context_is_chosen_as_soon_as_the_row_appears() -> void:
 	var controller: RTSController = _controller([_entity(BARRACKS), _entity(FACTORY)])
 	assert_ne(controller.producer_context(), &"")
-	assert_true(controller.producer_context_names().has(
-		ProducerContextBinding.PREFIX + String(controller.producer_context())))
+	assert_true(
+		controller.producer_context_names().has(
+			ProducerContextBinding.PREFIX + String(controller.producer_context())
+		)
+	)
 
 
 func test_the_chosen_context_is_greyed_and_unpressable() -> void:
 	var controller: RTSController = _controller([_entity(BARRACKS), _entity(FACTORY)])
 	var current: String = ProducerContextBinding.PREFIX + String(controller.producer_context())
 	var state: CommandButtonState = CommandButtonState.of(
-		current, controller.selection, null, false, current)
+		current, controller.selection, null, false, current
+	)
 	assert_eq(state.blocker, CommandButtonState.Blocker.CURRENT)
 	assert_eq(state.tint(), CommandButtonState.TINT_CURRENT)
 
@@ -148,7 +181,8 @@ func test_the_other_contexts_are_pressable() -> void:
 		if name == current:
 			continue
 		var state: CommandButtonState = CommandButtonState.of(
-			name, controller.selection, null, false, current)
+			name, controller.selection, null, false, current
+		)
 		assert_ne(state.blocker, CommandButtonState.Blocker.CURRENT, name)
 
 
@@ -163,6 +197,10 @@ func test_a_context_the_selection_cannot_fill_is_corrected() -> void:
 	var controller: RTSController = _controller([_entity(BARRACKS), _entity(FACTORY)])
 	controller.choose_producer_context(&"fake_airfield")
 	controller.available_commands = CommandContextParser.commands_for_selection(
-		controller.selection)
-	assert_ne(controller.producer_context(), &"fake_airfield",
-		"no airfield is selected, so the card cannot be showing one")
+		controller.selection
+	)
+	assert_ne(
+		controller.producer_context(),
+		&"fake_airfield",
+		"no airfield is selected, so the card cannot be showing one"
+	)

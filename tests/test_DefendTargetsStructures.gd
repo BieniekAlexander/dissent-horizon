@@ -37,7 +37,11 @@ func _commander(a_id: int) -> Commander:
 
 
 func _piece(a_options: Dictionary, a_commander_id: int, a_at: Vector3) -> Entity:
-	var e: Entity = FakePieces.structure(a_options) if a_options.has("structure") else FakePieces.unit(a_options)
+	var e: Entity = (
+		FakePieces.structure(a_options)
+		if a_options.has("structure")
+		else FakePieces.unit(a_options)
+	)
 	add_child_autofree(e)
 	if a_commander_id != 0:
 		e.ownership.commander = _commander(a_commander_id)
@@ -59,8 +63,11 @@ func _defend_pick(a_defender: Commandable) -> Entity:
 
 func test_the_constructor_widens_the_floor_to_every_structure() -> void:
 	var message := CommandMessage.new(null, null, null, Vector3.ZERO)
-	assert_eq(message.target_priority, Entity.TargetPriority.NON_COMBAT_UNITS,
-		"guards the fixture: the default floor skips unarmed structures")
+	assert_eq(
+		message.target_priority,
+		Entity.TargetPriority.NON_COMBAT_UNITS,
+		"guards the fixture: the default floor skips unarmed structures"
+	)
 	Defend.new(message)
 	assert_eq(message.target_priority, Entity.TargetPriority.NON_COMBAT_STRUCTURES)
 
@@ -69,8 +76,11 @@ func test_a_defender_takes_an_unarmed_enemy_structure() -> void:
 	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Commandable
 	var stockpile: Entity = _piece(STOCKPILE, ENEMY, Vector3(3.0, 0.0, 0.0))
 	await wait_physics_frames(2)
-	assert_eq(stockpile.target_priority, Entity.TargetPriority.NON_COMBAT_STRUCTURES,
-		"guards the fixture: an unarmed, active structure")
+	assert_eq(
+		stockpile.target_priority,
+		Entity.TargetPriority.NON_COMBAT_STRUCTURES,
+		"guards the fixture: an unarmed, active structure"
+	)
 	assert_eq(_defend_pick(defender), stockpile)
 
 
@@ -78,8 +88,10 @@ func test_an_idle_unit_beside_the_same_structure_still_ignores_it() -> void:
 	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Commandable
 	_piece(STOCKPILE, ENEMY, Vector3(3.0, 0.0, 0.0))
 	await wait_physics_frames(2)
-	assert_null(defender.get_aggro_near_position(),
-		"only Defend widens the floor; idle aggro stops at NON_COMBAT_UNITS")
+	assert_null(
+		defender.get_aggro_near_position(),
+		"only Defend widens the floor; idle aggro stops at NON_COMBAT_UNITS"
+	)
 
 
 func test_a_unit_is_still_taken_before_the_structure() -> void:

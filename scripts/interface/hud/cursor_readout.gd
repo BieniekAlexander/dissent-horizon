@@ -27,6 +27,7 @@ const _EDGE_MARGIN: float = 4.0
 var _label: Label
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	# Purely informational: it must never eat a click meant for the ground beneath it.
@@ -35,7 +36,10 @@ func _ready() -> void:
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_label)
 	visible = false
+
+
 #endregion
+
 
 #region Public API
 ## Show `a_text` next to `a_mouse_position`, or hide the readout when the text is empty.
@@ -52,7 +56,10 @@ func show_text(a_text: String, a_mouse_position: Vector2) -> void:
 		reset_size()
 	visible = true
 	position = _clamped_position(a_mouse_position)
+
+
 #endregion
+
 
 #region Private helpers
 ## Where the panel goes: down-and-right of the cursor, flipped to the other side of it on

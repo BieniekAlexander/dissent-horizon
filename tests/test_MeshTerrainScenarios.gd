@@ -16,7 +16,7 @@ extends GutTest
 const CATALOG_PATH := "res://resources/terrain/tile_catalog.tres"
 
 # Small enough to bake fast, large enough for the features to span many cells.
-const PLAY := Vector2i(39, 39)          # -> an 80x80 corner grid
+const PLAY := Vector2i(39, 39)  # -> an 80x80 corner grid
 const DISC_RADIUS: float = 25.0
 const DISC_HEIGHT: float = 2.0
 const PLATEAU_RADIUS: float = 10.0
@@ -72,10 +72,16 @@ func _dome(a_r: float, a_angle: float) -> Vector3:
 ## rather than a stitched sheet.
 func _plateau_mesh() -> ArrayMesh:
 	var s: float = SQUARE_HALF
-	var verts := PackedVector3Array([
-		Vector3(-s, 0, -s), Vector3(s, 0, -s), Vector3(s, 0, s),
-		Vector3(-s, 0, -s), Vector3(s, 0, s), Vector3(-s, 0, s),
-	])
+	var verts := PackedVector3Array(
+		[
+			Vector3(-s, 0, -s),
+			Vector3(s, 0, -s),
+			Vector3(s, 0, s),
+			Vector3(-s, 0, -s),
+			Vector3(s, 0, s),
+			Vector3(-s, 0, s),
+		]
+	)
 	var segs: int = 48
 	for seg: int in segs:
 		var a0: float = TAU * float(seg) / segs
@@ -85,7 +91,7 @@ func _plateau_mesh() -> ArrayMesh:
 		verts.append_array([Vector3(0, PLATEAU_HEIGHT, 0), r0, r1])
 		var g0 := Vector3(r0.x, 0.0, r0.z)
 		var g1 := Vector3(r1.x, 0.0, r1.z)
-		verts.append_array([r0, g0, g1, r0, g1, r1])   # vertical walls
+		verts.append_array([r0, g0, g1, r0, g1, r1])  # vertical walls
 	return _mesh(verts)
 
 
@@ -104,6 +110,7 @@ func _corner(a_data: TerrainData, a_cx: int, a_cz: int) -> float:
 
 
 # --- disc -------------------------------------------------------------------
+
 
 func test_disc_apex_and_rim_heights():
 	var data := _terrain()
@@ -142,8 +149,11 @@ func test_disc_has_no_steep_cells():
 			var cell := Vector2i(x, z)
 			if data.is_cell_void(cell):
 				continue
-			assert_lte(data.cell_height_spread(cell), TerrainGrid.MAX_SLOPE_DIFF,
-				"a shallow dome is walkable at cell (%d, %d)" % [x, z])
+			assert_lte(
+				data.cell_height_spread(cell),
+				TerrainGrid.MAX_SLOPE_DIFF,
+				"a shallow dome is walkable at cell (%d, %d)" % [x, z]
+			)
 
 
 ## The bake owns the void layer and nothing else: a material painted before a re-bake survives
@@ -163,13 +173,16 @@ func test_bake_writes_voids_and_leaves_materials_alone():
 
 # --- plateau ----------------------------------------------------------------
 
+
 func test_plateau_surface_covers_the_whole_grid():
 	var data := _terrain()
 	data.bake_source_mesh(_plateau_mesh())
 	for z: int in data.grid_depth():
 		for x: int in data.grid_width():
-			assert_false(data.is_cell_void(Vector2i(x, z)),
-				"a full square leaves cell (%d, %d) on the surface" % [x, z])
+			assert_false(
+				data.is_cell_void(Vector2i(x, z)),
+				"a full square leaves cell (%d, %d) on the surface" % [x, z]
+			)
 
 
 func test_plateau_cap_and_ground_heights():
@@ -210,8 +223,10 @@ func test_plateau_cap_is_flat_and_the_ground_is_flat():
 	var center := Vector2i(c, c)
 	assert_true(data.cell_is_flat(center), "cap is level")
 	assert_true(data.cell_is_flat(center + Vector2i(25, 0)), "ground is level")
-	assert_true(data.cell_supports_entity(center + Vector2i(25, 0)),
-		"ground beside the plateau takes structures")
+	assert_true(
+		data.cell_supports_entity(center + Vector2i(25, 0)),
+		"ground beside the plateau takes structures"
+	)
 
 
 func test_plateau_rim_cells_do_not_support_entities():
@@ -224,6 +239,7 @@ func test_plateau_rim_cells_do_not_support_entities():
 			if data.cell_height_spread(cell) <= TerrainGrid.MAX_SLOPE_DIFF:
 				continue
 			checked += 1
-			assert_false(data.cell_supports_entity(cell),
-				"steep rim cell (%d, %d) is unstandable" % [x, z])
+			assert_false(
+				data.cell_supports_entity(cell), "steep rim cell (%d, %d) is unstandable" % [x, z]
+			)
 	assert_gt(checked, 0)

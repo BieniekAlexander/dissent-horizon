@@ -7,9 +7,13 @@ extends Node
 
 @export var buildable_types: Array[StringName] = []
 
+
 func _ready() -> void:
-	assert(not buildable_types.is_empty(),
-		"%s: Builds component has no buildable_types listed" % get_parent().name)
+	assert(
+		not buildable_types.is_empty(),
+		"%s: Builds component has no buildable_types listed" % get_parent().name
+	)
+
 
 ## Returns true when this unit can place the structure of the given type.
 func can_build(a_structure_type: StringName) -> bool:

@@ -92,11 +92,13 @@ var _mesh_instances: Array[MeshInstance3D] = []
 var _ready_done: bool = false
 #endregion
 
+
 func _ready() -> void:
 	_gather_surfaces()
 	_target_yaw = rotation.y
 	_ready_done = true
 	_reapply()
+
 
 ## Walk the model subtree, give every tintable surface a unique override material (so we
 ## never mutate the shared imported resource), and remember its design albedo for
@@ -115,6 +117,7 @@ func _gather_surfaces() -> void:
 			mi.set_surface_override_material(s, mat)
 			_surfaces.append({"mat": mat, "albedo": mat.albedo_color})
 
+
 ## The material to tint a surface through, or null when the surface cannot be tinted.
 ##
 ## A copy of the surface's own material where it has one, so the shared imported resource is
@@ -131,6 +134,7 @@ func _tintable_material(a_source: Material) -> BaseMaterial3D:
 		return a_source.duplicate() as BaseMaterial3D
 	return StandardMaterial3D.new() if a_source == null else null
 
+
 func _find_mesh_instances(a_node: Node) -> Array[MeshInstance3D]:
 	var out: Array[MeshInstance3D] = []
 	if a_node is MeshInstance3D:
@@ -138,6 +142,7 @@ func _find_mesh_instances(a_node: Node) -> Array[MeshInstance3D]:
 	for child: Node in a_node.get_children():
 		out.append_array(_find_mesh_instances(child))
 	return out
+
 
 #region Obstruction silhouette
 ## "See-through when obstructed": a unit hidden behind a building or a cliff is redrawn
@@ -174,12 +179,14 @@ const SILHOUETTE_ALPHA: float = 0.55
 ## honoured by _reapply on every tint/opacity change.
 var _silhouette: bool = false
 
+
 ## Only entities without a Structure component get the see-through treatment when
 ## obstructed — if one structure obstructs another, that's left to level/mesh design
 ## rather than drawn around. Entity.structure_is_active() is the fixture test.
 func _wants_obstruction_silhouette() -> bool:
 	var parent := get_parent() as Entity
 	return parent != null and not parent.structure_is_active()
+
 
 ## The stencil setup for one surface. Suppressed while the model is faded: a translucent
 ## material doesn't write depth, so it can't mark the stencil either, and the x-ray pass
@@ -193,7 +200,10 @@ func _apply_silhouette(a_mat: BaseMaterial3D) -> void:
 	# unit, seen through a wall". Alpha is fixed rather than tracking _opacity — the fade is
 	# a construction state, and a faded model has no silhouette at all (see above).
 	a_mat.stencil_color = Color(_tint.r, _tint.g, _tint.b, SILHOUETTE_ALPHA)
+
+
 #endregion
+
 
 #region Material — team colour + opacity
 ## Tint the whole model by `color`, multiplying the design albedo exactly like
@@ -205,6 +215,7 @@ func set_team_color(a_color: Color) -> void:
 	if _ready_done:
 		_reapply()
 
+
 ## Overall opacity in 0..1; enables alpha transparency below 1. Drives the
 ## construction-state fade (see the OPACITY_* constants) and is the hook for stealth.
 func set_opacity(a_a: float) -> void:
@@ -212,11 +223,13 @@ func set_opacity(a_a: float) -> void:
 	if _ready_done:
 		_reapply()
 
+
 ## The opacity currently applied, as a value in 0..1 — the counterpart of
 ## animation_state(), so callers (and tests) can read the fade back without touching
 ## materials.
 func opacity() -> float:
 	return _opacity
+
 
 ## Darken the whole model by `s` in 0..1 (1 = the model's own colours). A THIRD factor
 ## alongside the team tint and the opacity, rather than folded into either: the tint has
@@ -227,6 +240,7 @@ func set_shade(a_s: float) -> void:
 	_shade = clampf(a_s, 0.0, 1.0)
 	if _ready_done:
 		_reapply()
+
 
 ## The shade currently applied, in 0..1 — the counterpart of opacity(), so callers and
 ## tests can read it back without touching materials.
@@ -287,6 +301,7 @@ func effective_tint() -> Color:
 		_tint.b * _shade * _status_tint.b
 	)
 
+
 func _reapply() -> void:
 	var opacity: float = effective_opacity()
 	var tint: Color = effective_tint()
@@ -297,25 +312,26 @@ func _reapply() -> void:
 		# must not also make it more (or less) see-through — alpha stays purely the opacity's
 		# business, and the two channels compose within each of RGB and alpha separately.
 		mat.albedo_color = Color(
-			base.r * tint.r,
-			base.g * tint.g,
-			base.b * tint.b,
-			base.a * opacity
+			base.r * tint.r, base.g * tint.g, base.b * tint.b, base.a * opacity
 		)
 		mat.transparency = (
-			BaseMaterial3D.TRANSPARENCY_ALPHA if opacity < 1.0
+			BaseMaterial3D.TRANSPARENCY_ALPHA
+			if opacity < 1.0
 			else BaseMaterial3D.TRANSPARENCY_DISABLED
 		)
 		_apply_silhouette(mat)
 	# A translucent model that still casts a filled shadow reads as a solid building,
 	# which defeats the whole point of the fade — drop the shadow while faded.
 	var shadow: GeometryInstance3D.ShadowCastingSetting = (
-		GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if opacity < 1.0
+		GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if opacity < 1.0
 		else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	)
 	for mi: MeshInstance3D in _mesh_instances:
 		if is_instance_valid(mi):
 			mi.cast_shadow = shadow
+
+
 #endregion
 
 #region Extents
@@ -323,6 +339,7 @@ func _reapply() -> void:
 ## yet; measuring needs the node in the tree, so it happens on first request rather than
 ## in _ready.
 var _top_offset: float = NAN
+
 
 ## How far above the entity's origin the model's highest point sits, in the entity's own
 ## local space. Floating billboards (the veterancy chevrons, the status icons) stack up
@@ -351,7 +368,10 @@ func model_top_offset() -> float:
 		top = maxf(top, local.position.y + local.size.y)
 	_top_offset = top
 	return _top_offset
+
+
 #endregion
+
 
 #region Descent
 ## Drop the model onto its spot: start `a_height` above where it rests and settle over
@@ -360,9 +380,13 @@ func model_top_offset() -> float:
 func play_descent(a_height: float, a_seconds: float) -> void:
 	var rest_y: float = position.y
 	position.y = rest_y + a_height
-	create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT) \
-		.tween_property(self, "position:y", rest_y, a_seconds)
+	create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT).tween_property(
+		self, "position:y", rest_y, a_seconds
+	)
+
+
 #endregion
+
 
 #region Facing
 ## Yaw the model to look along `dir` (XZ only; Y ignored). With turn_speed 0 the
@@ -377,13 +401,17 @@ func face_direction(a_dir: Vector3) -> void:
 	if turn_speed <= 0.0:
 		rotation.y = _target_yaw
 
+
 func _process(a_delta: float) -> void:
 	if turn_speed <= 0.0 or not _has_target_yaw:
 		return
 	var diff: float = wrapf(_target_yaw - rotation.y, -PI, PI)
 	var step: float = turn_speed * a_delta
 	rotation.y = _target_yaw if absf(diff) <= step else rotation.y + signf(diff) * step
+
+
 #endregion
+
 
 #region Animation
 ## Record the entity's high-level visual state. No-op until an AnimationTree is
@@ -396,6 +424,7 @@ func set_animation_state(a_state: AnimationState) -> void:
 	# TODO: when animated models exist, drive an AnimationTree here, e.g.
 	#   ($AnimationTree.get("parameters/playback") as AnimationNodeStateMachinePlayback) \
 	#       .travel(_STATE_NAMES[state])
+
 
 func animation_state() -> AnimationState:
 	return _anim_state

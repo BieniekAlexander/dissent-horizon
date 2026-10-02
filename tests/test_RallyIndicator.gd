@@ -13,6 +13,7 @@ extends GutTest
 ## state — same pattern test_InfoViewWiring.gd uses for API-surface checks. Structures
 ## mirror test_RallyQueue.gd's out-of-tree Commandable+Production wiring.
 
+
 func _make_structure() -> Commandable:
 	var structure := autofree(Commandable.new()) as Commandable
 	var production := Production.new()
@@ -27,6 +28,7 @@ func _move_to(a_x: float, a_z: float) -> MoveCommand:
 
 
 ## --- _rally_commands_to_draw ---------------------------------------------------
+
 
 func test_draws_the_configured_rally_when_nothing_is_hovered() -> void:
 	var controller := autofree(RTSController.new()) as RTSController
@@ -45,8 +47,11 @@ func test_a_job_in_progress_does_not_change_the_unhovered_line() -> void:
 	structure.rally_commands.assign([_move_to(9, 9)])
 	structure.production.enqueue(10, null, &"fake_trainee_a", [_move_to(1, 1)])
 	var commands: Array = controller._rally_commands_to_draw(structure, [])
-	assert_eq(commands, structure.rally_commands,
-		"the configured rally, not the chain captured for the unit being trained")
+	assert_eq(
+		commands,
+		structure.rally_commands,
+		"the configured rally, not the chain captured for the unit being trained"
+	)
 
 
 ## A structure builds one unit at a time (see Production), so the only job a card can name
@@ -71,11 +76,15 @@ func test_hover_on_a_different_structure_is_ignored() -> void:
 	structure.rally_commands.assign([_move_to(9, 9)])
 	structure.production.enqueue(10, null, &"fake_trainee_a", [_move_to(1, 1)])
 	var commands: Array = controller._rally_commands_to_draw(structure, [other, 0])
-	assert_eq(commands, structure.rally_commands,
-		"the hover names a different structure, so this one draws its configured rally")
+	assert_eq(
+		commands,
+		structure.rally_commands,
+		"the hover names a different structure, so this one draws its configured rally"
+	)
 
 
 ## --- CommandableCard hover / InfoView.hovered_training_target ------------------
+
 
 func _make_info_view() -> InfoView:
 	var info := InfoView.new()
@@ -120,6 +129,7 @@ func test_hovered_training_target_finds_the_hovered_card() -> void:
 
 
 ## --- RTSController.format_scenario_time -----------------------------------------
+
 
 func test_format_scenario_time_hides_hours_under_an_hour() -> void:
 	assert_eq(RTSController.format_scenario_time(0), "0:00")

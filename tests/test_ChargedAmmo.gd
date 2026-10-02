@@ -9,6 +9,7 @@ extends GutTest
 ## model is meant to be independent of how a unit gets to its resupply, which is what lets
 ## a future non-airfield resupply reuse it unchanged.
 
+
 func _weapon(a_charged: bool, a_clip: int, a_reload: int) -> Weapon:
 	var w := Weapon.new()
 	w.name = "TestWeapon"
@@ -25,6 +26,7 @@ func _weapon(a_charged: bool, a_clip: int, a_reload: int) -> Weapon:
 	add_child_autofree(w)
 	return w
 
+
 func _loadout(a_weapons: Array) -> Loadout:
 	var l := Loadout.new()
 	l.name = "Loadout"
@@ -33,6 +35,7 @@ func _loadout(a_weapons: Array) -> Loadout:
 		w.reparent(l)
 	return l
 
+
 #region The charged flag
 func test_a_charged_weapon_starts_with_a_full_clip() -> void:
 	# An ordinary weapon is filled by its first physics tick; a charged one never runs that
@@ -40,6 +43,7 @@ func test_a_charged_weapon_starts_with_a_full_clip() -> void:
 	var w := _weapon(true, 12, 180)
 	assert_eq(w.ammo(), 12, "a charged weapon is seeded full at _ready")
 	assert_eq(w.ammo_fraction(), 1.0, "and reports itself full")
+
 
 ## THE BUG THIS PINS: _split_timer_ticks counts down every tick, and is_ready() asks for
 ## EXACTLY zero. An ordinary weapon gets away with it — the reload branch resets the timer
@@ -52,8 +56,8 @@ func test_a_charged_weapon_stays_ready_while_it_waits_for_a_target() -> void:
 	for i: int in 50:
 		w._physics_process(0.0)
 	assert_eq(w.ammo(), 4, "it has fired nothing, so it still holds four rounds")
-	assert_true(w.is_ready(),
-		"and it is still ready — idling past its cadence must not disarm it")
+	assert_true(w.is_ready(), "and it is still ready — idling past its cadence must not disarm it")
+
 
 ## The same latent fault on the ordinary side, where it was merely masked: such a weapon
 ## recovered on its next reload rather than never, so it looked like an occasional delay.
@@ -62,6 +66,7 @@ func test_an_ordinary_weapon_stays_ready_while_it_waits_for_a_target() -> void:
 	for i: int in 50:
 		w._physics_process(0.0)
 	assert_true(w.is_ready(), "no target for fifty ticks does not empty a rifle")
+
 
 ## The between-shots cadence still has to BITE, or split_time_ticks would mean nothing.
 func test_firing_still_holds_the_weapon_for_its_split_time() -> void:
@@ -76,6 +81,7 @@ func test_firing_still_holds_the_weapon_for_its_split_time() -> void:
 	assert_true(w.is_ready(), "and ready again exactly on split_time_ticks")
 	assert_eq(w.ammo(), 3, "having spent one of its four rounds")
 
+
 func test_a_charged_weapon_does_not_refill_itself() -> void:
 	var w := _weapon(true, 4, 60)
 	for i in 4:
@@ -86,6 +92,7 @@ func test_a_charged_weapon_does_not_refill_itself() -> void:
 		w._physics_process(0.0)
 	assert_eq(w.ammo(), 0, "time alone never reloads a charged weapon")
 	assert_false(w.is_ready(), "and it cannot fire while dry")
+
 
 func test_an_ordinary_weapon_still_refills_on_its_timer() -> void:
 	# The regression guard for the whole change: charged ammo must be strictly opt-in.
@@ -98,7 +105,10 @@ func test_an_ordinary_weapon_still_refills_on_its_timer() -> void:
 	for i in 12:
 		w._physics_process(0.0)
 	assert_eq(w.ammo(), 4, "then reloads itself on reload_time_ticks, with no help")
+
+
 #endregion
+
 
 #region Recharging
 func test_recharge_takes_reload_time_to_fill_a_clip() -> void:
@@ -114,6 +124,7 @@ func test_recharge_takes_reload_time_to_fill_a_clip() -> void:
 	w.recharge()
 	assert_eq(w.ammo(), 10, "full after exactly reload_time_ticks ticks on the pad")
 
+
 func test_recharge_advances_below_one_round_per_tick() -> void:
 	# The usual shape: a 60-tick reload of a 6-round clip is 0.1 rounds/tick, which without
 	# the fractional accumulator would floor to zero every tick and never fill at all.
@@ -123,6 +134,7 @@ func test_recharge_advances_below_one_round_per_tick() -> void:
 	for i in 10:
 		w.recharge()
 	assert_eq(w.ammo(), 1, "ten ticks of a 0.1/tick rate is exactly one round")
+
 
 func test_recharge_reports_completion_and_never_overfills() -> void:
 	# Ten ticks to the round, so a single tick is visibly "still filling" — the state the
@@ -137,6 +149,7 @@ func test_recharge_reports_completion_and_never_overfills() -> void:
 		w.recharge()
 	assert_eq(w.ammo(), 3, "and a full clip never grows past clip_size")
 
+
 func test_a_bay_charge_rate_scales_the_fill() -> void:
 	# DockingBay.charge_rate is passed straight through as the tick weighting, so a
 	# faster airfield turns the same aircraft around proportionally sooner.
@@ -147,12 +160,16 @@ func test_a_bay_charge_rate_scales_the_fill() -> void:
 		w.recharge(2.0)
 	assert_eq(w.ammo(), 10, "a 2x bay fills a 60-tick clip in 30 ticks")
 
+
 func test_recharging_an_ordinary_weapon_is_a_no_op_that_reports_done() -> void:
 	# A bay must release an aircraft whose weapons reload themselves rather than holding
 	# it on the pad forever waiting for a fill that will never be its job.
 	var w := _weapon(false, 4, 10)
 	assert_true(w.recharge(), "an uncharged weapon is always 'done' charging")
+
+
 #endregion
+
 
 #region Loadout-level questions
 func test_needs_recharge_is_the_docking_test_and_out_of_ammo_the_auto_test() -> void:
@@ -170,6 +187,7 @@ func test_needs_recharge_is_the_docking_test_and_out_of_ammo_the_auto_test() -> 
 		w.consume_round()
 	assert_true(l.is_out_of_ammo(), "dry once the last round is gone")
 
+
 func test_out_of_ammo_needs_every_charged_weapon_dry() -> void:
 	# A unit that can still shoot SOMETHING keeps fighting. Two charged weapons, one of
 	# them loaded, is not a reason to break off.
@@ -184,6 +202,7 @@ func test_out_of_ammo_needs_every_charged_weapon_dry() -> void:
 	b.consume_round()
 	assert_true(l.is_out_of_ammo(), "dry only once both are")
 
+
 func test_a_loadout_with_no_charged_weapons_never_needs_rearming() -> void:
 	# is_out_of_ammo() reports FALSE for a unit with nothing charged, which is what keeps
 	# the auto-rearm check off every ordinary unit in the game.
@@ -193,6 +212,7 @@ func test_a_loadout_with_no_charged_weapons_never_needs_rearming() -> void:
 	assert_false(l.needs_recharge(), "and never wants a pad")
 	assert_eq(l.ammo_fraction(), 1.0, "an ammo readout draws it full unconditionally")
 
+
 func test_ammo_fraction_tracks_the_emptiest_charged_weapon() -> void:
 	# A unit is only rearmed when its emptiest weapon is, so that is what the bar shows.
 	var a := _weapon(true, 4, 40)
@@ -201,6 +221,7 @@ func test_ammo_fraction_tracks_the_emptiest_charged_weapon() -> void:
 	a.consume_round()
 	a.consume_round()
 	assert_eq(l.ammo_fraction(), 0.5, "the half-empty weapon sets the reading")
+
 
 func test_loadout_recharge_fills_every_charged_weapon() -> void:
 	var a := _weapon(true, 2, 10)

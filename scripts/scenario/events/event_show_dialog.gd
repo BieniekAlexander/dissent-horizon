@@ -43,6 +43,7 @@ extends AbstractEvent
 @export var main_menu_text: String = "Return to Main Menu"
 #endregion
 
+
 #region Public API
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	if page == null:

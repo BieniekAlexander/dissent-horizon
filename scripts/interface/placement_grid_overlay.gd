@@ -51,6 +51,7 @@ var _mesh: ImmediateMesh
 var _layer_mesh: ImmediateMesh
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -74,7 +75,10 @@ func _add_mesh(a_priority_offset: int) -> ImmediateMesh:
 	instance.material_override = material
 	add_child(instance)
 	return mesh
+
+
 #endregion
+
 
 #region Public API
 ## Draw `a_lit` (cell -> border colour) at full strength with its falloff rings around it, and
@@ -144,7 +148,10 @@ static func falloff_rings(a_region: Dictionary, a_count: int) -> Array[Dictionar
 			inside[cell] = true
 		rings.append(ring)
 	return rings
+
+
 #endregion
+
 
 #region Drawing
 func _corner(a_corner: Vector2i) -> Vector3:
@@ -154,8 +161,12 @@ func _corner(a_corner: Vector2i) -> Vector3:
 func _add_border(a_cell: Vector2i, a_color: Color) -> void:
 	if not map.grid_coordinates_in_bounds(a_cell):
 		return
-	var corners: Array[Vector3] = [_corner(a_cell), _corner(a_cell + Vector2i(1, 0)),
-		_corner(a_cell + Vector2i(1, 1)), _corner(a_cell + Vector2i(0, 1))]
+	var corners: Array[Vector3] = [
+		_corner(a_cell),
+		_corner(a_cell + Vector2i(1, 0)),
+		_corner(a_cell + Vector2i(1, 1)),
+		_corner(a_cell + Vector2i(0, 1))
+	]
 	_mesh.surface_set_color(a_color)
 	for i: int in corners.size():
 		_mesh.surface_add_vertex(corners[i])

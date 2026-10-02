@@ -30,6 +30,7 @@ var axis_b: Vector2 = Vector2.DOWN
 var half: Vector2 = Vector2.ZERO
 #endregion
 
+
 #region Constructors
 ## A rectangle aligned with the world X/Z axes — the shape of a raw heightmap, and the
 ## fallback for a map that declares no play bounds.
@@ -51,11 +52,14 @@ static func axis_aligned(center: Vector2, half: Vector2) -> PlayArea:
 static func screen_aligned(center: Vector2, half_st: Vector2, cell_size: float) -> PlayArea:
 	var area := PlayArea.new()
 	area.center = center
-	area.axis_a = Vector2(INV_SQRT2, INV_SQRT2)    # s = x + z
-	area.axis_b = Vector2(INV_SQRT2, -INV_SQRT2)   # t = x - z
+	area.axis_a = Vector2(INV_SQRT2, INV_SQRT2)  # s = x + z
+	area.axis_b = Vector2(INV_SQRT2, -INV_SQRT2)  # t = x - z
 	area.half = half_st * cell_size * INV_SQRT2
 	return area
+
+
 #endregion
+
 
 #region Public API
 ## Whether this rectangle encloses anything. A degenerate one means "no bounds to enforce".
@@ -79,6 +83,8 @@ func to_world(a_local: Vector2) -> Vector2:
 ## Rotating a direction through to_local would offset it by the centre and point it wrongly.
 func to_local_direction(a_world_dir: Vector2) -> Vector2:
 	return Vector2(a_world_dir.dot(axis_a), a_world_dir.dot(axis_b))
+
+
 #endregion
 
 
@@ -130,6 +136,8 @@ func is_beyond(a_world: Vector2, a_margin: float) -> bool:
 ## destination is sized from rather than solving for the actual boundary crossing.
 func diagonal() -> float:
 	return half.length() * 2.0
+
+
 #endregion
 
 

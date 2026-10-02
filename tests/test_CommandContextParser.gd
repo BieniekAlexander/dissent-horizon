@@ -15,11 +15,13 @@ extends GutTest
 
 ## --- Helpers ---------------------------------------------------------------
 
+
 func before_each() -> void:
 	# The pieces these tests name are fakes, each with a train tool so the parser can offer it.
 	for id: StringName in [&"fake_builder_a", &"fake_builder_b", &"fake_soldier"]:
-		FakePieces.register_tool(FakePieces.tool(id, FakePieces.PLAIN, [],
-			ControlBinding.ControlContext.TRAIN))
+		FakePieces.register_tool(
+			FakePieces.tool(id, FakePieces.PLAIN, [], ControlBinding.ControlContext.TRAIN)
+		)
 
 
 func after_each() -> void:
@@ -34,6 +36,7 @@ func _make_entity(a_type: StringName, a_groups: PackedStringArray = PackedString
 		e.add_to_group(g)
 	return e
 
+
 ## A bare Node with the right name, for components whose presence alone is what the parser
 ## reads. Not Movement (see _add_movement) or Production (see _add_production): the parser
 ## reads their state.
@@ -44,6 +47,7 @@ func _add_named_child(a_parent: Node, a_name: String) -> Node:
 	autofree(n)
 	return n
 
+
 ## A real, live Movement: the parser asks whether locomotion is ACTIVE (a deployed two-form
 ## piece has a dormant one), which a bare Node cannot answer.
 func _add_movement(a_parent: Node) -> Movement:
@@ -52,6 +56,7 @@ func _add_movement(a_parent: Node) -> Movement:
 	a_parent.add_child(movement)
 	autofree(movement)
 	return movement
+
 
 ## A real `Loadout` holding one real `Weapon` — what `command_attack_move` now requires
 ## (CommandContextParser._is_armed). A bare Node named "Loadout" will not do any more: an
@@ -69,6 +74,7 @@ func _add_loadout(a_parent: Node, a_armed: bool = true) -> Loadout:
 		autofree(weapon)
 	return loadout
 
+
 ## A real Abilities pool granting `a_abilities`. The parser's predicates cast the
 ## "Abilities" child and call grants(), so a bare Node will not do. `_rebuild` is called by
 ## hand because `_ready` only fires once the node is in the tree, and these test entities are
@@ -79,13 +85,19 @@ func _add_abilities(a_parent: Node, a_abilities: Array) -> Abilities:
 	var grants: Array = []
 	for id in a_abilities:
 		grants.append(id)
-	pool.groups = [{
-		"initial_charges": 1, "max_charges": 1, "cooldown_ticks": 30, "grants": grants,
-	}]
+	pool.groups = [
+		{
+			"initial_charges": 1,
+			"max_charges": 1,
+			"cooldown_ticks": 30,
+			"grants": grants,
+		}
+	]
 	a_parent.add_child(pool)
 	pool._rebuild()
 	autofree(pool)
 	return pool
+
 
 func _add_production(a_parent: Node, a_producible_types: Array) -> Production:
 	# A real Production component — the parser's train_tools_for() reads its
@@ -97,6 +109,7 @@ func _add_production(a_parent: Node, a_producible_types: Array) -> Production:
 	a_parent.add_child(p)
 	autofree(p)
 	return p
+
 
 func _add_builds(a_parent: Node, a_buildable_types: Array) -> Builds:
 	# A real Builds component — build_tools_for() casts the "Builds" child to
@@ -123,10 +136,13 @@ func _some_build_tools(a_count: int) -> Array:
 	assert_gt(tools.size(), a_count, "the registry has build tools to draw on")
 	return tools.slice(0, a_count)
 
+
 ## --- commands_for: empty / null cases --------------------------------------
+
 
 func test_null_entity_returns_empty():
 	assert_eq(CommandContextParser.commands_for(null), [])
+
 
 func test_bare_entity_with_no_components_and_no_groups_returns_empty():
 	# UNDEFINED type, no Movement, no Production, no group memberships —
@@ -134,7 +150,9 @@ func test_bare_entity_with_no_components_and_no_groups_returns_empty():
 	var e := _make_entity(&"")
 	assert_eq(CommandContextParser.commands_for(e), [])
 
+
 ## --- Unit-flavored predicates ---------------------------------------------
+
 
 func test_unit_with_movement_gets_movement_commands():
 	# UNIT_IRREGULAR with both a Movement and an Loadout child stands in for a
@@ -148,6 +166,7 @@ func test_unit_with_movement_gets_movement_commands():
 	assert_true(cmds.has("command_attack_move"), "unit can attack-move")
 	assert_true(cmds.has("command_stop"), "unit can stop")
 	assert_true(cmds.has("command_attack"), "unit can attack")
+
 
 func test_attack_range_without_movement_still_has_combat_commands():
 	# The turret-like shape: an armed entity with no Movement node loses
@@ -188,7 +207,9 @@ func test_arming_the_same_unit_gives_it_attack_move_back():
 
 	assert_true(CommandContextParser.commands_for(e).has("command_attack_move"))
 
+
 ## --- Structure-flavored predicates ----------------------------------------
+
 
 ## A stationary producer trains and does NOT advertise a move.
 ##
@@ -217,6 +238,7 @@ func test_a_mobile_producer_still_advertises_a_move():
 	assert_true(cmds.has("command_train"), "it still trains")
 	assert_true(cmds.has("command_move"), "and it can be told where to go")
 
+
 func test_compound_advertises_only_its_train_tools():
 	var e := _make_entity(&"fake_barracks", ["structure"])
 	# The Production component's producible_types is the source of truth for what
@@ -227,6 +249,7 @@ func test_compound_advertises_only_its_train_tools():
 	assert_true(cmds.has("command_tool_fake_soldier"))
 	assert_false(cmds.has("command_tool_fake_builder_b"))
 
+
 func test_structure_advertises_only_its_producibles():
 	var e := _make_entity(&"fake_command_center", ["structure"])
 	_add_production(e, [&"fake_builder_b"])
@@ -235,7 +258,9 @@ func test_structure_advertises_only_its_producibles():
 	assert_false(cmds.has("command_tool_fake_builder_a"))
 	assert_false(cmds.has("command_tool_fake_soldier"))
 
+
 ## --- Technician (Anima) ----------------------------------------------------
+
 
 func test_technician_has_build_ability_and_inventory_actions():
 	var e := _make_entity(&"fake_builder_b", ["unit"])
@@ -256,7 +281,9 @@ func test_technician_has_build_ability_and_inventory_actions():
 	assert_true(cmds.has("command_attack_move"))
 	assert_true(cmds.has("command_stop"))
 
+
 ## --- Vanguard --------------------------------------------------------------
+
 
 func test_vanguard_has_launch_and_interact():
 	var e := _make_entity(&"fake_soldier", ["unit"])
@@ -274,7 +301,9 @@ func test_vanguard_has_launch_and_interact():
 	assert_true(cmds.has("command_attack_move"))
 	assert_true(cmds.has("command_stop"))
 
+
 ## --- command_available -----------------------------------------------------
+
 
 func test_command_available_matches_commands_for():
 	var e := _make_entity(&"fake_soldier", ["unit"])
@@ -286,10 +315,13 @@ func test_command_available_matches_commands_for():
 	assert_false(CommandContextParser.command_available("command_ability", e))
 	assert_false(CommandContextParser.command_available("command_train", e))
 
+
 func test_command_available_on_null_returns_false():
 	assert_false(CommandContextParser.command_available("command_stop", null))
 
+
 ## --- commands_for_selection: union semantics ------------------------------
+
 
 func test_selection_union_combines_disparate_unit_types():
 	# Anima + Compound: parser should expose technician-specific commands AND
@@ -306,6 +338,7 @@ func test_selection_union_combines_disparate_unit_types():
 	assert_true(cmds.has("command_tool_fake_builder_a"), "compound contributes its tools")
 	assert_true(cmds.has("command_stop"), "shared unit command appears once")
 
+
 func test_selection_deduplicates_shared_commands():
 	# Two units of the same type — every shared command name should appear
 	# exactly once in the union.
@@ -319,6 +352,7 @@ func test_selection_deduplicates_shared_commands():
 	var occurrences := cmds.filter(func(n): return n == "command_attack_move").size()
 	assert_eq(occurrences, 1, "shared command appears once in the union")
 
+
 func test_selection_ignores_invalid_entries():
 	var e := _make_entity(&"fake_builder_a", ["unit"])
 	_add_movement(e)
@@ -329,7 +363,9 @@ func test_selection_ignores_invalid_entries():
 	var cmds := CommandContextParser.commands_for_selection([null, e, stray])
 	assert_true(cmds.has("command_attack_move"))
 
+
 ## --- build_tools_for: the Technician Build sub-menu ------------------------
+
 
 func test_technician_build_tools_are_the_buildable_structures():
 	# build_tools_for mirrors Build.tool_applies_to: it offers exactly the tools
@@ -349,12 +385,15 @@ func test_technician_build_tools_are_the_buildable_structures():
 		assert_true(tools.has(t.command_name), "%s is offered" % t.command_name)
 	assert_eq(tools.size(), structures.size(), "and nothing it cannot build is")
 
+
 func test_non_builder_has_no_build_tools():
 	var e := _make_entity(&"fake_builder_a", ["unit"])
 	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.BUILD), [])
 
+
 func test_build_tools_for_null_is_empty():
 	assert_eq(CommandContextParser.tools_for(null, ControlBinding.ControlContext.BUILD), [])
+
 
 func test_build_tools_stay_out_of_the_flat_command_set():
 	# Build tools live behind the Build sub-menu (queried via build_tools_for),
@@ -370,32 +409,44 @@ func test_build_tools_stay_out_of_the_flat_command_set():
 	assert_false(cmds.has(structure.command_name), "build tools stay out of the flat command set")
 	assert_true(cmds.has("command_ability"), "but the Build entry point is present")
 
+
 ## --- train_tools_for: production-driven menu -------------------------------
+
 
 func test_train_tools_for_reads_production_component():
 	var e := _make_entity(&"fake_barracks", ["structure"])
 	_add_production(e, [&"fake_builder_a"])
-	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), ["command_tool_fake_builder_a"])
+	assert_eq(
+		CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN),
+		["command_tool_fake_builder_a"]
+	)
+
 
 func test_train_tools_for_entity_without_production_is_empty():
 	# A producer-less entity (e.g. a plain unit) offers no train tools.
 	var e := _make_entity(&"fake_builder_a", ["unit"])
 	assert_eq(CommandContextParser.tools_for(e, ControlBinding.ControlContext.TRAIN), [])
 
+
 func test_train_tools_for_null_is_empty():
 	assert_eq(CommandContextParser.tools_for(null, ControlBinding.ControlContext.TRAIN), [])
+
 
 ## --- Production end-to-end: component → can_produce → surfaced train tool ----
 ## These build minimal entities carrying only a Production component (rather than
 ## loading live structure scenes) to prove can_produce and the parser's train-tool
 ## surfacing line up for a given producible_types set.
 
+
 func test_technician_producer_surfaces_technician_tool():
 	var producer := _make_entity(&"fake_command_center", ["structure"])
 	_add_production(producer, [&"fake_builder_b"])
-	assert_true(producer.get_node("Production").can_produce(&"fake_builder_b"),
-		"a producer with TECHNICIAN in producible_types trains technicians")
+	assert_true(
+		producer.get_node("Production").can_produce(&"fake_builder_b"),
+		"a producer with TECHNICIAN in producible_types trains technicians"
+	)
 	assert_true(CommandContextParser.commands_for(producer).has("command_tool_fake_builder_b"))
+
 
 func test_irregular_and_vanguard_producer_surfaces_both_tools():
 	var producer := _make_entity(&"fake_barracks", ["structure"])

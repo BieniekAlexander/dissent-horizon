@@ -58,6 +58,7 @@ var _open: bool = false
 var _master_bus_index: int = AudioServer.get_bus_index("Master")
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	layer = LAYER
@@ -86,7 +87,10 @@ func _exit_tree() -> void:
 	if _open and _clock != null:
 		_clock.release(SimulationClock.REASON_PAUSE_MENU)
 		_open = false
+
+
 #endregion
+
 
 #region Public API
 ## Give the menu the scenario's clock. Called by Scenario once both exist; idempotent.
@@ -130,7 +134,10 @@ func close() -> void:
 ## about to be freed with the scene.
 func return_to_main_menu() -> void:
 	SceneManager.to_main_menu()
+
+
 #endregion
+
 
 #region Private helpers
 ## Master's current volume as the slider's 0..1 linear scale. Muted reads as 0 rather than

@@ -29,7 +29,8 @@ func test_unclosed_fence_errors() -> void:
 
 
 func test_scalar_typing() -> void:
-	var data: Dictionary = _data("""---
+	var data: Dictionary = _data(
+		"""---
 kind: unit
 hp: 160
 speed: 1.2
@@ -40,7 +41,8 @@ empty: null
 scene: res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn
 ---
 body
-""")
+"""
+	)
 	assert_eq(data["kind"], "unit")
 	assert_eq(data["hp"], 160)
 	assert_almost_eq(data["speed"], 1.2, 0.0001)
@@ -52,45 +54,52 @@ body
 
 
 func test_flow_collections() -> void:
-	var data: Dictionary = _data("""---
+	var data: Dictionary = _data(
+		"""---
 cost: {energy: 250, infrastructure: 0}
 hits: [ground, air]
 grid: [1, 2]
 ---
-""")
+"""
+	)
 	assert_eq(data["cost"], {"energy": 250, "infrastructure": 0})
 	assert_eq(data["hits"], ["ground", "air"])
 	assert_eq(data["grid"], [1, 2])
 
 
 func test_block_list_and_wikilinks() -> void:
-	var data: Dictionary = _data("""---
+	var data: Dictionary = _data(
+		"""---
 starts_with:
 - stronghold
 - "[[warlord]]"
 - "[[factions/baladians/pieces/irregular#Stats|the irregular]]"
 requires: ["[[stronghold]]"]
 ---
-""")
+"""
+	)
 	assert_eq(data["starts_with"], ["stronghold", "warlord", "irregular"])
 	assert_eq(data["requires"], ["stronghold"])
 
 
 func test_nested_block_map() -> void:
-	var data: Dictionary = _data("""---
+	var data: Dictionary = _data(
+		"""---
 movement:
   mode: GROUNDED
   speed: 1.2
   turn_rate: 1080
 ---
-""")
+"""
+	)
 	assert_eq(data["movement"]["mode"], "GROUNDED")
 	assert_almost_eq(data["movement"]["speed"], 1.2, 0.0001)
 	assert_eq(data["movement"]["turn_rate"], 1080)
 
 
 func test_sequence_of_mappings_weapons_shape() -> void:
-	var data: Dictionary = _data("""---
+	var data: Dictionary = _data(
+		"""---
 weapons:
   - name: Rocket
     projectile: "[[warlord_rocket]]"
@@ -100,7 +109,8 @@ weapons:
   - name: Bayonet
     melee_damage: 10
 ---
-""")
+"""
+	)
 	var weapons: Array = data["weapons"]
 	assert_eq(weapons.size(), 2)
 	assert_eq(weapons[0]["name"], "Rocket")
@@ -114,23 +124,27 @@ weapons:
 func test_sequence_items_at_same_indent_as_key() -> void:
 	# Obsidian's property editor writes list items unindented (the user's own
 	# faction sketch uses this shape).
-	var data: Dictionary = _data("""---
+	var data: Dictionary = _data(
+		"""---
 name: baladians
 starts_with:
 - stronghold
 - warlord
 ---
-""")
+"""
+	)
 	assert_eq(data["starts_with"], ["stronghold", "warlord"])
 
 
 func test_comments_are_ignored() -> void:
-	var data: Dictionary = _data("""---
+	var data: Dictionary = _data(
+		"""---
 # full-line comment
 hp: 160 # trailing comment
 label: "keep # inside quotes"
 ---
-""")
+"""
+	)
 	assert_eq(data["hp"], 160)
 	assert_eq(data["label"], "keep # inside quotes")
 
@@ -155,6 +169,7 @@ func test_strip_wikilink_forms() -> void:
 ## the parser collapses a block scalar into one value before the mapping parser ever
 ## sees it — so these check the value, not the plumbing.
 
+
 func _parsed(a_lines: Array[String]) -> Dictionary:
 	var result: Dictionary = SpecFrontmatter.parse_yaml(a_lines)
 	assert_true(result["ok"], result["error"])
@@ -167,9 +182,14 @@ func test_a_literal_block_keeps_its_newlines() -> void:
 
 
 func test_a_literal_block_keeps_blank_lines_as_paragraph_breaks() -> void:
-	var data: Dictionary = _parsed([
-		"verbose: |", "  one", "", "  two",
-	])
+	var data: Dictionary = _parsed(
+		[
+			"verbose: |",
+			"  one",
+			"",
+			"  two",
+		]
+	)
 	assert_eq(data["verbose"], "one\n\ntwo")
 
 
@@ -180,9 +200,15 @@ func test_trailing_blank_lines_are_dropped() -> void:
 
 
 func test_a_folded_block_joins_lines_within_a_paragraph() -> void:
-	var data: Dictionary = _parsed([
-		"verbose: >", "  one", "  two", "", "  three",
-	])
+	var data: Dictionary = _parsed(
+		[
+			"verbose: >",
+			"  one",
+			"  two",
+			"",
+			"  three",
+		]
+	)
 	assert_eq(data["verbose"], "one two\nthree")
 
 
@@ -193,9 +219,13 @@ func test_a_hash_inside_a_block_is_content_not_a_comment() -> void:
 
 
 func test_a_block_ends_at_the_next_key() -> void:
-	var data: Dictionary = _parsed([
-		"verbose: |", "  prose", "title: Ambush",
-	])
+	var data: Dictionary = _parsed(
+		[
+			"verbose: |",
+			"  prose",
+			"title: Ambush",
+		]
+	)
 	assert_eq(data["verbose"], "prose")
 	assert_eq(data["title"], "Ambush")
 
@@ -203,14 +233,16 @@ func test_a_block_ends_at_the_next_key() -> void:
 func test_a_block_scalar_works_inside_a_sequence_item() -> void:
 	# The shape sanction docs actually use: `levels:` is a list of mappings, each of
 	# which may carry a multi-line `verbose:`.
-	var data: Dictionary = _parsed([
-		"levels:",
-		"  - title: Ambush 1",
-		"    verbose: |",
-		"      first",
-		"      second",
-		"  - title: Ambush 2",
-	])
+	var data: Dictionary = _parsed(
+		[
+			"levels:",
+			"  - title: Ambush 1",
+			"    verbose: |",
+			"      first",
+			"      second",
+			"  - title: Ambush 2",
+		]
+	)
 	var levels: Array = data["levels"]
 	assert_eq(levels.size(), 2)
 	assert_eq(levels[0]["verbose"], "first\nsecond")
@@ -218,9 +250,13 @@ func test_a_block_scalar_works_inside_a_sequence_item() -> void:
 
 
 func test_relative_indentation_inside_a_block_is_preserved() -> void:
-	var data: Dictionary = _parsed([
-		"verbose: |", "  top", "    nested",
-	])
+	var data: Dictionary = _parsed(
+		[
+			"verbose: |",
+			"  top",
+			"    nested",
+		]
+	)
 	assert_eq(data["verbose"], "top\n  nested")
 
 
@@ -240,7 +276,8 @@ func test_a_duplicate_inside_a_nest_is_refused() -> void:
 	# The nested schema means most keys now live one level down, so the check has to hold
 	# there too — `build:` carrying two `cost:` lines is the realistic version of this typo.
 	var result: Dictionary = SpecFrontmatter.parse_yaml(
-		["build:", "  cost: {energy: 100}", "  cost: {energy: 250}"] as Array[String])
+		["build:", "  cost: {energy: 100}", "  cost: {energy: 250}"] as Array[String]
+	)
 	assert_false(result["ok"], "a repeated key inside a nest is refused too")
 	assert_string_contains(result["error"], "duplicate key")
 
@@ -248,22 +285,39 @@ func test_a_duplicate_inside_a_nest_is_refused() -> void:
 func test_the_same_key_in_two_different_nests_is_fine() -> void:
 	# Not a duplicate: the rule is per LEVEL, and sibling components legitimately share sub-key
 	# names. Refusing this would make the nesting unusable.
-	var data: Dictionary = _parsed([
-		"build:", "  time: 20", "defense:", "  time: 5",
-	] as Array[String])
+	var data: Dictionary = _parsed(
+		(
+			[
+				"build:",
+				"  time: 20",
+				"defense:",
+				"  time: 5",
+			]
+			as Array[String]
+		)
+	)
 	assert_eq((data["build"] as Dictionary)["time"], 20)
 	assert_eq((data["defense"] as Dictionary)["time"], 5)
 
 
 func test_the_same_key_in_two_sequence_items_is_fine() -> void:
 	# Every weapon has a `name:`; that is the schema working, not a collision.
-	var data: Dictionary = _parsed([
-		"weapons:", "  - name: A", "  - name: B",
-	] as Array[String])
+	var data: Dictionary = _parsed(
+		(
+			[
+				"weapons:",
+				"  - name: A",
+				"  - name: B",
+			]
+			as Array[String]
+		)
+	)
 	var weapons: Array = data["weapons"]
 	assert_eq(weapons.size(), 2)
 	assert_eq((weapons[0] as Dictionary)["name"], "A")
 	assert_eq((weapons[1] as Dictionary)["name"], "B")
+
+
 #endregion
 
 
@@ -279,7 +333,9 @@ func test_every_doc_in_the_vault_parses() -> void:
 		var result: Dictionary = SpecFrontmatter.parse(FileAccess.get_file_as_string(path))
 		if not result["ok"]:
 			broken.append("%s: %s" % [path.get_file(), result["error"]])
-	assert_eq(broken, [] as Array[String], "every markdown doc under gdd/ has parseable frontmatter")
+	assert_eq(
+		broken, [] as Array[String], "every markdown doc under gdd/ has parseable frontmatter"
+	)
 
 
 func _all_markdown(a_dir: String) -> Array[String]:

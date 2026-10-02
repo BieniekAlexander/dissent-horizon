@@ -14,8 +14,11 @@ extends EventCommand
 @export_enum("move", "attack_move", "defend") var command_type: String = "attack_move"
 #endregion
 
+
 #region Public API
-func to_command(a_manager: ScenarioTriggerManager, a_post_offset: Vector3 = Vector3.ZERO) -> MoveCommand:
+func to_command(
+	a_manager: ScenarioTriggerManager, a_post_offset: Vector3 = Vector3.ZERO
+) -> MoveCommand:
 	var nav_map := a_manager.map.nav_region.get_navigation_map()
 	var dest := NavigationServer3D.map_get_closest_point(nav_map, global_position + a_post_offset)
 	var msg := CommandMessage.new(a_manager.map, null, null, dest)

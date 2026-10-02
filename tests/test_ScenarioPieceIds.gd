@@ -42,7 +42,7 @@ func _scene_paths(a_dir: String) -> Array[String]:
 ## reported.
 func _referenced_ids(a_scene_path: String) -> Array[String]:
 	var found: Array[String] = []
-	var pattern: String = "^(%s) = &\"([^\"]*)\"$" % "|".join(ID_PROPERTIES)
+	var pattern: String = '^(%s) = &"([^"]*)"$' % "|".join(ID_PROPERTIES)
 	var re := RegEx.create_from_string(pattern)
 	for line: String in FileAccess.get_file_as_string(a_scene_path).split("\n"):
 		var m: RegExMatch = re.search(line.strip_edges())
@@ -69,5 +69,4 @@ func test_every_piece_id_named_in_a_scene_exists() -> void:
 			if not known.has(id):
 				unknown.append("%s -> %s" % [scene_path.get_file(), id])
 	assert_gt(checked, 0, "guards the fixture: some scene names a piece id")
-	assert_eq(unknown, [] as Array[String],
-		"a stale id silently freezes the trigger that holds it")
+	assert_eq(unknown, [] as Array[String], "a stale id silently freezes the trigger that holds it")

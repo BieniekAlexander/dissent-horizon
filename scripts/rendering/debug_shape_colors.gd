@@ -14,14 +14,14 @@ class_name DebugShapeColors
 ## player sees while hovering an info card cannot come to mean different things.
 
 const GROUP_COLOR: Dictionary = {
-	"debug_shape_attack_range":    Color(0.85, 0.01, 0.0, 0.42),  # reddish
-	"debug_shape_aggro_range":     Color(1.0, 0.55, 0.1, 0.35),   # amber
-	"debug_shape_vision_range":    Color(0.2, 0.6, 1.0, 0.30),    # blue
-	"debug_shape_detection_range": Color(0.7, 0.2, 0.9, 0.35),    # purple (stealth reveal)
-	"debug_shape_liberation_range":Color(0.9, 0.35, 0.15, 0.35),  # orange (terrestrial conversion)
-	"debug_shape_warlord_dominion":Color(0.35, 0.95, 0.65, 0.35),  # spring green (dominion aura)
-	"debug_shape_movement_body":   Color(0.8, 0.8, 0.8, 0.40),    # grey
-	"debug_shape_target_body":     Color(1.0, 0.9, 0.2, 0.35),    # yellow
-	"debug_shape_selection":       Color(0.2, 0.9, 0.3, 0.30),    # green
-	"debug_shape_trigger":         Color(0.2, 0.85, 0.9, 0.30),   # cyan (event-trigger area)
+	"debug_shape_attack_range": Color(0.85, 0.01, 0.0, 0.42),  # reddish
+	"debug_shape_aggro_range": Color(1.0, 0.55, 0.1, 0.35),  # amber
+	"debug_shape_vision_range": Color(0.2, 0.6, 1.0, 0.30),  # blue
+	"debug_shape_detection_range": Color(0.7, 0.2, 0.9, 0.35),  # purple (stealth reveal)
+	"debug_shape_liberation_range": Color(0.9, 0.35, 0.15, 0.35),  # orange (terrestrial conversion)
+	"debug_shape_warlord_dominion": Color(0.35, 0.95, 0.65, 0.35),  # spring green (dominion aura)
+	"debug_shape_movement_body": Color(0.8, 0.8, 0.8, 0.40),  # grey
+	"debug_shape_target_body": Color(1.0, 0.9, 0.2, 0.35),  # yellow
+	"debug_shape_selection": Color(0.2, 0.9, 0.3, 0.30),  # green
+	"debug_shape_trigger": Color(0.2, 0.85, 0.9, 0.30),  # cyan (event-trigger area)
 }

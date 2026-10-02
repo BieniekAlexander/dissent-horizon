@@ -38,24 +38,34 @@ var _anchor: Vector3
 var _cooldown: float = 0.0
 #endregion
 
+
 #region Preconditions
 static func requires_position() -> bool:
 	return true
 
+
 ## Only a unit that can actually navigate can wander.
 static func meets_precondition(
-	actor: Commandable,
-	_message: CommandMessage
+	actor: Commandable, _message: CommandMessage
 ) -> PreconditionFailureCause:
-	return PreconditionFailureCause.NONE if actor != null and actor.can_move() \
+	return (
+		PreconditionFailureCause.NONE
+		if actor != null and actor.can_move()
 		else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	)
+
+
 #endregion
+
 
 #region Lifecycle
 func _init(a_message: CommandMessage) -> void:
 	super(a_message)
 	_anchor = a_message.position
+
+
 #endregion
+
 
 #region State updates
 ## Tick the pick timer and retarget when it elapses. Always returns self — this
@@ -68,6 +78,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 		_cooldown = INTERVAL
 		_retarget(a_actor)
 	return self
+
 
 ## Draw a new destination on the navmesh within RADIUS of the anchor and steer
 ## the actor at it. The nav target is set here (rather than left to
@@ -89,8 +100,10 @@ func _retarget(a_actor: Commandable) -> void:
 	message.world_position = candidate
 	a_actor.movement.set_target_position(candidate)
 
+
 func should_move(_a_actor: Commandable) -> bool:
 	return true
+
 
 ## "Arrived" — the actor has nothing to do until the next pick. Answering true
 ## here is what keeps the command alive: CommandReceiver drops a command whose
@@ -99,10 +112,14 @@ func should_move(_a_actor: Commandable) -> bool:
 func can_act(a_actor: Commandable) -> bool:
 	return a_actor.movement == null or a_actor.movement.is_navigation_finished()
 
+
 ## Idle in place; returning self keeps the command running forever.
 func fulfill_action(_a_actor: Commandable) -> Variant:
 	return self
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

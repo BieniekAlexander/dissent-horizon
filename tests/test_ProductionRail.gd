@@ -41,16 +41,12 @@ func test_a_separated_pair_stays_two_runs() -> void:
 	# Adjacency is the whole constraint. Folding the two Irregular runs together would claim
 	# a dispatch order the queue does not have — the Vanguard really is built between them.
 	assert_eq(
-		_runs_of([IRREGULAR, VANGUARD, IRREGULAR]),
-		[[IRREGULAR, 1], [VANGUARD, 1], [IRREGULAR, 1]]
+		_runs_of([IRREGULAR, VANGUARD, IRREGULAR]), [[IRREGULAR, 1], [VANGUARD, 1], [IRREGULAR, 1]]
 	)
 
 
 func test_runs_keep_queue_order() -> void:
-	assert_eq(
-		_runs_of([VANGUARD, VANGUARD, IRREGULAR]),
-		[[VANGUARD, 2], [IRREGULAR, 1]]
-	)
+	assert_eq(_runs_of([VANGUARD, VANGUARD, IRREGULAR]), [[VANGUARD, 2], [IRREGULAR, 1]])
 
 
 func test_every_purchase_survives_the_collapse() -> void:

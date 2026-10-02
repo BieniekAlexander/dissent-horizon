@@ -24,8 +24,9 @@ func after_each() -> void:
 	_cmdr.free()
 
 
-func _passive(a_name: String, a_fraction: float, a_tier: int, a_column: int,
-		a_parent: SanctionUnlock = null) -> SanctionUnlock:
+func _passive(
+	a_name: String, a_fraction: float, a_tier: int, a_column: int, a_parent: SanctionUnlock = null
+) -> SanctionUnlock:
 	var sanction := Sanction.new()
 	sanction.sanction_name = a_name
 	sanction.passive = true
@@ -61,12 +62,14 @@ func _sanction_grid() -> SanctionGrid:
 
 # --- A passive is owned but never deployed ---------------------------------------
 
+
 func test_a_passive_is_not_deployable() -> void:
 	var sanction_grid := _sanction_grid()
 	sanction_grid.try_unlock(sanction_grid.entries[0])
 	assert_true(sanction_grid.entries[0].owned, "it is owned")
-	assert_false(sanction_grid.is_deployable(sanction_grid.entries[0]),
-		"but it never reaches the deploy bar")
+	assert_false(
+		sanction_grid.is_deployable(sanction_grid.entries[0]), "but it never reaches the deploy bar"
+	)
 	assert_eq(sanction_grid.deployable_sanctions().size(), 0)
 
 
@@ -74,8 +77,8 @@ func test_a_passive_shows_up_as_standing() -> void:
 	# deployable_sanctions and standing_sanctions partition the owned, non-superseded
 	# set — every cell the player paid for does exactly one of the two things.
 	var sanction_grid := _sanction_grid()
-	sanction_grid.try_unlock(sanction_grid.entries[0])   # Scavenge 1
-	sanction_grid.try_unlock(sanction_grid.entries[2])   # filler A, an ordinary sanction
+	sanction_grid.try_unlock(sanction_grid.entries[0])  # Scavenge 1
+	sanction_grid.try_unlock(sanction_grid.entries[2])  # filler A, an ordinary sanction
 	assert_eq(sanction_grid.standing_sanctions().size(), 1, "the passive stands")
 	assert_eq(sanction_grid.deployable_sanctions().size(), 1, "the active deploys")
 
@@ -85,11 +88,11 @@ func test_activating_a_passive_is_refused() -> void:
 	# only in the HUD that keeps the button off the bar.
 	var sanction := Sanction.new()
 	sanction.passive = true
-	assert_false(sanction.activate(Vector3.ZERO, null, null),
-		"a passive has no deployment")
+	assert_false(sanction.activate(Vector3.ZERO, null, null), "a passive has no deployment")
 
 
 # --- The rate --------------------------------------------------------------------
+
 
 func test_no_bounty_without_a_passive() -> void:
 	var sanction_grid := _sanction_grid()
@@ -122,6 +125,7 @@ func test_the_upgrade_replaces_rather_than_stacks() -> void:
 
 
 # --- The payout ------------------------------------------------------------------
+
 
 func test_the_bounty_is_a_share_of_the_pieces_build_cost() -> void:
 	# A fake piece with a stated price: the bounty is a share of it.

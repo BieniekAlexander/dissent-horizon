@@ -69,13 +69,13 @@ enum CommandFamily { ACTIVE = 1 << 0, PRODUCTION = 1 << 1, ORDNANCE = 1 << 2 }
 ## must never READ the Tool registry: that is the previous run's tools.json, which this
 ## import is about to replace.
 enum Faction {
-	NEUTRAL     = 1 << 0,
+	NEUTRAL = 1 << 0,
 	TECHNOCRACY = 1 << 1,
-	ANARCHISTS  = 1 << 2,
-	COLONIAL    = 1 << 3,
+	ANARCHISTS = 1 << 2,
+	COLONIAL = 1 << 3,
 	LIBERTARIAN = 1 << 4,
-	MARXIST     = 1 << 5,
-	THEOCRATIC  = 1 << 6,
+	MARXIST = 1 << 5,
+	THEOCRATIC = 1 << 6,
 }
 
 ## All-ones faction mask: a binding with no faction allegiance (every verb) applies
@@ -120,6 +120,7 @@ var simple_tooltip: String
 var verbose_tooltip: String
 #endregion
 
+
 #region Lifecycle
 func _init(
 	a_command_name: String,
@@ -137,7 +138,10 @@ func _init(
 	simple_tooltip = a_simple_tooltip
 	verbose_tooltip = a_verbose_tooltip
 	family = a_family
+
+
 #endregion
+
 
 #region Faction
 ## Faction bitmask this binding belongs to. Base = every faction (verbs are
@@ -145,7 +149,10 @@ func _init(
 ## collision review so it works uniformly on any binding — never a `.faction` field.
 func faction_mask() -> int:
 	return FACTION_ANY
+
+
 #endregion
+
 
 #region Actors
 ## The piece ids of the entities that can OFFER this binding, or empty for "any".
@@ -159,12 +166,14 @@ func faction_mask() -> int:
 func actor_ids() -> Array:
 	return []
 
+
 ## A tag two bindings share when at most ONE of them can ever be live, or &"" for "no such
 ## relationship" — a fifth separator for the collision review, beside family, context, faction
 ## and actor_ids. Deliberately GENERIC rather than an ability-id check.
 ## What it exists for: gdd/systems/ux/ui/command-card-and-hotkeys.md §What is in the grid.
 func exclusion_group() -> StringName:
 	return &""
+
 
 ## Whether this binding ALWAYS WINS its cell — it is drawn wherever it applies, and anything
 ## else claiming that cell is hidden under it rather than competing for it.
@@ -183,8 +192,10 @@ func exclusion_group() -> StringName:
 ## False by default; a binding claims it by being named here rather than by a flag, because
 ## "what outranks the rest of the card" is a HUD decision.
 func wins_its_cell() -> bool:
-	return command_name in [RTSController.CANCEL_COMMAND, "command_deploy", "command_undeploy",
-		"command_plant"]
+	return (
+		command_name
+		in [RTSController.CANCEL_COMMAND, "command_deploy", "command_undeploy", "command_plant"]
+	)
 
 
 ## Whether NO selection can offer this binding, so its button is never drawn at all.
@@ -196,16 +207,21 @@ func wins_its_cell() -> bool:
 ## pieces in this state; it is a roster gap, not a layout one.
 func is_orphaned() -> bool:
 	return false
+
+
 #endregion
+
 
 #region Grid placement + collision review
 ## Row-major mapping from a 2D grid cell to command_grid's flat cell array.
 static func cell_index(position: Vector2i) -> int:
 	return position.y * GRID_WIDTH + position.x
 
+
 ## The InputMap action that fires the button in `a_position` (see CELL_ACTION_PREFIX).
 static func cell_action(position: Vector2i) -> StringName:
 	return StringName("%s%d_%d" % [CELL_ACTION_PREFIX, position.x, position.y])
+
 
 ## The grid cell `a_action` fires, or (-1, -1) if it isn't a cell action at all. The
 ## inverse of cell_action(), used by the hotkey dispatcher to turn a key press into a
@@ -219,6 +235,7 @@ static func position_from_action(action: String) -> Vector2i:
 	var position := Vector2i(int(parts[0]), int(parts[1]))
 	return position if position_in_bounds(position) else Vector2i(-1, -1)
 
+
 ## Every cell action the grid expects to exist, in row-major order. The list a rebinding
 ## screen would enumerate, and what test_ControlBinding checks project.godot against.
 static func cell_actions() -> Array:
@@ -228,9 +245,12 @@ static func cell_actions() -> Array:
 			out.append(cell_action(Vector2i(x, y)))
 	return out
 
+
 static func position_in_bounds(position: Vector2i) -> bool:
-	return position.x >= 0 and position.x < GRID_WIDTH \
-		and position.y >= 0 and position.y < GRID_HEIGHT
+	return (
+		position.x >= 0 and position.x < GRID_WIDTH and position.y >= 0 and position.y < GRID_HEIGHT
+	)
+
 
 ## Bindings whose grid_position falls outside GRID_WIDTH × GRID_HEIGHT, as readable
 ## strings. Empty = all valid (a hard error to leave non-empty — the grid can't
@@ -239,8 +259,14 @@ static func out_of_bounds(bindings: Array) -> Array:
 	var bad: Array = []
 	for b: ControlBinding in bindings:
 		if not position_in_bounds(b.grid_position):
-			bad.append("%s at %s (grid is %dx%d)" % [b.command_name, b.grid_position, GRID_WIDTH, GRID_HEIGHT])
+			bad.append(
+				(
+					"%s at %s (grid is %dx%d)"
+					% [b.command_name, b.grid_position, GRID_WIDTH, GRID_HEIGHT]
+				)
+			)
 	return bad
+
 
 ## REVIEW AID: pairs of bindings that share a grid cell AND could plausibly be shown at
 ## the same time. Four things separate two bindings, and any ONE of them is enough that
@@ -271,6 +297,7 @@ static func grid_collisions(bindings: Array) -> Array:
 	out.sort()
 	return out
 
+
 static func _can_co_appear(a: ControlBinding, b: ControlBinding) -> bool:
 	if a.is_orphaned() or b.is_orphaned():
 		return false
@@ -286,6 +313,7 @@ static func _can_co_appear(a: ControlBinding, b: ControlBinding) -> bool:
 	if (a.faction_mask() & b.faction_mask()) == 0:
 		return false
 	return _actors_overlap(a, b)
+
 
 ## Whether the two bindings could be offered by one and the same selection. An empty
 ## actor list means "unknown", which has to read as "yes" — a binding that doesn't declare

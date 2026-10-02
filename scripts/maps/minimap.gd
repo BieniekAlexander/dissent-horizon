@@ -101,6 +101,7 @@ var _objective_ring_offsets: Array[Vector2i] = []
 var _world_units_per_pixel: float = 1.0
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	_image = Image.create(WIDTH, HEIGHT, false, Image.FORMAT_RGBA8)
@@ -135,6 +136,7 @@ func _ready() -> void:
 
 	# Defer bounds init so the scene tree (Map, height_map) is fully loaded.
 	call_deferred(&"_initialize_bounds")
+
 
 func _initialize_bounds() -> void:
 	# Deferred from _ready, so anything that has already supplied framing (a test injecting
@@ -183,6 +185,7 @@ func _initialize_bounds() -> void:
 		_map.terrain_grid.cells_changed.connect(func(_cells: Array) -> void: _layer_dirty = true)
 	_ready_to_draw = true
 
+
 func _gui_input(a_event: InputEvent) -> void:
 	if not _ready_to_draw or _camera == null:
 		return
@@ -218,6 +221,7 @@ func _gui_input(a_event: InputEvent) -> void:
 	elif a_event is InputEventMouseMotion and _drag_selecting:
 		_drag_current_pixel = _event_pixel((a_event as InputEventMouseMotion).position)
 		accept_event()
+
 
 ## While the controller has an order armed, a press of the pointer buttons means what the control
 ## scheme says it does everywhere else (ControlScheme): the armed-issue button carries the order
@@ -269,8 +273,12 @@ func _process(_a_delta: float) -> void:
 			continue
 		# A planted charge is the exception among the player's own: fog.gd draws it only in
 		# their vision, and the minimap follows the world.
-		if is_own and PlantedCharge.of(commandable) != null and not commandable.visible \
-				and not reveal_all:
+		if (
+			is_own
+			and PlantedCharge.of(commandable) != null
+			and not commandable.visible
+			and not reveal_all
+		):
 			continue
 
 		var minimap_pos: Vector2i = world_to_minimap(VU.inXZ(commandable.global_position))
@@ -293,7 +301,10 @@ func _process(_a_delta: float) -> void:
 		_draw_selection_rect()
 
 	(texture as ImageTexture).update(_image)
+
+
 #endregion
+
 
 #region Public API
 ## Inverse of world_to_minimap: returns the world XZ at the centre of a
@@ -307,13 +318,13 @@ func minimap_to_world(a_pixel: Vector2i) -> Vector2:
 		var pv: float = nx * 2.0 * _screen_half_v - _screen_half_v
 		var pu: float = ny * 2.0 * _screen_half_u - _screen_half_u
 		return Vector2(
-			(pu + pv) * _INV_SQRT2 + _world_center.x,
-			(pu - pv) * _INV_SQRT2 + _world_center.y
+			(pu + pv) * _INV_SQRT2 + _world_center.x, (pu - pv) * _INV_SQRT2 + _world_center.y
 		)
 	return Vector2(
 		nx * 2.0 * _world_half_w + _world_center.x - _world_half_w,
 		ny * 2.0 * _world_half_d + _world_center.y - _world_half_d
 	)
+
 
 ## Maps a world XZ coordinate to a minimap pixel.
 ## Returns Vector2i(-1, -1) when the position lies outside the mapped bounds.
@@ -336,7 +347,10 @@ func world_to_minimap(a_world_xz: Vector2) -> Vector2i:
 	if px < 0 or px >= WIDTH or py < 0 or py >= HEIGHT:
 		return Vector2i(-1, -1)
 	return Vector2i(px, py)
+
+
 #endregion
+
 
 #region Map layer
 ## Fix each pixel's cell and world point for the current framing.
@@ -351,8 +365,11 @@ func _index_pixels() -> void:
 			var world: Vector2 = minimap_to_world(Vector2i(x, y))
 			_pixel_worlds[i] = world
 			var cell: Vector2i = _map.world_to_grid(world)
-			var in_play: bool = terrain != null and terrain.is_cell_in_bounds(cell) \
+			var in_play: bool = (
+				terrain != null
+				and terrain.is_cell_in_bounds(cell)
 				and terrain.is_cell_in_play(cell)
+			)
 			_pixel_cells[i] = cell.y * terrain.grid_width() + cell.x if in_play else -1
 
 
@@ -375,7 +392,9 @@ func _rebuild_layer() -> void:
 		if not is_instance_valid(body):
 			continue
 		var cells: Array[Vector2i] = body.basin.covered_cells()
-		ponds.append({cells = cells, color = MinimapLayer.pond_color(body.full_charge(), cells.size())})
+		ponds.append(
+			{cells = cells, color = MinimapLayer.pond_color(body.full_charge(), cells.size())}
+		)
 
 	_layer_fixtures.clear()
 	var fixtures: Array[Dictionary] = []
@@ -395,9 +414,13 @@ func _rebuild_layer() -> void:
 		if marker == null:
 			continue
 		var cell: Vector2i = _map.world_to_grid(VU.inXZ(marker.global_position))
-		starts.append({
-			center = Vector2(cell) + Vector2(0.5, 0.5), half = half,
-			color = Entity.TEAM_COLOR_MAP.get(i + 1, Color.WHITE)})
+		starts.append(
+			{
+				center = Vector2(cell) + Vector2(0.5, 0.5),
+				half = half,
+				color = Entity.TEAM_COLOR_MAP.get(i + 1, Color.WHITE)
+			}
+		)
 
 	_layer = MinimapLayer.build(width, depth, in_play, ponds, fixtures, starts)
 
@@ -429,6 +452,8 @@ func _draw_layer(a_reveal_all: bool) -> void:
 		_pixel_bytes[at + 2] = color.b8
 		_pixel_bytes[at + 3] = 255
 	_image.set_data(WIDTH, HEIGHT, false, Image.FORMAT_RGBA8, _pixel_bytes)
+
+
 #endregion
 
 
@@ -440,9 +465,11 @@ func _event_pixel(a_pos: Vector2) -> Vector2i:
 	var uv: Vector2 = a_pos / size
 	return Vector2i(int(uv.x * float(WIDTH)), int(uv.y * float(HEIGHT)))
 
+
 ## World XZ at the centre of the minimap pixel under a _gui_input event position.
 func _pixel_to_world(a_pos: Vector2) -> Vector2:
 	return minimap_to_world(_event_pixel(a_pos))
+
 
 ## Convert the drag's two minimap pixels to a world-space XZ rectangle and hand it
 ## to the controller to select the player units inside.
@@ -457,6 +484,7 @@ func _finish_drag_selection(a_end_pixel: Vector2i) -> void:
 	# _unhandled_input. See RTSController.additive_modifier_held.
 	_controller.select_units_in_world_rect(world_rect, _controller.additive_modifier_held())
 
+
 ## Draw the drag-selection rectangle outline (in minimap pixel space) so the
 ## player sees the box they're dragging. Called from _process while dragging.
 func _draw_selection_rect() -> void:
@@ -470,6 +498,7 @@ func _draw_selection_rect() -> void:
 	for y: int in range(y0, y1 + 1):
 		_image.set_pixel(x0, y, DRAG_RECT_COLOR)
 		_image.set_pixel(x1, y, DRAG_RECT_COLOR)
+
 
 ## Stamp every live ScenarioHighlight's targets onto the minimap: a hollow ring around each
 ## marked entity, and the outline of each marked region.

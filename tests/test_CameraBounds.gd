@@ -47,6 +47,7 @@ func _overscroll(a_half_view: Vector2 = HALF_VIEW) -> Vector2:
 
 # --- Zoom ceiling ---------------------------------------------------------------
 
+
 func test_zoom_out_stops_at_twice_the_authored_framing() -> void:
 	assert_eq(_camera._max_size, 30.0, "the ceiling is measured from the scene's own size")
 	for i: int in 40:
@@ -82,6 +83,7 @@ func test_the_ceiling_is_per_camera_not_a_fixed_world_size() -> void:
 
 # --- Pan limits -----------------------------------------------------------------
 
+
 func test_a_focus_well_inside_the_play_area_is_left_alone() -> void:
 	var focus := Vector2(10.0, -20.0)
 	assert_eq(_camera.clamped_focus(focus, _square, HALF_VIEW), focus)
@@ -106,8 +108,12 @@ func test_a_rectangular_play_area_is_bounded_per_axis() -> void:
 	# play_size's two axes are independent, so a long thin map must allow long thin panning
 	# rather than collapsing to whichever extent is smaller.
 	var limit: Vector2 = _limit(_oblong)
-	assert_almost_eq(limit.x, _oblong.half.x - HALF_VIEW.x * (1.0 - RTSCamera3D.EDGE_OVERSCROLL_RATIO), 0.001)
-	assert_almost_eq(limit.y, _oblong.half.y - HALF_VIEW.y * (1.0 - RTSCamera3D.EDGE_OVERSCROLL_RATIO), 0.001)
+	assert_almost_eq(
+		limit.x, _oblong.half.x - HALF_VIEW.x * (1.0 - RTSCamera3D.EDGE_OVERSCROLL_RATIO), 0.001
+	)
+	assert_almost_eq(
+		limit.y, _oblong.half.y - HALF_VIEW.y * (1.0 - RTSCamera3D.EDGE_OVERSCROLL_RATIO), 0.001
+	)
 	assert_gt(limit.x, limit.y, "the long axis really does allow more travel")
 
 
@@ -128,7 +134,9 @@ func test_the_view_may_reach_past_the_edge_of_the_play_area() -> void:
 	# exactly at the edge would leave that strip of terrain permanently behind it.
 	assert_gt(_overscroll().x, 0.0, "the view is allowed past the edge")
 	assert_almost_eq(
-		_overscroll().x, HALF_VIEW.x * RTSCamera3D.EDGE_OVERSCROLL_RATIO, 0.001,
+		_overscroll().x,
+		HALF_VIEW.x * RTSCamera3D.EDGE_OVERSCROLL_RATIO,
+		0.001,
 		"by exactly the overscroll margin"
 	)
 
@@ -163,12 +171,15 @@ func test_an_off_centre_map_is_bounded_about_its_own_centre() -> void:
 	var offset := PlayArea.axis_aligned(Vector2(160.0, 160.0), Vector2(100.0, 100.0))
 	var clamped: Vector2 = _camera.clamped_focus(Vector2(-9999.0, -9999.0), offset, HALF_VIEW)
 	assert_almost_eq(
-		offset.to_local(clamped).x, -_limit().x, 0.001,
+		offset.to_local(clamped).x,
+		-_limit().x,
+		0.001,
 		"the limit is measured from the map's middle, not the world origin"
 	)
 
 
 # --- Geometry the limits are built on --------------------------------------------
+
 
 func test_ground_focus_inverts_center_on() -> void:
 	# The limits bound where the camera LOOKS, not where it is: at a 45° pitch the body sits
@@ -194,6 +205,7 @@ func test_the_visible_ground_area_grows_with_zoom() -> void:
 
 # --- Escape hatch ----------------------------------------------------------------
 
+
 func test_bounding_can_be_turned_off() -> void:
 	_camera.clamp_to_map_bounds = false
 	_camera.global_position = Vector3(9999.0, 20.0, 9999.0)
@@ -202,6 +214,7 @@ func test_bounding_can_be_turned_off() -> void:
 
 
 # --- Altitude headroom on the screen-up side ------------------------------------
+
 
 ## A play area in the SCREEN-ALIGNED frame the game actually uses (TerrainData authors play
 ## bounds as s = x+z / t = x-z). The _square fixture above is axis-aligned, which is fine for
@@ -236,14 +249,28 @@ func test_headroom_is_the_flier_displacement_at_this_camera_angle() -> void:
 func test_the_view_may_push_further_up_than_down() -> void:
 	var area: PlayArea = _screen_area()
 	var look: Vector2 = _look_in(area)
-	var up_limit: float = area.to_local(_camera.clamped_focus(
-		area.to_world(Vector2(-9999.0, 0.0)), area, HALF_VIEW, look)).x
-	var down_limit: float = area.to_local(_camera.clamped_focus(
-		area.to_world(Vector2(9999.0, 0.0)), area, HALF_VIEW, look)).x
+	var up_limit: float = (
+		area
+		. to_local(
+			_camera.clamped_focus(area.to_world(Vector2(-9999.0, 0.0)), area, HALF_VIEW, look)
+		)
+		. x
+	)
+	var down_limit: float = (
+		area
+		. to_local(
+			_camera.clamped_focus(area.to_world(Vector2(9999.0, 0.0)), area, HALF_VIEW, look)
+		)
+		. x
+	)
 
 	assert_lt(up_limit, -down_limit, "the screen-up side reaches further out")
-	assert_almost_eq(absf(up_limit) - down_limit, RTSCamera3D.altitude_headroom(), 0.01,
-		"and by exactly the headroom")
+	assert_almost_eq(
+		absf(up_limit) - down_limit,
+		RTSCamera3D.altitude_headroom(),
+		0.01,
+		"and by exactly the headroom"
+	)
 
 
 func test_the_far_side_is_unchanged_by_the_headroom() -> void:
@@ -268,8 +295,12 @@ func test_the_cross_axis_is_unchanged_at_the_default_camera() -> void:
 ## and to zero when it has none. Sign-agnostic, so it doesn't care WHICH way a yaw turned.
 func _asymmetry(a_area: PlayArea, a_look: Vector2, a_axis: int) -> float:
 	var far: Vector2 = Vector2(9999.0, 0.0) if a_axis == 0 else Vector2(0.0, 9999.0)
-	var plus: Vector2 = a_area.to_local(_camera.clamped_focus(a_area.to_world(far), a_area, HALF_VIEW, a_look))
-	var minus: Vector2 = a_area.to_local(_camera.clamped_focus(a_area.to_world(-far), a_area, HALF_VIEW, a_look))
+	var plus: Vector2 = a_area.to_local(
+		_camera.clamped_focus(a_area.to_world(far), a_area, HALF_VIEW, a_look)
+	)
+	var minus: Vector2 = a_area.to_local(
+		_camera.clamped_focus(a_area.to_world(-far), a_area, HALF_VIEW, a_look)
+	)
 	return absf((plus + minus)[a_axis])
 
 
@@ -278,23 +309,20 @@ func test_the_headroom_follows_a_yawed_camera() -> void:
 	var area: PlayArea = _screen_area()
 	var headroom: float = RTSCamera3D.altitude_headroom()
 
-	assert_almost_eq(_asymmetry(area, _look_in(area), 0), headroom, 0.01,
-		"unyawed: all the headroom is on s")
-	assert_almost_eq(_asymmetry(area, _look_in(area), 1), 0.0, 0.01,
-		"unyawed: none of it is on t")
+	assert_almost_eq(
+		_asymmetry(area, _look_in(area), 0), headroom, 0.01, "unyawed: all the headroom is on s"
+	)
+	assert_almost_eq(_asymmetry(area, _look_in(area), 1), 0.0, 0.01, "unyawed: none of it is on t")
 
 	_camera.rotation.y += deg_to_rad(90.0)
 	var look: Vector2 = _look_in(area)
 	assert_almost_eq(absf(look.y), 1.0, 0.05, "the look direction now runs along t")
-	assert_almost_eq(_asymmetry(area, look, 1), headroom, 0.01,
-		"yawed: the headroom moved to t")
-	assert_almost_eq(_asymmetry(area, look, 0), 0.0, 0.01,
-		"yawed: and left s symmetric")
+	assert_almost_eq(_asymmetry(area, look, 1), headroom, 0.01, "yawed: the headroom moved to t")
+	assert_almost_eq(_asymmetry(area, look, 0), 0.0, 0.01, "yawed: and left s symmetric")
 
 
 func test_no_look_direction_leaves_the_old_symmetric_behaviour() -> void:
 	var far_off: Vector2 = _square.to_world(Vector2(9999.0, 9999.0))
 	var limit: Vector2 = _square.to_local(_camera.clamped_focus(far_off, _square, HALF_VIEW))
-	var mirrored: Vector2 = _square.to_local(
-		_camera.clamped_focus(-far_off, _square, HALF_VIEW))
+	var mirrored: Vector2 = _square.to_local(_camera.clamped_focus(-far_off, _square, HALF_VIEW))
 	assert_almost_eq(limit.x, -mirrored.x, 0.01, "symmetric without a look direction")

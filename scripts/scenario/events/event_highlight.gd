@@ -60,6 +60,7 @@ var _highlight: ScenarioHighlight = null
 var _manager: ScenarioTriggerManager = null
 #endregion
 
+
 #region Public API
 ## Fired-event path. Inert in follow_trigger_lifetime mode — see the class docs for why.
 func execute(a_manager: ScenarioTriggerManager) -> void:
@@ -101,7 +102,10 @@ func is_showing() -> bool:
 ## The live painter, for tests and for HUD code that wants to know what is being marked.
 func highlight() -> ScenarioHighlight:
 	return _highlight
+
+
 #endregion
+
 
 #region Target collection
 ## What to mark right now: the union of the target trigger's condition-derived targets and
@@ -166,7 +170,10 @@ func _selected_entities() -> Array[Entity]:
 	for selector: EntitySelector in selectors:
 		entities = selector.filter(entities, _manager)
 	return entities
+
+
 #endregion
+
 
 #region Lifecycle
 ## A highlight whose event node leaves the tree (scenario torn down, subtree freed) must not

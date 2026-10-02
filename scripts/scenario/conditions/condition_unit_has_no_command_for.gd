@@ -39,7 +39,10 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 func reset() -> void:
 	super.reset()
 	_idle_since = -1
+
+
 #endregion
+
 
 #region Internal
 ## True when every matching unit currently holds no command. False (streak-breaking) when
@@ -50,8 +53,11 @@ func _all_idle(a_manager: ScenarioTriggerManager) -> bool:
 		return false
 	var units: Array = commander.get_children().filter(
 		func(n: Node) -> bool:
-			return n is Commandable and (n as Commandable).is_in_group("unit") \
+			return (
+				n is Commandable
+				and (n as Commandable).is_in_group("unit")
 				and (unit_type == &"" or (n as Commandable).id == unit_type)
+			)
 	)
 	if units.is_empty():
 		return false

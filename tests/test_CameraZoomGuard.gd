@@ -28,6 +28,7 @@ func _key(a_keycode: Key) -> InputEventKey:
 
 # --- Wheel: aimed at what's under the cursor ------------------------------------
 
+
 func test_wheel_zooms_over_the_world():
 	assert_true(RTSCamera3D.zoom_allowed(_wheel(MOUSE_BUTTON_WHEEL_UP), false))
 	assert_true(RTSCamera3D.zoom_allowed(_wheel(MOUSE_BUTTON_WHEEL_DOWN), false))
@@ -42,6 +43,7 @@ func test_wheel_does_nothing_over_ui():
 
 # --- Keyboard: aimed at nothing -------------------------------------------------
 
+
 func test_key_zooms_even_when_the_cursor_rests_on_ui():
 	# The HUD lines the bottom of the screen, so the cursor sits on it constantly — after
 	# every button click. Suppressing the key binding by cursor position would make +/- feel
@@ -55,6 +57,7 @@ func test_key_zooms_over_the_world():
 
 
 # --- The dialog window counts as blocking UI ------------------------------------
+
 
 func test_dialog_panel_joins_the_blocking_ui_group():
 	# A dialog is built in code rather than authored in player.tscn, so it can only reach

@@ -21,6 +21,7 @@ extends Node
 ## than re-flagging it, and detaching the original from the tree takes its body out of
 ## the physics space in the same call.
 
+
 #region Lifecycle
 func _ready() -> void:
 	var entity: Entity = get_parent() as Entity
@@ -38,19 +39,26 @@ func _ready() -> void:
 	# liberator guard against corpses.
 	entity.entity_occurrence.connect(_on_entity_occurrence)
 	refresh()
+
+
 #endregion
+
 
 #region Public API
 ## Recompute the LIBERATABLE bit from the parent's current ownership. Driven by
 ## `commander_changed`; safe to call at any time.
 func refresh() -> void:
 	_write(_is_currently_liberatable())
+
+
 #endregion
+
 
 #region Private helpers
 func _is_currently_liberatable() -> bool:
 	var own := get_parent().get_node_or_null("Ownership") as Ownership
 	return own != null and own.commander_id == 0
+
 
 ## The bit lives on the TargetBody, not the root CharacterBody3D, for two reasons:
 ## `Entity.refresh_movement_collision()` wipes every root layer bit but STEALTH, and
@@ -67,8 +75,10 @@ func _write(a_on: bool) -> void:
 	else:
 		body.collision_layer &= ~CollisionLayers.Mask.LIBERATABLE
 
+
 func _on_commander_changed(_a_old_commander: Commander, _a_new_commander: Commander) -> void:
 	refresh()
+
 
 func _on_entity_occurrence(a_occurrence: Entity.EntityOccurrence, _a_source: Entity) -> void:
 	if a_occurrence == Entity.EntityOccurrence.ON_DEATH:

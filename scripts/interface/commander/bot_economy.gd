@@ -260,8 +260,13 @@ func tick(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 
 ## True while a build-spot search is part-way through its candidates.
 func has_pending_search() -> bool:
-	return not _spot_search.is_empty() or (_dominion_search.has("points") \
-		and _dominion_search["ranked"].size() < _dominion_search["points"].size())
+	return (
+		not _spot_search.is_empty()
+		or (
+			_dominion_search.has("points")
+			and _dominion_search["ranked"].size() < _dominion_search["points"].size()
+		)
+	)
 
 
 ## Give back every builder whose construction job is over, so the army can rally it again.
@@ -291,8 +296,10 @@ func _decide() -> void:
 	# Construction jobs are rate-limited: wait for a builder to finish rather than pulling
 	# another fighter off the line or racing two builds onto the same cells. `build_concurrency`
 	# is how many the bot will run at once, and -1 lifts the limit entirely (IMPOSSIBLE).
-	if not BotDifficulty.is_build_uncapped(build_concurrency) \
-			and _construction_job_count() >= BotDifficulty.build_slots(build_concurrency):
+	if (
+		not BotDifficulty.is_build_uncapped(build_concurrency)
+		and _construction_job_count() >= BotDifficulty.build_slots(build_concurrency)
+	):
 		return
 
 	var builder: Commandable = _pick_builder()
@@ -385,12 +392,12 @@ func _decide() -> void:
 ## up the cheapest existing one. null when none is affordable.
 func _production_structure_to_build() -> Variant:
 	var buildable: Array = _bot.buildable_production_structure_types()
-	if production_structure_cap >= 0 \
-			and _owned_production_structure_count(buildable) >= production_structure_cap:
+	if (
+		production_structure_cap >= 0
+		and _owned_production_structure_count(buildable) >= production_structure_cap
+	):
 		return null  # the bot has as much throughput as it plans to own
-	var candidates: Array = buildable.filter(
-		func(t): return can_afford_above_reserve(t)
-	)
+	var candidates: Array = buildable.filter(func(t): return can_afford_above_reserve(t))
 	if candidates.is_empty():
 		return null
 	var unowned: Array = candidates.filter(
@@ -495,8 +502,12 @@ func _dominion_structure_to_build() -> Variant:
 	# this rung again and sends another builder to the same Compound.
 	var under_way: Array[StringName] = _types_under_way()
 	var candidates: Array = _bot.buildable_dominion_structure_types().filter(
-		func(t): return _bot.can_afford(t) and _bot.get_structures_of_type(t).is_empty() \
-			and not under_way.has(t)
+		func(t):
+			return (
+				_bot.can_afford(t)
+				and _bot.get_structures_of_type(t).is_empty()
+				and not under_way.has(t)
+			)
 	)
 	if candidates.is_empty():
 		return null
@@ -514,8 +525,11 @@ func _dominion_structure_to_build() -> Variant:
 func _extend_dominion(a_builder: Commandable) -> bool:
 	var under_way: Array[StringName] = _types_under_way()
 	for t: StringName in _bot.buildable_dominion_structure_types():
-		if under_way.has(t) or _bot.get_structures_of_type(t).is_empty() \
-				or not can_afford_above_reserve(t):
+		if (
+			under_way.has(t)
+			or _bot.get_structures_of_type(t).is_empty()
+			or not can_afford_above_reserve(t)
+		):
 			continue
 		var spot: Variant = _dominion_site(t, MIN_DOMINION_SITE_FRACTION)
 		if spot is StringName:
@@ -530,8 +544,11 @@ func _extend_dominion(a_builder: Commandable) -> bool:
 func _dominion_build_spot(a_type: StringName, a_min_fraction: float) -> Variant:
 	var route: DominionRoute = _bot.dominion_route()
 	var preview := _bot.get_build_preview_instance(Tool.for_type(a_type)) as Entity
-	if route == null or preview == null \
-			or route.full_site_gain(preview) == DominionRoute.NOT_SITE_DEPENDENT:
+	if (
+		route == null
+		or preview == null
+		or route.full_site_gain(preview) == DominionRoute.NOT_SITE_DEPENDENT
+	):
 		return _find_build_spot(a_type)
 	return _dominion_site(a_type, a_min_fraction)
 
@@ -549,7 +566,8 @@ func _dominion_site(a_type: StringName, a_min_fraction: float) -> Variant:
 			continue
 		var point: Vector2 = entry[SURVEY_POINT]
 		var world: Vector3 = _bot.map.footprint_centroid(
-			_bot.map.footprint_origin(point, dims), dims)
+			_bot.map.footprint_origin(point, dims), dims
+		)
 		_work += PLACEMENT_CHECK_WORK_UNITS
 		if _placement_ok(world, dims, _home_region()):
 			return world
@@ -568,8 +586,9 @@ func _dominion_site(a_type: StringName, a_min_fraction: float) -> Variant:
 ## lost. The threat direction can move in between; the next structure change refreshes it.
 func _dominion_survey(a_type: StringName) -> Variant:
 	var owned: Array = _bot._owned_structures()
-	var key: Array = [a_type, owned.size(),
-		owned.filter(func(o: Commandable) -> bool: return o.is_built).size()]
+	var key: Array = [
+		a_type, owned.size(), owned.filter(func(o: Commandable) -> bool: return o.is_built).size()
+	]
 	if _dominion_search.get("key", []) != key:
 		_dominion_search = _new_dominion_search(a_type, key)
 	var search: Dictionary = _dominion_search
@@ -585,14 +604,16 @@ func _dominion_survey(a_type: StringName) -> Variant:
 			return SEARCH_PENDING
 		var point: Vector2 = points[ranked.size()]
 		var offset: Vector2 = point - search["anchor"]
-		var cost_cells: float = (offset.length() \
-			+ place_shelter_bias * offset.dot(search["forward"])) / Map.CELL_SIZE
+		var cost_cells: float = (
+			(offset.length() + place_shelter_bias * offset.dot(search["forward"])) / Map.CELL_SIZE
+		)
 		var fraction: float = survey.gain_at(point) / search["full"]
 		ranked.append([fraction - DOMINION_EXPOSURE_PER_CELL * cost_cells, point, fraction])
 		_work += DOMINION_SURVEY_WORK_UNITS
 	if not search.get("sorted", false):
 		ranked.sort_custom(
-			func(a: Array, b: Array) -> bool: return a[SURVEY_SCORE] > b[SURVEY_SCORE])
+			func(a: Array, b: Array) -> bool: return a[SURVEY_SCORE] > b[SURVEY_SCORE]
+		)
 		search["sorted"] = true
 	return ranked
 
@@ -601,8 +622,9 @@ func _dominion_survey(a_type: StringName) -> Variant:
 func _new_dominion_search(a_type: StringName, a_key: Array) -> Dictionary:
 	var route: DominionRoute = _bot.dominion_route()
 	var preview := _bot.get_build_preview_instance(Tool.for_type(a_type)) as Entity
-	var survey: DominionSiteSurvey = route.site_survey(preview) \
-		if route != null and preview != null else null
+	var survey: DominionSiteSurvey = (
+		route.site_survey(preview) if route != null and preview != null else null
+	)
 	if survey == null:
 		return {"key": a_key}
 	_work += DOMINION_SURVEY_SETUP_WORK_UNITS
@@ -614,9 +636,15 @@ func _new_dominion_search(a_type: StringName, a_key: Array) -> Dictionary:
 			var offset := Vector2(i, j) * DOMINION_SURVEY_STRIDE_CELLS * Map.CELL_SIZE
 			if offset.length() <= DOMINION_SURVEY_RADIUS_CELLS * Map.CELL_SIZE:
 				points.append(anchor + offset)
-	return {"key": a_key, "survey": survey, "points": points, "ranked": [],
-		"anchor": anchor, "forward": _forward_direction(anchor),
-		"full": route.full_site_gain(preview)}
+	return {
+		"key": a_key,
+		"survey": survey,
+		"points": points,
+		"ranked": [],
+		"anchor": anchor,
+		"forward": _forward_direction(anchor),
+		"full": route.full_site_gain(preview)
+	}
 
 
 ## Cheapest buildable infrastructure provider (tech-available), regardless of affordability so
@@ -836,8 +864,14 @@ func _income_build_spot() -> Variant:
 	if pond_spot == null:
 		return site_spot
 	var base: Vector3 = _bot.base_centroid()
-	return pond_spot if base.distance_squared_to(pond_spot as Vector3) \
-			< base.distance_squared_to(site_spot as Vector3) else site_spot
+	return (
+		pond_spot
+		if (
+			base.distance_squared_to(pond_spot as Vector3)
+			< base.distance_squared_to(site_spot as Vector3)
+		)
+		else site_spot
+	)
 
 
 ## A buildable cell in the nearest workable lithium pond, or null when there is none.
@@ -950,8 +984,10 @@ func _believes_site_claimed(a_site: ExtractionSite, a_position: Vector3) -> bool
 	if _is_claim_known(a_site.extractor):
 		return true
 	# An extractor is placed concentric with its site, so a remembered one stands on its origin.
-	return _believes_enemy_structure_where(func(a_at: Vector3) -> bool:
-		return VU.inXZ(a_at).distance_to(VU.inXZ(a_position)) < Map.CELL_SIZE * 0.5)
+	return _believes_enemy_structure_where(
+		func(a_at: Vector3) -> bool:
+			return VU.inXZ(a_at).distance_to(VU.inXZ(a_position)) < Map.CELL_SIZE * 0.5
+	)
 
 
 ## The pond counterpart of `_believes_site_claimed`. Any remembered structure in the water
@@ -959,8 +995,9 @@ func _believes_site_claimed(a_site: ExtractionSite, a_position: Vector3) -> bool
 func _believes_pond_claimed(a_body: WaterBody) -> bool:
 	if _is_claim_known(a_body.extractor):
 		return true
-	return _believes_enemy_structure_where(func(a_at: Vector3) -> bool:
-		return _bot.map.water_body_at_world(VU.inXZ(a_at)) == a_body)
+	return _believes_enemy_structure_where(
+		func(a_at: Vector3) -> bool: return _bot.map.water_body_at_world(VU.inXZ(a_at)) == a_body
+	)
 
 
 ## Whether `a_claimant` is a live extractor the bot may know about: its own, or one in its
@@ -969,8 +1006,9 @@ func _is_claim_known(a_claimant: Variant) -> bool:
 	if a_claimant == null or not is_instance_valid(a_claimant):
 		return false
 	var claimant: Commandable = a_claimant as Commandable
-	return claimant != null and (
-		claimant.commander_id == _bot.id or _bot.has_vision_at(claimant.global_position)
+	return (
+		claimant != null
+		and (claimant.commander_id == _bot.id or _bot.has_vision_at(claimant.global_position))
 	)
 
 
@@ -1008,6 +1046,7 @@ func _believes_enemy_structure_where(a_is_there: Callable) -> bool:
 # stream in interleaved order get different numbers, so a tie broken by a draw is a tie
 # broken by think order, which is the world-frame bug in another costume. Ties are broken by
 # bot-frame coordinates instead, which mirror exactly.
+
 
 ## The best spot for a `a_type` structure, or null when nothing in range is placeable.
 ##
@@ -1053,8 +1092,13 @@ func _find_build_spot(a_type: StringName) -> Variant:
 func _new_spot_search(a_type: StringName) -> Dictionary:
 	var dims: Vector2i = _dims_for_type(a_type)
 	var anchor: Vector2 = VU.inXZ(_bot.base_centroid())
-	return {"type": a_type, "dims": dims, "region": _home_region(), "cursor": 0,
-		"ranking": _start_ranking(anchor, _forward_direction(anchor), _bearing_for(a_type), dims)}
+	return {
+		"type": a_type,
+		"dims": dims,
+		"region": _home_region(),
+		"cursor": 0,
+		"ranking": _start_ranking(anchor, _forward_direction(anchor), _bearing_for(a_type), dims)
+	}
 
 
 ## THE AXIS THE BOT ORIENTS AGAINST, as a unit vector from the base.
@@ -1124,9 +1168,13 @@ func continue_spot_ranking(a_ranking: Dictionary, a_allowance: int) -> int:
 ## from one to the other has spanned every spot the ranking could offer.
 func spot_cost_bounds(a_is_production: bool) -> Vector2:
 	var bearing: float = absf(_bearing(a_is_production))
-	var ideal: float = minf(SEARCH_MIN_RING * (COMPACTNESS_WEIGHT - bearing),
-		SEARCH_MAX_RING * (COMPACTNESS_WEIGHT - bearing)) \
+	var ideal: float = (
+		minf(
+			SEARCH_MIN_RING * (COMPACTNESS_WEIGHT - bearing),
+			SEARCH_MAX_RING * (COMPACTNESS_WEIGHT - bearing)
+		)
 		- place_corridor_weight * CORRIDOR_CAP_CELLS
+	)
 	var worst: float = SEARCH_MAX_RING * (COMPACTNESS_WEIGHT + bearing) - place_corridor_weight
 	return Vector2(ideal, worst)
 
@@ -1186,11 +1234,19 @@ func _start_ranking(
 	# six hundred of those was most of what a decision cost. Only XZ matters to the score.
 	var world_seed: Vector2 = VU.inXZ(map.footprint_centroid(seed_origin, a_dims))
 	return {
-		"forward": a_forward, "right": Vector2(-a_forward.y, a_forward.x), "bearing": a_bearing,
-		"dims": a_dims, "seed_origin": seed_origin, "seed_offset": world_seed - a_anchor,
-		"basis_x": VU.inXZ(map.footprint_centroid(seed_origin + Vector2i(1, 0), a_dims)) - world_seed,
-		"basis_z": VU.inXZ(map.footprint_centroid(seed_origin + Vector2i(0, 1), a_dims)) - world_seed,
-		"row": -SEARCH_MAX_RING - 1, "out": PackedInt64Array(), "done": false,
+		"forward": a_forward,
+		"right": Vector2(-a_forward.y, a_forward.x),
+		"bearing": a_bearing,
+		"dims": a_dims,
+		"seed_origin": seed_origin,
+		"seed_offset": world_seed - a_anchor,
+		"basis_x":
+		VU.inXZ(map.footprint_centroid(seed_origin + Vector2i(1, 0), a_dims)) - world_seed,
+		"basis_z":
+		VU.inXZ(map.footprint_centroid(seed_origin + Vector2i(0, 1), a_dims)) - world_seed,
+		"row": -SEARCH_MAX_RING - 1,
+		"out": PackedInt64Array(),
+		"done": false,
 	}
 
 
@@ -1250,9 +1306,11 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 			if clearance <= 0:
 				continue
 			var along: float = offset.dot(forward)
-			var cost: float = COMPACTNESS_WEIGHT * sqrt(radial_sq) \
-				- bearing * along \
+			var cost: float = (
+				COMPACTNESS_WEIGHT * sqrt(radial_sq)
+				- bearing * along
 				- place_corridor_weight * float(clearance)
+			)
 			out.append(_pack(cost, along, offset.dot(right), origin_z * width + origin_x))
 	out.sort()
 	_work += out.size() * CANDIDATE_WORK_UNITS
@@ -1322,7 +1380,9 @@ const PLACEMENT_NAV_CLASS: int = NavAgentClass.Size.LARGE
 ## narrower "production only" reading of the rule is available to other callers as
 ## NavPlacement.accepts' `a_needs_access` flag.
 func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bool:
-	if not Structure.valid_placement(CommandMessage.new(_bot.map, null, null, a_world), a_dims, false):
+	if not Structure.valid_placement(
+		CommandMessage.new(_bot.map, null, null, a_world), a_dims, false
+	):
 		return false
 	if _is_abandoned_spot(a_world):
 		return false
@@ -1330,8 +1390,10 @@ func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bo
 		return false
 	var footprint: Array = _bot.map.footprint_cells(VU.inXZ(a_world), a_dims)
 	var grid: TerrainGrid = _bot.map.terrain_grid
-	return NavPlacement.accepts(grid, footprint, true, a_region) \
+	return (
+		NavPlacement.accepts(grid, footprint, true, a_region)
 		and NavPlacement.accepts_for_class(grid, footprint, PLACEMENT_NAV_CLASS, true)
+	)
 
 
 ## Footprint dimensions for a buildable type, read off its build-preview instance
@@ -1340,7 +1402,9 @@ func _dims_for_type(a_type: StringName) -> Vector2i:
 	var tool: Tool = Tool.for_type(a_type)
 	if tool != null:
 		var preview: Node = _bot.get_build_preview_instance(tool)
-		var s: Structure = preview.get_node_or_null("Structure") as Structure if preview != null else null
+		var s: Structure = (
+			preview.get_node_or_null("Structure") as Structure if preview != null else null
+		)
 		if s != null:
 			return s.dimensions
 	return Vector2i(2, 2)

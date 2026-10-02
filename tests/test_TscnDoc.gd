@@ -93,7 +93,7 @@ func test_find_node_by_path() -> void:
 func test_get_prop() -> void:
 	var doc: RefCounted = _doc()
 	assert_eq(doc.get_prop(doc.find_node("Movement"), "speed"), "1.2")
-	assert_eq(doc.get_prop(doc.find_node(""), "id"), "&\"fixture\"")
+	assert_eq(doc.get_prop(doc.find_node(""), "id"), '&"fixture"')
 	assert_eq(doc.get_prop(doc.find_node("Movement"), "absent"), "")
 
 
@@ -124,19 +124,25 @@ func test_remove_prop() -> void:
 
 func test_ensure_ext_resource_dedupes_by_path() -> void:
 	var doc: RefCounted = _doc()
-	var id: String = doc.ensure_ext_resource("Script", "res://scripts/entities/components/loadout.gd")
+	var id: String = doc.ensure_ext_resource(
+		"Script", "res://scripts/entities/components/loadout.gd"
+	)
 	assert_eq(id, "2_load")
-	assert_eq(doc.to_text(), FIXTURE)   # nothing changed
+	assert_eq(doc.to_text(), FIXTURE)  # nothing changed
 
 
 func test_ensure_ext_resource_adds_and_updates_load_steps() -> void:
 	var doc: RefCounted = _doc()
-	var id: String = doc.ensure_ext_resource("PackedScene", "res://scenes/entities/projectiles/an/warlord_rocket.tscn")
+	var id: String = doc.ensure_ext_resource(
+		"PackedScene", "res://scenes/entities/projectiles/an/warlord_rocket.tscn"
+	)
 	var text: String = doc.to_text()
-	assert_string_contains(text, "path=\"res://scenes/entities/projectiles/an/warlord_rocket.tscn\" id=\"%s\"" % id)
+	assert_string_contains(
+		text, 'path="res://scenes/entities/projectiles/an/warlord_rocket.tscn" id="%s"' % id
+	)
 	assert_string_contains(text, "load_steps=5")
 	# Placement: after the last existing ext_resource, before sub_resources.
-	assert_lt(text.find("id=\"2_load\""), text.find(id))
+	assert_lt(text.find('id="2_load"'), text.find(id))
 	assert_lt(text.find(id), text.find("[sub_resource"))
 	# Still parseable and stable on re-round-trip.
 	assert_eq(TscnDoc.from_text(text).to_text(), text)
@@ -144,24 +150,25 @@ func test_ensure_ext_resource_adds_and_updates_load_steps() -> void:
 
 func test_add_sub_resource() -> void:
 	var doc: RefCounted = _doc()
-	var id: String = doc.add_sub_resource("CylinderShape3D", "reach", {"height": "100.0", "radius": "4.0"})
+	var id: String = doc.add_sub_resource(
+		"CylinderShape3D", "reach", {"height": "100.0", "radius": "4.0"}
+	)
 	var text: String = doc.to_text()
-	assert_string_contains(text, "[sub_resource type=\"CylinderShape3D\" id=\"%s\"]" % id)
+	assert_string_contains(text, '[sub_resource type="CylinderShape3D" id="%s"]' % id)
 	assert_string_contains(text, "load_steps=5")
 	assert_lt(text.find("CylinderShape3D_vis"), text.find(id))
-	assert_lt(text.find(id), text.find("[node name=\"Fixture\""))
+	assert_lt(text.find(id), text.find('[node name="Fixture"'))
 	assert_eq(TscnDoc.from_text(text).to_text(), text)
 
 
 func test_add_node_groups_under_parent_subtree() -> void:
 	var doc: RefCounted = _doc()
 	doc.add_node(
-		[["name", "Weapon2"], ["type", "Node3D"], ["parent", "Loadout"]],
-		{"split_time_ticks": "30"}
+		[["name", "Weapon2"], ["type", "Node3D"], ["parent", "Loadout"]], {"split_time_ticks": "30"}
 	)
 	var text: String = doc.to_text()
 	# New sibling lands after the existing Weapon subtree (incl. AttackRange).
-	assert_lt(text.find("[node name=\"AttackRange\""), text.find("[node name=\"Weapon2\""))
+	assert_lt(text.find('[node name="AttackRange"'), text.find('[node name="Weapon2"'))
 	assert_eq(TscnDoc.from_text(text).to_text(), text)
 	assert_eq(TscnDoc.from_text(text).find_node("Loadout/Weapon2")["attrs"]["parent"], "Loadout")
 
@@ -170,9 +177,9 @@ func test_remove_node_removes_descendants() -> void:
 	var doc: RefCounted = _doc()
 	doc.remove_node("Loadout/Weapon")
 	var text: String = doc.to_text()
-	assert_false(text.contains("[node name=\"Weapon\""))
-	assert_false(text.contains("[node name=\"AttackRange\""))
-	assert_string_contains(text, "[node name=\"Loadout\"")
+	assert_false(text.contains('[node name="Weapon"'))
+	assert_false(text.contains('[node name="AttackRange"'))
+	assert_string_contains(text, '[node name="Loadout"')
 	assert_eq(TscnDoc.from_text(text).to_text(), text)
 
 
@@ -216,6 +223,7 @@ func test_removing_a_node_leaves_unrelated_ext_resources_alone() -> void:
 ## compounds silently. These tests are that contract, per component shape the importer
 ## creates. See gdd/systems/authoring/composition-rework.md §Step 0.
 
+
 ## Add a component the way the importer does, remove it again, and the file must be the
 ## bytes it started as. Parameterised over the shapes the importer actually creates: a
 ## script-only Node, a Node3D component, and a CollisionShape3D that brings its own
@@ -237,33 +245,45 @@ func test_add_remove_add_is_byte_identical() -> void:
 		twice.remove_node(name)
 		var again: RefCounted = TscnDoc.from_text(twice.to_text())
 		_add_component(again, name)
-		assert_eq(again.to_text(), once.to_text(),
-			"%s: the second add must reproduce the first" % name)
+		assert_eq(
+			again.to_text(), once.to_text(), "%s: the second add must reproduce the first" % name
+		)
 
 
 ## The three creation shapes, spelled the way SpecSceneSync spells them.
 func _add_component(a_doc: RefCounted, a_name: String) -> void:
 	match a_name:
 		"DetectionRange":
-			var sid: String = a_doc.add_sub_resource("CylinderShape3D", "detection_range",
-				{"height": "100.0", "radius": "3.5"})
+			var sid: String = a_doc.add_sub_resource(
+				"CylinderShape3D", "detection_range", {"height": "100.0", "radius": "3.5"}
+			)
 			a_doc.add_node(
 				[["name", a_name], ["type", "CollisionShape3D"], ["parent", "."]],
-				{"disabled": "true", "shape": "SubResource(\"%s\")" % sid})
+				{"disabled": "true", "shape": 'SubResource("%s")' % sid}
+			)
 		_:
 			var script_id: String = a_doc.ensure_ext_resource(
-				"Script", "res://scripts/entities/components/%s.gd" % a_name.to_snake_case())
+				"Script", "res://scripts/entities/components/%s.gd" % a_name.to_snake_case()
+			)
 			a_doc.add_node(
-				[["name", a_name], ["type", "Node" if a_name == "Repairs" else "Node3D"],
-					["parent", "."]],
-				{"script": "ExtResource(\"%s\")" % script_id})
+				[
+					["name", a_name],
+					["type", "Node" if a_name == "Repairs" else "Node3D"],
+					["parent", "."]
+				],
+				{"script": 'ExtResource("%s")' % script_id}
+			)
 
 
 func _with_repairs() -> RefCounted:
 	var doc: RefCounted = _doc()
-	var id: String = doc.ensure_ext_resource("Script", "res://scripts/entities/components/repairs.gd")
-	doc.add_node([["name", "Repairs"], ["type", "Node"], ["parent", "."]],
-		{"script": "ExtResource(\"%s\")" % id})
+	var id: String = doc.ensure_ext_resource(
+		"Script", "res://scripts/entities/components/repairs.gd"
+	)
+	doc.add_node(
+		[["name", "Repairs"], ["type", "Node"], ["parent", "."]],
+		{"script": 'ExtResource("%s")' % id}
+	)
 	return doc
 
 
@@ -282,8 +302,10 @@ func test_remove_node_prunes_the_sub_resource_it_orphaned() -> void:
 
 func test_pruning_spares_a_sub_resource_another_node_still_uses() -> void:
 	var doc: RefCounted = _doc()
-	doc.add_node([["name", "AggroRange"], ["type", "CollisionShape3D"], ["parent", "."]],
-		{"shape": "SubResource(\"CylinderShape3D_vis\")"})
+	doc.add_node(
+		[["name", "AggroRange"], ["type", "CollisionShape3D"], ["parent", "."]],
+		{"shape": 'SubResource("CylinderShape3D_vis")'}
+	)
 	doc.remove_node("VisionRange")
 	assert_string_contains(doc.to_text(), "CylinderShape3D_vis", "still referenced elsewhere")
 
@@ -310,8 +332,10 @@ mesh = SubResource("Mesh_a")
 	var text: String = doc.to_text()
 	assert_false(text.contains("Mesh_a"), "the mesh had one referrer")
 	assert_false(text.contains("Material_a"), "and so the material it named is unreachable too")
-	assert_false(text.contains("load_steps"),
-		"no resources left, so the count goes, as Godot writes a scene with none")
+	assert_false(
+		text.contains("load_steps"),
+		"no resources left, so the count goes, as Godot writes a scene with none"
+	)
 
 
 func test_a_live_sub_resource_keeps_the_material_it_names() -> void:
@@ -350,8 +374,11 @@ func test_no_entity_scene_references_a_missing_resource() -> void:
 		f.close()
 		for section in doc.sections_of("ext_resource"):
 			var res_path: String = section["attrs"].get("path", "")
-			if res_path != "" and not ResourceLoader.exists(res_path) \
-					and not FileAccess.file_exists(res_path):
+			if (
+				res_path != ""
+				and not ResourceLoader.exists(res_path)
+				and not FileAccess.file_exists(res_path)
+			):
 				dangling.append("%s -> %s" % [path, res_path])
 	assert_eq(dangling, [], "scenes pointing at resources that do not exist")
 
@@ -369,10 +396,16 @@ func test_removing_any_component_from_any_roster_scene_leaves_no_dangling_refere
 			var doc: RefCounted = TscnDoc.from_text(original)
 			doc.remove_node(node_path)
 			var text: String = doc.to_text()
-			assert_eq(TscnDoc.from_text(text).to_text(), text,
-				"%s minus %s no longer round-trips" % [path, node_path])
-			assert_eq(_undefined_refs(TscnDoc.from_text(text)), [],
-				"%s minus %s references a resource it no longer defines" % [path, node_path])
+			assert_eq(
+				TscnDoc.from_text(text).to_text(),
+				text,
+				"%s minus %s no longer round-trips" % [path, node_path]
+			)
+			assert_eq(
+				_undefined_refs(TscnDoc.from_text(text)),
+				[],
+				"%s minus %s references a resource it no longer defines" % [path, node_path]
+			)
 			checked += 1
 	assert_gt(checked, 100, "the sweep should reach the whole roster")
 
@@ -409,11 +442,8 @@ func test_fmt_helpers() -> void:
 	assert_eq(TscnDoc.fmt_float(1.0), "1.0")
 	assert_eq(TscnDoc.fmt_float(1.2), "1.2")
 	assert_eq(TscnDoc.fmt_float(0.175), "0.175")
-	assert_eq(TscnDoc.fmt_string("a \"b\""), "\"a \\\"b\\\"\"")
+	assert_eq(TscnDoc.fmt_string('a "b"'), '"a \\"b\\""')
 	# Newlines/tabs escape so a multi-line editor_description stays one .tscn line.
-	assert_eq(TscnDoc.fmt_string("line1\nline2"), "\"line1\\nline2\"")
-	assert_eq(TscnDoc.fmt_string_name("warlord"), "&\"warlord\"")
-	assert_eq(
-		TscnDoc.fmt_string_name_array(["a", "b"]),
-		"Array[StringName]([&\"a\", &\"b\"])"
-	)
+	assert_eq(TscnDoc.fmt_string("line1\nline2"), '"line1\\nline2"')
+	assert_eq(TscnDoc.fmt_string_name("warlord"), '&"warlord"')
+	assert_eq(TscnDoc.fmt_string_name_array(["a", "b"]), 'Array[StringName]([&"a", &"b"])')

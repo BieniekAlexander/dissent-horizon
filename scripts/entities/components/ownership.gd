@@ -22,9 +22,11 @@ signal commander_changed(old_commander: Commander, new_commander: Commander)
 #region Properties
 var _commander: Commander
 var commander: Commander:
-	get: return _commander
+	get:
+		return _commander
 	set(value):
-		if value == _commander: return
+		if value == _commander:
+			return
 		var old: Commander = _commander
 		_commander = value
 		commander_changed.emit(old, value)
@@ -33,5 +35,6 @@ var commander_id: int:
 	# Unowned entities report commander id 0 (neutral/world) rather than
 	# crashing. Callers like fog.gd read this every physics frame across all
 	# commandables, so a null _commander must degrade gracefully.
-	get: return _commander.id if _commander != null else 0
+	get:
+		return _commander.id if _commander != null else 0
 #endregion

@@ -62,8 +62,12 @@ func test_a_released_unit_hangs_at_its_release_altitude() -> void:
 	var movement: Movement = _movement()
 	movement.begin_parachute_descent(DROP_ALTITUDE, Callable())
 	assert_true(movement.is_parachuting(), "should be on its way down")
-	assert_almost_eq(movement.descent_altitude(), DROP_ALTITUDE, EPSILON,
-		"the height still to fall is what the piece stands above the terrain, so it IS the altitude")
+	assert_almost_eq(
+		movement.descent_altitude(),
+		DROP_ALTITUDE,
+		EPSILON,
+		"the height still to fall is what the piece stands above the terrain, so it IS the altitude"
+	)
 
 
 func test_the_descent_starts_from_rest_and_accelerates() -> void:
@@ -110,6 +114,8 @@ func test_the_landing_callback_fires_exactly_once() -> void:
 	assert_eq(watcher.count, 1, "one touchdown, one callback")
 	_tick(movement, 30)
 	assert_eq(watcher.count, 1, "and it does not keep firing once it is down")
+
+
 #endregion
 
 
@@ -118,8 +124,10 @@ func test_the_mode_is_untouched_throughout() -> void:
 	var movement: Movement = _movement()
 	movement.begin_parachute_descent(DROP_ALTITUDE, Callable())
 	assert_eq(movement.mode, Movement.Mode.GROUNDED, "still grounded on the way down")
-	assert_false(movement.is_aerial_mode(),
-		"and never aerial — that model would put it on the wrong altitude and target layer")
+	assert_false(
+		movement.is_aerial_mode(),
+		"and never aerial — that model would put it on the wrong altitude and target layer"
+	)
 	_fall(movement)
 	assert_eq(movement.mode, Movement.Mode.GROUNDED, "and still grounded once landed")
 
@@ -128,6 +136,8 @@ func test_a_grounded_unit_that_is_not_falling_reports_no_height() -> void:
 	var movement: Movement = _movement()
 	assert_false(movement.is_parachuting())
 	assert_eq(movement.descent_altitude(), 0.0)
+
+
 #endregion
 
 
@@ -140,8 +150,9 @@ func test_an_aerial_unit_is_not_given_a_canopy() -> void:
 		var watcher := LandingWatcher.new()
 		movement.begin_parachute_descent(DROP_ALTITUDE, watcher.on_landed)
 		assert_false(movement.is_parachuting(), "mode %s should refuse the descent" % mode)
-		assert_eq(watcher.count, 1,
-			"the callback still fires, so a caller's cleanup is unconditional")
+		assert_eq(
+			watcher.count, 1, "the callback still fires, so a caller's cleanup is unconditional"
+		)
 
 
 func test_a_zero_altitude_release_lands_immediately() -> void:

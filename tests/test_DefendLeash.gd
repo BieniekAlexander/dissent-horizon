@@ -56,8 +56,11 @@ func test_the_engagement_is_leashed_to_the_post_not_the_defender() -> void:
 	var post := Vector3(MARCH_DISTANCE, 0.0, 0.0)
 	var intruder: Commandable = _unit(IRREGULAR, ENEMY)
 	var attack: Attack = _engagement(defender, post, intruder)
-	assert_eq(attack.message.aggro_shape, defender.aggro_shape_ground,
-		"with no region authored, the defended area is the defender's own aggro range")
+	assert_eq(
+		attack.message.aggro_shape,
+		defender.aggro_shape_ground,
+		"with no region authored, the defended area is the defender's own aggro range"
+	)
 	assert_eq(attack.message.aggro_center, post, "centred on the post it is holding")
 
 
@@ -70,8 +73,10 @@ func test_an_intruder_at_the_post_is_held_while_the_defender_is_still_marching()
 	var post := Vector3(MARCH_DISTANCE, 0.0, 0.0)
 	var intruder: Commandable = _unit(IRREGULAR, ENEMY)
 	intruder.global_position = post + Vector3(3.0, 0.0, 0.0)
-	assert_true(_engagement(defender, post, intruder)._target_within_leash(defender),
-		"it is in the area this unit was told to defend, so it stays the target")
+	assert_true(
+		_engagement(defender, post, intruder)._target_within_leash(defender),
+		"it is in the area this unit was told to defend, so it stays the target"
+	)
 
 
 func test_an_intruder_that_leaves_the_defended_area_is_released() -> void:
@@ -96,8 +101,11 @@ func test_an_authored_defend_region_still_wins() -> void:
 	var attack := Attack.new(CommandMessage.new(null, _unit(IRREGULAR, ENEMY)))
 	defend._leash_to_defended_area(defender, attack)
 	assert_eq(attack.message.aggro_shape, region.aggro_shape_ground)
-	assert_eq(attack.message.aggro_center, region.aggro_shape_ground.global_transform.origin,
-		"pinned where the region stood when the order was given")
+	assert_eq(
+		attack.message.aggro_center,
+		region.aggro_shape_ground.global_transform.origin,
+		"pinned where the region stood when the order was given"
+	)
 
 
 func test_an_ordinary_aggro_attack_is_still_leashed_to_its_actor() -> void:

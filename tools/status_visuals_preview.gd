@@ -36,6 +36,7 @@ const CASES: Array = [
 	[PLANE, Veterancy.Level.VETERAN, "", true, PI / 4.0],
 ]
 
+
 func _ready() -> void:
 	var commander := Commander.new()
 	commander.id = RTSController.PLAYER_COMMANDER_ID

@@ -32,7 +32,6 @@ extends SceneTree
 ## registered, so a load() there compiles cleanly.
 const IMPORT_PIPELINE_PATH: String = "res://tools/spec_import/import_pipeline.gd"
 
-
 ## Whether _initialize ran to completion. Read by the backstop below — see there.
 var _completed: bool = false
 

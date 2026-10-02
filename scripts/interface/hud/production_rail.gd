@@ -102,6 +102,7 @@ var _signature: String = ""
 var _selection: Array = []
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	custom_minimum_size = Vector2(PANEL_WIDTH, 0.0)
@@ -165,9 +166,13 @@ func _ready() -> void:
 	_standing_chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rows.add_child(_standing_chips)
 
+
 func _process(_a_delta: float) -> void:
 	_refresh()
+
+
 #endregion
+
 
 #region Public API
 ## Called every frame by the controller with the current selection. The selection is only
@@ -175,6 +180,7 @@ func _process(_a_delta: float) -> void:
 func update(a_selection: Array) -> void:
 	_selection = a_selection
 	_refresh()
+
 
 ## The queued purchase the cursor is currently over, or null.
 ##
@@ -196,7 +202,10 @@ func hovered_transaction() -> PurchaseTransaction:
 			if card != null and card.is_hovered_purchase():
 				return card.hovered_transaction()
 	return null
+
+
 #endregion
+
 
 ## Hand `a_card`'s right-click to the controller, and paint its green border if the run it
 ## stands for is already selected.
@@ -283,6 +292,7 @@ func _pending_of_type(a_type: StringName) -> Array:
 func _queue() -> ProductionQueue:
 	return commander.production_queue if commander != null else null
 
+
 func _refresh() -> void:
 	var queue: ProductionQueue = _queue()
 	if queue == null:
@@ -315,6 +325,7 @@ func _refresh() -> void:
 		custom_minimum_size.y = rows.get_combined_minimum_size().y + 12.0
 		size.y = custom_minimum_size.y
 
+
 ## Covers everything that changes which CARDS exist: the entries themselves, their tier and
 ## state, and the selection (which decides the affinity dimming).
 func _build_signature(a_queue: ProductionQueue) -> String:
@@ -325,17 +336,20 @@ func _build_signature(a_queue: ProductionQueue) -> String:
 		signature += "s%d|" % node.get_instance_id()
 	return signature
 
+
 func _rebuild(a_queue: ProductionQueue) -> void:
 	var one_offs: Array[PurchaseTransaction] = a_queue.queued()
 	var head: PurchaseTransaction = one_offs.front() if not one_offs.is_empty() else null
 
-	_header_label.text = "production  ·  %d" % one_offs.size() if not one_offs.is_empty() \
-		else "production"
+	_header_label.text = (
+		"production  ·  %d" % one_offs.size() if not one_offs.is_empty() else "production"
+	)
 	_clear_queued_button.visible = not one_offs.is_empty()
 
 	_rebuild_head(a_queue, head)
 	_rebuild_one_off_chips(a_queue, one_offs)
 	_rebuild_standing(a_queue)
+
 
 ## The head is the one entry that carries words. It is the front of the NON-STANDING tier,
 ## not of `entries` overall: with no one-offs queued there is nothing being held up, and the
@@ -350,8 +364,12 @@ func _rebuild_head(a_queue: ProductionQueue, a_head: PurchaseTransaction) -> voi
 	_head_card.bind_purchase(a_head, a_queue)
 	_wire_pending_selection(_head_card, [a_head])
 	_head_name.text = String(a_head.type)
-	_head_stripe.color = BUILD_STRIPE_COLOR if a_head.kind == PurchaseTransaction.Kind.BUILD \
+	_head_stripe.color = (
+		BUILD_STRIPE_COLOR
+		if a_head.kind == PurchaseTransaction.Kind.BUILD
 		else _blocker_color(a_queue.blocker_for(a_head))
+	)
+
 
 func _rebuild_one_off_chips(a_queue: ProductionQueue, a_one_offs: Array) -> void:
 	_clear(_chips)
@@ -375,6 +393,7 @@ func _rebuild_one_off_chips(a_queue: ProductionQueue, a_one_offs: Array) -> void
 		drawn += 1
 	if hidden > 0:
 		_chips.add_child(_make_overflow_chip(hidden))
+
 
 ## The standing ring, in AUTHORED order rather than dispatch order (see
 ## ProductionQueue.standing_ring): the ring holds still and a cursor moves through it, which
@@ -404,12 +423,11 @@ func _rebuild_standing(a_queue: ProductionQueue) -> void:
 			card.set_badge("▸", TEXT_COLOR)
 		_apply_affinity(card, run.front() as PurchaseTransaction)
 
+
 ## Per-chip state that is not the fill bar: the blocker glyph (only when actually blocked)
 ## and the affinity dimming.
 func _apply_chip_state(
-	a_card: CommandableCard,
-	a_transaction: PurchaseTransaction,
-	a_queue: ProductionQueue
+	a_card: CommandableCard, a_transaction: PurchaseTransaction, a_queue: ProductionQueue
 ) -> void:
 	if a_transaction.kind == PurchaseTransaction.Kind.BUILD and a_transaction.is_funded():
 		a_card.set_glyph(GLYPH_IN_TRANSIT, COLOR_IN_TRANSIT)
@@ -420,6 +438,7 @@ func _apply_chip_state(
 			ProductionQueue.Blocker.NO_FREE_PRODUCER:
 				a_card.set_glyph(GLYPH_NO_PRODUCER, COLOR_NO_PRODUCER)
 	_apply_affinity(a_card, a_transaction)
+
 
 ## Dim a chip that cannot land on anything currently selected.
 ##
@@ -447,12 +466,14 @@ func _apply_affinity(a_card: CommandableCard, a_transaction: PurchaseTransaction
 	if selection_has_producer and not selection_can_take:
 		a_card.modulate = UNRELATED_MODULATE
 
+
 ## The head's live text: how much of the price is banked, and what it is waiting on.
 func _refresh_head_text(a_queue: ProductionQueue) -> void:
 	if not _head_panel.visible or commander == null:
 		return
-	var head: PurchaseTransaction = a_queue.queued().front() if not a_queue.queued().is_empty() \
-		else null
+	var head: PurchaseTransaction = (
+		a_queue.queued().front() if not a_queue.queued().is_empty() else null
+	)
 	if head == null:
 		return
 
@@ -465,8 +486,11 @@ func _refresh_head_text(a_queue: ProductionQueue) -> void:
 			_head_detail.text = "paid  ·  no free producer"
 			_head_blocker.visible = false
 			return
-		_head_detail.text = "paid  ·  waiting on its builder" \
-			if head.kind == PurchaseTransaction.Kind.BUILD else "paid  ·  starting"
+		_head_detail.text = (
+			"paid  ·  waiting on its builder"
+			if head.kind == PurchaseTransaction.Kind.BUILD
+			else "paid  ·  starting"
+		)
 		_head_blocker.visible = false
 		return
 
@@ -483,7 +507,10 @@ func _refresh_head_text(a_queue: ProductionQueue) -> void:
 		ProductionQueue.Blocker.NO_FREE_PRODUCER:
 			_head_blocker.text = "no free producer"
 			_head_blocker.add_theme_color_override("font_color", COLOR_NO_PRODUCER)
+
+
 #endregion
+
 
 #region Construction helpers
 func _build_head_panel(a_parent: Node) -> void:
@@ -525,6 +552,7 @@ func _build_head_panel(a_parent: Node) -> void:
 
 	a_parent.add_child(_head_panel)
 
+
 func _build_standing_divider(a_parent: Node) -> void:
 	_standing_divider = HBoxContainer.new()
 	_standing_divider.name = "StandingDivider"
@@ -556,6 +584,7 @@ func _build_standing_divider(a_parent: Node) -> void:
 
 	a_parent.add_child(_standing_divider)
 
+
 ## The chip standing in for everything past the cap. Not a CommandableCard: it represents no
 ## single purchase, so it has no icon, no bar and nothing to cancel.
 func _make_overflow_chip(a_count: int) -> Control:
@@ -575,12 +604,14 @@ func _make_overflow_chip(a_count: int) -> Control:
 	chip.add_child(label)
 	return chip
 
+
 func _make_label(a_font_size: int, a_color: Color) -> Label:
 	var label := Label.new()
 	label.add_theme_font_size_override("font_size", a_font_size)
 	label.add_theme_color_override("font_color", a_color)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
+
 
 func _make_clear_button(a_simple: String, a_verbose: String) -> Button:
 	var button := VerboseTooltipButton.new()
@@ -595,7 +626,10 @@ func _make_clear_button(a_simple: String, a_verbose: String) -> Button:
 	button.simple_tooltip = a_simple
 	button.verbose_tooltip = a_verbose
 	return button
+
+
 #endregion
+
 
 #region Private helpers
 ## Group ADJACENT entries of the same piece into runs. Adjacency is the whole constraint:
@@ -605,14 +639,17 @@ static func _collapse_runs(transactions: Array) -> Array:
 	var runs: Array = []
 	var current: Array = []
 	for transaction: PurchaseTransaction in transactions:
-		if not current.is_empty() \
-				and (current.front() as PurchaseTransaction).type != transaction.type:
+		if (
+			not current.is_empty()
+			and (current.front() as PurchaseTransaction).type != transaction.type
+		):
 			runs.append(current)
 			current = []
 		current.append(transaction)
 	if not current.is_empty():
 		runs.append(current)
 	return runs
+
 
 func _blocker_color(a_blocker: ProductionQueue.Blocker) -> Color:
 	match a_blocker:
@@ -622,13 +659,16 @@ func _blocker_color(a_blocker: ProductionQueue.Blocker) -> Color:
 			return COLOR_NO_PRODUCER
 	return DIVIDER_COLOR
 
+
 func _on_clear_queued_pressed() -> void:
 	if _queue() != null:
 		_queue().clear_queued()
 
+
 func _on_clear_standing_pressed() -> void:
 	if _queue() != null:
 		_queue().clear_standing()
+
 
 ## Detaches children immediately (so they aren't laid out for a stale frame) and frees them.
 func _clear(a_container: Node) -> void:

@@ -3,7 +3,7 @@ extends GutTest
 ## AGGRO ASKS THE PHYSICS QUERY FOR HOSTILES ONLY.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_AggroIgnoresAllies.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_AggroIgnoresAllies.gd -gexit
 ##
 ## The aggro query is capped (Commandable.AGGRO_SCAN_MAX_RESULTS) before any script filter
 ## runs, and a physics query is not nearest-first, so when it returned allies too a crowd of
@@ -77,8 +77,11 @@ func test_hostile_mask_is_every_side_but_the_askers_own() -> void:
 			assert_eq(mask & CollisionLayers.side_bits(layer, id), 0, "own side excluded")
 			for other: int in range(1, Commander.NUM_MAX_COMMANDERS + 1):
 				if other != id:
-					assert_ne(mask & CollisionLayers.side_bits(layer, other), 0,
-						"side %d is hostile to %d" % [other, id])
+					assert_ne(
+						mask & CollisionLayers.side_bits(layer, other),
+						0,
+						"side %d is hostile to %d" % [other, id]
+					)
 
 
 func test_neutral_has_no_side() -> void:
@@ -99,8 +102,7 @@ func test_a_target_body_carries_its_owners_side_and_follows_a_capture() -> void:
 func test_allies_never_fill_the_aggro_scan() -> void:
 	var pair: Array = await _crowd(_commander(OWN))
 	var shooter: Commandable = pair[0]
-	var found: Array[Entity] = shooter.hostiles_in_aggro(
-		Commandable.AGGRO_SCAN_MAX_RESULTS)
+	var found: Array[Entity] = shooter.hostiles_in_aggro(Commandable.AGGRO_SCAN_MAX_RESULTS)
 	assert_eq(found.size(), 1, "no ally comes back from the query")
 	assert_true(found.has(pair[1]))
 	var cmd: MoveCommand = shooter.get_aggro_near_position()

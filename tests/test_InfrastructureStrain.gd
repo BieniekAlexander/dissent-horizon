@@ -52,6 +52,7 @@ func _with_pool(a_piece: Commandable) -> Abilities:
 
 # --- Who goes dark -----------------------------------------------------------------
 
+
 func test_a_structure_is_unpowered_while_its_commander_is_strained() -> void:
 	var turret := _piece(TURRET_SCENE)
 	assert_false(turret.is_unpowered(), "powered while the network covers it")
@@ -75,6 +76,7 @@ func test_an_unowned_structure_is_never_unpowered() -> void:
 
 # --- Weapons -----------------------------------------------------------------------
 
+
 func test_an_unpowered_structure_cannot_use_its_weapons() -> void:
 	var turret := _piece(TURRET_SCENE)
 	assert_true(turret.can_use_weapons(), "armed while powered")
@@ -91,6 +93,7 @@ func test_closing_the_shortfall_switches_the_weapons_back_on() -> void:
 
 
 # --- Abilities ---------------------------------------------------------------------
+
 
 func test_an_unpowered_pool_is_not_operational() -> void:
 	var pool := _with_pool(_piece(TURRET_SCENE))
@@ -130,8 +133,7 @@ func test_the_refusal_names_the_shortfall_rather_than_a_cooldown() -> void:
 	var message := CommandMessage.new(null, null, null, Vector3.ZERO)
 	message.ability_type = POOLED_ABILITY
 	assert_eq(
-		Ability.meets_precondition(turret, message),
-		MoveCommand.PreconditionFailureCause.UNPOWERED
+		Ability.meets_precondition(turret, message), MoveCommand.PreconditionFailureCause.UNPOWERED
 	)
 
 
@@ -145,6 +147,5 @@ func test_the_refusal_is_not_deferred_by_the_additive_modifier() -> void:
 	message.ability_type = POOLED_ABILITY
 	message.defer_if_unaffordable = true
 	assert_eq(
-		Ability.meets_precondition(turret, message),
-		MoveCommand.PreconditionFailureCause.UNPOWERED
+		Ability.meets_precondition(turret, message), MoveCommand.PreconditionFailureCause.UNPOWERED
 	)

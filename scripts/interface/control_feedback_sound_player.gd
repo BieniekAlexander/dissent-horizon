@@ -10,6 +10,7 @@ static var _ATTACK_COMMAND_TYPES: Array[Script] = [Attack, AttackMove]
 @onready var _audio: AudioStreamPlayer = $AudioStreamPlayer
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	# Orders can still be issued while a SimulationClock hold pauses the world, so their
@@ -18,18 +19,24 @@ func _ready() -> void:
 	var controller := get_parent().find_child("Controller") as RTSController
 	controller.unit_selected.connect(_on_unit_selected)
 	controller.command_issued.connect(_on_command_issued)
+
+
 #endregion
+
 
 #region Private helpers
 func _on_unit_selected(a_entity: Entity) -> void:
 	_play(a_entity, ControlFeedbackSounds.LineType.SELECTED)
 
+
 func _on_command_issued(a_entity: Entity, a_command_type: Script) -> void:
 	var line_type: ControlFeedbackSounds.LineType = (
-		ControlFeedbackSounds.LineType.ISSUED_ATTACK if a_command_type in _ATTACK_COMMAND_TYPES
+		ControlFeedbackSounds.LineType.ISSUED_ATTACK
+		if a_command_type in _ATTACK_COMMAND_TYPES
 		else ControlFeedbackSounds.LineType.ISSUED_COMMAND
 	)
 	_play(a_entity, line_type)
+
 
 func _play(a_entity: Entity, a_line_type: ControlFeedbackSounds.LineType) -> void:
 	# Structures (and any other entity with no entry) have no lines at all, by

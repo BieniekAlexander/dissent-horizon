@@ -43,7 +43,9 @@ func arm(a_manager: ScenarioTriggerManager) -> void:
 			continue
 		if condition is RegionAwareCondition:
 			var region_aware := condition as RegionAwareCondition
-			region_aware.bind_region(rule.get_node_or_null(region_aware.region_shape_path) as CollisionShape3D)
+			region_aware.bind_region(
+				rule.get_node_or_null(region_aware.region_shape_path) as CollisionShape3D
+			)
 			region_aware.warn_about_missing_region(String(rule.name))
 		condition.arm(a_manager)
 

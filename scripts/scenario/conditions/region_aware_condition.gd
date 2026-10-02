@@ -23,6 +23,7 @@ extends Condition
 var _region: CollisionShape3D = null
 #endregion
 
+
 #region Region binding (called by the owning GlobalTrigger)
 ## Inject the resolved region node (or null). The trigger calls this during arm() after
 ## resolving region_shape_path against itself.
@@ -53,15 +54,23 @@ func warn_about_missing_region(a_owner_name: String) -> void:
 		return
 	if not region_shape_path.is_empty():
 		push_warning(
-			"%s: region_shape_path '%s' did not resolve to a CollisionShape3D. The check will "
-			% [a_owner_name, region_shape_path]
-			+ "match ANYWHERE on the map. Paths are relative to the trigger node."
+			(
+				(
+					"%s: region_shape_path '%s' did not resolve to a CollisionShape3D. The check will "
+					% [a_owner_name, region_shape_path]
+				)
+				+ "match ANYWHERE on the map. Paths are relative to the trigger node."
+			)
 		)
 	elif _region_is_required():
 		push_warning(
-			"%s: %s needs a region but region_shape_path is empty, so it will match ANYWHERE "
-			% [a_owner_name, _class_label()]
-			+ "on the map. Add a CollisionShape3D child and point the path at it."
+			(
+				(
+					"%s: %s needs a region but region_shape_path is empty, so it will match ANYWHERE "
+					% [a_owner_name, _class_label()]
+				)
+				+ "on the map. Add a CollisionShape3D child and point the path at it."
+			)
 		)
 
 
@@ -69,7 +78,10 @@ func warn_about_missing_region(a_owner_name: String) -> void:
 func _class_label() -> String:
 	var script: Script = get_script()
 	return String(script.get_global_name()) if script != null else "condition"
+
+
 #endregion
+
 
 #region Containment
 ## True if the world position falls within the bound region. With no region bound, there is
@@ -99,7 +111,10 @@ func region_contains(a_world_pos: Vector3) -> bool:
 	# Fallback: axis-aligned bounds of whatever shape this is.
 	var aabb: AABB = shape.get_debug_mesh().get_aabb()
 	return absf(lxz.x) <= aabb.size.x * 0.5 and absf(lxz.y) <= aabb.size.z * 0.5
+
+
 #endregion
+
 
 #region Player-facing description (highlights)
 ## The bound region's footprint — the same XZ prism region_contains() tests, so what the

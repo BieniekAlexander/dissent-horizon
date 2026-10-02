@@ -10,11 +10,12 @@ extends GutTest
 ## exactly the capability gap the rule exists for.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_UnitTransformation.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_UnitTransformation.gd -gexit
 
 ## One piece that builds and one that does not.
 var IRREGULAR: Dictionary:
-	get: return {"speed": 2.0, "builds": [FakePieces.a_buildable_type()]}
+	get:
+		return {"speed": 2.0, "builds": [FakePieces.a_buildable_type()]}
 const WARLORD: Dictionary = {"speed": 2.0}
 
 
@@ -33,6 +34,7 @@ func _message() -> CommandMessage:
 
 # --- The name mapping the rule is built on --------------------------------------
 
+
 func test_a_command_reports_the_name_the_rules_table_uses() -> void:
 	# CommandContextParser.commands_for speaks in names; a live command has to be
 	# translatable into one or the capability question cannot be asked at all.
@@ -50,12 +52,16 @@ func test_an_unnamed_command_is_treated_as_portable() -> void:
 
 # --- Capability -----------------------------------------------------------------
 
+
 func test_a_warlord_cannot_build_but_an_irregular_can() -> void:
 	var build := Build.new(_message())
-	assert_true(CommandContextParser.actor_can_perform(_unit(IRREGULAR), build),
-		"the Irregular carries a Builds component")
-	assert_false(CommandContextParser.actor_can_perform(_unit(WARLORD), build),
-		"the Warlord does not")
+	assert_true(
+		CommandContextParser.actor_can_perform(_unit(IRREGULAR), build),
+		"the Irregular carries a Builds component"
+	)
+	assert_false(
+		CommandContextParser.actor_can_perform(_unit(WARLORD), build), "the Warlord does not"
+	)
 
 
 func test_both_can_move() -> void:
@@ -65,6 +71,7 @@ func test_both_can_move() -> void:
 
 
 # --- The chain ------------------------------------------------------------------
+
 
 func _queue(a_unit: Commandable, a_commands: Array[MoveCommand]) -> void:
 	a_unit.command_receiver.update_commands(a_commands)
@@ -81,9 +88,14 @@ func test_the_chain_truncates_at_the_first_impossible_command() -> void:
 	# Move, Build, Move — the Warlord keeps only the leading Move. The Move AFTER the
 	# Build is dropped too: it was issued expecting the building to exist.
 	var irregular := _unit(IRREGULAR)
-	_queue(irregular, [
-		MoveCommand.new(_message()), Build.new(_message()), MoveCommand.new(_message()),
-	])
+	_queue(
+		irregular,
+		[
+			MoveCommand.new(_message()),
+			Build.new(_message()),
+			MoveCommand.new(_message()),
+		]
+	)
 	var carried := irregular.command_receiver.portable_chain_for(_unit(WARLORD))
 	assert_eq(carried.size(), 1, "everything from the Build onward is dropped")
 	assert_true(carried[0] is MoveCommand)

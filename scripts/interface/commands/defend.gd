@@ -1,11 +1,13 @@
 class_name Defend
 extends MoveCommand
 
+
 ## This order exists in order to shoot, so an empty charged loadout makes it undoable for
 ## now. The receiver stands it down into the queue rather than have the unit fly at
 ## something it cannot touch — it resumes once the unit has been back to an airfield.
 func requires_ammo() -> bool:
 	return true
+
 
 ## A Defend order considers EVERY enemy structure, unarmed ones included, on top of what
 ## other orders pick up (which stop at NON_COMBAT_UNITS). Set here rather than by whoever
@@ -16,9 +18,11 @@ func requires_ammo() -> bool:
 ## every enemy structure.
 const TARGET_PRIORITY_FLOOR: Entity.TargetPriority = Entity.TargetPriority.NON_COMBAT_STRUCTURES
 
+
 func _init(a_message: CommandMessage) -> void:
 	super(a_message)
 	message.target_priority = TARGET_PRIORITY_FLOOR
+
 
 #region State updates
 ## Set once the unit first reaches its post, and cleared only if the post itself moves.
@@ -31,6 +35,7 @@ func _init(a_message: CommandMessage) -> void:
 ## orbit owns the unit from the moment it arrives and holds it at orbit_speed, which is the
 ## same circuit an idle aircraft flies.
 var _on_station: bool = false
+
 
 func can_act(a_actor: Commandable) -> bool:
 	# "Arrived at post": hold here and keep guarding. Reuses the nav agent's own arrival
@@ -46,6 +51,7 @@ func can_act(a_actor: Commandable) -> bool:
 		_on_station = true
 	return _on_station
 
+
 func should_move(a_actor: Commandable) -> bool:
 	# Travel to post exactly like a plain move: drive until the nav agent reports arrival.
 	# While the post isn't yet loaded as the destination, keep moving so the receiver loads
@@ -55,6 +61,7 @@ func should_move(a_actor: Commandable) -> bool:
 	if not a_actor.movement.target_position.is_equal_approx(message.position):
 		return true
 	return not _on_station
+
 
 func get_updated_state(a_actor: Commandable) -> Variant:
 	# Scan for threats around the DEFENDED REGION — the shared aggro_shape at its own world
@@ -70,7 +77,9 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 		a_center = message.target
 	else:
 		a_center = message.position
-	var new_command: MoveCommand = a_actor.get_aggro_near_position(a_center, message.aggro_shape, message.target_priority)
+	var new_command: MoveCommand = a_actor.get_aggro_near_position(
+		a_center, message.aggro_shape, message.target_priority
+	)
 	if new_command != null:
 		_leash_to_defended_area(a_actor, new_command)
 	return new_command if new_command != null else self
@@ -96,6 +105,7 @@ func _post_position() -> Vector3:
 	if message.target != null and is_instance_valid(message.target):
 		return message.target.global_position
 	return message.position
+
 
 func fulfill_action(_a_actor: Commandable) -> Variant:
 	return self

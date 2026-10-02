@@ -46,16 +46,17 @@ const UNLOCKS_TO_OPEN_NEXT_TIER: int = 2
 ## one of these — it is asked separately (can_afford), because the remedies differ
 ## completely: a closed gate needs other unlocks, a price needs time.
 enum Requirement {
-	MET,             ## unlockable now, dominion permitting
-	ALREADY_OWNED,   ## nothing left to buy
-	PARENT_LOCKED,   ## the family it continues has not been taken this far
-	TIER_LOCKED,     ## too few unlocks owned in the tier above it
+	MET,  ## unlockable now, dominion permitting
+	ALREADY_OWNED,  ## nothing left to buy
+	PARENT_LOCKED,  ## the family it continues has not been taken this far
+	TIER_LOCKED,  ## too few unlocks owned in the tier above it
 }
+
 
 ## One grid cell plus this commander's ownership state for it.
 class Entry:
 	var unlock: SanctionUnlock  ## shared authored template (slot, parent, cost)
-	var sanction: Sanction      ## live per-commander instance (duplicated)
+	var sanction: Sanction  ## live per-commander instance (duplicated)
 	var owned: bool = false
 
 	func tier() -> int:
@@ -64,13 +65,14 @@ class Entry:
 	func column() -> int:
 		return unlock.column
 
+
 var _commander: Commander
 ## Every cell that survived validation. Iteration order is authored order; anything
 ## that cares about the LAYOUT reads the grid (tier_entries / cell) instead.
 var entries: Array[Entry] = []
-var _by_unlock: Dictionary = {}     ## SanctionUnlock -> Entry, for parent lookups
-var _children: Dictionary = {}      ## SanctionUnlock -> Array[Entry] that supersede it
-var _grid: Array[Array] = []        ## [tier][column] -> Entry or null
+var _by_unlock: Dictionary = {}  ## SanctionUnlock -> Entry, for parent lookups
+var _children: Dictionary = {}  ## SanctionUnlock -> Array[Entry] that supersede it
+var _grid: Array[Array] = []  ## [tier][column] -> Entry or null
 
 
 func _init(a_commander: Commander, a_unlocks: Array) -> void:
@@ -126,6 +128,8 @@ func used_columns() -> int:
 	for entry: Entry in entries:
 		width = maxi(width, entry.column() + 1)
 	return width
+
+
 #endregion
 
 
@@ -201,8 +205,11 @@ func cheapest_available_cost() -> int:
 	var cheapest: int = -1
 	for entry: Entry in entries:
 		if is_available(entry):
-			cheapest = entry.unlock.dominion_cost if cheapest < 0 \
+			cheapest = (
+				entry.unlock.dominion_cost
+				if cheapest < 0
 				else mini(cheapest, entry.unlock.dominion_cost)
+			)
 	return cheapest
 
 
@@ -214,6 +221,8 @@ func try_unlock(a_entry: Entry) -> bool:
 	_commander.add_dominion(-a_entry.unlock.dominion_cost)
 	a_entry.owned = true
 	return true
+
+
 #endregion
 
 
@@ -298,6 +307,8 @@ func deployable_sanctions() -> Array[Sanction]:
 		if is_deployable(entry):
 			out.append(entry.sanction)
 	return out
+
+
 #endregion
 
 
@@ -343,20 +354,29 @@ func _children_of(a_unlock: SanctionUnlock) -> Array:
 func _slot_is_usable(a_unlock: SanctionUnlock) -> bool:
 	var label: String = a_unlock.sanction.sanction_name
 	if a_unlock.tier < 0 or a_unlock.tier >= NUM_TIERS:
-		push_error("SanctionGrid: '%s' sits in tier %d, outside [0, %d) — dropped." % [
-			label, a_unlock.tier, NUM_TIERS
-		])
+		push_error(
+			(
+				"SanctionGrid: '%s' sits in tier %d, outside [0, %d) — dropped."
+				% [label, a_unlock.tier, NUM_TIERS]
+			)
+		)
 		return false
 	if a_unlock.column < 0 or a_unlock.column >= NUM_COLUMNS:
-		push_error("SanctionGrid: '%s' sits in column %d, outside [0, %d) — dropped." % [
-			label, a_unlock.column, NUM_COLUMNS
-		])
+		push_error(
+			(
+				"SanctionGrid: '%s' sits in column %d, outside [0, %d) — dropped."
+				% [label, a_unlock.column, NUM_COLUMNS]
+			)
+		)
 		return false
 	var sitting: Entry = _grid[a_unlock.tier][a_unlock.column]
 	if sitting != null:
-		push_error("SanctionGrid: '%s' and '%s' both claim cell (tier %d, column %d) — '%s' dropped." % [
-			sitting.sanction.sanction_name, label, a_unlock.tier, a_unlock.column, label
-		])
+		push_error(
+			(
+				"SanctionGrid: '%s' and '%s' both claim cell (tier %d, column %d) — '%s' dropped."
+				% [sitting.sanction.sanction_name, label, a_unlock.tier, a_unlock.column, label]
+			)
+		)
 		return false
 	return true
 
@@ -383,22 +403,48 @@ func _report_authoring_faults() -> void:
 			continue
 		var label: String = entry.sanction.sanction_name
 		if not _by_unlock.has(parent):
-			push_error("SanctionGrid: '%s' names a parent that is not in the faction's sanction_unlocks — it can never unlock." % label)
+			push_error(
+				(
+					(
+						"SanctionGrid: '%s' names a parent that is not in the faction's "
+						+ "sanction_unlocks — it can never unlock."
+					)
+					% label
+				)
+			)
 			continue
 		if parent.tier >= entry.tier():
-			push_error("SanctionGrid: '%s' (tier %d) names a parent in tier %d — a parent must sit in a strictly lower tier." % [
-				label, entry.tier(), parent.tier
-			])
+			push_error(
+				(
+					(
+						"SanctionGrid: '%s' (tier %d) names a parent in tier %d — a "
+						+ "parent must sit in a strictly lower tier."
+					)
+					% [label, entry.tier(), parent.tier]
+				)
+			)
 		if parent.column != entry.column():
-			push_error("SanctionGrid: '%s' (column %d) names a parent in column %d — a parent must share its child's column." % [
-				label, entry.column(), parent.column
-			])
+			push_error(
+				(
+					(
+						"SanctionGrid: '%s' (column %d) names a parent in column %d — a "
+						+ "parent must share its child's column."
+					)
+					% [label, entry.column(), parent.column]
+				)
+			)
 	# A tier whose predecessor cannot supply UNLOCKS_TO_OPEN_NEXT_TIER never opens, which
 	# walls off every tier below it too.
 	for a_tier: int in range(1, NUM_TIERS):
 		var here: int = tier_entries(a_tier).size()
 		var above: int = tier_entries(a_tier - 1).size()
 		if here > 0 and above < UNLOCKS_TO_OPEN_NEXT_TIER:
-			push_error("SanctionGrid: tier %d holds %d unlocks but tier %d holds only %d — tier %d can never open (needs %d)." % [
-				a_tier, here, a_tier - 1, above, a_tier, UNLOCKS_TO_OPEN_NEXT_TIER
-			])
+			push_error(
+				(
+					(
+						"SanctionGrid: tier %d holds %d unlocks but tier %d holds only "
+						+ "%d — tier %d can never open (needs %d)."
+					)
+					% [a_tier, here, a_tier - 1, above, a_tier, UNLOCKS_TO_OPEN_NEXT_TIER]
+				)
+			)

@@ -91,7 +91,8 @@ func test_no_entity_scene_inherits_another() -> void:
 
 func test_no_entity_scene_declares_two_siblings_of_one_name() -> void:
 	var header: RegEx = RegEx.create_from_string(
-		'^\\[node name="([^"]+)"(?:[^\\]]*? parent="([^"]*)")?')
+		'^\\[node name="([^"]+)"(?:[^\\]]*? parent="([^"]*)")?'
+	)
 	for path: String in _entity_scenes():
 		var seen: Dictionary = {}
 		for line: String in FileAccess.get_file_as_string(path).split("\n"):
@@ -108,6 +109,8 @@ func _root_header(a_text: String) -> String:
 		if line.begins_with("[node "):
 			return line
 	return ""
+
+
 #endregion
 
 
@@ -125,16 +128,17 @@ func test_the_well_known_pieces_keep_their_models_where_they_were() -> void:
 			var names: Array = []
 			for child: Node in visuals[0].get_children():
 				names.append(String(child.name))
-			assert_eq(names, _WELL_KNOWN[path] as Array,
-				"%s: model children, in order" % path)
+			assert_eq(names, _WELL_KNOWN[path] as Array, "%s: model children, in order" % path)
 		inst.free()
 
 
 ## The resolved form of the guard above, for the sample.
 func test_no_sampled_scene_has_two_siblings_of_one_name() -> void:
-	var sample: Array[String] = ["res://scenes/entities/nt_aircraftLight_recon.tscn",
+	var sample: Array[String] = [
+		"res://scenes/entities/nt_aircraftLight_recon.tscn",
 		"res://scenes/entities/structures/nt/nt_extractionSite.tscn",
-		"res://scenes/entities/structures/nt/nt_shelter.tscn"]
+		"res://scenes/entities/structures/nt/nt_shelter.tscn"
+	]
 	sample.append_array(_WELL_KNOWN.keys())
 	for path: String in sample:
 		var inst: Node = _instantiate(path)
@@ -148,8 +152,10 @@ func _assert_names_unique(a_node: Node, a_root: Node, a_path: String) -> void:
 	var seen: Dictionary = {}
 	for child: Node in a_node.get_children():
 		var key: String = String(child.name)
-		assert_false(seen.has(key),
-			"%s: %s has two children called %s" % [a_path, a_root.get_path_to(a_node), key])
+		assert_false(
+			seen.has(key),
+			"%s: %s has two children called %s" % [a_path, a_root.get_path_to(a_node), key]
+		)
 		seen[key] = true
 		_assert_names_unique(child, a_root, a_path)
 #endregion

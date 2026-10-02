@@ -17,7 +17,7 @@ extends GutTest
 ## gdd/tasks.md "CPU Bot Behavior Work" — the navmesh-spawn question, answered 4 + 1.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NavmeshAccessGating.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NavmeshAccessGating.gd -gexit
 
 const PRODUCER_TYPE: StringName = &"fake_producer"
 const PRODUCTION_DIMS: Vector2i = Vector2i(3, 3)
@@ -26,8 +26,9 @@ const PRODUCTION_DIMS: Vector2i = Vector2i(3, 3)
 const PLAIN_TYPE: StringName = &"fake_plain"
 const TRAINEE_TYPE: StringName = &"fake_trainee"
 const PLAIN_DIMS: Vector2i = Vector2i(2, 2)
-const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0,
-	"builds": [&"fake_producer", &"fake_plain"]}
+const BUILDER_SCENE: Dictionary = {
+	"speed": 2.0, "vision": 8.0, "builds": [&"fake_producer", &"fake_plain"]
+}
 ## Height-map corner count; the cell grid is one smaller in each axis. Large enough to hold
 ## three well-separated fixtures (a sealed 3x3 pocket, a sealed 2x2 pocket, and a walled
 ## corridor with a gap) with open ground between and around them.
@@ -37,7 +38,9 @@ const GRID_CELLS: int = MAP_CORNERS - 1
 
 ## A Map with a real TerrainGrid (so passability/region answers are real) and a hand-managed
 ## cell grid — the same fixture shape as test_BuildApproach.gd's StubMap.
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		cell_grid = []
 		for x: int in GRID_CELLS:
@@ -51,14 +54,17 @@ class StubMap extends Map:
 		add_child(terrain_grid)
 
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
-		return a_coords.x >= 0 and a_coords.x < GRID_CELLS \
-			and a_coords.y >= 0 and a_coords.y < GRID_CELLS
+		return (
+			a_coords.x >= 0
+			and a_coords.x < GRID_CELLS
+			and a_coords.y >= 0
+			and a_coords.y < GRID_CELLS
+		)
 
 
 var _world: Node3D
 var _map: StubMap
 var _commander: Commander
-
 
 var PRODUCTION_TOOL: Tool
 var PLAIN_TOOL: Tool
@@ -79,14 +85,22 @@ func before_each() -> void:
 	add_child_autofree(_world)
 	_commander.map = _map
 	_commander.add_energy(10000)
-	_commander.technology_mapping = {PRODUCER_TYPE: FakePieces.tech(), PLAIN_TYPE: FakePieces.tech(),
-		TRAINEE_TYPE: FakePieces.tech()}
-	PRODUCTION_TOOL = FakePieces.register_tool(FakePieces.tool(PRODUCER_TYPE,
-		{"structure": true, "production": true, "dimensions": PRODUCTION_DIMS}))
-	PLAIN_TOOL = FakePieces.register_tool(FakePieces.tool(PLAIN_TYPE,
-		{"structure": true, "dimensions": PLAIN_DIMS}))
-	TRAIN_TOOL = FakePieces.register_tool(FakePieces.tool(TRAINEE_TYPE, FakePieces.PLAIN, [],
-		ControlBinding.ControlContext.TRAIN))
+	_commander.technology_mapping = {
+		PRODUCER_TYPE: FakePieces.tech(),
+		PLAIN_TYPE: FakePieces.tech(),
+		TRAINEE_TYPE: FakePieces.tech()
+	}
+	PRODUCTION_TOOL = FakePieces.register_tool(
+		FakePieces.tool(
+			PRODUCER_TYPE, {"structure": true, "production": true, "dimensions": PRODUCTION_DIMS}
+		)
+	)
+	PLAIN_TOOL = FakePieces.register_tool(
+		FakePieces.tool(PLAIN_TYPE, {"structure": true, "dimensions": PLAIN_DIMS})
+	)
+	TRAIN_TOOL = FakePieces.register_tool(
+		FakePieces.tool(TRAINEE_TYPE, FakePieces.PLAIN, [], ControlBinding.ControlContext.TRAIN)
+	)
 	_commander.set_physics_process(false)
 
 
@@ -113,9 +127,7 @@ func _make_map() -> StubMap:
 ## disturbs, so it holds for both odd and even dims.
 func _world_for_origin(a_origin: Vector2i, a_dims: Vector2i) -> Vector3:
 	var half: float = (MAP_CORNERS - 1) * 0.5
-	return Vector3(
-		a_origin.x + a_dims.x * 0.5 - half, 0.0, a_origin.y + a_dims.y * 0.5 - half
-	)
+	return Vector3(a_origin.x + a_dims.x * 0.5 - half, 0.0, a_origin.y + a_dims.y * 0.5 - half)
 
 
 func _rect(a_origin: Vector2i, a_dims: Vector2i) -> Array[Vector2i]:
@@ -165,8 +177,11 @@ func _register_producer(a_origin: Vector2i, a_dims: Vector2i, a_trainee: StringN
 
 # ─── COMMANDABLE.HAS_NAVMESH_ACCESS ─────────────────────────────────────────
 
+
 func test_has_navmesh_access_is_true_with_no_map() -> void:
-	var producer: Commandable = FakePieces.structure({"production": true, "dimensions": PRODUCTION_DIMS})
+	var producer: Commandable = FakePieces.structure(
+		{"production": true, "dimensions": PRODUCTION_DIMS}
+	)
 	add_child_autofree(producer)
 	assert_true(producer.has_navmesh_access(), "nothing to ask, so nothing to refuse")
 
@@ -184,6 +199,7 @@ func test_has_navmesh_access_is_false_for_a_sealed_footprint() -> void:
 
 
 # ─── TRAIN — REFUSES A PRODUCER THE GRID SHOWS IS SEALED IN ────────────────
+
 
 func test_train_refuses_at_a_sealed_producer() -> void:
 	var origin := Vector2i(10, 10)
@@ -208,12 +224,16 @@ func test_train_allows_an_open_producer() -> void:
 
 # ─── BUILD — RULE 2, SCOPED TO A PRODUCTION STRUCTURE ──────────────────────
 
+
 func test_build_refuses_a_production_structure_with_no_exposed_side() -> void:
 	var origin := Vector2i(10, 10)
 	_seal_pocket(origin, PRODUCTION_DIMS)
 	var at: Vector3 = _world_for_origin(origin, PRODUCTION_DIMS)
-	assert_eq(_map.footprint_cells(Vector2(at.x, at.z), PRODUCTION_DIMS), _rect(origin, PRODUCTION_DIMS),
-		"guards the fixture: the world position must resolve to the sealed origin")
+	assert_eq(
+		_map.footprint_cells(Vector2(at.x, at.z), PRODUCTION_DIMS),
+		_rect(origin, PRODUCTION_DIMS),
+		"guards the fixture: the world position must resolve to the sealed origin"
+	)
 	var builder := _make_builder()
 	assert_eq(
 		Build.meets_precondition(builder, CommandMessage.new(_map, null, PRODUCTION_TOOL, at)),
@@ -228,8 +248,11 @@ func test_build_allows_a_non_production_structure_with_no_exposed_side() -> void
 	var origin := Vector2i(20, 20)
 	_seal_pocket(origin, PLAIN_DIMS)
 	var at: Vector3 = _world_for_origin(origin, PLAIN_DIMS)
-	assert_eq(_map.footprint_cells(Vector2(at.x, at.z), PLAIN_DIMS), _rect(origin, PLAIN_DIMS),
-		"guards the fixture")
+	assert_eq(
+		_map.footprint_cells(Vector2(at.x, at.z), PLAIN_DIMS),
+		_rect(origin, PLAIN_DIMS),
+		"guards the fixture"
+	)
 	var builder := _make_builder()
 	assert_eq(
 		Build.meets_precondition(builder, CommandMessage.new(_map, null, PLAIN_TOOL, at)),
@@ -238,6 +261,7 @@ func test_build_allows_a_non_production_structure_with_no_exposed_side() -> void
 
 
 # ─── BUILD — RULE 1, EVERY STRUCTURE ────────────────────────────────────────
+
 
 func test_build_refuses_a_placement_that_seals_a_corridor() -> void:
 	# A wall two cells thick at x = 30..31, open only at z = 15..16 — the one route between
@@ -248,11 +272,17 @@ func test_build_refuses_a_placement_that_seals_a_corridor() -> void:
 			if z >= 15 and z <= 16:
 				continue  # the gap
 			_map.terrain_grid.set_blocked(Vector2i(x, z), true)
-	assert_eq(_map.terrain_grid.component_at(Vector2i(0, 15)), _map.terrain_grid.component_at(Vector2i(38, 15)),
-		"guards the fixture: the gap must actually join the two halves")
+	assert_eq(
+		_map.terrain_grid.component_at(Vector2i(0, 15)),
+		_map.terrain_grid.component_at(Vector2i(38, 15)),
+		"guards the fixture: the gap must actually join the two halves"
+	)
 	var at: Vector3 = _world_for_origin(gap_origin, PLAIN_DIMS)
-	assert_eq(_map.footprint_cells(Vector2(at.x, at.z), PLAIN_DIMS), _rect(gap_origin, PLAIN_DIMS),
-		"guards the fixture")
+	assert_eq(
+		_map.footprint_cells(Vector2(at.x, at.z), PLAIN_DIMS),
+		_rect(gap_origin, PLAIN_DIMS),
+		"guards the fixture"
+	)
 	var builder := _make_builder()
 	assert_eq(
 		Build.meets_precondition(builder, CommandMessage.new(_map, null, PLAIN_TOOL, at)),

@@ -12,6 +12,7 @@ extends StatusEffect
 
 @export_range(0.0, 1.0, 0.01) var slow_multiplier: float = 0.5
 
+
 func _on_apply() -> void:
 	# Applied with the initial stack count (1 on a fresh apply).
 	_apply_factor(_stacks)

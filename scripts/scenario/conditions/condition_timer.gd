@@ -36,6 +36,7 @@ var _start_tick: int = -1
 var _target_ticks: int = -1
 #endregion
 
+
 #region Authoring
 ## Reported through the owning GlobalTrigger's configuration warnings (see Condition), so a
 ## mistyped interval shows up in the Scene dock instead of silently running for
@@ -44,8 +45,11 @@ func configuration_warning() -> String:
 	var problem: String = ScenarioExpression.validation_error(seconds_expression)
 	if problem.is_empty():
 		return ""
-	return "Seconds Expression \"%s\" %s" % [seconds_expression, problem]
+	return 'Seconds Expression "%s" %s' % [seconds_expression, problem]
+
+
 #endregion
+
 
 #region Migration
 ## Migrate sub-resources authored against the old float `seconds` export — the same set()
@@ -57,7 +61,10 @@ func _set(a_property: StringName, a_value: Variant) -> bool:
 			seconds_expression = str(a_value)
 		return true
 	return false
+
+
 #endregion
+
 
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:

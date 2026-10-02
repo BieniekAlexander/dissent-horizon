@@ -35,6 +35,7 @@ const _SHADE_RAMP_END: float = 1.5
 const GROUND_CLEARANCE: float = 0.06
 #endregion
 
+
 #region Public API
 ## The water plane for `a_basin` over `a_terrain`, or null when the basin covers nothing.
 ##
@@ -102,8 +103,6 @@ static func build(a_basin: WaterBasin, a_terrain: TerrainData) -> ArrayMesh:
 ## rather than against the two literals.
 static func shade_factor(a_depth: float) -> float:
 	return smoothstep(
-		WaterBasin.WADE_DEPTH * _SHADE_RAMP_START,
-		WaterBasin.WADE_DEPTH * _SHADE_RAMP_END,
-		a_depth
+		WaterBasin.WADE_DEPTH * _SHADE_RAMP_START, WaterBasin.WADE_DEPTH * _SHADE_RAMP_END, a_depth
 	)
 #endregion

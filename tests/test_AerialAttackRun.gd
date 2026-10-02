@@ -13,16 +13,25 @@ extends GutTest
 
 ## Every piece is a fake (tests/_fake_pieces.gd).
 ## A fixed wing: flies, shoots ground and air from range, carries a charged clip, docks.
-const DRAKE: Dictionary = {"aerial": true, "flying": true, "vision": 10.0, "docking": true,
-	"weapon": {"ground": 12.0, "air": 12.0, "clip_size": 4, "charged": true}}
+const DRAKE: Dictionary = {
+	"aerial": true,
+	"flying": true,
+	"vision": 10.0,
+	"docking": true,
+	"weapon": {"ground": 12.0, "air": 12.0, "clip_size": 4, "charged": true}
+}
 ## Rams: a flier whose reach is next to nothing.
-const KAMIKAZE: Dictionary = {"aerial": true, "flying": true, "vision": 10.0,
-	"weapon": {"ground": 0.5, "air": 0.5}}
-const TANK: Dictionary = {"speed": 2.0, "vision": 8.0, "frame": Defense.FrameType.MECH,
-	"weapon": {"ground": 6.0}}
+const KAMIKAZE: Dictionary = {
+	"aerial": true, "flying": true, "vision": 10.0, "weapon": {"ground": 0.5, "air": 0.5}
+}
+const TANK: Dictionary = {
+	"speed": 2.0, "vision": 8.0, "frame": Defense.FrameType.MECH, "weapon": {"ground": 6.0}
+}
 ## A gunship: hovers, holds station to shoot.
 const CLIPPER: Dictionary = {"aerial": true, "vision": 10.0, "weapon": {"ground": 6.0}}
 const SAM: Dictionary = {"structure": true, "weapon": {"air": 8.0}}
+
+
 func _commander(a_id: int) -> Commander:
 	var c := Commander.new()
 	c.id = a_id
@@ -66,8 +75,10 @@ func test_a_ranged_aircraft_never_waits_to_descend() -> void:
 	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
 	assert_false(weapon.is_melee_ranged(tank), "the Drake shoots, it does not ram")
 	assert_eq(plane.aerial.height_offset(), Aerial.AERIAL_HEIGHT, "and it is up at cruise")
-	assert_true(_attack(plane, tank)._dive_contact_made(plane, weapon),
-		"which is no reason at all to withhold its rockets")
+	assert_true(
+		_attack(plane, tank)._dive_contact_made(plane, weapon),
+		"which is no reason at all to withhold its rockets"
+	)
 
 
 ## The airframe the gate exists for still has it.
@@ -76,11 +87,15 @@ func test_a_ramming_aircraft_must_come_down_first() -> void:
 	var drone: Commandable = _entity(KAMIKAZE, cmd)
 	var tank: Commandable = _entity(TANK, _commander(2))
 	var weapon: Weapon = drone.weapon_inventory.get_weapons()[0]
-	assert_true(weapon.is_melee_ranged(tank),
-		"the kamikaze rams — which its REACH says, rather than a flag beside it")
+	assert_true(
+		weapon.is_melee_ranged(tank),
+		"the kamikaze rams — which its REACH says, rather than a flag beside it"
+	)
 	var order: Attack = _attack(drone, tank)
-	assert_false(order._dive_contact_made(drone, weapon),
-		"six units up is not contact, however close it is horizontally")
+	assert_false(
+		order._dive_contact_made(drone, weapon),
+		"six units up is not contact, however close it is horizontally"
+	)
 	drone.aerial._current_height_offset = 0.1
 	assert_true(order._dive_contact_made(drone, weapon), "on the deck it connects")
 
@@ -93,6 +108,8 @@ func test_a_ramming_aircraft_does_not_dive_at_an_air_target() -> void:
 	var other: Commandable = _entity(DRAKE, _commander(2))
 	var weapon: Weapon = drone.weapon_inventory.get_weapons()[0]
 	assert_true(_attack(drone, other)._dive_contact_made(drone, weapon))
+
+
 #endregion
 
 
@@ -117,10 +134,12 @@ func test_a_gunship_still_stops_to_shoot() -> void:
 	var tank: Commandable = _entity(TANK, _commander(2))
 	var weapon: Weapon = heli.weapon_inventory.get_weapons()[0]
 	assert_true(SU.is_in_attack_range(weapon, heli, tank))
-	assert_false(_attack(heli, tank).should_move(heli),
-		"HOVERING can hold station, so in range means stop")
-#endregion
+	assert_false(
+		_attack(heli, tank).should_move(heli), "HOVERING can hold station, so in range means stop"
+	)
 
+
+#endregion
 
 
 #region Aiming by flying
@@ -140,10 +159,14 @@ func test_a_fixed_wing_shoots_within_an_arc_not_on_a_hair() -> void:
 	_aim(plane, tank.global_position, 0.2)
 
 	var order: Attack = _attack(plane, tank)
-	assert_false(plane.movement.is_facing(tank.global_position),
-		"the strict test refuses it — this is what grounded the whole mechanic")
-	assert_true(order._is_aimed_at_target(plane),
-		"but an aeroplane aims by flying, and 0.2 degrees is pointing straight at it")
+	assert_false(
+		plane.movement.is_facing(tank.global_position),
+		"the strict test refuses it — this is what grounded the whole mechanic"
+	)
+	assert_true(
+		order._is_aimed_at_target(plane),
+		"but an aeroplane aims by flying, and 0.2 degrees is pointing straight at it"
+	)
 
 
 ## The arc is not a licence to shoot sideways: it still has to be pointing at the thing.
@@ -163,8 +186,10 @@ func test_a_unit_that_can_stop_is_still_held_to_exact_alignment() -> void:
 	var tank: Commandable = _entity(TANK, _commander(2))
 	heli.global_position = Vector3(4.0, Aerial.AERIAL_HEIGHT, 0.0)
 	_aim(heli, tank.global_position, 5.0)
-	assert_false(_attack(heli, tank)._is_aimed_at_target(heli),
-		"a gunship turns to aim, so it waits until the turn has caught up")
+	assert_false(
+		_attack(heli, tank)._is_aimed_at_target(heli),
+		"a gunship turns to aim, so it waits until the turn has caught up"
+	)
 
 
 ## A structure has no facing to wait on at all.
@@ -174,6 +199,8 @@ func test_a_turret_with_no_movement_is_always_aimed() -> void:
 	var plane: Commandable = _entity(DRAKE, _commander(2))
 	assert_null(turret.movement)
 	assert_true(_attack(turret, plane)._is_aimed_at_target(turret))
+
+
 #endregion
 
 
@@ -194,10 +221,13 @@ func _move_order(a_to: Vector3) -> MoveCommand:
 func test_the_orders_that_assume_a_shot_declare_themselves() -> void:
 	var at := CommandMessage.new(null, null, null, Vector3.ZERO)
 	assert_true(Attack.new(at).requires_ammo(), "Attack")
-	assert_true(AttackMove.new(at).requires_ammo(),
-		"AttackMove — it is looking for something to shoot on the way")
-	assert_true(Defend.new(at).requires_ammo(),
-		"Defend — holding a post means shooting what comes to it")
+	assert_true(
+		AttackMove.new(at).requires_ammo(),
+		"AttackMove — it is looking for something to shoot on the way"
+	)
+	assert_true(
+		Defend.new(at).requires_ammo(), "Defend — holding a post means shooting what comes to it"
+	)
 	assert_false(_move_order(Vector3.ZERO).requires_ammo(), "a plain move is just a move")
 
 
@@ -227,8 +257,10 @@ func test_only_the_active_order_is_stood_down() -> void:
 	plane.update_commands(_move_order(Vector3(20.0, 0.0, 0.0)))
 	plane.update_commands(_attack(plane, tank), true)
 	_empty(plane)
-	assert_false(plane.command_receiver.defer_ammo_dependent_commands(),
-		"the live order is a move, which needs no ammunition")
+	assert_false(
+		plane.command_receiver.defer_ammo_dependent_commands(),
+		"the live order is a move, which needs no ammunition"
+	)
 	assert_eq(plane.command_receiver.get_command_chain().size(), 2)
 
 
@@ -256,8 +288,10 @@ func test_an_attack_is_stood_down_even_with_no_airfield_to_return_to() -> void:
 	_empty(plane)
 	plane.update_commands(_attack(plane, tank))
 	plane._defer_unshootable_orders()
-	assert_true(plane.command_receiver.awaiting_only_ammo_dependent_work(),
-		"nothing left that it could usefully be doing instead of flying home")
+	assert_true(
+		plane.command_receiver.awaiting_only_ammo_dependent_work(),
+		"nothing left that it could usefully be doing instead of flying home"
+	)
 
 
 ## The gate on flying home is not is_idle(): a just-deferred order is sitting in the queue,
@@ -269,10 +303,12 @@ func test_a_queued_move_still_counts_as_work_worth_doing() -> void:
 	_empty(plane)
 	plane.update_commands(_move_order(Vector3(30.0, 0.0, 0.0)))
 	plane.update_commands(_move_order(Vector3(40.0, 0.0, 0.0)), true)
-	plane.command_receiver._command = null   # as though the first had just finished
+	plane.command_receiver._command = null  # as though the first had just finished
 	assert_false(plane.command_receiver.is_idle(), "the second move is still queued")
-	assert_false(plane.command_receiver.awaiting_only_ammo_dependent_work(),
-		"and it is work, so nothing goes in front of it")
+	assert_false(
+		plane.command_receiver.awaiting_only_ammo_dependent_work(),
+		"and it is work, so nothing goes in front of it"
+	)
 
 
 ## A unit with rounds left keeps everything — this is about being EMPTY, not about being low.
@@ -283,6 +319,8 @@ func test_a_loaded_aircraft_keeps_its_attack() -> void:
 	plane.update_commands(_attack(plane, tank))
 	plane._defer_unshootable_orders()
 	assert_false(plane.command_receiver.is_idle())
+
+
 #endregion
 
 
@@ -309,6 +347,8 @@ func test_a_parked_empty_aircraft_does_not_order_itself_home() -> void:
 	plane.aerial.park_on_deck(0.0)
 	plane.docking.maybe_auto_rearm()
 	assert_true(plane.command_receiver.is_idle(), "no Rearm ordered from the pad it is on")
+
+
 #endregion
 
 
@@ -328,8 +368,10 @@ func test_a_parked_aircraft_cannot_fire() -> void:
 
 	plane.aerial.park_on_deck(0.0)
 	assert_false(plane.can_use_weapons(), "on the deck, it may not")
-	assert_false(_attack(plane, tank)._own_weapon_can_fire(plane),
-		"and the attack refuses to pull the trigger")
+	assert_false(
+		_attack(plane, tank)._own_weapon_can_fire(plane),
+		"and the attack refuses to pull the trigger"
+	)
 
 
 ## The windows either side count as grounded too: an aircraft on its takeoff roll or its

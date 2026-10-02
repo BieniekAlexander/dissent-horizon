@@ -22,6 +22,8 @@ func set_phase_emitting(a_on: bool) -> void:
 		return
 	var started: int = _generation
 	# Pausable, like the particles themselves: a paused game does not advance the delay.
-	get_tree().create_timer(start_delay_seconds, false).timeout.connect(func() -> void:
-		if is_instance_valid(self) and _generation == started:
-			emitting = true)
+	get_tree().create_timer(start_delay_seconds, false).timeout.connect(
+		func() -> void:
+			if is_instance_valid(self) and _generation == started:
+				emitting = true
+	)

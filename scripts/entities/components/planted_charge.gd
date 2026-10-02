@@ -61,9 +61,14 @@ static func can_carry(a_entity: Variant) -> bool:
 	if a_entity == null or not is_instance_valid(a_entity) or not (a_entity is Commandable):
 		return false
 	var piece := a_entity as Commandable
-	return piece.is_inside_tree() and not piece.is_queued_for_deletion() \
-		and piece.aerial == null and PlantedCharge.of(piece) == null \
-		and piece.defense != null and piece.defense.frame_type == Defense.FrameType.MECH
+	return (
+		piece.is_inside_tree()
+		and not piece.is_queued_for_deletion()
+		and piece.aerial == null
+		and PlantedCharge.of(piece) == null
+		and piece.defense != null
+		and piece.defense.frame_type == Defense.FrameType.MECH
+	)
 
 
 ## The charges riding on `a_carrier`.
@@ -144,8 +149,9 @@ func _blast() -> void:
 	emission.initialize(map, host().commander)
 	emission.global_position = host().global_position
 	var carrier: Commandable = carrier()
-	var target: Variant = carrier if carrier != null and carrier.is_inside_tree() \
-		else host().global_position
+	var target: Variant = (
+		carrier if carrier != null and carrier.is_inside_tree() else host().global_position
+	)
 	Emitter.launch(emission, planter() if planter() != null else host(), target)
 
 

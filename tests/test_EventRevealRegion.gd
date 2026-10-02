@@ -50,6 +50,7 @@ func _vision_shape(a_scout: Commandable) -> CylinderShape3D:
 
 # --- Targeting ------------------------------------------------------------------
 
+
 func test_a_group_reveals_one_area_per_member() -> void:
 	_target(Vector2(10.0, 0.0))
 	_target(Vector2(-30.0, 25.0))
@@ -87,6 +88,7 @@ func test_an_empty_group_reveals_nothing() -> void:
 
 
 # --- The revealed area ----------------------------------------------------------
+
 
 func test_the_area_is_a_cylinder_of_the_configured_radius() -> void:
 	_event.radius = 10.0

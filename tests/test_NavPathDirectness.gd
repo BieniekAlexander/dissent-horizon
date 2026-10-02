@@ -20,7 +20,7 @@ extends GutTest
 ##     containment outright. Both are pinned below so the next attempt fails in five seconds
 ##     instead of after a day's work. See the note after NavManager._build_chunk.
 
-const HALF: int = 18                     ## square runs from -HALF..HALF world units
+const HALF: int = 18  ## square runs from -HALF..HALF world units
 const PER_CELL_LAYER: int = 1 << 20
 const SINGLE_LAYER: int = 1 << 21
 const PROBE_LAYER: int = 1 << 22
@@ -39,6 +39,7 @@ func after_each() -> void:
 
 
 # --- Fixtures ------------------------------------------------------------------
+
 
 func _new_map() -> void:
 	_map = NavigationServer3D.map_create()
@@ -86,10 +87,14 @@ func _per_cell_mesh() -> NavigationMesh:
 
 func _single_polygon_mesh() -> NavigationMesh:
 	var mesh := NavigationMesh.new()
-	mesh.vertices = PackedVector3Array([
-		Vector3(-HALF, 0, -HALF), Vector3(HALF, 0, -HALF),
-		Vector3(HALF, 0, HALF), Vector3(-HALF, 0, HALF),
-	])
+	mesh.vertices = PackedVector3Array(
+		[
+			Vector3(-HALF, 0, -HALF),
+			Vector3(HALF, 0, -HALF),
+			Vector3(HALF, 0, HALF),
+			Vector3(-HALF, 0, HALF),
+		]
+	)
 	mesh.add_polygon(PackedInt32Array([0, 1, 2, 3]))
 	return mesh
 
@@ -103,6 +108,7 @@ func _open_map() -> void:
 
 # --- Measurement ---------------------------------------------------------------
 
+
 func _length(a_path: PackedVector3Array) -> float:
 	var total: float = 0.0
 	for i: int in range(1, a_path.size()):
@@ -112,8 +118,12 @@ func _length(a_path: PackedVector3Array) -> float:
 
 ## Path length over straight-line distance, minus one: 0.0 is a perfectly direct path.
 func _excess(a_layer: int, a_from: Vector3, a_to: Vector3) -> float:
-	var path: PackedVector3Array = NavigationServer3D.map_get_path(_map, a_from, a_to, true, a_layer)
-	assert_gt(path.size(), 1, "a path was found from %s to %s on layer %d" % [a_from, a_to, a_layer])
+	var path: PackedVector3Array = NavigationServer3D.map_get_path(
+		_map, a_from, a_to, true, a_layer
+	)
+	assert_gt(
+		path.size(), 1, "a path was found from %s to %s on layer %d" % [a_from, a_to, a_layer]
+	)
 	return _length(path) / a_from.distance_to(a_to) - 1.0
 
 
@@ -129,27 +139,36 @@ func _worst_excess(a_layer: int) -> float:
 func _cases() -> Array:
 	var result: Array = []
 	for dz: int in range(0, 2 * HALF - 6, 4):
-		result.append([Vector3(-HALF + 0.5, 0, -HALF + 0.5), Vector3(HALF - 0.5, 0, -HALF + 0.5 + dz)])
+		result.append(
+			[Vector3(-HALF + 0.5, 0, -HALF + 0.5), Vector3(HALF - 0.5, 0, -HALF + 0.5 + dz)]
+		)
 	return result
 
 
 # --- 1. The problem -------------------------------------------------------------
 
+
 func test_one_polygon_gives_the_exact_straight_line() -> void:
 	await _open_map()
-	assert_almost_eq(_worst_excess(SINGLE_LAYER), 0.0, 1e-3,
-		"one polygon over open ground is the straight line at every angle")
+	assert_almost_eq(
+		_worst_excess(SINGLE_LAYER),
+		0.0,
+		1e-3,
+		"one polygon over open ground is the straight line at every angle"
+	)
 
 
 func test_per_cell_polygons_bend_the_path() -> void:
 	await _open_map()
 	var worst: float = _worst_excess(PER_CELL_LAYER)
 	gut.p("per-cell mesh: worst excess over the straight line = %.1f%%" % (100.0 * worst))
-	assert_gt(worst, 0.02,
-		"one quad per cell measurably lengthens a diagonal — the reported problem")
+	assert_gt(
+		worst, 0.02, "one quad per cell measurably lengthens a diagonal — the reported problem"
+	)
 
 
 # --- 2. Why bigger polygons are not the fix ------------------------------------
+
 
 ## `w` x `h` cells as ONE rectangle. `subdivided` puts a vertex at every cell corner along
 ## the perimeter — what a merged mesh MUST do, since Godot connects polygons only by
@@ -196,8 +215,11 @@ func test_a_plain_rectangle_contains_its_interior() -> void:
 	_new_map()
 	_add_region(_rectangle_mesh(3, 32, false), PROBE_LAYER)
 	await _sync()
-	assert_eq(_contained_centres(3, 32), 96,
-		"a 4-vertex rectangle resolves every one of its interior points")
+	assert_eq(
+		_contained_centres(3, 32),
+		96,
+		"a 4-vertex rectangle resolves every one of its interior points"
+	)
 
 
 func test_a_subdivided_rectangle_contains_NONE_of_its_interior() -> void:
@@ -213,5 +235,8 @@ func test_a_subdivided_rectangle_contains_NONE_of_its_interior() -> void:
 	_new_map()
 	_add_region(_rectangle_mesh(3, 32, true), PROBE_LAYER)
 	await _sync()
-	assert_eq(_contained_centres(3, 32), 0,
-		"a rectangle with collinear perimeter vertices resolves NONE of its interior points")
+	assert_eq(
+		_contained_centres(3, 32),
+		0,
+		"a rectangle with collinear perimeter vertices resolves NONE of its interior points"
+	)

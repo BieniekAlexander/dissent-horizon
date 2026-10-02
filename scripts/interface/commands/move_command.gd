@@ -68,6 +68,7 @@ const POSITIONAL_FAILURE_CAUSES: Array = [
 	PreconditionFailureCause.NO_VALID_TARGET,
 ]
 
+
 ## Whether `a_cause` is one the player clears by aiming somewhere else.
 static func is_positional_failure(cause: PreconditionFailureCause) -> bool:
 	return POSITIONAL_FAILURE_CAUSES.has(cause)
@@ -75,8 +76,11 @@ static func is_positional_failure(cause: PreconditionFailureCause) -> bool:
 
 ## Whether `a_cause` refuses a structure's FOOTPRINT — what reddens the placement ghost and grid.
 static func is_placement_refusal(cause: PreconditionFailureCause) -> bool:
-	return cause == PreconditionFailureCause.INVALID_PLACEMENT \
+	return (
+		cause == PreconditionFailureCause.INVALID_PLACEMENT
 		or cause == PreconditionFailureCause.SITE_PLANNED
+	)
+
 
 static var precondition_message_map: Dictionary = {
 	PreconditionFailureCause.NONE: "",
@@ -101,20 +105,23 @@ static var unmet_need_to_precondition: Dictionary = {
 	TechnologySpec.UnmetNeed.NONE: PreconditionFailureCause.NONE,
 	TechnologySpec.UnmetNeed.NOT_ENOUGH_ENERGY: PreconditionFailureCause.NOT_ENOUGH_ENERGY,
 	TechnologySpec.UnmetNeed.NOT_ENOUGH_INFRASTRUCTURE:
-		PreconditionFailureCause.NOT_ENOUGH_INFRASTRUCTURE,
+	PreconditionFailureCause.NOT_ENOUGH_INFRASTRUCTURE,
 	TechnologySpec.UnmetNeed.NOT_ENOUGH_DOMINION: PreconditionFailureCause.NOT_ENOUGH_DOMINION,
 	TechnologySpec.UnmetNeed.MISSING_STRUCTURE: PreconditionFailureCause.MISSING_STRUCTURE,
 	TechnologySpec.UnmetNeed.ALREADY_RESEARCHED: PreconditionFailureCause.ALREADY_RESEARCHED,
 }
 #endregion
 
+
 #region Preconditions
 static func tool_applies_to(_command_tool_name: String, _entity: Entity) -> bool:
 	return false
 
+
 static func requires_position() -> bool:
 	## Indicates whether this command requires a specified position to be issued
 	return true
+
 
 ## Whether `a_actor` is temporarily unable to perform this command for a reason that will
 ## resolve ON ITS OWN — a cooldown, a spent charge — as opposed to one needing the player
@@ -139,9 +146,7 @@ static func actor_is_recharging(_actor: Commandable) -> bool:
 ## Only commands with a reach call this: a global-range ability (Bombard) has no distance
 ## to be out of.
 static func unreachable_for_immobile(
-	actor: Commandable,
-	message: CommandMessage,
-	range: float
+	actor: Commandable, message: CommandMessage, range: float
 ) -> bool:
 	if actor == null or message == null or actor.can_move():
 		return false
@@ -174,6 +179,7 @@ static func bystanders_move() -> bool:
 ##           where the whole selection firing at one point spends every charge on it.
 enum CastArity { SINGLE, ALL }
 
+
 ## The arity of this command for `a_message`.
 ##
 ## Takes the MESSAGE because arity is not always a fact about the command class: every
@@ -182,18 +188,21 @@ enum CastArity { SINGLE, ALL }
 ## ignores the argument.
 static func default_cast_arity(_message: CommandMessage) -> CastArity:
 	return CastArity.ALL
+
+
 #endregion
 
 
 ## Checks whether the relevant command is allowable, given the situation
 static func meets_precondition(
-	_actor: Commandable,
-	_message: CommandMessage
+	_actor: Commandable, _message: CommandMessage
 ) -> PreconditionFailureCause:
 	# examples:
 	# - can the unit can perform this operation on the specified target?
 	# - can the unit can place the specified building in the specified position?
 	return PreconditionFailureCause.NONE
+
+
 #endregion
 
 #region Properties
@@ -212,6 +221,7 @@ var _swap_cooldown: float = 0.0
 
 #endregion
 
+
 #region State updates
 ## Potentially return a new command based on a state check. A plain MoveCommand
 ## never reactively retargets on its own — it always returns self. Aggro-based
@@ -223,6 +233,7 @@ func get_updated_state(a_commandable: Commandable) -> Variant:
 		_swap_cooldown = 1.0
 		_resolve_destination_swap(a_commandable)
 	return self
+
 
 ## Once a second, check every sibling unit sharing this exact multi-unit move
 ## order (same CommandMessage.origin — see RTSController.assign_command_to_units)
@@ -275,6 +286,7 @@ func _resolve_destination_swap(a_commandable: Commandable) -> void:
 			other_unit.locomotion.set_goal(other_cmd.message.position)
 			my_dest = other_cmd.message.position
 
+
 ## An independent copy of this command, for handing to a DIFFERENT actor than the one it was
 ## built for — a rally order replayed onto each newly trained unit. The message is deep-copied
 ## and `origin` is dropped, so inheritors are not treated as siblings of the order that set
@@ -285,6 +297,7 @@ func duplicated() -> MoveCommand:
 	copy_message.origin = null
 	return (get_script() as GDScript).new(copy_message)
 
+
 ## Whether this command's characteristic action is suppressed while the actor is
 ## staggered (recently damaged). Default false: most actions ignore stagger. A command
 ## representing a channeled / vulnerable action (Build, Repair, and some Interactions)
@@ -293,9 +306,11 @@ func duplicated() -> MoveCommand:
 func blocked_by_stagger(_a_commandable: Commandable) -> bool:
 	return false
 
+
 ## Check if the [Commandable] should move in response to the command
 func should_move(_a_commandable: Commandable) -> bool:
 	return true
+
 
 ## Whether issuing this order INTERRUPTS what the actor was doing rather than replacing it.
 ##
@@ -313,6 +328,7 @@ func should_move(_a_commandable: Commandable) -> bool:
 ## already appends, which is what an interrupt is a non-additive version of.
 static func is_interrupt() -> bool:
 	return false
+
 
 ## Whether this order is pointless without ammunition — i.e. it exists in order to shoot.
 ##
@@ -366,16 +382,20 @@ func releases_hold_fire() -> bool:
 func ends_on_arrival() -> bool:
 	return true
 
+
 ## Check if the [Commandable] is ready to [fulfill_action]
 func can_act(_a_commandable: Commandable) -> bool:
 	return false
+
 
 ## What the actor is doing on a tick this command acts — read BEFORE fulfill_action, so a
 ## command that finishes on the tick still reports it. For its animation and action badge.
 func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
 	return ActionTracker.Action.ACTING
 
-## Perform the characteristic action of this command and return whatever might be a follow-up [MoveCommand], or null otherwise
+
+## Perform the characteristic action of this command and return whatever might be a follow-up
+## [MoveCommand], or null otherwise
 func fulfill_action(_a_commandable: Commandable) -> Variant:
 	push_error("no action should have been performed")
 	return self
@@ -393,7 +413,10 @@ func fulfill_action(_a_commandable: Commandable) -> Variant:
 ## from the receiver instead, at a moment when `a_actor` is known to be alive.
 func on_released(_a_actor: Commandable) -> void:
 	pass
+
+
 #endregion
+
 
 #region Lifecycle
 func _init(a_message: CommandMessage) -> void:
@@ -405,6 +428,7 @@ func _init(a_message: CommandMessage) -> void:
 	# rather than in Build so it applies uniformly however the command was constructed.
 	if message.transaction != null:
 		message.transaction.retain_holder()
+
 
 ## Reference-count bookkeeping ONLY. Everything here must be safe to run at an arbitrary
 ## moment, because a RefCounted's destructor fires whenever its last reference happens to
@@ -420,7 +444,10 @@ func _notification(a_what: int) -> void:
 			if message.transaction != null:
 				message.transaction.release_holder()
 			message.release()
+
+
 #endregion
+
 
 #region Debug
 func _to_string() -> String:

@@ -41,6 +41,7 @@ static var TICK_RATE: int = 150
 var _ticks_elapsed: int = 0
 #endregion
 
+
 #region Public API
 ## The Warlords (or anything else granting Retinue) this commander owns and can act with.
 func sources() -> Array[Commandable]:
@@ -56,6 +57,7 @@ func sources() -> Array[Commandable]:
 
 ## A route with no STRUCTURE sources: the Warlord is trained, not built, so the base route's
 ## `structure_sources` stays empty and the bot's build ladder has nothing to do for it.
+
 
 ## Whether `a_piece` projects a dominion aura at all — i.e. whether it grants Retinue.
 static func grants_aura(a_piece: Commandable) -> bool:
@@ -79,8 +81,13 @@ static func followers_of(a_source: Commandable) -> Array[Commandable]:
 	var region := a_source.get_node_or_null(REGION_NODE) as CollisionShape3D
 	if region == null or region.shape == null:
 		return out
-	for entity: Entity in SU.entities_within(a_source.get_world_3d(), a_source.hull(),
-		region.shape, a_source.global_position, CollisionLayers.Mask.MOVEMENT_OBSTRUCTION):
+	for entity: Entity in SU.entities_within(
+		a_source.get_world_3d(),
+		a_source.hull(),
+		region.shape,
+		a_source.global_position,
+		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION
+	):
 		var follower := entity as Commandable
 		if follower == null or follower == a_source:
 			continue
@@ -130,13 +137,17 @@ func followers() -> Array[Commandable]:
 			seen[follower] = true
 			out.append(follower)
 	return out
+
+
 #endregion
+
 
 #region Lifecycle
 func _proc() -> void:
 	var count: int = followers().size()
 	if count > 0 and commander != null:
 		commander.add_dominion(count * dominion_per_unit)
+
 
 func _physics_process(_a_delta: float) -> void:
 	_ticks_elapsed += 1

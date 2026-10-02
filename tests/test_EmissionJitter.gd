@@ -25,8 +25,11 @@ func test_it_turns_the_heading_and_keeps_the_speed() -> void:
 	for i: int in 60:
 		var turned: Vector3 = _jitter.perturbed(_phase, MID_FLIGHT_SECONDS + i * 0.05, VELOCITY)
 		assert_almost_eq(turned.length(), VELOCITY.length(), 0.00001)
-		assert_lte(rad_to_deg(turned.angle_to(VELOCITY)), _phase.jitter_degrees * sqrt(2.0) + 0.001,
-			"within the authored angle on each axis")
+		assert_lte(
+			rad_to_deg(turned.angle_to(VELOCITY)),
+			_phase.jitter_degrees * sqrt(2.0) + 0.001,
+			"within the authored angle on each axis"
+		)
 
 
 func test_a_shot_leaves_the_tube_clean() -> void:
@@ -34,8 +37,10 @@ func test_a_shot_leaves_the_tube_clean() -> void:
 
 
 func test_it_actually_wobbles() -> void:
-	assert_ne(_jitter.perturbed(_phase, MID_FLIGHT_SECONDS, VELOCITY),
-		_jitter.perturbed(_phase, MID_FLIGHT_SECONDS + 0.2, VELOCITY))
+	assert_ne(
+		_jitter.perturbed(_phase, MID_FLIGHT_SECONDS, VELOCITY),
+		_jitter.perturbed(_phase, MID_FLIGHT_SECONDS + 0.2, VELOCITY)
+	)
 
 
 func test_a_phase_without_jitter_flies_clean() -> void:
@@ -43,5 +48,8 @@ func test_a_phase_without_jitter_flies_clean() -> void:
 	assert_eq(_jitter.perturbed(_phase, MID_FLIGHT_SECONDS, VELOCITY), VELOCITY)
 	_phase.jitter_degrees = 4.0
 	_phase.speed = 0.0
-	assert_eq(_jitter.perturbed(_phase, MID_FLIGHT_SECONDS, VELOCITY), VELOCITY,
-		"a motionless phase does not wobble")
+	assert_eq(
+		_jitter.perturbed(_phase, MID_FLIGHT_SECONDS, VELOCITY),
+		VELOCITY,
+		"a motionless phase does not wobble"
+	)

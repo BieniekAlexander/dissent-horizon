@@ -88,6 +88,7 @@ const DEFAULT_COUNT: int = 1
 @export var spawn_groups: Array[StringName] = []
 #endregion
 
+
 #region Tool
 ## Flag an unusable count_expression in the Scene dock, where the author is looking, rather
 ## than leaving it to a log line at run time — a bad expression silently spawns DEFAULT_COUNT,
@@ -96,7 +97,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
 	var problem: String = ScenarioExpression.validation_error(count_expression)
 	if not problem.is_empty():
-		warnings.append("Count Expression \"%s\" %s" % [count_expression, problem])
+		warnings.append('Count Expression "%s" %s' % [count_expression, problem])
 	return warnings
 
 
@@ -128,7 +129,10 @@ func _validate_property(a_property: Dictionary) -> void:
 				a_property.usage = a_property.usage | PROPERTY_USAGE_READ_ONLY
 			else:
 				a_property.usage = a_property.usage & ~PROPERTY_USAGE_READ_ONLY
+
+
 #endregion
+
 
 #region Public API
 func execute(a_manager: ScenarioTriggerManager) -> void:
@@ -187,7 +191,10 @@ func _execute_with_hosts(a_hosts: Array[Commandable], a_map: Map, a_commander: C
 	for child: Node in get_children():
 		if child is EventSpawnEntities:
 			(child as EventSpawnEntities)._execute_with_hosts(my_hosts, a_map, a_commander)
+
+
 #endregion
+
 
 #region Private helpers
 ## The commander spawned entities belong to: `commander_id` when SPECIFIED, or the source
@@ -200,6 +207,7 @@ func _resolve_commander(a_manager: ScenarioTriggerManager) -> Commander:
 			return null
 		return a_manager.get_commander(source.commander_id)
 	return a_manager.get_commander(commander_id)
+
 
 func _find_issue_command() -> EventIssueCommand:
 	for child: Node in get_children():
@@ -237,10 +245,15 @@ func resolve_spawn_anchor() -> Vector3:
 ## typo, and range() would simply spawn nothing, which reads as "the event didn't run".
 func resolve_count() -> int:
 	var resolved: int = ScenarioExpression.evaluate_int(
-		count_expression, DEFAULT_COUNT, owning_manager(), owner_fire_count(),
+		count_expression,
+		DEFAULT_COUNT,
+		owning_manager(),
+		owner_fire_count(),
 		"EventSpawnEntities %s (count_expression)" % name
 	)
 	return maxi(resolved, 0)
+
+
 #endregion
 
 
@@ -296,7 +309,10 @@ func _apply_spawn_groups(a_node: Node) -> void:
 ## truck's cage, a Compound — exactly as readily as an open one. That is how a
 ## scenario starts a truck already carrying prisoners.
 func _garrison_all(
-	a_commandables: Array[Commandable], a_hosts: Array[Commandable], a_map: Map, a_commander: Commander
+	a_commandables: Array[Commandable],
+	a_hosts: Array[Commandable],
+	a_map: Map,
+	a_commander: Commander
 ) -> void:
 	if a_hosts.is_empty():
 		push_error("EventSpawnEntities '%s': no garrison hosts to spawn into" % name)
@@ -307,7 +323,12 @@ func _garrison_all(
 		unit.initialize(a_map, a_commander)
 		var host: Commandable = a_hosts[i % a_hosts.size()]
 		if not host.garrison.has_room_for(unit):
-			push_error("EventSpawnEntities '%s': garrison on '%s' has no room at spawn time" % [name, host.name])
+			push_error(
+				(
+					"EventSpawnEntities '%s': garrison on '%s' has no room at spawn time"
+					% [name, host.name]
+				)
+			)
 			assert(false, "Garrison full at spawn time")
 			continue
 		host.garrison.garrison(unit)

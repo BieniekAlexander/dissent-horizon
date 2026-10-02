@@ -65,6 +65,7 @@ var _title_label: Label
 var _body_label: RichTextLabel
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -100,14 +101,20 @@ func _build() -> void:
 	_body_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_body_label)
 	move_child(_body_label, 1)
+
+
 #endregion
+
 
 #region Public API
 ## The button label with its {{ action }} placeholders resolved. Plain text — the button is
 ## a Button, which does not parse BBCode.
 func resolved_acknowledge_text() -> String:
 	return InputPrompt.format(acknowledge_text)
+
+
 #endregion
+
 
 #region Internal
 ## Push the exported strings onto the labels, resolving control placeholders on the way.

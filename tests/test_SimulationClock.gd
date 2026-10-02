@@ -28,6 +28,7 @@ func after_each() -> void:
 
 # --- Hold / release bookkeeping ----------------------------------------------
 
+
 func test_starts_unpaused() -> void:
 	assert_false(_clock.is_paused(), "a fresh clock is running")
 
@@ -78,6 +79,7 @@ func test_clear_drops_every_hold() -> void:
 
 # --- Transition signal --------------------------------------------------------
 
+
 func test_in_tree_clock_drives_the_scene_tree() -> void:
 	var clock := SimulationClock.new()
 	add_child_autofree(clock)
@@ -98,6 +100,7 @@ func test_in_tree_clock_drives_the_scene_tree() -> void:
 
 # --- Manager integration ------------------------------------------------------
 
+
 func test_manager_creates_a_clock() -> void:
 	var manager := ScenarioTriggerManager.new()
 	add_child_autofree(manager)
@@ -115,6 +118,7 @@ func test_manager_polls_conditions_while_held() -> void:
 	assert_push_warning("expected parent to be Scenario")
 	assert_eq(manager.process_mode, Node.PROCESS_MODE_ALWAYS, "manager ignores pause")
 	assert_eq(
-		manager.condition_poller.process_mode, Node.PROCESS_MODE_INHERIT,
+		manager.condition_poller.process_mode,
+		Node.PROCESS_MODE_INHERIT,
 		"the poller inherits the manager's always-on mode rather than opting out itself"
 	)

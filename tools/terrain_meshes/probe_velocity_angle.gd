@@ -14,7 +14,8 @@ extends Node3D
 ## Runs against scenes/scenarios/test/nav_straight_line.tscn — an empty scenario with no other
 ## unit, no structure and no obstacle, so nothing else can be blamed.
 ##
-##   godot --headless res://tools/terrain_meshes/probe_velocity_angle.tscn -- [distance] [simplify_epsilon]
+## godot --headless res://tools/terrain_meshes/probe_velocity_angle.tscn -- [distance]
+## [simplify_epsilon]
 ##
 ## simplify_epsilon > 0 turns on NavigationAgent3D.simplify_path at that epsilon, so the
 ## effect of Godot's built-in path simplification can be measured rather than assumed.
@@ -55,10 +56,18 @@ func _run() -> void:
 		await get_tree().physics_frame
 	_commander = _scenario.call("local_player")
 
-	print("=== velocity heading vs true bearing | %s | distance %.0f | simplify_epsilon %.2f ===" % [
-		_unit_path.get_file(), _distance, _simplify])
-	print("%8s | %8s | %8s | %8s | %8s | %s" % [
-		"ordered", "mean err", "max err", "p95 err", "final err", "verdict"])
+	print(
+		(
+			"=== velocity heading vs true bearing | %s | distance %.0f | simplify_epsilon %.2f ==="
+			% [_unit_path.get_file(), _distance, _simplify]
+		)
+	)
+	print(
+		(
+			"%8s | %8s | %8s | %8s | %8s | %s"
+			% ["ordered", "mean err", "max err", "p95 err", "final err", "verdict"]
+		)
+	)
 	for heading: float in HEADINGS:
 		await _measure(heading)
 	get_tree().quit(0)
@@ -115,8 +124,12 @@ func _measure(a_heading_deg: float) -> void:
 	var worst: float = sorted[sorted.size() - 1]
 	var p95: float = sorted[mini(int(sorted.size() * 0.95), sorted.size() - 1)]
 	var verdict: String = "OK" if worst < 2.0 else ("drifts" if worst < 15.0 else "VEERS")
-	print("%7.0f° | %7.2f° | %7.2f° | %7.2f° | %8.2f° | %s (%d ticks, %d samples)" % [
-		a_heading_deg, mean, worst, p95, final_err, verdict, ticks, errors.size()])
+	print(
+		(
+			"%7.0f° | %7.2f° | %7.2f° | %7.2f° | %8.2f° | %s (%d ticks, %d samples)"
+			% [a_heading_deg, mean, worst, p95, final_err, verdict, ticks, errors.size()]
+		)
+	)
 
 
 func _agent(a_unit: Commandable) -> NavigationAgent3D:

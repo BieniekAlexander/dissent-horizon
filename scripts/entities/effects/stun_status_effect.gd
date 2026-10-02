@@ -16,10 +16,14 @@ extends StatusEffect
 
 @export_flags("Bio:1", "Mech:2") var affects_frames: int = Garrison.FRAME_ANY
 
+
 func _on_apply() -> void:
 	var actor := _entity as Commandable
-	if actor == null or actor.defense == null \
-			or (Garrison.FRAME_BITS.get(actor.defense.frame_type, 0) & affects_frames) == 0:
+	if (
+		actor == null
+		or actor.defense == null
+		or (Garrison.FRAME_BITS.get(actor.defense.frame_type, 0) & affects_frames) == 0
+	):
 		remove()
 		return
 	if actor.locomotion != null:

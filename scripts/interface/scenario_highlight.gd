@@ -76,6 +76,7 @@ var _shapes: Array[HighlightShape] = []
 var _since_refresh: float = REFRESH_INTERVAL
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	# The marks must stay up while a SimulationClock hold freezes the world.
@@ -104,7 +105,10 @@ func _process(a_delta: float) -> void:
 		_since_refresh = 0.0
 		refresh()
 	_redraw()
+
+
 #endregion
+
 
 #region Public API
 ## Re-ask target_source for what to draw. Called on the refresh cadence, and directly by
@@ -145,7 +149,10 @@ func marked_entities() -> Array[Entity]:
 ## The footprints currently being painted.
 func marked_shapes() -> Array[HighlightShape]:
 	return _shapes
+
+
 #endregion
+
 
 #region Drawing
 func _redraw() -> void:

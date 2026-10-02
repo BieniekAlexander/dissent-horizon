@@ -21,6 +21,7 @@ extends MoveCommand
 ## Biological units are mended by HealAOE instead.
 const REPAIRABLE_FRAME: Defense.FrameType = Defense.FrameType.MECH
 
+
 ## Why `a_message.target` cannot be repaired by `a_actor` right now, or NONE when it can.
 ##
 ## The single statement of the rule. Everything that asks — the precondition,
@@ -30,8 +31,7 @@ const REPAIRABLE_FRAME: Defense.FrameType = Defense.FrameType.MECH
 ## UNENUMERATED_FAILURE_CAUSE for every rejection: the failure causes are a HUD
 ## vocabulary about resources and placement, and none of them says "wrong target".
 static func repairable_cause(
-	actor: Commandable,
-	target: Variant
+	actor: Commandable, target: Variant
 ) -> MoveCommand.PreconditionFailureCause:
 	if actor == null or actor.get_node_or_null("Repairs") == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -62,32 +62,40 @@ static func repairable_cause(
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
 
+
 ## Whether repairing `a_subject` would take a marker out of play: it is a charge standing on
 ## the ground (anyone's but a neutral's), or `a_actor`'s own piece with an enemy beacon or
 ## charge riding on it.
 static func _defuses(actor: Commandable, subject: Commandable) -> bool:
 	if PlantedCharge.of(subject) != null:
-		return not PlantedCharge.is_riding(subject) and (actor.is_enemy_of(subject)
-			or subject.commander_id == actor.commander_id)
+		return (
+			not PlantedCharge.is_riding(subject)
+			and (actor.is_enemy_of(subject) or subject.commander_id == actor.commander_id)
+		)
 	return subject.commander_id == actor.commander_id and subject.has_hostile_markers()
+
 
 ## True when `a_actor` could repair `a_target` right now. The predicate form of
 ## repairable_cause, for the readers that only want a yes/no.
 static func can_repair(actor: Commandable, subject: Variant) -> bool:
 	return repairable_cause(actor, subject) == PreconditionFailureCause.NONE
 
+
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return repairable_cause(actor, message.target)
+
+
 #endregion
+
 
 #region State updates
 ## Repairing is a channeled action, like the construction it was split from: a hit
 ## staggers the worker, pausing the mend until the stagger wears off.
 func blocked_by_stagger(_a_actor: Commandable) -> bool:
 	return true
+
 
 ## Drop the order the moment there is nothing left to do: the patient died (a freed
 ## subject crashes every check that touches it), or it is back to full hp. Re-asking
@@ -100,17 +108,21 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 		return null
 	return self
 
+
 func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
 	return ActionTracker.Action.REPAIRING
 
+
 func can_act(a_actor: Commandable) -> bool:
 	return SU.unit_is_close_to_target(a_actor, message.target)
+
 
 ## Arriving next to the patient is where the work STARTS, so arrival must not end the
 ## command — the same reason Build and Assemble opt out. can_act decides when to work,
 ## and get_updated_state decides when there is nothing left to do.
 func ends_on_arrival() -> bool:
 	return false
+
 
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var subject := message.target as Commandable
@@ -128,7 +140,10 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if defense.restore(repairs.repair_amount(a_actor.get_physics_process_delta_time())):
 		return null
 	return self
+
+
 #endregion
+
 
 #region Lifecycle
 func _init(a_message: CommandMessage) -> void:

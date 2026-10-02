@@ -25,7 +25,7 @@ extends RefCounted
 ##   speed: float            gives it a navigated `Movement` at this speed (default: immobile)
 ##   vision: float           radius of a `VisionRange` cylinder (default: none)
 ##   weapon: Dictionary      a `Loadout` with one `Weapon`:
-##                             projectile: bool  ranged (it carries a blank projectile) or melee (default)
+## projectile: bool  ranged (it carries a blank projectile) or melee (default)
 ##                             damage: float  per hit (default 0: a fake gun wounds nobody)
 ##                             ground: float  radius of its ground reach (0 = none)
 ##                             air: float     radius of its air reach (0 = none)
@@ -38,7 +38,8 @@ extends RefCounted
 ##                             frames / armours / movements: int masks, ids: Array
 ##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
 ##   flying: bool            `Movement.mode` FLYING rather than HOVERING (needs `aerial`)
-##   extractor: bool         an `EnergyExtractor` and `Extractor`: built over an extraction site, it works it
+## extractor: bool         an `EnergyExtractor` and `Extractor`: built over an extraction site, it
+## works it
 ##   production: bool       a `Production` component (a producer)
 ##   produces: Array         `Production.producible_types` (implies `production`)
 ##   mesh: bool              a `MeshVisual` wearing one untextured placeholder mesh
@@ -51,7 +52,8 @@ extends RefCounted
 ##   docking: bool           a `Docking`: the aircraft can land at a friendly airfield
 ##   docking_bay: Dictionary an airfield: pads: int (default 2), runways: int (default 1)
 ##   beacon_range: float     a `BeaconRange` of this radius: ground it covers counts as spotted
-##   abilities: Array        an `Abilities` pool per entry: {grants: [ids], max_charges, cooldown_ticks}
+## abilities: Array        an `Abilities` pool per entry: {grants: [ids], max_charges,
+## cooldown_ticks}
 ##   shelter: bool          a `Shelter` component that spawns a blank unit
 ##   repairs: bool          a `Repairs` component: the piece can mend
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
@@ -71,13 +73,29 @@ const PLAIN: Dictionary = {"speed": 2.0, "vision": 8.0}
 ## A structure with a hold.
 const BUILDING: Dictionary = {"structure": true, "dimensions": Vector2i(2, 2)}
 ## A crusher-sized carrier with a cage and a DEPOSIT errand (no gun).
-const TRUCK: Dictionary = {"speed": 2.0, "vision": 8.0, "crush": Movement.CrushClass.LARGE,
-	"garrison": {"capacity": 3, "bunker": false}, "interactions": [Interaction.Type.DEPOSIT]}
+const TRUCK: Dictionary = {
+	"speed": 2.0,
+	"vision": 8.0,
+	"crush": Movement.CrushClass.LARGE,
+	"garrison": {"capacity": 3, "bunker": false},
+	"interactions": [Interaction.Type.DEPOSIT]
+}
 ## A structure that spawns residents.
 const SHELTER: Dictionary = {"structure": true, "shelter": true}
 ## A closed hold that sentences captives and banks dominion for them.
-const COMPOUND: Dictionary = {"structure": true, "occupant_dominion": true,
-	"garrison": {"capacity": 6, "bunker": false, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}}
+const COMPOUND: Dictionary = {
+	"structure": true,
+	"occupant_dominion": true,
+	"garrison":
+	{
+		"capacity": 6,
+		"bunker": false,
+		"sentence_length": 30.0,
+		"frames": 0,
+		"armours": 0,
+		"movements": 0
+	}
+}
 ## A neutral structure that holds an extractor.
 const SITE: Dictionary = {"structure": true, "extraction_site": true}
 ## A mobile machine (MECH frame).
@@ -203,7 +221,9 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 		visual.add_child(model)
 		_add_node(piece, visual, "MeshVisual")
 	if a_options.has("selectable"):
-		(piece.get_node("Selectable") as Selectable).selectable_by_player = bool(a_options["selectable"])
+		(piece.get_node("Selectable") as Selectable).selectable_by_player = bool(
+			a_options["selectable"]
+		)
 	if a_options.get("extraction_site", false):
 		_add_node(piece, ExtractionSite.new(), "ExtractionSite")
 		piece.add_to_group(&"extraction_site", true)
@@ -345,7 +365,9 @@ static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:
 	# Reach on both layers is two named shapes, one each; reach on one layer is a lone shape whose
 	# weapon's target_mask names the layer it serves.
 	if ground > 0.0 and air > 0.0:
-		weapon.target_mask = CollisionLayers.Mask.TARGETABLE_GROUND | CollisionLayers.Mask.TARGETABLE_AIR
+		weapon.target_mask = (
+			CollisionLayers.Mask.TARGETABLE_GROUND | CollisionLayers.Mask.TARGETABLE_AIR
+		)
 		_add_reach(weapon, "AttackRangeGround", ground)
 		_add_reach(weapon, "AttackRangeAir", air)
 	elif ground > 0.0:
@@ -423,7 +445,8 @@ static var _saved_abilities: Dictionary = {}
 static var _fake_emissions: Array[String] = []
 
 
-## An EMISSION (a shell; options `hitscan`, `hit_shape`): an `Entity` flying a two-phase `PhasedLocomotion` — a flight, then an
+## An EMISSION (a shell; options `hitscan`, `hit_shape`): an `Entity` flying a two-phase
+## `PhasedLocomotion` — a flight, then an
 ## impact that does not end on arrival — carrying a `Payload`. The smallest piece an ability
 ## can throw; nothing about what a shipped shell looks like or hits for.
 static func emission(a_options: Dictionary = {}) -> Entity:
@@ -500,22 +523,41 @@ static func restore_abilities() -> void:
 	for path: String in _fake_emissions:
 		AbilityCatalog._emission_cache.erase(path)
 	_fake_emissions.clear()
+
+
 #endregion
 
 
 #region Tools, families and technology
-## A tool (BUILD unless `a_context` says TRAIN) for a fake piece of id `a_type` (built from `a_options`, `id` filled in), with
+## A tool (BUILD unless `a_context` says TRAIN) for a fake piece of id `a_type` (built from
+## `a_options`, `id` filled in), with
 ## optional `a_variants` (piece ids registered with `install_families`).
-static func tool(a_type: StringName, a_options: Dictionary = {},
-		a_variants: Array[StringName] = [],
-		a_context: int = ControlBinding.ControlContext.BUILD,
-		a_producers: Array = [], a_context_grid: Vector2i = Vector2i(-1, -1)) -> Tool:
+static func tool(
+	a_type: StringName,
+	a_options: Dictionary = {},
+	a_variants: Array[StringName] = [],
+	a_context: int = ControlBinding.ControlContext.BUILD,
+	a_producers: Array = [],
+	a_context_grid: Vector2i = Vector2i(-1, -1)
+) -> Tool:
 	var options: Dictionary = a_options.duplicate()
 	options["id"] = a_type
 	# Row 1 of its card, never the producer-context row 0, whatever the grid does with it.
-	return Tool.new("command_tool_%s" % a_type, a_type, scene_of(options), String(a_type),
-		Vector2i(0, 1), a_context, 0, "", "", a_producers, false,
-		a_context_grid, a_variants)
+	return Tool.new(
+		"command_tool_%s" % a_type,
+		a_type,
+		scene_of(options),
+		String(a_type),
+		Vector2i(0, 1),
+		a_context,
+		0,
+		"",
+		"",
+		a_producers,
+		false,
+		a_context_grid,
+		a_variants
+	)
 
 
 ## What each registered name held before the test (null: nothing), so `restore_tools` puts the
@@ -578,13 +620,19 @@ static func restore_families() -> void:
 
 
 ## A `TechnologySpec` with nothing to pay and nothing required unless a test says so.
-static func tech(a_energy: int = 0, a_infrastructure: int = 0, a_dominion: int = 0,
-		a_ticks: int = 30, a_requires: Array = []) -> TechnologySpec:
+static func tech(
+	a_energy: int = 0,
+	a_infrastructure: int = 0,
+	a_dominion: int = 0,
+	a_ticks: int = 30,
+	a_requires: Array = []
+) -> TechnologySpec:
 	return TechnologySpec.new(a_energy, a_infrastructure, a_dominion, a_ticks, a_requires)
 
 
 ## A `PieceFamilies.Template` that hands back a scene built in memory, not one loaded by path.
-class _FakeTemplate extends PieceFamilies.Template:
+class _FakeTemplate:
+	extends PieceFamilies.Template
 	var scene: PackedScene
 
 	func load_scene() -> PackedScene:

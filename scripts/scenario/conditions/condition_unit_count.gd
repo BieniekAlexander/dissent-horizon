@@ -14,15 +14,22 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 ## set, only units inside that CollisionShape3D are counted.
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var n: int = matching_units(a_manager).size()
 	match comparison:
-		Comparison.AT_LEAST: return n >= count
-		Comparison.AT_MOST:  return n <= count
-		Comparison.EXACTLY:  return n == count
+		Comparison.AT_LEAST:
+			return n >= count
+		Comparison.AT_MOST:
+			return n <= count
+		Comparison.EXACTLY:
+			return n == count
 	return false
+
+
 #endregion
+
 
 #region Player-facing description (highlights)
 ## AT_MOST is the "get rid of these" shape of the check — the matching units ARE the task,
@@ -35,7 +42,10 @@ func highlight_entities(a_manager: ScenarioTriggerManager) -> Array[Entity]:
 		return result
 	result.assign(matching_units(a_manager))
 	return result
+
+
 #endregion
+
 
 #region Internal
 ## Every unit the commander owns that passes the type and region filters — the set both
@@ -47,8 +57,11 @@ func matching_units(a_manager: ScenarioTriggerManager) -> Array:
 		return []
 	return commander.get_children().filter(
 		func(n: Node) -> bool:
-			return n is Commandable and (n as Commandable).is_in_group("unit") \
-				and (unit_type == &"" or (n as Commandable).id == unit_type) \
+			return (
+				n is Commandable
+				and (n as Commandable).is_in_group("unit")
+				and (unit_type == &"" or (n as Commandable).id == unit_type)
 				and region_contains((n as Commandable).global_position)
+			)
 	)
 #endregion

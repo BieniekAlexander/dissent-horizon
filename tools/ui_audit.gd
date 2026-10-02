@@ -96,7 +96,8 @@ func _measure_piece(a_path: String) -> Dictionary:
 	var visual_class: int = VisualDefaults.classify_piece(
 		defense.frame_type if defense != null else Defense.FrameType.BIO,
 		movement.mode if movement != null else Movement.Mode.GROUNDED,
-		structure != null)
+		structure != null
+	)
 	var measurement: Dictionary = VisualMeasure.measure(entity)
 	var width: float = VisualMeasure.model_width(measurement)
 	var row: Dictionary = {
@@ -120,22 +121,28 @@ func _measure_projectile(a_path: String) -> Dictionary:
 	var root: Node3D = _open_scene(a_path)
 	if root == null:
 		return {}
-	if not (root.get_node_or_null("Locomotion") is PhasedLocomotion) \
-			or a_path.get_file() == "projectile.tscn":
+	if (
+		not (root.get_node_or_null("Locomotion") is PhasedLocomotion)
+		or a_path.get_file() == "projectile.tscn"
+	):
 		root.free()
 		return {}
 	var phases: Array = root.get_children().filter(func(c: Node) -> bool: return c is EmissionPhase)
 	var first_phase: Dictionary = {}
 	if not phases.is_empty():
-		for property: String in ["gravity_mps2", "launch_pitch_degrees", "turn_rate_degrees_per_second"]:
+		for property: String in [
+			"gravity_mps2", "launch_pitch_degrees", "turn_rate_degrees_per_second"
+		]:
 			first_phase[property] = phases[0].get(property)
 	var in_flight: Node = root.get_node_or_null(VisualMeasure.IN_FLIGHT_MESH_NODE)
 	var row: Dictionary = {
 		"id": "%s/%s" % [a_path.get_base_dir().get_file(), a_path.get_file().get_basename()],
 		"path": a_path,
 		"class": VisualDefaults.classify_projectile(first_phase),
-		"persists": phases.slice(1).any(func(p: EmissionPhase) -> bool:
-			return p.duration_ticks() < 0 or p.duration_ticks() > 1),
+		"persists":
+		phases.slice(1).any(
+			func(p: EmissionPhase) -> bool: return p.duration_ticks() < 0 or p.duration_ticks() > 1
+		),
 		"has_in_flight_mesh": in_flight != null,
 		"is_placeholder": in_flight != null and in_flight.has_meta(VisualMeasure.STAMP_MESH),
 		"has_post_impact": root.get_node_or_null(VisualMeasure.POST_IMPACT_MESH_NODE) != null,
@@ -146,14 +153,18 @@ func _measure_projectile(a_path: String) -> Dictionary:
 
 ## generated / tuned / authored / missing — see the header.
 func _selection_state(a_entity: Node3D) -> String:
-	var node: CollisionShape3D = a_entity.get_node_or_null(
-		VisualMeasure.SELECTION_SHAPE_PATH) as CollisionShape3D
+	var node: CollisionShape3D = (
+		a_entity.get_node_or_null(VisualMeasure.SELECTION_SHAPE_PATH) as CollisionShape3D
+	)
 	if node == null or node.shape == null:
 		return "missing"
 	if not node.has_meta(VisualMeasure.STAMP_SELECTION):
 		return "authored"
-	return "generated" if node.shape.get_class() == String(
-		node.get_meta(VisualMeasure.STAMP_SELECTION)) else "tuned"
+	return (
+		"generated"
+		if node.shape.get_class() == String(node.get_meta(VisualMeasure.STAMP_SELECTION))
+		else "tuned"
+	)
 
 
 func _hp_bar_state(a_entity: Node3D, a_model_width: float, a_model_top: float) -> Dictionary:
@@ -166,8 +177,11 @@ func _hp_bar_state(a_entity: Node3D, a_model_width: float, a_model_top: float) -
 	if bar.transform.origin.is_zero_approx():
 		state = "missing"
 	elif bar.has_meta(VisualMeasure.STAMP_HP_BAR):
-		state = "generated" if absf(
-			width - float(bar.get_meta(VisualMeasure.STAMP_HP_BAR))) < WIDTH_DRIFT_EPSILON else "tuned"
+		state = (
+			"generated"
+			if absf(width - float(bar.get_meta(VisualMeasure.STAMP_HP_BAR))) < WIDTH_DRIFT_EPSILON
+			else "tuned"
+		)
 	return {
 		"state": state,
 		"width": width,
@@ -181,8 +195,12 @@ func _hp_bar_state(a_entity: Node3D, a_model_width: float, a_model_top: float) -
 # Report
 # --------------------------------------------------------------------------- #
 func _report(a_pieces: Array, a_projectiles: Array) -> void:
-	print("\n=== VISUAL AUDIT — %d pieces, %d projectiles ===" % [
-		a_pieces.size(), a_projectiles.size()])
+	print(
+		(
+			"\n=== VISUAL AUDIT — %d pieces, %d projectiles ==="
+			% [a_pieces.size(), a_projectiles.size()]
+		)
+	)
 	_report_invisible(a_pieces, a_projectiles)
 	_report_placeholders(a_pieces, a_projectiles)
 	_report_awaiting_clear(a_pieces)
@@ -199,8 +217,11 @@ func _report_invisible(a_pieces: Array, a_projectiles: Array) -> void:
 	for row: Dictionary in a_projectiles:
 		if not row["has_in_flight_mesh"]:
 			names.append(row["id"])
-	_print_section("NOTHING TO LOOK AT", names,
-		"an import should leave this empty — anything here has no visual at all")
+	_print_section(
+		"NOTHING TO LOOK AT",
+		names,
+		"an import should leave this empty — anything here has no visual at all"
+	)
 
 
 ## The question this report exists for: which pieces are still wearing a stand-in.
@@ -221,8 +242,12 @@ func _report_placeholders(a_pieces: Array, a_projectiles: Array) -> void:
 			continue
 		var ids: Array = by_class[visual_class]
 		ids.sort()
-		print("  %-22s %2d  %s" % [
-			VisualDefaults.CLASS_NAMES[visual_class], ids.size(), ", ".join(ids)])
+		print(
+			(
+				"  %-22s %2d  %s"
+				% [VisualDefaults.CLASS_NAMES[visual_class], ids.size(), ", ".join(ids)]
+			)
+		)
 
 
 ## Values the importer will NOT regenerate, because they were never its. Clearing one is
@@ -235,12 +260,22 @@ func _report_awaiting_clear(a_pieces: Array) -> void:
 			selection.append(row["id"])
 		var bar: Dictionary = row["hp_bar"]
 		if bar["state"] == "authored":
-			bars.append("%s (bar %.2f wide vs model %.2f, sits %+.2f from its top)" % [
-				row["id"], bar["width"], row["width"], bar["clearance"]])
-	_print_section("HP BAR AWAITING A CLEAR", bars,
-		"hand-authored transforms — clear the HPBar transform to take the derived one")
-	_print_section("SELECTION SHAPE AWAITING A CLEAR", selection,
-		"hand-authored shapes — clear the shape to take the derived one")
+			bars.append(
+				(
+					"%s (bar %.2f wide vs model %.2f, sits %+.2f from its top)"
+					% [row["id"], bar["width"], row["width"], bar["clearance"]]
+				)
+			)
+	_print_section(
+		"HP BAR AWAITING A CLEAR",
+		bars,
+		"hand-authored transforms — clear the HPBar transform to take the derived one"
+	)
+	_print_section(
+		"SELECTION SHAPE AWAITING A CLEAR",
+		selection,
+		"hand-authored shapes — clear the shape to take the derived one"
+	)
 
 
 ## The proportions themselves, for the pieces where they are worth an eye: anything whose
@@ -260,8 +295,18 @@ func _report_proportions(a_pieces: Array) -> void:
 	print("  %-34s %6s %6s %6s %7s" % ["id", "model", "barW", "bar/W", "clear"])
 	for row: Dictionary in rows:
 		var bar: Dictionary = row["hp_bar"]
-		print("  %-34s %6.2f %6.2f %6.2f %+7.2f" % [
-			row["id"], row["width"], bar["width"], float(bar.get("ratio", NAN)), bar["clearance"]])
+		print(
+			(
+				"  %-34s %6.2f %6.2f %6.2f %+7.2f"
+				% [
+					row["id"],
+					row["width"],
+					bar["width"],
+					float(bar.get("ratio", NAN)),
+					bar["clearance"]
+				]
+			)
+		)
 
 
 func _print_section(a_title: String, a_entries: Array, a_hint: String) -> void:

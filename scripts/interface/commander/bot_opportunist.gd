@@ -54,6 +54,7 @@ static func is_committed(unit: Commandable) -> bool:
 ## bot to consider garrisoning it there proactively.
 const GARRISON_CONSIDER_RADIUS: float = 30.0
 
+
 func _init(a_bot: Bot, a_act: BotActuator) -> void:
 	_bot = a_bot
 	_act = a_act
@@ -71,14 +72,20 @@ func tick() -> int:
 	var candidates: Array[BotOpportunity] = []
 	for gather: Callable in _gatherers:
 		candidates.append_array(gather.call())
-	var work: int = GATHER_WORK_UNITS * _gatherers.size() + candidates.size() * OPPORTUNITY_WORK_UNITS
+	var work: int = (
+		GATHER_WORK_UNITS * _gatherers.size() + candidates.size() * OPPORTUNITY_WORK_UNITS
+	)
 	# A unit another manager holds as strongly (a builder on a job, a kamikaze drone) is not ours
 	# to send, however good the errand.
-	candidates = candidates.filter(func(o: BotOpportunity) -> bool:
-		return claims.can_claim(o.actor, CLAIM_OWNER, BotClaims.Priority.ERRAND))
+	candidates = candidates.filter(
+		func(o: BotOpportunity) -> bool:
+			return claims.can_claim(o.actor, CLAIM_OWNER, BotClaims.Priority.ERRAND)
+	)
 	# Only act on net-positive opportunities, best first.
 	candidates = candidates.filter(func(o: BotOpportunity): return o.utility() > 0.0)
-	candidates.sort_custom(func(a: BotOpportunity, b: BotOpportunity): return a.utility() > b.utility())
+	candidates.sort_custom(
+		func(a: BotOpportunity, b: BotOpportunity): return a.utility() > b.utility()
+	)
 	# Greedy: take the highest-utility action available to each still-free actor.
 	var claimed: Dictionary = {}  # actor -> true
 	for o: BotOpportunity in candidates:
@@ -94,12 +101,16 @@ func tick() -> int:
 ## garrison it was sent to.
 func _release_finished_errands() -> void:
 	for unit: Variant in claims.units_of(CLAIM_OWNER):
-		if not is_instance_valid(unit) or not (unit as Commandable).has_command() \
-				or (unit as Commandable).is_garrisoned():
+		if (
+			not is_instance_valid(unit)
+			or not (unit as Commandable).has_command()
+			or (unit as Commandable).is_garrisoned()
+		):
 			claims.release(unit, CLAIM_OWNER)
 
 
 # ─── LIBERATION ──────────────────────────────────────────────────────────────
+
 
 ## One opportunity per loose neutral Terrestrial: pair it with the nearest free
 ## [Liberator] unit (a Warlord) and score it by what the conversion yields us. There
@@ -128,9 +139,7 @@ func _gather_liberations() -> Array[BotOpportunity]:
 ## an unoccupied (commandless) warlord is the one we're willing to send. A warlord
 ## already walking to a terrestrial keeps that move command and is skipped here.
 func _free_liberators() -> Array:
-	return _bot.get_liberators().filter(
-		func(u: Commandable): return not u.has_command()
-	)
+	return _bot.get_liberators().filter(func(u: Commandable): return not u.has_command())
 
 
 func _nearest(a_units: Array, a_world_pos: Vector3) -> Commandable:
@@ -153,6 +162,7 @@ func _nearest(a_units: Array, a_world_pos: Vector3) -> Commandable:
 # a camp with space — no point hoarding prisoners with nowhere to bank them (the economy
 # builds the camp first).
 
+
 ## Carrier units free to take on a capture errand. A capture is a plain MOVE order, so
 ## "already on one" is not visible in the command type — an idle carrier is the one we are
 ## willing to send, exactly as for a liberation (see _free_liberators). A carrier already
@@ -163,16 +173,22 @@ func _nearest(a_units: Array, a_world_pos: Vector3) -> Commandable:
 ## itself, so an idle-only test meant a truck once swept up never took another errand, and
 ## the bot's captures stopped for the rest of the match.
 func _free_carriers() -> Array:
-	return _bot.get_interactors().filter(func(u: Commandable) -> bool:
-		return not u.has_command() or u.current_command() is AttackMove)
+	return _bot.get_interactors().filter(
+		func(u: Commandable) -> bool:
+			return not u.has_command() or u.current_command() is AttackMove
+	)
+
 
 ## True when `carrier` resolves the expected interaction `kind` on `target` — routed
 ## through its own Interactor so it honours the same applicability a player click does.
 func _resolves(a_carrier: Commandable, a_target: Entity, a_kind: Interaction.Type) -> bool:
 	if a_carrier.interactor == null:
 		return false
-	var interaction: Interaction = a_carrier.interactor.applicable_interaction(a_carrier, CommandMessage.new(_bot.map, a_target))
+	var interaction: Interaction = a_carrier.interactor.applicable_interaction(
+		a_carrier, CommandMessage.new(_bot.map, a_target)
+	)
 	return interaction != null and interaction.type == a_kind
+
 
 ## Send a carrier with free space to run down a capturable biological unit — a visible
 ## enemy soldier, or one of a Shelter's neutral Terrestrials. Valued at the prisoner's
@@ -200,6 +216,7 @@ func _gather_captures() -> Array[BotOpportunity]:
 		var value: float = PRISONER_VALUE + 0.5 * float(_bot.unit_cost(prey.id))
 		out.append(ContactOpportunity.new(carrier, prey, value, "capture"))
 	return out
+
 
 ## Send a carrier holding prisoners to the nearest owned deposit structure (camp) with
 ## space. A full carrier's deposit is worth the most (it can't capture more until it
@@ -231,6 +248,7 @@ func _gather_deposits() -> Array[BotOpportunity]:
 
 # ─── GARRISON (bunker fire support) ─────────────────────────────────────────
 
+
 ## Send idle combat units that are close to a bunker garrison structure inside
 ## it, where they can continue to fire while being protected. Only bunker
 ## structures are targeted — non-bunker garrisons offer protection but no added
@@ -244,12 +262,14 @@ func _gather_garrison_orders() -> Array[BotOpportunity]:
 		return out
 	var candidates: Array = _bot.get_idle_units().filter(
 		func(u: Commandable) -> bool:
-			return u.movement != null \
-				and u.movement.mode == Movement.Mode.GROUNDED \
-				and u.weapon_inventory != null \
-				and u.weapon_inventory.has_weapons() \
-				and not is_committed(u) \
+			return (
+				u.movement != null
+				and u.movement.mode == Movement.Mode.GROUNDED
+				and u.weapon_inventory != null
+				and u.weapon_inventory.has_weapons()
+				and not is_committed(u)
 				and not BotEconomy._is_constructing(u)
+			)
 	)
 	if candidates.is_empty():
 		return out
@@ -273,6 +293,7 @@ func _gather_garrison_orders() -> Array[BotOpportunity]:
 ## Utility of garrisoning [unit] into a bunker: its weapon output minus a small
 ## travel cost so nearby units are preferred over distant ones.
 func _bunker_garrison_utility(a_unit: Commandable, a_distance: float) -> float:
-	var attack_value: float = a_unit.weapon_inventory.total_damage() \
-		if a_unit.weapon_inventory != null else 0.0
+	var attack_value: float = (
+		a_unit.weapon_inventory.total_damage() if a_unit.weapon_inventory != null else 0.0
+	)
 	return attack_value - a_distance * 0.5

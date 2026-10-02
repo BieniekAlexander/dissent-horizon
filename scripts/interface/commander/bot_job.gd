@@ -37,8 +37,14 @@ var last_usec: int = 0
 var last_run_tick: int = -1
 
 
-func _init(a_name: StringName, a_brain: BotBrain, a_period_seconds: Callable, a_priority: int,
-		a_work: Callable, a_is_pending: Callable = Callable()) -> void:
+func _init(
+	a_name: StringName,
+	a_brain: BotBrain,
+	a_period_seconds: Callable,
+	a_priority: int,
+	a_work: Callable,
+	a_is_pending: Callable = Callable()
+) -> void:
 	name = a_name
 	brain = a_brain
 	period_seconds = a_period_seconds

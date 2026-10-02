@@ -59,8 +59,12 @@ var _in_play := PackedByteArray()
 
 ## `a_grid` is the placement grid after pass 3: free cells are the only ones a barrier may take.
 static func run(
-	params: MapGenerationParams, rng: RandomNumberGenerator, terrain: TerrainData,
-	grid: PlacementGrid, starts: Array[MapStart], features: Array[MapFeature]
+	params: MapGenerationParams,
+	rng: RandomNumberGenerator,
+	terrain: TerrainData,
+	grid: PlacementGrid,
+	starts: Array[MapStart],
+	features: Array[MapFeature]
 ) -> MapTopology:
 	var topology := MapTopology.new()
 	topology._params = params
@@ -107,7 +111,9 @@ func _carve_for_routes() -> void:
 		for b: int in range(a + 1, _start_count):
 			while graph.disjoint_paths(a, b, open_edges(), _params.min_routes) < _params.min_routes:
 				if not _carve_one_raising(a, b):
-					errors.append("starts %d and %d cannot keep %d routes" % [a, b, _params.min_routes])
+					errors.append(
+						"starts %d and %d cannot keep %d routes" % [a, b, _params.min_routes]
+					)
 					return
 
 
@@ -137,6 +143,8 @@ func open_edges() -> Array[Vector2i]:
 		if not closed.has(e):
 			open.append(graph.edges[e])
 	return open
+
+
 #endregion
 
 
@@ -196,6 +204,8 @@ func nearest_two(a_point: Vector2) -> Vector3:
 			second = i
 			second_d = d
 	return Vector3(best, second, sqrt(second_d) - sqrt(best_d))
+
+
 #endregion
 
 
@@ -242,6 +252,8 @@ func _carve_band(a_cut: int, a_through: Vector2i) -> void:
 	for cell: Vector2i in opened:
 		barrier_of.erase(cell)
 		carved_cells[cell] = true
+
+
 #endregion
 
 
@@ -260,7 +272,8 @@ func _enforce_choke_width() -> void:
 ## a barrier too close to one is trimmed whatever the sizes.
 func enforce_choke_width(a_cliffs: Dictionary) -> void:
 	var play := PlayArea.screen_aligned(
-		Vector2(_grid.width, _grid.depth) * 0.5, _terrain.play_half_extents(), Map.CELL_SIZE)
+		Vector2(_grid.width, _grid.depth) * 0.5, _terrain.play_half_extents(), Map.CELL_SIZE
+	)
 	while true:
 		var doomed: Dictionary = too_narrow_cells(barrier_of, play, a_cliffs)
 		if doomed.is_empty():
@@ -307,8 +320,10 @@ static func too_narrow_cells(
 					var other_reach: float = _CLIFF_REACH if fixed.has(other) else _OBSTACLE_REACH
 					if walkable_gap(cell, other, _OBSTACLE_REACH, other_reach) >= width:
 						continue
-					var smaller: bool = sizes[mine] < sizes[theirs] \
+					var smaller: bool = (
+						sizes[mine] < sizes[theirs]
 						or (sizes[mine] == sizes[theirs] and mine < theirs)
+					)
 					if fixed.has(other) or smaller:
 						doomed[cell] = true
 	return doomed
@@ -357,6 +372,8 @@ func _drop_fragments() -> void:
 	for cell: Vector2i in obstacle_of:
 		if sizes[obstacle_of[cell]] < _MIN_FRAGMENT_CELLS:
 			barrier_of.erase(cell)
+
+
 #endregion
 
 
@@ -414,12 +431,15 @@ func _repair_connectivity() -> void:
 func _stranded_cell() -> Vector2i:
 	var mask: PackedByteArray = passable_mask()
 	var field: PathField = PathField.from_seeds(
-		mask, _grid.width, _grid.depth, [Vector2i(graph.positions[0].floor())])
+		mask, _grid.width, _grid.depth, [Vector2i(graph.positions[0].floor())]
+	)
 	for z: int in _grid.depth:
 		for x: int in _grid.width:
 			if mask[z * _grid.width + x] != 0 and is_inf(field.distance(Vector2i(x, z))):
 				return Vector2i(x, z)
 	return Vector2i(-1, -1)
+
+
 #endregion
 
 

@@ -23,7 +23,6 @@ extends RefCounted
 var _bot: Bot
 var _act: BotActuator
 
-
 ## Energy that must still be banked AFTER a unit is paid for, mirroring BotEconomy.reserve
 ## (BotDifficulty.economy_reserve; pushed by BotBrain._apply_config).
 ##
@@ -76,7 +75,6 @@ const UTILITY_SPARE: int = 1
 ## visible prey and _best_utility_unit_for runs once per idle producer, so the count is
 ## computed at most once per think.
 var _capture_errands: int = -1
-
 
 ## Work units for reading the enemy demand map, and per idle producer decided for (BotScheduler
 ## counts work in units of roughly a microsecond on the calibration machine).
@@ -165,8 +163,11 @@ func _utility_demand_for(a_type: StringName) -> int:
 		# One builder per concurrent job. UNCAPPED concurrency has no finite job count to ask
 		# for, so it wants as many builders as it is allowed to own — the mini() below against
 		# `utility_unit_cap` is what actually bounds the answer either way.
-		demand += utility_unit_cap if BotDifficulty.is_build_uncapped(build_concurrency) \
-				else BotDifficulty.build_slots(build_concurrency)
+		demand += (
+			utility_unit_cap
+			if BotDifficulty.is_build_uncapped(build_concurrency)
+			else BotDifficulty.build_slots(build_concurrency)
+		)
 	if _bot.unit_type_can_capture(a_type):
 		demand += _capture_errand_count()
 	if _bot.unit_type_has_combat_utility(a_type):
@@ -181,8 +182,9 @@ func _utility_demand_for(a_type: StringName) -> int:
 ## dispatch one. Cached for the tick (see _capture_errands).
 func _capture_errand_count() -> int:
 	if _capture_errands < 0:
-		_capture_errands = 0 if _bot.get_deposit_structures().is_empty() \
-			else _bot.capturable_clusters().size()
+		_capture_errands = (
+			0 if _bot.get_deposit_structures().is_empty() else _bot.capturable_clusters().size()
+		)
 	return _capture_errands
 
 

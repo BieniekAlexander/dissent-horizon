@@ -23,9 +23,11 @@ static func color_for(fraction: float) -> Color:
 static func _build() -> Gradient:
 	var g: Gradient = Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
-	g.colors = PackedColorArray([
-		Color(0.85, 0.16, 0.16),   # empty  — red
-		Color(0.93, 0.86, 0.18),   # half   — yellow
-		Color(0.25, 0.78, 0.28),   # full   — green
-	])
+	g.colors = PackedColorArray(
+		[
+			Color(0.85, 0.16, 0.16),  # empty  — red
+			Color(0.93, 0.86, 0.18),  # half   — yellow
+			Color(0.25, 0.78, 0.28),  # full   — green
+		]
+	)
 	return g

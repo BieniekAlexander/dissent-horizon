@@ -8,6 +8,7 @@ extends AbstractEvent
 @export var dominion: int = 0
 #endregion
 
+
 #region Public API
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var commander := a_manager.get_commander(commander_id)

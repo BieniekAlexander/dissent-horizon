@@ -43,8 +43,10 @@ static func pond_color(full_charge: int, cell_count: int) -> Color:
 	if full_charge <= 0 or cell_count <= 0:
 		return PLAIN_WATER
 	var richness: float = float(full_charge) / float(cell_count)
-	return POND_POOR.lerp(POND_RICH, clampf(
-		inverse_lerp(POOR_ENERGY_PER_CELL, RICH_ENERGY_PER_CELL, richness), 0.0, 1.0))
+	return POND_POOR.lerp(
+		POND_RICH,
+		clampf(inverse_lerp(POOR_ENERGY_PER_CELL, RICH_ENERGY_PER_CELL, richness), 0.0, 1.0)
+	)
 
 
 ## The layer for a `width` x `depth` cell grid, index z * width + x.
@@ -54,8 +56,12 @@ static func pond_color(full_charge: int, cell_count: int) -> Color:
 ## [{center: Vector2 (cell space), half: float, color}]. Later layers draw over earlier ones:
 ## rims, then water, then fixtures, then start tints.
 static func build(
-	width: int, depth: int, in_play: PackedByteArray,
-	ponds: Array[Dictionary], fixtures: Array[Dictionary], starts: Array[Dictionary]
+	width: int,
+	depth: int,
+	in_play: PackedByteArray,
+	ponds: Array[Dictionary],
+	fixtures: Array[Dictionary],
+	starts: Array[Dictionary]
 ) -> PackedColorArray:
 	var layer := PackedColorArray()
 	layer.resize(width * depth)
@@ -88,7 +94,11 @@ static func fogged(color: Color, visibility: Fog.TerrainVisibility) -> Color:
 
 
 static func _paint(
-	layer: PackedColorArray, width: int, depth: int, in_play: PackedByteArray, cell: Vector2i,
+	layer: PackedColorArray,
+	width: int,
+	depth: int,
+	in_play: PackedByteArray,
+	cell: Vector2i,
 	color: Color
 ) -> void:
 	if cell.x < 0 or cell.y < 0 or cell.x >= width or cell.y >= depth:
@@ -99,8 +109,13 @@ static func _paint(
 
 
 static func _tint_square(
-	layer: PackedColorArray, width: int, depth: int, in_play: PackedByteArray, center: Vector2,
-	half: float, color: Color
+	layer: PackedColorArray,
+	width: int,
+	depth: int,
+	in_play: PackedByteArray,
+	center: Vector2,
+	half: float,
+	color: Color
 ) -> void:
 	for z: int in range(floori(center.y - half), ceili(center.y + half)):
 		for x: int in range(floori(center.x - half), ceili(center.x + half)):

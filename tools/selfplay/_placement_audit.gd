@@ -79,10 +79,18 @@ func _audit() -> void:
 	print("---PLACEMENT-AUDIT---")
 	print("checks: %d over %.0f simulated seconds" % [_checks, _seconds])
 	print("passable regions: %d at first check, %d at worst" % [_regions_at_start, _worst_regions])
-	print("structures sealed in at any check (production): %d  %s"
-		% [_sealed_production.size(), _sealed_production.slice(0, 8)])
-	print("structures sealed in at any check (any kind):   %d  %s"
-		% [_sealed_any.size(), _sealed_any.slice(0, 8)])
+	print(
+		(
+			"structures sealed in at any check (production): %d  %s"
+			% [_sealed_production.size(), _sealed_production.slice(0, 8)]
+		)
+	)
+	print(
+		(
+			"structures sealed in at any check (any kind):   %d  %s"
+			% [_sealed_any.size(), _sealed_any.slice(0, 8)]
+		)
+	)
 	get_tree().quit()
 
 

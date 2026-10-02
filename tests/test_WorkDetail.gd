@@ -23,7 +23,9 @@ const DIMS: Vector2i = Vector2i(2, 2)
 
 ## A real Map with its terrain/navmesh boot skipped — the same fixture test_OverlayPlacement
 ## uses, for the same reason: every question here is about cell_grid and footprints.
-class TestMap extends Map:
+class TestMap:
+	extends Map
+
 	func _ready() -> void:
 		pass
 
@@ -79,6 +81,7 @@ func _register(a_entity: Entity, a_origin: Vector2i) -> void:
 
 # --- What "adjacent" means ---------------------------------------------------------
 
+
 ## Bare Entities on the grid: this half is about footprints, not about pieces.
 func _stub(a_origin: Vector2i) -> Entity:
 	var entity: Entity = autofree(Entity.new()) as Entity
@@ -124,6 +127,7 @@ func test_an_unregistered_structure_has_no_neighbours() -> void:
 
 # --- What the passive is worth -----------------------------------------------------
 
+
 ## A fake structure placed on the grid and owned by `a_commander`, with an Abilities pool
 ## bolted on.
 func _structure(a_commander: Commander, a_origin: Vector2i, a_grants: Array) -> Commandable:
@@ -141,12 +145,19 @@ func _structure(a_commander: Commander, a_origin: Vector2i, a_grants: Array) -> 
 	return piece
 
 
-## A fake compound (a closed hold) placed on the grid and owned by `a_commander`. No occupants needed: the
+## A fake compound (a closed hold) placed on the grid and owned by `a_commander`. No occupants
+## needed: the
 ## bonus is a flat per-completion event now, not scaled by how many are held.
 func _compound(a_commander: Commander, a_origin: Vector2i) -> Commandable:
-	var piece: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2), "occupant_dominion": true,
-		"abilities": [{"grants": [Abilities.SUPPORT_ABILITY]}],
-		"garrison": {"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}})
+	var piece: Commandable = FakePieces.structure(
+		{
+			"dimensions": Vector2i(2, 2),
+			"occupant_dominion": true,
+			"abilities": [{"grants": [Abilities.SUPPORT_ABILITY]}],
+			"garrison":
+			{"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}
+		}
+	)
 	_world.add_child(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -189,7 +200,9 @@ func test_two_adjacent_compounds_each_apply_their_own_completion() -> void:
 	var pool := _spent_pool(beneficiary)
 	north.garrison._emit_positional_bonus()
 	east.garrison._emit_positional_bonus()
-	assert_almost_eq(pool._timers[0], 100.0 * (1.0 - 2.0 * Garrison.SENTENCE_COOLDOWN_BONUS), 0.0001)
+	assert_almost_eq(
+		pool._timers[0], 100.0 * (1.0 - 2.0 * Garrison.SENTENCE_COOLDOWN_BONUS), 0.0001
+	)
 
 
 func test_nothing_is_banked_once_the_pool_is_already_charged() -> void:
@@ -249,8 +262,9 @@ func test_a_piece_that_does_not_grant_work_detail_lends_nothing() -> void:
 	# A structure with a Garrison but no Work Detail grant — a plain shelter, say — must not
 	# start handing out the bonus just because something in it got consumed.
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
-	var plain: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2),
-		"garrison": {"capacity": 4}})
+	var plain: Commandable = FakePieces.structure(
+		{"dimensions": Vector2i(2, 2), "garrison": {"capacity": 4}}
+	)
 	_world.add_child(plain)
 	plain.set_physics_process(false)
 	plain.top_level = true

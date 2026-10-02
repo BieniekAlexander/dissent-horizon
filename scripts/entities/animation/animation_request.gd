@@ -16,8 +16,12 @@ var speed_scale: float
 var is_one_shot: bool
 
 
-func _init(a_layer: StringName, a_clip: StringName,
-		a_speed_scale: float = DEFAULT_SPEED_SCALE, a_is_one_shot: bool = false) -> void:
+func _init(
+	a_layer: StringName,
+	a_clip: StringName,
+	a_speed_scale: float = DEFAULT_SPEED_SCALE,
+	a_is_one_shot: bool = false
+) -> void:
 	layer = a_layer
 	clip = a_clip
 	speed_scale = a_speed_scale
@@ -25,8 +29,13 @@ func _init(a_layer: StringName, a_clip: StringName,
 
 
 func equals(a_other: AnimationRequest) -> bool:
-	return a_other != null and layer == a_other.layer and clip == a_other.clip \
-		and is_equal_approx(speed_scale, a_other.speed_scale) and is_one_shot == a_other.is_one_shot
+	return (
+		a_other != null
+		and layer == a_other.layer
+		and clip == a_other.clip
+		and is_equal_approx(speed_scale, a_other.speed_scale)
+		and is_one_shot == a_other.is_one_shot
+	)
 
 
 func _to_string() -> String:

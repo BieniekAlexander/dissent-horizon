@@ -11,19 +11,24 @@ extends GutTest
 
 
 ## A condition whose result is set directly by the test.
-class StubCondition extends Condition:
+class StubCondition:
+	extends Condition
 	var result: bool = false
 	var reset_count: int = 0
+
 	func evaluate(_a_manager: ScenarioTriggerManager) -> bool:
 		return result
+
 	func reset() -> void:
 		reset_count += 1
 
 
 ## An event that records how many times it was executed (used as an interleaved
 ## non-GlobalTrigger child to confirm the manager filters it out).
-class StubEvent extends AbstractEvent:
+class StubEvent:
+	extends AbstractEvent
 	var fire_count: int = 0
+
 	func execute(_a_manager: ScenarioTriggerManager) -> void:
 		fire_count += 1
 
@@ -35,6 +40,7 @@ func _make_global_event() -> GlobalTrigger:
 
 
 # --- GlobalTrigger condition evaluation ---------------------------------------
+
 
 func test_no_conditions_is_satisfied_immediately() -> void:
 	var e := _make_global_event()
@@ -93,6 +99,7 @@ func test_or_mode_requires_any_condition() -> void:
 # no-op (guarded), so a bare (untreed) manager is enough to exercise the
 # one-shot / repeat bookkeeping without a Scenario or Map.
 
+
 func test_one_shot_disables_after_firing() -> void:
 	var mgr := ScenarioTriggerManager.new()
 	autofree(mgr)
@@ -131,6 +138,7 @@ func test_no_conditions_disables_after_firing_even_when_repeating() -> void:
 # The other tests call fire() directly. This one goes through the real arming path — manager
 # _ready → _arm_triggers → ConditionPoller — because "fires with no conditions" is exactly the
 # claim that has no driver unless the stand-in condition registers with the poller.
+
 
 func test_unconditional_trigger_fires_once_through_the_poller() -> void:
 	var manager := ScenarioTriggerManager.new()
@@ -172,6 +180,7 @@ func test_unconditional_trigger_refires_when_rearmed() -> void:
 
 # --- Manager child collection ------------------------------------------------
 
+
 func test_manager_collects_global_event_children_in_order() -> void:
 	var manager := ScenarioTriggerManager.new()
 	var a := GlobalTrigger.new()
@@ -200,6 +209,7 @@ func test_manager_collects_global_event_children_in_order() -> void:
 
 # --- ConditionOccurrenceTally -----------------------------------------------------
 
+
 func test_event_tally_accumulates_via_signal() -> void:
 	var mgr := ScenarioTriggerManager.new()
 	autofree(mgr)
@@ -221,6 +231,7 @@ func test_event_tally_accumulates_via_signal() -> void:
 
 # --- Push firing path: a trigger fires reactively when its condition crosses ----
 
+
 func test_push_trigger_fires_when_tally_condition_met() -> void:
 	var mgr := ScenarioTriggerManager.new()
 	autofree(mgr)
@@ -240,6 +251,7 @@ func test_push_trigger_fires_when_tally_condition_met() -> void:
 
 # --- Pull driver: edge-detected poll ----------------------------------------
 
+
 func test_poll_emits_state_changed_only_on_edges() -> void:
 	var c := StubCondition.new()
 	watch_signals(c)
@@ -255,6 +267,7 @@ func test_poll_emits_state_changed_only_on_edges() -> void:
 
 # --- EventCommandPoint -------------------------------------------------------
 
+
 func test_command_point_default_is_attack_move() -> void:
 	var p := EventCommandPoint.new()
 	add_child_autofree(p)
@@ -262,6 +275,7 @@ func test_command_point_default_is_attack_move() -> void:
 
 
 # --- EventChainTrigger -------------------------------------------------------
+
 
 func test_chain_trigger_toggles_target() -> void:
 	var target := _make_global_event()
@@ -278,6 +292,7 @@ func test_chain_trigger_toggles_target() -> void:
 
 
 # --- ConditionEntityKilled ----------------------------------------------------
+
 
 func _killed_condition_manager() -> ScenarioTriggerManager:
 	var manager := ScenarioTriggerManager.new()

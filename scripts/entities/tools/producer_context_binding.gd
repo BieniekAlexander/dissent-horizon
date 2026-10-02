@@ -25,18 +25,28 @@ var producer_id: StringName
 var faction: int
 
 
-func _init(a_producer_id: StringName, a_label: String, a_grid_position: Vector2i,
-		a_faction: int) -> void:
-	super(PREFIX + String(a_producer_id), a_label, a_grid_position,
+func _init(
+	a_producer_id: StringName, a_label: String, a_grid_position: Vector2i, a_faction: int
+) -> void:
+	super(
+		PREFIX + String(a_producer_id),
+		a_label,
+		a_grid_position,
 		ControlContext.TRAIN,
 		"Show what the %s can train" % a_label,
-		"Pick which of the selected producers this card is showing.\nOne is always chosen; the greyed one is the one you are looking at.",
-		CommandFamily.PRODUCTION)
+		(
+			"Pick which of the selected producers this card is showing.\nOne is always "
+			+ "chosen; the greyed one is the one you are looking at."
+		),
+		CommandFamily.PRODUCTION
+	)
 	producer_id = a_producer_id
 	faction = a_faction
 
+
 func faction_mask() -> int:
 	return faction
+
 
 ## Only a selection holding THIS producer ever draws it, which is what lets two factions'
 ## context buttons share a cell.
@@ -50,10 +60,12 @@ func actor_ids() -> Array:
 ## which produced an empty row that nothing reported. Built on first call and cached after.
 static var _bindings: Array = []
 
+
 static func all() -> Array:
 	if _bindings.is_empty():
 		_bindings = _build()
 	return _bindings
+
 
 ## One binding per producer that authors a context cell. Built from the Tool registry rather
 ## than from a table of its own: `producers` is already derived there from every `trains:`
@@ -61,6 +73,7 @@ static func all() -> Array:
 ## place to update.
 static func _build() -> Array:
 	return from_tools(Tool.command_tool_map.values())
+
 
 ## The context buttons `tools` imply — split from _build so the spec importer can review a
 ## tool list it has not written yet.
@@ -79,7 +92,10 @@ static func from_tools(tools: Array) -> Array:
 			var piece: Tool = by_id.get(id)
 			if piece == null or piece.context_grid.x < 0:
 				continue
-			out.append(ProducerContextBinding.new(
-				id, piece.label, piece.context_grid, piece.faction_mask()))
+			out.append(
+				ProducerContextBinding.new(
+					id, piece.label, piece.context_grid, piece.faction_mask()
+				)
+			)
 	return out
 #endregion

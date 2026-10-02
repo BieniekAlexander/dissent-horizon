@@ -59,8 +59,12 @@ var _noise := FastNoiseLite.new()
 
 
 static func grow(
-	topology: MapTopology, params: MapGenerationParams, rng: RandomNumberGenerator,
-	terrain: TerrainData, grid: PlacementGrid, starts: Array[MapStart],
+	topology: MapTopology,
+	params: MapGenerationParams,
+	rng: RandomNumberGenerator,
+	terrain: TerrainData,
+	grid: PlacementGrid,
+	starts: Array[MapStart],
 	features: Array[MapFeature]
 ) -> void:
 	var regions := ObstacleRegions.new()
@@ -89,11 +93,15 @@ func _index(a_features: Array[MapFeature]) -> void:
 		# The clear box as MapGenerator reserves it, grown by the spacing every feature keeps.
 		var origin := Vector2i((start.position - Vector2(dims) * 0.5).round())
 		for cell: Vector2i in PlacementGrid.rect_cells(
-				origin - Vector2i.ONE * spacing, dims + Vector2i.ONE * 2 * spacing):
+			origin - Vector2i.ONE * spacing, dims + Vector2i.ONE * 2 * spacing
+		):
 			_start_buffer[cell] = true
 	for feature: MapFeature in a_features:
-		var cells: Array[Vector2i] = feature.pond_cells if feature.kind == MapFeature.Kind.POND \
+		var cells: Array[Vector2i] = (
+			feature.pond_cells
+			if feature.kind == MapFeature.Kind.POND
 			else feature.structure_cells()
+		)
 		if not cells.is_empty():
 			_anchors.append(cells[0])
 		if feature.kind != MapFeature.Kind.POND:
@@ -137,9 +145,11 @@ func _blocked_cells() -> int:
 ## drawn from the best few.
 func _next_cut(a_candidates: Array[int]) -> int:
 	var want_lake: bool = wants_lake(
-		_grown_lake, _grown_mountain, _params.region_lake_fraction, _rng.randf())
+		_grown_lake, _grown_mountain, _params.region_lake_fraction, _rng.randf()
+	)
 	var pool: Array[int] = a_candidates.filter(
-		func(cut: int) -> bool: return _topology.flooded[cut] == want_lake)
+		func(cut: int) -> bool: return _topology.flooded[cut] == want_lake
+	)
 	if pool.is_empty():
 		pool = a_candidates.duplicate()
 	var neediest: int = 0
@@ -148,8 +158,7 @@ func _next_cut(a_candidates: Array[int]) -> int:
 			neediest = a
 	var lean: Dictionary = {}
 	for cut: int in pool:
-		lean[cut] = MapFavor.access_share(
-			_midpoint(cut), _starts, _params.alliance_count)[neediest]
+		lean[cut] = MapFavor.access_share(_midpoint(cut), _starts, _params.alliance_count)[neediest]
 	pool.sort_custom(func(a: int, b: int) -> bool: return lean[a] > lean[b])
 	return pool[_rng.randi() % mini(_TOP_CANDIDATES, pool.size())]
 
@@ -175,11 +184,15 @@ func _midpoint(a_cut: int) -> Vector2:
 ## Widen `a_cut` and fill what it encloses; undone whole if it strands a feature or a start.
 func _grow_cut(a_cut: int) -> void:
 	var width: float = _rng.randf_range(
-		_params.region_width_min_cells, _params.region_width_max_cells)
+		_params.region_width_min_cells, _params.region_width_max_cells
+	)
 	var added: Array[Vector2i] = []
 	for cell: Vector2i in _cells_of_pair.get(_topology.graph.edges[_topology.cuts[a_cut]], []):
-		if _topology.barrier_of.has(cell) or _topology.carved_cells.has(cell) \
-				or _start_buffer.has(cell):
+		if (
+			_topology.barrier_of.has(cell)
+			or _topology.carved_cells.has(cell)
+			or _start_buffer.has(cell)
+		):
 			continue
 		var ragged: float = 1.0 + _params.region_edge_noise * _noise.get_noise_2d(cell.x, cell.y)
 		if (_topology.nearest_of[cell] as Vector3).z <= width * ragged:
@@ -236,8 +249,11 @@ func _enclosed_pockets(a_added: Array[Vector2i], a_before: PackedByteArray) -> A
 					continue  # already closed off before this growth
 				for index: int in piece:
 					var pocket_cell := Vector2i(index % width, index / width)
-					if not _grid.is_free(pocket_cell) or _anchor_set.has(pocket_cell) \
-							or _start_buffer.has(pocket_cell):
+					if (
+						not _grid.is_free(pocket_cell)
+						or _anchor_set.has(pocket_cell)
+						or _start_buffer.has(pocket_cell)
+					):
 						return [Vector2i(-1, -1)]
 					pockets.append(pocket_cell)
 	return pockets
@@ -273,6 +289,7 @@ func _flood(a_mask: PackedByteArray, a_from: int, a_visited: PackedByteArray) ->
 
 func _tally(a_cell: Vector2i) -> void:
 	var share: PackedFloat32Array = MapFavor.access_share(
-		Vector2(a_cell) + Vector2(0.5, 0.5), _starts, _params.alliance_count)
+		Vector2(a_cell) + Vector2(0.5, 0.5), _starts, _params.alliance_count
+	)
 	for a: int in share.size():
 		_obstructed[a] += share[a]

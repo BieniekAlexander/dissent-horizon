@@ -1,5 +1,6 @@
 class_name NavGrid extends GridMap
 
+
 #region Lifecycle
 func _ready() -> void:
 	$NavigationRegion3D.bake_navigation_mesh()

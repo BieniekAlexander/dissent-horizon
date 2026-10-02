@@ -15,7 +15,7 @@ extends GutTest
 ## Commandable push_errors its way through _ready) and are not covered here.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NarrowedAssignment.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NarrowedAssignment.gd -gexit
 
 const IDLE: bool = true
 const BUSY: bool = false
@@ -31,6 +31,7 @@ func _at(a_x: float, a_z: float, a_idle: bool) -> Array:
 
 
 # --- nearest idle (narrow alone) ----------------------------------------------
+
 
 func test_the_nearest_idle_actor_takes_the_order() -> void:
 	var far := _at(20, 20, IDLE)
@@ -68,11 +69,13 @@ func test_ties_go_to_the_earlier_candidate() -> void:
 
 # --- narrow + broaden ---------------------------------------------------------
 
+
 func test_dropping_the_idle_preference_takes_the_nearest_outright() -> void:
 	var busy_and_near := _at(1, 1, BUSY)
 	var idle_but_far := _at(20, 20, IDLE)
 	assert_eq(
-		RTSController.narrowed_index([busy_and_near, idle_but_far], ORIGIN, NEAREST_ONLY), 0,
+		RTSController.narrowed_index([busy_and_near, idle_but_far], ORIGIN, NEAREST_ONLY),
+		0,
 		"the nearest actor, whether or not it is idle"
 	)
 
@@ -84,10 +87,14 @@ func test_dropping_the_idle_preference_changes_nothing_when_all_are_idle() -> vo
 
 # --- degenerate sets ----------------------------------------------------------
 
+
 func test_a_single_candidate_is_chosen_whatever_it_is_doing() -> void:
 	assert_eq(RTSController.narrowed_index([_at(500, 500, BUSY)], ORIGIN, PREFER_IDLE), 0)
 
 
 func test_an_empty_set_chooses_nothing() -> void:
-	assert_eq(RTSController.narrowed_index([], ORIGIN, PREFER_IDLE), -1,
-		"-1 is what makes the caller hand back the original selection untouched")
+	assert_eq(
+		RTSController.narrowed_index([], ORIGIN, PREFER_IDLE),
+		-1,
+		"-1 is what makes the caller hand back the original selection untouched"
+	)

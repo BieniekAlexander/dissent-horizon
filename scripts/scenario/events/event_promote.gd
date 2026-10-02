@@ -11,8 +11,10 @@ class_name EventPromote extends EventTargetUnit
 ## A unit that has already earned a level is simply not a candidate, so a click near a
 ## mixed group picks the nearest UNBLOODED unit rather than being refused.
 
+
 func _qualifies(a_candidate: Commandable) -> bool:
 	return a_candidate.veterancy != null and a_candidate.veterancy.level == Veterancy.Level.NONE
+
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var target: Commandable = _find_target_unit(a_manager)

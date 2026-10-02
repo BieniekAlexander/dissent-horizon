@@ -23,6 +23,7 @@ extends RefCounted
 ## too). A full rebuild of s1's 160x160 grid measures ~7.7 ms — 130 fps — so a brush stroke
 ## rebuilds the whole surface and no chunked partial-update machinery is needed.
 
+
 #region Public API
 ## A flat grid spanning the `dims` corner grid at `height`, centred on the origin exactly as
 ## HeightMapShape3D centres its own — the frame MeshHeightfieldBaker and Map.grid_to_world
@@ -68,9 +69,12 @@ static func write_heights(mesh: ArrayMesh, dims: Vector2i, heights: PackedFloat3
 	if w < 2 or d < 2 or heights.size() != w * d:
 		return
 
-	var verts := PackedVector3Array();   verts.resize(w * d)
-	var normals := PackedVector3Array(); normals.resize(w * d)
-	var uvs := PackedVector2Array();     uvs.resize(w * d)
+	var verts := PackedVector3Array()
+	verts.resize(w * d)
+	var normals := PackedVector3Array()
+	normals.resize(w * d)
+	var uvs := PackedVector2Array()
+	uvs.resize(w * d)
 	var half_w: float = (w - 1) * 0.5
 	var half_d: float = (d - 1) * 0.5
 
@@ -95,7 +99,7 @@ static func write_heights(mesh: ArrayMesh, dims: Vector2i, heights: PackedFloat3
 	for z: int in d - 1:
 		for x: int in w - 1:
 			var a: int = z * w + x
-			idx[k]     = a
+			idx[k] = a
 			idx[k + 1] = a + 1
 			idx[k + 2] = a + w + 1
 			idx[k + 3] = a

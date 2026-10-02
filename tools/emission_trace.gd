@@ -73,10 +73,12 @@ func _run() -> void:
 	get_tree().quit()
 
 
-func _trace(a_map: Map, a_player: Commander, a_enemy: Commander, a_path: String,
-		a_aimed_at_ground: bool) -> void:
-	var label: String = "%s %s" % [a_path.get_file().get_basename(),
-		"ground" if a_aimed_at_ground else "target"]
+func _trace(
+	a_map: Map, a_player: Commander, a_enemy: Commander, a_path: String, a_aimed_at_ground: bool
+) -> void:
+	var label: String = (
+		"%s %s" % [a_path.get_file().get_basename(), "ground" if a_aimed_at_ground else "target"]
+	)
 	var centre: Vector2 = a_map.play_area().center
 	var targets: Array[Commandable] = []
 	for offset: Vector2 in [Vector2.ZERO] + BYSTANDER_OFFSETS:
@@ -87,12 +89,12 @@ func _trace(a_map: Map, a_player: Commander, a_enemy: Commander, a_path: String,
 	var emission: Entity = (load(a_path) as PackedScene).instantiate() as Entity
 	emission.initialize(a_map, a_player)
 	var origin_xz: Vector2 = centre - Vector2(RANGE_METRES, 0.0)
-	emission.global_position = Vector3(origin_xz.x,
-		a_map.terrain_height_at(origin_xz) + LAUNCH_HEIGHT_METRES, origin_xz.y)
+	emission.global_position = Vector3(
+		origin_xz.x, a_map.terrain_height_at(origin_xz) + LAUNCH_HEIGHT_METRES, origin_xz.y
+	)
 	for target: Commandable in targets:
 		target.set_meta(&"trace_launch", _tick)
-	Emitter.launch(emission, null,
-		targets[0].global_position if a_aimed_at_ground else targets[0])
+	Emitter.launch(emission, null, targets[0].global_position if a_aimed_at_ground else targets[0])
 
 	var waited: int = 0
 	while is_instance_valid(emission) and waited < MAX_TICKS:
@@ -101,8 +103,9 @@ func _trace(a_map: Map, a_player: Commander, a_enemy: Commander, a_path: String,
 		if is_instance_valid(emission):
 			var at: Vector3 = emission.global_position
 			_lines.append("%s | +%d at (%.3f, %.3f, %.3f)" % [label, waited, at.x, at.y, at.z])
-	_lines.append("%s | ends +%s" % [label,
-		str(waited) if not is_instance_valid(emission) else "never"])
+	_lines.append(
+		"%s | ends +%s" % [label, str(waited) if not is_instance_valid(emission) else "never"]
+	)
 	if is_instance_valid(emission):
 		emission.queue_free()
 	for target: Commandable in targets:
@@ -110,19 +113,23 @@ func _trace(a_map: Map, a_player: Commander, a_enemy: Commander, a_path: String,
 	await get_tree().physics_frame
 
 
-func _spawn_target(a_map: Map, a_enemy: Commander, a_xz: Vector2, a_index: int,
-		a_label: String) -> Commandable:
+func _spawn_target(
+	a_map: Map, a_enemy: Commander, a_xz: Vector2, a_index: int, a_label: String
+) -> Commandable:
 	var target: Commandable = (load(TARGET_SCENE) as PackedScene).instantiate() as Commandable
 	target.initialize(a_map, a_enemy)
 	target.global_position = Vector3(a_xz.x, a_map.terrain_height_at(a_xz), a_xz.y)
 	target.defense.hp_max = TARGET_HP
 	target.defense.hp = TARGET_HP
 	var last_hp: Array[float] = [TARGET_HP]
-	target.defense.hp_changed.connect(func(a_hp: float, _a_hp_max: float) -> void:
-		var launch: int = target.get_meta(&"trace_launch", _tick)
-		_lines.append("%s | +%d t%d dmg=%.4f" % [a_label, _tick - launch, a_index,
-			last_hp[0] - a_hp])
-		last_hp[0] = a_hp)
+	target.defense.hp_changed.connect(
+		func(a_hp: float, _a_hp_max: float) -> void:
+			var launch: int = target.get_meta(&"trace_launch", _tick)
+			_lines.append(
+				"%s | +%d t%d dmg=%.4f" % [a_label, _tick - launch, a_index, last_hp[0] - a_hp]
+			)
+			last_hp[0] = a_hp
+	)
 	return target
 
 
@@ -141,8 +148,10 @@ static func _sorted_within_ticks(lines: PackedStringArray) -> PackedStringArray:
 		var group: Array = groups[label]
 		var ends: Array = group.filter(func(l: String) -> bool: return l.contains("| ends"))
 		var hits: Array = group.filter(func(l: String) -> bool: return not l.contains("| ends"))
-		hits.sort_custom(func(a: String, b: String) -> bool:
-			return _tick_of(a) < _tick_of(b) or (_tick_of(a) == _tick_of(b) and a < b))
+		hits.sort_custom(
+			func(a: String, b: String) -> bool:
+				return _tick_of(a) < _tick_of(b) or (_tick_of(a) == _tick_of(b) and a < b)
+		)
 		out.append_array(PackedStringArray(hits + ends))
 	return out
 

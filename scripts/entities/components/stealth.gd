@@ -25,8 +25,8 @@ extends Node
 
 #region Constants
 enum State {
-	STEALTHED,    ## hidden from enemies
-	REVEALED,     ## seen by a detector, but not combat-revealed
+	STEALTHED,  ## hidden from enemies
+	REVEALED,  ## seen by a detector, but not combat-revealed
 	UNSTEALTHED,  ## attacked or been attacked — fully visible, timed
 }
 
@@ -48,6 +48,7 @@ var _unstealth_timer_ticks: int = 0
 var _last_detected_frame: int = -1
 #endregion
 
+
 #region Lifecycle
 func _ready() -> void:
 	# Register on the STEALTH collision layer so DetectionRange shapes can
@@ -60,7 +61,10 @@ func _ready() -> void:
 	var actor := entity as Commandable
 	if actor != null:
 		actor.is_holding_fire = true
+
+
 #endregion
+
 
 #region Public API
 ## Called by a detecting entity each physics frame it overlaps this unit.

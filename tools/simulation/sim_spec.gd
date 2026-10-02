@@ -81,14 +81,15 @@ const CHECK_ARGUMENTS: Dictionary = {
 }
 #endregion
 
+
 #region Inner types
 ## Where something stands, without ever naming a world coordinate. Either a bare anchor, or
 ## an offset of `distance` world units along `bearing` from `from` (an anchor or a group).
 class Placement:
 	extends RefCounted
-	var anchor: String = ""       ## set when this is a bare anchor
-	var from_ref: String = ""     ## a group reference ("A.armyA") or an anchor name
-	var bearing: String = ""      ## an anchor name used as a compass direction
+	var anchor: String = ""  ## set when this is a bare anchor
+	var from_ref: String = ""  ## a group reference ("A.armyA") or an anchor name
+	var bearing: String = ""  ## an anchor name used as a compass direction
 	var distance_units: float = 0.0
 
 	func is_relative() -> bool:
@@ -136,7 +137,7 @@ class Group:
 	var name: String = ""
 	var composition: Array[Composition] = []
 	var placement: Placement = null
-	var facing: String = ""           ## an anchor name or a group reference
+	var facing: String = ""  ## an anchor name or a group reference
 	var formation: String = ""
 	var orders: Array[Order] = []
 
@@ -172,7 +173,7 @@ class Check:
 	var name: String = ""
 	var arguments: Dictionary = {}
 	var mode: Mode = Mode.AT_END
-	var deadline_seconds: float = 0.0   ## LIVENESS only
+	var deadline_seconds: float = 0.0  ## LIVENESS only
 
 	## What this leaf claims, for the run report. Derived rather than authored: a
 	## description a reader has to keep in step with the check is a description that drifts.
@@ -227,10 +228,12 @@ class ExpectNode:
 					if not child.resolve(a_verdicts):
 						return false
 				return true
+
+
 #endregion
 
 #region Properties
-var id: String = ""                     ## the file name, which IS the test id
+var id: String = ""  ## the file name, which IS the test id
 var description: String = ""
 var arena_kind: String = "flat"
 var arena_size_cells: int = 30
@@ -238,11 +241,12 @@ var run_seconds: float = 0.0
 ## The seed for THIS ONE RUN. -1 means the spec named none and the runner draws one; a spec
 ## never carries a sampling policy (see the note, §One spec is one run).
 var seed_value: int = -1
-var commanders: Dictionary = {}         ## slot name -> CommanderSettings
-var groups: Dictionary = {}             ## "A.armyA" -> Group, in authored order
+var commanders: Dictionary = {}  ## slot name -> CommanderSettings
+var groups: Dictionary = {}  ## "A.armyA" -> Group, in authored order
 var expect_root: ExpectNode = null
 var errors: Array[String] = []
 #endregion
+
 
 #region Parsing
 ## Parse spec text. Never throws and never returns null: a spec that could not be read comes
@@ -302,8 +306,10 @@ func _read_setting(a_value: Variant) -> void:
 		errors.append("`setting.size` must be at least 4 cells, got %d" % arena_size_cells)
 	if setting.has("commanders"):
 		errors.append(
-			"commander configuration moved under `given.<slot>.settings`; "
-			+ "`setting` names the arena and nothing else"
+			(
+				"commander configuration moved under `given.<slot>.settings`; "
+				+ "`setting` names the arena and nothing else"
+			)
 		)
 
 
@@ -320,8 +326,10 @@ func _read_run(a_value: Variant) -> void:
 		seed_value = int(run["seed"])
 	if run.has("trials") or run.has("tolerance"):
 		errors.append(
-			"`run.trials` / `run.tolerance` are the RUNNER's, not the spec's — "
-			+ "a spec describes one run (see simulation-tests.md §One spec is one run)"
+			(
+				"`run.trials` / `run.tolerance` are the RUNNER's, not the spec's — "
+				+ "a spec describes one run (see simulation-tests.md §One spec is one run)"
+			)
 		)
 
 
@@ -347,18 +355,20 @@ func _read_given(a_value: Variant) -> void:
 	if not (a_value is Dictionary) or (a_value as Dictionary).is_empty():
 		errors.append("`given` must name at least one commander slot")
 		return
-	for slot: String in (a_value as Dictionary):
+	for slot: String in a_value as Dictionary:
 		var body: Variant = (a_value as Dictionary)[slot]
 		if not (body is Dictionary):
 			errors.append("`given.%s` must be a mapping with a `with` block" % slot)
 			continue
 		commanders[slot] = _read_settings(slot, (body as Dictionary).get("settings", {}))
 		_read_with(slot, (body as Dictionary).get("with", null))
-		for key: String in (body as Dictionary):
+		for key: String in body as Dictionary:
 			if key != "with" and key != "settings":
 				errors.append(
-					"`given.%s.%s` is neither `with` nor `settings`; groups go under `with`"
-					% [slot, key]
+					(
+						"`given.%s.%s` is neither `with` nor `settings`; groups go under `with`"
+						% [slot, key]
+					)
 				)
 
 
@@ -371,8 +381,10 @@ func _read_settings(a_slot: String, a_value: Variant) -> CommanderSettings:
 	settings.difficulty = str(body.get("difficulty", "PASSIVE"))
 	if not DIFFICULTIES.has(settings.difficulty):
 		errors.append(
-			"unknown difficulty '%s' for slot %s; one of %s"
-			% [settings.difficulty, a_slot, ", ".join(DIFFICULTIES)]
+			(
+				"unknown difficulty '%s' for slot %s; one of %s"
+				% [settings.difficulty, a_slot, ", ".join(DIFFICULTIES)]
+			)
 		)
 	settings.faction = str(body.get("faction", ""))
 	return settings
@@ -382,7 +394,7 @@ func _read_with(a_slot: String, a_value: Variant) -> void:
 	if not (a_value is Dictionary) or (a_value as Dictionary).is_empty():
 		errors.append("`given.%s.with` must name at least one group" % a_slot)
 		return
-	for name: String in (a_value as Dictionary):
+	for name: String in a_value as Dictionary:
 		var group: Group = _read_group(a_slot, name, (a_value as Dictionary)[name])
 		if group != null:
 			groups[group.qualified_name()] = group
@@ -403,8 +415,10 @@ func _read_group(a_slot: String, a_name: String, a_value: Variant) -> Group:
 	group.formation = str(body.get("formation", ""))
 	if group.formation != "" and not FORMATIONS.has(group.formation):
 		errors.append(
-			"unknown formation '%s' on `%s`; one of %s"
-			% [group.formation, where, ", ".join(FORMATIONS)]
+			(
+				"unknown formation '%s' on `%s`; one of %s"
+				% [group.formation, where, ", ".join(FORMATIONS)]
+			)
 		)
 	group.orders = _read_orders(where, body.get("orders", []))
 	return group
@@ -415,7 +429,7 @@ func _read_composition(a_where: String, a_value: Variant) -> Array[Composition]:
 	if not (a_value is Array) or (a_value as Array).is_empty():
 		errors.append("`%s.of` must list at least one { piece, count }" % a_where)
 		return result
-	for entry: Variant in (a_value as Array):
+	for entry: Variant in a_value as Array:
 		if not (entry is Dictionary) or not (entry as Dictionary).has("piece"):
 			errors.append("`%s.of` entries must name a `piece`" % a_where)
 			continue
@@ -444,7 +458,9 @@ func _read_placement(a_value: Variant, a_where: String) -> Placement:
 			placement.from_ref = name
 		return placement
 	if not (a_value is Dictionary):
-		errors.append("`%s` must be an anchor, a group reference, or a { from, … } offset" % a_where)
+		errors.append(
+			"`%s` must be an anchor, a group reference, or a { from, … } offset" % a_where
+		)
 		return null
 	var body: Dictionary = a_value
 	placement.from_ref = str(body.get("from", ""))
@@ -485,8 +501,10 @@ func _read_order(a_where: String, a_value: Variant) -> Order:
 	order.command = body.keys()[0]
 	if not COMMAND_ARGUMENTS.has(order.command):
 		errors.append(
-			"`%s` names unknown command '%s'; one of %s"
-			% [a_where, order.command, ", ".join(PackedStringArray(COMMAND_ARGUMENTS.keys()))]
+			(
+				"`%s` names unknown command '%s'; one of %s"
+				% [a_where, order.command, ", ".join(PackedStringArray(COMMAND_ARGUMENTS.keys()))]
+			)
 		)
 		return null
 	var argument: Variant = body[order.command]
@@ -498,9 +516,17 @@ func _read_order(a_where: String, a_value: Variant) -> Order:
 		return order
 	var body_arg: Dictionary = argument
 	if body_arg.has("to"):
-		errors.append(
-			"`%s` uses `to:`, which was renamed — a command's argument is `target:` (the thing "
-			% a_where + "or exact place) or `near:` (beside it)"
+		(
+			errors
+			. append(
+				(
+					(
+						"`%s` uses `to:`, which was renamed — a command's argument is `target:` (the thing "
+						% a_where
+					)
+					+ "or exact place) or `near:` (beside it)"
+				)
+			)
 		)
 		return order
 	var has_target: bool = body_arg.has("target")
@@ -514,8 +540,10 @@ func _read_order(a_where: String, a_value: Variant) -> Order:
 	if kind == ARG_TARGET:
 		if has_near:
 			errors.append(
-				"`%s`: %s names an ENTITY, so it takes `target:` — `near:` is a place"
-				% [a_where, order.command]
+				(
+					"`%s`: %s names an ENTITY, so it takes `target:` — `near:` is a place"
+					% [a_where, order.command]
+				)
 			)
 			return order
 		order.target = _read_target(a_where, body_arg["target"])
@@ -543,11 +571,16 @@ func _read_target(a_where: String, a_value: Variant) -> TargetRef:
 		errors.append("`%s.target` selector names no `of`" % a_where)
 	if target.pick != "" and not PICKS.has(target.pick):
 		errors.append(
-			"`%s.target.pick` must be one of %s, got '%s'"
-			% [a_where, ", ".join(PICKS), target.pick]
+			(
+				"`%s.target.pick` must be one of %s, got '%s'"
+				% [a_where, ", ".join(PICKS), target.pick]
+			)
 		)
 	return target
+
+
 #endregion
+
 
 #region Expectations
 func _read_expect(a_value: Variant) -> void:
@@ -608,8 +641,10 @@ func _read_leaf(a_where: String, a_body: Dictionary) -> ExpectNode:
 		errors.append("`%s` names no `of`" % a_where)
 	if not CHECK_ARGUMENTS.has(check.name):
 		errors.append(
-			"`%s` names unknown check '%s'; one of %s"
-			% [a_where, check.name, ", ".join(PackedStringArray(CHECK_ARGUMENTS.keys()))]
+			(
+				"`%s` names unknown check '%s'; one of %s"
+				% [a_where, check.name, ", ".join(PackedStringArray(CHECK_ARGUMENTS.keys()))]
+			)
 		)
 		return null
 	_read_leaf_mode(a_where, a_body, check)
@@ -654,20 +689,36 @@ func _read_leaf_arguments(a_where: String, a_body: Dictionary, a_check: Check) -
 			# quantifies over a set, so a pick here would silently narrow what is measured.
 			if key == "pick":
 				errors.append(
-					"`%s` uses `pick`, which belongs to an order's target — a check "
-					% a_where + "quantifies over the whole selection (use a count argument)"
+					(
+						"`%s` uses `pick`, which belongs to an order's target — a check " % a_where
+						+ "quantifies over the whole selection (use a count argument)"
+					)
 				)
 			else:
-				errors.append(
-					"`%s`: check '%s' does not take '%s'%s"
-					% [
-						a_where, a_check.name, key,
-						"" if accepted.is_empty() else "; it takes %s" % ", ".join(PackedStringArray(accepted)),
-					]
+				(
+					errors
+					. append(
+						(
+							"`%s`: check '%s' does not take '%s'%s"
+							% [
+								a_where,
+								a_check.name,
+								key,
+								(
+									""
+									if accepted.is_empty()
+									else "; it takes %s" % ", ".join(PackedStringArray(accepted))
+								),
+							]
+						)
+					)
 				)
 			continue
 		a_check.arguments[key] = a_body[key]
+
+
 #endregion
+
 
 #region Whole-spec validation
 ## Every group reference names a group that exists, and every check's `of` does too. Run
@@ -684,8 +735,10 @@ func _validate_references() -> void:
 				_require_group(order.target.group_ref, "`%s` order target" % reference)
 				if order.target.piece != "" and not SimPieceCatalog.has_piece(order.target.piece):
 					errors.append(
-						"`%s` order target names unknown piece '%s'"
-						% [reference, order.target.piece]
+						(
+							"`%s` order target names unknown piece '%s'"
+							% [reference, order.target.piece]
+						)
 					)
 			if order.position != null:
 				_require_place_ref(order.position, "`%s` order destination" % reference)
@@ -719,8 +772,10 @@ func _require_group(a_reference: String, a_where: String) -> void:
 		return
 	if not a_reference.contains("."):
 		errors.append(
-			"%s names '%s' unqualified; a group reference is always <slot>.<group>"
-			% [a_where, a_reference]
+			(
+				"%s names '%s' unqualified; a group reference is always <slot>.<group>"
+				% [a_where, a_reference]
+			)
 		)
 		return
 	errors.append("%s names unknown group '%s'" % [a_where, a_reference])

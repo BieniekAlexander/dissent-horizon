@@ -1,6 +1,7 @@
 extends GutTest
 
-## PLACING A STRUCTURE: press `command_armed_issue` to set it down, drag to turn it, release to order it.
+## PLACING A STRUCTURE: press `command_armed_issue` to set it down, drag to turn it, release to
+## order it.
 ## Driven through RTSController._unhandled_input on a controller that was never put in a scene tree,
 ## the way test_VariantCycle drives the card; the per-frame half (the cursor's ground point) is
 ## covered by its pure parts in test_FootprintRotation.
@@ -21,7 +22,9 @@ const MAP_CORNERS: int = 41
 const GRID_CELLS: int = MAP_CORNERS - 1
 
 
-class StubMap extends Map:
+class StubMap:
+	extends Map
+
 	func _ready() -> void:
 		cell_grid = []
 		for x: int in GRID_CELLS:
@@ -35,8 +38,12 @@ class StubMap extends Map:
 		add_child(terrain_grid)
 
 	func grid_coordinates_in_bounds(a_coords: Vector2i) -> bool:
-		return a_coords.x >= 0 and a_coords.x < GRID_CELLS \
-			and a_coords.y >= 0 and a_coords.y < GRID_CELLS
+		return (
+			a_coords.x >= 0
+			and a_coords.x < GRID_CELLS
+			and a_coords.y >= 0
+			and a_coords.y < GRID_CELLS
+		)
 
 
 var _world: Node3D
@@ -62,11 +69,13 @@ func before_each() -> void:
 	_commander.map = _map
 	_commander.add_energy(100000)
 	_commander.set_physics_process(false)
-	FakePieces.install_families([
-		{"id": SQUARE, "footprint": Vector2i(4, 4)}, {"id": LONG, "footprint": LONG_DIMS}])
+	FakePieces.install_families(
+		[{"id": SQUARE, "footprint": Vector2i(4, 4)}, {"id": LONG, "footprint": LONG_DIMS}]
+	)
 	_tool = FakePieces.register_tool(FakePieces.tool(TOOL_TYPE, {}, [SQUARE, LONG]))
-	_commander.technology_mapping = {TOOL_TYPE: FakePieces.tech(), SQUARE: FakePieces.tech(),
-		LONG: FakePieces.tech()}
+	_commander.technology_mapping = {
+		TOOL_TYPE: FakePieces.tech(), SQUARE: FakePieces.tech(), LONG: FakePieces.tech()
+	}
 	_builder = FakePieces.make(BUILDER_SCENE) as Commandable
 	_world.add_child(_builder)
 	(_builder.get_node("Builds") as Builds).buildable_types = [TOOL_TYPE]
@@ -133,6 +142,7 @@ func _ordered_build() -> Build:
 
 # ─── THE ROTATE KEYS ────────────────────────────────────────────────────────
 
+
 func test_rotate_left_turns_counter_clockwise_and_right_turns_back() -> void:
 	_press(&"rotate_left")
 	assert_eq(_controller.placement_quarter_turns, 1)
@@ -162,6 +172,7 @@ func test_the_rotate_keys_do_nothing_when_it_is_not_a_build() -> void:
 
 
 # ─── PRESS, DRAG, RELEASE ───────────────────────────────────────────────────
+
 
 func test_the_press_orders_nothing() -> void:
 	_aim()
@@ -223,6 +234,7 @@ func test_the_release_behaves_as_the_press_used_to_about_staying_armed() -> void
 
 # ─── A TURN THAT MAKES THE PLACEMENT ILLEGAL ────────────────────────────────
 
+
 func test_a_turn_that_lands_on_something_is_refused_and_the_tool_stays_armed() -> void:
 	_aim()
 	var at := Vector2(2.0, 3.0)
@@ -252,6 +264,7 @@ func test_a_turn_that_lands_on_something_is_refused_and_the_tool_stays_armed() -
 
 # ─── CANCELLING ─────────────────────────────────────────────────────────────
 
+
 func test_disarming_mid_press_orders_nothing_when_the_button_comes_up() -> void:
 	_aim()
 	_press(&"command_armed_issue")
@@ -270,6 +283,7 @@ func test_putting_the_tool_down_forgets_the_turn() -> void:
 
 
 # ─── WHAT A DRAG MEANS ──────────────────────────────────────────────────────
+
 
 func test_a_drag_turns_the_structure_to_face_the_cursor() -> void:
 	_aim()
@@ -291,15 +305,18 @@ func test_a_wobble_inside_the_dead_zone_keeps_the_facing_the_keys_chose() -> voi
 	_press(&"rotate_left")
 	_press(&"command_armed_issue")
 	var press: Vector3 = Vector3(2.0, 0.0, 3.0)
-	_controller._turn_placement_toward(press + Vector3(-RTSController.PLACEMENT_ROTATE_DEADZONE * 0.5, 0.0, 0.0))
+	_controller._turn_placement_toward(
+		press + Vector3(-RTSController.PLACEMENT_ROTATE_DEADZONE * 0.5, 0.0, 0.0)
+	)
 	assert_eq(_controller.placement_quarter_turns, 1)
 
 
 func test_the_order_carries_the_turn_the_drag_ended_on() -> void:
 	_aim()
 	_press(&"command_armed_issue")
-	_controller._turn_placement_toward(Vector3(2.0, 0.0, 3.0) \
-		+ Vector3(RTSController.PLACEMENT_ROTATE_DEADZONE * 4.0, 0.0, 0.0))
+	_controller._turn_placement_toward(
+		Vector3(2.0, 0.0, 3.0) + Vector3(RTSController.PLACEMENT_ROTATE_DEADZONE * 4.0, 0.0, 0.0)
+	)
 	_release(&"command_armed_issue")
 	var build: Build = _ordered_build()
 	assert_not_null(build)

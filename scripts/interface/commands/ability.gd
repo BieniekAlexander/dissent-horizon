@@ -4,7 +4,8 @@ extends MoveCommand
 ## Generic position-targeted ability command: the actor closes on the point and puts its
 ## payload down there.
 ##
-## WHICH ability is carried on `message.ability_type`, a `kind: AbilityDefinition` doc id. It used to
+## WHICH ability is carried on `message.ability_type`, a `kind: AbilityDefinition` doc id. It used
+## to
 ## be a member of an enum declared right here — a second, parallel ability system that ended
 ## its life holding one member (RADIATION) while `Abilities`/`AbilityCatalog` held everything
 ## else. Folding it out is what makes "every ability is charge-based, and a charge is the
@@ -23,6 +24,7 @@ extends MoveCommand
 ## a subclass: an ability with an ordinary reach authors `range:` on its doc, and one whose
 ## reach is not a distance overrides `is_in_range`. See
 ## gdd/systems/commands/the-click-ladder.md and ~/.claude/CLAUDE.md §1.3.
+
 
 #region Reach
 ## Whether [a_actor] may use the ability from where it stands.
@@ -50,12 +52,14 @@ static func range_closes_by_moving() -> bool:
 ## report it as something else — the Bombard's unspotted point is not bad PLACEMENT.
 static func out_of_range_cause() -> PreconditionFailureCause:
 	return PreconditionFailureCause.INVALID_PLACEMENT
+
+
 #endregion
+
 
 #region Preconditions
 static func meets_precondition(
-	actor: Commandable,
-	message: CommandMessage
+	actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	return precondition_for(Ability, actor, message)
 
@@ -68,9 +72,7 @@ static func meets_precondition(
 ## an INSTANCE method it does dispatch, which is why can_act below needs no such help.)
 ## Each subclass overriding `meets_precondition` passes itself.
 static func precondition_for(
-	command_class: Script,
-	actor: Commandable,
-	message: CommandMessage
+	command_class: Script, actor: Commandable, message: CommandMessage
 ) -> PreconditionFailureCause:
 	var ability_id: StringName = command_class._ability_of(message)
 	if actor == null or ability_id == &"":
@@ -92,11 +94,16 @@ static func precondition_for(
 	# Out of reach, and nothing the actor can do about it: either the reach is not a distance
 	# at all, or it is and this actor cannot move. Refuse outright rather than leave it
 	# holding an order it can never fulfil.
-	if not command_class.is_in_range(actor, message) \
-			and not (command_class.range_closes_by_moving() and actor.can_move()):
+	if (
+		not command_class.is_in_range(actor, message)
+		and not (command_class.range_closes_by_moving() and actor.can_move())
+	):
 		return command_class.out_of_range_cause()
 	return PreconditionFailureCause.NONE
+
+
 #endregion
+
 
 ## AUTHORED PER ABILITY (`cast_by:`), not per command class: every ability is this same
 ## command, so the class cannot answer without being told which one. Defaults to SINGLE — see
@@ -121,6 +128,7 @@ static func actor_is_recharging(actor: Commandable) -> bool:
 static func _pool_of(actor: Commandable) -> Abilities:
 	return actor.get_node_or_null("Abilities") as Abilities if actor != null else null
 
+
 ## The ability id on the message, or &"" when it carries none. Accepts a StringName written
 ## straight onto the message; anything else is a caller that has not been moved off the old
 ## enum, and is refused rather than guessed at.
@@ -131,13 +139,17 @@ static func _ability_of(message: CommandMessage) -> StringName:
 	if message == null or not (message.ability_type is StringName):
 		return &""
 	return message.ability_type as StringName
+
+
 #endregion
+
 
 #region State updates
 ## Walk toward the point, unless walking cannot help — a reach that is not a distance is not
 ## closed by moving, and a gun that stayed put is better than one that wanders.
 func should_move(a_actor: Commandable) -> bool:
 	return range_closes_by_moving() and not can_act(a_actor)
+
 
 ## In range AND holding a charge. The charge half is load-bearing: `fulfill_action` returns
 ## null when the spend fails, and a null return DROPS the command (CommandReceiver sets
@@ -150,6 +162,7 @@ func can_act(a_actor: Commandable) -> bool:
 		return false
 	return is_in_range(a_actor, message)
 
+
 ## Spend a charge and throw the payload. Null ends the command: one order, one use.
 func fulfill_action(a_actor: Commandable) -> Variant:
 	var ability_id: StringName = _ability_of(message)
@@ -158,6 +171,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	emit(a_actor, ability_id, message.position)
 	return null
 
+
 ## Take the charge this use costs, and anything else the ability spends. False aborts the
 ## use without emitting. Subclasses extend it — the Bombard also burns the beacon that gave
 ## it its firing solution.
@@ -165,12 +179,14 @@ func consume(a_actor: Commandable, a_ability_id: StringName) -> bool:
 	var pool: Abilities = _pool_of(a_actor)
 	return pool != null and a_ability_id != &"" and pool.spend(a_ability_id)
 
+
 ## Throw the ability's payload at [a_target_position]. Ability payloads are emissions,
 ## added directly via initialize() rather than map.add_entity — that path runs
 ## unit-placement spreading and expects a MOVEMENT_OBSTRUCTION shape projectiles do not
 ## have. Returns false when the ability emits nothing.
 func emit(a_actor: Commandable, a_ability_id: StringName, a_target_position: Vector3) -> bool:
 	return launch_emission(a_actor, a_ability_id, a_target_position) != null
+
 
 ## Throw the ability's payload at `a_target` — a point, or an Entity to pursue (see
 ## Emitter.launch) — and return the emission, or null when the ability emits nothing.
@@ -184,8 +200,9 @@ func launch_emission(a_actor: Commandable, a_ability_id: StringName, a_target: V
 		return null
 	# message.map when the order carries one, the actor's otherwise — the idiom every other
 	# command that spawns something uses (see Interact, Spot, Wander).
-	projectile.initialize(message.map if message != null and message.map != null else a_actor.map,
-		a_actor.commander)
+	projectile.initialize(
+		message.map if message != null and message.map != null else a_actor.map, a_actor.commander
+	)
 	projectile.global_position = a_actor.global_position
 	Emitter.launch(projectile, a_actor, a_target)
 	return projectile

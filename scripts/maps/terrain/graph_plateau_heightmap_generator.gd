@@ -74,6 +74,7 @@ extends HeightmapGenerator
 @export var seed: int = 0
 #endregion
 
+
 #region Public API
 ## Effective region count: derived from cells_per_region when that is set (so
 ## plateau size stays constant across map sizes), else the explicit region_count.
@@ -83,6 +84,7 @@ func _resolved_region_count() -> int:
 		return clampi(roundi(float(cells) / float(cells_per_region)), 1, maxi(1, cells))
 	return region_count
 
+
 func generate() -> PackedFloat32Array:
 	# Resolve the area-scaled region count by temporarily standing in for
 	# region_count, which the algorithm and its helpers read directly.
@@ -91,7 +93,10 @@ func generate() -> PackedFloat32Array:
 	var result: PackedFloat32Array = _generate_impl()
 	region_count = saved_region_count
 	return result
+
+
 #endregion
+
 
 #region Private helpers
 func _generate_impl() -> PackedFloat32Array:
@@ -107,10 +112,9 @@ func _generate_impl() -> PackedFloat32Array:
 	# --- 1. Scatter seeds ---------------------------------------------------
 	var seeds: Array[Vector2] = []
 	for _i: int in region_count:
-		seeds.append(Vector2(
-			rng.randf_range(0.0, float(width - 1)),
-			rng.randf_range(0.0, float(depth - 1))
-		))
+		seeds.append(
+			Vector2(rng.randf_range(0.0, float(width - 1)), rng.randf_range(0.0, float(depth - 1)))
+		)
 
 	# --- 2. Corner pass: nearest seed + weighted adjacency graph ------------
 	var nearest := PackedInt32Array()
@@ -179,14 +183,19 @@ func _generate_impl() -> PackedFloat32Array:
 		var k: int = key
 		var a: int = k / region_count
 		var b: int = k % region_count
-		_carve_ramp(data, seeds[a], seeds[b], float(levels[a]) * height_step, float(levels[b]) * height_step)
+		_carve_ramp(
+			data, seeds[a], seeds[b], float(levels[a]) * height_step, float(levels[b]) * height_step
+		)
 
 	# --- 6. Repair: guarantee a single connected passable surface -----------
 	if guarantee_connected:
 		_repair_connectivity(data)
 
 	return data
+
+
 #endregion
+
 
 #region Connectivity repair
 ## Flood-fill the passable cells; while more than one component exists, carve the
@@ -228,9 +237,12 @@ func _repair_connectivity(a_data: PackedFloat32Array) -> void:
 		if not _connect_nearest(a_data, comp, gw, gh, main_id):
 			return  # nothing left we can reach — give up rather than spin
 
+
 ## Carve the cheapest corridor from `main_id` to the nearest other component.
 ## Returns false if no other component is reachable.
-func _connect_nearest(a_data: PackedFloat32Array, a_comp: PackedInt32Array, a_gw: int, a_gh: int, a_main_id: int) -> bool:
+func _connect_nearest(
+	a_data: PackedFloat32Array, a_comp: PackedInt32Array, a_gw: int, a_gh: int, a_main_id: int
+) -> bool:
 	## Stand-in for an unreachable distance; large enough that no real path can reach it.
 	var unreachable: int = 1 << 30
 	var dist := PackedInt32Array()
@@ -256,7 +268,7 @@ func _connect_nearest(a_data: PackedFloat32Array, a_comp: PackedInt32Array, a_gw
 		if _cell_passable(a_data, cx, cz) and a_comp[cur] != a_main_id and a_comp[cur] != -1:
 			target = cur
 			break
-		for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			var nx: int = cx + d.x
 			var nz: int = cz + d.y
 			if nx < 0 or nx >= a_gw or nz < 0 or nz >= a_gh:
@@ -282,6 +294,7 @@ func _connect_nearest(a_data: PackedFloat32Array, a_comp: PackedInt32Array, a_gw
 		c = parent[c]
 	_carve_corridor(a_data, path)
 	return true
+
 
 ## Carve a list of cells (a connected path from a stranded cell to the mainland)
 ## into a passable ramp by writing a monotonic height profile between the two
@@ -324,6 +337,7 @@ func _carve_corridor(a_data: PackedFloat32Array, a_path: Array[Vector2i]) -> voi
 			if cell.x >= 0 and cell.x < gw and cell.y >= 0 and cell.y < gh:
 				_set_cell_height(a_data, cell.x, cell.y, h)
 
+
 ## Unit axis direction of the path at index `i` (reduced to a single axis so the
 ## perpendicular band is axis-aligned and clean).
 func _corridor_dir(a_path: Array[Vector2i], a_i: int) -> Vector2i:
@@ -334,21 +348,37 @@ func _corridor_dir(a_path: Array[Vector2i], a_i: int) -> Vector2i:
 		return Vector2i(signi(d.x), 0) if d.x != 0 else Vector2i(1, 0)
 	return Vector2i(0, signi(d.y))
 
-func _flood(a_data: PackedFloat32Array, a_comp: PackedInt32Array, a_gw: int, a_gh: int, a_sx: int, a_sz: int, a_id: int) -> int:
+
+func _flood(
+	a_data: PackedFloat32Array,
+	a_comp: PackedInt32Array,
+	a_gw: int,
+	a_gh: int,
+	a_sx: int,
+	a_sz: int,
+	a_id: int
+) -> int:
 	var size: int = 0
 	var stack: Array[Vector2i] = [Vector2i(a_sx, a_sz)]
 	a_comp[a_sz * a_gw + a_sx] = a_id
 	while not stack.is_empty():
 		var c: Vector2i = stack.pop_back()
 		size += 1
-		for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			var nx: int = c.x + d.x
 			var nz: int = c.y + d.y
-			if nx >= 0 and nx < a_gw and nz >= 0 and nz < a_gh \
-					and _cell_passable(a_data, nx, nz) and a_comp[nz * a_gw + nx] == -1:
+			if (
+				nx >= 0
+				and nx < a_gw
+				and nz >= 0
+				and nz < a_gh
+				and _cell_passable(a_data, nx, nz)
+				and a_comp[nz * a_gw + nx] == -1
+			):
 				a_comp[nz * a_gw + nx] = a_id
 				stack.append(Vector2i(nx, nz))
 	return size
+
 
 func _cell_passable(a_data: PackedFloat32Array, a_x: int, a_z: int) -> bool:
 	var h00: float = a_data[a_z * width + a_x]
@@ -357,23 +387,37 @@ func _cell_passable(a_data: PackedFloat32Array, a_x: int, a_z: int) -> bool:
 	var h11: float = a_data[(a_z + 1) * width + a_x + 1]
 	return (maxf(maxf(h00, h10), maxf(h01, h11)) - minf(minf(h00, h10), minf(h01, h11))) <= 0.5
 
+
 func _cell_height(a_data: PackedFloat32Array, a_x: int, a_z: int) -> float:
-	return (a_data[a_z * width + a_x] + a_data[a_z * width + a_x + 1]
-		+ a_data[(a_z + 1) * width + a_x] + a_data[(a_z + 1) * width + a_x + 1]) * 0.25
+	return (
+		(
+			a_data[a_z * width + a_x]
+			+ a_data[a_z * width + a_x + 1]
+			+ a_data[(a_z + 1) * width + a_x]
+			+ a_data[(a_z + 1) * width + a_x + 1]
+		)
+		* 0.25
+	)
+
 
 func _set_cell_height(a_data: PackedFloat32Array, a_x: int, a_z: int, a_h: float) -> void:
 	a_data[a_z * width + a_x] = a_h
 	a_data[a_z * width + a_x + 1] = a_h
 	a_data[(a_z + 1) * width + a_x] = a_h
 	a_data[(a_z + 1) * width + a_x + 1] = a_h
+
+
 #endregion
+
 
 #region Ramp carving
 ## Carve a passable channel from seed `pa` (height `ha`) to seed `pb` (height
 ## `hb`).  Corners within `ramp_half_width` of the segment are overridden with a
 ## linear flat→slope→flat profile, centred on the segment midpoint (which lies on
 ## the shared Voronoi border for adjacent seeds).
-func _carve_ramp(a_data: PackedFloat32Array, a_pa: Vector2, a_pb: Vector2, a_ha: float, a_hb: float) -> void:
+func _carve_ramp(
+	a_data: PackedFloat32Array, a_pa: Vector2, a_pb: Vector2, a_ha: float, a_hb: float
+) -> void:
 	var seg: Vector2 = a_pb - a_pa
 	var seg_len: float = seg.length()
 	if seg_len < 0.001:
@@ -401,7 +445,10 @@ func _carve_ramp(a_data: PackedFloat32Array, a_pa: Vector2, a_pb: Vector2, a_ha:
 			# Linear flat→slope→flat: 0 near pa, 1 near pb.
 			var s: float = clampf((t - (0.5 - hrf)) / (2.0 * hrf), 0.0, 1.0)
 			a_data[z * width + x] = lerpf(a_ha, a_hb, s)
+
+
 #endregion
+
 
 #region Graph helpers
 ## Prim's MAXIMUM-weight spanning tree over the region-adjacency graph, preferring
@@ -409,7 +456,12 @@ func _carve_ramp(a_data: PackedFloat32Array, a_pa: Vector2, a_pb: Vector2, a_ha:
 ## grows (root = 0; each tree edge keeps the level or steps ±1, clamped to
 ## [0, height_levels-1]).  Records level-changing tree edges into `ramp_edges`.
 ## Returns a level per region (regions in disconnected graph fragments → 0).
-func _build_tree_levels(a_rng: RandomNumberGenerator, a_adjacency: Dictionary, a_border_weight: Dictionary, a_ramp_edges: Dictionary) -> PackedInt32Array:
+func _build_tree_levels(
+	a_rng: RandomNumberGenerator,
+	a_adjacency: Dictionary,
+	a_border_weight: Dictionary,
+	a_ramp_edges: Dictionary
+) -> PackedInt32Array:
 	var levels := PackedInt32Array()
 	levels.resize(region_count)  # PackedInt32Array zero-initialises
 
@@ -453,6 +505,7 @@ func _build_tree_levels(a_rng: RandomNumberGenerator, a_adjacency: Dictionary, a
 		if absi(lvl - levels[best_u]) == 1:
 			a_ramp_edges[_edge_key(best_u, best_v)] = true
 	return levels
+
 
 ## Order-independent integer key for an undirected region pair.
 func _edge_key(a_a: int, a_b: int) -> int:

@@ -6,7 +6,6 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Lifespan.gd -gexit
 
-
 ## Seconds used where the value itself does not matter, only that it is a whole number of
 ## ticks at any sensible physics rate.
 const SOME_SECONDS: float = 1.0

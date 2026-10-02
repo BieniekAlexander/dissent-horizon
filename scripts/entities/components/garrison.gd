@@ -75,7 +75,8 @@ const MOVEMENT_BITS: Dictionary = {
 ## which is the reach every existing garrison was written against (Occupy used to hard-
 ## code that check). Add Hovering / Flying for a host that can take aircraft — e.g. a
 ## hangar or a carrier.
-@export_flags("Grounded:1", "Hovering:2", "Flying:4") var occupiable_movements: int = MOVEMENT_GROUNDED
+@export_flags("Grounded:1", "Hovering:2", "Flying:4")
+var occupiable_movements: int = MOVEMENT_GROUNDED
 
 ## Piece ids ([member Entity.id]) this garrison accepts, as an ALLOWLIST checked on top
 ## of the three masks. EMPTY — the default — means no identity restriction at all, and
@@ -153,11 +154,13 @@ var _adopted_commander: bool = false
 var _restore_commander: Commander = null
 #endregion
 
+
 #region Occupancy
 ## How much of `capacity` `unit` consumes. Clamped to at least 1 so a mis-authored
 ## size of 0 can't let an unbounded number of units in.
 static func size_of(unit: Commandable) -> int:
 	return maxi(1, unit.occupancy_size) if unit != null else 1
+
 
 ## Occupancy currently held, summed over the occupants' sizes.
 func occupied_size() -> int:
@@ -166,9 +169,11 @@ func occupied_size() -> int:
 		total += size_of(unit)
 	return total
 
+
 ## Occupancy still free.
 func remaining_capacity() -> int:
 	return capacity - occupied_size()
+
 
 ## True when the occupancy masks let `unit` in — a rules check only, ignoring how
 ## full the garrison is. A unit missing the component a mask reads (no Defense, no
@@ -184,19 +189,26 @@ func admits(a_unit: Commandable) -> bool:
 	var host := get_parent() as Commandable
 	if host != null and not host.is_built:
 		return false
-	var frame_bit: int = FRAME_BITS.get(a_unit.defense.frame_type, 0) if a_unit.defense != null else 0
+	var frame_bit: int = (
+		FRAME_BITS.get(a_unit.defense.frame_type, 0) if a_unit.defense != null else 0
+	)
 	if occupiable_frames & frame_bit == 0:
 		return false
-	var armour_bit: int = ARMOUR_BITS.get(a_unit.defense.armour_type, 0) if a_unit.defense != null else 0
+	var armour_bit: int = (
+		ARMOUR_BITS.get(a_unit.defense.armour_type, 0) if a_unit.defense != null else 0
+	)
 	if occupiable_armours & armour_bit == 0:
 		return false
-	var movement_bit: int = MOVEMENT_BITS.get(a_unit.movement.mode, 0) if a_unit.movement != null else 0
+	var movement_bit: int = (
+		MOVEMENT_BITS.get(a_unit.movement.mode, 0) if a_unit.movement != null else 0
+	)
 	if occupiable_movements & movement_bit == 0:
 		return false
 	# An empty allowlist restricts nothing — see occupiable_ids.
 	if not occupiable_ids.is_empty() and not occupiable_ids.has(a_unit.id):
 		return false
 	return true
+
 
 ## True when `unit`'s occupancy_size still fits in the remaining capacity — a capacity
 ## check only, ignoring the masks. This is the check for mechanics that put units in
@@ -205,9 +217,11 @@ func admits(a_unit: Commandable) -> bool:
 func has_room_for(a_unit: Commandable) -> bool:
 	return remaining_capacity() >= size_of(a_unit)
 
+
 ## True when `unit` may garrison right now: the masks admit it AND it fits.
 func accepts(a_unit: Commandable) -> bool:
 	return admits(a_unit) and has_room_for(a_unit)
+
 
 ## True when no unit can ever occupy this garrison voluntarily (every mask cleared).
 ## A closed garrison is a HOLD — the stock truck's cage — filled only by capture /
@@ -221,6 +235,7 @@ func accepts(a_unit: Commandable) -> bool:
 ## where captives are interned. That question is can_intern().
 func is_closed() -> bool:
 	return occupiable_frames == 0 and occupiable_armours == 0 and occupiable_movements == 0
+
 
 ## True when occupants may be ordered OUT of this garrison — by the Evacuate command, or one
 ## at a time by clicking an occupant's card in the info panel. Which of them actually leave
@@ -247,6 +262,7 @@ func is_captive(a_unit: Commandable) -> bool:
 	var host := get_parent() as Commandable
 	return host != null and not a_unit.is_friendly_to(host)
 
+
 ## True when `captor` would take `captive` PRISONER by running it over — the whole rule of
 ## an abduction, asked from the outside because it is about a pairing rather than about one
 ## garrison. A capture is a capture-filled hold being filled: no Occupy is issued and the
@@ -263,8 +279,12 @@ func is_captive(a_unit: Commandable) -> bool:
 ##
 ## Why it works this way: gdd/systems/combat/garrison-and-transport.md §Capture is a crush.
 static func can_capture(captor: Commandable, captive: Commandable) -> bool:
-	if captor == null or captive == null \
-			or not is_instance_valid(captor) or not is_instance_valid(captive):
+	if (
+		captor == null
+		or captive == null
+		or not is_instance_valid(captor)
+		or not is_instance_valid(captive)
+	):
 		return false
 	var cage: Garrison = captor.get_node_or_null("Garrison") as Garrison
 	if cage == null or not cage.has_room_for(captive):
@@ -274,6 +294,7 @@ static func can_capture(captor: Commandable, captive: Commandable) -> bool:
 	if captive.defense == null or captive.defense.armour_type != Defense.ArmourType.LIGHT:
 		return false
 	return EntityAttribute.evaluate(EntityAttribute.Type.IS_BIOLOGICAL, captive)
+
 
 ## True when this garrison takes deposited captives and has room for one more — the
 ## precondition for [Interaction] `DEPOSIT`.
@@ -287,6 +308,7 @@ static func can_capture(captor: Commandable, captive: Commandable) -> bool:
 ## `occupancy_size`, matching every other unconsented entry. Keep captured pieces at size 1.
 func can_intern() -> bool:
 	return sentence_length > 0.0 and can_garrison()
+
 
 ## Take `source`'s captives directly into this garrison, UNCONVERTED — a captive stays
 ## itself, off the tree, and starts serving `sentence_length` here exactly as it would have
@@ -309,6 +331,7 @@ func deposit_from(a_source: Garrison) -> int:
 		moved += 1
 	return moved
 
+
 ## Remove `unit` from this garrison and free it WITHOUT returning it to the scene — a
 ## sentence reaching its end. Its Loadout is put back first: a bunker hoists that onto the
 ## host (see garrison), and freeing the unit while it is parented elsewhere would leave the
@@ -325,6 +348,7 @@ func discard(a_unit: Commandable) -> void:
 	a_unit.free()
 	_refresh_aggro_range()
 
+
 ## Remove `unit` from this garrison WITHOUT freeing it or returning it to the scene — the
 ## live half of a transfer, where discard() would wrongly destroy an object the caller is
 ## about to re-home elsewhere (see deposit_from). Loadout is restored first, same as
@@ -337,8 +361,9 @@ func detach(a_unit: Commandable) -> void:
 	_sentence_remaining.erase(a_unit)
 	_restore_loadout(a_unit)
 	_refresh_aggro_range()
-#endregion
 
+
+#endregion
 
 #region Sentences
 ## What one adjacent structure's ability pools have their cooldown reduced by, on each
@@ -347,6 +372,7 @@ func detach(a_unit: Commandable) -> void:
 ## A CONSTANT, as the retired passive per-occupant recharge rate was before it: the number is
 ## Work Detail's, not any one Compound's.
 const SENTENCE_COOLDOWN_BONUS: float = 0.08
+
 
 func _physics_process(a_delta: float) -> void:
 	if _sentence_remaining.is_empty():
@@ -363,6 +389,7 @@ func _physics_process(a_delta: float) -> void:
 			discard(unit)
 			_emit_positional_bonus()
 
+
 ## On a sentence completing, reduce the cooldown of every ability pool on every
 ## edge-adjacent friendly structure by SENTENCE_COOLDOWN_BONUS — Work Detail, carried by
 ## whichever piece grants it (Abilities.SUPPORT_ABILITY). The three things that switch it
@@ -372,8 +399,13 @@ func _physics_process(a_delta: float) -> void:
 ## passive it replaces, which never gated on the beneficiary's own state either.
 func _emit_positional_bonus() -> void:
 	var host := get_parent() as Commandable
-	if host == null or host.map == null or not host.is_built or host.is_unpowered() \
-			or not _grants_positional_bonus(host):
+	if (
+		host == null
+		or host.map == null
+		or not host.is_built
+		or host.is_unpowered()
+		or not _grants_positional_bonus(host)
+	):
 		return
 	for neighbor: Entity in SU.edge_adjacent_structures(host.map, host):
 		var supported := neighbor as Commandable
@@ -383,10 +415,14 @@ func _emit_positional_bonus() -> void:
 		if pool != null:
 			pool.reduce_all_cooldowns(SENTENCE_COOLDOWN_BONUS)
 
+
 static func _grants_positional_bonus(a_host: Commandable) -> bool:
 	var pool := a_host.get_node_or_null("Abilities") as Abilities
 	return pool != null and pool.grants(Abilities.SUPPORT_ABILITY)
+
+
 #endregion
+
 
 #region Public API
 ## True when at least one more occupant of the smallest possible size (1) can be
@@ -394,6 +430,7 @@ static func _grants_positional_bonus(a_host: Commandable) -> bool:
 ## unit-less form is for callers that only ask "does this host have any room left".
 func can_garrison() -> bool:
 	return remaining_capacity() >= 1
+
 
 ## Register `unit` as intending to garrison once this shelter touches down.
 ## Idempotent — a second call for the same unit is silently ignored.
@@ -404,6 +441,7 @@ func register_garrison_intent(a_unit: Commandable) -> void:
 		return
 	_pending_garrison_units.append(a_unit)
 	a_unit.tree_exiting.connect(unregister_garrison_intent.bind(a_unit), CONNECT_ONE_SHOT)
+
 
 ## Drop `unit` from the pending list. When the list becomes empty and the host is
 ## grounded, lift off so it resumes normal HOVERING without an explicit command.
@@ -420,6 +458,7 @@ func unregister_garrison_intent(a_unit: Commandable) -> void:
 		if owner_cmd != null and owner_cmd.aerial != null:
 			owner_cmd.aerial.take_off()
 
+
 ## Tell all pending units to drop their garrison command, then clear the list.
 ## Called when the shelter receives a new command while units are waiting.
 func cancel_pending_garrison() -> void:
@@ -429,8 +468,10 @@ func cancel_pending_garrison() -> void:
 		if is_instance_valid(unit):
 			unit.update_commands(null)
 
+
 func garrisoned_count() -> int:
 	return _garrisoned.size()
+
 
 ## Free all garrisoned units without returning them to the scene.
 ## Used when preserve_occupants is false and the host is destroyed.
@@ -440,6 +481,7 @@ func kill_occupants() -> void:
 			unit.garrisoned_in = null
 			unit.queue_free()
 	_garrisoned.clear()
+
 
 ## True when this garrison is ACTIVELY holding at least one occupant that carries a
 ## weapon — the precondition for any bunker fire to project. Merely being able to accept
@@ -451,14 +493,19 @@ func has_armed_occupants() -> bool:
 			return true
 	return false
 
+
 ## True when at least one garrisoned unit carries a weapon that can target `target`.
 func any_garrison_can_target(a_target: Entity) -> bool:
 	if not bunker:
 		return false
 	for unit: Commandable in _garrisoned:
-		if unit.weapon_inventory != null and unit.weapon_inventory.weapon_for_target(a_target) != null:
+		if (
+			unit.weapon_inventory != null
+			and unit.weapon_inventory.weapon_for_target(a_target) != null
+		):
 			return true
 	return false
+
 
 ## Fire every garrisoned unit's first target-capable weapon at `target` from
 ## `owner`'s world position, for those weapons that are loaded and in range.
@@ -492,8 +539,9 @@ func can_fire_at(a_owner: Commandable, a_target: Entity) -> bool:
 func can_reach(a_owner: Commandable, a_target: Entity) -> bool:
 	if not bunker:
 		return false
-	return _garrisoned.any(func(unit: Commandable) -> bool:
-		return _reaching_weapon(unit, a_owner, a_target) != null)
+	return _garrisoned.any(
+		func(unit: Commandable) -> bool: return _reaching_weapon(unit, a_owner, a_target) != null
+	)
 
 
 ## The first weapon in `unit`'s inventory that can target `target`, is ready to
@@ -592,8 +640,11 @@ func evacuate(a_map: Map) -> void:
 	_refresh_aggro_range()
 
 	# If the host landed to accept garrison units, return it to hover altitude.
-	if owner_cmd != null and owner_cmd.aerial != null \
-			and owner_cmd.aerial.mode == Movement.Mode.HOVERING:
+	if (
+		owner_cmd != null
+		and owner_cmd.aerial != null
+		and owner_cmd.aerial.mode == Movement.Mode.HOVERING
+	):
 		owner_cmd.aerial.take_off()
 
 
@@ -604,8 +655,11 @@ func evacuate_by_order(a_map: Map) -> void:
 	if not can_release():
 		return
 	var kept: Array[Commandable] = []
-	kept.assign(_garrisoned.filter(func(a_unit: Commandable) -> bool:
-		return not can_release_occupant(a_unit)))
+	kept.assign(
+		_garrisoned.filter(
+			func(a_unit: Commandable) -> bool: return not can_release_occupant(a_unit)
+		)
+	)
 	if kept.is_empty():
 		evacuate(a_map)
 		return
@@ -615,8 +669,9 @@ func evacuate_by_order(a_map: Map) -> void:
 			kept_sentences[unit] = _sentence_remaining[unit]
 	# evacuate() turns out whatever _garrisoned holds, so it is handed only the released and
 	# the kept are put back after: one placement pass, spreading the released together.
-	_garrisoned.assign(_garrisoned.filter(func(a_unit: Commandable) -> bool:
-		return not (a_unit in kept)))
+	_garrisoned.assign(
+		_garrisoned.filter(func(a_unit: Commandable) -> bool: return not (a_unit in kept))
+	)
 	evacuate(a_map)
 	_garrisoned = kept
 	_sentence_remaining = kept_sentences
@@ -637,18 +692,27 @@ func evacuate_one(a_unit: Commandable, a_map: Map) -> void:
 	var center: Vector2
 	if owner_cmd != null and owner_cmd.structure_is_active() and a_map != null:
 		var cells: Array[Vector2i] = SU.passable_cells_adjacent_to(owner_cmd, a_map)
-		center = VU.inXZ(a_map.grid_to_world(cells[0])) if not cells.is_empty() \
+		center = (
+			VU.inXZ(a_map.grid_to_world(cells[0]))
+			if not cells.is_empty()
 			else VU.inXZ(owner_cmd.global_position)
+		)
 	else:
 		center = VU.inXZ(owner_cmd.global_position) if owner_cmd != null else Vector2.ZERO
 
 	var radii: Array[float] = [a_unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)]
-	var world: World3D = owner_cmd.get_world_3d() if owner_cmd != null \
+	var world: World3D = (
+		owner_cmd.get_world_3d()
+		if owner_cmd != null
 		else (a_map.get_world_3d() if a_map != null else null)
+	)
 	var spawn_xz: Vector2 = _spread_points(a_map, center, radii, world, 1)[0]
 	var height_offset: float = a_unit.height_offset()
-	var y: float = a_map.terrain_height_at(spawn_xz) + height_offset if a_map != null \
+	var y: float = (
+		a_map.terrain_height_at(spawn_xz) + height_offset
+		if a_map != null
 		else (owner_cmd.global_position.y if owner_cmd != null else 0.0)
+	)
 	var spawn_pos := Vector3(spawn_xz.x, y, spawn_xz.y)
 
 	a_unit.garrisoned_in = null
@@ -671,8 +735,12 @@ func evacuate_one(a_unit: Commandable, a_map: Map) -> void:
 	if _garrisoned.is_empty():
 		_revert_adopted_commander(owner_cmd)
 	_refresh_aggro_range()
-	if _garrisoned.is_empty() and owner_cmd != null and owner_cmd.aerial != null \
-			and owner_cmd.aerial.mode == Movement.Mode.HOVERING:
+	if (
+		_garrisoned.is_empty()
+		and owner_cmd != null
+		and owner_cmd.aerial != null
+		and owner_cmd.aerial.mode == Movement.Mode.HOVERING
+	):
 		owner_cmd.aerial.take_off()
 
 
@@ -692,7 +760,10 @@ func _revert_adopted_commander(a_owner_cmd: Commandable) -> void:
 		a_owner_cmd.commander = _restore_commander
 	_adopted_commander = false
 	_restore_commander = null
+
+
 #endregion
+
 
 #region Private helpers
 ## Re-parent a released occupant under its own Commander and report whether that
@@ -742,8 +813,11 @@ func _evacuate_from_structure(a_owner_cmd: Commandable, a_map: Map) -> void:
 	## Every cell lookup here needs a map; with none, anchor on the host itself and let the
 	## ring fallback in _spread_points do the placing (see the height fallback below).
 	var rally: MoveCommand = a_owner_cmd.rally_destination() if a_map != null else null
-	var seed_cell: Vector2i = SU.nearest_footprint_adjacent_cell(rally.message.position, a_owner_cmd, a_map) \
-		if rally != null else Vector2i(-1, -1)
+	var seed_cell: Vector2i = (
+		SU.nearest_footprint_adjacent_cell(rally.message.position, a_owner_cmd, a_map)
+		if rally != null
+		else Vector2i(-1, -1)
+	)
 	var center: Vector2 = VU.inXZ(a_owner_cmd.global_position)
 	if a_map != null:
 		if seed_cell != Vector2i(-1, -1):
@@ -754,7 +828,9 @@ func _evacuate_from_structure(a_owner_cmd: Commandable, a_map: Map) -> void:
 				center = VU.inXZ(a_map.grid_to_world(seed_cells[0]))
 	# Each evacuee is spaced by its OWN body radius (see _evacuee_radii), so a mix
 	# of large and small occupants packs tightly rather than by one shared radius.
-	var points: Array[Vector2] = _spread_points(a_map, center, _evacuee_radii(), a_owner_cmd.get_world_3d(), count)
+	var points: Array[Vector2] = _spread_points(
+		a_map, center, _evacuee_radii(), a_owner_cmd.get_world_3d(), count
+	)
 
 	for i in range(count):
 		var unit: Commandable = _garrisoned[i]
@@ -763,8 +839,11 @@ func _evacuate_from_structure(a_owner_cmd: Commandable, a_map: Map) -> void:
 		# Fall back to the host's own altitude with no map to sample, mirroring
 		# _evacuate_from_unit — releasing the occupants matters more than placing them well,
 		# so a map-less evacuation must not fault before anyone gets out.
-		var y: float = a_map.terrain_height_at(spawn_xz) + height_offset \
-			if a_map != null else a_owner_cmd.global_position.y
+		var y: float = (
+			a_map.terrain_height_at(spawn_xz) + height_offset
+			if a_map != null
+			else a_owner_cmd.global_position.y
+		)
 		var spawn_pos := Vector3(spawn_xz.x, y, spawn_xz.y)
 
 		if not _return_to_commander(unit):
@@ -849,8 +928,11 @@ func _evacuate_from_unit(a_owner_cmd: Commandable, a_map: Map) -> void:
 		var unit: Commandable = _garrisoned[i]
 		var spawn_xz: Vector2 = points[i]
 		var height_offset: float = unit.height_offset()
-		var y: float = a_map.terrain_height_at(spawn_xz) + height_offset \
-			if a_map != null else a_owner_cmd.global_position.y
+		var y: float = (
+			a_map.terrain_height_at(spawn_xz) + height_offset
+			if a_map != null
+			else a_owner_cmd.global_position.y
+		)
 		var spawn_pos := Vector3(spawn_xz.x, y, spawn_xz.y)
 
 		if not _return_to_commander(unit):
@@ -878,8 +960,15 @@ static func _spread_points(
 		# navmesh rather than rejecting any that fall past a fixed cap.
 		var region_radius: float = INF
 		points = SU.get_nonoverlapping_points(
-			map, center, point_radii[0], world_3d,
-			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, region_radius, count, 10, point_radii
+			map,
+			center,
+			point_radii[0],
+			world_3d,
+			CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
+			region_radius,
+			count,
+			10,
+			point_radii
 		)
 
 	while points.size() < count:
@@ -918,11 +1007,20 @@ func _evacuee_radii() -> Array[float]:
 ## what happens in that case.
 ##
 ## Each evacuee gets its own copies, so a group released together doesn't share instances.
-static func _release_commands(a_unit: Commandable, a_owner_cmd: Commandable, a_map: Map,
-		a_dest: Vector3) -> Array[MoveCommand]:
-	var commands: Array[MoveCommand] = [MoveCommand.new(CommandMessage.new(a_map, null, null, a_dest))]
-	var own: Array[MoveCommand] = a_unit.command_receiver.get_command_chain() \
-		if a_unit != null and a_unit.command_receiver != null else [] as Array[MoveCommand]
+static func _release_commands(
+	a_unit: Commandable, a_owner_cmd: Commandable, a_map: Map, a_dest: Vector3
+) -> Array[MoveCommand]:
+	var commands: Array[MoveCommand] = [
+		MoveCommand.new(CommandMessage.new(a_map, null, null, a_dest))
+	]
+	var own: Array[MoveCommand] = (
+		(
+			a_unit.command_receiver.get_command_chain()
+			if a_unit != null and a_unit.command_receiver != null
+			else []
+		)
+		as Array[MoveCommand]
+	)
 	if not own.is_empty():
 		for command: MoveCommand in own:
 			commands.append(command.duplicated())

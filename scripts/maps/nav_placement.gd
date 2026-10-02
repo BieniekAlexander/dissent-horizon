@@ -51,7 +51,10 @@ extends RefCounted
 ## 4-neighbour, matching how the navmesh stitches adjacent cells and how the region labels
 ## are grown. Diagonal slips are not paths here.
 const NEIGHBOURS: Array[Vector2i] = [
-	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+	Vector2i(1, 0),
+	Vector2i(-1, 0),
+	Vector2i(0, 1),
+	Vector2i(0, -1),
 ]
 
 ## Cells the detour search may expand before it gives up and rejects the placement. Sized far
@@ -60,6 +63,7 @@ const NEIGHBOURS: Array[Vector2i] = [
 ## a cut across something large — exactly the case worth refusing.
 const DETOUR_BUDGET: int = 400
 #endregion
+
 
 #region Rule 1 — the placement may not split the walkable surface
 ## True when occupying `a_footprint` leaves every pair of cells that could reach each other
@@ -148,7 +152,10 @@ static func _gates_reconnect(
 				return true
 			queue.append(neighbour)
 	return wanted.is_empty()
+
+
 #endregion
+
 
 #region Rule 2 — a structure units must reach needs a side on the navmesh
 ## How many of the footprint's four sides are FULLY on walkable ground — every cell along
@@ -202,6 +209,8 @@ static func _side_is_walkable(
 		if a_region >= 0 and a_grid.component_at(cell) != a_region:
 			return false
 	return true
+
+
 #endregion
 
 #region Rule 3 — the same two rules, as a wide unit sees them
@@ -313,7 +322,7 @@ class _ClassProbe:
 		for z: int in range(lo.y - _access, hi.y + _access + 1):
 			for x: int in range(lo.x - _access, hi.x + _access + 1):
 				var cell := Vector2i(x, z)
-				if (after(cell) if a_after else before(cell)):
+				if after(cell) if a_after else before(cell):
 					return true
 		return false
 
@@ -397,7 +406,10 @@ class _ClassProbe:
 					return true
 				queue.append(next)
 		return wanted.is_empty()
+
+
 #endregion
+
 
 #region The two rules together
 ## The whole navigation verdict on a placement: it does not wall anything off, and — when

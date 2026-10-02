@@ -12,13 +12,20 @@ extends GutTest
 ## off-tree Commandable never gets a real CommandReceiver.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ProjectedDominionRate.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ProjectedDominionRate.gd
+## -gexit
 
-const TRUCK: Dictionary = {"speed": 2.0, "garrison": {"capacity": 3, "bunker": false},
-	"interactions": [Interaction.Type.DEPOSIT]}
+const TRUCK: Dictionary = {
+	"speed": 2.0,
+	"garrison": {"capacity": 3, "bunker": false},
+	"interactions": [Interaction.Type.DEPOSIT]
+}
 const SHELTER: Dictionary = {"structure": true, "shelter": true}
-const COMPOUND: Dictionary = {"structure": true, "occupant_dominion": true, "garrison": {"capacity": 6,
-	"sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}}
+const COMPOUND: Dictionary = {
+	"structure": true,
+	"occupant_dominion": true,
+	"garrison": {"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}
+}
 
 var _world: Node3D
 var _commander: Commander
@@ -74,8 +81,12 @@ func test_no_tasked_trucks_projects_nothing() -> void:
 func test_a_tasked_truck_with_no_compound_projects_nothing() -> void:
 	var shelter := _shelter(10.0)
 	_tasked_truck(shelter)
-	assert_almost_eq(_commander.projected_dominion_rate(), 0.0, 0.001,
-		"nowhere for the haul to go — no ceiling for it to sustain")
+	assert_almost_eq(
+		_commander.projected_dominion_rate(),
+		0.0,
+		0.001,
+		"nowhere for the haul to go — no ceiling for it to sustain"
+	)
 
 
 func test_a_shelter_with_no_regeneration_rate_projects_nothing() -> void:
@@ -125,8 +136,12 @@ func test_more_tasked_trucks_raise_the_transport_bound() -> void:
 	var one_truck_rate: float = _commander.projected_dominion_rate()
 	_tasked_truck(shelter)
 	var two_truck_rate: float = _commander.projected_dominion_rate()
-	assert_almost_eq(two_truck_rate, 2.0 * one_truck_rate, 0.01,
-		"double the trucks working the same route doubles the throughput bound")
+	assert_almost_eq(
+		two_truck_rate,
+		2.0 * one_truck_rate,
+		0.01,
+		"double the trucks working the same route doubles the throughput bound"
+	)
 
 
 func test_capped_by_the_compounds_own_capacity() -> void:
@@ -136,8 +151,12 @@ func test_capped_by_the_compounds_own_capacity() -> void:
 	compound.garrison.capacity = 3
 	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).dominion_per_unit = 7
 	_tasked_truck(shelter, compound.global_position)
-	assert_almost_eq(_commander.projected_dominion_rate(), 7.0 * 3.0, 0.001,
-		"the ceiling is the Compound's own capacity, not the arrival rate times the term")
+	assert_almost_eq(
+		_commander.projected_dominion_rate(),
+		7.0 * 3.0,
+		0.001,
+		"the ceiling is the Compound's own capacity, not the arrival rate times the term"
+	)
 
 
 func test_two_shelters_contribute_independently() -> void:

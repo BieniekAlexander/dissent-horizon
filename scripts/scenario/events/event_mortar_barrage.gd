@@ -61,12 +61,16 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## Added via initialize() rather than Map.add_entity, matching EventAbilityIrradiate: the
 ## entity placement path spreads units off a MOVEMENT_OBSTRUCTION shape that a projectile
 ## does not carry.
-func _launch_shell(a_map: Map, a_commander: Commander, a_origin_xz: Vector2, a_target: Vector3) -> void:
+func _launch_shell(
+	a_map: Map, a_commander: Commander, a_origin_xz: Vector2, a_target: Vector3
+) -> void:
 	var shell: Entity = projectile_scene.instantiate() as Entity
 	if shell == null:
 		return
 	shell.initialize(a_map, a_commander)
-	shell.global_position = Vector3(a_origin_xz.x, a_map.terrain_height_at(a_origin_xz), a_origin_xz.y)
+	shell.global_position = Vector3(
+		a_origin_xz.x, a_map.terrain_height_at(a_origin_xz), a_origin_xz.y
+	)
 	Emitter.launch(shell, null, a_target)
 
 
@@ -78,5 +82,7 @@ func _launch_shell(a_map: Map, a_commander: Commander, a_origin_xz: Vector2, a_t
 ## spread and ScenarioExpression; this was a third site it missed.
 static func _launch_offset() -> Vector2:
 	var bearing: float = SU.rng.randf() * TAU
-	return Vector2(cos(bearing), sin(bearing)) \
+	return (
+		Vector2(cos(bearing), sin(bearing))
 		* (LAUNCH_SPREAD_MIN + LAUNCH_SPREAD_RANGE * SU.rng.randf())
+	)

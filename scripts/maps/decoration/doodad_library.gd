@@ -12,7 +12,16 @@ extends RefCounted
 
 #region Enums
 enum Kind {
-	CONIFER, BROADLEAF, DEAD_TREE, BOULDER, ROCK_PILE, BUSH, GRASS_TUFT, FLOWERS, REEDS, STUMP,
+	CONIFER,
+	BROADLEAF,
+	DEAD_TREE,
+	BOULDER,
+	ROCK_PILE,
+	BUSH,
+	GRASS_TUFT,
+	FLOWERS,
+	REEDS,
+	STUMP,
 }
 #endregion
 
@@ -26,7 +35,8 @@ const LOW_MAX_HEIGHT: float = 0.4
 const _BARK := Color(0.36, 0.25, 0.16)
 const _DEAD_WOOD := Color(0.40, 0.36, 0.31)
 const _NEEDLES: Array[Color] = [
-	Color(0.12, 0.28, 0.15), Color(0.15, 0.33, 0.17), Color(0.18, 0.38, 0.19)]
+	Color(0.12, 0.28, 0.15), Color(0.15, 0.33, 0.17), Color(0.18, 0.38, 0.19)
+]
 const _LEAVES := Color(0.25, 0.44, 0.17)
 const _STONE := Color(0.47, 0.45, 0.42)
 const _STONE_DARK := Color(0.37, 0.35, 0.33)
@@ -34,7 +44,8 @@ const _SHRUB := Color(0.20, 0.36, 0.15)
 const _GRASS := Color(0.36, 0.52, 0.20)
 const _REED := Color(0.45, 0.50, 0.24)
 const _PETALS: Array[Color] = [
-	Color(0.95, 0.85, 0.25), Color(0.95, 0.95, 0.92), Color(0.62, 0.42, 0.80)]
+	Color(0.95, 0.85, 0.25), Color(0.95, 0.95, 0.92), Color(0.62, 0.42, 0.80)
+]
 
 ## Facet counts for the primitive shapes: low on purpose, so the props read as stylised blocks
 ## rather than as failed realism.
@@ -68,6 +79,8 @@ static func all_kinds() -> Array[Kind]:
 	for value: int in Kind.values():
 		kinds.append(value as Kind)
 	return kinds
+
+
 #endregion
 
 
@@ -87,10 +100,22 @@ static func _build(kind: Kind) -> ArrayMesh:
 			b.sphere(Vector3(-0.25, 0.95, -0.20), 0.38, Vector3.ONE, _LEAVES.lightened(0.08))
 		Kind.DEAD_TREE:
 			b.cylinder(Vector3(0, 0.55, 0), 0.04, 0.08, 1.10, _DEAD_WOOD)
-			b.cylinder(Vector3(0.16, 0.86, 0), 0.015, 0.035, 0.50, _DEAD_WOOD,
-				Basis(Vector3.BACK, deg_to_rad(-45.0)))
-			b.cylinder(Vector3(0, 0.70, -0.14), 0.015, 0.03, 0.40, _DEAD_WOOD,
-				Basis(Vector3.RIGHT, deg_to_rad(-40.0)))
+			b.cylinder(
+				Vector3(0.16, 0.86, 0),
+				0.015,
+				0.035,
+				0.50,
+				_DEAD_WOOD,
+				Basis(Vector3.BACK, deg_to_rad(-45.0))
+			)
+			b.cylinder(
+				Vector3(0, 0.70, -0.14),
+				0.015,
+				0.03,
+				0.40,
+				_DEAD_WOOD,
+				Basis(Vector3.RIGHT, deg_to_rad(-40.0))
+			)
 		Kind.BOULDER:
 			b.sphere(Vector3(0, 0.22, 0), 0.5, Vector3(1.0, 0.75, 0.85), _STONE)
 		Kind.ROCK_PILE:
@@ -109,8 +134,12 @@ static func _build(kind: Kind) -> ArrayMesh:
 			_blades(b, 4, 0.20, _GRASS)
 			for i: int in _PETALS.size():
 				var angle: float = TAU * i / _PETALS.size()
-				b.sphere(Vector3(cos(angle) * 0.08, 0.21, sin(angle) * 0.08), 0.045, Vector3.ONE,
-					_PETALS[i])
+				b.sphere(
+					Vector3(cos(angle) * 0.08, 0.21, sin(angle) * 0.08),
+					0.045,
+					Vector3.ONE,
+					_PETALS[i]
+				)
 		Kind.REEDS:
 			for i: int in 6:
 				var angle: float = TAU * i / 6.0
@@ -128,8 +157,9 @@ static func _blades(b: _Builder, count: int, height: float, color: Color) -> voi
 		var yaw: float = TAU * i / count
 		var lean := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, deg_to_rad(18.0))
 		var base := Basis(Vector3.UP, yaw) * Vector3(0, 0, 0.05)
-		b.prism(base + lean * Vector3(0, height * 0.5, 0), Vector3(0.05, height, 0.015), color,
-			lean)
+		b.prism(
+			base + lean * Vector3(0, height * 0.5, 0), Vector3(0.05, height, 0.015), color, lean
+		)
 
 
 ## Accumulates transformed, vertex-coloured primitive meshes into one ArrayMesh.
@@ -140,7 +170,11 @@ class _Builder:
 	var _indices := PackedInt32Array()
 
 	func cylinder(
-		at: Vector3, top: float, bottom: float, height: float, color: Color,
+		at: Vector3,
+		top: float,
+		bottom: float,
+		height: float,
+		color: Color,
 		basis: Basis = Basis.IDENTITY
 	) -> void:
 		var mesh := CylinderMesh.new()

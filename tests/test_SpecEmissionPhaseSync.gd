@@ -51,7 +51,7 @@ func _inst_inheriting(a_names: Array[String]) -> Node:
 
 func _node_names(a_text: String) -> Array[String]:
 	var names: Array[String] = []
-	var regex: RegEx = RegEx.create_from_string("\\[node name=\"([^\"]+)\"")
+	var regex: RegEx = RegEx.create_from_string('\\[node name="([^"]+)"')
 	for found: RegExMatch in regex.search_all(a_text):
 		names.append(found.get_string(1))
 	return names
@@ -70,8 +70,17 @@ func test_the_shorthand_writes_a_flight_and_an_impact_in_order() -> void:
 func test_a_dropped_phase_is_removed() -> void:
 	var sync := SceneSync.new()
 	var ctx: RefCounted = _ctx(BARE_SCENE, _bare_inst())
-	sync._sync_phases(ctx, {"phases": [{"motion": "LINEAR"}, {"lifespan": 0, "payload": "once"},
-		{"name": "Linger", "lifespan": 1}]})
+	sync._sync_phases(
+		ctx,
+		{
+			"phases":
+			[
+				{"motion": "LINEAR"},
+				{"lifespan": 0, "payload": "once"},
+				{"name": "Linger", "lifespan": 1}
+			]
+		}
+	)
 	var three_phase: String = ctx.doc.to_text()
 	var reread: RefCounted = _ctx(three_phase, _inst_owning(three_phase))
 	sync._sync_phases(reread, SHORTHAND)
@@ -82,9 +91,11 @@ func test_an_inherited_phase_is_overridden_not_redeclared() -> void:
 	var ctx: RefCounted = _ctx(BARE_SCENE, _inst_inheriting(["Flight", "Impact"]))
 	SceneSync.new()._sync_phases(ctx, {"speed": 20, "trajectory": "LINEAR"})
 	var text: String = ctx.doc.to_text()
-	assert_false(text.contains("[node name=\"Flight\" type="),
-		"no second Flight declared beside the inherited one")
-	assert_string_contains(text, "[node name=\"Flight\" parent=\".\"")
+	assert_false(
+		text.contains('[node name="Flight" type='),
+		"no second Flight declared beside the inherited one"
+	)
+	assert_string_contains(text, '[node name="Flight" parent="."')
 	assert_string_contains(text, "speed = 20.0")
 
 

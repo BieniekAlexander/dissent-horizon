@@ -12,6 +12,7 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 @export var count: int = 1
 #endregion
 
+
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var commander: Commander = a_manager.get_commander(commander_id)
@@ -25,16 +26,27 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var n := 0
 	if structure_type == &"":
 		for t: StringName in commander.structure_type_map:
-			n += commander.structure_type_map[t].filter(func(c: Commandable): return c.is_built).size()
+			n += (
+				commander
+				. structure_type_map[t]
+				. filter(func(c: Commandable): return c.is_built)
+				. size()
+			)
 	else:
 		var s: Variant = commander.structure_type_map.get(structure_type)
 		n = s.filter(func(c: Commandable): return c.is_built).size() if s != null else 0
 	match comparison:
-		Comparison.AT_LEAST: return n >= count
-		Comparison.AT_MOST:  return n <= count
-		Comparison.EXACTLY:  return n == count
+		Comparison.AT_LEAST:
+			return n >= count
+		Comparison.AT_MOST:
+			return n <= count
+		Comparison.EXACTLY:
+			return n == count
 	return false
+
+
 #endregion
+
 
 #region Player-facing description (highlights)
 ## Same rule as ConditionUnitCount: AT_MOST means "remove these", so the standing

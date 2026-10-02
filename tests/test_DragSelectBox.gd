@@ -11,6 +11,7 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_DragSelectBox.gd -gexit
 
+
 func _controller() -> RTSController:
 	var controller := RTSController.new()
 	autofree(controller)
@@ -22,6 +23,7 @@ func _controller() -> RTSController:
 
 
 # --- The box follows the cursor ---------------------------------------------------
+
 
 func test_a_fresh_drag_starts_as_an_empty_box_at_the_press() -> void:
 	var controller := _controller()
@@ -78,23 +80,29 @@ func test_a_release_with_no_drag_in_progress_resolves_nothing() -> void:
 
 # --- Click or drag ----------------------------------------------------------------
 
+
 func test_a_press_and_release_in_the_same_place_is_a_click() -> void:
 	assert_true(RTSController.is_click_gesture(Vector2(50, 50), Vector2(50, 50)))
-	assert_true(RTSController.is_click_gesture(Vector2(50, 50), Vector2(56, 44)),
-		"a few pixels of hand tremor is still a click")
+	assert_true(
+		RTSController.is_click_gesture(Vector2(50, 50), Vector2(56, 44)),
+		"a few pixels of hand tremor is still a click"
+	)
 
 
 func test_a_box_in_either_axis_is_a_drag() -> void:
-	assert_false(RTSController.is_click_gesture(Vector2(50, 50), Vector2(400, 50)),
-		"a wide, flat drag")
+	assert_false(
+		RTSController.is_click_gesture(Vector2(50, 50), Vector2(400, 50)), "a wide, flat drag"
+	)
 	# The bug this pins: the old test compared the delta against Vector2(10, 10), and
 	# Vector2's `<` is LEXICOGRAPHIC — x decides unless the xs are equal — so a tall,
 	# narrow drag read as a click and selected the single unit under the press instead.
-	assert_false(RTSController.is_click_gesture(Vector2(50, 50), Vector2(55, 550)),
-		"a tall, narrow drag")
+	assert_false(
+		RTSController.is_click_gesture(Vector2(50, 50), Vector2(55, 550)), "a tall, narrow drag"
+	)
 
 
 # --- The minimap's drag reads the modifier the same way ----------------------------
+
 
 ## A minimap box-select is a Control's _gui_input, so the modifier keypress before it went
 ## to the focused Control and never reached the controller's _unhandled_input — the latch
@@ -103,7 +111,8 @@ func test_a_box_in_either_axis_is_a_drag() -> void:
 ## access to property or key 'next_modifier_additive'".
 func test_the_controller_exposes_the_polled_additive_read() -> void:
 	var controller := _controller()
-	assert_true(controller.has_method("additive_modifier_held"),
-		"the name minimap.gd calls")
-	assert_false(controller.additive_modifier_held(),
-		"nothing is held in a headless run, and asking must not error")
+	assert_true(controller.has_method("additive_modifier_held"), "the name minimap.gd calls")
+	assert_false(
+		controller.additive_modifier_held(),
+		"nothing is held in a headless run, and asking must not error"
+	)

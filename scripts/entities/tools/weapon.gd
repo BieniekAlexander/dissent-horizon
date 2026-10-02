@@ -18,7 +18,7 @@ extends Node3D
 @export var reload_time_ticks: int = 10  ## ticks to restore a FULL clip
 var _split_timer_ticks: int = 0  ## ticks until the next attack is ready
 var _reload_timer_ticks: int = 0  ## ticks until the clip refills
-@export var clip_size: int = 1    ## amount of ammo between reloads
+@export var clip_size: int = 1  ## amount of ammo between reloads
 ## Ticks a target must be HELD — in range and aimed at — before the first shot at it. Doc key
 ## `startup_time:` (seconds). Zero fires as soon as the weapon is ready. The lock outlives a
 ## reload: a weapon that held its target through the reload fires again without re-waiting.
@@ -30,7 +30,7 @@ var _reload_timer_ticks: int = 0  ## ticks until the clip refills
 var _lock_target: Variant = null
 var _lock_ticks: int = 0
 var _lock_frame: int = -1
-var _ammo: int = 1          ## current amount of ammo left, before reload timer finishes
+var _ammo: int = 1  ## current amount of ammo left, before reload timer finishes
 
 ## A CHARGED weapon does not replenish its own ammo. An ordinary weapon refills its clip
 ## on a timer wherever it happens to be standing; a charged one empties and STAYS empty
@@ -76,6 +76,7 @@ func is_melee_ranged(a_target: Entity) -> bool:
 	var reach: float = reach_for(a_target)
 	return reach >= 0.0 and reach <= MELEE_REACH_MAX
 
+
 ## Tolerance, in ticks, when deciding a round's charge is complete. See _charge_accum.
 const CHARGE_EPSILON: float = 0.001
 
@@ -94,24 +95,30 @@ var _charge_accum: float = 0.0
 
 #region projectile evaluation
 @onready var attack_range_shape_ground: CollisionShape3D = (
-	(get_node_or_null("AttackRangeGround") if has_node("AttackRangeGround") else get_node("AttackRange"))
+	(
+		get_node_or_null("AttackRangeGround")
+		if has_node("AttackRangeGround")
+		else get_node("AttackRange")
+	)
 	if target_mask & CollisionLayers.Mask.TARGETABLE_GROUND
 	else null
 )
 
 @onready var attack_range_shape_air: CollisionShape3D = (
-	get_node_or_null("AttackRangeAir") if has_node("AttackRangeAir") else get_node("AttackRange")
-	if target_mask & CollisionLayers.Mask.TARGETABLE_AIR
-	else null
+	get_node_or_null("AttackRangeAir")
+	if has_node("AttackRangeAir")
+	else get_node("AttackRange") if target_mask & CollisionLayers.Mask.TARGETABLE_AIR else null
 )
 
-@export var projectile_scene: PackedScene    ## projectile produced when firing (which may have its own damage evaluation)
+## projectile produced when firing (which may have its own damage evaluation)
+@export var projectile_scene: PackedScene
 @export var melee_damage: float = 10
 @export var melee_damage_type: Damage.Type = Damage.Type.LEAD
 #endregion
 
 #region attack conditions
-@export_flags_3d_physics var target_mask: int = CollisionLayers.Mask.TARGETABLE_GROUND ## Indicates which collision-layer-based targeting the weapon can hit
+## Indicates which collision-layer-based targeting the weapon can hit
+@export_flags_3d_physics var target_mask: int = CollisionLayers.Mask.TARGETABLE_GROUND
 #endregion
 
 #region turret
@@ -170,13 +177,16 @@ var _turret_idle_ticks: int = 0
 
 #endregion
 
+
 #region tool
 func _validate_property(a_property: Dictionary) -> void:
 	match a_property.name:
-		"projectile": a_property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
-		"clip_size": a_property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
+		"projectile":
+			a_property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
+		"clip_size":
+			a_property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
 		"melee_damage":
-			if projectile_scene!=null:
+			if projectile_scene != null:
 				melee_damage = 0.
 				a_property.usage = a_property.usage | PROPERTY_USAGE_READ_ONLY
 			else:
@@ -185,20 +195,24 @@ func _validate_property(a_property: Dictionary) -> void:
 			melee_damage_type = Damage.Type.LEAD
 			a_property.usage = (
 				a_property.usage & ~PROPERTY_USAGE_READ_ONLY
-				if projectile_scene==null
+				if projectile_scene == null
 				else a_property.usage | PROPERTY_USAGE_READ_ONLY
 			)
-		"charged": a_property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
+		"charged":
+			a_property.usage |= PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED
 		"reload_time_ticks":
 			# A CHARGED weapon always authors its own reload_time_ticks, whatever the clip size:
 			# the number is how long the unit must sit on a pad, so pinning it to split_time_ticks
 			# for a single-round clip would make every such aircraft rearm instantly.
-			if clip_size==1 and not charged:
+			if clip_size == 1 and not charged:
 				reload_time_ticks = split_time_ticks
 				a_property.usage = a_property.usage | PROPERTY_USAGE_READ_ONLY
 			else:
 				a_property.usage = a_property.usage & ~PROPERTY_USAGE_READ_ONLY
+
+
 #endregion
+
 
 #region lifecycle
 func _ready() -> void:
@@ -217,6 +231,7 @@ func _ready() -> void:
 		fill_clip()
 	_resolve_turret_visual()
 	_warn_if_launching_from_origin()
+
 
 func _physics_process(_a_delta: float) -> void:
 	if turret:
@@ -241,7 +256,10 @@ func _physics_process(_a_delta: float) -> void:
 	if _reload_timer_ticks <= 0:
 		_split_timer_ticks = 0
 		_ammo = clip_size
+
+
 #endregion
+
 
 #region Turret
 ## Swing the turret one tick toward `a_world_position` (XZ only), at turret_turn_rate.
@@ -265,8 +283,10 @@ func is_turret_aimed_at(a_carrier: Node3D, a_world_position: Vector3) -> bool:
 	dir.y = 0.0
 	if dir.is_zero_approx():
 		return true
-	return absf(angle_difference(turret_world_yaw(a_carrier), atan2(dir.x, dir.z))) \
+	return (
+		absf(angle_difference(turret_world_yaw(a_carrier), atan2(dir.x, dir.z)))
 		<= TURRET_ALIGNMENT_EPSILON
+	)
 
 
 ## The turret's yaw in world space: the body's yaw plus turret_yaw.
@@ -304,8 +324,12 @@ func _resolve_turret_visual() -> void:
 		return
 	_turret_visual = get_node_or_null(turret_visual_path) as Node3D
 	if _turret_visual == null:
-		push_warning("Weapon '%s': turret_visual_path %s does not resolve to a Node3D"
-			% [name, turret_visual_path])
+		push_warning(
+			(
+				"Weapon '%s': turret_visual_path %s does not resolve to a Node3D"
+				% [name, turret_visual_path]
+			)
+		)
 	else:
 		_sync_turret_visual()
 
@@ -315,6 +339,8 @@ func _resolve_turret_visual() -> void:
 func _sync_turret_visual() -> void:
 	if _turret_visual != null:
 		_turret_visual.rotation.y = turret_yaw
+
+
 #endregion
 
 
@@ -349,12 +375,16 @@ func launch_points() -> Array[Marker3D]:
 func launch_frame() -> Transform3D:
 	var frame: Transform3D
 	if _turret_visual != null:
-		frame = Transform3D(_turret_visual.global_basis.orthonormalized(),
-			_turret_visual.global_position)
+		frame = Transform3D(
+			_turret_visual.global_basis.orthonormalized(), _turret_visual.global_position
+		)
 	else:
 		var carrier: Node3D = get_parent_node_3d()
-		frame = Transform3D(carrier.global_basis.orthonormalized(), carrier.global_position) \
-			if carrier != null else Transform3D.IDENTITY
+		frame = (
+			Transform3D(carrier.global_basis.orthonormalized(), carrier.global_position)
+			if carrier != null
+			else Transform3D.IDENTITY
+		)
 		if turret:
 			frame.basis = frame.basis * Basis(Vector3.UP, turret_yaw)
 	return frame * Transform3D(Basis.IDENTITY, position)
@@ -366,8 +396,10 @@ func launches_from_origin() -> bool:
 	if not position.is_zero_approx():
 		return false
 	var points: Array[Marker3D] = launch_points()
-	return points.is_empty() or points.any(func(m: Marker3D) -> bool:
-		return m.position.is_zero_approx())
+	return (
+		points.is_empty()
+		or points.any(func(m: Marker3D) -> bool: return m.position.is_zero_approx())
+	)
 
 
 ## Report, once per piece, a weapon whose shots would come out of its carrier's origin. Only a
@@ -379,8 +411,17 @@ func _warn_if_launching_from_origin() -> void:
 	if _warned_origin.has(key):
 		return
 	_warned_origin[key] = true
-	push_warning("Weapon '%s' on %s launches from its carrier's origin; give it a position "
-		% [name, owner.scene_file_path] + "or launch points (Marker3D children)")
+	push_warning(
+		(
+			(
+				"Weapon '%s' on %s launches from its carrier's origin; give it a position "
+				% [name, owner.scene_file_path]
+			)
+			+ "or launch points (Marker3D children)"
+		)
+	)
+
+
 #endregion
 
 
@@ -390,6 +431,7 @@ func _warn_if_launching_from_origin() -> void:
 ## Entities with no targetable layer (targetable_layers() == 0) can't be attacked.
 func can_target(a_target: Entity) -> bool:
 	return (target_mask & a_target.targetable_layers()) != 0
+
 
 ## Rough per-shot damage this weapon deals: melee_damage for a melee weapon, or the
 ## fired projectile's base_damage for a ranged one (matching fire(), which applies
@@ -401,12 +443,14 @@ func per_shot_damage() -> float:
 	_ensure_shot_cache()
 	return _cached_per_shot_damage
 
+
 ## The Damage.Type a shot applies: melee_damage_type for melee, the projectile's
 ## damage_type for ranged. Pairs with per_shot_damage() for damage-table lookups
 ## (e.g. the bot's effectiveness-vs-armour targeting signal).
 func per_shot_damage_type() -> Damage.Type:
 	_ensure_shot_cache()
 	return _cached_damage_type
+
 
 ## The range shape this weapon reaches `a_target` with: its AIR reach if the target is high
 ## enough off the ground, its GROUND reach otherwise.
@@ -449,8 +493,13 @@ func ground_reach() -> float:
 func reach_on_layer(a_layer: int) -> float:
 	if target_mask & a_layer == 0:
 		return -1.0
-	return _range_radius(attack_range_shape_air
-		if a_layer == CollisionLayers.Mask.TARGETABLE_AIR else attack_range_shape_ground)
+	return _range_radius(
+		(
+			attack_range_shape_air
+			if a_layer == CollisionLayers.Mask.TARGETABLE_AIR
+			else attack_range_shape_ground
+		)
+	)
 
 
 ## Whether this weapon can be aimed at bare GROUND — the gate FocusFire is offered on.
@@ -460,8 +509,7 @@ func reach_on_layer(a_layer: int) -> float:
 ## applied straight to a target entity (see fire), and a map coordinate is not one, so a
 ## bayonet has nothing it could do to a point.
 func can_fire_at_ground() -> bool:
-	return projectile_scene != null \
-		and (target_mask & CollisionLayers.Mask.TARGETABLE_GROUND) != 0
+	return projectile_scene != null and (target_mask & CollisionLayers.Mask.TARGETABLE_GROUND) != 0
 
 
 ## XZ radius of a range shape node — its shape radius scaled by the node's own X axis — or
@@ -475,6 +523,7 @@ func _range_radius(a_shape_node: CollisionShape3D) -> float:
 	if a_shape_node.shape is SphereShape3D:
 		return (a_shape_node.shape as SphereShape3D).radius * scale
 	return -1.0
+
 
 ## Populate the per-shot damage + type cache on first use, instantiating the
 ## projectile scene once (out of tree → no _ready) for ranged weapons.
@@ -494,11 +543,14 @@ func _ensure_shot_cache() -> void:
 			_cached_per_shot_damage = 0.0
 			_cached_damage_type = melee_damage_type
 		proj.free()
+
+
 var _cached_per_shot_damage: float = -1.0
 var _cached_damage_type: Damage.Type = Damage.Type.LEAD
 
+
 func is_ready() -> bool:
-	return _ammo>0 and _split_timer_ticks==0
+	return _ammo > 0 and _split_timer_ticks == 0
 
 
 #region Attack startup
@@ -518,8 +570,14 @@ func hold_target(a_target: Variant, a_frame: int = Engine.get_physics_frames()) 
 ## Whether the startup has been paid on `a_target`: held for startup_time_ticks, and held as
 ## recently as the previous frame. Always true for a weapon with no startup.
 func is_locked_on(a_target: Variant, a_frame: int = Engine.get_physics_frames()) -> bool:
-	return startup_time_ticks <= 0 or (_is_same_target(a_target)
-		and _lock_ticks >= startup_time_ticks and a_frame - _lock_frame <= 1)
+	return (
+		startup_time_ticks <= 0
+		or (
+			_is_same_target(a_target)
+			and _lock_ticks >= startup_time_ticks
+			and a_frame - _lock_frame <= 1
+		)
+	)
 
 
 ## How far through its startup on `a_target` the weapon is, 0.0–1.0.
@@ -539,6 +597,8 @@ func _is_same_target(a_target: Variant) -> bool:
 	if a_target is Vector3 or _lock_target is Vector3 or _lock_target == null:
 		return false
 	return is_instance_valid(_lock_target) and is_same(a_target, _lock_target)
+
+
 #endregion
 
 
@@ -548,16 +608,19 @@ func _is_same_target(a_target: Variant) -> bool:
 func ammo() -> int:
 	return _ammo
 
+
 ## True when this weapon is out of rounds AND cannot get more on its own — i.e. it is
 ## charged and empty. This is the single question the rearm mechanic asks: an ordinary
 ## weapon between shots is never "needing rearm", it is merely reloading.
 func needs_recharge() -> bool:
 	return charged and _ammo < clip_size
 
+
 ## True when a charged weapon is dry. Distinct from needs_recharge(): a half-full aircraft
 ## can still fight, and only a fully dry one has nothing left to do but fly home.
 func is_out_of_ammo() -> bool:
 	return charged and _ammo <= 0
+
 
 ## How full the clip is, 0.0–1.0 — the figure a HUD ammo bar draws. Guards clip_size == 0
 ## rather than trusting the export, since a zero would come back as a division by zero on
@@ -566,6 +629,7 @@ func ammo_fraction() -> float:
 	if clip_size <= 0:
 		return 1.0
 	return clampf(float(_ammo) / float(clip_size), 0.0, 1.0)
+
 
 ## Restore rounds worth `ticks` of docked time. `reload_time_ticks` is the ticks needed for a
 ## FULL clip, so the per-tick rate is clip_size / reload_time_ticks; the remainder is banked in
@@ -598,14 +662,16 @@ func recharge(a_ticks: float = 1.0) -> bool:
 	# business of _physics_process and true every tick rather than only while docked.)
 	return _ammo >= clip_size
 
+
 ## Fill the clip outright, bypassing the charge rate. For spawn seeding and for effects
 ## that resupply instantly.
 func fill_clip() -> void:
 	_ammo = clip_size
 	_charge_accum = 0.0
 	_reload_timer_ticks = 0
-#endregion
 
+
+#endregion
 
 
 func fire(a_owner: Commandable, a_target: Entity) -> void:
@@ -639,6 +705,7 @@ func _launch(a_owner: Commandable, a_target: Variant) -> void:
 	projectile.initialize(a_owner.map, a_owner.commander)
 	projectile.global_position = next_launch_position()
 	Emitter.launch(projectile, a_owner, a_target)
+
 
 ## Spend one round and restart both timers. Split out of fire() so the ammo bookkeeping
 ## can be exercised without a live target and a projectile scene — which for a CHARGED

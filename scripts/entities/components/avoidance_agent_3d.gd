@@ -70,6 +70,7 @@ var _exceptions: Dictionary = {}  # AvoidanceAgent3D -> true
 var _crush_excluded_obstacles: int = 0
 #endregion
 
+
 #region Static helpers
 static func _ensure_pool() -> void:
 	if _pool_ready:
@@ -89,7 +90,10 @@ static func team_bit(commander_id: int) -> int:
 ## Used by Commandable._on_commander_changed to configure the obstacle node.
 static func obstacle_bit(commander_id: int) -> int:
 	return 1 << (_TEAM_BITS + clampi(commander_id, 0, _TEAM_BITS - 1))
+
+
 #endregion
+
 
 #region Public API
 ## Turn on avoidance for the given commander's team. The agent broadcasts on
@@ -134,7 +138,10 @@ func remove_avoidance_exception_with(a_other: AvoidanceAgent3D) -> void:
 func clear_avoidance_exceptions() -> void:
 	for other: Variant in _exceptions.keys():
 		remove_avoidance_exception_with(other)
+
+
 #endregion
+
 
 #region Crush exclusion
 ## Set which foreign obstacle bits (see obstacle_bit()) to drop from avoidance_mask
@@ -146,9 +153,12 @@ func set_crush_excluded_obstacles(a_mask: int) -> void:
 		return
 	_crush_excluded_obstacles = a_mask
 	_apply_mask()
+
+
 #endregion
 
 #endregion
+
 
 #region Private helpers
 ## The layer bit this agent broadcasts on: its unique pool bit while excepted,
@@ -193,8 +203,15 @@ func _ensure_unique_bit() -> void:
 		return
 	_ensure_pool()
 	if _free_bits.is_empty():
-		push_warning(("AvoidanceAgent3D: avoidance bit pool exhausted (>%d concurrent exceptions);"
-			+ " pair not fully isolated") % (31 - _POOL_START))
+		push_warning(
+			(
+				(
+					"AvoidanceAgent3D: avoidance bit pool exhausted (>%d concurrent exceptions);"
+					+ " pair not fully isolated"
+				)
+				% (31 - _POOL_START)
+			)
+		)
 		return
 	_unique_bit = _free_bits.pop_back()
 	avoidance_layers = _unique_bit

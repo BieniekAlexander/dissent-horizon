@@ -52,11 +52,16 @@ func _spawn_initial_entities() -> void:
 func _deploy_all_forces() -> void:
 	var start_points: Array[Node3D] = _start_points()
 	if start_points.size() < player_slots.size():
-		push_error(("Skirmish: %d player slots but the map has only %d start points ('%s'). "
-			+ "A scenario may not have more slots than its map has starts; the slots past %d "
-			+ "deploy nothing.") % [
-			player_slots.size(), start_points.size(), START_POINT_GROUP, start_points.size()
-		])
+		push_error(
+			(
+				(
+					"Skirmish: %d player slots but the map has only %d start points ('%s'). "
+					+ "A scenario may not have more slots than its map has starts; the slots past %d "
+					+ "deploy nothing."
+				)
+				% [player_slots.size(), start_points.size(), START_POINT_GROUP, start_points.size()]
+			)
+		)
 	for i: int in mini(player_slots.size(), start_points.size()):
 		_spawn_slot_units(player_slots[i], VU.inXZ(start_points[i].global_position))
 	_center_player_camera_on_starting_entities()
@@ -116,14 +121,20 @@ func _formation_points(a_faction: Faction, a_origin: Vector2, a_count: int) -> A
 	var slots: Node = a_faction.starting_formation.instantiate()
 	var offsets: Array[Vector2] = StartingFormation.offsets_from(slots)
 	slots.free()
-	assert(offsets.size() == a_count,
-		"Skirmish: %s's starting_formation has %d slots for %d starting units" % [
-			a_faction.faction_name, offsets.size(), a_count
-		])
+	assert(
+		offsets.size() == a_count,
+		(
+			"Skirmish: %s's starting_formation has %d slots for %d starting units"
+			% [a_faction.faction_name, offsets.size(), a_count]
+		)
+	)
 	if offsets.size() != a_count:
-		push_error("Skirmish: %s's starting_formation has %d slots for %d starting units" % [
-			a_faction.faction_name, offsets.size(), a_count
-		])
+		push_error(
+			(
+				"Skirmish: %s's starting_formation has %d slots for %d starting units"
+				% [a_faction.faction_name, offsets.size(), a_count]
+			)
+		)
 		return []
 	var area: PlayArea = map.play_area()
 	# No declared play area leaves no middle to face; the formation then keeps its authored

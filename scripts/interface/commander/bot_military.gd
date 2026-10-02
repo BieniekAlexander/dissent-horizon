@@ -111,9 +111,9 @@ var _has_objective: bool = false
 ## Attack-wave + escalation state.
 var _wave_active: bool = false
 var _wave_launch_value: float = 0.0
-var _stalemate_time: float = 0.0       # seconds holding an army without committing
-var _last_eval_time: float = 0.0       # for the real-time escalation clock
-var _enemy_value_estimate: float = 0.0 # smoothed (decayed-peak) belief of enemy army value
+var _stalemate_time: float = 0.0  # seconds holding an army without committing
+var _last_eval_time: float = 0.0  # for the real-time escalation clock
+var _enemy_value_estimate: float = 0.0  # smoothed (decayed-peak) belief of enemy army value
 ## seconds_elapsed() until which a called-off wave is regrouping and will not re-commit.
 var _regroup_until: float = 0.0
 
@@ -173,8 +173,7 @@ func _decide_posture() -> Posture:
 	# otherwise gathers; nothing it does ever leaves home. Checked before everything, because
 	# "never attacks the player" is not a threshold it could cross.
 	if not may_attack:
-		return Posture.DEFEND if _bot.is_base_under_threat(defend_threat_radius) \
-			else Posture.MASS
+		return Posture.DEFEND if _bot.is_base_under_threat(defend_threat_radius) else Posture.MASS
 	# A committed attack wave OVERRIDES defence — once the bot has massed an army
 	# worth a (randomised) cap, it pushes regardless of a scout poking the base.
 	# This is the anti-turtle fix: DEFEND no longer wins unconditionally.
@@ -209,7 +208,9 @@ func _committing_to_attack() -> bool:
 	else:
 		# Decay slowly toward the current (smaller) sighting — a momentary blind spot
 		# mustn't read as "they have nothing".
-		_enemy_value_estimate = lerp(_enemy_value_estimate, believed, clampf(dt / ENEMY_ESTIMATE_TAU, 0.0, 1.0))
+		_enemy_value_estimate = lerp(
+			_enemy_value_estimate, believed, clampf(dt / ENEMY_ESTIMATE_TAU, 0.0, 1.0)
+		)
 
 	# Already committed: see the wave through — unless it is going badly enough to leave.
 	if _wave_active:
@@ -232,7 +233,9 @@ func _committing_to_attack() -> bool:
 	var ratio: float = own / maxf(enemy_estimate, ENEMY_VALUE_FLOOR)
 	# Bar starts at attack_value_ratio and relaxes the longer we hold without fighting, so a
 	# parity deadlock eventually forces a commit (but never below MIN_ATTACK_RATIO).
-	var threshold: float = maxf(MIN_ATTACK_RATIO, attack_value_ratio - _stalemate_time * STALEMATE_ESCALATION_PER_SEC)
+	var threshold: float = maxf(
+		MIN_ATTACK_RATIO, attack_value_ratio - _stalemate_time * STALEMATE_ESCALATION_PER_SEC
+	)
 
 	if ratio >= threshold:
 		_wave_active = true
@@ -280,12 +283,16 @@ func _end_wave() -> void:
 ## a scout, a unit mid-fight under BotTargeting, or one on an errand is left alone however the
 ## managers happen to be interleaved.
 func _combat_units(a_units: Array) -> Array:
-	return a_units.filter(func(u: Commandable):
-		return _bot.unit_has_combat_utility(u) \
-			and not claims.is_claimed(u) \
-			and not BotEconomy._is_constructing(u) \
-			and not BotOpportunist.is_committed(u) \
-			and not _bot.is_suicide_aoe_unit(u))  # kamikazes are micro'd by BotKamikaze
+	return a_units.filter(
+		func(u: Commandable):
+			return (
+				_bot.unit_has_combat_utility(u)
+				and not claims.is_claimed(u)
+				and not BotEconomy._is_constructing(u)
+				and not BotOpportunist.is_committed(u)
+				and not _bot.is_suicide_aoe_unit(u)
+			)
+	)  # kamikazes are micro'd by BotKamikaze
 
 
 ## The world position to rally on for `posture`, or null when none applies.
@@ -319,7 +326,10 @@ func _objective_for(a_posture: Posture) -> Variant:
 			# still answers with the nearest belief that IS actionable rather than with nothing.
 			var army: Array = _combat_units(_bot.get_units())
 			var actionable: Callable = func(entry: CommanderBlackboard.Entry) -> bool:
-				return Bot.any_unit_can_damage(army, entry.entity) and not _bot.belief_is_disproved(entry)
+				return (
+					Bot.any_unit_can_damage(army, entry.entity)
+					and not _bot.belief_is_disproved(entry)
+				)
 			var believed_base: Variant = _bot.nearest_believed_enemy_structure_position(actionable)
 			if believed_base != null:
 				return believed_base

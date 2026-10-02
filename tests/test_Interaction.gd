@@ -12,15 +12,19 @@ extends GutTest
 ## (see test_CaptureByCrushing.gd). HIJACK has its own file.
 
 ## A carrier with a hold and a DEPOSIT errand.
-const SUPPLY_TRUCK: Dictionary = {"speed": 2.0, "garrison": {"capacity": 3},
-	"interactions": [Interaction.Type.DEPOSIT]}
+const SUPPLY_TRUCK: Dictionary = {
+	"speed": 2.0, "garrison": {"capacity": 3}, "interactions": [Interaction.Type.DEPOSIT]
+}
 const TERRESTRIAL: Dictionary = {"speed": 1.0}
 ## A closed hold that sentences what is deposited in it.
-const COMPOUND: Dictionary = {"structure": true, "garrison": {"capacity": 6, "sentence_length": 30.0,
-	"frames": 0, "armours": 0, "movements": 0}}
+const COMPOUND: Dictionary = {
+	"structure": true,
+	"garrison": {"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}
+}
 ## A structure with an OPEN garrison — one that holds units but interns nobody.
 ## An ordinary garrison: holds occupants, sentences nobody.
 const OPEN_GARRISON: Dictionary = {"structure": true, "garrison": {"capacity": 4}}
+
 
 func _commanded(a_id: int) -> Commander:
 	var c := Commander.new()
@@ -28,16 +32,23 @@ func _commanded(a_id: int) -> Commander:
 	add_child_autofree(c)
 	return c
 
+
 ## A live unit instance owned by [a_commander_id]. Ownership is assigned directly (not
 ## through initialize) so no Map is needed.
 func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var u: Commandable = FakePieces.structure(a_options) if a_options.has("structure") else FakePieces.unit(a_options)
+	var u: Commandable = (
+		FakePieces.structure(a_options)
+		if a_options.has("structure")
+		else FakePieces.unit(a_options)
+	)
 	add_child_autofree(u)
 	u.ownership.commander = _commanded(a_commander_id)
 	return u
 
+
 func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
+
 
 func _interaction_of(a_unit: Commandable, a_type: Interaction.Type) -> Interaction:
 	if a_unit.interactor == null:
@@ -47,7 +58,9 @@ func _interaction_of(a_unit: Commandable, a_type: Interaction.Type) -> Interacti
 			return i
 	return null
 
+
 ## --- DEPOSIT applicability -------------------------------------------------
+
 
 func test_deposit_applies_to_a_camp_when_the_truck_is_loaded():
 	var truck := _unit(SUPPLY_TRUCK, 1)
@@ -57,12 +70,14 @@ func test_deposit_applies_to_a_camp_when_the_truck_is_loaded():
 	assert_not_null(resolved, "a loaded truck can deposit at a compound")
 	assert_eq(resolved.type, Interaction.Type.DEPOSIT)
 
+
 func test_deposit_does_not_apply_to_an_empty_truck():
 	var truck := _unit(SUPPLY_TRUCK, 1)
 	assert_null(
 		truck.interactor.applicable_interaction(truck, _message_for(_unit(COMPOUND, 1))),
 		"there is nothing to hand over"
 	)
+
 
 func test_deposit_does_not_apply_to_a_structure_that_does_not_intern():
 	var truck := _unit(SUPPLY_TRUCK, 1)
@@ -71,6 +86,7 @@ func test_deposit_does_not_apply_to_a_structure_that_does_not_intern():
 		truck.interactor.applicable_interaction(truck, _message_for(_unit(OPEN_GARRISON, 1))),
 		"an open safehouse is not a prison camp"
 	)
+
 
 func test_deposit_evaluation_returns_failure_cause():
 	var truck := _unit(SUPPLY_TRUCK, 1)
@@ -87,11 +103,15 @@ func test_deposit_evaluation_returns_failure_cause():
 		MoveCommand.PreconditionFailureCause.NONE
 	)
 
+
 ## --- The truck's interaction list ------------------------------------------
+
 
 func test_interact_does_not_end_on_arrival():
 	var truck := _unit(SUPPLY_TRUCK, 1)
 	truck.garrison.garrison(_unit(TERRESTRIAL, 0))
 	var order := Interact.new(_message_for(_unit(COMPOUND, 1)))
-	assert_false(order.ends_on_arrival(),
-		"arriving is not the point — depositing is, and only can_act/fulfill_action decide that")
+	assert_false(
+		order.ends_on_arrival(),
+		"arriving is not the point — depositing is, and only can_act/fulfill_action decide that"
+	)

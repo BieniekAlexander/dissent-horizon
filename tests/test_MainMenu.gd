@@ -37,14 +37,17 @@ func test_entry_prefers_its_authored_title() -> void:
 
 func test_entry_falls_back_to_the_scene_file_name() -> void:
 	assert_eq(
-		_entry("").button_text(), "help_overlay",
-				"a row with a scene but no title still reads as something"
+		_entry("").button_text(),
+		"help_overlay",
+		"a row with a scene but no title still reads as something"
 	)
 
 
 func test_entry_without_a_scene_is_invalid() -> void:
 	assert_false(_entry("Nowhere", "").is_valid(), "no scene means no working button")
 	assert_true(_entry("Somewhere").is_valid(), "a scene is all an entry needs to be valid")
+
+
 #endregion
 
 
@@ -52,8 +55,11 @@ func test_entry_without_a_scene_is_invalid() -> void:
 func test_one_button_per_entry_in_authored_order() -> void:
 	var menu := _menu([_entry("First"), _entry("Second"), _entry("Third")] as Array[ScenarioEntry])
 
-	assert_eq(menu.button_labels(), ["First", "Second", "Third"] as Array[String],
-		"buttons follow the authored order")
+	assert_eq(
+		menu.button_labels(),
+		["First", "Second", "Third"] as Array[String],
+		"buttons follow the authored order"
+	)
 
 
 func test_the_hidden_template_is_not_one_of_the_buttons() -> void:
@@ -64,10 +70,15 @@ func test_the_hidden_template_is_not_one_of_the_buttons() -> void:
 
 
 func test_an_entry_with_no_scene_is_skipped_and_reported() -> void:
-	var menu := _menu([_entry("Good"), _entry("Broken", ""), _entry("Also good")] as Array[ScenarioEntry])
+	var menu := _menu(
+		[_entry("Good"), _entry("Broken", ""), _entry("Also good")] as Array[ScenarioEntry]
+	)
 
-	assert_eq(menu.button_labels(), ["Good", "Also good"] as Array[String],
-		"the unusable row is dropped rather than becoming a dead button")
+	assert_eq(
+		menu.button_labels(),
+		["Good", "Also good"] as Array[String],
+		"the unusable row is dropped rather than becoming a dead button"
+	)
 	assert_push_error("names no scene", "and the author is told which row is wrong")
 
 

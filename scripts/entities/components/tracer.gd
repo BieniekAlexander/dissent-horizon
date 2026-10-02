@@ -68,10 +68,15 @@ func refresh() -> void:
 		var length: float = full_length if _is_static else minf(full_length, BEAM_MAX_LENGTH)
 		var near_point: Vector3 = far_point - direction * length
 		var entity: Entity = host() as Entity
-		var owner_id: int = entity.commander_id if entity != null and entity.ownership != null \
-			else 0
-		spans = visible_spans(near_point, far_point, Map.CELL_SIZE / SPAN_SAMPLES_PER_CELL,
-			Fog.active_sight_test(owner_id))
+		var owner_id: int = (
+			entity.commander_id if entity != null and entity.ownership != null else 0
+		)
+		spans = visible_spans(
+			near_point,
+			far_point,
+			Map.CELL_SIZE / SPAN_SAMPLES_PER_CELL,
+			Fog.active_sight_test(owner_id)
+		)
 		_lay_segments(near_point, far_point, spans)
 	for i: int in range(spans.size(), _segments.size()):
 		_segments[i].visible = false
@@ -146,7 +151,9 @@ func _segment(a_index: int) -> MeshInstance3D:
 
 ## A basis whose local +Y axis (a CylinderMesh's long axis) points along `a_direction`.
 static func _cylinder_basis_along(a_direction: Vector3) -> Basis:
-	var up_hint: Vector3 = Vector3.FORWARD if absf(a_direction.dot(Vector3.UP)) > 0.999 else Vector3.UP
+	var up_hint: Vector3 = (
+		Vector3.FORWARD if absf(a_direction.dot(Vector3.UP)) > 0.999 else Vector3.UP
+	)
 	var x_axis: Vector3 = up_hint.cross(a_direction).normalized()
 	var z_axis: Vector3 = x_axis.cross(a_direction).normalized()
 	return Basis(x_axis, a_direction, z_axis)

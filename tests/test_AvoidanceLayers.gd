@@ -17,9 +17,9 @@ extends GutTest
 
 func test_layer_for_is_a_distinct_bit_per_class():
 	var nm := NavManager.new()  # layer_for is pure; no _ready / map needed
-	assert_eq(nm.layer_for(NavAgentClass.Size.SMALL),  1 << 0)
+	assert_eq(nm.layer_for(NavAgentClass.Size.SMALL), 1 << 0)
 	assert_eq(nm.layer_for(NavAgentClass.Size.MEDIUM), 1 << 1)
-	assert_eq(nm.layer_for(NavAgentClass.Size.LARGE),  1 << 2)
+	assert_eq(nm.layer_for(NavAgentClass.Size.LARGE), 1 << 2)
 	# All class layers are disjoint from each other and from the base region's layer,
 	# so no agent ever paths on another class's mesh or on the un-eroded base mesh.
 	var seen: int = 0
@@ -50,10 +50,16 @@ func test_configure_sets_class_layer_and_keeps_shared_map():
 	m.configure_for_map(null, nm, 0.5)
 
 	assert_eq(m.nav_agent_class, NavAgentClass.Size.MEDIUM, "0.5 footprint -> MEDIUM")
-	assert_eq(agent.navigation_layers, nm.layer_for(NavAgentClass.Size.MEDIUM),
-		"agent paths on its class layer")
-	assert_eq(agent.get_navigation_map(), map_before,
-		"agent stays on the shared map — avoidance must remain map-wide")
+	assert_eq(
+		agent.navigation_layers,
+		nm.layer_for(NavAgentClass.Size.MEDIUM),
+		"agent paths on its class layer"
+	)
+	assert_eq(
+		agent.get_navigation_map(),
+		map_before,
+		"agent stays on the shared map — avoidance must remain map-wide"
+	)
 	# The avoidance radius tracks the true footprint, not the (larger) class radius.
 	assert_almost_eq(agent.radius, 0.5, 1e-5, "avoidance radius = MovementBody footprint")
 	nm.free()

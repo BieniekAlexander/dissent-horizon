@@ -33,7 +33,11 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## Issues the EventCommand chain (built from EventCommand child nodes) to `units`.
 ## `p_commander_id_context` is the owning commander's id — available to EventCommandTarget
 ## via active_commander_id() while the call is in progress.
-func issue_commands_to(a_units: Array[Commandable], a_manager: ScenarioTriggerManager, a_p_commander_id_context: int = -1) -> void:
+func issue_commands_to(
+	a_units: Array[Commandable],
+	a_manager: ScenarioTriggerManager,
+	a_p_commander_id_context: int = -1
+) -> void:
 	_commander_id_context = a_p_commander_id_context
 	var event_commands: Array[EventCommand] = _event_commands()
 	var aggro_override: CollisionShape3D = _aggro_shape_override()
@@ -112,7 +116,9 @@ func _aggro_shape_override() -> CollisionShape3D:
 ## post rather than every unit converging on one shared point. Returns all-zero offsets for
 ## a single unit or when the chain has no positional post to anchor on.
 func _formation_offsets(
-	a_units: Array[Commandable], a_manager: ScenarioTriggerManager, a_event_commands: Array[EventCommand]
+	a_units: Array[Commandable],
+	a_manager: ScenarioTriggerManager,
+	a_event_commands: Array[EventCommand]
 ) -> Array[Vector3]:
 	var offsets: Array[Vector3] = []
 	var anchor: EventCommandPoint = null
@@ -128,8 +134,13 @@ func _formation_offsets(
 	var region_radius: float = maxf(5.0, radius * 2.5 * float(a_units.size()))
 	var anchor_xz: Vector2 = VU.inXZ(anchor.global_position)
 	var points: Array[Vector2] = SU.get_nonoverlapping_points(
-		map, anchor_xz, radius, map.get_world_3d(),
-		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION, region_radius, a_units.size()
+		map,
+		anchor_xz,
+		radius,
+		map.get_world_3d(),
+		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
+		region_radius,
+		a_units.size()
 	)
 	for i: int in a_units.size():
 		if i < points.size():

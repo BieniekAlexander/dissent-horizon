@@ -22,6 +22,7 @@ func before_each() -> void:
 
 # --- pulse_between ----------------------------------------------------------------
 
+
 func test_pulse_between_never_leaves_the_two_colours_it_blends() -> void:
 	var a := Color(0.2, 0.3, 0.4)
 	var b := Color(0.8, 0.1, 0.6)
@@ -33,6 +34,7 @@ func test_pulse_between_never_leaves_the_two_colours_it_blends() -> void:
 
 
 # --- Sanction affordability ---------------------------------------------------------
+
 
 func _grid_offering(a_costs: Array) -> SanctionGrid:
 	var unlocks: Array = []
@@ -54,8 +56,11 @@ func test_the_dearest_available_cost_is_the_priciest_open_cell() -> void:
 
 
 func test_a_grid_offering_nothing_reports_minus_one() -> void:
-	assert_eq(_grid_offering([]).dearest_available_cost(), -1,
-		"so 'can afford everything' is never vacuously true")
+	assert_eq(
+		_grid_offering([]).dearest_available_cost(),
+		-1,
+		"so 'can afford everything' is never vacuously true"
+	)
 
 
 func test_the_cheapest_available_cost_is_the_least_priced_open_cell() -> void:

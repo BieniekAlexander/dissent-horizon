@@ -90,8 +90,12 @@ func test_visibility_consults_the_players_own_fog() -> void:
 	assert_true(enemy.is_visible_to(PLAYER), "no fog registered — nothing to hide behind")
 	var fog: Fog = _fog(-1)
 	assert_eq(Fog.for_commander(PLAYER), fog, "guards the fixture")
-	assert_false(enemy.is_visible_to(PLAYER),
-		"an uninitialised fog has revealed nothing, so nothing is visible through it")
+	assert_false(
+		enemy.is_visible_to(PLAYER),
+		"an uninitialised fog has revealed nothing, so nothing is visible through it"
+	)
+
+
 #endregion
 
 
@@ -136,16 +140,19 @@ func test_a_shrouded_in_play_pixel_is_not() -> void:
 func test_an_out_of_play_pixel_is_never_in_vision() -> void:
 	# Pixel (2, 2) — world (0, 0) at this scale — held transparent for rendering.
 	var fog: Fog = _masked_fog([2 * 4 + 2])
-	assert_false(fog.fog_clear_at(Vector2(0.0, 0.0)),
-		"transparent for the shroud is not the same as revealed")
+	assert_false(
+		fog.fog_clear_at(Vector2(0.0, 0.0)),
+		"transparent for the shroud is not the same as revealed"
+	)
 	assert_true(fog.fog_clear_at(Vector2(-1.0, 0.0)), "its in-play neighbour is unaffected")
 
 
 func test_a_point_off_the_texture_is_not_in_vision() -> void:
 	var fog: Fog = _masked_fog([])
 	assert_false(fog.fog_clear_at(Vector2(100.0, 100.0)))
-#endregion
 
+
+#endregion
 
 #region Finding the Map
 ## 3. THE MAP LOOKUP. `Fog._initialize` used to start from `get_tree().current_scene` and
@@ -162,6 +169,7 @@ func test_a_point_off_the_texture_is_not_in_vision() -> void:
 ##
 ##    Fog now walks UP from itself instead, which cannot miss that way: a Fog is always a
 ##    descendant of the Scenario that owns the Map it belongs to.
+
 
 ## Map._ready builds a TerrainGrid / NavManager and asserts on scene children this does not
 ## have — these tests only exercise which node the search lands on.

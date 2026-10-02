@@ -4,7 +4,8 @@ extends GutTest
 ## prerequisites, where only the first fires.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_TriggerSimultaneousFire.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_TriggerSimultaneousFire.gd
+## -gexit
 
 const SECONDS: float = 5.0
 
@@ -128,6 +129,7 @@ func test_three_identical_countdowns_all_fire() -> void:
 
 # --- Does a dialog hold stall the poller? ---------------------------------------
 
+
 func test_the_poller_keeps_running_while_a_dialog_holds_the_simulation() -> void:
 	# TimeSinceLiberation shows a dialog, which takes a SimulationClock hold and pauses the
 	# tree. If that stopped the poller, any trigger that had not yet fired would stall until
@@ -137,11 +139,14 @@ func test_the_poller_keeps_running_while_a_dialog_holds_the_simulation() -> void
 
 	_manager.simulation_clock.hold("test_dialog")
 	assert_true(get_tree().paused, "the hold paused the tree")
-	assert_true(_manager.condition_poller.can_process(),
-		"the poller must keep evaluating while the world is held")
+	assert_true(
+		_manager.condition_poller.can_process(),
+		"the poller must keep evaluating while the world is held"
+	)
 
 
 # --- The "Start" trigger shape --------------------------------------------------
+
 
 ## Both s1 and s2 open with a trigger named "Start": one ConditionTimer left at its
 ## default mode (ELAPSED_SINCE_START) with seconds = 0.0, condition_mode = OR. It is meant

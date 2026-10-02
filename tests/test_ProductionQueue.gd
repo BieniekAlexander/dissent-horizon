@@ -74,6 +74,7 @@ func _standing_purchase(
 
 ## --- affordable purchases fulfil immediately --------------------------------
 
+
 func test_affordable_purchase_dispatches_on_submit() -> void:
 	var commander := _make_commander(100)
 	var producer := _make_producer([IRREGULAR])
@@ -87,6 +88,7 @@ func test_affordable_purchase_dispatches_on_submit() -> void:
 
 
 ## --- unaffordable purchases wait instead of being dropped -------------------
+
 
 func test_unaffordable_purchase_waits_in_the_queue() -> void:
 	var commander := _make_commander(10)
@@ -113,8 +115,11 @@ func test_queue_head_blocks_cheaper_purchases_behind_it() -> void:
 	commander.production_queue.submit(_train_purchase(commander, VANGUARD, 100, [producer]))
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [producer]))
 	commander.production_queue.tick()
-	assert_eq(producer.production.job_count(), 0,
-		"the affordable purchase behind an unaffordable one waits its turn")
+	assert_eq(
+		producer.production.job_count(),
+		0,
+		"the affordable purchase behind an unaffordable one waits its turn"
+	)
 	assert_eq(commander.production_queue.queued().size(), 2, "both are still queued")
 
 
@@ -148,6 +153,7 @@ func test_the_next_purchase_dispatches_once_the_producer_frees_up() -> void:
 
 
 ## --- producer selection ------------------------------------------------------
+
 
 func test_purchase_goes_to_a_free_producer() -> void:
 	var commander := _make_commander(1000)
@@ -195,12 +201,15 @@ func test_purchase_is_dropped_when_every_producer_is_gone() -> void:
 	producer.free()
 	commander.add_energy(100)
 	commander.production_queue.tick()
-	assert_true(commander.production_queue.is_empty(),
-		"a purchase nothing can fulfil is dropped rather than blocking the queue")
+	assert_true(
+		commander.production_queue.is_empty(),
+		"a purchase nothing can fulfil is dropped rather than blocking the queue"
+	)
 	assert_eq(commander.energy, 100, "and nothing is spent on it")
 
 
 ## --- structures still under construction --------------------------------------
+
 
 func test_purchase_at_an_unbuilt_producer_waits_for_it() -> void:
 	var commander := _make_commander(1000)
@@ -208,9 +217,14 @@ func test_purchase_at_an_unbuilt_producer_waits_for_it() -> void:
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [producer]))
 	assert_eq(producer.production.job_count(), 0, "nothing is enqueued on a half-built structure")
 	assert_eq(commander.production_queue.queued().size(), 1, "the purchase is held, not dropped")
-	assert_eq(commander.energy, 980,
-		"but it IS paid for — an affordable purchase is charged at request time, whether or "
-		+ "not anything is free to start it")
+	assert_eq(
+		commander.energy,
+		980,
+		(
+			"but it IS paid for — an affordable purchase is charged at request time, whether or "
+			+ "not anything is free to start it"
+		)
+	)
 
 
 func test_purchase_dispatches_when_construction_finishes() -> void:
@@ -220,18 +234,26 @@ func test_purchase_dispatches_when_construction_finishes() -> void:
 	producer.build_progress = 1.0
 	commander.production_queue.tick()
 	assert_eq(producer.production.job_count(), 1, "the queue hands the job over once it's built")
-	assert_eq(commander.energy, 980,
-		"having been charged at request time; finishing the structure takes nothing further")
+	assert_eq(
+		commander.energy,
+		980,
+		"having been charged at request time; finishing the structure takes nothing further"
+	)
 
 
 func test_unbuilt_producer_is_skipped_while_a_finished_one_is_available() -> void:
 	var commander := _make_commander(1000)
 	var unbuilt := _make_unbuilt_producer([IRREGULAR])
 	var finished := _make_producer([IRREGULAR])
-	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [unbuilt, finished]))
+	commander.production_queue.submit(
+		_train_purchase(commander, IRREGULAR, 20, [unbuilt, finished])
+	)
 	assert_eq(unbuilt.production.job_count(), 0)
-	assert_eq(finished.production.job_count(), 1,
-		"a mixed selection trains at whichever structure is actually ready")
+	assert_eq(
+		finished.production.job_count(),
+		1,
+		"a mixed selection trains at whichever structure is actually ready"
+	)
 
 
 func test_purchase_is_dropped_when_the_unbuilt_producer_is_destroyed() -> void:
@@ -247,14 +269,17 @@ func test_purchase_is_dropped_when_the_unbuilt_producer_is_destroyed() -> void:
 	assert_eq(commander.production_queue.queued().size(), 1, "queued while it goes up")
 	producer.free()
 	commander.production_queue.tick()
-	assert_true(commander.production_queue.is_empty(),
-		"a structure destroyed mid-construction takes its queued units with it")
+	assert_true(
+		commander.production_queue.is_empty(),
+		"a structure destroyed mid-construction takes its queued units with it"
+	)
 
 
 ## --- pre-issued rally commands ------------------------------------------------
 ## A purchase captures each candidate producer's rally when it is SUBMITTED, then
 ## collapses that set to the one chain belonging to whichever structure builds it.
 ## The rally queue itself is covered in test_RallyQueue.gd.
+
 
 func _rally(a_structure: Commandable, a_x: float, a_z: float, a_additive: bool = false) -> void:
 	a_structure.command_receiver = CommandReceiver.new()
@@ -275,7 +300,9 @@ func _destinations(a_chain: Array) -> Array:
 
 func _job_destinations(a_producer: Commandable, a_index: int) -> Array:
 	var out: Array = []
-	for command: MoveCommand in a_producer.production.training_queue[a_index][Production.JOB_COMMANDS]:
+	for command: MoveCommand in a_producer.production.training_queue[a_index][
+		Production.JOB_COMMANDS
+	]:
 		out.append(command.message.position)
 	return out
 
@@ -289,8 +316,11 @@ func test_a_job_carries_no_rally_chain() -> void:
 	var producer := _make_producer([IRREGULAR])
 	_rally(producer, 3, 3)
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [producer]))
-	assert_eq(_job_destinations(producer, 0), [],
-		"nothing is snapshot — the rally is the structure's to answer for at spawn")
+	assert_eq(
+		_job_destinations(producer, 0),
+		[],
+		"nothing is snapshot — the rally is the structure's to answer for at spawn"
+	)
 
 
 ## Which is the whole point of the change: re-aiming a rally re-aims every unit still queued
@@ -306,10 +336,12 @@ func test_moving_the_rally_re_aims_a_queued_unit() -> void:
 	commander.add_energy(20)
 	commander.production_queue.tick()
 
-	assert_eq(_destinations(producer.rally_chain()), [Vector3(40, 0, 40)],
-		"the unit will follow the rally as it stands now, not the one it was ordered under")
-	assert_eq(_job_destinations(producer, 0), [],
-		"and the job still holds nothing of its own")
+	assert_eq(
+		_destinations(producer.rally_chain()),
+		[Vector3(40, 0, 40)],
+		"the unit will follow the rally as it stands now, not the one it was ordered under"
+	)
+	assert_eq(_job_destinations(producer, 0), [], "and the job still holds nothing of its own")
 
 
 ## A player order aimed at the PURCHASE does travel with it — that is the one thing that
@@ -320,10 +352,14 @@ func test_a_player_order_travels_with_the_purchase() -> void:
 	_rally(producer, 3, 3)
 	var purchase: PurchaseTransaction = _train_purchase(commander, IRREGULAR, 20, [producer])
 	purchase.queue_player_command(
-		MoveCommand.new(CommandMessage.new(null, null, null, Vector3(9, 0, 9))), true)
+		MoveCommand.new(CommandMessage.new(null, null, null, Vector3(9, 0, 9))), true
+	)
 	commander.production_queue.submit(purchase)
-	assert_eq(_job_destinations(producer, 0), [Vector3(9, 0, 9)],
-		"the player singled this unit out, so it ignores the rally")
+	assert_eq(
+		_job_destinations(producer, 0),
+		[Vector3(9, 0, 9)],
+		"the player singled this unit out, so it ignores the rally"
+	)
 
 
 func test_a_multi_leg_rally_is_still_whole_at_spawn() -> void:
@@ -332,26 +368,37 @@ func test_a_multi_leg_rally_is_still_whole_at_spawn() -> void:
 	_rally(producer, 3, 3)
 	_rally(producer, 6, 2, true)
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [producer]))
-	assert_eq(_destinations(producer.rally_chain()), [Vector3(3, 0, 3), Vector3(6, 0, 2)],
-		"a chain is read whole, however many legs it has")
+	assert_eq(
+		_destinations(producer.rally_chain()),
+		[Vector3(3, 0, 3), Vector3(6, 0, 2)],
+		"a chain is read whole, however many legs it has"
+	)
 
 
 ## --- pending_count_for (idle-producer bookkeeping) ---------------------------
+
 
 func test_pending_count_tracks_queued_purchases() -> void:
 	var commander := _make_commander(0)
 	var producer := _make_producer([IRREGULAR])
 	assert_eq(commander.production_queue.pending_count_for(producer), 0)
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 40, [producer]))
-	assert_eq(commander.production_queue.pending_count_for(producer), 1,
-		"a structure with a purchase waiting on it isn't idle")
+	assert_eq(
+		commander.production_queue.pending_count_for(producer),
+		1,
+		"a structure with a purchase waiting on it isn't idle"
+	)
 	commander.add_energy(40)
 	commander.production_queue.tick()
-	assert_eq(commander.production_queue.pending_count_for(producer), 0,
-		"once dispatched the job lives on the structure, not the queue")
+	assert_eq(
+		commander.production_queue.pending_count_for(producer),
+		0,
+		"once dispatched the job lives on the structure, not the queue"
+	)
 
 
 ## --- cancelling and clearing --------------------------------------------------
+
 
 func test_cancel_removes_a_queued_purchase() -> void:
 	var commander := _make_commander(0)
@@ -381,8 +428,10 @@ func test_standing_entry_is_dropped_when_nothing_can_produce_it() -> void:
 	var producer := _make_producer([IRREGULAR])
 	commander.production_queue.submit(_standing_purchase(commander, VANGUARD, 40, [producer]))
 	commander.production_queue.tick()
-	assert_true(commander.production_queue.standing().is_empty(),
-		"a standing entry no structure can make is pruned rather than spinning forever")
+	assert_true(
+		commander.production_queue.standing().is_empty(),
+		"a standing entry no structure can make is pruned rather than spinning forever"
+	)
 
 
 func test_clear_all_empties_both_tiers() -> void:
@@ -396,9 +445,11 @@ func test_clear_all_empties_both_tiers() -> void:
 
 func test_clearing_drops_a_build_that_is_still_waiting_on_energy() -> void:
 	var commander := _make_commander(0)
-	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
-	))
+	var transaction := commander.production_queue.submit(
+		PurchaseTransaction.for_cost(
+			commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
+		)
+	)
 	commander.production_queue.clear_all()
 	assert_true(commander.production_queue.is_empty())
 	commander.add_energy(100)
@@ -412,15 +463,18 @@ func test_clearing_drops_a_build_that_is_still_waiting_on_energy() -> void:
 ## re-ordering the builders, which refunds via the holder count (see the tests below).
 func test_clearing_does_not_reach_an_already_funded_build() -> void:
 	var commander := _make_commander(100)
-	commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
-	))
+	commander.production_queue.submit(
+		PurchaseTransaction.for_cost(
+			commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
+		)
+	)
 	assert_true(commander.production_queue.is_empty(), "a funded build isn't queued any more")
 	commander.production_queue.clear_all()
 	assert_eq(commander.energy, 40, "its reservation stands")
 
 
 ## --- the standing tier ---------------------------------------------------------
+
 
 func test_standing_entries_wait_behind_every_one_off_purchase() -> void:
 	var commander := _make_commander(20)
@@ -430,8 +484,11 @@ func test_standing_entries_wait_behind_every_one_off_purchase() -> void:
 	commander.production_queue.submit(_train_purchase(commander, VANGUARD, 100, [producer]))
 	commander.production_queue.submit(_standing_purchase(commander, IRREGULAR, 20, [producer]))
 	commander.production_queue.tick()
-	assert_eq(producer.production.job_count(), 0,
-		"the standing entry waits behind an unaffordable one-off purchase")
+	assert_eq(
+		producer.production.job_count(),
+		0,
+		"the standing entry waits behind an unaffordable one-off purchase"
+	)
 	assert_eq(commander.energy, 20, "and its energy is saved toward the queued purchase")
 
 
@@ -485,22 +542,29 @@ func test_a_dispatched_standing_entry_does_not_itself_repeat() -> void:
 
 ## --- BUILD bookkeeping ---------------------------------------------------------
 
+
 func test_build_purchase_reserves_without_consuming() -> void:
 	var commander := _make_commander(100)
-	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
-	))
+	var transaction := commander.production_queue.submit(
+		PurchaseTransaction.for_cost(
+			commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
+		)
+	)
 	assert_true(transaction.is_funded(), "the cost is reserved ahead of the builder arriving")
 	assert_eq(commander.energy, 40)
-	assert_true(commander.production_queue.is_empty(),
-		"a funded build leaves the queue — it no longer blocks anything behind it")
+	assert_true(
+		commander.production_queue.is_empty(),
+		"a funded build leaves the queue — it no longer blocks anything behind it"
+	)
 
 
 func test_abandoned_build_refunds_its_reservation() -> void:
 	var commander := _make_commander(100)
-	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
-	))
+	var transaction := commander.production_queue.submit(
+		PurchaseTransaction.for_cost(
+			commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
+		)
+	)
 	# Two builders were sent; both lose the order before either lays the foundation.
 	transaction.retain_holder()
 	transaction.retain_holder()
@@ -512,9 +576,11 @@ func test_abandoned_build_refunds_its_reservation() -> void:
 
 func test_consumed_build_is_not_refunded() -> void:
 	var commander := _make_commander(100)
-	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
-	))
+	var transaction := commander.production_queue.submit(
+		PurchaseTransaction.for_cost(
+			commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
+		)
+	)
 	transaction.retain_holder()
 	transaction.consume()  # the builder laid the foundation
 	transaction.release_holder()
@@ -522,6 +588,7 @@ func test_consumed_build_is_not_refunded() -> void:
 
 
 ## --- Production.remaining_ticks ------------------------------------------------
+
 
 func test_remaining_ticks_reports_the_active_job() -> void:
 	var production := Production.new()
@@ -549,6 +616,7 @@ func test_a_producer_takes_one_job_at_a_time() -> void:
 ## §Resources are committed in the order the player asked. Nothing can jump the funding
 ## queue any more — the front-of-tier flag that used to allow it is gone — so submission
 ## order IS commitment order, across every purchase the commander has made.
+
 
 func test_nothing_can_jump_the_queue_within_a_tier() -> void:
 	# The `to_front` flag is retired. Two one-offs submitted in order stay in that order,
@@ -638,11 +706,17 @@ func test_transactions_carry_unique_ids_and_are_addressable_by_them() -> void:
 		_train_purchase(commander, VANGUARD, 20, [producer])
 	)
 	assert_ne(first.id, second.id, "ids are unique")
-	assert_eq(commander.production_queue.find_by_id(second.id), second,
-		"the queue is addressable by id, not only by position")
+	assert_eq(
+		commander.production_queue.find_by_id(second.id),
+		second,
+		"the queue is addressable by id, not only by position"
+	)
 	commander.production_queue.cancel(first)
-	assert_eq(commander.production_queue.find_by_id(second.id), second,
-		"and the id survives everything ahead of it being dropped")
+	assert_eq(
+		commander.production_queue.find_by_id(second.id),
+		second,
+		"and the id survives everything ahead of it being dropped"
+	)
 
 
 func test_completing_a_purchase_announces_the_product_before_retiring() -> void:
@@ -676,9 +750,11 @@ func test_refund_on_cancel_can_withhold_a_refund() -> void:
 	# the policy hook, and this pins that cancellation consults it rather than the mode that
 	# created the entry.
 	var commander := _make_commander(100)
-	var transaction := commander.production_queue.submit(PurchaseTransaction.for_cost(
-		commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
-	))
+	var transaction := commander.production_queue.submit(
+		PurchaseTransaction.for_cost(
+			commander, PurchaseTransaction.Kind.BUILD, _make_tool(&"fake_structure"), 60
+		)
+	)
 	transaction.refund_on_cancel = false
 	transaction.cancel()
 	assert_eq(commander.energy, 40, "the reservation is kept")
@@ -688,6 +764,7 @@ func test_refund_on_cancel_can_withhold_a_refund() -> void:
 ## An EMPTY filter means "any applicable structure this commander owns", not "none". The
 ## filter is a genuine restriction, present so a purchase can EXCLUDE a producer, rather
 ## than something a purchase must fill in to be dispatchable at all.
+
 
 func test_an_unfenced_purchase_dispatches_to_any_applicable_producer() -> void:
 	var commander := _make_commander(100)
@@ -713,8 +790,10 @@ func test_an_unfenced_purchase_is_orphaned_only_when_nothing_could_make_it() -> 
 	var commander := _make_commander(100)
 	commander.add_child(_make_producer([VANGUARD]))
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, []))
-	assert_true(commander.production_queue.is_empty(),
-		"a commander who owns nothing that can make it drops the purchase")
+	assert_true(
+		commander.production_queue.is_empty(),
+		"a commander who owns nothing that can make it drops the purchase"
+	)
 	assert_eq(commander.energy, 100, "and is not charged")
 
 
@@ -740,8 +819,11 @@ func test_a_fenced_purchase_ignores_an_eligible_structure_outside_its_filter() -
 	commander.add_child(unnamed)
 	named.production.enqueue(500, null, IRREGULAR)  # busy
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [named]))
-	assert_eq(unnamed.production.job_count(), 0,
-		"a purchase fenced to one structure waits for it rather than going elsewhere")
+	assert_eq(
+		unnamed.production.job_count(),
+		0,
+		"a purchase fenced to one structure waits for it rather than going elsewhere"
+	)
 	assert_eq(commander.production_queue.queued().size(), 1)
 
 
@@ -751,6 +833,7 @@ func test_a_fenced_purchase_ignores_an_eligible_structure_outside_its_filter() -
 ## correct for the queue and wrong for a readout: a ring authored as R R T would appear to
 ## shuffle into R T R and then T R R. standing_ring() is the stable view, and it works
 ## because _insert no longer restamps `sequence` on a rotation.
+
 
 func _ring_types(a_ring: Array) -> Array:
 	return a_ring.map(func(t: PurchaseTransaction) -> StringName: return t.type)
@@ -772,8 +855,11 @@ func test_standing_ring_keeps_its_authored_order_across_rotations() -> void:
 		producer.production.training_queue.clear()
 		commander.production_queue.tick()
 
-	assert_eq(_ring_types(commander.production_queue.standing_ring()), authored,
-		"the ring still reads in submission order after rotating")
+	assert_eq(
+		_ring_types(commander.production_queue.standing_ring()),
+		authored,
+		"the ring still reads in submission order after rotating"
+	)
 
 
 func test_standing_next_is_the_cursor_that_moves() -> void:
@@ -783,12 +869,18 @@ func test_standing_next_is_the_cursor_that_moves() -> void:
 	commander.production_queue.submit(_standing_purchase(commander, IRREGULAR, 10, [producer]))
 	commander.production_queue.submit(_standing_purchase(commander, VANGUARD, 10, [producer]))
 
-	assert_eq(commander.production_queue.standing_next().type, IRREGULAR,
-		"the first template submitted runs first")
+	assert_eq(
+		commander.production_queue.standing_next().type,
+		IRREGULAR,
+		"the first template submitted runs first"
+	)
 	producer.production.training_queue.clear()
 	commander.production_queue.tick()
-	assert_eq(commander.production_queue.standing_next().type, VANGUARD,
-		"the cursor advances while the ring itself holds still")
+	assert_eq(
+		commander.production_queue.standing_next().type,
+		VANGUARD,
+		"the cursor advances while the ring itself holds still"
+	)
 
 
 func test_a_rotated_standing_entry_still_yields_to_a_one_off() -> void:
@@ -803,8 +895,11 @@ func test_a_rotated_standing_entry_still_yields_to_a_one_off() -> void:
 
 	producer.production.training_queue.clear()
 	commander.production_queue.submit(_train_purchase(commander, VANGUARD, 10, [producer]))
-	assert_eq(producer.production.job_type(0), VANGUARD,
-		"the one-off goes first even though the standing template is older")
+	assert_eq(
+		producer.production.job_type(0),
+		VANGUARD,
+		"the one-off goes first even though the standing template is older"
+	)
 
 
 ## --- a producer-blocked entry does not hold up the queue -------------------------
@@ -813,6 +908,7 @@ func test_a_rotated_standing_entry_still_yields_to_a_one_off() -> void:
 ## waiting for anything an entry behind it could consume, so it must not stop that entry —
 ## which is exactly the reported bug: two units queued at one barracks left a BUILD behind
 ## them stuck, with the energy banked and the builders standing at the site.
+
 
 func _build_purchase(a_commander: Commander, a_energy: int) -> PurchaseTransaction:
 	return PurchaseTransaction.for_cost(
@@ -831,10 +927,15 @@ func test_a_build_is_not_blocked_by_a_unit_waiting_on_a_busy_producer() -> void:
 	assert_eq(commander.production_queue.queued().size(), 1, "the second is waiting on it")
 
 	var build := commander.production_queue.submit(_build_purchase(commander, 60))
-	assert_true(build.is_funded(),
-		"the build reserves its cost rather than waiting behind a unit queued at a busy barracks")
-	assert_eq(commander.production_queue.queued().size(), 1,
-		"and the producer-blocked unit is still queued, in front of nothing")
+	assert_true(
+		build.is_funded(),
+		"the build reserves its cost rather than waiting behind a unit queued at a busy barracks"
+	)
+	assert_eq(
+		commander.production_queue.queued().size(),
+		1,
+		"and the producer-blocked unit is still queued, in front of nothing"
+	)
 
 
 func test_a_unit_for_a_free_producer_passes_one_waiting_on_a_busy_one() -> void:
@@ -846,8 +947,11 @@ func test_a_unit_for_a_free_producer_passes_one_waiting_on_a_busy_one() -> void:
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [busy]))
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [busy]))
 	commander.production_queue.submit(_train_purchase(commander, VANGUARD, 20, [free]))
-	assert_eq(free.production.job_count(), 1,
-		"a purchase whose own producer is free is not held up by one whose producer is busy")
+	assert_eq(
+		free.production.job_count(),
+		1,
+		"a purchase whose own producer is free is not held up by one whose producer is busy"
+	)
 
 
 func test_fifo_survives_the_skip_when_the_producer_frees() -> void:
@@ -862,8 +966,11 @@ func test_fifo_survives_the_skip_when_the_producer_frees() -> void:
 
 	producer.production.training_queue.clear()
 	commander.production_queue.tick()
-	assert_eq(producer.production.job_type(0), IRREGULAR,
-		"the earlier of the two waiting purchases goes first")
+	assert_eq(
+		producer.production.job_type(0),
+		IRREGULAR,
+		"the earlier of the two waiting purchases goes first"
+	)
 
 
 func test_an_unaffordable_entry_still_blocks_everything_behind_it() -> void:
@@ -875,8 +982,11 @@ func test_an_unaffordable_entry_still_blocks_everything_behind_it() -> void:
 	commander.production_queue.submit(_train_purchase(commander, VANGUARD, 200, [producer]))
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [producer]))
 	assert_eq(producer.production.job_count(), 0, "nothing started")
-	assert_eq(commander.production_queue.queued().size(), 2,
-		"the affordable purchase waits behind the one saving up")
+	assert_eq(
+		commander.production_queue.queued().size(),
+		2,
+		"the affordable purchase waits behind the one saving up"
+	)
 
 
 func test_a_producer_blocked_one_off_still_holds_off_the_standing_tier() -> void:
@@ -890,8 +1000,11 @@ func test_a_producer_blocked_one_off_still_holds_off_the_standing_tier() -> void
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [busy]))
 	commander.production_queue.submit(_train_purchase(commander, IRREGULAR, 20, [busy]))
 	commander.production_queue.submit(_standing_purchase(commander, VANGUARD, 20, [free]))
-	assert_eq(free.production.job_count(), 0,
-		"the standing entry waits while a one-off is still outstanding")
+	assert_eq(
+		free.production.job_count(),
+		0,
+		"the standing entry waits while a one-off is still outstanding"
+	)
 
 
 ## --- purchases are charged at REQUEST time ------------------------------------
@@ -900,6 +1013,7 @@ func test_a_producer_blocked_one_off_still_holds_off_the_standing_tier() -> void
 ## charged and the next order checked against energy already spoken for — you could commit the
 ## same 150 energy without limit. Charging on submit is what makes the check honest, and what
 ## keeps requisition mode meaning something.
+
 
 func test_a_queued_purchase_is_charged_even_with_no_producer_free() -> void:
 	var commander := _make_commander(150)
@@ -940,8 +1054,9 @@ func test_a_funded_purchase_waiting_on_a_producer_still_names_its_blocker() -> v
 	var second := commander.production_queue.submit(
 		_train_purchase(commander, IRREGULAR, 75, [producer])
 	)
-	assert_eq(commander.production_queue.blocker_for(second),
-		ProductionQueue.Blocker.NO_FREE_PRODUCER)
+	assert_eq(
+		commander.production_queue.blocker_for(second), ProductionQueue.Blocker.NO_FREE_PRODUCER
+	)
 
 
 func test_cancelling_a_queued_purchase_returns_what_was_charged() -> void:
@@ -980,11 +1095,14 @@ func test_an_unaffordable_requisition_is_charged_when_it_finally_dispatches() ->
 	assert_true(queued.is_pending(), "nothing to charge yet")
 	commander.energy = 75
 	commander.production_queue.tick()
-	assert_eq(commander.energy, 0, "charged at fulfilment, since it could not be charged at request")
+	assert_eq(
+		commander.energy, 0, "charged at fulfilment, since it could not be charged at request"
+	)
 	assert_eq(producer.production.job_count(), 1)
 
 
 ## --- request-time charging respects queue order ------------------------------
+
 
 ## Charging at SUBMIT must not repeal the head-of-line blocking tick() enforces. It used
 ## to: the money was taken before the scan ran, so a purchase behind an unaffordable one
@@ -1006,7 +1124,9 @@ func test_a_purchase_is_not_charged_past_an_unfunded_entry_ahead_of_it() -> void
 	)
 
 	assert_false(train.is_funded(), "the unit does not pay for itself ahead of the build")
-	assert_eq(commander.energy, 60, "and the energy stays available to the build it is queued behind")
+	assert_eq(
+		commander.energy, 60, "and the energy stays available to the build it is queued behind"
+	)
 	assert_false(build.is_funded(), "the build is still waiting, at the head, for its own price")
 
 

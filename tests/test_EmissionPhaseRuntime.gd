@@ -18,7 +18,8 @@ const WALL_X: float = 3.0
 
 
 ## Hands its events a stand-in manager; its RecordingPayload keeps the record.
-class RecordingEmission extends Entity:
+class RecordingEmission:
+	extends Entity
 	var manager: ScenarioTriggerManager
 
 	func _resolve_trigger_manager() -> ScenarioTriggerManager:
@@ -27,16 +28,24 @@ class RecordingEmission extends Entity:
 
 ## Records each payload application — the tick, where the emission was, whom it was aimed at —
 ## instead of applying one.
-class RecordingPayload extends Payload:
+class RecordingPayload:
+	extends Payload
 	var hits: Array[Dictionary] = []
 
 	func apply() -> void:
-		hits.append({"frame": Engine.get_physics_frames(), "position": host().global_position,
-			"target": target, "phase": _phased().phase_index()})
+		hits.append(
+			{
+				"frame": Engine.get_physics_frames(),
+				"position": host().global_position,
+				"target": target,
+				"phase": _phased().phase_index()
+			}
+		)
 
 
 ## Records where it ran, into an array the test holds — the event is freed with its emission.
-class RecordingEvent extends AbstractEvent:
+class RecordingEvent:
+	extends AbstractEvent
 	var runs: Array[Vector3]
 
 	func execute(_a_manager: ScenarioTriggerManager) -> void:
@@ -89,25 +98,39 @@ func _run(a_emission: RecordingEmission, a_target: Variant = AIM) -> Dictionary:
 
 
 func test_phases_run_in_order_however_many_there_are() -> void:
-	var emission: RecordingEmission = _emission([
-		_phase({"speed": 30.0}),
-		_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
-		_phase({"ends_on_arrival": false, "lifespan_seconds": 0.2}),
-		_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
-	])
+	var emission: RecordingEmission = _emission(
+		[
+			_phase({"speed": 30.0}),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.2}),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
+		]
+	)
 	var record: Dictionary = await _run(emission)
 	var phases_hit: Array = record["hits"].map(func(h: Dictionary) -> int: return h["phase"])
 	assert_eq(phases_hit, [1, 3], "each payload phase pays out once, in order")
-	assert_gt(record["hits"][1]["frame"] - record["hits"][0]["frame"],
-		TimeUtils.ticks_from_seconds(0.2) - 1, "the phase between them lasted its lifespan")
+	assert_gt(
+		record["hits"][1]["frame"] - record["hits"][0]["frame"],
+		TimeUtils.ticks_from_seconds(0.2) - 1,
+		"the phase between them lasted its lifespan"
+	)
 
 
 func test_a_sonic_sweep_flies_through_and_pays_out_all_the_way() -> void:
 	# One phase, no impact: it passes its destination, pays out every tick, and expires.
-	var emission: RecordingEmission = _emission([
-		_phase({"speed": 30.0, "ends_on_arrival": false, "lifespan_seconds": 0.5,
-			"applies_payload": true, "payload_period_seconds": 0.0}),
-	])
+	var emission: RecordingEmission = _emission(
+		[
+			_phase(
+				{
+					"speed": 30.0,
+					"ends_on_arrival": false,
+					"lifespan_seconds": 0.5,
+					"applies_payload": true,
+					"payload_period_seconds": 0.0
+				}
+			),
+		]
+	)
 	var record: Dictionary = await _run(emission)
 	var hits: Array = record["hits"]
 	assert_eq(hits.size(), TimeUtils.ticks_from_seconds(0.5), "every tick of its lifespan")
@@ -116,15 +139,22 @@ func test_a_sonic_sweep_flies_through_and_pays_out_all_the_way() -> void:
 
 
 func test_a_trail_runs_its_events_on_cadence_where_the_emission_is() -> void:
-	var trail: EmissionPhase = _phase({"speed": 15.0, "ends_on_arrival": false,
-		"lifespan_seconds": 0.5, "event_period_seconds": 0.1})
+	var trail: EmissionPhase = _phase(
+		{
+			"speed": 15.0,
+			"ends_on_arrival": false,
+			"lifespan_seconds": 0.5,
+			"event_period_seconds": 0.1
+		}
+	)
 	var runs: Array[Vector3] = []
 	var event: RecordingEvent = RecordingEvent.new()
 	event.runs = runs
 	trail.add_child(event)
 	await _run(_emission([trail]))
-	var expected: int = ceili(float(TimeUtils.ticks_from_seconds(0.5))
-		/ TimeUtils.ticks_from_seconds(0.1))
+	var expected: int = ceili(
+		float(TimeUtils.ticks_from_seconds(0.5)) / TimeUtils.ticks_from_seconds(0.1)
+	)
 	assert_eq(runs.size(), expected, "once per period, from the first tick")
 	assert_gt(runs[-1].x, runs[0].x, "each drop where the emission had got to")
 
@@ -132,10 +162,12 @@ func test_a_trail_runs_its_events_on_cadence_where_the_emission_is() -> void:
 func test_a_swept_shot_lands_on_what_it_struck() -> void:
 	var wall: Entity = _wall(CollisionLayers.Mask.STRUCTURE_BLOCKER)
 	await get_tree().physics_frame
-	var emission: RecordingEmission = _emission([
-		_phase({"speed": 30.0, "impact_mask": CollisionLayers.Mask.STRUCTURE_BLOCKER}),
-		_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
-	])
+	var emission: RecordingEmission = _emission(
+		[
+			_phase({"speed": 30.0, "impact_mask": CollisionLayers.Mask.STRUCTURE_BLOCKER}),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
+		]
+	)
 	var record: Dictionary = await _run(emission)
 	assert_eq(record["hits"].size(), 1)
 	assert_eq(record["hits"][0]["target"], wall, "the structure took it as the target")
@@ -151,10 +183,12 @@ func test_a_swept_shot_into_terrain_is_absorbed() -> void:
 	var behind: Entity = _wall(0)
 	behind.global_position = AIM
 	await get_tree().physics_frame
-	var emission: RecordingEmission = _emission([
-		_phase({"speed": 30.0, "impact_mask": CollisionLayers.Mask.TERRAIN}),
-		_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
-	])
+	var emission: RecordingEmission = _emission(
+		[
+			_phase({"speed": 30.0, "impact_mask": CollisionLayers.Mask.TERRAIN}),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
+		]
+	)
 	var record: Dictionary = await _run(emission, behind)
 	assert_eq(record["hits"].size(), 1, "the flight still ended")
 	assert_null(record["hits"][0]["target"], "the target behind the ground is not reached")
@@ -163,10 +197,12 @@ func test_a_swept_shot_into_terrain_is_absorbed() -> void:
 func test_without_an_impact_mask_a_shot_flies_through_walls() -> void:
 	_wall(CollisionLayers.Mask.STRUCTURE_BLOCKER)
 	await get_tree().physics_frame
-	var emission: RecordingEmission = _emission([
-		_phase({"speed": 30.0}),
-		_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
-	])
+	var emission: RecordingEmission = _emission(
+		[
+			_phase({"speed": 30.0}),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
+		]
+	)
 	var record: Dictionary = await _run(emission)
 	assert_almost_eq(record["hits"][0]["position"].x, AIM.x, 0.05, "the guided test alone")
 
@@ -193,7 +229,8 @@ static func _box_shape() -> CollisionShape3D:
 
 
 ## Hands EventSpawnEmission a commander and a map without a scenario around them.
-class StubManager extends ScenarioTriggerManager:
+class StubManager:
+	extends ScenarioTriggerManager
 	var commander: Commander
 
 	func get_commander(_a_id: int) -> Commander:
@@ -213,11 +250,15 @@ func test_a_spawn_event_puts_its_emission_where_it_stands() -> void:
 	event.global_position = Vector3(4.0, 0.0, 2.0)
 	event.execute(manager)
 	var spawned: Array = manager.commander.get_children().filter(
-		func(c: Node) -> bool: return c is Entity and Payload.of(c) != null)
+		func(c: Node) -> bool: return c is Entity and Payload.of(c) != null
+	)
 	assert_eq(spawned.size(), 1, "one emission, owned by the event's commander")
 	assert_eq(spawned[0].global_position, event.global_position, "where the event stands")
-	assert_eq((spawned[0] as Entity).locomotion_component.goal_position, event.global_position,
-		"and it lands there")
+	assert_eq(
+		(spawned[0] as Entity).locomotion_component.goal_position,
+		event.global_position,
+		"and it lands there"
+	)
 
 
 ## A phased mover cannot stop. When a homing shot's target leaves the game it keeps steering at
@@ -228,10 +269,17 @@ func test_a_homing_shot_that_loses_its_target_circles_where_it_was() -> void:
 	quarry.global_position = AIM
 	await get_tree().physics_frame
 	var lifespan_seconds: float = 3.0
-	var emission: RecordingEmission = _emission([
-		_phase({"speed": 6.0, "turn_rate_degrees_per_second": 360.0,
-			"lifespan_seconds": lifespan_seconds}),
-	])
+	var emission: RecordingEmission = _emission(
+		[
+			_phase(
+				{
+					"speed": 6.0,
+					"turn_rate_degrees_per_second": 360.0,
+					"lifespan_seconds": lifespan_seconds
+				}
+			),
+		]
+	)
 	add_child(emission)
 	emission.global_position = LAUNCH
 	Emitter.launch(emission, null, quarry)
@@ -245,8 +293,13 @@ func test_a_homing_shot_that_loses_its_target_circles_where_it_was() -> void:
 		if ticks == loss_tick:
 			quarry.free()
 		if ticks > settle_tick and is_instance_valid(emission):
-			farthest_after_settling = maxf(farthest_after_settling,
-				emission.global_position.distance_to(AIM))
-	assert_almost_eq(ticks, TimeUtils.ticks_from_seconds(lifespan_seconds), 2,
-		"it lives out its lifespan rather than arriving anywhere")
+			farthest_after_settling = maxf(
+				farthest_after_settling, emission.global_position.distance_to(AIM)
+			)
+	assert_almost_eq(
+		ticks,
+		TimeUtils.ticks_from_seconds(lifespan_seconds),
+		2,
+		"it lives out its lifespan rather than arriving anywhere"
+	)
 	assert_lt(farthest_after_settling, 2.0, "it loops round the last place its target was")

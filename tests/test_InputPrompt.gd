@@ -55,10 +55,7 @@ func test_text_without_placeholders_is_untouched() -> void:
 func test_substitution_adds_no_markup_of_its_own() -> void:
 	# A straight name-for-name swap. Styling is the author's business: a page that wants the
 	# key to stand out writes the markup around the placeholder itself.
-	assert_eq(
-		InputPrompt.format("Drag {{ world_select }} now."),
-		"Drag Left Mouse Button now."
-	)
+	assert_eq(InputPrompt.format("Drag {{ world_select }} now."), "Drag Left Mouse Button now.")
 
 
 func test_author_supplied_markup_survives_around_a_placeholder() -> void:
@@ -113,6 +110,7 @@ func test_referenced_actions_lists_them_once_each() -> void:
 
 # --- Integration with DialogPage ----------------------------------------------
 
+
 func test_a_page_renders_resolved_copy_but_keeps_its_source() -> void:
 	var page := DialogPage.new()
 	page.title = "Selecting"
@@ -121,11 +119,13 @@ func test_a_page_renders_resolved_copy_but_keeps_its_source() -> void:
 	add_child_autofree(page)
 
 	assert_eq(
-		page.body, "Drag {{ world_select }}.",
+		page.body,
+		"Drag {{ world_select }}.",
 		"the authored source keeps its placeholders, so rebinding re-renders correctly"
 	)
 	assert_eq(
-		page._body_label.text, "Drag Left Mouse Button.",
+		page._body_label.text,
+		"Drag Left Mouse Button.",
 		"the label shows the resolved binding, unstyled"
 	)
 	assert_eq(page.resolved_acknowledge_text(), "Press Right Mouse Button", "plain for a Button")
@@ -154,7 +154,8 @@ func test_every_authored_page_references_real_actions() -> void:
 				# Either an InputMap action or a grid command (which resolves through the
 				# cell it occupies) — copy is written without caring which.
 				assert_ne(
-					InputPrompt.resolve_action(name), &"",
+					InputPrompt.resolve_action(name),
+					&"",
 					"%s references '%s', which resolves to no binding" % [path, name]
 				)
 

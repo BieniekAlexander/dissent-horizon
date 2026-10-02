@@ -41,8 +41,13 @@ func _gun(a_ready: bool) -> Commandable:
 	# BASE_INFRASTRUCTURE cannot cover two of them — an unpowered building casts nothing
 	# (see tests/test_InfrastructureStrain.gd), which is not what is under test here.
 	_commander.add_infrastructure(1000)
-	var gun: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2), "beacon_range": 30.0,
-		"abilities": [{"grants": [Bombard.ABILITY_ID], "cooldown_ticks": 100}]})
+	var gun: Commandable = FakePieces.structure(
+		{
+			"dimensions": Vector2i(2, 2),
+			"beacon_range": 30.0,
+			"abilities": [{"grants": [Bombard.ABILITY_ID], "cooldown_ticks": 100}]
+		}
+	)
 	_commander.add_child(gun)
 	autofree(gun)
 	gun.top_level = true
@@ -63,6 +68,7 @@ func _aim(a_defer: bool) -> CommandMessage:
 
 
 ## --- the gate ------------------------------------------------------------------
+
 
 func test_a_loaded_gun_takes_the_order_with_no_modifier() -> void:
 	assert_eq(
@@ -112,6 +118,7 @@ func test_the_cooldown_still_only_greys_the_button() -> void:
 
 ## --- Ability.can_act: a queued order must WAIT, not be thrown away ---------------
 
+
 ## A real ability-carrying unit, standing at the origin, holding `charges` of the one
 ## ability under test. A real scene rather than a bare Commandable because `can_act`
 ## reads `xz_position` — i.e. `global_position` — which errors outside the tree, and a
@@ -128,10 +135,14 @@ func _caster(a_charges: int) -> Commandable:
 	actor.global_position = Vector3.ZERO
 	# Its authored pool is replaced so the test does not ride on the doc's charge counts.
 	var pool := actor.get_node("Abilities") as Abilities
-	pool.groups = [{
-		"initial_charges": a_charges, "max_charges": 2, "cooldown_ticks": 90,
-		"grants": [ABILITY],
-	}]
+	pool.groups = [
+		{
+			"initial_charges": a_charges,
+			"max_charges": 2,
+			"cooldown_ticks": 90,
+			"grants": [ABILITY],
+		}
+	]
 	pool._rebuild()
 	return actor
 

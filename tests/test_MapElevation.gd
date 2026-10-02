@@ -52,8 +52,11 @@ func test_starts_share_a_level_in_their_band() -> void:
 	for map: GeneratedMap in _maps():
 		var levels: PackedInt32Array = map.elevation.level_of_node
 		assert_eq(levels[0], levels[1])
-		assert_eq(map.elevation.tier_of_node[0], map.elevation.tier_of_node[1],
-			"one start above another is not a fair map")
+		assert_eq(
+			map.elevation.tier_of_node[0],
+			map.elevation.tier_of_node[1],
+			"one start above another is not a fair map"
+		)
 		var fraction: float = float(levels[0]) / (params.elevation_levels - 1)
 		assert_between(fraction, params.start_level_fraction_min, params.start_level_fraction_max)
 
@@ -100,8 +103,14 @@ func _corridor(a_map: GeneratedMap) -> int:
 	for z: int in depth:
 		for x: int in width:
 			var cell := Vector2i(x, z)
-			mask[z * width + x] = 1 if terrain.is_cell_in_play(cell) \
-				and terrain.cell_height_spread(cell) <= TerrainGrid.MAX_SLOPE_DIFF else 0
+			mask[z * width + x] = (
+				1
+				if (
+					terrain.is_cell_in_play(cell)
+					and terrain.cell_height_spread(cell) <= TerrainGrid.MAX_SLOPE_DIFF
+				)
+				else 0
+			)
 	for eroded: int in range(0, _CORRIDOR_LIMIT):
 		var seeds: Array[Vector2i] = []
 		for x: int in width:
@@ -114,8 +123,10 @@ func _corridor(a_map: GeneratedMap) -> int:
 		var reaches: bool = false
 		for x: int in width:
 			for z: int in range(depth - depth / 8, depth):
-				reaches = reaches or (mask[z * width + x] != 0
-					and not is_inf(field.distance(Vector2i(x, z))))
+				reaches = (
+					reaches
+					or (mask[z * width + x] != 0 and not is_inf(field.distance(Vector2i(x, z))))
+				)
 		if not reaches:
 			return eroded
 		mask = _erode(mask, width, depth)
@@ -133,8 +144,13 @@ static func _erode(a_mask: PackedByteArray, a_width: int, a_depth: int) -> Packe
 				for dz: int in range(-1, 2):
 					var nx: int = x + dx
 					var nz: int = z + dz
-					if nx < 0 or nz < 0 or nx >= a_width or nz >= a_depth \
-							or a_mask[nz * a_width + nx] == 0:
+					if (
+						nx < 0
+						or nz < 0
+						or nx >= a_width
+						or nz >= a_depth
+						or a_mask[nz * a_width + nx] == 0
+					):
 						out[z * a_width + x] = 0
 	return out
 
@@ -155,7 +171,9 @@ func test_footprints_and_start_boxes_stay_level() -> void:
 func test_a_pond_still_floods_exactly_its_pan() -> void:
 	for map: GeneratedMap in _maps():
 		for pond: MapFeature in map.features_of(MapFeature.Kind.POND):
-			var basin: WaterBasin = WaterBasin.fill(map.terrain, pond.pond_seed_cell, pond.pond_level)
+			var basin: WaterBasin = WaterBasin.fill(
+				map.terrain, pond.pond_seed_cell, pond.pond_level
+			)
 			assert_eq(basin.covered_cells().size(), pond.pond_cells.size())
 
 
@@ -165,8 +183,13 @@ func test_cliffs_are_steep_and_the_ground_stays_joined() -> void:
 			# A ridge or chasm corner can cancel the step — a ridge on a lower level topping out
 			# at the upper one. Such a cell is only upper ground beside the barrier: neighbours
 			# share edge corners, so it cannot join two levels.
-			assert_true(map.terrain.cell_height_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF
-				or _touches_barrier(map, cell), "cliff cell %s is walkable" % cell)
+			assert_true(
+				(
+					map.terrain.cell_height_spread(cell) > TerrainGrid.MAX_SLOPE_DIFF
+					or _touches_barrier(map, cell)
+				),
+				"cliff cell %s is walkable" % cell
+			)
 		assert_eq(map.elevation._stranded_stretch().size(), 0)
 
 
@@ -182,8 +205,12 @@ func test_starts_keep_their_routes_across_levels() -> void:
 	var params: MapGenerationParams = _params()
 	for map: GeneratedMap in _maps():
 		var graph: FeatureGraph = map.topology.graph
-		assert_gte(graph.disjoint_paths(0, 1, map.elevation.open_edges(map.elevation._ramped),
-			params.min_routes), params.min_routes)
+		assert_gte(
+			graph.disjoint_paths(
+				0, 1, map.elevation.open_edges(map.elevation._ramped), params.min_routes
+			),
+			params.min_routes
+		)
 
 
 func test_no_choke_between_barriers_and_cliffs_is_narrower_than_the_minimum() -> void:
@@ -191,9 +218,17 @@ func test_no_choke_between_barriers_and_cliffs_is_narrower_than_the_minimum() ->
 	for map: GeneratedMap in _maps():
 		var play := PlayArea.screen_aligned(
 			Vector2(map.terrain.grid_width(), map.terrain.grid_depth()) * 0.5,
-			map.terrain.play_half_extents(), Map.CELL_SIZE)
-		assert_eq(MapTopology.too_narrow_cells(
-			map.topology.barrier_of, play, map.elevation.cliff_cells).size(), 0)
+			map.terrain.play_half_extents(),
+			Map.CELL_SIZE
+		)
+		assert_eq(
+			(
+				MapTopology
+				. too_narrow_cells(map.topology.barrier_of, play, map.elevation.cliff_cells)
+				. size()
+			),
+			0
+		)
 
 
 func test_one_level_leaves_the_ground_flat() -> void:
@@ -212,6 +247,8 @@ func test_the_start_level_is_drawn_from_its_band() -> void:
 	elevation._rng = RandomNumberGenerator.new()
 	for _draw: int in 20:
 		assert_has([2, 3], elevation.start_level(), "levels 0-4: 0.5 and 0.75 are 2 and 3")
+
+
 ## A ramp's width is the longest UNBROKEN walkable run across it: a slice split in two by an
 ## obstacle is two narrow corridors, not one wide one. This is what decides whether a ramp is
 ## too narrow to keep, so it is worth testing away from a generated map.

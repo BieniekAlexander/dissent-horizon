@@ -52,8 +52,11 @@ static func aggro_shape_for_reach(reach: float, can_move: bool) -> CylinderShape
 static func xz_radius(shape_node: CollisionShape3D) -> float:
 	if shape_node == null:
 		return -1.0
-	var scale: float = shape_node.global_transform.basis.x.length() \
-		if shape_node.is_inside_tree() else shape_node.transform.basis.x.length()
+	var scale: float = (
+		shape_node.global_transform.basis.x.length()
+		if shape_node.is_inside_tree()
+		else shape_node.transform.basis.x.length()
+	)
 	var radius: float = radius_of(shape_node.shape)
 	return radius * scale if radius >= 0.0 else -1.0
 

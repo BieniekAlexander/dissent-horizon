@@ -9,18 +9,19 @@ var simple_tooltip: String
 var verbose_tooltip: String
 #endregion
 
+
 #region Lifecycle
 func _init(
-	a_control: String,
-	a_text: String,
-	a_simple_tooltip: String = "",
-	a_verbose_tooltip: String = ""
+	a_control: String, a_text: String, a_simple_tooltip: String = "", a_verbose_tooltip: String = ""
 ):
 	control = a_control
 	text = a_text
 	simple_tooltip = a_simple_tooltip
 	verbose_tooltip = a_verbose_tooltip
+
+
 #endregion
+
 
 #region Public API
 ## TODO: EVERY LABEL OF FIVE CHARACTERS OR MORE IS CLIPPED at the cell width the 6-column
@@ -48,28 +49,32 @@ static func create_button_from_spec(spec: ButtonSpec) -> Button:
 	# Route the press to the owning RTSController. Walk ancestors rather than
 	# assuming a fixed parent depth, so the grid can be nested inside HUD
 	# section groups (bottom-right) without breaking the wiring.
-	ret.connect("pressed", func():
-		var controller: RTSController = _find_rts_controller(ret)
-		if controller != null:
-			controller._on_control_button_pressed(ret.name)
+	ret.connect(
+		"pressed",
+		func():
+			var controller: RTSController = _find_rts_controller(ret)
+			if controller != null:
+				controller._on_control_button_pressed(ret.name)
 	)
 
 	# The persistent resource bars preview a hovered purchase's effect (see
 	# gdd/systems/ux/ui/economy-bars.md §Hover previews) — they read the hover through the
 	# controller rather than each wiring its own mouse_entered/exited, since a bar has no
 	# reason to know about individual grid buttons.
-	ret.mouse_entered.connect(func():
-		var controller: RTSController = _find_rts_controller(ret)
-		if controller != null:
-			controller.hovered_command_button = ret
+	ret.mouse_entered.connect(
+		func():
+			var controller: RTSController = _find_rts_controller(ret)
+			if controller != null:
+				controller.hovered_command_button = ret
 	)
-	ret.mouse_exited.connect(func():
-		var controller: RTSController = _find_rts_controller(ret)
-		# Only clear OUR OWN hover: a fast mouse move can enter the next button before this
-		# one's exit is processed, and clearing unconditionally would erase that button's
-		# claim instead of this one's.
-		if controller != null and controller.hovered_command_button == ret:
-			controller.hovered_command_button = null
+	ret.mouse_exited.connect(
+		func():
+			var controller: RTSController = _find_rts_controller(ret)
+			# Only clear OUR OWN hover: a fast mouse move can enter the next button before this
+			# one's exit is processed, and clearing unconditionally would erase that button's
+			# claim instead of this one's.
+			if controller != null and controller.hovered_command_button == ret:
+				controller.hovered_command_button = null
 	)
 
 	# A grid button's RIGHT-click is unspent, and a standing order is a variant of the same
@@ -78,17 +83,22 @@ static func create_button_from_spec(spec: ButtonSpec) -> Button:
 	# Connected to the `gui_input` SIGNAL rather than overriding _gui_input: that virtual is
 	# BaseButton's, and a script override would replace the press handling the left click
 	# depends on. The signal is emitted alongside it.
-	ret.gui_input.connect(func(event: InputEvent):
-		var button_event := event as InputEventMouseButton
-		if button_event == null or button_event.button_index != MOUSE_BUTTON_RIGHT \
-				or not button_event.pressed:
-			return
-		var controller: RTSController = _find_rts_controller(ret)
-		if controller != null:
-			ret.accept_event()
-			controller._on_control_button_alternate_pressed(ret.name)
+	ret.gui_input.connect(
+		func(event: InputEvent):
+			var button_event := event as InputEventMouseButton
+			if (
+				button_event == null
+				or button_event.button_index != MOUSE_BUTTON_RIGHT
+				or not button_event.pressed
+			):
+				return
+			var controller: RTSController = _find_rts_controller(ret)
+			if controller != null:
+				ret.accept_event()
+				controller._on_control_button_alternate_pressed(ret.name)
 	)
 	return ret
+
 
 ## Walks up from a HUD node to the RTSController that owns the HUD, or null.
 static func _find_rts_controller(node: Node) -> RTSController:

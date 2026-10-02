@@ -23,7 +23,8 @@ extends GutTest
 ## two bots drawing from one stream in interleaved order get different numbers.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_BotPlacementEquivariance.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_BotPlacementEquivariance.gd
+## -gexit
 
 const PRODUCTION: StringName = &"test_redoubt"
 const SUPPORT: StringName = &"test_infrastructure"
@@ -37,6 +38,7 @@ const EPS: float = 1e-5
 ## A Map with terrain but no navmesh: everything under test is grid maths.
 class TestMap:
 	extends Map
+
 	func _ready() -> void:
 		var shape := HeightMapShape3D.new()
 		shape.map_width = CELLS + 1
@@ -75,7 +77,9 @@ class FakeBot:
 	func nearest_believed_enemy_structure_position(_a_accept: Variant = null) -> Variant:
 		return threat
 
-	func nearest_believed_enemy_unit_position(_a_from: Vector3, _a_accept: Variant = null) -> Variant:
+	func nearest_believed_enemy_unit_position(
+		_a_from: Vector3, _a_accept: Variant = null
+	) -> Variant:
 		return null
 
 
@@ -85,6 +89,7 @@ class FakeBot:
 class StubEconomy:
 	extends BotEconomy
 	var dims: Vector2i = Vector2i(2, 2)
+
 	func _dims_for_type(_a_type: StringName) -> Vector2i:
 		return dims
 
@@ -152,13 +157,21 @@ func _xz(a_spot: Variant) -> Vector2:
 
 # ─── THE MIRROR: THE ACCEPTANCE PROPERTY ────────────────────────────────────
 
+
 func test_two_mirrored_bots_choose_mirrored_spots() -> void:
 	# The exact shape of the symmetric scenario: one map carried onto itself by the point
 	# reflection, two commanders at reflected start points believing reflected things.
-	_block_symmetrically([
-		Vector2i(11, 6), Vector2i(12, 6), Vector2i(11, 7), Vector2i(12, 7),
-		Vector2i(20, 14), Vector2i(20, 15), Vector2i(21, 15),
-	])
+	_block_symmetrically(
+		[
+			Vector2i(11, 6),
+			Vector2i(12, 6),
+			Vector2i(11, 7),
+			Vector2i(12, 7),
+			Vector2i(20, 14),
+			Vector2i(20, 15),
+			Vector2i(21, 15),
+		]
+	)
 	var base := Vector2(-6.5, 9.5)
 	var threat := Vector2(4.5, -8.5)
 	for type: StringName in [PRODUCTION, SUPPORT]:
@@ -166,8 +179,12 @@ func test_two_mirrored_bots_choose_mirrored_spots() -> void:
 		var south: Variant = _spot(_bot_at(-base, -threat), type)
 		assert_not_null(north, "%s: the north bot found somewhere" % type)
 		assert_not_null(south, "%s: the south bot found somewhere" % type)
-		assert_almost_eq(_xz(south), -_xz(north), Vector2(EPS, EPS),
-			"%s: the two choices are each other's reflection, not both toward -X" % type)
+		assert_almost_eq(
+			_xz(south),
+			-_xz(north),
+			Vector2(EPS, EPS),
+			"%s: the two choices are each other's reflection, not both toward -X" % type
+		)
 
 
 func test_the_mirror_holds_at_every_footprint_parity() -> void:
@@ -178,17 +195,24 @@ func test_the_mirror_holds_at_every_footprint_parity() -> void:
 	# real match as a one-cell residual between two otherwise perfect mirror layouts, and it
 	# only appears at some base parities, so this sweeps them.
 	for base: Vector2 in [
-		Vector2(-1.0, 9.0), Vector2(-0.5, 9.5), Vector2(-1.5, 8.0), Vector2(-6.5, 9.5),
-		Vector2(-2.0, 10.5), Vector2(-3.5, 7.0),
+		Vector2(-1.0, 9.0),
+		Vector2(-0.5, 9.5),
+		Vector2(-1.5, 8.0),
+		Vector2(-6.5, 9.5),
+		Vector2(-2.0, 10.5),
+		Vector2(-3.5, 7.0),
 	]:
 		for dims: Vector2i in [Vector2i(2, 2), Vector2i(3, 3), Vector2i(1, 1)]:
 			var threat := Vector2(2.0, -11.0)
 			var north: Variant = _spot(_bot_at(base, threat), PRODUCTION, dims)
 			var south: Variant = _spot(_bot_at(-base, -threat), PRODUCTION, dims)
 			assert_not_null(north, "base %s dims %s" % [base, dims])
-			assert_almost_eq(_xz(south), -_xz(north), Vector2(EPS, EPS),
-				"base %s, %s footprint: the two choices must reflect onto each other"
-					% [base, dims])
+			assert_almost_eq(
+				_xz(south),
+				-_xz(north),
+				Vector2(EPS, EPS),
+				"base %s, %s footprint: the two choices must reflect onto each other" % [base, dims]
+			)
 
 
 func test_the_chosen_spot_survives_the_round_trip_to_a_footprint() -> void:
@@ -199,9 +223,12 @@ func test_the_chosen_spot_survives_the_round_trip_to_a_footprint() -> void:
 	for dims: Vector2i in [Vector2i(2, 2), Vector2i(3, 3)]:
 		var spot: Vector2 = _xz(_spot(bot, PRODUCTION, dims))
 		var origin: Vector2i = _map.footprint_origin(spot, dims)
-		assert_almost_eq(VU.inXZ(_map.footprint_centroid(origin, dims)), spot,
-			Vector2(EPS, EPS), "%s footprint: centroid → origin → centroid is the identity"
-				% dims)
+		assert_almost_eq(
+			VU.inXZ(_map.footprint_centroid(origin, dims)),
+			spot,
+			Vector2(EPS, EPS),
+			"%s footprint: centroid → origin → centroid is the identity" % dims
+		)
 
 
 func test_the_choice_is_not_pinned_to_a_world_axis() -> void:
@@ -221,11 +248,16 @@ func test_a_quarter_turn_of_the_situation_turns_the_choice() -> void:
 	var east: Variant = _spot(_bot_at(Vector2.ZERO, Vector2(11.0, 0.0)), PRODUCTION)
 	var north: Variant = _spot(_bot_at(Vector2.ZERO, Vector2(0.0, 11.0)), PRODUCTION)
 	var turned := Vector2(-_xz(east).y, _xz(east).x)
-	assert_almost_eq(_xz(north), turned, Vector2(EPS, EPS),
-		"turning the threat a quarter turn turns the placement with it")
+	assert_almost_eq(
+		_xz(north),
+		turned,
+		Vector2(EPS, EPS),
+		"turning the threat a quarter turn turns the placement with it"
+	)
 
 
 # ─── THE ASYMMETRY IS REAL, AND IT IS RELATIVE TO THE BOT ───────────────────
+
 
 func test_production_goes_toward_the_threat_and_support_behind_the_base() -> void:
 	var bot := _bot_at(Vector2.ZERO, Vector2(0.0, 12.0))
@@ -245,18 +277,24 @@ func test_the_bearing_weights_move_the_layout() -> void:
 	economy.place_shelter_bias = 0.0
 	var production: Vector2 = _xz(economy._find_build_spot(PRODUCTION))
 	var support: Vector2 = _xz(economy._find_build_spot(SUPPORT))
-	assert_almost_eq(production, support, Vector2(EPS, EPS),
-		"with both biases at zero the two kinds want the same, nearest, spot")
+	assert_almost_eq(
+		production,
+		support,
+		Vector2(EPS, EPS),
+		"with both biases at zero the two kinds want the same, nearest, spot"
+	)
 
 
 func test_it_stays_inside_the_search_annulus() -> void:
 	var bot := _bot_at(Vector2(3.5, -2.5), Vector2(12.0, 12.0))
 	var offset: float = (_xz(_spot(bot, PRODUCTION)) - Vector2(3.5, -2.5)).length()
-	assert_between(offset, float(BotEconomy.SEARCH_MIN_RING) - 1.5,
-		float(BotEconomy.SEARCH_MAX_RING) + 1.5)
+	assert_between(
+		offset, float(BotEconomy.SEARCH_MIN_RING) - 1.5, float(BotEconomy.SEARCH_MAX_RING) + 1.5
+	)
 
 
 # ─── THE HARD CONSTRAINTS, THROUGH THE BOT ──────────────────────────────────
+
 
 func test_it_will_not_wall_off_part_of_the_map() -> void:
 	# A wall across the map with one two-cell gate right where the bot would most like to
@@ -267,8 +305,10 @@ func test_it_will_not_wall_off_part_of_the_map() -> void:
 	var spot: Variant = _spot(bot, PRODUCTION)
 	assert_not_null(spot, "it still finds somewhere")
 	var footprint: Array = _map.footprint_cells(_xz(spot), Vector2i(2, 2))
-	assert_true(_map.terrain_grid.placement_preserves_connectivity(footprint),
-		"and the spot it takes does not split the walkable surface")
+	assert_true(
+		_map.terrain_grid.placement_preserves_connectivity(footprint),
+		"and the spot it takes does not split the walkable surface"
+	)
 
 
 func test_a_production_structure_is_never_walled_in() -> void:
@@ -283,8 +323,10 @@ func test_a_production_structure_is_never_walled_in() -> void:
 	assert_not_null(spot)
 	var footprint: Array = _map.footprint_cells(_xz(spot), Vector2i(2, 2))
 	var region: int = _map.terrain_grid.largest_component()
-	assert_true(NavPlacement.has_navmesh_side(_map.terrain_grid, footprint, region),
-		"the chosen spot keeps a whole side on the ground the bot's units are on")
+	assert_true(
+		NavPlacement.has_navmesh_side(_map.terrain_grid, footprint, region),
+		"the chosen spot keeps a whole side on the ground the bot's units are on"
+	)
 
 
 func test_no_spot_at_all_is_null_rather_than_a_bad_one() -> void:
@@ -303,6 +345,7 @@ func _rect(a_x: int, a_z: int, a_w: int, a_d: int) -> Array:
 
 
 # ─── A SEARCH SPLIT ACROSS TICKS ─────────────────────────────────────────────
+
 
 ## The scheduler may run the search in slices (BotEconomy._find_build_spot is resumable). A
 ## search run one sliver of budget at a time must land on exactly the spot an uninterrupted one

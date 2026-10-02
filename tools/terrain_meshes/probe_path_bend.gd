@@ -47,9 +47,14 @@ func _run() -> void:
 		var f := Vector2(0.0, 0.0)
 		var t: Vector2 = f + d * _length
 		var pts: PackedVector3Array = NavigationServer3D.map_get_path(
-			nav_map, _v3(map, f), _v3(map, t), true)
-		print("=== path for heading %.0f deg, length %.1f: %d waypoints ===" % [
-			_dump_heading, _length, pts.size()])
+			nav_map, _v3(map, f), _v3(map, t), true
+		)
+		print(
+			(
+				"=== path for heading %.0f deg, length %.1f: %d waypoints ==="
+				% [_dump_heading, _length, pts.size()]
+			)
+		)
 		print("  %5s | %8s | %8s | %s" % ["i", "along", "offset", "step heading err"])
 		var axis: Vector2 = d
 		var perp := Vector2(-d.y, d.x)
@@ -57,7 +62,7 @@ func _run() -> void:
 			var q := Vector2(pts[i].x, pts[i].z) - f
 			var err: String = ""
 			if i > 0:
-				var seg: Vector2 = Vector2(pts[i].x, pts[i].z) - Vector2(pts[i-1].x, pts[i-1].z)
+				var seg: Vector2 = Vector2(pts[i].x, pts[i].z) - Vector2(pts[i - 1].x, pts[i - 1].z)
 				if seg.length() > 0.0001:
 					err = "%7.2f deg" % rad_to_deg(absf(seg.angle_to(d)))
 			print("  %5d | %8.3f | %8.3f | %s" % [i, q.dot(axis), q.dot(perp), err])
@@ -83,17 +88,20 @@ func _run() -> void:
 				if not _line_is_walkable(map, grid, from, to):
 					continue
 				var path: PackedVector3Array = NavigationServer3D.map_get_path(
-					nav_map, _v3(map, from), _v3(map, to), true)
+					nav_map, _v3(map, from), _v3(map, to), true
+				)
 				if path.size() < 2:
 					continue
 				var straight: float = from.distance_to(to)
 				var length: float = 0.0
 				for i: int in range(1, path.size()):
 					length += Vector2(path[i].x, path[i].z).distance_to(
-						Vector2(path[i - 1].x, path[i - 1].z))
+						Vector2(path[i - 1].x, path[i - 1].z)
+					)
 				# The endpoints resolve onto the mesh, so compare against the RESOLVED span.
 				var resolved: float = Vector2(path[0].x, path[0].z).distance_to(
-					Vector2(path[path.size() - 1].x, path[path.size() - 1].z))
+					Vector2(path[path.size() - 1].x, path[path.size() - 1].z)
+				)
 				if resolved < 0.001:
 					continue
 				var excess: float = length / resolved
@@ -118,17 +126,35 @@ func _run() -> void:
 	mean = mean / maxf(float(total), 1.0)
 
 	print("=== %s | move length %.1f ===" % [_scene, _length])
-	print("samples %d | bent %d (%.1f%%) | mean excess %.2f%% | worst %.1f%% at %s" % [
-		total, bent, 100.0 * bent / maxf(float(total), 1.0),
-		100.0 * (mean - 1.0), 100.0 * (worst - 1.0), worst_desc])
+	print(
+		(
+			"samples %d | bent %d (%.1f%%) | mean excess %.2f%% | worst %.1f%% at %s"
+			% [
+				total,
+				bent,
+				100.0 * bent / maxf(float(total), 1.0),
+				100.0 * (mean - 1.0),
+				100.0 * (worst - 1.0),
+				worst_desc
+			]
+		)
+	)
 	print("per heading:")
 	var headings: Array = by_heading.keys()
 	headings.sort()
 	for deg: int in headings:
 		var row: Array = by_heading[deg]
-		print("  %4d deg | n=%4d | bent %5.1f%% | mean excess %5.2f%%" % [
-			deg, row[0], 100.0 * row[1] / maxf(float(row[0]), 1.0),
-			100.0 * (row[2] / maxf(float(row[0]), 1.0) - 1.0)])
+		print(
+			(
+				"  %4d deg | n=%4d | bent %5.1f%% | mean excess %5.2f%%"
+				% [
+					deg,
+					row[0],
+					100.0 * row[1] / maxf(float(row[0]), 1.0),
+					100.0 * (row[2] / maxf(float(row[0]), 1.0) - 1.0)
+				]
+			)
+		)
 	get_tree().quit(0)
 
 

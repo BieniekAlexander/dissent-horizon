@@ -16,6 +16,7 @@ extends DominionGenerator
 @export var dominion_per_unit: int = 5
 #endregion
 
+
 #region Public API
 ## Overrides DominionGenerator.tick: award per-prisoner dominion each cycle instead
 ## of a flat rate. No-op cycles when the garrison is empty.
@@ -32,6 +33,7 @@ func tick() -> void:
 	if held > 0:
 		parent.commander.add_dominion(dominion_per_unit * held)
 		build_up += 1
+
 
 ## Per HEAD, matching what tick() actually pays out.
 func payout() -> int:

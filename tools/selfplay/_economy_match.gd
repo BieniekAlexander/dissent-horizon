@@ -13,18 +13,27 @@ extends "res://tools/selfplay/run_match.gd"
 ##     production queue rather than by instrumenting the spend itself;
 ##   * income, integrated from Commander.energy_collection_rate().
 
-var _ledger: Dictionary = {}          # commander id -> Dictionary
+var _ledger: Dictionary = {}  # commander id -> Dictionary
 var _seen_build_ids: Dictionary = {}  # commander id -> { transaction id: true }
 var _seen_train_ids: Dictionary = {}  # commander id -> { transaction id: true }
 
 
 func _fresh_ledger() -> Dictionary:
 	return {
-		"ticks": 0, "ticks_zero_energy": 0, "ticks_at_reserve": 0,
-		"peak_energy": 0, "income_total": 0.0,
-		"train_debits": 0, "train_energy": 0, "build_debits": 0, "build_energy": 0,
-		"ticks_queue_nonempty": 0, "ticks_committed_nonzero": 0, "peak_committed": 0,
-		"peak_production_structures": 0, "peak_extractors": 0,
+		"ticks": 0,
+		"ticks_zero_energy": 0,
+		"ticks_at_reserve": 0,
+		"peak_energy": 0,
+		"income_total": 0.0,
+		"train_debits": 0,
+		"train_energy": 0,
+		"build_debits": 0,
+		"build_energy": 0,
+		"ticks_queue_nonempty": 0,
+		"ticks_committed_nonzero": 0,
+		"peak_committed": 0,
+		"peak_production_structures": 0,
+		"peak_extractors": 0,
 	}
 
 
@@ -98,7 +107,9 @@ func _observe(a_commander: Commander, a_delta: float) -> void:
 			trains[transaction.id] = true
 			led["train_debits"] += 1
 			led["train_energy"] += transaction.energy_cost
-	led["peak_production_structures"] = maxi(led["peak_production_structures"], production_structures)
+	led["peak_production_structures"] = maxi(
+		led["peak_production_structures"], production_structures
+	)
 	led["peak_extractors"] = maxi(led["peak_extractors"], extractors)
 
 
@@ -125,8 +136,12 @@ func _slot_sample(a_commander: Commander) -> Dictionary:
 	var production_structures: int = 0
 	for child: Node in a_commander.get_children():
 		var entity := child as Commandable
-		if entity != null and not entity.is_queued_for_deletion() \
-				and entity.has_node("Structure") and entity.production != null:
+		if (
+			entity != null
+			and not entity.is_queued_for_deletion()
+			and entity.has_node("Structure")
+			and entity.production != null
+		):
 			production_structures += 1
 	base["production_structures"] = production_structures
 	base["ledger"] = _ledger.get(a_commander.id, {})

@@ -3,7 +3,7 @@ extends GutTest
 ## THE INCREMENTAL FOG MUST SHOW EXACTLY WHAT A FROM-SCRATCH REBUILD WOULD.
 ##
 ## Run with:
-##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_FogIncrementalSight.gd -gexit
+## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_FogIncrementalSight.gd -gexit
 ##
 ## Fog keeps a per-pixel count of the vision sources covering it and re-stamps only a source
 ## whose stamp changed, instead of rebuilding every commander's fog each tick. This file runs
@@ -79,7 +79,9 @@ func _reference_display() -> PackedByteArray:
 	for entity: Entity in _los():
 		if entity.commander_id != VIEWER or not entity.grants_vision():
 			continue
-		var pixel: Vector2i = _fog._world_to_pixel(VU.inXZ(entity.vision_range_shape.global_position))
+		var pixel: Vector2i = _fog._world_to_pixel(
+			VU.inXZ(entity.vision_range_shape.global_position)
+		)
 		for offset: Vector2i in _fog._vision_offsets(entity.vision_range_shape):
 			var p: Vector2i = pixel + offset
 			if p.x < 0 or p.x >= SIZE_PX or p.y < 0 or p.y >= SIZE_PX:
@@ -92,8 +94,9 @@ func _reference_display() -> PackedByteArray:
 func _random_point(a_rng: RandomNumberGenerator) -> Vector3:
 	var half: float = SIZE_PX * 0.5
 	# Past the edges on purpose: a footprint clipped by the image edge must undo cleanly.
-	return Vector3(a_rng.randf_range(-half - 4.0, half + 4.0), 0.0,
-		a_rng.randf_range(-half - 4.0, half + 4.0))
+	return Vector3(
+		a_rng.randf_range(-half - 4.0, half + 4.0), 0.0, a_rng.randf_range(-half - 4.0, half + 4.0)
+	)
 
 
 ## One random change a vision source can undergo.
@@ -103,8 +106,9 @@ func _mutate(a_rng: RandomNumberGenerator) -> void:
 		0, 1:
 			unit.global_position = _random_point(a_rng)
 		2:
-			unit.global_position += Vector3(a_rng.randf_range(-1.5, 1.5), 0.0,
-				a_rng.randf_range(-1.5, 1.5))
+			unit.global_position += Vector3(
+				a_rng.randf_range(-1.5, 1.5), 0.0, a_rng.randf_range(-1.5, 1.5)
+			)
 		3:
 			unit.ownership.commander = _other if unit.commander_id == VIEWER else _viewer
 		4:
@@ -169,14 +173,17 @@ func test_an_unchanged_source_leaves_the_texture_clean() -> void:
 
 func test_a_reveal_shows_at_once_where_nothing_is_in_sight() -> void:
 	_fog.reveal_region(Vector2.ZERO, 3.0)
-	var idx: int = _fog._world_to_pixel(Vector2.ZERO).y * SIZE_PX \
-		+ _fog._world_to_pixel(Vector2.ZERO).x
+	var idx: int = (
+		_fog._world_to_pixel(Vector2.ZERO).y * SIZE_PX + _fog._world_to_pixel(Vector2.ZERO).x
+	)
 	assert_eq(_fog._explored_bytes[idx], Fog.EXPLORED_ALPHA)
 	assert_eq(_fog._fog_bytes[idx], Fog.EXPLORED_ALPHA, "the display follows the reveal")
 
 
 ## A Map whose cells sit one world unit apart on the XZ plane, so a footprint needs no terrain.
-class FlatMap extends Map:
+class FlatMap:
+	extends Map
+
 	func grid_to_world(a_cell: Vector2i) -> Vector3:
 		return Vector3(a_cell.x, 0.0, a_cell.y)
 

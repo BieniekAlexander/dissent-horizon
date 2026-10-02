@@ -30,6 +30,7 @@ const NOT_SITE_DEPENDENT: float = -1.0
 @onready var commander: Commander = get_parent().get_parent() as Commander
 #endregion
 
+
 #region Public API
 ## The route driving `a_commander`, or null when its faction has none. A subtree search; callers
 ## go through Commander.dominion_route, which keeps the answer.

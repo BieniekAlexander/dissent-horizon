@@ -54,8 +54,9 @@ func _sanction_of(a_event: AbstractEvent) -> Sanction:
 
 func test_a_unit_event_makes_a_single_unit_cast() -> void:
 	assert_true(_sanction_of(EventFreeze.new()).targets_one_unit())
-	assert_false(_sanction_of(AbstractEvent.new()).targets_one_unit(),
-		"a cast at a point is not one")
+	assert_false(
+		_sanction_of(AbstractEvent.new()).targets_one_unit(), "a cast at a point is not one"
+	)
 
 
 func test_the_scope_authored_on_the_event_scene_is_what_is_asked() -> void:
@@ -68,8 +69,10 @@ func test_the_scope_authored_on_the_event_scene_is_what_is_asked() -> void:
 
 func test_a_cast_with_no_unit_is_refused_and_spends_nothing() -> void:
 	var sanction := _sanction_of(EventFreeze.new())
-	assert_false(sanction.activate(Vector3.ZERO, _manager, _commander(OWN)),
-		"nothing named — refused, so UseSanction keeps the charge")
+	assert_false(
+		sanction.activate(Vector3.ZERO, _manager, _commander(OWN)),
+		"nothing named — refused, so UseSanction keeps the charge"
+	)
 
 
 func test_a_cast_on_a_unit_it_refuses_is_refused() -> void:

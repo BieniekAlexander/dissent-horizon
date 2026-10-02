@@ -9,7 +9,8 @@ extends GutTest
 ##     -gtest=res://tests/test_AggroFromReach.gd -gdir=res://tests/none -gexit
 
 ## A unit scene used only as a HARNESS: every reach it is tested with is set here.
-const HARNESS_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {}}  # a gun with no reach yet
+# a gun with no reach yet
+const HARNESS_PATH: Dictionary = {"speed": 2.0, "vision": 8.0, "weapon": {}}
 const GROUND: int = CollisionLayers.Mask.TARGETABLE_GROUND
 const AIR: int = CollisionLayers.Mask.TARGETABLE_AIR
 
@@ -46,6 +47,8 @@ func test_one_radius_is_one_shared_shape() -> void:
 	var b: CylinderShape3D = RangeShapes.aggro_shape_for_reach(8.0, true)
 	assert_same(a, b, "a shared library shape, so nothing may mutate it in place")
 	assert_eq(a.height, RangeShapes.SHAPE_HEIGHT)
+
+
 #endregion
 
 
@@ -96,6 +99,8 @@ func test_losing_movement_caps_aggro_at_reach() -> void:
 	piece.movement = null
 	piece.refresh_aggro_shapes()
 	assert_eq(RangeShapes.xz_radius(piece.aggro_shape_ground), 2.5)
+
+
 #endregion
 
 
@@ -119,6 +124,9 @@ func test_a_hold_that_does_not_fire_lends_nothing() -> void:
 	garrison.bunker = false
 	host.add_child(garrison)
 	garrison._garrisoned.append(_piece(5.0, -1.0))
-	assert_eq(garrison.occupant_reach_on_layer(GROUND), -1.0,
-		"a stock truck full of prisoners does not pick fights at their range")
+	assert_eq(
+		garrison.occupant_reach_on_layer(GROUND),
+		-1.0,
+		"a stock truck full of prisoners does not pick fights at their range"
+	)
 #endregion

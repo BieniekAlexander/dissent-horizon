@@ -73,19 +73,25 @@ var _toggle_edge: ColorRect = null
 const TOGGLE_EDGE_HEIGHT: float = 3.0
 const TOGGLE_EDGE_COLOR: Color = Color(0.55, 0.85, 1.0)
 
+
 ## Show `a_state` on this button: tint, charge pips and countdown together, so the three can
 ## never disagree about what the button is saying.
 func show_availability(a_state: CommandButtonState) -> void:
 	modulate = a_state.tint()
-	_overlay(true).text = "%d/%d" % [a_state.charges, a_state.max_charges] \
-		if a_state.shows_charges() else ""
+	_overlay(true).text = (
+		"%d/%d" % [a_state.charges, a_state.max_charges] if a_state.shows_charges() else ""
+	)
 	# One decimal below ten seconds, whole seconds above it: a long cooldown ticking in
 	# hundredths is noise, and a short one rounded to a whole second reads as stalled.
 	var seconds: float = a_state.recharge_seconds()
-	_overlay(false).text = ("%.1f" % seconds if seconds < 10.0 else "%d" % roundi(seconds)) \
-		if a_state.shows_timer() else ""
+	_overlay(false).text = (
+		("%.1f" % seconds if seconds < 10.0 else "%d" % roundi(seconds))
+		if a_state.shows_timer()
+		else ""
+	)
 	if a_state.is_toggled_on or _toggle_edge != null:
 		_toggle_edge_rect().visible = a_state.is_toggled_on
+
 
 ## The toggle edge, created on first use.
 func _toggle_edge_rect() -> ColorRect:
@@ -98,6 +104,7 @@ func _toggle_edge_rect() -> ColorRect:
 		add_child(_toggle_edge)
 	return _toggle_edge
 
+
 ## The overlay label, created on first use. `a_is_charges` picks which of the two.
 func _overlay(a_is_charges: bool) -> Label:
 	var existing: Label = _charge_label if a_is_charges else _timer_label
@@ -108,22 +115,28 @@ func _overlay(a_is_charges: bool) -> Label:
 	# The button owns the click; an overlay that could take it would make a command button
 	# dead in exactly the corner the player can see something written.
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_size_override("font_size",
-		CHARGE_FONT_SIZE if a_is_charges else TIMER_FONT_SIZE)
+	label.add_theme_font_size_override(
+		"font_size", CHARGE_FONT_SIZE if a_is_charges else TIMER_FONT_SIZE
+	)
 	label.add_theme_color_override("font_color", CHARGE_COLOR if a_is_charges else TIMER_COLOR)
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	label.add_theme_constant_override("outline_size", 3)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if a_is_charges \
-		else HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM if a_is_charges \
-		else VERTICAL_ALIGNMENT_CENTER
+	label.horizontal_alignment = (
+		HORIZONTAL_ALIGNMENT_RIGHT if a_is_charges else HORIZONTAL_ALIGNMENT_CENTER
+	)
+	label.vertical_alignment = (
+		VERTICAL_ALIGNMENT_BOTTOM if a_is_charges else VERTICAL_ALIGNMENT_CENTER
+	)
 	add_child(label)
 	if a_is_charges:
 		_charge_label = label
 	else:
 		_timer_label = label
 	return label
+
+
 #endregion
+
 
 func _ready() -> void:
 	# Suppress the built-in tooltip; we render our own so it can update live.
@@ -141,13 +154,16 @@ func _ready() -> void:
 		simple_tooltip = MISSING_TOOLTIP
 	_hover_timer = Timer.new()
 	_hover_timer.one_shot = true
-	_hover_timer.wait_time = ProjectSettings.get_setting("gui/timers/tooltip_delay_sec", _DEFAULT_DELAY)
+	_hover_timer.wait_time = ProjectSettings.get_setting(
+		"gui/timers/tooltip_delay_sec", _DEFAULT_DELAY
+	)
 	_hover_timer.timeout.connect(_show_tip)
 	add_child(_hover_timer)
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_dismiss)
 	tree_exiting.connect(_dismiss)
 	visibility_changed.connect(_on_visibility_changed)
+
 
 ## A hidden button cannot keep a tooltip open: hiding it is as good as the mouse leaving.
 func _on_visibility_changed() -> void:
@@ -160,6 +176,7 @@ func _on_mouse_entered() -> void:
 	if not _text_for(Input.is_action_pressed("ui_verbose")).is_empty():
 		_hover_timer.start()
 
+
 func _dismiss() -> void:
 	if _hover_timer != null:
 		_hover_timer.stop()
@@ -168,12 +185,14 @@ func _dismiss() -> void:
 		if is_instance_valid(_panel):
 			_panel.visible = false
 
+
 func _input(a_event: InputEvent) -> void:
 	# Only the button whose tooltip is open refreshes, and only on the verbose key.
 	if not (a_event is InputEventKey) or _active != self:
 		return
 	if a_event.is_action_pressed("ui_verbose") or a_event.is_action_released("ui_verbose"):
 		_render(_text_for(a_event.is_action_pressed("ui_verbose")))
+
 
 func _show_tip() -> void:
 	var text: String = _text_for(Input.is_action_pressed("ui_verbose"))
@@ -183,6 +202,7 @@ func _show_tip() -> void:
 	_active = self
 	_panel.visible = true
 	_render(text)
+
 
 ## Sets the popup text and repositions it near the cursor, clamped on-screen.
 func _render(a_text: String) -> void:
@@ -196,9 +216,11 @@ func _render(a_text: String) -> void:
 	pos.y = clampf(pos.y, 0.0, maxf(0.0, viewport_size.y - _panel.size.y))
 	_panel.position = pos
 
+
 ## The tooltip text for the given verbose state.
 func _text_for(a_verbose: bool) -> String:
 	return verbose_tooltip if a_verbose and not verbose_tooltip.is_empty() else simple_tooltip
+
 
 func _ensure_popup() -> void:
 	if is_instance_valid(_layer) and is_instance_valid(_panel) and is_instance_valid(_label):
