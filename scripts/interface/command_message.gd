@@ -116,7 +116,7 @@ var position: Vector3:
 
 var xz_position: Vector2:
 	get:
-		return VU.inXZ(position)
+		return VU.in_xz(position)
 #endregion
 
 

@@ -772,11 +772,11 @@ entity.is_in_group("unit")        # unit-flavored (not "is Unit")
 
 - Grid indices: `Vector2i(x, z)` — origin at top-left (min-x/min-z corner)
 - World space: Y is terrain height; XZ is the horizontal plane
-- `VU.inXZ(v3)` → `Vector2(v3.x, v3.z)`, `VU.fromXZ(v2)` → `Vector3(v2.x, 0, v2.y)`
+- `VU.in_xz(v3)` → `Vector2(v3.x, v3.z)`, `VU.from_xz(v2)` → `Vector3(v2.x, 0, v2.y)`
 
 ### Utility aliases
 
-- `VU` = `VectorUtils` — `inXZ`, `fromXZ`, `onXZ` for Vector3↔Vector2
+- `VU` = `VectorUtils` — `in_xz`, `from_xz`, `on_xz` for Vector3↔Vector2
 - `AU` = `ArrayUtils` — sort/filter helpers
 - `SU` = `SpaceUtils` — collision/placement helpers, `linf_distance`, `unit_is_close_to_structure`
 

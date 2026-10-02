@@ -74,7 +74,7 @@ func update_producers(a_producers: Array) -> void:
 ## origin, so a ring on sloped ground follows the slope instead of cutting into the hill on
 ## one side and floating on the other.
 func _add_ring(a_producer: Commandable) -> void:
-	var centre: Vector2 = VU.inXZ(a_producer.global_position)
+	var centre: Vector2 = VU.in_xz(a_producer.global_position)
 	var radius: float = _radius_for(a_producer)
 	var previous: Vector3 = _ring_point(a_producer, centre, radius, RING_SEGMENTS - 1)
 	for i: int in RING_SEGMENTS:

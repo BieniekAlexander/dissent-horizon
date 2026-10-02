@@ -70,7 +70,7 @@ static func _ground_under(a_emission: Entity, a_target: Entity) -> Vector3:
 	var at: Vector3 = a_target.global_position
 	var map: Map = a_emission.map if a_emission.map != null else a_target.map
 	if map != null:
-		at.y = map.terrain_height_at(VU.inXZ(at))
+		at.y = map.terrain_height_at(VU.in_xz(at))
 	return at
 
 

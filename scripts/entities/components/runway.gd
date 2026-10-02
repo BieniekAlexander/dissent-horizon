@@ -89,9 +89,9 @@ func inner_point() -> Vector3:
 ## The point ON THE STRIP closest to `world_position`, clamped to the segment. Where an
 ## aircraft joins the runway from its pad, and where it leaves it again on the way back.
 func nearest_point(a_world_position: Vector3) -> Vector3:
-	var start: Vector2 = VU.inXZ(takeoff_point())
-	var along: Vector2 = VU.inXZ(heading())
-	var offset: Vector2 = VU.inXZ(a_world_position) - start
+	var start: Vector2 = VU.in_xz(takeoff_point())
+	var along: Vector2 = VU.in_xz(heading())
+	var offset: Vector2 = VU.in_xz(a_world_position) - start
 	var t: float = clampf(offset.dot(along), 0.0, length)
 	var point: Vector2 = start + along * t
 	return Vector3(point.x, takeoff_point().y, point.y)
@@ -107,5 +107,5 @@ func approach_point(a_run: float) -> Vector3:
 ## How far this strip is from `world_position`, measured to the nearest point on it. Used to
 ## pick which runway a pad should use when an airfield has more than one.
 func distance_to(a_world_position: Vector3) -> float:
-	return VU.inXZ(a_world_position).distance_to(VU.inXZ(nearest_point(a_world_position)))
+	return VU.in_xz(a_world_position).distance_to(VU.in_xz(nearest_point(a_world_position)))
 #endregion

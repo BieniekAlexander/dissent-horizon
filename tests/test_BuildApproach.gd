@@ -157,7 +157,7 @@ func _neutral_building(a_origin: Vector2i) -> Entity:
 		if tracked.contains_text("entered the tree with no"):
 			tracked.handled = true
 	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
-	_map.add_structure(building, VU.inXZ(_map.footprint_centroid(a_origin, dims)))
+	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(a_origin, dims)))
 	return building
 
 
@@ -170,7 +170,7 @@ func test_a_build_over_an_obstruction_walks_to_a_cell_beside_it() -> void:
 	var destination: Variant = command.movement_destination(builder)
 
 	assert_true(destination is Vector3, "a build over an obstruction names its own destination")
-	var cell: Vector2i = _map.world_to_grid(VU.inXZ(destination))
+	var cell: Vector2i = _map.world_to_grid(VU.in_xz(destination))
 	var footprint: Array = _map.structure_cell_map[host]
 	assert_false(cell in footprint, "and it is not a cell the host blocks")
 	assert_true(

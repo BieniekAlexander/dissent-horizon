@@ -151,7 +151,7 @@ func _ensure_snapshots() -> void:
 	if map == null:
 		return
 	for s: Entity in _commander.visible_foreign_structures():
-		var cell: Vector2i = map.world_to_grid(VU.inXZ(s.global_position))
+		var cell: Vector2i = map.world_to_grid(VU.in_xz(s.global_position))
 		var key: String = _snapshot_key(s.get_instance_id(), cell)
 		if not _snapshots.has(key):
 			_create_snapshot(s, cell, key)
@@ -183,7 +183,7 @@ func refresh_snapshots() -> void:
 			# The cell is scouted again: keep the memory only while the real structure
 			# is still there. Otherwise it's stale — destroyed, or moved away.
 			var still_here: bool = (
-				real_alive and map.world_to_grid(VU.inXZ(snap.entity.global_position)) == snap.cell
+				real_alive and map.world_to_grid(VU.in_xz(snap.entity.global_position)) == snap.cell
 			)
 			if not still_here:
 				snap.node.queue_free()

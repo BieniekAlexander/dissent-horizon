@@ -329,7 +329,7 @@ func _touchdown_position(a_actor: Commandable) -> Vector3:
 	var strip: Runway = _runway_for_pad()
 	var pos: Vector3 = strip.takeoff_point() if strip != null else _pad.dock_position()
 	if a_actor.map != null:
-		pos.y = a_actor.map.terrain_height_at(VU.inXZ(pos))
+		pos.y = a_actor.map.terrain_height_at(VU.in_xz(pos))
 	return pos
 
 
@@ -359,7 +359,7 @@ func _approach_position(a_actor: Commandable) -> Vector3:
 		return _touchdown_position(a_actor)
 	var pos: Vector3 = strip.approach_point(_lineup_distance(a_actor))
 	if a_actor.map != null:
-		pos.y = a_actor.map.terrain_height_at(VU.inXZ(pos))
+		pos.y = a_actor.map.terrain_height_at(VU.in_xz(pos))
 	return pos
 
 
@@ -387,7 +387,7 @@ func _hold_on_pad(a_actor: Commandable, a_pad: Variant = null) -> void:
 func _pad_world_position(a_actor: Commandable) -> Vector3:
 	var pos: Vector3 = _pad.dock_position()
 	if a_actor.map != null:
-		pos.y = a_actor.map.terrain_height_at(VU.inXZ(pos))
+		pos.y = a_actor.map.terrain_height_at(VU.in_xz(pos))
 	return pos
 
 
@@ -408,8 +408,8 @@ func _is_established_on_final(a_actor: Commandable) -> bool:
 	var strip: Runway = _runway_for_pad()
 	if strip == null:
 		return _distance_to_approach(a_actor) <= _approach_radius(a_actor)
-	var along: Vector2 = VU.inXZ(strip.heading())
-	var to_threshold: Vector2 = VU.inXZ(strip.takeoff_point()) - VU.inXZ(a_actor.global_position)
+	var along: Vector2 = VU.in_xz(strip.heading())
+	var to_threshold: Vector2 = VU.in_xz(strip.takeoff_point()) - VU.in_xz(a_actor.global_position)
 	# Positive means the threshold is still ahead of us down the strip's own axis.
 	var ahead: float = to_threshold.dot(along)
 	var corridor: float = maxf(
@@ -419,7 +419,7 @@ func _is_established_on_final(a_actor: Commandable) -> bool:
 		return false
 	if absf(to_threshold.cross(along)) > corridor:
 		return false
-	var facing: Vector2 = VU.inXZ(a_actor.movement.get_facing())
+	var facing: Vector2 = VU.in_xz(a_actor.movement.get_facing())
 	if facing.is_zero_approx():
 		return false
 	return facing.normalized().dot(along) >= cos(deg_to_rad(FINAL_ARC_DEGREES))
@@ -429,7 +429,7 @@ func _is_established_on_final(a_actor: Commandable) -> bool:
 ## would start the glide by the wrong margin on any airfield whose runway is not on top of
 ## its parking, which is every airfield with room to taxi across.
 func _distance_to_approach(a_actor: Commandable) -> float:
-	return VU.inXZ(a_actor.global_position).distance_to(VU.inXZ(_approach_position(a_actor)))
+	return VU.in_xz(a_actor.global_position).distance_to(VU.in_xz(_approach_position(a_actor)))
 
 
 ## Where this aircraft's descent begins, and the one place the two aerial modes genuinely

@@ -175,7 +175,7 @@ func _neutral_building(a_id: StringName) -> Commandable:
 		):
 			tracked.handled = true
 	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
-	_map.add_structure(building, VU.inXZ(_map.footprint_centroid(NEUTRAL_ORIGIN, dims)))
+	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(NEUTRAL_ORIGIN, dims)))
 	return building
 
 

@@ -131,7 +131,7 @@ func _register(a_structure: Entity, a_origin: Vector2i) -> Vector2:
 	_map.structure_cell_map[a_structure] = cells
 	var centre: Vector3 = _map.footprint_centroid(a_origin, DIMS)
 	a_structure.global_position = centre
-	return VU.inXZ(centre)
+	return VU.in_xz(centre)
 
 
 func _order(a_tool: Tool, a_at: Vector2) -> CommandMessage:
@@ -193,8 +193,8 @@ func test_ghost_and_blueprint_agree_across_a_whole_cell() -> void:
 			var ghost: Variant = _ghost_position(SAFEHOUSE_TOOL, aim)
 			assert_not_null(ghost, "the ghost resolved for aim %s" % aim)
 			assert_almost_eq(
-				VU.inXZ(blueprint.global_position),
-				VU.inXZ(ghost as Vector3),
+				VU.in_xz(blueprint.global_position),
+				VU.in_xz(ghost as Vector3),
 				Vector2(0.001, 0.001),
 				"ghost and blueprint stand in the same place for aim %s" % aim
 			)
@@ -209,8 +209,8 @@ func test_placement_footprint_matches_the_ghost() -> void:
 	var centre: Vector3 = _map.footprint_centroid(_map.footprint_origin(aim, DIMS), DIMS)
 	assert_eq(cells.size(), 4, "a 2×2 build claims four cells")
 	assert_almost_eq(
-		VU.inXZ(ghost as Vector3),
-		VU.inXZ(centre),
+		VU.in_xz(ghost as Vector3),
+		VU.in_xz(centre),
 		Vector2(0.001, 0.001),
 		"the ghost stands on the centre of the cells the build will register"
 	)
@@ -233,8 +233,8 @@ func test_extractor_blueprint_stands_on_its_site() -> void:
 	_dismiss_missing_flavor_text()
 	assert_not_null(blueprint, "the extractor order raised a blueprint")
 	assert_almost_eq(
-		VU.inXZ(blueprint.global_position),
-		VU.inXZ(site.global_position),
+		VU.in_xz(blueprint.global_position),
+		VU.in_xz(site.global_position),
 		Vector2(0.001, 0.001),
 		"the extractor's blueprint stands exactly on the extraction site it will be built on"
 	)

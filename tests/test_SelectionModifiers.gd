@@ -27,7 +27,7 @@ func _unit_at(a_xz: Vector2, a_commander: Commander) -> Commandable:
 	var unit: Commandable = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(unit)
 	unit.ownership.commander = a_commander
-	unit.global_position = VU.fromXZ(a_xz)
+	unit.global_position = VU.from_xz(a_xz)
 	return unit
 
 

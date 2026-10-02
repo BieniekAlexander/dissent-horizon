@@ -104,13 +104,13 @@ static func acceptable_cost(a_elapsed_seconds: float, a_bounds: Vector2) -> floa
 ## is scouting; the base for an extractor. Null when there is nothing to centre it on.
 func _anchor_for(a_drop: Deployment.Drop) -> Variant:
 	if a_drop == Deployment.Drop.EXTRACTOR:
-		return VU.inXZ(_bot.base_centroid())
+		return VU.in_xz(_bot.base_centroid())
 	var units: Array = _bot.get_units()
 	if units.is_empty():
 		return null
 	var sum := Vector2.ZERO
 	for unit: Commandable in units:
-		sum += VU.inXZ(unit.global_position)
+		sum += VU.in_xz(unit.global_position)
 	return sum / float(units.size())
 
 
@@ -130,7 +130,7 @@ func _first_landable(
 		# without paying for the full verdict.
 		if not _corners_seen(map, origin, dims):
 			continue
-		var xz: Vector2 = VU.inXZ(map.footprint_centroid(origin, dims))
+		var xz: Vector2 = VU.in_xz(map.footprint_centroid(origin, dims))
 		if a_deployment.verdict(a_drop, xz) == Deployment.Verdict.OK:
 			return [xz, spent, packed]
 	return [null, spent, 0]

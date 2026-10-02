@@ -83,12 +83,12 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 func _target_points(a_manager: ScenarioTriggerManager) -> Array[Vector2]:
 	var points: Array[Vector2] = []
 	if target_group.is_empty():
-		points.append(VU.inXZ(global_position))
+		points.append(VU.in_xz(global_position))
 		return points
 	for node: Node in a_manager.get_tree().get_nodes_in_group(target_group):
 		var spatial := node as Node3D
 		if spatial != null:
-			points.append(VU.inXZ(spatial.global_position))
+			points.append(VU.in_xz(spatial.global_position))
 	return points
 
 

@@ -123,8 +123,8 @@ func _make_map() -> TestMap:
 func _bot_at(a_base: Vector2, a_threat: Variant) -> FakeBot:
 	var bot := FakeBot.new()
 	bot.map = _map
-	bot.base = VU.fromXZ(a_base)
-	bot.threat = VU.fromXZ(a_threat) if a_threat != null else null
+	bot.base = VU.from_xz(a_base)
+	bot.threat = VU.from_xz(a_threat) if a_threat != null else null
 	return autofree(bot)
 
 
@@ -152,7 +152,7 @@ func _block_symmetrically(a_cells: Array) -> void:
 
 
 func _xz(a_spot: Variant) -> Vector2:
-	return VU.inXZ(a_spot as Vector3)
+	return VU.in_xz(a_spot as Vector3)
 
 
 # ─── THE MIRROR: THE ACCEPTANCE PROPERTY ────────────────────────────────────
@@ -224,7 +224,7 @@ func test_the_chosen_spot_survives_the_round_trip_to_a_footprint() -> void:
 		var spot: Vector2 = _xz(_spot(bot, PRODUCTION, dims))
 		var origin: Vector2i = _map.footprint_origin(spot, dims)
 		assert_almost_eq(
-			VU.inXZ(_map.footprint_centroid(origin, dims)),
+			VU.in_xz(_map.footprint_centroid(origin, dims)),
 			spot,
 			Vector2(EPS, EPS),
 			"%s footprint: centroid → origin → centroid is the identity" % dims

@@ -274,7 +274,7 @@ func _build_scout_grid() -> void:
 			var idx := Vector2i(i, j)
 			_scout_grid[idx] = init_ts
 			var world_pos: Vector3 = _grid_world_pos(idx)
-			world_pos.y = _bot.map.terrain_height_at(VU.inXZ(world_pos))
+			world_pos.y = _bot.map.terrain_height_at(VU.in_xz(world_pos))
 			_scout_grid_positions[idx] = world_pos
 
 
@@ -310,7 +310,7 @@ func _mark_seen_by(a_unit: Commandable) -> int:
 	var los_mask: int = CollisionLayers.Mask.TERRAIN | CollisionLayers.Mask.STRUCTURE_BLOCKER
 	var radius_sq: float = vision * vision
 	var unit_from: Vector3 = a_unit.global_position + Vector3.UP * 0.1
-	var unit_xz: Vector2 = VU.inXZ(a_unit.global_position)
+	var unit_xz: Vector2 = VU.in_xz(a_unit.global_position)
 	var centre: Vector2i = _grid_index_at(unit_xz)
 	var reach: int = ceili(vision / float(SCOUT_GRID_SIZE)) + 1
 	var spent: int = 0
@@ -321,7 +321,7 @@ func _mark_seen_by(a_unit: Commandable) -> int:
 				continue
 			spent += SIGHT_POINT_WORK_UNITS
 			var pt: Vector3 = _scout_grid_positions[idx]
-			if unit_xz.distance_squared_to(VU.inXZ(pt)) > radius_sq:
+			if unit_xz.distance_squared_to(VU.in_xz(pt)) > radius_sq:
 				continue
 			spent += SIGHT_RAYCAST_WORK_UNITS
 			var query := PhysicsRayQueryParameters3D.create(
@@ -809,7 +809,7 @@ func _unit_is_available(a_u: Commandable) -> bool:
 func _next_scout_point(a_scout: Commandable) -> Variant:
 	if not is_instance_valid(a_scout):
 		return null
-	var from_xz: Vector2 = VU.inXZ(a_scout.global_position)
+	var from_xz: Vector2 = VU.in_xz(a_scout.global_position)
 	var speed: float = 1.0
 	if a_scout.movement != null:
 		speed = maxf(0.1, a_scout.movement.speed)
@@ -839,7 +839,7 @@ func _start_errand_search(a_scout: Commandable, a_unseen_only: bool) -> Dictiona
 	var speed: float = maxf(0.1, a_scout.movement.speed) if a_scout.movement != null else 1.0
 	return _errand_search(
 		a_scout,
-		VU.inXZ(a_scout.global_position),
+		VU.in_xz(a_scout.global_position),
 		speed,
 		_vision_window(_bot.vision_radius(a_scout)),
 		a_unseen_only
@@ -861,7 +861,7 @@ func _errand_search(
 		"points": _scout_grid.keys(),
 		"cursor": 0,
 		"expiry": _bot.seconds_elapsed() - SCOUT_EXPIRATION_TIMER,
-		"home": VU.inXZ(_home_position()),
+		"home": VU.in_xz(_home_position()),
 		"best_idx": null,
 		"best_return": 0.0,
 	}
@@ -887,7 +887,7 @@ func _continue_errand_search(a_search: Dictionary, a_allowance: int) -> bool:
 			continue
 		if unseen_only and _ever_seen.has(idx):
 			continue
-		var pt_xz: Vector2 = VU.inXZ(_scout_grid_positions[idx])
+		var pt_xz: Vector2 = VU.in_xz(_scout_grid_positions[idx])
 		var distance: float = from_xz.distance_to(pt_xz)
 		var sightings: float = _expected_sightings(
 			idx, from_xz, distance, a_search["window"], unseen_only, expiry
@@ -929,7 +929,7 @@ func _expected_sightings(
 	if a_distance < float(SCOUT_GRID_SIZE):
 		return at_destination
 
-	var to_xz: Vector2 = VU.inXZ(_scout_grid_positions[a_idx])
+	var to_xz: Vector2 = VU.in_xz(_scout_grid_positions[a_idx])
 	var samples: int = clampi(int(a_distance / float(SCOUT_GRID_SIZE)), 1, MAX_PATH_SAMPLES)
 	var dark: int = 0
 	for i: int in range(1, samples + 1):

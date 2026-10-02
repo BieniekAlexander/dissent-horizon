@@ -100,7 +100,7 @@ func _is_liberatable(a_entity: Entity) -> bool:
 ## no longer counts as an obstruction when Map.add_entity picks a non-overlapping spot
 ## — the recruit lands where the terrestrial stood rather than being nudged aside.
 func _liberate(a_host: Commandable, a_entity: Entity) -> void:
-	var spot: Vector2 = VU.inXZ(a_entity.global_position)
+	var spot: Vector2 = VU.in_xz(a_entity.global_position)
 	var parent: Node = a_entity.get_parent()
 	if parent != null:
 		parent.remove_child(a_entity)

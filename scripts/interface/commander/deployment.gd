@@ -187,8 +187,8 @@ func _preview_has_production(a_drop: Drop) -> bool:
 
 ## The world XZ rectangle a `a_dims` footprint anchored at cell `a_origin` covers.
 static func footprint_area(a_map: Map, a_origin: Vector2i, a_dims: Vector2i) -> Rect2:
-	var first: Vector2 = VU.inXZ(a_map.grid_to_world(a_origin))
-	var last: Vector2 = VU.inXZ(a_map.grid_to_world(a_origin + a_dims - Vector2i.ONE))
+	var first: Vector2 = VU.in_xz(a_map.grid_to_world(a_origin))
+	var last: Vector2 = VU.in_xz(a_map.grid_to_world(a_origin + a_dims - Vector2i.ONE))
 	var half_cell: Vector2 = Vector2.ONE * Map.CELL_SIZE * 0.5
 	return Rect2(first.min(last) - half_cell, (last - first).abs() + half_cell * 2.0)
 
@@ -198,7 +198,7 @@ func units_on(a_area: Rect2) -> Array:
 	return _ground_units().filter(
 		func(a_unit: Commandable) -> bool:
 			return overlaps(
-				VU.inXZ(a_unit.global_position),
+				VU.in_xz(a_unit.global_position),
 				a_unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION),
 				a_area
 			)
@@ -238,7 +238,7 @@ func drop(a_drop: Drop, a_xz: Vector2) -> Array[Commandable]:
 	var map: Map = _commander.map
 	var dims: Vector2i = footprint_dims(a_drop)
 	var origin: Vector2i = map.footprint_origin(a_xz, dims)
-	var centre: Vector2 = VU.inXZ(map.footprint_centroid(origin, dims))
+	var centre: Vector2 = VU.in_xz(map.footprint_centroid(origin, dims))
 	var displaced: Array = units_on(footprint_area(map, origin, dims))
 	match a_drop:
 		Drop.COMMAND_CENTRE:
@@ -279,19 +279,19 @@ func _land_site(a_centre: Vector2) -> void:
 ## Move `a_unit` to the nearest ground its size class can stand on, searching outward from where
 ## it stands. A unit that finds none within `a_max_rings` is left where it is.
 static func _step_off(a_unit: Commandable, a_map: Map, a_max_rings: int) -> void:
-	var at: Vector2i = a_map.world_to_grid(VU.inXZ(a_unit.global_position))
+	var at: Vector2i = a_map.world_to_grid(VU.in_xz(a_unit.global_position))
 	for ring: int in range(1, a_max_rings + 1):
 		var best: Variant = null
 		var best_distance: float = INF
 		for cell: Vector2i in _ring_cells(at, ring):
 			var xz: Vector2 = (
-				VU.inXZ(a_map.grid_to_world(cell))
+				VU.in_xz(a_map.grid_to_world(cell))
 				if a_map.grid_coordinates_in_bounds(cell)
 				else Vector2.INF
 			)
 			if xz == Vector2.INF or not DebugPlacement.figure_admits(a_unit, a_map, xz):
 				continue
-			var distance: float = xz.distance_squared_to(VU.inXZ(a_unit.global_position))
+			var distance: float = xz.distance_squared_to(VU.in_xz(a_unit.global_position))
 			if distance < best_distance:
 				best_distance = distance
 				best = xz

@@ -132,7 +132,7 @@ func _formation_offsets(
 	var map: Map = a_manager.map
 	var radius: float = a_units[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 	var region_radius: float = maxf(5.0, radius * 2.5 * float(a_units.size()))
-	var anchor_xz: Vector2 = VU.inXZ(anchor.global_position)
+	var anchor_xz: Vector2 = VU.in_xz(anchor.global_position)
 	var points: Array[Vector2] = SU.get_nonoverlapping_points(
 		map,
 		anchor_xz,

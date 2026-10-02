@@ -472,9 +472,9 @@ func unit_has_combat_utility(a_unit: Commandable) -> bool:
 func best_covered_point(a_candidates: Array, a_radius: float, a_weight: Callable) -> Dictionary:
 	var best: Dictionary = {"anchor": null, "center": Vector3.ZERO, "members": [], "weight": 0.0}
 	for candidate: Node3D in a_candidates:
-		var centre: Vector2 = VU.inXZ(candidate.global_position)
+		var centre: Vector2 = VU.in_xz(candidate.global_position)
 		var caught: Array = a_candidates.filter(
-			func(o: Node3D): return VU.inXZ(o.global_position).distance_to(centre) <= a_radius
+			func(o: Node3D): return VU.in_xz(o.global_position).distance_to(centre) <= a_radius
 		)
 		var weight: float = 0.0
 		for c in caught:
@@ -763,8 +763,8 @@ func belief_is_disproved(a_entry: CommanderBlackboard.Entry) -> bool:
 		is_instance_valid(remembered)
 		and (remembered as Node).is_inside_tree()
 		and (
-			VU.inXZ((remembered as Node3D).global_position).distance_to(
-				VU.inXZ(a_entry.last_known_location)
+			VU.in_xz((remembered as Node3D).global_position).distance_to(
+				VU.in_xz(a_entry.last_known_location)
 			)
 			<= BELIEF_VERIFY_RADIUS
 		)

@@ -392,7 +392,7 @@ func _spawn_on_pad(a_structure: Commandable, a_unit: Commandable) -> bool:
 		return false
 	var spot: Vector3 = pad.dock_position()
 	if a_structure.map != null:
-		spot.y = a_structure.map.terrain_height_at(VU.inXZ(spot))
+		spot.y = a_structure.map.terrain_height_at(VU.in_xz(spot))
 	a_unit.global_position = spot
 	a_unit.aerial.park_on_deck(pad.deck_height)
 	a_unit.docking.docked_pad = pad

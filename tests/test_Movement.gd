@@ -149,7 +149,7 @@ func _fly_dive_run(
 	var parent := a_m.get_parent() as Node3D
 	var tps: float = float(Engine.physics_ticks_per_second)
 	for i in a_max_ticks:
-		var here: Vector2 = VU.inXZ(parent.global_position)
+		var here: Vector2 = VU.in_xz(parent.global_position)
 		var to_target: Vector2 = a_target_xz - here
 		if to_target.length() <= a_speed / tps:
 			parent.global_position = Vector3(a_target_xz.x, parent.global_position.y, a_target_xz.y)
@@ -930,7 +930,7 @@ func _run_to_destination(a_m: Movement, a_target: Vector3, a_max_ticks: int = 90
 		to_target.y = 0.0
 		a_m.set_velocity(to_target.normalized() * a_m.speed)
 		parent.global_position += a_m._current_velocity / tps
-		closest = minf(closest, VU.inXZ(parent.global_position).distance_to(VU.inXZ(a_target)))
+		closest = minf(closest, VU.in_xz(parent.global_position).distance_to(VU.in_xz(a_target)))
 	return {"tick": -1, "closest": closest}
 
 
@@ -1043,11 +1043,11 @@ func _orbit_entry_profile(a_m: Movement, a_ticks: int = 90) -> Dictionary:
 	var tps: float = float(Engine.physics_ticks_per_second)
 	var total: float = 0.0
 	var net: float = 0.0
-	var prev: float = atan2(VU.inXZ(a_m._current_velocity).y, VU.inXZ(a_m._current_velocity).x)
+	var prev: float = atan2(VU.in_xz(a_m._current_velocity).y, VU.in_xz(a_m._current_velocity).x)
 	for i in a_ticks:
 		a_m.set_velocity(_air(a_m).compute_orbit_velocity())
 		parent.global_position += a_m._current_velocity / tps
-		var h: Vector2 = VU.inXZ(a_m._current_velocity)
+		var h: Vector2 = VU.in_xz(a_m._current_velocity)
 		if h.is_zero_approx():
 			continue
 		var ang: float = atan2(h.y, h.x)
@@ -1080,7 +1080,7 @@ func test_orbit_entry_does_not_double_back_on_arrival():
 		var heading := Vector3(cos(a), 0.0, sin(a))
 		# Jitter well inside the 0.125 arrival tolerance, deliberately opposing the heading —
 		# the worst case for seeding off the offset.
-		var m := _arrived_flyer(heading, -VU.inXZ(heading) * 0.05)
+		var m := _arrived_flyer(heading, -VU.in_xz(heading) * 0.05)
 		_air(m).set_anchor(m.get_parent().global_position)
 		var profile: Dictionary = _orbit_entry_profile(m)
 		assert_gt(

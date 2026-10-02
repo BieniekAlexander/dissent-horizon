@@ -129,7 +129,7 @@ func _run() -> void:
 		if label != last or tick % SAMPLE_EVERY == 0:
 			var strip: Runway = bay.runways()[0] if not bay.runways().is_empty() else null
 			var fix_d: float = (
-				VU.inXZ(unit.global_position).distance_to(VU.inXZ(strip.approach_point(4.77)))
+				VU.in_xz(unit.global_position).distance_to(VU.in_xz(strip.approach_point(4.77)))
 				if strip != null
 				else -1.0
 			)
@@ -143,7 +143,7 @@ func _run() -> void:
 						unit.global_position.z,
 						unit.aerial._current_height_offset,
 						fix_d,
-						VU.inXZ(unit.velocity).length(),
+						VU.in_xz(unit.velocity).length(),
 						unit.docking.claimed_runway != null,
 						unit.weapon_inventory.charged_ammo(),
 					]
@@ -195,7 +195,7 @@ func _watch_idle(a_unit: Commandable, a_bay: DockingBay) -> void:
 						% [
 							_state_of(plane),
 							plane.height_offset(),
-							VU.inXZ(plane.velocity).length(),
+							VU.in_xz(plane.velocity).length(),
 							"cmd" if plane.current_command() != null else "---",
 							"R" if plane.docking.claimed_runway != null else " "
 						]
@@ -215,7 +215,9 @@ func _pads(a_bay: DockingBay) -> Array[DockingPad]:
 func _pad_distance(a_unit: Commandable, a_bay: DockingBay) -> float:
 	var best: float = INF
 	for pad: DockingPad in _pads(a_bay):
-		best = minf(best, VU.inXZ(a_unit.global_position).distance_to(VU.inXZ(pad.dock_position())))
+		best = minf(
+			best, VU.in_xz(a_unit.global_position).distance_to(VU.in_xz(pad.dock_position()))
+		)
 	return best
 
 

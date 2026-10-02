@@ -160,9 +160,9 @@ class NavChange:
 	## pass through this change: any leg, including the one from where it stands, touching the
 	## area in XZ.
 	func crosses(a_origin: Vector3, a_path: PackedVector3Array, a_from_index: int) -> bool:
-		var previous: Vector2 = VU.inXZ(a_origin)
+		var previous: Vector2 = VU.in_xz(a_origin)
 		for i: int in range(maxi(a_from_index, 0), a_path.size()):
-			var point: Vector2 = VU.inXZ(a_path[i])
+			var point: Vector2 = VU.in_xz(a_path[i])
 			if NavChange.segment_touches_rect(previous, point, world_area):
 				return true
 			previous = point
@@ -170,7 +170,7 @@ class NavChange:
 
 	## Whether this change falls within `a_reach` (a square neighbourhood, XZ) of `a_point`.
 	func is_near(a_point: Vector3, a_reach: float) -> bool:
-		return world_area.grow(a_reach).has_point(VU.inXZ(a_point))
+		return world_area.grow(a_reach).has_point(VU.in_xz(a_point))
 
 	## Whether segment `a`→`b` touches the closed rectangle `rect` (Liang–Barsky clipping).
 	static func segment_touches_rect(a: Vector2, b: Vector2, rect: Rect2) -> bool:
@@ -531,7 +531,7 @@ func _world_rect(a_cells: Rect2i) -> Rect2:
 		to_world * Vector3(a_cells.position.x - half.x, 0.0, a_cells.position.y - half.y)
 	)
 	var b: Vector3 = to_world * Vector3(a_cells.end.x - half.x, 0.0, a_cells.end.y - half.y)
-	return Rect2(VU.inXZ(a), Vector2.ZERO).expand(VU.inXZ(b))
+	return Rect2(VU.in_xz(a), Vector2.ZERO).expand(VU.in_xz(b))
 
 
 func _create_region(a_layer: int) -> RID:

@@ -191,7 +191,7 @@ func _order(a_tool: Tool, a_at: Variant) -> CommandMessage:
 
 ## A world position given as either a Vector2 (XZ) or a Vector3.
 func _xz(a_at: Variant) -> Vector2:
-	return VU.inXZ(a_at) if a_at is Vector3 else a_at as Vector2
+	return VU.in_xz(a_at) if a_at is Vector3 else a_at as Vector2
 
 
 ## Scenes instanced here ship without flavor text, which Commandable reports with a push_error
@@ -215,7 +215,7 @@ func _neutral_building(a_id: StringName, a_origin: Vector2i = NEUTRAL_ORIGIN) ->
 	building.initialize(_map, _neutral)
 	_dismiss_known_errors()
 	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
-	_map.add_structure(building, VU.inXZ(_map.footprint_centroid(a_origin, dims)))
+	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(a_origin, dims)))
 	return building
 
 
@@ -652,21 +652,21 @@ func test_the_target_is_the_building_whose_footprint_holds_the_aimed_cell() -> v
 	var building: Commandable = _neutral_building(_family().back().id)
 	var footprint: Array = _map.structure_cell_map[building]
 	for cell: Vector2i in footprint:
-		var message: CommandMessage = _order(_base_tool(), VU.inXZ(_map.grid_to_world(cell)))
+		var message: CommandMessage = _order(_base_tool(), VU.in_xz(_map.grid_to_world(cell)))
 		assert_same(
 			Build._conversion_target(_commander, message),
 			building,
 			"any cell of the footprint aims at it, not only the middle"
 		)
 	var outside: Vector2i = footprint.back() + Vector2i(2, 2)
-	var away: CommandMessage = _order(_base_tool(), VU.inXZ(_map.grid_to_world(outside)))
+	var away: CommandMessage = _order(_base_tool(), VU.in_xz(_map.grid_to_world(outside)))
 	assert_null(Build._conversion_target(_commander, away), "a cell beside it does not")
 	assert_true(Build.places_new_structure(_commander, away))
 
 
 func test_only_a_neutral_family_member_is_a_target() -> void:
 	var building: Commandable = _neutral_building(_family()[0].id)
-	var aim: Vector2 = VU.inXZ(building.global_position)
+	var aim: Vector2 = VU.in_xz(building.global_position)
 	building.commander = _commander
 	assert_null(
 		Build._conversion_target(_commander, _order(_base_tool(), aim)), "an owned building is not"
@@ -675,9 +675,9 @@ func test_only_a_neutral_family_member_is_a_target() -> void:
 	_neutral.add_child(site)
 	site.initialize(_map, _neutral)
 	_dismiss_known_errors()
-	_map.add_structure(site, VU.inXZ(_map.footprint_centroid(Vector2i(10, 10), Vector2i(2, 2))))
+	_map.add_structure(site, VU.in_xz(_map.footprint_centroid(Vector2i(10, 10), Vector2i(2, 2))))
 	assert_null(
-		Build._conversion_target(_commander, _order(_base_tool(), VU.inXZ(site.global_position))),
+		Build._conversion_target(_commander, _order(_base_tool(), VU.in_xz(site.global_position))),
 		"a neutral piece outside the family is not"
 	)
 
@@ -688,7 +688,7 @@ func test_a_conversion_costs_and_takes_the_targets_discounted_numbers() -> void:
 		var building: Commandable = _neutral_building(template.id)
 		var energy_before: int = _commander.energy
 		var result: Array = await _convert(
-			building, base.with_variant(0), VU.inXZ(building.global_position)
+			building, base.with_variant(0), VU.in_xz(building.global_position)
 		)
 		_dismiss_known_errors()
 		var transaction: PurchaseTransaction = result[1]
@@ -707,7 +707,7 @@ func test_a_conversion_is_refused_without_the_discounted_price_unless_deferred()
 	var template: PieceFamilies.Template = _family()[0]
 	var building: Commandable = _neutral_building(template.id)
 	var builder: Commandable = _make_builder(building.global_position)
-	var message: CommandMessage = _order(_base_tool(), VU.inXZ(building.global_position))
+	var message: CommandMessage = _order(_base_tool(), VU.in_xz(building.global_position))
 	var price: int = roundi(float(template.energy_cost) * Build.ENERGY_DISCOUNT)
 	_commander.energy = price - 1
 	message.defer_if_unaffordable = false
@@ -743,7 +743,9 @@ func test_a_converted_building_is_the_piece_in_the_building_it_was() -> void:
 		var infrastructure_before: int = _commander.infrastructure_provided
 
 		await _convert(
-			building, base.with_variant(base.variants.size() - 1), VU.inXZ(building.global_position)
+			building,
+			base.with_variant(base.variants.size() - 1),
+			VU.in_xz(building.global_position)
 		)
 		_dismiss_known_errors()
 		var label: String = String(template.id)
@@ -770,7 +772,7 @@ func test_a_converted_building_is_the_piece_in_the_building_it_was() -> void:
 		assert_eq(building.pricing_id(), template.id)
 		assert_false(building.is_in_group(template.family))
 		assert_false(
-			Build._is_conversion(_commander, _order(base, VU.inXZ(building.global_position))),
+			Build._is_conversion(_commander, _order(base, VU.in_xz(building.global_position))),
 			"now owned, it is not a target again"
 		)
 
@@ -780,7 +782,7 @@ func test_a_converted_building_is_the_piece_in_the_building_it_was() -> void:
 func test_losing_a_converted_building_withdraws_its_infrastructure() -> void:
 	var template: PieceFamilies.Template = _family()[0]
 	var building: Commandable = _neutral_building(template.id)
-	await _convert(building, _base_tool(), VU.inXZ(building.global_position))
+	await _convert(building, _base_tool(), VU.in_xz(building.global_position))
 	_dismiss_known_errors()
 	assert_eq(
 		_commander.infrastructure_provided, Commander.BASE_INFRASTRUCTURE + template.infrastructure

@@ -23,7 +23,7 @@ func _receiver() -> CommandReceiver:
 
 
 func _order(a_xz: Vector2) -> MoveCommand:
-	return MoveCommand.new(CommandMessage.new(null, null, null, VU.fromXZ(a_xz)))
+	return MoveCommand.new(CommandMessage.new(null, null, null, VU.from_xz(a_xz)))
 
 
 ## A TYPED chain. `_command_queue` is `Array[MoveCommand]`, and the non-prepend array branch
@@ -36,7 +36,7 @@ func _chain(a_orders: Array[MoveCommand]) -> Array[MoveCommand]:
 func _destinations(a_chain: Array) -> Array:
 	var out: Array = []
 	for command: MoveCommand in a_chain:
-		out.append(VU.inXZ(command.message.position))
+		out.append(VU.in_xz(command.message.position))
 	return out
 
 

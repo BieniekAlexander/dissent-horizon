@@ -211,8 +211,8 @@ func tracked_velocity(a_velocity: Vector3, a_position: Vector3, a_goal: Variant)
 	var ticks_left: float = 1.0
 	if discriminant > 0.0:
 		ticks_left = maxf((b + sqrt(discriminant)) / fall, 1.0)
-	var to_goal_xz: Vector2 = VU.inXZ(goal) - VU.inXZ(a_position)
-	return VU.fromXZ(to_goal_xz / ticks_left) + a_velocity.y * Vector3.UP
+	var to_goal_xz: Vector2 = VU.in_xz(goal) - VU.in_xz(a_position)
+	return VU.from_xz(to_goal_xz / ticks_left) + a_velocity.y * Vector3.UP
 
 
 ## One tick of steering at `a_target`, before the move. Unchanged when unsteered or targetless.
@@ -303,7 +303,7 @@ static func _ticks_or_unbounded(seconds: float) -> int:
 func _ballistic_velocity(
 	a_origin: Vector3, a_destination: Vector3, a_horizontal_step: float
 ) -> Vector3:
-	var to_target_xz: Vector2 = VU.inXZ(a_destination) - VU.inXZ(a_origin)
+	var to_target_xz: Vector2 = VU.in_xz(a_destination) - VU.in_xz(a_origin)
 	var fall_per_tick: float = -gravity_mps2 / float(_ticks_squared())
 	# A shot at its own position would take zero ticks; one tick lands it next tick instead.
 	var ticks_to_target: float = maxf(to_target_xz.length() / a_horizontal_step, 1.0)
@@ -311,7 +311,7 @@ func _ballistic_velocity(
 		(a_destination.y - a_origin.y) / ticks_to_target - fall_per_tick * ticks_to_target / 2
 	)
 	return (
-		VU.fromXZ(to_target_xz.normalized() * a_horizontal_step)
+		VU.from_xz(to_target_xz.normalized() * a_horizontal_step)
 		+ (vertical + fall_per_tick) * Vector3.UP
 	)
 
@@ -320,7 +320,7 @@ func _ballistic_velocity(
 ## same integrator as a ballistic shot. A destination too high for the pitch is shot as a
 ## plain ballistic arc at `speed` instead.
 func _lob_velocity(a_origin: Vector3, a_destination: Vector3) -> Vector3:
-	var horizontal: float = (VU.inXZ(a_destination) - VU.inXZ(a_origin)).length()
+	var horizontal: float = (VU.in_xz(a_destination) - VU.in_xz(a_origin)).length()
 	var rise: float = (
 		horizontal * tan(deg_to_rad(launch_pitch_degrees)) - (a_destination.y - a_origin.y)
 	)

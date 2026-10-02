@@ -52,7 +52,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	# unit-placement path samples the entity's collision radius — the Scout has no
 	# collision shape. This mirrors how EventAbilityIrradiate spawns its projectile.
 	scout.initialize(map, commander)
-	var xz: Vector2 = VU.inXZ(global_position)
+	var xz: Vector2 = VU.in_xz(global_position)
 	scout.global_position = Vector3(xz.x, map.terrain_height_at(xz), xz.y)
 
 

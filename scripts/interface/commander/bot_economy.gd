@@ -628,7 +628,7 @@ func _new_dominion_search(a_type: StringName, a_key: Array) -> Dictionary:
 	if survey == null:
 		return {"key": a_key}
 	_work += DOMINION_SURVEY_SETUP_WORK_UNITS
-	var anchor: Vector2 = VU.inXZ(_bot.base_centroid())
+	var anchor: Vector2 = VU.in_xz(_bot.base_centroid())
 	var points: Array[Vector2] = []
 	var reach: int = DOMINION_SURVEY_RADIUS_CELLS / DOMINION_SURVEY_STRIDE_CELLS
 	for j: int in range(-reach, reach + 1):
@@ -921,7 +921,7 @@ func _ponds_under_way() -> Array:
 		var target: Variant = _construction_target(unit)
 		if not (target is Vector3):
 			continue
-		var body: WaterBody = _bot.map.water_body_at_world(VU.inXZ(target as Vector3))
+		var body: WaterBody = _bot.map.water_body_at_world(VU.in_xz(target as Vector3))
 		if body != null and not ponds.has(body):
 			ponds.append(body)
 	return ponds
@@ -986,7 +986,7 @@ func _believes_site_claimed(a_site: ExtractionSite, a_position: Vector3) -> bool
 	# An extractor is placed concentric with its site, so a remembered one stands on its origin.
 	return _believes_enemy_structure_where(
 		func(a_at: Vector3) -> bool:
-			return VU.inXZ(a_at).distance_to(VU.inXZ(a_position)) < Map.CELL_SIZE * 0.5
+			return VU.in_xz(a_at).distance_to(VU.in_xz(a_position)) < Map.CELL_SIZE * 0.5
 	)
 
 
@@ -996,7 +996,7 @@ func _believes_pond_claimed(a_body: WaterBody) -> bool:
 	if _is_claim_known(a_body.extractor):
 		return true
 	return _believes_enemy_structure_where(
-		func(a_at: Vector3) -> bool: return _bot.map.water_body_at_world(VU.inXZ(a_at)) == a_body
+		func(a_at: Vector3) -> bool: return _bot.map.water_body_at_world(VU.in_xz(a_at)) == a_body
 	)
 
 
@@ -1091,7 +1091,7 @@ func _find_build_spot(a_type: StringName) -> Variant:
 ## needs to check the candidates.
 func _new_spot_search(a_type: StringName) -> Dictionary:
 	var dims: Vector2i = _dims_for_type(a_type)
-	var anchor: Vector2 = VU.inXZ(_bot.base_centroid())
+	var anchor: Vector2 = VU.in_xz(_bot.base_centroid())
 	return {
 		"type": a_type,
 		"dims": dims,
@@ -1123,7 +1123,7 @@ func _forward_direction(a_anchor: Vector2) -> Vector2:
 	if believed == null:
 		believed = _bot.nearest_believed_enemy_unit_position(_bot.base_centroid())
 	if believed != null:
-		var to_threat: Vector2 = VU.inXZ(believed) - a_anchor
+		var to_threat: Vector2 = VU.in_xz(believed) - a_anchor
 		if to_threat.length_squared() > DIRECTION_EPSILON:
 			return to_threat.normalized()
 	var bounds: Rect2 = _bot.map.world_bounds()
@@ -1232,7 +1232,7 @@ func _start_ranking(
 	# The origin→world map is affine, so it is read ONCE off three probes rather than called
 	# per candidate: footprint_centroid averages cell centres sampled off the heightmap, and
 	# six hundred of those was most of what a decision cost. Only XZ matters to the score.
-	var world_seed: Vector2 = VU.inXZ(map.footprint_centroid(seed_origin, a_dims))
+	var world_seed: Vector2 = VU.in_xz(map.footprint_centroid(seed_origin, a_dims))
 	return {
 		"forward": a_forward,
 		"right": Vector2(-a_forward.y, a_forward.x),
@@ -1241,9 +1241,9 @@ func _start_ranking(
 		"seed_origin": seed_origin,
 		"seed_offset": world_seed - a_anchor,
 		"basis_x":
-		VU.inXZ(map.footprint_centroid(seed_origin + Vector2i(1, 0), a_dims)) - world_seed,
+		VU.in_xz(map.footprint_centroid(seed_origin + Vector2i(1, 0), a_dims)) - world_seed,
 		"basis_z":
-		VU.inXZ(map.footprint_centroid(seed_origin + Vector2i(0, 1), a_dims)) - world_seed,
+		VU.in_xz(map.footprint_centroid(seed_origin + Vector2i(0, 1), a_dims)) - world_seed,
 		"row": -SEARCH_MAX_RING - 1,
 		"out": PackedInt64Array(),
 		"done": false,
@@ -1349,7 +1349,7 @@ func _home_region() -> int:
 	var grid: TerrainGrid = _bot.map.terrain_grid
 	var tally: Dictionary = {}
 	for u: Commandable in _bot.get_units():
-		var region: int = grid.component_at(_bot.map.world_to_grid(VU.inXZ(u.global_position)))
+		var region: int = grid.component_at(_bot.map.world_to_grid(VU.in_xz(u.global_position)))
 		if region >= 0:
 			tally[region] = int(tally.get(region, 0)) + 1
 	var best: int = -1
@@ -1388,7 +1388,7 @@ func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bo
 		return false
 	if _is_claimed_spot(a_world):
 		return false
-	var footprint: Array = _bot.map.footprint_cells(VU.inXZ(a_world), a_dims)
+	var footprint: Array = _bot.map.footprint_cells(VU.in_xz(a_world), a_dims)
 	var grid: TerrainGrid = _bot.map.terrain_grid
 	return (
 		NavPlacement.accepts(grid, footprint, true, a_region)

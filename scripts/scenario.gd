@@ -635,7 +635,7 @@ func _player_owned_positions_xz(a_player: Commander, a_group: String) -> Array[V
 	for node: Node in get_tree().get_nodes_in_group(a_group):
 		var entity := node as Commandable
 		if entity != null and entity.commander == a_player:
-			result.append(VU.inXZ(entity.global_position))
+			result.append(VU.in_xz(entity.global_position))
 	return result
 
 

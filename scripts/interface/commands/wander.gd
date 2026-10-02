@@ -95,7 +95,7 @@ func _retarget(a_actor: Commandable) -> void:
 	if map != null:
 		# Sample the terrain height first: the navmesh is 3D, so snapping from a
 		# point at the wrong altitude can resolve to a different cell entirely.
-		candidate.y = map.terrain_height_at(VU.inXZ(candidate))
+		candidate.y = map.terrain_height_at(VU.in_xz(candidate))
 		candidate = map.nearest_navmesh_point(candidate)
 	message.world_position = candidate
 	a_actor.movement.set_target_position(candidate)

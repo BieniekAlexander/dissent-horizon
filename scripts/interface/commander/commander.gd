@@ -690,7 +690,7 @@ func nearest_docking_bay_for(a_unit: Commandable) -> DockingBay:
 		var host: Commandable = bay.owner_commandable()
 		if host == null:
 			continue
-		var d: float = VU.inXZ(a_unit.global_position).distance_to(VU.inXZ(host.global_position))
+		var d: float = VU.in_xz(a_unit.global_position).distance_to(VU.in_xz(host.global_position))
 		if d < best_any_d:
 			best_any_d = d
 			best_any = bay
@@ -1154,7 +1154,7 @@ func planned_footprint_cells(a_except: Commandable = null) -> Dictionary:
 			continue
 		var obs := piece.get_node_or_null("Structure") as Structure
 		var dims: Vector2i = obs.footprint_dimensions() if obs != null else Vector2i.ONE
-		for cell: Vector2i in map.footprint_cells(VU.inXZ(piece.global_position), dims):
+		for cell: Vector2i in map.footprint_cells(VU.in_xz(piece.global_position), dims):
 			out[cell] = true
 	return out
 
@@ -1313,7 +1313,7 @@ func has_vision_at(a_world_pos: Vector3) -> bool:
 	var fog: Fog = _fog()
 	if fog == null:
 		return true
-	return fog.fog_clear_at(VU.inXZ(a_world_pos))
+	return fog.fog_clear_at(VU.in_xz(a_world_pos))
 
 
 ## True when [world_pos] has ever been in this commander's vision — what it can know is on
@@ -1323,7 +1323,7 @@ func has_explored(a_world_pos: Vector3) -> bool:
 	var fog: Fog = _fog()
 	if fog == null:
 		return true
-	return fog.explored_at(VU.inXZ(a_world_pos))
+	return fog.explored_at(VU.in_xz(a_world_pos))
 
 
 ## This commander's Fog of war. Null for a commander with no Fog (the neutral/world owner,

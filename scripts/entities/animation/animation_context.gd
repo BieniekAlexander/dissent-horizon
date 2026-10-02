@@ -23,5 +23,5 @@ static func of(actor: Commandable) -> AnimationContext:
 	if actor.movement != null:
 		context.flight_mode = actor.movement.mode
 	# A commandable moves by move_and_slide, whose velocity is already per second.
-	context.speed_mps = VU.inXZ(actor.velocity).length()
+	context.speed_mps = VU.in_xz(actor.velocity).length()
 	return context

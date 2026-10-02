@@ -28,13 +28,13 @@ func _unit(a_commander: Commander) -> Commandable:
 
 
 func _order(a_xz: Vector2) -> MoveCommand:
-	return MoveCommand.new(CommandMessage.new(null, null, null, VU.fromXZ(a_xz)))
+	return MoveCommand.new(CommandMessage.new(null, null, null, VU.from_xz(a_xz)))
 
 
 func _destinations(a_chain: Array) -> Array:
 	var out: Array = []
 	for command: MoveCommand in a_chain:
-		out.append(VU.inXZ(command.message.position))
+		out.append(VU.in_xz(command.message.position))
 	return out
 
 
@@ -201,5 +201,5 @@ func test_the_released_chain_is_copies() -> void:
 	var chain: Array = Garrison._release_commands(occupant, host, null, Vector3(2, 0, 2))
 
 	assert_ne(chain[1], mine, "a copy, not the instance the unit is holding")
-	assert_eq(VU.inXZ(chain[1].message.position), Vector2(9, 9), "carrying the same order")
+	assert_eq(VU.in_xz(chain[1].message.position), Vector2(9, 9), "carrying the same order")
 #endregion

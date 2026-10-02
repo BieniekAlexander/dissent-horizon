@@ -691,7 +691,7 @@ func _placement_bands() -> Array[RangeIndicator.Band]:
 	var kinds: Array = [EntityRanges.Kind.ATTACK, EntityRanges.Kind.DETECTION]
 	if Input.is_action_pressed("ui_verbose"):
 		kinds.append(EntityRanges.Kind.VISION)
-	var centre: Vector2 = VU.inXZ(_build_preview.global_position)
+	var centre: Vector2 = VU.in_xz(_build_preview.global_position)
 	var neighbours: Array[Commandable] = _placement_neighbours()
 	for kind: int in kinds:
 		var reach: Array[float] = _distinct_radii(source, kind)
@@ -827,7 +827,7 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 		lit[cell] = PlacementGridOverlay.NEUTRAL_COLOR
 	var washed: Dictionary = {}
 	var claim: Dictionary = (
-		route.site_claim(source, VU.inXZ(_build_preview.global_position))
+		route.site_claim(source, VU.in_xz(_build_preview.global_position))
 		if route != null and route.structure_sources.has(source.id)
 		else {}
 	)
@@ -895,7 +895,7 @@ func _armed_ability_bands() -> Array[RangeIndicator.Band]:
 	if area > 0.0 and command_message != null:
 		bands.append(
 			RangeIndicator.Band.of(
-				HighlightShape.circle(VU.inXZ(command_message.world_position), area),
+				HighlightShape.circle(VU.in_xz(command_message.world_position), area),
 				ARMED_AREA_COLOR,
 				true
 			)
@@ -936,7 +936,7 @@ func armed_ability_caster() -> Commandable:
 	var casters: Array[Commandable] = _charged_casters(armed_ability_id())
 	if casters.is_empty() or command_message == null:
 		return null
-	var aim: Vector2 = VU.inXZ(command_message.world_position)
+	var aim: Vector2 = VU.in_xz(command_message.world_position)
 	var best: Commandable = null
 	var best_distance: float = INF
 	for actor: Commandable in casters:
@@ -1194,7 +1194,7 @@ func _freeze_placement() -> void:
 ## flicker at the boundary. Inside the dead zone nothing changes, so a click keeps the facing the
 ## rotate keys gave it.
 func _turn_placement_toward(a_point: Vector3) -> void:
-	var direction: Vector2 = VU.inXZ(a_point - _placing_world)
+	var direction: Vector2 = VU.in_xz(a_point - _placing_world)
 	if direction.length() < PLACEMENT_ROTATE_DEADZONE:
 		return
 	placement_quarter_turns = Structure.quarter_turns_facing(direction, placement_quarter_turns)
@@ -1451,7 +1451,7 @@ func select_units_in_world_rect(a_world_rect: Rect2, a_additive: bool) -> void:
 			return (
 				is_player_commandable(e)
 				and _is_perceptible(e)
-				and a_world_rect.has_point(VU.inXZ(e.global_position))
+				and a_world_rect.has_point(VU.in_xz(e.global_position))
 			)
 	)
 	# A box that catches any unit skips structures, so a drag over a mixed group
@@ -1487,7 +1487,7 @@ func _deselect_in_world_rect(a_world_rect: Rect2) -> void:
 		if (
 			commandable != null
 			and is_instance_valid(commandable)
-			and a_world_rect.has_point(VU.inXZ(commandable.global_position))
+			and a_world_rect.has_point(VU.in_xz(commandable.global_position))
 		):
 			remove_from_selection(commandable)
 	_refresh_available_commands()
@@ -2489,7 +2489,7 @@ func _look_at_selection(a_commandables: Array) -> void:
 		var c: Commandable = node as Commandable
 		if c == null or not is_instance_valid(c):
 			continue
-		centroid += VU.inXZ(c.global_position)
+		centroid += VU.in_xz(c.global_position)
 		counted += 1
 	if counted > 0:
 		camera.center_on(centroid / float(counted))
@@ -3067,7 +3067,7 @@ func _narrowed_actors(a_command_type: Script, a_actors: Array, a_message: Comman
 		var actor := node as Commandable
 		if actor == null:
 			continue
-		candidates.append([VU.inXZ(actor.global_position), actor._command == null])
+		candidates.append([VU.in_xz(actor.global_position), actor._command == null])
 	var index: int = narrowed_index(
 		candidates, a_message.xz_position, not Input.is_action_pressed(MODIFIER_BROADEN)
 	)
@@ -3291,7 +3291,7 @@ func assign_command_to_units(
 			snapshot.persist = true
 		if unit_to_destination.has(c):
 			var dest_xz: Vector2 = unit_to_destination[c]
-			snapshot.world_position = VU.fromXZ(dest_xz)
+			snapshot.world_position = VU.from_xz(dest_xz)
 		snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
 		if a_command_type.requires_position():
 			_register_indicator(snapshot)
@@ -3437,7 +3437,7 @@ func _fanned_destinations(
 	# rotational frame as the destinations so the assignment preserves formation.
 	var selection_centroid := Vector2.ZERO
 	for c: Commandable in a_capable:
-		selection_centroid += VU.inXZ((c as Entity).global_position)
+		selection_centroid += VU.in_xz((c as Entity).global_position)
 	selection_centroid /= float(a_capable.size())
 
 	# Sort destinations by angle around the click point, and units by angle around the
@@ -3454,8 +3454,8 @@ func _fanned_destinations(
 	var sorted_capable: Array = a_capable.duplicate()
 	sorted_capable.sort_custom(
 		func(a: Commandable, b: Commandable) -> bool:
-			var a_xz: Vector2 = VU.inXZ((a as Entity).global_position)
-			var b_xz: Vector2 = VU.inXZ((b as Entity).global_position)
+			var a_xz: Vector2 = VU.in_xz((a as Entity).global_position)
+			var b_xz: Vector2 = VU.in_xz((b as Entity).global_position)
 			return (
 				atan2(a_xz.x - selection_centroid.x, a_xz.y - selection_centroid.y)
 				< atan2(b_xz.x - selection_centroid.x, b_xz.y - selection_centroid.y)
@@ -3522,7 +3522,7 @@ func issue_command_at_world_position(a_world_xz: Vector2) -> void:
 ## World point at `world_xz`, lifted onto the terrain so waypoint indicators and
 ## any Y-sensitive consumers sit at the ground height rather than Y=0.
 func _world_point(a_world_xz: Vector2) -> Vector3:
-	var p: Vector3 = VU.fromXZ(a_world_xz)
+	var p: Vector3 = VU.from_xz(a_world_xz)
 	p.y = map.terrain_height_at(a_world_xz)
 	return p
 
@@ -4252,7 +4252,7 @@ func _update_cursor_readout() -> void:
 func _cursor_readout_text() -> String:
 	if map == null or not (cursor_target is Vector3):
 		return ""
-	var world_xz: Vector2 = VU.inXZ(cursor_target as Vector3)
+	var world_xz: Vector2 = VU.in_xz(cursor_target as Vector3)
 	var body: WaterBody = map.water_body_at_world(world_xz)
 	if body == null:
 		return ""
@@ -5335,7 +5335,7 @@ func _place_drop() -> void:
 ## Where the armed drop is aimed: the ground under the cursor, never the unit under it. A drop may
 ## be aimed over the slot's own units — they step off — so it must not snap to one of them.
 func _drop_aim() -> Vector2:
-	return VU.inXZ(command_message.world_position)
+	return VU.in_xz(command_message.world_position)
 
 
 ## The drop a key press arms, or NO_DROP.

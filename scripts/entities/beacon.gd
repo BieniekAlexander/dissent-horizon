@@ -218,7 +218,7 @@ func _is_allied_to_local_player() -> bool:
 
 ## True when a strike aimed at `world_position` may spend this beacon.
 func covers(a_world_position: Vector3) -> bool:
-	return host().hull().distance_to_point(VU.inXZ(a_world_position)) <= STRIKE_RADIUS
+	return host().hull().distance_to_point(VU.in_xz(a_world_position)) <= STRIKE_RADIUS
 
 
 ## Take this beacon out of play. One method for every deliberate reason (spent, cancelled)

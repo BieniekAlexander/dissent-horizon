@@ -137,7 +137,7 @@ func _initialize() -> void:
 
 	# The fog texture is centred on the map; no plane to size any more (drawn by the terrain
 	# shader). _center feeds _world_to_pixel and the terrain shader's fog_rect.
-	_center = VU.inXZ(map.global_position)
+	_center = VU.in_xz(map.global_position)
 
 	_img_width = int(_world_half_w * 2.0 * POINTS_PER_UNIT)
 	_img_height = int(_world_half_d * 2.0 * POINTS_PER_UNIT)
@@ -246,7 +246,7 @@ func _physics_process(_a_delta: float) -> void:
 				entity.visible = (
 					debug_view
 					or PlantedCharge.of(entity) == null
-					or fog_clear_at(VU.inXZ(entity.global_position))
+					or fog_clear_at(VU.in_xz(entity.global_position))
 				)
 				continue
 			# A structure that is merely PLANNED (a blueprint an enemy commander has ordered
@@ -264,7 +264,7 @@ func _physics_process(_a_delta: float) -> void:
 			if entity.structure_is_active():
 				fog_clear = structure_in_vision(entity)
 			else:
-				fog_clear = fog_clear_at(VU.inXZ(entity.global_position))
+				fog_clear = fog_clear_at(VU.in_xz(entity.global_position))
 			entity.visible = debug_view or fog_clear
 			if entity is Commandable:
 				var stealthed: bool = (
@@ -385,7 +385,7 @@ func explored_at(a_world_xz: Vector2) -> bool:
 ## the cell under its origin is. Falls back to the origin point when the structure
 ## has no registered footprint (or the Map is unavailable).
 func structure_in_vision(a_structure: Node) -> bool:
-	var origin_xz: Vector2 = VU.inXZ((a_structure as Node3D).global_position)
+	var origin_xz: Vector2 = VU.in_xz((a_structure as Node3D).global_position)
 	if _map == null or _fog_bytes.is_empty():
 		return fog_clear_at(origin_xz)
 	var cells: Variant = _map.structure_cell_map.get(a_structure)
@@ -464,7 +464,7 @@ func _update_sight(a_sources: Array) -> void:
 		# Centre on the shape (it may be offset from the entity origin), and cover the shape's
 		# XZ cross-section — any shape type, not just a circle.
 		var vision_shape: CollisionShape3D = entity.vision_range_shape
-		var pixel: Vector2i = _world_to_pixel(VU.inXZ(vision_shape.global_position))
+		var pixel: Vector2i = _world_to_pixel(VU.in_xz(vision_shape.global_position))
 		var offsets: Array = _vision_offsets(vision_shape)
 		var old: SightStamp = _stamps.get(key)
 		if old != null and old.pixel == pixel and is_same(old.offsets, offsets):
@@ -525,7 +525,7 @@ func _apply_figure_visibility(a_viewer_id: int, a_show_all: bool) -> void:
 			figure.visible = (
 				a_show_all
 				or owner_id == a_viewer_id
-				or fog_clear_at(VU.inXZ(figure.global_position))
+				or fog_clear_at(VU.in_xz(figure.global_position))
 			)
 
 
@@ -537,7 +537,7 @@ func _structure_pixels(a_structure: Node, a_cells: Array) -> PackedInt32Array:
 		return cached[1]
 	var pixels := PackedInt32Array()
 	for cell: Vector2i in a_cells:
-		var pixel: Vector2i = _world_to_pixel(VU.inXZ(_map.grid_to_world(cell)))
+		var pixel: Vector2i = _world_to_pixel(VU.in_xz(_map.grid_to_world(cell)))
 		if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
 			continue
 		var idx: int = pixel.y * _img_width + pixel.x

@@ -99,7 +99,7 @@ func _two_form_piece() -> Commandable:
 
 
 func _deploy_center() -> Vector2:
-	return VU.inXZ(_map.grid_to_world(DEPLOY_CELL))
+	return VU.in_xz(_map.grid_to_world(DEPLOY_CELL))
 
 
 func _blocks_line_of_fire(a_piece: Entity) -> bool:

@@ -29,4 +29,4 @@ func covers(a_world_position: Vector3) -> bool:
 	var owner_entity: Entity = get_parent() as Entity
 	if owner_entity == null or radius <= 0.0:
 		return false
-	return owner_entity.hull().distance_to_point(VU.inXZ(a_world_position)) <= radius
+	return owner_entity.hull().distance_to_point(VU.in_xz(a_world_position)) <= radius

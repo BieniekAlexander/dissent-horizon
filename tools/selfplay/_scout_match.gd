@@ -128,9 +128,9 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	var unseen: int = 0
 	var unseen_expired: int = 0
 	var thr: float = bot.seconds_elapsed() - BotScout.SCOUT_EXPIRATION_TIMER
-	var enemy_xz: Vector2 = VU.inXZ(enemy_start)
+	var enemy_xz: Vector2 = VU.in_xz(enemy_start)
 	for idx: Vector2i in sc._scout_grid:
-		var pxz: Vector2 = VU.inXZ(sc._scout_grid_positions[idx])
+		var pxz: Vector2 = VU.in_xz(sc._scout_grid_positions[idx])
 		if sc._ever_seen.has(idx):
 			nearest_seen = minf(nearest_seen, pxz.distance_to(enemy_xz))
 		else:

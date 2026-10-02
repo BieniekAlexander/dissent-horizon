@@ -176,7 +176,7 @@ func _update_flying_dive(a_actor: Commandable) -> void:
 	# is nothing to ask until we know there is one.
 	if not weapon.is_melee_ranged(message.target):
 		return
-	aerial.request_dive(VU.inXZ(message.target.global_position))
+	aerial.request_dive(VU.in_xz(message.target.global_position))
 
 
 ## Aim [a_actor] at the target. A TURRET weapon (Weapon.turret) swings itself every tick —
@@ -296,7 +296,7 @@ func _target_within_leash(a_actor: Commandable) -> bool:
 		var radius: float = _shape_node_xz_radius(message.aggro_shape)
 		if radius < 0.0:
 			return true
-		return message.target.hull().distance_to_point(VU.inXZ(origin)) <= radius
+		return message.target.hull().distance_to_point(VU.in_xz(origin)) <= radius
 
 	var leash: float = _leash_radius(a_actor)
 	if leash < 0.0:

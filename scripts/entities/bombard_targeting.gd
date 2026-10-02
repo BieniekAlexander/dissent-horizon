@@ -54,8 +54,8 @@ static func beacon_at(commander: Commander, world_position: Vector3) -> Beacon:
 			continue
 		if beacon.host().commander_id != commander.id or not beacon.covers(world_position):
 			continue
-		var distance: float = VU.inXZ(beacon.host().global_position).distance_to(
-			VU.inXZ(world_position)
+		var distance: float = VU.in_xz(beacon.host().global_position).distance_to(
+			VU.in_xz(world_position)
 		)
 		if distance < best_distance:
 			best_distance = distance

@@ -116,7 +116,7 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 			% [
 				fog._fog_bytes.size(),
 				str(fog._fog_texture != null),
-				str(fog.fog_clear_at(VU.inXZ(bot.base_centroid())))
+				str(fog.fog_clear_at(VU.in_xz(bot.base_centroid())))
 			]
 		)
 	)

@@ -906,14 +906,14 @@ func get_aggro_near_position(
 
 	# Prefer higher-priority targets (lower TargetPriority value), breaking ties by the
 	# nearest so a unit still engages the closest of the most important targets.
-	var self_xz: Vector2 = VU.inXZ(global_position)
+	var self_xz: Vector2 = VU.in_xz(global_position)
 	vs.sort_custom(
 		func(a: Entity, b: Entity) -> bool:
 			if a.target_priority != b.target_priority:
 				return a.target_priority < b.target_priority
 			return (
-				self_xz.distance_squared_to(VU.inXZ(a.global_position))
-				< self_xz.distance_squared_to(VU.inXZ(b.global_position))
+				self_xz.distance_squared_to(VU.in_xz(a.global_position))
+				< self_xz.distance_squared_to(VU.in_xz(b.global_position))
 			)
 	)
 
@@ -935,7 +935,7 @@ func _hostiles_in_region(
 	var exclude: Array = [target_body.get_rid()] if target_body != null else []
 	return SU.entities_within(
 		get_world_3d(),
-		Hull.point(VU.inXZ(a_center)),
+		Hull.point(VU.in_xz(a_center)),
 		a_shape.shape,
 		a_center,
 		CollisionLayers.hostile_mask(a_layers, commander_id),
@@ -1275,7 +1275,7 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 ## Stand the body at its height for this tick: the terrain under it — the eased contour an
 ## aircraft follows (Aerial.follow_y) rather than the raw one — plus its height above that.
 func _snap_height_to_terrain() -> void:
-	var terrain_y: float = map.terrain_height_at(VU.inXZ(global_position))
+	var terrain_y: float = map.terrain_height_at(VU.in_xz(global_position))
 	var base_y: float = aerial.follow_y(terrain_y) if aerial != null else terrain_y
 	global_position.y = base_y + height_offset()
 

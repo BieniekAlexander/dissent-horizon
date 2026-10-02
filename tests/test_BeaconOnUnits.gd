@@ -359,7 +359,7 @@ func test_tracking_a_still_goal_keeps_roughly_the_launch_heading() -> void:
 	var launched := phase.launch_velocity(Vector3.ZERO, goal)
 	var tracked := phase.tracked_velocity(launched, Vector3.ZERO, goal)
 	assert_almost_eq(
-		VU.inXZ(tracked).normalized(), VU.inXZ(launched).normalized(), Vector2.ONE * 0.001
+		VU.in_xz(tracked).normalized(), VU.in_xz(launched).normalized(), Vector2.ONE * 0.001
 	)
 
 

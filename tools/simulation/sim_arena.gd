@@ -485,10 +485,10 @@ func _targets_of(a_target: SimSpec.TargetRef) -> Array:
 ## the defenders into groups instead.
 func _extreme(a_candidates: Array, a_nearest: bool) -> Commandable:
 	var best: Commandable = a_candidates[0]
-	var best_distance: float = VU.inXZ(best.global_position).length()
+	var best_distance: float = VU.in_xz(best.global_position).length()
 	for index: int in range(1, a_candidates.size()):
 		var candidate: Commandable = a_candidates[index]
-		var distance: float = VU.inXZ(candidate.global_position).length()
+		var distance: float = VU.in_xz(candidate.global_position).length()
 		if (distance < best_distance) == a_nearest:
 			best = candidate
 			best_distance = distance
@@ -526,7 +526,7 @@ func _pulled_back_to_edge(a_placement: SimSpec.Placement, a_point: Vector2) -> V
 		return a_point
 	var radius: float = 0.0
 	for member: Commandable in roster.living(reference):
-		radius = maxf(radius, VU.inXZ(member.global_position - (centre as Vector3)).length())
+		radius = maxf(radius, VU.in_xz(member.global_position - (centre as Vector3)).length())
 	var inward: Vector2 = Vector2.ZERO - a_point
 	if inward.length() < 0.001:
 		return a_point

@@ -123,7 +123,7 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		if is_attacking:
 			attacking += 1
 		var near_objective: bool = (
-			VU.inXZ(u.global_position).distance_to(VU.inXZ(objective)) <= ARRIVE_RADIUS
+			VU.in_xz(u.global_position).distance_to(VU.in_xz(objective)) <= ARRIVE_RADIUS
 		)
 		if near_objective:
 			arrived += 1

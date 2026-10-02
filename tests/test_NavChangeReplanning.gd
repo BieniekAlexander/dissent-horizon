@@ -297,7 +297,7 @@ func test_a_path_that_stops_short_re_plans_only_on_a_change_around_its_target() 
 	await _await_landing([])
 	var boxed_out: CountingMovement = await _unit(Vector2i(4, center), Vector2i(center, center))
 	assert_gt(
-		VU.inXZ(boxed_out.current_path()[-1]).distance_to(VU.inXZ(_cell_world(center, center))),
+		VU.in_xz(boxed_out.current_path()[-1]).distance_to(VU.in_xz(_cell_world(center, center))),
 		1.0,
 		"guards the fixture: the path stops short of the boxed-in target"
 	)
@@ -312,7 +312,7 @@ func test_a_path_that_stops_short_re_plans_only_on_a_change_around_its_target() 
 	boxed_out.is_navigation_finished()
 	assert_eq(boxed_out.queries, 1, "a change around the target re-plans, even on its far side")
 	assert_lt(
-		VU.inXZ(boxed_out.current_path()[-1]).distance_to(VU.inXZ(_cell_world(center, center))),
+		VU.in_xz(boxed_out.current_path()[-1]).distance_to(VU.in_xz(_cell_world(center, center))),
 		0.5,
 		"and the new path reaches the target through the gate"
 	)

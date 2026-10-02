@@ -40,7 +40,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	Lifespan.attach(beacon, lifespan_seconds)
 	_add_sight(beacon)
 	beacon.initialize(map, commander)
-	var xz: Vector2 = VU.inXZ(global_position)
+	var xz: Vector2 = VU.in_xz(global_position)
 	beacon.global_position = Vector3(xz.x, map.terrain_height_at(xz), xz.y)
 	var carrier: Entity = _carrier_near(beacon)
 	if carrier != null:

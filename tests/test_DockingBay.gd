@@ -413,7 +413,7 @@ func test_taxiing_walks_the_aircraft_along_its_path_and_stops() -> void:
 		plane.aerial._physics_process(0.0)
 	assert_true(arrived[0], "it reached the end of the path")
 	assert_almost_eq(
-		VU.inXZ(plane.global_position).length(),
+		VU.in_xz(plane.global_position).length(),
 		0.0,
 		0.01,
 		"parked exactly on the last waypoint, not near it"
@@ -459,8 +459,8 @@ func test_a_new_aircraft_is_rolled_out_onto_a_free_pad() -> void:
 	assert_true(plane.aerial.is_docked(), "and it is standing on the deck, not over it")
 	assert_not_null(plane.docking.docked_pad, "holding the pad it was given")
 	assert_eq(
-		VU.inXZ(plane.global_position),
-		VU.inXZ(plane.docking.docked_pad.dock_position()),
+		VU.in_xz(plane.global_position),
+		VU.in_xz(plane.docking.docked_pad.dock_position()),
 		"parked on the mark"
 	)
 
@@ -858,7 +858,7 @@ func test_the_last_leg_of_a_departure_opens_up_to_flight_speed() -> void:
 	var fastest: float = 0.0
 	for _i: int in 4000:
 		plane.aerial._physics_process(0.0)
-		fastest = maxf(fastest, VU.inXZ(plane.movement._current_velocity).length())
+		fastest = maxf(fastest, VU.in_xz(plane.movement._current_velocity).length())
 		if not plane.aerial.is_taxiing():
 			break
 	assert_gt(
@@ -1110,8 +1110,8 @@ func test_with_nowhere_left_to_go_it_holds_over_the_wreck() -> void:
 
 	assert_null(plane.current_command(), "no airfield to be sent to")
 	assert_eq(
-		VU.inXZ(plane.aerial._anchor),
-		VU.inXZ(parked_at),
+		VU.in_xz(plane.aerial._anchor),
+		VU.in_xz(parked_at),
 		"so it orbits where its airfield used to be"
 	)
 

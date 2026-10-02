@@ -62,7 +62,7 @@ func test_a_group_reveals_one_area_per_member() -> void:
 func test_the_areas_land_on_the_members() -> void:
 	var here := _target(Vector2(12.0, -34.0))
 	_event.target_group = GROUP
-	assert_eq(_event._target_points(_manager)[0], VU.inXZ(here.global_position))
+	assert_eq(_event._target_points(_manager)[0], VU.in_xz(here.global_position))
 
 
 func test_no_group_reveals_at_the_events_own_position() -> void:

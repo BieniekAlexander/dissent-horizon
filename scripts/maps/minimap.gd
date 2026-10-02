@@ -156,7 +156,7 @@ func _initialize_bounds() -> void:
 	# Multiply by CELL_SIZE (= Map's scale) to get world half-extents.
 	_world_half_w = (hs.map_width - 1) * 0.5 * Map.CELL_SIZE
 	_world_half_d = (hs.map_depth - 1) * 0.5 * Map.CELL_SIZE
-	_world_center = VU.inXZ(_map.global_position)
+	_world_center = VU.in_xz(_map.global_position)
 
 	# If the map defines screen-aligned play bounds, frame that rectangle instead. One (s,t)
 	# unit moves the cell by (0.5, 0.5), i.e. CELL_SIZE/sqrt(2) of world distance along its
@@ -281,7 +281,7 @@ func _process(_a_delta: float) -> void:
 		):
 			continue
 
-		var minimap_pos: Vector2i = world_to_minimap(VU.inXZ(commandable.global_position))
+		var minimap_pos: Vector2i = world_to_minimap(VU.in_xz(commandable.global_position))
 		if minimap_pos.x == -1:
 			continue
 
@@ -413,7 +413,7 @@ func _rebuild_layer() -> void:
 		var marker := markers[i] as Node3D
 		if marker == null:
 			continue
-		var cell: Vector2i = _map.world_to_grid(VU.inXZ(marker.global_position))
+		var cell: Vector2i = _map.world_to_grid(VU.in_xz(marker.global_position))
 		starts.append(
 			{
 				center = Vector2(cell) + Vector2(0.5, 0.5),
@@ -522,7 +522,7 @@ func _draw_objective_markers() -> void:
 		for entity: Entity in highlight.marked_entities():
 			if not is_instance_valid(entity) or not entity.is_inside_tree():
 				continue
-			var pixel: Vector2i = world_to_minimap(VU.inXZ(entity.global_position))
+			var pixel: Vector2i = world_to_minimap(VU.in_xz(entity.global_position))
 			if pixel.x != -1:
 				_draw_pixels(pixel, _objective_ring_offsets, color)
 

@@ -474,7 +474,7 @@ func _after_placement(a_new_structure: Commandable, a_map: Map) -> void:
 			or unit.is_enemy_of(a_new_structure)
 		):
 			continue
-		var unit_cell: Vector2i = a_map.world_to_grid(VU.inXZ(unit.global_position))
+		var unit_cell: Vector2i = a_map.world_to_grid(VU.in_xz(unit.global_position))
 		if cell_set.has(unit_cell):
 			var nav_point: Vector3 = a_map.nearest_navmesh_point(unit.global_position)
 			var move_msg: CommandMessage = CommandMessage.new(a_map, null, null, nav_point)
@@ -628,7 +628,7 @@ func _enemy_on_footprint(a_actor: Commandable) -> bool:
 			and a_actor.is_enemy_of(unit)
 			and not unit.is_garrisoned()
 			and not unit.is_airborne()
-			and cells.has(message.map.world_to_grid(VU.inXZ(unit.global_position)))
+			and cells.has(message.map.world_to_grid(VU.in_xz(unit.global_position)))
 		):
 			return true
 	return false

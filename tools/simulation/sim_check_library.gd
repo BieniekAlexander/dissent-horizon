@@ -127,7 +127,7 @@ static func _build_distance_to(a_check: SimSpec.Check, a_roster: SimGroupRoster)
 		var there: Variant = a_roster.centroid(other)
 		if here == null or there == null:
 			return false
-		var apart: float = VU.inXZ(here as Vector3).distance_to(VU.inXZ(there as Vector3))
+		var apart: float = VU.in_xz(here as Vector3).distance_to(VU.in_xz(there as Vector3))
 		if a_check.arguments.has("at_least") and apart < float(a_check.arguments["at_least"]):
 			return false
 		if a_check.arguments.has("at_most") and apart > float(a_check.arguments["at_most"]):

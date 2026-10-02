@@ -19,7 +19,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 		return
 
 	var target_pos: Vector3 = global_position
-	target_pos.y = map.terrain_height_at(VU.inXZ(target_pos))
+	target_pos.y = map.terrain_height_at(VU.in_xz(target_pos))
 	var source_pos: Vector3 = target_pos + Vector3(_SOURCE_OFFSET, 0.0, 0.0)
 
 	var projectile: Entity = _RADIATION_SCENE.instantiate() as Entity

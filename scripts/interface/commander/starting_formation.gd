@@ -51,7 +51,7 @@ static func offsets_from(formation: Node) -> Array[Vector2]:
 	for child: Node in formation.get_children():
 		var slot := child as Node3D
 		if slot != null:
-			offsets.append(VU.inXZ(slot.position))
+			offsets.append(VU.in_xz(slot.position))
 	return offsets
 
 

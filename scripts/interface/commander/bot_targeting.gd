@@ -292,5 +292,7 @@ static func finishability_signal(_unit: Commandable, candidate: Commandable) -> 
 ## PROXIMITY — prefer closer targets (less travel, faster to engage). Decreasing with
 ## XZ distance, self-normalising to (0, 1] (1 when adjacent, → 0 far away).
 static func proximity_signal(unit: Commandable, candidate: Commandable) -> float:
-	var dist: float = VU.inXZ(unit.global_position).distance_to(VU.inXZ(candidate.global_position))
+	var dist: float = VU.in_xz(unit.global_position).distance_to(
+		VU.in_xz(candidate.global_position)
+	)
 	return 1.0 / (1.0 + dist)

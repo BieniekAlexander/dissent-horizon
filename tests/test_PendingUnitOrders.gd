@@ -34,7 +34,7 @@ func _transaction() -> PurchaseTransaction:
 
 
 func _order(a_xz: Vector2) -> MoveCommand:
-	return MoveCommand.new(CommandMessage.new(null, null, null, VU.fromXZ(a_xz)))
+	return MoveCommand.new(CommandMessage.new(null, null, null, VU.from_xz(a_xz)))
 
 
 func _controller() -> RTSController:
@@ -234,7 +234,7 @@ func test_a_command_reaches_every_selected_phantom() -> void:
 	var second: PurchaseTransaction = _transaction()
 	controller.select_pending([first, second], false)
 
-	var message := CommandMessage.new(null, null, null, VU.fromXZ(Vector2(7, 7)))
+	var message := CommandMessage.new(null, null, null, VU.from_xz(Vector2(7, 7)))
 	assert_true(controller.assign_command_to_pending(MoveCommand, message, false))
 
 	assert_eq(first.player_commands.size(), 1)
@@ -249,7 +249,7 @@ func test_each_phantom_gets_its_own_command_instance() -> void:
 	var second: PurchaseTransaction = _transaction()
 	controller.select_pending([first, second], false)
 	controller.assign_command_to_pending(
-		MoveCommand, CommandMessage.new(null, null, null, VU.fromXZ(Vector2(7, 7))), false
+		MoveCommand, CommandMessage.new(null, null, null, VU.from_xz(Vector2(7, 7))), false
 	)
 	assert_ne(first.player_commands[0], second.player_commands[0])
 	assert_ne(first.player_commands[0].message, second.player_commands[0].message)
@@ -260,7 +260,7 @@ func test_a_null_command_type_falls_back_to_a_plain_move() -> void:
 	var transaction: PurchaseTransaction = _transaction()
 	controller.select_pending([transaction], false)
 	controller.assign_command_to_pending(
-		null, CommandMessage.new(null, null, null, VU.fromXZ(Vector2(2, 2))), false
+		null, CommandMessage.new(null, null, null, VU.from_xz(Vector2(2, 2))), false
 	)
 	assert_eq(transaction.player_commands.size(), 1)
 	assert_true(transaction.player_commands[0] is MoveCommand)

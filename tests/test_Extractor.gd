@@ -78,7 +78,7 @@ func _place(a_map: Map, a_structure: Entity, a_origin: Vector2i) -> Vector2:
 			cells.append(cell)
 			a_map.cell_grid[cell.x][cell.y] = a_structure
 	a_map.structure_cell_map[a_structure] = cells
-	return VU.inXZ(a_map.footprint_centroid(a_origin, _DIMS))
+	return VU.in_xz(a_map.footprint_centroid(a_origin, _DIMS))
 
 
 func _msg(a_map: Map, a_xz: Vector2) -> CommandMessage:

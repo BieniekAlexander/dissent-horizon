@@ -259,7 +259,7 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 	var chain: Array = occupant.command_receiver.get_command_chain()
 	var dests: Array = []
 	for c: MoveCommand in chain:
-		dests.append(VU.inXZ(c.message.position))
+		dests.append(VU.in_xz(c.message.position))
 	prints("PROBE occupant chain after evacuation:", dests)
 	prints(
 		"PROBE still garrisoned:", occupant.is_garrisoned(), "in tree:", occupant.is_inside_tree()
@@ -390,7 +390,7 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 		if made != null and made.id == QUEUED_PIECE:
 			var spawned_dests: Array = []
 			for c: MoveCommand in made.command_receiver.get_command_chain():
-				spawned_dests.append(VU.inXZ(c.message.position))
+				spawned_dests.append(VU.in_xz(c.message.position))
 			prints("PROBE spawned unit chain:", spawned_dests)
 
 

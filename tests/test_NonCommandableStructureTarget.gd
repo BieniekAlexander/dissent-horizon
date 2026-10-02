@@ -125,7 +125,7 @@ func _make_site() -> Entity:
 	var site: Entity = FakePieces.make(SITE_SCENE) as Entity
 	_world.add_child(site)
 	site.global_position = _map.grid_to_world(SITE_CELL)
-	_map.add_structure(site, VU.inXZ(site.global_position))
+	_map.add_structure(site, VU.in_xz(site.global_position))
 	return site
 
 
@@ -213,7 +213,7 @@ func test_a_builder_targeting_an_extraction_site_is_sent_to_a_cell_it_can_stand_
 	var builder: Commandable = _make_builder(Vector2i(2, 2))
 	var command := Build.new(_order_targeting_the_site())
 	var destination: Vector3 = builder.command_receiver._resolve_movement_target(command)
-	var cell: Vector2i = _map.world_to_grid(VU.inXZ(destination))
+	var cell: Vector2i = _map.world_to_grid(VU.in_xz(destination))
 
 	assert_false(
 		_map.terrain_grid.is_passable(SITE_CELL),
@@ -234,7 +234,7 @@ func test_the_pre_fix_destination_was_a_cell_no_unit_could_reach() -> void:
 	var command := Build.new(_order_targeting_the_site())
 	var pre_fix: Vector3 = command.message.position  # the branch was skipped, so: the fallback
 	assert_false(
-		_map.terrain_grid.is_passable(_map.world_to_grid(VU.inXZ(pre_fix))),
+		_map.terrain_grid.is_passable(_map.world_to_grid(VU.in_xz(pre_fix))),
 		"pre-fix the builder was aimed at an impassable cell — it could never arrive"
 	)
 	assert_ne(

@@ -637,7 +637,7 @@ func taxi_along(a_path: Array[Vector3], a_on_complete: Callable, a_roll_from: in
 	_taxi_index = 0
 	_taxi_on_complete = a_on_complete
 	_taxi_roll_from = a_roll_from
-	_taxi_speed = VU.inXZ(_velocity()).length()
+	_taxi_speed = VU.in_xz(_velocity()).length()
 	_landing_state = LandingState.TAXIING
 
 
@@ -701,8 +701,8 @@ func _steer_during_descent() -> void:
 func _descend_to_touchdown() -> float:
 	if not _pad_landing or not _has_landing_target:
 		return _step_height_offset(_landing_deck_offset)
-	var dist: float = VU.inXZ(_landing_target).distance_to(VU.inXZ(_host().global_position))
-	var closing: float = VU.inXZ(_velocity()).length()
+	var dist: float = VU.in_xz(_landing_target).distance_to(VU.in_xz(_host().global_position))
+	var closing: float = VU.in_xz(_velocity()).length()
 	var drop: float = _current_height_offset - _landing_deck_offset
 	if drop <= 0.0:
 		return 0.0
@@ -754,7 +754,7 @@ func _tick_flying_landing() -> void:
 				_brake_during_descent()
 			# Nose down along the descent path, as in a dive — the same attitude model, driven
 			# by the landing rate instead of the dive rate.
-			_apply_flying_attitude(-change / dt, VU.inXZ(_velocity()).length(), dt)
+			_apply_flying_attitude(-change / dt, VU.in_xz(_velocity()).length(), dt)
 		LandingState.GROUNDED_TEMP:
 			_settle_on_deck()
 		LandingState.TAXIING:
@@ -772,7 +772,7 @@ func _tick_flying_landing() -> void:
 			# as it is off the ground, and a commandless one still flies rather than stalling.
 			if not _velocity_commanded:
 				_accelerate_along_facing()
-			_apply_flying_attitude(-change / dt, VU.inXZ(_velocity()).length(), dt)
+			_apply_flying_attitude(-change / dt, VU.in_xz(_velocity()).length(), dt)
 			if _current_height_offset >= AERIAL_HEIGHT:
 				_landing_state = LandingState.AIRBORNE
 				_dive_rate = 0.0
@@ -817,8 +817,8 @@ func _tick_taxi() -> void:
 		_finish_taxi()
 		return
 	_level_body()
-	var here: Vector2 = VU.inXZ(host.global_position)
-	var there: Vector2 = VU.inXZ(_taxi_path[_taxi_index])
+	var here: Vector2 = VU.in_xz(host.global_position)
+	var there: Vector2 = VU.in_xz(_taxi_path[_taxi_index])
 	var to_target: Vector2 = there - here
 	var distance: float = to_target.length()
 	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
@@ -848,7 +848,7 @@ func _tick_taxi() -> void:
 	# do. The velocity is left at zero through the turn so the stop is real.
 	var aim: Vector3 = Vector3(there.x, host.global_position.y, there.y)
 	if not movement.is_facing_within(aim, TAXI_FACING_EPSILON):
-		movement.turn_toward(VU.fromXZ(to_target))
+		movement.turn_toward(VU.from_xz(to_target))
 		_set_velocity(Vector3.ZERO)
 		_taxi_speed = 0.0
 		return
@@ -859,7 +859,7 @@ func _tick_taxi() -> void:
 	# is actually doing, and the climb-out reads it as its starting heading — without it the
 	# turn-rate clamp sees a standing start, has no heading to turn FROM, and takes the first
 	# commanded direction whole. A jet leaving the runway snapped through 180 degrees.
-	_set_velocity(VU.fromXZ(to_target / distance) * _taxi_speed)
+	_set_velocity(VU.from_xz(to_target / distance) * _taxi_speed)
 
 
 func _finish_taxi() -> void:
@@ -887,8 +887,8 @@ func set_anchor(a_pos: Vector3) -> void:
 	var host: Node3D = _host()
 	if host == null:
 		return
-	var offset: Vector2 = VU.inXZ(host.global_position) - VU.inXZ(a_pos)
-	var heading: Vector2 = VU.inXZ(_velocity())
+	var offset: Vector2 = VU.in_xz(host.global_position) - VU.in_xz(a_pos)
+	var heading: Vector2 = VU.in_xz(_velocity())
 	# Seed the orbit clock so the unit enters the pattern from where it is, going the way it
 	# is already going. Which reading is meaningful depends on where it is:
 	#
@@ -936,8 +936,8 @@ func compute_orbit_velocity() -> Vector3:
 	# interrupted while it sat on the deck — would taxi off its pad in a circle.
 	if _landing_state != LandingState.AIRBORNE:
 		return Vector3.ZERO
-	var centre: Vector2 = VU.inXZ(_anchor)
-	var offset: Vector2 = VU.inXZ(host.global_position) - centre
+	var centre: Vector2 = VU.in_xz(_anchor)
+	var offset: Vector2 = VU.in_xz(host.global_position) - centre
 	var radius_now: float = offset.length()
 	# Outward radial. Sitting exactly on the anchor there is no bearing to read, so fall back
 	# to the orbit clock — which set_anchor() seeded from the unit's heading precisely for
@@ -951,7 +951,7 @@ func compute_orbit_velocity() -> Vector3:
 	# Keep the clock in step with where the unit actually is, so anything reading it (and the
 	# centre fallback above) stays meaningful.
 	_orbit_angle = atan2(outward.y, outward.x)
-	return VU.fromXZ(dir) * orbit_speed
+	return VU.from_xz(dir) * orbit_speed
 
 
 #endregion
@@ -982,8 +982,8 @@ func _update_flying_height() -> void:
 	var wants_dive: bool = _dive_requested and host != null and dive_distance > 0.0
 	_dive_requested = false
 	if wants_dive:
-		var dist: float = VU.inXZ(host.global_position).distance_to(_dive_target_xz)
-		if dist <= _dive_commit_distance(VU.inXZ(_velocity()).length()):
+		var dist: float = VU.in_xz(host.global_position).distance_to(_dive_target_xz)
+		if dist <= _dive_commit_distance(VU.in_xz(_velocity()).length()):
 			_dive_committed = true
 			_descend_toward_dive(dist, dt)
 			return
@@ -992,7 +992,7 @@ func _update_flying_height() -> void:
 	_dive_committed = false
 	_dive_rate = 0.0
 	_current_height_offset = move_toward(_current_height_offset, AERIAL_HEIGHT, LANDING_SPEED * dt)
-	_apply_flying_attitude(0.0, VU.inXZ(_velocity()).length(), dt)
+	_apply_flying_attitude(0.0, VU.in_xz(_velocity()).length(), dt)
 
 
 ## The horizontal distance at which a FLYING unit must nose over to still reach its target's
@@ -1014,7 +1014,7 @@ func _dive_commit_distance(a_horizontal_speed: float) -> float:
 ## With no closing speed (hovering over the target, or stopped) there is no arrival to time
 ## the descent against, so it simply drops at the cap.
 func _descend_toward_dive(a_dist: float, a_dt: float) -> void:
-	var horizontal_speed: float = VU.inXZ(_velocity()).length()
+	var horizontal_speed: float = VU.in_xz(_velocity()).length()
 	var desired: float = DIVE_MAX_DESCENT_RATE
 	if horizontal_speed > 1e-3 and a_dist > 1e-3:
 		desired = _current_height_offset / (a_dist / horizontal_speed)
@@ -1156,7 +1156,7 @@ func _update_aerial_altitude() -> void:
 	var map: Map = _map()
 	if host == null or map == null:
 		return
-	var pos_xz: Vector2 = VU.inXZ(host.global_position)
+	var pos_xz: Vector2 = VU.in_xz(host.global_position)
 	# Seed to the actual terrain on the first tick so the unit doesn't ease up from 0.
 	if not _aerial_y_seeded:
 		_smoothed_terrain_y = map.terrain_height_at(pos_xz)
@@ -1167,7 +1167,7 @@ func _update_aerial_altitude() -> void:
 	# single look-ahead point could miss a taller cell between here and there; taking
 	# the max across the span guarantees the unit is lifted in time to clear it.
 	var target_terrain: float = map.terrain_height_at(pos_xz)
-	var vel_xz: Vector2 = VU.inXZ(_velocity())
+	var vel_xz: Vector2 = VU.in_xz(_velocity())
 	if not vel_xz.is_zero_approx():
 		var ahead: Vector2 = vel_xz * AERIAL_LOOKAHEAD_SECONDS
 		for i: int in AERIAL_LOOKAHEAD_SAMPLES:

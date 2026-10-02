@@ -73,7 +73,7 @@ func test_flying_unit_settles_into_its_orbit_without_doubling_back() -> void:
 		total += absf(d)
 		net += d
 		max_radius = maxf(
-			max_radius, VU.inXZ(drone.global_position).distance_to(VU.inXZ(drone.aerial._anchor))
+			max_radius, VU.in_xz(drone.global_position).distance_to(VU.in_xz(drone.aerial._anchor))
 		)
 		observed += 1
 		if observed >= OBSERVE_TICKS:

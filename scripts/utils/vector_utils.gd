@@ -3,26 +3,22 @@ class_name VU
 ## Vector helpers, aliased `VU` for how often they appear. Y is terrain height and XZ is the
 ## horizontal plane, so converting between a world Vector3 and its ground footprint is the
 ## single most common operation in this codebase.
-##
-## PLANNED: rename the four camelCase names below (`inXZ`, `onXZ`, `fromXZ`, `l1Norm`) to
-## snake_case per §3.2 — approved 2026-09-24 (gdd/deferred.md 2.40). 174 call sites, and
-## CLAUDE.md names them by hand. `gdlint` reports them until it happens.
 
 
 #region Public API
-static func inXZ(v: Vector3) -> Vector2:
+static func in_xz(v: Vector3) -> Vector2:
 	return Vector2(v.x, v.z)
 
 
-static func onXZ(v: Vector3) -> Vector3:
+static func on_xz(v: Vector3) -> Vector3:
 	return Vector3(v.x, 0, v.z)
 
 
-static func fromXZ(v: Vector2) -> Vector3:
+static func from_xz(v: Vector2) -> Vector3:
 	return Vector3(v.x, 0, v.y)
 
 
-static func l1Norm(v: Vector2) -> float:
+static func l1_norm(v: Vector2) -> float:
 	return abs(v.x) + abs(v.y)
 
 

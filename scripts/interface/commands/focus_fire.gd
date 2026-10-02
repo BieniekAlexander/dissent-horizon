@@ -44,7 +44,7 @@ static func meets_precondition(
 		reach >= 0.0
 		and message != null
 		and not actor.can_move()
-		and not within_reach(actor.hull(), VU.inXZ(aim_point(message)), reach)
+		and not within_reach(actor.hull(), VU.in_xz(aim_point(message)), reach)
 	):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
@@ -91,7 +91,7 @@ func _aim() -> Vector3:
 
 
 func _aim_xz() -> Vector2:
-	return VU.inXZ(aim_point(message))
+	return VU.in_xz(aim_point(message))
 
 
 ## An order to shoot is undoable with an empty charged clip; the receiver stands it down

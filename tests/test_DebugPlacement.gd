@@ -86,7 +86,7 @@ func _source(a_options: Dictionary) -> Entity:
 
 
 func _at(a_cell: Vector2i) -> CommandMessage:
-	var xz: Vector2 = VU.inXZ(_map.footprint_centroid(a_cell, Vector2i.ONE))
+	var xz: Vector2 = VU.in_xz(_map.footprint_centroid(a_cell, Vector2i.ONE))
 	return CommandMessage.new(_map, null, null, Vector3(xz.x, 0.0, xz.y))
 
 

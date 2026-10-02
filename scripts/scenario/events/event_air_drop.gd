@@ -53,8 +53,8 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	if commander == null or map == null or transport_scene == null:
 		return
 
-	var drop_xz: Vector2 = VU.inXZ(global_position)
-	var anchor_xz: Vector2 = VU.inXZ(caster.global_position) if caster != null else drop_xz
+	var drop_xz: Vector2 = VU.in_xz(global_position)
+	var anchor_xz: Vector2 = VU.in_xz(caster.global_position) if caster != null else drop_xz
 	var entry_xz: Vector2 = OffMapArrival.entry_xz(map, anchor_xz)
 
 	var transport: Commandable = _launch_transport(map, commander, entry_xz, drop_xz)

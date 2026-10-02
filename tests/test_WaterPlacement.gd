@@ -134,7 +134,7 @@ func _add_water(a_map: Map, a_energy: int = 0) -> WaterBody:
 
 ## The world XZ a 2x2 footprint must be aimed at to land on `origin`.
 func _aim(a_map: Map, a_origin: Vector2i) -> Vector2:
-	return VU.inXZ(a_map.footprint_centroid(a_origin, _DIMS))
+	return VU.in_xz(a_map.footprint_centroid(a_origin, _DIMS))
 
 
 func _msg(a_map: Map, a_xz: Vector2) -> CommandMessage:

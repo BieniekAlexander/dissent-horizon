@@ -182,8 +182,8 @@ func _run() -> void:
 							unit.global_position.x,
 							unit.global_position.z,
 							unit.height_offset(),
-							VU.inXZ(unit.velocity).length(),
-							VU.inXZ(unit.global_position).distance_to(field_xz),
+							VU.in_xz(unit.velocity).length(),
+							VU.in_xz(unit.global_position).distance_to(field_xz),
 							unit.aerial.is_docked(),
 							weapon.ammo(),
 							(
@@ -203,11 +203,13 @@ func _run() -> void:
 				)
 			continue
 		if tick % 5 == 0:
-			var to_target: Vector2 = VU.inXZ(target.global_position) - VU.inXZ(unit.global_position)
-			var bearing: Vector2 = (
-				(VU.inXZ(target.global_position) - VU.inXZ(unit.global_position)).normalized()
+			var to_target: Vector2 = (
+				VU.in_xz(target.global_position) - VU.in_xz(unit.global_position)
 			)
-			var nose: Vector2 = VU.inXZ(unit.movement.get_facing())
+			var bearing: Vector2 = (
+				(VU.in_xz(target.global_position) - VU.in_xz(unit.global_position)).normalized()
+			)
+			var nose: Vector2 = VU.in_xz(unit.movement.get_facing())
 			var off_axis: float = (
 				rad_to_deg(absf(nose.angle_to(bearing))) if not nose.is_zero_approx() else -1.0
 			)

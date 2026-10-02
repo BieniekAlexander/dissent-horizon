@@ -105,7 +105,7 @@ func _push_parameters(a_data: TerrainData) -> void:
 		return
 
 	var map: Map = _find_map()
-	var center: Vector2 = VU.inXZ(map.global_position) if map != null else Vector2.ZERO
+	var center: Vector2 = VU.in_xz(map.global_position) if map != null else Vector2.ZERO
 	TerrainShading.push_terrain_uniforms(sm, a_data, center)
 
 	var catalog: TerrainTileCatalog = a_data.catalog

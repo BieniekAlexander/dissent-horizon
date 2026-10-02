@@ -65,7 +65,7 @@ func _redraw() -> void:
 		return
 
 	# Ground point directly below the unit, and the drop from origin to it.
-	var self_xz: Vector2 = VU.inXZ(unit.global_position)
+	var self_xz: Vector2 = VU.in_xz(unit.global_position)
 	var ground_y: float = unit.map.terrain_height_at(self_xz)
 	var drop: float = unit.global_position.y - ground_y
 	if drop <= MIN_DROP:

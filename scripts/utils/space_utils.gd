@@ -166,11 +166,13 @@ static func unit_is_close_to_structure(
 	# stand *on* a cell the structure occupies, impossible for anything > 1x1.
 	var placement_map: Map = structure.map
 	if placement_map == null:
-		return linf_distance(VU.inXZ(unit.global_position), VU.inXZ(structure.global_position)) <= 1
+		return (
+			linf_distance(VU.in_xz(unit.global_position), VU.in_xz(structure.global_position)) <= 1
+		)
 	var footprint: Array = structure_footprint(placement_map, structure)
 	if footprint.is_empty():
 		# Footprint not registered yet — fall back to the structure's origin cell.
-		footprint = [placement_map.world_to_grid(VU.inXZ(structure.global_position))]
+		footprint = [placement_map.world_to_grid(VU.in_xz(structure.global_position))]
 	return unit_is_close_to_footprint(unit, placement_map, footprint)
 
 
@@ -238,7 +240,7 @@ static func edge_adjacent_structures(map: Map, structure: Entity) -> Array[Entit
 static func unit_is_close_to_footprint(unit: Commandable, map: Map, footprint: Array) -> bool:
 	if map == null or footprint.is_empty():
 		return false
-	var unit_cell: Vector2i = map.world_to_grid(VU.inXZ(unit.global_position))
+	var unit_cell: Vector2i = map.world_to_grid(VU.in_xz(unit.global_position))
 	for cell: Vector2i in footprint:
 		if linf_distance(unit_cell, cell) <= 1.:
 			return true
@@ -266,10 +268,10 @@ static func _within_class_standoff(unit: Commandable, map: Map, footprint: Array
 	if unit.movement == null:
 		return false
 	var reach: float = class_standoff_reach(unit.movement.nav_agent_class)
-	var here: Vector2 = VU.inXZ(unit.global_position)
+	var here: Vector2 = VU.in_xz(unit.global_position)
 	var half: float = Map.CELL_SIZE * 0.5
 	for cell: Vector2i in footprint:
-		var offset: Vector2 = (here - VU.inXZ(map.grid_to_world(cell))).abs()
+		var offset: Vector2 = (here - VU.in_xz(map.grid_to_world(cell))).abs()
 		var outside: Vector2 = (offset - Vector2(half, half)).max(Vector2.ZERO)
 		if outside.length() <= reach:
 			return true

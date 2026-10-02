@@ -287,7 +287,7 @@ func velocity_toward_next_path_position() -> Vector3:
 ## XZ distance within the sum of their body radii.
 func _body_touches(a_other: Entity) -> bool:
 	var me: Entity = _owner_node() as Entity
-	var gap: float = VU.inXZ(me.global_position).distance_to(VU.inXZ(a_other.global_position))
+	var gap: float = VU.in_xz(me.global_position).distance_to(VU.in_xz(a_other.global_position))
 	var reach: float = (
 		me.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 		+ a_other.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
@@ -1009,15 +1009,15 @@ func _heading_for(
 ## around. Which way it goes at exactly 180° is arbitrary — there is no better side — but it
 ## is decided rather than left to numerical noise.
 func _turn_heading_toward(a_from: Vector3, a_toward: Vector3, a_max_angle: float) -> Vector3:
-	var current: Vector2 = VU.inXZ(a_from)
-	var wanted: Vector2 = VU.inXZ(a_toward)
+	var current: Vector2 = VU.in_xz(a_from)
+	var wanted: Vector2 = VU.in_xz(a_toward)
 	if current.is_zero_approx() or wanted.is_zero_approx():
 		return a_toward
 	current = current.normalized()
 	var signed: float = current.angle_to(wanted.normalized())
 	if absf(signed) <= a_max_angle:
 		return a_toward
-	return VU.fromXZ(current.rotated(signf(signed) * a_max_angle))
+	return VU.from_xz(current.rotated(signf(signed) * a_max_angle))
 
 
 ## Cap `desired_speed` so this unit's minimum turn radius is small enough to actually curve
@@ -1051,10 +1051,10 @@ func _turn_limited_speed(a_desired_speed: float) -> float:
 	var owner_node: Node3D = _owner_node()
 	if owner_node == null:
 		return a_desired_speed
-	var heading: Vector2 = VU.inXZ(_current_velocity)
+	var heading: Vector2 = VU.in_xz(_current_velocity)
 	if heading.is_zero_approx():
 		return a_desired_speed  # stopped: it can set off in any direction, no turn to make
-	var to_target: Vector2 = VU.inXZ(_hovering_target) - VU.inXZ(owner_node.global_position)
+	var to_target: Vector2 = VU.in_xz(_hovering_target) - VU.in_xz(owner_node.global_position)
 	var dist: float = to_target.length()
 	if dist < 1e-3:
 		return a_desired_speed
@@ -1286,7 +1286,7 @@ func _is_crossed_by_a_change(a_origin: Vector3) -> bool:
 	if not _is_target_reachable():
 		var target: Vector3 = _nav_agent.target_position
 		var reach: float = (
-			VU.inXZ(_final_path_position()).distance_to(VU.inXZ(target)) + Map.CELL_SIZE
+			VU.in_xz(_final_path_position()).distance_to(VU.in_xz(target)) + Map.CELL_SIZE
 		)
 		return changes.any(func(c: NavManager.NavChange) -> bool: return c.is_near(target, reach))
 	return changes.any(
@@ -1401,7 +1401,7 @@ func _string_pulled_target() -> Vector3:
 		_pulled_target != Vector3.INF
 		and tick - _pulled_tick < STRING_PULL_RECHECK_TICKS
 		and _pulled_from != Vector3.INF
-		and VU.inXZ(here).distance_squared_to(VU.inXZ(_pulled_from)) < 1.0
+		and VU.in_xz(here).distance_squared_to(VU.in_xz(_pulled_from)) < 1.0
 	):
 		return _pulled_target
 
@@ -1417,7 +1417,7 @@ func _string_pulled_target() -> Vector3:
 	var reach_index: int = next_index
 	while (
 		reach_index + 1 < path.size()
-		and VU.inXZ(here).distance_to(VU.inXZ(path[reach_index + 1])) <= reach
+		and VU.in_xz(here).distance_to(VU.in_xz(path[reach_index + 1])) <= reach
 	):
 		reach_index += 1
 	var index: int = pulled_waypoint_index(
@@ -1466,7 +1466,7 @@ func first_reachable(a_points: Array, a_tolerance: float) -> Variant:
 		)
 		if path.is_empty():
 			continue
-		if VU.inXZ(path[path.size() - 1]).distance_to(VU.inXZ(point)) <= a_tolerance:
+		if VU.in_xz(path[path.size() - 1]).distance_to(VU.in_xz(point)) <= a_tolerance:
 			return point
 	return null
 
@@ -1481,8 +1481,8 @@ func first_reachable(a_points: Array, a_tolerance: float) -> Variant:
 func _line_is_navigable(a_from: Vector3, a_to: Vector3) -> bool:
 	var cs: float = Map.CELL_SIZE
 	return _map.terrain_grid.is_segment_navigable_for(
-		_map.world_to_grid_point(VU.inXZ(a_from)),
-		_map.world_to_grid_point(VU.inXZ(a_to)),
+		_map.world_to_grid_point(VU.in_xz(a_from)),
+		_map.world_to_grid_point(VU.in_xz(a_to)),
 		NavAgentClass.erosion_rings(nav_agent_class, cs),
 		NavAgentClass.required_clearance(nav_agent_class, cs)
 	)

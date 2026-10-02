@@ -47,9 +47,9 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	if commander == null or map == null or projectile_scene == null:
 		return
 
-	var target_xz: Vector2 = VU.inXZ(global_position)
+	var target_xz: Vector2 = VU.in_xz(global_position)
 	var target: Vector3 = Vector3(target_xz.x, map.terrain_height_at(target_xz), target_xz.y)
-	var anchor_xz: Vector2 = VU.inXZ(caster.global_position) if caster != null else target_xz
+	var anchor_xz: Vector2 = VU.in_xz(caster.global_position) if caster != null else target_xz
 	var origin_xz: Vector2 = OffMapArrival.entry_xz(map, anchor_xz)
 
 	for _i: int in maxi(shell_count, 0):

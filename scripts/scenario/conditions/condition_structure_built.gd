@@ -61,6 +61,6 @@ func highlight_shapes(a_manager: ScenarioTriggerManager) -> Array[HighlightShape
 		return result
 	var world: Vector3 = a_manager.map.grid_to_world(grid_cell)
 	var half: float = Map.CELL_SIZE * 0.5
-	result.append(HighlightShape.rect(VU.inXZ(world), Vector2(half, half)))
+	result.append(HighlightShape.rect(VU.in_xz(world), Vector2(half, half)))
 	return result
 #endregion

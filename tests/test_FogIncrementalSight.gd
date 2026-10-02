@@ -80,7 +80,7 @@ func _reference_display() -> PackedByteArray:
 		if entity.commander_id != VIEWER or not entity.grants_vision():
 			continue
 		var pixel: Vector2i = _fog._world_to_pixel(
-			VU.inXZ(entity.vision_range_shape.global_position)
+			VU.in_xz(entity.vision_range_shape.global_position)
 		)
 		for offset: Vector2i in _fog._vision_offsets(entity.vision_range_shape):
 			var p: Vector2i = pixel + offset

@@ -194,9 +194,9 @@ var attributes: Set
 
 var xz_position: Vector2:
 	get:
-		return VU.inXZ(global_position)
+		return VU.in_xz(global_position)
 	set(value):
-		global_position = VU.fromXZ(value)
+		global_position = VU.from_xz(value)
 
 var map: Map
 var pc_set: Set = Set.new()
@@ -288,7 +288,7 @@ func deploy(a_world_center: Vector2) -> bool:
 	var structure := get_node_or_null("Structure") as Structure
 	if not has_two_forms() or structure.is_active or map == null:
 		return false
-	var message := CommandMessage.new(map, null, null, VU.fromXZ(a_world_center))
+	var message := CommandMessage.new(map, null, null, VU.from_xz(a_world_center))
 	if not Structure.valid_placement(
 		message, structure.dimensions, structure.allow_uneven, structure.allow_submerged
 	):
@@ -507,15 +507,15 @@ func hull() -> Hull:
 		if node.is_inside_tree()
 		else global_transform * target_body.transform * node.transform
 	)
-	var at: Vector2 = VU.inXZ(xform.origin)
+	var at: Vector2 = VU.in_xz(xform.origin)
 	var shape: Shape3D = node.shape
 	if shape is BoxShape3D:
 		var size: Vector3 = (shape as BoxShape3D).size
 		return Hull.rect(
 			at,
 			Vector2(size.x * xform.basis.x.length(), size.z * xform.basis.z.length()) * 0.5,
-			VU.inXZ(xform.basis.x),
-			VU.inXZ(xform.basis.z)
+			VU.in_xz(xform.basis.x),
+			VU.in_xz(xform.basis.z)
 		)
 	var round_radius: float = RangeShapes.radius_of(shape)
 	if shape is CapsuleShape3D:
@@ -685,7 +685,7 @@ func is_visible_to(a_viewer_commander_id: int) -> bool:
 	var fog: Fog = Fog.for_commander(a_viewer_commander_id)
 	if fog == null:
 		return true
-	return fog.fog_clear_at(VU.inXZ(global_position))
+	return fog.fog_clear_at(VU.in_xz(global_position))
 
 
 ## The TARGETABLE_GROUND / TARGETABLE_AIR bits this entity currently exposes, or 0
@@ -795,7 +795,7 @@ func _auto_initialize() -> void:
 	# quarter turn, so the authored yaw is read as the nearest one (and the piece squared up to it).
 	if spawns_deployed() and not found_map.structure_cell_map.has(self):
 		found_map.add_structure(
-			self, VU.inXZ(pre_init_pos), Structure.quarter_turns_of_yaw(rotation.y), false
+			self, VU.in_xz(pre_init_pos), Structure.quarter_turns_of_yaw(rotation.y), false
 		)
 
 

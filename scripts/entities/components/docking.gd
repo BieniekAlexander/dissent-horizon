@@ -168,7 +168,7 @@ func aim_parked_at_runway() -> void:
 	var join: Vector3 = strip.nearest_point(piece.global_position)
 	# Already on the join point (a pad sitting on the centreline): face down the strip
 	# instead, which is where it goes next.
-	if VU.inXZ(join).distance_to(VU.inXZ(piece.global_position)) < 0.05:
+	if VU.in_xz(join).distance_to(VU.in_xz(piece.global_position)) < 0.05:
 		join = strip.takeoff_point()
 	piece.movement.face_toward(Vector3(join.x, piece.global_position.y, join.z))
 

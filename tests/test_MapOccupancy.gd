@@ -112,7 +112,7 @@ func _place(a_options: Dictionary, a_commander: Commander) -> Entity:
 	a_commander.add_child(entity)
 	entity.initialize(_map, a_commander)
 	_dismiss_missing_flavor_text()
-	_map.add_structure(entity, VU.inXZ(_map.footprint_centroid(ORIGIN, DIMS)))
+	_map.add_structure(entity, VU.in_xz(_map.footprint_centroid(ORIGIN, DIMS)))
 	return entity
 
 

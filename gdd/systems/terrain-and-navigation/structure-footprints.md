@@ -138,7 +138,7 @@ func add_structure(a_structure: Commandable, origin_cell: Vector2i, rotation: in
 
 This also removes the now-unnecessary `# TODO guarantee structure is centered` comment.
 
-The `entity.gd:_auto_initialize` code at line 151 also calls `add_structure`. It recovers the origin cell from the scene-placed structure's visual position: `found_map.world_to_grid(VU.inXZ(pre_init_pos))`. After this change the origin cell passed to `add_structure` is the top-left corner of the footprint. For a scene-placed 3×3 Outpost whose visual centre is at `pre_init_pos`, `world_to_grid(visual_centre)` floors to the centre cell, not the corner. **This is a misalignment for any structure larger than 1×1.** See §7 for the fix.
+The `entity.gd:_auto_initialize` code at line 151 also calls `add_structure`. It recovers the origin cell from the scene-placed structure's visual position: `found_map.world_to_grid(VU.in_xz(pre_init_pos))`. After this change the origin cell passed to `add_structure` is the top-left corner of the footprint. For a scene-placed 3×3 Outpost whose visual centre is at `pre_init_pos`, `world_to_grid(visual_centre)` floors to the centre cell, not the corner. **This is a misalignment for any structure larger than 1×1.** See §7 for the fix.
 
 ---
 
@@ -243,7 +243,7 @@ func _init(a_message: CommandMessage) -> void:
     super(a_message)
     build_cells = Commandable.get_arrangement_cells(
         a_message.map,
-        VU.inXZ(a_message.position),
+        VU.in_xz(a_message.position),
         StructureSpec.structure_type_spec_map[a_message.tool.type].footprint_offsets
     )
 ```
@@ -264,7 +264,7 @@ The problem: `world_to_grid(visual_centre)` floors to the nearest cell. For a 3�
 # entity.gd — _auto_initialize (proposed)
 if is_in_group("structure") and not found_map.structure_cell_map.has(self):
     var spec := StructureSpec.structure_type_spec_map.get(type)
-    var visual_cell := found_map.world_to_grid(VU.inXZ(pre_init_pos))
+    var visual_cell := found_map.world_to_grid(VU.in_xz(pre_init_pos))
     var origin_cell := visual_cell
     if spec != null:
         # Shift back from visual centre to top-left origin corner.

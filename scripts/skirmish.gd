@@ -63,7 +63,7 @@ func _deploy_all_forces() -> void:
 			)
 		)
 	for i: int in mini(player_slots.size(), start_points.size()):
-		_spawn_slot_units(player_slots[i], VU.inXZ(start_points[i].global_position))
+		_spawn_slot_units(player_slots[i], VU.in_xz(start_points[i].global_position))
 	_center_player_camera_on_starting_entities()
 
 

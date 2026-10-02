@@ -78,7 +78,7 @@ func test_an_idle_unit_answers_an_attacker_past_its_aggro() -> void:
 	var pair: Array = await _pair(FAR)
 	var shooter: Commandable = pair[0]
 	assert_gt(
-		VU.inXZ(shooter.global_position).distance_to(VU.inXZ(pair[1].global_position)),
+		VU.in_xz(shooter.global_position).distance_to(VU.in_xz(pair[1].global_position)),
 		shooter.aggro_radius(),
 		"guards the fixture: the attacker is past aggro"
 	)

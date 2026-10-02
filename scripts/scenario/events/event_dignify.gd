@@ -24,7 +24,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 		return
 
 	var rank: Veterancy.Level = target.veterancy.level
-	var spawn_xz: Vector2 = VU.inXZ(target.global_position)
+	var spawn_xz: Vector2 = VU.in_xz(target.global_position)
 
 	var warlord := _WARLORD_SCENE.instantiate() as Commandable
 	if warlord == null:

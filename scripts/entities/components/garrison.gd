@@ -693,12 +693,12 @@ func evacuate_one(a_unit: Commandable, a_map: Map) -> void:
 	if owner_cmd != null and owner_cmd.structure_is_active() and a_map != null:
 		var cells: Array[Vector2i] = SU.passable_cells_adjacent_to(owner_cmd, a_map)
 		center = (
-			VU.inXZ(a_map.grid_to_world(cells[0]))
+			VU.in_xz(a_map.grid_to_world(cells[0]))
 			if not cells.is_empty()
-			else VU.inXZ(owner_cmd.global_position)
+			else VU.in_xz(owner_cmd.global_position)
 		)
 	else:
-		center = VU.inXZ(owner_cmd.global_position) if owner_cmd != null else Vector2.ZERO
+		center = VU.in_xz(owner_cmd.global_position) if owner_cmd != null else Vector2.ZERO
 
 	var radii: Array[float] = [a_unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)]
 	var world: World3D = (
@@ -818,14 +818,14 @@ func _evacuate_from_structure(a_owner_cmd: Commandable, a_map: Map) -> void:
 		if rally != null
 		else Vector2i(-1, -1)
 	)
-	var center: Vector2 = VU.inXZ(a_owner_cmd.global_position)
+	var center: Vector2 = VU.in_xz(a_owner_cmd.global_position)
 	if a_map != null:
 		if seed_cell != Vector2i(-1, -1):
-			center = VU.inXZ(a_map.grid_to_world(seed_cell))
+			center = VU.in_xz(a_map.grid_to_world(seed_cell))
 		else:
 			var seed_cells := SU.passable_cells_adjacent_to(a_owner_cmd, a_map)
 			if not seed_cells.is_empty():
-				center = VU.inXZ(a_map.grid_to_world(seed_cells[0]))
+				center = VU.in_xz(a_map.grid_to_world(seed_cells[0]))
 	# Each evacuee is spaced by its OWN body radius (see _evacuee_radii), so a mix
 	# of large and small occupants packs tightly rather than by one shared radius.
 	var points: Array[Vector2] = _spread_points(
@@ -910,13 +910,13 @@ func _evacuate_from_unit(a_owner_cmd: Commandable, a_map: Map) -> void:
 	var count := _garrisoned.size()
 	if count == 0:
 		return
-	var center := VU.inXZ(a_owner_cmd.global_position)
+	var center := VU.in_xz(a_owner_cmd.global_position)
 	# Bias the cluster toward the destination the evacuees are sent to (the host's
 	# rally_destination — e.g. a transport passing on its heading), so they disembark
 	# on that side. Mirrors Production._spawn_unit's rally bias.
 	var rally: MoveCommand = a_owner_cmd.rally_destination()
 	if rally != null:
-		var to_dest: Vector2 = VU.inXZ(rally.message.position) - center
+		var to_dest: Vector2 = VU.in_xz(rally.message.position) - center
 		if not to_dest.is_zero_approx():
 			center += to_dest.normalized()
 	# Space each evacuee by its own radius rather than the (often larger) transport's.

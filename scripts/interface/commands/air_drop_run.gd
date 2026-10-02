@@ -117,7 +117,7 @@ func _release_cargo(a_actor: Commandable) -> void:
 ## straight down it — and the facing is the one the player can see.
 func _resolve_egress_point(a_actor: Commandable) -> Vector3:
 	var heading: Vector2 = (
-		VU.inXZ(a_actor.movement.get_facing()) if a_actor.movement != null else Vector2.ZERO
+		VU.in_xz(a_actor.movement.get_facing()) if a_actor.movement != null else Vector2.ZERO
 	)
 	var exit_xz: Vector2 = OffMapArrival.exit_xz(message.map, a_actor.xz_position, heading)
 	return Vector3(exit_xz.x, a_actor.global_position.y, exit_xz.y)

@@ -94,7 +94,7 @@ static func visible_spans(
 	var count: int = maxi(1, ceili(a_near.distance_to(a_far) / a_step))
 	var clear: Array[bool] = []
 	for i: int in count + 1:
-		clear.append(bool(a_is_clear.call(VU.inXZ(a_near.lerp(a_far, float(i) / count)))))
+		clear.append(bool(a_is_clear.call(VU.in_xz(a_near.lerp(a_far, float(i) / count)))))
 	var spans: Array[Vector2] = []
 	var start: float = -1.0
 	for i: int in count + 1:

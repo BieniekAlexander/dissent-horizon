@@ -164,7 +164,7 @@ func test_the_beacon_stands_where_it_was_ordered() -> void:
 	var command := _order(Vector2(5, 3))
 	var beacon := _channel_out(recruit, command)
 	assert_not_null(beacon)
-	assert_almost_eq(VU.inXZ(beacon.host().global_position).distance_to(Vector2(5, 3)), 0.0, 0.001)
+	assert_almost_eq(VU.in_xz(beacon.host().global_position).distance_to(Vector2(5, 3)), 0.0, 0.001)
 
 
 func test_the_spotters_beacon_never_expires_on_its_own() -> void:

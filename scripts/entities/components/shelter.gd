@@ -143,7 +143,7 @@ func _produce_resident(a_host: Entity) -> void:
 		push_error("Shelter: terrestrial_scene is not a Commandable")
 		return
 	var anchor: Vector3 = a_host.global_position
-	a_host.map.add_entity(resident, VU.inXZ(anchor), a_host.commander)
+	a_host.map.add_entity(resident, VU.in_xz(anchor), a_host.commander)
 	register(resident)
 	resident.update_commands(Wander.new(CommandMessage.new(a_host.map, null, null, anchor)))
 #endregion

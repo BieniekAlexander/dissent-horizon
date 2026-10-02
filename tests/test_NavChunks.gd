@@ -64,7 +64,7 @@ func _path_length(a_from: Vector3, a_to: Vector3, a_layers: int) -> float:
 	var path: PackedVector3Array = NavigationServer3D.map_get_path(
 		nav_map, a_from, a_to, true, a_layers
 	)
-	if path.is_empty() or VU.inXZ(path[path.size() - 1]).distance_to(VU.inXZ(a_to)) > 0.5:
+	if path.is_empty() or VU.in_xz(path[path.size() - 1]).distance_to(VU.in_xz(a_to)) > 0.5:
 		return INF
 	var total: float = 0.0
 	for i: int in range(1, path.size()):

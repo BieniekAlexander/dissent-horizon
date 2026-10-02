@@ -438,10 +438,10 @@ func _collect_unit_scenes() -> void:
 func _commander_origin(a_commander: Node) -> Vector2:
 	for child: Node in a_commander.get_children():
 		if child is Node3D and child.is_in_group("structure"):
-			return VU.inXZ((child as Node3D).global_position)
+			return VU.in_xz((child as Node3D).global_position)
 	for child: Node in a_commander.get_children():
 		if child is Node3D and child.is_in_group("unit"):
-			return VU.inXZ((child as Node3D).global_position)
+			return VU.in_xz((child as Node3D).global_position)
 	return Vector2.ZERO
 
 

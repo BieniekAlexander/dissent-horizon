@@ -225,7 +225,7 @@ func _screen_area() -> PlayArea:
 
 ## The direction the camera looks, in `area`'s frame — where fliers are drawn toward.
 func _look_in(a_area: PlayArea) -> Vector2:
-	return a_area.to_local_direction(VU.inXZ(_camera._ground_forward()))
+	return a_area.to_local_direction(VU.in_xz(_camera._ground_forward()))
 
 
 func test_the_default_camera_looks_along_the_negative_s_axis() -> void:

@@ -149,7 +149,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 		return
 
 	var anchor: Vector3 = resolve_spawn_anchor()
-	var anchor_xz := VU.inXZ(anchor)
+	var anchor_xz := VU.in_xz(anchor)
 
 	var commandables := _instantiate_all(map, commander, anchor, anchor_xz)
 
@@ -179,7 +179,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## spawned Commandables carry a Garrison component.
 func _execute_with_hosts(a_hosts: Array[Commandable], a_map: Map, a_commander: Commander) -> void:
 	var anchor: Vector3 = resolve_spawn_anchor()
-	var anchor_xz := VU.inXZ(anchor)
+	var anchor_xz := VU.in_xz(anchor)
 
 	var commandables := _instantiate_all(a_map, a_commander, anchor, anchor_xz)
 	if commandables.is_empty():

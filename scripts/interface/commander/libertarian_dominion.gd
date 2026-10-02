@@ -102,7 +102,7 @@ static func cells_claimed_by(a_source: Commandable) -> Array[Vector2i]:
 	if a_source.map == null:
 		return []
 	return cells_within(
-		a_source.map.world_to_grid_point(VU.inXZ(a_source.global_position)),
+		a_source.map.world_to_grid_point(VU.in_xz(a_source.global_position)),
 		claim_radius_cells(a_source),
 		grid_size_of(a_source.map)
 	)

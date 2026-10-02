@@ -437,7 +437,7 @@ const CLAIM_AT: Vector2 = Vector2(-4.0, -4.0)
 func test_a_blueprint_claims_its_footprint() -> void:
 	var blueprint: Commandable = _plan(CLAIM_AT)
 	var dims: Vector2i = (blueprint.get_node("Structure") as Structure).dimensions
-	var footprint: Array = _map.footprint_cells(VU.inXZ(blueprint.global_position), dims)
+	var footprint: Array = _map.footprint_cells(VU.in_xz(blueprint.global_position), dims)
 	assert_eq(footprint.size(), dims.x * dims.y, "guards the fixture: it stands in bounds")
 	var claimed: Dictionary = _commander.planned_footprint_cells()
 	for cell: Vector2i in footprint:

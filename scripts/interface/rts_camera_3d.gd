@@ -406,7 +406,7 @@ func _clamp_to_map_bounds() -> void:
 	# Which way "up the screen" runs across the ground, in the play area's frame — the side the
 	# altitude headroom is added to. Taken from the live basis rather than assumed, so a yawed
 	# camera still gets the extra room on the side fliers are actually drawn toward.
-	var look_local: Vector2 = area.to_local_direction(VU.inXZ(_ground_forward()))
+	var look_local: Vector2 = area.to_local_direction(VU.in_xz(_ground_forward()))
 	var target: Vector2 = clamped_focus(focus, area, half_view, look_local)
 	if not target.is_equal_approx(focus):
 		center_on(target)
@@ -473,7 +473,7 @@ static func _clamp_with_headroom(value: float, limit: float, headroom: float) ->
 func ground_focus() -> Vector2:
 	var f: Vector3 = -global_transform.basis.z
 	if is_zero_approx(f.y):
-		return VU.inXZ(global_position)
+		return VU.in_xz(global_position)
 	var k: float = global_position.y / f.y
 	return Vector2(global_position.x - k * f.x, global_position.z - k * f.z)
 
@@ -503,7 +503,7 @@ func visible_half_extents_in(a_area: PlayArea) -> Vector2:
 		Vector2.ZERO, Vector2(rect_size.x, 0.0), Vector2(0.0, rect_size.y), rect_size
 	]:
 		var ground: Vector3 = get_mouse_world_position(corner)
-		var local: Vector2 = a_area.to_local(VU.inXZ(ground))
+		var local: Vector2 = a_area.to_local(VU.in_xz(ground))
 		half.x = maxf(half.x, absf(local.x - focus.x))
 		half.y = maxf(half.y, absf(local.y - focus.y))
 	return half

@@ -48,7 +48,7 @@ class SightedCommander:
 	var seen: Rect2i = Rect2i(0, 0, CELLS, CELLS)
 
 	func has_vision_at(a_world_pos: Vector3) -> bool:
-		return seen.has_point(map.world_to_grid(VU.inXZ(a_world_pos)))
+		return seen.has_point(map.world_to_grid(VU.in_xz(a_world_pos)))
 
 
 ## Lands nothing in the world: records what it was asked to put down. `foreign_at` stands in for
@@ -122,7 +122,7 @@ func _centre_scene() -> PackedScene:
 
 ## The world XZ centre of the `a_dims` footprint anchored at cell `a_origin`.
 func _aim(a_origin: Vector2i, a_dims: Vector2i = CENTRE_DIMS) -> Vector2:
-	return VU.inXZ(_map.footprint_centroid(a_origin, a_dims))
+	return VU.in_xz(_map.footprint_centroid(a_origin, a_dims))
 
 
 # ─── CHARGES ───────────────────────────────────────────────────────────────────

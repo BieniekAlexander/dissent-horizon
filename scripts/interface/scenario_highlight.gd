@@ -200,7 +200,7 @@ func _pulse_alpha() -> float:
 ## A ring at the entity's feet plus a stalk rising out of it.
 func _add_entity_marker(a_entity: Entity, a_marker_color: Color) -> void:
 	var origin: Vector3 = a_entity.global_position
-	var center: Vector2 = VU.inXZ(origin)
+	var center: Vector2 = VU.in_xz(origin)
 	var radius: float = _entity_radius(a_entity)
 	_mesh.surface_set_color(a_marker_color)
 

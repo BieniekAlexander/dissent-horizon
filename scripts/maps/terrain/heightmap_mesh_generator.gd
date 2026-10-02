@@ -123,7 +123,7 @@ func _sync_shader_params() -> void:
 ## World XZ the cell grid is centred on: this node's position (it sits at the terrain body's
 ## origin, which is the Map's), or the origin while out of the tree.
 func _grid_center() -> Vector2:
-	return VU.inXZ(global_position) if is_inside_tree() else Vector2.ZERO
+	return VU.in_xz(global_position) if is_inside_tree() else Vector2.ZERO
 
 
 ## The active tile catalog (from the override or the owning Map), or null when neither.

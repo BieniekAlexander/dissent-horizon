@@ -345,7 +345,7 @@ func world_bounds() -> Rect2:
 	if hs == null:
 		return Rect2()
 	var span := Vector2(float(hs.map_width - 1), float(hs.map_depth - 1)) * CELL_SIZE
-	return Rect2(VU.inXZ(global_position) - span * 0.5, span)
+	return Rect2(VU.in_xz(global_position) - span * 0.5, span)
 
 
 ## The rectangle the game is actually played on.
@@ -364,7 +364,7 @@ func play_area() -> PlayArea:
 	if data != null:
 		var half_st: Vector2 = data.play_half_extents()
 		if half_st != Vector2.ZERO:
-			return PlayArea.screen_aligned(VU.inXZ(global_position), half_st, CELL_SIZE)
+			return PlayArea.screen_aligned(VU.in_xz(global_position), half_st, CELL_SIZE)
 	var bounds: Rect2 = world_bounds()
 	if bounds.size == Vector2.ZERO:
 		return null
@@ -580,7 +580,7 @@ func add_entities(
 		# building or other non-navigable cell — e.g. an interaction event that
 		# spawns a unit anchored on the target structure. No-op for points that
 		# are already on the navmesh.
-		var snapped_xz: Vector2 = VU.inXZ(
+		var snapped_xz: Vector2 = VU.in_xz(
 			nearest_navmesh_point(
 				Vector3(placement_xz.x, terrain_height_at(placement_xz), placement_xz.y)
 			)
