@@ -40,15 +40,12 @@ fails, which is the case §3.2 forbids.
 
 ---
 
-## What is still outstanding
+## Nothing is outstanding
 
-The tree reports **5 findings** (2026-10-02), down from 449 and from 982 before the config
-existed. Both are recorded at the code:
-
-| Finding | Count | State |
-|---|--:|---|
-| `function-name` | 4 | `VU.inXZ` / `onXZ` / `fromXZ` / `l1Norm`. Genuine §3.2 violations; ~174 call sites. PLANNED: the rename is approved (2026-09-24), not yet done. |
-| `function-arguments-number` | 1 | `Tool._init` takes thirteen. The composition rework is what shortens it. |
+The tree lints clean (2026-10-02), down from 449 findings that morning and 982 before the
+config existed. The last five went with the `VU` helpers' rename to snake_case (`in_xz`,
+`on_xz`, `from_xz`, `l1_norm`) and `Tool._init` dropping to the seven facts every tool has;
+the optional ones are assigned after construction.
 
 ---
 
@@ -106,8 +103,8 @@ repairing the files without it buys one command's worth of peace.
 
 ## PLANNED — CI
 
-Not wired. `.github/` does not exist, and the plan's rule is to wire CI *once the tree is
-clean* — which is the line above, not this one.
+Not wired. `.github/` does not exist. The plan's rule was to wire CI *once the tree is
+clean*, which it now is (§Nothing is outstanding) — so this is ready to build.
 
 ## TODO — pre-commit hook
 
