@@ -345,6 +345,9 @@ emission. TODO: an emitted UNIT, handed a command rather than a goal, is not bui
 
 ## Rocket calibration: the no-escape zone
 
+The terms a claim about evading a shot is written in (outpace, outturn, outguess, the engagement
+frame) are defined in [projectile-evasion](projectile-evasion.md).
+
 **TODO — research. Only items marked Decided are settled.** A paper calculation (2D pursuit, no
 jitter or terrain, hit radius 0.7 for vehicles and 0.8 for aircraft), not self-play. Every number
 is a starting point to check in play.
