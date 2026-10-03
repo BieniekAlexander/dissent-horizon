@@ -259,6 +259,24 @@ importer's renamed-component table would carry the scenes.
 friendly-fire by construction (the query is `TARGETABLE_ANY`) rather than by a flag. See
 [authoring/spec-importer](../authoring/spec-importer.md) for the import side.
 
+### The blast is measured at the contact
+
+**When a free flight strikes something, who is in its blast is decided on the CONTACT's tick**
+(Alex, 2026-10-03). The burst phase still pays out a tick later, by the phase rule, but on the
+set measured at the contact (`Payload._on_struck` snapshots `_blast_victims()`; the next
+`apply` takes it).
+
+- **Why:** measured at the payout, the blast stood where the rocket stopped while the world had
+  moved on a tick. A target moving faster than the blast is wide had already left it, so a rocket
+  could strike a piece and leave it unharmed. The Warlord rocket (a 0.1 blast) struck a QUICK
+  truck with 8 rockets of 10 and damaged it with about 5, and the faster the target, the worse.
+- **Only the first payout after a contact** uses the snapshot. A phase that pays out on a cadence
+  afterwards (a lingering field) measures the world as it is at each payout.
+- A victim freed or taken out of the world (garrisoned) between the contact and the payout is
+  spared, as a single-target shot's is.
+- A flight that ends WITHOUT a contact (lifespan out, or arriving at a place) measures at the
+  payout, as before.
+
 ## What the framework should and should not absorb
 
 **In:** rockets, bullets, shells, lasers, poison clouds, radiation fields, sweeps and trails —
@@ -497,24 +515,26 @@ the engine yet.** Specs in `sims/` (`warlord_vs_{truck,wagon,raven}_{holding_cou
 `badger_vs_collective_jinking`); "jinking" reverses 0.4 s after each rocket leaves. Ten seeds
 each:
 
-| Spec | Claim | Met |
-|---|---|---|
-| truck (QUICK), holding course | dies | 0 of 10 |
-| truck, jinking | survives | 0 of 10 |
-| War Wagon (STEADY), holding course | dies | 8 of 10 |
-| War Wagon, jinking | dies | 10 of 10 |
-| Raven (SWIFT, hover), holding course | dies | 10 of 10 |
-| Raven, jinking | survives | 0 of 10 |
-| Badger vs Collective (QUICK), jinking | at least half damaged | 10 of 10 |
+| Spec | Claim | Met | Met after the contact fix |
+|---|---|---|---|
+| truck (QUICK), holding course | dies | 0 of 10 | 6 of 10 |
+| truck, jinking | survives | 0 of 10 | 0 of 10 |
+| War Wagon (STEADY), holding course | dies | 8 of 10 | 8 of 10 |
+| War Wagon, jinking | dies | 10 of 10 | 10 of 10 |
+| Raven (SWIFT, hover), holding course | dies | 10 of 10 | 10 of 10 |
+| Raven, jinking | survives | 0 of 10 | 0 of 10 |
+| Badger vs Collective (QUICK), jinking | at least half damaged | 10 of 10 | 10 of 10 |
 
-Three causes, found by tracing contacts:
+The contact fix is the first cause below. **Still open after it: rerouting saves no fast
+target**, so the elasticity the Warlord was designed for is not there yet.
 
-- **TODO — a contact can deal no damage.** A blast emission pays out on the Impact phase, the
-  tick AFTER the contact, by querying its blast shape where the emission stopped. The Warlord
-  rocket's blast is a 0.1 sphere, and a target moving more than that in a tick has left it: a
-  QUICK truck holding course was struck by 8 of 10 rockets and damaged by about 5. It favours
-  exactly the target that holds course, which inverts the design. Pre-existing, and it applies
-  to every small-blast free flight.
+Three causes, found by tracing contacts (the first since fixed):
+
+- **A contact could deal no damage — FIXED 2026-10-03** (§The blast is measured at the
+  contact). The blast was measured on the payout's tick, a tick after the contact, by which
+  time a fast target had left the Warlord rocket's 0.1 sphere: a QUICK truck holding course was
+  struck by 8 of 10 rockets and damaged by about 5. It favoured exactly the target that holds
+  course, which inverts the design.
 - **Steered emissions aim at the target's ORIGIN, at ground level**, so a slightly short rocket
   dives into the terrain in front of a ground target (2 of 10 rockets in one run).
 - **A hovering aircraft reverses by backing off at `reverse_speed_ratio`** rather than turning,

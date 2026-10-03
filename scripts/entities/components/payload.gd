@@ -28,6 +28,11 @@ const HITSCAN_MAX_ERROR_ANGLE: float = deg_to_rad(2.0)
 var from: Commandable
 ## What it was aimed at, or what an impact test found instead. May be freed mid-flight.
 var target: Entity
+## A blast's victims, measured on the tick of the last contact and waiting for the payout that
+## follows it. Untyped: a victim may be freed before then, and a freed object fails a typed
+## array's element check.
+var _contact_victims: Array = []
+var _has_contact_victims: bool = false
 #endregion
 
 
@@ -97,18 +102,8 @@ func apply() -> void:
 			for effect: EffectApplicator in get_effects():
 				effect.apply([target], source)
 		return
-	# UPRIGHT, whatever the emission's pitch: a blast library shape may be a tall cylinder (one
-	# that reaches aircraft), and tilting it with a diving shell would sweep a line.
-	var shape: CollisionShape3D = hit_shape()
-	var blast_xform: Transform3D = shape.global_transform
-	blast_xform.basis = Basis.from_scale(blast_xform.basis.get_scale())
-	var victims: Array[Entity] = SU.query_shape_for_entities(
-		host().get_world_3d(),
-		shape.shape,
-		blast_xform,
-		CollisionLayers.TARGETABLE_ANY,
-		[host()],
-		32
+	var victims: Array[Entity] = (
+		_take_contact_victims() if _has_contact_victims else _blast_victims()
 	)
 	for victim: Entity in victims:
 		if victim.defense != null:
@@ -157,13 +152,48 @@ func _on_phase_ticking(a_phase: EmissionPhase) -> void:
 
 ## A single-target shot lands on what its impact test struck as if that were its target — a
 ## targetable piece takes the payload, terrain absorbs it. A blast pays out on its volume
-## wherever the contact left it, so the target is irrelevant.
+## wherever the contact left it, so the target is irrelevant — and WHO is in that volume is
+## decided now, on the contact's own tick, not when the burst phase pays out a tick later: a
+## target moving faster than the blast is wide would otherwise be struck and left unharmed
+## (projectiles.md §The blast is measured at the contact).
 func _on_struck(a_collider: Object) -> void:
 	if has_blast():
+		_contact_victims = _blast_victims()
+		_has_contact_victims = true
 		return
 	target = Entity.entity_from_collider(a_collider)
 	var phased: PhasedLocomotion = _phased()
 	phased.set_goal(phased.goal_position, phased.goal_arrival, target)
+
+
+## Everything a blast here would reach, right now.
+func _blast_victims() -> Array[Entity]:
+	# UPRIGHT, whatever the emission's pitch: a blast library shape may be a tall cylinder (one
+	# that reaches aircraft), and tilting it with a diving shell would sweep a line.
+	var shape: CollisionShape3D = hit_shape()
+	var blast_xform: Transform3D = shape.global_transform
+	blast_xform.basis = Basis.from_scale(blast_xform.basis.get_scale())
+	return SU.query_shape_for_entities(
+		host().get_world_3d(),
+		shape.shape,
+		blast_xform,
+		CollisionLayers.TARGETABLE_ANY,
+		[host()],
+		32
+	)
+
+
+## The victims measured at the last contact, once: the first payout after a contact lands on
+## them, and any later one (a lingering field's cadence) measures the world as it is. Pieces
+## freed or taken out of the world since the contact are dropped.
+func _take_contact_victims() -> Array[Entity]:
+	var victims: Array[Entity] = []
+	_has_contact_victims = false
+	for victim: Variant in _contact_victims:
+		if is_instance_valid(victim) and (victim as Entity).is_inside_tree():
+			victims.append(victim)
+	_contact_victims = []
+	return victims
 
 
 ## base_damage scaled by the firing unit's veterancy: (1 + level/10), level being the
