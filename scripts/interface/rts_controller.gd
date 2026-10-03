@@ -441,6 +441,7 @@ func _ready():
 	# child Control inherits this, which is what keeps the info panel and minimap live too.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	ControlScheme.apply()
+	PlatformModifiers.apply()
 	_register_hud_cursor()
 	_apply_cursor(FREE_CURSOR)
 	# Map each SELECT-context grid command to its selection routine. Must be built

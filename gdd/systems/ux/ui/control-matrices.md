@@ -63,8 +63,13 @@ is also a GESTURE — press sets the structure down, drag turns it, release orde
 | Action | Key | How it is read |
 |---|---|---|
 | `modifier_additive` | Shift | LATCHED in `_unhandled_input` (`additive_latched`) **and** polled in `_purchase_defers` |
-| `modifier_narrow` | Alt / Option | polled only |
-| `modifier_broaden` | Ctrl | polled only |
+| `modifier_narrow` | Alt (macOS: Command) | polled only |
+| `modifier_broaden` | Ctrl (macOS: Option) | polled only |
+
+**macOS rebinds the two.** It turns Ctrl + left click into a right click before the engine sees
+it, so Ctrl cannot modify a mouse gesture there. `PlatformModifiers.apply` (called from
+`RTSController._ready`) puts broaden on Option and narrow on Command (Godot's `KEY_ALT` and
+`KEY_META`); every Ctrl or Alt in this note means those keys on macOS.
 
 **Latched versus polled is load-bearing and is a live inconsistency.** A modifier keypress
 that happens while a HUD Control has focus goes to that Control, not to

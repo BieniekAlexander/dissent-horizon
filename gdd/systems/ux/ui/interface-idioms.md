@@ -251,8 +251,8 @@ docs rather than hand-maintained (`ControlBinding.grid_collisions`).
 | `isometric_camera_left/right/up/down` | Arrows | edge-panning has **no action** — cursor proximity |
 | `isometric_camera_rotate_left/right` | *(unbound)* | implemented, no key |
 | `command_additive` | Shift | append instead of replace; front of the queue for a purchase |
-| `modifier_narrow` | Alt | one actor; past the screen edge on a selector |
-| `modifier_broaden` | Ctrl | all actors; all rather than one idle on a selector |
+| `modifier_narrow` | Alt (macOS: Command) | one actor; past the screen edge on a selector |
+| `modifier_broaden` | Ctrl (macOS: Option) | all actors; all rather than one idle on a selector |
 | `purchase_requisition` | Backspace | toggle requisition mode |
 | `ui_verbose` | `/` | hold for the deep tier |
 | `show_help` | F4 | hold for the overlay |
@@ -289,6 +289,9 @@ ACTIVE card A is attack-move, on the PRODUCTION card A trains the first unit in 
    modifying a click — which is what pushed `purchase_fallback` onto Alt and requisition onto a
    toggle. (Ctrl pressed *alone* is fine, so a Ctrl toggle would work; Godot's
    `command_or_control_autoremap` also exists for the modifier-flag case.)
+   **Resolved for the two click modifiers by remapping them on macOS:** `modifier_broaden` sits on
+   Option and `modifier_narrow` on Command there (`PlatformModifiers`), and stay Ctrl and Alt
+   elsewhere. The table below names the Windows and Linux keys.
 2. **The modifier budget is spent for CLICKS, not for chords.** Constraint 1 rules out Ctrl as a
    *click* modifier bound literally to Ctrl on both platforms — but Godot's
    `command_or_control_autoremap` gives Ctrl-on-Windows / Cmd-on-macOS as one action, and

@@ -7,7 +7,7 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-Hold `modifier_broaden` (Ctrl), press the default-order button (RMB), drag, release: the selection spreads along the line drawn
+Hold `modifier_broaden` (Ctrl; Option on macOS), press the default-order button (RMB), drag, release: the selection spreads along the line drawn
 instead of fanning out around one point. Modelled on the behaviour of Beyond All Reason's
 `cmd_customformations2` widget — reimplemented from that behaviour, not from its code, which is
 GPL.
@@ -24,9 +24,7 @@ GPL.
   release says whether it was a click or a drag. Within `CLICK_SLOP_PX` (the box-select
   threshold) the release issues the order the press would have, exactly as before.
 - Mouse press only. `M` issues at once and cannot drag.
-- **macOS** turns Ctrl + left click into a right click before the engine sees it
-  (`ux/ui/interface-idioms.md` constraint 1). Ctrl + right click is unaffected as far as is known,
-  but this has not been tried on a Mac.
+- **macOS** turns Ctrl + left click into a right click, so there `modifier_broaden` is on Option (`PlatformModifiers`, `ux/ui/interface-idioms.md` constraint 1). The line gesture is Option + right drag. Not tried on a Mac.
 - **A press starts a line only when** nothing is armed (armed orders are out of scope for now),
   no structure is being placed, the cursor is over **ground** rather than an entity, and it is
   not over the HUD. A press on a unit stays an order *at* that unit — Attack, Embark, Interact.

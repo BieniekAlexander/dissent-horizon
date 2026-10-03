@@ -523,7 +523,7 @@ Build, Assemble and Repair — the construction and repair command family.
 Go and Fire — the plain move and the shot at a place the click ladder could not express.
 → **[`gdd/systems/commands/saying-it-plainly.md`](gdd/systems/commands/saying-it-plainly.md)**
 
-Move-line drag — hold Ctrl (`modifier_broaden`) and right-drag to draw where the group should stand.
+Move-line drag — hold `modifier_broaden` (Ctrl; Option on macOS) and right-drag to draw where the group should stand.
 → **[`gdd/systems/commands/move-line-drag.md`](gdd/systems/commands/move-line-drag.md)**
 
 ## Garrison occupancy
