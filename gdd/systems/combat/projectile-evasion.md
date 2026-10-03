@@ -8,9 +8,9 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md
 carries only the pointer.*
 
-> **WIP 2026-10-03T23:53Z session_01UundwFYUfG2Xm6qvQkUGGd.** Definitions first: the vocabulary
-> below is meant to be stable, and the rules built on it are mostly undeveloped. Every open
-> decision carries a `TODO`; [deferred](../../deferred.md) 1.66 indexes them.
+> **TODO — definitions first.** The vocabulary below is meant to be stable; the rules built on it
+> are mostly undeveloped. Every open decision is a `TODO` under §Open questions, indexed as
+> [deferred](../../deferred.md) 1.66.
 
 How a target in the path of a projectile makes it miss, and the terms a design claim about that
 is written in. The mechanics the terms describe live elsewhere: an emission's motion, stages,

@@ -604,14 +604,15 @@ escapable (§Losing the lock is built and tested, and unused by the Warlord so f
 
 Three causes, found by tracing contacts (the first two since fixed):
 
-- **A contact could deal no damage — FIXED 2026-10-03** (§The blast is measured at the
-  contact). The blast was measured on the payout's tick, a tick after the contact, by which
-  time a fast target had left the Warlord rocket's 0.1 sphere: a QUICK truck holding course was
+- **A contact could deal no damage**, until the blast was measured on the contact's own tick
+  (2026-10-03, §The blast is measured at the contact). Before, it was measured on the payout's
+  tick, a tick after the contact, by which time a fast target had left the Warlord rocket's 0.1
+  sphere: a QUICK truck holding course was
   struck by 8 of 10 rockets and damaged by about 5. It favoured exactly the target that holds
   course, which inverts the design.
-- **Steered emissions aimed at the target's ORIGIN, at ground level — FIXED 2026-10-03**
-  (§A rocket aims at the hitbox): a slightly short rocket dived into the terrain in front of a
-  ground target (2 of 10 rockets in one run).
+- **Steered emissions aimed at the target's ORIGIN, at ground level**, until they aimed at the
+  seated hitbox's centre (2026-10-03, §A rocket aims at the hitbox): a slightly short rocket
+  dived into the terrain in front of a ground target (2 of 10 rockets in one run).
 - **A hovering aircraft reverses by backing off at `reverse_speed_ratio`** rather than turning,
   so a reroute makes it slower, and the chase stage runs it down. The model treated every
   target as a turning vehicle.

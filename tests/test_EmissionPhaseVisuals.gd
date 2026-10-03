@@ -119,7 +119,7 @@ func test_a_stop_before_the_delay_cancels_the_start() -> void:
 
 
 ## Two flight stages sharing a mesh, and a burst with its own: whichever phase is live, the visuals
-## it names are up — a LATER phase naming the same mesh must not hide it during an earlier one.
+## it names are up — a later phase naming the same mesh must not hide it during an earlier one.
 func _staged_emission() -> Entity:
 	var emission: Entity = Entity.new()
 	var ownership: Ownership = Ownership.new()
