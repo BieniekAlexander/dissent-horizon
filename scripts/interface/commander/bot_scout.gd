@@ -64,6 +64,13 @@ const ABSENCE_RISK: float = 0.5
 var _bot: Bot
 var _act: BotActuator
 
+## The bot's own seeded stream (BotBrain.rng), for which unit scouts; null makes it the
+## sort it was. The DESTINATION is not sampled: that search is a resumable sweep keeping one
+## running best, and sampling it would mean keeping every point's score. TODO.
+var rng: RandomNumberGenerator = null
+## How willing the scout choice is to send a near-best candidate (BotDifficulty).
+var decision_temperature: float = 0.0
+
 ## Vector2i → float: seconds_elapsed() when the point was last observed.
 ## All points start at -(SCOUT_EXPIRATION_TIMER + 1.0) — treated as never scouted.
 var _scout_grid: Dictionary = {}
@@ -645,11 +652,14 @@ func _pick_scout() -> Variant:
 	# calibrated to — which is the point: re-tune a unit's speed or vision and the bot's
 	# choice of scout follows without a bot change.
 	var scales: Dictionary = _score_scales(candidates)
-	var ranked: Array = candidates.duplicate()
-	ranked.sort_custom(
-		func(a: Commandable, b: Commandable) -> bool:
-			return _scout_score(a, scales) > _scout_score(b, scales)
+	# Ranked by a draw at the bot's temperature rather than by a sort, so which unit goes
+	# looking varies by match; with no generator or at 0 it is the sort it was.
+	var scores: Array = candidates.map(
+		func(u: Commandable) -> float: return _scout_score(u, scales)
 	)
+	var ranked: Array = []
+	for i: int in BotSampling.order(scores, decision_temperature, rng):
+		ranked.append(candidates[i])
 	var rank: int = _scouts.size() + 1
 	for u: Commandable in ranked:
 		if _scouting_is_worth_it(u, rank):

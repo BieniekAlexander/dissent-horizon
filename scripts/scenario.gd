@@ -597,6 +597,9 @@ func _attach_brain(a_bot: Bot, a_difficulty: PlayerSlot.Difficulty, a_is_active:
 	brain.name = "BotBrain"
 	brain.active = a_is_active
 	brain.set_difficulty(a_difficulty)
+	# Its own stream, from the match seed and its id: reproducible from the seed, and never
+	# shared with the other bot or with the simulation's draws.
+	brain.seed_randomness(rng_seed, a_bot.id)
 	a_bot.add_child(brain)
 	brain.set_owner(self)
 

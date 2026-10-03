@@ -206,6 +206,8 @@ stream. `tests/test_SeededRandomness.gd` asserts all of it, including a SOURCE S
 on any new unseeded draw, because the failure mode is silent: an unseeded draw does not error,
 it just makes every measurement taken afterwards mean nothing.
 
+**The bots draw too, from their own streams, and a run of one seed is still one match.** Each brain is seeded from the match seed and its commander id (`BotBrain.seed_randomness`), draws a personality on its first think and samples its scored decisions — so `slots[].config` in a result is the personality as PLAYED, not the tier. An experiment that wants the tier exactly sets `personality_spread: 0` and `decision_temperature: 0` on the slot; one that does not is measuring its own draw. See [bot-randomness](bot-randomness.md).
+
 **Runs of one seed are bit-identical.** Measured 2026-09-29 with navigation synchronous
 project-wide: seeds 1 and 3 (HARD vs MEDIUM, 300 simulated seconds) four times each, eight
 processes sharing the CPU — every state dump identical, sample for sample. Contention is what a race needs, so running them side by side is the stronger test.

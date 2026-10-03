@@ -189,6 +189,54 @@ var reinforce_fraction: float = 0.5
 ## further out and turtles more; low enough and a raid inside the base is ignored.
 var defend_threat_radius: float = 10.0
 
+# ── VARIETY ─────────────────────────────────────────────────────────────────────────
+# Two matches on one map used to play out identically because every decision was a pure
+# function of state and these parameters. Both knobs below are drawn from the BOT'S OWN seeded
+# generator (BotBrain.rng), so a match is still reproducible from its seed and a different
+# seed is a different opponent. See gdd/systems/ai/bot-randomness.md.
+
+## How far this bot's PERSONALITY may stray from its tier: the standard deviation, as a
+## fraction of each field's range in SEARCH_RANGES, of a draw made once per match for every
+## searchable field. 0 plays the tier exactly — the deterministic bot — and is what a
+## controlled experiment should set. A sentinel value (−1 uncapped, PASSIVE's 9999) is never
+## moved. THE THIRD DEFAULT THAT DOES NOT REPRODUCE THE OLD PLAY, deliberately.
+var personality_spread: float = 0.15
+
+## How willing a scored decision is to take an option that is NOT the best: an option within
+## this fraction of the best score is a live alternative (BotSampling). 0 is the argmax every
+## scored module used before. Read by BotProduction (which unit), BotOpportunist (which errand
+## first) and BotScout (which unit scouts); never by placement, which must stay mirror-exact.
+var decision_temperature: float = 0.1
+
+## The range each searchable field may take — what a personality draw stays inside, and the
+## same bounds bot-parameter-space.md gives a tuning run. A field absent here is never
+## jittered: the periods (reaction time is the tier's identity), the booleans, and the two
+## variety knobs themselves. A value OUTSIDE its range is a sentinel and is left alone.
+const SEARCH_RANGES: Dictionary = {
+	"army_commit_threshold": [1, 12],
+	"preserve_min_cost": [0, 800],
+	"retarget_switch_margin": [1.0, 3.0],
+	"scout_unit_budget": [0, 4],
+	"economy_reserve": [0, 1500],
+	"build_concurrency": [1, 4],
+	"production_structure_cap": [1, 8],
+	"utility_unit_cap": [0, 6],
+	"income_structure_target": [0, 8],
+	"structure_demand_weight": [0.0, 1.0],
+	"demand_coverage_falloff": [0.0, 4.0],
+	"attack_value_ratio": [0.8, 2.5],
+	"assumed_enemy_parity": [0.0, 1.5],
+	"wave_abort_fraction": [0.0, 1.0],
+	"reinforce_fraction": [0.0, 1.0],
+	"defend_threat_radius": [3.0, 30.0],
+	"retarget_weight_effectiveness": [0.0, 3.0],
+	"retarget_weight_finishability": [0.0, 3.0],
+	"retarget_weight_proximity": [0.0, 3.0],
+	"place_frontage_bias": [0.0, 1.5],
+	"place_shelter_bias": [0.0, 1.5],
+	"place_corridor_weight": [0.0, 3.0],
+}
+
 # ── PER-UNIT TARGETING ──────────────────────────────────────────────────────────────
 # The retarget signal mix, which BotTargeting's own doc names as a natural thing for the
 # harness to search. THREAT has no field and is the unit of the scale: the score is compared
@@ -239,6 +287,9 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.economy_reserve = 900
 			config.build_concurrency = 1
 			config.may_attack = false
+			# A sparring partner is predictable on purpose: no personality, no sampling.
+			config.personality_spread = 0.0
+			config.decision_temperature = 0.0
 		PlayerSlot.Difficulty.EASY:
 			config.set_all_periods(1.5)
 			config.army_commit_threshold = 8
@@ -276,6 +327,38 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			# Uncapped: it builds with everything it can spare.
 			config.build_concurrency = -1
 	return config
+
+
+#endregion
+
+
+#region Personality
+## A copy of this config with every field in SEARCH_RANGES moved by a Gaussian draw of
+## `a_spread` × the field's range, clamped to the range, ints rounded. The draw order is the
+## table's order, so one seed is one personality. No generator or no spread: an exact copy.
+func jittered(a_rng: RandomNumberGenerator, a_spread: float) -> BotDifficulty:
+	var out: BotDifficulty = copied()
+	if a_rng == null or a_spread <= 0.0:
+		return out
+	for field: String in SEARCH_RANGES:
+		var lo: float = float(SEARCH_RANGES[field][0])
+		var hi: float = float(SEARCH_RANGES[field][1])
+		var current: Variant = out.get(field)
+		if float(current) < lo or float(current) > hi:
+			continue  # a sentinel, outside the range on purpose
+		var drawn: float = clampf(float(current) + a_rng.randfn(0.0, a_spread * (hi - lo)), lo, hi)
+		out.set(field, roundi(drawn) if typeof(current) == TYPE_INT else drawn)
+	return out
+
+
+## A field-for-field copy, over the script variables — the same set the self-play harness
+## reads and writes, so a field added to this class is copied the moment it exists.
+func copied() -> BotDifficulty:
+	var out := BotDifficulty.new()
+	for property: Dictionary in get_property_list():
+		if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			out.set(property["name"], get(property["name"]))
+	return out
 
 
 #endregion

@@ -18,6 +18,12 @@ const PRISONER_VALUE: float = 60.0
 var _bot: Bot
 var _act: BotActuator
 
+## The bot's own seeded stream (BotBrain.rng), for the order errands are taken in; null
+## makes it best-first exactly.
+var rng: RandomNumberGenerator = null
+## How willing the ordering is to put a near-best errand first (BotDifficulty).
+var decision_temperature: float = 0.0
+
 ## Domain gatherers — each returns Array[BotOpportunity] of currently-available, scored
 ## actions. Register a new utility decision by appending its gatherer here.
 var _gatherers: Array[Callable] = []
@@ -81,11 +87,14 @@ func tick() -> int:
 		func(o: BotOpportunity) -> bool:
 			return claims.can_claim(o.actor, CLAIM_OWNER, BotClaims.Priority.ERRAND)
 	)
-	# Only act on net-positive opportunities, best first.
+	# Only act on net-positive opportunities, best first — "first" drawn at the bot's
+	# temperature, so which of two close errands gets the shared actor varies by match.
 	candidates = candidates.filter(func(o: BotOpportunity): return o.utility() > 0.0)
-	candidates.sort_custom(
-		func(a: BotOpportunity, b: BotOpportunity): return a.utility() > b.utility()
-	)
+	var utilities: Array = candidates.map(func(o: BotOpportunity) -> float: return o.utility())
+	var ordered: Array[BotOpportunity] = []
+	for i: int in BotSampling.order(utilities, decision_temperature, rng):
+		ordered.append(candidates[i])
+	candidates = ordered
 	# Greedy: take the highest-utility action available to each still-free actor.
 	var claimed: Dictionary = {}  # actor -> true
 	for o: BotOpportunity in candidates:

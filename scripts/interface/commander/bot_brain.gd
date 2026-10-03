@@ -89,6 +89,22 @@ var _opportunist: BotOpportunist
 ## Which manager owns which unit — shared by every manager of this bot.
 var claims: BotClaims = BotClaims.new()
 
+## THE BOT'S OWN GENERATOR, seeded from the match seed and the slot (seed_randomness), so a
+## match is reproducible from its seed and two bots never share a stream — a shared stream
+## drawn in interleaved order would make each bot's draws depend on the other's think order.
+## Null until seeded: a brain nobody seeded (a bare one in a test) draws nothing, and every
+## scored decision stays the argmax it was. See gdd/systems/ai/bot-randomness.md.
+var rng: RandomNumberGenerator = null
+## Keeps the bot's stream apart from the simulation's and the global one, which are seeded
+## from the same number.
+const BOT_STREAM_SALT: int = 0x5EEDB07
+## Spreads consecutive commander ids across the seed space; a prime, so no two slots' salts
+## collide with a small match seed's low bits.
+const SLOT_SALT_STRIDE: int = 7919
+## The personality is drawn ONCE, on the first think, so overrides pushed before it (a
+## harness pinning spread to 0) are part of what is drawn from.
+var _personality_drawn: bool = false
+
 ## This brain's jobs, in the order `think` runs them. Built with the managers.
 var _jobs: Array[BotJob] = []
 ## Whether the jobs have been handed to the session's scheduler.
@@ -124,6 +140,24 @@ func set_config(a_config: BotDifficulty) -> void:
 	config = a_config
 	if _military != null:
 		_apply_config()
+
+
+## Give this brain its own seeded stream. Called by Scenario._attach_brain with the match seed
+## and the commander id; a test seeds whatever it likes. Re-seeding re-arms the personality
+## draw, so a brain re-seeded before its first think draws from the new stream.
+func seed_randomness(a_match_seed: int, a_slot_salt: int) -> void:
+	rng = RandomNumberGenerator.new()
+	rng.seed = a_match_seed ^ (a_slot_salt * SLOT_SALT_STRIDE) ^ BOT_STREAM_SALT
+	_personality_drawn = false
+
+
+## The per-match personality: `config` jittered by its own spread, once. A brain with no
+## generator keeps the tier exactly.
+func _draw_personality() -> void:
+	if rng == null or _personality_drawn:
+		return
+	_personality_drawn = true
+	config = config.jittered(rng, config.personality_spread)
 
 
 func _ready() -> void:
@@ -277,6 +311,11 @@ func _apply_config() -> void:
 	_production.reserve = config.economy_reserve
 	_sanction.may_attack = config.may_attack
 	_sanction.defend_threat_radius = config.defend_threat_radius
+	# The three scored modules sample at one temperature; placement is deliberately not one
+	# of them (it must stay mirror-exact — BotEconomy §WHERE A BUILDING GOES).
+	_production.decision_temperature = config.decision_temperature
+	_opportunist.decision_temperature = config.decision_temperature
+	_scout.decision_temperature = config.decision_temperature
 	# The two production-mix weights live on the PERCEPTION layer (Bot.enemy_demand_map is
 	# what reads them), so they are pushed onto the bot rather than onto a manager. Same
 	# discipline either way: a number handed down, never a branch on the tier.
@@ -324,6 +363,12 @@ func _ensure_managers() -> bool:
 	# One registry, shared: a claim means nothing unless every manager reads the same one.
 	for manager: Object in [_economy, _military, _targeting, _kamikaze, _scout, _opportunist]:
 		manager.set("claims", claims)
+	# One stream, shared by the modules that sample (null stays null: they then argmax).
+	for manager: Object in [_production, _opportunist, _scout]:
+		manager.set("rng", rng)
+	# The personality is drawn BEFORE the config is pushed, so what the managers play by is
+	# this match's draw and not the tier.
+	_draw_personality()
 	# AFTER every manager exists, and after construction rather than through their
 	# constructors: a manager that ignores difficulty should not have to take it, and one that
 	# starts reading it should not change its own call site.

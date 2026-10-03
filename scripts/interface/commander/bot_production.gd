@@ -23,6 +23,11 @@ extends RefCounted
 var _bot: Bot
 var _act: BotActuator
 
+## The bot's own seeded stream (BotBrain.rng), for the unit choice; null makes it the argmax.
+var rng: RandomNumberGenerator = null
+## How willing the unit choice is to take a near-best counter (BotDifficulty).
+var decision_temperature: float = 0.0
+
 ## Energy that must still be banked AFTER a unit is paid for, mirroring BotEconomy.reserve
 ## (BotDifficulty.economy_reserve; pushed by BotBrain._apply_config).
 ##
@@ -204,19 +209,20 @@ func _owned_utility_unit_count() -> int:
 func _best_unit_for(a_structure: Commandable, a_demand: Dictionary) -> StringName:
 	if a_demand.is_empty():
 		return _cheapest_affordable_unit(a_structure)
-	var best: StringName = &""
-	var best_score: float = -1.0
+	var types: Array = []
+	var scores: Array = []
 	for t: StringName in a_structure.production.producible_types:
 		# Only train combat units — a weaponless unit (e.g. the Stock Truck) adds
 		# nothing to the army, so a structure that can ONLY make such units waits
 		# rather than spamming them. Builders are fielded via the economy, not here.
 		if not _bot.unit_can_attack(t):
 			continue
-		var score: float = _bot.unit_composition_value(t, a_demand)
-		if score > best_score:
-			best_score = score
-			best = t
-	return best
+		types.append(t)
+		scores.append(_bot.unit_composition_value(t, a_demand))
+	# A draw at the bot's temperature rather than the argmax, so two matches do not field the
+	# same mix; with no generator or at 0 it IS the argmax.
+	var chosen: int = BotSampling.pick(scores, decision_temperature, rng)
+	return types[chosen] if chosen >= 0 else &""
 
 
 func _cheapest_affordable_unit(a_structure: Commandable) -> StringName:

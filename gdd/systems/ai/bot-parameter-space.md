@@ -35,6 +35,8 @@ field existed**, and the ramp ships FLAT — see §The tiers ship flat below.
 | `assumed_enemy_parity` | `BotMilitary.ASSUMED_ENEMY_PARITY = 0.85` | `BotMilitary._committing_to_attack` |
 | `wave_abort_fraction` | `BotMilitary.WAVE_ABORT_FRACTION = 0.70` | `BotMilitary._should_abort_wave` |
 | `reinforce_fraction` | float | 0.0 – 1.0 | ordinal (higher = holds reinforcements longer) | 0 is the pre-2026-10-03 trickle, every new unit walking to the front alone; 1.0 waits until the reserve matches the wave it joins, which on a long wave never happens. Interacts with `WAVE_SPENT_FRACTION` (0.35, fixed): a wave spent below it ends before a slow reserve releases |
+| `personality_spread` | float | 0.0 – 0.4 | ordinal (higher = less like its tier) | 0 is the tier exactly, which a controlled experiment MUST set; 0.4 of a range is a different tier as often as not. Not itself jittered |
+| `decision_temperature` | float | 0.0 – 0.5 | ordinal (higher = less decisive) | 0 is the argmax every scored module used before; 0.5 takes an option half as good as the best often enough to read as careless. Not itself jittered; placement never reads it |
 | `defend_threat_radius` | `DEFEND_THREAT_RADIUS = 10.0`, declared TWICE | `BotMilitary._decide_posture`, `BotSanction._engagement_zone` |
 | `retarget_weight_effectiveness` | `BotTargeting.W_EFFECTIVENESS = 1.0` | `BotTargeting.set_signal_weights` |
 | `retarget_weight_finishability` | `BotTargeting.W_FINISHABILITY = 1.0` | ” |
