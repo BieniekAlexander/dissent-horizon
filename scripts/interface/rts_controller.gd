@@ -241,6 +241,20 @@ var placement_quarter_turns: int = 0
 var _placing: bool = false
 var _placing_world: Vector3 = Vector3.ZERO
 var _placing_target: Entity = null
+
+## MOVE-LINE DRAG: true from the press of a right click that MIGHT become a line until its release.
+## The press is held back rather than issued, because only the release says whether it was a click
+## or a drag. See gdd/systems/commands/move-line-drag.md.
+var _line_pressing: bool = false
+## The order the press would have given, fixed at the press so a cursor that wanders over a unit
+## during the drag cannot change what the line means.
+var _line_command_type: Script = null
+var _line_press_screen: Vector2 = Vector2.ZERO
+var _line_start: Vector2 = Vector2.ZERO
+var _line_end: Vector2 = Vector2.ZERO
+## True only WHILE a line order is being issued, so the destination fan-out knows to use the line.
+var _line_issuing: bool = false
+var _line_indicator: LineIndicator = null
 #endregion
 
 ## Double-click tracking: the player unit hit by the previous click and when
@@ -427,6 +441,7 @@ func _ready():
 	# child Control inherits this, which is what keeps the info panel and minimap live too.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	ControlScheme.apply()
+	PlatformModifiers.apply()
 	_register_hud_cursor()
 	_apply_cursor(FREE_CURSOR)
 	# Map each SELECT-context grid command to its selection routine. Must be built
@@ -477,6 +492,8 @@ func _ready():
 			_indicator_pool.append(_make_indicator())
 		_rally_indicator = RallyIndicator.new()
 		map.add_child(_rally_indicator)
+		_line_indicator = LineIndicator.new()
+		map.add_child(_line_indicator)
 		_producer_affinity_indicator = ProducerAffinityIndicator.new()
 		map.add_child(_producer_affinity_indicator)
 		_range_indicator = RangeIndicator.new()
@@ -566,6 +583,7 @@ func _process(a_delta: float) -> void:
 			_update_placing()
 		else:
 			_finish_placing_structure()
+	_update_line_order()
 	_update_ability_target()
 
 	var pruned: bool = prune_selection()
@@ -1067,7 +1085,11 @@ func _unhandled_input(a_event: InputEvent) -> void:
 		#
 		# Armed, this button was taken above, whichever scheme it is; what reaches here is the
 		# default order, so both schemes agree on it.
+		if a_event is InputEventMouseButton and _begin_line_order():
+			return
 		_issue_current_command()
+	elif _line_pressing and a_event.is_action_released("command_issue"):
+		_finish_line_order()
 	elif a_event.is_action_pressed("rotate_left") and _placement_rotation_applies():
 		placement_quarter_turns = posmod(placement_quarter_turns + 1, 4)
 	elif a_event.is_action_pressed("rotate_right") and _placement_rotation_applies():
@@ -1126,6 +1148,159 @@ func _issue_current_command() -> void:
 		# Only the player's own units take commands; an enemy/neutral
 		# info-selection ignores the move/command click.
 		assign_command_to_units(current_command_type, command_message, additive_latched)
+
+
+#endregion
+
+
+#region Move-line drag: hold the order button and draw where the group should stand
+## The orders a line may be drawn for: a plain move, and the ones that are a move with a purpose.
+## Compared by identity, never by `is`, so a command that merely extends MoveCommand does not
+## inherit a line it was never meant to have.
+static func line_capable(a_command_type: Script) -> bool:
+	return (
+		a_command_type == MoveCommand
+		or a_command_type == AttackMove
+		or a_command_type == Patrol
+		or a_command_type == Defend
+	)
+
+
+## Whether a press of the default order button may turn into a line, and so be held back until
+## the release. Only with `modifier_broaden` held at the press, so a plain right click and a plain
+## right drag are exactly what they were. Not armed orders, not placement, and not a press that
+## starts over a unit (that is an order AT the unit, which stays one) or over the HUD.
+func _line_order_applies() -> bool:
+	if not Input.is_action_pressed(MODIFIER_BROADEN):
+		return false
+	if is_command_armed() or _placing or not pending_selection.is_empty():
+		return false
+	if not _selection_owned_by_player() or not (cursor_target is Vector3):
+		return false
+	if _pointer_over_blocking_ui():
+		return false
+	return line_capable(current_command_type)
+
+
+## The press. True when it took it, so the caller issues nothing yet.
+func _begin_line_order() -> bool:
+	if not _line_order_applies():
+		return false
+	_line_pressing = true
+	_line_command_type = current_command_type
+	_line_press_screen = live_pointer_position()
+	_line_start = VU.in_xz(_cursor_ground_point(_line_press_screen))
+	_line_end = _line_start
+	return true
+
+
+## While the button is down: the end of the line follows the cursor, and the preview is redrawn.
+func _update_line_order() -> void:
+	if not _line_pressing:
+		if _line_indicator != null:
+			_line_indicator.clear_line()
+		return
+	# The release is normally an event, but a HUD panel can swallow one; the action itself cannot
+	# be intercepted (see _update_drag).
+	if not Input.is_action_pressed("command_issue"):
+		_finish_line_order()
+		return
+	var pointer: Vector2 = live_pointer_position()
+	_line_end = VU.in_xz(_cursor_ground_point(pointer))
+	if _line_indicator == null or is_click_gesture(_line_press_screen, pointer):
+		if _line_indicator != null:
+			_line_indicator.clear_line()
+		return
+	var points: Array[Vector3] = []
+	for dest: Vector2 in _line_destinations(_line_movers(selection)).values():
+		points.append(Vector3(dest.x, map.terrain_height_at(dest), dest.y))
+	_line_indicator.show_line(
+		Vector3(_line_start.x, map.terrain_height_at(_line_start), _line_start.y),
+		Vector3(_line_end.x, map.terrain_height_at(_line_end), _line_end.y),
+		points
+	)
+
+
+## The release. A press and release within the click slop is the plain click it always was.
+func _finish_line_order() -> void:
+	if not _line_pressing:
+		return
+	_line_pressing = false
+	if _line_indicator != null:
+		_line_indicator.clear_line()
+	if is_click_gesture(_line_press_screen, live_pointer_position()):
+		_issue_current_command()
+		return
+	if not _selection_owned_by_player() or not line_capable(_line_command_type):
+		return
+	# The order is the PRESS's, aimed at the ground: whatever the cursor passed over since is not
+	# part of it. The message position is the middle of the line, which is where a Defend region
+	# and anything not given a slot of its own point.
+	command_message.target = null
+	command_message.world_position = _ground_at((_line_start + _line_end) * 0.5)
+	_line_issuing = true
+	assign_command_to_units(_line_command_type, command_message, additive_latched)
+	_line_issuing = false
+
+
+func _ground_at(a_xz: Vector2) -> Vector3:
+	return Vector3(a_xz.x, map.terrain_height_at(a_xz) if map != null else 0.0, a_xz.y)
+
+
+## The members of `a_actors` that can stand on a line at all. An immobile one takes no slot and,
+## on a line order, is given no order.
+static func _line_movers(a_actors: Array) -> Array:
+	return a_actors.filter(
+		func(c: Node) -> bool:
+			return is_instance_valid(c) and c is Commandable and (c as Commandable).can_move()
+	)
+
+
+## Each actor mapped to its own standing point on the current line. Ground units and aircraft are
+## laid out SEPARATELY, each as if it were the only group on the line, so a mixed selection fills
+## the line twice rather than the aircraft taking slots the ground units then leave gaps beside.
+## Spacing comes from the largest actor in the selection, so nothing is asked to stand closer than
+## the biggest of them fits.
+func _line_destinations(a_movers: Array) -> Dictionary:
+	var result: Dictionary = {}
+	if a_movers.is_empty():
+		return result
+	if a_movers.size() == 1:
+		result[a_movers[0]] = _line_end
+		return result
+	var radius: float = 0.0
+	var ground: Array = []
+	var air: Array = []
+	for c: Commandable in a_movers:
+		radius = maxf(radius, c.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
+		(air if c.aerial != null else ground).append(c)
+	var spacing: float = LineSlots.spacing_for_radius(radius)
+	for group: Array in [ground, air]:
+		_lay_out_on_line(group, spacing, result)
+	return result
+
+
+func _lay_out_on_line(a_group: Array, a_spacing: float, a_into: Dictionary) -> void:
+	if a_group.is_empty():
+		return
+	var positions: Array[Vector2] = []
+	var centroid: Vector2 = Vector2.ZERO
+	for c: Commandable in a_group:
+		var xz: Vector2 = VU.in_xz(c.global_position)
+		positions.append(xz)
+		centroid += xz
+	centroid /= float(a_group.size())
+	var slots: Array[Vector2] = LineSlots.slots(
+		_line_start,
+		_line_end,
+		a_spacing,
+		a_group.size(),
+		LineSlots.back_toward(_line_start, _line_end, centroid)
+	)
+	var taken: Array[int] = LineSlots.assign(positions, slots, LineSlots.axis(_line_start, _line_end))
+	for i: int in a_group.size():
+		if taken[i] >= 0:
+			a_into[a_group[i]] = slots[taken[i]]
 
 
 #endregion
@@ -3175,6 +3350,14 @@ func assign_command_to_units(
 	# one actor from the commander's point of view) and _narrowed_actors leaves it alone.
 	capable = _narrowed_actors(a_command_type, capable, a_command_message)
 
+	# A line order is only for what can stand on a line. An immobile actor is not given the order,
+	# rather than being handed the middle of the line as a rally point.
+	if _line_issuing:
+		capable = _line_movers(capable)
+		if capable.is_empty():
+			_reset_pending_state()
+			return false
+
 	# An EMBARK is collected by ONE host — the nearest applicable one. Narrowed here, before
 	# the per-unit snapshots are taken, so everything else selected falls through to the
 	# bystander move below rather than a second transport racing for the same passenger.
@@ -3396,6 +3579,9 @@ static func _slowest_group_speed(capable: Array) -> float:
 func _fanned_destinations(
 	a_command_type: Script, a_capable: Array, a_command_message: CommandMessage
 ) -> Dictionary:
+	if _line_issuing:
+		return _line_destinations(a_capable)
+
 	# Build is EXCLUDED: a build order has one destination by definition — the site of the
 	# one structure being placed. Fanning it out gave each builder a different target cell,
 	# so they raced to lay foundations a cell or two apart instead of co-building the one

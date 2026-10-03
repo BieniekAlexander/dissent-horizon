@@ -63,6 +63,13 @@ const NEAR_VERTICAL_COSINE: float = 0.9
 @export var acceleration_mps2: float = 0.0
 ## The floor a steered emission slows to while facing away from its target.
 @export var min_speed: float = 0.0
+## Seconds into the phase at which the motor burns out, after which the emission flies no
+## faster than `coast_speed`: a rocket that boosts, then coasts. Zero never burns out. The
+## drop is immediate, and `acceleration_mps2` then only ever climbs back to the coast speed.
+## → gdd/systems/combat/projectiles.md §Rocket calibration
+@export var burn_seconds: float = 0.0
+## World units per second once `burn_seconds` has passed. Only read when it has.
+@export var coast_speed: float = 0.0
 ## How far the emission's heading wanders, in degrees either side of where it is steering —
 ## a rocket's wobble. It is real motion, so it can make a shot miss; seeded from the gameplay
 ## generator, so a replay wobbles identically (EmissionJitter). Zero flies clean.
@@ -252,6 +259,16 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 			else maxf(turned.length() - step, min_speed / float(TimeUtils.ticks_per_second()))
 		)
 	)
+
+
+## `a_velocity` held to the coast speed once the burn is over, `a_phase_seconds` into the
+## phase. Unchanged before burn-out and for a phase that never burns out. Applied after
+## steering, so a steered emission's own acceleration rule still runs, under this cap.
+func burnt_velocity(a_velocity: Vector3, a_phase_seconds: float) -> Vector3:
+	if burn_seconds <= 0.0 or a_phase_seconds < burn_seconds:
+		return a_velocity
+	var cap: float = coast_speed / float(TimeUtils.ticks_per_second())
+	return a_velocity.limit_length(cap)
 
 
 ## One tick of gravity, after the move.

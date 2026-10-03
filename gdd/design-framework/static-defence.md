@@ -54,6 +54,113 @@ Statics are generally low tech, but need not share one tier. Structures in gener
 build, which is what stops aggressive (forward) placement being abused; stagger lets a small
 defending force interrupt construction on top of that.
 
+## Alpha strike
+
+**Decided (Alex, 2026-10-02): statics carry a high alpha strike**, so they are proportionally more
+effective early, against small unit counts. Found in play: Watch Towers against Badgers. Cadence
+terms (alpha `A`, burst `B`, cycle `T_c`, sustained DPS `D`) are
+[weapon-cadence](../systems/combat/weapon-cadence.md)'s.
+
+**TODO — research.** The numbers below are a paper calculation, not self-play. They are a
+starting point to check in play.
+
+### Why alpha, and not just DPS
+
+A static is one shooter against a group. The group's damage arrives in **volleys**, one per
+attacker reload. Every attacker the static removes before a volley takes that attacker's share
+out of every volley that follows. So damage landed **early** is worth more than the same damage
+spread across the cycle, and alpha is damage landed early.
+
+That is also why alpha favours **small** groups. Against two attackers, one burst that kills one
+of them halves the incoming damage for the rest of the fight. Against eight, the same burst
+removes an eighth, and the group's first volleys kill the static before its DPS matters. The
+static's edge fades as unit counts grow, which is the shape wanted: statics hold the early game,
+and armies and long-term investments (the Bombard, artillery) beat them later.
+
+### The calibration target: break-even group size
+
+For a static and the attacker it has to hold against, the number to set is
+
+```
+N*   the smallest group of that attacker that kills the static
+```
+
+and the check is the **exchange below N***: the static should kill at least its own price in
+attackers before the group breaks off or dies. Set `N*` from the early-game group size of the
+threat. First contact is about ten basic units of army in total
+([income-and-cost](../systems/macroeconomics/pacing/income-and-cost.md) §The decided targets),
+so a specialist squad there is about two to four units.
+
+Three rules of thumb for getting `N*` from alpha:
+
+- **One burst kills one target.** `A ≥` the hit points of the static's main target unit (after
+  the damage table), with a little margin. Below that, the first burst kills nothing and the
+  group fires its second volley at full strength.
+- **The burst lands inside one attacker reload.** `B` well under the attacker's reload (Badger:
+  1.5 s), so the kill happens before the next volley rather than across it.
+- **Round damage divides the target's hit points evenly.** A round that leaves a target at 5 HP
+  wastes nearly a whole round. Today's 15 needs 6 rounds for an 80 HP Irregular (90 damage) and
+  7 for a 100 HP Badger.
+
+The other knobs move `N*` too, and differ in what they change:
+
+| Knob | Effect on `N*` | Cost |
+|---|---|---|
+| **alpha** (clip × round damage, short split) | raises it most against **small** groups | a long reload is a window to bait the clip (the SAM's counterplay, §The SAM against cross-ups); one bait now costs the baiter a unit |
+| sustained DPS | raises it at every group size | is also more damage against non-preferred targets (invariant 1) |
+| hit points | raises it at every group size; a flat number of attacker volleys | delays rather than wins: does not front-load kills |
+| reach over the attacker | free bursts while the group walks in, which is exactly when alpha is worth most | bounded by invariant 3 (below artillery reach) |
+
+### Watch Tower against Badgers
+
+The two have the **same reach** (`ground_range_long`, 12), so neither gets free shots, and the
+Badger's rocket (40 EXPLOSIVE) does full damage to the tower's MEDIUM MECH. A tower (400) costs
+two Badgers (200 each).
+
+Badger damage to the tower is 40 × 1.0 × 1.0. Tower damage to a Badger (100 HP, LIGHT BIO) is
+15 × 1.0 × 1.0. Badgers walk in together (the tower's worst case), all in range at once, with a
+0.8 s rocket flight; the tower retargets at once and wastes no rounds.
+
+| Variant | Alpha | DPS | Tower survives up to | Badgers that kill it, and what they lose |
+|---|---|---|---|---|
+| **today:** 4 × 15, split 0.23 s, reload 1.5 s | 60 in 0.7 s | 27 | 2 Badgers | **4 Badgers (800) kill it for 1 lost (200)**; 3 kill it for 2 |
+| same DPS, more alpha: 7 × 15, split 0.1 s, reload 3.25 s | 105 in 0.6 s | 27 | 3 | 4 kill it for 2 lost |
+| 4 × 25, split 0.1 s, reload 2.2 s | 100 in 0.3 s | 40 | 3 | 4 kill it but all four die (800 for its 400); 5 kill it for 2 lost |
+| **6 × 25, split 0.1 s, reload 3.0 s** | 150 in 0.5 s | 43 | **4** | 5 kill it for 2 lost |
+| today's gun, 650 HP | 60 | 27 | 3 | 4 kill it for 1 lost |
+
+**Finding: today a group of four Badgers kills a tower for one Badger, half the tower's price**,
+and three trade about evenly (two Badgers, 400, for the 400 tower). With early squads of two to four, the tower loses the matchup it is meant to
+win: Badgers are LIGHT BIO, the tower's own target class.
+
+Readings from the table:
+
+- **Rearranging the same DPS into a burst is worth one Badger of `N*`** (2 → 3) at no cost in DPS
+  against anything else.
+- **Hit points alone** move `N*` as much but do not front-load kills: against four, the 650 HP
+  tower still dies having killed one.
+- **The 6 × 25 burst** holds four Badgers and kills all four before falling. **Applied to the
+  Watch Tower (2026-10-02)** as the starting point for play. It also raises DPS by about half against everything else, LEAD's floor included
+  (about 17 against light mechs, up from 11). **Decided (Alex, 2026-10-02): a static's reach into
+  its non-preferred classes is governed by the damage-type multipliers**, so invariant 1 is held
+  by tuning LEAD's row rather than by keeping the tower's gun weak.
+- **Past `N*` alpha stops mattering.** Five or more Badgers kill most 500 HP variants on their
+  third volley (3.8 s): 13 rockets kill the tower, and five Badgers fire 15 in three volleys. That
+  is the intended late-game shape.
+
+Not modelled, and worth a self-play check: staggered arrival (which favours the tower), Badgers
+breaking off to bait a long reload, focus fire from other units, and the tower's build time.
+
+**Open: reach.** Equal reach is the Badger's main advantage. A tower one or two cells longer than
+`ground_range_long` would get a free burst on every approach at SLOW speed (1.65/s), which is the
+moment alpha is worth most. There is no shape between `ground_range_long` (12) and
+`ground_range_artillery` (20) today, so this would need a new bucket under invariant 3.
+
+**The other anti-mech infantry.** The Anarchist Warlord (250, 160 HP, MEDIUM BIO, the same 40
+EXPLOSIVE rocket at the same reach) is a harder case: LEAD does 0.6 to it, so a 6 × 25 burst lands
+90 of its 160. The tower is not meant to cover bio-medium cleanly (invariant 1), but the Warlord
+is the Anarchists' early anti-air and anti-tower unit at once, so check it in self-play.
+
 ## Colonials
 
 Doctrine "strong defences, small deployments". Three statics:

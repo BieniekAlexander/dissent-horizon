@@ -163,7 +163,9 @@ func test_the_colonial_scan_family_opts_out() -> void:
 				unlock.sanction.needs_vision,
 				"%s still needs vision" % unlock.sanction.sanction_name
 			)
-	assert_eq(scans, 3, "all three Scan cells were checked")
+	# Not a count: how many Scan levels there are is content (CLAUDE.md §A unit test does not
+	# assert facts about authored content). Only guards against the loop checking nothing.
+	assert_gt(scans, 0, "the Scan cells were found and checked")
 
 
 # --- Sanctions with no aim point (needs_target) ----------------------------------

@@ -38,13 +38,13 @@ script = ExtResource("6_unlock")
 sanction = SubResource("Sanction_dignify")
 tier = 0
 column = 0
-dominion_cost = 100
+dominion_cost = 150
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_ambush1"]
 script = ExtResource("3_ord")
 sanction_name = "Ambush 1"
-description = "Drops 4 × Irregular at the target point. Use it to reinforce a failing defence, or to open a second front behind the enemy line."
+description = "Drops 3 × Irregular at the target point. Use it to reinforce a failing defence, or to open a second front behind the enemy line."
 event_scene = ExtResource("4_amb")
 targeting = 1
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
@@ -58,7 +58,7 @@ script = ExtResource("6_unlock")
 sanction = SubResource("Sanction_ambush1")
 tier = 1
 column = 0
-dominion_cost = 250
+dominion_cost = 450
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_ambush2"]
@@ -68,7 +68,7 @@ description = "Drops 8 × Irregular at the target point, replacing Ambush 1."
 event_scene = ExtResource("13_a2")
 targeting = 1
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "Twice the squad for the same click. Replaces Ambush 1 outright."
+verbose_description = "A war band rather than a squad — enough to swing an engagement. Replaces Ambush 1\noutright."
 cooldown_duration = 60.0
 ability_id = &"ambush"
 ability_level = 2
@@ -79,7 +79,7 @@ sanction = SubResource("Sanction_ambush2")
 tier = 2
 column = 0
 parent = SubResource("Unlock_ambush1")
-dominion_cost = 500
+dominion_cost = 1100
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_ambush3"]
@@ -120,7 +120,7 @@ script = ExtResource("6_unlock")
 sanction = SubResource("Sanction_informant1")
 tier = 0
 column = 1
-dominion_cost = 100
+dominion_cost = 200
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_informant2"]
@@ -159,10 +159,10 @@ ability_level = 3
 [sub_resource type="Resource" id="Unlock_informant3"]
 script = ExtResource("6_unlock")
 sanction = SubResource("Sanction_informant3")
-tier = 2
+tier = 3
 column = 1
 parent = SubResource("Unlock_informant2")
-dominion_cost = 500
+dominion_cost = 2000
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_scavenge1"]
@@ -181,7 +181,7 @@ script = ExtResource("6_unlock")
 sanction = SubResource("Sanction_scavenge1")
 tier = 0
 column = 2
-dominion_cost = 500
+dominion_cost = 300
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_scavenge2"]
@@ -201,7 +201,7 @@ sanction = SubResource("Sanction_scavenge2")
 tier = 1
 column = 2
 parent = SubResource("Unlock_scavenge1")
-dominion_cost = 500
+dominion_cost = 600
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_scavenge3"]
@@ -221,7 +221,7 @@ sanction = SubResource("Sanction_scavenge3")
 tier = 2
 column = 2
 parent = SubResource("Unlock_scavenge2")
-dominion_cost = 500
+dominion_cost = 1200
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_overcharge"]
@@ -259,9 +259,9 @@ ability_level = 1
 [sub_resource type="Resource" id="Unlock_global_emp"]
 script = ExtResource("6_unlock")
 sanction = SubResource("Sanction_global_emp")
-tier = 4
+tier = 3
 column = 2
-dominion_cost = 500
+dominion_cost = 3000
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_mortar1"]
@@ -280,7 +280,7 @@ script = ExtResource("6_unlock")
 sanction = SubResource("Sanction_mortar1")
 tier = 1
 column = 3
-dominion_cost = 500
+dominion_cost = 550
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_mortar2"]
@@ -300,7 +300,7 @@ sanction = SubResource("Sanction_mortar2")
 tier = 2
 column = 3
 parent = SubResource("Unlock_mortar1")
-dominion_cost = 500
+dominion_cost = 1200
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_mortar3"]
@@ -320,7 +320,7 @@ sanction = SubResource("Sanction_mortar3")
 tier = 3
 column = 3
 parent = SubResource("Unlock_mortar2")
-dominion_cost = 500
+dominion_cost = 2500
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [node name="Anarchical" type="Node" unique_id=1805763819]
@@ -329,7 +329,7 @@ faction_name = "Anarchists"
 infrastructure_source = &"an_infrastructure"
 starting_units = Array[PackedScene]([ExtResource("7_war"), ExtResource("8_irr"), ExtResource("8_irr"), ExtResource("8_irr")])
 starting_formation = ExtResource("99_form")
-sanction_unlocks = Array[ExtResource("6_unlock")]([SubResource("Unlock_dignify"), SubResource("Unlock_ambush1"), SubResource("Unlock_ambush2"), SubResource("Unlock_ambush3"), SubResource("Unlock_informant1"), SubResource("Unlock_informant2"), SubResource("Unlock_informant3"), SubResource("Unlock_scavenge1"), SubResource("Unlock_scavenge2"), SubResource("Unlock_scavenge3"), SubResource("Unlock_overcharge"), SubResource("Unlock_global_emp"), SubResource("Unlock_mortar1"), SubResource("Unlock_mortar2"), SubResource("Unlock_mortar3")])
+sanction_unlocks = Array[ExtResource("6_unlock")]([SubResource("Unlock_dignify"), SubResource("Unlock_ambush1"), SubResource("Unlock_ambush2"), SubResource("Unlock_informant1"), SubResource("Unlock_informant2"), SubResource("Unlock_informant3"), SubResource("Unlock_scavenge1"), SubResource("Unlock_scavenge2"), SubResource("Unlock_scavenge3"), SubResource("Unlock_global_emp"), SubResource("Unlock_mortar1"), SubResource("Unlock_mortar2"), SubResource("Unlock_mortar3")])
 
 [node name="DominionGeneration" type="Node" parent="." unique_id=702650420]
 script = ExtResource("9_1xmxo")

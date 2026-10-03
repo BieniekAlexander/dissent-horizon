@@ -39,7 +39,9 @@ enum Difficulty {
 ## these to the built commander; a commander built without a slot (the neutral world
 ## commander) starts at zero.
 @export var starting_energy: int = 1000
-@export var starting_dominion: int = 300
+## Below every faction's cheapest sanction, and the same for every player: a head start on
+## the first unlock, not a free one (gdd/systems/macroeconomics/pacing/sanction-calibration.md).
+@export var starting_dominion: int = 100
 #endregion
 
 ## The live Commander built for this slot, assigned by Scenario at build time.

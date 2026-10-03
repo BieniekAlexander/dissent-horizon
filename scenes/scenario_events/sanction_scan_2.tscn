@@ -4,7 +4,7 @@
 
 [node name="SanctionScan2" type="Sprite3D"]
 script = ExtResource("1_evt")
-vision_radius = 10.0
-lifespan_seconds = 15.0
-detection_radius = 10.0
+vision_radius = 24.0
+lifespan_seconds = -1.0
+detection_radius = 16.0
 metadata/_custom_type_script = "uid://dfmrebaif66d7"
