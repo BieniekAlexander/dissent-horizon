@@ -773,7 +773,7 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn",
 		"tooltip": "Build Watch Tower — 400 energy, 30s",
-		"verbose": "Build Watch Tower — 400 energy, 30s\nRequires: Compound\n500 HP · medium armour · mech frame\n1×1 cells · vision 24\nCosts 50 infrastructure upkeep\nBallisticWeapon: 15 lead, reach 12"
+		"verbose": "Build Watch Tower — 400 energy, 30s\nRequires: Compound\n500 HP · medium armour · mech frame\n1×1 cells · vision 24\nCosts 50 infrastructure upkeep\nBallisticWeapon: 25 lead, reach 12"
 	},
 	"command_tool_cl_defense_antiStructure": {
 		"context": "BUILD",
@@ -924,8 +924,8 @@
 		"needs_docking": false,
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_support2.tscn",
-		"tooltip": "Build Supply Beacon — 800 energy, 20s",
-		"verbose": "Build Supply Beacon — 800 energy, 20s\nRequires: Sky Port\n600 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 100 infrastructure upkeep"
+		"tooltip": "Build Supply Beacon — 2000 energy, 20s",
+		"verbose": "Build Supply Beacon — 2000 energy, 20s\nRequires: Sky Port\n600 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 100 infrastructure upkeep"
 	},
 	"command_tool_cl_support3": {
 		"context": "BUILD",

@@ -8,7 +8,6 @@ sanctions:
   - ambush
   - informant
   - scavenge
-  - overcharge
   - global_emp
   - mortar
 ---

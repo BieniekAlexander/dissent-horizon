@@ -303,3 +303,30 @@ func test_a_homing_shot_that_loses_its_target_circles_where_it_was() -> void:
 		"it lives out its lifespan rather than arriving anywhere"
 	)
 	assert_lt(farthest_after_settling, 2.0, "it loops round the last place its target was")
+
+
+func test_a_flight_slows_to_its_coast_speed_when_it_burns_out() -> void:
+	# Paying out every tick records where the emission was each tick, so the step between two
+	# records is its speed: fast while the motor burns, the coast speed after.
+	var emission: RecordingEmission = _emission(
+		[
+			_phase(
+				{
+					"speed": 30.0,
+					"burn_seconds": 0.2,
+					"coast_speed": 6.0,
+					"ends_on_arrival": false,
+					"lifespan_seconds": 0.6,
+					"applies_payload": true,
+					"payload_period_seconds": 0.0
+				}
+			),
+		]
+	)
+	var record: Dictionary = await _run(emission, Vector3(100.0, 0.0, 0.0))
+	var hits: Array = record["hits"]
+	var per_tick: float = 1.0 / TimeUtils.ticks_per_second()
+	var early: float = hits[2]["position"].x - hits[1]["position"].x
+	var late: float = hits[-1]["position"].x - hits[-2]["position"].x
+	assert_almost_eq(early, 30.0 * per_tick, 0.001, "burning: full speed")
+	assert_almost_eq(late, 6.0 * per_tick, 0.001, "burnt out: coast speed")

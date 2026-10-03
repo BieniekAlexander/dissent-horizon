@@ -39,7 +39,7 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_promotion")
 tier = 0
 column = 0
-dominion_cost = 500
+dominion_cost = 200
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_drop1"]
@@ -80,7 +80,7 @@ sanction = SubResource("Sanction_drop2")
 tier = 2
 column = 0
 parent = SubResource("Unlock_drop1")
-dominion_cost = 500
+dominion_cost = 1200
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_drop3"]
@@ -101,17 +101,17 @@ sanction = SubResource("Sanction_drop3")
 tier = 3
 column = 0
 parent = SubResource("Unlock_drop2")
-dominion_cost = 500
+dominion_cost = 2000
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_scan1"]
 script = ExtResource("6_ord")
 sanction_name = "Scan 1"
-description = "Reveals the fog of war within 10 units of the target point for 15 seconds, then fades. Scouting without risking a unit."
+description = "Leaves a permanent observer over the target point, revealing the fog within 24 units. Scouting without risking a unit — until the enemy shoots it down."
 event_scene = ExtResource("9_rad")
 needs_vision = false
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "The one family that may be aimed into ground you cannot see — a reveal that could\nonly be pointed at what you already had eyes on would be useful precisely where it\nis not needed.\n\nThe reveal is a real vision source for its lifetime, not a one-off snapshot, so\nanything that moves through the circle is seen while it is up."
+verbose_description = "The one family that may be aimed into ground you cannot see — a reveal that could\nonly be pointed at what you already had eyes on would be useful precisely where it\nis not needed.\n\nThe observer never expires. It is a real vision source, so anything that moves\nthrough its circle is seen, and it is a real target: anti-air can shoot it down,\nwhich ends the reveal."
 cooldown_duration = 60.0
 ability_id = &"scan"
 ability_level = 1
@@ -121,17 +121,17 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_scan1")
 tier = 0
 column = 1
-dominion_cost = 500
+dominion_cost = 250
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_scan2"]
 script = ExtResource("6_ord")
 sanction_name = "Scan 2"
-description = "Reveals the fog around the target point for 15 seconds and exposes any stealthed units caught in it, replacing Scan 1."
+description = "The same permanent observer, now also exposing stealthed units within 16 units of it. Replaces Scan 1."
 event_scene = ExtResource("14_s2")
 needs_vision = false
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "The same circle, now with detection: stealthed units inside it are revealed for as\nlong as the scan lasts. The counter to an opponent leaning on stealth."
+verbose_description = "Adds detection to the observer: stealthed units near it are revealed for as long as\nit stands. The counter to an opponent leaning on stealth."
 cooldown_duration = 60.0
 ability_id = &"scan"
 ability_level = 2
@@ -142,7 +142,7 @@ sanction = SubResource("Sanction_scan2")
 tier = 1
 column = 1
 parent = SubResource("Unlock_scan1")
-dominion_cost = 500
+dominion_cost = 450
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_scan3"]
@@ -180,9 +180,9 @@ ability_level = 1
 [sub_resource type="Resource" id="Unlock_gunship"]
 script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_gunship")
-tier = 3
+tier = 2
 column = 1
-dominion_cost = 500
+dominion_cost = 1500
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_freeze1"]
@@ -201,7 +201,7 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_freeze1")
 tier = 0
 column = 2
-dominion_cost = 500
+dominion_cost = 200
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_freeze2"]
@@ -218,10 +218,10 @@ ability_level = 2
 [sub_resource type="Resource" id="Unlock_freeze2"]
 script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_freeze2")
-tier = 2
+tier = 1
 column = 2
 parent = SubResource("Unlock_freeze1")
-dominion_cost = 500
+dominion_cost = 600
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_blizzard"]
@@ -238,9 +238,9 @@ ability_level = 1
 [sub_resource type="Resource" id="Unlock_blizzard"]
 script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_blizzard")
-tier = 4
+tier = 3
 column = 2
-dominion_cost = 500
+dominion_cost = 3000
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_beacon1"]
@@ -279,7 +279,7 @@ sanction = SubResource("Sanction_beacon2")
 tier = 2
 column = 3
 parent = SubResource("Unlock_beacon1")
-dominion_cost = 500
+dominion_cost = 1000
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_beacon3"]
@@ -299,7 +299,7 @@ sanction = SubResource("Sanction_beacon3")
 tier = 3
 column = 3
 parent = SubResource("Unlock_beacon2")
-dominion_cost = 500
+dominion_cost = 2000
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [node name="Colonial" type="Node" unique_id=1574932771]
@@ -308,7 +308,7 @@ faction_name = "Haustoria"
 infrastructure_source = &"cl_infrastructure"
 starting_units = Array[PackedScene]([ExtResource("1_spec"), ExtResource("1_spec"), ExtResource("1_spec")])
 starting_formation = ExtResource("99_form")
-sanction_unlocks = Array[ExtResource("7_unlock")]([SubResource("Unlock_promotion"), SubResource("Unlock_drop1"), SubResource("Unlock_drop2"), SubResource("Unlock_drop3"), SubResource("Unlock_scan1"), SubResource("Unlock_scan2"), SubResource("Unlock_scan3"), SubResource("Unlock_gunship"), SubResource("Unlock_freeze1"), SubResource("Unlock_freeze2"), SubResource("Unlock_blizzard"), SubResource("Unlock_beacon1"), SubResource("Unlock_beacon2"), SubResource("Unlock_beacon3")])
+sanction_unlocks = Array[ExtResource("7_unlock")]([SubResource("Unlock_promotion"), SubResource("Unlock_drop1"), SubResource("Unlock_drop2"), SubResource("Unlock_drop3"), SubResource("Unlock_scan1"), SubResource("Unlock_scan2"), SubResource("Unlock_gunship"), SubResource("Unlock_freeze1"), SubResource("Unlock_freeze2"), SubResource("Unlock_blizzard"), SubResource("Unlock_beacon1"), SubResource("Unlock_beacon2"), SubResource("Unlock_beacon3")])
 metadata/_custom_type_script = "uid://cyrg0j3vbx1ds"
 
 [node name="DominionGeneration" type="Node" parent="."]

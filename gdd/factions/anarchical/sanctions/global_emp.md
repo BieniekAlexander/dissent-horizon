@@ -6,8 +6,8 @@ hud_button: true
 column: 2
 levels:
   - title: Global EMP
-    tier: 4
-    cost: 500
+    tier: 3
+    cost: 3000
     cooldown: 60
     description: Stuns every machine on the map for five seconds — yours included. Your infantry does not care, which is the point.
     verbose: |

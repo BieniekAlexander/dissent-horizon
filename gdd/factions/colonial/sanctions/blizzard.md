@@ -6,8 +6,8 @@ hud_button: true
 column: 2
 levels:
   - title: Blizzard
-    tier: 4
-    cost: 500
+    tier: 3
+    cost: 3000
     cooldown: 60
     description: 'Freezes everything in a wide area. STUB: no payload built yet.'
     verbose: 'Not implemented. The cell is real — it costs dominion and runs its cooldown — but firing it does nothing yet.'
