@@ -462,10 +462,14 @@ func _register_speed_library(a_path: String, a_data: Dictionary) -> void:
 			if float(value) <= previous_value:
 				errors.append(
 					(
-						"%s [%s]: the ladder must be listed slowest first, each class faster "
-						% [a_path, name]
-						+ "than the one above it, but %s is not faster than %s (%s)"
-						% [value, previous_name, previous_value]
+						(
+							"%s [%s]: the ladder must be listed slowest first, each class faster "
+							% [a_path, name]
+						)
+						+ (
+							"than the one above it, but %s is not faster than %s (%s)"
+							% [value, previous_name, previous_value]
+						)
 					)
 				)
 			previous_name = name

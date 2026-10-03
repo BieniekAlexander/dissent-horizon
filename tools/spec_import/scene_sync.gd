@@ -100,6 +100,8 @@ const PHASE_PROPERTIES: Array[String] = [
 	"jitter_frequency_hz",
 	"burn_seconds",
 	"coast_speed",
+	"turn_bleed_mps2_per_radian",
+	"lead_fraction",
 	"ends_on_arrival",
 	"lifespan_seconds",
 	"impact_mask",

@@ -33,12 +33,19 @@ class RecordingPayload:
 	var hits: Array[Dictionary] = []
 
 	func apply() -> void:
+		var aimed_at: Variant = target
 		hits.append(
 			{
 				"frame": Engine.get_physics_frames(),
 				"position": host().global_position,
 				"target": target,
-				"phase": _phased().phase_index()
+				"phase": _phased().phase_index(),
+				"miss":
+				(
+					host().global_position.distance_to((aimed_at as Node3D).global_position)
+					if aimed_at is Node3D and is_instance_valid(aimed_at)
+					else -1.0
+				)
 			}
 		)
 
@@ -330,3 +337,136 @@ func test_a_flight_slows_to_its_coast_speed_when_it_burns_out() -> void:
 	var late: float = hits[-1]["position"].x - hits[-2]["position"].x
 	assert_almost_eq(early, 30.0 * per_tick, 0.001, "burning: full speed")
 	assert_almost_eq(late, 6.0 * per_tick, 0.001, "burnt out: coast speed")
+
+
+# --- Flight stages, lead ----------------------------------------------------------------
+
+
+## A target that moves a fixed step every physics tick, and can be turned mid-flight.
+class SteadyQuarry:
+	extends Entity
+	var step: Vector3 = Vector3.ZERO
+
+	func _physics_process(_a_delta: float) -> void:
+		global_position += step
+
+
+func _quarry(a_position: Vector3, a_speed: float) -> SteadyQuarry:
+	var quarry: SteadyQuarry = SteadyQuarry.new()
+	var ownership: Ownership = Ownership.new()
+	ownership.name = "Ownership"
+	quarry.add_child(ownership)
+	add_child_autofree(quarry)
+	quarry.global_position = a_position
+	quarry.step = Vector3(0.0, 0.0, a_speed / TimeUtils.ticks_per_second())
+	return quarry
+
+
+## Fires a steered rocket at a quarry crossing its line at 4 u/s, which reverses at `a_juke_tick`
+## (never, at -1). Returns the payload's record.
+func _fire_at_crossing_quarry(a_lead: float, a_juke_tick: int) -> Dictionary:
+	var quarry: SteadyQuarry = _quarry(Vector3(8.0, 0.0, 0.0), 4.0)
+	var emission: RecordingEmission = _emission(
+		[
+			_phase(
+				{
+					"speed": 12.0,
+					"turn_rate_degrees_per_second": 360.0,
+					"lead_fraction": a_lead,
+					"lifespan_seconds": 2.0
+				}
+			),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
+		]
+	)
+	add_child(emission)
+	emission.global_position = LAUNCH
+	Emitter.launch(emission, null, quarry)
+	var hits: Array[Dictionary] = _payload(emission).hits
+	var ticks: int = 0
+	while is_instance_valid(emission) and ticks < MAX_TICKS:
+		await get_tree().physics_frame
+		ticks += 1
+		if ticks == a_juke_tick:
+			quarry.step = -quarry.step
+	if is_instance_valid(emission):
+		emission.queue_free()
+	return hits[0]
+
+
+func test_a_leading_shot_meets_a_target_that_holds_its_course() -> void:
+	var hit: Dictionary = await _fire_at_crossing_quarry(1.0, -1)
+	assert_lt(hit["miss"], 0.6, "it flew to where the target was going, and met it there")
+
+
+func test_a_leading_shot_misses_a_target_that_turns_after_it_is_fired() -> void:
+	var hit: Dictionary = await _fire_at_crossing_quarry(1.0, 4)
+	assert_gt(hit["miss"], 2.0, "it flew on to the predicted point, which the target never reached")
+
+
+func test_a_pursuing_shot_follows_a_target_that_turns() -> void:
+	var hit: Dictionary = await _fire_at_crossing_quarry(0.0, 4)
+	assert_lt(hit["miss"], 0.6, "no lead: it steers at the target itself, wherever it goes")
+
+
+## Speeds recorded per tick, by phase: every phase pays out every tick, before that tick's move,
+## so the step between two records is the speed — and a stage's first record still measures the
+## stage before it. Its first own step is its second record.
+func _stage_speeds(a_second: EmissionPhase) -> Dictionary:
+	var first: EmissionPhase = _phase(
+		{
+			"speed": 30.0,
+			"ends_on_arrival": false,
+			"lifespan_seconds": 0.2,
+			"applies_payload": true,
+			"payload_period_seconds": 0.0
+		}
+	)
+	a_second.ends_on_arrival = false
+	a_second.lifespan_seconds = 0.2
+	a_second.applies_payload = true
+	a_second.payload_period_seconds = 0.0
+	var record: Dictionary = await _run(_emission([first, a_second]), Vector3(100.0, 0.0, 0.0))
+	var hits: Array = record["hits"]
+	var speeds: Dictionary = {}
+	for i: int in range(1, hits.size()):
+		speeds[i] = {
+			"phase": hits[i]["phase"],
+			"step": hits[i]["position"].distance_to(hits[i - 1]["position"])
+		}
+	var second_stage: Array = speeds.values().filter(
+		func(s: Dictionary) -> bool: return s["phase"] == 1
+	)
+	return {"first_step": second_stage[1]["step"], "last_step": second_stage[-1]["step"]}
+
+
+func test_a_steered_stage_takes_over_the_flight_rather_than_relaunching() -> void:
+	# Relaunched, it would leave at a tenth of its speed; it carries on at the speed it was handed.
+	var steps: Dictionary = await _stage_speeds(
+		_phase({"speed": 30.0, "turn_rate_degrees_per_second": 90.0, "launch_speed_ratio": 0.1})
+	)
+	assert_almost_eq(steps["first_step"], 30.0 / TimeUtils.ticks_per_second(), 0.001)
+
+
+func test_a_straight_stage_flies_at_its_own_speed() -> void:
+	var steps: Dictionary = await _stage_speeds(_phase({"speed": 6.0}))
+	assert_almost_eq(steps["first_step"], 6.0 / TimeUtils.ticks_per_second(), 0.001)
+	assert_almost_eq(steps["last_step"], 6.0 / TimeUtils.ticks_per_second(), 0.001)
+
+
+func test_a_contact_skips_the_remaining_flight_stages_to_the_burst() -> void:
+	var wall: Entity = _wall(CollisionLayers.Mask.STRUCTURE_BLOCKER)
+	await get_tree().physics_frame
+	var emission: RecordingEmission = _emission(
+		[
+			_phase({"speed": 30.0, "impact_mask": CollisionLayers.Mask.STRUCTURE_BLOCKER}),
+			# A second stage that would fly straight through the wall, if it ever ran.
+			_phase({"speed": 30.0, "ends_on_arrival": false, "lifespan_seconds": 0.5}),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
+		]
+	)
+	var record: Dictionary = await _run(emission)
+	assert_eq(record["hits"].size(), 1)
+	assert_eq(record["hits"][0]["phase"], 2, "straight to the burst")
+	assert_eq(record["hits"][0]["target"], wall)
+	assert_almost_eq(record["hits"][0]["position"].x, WALL_X - 0.5, 0.05, "at the contact")

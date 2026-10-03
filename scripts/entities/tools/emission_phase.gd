@@ -63,6 +63,18 @@ const NEAR_VERTICAL_COSINE: float = 0.9
 @export var acceleration_mps2: float = 0.0
 ## The floor a steered emission slows to while facing away from its target.
 @export var min_speed: float = 0.0
+## While steering, speed shed for turning: this many world units per second squared for each
+## radian the steering goal lies off the nose. It replaces the facing rule above, so a steered
+## emission gains `acceleration_mps2 - turn_bleed × angle` every second, between `min_speed`
+## and `speed`: a straight run climbs to full speed, a hard turn bleeds toward the floor. Zero
+## keeps the facing rule. → gdd/systems/combat/projectiles.md §Turn bleed and lead
+@export var turn_bleed_mps2_per_radian: float = 0.0
+## How far ahead of its target a steered phase aims, as a fraction of where the target's motion
+## would carry it by the time the emission arrived. The aim point is predicted once, as the phase
+## begins, and held for the phase: a target that keeps its course flies into the shot, and one
+## that changes course after it is drawn to an empty point. Once that point is behind it, the
+## emission flies straight. Zero aims at the target itself, live, every tick.
+@export var lead_fraction: float = 0.0
 ## Seconds into the phase at which the motor burns out, after which the emission flies no
 ## faster than `coast_speed`: a rocket that boosts, then coasts. Zero never burns out. The
 ## drop is immediate, and `acceleration_mps2` then only ever climbs back to the coast speed.
@@ -245,12 +257,25 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 		)
 		goal_direction = goal_direction.rotated(axis, DEAD_ASTERN_NUDGE_RADIANS)
 	var is_facing: bool = a_velocity.normalized().dot(goal_direction.normalized()) >= 0
+	var off_nose: float = a_velocity.angle_to(goal_direction)
 	var turned: Vector3 = VU.get_rotated_vector_3d(
 		a_velocity,
 		goal_direction,
 		deg_to_rad(turn_rate_degrees_per_second / float(TimeUtils.ticks_per_second()))
 	)
 	var step: float = acceleration_mps2 / float(_ticks_squared())
+	if turn_bleed_mps2_per_radian > 0.0:
+		var change: float = (
+			(acceleration_mps2 - turn_bleed_mps2_per_radian * off_nose) / float(_ticks_squared())
+		)
+		return (
+			turned.normalized()
+			* clampf(
+				turned.length() + change,
+				min_speed / float(TimeUtils.ticks_per_second()),
+				maxf(_speed_per_tick(), min_speed / float(TimeUtils.ticks_per_second()))
+			)
+		)
 	return (
 		turned.normalized()
 		* (
@@ -259,6 +284,39 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 			else maxf(turned.length() - step, min_speed / float(TimeUtils.ticks_per_second()))
 		)
 	)
+
+
+func leads() -> bool:
+	return lead_fraction > 0.0 and is_steered()
+
+
+## Where this phase aims to meet a target at `a_target_position` moving `a_target_step` per
+## tick, flying from `a_origin` at full speed: the target's position advanced by `lead_fraction`
+## of its motion until the intercept. A target too fast to intercept is led by the time this
+## phase would take to reach where it is now.
+func intercept_point(
+	a_origin: Vector3, a_target_position: Vector3, a_target_step: Vector3
+) -> Vector3:
+	var own_step: float = _speed_per_tick()
+	var to_target: Vector3 = a_target_position - a_origin
+	var ticks: float = to_target.length() / own_step if own_step > 0.0 else 0.0
+	# |to_target + step·t| = own_step·t, for the earliest t > 0.
+	var a: float = a_target_step.length_squared() - own_step * own_step
+	var b: float = 2.0 * to_target.dot(a_target_step)
+	var c: float = to_target.length_squared()
+	if absf(a) > 1e-9:
+		var discriminant: float = b * b - 4.0 * a * c
+		if discriminant >= 0.0:
+			var root: float = sqrt(discriminant)
+			var first: float = minf((-b - root) / (2.0 * a), (-b + root) / (2.0 * a))
+			var second: float = maxf((-b - root) / (2.0 * a), (-b + root) / (2.0 * a))
+			if first > 0.0:
+				ticks = first
+			elif second > 0.0:
+				ticks = second
+	elif absf(b) > 1e-9 and -c / b > 0.0:
+		ticks = -c / b
+	return a_target_position + a_target_step * ticks * lead_fraction
 
 
 ## `a_velocity` held to the coast speed once the burn is over, `a_phase_seconds` into the

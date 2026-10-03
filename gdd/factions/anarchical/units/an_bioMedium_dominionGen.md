@@ -28,12 +28,32 @@ weapons:
       hitscan: false
       bio_ground_aim: true
       phases:
-        # Slow, hard-homing and long-lived: it runs down STEADY and BRISK targets anywhere in
-        # reach, a QUICK vehicle fired on from beyond ~6.5 can drive away until it expires, and
-        # moving aircraft outrun it (gdd/systems/combat/projectiles.md §Rocket calibration).
-        - motion: {preset: HOMING, speed: FAST, turn_rate: 180, jitter: 4}
-          lifespan: 5
-        - lifespan: 1.6
+        # Predict, then chase, bleeding speed in every hard turn: whatever holds its course is
+        # hit, STEADY and BRISK targets are run down whatever they do, and a QUICK vehicle or an
+        # aircraft that reroutes after the shot is away can escape it
+        # (gdd/systems/combat/projectiles.md §Rocket calibration).
+        - name: Predict
+          motion:
+            preset: HOMING
+            speed: SCORCHING
+            turn_rate: 90
+            acceleration: 10
+            min_speed: 2
+            jitter: 4
+            turn_bleed: 120
+            lead: 1
+          lifespan: 0.5
+        - name: Chase
+          motion:
+            speed: SCORCHING
+            turn_rate: 90
+            acceleration: 10
+            min_speed: 2
+            jitter: 4
+            turn_bleed: 120
+          lifespan: 3
+        - name: Impact
+          lifespan: 1.6
           payload: once
     split_time: 1.5
     reload_time: 1.5

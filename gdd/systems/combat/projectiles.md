@@ -38,6 +38,21 @@ phase runs that same tick. A last phase that runs out expires on its final tick.
 not a concept the class knows: it is the name of one common shape, a flight ending by arrival
 into a one-tick phase that applies the payload. A phase always runs at least one tick.
 
+**Consecutive moving phases are one flight in stages** (built 2026-10-03):
+
+- **A stage hands on its motion.** When a moving phase's lifespan ends and the next phase also
+  moves, the next one takes over the position and heading as they are. It is not relaunched
+  (so `launch_speed_ratio` and `launch_pitch` mean nothing on a later stage), and the emission
+  does not settle onto its destination's height. What happens to the speed depends on the
+  stage:
+  - a straight stage flies at its own `speed` from its first tick;
+  - a steered stage starts from the inherited speed and works it toward its own under its
+    `acceleration` and `turn_bleed`, so a rocket can run a different guidance law in each stage;
+  - a falling stage keeps the motion it was handed and falls.
+- **A contact ends the whole flight, not just the stage.** It skips every moving phase after
+  the live one, straight to the next phase that does not move (the burst). With none left, the
+  emission is spent.
+
 So the cases that used to need special handling are just lists:
 
 | Piece | Phases |
@@ -65,7 +80,8 @@ phases:
     impact_mask: [terrain, structures]    # also ground, air; absent = none
     payload: once                # or seconds between applications, 0 = every tick
     emits: {id: toxin_cloud, every: 1}    # an emission dropped where this one is
-    visuals: [InFlightSprite]    # optional; first phase in-flight set, later post-impact
+    visuals: [InFlightSprite]    # optional; a moving phase (and the first) gets the in-flight
+                                 # set, a motionless later one the post-impact set
 ```
 
 `speed:`/`trajectory:` beside `phases:` is refused — a doc says its motion in one place. So
@@ -85,6 +101,8 @@ that same spot.
 | `launch_speed_ratio` | — | fraction of `speed` it launches at |
 | `acceleration` | u/s² | while steering: gained toward `speed` facing the target, lost toward `min_speed` facing away |
 | `min_speed` | u/s | the floor it slows to |
+| `turn_bleed` | u/s² per radian | while steering: speed lost for each radian the steering goal is off the nose. Replaces the facing rule: the emission gains `acceleration − turn_bleed × angle` each second, between `min_speed` and `speed`. Needs a `turn_rate` |
+| `lead` | 0–1 | while steering: how far ahead of its target it aims, as a fraction of the target's predicted motion until the intercept. Predicted once per phase and held. Needs a `turn_rate` |
 | `burn` | seconds | when the motor burns out, counted from the start of the phase; zero never burns out |
 | `coast_speed` | a speed class | the speed it is held to after `burn`. Comes paired with `burn`, and a falling motion cannot have either |
 
@@ -111,6 +129,35 @@ at a place (§Free flight).
 TODO: whether a non-constant speed needs more than `acceleration` and `min_speed`. A Godot
 `Curve` cannot be written in YAML but could be baked at import from an expression in `t`;
 nothing in the roster wants one yet.
+
+### Turn bleed and lead
+
+Two steering knobs for a rocket that **rewards a target for reacting**: holding course gets you
+hit, and dodging well, with the speed to use it, gets you away (Alex, 2026-10-03). Both are off
+at zero, and both act only on a steered phase.
+
+- **`turn_bleed`: hard turns cost speed.** A rocket flying straight at its goal keeps
+  accelerating to its top speed; one whose goal is far off its nose sheds speed in proportion
+  to the angle, down to `min_speed`, and climbs back once it is pointed again. That lets a
+  rocket be fast without being inescapable: a target that forces it into a sharp turn takes
+  its speed away, and a fast target can then outrun it.
+- **`lead`: aim where the target is going.** As the phase begins, the emission predicts where
+  its target will be when they meet, from the target's motion, and steers at that point,
+  advanced by `lead` (a fraction: 1 is the full intercept, 0.5 halfway). The point is
+  predicted ONCE and held for the phase:
+  - a target that keeps its course flies into the shot;
+  - one that changes course after it is fired draws the rocket to an empty point;
+  - once that point is behind the rocket, it flies straight for the rest of the phase.
+
+  The target's motion is MEASURED: `PhasedLocomotion` samples the pursued piece's position on
+  the emission's own consecutive ticks, so it holds for any way a piece moves (navigation
+  agent, aerial drive, another emission). The prediction is made on the phase's second tick,
+  the first with two samples; until then the phase steers at the target itself.
+
+**Phases combine them.** A leading stage followed by a homing stage, both bleeding, is
+predict, then chase: a target that holds course is hit by the first stage; one that jukes
+forces the second stage into a hard turn that bleeds its speed, so a fast juker escapes and a
+slow one is run down. The Warlord is written that way (§Rocket calibration).
 
 ### A lost pursuit loops
 
@@ -356,7 +403,9 @@ with its reach 12:
 
 ### What boost-then-coast needs from the engine
 
-Both are code changes, not authoring:
+Both are code changes, not authoring. **Both built 2026-10-03** (§Phases: consecutive moving
+phases are one flight in stages), so a boost → coast → burst rocket can now be written as
+phases; the `burn` knob below stays as the one-phase way to say it.
 
 1. **A contact in a flight phase hands over to the NEXT phase, not the payload phase.**
    `_end_by_contact` ends the live phase only. A rocket written as boost → coast → burst that
@@ -398,12 +447,48 @@ reproduce these):
 | Rocket | Motion | STEADY | BRISK | QUICK | FAST 5.25 | aircraft | flight to reach |
 |---|---|---|---|---|---|---|---|
 | Badger | launch 2 u/s, accel 40, SCORCHING, coast to SWIFT after 0.5 s, turn 60°/s, 2.2 s | never | never | never | dodges at 1.0+ | (ground only) | 1.07 s to 12 |
-| Warlord | HOMING, FAST, turn 180°/s, half-speed launch, 5 s | never | 11.5 | 6.5 | dodges at 1.0+ | every moving aircraft escapes | 2.47 s to 12 |
 | SAM | HOMING, SCORCHING, turn 180°/s, accel 20, half-speed launch, 5 s | — | — | — | — | RAPID, SWIFT, BLAZING never; HYPER always | 1.27 s to 20 |
 
-- **The Warlord no longer catches moving aircraft.** It still `hits: [ground, air]`, so it
-  reaches a hovering aircraft that stops, and nothing faster. Whether it keeps an anti-air role
-  (and so needs a second, faster rocket) is open.
+- **The Warlord was first slowed to FAST (turn 180°/s), which no moving aircraft had to
+  dodge.** It was rebuilt the same day as below.
+
+### The Warlord: predict, then chase (2026-10-03)
+
+Wanted (Alex, 2026-10-03): fast, but slowing a lot in sharp turns, and aimed where a moving
+target is going, so a target that holds its course is hit and one that reroutes after the shot
+is away can escape: "mechanical elasticity". It is written as two flight stages and a burst
+(§Phases: consecutive moving phases are one flight in stages; §Turn bleed and lead):
+
+| Stage | Motion | Lifespan |
+|---|---|---|
+| Predict | HOMING from a half-speed launch, SCORCHING, turn 90°/s, acceleration 10, min speed 2, `turn_bleed: 120`, `lead: 1` | 0.5 s |
+| Chase | the same, without `lead` | 3 s |
+| Impact | the burst | 1.6 s |
+
+Escape distances from the model, fired from 0.5 to 12 (reach 12). "Reverses at T" is a target
+that turns back on its course T seconds after the shot:
+
+| Target | holds course | flees at once | reverses at 0.3 s | reverses at 0.5 s | reverses at 1 s |
+|---|---|---|---|---|---|
+| STEADY, BRISK | never | never | never | never | never |
+| QUICK (ground) | never | never | 1 of 24 | 7 of 24 | 12 of 24 |
+| FAST 5.25 (ground) | never | never | never | 10 of 24 | 10 of 24 |
+| RAPID aircraft | never | never | 23 of 24 | 23 of 24 | 10 of 24 |
+| SWIFT aircraft | never | beyond 7.5 | 11 of 24 | 23 of 24 | 23 of 24 |
+| BLAZING aircraft | almost always | almost always | almost always | almost always | almost always |
+
+Flight to 12 at a standing target: 0.9 s.
+
+- **Holding course is fatal to everything slower than BLAZING**, and slow targets are run down
+  whatever they do.
+- **A reroute is what saves a fast target**, and when it rerouted matters: the moment and
+  the distance both move the outcome. That is the reaction window the design asks for.
+- Settled by scanning top speed (SWIFT to SCORCHING), turn rate (90 or 180°/s), bleed (40 or
+  120), acceleration (5 to 20), lifespan (2.5 to 5 s) and the predict stage's length (0.3 to
+  0.8 s) for the shape above. A higher turn rate, or faster re-acceleration, makes it
+  inescapable. A longer predict stage starts to let SWIFT aircraft escape while holding course.
+- It keeps `hits: [ground, air]` with its anti-air role back: an aircraft that holds course is
+  hit.
 - **The SAM got an explicit `acceleration: 20`.** The HOMING preset's 2.25 u/s² takes almost
   four seconds to get from a half-speed launch to SCORCHING, during which BLAZING aircraft
   outran it.

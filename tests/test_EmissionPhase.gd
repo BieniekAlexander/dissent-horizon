@@ -216,3 +216,101 @@ func test_a_phase_without_a_burn_never_burns_out() -> void:
 	var phase: EmissionPhase = _phase({"speed": 15.0})
 	var velocity: Vector3 = Vector3(15.0 / TimeUtils.ticks_per_second(), 0.0, 0.0)
 	assert_eq(phase.burnt_velocity(velocity, 99.0), velocity)
+
+
+# --- Turn bleed and lead -----------------------------------------------------------------
+
+
+func _bleeding_phase() -> EmissionPhase:
+	return _phase(
+		{
+			"speed": 15.0,
+			"turn_rate_degrees_per_second": 90.0,
+			"acceleration_mps2": 10.0,
+			"min_speed": 2.0,
+			"turn_bleed_mps2_per_radian": 30.0
+		}
+	)
+
+
+func test_a_bleeding_phase_gains_speed_on_a_straight_run() -> void:
+	var phase: EmissionPhase = _bleeding_phase()
+	var velocity: Vector3 = Vector3(8.0 / TimeUtils.ticks_per_second(), 0.0, 0.0)
+	var steered: Vector3 = phase.steered_toward(velocity, ORIGIN, ORIGIN + Vector3(10, 0, 0))
+	assert_almost_eq(
+		steered.length() - velocity.length(),
+		10.0 / (TimeUtils.ticks_per_second() * TimeUtils.ticks_per_second()),
+		FLOAT_TOLERANCE,
+		"the full acceleration: nothing off the nose to bleed"
+	)
+
+
+func test_a_bleeding_phase_sheds_speed_in_a_hard_turn() -> void:
+	var phase: EmissionPhase = _bleeding_phase()
+	var tps: int = TimeUtils.ticks_per_second()
+	var velocity: Vector3 = Vector3(8.0 / tps, 0.0, 0.0)
+	# The goal square off the nose: 10 - 30·(π/2) ≈ -37 u/s² this tick.
+	var steered: Vector3 = phase.steered_toward(velocity, ORIGIN, ORIGIN + Vector3(0, 0, 10))
+	assert_almost_eq(
+		steered.length() - velocity.length(),
+		(10.0 - 30.0 * PI / 2.0) / (tps * tps),
+		FLOAT_TOLERANCE,
+		"bled in proportion to the angle"
+	)
+
+
+func test_a_bleeding_phase_never_falls_below_its_floor_or_passes_its_speed() -> void:
+	var phase: EmissionPhase = _bleeding_phase()
+	var tps: int = TimeUtils.ticks_per_second()
+	var slow: Vector3 = Vector3(2.0 / tps, 0.0, 0.0)
+	var behind: Vector3 = phase.steered_toward(slow, ORIGIN, ORIGIN - Vector3(10, 0, 0))
+	assert_almost_eq(behind.length(), 2.0 / tps, FLOAT_TOLERANCE, "held at min_speed")
+	var fast: Vector3 = Vector3(15.0 / tps, 0.0, 0.0)
+	var ahead: Vector3 = phase.steered_toward(fast, ORIGIN, ORIGIN + Vector3(10, 0, 0))
+	assert_almost_eq(ahead.length(), 15.0 / tps, FLOAT_TOLERANCE, "held at speed")
+
+
+func test_a_full_lead_meets_a_target_holding_its_course() -> void:
+	var phase: EmissionPhase = _phase(
+		{"speed": 12.0, "turn_rate_degrees_per_second": 90.0, "lead_fraction": 1.0}
+	)
+	var tps: int = TimeUtils.ticks_per_second()
+	var target: Vector3 = ORIGIN + Vector3(10.0, 0.0, 0.0)
+	var step: Vector3 = Vector3(0.0, 0.0, 4.0 / tps)
+	var aim: Vector3 = phase.intercept_point(ORIGIN, target, step)
+	# Both arrive at the aim point at the same tick.
+	var own_ticks: float = ORIGIN.distance_to(aim) / (12.0 / tps)
+	var target_ticks: float = target.distance_to(aim) / step.length()
+	assert_almost_eq(own_ticks, target_ticks, 0.01, "an intercept, not just a point ahead")
+	assert_gt(aim.z, target.z, "ahead of the target, along its course")
+
+
+func test_a_partial_lead_aims_that_fraction_of_the_way() -> void:
+	var full: EmissionPhase = _phase(
+		{"speed": 12.0, "turn_rate_degrees_per_second": 90.0, "lead_fraction": 1.0}
+	)
+	var half: EmissionPhase = _phase(
+		{"speed": 12.0, "turn_rate_degrees_per_second": 90.0, "lead_fraction": 0.5}
+	)
+	var target: Vector3 = ORIGIN + Vector3(10.0, 0.0, 0.0)
+	var step: Vector3 = Vector3(0.0, 0.0, 0.1)
+	var full_offset: Vector3 = full.intercept_point(ORIGIN, target, step) - target
+	var half_offset: Vector3 = half.intercept_point(ORIGIN, target, step) - target
+	assert_almost_eq(half_offset, full_offset * 0.5, Vector3.ONE * FLOAT_TOLERANCE)
+
+
+func test_a_target_too_fast_to_intercept_is_still_led() -> void:
+	var phase: EmissionPhase = _phase(
+		{"speed": 3.0, "turn_rate_degrees_per_second": 90.0, "lead_fraction": 1.0}
+	)
+	var target: Vector3 = ORIGIN + Vector3(10.0, 0.0, 0.0)
+	var aim: Vector3 = phase.intercept_point(ORIGIN, target, Vector3(0.5, 0.0, 0.0))
+	assert_true(aim.is_finite(), "a point, not a NaN")
+	assert_gt(aim.x, target.x, "ahead of where it is")
+
+
+func test_only_a_steered_phase_leads() -> void:
+	assert_false(_phase({"speed": 12.0, "lead_fraction": 1.0}).leads())
+	assert_true(
+		_phase({"speed": 12.0, "turn_rate_degrees_per_second": 90.0, "lead_fraction": 1.0}).leads()
+	)
