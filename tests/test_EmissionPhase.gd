@@ -314,3 +314,43 @@ func test_only_a_steered_phase_leads() -> void:
 	assert_true(
 		_phase({"speed": 12.0, "turn_rate_degrees_per_second": 90.0, "lead_fraction": 1.0}).leads()
 	)
+
+
+# --- Losing the lock ----------------------------------------------------------------------
+
+
+func _locking_phase(a_cone: float, a_range: float) -> EmissionPhase:
+	return _phase(
+		{
+			"speed": 12.0,
+			"turn_rate_degrees_per_second": 90.0,
+			"lock_cone_degrees": a_cone,
+			"lock_range": a_range
+		}
+	)
+
+
+func test_a_target_beyond_the_lock_range_is_lost() -> void:
+	var phase: EmissionPhase = _locking_phase(0.0, 5.0)
+	var heading: Vector3 = Vector3(1.0, 0.0, 0.0)
+	assert_false(phase.loses_lock(heading, Vector3.ZERO, Vector3(4.0, 0.0, 0.0)), "in range")
+	assert_true(phase.loses_lock(heading, Vector3.ZERO, Vector3(6.0, 0.0, 0.0)), "out of it")
+
+
+func test_a_target_outside_the_lock_cone_is_lost() -> void:
+	var phase: EmissionPhase = _locking_phase(150.0, 0.0)
+	var heading: Vector3 = Vector3(1.0, 0.0, 0.0)
+	assert_false(phase.loses_lock(heading, Vector3.ZERO, Vector3(0.0, 0.0, 5.0)), "abeam: held")
+	assert_true(
+		phase.loses_lock(heading, Vector3.ZERO, Vector3(-5.0, 0.0, 0.5)), "nearly astern: lost"
+	)
+
+
+func test_without_lock_knobs_nothing_is_lost() -> void:
+	var phase: EmissionPhase = _locking_phase(0.0, 0.0)
+	assert_false(phase.loses_lock(Vector3(1, 0, 0), Vector3.ZERO, Vector3(-500, 0, 0)))
+
+
+func test_an_unsteered_phase_has_no_lock_to_lose() -> void:
+	var phase: EmissionPhase = _phase({"speed": 12.0, "lock_range": 1.0})
+	assert_false(phase.loses_lock(Vector3(1, 0, 0), Vector3.ZERO, Vector3(50, 0, 0)))

@@ -470,3 +470,56 @@ func test_a_contact_skips_the_remaining_flight_stages_to_the_burst() -> void:
 	assert_eq(record["hits"][0]["phase"], 2, "straight to the burst")
 	assert_eq(record["hits"][0]["target"], wall)
 	assert_almost_eq(record["hits"][0]["position"].x, WALL_X - 0.5, 0.05, "at the contact")
+
+
+# --- Losing the lock ----------------------------------------------------------------------
+
+
+func test_a_rocket_that_loses_its_lock_falls_to_the_ground_instead_of_expiring() -> void:
+	var ground: StaticBody3D = StaticBody3D.new()
+	ground.collision_layer = CollisionLayers.Mask.TERRAIN
+	var slab: CollisionShape3D = _box_shape()
+	(slab.shape as BoxShape3D).size = Vector3(200.0, 1.0, 200.0)
+	slab.position = Vector3(0.0, -0.5, 0.0)
+	ground.add_child(slab)
+	add_child_autofree(ground)
+	var quarry: Entity = _wall(0)
+	quarry.global_position = Vector3(8.0, 0.0, 0.0)
+	await get_tree().physics_frame
+	var lifespan: float = 0.2
+	var emission: RecordingEmission = _emission(
+		[
+			# Out of lock range from the start: no steering, no thrust, just a fall.
+			_phase(
+				{
+					"speed": 10.0,
+					"turn_rate_degrees_per_second": 360.0,
+					"lock_range": 3.0,
+					"lifespan_seconds": lifespan
+				}
+			),
+			# A homing stage with no lock limit, which a cut motor never reaches.
+			_phase({"speed": 10.0, "turn_rate_degrees_per_second": 360.0, "lifespan_seconds": 2.0}),
+			_phase({"ends_on_arrival": false, "lifespan_seconds": 0.0, "applies_payload": true}),
+		]
+	)
+	var payload: RecordingPayload = _payload(emission)
+	payload.hitscan = false  # a free flight, which a contact ends
+	var blast: CollisionShape3D = CollisionShape3D.new()
+	blast.name = "HitShape"
+	blast.shape = SphereShape3D.new()
+	emission.add_child(blast)
+	add_child(emission)
+	emission.global_position = Vector3(0.0, 2.0, 0.0)
+	Emitter.launch(emission, null, quarry)
+	var hits: Array[Dictionary] = payload.hits
+	var ticks: int = 0
+	while is_instance_valid(emission) and ticks < MAX_TICKS:
+		await get_tree().physics_frame
+		ticks += 1
+	if is_instance_valid(emission):
+		emission.queue_free()
+	assert_eq(hits.size(), 1, "it burst once")
+	assert_eq(hits[0]["phase"], 2, "straight to the burst, skipping the homing stage")
+	assert_almost_eq(hits[0]["position"].y, 0.0, 0.05, "on the ground, where the fall ended")
+	assert_gt(ticks, TimeUtils.ticks_from_seconds(lifespan), "after its lifespan would have ended")

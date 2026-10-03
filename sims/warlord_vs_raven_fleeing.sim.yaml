@@ -1,0 +1,27 @@
+description: |
+  A Raven (SWIFT hovering transport, unarmed) flies straight away from the Warlord, starting
+  inside its reach. A fast aircraft is meant to outpace the rocket: the claim is that it
+  survives.
+
+  Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
+  gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+setting: { kind: flat, size: 40 }
+given:
+  A:
+    with:
+      warlord:
+        of: [ { piece: an_bioMedium_dominionGen, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.target } } ]
+  B:
+    with:
+      target:
+        of: [ { piece: an_aircraftLight_transport, count: 1 } ]
+        at: { from: A.warlord, distance: 8, bearing: east }
+        facing: east
+        orders: [ { move: { target: east } } ]
+run: { for: 15s }
+expect:
+  - { of: B.target, check: alive }
+  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }

@@ -159,6 +159,24 @@ predict, then chase: a target that holds course is hit by the first stage; one t
 forces the second stage into a hard turn that bleeds its speed, so a fast juker escapes and a
 slow one is run down. The Warlord is written that way (§Rocket calibration).
 
+### Losing the lock
+
+**A steered phase can LOSE ITS LOCK on its target** (Alex, 2026-10-03), by either of two motion
+keys, both off at zero and both needing a `turn_rate`:
+
+| Key | Unit | Lost when |
+|---|---|---|
+| `lock_cone` | degrees, at most 180 | the target is farther off the nose than this. 180 is lost only dead astern |
+| `lock_range` | u | the target is farther away than this |
+
+**Losing the lock is permanent and cuts the motor** (`PhasedLocomotion._fall`). The emission
+stops steering and thrusting, keeps the velocity it had, and falls under
+`EmissionPhase.LOST_LOCK_GRAVITY_MPS2` (the shells' 4.5). Its stages' lifespans no longer end
+it: it falls rather than expiring, and bursts where it strikes. A contact, or the
+`LOST_LOCK_FALL_SECONDS` (5 s) backstop for a fall with nothing beneath it, skips any
+remaining moving stages straight to the burst. A later stage never relights it. The lock is
+tested against the target itself (its hitbox centre), not against a leading stage's aim point.
+
 ### A rocket aims at the hitbox
 
 **A steered phase steers at, leads, and arrives at the centre of its target's hitbox**
@@ -546,6 +564,24 @@ each:
 The two fixes are the first two causes below; with both, holding course is fatal, as designed.
 **TODO — still open: rerouting saves no fast target**, so the elasticity the Warlord was
 designed for is not there yet. That is a tuning question for the Warlord against these specs.
+
+**Retune attempts, 2026-10-03: no setting reaches the design shape yet.** With `lock_cone`,
+`lock_range` and a shorter Chase stage (§Losing the lock), scanned over five seeds each:
+
+- **Reversing course cannot evade at these ranges.** At 8 units the rocket arrives in about
+  0.8 s, and a vehicle that reverses 0.4 s after launch is back near where the rocket was first
+  aimed, so even an unguided rocket hits it. Every lock cone from 10° to 120° left the jinking
+  truck struck by every rocket. Reversing cancels the target's own displacement; it is the wrong
+  evasion here, whatever the rocket does.
+- **Fleeing escapes everything, the War Wagon included** (`warlord_vs_*_fleeing`). A target
+  driving straight away leaves the Warlord's 12-unit reach within a few shots, and one rocket
+  every 1.5 s cannot kill even a STEADY target in that time (the wagon took about 3 hits).
+  Outpacing the Warlord is decided by its reach and rate of fire more than by its rocket.
+- **A lock range below the target's distance backfires**: at `lock_range: 10`, the truck holding
+  course survived, because its legs carry it just past 10 units.
+
+So the open design question is what distinguishes a fast target from a slow one when both flee,
+given that the Warlord's damage rate, not the rocket, ends the engagement.
 
 Three causes, found by tracing contacts (the first two since fixed):
 

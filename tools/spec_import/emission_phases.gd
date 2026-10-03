@@ -28,6 +28,8 @@ const MOTION_PROPERTIES: Dictionary = {
 	"coast_speed": "coast_speed",
 	"turn_bleed": "turn_bleed_mps2_per_radian",
 	"lead": "lead_fraction",
+	"lock_cone": "lock_cone_degrees",
+	"lock_range": "lock_range",
 }
 ## `impact_mask:` names, and the collision layer each one stands for.
 const IMPACT_LAYERS: Dictionary = {
@@ -196,7 +198,7 @@ static func _item_errors(item: Variant, index: int) -> Array[String]:
 		errors.append(
 			"%s: a steered motion needs a lifespan:, or a lost target flies forever" % where
 		)
-	for steering_key: String in ["turn_bleed", "lead"]:
+	for steering_key: String in ["turn_bleed", "lead", "lock_cone", "lock_range"]:
 		var property: String = MOTION_PROPERTIES[steering_key]
 		if float(motion.get(property, 0.0)) > 0.0 and not steers:
 			errors.append(
@@ -205,6 +207,8 @@ static func _item_errors(item: Variant, index: int) -> Array[String]:
 	if float(motion.get("lead_fraction", 0.0)) > 1.0:
 		errors.append("%s: lead is a fraction of the target's predicted motion, 0 to 1" % where)
 	var burns: bool = float(motion.get("burn_seconds", 0.0)) > 0.0
+	if float(motion.get("lock_cone_degrees", 0.0)) > 180.0:
+		errors.append("%s: lock_cone is degrees off the nose, at most 180" % where)
 	var coasts: bool = float(motion.get("coast_speed", 0.0)) > 0.0
 	if burns != coasts:
 		errors.append(

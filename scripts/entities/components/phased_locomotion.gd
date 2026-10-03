@@ -67,6 +67,12 @@ var _pursued_samples: int = 0
 ## A leading phase's aim point (EmissionPhase.lead_fraction), predicted once per phase; null
 ## until the pursued piece's motion has been measured.
 var _lead_point: Variant = null
+## Set once a steered phase LOSES ITS LOCK on the pursued piece (EmissionPhase.loses_lock):
+## from then on the emission no longer steers or thrusts, and falls until it strikes something.
+## Permanent, across stages: a motor that has cut does not relight.
+var _lock_lost: bool = false
+## Ticks the emission has fallen since losing its lock, against the backstop.
+var _fall_ticks: int = 0
 ## Bodies the impact test passes through: the emission's own and its shooter's.
 var _excluded: Array[RID] = []
 ## Whether this emission flies FREE: it ends only on striking its intended piece or the
@@ -155,6 +161,8 @@ func launch(
 	_last_seen = a_pursued.aim_point() if a_pursued != null else a_destination
 	_pursued_samples = 0
 	_lead_point = null
+	_lock_lost = false
+	_fall_ticks = 0
 	_excluded = a_excluded
 	_launch_frame = Engine.get_physics_frames()
 	_phase_index = 0
@@ -202,6 +210,10 @@ func tick() -> Progress:
 	if not body.velocity.is_equal_approx(_flown_velocity):
 		_clean_velocity = body.velocity  # written from outside since the last tick
 	var goal: Variant = _steering_goal()
+	if not _lock_lost and goal_entity() != null and phase.loses_lock(_clean_velocity, before, goal):
+		_lock_lost = true
+	if _lock_lost:
+		return _fall(phase, body, before)
 	_clean_velocity = phase.tracked_velocity(_clean_velocity, before, goal)
 	_clean_velocity = phase.steered_toward(
 		_clean_velocity, before, _led_goal(phase, before, goal) if phase.leads() else goal
@@ -225,6 +237,36 @@ func tick() -> Progress:
 		_phase_over = true
 		_expired = _phase_index == _phases.size() - 1
 	return Progress.MOVING
+
+
+## One tick of a flight that has lost its lock: no steering, no thrust, just gravity, until it
+## strikes something. Its stages' lifespans no longer end it — it falls rather than expiring —
+## save for the backstop, which bursts it where it is. (projectiles.md §Losing the lock)
+func _fall(a_phase: EmissionPhase, a_body: CharacterBody3D, a_before: Vector3) -> Progress:
+	a_body.velocity = _clean_velocity
+	a_body.global_position += a_body.velocity
+	_flown_velocity = a_body.velocity
+	_clean_velocity += (
+		Vector3.DOWN * EmissionPhase.LOST_LOCK_GRAVITY_MPS2 / float(EmissionPhase._ticks_squared())
+	)
+	if _free_flight:
+		_test_contact(a_phase, a_before)
+	elif a_phase.impact_mask != 0:
+		_test_impact(a_phase, a_before)
+	_fall_ticks += 1
+	if _fall_ticks >= TimeUtils.ticks_from_seconds(EmissionPhase.LOST_LOCK_FALL_SECONDS):
+		_phase_over = true
+	_expired = _phase_over and _next_burst_index() < 0
+	return Progress.MOVING
+
+
+## The index of the first phase after the live one that does not move — where a flight that
+## ended (by a contact, or by falling out of its lock) goes next — or -1 when there is none.
+func _next_burst_index() -> int:
+	for index: int in range(_phase_index + 1, _phases.size()):
+		if _phases[index].is_motionless():
+			return index
+	return -1
 
 
 #endregion
@@ -355,6 +397,7 @@ func _enter_next_phase(a_has_arrived: bool) -> bool:
 		and not next.is_motionless()
 		and not ended.is_motionless()
 		and not _ended_by_impact
+		and not _lock_lost
 		and not a_has_arrived
 	):
 		_phase_index += 1
@@ -367,7 +410,7 @@ func _enter_next_phase(a_has_arrived: bool) -> bool:
 		if next.is_straight():
 			redirect(_clean_velocity.normalized() * next.speed / TimeUtils.ticks_per_second())
 		return true
-	if _ended_by_impact:
+	if _ended_by_impact or _lock_lost:
 		while _phase_index + 1 < _phases.size() and not _phases[_phase_index + 1].is_motionless():
 			_phase_index += 1
 	var pursued: Entity = goal_entity()

@@ -227,3 +227,28 @@ func test_lead_is_a_fraction() -> void:
 		{"phases": [{"motion": {"speed": 15, "turn_rate": 90, "lead": 1.5}, "lifespan": 1}]},
 		"0 to 1"
 	)
+
+
+func test_a_steered_motion_may_lose_its_lock() -> void:
+	var spec: Dictionary = {
+		"phases":
+		[
+			{
+				"motion": {"speed": 15, "turn_rate": 90, "lock_cone": 150, "lock_range": 9},
+				"lifespan": 1
+			},
+			{"lifespan": 1, "payload": "once"}
+		]
+	}
+	assert_eq(EmissionPhases.errors_for(spec), [])
+	var flight: Dictionary = EmissionPhases.expand(spec)[0]
+	assert_eq(flight["lock_cone_degrees"], 150.0)
+	assert_eq(flight["lock_range"], 9.0)
+
+
+func test_a_lock_needs_steering_and_a_cone_within_180() -> void:
+	_assert_refused({"phases": [{"motion": {"speed": 15, "lock_range": 5}}]}, "lock_range acts")
+	_assert_refused(
+		{"phases": [{"motion": {"speed": 15, "turn_rate": 90, "lock_cone": 200}, "lifespan": 1}]},
+		"at most 180"
+	)

@@ -30,6 +30,11 @@ const BALLISTIC_GRAVITY_MPS2: float = 4.5
 const LOFTED_PITCH_DEGREES: float = 60.0
 ## How close a steered emission must come to its live target to have arrived.
 const STEERED_ARRIVAL_RADIUS: float = 0.5
+## What an emission that has lost its lock falls under: the arc every shell is tuned against.
+const LOST_LOCK_GRAVITY_MPS2: float = BALLISTIC_GRAVITY_MPS2
+## How long an emission that lost its lock may fall before it bursts where it is: a backstop for
+## a fall with nothing beneath it. On a map the ground ends the fall long before this.
+const LOST_LOCK_FALL_SECONDS: float = 5.0
 ## How close to directly behind a steering goal must be for the turn to have no axis, as the
 ## cosine between heading and goal.
 const DEAD_ASTERN_COSINE: float = -0.9999
@@ -75,6 +80,14 @@ const NEAR_VERTICAL_COSINE: float = 0.9
 ## that changes course after it is drawn to an empty point. Once that point is behind it, the
 ## emission flies straight. Zero aims at the target itself, live, every tick.
 @export var lead_fraction: float = 0.0
+## How far off the nose, in degrees, a steered phase's target may get before the emission LOSES
+## ITS LOCK: it stops steering, its motor cuts, and it falls (see PhasedLocomotion). 180 is lost
+## only dead astern; zero never loses the lock by angle.
+## → gdd/systems/combat/projectiles.md §Losing the lock
+@export var lock_cone_degrees: float = 0.0
+## How far away, in world units, a steered phase's target may get before the emission loses its
+## lock. Zero never loses it by distance.
+@export var lock_range: float = 0.0
 ## Seconds into the phase at which the motor burns out, after which the emission flies no
 ## faster than `coast_speed`: a rocket that boosts, then coasts. Zero never burns out. The
 ## drop is immediate, and `acceleration_mps2` then only ever climbs back to the coast speed.
@@ -288,6 +301,23 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 
 func leads() -> bool:
 	return lead_fraction > 0.0 and is_steered()
+
+
+## Whether an emission at `a_position`, flying `a_velocity`, loses its lock on a target at
+## `a_target_point`: the target is farther off the nose than `lock_cone_degrees`, or farther away
+## than `lock_range`. Never for an unsteered phase, nor for a knob left at zero.
+func loses_lock(a_velocity: Vector3, a_position: Vector3, a_target_point: Vector3) -> bool:
+	if not is_steered():
+		return false
+	var to_target: Vector3 = a_target_point - a_position
+	if lock_range > 0.0 and to_target.length() > lock_range:
+		return true
+	return (
+		lock_cone_degrees > 0.0
+		and not a_velocity.is_zero_approx()
+		and not to_target.is_zero_approx()
+		and rad_to_deg(a_velocity.angle_to(to_target)) > lock_cone_degrees
+	)
 
 
 ## Where this phase aims to meet a target at `a_target_position` moving `a_target_step` per

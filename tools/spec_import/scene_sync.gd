@@ -102,6 +102,8 @@ const PHASE_PROPERTIES: Array[String] = [
 	"coast_speed",
 	"turn_bleed_mps2_per_radian",
 	"lead_fraction",
+	"lock_cone_degrees",
+	"lock_range",
 	"ends_on_arrival",
 	"lifespan_seconds",
 	"impact_mask",
