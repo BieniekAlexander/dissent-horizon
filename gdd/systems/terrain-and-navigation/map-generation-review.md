@@ -120,7 +120,8 @@ leaving `MapGenerator` at about 250 lines of sequencing and validation.
 
 **TODO D2 — the passes are not sequential, and the doc says they are.** Pass 6 re-runs pass 5
 on its offsets (fine, and documented), but it also **mutates pass 4's output**: it trims
-`topology.barrier_of` against cliffs, and moves features the topology's graph was built from. Pass 5 turns a
+`topology.barrier_of` against cliffs, narrows each cliff cut's band to its face, and moves
+features the topology's graph was built from. Pass 5 turns a
 chasm stretch that cannot hold water into a ridge, while `topology.flooded` still says chasm.
 Three consequences:
 
@@ -224,12 +225,9 @@ derived):
   goes stale the day the charge cap or the extractor rate moves.
 - `pond_cells_min` / `_max` are "the union of the per-category bounds"; as knobs they can
   disagree with the categories, and `_pond_plan` clamps to both.
-- **Heights.** map-generation.md says every height scales with `MAX_SLOPE_DIFF` — "change one,
-  change them all" — yet `elevation_step` (0.8), `cliff_step` (3.0, "three `MAX_SLOPE_DIFF`s"),
-  `chasm_depth` (4) and `ground_height` (8) are world units, so a slope-limit change means
-  editing four knobs by hand. Authoring them in slope steps, converted once, makes the rule
-  hold by construction. `ridge_height` and `mountain_rise_*` are deliberately absolute and would
-  stay so.
+- REJECTED — **heights authored in slope steps**, so they would scale with `MAX_SLOPE_DIFF`:
+  when the limit moved to tan 30°, Alex chose to keep the authored heights and retune the
+  terraces instead (map-generation.md §Parameters).
 - `site_energy_per_second` and `pond_rate_multiplier` are piece facts on the params object:
   overwritten by `apply_piece_facts`, hidden from the form by the dock's own list, yet still
   filed under "Value" in `PROPERTY_GROUPS`.
