@@ -152,7 +152,7 @@ func launch(
 	if _phases.any(func(p: EmissionPhase) -> bool: return p.has_jitter()):
 		_jitter = EmissionJitter.new(SU.rng)
 	_had_pursued = a_pursued != null
-	_last_seen = a_pursued.global_position if a_pursued != null else a_destination
+	_last_seen = a_pursued.aim_point() if a_pursued != null else a_destination
 	_pursued_samples = 0
 	_lead_point = null
 	_excluded = a_excluded
@@ -308,15 +308,17 @@ func face_velocity() -> void:
 	body.look_at(body.global_position + body.velocity, up)
 
 
-## Where a steered phase aims: the pursued piece, or where it was last seen once it has left
-## the game; null for a goal that never named a piece, which is flown unsteered.
+## Where a steered phase aims: the centre of the pursued piece's hitbox (Entity.aim_point), or
+## where it was last seen once it has left the game; null for a goal that never named a piece,
+## which is flown unsteered.
 func _steering_goal() -> Variant:
 	var pursued: Entity = goal_entity()
 	if pursued != null:
+		var aim: Vector3 = pursued.aim_point()
 		if _pursued_samples > 0:
-			_pursued_step = pursued.global_position - _last_seen
+			_pursued_step = aim - _last_seen
 		_pursued_samples += 1
-		_last_seen = pursued.global_position
+		_last_seen = aim
 		return _last_seen
 	_pursued_samples = 0
 	return _last_seen if _had_pursued else null

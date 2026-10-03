@@ -159,6 +159,24 @@ predict, then chase: a target that holds course is hit by the first stage; one t
 forces the second stage into a hard turn that bleeds its speed, so a fast juker escapes and a
 slow one is run down. The Warlord is written that way (§Rocket calibration).
 
+### A rocket aims at the hitbox
+
+**A steered phase steers at, leads, and arrives at the centre of its target's hitbox**
+(`Entity.aim_point`, the global position of `TargetBody/TargetShape`; the piece's origin when it
+has none) (Alex, 2026-10-03). **And every hitbox stands ON its piece's base**: `Entity._ready`
+raises the TargetShape until its bottom is at the origin (`_seat_target_shape`). A shape authored
+higher is left where it is.
+
+- **Why both:** a shape is centred on its node, and every piece's hitbox was authored at its
+  origin, its feet. Half of it was underground, so "aim at the centre" was "aim at the ground",
+  and a slightly short rocket struck the terrain in front of a ground target.
+- **What else moves:** every weapon and blast now meets the hitbox above the ground rather than
+  straddling it. Range is unaffected (`Hull` reads the footprint on XZ only), and a shell
+  bursting at ground level still reaches the hitbox's bottom.
+- **Only steered phases aim at the centre.** A launch still sets off toward the target's
+  position, and unsteered shells and bullets still aim at the ground under it. A beacon has no
+  hitbox, so a Bombard shell tracking one is unchanged.
+
 ### A lost pursuit loops
 
 **A phased emission cannot stop.** When the piece a steered phase pursues leaves the game, it
@@ -528,15 +546,16 @@ each:
 The contact fix is the first cause below. **Still open after it: rerouting saves no fast
 target**, so the elasticity the Warlord was designed for is not there yet.
 
-Three causes, found by tracing contacts (the first since fixed):
+Three causes, found by tracing contacts (the first two since fixed):
 
 - **A contact could deal no damage — FIXED 2026-10-03** (§The blast is measured at the
   contact). The blast was measured on the payout's tick, a tick after the contact, by which
   time a fast target had left the Warlord rocket's 0.1 sphere: a QUICK truck holding course was
   struck by 8 of 10 rockets and damaged by about 5. It favoured exactly the target that holds
   course, which inverts the design.
-- **Steered emissions aim at the target's ORIGIN, at ground level**, so a slightly short rocket
-  dives into the terrain in front of a ground target (2 of 10 rockets in one run).
+- **Steered emissions aimed at the target's ORIGIN, at ground level — FIXED 2026-10-03**
+  (§A rocket aims at the hitbox): a slightly short rocket dived into the terrain in front of a
+  ground target (2 of 10 rockets in one run).
 - **A hovering aircraft reverses by backing off at `reverse_speed_ratio`** rather than turning,
   so a reroute makes it slower, and the chase stage runs it down. The model treated every
   target as a turning vehicle.

@@ -237,7 +237,7 @@ func tracked_velocity(a_velocity: Vector3, a_position: Vector3, a_goal: Variant)
 ## One tick of steering at `a_target`, before the move. Unchanged when unsteered or targetless.
 func steered_velocity(a_velocity: Vector3, a_position: Vector3, a_target: Entity) -> Vector3:
 	return steered_toward(
-		a_velocity, a_position, a_target.global_position if a_target != null else null
+		a_velocity, a_position, a_target.aim_point() if a_target != null else null
 	)
 
 
@@ -334,9 +334,10 @@ func fallen_velocity(a_velocity: Vector3) -> Vector3:
 	return a_velocity + Vector3.DOWN * gravity_mps2 / float(_ticks_squared())
 
 
-## Whether the emission has reached where it was going. A steered phase aims at its target
-## and never arrives without one; a falling one lands on crossing its destination's height
-## on the way down; anything else arrives within one step of the destination.
+## Whether the emission has reached where it was going. A steered phase aims at its target's
+## hitbox centre (Entity.aim_point) and never arrives without one; a falling one lands on
+## crossing its destination's height on the way down; anything else arrives within one step of
+## the destination.
 func has_arrived(
 	a_position: Vector3, a_velocity: Vector3, a_destination: Vector3, a_target: Entity
 ) -> bool:
@@ -344,7 +345,7 @@ func has_arrived(
 		return (
 			a_target != null
 			and (
-				a_position.distance_squared_to(a_target.global_position)
+				a_position.distance_squared_to(a_target.aim_point())
 				< STEERED_ARRIVAL_RADIUS * STEERED_ARRIVAL_RADIUS
 			)
 		)
