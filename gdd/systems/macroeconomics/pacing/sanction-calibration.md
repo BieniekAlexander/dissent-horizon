@@ -274,22 +274,35 @@ to a different building. Stealth on one unit (Informant 1) counts as minor. Comm
 are set with this in mind, so a second centre's extra charges stay worth less than the same
 energy in army ([dominion-and-ordnance](dominion-and-ordnance.md) §The command centre).
 
-## Implementation, when this is applied (not now)
+## Implementation (applied 2026-10-02)
 
-Listed so the later change is complete. None of it is done.
+Done, as starting points for playtesting:
 
-- `SanctionGrid.NUM_TIERS` 5 → 4, and re-tier every sanction doc. The tests in
-  `tests/test_SanctionGrid.gd` that build five-tier grids follow.
-- Re-price every sanction doc from the ladder.
-- `PlayerSlot.starting_dominion` default 300 → about 100 (Decided: 300 was a placeholder), and
-  the scenarios that set their own values.
-- Scan: two levels, permanent lifetime, radius 10 → `vision_ground_large` (24), detection on level 2.
+- `SanctionGrid.NUM_TIERS` 5 → 4; every sanction doc re-tiered per §Proposed grids.
+- Every cell re-priced from the ladder:
+
+  | Tier | Colonial | Anarchical |
+  |---|---|---|
+  | T1 | Promotion 200, Scan 1 250, Freeze 1 200 | Dignify 150, Informant 1 200, Scavenge 1 300 |
+  | T2 | Drop 1 500, Scan 2 450, Freeze 2 600, Beacon 1 500 | Ambush 1 450, Informant 2 500, Scavenge 2 600, Mortar 1 550 |
+  | T3 | Drop 2 1200, Gunship 1500, Beacon 2 1000 | Ambush 2 1100, Scavenge 3 1200, Mortar 2 1200 |
+  | T4 | Drop 3 2000, Beacon 3 2000, Blizzard 3000 | Informant 3 2000, Mortar 3 2500, Global EMP 3000 |
+
+- `PlayerSlot.starting_dominion` default 300 → 100. Scenarios that set their own value (the
+  tutorial, `blue_hole`, test scenes) were left as content.
+- Scan: two levels, a permanent observer, reveal 24; level 2 detects at 16 (`detection_medium`,
+  provisional — the open question below).
 - Ambush: two levels, 3 and 8.
-- Supply Beacon (`cl_support2`) price, 800 → 2000–2500.
-- Overcharge: remove from the Anarchical grid; re-home it with a faction that has a low-tier EMP.
-- Dominion rates per §Fungibility, and the Technocratic dominion extractor.
-- [sanction-grid](../sanctions/sanction-grid.md)'s worked examples (Freeze 2 "two tiers below
-  Freeze 1", Blizzard "two below that", Overcharge under Scavenge) and its cell counts.
+- Supply Beacon (`cl_support2`) 800 → 2000.
+- Overcharge parked: off the Anarchist grid **and out of the Clandestine Lab's ability pool**,
+  since an ability no grid offers is free, so leaving it on the Lab would have granted it with no
+  dominion cost. The doc stays, unlisted, until it moves to a faction with a low-tier EMP.
+- [sanction-grid](../sanctions/sanction-grid.md)'s worked examples and cell counts.
+
+Not done:
+
+- Dominion rates per §Fungibility, and the Technocratic dominion extractor (the rates are to be
+  revisited; nothing numeric was decided).
 
 ## Open questions
 
