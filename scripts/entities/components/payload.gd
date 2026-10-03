@@ -9,6 +9,10 @@ extends Node
 ## was fired at, false on everything inside the host's HitShape. See
 ## gdd/systems/combat/projectiles.md §`hitscan` is the aiming rule.
 
+## A payout landed: `a_victims` are the pieces it was applied to, empty when it reached none.
+## What a measurement listens to; nothing in the game does.
+signal paid_out(a_victims: Array)
+
 #region Properties
 ## Launch-time spread for a shot aimed at one target: purely cosmetic, since that payload lands
 ## on `target` wherever the visible shot went, so it can never cause a miss.
@@ -101,6 +105,9 @@ func apply() -> void:
 			target.receive_damage(damage, source)
 			for effect: EffectApplicator in get_effects():
 				effect.apply([target], source)
+			paid_out.emit([target])
+		else:
+			paid_out.emit([])
 		return
 	var victims: Array[Entity] = (
 		_take_contact_victims() if _has_contact_victims else _blast_victims()
@@ -110,6 +117,7 @@ func apply() -> void:
 			victim.receive_damage(damage, source)
 	for effect: EffectApplicator in get_effects():
 		effect.apply(victims, source)
+	paid_out.emit(victims)
 
 
 #endregion

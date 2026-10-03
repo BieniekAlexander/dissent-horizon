@@ -2,10 +2,14 @@ description: |
   The pair of warlord_vs_wagon_holding_course: the War Wagon reverses 0.4 s after each rocket
   leaves (the Warlord fires on arming and every 1.5 s after). Jinking is
   meant to save only a FAST target — the Warlord's chase stage runs a STEADY one down after it
-  has turned. The claim: the wagon dies anyway.
+  has turned.
   
   Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
   gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+
+  Claim: a slow vehicle's reroute does not save it: at least 3 rockets in 4 hit.
+  The claim is about the WEAPON, as a fraction of the rockets fired that hit — never about
+  killing, which is the shooter's damage rate and out of scope for a projectile.
 setting: { kind: flat, size: 30 }
 given:
   A:
@@ -35,5 +39,4 @@ given:
           - { move: { target: { from: B.target, distance: 5, bearing: north } }, after: 13.9s }
 run: { for: 15s }
 expect:
-  - { of: B.target, check: dead }
-  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }
+  - { of: A.warlord, check: hit_rate, target: B.target, at_least: 0.75 }

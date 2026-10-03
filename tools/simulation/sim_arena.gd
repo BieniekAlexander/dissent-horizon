@@ -599,6 +599,7 @@ func _compile_checks() -> Array[SimulationCheck]:
 				int(round(leaf.deadline_seconds * Engine.physics_ticks_per_second)),
 			)
 		)
+		check.measurement = SimCheckLibrary.measurement(leaf, roster)
 		by_leaf[leaf] = check
 		compiled.append(check)
 	var root: SimSpec.ExpectNode = spec.expect_root

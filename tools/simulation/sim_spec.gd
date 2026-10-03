@@ -78,6 +78,7 @@ const CHECK_ARGUMENTS: Dictionary = {
 	"command": ["is"],
 	"idle": [],
 	"garrisoned_in": ["host"],
+	"hit_rate": ["target", "at_least", "at_most"],
 }
 #endregion
 

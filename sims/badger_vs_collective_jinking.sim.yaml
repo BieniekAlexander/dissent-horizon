@@ -1,11 +1,14 @@
 description: |
   The Badger's rocket boosts to SCORCHING and coasts at SWIFT, faster than every ground class in
   play, so no ground target is meant to escape it — rerouting included. A Collective (QUICK,
-  unarmed transport) reverses across the Badger's front 0.4 s after each rocket leaves. The claim: it is hit, and keeps
-  being hit — at least as damaged as half its health by the end of the window.
+  unarmed transport) reverses across the Badger's front 0.4 s after each rocket leaves.
   
   Speeds and the Badger rocket: gdd/movement/speed_classes.md and
   gdd/systems/combat/projectiles.md §Rocket calibration.
+
+  Claim: no ground class in play outruns the Badger's rocket: at least 3 rockets in 4 hit.
+  The claim is about the WEAPON, as a fraction of the rockets fired that hit — never about
+  killing, which is the shooter's damage rate and out of scope for a projectile.
 setting: { kind: flat, size: 30 }
 given:
   A:
@@ -35,7 +38,4 @@ given:
           - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 13.9s }
 run: { for: 15s }
 expect:
-  - any:
-      - { of: B.target, check: dead }
-      - { of: B.target, check: hp_fraction, at_most: 0.5 }
-  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }
+  - { of: A.badger, check: hit_rate, target: B.target, at_least: 0.75 }

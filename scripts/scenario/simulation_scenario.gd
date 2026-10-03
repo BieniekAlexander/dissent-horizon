@@ -194,6 +194,7 @@ func _build_results() -> Array:
 					"passed": check.passed(),
 					"met_tick": check.met_tick,
 					"mode": check.mode,
+					"measured": check.measured(),
 				}
 			)
 		)

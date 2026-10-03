@@ -562,26 +562,37 @@ each:
 | Badger vs Collective (QUICK), jinking | at least half damaged | 10 of 10 | 10 of 10 | 10 of 10 |
 
 The two fixes are the first two causes below; with both, holding course is fatal, as designed.
-**TODO — still open: rerouting saves no fast target**, so the elasticity the Warlord was
-designed for is not there yet. That is a tuning question for the Warlord against these specs.
+**TODO — still open: no fast target dodges yet**, so the elasticity the Warlord was designed for
+is not there. See the retune below.
 
-**Retune attempts, 2026-10-03: no setting reaches the design shape yet.** With `lock_cone`,
-`lock_range` and a shorter Chase stage (§Losing the lock), scanned over five seeds each:
+**Retune, 2026-10-03: measured by HIT RATE, not kills** (Alex: tuning a projectile is about how
+often it hits; whether one cheap shooter kills its target before it escapes is the damage
+rate, out of scope). Every Warlord spec now claims a fraction of rockets fired that hit
+(`hit_rate`, simulation-tests.md §Counting shots): **at least 75%** against a target holding
+course and against the slow War Wagon whatever it does, **at most 50%** against a fast target
+(truck, Raven) that flees or jinks. Three seeds each; numbers are the share of rockets that
+hit, with the rockets fired in brackets:
 
-- **Reversing course cannot evade at these ranges.** At 8 units the rocket arrives in about
-  0.8 s, and a vehicle that reverses 0.4 s after launch is back near where the rocket was first
-  aimed, so even an unguided rocket hits it. Every lock cone from 10° to 120° left the jinking
-  truck struck by every rocket. Reversing cancels the target's own displacement; it is the wrong
-  evasion here, whatever the rocket does.
-- **Fleeing escapes everything, the War Wagon included** (`warlord_vs_*_fleeing`). A target
-  driving straight away leaves the Warlord's 12-unit reach within a few shots, and one rocket
-  every 1.5 s cannot kill even a STEADY target in that time (the wagon took about 3 hits).
-  Outpacing the Warlord is decided by its reach and rate of fire more than by its rocket.
-- **A lock range below the target's distance backfires**: at `lock_range: 10`, the truck holding
-  course survived, because its legs carry it just past 10 units.
+| Top speed, chase | truck hold / jink / flee | wagon hold / jink / flee | Raven hold / jink / flee | Claims met |
+|---|---|---|---|---|
+| 16.5 (as shipped), 3 s | 100 / 96 / 100 | 100 / 100 / 100 | 100 / 100 / 100 | 5 of 9 |
+| 9.3, 3 s | 100 / 100 / 100 | 100 / 100 / 100 | 75 / 80 / 100 | 4 of 9 |
+| 8.5, 3 s | 96 / 100 / 100 | 100 / 100 / 100 | 100 / 80 / 0 | 6 of 9 |
+| 7, 3 s | 75 / 96 / 50 | 100 / 100 / 100 | 58 / 80 / 0 | 6 of 9 |
+| 7, 3 s, turn 180 | 100 / 100 / 50 | 100 / 100 / 100 | 58 / 80 / 0 | 6 of 9 |
+| 16.5, chase 0.3 s | 22 / 63 / 50 | 85 / 100 / 67 | 0 / 22 / 0 | 4 of 9 |
 
-So the open design question is what distinguishes a fast target from a slow one when both flee,
-given that the Warlord's damage rate, not the rocket, ends the engagement.
+Lock cones from 10° to 120°, and a 10-unit lock range, changed little or made holding course
+escapable (§Losing the lock is built and tested, and unused by the Warlord so far).
+
+- **One top speed cannot satisfy both fast targets.** A fleeing truck (QUICK, 4 u/s) outpaces
+  only a rocket at about 7 or slower; a Raven crossing the Warlord's front is hit reliably only
+  by one at 8.5 or faster. Which wins is a design choice.
+- **Jinking never helps at 8 units, at any setting**: the rocket arrives in about 0.8 s, and a
+  vehicle that reverses 0.4 s after launch is back near where the rocket was first aimed.
+- **The fleeing specs fire few rockets** (one to three a run, since the target leaves reach),
+  so their rates are coarse; more seeds before trusting a threshold there.
+- **The Warlord rocket is unchanged (SCORCHING) pending that choice.**
 
 Three causes, found by tracing contacts (the first two since fixed):
 

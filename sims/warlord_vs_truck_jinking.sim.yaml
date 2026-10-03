@@ -1,11 +1,15 @@
 description: |
   The pair of warlord_vs_truck_holding_course: the same stock truck (QUICK), the same place,
   but it reverses its crossing direction 0.4 s after each rocket leaves — the Warlord fires on
-  arming and every 1.5 s after — so every rocket is fired at a course abandoned in flight. A fast vehicle that reroutes after the shot is away is meant
-  to escape: the claim is that the truck survives the window.
+  arming and every 1.5 s after — so every rocket is fired at a course abandoned in flight. A
+  fast vehicle that reroutes after the shot is away is meant to escape.
   
   Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
   gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+
+  Claim: a fast vehicle that reroutes dodges at least half the rockets.
+  The claim is about the WEAPON, as a fraction of the rockets fired that hit — never about
+  killing, which is the shooter's damage rate and out of scope for a projectile.
 setting: { kind: flat, size: 30 }
 given:
   A:
@@ -35,5 +39,4 @@ given:
           - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 13.9s }
 run: { for: 15s }
 expect:
-  - { of: B.target, check: alive }
-  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }
+  - { of: A.warlord, check: hit_rate, target: B.target, at_most: 0.5 }

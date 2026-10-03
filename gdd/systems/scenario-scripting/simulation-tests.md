@@ -449,9 +449,28 @@ Every leaf takes `of:` (a group reference) and optionally `piece:` (narrowing a 
 | `command` | `is: <CommandName>` | every living member's current command is that one |
 | `idle` | — | no member holds a command |
 | `garrisoned_in` | `host: <group>` | every member is inside that host |
+| `hit_rate` | `target: <group>`, `at_least` / `at_most` | of the shots the group fired that have settled, that fraction landed on the target group (§Counting shots) |
 
 **A check with no count argument quantifies over ALL of the selection.** One axis, not a
 separate `quantifier:` key. A new check is a new row in that table, never a new branch (§1.2).
+
+### Counting shots
+
+**`hit_rate` measures a WEAPON, not a fight** (Alex, 2026-10-03). It counts the emissions the
+group's pieces fired (`ActionTracker.CUE_EMITTED`) and how many landed on a piece of the target
+group (`Payload.paid_out`), and asks whether the fraction is in the band. Killing is a different
+question: it is the shooter's damage rate, and a cheap unit is not expected to kill a target
+alone before it escapes. So a projectile is tuned by how often it hits, never by whether its
+target died.
+
+- A shot counts once its emission has LEFT THE GAME (`SimShotLog`): one still in flight at the
+  end of the window is neither a hit nor a miss.
+- A shot hits if any of its payouts reached a member of the target group, including a member
+  since destroyed (the roster keeps every placed piece's instance id).
+- A run that settled no shot fails the check: a rate over nothing is not a measurement.
+- The check REPORTS what it counted: `measured` in the JSON result (and in the printed line)
+  reads "7 of 9 shots hit". `SimulationCheck.measurement` is the general hook; a check that
+  only has a verdict leaves it empty.
 
 Where the table cannot reach, the escape hatch is the scenario `Condition` module —
 `{ condition: ConditionScoutCoverage, commander_id: 1, …, by: 100s }` — but it is not the

@@ -1,9 +1,13 @@
 description: |
   A War Wagon (STEADY, unarmed) sweeping across the Warlord's front on long legs. Slow targets
-  are run down whatever they do, and this one is not even trying: the claim is that it dies.
+  are run down whatever they do, and this one is not even trying.
   
   Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
   gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+
+  Claim: at least 3 rockets in 4 hit.
+  The claim is about the WEAPON, as a fraction of the rockets fired that hit — never about
+  killing, which is the shooter's damage rate and out of scope for a projectile.
 setting: { kind: flat, size: 30 }
 given:
   A:
@@ -30,5 +34,4 @@ given:
           - { move: { target: { from: B.target, distance: 5, bearing: south } } }
 run: { for: 15s }
 expect:
-  - { of: B.target, check: dead }
-  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }
+  - { of: A.warlord, check: hit_rate, target: B.target, at_least: 0.75 }

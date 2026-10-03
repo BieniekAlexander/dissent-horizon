@@ -1,10 +1,14 @@
 description: |
   A stock truck (QUICK, unarmed) drives straight away from the Warlord, starting inside its
   reach. Outpacing is the escape the Warlord rocket is meant to leave a FAST vehicle: it drives
-  out from under the rocket until the rocket gives up. The claim: the truck survives.
+  out from under the rocket until the rocket gives up.
 
   Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
   gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+
+  Claim: a fast vehicle outpaces the rocket: at least half the rockets fired at it miss.
+  The claim is about the WEAPON, as a fraction of the rockets fired that hit — never about
+  killing, which is the shooter's damage rate and out of scope for a projectile.
 setting: { kind: flat, size: 40 }
 given:
   A:
@@ -23,5 +27,4 @@ given:
         orders: [ { move: { target: east } } ]
 run: { for: 15s }
 expect:
-  - { of: B.target, check: alive }
-  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }
+  - { of: A.warlord, check: hit_rate, target: B.target, at_most: 0.5 }
