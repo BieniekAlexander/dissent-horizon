@@ -34,8 +34,8 @@ metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 
 [node name="Flight" type="Node3D" parent="."]
 script = ExtResource("1_spec")
-speed = 7.2
-turn_rate_degrees_per_second = 120.0
+speed = 5.25
+turn_rate_degrees_per_second = 180.0
 launch_speed_ratio = 0.5
 acceleration_mps2 = 2.25
 min_speed = 0.15

@@ -28,10 +28,10 @@ weapons:
       hitscan: false
       bio_ground_aim: true
       phases:
-        # Slower than the Badger's rocket and longer-lived, because it must also catch
-        # aircraft: QUICK aircraft and every ground class cannot escape it, a FAST aircraft
-        # fired on from beyond ~9.5 can (gdd/systems/combat/projectiles.md §Rocket calibration).
-        - motion: {preset: HOMING, speed: RAPID, turn_rate: 120, jitter: 4}
+        # Slow, hard-homing and long-lived: it runs down STEADY and BRISK targets anywhere in
+        # reach, a QUICK vehicle fired on from beyond ~6.5 can drive away until it expires, and
+        # moving aircraft outrun it (gdd/systems/combat/projectiles.md §Rocket calibration).
+        - motion: {preset: HOMING, speed: FAST, turn_rate: 180, jitter: 4}
           lifespan: 5
         - lifespan: 1.6
           payload: once

@@ -15,7 +15,7 @@ defense:
   frame: MECH
 senses:
   vision: vision_aerial_medium
-movement: {speed: QUICK, turn_rate: 60, max_acceleration: 1, max_deceleration: -0.5}
+movement: {speed: SWIFT, turn_rate: 140, max_acceleration: 2.33, max_deceleration: -1.16}
 aerial: {mode: FLYING}
 docking: true
 weapons:
@@ -26,7 +26,7 @@ weapons:
     scene: res://scenes/entities/projectiles/lb/sentinel_thing.tscn
     damage: 15
     damage_type: EXPLOSIVE
-    speed: BLAZING
+    speed: SCORCHING
     trajectory: LINEAR
     hitscan: true
   split_time: 0.6

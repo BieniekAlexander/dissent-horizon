@@ -15,7 +15,7 @@ defense:
   frame: MECH
 senses:
   vision: vision_aerial_large
-movement: {speed: BRISK, turn_rate: 90, max_acceleration: 1, max_deceleration: -1.5, reverse_speed_ratio: 0.2}
+movement: {speed: RAPID, turn_rate: 90, max_acceleration: 2.33, max_deceleration: -3.5, reverse_speed_ratio: 0.2}
 aerial: {mode: HOVERING}
 docking: true
 ui: {grid: [4, 1], factions: [libertarian]}

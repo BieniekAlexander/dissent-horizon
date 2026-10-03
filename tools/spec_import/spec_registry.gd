@@ -437,6 +437,10 @@ func _register_speed_library(a_path: String, a_data: Dictionary) -> void:
 		)
 		return
 	var upper_snake := RegEx.create_from_string("^[A-Z][A-Z0-9_]*$")
+	# The one rule on the values: listed slowest first, each strictly faster than the last, so
+	# "one class up" always means faster. Spacing is free.
+	var previous_name: String = ""
+	var previous_value: float = -INF
 	for key: Variant in entries:
 		var name: String = str(key)
 		var value: Variant = entries[key]
@@ -455,6 +459,17 @@ func _register_speed_library(a_path: String, a_data: Dictionary) -> void:
 				)
 			)
 		else:
+			if float(value) <= previous_value:
+				errors.append(
+					(
+						"%s [%s]: the ladder must be listed slowest first, each class faster "
+						% [a_path, name]
+						+ "than the one above it, but %s is not faster than %s (%s)"
+						% [value, previous_name, previous_value]
+					)
+				)
+			previous_name = name
+			previous_value = float(value)
 			speeds[name] = float(value)
 
 

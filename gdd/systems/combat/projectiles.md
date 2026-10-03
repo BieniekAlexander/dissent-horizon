@@ -376,6 +376,41 @@ to RAPID after 0.5 s, turn 60°/s, 2.2 s** (min speed 2), and the Warlord fires 
 Both are starting points for play. Before the knob existed, **15, turn 45°/s, 2 s** fixed the misses with existing knobs, with no
 distance dependence yet.
 
+### Retuned for the new speed ladder (2026-10-03)
+
+**This supersedes the 2026-10-02 targets above** where they differ; the tables above are kept
+because the model and the knobs still apply. Aircraft were raised 2–4× (to RAPID–HYPER, see
+[speed_classes](../../movement/speed_classes.md)), which left every rocket slower than most of
+what it was fired at. What is wanted now (Alex, 2026-10-03):
+
+- **The Badger rocket is faster than every ground class in play.** The ground class that may
+  escape it is one about as fast as a slow aircraft, and none exists yet. This replaces "a
+  QUICK vehicle fired on from far enough away can escape".
+- **The Warlord rocket is slower, with strong homing**, so it eventually reaches ground targets
+  and a fast vehicle can drive away until it expires.
+- **Projectile physics is still being explored.** Manoeuvrability (turn rate, acceleration,
+  interception geometry) is the intended lever for dodging, and is deferred until there are
+  more projectiles. For now, low-tier projectiles are fast enough to hit most of their targets.
+
+Applied, from the same paper model, now `tools/projectiles/rocket_escape_model.py` (run it to
+reproduce these):
+
+| Rocket | Motion | STEADY | BRISK | QUICK | FAST 5.25 | aircraft | flight to reach |
+|---|---|---|---|---|---|---|---|
+| Badger | launch 2 u/s, accel 40, SCORCHING, coast to SWIFT after 0.5 s, turn 60°/s, 2.2 s | never | never | never | dodges at 1.0+ | (ground only) | 1.07 s to 12 |
+| Warlord | HOMING, FAST, turn 180°/s, half-speed launch, 5 s | never | 11.5 | 6.5 | dodges at 1.0+ | every moving aircraft escapes | 2.47 s to 12 |
+| SAM | HOMING, SCORCHING, turn 180°/s, accel 20, half-speed launch, 5 s | — | — | — | — | RAPID, SWIFT, BLAZING never; HYPER always | 1.27 s to 20 |
+
+- **The Warlord no longer catches moving aircraft.** It still `hits: [ground, air]`, so it
+  reaches a hovering aircraft that stops, and nothing faster. Whether it keeps an anti-air role
+  (and so needs a second, faster rocket) is open.
+- **The SAM got an explicit `acceleration: 20`.** The HOMING preset's 2.25 u/s² takes almost
+  four seconds to get from a half-speed launch to SCORCHING, during which BLAZING aircraft
+  outran it.
+- **Aircraft-fired weapons moved with their carriers:** the Purifier's and Viper's emissions
+  went from 15 to SCORCHING (16.5), and the Interceptor's air-to-air missile to SUPERSONIC, so
+  it is faster than every aircraft.
+
 ## Where an emission leaves from
 
 **A weapon's emissions leave from its LAUNCH POINTS, the Marker3D children of the Weapon node,

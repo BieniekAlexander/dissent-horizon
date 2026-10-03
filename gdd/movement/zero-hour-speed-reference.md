@@ -19,8 +19,8 @@ deciding where the bucket boundaries should go. Collected 2026-10-03.
   **k = 1.65 / 20 = 0.0825**: multiply a Zero Hour speed by k to get u/s here.
 - Our infantry is 1.65 cells/s against Zero Hour's 2. So under this mapping our cells are
   slightly larger relative to our unit speeds. Mapping by cells instead would be k = 0.1.
-- In the tables, "→ u/s" is `Speed × k`, and "nearest class" is the closest current rung on the
-  ladder.
+- In the tables, "→ u/s" is `Speed × k`, and "nearest class" is the closest rung on the
+  ladder as retuned on 2026-10-03.
 
 ## Infantry
 
@@ -50,19 +50,19 @@ ones are specialists and heroes.
 | Humvee, Ambulance | 60 / 30 | 4.95 | FAST |
 | Battle bus | 70 / 50 | 5.78 | FAST |
 | Technical, Rocket buggy | 90 / 80 | 7.43 | RAPID |
-| Combat cycle (INI) | 120 / 90 | 9.90 | (gap: RAPID–BLAZING) |
+| Combat cycle (INI) | 120 / 90 | 9.90 | SWIFT |
 
 ## Aircraft
 
 | Zero Hour unit | Speed / damaged | → u/s | nearest class |
 |---|---|---|---|
-| Helix | 75 / 60 | 6.19 | FAST |
-| Comanche, A-10 | 120 / 120 | 9.90 | (gap: RAPID–BLAZING) |
-| B-52 | 125 / 75 | 10.3 | (gap) |
+| Helix | 75 / 60 | 6.19 | RAPID |
+| Comanche, A-10 | 120 / 120 | 9.90 | SWIFT |
+| B-52 | 125 / 75 | 10.3 | SWIFT |
 | Chinook, Combat Chinook | 150 / 60 | 12.4 | BLAZING |
 | MiG | 160 / 160 | 13.2 | BLAZING |
 | Raptor, King Raptor, Stealth fighter | 175 / 120 | 14.4 | BLAZING |
-| Aurora (cruise / supersonic) | 180 / 480 | 14.9 / 39.6 | BLAZING / beyond SUPERSONIC |
+| Aurora (cruise / supersonic) | 180 / 480 | 14.9 / 39.6 | SCORCHING / above SUPERSONIC |
 
 ## Drones
 
@@ -80,9 +80,9 @@ Locomotor's `Speed`, and its `WeaponSpeed` is ignored. A `WeaponSpeed` of 999999
 |---|---|---|---|
 | Artillery platform shell | 150 | 12.4 | BLAZING |
 | Scorpion missile (homing, turn 540°/s) | 150 | 12.4 | BLAZING |
-| Tomahawk cruise missile, SCUD | 200 | 16.5 | BLAZING / HYPER |
+| Tomahawk cruise missile, SCUD | 200 | 16.5 | SCORCHING |
 | Inferno cannon shell | 250 | 20.6 | HYPER |
-| Nuke cannon shell | 200 | 16.5 | BLAZING / HYPER |
+| Nuke cannon shell | 200 | 16.5 | SCORCHING |
 | Infantry/buggy/Comanche AT rocket (homing: min 120, accel 675, turn 100–180°/s) | 225 | 18.6 | HYPER |
 | Raptor/Aurora jet missile (homing, turn 200°/s) | 300 | 24.8 | SUPERSONIC |
 | Paladin, Overlord, Marauder (base) tank shell | 300 | 24.8 | SUPERSONIC |
@@ -92,6 +92,11 @@ Locomotor's `Speed`, and its `WeaponSpeed` is ignored. A `WeaponSpeed` of 999999
 | Rifles, Gattling, Quad cannon, Comanche cannon | instant | — | hitscan |
 
 ## What the comparison shows
+
+Written against the ladder as it stood before 2026-10-03; that day's retune of
+[speed_classes](speed_classes.md) acted on points 2–4 (aircraft raised, the RAPID–BLAZING hole
+filled with SWIFT, rockets made faster than what they are fired at). The "nearest class"
+columns above use the retuned ladder.
 
 1. **Zero Hour's ground ladder is compressed and overlapping.** Main battle tanks (20–40) move
    at infantry speed (20–30). The Overlord is exactly as fast as a Ranger, and the Crusader

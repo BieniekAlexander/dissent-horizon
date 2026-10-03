@@ -28,7 +28,7 @@ weapons:
       hitscan: false
       bio_ground_aim: true
       phases:
-        - motion: {preset: HOMING, speed: RAPID, jitter: 4}
+        - motion: {preset: HOMING, speed: SCORCHING, turn_rate: 180, acceleration: 20, jitter: 4}
           lifespan: 5
         - lifespan: 1.6
           payload: once
