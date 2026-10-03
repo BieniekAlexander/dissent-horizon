@@ -17,6 +17,7 @@ speeds:
   QUICK: 4
   FAST: 5.25
   RAPID: 7
+  FLEET: 8.5
   SWIFT: 9.3
   BLAZING: 12.4
   SCORCHING: 16.5
@@ -88,6 +89,7 @@ Descriptive, not prescriptive: this is what the docs name today, not a rule abou
 | QUICK | 4 | the fastest vehicles in play |
 | FAST | 5.25 | a fast light vehicle, when there is one; the Warlord's slow homing rocket; bombs and lobs |
 | RAPID | 7 | heavy hover aircraft |
+| FLEET | 8.5 | the Warlord rocket: fast enough to hit a SWIFT aircraft crossing its front, too slow to catch one flying away (Alex, 2026-10-03; projectiles.md §Rocket calibration) |
 | SWIFT | 9.3 | most aircraft, hovering and flying; the Badger rocket's coast |
 | BLAZING | 12.4 | fast aircraft (the Drake, the Harpy) |
 | SCORCHING | 16.5 | the standard rocket: the SAM, the Badger's boost, aircraft-fired ground missiles. Catches every aircraft below HYPER |

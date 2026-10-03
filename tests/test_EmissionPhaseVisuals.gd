@@ -116,3 +116,44 @@ func test_a_stop_before_the_delay_cancels_the_start() -> void:
 	phase.show_visuals(_emission, false)
 	await get_tree().create_timer(PAST_DELAY_SECONDS).timeout
 	assert_false(smoke.emitting, "a phase that already ended never starts it")
+
+
+## Two flight stages sharing a mesh, and a burst with its own: whichever phase is live, the visuals
+## it names are up — a LATER phase naming the same mesh must not hide it during an earlier one.
+func _staged_emission() -> Entity:
+	var emission: Entity = Entity.new()
+	var ownership: Ownership = Ownership.new()
+	ownership.name = "Ownership"
+	emission.add_child(ownership)
+	for mesh_name: String in ["InFlightMesh", "PostImpactMesh"]:
+		var mesh: MeshInstance3D = MeshInstance3D.new()
+		mesh.name = mesh_name
+		emission.add_child(mesh)
+	var flight: Array[NodePath] = [NodePath("InFlightMesh")]
+	var burst: Array[NodePath] = [NodePath("PostImpactMesh")]
+	for visuals: Array[NodePath] in [flight, flight, burst]:
+		var phase: EmissionPhase = EmissionPhase.new()
+		phase.speed = 10.0
+		phase.lifespan_seconds = 1.0
+		phase.visuals = visuals
+		emission.add_child(phase)
+	var locomotion: PhasedLocomotion = PhasedLocomotion.new()
+	locomotion.name = "Locomotion"
+	emission.add_child(locomotion)
+	add_child_autofree(emission)
+	return emission
+
+
+func test_a_mesh_shared_by_two_stages_shows_through_both() -> void:
+	var emission: Entity = _staged_emission()
+	var locomotion: PhasedLocomotion = emission.get_node("Locomotion") as PhasedLocomotion
+	var flight_mesh: Node3D = emission.get_node("InFlightMesh") as Node3D
+	var burst_mesh: Node3D = emission.get_node("PostImpactMesh") as Node3D
+	locomotion._show_visuals_of(0)
+	assert_true(flight_mesh.visible, "the first stage shows it, though the second names it too")
+	assert_false(burst_mesh.visible)
+	locomotion._show_visuals_of(1)
+	assert_true(flight_mesh.visible, "still up in the second stage")
+	locomotion._show_visuals_of(2)
+	assert_false(flight_mesh.visible, "hidden at the burst")
+	assert_true(burst_mesh.visible)

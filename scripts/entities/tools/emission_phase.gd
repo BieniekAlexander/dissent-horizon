@@ -124,8 +124,8 @@ const NEAR_VERTICAL_COSINE: float = 0.9
 ## Seconds between runs of this phase's AbstractEvent children, the first on entering the
 ## phase. INF runs them once.
 @export var event_period_seconds: float = INF
-## Nodes shown while this phase is current, relative to the emission root. Every node named
-## by any phase is hidden while its phase is not current.
+## Nodes shown while this phase is current, relative to the emission root. A node named by any
+## phase is hidden while no phase naming it is current, so stages may share one.
 @export var visuals: Array[NodePath] = []
 #endregion
 
@@ -159,18 +159,23 @@ func events() -> Array[AbstractEvent]:
 ## later than its payload needs (projectiles.md §Visuals).
 func show_visuals(a_host: Node, a_shown: bool, a_skip: Node = null) -> void:
 	for path: NodePath in visuals:
-		var node: Node = a_host.get_node_or_null(path)
-		if node == null or node == a_skip:
-			continue
-		var particles: Array[Node] = particle_systems_in(node)
-		if not particles.is_empty():
-			for system: Node in particles:
-				if system is EmissionParticles:
-					(system as EmissionParticles).set_phase_emitting(a_shown)
-				else:
-					system.set(&"emitting", a_shown)
-		elif node is Node3D:
-			(node as Node3D).visible = a_shown
+		show_visual(a_host, path, a_shown, a_skip)
+
+
+## Show or hide the one visual at `a_path` under `a_host`, by the rule show_visuals describes.
+static func show_visual(a_host: Node, a_path: NodePath, a_shown: bool, a_skip: Node = null) -> void:
+	var node: Node = a_host.get_node_or_null(a_path)
+	if node == null or node == a_skip:
+		return
+	var particles: Array[Node] = particle_systems_in(node)
+	if not particles.is_empty():
+		for system: Node in particles:
+			if system is EmissionParticles:
+				(system as EmissionParticles).set_phase_emitting(a_shown)
+			else:
+				system.set(&"emitting", a_shown)
+	elif node is Node3D:
+		(node as Node3D).visible = a_shown
 
 
 ## Every particle system at or under `node`. Typed by capability rather than class because

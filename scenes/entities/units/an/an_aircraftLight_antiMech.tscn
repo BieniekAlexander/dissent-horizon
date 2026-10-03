@@ -72,8 +72,8 @@ script = ExtResource("8_guivj")
 
 [node name="Locomotion" type="Node" parent="." unique_id=1524687403]
 script = ExtResource("9_b66sh")
-max_acceleration = 7.62
-max_deceleration = -3.81
+max_acceleration = 2.0
+max_deceleration = -1.0
 speed = 20.0
 turn_rate = 610.0
 nav_agent_path = NodePath("../NavigationAgent")

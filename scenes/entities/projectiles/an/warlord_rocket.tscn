@@ -43,7 +43,7 @@ damage_type = 6
 
 [node name="Predict" type="Node3D" parent="."]
 script = ExtResource("1_spec")
-speed = 16.5
+speed = 8.5
 turn_rate_degrees_per_second = 90.0
 launch_speed_ratio = 0.5
 acceleration_mps2 = 10.0
@@ -56,7 +56,7 @@ visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh
 
 [node name="Chase" type="Node3D" parent="."]
 script = ExtResource("1_spec")
-speed = 16.5
+speed = 8.5
 turn_rate_degrees_per_second = 90.0
 acceleration_mps2 = 10.0
 min_speed = 2.0

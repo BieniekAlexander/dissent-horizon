@@ -515,7 +515,7 @@ is away can escape: "mechanical elasticity". It is written as two flight stages 
 
 | Stage | Motion | Lifespan |
 |---|---|---|
-| Predict | HOMING from a half-speed launch, SCORCHING, turn 90°/s, acceleration 10, min speed 2, `turn_bleed: 120`, `lead: 1` | 0.5 s |
+| Predict | HOMING from a half-speed launch, FLEET (8.5; was SCORCHING until the retune below), turn 90°/s, acceleration 10, min speed 2, `turn_bleed: 120`, `lead: 1` | 0.5 s |
 | Chase | the same, without `lead` | 3 s |
 | Impact | the burst | 1.6 s |
 
@@ -592,7 +592,12 @@ escapable (§Losing the lock is built and tested, and unused by the Warlord so f
   vehicle that reverses 0.4 s after launch is back near where the rocket was first aimed.
 - **The fleeing specs fire few rockets** (one to three a run, since the target leaves reach),
   so their rates are coarse; more seeds before trusting a threshold there.
-- **The Warlord rocket is unchanged (SCORCHING) pending that choice.**
+- **Chosen (Alex, 2026-10-03): the Raven.** Both Warlord stages fly at FLEET, a rung added at
+  8.5 for it. Five seeds: a crossing Raven is hit 20 of 20, a fleeing one 0 of 5; a truck
+  holding course 37 of 40; the War Wagon whatever it does 100%. A fleeing truck is still hit
+  10 of 10, and jinking still never helps (truck 40 of 40, Raven 20 of 25): 6 of 9 claims.
+  **TODO — separating fleeing from crossing by the rocket's RANGE rather than its speed** (a
+  boost that runs out and falls, §Losing the lock) is to be revisited by Alex.
 
 Three causes, found by tracing contacts (the first two since fixed):
 
@@ -681,6 +686,12 @@ it is in the tree.** `EmissionPhase.show_visuals` switches each listed node with
   while the impact phase plays;
 - **anything else** (a mesh, a sprite) is shown and hidden, which is how the in-flight model is
   swapped for the impact's.
+
+**Phases switch visuals by difference** (`PhasedLocomotion._show_visuals_of`, 2026-10-03): a
+node the live phase names is never hidden, even when another phase names it too, and one
+already showing is not shown again. So several stages of one flight share their mesh and
+exhaust, which stay up across the handover rather than vanishing (as the Warlord rocket's did
+for its whole first stage, until this) or restarting a delayed start.
 
 So an effect that must be seen after impact is paid for with a longer impact phase and
 `payload: once`: the emission stays in the tree showing its explosion, and deals its damage on

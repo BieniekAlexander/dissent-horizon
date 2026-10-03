@@ -73,6 +73,8 @@ var _lead_point: Variant = null
 var _lock_lost: bool = false
 ## Ticks the emission has fallen since losing its lock, against the backstop.
 var _fall_ticks: int = 0
+## The visuals currently shown, as NodePath -> true (see _show_visuals_of).
+var _shown_visuals: Dictionary = {}
 ## Bodies the impact test passes through: the emission's own and its shooter's.
 var _excluded: Array[RID] = []
 ## Whether this emission flies FREE: it ends only on striking its intended piece or the
@@ -319,11 +321,24 @@ func _body() -> CharacterBody3D:
 
 ## Shows the visuals phase `a_index` names and hides every other phase's, leaving alone the beam
 ## a Tracer draws.
+##
+## By DIFFERENCE: a visual the live phase names is never hidden, even when another phase names it
+## too, and one already showing is not shown again. Several stages of one flight can share a mesh
+## and an exhaust, which stay up across the handover rather than vanishing or restarting.
 func _show_visuals_of(a_index: int) -> void:
 	var tracer: Tracer = Tracer.of(get_parent())
 	var beam: Node = tracer.beam() if tracer != null else null
-	for i: int in _phases.size():
-		_phases[i].show_visuals(get_parent(), i == a_index, beam)
+	var wanted: Dictionary = {}
+	for path: NodePath in _phases[a_index].visuals:
+		wanted[path] = true
+	for phase: EmissionPhase in _phases:
+		for path: NodePath in phase.visuals:
+			if not wanted.has(path):
+				EmissionPhase.show_visual(get_parent(), path, false, beam)
+	for path: NodePath in wanted:
+		if not _shown_visuals.has(path):
+			EmissionPhase.show_visual(get_parent(), path, true, beam)
+	_shown_visuals = wanted
 
 
 ## Runs the phase's scenario events at the emission's position, as its owner's.

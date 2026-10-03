@@ -28,14 +28,14 @@ weapons:
       hitscan: false
       bio_ground_aim: true
       phases:
-        # Predict, then chase, bleeding speed in every hard turn: whatever holds its course is
-        # hit, STEADY and BRISK targets are run down whatever they do, and a QUICK vehicle or an
-        # aircraft that reroutes after the shot is away can escape it
-        # (gdd/systems/combat/projectiles.md §Rocket calibration).
+        # Predict, then chase, bleeding speed in every hard turn. FLEET (8.5): fast enough to hit
+        # a SWIFT aircraft crossing its front, too slow to catch one flying away; a fleeing QUICK
+        # vehicle is still caught (Alex, 2026-10-03: the Raven wins that trade-off).
+        # → gdd/systems/combat/projectiles.md §Rocket calibration
         - name: Predict
           motion:
             preset: HOMING
-            speed: SCORCHING
+            speed: FLEET
             turn_rate: 90
             acceleration: 10
             min_speed: 2
@@ -45,7 +45,7 @@ weapons:
           lifespan: 0.5
         - name: Chase
           motion:
-            speed: SCORCHING
+            speed: FLEET
             turn_rate: 90
             acceleration: 10
             min_speed: 2
