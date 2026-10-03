@@ -533,18 +533,19 @@ the engine yet.** Specs in `sims/` (`warlord_vs_{truck,wagon,raven}_{holding_cou
 `badger_vs_collective_jinking`); "jinking" reverses 0.4 s after each rocket leaves. Ten seeds
 each:
 
-| Spec | Claim | Met | Met after the contact fix |
-|---|---|---|---|
-| truck (QUICK), holding course | dies | 0 of 10 | 6 of 10 |
-| truck, jinking | survives | 0 of 10 | 0 of 10 |
-| War Wagon (STEADY), holding course | dies | 8 of 10 | 8 of 10 |
-| War Wagon, jinking | dies | 10 of 10 | 10 of 10 |
-| Raven (SWIFT, hover), holding course | dies | 10 of 10 | 10 of 10 |
-| Raven, jinking | survives | 0 of 10 | 0 of 10 |
-| Badger vs Collective (QUICK), jinking | at least half damaged | 10 of 10 | 10 of 10 |
+| Spec | Claim | Met | + contact fix | + hitbox aim |
+|---|---|---|---|---|
+| truck (QUICK), holding course | dies | 0 of 10 | 6 of 10 | 10 of 10 |
+| truck, jinking | survives | 0 of 10 | 0 of 10 | 0 of 10 |
+| War Wagon (STEADY), holding course | dies | 8 of 10 | 8 of 10 | 10 of 10 |
+| War Wagon, jinking | dies | 10 of 10 | 10 of 10 | 10 of 10 |
+| Raven (SWIFT, hover), holding course | dies | 10 of 10 | 10 of 10 | 10 of 10 |
+| Raven, jinking | survives | 0 of 10 | 0 of 10 | 0 of 10 |
+| Badger vs Collective (QUICK), jinking | at least half damaged | 10 of 10 | 10 of 10 | 10 of 10 |
 
-The contact fix is the first cause below. **Still open after it: rerouting saves no fast
-target**, so the elasticity the Warlord was designed for is not there yet.
+The two fixes are the first two causes below; with both, holding course is fatal, as designed.
+**TODO — still open: rerouting saves no fast target**, so the elasticity the Warlord was
+designed for is not there yet. That is a tuning question for the Warlord against these specs.
 
 Three causes, found by tracing contacts (the first two since fixed):
 
