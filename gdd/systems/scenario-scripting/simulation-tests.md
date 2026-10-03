@@ -8,8 +8,8 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md
 carries only the pointer.*
 
-> The grammar, the parser, the arena builder and the runner all exist; `sims/`
-> holds five specs. What is not built carries a `TODO`. §Running one says how to run them.
+> The grammar, the parser, the arena builder and the runner all exist; `sims/` holds the
+> specs. What is not built carries a `TODO`. §Running one says how to run them.
 
 A **simulation test** is one authored situation plus the claims it must satisfy:
 
@@ -199,7 +199,7 @@ between a brawl and focus fire, written as the difference between one group and 
 | `at` | placement — an anchor, another group, or a `from`/`distance`/`bearing` offset |
 | `facing` | an anchor or a group reference, never degrees |
 | `formation` | `line` \| `ring` \| `cluster`; arranges the whole group, mixed pieces included |
-| `orders` | commands issued to **every member** at t=0, as one queue |
+| `orders` | commands issued to **every member** at t=0, as one queue; an entry with `after:` is issued later (§Timed orders) |
 
 ### Placement is symbolic, never a world coordinate
 
@@ -310,8 +310,28 @@ and resolve **at issue time**. A group used as a place means its centroid.
 So `attack_move: { near: B.armyB }` means *march up to where that group is standing now*,
 stopping at its edge.
 
-> **TODO — timed orders are not built.** `after: 3s` on an order entry, issuing it that far
-> into the run rather than at t=0, is the natural extension and the grammar reserves the key.
+### Timed orders: `after:`
+
+```yaml
+orders:
+  - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+  - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 1s }
+  - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 2s }
+```
+
+**An order entry may carry `after:`, a positive duration in seconds** (built 2026-10-03). The
+orders without it are the opening queue, issued at arming as before.
+
+- **All of a group's orders sharing one `after:` are issued together, on the first tick at or
+  past that time, as ONE fresh queue.** That queue REPLACES whatever the group was doing,
+  the way a player's right-click does. A timed order is a reroute, not an append.
+- `after:` at or past the `run` window is refused: it would never be issued.
+- Time counts from arming, like the window itself.
+
+It exists for the rocket-evasion specs, where the claim is about a target that changes course
+after a shot is away (`warlord_vs_*_jinking`): a queue of moves cannot say WHEN the course
+changes, only where. `SimulationScenario._on_tick` is the hook; `SimArena` issues each batch
+from it.
 
 ## `run` — a window, not a race to a verdict
 
@@ -413,7 +433,7 @@ margin, ownership, "no command" — and not on tight positional ones.
 > **TODO — `always` cannot be scoped to a window.** What an author usually wants is "always
 > after the opening 2 seconds", ignoring the boot transient (spawn settling, the first navmesh
 > sync). `when: always, after: 2s` is the extension; the grammar reserves `after:` for it, the
-> same key timed orders want.
+> same key timed orders use.
 
 ### The check vocabulary
 

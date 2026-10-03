@@ -489,6 +489,40 @@ Flight to 12 at a standing target: 0.9 s.
   inescapable. A longer predict stage starts to let SWIFT aircraft escape while holding course.
 - It keeps `hits: [ground, air]` with its anti-air role back: an aircraft that holds course is
   hit.
+
+### Checked in the arena (2026-10-03)
+
+**TODO — the arena disagrees with the paper model; the Warlord's elasticity is not achieved in
+the engine yet.** Specs in `sims/` (`warlord_vs_{truck,wagon,raven}_{holding_course,jinking}`,
+`badger_vs_collective_jinking`); "jinking" reverses 0.4 s after each rocket leaves. Ten seeds
+each:
+
+| Spec | Claim | Met |
+|---|---|---|
+| truck (QUICK), holding course | dies | 0 of 10 |
+| truck, jinking | survives | 0 of 10 |
+| War Wagon (STEADY), holding course | dies | 8 of 10 |
+| War Wagon, jinking | dies | 10 of 10 |
+| Raven (SWIFT, hover), holding course | dies | 10 of 10 |
+| Raven, jinking | survives | 0 of 10 |
+| Badger vs Collective (QUICK), jinking | at least half damaged | 10 of 10 |
+
+Three causes, found by tracing contacts:
+
+- **TODO — a contact can deal no damage.** A blast emission pays out on the Impact phase, the
+  tick AFTER the contact, by querying its blast shape where the emission stopped. The Warlord
+  rocket's blast is a 0.1 sphere, and a target moving more than that in a tick has left it: a
+  QUICK truck holding course was struck by 8 of 10 rockets and damaged by about 5. It favours
+  exactly the target that holds course, which inverts the design. Pre-existing, and it applies
+  to every small-blast free flight.
+- **Steered emissions aim at the target's ORIGIN, at ground level**, so a slightly short rocket
+  dives into the terrain in front of a ground target (2 of 10 rockets in one run).
+- **A hovering aircraft reverses by backing off at `reverse_speed_ratio`** rather than turning,
+  so a reroute makes it slower, and the chase stage runs it down. The model treated every
+  target as a turning vehicle.
+
+Outside the arena (a box hitbox, no terrain short of it), the same rocket hit a steadily
+crossing truck with every shot, as the model predicts, which is what points at the first two.
 - **The SAM got an explicit `acceleration: 20`.** The HOMING preset's 2.25 u/s² takes almost
   four seconds to get from a half-speed launch to SCORCHING, during which BLAZING aircraft
   outran it.

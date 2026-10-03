@@ -1,0 +1,39 @@
+description: |
+  The pair of warlord_vs_raven_holding_course: the Raven reverses 0.4 s after each rocket
+  leaves (the Warlord fires on arming and every 1.5 s after). An aircraft that
+  reroutes after the shot is away is meant to escape the Warlord's rocket almost always. The
+  claim: the Raven survives the window.
+  
+  Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
+  gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      warlord:
+        of: [ { piece: an_bioMedium_dominionGen, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.target } } ]
+  B:
+    with:
+      target:
+        of: [ { piece: an_aircraftLight_transport, count: 1 } ]
+        at: { from: A.warlord, distance: 6, bearing: east }
+        facing: north
+        orders:
+          - { move: { target: { from: B.target, distance: 10, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 10, bearing: south } }, after: 0.4s }
+          - { move: { target: { from: B.target, distance: 10, bearing: north } }, after: 1.9s }
+          - { move: { target: { from: B.target, distance: 10, bearing: south } }, after: 3.4s }
+          - { move: { target: { from: B.target, distance: 10, bearing: north } }, after: 4.9s }
+          - { move: { target: { from: B.target, distance: 10, bearing: south } }, after: 6.4s }
+          - { move: { target: { from: B.target, distance: 10, bearing: north } }, after: 7.9s }
+          - { move: { target: { from: B.target, distance: 10, bearing: south } }, after: 9.4s }
+          - { move: { target: { from: B.target, distance: 10, bearing: north } }, after: 10.9s }
+          - { move: { target: { from: B.target, distance: 10, bearing: south } }, after: 12.4s }
+          - { move: { target: { from: B.target, distance: 10, bearing: north } }, after: 13.9s }
+run: { for: 15s }
+expect:
+  - { of: B.target, check: alive }
+  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }

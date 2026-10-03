@@ -48,6 +48,8 @@ var roster := SimGroupRoster.new()
 var _group_origins: Dictionary = {}
 ## Group reference -> Array[Vector2] of per-member offsets from that origin.
 var _group_offsets: Dictionary = {}
+## The `after:` times still to issue, in seconds, earliest first.
+var _pending_times: Array[float] = []
 ## Problems found while building — a spec that parsed but could not be realised (a position
 ## outside the arena, a piece whose scene will not load). Reported like a parse error.
 var build_errors: Array[String] = []
@@ -389,16 +391,43 @@ func _spawn_one(a_group: SimSpec.Group, a_piece: String, a_at: Vector2) -> void:
 ## destination is snapped to the navmesh, and a unit ordered before the first sync would be
 ## pathing over nothing.
 func _on_armed() -> void:
+	_issue_orders_after(0.0)
+	var times: Dictionary = {}
+	for reference: String in spec.groups:
+		for order: SimSpec.Order in (spec.groups[reference] as SimSpec.Group).orders:
+			if order.after_seconds > 0.0:
+				times[order.after_seconds] = true
+	_pending_times.assign(times.keys())
+	_pending_times.sort()
+
+
+## Issue each timed batch (`after:`) on the first tick at or past its time.
+func _on_tick(a_elapsed: int) -> void:
+	var seconds: float = float(a_elapsed) / Engine.physics_ticks_per_second
+	while not _pending_times.is_empty() and _pending_times[0] <= seconds:
+		_issue_orders_after(_pending_times.pop_front())
+
+
+## Issue, to every group that has any, the orders written with `after:` `a_seconds` (zero is
+## the opening queue). Each living member gets them as ONE fresh queue, replacing what it was
+## doing — a timed order is a reroute, the way a player's right-click is.
+func _issue_orders_after(a_seconds: float) -> void:
 	for reference: String in spec.groups:
 		var group: SimSpec.Group = spec.groups[reference]
-		if group.orders.is_empty():
+		var orders: Array[SimSpec.Order] = []
+		orders.assign(
+			group.orders.filter(
+				func(o: SimSpec.Order) -> bool: return is_equal_approx(o.after_seconds, a_seconds)
+			)
+		)
+		if orders.is_empty():
 			continue
 		var members: Array = roster.living(reference)
 		var offsets: Array[Vector2] = _group_offsets.get(reference, [] as Array[Vector2])
 		for index: int in members.size():
 			var unit: Commandable = members[index]
 			var offset: Vector2 = offsets[index] if index < offsets.size() else Vector2.ZERO
-			var chain: Array[MoveCommand] = _chain_for(group, offset)
+			var chain: Array[MoveCommand] = _chain_for(orders, offset)
 			if chain.is_empty():
 				continue
 			unit.update_commands(chain)
@@ -422,9 +451,9 @@ func _on_armed() -> void:
 ## empty ground the infantry had already left.
 ##
 ## `near:` is the other half of that: it names a PLACE, so it resolves once, at issue time.
-func _chain_for(a_group: SimSpec.Group, a_offset: Vector2) -> Array[MoveCommand]:
+func _chain_for(a_orders: Array[SimSpec.Order], a_offset: Vector2) -> Array[MoveCommand]:
 	var chain: Array[MoveCommand] = []
-	for order: SimSpec.Order in a_group.orders:
+	for order: SimSpec.Order in a_orders:
 		if order.target != null:
 			_append_entity_commands(chain, order, _targets_of(order.target))
 			continue

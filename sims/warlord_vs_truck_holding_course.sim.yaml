@@ -1,0 +1,37 @@
+description: |
+  The Warlord's rocket predicts where its target is going and steers there, then chases, losing
+  speed in every hard turn. A target that HOLDS ITS COURSE flies into the shot. Here a stock
+  truck (QUICK, unarmed) sweeps back and forth across the Warlord's front, reversing only at the
+  ends of 14-unit legs, always inside reach. The claim: holding course is fatal — the truck dies.
+  Its pair, warlord_vs_truck_jinking, differs only in how the truck moves.
+  
+  Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
+  gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      warlord:
+        of: [ { piece: an_bioMedium_dominionGen, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.target } } ]
+  B:
+    with:
+      target:
+        of: [ { piece: cl_mechLight_dominionGen, count: 1 } ]
+        at: { from: A.warlord, distance: 8, bearing: east }
+        facing: north
+        orders:
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } } }
+run: { for: 15s }
+expect:
+  - { of: B.target, check: dead }
+  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }

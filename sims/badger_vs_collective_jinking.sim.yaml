@@ -1,0 +1,41 @@
+description: |
+  The Badger's rocket boosts to SCORCHING and coasts at SWIFT, faster than every ground class in
+  play, so no ground target is meant to escape it — rerouting included. A Collective (QUICK,
+  unarmed transport) reverses across the Badger's front 0.4 s after each rocket leaves. The claim: it is hit, and keeps
+  being hit — at least as damaged as half its health by the end of the window.
+  
+  Speeds and the Badger rocket: gdd/movement/speed_classes.md and
+  gdd/systems/combat/projectiles.md §Rocket calibration.
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      badger:
+        of: [ { piece: cl_bioLight_antiMech, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.target } } ]
+  B:
+    with:
+      target:
+        of: [ { piece: an_mechLight_transport, count: 1 } ]
+        at: { from: A.badger, distance: 8, bearing: east }
+        facing: north
+        orders:
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 0.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 1.9s }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 3.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 4.9s }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 6.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 7.9s }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 9.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 10.9s }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 12.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 13.9s }
+run: { for: 15s }
+expect:
+  - any:
+      - { of: B.target, check: dead }
+      - { of: B.target, check: hp_fraction, at_most: 0.5 }
+  - { of: B.target, check: hp_fraction, at_most: 0.99, by: 15s }
