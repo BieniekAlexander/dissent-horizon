@@ -13,6 +13,7 @@ the individual command families.
 |---|---|
 | [construction.md](construction.md) | Build → Assemble → Repair, blueprints, and unfinished structures |
 | [cooldowns-and-preconditions.md](cooldowns-and-preconditions.md) | charge and cooldown refusals, the additive modifier gate, what greys a button |
+| [move-line-drag.md](move-line-drag.md) | hold RMB and draw a line: the selection spreads along it, in rows when it is short |
 | [recording-and-replay.md](recording-and-replay.md) | PLANNED: the order stream a replay records and plays back, its file, and drift detection |
 | [deploying.md](deploying.md) | Deploy and Undeploy: the planted stance, its transitions, and which orders a planting unit takes |
 | [saying-it-plainly.md](saying-it-plainly.md) | Go and Fire — the plain move and the shot at a place the click ladder could not express |

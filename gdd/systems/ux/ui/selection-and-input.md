@@ -238,6 +238,8 @@ scenario cannot reach (it needs input).
 
 *Moved out of `rts_controller.gd::_fanned_destinations`.*
 
+A right-click **drag** replaces this fan-out with a line: [commands/move-line-drag](../../commands/move-line-drag.md).
+
 A multi-unit position order gives each unit its own point scattered around the click,
 rather than sending everyone to one spot. Destinations are sorted by angle around the click
 point and units by angle around the group's own centroid, then zipped: two sequences swept
