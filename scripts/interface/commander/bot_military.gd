@@ -287,6 +287,26 @@ func current_posture() -> Posture:
 	return _posture
 
 
+## How many units are in the field with the current wave. An instrument for the self-play
+## harness, which observes the bot and never issues; no manager reads it.
+func wave_size() -> int:
+	var live: int = 0
+	for id: int in _wave_members.keys():
+		if is_instance_id_valid(id):
+			live += 1
+	return live
+
+
+## How many combat units are held in reserve — not in the wave. Only meaningful in ATTACK
+## posture; outside it every combat unit is "reserve" and the number is the army's size.
+func reserve_size() -> int:
+	return (
+		_combat_units(_bot.get_units())
+		. filter(func(u: Commandable) -> bool: return not _is_wave_member(u))
+		. size()
+	)
+
+
 func _decide_posture() -> Posture:
 	# A PASSIVE bot has exactly two postures. It answers something walking into its base and
 	# otherwise gathers; nothing it does ever leaves home. Checked before everything, because

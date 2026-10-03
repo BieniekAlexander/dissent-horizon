@@ -7,7 +7,7 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**Approved 2026-10-03.** The parts marked `WIP` are being built on `feat/squads-and-relations`;
+**Approved 2026-10-03.** The first step of §Build order is built on `feat/squads-and-relations`;
 everything marked `PLANNED` is agreed and waits for the build. This note supersedes
 [bot-roadmap](bot-roadmap.md) §The gaps in the decision surface items 1 and 2 and §Tactics
 and the Bot, and [tactics](../scenario-scripting/tactics.md)' "merging or splitting is out of
@@ -37,12 +37,31 @@ Two things compounded it, and both are rules now:
   production structures rally to the same point, so a new unit walks there on its own.
   `reinforce_fraction = 0` is the old trickle, for the A/B.
 
-`WIP 2026-10-03T07:13Z 57e2df3e` — in `BotMilitary`; the wave and the reserve are the first
-two squads.
+Built 2026-10-03 in `BotMilitary`; the wave and the reserve are the first two squads.
+Cover: `tests/test_BotStaging.gd`.
 
-The self-play harness is blind to this on a mirror match, because both sides trickle alike.
-The instrument is a staged side against a streamed one on the same seed:
-`tools/selfplay/` with one slot at `reinforce_fraction: 0`.
+### Measured
+
+The harness samples `wave_units` and `reserve_units` per slot (`run_match.gd`), so staging
+is read directly rather than inferred from who won. One MEDIUM match on `skirmish.tscn`,
+seed 11, staged against `reinforce_fraction: 0`, sampled every 2 s for 420 s:
+
+| | staged | trickle |
+|---|---|---|
+| reserve released as a body (reserve ≥ 2 → 0 while the wave grew) | 3 times, of 2–4 units | never |
+| largest reserve held while attacking | 5 | 1 |
+
+The releases are small because a MEDIUM wave launches at a few units' value and the
+reserve bar is half of that; `reinforce_fraction` is the dial.
+
+**Wins do not measure it on this map.** Seven matches (three seeds, both assignments, plus
+a staged mirror, 900 s cap): slot 0's position won or led every one, whichever side staged,
+which is the start-position advantage [bot-architecture](bot-architecture.md) §Where a
+building goes already documents. The one hint is that the staged attacker closed out two of
+its three matches from the strong position and the trickling attacker none of its three — it
+beat the staged side to zero units twice and then never razed the last two structures,
+which is the finishing-off gap ([bot-roadmap](bot-roadmap.md) §The gaps, item 1). A
+win-rate verdict needs a map without the position bias, or many more seeds.
 
 ## The boundary between the Bot and mission scripting (settled)
 
@@ -146,7 +165,8 @@ bearing along the threat axis, corridor clearance ([bot-architecture](bot-archit
   behind was the whole asymmetry. It becomes: a structure with weapons and no production
   (static defence) forward; production forward; a structure with docking bays (an airfield)
   BEHIND, because what it holds is fragile; everything else behind. Derived, so a new
-  defence or airfield classifies itself. `WIP 2026-10-03T07:13Z 57e2df3e`.
+  defence or airfield classifies itself. Built 2026-10-03
+  (`BotEconomy._wants_frontage`).
 - **Approach coverage for defence.** `PLANNED`: "where enemy units are likely to be" is the
   ground on the walk from the believed threat to the base. Sample that path as `BotScout`
   samples a corridor, and a defence's cost rewards the fraction of samples inside its reach.
@@ -161,7 +181,7 @@ role is wrong. Not built until a piece needs it; derivation first, as everywhere
 
 ## Build order
 
-1. `WIP` — waves in series, staged reinforcements, rally points, role bearing.
+1. Built 2026-10-03 — waves in series, staged reinforcements, rally points, role bearing.
 2. `PLANNED` — the squad registry with `Stage`/`Assault`/`Hold`, the military rewritten over
    it, `ScenarioTactic` reading the same object, the squad cap as a difficulty parameter.
 3. `PLANNED` — `Relation`, `Bot.relations()`, multi-actor opportunities; `Escort` for

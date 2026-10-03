@@ -547,6 +547,11 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		"scouts_out": (scout._scouts as Array).size() if scout != null else 0,
 		"momentum_loss_rate": momentum.loss_rate() if momentum != null else 0.0,
 		"idle_units": bot.get_idle_units().size(),
+		# The staging instrument: a release shows as the reserve dropping to 0 while the wave
+		# grows by the same count in one sample. The trickle shows as a reserve that never
+		# exceeds 0 (gdd/systems/ai/squads-and-relations.md §What started it).
+		"wave_units": military.wave_size() if military != null else 0,
+		"reserve_units": military.reserve_size() if military != null else 0,
 	}
 
 
