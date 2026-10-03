@@ -11,9 +11,13 @@ extends RefCounted
 ##   • MASS   — otherwise: gather at the base and wait to build up.
 ##
 ## To avoid re-pathing every tick, the whole army is only re-tasked when the
-## posture or objective actually changes; in between, only newly-idle units (e.g.
-## freshly trained, or done fighting) are picked up and sent to the current
-## objective.
+## posture or objective actually changes. In between, an idle unit is handled by where it
+## stands: a WAVE member that went idle (arrived, or its fight ended) presses on to the
+## objective; a unit that is not in the wave is RESERVE, staged on the threat side of the
+## base and released as a body once the reserve is worth a fraction of the wave. Before
+## staging existed every idle unit walked to the objective alone, which is the one-at-a-time
+## army the design note opens with. The wave and the reserve are the first two squads —
+## gdd/systems/ai/squads-and-relations.md.
 
 enum Posture { MASS, ATTACK, DEFEND }
 
@@ -99,6 +103,24 @@ var wave_abort_fraction: float = 0.70
 ## in _decide_posture would re-launch the retreat the same think it began.
 const REGROUP_SECONDS: float = 20.0
 
+## STAGED REINFORCEMENTS. In ATTACK posture a combat unit that is not in the wave gathers at
+## the staging point, and the reserve is released as a body once its value reaches this
+## fraction of the wave's launch value — or the wave has nobody left in it. 0 is the old
+## trickle: every idle unit walks to the objective alone the think it appears.
+##
+## A PARAMETER (BotDifficulty.reinforce_fraction).
+var reinforce_fraction: float = 0.5
+
+## How far forward of home the reserve stages, in world units: on the threat side of the
+## base, so a released reserve starts its walk ahead of the buildings rather than through
+## them, and short enough that the base's own defences still cover it.
+const STAGING_OFFSET: float = 10.0
+
+## A staged unit this close to the staging point (world units) is left standing rather than
+## re-ordered every think — arriving is a navigation radius, not a point, and a unit told to
+## walk to where it stands swirls.
+const STAGING_RADIUS: float = 4.0
+
 var _bot: Bot
 var _act: BotActuator
 ## Whether the bot is winning or losing; what turns a costly push into a retreat.
@@ -116,6 +138,14 @@ var _last_eval_time: float = 0.0  # for the real-time escalation clock
 var _enemy_value_estimate: float = 0.0  # smoothed (decayed-peak) belief of enemy army value
 ## seconds_elapsed() until which a called-off wave is regrouping and will not re-commit.
 var _regroup_until: float = 0.0
+
+## Instance id → true for every unit in the field with the current wave. The reserve is every
+## other combat unit. Keyed by id so a dead member needs no reference to drop.
+var _wave_members: Dictionary = {}
+## Where the production structures were last told to rally, so the order is re-issued only
+## when the point moves (or to a structure that has none yet).
+var _rally_point: Vector3 = Vector3.ZERO
+var _has_rally: bool = false
 
 ## Which manager owns which unit; the brain replaces this with the bot's shared registry. A
 ## fresh one by default, so a bare manager in a test sees every unit unclaimed.
@@ -155,13 +185,102 @@ func tick() -> int:
 	_objective = objective_pos
 	_has_objective = true
 
-	# Re-task everyone on a posture/objective change; otherwise just sweep up
-	# whatever units are currently idle and send them to the standing objective.
-	# Only armed units fight — never march the unarmed technician to its death.
-	var units: Array = _combat_units(_bot.get_units() if changed else _bot.get_idle_units())
-	if not units.is_empty():
-		_act.attack_move(units, objective_pos)
+	# Re-task everyone on a posture/objective change. Otherwise an idle unit goes where it
+	# belongs: in ATTACK that is the wave or the reserve (_tick_reinforcements); in MASS and
+	# DEFEND every idle unit is swept to the standing objective. Only units with combat
+	# utility fight — never march the unarmed technician to its death.
+	if changed:
+		var units: Array = _combat_units(_bot.get_units())
+		_wave_members.clear()
+		if posture == Posture.ATTACK:
+			for unit: Commandable in units:
+				_wave_members[unit.get_instance_id()] = true
+		if not units.is_empty():
+			_act.attack_move(units, objective_pos)
+	elif posture == Posture.ATTACK:
+		_tick_reinforcements(objective_pos)
+	else:
+		var idle: Array = _combat_units(_bot.get_idle_units())
+		if not idle.is_empty():
+			_act.attack_move(idle, objective_pos)
+	_rally_production(
+		_staging_point(objective_pos) if posture == Posture.ATTACK else objective_pos, changed
+	)
 	return considered * UNIT_WORK_UNITS
+
+
+## ATTACK posture, nothing changed: press a wave member that went idle on to the objective;
+## stage every reserve unit; release the reserve as a body when it is worth sending.
+func _tick_reinforcements(a_objective: Vector3) -> void:
+	var idle_wave: Array = _combat_units(_bot.get_idle_units()).filter(_is_wave_member)
+	if not idle_wave.is_empty():
+		_act.attack_move(idle_wave, a_objective)
+	var reserve: Array = _combat_units(_bot.get_units()).filter(
+		func(u: Commandable) -> bool: return not _is_wave_member(u)
+	)
+	if reserve.is_empty():
+		return
+	if _wave_is_spent() or _reserve_value(reserve) >= reinforce_fraction * _wave_launch_value:
+		for unit: Commandable in reserve:
+			_wave_members[unit.get_instance_id()] = true
+		_act.attack_move(reserve, a_objective)
+		return
+	var staging: Vector3 = _staging_point(a_objective)
+	var to_stage: Array = reserve.filter(
+		func(u: Commandable) -> bool:
+			return not u.has_command() and u.global_position.distance_to(staging) > STAGING_RADIUS
+	)
+	if not to_stage.is_empty():
+		_act.attack_move(to_stage, staging)
+
+
+func _is_wave_member(a_unit: Commandable) -> bool:
+	return _wave_members.has(a_unit.get_instance_id())
+
+
+## True when no wave member is still alive — the reserve is then the whole army, and holding
+## it back would leave the objective to nobody. Dead members are dropped as they are found.
+func _wave_is_spent() -> bool:
+	for id: int in _wave_members.keys():
+		if is_instance_id_valid(id):
+			return false
+		_wave_members.erase(id)
+	return true
+
+
+## What the reserve is worth, in the energy the wave's launch value is measured in.
+func _reserve_value(a_reserve: Array) -> float:
+	var total: float = 0.0
+	for unit: Commandable in a_reserve:
+		total += float(_bot.unit_cost(unit.id))
+	return total
+
+
+## Where the reserve gathers: STAGING_OFFSET from home toward the objective, so it stands on
+## the threat side of the base. Home itself when the objective is home.
+func _staging_point(a_objective: Vector3) -> Vector3:
+	var home: Vector3 = _home_anchor_position()
+	var toward: Vector3 = a_objective - home
+	if toward.length_squared() <= STAGING_OFFSET * STAGING_OFFSET:
+		return home
+	return home + toward.normalized() * STAGING_OFFSET
+
+
+## Point every production structure's rally at `a_point`: re-issued to all of them when the
+## point moves, and otherwise only to a structure that has no rally yet (one finished since).
+## A new unit then walks to where the military wants it on its own, instead of standing at
+## the door until the idle sweep finds it.
+func _rally_production(a_point: Vector3, a_moved: bool) -> void:
+	var moved: bool = (
+		a_moved or not _has_rally or _rally_point.distance_to(a_point) > OBJECTIVE_EPSILON
+	)
+	_rally_point = a_point
+	_has_rally = true
+	var structures: Array = _bot.get_production_structures().filter(
+		func(s: Commandable) -> bool: return moved or s.rally_commands.is_empty()
+	)
+	if not structures.is_empty():
+		_act.rally(structures, a_point)
 
 
 func current_posture() -> Posture:
@@ -181,19 +300,17 @@ func _decide_posture() -> Posture:
 		return Posture.ATTACK
 	if _bot.is_base_under_threat(defend_threat_radius):
 		return Posture.DEFEND
-	# Regrouping after a called-off wave: gather at home and rebuild. Checked BEFORE the
-	# army-size branch, which would otherwise re-order the attack the same think the retreat
-	# was decided — the army is still large, it is just losing.
-	if _bot.seconds_elapsed() < _regroup_until:
-		return Posture.MASS
-	if _combat_units(_bot.get_units()).size() >= army_commit_threshold:
-		return Posture.ATTACK
+	# ATTACK is only ever a live wave. The body count used to return ATTACK here on its own,
+	# WITHOUT launching a wave — so the retreat rule, the spent fraction and the regroup
+	# window never applied to it, and the value comparison was decorative whenever the count
+	# was met. The count is now the first gate of _committing_to_attack, in series.
 	return Posture.MASS
 
 
-## True while the bot is committed to an attack wave. A wave launches when the army's
-## energy value reaches the current cap (then the cap is re-rolled for next time) and
-## stays committed until the army is spent to WAVE_SPENT_FRACTION of its launch value.
+## True while the bot is committed to an attack wave. A wave launches when the army is big
+## enough in BODIES (army_commit_threshold) and ahead enough in VALUE (the ratio below), and
+## stays committed until the army is spent to WAVE_SPENT_FRACTION of its launch value or
+## the retreat rule calls it off.
 func _committing_to_attack() -> bool:
 	var own: float = _bot.army_resource_value()
 
@@ -222,8 +339,11 @@ func _committing_to_attack() -> bool:
 	if now < _regroup_until:
 		return false
 
-	# No army worth committing yet — building up isn't a stalemate.
-	if own < MIN_ATTACK_ARMY_VALUE:
+	# No army worth committing yet, in value or in bodies — building up isn't a stalemate.
+	if (
+		own < MIN_ATTACK_ARMY_VALUE
+		or _combat_units(_bot.get_units()).size() < army_commit_threshold
+	):
 		_stalemate_time = 0.0
 		return false
 

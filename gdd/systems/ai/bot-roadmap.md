@@ -195,26 +195,12 @@ surface. What follows is only the holes, in the order they are worth filling.
 combat unit at one position because there is no object in which "half the army" is a thing.
 `Bot.enemy_clusters()` groups the ENEMY; nothing groups us.
 
-> **TODO — an army object, with merge and split.** The user's framing is that grouping is
-> what keeps the complexity down, not what adds it: decisions are made per army rather than
-> per unit, and merge/split is how the count of armies stays small. Note the overlap with
-> `ScenarioTactic`, which already identifies a unit cluster by node-group membership and
-> explicitly puts merging and splitting out of scope — see §Tactics and the Bot, because
-> whether these are one mechanism is exactly that question.
-
-> **TODO — HOW MANY GROUPS THE BOT MAY MANAGE AT ONCE IS A DIFFICULTY PARAMETER**, and this
-> is the reason to want grouping even before the tactics it enables. A bot that manoeuvres a
-> hundred units independently is optimal and unbelievable; a human plays through a handful of
-> control groups. Capping the number of independently-commanded groups is therefore a
-> handicap that reads as *human* rather than as *cheated* — the same virtue
-> `think_interval_ticks` has — and it is a number a search can move rather than a branch. It
-> also bounds the bot's per-think cost by construction.
->
-> Attention is the general form: **groups managed, decisions per think, reaction time** are
-> one family, and the honest way to weaken a bot is to give it less of all three rather than
-> to make it play badly on purpose. What the units of "attention" are is not settled — see
-> [objective-selection](objective-selection.md), where the same argument makes
-> `BotDifficulty`, posture and throttling three uses of one mechanism.
+> **PLANNED — the squad: an army object with merge and split, and a per-difficulty cap on
+> how many the bot runs at once.** Approved 2026-10-03 and written up, with the mission
+> tactics sharing the same object, in [squads-and-relations](squads-and-relations.md)
+> §Squads. Attention — groups managed, decisions per think, reaction time — remains one
+> family; what its units are is still [objective-selection](objective-selection.md)'s
+> question.
 
 > **TODO — NOBODY FINISHES A BEATEN OPPONENT OFF.** `_objective_for(ATTACK)` sends the whole
 > army to one remembered position and re-tasks only when that position moves more than
@@ -333,11 +319,10 @@ Written up as a proposal, with three candidate representations and a recommendat
 author points at a group of units. The Bot is a commander deciding for itself. They overlap
 in obvious ways and are deliberately separate.
 
-> **TODO — unify or state the boundary permanently.** A tactic rule and a bot opportunity are
-> both "condition → action over a unit set", and maintaining two is a standing cost. Either
-> the Bot's managers become tactic rules with a commander-wide scope, or the note says why
-> not. Do not start this before §arbitration lands — the answer depends on whether bot
-> decisions become scored, since tactic rules are not.
+**The boundary is settled (2026-10-03): share the action side, keep the decision side
+separate.** A squad and its policies are one mechanism used by both; which policy a squad
+runs is a `TacticRule` in a mission and a scored comparison in the Bot, and the two never
+merge. See [squads-and-relations](squads-and-relations.md) §The boundary.
 
 ## What the referenced talk contributes
 

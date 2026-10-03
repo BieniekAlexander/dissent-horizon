@@ -34,6 +34,7 @@ field existed**, and the ramp ships FLAT — see §The tiers ship flat below.
 | `attack_value_ratio` | `BotMilitary.ATTACK_RATIO = 1.3` | `BotMilitary._committing_to_attack` |
 | `assumed_enemy_parity` | `BotMilitary.ASSUMED_ENEMY_PARITY = 0.85` | `BotMilitary._committing_to_attack` |
 | `wave_abort_fraction` | `BotMilitary.WAVE_ABORT_FRACTION = 0.70` | `BotMilitary._should_abort_wave` |
+| `reinforce_fraction` | float | 0.0 – 1.0 | ordinal (higher = holds reinforcements longer) | 0 is the pre-2026-10-03 trickle, every new unit walking to the front alone; 1.0 waits until the reserve matches the wave it joins, which on a long wave never happens. Interacts with `WAVE_SPENT_FRACTION` (0.35, fixed): a wave spent below it ends before a slow reserve releases |
 | `defend_threat_radius` | `DEFEND_THREAT_RADIUS = 10.0`, declared TWICE | `BotMilitary._decide_posture`, `BotSanction._engagement_zone` |
 | `retarget_weight_effectiveness` | `BotTargeting.W_EFFECTIVENESS = 1.0` | `BotTargeting.set_signal_weights` |
 | `retarget_weight_finishability` | `BotTargeting.W_FINISHABILITY = 1.0` | ” |
@@ -219,7 +220,10 @@ attribute an effect to the wrong knob.
    only binds while the enemy is unseen, so scouting DISABLES it; the aggression pair must be
    searched jointly with scouting or the prior will read as inert.
 4. **`attack_value_ratio` × `army_commit_threshold`** are two commit gates in series (a value
-   and a body count). Whichever is stricter binds, and the other is invisible.
+   and a body count). Whichever is stricter binds, and the other is invisible. They were in
+   PARALLEL until 2026-10-03 — the count alone returned ATTACK without launching a wave, so
+   the looser gate bound and the retreat rule never applied to a count-triggered attack. See
+   [squads-and-relations](squads-and-relations.md) §What started it.
 5. **`wave_abort_fraction` × `WAVE_SPENT_FRACTION` (0.35, fixed) × `REGROUP_SECONDS` (20,
    fixed) × `BotMomentum.LOSING_LOSS_RATE` (0.03, fixed).** Retreat is an AND of two
    conditions with a floor under it and a cooldown after it, and only one of the four moves.

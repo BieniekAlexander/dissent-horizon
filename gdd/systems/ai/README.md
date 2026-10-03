@@ -20,6 +20,7 @@ The CPU commander: what it perceives, how it decides, and how it acts.
 | [bot-economy-diagnosis.md](bot-economy-diagnosis.md) | FIXED: why the bot was broke in 70% of sampled ticks and never owned an extractor — the reserve was a trigger and not a floor, and income was gated behind being poor; the before/after, and why the flat stalemate is the same bug |
 | [bot-performance.md](bot-performance.md) | MEASURED 2026-09-25: what a physics tick costs with bots running, a navmesh rebuild phase by phase, and the ranked fixes for the three ways the game misses the 30 FPS budget |
 | [think-scheduling.md](think-scheduling.md) | how a bot's thinking is paced: jobs on their own periods, one shared work-unit budget, resumable sweeps, and the claims registry that replaced run order |
+| [squads-and-relations.md](squads-and-relations.md) | APPROVED 2026-10-03, partly WIP: why the army trickled, the squad as the unit of orders shared with mission tactics, relations (one piece granting to another within a reach) as the model for every inter-piece dependency, and placement by role |
 
 **Belongs here:** the Bot's perception API, the decision modules and their cadence, the
 actuator, difficulty tiers, and anything about how the CPU chooses what to do.
@@ -28,6 +29,7 @@ actuator, difficulty tiers, and anything about how the CPU chooses what to do.
 plays ([macroeconomics](../macroeconomics/)), or scripted mission behaviour, which is
 authored per scenario rather than decided
 ([scenario-scripting/tactics](../scenario-scripting/tactics.md)). The line between a TACTIC
-and the Bot is worth stating: a tactic is a scenario author saying "these units do this",
-the Bot is a commander deciding for itself, and the two are deliberately separate systems
-today — see [bot-roadmap](bot-roadmap.md) §Tactics and the Bot.
+and the Bot is worth stating: a tactic is a mission author saying "these units do this",
+the Bot is a commander deciding for itself. They share the ACTION side — a squad and its
+policies — and never the decision side; see [squads-and-relations](squads-and-relations.md)
+§The boundary.

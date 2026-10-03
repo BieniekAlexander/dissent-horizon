@@ -14,6 +14,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Shelter (noun)** — a specific game structure with resource significance (distinct from the generic garrison mechanic). Do not use "shelter" as a synonym for a garrison host.
 
+**Scenario / mission / skirmish** — a **scenario** is any session: the `Scenario` root, its map, commanders and trigger host, shared by every kind of play, which is why the scripting classes keep the `Scenario*` prefix. A **mission** is a scenario authored as a tailored experience — scripted waves, patrols, preordained groups, objectives (`gdd/modes/campaign/`); it has no class of its own until it needs behaviour, so the word is the prose term. A **skirmish** is the competitive match the bots play to win. `Skirmish` the CLASS today means "deploys its opening forces from faction rosters", which is why `tutorial.tscn` extends it — TODO: if the class is to mean the mode, roster deployment becomes a `Scenario` option rather than a subclass. Decided 2026-10-03.
+
 ---
 
 ## Project overview

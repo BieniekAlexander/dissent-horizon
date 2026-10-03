@@ -1,0 +1,170 @@
+---
+title: Squads and relations
+type: system-note
+---
+
+# Squads and relations
+
+*Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
+
+**Approved 2026-10-03.** The parts marked `WIP` are being built on `feat/squads-and-relations`;
+everything marked `PLANNED` is agreed and waits for the build. This note supersedes
+[bot-roadmap](bot-roadmap.md) §The gaps in the decision surface items 1 and 2 and §Tactics
+and the Bot, and [tactics](../scenario-scripting/tactics.md)' "merging or splitting is out of
+scope".
+
+## What started it: the army arrives one unit at a time
+
+`BotMilitary.tick()` re-tasks the army as a body only when the posture or the objective
+changes; every other combat period it sweeps `get_idle_units()` and attack-moves each one to
+the standing objective. A freshly trained unit is idle the moment it appears, because the bot
+set no rally point, so every reinforcement walked to the front alone. Ten units arriving one
+at a time lose to ten arriving together, and it reads as a bot rather than a player.
+
+Two things compounded it, and both are rules now:
+
+- **ATTACK posture and an attack WAVE are the same thing.** The posture had two commit gates
+  in PARALLEL: the value ratio launched a wave, and failing that a plain body count still
+  returned ATTACK — without `_wave_active`, so the retreat rule, the spent fraction and the
+  regroup window never applied to a count-triggered attack, and the humility prior was
+  decorative whenever the count was met. The gates are now in SERIES: a wave launches when
+  the army is big enough in bodies AND ahead enough in value, and ATTACK is only ever a live
+  wave. `assumed_enemy_parity = 0` reproduces the old count-only aggression for an A/B.
+- **Reinforcements are STAGED and released together.** In ATTACK posture an idle unit that is
+  not in the wave goes to the staging point — the threat side of the base — rather than to
+  the objective, and the staged reserve is released as a body once its value reaches
+  `reinforce_fraction` of the wave's launch value, or the wave has nobody left. The bot's
+  production structures rally to the same point, so a new unit walks there on its own.
+  `reinforce_fraction = 0` is the old trickle, for the A/B.
+
+`WIP 2026-10-03T07:13Z 57e2df3e` — in `BotMilitary`; the wave and the reserve are the first
+two squads.
+
+The self-play harness is blind to this on a mirror match, because both sides trickle alike.
+The instrument is a staged side against a streamed one on the same seed:
+`tools/selfplay/` with one slot at `reinforce_fraction: 0`.
+
+## The boundary between the Bot and mission scripting (settled)
+
+`ScenarioTactic` is "a node-group of units, an ordered rule list, re-issue the rule to idle
+members". `BotMilitary` is "the unclaimed set, a posture FSM, re-issue the objective to idle
+members". The DISPATCH half is one loop; only who chooses the rule differs — authored
+`Condition`s in a mission, scored comparisons in the Bot.
+
+**The rule: share the action side, keep the decision side separate.** A squad and its
+policies are one mechanism used by both; which policy a squad runs is a mission author's
+`TacticRule` or the Bot's comparison, and the two never merge. The roadmap's worry — that
+unifying waits on bot decisions becoming scored — does not apply, because nothing scored is
+shared.
+
+## Squads
+
+`PLANNED` — a commander-level registry of squads: membership, a standing POLICY, a staging
+point. The Bot's military creates, merges and splits them and picks each one's policy by
+score; a mission gets a squad from `EventSpawnEntities.spawn_groups` and a `TacticRule`
+picks its policy. Merge and split are the operations that keep the count small, which is
+the whole reason to group: decisions are made per squad, not per unit.
+
+Policies are the shared vocabulary:
+
+| Policy | What it keeps the squad doing | Who wants it |
+|---|---|---|
+| `Stage(point, release rule)` | gather and wait, then hand over to the next policy | the reinforcement reserve; a mission's "wait for the wave" |
+| `Assault(target selector)` | attack-move on a selected target, re-issued to idle members | the wave; a mission's "attack this region / kind of target" |
+| `Hold(region)` | `Defend` posts; deliberate idleness | the standing-order gap; a mission's garrison |
+| `Patrol(route)` | the standing order the bot cannot give today | a mission's patrol; the Bot's map control |
+| `Escort(provider role, consumer role, reach)` | keep a provider within reach of a consumer — see §Relations | transport, spotting, retinue, the Sapper's carrier |
+
+**How many squads a bot may run at once is a difficulty parameter.** A bot that manoeuvres a
+hundred units independently is optimal and unbelievable; a player plays through a handful
+of control groups. A cap is a handicap that reads as human, bounds the think cost by
+construction, and is a number a search can move.
+
+**Missions switch Bot jobs off per slot rather than switching the Bot off.** `BotBrain.active`
+is all-or-nothing today. A per-job enable on `PlayerSlot` lets a mission run the economy and
+production but author the military as squads, or spawn its waves by event and let the Bot
+assault with them. Preordained groups versus dynamic countering is then which side owns
+`BotProduction`, not a second bot.
+
+## Relations
+
+`PLANNED`. **A relation is one piece granting something to another within a reach.** Every
+inter-piece dependency the game has or plans is one of these, and the Bot reads them off
+the pieces rather than knowing any by name — the same rule as `AnarchicalDominion` asking
+what a piece GRANTS rather than naming the Warlord:
+
+| Provider | Consumer | Reach | Effect |
+|---|---|---|---|
+| a `BeaconRange` carrier, a `Spotter`'s beacon | a Bombard | `RADIUS` / `POINT` | ENABLES an action: a shot needs spotted ground |
+| a MECH carrier | a Sapper | `CONTAINED` (rides on) | ENABLES: the charge needs a vehicle to reach the enemy |
+| a transport's `Garrison` | its admitted passengers | `CONTAINED` | MOVES: mobility the passenger lacks |
+| a Warlord's `DominionRegion` | friendly infantry | `RADIUS` | SCALES output: dominion per follower |
+| a stealth-field structure (planned) | pieces inside the field | `RADIUS` | PROTECTS |
+| a Compound | edge-adjacent friendly structures | `ADJACENT` | SCALES output: cooldown reduction per sentence |
+| a bunker `Garrison` | admitted armed units | `CONTAINED` | PROTECTS and extends reach |
+
+```
+Relation
+  provider   predicate over pieces: a passive ability id, a component, a doc key
+  consumer   predicate over pieces
+  reach      RADIUS(r) | POINT | ADJACENT | CONTAINED | ANY
+  effect     ENABLES | SCALES | PROTECTS | MOVES
+  value      energy-equivalent, per second or per event — the currency every bot
+             comparison already uses (bot-roadmap §The currency)
+```
+
+**Where a relation comes from.** From the piece: `BeaconRange`, `Spotter`, `Garrison` masks,
+a passive ability's region shape, the Compound's adjacency rule all exist in code already,
+so `Bot.relations()` is a read over the build previews, like `unit_type_can_build`. A new
+faction's stealth structure needs a doc, not a bot change. Where the game cannot yet express
+a relation in code, it is a doc key on the piece rather than a bot constant.
+
+**Three consumers of a relation, and that is the generalisation asked for:**
+
+1. **Squads** — `Escort` is one policy for every reach kind: the truck keeps the Servant
+   inside (`CONTAINED`), the spotter keeps a beacon where the battery wants to fire
+   (`POINT`), the Warlord keeps its infantry in reach (`RADIUS`). A squad whose members
+   include a consumer wants a provider, and `Stage` waits for the role to be filled.
+2. **Opportunities** — `BotOpportunity` carries ONE actor and uses it as the conflict key,
+   which is why no two-unit plan exists today. It gains `actors`, and a relation-shaped
+   opportunity — put the Servant in the truck and drive to the far site; rig the carrier
+   and drive it into the strongest cluster — is priced by the relation's value against the
+   journey, exactly as a capture is priced today.
+3. **Placement** — below.
+
+A fourth follows for free and is a `TODO`: an enemy provider is worth more than its own
+cost (kill the spotter, not the gun), which is one more term in `BotTargeting`'s threat
+signal once relations are readable.
+
+## Placement beyond open ground
+
+`BotEconomy`'s placement is already a scored cost in the bot's own frame — compactness, a
+bearing along the threat axis, corridor clearance ([bot-architecture](bot-architecture.md)
+§Where a building goes). The extension is more terms, not a new mechanism:
+
+- **Bearing by ROLE, derived from components.** Production forward and everything else
+  behind was the whole asymmetry. It becomes: a structure with weapons and no production
+  (static defence) forward; production forward; a structure with docking bays (an airfield)
+  BEHIND, because what it holds is fragile; everything else behind. Derived, so a new
+  defence or airfield classifies itself. `WIP 2026-10-03T07:13Z 57e2df3e`.
+- **Approach coverage for defence.** `PLANNED`: "where enemy units are likely to be" is the
+  ground on the walk from the believed threat to the base. Sample that path as `BotScout`
+  samples a corridor, and a defence's cost rewards the fraction of samples inside its reach.
+- **Relation affinity.** `PLANNED`: a consumer type wants the nearest provider within reach
+  (`ADJACENT` wants edge contact, `RADIUS` wants to be inside), and a provider wants to
+  cover the most consumers — which is `Bot.best_covered_point` asked of own structures. Both
+  are one term each, priced by the relation's value so a weak synergy never outbids
+  compactness.
+
+TODO: a doc override for bearing (`placement: {bearing: ...}`) for a piece whose derived
+role is wrong. Not built until a piece needs it; derivation first, as everywhere else.
+
+## Build order
+
+1. `WIP` — waves in series, staged reinforcements, rally points, role bearing.
+2. `PLANNED` — the squad registry with `Stage`/`Assault`/`Hold`, the military rewritten over
+   it, `ScenarioTactic` reading the same object, the squad cap as a difficulty parameter.
+3. `PLANNED` — `Relation`, `Bot.relations()`, multi-actor opportunities; `Escort` for
+   transport and the Sapper.
+4. `PLANNED` — `Patrol`, relation affinity and approach coverage in placement, the per-job
+   enable for missions.

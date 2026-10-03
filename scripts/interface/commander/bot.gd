@@ -1022,6 +1022,25 @@ func buildable_production_structure_types() -> Array:
 	)
 
 
+## Buildable structures that are STATIC DEFENCE: they carry weapons (a Loadout) and train
+## nothing. A defence wants to stand where the enemy will come, which is a placement bearing
+## (BotEconomy._wants_frontage); derived from components so a new turret classifies itself.
+func buildable_defence_structure_types() -> Array:
+	return buildable_structure_types().filter(
+		func(t):
+			return (
+				_type_has_component(t, "Loadout")
+				and not Production.node_trains_units(_preview_for_type(t))
+			)
+	)
+
+
+## Buildable structures with a DockingBay — airfields. What they hold is the fragile half,
+## so they want to sit BEHIND the base however many aircraft they train.
+func buildable_docking_structure_types() -> Array:
+	return buildable_structure_types().filter(func(t): return _type_has_component(t, "DockingBay"))
+
+
 ## Buildable structures that generate energy income (carry an EnergyExtractor — i.e.
 ## site-overlay extractors).
 func buildable_income_structure_types() -> Array:

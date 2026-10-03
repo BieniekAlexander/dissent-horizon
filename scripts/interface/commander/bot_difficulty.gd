@@ -105,7 +105,8 @@ var production_structure_cap: int = -1
 ## collapses toward 0 as the bot comes under pressure: greed when safe, capacity when
 ## threatened. Safety can only ever reduce it, never raise it above the value set here.
 ##
-## **THE ONE DEFAULT IN THIS CLASS THAT DOES NOT REPRODUCE THE OLD PLAY**, deliberately: 1
+## **ONE OF TWO DEFAULTS IN THIS CLASS THAT DO NOT REPRODUCE THE OLD PLAY** (the other is
+## reinforce_fraction), deliberately: 1
 ## means "one extractor before the first barracks", which is the ordering the opening
 ## question was about. Every other field added for the search ships at the value that
 ## changes nothing (see §The tiers ship flat in bot-parameter-space.md).
@@ -174,6 +175,14 @@ var assumed_enemy_parity: float = 0.85
 ## and only then if momentum says it is still bleeding. 0 never retreats an army; 1.0 leaves
 ## at the first loss taken while losing. Higher = better at cutting its losses.
 var wave_abort_fraction: float = 0.70
+
+## How much of the wave's launch value the staged reserve must be worth before it is sent
+## to join the wave as a body. 0 is the trickle the bot shipped with — every new unit walks
+## to the front alone — and higher holds reinforcements back longer for a bigger second
+## push. THE SECOND DEFAULT THAT DOES NOT REPRODUCE THE OLD PLAY (with
+## income_structure_target), deliberately: the trickle is the behaviour being removed, and
+## 0 stays reachable for an A/B. See gdd/systems/ai/squads-and-relations.md.
+var reinforce_fraction: float = 0.5
 
 ## How close (world units) an enemy must come to an owned structure to count as pressuring
 ## the base, pulling the army home and pointing sanctions at it. Higher answers harassment

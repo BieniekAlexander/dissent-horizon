@@ -105,3 +105,4 @@ script = ExtResource("13_spec")
 script = ExtResource("18_spec")
 range_bonus = 4.0
 capacity = 3
+occupiable_frames = 1

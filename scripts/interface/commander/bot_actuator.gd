@@ -64,6 +64,17 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 		u.load_destination(cmd)
 
 
+## Set where `a_structures` send what they produce: a plain move to a world position, which
+## is exactly what a player's right-click with a producer selected sets (Commandable.set_rally).
+## No unit is ordered here — Production hands the rally to each unit as it finishes it.
+func rally(a_structures: Array, a_world_pos: Vector3) -> void:
+	if _map == null:
+		return
+	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
+	for s: Commandable in a_structures:
+		s.set_rally(MoveCommand.new(CommandMessage.new(_map, null, null, dest)))
+
+
 ## Order each unit to attack a specific enemy entity directly. persist=false makes
 ## it a leashed engagement (drop the target if it flees / leaves range), so the unit
 ## returns to idle — and gets re-tasked — instead of chasing forever.

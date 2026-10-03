@@ -1136,15 +1136,29 @@ func _forward_direction(a_anchor: Vector2) -> Vector2:
 ## Which way `a_type` wants to sit on the forward axis, in cost per cell: positive pulls the
 ## building toward the threat, negative pushes it behind the base.
 ##
-## Production forward, everything else behind — the whole of the model's asymmetry, and it is
-## an asymmetry RELATIVE TO THE BOT rather than to the map. Classified by component (the
-## Production node) rather than by a type list, like every other classification in this file.
+## Frontage forward, everything else behind — the whole of the model's asymmetry, and it is
+## an asymmetry RELATIVE TO THE BOT rather than to the map. Classified by component rather
+## than by a type list, like every other classification in this file.
 func _bearing_for(a_type: StringName) -> float:
-	return _bearing(a_type in _bot.buildable_production_structure_types())
+	return _bearing(_wants_frontage(a_type))
 
 
-func _bearing(a_is_production: bool) -> float:
-	return place_frontage_bias if a_is_production else -place_shelter_bias
+## Whether `a_type` belongs on the threat side of the base. Production does (the army comes
+## out of it) and static defence does (the enemy walks into it). An AIRFIELD does not,
+## whatever it trains: the aircraft parked on it are the fragile half, so the docking test is
+## asked first because an airfield is also a producer. See
+## gdd/systems/ai/squads-and-relations.md §Placement beyond open ground.
+func _wants_frontage(a_type: StringName) -> bool:
+	if a_type in _bot.buildable_docking_structure_types():
+		return false
+	return (
+		a_type in _bot.buildable_production_structure_types()
+		or a_type in _bot.buildable_defence_structure_types()
+	)
+
+
+func _bearing(a_wants_frontage: bool) -> float:
+	return place_frontage_bias if a_wants_frontage else -place_shelter_bias
 
 
 ## A RESUMABLE RANKING of where a `a_dims` piece could stand around `a_anchor`, scored exactly as
