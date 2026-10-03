@@ -16,7 +16,7 @@ class_name SanctionUnlock extends Resource
 ##     `parent` edge is DEPTH within one. A sanction continues exactly one family, so
 ##     `parent` is a single nullable reference rather than a list, and a parent must
 ##     share its child's column. Sharing a column does NOT imply an edge: the
-##     Colonials' Gunship sits under Scan 3 without continuing it.
+##     Colonials' Gunship sits under Scan 2 without continuing it.
 ##
 ##     A parent must sit in a strictly LOWER tier, but not necessarily the one directly
 ##     above — Freeze 2 is two tiers below Freeze 1, and Blizzard two below that. The

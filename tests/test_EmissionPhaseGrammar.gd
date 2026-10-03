@@ -157,3 +157,29 @@ func test_a_motion_may_ask_for_jitter() -> void:
 	var flight: Dictionary = EmissionPhases.expand(spec)[0]
 	assert_eq(flight["jitter_degrees"], 0.1)
 	assert_eq(flight["jitter_frequency_hz"], 2.0)
+
+
+func test_a_motion_may_burn_out_to_a_coast_speed() -> void:
+	var spec: Dictionary = {
+		"phases":
+		[
+			{"motion": {"speed": 15, "burn": 0.5, "coast_speed": 7.2}},
+			{"lifespan": 1, "payload": "once"}
+		]
+	}
+	assert_eq(EmissionPhases.errors_for(spec), [])
+	var flight: Dictionary = EmissionPhases.expand(spec)[0]
+	assert_eq(flight["burn_seconds"], 0.5)
+	assert_almost_eq(flight["coast_speed"], 7.2, 0.0001)
+
+
+func test_a_burn_and_a_coast_speed_come_as_a_pair() -> void:
+	_assert_refused({"phases": [{"motion": {"speed": 15, "burn": 0.5}}]}, "pair")
+	_assert_refused({"phases": [{"motion": {"speed": 15, "coast_speed": 7}}]}, "pair")
+
+
+func test_a_falling_motion_cannot_burn_out() -> void:
+	_assert_refused(
+		{"phases": [{"motion": {"preset": "BALLISTIC", "burn": 0.5, "coast_speed": 7}}]},
+		"cannot burn out"
+	)

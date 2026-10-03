@@ -7,7 +7,7 @@ column: 3
 levels:
   - title: Mortar 1
     tier: 1
-    cost: 500
+    cost: 550
     cooldown: 60
     description: 'Four shells lob in from off the map onto the target point.'
     verbose: |
@@ -18,7 +18,7 @@ levels:
       you clicked.
   - title: Mortar 2
     tier: 2
-    cost: 500
+    cost: 1200
     cooldown: 60
     description: 'Eight shells lob in from off the map onto the target point, replacing Mortar 1.'
     verbose: |
@@ -26,7 +26,7 @@ levels:
       a column is one sanction you improve, not a growing collection.
   - title: Mortar 3
     tier: 3
-    cost: 500
+    cost: 2500
     cooldown: 60
     description: 'Sixteen shells lob in from off the map onto the target point, replacing Mortar 2.'
     verbose: |

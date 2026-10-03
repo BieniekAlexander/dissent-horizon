@@ -24,6 +24,8 @@ const MOTION_PROPERTIES: Dictionary = {
 	"min_speed": "min_speed",
 	"jitter": "jitter_degrees",
 	"jitter_frequency": "jitter_frequency_hz",
+	"burn": "burn_seconds",
+	"coast_speed": "coast_speed",
 }
 ## `impact_mask:` names, and the collision layer each one stands for.
 const IMPACT_LAYERS: Dictionary = {
@@ -188,6 +190,16 @@ static func _item_errors(item: Variant, index: int) -> Array[String]:
 	if float(motion.get("turn_rate_degrees_per_second", 0.0)) > 0.0 and not item.has("lifespan"):
 		errors.append(
 			"%s: a steered motion needs a lifespan:, or a lost target flies forever" % where
+		)
+	var burns: bool = float(motion.get("burn_seconds", 0.0)) > 0.0
+	var coasts: bool = float(motion.get("coast_speed", 0.0)) > 0.0
+	if burns != coasts:
+		errors.append(
+			"%s: burn and coast_speed come as a pair — a burn-out needs a speed to coast at" % where
+		)
+	elif burns and float(motion.get("gravity_mps2", 0.0)) > 0.0:
+		errors.append(
+			"%s: a falling motion cannot burn out — its speed is solved from the arc" % where
 		)
 	if (
 		float(motion.get("launch_pitch_degrees", 0.0)) > 0.0

@@ -13,10 +13,6 @@ defense:
 senses:
   vision: vision_ground_medium
 footprint: [1, 4]
-abilities:
-  - max_charges: 1
-    cooldown: 60
-    grants: [overcharge]
 infrastructure: -75
 ui: {grid: [4, 1], factions: [anarchists]}
 ---

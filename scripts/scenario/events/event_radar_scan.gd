@@ -5,14 +5,13 @@ class_name EventRadarScan extends AbstractEvent
 ## commander-owned Scout at the clicked position whose VisionRange clears the fog around
 ## it, then removes itself when its lifespan runs out.
 ##
-## All three tiers are THIS ONE EVENT with different exports, because the tiers differ
-## only in how long the eye lasts and what it can see:
-##   Scan 1 — radius 10, 15 seconds, no stealth detection
-##   Scan 2 — the same reveal, plus it exposes stealthed units
-##   Scan 3 — the same again but PERMANENT (`lifespan_seconds` < 0, so the drone gets no
-##            Lifespan at all), which is exactly the doc's "hovering unit that floats
-##            above the designated position indefinitely ... uncommandable": a Scout is
-##            already uncommandable and unselectable, so nothing had to be built for it.
+## Both levels are THIS ONE EVENT with different exports, because they differ only in
+## what the eye can see (gdd/factions/colonial/sanctions/scan.md):
+##   Scan 1 — radius 24, PERMANENT (`lifespan_seconds` < 0, so the drone gets no Lifespan
+##            at all), no stealth detection
+##   Scan 2 — the same observer, plus it exposes stealthed units within 16
+## A Scout is already uncommandable and unselectable, so a permanent observer needed
+## nothing built for it. A finite lifespan is still supported for any future scan.
 ##
 ## Stealth detection is a DetectionRange child created here rather than authored on
 ## scout.tscn, so Scan 1's scout genuinely has none — Scout only runs its detection tick
@@ -23,7 +22,7 @@ const _SCOUT_SCENE: PackedScene = preload("res://scenes/entities/nt_aircraftLigh
 ## How far the scan clears fog, in world units.
 @export var vision_radius: float = 10.0
 
-## Seconds the scan persists. Negative = permanent (Scan 3).
+## Seconds the scan persists. Negative = permanent (both Scan levels).
 @export var lifespan_seconds: float = 15.0
 
 ## Radius within which the scan also reveals STEALTHED enemies. 0 or less = it does not
