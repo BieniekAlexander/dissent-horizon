@@ -139,8 +139,8 @@ Readings from the table:
   against anything else.
 - **Hit points alone** move `N*` as much but do not front-load kills: against four, the 650 HP
   tower still dies having killed one.
-- **The 6 × 25 burst** holds four Badgers and kills all four before falling. It is the candidate
-  starting point. It also raises DPS by about half against everything else, LEAD's floor included
+- **The 6 × 25 burst** holds four Badgers and kills all four before falling. **Applied to the
+  Watch Tower (2026-10-02)** as the starting point for play. It also raises DPS by about half against everything else, LEAD's floor included
   (about 17 against light mechs, up from 11). **Decided (Alex, 2026-10-02): a static's reach into
   its non-preferred classes is governed by the damage-type multipliers**, so invariant 1 is held
   by tuning LEAD's row rather than by keeping the tower's gun weak.
