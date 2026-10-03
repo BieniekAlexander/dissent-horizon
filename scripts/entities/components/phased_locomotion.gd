@@ -193,6 +193,7 @@ func tick() -> Progress:
 	var goal: Variant = _steering_goal()
 	_clean_velocity = phase.tracked_velocity(_clean_velocity, before, goal)
 	_clean_velocity = phase.steered_toward(_clean_velocity, before, goal)
+	_clean_velocity = phase.burnt_velocity(_clean_velocity, _phase_seconds())
 	body.velocity = (
 		_jitter.perturbed(phase, _phase_seconds(), _clean_velocity)
 		if _jitter != null

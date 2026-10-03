@@ -25,6 +25,7 @@ it borrows are in [design-framework/timings](../../../design-framework/timings.m
 | [structure-costs](structure-costs.md) | pricing buildings by role, from a half-of-Zero-Hour anchor; proposed Colonial and Anarchical prices |
 | [building-roles](building-roles.md) | marginal value of each copy of a structure, by what the structure confers; multi-purpose buildings |
 | [dominion-and-ordnance](dominion-and-ordnance.md) | dominion as a super meter, the sanction-as-permission / structure-as-charges split, shared pools, and the command centre |
+| [sanction-calibration](sanction-calibration.md) | first-pass numbers for the sanction grid: a four-tier layout, a price ladder, dominion ≈ energy via the Technocratic extractor, and per-family changes (Scan, Ambush, Drop) |
 
 Upgrades, which several of these notes discuss, are built: [upgrades](../upgrades.md).
 
@@ -49,7 +50,9 @@ risk that remains.
 4. **A finished grid would silence dominion.** Decided: tier prices escalate so no match
    can buy the whole grid. The risk left is long, turtled matches that could, so the margin
    between grid price and a long match's dominion is a calibration check.
-   → [dominion-and-ordnance](dominion-and-ordnance.md) §The grid is never finished
+   → [dominion-and-ordnance](dominion-and-ordnance.md) §The grid is never finished; superseded 2026-10-02 by
+   [sanction-calibration](sanction-calibration.md) §Finishing the grid (the grid may be finished
+   in a very long match; a second T4 should be out of reach in any other)
 5. **The opening owes a tell; later play does not.** Decided: macro timing must keep a threat
    off the doorstep until the defender has had the chance to see the attacker's base. After
    that, scouting is the player's job. The risk left is hard counters that turn one missed

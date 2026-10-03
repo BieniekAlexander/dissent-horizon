@@ -196,7 +196,7 @@ func test_a_parent_may_sit_more_than_one_tier_above() -> void:
 
 
 func test_sharing_a_column_does_not_imply_an_edge() -> void:
-	# The Colonials' Gunship sits under Scan 3 without continuing it.
+	# The Colonials' Gunship sits under Scan 2 without continuing it.
 	var sanction_grid := _sanction_grid(_tier0_pair() + [_unlock("Gunship", 1, 4)])
 	_own_tier0_pair(sanction_grid)
 

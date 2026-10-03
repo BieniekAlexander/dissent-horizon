@@ -24,6 +24,12 @@ levels:
 ---
 # Overcharge
 
+**PARKED (2026-10-02).** Removed from the Anarchist grid and from the Clandestine Lab's
+ability pool: it needs a stunned target, and the Anarchists' only stun (Global EMP) sits in
+the top tier. It is to move to a faction with a usable EMP at lower tech, likely the
+Libertarians. No faction lists it, so it is neither bought nor cast; the frontmatter below is
+the old Anarchist cell, kept until it is re-homed.
+
 Sits in the Scavenge column WITHOUT continuing it — separate sanction, shared column.
 
 ## Mechanic

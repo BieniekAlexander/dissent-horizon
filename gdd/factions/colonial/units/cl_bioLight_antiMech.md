@@ -30,11 +30,19 @@ weapons:
       hitscan: false
       bio_ground_aim: true
       phases:
+        # Slow ignition, boost, then coast, steering throughout: no ground target outruns it
+        # from close, and only a QUICK vehicle fired on from beyond ~7 can turn away and
+        # escape (gdd/systems/combat/projectiles.md §Rocket calibration).
         - motion:
-            preset: LINEAR
             speed: BLAZING
+            turn_rate: 60
+            launch_speed_ratio: 0.1333   # leaves the tube at ~2 u/s
+            acceleration: 40             # up to BLAZING in ~0.33 s
+            min_speed: 2
             jitter: 3
-          lifespan: 2
+            burn: 0.5
+            coast_speed: RAPID
+          lifespan: 2.2
         - lifespan: 1.6
           payload: once
     split_time: 1.5

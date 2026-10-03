@@ -1,8 +1,7 @@
-[gd_scene format=3 uid="uid://b2bxqq3a7mf61"]
+[gd_scene load_steps=21 format=3 uid="uid://b2bxqq3a7mf61"]
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_c86jg"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="1_spec"]
-[ext_resource type="Script" path="res://scripts/entities/components/abilities.gd" id="2_spec"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_8fo3i"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_452cu"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_06fvd"]
@@ -101,9 +100,5 @@ script = ExtResource("18_6e7aj")
 [node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("22_h8bee")]
 
 [node name="AggroRangeAir" parent="." unique_id=1894645364 instance=ExtResource("5_452cu")]
-
-[node name="Abilities" type="Node" parent="." unique_id=485374263]
-script = ExtResource("2_spec")
-groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 1800, "grants": [&"overcharge"] }])
 
 [editable path="Selectable"]

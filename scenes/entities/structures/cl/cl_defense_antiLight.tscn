@@ -120,9 +120,9 @@ script = ExtResource("20_spec")
 
 [node name="BallisticWeapon" type="Node3D" parent="Loadout"]
 script = ExtResource("21_spec")
-split_time_ticks = 7
-reload_time_ticks = 45
-clip_size = 4
+split_time_ticks = 3
+reload_time_ticks = 90
+clip_size = 6
 projectile_scene = ExtResource("22_spec")
 melee_damage = 0.0
 target_mask = 2
