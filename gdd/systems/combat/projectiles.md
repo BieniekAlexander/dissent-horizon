@@ -38,6 +38,21 @@ phase runs that same tick. A last phase that runs out expires on its final tick.
 not a concept the class knows: it is the name of one common shape, a flight ending by arrival
 into a one-tick phase that applies the payload. A phase always runs at least one tick.
 
+**Consecutive moving phases are one flight in stages** (built 2026-10-03):
+
+- **A stage hands on its motion.** When a moving phase's lifespan ends and the next phase also
+  moves, the next one takes over the position and heading as they are. It is not relaunched
+  (so `launch_speed_ratio` and `launch_pitch` mean nothing on a later stage), and the emission
+  does not settle onto its destination's height. What happens to the speed depends on the
+  stage:
+  - a straight stage flies at its own `speed` from its first tick;
+  - a steered stage starts from the inherited speed and works it toward its own under its
+    `acceleration` and `turn_bleed`, so a rocket can run a different guidance law in each stage;
+  - a falling stage keeps the motion it was handed and falls.
+- **A contact ends the whole flight, not just the stage.** It skips every moving phase after
+  the live one, straight to the next phase that does not move (the burst). With none left, the
+  emission is spent.
+
 So the cases that used to need special handling are just lists:
 
 | Piece | Phases |
@@ -65,7 +80,8 @@ phases:
     impact_mask: [terrain, structures]    # also ground, air; absent = none
     payload: once                # or seconds between applications, 0 = every tick
     emits: {id: toxin_cloud, every: 1}    # an emission dropped where this one is
-    visuals: [InFlightSprite]    # optional; first phase in-flight set, later post-impact
+    visuals: [InFlightSprite]    # optional; a moving phase (and the first) gets the in-flight
+                                 # set, a motionless later one the post-impact set
 ```
 
 `speed:`/`trajectory:` beside `phases:` is refused — a doc says its motion in one place. So
@@ -85,6 +101,8 @@ that same spot.
 | `launch_speed_ratio` | — | fraction of `speed` it launches at |
 | `acceleration` | u/s² | while steering: gained toward `speed` facing the target, lost toward `min_speed` facing away |
 | `min_speed` | u/s | the floor it slows to |
+| `turn_bleed` | u/s² per radian | while steering: speed lost for each radian the steering goal is off the nose. Replaces the facing rule: the emission gains `acceleration − turn_bleed × angle` each second, between `min_speed` and `speed`. Needs a `turn_rate` |
+| `lead` | 0–1 | while steering: how far ahead of its target it aims, as a fraction of the target's predicted motion until the intercept. Predicted once per phase and held. Needs a `turn_rate` |
 | `burn` | seconds | when the motor burns out, counted from the start of the phase; zero never burns out |
 | `coast_speed` | a speed class | the speed it is held to after `burn`. Comes paired with `burn`, and a falling motion cannot have either |
 
@@ -111,6 +129,71 @@ at a place (§Free flight).
 TODO: whether a non-constant speed needs more than `acceleration` and `min_speed`. A Godot
 `Curve` cannot be written in YAML but could be baked at import from an expression in `t`;
 nothing in the roster wants one yet.
+
+### Turn bleed and lead
+
+Two steering knobs for a rocket that **rewards a target for reacting**: holding course gets you
+hit, and dodging well, with the speed to use it, gets you away (Alex, 2026-10-03). Both are off
+at zero, and both act only on a steered phase.
+
+- **`turn_bleed`: hard turns cost speed.** A rocket flying straight at its goal keeps
+  accelerating to its top speed; one whose goal is far off its nose sheds speed in proportion
+  to the angle, down to `min_speed`, and climbs back once it is pointed again. That lets a
+  rocket be fast without being inescapable: a target that forces it into a sharp turn takes
+  its speed away, and a fast target can then outrun it.
+- **`lead`: aim where the target is going.** As the phase begins, the emission predicts where
+  its target will be when they meet, from the target's motion, and steers at that point,
+  advanced by `lead` (a fraction: 1 is the full intercept, 0.5 halfway). The point is
+  predicted ONCE and held for the phase:
+  - a target that keeps its course flies into the shot;
+  - one that changes course after it is fired draws the rocket to an empty point;
+  - once that point is behind the rocket, it flies straight for the rest of the phase.
+
+  The target's motion is MEASURED: `PhasedLocomotion` samples the pursued piece's position on
+  the emission's own consecutive ticks, so it holds for any way a piece moves (navigation
+  agent, aerial drive, another emission). The prediction is made on the phase's second tick,
+  the first with two samples; until then the phase steers at the target itself.
+
+**Phases combine them.** A leading stage followed by a homing stage, both bleeding, is
+predict, then chase: a target that holds course is hit by the first stage; one that jukes
+forces the second stage into a hard turn that bleeds its speed, so a fast juker escapes and a
+slow one is run down. The Warlord is written that way (§Rocket calibration).
+
+### Losing the lock
+
+**A steered phase can LOSE ITS LOCK on its target** (Alex, 2026-10-03), by either of two motion
+keys, both off at zero and both needing a `turn_rate`:
+
+| Key | Unit | Lost when |
+|---|---|---|
+| `lock_cone` | degrees, at most 180 | the target is farther off the nose than this. 180 is lost only dead astern |
+| `lock_range` | u | the target is farther away than this |
+
+**Losing the lock is permanent and cuts the motor** (`PhasedLocomotion._fall`). The emission
+stops steering and thrusting, keeps the velocity it had, and falls under
+`EmissionPhase.LOST_LOCK_GRAVITY_MPS2` (the shells' 4.5). Its stages' lifespans no longer end
+it: it falls rather than expiring, and bursts where it strikes. A contact, or the
+`LOST_LOCK_FALL_SECONDS` (5 s) backstop for a fall with nothing beneath it, skips any
+remaining moving stages straight to the burst. A later stage never relights it. The lock is
+tested against the target itself (its hitbox centre), not against a leading stage's aim point.
+
+### A rocket aims at the hitbox
+
+**A steered phase steers at, leads, and arrives at the centre of its target's hitbox**
+(`Entity.aim_point`, the global position of `TargetBody/TargetShape`; the piece's origin when it
+has none) (Alex, 2026-10-03). **And every hitbox stands ON its piece's base**: `Entity._ready`
+raises the TargetShape until its bottom is at the origin (`_seat_target_shape`). A shape authored
+higher is left where it is.
+
+- **Why both:** a shape is centred on its node, and every piece's hitbox was authored at its
+  origin, its feet. Half of it was underground, so "aim at the centre" was "aim at the ground",
+  and a slightly short rocket struck the terrain in front of a ground target.
+- **What else moves:** every weapon and blast now meets the hitbox above the ground rather than
+  straddling it. Range is unaffected (`Hull` reads the footprint on XZ only), and a shell
+  bursting at ground level still reaches the hitbox's bottom.
+- **Only steered phases aim at the centre.** A launch still sets off toward the target's
+  position, and unsteered shells and bullets still aim at the ground under it. A beacon has no
+  hitbox, so a Bombard shell tracking one is unchanged.
 
 ### A lost pursuit loops
 
@@ -212,6 +295,24 @@ importer's renamed-component table would carry the scenes.
 friendly-fire by construction (the query is `TARGETABLE_ANY`) rather than by a flag. See
 [authoring/spec-importer](../authoring/spec-importer.md) for the import side.
 
+### The blast is measured at the contact
+
+**When a free flight strikes something, who is in its blast is decided on the CONTACT's tick**
+(Alex, 2026-10-03). The burst phase still pays out a tick later, by the phase rule, but on the
+set measured at the contact (`Payload._on_struck` snapshots `_blast_victims()`; the next
+`apply` takes it).
+
+- **Why:** measured at the payout, the blast stood where the rocket stopped while the world had
+  moved on a tick. A target moving faster than the blast is wide had already left it, so a rocket
+  could strike a piece and leave it unharmed. The Warlord rocket (a 0.1 blast) struck a QUICK
+  truck with 8 rockets of 10 and damaged it with about 5, and the faster the target, the worse.
+- **Only the first payout after a contact** uses the snapshot. A phase that pays out on a cadence
+  afterwards (a lingering field) measures the world as it is at each payout.
+- A victim freed or taken out of the world (garrisoned) between the contact and the payout is
+  spared, as a single-target shot's is.
+- A flight that ends WITHOUT a contact (lifespan out, or arriving at a place) measures at the
+  payout, as before.
+
 ## What the framework should and should not absorb
 
 **In:** rockets, bullets, shells, lasers, poison clouds, radiation fields, sweeps and trails —
@@ -243,6 +344,9 @@ emission. TODO: an emitted UNIT, handed a command rather than a goal, is not bui
   ticks and never less than one.
 
 ## Rocket calibration: the no-escape zone
+
+The terms a claim about evading a shot is written in (outpace, outturn, outguess, the engagement
+frame) are defined in [projectile-evasion](projectile-evasion.md).
 
 **TODO — research. Only items marked Decided are settled.** A paper calculation (2D pursuit, no
 jitter or terrain, hit radius 0.7 for vehicles and 0.8 for aircraft), not self-play. Every number
@@ -356,7 +460,9 @@ with its reach 12:
 
 ### What boost-then-coast needs from the engine
 
-Both are code changes, not authoring:
+Both are code changes, not authoring. **Both built 2026-10-03** (§Phases: consecutive moving
+phases are one flight in stages), so a boost → coast → burst rocket can now be written as
+phases; the `burn` knob below stays as the one-phase way to say it.
 
 1. **A contact in a flight phase hands over to the NEXT phase, not the payload phase.**
    `_end_by_contact` ends the live phase only. A rocket written as boost → coast → burst that
@@ -375,6 +481,150 @@ to RAPID after 0.5 s, turn 60°/s, 2.2 s** (min speed 2), and the Warlord fires 
 `warlord_rocket` (**RAPID, turn 120°/s, half-speed launch, 5 s**) instead of the SAM's missile.
 Both are starting points for play. Before the knob existed, **15, turn 45°/s, 2 s** fixed the misses with existing knobs, with no
 distance dependence yet.
+
+### Retuned for the new speed ladder (2026-10-03)
+
+**This supersedes the 2026-10-02 targets above** where they differ; the tables above are kept
+because the model and the knobs still apply. Aircraft were raised 2–4× (to RAPID–HYPER, see
+[speed_classes](../../movement/speed_classes.md)), which left every rocket slower than most of
+what it was fired at. What is wanted now (Alex, 2026-10-03):
+
+- **The Badger rocket is faster than every ground class in play.** The ground class that may
+  escape it is one about as fast as a slow aircraft, and none exists yet. This replaces "a
+  QUICK vehicle fired on from far enough away can escape".
+- **The Warlord rocket is slower, with strong homing**, so it eventually reaches ground targets
+  and a fast vehicle can drive away until it expires.
+- **Projectile physics is still being explored.** Manoeuvrability (turn rate, acceleration,
+  interception geometry) is the intended lever for dodging, and is deferred until there are
+  more projectiles. For now, low-tier projectiles are fast enough to hit most of their targets.
+
+Applied, from the same paper model, now `tools/projectiles/rocket_escape_model.py` (run it to
+reproduce these):
+
+| Rocket | Motion | STEADY | BRISK | QUICK | FAST 5.25 | aircraft | flight to reach |
+|---|---|---|---|---|---|---|---|
+| Badger | launch 2 u/s, accel 40, SCORCHING, coast to SWIFT after 0.5 s, turn 60°/s, 2.2 s | never | never | never | dodges at 1.0+ | (ground only) | 1.07 s to 12 |
+| SAM | HOMING, SCORCHING, turn 180°/s, accel 20, half-speed launch, 5 s | — | — | — | — | RAPID, SWIFT, BLAZING never; HYPER always | 1.27 s to 20 |
+
+- **The Warlord was first slowed to FAST (turn 180°/s), which no moving aircraft had to
+  dodge.** It was rebuilt the same day as below.
+
+### The Warlord: predict, then chase (2026-10-03)
+
+Wanted (Alex, 2026-10-03): fast, but slowing a lot in sharp turns, and aimed where a moving
+target is going, so a target that holds its course is hit and one that reroutes after the shot
+is away can escape: "mechanical elasticity". It is written as two flight stages and a burst
+(§Phases: consecutive moving phases are one flight in stages; §Turn bleed and lead):
+
+| Stage | Motion | Lifespan |
+|---|---|---|
+| Predict | HOMING from a half-speed launch, FLEET (8.5; was SCORCHING until the retune below), turn 90°/s, acceleration 10, min speed 2, `turn_bleed: 120`, `lead: 1` | 0.5 s |
+| Chase | the same, without `lead` | 3 s |
+| Impact | the burst | 1.6 s |
+
+Escape distances from the model, fired from 0.5 to 12 (reach 12). "Reverses at T" is a target
+that turns back on its course T seconds after the shot:
+
+| Target | holds course | flees at once | reverses at 0.3 s | reverses at 0.5 s | reverses at 1 s |
+|---|---|---|---|---|---|
+| STEADY, BRISK | never | never | never | never | never |
+| QUICK (ground) | never | never | 1 of 24 | 7 of 24 | 12 of 24 |
+| FAST 5.25 (ground) | never | never | never | 10 of 24 | 10 of 24 |
+| RAPID aircraft | never | never | 23 of 24 | 23 of 24 | 10 of 24 |
+| SWIFT aircraft | never | beyond 7.5 | 11 of 24 | 23 of 24 | 23 of 24 |
+| BLAZING aircraft | almost always | almost always | almost always | almost always | almost always |
+
+Flight to 12 at a standing target: 0.9 s.
+
+- **Holding course is fatal to everything slower than BLAZING**, and slow targets are run down
+  whatever they do.
+- **A reroute is what saves a fast target**, and when it rerouted matters: the moment and
+  the distance both move the outcome. That is the reaction window the design asks for.
+- Settled by scanning top speed (SWIFT to SCORCHING), turn rate (90 or 180°/s), bleed (40 or
+  120), acceleration (5 to 20), lifespan (2.5 to 5 s) and the predict stage's length (0.3 to
+  0.8 s) for the shape above. A higher turn rate, or faster re-acceleration, makes it
+  inescapable. A longer predict stage starts to let SWIFT aircraft escape while holding course.
+- It keeps `hits: [ground, air]` with its anti-air role back: an aircraft that holds course is
+  hit.
+
+### Checked in the arena (2026-10-03)
+
+**TODO — the arena disagrees with the paper model; the Warlord's elasticity is not achieved in
+the engine yet.** Specs in `sims/` (`warlord_vs_{truck,wagon,raven}_{holding_course,jinking}`,
+`badger_vs_collective_jinking`); "jinking" reverses 0.4 s after each rocket leaves. Ten seeds
+each:
+
+| Spec | Claim | Met | + contact fix | + hitbox aim |
+|---|---|---|---|---|
+| truck (QUICK), holding course | dies | 0 of 10 | 6 of 10 | 10 of 10 |
+| truck, jinking | survives | 0 of 10 | 0 of 10 | 0 of 10 |
+| War Wagon (STEADY), holding course | dies | 8 of 10 | 8 of 10 | 10 of 10 |
+| War Wagon, jinking | dies | 10 of 10 | 10 of 10 | 10 of 10 |
+| Raven (SWIFT, hover), holding course | dies | 10 of 10 | 10 of 10 | 10 of 10 |
+| Raven, jinking | survives | 0 of 10 | 0 of 10 | 0 of 10 |
+| Badger vs Collective (QUICK), jinking | at least half damaged | 10 of 10 | 10 of 10 | 10 of 10 |
+
+The two fixes are the first two causes below; with both, holding course is fatal, as designed.
+**TODO — still open: no fast target dodges yet**, so the elasticity the Warlord was designed for
+is not there. See the retune below.
+
+**Retune, 2026-10-03: measured by HIT RATE, not kills** (Alex: tuning a projectile is about how
+often it hits; whether one cheap shooter kills its target before it escapes is the damage
+rate, out of scope). Every Warlord spec now claims a fraction of rockets fired that hit
+(`hit_rate`, simulation-tests.md §Counting shots): **at least 75%** against a target holding
+course and against the slow War Wagon whatever it does, **at most 50%** against a fast target
+(truck, Raven) that flees or jinks. Three seeds each; numbers are the share of rockets that
+hit, with the rockets fired in brackets:
+
+| Top speed, chase | truck hold / jink / flee | wagon hold / jink / flee | Raven hold / jink / flee | Claims met |
+|---|---|---|---|---|
+| 16.5 (as shipped), 3 s | 100 / 96 / 100 | 100 / 100 / 100 | 100 / 100 / 100 | 5 of 9 |
+| 9.3, 3 s | 100 / 100 / 100 | 100 / 100 / 100 | 75 / 80 / 100 | 4 of 9 |
+| 8.5, 3 s | 96 / 100 / 100 | 100 / 100 / 100 | 100 / 80 / 0 | 6 of 9 |
+| 7, 3 s | 75 / 96 / 50 | 100 / 100 / 100 | 58 / 80 / 0 | 6 of 9 |
+| 7, 3 s, turn 180 | 100 / 100 / 50 | 100 / 100 / 100 | 58 / 80 / 0 | 6 of 9 |
+| 16.5, chase 0.3 s | 22 / 63 / 50 | 85 / 100 / 67 | 0 / 22 / 0 | 4 of 9 |
+
+Lock cones from 10° to 120°, and a 10-unit lock range, changed little or made holding course
+escapable (§Losing the lock is built and tested, and unused by the Warlord so far).
+
+- **One top speed cannot satisfy both fast targets.** A fleeing truck (QUICK, 4 u/s) outpaces
+  only a rocket at about 7 or slower; a Raven crossing the Warlord's front is hit reliably only
+  by one at 8.5 or faster. Which wins is a design choice.
+- **Jinking never helps at 8 units, at any setting**: the rocket arrives in about 0.8 s, and a
+  vehicle that reverses 0.4 s after launch is back near where the rocket was first aimed.
+- **The fleeing specs fire few rockets** (one to three a run, since the target leaves reach),
+  so their rates are coarse; more seeds before trusting a threshold there.
+- **Chosen (Alex, 2026-10-03): the Raven.** Both Warlord stages fly at FLEET, a rung added at
+  8.5 for it. Five seeds: a crossing Raven is hit 20 of 20, a fleeing one 0 of 5; a truck
+  holding course 37 of 40; the War Wagon whatever it does 100%. A fleeing truck is still hit
+  10 of 10, and jinking still never helps (truck 40 of 40, Raven 20 of 25): 6 of 9 claims.
+  **TODO — separating fleeing from crossing by the rocket's RANGE rather than its speed** (a
+  boost that runs out and falls, §Losing the lock) is to be revisited by Alex.
+
+Three causes, found by tracing contacts (the first two since fixed):
+
+- **A contact could deal no damage**, until the blast was measured on the contact's own tick
+  (2026-10-03, §The blast is measured at the contact). Before, it was measured on the payout's
+  tick, a tick after the contact, by which time a fast target had left the Warlord rocket's 0.1
+  sphere: a QUICK truck holding course was
+  struck by 8 of 10 rockets and damaged by about 5. It favoured exactly the target that holds
+  course, which inverts the design.
+- **Steered emissions aimed at the target's ORIGIN, at ground level**, until they aimed at the
+  seated hitbox's centre (2026-10-03, §A rocket aims at the hitbox): a slightly short rocket
+  dived into the terrain in front of a ground target (2 of 10 rockets in one run).
+- **A hovering aircraft reverses by backing off at `reverse_speed_ratio`** rather than turning,
+  so a reroute makes it slower, and the chase stage runs it down. The model treated every
+  target as a turning vehicle.
+
+Outside the arena (a box hitbox, no terrain short of it), the same rocket hit a steadily
+crossing truck with every shot, as the model predicts, which is what points at the first two.
+- **The SAM got an explicit `acceleration: 20`.** The HOMING preset's 2.25 u/s² takes almost
+  four seconds to get from a half-speed launch to SCORCHING, during which BLAZING aircraft
+  outran it.
+- **Aircraft-fired weapons moved with their carriers:** the Purifier's and Viper's emissions
+  went from 15 to SCORCHING (16.5), and the Interceptor's air-to-air missile to SUPERSONIC, so
+  it is faster than every aircraft.
 
 ## Where an emission leaves from
 
@@ -440,6 +690,12 @@ it is in the tree.** `EmissionPhase.show_visuals` switches each listed node with
   while the impact phase plays;
 - **anything else** (a mesh, a sprite) is shown and hidden, which is how the in-flight model is
   swapped for the impact's.
+
+**Phases switch visuals by difference** (`PhasedLocomotion._show_visuals_of`, 2026-10-03): a
+node the live phase names is never hidden, even when another phase names it too, and one
+already showing is not shown again. So several stages of one flight share their mesh and
+exhaust, which stay up across the handover rather than vanishing (as the Warlord rocket's did
+for its whole first stage, until this) or restarting a delayed start.
 
 So an effect that must be seen after impact is paid for with a longer impact phase and
 `payload: once`: the emission stays in the tree showing its explosion, and deals its damage on

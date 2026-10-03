@@ -179,3 +179,24 @@ func test_a_malformed_ladder_is_refused() -> void:
 		_registry({}, {"kind": "SpeedLibrary", "speeds": {"A": 1}, "ratio": 2}),
 		"unknown SpeedLibrary key 'ratio'"
 	)
+
+
+func test_the_ladder_must_be_listed_slowest_first() -> void:
+	_assert_refused(
+		_registry({}, {"kind": "SpeedLibrary", "speeds": {"FAST": 5, "SLOW": 2}}),
+		"SLOW]: the ladder must be listed slowest first"
+	)
+
+
+func test_two_classes_at_one_speed_are_refused() -> void:
+	_assert_refused(
+		_registry({}, {"kind": "SpeedLibrary", "speeds": {"A": 2, "B": 2}}),
+		"2 is not faster than A"
+	)
+
+
+func test_an_irregularly_spaced_ladder_is_accepted() -> void:
+	var registry: RefCounted = _registry(
+		{}, {"kind": "SpeedLibrary", "speeds": {"ZERO": 0, "A": 1, "B": 1.1, "C": 40}}
+	)
+	assert_eq(registry.errors, [])

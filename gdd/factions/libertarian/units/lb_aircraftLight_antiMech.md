@@ -15,7 +15,7 @@ defense:
   frame: MECH
 senses:
   vision: vision_aerial_large
-movement: {speed: FAST, turn_rate: 270, max_acceleration: 4, max_deceleration: -5, reverse_speed_ratio: 0.6}
+movement: {speed: BLAZING, turn_rate: 270, max_acceleration: 9.45, max_deceleration: -11.8, reverse_speed_ratio: 0.6}
 aerial: {mode: HOVERING}
 docking: true
 weapons:

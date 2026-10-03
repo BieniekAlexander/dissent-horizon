@@ -18,6 +18,7 @@ How entities hurt, hold and destroy each other.
 | [target-acquisition.md](target-acquisition.md) | what aggro may pick up (fog, stealth, play bounds) and how long an engagement is kept |
 | [garrison-and-transport.md](garrison-and-transport.md) | units held inside units; occupancy, closed holds, capture and deposit |
 | [projectiles.md](projectiles.md) | emitted objects: motion, impact, payload schedules — lasers and clouds included |
+| [projectile-evasion.md](projectile-evasion.md) | how a target makes a shot miss: the engagement frame, the evasion modes (outpace, outturn, outguess, outlast), hit rate as the measure; most rules still TODO |
 | [range-buckets.md](range-buckets.md) | reach, vision, detection and AoE as named shape-library buckets; aggro derived from reach per layer |
 | [scan-and-vision-cost.md](scan-and-vision-cost.md) | the per-tick cost of aggro and fog: allegiance filtered in the query, reference-counted incremental fog, a rejected re-acquire stagger, and what SC2, Spring and 0 A.D. do |
 

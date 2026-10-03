@@ -27,6 +27,12 @@ static var _BUILDERS: Dictionary = {
 	"command": SimCheckLibrary._build_command,
 	"idle": SimCheckLibrary._build_idle,
 	"garrisoned_in": SimCheckLibrary._build_garrisoned_in,
+	"hit_rate": SimCheckLibrary._build_hit_rate,
+}
+## check name -> `func(a_check, a_roster) -> Callable`, for the checks that also REPORT what
+## they measured (`() -> String`), beyond passing or failing.
+static var _MEASURES: Dictionary = {
+	"hit_rate": SimCheckLibrary._measure_hit_rate,
 }
 
 
@@ -46,6 +52,15 @@ static func predicate(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Calla
 		push_error("SimCheckLibrary has no implementation for check '%s'" % a_check.name)
 		return func() -> bool: return false
 	var builder: Callable = SimCheckLibrary._BUILDERS[a_check.name]
+	return builder.call(a_check, a_roster)
+
+
+## What a leaf measured, as `() -> String`, for the run report; an empty Callable for a check
+## that reports only its verdict.
+static func measurement(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Callable:
+	if not SimCheckLibrary._MEASURES.has(a_check.name):
+		return Callable()
+	var builder: Callable = SimCheckLibrary._MEASURES[a_check.name]
 	return builder.call(a_check, a_roster)
 
 
@@ -175,6 +190,34 @@ static func _build_garrisoned_in(a_check: SimSpec.Check, a_roster: SimGroupRoste
 			if not hosts.has(entity.garrisoned_in.get_parent()):
 				return false
 		return true
+
+
+## Of the shots the group fired that have settled, the fraction that landed on the target group
+## lies in the authored band. Shots still in flight count for nothing, and a run that settled no
+## shot at all fails: a hit rate measured over nothing is not a hit rate.
+## (simulation-tests.md §Counting shots)
+static func _build_hit_rate(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Callable:
+	return func() -> bool:
+		var tally: Vector2i = SimCheckLibrary._hit_tally(a_check, a_roster)
+		if tally.y == 0:
+			return false
+		var rate: float = float(tally.x) / float(tally.y)
+		if a_check.arguments.has("at_least") and rate < float(a_check.arguments["at_least"]):
+			return false
+		if a_check.arguments.has("at_most") and rate > float(a_check.arguments["at_most"]):
+			return false
+		return true
+
+
+static func _measure_hit_rate(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Callable:
+	return func() -> String:
+		var tally: Vector2i = SimCheckLibrary._hit_tally(a_check, a_roster)
+		return "%d of %d shots hit" % [tally.x, tally.y]
+
+
+static func _hit_tally(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Vector2i:
+	var target_ids: Array = a_roster.member_ids(str(a_check.arguments.get("target", "")))
+	return a_roster.shots.tally(a_check.group_ref, a_check.piece, target_ids)
 
 
 #endregion

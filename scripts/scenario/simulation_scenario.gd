@@ -88,6 +88,7 @@ func _physics_process(a_delta: float) -> void:
 	if Engine.is_editor_hint() or _finished or not _armed:
 		return
 	var elapsed: int = tick - _armed_tick
+	_on_tick(elapsed)
 	for check: SimulationCheck in _checks:
 		check.advance(elapsed)
 	if _window_elapsed(elapsed) or _may_finish_early():
@@ -114,6 +115,12 @@ func _compile_checks() -> Array[SimulationCheck]:
 ## Called with a navigable world, after the checks exist and before the window starts. The
 ## place a spec-driven run issues its opening orders.
 func _on_armed() -> void:
+	pass
+
+
+## Called every tick of the window, `a_elapsed` ticks after arming and before the checks
+## sample it. The place a spec-driven run issues its timed orders.
+func _on_tick(_a_elapsed: int) -> void:
 	pass
 
 
@@ -187,6 +194,7 @@ func _build_results() -> Array:
 					"passed": check.passed(),
 					"met_tick": check.met_tick,
 					"mode": check.mode,
+					"measured": check.measured(),
 				}
 			)
 		)

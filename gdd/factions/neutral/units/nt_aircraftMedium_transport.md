@@ -18,7 +18,7 @@ defense:
   frame: MECH
 senses:
   vision: vision_aerial_medium
-movement: {speed: BLAZING, turn_rate: 60, max_acceleration: 3, max_deceleration: -1.5}
+movement: {speed: HYPER, turn_rate: 80, max_acceleration: 4, max_deceleration: -2}
 aerial: {mode: FLYING}
 docking: true
 garrison: {capacity: 8, bunker: false, preserve_occupants: false}

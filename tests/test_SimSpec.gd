@@ -408,4 +408,48 @@ func _node(a_kind: SimSpec.ExpectNode.Kind, a_children: Array) -> SimSpec.Expect
 	node.kind = a_kind
 	node.children.assign(a_children)
 	return node
+
+
+#endregion
+
+
+#region Timed orders
+func test_an_order_without_after_is_in_the_opening_queue() -> void:
+	var spec: SimSpec = SimSpec.parse(_valid(), "fixture")
+	var order: SimSpec.Order = (spec.groups["A.army"] as SimSpec.Group).orders[0]
+	assert_eq(order.after_seconds, 0.0)
+
+
+func test_an_order_may_be_timed_with_after() -> void:
+	var text: String = _valid().replace(
+		"orders: [ { move: { target: A.army } } ]",
+		"orders: [ { move: { target: A.army } }, { move: { target: east }, after: 2.5s } ]"
+	)
+	var spec: SimSpec = SimSpec.parse(text, "fixture")
+	assert_eq(spec.errors, [] as Array[String])
+	var orders: Array[SimSpec.Order] = (spec.groups["B.army"] as SimSpec.Group).orders
+	assert_eq(orders[1].command, "move", "`after:` is not mistaken for the command")
+	assert_almost_eq(orders[1].after_seconds, 2.5, 0.001)
+
+
+func test_after_names_its_unit() -> void:
+	var text: String = _valid().replace(
+		"{ move: { target: A.army } }", "{ move: { target: A.army }, after: 3 }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "seconds"))
+
+
+func test_an_order_timed_past_the_window_is_refused() -> void:
+	var text: String = _valid().replace(
+		"{ move: { target: A.army } }", "{ move: { target: A.army }, after: 10s }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "never be issued"))
+
+
+func test_an_order_naming_two_commands_is_refused() -> void:
+	var text: String = _valid().replace(
+		"{ move: { target: A.army } }", "{ move: { target: A.army }, stop: {} }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "single { command: argument }"))
+
 #endregion

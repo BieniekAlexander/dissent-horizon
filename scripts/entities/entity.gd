@@ -451,6 +451,21 @@ func blocks_line_of_fire() -> bool:
 ## The entity's primary collision shape. Commandables name their movement shape
 ## "MovementBody"; other Entity scenes (radiation, star) use "Body". Prefer "Body"
 ## when present so scenes mid-rename keep working, falling back to "MovementBody".
+## Raise the hitbox (TargetBody/TargetShape) so it never reaches below this piece's base. A
+## shape is centred on its node, and every piece's hitbox was authored at its origin — its feet
+## — so half of it stood underground: a rocket steered at its centre dived into the terrain in
+## front of a ground target. Seated, it covers the body above the base, and its centre is a point
+## a weapon can actually reach. A shape already placed higher is left where it is.
+## → gdd/systems/combat/projectiles.md §A rocket aims at the hitbox
+func _seat_target_shape() -> void:
+	var node: CollisionShape3D = target_body.get_node_or_null("TargetShape") as CollisionShape3D
+	if node == null or node.shape == null:
+		return
+	var half_height: float = RangeShapes.half_height_of(node.shape) * node.scale.y
+	if node.position.y < half_height:
+		node.position.y = half_height
+
+
 func _resolve_collider() -> CollisionShape3D:
 	var node := get_node_or_null("Body")
 	if node == null:
@@ -488,6 +503,18 @@ func bounding_radius(a_layer: int) -> float:
 		return Vector2(shape.size.x, shape.size.z).length() * 0.5
 	push_error("unhandled collider type %s" % typeof(shape))
 	return -1.0
+
+
+## Where a steered weapon aims at this piece: the centre of its hitbox (TargetBody/TargetShape),
+## which stands on the piece's base (_seat_target_shape); the piece's origin when it has no
+## hitbox. → gdd/systems/combat/projectiles.md §A rocket aims at the hitbox
+func aim_point() -> Vector3:
+	var node: CollisionShape3D = (
+		target_body.get_node_or_null("TargetShape") as CollisionShape3D
+		if target_body != null
+		else null
+	)
+	return node.global_position if node != null and node.is_inside_tree() else global_position
 
 
 ## This piece's footprint on the XZ plane, from its TargetBody's shape: what every
@@ -719,10 +746,12 @@ func _ready() -> void:
 	# Mirror the root Body shape onto the TargetBody so targeting matches the
 	# entity's footprint (extractor/turret/compound override Body with a box). Entities
 	# with no root collider (e.g. an ExtractionSite, whose footprint lives only on the
-	# TargetBody) keep their authored TargetBody shape.
+	# TargetBody) keep their authored TargetBody shape. Either way the hitbox is then seated
+	# ON the piece's base rather than straddling it (_seat_target_shape).
 	if target_body != null:
 		if collider != null:
 			(target_body.get_node("TargetShape") as CollisionShape3D).shape = collider.shape
+		_seat_target_shape()
 		_apply_targetable_layers()
 
 	_resolve_initial_form()

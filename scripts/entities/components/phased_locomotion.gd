@@ -58,6 +58,23 @@ var _launch_frame: int = -1
 var _had_pursued: bool = false
 ## Where the pursued piece last was — the point a lost pursuit keeps steering at.
 var _last_seen: Vector3 = Vector3.ZERO
+## How far the pursued piece moved between this emission's last two ticks — its velocity, per
+## tick, measured rather than read, so it holds for any way a piece moves. Valid once
+## `_pursued_samples` reaches 2.
+var _pursued_step: Vector3 = Vector3.ZERO
+## Ticks on which the pursued piece's position has been sampled, in a row.
+var _pursued_samples: int = 0
+## A leading phase's aim point (EmissionPhase.lead_fraction), predicted once per phase; null
+## until the pursued piece's motion has been measured.
+var _lead_point: Variant = null
+## Set once a steered phase LOSES ITS LOCK on the pursued piece (EmissionPhase.loses_lock):
+## from then on the emission no longer steers or thrusts, and falls until it strikes something.
+## Permanent, across stages: a motor that has cut does not relight.
+var _lock_lost: bool = false
+## Ticks the emission has fallen since losing its lock, against the backstop.
+var _fall_ticks: int = 0
+## The visuals currently shown, as NodePath -> true (see _show_visuals_of).
+var _shown_visuals: Dictionary = {}
 ## Bodies the impact test passes through: the emission's own and its shooter's.
 var _excluded: Array[RID] = []
 ## Whether this emission flies FREE: it ends only on striking its intended piece or the
@@ -143,7 +160,11 @@ func launch(
 	if _phases.any(func(p: EmissionPhase) -> bool: return p.has_jitter()):
 		_jitter = EmissionJitter.new(SU.rng)
 	_had_pursued = a_pursued != null
-	_last_seen = a_pursued.global_position if a_pursued != null else a_destination
+	_last_seen = a_pursued.aim_point() if a_pursued != null else a_destination
+	_pursued_samples = 0
+	_lead_point = null
+	_lock_lost = false
+	_fall_ticks = 0
 	_excluded = a_excluded
 	_launch_frame = Engine.get_physics_frames()
 	_phase_index = 0
@@ -191,8 +212,14 @@ func tick() -> Progress:
 	if not body.velocity.is_equal_approx(_flown_velocity):
 		_clean_velocity = body.velocity  # written from outside since the last tick
 	var goal: Variant = _steering_goal()
+	if not _lock_lost and goal_entity() != null and phase.loses_lock(_clean_velocity, before, goal):
+		_lock_lost = true
+	if _lock_lost:
+		return _fall(phase, body, before)
 	_clean_velocity = phase.tracked_velocity(_clean_velocity, before, goal)
-	_clean_velocity = phase.steered_toward(_clean_velocity, before, goal)
+	_clean_velocity = phase.steered_toward(
+		_clean_velocity, before, _led_goal(phase, before, goal) if phase.leads() else goal
+	)
 	_clean_velocity = phase.burnt_velocity(_clean_velocity, _phase_seconds())
 	body.velocity = (
 		_jitter.perturbed(phase, _phase_seconds(), _clean_velocity)
@@ -212,6 +239,36 @@ func tick() -> Progress:
 		_phase_over = true
 		_expired = _phase_index == _phases.size() - 1
 	return Progress.MOVING
+
+
+## One tick of a flight that has lost its lock: no steering, no thrust, just gravity, until it
+## strikes something. Its stages' lifespans no longer end it — it falls rather than expiring —
+## save for the backstop, which bursts it where it is. (projectiles.md §Losing the lock)
+func _fall(a_phase: EmissionPhase, a_body: CharacterBody3D, a_before: Vector3) -> Progress:
+	a_body.velocity = _clean_velocity
+	a_body.global_position += a_body.velocity
+	_flown_velocity = a_body.velocity
+	_clean_velocity += (
+		Vector3.DOWN * EmissionPhase.LOST_LOCK_GRAVITY_MPS2 / float(EmissionPhase._ticks_squared())
+	)
+	if _free_flight:
+		_test_contact(a_phase, a_before)
+	elif a_phase.impact_mask != 0:
+		_test_impact(a_phase, a_before)
+	_fall_ticks += 1
+	if _fall_ticks >= TimeUtils.ticks_from_seconds(EmissionPhase.LOST_LOCK_FALL_SECONDS):
+		_phase_over = true
+	_expired = _phase_over and _next_burst_index() < 0
+	return Progress.MOVING
+
+
+## The index of the first phase after the live one that does not move — where a flight that
+## ended (by a contact, or by falling out of its lock) goes next — or -1 when there is none.
+func _next_burst_index() -> int:
+	for index: int in range(_phase_index + 1, _phases.size()):
+		if _phases[index].is_motionless():
+			return index
+	return -1
 
 
 #endregion
@@ -264,11 +321,24 @@ func _body() -> CharacterBody3D:
 
 ## Shows the visuals phase `a_index` names and hides every other phase's, leaving alone the beam
 ## a Tracer draws.
+##
+## By DIFFERENCE: a visual the live phase names is never hidden, even when another phase names it
+## too, and one already showing is not shown again. Several stages of one flight can share a mesh
+## and an exhaust, which stay up across the handover rather than vanishing or restarting.
 func _show_visuals_of(a_index: int) -> void:
 	var tracer: Tracer = Tracer.of(get_parent())
 	var beam: Node = tracer.beam() if tracer != null else null
-	for i: int in _phases.size():
-		_phases[i].show_visuals(get_parent(), i == a_index, beam)
+	var wanted: Dictionary = {}
+	for path: NodePath in _phases[a_index].visuals:
+		wanted[path] = true
+	for phase: EmissionPhase in _phases:
+		for path: NodePath in phase.visuals:
+			if not wanted.has(path):
+				EmissionPhase.show_visual(get_parent(), path, false, beam)
+	for path: NodePath in wanted:
+		if not _shown_visuals.has(path):
+			EmissionPhase.show_visual(get_parent(), path, true, beam)
+	_shown_visuals = wanted
 
 
 ## Runs the phase's scenario events at the emission's position, as its owner's.
@@ -295,21 +365,69 @@ func face_velocity() -> void:
 	body.look_at(body.global_position + body.velocity, up)
 
 
-## Where a steered phase aims: the pursued piece, or where it was last seen once it has left
-## the game; null for a goal that never named a piece, which is flown unsteered.
+## Where a steered phase aims: the centre of the pursued piece's hitbox (Entity.aim_point), or
+## where it was last seen once it has left the game; null for a goal that never named a piece,
+## which is flown unsteered.
 func _steering_goal() -> Variant:
 	var pursued: Entity = goal_entity()
 	if pursued != null:
-		_last_seen = pursued.global_position
+		var aim: Vector3 = pursued.aim_point()
+		if _pursued_samples > 0:
+			_pursued_step = aim - _last_seen
+		_pursued_samples += 1
+		_last_seen = aim
 		return _last_seen
+	_pursued_samples = 0
 	return _last_seen if _had_pursued else null
+
+
+## Where a LEADING phase steers from `a_position`: the point its target was predicted to reach,
+## fixed the first tick the target's motion is known (its live position until then), and
+## nothing once that point is behind — the emission then flies straight.
+func _led_goal(a_phase: EmissionPhase, a_position: Vector3, a_goal: Variant) -> Variant:
+	if _lead_point == null:
+		if _pursued_samples < 2 or not (a_goal is Vector3):
+			return a_goal
+		_lead_point = a_phase.intercept_point(a_position, a_goal, _pursued_step)
+	var point: Vector3 = _lead_point
+	return point if _clean_velocity.dot(point - a_position) > 0.0 else null
 
 
 ## Ends the live phase and starts the next. False when there is no next phase. A flight that
 ## ended by arriving snaps onto a live piece it was chasing; one that ended any way but an
 ## impact settles at its destination's height.
+##
+## Two flight stages in a row are ONE flight: a moving phase whose lifespan ran out hands the
+## next moving phase its position, heading and speed, rather than relaunching it from scratch.
+## And a contact ends the flight, not the stage: it skips every moving phase after it, straight
+## to the next one that does not move — the burst. (projectiles.md §Phases)
 func _enter_next_phase(a_has_arrived: bool) -> bool:
 	var body: CharacterBody3D = _body()
+	var ended: EmissionPhase = current_phase()
+	var next: EmissionPhase = (
+		_phases[_phase_index + 1] if _phase_index + 1 < _phases.size() else null
+	)
+	if (
+		next != null
+		and not next.is_motionless()
+		and not ended.is_motionless()
+		and not _ended_by_impact
+		and not _lock_lost
+		and not a_has_arrived
+	):
+		_phase_index += 1
+		_phase_ticks = 0
+		_phase_over = false
+		_lead_point = null
+		# A straight stage flies at its own speed on the inherited heading; a steered stage
+		# works the inherited speed toward its own under its acceleration rule, and a falling
+		# one keeps its motion and falls.
+		if next.is_straight():
+			redirect(_clean_velocity.normalized() * next.speed / TimeUtils.ticks_per_second())
+		return true
+	if _ended_by_impact or _lock_lost:
+		while _phase_index + 1 < _phases.size() and not _phases[_phase_index + 1].is_motionless():
+			_phase_index += 1
 	var pursued: Entity = goal_entity()
 	# A GUIDED flight that arrived snaps onto the piece it was chasing: it can hit a target it
 	# geometrically missed. A free flight never arrives at a piece, so never snaps.
@@ -323,6 +441,7 @@ func _enter_next_phase(a_has_arrived: bool) -> bool:
 	_phase_ticks = 0
 	_phase_over = false
 	_ended_by_impact = false
+	_lead_point = null
 	var phase: EmissionPhase = current_phase()
 	if phase == null:
 		return false

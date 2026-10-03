@@ -11,7 +11,7 @@ defense:
   frame: MECH
 senses:
   vision: vision_aerial_large
-movement: {speed: QUICK, turn_rate: 180, max_acceleration: 2, max_deceleration: -3, reverse_speed_ratio: 0.35}
+movement: {speed: SWIFT, turn_rate: 180, max_acceleration: 4.65, max_deceleration: -7, reverse_speed_ratio: 0.35}
 aerial: {mode: HOVERING}
 docking: true
 ui: {grid: [1, 1], factions: [anarchists]}

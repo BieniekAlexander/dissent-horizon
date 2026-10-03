@@ -18,10 +18,10 @@ defense:
 senses:
   vision: vision_aerial_large
 movement:
-  speed: BRISK
+  speed: RAPID
   turn_rate: 90
-  max_acceleration: 1
-  max_deceleration: -1.5
+  max_acceleration: 2.33
+  max_deceleration: -3.5
   reverse_speed_ratio: 0.2
 aerial: {mode: HOVERING}
 docking: true

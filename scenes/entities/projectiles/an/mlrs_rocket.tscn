@@ -32,7 +32,7 @@ metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 
 [node name="Flight" type="Node3D" parent="." unique_id=2104023005]
 script = ExtResource("1_spec")
-speed = 15.0
+speed = 12.4
 gravity_mps2 = 18.75
 jitter_degrees = 3
 visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh")])

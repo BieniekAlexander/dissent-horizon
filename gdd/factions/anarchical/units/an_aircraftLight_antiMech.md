@@ -11,7 +11,7 @@ defense:
   frame: MECH
 senses:
   vision: vision_aerial_medium
-movement: {speed: FAST, turn_rate: 160, max_acceleration: 2, max_deceleration: -1}
+movement: {speed: HYPER, turn_rate: 610, max_acceleration: 2, max_deceleration: -1}
 aerial: {mode: FLYING}
 weapons:
   - name: BombWeapon
@@ -50,7 +50,10 @@ exceptions:
   soft gate, so a swarm of drones never reports the air force as short of pads.
   Its bomb is deliberately NOT `charged` — a charged weapon on a unit that cannot dock is
   an import error, since its clip could never be refilled.
-- Movement is the `flyer_medium` class ([movement](../../../movement/movement.md)) except
-  `turn_rate: 150` rather than 90. `turn_radius_within_reach` is structural and cannot be
-  waived: at melee reach even its diving turn has to fit a 0.5 circle, and 150 is the
-  slowest cruise turn rate whose dive does.
+- Movement is HYPER, one of the light aircraft that outrun the standard rocket
+  ([speed_classes](../../../movement/speed_classes.md)). `turn_radius_within_reach` is
+  structural and cannot be waived: at melee reach even its diving turn has to fit a 0.5
+  circle. Its turn rate was 160 at FAST and was scaled to 610 with the move to HYPER
+  (2026-10-03), so its turning circle, and its dive's, are what they were. Its acceleration
+  was NOT scaled (Alex: it took off far too fast): at 2 u/s² it needs about 10 s to reach
+  HYPER, so a drone is fast only once it has been flying a while.

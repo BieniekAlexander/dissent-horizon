@@ -78,6 +78,7 @@ const CHECK_ARGUMENTS: Dictionary = {
 	"command": ["is"],
 	"idle": [],
 	"garrisoned_in": ["host"],
+	"hit_rate": ["target", "at_least", "at_most"],
 }
 #endregion
 
@@ -127,6 +128,10 @@ class Order:
 	## Positional commands only: `near:` was written rather than `target:`, so the order
 	## stops at the referenced group's EDGE instead of driving onto its centre.
 	var approaches: bool = false
+	## Seconds into the run at which the order is issued; zero is the opening queue. Every
+	## order of a group sharing one `after:` is issued together, as a fresh queue that REPLACES
+	## whatever the group was doing — a reroute, the way a player's right-click is one.
+	var after_seconds: float = 0.0
 
 
 ## A named set of entities belonging to one commander — the unit of ordering, targeting and
@@ -493,12 +498,28 @@ func _read_orders(a_where: String, a_value: Variant) -> Array[Order]:
 
 
 func _read_order(a_where: String, a_value: Variant) -> Order:
-	if not (a_value is Dictionary) or (a_value as Dictionary).size() != 1:
-		errors.append("`%s` must be a single { command: argument } pair" % a_where)
+	var commands: Array = (
+		(a_value as Dictionary).keys().filter(func(k: Variant) -> bool: return str(k) != "after")
+		if a_value is Dictionary
+		else []
+	)
+	if commands.size() != 1:
+		errors.append(
+			"`%s` must be a single { command: argument } pair, optionally with `after:`" % a_where
+		)
 		return null
 	var body: Dictionary = a_value
 	var order := Order.new()
-	order.command = body.keys()[0]
+	order.command = str(commands[0])
+	if body.has("after"):
+		order.after_seconds = _read_seconds(body["after"], "%s.after" % a_where)
+		if run_seconds > 0.0 and order.after_seconds >= run_seconds:
+			errors.append(
+				(
+					"`%s.after` is %ss, at or past the %ss window — it would never be issued"
+					% [a_where, order.after_seconds, run_seconds]
+				)
+			)
 	if not COMMAND_ARGUMENTS.has(order.command):
 		errors.append(
 			(
