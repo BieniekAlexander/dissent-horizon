@@ -98,7 +98,7 @@ The default state: own units selected, no tool and no sanction armed.
 | *none*             | press starts a box-drag; release click-selects or box-selects, **replacing** the selection. Double-click selects every on-screen unit of that type                                                                                                                                                                                                                                                                                                                                               | pan the camera while held                                                                                                                                            | issue the resolved command at the cursor (Move / Attack / AttackMove / Interact / Occupy / **Embark**…), **replacing** the unit's orders     |
 | `modifier_additive` | keep the current selection and add; clicking an already-selected own unit **removes** it; a shift-click on an enemy/neutral is ignored outright                                                                                                                                                                                                                                                                                                                                                  | *unused* (pans)                                                                                                                                                      | append the command to each unit's queue **and** keep the armed sub-mode (`_reset_pending_state` is skipped)                     |
 | `modifier_narrow`  | **SET DIFFERENCE.** Whatever the click or the box caught comes OUT of the selection; everything else stays. Ten selected and a box over three leaves seven | pan at `precise_pan_factor` (0.5) | assign to ONE actor — the nearest **idle** capable actor to the target |
-| `modifier_broaden` | **select every on-screen unit of the clicked type** — the double-click's reach without the timing. On a DRAG it means nothing and the box runs unmodified | pan at `fast_pan_factor` (2.0) | **the units that cannot carry the order out get a plain Move to the same point** (see below) |
+| `modifier_broaden` | **select every on-screen unit of the clicked type** — the double-click's reach without the timing. On a DRAG it means nothing and the box runs unmodified | pan at `fast_pan_factor` (2.0) | **the units that cannot carry the order out get a plain Move to the same point** (see below). **Held at the press of a ground order and DRAGGED: a move line** — the selection spreads along the line ([commands/move-line-drag](../../commands/move-line-drag.md)); released without a drag it is the plain order above |
 
 Two things worth naming because they are not obvious from either the key or the tooltip:
 
@@ -122,6 +122,10 @@ Two things worth naming because they are not obvious from either the key or the 
   in through `MoveCommand.bystanders_move()`. See
   [commands/the-click-ladder](../../commands/the-click-ladder.md) §What the members that do NOT
   receive the order do.
+- **`modifier_broaden` on a right-DRAG over ground draws a move line.** Move, AttackMove, Patrol
+  and Defend only. For those four the "rest of you go there anyway" rule above is empty (none
+  has a precondition, so nobody is left out), which is why Ctrl was free to carry the gesture.
+  Held at the press only; see [commands/move-line-drag](../../commands/move-line-drag.md).
 - **Narrow takes the whole LMB gesture rather than modifying it**, which is why it ignores
   `modifier_additive`: "remove these" has no additive reading. It overlaps with shift-clicking
   a selected unit to drop it, and that is accepted — one gesture drops one unit, the other

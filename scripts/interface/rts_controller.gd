@@ -1166,9 +1166,12 @@ static func line_capable(a_command_type: Script) -> bool:
 
 
 ## Whether a press of the default order button may turn into a line, and so be held back until
-## the release. Not armed orders, not placement, and not a press that starts over a unit (that is
-## an order AT the unit, which stays one) or over the HUD.
+## the release. Only with `modifier_broaden` held at the press, so a plain right click and a plain
+## right drag are exactly what they were. Not armed orders, not placement, and not a press that
+## starts over a unit (that is an order AT the unit, which stays one) or over the HUD.
 func _line_order_applies() -> bool:
+	if not Input.is_action_pressed(MODIFIER_BROADEN):
+		return false
 	if is_command_armed() or _placing or not pending_selection.is_empty():
 		return false
 	if not _selection_owned_by_player() or not (cursor_target is Vector3):
