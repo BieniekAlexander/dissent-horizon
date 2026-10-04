@@ -10,7 +10,6 @@
 [ext_resource type="Script" uid="uid://byjcppaifact3" path="res://scripts/interface/hud/info_view.gd" id="10_infoview"]
 [ext_resource type="PackedScene" uid="uid://c7objvw1e0001" path="res://scenes/interface/objective_view.tscn" id="11_objview"]
 [ext_resource type="PackedScene" uid="uid://d1qym633ecjpp" path="res://scenes/interface/help_overlay.tscn" id="12_help"]
-[ext_resource type="PackedScene" path="res://scenes/menu/pause_menu.tscn" id="13_pause"]
 [ext_resource type="Script" uid="uid://c7nisc1wgx7d0" path="res://scripts/interface/hud/production_rail.gd" id="15_rail"]
 [ext_resource type="Script" uid="uid://biu5n1j1et8ni" path="res://scripts/interface/hud/selector_panel.gd" id="16_select"]
 [ext_resource type="Script" uid="uid://dg2xxijhyx7uj" path="res://scripts/interface/hud/control_group_panel.gd" id="17_cgroups"]
@@ -349,4 +348,3 @@ volume_db = -29.759
 top_level = true
 script = ExtResource("4_b3a3y")
 
-[node name="PauseMenu" parent="." unique_id=346545408 instance=ExtResource("13_pause")]

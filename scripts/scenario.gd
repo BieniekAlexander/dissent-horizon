@@ -188,6 +188,11 @@ func _ready() -> void:
 		set_physics_process(false)
 
 
+## A playback speed is the engine's global, so it would otherwise outlive this session.
+func _exit_tree() -> void:
+	PlaybackSpeed.reset()
+
+
 func _physics_process(_a_delta: float) -> void:
 	tick += 1
 	_check_eliminations()
@@ -339,6 +344,8 @@ func seed_simulation() -> void:
 ## The key/fill sun pair a scenario gets when it authors no light of its own. Ambient light is
 ## not part of it: that is the project's default Environment, which applies wherever a scene
 ## has no WorldEnvironment. See gdd/systems/ux/aesthetics/lighting.md.
+## The scenario HUD's pause menu; authored layout, instanced in _create_scenario_hud.
+const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/menu/pause_menu.tscn")
 ## The scenario HUD's elapsed-time readout; authored layout, instanced in _create_scenario_hud.
 const SCENARIO_TIMER_SCENE: PackedScene = preload("res://scenes/interface/scenario_timer.tscn")
 const DEFAULT_LIGHTING_SCENE: String = "res://scenes/environment/default_lighting.tscn"
@@ -704,18 +711,18 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	add_child(timer_layer)
 	var timer: ScenarioTimer = SCENARIO_TIMER_SCENE.instantiate()
 	timer_layer.add_child(timer)
-	timer.bind(self)
+	timer.bind(self, a_event_manager.simulation_clock)
 
 	# By group rather than by path, so the panel can be moved anywhere in the rig without this
 	# needing to know where it ended up.
 	for node: Node in get_tree().get_nodes_in_group(ObjectiveView.GROUP):
 		(node as ObjectiveView).bind(a_event_manager)
 
-	# Same group lookup for the pause menu, which needs the clock to hold the world while it is
-	# up. It ships in the player rig, so a spectator or headless session simply has none — and
-	# has no player to want one.
-	for node: Node in get_tree().get_nodes_in_group(PauseMenu.GROUP):
-		(node as PauseMenu).bind(a_event_manager)
+	# The pause menu: here and not in the player rig, so a spectator can leave, and set playback
+	# speed, as a player can.
+	var pause_menu: PauseMenu = PAUSE_MENU_SCENE.instantiate()
+	add_child(pause_menu)
+	pause_menu.bind(a_event_manager)
 
 
 ## The node that receives the debug toggle, and the session's debug permission with it. First

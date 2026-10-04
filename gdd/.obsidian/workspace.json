@@ -55,10 +55,10 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "annex",
+                "query": "incendiary",
                 "matchingCase": true,
                 "explainSearch": false,
-                "collapseAll": true,
+                "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical"
               },

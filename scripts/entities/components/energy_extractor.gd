@@ -13,7 +13,7 @@ extends Node
 ## Seconds between payouts. A const as well as the tick count below, because editor tools read
 ## it without running this script's static initialiser.
 const CYCLE_SECONDS: float = 5.0
-static var TICK_RATE: int = roundi(CYCLE_SECONDS * Engine.physics_ticks_per_second)
+static var TICK_RATE: int = roundi(CYCLE_SECONDS * TimeUtils.ticks_per_second())
 ## Physics ticks since this extractor last paid out. Private: the cycle is the
 ## component's own business, and nothing outside it has cause to move the counter.
 var _ticks_elapsed: int = 0

@@ -841,9 +841,7 @@ static func _extraction_rate_of(a_piece: Commandable) -> float:
 	var extractor := a_piece.get_node_or_null("EnergyExtractor") as EnergyExtractor
 	if extractor == null:
 		return 0.0
-	return (
-		float(extractor.energy_rate) * Engine.physics_ticks_per_second / EnergyExtractor.TICK_RATE
-	)
+	return float(extractor.energy_rate) * TimeUtils.ticks_per_second() / EnergyExtractor.TICK_RATE
 
 
 ## Dominion per second from owned structures — the DominionGenerator equivalent.
@@ -858,7 +856,7 @@ static func _generation_rate_of(a_piece: Commandable) -> float:
 	var generator := a_piece.get_node_or_null("DominionGenerator") as DominionGenerator
 	if generator == null:
 		return 0.0
-	return float(generator.payout()) * Engine.physics_ticks_per_second / DominionGenerator.TICK_RATE
+	return float(generator.payout()) * TimeUtils.ticks_per_second() / DominionGenerator.TICK_RATE
 
 
 ## Dominion/s this commander's dominion route pays on its own sweep, beyond any generator
@@ -1016,7 +1014,7 @@ func energy_spend_rate() -> float:
 			var ticks: int = c.production.training_queue[0][Production.JOB_TOTAL]
 			if spec == null or ticks <= 0:
 				return 0.0
-			return float(spec.energy_cost) * Engine.physics_ticks_per_second / ticks
+			return float(spec.energy_cost) * TimeUtils.ticks_per_second() / ticks
 	)
 
 

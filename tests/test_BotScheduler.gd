@@ -24,7 +24,7 @@ func _job(
 	a_units: int = 1,
 	a_brain: BotBrain = null
 ) -> BotJob:
-	var seconds: float = float(a_period_ticks) / Engine.physics_ticks_per_second
+	var seconds: float = float(a_period_ticks) / TimeUtils.ticks_per_second()
 	var job := BotJob.new(
 		a_name,
 		a_brain if a_brain != null else _brain,

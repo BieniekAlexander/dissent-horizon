@@ -68,7 +68,7 @@ static func build(a_spec: SimSpec, a_seed: int) -> SimArena:
 	arena.name = "SimArena_%s" % a_spec.id
 	arena.spec = a_spec
 	arena.rng_seed = a_seed
-	arena.run_ticks = int(round(a_spec.run_seconds * Engine.physics_ticks_per_second))
+	arena.run_ticks = int(round(a_spec.run_seconds * TimeUtils.ticks_per_second()))
 	arena.max_ticks = arena.run_ticks + WINDOW_SLACK_TICKS
 	arena._build_slots()
 	arena.add_child(SimArena.flat_map(a_spec.arena_size_cells))
@@ -403,7 +403,7 @@ func _on_armed() -> void:
 
 ## Issue each timed batch (`after:`) on the first tick at or past its time.
 func _on_tick(a_elapsed: int) -> void:
-	var seconds: float = float(a_elapsed) / Engine.physics_ticks_per_second
+	var seconds: float = float(a_elapsed) / TimeUtils.ticks_per_second()
 	while not _pending_times.is_empty() and _pending_times[0] <= seconds:
 		_issue_orders_after(_pending_times.pop_front())
 
@@ -596,7 +596,7 @@ func _compile_checks() -> Array[SimulationCheck]:
 				leaf.describe(),
 				SimCheckLibrary.predicate(leaf, roster),
 				_mode_of(leaf),
-				int(round(leaf.deadline_seconds * Engine.physics_ticks_per_second)),
+				int(round(leaf.deadline_seconds * TimeUtils.ticks_per_second())),
 			)
 		)
 		check.measurement = SimCheckLibrary.measurement(leaf, roster)

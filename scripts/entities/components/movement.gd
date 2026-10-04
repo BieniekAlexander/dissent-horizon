@@ -332,7 +332,7 @@ func is_parachuting() -> bool:
 ## (or frees the canopy and something else re-drops the unit) cannot be run twice by the
 ## same touchdown.
 func _tick_parachute() -> void:
-	var dt: float = 1.0 / Engine.physics_ticks_per_second
+	var dt: float = 1.0 / TimeUtils.ticks_per_second()
 	_parachute_rate = minf(_parachute_rate + PARACHUTE_GRAVITY * dt, PARACHUTE_TERMINAL_SPEED)
 	_parachute_altitude -= _parachute_rate * dt
 	if _parachute_altitude > 0.0:
@@ -854,7 +854,7 @@ func turn_toward(a_target_dir: Vector3) -> void:
 	if turn_rate == INF:
 		owner_node.rotation.y = target_angle
 		return
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	var max_delta: float = deg_to_rad(_effective_turn_rate()) / tps
 	owner_node.rotation.y += clampf(
 		angle_difference(owner_node.rotation.y, target_angle), -max_delta, max_delta
@@ -900,7 +900,7 @@ func _apply_accel_limits(a_desired: Vector3) -> Vector3:
 	elif needs_facing:
 		desired_speed = _facing_capped_speed(a_desired, desired_speed)
 
-	var tps: float = Engine.physics_ticks_per_second
+	var tps: float = TimeUtils.ticks_per_second()
 	var current_speed: float = _current_velocity.length()
 	var clamped_delta: float = clampf(
 		desired_speed - current_speed,
@@ -1095,7 +1095,7 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 ##     destination is ahead of or behind the current facing. A ratio of 0 means no
 ##     translation while turning — the unit pivots in place until aligned.
 func _apply_grounded_turn(a_velocity: Vector3) -> Vector3:
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	# Signed longitudinal speed carried over from last tick. The emitted velocity is
 	# always along ±facing, and facing hasn't rotated yet this tick, so projecting the
 	# previous velocity onto it recovers that signed speed (sign included).

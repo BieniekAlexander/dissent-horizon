@@ -75,7 +75,7 @@ func pending_rate_change() -> float:
 
 ## Dominion/s one paying tile is worth.
 func _tile_rate() -> float:
-	return dominion_per_tile * Engine.physics_ticks_per_second / DominionGenerator.TICK_RATE
+	return dominion_per_tile * TimeUtils.ticks_per_second() / DominionGenerator.TICK_RATE
 
 
 func _snapshot_or_empty() -> Dictionary:

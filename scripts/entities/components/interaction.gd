@@ -106,7 +106,7 @@ func required_ticks(a_target: Entity) -> float:
 		and a_target.defense != null
 	):
 		return hp_factor * a_target.defense.hp
-	return duration * Engine.physics_ticks_per_second
+	return duration * TimeUtils.ticks_per_second()
 
 
 #endregion

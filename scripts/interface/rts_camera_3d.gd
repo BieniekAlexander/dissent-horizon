@@ -6,7 +6,7 @@ class_name RTSCamera3D extends Camera3D
 ## baked into the player camera in player.tscn. Flat sprites are authored to look
 ## correct from this view, so it's the canonical record of the game's viewing
 ## angle. Drives initial_position() below.
-const CAMERA_ANGLE_DEGREES: float = -135.0
+const CAMERA_ANGLE_DEGREES: float = -140.0
 
 ## How far the camera sits from the origin along the CAMERA_ANGLE_DEGREES
 ## elevation. Only affects how zoomed-out the framing is, not the angle.
@@ -307,11 +307,13 @@ static func is_typing(a_viewport: Viewport) -> bool:
 
 
 func _process(a_delta: float) -> void:
+	# The camera moves at the player's pace, not the game's: playback speed scales the delta.
+	var real_delta: float = PlaybackSpeed.real_seconds(a_delta)
 	if not is_typing(get_viewport()):
 		if Input.is_action_pressed(rotate_left_action):
-			rotation.y += rotation_speed * a_delta
+			rotation.y += rotation_speed * real_delta
 		if Input.is_action_pressed(rotate_right_action):
-			rotation.y -= rotation_speed * a_delta
+			rotation.y -= rotation_speed * real_delta
 
 	# Zoom is handled in _input (see _handle_zoom_input) rather than polled here, because the
 	# wheel and the +/- keys need different rules and polling cannot tell them apart.
@@ -321,7 +323,7 @@ func _process(a_delta: float) -> void:
 	# have moved this frame — drag and arrow keys from _input, edge pan, an outside center_on —
 	# is caught by one check.
 	_clamp_zoom()
-	_apply_edge_pan(a_delta)
+	_apply_edge_pan(real_delta)
 	_clamp_to_map_bounds()
 
 
@@ -350,7 +352,7 @@ func _handle_zoom_input(a_event: InputEvent) -> void:
 	if not zoom_allowed(a_event, _pointer_over_ui()):
 		return
 
-	var delta: float = get_process_delta_time()
+	var delta: float = PlaybackSpeed.real_seconds(get_process_delta_time())
 	if zoom_in_pressed:
 		zoom_in.call(delta, zoom_speed)
 	else:

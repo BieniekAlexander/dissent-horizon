@@ -96,7 +96,7 @@ var recharge_ticks: int = 0
 ## Seconds until the next charge, for display. The tick rate is READ rather than typed, so a
 ## change to the physics rate cannot silently make every timer on screen wrong.
 func recharge_seconds() -> float:
-	var rate: int = Engine.physics_ticks_per_second
+	var rate: int = TimeUtils.ticks_per_second()
 	return float(recharge_ticks) / float(rate) if rate > 0 else 0.0
 
 

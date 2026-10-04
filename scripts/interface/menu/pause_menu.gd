@@ -4,7 +4,7 @@ extends CanvasLayer
 ## The in-scenario pause screen. `show_pause_menu` (Escape) raises it, the same key drops it,
 ## and while it is up the simulation is held. It offers the way out of a running scenario:
 ## back to the title screen, through SceneManager — the same call the victory dialog's return
-## button makes.
+## button makes — and, under `debug_allowed`, the playback-speed controls (PlaybackControls).
 ##
 ## A CanvasLayer of its own, ABOVE ScenarioDialogView's: a pause menu that a scripted dialog
 ## could cover would be unreachable exactly when the player most wants to leave.
@@ -17,9 +17,11 @@ extends CanvasLayer
 ## A direct write would have let closing the pause menu resume a world that a victory dialog
 ## was deliberately holding.
 ##
-## Without a clock — a player rig dropped into a scene that has no ScenarioTriggerManager —
-## the menu still opens and still navigates; it just doesn't stop anything. Being unable to
-## pause is a much smaller problem than being unable to quit.
+## Owned by Scenario, not the player rig, so a spectator session has one too.
+##
+## Without a clock — a menu instanced outside a Scenario, as a test does — it still opens and
+## still navigates; it just doesn't stop anything. Being unable to pause is a much smaller
+## problem than being unable to quit.
 ##
 ## ── Scope ──
 ##
@@ -30,9 +32,7 @@ extends CanvasLayer
 ## it does mean this is a pause menu, not a modal.
 
 #region Constants
-## Live pause menus join this group so Scenario can find and bind whichever the player rig
-## happens to contain, without knowing where in that rig it was placed. Same lookup as
-## ObjectiveView.
+## The live pause menu joins this group, so anything that needs it can find it without a path.
 const GROUP: StringName = &"pause_menu"
 
 ## The toggle. Escape also drives Godot's built-in `ui_cancel`; Buttons don't consume that,
@@ -46,6 +46,7 @@ const LAYER: int = 20
 #region Properties
 @onready var _return_button: Button = %ReturnButton
 @onready var _volume_slider: HSlider = %VolumeSlider
+@onready var _playback_controls: PlaybackControls = %PlaybackControls
 
 ## The scenario's clock, supplied by Scenario.bind. Null in a scene with no trigger manager.
 var _clock: SimulationClock = null
@@ -93,9 +94,10 @@ func _exit_tree() -> void:
 
 
 #region Public API
-## Give the menu the scenario's clock. Called by Scenario once both exist; idempotent.
+## Give the menu the scenario's clock. Called by Scenario when it builds the menu; idempotent.
 func bind(a_manager: ScenarioTriggerManager) -> void:
 	_clock = a_manager.simulation_clock
+	_playback_controls.bind(_clock)
 
 
 func is_open() -> bool:
@@ -116,6 +118,8 @@ func open() -> void:
 	if _clock != null:
 		_clock.hold(SimulationClock.REASON_PAUSE_MENU)
 	visible = true
+	# Re-read on every open: debug permission and the speed can both change while closed.
+	_playback_controls.refresh()
 	# So the menu is operable from the keyboard the moment it appears.
 	_return_button.grab_focus()
 

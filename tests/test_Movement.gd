@@ -147,7 +147,7 @@ func _fly_dive_run(
 	a_m: Movement, a_target_xz: Vector2, a_speed: float, a_max_ticks: int = 600
 ) -> float:
 	var parent := a_m.get_parent() as Node3D
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	for i in a_max_ticks:
 		var here: Vector2 = VU.in_xz(parent.global_position)
 		var to_target: Vector2 = a_target_xz - here
@@ -198,7 +198,7 @@ func test_flying_holds_cruise_altitude_until_it_commits():
 	var target := Vector2(40.0, 0.0)
 	# Fly to a point comfortably outside the commit window and check it is still at cruise.
 	var stop_at: float = 40.0 - (_air(m)._dive_commit_distance(4.0) + 2.0)
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	while parent.global_position.x < stop_at:
 		parent.global_position.x += 4.0 / tps
 		m._current_velocity = Vector3(4.0, 0, 0)
@@ -255,7 +255,7 @@ func test_dive_commit_distance_scales_with_speed():
 ## world-units per SECOND, so convert to a per-tick step first; the FLYING dive path this
 ## budgets for (_update_flying_height) moves at that flat rate.
 func _full_height_ticks() -> int:
-	var per_tick: float = Aerial.LANDING_SPEED / float(Engine.physics_ticks_per_second)
+	var per_tick: float = Aerial.LANDING_SPEED / float(TimeUtils.ticks_per_second())
 	return int(ceil(Aerial.AERIAL_HEIGHT / per_tick)) + 20
 
 
@@ -333,7 +333,7 @@ func test_flying_banks_into_a_turn():
 	var parent: Node3D = rig[0]
 	var m: Movement = rig[1]
 	var visual: Node3D = rig[2]
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	for i in 120:
 		parent.rotation.y += deg_to_rad(90.0) / tps  # a steady 90 deg/s left turn
 		m._current_velocity = Vector3(0, 0, 4.0)
@@ -358,7 +358,7 @@ func test_flying_bank_is_capped():
 	var parent: Node3D = rig[0]
 	var m: Movement = rig[1]
 	var visual: Node3D = rig[2]
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	for i in 200:
 		parent.rotation.y += deg_to_rad(720.0) / tps  # absurd turn rate
 		m._current_velocity = Vector3(0, 0, 20.0)
@@ -375,7 +375,7 @@ func test_flying_attitude_never_touches_the_physics_body():
 	var parent: Node3D = rig[0]
 	var m: Movement = rig[1]
 	var visual: Node3D = rig[2]
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	for i in 60:
 		parent.rotation.y += deg_to_rad(90.0) / tps
 		m._current_velocity = Vector3(0, 0, 4.0)
@@ -491,7 +491,7 @@ func _make_hovering() -> Array:
 ## (_current_velocity - _prev_tilt_velocity) * tps, so a fixed pair of velocities one
 ## tick apart IS a fixed acceleration.
 func _settle_lean(a_m: Movement, a_accel_xz: Vector2, a_ticks: int = 300) -> void:
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	var delta: Vector3 = Vector3(a_accel_xz.x, 0.0, a_accel_xz.y) / tps
 	for i in a_ticks:
 		_air(a_m)._prev_tilt_velocity = Vector3.ZERO
@@ -667,7 +667,7 @@ func _make_hovering_movement() -> Movement:
 func test_descent_starts_gently_rather_than_at_full_rate():
 	var m := _make_hovering_movement()
 	var first: float = absf(_air(m)._step_height_offset(0.0))
-	var per_tick_cap: float = Aerial.LANDING_SPEED / float(Engine.physics_ticks_per_second)
+	var per_tick_cap: float = Aerial.LANDING_SPEED / float(TimeUtils.ticks_per_second())
 	assert_lt(
 		first, per_tick_cap * 0.5, "the first tick of a descent moves far less than the capped rate"
 	)
@@ -678,7 +678,7 @@ func test_descent_reaches_the_rate_cap_mid_manoeuvre():
 	var m := _make_hovering_movement()
 	for i in 60:
 		_air(m)._step_height_offset(0.0)
-	var per_tick_cap: float = Aerial.LANDING_SPEED / float(Engine.physics_ticks_per_second)
+	var per_tick_cap: float = Aerial.LANDING_SPEED / float(TimeUtils.ticks_per_second())
 	assert_almost_eq(
 		absf(_air(m)._landing_rate),
 		Aerial.LANDING_SPEED,
@@ -715,7 +715,7 @@ func test_a_reversal_eases_through_zero_rather_than_snapping():
 	for i in 60:
 		_air(m)._step_height_offset(Aerial.AERIAL_HEIGHT)
 	assert_gt(_air(m)._landing_rate, 0.0, "precondition: ascending")
-	var dv_max: float = Aerial.LANDING_ACCEL / float(Engine.physics_ticks_per_second)
+	var dv_max: float = Aerial.LANDING_ACCEL / float(TimeUtils.ticks_per_second())
 	var previous: float = _air(m)._landing_rate
 	for i in 10:
 		_air(m)._step_height_offset(0.0)
@@ -757,7 +757,7 @@ func test_the_estimate_agrees_with_the_stepper():
 	while _air(m)._current_height_offset > 0.0 and ticks < 1000:
 		_air(m)._step_height_offset(0.0)
 		ticks += 1
-	var actual: float = float(ticks) / float(Engine.physics_ticks_per_second)
+	var actual: float = float(ticks) / float(TimeUtils.ticks_per_second())
 	assert_almost_eq(actual, predicted, 0.1, "the predicted descent time matches the simulated one")
 
 
@@ -784,7 +784,7 @@ func test_altitude_respects_max_vertical_accel():
 	add_child_autofree(m)
 	m._smoothed_terrain_y = 0.0
 	m._vertical_velocity = 0.0
-	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var dt: float = 1.0 / float(TimeUtils.ticks_per_second())
 	var dv_max: float = Aerial.MAX_VERTICAL_ACCEL * dt
 	# Against a huge target the controller wants maximum climb, but the per-tick change
 	# in vertical speed can never exceed the acceleration budget.
@@ -920,7 +920,7 @@ func test_can_crush_anything_skips_the_scan_for_aerial_units():
 ## Also reports the closest it ever got, so a failure says how badly it orbited.
 func _run_to_destination(a_m: Movement, a_target: Vector3, a_max_ticks: int = 900) -> Dictionary:
 	var parent := a_m.get_parent() as Node3D
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	a_m.set_target_position(a_target)
 	var closest: float = INF
 	for i in a_max_ticks:
@@ -1040,7 +1040,7 @@ func test_aerial_unit_reaches_destinations_with_bounded_acceleration():
 ## signature of the double turn regardless of how far round the orbit the run gets.
 func _orbit_entry_profile(a_m: Movement, a_ticks: int = 90) -> Dictionary:
 	var parent := a_m.get_parent() as Node3D
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	var total: float = 0.0
 	var net: float = 0.0
 	var prev: float = atan2(VU.in_xz(a_m._current_velocity).y, VU.in_xz(a_m._current_velocity).x)

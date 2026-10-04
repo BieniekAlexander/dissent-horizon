@@ -1,0 +1,51 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/interface/menu/playback_controls.gd" id="1_playback"]
+
+[node name="PlaybackControls" type="VBoxContainer"]
+theme_override_constants/separation = 8
+script = ExtResource("1_playback")
+
+[node name="Heading" type="Label" parent="."]
+layout_mode = 2
+text = "Playback speed (debug)"
+
+[node name="SpeedRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="SpeedSlider" type="HSlider" parent="SpeedRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 8.0
+max_value = 120.0
+step = 1.0
+value = 30.0
+exp_edit = true
+
+[node name="SpeedLabel" type="Label" parent="SpeedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+text = "×1.00"
+horizontal_alignment = 2
+
+[node name="ToggleRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="PauseToggle" type="CheckButton" parent="ToggleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Pause"
+
+[node name="UncappedToggle" type="CheckButton" parent="ToggleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Max speed"
+
+[node name="NormalButton" type="Button" parent="ToggleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 10
+text = "×1"

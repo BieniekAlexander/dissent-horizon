@@ -230,7 +230,7 @@ func test_a_multi_charge_pool_draws_its_pips() -> void:
 ## every timer on screen wrong.
 func test_the_countdown_is_reported_in_seconds() -> void:
 	var state := CommandButtonState.new()
-	state.recharge_ticks = Engine.physics_ticks_per_second * 3
+	state.recharge_ticks = TimeUtils.ticks_per_second() * 3
 	assert_almost_eq(state.recharge_seconds(), 3.0, 0.001)
 
 
@@ -282,7 +282,7 @@ func test_a_multi_charge_button_writes_its_pips() -> void:
 func test_a_recharging_button_writes_a_countdown() -> void:
 	var state := CommandButtonState.new()
 	state.blocker = CommandButtonState.Blocker.RECHARGING
-	state.recharge_ticks = Engine.physics_ticks_per_second * 4
+	state.recharge_ticks = TimeUtils.ticks_per_second() * 4
 	assert_true(
 		_overlay_texts(_button_showing(state)).has("4.0"),
 		"one decimal under ten seconds, so a short cooldown does not read as stalled"
@@ -291,7 +291,7 @@ func test_a_recharging_button_writes_a_countdown() -> void:
 
 func test_a_long_countdown_drops_the_decimal() -> void:
 	var state := CommandButtonState.new()
-	state.recharge_ticks = Engine.physics_ticks_per_second * 45
+	state.recharge_ticks = TimeUtils.ticks_per_second() * 45
 	assert_true(
 		_overlay_texts(_button_showing(state)).has("45"),
 		"hundredths on a minute-long cooldown are noise"

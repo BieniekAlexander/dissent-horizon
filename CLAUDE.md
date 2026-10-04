@@ -881,6 +881,8 @@ work rather than deriving something.
 
 **Navmesh cell-exclusion approach**: `NavManager._build_chunk()` builds one quad per cell from `TerrainGrid.navigable_mask`, which starts from passability (`_cell_state == 0`: in bounds, no building, not steep, not blocked, not submerged). Do not replace this with Godot's geometry-bake path — it's too slow and doesn't encode terrain heights correctly.
 
+**The simulation rate is `TimeUtils.ticks_per_second()`, never `Engine.physics_ticks_per_second`**: debug playback speed changes the engine rate (and `Engine.time_scale` with it) so that a tick still means 1/30 of a game second. Code that reads the engine rate as the game's would run every timer and speed wrong at any speed but 1×. → [`gdd/systems/ux/ui/debug-mode.md`](gdd/systems/ux/ui/debug-mode.md) §Playback speed
+
 **`Map.CELL_SIZE` const**: fog, NavManager, and coordinate helpers all derive from this. It's `1.0` and encoded as Map's scale. Don't add a separate `cell_size` export that could diverge.
 
 **`get_node_or_null` for optional components**: the `@onready` optional-component pattern is intentional. Don't change optional components to hard `$` references without checking all call sites gate on null. See `gdd/systems/authoring/get-node-or-null-audit.md` for verdicts on each occurrence.

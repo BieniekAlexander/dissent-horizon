@@ -381,7 +381,7 @@ static func _defense_tooltip(a_piece: Commandable) -> String:
 ## are what a human compares (~/.claude/CLAUDE.md §2.2). The conversion is derived from the
 ## engine's own tick rate rather than typed, so it survives a change to it.
 static func _weapon_tooltip(a_weapon: Weapon) -> String:
-	var ticks: float = float(Engine.physics_ticks_per_second)
+	var ticks: float = float(TimeUtils.ticks_per_second())
 	var parts: Array[String] = [
 		"%s damage" % _damage_type_name(a_weapon),
 		"a shot every %.1fs" % (float(a_weapon.split_time_ticks) / ticks),

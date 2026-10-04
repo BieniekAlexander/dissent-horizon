@@ -364,7 +364,7 @@ func _physics_process(_a_delta: float) -> void:
 			_has_landing_target = false
 			_landing_state = LandingState.LANDING
 		else:
-			var tps: float = Engine.physics_ticks_per_second
+			var tps: float = TimeUtils.ticks_per_second()
 			# Brake as the unit closes in: cap speed so it arrives in at most 1 tick
 			# when very close, preventing overshoot of a nearby target cell center.
 			var desired_speed: float = minf(_speed(), to_target.length() * tps)
@@ -708,7 +708,7 @@ func _descend_to_touchdown() -> float:
 		return 0.0
 	if closing < 1e-3 or dist <= Movement.HOVERING_ARRIVAL_DISTANCE:
 		return _step_height_offset(_landing_deck_offset)
-	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var dt: float = 1.0 / float(TimeUtils.ticks_per_second())
 	var seconds_out: float = dist / closing
 	var rate: float = minf(drop / seconds_out, DIVE_MAX_DESCENT_RATE)
 	var previous: float = _current_height_offset
@@ -737,7 +737,7 @@ func _brake_during_descent() -> void:
 ## Only ever reached for a PAD landing: nothing else sets a FLYING unit's landing state, so
 ## `land()` and the Land command remain HOVERING-only.
 func _tick_flying_landing() -> void:
-	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var dt: float = 1.0 / float(TimeUtils.ticks_per_second())
 	match _landing_state:
 		LandingState.LANDING:
 			var change: float = _descend_to_touchdown()
@@ -821,7 +821,7 @@ func _tick_taxi() -> void:
 	var there: Vector2 = VU.in_xz(_taxi_path[_taxi_index])
 	var to_target: Vector2 = there - here
 	var distance: float = to_target.length()
-	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var dt: float = 1.0 / float(TimeUtils.ticks_per_second())
 	# TWO REGIMES. Crossing the apron is a crawl — an aircraft on a taxiway is a vehicle. The
 	# last leg of a DEPARTURE is the takeoff roll down the strip, and there it is winding up
 	# toward flight speed, because that is what leaving the ground requires.
@@ -978,7 +978,7 @@ func request_dive(a_target_xz: Vector2) -> void:
 ## and comes around for another pass rather than staying on the deck.
 func _update_flying_height() -> void:
 	var host: Node3D = _host()
-	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var dt: float = 1.0 / float(TimeUtils.ticks_per_second())
 	var wants_dive: bool = _dive_requested and host != null and dive_distance > 0.0
 	_dive_requested = false
 	if wants_dive:
@@ -1108,7 +1108,7 @@ func _apply_hover_bank() -> void:
 	var movement: Movement = _movement()
 	if attitude == null or movement == null:
 		return
-	var tps: float = float(Engine.physics_ticks_per_second)
+	var tps: float = float(TimeUtils.ticks_per_second())
 	var velocity: Vector3 = _velocity()
 	var accel: Vector3 = (velocity - _prev_tilt_velocity) * tps
 	_prev_tilt_velocity = velocity
@@ -1183,7 +1183,7 @@ func _update_aerial_altitude() -> void:
 ## _update_aerial_altitude (which supplies the terrain target) so the controller can be
 ## exercised without a Map.
 func _step_smoothed_altitude(a_target_terrain: float) -> void:
-	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var dt: float = 1.0 / float(TimeUtils.ticks_per_second())
 	var gap: float = a_target_terrain - _smoothed_terrain_y
 	var approach_speed: float = signf(gap) * sqrt(2.0 * MAX_VERTICAL_ACCEL * absf(gap))
 	var dv_max: float = MAX_VERTICAL_ACCEL * dt
@@ -1206,7 +1206,7 @@ func _step_smoothed_altitude(a_target_terrain: float) -> void:
 ## target instead of starting and stopping dead. Returns this tick's change in the offset
 ## (what _apply_hover_tilt reads).
 func _step_height_offset(a_target_offset: float) -> float:
-	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var dt: float = 1.0 / float(TimeUtils.ticks_per_second())
 	var previous: float = _current_height_offset
 	var gap: float = a_target_offset - _current_height_offset
 	var approach: float = signf(gap) * minf(LANDING_SPEED, sqrt(2.0 * LANDING_ACCEL * absf(gap)))

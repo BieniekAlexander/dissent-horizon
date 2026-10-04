@@ -73,7 +73,7 @@ func _init(a_message: CommandMessage) -> void:
 func get_updated_state(a_actor: Commandable) -> Variant:
 	if not a_actor.can_move():
 		return self
-	_cooldown -= 1.0 / Engine.get_physics_ticks_per_second()
+	_cooldown -= 1.0 / TimeUtils.ticks_per_second()
 	if _cooldown <= 0.0:
 		_cooldown = INTERVAL
 		_retarget(a_actor)

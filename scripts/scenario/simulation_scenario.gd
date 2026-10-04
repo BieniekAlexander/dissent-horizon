@@ -38,7 +38,7 @@ signal completed(all_passed: bool, results: Array)
 ## every check has settled, which is the older editor-authored behaviour.
 ##
 ## Ticks rather than seconds HERE because this is the engine-facing edge: a spec authors
-## `run: { for: 10s }` and SimArena converts once, through Engine.physics_ticks_per_second
+## `run: { for: 10s }` and SimArena converts once, through TimeUtils.ticks_per_second()
 ## (`~/.claude/CLAUDE.md` §2.2 — convert at the boundary, derive the factor, never type it).
 var run_ticks: int = 0
 #endregion

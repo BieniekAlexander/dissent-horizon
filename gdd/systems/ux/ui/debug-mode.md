@@ -36,6 +36,37 @@ It carries three things, independent of each other: the **player** setting (§Pl
 another commander), a **difficulty** picker per bot, and the **piece card** (§The piece
 spawner).
 
+## Playback speed
+
+Under `debug_allowed` — the view need not be up — the pause menu carries a playback section
+(`PlaybackControls`): a speed from 0.25× to 4× of real time, a pause, and "max speed", which
+runs the simulation as fast as the machine allows. The scenario timer names any speed but 1×,
+and a pause, so a stopped or racing clock reads as deliberate. Leaving the scenario restores
+real time. The pause menu belongs to the scenario, not the player rig, so a spectator session
+has the controls too.
+
+**A tick never changes meaning.** The simulation is 30 ticks per GAME second at every speed;
+playback changes how many run per REAL second. It raises the engine's tick rate and its time
+scale together, so the delta each step receives is still exactly one game tick, and physics,
+navigation and every `delta`-integrating script advance by the same amount per tick at any
+speed. The pitfall it exists to avoid: either knob alone changes the game. More steps at the
+old delta move every body a fraction as far per tick; a scaled delta at the old rate makes
+each tick cover more ground. Everything that converts between ticks and seconds goes through
+`TimeUtils`, which reads the project setting and never the live engine rate. A seeded
+self-play match produces identical digests at 0.27×, 1×, 4× and max speed.
+
+Pitfalls accepted:
+
+- **The rate is a whole number**, so speed moves in steps of 1/30: the slow end is 8 ticks a
+  second, ≈0.27×, not 0.25×.
+- **Frame-driven code speeds up too.** `_process` deltas are scaled, so HUD fades and tweens
+  run fast at high speeds; at max speed they are near-instant. The camera reads real seconds
+  (`PlaybackSpeed.real_seconds`) because it moves at the player's pace, not the game's.
+- **Max speed is bounded by drawing**, not by a number: the engine runs up to a fixed number
+  of ticks per frame drawn, so the screen updates a few times a second while it races.
+- **The pause outlives the menu.** It is its own `SimulationClock` reason, so it composes
+  with dialog and pause-menu holds; the world stays stopped until the toggle is cleared.
+
 ## The piece spawner
 
 Places any piece in the world, free, for any commander.

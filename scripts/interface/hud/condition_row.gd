@@ -37,7 +37,7 @@ const UNNAMED_TITLE: String = "?"
 ## Seconds in one generation cycle, for the copy. Both generators share the period, and it is
 ## derived from the component rather than typed so a change to it re-words the tooltip.
 static var CYCLE_SECONDS: float = (
-	float(DominionGenerator.TICK_RATE) / float(Engine.physics_ticks_per_second)
+	float(DominionGenerator.TICK_RATE) / float(TimeUtils.ticks_per_second())
 )
 #endregion
 

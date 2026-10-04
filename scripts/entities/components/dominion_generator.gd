@@ -6,7 +6,7 @@ extends Node
 
 #region Properties
 @export var dominion_rate: int = 10
-static var TICK_RATE := 5 * Engine.physics_ticks_per_second
+static var TICK_RATE := 5 * TimeUtils.ticks_per_second()
 ## Physics ticks since the last payout. PUBLIC because a caller may wind the cycle
 ## forward — which is how a test reaches a payout without running TICK_RATE frames.
 var ticks_elapsed: int = 0

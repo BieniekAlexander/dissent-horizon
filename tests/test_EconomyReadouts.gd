@@ -168,7 +168,7 @@ func test_spend_rate_spreads_an_active_job_over_its_build_time() -> void:
 	# 60 energy over 30 ticks, at 30 physics ticks per second, is 60 energy per second.
 	producer.production.enqueue(30, null, IRREGULAR)
 	assert_almost_eq(
-		commander.energy_spend_rate(), 60.0 * Engine.physics_ticks_per_second / 30.0, 0.001
+		commander.energy_spend_rate(), 60.0 * TimeUtils.ticks_per_second() / 30.0, 0.001
 	)
 
 

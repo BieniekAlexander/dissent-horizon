@@ -69,8 +69,8 @@ func _audit() -> void:
 		for node: Node in _scenario.get_children():
 			if node is Map:
 				map = node as Map
-	var total_ticks: int = int(_seconds * Engine.physics_ticks_per_second)
-	var per_check: int = Engine.physics_ticks_per_second
+	var total_ticks: int = int(_seconds * TimeUtils.ticks_per_second())
+	var per_check: int = TimeUtils.ticks_per_second()
 	for tick: int in total_ticks:
 		await get_tree().physics_frame
 		if tick % per_check != 0 or map.terrain_grid == null:

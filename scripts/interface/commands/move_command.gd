@@ -228,7 +228,7 @@ var _swap_cooldown: float = 0.0
 ## retargeting (chasing down a nearby enemy) is opt-in per subclass (see
 ## AttackMove, Patrol, Defend), not a base-class behavior every command inherits.
 func get_updated_state(a_commandable: Commandable) -> Variant:
-	_swap_cooldown -= 1.0 / Engine.get_physics_ticks_per_second()
+	_swap_cooldown -= 1.0 / TimeUtils.ticks_per_second()
 	if _swap_cooldown <= 0.0:
 		_swap_cooldown = 1.0
 		_resolve_destination_swap(a_commandable)

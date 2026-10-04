@@ -172,7 +172,7 @@ In the order they are checked, each think:
    slot that once had a base and now holds no structure and no purchase on its production
    queue.** The survivor is `winner`; both at once is `mutual_elimination`.
 2. **Stalemate** — `max_simulated_seconds` of *simulated* time, measured as
-   `ticks ÷ Engine.physics_ticks_per_second`, never as wall clock.
+   `ticks ÷ TimeUtils.ticks_per_second()`, never as wall clock.
 3. **Wall-clock cap** — `max_wall_seconds`. Deliberately the one wall-clock rule in the
    harness: what it guards against is a hang, and a hang is exactly the thing that stops the
    tick counter, so a tick-based cap cannot catch it.

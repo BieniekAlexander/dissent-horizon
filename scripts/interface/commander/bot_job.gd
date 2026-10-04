@@ -61,4 +61,4 @@ func has_pending_work() -> bool:
 
 ## The period in physics ticks: the seconds converted once, here, at the boundary.
 func period_ticks() -> int:
-	return maxi(1, roundi(float(period_seconds.call()) * Engine.physics_ticks_per_second))
+	return maxi(1, roundi(float(period_seconds.call()) * TimeUtils.ticks_per_second()))

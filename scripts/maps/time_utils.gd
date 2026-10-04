@@ -12,13 +12,24 @@ class_name TimeUtils
 ## every value expressed in the copy is silently wrong with nothing to report it. The spec
 ## importer held four such copies (`* 30.0`), which is what this replaced.
 
+## The project setting the simulation rate is authored in.
+const _TICK_RATE_SETTING: String = "physics/common/physics_ticks_per_second"
+
+## Memoized: read on every tick from movement and steering hot paths, and a ProjectSettings
+## lookup is a string-keyed dictionary walk.
+static var _ticks_per_second: int = ProjectSettings.get_setting(_TICK_RATE_SETTING)
+
 
 #region Public API
-## Physics ticks in one second. Not a `const` because the rate is a project setting the
-## engine owns, and a const could only restate it — which is the failure this class exists
+## Simulation ticks in one GAME second. Not a `const` because the rate is a project setting
+## the engine owns, and a const could only restate it — which is the failure this class exists
 ## to prevent.
+##
+## Read from the project setting, NOT from `Engine.physics_ticks_per_second`: playback speed
+## (PlaybackSpeed) changes how many ticks run per REAL second, and must not change what a
+## tick means. A game second is always this many ticks, at any playback speed.
 static func ticks_per_second() -> int:
-	return Engine.physics_ticks_per_second
+	return _ticks_per_second
 
 
 ## [a_seconds] as a whole number of physics ticks, rounded to the NEAREST rather than

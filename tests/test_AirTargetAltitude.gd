@@ -97,7 +97,7 @@ func test_an_aircraft_on_final_approach_is_still_an_air_target() -> void:
 	# hundred feet up and squarely an anti-air problem; only altitude says so.
 	var plane: Commandable = _entity(CLIPPER, _commander(1))
 	plane.aerial.land_permanently()
-	plane.aerial._physics_process(1.0 / Engine.physics_ticks_per_second)
+	plane.aerial._physics_process(1.0 / TimeUtils.ticks_per_second())
 	assert_false(plane.aerial.is_airborne(), "no longer AIRBORNE — the descent has begun")
 	assert_gt(
 		plane.aerial.height_offset(),
@@ -209,5 +209,5 @@ func _tick_until(a_node: Node, a_predicate: Callable, a_max: int = 600) -> int:
 	for i in a_max:
 		if a_predicate.call():
 			return i
-		a_node._physics_process(1.0 / Engine.physics_ticks_per_second)
+		a_node._physics_process(1.0 / TimeUtils.ticks_per_second())
 	return -1

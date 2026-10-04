@@ -949,7 +949,7 @@ func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
 	# Any hit staggers the unit: refresh the timer so channeled actions (Build, Repair,
 	# certain interactions) are suppressed for STAGGER_SECONDS. See is_staggered / the
 	# gate in CommandReceiver._process_commands and MoveCommand.blocked_by_stagger.
-	_stagger_ticks = STAGGER_SECONDS * Engine.physics_ticks_per_second
+	_stagger_ticks = STAGGER_SECONDS * TimeUtils.ticks_per_second()
 	# Being attacked breaks stealth: force the timed UNSTEALTHED window.
 	if stealth != null:
 		stealth.unstealth()

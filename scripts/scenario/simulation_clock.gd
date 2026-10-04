@@ -40,6 +40,10 @@ const REASON_HELP: StringName = &"help"
 ## a player who opens the pause menu over a scripted dialog and closes it again must not
 ## resume a world the dialog still wants stopped.
 const REASON_PAUSE_MENU: StringName = &"pause_menu"
+
+## Reason used while the debug playback control has the world paused (see PlaybackSpeed).
+## Outlives the pause menu that took it: the world stays stopped once the menu closes.
+const REASON_PLAYBACK_PAUSE: StringName = &"playback_pause"
 #endregion
 
 #region Properties

@@ -184,7 +184,7 @@ godot --headless --fixed-fps 30 --path . res://tools/_perf_probe_tmp.tscn -- \
 
 | What | How |
 |---|---|
-| **Fast-forward** | `--fixed-fps 30` decouples the loop from the wall clock with `delta` held at 1/30 s. `Engine.time_scale` is NOT usable: in 4.7 it scales delta, it does not add steps |
+| **Fast-forward** | `--fixed-fps 30` decouples the loop from the wall clock with `delta` held at 1/30 s. `Engine.time_scale` alone is NOT usable: in 4.7 it scales delta, it does not add steps. Paired with the engine tick rate it is — that is debug playback speed (ux/ui/debug-mode.md §Playback speed) — but the harness has no need of it |
 | **Full tick cost** | wall-clock delta between consecutive ticks, minus the probe's own sampling time |
 | **Script share** | hook nodes at `process_physics_priority` −10000 and +10000 bracket the `_physics_process` phase |
 | **Bot share, per stage** | each `BotBrain`'s own `_physics_process` is disabled and replayed from a hook at priority 90, timing each manager in `think()`'s order. **The replay duplicates `think()`'s manager list, so update it when `think()` changes** |

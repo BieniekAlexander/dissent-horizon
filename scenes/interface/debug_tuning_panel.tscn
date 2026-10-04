@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interface/hud/debug_tuning_panel.gd" id="1_panel"]
+
+[node name="DebugTuningPanel" type="PanelContainer" groups=["selection_blocking_ui"]]
+offset_left = 8.0
+offset_top = 128.0
+offset_right = 338.0
+offset_bottom = 168.0
+script = ExtResource("1_panel")

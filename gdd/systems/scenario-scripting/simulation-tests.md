@@ -344,8 +344,8 @@ resolved, because at-end and safety checks are only meaningful over the whole wi
 that stopped as soon as the truck was alive would be asserting nothing.
 
 Time is authored in **seconds** everywhere. The physics rate is an engine detail and must never
-become a unit (§2.2): the tick conversion is derived from `Engine.physics_ticks_per_second` at
-the boundary, once. `SimulationExpectation.deadline_ticks` is the existing violation, and §What
+become a unit (§2.2): the tick conversion is derived from the project's physics-rate setting
+(`TimeUtils`) at the boundary, once. `SimulationExpectation.deadline_ticks` is the existing violation, and §What
 exists today says what happens to it.
 
 ## `expect` — leaf checks, and a boolean tree over them

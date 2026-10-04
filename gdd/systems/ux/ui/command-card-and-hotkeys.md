@@ -498,7 +498,7 @@ without a screen), and full-rect leaves no arithmetic to get wrong.
   rounded to a whole second reads as stalled.
 
 Ticks are what `Abilities` counts in and seconds are what a player reads; the factor is READ
-from `Engine.physics_ticks_per_second` rather than typed, so a change to the physics rate
+from the project's physics-rate setting (`TimeUtils`) rather than typed, so a change to the physics rate
 cannot silently make every timer on screen wrong.
 
 **Resolving a command back to its ability takes two routes and both are asked**, because a
