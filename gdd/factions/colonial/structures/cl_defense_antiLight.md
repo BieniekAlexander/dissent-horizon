@@ -27,14 +27,14 @@ weapons:
       id: watch_tower_bullet
       title: tower machine-gun round
       scene: res://scenes/entities/projectiles/cl/watch_tower_bullet.tscn
-      damage: 25
+      damage: 15
       damage_type: LEAD
       speed: SUPERSONIC
       trajectory: LINEAR
       hitscan: true
     split_time: 0.1
     reload_time: 3.0
-    clip_size: 6
+    clip_size: 12
     reach: ground_range_long
     hits:
       - ground

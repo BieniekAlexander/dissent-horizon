@@ -207,6 +207,10 @@ Each tier T1–T3 needs at least two cells, or the tier below it can never open.
   second front. Drop 1 at T1, framed as reinforcing a defence, is the alternative.
 - **Beacon** is one level at T2 (decided 2026-10-04, moved down from T3 the same day): a
   ground-only, permanent, blind solution, priced at the top of T2.
+  TODO: confirm the tier. Alex asked for "tier 2", then "one tier earlier", and was read as
+  `tier: 2` then `tier: 1` (T3 → T2 here). He also called the top of the grid "tier 4", which
+  counts from 1 like this note — on that reading he meant T2 then T1, i.e. `tier: 0`, priced
+  at 125–150 with the other T1 cells.
   REJECTED: the three-level version (a 15 s clock, then sight, then no clock) — collapsed into the
   one level at Alex's direction.
 - **Freeze 2** at T2: freezing one enemy is control, and it raises the target's armour, so it is

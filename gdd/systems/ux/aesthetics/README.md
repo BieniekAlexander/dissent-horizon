@@ -15,6 +15,7 @@ lower-priority asset.
 
 | Note | Covers |
 |---|---|
+| [art-direction.md](art-direction.md) | the high-level aesthetic goals: pillars, tone, rendering style, technology level, cultural anchors |
 | [lighting.md](lighting.md) | the default lighting rig and Environment, the research behind them, options not taken |
 | [terrain-readability.md](terrain-readability.md) | how the terrain shader shows height and passability |
 
@@ -54,6 +55,8 @@ happens when many instances overlap, and how it changes with distance or zoom. P
 commands and alerts take mix priority; repeated voice lines are capped.
 
 ## Art direction
+
+The goals are set in [art-direction.md](art-direction.md); what follows is the work still open under them.
 
 TODO: undecided — a shape language, palette and material set per faction, drawn from
 [world-building.md](../../../world-building.md): Haustorian imperial expansion, Tselerate
