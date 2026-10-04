@@ -94,6 +94,17 @@ the instrument that checks whether the units actually form the rock-paper-scisso
 wants (the Matilda-versus-recruit measurement in
 [squads-and-relations](squads-and-relations.md) was the first such finding).
 
+**First run (2026-10-04, 52 matches, cap 900 s, HARD periods, `skirmish.tscn`):** the
+rush is dominant. The seed that commits at one unit with no reserve won 11 of its 12 matches,
+eliminating in under six simulated minutes on average, and scored 0.77–0.90 against every
+other roster member; the equilibrium is the rusher alone, exploitability 0, and two
+generations of eight children found no counter (a rusher's own child could not take its
+cell). That is the balance finding the search exists to make: as tuned, a beeline army beats
+any economy, which is the premature commitment Alex intends command-centre cost and health to
+punish ([objectives-and-completion](../scenario-scripting/objectives-and-completion.md) §Win
+conditions). Rerun the seed round after that tuning before reading anything else into the
+roster. Report: `tools/selfplay/results/train/report.md`.
+
 PLANNED — **a tier draws from the roster.** Today a tier is one point plus jitter; it becomes
 a distribution over archive cells, and the per-match draw picks a member and jitters it.
 Waits on a roster worth drawing from: enough generations that several cells hold members

@@ -36,7 +36,8 @@ balance finding about the GAME, not a failure of the trainer.
 
 State lives in one directory (--state, default tools/selfplay/results/train/):
     archive.json      the live roster and every retired member (ratings need them all)
-    ledger.jsonl      every result row, with the member ids it was between
+    ledger.jsonl.gz   every result row, with the member ids it was between (gzip: a
+                      generation is ~3 MB of samples uncompressed, and the ledger only grows)
     gen_NNN.json      the match list each generation ran
     report.md         the last report
 
@@ -45,6 +46,7 @@ on vision shapes being rewritten under a running match).
 """
 
 import argparse
+import gzip
 import json
 import math
 import os
@@ -282,6 +284,11 @@ def equilibrium(members, matrix):
     return mixture, exploitability
 
 
+def load_ledger(path):
+    with gzip.open(path, "rt", encoding="utf-8") as source:
+        return [json.loads(line) for line in source if line.strip()]
+
+
 # ── State ──────────────────────────────────────────────────────────────────────────
 
 class State:
@@ -289,16 +296,16 @@ class State:
         self.directory = directory
         os.makedirs(directory, exist_ok=True)
         self.archive_path = os.path.join(directory, "archive.json")
-        self.ledger_path = os.path.join(directory, "ledger.jsonl")
+        self.ledger_path = os.path.join(directory, "ledger.jsonl.gz")
         self.archive = json.load(open(self.archive_path)) if os.path.exists(self.archive_path) else {
             "generation": 0, "cap": None, "members": {}, "cells": {}, "log": []}
-        self.ledger = analyze.load(self.ledger_path) if os.path.exists(self.ledger_path) else []
+        self.ledger = load_ledger(self.ledger_path) if os.path.exists(self.ledger_path) else []
 
     def save(self):
         json.dump(self.archive, open(self.archive_path, "w"), indent=1, sort_keys=True)
 
     def append_ledger(self, rows):
-        with open(self.ledger_path, "a", encoding="utf-8") as sink:
+        with gzip.open(self.ledger_path, "at", encoding="utf-8") as sink:
             for row in rows:
                 sink.write(json.dumps(row) + "\n")
         self.ledger.extend(rows)
