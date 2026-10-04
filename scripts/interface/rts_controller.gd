@@ -408,9 +408,8 @@ var _unlock_buttons: Array = []  # Array of { "button": Button, "entry": Entry }
 	_session_root().find_child("ScenarioTriggerManager") as ScenarioTriggerManager
 )
 
-## The session this controller plays in: its local player, its clock (see
-## _update_scenario_timer). Null when this controller is previewed outside a real scenario
-## (e.g. bare-instanced in tests).
+## The session this controller plays in: its local player. Null when this controller is
+## previewed outside a real scenario (e.g. bare-instanced in tests).
 @onready var _scenario: Scenario = Scenario.of(self)
 
 ## Draws rally-point sequences for selected rally-capable structures. Lives under Map,
@@ -634,7 +633,6 @@ func _process(a_delta: float) -> void:
 	_update_cursor_readout()
 	_update_waypoint_display()
 	_update_rally_indicator()
-	_update_scenario_timer()
 	_refresh_button_availability()
 	_info_view.update(selection, _commander())
 	_update_range_display()
@@ -2134,28 +2132,6 @@ func _update_selection_owned_panels() -> void:
 	)
 	if _selector_panel != null:
 		_selector_panel.visible = not has_selection
-
-
-## Elapsed h:mm:ss, hours segment omitted until the scenario has actually run one — a pure
-## function so the format is testable without a live Scenario node.
-static func format_scenario_time(total_seconds: int) -> String:
-	var hours: int = total_seconds / 3600
-	var minutes: int = (total_seconds / 60) % 60
-	var seconds: int = total_seconds % 60
-	if hours > 0:
-		return "%d:%02d:%02d" % [hours, minutes, seconds]
-	return "%d:%02d" % [minutes, seconds]
-
-
-## Scenario.tick only advances in _physics_process, which a SimulationClock hold
-## suspends along with the rest of the simulation (see CLAUDE.md §Pausing the simulation)
-## — so ticks / tick-rate is already elapsed RUNTIME excluding paused time, with no
-## separate accumulator needed.
-func _update_scenario_timer() -> void:
-	if _scenario == null:
-		return
-	var total_seconds: int = int(TimeUtils.seconds_from_ticks(_scenario.tick))
-	$ScenarioTimerLabel.text = format_scenario_time(total_seconds)
 
 
 # --- Category predicates (a Commandable satisfies the category) ---------------

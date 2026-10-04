@@ -2,8 +2,7 @@ extends GutTest
 
 ## Tests for the structure rally-point indicator's chain-selection logic
 ## (RTSController._rally_commands_to_draw), the hover plumbing it reads
-## (CommandableCard.is_hovered_training / InfoView.hovered_training_target), and the
-## scenario-timer text format (RTSController.format_scenario_time).
+## (CommandableCard.is_hovered_training / InfoView.hovered_training_target).
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_RallyIndicator.gd -gexit
@@ -126,17 +125,3 @@ func test_hovered_training_target_finds_the_hovered_card() -> void:
 
 	card.mouse_exited.emit()
 	assert_eq(info.hovered_training_target(), [])
-
-
-## --- RTSController.format_scenario_time -----------------------------------------
-
-
-func test_format_scenario_time_hides_hours_under_an_hour() -> void:
-	assert_eq(RTSController.format_scenario_time(0), "0:00")
-	assert_eq(RTSController.format_scenario_time(65), "1:05")
-	assert_eq(RTSController.format_scenario_time(3599), "59:59")
-
-
-func test_format_scenario_time_shows_hours_past_an_hour() -> void:
-	assert_eq(RTSController.format_scenario_time(3600), "1:00:00")
-	assert_eq(RTSController.format_scenario_time(3661), "1:01:01")

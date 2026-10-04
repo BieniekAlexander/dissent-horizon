@@ -18,8 +18,10 @@ const FOLD_TEXT: String = "–"
 const UNFOLD_TEXT: String = "+"
 
 ## The HUD nodes this panel stands in for while it is up (the objective checklist, the
-## scenario timer, the command-error line). Paths are relative to this node.
+## command-error line). Paths are relative to this node.
 @export var hidden_while_up: Array[NodePath] = []
+## The same, for top-right HUD the SCENARIO owns rather than the player rig, found by group.
+@export var hidden_groups_while_up: Array[StringName] = [ScenarioTimer.GROUP]
 
 @onready var _body: Control = %Body
 @onready var _fold_button: Button = %FoldButton
@@ -35,7 +37,8 @@ var _factions: Array[String] = []
 ## Whether the panel was up last frame. Shown and hidden on the edge, so the HUD it replaces
 ## is only touched when that changes.
 var _is_up: bool = false
-## What each hidden HUD node's visibility was when the panel came up, to give back.
+## What each hidden HUD node's visibility was when the panel came up, to give back, by
+## instance id.
 var _restored_visibility: Dictionary = {}
 ## The commander id the local player STARTED as, read one frame in (the scenario assigns it in
 ## its own _ready). Kept because the card opens on that seat's faction even after a play_as.
@@ -79,15 +82,21 @@ func _process(_a_delta: float) -> void:
 	if is_up and not _has_opened:
 		_has_opened = true
 		_select_player_faction()
+	var hidden: Array[CanvasItem] = []
 	for path: NodePath in hidden_while_up:
 		var node: CanvasItem = get_node_or_null(path) as CanvasItem
-		if node == null:
-			continue
+		if node != null:
+			hidden.append(node)
+	for group: StringName in hidden_groups_while_up:
+		for node: Node in get_tree().get_nodes_in_group(group):
+			if node is CanvasItem:
+				hidden.append(node as CanvasItem)
+	for node: CanvasItem in hidden:
 		if is_up:
-			_restored_visibility[path] = node.visible
+			_restored_visibility[node.get_instance_id()] = node.visible
 			node.visible = false
 		else:
-			node.visible = _restored_visibility.get(path, true)
+			node.visible = _restored_visibility.get(node.get_instance_id(), true)
 
 
 #region Rows

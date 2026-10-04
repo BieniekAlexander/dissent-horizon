@@ -337,6 +337,8 @@ func seed_simulation() -> void:
 ## The key/fill sun pair a scenario gets when it authors no light of its own. Ambient light is
 ## not part of it: that is the project's default Environment, which applies wherever a scene
 ## has no WorldEnvironment. See gdd/systems/ux/aesthetics/lighting.md.
+## The scenario HUD's elapsed-time readout; authored layout, instanced in _create_scenario_hud.
+const SCENARIO_TIMER_SCENE: PackedScene = preload("res://scenes/interface/scenario_timer.tscn")
 const DEFAULT_LIGHTING_SCENE: String = "res://scenes/environment/default_lighting.tscn"
 
 
@@ -639,6 +641,14 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	# The help book is authored per scenario (a HelpBook child listing DialogPage scenes).
 	# A scenario without one simply has no help button.
 	dialog_view.bind_help_book(get_node_or_null("HelpBook") as HelpBook)
+
+	# The elapsed-time readout: here and not in the player rig, so a spectator sees it too.
+	var timer_layer := CanvasLayer.new()
+	timer_layer.name = "ScenarioTimerLayer"
+	add_child(timer_layer)
+	var timer: ScenarioTimer = SCENARIO_TIMER_SCENE.instantiate()
+	timer_layer.add_child(timer)
+	timer.bind(self)
 
 	# By group rather than by path, so the panel can be moved anywhere in the rig without this
 	# needing to know where it ended up.
