@@ -60,6 +60,11 @@ var _based: Array[bool] = []
 ## Per slot index: the tick it first owned something, -1 until then.
 var _deployed_tick: Array[int] = []
 var _samples: Array = []
+## Per slot: piece id -> {instance id -> true} for every piece seen in any sample. What the
+## slot PRODUCED over the match, which no single sample's counts can give (a unit born and
+## killed between two samples is still counted if a sample caught it; one that was not is
+## missed, so this is a floor at the sample interval, not a census).
+var _instances_seen: Array = []
 var _wall_start_usec: int = 0
 #endregion
 
@@ -432,6 +437,7 @@ func _sample(a_tick: int) -> Dictionary:
 	for i: int in _scenario.player_slots.size():
 		var slot: Dictionary = _slot_sample(_scenario.player_slots[i].commander)
 		slot["brain"] = _brain_sample(_brain_for_slot(i))
+		_note_instances(i, _scenario.player_slots[i].commander)
 		slots.append(slot)
 	return {
 		"tick": a_tick,
@@ -439,6 +445,30 @@ func _sample(a_tick: int) -> Dictionary:
 		"digest": _state_digest(),
 		"slots": slots,
 	}
+
+
+func _note_instances(a_slot: int, a_commander: Commander) -> void:
+	while _instances_seen.size() <= a_slot:
+		_instances_seen.append({})
+	if a_commander == null:
+		return
+	var seen: Dictionary = _instances_seen[a_slot]
+	for child: Node in a_commander.get_children():
+		var entity := child as Commandable
+		if entity == null or entity.is_queued_for_deletion():
+			continue
+		var by_id: Dictionary = seen.get(String(entity.id), {})
+		by_id[entity.get_instance_id()] = true
+		seen[String(entity.id)] = by_id
+
+
+## Distinct pieces of each id slot `a_slot` fielded over the match (see _instances_seen).
+func _produced_by_id(a_slot: int) -> Dictionary:
+	var out: Dictionary = {}
+	if a_slot < _instances_seen.size():
+		for id: String in _instances_seen[a_slot]:
+			out[id] = (_instances_seen[a_slot][id] as Dictionary).size()
+	return out
 
 
 func _slot_sample(a_commander: Commander) -> Dictionary:
@@ -703,6 +733,7 @@ func _result_slots() -> Array:
 			for property: Dictionary in brain.config.get_property_list():
 				if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
 					config[property["name"]] = brain.config.get(property["name"])
+		var actuator: BotActuator = brain.get_actuator() if brain != null else null
 		(
 			out
 			. append(
@@ -710,7 +741,13 @@ func _result_slots() -> Array:
 					"slot": i,
 					"commander_id": i + 1,
 					"difficulty": PlayerSlot.Difficulty.keys()[slot.difficulty],
+					"faction":
+					slot.faction.resource_path.get_file().get_basename() if slot.faction else "",
 					"config": config,
+					# What the slot fielded and what its bot considered, chose, ordered and was
+					# refused — the piece-usage audit's input (tools/selfplay/results/piece_usage.py).
+					"produced_by_id": _produced_by_id(i),
+					"usage": actuator.usage.summary() if actuator != null else {},
 				}
 			)
 		)

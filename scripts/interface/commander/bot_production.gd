@@ -222,12 +222,18 @@ func _best_unit_for(a_structure: Commandable, a_demand: Dictionary) -> StringNam
 	# A draw at the bot's temperature rather than the argmax, so two matches do not field the
 	# same mix; with no generator or at 0 it IS the argmax.
 	var chosen: int = BotSampling.pick(scores, decision_temperature, rng)
-	return types[chosen] if chosen >= 0 else &""
+	var picked: StringName = types[chosen] if chosen >= 0 else &""
+	var scored: Dictionary = {}
+	for i: int in types.size():
+		scored[types[i]] = scores[i]
+	_act.usage.record_choice("train", scored, picked)
+	return picked
 
 
 func _cheapest_affordable_unit(a_structure: Commandable) -> StringName:
 	var best: StringName = &""
 	var best_cost: int = 1 << 30
+	var scored: Dictionary = {}  # cheaper scores higher, so the audit reads it like any choice
 	for t: StringName in a_structure.production.producible_types:
 		# Same combat-only gate as _best_unit_for: never mass a non-combat unit as
 		# the "opening army" filler.
@@ -235,9 +241,11 @@ func _cheapest_affordable_unit(a_structure: Commandable) -> StringName:
 			continue
 		if _bot.can_afford(t):
 			var cost: int = _energy_cost(t)
+			scored[t] = -cost
 			if cost < best_cost:
 				best_cost = cost
 				best = t
+	_act.usage.record_choice("train_opening", scored, best)
 	return best
 
 

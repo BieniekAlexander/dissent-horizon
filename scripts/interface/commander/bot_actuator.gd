@@ -11,7 +11,15 @@ extends RefCounted
 ## EventIssueCommand): build a CommandMessage, wrap it in a Command, then
 ## update_commands + load_destination so the nav target is primed.
 
+## The one refusal the actuator raises itself: a type no tool produces is not a command's to
+## refuse, since no command can be built for it.
+const REFUSED_NO_TOOL: String = BotUsageLog.OUTCOME_REFUSED_PREFIX + "NO_TOOL"
+
 var _map: Map
+
+## Every order this actuator issues or refuses, counted per piece — read out by the self-play
+## harness for the piece-usage audit; never read by a decision. See BotUsageLog.
+var usage: BotUsageLog = BotUsageLog.new()
 
 
 func _init(a_map: Map) -> void:
@@ -45,6 +53,7 @@ func attack_move(
 		var msg := CommandMessage.new(_map, null, null, dest)
 		msg.target_priority = a_target_priority
 		var cmd := AttackMove.new(msg)
+		usage.record_action("attack_move", u.id, BotUsageLog.OUTCOME_ISSUED)
 		u.update_commands(cmd)
 		# Prime the nav target: a fresh agent defaults target_position to (0,0,0),
 		# so without this a destination at the map centre is silently dropped.
@@ -60,6 +69,7 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
 	for u: Commandable in a_units:
 		var cmd := MoveCommand.new(CommandMessage.new(_map, null, null, dest))
+		usage.record_action("move", u.id, BotUsageLog.OUTCOME_ISSUED)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
 
@@ -72,6 +82,7 @@ func rally(a_structures: Array, a_world_pos: Vector3) -> void:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
 	for s: Commandable in a_structures:
+		usage.record_action("rally", s.id, BotUsageLog.OUTCOME_ISSUED)
 		s.set_rally(MoveCommand.new(CommandMessage.new(_map, null, null, dest)))
 
 
@@ -84,8 +95,11 @@ func evacuate(a_hosts: Array) -> void:
 		return
 	for host: Commandable in a_hosts:
 		var msg := CommandMessage.new(_map, null, null, host.global_position)
-		if Evacuate.meets_precondition(host, msg) != MoveCommand.PreconditionFailureCause.NONE:
+		var cause: MoveCommand.PreconditionFailureCause = Evacuate.meets_precondition(host, msg)
+		if cause != MoveCommand.PreconditionFailureCause.NONE:
+			usage.record_action("evacuate", host.id, BotUsageLog.refused(cause))
 			continue
+		usage.record_action("evacuate", host.id, BotUsageLog.OUTCOME_ISSUED)
 		host.update_commands(Evacuate.new(msg))
 
 
@@ -113,8 +127,11 @@ func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 	for u: Commandable in a_units:
 		var msg := CommandMessage.new(_map, a_target)
 		msg.persist = a_persist
-		if Attack.meets_precondition(u, msg) != MoveCommand.PreconditionFailureCause.NONE:
+		var cause: MoveCommand.PreconditionFailureCause = Attack.meets_precondition(u, msg)
+		if cause != MoveCommand.PreconditionFailureCause.NONE:
+			usage.record_action("attack", u.id, BotUsageLog.refused(cause))
 			continue
+		usage.record_action("attack", u.id, BotUsageLog.OUTCOME_ISSUED)
 		var cmd := Attack.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
@@ -127,8 +144,23 @@ func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 func build(a_builder: Commandable, a_type: StringName, a_world_pos: Vector3) -> bool:
 	var tool := Tool.for_type(a_type)
 	if tool == null:
+		usage.record_action("build", a_type, REFUSED_NO_TOOL)
 		return false
 	var msg := CommandMessage.new(_map, null, tool, a_world_pos)
+	# Asked the way the player's click is, so a refusal is counted with its cause rather than
+	# left for the builder to discover at the site. The order is still issued either way: Build
+	# funds and places lazily, and a cause that clears on the walk (resources) is not a reason
+	# to hold the builder — but one that will not (tech, placement) is what the audit wants.
+	var cause: MoveCommand.PreconditionFailureCause = Build.meets_precondition(a_builder, msg)
+	usage.record_action(
+		"build",
+		a_type,
+		(
+			BotUsageLog.OUTCOME_ISSUED
+			if cause == MoveCommand.PreconditionFailureCause.NONE
+			else BotUsageLog.refused(cause)
+		)
+	)
 	# Register the purchase on the commander's production queue BEFORE constructing the
 	# command, so the command registers as a holder of it (see MoveCommand._init) and the
 	# cost is reserved / refunded with the order. Without this the builder would walk to
@@ -150,6 +182,7 @@ func interact(a_unit: Commandable, a_target: Entity) -> void:
 	if _map == null or a_target == null:
 		return
 	var cmd := Interact.new(CommandMessage.new(_map, a_target))
+	usage.record_action("interact", a_unit.id, BotUsageLog.OUTCOME_ISSUED)
 	a_unit.update_commands(cmd)
 	a_unit.load_destination(cmd)
 
@@ -161,6 +194,7 @@ func garrison_into(a_unit: Commandable, a_host: Commandable) -> void:
 	if _map == null:
 		return
 	var cmd := Occupy.new(CommandMessage.new(_map, a_host, null, a_host.global_position))
+	usage.record_action("garrison", a_host.id, BotUsageLog.OUTCOME_ISSUED)
 	a_unit.update_commands(cmd)
 	a_unit.load_destination(cmd)
 
@@ -185,8 +219,13 @@ func use_sanction(a_caster: Commandable, a_sanction: Sanction, a_world_pos: Vect
 		return false
 	var msg := CommandMessage.new(_map, null, null, a_world_pos)
 	msg.sanction = a_sanction
-	if UseSanction.meets_precondition(a_caster, msg) != MoveCommand.PreconditionFailureCause.NONE:
+	var cause: MoveCommand.PreconditionFailureCause = UseSanction.meets_precondition(a_caster, msg)
+	if cause != MoveCommand.PreconditionFailureCause.NONE:
+		usage.record_action("use_sanction", a_sanction.ability_id, BotUsageLog.refused(cause))
 		return false
+	usage.record_action("use_sanction", a_sanction.ability_id, BotUsageLog.OUTCOME_ISSUED)
+	if a_sanction.needs_target:
+		usage.record_cast_position(a_sanction.ability_id, a_world_pos)
 	a_caster.update_commands(UseSanction.new(msg))
 	return true
 
@@ -201,6 +240,8 @@ func use_sanction(a_caster: Commandable, a_sanction: Sanction, a_world_pos: Vect
 func train(a_structure: Commandable, a_type: StringName) -> bool:
 	var tool := Tool.for_type(a_type)
 	if tool == null or a_structure.commander == null:
+		usage.record_action("train", a_type, REFUSED_NO_TOOL)
 		return false
+	usage.record_action("train", a_type, BotUsageLog.OUTCOME_ISSUED)
 	a_structure.commander.production_queue.submit_train(tool, [a_structure])
 	return true

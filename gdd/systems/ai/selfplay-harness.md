@@ -132,8 +132,10 @@ stdout and written to `out=`. `run_batch.py` appends it to a JSONL with `id` and
   "physics_ticks_per_second": 30,
   "deployed_ticks": [1, 1],     // when each slot first owned anything
   "final_digest": "71da892e568809bd",
-  "slots": [ { "slot": 0, "commander_id": 1, "difficulty": "HARD",
-               "config": { /* every BotDifficulty field, as played */ } } ],
+  "slots": [ { "slot": 0, "commander_id": 1, "difficulty": "HARD", "faction": "colonial",
+               "config": { /* every BotDifficulty field, as played */ },
+               "produced_by_id": { /* piece id -> distinct pieces fielded over the match */ },
+               "usage": { /* BotUsageLog.summary(): choices, actions, cast_positions */ } } ],
   "samples": [ { "tick": 300, "simulated_seconds": 10.0, "digest": "...",
                  "slots": [ {
                    "energy": 3900, "dominion": 0, "army_energy_value": 600.0,

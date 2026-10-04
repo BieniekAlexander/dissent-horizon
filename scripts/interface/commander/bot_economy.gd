@@ -436,6 +436,7 @@ func _production_structure_to_build() -> Variant:
 				return value[a] > value[b]
 			return _energy_cost(a) < _energy_cost(b)
 	)
+	_act.usage.record_choice("production_structure", value, pool[0])
 	return pool[0]
 
 
@@ -477,6 +478,7 @@ func _defence_structure_to_build() -> Variant:
 				return value[a] > value[b]
 			return _energy_cost(a) < _energy_cost(b)
 	)
+	_act.usage.record_choice("defence_structure", value, candidates[0])
 	return candidates[0]
 
 

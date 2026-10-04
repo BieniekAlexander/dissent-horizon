@@ -102,6 +102,11 @@ func tick() -> int:
 			_act.use_sanction(caster, sanction, Vector3.ZERO)
 			continue
 		var target: Variant = _aim(sanction, zone)
+		# Counted whether or not it aims: a sanction that is owned, charged and never finds a
+		# target is the audit's "the bot cannot work out where to put it".
+		_act.usage.record_action(
+			"sanction_aim", sanction.ability_id, "aimed" if target != null else "no_target"
+		)
 		if target != null:
 			# UseSanction's precondition refuses a fogged target (Sanction.can_target). The aim
 			# points are derived from currently-visible enemies, so this normally passes; when it
@@ -181,6 +186,14 @@ func _engagement_zone() -> Variant:
 
 ## The world position to drop `sanction` for the given engagement, or null when no
 ## worthwhile target exists for it.
+##
+## TODO: a sanction whose job is to SEE (Scan: `needs_vision` false) is aimed here like an
+## area strike — at the densest VISIBLE enemy cluster, which is ground the bot already sees.
+## Measured 2026-10-04 (piece-usage audit): every Scan of a match lands on the front, both
+## bots' on the same spot. It wants a third Targeting, REVEAL, aimed at the scout grid's
+## least-recently-observed point weighted toward where the enemy is believed to be
+## (BotScout's `_scout_grid`), and no engagement gate at all — scouting is what you do
+## BEFORE there is an engagement. See gdd/systems/ai/piece-usage-audit.md §Findings.
 func _aim(a_sanction: Sanction, a_zone: Dictionary) -> Variant:
 	match a_sanction.targeting:
 		Sanction.Targeting.ENEMY_CLUSTER:
