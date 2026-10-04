@@ -130,7 +130,9 @@ func _ready() -> void:
 	# the tree) so the brain attaches to a live bot.
 	for slot: PlayerSlot in player_slots:
 		if slot.commander is Bot:
-			_attach_brain(slot.commander as Bot, slot.difficulty, slot.is_bot)
+			_attach_brain(
+				slot.commander as Bot, slot.difficulty, slot.is_bot, _personality_config(slot)
+			)
 
 	# Create a Fog node for each bot commander so it tracks its own exploration.
 	# The human player already has a Fog in player.tscn (watching_commander_id = -1).
@@ -390,17 +392,71 @@ func _missing_faction_slots() -> Array[int]:
 ## point of the mistake instead of letting a factionless commander boot.
 func _validate_player_slots() -> void:
 	var missing: Array[int] = _missing_faction_slots()
-	if missing.is_empty():
-		return
-	var message: String = (
-		(
-			"%s: player slot(s) %s have no faction configured. Every slot must name one — "
-			% [name, str(missing)]
+	if not missing.is_empty():
+		var message: String = (
+			(
+				"%s: player slot(s) %s have no faction configured. Every slot must name one — "
+				% [name, str(missing)]
+			)
+			+ "a commander's faction is scenario configuration and has no default."
 		)
-		+ "a commander's faction is scenario configuration and has no default."
-	)
-	push_error(message)
-	assert(false, message)
+		push_error(message)
+		assert(false, message)
+	var unresolved: Dictionary = _unresolved_personality_slots()
+	if not unresolved.is_empty():
+		var message: String = (
+			"%s: player slot(s) %s name a bot personality or override that does not resolve."
+			% [name, str(unresolved)]
+		)
+		push_error(message)
+		assert(false, message)
+
+
+## Slot numbers (1-based commander ids) → why their `personality` or `config_overrides`
+## cannot be applied: an id the roster lacks, or a key that names no BotDifficulty field.
+## Pure, so it can be tested directly; _validate_player_slots does the reporting.
+func _unresolved_personality_slots() -> Dictionary:
+	var unresolved: Dictionary = {}
+	for i: int in player_slots.size():
+		var slot: PlayerSlot = player_slots[i]
+		if slot == null:
+			continue
+		var error: String = _personality_error(slot, BotDifficulty.new())
+		if error != "":
+			unresolved[i + 1] = error
+	return unresolved
+
+
+## Apply the slot's personality and overrides onto `a_config`; "" or the first failure.
+func _personality_error(a_slot: PlayerSlot, a_config: BotDifficulty) -> String:
+	if a_slot.personality != "":
+		var error: String = roster().apply(a_slot.personality, a_config)
+		if error != "":
+			return error
+	return a_config.apply_overrides(a_slot.config_overrides)
+
+
+## The parameters a slot's bot plays by when the slot names a personality or overrides —
+## the tier's vector with those applied — or null when it names neither, so the brain keeps
+## the tier's own config. Validation has already refused anything that cannot apply.
+func _personality_config(a_slot: PlayerSlot) -> BotDifficulty:
+	if a_slot.personality == "" and a_slot.config_overrides.is_empty():
+		return null
+	var config: BotDifficulty = BotDifficulty.for_tier(a_slot.difficulty)
+	var error: String = _personality_error(a_slot, config)
+	assert(error == "", error)
+	return config
+
+
+## The roster the slots' personalities name, loaded on first use. A test assigns
+## `_loaded_roster` a fixture instead.
+var _loaded_roster: BotRoster = null
+
+
+func roster() -> BotRoster:
+	if _loaded_roster == null:
+		_loaded_roster = BotRoster.load_default()
+	return _loaded_roster
 
 
 ## Construct the commander list from player_slots. id 0 is always the neutral world
@@ -690,11 +746,21 @@ func _create_bot_debug_overlay() -> void:
 ## defends itself while `config.may_attack` keeps it home. An inert commander is scenery.
 ##
 ## A human slot's brain is attached too, switched off, so debug mode can hand the slot to it.
-func _attach_brain(a_bot: Bot, a_difficulty: PlayerSlot.Difficulty, a_is_active: bool) -> void:
+##
+## `a_config` is the slot's personality (see _personality_config), applied over the tier when
+## given; null plays the tier alone.
+func _attach_brain(
+	a_bot: Bot,
+	a_difficulty: PlayerSlot.Difficulty,
+	a_is_active: bool,
+	a_config: BotDifficulty = null
+) -> void:
 	var brain := BotBrain.new()
 	brain.name = "BotBrain"
 	brain.active = a_is_active
 	brain.set_difficulty(a_difficulty)
+	if a_config != null:
+		brain.set_config(a_config)
 	# Its own stream, from the match seed and its id: reproducible from the seed, and never
 	# shared with the other bot or with the simulation's draws.
 	brain.seed_randomness(rng_seed, a_bot.id)
@@ -783,7 +849,8 @@ static func of(a_node: Node) -> Scenario:
 
 
 ## Switch `a_bot`'s brain on or off. Switching one ON rebuilds it from scratch, keeping its
-## difficulty: its claims, build plans and beliefs went stale while it was off.
+## difficulty and the parameters it played by (its personality, if the slot named one): its
+## claims, build plans and beliefs went stale while it was off.
 func set_ai_control(a_bot: Bot, a_is_on: bool) -> void:
 	var brain: BotBrain = a_bot.brain()
 	if brain == null or brain.active == a_is_on:
@@ -792,12 +859,15 @@ func set_ai_control(a_bot: Bot, a_is_on: bool) -> void:
 	if not a_is_on:
 		return
 	var difficulty: PlayerSlot.Difficulty = brain.difficulty
+	var config: BotDifficulty = brain.config
 	a_bot.remove_child(brain)
 	brain.queue_free()
-	_attach_brain(a_bot, difficulty, true)
+	_attach_brain(a_bot, difficulty, true, config)
 
 
-## Set the difficulty tier of commander `a_commander_id`'s bot, mid-match.
+## Set the difficulty tier of commander `a_commander_id`'s bot, mid-match. The tier's own
+## vector replaces whatever the bot played by, a slot personality included: the debug menu is
+## asking for the tier, not a retune of the personality.
 func set_bot_difficulty(a_commander_id: int, a_tier: PlayerSlot.Difficulty) -> void:
 	var bot: Bot = commander_by_id(a_commander_id) as Bot
 	if bot != null and bot.brain() != null:

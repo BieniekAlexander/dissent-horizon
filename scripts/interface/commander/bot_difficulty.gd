@@ -351,6 +351,41 @@ func jittered(a_rng: RandomNumberGenerator, a_spread: float) -> BotDifficulty:
 	return out
 
 
+## Set each named field from a JSON-shaped dictionary — a roster vector, a scenario's
+## overrides, a harness config — coercing JSON's one number type to whatever the field holds
+## (`3.0` sets an int field, `1` sets a bool). Returns "" when every key named a field, else
+## a message naming the first that did not, with NOTHING applied: the dictionary is authored
+## content, refused whole at the boundary rather than half-applied.
+func apply_overrides(a_overrides: Dictionary) -> String:
+	var fields: Dictionary = _script_fields()
+	for key: Variant in a_overrides:
+		if not fields.has(str(key)):
+			return "BotDifficulty has no field '%s'" % str(key)
+	for key: Variant in a_overrides:
+		set(str(key), _coerced(a_overrides[key], fields[str(key)]))
+	return ""
+
+
+## Script variable name → Variant.Type, the set the harness reads and writes.
+func _script_fields() -> Dictionary:
+	var out: Dictionary = {}
+	for property: Dictionary in get_property_list():
+		if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			out[property["name"]] = property["type"]
+	return out
+
+
+static func _coerced(value: Variant, type: int) -> Variant:
+	match type:
+		TYPE_INT:
+			return int(value)
+		TYPE_FLOAT:
+			return float(value)
+		TYPE_BOOL:
+			return bool(value)
+	return value
+
+
 ## A field-for-field copy, over the script variables — the same set the self-play harness
 ## reads and writes, so a field added to this class is copied the moment it exists.
 func copied() -> BotDifficulty:

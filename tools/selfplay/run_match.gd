@@ -212,47 +212,26 @@ const RETIRED_THINK_INTERVAL_KEY: String = "think_interval_ticks"
 func _inject_configs() -> String:
 	var slot_configs: Array = _config.get("slots", [])
 	for i: int in _scenario.player_slots.size():
-		var overrides: Dictionary = (slot_configs[i] as Dictionary).get("config", {})
+		var overrides: Dictionary = (
+			((slot_configs[i] as Dictionary).get("config", {}) as Dictionary).duplicate()
+		)
 		if overrides.is_empty():
 			continue
 		var brain: BotBrain = _brain_for_slot(i)
 		if brain == null:
 			return "slot %d has no BotBrain to configure" % i
 		var config: BotDifficulty = BotDifficulty.for_tier(brain.difficulty)
-		for key: String in overrides:
-			if key == RETIRED_THINK_INTERVAL_KEY:
-				# One think interval for everything, as the archived studies meant it.
-				config.set_all_periods(float(overrides[key]) / TimeUtils.ticks_per_second())
-				continue
-			var current: Variant = _field_value(config, key)
-			if current == null:
-				return "slot %d: BotDifficulty has no field '%s'" % [i, key]
-			config.set(key, _coerce(overrides[key], typeof(current)))
+		if overrides.has(RETIRED_THINK_INTERVAL_KEY):
+			# One think interval for everything, as the archived studies meant it.
+			config.set_all_periods(
+				float(overrides[RETIRED_THINK_INTERVAL_KEY]) / TimeUtils.ticks_per_second()
+			)
+			overrides.erase(RETIRED_THINK_INTERVAL_KEY)
+		var error: String = config.apply_overrides(overrides)
+		if error != "":
+			return "slot %d: %s" % [i, error]
 		brain.set_config(config)
 	return ""
-
-
-## `a_config.get(a_name)` when the field exists, null when it does not. Goes through the
-## property list because `Object.get` on a missing name returns null too, which would make a
-## typo indistinguishable from a null-valued field.
-func _field_value(a_config: BotDifficulty, a_name: String) -> Variant:
-	for property: Dictionary in a_config.get_property_list():
-		if property["name"] == a_name and property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
-			return a_config.get(a_name)
-	return null
-
-
-## JSON has one number type; BotDifficulty does not. Coerce to whatever the field already
-## holds, so `"army_commit_threshold": 3.0` sets an int and `"may_attack": 1` sets a bool.
-func _coerce(a_value: Variant, a_type: int) -> Variant:
-	match a_type:
-		TYPE_INT:
-			return int(a_value)
-		TYPE_FLOAT:
-			return float(a_value)
-		TYPE_BOOL:
-			return bool(a_value)
-	return a_value
 
 
 func _brain_for_slot(a_index: int) -> BotBrain:

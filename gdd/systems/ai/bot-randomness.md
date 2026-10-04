@@ -105,12 +105,28 @@ punish ([objectives-and-completion](../scenario-scripting/objectives-and-complet
 conditions). Rerun the seed round after that tuning before reading anything else into the
 roster. Report: `tools/selfplay/results/train/report.md`.
 
-PLANNED — **a tier draws from the roster.** Today a tier is one point plus jitter; it becomes
-a distribution over archive cells, and the per-match draw picks a member and jitters it.
-Waits on a roster worth drawing from: enough generations that several cells hold members
-rated clearly above the seeds. PLANNED — **categorical preference weights on the vector** (a
+## Naming a personality in a scenario
+
+A member of the roster is a scenario's to field. `train.py export` writes the live roster to
+`resources/bots/roster.json` (never hand-edited: the trainer owns it, and re-exports it from
+the archive), `BotRoster` reads it, and a `PlayerSlot` names a member by id in its
+`personality` export. The vector lands ON TOP OF the slot's tier, so the tier still sets the
+periods — reaction time is the tier's identity and is never searched — and a member plays as
+trained only at the tier it was trained at, which the roster records. `config_overrides` on
+the slot is the one-off tweak that does not deserve a roster entry ("this one never
+attacks"), keyed by `BotDifficulty` field name. An id the roster lacks, or a key that names no
+field, fails the boot in `Scenario._validate_player_slots`, as authored content should: the
+dictionary is refused whole, never half-applied (`BotDifficulty.apply_overrides`). The
+self-play harness's per-slot `config` goes through the same door. Switching a bot's tier from
+the debug menu replaces the personality with the tier's own vector; it asked for the tier.
+
+PLANNED — **a tier as a distribution over the roster.** Today a slot names one member or
+plays the tier plus jitter; a tier becomes a list of roster ids to draw from, and the
+per-match draw picks one and jitters it. Waits on a roster worth drawing from: enough
+generations that several cells hold members rated clearly above the seeds, after the
+command-centre tuning above. PLANNED — **categorical preference weights on the vector** (a
 weight per unit class in production, an opening-style weight, static-defence and garrison
 appetites), without which an air-heavy or mech-first personality is not reachable by any
 search, since production picks by demand value alone.
 
-Tests: `tests/test_BotPersonality.gd`.
+Tests: `tests/test_BotPersonality.gd`, `tests/test_BotRoster.gd`.

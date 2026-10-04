@@ -5,6 +5,7 @@ BotDifficulty vectors, played out through the self-play harness.
     python3 tools/selfplay/train.py seed                 # roster of seed personalities, round-robin
     python3 tools/selfplay/train.py step --children 4    # one generation
     python3 tools/selfplay/train.py report               # ratings, win matrix, equilibrium
+    python3 tools/selfplay/train.py export               # the live roster -> resources/bots/roster.json
 
 WHAT IT OPTIMISES. Not a champion: a ROSTER. The archive is a MAP-Elites grid keyed by two
 behaviour descriptors measured from play (aggression = simulated seconds to the first ATTACK
@@ -64,6 +65,9 @@ import analyze  # noqa: E402  (tools/selfplay/results/analyze.py: the shared sco
 DIFFICULTY_SCRIPT = os.path.join(PROJECT, "scripts/interface/commander/bot_difficulty.gd")
 RUN_BATCH = os.path.join(HERE, "run_batch.py")
 DEFAULT_STATE = os.path.join(HERE, "results", "train")
+# What a scenario reads (BotRoster): the live roster, each member's tier and vector, plus the
+# bookkeeping a reader wants to know what each one plays like.
+DEFAULT_ROSTER = os.path.join(PROJECT, "resources", "bots", "roster.json")
 
 # Fields searched as "unset" as well as across their range: the value that means it.
 SENTINELS = {"production_structure_cap": -1, "build_concurrency": -1, "preserve_min_cost": -1}
@@ -582,9 +586,30 @@ def cmd_report(state, args):
     print(report)
 
 
+def cmd_export(state, args):
+    """Write the live roster for the game to read. Explicit rather than part of every report,
+    so a half-done run never rewrites what scenarios play against."""
+    state.refresh()
+    live = sorted(state.live_ids(), key=lambda m: -state.members[m]["rating"])
+    members = {}
+    for m in live:
+        member = state.members[m]
+        members[m] = {"tier": member["tier"], "vector": member["vector"],
+                      "rating": member["rating"], "matches": member["matches"],
+                      "cell": member.get("cell"), "descriptors": member.get("descriptors"),
+                      "generation": member["generation"], "parent": member["parent"]}
+    document = {"written_by": "tools/selfplay/train.py export — never edit by hand",
+                "generation": state.archive["generation"], "cap": state.archive["cap"],
+                "descriptors": ["seconds to first attack", "structures built", "mech fraction"],
+                "members": members}
+    os.makedirs(os.path.dirname(args.roster), exist_ok=True)
+    json.dump(document, open(args.roster, "w"), indent=1, sort_keys=True)
+    print("wrote %d members to %s" % (len(members), args.roster), file=sys.stderr)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("command", choices=["seed", "step", "report"])
+    parser.add_argument("command", choices=["seed", "step", "report", "export"])
     parser.add_argument("--state", default=DEFAULT_STATE)
     parser.add_argument("--cap", type=int, default=900, help="simulated seconds per match (seed only)")
     parser.add_argument("--children", type=int, default=4)
@@ -592,9 +617,10 @@ def main():
     parser.add_argument("--jobs", type=int, default=3)
     parser.add_argument("--seed", type=int, default=20261004)
     parser.add_argument("--dry-run", action="store_true", help="write and print the match list only")
+    parser.add_argument("--roster", default=DEFAULT_ROSTER, help="export target (default: %(default)s)")
     args = parser.parse_args()
     state = State(args.state)
-    {"seed": cmd_seed, "step": cmd_step, "report": cmd_report}[args.command](state, args)
+    {"seed": cmd_seed, "step": cmd_step, "report": cmd_report, "export": cmd_export}[args.command](state, args)
 
 
 if __name__ == "__main__":

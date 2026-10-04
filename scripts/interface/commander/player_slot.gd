@@ -34,6 +34,19 @@ enum Difficulty {
 ## Bot difficulty (see Difficulty). Ignored for a human slot.
 @export var difficulty: Difficulty = Difficulty.MEDIUM
 
+#region Personality
+## Which trained personality this bot plays, by its id in the roster (BotRoster,
+## `resources/bots/roster.json`); "" plays the tier alone. The vector is applied on top of
+## `difficulty`, which keeps the periods — a member plays as trained only at the tier it was
+## trained at. An id the roster lacks fails the boot (Scenario._validate_player_slots).
+@export var personality: String = ""
+
+## Field-by-field overrides on top of the tier and personality, keyed by BotDifficulty field
+## name — a one-off authored tweak ("this one never attacks") that does not deserve a roster
+## entry. A key that names no field fails the boot.
+@export var config_overrides: Dictionary = {}
+#endregion
+
 #region Starting resources
 ## The resource stockpiles the commander begins the match with. Scenario applies
 ## these to the built commander; a commander built without a slot (the neutral world
