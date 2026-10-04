@@ -21,6 +21,7 @@ trains:
   - an_bioLight_builder
 abilities:
   - max_charges: 1
+    initial_charges: 0
     cooldown: 60
     grants:
       - dignify

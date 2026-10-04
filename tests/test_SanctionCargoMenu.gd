@@ -136,10 +136,59 @@ func test_a_sanction_without_payloads_arms_in_one_step() -> void:
 	assert_eq(controller.payload_menu_commands(), [] as Array)
 
 
-## A payload button IS the piece's own train button, reused — it already has a cell, a label,
-## both tooltip tiers and a faction mask, and clicking it already sets the tool.
-func test_a_payload_button_is_the_pieces_own_tool_button() -> void:
+## The menu is a row of cargo SLOTS, not the pieces' own train buttons: those live on the
+## production card at their producers' cells, which is where the menu never got drawn.
+func test_a_payload_button_is_a_cargo_slot_standing_for_its_piece() -> void:
 	var controller: RTSController = _controller_with(_drop_levels()[1])
-	for command: String in controller.payload_menu_commands():
-		assert_not_null(Tool.for_name(command), "%s is a real tool button" % command)
-	assert_true(controller.payload_menu_commands().has(Tool.for_id(APC).command_name))
+	assert_eq(
+		controller.payload_menu_commands(),
+		[CargoSlotBinding.command_for_slot(0), CargoSlotBinding.command_for_slot(1)] as Array
+	)
+	assert_eq(controller.cargo_piece_in_slot(0), RECRUIT)
+	assert_eq(controller.cargo_piece_in_slot(1), APC)
+	assert_eq(controller.cargo_piece_in_slot(2), &"", "level 2 offers two")
+
+
+func test_choosing_a_slot_makes_its_piece_the_tool() -> void:
+	var controller: RTSController = _controller_with(_drop_levels()[2])
+	controller.choose_cargo(2)
+	assert_eq(controller.command_message.tool, Tool.for_id(MATILDA))
+
+
+## The pick is a radio button: the menu stays up, and a second pick replaces the first.
+func test_the_menu_stays_up_after_a_pick() -> void:
+	var controller: RTSController = _controller_with(_drop_levels()[2])
+	controller.choose_cargo(0)
+	assert_eq(controller.payload_menu_commands().size(), 3)
+	assert_eq(controller._chosen_cargo_command(), CargoSlotBinding.command_for_slot(0))
+	controller.choose_cargo(1)
+	assert_eq(controller.command_message.tool, Tool.for_id(APC))
+	assert_eq(controller._chosen_cargo_command(), CargoSlotBinding.command_for_slot(1))
+
+
+func test_choosing_an_empty_slot_changes_nothing() -> void:
+	var controller: RTSController = _controller_with(_drop_levels()[0])
+	controller.choose_cargo(4)
+	assert_null(controller.command_message.tool)
+
+
+## A delivery puts pieces down, not an area — the armed cursor draws no effect ring for it.
+func test_a_cargo_sanction_draws_no_effect_ring() -> void:
+	var controller: RTSController = _controller_with(_drop_levels()[0])
+	assert_eq(controller._armed_effect_radius(&"fake_drop"), 0.0)
+
+
+# --- The slot bindings ------------------------------------------------------------
+
+
+func test_a_slot_command_names_its_slot() -> void:
+	assert_eq(CargoSlotBinding.slot_of(CargoSlotBinding.command_for_slot(3)), 3)
+	assert_eq(CargoSlotBinding.slot_of("command_tool_fake_infantry"), -1)
+	assert_eq(CargoSlotBinding.slot_of(CargoSlotBinding.PREFIX + "x"), -1)
+
+
+## One cell per slot along row 0, on the ACTIVE card that arming a cargo sanction turns to.
+func test_a_slot_sits_on_row_zero_of_the_active_card() -> void:
+	for binding: CargoSlotBinding in CargoSlotBinding.all():
+		assert_eq(binding.family, ControlBinding.CommandFamily.ACTIVE)
+		assert_eq(binding.grid_position, Vector2i(binding.slot, 0))

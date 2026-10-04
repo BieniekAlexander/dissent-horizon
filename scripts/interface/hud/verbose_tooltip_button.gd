@@ -67,6 +67,7 @@ const CHARGE_COLOR: Color = Color(1.0, 1.0, 1.0, 0.8)
 
 var _charge_label: Label = null
 var _timer_label: Label = null
+var _count_label: Label = null
 ## The lit edge a TOGGLE draws while it is on (CommandButtonState.is_toggled_on). Along the top,
 ## and thin, so it qualifies the button rather than competing with its label.
 var _toggle_edge: ColorRect = null
@@ -93,6 +94,19 @@ func show_availability(a_state: CommandButtonState) -> void:
 		_toggle_edge_rect().visible = a_state.is_toggled_on
 
 
+## Write `a_text` in the bottom-left corner, over the icon — how many of a piece the button
+## stands for (a cargo slot). A third overlay rather than the charge label, which
+## show_availability rewrites from the button's state every frame. "" clears it.
+func show_count(a_text: String) -> void:
+	if _count_label == null:
+		if a_text.is_empty():
+			return
+		_count_label = _overlay_label(CHARGE_FONT_SIZE, CHARGE_COLOR)
+		_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_count_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_count_label.text = a_text
+
+
 ## The toggle edge, created on first use.
 func _toggle_edge_rect() -> ColorRect:
 	if _toggle_edge == null:
@@ -110,28 +124,35 @@ func _overlay(a_is_charges: bool) -> Label:
 	var existing: Label = _charge_label if a_is_charges else _timer_label
 	if existing != null:
 		return existing
-	var label := Label.new()
-	label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	# The button owns the click; an overlay that could take it would make a command button
-	# dead in exactly the corner the player can see something written.
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_size_override(
-		"font_size", CHARGE_FONT_SIZE if a_is_charges else TIMER_FONT_SIZE
+	var label: Label = _overlay_label(
+		CHARGE_FONT_SIZE if a_is_charges else TIMER_FONT_SIZE,
+		CHARGE_COLOR if a_is_charges else TIMER_COLOR
 	)
-	label.add_theme_color_override("font_color", CHARGE_COLOR if a_is_charges else TIMER_COLOR)
-	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-	label.add_theme_constant_override("outline_size", 3)
 	label.horizontal_alignment = (
 		HORIZONTAL_ALIGNMENT_RIGHT if a_is_charges else HORIZONTAL_ALIGNMENT_CENTER
 	)
 	label.vertical_alignment = (
 		VERTICAL_ALIGNMENT_BOTTOM if a_is_charges else VERTICAL_ALIGNMENT_CENTER
 	)
-	add_child(label)
 	if a_is_charges:
 		_charge_label = label
 	else:
 		_timer_label = label
+	return label
+
+
+## A full-rect, click-through, outlined overlay label, added to this button.
+func _overlay_label(a_font_size: int, a_color: Color) -> Label:
+	var label := Label.new()
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# The button owns the click; an overlay that could take it would make a command button
+	# dead in exactly the corner the player can see something written.
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override("font_size", a_font_size)
+	label.add_theme_color_override("font_color", a_color)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	label.add_theme_constant_override("outline_size", 3)
+	add_child(label)
 	return label
 
 

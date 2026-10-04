@@ -7,7 +7,7 @@ column: 0
 levels:
   - title: Drop 1
     tier: 1
-    cost: 500
+    cost: 250
     cooldown: 60
     description: Flies 3 × {{ cl_bioLight_antiLight }} in and drops them on the target point.
     verbose: |
@@ -22,7 +22,7 @@ levels:
       - {piece: cl_bioLight_antiLight, count: 3}
   - title: Drop 2
     tier: 2
-    cost: 1200
+    cost: 600
     cooldown: 60
     description: Flies in a shipment of your choosing — 5 × {{ cl_bioLight_antiLight }}, or a {{ cl_mechMedium_antiLight }}.
     verbose: |
@@ -37,17 +37,17 @@ levels:
       - {piece: cl_mechMedium_antiLight, count: 1}
   - title: Drop 3
     tier: 3
-    cost: 2000
+    cost: 1000
     cooldown: 60
-    description: Flies in a shipment of your choosing, up to a {{ cl_mechMedium_antiMech }}.
+    description: Flies in a shipment of your choosing, up to 2 × {{ cl_mechMedium_antiMech }}.
     verbose: |
       The heaviest shipment the Colonials can call in, and the reason to take the Drop
       column to its end. Every option Drop 2 offered arrives in greater numbers, and the
-      {{ cl_mechMedium_antiMech }} is added to the menu.
+      {{ cl_mechMedium_antiMech }} is added to the menu, two at a time.
     payloads:
       - {piece: cl_bioLight_antiLight, count: 7}
       - {piece: cl_mechMedium_antiLight, count: 2}
-      - {piece: cl_mechMedium_antiMech, count: 1}
+      - {piece: cl_mechMedium_antiMech, count: 2}
 ---
 # Drop
 

@@ -1012,8 +1012,9 @@ func _armed_reach_is_a_distance() -> bool:
 ## A sanction states its own; an ability is measured from what it throws.
 func _armed_effect_radius(a_ability: StringName) -> float:
 	if _pending_sanction != null:
-		# A single-unit cast has no area: the TargetIndicator marks the one unit instead.
-		if _pending_sanction.targets_one_unit():
+		# A single-unit cast has no area: the TargetIndicator marks the one unit instead. Nor
+		# has a delivery: what lands is pieces, spread onto whatever ground is free.
+		if _pending_sanction.targets_one_unit() or _pending_sanction.takes_a_payload():
 			return 0.0
 		return maxf(_pending_sanction.effect_radius, 0.0)
 	return EntityRanges.emission_radius(AbilityCatalog.emission_of(a_ability))
@@ -2743,23 +2744,56 @@ func pending_payload_sanction() -> Sanction:
 	return _pending_sanction if command_message.tool == null else null
 
 
-## The piece ids a payload menu is currently offering, as their TOOL command names. Empty
-## when no menu is open.
-##
-## A payload button IS the piece's own train/build button, reused: it already has a cell, a
-## label, both tooltip tiers and a faction mask, and clicking it already sets
-## `command_message.tool`, which is exactly what the pick has to do. Minting a second button
-## for the same piece would be a second cell for one thing.
+## The armed sanction when it offers a cargo menu, chosen or not — null otherwise. The menu
+## is drawn on both sides of the pick (the pick is a radio button), which is what separates
+## this from pending_payload_sanction.
+func _armed_cargo_sanction() -> Sanction:
+	if _pending_sanction == null or not _pending_sanction.takes_a_payload():
+		return null
+	return _pending_sanction
+
+
+## The cargo menu's buttons, as CargoSlotBinding command names — one per piece the armed level
+## offers, in its authored order. Empty when no cargo sanction is armed.
 func payload_menu_commands() -> Array:
-	var sanction: Sanction = pending_payload_sanction()
+	var sanction: Sanction = _armed_cargo_sanction()
 	if sanction == null:
 		return []
 	var out: Array = []
-	for piece: StringName in sanction.payload_pieces():
-		var tool: Tool = Tool.for_id(piece)
-		if tool != null:
-			out.append(tool.command_name)
+	for slot: int in mini(sanction.payload_pieces().size(), CargoSlotBinding.all().size()):
+		out.append(CargoSlotBinding.command_for_slot(slot))
 	return out
+
+
+## The piece cargo slot `a_slot` stands for under the armed sanction, or &"" when there is
+## none.
+func cargo_piece_in_slot(a_slot: int) -> StringName:
+	var sanction: Sanction = _armed_cargo_sanction()
+	if sanction == null or a_slot < 0:
+		return &""
+	var pieces: Array[StringName] = sanction.payload_pieces()
+	return pieces[a_slot] if a_slot < pieces.size() else &""
+
+
+## Pick the cargo in `a_slot`: the chosen piece becomes the message's tool, which is what
+## UseSanction delivers. Re-pickable while armed — the menu stays up.
+func choose_cargo(a_slot: int) -> void:
+	var tool: Tool = Tool.for_id(cargo_piece_in_slot(a_slot))
+	if tool == null:
+		return
+	command_message.tool = tool
+	upate_hud_buttons()
+
+
+## The cargo slot whose piece is chosen, as its command name, or "" when none is.
+func _chosen_cargo_command() -> String:
+	if _armed_cargo_sanction() == null or command_message.tool == null:
+		return ""
+	var chosen: StringName = command_message.tool.type
+	for command: String in payload_menu_commands():
+		if cargo_piece_in_slot(CargoSlotBinding.slot_of(command)) == chosen:
+			return command
+	return ""
 
 
 ## Whether `command_name` is a unit command the current selection can act on right
@@ -2829,7 +2863,10 @@ func _dispatch_command_hotkey(a_command_actions: Array) -> void:
 		# A key runs what its cell's BUTTON would, by the same route as the click — so a cell
 		# whose button is not an order (a producer's context button) works from its key too,
 		# rather than being dropped by the order-availability gate below.
-		if command_name.begins_with(ProducerContextBinding.PREFIX):
+		if (
+			command_name.begins_with(ProducerContextBinding.PREFIX)
+			or CargoSlotBinding.slot_of(command_name) >= 0
+		):
 			_on_control_button_pressed(command_name)
 			return
 		if _command_is_available(command_name):
@@ -3903,7 +3940,35 @@ func upate_hud_buttons() -> void:
 			subchild.visible = not cell_taken and on_this_card and visible_names.has(subchild.name)
 			if subchild.visible:
 				cell_taken = true
+				if CargoSlotBinding.slot_of(subchild.name) >= 0:
+					_paint_cargo_button(subchild)
 				_apply_button_availability(subchild)
+
+
+## Draw cargo slot `a_button` as the piece it stands for under the armed sanction: the piece's
+## picture and how many of it the transport carries. Painted on show rather than built once,
+## because a slot means a different piece under each level.
+func _paint_cargo_button(a_button: Button) -> void:
+	var piece: StringName = cargo_piece_in_slot(CargoSlotBinding.slot_of(a_button.name))
+	var tool: Tool = Tool.for_id(piece)
+	if tool == null:
+		return
+	var count: int = _pending_sanction.count_of(piece)
+	var icon: Texture2D = PieceIcons.for_id(piece)
+	a_button.icon = icon
+	a_button.expand_icon = icon != null
+	a_button.text = "" if icon != null else tool.label
+	var verbose := a_button as VerboseTooltipButton
+	if verbose != null:
+		verbose.show_count("×%d" % count)
+		verbose.simple_tooltip = "Deliver %d × %s" % [count, tool.label]
+		verbose.verbose_tooltip = (
+			(
+				"Load the transport with %d × %s, then click where it should drop them.\n"
+				+ "The pick stays changeable until you click."
+			)
+			% [count, tool.label]
+		)
 
 
 #region Command-button availability
@@ -3915,12 +3980,13 @@ func upate_hud_buttons() -> void:
 ## which half of the grid it came from, and only purchases could say WHY. The classifier,
 ## its colours and the reasoning for both are in that class.
 func _apply_button_availability(a_button: Button) -> void:
+	# The card's one "you are here" control: the chosen cargo while a cargo menu is up (the
+	# producer row is not drawn then), otherwise the producer on show.
+	var current: String = _chosen_cargo_command()
+	if current.is_empty():
+		current = ProducerContextBinding.PREFIX + String(_producer_context)
 	var state: CommandButtonState = CommandButtonState.of(
-		a_button.name,
-		selection,
-		_selection_commander(),
-		additive_modifier_held(),
-		ProducerContextBinding.PREFIX + String(_producer_context)
+		a_button.name, selection, _selection_commander(), additive_modifier_held(), current
 	)
 	# The radio button for the producer on show is not pressable — there is nowhere for it to
 	# go. Greying it without disabling it would say "you are here" and still accept the click.
@@ -4182,6 +4248,9 @@ func _on_control_button_pressed(a_control_name: String) -> void:
 			StringName(a_control_name.trim_prefix(ProducerContextBinding.PREFIX))
 		)
 		return
+	if CargoSlotBinding.slot_of(a_control_name) >= 0:
+		choose_cargo(CargoSlotBinding.slot_of(a_control_name))
+		return
 	# The SELECT-context buttons don't act on the current selection — they change
 	# it — so they bypass the selection-gated process_command pipeline.
 	if _select_command_handlers.has(a_control_name):
@@ -4300,6 +4369,9 @@ static func _is_perceptible(entity: Entity) -> bool:
 		return PlantedCharge.of(entity) == null or entity.visible
 	if entity is Commandable:
 		return (entity as Commandable).in_sight_range
+	# A beacon's stealth is drawn on its model, not on the root fog toggles, so ask both.
+	if Beacon.of(entity) != null:
+		return entity.is_visible_to(PLAYER_COMMANDER_ID)
 	return entity.visible
 
 
@@ -5132,6 +5204,9 @@ func _on_deploy_button_pressed(a_ability_id: StringName) -> void:
 		# exactly that question.
 		if entry.sanction != null and entry.sanction.takes_a_payload():
 			command_message.tool = null
+			# The menu is drawn on the ACTIVE card (CargoSlotBinding) — turned to directly, since
+			# the armed menu is what the card will show, whatever else the selection offers there.
+			_command_family = ControlBinding.CommandFamily.ACTIVE
 		process_command(entry.sanction.command_name())
 	else:
 		# An un-aimed sanction (Global EMP) has nowhere to point, so pressing the button is

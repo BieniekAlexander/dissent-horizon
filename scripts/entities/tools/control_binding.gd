@@ -12,10 +12,16 @@ class_name ControlBinding
 #region Constants
 ## Controller context(s) a binding appears under, as a bitmask. Verb commands are
 ## ACT; build/train tools are BUILD/TRAIN; SELECT is the "nothing selected" page
-## (e.g. the idle-unit selectors). RTSController.current_context() maps its modes
-## onto these bits; command_context_parser.tools_for() and grid_collisions()
-## filter on them.
-enum ControlContext { ACT = 1 << 0, TRAIN = 1 << 1, BUILD = 1 << 2, SELECT = 1 << 3 }
+## (e.g. the idle-unit selectors); CARGO is an armed sanction's cargo menu
+## (CargoSlotBinding). RTSController.current_context() maps its modes onto these bits;
+## command_context_parser.tools_for() and grid_collisions() filter on them.
+enum ControlContext {
+	ACT = 1 << 0,
+	TRAIN = 1 << 1,
+	BUILD = 1 << 2,
+	SELECT = 1 << 3,
+	CARGO = 1 << 4,
+}
 
 ## Which CARD a binding belongs to. The command grid holds two pages and shows exactly
 ## one at a time (RTSController.command_family, toggled with `card_toggle_family`), so a

@@ -301,7 +301,7 @@ right-click that follows delivers it. Drop is the one that has them.
 | --- | --- |
 | Drop 1 | 3 × Recruit |
 | Drop 2 | 5 × Recruit, or 1 × sloop |
-| Drop 3 | 7 × Recruit, 2 × sloop, or 1 × Matilda |
+| Drop 3 | 7 × Recruit, 2 × sloop, or 2 × Matilda |
 
 **Per level is what makes "upgrading" free.** Supersession already replaces a level with its
 successor, so a level that carries the same piece at a higher count IS the upgrade — no second
@@ -309,15 +309,23 @@ mechanism, and a column stays one sanction the player improves rather than a gro
 collection of buttons. Adding a piece to the list is an unlock; raising its count is an
 upgrade; both are one edit to one list.
 
-Four things worth knowing about how it is wired:
+What is worth knowing about how it is wired:
 
-- **A payload button IS the piece's own train/build button**, reused. It already has a cell, a
-  label, both tooltip tiers and a faction mask, and clicking it already sets
-  `command_message.tool` — which is precisely what the pick has to do. Minting a second button
-  for the same piece would be a second cell for one thing.
-- **The menu is derived, not a second flag.** `pending_payload_sanction()` is "a payload
-  sanction is armed AND nothing is chosen yet", read off the state that already exists. A
-  parallel `menu_is_open` bool would be a copy that could disagree.
+- **The menu is its own row of buttons** (`CargoSlotBinding`): slot *n* is the armed level's
+  *n*-th piece, left to right along row 0, painted with that piece's picture and count while
+  the menu is up, on the ACTIVE card — arming a cargo sanction turns the grid there from
+  whichever card armed it, the commander's included. A level lists its
+  pieces in the order of the level below it, so a piece keeps its key across an upgrade. The
+  importer refuses a level offering more than a row's worth.
+- **The menu stays up after a pick**, as it does for Build: the pick is a radio button, the
+  chosen slot greys as CURRENT, and a different slot re-picks until the right-click lands.
+- REJECTED: reusing each piece's own train button as its payload button. A train button
+  lives on the PRODUCTION card at its producer's cell, so it was filtered off the ACTIVE card
+  the menu opens on, and two pieces from two producers share a training cell — the menu
+  never drew at all, and Drop could not be cast.
+- **"Still choosing" is derived, not a second flag.** `pending_payload_sanction()` is "a
+  payload sanction is armed AND nothing is chosen yet", read off the state that already exists.
+  A parallel `menu_is_open` bool would be a copy that could disagree.
 - **The cast is refused until a cargo is chosen.** The click that would fire it lands while the
   menu is still up; firing then would send an empty transport.
 - **The scene carries piece IDS, never PackedScenes.** A resource-valued export inside a

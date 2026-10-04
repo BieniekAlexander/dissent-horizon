@@ -7,7 +7,7 @@ column: 2
 levels:
   - title: Freeze 1
     tier: 0
-    cost: 200
+    cost: 125
     cooldown: 60
     description: Freezes one of YOUR units for 15 seconds — it can take no action at all, but its armour rises a step while it stands there. A way to save something about to die.
     verbose: |
@@ -20,7 +20,7 @@ levels:
       be frozen either.
   - title: Freeze 2
     tier: 1
-    cost: 600
+    cost: 300
     cooldown: 60
     description: Freezes any unit for 15 seconds — friendly or hostile. It can take no action, and its armour rises a step. Replaces Freeze 1. Strong armour cannot be frozen.
     verbose: |

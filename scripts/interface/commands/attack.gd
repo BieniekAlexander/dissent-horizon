@@ -40,8 +40,10 @@ static func _target_attackable(message: CommandMessage) -> bool:
 
 
 ## True when an obstruction's body lies on the line between a_actor and a_target
-## (excluding a_target itself, so attacking a structure directly is never blocked by that
-## same structure). Only between two pieces on the ground: when either is an AIR target, the
+## (excluding both ends: attacking a structure directly is never blocked by that same
+## structure, and a structure SHOOTING is never blocked by itself — its ray starts at its
+## own origin, on its own blocker body, which is how a Watch Tower once never fired
+## unordered). Only between two pieces on the ground: when either is an AIR target, the
 ## shot clears every building, and may visually pass through one.
 ## Why: gdd/systems/combat/target-acquisition.md §Line of fire.
 static func _obstruction_on_line(actor: Commandable, target: Entity) -> bool:
@@ -51,11 +53,13 @@ static func _obstruction_on_line(actor: Commandable, target: Entity) -> bool:
 	var query := PhysicsRayQueryParameters3D.create(
 		actor.global_position, target.global_position, CollisionLayers.Mask.STRUCTURE_BLOCKER
 	)
-	# STRUCTURE_BLOCKER lives on the target's Hurtbox child, so exclude that
-	# (and the root) to avoid the target's own body counting as line-of-fire cover.
-	var excludes: Array[RID] = [target.get_rid()]
-	if target.hurtbox != null:
-		excludes.append(target.hurtbox.get_rid())
+	# STRUCTURE_BLOCKER lives on a structure's Hurtbox child, so exclude that (and the root) of
+	# both ends, so neither's own body counts as line-of-fire cover.
+	var excludes: Array[RID] = []
+	for end: Entity in [actor, target]:
+		excludes.append(end.get_rid())
+		if end.hurtbox != null:
+			excludes.append(end.hurtbox.get_rid())
 	query.exclude = excludes
 	return not space_state.intersect_ray(query).is_empty()
 

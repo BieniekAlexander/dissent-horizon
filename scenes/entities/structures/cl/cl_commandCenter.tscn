@@ -105,7 +105,7 @@ producible_types = Array[StringName]([&"cl_mechLight_dominionGen", &"cl_bioLight
 
 [node name="Abilities" type="Node" parent="." unique_id=1678880210]
 script = ExtResource("2_spec")
-groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 1800, "grants": [&"beacon", &"freeze", &"promotion", &"scan"] }])
+groups = Array[Dictionary]([{ "initial_charges": 0, "max_charges": 1, "cooldown_ticks": 1800, "grants": [&"beacon", &"freeze", &"promotion", &"scan"] }])
 metadata/_visual_default_mesh = "structure"
 
 [node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("24_emu58")]

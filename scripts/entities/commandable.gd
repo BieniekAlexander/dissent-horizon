@@ -345,15 +345,6 @@ func can_use_weapons() -> bool:
 ## `ownership` is checked before `commander` is read: an OUT-OF-TREE instance (a build
 ## preview, a scene instantiated in a test) never ran its @onready, so the component is null
 ## and the property getter would error rather than answer. Nothing unowned is unpowered.
-## Show or hide the marker saying this unit is what an armed single-unit ability would act on
-## (see RTSController._update_ability_target). Optional node: a piece scene that does not
-## inherit commandable.tscn simply has no marker.
-func set_ability_targeted(a_targeted: bool) -> void:
-	var marker := get_node_or_null("TargetIndicator") as Node3D
-	if marker != null:
-		marker.visible = a_targeted
-
-
 func is_unpowered() -> bool:
 	return (
 		is_in_group("structure")
@@ -361,6 +352,15 @@ func is_unpowered() -> bool:
 		and commander != null
 		and commander.is_infrastructure_strained()
 	)
+
+
+## Show or hide the marker saying this unit is what an armed single-unit ability would act on
+## (see RTSController._update_ability_target). Optional node: a piece scene that does not
+## inherit commandable.tscn simply has no marker.
+func set_ability_targeted(a_targeted: bool) -> void:
+	var marker := get_node_or_null("TargetIndicator") as Node3D
+	if marker != null:
+		marker.visible = a_targeted
 
 
 ## An empty unit stands down the order that only made sense with something to shoot —

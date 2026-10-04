@@ -32,9 +32,14 @@ up, folded or not. It is not a command-grid card and does not interact with `car
 A second menu, top-left, tunes the shared libraries and saves edited docs; it and the
 editable readouts are [debug-tuning](debug-tuning.md).
 
-It carries three things, independent of each other: the **player** setting (§Playing as
-another commander), a **difficulty** picker per bot, and the **piece card** (§The piece
-spawner).
+It carries four things, independent of each other: the **player** setting (§Playing as
+another commander), a **difficulty** picker per bot, an **energy and dominion** field per
+commander, and the **piece card** (§The piece spawner).
+
+The resource fields accept digits only. Each shows the live amount until it is focused; Enter,
+or leaving the field, sets the commander's stockpile to what it holds, through
+`Commander.add_energy` / `add_dominion` so the economy bars hear it. Enter also hands the
+keyboard back, since a focused field swallows every hotkey.
 
 ## Playback speed
 

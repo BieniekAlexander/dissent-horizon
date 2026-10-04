@@ -9,14 +9,11 @@
 [ext_resource type="PackedScene" uid="uid://ceccva2mk6k4g" path="res://scenes/scenario_events/sanction_promote.tscn" id="8_pro"]
 [ext_resource type="PackedScene" uid="uid://cecedxppj374g" path="res://scenes/scenario_events/sanction_radar_scan.tscn" id="9_rad"]
 [ext_resource type="PackedScene" path="res://scenes/scenario_events/sanction_stub.tscn" id="10_stub"]
-[ext_resource type="PackedScene" uid="uid://0ke7wam350to" path="res://scenes/scenario_events/sanction_beacon_1.tscn" id="21_b1"]
-[ext_resource type="PackedScene" uid="uid://0ke7wam350tp" path="res://scenes/scenario_events/sanction_beacon_2.tscn" id="22_b2"]
-[ext_resource type="PackedScene" uid="uid://0ke7wam350tq" path="res://scenes/scenario_events/sanction_beacon_3.tscn" id="23_b3"]
+[ext_resource type="PackedScene" uid="uid://0ke7wam350to" path="res://scenes/scenario_events/sanction_beacon.tscn" id="21_b1"]
 [ext_resource type="PackedScene" uid="uid://0khmcn0g50to" path="res://scenes/scenario_events/sanction_drop_1.tscn" id="11_d1"]
 [ext_resource type="PackedScene" uid="uid://0khmcn1g50to" path="res://scenes/scenario_events/sanction_drop_2.tscn" id="12_d2"]
 [ext_resource type="PackedScene" uid="uid://0khmcn2g50to" path="res://scenes/scenario_events/sanction_drop_3.tscn" id="13_d3"]
 [ext_resource type="PackedScene" uid="uid://0kv5wl1g50to" path="res://scenes/scenario_events/sanction_scan_2.tscn" id="14_s2"]
-[ext_resource type="PackedScene" uid="uid://0kv5wl2g50to" path="res://scenes/scenario_events/sanction_scan_3.tscn" id="15_s3"]
 [ext_resource type="PackedScene" uid="uid://cd3eh0gcrsk4g" path="res://scenes/scenario_events/sanction_freeze_1.tscn" id="16_f1"]
 [ext_resource type="PackedScene" uid="uid://cd3eh0gcrsk4h" path="res://scenes/scenario_events/sanction_freeze_2.tscn" id="17_f2"]
 [ext_resource type="PackedScene" uid="uid://cc16o1ep6fm7" path="res://scenes/entities/units/cl/cl_bioLight_builder.tscn" id="1_spec"]
@@ -39,7 +36,7 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_promotion")
 tier = 0
 column = 0
-dominion_cost = 200
+dominion_cost = 125
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_drop1"]
@@ -59,7 +56,7 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_drop1")
 tier = 1
 column = 0
-dominion_cost = 500
+dominion_cost = 250
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_drop2"]
@@ -80,20 +77,20 @@ sanction = SubResource("Sanction_drop2")
 tier = 2
 column = 0
 parent = SubResource("Unlock_drop1")
-dominion_cost = 1200
+dominion_cost = 600
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_drop3"]
 script = ExtResource("6_ord")
 sanction_name = "Drop 3"
-description = "Flies in a shipment of your choosing, up to a Matilda."
+description = "Flies in a shipment of your choosing, up to 2 × Matilda."
 event_scene = ExtResource("13_d3")
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "The heaviest shipment the Colonials can call in, and the reason to take the Drop\ncolumn to its end. Every option Drop 2 offered arrives in greater numbers, and the\nMatilda is added to the menu."
+verbose_description = "The heaviest shipment the Colonials can call in, and the reason to take the Drop\ncolumn to its end. Every option Drop 2 offered arrives in greater numbers, and the\nMatilda is added to the menu, two at a time."
 cooldown_duration = 60.0
 ability_id = &"drop"
 ability_level = 3
-payloads = Array[Dictionary]([{ "piece": &"cl_bioLight_antiLight", "count": 7 }, { "piece": &"cl_mechMedium_antiLight", "count": 2 }, { "piece": &"cl_mechMedium_antiMech", "count": 1 }])
+payloads = Array[Dictionary]([{ "piece": &"cl_bioLight_antiLight", "count": 7 }, { "piece": &"cl_mechMedium_antiLight", "count": 2 }, { "piece": &"cl_mechMedium_antiMech", "count": 2 }])
 
 [sub_resource type="Resource" id="Unlock_drop3"]
 script = ExtResource("7_unlock")
@@ -101,7 +98,7 @@ sanction = SubResource("Sanction_drop3")
 tier = 3
 column = 0
 parent = SubResource("Unlock_drop2")
-dominion_cost = 2000
+dominion_cost = 1000
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_scan1"]
@@ -121,7 +118,7 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_scan1")
 tier = 0
 column = 1
-dominion_cost = 250
+dominion_cost = 150
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_scan2"]
@@ -142,28 +139,7 @@ sanction = SubResource("Sanction_scan2")
 tier = 1
 column = 1
 parent = SubResource("Unlock_scan1")
-dominion_cost = 450
-metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
-
-[sub_resource type="Resource" id="Sanction_scan3"]
-script = ExtResource("6_ord")
-sanction_name = "Scan 3"
-description = "Leaves a permanent eye over the target point — the same reveal and stealth detection, held indefinitely. Replaces Scan 2."
-event_scene = ExtResource("15_s3")
-needs_vision = false
-metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "A hovering observer that never expires. It cannot be commanded or selected, and it\nwatches the ground it was placed over for the rest of the match, unless the enemy\nshoots it down."
-cooldown_duration = 60.0
-ability_id = &"scan"
-ability_level = 3
-
-[sub_resource type="Resource" id="Unlock_scan3"]
-script = ExtResource("7_unlock")
-sanction = SubResource("Sanction_scan3")
-tier = 2
-column = 1
-parent = SubResource("Unlock_scan2")
-dominion_cost = 500
+dominion_cost = 225
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_gunship"]
@@ -182,7 +158,7 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_gunship")
 tier = 2
 column = 1
-dominion_cost = 1500
+dominion_cost = 750
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_freeze1"]
@@ -201,7 +177,7 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_freeze1")
 tier = 0
 column = 2
-dominion_cost = 200
+dominion_cost = 125
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_freeze2"]
@@ -221,7 +197,7 @@ sanction = SubResource("Sanction_freeze2")
 tier = 1
 column = 2
 parent = SubResource("Unlock_freeze1")
-dominion_cost = 600
+dominion_cost = 300
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [sub_resource type="Resource" id="Sanction_blizzard"]
@@ -240,66 +216,26 @@ script = ExtResource("7_unlock")
 sanction = SubResource("Sanction_blizzard")
 tier = 3
 column = 2
-dominion_cost = 3000
+dominion_cost = 1500
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
-[sub_resource type="Resource" id="Sanction_beacon1"]
+[sub_resource type="Resource" id="Sanction_beacon"]
 script = ExtResource("6_ord")
-sanction_name = "Beacon 1"
-description = "Places a firing solution at the target point for 15 seconds. Any Bombard can then shell it from anywhere on the map."
+sanction_name = "Beacon"
+description = "Places a firing solution on the ground you can see. Any Bombard can then shell it from anywhere on the map, until a shell spends it."
 event_scene = ExtResource("21_b1")
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for ten seconds and stay\nuntil the shot lands; this puts one wherever you can see, immediately.\n\nWhat you pay for that is a clock: the beacon stands for 15 seconds and is gone\nwhether or not a gun used it.\n\nThe beacon is spent by the first shell that uses it, exactly like a spotter's."
+verbose_description = "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for ten seconds and stay\nuntil the shot lands; this puts one wherever you can see, immediately.\n\nIt stands until a shell spends it, so it can be placed before the guns are ready.\nIt is stealthed, and it does not see: once your eyes leave the spot it marks blind\nground — still yours to shell, but you will not see what walks onto it. An enemy\nthat finds it can repair it away."
 cooldown_duration = 60.0
 ability_id = &"beacon"
 ability_level = 1
 
-[sub_resource type="Resource" id="Unlock_beacon1"]
+[sub_resource type="Resource" id="Unlock_beacon"]
 script = ExtResource("7_unlock")
-sanction = SubResource("Sanction_beacon1")
+sanction = SubResource("Sanction_beacon")
 tier = 1
 column = 3
-dominion_cost = 500
-metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
-
-[sub_resource type="Resource" id="Sanction_beacon2"]
-script = ExtResource("6_ord")
-sanction_name = "Beacon 2"
-description = "The same solution, and it now lights the fog around itself (radius 2). Replaces Beacon 1."
-event_scene = ExtResource("22_b2")
-metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "A blind beacon marks ground you already had eyes on. This one brings its own, so it\ncan be dropped into the shroud and show you what it is standing next to — which is\nusually what you wanted to shell."
-cooldown_duration = 60.0
-ability_id = &"beacon"
-ability_level = 2
-
-[sub_resource type="Resource" id="Unlock_beacon2"]
-script = ExtResource("7_unlock")
-sanction = SubResource("Sanction_beacon2")
-tier = 2
-column = 3
-parent = SubResource("Unlock_beacon1")
-dominion_cost = 1000
-metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
-
-[sub_resource type="Resource" id="Sanction_beacon3"]
-script = ExtResource("6_ord")
-sanction_name = "Beacon 3"
-description = "The solution now stands until a shell spends it, rather than expiring. Replaces Beacon 2."
-event_scene = ExtResource("23_b3")
-metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "Drops the clock. The solution keeps its small sight radius and waits indefinitely,\nso it can be placed before the guns are ready rather than in the same breath."
-cooldown_duration = 60.0
-ability_id = &"beacon"
-ability_level = 3
-
-[sub_resource type="Resource" id="Unlock_beacon3"]
-script = ExtResource("7_unlock")
-sanction = SubResource("Sanction_beacon3")
-tier = 3
-column = 3
-parent = SubResource("Unlock_beacon2")
-dominion_cost = 2000
+dominion_cost = 350
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
 [node name="Colonial" type="Node" unique_id=1574932771]
@@ -308,7 +244,7 @@ faction_name = "Haustoria"
 infrastructure_source = &"cl_infrastructure"
 starting_units = Array[PackedScene]([ExtResource("1_spec"), ExtResource("1_spec"), ExtResource("1_spec")])
 starting_formation = ExtResource("99_form")
-sanction_unlocks = Array[ExtResource("7_unlock")]([SubResource("Unlock_promotion"), SubResource("Unlock_drop1"), SubResource("Unlock_drop2"), SubResource("Unlock_drop3"), SubResource("Unlock_scan1"), SubResource("Unlock_scan2"), SubResource("Unlock_gunship"), SubResource("Unlock_freeze1"), SubResource("Unlock_freeze2"), SubResource("Unlock_blizzard"), SubResource("Unlock_beacon1"), SubResource("Unlock_beacon2"), SubResource("Unlock_beacon3")])
+sanction_unlocks = Array[ExtResource("7_unlock")]([SubResource("Unlock_promotion"), SubResource("Unlock_drop1"), SubResource("Unlock_drop2"), SubResource("Unlock_drop3"), SubResource("Unlock_scan1"), SubResource("Unlock_scan2"), SubResource("Unlock_gunship"), SubResource("Unlock_freeze1"), SubResource("Unlock_freeze2"), SubResource("Unlock_blizzard"), SubResource("Unlock_beacon")])
 metadata/_custom_type_script = "uid://cyrg0j3vbx1ds"
 
 [node name="DominionGeneration" type="Node" parent="."]

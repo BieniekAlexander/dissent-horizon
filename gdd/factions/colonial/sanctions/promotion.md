@@ -7,7 +7,7 @@ column: 0
 levels:
   - title: Promotion
     tier: 0
-    cost: 200
+    cost: 125
     cooldown: 60
     description: Grants the first veterancy level to a clicked friendly unit of any type. Only a unit that has not yet earned a level can be promoted this way.
     verbose: |

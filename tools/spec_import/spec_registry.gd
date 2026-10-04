@@ -1980,6 +1980,15 @@ func _validate_payloads(a_spec: Dictionary, a_level: Dictionary, a_where: String
 	if not (a_level["payloads"] is Array) or (a_level["payloads"] as Array).is_empty():
 		_err(a_spec, "%s.payloads must be a non-empty list of {piece, count}" % a_where)
 		return
+	# The cargo menu is one row of the command grid (CargoSlotBinding), a slot per piece.
+	if (a_level["payloads"] as Array).size() > ControlBinding.GRID_WIDTH:
+		_err(
+			a_spec,
+			(
+				"%s.payloads offers more than the %d a cargo menu row holds"
+				% [a_where, ControlBinding.GRID_WIDTH]
+			)
+		)
 	var seen: Dictionary = {}
 	for entry: Variant in a_level["payloads"]:
 		if not (entry is Dictionary) or not entry.has("piece"):
@@ -1988,9 +1997,8 @@ func _validate_payloads(a_spec: Dictionary, a_level: Dictionary, a_where: String
 		var piece: String = str(entry["piece"])
 		if not pieces.has(piece):
 			_err(a_spec, "%s.payloads names '%s', which is not a piece" % [a_where, piece])
-		# One piece, one entry. Two would draw two buttons in the SAME cell (a payload button
-		# is the piece's own train/build button — see the ui note), where the player could
-		# only ever press one of them.
+		# One piece, one entry: a pick is a piece, so two slots for it could not tell apart
+		# which one was chosen.
 		if seen.has(piece):
 			_err(a_spec, "%s.payloads names '%s' twice" % [a_where, piece])
 		seen[piece] = true

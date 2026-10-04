@@ -7,7 +7,7 @@ column: 0
 levels:
   - title: Dignify
     tier: 0
-    cost: 150
+    cost: 125
     cooldown: 30
     description: Promotes a clicked {{ an_bioLight_builder }} into a {{ an_bioMedium_dominionGen }}, keeping the veterancy it has already earned.
     verbose: |

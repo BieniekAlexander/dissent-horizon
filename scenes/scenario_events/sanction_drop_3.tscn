@@ -7,6 +7,6 @@
 [node name="SanctionDrop3" type="Sprite3D"]
 script = ExtResource("1_evt")
 entity_scenes = Array[PackedScene]([ExtResource("2_unit")])
-count = 1
+count = 2
 transport_scene = ExtResource("3_transport")
 metadata/_custom_type_script = "uid://bjl4bdrf6dwlj"

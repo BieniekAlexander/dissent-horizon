@@ -7,7 +7,7 @@ column: 1
 levels:
   - title: Scan 1
     tier: 0
-    cost: 250
+    cost: 150
     cooldown: 60
     description: Leaves a permanent observer over the target point, revealing the fog within 24 units. Scouting without risking a unit — until the enemy shoots it down.
     verbose: |
@@ -21,7 +21,7 @@ levels:
     needs_vision: false
   - title: Scan 2
     tier: 1
-    cost: 450
+    cost: 225
     cooldown: 60
     description: The same permanent observer, now also exposing stealthed units within 16 units of it. Replaces Scan 1.
     verbose: |

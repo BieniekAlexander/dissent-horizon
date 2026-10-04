@@ -79,3 +79,18 @@ func test_an_obstruction_does_not_block_a_shot_from_an_air_target() -> void:
 	await wait_physics_frames(2)
 	assert_true(shooter.is_air_target(), "guards the fixture: the aircraft is airborne")
 	assert_false(Attack._obstruction_on_line(shooter, target))
+
+
+## A building's own blocker body is not cover against its own shots. Its ray starts at its own
+## origin, inside or on that body, which once stopped every unordered shot a Watch Tower took.
+func test_a_structure_is_not_cover_against_itself() -> void:
+	var tower: Commandable = FakePieces.structure(
+		{"dimensions": Vector2i(1, 1), "weapon": {"ground": 12.0}}
+	)
+	add_child_autofree(tower)
+	tower.ownership.commander = _commander(1)
+	tower._apply_targetable_layers()
+	var target: Commandable = _piece(SOLDIER, _commander(2), Vector3(SPAN, 0, 0))
+	await wait_physics_frames(2)
+	assert_true(tower.blocks_line_of_fire(), "guards the fixture: the tower is an obstruction")
+	assert_false(Attack._obstruction_on_line(tower, target))

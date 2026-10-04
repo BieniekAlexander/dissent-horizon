@@ -7,7 +7,7 @@ column: 2
 levels:
   - title: Overcharge
     tier: 3
-    cost: 500
+    cost: 250
     cooldown: 60
     description: Dumps a huge surge into a single DISABLED unit. It can only be aimed at something already stunned — pair it with Global EMP.
     verbose: |

@@ -7,7 +7,7 @@ column: 0
 levels:
   - title: Ambush 1
     tier: 1
-    cost: 450
+    cost: 225
     cooldown: 60
     description: Drops 3 × {{ an_bioLight_builder }} at the target point. Use it to reinforce a failing defence, or to open a second front behind the enemy line.
     verbose: |
@@ -15,7 +15,7 @@ levels:
       is yours to keep.
   - title: Ambush 2
     tier: 2
-    cost: 1100
+    cost: 550
     cooldown: 60
     description: Drops 8 × {{ an_bioLight_builder }} at the target point, replacing Ambush 1.
     verbose: |

@@ -94,18 +94,23 @@ Rough guidance for where a cell lands:
 
 ### Price ladder
 
-**Decided (Alex, 2026-10-02): the ladder below is the starting point; current prices are
-ignored.** Cells in one tier need not cost the same, and a cell may cost more than one in the next
+**Decided (Alex, 2026-10-04): the ladder is HALVED from the 2026-10-02 one, T1 excepted.** A
+playtest as Colonial against a passive bot, all resources into dominion and 3–4 Shelters worked,
+reached T4 money at about 10 minutes. Uncontested, Alex wants that by 5–6 minutes, so that the
+~10-minute power peak is what a CONTESTED match reaches. The rates were left alone and the prices
+halved, which keeps dominion and energy fungible at the rate the cells were priced against
+(§Fungibility). T1 is held at 125–150 rather than halved, so starting dominion (100) still buys
+nothing outright. Cells in one tier need not cost the same, and a cell may cost more than one in the next
 tier as an exception. Keep cells *within* a tier reasonably close, so the cheapest pair does not
 become every player's way of paying the tier toll
 ([dominion-and-ordnance](dominion-and-ordnance.md) §Gating).
 
 | Tier | Price band (dominion) |
 |---|---|
-| T1 | 150–300 |
-| T2 | 400–700 |
-| T3 | 900–1500 |
-| T4 | 2000–3000 |
+| T1 | 125–150 |
+| T2 | 200–350 |
+| T3 | 450–750 |
+| T4 | 1000–1500 |
 | **starting dominion** | **about 100, the same for every player** — below the cheapest cell (Decided) |
 
 A flat starting amount is a fair head start once each faction's rate is calibrated so its first
@@ -181,6 +186,10 @@ T4 2500), with no escalation:
 
 So the whole grid is reachable only in drawn-out matches, as intended.
 
+TODO: §Time to tier and §Finishing the grid below still work the 2026-10-02 ladder. At half the
+prices on the same ramp, T4 opens at about 6.5 minutes and the first T4 cell lands at about 8.5 —
+redo them once a measured rate ramp replaces the assumed one.
+
 ## Proposed grids
 
 Each tier T1–T3 needs at least two cells, or the tier below it can never open.
@@ -190,14 +199,16 @@ Each tier T1–T3 needs at least two cells, or the tier below it can never open.
 | Tier | Cells |
 |---|---|
 | T1 | Promotion, Scan 1, Freeze 1 |
-| T2 | Drop 1, Scan 2, Freeze 2, Beacon 1 |
-| T3 | Drop 2, Gunship, Beacon 2 |
-| T4 | Drop 3, Beacon 3, Blizzard |
+| T2 | Drop 1, Scan 2, Freeze 2, Beacon |
+| T3 | Drop 2, Gunship |
+| T4 | Drop 3, Blizzard |
 
 - **Drop stays at three levels** (Decided, for now), placed T2–T4 because even Drop 1 can open a
   second front. Drop 1 at T1, framed as reinforcing a defence, is the alternative.
-- **Beacon** moves down a tier with each level. Merging Beacon 2 and 3 (sight and no expiry in one
-  T3 level) is an option if T4 needs to be thinner.
+- **Beacon** is one level at T2 (decided 2026-10-04, moved down from T3 the same day): a
+  ground-only, permanent, blind solution, priced at the top of T2.
+  REJECTED: the three-level version (a 15 s clock, then sight, then no clock) — collapsed into the
+  one level at Alex's direction.
 - **Freeze 2** at T2: freezing one enemy is control, and it raises the target's armour, so it is
   mild offence at most.
 
@@ -274,19 +285,21 @@ to a different building. Stealth on one unit (Informant 1) counts as minor. Comm
 are set with this in mind, so a second centre's extra charges stay worth less than the same
 energy in army ([dominion-and-ordnance](dominion-and-ordnance.md) §The command centre).
 
-## Implementation (applied 2026-10-02)
+## Implementation (applied 2026-10-02, repriced 2026-10-04)
 
 Done, as starting points for playtesting:
 
 - `SanctionGrid.NUM_TIERS` 5 → 4; every sanction doc re-tiered per §Proposed grids.
-- Every cell re-priced from the ladder:
+- Every cell priced from the ladder (halved 2026-10-04; T1 held at 125–150):
 
   | Tier | Colonial | Anarchical |
   |---|---|---|
-  | T1 | Promotion 200, Scan 1 250, Freeze 1 200 | Dignify 150, Informant 1 200, Scavenge 1 300 |
-  | T2 | Drop 1 500, Scan 2 450, Freeze 2 600, Beacon 1 500 | Ambush 1 450, Informant 2 500, Scavenge 2 600, Mortar 1 550 |
-  | T3 | Drop 2 1200, Gunship 1500, Beacon 2 1000 | Ambush 2 1100, Scavenge 3 1200, Mortar 2 1200 |
-  | T4 | Drop 3 2000, Beacon 3 2000, Blizzard 3000 | Informant 3 2000, Mortar 3 2500, Global EMP 3000 |
+  | T1 | Promotion 125, Scan 1 150, Freeze 1 125 | Dignify 125, Informant 1 125, Scavenge 1 150 |
+  | T2 | Drop 1 250, Scan 2 225, Freeze 2 300, Beacon 350 | Ambush 1 225, Informant 2 250, Scavenge 2 300, Mortar 1 275 |
+  | T3 | Drop 2 600, Gunship 750 | Ambush 2 550, Scavenge 3 600, Mortar 2 600 |
+  | T4 | Drop 3 1000, Blizzard 1500 | Informant 3 1000, Mortar 3 1250, Global EMP 1500 |
+
+  Overcharge, parked off every grid, was halved with them (250).
 
 - `PlayerSlot.starting_dominion` default 300 → 100. Scenarios that set their own value (the
   tutorial, `blue_hole`, test scenes) were left as content.
@@ -308,5 +321,4 @@ Not done:
 
 - Technocratic dominion extractors: allowed on ponds? Is the energy/dominion choice permanent?
 - Drop's tier placement: T2–T4, or T1–T3?
-- Beacon: keep three levels, or merge levels 2 and 3?
 - Scan 2: stealthed observer or not, and which detection radius?

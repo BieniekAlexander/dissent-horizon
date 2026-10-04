@@ -67,6 +67,14 @@ text = "Bot difficulty"
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="ResourcesTitle" type="Label" parent="Margin/Column/Body"]
+layout_mode = 2
+text = "Resources (energy, dominion)"
+
+[node name="ResourceRows" type="VBoxContainer" parent="Margin/Column/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="HSeparator" type="HSeparator" parent="Margin/Column/Body"]
 layout_mode = 2
 

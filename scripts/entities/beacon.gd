@@ -7,17 +7,10 @@ extends Node
 ##
 ## Two things place one — a [Spotter] unit that walked over and called it in, and the
 ## Beacon Drop sanction — and both produce the same piece, so the Bombard never has to know
-## which. What differs between them is only how long it lasts and whether it can see:
+## which. Neither sees: a spotter's stands only while its spotter holds it, and a dropped one
+## stands on the ground until a shot spends it.
 ##
-## | Placed by | Lifespan | Sight |
-## | --- | --- | --- |
-## | a Spotter | until consumed, or until the spotter is re-ordered | none (the spotter is standing
-## there) |
-## | Beacon Drop 1 | 15 seconds | none |
-## | Beacon Drop 2 | 15 seconds | radius 2 |
-## | Beacon Drop 3 | until consumed | radius 2 |
-##
-## A beacon may be ATTACHED to a grounded enemy MECH unit (see [method can_carry]): it then
+## A Spotter may ATTACH one to a grounded enemy MECH unit (see [method can_carry]): it then
 ## moves with that unit, so a shell tracking it follows the unit — until the beacon leaves
 ## play, when the shell lands where the beacon last was. A carrier that dies or leaves the
 ## map leaves the beacon standing where it last was, as an ordinary point beacon.
@@ -27,11 +20,11 @@ extends Node
 ## lands. Opponents see no change — and a beacon is STEALTHED to them: only a detector shows
 ## it. See gdd/systems/combat/bombardment.md §Beacons.
 ##
-## The host is a plain Entity so it can be OWNED (the strike check is per-commander), carry
-## vision through the ordinary fog path, and be found by a group scan. It has no Defense,
-## Selectable or Hurtbox, so it cannot be shot, clicked or ordered — killing a beacon is
-## done by killing the spotter that called it. A component rather than the host's class, like
-## Shelter; `Beacon.of` finds it.
+## The host is a plain Entity so it can be OWNED (the strike check is per-commander) and be
+## found by a group scan. It has no Defense or Hurtbox, so it cannot be shot or ordered. Its
+## Selectable is unselectable and exists only so the cursor can POINT at it — an enemy repairer
+## takes a beacon away (Repair.repairable_cause). A component rather than the host's class,
+## like Shelter; `Beacon.of` finds it.
 
 ## Every live beacon PIECE, for BombardTargeting's scan. A group rather than a commander-side
 ## list because a beacon may outlive the thing that placed it.
@@ -46,15 +39,11 @@ const SCENE: PackedScene = preload("res://scenes/entities/beacon.tscn")
 ## anywhere within this radius and lands where clicked.
 const STRIKE_RADIUS: float = 3.0
 
-## How close to a Beacon Drop's landing point a unit must be for the dropped beacon to
-## attach to it rather than stand on the ground.
-const ATTACH_RADIUS: float = 1.5
-
 ## Opacity of a beacon an opponent's detector has revealed — faint, like a revealed unit.
 const REVEALED_OPACITY: float = 0.5
 
-## Fires once when the beacon leaves play for ANY reason — spent by a shot, expired, or
-## dropped because its spotter was re-ordered. Spot listens for it to know its work is done.
+## Fires once when the beacon leaves play for ANY reason — spent by a shot, repaired away,
+## or dropped because its spotter was re-ordered. Spot listens for it to know its work is done.
 signal spent
 
 var _has_signalled: bool = false
@@ -106,7 +95,7 @@ func _process(_a_delta: float) -> void:
 		used_marker.visible = allied and _is_used
 
 
-## Whichever way the host goes — dismissed, or freed by a Lifespan running out — the spotter
+## Whichever way the host goes — dismissed, or freed with its commander — the spotter
 ## hears it. Emitting on the way OUT of memory rather than out of the tree, because a host
 ## reparented to its commander leaves the tree and comes straight back.
 func _notification(a_what: int) -> void:

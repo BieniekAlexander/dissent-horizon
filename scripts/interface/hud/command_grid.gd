@@ -399,6 +399,7 @@ static func bindings() -> Array:
 		+ Tool.command_tool_map.values()
 		+ AbilityBinding.all()
 		+ ProducerContextBinding.all()
+		+ CargoSlotBinding.all()
 	)
 
 

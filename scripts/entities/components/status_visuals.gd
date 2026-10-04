@@ -55,6 +55,10 @@ const AMMO_FILLED: Texture2D = preload("res://assets/interface/ammo_filled.svg")
 ## Hold fire's badge, shared with its condition card (ConditionRow) so the two read as one.
 const HOLD_FIRE_ICON: Texture2D = preload("res://assets/interface/status_hold_fire.svg")
 
+## Over a structure its commander cannot power, whose weapons or abilities have gone dark
+## (Commandable.is_unpowered). See _shows_unpowered.
+const UNPOWERED_ICON: Texture2D = preload("res://assets/interface/status_unpowered.svg")
+
 ## Over a BLUEPRINT whose purchase is still waiting for energy: the site is ordered, and nothing
 ## will start there until it is paid for. The one badge a blueprint carries, and only for its
 ## own side — see _shows_awaiting_funds.
@@ -264,6 +268,8 @@ func _update_status_icons(a_effects: Array[StatusEffect], a_hidden: bool) -> voi
 			icons.append([effect.indicator_icon, effect.indicator_blink_hz])
 	if _shows_hold_fire():
 		icons.append([HOLD_FIRE_ICON, 0.0])
+	if _shows_unpowered():
+		icons.append([UNPOWERED_ICON, 0.0])
 	_place_status_icons(icons, a_hidden)
 
 
@@ -313,6 +319,22 @@ static func stance_badge(a_stance: Deployable.Stance) -> Array:
 ## which units will not shoot, and an enemy has no business knowing which will not.
 func _shows_hold_fire() -> bool:
 	return _host.is_holding_fire and _host.commander_id == RTSController.PLAYER_COMMANDER_ID
+
+
+## The unpowered badge shows on a dark structure that has something to lose by it — weapons,
+## or an ability pool — and only to the LOCAL player's side: which turrets are dark is the
+## enemy's to find out. Production is not switched off by the shortfall (it only slows), so a
+## building that merely trains carries no badge.
+func _shows_unpowered() -> bool:
+	if not _host.is_unpowered():
+		return false
+	var viewer: Commander = _host.commander
+	if viewer == null or not viewer.shares_side_with(RTSController.PLAYER_COMMANDER_ID):
+		return false
+	if _host.weapon_inventory != null and not _host.weapon_inventory.get_weapons().is_empty():
+		return true
+	var pool := _host.get_node_or_null("Abilities") as Abilities
+	return pool != null and not pool.granted_abilities().is_empty()
 
 
 ## The awaiting-funds badge shows on a blueprint the LOCAL player's side ordered and has not

@@ -57,7 +57,7 @@ Aiming at ground nobody spots fails with its own `PreconditionFailureCause.TARGE
 
 ### Beacons
 
-`Beacon` is an Entity rather than a marker Resource so it can be OWNED (the strike check is per-commander), can carry vision through the ordinary fog path, and can be found by a group scan with no registry to keep in step. Like `Scout` it has no `Defense`, `Selectable` or `Hurtbox`, so it cannot be shot, clicked or ordered — you kill a beacon by killing its spotter.
+`Beacon` is an Entity rather than a marker Resource so it can be OWNED (the strike check is per-commander), can carry vision through the ordinary fog path, and can be found by a group scan with no registry to keep in step. Like `Scout` it has no `Defense` or `Hurtbox`, so it cannot be shot or ordered — you kill a spotter's beacon by killing its spotter, and repair a ground beacon away (below).
 
 `dismiss()` is the one way out for every reason (spent, expired, cancelled), because every caller wants the same two things — the `spent` signal, then the free — and a second path would eventually forget one. It is idempotent, so a shot and an expiry on the same frame cannot double-notify.
 
@@ -75,7 +75,9 @@ stealthed, and a fogged beacon is untargetable by that opponent. See
 
 **Claimed, then spent.** A shot fired on a beacon MARKS it used (`mark_used`): `BombardTargeting.beacon_at` skips a used beacon, so a second battery cannot claim one a shell is already coming for, and the beacon stands for the whole flight so the shell can track it. It is dismissed when the shell hands over from its flight phase, or leaves play (`dismiss_on_landing`, method callables so a shell outliving its beacon never calls into a freed node). The owner's side sees the used state (`MeshVisual/UsedMarker`); an opponent sees no change at all.
 
-The **Beacon Drop sanction** (`EventDeployBeacon`, Colonial column 3) places the same entity, so the Bombard never learns which route made a solution. A drop landing within `Beacon.ATTACH_RADIUS` of an enemy unit that can carry one attaches to the nearest such unit. The tiers differ only in lifespan and sight: 15s blind → 15s with sight radius 2 → permanent with sight. Sight is a `VisionRange` created by the event rather than shipped disabled, so a blind beacon genuinely has no vision node — the same reasoning as `EventRadarScan`'s detection shape.
+The **Beacon Drop sanction** (`EventDeployBeacon`, Colonial column 3) places the same entity, so the Bombard never learns which route made a solution. It is one level, and what it drops is always a **point beacon on the ground** — aimed over a unit, the order already carries the terrain under the cursor (the controller's ground point looks through pieces), and the event never attaches; tagging a unit is Spot's alone. It has **no lifespan and no sight**: it stands until spent, and once the caster's side stops seeing the spot it marks blind ground, which a Bombard may still fire on — spotting is a beacon's presence, never the player's vision of it.
+
+**Repair takes a ground beacon away.** A beacon carries a `Selectable` with `selectable_by_player` off, so the cursor can point at it (the right-click ladder offers Repair) but nothing can select it. An enemy repairer that can PERCEIVE it — out of its fog and not stealthed, `Entity.is_visible_to` — removes it on first touch, the rule a planted charge on the ground already follows (`Repair.repairable_cause`). Only an enemy: a beacon is not taken back by its owner the way a charge is, because nothing recharges on its removal.
 
 ### The shell follows its solution
 

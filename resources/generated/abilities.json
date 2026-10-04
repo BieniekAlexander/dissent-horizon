@@ -50,19 +50,9 @@
 		"hud_button": true,
 		"levels": [
 			{
-				"description": "Places a firing solution at the target point for 15 seconds. Any Bombard can then shell it from anywhere on the map.",
-				"title": "Beacon 1",
-				"verbose": "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for ten seconds and stay\nuntil the shot lands; this puts one wherever you can see, immediately.\n\nWhat you pay for that is a clock: the beacon stands for 15 seconds and is gone\nwhether or not a gun used it.\n\nThe beacon is spent by the first shell that uses it, exactly like a spotter's."
-			},
-			{
-				"description": "The same solution, and it now lights the fog around itself (radius 2). Replaces Beacon 1.",
-				"title": "Beacon 2",
-				"verbose": "A blind beacon marks ground you already had eyes on. This one brings its own, so it\ncan be dropped into the shroud and show you what it is standing next to — which is\nusually what you wanted to shell."
-			},
-			{
-				"description": "The solution now stands until a shell spends it, rather than expiring. Replaces Beacon 2.",
-				"title": "Beacon 3",
-				"verbose": "Drops the clock. The solution keeps its small sight radius and waits indefinitely,\nso it can be placed before the guns are ready rather than in the same breath."
+				"description": "Places a firing solution on the ground you can see. Any Bombard can then shell it from anywhere on the map, until a shell spends it.",
+				"title": "Beacon",
+				"verbose": "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for ten seconds and stay\nuntil the shot lands; this puts one wherever you can see, immediately.\n\nIt stands until a shell spends it, so it can be placed before the guns are ready.\nIt is stealthed, and it does not see: once your eyes leave the spot it marks blind\nground — still yours to shell, but you will not see what walks onto it. An enemy\nthat finds it can repair it away."
 			}
 		],
 		"passive": false,
@@ -201,9 +191,9 @@
 				"verbose": "The level that turns Drop into a CHOICE. Pressing it opens a cargo menu the way Build\nopens a structure list; pick the shipment, then click where it goes.\n\nIt replaces Drop 1 outright rather than joining it — a column is one sanction you\nimprove — and improving it here means both a bigger squad than Drop 1 flew and a\nvehicle it could not carry at all."
 			},
 			{
-				"description": "Flies in a shipment of your choosing, up to a Matilda.",
+				"description": "Flies in a shipment of your choosing, up to 2 × Matilda.",
 				"title": "Drop 3",
-				"verbose": "The heaviest shipment the Colonials can call in, and the reason to take the Drop\ncolumn to its end. Every option Drop 2 offered arrives in greater numbers, and the\nMatilda is added to the menu."
+				"verbose": "The heaviest shipment the Colonials can call in, and the reason to take the Drop\ncolumn to its end. Every option Drop 2 offered arrives in greater numbers, and the\nMatilda is added to the menu, two at a time."
 			}
 		],
 		"passive": false,

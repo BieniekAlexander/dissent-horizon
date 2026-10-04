@@ -35,6 +35,15 @@ static func repairable_cause(
 ) -> MoveCommand.PreconditionFailureCause:
 	if actor == null or actor.get_node_or_null("Repairs") == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	# An enemy beacon is repaired away on first touch, like a charge on the ground — but only
+	# one the repairer's side can perceive, since a stealthed or fogged one is not there to them.
+	var beacon: Beacon = Beacon.of(target)
+	if beacon != null:
+		return (
+			PreconditionFailureCause.NONE
+			if _removes_beacon(actor, beacon)
+			else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+		)
 	if not (target is Commandable) or not is_instance_valid(target):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	var subject: Commandable = target as Commandable
@@ -73,6 +82,17 @@ static func _defuses(actor: Commandable, subject: Commandable) -> bool:
 			and (actor.is_enemy_of(subject) or subject.commander_id == actor.commander_id)
 		)
 	return subject.commander_id == actor.commander_id and subject.has_hostile_markers()
+
+
+## Whether repairing `a_beacon` would take it out of play: it is an enemy's, still standing,
+## and `a_actor`'s side can see it.
+static func _removes_beacon(actor: Commandable, beacon: Beacon) -> bool:
+	var host: Entity = beacon.host()
+	return (
+		not beacon.is_leaving()
+		and actor.is_enemy_of(host)
+		and host.is_visible_to(actor.commander_id)
+	)
 
 
 ## True when `a_actor` could repair `a_target` right now. The predicate form of
@@ -125,6 +145,10 @@ func ends_on_arrival() -> bool:
 
 
 func fulfill_action(a_actor: Commandable) -> Variant:
+	var beacon: Beacon = Beacon.of(message.target)
+	if beacon != null:
+		beacon.dismiss()
+		return null
 	var subject := message.target as Commandable
 	# Reaching a charge is defusing it: the first touch of a mend takes it out of play.
 	var charge: PlantedCharge = PlantedCharge.of(subject)

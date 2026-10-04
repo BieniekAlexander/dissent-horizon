@@ -7,7 +7,7 @@ column: 1
 levels:
   - title: Gunship
     tier: 2
-    cost: 1500
+    cost: 750
     cooldown: 60
     description: 'Calls a gunship to strafe the target point. STUB: no payload built yet.'
     verbose: 'Not implemented. The cell is real — it costs dominion, opens the tier below it and runs its cooldown — but firing it does nothing yet.'

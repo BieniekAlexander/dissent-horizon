@@ -1,7 +1,8 @@
 class_name DebugPanel
 extends PanelContainer
 
-## The debug menu: who the player is, each bot's difficulty, and the piece spawner's card.
+## The debug menu: who the player is, each bot's difficulty, every commander's energy and
+## dominion, and the piece spawner's card.
 ## Up exactly while the debug view is (DebugMode.is_active()), and while up it replaces the
 ## top-right HUD, whose nodes are named in `hidden_while_up`. A button folds it to its title
 ## bar. See gdd/systems/ux/ui/debug-mode.md.
@@ -19,6 +20,8 @@ const UNFOLD_TEXT: String = "+"
 ## A spawner card drawn as a picture: big enough to tell one animal or tree from another,
 ## small enough that a faction's roster still flows several to a row.
 const PIECE_ICON_SIZE: Vector2 = Vector2(40, 40)
+## Wide enough for a seven-digit stockpile without the field scrolling.
+const RESOURCE_FIELD_WIDTH: float = 72.0
 
 ## The HUD nodes this panel stands in for while it is up (the objective checklist, the
 ## command-error line). Paths are relative to this node.
@@ -30,6 +33,7 @@ const PIECE_ICON_SIZE: Vector2 = Vector2(40, 40)
 @onready var _fold_button: Button = %FoldButton
 @onready var _player_option: OptionButton = %PlayerOption
 @onready var _bot_rows: VBoxContainer = %BotRows
+@onready var _resource_rows: VBoxContainer = %ResourceRows
 @onready var _faction_option: OptionButton = %FactionOption
 @onready var _piece_list: VBoxContainer = %PieceList
 
@@ -72,6 +76,7 @@ func _ready() -> void:
 	# commanders' brains.
 	_build_players.call_deferred()
 	_build_bots.call_deferred()
+	_build_resources.call_deferred()
 	_remember_starting_player.call_deferred()
 	_build_pieces()
 
@@ -154,6 +159,79 @@ func _build_bots() -> void:
 		)
 		row.add_child(picker)
 		_bot_rows.add_child(row)
+
+
+## An energy and a dominion field per commander but the world. A field shows the live amount
+## until it is focused; Enter or leaving it sets the commander to what it holds.
+func _build_resources() -> void:
+	for child: Node in _resource_rows.get_children():
+		child.queue_free()
+	for commander: Commander in _commanders():
+		if commander.id == NEUTRAL_ID:
+			continue
+		var row := HBoxContainer.new()
+		var label := Label.new()
+		label.text = "Commander %d" % commander.id
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+		row.add_child(_resource_field(commander, &"energy"))
+		row.add_child(_resource_field(commander, &"dominion"))
+		_resource_rows.add_child(row)
+
+
+## A digits-only field bound to `a_commander`'s `a_resource` ("energy" or "dominion").
+func _resource_field(a_commander: Commander, a_resource: StringName) -> LineEdit:
+	var field := LineEdit.new()
+	field.custom_minimum_size = Vector2(RESOURCE_FIELD_WIDTH, 0.0)
+	field.tooltip_text = String(a_resource).capitalize()
+	field.text = str(a_commander.get(a_resource))
+	field.text_changed.connect(
+		func(a_text: String) -> void:
+			var digits: String = digits_only(a_text)
+			if digits != a_text:
+				var caret: int = field.caret_column - (a_text.length() - digits.length())
+				field.text = digits
+				field.caret_column = maxi(caret, 0)
+	)
+	var apply: Callable = func() -> void:
+		set_resource(a_commander, a_resource, field.text)
+		field.text = str(a_commander.get(a_resource))
+	field.text_submitted.connect(
+		func(_a_text: String) -> void:
+			apply.call()
+			# Give the keyboard back to the game: a focused field swallows every hotkey.
+			field.release_focus()
+	)
+	field.focus_exited.connect(apply)
+	# Live while nobody is typing in it, so the field reads what the economy bars do.
+	a_commander.resources_changed.connect(
+		func() -> void:
+			if is_instance_valid(field) and not field.has_focus():
+				field.text = str(a_commander.get(a_resource))
+	)
+	return field
+
+
+## `a_text` with every character that is not a digit removed.
+static func digits_only(a_text: String) -> String:
+	var out: String = ""
+	for character: String in a_text:
+		if character >= "0" and character <= "9":
+			out += character
+	return out
+
+
+## Set `commander`'s `resource` ("energy" or "dominion") to the number `text` holds, through
+## its one write-point so every listener hears it. Empty text changes nothing.
+static func set_resource(commander: Commander, resource: StringName, text: String) -> void:
+	var digits: String = digits_only(text)
+	if commander == null or digits.is_empty():
+		return
+	var delta: int = int(digits) - int(commander.get(resource))
+	if resource == &"energy":
+		commander.add_energy(delta)
+	elif resource == &"dominion":
+		commander.add_dominion(delta)
 
 
 func _remember_starting_player() -> void:

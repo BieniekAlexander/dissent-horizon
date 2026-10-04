@@ -148,6 +148,9 @@ closes or goes round (`Attack._obstruction_on_line`).
   (`Entity.has_obstructing_footprint`, the same flag the navmesh reads). An occupant-only
   fixture, which units walk across, does not block a shot; nor does a foundation
   ([construction](../commands/construction.md) §It is not COVER either).
+- **Neither end is cover for itself.** The ray runs from the shooter's origin to the target's,
+  so both ends' own bodies are excluded — a shooting STRUCTURE starts the ray on its own
+  blocker body, and counting it once stopped every unordered Watch Tower shot.
 - **Nothing blocks a shot to or from an air target.** When the attacker or its target is
   airborne (`Entity.is_air_target`), buildings are not in the way. A landed aircraft is a
   ground piece and is blocked like one.

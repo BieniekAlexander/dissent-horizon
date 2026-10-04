@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_ownr"]
 [ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="3_mv"]
 [ext_resource type="Script" uid="uid://cr4mbf5bvs8m3" path="res://scripts/entities/components/stealth.gd" id="4_stealth"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="5_sel"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_beacon"]
 albedo_color = Color(1, 1, 1, 1)
@@ -25,6 +26,9 @@ ring_segments = 6
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_stealth"]
 radius = 0.3
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_pick"]
+radius = 0.4
 
 [node name="Beacon" type="CharacterBody3D" unique_id=1907553001]
 collision_layer = 0
@@ -59,3 +63,12 @@ collision_mask = 0
 
 [node name="Shape" type="CollisionShape3D" parent="StealthBody"]
 shape = SubResource("SphereShape3D_stealth")
+
+[node name="Selectable" parent="." instance=ExtResource("5_sel")]
+selectable_by_player = false
+
+[node name="SelectionShape" parent="Selectable" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+shape = SubResource("SphereShape3D_pick")
+
+[editable path="Selectable"]

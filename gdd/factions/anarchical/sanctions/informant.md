@@ -7,7 +7,7 @@ column: 1
 levels:
   - title: Informant 1
     tier: 0
-    cost: 200
+    cost: 125
     cooldown: 30
     description: Grants a clicked {{ an_bioLight_builder }} permanent stealth, letting it move unseen until it attacks.
     verbose: |
@@ -16,13 +16,13 @@ levels:
       and forced fully visible for a few seconds after it attacks or is attacked.
   - title: Informant 2
     tier: 1
-    cost: 500
+    cost: 250
     cooldown: 30
     description: Grants permanent stealth to any clicked friendly biological unit, replacing Informant 1.
     verbose: 'The same grant, now aimable at any of your biological units rather than Irregulars alone.'
   - title: Informant 3
     tier: 3
-    cost: 2000
+    cost: 1000
     cooldown: 30
     description: Grants permanent stealth to any clicked friendly unit, replacing Informant 2.
     verbose: 'Any unit you own, machines included.'
