@@ -437,7 +437,7 @@ func _unresolved_personality_slots() -> Dictionary:
 ## Apply the slot's personality and overrides onto `a_config`; "" or the first failure.
 func _personality_error(a_slot: PlayerSlot, a_config: BotDifficulty) -> String:
 	if a_slot.personality != "":
-		var error: String = roster().apply(a_slot.personality, a_config)
+		var error: String = bot_roster().apply(a_slot.personality, a_config)
 		if error != "":
 			return error
 	return a_config.apply_overrides(a_slot.config_overrides)
@@ -456,14 +456,14 @@ func _personality_config(a_slot: PlayerSlot) -> BotDifficulty:
 
 
 ## The roster the slots' personalities name, loaded on first use. A test assigns
-## `_loaded_roster` a fixture instead.
-var _loaded_roster: BotRoster = null
+## `_loaded_bot_roster` a fixture instead.
+var _loaded_bot_roster: BotRoster = null
 
 
-func roster() -> BotRoster:
-	if _loaded_roster == null:
-		_loaded_roster = BotRoster.load_default()
-	return _loaded_roster
+func bot_roster() -> BotRoster:
+	if _loaded_bot_roster == null:
+		_loaded_bot_roster = BotRoster.load_default()
+	return _loaded_bot_roster
 
 
 ## Construct the commander list from player_slots. id 0 is always the neutral world

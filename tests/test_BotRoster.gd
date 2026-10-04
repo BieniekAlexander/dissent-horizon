@@ -21,7 +21,7 @@ func _slot(a_personality: String, a_overrides: Dictionary = {}) -> PlayerSlot:
 
 func _scenario() -> Scenario:
 	var scenario := Scenario.new()
-	scenario._loaded_roster = _fixture()
+	scenario._loaded_bot_roster = _fixture()
 	return scenario
 
 
