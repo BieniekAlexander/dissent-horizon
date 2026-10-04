@@ -259,11 +259,14 @@ func steered_velocity(a_velocity: Vector3, a_position: Vector3, a_target: Entity
 	)
 
 
-## One tick of steering at the point `a_goal`, before the move. Unchanged when unsteered or
-## when `a_goal` is null.
+## One tick of steering at the point `a_goal`, before the move. Unchanged when unsteered. A
+## null `a_goal` (a ground-aimed shot, or a lead point already behind) holds the heading but
+## still thrusts, as though facing its goal: the motor does not need a target to burn.
 func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -> Vector3:
-	if not is_steered() or not (a_goal is Vector3):
+	if not is_steered():
 		return a_velocity
+	if not (a_goal is Vector3):
+		return _thrust_along_heading(a_velocity)
 	var goal_direction: Vector3 = a_position.direction_to(a_goal)
 	# Dead astern a turn has no axis — the slerp between opposed vectors never leaves the
 	# heading — so a shot that overflew its goal would fly straight on forever. Commit to a side.
@@ -302,6 +305,16 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 			else maxf(turned.length() - step, min_speed / float(TimeUtils.ticks_per_second()))
 		)
 	)
+
+
+## `a_velocity` on its own heading, sped up by one tick of this phase's acceleration toward
+## `speed` — the facing branch of steered_toward, with no turn.
+func _thrust_along_heading(a_velocity: Vector3) -> Vector3:
+	if a_velocity.is_zero_approx():
+		return a_velocity
+	var step: float = acceleration_mps2 / float(_ticks_squared())
+	var thrusted: float = minf(a_velocity.length() + step, _speed_per_tick())
+	return a_velocity.normalized() * maxf(thrusted, a_velocity.length())
 
 
 func leads() -> bool:

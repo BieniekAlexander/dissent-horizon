@@ -270,6 +270,24 @@ func test_a_bleeding_phase_never_falls_below_its_floor_or_passes_its_speed() -> 
 	assert_almost_eq(ahead.length(), 15.0 / tps, FLOAT_TOLERANCE, "held at speed")
 
 
+func test_a_steered_phase_with_no_goal_holds_its_heading_and_still_accelerates() -> void:
+	var phase: EmissionPhase = _phase(
+		{"speed": 16.0, "turn_rate_degrees_per_second": 60.0, "acceleration_mps2": 40.0}
+	)
+	var tps: int = TimeUtils.ticks_per_second()
+	var velocity: Vector3 = Vector3(2.0 / tps, 0.0, 1.0 / tps)
+	var steered: Vector3 = phase.steered_toward(velocity, ORIGIN, null)
+	assert_almost_eq(
+		steered.normalized().dot(velocity.normalized()), 1.0, FLOAT_TOLERANCE, "same heading"
+	)
+	assert_almost_eq(
+		steered.length() - velocity.length(), 40.0 / (tps * tps), FLOAT_TOLERANCE, "thrusts"
+	)
+	for tick: int in MAX_FLIGHT_TICKS:
+		steered = phase.steered_toward(steered, ORIGIN, null)
+	assert_almost_eq(steered.length(), 16.0 / tps, FLOAT_TOLERANCE, "up to full speed, no more")
+
+
 func test_a_full_lead_meets_a_target_holding_its_course() -> void:
 	var phase: EmissionPhase = _phase(
 		{"speed": 12.0, "turn_rate_degrees_per_second": 90.0, "lead_fraction": 1.0}
