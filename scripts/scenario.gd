@@ -31,6 +31,18 @@ signal local_player_changed(a_commander: Commander)
 ## Whether this session may show debug information at all (see DebugMode). Off by default so a
 ## shipped scenario never offers it; a development scenario turns it on.
 @export var debug_allowed: bool = false
+
+## HOW THIS SCENARIO ENDS — gdd/systems/scenario-scripting/objectives-and-completion.md §Win
+## conditions.
+##   NONE      — it runs indefinitely; nothing implicit ever ends it.
+##   MISSION   — the authored triggers decide (EventWinLose, objectives), plus the implicit
+##               wipe-out loss for the local player below.
+##   HEGEMONY  — a commander is removed from the match when it loses every command centre,
+##               once it has placed one; the local player wins when every rival is gone.
+## The default is MISSION so an authored scenario keeps the behaviour it was written against;
+## every skirmish scene sets HEGEMONY.
+enum WinCondition { NONE, MISSION, HEGEMONY }
+@export var win_condition: WinCondition = WinCondition.MISSION
 #endregion
 
 #region Properties
@@ -64,6 +76,15 @@ var _player_has_deployed: bool = false
 ## command-centre drop (Deployment) is that case: before the drop it loses only by losing
 ## every unit.
 var _player_has_had_base: bool = false
+
+## A commander has just been removed from the match (HEGEMONY). The self-play harness reads
+## the verdict off this and Scenario.is_eliminated.
+signal commander_eliminated(a_commander_id: int)
+
+## Per commander id: whether it has placed a command centre yet, which is what ARMS the
+## HEGEMONY rule for it — before the drop lands every commander owns no centre, and that is
+## the opening, not a defeat. Never cleared.
+var _hegemony_armed: Dictionary = {}
 
 ## Built in _ready() from player_slots: id 0 = neutral Commander, then one Commander
 ## per slot (ids 1..N) — the human rig (scenes/player.tscn) for a non-bot slot, a Bot
@@ -167,7 +188,7 @@ func _ready() -> void:
 
 func _physics_process(_a_delta: float) -> void:
 	tick += 1
-	_check_player_eliminated()
+	_check_eliminations()
 	# $Map.nav_region.bake_navigation_mesh(false)
 
 
@@ -189,6 +210,73 @@ func _physics_process(_a_delta: float) -> void:
 ## an enemy garrison, and Garrison orphans occupants out of the tree.
 ## A death-only hook would silently miss both. The poll costs one filtered get_children() on
 ## a single commander, and stops entirely once a verdict has landed.
+## The implicit end this scenario's win_condition gives for free, polled every tick.
+func _check_eliminations() -> void:
+	match win_condition:
+		WinCondition.MISSION:
+			_check_player_eliminated()
+		WinCondition.HEGEMONY:
+			_check_hegemony()
+		_:
+			pass  # NONE: nothing implicit
+
+
+## Whether commander `a_commander_id` has been removed from the match (HEGEMONY).
+func is_eliminated(a_commander_id: int) -> bool:
+	if a_commander_id < 1 or a_commander_id >= commanders.size():
+		return false
+	var commander: Commander = commanders[a_commander_id]
+	return commander != null and commander.is_eliminated
+
+
+## HEGEMONY: every non-neutral commander is judged, not only the local player, because a
+## rival's removal is what the player's WIN is made of. A commander is armed the first tick
+## it owns a command centre and eliminated the first armed tick it owns none; eliminating it
+## frees its pieces (Commander.eliminate). The local player then loses when it is eliminated,
+## and wins when it is armed and every rival is gone — a session with no rival never wins.
+func _check_hegemony() -> void:
+	if _game_over_seen:
+		return
+	for commander: Variant in commanders:
+		var c: Commander = commander as Commander
+		if c == null or c.id == 0 or c.is_eliminated:
+			continue
+		if c.owns_command_centre():
+			_hegemony_armed[c.id] = true
+		elif _hegemony_armed.get(c.id, false):
+			c.eliminate()
+			commander_eliminated.emit(c.id)
+	var player: Commander = local_player()
+	if player == null:
+		return  # spectator session: the harness adjudicates
+	if player.is_eliminated:
+		_on_game_over(false)
+	elif _hegemony_armed.get(player.id, false) and _rivals() > 0 and _rivals_standing() == 0:
+		_on_game_over(true)
+
+
+## Non-neutral commanders other than the local player.
+func _rivals() -> int:
+	var player: Commander = local_player()
+	var count: int = 0
+	for commander: Variant in commanders:
+		var c: Commander = commander as Commander
+		if c != null and c.id != 0 and c != player:
+			count += 1
+	return count
+
+
+func _rivals_standing() -> int:
+	var player: Commander = local_player()
+	var count: int = 0
+	for commander: Variant in commanders:
+		var c: Commander = commander as Commander
+		if c != null and c.id != 0 and c != player and not c.is_eliminated:
+			count += 1
+	return count
+
+
+## MISSION's implicit loss, for the local player only.
 func _check_player_eliminated() -> void:
 	if _game_over_seen:
 		return

@@ -82,6 +82,28 @@ func command_centre_scene() -> PackedScene:
 	return load(COMMAND_CENTRE_SCENES[faction.scene_file_path]) as PackedScene
 
 
+## The piece id of every faction's command centre: the scene's basename, which the importer
+## makes the piece id (CLAUDE.md §Piece ids). Derived from COMMAND_CENTRE_SCENES, so a new
+## faction's entry there is the whole of declaring its command centre — the HEGEMONY win
+## condition (Scenario.win_condition) and the bot's objective both read this.
+static func command_centre_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for path: String in COMMAND_CENTRE_SCENES.values():
+		var id: StringName = StringName(path.get_file().get_basename())
+		if not out.has(id):
+			out.append(id)
+	return out
+
+
+static func is_command_centre_id(a_id: StringName) -> bool:
+	return command_centre_ids().has(a_id)
+
+
+## Whether `a_piece` is a command centre, by its piece id.
+static func is_command_centre(a_piece: Commandable) -> bool:
+	return a_piece != null and is_command_centre_id(a_piece.id)
+
+
 #region Charges
 func charges(a_drop: Drop) -> int:
 	return int(_charges[a_drop])

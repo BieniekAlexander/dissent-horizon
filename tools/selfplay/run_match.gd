@@ -415,6 +415,15 @@ func _arm_deployment(a_tick: int) -> void:
 ## objective is computed from, so a wrong verdict is a wrong gradient.
 func _eliminated_slots() -> Array[int]:
 	var out: Array[int] = []
+	# Under HEGEMONY the scenario itself removes a commander (Scenario._check_hegemony runs in
+	# a spectator session too); the harness only reads the verdict. The rules below are the
+	# MISSION-era adjudication, kept for a scenario authored without a win condition.
+	if _scenario.win_condition == Scenario.WinCondition.HEGEMONY:
+		for i: int in _scenario.player_slots.size():
+			var commander: Commander = _scenario.player_slots[i].commander
+			if commander != null and commander.is_eliminated:
+				out.append(i)
+		return out
 	for i: int in _scenario.player_slots.size():
 		var commander: Commander = _scenario.player_slots[i].commander
 		if _deployed[i] and (commander == null or not commander.has_anything_in_play()):
@@ -672,6 +681,7 @@ func _emit(a_outcome: String, a_winner: int) -> void:
 		"config_path": _config_path,
 		"seed": _scenario.rng_seed,
 		"scenario": _config.get("scenario", DEFAULT_SCENARIO),
+		"win_condition": Scenario.WinCondition.keys()[_scenario.win_condition],
 		"swap_start_points": bool(_config.get("swap_start_points", false)),
 		"outcome": a_outcome,
 		"winner": a_winner,

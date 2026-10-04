@@ -54,6 +54,7 @@ _surfaces = [{
 [node name="Scenario" type="Node3D" unique_id=1081111988]
 script = ExtResource("1_scen")
 player_slots = Array[ExtResource("9_pslot")]([SubResource("PlayerSlot_bot1"), SubResource("PlayerSlot_bot2")])
+win_condition = 2
 
 [node name="Map" type="Node3D" parent="." unique_id=1994080306]
 script = ExtResource("2_map")

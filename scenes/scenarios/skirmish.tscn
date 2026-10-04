@@ -413,6 +413,7 @@ buffer = PackedFloat32Array(0.84047335, 0, -0.088465914, -41.333786, 0, 0.845116
 [node name="Scenario2" type="Node3D" unique_id=306843517]
 script = ExtResource("1_7y4fc")
 player_slots = Array[ExtResource("2_8biyv")]([SubResource("PlayerSlot_human"), SubResource("Resource_gms02")])
+win_condition = 2
 debug_allowed = true
 
 [node name="Map" type="Node3D" parent="." unique_id=1899950745]

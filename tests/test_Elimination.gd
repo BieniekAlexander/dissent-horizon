@@ -249,3 +249,76 @@ func test_a_rebuild_in_flight_holds_the_verdict_off() -> void:
 	_player.production_queue.entries.clear()
 	_tick()
 	assert_true(_scenario._game_over_seen, "and when it lapses, the verdict lands")
+
+
+# --- HEGEMONY: the command centre decides -------------------------------------------------
+
+
+func _own_command_centre(a_commander: Commander = _player) -> Commandable:
+	var centre := Commandable.new()
+	centre.id = Deployment.command_centre_ids()[0]
+	var structure := Structure.new()
+	structure.name = "Structure"
+	centre.add_child(structure)
+	a_commander.add_child(centre)
+	return centre
+
+
+func test_the_default_win_condition_is_mission() -> void:
+	assert_eq(_scenario.win_condition, Scenario.WinCondition.MISSION)
+
+
+func test_hegemony_does_not_eliminate_before_a_command_centre_is_placed() -> void:
+	_scenario.win_condition = Scenario.WinCondition.HEGEMONY
+	_own()
+	_tick()
+	assert_false(_player.is_eliminated, "the opening: no centre placed yet is not a defeat")
+	assert_false(_scenario._game_over_seen)
+
+
+func test_hegemony_eliminates_a_commander_whose_last_command_centre_is_gone() -> void:
+	_scenario.win_condition = Scenario.WinCondition.HEGEMONY
+	var centre: Commandable = _own_command_centre()
+	_own()  # a unit that survives the centre
+	_tick()
+	assert_false(_player.is_eliminated, "armed, and still standing")
+	centre.free()
+	_tick()
+	assert_true(_player.is_eliminated)
+	assert_true(_scenario._game_over_seen, "the local player's elimination is the loss")
+
+
+func test_hegemony_removes_an_eliminated_rival_and_hands_the_player_the_win() -> void:
+	_scenario.win_condition = Scenario.WinCondition.HEGEMONY
+	var rival := Commander.new()
+	rival.id = 2
+	_scenario.commanders = [_scenario.commanders[0], _player, rival]
+	_own_command_centre()
+	var rival_centre: Commandable = _own_command_centre(rival)
+	var rival_unit := Commandable.new()
+	rival.add_child(rival_unit)
+	_tick()
+	assert_false(rival.is_eliminated)
+	rival_centre.free()
+	_tick()
+	assert_true(rival.is_eliminated, "no centre left: removed from the match")
+	assert_true(rival_unit.is_queued_for_deletion(), "and its pieces leave play")
+	assert_true(_scenario._game_over_seen, "every rival gone is the player's win")
+
+
+func test_a_blueprint_is_not_a_command_centre() -> void:
+	_scenario.win_condition = Scenario.WinCondition.HEGEMONY
+	var planned: Commandable = _own_command_centre()
+	planned.is_planned = true
+	_tick()
+	assert_false(_player.is_eliminated)
+	assert_false(_scenario._hegemony_armed.get(_player.id, false), "a plan does not arm the rule")
+
+
+func test_none_never_ends_the_match() -> void:
+	_scenario.win_condition = Scenario.WinCondition.NONE
+	var unit: Commandable = _own()
+	_tick()
+	unit.free()
+	_tick()
+	assert_false(_scenario._game_over_seen, "wiped out, and the match runs on")

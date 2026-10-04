@@ -44,10 +44,45 @@ Transitions announce themselves via `objective_state_changed`, emitted from the 
 
 `Scenario._on_scenario_completed` routes into `_on_game_over(true)`, and `Scenario._game_over_seen` latches so whichever verdict lands first stands: a scenario can also carry an authored `EventWinLose` (s1's `Victory` trigger does), and objectives completing moments after a scripted loss must not overwrite the loss with a win.
 
-## Elimination is implicit, and lives on `Scenario`
+## Win conditions
+
+**`Scenario.win_condition` says how a scenario ends**, as an enum export on the root
+(decided 2026-10-03):
+
+| Value | What ends the match |
+|---|---|
+| `NONE` | nothing implicit; it runs until something external stops it (a probe, a sim) |
+| `MISSION` | the authored triggers — `EventWinLose`, objectives completing — plus the implicit wipe-out loss below for the local player. The default, so an authored scenario keeps the behaviour it was written against |
+| `HEGEMONY` | a commander is **removed from the match** when it has no command centre left, once it has placed one; the local player loses when removed and wins when armed and every rival is removed. Every skirmish scene sets it |
+
+**HEGEMONY, the rules.** Every non-neutral commander is judged each tick
+(`Scenario._check_hegemony`), not only the local player, because a rival's removal is what
+the player's win is made of. A commander is ARMED the first tick it owns a command centre in
+play — a blueprint is a plan, not a centre — and never before: every slot deploys by drop and
+owns no centre for the opening seconds, and that is the opening, not a defeat. Removal frees
+every piece the commander still owns (`Commander.eliminate`) and switches its brain off;
+nothing is paid out for them. A command centre is identified by piece id,
+`Deployment.command_centre_ids()`, derived from the scenes each faction drops — so a new
+faction's entry there is the whole declaration. A session with no rival never wins. The
+self-play harness reads the verdict off `Commander.is_eliminated` under HEGEMONY and keeps
+its own MISSION-era adjudication otherwise.
+
+**What it asks of the content.** Under HEGEMONY the bot's attack objective is a believed
+enemy command centre and its own is its first defensive priority
+([ai/bot-architecture](../ai/bot-architecture.md) §The attack objective is a belief). WHEN it
+goes is still the commit gates' decision, so the intended tuning is that a centre's health and
+cost make an early beeline a premature commitment — the defender's army kills the attacker's
+before the centre falls — and the bot refuses the wave; a centre not tuned that way is one the
+bot will simply snipe, which is the readout that the tuning is off.
+
+TODO — whether `MISSION` should keep the implicit wipe-out loss, or leave every verdict to the
+authored triggers as the spec read literally. Built as KEEP, since every shipped mission was
+written against it; see `gdd/deferred.md`.
+
+## The MISSION loss is implicit, and lives on `Scenario`
 
 
-Owning no units and no structures is a defeat in every scenario, with **no trigger to author and no row in the checklist** — `Scenario._check_player_eliminated()`, polled from `_physics_process`. Deliberately not a `FAILURE`-scoped `GlobalTrigger`: it applies to plain skirmishes as much as to missions, it needs no authoring, and telling the player "don't lose everything" is noise. It routes through `_on_game_over(false)`, so it composes with authored verdicts under the same first-one-wins latch.
+Under `MISSION`, owning no units and no structures is a defeat, with **no trigger to author and no row in the checklist** — `Scenario._check_player_eliminated()`, polled from `_physics_process`. Deliberately not a `FAILURE`-scoped `GlobalTrigger`: it applies to plain skirmishes as much as to missions, it needs no authoring, and telling the player "don't lose everything" is noise. It routes through `_on_game_over(false)`, so it composes with authored verdicts under the same first-one-wins latch.
 
 It lives on `Scenario` rather than `ScenarioTriggerManager` because `Scenario` already owns the verdict and the commander list, and because everything in the manager is a node someone placed and can reach through `global_triggers`.
 

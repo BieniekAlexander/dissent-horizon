@@ -391,6 +391,14 @@ has not found the opponent's base marches on the last place it saw a scout inste
 mechanism and the open TODO: [bot-engagement-fixes](bot-engagement-fixes.md) §Fog-limiting the
 attack objective.
 
+**Under HEGEMONY the objective is the enemy's command centre** (`Scenario.win_condition`): the
+nearest believed, actionable centre wins over any nearer building, and the bot's own centre is
+the first thing the army turns to defend, judged threatened at twice `defend_threat_radius`
+(`BotMilitary.COMMAND_CENTRE_THREAT_MULTIPLIER`). Where changes; WHEN does not — the commit
+gates still decide, which is what separates a snipe from a premature commitment
+([objectives-and-completion](../scenario-scripting/objectives-and-completion.md) §Win
+conditions). Tests: `tests/test_BotHostileTargets.gd`, `tests/test_Elimination.gd`.
+
 ### …and it has to be something the army can ACT on
 
 **Fog-limiting was never the only requirement on an objective.** A belief is only worth

@@ -585,7 +585,7 @@ Mission scripting: triggers, conditions, objectives, dialogs, pause, highlights 
 
 - [`gdd/systems/scenario-scripting/triggers-and-events.md`](gdd/systems/scenario-scripting/triggers-and-events.md)
 - [`gdd/systems/scenario-scripting/conditions-and-regions.md`](gdd/systems/scenario-scripting/conditions-and-regions.md)
-- [`gdd/systems/scenario-scripting/objectives-and-completion.md`](gdd/systems/scenario-scripting/objectives-and-completion.md)
+- [`gdd/systems/scenario-scripting/objectives-and-completion.md`](gdd/systems/scenario-scripting/objectives-and-completion.md) — including `Scenario.win_condition`: `NONE` / `MISSION` / `HEGEMONY` (every command centre lost removes a commander)
 - [`gdd/systems/scenario-scripting/dialogs-and-pause.md`](gdd/systems/scenario-scripting/dialogs-and-pause.md)
 - [`gdd/systems/scenario-scripting/highlights-and-fog-reveal.md`](gdd/systems/scenario-scripting/highlights-and-fog-reveal.md)
 - [`gdd/systems/scenario-scripting/tactics.md`](gdd/systems/scenario-scripting/tactics.md)

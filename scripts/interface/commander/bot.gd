@@ -509,6 +509,35 @@ func army_centroid() -> Vector3:
 	return sum / float(units.size())
 
 
+## How this scenario ends (Scenario.win_condition); MISSION for a bot with no scenario, as
+## in a bare test. Under HEGEMONY the enemy's command centres are the objective and this
+## bot's own are its first defensive priority (BotMilitary).
+func win_condition() -> Scenario.WinCondition:
+	return scenario.win_condition if scenario != null else Scenario.WinCondition.MISSION
+
+
+func is_command_centre_type(a_type: StringName) -> bool:
+	return Deployment.is_command_centre_id(a_type)
+
+
+## The owned command centre with enemies within `a_threat_radius`, the most hurt first, or
+## null. Asked at a wider radius than most_threatened_structure's: under HEGEMONY a centre
+## is the whole game, so an enemy still some way off it is already a threat to it.
+func threatened_command_centre(a_threat_radius: float) -> Commandable:
+	var worst: Commandable = null
+	var worst_frac: float = INF
+	for s: Commandable in _owned_structures():
+		if not Deployment.is_command_centre(s):
+			continue
+		if get_enemies_near(s.global_position, a_threat_radius).is_empty():
+			continue
+		var frac: float = s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
+		if frac < worst_frac:
+			worst_frac = frac
+			worst = s
+	return worst
+
+
 ## A direction squared below this is "no direction" — the anchor sits on the target.
 const DIRECTION_EPSILON: float = 1.0e-6
 

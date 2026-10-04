@@ -72,6 +72,7 @@ shader_parameter/fog_enabled = 0.0
 [node name="Scenario2" type="Node3D" unique_id=306843517]
 script = ExtResource("1_3vbuf")
 player_slots = Array[ExtResource("2_62jd1")]([SubResource("PlayerSlot_human"), SubResource("Resource_gms02")])
+win_condition = 2
 
 [node name="Map" type="Node3D" parent="." unique_id=2083341540]
 script = ExtResource("4_7w0gf")

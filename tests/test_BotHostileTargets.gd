@@ -251,3 +251,25 @@ func test_a_believed_structure_outranks_a_believed_unit() -> void:
 	_believe(_piece(_foe, false, 5.0, 0.0))
 	var hostile_base: Commandable = _believe(_piece(_foe, true, 60.0, 0.0))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), hostile_base.global_position)
+
+
+# ─── HEGEMONY: THE COMMAND CENTRE IS THE OBJECTIVE ──────────────────────────
+
+
+func test_under_hegemony_the_believed_command_centre_beats_a_nearer_building() -> void:
+	_scenario.win_condition = Scenario.WinCondition.HEGEMONY
+	_piece(_bot, true, 0.0, 0.0)
+	_believe(_piece(_foe, true, 30.0, 0.0))
+	var centre: Commandable = _piece(_foe, true, 60.0, 0.0)
+	centre.id = Deployment.command_centre_ids()[0]
+	_believe(centre)
+	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), centre.global_position)
+
+
+func test_under_mission_the_nearest_believed_building_is_still_the_objective() -> void:
+	_piece(_bot, true, 0.0, 0.0)
+	var nearer: Commandable = _believe(_piece(_foe, true, 30.0, 0.0))
+	var centre: Commandable = _piece(_foe, true, 60.0, 0.0)
+	centre.id = Deployment.command_centre_ids()[0]
+	_believe(centre)
+	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), nearer.global_position)

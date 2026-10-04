@@ -40,6 +40,11 @@ var may_attack: bool = true
 ## agree on what "under threat" means. The default is the value it had as a constant.
 var defend_threat_radius: float = 10.0
 
+## Under HEGEMONY a command centre is judged threatened at this multiple of
+## defend_threat_radius: it is the whole game, so an enemy still some way off it is already a
+## threat to it, and the army turns for it before a raid on any other building would call it.
+const COMMAND_CENTRE_THREAT_MULTIPLIER: float = 2.0
+
 ## How far the objective must move (world units) before counting as "changed"
 ## and re-tasking the whole army. Keeps a wandering enemy target from thrashing.
 const OBJECTIVE_EPSILON: float = 3.0
@@ -234,6 +239,14 @@ func _tick_reinforcements(a_objective: Vector3) -> void:
 		_act.attack_move(to_stage, staging)
 
 
+## The bot's own command centre under threat, or null — only under HEGEMONY, where it is the
+## first thing the army defends.
+func _threatened_command_centre() -> Commandable:
+	if _bot.win_condition() != Scenario.WinCondition.HEGEMONY:
+		return null
+	return _bot.threatened_command_centre(defend_threat_radius * COMMAND_CENTRE_THREAT_MULTIPLIER)
+
+
 func _is_wave_member(a_unit: Commandable) -> bool:
 	return _wave_members.has(a_unit.get_instance_id())
 
@@ -329,7 +342,7 @@ func _decide_posture() -> Posture:
 	# This is the anti-turtle fix: DEFEND no longer wins unconditionally.
 	if _committing_to_attack():
 		return Posture.ATTACK
-	if _bot.is_base_under_threat(defend_threat_radius):
+	if _bot.is_base_under_threat(defend_threat_radius) or _threatened_command_centre() != null:
 		return Posture.DEFEND
 	# ATTACK is only ever a live wave. The body count used to return ATTACK here on its own,
 	# WITHOUT launching a wave — so the retreat rule, the spent fraction and the regroup
@@ -450,6 +463,11 @@ func _combat_units(a_units: Array) -> Array:
 func _objective_for(a_posture: Posture) -> Variant:
 	match a_posture:
 		Posture.DEFEND:
+			# The command centre first, under HEGEMONY: losing it is losing the match, so it
+			# outranks a more damaged building elsewhere.
+			var centre: Commandable = _threatened_command_centre()
+			if centre != null:
+				return centre.global_position
 			var threatened: Commandable = _bot.most_threatened_structure()
 			if threatened != null:
 				return threatened.global_position
@@ -481,6 +499,21 @@ func _objective_for(a_posture: Posture) -> Variant:
 					Bot.any_unit_can_damage(army, entry.entity)
 					and not _bot.belief_is_disproved(entry)
 				)
+			# Under HEGEMONY the enemy's COMMAND CENTRE is the objective whenever one is
+			# believed and actionable: taking it is the whole match. WHEN to go is still the
+			# commit gates' decision (_committing_to_attack), which is what keeps this from being
+			# a blind beeline — a centre tough enough that the army dies before it does makes
+			# the wave a premature commitment the value gate refuses; a centre that is not, the
+			# bot snipes. That tuning is the content's (objectives-and-completion.md §Win
+			# conditions), not the bot's.
+			if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
+				var centre_actionable: Callable = func(entry: CommanderBlackboard.Entry) -> bool:
+					return _bot.is_command_centre_type(entry.type) and actionable.call(entry)
+				var believed_centre: Variant = _bot.nearest_believed_enemy_structure_position(
+					centre_actionable
+				)
+				if believed_centre != null:
+					return believed_centre
 			var believed_base: Variant = _bot.nearest_believed_enemy_structure_position(actionable)
 			if believed_base != null:
 				return believed_base

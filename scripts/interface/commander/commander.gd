@@ -519,6 +519,37 @@ func has_anything_in_play() -> bool:
 	)
 
 
+## Whether this commander holds a COMMAND CENTRE in play — what the HEGEMONY win condition
+## (Scenario.win_condition) arms on and eliminates on. A blueprint is a plan, not a centre.
+func owns_command_centre() -> bool:
+	return _owned_commandables().any(
+		func(c: Commandable) -> bool:
+			return (
+				Deployment.is_command_centre(c)
+				and not c.is_queued_for_deletion()
+				and not c.is_planned
+			)
+	)
+
+
+## Set once this commander has been REMOVED FROM THE MATCH (HEGEMONY). Never cleared.
+var is_eliminated: bool = false
+
+
+## Remove this commander from the match: its brain stops thinking and every piece it still
+## owns leaves play, freed rather than killed so nothing is paid out for them. Idempotent.
+func eliminate() -> void:
+	if is_eliminated:
+		return
+	is_eliminated = true
+	var brain: BotBrain = get_node_or_null("BotBrain") as BotBrain
+	if brain != null:
+		brain.active = false
+	for piece: Commandable in _owned_commandables():
+		if not piece.is_queued_for_deletion():
+			piece.queue_free()
+
+
 ## WHETHER THIS COMMANDER STILL HAS A BASE: at least one structure in play, or a purchase
 ## still on the production queue. The second half of the defeat rule — see
 ## gdd/systems/ai/bot-architecture.md §When a side is beaten.
