@@ -65,6 +65,12 @@ var production_structure_cap: int = -1
 ## rather than a build order — see there.
 var income_structure_target: int = 1
 
+## HOW MANY STATIC DEFENCES THE BOT WANTS STANDING, going-up ones included. A PARAMETER
+## (BotDifficulty.defence_structure_target). The rung it drives sits between income and
+## throughput: a static is a short-term positional investment (static-defence.md), bought
+## ahead of the threat once there is a producer to protect, and never instead of one.
+var defence_structure_target: int = 2
+
 ## What counts as an enemy PRESSURING the base, in world units — the same field
 ## BotMilitary and BotSanction read (BotDifficulty.defend_threat_radius), pushed here as
 ## a third consumer because "is something of mine being attacked" has to mean one thing
@@ -352,6 +358,20 @@ func _decide() -> void:
 			if espot != null and _issue_build(builder, etype, espot):
 				return
 
+	# STATIC DEFENCE AHEAD OF THE THREAT, once there is a producer to stand in front of. The
+	# ladder had no rung for a turret at all until 2026-10-04 — the defence types existed only
+	# as a placement bearing — so a bot never built one however cheaply it traded. Below the
+	# target, the defence whose gun best answers the enemy UNITS the bot has seen goes up on
+	# the frontage bearing; like the rungs above it, a rung that could not act falls through.
+	if _owned_defence_structure_count() < defence_structure_target and _owns_a_producer():
+		var ftype: Variant = _defence_structure_to_build()
+		if ftype != null:
+			var fspot: Variant = _find_build_spot(ftype)
+			if fspot is StringName:
+				return  # still searching; the rest of the ladder waits for the answer
+			if fspot is Vector3 and _issue_build(builder, ftype, fspot):
+				return
+
 	# A surplus first extends a dominion route that pays per SITE (more Opticons), while a site
 	# is left that still pays enough — see _extend_dominion. Then production capacity.
 	if surplus and _extend_dominion(builder):
@@ -417,6 +437,47 @@ func _production_structure_to_build() -> Variant:
 			return _energy_cost(a) < _energy_cost(b)
 	)
 	return pool[0]
+
+
+## Which static defence to build now: the affordable buildable defence type whose weapons
+## best counter the enemy UNITS the bot believes in (Bot.unit_composition_value over the
+## demand map's unit entries — a turret answers an army, not a base), cost as the tiebreak
+## and the whole choice when nothing has been seen yet. null when none is affordable.
+func _defence_structure_to_build() -> Variant:
+	var candidates: Array = _bot.buildable_defence_structure_types().filter(
+		func(t): return can_afford_above_reserve(t)
+	)
+	if candidates.is_empty():
+		return null
+	var demand: Dictionary = _bot.enemy_demand_map()
+	var unit_demand: Dictionary = {}
+	for etype: Variant in demand:
+		if not (demand[etype]["rep"] as Node).is_in_group("structure"):
+			unit_demand[etype] = demand[etype]
+	var value: Dictionary = {}
+	for t in candidates:
+		value[t] = _bot.unit_composition_value(t, unit_demand)
+	candidates.sort_custom(
+		func(a, b):
+			if value[a] != value[b]:
+				return value[a] > value[b]
+			return _energy_cost(a) < _energy_cost(b)
+	)
+	return candidates[0]
+
+
+## Standing static defences plus the ones going up — committed, like production capacity.
+func _owned_defence_structure_count() -> int:
+	var count: int = 0
+	var under_way: Array[StringName] = _types_under_way()
+	for t in _bot.buildable_defence_structure_types():
+		count += _bot.get_structures_of_type(t).size() + under_way.count(t)
+	return count
+
+
+## Whether a production structure stands or is going up: the thing a static defence is for.
+func _owns_a_producer() -> bool:
+	return _owned_production_structure_count(_bot.buildable_production_structure_types()) > 0
 
 
 ## How many production structures the bot already owns, counting the types it can build and

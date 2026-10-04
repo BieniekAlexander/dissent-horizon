@@ -502,6 +502,27 @@ map is out of sites (there are twelve) but because by then it has SEEN the oppon
 `safety()` has bent its target down. That is the modulation working, observed rather than
 asserted.
 
+## The static-defence rung
+
+**The ladder had no rung for a turret until 2026-10-04.** `Bot.buildable_defence_structure_types`
+existed, but only as a placement bearing (a defence wants frontage), so nothing ever asked for
+one: over the first training run's 52 matches not one static was built, while two Watch Towers
+beat eight Recruits at cost parity and sixteen at twice their price in three seeds of three
+(`sims/towers_vs_recruits`, `sims/towers_vs_double_recruits`). The bot was leaving the
+cheapest trade in the game on the table, and its infantry-heavy production had nothing to
+answer for it.
+
+`BotDifficulty.defence_structure_target` (default 2, searchable 0–6) is how many the bot wants
+standing, going-up ones counted. The rung sits between income and throughput, and fires only
+once a producer stands or is going up — a static guards a base, and is never bought instead of
+one. The TYPE is the affordable defence whose weapons best answer the enemy UNITS on the
+blackboard (`Bot.unit_composition_value` over the demand map's unit entries: a turret answers
+an army, not a base), cost deciding when nothing has been seen. The spot is the ordinary
+frontage search, toward `Bot.threat_direction`; a chokepoint sense that would put it on the
+approach rather than merely in front is the position-importance work
+[squads-and-relations](squads-and-relations.md) §Placement beyond open ground plans. Like the
+income rung, a rung that cannot act falls through. Tests: `tests/test_BotDefenceTarget.gd`.
+
 ## Where a building goes
 
 **The rule: placement is chosen in the BOT'S frame, never in the world's.** Two hard

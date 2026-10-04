@@ -291,6 +291,7 @@ func _apply_config() -> void:
 	_economy.build_concurrency = config.build_concurrency
 	_economy.production_structure_cap = config.production_structure_cap
 	_economy.income_structure_target = config.income_structure_target
+	_economy.defence_structure_target = config.defence_structure_target
 	# The economy is the THIRD consumer of the threat radius (BotMilitary and BotSanction are
 	# the others). "Is something of mine under attack" has to mean one thing across the bot,
 	# and it is what tells the economy to stop expanding — see BotEconomy.safety.

@@ -112,6 +112,15 @@ var production_structure_cap: int = -1
 ## changes nothing (see §The tiers ship flat in bot-parameter-space.md).
 var income_structure_target: int = 1
 
+## How many STATIC DEFENCES the bot wants standing — turrets, towers, SAMs: a buildable
+## structure with weapons that trains nothing (Bot.buildable_defence_structure_types). Bought
+## once the bot owns a producer, ahead of the believed threat (the frontage bearing), and the
+## TYPE is the one whose gun best answers the enemy units it has seen. 0 is the bot before
+## 2026-10-04, which had no rung for them and never built one however cheaply they traded:
+## measured, two Watch Towers beat sixteen Recruits at twice their price
+## (sims/towers_vs_double_recruits). Counts the ones going up, like production_structure_cap.
+var defence_structure_target: int = 2
+
 ## How many non-combat utility units (the Colonial Stock Truck and its like) the bot keeps
 ## alive. They build, capture and scout rather than fight, so a higher cap buys map control
 ## and the dominion loop with energy that would otherwise be army.
@@ -222,6 +231,7 @@ const SEARCH_RANGES: Dictionary = {
 	"production_structure_cap": [1, 8],
 	"utility_unit_cap": [0, 6],
 	"income_structure_target": [0, 8],
+	"defence_structure_target": [0, 6],
 	"structure_demand_weight": [0.0, 1.0],
 	"demand_coverage_falloff": [0.0, 4.0],
 	"attack_value_ratio": [0.8, 2.5],

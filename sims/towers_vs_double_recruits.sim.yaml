@@ -1,0 +1,27 @@
+description: |
+  Two Watch Towers (800 energy) against sixteen Recruits (1600 energy) walking in together, the
+  tower's own target class at twice the towers' price. The static-defence note's calibration target is
+  that a static kills its own price in attackers before it dies; the bot never built one, so
+  this is the first measurement of whether building them is worth the bot's energy. A power
+  plant stands behind the towers so they are powered, as a bot's would be.
+setting: { kind: flat, size: 40 }
+given:
+  A:
+    with:
+      plant:
+        of: [ { piece: cl_infrastructure, count: 1 } ]
+        at: west
+      towers:
+        of: [ { piece: cl_defense_antiLight, count: 2 } ]
+        at: { from: A.plant, distance: 4, bearing: east }
+  B:
+    with:
+      recruits:
+        of: [ { piece: cl_bioLight_antiLight, count: 16 } ]
+        at: { from: A.towers, distance: 18, bearing: east }
+        facing: west
+        orders: [ { attack_move: { target: A.towers } } ]
+run: { for: 60s, seed: 1 }
+expect:
+  - { of: A.towers, check: alive }
+  - { of: B.recruits, check: dead }
