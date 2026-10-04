@@ -24,17 +24,22 @@ One rule decides where a HUD element lives: **it is PERSISTENT iff it answers a 
 
 The command grid itself splits again, into two CARDS — see §The command card's two families.
 
-| Persistent | Selection-owned (hidden with an empty selection) |
-| --- | --- |
-| `ProductionRail`, `DominionBar`, `EnergyBar`, `InfrastructureBar`, `SelectorPanel`, minimap, objectives | `InfoSection` (portrait/stats/cards), `CommandsSection` (the command grid) |
+| Persistent | Selection-owned (hidden with an empty selection) | Nothing-selected only |
+| --- | --- | --- |
+| `DominionBar`, `EnergyBar`, `InfrastructureBar`, minimap, objectives | `InfoSection` (portrait/stats/cards), `CommandsSection` (the command grid) | `SelectorPanel`, the global `ProductionRail` |
+
+`InfoSection` (and `ControlGroups` sitting on it) is shorter than the minimap and command card
+beside it — 80% of their height as a starting point — so the bottom edge dips in the middle and
+frames the centre of the screen rather than walling it off.
+
+The third column is the selection-owned panels' complement: each takes the slot of a panel that
+is hidden while nothing is selected, so the two alternate in one rect rather than stacking.
 
 The selection-owned panels are hidden WHOLESALE, backgrounds included — `InfoSection/Background` and `CommandsSection/CommandsBorder` are fixed rectangles spanning the bottom, so hiding only their contents would leave an empty bar rather than clear screen. `pointer_over_blocking_ui` already gates on `is_visible_in_tree()`, so hiding also stops them swallowing world clicks over what is now empty terrain.
 
 `SelectorPanel` is anchored to `CommandsSection`'s own rect (bottom-left), not a child of it, precisely so the two can alternate — `not has_selection` against `has_selection` — without either taking the other down. See [economy-bars.md](economy-bars.md) §Why the command card moved.
 
-**What used to squat in the nothing-selected state now has a permanent home.** The queue readout and the three selectors were both reachable only by deselecting — the one thing a player in a fight never does — and that is backwards twice over: a selector is reached for *because* the current selection is wrong, and "what have I committed to" is a question you ask while doing something else.
-
-- **`ProductionRail`** (left edge, mid-height) draws the global queue as a single vertical column, top = next to dispatch. Four rules keep it small: only the HEAD carries words (head-of-line blocking means the head's status explains the whole queue), blocker glyphs appear only when a purchase is actually stuck, runs of identical ADJACENT purchases collapse to one chip badged ×N, and the one-off tier is capped with a `+N` overflow chip. The two tiers are one list separated by a labelled hairline rather than two panels — the honest picture of `entries`. Chips are `CommandableCard`s, so a queued purchase, a training job and a live unit stay one visual family.
+- **Production** has a section of its own: §Production, below.
 - **The three persistent resource bars** (`DominionBar` top-left, `EnergyBar` and
   `InfrastructureBar` stacked — Energy above Infrastructure — above the command card) are
   Energy/Infrastructure/Dominion drawn as non-text gauges: a flat fill colour chosen from
@@ -57,12 +62,19 @@ The selection-owned panels are hidden WHOLESALE, backgrounds included — `InfoS
   `CommandButtonState.TINT_LOCKED` so the "unpurchased" idiom cannot drift from the one on an
   ability's own button. A faction with no route to it draws nothing at all — absent means
   "not for you", grey means "work toward it". Tests: `tests/test_PassiveAbilityCards.gd`.
-- **The info rows** (`InfoWidgetRow` along the top of `InfoSection`, `StatusEffectRow` above
-  the passives) describe ONE selected piece. Both are single-selection only: a mixed group
-  has no single answer to "how fast is it", and a row that averaged one would describe a unit
-  that is not on the field.
+- **The info rows** (the `InfoWidgetRow` block filling the Summary column of `InfoSection`,
+  `StatusEffectRow` above the passives) describe ONE selected piece. Both are single-selection
+  only: a mixed group has no single answer to "how fast is it", and a row that averaged one
+  would describe a unit that is not on the field.
+  - **The widget block is a fixed grid of slots, sized for the piece that has everything.**
+    Name, then hit points, each take a full row; every other widget (weapon, speed, sight,
+    hold, production) has a slot in a two-column grid beneath. The rows share the column's
+    height, so a piece with every property fills the column — and a piece without one leaves
+    that slot EMPTY rather than letting a neighbour grow into it, so each figure is in the
+    same place on every piece. The block is where a single selection's occupancy and
+    production status are read; the Summary column's text label repeats none of it.
   - **A widget that does not apply is not drawn.** A structure has no movement speed and a
-    Servant has no weapon; a card reading "movement: —" teaches the player that the row is
+    Servant has no weapon; a card reading "movement: —" teaches the player that the block is
     full of blanks rather than that this piece is stationary. What is on screen is what the
     piece has.
   - **The row is the shallow tier and the tooltip is the deep one**, the same two-tier idiom
@@ -84,7 +96,7 @@ The selection-owned panels are hidden WHOLESALE, backgrounds included — `InfoS
   capacity and pulses once upkeep exceeds it. A STUB scoped to this one panel; what is
   settled is which states are worth saying and what each looks like, so the reach can grow
   without the vocabulary being re-decided. Tests: `tests/test_ResourcePressure.gd`.
-- **Producer affinity** runs in BOTH directions, and together they recover what a per-structure queue used to show for free — as a live query over the global queue rather than a second data structure. Selecting producers dims the rail chips that cannot land on them (`ProductionRail._apply_affinity`, answering "what will this building make?"); hovering a rail chip rings the structures that could build it (`ProducerAffinityIndicator`, answering "where will this purchase go?"). The ring is drawn in `RallyIndicator`'s cyan deliberately — both mark where production is headed, and the shapes are what separate them. `ScenarioHighlight` is the same recipe and is NOT reused: every live one joins the `scenario_highlight` group, which the minimap reads, so borrowing it would paint HUD hover feedback on the minimap as a mission objective.
+- **Producer affinity** runs in BOTH directions, and together they recover what a per-structure queue used to show for free — as a live query over the global queue rather than a second data structure. The PRODUCTION page's Details pane shows only the purchases that could land on the selected producers (§Production, answering "what will this building make?"); hovering a queued chip in either copy rings the structures that could build it (`ProducerAffinityIndicator`, answering "where will this purchase go?"). The ring is drawn in `RallyIndicator`'s cyan deliberately — both mark where production is headed, and the shapes are what separate them. `ScenarioHighlight` is the same recipe and is NOT reused: every live one joins the `scenario_highlight` group, which the minimap reads, so borrowing it would paint HUD hover feedback on the minimap as a mission objective.
 - **A selected producer names its share of the queue** — "Building Recruit · 2 more can land here" (`InfoView._production_line`, off `ProductionQueue.pending_count_for`). "One structure builds one unit at a time" is a surprising rule for anyone arriving from another RTS, and that sentence is what separates "this building is idle" from "this building is working through a line". The wording is "can land here" rather than "queued here" on purpose: the queue is commander-global, so those purchases are ELIGIBLE at this structure rather than owned by it, and another producer may take them first.
 - **`SelectorPanel`** draws the three families as buttons that PREVIEW the matrix cell the modifiers currently put you in, count included, re-rendering every frame. The selector matrix was otherwise a 2×2 documented nowhere on screen; this makes it discoverable by holding a key. Greying follows the CURRENT cell rather than idleness alone, and a greyed button does nothing when pressed — it never widens its own scope to find something.
 
@@ -108,6 +120,65 @@ Key input actions (defined in `project.godot`):
 - **Standing orders have no key at all.** Right-click on the grid button that would otherwise buy the thing once (`RTSController._on_control_button_alternate_pressed`, wired in `ButtonSpec.create_button_from_spec` off the `gui_input` SIGNAL — overriding `_gui_input` would replace BaseButton's own press handling). This replaced the `purchase_fallback` (Alt) modifier, whose job was the same and which spent a system modifier on it.
 - `command_select_army` / `command_select_builder` / `command_select_production` (F1 / F2 / F3) — the three selectors, plus `modifier_narrow` (Alt) and `modifier_broaden` (Ctrl) which broaden them. See §The selector matrix.
 - `show_debug_info` (`;`) — toggles the debug view, only in a scenario with `debug_allowed`. See [debug-mode](debug-mode.md).
+
+
+## Production
+
+One component, `ProductionRail`, draws production in two places, and **never both at once**:
+
+| Where | When | What |
+|---|---|---|
+| a strip at the bottom centre of `InfoSection`'s rect | NOTHING is selected | the commander's whole queue |
+| `InfoSection`'s Details pane | the command card is on its PRODUCTION page | only the current producer context's producers, and the purchases that could land on them |
+
+With something selected and the card on any other page, production appears nowhere — not in
+Details, not on screen. The centre of the screen is either what you are holding or what you have
+committed to.
+
+**This supersedes a persistent rail on the left edge** (2026-10-04), which drew the global
+queue in every selection state on the argument that "what have I committed to" is asked while
+doing something else. The accepted cost: while holding an army, the queue is out of sight. A
+player asks about it by deselecting, or — for one building's share — by selecting the building,
+which opens on its PRODUCTION page. Selecting producers used to DIM the chips that could not land
+on them; the scoped copy replaces the dimming with a filter.
+
+**The scope** is `RTSController.production_detail_scope`: the selected producers of the chosen
+producer context (every selected producer when the context row is not drawn), the local
+player's only. A purchase is in scope when one of its `candidate_producers` is (a BUILD never
+is). Off the PRODUCTION page the scope is empty, and an empty scope is what hides the Details
+copy; the garrison-occupant cards that otherwise share the pane are hidden while it shows.
+
+**The global copy is a compact strip**, sized to its cards and pinned to the bottom centre of
+the info panel's rect (`ProductionSlot`, which never blocks a click itself), with the head and
+the chips behind it on one row. With nothing selected the player is looking at the world, so
+the strip takes one card's height rather than the panel's. The scoped copy fills the Details
+pane and wraps.
+
+**Three columns**, left to right, because both places are wide and short:
+
+- **producing** — one training card per busy producer (a producer builds one thing at a time,
+  so its job IS what it is producing), captioned `n / m` when several producers are scoped.
+  A unit in training has left the queue, so this is the only place it can be reached.
+- **queued** — the one-off tier. Four rules keep it small: only the HEAD carries words
+  (head-of-line blocking means the head's status explains the whole queue), blocker glyphs
+  appear only when a purchase is actually stuck, runs of identical ADJACENT purchases collapse
+  to one chip badged ×N, and the tier is capped with a `+N` overflow chip.
+- **standing** — the ring, in authored order, dimmed, with the next-up template at full
+  strength and marked `▸`.
+
+Chips run left to right in dispatch order within a column, and the tier boundary is the column
+boundary, so reading order is never ambiguous. The global copy drops an empty column, and hides
+outright when all three are empty — its absence says nothing is on order. The scoped copy keeps
+every column and says "none": the player opened the page to ask. A column's × cancels what that
+column SHOWS — the whole tier globally, only the scoped share in Details. Chips and job cards are
+`CommandableCard`s, so a queued purchase, a training job and a live unit stay one visual family.
+
+TODO: the global copy shows every busy producer's job in its producing column, which the
+request asked for only in Details; kept because it is the same component and reads as
+"global production", but drop it if the column is noise there.
+
+Tests: `tests/test_ProductionDetails.gd`; the scope rule in `tests/test_ProducerContextRow.gd`.
+Rendered by `tools/hud_panels_preview.tscn` with `--producer` (Details) or `--deselect` (global).
 
 ## The minimap
 

@@ -327,8 +327,8 @@ Worth deciding deliberately rather than by accretion.
   is worth revisiting once it has some play behind it. Its indicator is no longer a banner: the
   toggle button on `EconomyStack` both shows the mode and flips it, which puts it where its
   consequences are and frees top-centre for objectives and toasts.
-- ~~**The queue has no HUD home.**~~ **Resolved.** `ProductionRail` is a persistent panel on the
-  left edge; committed energy and a clearance estimate sit on `EconomyStack` with the resources. The
+- ~~**The queue has no HUD home.**~~ **Resolved.** `ProductionRail` holds the bottom-centre slot while
+  nothing is selected, and the Details pane on the PRODUCTION page (hud-layout §Production); committed energy and a clearance estimate sit on `EconomyStack` with the resources. The
   rule that settled it: a HUD element is persistent iff it answers a question you can ask with
   nothing selected — so the info panel and command grid now hide wholesale on an empty selection,
   and what used to squat in that state has a home of its own.

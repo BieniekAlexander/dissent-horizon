@@ -33,6 +33,11 @@ const VisualMeasure := preload("res://tools/spec_import/visual_measure.gd")
 ## The sound tables the voice ASSET rules read — see _asset_facts.
 const VOICE_LINES_SCRIPT: String = "res://scripts/audio/control_feedback_sounds.gd"
 const DEATH_BARKS_SCRIPT: String = "res://scripts/audio/entity_death_sounds.gd"
+## Where a piece's HUD icon is looked for — see _asset_facts.
+const PIECE_ICONS_SCRIPT: String = "res://scripts/interface/hud/piece_icons.gd"
+## What decides a piece's charge dials and how many its card fits — see _warn_on_dial_overflow.
+const CHARGE_DIAL_SCRIPT: String = "res://scripts/interface/hud/charge_dial.gd"
+const COMMANDABLE_CARD_SCRIPT: String = "res://scripts/interface/hud/commandable_card.gd"
 
 ## `kind:` value -> the family of spec it loads, which picks the registry table and the
 ## validator. The key is the CLASS the spec loads as, so every game piece is `Entity`
@@ -840,6 +845,8 @@ func _apply_calibration_rules() -> void:
 		for complaint: String in SpecRules.validate_exceptions_block(spec):
 			_err(spec, complaint)
 		var facts: Dictionary = _asset_facts(StringName(id), spec, pieces.has(id))
+		if pieces.has(id) and SpecSchema.is_commandable(spec):
+			_warn_on_dial_overflow(spec)
 		for entry: Dictionary in SpecRules.evaluate(spec, facts):
 			match int(entry["verdict"]):
 				SpecRules.Verdict.UNACCEPTED:
@@ -907,11 +914,12 @@ func _apply_calibration_rules() -> void:
 
 
 ## The facts SpecRules' ASSET rules judge, gathered for every piece and emission: whether its
-## scene holds authored art, and — for a piece — what its sound tables hold. Every scene is
-## loaded to answer the first, which is the price of reporting every unfilled model rather than
-## only the waived ones. A scene that does not exist yet has no art, which is the true answer
-## for a doc-first piece. The sound tables report their own completeness; they are loaded, not
-## preloaded, so the importer never depends on them compiling to validate anything else.
+## scene holds authored art, and — for a piece — what its sound tables and HUD icon hold.
+## Every scene is loaded to answer the first, which is the price of reporting every unfilled
+## model rather than only the waived ones. A scene that does not exist yet has no art, which is
+## the true answer for a doc-first piece. The sound tables report their own completeness; they
+## are loaded, not preloaded, so the importer never depends on them compiling to validate
+## anything else.
 func _asset_facts(a_id: StringName, a_spec: Dictionary, a_is_piece: bool) -> Dictionary:
 	var facts: Dictionary = {"has_authored_mesh": false}
 	var path: String = str(a_spec.get("scene", ""))
@@ -927,7 +935,59 @@ func _asset_facts(a_id: StringName, a_spec: Dictionary, a_is_piece: bool) -> Dic
 	var death: Script = load(DEATH_BARKS_SCRIPT)
 	if death != null:
 		facts["has_death_clip"] = death.has_clip(a_id)
+	var icons: Script = load(PIECE_ICONS_SCRIPT)
+	if icons != null:
+		facts["hud_icon"] = (
+			SpecRules.HUD_ICON_MISSING
+			if not icons.has_icon(a_id)
+			else (
+				SpecRules.HUD_ICON_PLACEHOLDER
+				if icons.is_placeholder(a_id)
+				else SpecRules.HUD_ICON_FINAL
+			)
+		)
 	return facts
+
+
+## A piece needing more charge dials than its HUD card fits — one per ability pool that is
+## CAST, one per weapon slow or charged enough to plan around (ChargeDial). A WARNING, not an
+## error: the game draws the first that fit and logs the rest, and no piece comes close today.
+func _warn_on_dial_overflow(a_spec: Dictionary) -> void:
+	var card_script: Script = load(COMMANDABLE_CARD_SCRIPT)
+	if card_script == null:
+		return
+	var needed: int = charge_dials_needed(a_spec, abilities)
+	var capacity: int = card_script.dial_capacity(card_script.CARD_SIZE.y)
+	if needed > capacity:
+		warnings.append(
+			(
+				"%s [%s]: needs %d charge dials but a HUD card fits %d — the rest will not be drawn"
+				% [a_spec["_doc_path"], a_spec["id"], needed, capacity]
+			)
+		)
+
+
+## How many charge dials `spec`'s card draws — its production queue, its cast pools, its slow
+## weapons — given every ability doc by id (`ability_specs`) to tell a cast pool from a passive
+## one. The doc-side twin of CommandableCard._build_dials.
+static func charge_dials_needed(spec: Dictionary, ability_specs: Dictionary) -> int:
+	var dial_script: Script = load(CHARGE_DIAL_SCRIPT)
+	# A producer's queue is a dial of its own (ChargeDial.production_state).
+	var needed: int = 1 if spec.has("trains") or spec.has("researches") else 0
+	for pool: Variant in spec.get("abilities", []):
+		var grants: Array = (pool as Dictionary).get("grants", []) if pool is Dictionary else []
+		if grants.any(
+			func(g: Variant) -> bool:
+				return not bool((ability_specs.get(str(g), {}) as Dictionary).get("passive", false))
+		):
+			needed += 1
+	for weapon: Variant in spec.get("weapons", []):
+		if weapon is Dictionary and dial_script.wants_weapon_dial(
+			float((weapon as Dictionary).get("reload_time", 0.0)),
+			bool((weapon as Dictionary).get("charged", false))
+		):
+			needed += 1
+	return needed
 
 
 ## The keys a piece with `variants:` must NOT author: each is taken from its first (default)

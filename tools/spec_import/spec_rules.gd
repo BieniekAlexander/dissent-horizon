@@ -71,6 +71,11 @@ const NORMATIVE: String = "normative"
 ## rather than an error — see the header. Each carries `unfilled`, the AssetState it reports.
 const ASSET: String = "asset"
 
+## The `hud_icon` fact's values: what a piece's HUD icon slot holds (see PieceIcons).
+const HUD_ICON_MISSING: String = "missing"
+const HUD_ICON_PLACEHOLDER: String = "placeholder"
+const HUD_ICON_FINAL: String = "final"
+
 ## The reach at or below which a weapon is MELEE — it must be in contact with what it is
 ## hitting. One terrain cell (Map.CELL_SIZE), which is the smallest distance this game
 ## measures anything in: a weapon that cannot reach across a single cell is not shooting
@@ -145,6 +150,18 @@ const RULES: Array = [
 		"unfilled": AssetState.MISSING,
 	},
 	{
+		"id": "has_hud_icon",
+		"severity": ASSET,
+		"what": "an Actor is drawn as a picture on the HUD",
+		"unfilled": AssetState.MISSING,
+	},
+	{
+		"id": "hud_icon_is_final",
+		"severity": ASSET,
+		"what": "an Actor's HUD picture is art made for it, not a stock stand-in",
+		"unfilled": AssetState.PLACEHOLDER,
+	},
+	{
 		"id": "clip_outlasts_reload",
 		"severity": NORMATIVE,
 		"what": "a clip takes longer to refill than to empty",
@@ -160,7 +177,8 @@ const RULES: Array = [
 ## lines; nothing here writes to the registry, so the rules stay testable on a bare dictionary.
 ##
 ## `facts` carries what the ASSET rules judge that lives outside the doc — the scene's art
-## (`has_authored_mesh`) and the sound tables (`missing_line_types`, `has_death_clip`). An
+## (`has_authored_mesh`), the sound tables (`missing_line_types`, `has_death_clip`) and the
+## HUD icon (`hud_icon`, one of the HUD_ICON_* values). An
 ## asset rule whose fact was not supplied has nothing to say, so a doc-only caller hears
 ## only the calibration rules.
 static func evaluate(spec: Dictionary, facts: Dictionary = {}) -> Array:
@@ -310,6 +328,10 @@ static func _check(id: String, spec: Dictionary, facts: Dictionary = {}) -> Vari
 			return _check_has_voice_lines(spec, facts)
 		"has_death_sound":
 			return _check_has_death_sound(facts)
+		"has_hud_icon":
+			return _check_has_hud_icon(spec, facts)
+		"hud_icon_is_final":
+			return _check_hud_icon_is_final(spec, facts)
 		"turn_radius_within_reach":
 			return _check_turn_radius(spec)
 		"grounded_air_attack_not_melee":
@@ -360,6 +382,31 @@ static func _check_has_death_sound(facts: Dictionary) -> Variant:
 	if bool(facts["has_death_clip"]):
 		return true
 	return "has no death sound"
+
+
+## An Actor — a piece that takes orders — has a HUD icon (PieceIcons). Features, tokens and
+## emissions are never drawn on a production button or a card, so the rule does not apply.
+## Two rules rather than one because the slot has two unfilled states: no picture at all, and
+## a stock photograph standing in for one.
+static func _check_has_hud_icon(spec: Dictionary, facts: Dictionary) -> Variant:
+	if not facts.has("hud_icon") or not SpecSchema.is_commandable(spec):
+		return null
+	if facts["hud_icon"] != HUD_ICON_MISSING:
+		return true
+	return "has no HUD icon"
+
+
+## Asked only of an Actor that HAS an icon; one without is has_hud_icon's to report.
+static func _check_hud_icon_is_final(spec: Dictionary, facts: Dictionary) -> Variant:
+	if (
+		not facts.has("hud_icon")
+		or not SpecSchema.is_commandable(spec)
+		or facts["hud_icon"] == HUD_ICON_MISSING
+	):
+		return null
+	if facts["hud_icon"] == HUD_ICON_FINAL:
+		return true
+	return "wears a stock-photo placeholder icon"
 
 
 ## A fixed wing must be able to turn tightly enough to bring its weapon to bear.

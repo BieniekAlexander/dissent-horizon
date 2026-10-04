@@ -16,6 +16,9 @@ const NEUTRAL_ID: int = 0
 ## Text on the fold button while the body is shown, and while it is folded.
 const FOLD_TEXT: String = "–"
 const UNFOLD_TEXT: String = "+"
+## A spawner card drawn as a picture: big enough to tell one animal or tree from another,
+## small enough that a faction's roster still flows several to a row.
+const PIECE_ICON_SIZE: Vector2 = Vector2(40, 40)
 
 ## The HUD nodes this panel stands in for while it is up (the objective checklist, the
 ## command-error line). Paths are relative to this node.
@@ -210,11 +213,18 @@ func _build_pieces() -> void:
 		_piece_list.add_child(flow)
 
 
-## The piece's card: its production button's label and tooltips where it has one.
+## The piece's card: its icon (or, with none made, its production button's label) and that
+## button's tooltips where it has one — the same face the command card gives it.
 func _piece_button(a_entry: Dictionary) -> VerboseTooltipButton:
 	var button := VerboseTooltipButton.new()
 	button.name = String(a_entry["id"])
-	button.text = a_entry["label"]
+	var icon: Texture2D = PieceIcons.for_id(StringName(a_entry["id"]))
+	if icon != null:
+		button.icon = icon
+		button.expand_icon = true
+		button.custom_minimum_size = PIECE_ICON_SIZE
+	else:
+		button.text = a_entry["label"]
 	button.focus_mode = Control.FOCUS_NONE
 	var tool: Tool = Tool.for_name(a_entry["tool"]) if a_entry["tool"] != "" else null
 	button.simple_tooltip = tool.simple_tooltip if tool != null else "Place %s" % a_entry["label"]

@@ -3,11 +3,12 @@ extends Node3D
 
 ## Rings the structures that could build the production-queue entry the cursor is over.
 ##
-## This is the world-facing half of producer affinity. The HUD half — dimming the rail chips
-## that cannot land on the current selection (ProductionRail._apply_affinity) — answers
-## "what will this building make?"; this answers the other direction, "where will this
-## purchase go?". Between them they recover what a per-structure queue used to show for free,
-## as a live query over the global queue rather than as a second data structure.
+## This is the world-facing half of producer affinity. The HUD half — the Details pane
+## showing only the purchases that could land on the selected producers (a scoped
+## ProductionRail) — answers "what will this building make?"; this answers the other
+## direction, "where will this purchase go?". Between them they recover what a per-structure
+## queue used to show for free, as a live query over the global queue rather than as a second
+## data structure.
 ##
 ## Drawn in RallyIndicator's cyan, deliberately: both mark the same kind of fact — where
 ## production is headed — and using a second colour for one of them would imply a distinction

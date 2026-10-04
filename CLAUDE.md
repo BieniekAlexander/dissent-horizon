@@ -561,6 +561,8 @@ Selection, control groups, input actions, the command grid, HUD panels and const
 - [`gdd/systems/ux/ui/control-matrices.md`](gdd/systems/ux/ui/control-matrices.md)
 - [`gdd/systems/ux/ui/input-action-naming.md`](gdd/systems/ux/ui/input-action-naming.md)
 - [`gdd/systems/ux/ui/construction-visuals.md`](gdd/systems/ux/ui/construction-visuals.md)
+- [`gdd/systems/ux/ui/actor-cards.md`](gdd/systems/ux/ui/actor-cards.md) — the unit card's columns, charge dials, and its colour vocabulary
+- [`gdd/systems/ux/ui/piece-icons.md`](gdd/systems/ux/ui/piece-icons.md) — a piece is drawn as `assets/icons/pieces/<id>.png`, found by convention; today's are stock-photo placeholders
 - [`gdd/systems/commands/construction.md`](gdd/systems/commands/construction.md)
 
 ## Map, terrain, and navmesh

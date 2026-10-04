@@ -128,3 +128,43 @@ func test_the_sound_tables_report_an_unlisted_unit_as_empty() -> void:
 	var death: Script = load("res://scripts/audio/entity_death_sounds.gd")
 	assert_eq(voice.missing_line_types(&"no_such_piece").size(), 3, "every line type")
 	assert_false(death.has_clip(&"no_such_piece"))
+
+
+# --- The HUD icon ---------------------------------------------------------------------
+## Two rules over one slot: no picture is MISSING, a stock photograph is a PLACEHOLDER. Both
+## are asked only of Actors, the pieces the HUD draws on a button or a card.
+
+
+func _icon(a_state: String) -> Dictionary:
+	return {"hud_icon": a_state}
+
+
+func test_an_actor_without_an_icon_is_missing() -> void:
+	for spec: Dictionary in [UNIT, STRUCTURE]:
+		var entries: Array = _entries(spec, _icon(SpecRules.HUD_ICON_MISSING), "has_hud_icon")
+		assert_eq(entries.size(), 1)
+		assert_eq(entries[0]["asset_state"], SpecRules.AssetState.MISSING)
+		assert_eq(
+			_entries(spec, _icon(SpecRules.HUD_ICON_MISSING), "hud_icon_is_final"),
+			[],
+			"an absent icon is reported once, as missing, not also as a placeholder"
+		)
+
+
+func test_a_stock_icon_is_a_placeholder() -> void:
+	var facts: Dictionary = _icon(SpecRules.HUD_ICON_PLACEHOLDER)
+	assert_eq(_entries(UNIT, facts, "has_hud_icon"), [], "it has a picture")
+	var entries: Array = _entries(UNIT, facts, "hud_icon_is_final")
+	assert_eq(entries.size(), 1)
+	assert_eq(entries[0]["asset_state"], SpecRules.AssetState.PLACEHOLDER)
+
+
+func test_a_final_icon_is_silent() -> void:
+	var facts: Dictionary = _icon(SpecRules.HUD_ICON_FINAL)
+	for rule: String in ["has_hud_icon", "hud_icon_is_final"]:
+		assert_eq(_entries(STRUCTURE, facts, rule), [], rule)
+
+
+func test_a_token_has_no_icon_slot() -> void:
+	for rule: String in ["has_hud_icon", "hud_icon_is_final"]:
+		assert_eq(_entries(TOKEN, _icon(SpecRules.HUD_ICON_MISSING), rule), [], rule)

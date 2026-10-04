@@ -505,14 +505,20 @@ func _place_button(a_cells: Array, a_binding: ControlBinding) -> void:
 			)
 		)
 		return
-	var b: Button = ButtonSpec.create_button_from_spec(
-		ButtonSpec.new(
-			a_binding.command_name,
-			a_binding.label,
-			a_binding.simple_tooltip,
-			a_binding.verbose_tooltip
-		)
+	var spec := ButtonSpec.new(
+		a_binding.command_name,
+		a_binding.label,
+		a_binding.simple_tooltip,
+		a_binding.verbose_tooltip
 	)
+	# A button that stands for a piece — a tool that trains or places one, a producer's radio
+	# button — is drawn as that piece's picture; anything without one (a verb, an ability, a
+	# piece nobody has drawn yet) keeps its label.
+	if a_binding is Tool:
+		spec.icon = PieceIcons.for_id((a_binding as Tool).type)
+	elif a_binding is ProducerContextBinding:
+		spec.icon = PieceIcons.for_id((a_binding as ProducerContextBinding).producer_id)
+	var b: Button = ButtonSpec.create_button_from_spec(spec)
 	# Clip long labels so a button's text can't inflate its minimum size past its
 	# grid cell (e.g. "Idle Builder" wants ~97px) — Button zeroes its text's width
 	# contribution when clip_text is on, and the label is drawn cut off instead.

@@ -55,13 +55,28 @@ offset_bottom = 41.0
 mouse_filter = 2
 script = ExtResource("21_dombar")
 
-[node name="ProductionRail" type="Control" parent="Controller" unique_id=1608019883 groups=["selection_blocking_ui"]]
+[node name="ProductionSlot" type="Control" parent="Controller"]
 layout_mode = 3
-anchors_preset = 0
-offset_left = 8.0
-offset_top = 49.0
-offset_right = 158.0
-offset_bottom = 201.0
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 324.0
+offset_top = -191.0
+offset_right = -374.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="ProductionRail" type="Control" parent="Controller/ProductionSlot" unique_id=1608019883 groups=["selection_blocking_ui"]]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 2
 script = ExtResource("15_rail")
 
@@ -106,7 +121,7 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 324.0
-offset_top = -196.0
+offset_top = -153.0
 offset_right = -374.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -127,7 +142,7 @@ color = Color(0.35, 0.35, 0.35, 0.2509804)
 layout_mode = 1
 anchor_right = 0.4
 anchor_bottom = 1.0
-offset_top = 36.0
+offset_top = 2.0
 offset_bottom = -32.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -144,7 +159,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="Cards" type="HFlowContainer" parent="Controller/InfoSection/Summary" unique_id=610274355]
+[node name="Cards" type="ScrollContainer" parent="Controller/InfoSection/Summary" unique_id=610274355]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -155,6 +170,12 @@ offset_right = -4.0
 offset_bottom = -4.0
 grow_horizontal = 2
 grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Rows" type="VBoxContainer" parent="Controller/InfoSection/Summary/Cards"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
 mouse_filter = 2
 
 [node name="Details" type="Control" parent="Controller/InfoSection" unique_id=710854947]
@@ -162,7 +183,7 @@ layout_mode = 1
 anchor_left = 0.4
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 36.0
+offset_top = 2.0
 offset_bottom = -32.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -181,16 +202,29 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Widgets" type="HFlowContainer" parent="Controller/InfoSection" unique_id=243269840]
+[node name="Production" type="Control" parent="Controller/InfoSection/Details"]
 layout_mode = 1
-anchors_preset = 10
+anchors_preset = 15
 anchor_right = 1.0
-offset_left = 4.0
-offset_top = 2.0
-offset_right = -4.0
-offset_bottom = 34.0
+anchor_bottom = 1.0
+offset_bottom = -28.0
 grow_horizontal = 2
-theme_override_constants/h_separation = 4
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("15_rail")
+is_scoped = true
+
+[node name="Widgets" type="VBoxContainer" parent="Controller/InfoSection" unique_id=243269840]
+layout_mode = 1
+anchor_right = 0.4
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 8.0
+offset_right = -4.0
+offset_bottom = -62.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 3
 script = ExtResource("19_widgets")
 
 [node name="Conditions" type="HFlowContainer" parent="Controller/InfoSection" unique_id=243269841]
@@ -230,9 +264,9 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 324.0
-offset_top = -234.0
+offset_top = -191.0
 offset_right = -374.0
-offset_bottom = -198.0
+offset_bottom = -155.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2

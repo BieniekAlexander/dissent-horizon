@@ -40,8 +40,8 @@ func _piece(a_options: Dictionary) -> Commandable:
 
 func _captions() -> Array[String]:
 	var out: Array[String] = []
-	for child: Node in _row.get_children():
-		out.append(String(child.name))
+	for widget: VerboseTooltipButton in _row.widgets():
+		out.append(String(widget.name))
 	return out
 
 
@@ -51,7 +51,7 @@ func _captions() -> Array[String]:
 func test_a_single_selection_draws_the_row() -> void:
 	_row.update([_piece(TURRET_SCENE)])
 	assert_true(_row.visible)
-	assert_gt(_row.get_child_count(), 0)
+	assert_gt(_row.widgets().size(), 0)
 
 
 func test_a_mixed_selection_draws_nothing() -> void:
@@ -86,13 +86,11 @@ func test_every_widget_carries_a_tooltip() -> void:
 	# VerboseTooltipButton reports an empty simple tooltip as an authoring bug; this is the
 	# assertion that the row never produces one.
 	_row.update([_piece(TURRET_SCENE)])
-	for child: Node in _row.get_children():
-		var button := child as VerboseTooltipButton
-		assert_not_null(button, "%s is a tooltip button" % child.name)
+	for button: VerboseTooltipButton in _row.widgets():
 		assert_ne(
 			button.simple_tooltip,
 			VerboseTooltipButton.MISSING_TOOLTIP,
-			"%s has real copy" % child.name
+			"%s has real copy" % button.name
 		)
 
 
@@ -100,9 +98,72 @@ func test_only_the_range_bearing_widgets_ask_for_a_reveal() -> void:
 	# Hovering the name or the hit points has nothing to draw on the ground, and a hover
 	# that revealed the last card's rings would be worse than one that revealed none.
 	_row.update([_piece(TURRET_SCENE)])
-	for child: Node in _row.get_children():
-		var expected: bool = String(child.name) in ["Widget_Weapon", "Widget_Sight"]
-		assert_eq(child.has_meta(&"range_kinds"), expected, "%s asks for a reveal" % child.name)
+	for widget: VerboseTooltipButton in _row.widgets():
+		var expected: bool = String(widget.name) in ["Widget_Weapon", "Widget_Sight"]
+		assert_eq(widget.has_meta(&"range_kinds"), expected, "%s asks for a reveal" % widget.name)
+
+
+# --- The fixed slot layout ----------------------------------------------------------
+## Name, then hit points, each a full row; everything else two to a row. A piece without a
+## property leaves its slot empty rather than letting a neighbour grow into it.
+
+
+func _slot_of(a_widget: Control) -> Control:
+	return a_widget.get_parent() as Control
+
+
+func test_name_then_hit_points_lead_the_block() -> void:
+	_row.update([_piece(TURRET_SCENE)])
+	assert_eq(_slot_of(_row.widget_for("name")).get_index(), 0)
+	assert_eq(_slot_of(_row.widget_for("hp")).get_index(), 1)
+	assert_eq(_slot_of(_row.widget_for("name")).get_parent(), _row, "a row of its own")
+	assert_eq(_slot_of(_row.widget_for("hp")).get_parent(), _row, "a row of its own")
+
+
+func test_the_other_widgets_sit_two_to_a_row() -> void:
+	_row.update([_piece(TURRET_SCENE)])
+	for key: String in ["weapon", "sight"]:
+		var row: Node = _slot_of(_row.widget_for(key)).get_parent()
+		assert_true(row is HBoxContainer, "%s sits in a two-column row" % key)
+		assert_eq(row.get_child_count(), 2)
+
+
+func test_every_slot_exists_whatever_the_piece_has() -> void:
+	# The layout is the same for every piece; only what is IN it differs. So the turret, which
+	# cannot move, still has a speed slot — empty.
+	_row.update([_piece(TURRET_SCENE)])
+	var slot: Node = _row.find_child("Slot_Speed", true, false)
+	assert_not_null(slot, "the slot is kept")
+	assert_eq(slot.get_child_count(), 0, "and left empty")
+
+
+func test_a_slot_is_the_same_size_whether_or_not_its_neighbour_is_filled() -> void:
+	# The rule the layout exists for: a widget does not grow into an absent neighbour's room.
+	_row.size = Vector2(400, 200)
+	_row.update([_piece(TURRET_SCENE)])
+	var stationary_width: float = _laid_out_width("weapon")
+	_row.update([_piece({"speed": 2.0, "weapon": {"ground": 6.0}})])
+	assert_almost_eq(_laid_out_width("weapon"), stationary_width, 0.5)
+	assert_gt(stationary_width, 0.0)
+
+
+## The width `a_key`'s widget is laid out at. Sorted synchronously, block then row, rather than
+## by waiting frames: a frame lets every earlier test's deferred popup work run mid-test.
+func _laid_out_width(a_key: String) -> float:
+	_row.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	var slot: Control = _row.widget_for(a_key).get_parent() as Control
+	slot.get_parent().notification(Container.NOTIFICATION_SORT_CHILDREN)
+	return slot.size.x
+
+
+func test_a_producer_gets_a_production_widget() -> void:
+	_row.update([_piece({"structure": true, "production": true})])
+	assert_has(_captions(), "Widget_Production")
+
+
+func test_a_piece_that_builds_nothing_gets_none() -> void:
+	_row.update([_piece(TURRET_SCENE)])
+	assert_does_not_have(_captions(), "Widget_Production")
 
 
 # --- The status effect row -----------------------------------------------------------

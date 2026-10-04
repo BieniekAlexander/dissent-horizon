@@ -359,8 +359,9 @@ unmodified press is not idle-first.
 | `modifier_narrow`   | ignored                                                          | *leaks* | *unused* |
 | `modifier_broaden`  | *unused*                                                         | *leaks* | select every pending purchase of the same piece, across the whole queue |
 
-The rail's "clear queued" / "clear standing" buttons are plain `Button`s: LMB only, no
-modifier read anywhere.
+The panel's "clear queued" / "clear standing" buttons are plain `Button`s: LMB only, no
+modifier read anywhere. Each cancels what its column shows — see
+[hud-layout](hud-layout.md) §Production.
 
 ### Selecting a unit that does not exist yet
 
@@ -401,17 +402,17 @@ Selecting anything LIVE clears the phantoms again, which is the way back.
 TRAINED the one thing on screen that could not be ordered, which is exactly the one a player
 watching the progress bar reaches for. Only a completed or cancelled purchase is refused.
 
-**A unit being trained has left the production queue**, so the rail cannot show it: it is
-reached through the info panel's own job card, whose right click raises the same request. Its
+**A unit being trained has left the production queue**, so no queued chip can show it: it is
+reached through its job card in the panel's PRODUCING column, whose right click raises the same
+request. Its
 orders are read from the transaction AT SPAWN rather than trusted from the copy taken when the
 job was enqueued — the same "read it late" rule the rally follows, and what lets an order
 given mid-training still arrive.
 
-**The green border is repainted every frame, not on rebuild.** Both panels rebuild their cards
-only when the CARD SET changes — the rail off `_build_signature`, the info panel off its own
-gate — and selecting a phantom changes no card, so a border painted during a rebuild is a
-border that never appears. `ProductionRail._refresh_pending_borders` and
-`InfoView._refresh_pending_borders` both run unconditionally instead. **The general rule: HUD
+**The green border is repainted every frame, not on rebuild.** The panel rebuilds its cards
+only when the CARD SET changes (`_build_signature`), and selecting a phantom changes no card, so
+a border painted during a rebuild is a border that never appears.
+`ProductionRail._refresh_pending_borders` runs unconditionally instead. **The general rule: HUD
 state that follows the SELECTION cannot ride on a signature computed from the CONTENTS.** The
 same mistake is available to anything else keyed that way.
 

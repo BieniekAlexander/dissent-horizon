@@ -7,6 +7,10 @@ var text: String
 var simple_tooltip: String
 ## Tooltip shown while the "ui_verbose" action (/) is held. Empty = same as simple.
 var verbose_tooltip: String
+## The picture drawn INSTEAD of `text`, or null for a text button — a piece with no icon made
+## yet, or anything that is not a piece (verbs, abilities). The name is not lost: every
+## piece's tooltip opens with it ("Train Recruit — …").
+var icon: Texture2D = null
 #endregion
 
 
@@ -31,7 +35,13 @@ func _init(
 ## offscreen; see gdd/deferred.md and CLAUDE.md §Seeing the HUD without a screen.
 static func create_button_from_spec(spec: ButtonSpec) -> Button:
 	var ret: VerboseTooltipButton = VerboseTooltipButton.new()
-	ret.text = spec.text
+	if spec.icon != null:
+		ret.icon = spec.icon
+		ret.expand_icon = true
+		ret.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ret.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	else:
+		ret.text = spec.text
 	# Named before the tooltips are assigned: an empty tooltip is reported by name, and
 	# "command_land" identifies the offender where an unnamed Button does not.
 	ret.name = spec.control

@@ -280,6 +280,30 @@ func recharge_remaining(a_ability_id: StringName) -> int:
 	return ceili(_timers[index])
 
 
+## How many pools this piece has. The per-POOL queries below are what a readout of the pools
+## themselves draws from (CommandableCard's charge dials); the per-ability ones above are what
+## a button for one ability asks.
+func pool_count() -> int:
+	return _charges.size()
+
+
+func pool_charges(a_index: int) -> int:
+	return _charges[a_index] if a_index >= 0 and a_index < _charges.size() else 0
+
+
+func pool_max_charges(a_index: int) -> int:
+	return _max_charges(groups[a_index]) if a_index >= 0 and a_index < groups.size() else 0
+
+
+## How far pool `a_index` is toward its NEXT charge, 0.0–1.0; 0.0 for a full pool, which has
+## no next charge to be working toward.
+func pool_recharge_fraction(a_index: int) -> float:
+	if a_index < 0 or a_index >= _charges.size() or _charges[a_index] >= pool_max_charges(a_index):
+		return 0.0
+	var cooldown: float = float(_cooldown_ticks(groups[a_index]))
+	return clampf(1.0 - _timers[a_index] / cooldown, 0.0, 1.0)
+
+
 #endregion
 
 

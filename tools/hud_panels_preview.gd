@@ -18,7 +18,13 @@ extends Node
 ## per-piece info widget row draws (it is drawn for a single selection only), `--afflict`
 ## puts a status effect on that piece so its condition card draws too, `--holdfire` presses
 ## hold fire on the selection through the controller, so its condition card, its greyed button
-## and its floating badge draw.
+## and its floating badge draw. `--producer` ends with the barracks selected alone, so the
+## widget block's production slot and the PRODUCTION card's piece icons draw. `--debug` opens
+## the debug menu, so its piece spawner draws. `--cards` adds pieces with charge dials (one
+## spent, one weapon reloading) and a part-filled transport to the multi-selection, so the
+## unit cards' right-hand columns all draw; `--scrolled` scrolls the summary to its last rows.
+## `--deselect` ends with nothing selected, so the global production readout takes the info
+## panel's slot.
 
 const PLAYER: PackedScene = preload("res://scenes/player.tscn")
 const ANARCHICAL: PackedScene = preload("res://scenes/factions/anarchical.tscn")
@@ -28,6 +34,18 @@ const PIECES: Array[String] = [
 	"res://scenes/entities/units/an/an_bioLight_builder.tscn",
 	"res://scenes/entities/units/an/technician.tscn",
 	"res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn",
+]
+## Pieces whose cards carry every column, for `--cards`: a Recruit (two ability pools), an
+## MLRS (a slow-reloading weapon) and a War Wagon (a garrison).
+## Repeated, so the summary fans several of one type into a row.
+const CARD_PIECES: Array[String] = [
+	"res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
+	"res://scenes/entities/units/an/an_mechMedium_artillery.tscn",
+	"res://scenes/entities/units/an/an_mechStrong_transport.tscn",
+	"res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
+	"res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
+	"res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
+	"res://scenes/entities/units/an/an_mechMedium_artillery.tscn",
 ]
 ## A producer, so a queued purchase has somewhere it could be made. Without one the queue
 ## PRUNES the entry as unfulfillable and the rail has nothing to draw.
@@ -48,6 +66,13 @@ func _ready() -> void:
 		piece.ownership.commander = player
 		piece.build_progress = 1.0
 		pieces.append(piece)
+	if "--cards" in OS.get_cmdline_user_args():
+		for path: String in CARD_PIECES:
+			var extra: Commandable = (load(path) as PackedScene).instantiate() as Commandable
+			player.add_child(extra)
+			extra.ownership.commander = player
+			extra.build_progress = 1.0
+			pieces.append(extra)
 	_drive(player, pieces)
 
 
@@ -99,9 +124,16 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 		)
 		a_pieces[2].add_child(effect)
 		effect.apply_to(a_pieces[2] as Entity)
+	if "--cards" in OS.get_cmdline_user_args():
+		await _load_card_states(a_pieces)
 	controller.selection = [a_pieces[2]] as Array[Node] if single else a_pieces.duplicate()
 	controller._refresh_available_commands()
 	await get_tree().process_frame
+	if "--scrolled" in OS.get_cmdline_user_args():
+		# Past the first rows, to where the --cards fans are.
+		await get_tree().process_frame
+		var cards: ScrollContainer = controller.get_node("InfoSection/Summary/Cards")
+		cards.scroll_vertical = int(cards.get_v_scroll_bar().max_value)
 	if "--holdfire" in OS.get_cmdline_user_args():
 		controller.process_command(CommandContextParser.HOLD_FIRE_COMMAND)
 		await get_tree().process_frame
@@ -117,10 +149,10 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 			"visible:",
 			widgets.is_visible_in_tree(),
 			"widgets:",
-			widgets.get_child_count()
+			widgets.widgets().size()
 		)
-		for widget: Node in widgets.get_children():
-			prints("  ", widget.name, (widget as Control).get_global_rect())
+		for widget: Control in widgets.widgets():
+			prints("  ", widget.name, widget.get_global_rect())
 	var row: PassiveAbilityRow = info.get_node_or_null("Passives") as PassiveAbilityRow
 	prints("passives drawn:", PassiveAbilityRow.passives_in(a_pieces, a_player))
 	if row != null:
@@ -141,6 +173,8 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 		if tool != null:
 			for i: int in 3:
 				a_player.production_queue.submit_train(tool, [], false)
+			# And a standing order, so the production readout's third column draws.
+			a_player.production_queue.submit_train(tool, [], true)
 			var queued: Array = a_player.production_queue.entries.filter(
 				func(e: PurchaseTransaction) -> bool: return e.awaits_its_unit()
 			)
@@ -149,6 +183,21 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 				controller.select_pending([queued.back()], false)
 			await get_tree().process_frame
 			prints("pending selected:", controller.pending_selection.size())
+		if "--debug" in OS.get_cmdline_user_args():
+			DebugMode.configure(true)
+			DebugMode.toggle()
+			await get_tree().process_frame
+		if "--deselect" in OS.get_cmdline_user_args():
+			controller.selection = [] as Array[Node]
+			controller._refresh_available_commands()
+			await get_tree().process_frame
+			return
+		if "--producer" in OS.get_cmdline_user_args():
+			controller.select_only(producer)
+			controller._refresh_available_commands()
+			await get_tree().process_frame
+			prints("card shows:", controller._visible_command_names())
+			return
 
 	# --- PROBE: the two card right-clicks that are hard to reach any other way ------------
 	# A garrisoned occupant and an actively-training unit are both drawn only on InfoView's
@@ -166,6 +215,28 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 		await get_tree().process_frame
 		prints("armed:", controller.is_command_armed(), "ready:", controller.is_command_ready())
 		prints("card shows:", controller._visible_command_names())
+
+
+## Put the `--cards` pieces into the states their columns exist to show: a Recruit pool part
+## way back, an MLRS mid-reload, a War Wagon holding the Irregular.
+func _load_card_states(a_pieces: Array[Node]) -> void:
+	await get_tree().physics_frame
+	for piece: Node in a_pieces:
+		var abilities: Abilities = piece.get_node_or_null("Abilities") as Abilities
+		if abilities != null and abilities.pool_count() > 0:
+			for id: StringName in abilities.granted_abilities():
+				abilities.spend(id)
+			for i: int in 20:
+				abilities._physics_process(0.0)
+		var loadout: Loadout = piece.get_node_or_null("Loadout") as Loadout
+		if loadout != null:
+			for weapon: Weapon in ChargeDial.dial_weapons(piece as Entity):
+				weapon.consume_round()
+				weapon.consume_round()
+		var garrison: Garrison = piece.get_node_or_null("Garrison") as Garrison
+		if garrison != null:
+			garrison.garrison(a_pieces[0] as Commandable)
+		prints("card piece:", piece.name, (piece as Entity).id)
 
 
 ## Right-click an occupant card and a training card, and report whether the controller's
@@ -284,8 +355,11 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 
 	a_controller.select_only(producer)
 	await get_tree().process_frame
+	# Jobs are drawn in Details only on the PRODUCTION page.
+	a_controller.set_command_family(ControlBinding.CommandFamily.PRODUCTION)
 	await get_tree().process_frame
-	var job_cards: Node = info.get_node("Details/Cards")
+	await get_tree().process_frame
+	var job_cards: Node = info.get_node("Details/Production/Columns/Producing/ProducingCards")
 	prints("PROBE job cards:", job_cards.get_child_count())
 	for node: Node in job_cards.get_children():
 		var card := node as CommandableCard
@@ -330,7 +404,9 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 	a_player.energy = 0  # keep the next purchases PENDING, not dispatched
 	for i: int in 3:
 		a_player.production_queue.submit_train(tool, [producer], false)
-	var rail: ProductionRail = a_controller.get_node_or_null("ProductionRail") as ProductionRail
+	var rail: ProductionRail = (
+		a_controller.get_node_or_null("ProductionSlot/ProductionRail") as ProductionRail
+	)
 	prints("PROBE rail:", rail, "controller wired:", rail.controller if rail != null else "n/a")
 	await get_tree().process_frame
 	await get_tree().process_frame

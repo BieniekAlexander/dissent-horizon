@@ -204,3 +204,97 @@ func test_a_context_the_selection_cannot_fill_is_corrected() -> void:
 		&"fake_airfield",
 		"no airfield is selected, so the card cannot be showing one"
 	)
+
+
+## The cell's KEY does what clicking its button does. A grid key is positional — it names a cell
+## and runs whatever that cell draws — so a context button is reached by its key as well as by
+## the pointer, and the key must not drop it for not being an order.
+func test_a_context_cells_hotkey_switches_to_it() -> void:
+	# The row's bindings exist only for producers something trains, and are cached on first
+	# use — so a trainee is registered and the cache rebuilt around it.
+	FakePieces.register_tool(
+		FakePieces.tool(
+			&"fake_trainee",
+			RECRUIT,
+			[],
+			ControlBinding.ControlContext.TRAIN,
+			[&"fake_barracks", &"fake_factory"]
+		)
+	)
+	ProducerContextBinding._bindings = []
+	var trains: Dictionary = {"produces": [&"fake_trainee"]}
+	var controller: RTSController = _controller(
+		[_entity(BARRACKS.merged(trains)), _entity(FACTORY.merged(trains))]
+	)
+	controller.set_command_family(ControlBinding.CommandFamily.PRODUCTION)
+	assert_eq(controller.command_family, ControlBinding.CommandFamily.PRODUCTION)
+	controller.choose_producer_context(&"fake_barracks")
+	var cell: Vector2i = Tool.for_id(&"fake_factory").context_grid
+	controller._dispatch_command_hotkey([String(ControlBinding.cell_action(cell))])
+	ProducerContextBinding._bindings = []
+	assert_eq(controller.producer_context(), &"fake_factory")
+
+
+# --- What the Details pane shows ----------------------------------------------------
+
+
+## A controller whose local commander owns `a_entities`, which the info panel's production
+## scope requires: another commander's queue is not the player's to read. The controller finds
+## its commander as its parent when there is no scenario, so it is given one.
+func _owned_controller(a_entities: Array) -> RTSController:
+	var commander := autofree(Commander.new()) as Commander
+	for entity: Commandable in a_entities:
+		entity.ownership.commander = commander
+	var controller: RTSController = _controller(a_entities)
+	commander.add_child(controller)
+	return controller
+
+
+## Trainable producers, so the PRODUCTION card can be entered and the context row is drawn.
+func _register_trainee() -> Dictionary:
+	FakePieces.register_tool(
+		FakePieces.tool(
+			&"fake_trainee",
+			RECRUIT,
+			[],
+			ControlBinding.ControlContext.TRAIN,
+			[&"fake_barracks", &"fake_factory"]
+		)
+	)
+	ProducerContextBinding._bindings = []
+	return {"produces": [&"fake_trainee"]}
+
+
+func test_details_show_no_production_off_the_production_card() -> void:
+	var trains: Dictionary = _register_trainee()
+	# A unit beside the barracks, because a lone producer opens straight onto its PRODUCTION
+	# card; a mixed selection rests on ACTIVE.
+	var controller: RTSController = _owned_controller(
+		[_entity(BARRACKS.merged(trains)), _entity(RECRUIT)]
+	)
+	ProducerContextBinding._bindings = []
+	assert_eq(controller.command_family, ControlBinding.CommandFamily.ACTIVE)
+	assert_eq(controller.production_detail_scope(), [])
+
+
+func test_details_show_the_chosen_contexts_producers() -> void:
+	var trains: Dictionary = _register_trainee()
+	var barracks: Commandable = _entity(BARRACKS.merged(trains))
+	var other_barracks: Commandable = _entity(BARRACKS.merged(trains))
+	var factory: Commandable = _entity(FACTORY.merged(trains))
+	var controller: RTSController = _owned_controller([barracks, factory, other_barracks])
+	controller.set_command_family(ControlBinding.CommandFamily.PRODUCTION)
+	controller.choose_producer_context(&"fake_barracks")
+	ProducerContextBinding._bindings = []
+	assert_eq(controller.production_detail_scope(), [barracks, other_barracks])
+
+
+func test_details_leave_out_another_commanders_producer() -> void:
+	var trains: Dictionary = _register_trainee()
+	var own: Commandable = _entity(BARRACKS.merged(trains))
+	var theirs: Commandable = _entity(BARRACKS.merged(trains))
+	var controller: RTSController = _owned_controller([own])
+	controller.selection.append(theirs)
+	controller.set_command_family(ControlBinding.CommandFamily.PRODUCTION)
+	ProducerContextBinding._bindings = []
+	assert_eq(controller.production_detail_scope(), [own])

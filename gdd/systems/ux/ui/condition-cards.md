@@ -14,8 +14,8 @@ it, a benefit it carries — is drawn as a card in the info panel, and every suc
 ## Which row a mechanic goes in
 
 **UBIQUITY DECIDES, not construct.** A mechanic various units across the game use is a WIDGET
-in [`InfoWidgetRow`](../../../../scripts/interface/hud/info_widget_row.gd) — a fixed row the
-player learns once, where a card's absence means "this piece has none". Something particular
+in [`InfoWidgetRow`](../../../../scripts/interface/hud/info_widget_row.gd) — a fixed grid of slots
+the player learns once, where an empty slot means "this piece has none". Something particular
 to a faction or a piece is a CARD in
 [`ConditionRow`](../../../../scripts/interface/hud/condition_row.gd), where the set changes with
 what is selected.

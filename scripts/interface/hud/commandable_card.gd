@@ -2,18 +2,19 @@ class_name CommandableCard
 extends Control
 
 ## A small card representing a commandable (a live unit or a unit being trained).
-## Renders a letter "icon" plus a stack of thin status bars along the bottom.
 ##
-## Kept intentionally flexible: the icon and each bar are addressed by a string
-## key, so future additions (energy bar, garrison count, status-effect badges,
-## and eventually a real unit sprite in place of the letter) just add another
-## keyed element without reworking the layout.
+## THE PICTURE FILLS THE CARD; TWO COLUMNS SIT OVER ITS RIGHT EDGE. The rightmost column is one
+## vertical bar filling upward — the card's main figure. The column beside it is split in two:
+## charge dials on top (ChargeDial, one per production queue, ability pool or slow weapon), a
+## garrison bar beneath. The columns cover the picture rather than squeezing it, so every card's
+## picture is the whole card. Layout and colours: gdd/systems/ux/ui/actor-cards.md.
 ##
 ## Three bind modes drive what the card shows and self-updates each frame:
-##   * bind_existing(commandable) — a live unit: red HP bar.
-##   * bind_training(producer, i)  — a queued/training unit: blue progress bar.
+##   * bind_existing(commandable) — a live unit: red HP column, its charge dials, and a green
+##     garrison bar while it holds anyone.
+##   * bind_training(producer, i)  — a queued/training unit: blue progress column.
 ##   * bind_purchase(transaction, queue) — a purchase still waiting on the commander's
-##     global production queue: amber bar showing how close the commander is to
+##     global production queue: amber column showing how close the commander is to
 ##     affording it.
 ##
 ## A live-unit card bound via bind_existing(commandable, true) is clickable and emits
@@ -43,7 +44,15 @@ signal pending_selected(transactions: Array, additive: bool, all_of_type: bool)
 signal select_requested(commandable: Commandable, additive: bool)
 
 const CARD_SIZE: Vector2 = Vector2(48, 48)
-const BAR_HEIGHT: float = 5.0
+## The column geometry, as fractions of the card's HEIGHT so a rail chip scales with it.
+const MAIN_COLUMN_FRACTION: float = 0.1
+const DIAL_FRACTION: float = 0.17
+## How much of the dial column the dials get; the garrison bar has the rest.
+const DIAL_ROW_FRACTION: float = 0.6
+## The garrison bar is narrower than the dials above it, centred in their column.
+const GARRISON_BAR_FRACTION: float = 0.5
+const COLUMN_GAP: float = 1.0
+const MIN_COLUMN_WIDTH: float = 2.0
 const ICON_FONT_SIZE: int = 22
 const CORNER_FONT_SIZE: int = 11
 ## Run counts and ring marks read as annotation, not as state, so they stay neutral —
@@ -55,6 +64,9 @@ const BADGE_COLOR: Color = Color(0.86, 0.87, 0.86)
 const DEFAULT_BACKGROUND_COLOR: Color = Color(0.1, 0.1, 0.1, 0.5)
 
 const HP_COLOR: Color = Color(0.85, 0.2, 0.2)  ## red
+## Green, the genre's garrison colour. Shares green with FUNDED_COLOR, which never meets it on
+## one card — see actor-cards.md §Colour collisions.
+const GARRISON_COLOR: Color = Color(0.3, 0.8, 0.4)
 const TRAINING_COLOR: Color = Color(0.25, 0.55, 0.95)  ## blue
 const PURCHASE_COLOR: Color = Color(0.9, 0.7, 0.2)  ## amber — saving up for it
 const FUNDED_COLOR: Color = Color(0.3, 0.8, 0.4)  ## green — paid for, waiting to start
@@ -67,9 +79,18 @@ const PENDING_SELECTED_BORDER: Color = Color(0.35, 0.9, 0.45)
 const PENDING_SELECTED_BORDER_WIDTH: float = 2.0
 
 var _background: ColorRect
+## The piece's picture (PieceIcons), drawn under the letter; empty when it has none, and then
+## the letter is what identifies the card.
+var _picture: TextureRect
 var _icon: Label
-var _bars_box: VBoxContainer
-var _bar_fills: Dictionary = {}  # key -> fill ColorRect
+## The main column (HP, or training / purchase progress) and the garrison bar: each a track
+## with a fill anchored to its bottom (see _set_vertical_fill).
+var _main_bar: Control
+var _garrison_bar: Control
+var _dial_box: VBoxContainer
+## The dials, index-aligned with what each draws: an ability pool index (int) or a Weapon.
+var _dials: Array[ChargeDial] = []
+var _dial_sources: Array = []
 ## Two corner overlays, both created lazily because most cards use neither: a BADGE in the
 ## top-right (a ×N run count, or the ring's next-up mark) and a GLYPH in the top-left (why
 ## a purchase is stuck). They are separate elements rather than one composite string
@@ -94,7 +115,7 @@ var _cancel_target: PurchaseTransaction = null
 
 ## Whether the mouse is currently over this card. Only meaningful for a training-bound
 ## card today — the rally indicator (RTSController._update_rally_indicator, via
-## InfoView.hovered_training_target) reads it to preview that specific queued unit's own
+## ProductionRail.hovered_training_target) reads it to preview that specific queued unit's own
 ## orders instead of the head-of-queue rally. Tracked here rather than with a
 ## VerboseTooltipButton-style popup because this hover means "show something in the
 ## world", not "show more text".
@@ -104,6 +125,10 @@ var _hovering: bool = false
 #region Lifecycle
 func _ready() -> void:
 	custom_minimum_size = CARD_SIZE
+	# Sized now rather than left to a parent container: a card that is never laid out (a
+	# rail chip placed by hand, a test) would otherwise be 0×0, with its columns on top of
+	# each other.
+	size = CARD_SIZE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mouse_entered.connect(func(): _hovering = true)
 	mouse_exited.connect(func(): _hovering = false)
@@ -114,6 +139,13 @@ func _ready() -> void:
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_background)
 
+	_picture = TextureRect.new()
+	_picture.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_picture)
+
 	_icon = Label.new()
 	_icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -122,16 +154,17 @@ func _ready() -> void:
 	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_icon)
 
-	# Bars hug the bottom edge and grow upward as more are added. PRESET_BOTTOM_WIDE pins the
-	# box to the bottom edge with zero height, and the default grow direction is END — so the
-	# box expanded DOWNWARD and every bar was drawn outside the card, under its bottom edge.
-	# Growing from the BEGIN edge is what the line above always claimed to do.
-	_bars_box = VBoxContainer.new()
-	_bars_box.add_theme_constant_override("separation", 1)
-	_bars_box.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_bars_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_bars_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_bars_box)
+	_main_bar = _make_vertical_bar("MainBar")
+	_main_bar.visible = false
+	_garrison_bar = _make_vertical_bar("GarrisonBar")
+	_garrison_bar.visible = false
+	_dial_box = VBoxContainer.new()
+	_dial_box.name = "Dials"
+	_dial_box.add_theme_constant_override("separation", int(COLUMN_GAP))
+	_dial_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_dial_box)
+	resized.connect(_layout)
+	_layout()
 
 
 func _process(_a_delta: float) -> void:
@@ -157,7 +190,8 @@ func bind_existing(a_commandable: Commandable, a_clickable: bool = false) -> voi
 	if a_clickable:
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	set_icon(_letter(a_commandable.scene_file_path))
+	_show_piece(a_commandable.id, _letter(a_commandable.scene_file_path))
+	_build_dials(a_commandable)
 	_refresh_existing()
 
 
@@ -175,12 +209,10 @@ func bind_training(a_producer: Commandable, a_job_index: int) -> void:
 	if a_producer.production != null and a_job_index < a_producer.production.job_count():
 		# A RESEARCH job has no scene — nothing is spawned — so it is lettered by its id.
 		var scene: PackedScene = a_producer.production.job_scene(a_job_index)
-		set_icon(
-			(
-				_letter(scene.resource_path)
-				if scene != null
-				else _first_letter(String(a_producer.production.job_type(a_job_index)))
-			)
+		var job_type: Variant = a_producer.production.job_type(a_job_index)
+		var job_id: StringName = StringName(job_type) if job_type != null else &""
+		_show_piece(
+			job_id, _letter(scene.resource_path) if scene != null else _first_letter(String(job_id))
 		)
 	_refresh_training()
 
@@ -217,10 +249,14 @@ func bind_purchase(a_transaction: PurchaseTransaction, a_queue: ProductionQueue)
 	# because it is what the other two bind modes have to work from. A purchase whose tool
 	# carries no scene used to fall through and draw a BLANK chip, which is worse than a
 	# wrong letter — an unlabelled card says nothing at all.
-	if a_transaction.tool != null and a_transaction.tool.packed_scene != null:
-		set_icon(_letter(a_transaction.tool.packed_scene.resource_path))
-	else:
-		set_icon(_first_letter(String(a_transaction.type)))
+	_show_piece(
+		a_transaction.type,
+		(
+			_letter(a_transaction.tool.packed_scene.resource_path)
+			if a_transaction.tool != null and a_transaction.tool.packed_scene != null
+			else _first_letter(String(a_transaction.type))
+		)
+	)
 	_cancel_target = a_transaction
 	_refresh_purchase()
 
@@ -270,11 +306,12 @@ func set_glyph(a_text: String, a_color: Color) -> void:
 
 func _add_corner_label(a_alignment: HorizontalAlignment) -> Label:
 	var label := Label.new()
-	label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	label.horizontal_alignment = a_alignment
 	label.add_theme_font_size_override("font_size", CORNER_FONT_SIZE)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(label)
+	# Over the PICTURE, not the full card: a badge across the columns would sit on the HP bar.
+	_place(label, Rect2(Vector2.ZERO, Vector2(label_rect().size.x, label.get_minimum_size().y)))
 	return label
 
 
@@ -294,6 +331,28 @@ func set_card_size(a_size: Vector2) -> void:
 	size = a_size
 	if _icon != null:
 		_icon.add_theme_font_size_override("font_size", roundi(a_size.y * 0.46))
+	_layout()
+
+
+## How many charge dials fit on a card `a_height` tall — the cap the spec importer warns
+## past. Derived from the column geometry rather than set, so it follows any change to it.
+static func dial_capacity(a_height: float) -> int:
+	var dial: float = roundf(a_height * DIAL_FRACTION)
+	var row: float = roundf(a_height * DIAL_ROW_FRACTION)
+	return int((row + COLUMN_GAP) / (dial + COLUMN_GAP)) if dial > 0.0 else 0
+
+
+## How wide the two columns are together, gaps included, on a card `a_height` tall — what a
+## staggered row leaves showing of each card behind the first (StaggeredCardRow).
+static func column_strip_width(a_height: float) -> float:
+	var main_width: float = maxf(MIN_COLUMN_WIDTH, roundf(a_height * MAIN_COLUMN_FRACTION))
+	return main_width + roundf(a_height * DIAL_FRACTION) + 2.0 * COLUMN_GAP
+
+
+## The rect the letter and the corner labels keep to: everything left of the two columns, so
+## text is never drawn under a bar. The PICTURE is not held to it — it fills the card.
+func label_rect() -> Rect2:
+	return Rect2(Vector2.ZERO, Vector2(maxf(0.0, size.x - column_strip_width(size.y)), size.y))
 
 
 ## Left click handling. A training card cancels its job; a clickable live-unit card
@@ -445,27 +504,47 @@ func training_job_index() -> int:
 
 
 #region Display API
-## Sets the icon text (for now, the capitalized first letter of a scene name).
+## Sets the icon text, the capitalized first letter of a scene name — what a card shows for a
+## piece with no picture (see _show_piece).
 func set_icon(a_text: String) -> void:
 	if _icon != null:
 		_icon.text = a_text
 
 
-## Creates or updates a bottom bar identified by `key`, filled to `ratio` (0..1).
-func set_bar(a_key: String, a_ratio: float, a_color: Color) -> void:
-	var fill: ColorRect = _bar_fills.get(a_key)
-	if fill == null:
-		fill = _add_bar(a_key)
-	fill.color = a_color
-	fill.anchor_right = clampf(a_ratio, 0.0, 1.0)
+## Draw piece `a_id` as its picture, or as `a_fallback_letter` when no picture has been made
+## for it (a research job, a piece whose icon slot is unfilled).
+func _show_piece(a_id: StringName, a_fallback_letter: String) -> void:
+	var picture: Texture2D = PieceIcons.for_id(a_id)
+	if _picture != null:
+		_picture.texture = picture
+	set_icon("" if picture != null else a_fallback_letter)
 
 
-## Removes a previously-added bar.
-func remove_bar(a_key: String) -> void:
-	var fill: ColorRect = _bar_fills.get(a_key)
-	if fill != null:
-		fill.get_parent().queue_free()
-		_bar_fills.erase(a_key)
+## Fill the main (rightmost) column to `ratio` (0..1), upward, in `a_color`.
+func set_main_bar(a_ratio: float, a_color: Color) -> void:
+	_main_bar.visible = true
+	_set_vertical_fill(_main_bar, a_ratio, a_color)
+
+
+## How full the main column is drawn, for a test asking what the card says.
+func main_bar_ratio() -> float:
+	return _fill_ratio(_main_bar) if _main_bar.visible else 0.0
+
+
+## How full the garrison bar is drawn, or -1.0 while it is hidden.
+func garrison_ratio() -> float:
+	if not _garrison_bar.visible:
+		return -1.0
+	return _fill_ratio(_garrison_bar)
+
+
+static func _fill_ratio(a_bar: Control) -> float:
+	var fill: Node = a_bar.get_node("Fill")
+	return float(fill.get_meta(&"ratio")) if fill.has_meta(&"ratio") else 0.0
+
+
+func dial_count() -> int:
+	return _dials.size()
 
 
 #endregion
@@ -479,7 +558,68 @@ func _refresh_existing() -> void:
 	# null depending on how the entity entered the tree.
 	var defense: Defense = _commandable.get_node_or_null("Defense") as Defense
 	if defense != null and defense.hp_max > 0.0:
-		set_bar("hp", defense.hp / defense.hp_max, HP_COLOR)
+		set_main_bar(defense.hp / defense.hp_max, HP_COLOR)
+	# The garrison bar is there only while someone is inside: an empty host's bar would be a
+	# second empty column saying nothing.
+	var garrison: Garrison = _commandable.get_node_or_null("Garrison") as Garrison
+	var held: int = garrison.occupied_size() if garrison != null else 0
+	_garrison_bar.visible = held > 0 and garrison.capacity > 0
+	if _garrison_bar.visible:
+		_set_vertical_fill(_garrison_bar, float(held) / float(garrison.capacity), GARRISON_COLOR)
+	var abilities: Abilities = _commandable.get_node_or_null("Abilities") as Abilities
+	for i: int in _dials.size():
+		var source: Variant = _dial_sources[i]
+		if source is Production and is_instance_valid(source):
+			_dials[i].show_state(ChargeDial.production_state(source as Production))
+		elif source is int and abilities != null:
+			_dials[i].show_state(ChargeDial.pool_state(abilities, source as int))
+		elif source is Weapon and is_instance_valid(source):
+			_dials[i].show_state(ChargeDial.weapon_state(source as Weapon))
+
+
+## One dial for a producer's queue, then one per ability pool that has something to cast, then
+## one per slow weapon. A card that cannot fit them all reports it and draws the first that
+## fit — the importer warns about the same piece before it ever gets here.
+func _build_dials(a_commandable: Commandable) -> void:
+	for dial: ChargeDial in _dials:
+		dial.queue_free()
+	_dials.clear()
+	var sources: Array = []
+	if a_commandable.production != null:
+		sources.append(a_commandable.production)
+	var abilities: Abilities = a_commandable.get_node_or_null("Abilities") as Abilities
+	if abilities != null:
+		for i: int in abilities.pool_count():
+			if _pool_has_cast(abilities, i):
+				sources.append(i)
+	sources.append_array(ChargeDial.dial_weapons(a_commandable))
+	var capacity: int = dial_capacity(custom_minimum_size.y)
+	if sources.size() > capacity:
+		push_error(
+			(
+				"CommandableCard: %s needs %d charge dials, a card fits %d; drawing the first %d"
+				% [a_commandable.id, sources.size(), capacity, capacity]
+			)
+		)
+		sources.resize(capacity)
+	_dial_sources = sources
+	for _source: Variant in sources:
+		var dial := ChargeDial.new()
+		dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_dial_box.add_child(dial)
+		_dials.append(dial)
+	_layout()
+
+
+## Whether pool `a_index` grants anything that is CAST. A pool of passives (a Warlord's
+## Retinue, a Compound's Work Detail) is never spent, so a dial for it would only ever be full.
+static func _pool_has_cast(a_abilities: Abilities, a_index: int) -> bool:
+	var grants: Array = a_abilities.groups[a_index].get("grants", [])
+	return grants.any(
+		func(id: Variant) -> bool:
+			var ability: StringName = StringName(id)
+			return not AbilityCatalog.has(ability) or not AbilityCatalog.is_passive(ability)
+	)
 
 
 func _refresh_training() -> void:
@@ -488,7 +628,7 @@ func _refresh_training() -> void:
 	# Guard: the queue may have shrunk (unit finished) before our owner rebuilds.
 	if _job_index >= _producer.production.job_count():
 		return
-	set_bar("training", _producer.production.job_progress(_job_index), TRAINING_COLOR)
+	set_main_bar(_producer.production.job_progress(_job_index), TRAINING_COLOR)
 
 
 ## Fill fraction is how much of the price the commander has banked, so a queued purchase
@@ -498,7 +638,7 @@ func _refresh_purchase() -> void:
 	if _transaction == null or _transaction.commander == null:
 		return
 	if _transaction.is_funded():
-		set_bar("purchase", 1.0, FUNDED_COLOR)
+		set_main_bar(1.0, FUNDED_COLOR)
 		return
 	var cost: int = maxi(_transaction.energy_cost, _transaction.dominion_cost)
 	var banked: int = (
@@ -506,33 +646,82 @@ func _refresh_purchase() -> void:
 		if _transaction.energy_cost > 0
 		else _transaction.commander.dominion
 	)
-	set_bar("purchase", 1.0 if cost <= 0 else float(banked) / float(cost), PURCHASE_COLOR)
+	set_main_bar(1.0 if cost <= 0 else float(banked) / float(cost), PURCHASE_COLOR)
 
 
-## Adds an empty bar row for `key` and returns its fill ColorRect.
-func _add_bar(a_key: String) -> ColorRect:
-	var row := Control.new()
-	row.custom_minimum_size = Vector2(0, BAR_HEIGHT)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var bg := ColorRect.new()
-	bg.color = BAR_BG_COLOR
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(bg)
-
+## A vertical bar: a dark track with a fill that grows UP from the bottom (see
+## _set_vertical_fill). Placed by _layout, so it carries no geometry of its own.
+func _make_vertical_bar(a_name: String) -> Control:
+	var bar := Control.new()
+	bar.name = a_name
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var track := ColorRect.new()
+	track.color = BAR_BG_COLOR
+	track.set_anchors_preset(Control.PRESET_FULL_RECT)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(track)
 	var fill := ColorRect.new()
-	# Left-anchored; anchor_right is the fill fraction so the bar scales with width.
-	fill.anchor_left = 0.0
-	fill.anchor_top = 0.0
-	fill.anchor_bottom = 1.0
-	fill.anchor_right = 0.0
+	fill.name = "Fill"
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(fill)
+	bar.add_child(fill)
+	add_child(bar)
+	return bar
 
-	_bars_box.add_child(row)
-	_bar_fills[a_key] = fill
-	return fill
+
+## Fill `a_bar` to `a_ratio` from the bottom. Placed in WHOLE PIXELS with the bottom edge pinned
+## to the bar's: a fill anchored at a fractional height left a sliver of track showing under it,
+## and a bar a pixel off its figure is invisible where one gapped at the bottom is not. Placed
+## from the bar's current size every call, so a resize is followed on the next refresh.
+static func _set_vertical_fill(a_bar: Control, a_ratio: float, a_color: Color) -> void:
+	var fill := a_bar.get_node("Fill") as ColorRect
+	var ratio: float = clampf(a_ratio, 0.0, 1.0)
+	var height: float = roundf(a_bar.size.y * ratio)
+	fill.color = a_color
+	fill.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	fill.position = Vector2(0.0, a_bar.size.y - height)
+	fill.size = Vector2(a_bar.size.x, height)
+	# The figure as given, for a readout that wants it rather than the rounded pixels.
+	fill.set_meta(&"ratio", ratio)
+
+
+## Place the picture and the two right-hand columns for the card's current size. Positions
+## are set rather than left to containers because the columns are fractions of the HEIGHT
+## while the picture takes whatever WIDTH is left, which no single container expresses.
+func _layout() -> void:
+	if _main_bar == null:
+		return
+	var height: float = size.y
+	var main_width: float = maxf(MIN_COLUMN_WIDTH, roundf(height * MAIN_COLUMN_FRACTION))
+	var dial: float = roundf(height * DIAL_FRACTION)
+	var dial_row: float = roundf(height * DIAL_ROW_FRACTION)
+	var main_x: float = size.x - main_width
+	var dial_x: float = main_x - COLUMN_GAP - dial
+	_place(_main_bar, Rect2(main_x, 0.0, main_width, height))
+	_place(_dial_box, Rect2(dial_x, 0.0, dial, dial_row))
+	var garrison_width: float = maxf(MIN_COLUMN_WIDTH, roundf(dial * GARRISON_BAR_FRACTION))
+	_place(
+		_garrison_bar,
+		Rect2(
+			dial_x + (dial - garrison_width) / 2.0,
+			dial_row + COLUMN_GAP,
+			garrison_width,
+			maxf(0.0, height - dial_row - COLUMN_GAP)
+		)
+	)
+	for d: ChargeDial in _dials:
+		d.custom_minimum_size = Vector2(dial, dial)
+	_place(_picture, Rect2(Vector2.ZERO, size))
+	var text: Rect2 = label_rect()
+	_place(_icon, text)
+	for label: Label in [_badge, _glyph]:
+		if label != null:
+			_place(label, Rect2(text.position, Vector2(text.size.x, label.size.y)))
+
+
+static func _place(a_node: Control, a_rect: Rect2) -> void:
+	a_node.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	a_node.position = a_rect.position
+	a_node.size = a_rect.size
 
 
 ## Capitalized first letter of a scene's file name, e.g. ".../warlord.tscn" -> "W".

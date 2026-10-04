@@ -1,10 +1,17 @@
 class_name InfoWidgetRow
-extends HFlowContainer
+extends VBoxContainer
 
-## WHAT ONE SELECTED PIECE IS, as a row of small figures: its name, its hit points, what its
-## gun does, how fast it moves, how far it sees. Drawn only for a SINGLE selection — a mixed
-## group has no single answer to any of these, and averaging them would invent a unit that is
-## not on the field.
+## WHAT ONE SELECTED PIECE IS, as a block of small figures: its name, its hit points, what its
+## gun does, how fast it moves, how far it sees, what it holds, what it is building. Drawn only
+## for a SINGLE selection — a mixed group has no single answer to any of these, and averaging
+## them would invent a unit that is not on the field.
+##
+## **THE BLOCK IS A FIXED GRID OF SLOTS, sized for the piece that has everything.** Name and
+## hit points each take a full row, in that order; every other widget has a slot in a
+## two-column grid beneath them (SLOT_ROWS). A piece without a property leaves its slot EMPTY
+## rather than letting its neighbours grow into it, so a widget is in the same place on every
+## piece and the eye learns where to look once. The rows share the block's height, so with
+## every slot filled the block fills the panel's Summary column.
 ##
 ## THE ROW IS THE SHALLOW TIER AND THE TOOLTIP IS THE DEEP ONE, which is the same two-tier
 ## idiom the rest of the HUD uses (`ui_verbose`, the economy stack's held rows, the command
@@ -17,6 +24,8 @@ extends HFlowContainer
 ##   weapon    damage type               -> rate of fire, reload    -> what the numbers mean
 ##   movement  speed                     -> speed, mode, size class -> what the size class DOES
 ##   vision    vision & detection reach  -> (nothing)               -> (nothing)
+##   garrison  occupancy / capacity      -> who it admits           -> capacity, bunkers
+##   producing what it builds (+eligible)  -> (one line)              -> why the queue is global
 ##
 ## **THIS ROW IS FOR THE UBIQUITOUS, and the conditions row below is for the specific.** A
 ## mechanic various units across the game use — hit points, a gun, movement, sight, a
@@ -25,9 +34,9 @@ extends HFlowContainer
 ## deciding where a new mechanic goes; see gdd/systems/ux/ui/condition-cards.md §Which row.
 ##
 ## **A WIDGET THAT DOES NOT APPLY IS NOT DRAWN.** A structure has no movement speed and a
-## worker has no weapon, and a card reading "movement: —" teaches the player that the row is
+## worker has no weapon, and a card reading "movement: —" teaches the player that the block is
 ## full of blanks rather than that this piece is stationary. What is on screen is what the
-## piece has.
+## piece has; its slot is simply left empty.
 ##
 ## The vision widget has no tooltip on purpose. Two numbers that are already both on the
 ## face have nothing left to say in a sentence — what a player actually wants from them is
@@ -39,23 +48,20 @@ extends HFlowContainer
 ## single "stats" blob would have nothing for the pointer to ask.
 
 #region Constants
-const WIDGET_HEIGHT: float = 30.0
-const WIDGET_MIN_WIDTH: float = 44.0
-const LABEL_FONT_SIZE: int = 12
-const CAPTION_FONT_SIZE: int = 8
+## Every widget key, as the full-width rows and then the two-column grid draw them. An empty
+## key is a slot nothing occupies — the grid's last row has one widget to place.
+const FULL_ROWS: Array[String] = ["name", "hp"]
+const SLOT_ROWS: Array = [["weapon", "speed"], ["sight", "hold"], ["production", ""]]
+
+## The floor under a row; the rows otherwise share whatever height the block is given.
+const WIDGET_HEIGHT: float = 20.0
+const NAME_FONT_SIZE: int = 15
+const LABEL_FONT_SIZE: int = 13
+const CAPTION_FONT_SIZE: int = 10
+## Room between a slot's caption and its value, and around them inside the widget.
+const WIDGET_PADDING: int = 6
 const TEXT_COLOR: Color = Color(0.88, 0.89, 0.88)
 const CAPTION_COLOR: Color = Color(0.60, 0.63, 0.59)
-
-## Two widgets carry WORDS rather than a number and need the room for them: the piece's
-## title, and the weapon's damage type ("high explosive" is the longest). Everything else is
-## a figure of a few characters and takes the default.
-const NAME_MIN_WIDTH: float = 108.0
-const WORD_MIN_WIDTH: float = 84.0
-## A PAIR of figures — "160/160", "3/6" — needs more room than a single one, or it clips its
-## own tail inside the cell.
-const PAIR_MIN_WIDTH: float = 62.0
-## Wide enough for a damage-per-second figure beside the longest damage type's name.
-const WEAPON_MIN_WIDTH: float = 136.0
 
 ## WHAT A PROPERTY MEANS, as against what this piece's value of it is. Game-wide copy, so it
 ## is written here once rather than per piece — a doc key repeating "armour resists damage
@@ -93,6 +99,14 @@ const DETECTION_NOTES: String = (
 	+ "STEALTHED enemy can be picked out at all.\n"
 	+ "A piece with no detection sweep sees a hidden unit not at all, however close it "
 	+ "stands — which is why a detector in a group is worth more than its own statline."
+)
+
+## "One structure builds one thing at a time" is a surprising rule for anyone arriving from
+## another RTS, and the bracketed count is what separates an idle building from a busy one.
+const PRODUCTION_NOTES: String = (
+	"ONE STRUCTURE BUILDS ONE THING AT A TIME. The commander's purchases wait in one global "
+	+ "queue, and the bracketed count is how many of them COULD be made here — eligible here, "
+	+ "not owned by it: another producer may take them first."
 )
 
 const MOVEMENT_NOTES: String = (
@@ -139,6 +153,20 @@ func update(a_selection: Array) -> void:
 		_refresh_values(piece)
 
 
+## The widget drawn for `a_key` (a FULL_ROWS or SLOT_ROWS key), or null when the selected
+## piece has none — its slot is empty.
+func widget_for(a_key: String) -> VerboseTooltipButton:
+	return find_child("Widget_%s" % a_key.capitalize(), true, false) as VerboseTooltipButton
+
+
+## Every widget currently drawn, in slot order.
+func widgets() -> Array[VerboseTooltipButton]:
+	var out: Array[VerboseTooltipButton] = []
+	for node: Node in find_children("Widget_*", "VerboseTooltipButton", true, false):
+		out.append(node as VerboseTooltipButton)
+	return out
+
+
 #endregion
 
 
@@ -152,28 +180,19 @@ func _rebuild(a_piece: Commandable) -> void:
 		child.queue_free()
 	if a_piece == null:
 		return
+	_build_slots()
 
 	_add_widget(
-		"name",
-		_piece_title(a_piece),
-		a_piece.resolved_description(),
-		a_piece.resolved_verbose(),
-		NAME_MIN_WIDTH
+		"name", _piece_title(a_piece), a_piece.resolved_description(), a_piece.resolved_verbose()
 	)
 
 	if a_piece.defense != null:
-		_add_widget("hp", "", _defense_tooltip(a_piece), DEFENSE_NOTES, PAIR_MIN_WIDTH)
+		_add_widget("hp", "", _defense_tooltip(a_piece), DEFENSE_NOTES)
 
 	var weapon: Weapon = EntityRanges.first_weapon(a_piece)
 	if weapon != null:
 		(
-			_add_widget(
-				"weapon",
-				_weapon_value(weapon),
-				_weapon_tooltip(weapon),
-				WEAPON_NOTES,
-				WEAPON_MIN_WIDTH
-			)
+			_add_widget("weapon", _weapon_value(weapon), _weapon_tooltip(weapon), WEAPON_NOTES)
 			. set_meta(&"range_kinds", EntityRanges.WEAPON_KINDS)
 		)
 
@@ -196,7 +215,6 @@ func _rebuild(a_piece: Commandable) -> void:
 					else "How far this piece sees. It cannot pick out a hidden enemy."
 				),
 				DETECTION_NOTES,
-				WIDGET_MIN_WIDTH,
 				"sight · detect" if detects else "sight"
 			)
 			. set_meta(&"range_kinds", EntityRanges.VISION_KINDS)
@@ -212,11 +230,50 @@ func _rebuild(a_piece: Commandable) -> void:
 				"",
 				_garrison_tooltip(garrison),
 				GARRISON_NOTES,
-				PAIR_MIN_WIDTH,
 				"bunker" if garrison.bunker else "hold"
 			)
 			. set_meta(&"range_kinds", EntityRanges.WEAPON_KINDS if garrison.bunker else [])
 		)
+
+	if a_piece.production != null:
+		_add_widget(
+			"production",
+			"",
+			"What this structure is building now, and how many queued purchases could land here.",
+			PRODUCTION_NOTES
+		)
+
+
+## The empty skeleton every piece shares: a slot per widget key, laid out as FULL_ROWS and
+## SLOT_ROWS say. Rows expand to share the block's height; slots in a row share its width, so
+## a slot's size never depends on which other slots are filled.
+func _build_slots() -> void:
+	for key: String in FULL_ROWS:
+		var slot: Control = _make_slot(key)
+		slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		add_child(slot)
+	for pair: Array in SLOT_ROWS:
+		var row := HBoxContainer.new()
+		row.name = "Row_%d" % get_child_count()
+		row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_theme_constant_override("separation", get_theme_constant("separation"))
+		for key: String in pair:
+			row.add_child(_make_slot(key))
+		add_child(row)
+
+
+static func _make_slot(a_key: String) -> Control:
+	var slot := Control.new()
+	slot.name = _slot_name(a_key)
+	slot.custom_minimum_size = Vector2(0.0, WIDGET_HEIGHT)
+	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return slot
+
+
+static func _slot_name(a_key: String) -> String:
+	return "Slot_%s" % a_key.capitalize() if not a_key.is_empty() else "Slot_Empty"
 
 
 func _ensure_popup() -> void:
@@ -229,50 +286,59 @@ func _ensure_popup() -> void:
 	tree_exiting.connect(func() -> void: _popup.queue_free())
 
 
-## One widget: a caption naming the topic and the figure under it.
+## One widget, placed in its key's slot: a caption naming the topic on the left and the figure
+## on the right. The name widget has no caption — the title is its own label.
 ##
 ## A VerboseTooltipButton because that IS the project's tooltip system — every hoverable HUD
 ## element goes through it — even though these are not pressable. The plain pointer says so.
-## `a_key` names the widget (and so what `_set_value` writes to); `a_caption` is what the
-## player reads above the figure. Two arguments rather than one because a caption may VARY
-## with the piece — the sight widget says "sight" or "sight · detect" depending on whether
+## `a_key` names the widget (and so its slot, and what `_set_value` writes to); `a_caption` is
+## what the player reads beside the figure. Two arguments rather than one because a caption may
+## VARY with the piece — the sight widget says "sight" or "sight · detect" depending on whether
 ## there is a detection sweep to report — while the key must not, or the live refresh would
 ## lose track of its own label.
 func _add_widget(
-	a_key: String,
-	a_value: String,
-	a_tooltip: String,
-	a_verbose: String,
-	a_min_width: float = WIDGET_MIN_WIDTH,
-	a_caption: String = ""
+	a_key: String, a_value: String, a_tooltip: String, a_verbose: String, a_caption: String = ""
 ) -> VerboseTooltipButton:
 	var widget := VerboseTooltipButton.new()
 	widget.name = "Widget_%s" % a_key.capitalize()
-	widget.custom_minimum_size = Vector2(a_min_width, WIDGET_HEIGHT)
+	widget.set_anchors_preset(Control.PRESET_FULL_RECT)
 	widget.focus_mode = Control.FOCUS_NONE
 	widget.mouse_default_cursor_shape = Control.CURSOR_ARROW
 	widget.simple_tooltip = a_tooltip
 	widget.verbose_tooltip = a_verbose
 
-	var box := VBoxContainer.new()
+	var box := HBoxContainer.new()
 	box.name = "Box"
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.add_theme_constant_override("separation", 0)
+	box.offset_left = WIDGET_PADDING
+	box.offset_right = -WIDGET_PADDING
+	box.add_theme_constant_override("separation", WIDGET_PADDING)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(
-		_make_label(
+	var is_name: bool = a_key == "name"
+	if not is_name:
+		var caption: Label = _make_label(
 			a_caption if not a_caption.is_empty() else a_key, CAPTION_FONT_SIZE, CAPTION_COLOR
 		)
+		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		# The caption keeps its whole width — a clipped label reports none, and would vanish —
+		# so it is the VALUE that gives way in a narrow slot.
+		caption.clip_text = false
+		box.add_child(caption)
+	var value_label: Label = _make_label(
+		a_value, NAME_FONT_SIZE if is_name else LABEL_FONT_SIZE, TEXT_COLOR
 	)
-	var value_label: Label = _make_label(a_value, LABEL_FONT_SIZE, TEXT_COLOR)
 	value_label.name = "Value"
+	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value_label.horizontal_alignment = (
+		HORIZONTAL_ALIGNMENT_LEFT if is_name else HORIZONTAL_ALIGNMENT_RIGHT
+	)
 	box.add_child(value_label)
 	widget.add_child(box)
 
 	widget.mouse_entered.connect(_on_widget_entered.bind(widget))
 	widget.pressed.connect(func() -> void: _popup.toggle(StringName(a_key), _piece, widget))
 	widget.mouse_exited.connect(func() -> void: ranges_unhovered.emit())
-	add_child(widget)
+	find_child(_slot_name(a_key), true, false).add_child(widget)
 	return widget
 
 
@@ -281,7 +347,8 @@ static func _make_label(a_text: String, a_size: int, a_color: Color) -> Label:
 	label.text = a_text
 	label.add_theme_font_size_override("font_size", a_size)
 	label.add_theme_color_override("font_color", a_color)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size_flags_vertical = Control.SIZE_FILL
 	# CLIPPED, not wrapped and not overflowing. A widget is one line tall by construction, so
 	# a value longer than its cell has to lose its tail inside the cell rather than run across
 	# the neighbour — which is what an unclipped Label does, and it reads as a layout bug.
@@ -308,6 +375,8 @@ func _refresh_values(a_piece: Commandable) -> void:
 	var garrison: Garrison = a_piece.get_node_or_null("Garrison") as Garrison
 	if garrison != null:
 		_set_value("hold", "%d/%d" % [garrison.occupied_size(), garrison.capacity])
+	if a_piece.production != null:
+		_set_value("production", _production_value(a_piece))
 	_refresh_weapon_state(a_piece)
 
 
@@ -320,7 +389,7 @@ func _refresh_values(a_piece: Commandable) -> void:
 ## fraction of a second at a time, and blinking the widget at its rate of fire would be noise
 ## rather than information.
 func _refresh_weapon_state(a_piece: Commandable) -> void:
-	var widget := get_node_or_null("Widget_Weapon") as Control
+	var widget: Control = widget_for("weapon")
 	if widget == null:
 		return
 	var weapon: Weapon = EntityRanges.first_weapon(a_piece)
@@ -340,10 +409,10 @@ static func _weapon_can_run_dry(a_weapon: Weapon) -> bool:
 
 ## Write a widget's figure in place. A no-op for a widget this piece never got, so a caller
 ## need not repeat the applicability test the rebuild already made.
-func _set_value(a_caption: String, a_text: String) -> void:
-	var label := get_node_or_null("Widget_%s/Box/Value" % a_caption.capitalize()) as Label
-	if label != null:
-		label.text = a_text
+func _set_value(a_key: String, a_text: String) -> void:
+	var widget: VerboseTooltipButton = widget_for(a_key)
+	if widget != null:
+		(widget.get_node("Box/Value") as Label).text = a_text
 
 
 #endregion
@@ -418,6 +487,22 @@ static func _movement_tooltip(a_movement: Movement) -> String:
 
 
 ## What a host is holding, and whether it fires what it holds.
+## What a producer is building — "idle", or the piece's name — and, bracketed, how many of the
+## commander's queued purchases could land here.
+static func _production_value(a_piece: Commandable) -> String:
+	var production: Production = a_piece.production
+	var value: String = "idle"
+	if production.job_count() > 0:
+		var job: Variant = production.job_type(0)
+		var tool: Tool = Tool.for_id(StringName(job)) if job != null else null
+		value = tool.label if tool != null else (String(job) if job != null else "building")
+	var commander: Commander = a_piece.commander
+	var waiting: int = (
+		commander.production_queue.pending_count_for(a_piece) if commander != null else 0
+	)
+	return "%s (+%d)" % [value, waiting] if waiting > 0 else value
+
+
 static func _garrison_tooltip(a_garrison: Garrison) -> String:
 	var parts: Array[String] = [
 		"holding %d of %d" % [a_garrison.occupied_size(), a_garrison.capacity],

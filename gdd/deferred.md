@@ -74,6 +74,11 @@ These need an answer before anything can be built on them.
 | 1.65 | **Cliffs: what is left.** Built 2026-10-02 (thin cuts realised as cliffs in pass 6). Open: a cliff reads as a rocky strip rather than a face; a grown mass's face is not built; two `test_MapElevation` seeds pending; incremental relabel PLANNED after it. | [terrain-and-navigation/map-generation](systems/terrain-and-navigation/map-generation.md) §6, Cliffs | |
 | 1.66 | **What defines projectile evasion?** The vocabulary is written (engagement frame, evasion modes, hit rate as the measure); open: the evasion envelope per class pair, outpacing by range rather than speed, the close-range window as a claim, whether mid-range jukes are a band at all, hover evasion, launch readability, and whether the AI jukes. | [combat/projectile-evasion](systems/combat/projectile-evasion.md) §Open questions | |
 | 1.67 | **Is the damage-multiplier table tunable in debug?** It is a library many pieces read, shown in the verbose weapon popup, but authored as TSV rather than as a doc, so tuning it means Save writing TSV. | [ux/ui/debug-tuning](systems/ux/ui/debug-tuning.md) §What can be tuned | |
+| 1.68 | **What do real piece icons look like?** Every unit and structure wears a stock-photo placeholder (an animal / a tree); no style for real icon art is decided. | [ux/ui/piece-icons](systems/ux/ui/piece-icons.md) §The placeholders | |
+| 1.69 | **Does research get a picture?** An upgrade's build button has no piece behind it, so no icon slot, and keeps its text. | [ux/ui/piece-icons](systems/ux/ui/piece-icons.md) §The placeholders | |
+| 1.70 | **Card HP: flat red, or the world bar's green→red ramp?** The same figure has two looks. | [ux/ui/actor-cards](systems/ux/ui/actor-cards.md) §The colour vocabulary | |
+| 1.71 | **Green is both "garrison" and "funded purchase" on cards.** Never on one card today. | [ux/ui/actor-cards](systems/ux/ui/actor-cards.md) §Colour collisions | |
+| 1.72 | **Does the global production readout show what is being made now?** Built with a producing column; asked for only in Details. | [ux/ui/hud-layout](systems/ux/ui/hud-layout.md) §Production | |
 
 ---
 

@@ -129,7 +129,11 @@ signal command_issued(entity: Entity, command_type: Script)
 ## The four PERSISTENT panels — visible in every selection state, because each answers a
 ## question you can ask with nothing selected. Optional (get_node_or_null) so a session
 ## running without the full HUD rig still works.
-@onready var _production_rail: ProductionRail = get_node_or_null("ProductionRail") as ProductionRail
+## Inside a slot the size of the info panel's rect: the rail sizes itself to its contents and
+## sits at the slot's bottom centre, and the slot itself never blocks a click.
+@onready var _production_rail: ProductionRail = (
+	get_node_or_null("ProductionSlot/ProductionRail") as ProductionRail
+)
 ## The three persistent resource bars — see gdd/systems/ux/ui/economy-bars.md. Optional like
 ## every other panel here, for the same reason.
 @onready var _dominion_bar: DominionBar = get_node_or_null("DominionBar") as DominionBar
@@ -470,7 +474,6 @@ func _ready():
 		_info_view.select_only_requested.connect(select_only)
 		_info_view.deselect_requested.connect(remove_from_selection)
 		_info_view.add_to_selection_requested.connect(add_to_selection)
-		_info_view.select_pending_requested.connect(select_pending)
 		_info_view.ranges_hovered.connect(_on_ranges_hovered)
 		_info_view.ranges_unhovered.connect(_on_ranges_unhovered)
 		_info_view.controller = self
@@ -634,11 +637,9 @@ func _process(a_delta: float) -> void:
 	_update_waypoint_display()
 	_update_rally_indicator()
 	_refresh_button_availability()
-	_info_view.update(selection, _commander())
+	_info_view.update(selection, _commander(), production_detail_scope())
 	_update_range_display()
 	_update_selection_owned_panels()
-	if _production_rail != null:
-		_production_rail.update(selection)
 	_update_producer_affinity()
 
 
@@ -2109,14 +2110,13 @@ func _take_purchase_standing() -> bool:
 	return standing
 
 
-## Show the selection-owned panels only while something IS selected, and the selectors only
-## while nothing is.
+## Show the selection-owned panels only while something IS selected, and the selectors and
+## the global production readout only while nothing is.
 ##
-## The rule the whole HUD split follows: an element is PERSISTENT iff it answers a question
-## you can ask with nothing selected. The info panel's cards and the command grid both
-## describe a selection, so with none they have nothing to say and are better gone than
-## empty — the queue readout and the selectors that used to squat in that state now have
-## permanent homes of their own (ProductionRail, SelectorPanel).
+## The info panel's cards and the command grid both describe a selection, so with none they
+## have nothing to say and are better gone than empty. The global production readout takes the
+## info panel's slot in that state: the two are mutually exclusive, so the centre of the screen
+## is either what you are holding or what you have committed to (hud-layout.md §Production).
 ##
 ## `visible` is what the blocking-UI test reads (see _pointer_over_blocking_ui), so hiding
 ## these also stops them swallowing world clicks over what is now empty screen.
@@ -2132,6 +2132,8 @@ func _update_selection_owned_panels() -> void:
 	)
 	if _selector_panel != null:
 		_selector_panel.visible = not has_selection
+	if _production_rail != null:
+		_production_rail.is_active = not has_selection
 
 
 # --- Category predicates (a Commandable satisfies the category) ---------------
@@ -2822,7 +2824,15 @@ func _dispatch_command_hotkey(a_command_actions: Array) -> void:
 		if cell.x < 0:
 			continue
 		var command_name: String = visible_command_in_cell(cell)
-		if command_name != "" and _command_is_available(command_name):
+		if command_name == "":
+			continue
+		# A key runs what its cell's BUTTON would, by the same route as the click — so a cell
+		# whose button is not an order (a producer's context button) works from its key too,
+		# rather than being dropped by the order-availability gate below.
+		if command_name.begins_with(ProducerContextBinding.PREFIX):
+			_on_control_button_pressed(command_name)
+			return
+		if _command_is_available(command_name):
 			process_command(command_name)
 			return
 
@@ -4108,6 +4118,32 @@ func _narrow_to_producer_context(a_names: Array) -> Array:
 	)
 
 
+## The selected producers whose production the info panel's Details pane shows: the ones of the
+## current producer context while the card is on its PRODUCTION page, and none otherwise —
+## which is what keeps production out of Details off that page. Every selected producer when
+## the context row is not being drawn, matching _narrow_to_producer_context. Only the local
+## player's own: an enemy's queue is not theirs to read.
+func production_detail_scope() -> Array:
+	if _command_family != ControlBinding.CommandFamily.PRODUCTION:
+		return []
+	var is_narrowed: bool = _producer_context != &"" and not producer_context_names().is_empty()
+	var own: Commander = _commander()
+	return selection.filter(
+		# Untyped: a freed piece can still be in `selection`, and a typed parameter would
+		# reject it before the validity check could run.
+		func(node: Variant) -> bool:
+			if not is_instance_valid(node):
+				return false
+			var producer := node as Commandable
+			return (
+				producer != null
+				and producer.commander == own
+				and producer.production != null
+				and (not is_narrowed or producer.id == _producer_context)
+			)
+	)
+
+
 ## Show the training of `a_producer_id`. The row is a RADIO: one is always set, and pressing
 ## the one already set does nothing rather than clearing it — there is no "no producer chosen"
 ## state to fall into.
@@ -4692,6 +4728,8 @@ func _update_producer_affinity() -> void:
 	var hovered: PurchaseTransaction = (
 		_production_rail.hovered_transaction() if _production_rail != null else null
 	)
+	if hovered == null and _info_view != null:
+		hovered = _info_view.hovered_transaction()
 	if hovered == null or hovered.kind != PurchaseTransaction.Kind.TRAIN:
 		_producer_affinity_indicator.update_producers([])
 		return

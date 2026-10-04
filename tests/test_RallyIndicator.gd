@@ -2,7 +2,8 @@ extends GutTest
 
 ## Tests for the structure rally-point indicator's chain-selection logic
 ## (RTSController._rally_commands_to_draw), the hover plumbing it reads
-## (CommandableCard.is_hovered_training / InfoView.hovered_training_target).
+## (CommandableCard.is_hovered_training / InfoView.hovered_training_target, which asks the
+## Details pane's scoped ProductionRail).
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_RallyIndicator.gd -gexit
@@ -91,8 +92,11 @@ func _make_info_view() -> InfoView:
 	summary.name = "Summary"
 	var name_label := Label.new()
 	name_label.name = "NameLabel"
-	var summary_cards := HFlowContainer.new()
+	var summary_cards := ScrollContainer.new()
 	summary_cards.name = "Cards"
+	var summary_rows := VBoxContainer.new()
+	summary_rows.name = "Rows"
+	summary_cards.add_child(summary_rows)
 	summary.add_child(name_label)
 	summary.add_child(summary_cards)
 	info.add_child(summary)
@@ -102,6 +106,10 @@ func _make_info_view() -> InfoView:
 	var details_cards := HFlowContainer.new()
 	details_cards.name = "Cards"
 	details.add_child(details_cards)
+	var production := ProductionRail.new()
+	production.name = "Production"
+	production.is_scoped = true
+	details.add_child(production)
 	info.add_child(details)
 
 	add_child_autofree(info)
@@ -118,7 +126,7 @@ func test_hovered_training_target_finds_the_hovered_card() -> void:
 	var structure := _make_structure()
 	var card := CommandableCard.new()
 	card.bind_training(structure, 0)
-	info._details_cards.add_child(card)
+	info._production._producing_cards.add_child(card)
 
 	card.mouse_entered.emit()
 	assert_eq(info.hovered_training_target(), [structure, 0])

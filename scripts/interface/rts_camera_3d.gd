@@ -83,7 +83,7 @@ const ALTITUDE_HEADROOM_SLACK: float = 1.25
 #region Public API
 ## The camera's canonical starting position: INITIAL_DISTANCE from the origin
 ## along the elevation implied by CAMERA_ANGLE_DEGREES, so that looking at the
-## origin reproduces the game's viewing angle. (At -135° this is the +Y/+Z
+## origin reproduces the game's viewing angle. (At -140° this is the +Y/+Z
 ## "pulled back and raised" vantage the player camera uses.) The
 ## editor-camera-angle plugin sits the editor viewport camera here and looks at
 ## the origin while composing scenes (see addons/editor_camera_angle).

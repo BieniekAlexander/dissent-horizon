@@ -696,6 +696,16 @@ func ammo_fraction() -> float:
 	return clampf(float(_ammo) / float(clip_size), 0.0, 1.0)
 
 
+## How far an ORDINARY weapon is toward refilling its clip, 0.0–1.0; 0.0 when the clip is full.
+## The clip refills whole, once `reload_time_ticks` pass without a shot, so this is one span
+## rather than a per-round figure. A CHARGED weapon has no such clock — it refills only while
+## something recharges it — and always reports 0.0.
+func reload_fraction() -> float:
+	if charged or _ammo >= clip_size or reload_time_ticks <= 0:
+		return 0.0
+	return clampf(1.0 - float(_reload_timer_ticks) / float(reload_time_ticks), 0.0, 1.0)
+
+
 ## Restore rounds worth `ticks` of docked time. `reload_time_ticks` is the ticks needed for a
 ## FULL clip, so the per-tick rate is clip_size / reload_time_ticks; the remainder is banked in
 ## _charge_accum so a rate below one round per tick still advances.
