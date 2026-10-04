@@ -517,8 +517,15 @@ standing, going-up ones counted. The rung sits between income and throughput, an
 once a producer stands or is going up — a static guards a base, and is never bought instead of
 one. The TYPE is the affordable defence whose weapons best answer the enemy UNITS on the
 blackboard (`Bot.unit_composition_value` over the demand map's unit entries: a turret answers
-an army, not a base), cost deciding when nothing has been seen. The spot is the ordinary
-frontage search, toward `Bot.threat_direction`; a chokepoint sense that would put it on the
+an army, not a base). Before anything has been seen the bot's own live combat units stand in
+for the enemy's, one for one, and with no army to mirror either (the Colonial opening is three
+builders) only defences that can shoot something on the ground are considered — a static is
+bought ahead of the scout's report, and the cheapest defence was measured to be the wrong
+default: the first turret built was the SAM, against an infantry rush. The spot is the ordinary frontage search, but ANCHORED on what the
+enemy comes for rather than on the base centroid: a command centre under HEGEMONY (the
+frontmost, when there are several), else the structure the enemy reaches first along
+`Bot.threat_direction` — measured, two towers ranked from the centroid stood through a rush
+that walked past them to the command centre. A chokepoint sense that would put it on the
 approach rather than merely in front is the position-importance work
 [squads-and-relations](squads-and-relations.md) §Placement beyond open ground plans. Like the
 income rung, a rung that cannot act falls through. Tests: `tests/test_BotDefenceTarget.gd`.

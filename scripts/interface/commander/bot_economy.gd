@@ -441,8 +441,17 @@ func _production_structure_to_build() -> Variant:
 
 ## Which static defence to build now: the affordable buildable defence type whose weapons
 ## best counter the enemy UNITS the bot believes in (Bot.unit_composition_value over the
-## demand map's unit entries — a turret answers an army, not a base), cost as the tiebreak
-## and the whole choice when nothing has been seen yet. null when none is affordable.
+## demand map's unit entries — a turret answers an army, not a base), cost as the tiebreak.
+## null when none is affordable.
+##
+## BEFORE ANYTHING HAS BEEN SEEN the demand is a MIRROR of the bot's own army: each live
+## combat unit it fields stands in for one enemy of the same kind — the same prior
+## enemy_demand_map takes for an unseen base, one level down. With NO ARMY to mirror either
+## (the Colonial opening is three builders), the candidates are the ones that can shoot
+## something on the ground, because the first threat in a match walks. A static is bought
+## ahead of the threat (static-defence.md), which is before the scout reports, and the cheapest
+## defence is the wrong default — measured, the ladder's first turret was the SAM against an
+## infantry rush, the one gun on the list that cannot shoot it.
 func _defence_structure_to_build() -> Variant:
 	var candidates: Array = _bot.buildable_defence_structure_types().filter(
 		func(t): return can_afford_above_reserve(t)
@@ -454,6 +463,11 @@ func _defence_structure_to_build() -> Variant:
 	for etype: Variant in demand:
 		if not (demand[etype]["rep"] as Node).is_in_group("structure"):
 			unit_demand[etype] = demand[etype]
+	if unit_demand.is_empty():
+		unit_demand = _mirror_demand()
+	if unit_demand.is_empty():
+		var grounded: Array = candidates.filter(func(t): return _bot.type_targets_ground(t))
+		candidates = grounded if not grounded.is_empty() else candidates
 	var value: Dictionary = {}
 	for t in candidates:
 		value[t] = _bot.unit_composition_value(t, unit_demand)
@@ -464,6 +478,20 @@ func _defence_structure_to_build() -> Variant:
 			return _energy_cost(a) < _energy_cost(b)
 	)
 	return candidates[0]
+
+
+## The bot's own live combat units as a stand-in enemy army, in the demand map's shape:
+## one unit of importance per unit fielded, a live instance of each type as its rep.
+func _mirror_demand() -> Dictionary:
+	var mirror: Dictionary = {}
+	for unit: Commandable in _bot.get_units():
+		if not _bot.unit_can_attack(unit.id):
+			continue
+		if mirror.has(unit.id):
+			mirror[unit.id]["demand"] += 1.0
+		else:
+			mirror[unit.id] = {"demand": 1.0, "rep": unit}
+	return mirror
 
 
 ## Standing static defences plus the ones going up — committed, like production capacity.
@@ -1163,7 +1191,11 @@ func _find_build_spot(a_type: StringName) -> Variant:
 ## needs to check the candidates.
 func _new_spot_search(a_type: StringName) -> Dictionary:
 	var dims: Vector2i = _dims_for_type(a_type)
-	var anchor: Vector2 = VU.in_xz(_bot.base_centroid())
+	var anchor: Vector2 = (
+		_defence_anchor()
+		if a_type in _bot.buildable_defence_structure_types()
+		else VU.in_xz(_bot.base_centroid())
+	)
 	return {
 		"type": a_type,
 		"dims": dims,
@@ -1171,6 +1203,28 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 		"cursor": 0,
 		"ranking": _start_ranking(anchor, _forward_direction(anchor), _bearing_for(a_type), dims)
 	}
+
+
+## WHERE A STATIC DEFENCE IS ANCHORED: on the thing the enemy comes for, not on the middle of
+## the base. Under HEGEMONY that is a command centre (the frontmost, when there are several);
+## otherwise the structure the enemy reaches first along the threat axis. Measured before this:
+## two Watch Towers ranked from the base centroid stood through a whole rush that walked past
+## them to the command centre and ended the match. The frontage bearing then puts the turret
+## on the anchor's threat side, and compactness keeps it within its own reach of it.
+func _defence_anchor() -> Vector2:
+	var origin: Vector2 = VU.in_xz(_bot.base_centroid())
+	var toward: Vector2 = _bot.threat_direction(origin)
+	var guarded: Commandable = null
+	if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
+		var best_along: float = -INF
+		for centre: Commandable in _bot.owned_command_centres():
+			var along: float = (VU.in_xz(centre.global_position) - origin).dot(toward)
+			if along > best_along:
+				best_along = along
+				guarded = centre
+	if guarded == null:
+		guarded = _bot.frontmost_structure(toward)
+	return VU.in_xz(guarded.global_position) if guarded != null else origin
 
 
 ## THE AXIS THE BOT ORIENTS AGAINST, as a unit vector from the base.

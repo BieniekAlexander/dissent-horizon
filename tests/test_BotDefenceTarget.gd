@@ -23,6 +23,11 @@ class FakeBot:
 	var producers_owned: int = 1
 	var demand: Dictionary = {}
 	var values: Dictionary = {}  # type -> composition value
+	var own_units: Array = []
+	var demand_seen: Dictionary = {}  # what the defence choice was scored against
+	var condition: Scenario.WinCondition = Scenario.WinCondition.MISSION
+	var centres: Array = []
+	var frontmost: Commandable = null
 
 	func can_afford(a_type: StringName) -> bool:
 		return energy >= int(costs.get(a_type, 0))
@@ -46,8 +51,33 @@ class FakeBot:
 	func enemy_demand_map() -> Dictionary:
 		return demand
 
-	func unit_composition_value(a_unit_type, _a_demand: Dictionary) -> float:
+	func unit_composition_value(a_unit_type, a_demand: Dictionary) -> float:
+		demand_seen = a_demand
 		return float(values.get(a_unit_type, 0.0))
+
+	func get_units() -> Array:
+		return own_units
+
+	func unit_can_attack(a_type) -> bool:
+		return a_type != &"test_truck"
+
+	func type_targets_ground(a_type) -> bool:
+		return a_type != SAM
+
+	func win_condition() -> Scenario.WinCondition:
+		return condition
+
+	func owned_command_centres() -> Array:
+		return centres
+
+	func frontmost_structure(_a_direction: Vector2) -> Commandable:
+		return frontmost
+
+	func base_centroid() -> Vector3:
+		return Vector3.ZERO
+
+	func threat_direction(_a_from_xz: Vector2) -> Vector2:
+		return Vector2(1.0, 0.0)
 
 
 class StubActuator:
@@ -65,6 +95,9 @@ class StubEconomy:
 
 	func _construction_job_count() -> int:
 		return 0
+
+	func _release_stalled_construction() -> void:
+		pass  # reads each unit's command; the fixture units are out of tree and have none
 
 	func _pick_builder() -> Commandable:
 		return builder
@@ -157,13 +190,28 @@ func test_the_defence_that_answers_the_seen_army_is_the_one_built() -> void:
 	assert_eq(_act.builds, [SAM], "the higher composition value wins")
 
 
-func test_with_nothing_seen_the_cheaper_defence_is_built() -> void:
+func test_with_nothing_seen_the_bots_own_army_stands_in_for_the_enemys() -> void:
+	var economy := _economy()
+	economy.defence_structure_target = 1
+	var recruit_a: Commandable = autofree(Commandable.new())
+	var recruit_b: Commandable = autofree(Commandable.new())
+	var truck: Commandable = autofree(Commandable.new())
+	recruit_a.id = &"test_recruit"
+	recruit_b.id = &"test_recruit"
+	truck.id = &"test_truck"
+	_bot.own_units = [recruit_a, recruit_b, truck]
+	economy.tick()
+	assert_eq(_bot.demand_seen.keys(), [&"test_recruit"], "combat units only, one entry per type")
+	assert_eq(_bot.demand_seen[&"test_recruit"]["demand"], 2.0, "one unit of importance each")
+
+
+func test_with_nothing_seen_and_no_army_a_ground_gun_beats_a_cheaper_anti_air_one() -> void:
 	var economy := _economy()
 	economy.defence_structure_target = 1
 	_bot.costs[SAM] = 300
 	_bot.technology_mapping[SAM] = TechnologySpec.new(300, 0, 0, 30)
 	economy.tick()
-	assert_eq(_act.builds, [SAM])
+	assert_eq(_act.builds, [TOWER], "the first threat in a match walks")
 
 
 func test_an_unaffordable_defence_falls_through_rather_than_banking() -> void:
@@ -175,3 +223,36 @@ func test_an_unaffordable_defence_falls_through_rather_than_banking() -> void:
 	economy._prev_energy = _bot.energy
 	economy.tick()
 	assert_eq(_act.builds, [REDOUBT], "the rung below it still runs")
+
+
+# ─── WHERE IT STANDS ────────────────────────────────────────────────────────
+
+
+## In the tree under the bot, because the anchor reads a GLOBAL position, as it does in play.
+func _structure_at(a_x: float) -> Commandable:
+	var piece: Commandable = FakePieces.structure({})
+	if not _bot.is_inside_tree():
+		add_child(_bot)
+	_bot.add_child(piece)
+	piece.global_position = Vector3(a_x, 0.0, 0.0)
+	return piece
+
+
+func test_under_hegemony_the_anchor_is_the_frontmost_command_centre() -> void:
+	var economy := _economy()
+	_bot.condition = Scenario.WinCondition.HEGEMONY
+	_bot.centres = [_structure_at(2.0), _structure_at(5.0)]
+	_bot.frontmost = _structure_at(9.0)
+	assert_eq(economy._defence_anchor(), Vector2(5.0, 0.0), "the centre nearest the threat")
+
+
+func test_otherwise_the_anchor_is_the_structure_the_enemy_reaches_first() -> void:
+	var economy := _economy()
+	_bot.centres = [_structure_at(2.0)]
+	_bot.frontmost = _structure_at(9.0)
+	assert_eq(economy._defence_anchor(), Vector2(9.0, 0.0))
+
+
+func test_with_nothing_standing_the_anchor_is_the_base() -> void:
+	var economy := _economy()
+	assert_eq(economy._defence_anchor(), Vector2.ZERO)

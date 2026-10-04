@@ -564,6 +564,14 @@ func threat_direction(a_from_xz: Vector2) -> Vector2:
 	return Vector2(0.0, 1.0)
 
 
+## The owned command centres — under HEGEMONY, the whole game, and so what a static defence
+## stands in front of. Empty when none stands.
+func owned_command_centres() -> Array:
+	return _owned_structures().filter(
+		func(s: Commandable) -> bool: return Deployment.is_command_centre(s)
+	)
+
+
 ## The owned structure furthest ALONG `a_direction` from the base centroid — the building
 ## the enemy reaches first coming that way, and so the one the army stands in front of. Null
 ## when the bot owns no structure.
@@ -1061,6 +1069,26 @@ func unit_can_attack(a_type) -> bool:
 		return false
 	var loadout := preview.get_node_or_null("Loadout") as Loadout
 	return loadout != null and loadout.has_weapons()
+
+
+## True when [type] carries a weapon that can shoot something on the GROUND — read off the
+## preview's weapon masks, which a scene sets and so survive being out of tree (the range
+## shapes do not). The economy's prior for a static when nothing has been seen and no army
+## stands to mirror: the first threat in a match walks.
+func type_targets_ground(a_type) -> bool:
+	var preview := _preview_for_type(a_type)
+	if preview == null:
+		return false
+	var loadout := preview.get_node_or_null("Loadout") as Loadout
+	if loadout == null:
+		return false
+	for child: Node in loadout.get_children():
+		if (
+			child is Weapon
+			and (child as Weapon).target_mask & CollisionLayers.Mask.TARGETABLE_GROUND
+		):
+			return true
+	return false
 
 
 ## True when [type] is a non-combat UTILITY unit worth fielding anyway — it can build

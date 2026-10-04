@@ -115,7 +115,8 @@ var income_structure_target: int = 1
 ## How many STATIC DEFENCES the bot wants standing — turrets, towers, SAMs: a buildable
 ## structure with weapons that trains nothing (Bot.buildable_defence_structure_types). Bought
 ## once the bot owns a producer, ahead of the believed threat (the frontage bearing), and the
-## TYPE is the one whose gun best answers the enemy units it has seen. 0 is the bot before
+## TYPE is the one whose gun best answers the enemy units it has seen (its own army standing
+## in before then). 0 is the bot before
 ## 2026-10-04, which had no rung for them and never built one however cheaply they traded:
 ## measured, two Watch Towers beat sixteen Recruits at twice their price
 ## (sims/towers_vs_double_recruits). Counts the ones going up, like production_structure_cap.
