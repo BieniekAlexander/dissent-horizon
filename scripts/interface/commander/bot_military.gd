@@ -164,6 +164,13 @@ var _regroup_until: float = 0.0
 ## Instance id → true for every unit in the field with the current wave. The reserve is every
 ## other combat unit. Keyed by id so a dead member needs no reference to drop.
 var _wave_members: Dictionary = {}
+## The remembered ENTITY behind the ATTACK objective when it is a structure belief, or null —
+## set by _objective_for(ATTACK) beside the position it returns. A wave member standing idle
+## at the objective is ordered to ATTACK it: the point the army is sent to lies beside the
+## building, often outside the aggro range a unit picks targets from on its own, and an army
+## that has arrived and stands there is the "waiting around" that was reported. Untyped: a
+## belief outlives the thing it remembers, and a freed object fails a typed field.
+var _objective_entity: Variant = null
 ## seconds_elapsed() when the current objective was set, or the wave was last seen fighting
 ## or travelling — what OBJECTIVE_STALL_SECONDS is measured from.
 var _objective_since: float = 0.0
@@ -251,7 +258,16 @@ func _launch(a_units: Array, a_objective: Vector3) -> void:
 ## ATTACK posture, nothing changed: press a wave member that went idle on to the objective;
 ## stage every reserve unit; release the reserve as a body when it is worth sending.
 func _tick_reinforcements(a_objective: Vector3) -> void:
-	_send_idle(_combat_units(_bot.get_idle_units()).filter(_is_wave_member), a_objective)
+	var idle_wave: Array = _combat_units(_bot.get_idle_units()).filter(_is_wave_member)
+	# Arrived, and the building is still there: raze it. Only a wave member standing at the
+	# objective; one still short of it keeps walking.
+	var arrived: Array = idle_wave.filter(
+		func(u: Commandable) -> bool:
+			return u.global_position.distance_to(a_objective) <= STALL_RADIUS
+	)
+	if not arrived.is_empty() and _objective_is_standing():
+		_act.attack(arrived, _objective_entity as Entity)
+	_send_idle(idle_wave, a_objective)
 	var reserve: Array = _combat_units(_bot.get_units()).filter(
 		func(u: Commandable) -> bool: return not _is_wave_member(u)
 	)
@@ -300,6 +316,16 @@ func _check_objective_stall(a_objective: Vector3) -> void:
 		return
 	if now - _objective_since > OBJECTIVE_STALL_SECONDS:
 		_abandon_objective(a_objective)
+
+
+## Whether the entity behind the objective is still in play. A freed object compares equal
+## to null, so validity is asked first.
+func _objective_is_standing() -> bool:
+	return (
+		_objective_entity != null
+		and is_instance_valid(_objective_entity)
+		and (_objective_entity as Node).is_inside_tree()
+	)
 
 
 func _abandon_objective(a_position: Vector3) -> void:
@@ -596,17 +622,22 @@ func _objective_for(a_posture: Posture) -> Variant:
 			# the wave a premature commitment the value gate refuses; a centre that is not, the
 			# bot snipes. That tuning is the content's (objectives-and-completion.md §Win
 			# conditions), not the bot's.
+			_objective_entity = null
 			if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
 				var centre_actionable: Callable = func(entry: CommanderBlackboard.Entry) -> bool:
 					return _bot.is_command_centre_type(entry.type) and actionable.call(entry)
-				var believed_centre: Variant = _bot.nearest_believed_enemy_structure_position(
+				var centre: CommanderBlackboard.Entry = _bot.nearest_believed_enemy_structure_entry(
 					centre_actionable
 				)
-				if believed_centre != null:
-					return believed_centre
-			var believed_base: Variant = _bot.nearest_believed_enemy_structure_position(actionable)
-			if believed_base != null:
-				return believed_base
+				if centre != null:
+					_objective_entity = centre.entity
+					return centre.last_known_location
+			var believed: CommanderBlackboard.Entry = _bot.nearest_believed_enemy_structure_entry(
+				actionable
+			)
+			if believed != null:
+				_objective_entity = believed.entity
+				return believed.last_known_location
 			# Nothing of theirs standing that we know of: go after the last place we saw a unit.
 			return _bot.nearest_believed_enemy_unit_position(_home_anchor_position(), actionable)
 		_:  # MASS

@@ -1,0 +1,26 @@
+description: |
+  Two Sloops against ten Recruits, at cost parity (1000 energy a side) — the gun-only
+  counter the bot was fielding, measured beside matildas_vs_recruits so the two trades can
+  be compared: the Sloop is anti-light but SMALL, and crushes nothing.
+  MEASURED 2026-10-04: PASSES, three seeds of three. The gun-only counter the bot fields
+  is the one that wins this trade.
+setting: { kind: flat, size: 40 }
+given:
+  A:
+    with:
+      sloops:
+        of: [ { piece: cl_mechMedium_antiLight, count: 2 } ]
+        at: west
+        facing: east
+        orders: [ { attack_move: { target: B.recruits } } ]
+  B:
+    with:
+      recruits:
+        of: [ { piece: cl_bioLight_antiLight, count: 10 } ]
+        at: { from: A.sloops, distance: 15, bearing: east }
+        facing: west
+        orders: [ { attack_move: { target: A.sloops } } ]
+run: { for: 60s, seed: 1 }
+expect:
+  - { of: A.sloops, check: alive }
+  - { of: B.recruits, check: dead }

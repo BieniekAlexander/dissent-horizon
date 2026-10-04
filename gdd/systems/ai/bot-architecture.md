@@ -340,7 +340,17 @@ its only answer to "this unit is idle" is to sweep it into the attack.
 ## What the bot models about the enemy
 
 `Bot.enemy_demand_map()` over the commander's blackboard belief, plus
-`unit_effectiveness_vs` off the damage matchup table. So the bot reasons about COMPOSITION
+`unit_effectiveness_vs` off the damage matchup table — and off the CRUSH rule since
+2026-10-04: a vehicle heavy enough to run a target over counts at least
+`Bot.CRUSH_EFFECTIVENESS` against it however poorly its gun does. **Measured, and the
+expectation was wrong:** the watched claim was that the Matilda, an anti-mech crusher, would
+trump infantry by driving over it. `sims/matildas_vs_recruits` says two Matildas LOSE to
+twelve Recruits at cost parity in three seeds of three, while `sims/sloops_vs_recruits` has
+two Sloops beat ten in three of three — under attack-move a vehicle stops to shoot rather
+than driving through, so a crush is incidental. The constant therefore sits BELOW parity:
+the bot's preference for the Sloop against infantry is the right reading of the game as it
+plays, and the Matilda's value is against mechs, where its gun is. Raise the constant when
+the bot learns to drive vehicles through infantry on purpose. So the bot reasons about COMPOSITION
 from real stats — the user's "the bot should derive combat effectiveness from the stats in
 the game" is already true, and it is why adding a unit needs no bot change.
 

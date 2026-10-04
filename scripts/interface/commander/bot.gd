@@ -752,6 +752,15 @@ func nearest_believed_enemy_structure_position(a_accept: Variant = null) -> Vari
 	)
 
 
+## The believed enemy structure nearest the base that `a_accept` admits, as its ENTRY rather
+## than its position — for a caller that wants the remembered entity as well as where it
+## was, such as the army ordering an Attack on the building it has reached.
+func nearest_believed_enemy_structure_entry(a_accept: Variant = null) -> CommanderBlackboard.Entry:
+	return _nearest_belief_entry(
+		blackboard.believed_structures() if blackboard != null else [], base_centroid(), a_accept
+	)
+
+
 ## Last-known location of the BELIEVED enemy unit nearest `a_from`, or null when none is
 ## remembered. What the army goes after once the opponent has no structures left standing —
 ## unit beliefs lapse (CommanderBlackboard.BLACKBOARD_EXPIRATION), so this fades rather than
@@ -772,8 +781,16 @@ func nearest_believed_enemy_unit_position(a_from: Vector3, a_accept: Variant = n
 func _nearest_belief_position(
 	a_entries: Array, a_from: Vector3, a_accept: Variant = null
 ) -> Variant:
+	var best: CommanderBlackboard.Entry = _nearest_belief_entry(a_entries, a_from, a_accept)
+	return best.last_known_location if best != null else null
+
+
+## The entry behind _nearest_belief_position: the nearest acceptable belief itself, or null.
+func _nearest_belief_entry(
+	a_entries: Array, a_from: Vector3, a_accept: Variant
+) -> CommanderBlackboard.Entry:
 	var accept: Callable = a_accept if a_accept is Callable else Callable()
-	var best: Variant = null
+	var best: CommanderBlackboard.Entry = null
 	var best_dist_sq: float = INF
 	for entry: CommanderBlackboard.Entry in a_entries:
 		if accept.is_valid() and not accept.call(entry):
@@ -781,7 +798,7 @@ func _nearest_belief_position(
 		var dist_sq: float = a_from.distance_squared_to(entry.last_known_location)
 		if dist_sq < best_dist_sq:
 			best_dist_sq = dist_sq
-			best = entry.last_known_location
+			best = entry
 	return best
 
 
@@ -1248,13 +1265,41 @@ func unit_effectiveness_vs(a_unit_type, a_target: Commandable) -> float:
 	var loadout := my_preview.get_node_or_null("Loadout") as Loadout
 	if loadout == null:
 		return 0.0
+	var by_crush: float = (
+		CRUSH_EFFECTIVENESS
+		if crushes(my_preview.get_node_or_null("Locomotion") as Movement, a_target)
+		else 0.0
+	)
 	var w: Weapon = loadout.weapon_for_target(a_target)
 	if w == null:
-		return 0.0
+		return by_crush
 	var base: float = w.per_shot_damage()
 	if base <= 0.0:
-		return 0.0
-	return DamageTable.calculate_damage(base, w.per_shot_damage_type(), a_target) / base
+		return by_crush
+	return maxf(
+		by_crush, DamageTable.calculate_damage(base, w.per_shot_damage_type(), a_target) / base
+	)
+
+
+## What running a unit over is worth, on the scale of the damage multiplier a weapon gets
+## against its target (1.0 is a neutral matchup, a dedicated counter scores above it). A
+## crush is a kill on contact, but under the bot's orders contact is incidental: an
+## attack-moving vehicle stops to shoot, it does not drive through. MEASURED 2026-10-04
+## (`sims/matildas_vs_recruits`, `sims/sloops_vs_recruits`): at cost parity two Matildas
+## LOSE to twelve Recruits in three seeds of three, two Sloops beat ten in three of three. So
+## a crusher is valued below a neutral matchup against what it could crush — enough that a
+## vehicle is never read as useless against infantry, not enough to prefer it to a gun that
+## actually counters them. Rises on the day the bot drives its vehicles through infantry.
+const CRUSH_EFFECTIVENESS: float = 0.5
+
+
+## Whether a unit moving as `a_mover` would crush `a_target` on contact: the size-class rule
+## Movement.can_crush applies between two grounded movers; a structure or a flier is never
+## crushed.
+static func crushes(a_mover: Movement, a_target: Commandable) -> bool:
+	if a_mover == null or a_target == null or a_target.movement == null:
+		return false
+	return a_mover.can_crush(a_target.movement)
 
 
 # ─── ARMY COMPOSITION (effectiveness-driven counter-production) ──────────────

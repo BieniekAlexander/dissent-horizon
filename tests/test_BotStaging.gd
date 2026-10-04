@@ -91,6 +91,11 @@ class RecordingActuator:
 	func evacuate(a_hosts: Array) -> void:
 		evacuated.append_array(a_hosts)
 
+	var attacks: Array = []  # [{"units": Array, "target": Entity}]
+
+	func attack(a_units: Array, a_target: Entity, _a_persist: bool = true) -> void:
+		attacks.append({"units": a_units.duplicate(), "target": a_target})
+
 
 const OBJECTIVE: Vector3 = Vector3(110.0, 0.0, 10.0)
 
@@ -400,3 +405,62 @@ func test_a_wave_launch_collects_the_bunkered_units() -> void:
 	assert_eq(_act.evacuated, [host], "the hosts holding its units are turned out first")
 	assert_true(_military._is_wave_member(unit))
 	assert_eq(_destinations_of(unit), [OBJECTIVE])
+
+
+# ─── A WAVE THAT HAS ARRIVED RAZES THE BUILDING IT CAME FOR ───────────────────
+
+
+func test_an_idle_wave_member_at_the_objective_attacks_the_building_behind_it() -> void:
+	var building: StubPiece = StubPiece.make()
+	add_child_autofree(building)
+	building.global_position = OBJECTIVE + Vector3(6.0, 0.0, 0.0)
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military._objective_entity = building
+	_military._tick_reinforcements(OBJECTIVE)
+	assert_eq(_act.attacks.size(), 1, "one Attack order")
+	assert_eq(_act.attacks[0]["units"], [veteran])
+	assert_eq(_act.attacks[0]["target"], building)
+	assert_eq(_destinations_of(veteran), [], "and no walk to where it stands")
+
+
+func test_a_wave_member_short_of_the_objective_keeps_walking_rather_than_attacking() -> void:
+	var building: StubPiece = StubPiece.make()
+	add_child_autofree(building)
+	var veteran := _armed_unit(OBJECTIVE + Vector3(-40.0, 0.0, 0.0))
+	_launch_wave([veteran], 1000.0)
+	_military._objective_entity = building
+	_military._tick_reinforcements(OBJECTIVE)
+	assert_eq(_act.attacks, [])
+	assert_eq(_destinations_of(veteran), [OBJECTIVE])
+
+
+func test_a_razed_objective_is_not_attacked() -> void:
+	var building: StubPiece = StubPiece.make()
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military._objective_entity = building
+	building.free()
+	_military._tick_reinforcements(OBJECTIVE)
+	assert_eq(_act.attacks, [], "a freed building is no target")
+
+
+# ─── CRUSHING COUNTS AS EFFECTIVENESS ───────────────────────────────────────
+
+
+func _mover(a_class: Movement.CrushClass) -> Movement:
+	var movement := autofree(Movement.new()) as Movement
+	movement.crush_class = a_class
+	return movement
+
+
+func test_a_heavy_vehicle_counts_as_a_counter_to_infantry_it_can_run_over() -> void:
+	var infantry := _armed_unit()
+	infantry.movement.crush_class = Movement.CrushClass.TINY
+	assert_true(Bot.crushes(_mover(Movement.CrushClass.LARGE), infantry))
+	assert_false(Bot.crushes(_mover(Movement.CrushClass.TINY), infantry), "a peer cannot")
+	assert_false(Bot.crushes(null, infantry))
+	assert_lt(
+		Bot.CRUSH_EFFECTIVENESS, 1.0, "below parity: contact is incidental under the bot's orders"
+	)
+	assert_gt(Bot.CRUSH_EFFECTIVENESS, 0.0, "but never useless")

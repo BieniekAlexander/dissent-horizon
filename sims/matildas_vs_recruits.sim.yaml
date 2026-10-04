@@ -1,0 +1,31 @@
+description: |
+  Two Matildas against twelve Recruits, at cost parity (1200 energy a side).
+
+  The Matilda's gun is anti-mech and poor against infantry, but it is a MEDIUM crusher and
+  a Recruit is TINY: it kills by driving over them. The claim behind the bot valuing a crush
+  at Bot.CRUSH_EFFECTIVENESS is that the vehicles win this trade — if they do not, the
+  placeholder is too high; if they win cleanly, it is too low.
+  MEASURED 2026-10-04: FAILS, three seeds of three — the Matildas die and the Recruits do
+  not. Under attack-move the vehicles stop to shoot rather than drive through, so a crush
+  is incidental, and Bot.CRUSH_EFFECTIVENESS was set below parity on this result. Kept as
+  the claim it is: the day the game or the bot makes a crusher drive through, this passes.
+setting: { kind: flat, size: 40 }
+given:
+  A:
+    with:
+      tanks:
+        of: [ { piece: cl_mechMedium_antiMech, count: 2 } ]
+        at: west
+        facing: east
+        orders: [ { attack_move: { target: B.recruits } } ]
+  B:
+    with:
+      recruits:
+        of: [ { piece: cl_bioLight_antiLight, count: 12 } ]
+        at: { from: A.tanks, distance: 15, bearing: east }
+        facing: west
+        orders: [ { attack_move: { target: A.tanks } } ]
+run: { for: 60s, seed: 1 }
+expect:
+  - { of: A.tanks, check: alive }
+  - { of: B.recruits, check: dead }

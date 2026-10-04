@@ -193,6 +193,15 @@ destination each combat period, and an order to walk to where you already stand 
 issued to a whole army it is the swarm around a point that was reported. `HOLD_RADIUS` is
 the arrival radius below which no order is re-issued, in every branch.
 
+**A wave that has arrived razes the building it came for.** The point the army is sent to
+lies beside the believed building, often outside the aggro range a unit picks targets from
+on its own, so an army could arrive, stand, and wait — the "waiting around beside an
+undefended base" that was reported. `_objective_for(ATTACK)` now keeps the remembered
+entity beside the position, and an idle wave member within `STALL_RADIUS` of the objective
+is ordered to Attack it while it stands (`BotActuator.attack`, which refuses a unit that
+cannot hurt it). Waiting for a sizeable army is the commit gates' job and happens at HOME;
+once a wave is at the front, standing is never the plan.
+
 **A wave standing on a silent objective abandons it.** A believed building the walk can
 never disprove — across a cliff, behind a ridge, nobody gets vision of it — kept the army
 beside it for the rest of the match. Two rules: an objective is only chosen if the
