@@ -34,6 +34,7 @@ const ISSUED: Array = [
 	"Interact",
 	"Occupy",
 	"UseSanction",
+	"Evacuate",
 ]
 
 ## The bot causes these WITHOUT constructing the command, each for a stated reason. This
@@ -94,7 +95,6 @@ const MISSING: Dictionary = {
 	"Plant": "the Sapper's charge is never planted",
 	"Detonate": "and so never set off",
 	"Embark": "the bot never loads a transport",
-	"Evacuate": "and so never unloads one",
 	"TaskShelter":
 	(
 		"the bot hand-drives its Stock Trucks one capture at a time; it never"

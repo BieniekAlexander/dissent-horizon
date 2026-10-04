@@ -301,10 +301,10 @@ commander allocates energy, dominion, ability charges and unit-time, and nothing
 
 ### The action space is a third of the game
 
-`BotActuator` exposes **eight** verbs — `move`, `attack_move`, `attack`, `build`, `train`,
-`interact`, `garrison_into`, `use_sanction` — against **23** command classes. The bot therefore cannot
-`Repair`, `Defend`, `Patrol`, `Stop`, `Evacuate`, `Embark`, `Land`, `Rearm`, `Bombard`,
-`FocusFire`, `Spot`, `AirDropRun`, or use an `Ability`.
+`BotActuator` exposes **ten** verbs — `move`, `attack_move`, `attack`, `build`, `train`,
+`interact`, `garrison_into`, `evacuate`, `rally`, `use_sanction` — against the command
+classes. The bot therefore cannot `Repair`, `Defend`, `Patrol`, `Stop`, `Embark`, `Land`,
+`Rearm`, `Bombard`, `FocusFire`, `Spot`, `AirDropRun`, or use an `Ability`.
 
 **The actuator's verb list is the honest statement of what the bot can do**, and
 `tests/test_BotCommandCoverage.gd` is what stops it drifting from the controller's. Every

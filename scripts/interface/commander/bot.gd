@@ -608,6 +608,63 @@ func get_garrison_structures() -> Array:
 	)
 
 
+## Bunkers this bot's units may be ordered INTO and fire out of: its own built, open bunker
+## garrisons and the NEUTRAL ones. A neutral building adopts its first occupant's side
+## (Garrison._adopt_commander_if_neutral) and is closed to the enemy from then on, so it is
+## as good as owned — and it is where most of the cover on a map is. Whether a given unit
+## is admitted is Garrison.accepts, asked by the caller.
+func get_bunker_hosts() -> Array:
+	var hosts: Array = get_garrison_structures().filter(
+		func(s: Commandable) -> bool: return s.garrison.bunker
+	)
+	var neutral: Commander = _neutral_commander()
+	if neutral == null:
+		return hosts
+	for node: Node in neutral.get_children():
+		var s := node as Commandable
+		if (
+			s != null
+			and s.structure_is_active()
+			and s.is_built
+			and s.garrison != null
+			and s.garrison.bunker
+			and not s.garrison.is_closed()
+			and s.garrison.can_garrison()
+		):
+			hosts.append(s)
+	return hosts
+
+
+## Owned hosts holding at least one unit of this bot's that an order may let out — where the
+## army's bunkered units are, for the wave to collect them.
+func get_hosts_holding_my_units() -> Array:
+	return _owned_structures().filter(
+		func(s: Commandable) -> bool:
+			return (
+				s.garrison != null
+				and s.garrison.occupants().any(
+					func(u: Commandable) -> bool: return s.garrison.can_release_occupant(u)
+				)
+			)
+	)
+
+
+## Whether ground can WALK from `a_from` to within `a_tolerance` of `a_to` on the map's
+## navigation mesh. False for ground across a cliff or walled in: an objective nobody can
+## reach is a place the army would stand beside for ever. True when no navigation map is
+## ready yet — unknown is not unreachable.
+func is_reachable(a_from: Vector3, a_to: Vector3, a_tolerance: float) -> bool:
+	if map == null or map.nav_region == null:
+		return true
+	var nav_map: RID = map.nav_region.get_navigation_map()
+	if not nav_map.is_valid() or NavigationServer3D.map_get_iteration_id(nav_map) == 0:
+		return true
+	var path: PackedVector3Array = NavigationServer3D.map_get_path(nav_map, a_from, a_to, true)
+	if path.is_empty():
+		return false
+	return VU.in_xz(path[path.size() - 1]).distance_to(VU.in_xz(a_to)) <= a_tolerance
+
+
 ## The nearest owned garrison structure that would accept [unit], or null when the bot
 ## owns none. Used by preservation to garrison at-risk units — filtered by accepts() so
 ## a host whose occupancy masks reject this unit isn't offered as a refuge it can't reach.

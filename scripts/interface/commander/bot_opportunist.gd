@@ -258,15 +258,15 @@ func _gather_deposits() -> Array[BotOpportunity]:
 # ─── GARRISON (bunker fire support) ─────────────────────────────────────────
 
 
-## Send idle combat units that are close to a bunker garrison structure inside
-## it, where they can continue to fire while being protected. Only bunker
-## structures are targeted — non-bunker garrisons offer protection but no added
-## combat value, so they're left for the preservation retreat path instead.
+## Send idle combat units that are close to a bunker inside it, where they fire from cover.
+## The hosts are the bot's own bunkers AND the neutral buildings (Bot.get_bunker_hosts):
+## until 2026-10-04 only owned hosts were considered, and the Colonials own no open bunker
+## at all, so the bot never garrisoned anything. Non-bunker garrisons offer protection but
+## no fire, so they are left for the preservation retreat path. The wave collects bunkered
+## units when it launches (BotMilitary evacuates the hosts holding them).
 func _gather_garrison_orders() -> Array[BotOpportunity]:
 	var out: Array[BotOpportunity] = []
-	var hosts: Array = _bot.get_garrison_structures().filter(
-		func(s: Commandable) -> bool: return s.garrison.bunker
-	)
+	var hosts: Array = _bot.get_bunker_hosts()
 	if hosts.is_empty():
 		return out
 	var candidates: Array = _bot.get_idle_units().filter(

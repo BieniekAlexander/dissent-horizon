@@ -222,7 +222,7 @@ func _inject_configs() -> String:
 		for key: String in overrides:
 			if key == RETIRED_THINK_INTERVAL_KEY:
 				# One think interval for everything, as the archived studies meant it.
-				config.set_all_periods(float(overrides[key]) / Engine.physics_ticks_per_second)
+				config.set_all_periods(float(overrides[key]) / TimeUtils.ticks_per_second())
 				continue
 			var current: Variant = _field_value(config, key)
 			if current == null:
@@ -501,6 +501,9 @@ func _slot_sample(a_commander: Commander) -> Dictionary:
 		# WHAT the slot owns, by piece id: the instrument for "the bots only make infantry" and
 		# "the war factory is rarely built", which counts alone cannot show.
 		"structures_by_id": _count_by_id(structures),
+		# Units in a garrison are off the tree and absent from every count above; this is
+		# where they went.
+		"bunkered_units": _bunkered_count(structures),
 		"units_by_id": _count_by_id(units),
 	}
 
@@ -575,6 +578,15 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		"wave_units": military.wave_size() if military != null else 0,
 		"reserve_units": military.reserve_size() if military != null else 0,
 	}
+
+
+## How many units `a_structures` hold between them (occupants of any garrison).
+func _bunkered_count(a_structures: Array) -> int:
+	var total: int = 0
+	for s: Commandable in a_structures:
+		if s.garrison != null:
+			total += s.garrison.occupants().size()
+	return total
 
 
 ## Piece id -> how many of them, for a roster line in a sample.

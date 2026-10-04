@@ -121,10 +121,27 @@ var reinforce_fraction: float = 0.5
 ## them, and short enough that the base's own defences still cover it.
 const STAGING_OFFSET: float = 10.0
 
-## A staged unit this close to the staging point (world units) is left standing rather than
-## re-ordered every think — arriving is a navigation radius, not a point, and a unit told to
-## walk to where it stands swirls.
-const STAGING_RADIUS: float = 4.0
+## A unit this close to where it was sent (world units) has ARRIVED and is left standing
+## rather than re-ordered every think. Arriving is a navigation radius, not a point, and a
+## unit told to walk to where it stands swirls — which, re-issued every combat period to a
+## whole army, is the swarm around a point that was reported.
+const HOLD_RADIUS: float = 4.0
+
+## A wave standing on its objective with nothing to fight for this long has found nothing it
+## can act on there — the belief was not disproved because nothing walked into vision of it
+## (a building across a cliff, a ridge) — and the objective is ABANDONED for a while so the
+## next belief gets its turn. Longer than any approach the wave makes once it is this close.
+const OBJECTIVE_STALL_SECONDS: float = 20.0
+## How long an abandoned objective stays off the list. The ground may change — a wall comes
+## down, a scout disproves it — so it is a cooldown, not a ban.
+const OBJECTIVE_ABANDON_SECONDS: float = 120.0
+## The wave counts as standing ON its objective within this of it: a few arrival radii, since
+## a wave of many units spreads around the point rather than onto it.
+const STALL_RADIUS: float = HOLD_RADIUS * 3.0
+## How far the walk to a believed objective may end from it and still count as reaching it:
+## a structure's half-footprint plus the standoff a wide unit keeps, since the path ends
+## beside a building, never on it.
+const REACH_TOLERANCE: float = 8.0
 
 var _bot: Bot
 var _act: BotActuator
@@ -147,6 +164,11 @@ var _regroup_until: float = 0.0
 ## Instance id → true for every unit in the field with the current wave. The reserve is every
 ## other combat unit. Keyed by id so a dead member needs no reference to drop.
 var _wave_members: Dictionary = {}
+## seconds_elapsed() when the current objective was set, or the wave was last seen fighting
+## or travelling — what OBJECTIVE_STALL_SECONDS is measured from.
+var _objective_since: float = 0.0
+## Abandoned objectives: [{"position": Vector3, "until": float}]. See OBJECTIVE_STALL_SECONDS.
+var _abandoned_objectives: Array = []
 ## Where the production structures were last told to rally, so the order is re-issued only
 ## when the point moves (or to a structure that has none yet).
 var _rally_point: Vector3 = Vector3.ZERO
@@ -196,30 +218,40 @@ func tick() -> int:
 	# utility fight — never march the unarmed technician to its death.
 	if changed:
 		var units: Array = _combat_units(_bot.get_units())
-		_wave_members.clear()
+		_objective_since = _bot.seconds_elapsed()
 		if posture == Posture.ATTACK:
-			for unit: Commandable in units:
-				_wave_members[unit.get_instance_id()] = true
-		if not units.is_empty():
-			_act.attack_move(units, objective_pos)
+			_launch(units, objective_pos)
+		else:
+			_wave_members.clear()
+			if not units.is_empty():
+				_act.attack_move(units, objective_pos)
 	elif posture == Posture.ATTACK:
 		_tick_reinforcements(objective_pos)
+		_check_objective_stall(objective_pos)
 	else:
-		var idle: Array = _combat_units(_bot.get_idle_units())
-		if not idle.is_empty():
-			_act.attack_move(idle, objective_pos)
+		_send_idle(_combat_units(_bot.get_idle_units()), objective_pos)
 	_rally_production(
 		_staging_point(objective_pos) if posture == Posture.ATTACK else objective_pos, changed
 	)
 	return considered * UNIT_WORK_UNITS
 
 
+## Send the whole army at `a_objective` as the new wave, collecting first whatever is sitting
+## in a bunker: a unit firing from cover at home is no use at the front. MASS and DEFEND
+## leave bunkered units where they are.
+func _launch(a_units: Array, a_objective: Vector3) -> void:
+	_wave_members.clear()
+	for unit: Commandable in a_units:
+		_wave_members[unit.get_instance_id()] = true
+	_act.evacuate(_bot.get_hosts_holding_my_units())
+	if not a_units.is_empty():
+		_act.attack_move(a_units, a_objective)
+
+
 ## ATTACK posture, nothing changed: press a wave member that went idle on to the objective;
 ## stage every reserve unit; release the reserve as a body when it is worth sending.
 func _tick_reinforcements(a_objective: Vector3) -> void:
-	var idle_wave: Array = _combat_units(_bot.get_idle_units()).filter(_is_wave_member)
-	if not idle_wave.is_empty():
-		_act.attack_move(idle_wave, a_objective)
+	_send_idle(_combat_units(_bot.get_idle_units()).filter(_is_wave_member), a_objective)
 	var reserve: Array = _combat_units(_bot.get_units()).filter(
 		func(u: Commandable) -> bool: return not _is_wave_member(u)
 	)
@@ -230,13 +262,64 @@ func _tick_reinforcements(a_objective: Vector3) -> void:
 			_wave_members[unit.get_instance_id()] = true
 		_act.attack_move(reserve, a_objective)
 		return
-	var staging: Vector3 = _staging_point(a_objective)
-	var to_stage: Array = reserve.filter(
-		func(u: Commandable) -> bool:
-			return not u.has_command() and u.global_position.distance_to(staging) > STAGING_RADIUS
+	_send_idle(
+		reserve.filter(func(u: Commandable) -> bool: return not u.has_command()),
+		_staging_point(a_objective)
 	)
-	if not to_stage.is_empty():
-		_act.attack_move(to_stage, staging)
+
+
+## Attack-move `a_units` to `a_destination`, except any already standing within HOLD_RADIUS
+## of it — they have arrived, and an order to walk to where they stand is the swarm.
+func _send_idle(a_units: Array, a_destination: Vector3) -> void:
+	var to_send: Array = a_units.filter(
+		func(u: Commandable) -> bool:
+			return u.global_position.distance_to(a_destination) > HOLD_RADIUS
+	)
+	if not to_send.is_empty():
+		_act.attack_move(to_send, a_destination)
+
+
+## A wave that has stood on its objective for OBJECTIVE_STALL_SECONDS with nobody fighting
+## has found nothing there it can act on: abandon the objective for a while and let the next
+## belief be chosen. The clock restarts whenever the wave is fighting (BotTargeting holds a
+## member) or still travelling (its centroid is not yet near the objective).
+func _check_objective_stall(a_objective: Vector3) -> void:
+	var now: float = _bot.seconds_elapsed()
+	if not claims.units_of(BotTargeting.CLAIM_OWNER).is_empty():
+		_objective_since = now
+		return
+	var members: Array = _bot.get_units().filter(_is_wave_member)
+	if members.is_empty():
+		return
+	var centroid: Vector3 = Vector3.ZERO
+	for unit: Commandable in members:
+		centroid += unit.global_position
+	centroid /= float(members.size())
+	if centroid.distance_to(a_objective) > STALL_RADIUS:
+		_objective_since = now
+		return
+	if now - _objective_since > OBJECTIVE_STALL_SECONDS:
+		_abandon_objective(a_objective)
+
+
+func _abandon_objective(a_position: Vector3) -> void:
+	_abandoned_objectives.append(
+		{"position": a_position, "until": _bot.seconds_elapsed() + OBJECTIVE_ABANDON_SECONDS}
+	)
+	_has_objective = false
+
+
+## Whether `a_position` is within STALL_RADIUS of an objective abandoned and not yet expired.
+## Expired entries are dropped as they are met.
+func _is_abandoned(a_position: Vector3) -> bool:
+	var now: float = _bot.seconds_elapsed()
+	_abandoned_objectives = _abandoned_objectives.filter(
+		func(entry: Dictionary) -> bool: return float(entry["until"]) > now
+	)
+	return _abandoned_objectives.any(
+		func(entry: Dictionary) -> bool:
+			return (entry["position"] as Vector3).distance_to(a_position) <= STALL_RADIUS
+	)
 
 
 ## The bot's own command centre under threat, or null — only under HEGEMONY, where it is the
@@ -494,10 +577,17 @@ func _objective_for(a_posture: Posture) -> Variant:
 			# Both are FILTERS, not rankings: a rejected belief is not a candidate, so the query
 			# still answers with the nearest belief that IS actionable rather than with nothing.
 			var army: Array = _combat_units(_bot.get_units())
+			# …AND REACHABLE, and not lately abandoned. A belief across a cliff is one the
+			# walk can never disprove (nobody gets vision of it), so the army would stand
+			# beside it for the rest of the match; the stall rule catches what the path
+			# query does not.
+			var origin: Vector3 = _home_anchor_position()
 			var actionable: Callable = func(entry: CommanderBlackboard.Entry) -> bool:
 				return (
 					Bot.any_unit_can_damage(army, entry.entity)
 					and not _bot.belief_is_disproved(entry)
+					and not _is_abandoned(entry.last_known_location)
+					and _bot.is_reachable(origin, entry.last_known_location, REACH_TOLERANCE)
 				)
 			# Under HEGEMONY the enemy's COMMAND CENTRE is the objective whenever one is
 			# believed and actionable: taking it is the whole match. WHEN to go is still the

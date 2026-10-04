@@ -175,6 +175,33 @@ PLANNED — the rest of "which positions matter":
   Needs the relation model (a defence PROTECTS what its reach covers) and the believed
   clusters over positions ([bot-roadmap](bot-roadmap.md) §The vision layer).
 
+## Cover, and a wave that finds nothing
+
+Built 2026-10-04, from two watched behaviours.
+
+**The bot garrisons neutral buildings.** `BotOpportunist` only ever offered the bot's OWN
+bunkers, and the Colonials own no open one, so no Colonial bot ever took cover.
+`Bot.get_bunker_hosts` adds the neutral buildings: a neutral host adopts its first
+occupant's side and is closed to the enemy from then on, so it is as good as owned, and it
+is where most of the cover on a map is. An idle armed unit near one goes in; the wave
+collects bunkered units when it launches (`BotActuator.evacuate`, the host's own order, and
+a neutral host the bot occupies takes it because it is the bot's while occupied). MASS and
+DEFEND leave them firing from cover.
+
+**A unit that has arrived is left standing.** Every idle unit used to be re-ordered to its
+destination each combat period, and an order to walk to where you already stand is a swirl;
+issued to a whole army it is the swarm around a point that was reported. `HOLD_RADIUS` is
+the arrival radius below which no order is re-issued, in every branch.
+
+**A wave standing on a silent objective abandons it.** A believed building the walk can
+never disprove — across a cliff, behind a ridge, nobody gets vision of it — kept the army
+beside it for the rest of the match. Two rules: an objective is only chosen if the
+navigation mesh reaches within `REACH_TOLERANCE` of it (`Bot.is_reachable`), and a wave that
+has stood within `STALL_RADIUS` of its objective for `OBJECTIVE_STALL_SECONDS` with nobody
+fighting abandons it for `OBJECTIVE_ABANDON_SECONDS` — a cooldown, not a ban, since the
+ground changes. The clock restarts while the wave travels or fights.
+Cover: `tests/test_BotStaging.gd`.
+
 ## Placement beyond open ground
 
 `BotEconomy`'s placement is already a scored cost in the bot's own frame — compactness, a

@@ -75,6 +75,20 @@ func rally(a_structures: Array, a_world_pos: Vector3) -> void:
 		s.set_rally(MoveCommand.new(CommandMessage.new(_map, null, null, dest)))
 
 
+## Turn every host in `a_hosts` out: the Evacuate order the player gives a garrison. Issued
+## to the HOST, so a neutral building the bot's units occupied (and so adopted) takes it like
+## one of its own. A host whose occupants may not leave by order is skipped, exactly as the
+## command's own precondition would refuse the player.
+func evacuate(a_hosts: Array) -> void:
+	if _map == null:
+		return
+	for host: Commandable in a_hosts:
+		var msg := CommandMessage.new(_map, null, null, host.global_position)
+		if Evacuate.meets_precondition(host, msg) != MoveCommand.PreconditionFailureCause.NONE:
+			continue
+		host.update_commands(Evacuate.new(msg))
+
+
 ## Order each unit to attack a specific enemy entity directly. persist=false makes
 ## it a leashed engagement (drop the target if it flees / leaves range), so the unit
 ## returns to idle — and gets re-tasked — instead of chasing forever.

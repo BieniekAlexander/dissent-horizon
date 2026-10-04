@@ -44,6 +44,14 @@ class FakeBot:
 	var army_value: float = 0.0
 	var believed_value: float = 0.0
 	var producers: Array = []
+	var now: float = 0.0
+	var holding_hosts: Array = []
+
+	func seconds_elapsed() -> float:
+		return now
+
+	func get_hosts_holding_my_units() -> Array:
+		return holding_hosts
 
 	func unit_cost(_a_unit_type) -> int:
 		return UNIT_PRICE
@@ -77,6 +85,11 @@ class RecordingActuator:
 
 	func rally(a_structures: Array, a_world_pos: Vector3) -> void:
 		rallies.append({"structures": a_structures.duplicate(), "to": a_world_pos})
+
+	var evacuated: Array = []
+
+	func evacuate(a_hosts: Array) -> void:
+		evacuated.append_array(a_hosts)
 
 
 const OBJECTIVE: Vector3 = Vector3(110.0, 0.0, 10.0)
@@ -161,12 +174,15 @@ func test_a_staged_unit_already_there_is_left_alone() -> void:
 	_armed_unit(_staging())
 	_act.attack_moves.clear()
 	_military._tick_reinforcements(OBJECTIVE)
-	for call: Dictionary in _act.attack_moves:
-		assert_ne(call["to"], _staging(), "nobody is told to walk to where they stand")
+	var to_staging: Array = _act.attack_moves.filter(
+		func(call: Dictionary) -> bool: return call["to"] == _staging()
+	)
+	assert_eq(to_staging.size(), 0, "nobody is told to walk to where they stand")
 
 
 func test_an_idle_wave_member_presses_on_to_the_objective() -> void:
-	var veteran := _armed_unit(OBJECTIVE)
+	# Idle short of the objective — its fight ended on the way — not standing on it.
+	var veteran := _armed_unit(OBJECTIVE + Vector3(-20.0, 0.0, 0.0))
 	_launch_wave([veteran], 1000.0)
 	_military._tick_reinforcements(OBJECTIVE)
 	assert_eq(_destinations_of(veteran), [OBJECTIVE])
@@ -314,3 +330,73 @@ func test_the_army_stands_in_front_of_the_exposed_structure_not_on_the_centroid(
 func test_with_no_structure_the_station_is_in_front_of_home() -> void:
 	var station: Vector3 = _military._station_point(Vector2(0.0, 1.0))
 	assert_almost_eq(station.distance_to(FakeBot.HOME), BotMilitary.STAGING_OFFSET, 0.001)
+
+
+# ─── ARRIVED UNITS ARE LEFT STANDING; A WAVE THAT FINDS NOTHING MOVES ON ─────
+
+
+func test_a_unit_standing_on_its_destination_is_not_re_ordered() -> void:
+	var there := _armed_unit(OBJECTIVE + Vector3(1.0, 0.0, 0.0))
+	var away := _armed_unit(FakeBot.HOME)
+	_military._send_idle([there, away], OBJECTIVE)
+	assert_eq(
+		_destinations_of(there), [], "arrived: an order to walk to where it stands is the swarm"
+	)
+	assert_eq(_destinations_of(away), [OBJECTIVE])
+
+
+func test_an_idle_wave_member_standing_on_the_objective_is_left_alone() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military._tick_reinforcements(OBJECTIVE)
+	assert_eq(_destinations_of(veteran), [])
+
+
+func test_a_wave_standing_on_a_silent_objective_abandons_it() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military._has_objective = true
+	_bot.now = 100.0
+	_military._objective_since = 100.0
+	_military._check_objective_stall(OBJECTIVE)
+	assert_false(_military._is_abandoned(OBJECTIVE), "not yet: the clock has just started")
+	_bot.now = 100.0 + BotMilitary.OBJECTIVE_STALL_SECONDS + 1.0
+	_military._check_objective_stall(OBJECTIVE)
+	assert_true(_military._is_abandoned(OBJECTIVE), "stood there with nothing to fight: abandoned")
+	assert_false(_military._has_objective, "and the next think picks afresh")
+	_bot.now += BotMilitary.OBJECTIVE_ABANDON_SECONDS
+	assert_false(_military._is_abandoned(OBJECTIVE), "a cooldown, not a ban")
+
+
+func test_a_wave_still_travelling_or_fighting_is_not_stalled() -> void:
+	var veteran := _armed_unit(FakeBot.HOME)  # far from the objective: travelling
+	_launch_wave([veteran], 1000.0)
+	_bot.now = 100.0
+	_military._objective_since = 0.0
+	_military._check_objective_stall(OBJECTIVE)
+	assert_false(_military._is_abandoned(OBJECTIVE))
+	assert_eq(_military._objective_since, 100.0, "travelling restarts the clock")
+	veteran.global_position = OBJECTIVE
+	_military.claims.claim(veteran, BotTargeting.CLAIM_OWNER, BotClaims.Priority.COMBAT)
+	_bot.now = 200.0
+	_military._objective_since = 0.0
+	_military._check_objective_stall(OBJECTIVE)
+	assert_false(_military._is_abandoned(OBJECTIVE), "fighting is not standing still")
+
+
+func test_an_abandoned_objective_covers_the_ground_around_it() -> void:
+	_bot.now = 10.0
+	_military._abandon_objective(OBJECTIVE)
+	assert_true(_military._is_abandoned(OBJECTIVE + Vector3(BotMilitary.HOLD_RADIUS, 0.0, 0.0)))
+	assert_false(_military._is_abandoned(OBJECTIVE + Vector3(100.0, 0.0, 0.0)))
+
+
+func test_a_wave_launch_collects_the_bunkered_units() -> void:
+	var host: StubPiece = StubPiece.make()
+	add_child_autofree(host)
+	_bot.holding_hosts = [host]
+	var unit := _armed_unit(FakeBot.HOME)
+	_military._launch([unit], OBJECTIVE)
+	assert_eq(_act.evacuated, [host], "the hosts holding its units are turned out first")
+	assert_true(_military._is_wave_member(unit))
+	assert_eq(_destinations_of(unit), [OBJECTIVE])
