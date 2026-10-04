@@ -281,3 +281,36 @@ func test_a_producer_without_a_rally_gets_the_standing_one() -> void:
 	_military._rally_production(FakeBot.HOME, false)
 	assert_eq(_act.rallies.size(), 1)
 	assert_eq(_act.rallies[0]["structures"], [fresh], "only the one that has none")
+
+
+# ─── WHERE THE ARMY STANDS ───────────────────────────────────────────────────
+
+
+## A bot that owns structures: the fake's HOME is still the centroid it reports, and the
+## structures are what frontmost_structure walks.
+func _structure_at(a_at: Vector3) -> Commandable:
+	var piece: Commandable = FakePieces.structure({})
+	_bot.add_child(piece)
+	piece.ownership.commander = _bot
+	piece.global_position = a_at
+	return piece
+
+
+func test_the_frontmost_structure_is_the_one_furthest_along_the_threat_axis() -> void:
+	var rear := _structure_at(FakeBot.HOME + Vector3(-20.0, 0.0, 0.0))
+	var front := _structure_at(FakeBot.HOME + Vector3(20.0, 0.0, 0.0))
+	assert_eq(_bot.frontmost_structure(Vector2(1.0, 0.0)), front)
+	assert_eq(_bot.frontmost_structure(Vector2(-1.0, 0.0)), rear, "the other way round, the other")
+
+
+func test_the_army_stands_in_front_of_the_exposed_structure_not_on_the_centroid() -> void:
+	_structure_at(FakeBot.HOME + Vector3(-20.0, 0.0, 0.0))
+	var front := _structure_at(FakeBot.HOME + Vector3(20.0, 0.0, 0.0))
+	var station: Vector3 = _military._station_point(Vector2(1.0, 0.0))
+	assert_almost_eq(station.distance_to(front.global_position), BotMilitary.STAGING_OFFSET, 0.001)
+	assert_gt(station.x, front.global_position.x, "on the threat side of it")
+
+
+func test_with_no_structure_the_station_is_in_front_of_home() -> void:
+	var station: Vector3 = _military._station_point(Vector2(0.0, 1.0))
+	assert_almost_eq(station.distance_to(FakeBot.HOME), BotMilitary.STAGING_OFFSET, 0.001)

@@ -509,6 +509,47 @@ func army_centroid() -> Vector3:
 	return sum / float(units.size())
 
 
+## A direction squared below this is "no direction" — the anchor sits on the target.
+const DIRECTION_EPSILON: float = 1.0e-6
+
+
+## WHICH WAY THE THREAT IS, as a unit vector on XZ from `a_from_xz`: toward the nearest enemy
+## structure this bot has SEEN, else the nearest enemy unit it remembers, else the middle of
+## the map — fog-limited, like the attack objective, so the bot orients against what it has
+## found. One axis read by placement (production forward, support behind) and by the
+## military (where the army stands), so the two cannot disagree about where "forward" is.
+## The last fallback is the one line that names a world axis; it is reached only with the
+## anchor exactly on the map centre and nothing believed.
+func threat_direction(a_from_xz: Vector2) -> Vector2:
+	var believed: Variant = nearest_believed_enemy_structure_position()
+	if believed == null:
+		believed = nearest_believed_enemy_unit_position(base_centroid())
+	if believed != null:
+		var to_threat: Vector2 = VU.in_xz(believed) - a_from_xz
+		if to_threat.length_squared() > DIRECTION_EPSILON:
+			return to_threat.normalized()
+	if map != null:
+		var to_centre: Vector2 = map.world_bounds().get_center() - a_from_xz
+		if to_centre.length_squared() > DIRECTION_EPSILON:
+			return to_centre.normalized()
+	return Vector2(0.0, 1.0)
+
+
+## The owned structure furthest ALONG `a_direction` from the base centroid — the building
+## the enemy reaches first coming that way, and so the one the army stands in front of. Null
+## when the bot owns no structure.
+func frontmost_structure(a_direction: Vector2) -> Commandable:
+	var origin: Vector2 = VU.in_xz(base_centroid())
+	var best: Commandable = null
+	var best_along: float = -INF
+	for s: Commandable in _owned_structures():
+		var along: float = (VU.in_xz(s.global_position) - origin).dot(a_direction)
+		if along > best_along:
+			best_along = along
+			best = s
+	return best
+
+
 ## Average world position of all owned structures — a rough "home base"
 ## anchor.  Returns Vector3.ZERO when no structures exist.
 ## NOTE: includes unbuilt structures (they occupy real space and anchor the base).
@@ -1020,6 +1061,24 @@ func buildable_production_structure_types() -> Array:
 	return buildable_structure_types().filter(
 		func(t): return Production.node_trains_units(_preview_for_type(t))
 	)
+
+
+## What the best combat unit `a_structure_type` could train is worth against `a_demand`
+## (unit_composition_value) — how much the army wants what this building makes. 0 for a
+## building that trains nothing armed. Read off the preview's Production component, so a
+## new producer answers for itself.
+func best_producible_value(a_structure_type, a_demand: Dictionary) -> float:
+	var preview := _preview_for_type(a_structure_type)
+	var production: Production = (
+		preview.get_node_or_null("Production") as Production if preview != null else null
+	)
+	if production == null:
+		return 0.0
+	var best: float = 0.0
+	for t: StringName in production.producible_types:
+		if unit_can_attack(t):
+			best = maxf(best, unit_composition_value(t, a_demand))
+	return best
 
 
 ## Buildable structures that are STATIC DEFENCE: they carry weapons (a Loadout) and train

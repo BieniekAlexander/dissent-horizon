@@ -256,14 +256,25 @@ func _reserve_value(a_reserve: Array) -> float:
 	return total
 
 
-## Where the reserve gathers: STAGING_OFFSET from home toward the objective, so it stands on
-## the threat side of the base. Home itself when the objective is home.
+## Where the reserve gathers while a wave is out: in front of the base, toward the objective.
 func _staging_point(a_objective: Vector3) -> Vector3:
 	var home: Vector3 = _home_anchor_position()
 	var toward: Vector3 = a_objective - home
 	if toward.length_squared() <= STAGING_OFFSET * STAGING_OFFSET:
 		return home
-	return home + toward.normalized() * STAGING_OFFSET
+	return _station_point(VU.in_xz(toward).normalized())
+
+
+## WHERE THE ARMY STANDS when it is not marching: STAGING_OFFSET in front of the structure
+## the enemy would reach first coming along `a_direction`. Both halves of "a good position"
+## at once — next to the building that is exposed, on the side the threat comes from — and
+## it is what replaced massing on the base centroid, which stood the army in the middle of
+## its own buildings on whichever side they happened to be. Home itself with no structure.
+func _station_point(a_direction: Vector2) -> Vector3:
+	var home: Vector3 = _home_anchor_position()
+	var front: Commandable = _bot.frontmost_structure(a_direction)
+	var anchor: Vector3 = front.global_position if front != null else home
+	return anchor + VU.from_xz(a_direction) * STAGING_OFFSET
 
 
 ## Point every production structure's rally at `a_point`: re-issued to all of them when the
@@ -476,7 +487,12 @@ func _objective_for(a_posture: Posture) -> Variant:
 			# Nothing of theirs standing that we know of: go after the last place we saw a unit.
 			return _bot.nearest_believed_enemy_unit_position(_home_anchor_position(), actionable)
 		_:  # MASS
-			return _home_anchor()
+			# Not the base centroid: the army waits on the threat side of the base, in front
+			# of the building the enemy reaches first (Bot.threat_direction is fog-limited and
+			# falls back to the map's middle, so an unscouted bot still faces outward).
+			if _home_anchor() == null:
+				return null
+			return _station_point(_bot.threat_direction(VU.in_xz(_home_anchor_position())))
 
 
 ## `_home_anchor()` as a plain Vector3 — ZERO when there is nothing to anchor on. Used where

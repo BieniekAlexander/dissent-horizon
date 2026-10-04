@@ -70,7 +70,9 @@ currency below, is still the model for the other managers.
 - **`BotEconomy`** — a priority ladder, one build per think, one builder: a dominion structure
   if we own none → an infrastructure provider if capacity is tight → **an extractor while the
   bot wants more income than it owns and nothing is pressing** → a production building if
-  energy is in surplus (another dominion source first, for a route that pays by site) → an
+  energy is in surplus (another dominion source first, for a route that pays by site) — the
+  one whose best unit the demand map wants most, cost as the tiebreak, since cheapest-first
+  meant a second barracks every time and never a second war factory → an
   extractor on a free site. WHICH structures is derived from the
   buildable set classified by component (`EnergyExtractor`, `Production`) and, for dominion,
   by the faction's route (see §Dominion routes) — never hardcoded, so a newly-added building is picked up automatically. **One

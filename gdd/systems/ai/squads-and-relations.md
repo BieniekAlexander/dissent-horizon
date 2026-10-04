@@ -155,6 +155,26 @@ A fourth follows for free and is a `TODO`: an enemy provider is worth more than 
 cost (kill the spotter, not the gun), which is one more term in `BotTargeting`'s threat
 signal once relations are readable.
 
+## Where the army stands
+
+Built 2026-10-03. An army with nothing to do used to mass on the base centroid — the middle of
+its own buildings, on whichever side they happened to lie. It now stands `STAGING_OFFSET` in
+front of the structure the enemy would reach first along the threat axis
+(`Bot.frontmost_structure`, `BotMilitary._station_point`): next to what is exposed, on the
+side the threat comes from. The axis is `Bot.threat_direction`, the one sense placement
+already read, so the army and the buildings agree about which way is forward; fog-limited,
+it faces the map's middle until something has been seen. The reserve stages by the same rule
+toward its objective.
+
+PLANNED — the rest of "which positions matter":
+
+- **Approach coverage** for static defence, below: a chokepoint is where the approach samples
+  bunch, so the same term that places a turret finds the chokepoint.
+- **Undefended entrances.** The believed enemy base's approach cells not covered by any
+  believed defence's reach, as an objective for a raid squad of fast or stealthed units.
+  Needs the relation model (a defence PROTECTS what its reach covers) and the believed
+  clusters over positions ([bot-roadmap](bot-roadmap.md) §The vision layer).
+
 ## Placement beyond open ground
 
 `BotEconomy`'s placement is already a scored cost in the bot's own frame — compactness, a

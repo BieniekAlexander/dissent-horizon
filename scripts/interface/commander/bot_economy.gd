@@ -386,10 +386,12 @@ func _decide() -> void:
 			_issue_build(builder, mtype, spot)
 
 
-## Which production structure to build now: an affordable buildable production
-## type, PREFERRING one we don't own yet — so every production building (e.g. a
-## newly-added Hangar) gets built at least once to unlock its units, before scaling
-## up the cheapest existing one. null when none is affordable.
+## Which production structure to build now: an affordable buildable production type,
+## PREFERRING one we don't own yet — so every production building gets built at least once
+## to unlock its units — and within that, THE ONE WHOSE UNITS THE DEMAND WANTS MOST
+## (Bot.best_producible_value against the enemy demand map), cost as the tiebreak. It used
+## to be the cheapest, which after one of each meant a second barracks every time and never a
+## second war factory however badly the army wanted vehicles. null when none is affordable.
 func _production_structure_to_build() -> Variant:
 	var buildable: Array = _bot.buildable_production_structure_types()
 	if (
@@ -404,7 +406,16 @@ func _production_structure_to_build() -> Variant:
 		func(t): return _bot.get_structures_of_type(t).is_empty()
 	)
 	var pool: Array = unowned if not unowned.is_empty() else candidates
-	pool.sort_custom(func(a, b): return _energy_cost(a) < _energy_cost(b))
+	var demand: Dictionary = _bot.enemy_demand_map()
+	var value: Dictionary = {}
+	for t in pool:
+		value[t] = _bot.best_producible_value(t, demand)
+	pool.sort_custom(
+		func(a, b):
+			if value[a] != value[b]:
+				return value[a] > value[b]
+			return _energy_cost(a) < _energy_cost(b)
+	)
 	return pool[0]
 
 
@@ -1119,18 +1130,9 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 ## centre with nothing believed, at which point the bot has no situation to be asymmetric
 ## about; it is the one line here that names an axis, and it is unreachable in play.
 func _forward_direction(a_anchor: Vector2) -> Vector2:
-	var believed: Variant = _bot.nearest_believed_enemy_structure_position()
-	if believed == null:
-		believed = _bot.nearest_believed_enemy_unit_position(_bot.base_centroid())
-	if believed != null:
-		var to_threat: Vector2 = VU.in_xz(believed) - a_anchor
-		if to_threat.length_squared() > DIRECTION_EPSILON:
-			return to_threat.normalized()
-	var bounds: Rect2 = _bot.map.world_bounds()
-	var to_centre: Vector2 = bounds.get_center() - a_anchor
-	if to_centre.length_squared() > DIRECTION_EPSILON:
-		return to_centre.normalized()
-	return Vector2(0.0, 1.0)
+	# A SENSE now (Bot.threat_direction), because the military stations the army by the same
+	# axis; the rules above are its doc.
+	return _bot.threat_direction(a_anchor)
 
 
 ## Which way `a_type` wants to sit on the forward axis, in cost per cell: positive pulls the

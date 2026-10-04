@@ -489,6 +489,10 @@ func _slot_sample(a_commander: Commander) -> Dictionary:
 		# type (it needs the build previews), so a non-bot slot reports -1 rather than 0, which
 		# would read as a real measurement of none.
 		"utility_unit_count": _utility_unit_count(a_commander, units),
+		# WHAT the slot owns, by piece id: the instrument for "the bots only make infantry" and
+		# "the war factory is rarely built", which counts alone cannot show.
+		"structures_by_id": _count_by_id(structures),
+		"units_by_id": _count_by_id(units),
 	}
 
 
@@ -550,9 +554,27 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		# The staging instrument: a release shows as the reserve dropping to 0 while the wave
 		# grows by the same count in one sample. The trickle shows as a reserve that never
 		# exceeds 0 (gdd/systems/ai/squads-and-relations.md §What started it).
+		# The objective the army would actually be sent to — null when the military has no
+		# ACTIONABLE belief and demotes to MASS, which `has_attack_objective` (unfiltered,
+		# above) cannot tell apart from an army on the march.
+		"attack_objective":
+		(
+			str(military._objective_for(BotMilitary.Posture.ATTACK))
+			if military != null and military._objective_for(BotMilitary.Posture.ATTACK) != null
+			else ""
+		),
 		"wave_units": military.wave_size() if military != null else 0,
 		"reserve_units": military.reserve_size() if military != null else 0,
 	}
+
+
+## Piece id -> how many of them, for a roster line in a sample.
+func _count_by_id(a_pieces: Array) -> Dictionary:
+	var out: Dictionary = {}
+	for piece: Commandable in a_pieces:
+		var key: String = String(piece.id)
+		out[key] = int(out.get(key, 0)) + 1
+	return out
 
 
 ## Summed build cost of `a_units`, the same figure Bot.army_resource_value reports — computed
