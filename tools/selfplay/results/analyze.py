@@ -18,13 +18,14 @@ def material(sample_slot):
             + sample_slot.get("energy", 0.0)
             + 250.0 * sample_slot.get("structure_count", 0))
 
-def score(row, slot):
+def score(row, slot, cap=CAP):
     """Objective from `slot`'s point of view, in [0,1]. MY SHAPING CHOICE.
     Any win (0.75-1.00) > any stalemate (0.25-0.75) > any loss (0.00-0.25).
-    Within a win, sooner is better; within a loss, later is better."""
+    Within a win, sooner is better; within a loss, later is better.
+    `cap` is the match's simulated-seconds cap, the scale "sooner" is measured on."""
     if not row.get("ok"):
         return None
-    o = row.get("outcome"); t = row.get("simulated_seconds", CAP); f = min(1.0, t / CAP)
+    o = row.get("outcome"); t = row.get("simulated_seconds", cap); f = min(1.0, t / cap)
     if o == "elimination":
         if row.get("winner") == slot:
             return 0.75 + 0.25 * (1.0 - f)

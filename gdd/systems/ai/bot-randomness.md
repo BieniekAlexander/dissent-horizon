@@ -53,8 +53,8 @@ one running best, and sampling it means keeping every point's score.
 
 Asked whether reinforcement learning is the right model: **no, not in the usual sense.** The
 bot is a hand-written, legible policy whose only free surface is the `BotDifficulty` vector,
-built so a black-box search can tune it; `tools/selfplay/results/es.py` is already an
-evolution strategy over it. Policy-gradient RL over a network issuing orders is a poor fit:
+built so a black-box search can tune it; `tools/selfplay/train.py` is that search.
+Policy-gradient RL over a network issuing orders is a poor fit:
 the simulation runs in GDScript at a few hundred ticks per wall second, an episode is tens of
 thousands of ticks with a terminal reward, and the result would discard the difficulty knobs.
 The one RL-shaped place is the posture-vector layer in
@@ -62,13 +62,44 @@ The one RL-shaped place is the posture-vector layer in
 strategy over a tiny policy is simpler.
 
 **Variety and strength pull against each other.** Any optimiser converges on one best
-vector, which is the opposite of what variety wants. PLANNED — a **population**: a
-quality-diversity search (MAP-Elites over axes such as aggression × greed) that keeps a
-roster of distinct strong personalities; a tier becomes a distribution over the roster and
-the per-match draw picks one and jitters it. `tools/selfplay/results/archetypes.json` is the
-seed of that roster. **Prerequisite:** the start-position bias
-([selfplay-results-2026-09-06](selfplay-results-2026-09-06.md)) would be learned as "play
-from the good corner"; the search plays both assignments (as `effects.py` does) or runs on
-a map where the bias is fixed first.
+vector, which is the opposite of what variety wants. So the search keeps a **population**:
+`tools/selfplay/train.py` (built 2026-10-04) is a quality-diversity search whose archive is
+a grid over two behaviour descriptors measured from play — aggression (simulated seconds to
+the first ATTACK posture) and greed (structures built) — with one incumbent per cell, taken
+only by out-rating it. Its rules, each the answer to a way the naive search goes wrong:
+
+- **Rated against the roster, never against one parent.** Every match is kept in one ledger
+  and every member's rating is refitted from it (Bradley-Terry on the soft score `analyze.py`
+  gives, so a win beats any stalemate beats any loss). A single-lineage strategy learns to beat
+  its parent, which is a counter and not a strength.
+- **Both start assignments, always.** The start-position bias
+  ([selfplay-results-2026-09-06](selfplay-results-2026-09-06.md)) would otherwise be learned
+  as "play from the good corner". The map pool is one scene until the generator's maps are
+  stable enough to rotate — that is the remaining prerequisite, now for breadth rather than
+  for correctness.
+- **Opponents weighted toward the ones the parent loses to**, over a uniform floor
+  (prioritised fictitious self-play). Pure self-play against the strongest member forgets the
+  counters it already found.
+- **Parents chosen by an upper-confidence rule over cells**, mutation scale self-adapting per
+  lineage with occasional large jumps and crossover, and a stagnant generation widens the
+  next. Exploitation alone fills one cell; exploration alone never rates anything well.
+- **The dice are pinned.** Every match sets `personality_spread` and `decision_temperature`
+  to 0, so the ledger measures the vector and not the draw; the tiers keep their spread in
+  play.
+
+What the search reports is the roster's pairwise score matrix and its mixed equilibrium: how
+many members the mixture plays, and how much the best single member gains over it. **A
+dominant member is a finding about the game, not a failure of the trainer** — the search is
+the instrument that checks whether the units actually form the rock-paper-scissors the design
+wants (the Matilda-versus-recruit measurement in
+[squads-and-relations](squads-and-relations.md) was the first such finding).
+
+PLANNED — **a tier draws from the roster.** Today a tier is one point plus jitter; it becomes
+a distribution over archive cells, and the per-match draw picks a member and jitters it.
+Waits on a roster worth drawing from: enough generations that several cells hold members
+rated clearly above the seeds. PLANNED — **categorical preference weights on the vector** (a
+weight per unit class in production, an opening-style weight, static-defence and garrison
+appetites), without which an air-heavy or mech-first personality is not reachable by any
+search, since production picks by demand value alone.
 
 Tests: `tests/test_BotPersonality.gd`.

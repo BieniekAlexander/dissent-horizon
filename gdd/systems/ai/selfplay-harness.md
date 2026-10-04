@@ -42,6 +42,18 @@ GODOT=/path/to/godot python3 tools/selfplay/run_batch.py matches.json \
     --out results.jsonl --jobs 2
 ```
 
+A training run — the population search over the roster, which drives `run_batch.py` itself
+([bot-randomness](bot-randomness.md) §Strength is a search):
+
+```
+GODOT=/path/to/godot python3 tools/selfplay/train.py seed --cap 900    # roster + round-robin
+GODOT=/path/to/godot python3 tools/selfplay/train.py step              # one generation
+python3 tools/selfplay/train.py report                                 # no matches run
+```
+
+Its state is one directory, `tools/selfplay/results/train/`: the archive, the ledger of every
+match played, and the last report. Never run it alongside another Godot process.
+
 **`--fixed-fps 30` is not optional.** It detaches the main loop from wall time, so one engine
 iteration is one physics tick and the simulation runs at whatever the CPU can do. Without it
 Godot paces physics to the wall clock and a 20-minute match takes 20 minutes. With it, on a
