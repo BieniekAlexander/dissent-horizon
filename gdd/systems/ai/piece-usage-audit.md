@@ -89,5 +89,36 @@ REVEAL, aimed at the scout grid's least-recently-observed point weighted toward 
 enemy, with no engagement gate; it is marked `TODO` at `_aim`. PLANNED: see
 [deferred](../../deferred.md) 2.51.
 
-**Measured.** See §Measured below, written from the first six-match HARD mirror batch; the
-report itself is regenerated from any results file, so the table is not reproduced here.
+## Measured (2026-10-04, six HARD mirror matches on `skirmish.tscn`, cap 900 s, twelve slots)
+
+Fifteen pieces `USED`, and the rest in four groups, each with a different owner:
+
+- **Two producers stood idle on units the bot could not train.** The picker scored every
+  producible type on its gun and took the best; the Guard (behind `cl_tech1`) won 46,707 of
+  56,794 barracks decisions and the Avalanche (behind `cl_tech2`) 9,247 of 10,212 war-factory
+  decisions, and the spend gate refused each one every tick while the caller banked for it.
+  Neither was ever trained, and the bot owned no tech structure. That is the infantry-heavy,
+  war-factory-idle army seen in play, from a picker bug rather than a valuation: FIXED, the
+  picker now considers only units the bot has the tech for (`tests/test_BotProductionTechGate.gd`).
+  The verdict that found it, `CHOSEN_NOT_ORDERED`, exists for exactly this shape.
+- **There is no tech rung.** Six structures were `NEVER_CONSIDERED`: both tech buildings, the
+  three support buildings and the Bombard. The economy ladder buys production, income,
+  defence and the dominion and infrastructure providers, and nothing else — so every piece
+  behind a tech building is unreachable in play whatever the bot thinks of it. Marked `TODO`
+  in `BotEconomy._decide`; the rung wants the demand the picker already computes (how much
+  the best unit the bot cannot train outscores the best it can). PLANNED, [deferred](../../deferred.md) 2.51.
+- **Two sanctions are aimed at ground and want a unit.** Freeze and Promotion were charged,
+  aimed 596 and 790 times, and refused every time with `NO_VALID_TARGET`: `BotSanction` aims
+  every sanction at a point, and these two name a unit. The bot's single-unit casts are a
+  known gap; the audit puts a number on it. Beacon was `NEVER_AIMED` (524 charged ticks, no
+  target): it needs an enemy cluster of two within six units in vision, which the bot's
+  engagement zone rarely offers, and a beacon's purpose — ground for a Bombard the bot never
+  builds — gives it nothing to aim for anyway.
+- **Scan.** 97 casts over twelve slots with a repeat fraction of 0.39, and 1,853 charged
+  ticks with no target: aimed only inside an engagement, at the visible front. See the
+  finding above.
+
+One valuation finding: the Matilda (`cl_mechMedium_antiMech`) was `CONSIDERED_NOT_CHOSEN` at
+0.62 of the winner's score across 10,212 war-factory decisions, consistent with the
+crush-effectiveness measurement in [squads-and-relations](squads-and-relations.md). Whether
+that is the game or the scorer is the balance question the audit leaves to its owner.

@@ -8,6 +8,10 @@ One row per piece the faction can field — every structure and unit it can buil
 every upgrade, every ability a piece grants and every sanction in its grid — with a VERDICT:
 
     USED                   fielded; the counts follow
+    CHOSEN_NOT_ORDERED     a module picked it and the spend gate then held it every time — a
+                           prerequisite the bot does not own, or a price above its reserve:
+                           the decision wants a piece the bot cannot have, and the producer
+                           stands idle on it (a signalling bug, in the picker)
     CONSIDERED_NOT_CHOSEN  a module scored it and always preferred something else: the bot's
                            own valuation ranks it below its alternatives. A balance question
                            (the piece is not worth its price) or a scorer question (the
@@ -269,14 +273,19 @@ def usage(faction, rows):
                     r = row(pid)
                     for k in ("considered", "chosen", "score_sum", "best_sum"):
                         r[k] += c[k]
+            # Only the orders that ACQUIRE a piece count toward it: a rally recorded against
+            # the structure it was set on, or an attack-move against the unit sent, says
+            # nothing about whether the bot fields that piece.
             for kind, pieces in ledger.get("actions", {}).items():
                 for pid, outcomes in pieces.items():
-                    key = pid if kind != "use_sanction" else "sanction:" + pid
                     if kind == "sanction_aim":
                         aim = row("sanction:" + pid)["aim"]
                         for o, n in outcomes.items():
                             aim[o] = aim.get(o, 0) + n
                         continue
+                    if kind not in ACTION_KINDS.values():
+                        continue
+                    key = pid if kind != "use_sanction" else "sanction:" + pid
                     acts = row(key)["actions"].setdefault(kind, {})
                     for o, n in outcomes.items():
                         acts[o] = acts.get(o, 0) + n
@@ -311,6 +320,8 @@ def verdict(cat, use, has_ledger):
         return "USED"
     if refused:
         return "REFUSED"
+    if use["chosen"]:
+        return "CHOSEN_NOT_ORDERED"
     if use["considered"]:
         return "CONSIDERED_NOT_CHOSEN"
     if use["aim"] and not use["aim"].get("aimed"):
@@ -324,8 +335,8 @@ def report(faction, cat, stats, slots, with_ledger):
              "%d faction slots read, %d with a usage ledger." % (slots, with_ledger), "",
              "| piece | route | verdict | produced | in slots | considered | chosen | score/best | orders | refused | detail |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]
-    order = {"USED": 0, "REFUSED": 1, "CONSIDERED_NOT_CHOSEN": 2, "NEVER_AIMED": 3, "NEVER_CONSIDERED": 4,
-             "NO_ACTUATION": 5, "UNREACHABLE": 6, "STUB": 7, "NO_DATA": 8}
+    order = {"USED": 0, "REFUSED": 1, "CHOSEN_NOT_ORDERED": 2, "CONSIDERED_NOT_CHOSEN": 3, "NEVER_AIMED": 4,
+             "NEVER_CONSIDERED": 5, "NO_ACTUATION": 6, "UNREACHABLE": 7, "STUB": 8, "NO_DATA": 9}
     rows = []
     for key, c in cat.items():
         use = stats.get(key)
@@ -335,8 +346,8 @@ def report(faction, cat, stats, slots, with_ledger):
             detail.append("granted by %s; cast by %s" % (", ".join(c["granted_by"]), c.get("command")))
         if c["route"] == "sanction":
             detail.append("tiers %s" % ",".join(str(l["tier"]) for l in c["levels"]))
-        if not c["reachable"] and c["route"] in ("build", "train", "research"):
-            detail.append("requires %s; producers %s" % (c["requires"], c["producers"]))
+        if c["route"] in ("build", "train", "research") and c["requires"] and (not c["reachable"] or (use and use["chosen"] and not use["produced"])):
+            detail.append("requires %s" % ", ".join(c["requires"]))
         issued = refused = ""
         ratio = ""
         if use:

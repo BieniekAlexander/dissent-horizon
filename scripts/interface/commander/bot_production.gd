@@ -217,6 +217,14 @@ func _best_unit_for(a_structure: Commandable, a_demand: Dictionary) -> StringNam
 		# rather than spamming them. Builders are fielded via the economy, not here.
 		if not _bot.unit_can_attack(t):
 			continue
+		# Only units the bot can TRAIN TODAY. A tech-locked unit scores on its gun like any
+		# other, wins the comparison, and then fails the spend gate every tick — and the caller
+		# banks for it rather than falling back, so the producer stands idle on a unit the bot
+		# has no building for. Measured 2026-10-04 (piece-usage audit): the Guard was picked
+		# 46,707 of 56,794 barracks decisions and the Avalanche 9,247 of 10,212 war-factory
+		# decisions, neither ever trained, while the bot owned no tech structure.
+		if not _bot.has_tech_for(t):
+			continue
 		types.append(t)
 		scores.append(_bot.unit_composition_value(t, a_demand))
 	# A draw at the bot's temperature rather than the argmax, so two matches do not field the

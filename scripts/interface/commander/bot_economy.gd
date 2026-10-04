@@ -372,6 +372,15 @@ func _decide() -> void:
 			if fspot is Vector3 and _issue_build(builder, ftype, fspot):
 				return
 
+	# TODO: THERE IS NO TECH RUNG. Nothing below buys a structure that is neither production,
+	# income, defence nor the dominion/infrastructure provider — the Colonial tech and support
+	# buildings included — so every unit, upgrade and static behind one is unreachable in
+	# play however the bot values it. Measured 2026-10-04 (piece-usage audit): over twelve
+	# HARD slots not one tech or support structure was considered. The rung wants the demand
+	# the picker already computes: when the best-valued unit the bot cannot train outscores
+	# the best it can by enough, the structure that unlocks it is worth its price. See
+	# gdd/systems/ai/piece-usage-audit.md §Findings; gdd/deferred.md 2.51.
+	#
 	# A surplus first extends a dominion route that pays per SITE (more Opticons), while a site
 	# is left that still pays enough — see _extend_dominion. Then production capacity.
 	if surplus and _extend_dominion(builder):
