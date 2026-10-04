@@ -15,7 +15,7 @@ defense:
   frame: MECH
 senses:
   vision: vision_aerial_medium
-movement: {speed: FAST, turn_rate: 90, max_acceleration: 2, max_deceleration: -1}
+movement: {speed: HYPER, turn_rate: 343, max_acceleration: 7.62, max_deceleration: -3.81}
 aerial: {mode: FLYING}
 docking: true
 weapons:
@@ -26,7 +26,7 @@ weapons:
     scene: res://scenes/entities/projectiles/lb/interceptor_emission.tscn
     damage: 10
     damage_type: SIEGE
-    speed: BLAZING
+    speed: SUPERSONIC
     trajectory: LINEAR
     hitscan: false
   split_time: 0.4

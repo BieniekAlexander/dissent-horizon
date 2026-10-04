@@ -59,7 +59,7 @@
 		],
 		"scene": "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn",
 		"tooltip": "Train Kamikaze — 300 energy, 10s",
-		"verbose": "Train Kamikaze — 300 energy, 10s\n75 HP · light armour · mech frame\nflying, speed 5.25 · vision 18\nBombWeapon: 150 explosive, reach 0.5"
+		"verbose": "Train Kamikaze — 300 energy, 10s\n75 HP · light armour · mech frame\nflying, speed 20 · vision 18\nBombWeapon: 150 explosive, reach 0.5"
 	},
 	"command_tool_an_aircraftLight_transport": {
 		"context": "TRAIN",
@@ -79,7 +79,7 @@
 		],
 		"scene": "res://scenes/entities/units/an/an_aircraftLight_transport.tscn",
 		"tooltip": "Train Raven — 800 energy, 15s",
-		"verbose": "Train Raven — 800 energy, 15s\n120 HP · light armour · mech frame\nhovering, speed 4 · vision 22"
+		"verbose": "Train Raven — 800 energy, 15s\n120 HP · light armour · mech frame\nhovering, speed 9.3 · vision 22"
 	},
 	"command_tool_an_aircraftMedium_support": {
 		"context": "TRAIN",
@@ -99,7 +99,7 @@
 		],
 		"scene": "res://scenes/entities/units/an/an_aircraftMedium_support.tscn",
 		"tooltip": "Train Condor — 1200 energy, 30s",
-		"verbose": "Train Condor — 1200 energy, 30s\nRequires: Clandestine Lab\n220 HP · medium armour · mech frame\nflying, speed 4 · vision 18\nEmpBomb: 10 electric, reach 8"
+		"verbose": "Train Condor — 1200 energy, 30s\nRequires: Clandestine Lab\n220 HP · medium armour · mech frame\nflying, speed 9.3 · vision 18\nEmpBomb: 10 electric, reach 8"
 	},
 	"command_tool_an_barracks": {
 		"context": "BUILD",
@@ -535,7 +535,7 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn",
 		"tooltip": "Train Clipper — 600 energy, 15s",
-		"verbose": "Train Clipper — 600 energy, 15s\n120 HP · light armour · mech frame\nhovering, speed 4 · vision 22\nBallisticWeapon: 12 lead, reach 8"
+		"verbose": "Train Clipper — 600 energy, 15s\n120 HP · light armour · mech frame\nhovering, speed 9.3 · vision 22\nBallisticWeapon: 12 lead, reach 8"
 	},
 	"command_tool_cl_aircraftMedium_antiMech": {
 		"context": "TRAIN",
@@ -555,7 +555,7 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn",
 		"tooltip": "Train drake — 1000 energy, 15s",
-		"verbose": "Train drake — 1000 energy, 15s\n150 HP · medium armour · mech frame\nflying, speed 5.25 · vision 18\nWeapon: 35 explosive, reach 12"
+		"verbose": "Train drake — 1000 energy, 15s\n150 HP · medium armour · mech frame\nflying, speed 12.4 · vision 18\nWeapon: 35 explosive, reach 12"
 	},
 	"command_tool_cl_aircraftMedium_transport": {
 		"context": "TRAIN",
@@ -575,7 +575,7 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn",
 		"tooltip": "Train caravel — 500 energy, 15s",
-		"verbose": "Train caravel — 500 energy, 15s\n180 HP · medium armour · mech frame\nhovering, speed 4 · vision 22"
+		"verbose": "Train caravel — 500 energy, 15s\n180 HP · medium armour · mech frame\nhovering, speed 9.3 · vision 22"
 	},
 	"command_tool_cl_aircraftStrong_support": {
 		"context": "TRAIN",
@@ -595,7 +595,7 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftStrong_support.tscn",
 		"tooltip": "Train Reverence — 2000 energy, 15s",
-		"verbose": "Train Reverence — 2000 energy, 15s\nRequires: Academy\n700 HP · strong armour · mech frame\nhovering, speed 3 · vision 22"
+		"verbose": "Train Reverence — 2000 energy, 15s\nRequires: Academy\n700 HP · strong armour · mech frame\nhovering, speed 7 · vision 22"
 	},
 	"command_tool_cl_barracks": {
 		"context": "BUILD",
@@ -1044,7 +1044,7 @@
 		],
 		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_antiAir.tscn",
 		"tooltip": "Train Interceptor — 500 energy, 40s",
-		"verbose": "Train Interceptor — 500 energy, 40s\n200 HP · medium armour · mech frame\nflying, speed 5.25 · vision 18\nInterceptorWeapon: 10 siege, reach 12"
+		"verbose": "Train Interceptor — 500 energy, 40s\n200 HP · medium armour · mech frame\nflying, speed 20 · vision 18\nInterceptorWeapon: 10 siege, reach 12"
 	},
 	"command_tool_lb_aircraftLight_antiMech": {
 		"context": "TRAIN",
@@ -1064,7 +1064,7 @@
 		],
 		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_antiMech.tscn",
 		"tooltip": "Train Harpy — 250 energy, 15s",
-		"verbose": "Train Harpy — 250 energy, 15s\nRequires: Controller\n120 HP · light armour · mech frame\nhovering, speed 5.25 · vision 22\nWeapon: 40 explosive, reach 6 ground"
+		"verbose": "Train Harpy — 250 energy, 15s\nRequires: Controller\n120 HP · light armour · mech frame\nhovering, speed 12.4 · vision 22\nWeapon: 40 explosive, reach 6 ground"
 	},
 	"command_tool_lb_aircraftLight_builder": {
 		"context": "TRAIN",
@@ -1084,7 +1084,7 @@
 		],
 		"scene": "res://scenes/entities/units/lb/lb_aircraftLight_builder.tscn",
 		"tooltip": "Train Canary — 200 energy, 12s",
-		"verbose": "Train Canary — 200 energy, 12s\n100 HP · light armour · mech frame\nhovering, speed 4 · vision 22\nBuilds: Extractor, Shard, Relay, Opticon, Assembler, LI War Factory, Emission Bay"
+		"verbose": "Train Canary — 200 energy, 12s\n100 HP · light armour · mech frame\nhovering, speed 9.3 · vision 22\nBuilds: Extractor, Shard, Relay, Opticon, Assembler, LI War Factory, Emission Bay"
 	},
 	"command_tool_lb_aircraftMedium_antiBio": {
 		"context": "TRAIN",
@@ -1104,7 +1104,7 @@
 		],
 		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiBio.tscn",
 		"tooltip": "Train Sentinel — 300 energy, 15s",
-		"verbose": "Train Sentinel — 300 energy, 15s\n200 HP · medium armour · mech frame\nhovering, speed 3 · vision 22\nSentinelSonicWeapon: 15 explosive, reach 12"
+		"verbose": "Train Sentinel — 300 energy, 15s\n200 HP · medium armour · mech frame\nhovering, speed 7 · vision 22\nSentinelSonicWeapon: 15 explosive, reach 12"
 	},
 	"command_tool_lb_aircraftMedium_antiHeavy": {
 		"context": "TRAIN",
@@ -1124,7 +1124,7 @@
 		],
 		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiHeavy.tscn",
 		"tooltip": "Train Purifier — 1200 energy, 40s",
-		"verbose": "Train Purifier — 1200 energy, 40s\nRequires: Mainframe\n200 HP · medium armour · mech frame\nflying, speed 4 · vision 18\nViperWeapon: 15 siege, reach 12"
+		"verbose": "Train Purifier — 1200 energy, 40s\nRequires: Mainframe\n200 HP · medium armour · mech frame\nflying, speed 9.3 · vision 18\nViperWeapon: 15 siege, reach 12"
 	},
 	"command_tool_lb_aircraftMedium_antiMech": {
 		"context": "TRAIN",
@@ -1144,7 +1144,7 @@
 		],
 		"scene": "res://scenes/entities/units/lb/lb_aircraftMedium_antiMech.tscn",
 		"tooltip": "Train Viper — 500 energy, 20s",
-		"verbose": "Train Viper — 500 energy, 20s\n200 HP · medium armour · mech frame\nflying, speed 4 · vision 18\nViperWeapon: 15 explosive, reach 12"
+		"verbose": "Train Viper — 500 energy, 20s\n200 HP · medium armour · mech frame\nflying, speed 9.3 · vision 18\nViperWeapon: 15 explosive, reach 12"
 	},
 	"command_tool_lb_aircraftStrong_support": {
 		"context": "TRAIN",
@@ -1164,7 +1164,7 @@
 		],
 		"scene": "res://scenes/entities/units/lb/lb_aircraftStrong_support.tscn",
 		"tooltip": "Train Fabricator — 1500 energy, 15s",
-		"verbose": "Train Fabricator — 1500 energy, 15s\nRequires: Controller\n250 HP · strong armour · mech frame\nhovering, speed 3 · vision 22"
+		"verbose": "Train Fabricator — 1500 energy, 15s\nRequires: Controller\n250 HP · strong armour · mech frame\nhovering, speed 7 · vision 22"
 	},
 	"command_tool_lb_barracks": {
 		"context": "BUILD",

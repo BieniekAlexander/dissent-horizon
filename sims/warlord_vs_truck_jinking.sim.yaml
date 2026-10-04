@@ -1,0 +1,42 @@
+description: |
+  The pair of warlord_vs_truck_holding_course: the same stock truck (QUICK), the same place,
+  but it reverses its crossing direction 0.4 s after each rocket leaves — the Warlord fires on
+  arming and every 1.5 s after — so every rocket is fired at a course abandoned in flight. A
+  fast vehicle that reroutes after the shot is away is meant to escape.
+  
+  Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
+  gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+
+  Claim: a fast vehicle that reroutes dodges at least half the rockets.
+  The claim is about the WEAPON, as a fraction of the rockets fired that hit — never about
+  killing, which is the shooter's damage rate and out of scope for a projectile.
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      warlord:
+        of: [ { piece: an_bioMedium_dominionGen, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.target } } ]
+  B:
+    with:
+      target:
+        of: [ { piece: cl_mechLight_dominionGen, count: 1 } ]
+        at: { from: A.warlord, distance: 8, bearing: east }
+        facing: north
+        orders:
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 0.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 1.9s }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 3.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 4.9s }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 6.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 7.9s }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 9.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 10.9s }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } }, after: 12.4s }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } }, after: 13.9s }
+run: { for: 15s }
+expect:
+  - { of: A.warlord, check: hit_rate, target: B.target, at_most: 0.5 }

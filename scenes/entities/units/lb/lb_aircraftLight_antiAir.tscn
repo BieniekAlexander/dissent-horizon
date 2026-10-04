@@ -59,11 +59,11 @@ script = ExtResource("8_t3sy4")
 
 [node name="Locomotion" type="Node" parent="." unique_id=1348177780]
 script = ExtResource("9_ub2tn")
-speed = 5.25
-turn_rate = 90.0
+speed = 20.0
+turn_rate = 343.0
 nav_agent_path = NodePath("../NavigationAgent")
-max_acceleration = 2.0
-max_deceleration = -1.0
+max_acceleration = 7.62
+max_deceleration = -3.81
 
 [node name="Aerial" type="Node" parent="."]
 script = ExtResource("6_spec")

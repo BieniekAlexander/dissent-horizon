@@ -1,13 +1,13 @@
-[gd_scene format=3 uid="uid://bhkuda16jew0g"]
+[gd_scene load_steps=10 format=3 uid="uid://bhkuda16jew0g"]
 
 [ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_hsewj"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_ilrt3"]
-[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="1_spec"]
 [ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="2_spec"]
 [ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
 [ext_resource type="PackedScene" path="res://scenes/effects/emissions/rocket_model.tscn" id="fx_rocket"]
 [ext_resource type="PackedScene" path="res://scenes/effects/emissions/rocket_exhaust.tscn" id="fx_exhaust"]
 [ext_resource type="PackedScene" path="res://scenes/effects/emissions/rocket_explosion.tscn" id="fx_rocket_boom"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="1_spec"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_hit01"]
 radius = 0.1
@@ -32,24 +32,6 @@ shape = SubResource("SphereShape3D_hit01")
 script = ExtResource("3_ilrt3")
 metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 
-[node name="Flight" type="Node3D" parent="."]
-script = ExtResource("1_spec")
-speed = 7.2
-turn_rate_degrees_per_second = 120.0
-launch_speed_ratio = 0.5
-acceleration_mps2 = 2.25
-min_speed = 0.15
-jitter_degrees = 4
-lifespan_seconds = 5.0
-visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh")])
-
-[node name="Impact" type="Node3D" parent="."]
-script = ExtResource("1_spec")
-ends_on_arrival = false
-lifespan_seconds = 1.6
-applies_payload = true
-visuals = Array[NodePath]([NodePath("PostImpactParticles")])
-
 [node name="Locomotion" type="Node" parent="."]
 script = ExtResource("2_spec")
 
@@ -58,3 +40,34 @@ script = ExtResource("mig_payload")
 bio_ground_aim = true
 base_damage = 40.0
 damage_type = 6
+
+[node name="Predict" type="Node3D" parent="."]
+script = ExtResource("1_spec")
+speed = 8.5
+turn_rate_degrees_per_second = 90.0
+launch_speed_ratio = 0.5
+acceleration_mps2 = 10.0
+min_speed = 2.0
+jitter_degrees = 4.0
+turn_bleed_mps2_per_radian = 120.0
+lead_fraction = 1.0
+lifespan_seconds = 0.5
+visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh")])
+
+[node name="Chase" type="Node3D" parent="."]
+script = ExtResource("1_spec")
+speed = 8.5
+turn_rate_degrees_per_second = 90.0
+acceleration_mps2 = 10.0
+min_speed = 2.0
+jitter_degrees = 4.0
+turn_bleed_mps2_per_radian = 120.0
+lifespan_seconds = 3.0
+visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh")])
+
+[node name="Impact" type="Node3D" parent="."]
+script = ExtResource("1_spec")
+ends_on_arrival = false
+lifespan_seconds = 1.6
+applies_payload = true
+visuals = Array[NodePath]([NodePath("PostImpactParticles")])

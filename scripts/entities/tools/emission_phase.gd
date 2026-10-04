@@ -30,6 +30,11 @@ const BALLISTIC_GRAVITY_MPS2: float = 4.5
 const LOFTED_PITCH_DEGREES: float = 60.0
 ## How close a steered emission must come to its live target to have arrived.
 const STEERED_ARRIVAL_RADIUS: float = 0.5
+## What an emission that has lost its lock falls under: the arc every shell is tuned against.
+const LOST_LOCK_GRAVITY_MPS2: float = BALLISTIC_GRAVITY_MPS2
+## How long an emission that lost its lock may fall before it bursts where it is: a backstop for
+## a fall with nothing beneath it. On a map the ground ends the fall long before this.
+const LOST_LOCK_FALL_SECONDS: float = 5.0
 ## How close to directly behind a steering goal must be for the turn to have no axis, as the
 ## cosine between heading and goal.
 const DEAD_ASTERN_COSINE: float = -0.9999
@@ -63,6 +68,26 @@ const NEAR_VERTICAL_COSINE: float = 0.9
 @export var acceleration_mps2: float = 0.0
 ## The floor a steered emission slows to while facing away from its target.
 @export var min_speed: float = 0.0
+## While steering, speed shed for turning: this many world units per second squared for each
+## radian the steering goal lies off the nose. It replaces the facing rule above, so a steered
+## emission gains `acceleration_mps2 - turn_bleed × angle` every second, between `min_speed`
+## and `speed`: a straight run climbs to full speed, a hard turn bleeds toward the floor. Zero
+## keeps the facing rule. → gdd/systems/combat/projectiles.md §Turn bleed and lead
+@export var turn_bleed_mps2_per_radian: float = 0.0
+## How far ahead of its target a steered phase aims, as a fraction of where the target's motion
+## would carry it by the time the emission arrived. The aim point is predicted once, as the phase
+## begins, and held for the phase: a target that keeps its course flies into the shot, and one
+## that changes course after it is drawn to an empty point. Once that point is behind it, the
+## emission flies straight. Zero aims at the target itself, live, every tick.
+@export var lead_fraction: float = 0.0
+## How far off the nose, in degrees, a steered phase's target may get before the emission LOSES
+## ITS LOCK: it stops steering, its motor cuts, and it falls (see PhasedLocomotion). 180 is lost
+## only dead astern; zero never loses the lock by angle.
+## → gdd/systems/combat/projectiles.md §Losing the lock
+@export var lock_cone_degrees: float = 0.0
+## How far away, in world units, a steered phase's target may get before the emission loses its
+## lock. Zero never loses it by distance.
+@export var lock_range: float = 0.0
 ## Seconds into the phase at which the motor burns out, after which the emission flies no
 ## faster than `coast_speed`: a rocket that boosts, then coasts. Zero never burns out. The
 ## drop is immediate, and `acceleration_mps2` then only ever climbs back to the coast speed.
@@ -99,8 +124,8 @@ const NEAR_VERTICAL_COSINE: float = 0.9
 ## Seconds between runs of this phase's AbstractEvent children, the first on entering the
 ## phase. INF runs them once.
 @export var event_period_seconds: float = INF
-## Nodes shown while this phase is current, relative to the emission root. Every node named
-## by any phase is hidden while its phase is not current.
+## Nodes shown while this phase is current, relative to the emission root. A node named by any
+## phase is hidden while no phase naming it is current, so stages may share one.
 @export var visuals: Array[NodePath] = []
 #endregion
 
@@ -134,18 +159,23 @@ func events() -> Array[AbstractEvent]:
 ## later than its payload needs (projectiles.md §Visuals).
 func show_visuals(a_host: Node, a_shown: bool, a_skip: Node = null) -> void:
 	for path: NodePath in visuals:
-		var node: Node = a_host.get_node_or_null(path)
-		if node == null or node == a_skip:
-			continue
-		var particles: Array[Node] = particle_systems_in(node)
-		if not particles.is_empty():
-			for system: Node in particles:
-				if system is EmissionParticles:
-					(system as EmissionParticles).set_phase_emitting(a_shown)
-				else:
-					system.set(&"emitting", a_shown)
-		elif node is Node3D:
-			(node as Node3D).visible = a_shown
+		show_visual(a_host, path, a_shown, a_skip)
+
+
+## Show or hide the one visual at `a_path` under `a_host`, by the rule show_visuals describes.
+static func show_visual(a_host: Node, a_path: NodePath, a_shown: bool, a_skip: Node = null) -> void:
+	var node: Node = a_host.get_node_or_null(a_path)
+	if node == null or node == a_skip:
+		return
+	var particles: Array[Node] = particle_systems_in(node)
+	if not particles.is_empty():
+		for system: Node in particles:
+			if system is EmissionParticles:
+				(system as EmissionParticles).set_phase_emitting(a_shown)
+			else:
+				system.set(&"emitting", a_shown)
+	elif node is Node3D:
+		(node as Node3D).visible = a_shown
 
 
 ## Every particle system at or under `node`. Typed by capability rather than class because
@@ -225,7 +255,7 @@ func tracked_velocity(a_velocity: Vector3, a_position: Vector3, a_goal: Variant)
 ## One tick of steering at `a_target`, before the move. Unchanged when unsteered or targetless.
 func steered_velocity(a_velocity: Vector3, a_position: Vector3, a_target: Entity) -> Vector3:
 	return steered_toward(
-		a_velocity, a_position, a_target.global_position if a_target != null else null
+		a_velocity, a_position, a_target.aim_point() if a_target != null else null
 	)
 
 
@@ -245,12 +275,25 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 		)
 		goal_direction = goal_direction.rotated(axis, DEAD_ASTERN_NUDGE_RADIANS)
 	var is_facing: bool = a_velocity.normalized().dot(goal_direction.normalized()) >= 0
+	var off_nose: float = a_velocity.angle_to(goal_direction)
 	var turned: Vector3 = VU.get_rotated_vector_3d(
 		a_velocity,
 		goal_direction,
 		deg_to_rad(turn_rate_degrees_per_second / float(TimeUtils.ticks_per_second()))
 	)
 	var step: float = acceleration_mps2 / float(_ticks_squared())
+	if turn_bleed_mps2_per_radian > 0.0:
+		var change: float = (
+			(acceleration_mps2 - turn_bleed_mps2_per_radian * off_nose) / float(_ticks_squared())
+		)
+		return (
+			turned.normalized()
+			* clampf(
+				turned.length() + change,
+				min_speed / float(TimeUtils.ticks_per_second()),
+				maxf(_speed_per_tick(), min_speed / float(TimeUtils.ticks_per_second()))
+			)
+		)
 	return (
 		turned.normalized()
 		* (
@@ -259,6 +302,56 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 			else maxf(turned.length() - step, min_speed / float(TimeUtils.ticks_per_second()))
 		)
 	)
+
+
+func leads() -> bool:
+	return lead_fraction > 0.0 and is_steered()
+
+
+## Whether an emission at `a_position`, flying `a_velocity`, loses its lock on a target at
+## `a_target_point`: the target is farther off the nose than `lock_cone_degrees`, or farther away
+## than `lock_range`. Never for an unsteered phase, nor for a knob left at zero.
+func loses_lock(a_velocity: Vector3, a_position: Vector3, a_target_point: Vector3) -> bool:
+	if not is_steered():
+		return false
+	var to_target: Vector3 = a_target_point - a_position
+	if lock_range > 0.0 and to_target.length() > lock_range:
+		return true
+	return (
+		lock_cone_degrees > 0.0
+		and not a_velocity.is_zero_approx()
+		and not to_target.is_zero_approx()
+		and rad_to_deg(a_velocity.angle_to(to_target)) > lock_cone_degrees
+	)
+
+
+## Where this phase aims to meet a target at `a_target_position` moving `a_target_step` per
+## tick, flying from `a_origin` at full speed: the target's position advanced by `lead_fraction`
+## of its motion until the intercept. A target too fast to intercept is led by the time this
+## phase would take to reach where it is now.
+func intercept_point(
+	a_origin: Vector3, a_target_position: Vector3, a_target_step: Vector3
+) -> Vector3:
+	var own_step: float = _speed_per_tick()
+	var to_target: Vector3 = a_target_position - a_origin
+	var ticks: float = to_target.length() / own_step if own_step > 0.0 else 0.0
+	# |to_target + step·t| = own_step·t, for the earliest t > 0.
+	var a: float = a_target_step.length_squared() - own_step * own_step
+	var b: float = 2.0 * to_target.dot(a_target_step)
+	var c: float = to_target.length_squared()
+	if absf(a) > 1e-9:
+		var discriminant: float = b * b - 4.0 * a * c
+		if discriminant >= 0.0:
+			var root: float = sqrt(discriminant)
+			var first: float = minf((-b - root) / (2.0 * a), (-b + root) / (2.0 * a))
+			var second: float = maxf((-b - root) / (2.0 * a), (-b + root) / (2.0 * a))
+			if first > 0.0:
+				ticks = first
+			elif second > 0.0:
+				ticks = second
+	elif absf(b) > 1e-9 and -c / b > 0.0:
+		ticks = -c / b
+	return a_target_position + a_target_step * ticks * lead_fraction
 
 
 ## `a_velocity` held to the coast speed once the burn is over, `a_phase_seconds` into the
@@ -276,9 +369,10 @@ func fallen_velocity(a_velocity: Vector3) -> Vector3:
 	return a_velocity + Vector3.DOWN * gravity_mps2 / float(_ticks_squared())
 
 
-## Whether the emission has reached where it was going. A steered phase aims at its target
-## and never arrives without one; a falling one lands on crossing its destination's height
-## on the way down; anything else arrives within one step of the destination.
+## Whether the emission has reached where it was going. A steered phase aims at its target's
+## hitbox centre (Entity.aim_point) and never arrives without one; a falling one lands on
+## crossing its destination's height on the way down; anything else arrives within one step of
+## the destination.
 func has_arrived(
 	a_position: Vector3, a_velocity: Vector3, a_destination: Vector3, a_target: Entity
 ) -> bool:
@@ -286,7 +380,7 @@ func has_arrived(
 		return (
 			a_target != null
 			and (
-				a_position.distance_squared_to(a_target.global_position)
+				a_position.distance_squared_to(a_target.aim_point())
 				< STEERED_ARRIVAL_RADIUS * STEERED_ARRIVAL_RADIUS
 			)
 		)

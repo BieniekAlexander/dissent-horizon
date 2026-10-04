@@ -183,3 +183,72 @@ func test_a_falling_motion_cannot_burn_out() -> void:
 		{"phases": [{"motion": {"preset": "BALLISTIC", "burn": 0.5, "coast_speed": 7}}]},
 		"cannot burn out"
 	)
+
+
+func test_a_later_moving_stage_shows_the_in_flight_visuals_by_default() -> void:
+	var phases: Array[Dictionary] = EmissionPhases.expand(
+		{
+			"phases":
+			[
+				{"motion": {"speed": 12}, "lifespan": 0.5},
+				{"motion": {"speed": 12}, "lifespan": 1},
+				{"lifespan": 1, "payload": "once"}
+			]
+		}
+	)
+	assert_eq(phases[1]["visual_roles"], EmissionPhases.IN_FLIGHT_VISUALS, "the same flight")
+	assert_eq(phases[2]["visual_roles"], EmissionPhases.POST_IMPACT_VISUALS, "the burst")
+
+
+func test_a_steered_motion_may_bleed_speed_and_lead_its_target() -> void:
+	var spec: Dictionary = {
+		"phases":
+		[
+			{
+				"motion": {"speed": 15, "turn_rate": 180, "turn_bleed": 20, "lead": 0.5},
+				"lifespan": 1
+			},
+			{"lifespan": 1, "payload": "once"}
+		]
+	}
+	assert_eq(EmissionPhases.errors_for(spec), [])
+	var flight: Dictionary = EmissionPhases.expand(spec)[0]
+	assert_eq(flight["turn_bleed_mps2_per_radian"], 20.0)
+	assert_eq(flight["lead_fraction"], 0.5)
+
+
+func test_bleed_and_lead_need_steering() -> void:
+	_assert_refused({"phases": [{"motion": {"speed": 15, "turn_bleed": 20}}]}, "turn_bleed acts")
+	_assert_refused({"phases": [{"motion": {"speed": 15, "lead": 1}}]}, "lead acts")
+
+
+func test_lead_is_a_fraction() -> void:
+	_assert_refused(
+		{"phases": [{"motion": {"speed": 15, "turn_rate": 90, "lead": 1.5}, "lifespan": 1}]},
+		"0 to 1"
+	)
+
+
+func test_a_steered_motion_may_lose_its_lock() -> void:
+	var spec: Dictionary = {
+		"phases":
+		[
+			{
+				"motion": {"speed": 15, "turn_rate": 90, "lock_cone": 150, "lock_range": 9},
+				"lifespan": 1
+			},
+			{"lifespan": 1, "payload": "once"}
+		]
+	}
+	assert_eq(EmissionPhases.errors_for(spec), [])
+	var flight: Dictionary = EmissionPhases.expand(spec)[0]
+	assert_eq(flight["lock_cone_degrees"], 150.0)
+	assert_eq(flight["lock_range"], 9.0)
+
+
+func test_a_lock_needs_steering_and_a_cone_within_180() -> void:
+	_assert_refused({"phases": [{"motion": {"speed": 15, "lock_range": 5}}]}, "lock_range acts")
+	_assert_refused(
+		{"phases": [{"motion": {"speed": 15, "turn_rate": 90, "lock_cone": 200}, "lifespan": 1}]},
+		"at most 180"
+	)

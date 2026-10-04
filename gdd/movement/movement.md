@@ -18,13 +18,13 @@ classes:
   vehicle_line:    {mode: GROUNDED, speed: BRISK,  turn_rate: 150, max_acceleration: 1.5,  max_deceleration: -4.5,  min_turn_speed_ratio: 0.5}
   vehicle_light:   {mode: GROUNDED, speed: QUICK,  turn_rate: 180, max_acceleration: 3.0,  max_deceleration: -6.0,  min_turn_speed_ratio: 1.0}
   # Hover (HOVERING). Can stop and hold a point; backs off at reverse_speed_ratio.
-  hover_heavy:     {mode: HOVERING, speed: BRISK, turn_rate: 90,  max_acceleration: 1.0, max_deceleration: -1.5, reverse_speed_ratio: 0.2}
-  hover_medium:    {mode: HOVERING, speed: QUICK, turn_rate: 180, max_acceleration: 2.0, max_deceleration: -3.0, reverse_speed_ratio: 0.35}
-  hover_light:     {mode: HOVERING, speed: FAST,  turn_rate: 270, max_acceleration: 4.0, max_deceleration: -5.0, reverse_speed_ratio: 0.6}
+  hover_heavy:     {mode: HOVERING, speed: RAPID,   turn_rate: 90,  max_acceleration: 2.33, max_deceleration: -3.5,  reverse_speed_ratio: 0.2}
+  hover_medium:    {mode: HOVERING, speed: SWIFT,   turn_rate: 180, max_acceleration: 4.65, max_deceleration: -7.0,  reverse_speed_ratio: 0.35}
+  hover_light:     {mode: HOVERING, speed: BLAZING, turn_rate: 270, max_acceleration: 9.45, max_deceleration: -11.8, reverse_speed_ratio: 0.6}
   # Flyers (FLYING). Never stop; thrust outpaces braking, so deceleration is the weaker.
-  flyer_heavy:     {mode: FLYING, speed: QUICK,   turn_rate: 60, max_acceleration: 1.0, max_deceleration: -0.5}
-  flyer_medium:    {mode: FLYING, speed: FAST,    turn_rate: 90, max_acceleration: 2.0, max_deceleration: -1.0}
-  flyer_light:     {mode: FLYING, speed: BLAZING, turn_rate: 60, max_acceleration: 3.0, max_deceleration: -1.5}
+  flyer_heavy:     {mode: FLYING, speed: SWIFT,   turn_rate: 140, max_acceleration: 2.33, max_deceleration: -1.16}
+  flyer_medium:    {mode: FLYING, speed: BLAZING, turn_rate: 213, max_acceleration: 4.72, max_deceleration: -2.36}
+  flyer_light:     {mode: FLYING, speed: HYPER,   turn_rate: 80, max_acceleration: 4.0, max_deceleration: -2.0}
 ---
 # Movement classes
 
@@ -54,13 +54,15 @@ which side of the `Δv` cliff it sits on against each other class.
   drones are MECH but move as `foot`: they are the infantry of an army with no soldiers.
 - **Hover** can stop and hold a point, and backs away at `reverse_speed_ratio` without turning
   first. That ratio is its kiting lever: `hover_heavy` barely backs off (a stable platform that
-  commits), `hover_light` backs off at most of its speed (it kites). Hover sits one tier above
-  the vehicle of the same weight, so aircraft are marginally faster than ground units.
+  commits), `hover_light` backs off at most of its speed (it kites). Aircraft are 2–4× faster
+  than the vehicle of the same weight (raised 2026-10-03, after
+  [Zero Hour](zero-hour-speed-reference.md)); each class kept its turning circle and its time
+  to reach cruise, so turn rate and acceleration rose with speed.
 - **Flyers** never stop, so their turning circle `v/ω` is always real and must fit inside
   their reach (the importer's `turn_radius_within_reach` rule). Their deceleration is the
   weaker of the pair: thrust gets an aircraft moving and little sheds that speed again, so it
-  overshoots and attacks in passes. `flyer_light` is the BLAZING tier: fast enough to outrun
-  standard projectiles, with a turning circle wide enough that it cannot dogfight.
+  overshoots and attacks in passes. `flyer_light` is the HYPER tier: fast enough to outrun
+  the standard rocket (SCORCHING), with a turning circle wide enough that it cannot dogfight.
 
 ## Proposed assignments
 
@@ -75,10 +77,10 @@ which side of the `Δv` cliff it sits on against each other class.
 | `hover_medium` | Caravel, Canary, Clipper, Surveyor, Raven |
 | `hover_light` | Harpy |
 | `flyer_heavy` | Condor, Purifier, Viper |
-| `flyer_medium` | Drake, Interceptor, Kamikaze (turn rate raised; see below) |
-| `flyer_light` | Dropship |
+| `flyer_medium` | Drake |
+| `flyer_light` | Dropship, Interceptor, Kamikaze (both keep their own, much higher turn rates: each was scaled to keep its turning circle when it moved to HYPER) |
 
 The Recon Drone does not move and takes no class. The Technician is a grounded, light BIO
-builder (its hovering spec was a testing leftover). The Kamikaze takes `flyer_medium` with one
-departure, a faster turn rate: it hits at melee reach, and `turn_radius_within_reach` is a
+builder (its hovering spec was a testing leftover). The Kamikaze takes `flyer_light` with one
+departure, a much faster turn rate: it hits at melee reach, and `turn_radius_within_reach` is a
 STRUCTURAL rule that no exception can waive, so its diving turn has to fit the melee circle.

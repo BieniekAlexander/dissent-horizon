@@ -12,7 +12,7 @@ defense:
   frame: MECH
 senses:
   vision: vision_aerial_medium
-movement: {speed: QUICK, turn_rate: 60, max_acceleration: 1, max_deceleration: -0.5}
+movement: {speed: SWIFT, turn_rate: 140, max_acceleration: 2.33, max_deceleration: -1.16}
 aerial: {mode: FLYING}
 docking: true
 weapons:

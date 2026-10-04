@@ -28,12 +28,32 @@ weapons:
       hitscan: false
       bio_ground_aim: true
       phases:
-        # Slower than the Badger's rocket and longer-lived, because it must also catch
-        # aircraft: QUICK aircraft and every ground class cannot escape it, a FAST aircraft
-        # fired on from beyond ~9.5 can (gdd/systems/combat/projectiles.md §Rocket calibration).
-        - motion: {preset: HOMING, speed: RAPID, turn_rate: 120, jitter: 4}
-          lifespan: 5
-        - lifespan: 1.6
+        # Predict, then chase, bleeding speed in every hard turn. FLEET (8.5): fast enough to hit
+        # a SWIFT aircraft crossing its front, too slow to catch one flying away; a fleeing QUICK
+        # vehicle is still caught (Alex, 2026-10-03: the Raven wins that trade-off).
+        # → gdd/systems/combat/projectiles.md §Rocket calibration
+        - name: Predict
+          motion:
+            preset: HOMING
+            speed: FLEET
+            turn_rate: 90
+            acceleration: 10
+            min_speed: 2
+            jitter: 4
+            turn_bleed: 120
+            lead: 1
+          lifespan: 0.5
+        - name: Chase
+          motion:
+            speed: FLEET
+            turn_rate: 90
+            acceleration: 10
+            min_speed: 2
+            jitter: 4
+            turn_bleed: 120
+          lifespan: 3
+        - name: Impact
+          lifespan: 1.6
           payload: once
     split_time: 1.5
     reload_time: 1.5

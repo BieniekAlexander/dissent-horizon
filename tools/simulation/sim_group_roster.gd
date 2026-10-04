@@ -27,6 +27,8 @@ extends RefCounted
 var _members: Dictionary = {}
 ## slot name ("A") -> commander id (1, 2, …)
 var _slot_ids: Dictionary = {}
+## What the placed pieces fired, for the `hit_rate` check.
+var shots: SimShotLog = SimShotLog.new()
 #endregion
 
 
@@ -38,7 +40,10 @@ func register_slot(a_slot: String, a_commander_id: int) -> void:
 func add(a_reference: String, a_entity: Commandable, a_piece: String) -> void:
 	if not _members.has(a_reference):
 		_members[a_reference] = []
-	(_members[a_reference] as Array).append({"entity": a_entity, "piece": a_piece})
+	(_members[a_reference] as Array).append(
+		{"entity": a_entity, "piece": a_piece, "id": a_entity.get_instance_id()}
+	)
+	shots.watch(a_reference, a_entity, a_piece)
 
 
 func has_group(a_reference: String) -> bool:
@@ -115,6 +120,12 @@ func centroid(a_reference: String, a_piece: String = "") -> Variant:
 	for entity: Commandable in alive:
 		total += entity.global_position
 	return total / float(alive.size())
+
+
+## The instance ids of every piece ever placed in `a_reference`, dead ones included: how a
+## shot that landed on a piece since destroyed is still known to have hit the group.
+func member_ids(a_reference: String) -> Array:
+	return _entries(a_reference).map(func(e: Dictionary) -> int: return e["id"])
 
 
 #endregion

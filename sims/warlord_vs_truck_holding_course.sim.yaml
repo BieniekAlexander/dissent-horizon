@@ -1,0 +1,40 @@
+description: |
+  The Warlord's rocket predicts where its target is going and steers there, then chases, losing
+  speed in every hard turn. A target that HOLDS ITS COURSE flies into the shot. Here a stock
+  truck (QUICK, unarmed) sweeps back and forth across the Warlord's front, reversing only at the
+  ends of 14-unit legs, always inside reach.
+  Its pair, warlord_vs_truck_jinking, differs only in how the truck moves.
+  
+  Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
+  gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+
+  Claim: holding course is fatal to the weapon's aim: at least 3 rockets in 4 hit the truck.
+  The claim is about the WEAPON, as a fraction of the rockets fired that hit — never about
+  killing, which is the shooter's damage rate and out of scope for a projectile.
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    with:
+      warlord:
+        of: [ { piece: an_bioMedium_dominionGen, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.target } } ]
+  B:
+    with:
+      target:
+        of: [ { piece: cl_mechLight_dominionGen, count: 1 } ]
+        at: { from: A.warlord, distance: 8, bearing: east }
+        facing: north
+        orders:
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: north } } }
+          - { move: { target: { from: B.target, distance: 7, bearing: south } } }
+run: { for: 15s }
+expect:
+  - { of: A.warlord, check: hit_rate, target: B.target, at_least: 0.75 }

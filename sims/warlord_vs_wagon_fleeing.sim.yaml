@@ -1,0 +1,29 @@
+description: |
+  A War Wagon (STEADY, unarmed) drives straight away from the Warlord, starting inside its
+  reach. A slow vehicle cannot outpace the rocket.
+
+  Speeds and the Warlord rocket: gdd/movement/speed_classes.md and
+  gdd/systems/combat/projectiles.md §Rocket calibration (The Warlord: predict, then chase).
+
+  Claim: a slow vehicle cannot outpace the rocket: at least 3 rockets in 4 hit.
+  The claim is about the WEAPON, as a fraction of the rockets fired that hit — never about
+  killing, which is the shooter's damage rate and out of scope for a projectile.
+setting: { kind: flat, size: 40 }
+given:
+  A:
+    with:
+      warlord:
+        of: [ { piece: an_bioMedium_dominionGen, count: 1 } ]
+        at: west
+        facing: east
+        orders: [ { attack: { target: B.target } } ]
+  B:
+    with:
+      target:
+        of: [ { piece: an_mechStrong_transport, count: 1 } ]
+        at: { from: A.warlord, distance: 8, bearing: east }
+        facing: east
+        orders: [ { move: { target: east } } ]
+run: { for: 15s }
+expect:
+  - { of: A.warlord, check: hit_rate, target: B.target, at_least: 0.75 }

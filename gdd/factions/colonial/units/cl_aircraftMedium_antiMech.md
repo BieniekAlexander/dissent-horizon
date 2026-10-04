@@ -17,10 +17,10 @@ defense:
 senses:
   vision: vision_aerial_medium
 movement:
-  speed: FAST
-  turn_rate: 90
-  max_acceleration: 2
-  max_deceleration: -1
+  speed: BLAZING
+  turn_rate: 213
+  max_acceleration: 4.72
+  max_deceleration: -2.36
 aerial:
   mode: FLYING
 docking: true

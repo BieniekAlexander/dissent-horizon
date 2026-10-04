@@ -26,6 +26,10 @@ const MOTION_PROPERTIES: Dictionary = {
 	"jitter_frequency": "jitter_frequency_hz",
 	"burn": "burn_seconds",
 	"coast_speed": "coast_speed",
+	"turn_bleed": "turn_bleed_mps2_per_radian",
+	"lead": "lead_fraction",
+	"lock_cone": "lock_cone_degrees",
+	"lock_range": "lock_range",
 }
 ## `impact_mask:` names, and the collision layer each one stands for.
 const IMPACT_LAYERS: Dictionary = {
@@ -36,8 +40,9 @@ const IMPACT_LAYERS: Dictionary = {
 }
 ## The flat shorthand's motion when a doc names no `trajectory:` — what the enum defaulted to.
 const DEFAULT_PRESET: String = "BALLISTIC"
-## Visual nodes a phase shows when its item names none: the first phase the in-flight set,
-## every later one the post-impact set. Only those present in the scene are written.
+## Visual nodes a phase shows when its item names none: the first phase and any later phase
+## that moves the in-flight set (a later moving phase is the same flight's next stage), every
+## other the post-impact set. Only those present in the scene are written.
 const IN_FLIGHT_VISUALS: Array[String] = ["InFlightSprite", "InFlightParticles", "InFlightMesh"]
 const POST_IMPACT_VISUALS: Array[String] = [
 	"PostImpactSprite", "PostImpactParticles", "PostImpactMesh"
@@ -128,10 +133,11 @@ static func _expand_item(item: Dictionary, index: int) -> Dictionary:
 	var emits: Dictionary = item.get("emits", {})
 	phase["emits"] = str(emits.get("id", ""))
 	phase["event_period_seconds"] = _period(emits.get("every", "once"))
+	var moves: bool = phase["speed"] > 0.0 or phase["gravity_mps2"] > 0.0
 	phase["visual_roles"] = (
 		item["visuals"]
 		if item.has("visuals")
-		else (IN_FLIGHT_VISUALS if index == 0 else POST_IMPACT_VISUALS)
+		else (IN_FLIGHT_VISUALS if index == 0 or moves else POST_IMPACT_VISUALS)
 	)
 	return phase
 
@@ -187,11 +193,22 @@ static func _item_errors(item: Variant, index: int) -> Array[String]:
 		if _motion_errors(item.get("motion", {}), where).is_empty()
 		else {}
 	)
-	if float(motion.get("turn_rate_degrees_per_second", 0.0)) > 0.0 and not item.has("lifespan"):
+	var steers: bool = float(motion.get("turn_rate_degrees_per_second", 0.0)) > 0.0
+	if steers and not item.has("lifespan"):
 		errors.append(
 			"%s: a steered motion needs a lifespan:, or a lost target flies forever" % where
 		)
+	for steering_key: String in ["turn_bleed", "lead", "lock_cone", "lock_range"]:
+		var property: String = MOTION_PROPERTIES[steering_key]
+		if float(motion.get(property, 0.0)) > 0.0 and not steers:
+			errors.append(
+				"%s: %s acts while steering — it needs a turn_rate" % [where, steering_key]
+			)
+	if float(motion.get("lead_fraction", 0.0)) > 1.0:
+		errors.append("%s: lead is a fraction of the target's predicted motion, 0 to 1" % where)
 	var burns: bool = float(motion.get("burn_seconds", 0.0)) > 0.0
+	if float(motion.get("lock_cone_degrees", 0.0)) > 180.0:
+		errors.append("%s: lock_cone is degrees off the nose, at most 180" % where)
 	var coasts: bool = float(motion.get("coast_speed", 0.0)) > 0.0
 	if burns != coasts:
 		errors.append(

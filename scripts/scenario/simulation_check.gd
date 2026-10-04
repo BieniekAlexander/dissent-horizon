@@ -44,6 +44,10 @@ var deadline_ticks: int = 0
 ## only at the end).
 var met_tick: int = -1
 
+## Optional `() -> String`: what the leaf measured, for the report (a hit rate's shot counts).
+## Read once, when the run finishes; empty for a check that reports only its verdict.
+var measurement: Callable = Callable()
+
 ## `() -> bool`. Never called after the check resolves.
 var _predicate: Callable
 
@@ -130,4 +134,12 @@ func report_line() -> String:
 			detail = "held throughout" if _verdict else "violated at tick %d" % met_tick
 		_:
 			detail = "true at end" if _verdict else "false at end"
+	var measured_text: String = measured()
+	if measured_text != "":
+		detail += "; %s" % measured_text
 	return "[%s] %s (%s)" % ["PASS" if _verdict else "FAIL", description, detail]
+
+
+## What the leaf measured, or "" when it reports only its verdict.
+func measured() -> String:
+	return str(measurement.call()) if measurement.is_valid() else ""
