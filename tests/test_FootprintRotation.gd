@@ -115,7 +115,7 @@ func _long_building() -> Commandable:
 func _give_box_shape(a_piece: Commandable) -> void:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(LONG_DIMS.x, 1.0, LONG_DIMS.y)
-	(a_piece.target_body.get_node("TargetShape") as CollisionShape3D).shape = shape
+	(a_piece.hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape = shape
 
 
 func _make_builder() -> Commandable:

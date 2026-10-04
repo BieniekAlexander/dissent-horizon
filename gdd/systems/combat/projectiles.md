@@ -175,25 +175,25 @@ stops steering and thrusting, keeps the velocity it had, and falls under
 it: it falls rather than expiring, and bursts where it strikes. A contact, or the
 `LOST_LOCK_FALL_SECONDS` (5 s) backstop for a fall with nothing beneath it, skips any
 remaining moving stages straight to the burst. A later stage never relights it. The lock is
-tested against the target itself (its hitbox centre), not against a leading stage's aim point.
+tested against the target itself (its hurtbox centre), not against a leading stage's aim point.
 
-### A rocket aims at the hitbox
+### A rocket aims at the hurtbox
 
-**A steered phase steers at, leads, and arrives at the centre of its target's hitbox**
-(`Entity.aim_point`, the global position of `TargetBody/TargetShape`; the piece's origin when it
-has none) (Alex, 2026-10-03). **And every hitbox stands ON its piece's base**: `Entity._ready`
-raises the TargetShape until its bottom is at the origin (`_seat_target_shape`). A shape authored
+**A steered phase steers at, leads, and arrives at the centre of its target's hurtbox**
+(`Entity.aim_point`, the global position of `Hurtbox/HurtboxShape`; the piece's origin when it
+has none) (Alex, 2026-10-03). **And every hurtbox stands ON its piece's base**: `Entity._ready`
+raises the HurtboxShape until its bottom is at the origin (`_seat_target_shape`). A shape authored
 higher is left where it is.
 
-- **Why both:** a shape is centred on its node, and every piece's hitbox was authored at its
+- **Why both:** a shape is centred on its node, and every piece's hurtbox was authored at its
   origin, its feet. Half of it was underground, so "aim at the centre" was "aim at the ground",
   and a slightly short rocket struck the terrain in front of a ground target.
-- **What else moves:** every weapon and blast now meets the hitbox above the ground rather than
+- **What else moves:** every weapon and blast now meets the hurtbox above the ground rather than
   straddling it. Range is unaffected (`Hull` reads the footprint on XZ only), and a shell
-  bursting at ground level still reaches the hitbox's bottom.
+  bursting at ground level still reaches the hurtbox's bottom.
 - **Only steered phases aim at the centre.** A launch still sets off toward the target's
   position, and unsteered shells and bullets still aim at the ground under it. A beacon has no
-  hitbox, so a Bombard shell tracking one is unchanged.
+  hurtbox, so a Bombard shell tracking one is unchanged.
 
 ### A lost pursuit loops
 
@@ -554,7 +554,7 @@ the engine yet.** Specs in `sims/` (`warlord_vs_{truck,wagon,raven}_{holding_cou
 `badger_vs_collective_jinking`); "jinking" reverses 0.4 s after each rocket leaves. Ten seeds
 each:
 
-| Spec | Claim | Met | + contact fix | + hitbox aim |
+| Spec | Claim | Met | + contact fix | + hurtbox aim |
 |---|---|---|---|---|
 | truck (QUICK), holding course | dies | 0 of 10 | 6 of 10 | 10 of 10 |
 | truck, jinking | survives | 0 of 10 | 0 of 10 | 0 of 10 |
@@ -611,13 +611,13 @@ Three causes, found by tracing contacts (the first two since fixed):
   struck by 8 of 10 rockets and damaged by about 5. It favoured exactly the target that holds
   course, which inverts the design.
 - **Steered emissions aimed at the target's ORIGIN, at ground level**, until they aimed at the
-  seated hitbox's centre (2026-10-03, §A rocket aims at the hitbox): a slightly short rocket
+  seated hurtbox's centre (2026-10-03, §A rocket aims at the hurtbox): a slightly short rocket
   dived into the terrain in front of a ground target (2 of 10 rockets in one run).
 - **A hovering aircraft reverses by backing off at `reverse_speed_ratio`** rather than turning,
   so a reroute makes it slower, and the chase stage runs it down. The model treated every
   target as a turning vehicle.
 
-Outside the arena (a box hitbox, no terrain short of it), the same rocket hit a steadily
+Outside the arena (a box hurtbox, no terrain short of it), the same rocket hit a steadily
 crossing truck with every shot, as the model predicts, which is what points at the first two.
 - **The SAM got an explicit `acceleration: 20`.** The HOMING preset's 2.25 u/s² takes almost
   four seconds to get from a half-speed launch to SCORCHING, during which BLAZING aircraft

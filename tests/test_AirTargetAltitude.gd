@@ -4,7 +4,7 @@ extends GutTest
 ## — see gdd/systems/combat/target-acquisition.md.
 ##
 ## The rule these pin down is that ONE predicate (Entity.is_air_target) drives both halves of
-## "can this weapon reach it": the TARGETABLE_AIR / TARGETABLE_GROUND bit on the TargetBody,
+## "can this weapon reach it": the TARGETABLE_AIR / TARGETABLE_GROUND bit on the Hurtbox,
 ## and the air-vs-ground reach Weapon.get_range_for_target picks. Every case below is one the
 ## old Movement.mode test got wrong.
 
@@ -148,10 +148,10 @@ func test_refiling_is_a_no_op_while_the_answer_holds() -> void:
 	# The per-tick call must be free when nothing has changed — it runs on every commandable
 	# every tick, so a write per frame is the thing to avoid.
 	var plane: Commandable = _entity(CLIPPER, _commander(1))
-	var before: int = plane.target_body.collision_layer
+	var before: int = plane.hurtbox.collision_layer
 	plane.refresh_targetable_altitude()
 	plane.refresh_targetable_altitude()
-	assert_eq(plane.target_body.collision_layer, before, "unchanged while it stays at cruise")
+	assert_eq(plane.hurtbox.collision_layer, before, "unchanged while it stays at cruise")
 
 
 #endregion
@@ -171,9 +171,9 @@ func test_a_structure_is_a_ground_target_regardless() -> void:
 func test_refiling_leaves_a_structure_alone() -> void:
 	var field: Commandable = _entity(AIRFIELD, _commander(1))
 	field.build_progress = 1.0
-	var before: int = field.target_body.collision_layer
+	var before: int = field.hurtbox.collision_layer
 	field.refresh_targetable_altitude()
-	assert_eq(field.target_body.collision_layer, before, "a structure is never re-filed")
+	assert_eq(field.hurtbox.collision_layer, before, "a structure is never re-filed")
 
 
 #endregion

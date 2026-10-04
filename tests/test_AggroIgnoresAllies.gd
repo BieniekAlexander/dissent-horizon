@@ -8,7 +8,7 @@ extends GutTest
 ## The aggro query is capped (Commandable.AGGRO_SCAN_MAX_RESULTS) before any script filter
 ## runs, and a physics query is not nearest-first, so when it returned allies too a crowd of
 ## friendly bodies could fill the cap and hide an enemy standing in plain sight. Each
-## TargetBody now carries a per-side bit, and the query masks out the asker's own side and
+## Hurtbox now carries a per-side bit, and the query masks out the asker's own side and
 ## neutral. Why: gdd/systems/combat/target-acquisition.md §Aggro filters allegiance.
 ##
 ## PATHS, not preloads (see CLAUDE.md).
@@ -88,13 +88,13 @@ func test_neutral_has_no_side() -> void:
 	assert_eq(CollisionLayers.side_bits(CollisionLayers.TARGETABLE_ANY, 0), 0)
 
 
-func test_a_target_body_carries_its_owners_side_and_follows_a_capture() -> void:
+func test_a_hurtbox_carries_its_owners_side_and_follows_a_capture() -> void:
 	var unit: Commandable = _unit(RECRUIT, _commander(OWN), Vector3.ZERO)
-	var layer: int = unit.target_body.collision_layer
+	var layer: int = unit.hurtbox.collision_layer
 	assert_ne(layer & CollisionLayers.side_bits(GROUND, OWN), 0)
 	assert_eq(unit.targetable_layers(), GROUND, "the generic bits are unchanged")
 	unit.ownership.commander = _commander(FOE)
-	layer = unit.target_body.collision_layer
+	layer = unit.hurtbox.collision_layer
 	assert_eq(layer & CollisionLayers.side_bits(GROUND, OWN), 0, "old side dropped")
 	assert_ne(layer & CollisionLayers.side_bits(GROUND, FOE), 0, "new side taken")
 

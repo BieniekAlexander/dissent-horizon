@@ -120,7 +120,7 @@ static func feature(a_options: Dictionary = {}) -> Entity:
 	piece.id = a_options.get("id", &"fake_feature")
 	piece.add_to_group(&"piece", true)
 	piece.add_to_group(&"fixture", true)
-	_add_scene(piece, "target_body.tscn", "TargetBody")
+	_add_scene(piece, "hurtbox.tscn", "Hurtbox")
 	_add_scene(piece, "selectable.tscn", "Selectable")
 	_add_node(piece, Ownership.new(), "Ownership")
 	var defense := Defense.new()
@@ -180,7 +180,7 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	# The pieces every Commandable's own lookups require.
 	_add_scene(piece, "navigation_agent.tscn", "NavigationAgent")
 	_add_scene(piece, "movement_body.tscn", "MovementBody")
-	_add_scene(piece, "target_body.tscn", "TargetBody")
+	_add_scene(piece, "hurtbox.tscn", "Hurtbox")
 	_add_node(piece, Ownership.new(), "Ownership")
 	var defense := Defense.new()
 	defense.hp_max = float(a_options.get("hp", 100.0))

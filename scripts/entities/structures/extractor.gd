@@ -16,7 +16,7 @@ extends Node
 ## (Map.add_structure) or authored in a scene (and auto-created by the editor helper below).
 @export var extraction_site: Entity
 
-## Site Selectable/TargetBody shapes disabled on bind, remembered so restoration re-enables
+## Site Selectable/Hurtbox shapes disabled on bind, remembered so restoration re-enables
 ## exactly those (and not any disabled for another reason).
 var _site_disabled_shapes: Array[CollisionShape3D] = []
 #endregion
@@ -38,7 +38,7 @@ func host() -> Commandable:
 
 ## Link the host to its site, both directions. The host OVERLAYS the site and becomes the
 ## interactive entity at that cell — it must stay selectable and targetable — so the site's
-## own Selectable and TargetBody are suppressed until the host goes (see _release).
+## own Selectable and Hurtbox are suppressed until the host goes (see _release).
 func bind_extraction_site(a_site: Entity) -> void:
 	extraction_site = a_site
 	var site: ExtractionSite = ExtractionSite.of(a_site)
@@ -105,7 +105,7 @@ func _release() -> void:
 
 #region Extraction-site overlay
 ## Suppress (or restore) the site's interaction colliders — the CollisionShape3Ds under its
-## Selectable (SELECTION layer) and TargetBody (TARGETABLE layer) — so the overlaying host is
+## Selectable (SELECTION layer) and Hurtbox (TARGETABLE layer) — so the overlaying host is
 ## the sole click/attack target. The site's grid and movement presence is left untouched.
 ## Editor-inert.
 func _set_site_interaction_disabled(a_disabled: bool) -> void:
@@ -126,7 +126,7 @@ func _set_site_interaction_disabled(a_disabled: bool) -> void:
 ## The site's SELECTION + TARGETABLE CollisionShape3Ds; a missing component is skipped.
 func _site_interaction_shapes() -> Array[CollisionShape3D]:
 	var result: Array[CollisionShape3D] = []
-	for component: Node in [extraction_site.selectable, extraction_site.target_body]:
+	for component: Node in [extraction_site.selectable, extraction_site.hurtbox]:
 		if component != null:
 			for node: Node in component.find_children("*", "CollisionShape3D", true, false):
 				result.append(node as CollisionShape3D)

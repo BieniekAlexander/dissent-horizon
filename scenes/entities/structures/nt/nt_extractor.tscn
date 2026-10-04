@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://scripts/entities/structures/extractor.gd" id="2_mine0"]
 [ext_resource type="Script" path="res://scripts/entities/components/energy_extractor.gd" id="3_oreex"]
 [ext_resource type="PackedScene" path="res://assets/meshes/cone.blend" id="4_nxbv5"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_q4pme"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_q4pme"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_7rfpf"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_a1yxf"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="8_kgcuu"]
@@ -37,10 +37,10 @@ id = &"nt_extractor"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1439942704]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_q4pme")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_q4pme")]
 collision_layer = 0
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 shape = SubResource("BoxShape3D_y15wp")
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_7rfpf")]
@@ -113,5 +113,5 @@ script = ExtResource("20_ei3cj")
 [node name="Extractor" type="Node" parent="." unique_id=165188485]
 script = ExtResource("2_mine0")
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="Selectable"]

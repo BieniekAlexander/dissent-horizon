@@ -50,7 +50,7 @@ func _emission(a_jitter_degrees: float = 0.0) -> Entity:
 	return emission
 
 
-## A piece as the game builds one: an Entity whose targetable volume is a TargetBody child.
+## A piece as the game builds one: an Entity whose targetable volume is a Hurtbox child.
 func _piece(a_at: Vector3, a_frame: Defense.FrameType = Defense.FrameType.MECH) -> Entity:
 	var piece: Entity = Entity.new()
 	piece.collision_layer = 0
@@ -63,7 +63,7 @@ func _piece(a_at: Vector3, a_frame: Defense.FrameType = Defense.FrameType.MECH) 
 	defense.frame_type = a_frame
 	piece.add_child(defense)
 	var body: StaticBody3D = StaticBody3D.new()
-	body.name = "TargetBody"
+	body.name = "Hurtbox"
 	body.collision_layer = CollisionLayers.Mask.TARGETABLE_GROUND
 	body.add_child(_box(Vector3.ONE))
 	piece.add_child(body)
@@ -75,7 +75,7 @@ func _piece(a_at: Vector3, a_frame: Defense.FrameType = Defense.FrameType.MECH) 
 ## transform only at the next sync, so a test that moves a target reads the body directly.
 static func _move(a_piece: Entity, a_to: Vector3) -> void:
 	a_piece.global_position = a_to
-	(a_piece.get_node("TargetBody") as StaticBody3D).global_position = a_to
+	(a_piece.get_node("Hurtbox") as StaticBody3D).global_position = a_to
 
 
 func _ground() -> void:

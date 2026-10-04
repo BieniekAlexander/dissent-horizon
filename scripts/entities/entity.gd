@@ -183,7 +183,7 @@ func can_move() -> bool:
 ## AoE / line-of-fire queries hit this child. Resolve a hit collider back to the
 ## owning Entity with Entity.entity_from_collider(). Optional — null for entities
 ## with no targetable presence (star, hit_box).
-@onready var target_body: StaticBody3D = get_node_or_null("TargetBody") as StaticBody3D
+@onready var hurtbox: StaticBody3D = get_node_or_null("Hurtbox") as StaticBody3D
 #endregion
 
 #region Properties
@@ -366,7 +366,7 @@ func aggro_radius() -> float:
 func hostiles_in_aggro(a_max_results: int = 32) -> Array[Entity]:
 	var out: Array[Entity] = []
 	var from: Hull = hull()
-	var exclude: Array = [target_body.get_rid()] if target_body != null else []
+	var exclude: Array = [hurtbox.get_rid()] if hurtbox != null else []
 	for pass_spec: Array in [
 		[aggro_shape_ground, CollisionLayers.Mask.TARGETABLE_GROUND],
 		[aggro_shape_air, CollisionLayers.Mask.TARGETABLE_AIR]
@@ -451,14 +451,14 @@ func blocks_line_of_fire() -> bool:
 ## The entity's primary collision shape. Commandables name their movement shape
 ## "MovementBody"; other Entity scenes (radiation, star) use "Body". Prefer "Body"
 ## when present so scenes mid-rename keep working, falling back to "MovementBody".
-## Raise the hitbox (TargetBody/TargetShape) so it never reaches below this piece's base. A
-## shape is centred on its node, and every piece's hitbox was authored at its origin — its feet
+## Raise the hurtbox (Hurtbox/HurtboxShape) so it never reaches below this piece's base. A
+## shape is centred on its node, and every piece's hurtbox was authored at its origin — its feet
 ## — so half of it stood underground: a rocket steered at its centre dived into the terrain in
 ## front of a ground target. Seated, it covers the body above the base, and its centre is a point
 ## a weapon can actually reach. A shape already placed higher is left where it is.
-## → gdd/systems/combat/projectiles.md §A rocket aims at the hitbox
+## → gdd/systems/combat/projectiles.md §A rocket aims at the hurtbox
 func _seat_target_shape() -> void:
-	var node: CollisionShape3D = target_body.get_node_or_null("TargetShape") as CollisionShape3D
+	var node: CollisionShape3D = hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
 	if node == null or node.shape == null:
 		return
 	var half_height: float = RangeShapes.half_height_of(node.shape) * node.scale.y
@@ -474,7 +474,7 @@ func _resolve_collider() -> CollisionShape3D:
 
 
 ## Resolve a physics-query collider to its owning Entity. Because the targetable
-## layers / STRUCTURE_BLOCKER now live on the child TargetBody, query hits are that child
+## layers / STRUCTURE_BLOCKER now live on the child Hurtbox, query hits are that child
 ## — walk up to its Entity parent. Colliders that are themselves Entities (any
 ## other layer) pass straight through. Returns null for non-entity colliders.
 static func entity_from_collider(node: Object) -> Entity:
@@ -505,25 +505,25 @@ func bounding_radius(a_layer: int) -> float:
 	return -1.0
 
 
-## Where a steered weapon aims at this piece: the centre of its hitbox (TargetBody/TargetShape),
+## Where a steered weapon aims at this piece: the centre of its hurtbox (Hurtbox/HurtboxShape),
 ## which stands on the piece's base (_seat_target_shape); the piece's origin when it has no
-## hitbox. → gdd/systems/combat/projectiles.md §A rocket aims at the hitbox
+## hurtbox. → gdd/systems/combat/projectiles.md §A rocket aims at the hurtbox
 func aim_point() -> Vector3:
 	var node: CollisionShape3D = (
-		target_body.get_node_or_null("TargetShape") as CollisionShape3D
-		if target_body != null
+		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
+		if hurtbox != null
 		else null
 	)
 	return node.global_position if node != null and node.is_inside_tree() else global_position
 
 
-## This piece's footprint on the XZ plane, from its TargetBody's shape: what every
+## This piece's footprint on the XZ plane, from its Hurtbox's shape: what every
 ## piece-to-piece range is measured from (see Hull). A piece with no targetable shape is
 ## measured as the point it stands on.
 func hull() -> Hull:
 	var node: CollisionShape3D = (
-		target_body.get_node_or_null("TargetShape") as CollisionShape3D
-		if target_body != null
+		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
+		if hurtbox != null
 		else null
 	)
 	if node == null or node.shape == null:
@@ -532,7 +532,7 @@ func hull() -> Hull:
 	var xform: Transform3D = (
 		node.global_transform
 		if node.is_inside_tree()
-		else global_transform * target_body.transform * node.transform
+		else global_transform * hurtbox.transform * node.transform
 	)
 	var at: Vector2 = VU.in_xz(xform.origin)
 	var shape: Shape3D = node.shape
@@ -633,7 +633,7 @@ func height_offset() -> float:
 	return movement.descent_altitude() if movement != null else 0.0
 
 
-## The air/ground answer the TargetBody's current layers were written for. Compared once a
+## The air/ground answer the Hurtbox's current layers were written for. Compared once a
 ## tick (see refresh_targetable_altitude) so the layer is rewritten only when the piece
 ## actually crosses the threshold, rather than every frame it spends in the air.
 var _targetable_as_air: bool = false
@@ -644,13 +644,13 @@ var _targetable_as_air: bool = false
 ## height is already being applied to the body — so this costs one float comparison, and a
 ## property write only on the tick the answer flips.
 func refresh_targetable_altitude() -> void:
-	if target_body == null or movement == null or is_planned:
+	if hurtbox == null or movement == null or is_planned:
 		return
 	if is_air_target() != _targetable_as_air:
 		_apply_targetable_layers()
 
 
-## Set the TargetBody's targetable collision layers from this entity's components —
+## Set the Hurtbox's targetable collision layers from this entity's components —
 ## the single place that decides what a weapon can lock onto:
 ##   - a structure (has a Structure component) is a ground target, and once it is
 ##     FINISHED it also blocks line-of-fire, so it carries STRUCTURE_BLOCKER too
@@ -660,11 +660,11 @@ func refresh_targetable_altitude() -> void:
 ##   - an entity with neither component exposes no targetable layer (not attackable);
 ##   - whatever it exposes, it also carries its owner's side bit (CollisionLayers.side_bits).
 func _apply_targetable_layers() -> void:
-	if target_body == null:
+	if hurtbox == null:
 		return
 	# Clear the bits we own here, then recompute, leaving any unrelated bits intact.
 	var layers: int = (
-		target_body.collision_layer
+		hurtbox.collision_layer
 		& ~(
 			CollisionLayers.TARGETABLE_ANY
 			| CollisionLayers.all_side_bits(CollisionLayers.TARGETABLE_ANY)
@@ -674,7 +674,7 @@ func _apply_targetable_layers() -> void:
 	# A planned structure exposes nothing to shoot at or fire through — it isn't there. Nor
 	# does a charge riding on another piece: shooting at it is shooting at its carrier.
 	if is_planned or PlantedCharge.is_riding(self):
-		target_body.collision_layer = layers
+		hurtbox.collision_layer = layers
 		return
 	_targetable_as_air = is_air_target()
 	if structure_is_active():
@@ -692,7 +692,7 @@ func _apply_targetable_layers() -> void:
 	# The side bit is what lets an aggro query skip allies (CollisionLayers.hostile_mask); it
 	# follows the owner, which is why a capture re-applies these layers.
 	layers |= CollisionLayers.side_bits(layers & CollisionLayers.TARGETABLE_ANY, commander_id)
-	target_body.collision_layer = layers
+	hurtbox.collision_layer = layers
 
 
 ## The ATTACKABLE facet: a weapon can lock onto it and it can take damage
@@ -717,11 +717,11 @@ func is_visible_to(a_viewer_commander_id: int) -> bool:
 
 ## The TARGETABLE_GROUND / TARGETABLE_AIR bits this entity currently exposes, or 0
 ## when it isn't targetable. A weapon may attack it iff its target_mask intersects
-## these. Sourced from the TargetBody configured by _apply_targetable_layers().
+## these. Sourced from the Hurtbox configured by _apply_targetable_layers().
 func targetable_layers() -> int:
-	if target_body == null:
+	if hurtbox == null:
 		return 0
-	return target_body.collision_layer & CollisionLayers.TARGETABLE_ANY
+	return hurtbox.collision_layer & CollisionLayers.TARGETABLE_ANY
 
 
 ## True when this entity is currently FLYING — it has an Aerial and is not mid-landing or
@@ -743,14 +743,14 @@ func is_airborne() -> bool:
 func _ready() -> void:
 	ownership.commander_changed.connect(_on_commander_changed)
 
-	# Mirror the root Body shape onto the TargetBody so targeting matches the
+	# Mirror the root Body shape onto the Hurtbox so targeting matches the
 	# entity's footprint (extractor/turret/compound override Body with a box). Entities
 	# with no root collider (e.g. an ExtractionSite, whose footprint lives only on the
-	# TargetBody) keep their authored TargetBody shape. Either way the hitbox is then seated
+	# Hurtbox) keep their authored Hurtbox shape. Either way the hurtbox is then seated
 	# ON the piece's base rather than straddling it (_seat_target_shape).
-	if target_body != null:
+	if hurtbox != null:
 		if collider != null:
-			(target_body.get_node("TargetShape") as CollisionShape3D).shape = collider.shape
+			(hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape = collider.shape
 		_seat_target_shape()
 		_apply_targetable_layers()
 

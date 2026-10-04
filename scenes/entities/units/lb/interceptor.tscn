@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://cxk04wu0mkt2s" path="res://assets/meshes/hexagonal_prism.blend" id="2_hexprism"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_ir35r"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_d8cpg"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_56ukl"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_56ukl"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_28c0l"]
 [ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_jpdfa"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="7_2cmow"]
@@ -39,7 +39,7 @@ id = &"lb_mechLight_antiBio"
 
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_d8cpg")]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_56ukl")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_56ukl")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_28c0l")]
 

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_l85c1"]
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_huge.tres" id="2_spec"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_d1hi1"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_d1hi1"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_ce1xw"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_f0xmg"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="8_u0xwa"]
@@ -34,7 +34,7 @@ id = &"lb_commandCenter"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=492129995]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_d1hi1")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_d1hi1")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_ce1xw")]
 

@@ -88,7 +88,7 @@ nearest-first, so when it returned allies too, a crowd of friendly bodies could 
 and hide a visible enemy. `tests/test_AggroIgnoresAllies.gd` pins that case.
 
 **A physics mask can only OR bits together** (`layer & mask != 0`), so "on the ground AND
-hostile" cannot be two bits tested together; the layer encodes the combination. A TargetBody
+hostile" cannot be two bits tested together; the layer encodes the combination. A Hurtbox
 keeps its generic `TARGETABLE_GROUND` / `TARGETABLE_AIR` bit, which projectiles, AoE, vision
 and every other broad scan still query, and also carries one side bit for that layer and its
 owner (`CollisionLayers.side_bits`). Neutral has no side, which is what keeps it out of every
@@ -237,7 +237,7 @@ Tests: `tests/test_FogVisibility.gd`, `tests/test_DefendLeash.gd`.
 **`Entity.is_air_target()` — `height_offset() >= Aerial.AIR_TARGET_ALTITUDE` — is
 the only thing that decides whether a piece is engaged as an AIR target or a GROUND one.**
 Both halves of "can this weapon reach it" read it: the `TARGETABLE_AIR` / `TARGETABLE_GROUND`
-bit on the piece's `TargetBody`, and the air-vs-ground reach `Weapon.get_range_for_target`
+bit on the piece's `Hurtbox`, and the air-vs-ground reach `Weapon.get_range_for_target`
 picks. The threshold is derived from `Aerial.AERIAL_HEIGHT`, not typed, so raising cruise
 altitude cannot leave the whole air force below the line.
 

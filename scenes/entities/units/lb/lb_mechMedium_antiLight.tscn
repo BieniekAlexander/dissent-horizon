@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_bgl6y"]
 [ext_resource type="PackedScene" uid="uid://c1wu8cfh3yl7b" path="res://scenes/entities/projectiles/lb/dunno.tscn" id="3_spec"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_medium.tres" id="4_spec"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_v7b6a"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_v7b6a"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="5_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_xp4hi"]
 [ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_eo42d"]
@@ -45,7 +45,7 @@ id = &"lb_mechMedium_antiLight"
 
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_bgl6y")]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_v7b6a")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_v7b6a")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_xp4hi")]
 

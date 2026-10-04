@@ -627,9 +627,9 @@ that inherited `projectile.tscn` and the one that inherited `irregular_bullet.ts
   "author its scene by hand" error is gone.
 - The universal tier stopped being universal: a structure has no `NavigationAgent`,
   `MovementBody`, `AvoidanceObstacle` or `AltitudeIndicator`. The runtime used to mirror the
-  `MovementBody` shape onto the `TargetShape`, so the three structures whose `MovementBody` was
+  `MovementBody` shape onto the `HurtboxShape`, so the three structures whose `MovementBody` was
   a box (`cl_defense_antiAircraft`, `nt_extractor`, `facility`) now author that box on the
-  `TargetShape` directly.
+  `HurtboxShape` directly.
 - The three outliers are ordinary docs: the extraction site and shelter say
   `commandable: false`, which makes them features on an `Entity` root; the Recon Drone keeps a
   `Commandable` root because it can be damaged.

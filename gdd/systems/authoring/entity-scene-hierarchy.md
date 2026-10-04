@@ -46,7 +46,7 @@ tiers above.
 ## The component library
 
 `scenes/components/` holds one scene per component that carries more than a script: children
-(`TargetBody`, `Selectable`, `HPBar`), a shape or texture (`MovementBody`, `VisionRange`, the
+(`Hurtbox`, `Selectable`, `HPBar`), a shape or texture (`MovementBody`, `VisionRange`, the
 indicators), or tuned defaults (`NavigationAgent`). A piece instances it and writes over only
 what it does differently.
 

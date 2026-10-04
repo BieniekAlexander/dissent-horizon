@@ -73,6 +73,7 @@ These need an answer before anything can be built on them.
 | 1.64 | **Should openness be a map invariant?** Built: obstacles keep a 20-cell gap, and the report lists every choke between open areas; nothing rejects a map for them. Open: whether a map with too many chokes under some width is rejected, and what the width and the count are. | [terrain-and-navigation/map-generation](systems/terrain-and-navigation/map-generation.md) §Openness | |
 | 1.65 | **Cliffs: what is left.** Built 2026-10-02 (thin cuts realised as cliffs in pass 6). Open: a cliff reads as a rocky strip rather than a face; a grown mass's face is not built; two `test_MapElevation` seeds pending; incremental relabel PLANNED after it. | [terrain-and-navigation/map-generation](systems/terrain-and-navigation/map-generation.md) §6, Cliffs | |
 | 1.66 | **What defines projectile evasion?** The vocabulary is written (engagement frame, evasion modes, hit rate as the measure); open: the evasion envelope per class pair, outpacing by range rather than speed, the close-range window as a claim, whether mid-range jukes are a band at all, hover evasion, launch readability, and whether the AI jukes. | [combat/projectile-evasion](systems/combat/projectile-evasion.md) §Open questions | |
+| 1.67 | **Is the damage-multiplier table tunable in debug?** It is a library many pieces read, shown in the verbose weapon popup, but authored as TSV rather than as a doc, so tuning it means Save writing TSV. | [ux/ui/debug-tuning](systems/ux/ui/debug-tuning.md) §What can be tuned | |
 
 ---
 

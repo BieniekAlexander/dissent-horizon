@@ -365,7 +365,7 @@ func face_velocity() -> void:
 	body.look_at(body.global_position + body.velocity, up)
 
 
-## Where a steered phase aims: the centre of the pursued piece's hitbox (Entity.aim_point), or
+## Where a steered phase aims: the centre of the pursued piece's hurtbox (Entity.aim_point), or
 ## where it was last seen once it has left the game; null for a goal that never named a piece,
 ## which is flown unsteered.
 func _steering_goal() -> Variant:

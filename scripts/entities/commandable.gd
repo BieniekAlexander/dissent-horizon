@@ -21,7 +21,7 @@ extends Entity
 var action_tracker: ActionTracker = ActionTracker.new()
 
 ## Component references — all optional. Entity declares `ownership`, `movement`,
-## `selectable`, and `target_body`; Commandable adds `production` and the
+## `selectable`, and `hurtbox`; Commandable adds `production` and the
 ## command/combat machinery below.
 ## NavigationObstacle3D used for cross-team one-sided avoidance (see
 ## AvoidanceAgent3D for the bit-layout). Enabled and sized in _ready for units
@@ -932,7 +932,7 @@ func _hostiles_in_region(
 ) -> Array[Entity]:
 	if a_shape.shape == null:
 		return []
-	var exclude: Array = [target_body.get_rid()] if target_body != null else []
+	var exclude: Array = [hurtbox.get_rid()] if hurtbox != null else []
 	return SU.entities_within(
 		get_world_3d(),
 		Hull.point(VU.in_xz(a_center)),
@@ -1072,7 +1072,7 @@ func _ready() -> void:
 
 	# Establish the root's movement-collision layer now (map is still null, so this
 	# resolves to MOVEMENT_OBSTRUCTION) — bounding_radius() below reads it, and it
-	# runs before initialize() would otherwise set it. The TargetBody shape mirror
+	# runs before initialize() would otherwise set it. The Hurtbox shape mirror
 	# and STRUCTURE_BLOCKER layer are handled in Entity._ready (via super() above).
 	refresh_movement_collision()
 	attributes = Set.new(attributes_list)

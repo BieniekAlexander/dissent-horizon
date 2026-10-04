@@ -179,6 +179,49 @@ static func _cooldown_ticks(pool: Dictionary) -> int:
 
 #endregion
 
+#region Retuning
+## The authored doc keys a pool is retuned by, and the pool entry each one is stored as.
+const POOL_KEYS: Dictionary = {
+	"max_charges": "max_charges", "initial_charges": "initial_charges", "cooldown": "cooldown_ticks"
+}
+
+
+## One pool's authored value by doc key (`cooldown` in ticks), as the pool resolves it.
+func pool_value(a_index: int, a_key: String) -> int:
+	if a_index < 0 or a_index >= groups.size():
+		return 0
+	var pool: Dictionary = groups[a_index]
+	match a_key:
+		"max_charges":
+			return _max_charges(pool)
+		"initial_charges":
+			return _initial_charges(pool)
+		"cooldown":
+			return _cooldown_ticks(pool)
+	return 0
+
+
+## Change one pool's authored value in play, without the reset _rebuild would make: the pool
+## keeps the FRACTION of its charges and of its cooldown it had (debug-tuning.md §An edit is to
+## the piece TYPE). Before _ready there is no live state, and _rebuild reads the new value.
+func retune_pool(a_index: int, a_key: String, a_value: int) -> void:
+	if a_index < 0 or a_index >= groups.size() or not POOL_KEYS.has(a_key):
+		return
+	var pool: Dictionary = groups[a_index].duplicate()
+	var old_max: int = _max_charges(pool)
+	var old_cooldown: int = _cooldown_ticks(pool)
+	pool[POOL_KEYS[a_key]] = a_value
+	groups[a_index] = pool
+	if _charges.size() != groups.size():
+		return
+	_charges[a_index] = clampi(
+		roundi(float(_charges[a_index]) * _max_charges(pool) / old_max), 0, _max_charges(pool)
+	)
+	_timers[a_index] = _timers[a_index] * _cooldown_ticks(pool) / old_cooldown
+
+
+#endregion
+
 
 #region Queries
 ## Whether this piece can use `a_ability_id` at all — before asking whether it is charged.

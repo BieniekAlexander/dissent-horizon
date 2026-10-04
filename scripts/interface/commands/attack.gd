@@ -51,11 +51,11 @@ static func _obstruction_on_line(actor: Commandable, target: Entity) -> bool:
 	var query := PhysicsRayQueryParameters3D.create(
 		actor.global_position, target.global_position, CollisionLayers.Mask.STRUCTURE_BLOCKER
 	)
-	# STRUCTURE_BLOCKER lives on the target's TargetBody child, so exclude that
+	# STRUCTURE_BLOCKER lives on the target's Hurtbox child, so exclude that
 	# (and the root) to avoid the target's own body counting as line-of-fire cover.
 	var excludes: Array[RID] = [target.get_rid()]
-	if target.target_body != null:
-		excludes.append(target.target_body.get_rid())
+	if target.hurtbox != null:
+		excludes.append(target.hurtbox.get_rid())
 	query.exclude = excludes
 	return not space_state.intersect_ray(query).is_empty()
 

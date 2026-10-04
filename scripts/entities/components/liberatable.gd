@@ -3,7 +3,7 @@ extends Node
 
 ## Liberatable component — declares that its parent entity can be converted by a
 ## [Liberator] RIGHT NOW, by holding the `CollisionLayers.Mask.LIBERATABLE` bit on the
-## entity's TargetBody. Same idiom as [Stealth], which registers its parent on the
+## entity's Hurtbox. Same idiom as [Stealth], which registers its parent on the
 ## STEALTH layer so DetectionRange queries only ever return entities that opted in.
 ##
 ## The bit IS the predicate, not a hint the caller re-checks. `Liberator.tick()` runs
@@ -60,14 +60,14 @@ func _is_currently_liberatable() -> bool:
 	return own != null and own.commander_id == 0
 
 
-## The bit lives on the TargetBody, not the root CharacterBody3D, for two reasons:
+## The bit lives on the Hurtbox, not the root CharacterBody3D, for two reasons:
 ## `Entity.refresh_movement_collision()` wipes every root layer bit but STEALTH, and
 ## `Entity._apply_targetable_layers()` explicitly preserves bits it doesn't own — so
-## the TargetBody is the one of the two that will still be carrying this next tick.
+## the Hurtbox is the one of the two that will still be carrying this next tick.
 ## `Entity.entity_from_collider` resolves either back to the entity, so the query side
 ## is indifferent.
 func _write(a_on: bool) -> void:
-	var body := get_parent().get_node_or_null("TargetBody") as CollisionObject3D
+	var body := get_parent().get_node_or_null("Hurtbox") as CollisionObject3D
 	if body == null:
 		return
 	if a_on:

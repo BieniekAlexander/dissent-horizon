@@ -57,7 +57,7 @@ Aiming at ground nobody spots fails with its own `PreconditionFailureCause.TARGE
 
 ### Beacons
 
-`Beacon` is an Entity rather than a marker Resource so it can be OWNED (the strike check is per-commander), can carry vision through the ordinary fog path, and can be found by a group scan with no registry to keep in step. Like `Scout` it has no `Defense`, `Selectable` or `TargetBody`, so it cannot be shot, clicked or ordered — you kill a beacon by killing its spotter.
+`Beacon` is an Entity rather than a marker Resource so it can be OWNED (the strike check is per-commander), can carry vision through the ordinary fog path, and can be found by a group scan with no registry to keep in step. Like `Scout` it has no `Defense`, `Selectable` or `Hurtbox`, so it cannot be shot, clicked or ordered — you kill a beacon by killing its spotter.
 
 `dismiss()` is the one way out for every reason (spent, expired, cancelled), because every caller wants the same two things — the `spent` signal, then the free — and a second path would eventually forget one. It is idempotent, so a shot and an expiry on the same frame cannot double-notify.
 

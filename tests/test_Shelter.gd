@@ -173,7 +173,7 @@ func test_liberator_query_cap_is_not_the_conversion_cap():
 
 
 func _is_on_liberation_layer(a_entity: Node) -> bool:
-	var body := a_entity.get_node_or_null("TargetBody") as CollisionObject3D
+	var body := a_entity.get_node_or_null("Hurtbox") as CollisionObject3D
 	return body != null and (body.collision_layer & CollisionLayers.Mask.LIBERATABLE) != 0
 
 
@@ -214,7 +214,7 @@ func test_other_pieces_are_not_on_the_liberation_layer():
 	add_child_autofree(other)
 	assert_false(_is_on_liberation_layer(other), "other pieces are not targets")
 
-	# The regression this layer exists for: the host's own TargetBody sits dead-centre in
+	# The regression this layer exists for: the host's own Hurtbox sits dead-centre in
 	# its LiberationRange, so on a shared targeting layer it consumed a query slot every
 	# tick — which is why a warlord in a crowd converted nothing.
 	var warlord: Node = FakePieces.make(WARLORD)
@@ -226,11 +226,11 @@ func test_liberation_layer_survives_targetable_layer_recompute():
 	var t: Node = FakePieces.make(TERRESTRIAL)
 	add_child_autofree(t)
 	# _apply_targetable_layers clears only the bits it owns; the LIBERATABLE bit is not
-	# one of them. Sharing the TargetBody with targeting only works because of that.
+	# one of them. Sharing the Hurtbox with targeting only works because of that.
 	(t as Entity)._apply_targetable_layers()
 	assert_true(_is_on_liberation_layer(t), "still liberatable after a targeting recompute")
 	assert_true(
-		((t as Entity).target_body.collision_layer & CollisionLayers.Mask.TARGETABLE_GROUND) != 0,
+		((t as Entity).hurtbox.collision_layer & CollisionLayers.Mask.TARGETABLE_GROUND) != 0,
 		"and still a ground target"
 	)
 

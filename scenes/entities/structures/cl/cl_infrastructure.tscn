@@ -5,7 +5,7 @@
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/abilities.gd" id="2_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/garrison.gd" id="3_inv"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_50w33"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_50w33"]
 [ext_resource type="Script" path="res://scripts/entities/components/occupant_dominion_generator.gd" id="4_dom"]
 [ext_resource type="PackedScene" path="res://assets/meshes/hexagonal_prism.blend" id="4_kheyl"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_inmoy"]
@@ -38,7 +38,7 @@ id = &"cl_infrastructure"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1773591731]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_50w33")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_50w33")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_inmoy")]
 

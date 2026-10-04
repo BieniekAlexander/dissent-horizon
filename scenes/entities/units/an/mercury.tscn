@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_rqgt3"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="3_garr"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_oc0g3"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_8ya2g"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_8ya2g"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_2h432"]
 [ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_mb0h8"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="7_v5j8n"]
@@ -43,9 +43,9 @@ attributes_list = Array[int]([0])
 visible = true
 shape = SubResource("CylinderShape3D_w5j01")
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_8ya2g")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_8ya2g")]
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 shape = SubResource("CylinderShape3D_a0kvb")
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_2h432")]
@@ -128,5 +128,5 @@ billboard = 2
 
 [node name="AggroRangeAir" parent="." unique_id=429441066 instance=ExtResource("5_2h432")]
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="HPBar"]

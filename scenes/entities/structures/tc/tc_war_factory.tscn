@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_aw0hh"]
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_rhseb"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_rhseb"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_yooak"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_4q83j"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="7_hq0vd"]
@@ -38,7 +38,7 @@ id = &"tc_warFactory"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1081100422]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_rhseb")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_rhseb")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_yooak")]
 

@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_2mvwn"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_3lfjd"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/detection_small.tres" id="3_spec"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_dlbjc"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_dlbjc"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="4_qd6od"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_adpp6"]
 [ext_resource type="PackedScene" uid="uid://csyjjmuctxo47" path="res://scenes/entities/projectiles/cl/badger_rocket.tscn" id="5_qd6od"]
@@ -47,7 +47,7 @@ id = &"cl_bioLight_antiMech"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_2mvwn")]
 shape = SubResource("CylinderShape3D_ape66")
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_dlbjc")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_dlbjc")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_adpp6")]
 

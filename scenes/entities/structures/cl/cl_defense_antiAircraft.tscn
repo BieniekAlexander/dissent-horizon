@@ -6,7 +6,7 @@
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="2_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="PackedScene" path="res://scenes/entities/projectiles/cl/sam_missile.tscn" id="4_hro24"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_hxpvy"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_hxpvy"]
 [ext_resource type="Script" path="res://scripts/entities/tools/weapon.gd" id="4_wpn00"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_1kjo3"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_f5kis"]
@@ -46,10 +46,10 @@ id = &"cl_defense_antiAircraft"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1265698528]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_hxpvy")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_hxpvy")]
 visible = false
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 shape = SubResource("BoxShape3D_22lm5")
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_1kjo3")]
@@ -152,6 +152,6 @@ script = ExtResource("23_lohvd")
 
 [node name="AggroRangeAir" parent="." unique_id=258284977 instance=ExtResource("5_1kjo3")]
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="Selectable"]
 [editable path="HPBar"]

@@ -21,6 +21,7 @@
 [ext_resource type="Script" path="res://scripts/interface/hud/energy_bar.gd" id="22_enbar"]
 [ext_resource type="Script" path="res://scripts/interface/hud/infrastructure_bar.gd" id="23_infbar"]
 [ext_resource type="PackedScene" path="res://scenes/interface/debug_panel.tscn" id="24_debug"]
+[ext_resource type="PackedScene" path="res://scenes/interface/debug_tuning_panel.tscn" id="25_tuning"]
 
 [node name="Player" type="Control" unique_id=309245524]
 layout_mode = 3
@@ -336,6 +337,9 @@ horizontal_alignment = 2
 
 [node name="DebugPanel" parent="Controller" instance=ExtResource("24_debug")]
 hidden_while_up = [NodePath("../ObjectiveView"), NodePath("../ScenarioTimerLabel"), NodePath("../CommandErrorMessage")]
+
+[node name="DebugTuningPanel" parent="Controller" instance=ExtResource("25_tuning")]
+hidden_while_up = [NodePath("../DominionBar"), NodePath("../EnergyBar"), NodePath("../InfrastructureBar")]
 
 [node name="HelpOverlay" parent="Controller" unique_id=120632399 instance=ExtResource("12_help")]
 help_text = "To exit the game:

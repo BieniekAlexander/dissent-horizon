@@ -268,16 +268,16 @@ func _input(a_event: InputEvent):
 			)
 			move_reference_position = new_mouse_pos
 
-	if a_event.is_action_pressed("isometric_camera_left", true):
-		global_position += -_ground_right() * 10
-	if a_event.is_action_pressed("isometric_camera_right", true):
-		global_position += _ground_right() * 10
-	if a_event.is_action_pressed("isometric_camera_up", true):
-		global_position += _ground_forward() * 10
-	if a_event.is_action_pressed("isometric_camera_down", true):
-		global_position += -_ground_forward() * 10
-
-	_handle_zoom_input(a_event)
+	if not is_typing(get_viewport()):
+		if a_event.is_action_pressed("isometric_camera_left", true):
+			global_position += -_ground_right() * 10
+		if a_event.is_action_pressed("isometric_camera_right", true):
+			global_position += _ground_right() * 10
+		if a_event.is_action_pressed("isometric_camera_up", true):
+			global_position += _ground_forward() * 10
+		if a_event.is_action_pressed("isometric_camera_down", true):
+			global_position += -_ground_forward() * 10
+		_handle_zoom_input(a_event)
 
 
 ## How far this drag pans, per unit of mouse travel — 1.0 unmodified.
@@ -299,11 +299,19 @@ func drag_pan_factor() -> float:
 	return factor
 
 
+## Whether a text field holds the keyboard — the debug tuning editor's, today. Its keys are
+## text, not camera keys: a minus sign typed into a field must not zoom. The keyboard camera
+## keys are POLLED or read in _input, both of which see a key whatever has focus, so they ask.
+static func is_typing(a_viewport: Viewport) -> bool:
+	return a_viewport != null and a_viewport.gui_get_focus_owner() is LineEdit
+
+
 func _process(a_delta: float) -> void:
-	if Input.is_action_pressed(rotate_left_action):
-		rotation.y += rotation_speed * a_delta
-	if Input.is_action_pressed(rotate_right_action):
-		rotation.y -= rotation_speed * a_delta
+	if not is_typing(get_viewport()):
+		if Input.is_action_pressed(rotate_left_action):
+			rotation.y += rotation_speed * a_delta
+		if Input.is_action_pressed(rotate_right_action):
+			rotation.y -= rotation_speed * a_delta
 
 	# Zoom is handled in _input (see _handle_zoom_input) rather than polled here, because the
 	# wheel and the +/- keys need different rules and polling cannot tell them apart.

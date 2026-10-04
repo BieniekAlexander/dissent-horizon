@@ -33,7 +33,7 @@ const TARGETABLE_ANY: int = Mask.TARGETABLE_GROUND | Mask.TARGETABLE_AIR
 
 ## Per-side copies of the two targetable layers, so an aggro query asks the physics engine for
 ## "hostile to me" instead of filtering allies out afterwards. A mask can only OR bits, so the
-## layer has to encode the combination: a TargetBody keeps its generic TARGETABLE_* bit and also
+## layer has to encode the combination: a Hurtbox keeps its generic TARGETABLE_* bit and also
 ## sets the one side bit for its layer and commander. Neutral (commander 0) has no side, which
 ## is what keeps it out of every hostile mask. Side slot k is commander id k + 1.
 ## See gdd/systems/combat/target-acquisition.md §Aggro filters allegiance in the physics query.

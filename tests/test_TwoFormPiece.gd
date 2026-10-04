@@ -103,7 +103,7 @@ func _deploy_center() -> Vector2:
 
 
 func _blocks_line_of_fire(a_piece: Entity) -> bool:
-	return (a_piece.target_body.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER) != 0
+	return (a_piece.hurtbox.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER) != 0
 
 
 # --- Spawning ---------------------------------------------------------------------

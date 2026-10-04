@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/docking_bay.gd" id="2_dockbay"]
 [ext_resource type="Script" path="res://scripts/entities/components/docking_pad.gd" id="2_dockpad"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_lvqxg"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_lvqxg"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_kt4yc"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_gh711"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="7_2mi51"]
@@ -40,7 +40,7 @@ id = &"tc_airField"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=757515332]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_lvqxg")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_lvqxg")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_kt4yc")]
 

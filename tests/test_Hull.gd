@@ -107,7 +107,7 @@ func _soldier(a_commander: Commander, a_at: Vector3) -> Commandable:
 func _boxed(a_piece: Commandable) -> void:
 	var box := BoxShape3D.new()
 	box.size = Vector3(4, 2, 4)
-	(a_piece.target_body.get_node("TargetShape") as CollisionShape3D).shape = box
+	(a_piece.hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape = box
 	a_piece.rotation.y = deg_to_rad(30.0)
 
 

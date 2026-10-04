@@ -1183,7 +1183,7 @@ func unit_effectiveness_vs(a_unit_type, a_target: Commandable) -> float:
 	if override != null:
 		return override
 	# `target` must be a LIVE instance: targetable_layers()/armour come from runtime
-	# nodes (target_body), so a build PREVIEW would read 0 and break this. Effectiveness
+	# nodes (hurtbox), so a build PREVIEW would read 0 and break this. Effectiveness
 	# is otherwise type-level, so any live instance of a type is representative.
 	var my_preview := _preview_for_type(a_unit_type)
 	if my_preview == null:

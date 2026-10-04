@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "systems/terrain-and-navigation/map-generation.md",
+                "file": "factions/anarchical/units/an_bioMedium_dominionGen.md",
                 "mode": "source",
-                "source": false
+                "source": true
               },
               "icon": "lucide-file",
-              "title": "map-generation"
+              "title": "an_bioMedium_dominionGen"
             }
           }
         ]
@@ -55,8 +55,8 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "garrison",
-                "matchingCase": false,
+                "query": "annex",
+                "matchingCase": true,
                 "explainSearch": false,
                 "collapseAll": true,
                 "extraContext": false,
@@ -76,7 +76,8 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -157,7 +158,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "systems/terrain-and-navigation/map-generation.md",
+                "file": "factions/anarchical/units/an_bioMedium_dominionGen.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -185,36 +186,36 @@
       "obsidian-excalidraw-plugin:New drawing": false
     }
   },
-  "active": "15e6c72ff7fc52ba",
+  "active": "957570738825d1b7",
   "lastOpenFiles": [
-    "systems/ux/aesthetics/lighting.md",
-    "systems/ux/ui/construction-visuals.md",
-    "factions/colonial/units/cl_bioLight_builder.md",
-    "systems/ux/aesthetics/terrain-readability.md",
-    "systems/terrain-and-navigation/visual-facets.md",
-    "Untitled.base",
-    "refactoring-plan.md",
-    "spreadsheet.base",
-    "tasks.md",
-    "unit-calibration.md",
-    "factions/colonial/units/cl_bioLight_antiLight.md",
-    "factions/anarchical/units/an_bioLight_builder.md",
-    "factions/anarchical/units/an_bioMedium_dominionGen.md",
-    "factions/colonial/units/cl_mechLight_dominionGen.md",
-    "systems/terrain-and-navigation/map-generation.md",
-    "factions/neutral/structures/nt_building_shack.md",
-    "factions/neutral/structures/nt_building_long.md",
-    "factions/neutral/structures/nt_building_square.md",
-    "factions/neutral/structures/nt_building_large.md",
-    "factions/anarchical/units/an_bioMedium_support.md",
-    "factions/anarchical/units/an_mechLight_transport.md",
-    "factions/anarchical/structures/an_infrastructure.md",
-    "systems/ai/bot-architecture.md",
-    "systems/macroeconomics/pacing/building-roles.md",
+    "factions/colonial/structures/cl_support2.md",
+    "factions/colonial/structures/cl_support3.md",
+    "factions/anarchical/units/an_aircraftLight_antiMech.md",
+    "factions/anarchical/units/an_aircraftMedium_support.md",
+    "factions/anarchical/units/an_mechMedium_artillery.md",
+    "projectiles/radiation.md",
+    "systems/combat/projectiles.md",
+    "projectiles/projectile.md",
+    "factions/anarchical/abilities/plant.md",
+    "systems/combat/planted-explosives.md",
+    "factions/colonial/units/cl_aircraftLight_antiLight.md",
+    "systems/ux/ui/piece-readouts.md",
+    "systems/ux/ui/debug-tuning.md",
     "factions/colonial/units/cl_mechMedium_antiLight.md",
-    "factions/libertarian/units/lb_mechLight_antiLight.md",
-    "systems/macroeconomics/upgrades.md",
-    "systems/macroeconomics/pacing/tree-shape.md",
+    "movement/speed_classes.md",
+    "systems/combat/projectile-evasion.md",
+    "movement/zero-hour-speed-reference.md",
+    "systems/ai/squads-and-relations.md",
+    "systems/ai/bot-randomness.md",
+    "movement/movement.md",
+    "factions/colonial/units/cl_mechLight_dominionGen.md",
+    "factions/colonial/colonial.md",
+    "factions/anarchical/sanctions/ambush.md",
+    "systems/commands/move-line-drag.md",
+    "systems/macroeconomics/pacing/sanction-calibration.md",
+    "factions/colonial/sanctions/scan.md",
+    "Untitled.base",
+    "spreadsheet.base",
     "systems/macroeconomics/pacing",
     "factions/colonial/upgrades",
     "movement",

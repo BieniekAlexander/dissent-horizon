@@ -15,7 +15,7 @@ carries only the pointer.*
 How a target in the path of a projectile makes it miss, and the terms a design claim about that
 is written in. The mechanics the terms describe live elsewhere: an emission's motion, stages,
 steering, lead, bleed and lock are [projectiles](projectiles.md) (§Phases, §Turn bleed and lead,
-§Losing the lock, §A rocket aims at the hitbox), the speed classes are
+§Losing the lock, §A rocket aims at the hurtbox), the speed classes are
 [movement/speed_classes](../../movement/speed_classes.md), and what an evasive option is worth as
 a skill surface is [design-framework/elasticity](../../design-framework/elasticity.md).
 
@@ -44,9 +44,9 @@ Every term is measured for ONE shot, from its launch to the moment it strikes or
 | **Shooter, target, emission** | the piece that fired, the piece it was fired at (`Payload.target`), and the projectile itself |
 | **Launch** | the tick the emission is put into play (`Emitter.launch`). Every time below is counted from it |
 | **Engagement distance `d`** | shooter to target at launch, horizontally |
-| **Aim point** | where a steered emission aims at its target: the centre of the target's hitbox (`Entity.aim_point`) |
+| **Aim point** | where a steered emission aims at its target: the centre of the target's hurtbox (`Entity.aim_point`) |
 | **Line of sight (LOS)** | the line from the emission to the aim point. It rotates as either moves |
-| **Hit volume** | what the emission must reach for the shot to count: the target's hitbox, plus the blast radius for a blast emission, measured at the contact's tick ([projectiles](projectiles.md) §The blast is measured at the contact) |
+| **Hit volume** | what the emission must reach for the shot to count: the target's hurtbox, plus the blast radius for a blast emission, measured at the contact's tick ([projectiles](projectiles.md) §The blast is measured at the contact) |
 | **Flight time `T_f`** | launch to contact. Depends on `d`, the target's motion and the emission's whole speed profile, not on its top speed alone |
 
 ### The target's motion, relative to the line of sight
@@ -173,7 +173,7 @@ to kill the shooter. That is the payoff the band should be sized for.
 - **TODO — the evasion envelope per class pair.** For each emission against each movement class,
   at what distance, aspect and reaction delay does each mode start to work? This should be a table
   measured in the arena, not reasoned out on paper: the paper model
-  (`tools/projectiles/rocket_escape_model.py`) has no hitbox size, no jitter, no 3D, and no
+  (`tools/projectiles/rocket_escape_model.py`) has no hurtbox size, no jitter, no 3D, and no
   back-off, and it disagreed with the arena on every jinking case.
 - **TODO — separating outpacing by range rather than speed.** A powered range that runs out and
   then falls, so a fast vehicle and a fast aircraft both outpace by distance. Alex is revisiting

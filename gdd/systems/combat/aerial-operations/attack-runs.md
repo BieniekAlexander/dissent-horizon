@@ -77,7 +77,7 @@ landed in a field. Ground units and turrets are untouched: neither carries an `A
 
 `Aerial._attitude_node` returns the `MeshVisual`, not the owner, and that is deliberate.
 
-The owner is the `CharacterBody3D`, and its children include `MovementBody`, `TargetBody`,
+The owner is the `CharacterBody3D`, and its children include `MovementBody`, `Hurtbox`,
 the two aggro volumes, `VisionRange` and the Loadout's `AttackRange` — range shapes that are
 100-unit-tall cylinders. **Leaning the owner swung their ground-level footprint several
 world units away from the unit**: a Petrel at full nose-down displaced its aggro and vision

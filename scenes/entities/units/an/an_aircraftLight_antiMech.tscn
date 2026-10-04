@@ -7,7 +7,7 @@
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="3_load"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/air_range_melee.tres" id="3_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_uio2a"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_24a70"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_24a70"]
 [ext_resource type="PackedScene" uid="uid://cmrtyrbomb001" path="res://scenes/entities/projectiles/an/kamikaze_bomb.tscn" id="4_bomb"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_aerial_medium.tres" id="4_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_2wge0"]
@@ -55,9 +55,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2600708, 0)
 visible = true
 shape = SubResource("CylinderShape3D_3bom3")
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_24a70")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_24a70")]
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27890015, 0)
 visible = true
 shape = SubResource("CylinderShape3D_cx32p")
@@ -167,6 +167,6 @@ billboard = 2
 script = ExtResource("1_spec")
 groups = Array[Dictionary]([{ "initial_charges": 3, "max_charges": 3, "cooldown_ticks": 90, "grants": [&"irradiate"] }])
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="Selectable"]
 [editable path="HPBar"]

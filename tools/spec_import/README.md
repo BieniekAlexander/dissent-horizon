@@ -7,7 +7,9 @@ whose value is the Godot class the spec loads as — `Entity`,
 (`SpecRegistry.KIND_FAMILIES`). An EMPTY `kind:` names nothing, so the doc is not a spec and
 is skipped — a stray Obsidian "Untitled" note never blocks an import. An unknown non-empty kind
 is a hard error. The importer applies it to the Godot project — one-way (the old Godot→YAML
-export direction is retired).
+export direction is retired). The docs themselves have a second writer, the in-game debug
+tuning editor, which edits frontmatter values and validates them as this importer would
+(`frontmatter_writer.gd`, `gdd/systems/ux/ui/debug-tuning.md`); it never writes a scene.
 
 **One doc per scene.** Two docs naming the same `scene:` is a hard error: each would rewrite
 that scene on every run and the import would never converge.
@@ -252,7 +254,7 @@ senses:                        # -> the detection volumes on the root
 
 body:                          # -> the physical volumes on the root
   radius: 0.3                  # MovementBody radius (nav footprint / avoidance)
-  target: 0.4                  # TargetBody/TargetShape radius (what weapons lock onto)
+  hurtbox: 0.4                 # Hurtbox/HurtboxShape radius (what weapons lock onto)
 
 movement: {speed: SLOW, turn_rate: 1080}   # speed NAMES a class — see kind: SpeedLibrary
 # ...and the rest of the chassis. EVERY movement sub-key is validated against
@@ -383,7 +385,7 @@ second time when it lands.
 
 - **Every doc-governed shape is a `CylinderShape3D`** of a fixed height
   (`SpecSceneSync.SHAPE_HEIGHT`, 100), so a spec authors only the radius —
-  `senses.vision`, `body.radius`, `body.target`, and each
+  `senses.vision`, `body.radius`, `body.hurtbox`, and each
   shape-library entry (which a weapon's `reach` names). The height is deliberately far taller than the world: shapes sit at
   the entity's origin, so vertical separation (aerial units cruise at
   `Aerial.AERIAL_HEIGHT`) never decides an overlap. A shape authored as some
@@ -411,7 +413,7 @@ second time when it lands.
   it is the same removal as `vision: false`. That is the spelling an author actually
   produces, by deleting a number rather than the line, and refusing it made the
   ordinary way of taking a volume away an import error. It stays refused where zero
-  does not disable (`body.radius`, `body.target`, a projectile's `blast`): those
+  does not disable (`body.radius`, `body.hurtbox`, a projectile's `blast`): those
   volumes are not optional. Emptiness means removal only for these keys — elsewhere
   an empty value is still whatever that key's own validation says it is.
 

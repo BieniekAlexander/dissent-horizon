@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/entities/entity.gd" id="1_cjycp"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="2_own"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="2_wisfu"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="2_wisfu"]
 [ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="3_obs"]
 [ext_resource type="Script" path="res://scripts/entities/components/shelter.gd" id="4_shel"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="7_fhj1p"]
@@ -28,9 +28,9 @@ id = &"nt_shelter"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=86555838]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("2_wisfu")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("2_wisfu")]
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 shape = SubResource("BoxShape3D_1dpfl")
 
 [node name="Ownership" type="Node" parent="." unique_id=1036473683]
@@ -80,5 +80,5 @@ visible = true
 
 [node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("12_ss5ie")]
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="Selectable"]

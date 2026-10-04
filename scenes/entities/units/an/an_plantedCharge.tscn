@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cjtfujd10oo22"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="1_spec"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="2_spec"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_spec"]
 [ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="4_spec"]
@@ -38,7 +38,7 @@ verbose = "Goes off when its Sapper says so, when it is destroyed, or when what 
 
 [node name="#####STATE#####" type="Node" parent="."]
 
-[node name="TargetBody" parent="." instance=ExtResource("1_spec")]
+[node name="Hurtbox" parent="." instance=ExtResource("1_spec")]
 
 [node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
 

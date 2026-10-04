@@ -21,7 +21,7 @@ const GROUP_COLOR: Dictionary = {
 	"debug_shape_liberation_range": Color(0.9, 0.35, 0.15, 0.35),  # orange (terrestrial conversion)
 	"debug_shape_warlord_dominion": Color(0.35, 0.95, 0.65, 0.35),  # spring green (dominion aura)
 	"debug_shape_movement_body": Color(0.8, 0.8, 0.8, 0.40),  # grey
-	"debug_shape_target_body": Color(1.0, 0.9, 0.2, 0.35),  # yellow
+	"debug_shape_hurtbox": Color(1.0, 0.9, 0.2, 0.35),  # yellow
 	"debug_shape_selection": Color(0.2, 0.9, 0.3, 0.30),  # green
 	"debug_shape_trigger": Color(0.2, 0.85, 0.9, 0.30),  # cyan (event-trigger area)
 }

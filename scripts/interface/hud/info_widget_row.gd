@@ -54,6 +54,8 @@ const WORD_MIN_WIDTH: float = 84.0
 ## A PAIR of figures — "160/160", "3/6" — needs more room than a single one, or it clips its
 ## own tail inside the cell.
 const PAIR_MIN_WIDTH: float = 62.0
+## Wide enough for a damage-per-second figure beside the longest damage type's name.
+const WEAPON_MIN_WIDTH: float = 136.0
 
 ## WHAT A PROPERTY MEANS, as against what this piece's value of it is. Game-wide copy, so it
 ## is written here once rather than per piece — a doc key repeating "armour resists damage
@@ -112,6 +114,12 @@ signal ranges_unhovered
 
 ## The piece currently drawn, so an unchanged selection costs no rebuild.
 var _drawn: int = 0
+## The depth behind a widget, toggled by clicking it (gdd/systems/ux/ui/piece-readouts.md).
+## One for the row, made once, and a SIBLING of the row rather than a child: every child of the
+## row is a widget.
+var _popup: PieceReadoutPopup = null
+## The piece the widgets describe, for the popup a click opens.
+var _piece: Commandable = null
 #endregion
 
 
@@ -136,6 +144,9 @@ func update(a_selection: Array) -> void:
 
 #region Building
 func _rebuild(a_piece: Commandable) -> void:
+	_piece = a_piece
+	_ensure_popup()
+	_popup.close()
 	for child: Node in get_children():
 		remove_child(child)
 		child.queue_free()
@@ -158,10 +169,10 @@ func _rebuild(a_piece: Commandable) -> void:
 		(
 			_add_widget(
 				"weapon",
-				_damage_type_name(weapon),
+				_weapon_value(weapon),
 				_weapon_tooltip(weapon),
 				WEAPON_NOTES,
-				WORD_MIN_WIDTH
+				WEAPON_MIN_WIDTH
 			)
 			. set_meta(&"range_kinds", EntityRanges.WEAPON_KINDS)
 		)
@@ -208,6 +219,16 @@ func _rebuild(a_piece: Commandable) -> void:
 		)
 
 
+func _ensure_popup() -> void:
+	if _popup != null:
+		return
+	_popup = PieceReadoutPopup.new()
+	_popup.name = "ReadoutPopup"
+	if get_parent() != null:
+		get_parent().add_child.call_deferred(_popup)
+	tree_exiting.connect(func() -> void: _popup.queue_free())
+
+
 ## One widget: a caption naming the topic and the figure under it.
 ##
 ## A VerboseTooltipButton because that IS the project's tooltip system — every hoverable HUD
@@ -249,6 +270,7 @@ func _add_widget(
 	widget.add_child(box)
 
 	widget.mouse_entered.connect(_on_widget_entered.bind(widget))
+	widget.pressed.connect(func() -> void: _popup.toggle(StringName(a_key), _piece, widget))
 	widget.mouse_exited.connect(func() -> void: ranges_unhovered.emit())
 	add_child(widget)
 	return widget
@@ -280,6 +302,9 @@ func _refresh_values(a_piece: Commandable) -> void:
 	if a_piece.movement != null:
 		_set_value("speed", "%.1f" % a_piece.movement.speed)
 	_set_value("sight", _sight_value(a_piece))
+	var weapon: Weapon = EntityRanges.first_weapon(a_piece)
+	if weapon != null:
+		_set_value("weapon", _weapon_value(weapon))
 	var garrison: Garrison = a_piece.get_node_or_null("Garrison") as Garrison
 	if garrison != null:
 		_set_value("hold", "%d/%d" % [garrison.occupied_size(), garrison.capacity])
@@ -404,6 +429,12 @@ static func _garrison_tooltip(a_garrison: Garrison) -> String:
 	if a_garrison.is_closed():
 		parts.append("closed — nothing can be ordered in")
 	return "  ·  ".join(parts)
+
+
+## The weapon widget's face: what it deals per second, approximately, and of what type. The
+## specifics are its popup's (piece-readouts.md §The weapon widget).
+static func _weapon_value(a_weapon: Weapon) -> String:
+	return "~%d dps · %s" % [roundi(a_weapon.approximate_dps()), _damage_type_name(a_weapon)]
 
 
 static func _damage_type_name(a_weapon: Weapon) -> String:

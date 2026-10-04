@@ -122,7 +122,7 @@ const PHASE_EMIT_NODE: String = "Emit"
 const SHAPE_PATHS: Dictionary = {
 	"vision": "VisionRange",
 	"movement_radius": "MovementBody",
-	"target_radius": "TargetBody/TargetShape",
+	"hurtbox_radius": "Hurtbox/HurtboxShape",
 }
 
 ## The SHAPE_PATHS keys a doc may switch OFF — `false`, or the value simply left empty

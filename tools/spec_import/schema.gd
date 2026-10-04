@@ -130,7 +130,7 @@ const NESTED_ORDER: Dictionary = {
 	"cost": ["energy", "infrastructure", "dominion"],
 	"defense": ["hp", "armour", "frame"],
 	"senses": ["vision", "detection"],
-	"body": ["radius", "target"],
+	"body": ["radius", "hurtbox"],
 	"movement":
 	[
 		"speed",
@@ -241,7 +241,7 @@ const NESTS: Dictionary = {
 	{"cost": "cost", "time": "build_time", "requires": "requires", "completes_as": "completes_as"},
 	"defense": {"hp": "hp", "armour": "armour", "frame": "frame"},
 	"senses": {"vision": "vision", "detection": "detection"},
-	"body": {"radius": "movement_radius", "target": "target_radius"},
+	"body": {"radius": "movement_radius", "hurtbox": "hurtbox_radius"},
 }
 
 ## Top-level keys that are renamed rather than nested: {authored: internal}.
@@ -272,6 +272,7 @@ const RETIRED: Dictionary = {
 const RETIRED_NESTED: Dictionary = {
 	"senses.aggro":
 	"aggro is derived from weapon reach at runtime (RangeShapes), so remove the key",
+	"body.target": "renamed `body.hurtbox:` — the volume a weapon hits, named for what it is",
 }
 
 ## internal key -> the DOC path that now carries it. Read both ways: a doc still
@@ -290,7 +291,7 @@ const DOC_KEY: Dictionary = {
 	"vision": "senses.vision",
 	"detection": "senses.detection",
 	"movement_radius": "body.radius",
-	"target_radius": "body.target",
+	"hurtbox_radius": "body.hurtbox",
 	"ability_groups": "abilities",
 	"beacon_range": "beacon",
 }

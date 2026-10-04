@@ -370,7 +370,7 @@ func fallen_velocity(a_velocity: Vector3) -> Vector3:
 
 
 ## Whether the emission has reached where it was going. A steered phase aims at its target's
-## hitbox centre (Entity.aim_point) and never arrives without one; a falling one lands on
+## hurtbox centre (Entity.aim_point) and never arrives without one; a falling one lands on
 ## crossing its destination's height on the way down; anything else arrives within one step of
 ## the destination.
 func has_arrived(

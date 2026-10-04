@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_5mhuo"]
 [ext_resource type="PackedScene" uid="uid://cond2ih04o4e4" path="res://scenes/entities/projectiles/an/toxin_cloud.tscn" id="3_spec"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_2424f"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_2424f"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_medium.tres" id="4_spec"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="5_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_wus8t"]
@@ -43,7 +43,7 @@ id = &"an_mechMedium_antiBio"
 
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_5mhuo")]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_2424f")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_2424f")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_wus8t")]
 

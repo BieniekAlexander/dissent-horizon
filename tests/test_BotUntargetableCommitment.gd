@@ -44,7 +44,7 @@ extends GutTest
 ##
 ## Two additions over the stub in tests/test_BotHostileTargets.gd, both because this file is
 ## about TARGETING rather than about distances:
-##   • a TargetBody, which is where `targetable_layers()` reads the ground/air bit from — a
+##   • a Hurtbox, which is where `targetable_layers()` reads the ground/air bit from — a
 ##     stub without one is targetable by nothing at all, which would make every assertion
 ##     here pass for the wrong reason;
 ##   • `command_receiver.initialize`, normally done by Commandable._ready (which this stub
@@ -58,7 +58,7 @@ class StubPiece:
 			["Ownership", Ownership.new()],
 			["AvoidanceObstacle", NavigationObstacle3D.new()],
 			["Veterancy", Veterancy.new()],
-			["TargetBody", StaticBody3D.new()]
+			["Hurtbox", StaticBody3D.new()]
 		]:
 			var node: Node = pair[1]
 			node.name = pair[0]
@@ -138,7 +138,7 @@ func _piece(a_owner: Commander, a_is_structure: bool, a_x: float, a_z: float) ->
 	piece.defense = defense
 	# A GROUND target, set on the body rather than derived: `_apply_targetable_layers` reads
 	# a Structure component or a Movement's altitude, and this stub has neither.
-	piece.target_body.collision_layer |= CollisionLayers.Mask.TARGETABLE_GROUND
+	piece.hurtbox.collision_layer |= CollisionLayers.Mask.TARGETABLE_GROUND
 	return piece
 
 

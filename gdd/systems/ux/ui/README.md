@@ -20,7 +20,9 @@ The interface half of [UX](../README.md): what the player sees and touches.
 | [condition-visuals.md](condition-visuals.md) | `StatusVisuals`: effect tints, floating badges, veterancy, capacity pips |
 | [range-reveal.md](range-reveal.md) | rings on the ground: hovered info cards, and what an armed ability would cover |
 | [condition-cards.md](condition-cards.md) | status effects and passives as one card: valence, duration and availability |
+| [piece-readouts.md](piece-readouts.md) | the depth behind the selected piece's widgets: popups, the verbose tier, the weapon card |
 | [debug-mode.md](debug-mode.md) | the debug view and menu: piece spawner, delete, commanding any piece, swapping player |
+| [debug-tuning.md](debug-tuning.md) | editing a piece's doc values live in debug mode, the library menu, and saving to the docs |
 | [generated-visual-defaults.md](generated-visual-defaults.md) | placeholder meshes, derived selection shapes and HP bars; the clearing protocol |
 
 **Belongs here:** panels and buttons, input actions and key bindings, cursor behaviour,

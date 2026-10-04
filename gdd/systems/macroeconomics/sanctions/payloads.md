@@ -89,7 +89,7 @@ unit (see `gdd/systems/ai/bot-roadmap.md` §The gaps in the decision surface).
 
 The Scan family is one event (`EventRadarScan`) with three sets of exports. Scan 3's "hovering unit that floats above the designated position indefinitely ... uncommandable" is a `Scout` with `lifespan_frames < 0`.
 
-**The Scout is a real, attackable piece** (`gdd/factions/neutral/units/nt_aircraftLight_recon.md` — 50 HP, LIGHT armour, MECH frame, HOVERING). It used to be a bare `Entity` with no `Defense` and no `TargetBody`, which made it UNKILLABLE: aggro filters on `t is Commandable`, so nothing could ever shoot one and a permanent Scan 3 eye was an unanswerable, cost-free reveal. Three things carry that:
+**The Scout is a real, attackable piece** (`gdd/factions/neutral/units/nt_aircraftLight_recon.md` — 50 HP, LIGHT armour, MECH frame, HOVERING). It used to be a bare `Entity` with no `Defense` and no `Hurtbox`, which made it UNKILLABLE: aggro filters on `t is Commandable`, so nothing could ever shoot one and a permanent Scan 3 eye was an unanswerable, cost-free reveal. Three things carry that:
 
 - **HOVERING is not about travel** — it is what puts the drone on the `TARGETABLE_AIR` layer (see `Entity._apply_targetable_layers`), so it needs a `Movement` to be shootable at all. `speed: ZERO` is what keeps it where the sanction put it.
 - **It cannot be ordered because it cannot be SELECTED** — `Selectable.selectable_by_player = false`. Godot cannot remove a node inherited from a base scene, so the component is unavoidable; the flag switches it off, refused at `select()`, the one choke point both the click path (`RTSController.set_selection`) and the box drag go through.

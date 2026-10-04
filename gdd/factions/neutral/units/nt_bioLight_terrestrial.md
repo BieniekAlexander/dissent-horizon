@@ -12,7 +12,7 @@ senses:
   detection: detection_small
 body:
   radius: .3
-  target: .3
+  hurtbox: .3
 movement: {speed: SLUGGISH, turn_rate: 1080, crush_class: TINY, min_turn_speed_ratio: 0}
 ---
 

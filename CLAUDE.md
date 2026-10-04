@@ -607,6 +607,11 @@ the blocker, its colour, the charge pips and the cooldown countdown.
 `Scenario.debug_allowed` and the `;` toggle; the debug menu: piece spawner, debug delete, commanding any piece, playing as another commander, bot difficulty.
 → **[`gdd/systems/ux/ui/debug-mode.md`](gdd/systems/ux/ui/debug-mode.md)**
 
+Debug tuning — edit a piece's doc values live from its HUD readout, retune the speed ladder and
+shape buckets, and Save back into the spec docs (the docs stay primary; the importer still
+carries them into scenes).
+→ **[`gdd/systems/ux/ui/debug-tuning.md`](gdd/systems/ux/ui/debug-tuning.md)**
+
 ## Condition visuals (`StatusVisuals`)
 
 How a unit's condition is drawn: effect tints, floating badges, veterancy and capacity pips.

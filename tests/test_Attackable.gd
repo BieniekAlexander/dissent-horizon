@@ -5,7 +5,7 @@ extends GutTest
 ##
 ## Attack and aggro used to filter on `is Commandable`, so an uncommandable piece could only be
 ## made shootable by making it a Commandable it was not — which is exactly how the Recon Drone
-## came to be one. The fixture here is the extraction site: a plain `Entity` with a TargetBody
+## came to be one. The fixture here is the extraction site: a plain `Entity` with a Hurtbox
 ## and a footprint, so it shows a ground target layer, and no Defense of its own.
 ##
 ## PATHS, not preloads — a file-scope preload of an entity scene poisons the Tool registry

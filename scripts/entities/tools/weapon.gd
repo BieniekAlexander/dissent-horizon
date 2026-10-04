@@ -463,7 +463,7 @@ func per_shot_damage_type() -> Damage.Type:
 ## NULL means THIS WEAPON HAS NO REACH AGAINST THAT SIDE — a ground-only weapon asked about
 ## an air target, or an anti-air one asked about a target on the ground. Callers must read it
 ## as "not in range" rather than assuming a shape is always there: `can_target()` is not a
-## guarantee, because it reads the LATCHED TargetBody layer while this reads LIVE altitude,
+## guarantee, because it reads the LATCHED Hurtbox layer while this reads LIVE altitude,
 ## and the two disagree for the one tick a piece spends crossing AIR_TARGET_ALTITUDE.
 func get_range_for_target(a_target: Entity) -> CollisionShape3D:
 	return attack_range_shape_air if a_target.is_air_target() else attack_range_shape_ground
@@ -512,6 +512,37 @@ func can_fire_at_ground() -> bool:
 	return projectile_scene != null and (target_mask & CollisionLayers.Mask.TARGETABLE_GROUND) != 0
 
 
+## The range node this weapon reaches the ground (or the air) with, whether or not the weapon
+## currently hits that layer: AttackRangeGround / AttackRangeAir, or the one AttackRange both
+## share. Null when the weapon has none.
+func range_node(a_is_air: bool) -> CollisionShape3D:
+	var split: String = "AttackRangeAir" if a_is_air else "AttackRangeGround"
+	if has_node(split):
+		return get_node(split) as CollisionShape3D
+	return get_node_or_null("AttackRange") as CollisionShape3D
+
+
+## Change which targetable layers this weapon hits, re-resolving the range shapes that follow
+## from it (they are chosen by the mask at _ready).
+func retarget(a_mask: int) -> void:
+	target_mask = (target_mask & ~CollisionLayers.TARGETABLE_ANY) | a_mask
+	if not is_node_ready():
+		return
+	attack_range_shape_ground = (
+		range_node(false) if target_mask & CollisionLayers.Mask.TARGETABLE_GROUND else null
+	)
+	attack_range_shape_air = (
+		range_node(true) if target_mask & CollisionLayers.Mask.TARGETABLE_AIR else null
+	)
+
+
+## Change the clip size in play, keeping the fraction of the clip still loaded.
+func resize_clip(a_clip_size: int) -> void:
+	var old: int = maxi(clip_size, 1)
+	clip_size = maxi(a_clip_size, 1)
+	_ammo = clampi(roundi(float(_ammo) * clip_size / old), 0, clip_size)
+
+
 ## XZ radius of a range shape node — its shape radius scaled by the node's own X axis — or
 ## -1.0 for a missing node or an unsupported shape.
 func _range_radius(a_shape_node: CollisionShape3D) -> float:
@@ -547,6 +578,40 @@ func _ensure_shot_cache() -> void:
 
 var _cached_per_shot_damage: float = -1.0
 var _cached_damage_type: Damage.Type = Damage.Type.LEAD
+
+
+## Forget the per-shot cache, so the next read re-derives it — after a retune of the melee
+## damage or of the emission this fires.
+func invalidate_shot_cache() -> void:
+	_cached_per_shot_damage = -1.0
+
+
+## Set what one shot does without reading the emission scene — for the debug tuning editor,
+## whose edited emission differs from the scene this would otherwise instantiate.
+func set_shot_profile(a_damage: float, a_type: Damage.Type) -> void:
+	_cached_per_shot_damage = a_damage
+	_cached_damage_type = a_type
+
+
+## Damage per second over a sustained firing cycle: a clip's shots `split` apart, then the
+## reload. The reload timer restarts on every shot, so a reload no longer than the split never
+## holds the weapon up. Base damage only — no armour, no blast, no misses, no startup.
+static func sustained_damage_per_second(
+	a_per_shot: float, a_split_ticks: int, a_reload_ticks: int, a_clip: int
+) -> float:
+	var clip: int = maxi(a_clip, 1)
+	var split: float = TimeUtils.seconds_from_ticks(maxi(a_split_ticks, 1))
+	var reload: float = TimeUtils.seconds_from_ticks(a_reload_ticks)
+	if reload <= split:
+		return a_per_shot / split
+	return clip * a_per_shot / ((clip - 1) * split + reload)
+
+
+## This weapon's sustained damage per second (sustained_damage_per_second).
+func approximate_dps() -> float:
+	return sustained_damage_per_second(
+		per_shot_damage(), split_time_ticks, reload_time_ticks, clip_size
+	)
 
 
 func is_ready() -> bool:

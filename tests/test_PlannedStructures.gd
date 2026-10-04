@@ -178,15 +178,15 @@ func test_blueprint_is_intangible() -> void:
 		0,
 		"units walk through a building that isn't there yet"
 	)
-	var target_body := blueprint.get_node_or_null("TargetBody") as StaticBody3D
-	if target_body != null:
+	var hurtbox := blueprint.get_node_or_null("Hurtbox") as StaticBody3D
+	if hurtbox != null:
 		assert_eq(
-			target_body.collision_layer & CollisionLayers.TARGETABLE_ANY,
+			hurtbox.collision_layer & CollisionLayers.TARGETABLE_ANY,
 			0,
 			"nothing can target a blueprint"
 		)
 		assert_eq(
-			target_body.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER,
+			hurtbox.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER,
 			0,
 			"a blueprint doesn't block line of fire"
 		)

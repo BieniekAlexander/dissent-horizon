@@ -104,7 +104,7 @@ static func is_in_attack_range(
 	# weapon asked about an air target, or an AA gun asked about one that has landed — and
 	# that null is an answer, not an oversight. It is reachable even though
 	# Loadout.weapon_for_target only hands back a weapon whose can_target() passed: can_target
-	# reads the TargetBody's LAYER, latched at the end of a tick, while get_range_for_target
+	# reads the Hurtbox's LAYER, latched at the end of a tick, while get_range_for_target
 	# reads LIVE altitude, and for the one tick a piece crosses Aerial.AIR_TARGET_ALTITUDE the
 	# two disagree.
 	var range_node: CollisionShape3D = weapon.get_range_for_target(target)

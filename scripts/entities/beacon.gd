@@ -29,7 +29,7 @@ extends Node
 ##
 ## The host is a plain Entity so it can be OWNED (the strike check is per-commander), carry
 ## vision through the ordinary fog path, and be found by a group scan. It has no Defense,
-## Selectable or TargetBody, so it cannot be shot, clicked or ordered — killing a beacon is
+## Selectable or Hurtbox, so it cannot be shot, clicked or ordered — killing a beacon is
 ## done by killing the spotter that called it. A component rather than the host's class, like
 ## Shelter; `Beacon.of` finds it.
 

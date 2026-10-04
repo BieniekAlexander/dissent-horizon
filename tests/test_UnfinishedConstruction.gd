@@ -124,8 +124,8 @@ func test_an_unfinished_garrison_admits_nobody() -> void:
 # --- It is not cover ---------------------------------------------------------------
 
 
-func _target_body(a_turret: Commandable) -> StaticBody3D:
-	return a_turret.get_node_or_null("TargetBody") as StaticBody3D
+func _hurtbox(a_turret: Commandable) -> StaticBody3D:
+	return a_turret.get_node_or_null("Hurtbox") as StaticBody3D
 
 
 func test_a_foundation_is_shootable_but_is_not_cover() -> void:
@@ -134,8 +134,8 @@ func test_a_foundation_is_shootable_but_is_not_cover() -> void:
 	# a bullet to hit. It stays a legal TARGET, and it still holds its grid cells.
 	var turret := _sam(false)
 	turret._apply_targetable_layers()
-	var body := _target_body(turret)
-	assert_not_null(body, "the SAM has a TargetBody to carry the layers")
+	var body := _hurtbox(turret)
+	assert_not_null(body, "the SAM has a Hurtbox to carry the layers")
 	assert_eq(
 		body.collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER,
 		0,
@@ -155,7 +155,7 @@ func test_finishing_construction_makes_it_cover() -> void:
 	turret._apply_targetable_layers()
 	assert_true(turret.advance_build_progress(1.0), "the completing tick")
 	assert_ne(
-		_target_body(turret).collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER,
+		_hurtbox(turret).collision_layer & CollisionLayers.Mask.STRUCTURE_BLOCKER,
 		0,
 		"a finished building blocks line of fire"
 	)

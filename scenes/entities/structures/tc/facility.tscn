@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://lg3slrwglq37"]
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_xwbti"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_cbl4c"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_cbl4c"]
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="4_prod0"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_pbnur"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_csjmj"]
@@ -40,9 +40,9 @@ id = &"tc_barracks"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1984851161]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_cbl4c")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_cbl4c")]
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 shape = SubResource("BoxShape3D_k3gyv")
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_pbnur")]
@@ -113,5 +113,5 @@ script = ExtResource("18_ludm6")
 
 [node name="AggroRangeAir" parent="." unique_id=1054964845 instance=ExtResource("5_pbnur")]
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="Selectable"]

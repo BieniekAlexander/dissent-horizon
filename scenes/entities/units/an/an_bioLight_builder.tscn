@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_5e8iu"]
 [ext_resource type="PackedScene" uid="uid://c7drjhmuh7vx6" path="res://assets/meshes/entities/irregular.blend" id="3_o5h8i"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="3_spec"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_6ncs5"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_6ncs5"]
 [ext_resource type="PackedScene" uid="uid://cm7ixbl5una03" path="res://scenes/entities/projectiles/an/irregular_bullet.tscn" id="4_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_khhew"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_medium.tres" id="5_spec"]
@@ -54,9 +54,9 @@ id = &"an_bioLight_builder"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_5e8iu")]
 shape = SubResource("CylinderShape3D_t7gre")
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_6ncs5")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_6ncs5")]
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 shape = SubResource("CylinderShape3D_vja68")
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_khhew")]
@@ -161,6 +161,6 @@ shape = ExtResource("7_spec")
 disabled = true
 debug_color = Color(0.7, 0.2, 0.9, 0.35)
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="Selectable"]
 [editable path="HPBar"]

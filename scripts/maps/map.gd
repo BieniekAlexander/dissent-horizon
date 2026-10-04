@@ -563,7 +563,7 @@ func add_entities(
 				radius,
 				get_world_3d(),
 				# STRUCTURE_BLOCKER (in addition to MOVEMENT_OBSTRUCTION) so candidates
-				# also clear any structure's TargetBody — structures drop MOVEMENT_OBSTRUCTION
+				# also clear any structure's Hurtbox — structures drop MOVEMENT_OBSTRUCTION
 				# once grid-registered (see refresh_movement_collision) and rely on the
 				# navmesh for exclusion instead, but a just-placed structure's navmesh
 				# exclusion can still be mid-rebuild/unsynced at this point (see

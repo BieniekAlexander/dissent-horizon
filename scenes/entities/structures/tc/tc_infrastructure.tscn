@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_8daru"]
 [ext_resource type="PackedScene" path="res://assets/meshes/entities/dummy_structure.blend" id="1_dummy"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="4_2ceij"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_2ceij"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_03ujc"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_sjvuh"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="7_qxixg"]
@@ -35,7 +35,7 @@ id = &"tc_infrastructure"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1524154294]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_2ceij")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_2ceij")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_03ujc")]
 

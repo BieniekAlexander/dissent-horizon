@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_35bj5"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_melee.tres" id="3_spec"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_sbpwg"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_sbpwg"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="4_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_ksfoy"]
 [ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_6rb3q"]
@@ -44,7 +44,7 @@ id = &"lb_mechLight_antiLight"
 
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_35bj5")]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_sbpwg")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_sbpwg")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_ksfoy")]
 

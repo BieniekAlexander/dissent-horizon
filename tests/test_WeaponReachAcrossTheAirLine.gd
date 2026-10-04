@@ -7,7 +7,7 @@ extends GutTest
 ## answer, and `SU.is_weapon_in_range_at` used to dereference it.
 ##
 ## It is reachable despite `Loadout.weapon_for_target` filtering on `can_target`, because the
-## two questions read different sources: `can_target` reads the TargetBody LAYER, latched by
+## two questions read different sources: `can_target` reads the Hurtbox LAYER, latched by
 ## `Entity.refresh_targetable_altitude` at the end of a tick, while `get_range_for_target`
 ## reads LIVE altitude. For the one tick a piece spends crossing `AIR_TARGET_ALTITUDE` they
 ## disagree — which is the state every test below sets up deliberately.

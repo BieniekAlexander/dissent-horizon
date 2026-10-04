@@ -47,7 +47,7 @@ const COMPONENTS: Array[Dictionary] = [
 	{"name": "#####STATE#####", "type": "Node", "tiers": PHYSICAL},
 	{"name": "NavigationAgent", "scene": "navigation_agent", "tiers": ACTOR, "when": "mobile"},
 	{"name": "MovementBody", "scene": "movement_body", "tiers": ACTOR, "when": "mobile"},
-	{"name": "TargetBody", "scene": "target_body", "tiers": PHYSICAL},
+	{"name": "Hurtbox", "scene": "hurtbox", "tiers": PHYSICAL},
 	{"name": "AggroRangeGround", "scene": "aggro_range", "tiers": ACTOR},
 	{
 		"name": "VisionRange",

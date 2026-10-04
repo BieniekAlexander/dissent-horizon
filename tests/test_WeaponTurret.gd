@@ -58,7 +58,7 @@ class StubPiece:
 		piece.add_child(loadout)
 		return piece
 
-	## Targetable on the ground layer without a TargetBody, so a weapon will pick it.
+	## Targetable on the ground layer without a Hurtbox, so a weapon will pick it.
 	func targetable_layers() -> int:
 		return stub_layers
 

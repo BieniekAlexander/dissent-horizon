@@ -63,7 +63,7 @@ NESTS = {
               "completes_as": "completes_as"},
     "defense": {"hp": "hp", "armour": "armour", "frame": "frame"},
     "senses": {"vision": "vision", "aggro": "aggro", "detection": "detection"},
-    "body": {"radius": "movement_radius", "target": "target_radius"},
+    "body": {"radius": "movement_radius", "hurtbox": "hurtbox_radius"},
 }
 
 

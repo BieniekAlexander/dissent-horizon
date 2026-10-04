@@ -18,7 +18,7 @@ senses:
   detection: detection_small
 body:
   radius: .2
-  target: .2
+  hurtbox: .2
 movement: {speed: SLOW, turn_rate: 1080, crush_class: TINY, min_turn_speed_ratio: 0}
 weapons:
 - name: BallisticWeapon

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/entities/entity.gd" id="1_entity"]
 [ext_resource type="Script" path="res://scripts/entities/structures/extraction_site.gd" id="2_dep"]
-[ext_resource type="PackedScene" path="res://scenes/components/target_body.tscn" id="2_ijod7"]
+[ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="2_ijod7"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="2_wha84"]
 [ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="3_j87wn"]
 [ext_resource type="Script" path="res://scripts/entities/components/mesh_visual.gd" id="5_p0npg"]
@@ -26,9 +26,9 @@ id = &"nt_extractionSite"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1421964170]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("2_ijod7")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("2_ijod7")]
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 shape = SubResource("BoxShape3D_hqpa2")
 
 [node name="Ownership" type="Node" parent="." unique_id=31239474]
@@ -68,5 +68,5 @@ metadata/_custom_type_script = "uid://dt2degoni7u3v"
 
 [node name="DebugLabel" parent="." unique_id=456109672 instance=ExtResource("11_y1p3o")]
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="Selectable"]

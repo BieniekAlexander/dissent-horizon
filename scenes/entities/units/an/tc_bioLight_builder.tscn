@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_s7yt6"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/detection_small.tres" id="3_spec"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_rwxkx"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_rwxkx"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_onbm2"]
 [ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_8n15f"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="8_f8ne7"]
@@ -41,7 +41,7 @@ id = &"tc_bioLight_builder"
 
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_s7yt6")]
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_rwxkx")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_rwxkx")]
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_onbm2")]
 

@@ -24,7 +24,7 @@ The footprint itself is already **rotation-shaped**, which is why this is smalle
   Map API needs no new signature: a rotated footprint is the same call with swapped dimensions.
 - The **dimensions** come from one place, `Structure.dimensions`, written by the spec importer from
   the doc's `footprint:` (`SceneSync._sync_footprint`). The doc's value is the footprint at rotation 0.
-- `Entity.hull()` already builds its rectangle from the TargetShape's **global basis**, so a piece
+- `Entity.hull()` already builds its rectangle from the HurtboxShape's **global basis**, so a piece
   whose root is yawed a quarter turn already measures every range from the rotated rectangle. Ranges,
   aggro, reach and interaction need no change.
 - Facing is the root node's `rotation.y` (`Movement.get_facing`, `Commandable._drive_mesh_visual`),

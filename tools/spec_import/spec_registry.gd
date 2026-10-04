@@ -798,7 +798,7 @@ func _validate_piece(a_spec: Dictionary) -> void:
 	_resolve_shape_key(a_spec, "detection")
 	_check_radius(a_spec, "detection", true)
 	_check_radius(a_spec, "movement_radius", false)
-	_check_radius(a_spec, "target_radius", false)
+	_check_radius(a_spec, "hurtbox_radius", false)
 	if a_spec.has("infrastructure") and not (a_spec["infrastructure"] is int):
 		# One signed int: positive provides, negative consumes. Catches docs still on
 		# the old {capacity: N} / {upkeep: N} mapping form.
@@ -2269,7 +2269,7 @@ func _check_radius(a_spec: Dictionary, a_key: String, a_zero_disables: bool) -> 
 	# away an import error. Both normalise to 0 here so nothing downstream sees null.
 	#
 	# `true` is still refused, and an empty value is still refused where zero does NOT
-	# disable (movement_radius, target_radius, blast): a radius has no default to take, and
+	# disable (movement_radius, hurtbox_radius, blast): a radius has no default to take, and
 	# those volumes are not optional.
 	if (r == null or (r is bool and not bool(r))) and a_zero_disables:
 		a_spec[a_key] = 0

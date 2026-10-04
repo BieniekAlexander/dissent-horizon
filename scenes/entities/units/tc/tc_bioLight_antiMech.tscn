@@ -6,7 +6,7 @@
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_siege.tres" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_kll42"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="3_spec"]
-[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/target_body.tscn" id="4_fi3be"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_fi3be"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="4_invnt"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/detection_small.tres" id="4_spec"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="5_wpn00"]
@@ -54,9 +54,9 @@ id = &"tc_bioLight_antiMech"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_kll42")]
 shape = SubResource("CylinderShape3D_3a2w6")
 
-[node name="TargetBody" parent="." unique_id=1501995797 instance=ExtResource("4_fi3be")]
+[node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_fi3be")]
 
-[node name="TargetShape" parent="TargetBody" index="0" unique_id=1914658452]
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
 shape = SubResource("CylinderShape3D_m5jfw")
 
 [node name="DetectionRange" type="CollisionShape3D" parent="." unique_id=1473748959 groups=["debug_shape_detection_range"]]
@@ -163,6 +163,6 @@ billboard = 2
 script = ExtResource("1_spec")
 groups = Array[Dictionary]([{ "initial_charges": 3, "max_charges": 3, "cooldown_ticks": 90, "grants": [&"irradiate"] }])
 
-[editable path="TargetBody"]
+[editable path="Hurtbox"]
 [editable path="Selectable"]
 [editable path="HPBar"]
