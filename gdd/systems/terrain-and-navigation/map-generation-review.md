@@ -249,8 +249,8 @@ each; the thorough one is a record per category.
 
 **Small findings.**
 
-- map-generation.md's table says the shelter count is "not a parameter", but it is
-  (`shelters_per_alliance_min`, `_extra`). TODO: doc drift.
+- map-generation.md's table said the shelter count is "not a parameter", but it is. Resolved
+  2026-10-05: the table now names `shelters_base` / `shelters_per_player_min` / `_extra`.
 - `last_pass` is a run control filed among the map's parameters, so it travels with them.
 - `alliance_count` is the most consequential knob and sits last, in a group of its own; and
   `default_params(start_count)` treats start count as alliance count, so `starts_per_alliance`

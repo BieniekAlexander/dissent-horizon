@@ -19,18 +19,28 @@ static func admits(a_source: Entity, a_message: CommandMessage) -> bool:
 		return false
 	var structure := a_source.get_node_or_null("Structure") as Structure
 	if structure != null and a_source.spawns_deployed():
-		return fixture_admits(structure, Extractor.of(a_source) != null, a_message)
+		return fixture_admits(
+			structure, Extractor.of(a_source) != null, a_message, Extractor.works_ponds(a_source)
+		)
 	return figure_admits(a_source, a_message.map, a_message.xz_position)
 
 
 ## The footprint rule Build applies, without its purchase: an extractor overlays a site or
-## stands in a pond, everything else needs in-bounds, empty, flat, dry cells.
+## stands in a pond (when `a_works_ponds`), everything else needs in-bounds, empty, flat, dry
+## cells.
 static func fixture_admits(
-	a_structure: Structure, a_is_extractor: bool, a_message: CommandMessage
+	a_structure: Structure,
+	a_is_extractor: bool,
+	a_message: CommandMessage,
+	a_works_ponds: bool = true
 ) -> bool:
 	if a_is_extractor:
 		return EnergyExtractor.valid_placement(
-			a_message, a_structure.dimensions, a_structure.allow_uneven, a_structure.allow_submerged
+			a_message,
+			a_structure.dimensions,
+			a_structure.allow_uneven,
+			a_structure.allow_submerged,
+			a_works_ponds
 		)
 	return Structure.valid_placement(
 		a_message, a_structure.dimensions, a_structure.allow_uneven, a_structure.allow_submerged

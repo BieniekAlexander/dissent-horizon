@@ -75,6 +75,19 @@ cost make an early beeline a premature commitment — the defender's army kills 
 before the centre falls — and the bot refuses the wave; a centre not tuned that way is one the
 bot will simply snipe, which is the readout that the tuning is off.
 
+**HEGEMONY opens by showing every shelter** (Alex, 2026-10-05). At boot every player commander
+gets vision of radius `Scenario.SHELTER_REVEAL_RADIUS` (6) around every shelter for
+`SHELTER_REVEAL_SECONDS` (5), then the fog closes; what remains is each shelter's fog-of-war
+snapshot, so its position stays known and its state does not
+([terrain-and-navigation/map-generation](../terrain-and-navigation/map-generation.md) §Shelters).
+The vision sources are `EventRevealRegion.spawn_vision` Scouts, the same ones an authored reveal
+uses. Other win conditions reveal nothing: a mission decides what its player knows.
+
+TODO — the BOT does not need this reveal and does not use it. Its shelter knowledge is omniscient
+today: `Bot.get_neutral_terrestrials` lists every neutral Terrestrial on the map, fog or not, so
+liberation and capture errands are found without scouting. Making that fog-limited — remembering
+shelters the bot has seen, which the reveal would then supply — is a separate change.
+
 TODO — whether `MISSION` should keep the implicit wipe-out loss, or leave every verdict to the
 authored triggers as the spec read literally. Built as KEEP, since every shipped mission was
 written against it; see `gdd/deferred.md`.

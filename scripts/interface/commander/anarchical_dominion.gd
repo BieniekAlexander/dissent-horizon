@@ -35,8 +35,15 @@ const REGION_NODE: String = "DominionRegion"
 ## Dominion awarded per follower per tick cycle. Stays an EXPORT rather than becoming a
 ## constant: the prologue scenarios deliberately tune it down to 1, and a constant would
 ## silently restore full-game income there.
-@export var dominion_per_unit: int = 5
+##
+## FRACTIONAL, so a follower's share is tracked in `_carry` and paid out as it adds up to whole
+## dominion, as the Libertarian route does. 3.33 per 5 s is 0.67/s a follower: retuned from 5
+## (1/s) on 2026-10-05 so the Anarchist route earns about 3x the Technocratic Lab route over a
+## game (gdd/systems/macroeconomics/pacing/dominion-rate-analysis.md §Retuned rates).
+@export var dominion_per_unit: float = 3.33
 static var TICK_RATE: int = 150
+## Dominion earned but not yet paid, below one whole point.
+var _carry: float = 0.0
 ## Physics ticks since the last sweep. Private: nothing outside drives this cycle.
 var _ticks_elapsed: int = 0
 #endregion
@@ -107,7 +114,7 @@ static func followers_of(a_source: Commandable) -> Array[Commandable]:
 ## An INSTANCE method because the rate is authored per scenario (see dominion_per_unit), so
 ## pricing a follower means finding the node that owns the number — which is what
 ## `for_commander` is for.
-func dominion_for(a_source: Commandable) -> int:
+func dominion_for(a_source: Commandable) -> float:
 	return followers_of(a_source).size() * dominion_per_unit
 
 
@@ -145,8 +152,13 @@ func followers() -> Array[Commandable]:
 #region Lifecycle
 func _proc() -> void:
 	var count: int = followers().size()
-	if count > 0 and commander != null:
-		commander.add_dominion(count * dominion_per_unit)
+	if count <= 0 or commander == null:
+		return
+	_carry += count * dominion_per_unit
+	var whole: int = floori(_carry)
+	if whole > 0:
+		_carry -= whole
+		commander.add_dominion(whole)
 
 
 func _physics_process(_a_delta: float) -> void:

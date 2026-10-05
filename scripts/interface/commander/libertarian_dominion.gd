@@ -12,9 +12,11 @@ extends DominionRoute
 #region Properties
 ## Dominion one claimed tile banks per cycle. Fractional, so a tile's share is tracked in
 ## `_carry` and paid out as it adds up to whole dominion.
-## TODO: placeholder, not tuned — set so a lone Opticon on open ground (a radius-20 vision,
-## ~1250 tiles) banks about what a Warlord with four followers does.
-@export var dominion_per_tile: float = 0.016
+## 0.0114 per 5 s: a lone Opticon on open ground (a radius-20 vision, ~1250 tiles) banks about
+## 2.9/s. Retuned from 0.016 on 2026-10-05 so the Libertarian route earns about 2x the
+## Technocratic Lab route over a game (gdd/systems/macroeconomics/pacing/dominion-rate-analysis.md
+## §Retuned rates).
+@export var dominion_per_tile: float = 0.0114
 
 ## Dominion earned but not yet paid, below one whole point.
 var _carry: float = 0.0

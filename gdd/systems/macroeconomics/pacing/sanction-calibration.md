@@ -59,19 +59,29 @@ cannot afford the casters, so all that dominion buys permissions nobody can use.
 ### Every faction's rate, in site-equivalents
 
 Calibrate each faction's dominion rate as a fraction of one site's `r_s`, not as a raw number.
-**Decided: the exact rates are revisited as part of this work.** Today's, read that way:
+**Decided: the exact rates are revisited as part of this work.** Retuned 2026-10-05 to whole-game
+targets relative to the Technocratic route — Colonial 1×, Libertarian 2×, Anarchist 3× (Alex) —
+measured by [dominion-rate-analysis](dominion-rate-analysis.md) §Retuned rates. Today's, read
+that way:
 
 | Faction | Today | At `e` = 1 | Reading |
 |---|---|---|---|
-| Colonial | 1/s per captive (`dominion_per_unit` 5 per 5 s), Compound capacity 3, 60 s sentence | a Shelter worked to steady state (if one captive arrives per 10 s: × 60 s ≈ 6 captives, across two Compounds) ≈ 6/s ≈ **1.2 sites** | plausible |
-| Anarchical | 1/s per BIO follower near a Warlord | 8 followers ≈ 8/s ≈ **1.6 sites** | **likely too generous**: the followers are also an army, so the investment is dual-use, unlike a Technocrat's extractor |
-| Libertarian | 0.0032/s per claimed tile | depends on coverage | to be measured in self-play |
-| Technocratic | proposed 5/s per dominion extractor | **1 site each**, by definition | the anchor |
-| Colonial Servants | 500 energy buys one 60 s sentence ≈ 60 dominion | ≈ 8 energy per dominion | intended to be inefficient; this puts a number on how much |
+| Colonial | 5/s for the captive serving (`dominion_per_unit` 25 per 5 s), 30 s sentence ⇒ 150 a captive, one served at a time per Compound (capacity 3 is the queue) | a Shelter worked to steady state (one captive per 10 s ⇒ 3 Compounds busy) ≈ 15/s ≈ **3 sites**; each Compound is capped at 5/s, **1 site** | recalibrated 2026-10-05 ([dominion-rate-analysis](dominion-rate-analysis.md) §Colonial decision): ~1× the Technocratic route over a game |
+| Anarchical | 0.67/s per BIO follower near a Warlord (3.33 per 5 s; was 5) | 8 followers ≈ 5.3/s ≈ **1.1 sites** | retuned 2026-10-05: ~3× the Technocratic route over a game |
+| Libertarian | 0.00228/s per claimed tile (0.0114 per 5 s; was 0.016) | a lone Opticon ≈ 2.9/s ≈ **0.6 sites** | retuned 2026-10-05: ~2× the Technocratic route over a game |
+| Technocratic | 5/s per Lab ([[tc_dominionGen]], 25 per 5 s cycle, the proposed `r_d`) | **1 site each**, by definition | the anchor |
+| Colonial Servants | 200 energy buys one 30 s sentence = 150 dominion | ≈ 1.3 energy per dominion | still costlier than a Shelter's free bodies; price held to 150–300 (Alex) |
 
-Open: whether a dominion extractor may sit on a pond, and whether choosing energy or dominion is
-permanent for that extractor (Alex: TBD). A free toggle would let a Technocrat always hold the
-ideal mix, which is an advantage no other faction gets.
+**Decided (Alex, 2026-10-04): the dominion extractor is its own structure, the Lab
+([[tc_dominionGen]]), placeable only on an extraction site and gathering only dominion.** It is
+not a mode of the energy Extractor, so there is no toggle: a site's choice is which building
+stands on it, and changing it means losing the building and paying for the other. The Lab
+matches the Extractor's price, build time, footprint and upkeep, so the two are a like-for-like
+choice per site.
+
+Ponds are out because a pond is a finite ENERGY reservoir (`WaterBody.extract`): placement
+derives this from the piece's components — an overlay piece without an `EnergyExtractor` has
+only the site route (`Extractor.works_ponds`, `EnergyExtractor.valid_placement`).
 
 ## Tiers
 
@@ -318,11 +328,10 @@ Done, as starting points for playtesting:
 
 Not done:
 
-- Dominion rates per §Fungibility, and the Technocratic dominion extractor (the rates are to be
-  revisited; nothing numeric was decided).
+- Dominion rates per §Fungibility (the rates are to be revisited; nothing numeric was decided).
+  The Technocratic Lab is built (2026-10-04) at the proposed 5/s.
 
 ## Open questions
 
-- Technocratic dominion extractors: allowed on ponds? Is the energy/dominion choice permanent?
 - Drop's tier placement: T2–T4, or T1–T3?
 - Scan 2: stealthed observer or not, and which detection radius?

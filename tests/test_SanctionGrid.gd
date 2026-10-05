@@ -470,3 +470,18 @@ func test_the_lower_level_stays_owned_and_still_pays_its_toll() -> void:
 	assert_true(sanction_grid.try_unlock(_entry_named(sanction_grid, "S2")))
 	assert_true(_entry_named(sanction_grid, "S1").owned)
 	assert_true(sanction_grid.tier_is_open(1))
+
+
+#region What dominion can still buy
+func test_unowned_cost_sums_every_cell_not_yet_owned_gated_or_not() -> void:
+	var head := _unlock("Head", 0, 0, 100)
+	var grid := _sanction_grid([head, _unlock("Next", 1, 0, 300, head), _unlock("Side", 0, 1, 50)])
+	assert_eq(grid.unowned_cost(), 450, "a locked cell is still dominion the commander can spend")
+	_cmdr.dominion = 100
+	assert_true(grid.try_unlock(grid.entries[0]))
+	assert_eq(grid.unowned_cost(), 350, "an owned cell no longer counts")
+
+
+func test_an_empty_grid_has_nothing_to_buy() -> void:
+	assert_eq(_sanction_grid([]).unowned_cost(), 0)
+#endregion

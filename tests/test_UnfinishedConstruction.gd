@@ -253,3 +253,31 @@ func test_transferring_a_finished_structure_moves_its_infrastructure() -> void:
 	turret.commander = new_commander
 	assert_eq(old_commander.infrastructure, old_before - turret.infrastructure)
 	assert_eq(new_commander.infrastructure, new_before + turret.infrastructure)
+
+
+# --- It earns nothing -------------------------------------------------------------
+
+
+## A flat DominionGenerator (the Technocratic Lab) used to tick from the moment its blueprint
+## went down, earning through its whole construction. Income is gated on is_built, as the
+## EnergyExtractor's always was.
+func _generator_on(a_piece: Commandable) -> DominionGenerator:
+	var generator: DominionGenerator = DominionGenerator.new()
+	generator.name = "DominionGenerator"
+	a_piece.add_child(generator)
+	a_piece.dominion_generator = generator
+	return generator
+
+
+func test_a_foundation_generates_no_dominion() -> void:
+	var foundation: Commandable = _sam(false)
+	var generator: DominionGenerator = _generator_on(foundation)
+	foundation.tick_collection()
+	assert_eq(generator.ticks_elapsed, 0, "a structure still going up does not run its generator")
+
+
+func test_a_finished_structure_runs_its_generator() -> void:
+	var finished: Commandable = _sam(true)
+	var generator: DominionGenerator = _generator_on(finished)
+	finished.tick_collection()
+	assert_eq(generator.ticks_elapsed, 1, "the control: a built one does")

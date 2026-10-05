@@ -1343,10 +1343,7 @@ func _update_state() -> void:
 	# parked unit needs no per-tick branch of its own.
 	if docking_bay != null and is_built:
 		docking_bay.tick_recharge()
-	if energy_extractor != null and is_built:
-		energy_extractor.tick()
-	if dominion_generator != null:
-		dominion_generator.tick()
+	tick_collection()
 	# Passive conversion: any neutral unit inside LiberationRange changes sides.
 	if liberator != null:
 		liberator.tick()
@@ -1629,4 +1626,20 @@ func _detect_stealthed_units() -> void:
 		if not is_enemy_of(target):
 			continue
 		target.stealth.reveal()
+
+
+## One tick of this piece's steady income: its EnergyExtractor and its DominionGenerator. Both
+## are gated on is_built, so a blueprint still going up pays nothing — a flat generator (the
+## Technocratic Lab) would otherwise earn through its whole construction. The commander's rate
+## readouts already skip unbuilt pieces (Commander._rate_over), so this keeps the payout and the
+## figure that explains it in agreement. Public so a test can drive it without a full tick.
+func tick_collection() -> void:
+	if not is_built:
+		return
+	if energy_extractor != null:
+		energy_extractor.tick()
+	if dominion_generator != null:
+		dominion_generator.tick()
+
+
 #endregion

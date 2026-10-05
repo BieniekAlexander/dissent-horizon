@@ -20,9 +20,10 @@ extends Node
 ## a scenario event) rather than by an Occupy order — see is_closed().
 ##
 ## A garrison naming a positive [member sentence_length] is a PRISON: a carrier may deposit
-## its captives into it, and each one serves that many seconds — held as itself, paying
-## dominion per cycle like any other occupant — before being CONSUMED. See can_intern(),
-## deposit_from() and gdd/systems/combat/colonial-dominion.md §A captive serves a sentence.
+## its captives into it, and they serve that many seconds each, ONE AT A TIME — the captive
+## serving is held as itself and pays dominion per cycle, the rest wait their turn unpaid —
+## before being CONSUMED. See can_intern(), deposit_from(), paying_count() and
+## gdd/systems/combat/colonial-dominion.md §A captive serves a sentence.
 
 #region Occupancy filters
 ## Which frames / armours / locomotion styles may voluntarily occupy this garrison,
@@ -123,18 +124,26 @@ var occupiable_movements: int = MOVEMENT_GROUNDED
 
 ## Seconds a captive DEPOSITED here serves before being consumed. Setting it positive is
 ## what makes a garrison a prison in the deposit sense (see can_intern): a carrier may hand
-## its captives over, and each one pays dominion per cycle — the ordinary per-occupant
-## generator, unchanged — for this long before this garrison frees it. Zero (the default)
-## means the host takes no deposits at all and sentences nobody; an occupant of such a
-## garrison simply stays until evacuated, like any other.
+## its captives over, and each one, when its turn comes, pays dominion per cycle for this long
+## before this garrison frees it (SENTENCES_AT_ONCE). Zero (the default) means the host takes
+## no deposits at all and sentences nobody; an occupant of such a garrison simply stays until
+## evacuated, like any other.
 ##
-## A CONSTANT for now: the calibration exercise in design-framework/proposals.md §The model
-## has not chosen a value. See gdd/systems/combat/colonial-dominion.md §A captive serves a
-## sentence.
+## Calibrated 2026-10-05 against the Technocratic Lab route — see
+## gdd/systems/macroeconomics/pacing/dominion-rate-analysis.md §One-at-a-time processing and
+## gdd/systems/combat/colonial-dominion.md §A captive serves a sentence.
 @export var sentence_length: float = 0.0
 
-## Seconds remaining on each tracked occupant's sentence, keyed by unit. Only occupants of
-## a garrison with sentence_length > 0 are tracked at all — see garrison().
+## How many captives a prison sentences at once. ONE: the rest of its places hold captives
+## waiting their turn, paying nothing and with their terms not yet started. A const rather
+## than a doc key because no piece wants another value; it is named so the throughput
+## projection (Commander.projected_dominion_rate) reads the same number this file obeys.
+const SENTENCES_AT_ONCE: int = 1
+
+## Seconds remaining on each tracked occupant's sentence, keyed by unit, in arrival order.
+## Only occupants of a garrison with sentence_length > 0 are tracked at all — see garrison().
+## The first SENTENCES_AT_ONCE keys are the ones serving; insertion order is the queue, which
+## is why nothing may rebuild this Dictionary out of order.
 var _sentence_remaining: Dictionary = {}
 
 ## Units currently garrisoned.  Held as orphaned nodes — removed from the
@@ -377,9 +386,11 @@ const SENTENCE_COOLDOWN_BONUS: float = 0.08
 func _physics_process(a_delta: float) -> void:
 	if _sentence_remaining.is_empty():
 		return
-	# Snapshot the keys: discard() below mutates _sentence_remaining as each completed
-	# captive is freed, and this loop must not walk a Dictionary while that happens.
-	for unit: Commandable in _sentence_remaining.keys().duplicate():
+	# Only the head of the queue serves (SENTENCES_AT_ONCE); the captives behind it wait with
+	# their terms untouched. Snapshot the serving keys: discard() below mutates
+	# _sentence_remaining as each completed captive is freed. A term that ends mid-step does
+	# not hand its leftover to the next captive — the next one starts on the following tick.
+	for unit: Commandable in _sentence_remaining.keys().slice(0, SENTENCES_AT_ONCE):
 		if not is_instance_valid(unit):
 			_sentence_remaining.erase(unit)
 			continue
@@ -471,6 +482,15 @@ func cancel_pending_garrison() -> void:
 
 func garrisoned_count() -> int:
 	return _garrisoned.size()
+
+
+## The occupants that earn their host per-occupant dominion right now (OccupantDominionGenerator).
+## In a prison only the captives SERVING pay — at most SENTENCES_AT_ONCE — and the ones waiting
+## their turn do not; in any other garrison every occupant counts.
+func paying_count() -> int:
+	if sentence_length <= 0.0:
+		return garrisoned_count()
+	return mini(_sentence_remaining.size(), SENTENCES_AT_ONCE)
 
 
 ## Free all garrisoned units without returning them to the scene.

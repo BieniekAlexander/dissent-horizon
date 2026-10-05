@@ -102,10 +102,38 @@ func _run() -> GeneratedMap:
 func _validate() -> bool:
 	if _result.passes_run >= MapGenerationParams.Pass.RESOURCES:
 		_validate_balance()
+		_validate_shelter_bands()
 	if _result.passes_run >= MapGenerationParams.Pass.TERRAIN:
 		_validate_obstruction()
 		_validate_ponds()
 	return _result.errors.is_empty()
+
+
+## Every start has a shelter inside its distance band (map-generation.md §Shelters). Placement
+## draws assigned shelters from the band and pass 4 re-places them under the same rule, so this
+## only fails when a band holds no free footprint at all — which is a map to refuse, not repair.
+func _validate_shelter_bands() -> void:
+	var shelters: Array[MapFeature] = _result.features_of(MapFeature.Kind.SHELTER)
+	for start: MapStart in _result.starts:
+		var held: bool = shelters.any(
+			func(f: MapFeature) -> bool:
+				var d: float = start.position.distance_to(f.center)
+				return (
+					d >= _params.shelter_start_band_min_cells
+					and d <= _params.shelter_start_band_max_cells
+				)
+		)
+		if not held:
+			_result.errors.append(
+				(
+					"the start at %s has no shelter %.0f-%.0f cells away"
+					% [
+						start.position,
+						_params.shelter_start_band_min_cells,
+						_params.shelter_start_band_max_cells
+					]
+				)
+			)
 
 
 ## Every pond can be walked into: a pond nobody can reach is a resource nobody can take, and its
@@ -419,22 +447,34 @@ func _pond_category(a_charge: float) -> int:
 	return nearest
 
 
+## The shelter count (MapGenerationParams §Shelters), never fewer than one per start. The first
+## one per start is ASSIGNED to it and placed first, inside its distance band; the rest are aimed
+## as usual and their freedom-scaled targets absorb whatever imbalance the assigned ones left
+## (map-generation.md §Shelters).
 func _shelter_plans() -> Array[FeaturePlan]:
-	var count: int = roundi(
-		(
-			_params.alliance_count
-			* (
-				_params.shelters_per_alliance_min
-				+ _params.shelters_per_alliance_extra * _rng.randf()
+	var starts: int = _result.starts.size()
+	var count: int = maxi(
+		starts,
+		roundi(
+			(
+				_params.shelters_base
+				+ (
+					_params.start_count()
+					* (
+						_params.shelters_per_player_min
+						+ _params.shelters_per_player_extra * _rng.randf()
+					)
+				)
 			)
 		)
 	)
 	var plans: Array[FeaturePlan] = []
-	for _i: int in count:
+	for i: int in count:
 		var plan := FeaturePlan.new()
 		plan.kind = MapFeature.Kind.SHELTER
 		plan.piece = _params.shelter_piece
 		plan.value = 1.0
+		plan.band_start = i if i < starts else -1
 		plans.append(plan)
 	return plans
 

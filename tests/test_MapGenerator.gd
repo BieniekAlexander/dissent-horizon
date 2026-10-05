@@ -183,10 +183,50 @@ func test_every_currency_is_balanced_within_tolerance() -> void:
 			)
 
 
-func test_shelter_count_follows_alliance_count() -> void:
+func test_shelter_count_is_one_plus_one_to_two_per_player() -> void:
+	# round(1 + n x (1 + randf())) at the shipped knobs: 3 to 5 for two players.
 	for generation_seed: int in _SEEDS:
 		var count: int = _generate(generation_seed).features_of(MapFeature.Kind.SHELTER).size()
-		assert_between(count, 2, 5)
+		assert_between(count, 3, 5, "seed %d" % generation_seed)
+
+
+func test_there_is_never_a_shelter_short_of_one_per_start() -> void:
+	var params := _params()
+	params.shelters_base = 0.0
+	params.shelters_per_player_min = 0.0
+	params.shelters_per_player_extra = 0.0
+	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
+	assert_eq(map.features_of(MapFeature.Kind.SHELTER).size(), map.starts.size())
+
+
+func test_every_start_has_a_shelter_in_its_band() -> void:
+	var params := _params()
+	for generation_seed: int in _SEEDS:
+		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		assert_true(map.errors.is_empty(), "seed %d: %s" % [generation_seed, map.errors])
+		for start: MapStart in map.starts:
+			var nearest: float = INF
+			var banded: bool = false
+			for shelter: MapFeature in map.features_of(MapFeature.Kind.SHELTER):
+				var d: float = start.position.distance_to(shelter.center)
+				nearest = minf(nearest, d)
+				banded = (
+					banded
+					or (
+						d >= params.shelter_start_band_min_cells
+						and d <= params.shelter_start_band_max_cells
+					)
+				)
+			assert_true(banded, "seed %d: nearest shelter %.1f cells" % [generation_seed, nearest])
+
+
+func test_a_band_with_no_room_fails_loudly() -> void:
+	var params := _params()
+	# Inside the start's own clear box: nothing can stand there.
+	params.shelter_start_band_min_cells = 0.0
+	params.shelter_start_band_max_cells = 2.0
+	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
+	assert_false(map.errors.is_empty(), "a guarantee that cannot be met refuses the map")
 
 
 func test_building_capacity_is_the_per_player_budget() -> void:

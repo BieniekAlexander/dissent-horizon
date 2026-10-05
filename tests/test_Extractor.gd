@@ -165,3 +165,48 @@ func test_rejects_out_of_bounds() -> void:
 		EnergyExtractor.valid_placement(_msg(map, Vector2(99, 99)), _DIMS),
 		"an extractor may not be built off the grid"
 	)
+
+
+#region Site-only overlay pieces
+## An overlay piece that draws no energy (the Technocratic Lab, whose DominionGenerator pays
+## dominion) may stand on an extraction site but not in a lithium pond: `a_allow_pond` false
+## shuts only the pond route, so the site rule must be exactly what it is for an extractor.
+func test_a_site_only_piece_takes_a_free_site() -> void:
+	var map: Map = _make_map()
+	var centre: Vector2 = _extraction_site(map, Vector2i(1, 1))[1]
+	assert_true(
+		EnergyExtractor.valid_placement(_msg(map, centre), _DIMS, false, false, false),
+		"the site route is unchanged when ponds are shut"
+	)
+
+
+func test_a_site_only_piece_is_refused_a_worked_site() -> void:
+	var map: Map = _make_map()
+	var placed: Array = _extraction_site(map, Vector2i(1, 1))
+	(placed[0] as Entity).get_node("ExtractionSite").extractor = autofree(Commandable.new())
+	assert_false(
+		EnergyExtractor.valid_placement(_msg(map, placed[1] as Vector2), _DIMS, false, false, false),
+		"one overlay per site, whatever the overlay collects"
+	)
+
+
+func test_a_site_only_piece_is_refused_bare_ground() -> void:
+	var map: Map = _make_map()
+	assert_false(
+		EnergyExtractor.valid_placement(_msg(map, Vector2.ZERO), _DIMS, false, false, false)
+	)
+
+
+func test_only_a_piece_that_collects_energy_works_ponds() -> void:
+	var energy_piece: Node = autofree(Node.new())
+	var collector: EnergyExtractor = EnergyExtractor.new()
+	collector.name = "EnergyExtractor"
+	energy_piece.add_child(collector)
+	var dominion_piece: Node = autofree(Node.new())
+	var generator: DominionGenerator = DominionGenerator.new()
+	generator.name = "DominionGenerator"
+	dominion_piece.add_child(generator)
+	assert_true(Extractor.works_ponds(energy_piece), "a pond is an energy reservoir")
+	assert_false(Extractor.works_ponds(dominion_piece), "nothing to draw from one")
+	assert_false(Extractor.works_ponds(null))
+#endregion

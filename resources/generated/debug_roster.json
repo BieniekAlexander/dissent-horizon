@@ -903,16 +903,38 @@
 		"id": "tc_bioLight_builder",
 		"is_fixture": false,
 		"label": "Technician",
-		"producers": [],
+		"producers": [
+			"tc_commandCenter"
+		],
 		"scene": "res://scenes/entities/units/an/tc_bioLight_builder.tscn",
 		"tool": "command_tool_tc_bioLight_builder"
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_commandCenter",
+		"is_fixture": true,
+		"label": "Outpost",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_commandCenter.tscn",
+		"tool": "command_tool_tc_commandCenter"
+	},
+	{
+		"faction": "technocracy",
+		"id": "tc_dominionGen",
+		"is_fixture": true,
+		"label": "Lab",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_dominionGen.tscn",
+		"tool": "command_tool_tc_dominionGen"
 	},
 	{
 		"faction": "technocracy",
 		"id": "tc_mechMedium_infrastructure",
 		"is_fixture": false,
 		"label": "Surveyor",
-		"producers": [],
+		"producers": [
+			"tc_commandCenter"
+		],
 		"scene": "res://scenes/entities/units/an/tc_mechMedium_infrastructure.tscn",
 		"tool": "command_tool_tc_mechMedium_infrastructure"
 	},
@@ -1031,15 +1053,6 @@
 		"label": "tc_air_field",
 		"producers": [],
 		"scene": "res://scenes/entities/structures/tc/tc_air_field.tscn",
-		"tool": ""
-	},
-	{
-		"faction": "technocracy",
-		"id": "tc_commandCenter",
-		"is_fixture": true,
-		"label": "tc_command_center",
-		"producers": [],
-		"scene": "res://scenes/entities/structures/tc/tc_command_center.tscn",
 		"tool": ""
 	},
 	{

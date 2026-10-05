@@ -64,11 +64,17 @@ func tick() -> void:
 ## in a pond occupies its own cells like any other structure; only the site case overlays.
 ##
 ## Both routes are refused for bare dry ground, for other structures, and for deep water.
+##
+## `a_allow_pond` false shuts the pond route, leaving only the site. That is the case for an
+## overlay piece that draws no ENERGY (the Technocratic Lab): a pond is a finite energy
+## reservoir (WaterBody.extract), so a piece with nothing to draw from it has no business
+## standing in one. Callers derive it with Extractor.works_ponds rather than passing a literal.
 static func valid_placement(
 	command_message: CommandMessage,
 	dimensions: Vector2i,
 	allow_uneven_terrain: bool = false,
-	allow_submerged_terrain: bool = false
+	allow_submerged_terrain: bool = false,
+	a_allow_pond: bool = true
 ) -> bool:
 	var map: Map = command_message.map
 	if map == null:
@@ -77,7 +83,7 @@ static func valid_placement(
 	var site: ExtractionSite = ExtractionSite.of(host)
 	if site != null:
 		return site.extractor == null
-	if host != null:
+	if host != null or not a_allow_pond:
 		return false
 	# Water FIRST: an extractor aimed at dry ground is refused for being nowhere near a
 	# reservoir, and asking the generic placement rule about it would only produce the same

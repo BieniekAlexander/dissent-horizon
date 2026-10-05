@@ -22,7 +22,7 @@ garrison:
   capacity: 3
   closed: true
   bunker: false
-  sentence_length: 60
+  sentence_length: 30
 abilities:
   - max_charges: 1
     cooldown: 1
@@ -40,11 +40,12 @@ ui:
 # Compound
 
 The Colonials' infrastructure structure and their dominion structure are the same building. It
-holds up to 6 occupants, and each one generates dominion every cycle.
+holds up to 3 occupants and sentences them ONE AT A TIME: the captive serving pays 25 dominion
+every 5 s cycle (5/s, 150 over its term), and the others wait their turn unpaid.
 
 It is stocked by [[cl_mechLight_dominionGen|Stock Trucks]] delivering what they captured, and
-**a deposited captive is held as ITSELF for `sentence_length` (60s, a placeholder) before
-being CONSUMED** — a prisoner is not put to work, it is spent. Naming a positive
+**a deposited captive is held as ITSELF for `sentence_length` (30 s, once its turn comes)
+before being CONSUMED** — a prisoner is not put to work, it is spent. Naming a positive
 `sentence_length` is also what marks this building as a deposit target at all
 (`Garrison.can_intern`).
 
@@ -56,7 +57,7 @@ walk back out.
 a sentence like a prisoner: they pay dominion each cycle and are consumed at the end of it.
 Unlike a prisoner, a Servant can be let out before then — Evacuate, or its card in the info
 panel, returns it to the game — while the captives beside it stay. A Servant is a very
-cost-inefficient source of dominion (500 energy a head), which is the point: an option, not a
+cost-inefficient source of dominion (200 energy for 150 dominion), which is the point: an option, not a
 route. On a sentence completing, the Compound reduces the cooldown of every ability
 pool on every edge-adjacent friendly structure by a percentage of its full duration ([[work_detail|Work
 Detail]]). Destroy it and its occupants go free, to the commander they were taken from —

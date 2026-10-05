@@ -108,26 +108,41 @@ func _clear_fog_at(a_points: Array[Vector2], a_manager: ScenarioTriggerManager) 
 	if commander == null or map == null:
 		return
 	for point: Vector2 in a_points:
-		var scout := _SCOUT_SCENE.instantiate() as Commandable
-		if scout == null:
-			continue
-		Lifespan.attach(scout, lifespan_seconds)
-		_resize_vision(scout)
-		scout.initialize(map, commander)
-		scout.global_position = Vector3(point.x, map.terrain_height_at(point), point.y)
+		spawn_vision(commander, map, point, radius, lifespan_seconds)
 
 
-## Widen a Scout's VisionRange to `radius`.
+## One Scout giving `a_commander` vision of radius `a_radius` at `a_point`, gone after
+## `a_lifespan_seconds` (negative: never). Null when the scene would not instantiate. Static, so
+## a reveal that is not an authored event — the HEGEMONY opening's shelter reveal
+## (Scenario._reveal_shelters_at_start) — opens fog exactly as this event does.
+static func spawn_vision(
+	a_commander: Commander,
+	a_map: Map,
+	a_point: Vector2,
+	a_radius: float,
+	a_lifespan_seconds: float
+) -> Commandable:
+	var scout := _SCOUT_SCENE.instantiate() as Commandable
+	if scout == null:
+		return null
+	Lifespan.attach(scout, a_lifespan_seconds)
+	_resize_vision(scout, a_radius)
+	scout.initialize(a_map, a_commander)
+	scout.global_position = Vector3(a_point.x, a_map.terrain_height_at(a_point), a_point.y)
+	return scout
+
+
+## Widen a Scout's VisionRange to `a_radius`.
 ##
 ## The shape is DUPLICATED first: a PackedScene's sub-resources are shared across every
 ## instance of it, so writing the radius in place would resize the Radar Scan sanction's
 ## scouts — and each other reveal — along with this one.
-func _resize_vision(a_scout: Commandable) -> void:
+static func _resize_vision(a_scout: Commandable, a_radius: float) -> void:
 	var vision := a_scout.get_node_or_null("VisionRange") as CollisionShape3D
 	if vision == null or vision.shape == null:
 		return
 	vision.shape = vision.shape.duplicate()
 	var cylinder := vision.shape as CylinderShape3D
 	if cylinder != null:
-		cylinder.radius = radius
+		cylinder.radius = a_radius
 #endregion

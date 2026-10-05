@@ -318,9 +318,13 @@ func _decide() -> void:
 	var dtype: Variant = _dominion_structure_to_build()
 	if dtype != null:
 		var dspot: Variant = _dominion_build_spot(dtype, 0.0)
-		if dspot is Vector3:
-			_issue_build(builder, dtype, dspot)
-		return
+		# A spot still being searched for holds the rest of the ladder for the answer.
+		if dspot is StringName or (dspot is Vector3 and _issue_build(builder, dtype, dspot)):
+			return
+		# NOWHERE TO PUT IT — a FALL-THROUGH, like the income rung. This used to return
+		# whatever happened, which held the whole ladder for a spot that did not exist. Rare for
+		# a Compound, but a Lab needs a free EXPLORED extraction site, and at the start of a
+		# match there may be none — and the bot would build nothing until a scout found one.
 
 	# Before expanding further, make sure there's infrastructure headroom: if we're low on
 	# spare capacity, stand up the faction's infrastructure provider (power plant / safehouse)
@@ -329,6 +333,14 @@ func _decide() -> void:
 	# Strain does not fall until the provider is FINISHED, so this rung stays true for the
 	# whole build — an in-flight job for the same type is what stops a second builder joining.
 	if _bot.needs_infrastructure_provider():
+		# A faction whose provider is a TRAINED unit (the Technocratic Surveyor) gets it from
+		# BotProduction, which trains one ahead of everything while strained. The economy's
+		# part is the same as for a structure provider — no new buildings until it is up — so
+		# it banks. Only with nothing able to train the unit does it fall back to building a
+		# structure that supplies infrastructure (for the Technocracy, the Outpost, which also
+		# trains Surveyors).
+		if _bot.infrastructure_source_is_unit() and _infrastructure_unit_trainable():
+			return
 		var vtype: Variant = _infrastructure_structure_to_build()
 		if vtype != null and _types_under_way().has(vtype as StringName):
 			return
@@ -633,8 +645,15 @@ func _dominion_structure_to_build() -> Variant:
 ## a site-independent route never reaches this. The first source is the top rung's, not this.
 ## Also true while the site survey is still running, which holds the rest of the ladder for the
 ## answer just as a pending build-spot search does.
+##
+## A route whose every source pays a flat rate (DominionRoute.another_source_adds_income — the
+## Technocratic Lab) has no site to price: each one adds a whole source. Its gate is instead
+## whether the dominion has a use (Bot.dominion_demand): a Lab turns a site's energy into
+## dominion, and dominion that buys nothing is a site thrown away.
 func _extend_dominion(a_builder: Commandable) -> bool:
 	var under_way: Array[StringName] = _types_under_way()
+	var route: DominionRoute = _bot.dominion_route()
+	var stacks: bool = route != null and route.another_source_adds_income()
 	for t: StringName in _bot.buildable_dominion_structure_types():
 		if (
 			under_way.has(t)
@@ -642,7 +661,13 @@ func _extend_dominion(a_builder: Commandable) -> bool:
 			or not can_afford_above_reserve(t)
 		):
 			continue
-		var spot: Variant = _dominion_site(t, MIN_DOMINION_SITE_FRACTION)
+		if stacks and _bot.dominion_demand() <= 0:
+			continue
+		var spot: Variant = (
+			_dominion_build_spot(t, 0.0)
+			if stacks
+			else _dominion_site(t, MIN_DOMINION_SITE_FRACTION)
+		)
 		if spot is StringName:
 			return true  # still surveying; the rest of the ladder waits for the answer
 		if spot is Vector3 and _issue_build(a_builder, t, spot):
@@ -652,9 +677,16 @@ func _extend_dominion(a_builder: Commandable) -> bool:
 
 ## Where a dominion source of `a_type` goes: the best-paying site for a route that pays by site
 ## (as long as it adds at least `a_min_fraction` of a lone source), else the ordinary placement.
+##
+## A source that OVERLAYS an extraction site (the Lab — it carries an Extractor component) goes on
+## the nearest site the bot believes is free, exactly as an Extractor would; null when there is
+## none. Read off the piece rather than the route, as the placement rule itself is.
 func _dominion_build_spot(a_type: StringName, a_min_fraction: float) -> Variant:
 	var route: DominionRoute = _bot.dominion_route()
 	var preview := _bot.get_build_preview_instance(Tool.for_type(a_type)) as Entity
+	if preview != null and Extractor.of(preview) != null:
+		var site: Entity = _nearest_unclaimed_site()
+		return site.global_position if site != null else null
 	if (
 		route == null
 		or preview == null
@@ -766,6 +798,19 @@ func _infrastructure_structure_to_build() -> Variant:
 		return null
 	candidates.sort_custom(func(a, b): return _energy_cost(a) < _energy_cost(b))
 	return candidates[0]
+
+
+## Whether some finished production structure can train the faction's infrastructure UNIT now
+## (Bot.infrastructure_source_is_unit): it produces that type and the tech for it is in. False
+## sends the infrastructure rung back to building a structure that supplies infrastructure.
+func _infrastructure_unit_trainable() -> bool:
+	var source: StringName = _bot.infrastructure_source_type()
+	if not _bot.has_tech_for(source):
+		return false
+	for s: Commandable in _bot.get_production_structures():
+		if s.production.can_produce(source):
+			return true
+	return false
 
 
 ## Cheapest affordable buildable income (extractor) structure, or null.

@@ -728,13 +728,13 @@ func test_a_purchase_costing_more_dominion_than_the_scale_grows_the_bar_to_fit()
 ## one exception: `_make_tasked_commander()` builds a real, live-tree Shelter/Compound/truck
 ## triple, added under an autofreed root so `_ready()` runs normally. Shelter and Compound
 ## sit at the SAME position, so transport never binds and the projected rate reduces to
-## `dominion_per_unit * min(shelter_rate * sentence_length, capacity)` — see
+## `dominion_per_unit * min(shelter_rate * sentence_length, SENTENCES_AT_ONCE)` — see
 ## test_ProjectedDominionRate.gd for the formula itself, including the transport-bound case;
 ## this file only needs SOME known positive rate to exercise the bar's own math.
 
 ## A commander with one truck tasked on a Shelter that feeds an adjacent Compound —
-## `EXPECTED_PROJECTED_RATE` dominion/s, by construction (2 dominion/occupant * min(0.1
-## captives/s * 20s term, 100 capacity) = 2 * 2 = 4). Deliberately small enough that its
+## `EXPECTED_PROJECTED_RATE` dominion/s, by construction (8 dominion/occupant * min(0.1
+## captives/s * 5s term, 1 serving) = 8 * 0.5 = 4). Deliberately small enough that its
 ## 60-second projection does not itself hit the bar's own clamp (see
 ## test_an_enormous_income_rate_fills_the_rest_of_the_bar_without_growing_it for that case).
 const EXPECTED_PROJECTED_RATE: float = 4.0
@@ -759,9 +759,9 @@ func _make_tasked_commander() -> Commander:
 	compound.set_physics_process(false)
 	compound.top_level = true
 	compound.commander = commander
-	compound.garrison.sentence_length = 20.0
+	compound.garrison.sentence_length = 5.0
 	compound.garrison.capacity = 100
-	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).dominion_per_unit = 2
+	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).dominion_per_unit = 8
 
 	var truck: Commandable = FakePieces.make(FakePieces.TRUCK) as Commandable
 	world.add_child(truck)

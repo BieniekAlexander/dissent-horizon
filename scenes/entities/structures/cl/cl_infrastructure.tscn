@@ -68,7 +68,7 @@ occupiable_armours = 0
 occupiable_movements = 0
 capacity = 3
 bunker = false
-sentence_length = 60.0
+sentence_length = 30.0
 
 [node name="DominionGenerator" type="Node" parent="." unique_id=1157560813]
 script = ExtResource("4_dom")

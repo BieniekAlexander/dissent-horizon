@@ -31,6 +31,17 @@ static func of(a_node: Variant) -> Extractor:
 	return (a_node as Node).get_node_or_null("Extractor") as Extractor
 
 
+## Whether `a_piece`, an overlay piece, may stand in a lithium pond as well as on an
+## extraction site. Only a piece that collects ENERGY may: a pond is a finite energy reservoir,
+## and what the Extractor binds there is the host's EnergyExtractor. A site-overlay piece that
+## pays something else — the Technocratic Lab, whose DominionGenerator draws on nothing — is
+## restricted to sites. Derived from the components rather than authored, so it cannot
+## disagree with what the piece actually collects. Out-of-tree previews are fine: this reads
+## the node, not an @onready field.
+static func works_ponds(a_piece: Node) -> bool:
+	return a_piece != null and a_piece.get_node_or_null("EnergyExtractor") != null
+
+
 ## The extractor piece this component belongs to.
 func host() -> Commandable:
 	return get_parent() as Commandable

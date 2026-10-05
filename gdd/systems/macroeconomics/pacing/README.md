@@ -26,6 +26,7 @@ it borrows are in [design-framework/timings](../../../design-framework/timings.m
 | [building-roles](building-roles.md) | marginal value of each copy of a structure, by what the structure confers; multi-purpose buildings |
 | [dominion-and-ordnance](dominion-and-ordnance.md) | dominion as a super meter, the sanction-as-permission / structure-as-charges split, shared pools, and the command centre |
 | [sanction-calibration](sanction-calibration.md) | first-pass numbers for the sanction grid: a four-tier layout, a price ladder, dominion ≈ energy via the Technocratic extractor, and per-family changes (Scan, Ambush, Drop) |
+| [dominion-rate-analysis](dominion-rate-analysis.md) | WIP: each faction's dominion income alone on ten generated maps, against the Technocratic Lab — the model, its results, and what limits each faction |
 
 Upgrades, which several of these notes discuss, are built: [upgrades](../upgrades.md).
 

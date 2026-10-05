@@ -1,8 +1,7 @@
-[gd_scene load_steps=26 format=3 uid="uid://dn8gudwube55w"]
+[gd_scene load_steps=29 format=3 uid="uid://dn8gudwube55w"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_60f0v"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_rif6a"]
-[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_s7yt6"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/detection_small.tres" id="3_spec"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_rwxkx"]
@@ -23,6 +22,8 @@
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="20_oo35y"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_p1bjl"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="6_spec"]
+[ext_resource type="Script" uid="uid://i5cpflyrc4jkh" path="res://scripts/entities/components/builds.gd" id="1_spec"]
+[ext_resource type="Script" uid="uid://coal5nd5pghuo" path="res://scripts/entities/components/repairs.gd" id="4_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_xrqn8"]
 height = 0.6
@@ -31,17 +32,31 @@ radius = 0.7
 [sub_resource type="PrismMesh" id="PrismMesh_fu8bt"]
 size = Vector3(1.2, 0.25, 1.4)
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_movement_body"]
+height = 100.0
+radius = 0.2
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox_shape"]
+height = 100.0
+radius = 0.3
+
 [node name="TcBioLightBuilder" type="CharacterBody3D" unique_id=2124495472 groups=["piece", "unit"]]
 script = ExtResource("1_60f0v")
 id = &"tc_bioLight_builder"
+description = "unarmed builder; raises every Technocratic structure and repairs what is damaged"
+verbose = "The Technocratic builder. Unarmed; its faction-agnostic properties match the Colonial Servant's for now."
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1167039811]
 
 [node name="NavigationAgent" parent="." unique_id=1744162296 instance=ExtResource("2_rif6a")]
 
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_s7yt6")]
+shape = SubResource("CylinderShape3D_movement_body")
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_rwxkx")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("CylinderShape3D_hurtbox_shape")
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_onbm2")]
 
@@ -56,9 +71,11 @@ script = ExtResource("9_da12x")
 speed = 1.4
 turn_rate = 1080.0
 nav_agent_path = NodePath("../NavigationAgent")
+crush_class = 0
 
 [node name="Defense" type="Node" parent="." unique_id=1459715840]
 script = ExtResource("10_gwctu")
+hp_max = 120.0
 
 [node name="Veterancy" type="Node" parent="." unique_id=1377159676]
 script = ExtResource("11_gqlr0")
@@ -117,13 +134,17 @@ billboard = 2
 
 [node name="AggroRangeAir" parent="." unique_id=1224234729 instance=ExtResource("5_onbm2")]
 
-[node name="Garrison" type="Node" parent="." unique_id=346892408]
-script = ExtResource("2_spec")
-
 [node name="DetectionRange" type="CollisionShape3D" parent="." unique_id=1100753861 groups=["debug_shape_detection_range"]]
 shape = ExtResource("3_spec")
 disabled = true
 debug_color = Color(0.7, 0.2, 0.9, 0.35)
+
+[node name="Builds" type="Node" parent="."]
+script = ExtResource("1_spec")
+buildable_types = Array[StringName]([&"tc_commandCenter", &"nt_extractor", &"tc_dominionGen"])
+
+[node name="Repairs" type="Node" parent="."]
+script = ExtResource("4_spec")
 
 [editable path="Selectable"]
 [editable path="HPBar"]

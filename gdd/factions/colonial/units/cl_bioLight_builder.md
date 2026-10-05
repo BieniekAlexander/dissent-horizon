@@ -7,7 +7,7 @@ flavor:
   verbose: The Colonial builder. Unarmed, with a Recruit's body — it raises every structure the faction fields, repairs what is damaged, and is what a Compound turns captured prisoners into.
 build:
   cost:
-    energy: 500
+    energy: 200
   time: 8
   requires: []
 defense:

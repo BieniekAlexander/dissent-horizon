@@ -41,8 +41,10 @@ the Opticons' claim, pending ones included, and placing an Opticon shows its who
 tiles that would earn nothing washed out
 ([construction-visuals](../../../systems/ux/ui/construction-visuals.md) §The placement grid).
 
-TODO: `dominion_per_tile` is a placeholder (a lone Opticon on open ground banks about what a
-Warlord with four followers does).
+`dominion_per_tile` is 0.0114 per 5 s (a lone Opticon on open ground banks about 2.9/s),
+retuned on 2026-10-05 so the route earns about twice the Technocratic Lab route over a game
+([dominion-rate-analysis](../../../systems/macroeconomics/pacing/dominion-rate-analysis.md)
+§Retuned rates).
 
 The income is on the economy bar's dominion rate, and what ordered Opticons will add is drawn as
 pending ([economy-bars](../../../systems/ux/ui/economy-bars.md) §Dominion). TODO: the Anarchist

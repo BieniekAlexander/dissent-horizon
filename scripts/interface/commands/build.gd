@@ -140,10 +140,10 @@ static func meets_precondition(
 	# can never pass — the site already occupies those cells. In a
 	# lithium pond it occupies its cells like anything else. EnergyExtractor.valid_placement
 	# is what knows which case applies; it is used INSTEAD of the generic check, not in
-	# addition to it.
+	# addition to it. An overlay piece that draws no energy (the Lab) has only the site case.
 	if Extractor.of(preview) != null:
 		if not EnergyExtractor.valid_placement(
-			message, dims, obs.allow_uneven, obs.allow_submerged
+			message, dims, obs.allow_uneven, obs.allow_submerged, Extractor.works_ponds(preview)
 		):
 			return PreconditionFailureCause.INVALID_PLACEMENT
 	elif not Structure.valid_placement(message, dims, obs.allow_uneven, obs.allow_submerged):

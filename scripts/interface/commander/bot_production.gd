@@ -92,7 +92,10 @@ func tick() -> int:
 	_capture_errands = -1  # recomputed lazily, at most once per think
 	var demand: Dictionary = _bot.enemy_demand_map()
 	var producers: Array = _bot.get_idle_production_structures()
+	var infrastructure_producer: Commandable = _train_infrastructure_unit(producers)
 	for s: Commandable in producers:
+		if s == infrastructure_producer:
+			continue
 		var type: StringName = _best_unit_for(s, demand)
 		# A structure that can't train any combat unit (e.g. the Settlement, which only
 		# makes the weaponless Stock Truck) instead fields a capped number of utility
@@ -107,6 +110,41 @@ func tick() -> int:
 		if type != &"" and _can_afford_above_reserve(type):
 			_act.train(s, type)
 	return DEMAND_WORK_UNITS + producers.size() * PRODUCER_WORK_UNITS
+
+
+## THE INFRASTRUCTURE RUNG, for a faction whose provider is a TRAINED unit (the Technocratic
+## Surveyor; Bot.infrastructure_source_is_unit). While the bot is strained and none is already
+## on its way, the first idle producer that can make one trains it ahead of anything else.
+## Returns that producer, or null when nothing was ordered.
+##
+## The economy's infrastructure rung is the structure half of this and banks while it waits
+## (BotEconomy._decide). Like that rung, this one is EXEMPT from the reserve: infrastructure is a
+## purchase the bank exists to keep affordable. A provider is not a combat or utility unit, so
+## without this the bot never trained one — and the economy, finding no structure provider,
+## would have built Outposts for infrastructure instead.
+func _train_infrastructure_unit(a_idle_producers: Array) -> Commandable:
+	if not _bot.needs_infrastructure_provider() or not _bot.infrastructure_source_is_unit():
+		return null
+	var source: StringName = _bot.infrastructure_source_type()
+	if _infrastructure_unit_on_its_way(source) or not _bot.can_afford(source):
+		return null
+	for s: Commandable in a_idle_producers:
+		if s.production.can_produce(source):
+			_act.train(s, source)
+			return s
+	return null
+
+
+## Whether an infrastructure unit of `a_type` is already queued or training: strain does not
+## lift until it is out and standing, so without this every think orders another.
+func _infrastructure_unit_on_its_way(a_type: StringName) -> bool:
+	for t: PurchaseTransaction in _bot.production_queue.pending():
+		if t.type == a_type and t.is_pending():
+			return true
+	for s: Commandable in _bot.get_production_structures():
+		if s.production.is_producing(a_type):
+			return true
+	return false
 
 
 ## Cheapest affordable producible utility unit at [structure] that the bot still has WORK

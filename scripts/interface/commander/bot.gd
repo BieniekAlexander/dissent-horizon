@@ -1250,6 +1250,31 @@ func buildable_dominion_structure_types() -> Array:
 	return buildable_structure_types().filter(func(t): return route.structure_sources.has(t))
 
 
+## How much more dominion this commander has a use for: what the sanctions it has not bought
+## would cost, less what it has banked. 0 when the grid is bought out, empty (a faction with no
+## sanctions), or already covered by the bank. What gates building ANOTHER source of a stacking
+## dominion route (DominionRoute.another_source_adds_income): a Lab converts a site's energy into
+## dominion, which is only worth doing while the dominion has something to buy.
+func dominion_demand() -> int:
+	if sanction_grid == null:
+		return 0
+	return maxi(0, sanction_grid.unowned_cost() - dominion)
+
+
+## The faction's dedicated infrastructure provider (Faction.infrastructure_source), or &"" for a
+## faction with none.
+func infrastructure_source_type() -> StringName:
+	return faction.infrastructure_source if faction != null else &""
+
+
+## Whether the faction's infrastructure provider is a UNIT that is trained (the Technocratic
+## Surveyor) rather than a structure that is built. Read off the provider's preview, so a
+## faction declares nothing more than its infrastructure_source.
+func infrastructure_source_is_unit() -> bool:
+	var source: StringName = infrastructure_source_type()
+	return source != &"" and _type_is_unit(source)
+
+
 ## Buildable structures that supply infrastructure (their preview's infrastructure > 0 — e.g.
 ## the Colonial power plant, Anarchical safehouse). The generic
 ## hook the economy uses to keep the commander out of infrastructure strain; the right

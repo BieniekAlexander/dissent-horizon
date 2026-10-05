@@ -14,9 +14,10 @@ extends Node
 ##
 ## TODO: a route sourced by UNITS (the Anarchist Warlord) is not valued by BotProduction — the
 ## bot trains Warlords as anti-structure units and earns their dominion by accident. A route
-## that pays for DESTROYING structures (the planned Marxist one) has no query here yet, and one
-## restricted to extraction sites (the planned Technocratic one) needs a placement rule; each
-## adds its own question when it is built.
+## that pays for DESTROYING structures (the planned Marxist one) has no query here yet; it adds
+## its own question when it is built. The Technocratic route (TechnocraticDominion) answers
+## another_source_adds_income; where a Lab may stand is read off the piece (it overlays an
+## extraction site), not asked of the route.
 
 #region Properties
 ## The STRUCTURES that are this route's sources: what the bot builds to earn dominion. Scene-
@@ -89,6 +90,16 @@ func collection_rate() -> float:
 ## and ground a planned building will cover taken away, so it may be negative.
 func pending_rate_change() -> float:
 	return 0.0
+
+
+## Whether one more source always adds a whole source's income, wherever it stands — true for a
+## route whose sources each pay a flat rate (the Technocratic Lab). False for the base route,
+## where one source is enough (a Compound's income is bounded by the prisoners, not by how many
+## Compounds there are), and for a site-dependent route, whose next source is priced by
+## site_survey instead. The bot builds more of a stacking route's sources only while it has a
+## use for the dominion (Bot.dominion_demand).
+func another_source_adds_income() -> bool:
+	return false
 
 
 ## What one `a_preview` source earns per cycle with nothing else claiming around it — the scale

@@ -94,7 +94,7 @@ func test_the_area_is_a_cylinder_of_the_configured_radius() -> void:
 	_event.radius = 10.0
 	var scout: Commandable = FakePieces.unit(SCOUT)
 	add_child_autofree(scout)
-	_event._resize_vision(scout)
+	EventRevealRegion._resize_vision(scout, _event.radius)
 	assert_almost_eq(_vision_shape(scout).radius, 10.0, 0.001)
 
 
@@ -113,7 +113,7 @@ func test_resizing_one_area_does_not_resize_the_scout_scene() -> void:
 
 	_event.radius = 99.0
 	add_child_autofree(resized)
-	_event._resize_vision(resized)
+	EventRevealRegion._resize_vision(resized, _event.radius)
 	add_child_autofree(untouched)
 	assert_almost_eq(_vision_shape(resized).radius, 99.0, 0.001, "this one grew")
 	assert_almost_eq(_vision_shape(untouched).radius, original, 0.001, "the scene did not")

@@ -301,8 +301,8 @@ func test_a_servant_let_out_of_a_compound_leaves_the_prisoners_serving():
 	var hold: Garrison = compound.garrison as Garrison
 	var servant: Commandable = _entity(SERVANT, 1)
 	var captive: Commandable = _entity(TERRESTRIAL, 0)
-	hold.garrison(servant)
 	hold.garrison(captive)
+	hold.garrison(servant)
 	hold._physics_process(1.0)
 	hold.evacuate_by_order(null)
 	assert_true(servant.is_inside_tree(), "released before its sentence ended, back in the game")
@@ -457,6 +457,8 @@ func test_a_deposit_takes_the_servants_riding_along_and_sentences_them():
 		0.001,
 		"a Servant serves a sentence like a prisoner"
 	)
+	# Its turn comes after the prisoner's: one term, then a tick to start its own, then that.
+	hold._physics_process(hold.sentence_length + 1.0)
 	hold._physics_process(hold.sentence_length + 1.0)
 	assert_false(is_instance_valid(servant), "and is consumed at the end of it")
 
@@ -503,6 +505,45 @@ func test_internment_is_partial_when_the_camp_is_nearly_full():
 	compound.garrison.capacity = 1
 	assert_eq(compound.garrison.deposit_from(truck.garrison), 1, "only what fits is taken")
 	assert_eq(truck.garrison.garrisoned_count(), 1, "the truck keeps the rest")
+
+
+func test_captives_serve_one_at_a_time_in_arrival_order():
+	var compound: Commandable = _entity(COMPOUND, 1)
+	var hold: Garrison = compound.garrison
+	hold.sentence_length = 10.0
+	var first: Commandable = _entity(TERRESTRIAL, 0)
+	var second: Commandable = _entity(TERRESTRIAL, 0)
+	hold.garrison(first)
+	hold.garrison(second)
+	hold._physics_process(4.0)
+	assert_almost_eq(hold._sentence_remaining[first], 6.0, 0.001, "the first serves")
+	assert_almost_eq(hold._sentence_remaining[second], 10.0, 0.001, "the second waits, untouched")
+	hold._physics_process(7.0)
+	assert_false(is_instance_valid(first), "the first is consumed at the end of its term")
+	assert_almost_eq(
+		hold._sentence_remaining[second], 10.0, 0.001, "the next term starts on the next tick"
+	)
+	hold._physics_process(1.0)
+	assert_almost_eq(hold._sentence_remaining[second], 9.0, 0.001, "and then it serves")
+
+
+func test_only_the_captive_serving_pays():
+	var compound: Commandable = _entity(COMPOUND, 1)
+	var hold: Garrison = compound.garrison
+	assert_eq(hold.paying_count(), 0, "an empty prison pays for nobody")
+	hold.garrison(_entity(TERRESTRIAL, 0))
+	hold.garrison(_entity(TERRESTRIAL, 0))
+	hold.garrison(_entity(TERRESTRIAL, 0))
+	assert_eq(hold.garrisoned_count(), 3)
+	assert_eq(hold.paying_count(), Garrison.SENTENCES_AT_ONCE, "the rest wait their turn unpaid")
+
+
+func test_an_ordinary_garrison_pays_for_every_occupant():
+	var host: Commandable = _entity(OPEN_GARRISON, 1)
+	var garrison: Garrison = host.get_node("Garrison") as Garrison
+	garrison.garrison(_entity(SERVANT, 1))
+	garrison.garrison(_entity(SERVANT, 1))
+	assert_eq(garrison.paying_count(), 2, "no sentences, so no queue")
 
 
 func test_a_garrison_with_no_sentence_length_takes_no_deposit():
@@ -730,7 +771,7 @@ func test_a_starting_event_under_a_host_is_not_run_twice():
 ## --- Dominion per prisoner -------------------------------------------------
 
 
-func test_the_camp_banks_dominion_per_occupant():
+func test_the_camp_banks_dominion_for_the_prisoner_serving():
 	var compound: Commandable = _entity(COMPOUND, 1)
 	var generator: OccupantDominionGenerator = compound.get_node("DominionGenerator")
 	compound.garrison.garrison(_entity(TERRESTRIAL, 0))
@@ -740,8 +781,8 @@ func test_the_camp_banks_dominion_per_occupant():
 	generator.tick()
 	assert_eq(
 		compound.commander.dominion - before,
-		2 * generator.dominion_per_unit,
-		"each prisoner banks its own dominion each cycle"
+		Garrison.SENTENCES_AT_ONCE * generator.dominion_per_unit,
+		"the prisoner serving banks its dominion; the one waiting its turn banks nothing"
 	)
 
 

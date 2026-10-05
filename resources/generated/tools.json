@@ -675,8 +675,8 @@
 			"cl_commandCenter"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_builder.tscn",
-		"tooltip": "Train Servant — 500 energy, 8s",
-		"verbose": "Train Servant — 500 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nBuilds: Citadel, Extractor, Compound, Barracks, Sam, Watch Tower, Bombard, Sky Port, Production Yard, Operations Center, Academy, Annex, Supply Beacon, Storm Cell\nRepairs damaged mechanical units and structures"
+		"tooltip": "Train Servant — 200 energy, 8s",
+		"verbose": "Train Servant — 200 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nBuilds: Citadel, Extractor, Compound, Barracks, Sam, Watch Tower, Bombard, Sky Port, Production Yard, Operations Center, Academy, Annex, Supply Beacon, Storm Cell\nRepairs damaged mechanical units and structures"
 	},
 	"command_tool_cl_bioLight_stealth": {
 		"context": "TRAIN",
@@ -1206,7 +1206,7 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/lb/lb_commandCenter.tscn",
 		"tooltip": "Build Shard — 300 energy, 60s",
-		"verbose": "Build Shard — 300 energy, 60s\n400 HP · strong armour · mech frame\n4×4 cells · vision 30\nTrains: Canary"
+		"verbose": "Build Shard — 300 energy, 60s\n400 HP · strong armour · mech frame\n4×4 cells · vision 30\nProvides 100 infrastructure\nTrains: Canary"
 	},
 	"command_tool_lb_defense": {
 		"context": "BUILD",
@@ -1665,10 +1665,51 @@
 		"id": "tc_bioLight_builder",
 		"label": "Technician",
 		"needs_docking": false,
-		"producers": [],
+		"producers": [
+			"tc_commandCenter"
+		],
 		"scene": "res://scenes/entities/units/an/tc_bioLight_builder.tscn",
-		"tooltip": "Train Technician — 100 energy, 25s",
-		"verbose": "Train Technician — 100 energy, 25s\n100 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16"
+		"tooltip": "Train Technician — 500 energy, 8s",
+		"verbose": "Train Technician — 500 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nBuilds: Outpost, Extractor, Lab\nRepairs damaged mechanical units and structures"
+	},
+	"command_tool_tc_commandCenter": {
+		"context": "BUILD",
+		"context_grid": [
+			0,
+			0
+		],
+		"factions": [
+			"technocracy"
+		],
+		"grid": [
+			1,
+			0
+		],
+		"id": "tc_commandCenter",
+		"label": "Outpost",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_commandCenter.tscn",
+		"tooltip": "Build Outpost — 1500 energy, 30s",
+		"verbose": "Build Outpost — 1500 energy, 30s\n3000 HP · strong armour · mech frame\n8×8 cells · vision 30\nProvides 100 infrastructure\nTrains: Technician, Surveyor"
+	},
+	"command_tool_tc_dominionGen": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"technocracy"
+		],
+		"grid": [
+			2,
+			0
+		],
+		"id": "tc_dominionGen",
+		"label": "Lab",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/tc/tc_dominionGen.tscn",
+		"tooltip": "Build Lab — 500 energy, 20s",
+		"verbose": "Build Lab — 500 energy, 20s\n500 HP · medium armour · mech frame\n2×2 cells · vision 20\nCosts 50 infrastructure upkeep"
 	},
 	"command_tool_tc_mechMedium_infrastructure": {
 		"context": "TRAIN",
@@ -1683,10 +1724,12 @@
 		"id": "tc_mechMedium_infrastructure",
 		"label": "Surveyor",
 		"needs_docking": false,
-		"producers": [],
+		"producers": [
+			"tc_commandCenter"
+		],
 		"scene": "res://scenes/entities/units/an/tc_mechMedium_infrastructure.tscn",
-		"tooltip": "Train Surveyor — 500 energy, 25s",
-		"verbose": "Train Surveyor — 500 energy, 25s\n300 HP · medium armour · mech frame\nhovering, speed 4 · vision 22\nProvides 75 infrastructure"
+		"tooltip": "Train Surveyor — 500 energy, 12s",
+		"verbose": "Train Surveyor — 500 energy, 12s\n300 HP · medium armour · mech frame\ngrounded, speed 3 · vision 20\nProvides 75 infrastructure"
 	},
 	"command_tool_th_airField": {
 		"context": "BUILD",

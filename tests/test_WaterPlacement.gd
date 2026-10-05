@@ -486,6 +486,23 @@ func test_an_extractor_may_be_built_in_shallow_water() -> void:
 	)
 
 
+## A piece that overlays sites but collects no energy (the Technocratic Lab) is refused a pond
+## that an extractor would take: a pond is a finite ENERGY reservoir, so there is nothing in it
+## for such a piece to work.
+func test_a_site_only_piece_is_refused_the_pond_an_extractor_takes() -> void:
+	var map: Map = _make_map()
+	_add_water(map, WaterBody.NOMINAL_ENERGY)
+	var aim: CommandMessage = _msg(map, _aim(map, _SHALLOW_ORIGIN))
+	assert_true(
+		EnergyExtractor.valid_placement(aim, _DIMS, false, true),
+		"the control: an extractor may go here"
+	)
+	assert_false(
+		EnergyExtractor.valid_placement(aim, _DIMS, false, true, false),
+		"a site-only piece may not"
+	)
+
+
 ## The pond does not have to be charged for an extractor to be legal in it — buildability is
 ## a property of the water, not of what is dissolved in it. An extractor on a spent pond is a
 ## waste, not an error.

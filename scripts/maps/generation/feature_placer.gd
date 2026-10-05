@@ -150,11 +150,13 @@ func _propose(a_plan: FeaturePlan) -> MapFeature:
 
 func _propose_structure(a_plan: FeaturePlan) -> MapFeature:
 	var dims: Vector2i = a_plan.piece.footprint
-	var origin: Vector2i = _random_origin(dims)
+	var origin: Vector2i = (
+		_band_origin(a_plan, dims) if _draws_from_band(a_plan) else _random_origin(dims)
+	)
 	if not _grid.is_rect_free(origin, dims):
 		return null
 	var center: Vector2 = Vector2(origin) + Vector2(dims) * 0.5
-	if not _is_spaced(center):
+	if not _is_spaced(center) or not _in_band(a_plan, center):
 		return null
 	var feature := MapFeature.new()
 	feature.kind = a_plan.kind
@@ -162,6 +164,40 @@ func _propose_structure(a_plan: FeaturePlan) -> MapFeature:
 	feature.center = center
 	feature.placements.append({piece = a_plan.piece, origin = origin})
 	return feature
+
+
+## Whether `a_plan`'s candidates are drawn straight from its start's band: a banded plan over the
+## whole grid. A RESTRICTED window (pass 4 moving a feature a short way) is sampled as usual and
+## filtered by _in_band instead — the band is far larger than the window, so drawing from the band
+## would almost never land in it.
+func _draws_from_band(a_plan: FeaturePlan) -> bool:
+	return (
+		a_plan.band_start >= 0
+		and a_plan.band_start < _starts.size()
+		and _window == Rect2i(0, 0, _grid.width, _grid.depth)
+	)
+
+
+## A random origin for a `dims` footprint whose centre lies in `a_plan`'s start band: uniform over
+## the annulus by area (radius as the square root of a uniform draw over the squared bounds).
+func _band_origin(a_plan: FeaturePlan, a_dims: Vector2i) -> Vector2i:
+	var start: Vector2 = _starts[a_plan.band_start].position
+	var low: float = _params.shelter_start_band_min_cells
+	var high: float = maxf(low, _params.shelter_start_band_max_cells)
+	var radius: float = sqrt(_rng.randf_range(low * low, high * high))
+	var center: Vector2 = start + Vector2.from_angle(_rng.randf() * TAU) * radius
+	var origin := Vector2i((center - Vector2(a_dims) * 0.5).round())
+	return origin.clamp(Vector2i.ZERO, Vector2i(_grid.width, _grid.depth) - a_dims)
+
+
+## Whether a candidate centred at `a_center` satisfies `a_plan`'s start band; true for a plan with
+## none. Rounding the origin moves the centre by up to half a cell, so this, not the draw, is the
+## rule.
+func _in_band(a_plan: FeaturePlan, a_center: Vector2) -> bool:
+	if a_plan.band_start < 0 or a_plan.band_start >= _starts.size():
+		return true
+	var d: float = _starts[a_plan.band_start].position.distance_to(a_center)
+	return d >= _params.shelter_start_band_min_cells and d <= _params.shelter_start_band_max_cells
 
 
 ## Grow a 4-connected blob of `pond_cells` cells from a random seed, nearest-first with

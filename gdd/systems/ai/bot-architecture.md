@@ -899,6 +899,7 @@ What a route answers, and who does what with it:
 | Colonial | `DominionRoute` (the base) | the Compound | no — one is as good as another |
 | Libertarian | `LibertarianDominion` | the Opticon | yes — a tile two Opticons see pays once |
 | Anarchist | `AnarchicalDominion` | none — the Warlord is trained | — |
+| Technocratic | `TechnocraticDominion` | the Lab | no — but every Lab adds a whole Lab's income, and each needs a free extraction site |
 
 `BotEconomy` builds the FIRST source at the top of its ladder, as it always built the Compound.
 A site-dependent route is also surveyed: a lattice of candidate sites around the base, each
@@ -910,11 +911,32 @@ site still adds at least `MIN_DOMINION_SITE_FRACTION` — ahead of production ca
 TODO: every weight here is a placeholder, and the threshold is really the energy-against-dominion
 question (bot-roadmap.md) in disguise.
 
+**A stacking route (Technocratic, 2026-10-05).** A Lab pays a flat rate wherever it stands, so the
+route answers `another_source_adds_income()` true and the survey is skipped. Where a Lab may go is
+read off the PIECE, not the route: it overlays an extraction site (it carries an `Extractor`), so
+`_dominion_build_spot` aims it at the nearest site the bot believes is free, exactly as an
+Extractor. The first Lab is the top rung's, as for every faction. Another is built only in
+surplus, and only while `Bot.dominion_demand()` — what the sanctions it has not bought would
+cost, less its bank — is positive: a Lab is a site that earns no energy, and dominion that buys
+nothing is that site thrown away. Decided with Alex 2026-10-05. With the Technocracy's empty
+sanction list that is exactly one Lab.
+
+**The top rung falls through when there is nowhere to put the source** (2026-10-05). It returned
+whatever happened, which held the whole ladder for a spot that did not exist — rare for a
+Compound, routine for a Lab before any site is explored. It still holds while a search is
+pending.
+
+**A trained infrastructure provider** (the Technocratic Surveyor, `Bot.infrastructure_source_is_unit`).
+`BotProduction._train_infrastructure_unit` trains one ahead of everything while the bot is strained
+and none is on its way, exempt from the reserve like the economy's infrastructure rung, which banks
+meanwhile. Only with nothing able to train the unit does the economy fall back to building a
+structure that supplies infrastructure. Without this the bot never trained a provider — it is
+neither a combat nor a utility unit — and built 1500-energy Outposts for infrastructure instead.
+
 TODO: the planned routes each need a question the base does not ask yet — a Marxist route pays
-for DESTROYING structures (its own infrastructure provider included, at a worse rate), a
-Technocratic one is restricted to extraction sites and trades against an extractor, and a unit
-route (the Warlord) is not valued by BotProduction at all. Each adds its own query to
-`DominionRoute` when it is built.
+for DESTROYING structures (its own infrastructure provider included, at a worse rate), and a
+unit route (the Warlord) is not valued by BotProduction at all. Each adds its own query to
+`DominionRoute` when it is built. (The Technocratic route is built — above.)
 
 ## The utility unit count follows the work
 

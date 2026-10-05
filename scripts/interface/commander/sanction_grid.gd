@@ -213,6 +213,17 @@ func cheapest_available_cost() -> int:
 	return cheapest
 
 
+## The dominion it would take to buy every cell this commander does not own yet, gated or not:
+## what dominion can still be spent on over the match. 0 for a full or empty grid — a commander
+## for whom banking more dominion buys nothing.
+func unowned_cost() -> int:
+	var total: int = 0
+	for entry: Entry in entries:
+		if not entry.owned:
+			total += entry.unlock.dominion_cost
+	return total
+
+
 ## Attempt to unlock `entry`: it must be available and affordable. On success, spends
 ## the dominion and marks it owned. Returns whether it unlocked.
 func try_unlock(a_entry: Entry) -> bool:

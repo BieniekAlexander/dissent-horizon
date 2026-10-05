@@ -200,8 +200,10 @@ of the others'; only buildings' PLACEMENT depends on what came before (§Colloca
   each player's share in a 2v2). Placement still balances access per alliance. Ponds are drawn
   until they reach `pond_value_fraction` of it, and the rest is extraction sites, grouped into
   site clusters (§Extraction sites).
-- **shelters** — the count is drawn directly: `round(k × (1 + 1.5 × randf()))`, i.e. 1 … 2.5 per
-  alliance. See §Shelters for the ones tied to starts.
+- **shelters** — the count is drawn directly: `round(1 + n × (1 + randf()))` for `n` players
+  (`shelters_base`, `shelters_per_player_min`, `shelters_per_player_extra`), so a 1v1 map has 3 to
+  5, and never fewer than one per start (Alex, 2026-10-05; it was `round(k × (1 + 1.5 × randf()))`,
+  1 … 2.5 per alliance). See §Shelters for the ones tied to starts.
 - **buildings** — the budget is **garrison capacity per player**:
   `building_capacity_per_player × start count` (Alex, 2026-10-01; it was a footprint share of
   the play area, 3%, which gave about 19 clusters per player). Clusters are drawn until it is
@@ -273,7 +275,7 @@ spread.
 
 #### Shelters
 
-PLANNED, decided 2026-09-28. **Every start is guaranteed a shelter inside a distance band** —
+Decided 2026-09-28, built 2026-10-05. **Every start is guaranteed a shelter inside a distance band** —
 between `shelter_start_band_min_cells` and `_max_cells` of it, not too near, not too far. These
 assigned shelters are placed first in the shelter pass, their candidates restricted to the band,
 best-candidate still choosing the one nearest its favor target. The remaining shelters are aimed
@@ -289,10 +291,21 @@ a player gives up by dropping the command centre near their shelter rather than 
 Pass 4 may move an assigned shelter while correcting favor, and that is accepted: the correction
 radius is small against the band, and the favor correction already keeps access comparable.
 
-TODO: the count can fall short of the guarantee. It is drawn per alliance, so a 1v1 map has two
-shelters about one time in six — each then assigned, leaving none to rebalance and making the
-opponent's band certain — and a team map can hold fewer shelters than starts. Whether the count
-should be floored at the start count (or that plus one) is open.
+How it is built: the first shelter plan per start carries that start (`FeaturePlan.band_start`),
+and its candidates are drawn uniformly over the annulus, centre to centre, then filtered by the
+band — the filter is the rule, since rounding to a cell moves a centre. Best-candidate still
+aims each one at a fair access split, and inside the band that is its far edge: at 15–35, 29 of
+the first 30 starts measured had their shelter at 29–35 cells. The band was narrowed to 25–35
+(Alex, 2026-10-05) rather than dropping the steering; 35 of seeds 3000–3039 generate at 25–35
+against 36 at 15–35, and no rejection is the band's. Pass 4 re-places a feature
+with the same plan, so a moved shelter stays in its band (a band candidate inside pass 4's small
+window is found by filtering rather than drawing). `_validate_shelter_bands` refuses a map where
+any start lacks one, which happens only when a band has no free footprint at all.
+
+The count no longer falls short: it is at least one per start plus, at the shipped knobs, one
+more to rebalance with (`round(1 + n × (1 + randf()))`, floored at the start count). Before
+2026-10-05 a 1v1 map had two shelters about one time in six, both assigned, and the opponent's
+band was then certain.
 
 TODO: the band's bounds are not tuned.
 
@@ -1003,8 +1016,8 @@ no longer join its levels either. Regenerate or rescale before reuse. Also undec
 | `start_separation` | ≥ 0.25 × play diagonal at 2 starts, scaled by `√(2/start_count)` | keeps early aggression a decision rather than a default. 0.35 was unsatisfiable: a ring inside the margin cannot put two starts that far apart |
 | `value_horizon_seconds` | 480 | the window over which a pond is priced against a site; the largest pond's drain time, so every pond is valued at its charge |
 | `energy_value_per_player` | 37000 | how much energy every player can reach: about 25000 in 5–6 ponds and about five generated sites (2400 each), beside the two home sites |
-| shelter count | `round(k × (1 + 1.5 × randf()))` | 1 … 2.5 per alliance; not a parameter. TODO: may fall short of one per start (§Shelters) |
-| `shelter_start_band_min_cells` / `_max_cells` | PLANNED; untuned | the band every start's own shelter lies in (§Shelters) |
+| `shelters_base` / `shelters_per_player_min` / `_extra` | 1 / 1 / 1: `round(1 + n × (1 + randf()))`, at least one per start | 3 … 5 on a 1v1 map: one per start plus at least one to rebalance with (§Shelters) |
+| `shelter_start_band_min_cells` / `_max_cells` | 25 / 35, centre to centre (was 15 / 35); TODO untuned | the band every start's own shelter lies in (§Shelters) |
 | `pond_value_fraction` | 0.676 | ponds are finite, so they are the prize; they are also the early engine, because a site pays little on purpose ([pacing/resource-allotment](../macroeconomics/pacing/resource-allotment.md) §Second pass, 2026-10-01) |
 | `pond_charge_min` / `pond_charge_max` | 2700 / 7200 | 3 to 8 minutes for one extractor at 15/s |
 | pond charge location, scale, skew | 3500, 2000, 4 | right-skewed: small ponds common, large ones rare |

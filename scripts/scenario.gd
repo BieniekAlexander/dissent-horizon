@@ -43,6 +43,15 @@ signal local_player_changed(a_commander: Commander)
 ## every skirmish scene sets HEGEMONY.
 enum WinCondition { NONE, MISSION, HEGEMONY }
 @export var win_condition: WinCondition = WinCondition.MISSION
+
+## HEGEMONY opens by showing every player every shelter: vision of this radius (world units)
+## around each one, for SHELTER_REVEAL_SECONDS, after which the fog closes again and what
+## remains is the remembered image of each shelter (the fog-of-war snapshot every seen fixture
+## leaves). Shelter positions are meant to be known from the start while spawn points are not —
+## gdd/systems/terrain-and-navigation/map-generation.md §Shelters. The radius takes in a 3x3
+## shelter and its residents milling around it.
+const SHELTER_REVEAL_RADIUS: float = 6.0
+const SHELTER_REVEAL_SECONDS: float = 5.0
 #endregion
 
 #region Properties
@@ -167,6 +176,9 @@ func _ready() -> void:
 	# their owner directly, and being placed after the loop keeps it.
 	_spawn_initial_entities()
 
+	# HEGEMONY: every player is shown every shelter for the opening seconds.
+	_reveal_shelters_at_start()
+
 	# Frame the player's starting position: buildings if any, else units.
 	_center_player_camera_on_starting_entities()
 
@@ -186,6 +198,36 @@ func _ready() -> void:
 
 	if Engine.is_editor_hint():
 		set_physics_process(false)
+
+
+## In a HEGEMONY scenario, give every player commander a short look at every shelter on the map
+## (SHELTER_REVEAL_RADIUS / _SECONDS). Nothing for any other win condition: a mission decides for
+## itself what its player knows. Returns the vision sources spawned, for a test to inspect.
+func _reveal_shelters_at_start() -> Array[Commandable]:
+	var spawned: Array[Commandable] = []
+	if win_condition != WinCondition.HEGEMONY or map == null:
+		return spawned
+	var points: Array[Vector2] = shelter_points(get_tree())
+	for slot: PlayerSlot in player_slots:
+		if slot.commander == null:
+			continue
+		for point: Vector2 in points:
+			var source: Commandable = EventRevealRegion.spawn_vision(
+				slot.commander, map, point, SHELTER_REVEAL_RADIUS, SHELTER_REVEAL_SECONDS
+			)
+			if source != null:
+				spawned.append(source)
+	return spawned
+
+
+## Where every shelter on the map stands, in world XZ: each fixture carrying a Shelter component.
+static func shelter_points(a_tree: SceneTree) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	for node: Node in a_tree.get_nodes_in_group("fixture"):
+		var piece := node as Node3D
+		if piece != null and piece.has_node("Shelter"):
+			points.append(VU.in_xz(piece.global_position))
+	return points
 
 
 ## A playback speed is the engine's global, so it would otherwise outlive this session.

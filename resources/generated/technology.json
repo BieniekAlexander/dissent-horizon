@@ -343,7 +343,7 @@
 		"build_time_ticks": 240,
 		"cost": {
 			"dominion": 0,
-			"energy": 500,
+			"energy": 200,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -944,16 +944,34 @@
 		"requires": []
 	},
 	"tc_bioLight_builder": {
-		"build_time_ticks": 750,
+		"build_time_ticks": 240,
 		"cost": {
 			"dominion": 0,
-			"energy": 100,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"tc_commandCenter": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 1500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"tc_dominionGen": {
+		"build_time_ticks": 600,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
 			"infrastructure": 0
 		},
 		"requires": []
 	},
 	"tc_mechMedium_infrastructure": {
-		"build_time_ticks": 750,
+		"build_time_ticks": 360,
 		"cost": {
 			"dominion": 0,
 			"energy": 500,

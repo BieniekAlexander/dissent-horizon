@@ -27,8 +27,7 @@ const EXTRACTOR_DROP_CHARGES: int = 2
 
 ## The command centre each faction drops, by the faction's scene. Hardcoded rather than read
 ## off the faction doc: a command centre is what every deployment starts from, not a starting
-## piece a faction chooses. The Technocracy has no command centre of its own yet and borrows
-## the Anarchists'. A faction missing here cannot deploy by drop.
+## piece a faction chooses. A faction missing here cannot deploy by drop.
 const COMMAND_CENTRE_SCENES: Dictionary = {
 	"res://scenes/factions/anarchical.tscn":
 	"res://scenes/entities/structures/an/an_commandCenter.tscn",
@@ -37,7 +36,7 @@ const COMMAND_CENTRE_SCENES: Dictionary = {
 	"res://scenes/factions/libertarian.tscn":
 	"res://scenes/entities/structures/lb/lb_commandCenter.tscn",
 	"res://scenes/factions/technocratic.tscn":
-	"res://scenes/entities/structures/an/an_commandCenter.tscn",
+	"res://scenes/entities/structures/tc/tc_commandCenter.tscn",
 }
 
 ## What an extractor drop puts down: a neutral site, and the slot's extractor on it. The pair the

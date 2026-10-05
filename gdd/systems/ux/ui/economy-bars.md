@@ -152,7 +152,8 @@ which only exists while the pointer is over something), same shape as `_fill_reg
   answers "if my tasked trucks keep working these Shelters at this distance, what does that
   sustain" instead, derived from live `TaskShelter` state rather than from occupancy history:
   round-trip time at the trucks' own speed against each Shelter's regeneration, capped by the
-  receiving Compound's capacity — the steady-state half of
+  captives the receiving Compound sentences at once (`Garrison.SENTENCES_AT_ONCE`, one) — the
+  steady-state half of
   [design-framework/proposals](../../../design-framework/proposals.md) §The model
   (`min(Φ·τ, K)`), with `c`/`t_l`/`t_u`/`μ`/`m` dropped as negligible for now. Starts exactly
   where the real fill ends and runs rightward.

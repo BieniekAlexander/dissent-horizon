@@ -1,6 +1,5 @@
-[gd_scene load_steps=26 format=3 uid="uid://cnsv3dtj20lko"]
+[gd_scene load_steps=25 format=3 uid="uid://cnsv3dtj20lko"]
 
-[ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_aerial_large.tres" id="1_spec"]
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_t8i4w"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_4wvrd"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_fvh5b"]
@@ -21,8 +20,8 @@
 [ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="19_5vrn3"]
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="20_u6ln8"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_ykwo2"]
-[ext_resource type="Script" uid="uid://04yfk0mkmwom" path="res://scripts/entities/components/aerial.gd" id="2_spec"]
-[ext_resource type="Script" uid="uid://b5vq0ggkn5wow" path="res://scripts/entities/components/docking.gd" id="3_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="4_spec"]
+[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="1_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_qubim"]
 height = 0.6
@@ -35,6 +34,8 @@ size = Vector3(1.2, 0.25, 1.4)
 script = ExtResource("1_t8i4w")
 infrastructure = 75
 id = &"tc_mechMedium_infrastructure"
+description = "unarmed vehicle that supplies infrastructure"
+verbose = "The Technocratic infrastructure provider. Unarmed and carries two light infantry; otherwise it shares the Colonial sloop's properties for now."
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1241575780]
 
@@ -47,25 +48,19 @@ id = &"tc_mechMedium_infrastructure"
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_cpmip")]
 
 [node name="VisionRange" parent="." unique_id=453272117 instance=ExtResource("6_1b2tf")]
-shape = ExtResource("1_spec")
+shape = ExtResource("4_spec")
 
 [node name="Ownership" type="Node" parent="." unique_id=2048623711]
 script = ExtResource("8_kschi")
 
 [node name="Locomotion" type="Node" parent="." unique_id=1788314913]
 script = ExtResource("9_8pap2")
-max_acceleration = 2.0
-max_deceleration = -3.0
-speed = 4.0
-turn_rate = 180.0
+max_acceleration = 1.5
+max_deceleration = -4.5
+speed = 3.0
+turn_rate = 150.0
 nav_agent_path = NodePath("../NavigationAgent")
-
-[node name="Aerial" type="Node" parent="."]
-script = ExtResource("2_spec")
-mode = 16
-
-[node name="Docking" type="Node" parent="."]
-script = ExtResource("3_spec")
+min_turn_speed_ratio = 0.5
 
 [node name="Defense" type="Node" parent="." unique_id=387969695]
 script = ExtResource("10_bh6hx")
@@ -129,6 +124,12 @@ billboard = 2
 [node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("21_ykwo2")]
 
 [node name="AggroRangeAir" parent="." unique_id=141366510 instance=ExtResource("5_cpmip")]
+
+[node name="Garrison" type="Node" parent="."]
+script = ExtResource("1_spec")
+capacity = 2
+occupiable_frames = 1
+occupiable_armours = 1
 
 [editable path="Selectable"]
 [editable path="HPBar"]

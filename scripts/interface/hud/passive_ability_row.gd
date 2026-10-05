@@ -173,7 +173,9 @@ func _badge_for(a_ability_id: StringName) -> String:
 	var source: Commandable = _host as Commandable
 	if _aura_source == null or source == null or not is_instance_valid(source):
 		return ""
-	return "+%d" % _aura_source.dominion_for(source)
+	# One decimal: the per-follower rate is fractional, so a whole-number badge would round a
+	# lone follower's 3.33 down to 3.
+	return "+%.1f" % _aura_source.dominion_for(source)
 
 
 #endregion

@@ -402,3 +402,4 @@ $RECYCLE.BIN/
 
 # Terrain-visual preview renders (tools/terrain_visuals/visual_preview.gd)
 /tools/terrain_visuals/out/
+/tools/dominion_analysis/out/

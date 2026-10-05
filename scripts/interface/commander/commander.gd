@@ -935,9 +935,11 @@ func dominion_contributor_count() -> int:
 ## are dropped — negligible for the one-truck-one-capacity openings this is aimed at, per
 ## design-framework/proposals.md §The model), giving an arrival rate capped by whichever is
 ## smaller, the Shelter's own regeneration or however many round trips the tasked trucks can
-## make; that rate sustains an occupancy of `arrival_rate * sentence_length`, capped by the
-## receiving Compound's own capacity — the model's `min(Φ·τ, K)`, without `m` or `μ` because
-## one Shelter is asked to name the one Compound its own trucks would actually reach.
+## make; that rate keeps `arrival_rate * sentence_length` captives serving, capped by how many
+## the receiving Compound sentences at once (Garrison.SENTENCES_AT_ONCE) — the model's
+## `min(Φ·τ, K)` with K the captives SERVING rather than held, since a captive waiting its turn
+## pays nothing; without `m` or `μ` because one Shelter is asked to name the one Compound its
+## own trucks would actually reach.
 func projected_dominion_rate() -> float:
 	var by_shelter: Dictionary = _trucks_by_tasked_shelter()
 	# A route's own sweep pays a steady rate while its sources stand, so it projects as itself.
@@ -966,7 +968,7 @@ func _trucks_by_tasked_shelter() -> Dictionary:
 
 
 ## One Shelter's contribution: `dominion_per_unit * min(arrival_rate * sentence_length,
-## compound_capacity)`, or 0.0 when there is nowhere for these trucks to deliver, the
+## Garrison.SENTENCES_AT_ONCE)`, or 0.0 when there is nowhere for these trucks to deliver, the
 ## Shelter names no regeneration rate, or the trucks have none.
 func _projected_rate_for_shelter(a_shelter: Entity, a_trucks: Array) -> float:
 	var shelter := a_shelter.get_node_or_null("Shelter") as Shelter
@@ -993,10 +995,11 @@ func _projected_rate_for_shelter(a_shelter: Entity, a_trucks: Array) -> float:
 	var generator := compound.get_node_or_null("DominionGenerator") as OccupantDominionGenerator
 	if generator == null or sentence_length <= 0.0:
 		return 0.0
-	var sustained_occupancy: float = minf(
-		arrival_rate * sentence_length, float(compound.garrison.capacity)
+	var serving: float = minf(
+		arrival_rate * sentence_length,
+		float(mini(Garrison.SENTENCES_AT_ONCE, compound.garrison.capacity))
 	)
-	return float(generator.dominion_per_unit) * sustained_occupancy
+	return float(generator.dominion_per_unit) * serving
 
 
 ## Energy per second flowing OUT into units currently being trained — each active job's cost

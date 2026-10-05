@@ -2,7 +2,10 @@
 kind: Faction
 title: Successors of Tenjin
 scene: res://scenes/factions/technocratic.tscn
-starts_with: [tc_bioLight_builder]
+starts_with:
+  - tc_bioLight_builder
+  - tc_bioLight_builder
+  - tc_mechMedium_infrastructure
 sanctions: []
 ---
 # Introduction

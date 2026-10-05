@@ -10,11 +10,16 @@ extends GutTest
 
 ## Seeds that generate on these parameters. A seed may legitimately fail an invariant — that is
 ## a loud rejection, not a bug — so the property tests run on ones known to pass.
-const _SEEDS: Array[int] = [2003, 2004, 2005]
+const _SEEDS: Array[int] = [2004, 2005, 2007]  # 2003 replaced by 2007 on 2026-10-05
 ## Seeds known to break one invariant since cliffs replaced tiers (2026-10-02), skipped there and
 ## reported pending. TODO: fix and delete — map-generation.md §6, Cliffs.
-const _NARROWS_SEED: int = 2003
-const _WALKABLE_BARRIER_SEED: int = 2004
+##
+## -1: NO SEED IN _SEEDS REPRODUCES EITHER ONE ANY MORE. The shelter changes of 2026-10-05 (count
+## and start band) moved every seed's layout: 2003 now fails "cannot keep 2 routes" and was
+## replaced by 2007, and 2004 no longer leaves a barrier cell walkable. Neither bug is known to be
+## fixed — each wants a new reproducing seed before the pending case means anything again.
+const _NARROWS_SEED: int = -1
+const _WALKABLE_BARRIER_SEED: int = -1
 ## Erosion rounds the corridor measure gives up after; wider than MIN_CHOKE_WIDTH either way.
 const _CORRIDOR_LIMIT: int = 12
 

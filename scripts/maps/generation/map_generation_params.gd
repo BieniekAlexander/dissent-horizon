@@ -82,7 +82,14 @@ const PROPERTY_GROUPS: Array = [
 	},
 	{
 		name = "Shelters",
-		properties = ["shelters_per_alliance_min", "shelters_per_alliance_extra"],
+		properties =
+		[
+			"shelters_base",
+			"shelters_per_player_min",
+			"shelters_per_player_extra",
+			"shelter_start_band_min_cells",
+			"shelter_start_band_max_cells",
+		],
 	},
 	{
 		name = "Buildings",
@@ -225,8 +232,13 @@ const DESCRIPTIONS: Dictionary = {
 	"pond_richness_cells_min": "Smallest pond of each richness category, in cells.",
 	"pond_richness_cells_max":
 	"Largest pond of each richness category, in cells. Caps how large a rich pond grows.",
-	"shelters_per_alliance_min": "Fewest shelters per alliance.",
-	"shelters_per_alliance_extra": "Random extra shelters per alliance, on top of the minimum.",
+	"shelters_base": "Shelters on every map whatever the player count, on top of the per-player ones.",
+	"shelters_per_player_min": "Fewest shelters per player.",
+	"shelters_per_player_extra": "Random extra shelters per player, on top of the minimum.",
+	"shelter_start_band_min_cells":
+	"Nearest a start's own shelter may stand to it, in cells (centre to centre).",
+	"shelter_start_band_max_cells":
+	"Farthest a start's own shelter may stand from it, in cells (centre to centre).",
 	"building_capacity_per_player":
 	(
 		"Total garrison capacity of the neutral buildings placed per player. Too high "
@@ -412,9 +424,23 @@ var pond_richness_cells_max: PackedInt32Array = PackedInt32Array([80, 70, 60])
 #endregion
 
 #region Shelters
-## Shelter count = round(alliances x (min + extra x randf())).
-var shelters_per_alliance_min: float = 1.0
-var shelters_per_alliance_extra: float = 1.5
+## Shelter count = round(base + players x (min + extra x randf())): with the defaults,
+## round(1 + n x (1 + randf())), so a 1v1 map has 3 to 5 — always at least one per start plus one
+## to rebalance with (Alex, 2026-10-05; it was round(alliances x (1 + 1.5 randf())), which put
+## only two on a 1v1 map about one time in six).
+var shelters_base: float = 1.0
+var shelters_per_player_min: float = 1.0
+var shelters_per_player_extra: float = 1.0
+## Every start's own shelter stands this far from it, centre to centre in cells: not so near that
+## dropping the command centre beside it costs nothing, not so far that it is not "its" shelter.
+## The band's width is how sharply a player can guess where the opponent started, since shelter
+## positions are shown and spawn points are not. Narrowed from 15-35 to 25-35 (Alex,
+## 2026-10-05): placement still aims every shelter at a fair access split, which inside the band
+## is its far edge, so the band works as "near its maximum" rather than spread across it. Measured
+## over seeds 3000-3039: 35 of 40 maps generate at 25-35 against 36 at 15-35, every rejection for
+## a topology or obstruction reason, none for the band. TODO: still untuned.
+var shelter_start_band_min_cells: float = 25.0
+var shelter_start_band_max_cells: float = 35.0
 #endregion
 
 #region Buildings
