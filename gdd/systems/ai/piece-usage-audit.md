@@ -122,3 +122,15 @@ One valuation finding: the Matilda (`cl_mechMedium_antiMech`) was `CONSIDERED_NO
 0.62 of the winner's score across 10,212 war-factory decisions, consistent with the
 crush-effectiveness measurement in [squads-and-relations](squads-and-relations.md). Whether
 that is the game or the scorer is the balance question the audit leaves to its owner.
+
+## Measured again (2026-10-05, six HARD mirror matches, after the tech rung and the targetings)
+
+Eighteen pieces `USED`, up from fifteen. The tech rung bought `cl_tech2` in three of twelve
+slots (chosen 203 of 871 decisions) and the Avalanche was trained; `cl_tech1` was considered
+1,795 times and never chosen, at 0.76 of the winner — once the Avalanche is trainable the
+Guard is no longer `tech_value_margin` better than the best unit, which is the rule working as
+written and a finding about it: a margin against the single best unit never buys a sidegrade
+tech. Promotion went from refused every time to 87 casts; Scan from 97 casts at a repeat
+fraction of 0.39 (16 at 0.47 with the stamp alone, since a Scan's observer outlives the
+scout grid's expiry) to 0.00 once a reveal also skips ground the bot can see right now.
+Freeze was never unlocked in these matches, so its targeting is untested in play.

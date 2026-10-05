@@ -236,17 +236,23 @@ func observed_fraction() -> float:
 
 
 ## Where a REVEAL (a Scan) is best spent: the grid point that is NOT currently scouted —
-## never seen, or seen longer ago than SCOUT_EXPIRATION_TIMER — nearest to `a_toward`, as a
-## world position; null when every point is scouted. Nearest to where the enemy is believed
-## to be, because that is the ground a scout would be sent to and cannot survive on.
+## never seen, or seen longer ago than SCOUT_EXPIRATION_TIMER, and not in the bot's vision
+## right now — nearest to `a_toward`, as a world position; null when every point is
+## scouted. Nearest to where the enemy is believed to be, because that is the ground a scout
+## would be sent to and cannot survive on. The live-vision test is what stops a second Scan
+## landing where the first one's permanent observer still stands once its stamp has expired
+## (measured: a repeat fraction of 0.47 with the stamp alone).
 func reveal_point(a_toward: Vector2) -> Variant:
 	var threshold: float = _bot.seconds_elapsed() - SCOUT_EXPIRATION_TIMER
+	var sees: bool = _bot.has_fog()
 	var best: Variant = null
 	var best_distance: float = INF
 	for idx: Vector2i in _scout_grid:
 		if float(_scout_grid[idx]) >= threshold:
 			continue
 		var position: Vector3 = _scout_grid_positions[idx]
+		if sees and _bot.has_vision_at(position):
+			continue
 		var distance: float = VU.in_xz(position).distance_squared_to(a_toward)
 		if distance < best_distance:
 			best_distance = distance

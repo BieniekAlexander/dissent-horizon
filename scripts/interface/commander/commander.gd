@@ -1364,6 +1364,13 @@ func _fog() -> Fog:
 	return Fog.for_commander(id)
 
 
+## Whether this commander's vision is tracked at all. `has_vision_at` answers true with no fog
+## (nothing is hidden from a commander with none), which a caller asking "is this ground
+## already watched" must not read as "yes".
+func has_fog() -> bool:
+	return _fog() != null
+
+
 ## World-space XZ radius of [entity]'s VisionRange — the SAME reveal radius the fog
 ## of war uses (fog.gd reads vision_range_shape identically). 0 when the entity has
 ## no vision shape.
