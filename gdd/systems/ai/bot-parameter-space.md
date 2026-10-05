@@ -171,7 +171,7 @@ way is more aggressive / greedier / faster.
 
 ## The search space
 
-Twenty-six fields. **Ordinal** means the field has a direction ("more of this is a harder bot",
+Twenty-seven fields. **Ordinal** means the field has a direction ("more of this is a harder bot",
 or at least "more of this is more X"); **categorical** means it does not, and the search must
 treat it as a choice rather than as a dial.
 
@@ -191,6 +191,7 @@ treat it as a choice rather than as a dial.
 | `utility_unit_cap` | int | 0 – 6 | ordinal | 0 removes the capture loop and the opening scout entirely; 6 is where the producer's spend crowds out the army. A CEILING on the demand model now, so above the demand it is inert — on Colonial content that demand is 2-4 per type, which is where the useful range ends |
 | `income_structure_target` | int | 0 – 8 | ordinal (higher = greedier) | 0 is the pre-2026-09-05 opening — throughput first, income only through the fall-through. Above the sites a map offers it cannot bind (twelve on `skirmish.tscn`, contested), and `safety()` bends it down well before that: measured, a target of 4 stops claiming at ~2.5 because by then the bot has SEEN the opponent |
 | `defence_structure_target` | int | 0 – 6 | ordinal (higher = turtles) | 0 is the bot before 2026-10-04, whose ladder had no rung for a static at all; 6 is a turret per approach on `skirmish.tscn`, past which the frontage spots run out and the rung falls through. Added 2026-10-04 with its rung (between income and throughput, only once a producer stands); measured two Watch Towers beat sixteen Recruits at twice their price (`sims/towers_vs_double_recruits`), which is why it does not ship at the old-play value |
+| `tech_value_margin` | float | 1.0 – 3.0 | ordinal (higher = techs later) | the ratio by which the best unit behind a tech structure must outscore the best the bot can train, on composition value against the believed enemy. 1.0 techs the moment anything better exists; 3.0 is past any matchup the roster offers, so the bot never techs. The margin is the investment overhead (price, build time) represented without being priced. Added 2026-10-05 with the tech rung |
 | `structure_demand_weight` | float | 0.0 – 1.0 | ordinal (higher = more anti-structure) | 0 never trains anything that razes a base, so it cannot close a game against a turtle; 1.0 is the top of the scale — a building mattering as much as a soldier |
 | `demand_coverage_falloff` | float | 0.0 – 4.0 | ordinal (higher = diversifies sooner) | 0 masses the single best counter forever; at 4 one covering unit nearly zeroes a type's demand, which is maximal diversification |
 | `attack_value_ratio` | float | 0.8 – 2.5 | ordinal (lower = aggressive) | below `MIN_ATTACK_RATIO` (0.85) the constant floor makes it inert, so 0.8 is the effective bottom; at 2.5 only the stalemate clock ever launches a wave |

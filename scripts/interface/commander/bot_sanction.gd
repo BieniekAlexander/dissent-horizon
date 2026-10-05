@@ -41,6 +41,14 @@ var defend_threat_radius: float = 10.0
 ## front instead of materialising inside the enemy.
 const REINFORCE_PUSH: float = 0.5
 
+## Below this fraction of its hit points a unit counts as ENDANGERED — worth a charge to save.
+## Half: above it the unit is in a fight, not losing one.
+const ENDANGERED_HP_FRACTION: float = 0.5
+
+## The scout manager, for the REVEAL targeting: what it has not seen is where a Scan goes,
+## and what a Scan shows is stamped back. Assigned by BotBrain; null aims no reveal.
+var scout: BotScout = null
+
 ## Whether this bot ever spends a sanction OFFENSIVELY. False for PASSIVE, which still
 ## defends its own base with one — "never attacks the player" is not "never uses an ability".
 ## See BotDifficulty.may_attack.
@@ -84,10 +92,10 @@ func tick() -> int:
 	# Nothing with a ready caster → no decision to make this tick.
 	if not owned.any(func(o: Sanction): return _ready_caster(o) != null):
 		return work
-	var zone: Variant = _engagement_zone()
-	work += ENGAGEMENT_WORK_UNITS
-	if zone == null:
-		return work
+	# The engagement is found once, lazily: a sanction aimed at the map or at the bot's own
+	# dearest unit has a use with no fight on, and must not wait for one.
+	var zone: Variant = null
+	var zone_sought: bool = false
 	for sanction: Sanction in owned:
 		# The charge belongs to a BUILDING now, so the bot picks one that can fire rather than
 		# asking the sanction whether it is ready. No caster owned (or all recharging) means
@@ -95,24 +103,35 @@ func tick() -> int:
 		var caster: Commandable = _ready_caster(sanction)
 		if caster == null:
 			continue
+		if sanction.targeting_needs_engagement() and not zone_sought:
+			zone = _engagement_zone()
+			zone_sought = true
+			work += ENGAGEMENT_WORK_UNITS
+		if sanction.targeting_needs_engagement() and zone == null:
+			continue
 		# An un-aimed sanction has nowhere to be pointed, so the whole aim step is skipped.
 		# It still waits for an engagement to be worth firing into — reaching here at all
 		# means the bot has decided there is one.
 		if not sanction.needs_target:
 			_act.use_sanction(caster, sanction, Vector3.ZERO)
 			continue
-		var target: Variant = _aim(sanction, zone)
+		var target: Variant = _aim(sanction, zone if zone != null else {})
 		# Counted whether or not it aims: a sanction that is owned, charged and never finds a
 		# target is the audit's "the bot cannot work out where to put it".
 		_act.usage.record_action(
 			"sanction_aim", sanction.ability_id, "aimed" if target != null else "no_target"
 		)
-		if target != null:
-			# UseSanction's precondition refuses a fogged target (Sanction.can_target). The aim
-			# points are derived from currently-visible enemies, so this normally passes; when it
-			# does not — a cluster centroid that falls in a gap between two units' vision, say —
-			# the order is not issued and the charge is simply held for the next tick.
-			_act.use_sanction(caster, sanction, target as Vector3)
+		if target == null:
+			continue
+		# UseSanction's precondition refuses a fogged target (Sanction.can_target). The aim
+		# points are derived from currently-visible enemies, so this normally passes; when it
+		# does not — a cluster centroid that falls in a gap between two units' vision, say —
+		# the order is not issued and the charge is simply held for the next tick.
+		if target is Commandable:
+			_act.use_sanction(caster, sanction, (target as Commandable).global_position, target)
+		elif _act.use_sanction(caster, sanction, target as Vector3):
+			if sanction.targeting == Sanction.Targeting.REVEAL and scout != null:
+				scout.mark_revealed(target as Vector3, sanction.effect_radius)
 	return work
 
 
@@ -184,16 +203,9 @@ func _engagement_zone() -> Variant:
 	return null
 
 
-## The world position to drop `sanction` for the given engagement, or null when no
-## worthwhile target exists for it.
-##
-## TODO: a sanction whose job is to SEE (Scan: `needs_vision` false) is aimed here like an
-## area strike — at the densest VISIBLE enemy cluster, which is ground the bot already sees.
-## Measured 2026-10-04 (piece-usage audit): every Scan of a match lands on the front, both
-## bots' on the same spot. It wants a third Targeting, REVEAL, aimed at the scout grid's
-## least-recently-observed point weighted toward where the enemy is believed to be
-## (BotScout's `_scout_grid`), and no engagement gate at all — scouting is what you do
-## BEFORE there is an engagement. See gdd/systems/ai/piece-usage-audit.md §Findings.
+## Where to put `sanction`: a world position for a ground cast, the unit for a single-unit
+## one, or null when nothing worth the charge exists. `a_zone` is the engagement, or {} for
+## a targeting that needs none (Sanction.targeting_needs_engagement).
 func _aim(a_sanction: Sanction, a_zone: Dictionary) -> Variant:
 	match a_sanction.targeting:
 		Sanction.Targeting.ENEMY_CLUSTER:
@@ -209,7 +221,67 @@ func _aim(a_sanction: Sanction, a_zone: Dictionary) -> Variant:
 			if cluster["count"] <= 0:
 				return null
 			return (a_zone["anchor"] as Vector3).lerp(cluster["center"], REINFORCE_PUSH)
+		Sanction.Targeting.REVEAL:
+			return _reveal_target()
+		Sanction.Targeting.ENDANGERED_FRIEND:
+			return _endangered_friend(a_sanction, a_zone)
+		Sanction.Targeting.VALUABLE_FRIEND:
+			return _valuable_friend(a_sanction)
 	return null
+
+
+## Unscouted ground nearest to where the enemy is believed to be — their nearest known
+## structure, else the middle of the map, which is where an unfound enemy is most likely
+## reached from. Null with no scout to ask, or nothing left to reveal.
+func _reveal_target() -> Variant:
+	if scout == null:
+		return null
+	var believed: Variant = _bot.nearest_believed_enemy_structure_position()
+	var toward: Vector2
+	if believed != null:
+		toward = VU.in_xz(believed)
+	elif _bot.map != null:
+		toward = _bot.map.world_bounds().get_center()
+	else:
+		toward = VU.in_xz(_bot.base_centroid())
+	return scout.reveal_point(toward)
+
+
+## The bot's own unit in the engagement most worth saving: the dearest one below
+## ENDANGERED_HP_FRACTION that the sanction's event will accept. Null when none is.
+func _endangered_friend(a_sanction: Sanction, a_zone: Dictionary) -> Variant:
+	var anchor: Vector3 = a_zone["anchor"]
+	var best: Commandable = null
+	var best_value: float = 0.0
+	for unit: Commandable in _bot.get_units():
+		if unit.defense == null or unit.defense.hp_max <= 0.0:
+			continue
+		var fraction: float = unit.defense.hp / unit.defense.hp_max
+		if fraction >= ENDANGERED_HP_FRACTION:
+			continue
+		if unit.global_position.distance_to(anchor) > defend_threat_radius:
+			continue
+		if not a_sanction.accepts_target(unit, _bot):
+			continue
+		var value: float = float(_bot.unit_cost(unit.id)) * (1.0 - fraction)
+		if value > best_value:
+			best_value = value
+			best = unit
+	return best
+
+
+## The bot's own dearest unit the sanction's event will accept, or null.
+func _valuable_friend(a_sanction: Sanction) -> Variant:
+	var best: Commandable = null
+	var best_cost: int = -1
+	for unit: Commandable in _bot.get_units():
+		if not a_sanction.accepts_target(unit, _bot):
+			continue
+		var cost: int = _bot.unit_cost(unit.id)
+		if cost > best_cost:
+			best_cost = cost
+			best = unit
+	return best
 
 
 ## Mobile enemy units only (drop structures) from a list of commandables.

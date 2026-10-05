@@ -81,13 +81,11 @@ the coverage test's MISSING entries seen from the piece side — the test says w
 this says which content those commands strand. Everything else the Colonials field is
 reachable from the opening and orderable by the bot.
 
-**Scan is aimed as if it were a strike.** `BotSanction._aim` has two targeting modes, both
+**Scan was aimed as if it were a strike.** `BotSanction._aim` had two targeting modes, both
 for engagements: the densest VISIBLE enemy cluster, or a reinforcement point on our side of
-it. A Scan therefore lands on ground the bot already sees, on the front, and both bots' land
-on the same front — exactly the repeated placement reported. The fix is a third `Targeting`,
-REVEAL, aimed at the scout grid's least-recently-observed point weighted toward the believed
-enemy, with no engagement gate; it is marked `TODO` at `_aim`. PLANNED: see
-[deferred](../../deferred.md) 2.51.
+it. A Scan therefore landed on ground the bot already saw, on the front, and both bots' on
+the same front — exactly the repeated placement reported. Fixed 2026-10-05: the REVEAL
+targeting, [bot-architecture](bot-architecture.md) §Sanction targeting beyond the strike.
 
 ## Measured (2026-10-04, six HARD mirror matches on `skirmish.tscn`, cap 900 s, twelve slots)
 
@@ -101,22 +99,24 @@ Fifteen pieces `USED`, and the rest in four groups, each with a different owner:
   war-factory-idle army seen in play, from a picker bug rather than a valuation: FIXED, the
   picker now considers only units the bot has the tech for (`tests/test_BotProductionTechGate.gd`).
   The verdict that found it, `CHOSEN_NOT_ORDERED`, exists for exactly this shape.
-- **There is no tech rung.** Six structures were `NEVER_CONSIDERED`: both tech buildings, the
-  three support buildings and the Bombard. The economy ladder buys production, income,
+- **There was no tech rung.** Six structures were `NEVER_CONSIDERED`: both tech buildings,
+  the three support buildings and the Bombard. The economy ladder bought production, income,
   defence and the dominion and infrastructure providers, and nothing else — so every piece
-  behind a tech building is unreachable in play whatever the bot thinks of it. Marked `TODO`
-  in `BotEconomy._decide`; the rung wants the demand the picker already computes (how much
-  the best unit the bot cannot train outscores the best it can). PLANNED, [deferred](../../deferred.md) 2.51.
-- **Two sanctions are aimed at ground and want a unit.** Freeze and Promotion were charged,
-  aimed 596 and 790 times, and refused every time with `NO_VALID_TARGET`: `BotSanction` aims
-  every sanction at a point, and these two name a unit. The bot's single-unit casts are a
-  known gap; the audit puts a number on it. Beacon was `NEVER_AIMED` (524 charged ticks, no
-  target): it needs an enemy cluster of two within six units in vision, which the bot's
-  engagement zone rarely offers, and a beacon's purpose — ground for a Bombard the bot never
-  builds — gives it nothing to aim for anyway.
+  behind a tech building was unreachable in play whatever the bot thought of it. FIXED
+  2026-10-05: [bot-architecture](bot-architecture.md) §The tech rung. The support buildings
+  and the Bombard stay `NEVER_CONSIDERED`: a structure a tech building unlocks scores nothing
+  to that rung, which is the Relation model's work.
+- **Two sanctions were aimed at ground and wanted a unit.** Freeze and Promotion were
+  charged, aimed 596 and 790 times, and refused every time with `NO_VALID_TARGET`:
+  `BotSanction` aimed every sanction at a point, and these two name a unit. FIXED 2026-10-05
+  with the ENDANGERED_FRIEND and VALUABLE_FRIEND targetings. Beacon was `NEVER_AIMED` (524
+  charged ticks, no target): it needs an enemy cluster of two within six units in vision,
+  which the bot's engagement zone rarely offers, and a beacon's purpose — ground for a
+  Bombard the bot never builds — gives it nothing to aim for anyway. Open until the siege
+  loop is.
 - **Scan.** 97 casts over twelve slots with a repeat fraction of 0.39, and 1,853 charged
-  ticks with no target: aimed only inside an engagement, at the visible front. See the
-  finding above.
+  ticks with no target: aimed only inside an engagement, at the visible front. FIXED
+  2026-10-05 with the REVEAL targeting.
 
 One valuation finding: the Matilda (`cl_mechMedium_antiMech`) was `CONSIDERED_NOT_CHOSEN` at
 0.62 of the winner's score across 10,212 war-factory decisions, consistent with the

@@ -213,11 +213,14 @@ func garrison_into(a_unit: Commandable, a_host: Commandable) -> void:
 ## command will silently drop. Returns whether the order was issued.
 ##
 ## `a_world_pos` is ignored by a sanction that needs no target; no payload is chosen, so a
-## sanction with cargo takes its default.
-func use_sanction(a_caster: Commandable, a_sanction: Sanction, a_world_pos: Vector3) -> bool:
+## sanction with cargo takes its default. `a_target` is the unit a single-unit cast names
+## (Sanction.targets_one_unit), null for every other kind.
+func use_sanction(
+	a_caster: Commandable, a_sanction: Sanction, a_world_pos: Vector3, a_target: Entity = null
+) -> bool:
 	if _map == null or a_caster == null or a_sanction == null:
 		return false
-	var msg := CommandMessage.new(_map, null, null, a_world_pos)
+	var msg := CommandMessage.new(_map, a_target, null, a_world_pos)
 	msg.sanction = a_sanction
 	var cause: MoveCommand.PreconditionFailureCause = UseSanction.meets_precondition(a_caster, msg)
 	if cause != MoveCommand.PreconditionFailureCause.NONE:

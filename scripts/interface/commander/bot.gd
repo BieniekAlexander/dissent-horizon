@@ -1579,6 +1579,14 @@ func has_tech_for(a_type: StringName) -> bool:
 	return spec != null and spec.unmet_need == TechnologySpec.UnmetNeed.NONE
 
 
+## Whether training `a_unit_type` needs a `a_structure_type` standing — read off the tech
+## tree (TechnologySpec.required_structures), so a tech structure is whatever some unit
+## requires rather than a list anyone maintains.
+func unit_requires_structure(a_unit_type: StringName, a_structure_type: StringName) -> bool:
+	var spec: TechnologySpec = technology_mapping.get(a_unit_type)
+	return spec != null and spec.required_structures.has(a_structure_type)
+
+
 ## All Entity.Types whose prerequisite structures are satisfied — the full
 ## set of things we are currently able to build or train, ignoring cost.
 func unlocked_types() -> Array:

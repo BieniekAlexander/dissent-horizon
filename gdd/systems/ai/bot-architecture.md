@@ -530,6 +530,49 @@ approach rather than merely in front is the position-importance work
 [squads-and-relations](squads-and-relations.md) §Placement beyond open ground plans. Like the
 income rung, a rung that cannot act falls through. Tests: `tests/test_BotDefenceTarget.gd`.
 
+## The tech rung
+
+**A tech structure is whatever some unit requires** — read off the tech tree
+(`TechnologySpec.required_structures`, `Bot.unit_requires_structure`), never a list anyone
+maintains — and the bot buys one when the units behind it are worth it. Until 2026-10-05 the
+ladder bought production, income, defence and the dominion and infrastructure providers, and
+nothing else, so every piece behind a tech building was unreachable in play however the bot
+valued it (the piece-usage audit found both Colonial tech buildings, the support buildings and
+the Bombard never considered over twelve HARD slots).
+
+The rule, in `BotEconomy._tech_structure_to_build`: among unowned, affordable-above-reserve
+tech structures, the one whose best unit — by the composition value the picker trains by,
+against the enemy the bot believes in, and only among units a producer the bot OWNS can
+train — is worth `BotDifficulty.tech_value_margin` (default 1.3, searchable) times the best
+unit it can train today; the biggest gain wins. It sits in the surplus branch beside
+production capacity, because it is the same kind of spend. Three things are deliberate:
+
+- **The ratio is on strength, not strength per energy.** A higher-tech unit is generally
+  stronger and seldom cheaper per point; lower-tech units stay worth training for their price
+  and their scouting, and the picker still trains them while they score. The margin is what
+  represents the overhead of the investment without pricing it.
+- **A producer the bot owns.** An Operations Center is not bought for an aircraft the bot has
+  no airfield for.
+- **What it does not see.** The structures a tech building unlocks (the Bombard, the support
+  buildings) score nothing, and a unit worth having only beside another (the Reverence beside a
+  Bombard) scores as if alone. Both are the Relation model's to express
+  ([squads-and-relations](squads-and-relations.md)); until then a specialised unit techs on
+  its own gun or not at all. Tests: `tests/test_BotTechRung.gd`.
+
+## Sanction targeting beyond the strike
+
+`Sanction.Targeting` carries five aims, and the bot's part is only to resolve each
+(`BotSanction._aim`): the two strike aims, ENEMY_CLUSTER and REINFORCE, inside an engagement;
+REVEAL at unscouted ground nearest the believed enemy, with no engagement needed (a Scan
+aimed as a strike landed on the visible front every time, both bots' on the same spot), and
+what a Scan shows is stamped back onto the scout grid, since its observer is uncommandable
+and never walks the sight pass; ENDANGERED_FRIEND on the bot's dearest own unit below half
+health in the engagement, and VALUABLE_FRIEND on its dearest own unit at any time — both
+single-unit casts, the unit chosen only among those the event's own admission rule accepts
+(Freeze and Promotion were aimed at ground and refused every time). The aim is authored on
+the cell, in the faction scene, beside the other aiming knobs. Tests:
+`tests/test_BotSanctionFriends.gd`, `tests/test_BotSanction.gd`.
+
 ## Where a building goes
 
 **The rule: placement is chosen in the BOT'S frame, never in the world's.** Two hard

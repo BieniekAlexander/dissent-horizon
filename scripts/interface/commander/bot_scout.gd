@@ -235,6 +235,38 @@ func observed_fraction() -> float:
 	return float(_ever_seen.size()) / float(_scout_grid.size())
 
 
+## Where a REVEAL (a Scan) is best spent: the grid point that is NOT currently scouted —
+## never seen, or seen longer ago than SCOUT_EXPIRATION_TIMER — nearest to `a_toward`, as a
+## world position; null when every point is scouted. Nearest to where the enemy is believed
+## to be, because that is the ground a scout would be sent to and cannot survive on.
+func reveal_point(a_toward: Vector2) -> Variant:
+	var threshold: float = _bot.seconds_elapsed() - SCOUT_EXPIRATION_TIMER
+	var best: Variant = null
+	var best_distance: float = INF
+	for idx: Vector2i in _scout_grid:
+		if float(_scout_grid[idx]) >= threshold:
+			continue
+		var position: Vector3 = _scout_grid_positions[idx]
+		var distance: float = VU.in_xz(position).distance_squared_to(a_toward)
+		if distance < best_distance:
+			best_distance = distance
+			best = position
+	return best
+
+
+## Stamp every grid point within `a_radius` of `a_centre` as seen now. A Scan's observer is
+## uncommandable and so never walks the sight pass above; without this the next Scan would be
+## aimed at the ground the last one is already watching.
+func mark_revealed(a_centre: Vector3, a_radius: float) -> void:
+	var now: float = _bot.seconds_elapsed()
+	var centre: Vector2 = VU.in_xz(a_centre)
+	var radius_sq: float = a_radius * a_radius
+	for idx: Vector2i in _scout_grid_positions:
+		if VU.in_xz(_scout_grid_positions[idx]).distance_squared_to(centre) <= radius_sq:
+			_scout_grid[idx] = now
+			_ever_seen[idx] = true
+
+
 ## True once every scout-grid point has been in line of sight at least once.
 func all_points_seen() -> bool:
 	return not _scout_grid.is_empty() and _ever_seen.size() >= _scout_grid.size()

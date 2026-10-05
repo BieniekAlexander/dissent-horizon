@@ -122,6 +122,17 @@ var income_structure_target: int = 1
 ## (sims/towers_vs_double_recruits). Counts the ones going up, like production_structure_cap.
 var defence_structure_target: int = 2
 
+## HOW MUCH BETTER A LOCKED UNIT MUST BE before the bot buys the structure that unlocks it:
+## the best composition value (Bot.unit_composition_value, against the enemy it believes in)
+## among units behind one tech structure, over the best it can train today, must reach this
+## ratio. 1.0 techs the moment anything better exists; 3.0 never techs. The ratio is on
+## STRENGTH against the current enemy, not strength per energy, because a higher-tech unit is
+## generally stronger and seldom cheaper per point — and the margin is what represents the
+## overhead of the investment (the building's price and its build time) without pricing it.
+## The structures a tech building unlocks are not scored: a Bombard behind an Operations
+## Center is worth nothing to this ratio. See gdd/systems/ai/bot-architecture.md §The tech rung.
+var tech_value_margin: float = 1.3
+
 ## How many non-combat utility units (the Colonial Stock Truck and its like) the bot keeps
 ## alive. They build, capture and scout rather than fight, so a higher cap buys map control
 ## and the dominion loop with energy that would otherwise be army.
@@ -233,6 +244,7 @@ const SEARCH_RANGES: Dictionary = {
 	"utility_unit_cap": [0, 6],
 	"income_structure_target": [0, 8],
 	"defence_structure_target": [0, 6],
+	"tech_value_margin": [1.0, 3.0],
 	"structure_demand_weight": [0.0, 1.0],
 	"demand_coverage_falloff": [0.0, 4.0],
 	"attack_value_ratio": [0.8, 2.5],

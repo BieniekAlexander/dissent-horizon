@@ -292,6 +292,7 @@ func _apply_config() -> void:
 	_economy.production_structure_cap = config.production_structure_cap
 	_economy.income_structure_target = config.income_structure_target
 	_economy.defence_structure_target = config.defence_structure_target
+	_economy.tech_value_margin = config.tech_value_margin
 	# The economy is the THIRD consumer of the threat radius (BotMilitary and BotSanction are
 	# the others). "Is something of mine under attack" has to mean one thing across the bot,
 	# and it is what tells the economy to stop expanding — see BotEconomy.safety.
@@ -366,6 +367,8 @@ func _ensure_managers() -> bool:
 	# and the command resolves the host itself.
 	_sanction = BotSanction.new(bot, _actuator)
 	_scout = BotScout.new(bot, _actuator)
+	# A REVEAL sanction is aimed by what the scout has not seen, and stamps what it shows.
+	_sanction.scout = _scout
 	_opportunist = BotOpportunist.new(bot, _actuator)
 	# One registry, shared: a claim means nothing unless every manager reads the same one.
 	for manager: Object in [_economy, _military, _targeting, _kamikaze, _scout, _opportunist]:

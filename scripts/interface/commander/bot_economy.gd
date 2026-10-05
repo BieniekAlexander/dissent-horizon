@@ -71,6 +71,10 @@ var income_structure_target: int = 1
 ## ahead of the threat once there is a producer to protect, and never instead of one.
 var defence_structure_target: int = 2
 
+## HOW MUCH BETTER A LOCKED UNIT MUST BE for the bot to buy the structure that unlocks it,
+## as a ratio of composition values. A PARAMETER (BotDifficulty.tech_value_margin).
+var tech_value_margin: float = 1.3
+
 ## What counts as an enemy PRESSURING the base, in world units — the same field
 ## BotMilitary and BotSanction read (BotDifficulty.defend_threat_radius), pushed here as
 ## a third consumer because "is something of mine being attacked" has to mean one thing
@@ -370,29 +374,12 @@ func _decide() -> void:
 			if espot != null and _issue_build(builder, etype, espot):
 				return
 
-	# STATIC DEFENCE AHEAD OF THE THREAT, once there is a producer to stand in front of. The
-	# ladder had no rung for a turret at all until 2026-10-04 — the defence types existed only
-	# as a placement bearing — so a bot never built one however cheaply it traded. Below the
-	# target, the defence whose gun best answers the enemy UNITS the bot has seen goes up on
-	# the frontage bearing; like the rungs above it, a rung that could not act falls through.
-	if _owned_defence_structure_count() < defence_structure_target and _owns_a_producer():
-		var ftype: Variant = _defence_structure_to_build()
-		if ftype != null:
-			var fspot: Variant = _find_build_spot(ftype)
-			if fspot is StringName:
-				return  # still searching; the rest of the ladder waits for the answer
-			if fspot is Vector3 and _issue_build(builder, ftype, fspot):
-				return
+	# STATIC DEFENCE AHEAD OF THE THREAT, then TECH when a surplus allows; each rung ends the
+	# think when it issued a build or is still searching for a spot, and falls through
+	# otherwise, like the rungs above.
+	if _defence_rung(builder) or (surplus and _tech_rung(builder)):
+		return
 
-	# TODO: THERE IS NO TECH RUNG. Nothing below buys a structure that is neither production,
-	# income, defence nor the dominion/infrastructure provider — the Colonial tech and support
-	# buildings included — so every unit, upgrade and static behind one is unreachable in
-	# play however the bot values it. Measured 2026-10-04 (piece-usage audit): over twelve
-	# HARD slots not one tech or support structure was considered. The rung wants the demand
-	# the picker already computes: when the best-valued unit the bot cannot train outscores
-	# the best it can by enough, the structure that unlocks it is worth its price. See
-	# gdd/systems/ai/piece-usage-audit.md §Findings; gdd/deferred.md 2.51.
-	#
 	# A surplus first extends a dominion route that pays per SITE (more Opticons), while a site
 	# is left that still pays enough — see _extend_dominion. Then production capacity.
 	if surplus and _extend_dominion(builder):
@@ -427,6 +414,38 @@ func _decide() -> void:
 			_issue_build(builder, mtype, spot)
 
 
+## The static-defence rung, once there is a producer to stand in front of. The ladder had no
+## rung for a turret at all until 2026-10-04 — the defence types existed only as a placement
+## bearing — so a bot never built one however cheaply it traded. Below the target, the
+## defence whose gun best answers the enemy UNITS the bot has seen goes up on the frontage
+## bearing. True when the think should end here: a build issued, or a spot still being sought.
+func _defence_rung(a_builder: Commandable) -> bool:
+	if _owned_defence_structure_count() >= defence_structure_target or not _owns_a_producer():
+		return false
+	var ftype: Variant = _defence_structure_to_build()
+	if ftype == null:
+		return false
+	var fspot: Variant = _find_build_spot(ftype)
+	if fspot is StringName:
+		return true  # still searching; the rest of the ladder waits for the answer
+	return fspot is Vector3 and _issue_build(a_builder, ftype, fspot)
+
+
+## The tech rung: a structure whose units would be worth enough more than the ones the bot
+## can already train — see _tech_structure_to_build. Beside production capacity in the
+## surplus branch, because it is the same kind of spend: throughput of a better unit rather
+## than more of the same. Measured 2026-10-04 before this rung existed: over twelve HARD slots
+## not one tech or support structure was considered. True as _defence_rung is.
+func _tech_rung(a_builder: Commandable) -> bool:
+	var ttype: Variant = _tech_structure_to_build()
+	if ttype == null:
+		return false
+	var tspot: Variant = _find_build_spot(ttype)
+	if tspot is StringName:
+		return true
+	return tspot is Vector3 and _issue_build(a_builder, ttype, tspot)
+
+
 ## Which production structure to build now: an affordable buildable production type,
 ## PREFERRING one we don't own yet — so every production building gets built at least once
 ## to unlock its units — and within that, THE ONE WHOSE UNITS THE DEMAND WANTS MOST
@@ -459,6 +478,91 @@ func _production_structure_to_build() -> Variant:
 	)
 	_act.usage.record_choice("production_structure", value, pool[0])
 	return pool[0]
+
+
+## Which TECH structure to build now, or null. A tech structure is one some unit REQUIRES
+## (its TechnologySpec names it) that the bot does not own and is not already building; a
+## candidate is affordable above the reserve, and the unit behind it that the bot values most
+## — against the enemy it believes in, by the same composition value the picker trains by —
+## must be worth `tech_value_margin` times the best unit it can train today, at a producer it
+## OWNS. The last clause is what keeps an Operations Center from being bought for an aircraft
+## the bot has no airfield for. The best such candidate wins; cost breaks ties.
+##
+## What this does NOT see: the structures a tech building unlocks (a Bombard, the support
+## buildings), and synergy between pieces (a unit worth having only beside another). Both are
+## the Relation model's to express (gdd/systems/ai/squads-and-relations.md), not a ratio's.
+func _tech_structure_to_build() -> Variant:
+	var demand: Dictionary = _bot.enemy_demand_map()
+	if demand.is_empty():
+		return null
+	var owned_producible: Array = _owned_producible_types()
+	var trainable_best: float = 0.0
+	for t: StringName in owned_producible:
+		if _bot.has_tech_for(t) and _bot.unit_can_attack(t):
+			trainable_best = maxf(trainable_best, _bot.unit_composition_value(t, demand))
+	var under_way: Array[StringName] = _types_under_way()
+	var best_type: Variant = null
+	var best_gain: float = 0.0
+	for ttype: StringName in _bot.buildable_structure_types():
+		if not _bot.get_structures_of_type(ttype).is_empty() or under_way.has(ttype):
+			continue
+		if not can_afford_above_reserve(ttype):
+			continue
+		var unlocked_best: float = 0.0
+		for t: StringName in owned_producible:
+			if not _bot.unit_can_attack(t) or not _bot.unit_requires_structure(t, ttype):
+				continue
+			unlocked_best = maxf(unlocked_best, _bot.unit_composition_value(t, demand))
+		if unlocked_best < tech_value_margin * maxf(trainable_best, 0.001):
+			continue
+		var gain: float = unlocked_best - trainable_best
+		if (
+			gain > best_gain
+			or (
+				gain == best_gain
+				and best_type != null
+				and _energy_cost(ttype) < _energy_cost(best_type)
+			)
+		):
+			best_gain = gain
+			best_type = ttype
+	_act.usage.record_choice(
+		"tech_structure", _tech_candidates_scored(), best_type if best_type != null else &""
+	)
+	return best_type
+
+
+## Every type some OWNED producer can train, locked or not — the units a tech structure could
+## unlock for THIS bot, as opposed to for the faction.
+func _owned_producible_types() -> Array:
+	var out: Array = []
+	for s: Commandable in _bot.get_production_structures():
+		for t: StringName in s.production.producible_types:
+			if not out.has(t):
+				out.append(t)
+	return out
+
+
+## The usage ledger's view of the tech decision: each unowned tech structure the bot could
+## buy, scored by the best unit it would unlock (0 when it unlocks nothing the bot owns a
+## producer for).
+func _tech_candidates_scored() -> Dictionary:
+	var demand: Dictionary = _bot.enemy_demand_map()
+	var owned_producible: Array = _owned_producible_types()
+	var scored: Dictionary = {}
+	for ttype: StringName in _bot.buildable_structure_types():
+		if not _bot.get_structures_of_type(ttype).is_empty():
+			continue
+		var unlocks_any: bool = false
+		var best: float = 0.0
+		for t: StringName in owned_producible:
+			if _bot.unit_requires_structure(t, ttype):
+				unlocks_any = true
+				if _bot.unit_can_attack(t):
+					best = maxf(best, _bot.unit_composition_value(t, demand))
+		if unlocks_any:
+			scored[ttype] = best
+	return scored
 
 
 ## Which static defence to build now: the affordable buildable defence type whose weapons

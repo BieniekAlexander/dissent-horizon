@@ -31,10 +31,28 @@ enum Targeting {
 	## Aim where freshly-spawned allies should land: at the defended structure when
 	## defending, on our side of the front when attacking (e.g. Ambush's irregulars).
 	REINFORCE,
+	## Aim at ground the bot has NOT scouted, nearest to where it believes the enemy is — a
+	## sanction whose job is to see (the Colonial Scan). Needs no engagement: scouting is what
+	## is done before there is one. `effect_radius` is how much ground one cast reveals.
+	REVEAL,
+	## Cast on the bot's own unit most worth saving: the dearest one in the engagement that
+	## is badly hurt (the Colonial Freeze). A single-unit cast, resolved by the event's own
+	## admission rule (EventTargetUnit.accepts).
+	ENDANGERED_FRIEND,
+	## Cast on the bot's own dearest unit the event will accept, engagement or none (the
+	## Colonial Promotion, which wants an unbloodied unit worth a career).
+	VALUABLE_FRIEND,
 }
 
 ## Display name, shown on the sanction bar button.
 @export var sanction_name: String = ""
+
+
+## Whether this sanction is aimed only inside an engagement — a fight the bot is in. False for
+## the targetings that have a use at any time: revealing the map, promoting a unit.
+func targeting_needs_engagement() -> bool:
+	return targeting != Targeting.REVEAL and targeting != Targeting.VALUABLE_FRIEND
+
 
 ## What this sanction does, in the player's terms — shown as the sanction bar button's
 ## hover tooltip. Lives here rather than on SanctionUnlock because it describes the
