@@ -85,15 +85,18 @@ rather than a bare object — it still belongs in this suite.
 
 ```bash
 # one file
-godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Movement.gd -gexit
+godot --headless --fixed-fps 30 -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Movement.gd -gexit
 
-# the whole directory
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+# the whole directory, split across four processes (~26 s)
+python3 tools/gut_shards/gut_shards.py
+
+# the whole directory in one process (~90 s)
+godot --headless --fixed-fps 30 -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
 ```
 
 `-gexit` is required — without it the run finishes and then waits forever for a window that
-`--headless` never created. The whole-directory run is currently unreliable and can die before
-printing totals; looping over the files individually is the dependable way to get counts.
+`--headless` never created. `--fixed-fps 30` runs the ticks as fast as they compute rather than at
+30 a second; seeded results are unchanged.
 
 ### Simulation tests — is the game balanced and behaving as designed?
 

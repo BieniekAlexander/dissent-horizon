@@ -396,13 +396,12 @@ func test_removing_any_component_from_any_roster_scene_leaves_no_dangling_refere
 			var doc: RefCounted = TscnDoc.from_text(original)
 			doc.remove_node(node_path)
 			var text: String = doc.to_text()
+			var reparsed: RefCounted = TscnDoc.from_text(text)
 			assert_eq(
-				TscnDoc.from_text(text).to_text(),
-				text,
-				"%s minus %s no longer round-trips" % [path, node_path]
+				reparsed.to_text(), text, "%s minus %s no longer round-trips" % [path, node_path]
 			)
 			assert_eq(
-				_undefined_refs(TscnDoc.from_text(text)),
+				_undefined_refs(reparsed),
 				[],
 				"%s minus %s references a resource it no longer defines" % [path, node_path]
 			)

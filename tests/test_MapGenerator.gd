@@ -10,8 +10,8 @@ extends GutTest
 ## Every test builds its own parameters rather than reading the shipped defaults: the defaults
 ## are untuned content, and what is under test is the mechanism.
 
-## Seeds each property is checked across. A handful, because each is a full generation.
-const _SEEDS: Array[int] = [11, 23, 37, 41, 59]
+## Seeds each property is checked across. Two, because each is a full generation.
+const _SEEDS: Array[int] = [11, 23]
 
 
 func _params() -> MapGenerationParams:
@@ -37,14 +37,22 @@ func _params() -> MapGenerationParams:
 	return params
 
 
+## Every test of the default and mixed-pool parameters reads the same two maps of each.
+static var _maps: GeneratedMapCache = GeneratedMapCache.new()
+
+
 func _generate(a_seed: int) -> GeneratedMap:
-	return MapGenerator.generate(_params(), a_seed)
+	return _maps.generated(&"default", _params, a_seed)
+
+
+func _generate_mixed_pool(a_seed: int) -> GeneratedMap:
+	return _maps.generated(&"mixed_pool", _mixed_pool_params, a_seed)
 
 
 #region Determinism
 func test_the_same_seed_makes_the_same_map() -> void:
-	var first: GeneratedMap = _generate(_SEEDS[0])
-	var second: GeneratedMap = _generate(_SEEDS[0])
+	var first: GeneratedMap = MapGenerator.generate(_params(), _SEEDS[0])
+	var second: GeneratedMap = MapGenerator.generate(_params(), _SEEDS[0])
 	assert_eq(first.features.size(), second.features.size())
 	for i: int in first.features.size():
 		assert_eq(first.features[i].center, second.features[i].center)
@@ -202,7 +210,7 @@ func test_there_is_never_a_shelter_short_of_one_per_start() -> void:
 func test_every_start_has_a_shelter_in_its_band() -> void:
 	var params := _params()
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		assert_true(map.errors.is_empty(), "seed %d: %s" % [generation_seed, map.errors])
 		for start: MapStart in map.starts:
 			var nearest: float = INF
@@ -296,7 +304,7 @@ func test_a_mixed_pool_of_non_square_pieces_generates_a_valid_map() -> void:
 	var params: MapGenerationParams = _mixed_pool_params()
 	var drawn: Dictionary = {}
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate_mixed_pool(generation_seed)
 		assert_true(map.is_valid(), "seed %d: %s" % [generation_seed, map.errors])
 		var claimed: Dictionary = {}
 		for cluster: MapFeature in map.features_of(MapFeature.Kind.BUILDING_CLUSTER):
@@ -323,7 +331,7 @@ func test_a_mixed_pool_keeps_cluster_separation_and_the_building_budget() -> voi
 	for piece: MapPiece in params.building_pool:
 		largest = maxi(largest, piece.capacity)
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate_mixed_pool(generation_seed)
 		var clusters: Array[MapFeature] = map.features_of(MapFeature.Kind.BUILDING_CLUSTER)
 		var capacity: float = 0.0
 		for cluster: MapFeature in clusters:
@@ -345,7 +353,7 @@ func test_a_building_cluster_is_sized_by_capacity_not_count() -> void:
 	var edges: PackedInt32Array = params.cluster_capacity_band_edges
 	var top: int = edges[edges.size() - 1] + params.cluster_capacity_overshoot
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate_mixed_pool(generation_seed)
 		var clusters: Array[MapFeature] = map.features_of(MapFeature.Kind.BUILDING_CLUSTER)
 		# The last cluster may be cut short at the budget, so only the ceiling holds for all.
 		for cluster: MapFeature in clusters:

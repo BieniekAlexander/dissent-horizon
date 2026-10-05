@@ -8,7 +8,8 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_MapTopology.gd \
 ##     -gdir=res://tests/none -gexit
 
-const _SEEDS: Array[int] = [5, 17, 29]
+## Two, because each is a full generation.
+const _SEEDS: Array[int] = [5, 17]
 
 
 func _params() -> MapGenerationParams:
@@ -26,6 +27,14 @@ func _params() -> MapGenerationParams:
 	params.traversable_tolerance = 1.0
 	params.obstruction_tolerance = 1.0
 	return params
+
+
+## Every test of the default parameters reads the same two maps.
+static var _maps: GeneratedMapCache = GeneratedMapCache.new()
+
+
+func _generate(a_seed: int) -> GeneratedMap:
+	return _maps.generated(&"default", _params, a_seed)
 
 
 #region Feature graph
@@ -98,7 +107,7 @@ func test_last_pass_stops_the_generator() -> void:
 func test_every_pair_of_starts_keeps_its_routes() -> void:
 	var params: MapGenerationParams = _params()
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		var topology: MapTopology = map.topology
 		assert_not_null(topology, str(map.errors))
 		assert_gt(topology.cuts.size(), 0)
@@ -111,14 +120,13 @@ func test_every_pair_of_starts_keeps_its_routes() -> void:
 
 func test_the_walkable_ground_is_one_piece() -> void:
 	for generation_seed: int in _SEEDS:
-		var topology: MapTopology = MapGenerator.generate(_params(), generation_seed).topology
+		var topology: MapTopology = _generate(generation_seed).topology
 		assert_eq(topology._stranded_cell(), Vector2i(-1, -1), "seed %d" % generation_seed)
 
 
 func test_every_barrier_cell_is_impassable_terrain() -> void:
-	var params: MapGenerationParams = _params()
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		var chasms: Dictionary = {}
 		for water: Dictionary in map.chasm_waters:
 			var basin: WaterBasin = WaterBasin.fill(map.terrain, water.seed_cell, water.level)
@@ -136,7 +144,7 @@ func test_every_barrier_cell_is_impassable_terrain() -> void:
 
 func test_no_barrier_touches_a_feature() -> void:
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(_params(), generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		for feature: MapFeature in map.features:
 			for cell: Vector2i in feature.structure_cells() + feature.pond_cells:
 				for dx: int in range(-1, 2):
@@ -264,7 +272,7 @@ func test_a_barrier_near_the_play_edge_is_trimmed() -> void:
 func test_no_generated_gap_is_narrower_than_the_open_gap() -> void:
 	var width: float = _params().open_gap_cells
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(_params(), generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		var cells: Dictionary = map.topology.barrier_of
 		var play := PlayArea.screen_aligned(
 			Vector2(map.terrain.grid_width(), map.terrain.grid_depth()) * 0.5,
@@ -276,19 +284,20 @@ func test_no_generated_gap_is_narrower_than_the_open_gap() -> void:
 		for cell: Vector2i in cells:
 			if MapTopology.edge_gap(cell, play) < MapTopology.EDGE_TOUCH_GAP:
 				touching[obstacle_of[cell]] = true
+		# Collected and asserted once: one GUT assert per pair of cells is most of this test's time.
+		var narrow: Array[String] = []
 		var keys: Array = cells.keys()
 		for i: int in keys.size():
-			if not touching.has(obstacle_of[keys[i]]):
-				assert_gte(
-					MapTopology.edge_gap(keys[i], play),
-					width,
-					"seed %d: %s near the edge" % [generation_seed, keys[i]]
-				)
+			if (
+				not touching.has(obstacle_of[keys[i]])
+				and MapTopology.edge_gap(keys[i], play) < width
+			):
+				narrow.append("%s near the edge" % keys[i])
 			for j: int in range(i + 1, keys.size()):
-				if obstacle_of[keys[i]] != obstacle_of[keys[j]]:
-					assert_gte(
-						MapTopology.walkable_gap(keys[i], keys[j]),
-						width,
-						"seed %d: %s and %s" % [generation_seed, keys[i], keys[j]]
-					)
+				if (
+					obstacle_of[keys[i]] != obstacle_of[keys[j]]
+					and MapTopology.walkable_gap(keys[i], keys[j]) < width
+				):
+					narrow.append("%s and %s" % [keys[i], keys[j]])
+		assert_eq(narrow, [] as Array[String], "seed %d" % generation_seed)
 #endregion

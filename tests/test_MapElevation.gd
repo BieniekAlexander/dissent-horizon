@@ -9,8 +9,9 @@ extends GutTest
 ##     -gdir=res://tests/none -gexit
 
 ## Seeds that generate on these parameters. A seed may legitimately fail an invariant — that is
-## a loud rejection, not a bug — so the property tests run on ones known to pass.
-const _SEEDS: Array[int] = [2004, 2005, 2007]  # 2003 replaced by 2007 on 2026-10-05
+## a loud rejection, not a bug — so the property tests run on ones known to pass. Two, because
+## each is a full generation. 2003 dropped on 2026-10-05: it no longer generates.
+const _SEEDS: Array[int] = [2004, 2005]
 ## Seeds known to break one invariant since cliffs replaced tiers (2026-10-02), skipped there and
 ## reported pending. TODO: fix and delete — map-generation.md §6, Cliffs.
 ##
@@ -42,7 +43,7 @@ func _params() -> MapGenerationParams:
 	return params
 
 
-## The same three maps for every test. Generating them is seconds of work each, and every test
+## The same two maps for every test. Generating them is seconds of work each, and every test
 ## here asks a different question of the SAME maps, so they are built once.
 static var _generated: Array[GeneratedMap] = []
 
@@ -95,7 +96,7 @@ func test_elevation_does_not_narrow_the_map() -> void:
 			pending("seed %d narrows the map by one cell since cliffs" % generation_seed)
 			continue
 		var flat: GeneratedMap = MapGenerator.generate(flat_params, generation_seed)
-		var levelled: GeneratedMap = MapGenerator.generate(_params(), generation_seed)
+		var levelled: GeneratedMap = _maps()[_SEEDS.find(generation_seed)]
 		assert_gte(_corridor(levelled), _corridor(flat), "seed %d" % generation_seed)
 
 

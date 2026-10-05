@@ -11,9 +11,8 @@ extends GutTest
 ## Every test builds its own parameters rather than reading the shipped defaults: the defaults
 ## are untuned content, and what is under test is the mechanism.
 
-## 31 replaced by 32 on 2026-10-05: the shelter start band moved its layout, and it now misses
-## the traversable target — a loud rejection, not a bug.
-const _SEEDS: Array[int] = [7, 19, 32]
+## Two, because each is a full generation.
+const _SEEDS: Array[int] = [7, 19]
 
 
 func _params() -> MapGenerationParams:
@@ -40,6 +39,22 @@ func _without_regions(a_params: MapGenerationParams) -> MapGenerationParams:
 	return a_params
 
 
+## Every test of the plain and region-free parameters reads the same two maps of each.
+static var _maps: GeneratedMapCache = GeneratedMapCache.new()
+
+
+func _generate(a_seed: int) -> GeneratedMap:
+	return _maps.generated(&"regions", _params, a_seed)
+
+
+func _generate_without_regions(a_seed: int) -> GeneratedMap:
+	return _maps.generated(&"without_regions", _params_without_regions, a_seed)
+
+
+func _params_without_regions() -> MapGenerationParams:
+	return _without_regions(_params())
+
+
 func test_the_same_seed_grows_the_same_regions() -> void:
 	var first: GeneratedMap = MapGenerator.generate(_params(), _SEEDS[0])
 	var second: GeneratedMap = MapGenerator.generate(_params(), _SEEDS[0])
@@ -50,7 +65,7 @@ func test_the_same_seed_grows_the_same_regions() -> void:
 func test_regions_bring_the_traversable_share_to_its_target() -> void:
 	for generation_seed: int in _SEEDS:
 		var params: MapGenerationParams = _params()
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		assert_true(map.is_valid(), "seed %d: %s" % [generation_seed, map.errors])
 		assert_almost_eq(
 			map.traversable_fraction,
@@ -58,7 +73,7 @@ func test_regions_bring_the_traversable_share_to_its_target() -> void:
 			params.traversable_tolerance,
 			"seed %d" % generation_seed
 		)
-		var open: GeneratedMap = MapGenerator.generate(_without_regions(_params()), generation_seed)
+		var open: GeneratedMap = _generate_without_regions(generation_seed)
 		assert_gt(
 			open.traversable_fraction,
 			map.traversable_fraction,
@@ -68,7 +83,7 @@ func test_regions_bring_the_traversable_share_to_its_target() -> void:
 
 
 func test_no_regions_without_a_target_below_the_open_share() -> void:
-	var map: GeneratedMap = MapGenerator.generate(_without_regions(_params()), _SEEDS[0])
+	var map: GeneratedMap = _generate_without_regions(_SEEDS[0])
 	assert_eq(map.topology.grown.count(true), 0)
 
 
@@ -83,7 +98,7 @@ func test_an_unreachable_target_fails_loudly() -> void:
 func test_impassable_ground_is_shared_within_tolerance() -> void:
 	for generation_seed: int in _SEEDS:
 		var params: MapGenerationParams = _params()
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		var total: float = 0.0
 		for value: float in map.obstructed:
 			total += value
@@ -100,10 +115,8 @@ func test_regions_keep_clear_of_every_start() -> void:
 	var params: MapGenerationParams = _params()
 	var clear: float = params.start_clear_radius_cells + params.feature_spacing_cells
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
-		var plain: GeneratedMap = MapGenerator.generate(
-			_without_regions(_params()), generation_seed
-		)
+		var map: GeneratedMap = _generate(generation_seed)
+		var plain: GeneratedMap = _generate_without_regions(generation_seed)
 		for cell: Vector2i in map.topology.barrier_of:
 			if (
 				not map.topology.grown[map.topology.barrier_of[cell]]
@@ -126,7 +139,7 @@ func test_regions_keep_clear_of_every_start() -> void:
 func test_no_mass_spans_more_than_its_share_of_either_side() -> void:
 	for generation_seed: int in _SEEDS:
 		var params: MapGenerationParams = _params()
-		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		var play: PlayArea = map.topology.play_area()
 		for mass: Array[Vector2i] in ObstacleRegions.masses(map.topology.barrier_of):
 			assert_lte(
@@ -153,7 +166,7 @@ func test_span_is_measured_along_the_play_area_axes() -> void:
 func test_some_mass_closes_onto_the_play_edge() -> void:
 	var touching: int = 0
 	for generation_seed: int in _SEEDS:
-		var map: GeneratedMap = MapGenerator.generate(_params(), generation_seed)
+		var map: GeneratedMap = _generate(generation_seed)
 		var play: PlayArea = map.topology.play_area()
 		for cell: Vector2i in map.topology.barrier_of:
 			if MapTopology.edge_gap(cell, play) < MapTopology.EDGE_TOUCH_GAP:

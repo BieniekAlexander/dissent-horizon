@@ -16,9 +16,11 @@ extends GutTest
 ## The live tests drive a real NavManager on a flat fixture map, like test_NavChunks.
 
 const W: int = 3 * NavManager.CHUNK_SIZE_CELLS + 1  # corners; one fewer cells per side
-const MAX_READY_FRAMES: int = 120
-## Ticks to wait for a change to land; measured at ~5 on the skirmish map.
-const MAX_LANDING_FRAMES: int = 60
+## Every wait is bounded by the WALL CLOCK, not by a count of ticks: an async map rebuilds on a
+## worker thread, which takes real time however fast the ticks run (`--fixed-fps` runs them
+## unthrottled). Each is the old tick budget at 30 ticks a second; landing measured at ~5 ticks.
+const READY_TIMEOUT_MSEC: int = 4000
+const LANDING_TIMEOUT_MSEC: int = 2000
 const UNIT_RADIUS: float = 0.3
 
 
@@ -65,15 +67,13 @@ func _make_nav() -> void:
 	_nav.navigation_region = region
 	_nav.terrain_grid = _grid
 	add_child_autofree(_nav)
-	for _i: int in MAX_READY_FRAMES:
-		if _nav.is_ready():
-			break
+	var deadline: int = Time.get_ticks_msec() + READY_TIMEOUT_MSEC
+	while not _nav.is_ready() and Time.get_ticks_msec() < deadline:
 		await get_tree().physics_frame
 	# The fixture's own early rebuilds must have landed too, or one landing later would
 	# legitimately re-plan a unit and be mistaken for the change under test.
-	for _i: int in MAX_LANDING_FRAMES:
-		if _nav.landed_serial() == _nav._next_change_serial - 1:
-			break
+	deadline = Time.get_ticks_msec() + LANDING_TIMEOUT_MSEC
+	while _nav.landed_serial() != _nav._next_change_serial - 1 and Time.get_ticks_msec() < deadline:
 		await get_tree().physics_frame
 
 
@@ -107,7 +107,8 @@ func _unit(a_from: Vector2i, a_to: Vector2i, a_is_line_tested: bool = false) -> 
 		map = fixture_map
 	movement.configure_for_map(map, _nav, UNIT_RADIUS)
 	movement.target_position = _cell_world(a_to.x, a_to.y)
-	for _i: int in MAX_LANDING_FRAMES:
+	var deadline: int = Time.get_ticks_msec() + LANDING_TIMEOUT_MSEC
+	while Time.get_ticks_msec() < deadline:
 		movement.is_navigation_finished()
 		if movement.current_path().size() >= 2:
 			break
@@ -127,7 +128,8 @@ func _wall(a_x: int, a_z0: int, a_z1: int) -> Array:
 
 ## Waits for the newest change to land, reading every unit's path each tick as the game does.
 func _await_landing(a_units: Array) -> NavManager.NavChange:
-	for _i: int in MAX_LANDING_FRAMES:
+	var deadline: int = Time.get_ticks_msec() + LANDING_TIMEOUT_MSEC
+	while Time.get_ticks_msec() < deadline:
 		await get_tree().physics_frame
 		for unit: CountingMovement in a_units:
 			unit.is_navigation_finished()
@@ -268,7 +270,8 @@ func test_nothing_re_plans_before_the_change_has_landed() -> void:
 	)
 	_wall(center, center - 4, center + 4)
 	var queries_while_waiting: int = -1
-	for _i: int in MAX_LANDING_FRAMES:
+	var deadline: int = Time.get_ticks_msec() + LANDING_TIMEOUT_MSEC
+	while Time.get_ticks_msec() < deadline:
 		await get_tree().physics_frame
 		crossing.is_navigation_finished()
 		if _nav._changes.back().is_landed:

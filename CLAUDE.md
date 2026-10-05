@@ -78,20 +78,35 @@ No CLI build script. Open the project in Godot 4.7 by pointing the editor at `pr
 
 Web sessions get Godot from `.claude/hooks/session-start.sh`, which runs `tools/install_godot.sh`: the version is read from `project.godot`'s `config/features` (an optional `.godot-version` pins a patch release, e.g. `4.7.1-stable`), and the script also imports the project. `.godot/` is git-ignored **except `.godot/imported/`** — that holds the `.blend` scenes (importing needs Blender) and s3tc textures a headless import cannot rebuild, and a clone without it fails ~800 tests.
 
-Tests use the [GUT](https://github.com/bitwes/Gut) addon. Run all tests headlessly:
+Tests use the [GUT](https://github.com/bitwes/Gut) addon. Run all tests headlessly, split
+across four Godot processes (~26 s rather than ~90 s in one):
 ```
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+python3 tools/gut_shards/gut_shards.py
 ```
+It balances the files by their last recorded times, merges the shards' reports into one
+summary, and exits non-zero on a failure OR on a file that reported nothing — a crashed shard
+or an unparseable file, which GUT alone reports green. Name fragments filter it
+(`gut_shards.py MapGen Hull`). The same suite in one process, the fallback:
+```
+godot --headless --fixed-fps 30 -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+```
+
+**`--fixed-fps 30` is how the tests run.** It detaches the main loop from the wall clock, so a
+wait on N ticks takes as long as computing them rather than N/30 seconds — the suite runs about
+1.5× faster, and seeded results are unchanged, because a tick is still a tick. A test that waits
+on something which takes REAL time (a worker thread, an async navmesh) must therefore bound that
+wait by `Time.get_ticks_msec()`, never by a tick count: under this flag a tick budget lasts
+milliseconds. `test_NavChangeReplanning` is the model.
 
 **`-gexit` is required.** Without it GUT finishes the run and then waits for you to
 close its window — and `--headless` has no window, so the process spins in its main
 loop forever after printing the summary. `-gdir` is required too: bare `gut_cmdln.gd`
 exits with "You do not have any directories configured". The exit code is non-zero
-when any test fails, so this form is what CI should call.
+when any test fails.
 
 Run a single test file:
 ```
-godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_HexUtils.gd -gexit
+godot --headless --fixed-fps 30 -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_HexUtils.gd -gexit
 ```
 
 Tests live in `tests/` and extend `GutTest`.

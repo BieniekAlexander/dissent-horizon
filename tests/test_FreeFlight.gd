@@ -173,6 +173,7 @@ func test_a_mech_target_is_still_pursued() -> void:
 
 func test_the_same_seed_flies_the_same_wobble() -> void:
 	_ground()
+	await get_tree().physics_frame
 	var paths: Array = []
 	for attempt: int in 2:
 		SU.rng.seed = 42
