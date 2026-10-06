@@ -149,7 +149,7 @@ L0 is the ONLY code that touches `Commander.visible_enemies`, `visible_foreign_s
 | `velocity` | from consecutive sightings; zero for structures |
 | `status` | `CONFIRMED` (in vision now) · `BELIEVED` (out of vision, confidence above floor) · `LOST` (disproved by negative evidence, or expired) · `DESTROYED` (death witnessed) |
 | `confidence` | ∈ (0, 1]. Structures: 1 until negative evidence at their cell. Units: decays with time AND with the fraction of their *reachable disc* (speed × time since seen) that has since been seen empty — a unit that could only have gone somewhere the bot has looked is more likely gone. Decided 2026-10-06, on one condition: the disc check is a lattice read per track per perception tick, budgeted and measured like every other channel (§Cadence and cost) |
-| `affordances` | the type's provider/consumer tags (§Affordances), so higher layers reason without per-type code |
+| `affordances` | the type's derived capability set ([ontology](ontology.md) §Affordances), so higher layers reason without per-type code |
 
 Rules, replacing today's leaks:
 
@@ -240,21 +240,16 @@ says WHAT is worth seeing.
 ### Affordances: the signal the brief asked for
 
 The brief wants a new piece's use to be a matter of data the bot reads, not code written for
-it. Piece docs already drive scenes through the importer; they would carry an **affordance**
-block the importer validates and L1 attaches to every track of that type:
-
-```
-affordances:
-  provides: [vision, income, dominion, infrastructure, production, defence, transport, spotting]
-  consumes: [infrastructure]
-```
-
-L2 and L3 then reason over tags: an enemy `spotting` provider is worth more than its cost
-(the fourth relation in [squads-and-relations](squads-and-relations.md) §Relations); a `vision`
-provider with high speed is a scout candidate; a `dominion` provider is what the dominion
-drive wants more of, whatever faction mechanism produces it. Hard-coding is confined to the
-tag vocabulary — "the most minute details" — and a new piece reaches the bot by being
-annotated.
+it. **Affordances are DERIVED from the components a piece carries, not declared as tags** —
+superseding this note's first draft, which proposed a `provides:` tag block (REJECTED
+2026-10-06: a tag restates what the component already says, and drifts from it). Each is a
+capability × scope × magnitude, and the relational ones (lethality against *this* target)
+have a magnitude only once the other party is named. L1 attaches the type's affordance set
+to every track; L2 and L3 reason over it, so an enemy sensing provider is worth more than its
+cost and a dominion provider is what the dominion drive wants, whatever faction mechanism
+produces it.
+→ the kinds, the capability table with each derivation, time, attention and cues:
+**[ontology.md](ontology.md)**
 
 ## The fog boundary
 
@@ -323,8 +318,8 @@ Incremental, one landable change each, in the order that pays earliest:
 4. **Believed clusters** from tracks; **momentum** from both ledgers.
 5. **L3 standing and enemy-presence reads**; the military's objective choice reads them.
 6. **L4 attention**; `BotScout` and REVEAL consume it.
-7. **Affordance tags** in docs and the importer; `BotScout`'s scorer and the dominion drive
-   read them.
+7. **Affordance derivation** per [ontology](ontology.md) §The capability vocabulary;
+   `BotScout`'s scorer and the dominion drive read it.
 
 Steps 1–3 remove code; 4–7 add what the roadmap already lists, on a representation that
 exists.
@@ -336,7 +331,7 @@ the sections above: where each layer lives (§The model), the reachable-disc con
 instance-keyed tracks (§L1), the 5-unit pitch and the performance requirement (§Cadence and
 cost), and neutral features discovered rather than known (§L1). One remains:
 
-> **TODO — tag vocabulary for affordances.** The list above is a first cut from what the
-> managers already distinguish. It is to be revisited as the ontology of what the model can
-> signal develops — fixed from the piece-usage audit's "cannot signal" rows
-> ([piece-usage-audit](piece-usage-audit.md)) before the importer validates it, and not before.
+> **TODO — the capability vocabulary is to be revisited** as the ontology of what the model
+> can signal develops; it is now a table of derivations in [ontology](ontology.md), and the
+> piece-usage audit's "cannot signal" rows ([piece-usage-audit](piece-usage-audit.md)) are
+> the test of whether a row is missing.
