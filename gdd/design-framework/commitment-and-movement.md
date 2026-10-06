@@ -259,8 +259,8 @@ action is fulfilled; no such description exists yet.
 command card: it leaves the queue alone, and an Attack or Attack-move lifts it. Stealth units are its main customer — a
 piece holds fire the moment it gains stealth. Once startups exist it is also their interrupt.
 
-TODO: issuing hold fire with the additive modifier does exactly what issuing it plainly does.
-Whether a queued hold fire should instead take effect when the queue reaches it is undecided.
+PLANNED (`gdd/tasks.md` T-011): a hold fire issued with the additive modifier is queued, and
+takes effect when the queue reaches it. Today it does exactly what issuing it plainly does.
 
 ### Commitment, per action
 

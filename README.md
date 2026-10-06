@@ -217,4 +217,4 @@ Mechanics are written up as rules, with their reasoning, under **[`gdd/systems/`
 
 [`CLAUDE.md`](CLAUDE.md) carries the project-wide invariants: terminology, the command
 lifecycle, conventions, and a list of things not to break.
-[`gdd/deferred.md`](gdd/deferred.md) indexes the open decisions and the plans not yet built.
+[`gdd/tasks.md`](gdd/tasks.md) logs the open decisions, the plans not yet built, and the work queued for later.

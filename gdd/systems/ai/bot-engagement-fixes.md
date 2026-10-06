@@ -123,7 +123,7 @@ restatement.
 
 That the bot knows the enemy base through fog is a real property and a deliberate-looking
 one, but it is not written down anywhere as a decision — it is raised as a question on the
-"CPU Bot Behavior Work" task in `gdd/tasks.md`.
+"CPU Bot Behavior Work" task (`gdd/tasks.md` T-001; the brief is [brief.md](brief.md)).
 
 ## Before and after
 
@@ -344,7 +344,7 @@ question.
 ## The objective nobody could act on
 
 **FIXED (2026-09-11).** Two symptoms from a watched Colonial-vs-Colonial MEDIUM match
-(`gdd/tasks.md` §Feedback Notes), in his words:
+(the task's Feedback Notes, 2026-09-11), in his words:
 
 > "armies of units moving out to other parts of the map, but they don't really approach the
 > enemy to engage in battle. It actually appears that the only units getting caught in combat

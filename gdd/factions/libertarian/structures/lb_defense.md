@@ -38,7 +38,7 @@ what the tower does. Its place in the faction's coverage: [[static-defence]] §L
 - **Per-drone properties** are `reach_by_piece` today — the first of them, and the stub the
   rest will follow: a garrisoned Shock Drone fires at `ground_range_long` instead of its melee
   zap. TODO: what the Point Defense Drone (and later drones) confer is open —
-  [deferred](../../../deferred.md) 1.54.
+  [tasks](../../../tasks.md) T-025.
 - **Detection is the tower's own** (`detection_medium`), not a drone's, so the Warden's detector
   does not depend on drone tech.
 - TODO: no swap time exists — a drone can be ordered out and another in as fast as they walk.

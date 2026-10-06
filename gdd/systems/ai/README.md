@@ -9,6 +9,7 @@ The CPU commander: what it perceives, how it decides, and how it acts.
 
 | Note | Covers |
 |---|---|
+| [brief.md](brief.md) | Alex's original brief, verbatim: difficulty tiers, generalisation, what to model versus hardcode, and adversarial training |
 | [bot-architecture.md](bot-architecture.md) | what is built today — the layers, the modules, and where each decision is made |
 | [bot-roadmap.md](bot-roadmap.md) | TODO: planning over ladders, the gaps below, and the training harness |
 | [objective-selection.md](objective-selection.md) | TODO, unapproved: the layer above every decision — all-in and booming as postures, not modes |

@@ -892,7 +892,7 @@ walkable ground in a 25-cell field, 10–11 masses per map with 3–7 on the edg
 
 TODO: openness is reported, not enforced (`GeneratedMapWriter.report` lists every choke's
 width) — whether a map with too many narrow chokes is rejected, and at what width and count, is
-open; see [deferred](../../deferred.md) 1.64. What remains narrow is mostly the bay inside one
+open; see [tasks](../../tasks.md) T-055. What remains narrow is mostly the bay inside one
 bent mass (§4, the TODO under the choke rule).
 
 TODO: the thresholds — the open gap, the open-area clearance, the 0.7 ratio — are first

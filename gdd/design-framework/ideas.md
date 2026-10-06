@@ -93,7 +93,7 @@ may take something it could never crush, if somebody else disabled it first.
   is the confirm shape generalised beyond Overcharge.
 - It fits the intended progression: capture routes vary per faction, and the investment a capture
   demands is meant to fall as the match goes on, in step with the shrinking telegraph.
-- It also offers a way out of `deferred.md` 1.4: capturability stops being a static class table
+- It also offers a way out of the old capturability-class question: capturability stops being a static class table
   and becomes a state, which is the thing the table keeps getting wrong.
 
 ---

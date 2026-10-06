@@ -5,7 +5,7 @@ type: design-note
 
 # Static defence
 
-Resolves [deferred](../deferred.md) 1.22 (static defence calibration). The open questions this
+Resolves the static defence calibration question. The open questions this
 answers were posed in [pacing](pacing.md) §Static defense considerations; the axes it measures
 against are [elasticity](elasticity.md)'s. Piece stats live in the spec docs, not here.
 
@@ -46,7 +46,7 @@ future faction is not pigeonholed by the current three.
 4. **INVARIANT** — any warm-up on a static is interruptible, with hold fire as the interrupt
    ([commitment-and-movement](commitment-and-movement.md) §startup rules).
 5. **INVARIANT** — statics are MEDIUM armour; STRONG stays reserved for command centres and
-   similar ([deferred](../deferred.md) 1.20).
+   similar ([tasks](../tasks.md) T-046).
 6. **INVARIANT** — each faction has at least one **medium-tier detection source available at low
    tech**, in whatever form. (Not "a detecting static": the Anarchists have no statics.)
 
@@ -220,7 +220,7 @@ other factions' statics. System rules: [bombardment](../systems/combat/bombardme
   table. A tuning pass that makes targeting easier is touching coverage.
 
 Any heal strips an enemy beacon off its carrier ([bombardment](../systems/combat/bombardment.md)
-§Beacons). Open (see [deferred](../deferred.md)): the shell's damage type, whether a Recruit's
+§Beacons). Open (see [tasks](../tasks.md) T-020, T-022, T-023, T-024): the shell's damage type, whether a Recruit's
 beacon is permanent, and how much of beacon placement the opponent sees.
 
 ## Libertarians (the Warden)

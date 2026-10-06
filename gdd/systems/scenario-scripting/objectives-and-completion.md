@@ -90,7 +90,7 @@ shelters the bot has seen, which the reveal would then supply — is a separate 
 
 TODO — whether `MISSION` should keep the implicit wipe-out loss, or leave every verdict to the
 authored triggers as the spec read literally. Built as KEEP, since every shipped mission was
-written against it; see `gdd/deferred.md`.
+written against it; see `gdd/tasks.md` T-082.
 
 ## The MISSION loss is implicit, and lives on `Scenario`
 

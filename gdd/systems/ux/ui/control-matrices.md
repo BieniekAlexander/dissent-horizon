@@ -579,6 +579,6 @@ the game has and has not spent. An *unused* cell on MMB or the wheel is not.
 expose a one-button, no-modifier surface. The selector panel, the control-group panel and the
 world all use more than one cell.
 
-**Still unspent, and indexed in `gdd/deferred.md`:** pending-unit selection on the production
+**Still unspent (see `gdd/tasks.md`):** pending-unit selection on the production
 rail (§Context 5), garrison-occupant selection (§Context 6), and the READY state's visuals
 (§Context 1a).

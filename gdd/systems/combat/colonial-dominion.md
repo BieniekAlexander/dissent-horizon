@@ -143,7 +143,7 @@ Tasking a truck on a Shelter is its own system, and the first consumer of it:
 1. ✅ **Sentences.** `sentence_length` on the garrison, a per-occupant term, and consumption at
    the end of it. Retired `garrison.interns` as the deposit marker, and closed the Compound's
    garrison (the Servants-only allowlist gone). `CLAUDE.md` §Terminology's closed-garrison
-   example changed in the same change, and `deferred.md` 2.27 — the bot parking a spare Servant
+   example changed in the same change, and the deferred item for the bot parking a spare Servant
    for dominion — retired, because there is nowhere to park one now. `Garrison.deposit_from` /
    `Garrison._physics_process` / `scripts/entities/components/garrison.gd`.
 2. ✅ **The positional bonus.** Emitted on completion (`Garrison._emit_positional_bonus` →

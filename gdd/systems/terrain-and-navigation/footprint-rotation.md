@@ -8,7 +8,7 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
 **BUILT 2026-09-30 (slices 1–3 and the control); the bot and replay recording are still PLANNED.** Indexed as
-[`deferred.md`](../../deferred.md) 2.4. The control is decided: `[` / `]` turn the structure and
+[`tasks.md`](../../tasks.md) T-058. The control is decided: `[` / `]` turn the structure and
 `command_issue` is a press-drag-release gesture — see [construction](../commands/construction.md)
 §Placing and turning a structure, which owns those rules.
 
