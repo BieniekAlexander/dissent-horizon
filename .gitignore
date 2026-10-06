@@ -399,6 +399,7 @@ $RECYCLE.BIN/
 # ignored: it holds the .blend scenes (importing them needs Blender) and the s3tc textures, which
 # a headless import elsewhere cannot rebuild — a clone without it fails ~800 tests.
 .godot/*
+gdd/.obsidian/
 
 # Terrain-visual preview renders (tools/terrain_visuals/visual_preview.gd)
 /tools/terrain_visuals/out/
