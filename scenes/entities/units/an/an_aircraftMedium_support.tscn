@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://b516axn33kxtn"]
+[gd_scene load_steps=31 format=3 uid="uid://b516axn33kxtn"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_c2jau"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
@@ -35,6 +35,10 @@ radius = 0.7
 [sub_resource type="PrismMesh" id="PrismMesh_ioq7w"]
 size = Vector3(1.2, 0.25, 1.4)
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 0.7
+height = 0.25
+
 [node name="AnAircraftMediumSupport" type="CharacterBody3D" unique_id=1426684783 groups=["piece", "unit"]]
 script = ExtResource("1_c2jau")
 id = &"an_aircraftMedium_support"
@@ -46,6 +50,11 @@ id = &"an_aircraftMedium_support"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_eihag")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_pinq8")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("CylinderShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.125, 0.0)
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_fi87q")]
 
@@ -152,3 +161,4 @@ disabled = true
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

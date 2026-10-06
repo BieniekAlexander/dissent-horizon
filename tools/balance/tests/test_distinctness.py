@@ -11,7 +11,7 @@ TABLE = DamageTable(
         DamageType.LAZER: {Armour.LIGHT: 0.1, Armour.MEDIUM: 0.75, Armour.STRONG: 1.5},
         DamageType.TOXIC: {Armour.LIGHT: 1.0, Armour.MEDIUM: 1.0, Armour.STRONG: 1.0},
     },
-    vs_attribute={}, vs_frame={},
+    vs_frame={},
 )
 
 

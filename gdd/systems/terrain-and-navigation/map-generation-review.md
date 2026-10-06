@@ -259,7 +259,7 @@ each; the thorough one is a record per category.
   budgets, `MapElevation._GRADE_PER_CELL`, `MapOpenness`' choke thresholds (which
   map-generation.md calls "first guesses"). Most are algorithm budgets, rightly constants; the
   openness thresholds are measurement knobs and could join the params when openness becomes an
-  invariant ([deferred](../../deferred.md) 1.64).
+  invariant ([tasks](../../tasks.md) T-055).
 
 ---
 

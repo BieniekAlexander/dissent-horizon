@@ -158,7 +158,7 @@ token has no such slot at all, which is different from being `EXEMPT`.
 
 | Slot kind | Instances from | State |
 |---|---|---|
-| Surface per tile type | the tile-type catalog | TODO: `deferred.md` 2.7 — `TileType.texture` is reserved and unread |
+| Surface per tile type | the tile-type catalog | TODO: `tasks.md` T-059 — `TileType.texture` is reserved and unread |
 | Water | water bodies | built — [water-bodies](../terrain-and-navigation/water-bodies.md) |
 | Decoration per obstacle kind (mountain model over impassable cells, shoreline) | obstacle kinds: ridges and mountains, chasms and lakes, and PLANNED cliffs | placeholder doodads and ground paint built; dressing PLANNED per facet — [visual-facets](../terrain-and-navigation/visual-facets.md) §Shortlist |
 | Doodad per kind (trees, rocks, shrubs) | `DoodadLibrary.Kind` | PLACEHOLDER: primitive-shape stand-ins built in code |
@@ -172,7 +172,7 @@ The standing HUD is [ui/](ui/README.md), and each of its notes is its own row.
 | Slot kind | State |
 |---|---|
 | Minimap | built — [ui/hud-layout](ui/hud-layout.md) §The minimap |
-| Menu screen per entry point (title, match setup, settings, loading, post-match) | TODO: a main menu exists (`scenes/menu/main_menu.tscn`); the rest is unscoped, and the win/lose screen is `deferred.md` 2.9 |
+| Menu screen per entry point (title, match setup, settings, loading, post-match) | TODO: a main menu exists (`scenes/menu/main_menu.tscn`); the rest is unscoped, and the win/lose screen is `tasks.md` T-080 |
 | Campaign presentation (briefings, portraits) | TODO: follows `gdd/modes/campaign/` |
 | Accessibility variant per signal (colourblind team palettes, a shape beside every colour) | TODO |
 

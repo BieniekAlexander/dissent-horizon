@@ -19,8 +19,9 @@ func before_each() -> void:
 	)
 
 
-func test_catalog_has_eleven_profiles() -> void:
-	assert_eq(catalog.profiles.size(), 11, "§2 names eleven damage types")
+func test_every_damage_type_has_a_profile() -> void:
+	# UNDEFINED is the enum's zero and never carries a row.
+	assert_eq(catalog.profiles.size(), Damage.Type.size() - 1, "a damage type with no TSV row")
 
 
 func test_no_two_profiles_share_a_row_resource() -> void:
@@ -35,11 +36,6 @@ func test_validator_reports_no_violations() -> void:
 	assert_eq(violations, [] as Array[String], "\n".join(violations))
 
 
-func test_matrix_spot_check_cryo() -> void:
-	var cryo: DamageProfile = catalog.profile_for(Damage.Type.CRYO)
-	assert_eq(cryo.strong_multiplier, 1.0, "CRYO is armour-flat per §5.1, damage is vestigial")
-
-
 func test_electric_row_carries_the_spec_electricity_numbers() -> void:
 	# §2's ELECTRICITY collided with this codebase's pre-existing Damage.Type.ELECTRIC —
 	# per the resolved question, the code name won, so ELECTRIC carries the ELECTRICITY row.
@@ -49,7 +45,7 @@ func test_electric_row_carries_the_spec_electricity_numbers() -> void:
 
 
 func test_net_new_types_are_present() -> void:
-	for id: Damage.Type in [Damage.Type.INCENDIARY, Damage.Type.HIGH_EXPLOSIVE, Damage.Type.CRYO]:
+	for id: Damage.Type in [Damage.Type.INCENDIARY]:
 		assert_not_null(
 			catalog.profile_for(id), "%s should be parsed from the TSVs" % Damage.Type.keys()[id]
 		)
@@ -64,12 +60,13 @@ func test_resolve_applies_frame_then_armour() -> void:
 
 
 func test_tech_gate_blocks_tier_one_strong_counters() -> void:
-	var siege: DamageProfile = catalog.profile_for(Damage.Type.SIEGE)
+	var strong_counter: DamageProfile = DamageProfile.new()
+	strong_counter.strong_multiplier = 1.0
 	assert_false(
-		DamageCatalogValidator.check_tech_gate(siege, 1),
+		DamageCatalogValidator.check_tech_gate(strong_counter, 1),
 		"§5.2/§6.5: a STRONG multiplier of 1.0 requires tech tier 2+"
 	)
-	assert_true(DamageCatalogValidator.check_tech_gate(siege, 2))
+	assert_true(DamageCatalogValidator.check_tech_gate(strong_counter, 2))
 
 
 func test_tech_gate_is_silent_when_not_a_strong_counter() -> void:

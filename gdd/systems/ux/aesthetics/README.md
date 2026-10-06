@@ -60,7 +60,7 @@ The goals are set in [art-direction.md](art-direction.md); what follows is the w
 
 TODO: undecided — a shape language, palette and material set per faction, drawn from
 [world-building.md](../../../world-building.md): Haustorian imperial expansion, Tselerate
-brutalism, Baladian scavenged tribal kit, opaque Ward machines, Successor biorobotics. Each
+brutalism, Baladian scavenged kit, opaque Ward machines, Successor biorobotics. Each
 faction's roles share a function and differ in appearance.
 
 TODO: undecided — biomes. The setting is planetary, and one desert map exists; there is no

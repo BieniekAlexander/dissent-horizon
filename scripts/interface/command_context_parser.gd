@@ -33,6 +33,15 @@ class_name CommandContextParser
 ## here because the controller answers it and the button classifier reads it.
 const HOLD_FIRE_COMMAND: String = "command_hold_fire"
 
+
+## The ability whose AUTOCAST a right-click on `command_name`'s button toggles, or &"" for a
+## button whose right-click means something else. Only the Bombard today — the one ability a
+## piece fires without an order of its own (Bombard.autofire_on) — reached from its own
+## buttons and from Spot's, the order whose beacon it answers.
+static func autocast_ability_of(command_name: String) -> StringName:
+	return Bombard.ABILITY_ID if command_name in ["command_bombard", "command_spot"] else &""
+
+
 #region Private helpers
 ## Built lazily on first lookup to match the lazy pattern the old
 ## CommandContextRegistry used (script-class resolution order is fragile at
@@ -48,6 +57,13 @@ static var _rules: Array
 ## Reads the NODE rather than `Entity.weapon_inventory`, which is `@onready` and so still
 ## null for an entity that has never entered the tree — a build preview, a test fixture. A
 ## predicate in this table must answer for those too.
+## Whether `entity` is offered hold fire — it has something to hold. Asked by the button and
+## by every place that draws the hold, so an unarmed piece holding fire (stealth sets it on
+## anything) shows nothing, the same way it is offered no button.
+static func offers_hold_fire(entity: Entity) -> bool:
+	return _is_armed(entity)
+
+
 static func _is_armed(a_entity: Entity) -> bool:
 	var loadout := a_entity.get_node_or_null("Loadout") as Loadout
 	if loadout != null and loadout.has_weapons():
@@ -56,9 +72,18 @@ static func _is_armed(a_entity: Entity) -> bool:
 	return commandable != null and commandable.is_armed()
 
 
+## Whether `a_entity` can be sent somewhere: it moves, and is not on rails
+## (Commandable.is_on_rails).
+static func _goes_where_ordered(a_entity: Entity) -> bool:
+	var commandable := a_entity as Commandable
+	return (
+		a_entity.live_movement() != null and not (commandable != null and commandable.is_on_rails())
+	)
+
+
 static func _build_rules() -> Array:
 	return [
-		[func(e: Entity): return e.live_movement() != null, "command_move"],
+		[CommandContextParser._goes_where_ordered, "command_move"],
 		[
 			func(e: Entity): return e.live_movement() != null or e.has_node("Loadout"),
 			"command_stop"
@@ -80,6 +105,9 @@ static func _build_rules() -> Array:
 		# bunker case needs a decision first: Commandable.is_armed() counts a garrison holding
 		# armed occupants, so gating those two on _is_armed would make a shelter's attack button
 		# appear and disappear as it is loaded and emptied.
+		# Offered on rails too: there the button only attacks a TARGET, since the ground click
+		# is refused (AttackMove.meets_precondition) — the one way to order an attack on a piece
+		# a plain click would not attack, such as a friendly.
 		[CommandContextParser._is_armed, "command_attack_move"],
 		# Anything with a weapon can hold its fire; an offensive ABILITY is not a weapon.
 		[CommandContextParser._is_armed, HOLD_FIRE_COMMAND],
@@ -87,9 +115,10 @@ static func _build_rules() -> Array:
 		# ground layer and has to deliver its damage with a projectile, since melee damage has
 		# no entity at a bare point to land on (see Weapon.can_fire_at_ground).
 		[CommandContextParser._can_focus_fire, "command_focus_fire"],
-		[func(e: Entity): return e.live_movement() != null, "command_patrol"],
+		[CommandContextParser._goes_where_ordered, "command_patrol"],
 		[
-			func(e: Entity): return e.live_movement() != null and e.has_node("Loadout"),
+			func(e: Entity):
+				return CommandContextParser._goes_where_ordered(e) and e.has_node("Loadout"),
 			"command_defend"
 		],
 		[func(e: Entity): return e.has_node("Production"), "command_train"],

@@ -6,7 +6,7 @@ from dh_balance.model import (
     Armour, Buildable, Cost, DamageTable, DamageType, Layer, Projectile, Weapon,
 )
 
-TABLE = DamageTable(vs_armour={}, vs_attribute={}, vs_frame={})   # all multipliers 1.0
+TABLE = DamageTable(vs_armour={}, vs_frame={})   # all multipliers 1.0
 
 
 def weapon(reach=1.0, hits=(Layer.GROUND,), base_damage=50.0,

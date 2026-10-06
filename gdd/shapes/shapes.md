@@ -34,6 +34,7 @@ shapes:
   aoe_small:  {kind: SphereShape3D, radius: 1}
   aoe_medium: {kind: SphereShape3D, radius: 2.5}
   aoe_large:  {radius: 5, height: 100}  # reaches aircraft
+  aoe_huge:   {radius: 10, height: 100}  # a Blizzard; reaches aircraft
   aoe_charge: {kind: SphereShape3D, radius: 3}  # a Sapper's planted charge
 ---
 # Shape library

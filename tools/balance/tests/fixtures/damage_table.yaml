@@ -3,7 +3,6 @@
 # SOURCE OF TRUTH: mirrored from the live game CSVs
 #   res://resources/damage/damage_vs_armour.tsv
 #   res://resources/damage/damage_vs_frame.tsv
-#   res://resources/damage/damage_vs_attribute.tsv
 # Phase 2 (Godot -> YAML exporter) will regenerate this file automatically so it
 # can never drift. Until then it is hand-synced; keep the two in lockstep.
 #
@@ -27,10 +26,3 @@ vs_frame:
   ELECTRIC:   {BIO: 1.0, MECH: 1.0}
   SIEGE:       {BIO: 1.0, MECH: 1.0}
   EXPLOSIVE:   {BIO: 1.0, MECH: 1.0}
-
-# vs_attribute[damage_type][attribute] -> multiplier, applied multiplicatively
-# for every attribute the target has (IS_GROUNDED / IS_FLYING / HAS_STEALTH).
-# Missing cells default to 1.0.
-vs_attribute:
-  TOXIC:     {IS_FLYING: 0.5}
-  EXPLOSIVE: {IS_FLYING: 0.5}

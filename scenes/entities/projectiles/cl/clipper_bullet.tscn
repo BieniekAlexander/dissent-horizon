@@ -37,7 +37,7 @@ script = ExtResource("2_spec")
 [node name="Payload" type="Node" parent="."]
 script = ExtResource("mig_payload")
 hitscan = true
-base_damage = 12.0
+base_damage = 18.0
 
 [node name="Tracer" type="Node" parent="."]
 script = ExtResource("fx_tracer")

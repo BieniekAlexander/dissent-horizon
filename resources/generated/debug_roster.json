@@ -276,25 +276,34 @@
 	},
 	{
 		"faction": "colonial",
-		"id": "cl_aircraftMedium_transport",
+		"id": "cl_aircraftMedium_gunship",
 		"is_fixture": false,
-		"label": "caravel",
-		"producers": [
-			"cl_airField"
-		],
-		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn",
-		"tool": "command_tool_cl_aircraftMedium_transport"
+		"label": "Gunship",
+		"producers": [],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_gunship.tscn",
+		"tool": ""
 	},
 	{
 		"faction": "colonial",
-		"id": "cl_aircraftStrong_support",
+		"id": "cl_aircraftMedium_support",
 		"is_fixture": false,
 		"label": "Reverence",
 		"producers": [
 			"cl_airField"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftStrong_support.tscn",
-		"tool": "command_tool_cl_aircraftStrong_support"
+		"tool": "command_tool_cl_aircraftMedium_support"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_aircraftStrong_transport",
+		"is_fixture": false,
+		"label": "caravel",
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn",
+		"tool": "command_tool_cl_aircraftStrong_transport"
 	},
 	{
 		"faction": "colonial",
@@ -351,14 +360,14 @@
 	},
 	{
 		"faction": "colonial",
-		"id": "cl_bioMedium_antiLight",
+		"id": "cl_bioMedium_antiStrong",
 		"is_fixture": false,
 		"label": "Constable",
 		"producers": [
 			"cl_barracks"
 		],
-		"scene": "res://scenes/entities/units/cl/cl_bioMedium_antiLight.tscn",
-		"tool": "command_tool_cl_bioMedium_antiLight"
+		"scene": "res://scenes/entities/units/cl/cl_bioMedium_antiStrong.tscn",
+		"tool": "command_tool_cl_bioMedium_antiStrong"
 	},
 	{
 		"faction": "colonial",
@@ -1080,6 +1089,24 @@
 		"label": "tc_war_factory",
 		"producers": [],
 		"scene": "res://scenes/entities/structures/tc/tc_war_factory.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_aircraftStrong_support",
+		"is_fixture": false,
+		"label": "cl_aircraftMedium_support",
+		"producers": [],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_support.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_aircraftMedium_transport",
+		"is_fixture": false,
+		"label": "cl_aircraftStrong_transport",
+		"producers": [],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftStrong_transport.tscn",
 		"tool": ""
 	},
 	{

@@ -33,4 +33,5 @@ TODO: the pillar list is provisional — it may grow, or pillars may be consolid
   current era. *(world-level)*
 - **No real-world cultural styling.** Real cultures are ideological foundations only, with little
   to no aesthetic tie-in, and no race in the world is human, so players have no clear group to
-  identify with. *(world-level)*
+  identify with. *(world-level)* This repository names none of those cultures: notes describe the
+  ideologies themselves and the factions' own identity.

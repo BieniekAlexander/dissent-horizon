@@ -78,6 +78,7 @@ const TOP_LEVEL_ORDER: Array = [
 	"shelter",
 	"extraction_site",
 	"extractor",
+	"plants_beacons",
 	# Root-node properties: neither belongs to a component.
 	"infrastructure",
 	"occupancy_size",
@@ -130,7 +131,7 @@ const NESTED_ORDER: Dictionary = {
 	"cost": ["energy", "infrastructure", "dominion"],
 	"defense": ["hp", "armour", "frame"],
 	"senses": ["vision", "detection"],
-	"body": ["radius", "hurtbox"],
+	"body": ["radius"],
 	"movement":
 	[
 		"speed",
@@ -170,6 +171,7 @@ const NESTED_ORDER: Dictionary = {
 		"charged",
 		"turret",
 		"turret_turn_rate",
+		"range_from",
 		"reach",
 		"hits"
 	],
@@ -241,7 +243,7 @@ const NESTS: Dictionary = {
 	{"cost": "cost", "time": "build_time", "requires": "requires", "completes_as": "completes_as"},
 	"defense": {"hp": "hp", "armour": "armour", "frame": "frame"},
 	"senses": {"vision": "vision", "detection": "detection"},
-	"body": {"radius": "movement_radius", "hurtbox": "hurtbox_radius"},
+	"body": {"radius": "movement_radius"},
 }
 
 ## Top-level keys that are renamed rather than nested: {authored: internal}.
@@ -272,7 +274,13 @@ const RETIRED: Dictionary = {
 const RETIRED_NESTED: Dictionary = {
 	"senses.aggro":
 	"aggro is derived from weapon reach at runtime (RangeShapes), so remove the key",
-	"body.target": "renamed `body.hurtbox:` — the volume a weapon hits, named for what it is",
+	"body.target":
+	"retired — the hurtbox is fitted to the model by the importer, so remove the key",
+	"body.hurtbox":
+	(
+		"retired — the hurtbox is fitted to the model by the importer (generated-visual-defaults"
+		+ ".md §The hurtbox), so remove the key"
+	),
 }
 
 ## internal key -> the DOC path that now carries it. Read both ways: a doc still
@@ -291,7 +299,6 @@ const DOC_KEY: Dictionary = {
 	"vision": "senses.vision",
 	"detection": "senses.detection",
 	"movement_radius": "body.radius",
-	"hurtbox_radius": "body.hurtbox",
 	"ability_groups": "abilities",
 	"beacon_range": "beacon",
 }

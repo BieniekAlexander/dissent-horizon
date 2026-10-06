@@ -19,7 +19,6 @@ senses:
   detection: detection_small
 body:
   radius: 0.2
-  hurtbox: 0.3
 movement:
   speed: SLUGGISH
   turn_rate: 1080

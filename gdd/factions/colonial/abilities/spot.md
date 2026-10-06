@@ -4,17 +4,24 @@ title: Spot
 flavor:
   description: Call in a firing solution, leaving a beacon for the artillery to spend.
   verbose: |
-    The unit walks within range of the chosen point, holds still while it calls the strike in,
-    and leaves a [[beacon|Beacon]] standing there. It then STAYS on the beacon until a Bombard
-    spends it — that commitment is what the artillery is paying for.
+    A Recruit walks within range of the chosen point, holds still while it calls the strike
+    in, and leaves a [[beacon|Beacon]] standing there. It then STAYS on the beacon until a
+    Bombard fires on it — that commitment is what the artillery is paying for. The nearest
+    loaded Bombard fires as soon as it can, unless you have switched the Bombard to manual.
+
+    A Sleeper walks to the point itself, plants a beacon on the ground over 3 seconds, and
+    moves on. Its beacon stands until a Bombard is ordered onto it.
 
     A LOCAL ability: it is an order given to the spotter, not something the commander calls in,
     so it has no cell on the ORDNANCE card.
 command: command_spot
 range: 10
-cast_by: ALL
 ---
 # Spot
+
+One order, two ways of carrying it out: a Recruit HOLDS its beacon, a Sleeper
+(`plants_beacons: true`) PLANTS one and leaves — see
+[bombardment](../../../systems/combat/bombardment.md) §Planting a beacon.
 
 The Colonial half of the bombardment loop — see
 [bombardment](../../../systems/combat/bombardment.md).
@@ -30,17 +37,19 @@ spotter walks before it starts calling the strike in and the leash on a beacon r
 The channel time stays a [constant](../../../../scripts/interface/commands/spot.gd): nothing
 varies it yet.
 
-The pool is one charge on a one-tick cooldown — that is "no cooldown", spelled in the one
-vocabulary every ability uses, rather than a second concept meaning the same thing.
+The charge is spent when the channel starts, and the pool does not recharge while the
+order stands: its cooldown runs from the moment the order ends, whether a Bombard fired on
+the beacon or the spotter was re-ordered. A spotter therefore cannot bank a charge while
+holding a solution, and an order abandoned on the walk there costs nothing.
 
-## `cast_by: ALL`, alone in the roster
+## One spotter per order
 
-Every other ability is cast by ONE of the selected casters (see
-[control-matrices](../../../systems/ux/ui/control-matrices.md) §Cast arity) — the default,
-because the whole selection firing at one point spends every charge on it.
+Spot is cast by ONE of the selected recruits, the ability default (see
+[control-matrices](../../../systems/ux/ui/control-matrices.md) §Cast arity): the nearest to the
+point that is not already spotting — the rule every one-actor command shares, Build included
+(control-matrices §Cast arity). Holding `modifier_broaden` sends every selected recruit.
 
-Spotting is the exception that default was written against. A second solution on the same
-ground is worth having rather than wasted: the beacon is what a battery spends, and a spotter
-committed to one is out of the fight until it is spent, so ordering a squad to mark a target
-and having one of them do it leaves the rest idle for no reason. Holding `modifier_narrow`
-still sends exactly one.
+It was `cast_by: ALL` until 2026-10-06, on the grounds that a second solution on the same ground
+is worth having. Once a beacon called its own shot (bombardment §Automatic fire), a second
+spotter on the same point was a second recruit standing still for one shell, and a squad
+marking one target lost all its rifles to do it.

@@ -7,7 +7,7 @@ flavor:
   verbose: Light reconnaissance aircraft, good against light armor
 build:
   cost:
-    energy: 600
+    energy: 450
   time: 15
   requires: []
 defense:
@@ -30,14 +30,14 @@ weapons:
       id: clipper_bullet
       title: strafing round
       scene: res://scenes/entities/projectiles/cl/clipper_bullet.tscn
-      damage: 12
+      damage: 18
       damage_type: LEAD
       speed: SUPERSONIC
       trajectory: LINEAR
       hitscan: true
-    split_time: 0.5
-    reload_time: 0.5
-    clip_size: 1
+    split_time: 0.1333
+    reload_time: 1.8
+    clip_size: 10
     charged: false
     reach: ground_range_medium
     hits:

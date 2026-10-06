@@ -30,8 +30,8 @@ world-building lore — see [[world-building#Haustoria]]).
 | **Dominion** | Collect neutral or enemy infantry |
 - Doctrine
 	- Bombardment
-	- Strong defenses, small deployments
-	- Slowing things down
+	- Supply Lines
+	- Cryogenics
 - Asymmetric Mechanics
 	- Heal - Servants repair structures and mechs
 	- Mobility - intentionally lacking
@@ -51,6 +51,7 @@ world-building lore — see [[world-building#Haustoria]]).
 flowchart TB
     classDef tech0 fill:#6d28d9,stroke:#c4b5fd,stroke-width:3px,color:#ffffff
     classDef tech1 fill:#0e7490,stroke:#67e8f9,stroke-width:3px,color:#ffffff
+    classDef tech2 fill:#b45309,stroke:#fcd34d,stroke-width:3px,color:#ffffff
     subgraph cl_commandCenter["Citadel"]
         cl_mechLight_dominionGen(["Stock Truck"])
         cl_bioLight_builder(["Servant"])
@@ -60,15 +61,16 @@ flowchart TB
     subgraph cl_barracks["Barracks"]
         cl_bioLight_antiLight(["Recruit"])
         cl_bioLight_antiMech(["Badger"])
-        cl_bioMedium_antiLight(["Constable"])
+        cl_bioMedium_antiStrong(["Constable"])
         cl_bioLight_stealth(["sleeper"])
     end
     cl_defense_antiAircraft["Sam"]
+    cl_defense_antiLight["Watch Tower"]
     subgraph cl_airField["Sky Port"]
         cl_aircraftLight_antiLight(["Clipper"])
         cl_aircraftMedium_antiMech(["drake"])
-        cl_aircraftMedium_transport(["caravel"])
-        cl_aircraftStrong_support(["Reverence"])
+        cl_aircraftStrong_transport(["caravel"])
+        cl_aircraftMedium_support(["Reverence"])
     end
     cl_tech1["Operations Center"]
     subgraph cl_warFactory["Production Yard"]
@@ -87,12 +89,14 @@ flowchart TB
     cl_barracks --> cl_warFactory
     cl_infrastructure --> cl_barracks
     cl_infrastructure --> cl_defense_antiAircraft
+    cl_infrastructure --> cl_defense_antiLight
     cl_tech1 --> cl_defense_antiStructure
     cl_tech1 --> cl_support1
     cl_tech2 --> cl_support3
     cl_warFactory --> cl_tech2
-    class cl_tech1,cl_bioMedium_antiLight tech0
-    class cl_tech2,cl_aircraftStrong_support,cl_bioLight_stealth,cl_mechStrong_support tech1
+    class cl_infrastructure,cl_mechLight_dominionGen tech0
+    class cl_tech1,cl_aircraftStrong_transport,cl_bioLight_stealth tech1
+    class cl_tech2,cl_aircraftMedium_support,cl_bioMedium_antiStrong,cl_mechStrong_support tech2
     style cl_airField fill:#80808020,stroke:#8a8a8a,stroke-width:1px
     style cl_barracks fill:#80808020,stroke:#8a8a8a,stroke-width:1px
     style cl_commandCenter fill:#80808020,stroke:#8a8a8a,stroke-width:1px

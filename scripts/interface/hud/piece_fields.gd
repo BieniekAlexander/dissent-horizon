@@ -84,7 +84,7 @@ static func _piece_fields() -> Array:
 		PieceField.Kind.NUMBER,
 		PieceField.Tier.FACE
 	)
-	hp.read = func(c: Dictionary) -> Variant: return _defense(c).hp_max if _defense(c) else null
+	hp.read = func(c: Dictionary) -> Variant: return _authored_hp(c)
 	hp.write = func(c: Dictionary, old: Variant, new: Variant) -> void: _retune_hp(c, old, new)
 	hp.applies = func(c: Dictionary) -> bool: return _defense(c) != null
 	fields.append(hp)
@@ -110,7 +110,6 @@ static func _piece_fields() -> Array:
 			Defense.FrameType
 		)
 	)
-	fields.append(_body_radius(&"hp", "hurtbox radius", "hurtbox", "Hurtbox/HurtboxShape"))
 
 	# Movement.
 	var speed := _field(
@@ -153,16 +152,25 @@ static func _piece_fields() -> Array:
 	)
 	crush.applies = func(c: Dictionary) -> bool: return _movement(c) != null
 	fields.append(crush)
+	# The orbit radius of a piece fighting from its orbit is derived from its weapon's reach at
+	# import (SpecRegistry._derive_orbit_radius), so it is not offered: a saved edit would be
+	# refused by the next import.
 	for spec: Array in [
-		["orbit radius", "orbit_radius", "u"], ["orbit speed", "orbit_speed", "u/s"]
+		["orbit radius", "orbit_radius", "u", PieceField.Kind.NUMBER, true],
+		["orbit speed", "orbit_speed", "u/s", PieceField.Kind.SPEED_CLASS, false],
 	]:
 		var field: PieceField = _property(
-			&"speed", spec[0], ["aerial", spec[1]], PieceField.Kind.NUMBER, "Aerial", spec[1]
+			&"speed", spec[0], ["aerial", spec[1]], spec[3], "Aerial", spec[1]
 		)
 		field.unit = spec[2]
+		var is_derived_from_reach: bool = spec[4]
 		field.applies = func(c: Dictionary) -> bool:
 			var aerial: Aerial = _node(c, "Aerial") as Aerial
-			return aerial != null and aerial.mode == Movement.Mode.FLYING
+			return (
+				aerial != null
+				and aerial.mode == Movement.Mode.FLYING
+				and not (is_derived_from_reach and _has_orbit_weapon(c))
+			)
 		fields.append(field)
 	var body: PieceField = _body_radius(&"speed", "body radius", "radius", "MovementBody")
 	body.applies = func(c: Dictionary) -> bool: return _movement(c) != null
@@ -737,17 +745,34 @@ static func _movement(a_ctx: Dictionary) -> Movement:
 	return _node(a_ctx, "Locomotion") as Movement
 
 
+## The doc's hp, not the upgraded maximum: what tuning edits is what Save writes back.
+static func _authored_hp(a_ctx: Dictionary) -> Variant:
+	var defense: Defense = _defense(a_ctx)
+	return defense.authored_hp_max() if defense != null else null
+
+
 ## A maximum keeps the fraction: a unit at half health stays at half.
 static func _retune_hp(a_ctx: Dictionary, _a_old: Variant, a_new: Variant) -> void:
 	var defense: Defense = _defense(a_ctx)
 	var fraction: float = defense.hp / defense.hp_max if defense.hp_max > 0.0 else 1.0
-	defense.hp_max = float(a_new)
+	defense.set_authored_hp_max(float(a_new))
 	if defense.is_node_ready():
 		defense.hp = fraction * defense.hp_max
 		defense.hp_changed.emit(defense.hp, defense.hp_max)
 
 
 ## A speed held down by a slow keeps its slow: the live value is scaled by what changed.
+## Whether the piece carries a weapon measuring reach from its orbit (Weapon.RangeOrigin.ORBIT).
+static func _has_orbit_weapon(a_ctx: Dictionary) -> bool:
+	var loadout: Node = _node(a_ctx, "Loadout")
+	if loadout == null:
+		return false
+	for child: Node in loadout.get_children():
+		if child is Weapon and (child as Weapon).range_origin == Weapon.RangeOrigin.ORBIT:
+			return true
+	return false
+
+
 static func _retune_speed(a_ctx: Dictionary, a_old: Variant, a_new: Variant) -> void:
 	var movement: Movement = _movement(a_ctx)
 	var old: float = float(a_old) if a_old != null else 0.0

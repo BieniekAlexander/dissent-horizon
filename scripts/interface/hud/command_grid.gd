@@ -213,23 +213,27 @@ static var _VERB_BINDINGS: Array = [
 	ControlBinding.new(
 		"command_spot",
 		"Spot",
-		Vector2i(1, 0),
+		Vector2i(0, 0),
 		ControlBinding.ControlContext.ACT,
 		"Call in a firing solution",
 		(
-			"Send this unit to mark a point for the artillery. It walks into range, "
-			+ "holds still while it calls the strike in, and leaves a beacon standing "
-			+ "there.\nIt then STAYS on the beacon until a Bombard spends it — that "
-			+ "commitment is what the artillery is paying for. Orders queued behind "
-			+ "this one wait for the shot. Giving it any other order cancels the "
-			+ "solution and removes the beacon."
+			"Send this unit to mark a point for the artillery.\nA Recruit walks into "
+			+ "range, holds still while it calls the strike in, and leaves a beacon "
+			+ "there. It then STAYS on the beacon until a Bombard spends it — the "
+			+ "nearest loaded Bombard on automatic fires as soon as it can. Orders "
+			+ "queued behind this one wait for the shot, and any other order removes "
+			+ "the beacon.\nA Sleeper walks to the point itself, plants a beacon on the "
+			+ "ground over 3 seconds, and moves on. A planted beacon stands until a "
+			+ "Bombard is ordered onto it.\nRight-click to switch your Bombards between "
+			+ "firing on a Recruit's beacon automatically and waiting for your order; "
+			+ "a lit top edge means automatic."
 		)
 	),
 	# ONE CELL, TWO STATES: a Sapper plants until its charge is in play, then sets it off. Plant
 	# is placed first, and the controller drops it from a selection that also offers Detonate
 	# and in which no Sapper has a charge ready (RTSController.selection_commands) — so the
 	# cell reads Plant while anything selected could plant, and Detonate after that. At R
-	# because Q and W hold Radiate and Spot, abilities of other pieces that a selection with a
+	# because Q and W hold Spot and Radiate, abilities of other pieces that a selection with a
 	# Sapper in it could still draw.
 	ControlBinding.new(
 		"command_plant",
@@ -261,7 +265,7 @@ static var _VERB_BINDINGS: Array = [
 	ControlBinding.new(
 		"command_launch",
 		"Radiate",
-		Vector2i(0, 0),
+		Vector2i(1, 0),
 		ControlBinding.ControlContext.ACT,
 		"Lay down a radiation field ({{ command_launch }})",
 		(

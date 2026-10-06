@@ -131,7 +131,7 @@ func tick() -> int:
 			_act.use_sanction(caster, sanction, (target as Commandable).global_position, target)
 		elif _act.use_sanction(caster, sanction, target as Vector3):
 			if sanction.targeting == Sanction.Targeting.REVEAL and scout != null:
-				scout.mark_revealed(target as Vector3, sanction.effect_radius)
+				scout.mark_revealed(target as Vector3, sanction.area_radius())
 	return work
 
 
@@ -209,7 +209,9 @@ func _engagement_zone() -> Variant:
 func _aim(a_sanction: Sanction, a_zone: Dictionary) -> Variant:
 	match a_sanction.targeting:
 		Sanction.Targeting.ENEMY_CLUSTER:
-			var cluster: Dictionary = _densest_cluster(a_zone["enemies"], a_sanction.effect_radius)
+			var cluster: Dictionary = _densest_cluster(
+				a_zone["enemies"], _cluster_radius(a_sanction)
+			)
 			if cluster["count"] >= a_sanction.min_targets:
 				return cluster["center"]
 			return null
@@ -217,7 +219,9 @@ func _aim(a_sanction: Sanction, a_zone: Dictionary) -> Variant:
 			if a_zone["mode"] == Mode.DEFEND:
 				return a_zone["anchor"]  # spawn defenders at the structure under attack
 			# Attacking: land allies on our side of the front, toward the cluster.
-			var cluster: Dictionary = _densest_cluster(a_zone["enemies"], a_sanction.effect_radius)
+			var cluster: Dictionary = _densest_cluster(
+				a_zone["enemies"], _cluster_radius(a_sanction)
+			)
 			if cluster["count"] <= 0:
 				return null
 			return (a_zone["anchor"] as Vector3).lerp(cluster["center"], REINFORCE_PUSH)
@@ -296,6 +300,19 @@ func _enemy_units(a_enemies: Array) -> Array:
 ## this catch" and BotKamikaze's "what is this blast worth" are now the same scan asked
 ## two different questions. Kept as a named method because what a SANCTION wants is a
 ## count against its min_targets, not a weight.
+## The radius the bot scores a cluster cast by: the sanction's own area, or, for one that
+## states none, UNSTATED_CLUSTER_RADIUS.
+static func _cluster_radius(sanction: Sanction) -> float:
+	var area: float = sanction.area_radius()
+	return area if area > 0.0 else UNSTATED_CLUSTER_RADIUS
+
+
+## The bot's guess at what a sanction stating no area covers — the radius every sanction used
+## to inherit as a default. Private to the bot's scoring: it is never shown to the player, and
+## it is a guess rather than a fact about any ability.
+const UNSTATED_CLUSTER_RADIUS: float = 6.0
+
+
 func _densest_cluster(a_enemies: Array, a_radius: float) -> Dictionary:
 	var best: Dictionary = _bot.best_covered_point(
 		a_enemies, a_radius, func(_u: Node3D): return 1.0

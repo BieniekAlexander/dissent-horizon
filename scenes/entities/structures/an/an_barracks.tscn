@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://5rx2m5er4g6t"]
+[gd_scene load_steps=23 format=3 uid="uid://5rx2m5er4g6t"]
 
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_tne4g"]
@@ -26,6 +26,9 @@ size = Vector3(3, 2, 3)
 [sub_resource type="BoxMesh" id="BoxMesh_5ktkt"]
 size = Vector3(3, 2, 3)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(3.0, 2.0, 3.0)
+
 [node name="AnBarracks" type="CharacterBody3D" unique_id=336663409 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
 collision_mask = 0
@@ -36,6 +39,11 @@ id = &"an_barracks"
 [node name="#####STATE#####" type="Node" parent="." unique_id=1532381907]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_xxy1c")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_tjl70")]
 
@@ -107,3 +115,4 @@ script = ExtResource("1_spec")
 producible_types = Array[StringName]([&"an_bioLight_antiStructure", &"an_bioMedium_antiMech", &"an_bioLight_antiBio", &"an_bioStrong_antiLight", &"an_bioMedium_support"])
 
 [editable path="Selectable"]
+[editable path="Hurtbox"]

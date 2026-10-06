@@ -93,6 +93,7 @@ Consequences, each with the place it lives:
 - Rows 0 and 2 of ACTIVE are one pool ("abilities") rather than two meanings — an acknowledged
   gap, to be split once there are enough unit abilities to say how. Radiate moved from (4,1) to
   (0,0) for it: it belongs to whichever units carry a charge, so it is an ability, not a verb.
+  Spot took (0,0) — `Q` — on 2026-10-06, and Radiate moved to (1,0), `W`.
 - **The verb row is now A S D F G**, filled left to right: attack-move, stop, defend, Fire
   (`command_focus_fire`), Go (`command_move`). Evacuate moved out of it to (3, 2) — `V`,
   beside Land and Rearm — on the same test Radiate was moved on: it needs a `Garrison`, so it
@@ -102,7 +103,9 @@ Consequences, each with the place it lives:
   verb by meaning and sits in the ability pool only for want of room. It is a pseudo-command
   and a TOGGLE — it sets `Commandable.is_holding_fire` across the armed selection, or clears it
   when all of them already hold, and touches no queue. While all hold it draws a lit top edge
-  (`CommandButtonState.is_toggled_on`) and stays pressable: an "on" state is not a blocker. What Go and Fire are FOR is
+  (`CommandButtonState.is_toggled_on`) and stays pressable: an "on" state is not a blocker.
+  The Spot and Bombard buttons draw the same edge while the commander has automatic Bombard fire on, the toggle its
+  RIGHT-click sets ([bombardment](../../combat/bombardment.md) §Automatic fire). What Go and Fire are FOR is
   [commands/saying-it-plainly](../../commands/saying-it-plainly.md).
 - **Deploy / Undeploy share `Z` (0, 2) with Land, and outrank it** — one button in two states,
   drawn ahead of Land, so a selection that could do both issues Deploy alone. Which state is
@@ -275,7 +278,7 @@ adding an ordnance is writing markdown and re-running the importer.
 ORDER you give a selected gun, and a strike the commander calls in without selecting anything.
 
 Two cells rather than one cell carrying both families, because **a cell free on one card is
-spoken for on the other**: (0, 0) is the Bombard on ORDNANCE and Radiate on ACTIVE. So it is
+spoken for on the other**: (0, 0) is the Bombard on ORDNANCE and Spot on ACTIVE. So it is
 two bindings with one command name, and pressing either does the same thing.
 
 That makes it the first command with more than one binding, and it moved a rule:
@@ -283,7 +286,7 @@ That makes it the first command with more than one binding, and it moved a rule:
 family (`CommandGrid.BUTTON_FAMILY_META`, stamped at construction) and
 `CommandGrid.families_for()` ORs across a name for the hotkey gate. Looking a button's card up
 by name returns whichever binding sorts first, which would have drawn the Bombard on top of
-Radiate at ACTIVE's (0, 0).
+Spot at ACTIVE's (0, 0).
 
 It also retired the hand-written verb binding Bombard used to have. Two SOURCES for one
 command — one authored in `command_grid.gd`, one generated from the doc — is how a cell moves

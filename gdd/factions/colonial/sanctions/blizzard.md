@@ -9,8 +9,11 @@ levels:
     tier: 3
     cost: 1500
     cooldown: 60
-    description: 'Freezes everything in a wide area. STUB: no payload built yet.'
-    verbose: 'Not implemented. The cell is real — it costs dominion and runs its cooldown — but firing it does nothing yet.'
+    description: A storm gathers over the target for 10 seconds, then freezes every unit that stands in it for 2 seconds, for 10 more.
+    verbose: |
+      The storm's 10 seconds of gathering are its warning: anyone can see it coming and
+      walk out. Once it breaks it freezes friend and foe alike, and holds a frozen unit
+      frozen for as long as it stays inside. STRONG armour and structures are not frozen.
 ---
 # Blizzard
 
@@ -20,5 +23,6 @@ dependency — the same relationship Gunship has to the Scan column. Buying Bliz
 not retire Freeze, and Freeze is not a prerequisite for it.
 
 ## Mechanic
-**Stubbed.** The area version of Freeze; see `freeze.md` for the rules a cryogenic freeze
-follows.
+Places a `blizzard_field` at the target point: 10 seconds gathering, then a frost field of
+`aoe_huge` for 10 seconds. Frost fields and the freeze they apply are
+[shields](../../../systems/combat/shields.md) §Frost fields.

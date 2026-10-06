@@ -20,7 +20,7 @@ footprint:
 trains:
   - cl_bioLight_antiLight
   - cl_bioLight_antiMech
-  - cl_bioMedium_antiLight
+  - cl_bioMedium_antiStrong
   - cl_bioLight_stealth
 infrastructure: -50
 ui:

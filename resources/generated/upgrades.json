@@ -8,5 +8,46 @@
 			}
 		],
 		"title": "Advanced Targetting"
+	},
+	"field_conditioning": {
+		"modifies": [
+			{
+				"frame": "BIO",
+				"hp_factor": 1.25
+			}
+		],
+		"title": "Field Conditioning"
+	},
+	"gun_drill": {
+		"modifies": [
+			{
+				"ability": "bombard",
+				"cooldown_rate_factor": 1.5,
+				"piece": "cl_defense_antiStructure"
+			}
+		],
+		"title": "Gun Drill"
+	},
+	"rapid_rearmament": {
+		"modifies": [
+			{
+				"piece": "cl_aircraftMedium_antiMech",
+				"rearm_rate_factor": 2.0
+			}
+		],
+		"title": "Rapid Rearmament"
+	},
+	"reinforced_hulls": {
+		"modifies": [
+			{
+				"hp_factor": 1.25,
+				"piece": "cl_mechMedium_antiLight"
+			},
+			{
+				"hp_factor": 1.25,
+				"piece": "cl_mechMedium_antiMech"
+			}
+		],
+		"title": "Reinforced Hulls"
 	}
 }

@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://csyr8p6ug2rpw"]
+[gd_scene load_steps=15 format=3 uid="uid://csyr8p6ug2rpw"]
 
 [ext_resource type="Script" path="res://scripts/entities/entity.gd" id="1_cjycp"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="2_own"]
@@ -13,11 +13,11 @@
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="11_scfmn"]
 [ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="12_ss5ie"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_1dpfl"]
-size = Vector3(3, 10, 3)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_wisfu"]
 size = Vector3(3, 0.9291992, 3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(3.0, 0.9, 3.0)
 
 [node name="ShelterStructure" type="CharacterBody3D" unique_id=1119858882 groups=["piece", "fixture", "shelter"]]
 editor_description = "Neutral map feature that houses and repopulates Terrestrials."
@@ -30,8 +30,10 @@ id = &"nt_shelter"
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("2_wisfu")]
 
-[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
-shape = SubResource("BoxShape3D_1dpfl")
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.494537, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="Ownership" type="Node" parent="." unique_id=1036473683]
 script = ExtResource("2_own")

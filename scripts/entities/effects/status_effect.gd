@@ -149,7 +149,8 @@ func _validate_property(a_property: Dictionary) -> void:
 func apply_to(a_entity: Entity, a_source: Commandable = null) -> void:
 	var existing: StatusEffect = _find_matching(a_entity)
 	if existing != null and existing != self:
-		existing._reapply(a_source)
+		source = a_source
+		existing._reapply_with(self)
 		queue_free()
 		return
 
@@ -218,6 +219,13 @@ func _physics_process(_a_delta: float) -> void:
 
 
 #region Reapplication
+## Reapply this effect on behalf of `a_incoming`, the duplicate that found it already standing.
+## By default only the inflictor carries over (see _reapply); an effect whose reapplication
+## depends on the incoming one's own numbers overrides this.
+func _reapply_with(a_incoming: StatusEffect) -> void:
+	_reapply(a_incoming.source)
+
+
 ## Re-enact an already-active effect of this kind. Refreshes the timer in both modes
 ## and, under STACK, adds a stack (capped at max_stacks). Re-attributes to the latest
 ## inflictor so the most recent source gets credit for any damage.

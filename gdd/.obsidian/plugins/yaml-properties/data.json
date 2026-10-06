@@ -295,6 +295,10 @@
     "factions/neutral/structures/nt_building_shack.md": false,
     "factions/neutral/structures/nt_building_long.md": false,
     "factions/neutral/structures/nt_building_square.md": false,
-    "factions/neutral/structures/nt_building_large.md": false
+    "factions/neutral/structures/nt_building_large.md": false,
+    "factions/anarchical/sanctions/ambush.md": false,
+    "movement/speed_classes.md": false,
+    "factions/colonial/units/cl_aircraftStrong_transport.md": false,
+    "factions/colonial/units/cl_bioMedium_antiStrong.md": false
   }
 }

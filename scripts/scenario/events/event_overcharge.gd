@@ -11,24 +11,26 @@ class_name EventOvercharge extends EventTargetUnit
 ## disabled unit does nothing at all rather than dealing reduced damage to whatever was
 ## nearest.
 ##
-## `Commandable.is_stunned()` is the test, which means a unit disabled by any hard stun
-## qualifies, including a Colonial FreezeStatusEffect (it extends StunStatusEffect). That
-## cross-faction interaction is accepted rather than special-cased: a frozen unit is
-## exactly as helpless as an EMPed one, and a rule that read "disabled, but only by our
-## own EMP" would be arbitrary from the target's point of view.
+## The test is an EMP specifically (`EmpStatusEffect.is_emped`), not any stun: a unit a
+## Colonial Freeze or a bio stun has disabled is just as helpless, but Overcharge is the EMP's
+## follow-through and nothing else's. Decided 2026-10-05; it used to accept any stun.
 ##
 ## Flat damage rather than a fraction of max HP: the pairing already guarantees the
 ## target cannot escape, so scaling to the target's size would make the combination an
 ## unconditional kill on anything. A flat number lets the biggest machines survive it,
 ## which is what keeps EMP + Overcharge a strong play rather than the only play.
 
-## Damage dealt to the disabled target. Applied straight to Defense, bypassing armour:
-## the target is opened up, and the armour step a Freeze just added must not blunt it.
+## Damage dealt to the disabled target. Applied straight to hit points, bypassing armour and
+## any shield: the target is opened up.
 @export var damage: float = 400.0
 
 
 func _qualifies(a_candidate: Commandable) -> bool:
-	return a_candidate.defense != null and a_candidate.defense.hp > 0 and a_candidate.is_stunned()
+	return (
+		a_candidate.defense != null
+		and a_candidate.defense.hp > 0
+		and EmpStatusEffect.is_emped(a_candidate)
+	)
 
 
 func execute(a_manager: ScenarioTriggerManager) -> void:

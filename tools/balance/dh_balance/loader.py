@@ -187,15 +187,11 @@ def load_damage_table(path: Path) -> DamageTable:
         DamageType(dt): {Armour(a): float(m) for a, m in row.items()}
         for dt, row in raw.get("vs_armour", {}).items()
     }
-    vs_attribute = {
-        DamageType(dt): {a: float(m) for a, m in row.items()}
-        for dt, row in raw.get("vs_attribute", {}).items()
-    }
     vs_frame = {
         DamageType(dt): {Frame(fr): float(m) for fr, m in row.items()}
         for dt, row in raw.get("vs_frame", {}).items()
     }
-    return DamageTable(vs_armour=vs_armour, vs_attribute=vs_attribute, vs_frame=vs_frame)
+    return DamageTable(vs_armour=vs_armour, vs_frame=vs_frame)
 
 
 def load_world(data_dir: Path | None = None) -> World:

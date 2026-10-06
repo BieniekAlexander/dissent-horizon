@@ -1016,7 +1016,7 @@ func _armed_effect_radius(a_ability: StringName) -> float:
 		# has a delivery: what lands is pieces, spread onto whatever ground is free.
 		if _pending_sanction.targets_one_unit() or _pending_sanction.takes_a_payload():
 			return 0.0
-		return maxf(_pending_sanction.effect_radius, 0.0)
+		return maxf(_pending_sanction.area_radius(), 0.0)
 	return EntityRanges.emission_radius(AbilityCatalog.emission_of(a_ability))
 
 
@@ -1297,7 +1297,9 @@ func _lay_out_on_line(a_group: Array, a_spacing: float, a_into: Dictionary) -> v
 		a_group.size(),
 		LineSlots.back_toward(_line_start, _line_end, centroid)
 	)
-	var taken: Array[int] = LineSlots.assign(positions, slots, LineSlots.axis(_line_start, _line_end))
+	var taken: Array[int] = LineSlots.assign(
+		positions, slots, LineSlots.axis(_line_start, _line_end)
+	)
 	for i: int in a_group.size():
 		if taken[i] >= 0:
 			a_into[a_group[i]] = slots[taken[i]]
@@ -2959,6 +2961,15 @@ static func toggle_hold_fire(actors: Array) -> void:
 			actor.is_holding_fire = is_holding
 
 
+## Toggle `commander`'s automatic use of `a_ability_id` — the right-click on its command-card
+## button and on its HUD-bar button alike, which is why the setting is the commander's.
+func _toggle_autocast(a_ability_id: StringName, a_commander: Commander) -> void:
+	if a_commander == null:
+		return
+	a_commander.toggle_autocast(a_ability_id)
+	upate_hud_buttons()
+
+
 ## Hotkey name -> the command class arming it selects, for every sub-mode whose answer is
 ## the same whatever the cursor is over. Two hotkeys are deliberately absent because a name
 ## alone cannot express them — see _resolve_hotkey_command.
@@ -3252,7 +3263,8 @@ static func selection_precondition(
 ## Train is exempt: a purchase is commander-global, so there is only ever one actor from the
 ## commander's point of view and there is nothing to narrow.
 ##
-## Why the NEAREST IDLE one:
+## Why the NEAREST FREE one — idle, unless the command says otherwise
+## (MoveCommand.is_free_to_take):
 ## gdd/systems/ux/ui/selection-and-input.md §The narrow modifier picks the nearest IDLE actor.
 func _narrowed_actors(a_command_type: Script, a_actors: Array, a_message: CommandMessage) -> Array:
 	if a_actors.size() <= 1 or a_command_type == Train:
@@ -3265,7 +3277,7 @@ func _narrowed_actors(a_command_type: Script, a_actors: Array, a_message: Comman
 		var actor := node as Commandable
 		if actor == null:
 			continue
-		candidates.append([VU.in_xz(actor.global_position), actor._command == null])
+		candidates.append([VU.in_xz(actor.global_position), a_command_type.is_free_to_take(actor)])
 	var index: int = narrowed_index(
 		candidates, a_message.xz_position, not Input.is_action_pressed(MODIFIER_BROADEN)
 	)
@@ -4266,6 +4278,10 @@ func _on_control_button_pressed(a_control_name: String) -> void:
 ## does nothing rather than falling through to the left-click behaviour, so the two clicks
 ## never mean the same thing on a button where only one of them is meaningful.
 func _on_control_button_alternate_pressed(a_control_name: String) -> void:
+	var autocast_id: StringName = CommandContextParser.autocast_ability_of(a_control_name)
+	if autocast_id != &"":
+		_toggle_autocast(autocast_id, _selection_commander())
+		return
 	if Tool.for_name(a_control_name) == null:
 		return
 	_next_purchase_standing = true
@@ -4982,9 +4998,31 @@ func _setup_sanction_bar() -> void:
 		btn.name = AbilityCatalog.title_of(ability)
 		btn.visible = false
 		btn.pressed.connect(_on_deploy_button_pressed.bind(ability))
+		if _has_autocast(ability):
+			btn.gui_input.connect(_on_deploy_button_input.bind(btn, ability))
 		_sanction_bar_row.add_child(btn)
 		_deploy_buttons.append({"button": btn, "ability": ability, "entry": null})
 		_refresh_deploy_tooltips(_deploy_buttons[-1])
+
+
+## Whether `a_ability_id` has an automatic mode its buttons toggle.
+static func _has_autocast(a_ability_id: StringName) -> bool:
+	return (
+		CommandContextParser.autocast_ability_of(AbilityCatalog.command_of(a_ability_id))
+		== a_ability_id
+	)
+
+
+## A RIGHT-click on a HUD-bar ability button toggles its automatic mode, as on the command card.
+## The `gui_input` signal rather than a _gui_input override, for ButtonSpec's reason.
+func _on_deploy_button_input(
+	a_event: InputEvent, a_button: Control, a_ability_id: StringName
+) -> void:
+	var press := a_event as InputEventMouseButton
+	if press == null or press.button_index != MOUSE_BUTTON_RIGHT or not press.pressed:
+		return
+	a_button.accept_event()
+	_toggle_autocast(a_ability_id, _commander())
 
 
 ## A VerboseTooltipButton rather than a plain Button, so a sanction tooltip looks and
@@ -5043,10 +5081,15 @@ func _sanction_verbose_tooltip(a_entry: SanctionGrid.Entry, a_deploys: bool) -> 
 		lines.append(prose)
 	if a_entry.unlock != null and a_entry.unlock.dominion_cost > 0:
 		lines.append("Unlock: %d dominion" % a_entry.unlock.dominion_cost)
+	var area: float = sanction.area_radius()
 	lines.append(
 		(
-			"Cooldown: %ds · effect radius %s"
-			% [roundi(sanction.cooldown_duration), String.num(sanction.effect_radius, 1)]
+			(
+				"Cooldown: %ds · effect radius %s"
+				% [roundi(sanction.cooldown_duration), String.num(area, 1)]
+			)
+			if area > 0.0
+			else "Cooldown: %ds" % roundi(sanction.cooldown_duration)
 		)
 	)
 	# Only the exception is stated. Needing vision is the rule every sanction follows
@@ -5132,6 +5175,9 @@ func _paint_deploy_button(a_pair: Dictionary) -> void:
 	# Never DISABLED on a spent charge: the order is still worth giving — the caster holds it
 	# and fires when it comes up, exactly as a Bombard does.
 	btn.disabled = false
+	var commander: Commander = _commander()
+	if _has_autocast(ability) and commander != null:
+		(btn as VerboseTooltipButton).show_toggled(commander.is_autocasting(ability))
 
 
 ## The two authored tiers for a deploy button. A dominion-unlocked ability describes

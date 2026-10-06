@@ -18,7 +18,7 @@ footprint:
   - 4
   - 4
 abilities:
-  - cooldown: 5
+  - cooldown: 30
     grants:
       - bombard
 beacon: 20
@@ -56,6 +56,8 @@ burns one the player walked a Recruit across the map to place.
 
 ## Notes
 - The shell it throws is `cannon_shell`, which keeps a name the gun itself no longer carries.
-- The 5-second reload is the old weapon's, now a charge pool on the gun: one charge, five
-  seconds to regain it. It is authored here rather than on the ability because the pool
-  belongs to the piece holding it.
+- One charge, 30 seconds to regain it. It is authored here rather than on the ability
+  because the pool belongs to the piece holding it.
+- The shell deals 533.3 PLASMA: 80% of a SAM's 500 hp (MEDIUM, ×0.75), and 320 a shot
+  against a STRONG Citadel, so ten shots kill one. It lives on the shell scene, which has no
+  doc of its own.

@@ -252,9 +252,10 @@ senses:                        # -> the detection volumes on the root
   detection: detection_small   # library id it sees THROUGH stealth with; creates a
                                # DetectionRange volume. 0 / false / left empty opts out
 
-body:                          # -> the physical volumes on the root
-  radius: 0.3                  # MovementBody radius (nav footprint / avoidance)
-  hurtbox: 0.4                 # Hurtbox/HurtboxShape radius (what weapons lock onto)
+body:                          # -> the physical volume on the root
+  radius: 0.3                  # MovementBody radius (nav footprint / avoidance). The
+                               # hurtbox is not a key: the importer fits it to the model
+                               # (gdd/systems/ux/ui/generated-visual-defaults.md)
 
 movement: {speed: SLOW, turn_rate: 1080}   # speed NAMES a class — see kind: SpeedLibrary
 # ...and the rest of the chassis. EVERY movement sub-key is validated against
@@ -273,8 +274,9 @@ movement: {speed: SLOW, turn_rate: 1080}   # speed NAMES a class — see kind: S
 # orbit keys are refused with a pointer to where they went.
 aerial: {mode: FLYING}         # the Aerial component — its presence makes an aircraft
 #   mode: HOVERING | FLYING      # required; GROUNDED is not a way of flying
-#   orbit_radius: 3.0            # FLYING only
-#   orbit_speed: 1.5             # FLYING only
+#   orbit_radius: 3.0            # FLYING only. Derived, and refused here, when a weapon has
+#                                # `range_from: orbit`: it is that weapon's ground reach
+#   orbit_speed: SLUGGISH        # FLYING only. Names a speed class, like movement.speed
 docking: true                  # the Docking component — the piece docks at airfields.
 # Presence only; absent = does not dock (the kamikaze drone, expended on its first run).
 # Needs `aerial:` (a ground unit that docks is not built yet). A charged weapon on a piece
@@ -297,6 +299,10 @@ weapons:                       # matched by name (the sync key)
                                # its target (Weapon.turret). Omitted = false.
     turret_turn_rate: 360      # turret swing speed, degrees per second. Only with
                                # turret: true. Omitted = the Weapon default (360).
+    range_from: hull           # where reach is measured from (Weapon.RangeOrigin): hull =
+                               # footprint to footprint; orbit = the range shape standing at
+                               # the centre of the piece's orbit, overlapping the target's
+                               # hurtbox. orbit needs aerial: {mode: FLYING}. Omitted = hull.
     reach: {ground: ground_range_medium, air: air_range_long}   # shape-library ids, or
                                # one id for every layer. Never a number — see kind: ShapeLibrary
     hits: [ground, air]
@@ -340,9 +346,10 @@ abilities:                     # the abilities it can use, and the charge pools 
 repairs: true                  # gives the piece a Repairs component; omitted = cannot repair
 stealth: true                  # gives the piece a Stealth component (presence is the whole
                                # mechanic — the component has no exports)
-spotting: true                 # gives the piece a Spotter component
 shelter: true                  # identity components, by PRESENCE only — also
-                               # extraction_site / extractor; tuning stays in the scene
+                               # extraction_site / extractor / plants_beacons (a spotter that
+                               # plants a ground beacon and leaves, rather than holding one);
+                               # tuning stays in the scene
 beacon: 20                     # persistent bombardable bubble (BeaconRange); false removes
 infrastructure: -40                    # Commandable.infrastructure: >0 provides, <0 consumes, 0 neutral
 occupancy_size: 2              # how much of a garrison's capacity this piece consumes
@@ -385,7 +392,7 @@ second time when it lands.
 
 - **Every doc-governed shape is a `CylinderShape3D`** of a fixed height
   (`SpecSceneSync.SHAPE_HEIGHT`, 100), so a spec authors only the radius —
-  `senses.vision`, `body.radius`, `body.hurtbox`, and each
+  `senses.vision`, `body.radius`, and each
   shape-library entry (which a weapon's `reach` names). The height is deliberately far taller than the world: shapes sit at
   the entity's origin, so vertical separation (aerial units cruise at
   `Aerial.AERIAL_HEIGHT`) never decides an overlap. A shape authored as some
@@ -413,7 +420,7 @@ second time when it lands.
   it is the same removal as `vision: false`. That is the spelling an author actually
   produces, by deleting a number rather than the line, and refusing it made the
   ordinary way of taking a volume away an import error. It stays refused where zero
-  does not disable (`body.radius`, `body.hurtbox`, a projectile's `blast`): those
+  does not disable (`body.radius`, a projectile's `blast`): those
   volumes are not optional. Emptiness means removal only for these keys — elsewhere
   an empty value is still whatever that key's own validation says it is.
 
@@ -762,8 +769,12 @@ Validation refuses any other top-level key, an empty or absent `modifies:`, a mo
 piece that is not granted the ability, and a `researches:` entry that is not an upgrade. An
 upgrade nothing researches is a warning, since its button can never be drawn.
 
-`range` is the only thing a modifier can change today (`SpecRegistry.MODIFIER_KEYS`). A new one
-is added there together with the runtime reader that honours it.
+A modifier selects by `piece:` or by `frame: BIO|MECH` (every unit of that frame), and carries
+exactly one effect: `range` (a shape id; needs `ability:`), `hp_factor`, `rearm_rate_factor`
+(the piece must carry a `charged:` weapon) or `cooldown_rate_factor` (needs `ability:`). A
+factor is a positive number, 1.25 meaning a quarter more. The effects are
+`SpecRegistry.MODIFIER_EFFECTS`; a new one is added there together with the runtime reader
+that honours it. What each one does: the upgrades note §What an upgrade can change.
 
 ### kind: ShapeLibrary
 
@@ -815,8 +826,8 @@ speeds:
 The registry swaps each name for its number right after every doc is registered and before
 anything is validated (`SpecRegistry._resolve_speed_classes`), so the rules, generators and
 scene sync read a number exactly as they did when docs carried one, and scenes still store
-world units per second. Nothing else is a speed class: `min_speed`, `launch_speed_ratio`,
-`orbit_speed` and the `*_speed_ratio` chassis fractions stay numbers.
+world units per second. `aerial.orbit_speed` is a class too; nothing else is: `min_speed`,
+`launch_speed_ratio` and the `*_speed_ratio` chassis fractions stay numbers.
 
 ## Calibration rules and the `exceptions:` block
 

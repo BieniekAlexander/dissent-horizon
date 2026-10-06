@@ -8,6 +8,8 @@ extends GutTest
 ## a degenerate footprint) is reachable without booting the engine.
 
 const VisualDefaults := preload("res://tools/spec_import/visual_defaults.gd")
+const VisualMeasure := preload("res://tools/spec_import/visual_measure.gd")
+const SpecSchema := preload("res://tools/spec_import/schema.gd")
 
 ## A model roughly the size of the roster's infantry, and one roughly the size of its
 ## vehicles — the two ends the floors and ratios are pitched between.
@@ -288,3 +290,90 @@ func test_impact_burst_differs_from_every_trajectory_mesh() -> void:
 			VisualDefaults.placeholder_size(burst),
 			"%s's burst is distinguishable from its shell" % preset
 		)
+
+
+# --------------------------------------------------------------------------- #
+# Hurtbox
+# --------------------------------------------------------------------------- #
+func _hurtbox(
+	a_class: int,
+	a_size: Vector3,
+	a_top: float,
+	a_cells: Vector2i = Vector2i.ONE,
+	a_fixture: bool = false
+) -> Dictionary:
+	return VisualDefaults.hurtbox_shape(a_class, a_size, a_top, a_cells, a_fixture)
+
+
+func test_a_bio_unit_takes_a_cylinder_around_its_model() -> void:
+	var shape: Dictionary = _hurtbox(VisualDefaults.VisualClass.BIO_UNIT, INFANTRY_SIZE, 1.0)
+	assert_eq(shape["type"], "CylinderShape3D")
+	assert_almost_eq(float(shape["props"]["radius"]), 0.2, 0.0001)
+	assert_almost_eq(float(shape["props"]["height"]), 1.0, 0.0001)
+
+
+func test_a_mech_unit_takes_a_box_of_its_model() -> void:
+	var shape: Dictionary = _hurtbox(VisualDefaults.VisualClass.MECH_UNIT, VEHICLE_SIZE, 0.6)
+	assert_eq(shape["type"], "BoxShape3D")
+	assert_eq(shape["props"]["size"], VEHICLE_SIZE)
+
+
+func test_an_aircraft_takes_a_cylinder() -> void:
+	var shape: Dictionary = _hurtbox(VisualDefaults.VisualClass.AERIAL_UNIT, VEHICLE_SIZE, 0.5)
+	assert_eq(shape["type"], "CylinderShape3D")
+	assert_almost_eq(float(shape["props"]["radius"]), 1.05, 0.0001, "the wider side, halved")
+
+
+func test_a_fixture_takes_its_footprint_not_its_mesh() -> void:
+	var overhanging := Vector3(5.0, 2.0, 5.0)
+	var shape: Dictionary = _hurtbox(
+		VisualDefaults.VisualClass.STRUCTURE, overhanging, 2.0, Vector2i(4, 3), true
+	)
+	assert_eq(shape["type"], "BoxShape3D")
+	assert_eq(shape["props"]["size"], Vector3(4.0, 2.0, 3.0))
+
+
+func test_it_stands_on_the_origin_and_never_reaches_below_it() -> void:
+	# A model whose mesh dips below the origin (an aircraft's belly) is cut off at the base.
+	var shape: Dictionary = _hurtbox(VisualDefaults.VisualClass.BIO_UNIT, Vector3(1, 1, 1), 0.7)
+	assert_almost_eq(float(shape["props"]["height"]), 0.7, 0.0001)
+	assert_almost_eq(float(shape["center_y"]), 0.35, 0.0001, "bottom at the origin")
+	# One that floats above it starts where the model does.
+	var raised: Dictionary = _hurtbox(VisualDefaults.VisualClass.BIO_UNIT, Vector3(1, 1, 1), 1.5)
+	assert_almost_eq(
+		float(raised["center_y"]) - float(raised["props"]["height"]) / 2.0, 0.5, 0.0001
+	)
+
+
+func test_a_sliver_of_a_model_stays_hittable() -> void:
+	var shape: Dictionary = _hurtbox(VisualDefaults.VisualClass.BIO_UNIT, Vector3.ZERO, 0.0)
+	assert_eq(float(shape["props"]["radius"]), VisualDefaults.MIN_HURTBOX_RADIUS)
+	assert_eq(float(shape["props"]["height"]), VisualDefaults.MIN_HURTBOX_HEIGHT)
+
+
+func _with_hurtbox(a_shape: Shape3D, a_stamped: bool) -> Node3D:
+	var root: Node3D = autofree(Node3D.new())
+	var hurtbox: StaticBody3D = StaticBody3D.new()
+	hurtbox.name = "Hurtbox"
+	root.add_child(hurtbox)
+	var node: CollisionShape3D = CollisionShape3D.new()
+	node.name = "HurtboxShape"
+	node.shape = a_shape
+	if a_stamped:
+		node.set_meta(VisualMeasure.STAMP_HURTBOX, "CylinderShape3D")
+	hurtbox.add_child(node)
+	return root
+
+
+func test_an_empty_hurtbox_is_the_ask_for_a_fit() -> void:
+	assert_true(VisualMeasure.hurtbox_is_cleared(_with_hurtbox(null, false)))
+	assert_false(VisualMeasure.hurtbox_is_cleared(_with_hurtbox(CylinderShape3D.new(), false)))
+
+
+func test_the_hurtbox_doc_key_is_retired() -> void:
+	var spec: Dictionary = {"body": {"radius": 0.3, "hurtbox": 0.4}}
+	var errors: Array = SpecSchema.normalize(spec)
+	assert_true(
+		errors.any(func(e: String) -> bool: return e.contains("fitted to the model")),
+		"refused, saying where the hurtbox comes from now: %s" % [errors]
+	)

@@ -1,0 +1,174 @@
+[gd_scene load_steps=32 format=3 uid="uid://btt838afko6qs"]
+
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
+[ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="1_spec"]
+[ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="2_spec"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="3_spec"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="4_spec"]
+[ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="5_spec"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="6_spec"]
+[ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="7_spec"]
+[ext_resource type="Script" uid="uid://04yfk0mkmwom" path="res://scripts/entities/components/aerial.gd" id="8_spec"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="9_spec"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="10_spec"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="11_spec"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="12_spec"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="13_spec"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="14_spec"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="15_spec"]
+[ext_resource type="Script" uid="uid://cywa5m1mky68q" path="res://scripts/entities/components/altitude_indicator.gd" id="16_spec"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="17_spec"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="18_spec"]
+[ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="19_spec"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="20_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_aerial_medium.tres" id="21_spec"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="22_spec"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="23_spec"]
+[ext_resource type="PackedScene" uid="uid://b132d37e4g7ff" path="res://scenes/entities/projectiles/cl/gunship_bullet.tscn" id="24_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/ground_range_long.tres" id="25_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/air_range_siege.tres" id="26_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/air_range_long.tres" id="27_spec"]
+
+[sub_resource type="PrismMesh" id="PrismMesh_placeholder"]
+size = Vector3(1.2, 0.25, 1.4)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_selection"]
+radius = 0.7
+height = 0.6
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 0.7
+height = 0.25
+
+[node name="ClAircraftMediumGunship" type="CharacterBody3D" groups=["piece", "unit"]]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1_root")
+id = &"cl_aircraftMedium_gunship"
+editor_description = "Off-map gunship flown by the Gunship sanction. Takes Attack orders on station; never Move."
+description = "Called-in gunship. Holds station over a point for a while, firing on anything below."
+verbose = "Not a piece anyone builds. It answers a Gunship sanction: it flies in from your side of\nthe board with its guns cold, circles the point you called it to, and fires on whatever\nit finds there until its time on station runs out. Then it goes home the way it came.\n\nIt takes Attack orders while on station, but it will not leave its station to go\nanywhere else — and it can be shot down."
+
+[node name="#####STATE#####" type="Node" parent="."]
+
+[node name="NavigationAgent" parent="." instance=ExtResource("1_spec")]
+
+[node name="MovementBody" parent="." instance=ExtResource("2_spec")]
+
+[node name="Hurtbox" parent="." instance=ExtResource("3_spec")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("CylinderShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.125, 0.0)
+metadata/_visual_default_hurtbox = "CylinderShape3D"
+
+[node name="AggroRangeGround" parent="." instance=ExtResource("4_spec")]
+
+[node name="VisionRange" parent="." instance=ExtResource("5_spec")]
+shape = ExtResource("21_spec")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("6_spec")
+
+[node name="Locomotion" type="Node" parent="."]
+nav_agent_path = NodePath("../NavigationAgent")
+script = ExtResource("7_spec")
+speed = 20.0
+turn_rate = 150.0
+max_acceleration = 6.0
+max_deceleration = -10.0
+
+[node name="Aerial" type="Node" parent="."]
+script = ExtResource("8_spec")
+mode = 17
+orbit_radius = 12.0
+orbit_speed = 8.5
+
+[node name="Defense" type="Node" parent="."]
+script = ExtResource("9_spec")
+hp_max = 600.0
+armour_type = 1
+frame_type = 1
+
+[node name="Veterancy" type="Node" parent="."]
+script = ExtResource("10_spec")
+
+[node name="#####CONTROLS#####" type="Node" parent="."]
+
+[node name="Selectable" parent="." instance=ExtResource("11_spec")]
+
+[node name="SelectionShape" parent="Selectable" index="0"]
+shape = SubResource("CylinderShape3D_selection")
+metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="."]
+
+[node name="HPBar" parent="." instance=ExtResource("12_spec")]
+billboard = 2
+transform = Transform3D(0.364583, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.37, 0.0)
+metadata/_visual_default_hp_bar = 0.933333
+
+[node name="HPBarFill" parent="HPBar"]
+billboard = 2
+
+[node name="HPBarBack" parent="HPBar"]
+billboard = 2
+
+[node name="SelectionIndicator" parent="." instance=ExtResource("13_spec")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="."]
+script = ExtResource("14_spec")
+
+[node name="MeshVisual" type="Node3D" parent="."]
+script = ExtResource("15_spec")
+
+[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual"]
+mesh = SubResource("PrismMesh_placeholder")
+metadata/_visual_default_mesh = "aerial unit"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.125, 0.0)
+
+[node name="AltitudeIndicator" type="Node3D" parent="."]
+script = ExtResource("16_spec")
+
+[node name="StatusVisuals" type="Node3D" parent="."]
+script = ExtResource("17_spec")
+
+[node name="#####DEBUG#####" type="Node" parent="."]
+
+[node name="DebugLabel" parent="." instance=ExtResource("18_spec")]
+billboard = 2
+
+[node name="AvoidanceObstacle" parent="." instance=ExtResource("19_spec")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="."]
+
+[node name="TargetIndicator" parent="." instance=ExtResource("20_spec")]
+
+[node name="AggroRangeAir" parent="." instance=ExtResource("4_spec")]
+
+[node name="Loadout" type="Node3D" parent="."]
+script = ExtResource("22_spec")
+
+[node name="BallisticWeapon" type="Node3D" parent="Loadout"]
+script = ExtResource("23_spec")
+split_time_ticks = 4
+reload_time_ticks = 54
+clip_size = 10
+projectile_scene = ExtResource("24_spec")
+melee_damage = 0.0
+target_mask = 6
+turret = true
+range_origin = 1
+
+[node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/BallisticWeapon" groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("25_spec")
+disabled = true
+
+[node name="AttackRangeAir" type="CollisionShape3D" parent="Loadout/BallisticWeapon" groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("27_spec")
+disabled = true
+
+[editable path="HPBar"]
+[editable path="Hurtbox"]

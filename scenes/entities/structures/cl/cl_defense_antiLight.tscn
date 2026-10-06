@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://cmwo6vlb5bkrn"]
+[gd_scene load_steps=28 format=3 uid="uid://cmwo6vlb5bkrn"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
@@ -31,6 +31,9 @@ size = Vector3(1.0, 2.0, 1.0)
 [sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
 size = Vector3(1.0, 2.0, 1.0)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(1.0, 2.0, 1.0)
+
 [node name="ClDefenseAntiLight" type="CharacterBody3D" groups=["piece", "fixture", "structure"]]
 collision_layer = 0
 collision_mask = 0
@@ -43,6 +46,11 @@ infrastructure = -50
 [node name="#####STATE#####" type="Node" parent="."]
 
 [node name="Hurtbox" parent="." instance=ExtResource("1_spec")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
 
@@ -122,7 +130,7 @@ script = ExtResource("20_spec")
 script = ExtResource("21_spec")
 split_time_ticks = 3
 reload_time_ticks = 90
-clip_size = 6
+clip_size = 12
 projectile_scene = ExtResource("22_spec")
 melee_damage = 0.0
 target_mask = 2
@@ -131,3 +139,5 @@ target_mask = 2
 visible = false
 shape = ExtResource("23_spec")
 disabled = true
+
+[editable path="Hurtbox"]

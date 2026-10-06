@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://dnphbvwld3dbw"]
+[gd_scene load_steps=31 format=3 uid="uid://dnphbvwld3dbw"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_g7wsv"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
@@ -33,6 +33,9 @@
 height = 0.950211
 radius = 0.99
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(1.24, 0.950211, 1.98)
+
 [node name="ClAntiAirMediumMech" type="CharacterBody3D" unique_id=681231263 groups=["piece", "unit"]]
 script = ExtResource("1_g7wsv")
 description = "Convoy escort vehicle, good against lightly armored targets and aircrafts"
@@ -46,6 +49,11 @@ id = &"cl_mechMedium_antiLight"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_v1wro")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_rcvls")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.484894, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_4sqri")]
 
@@ -157,3 +165,4 @@ capacity = 6
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

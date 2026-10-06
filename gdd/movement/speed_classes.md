@@ -100,5 +100,5 @@ Descriptive, not prescriptive: this is what the docs name today, not a rule abou
 lands on the piece fired at), and the shot still flies at its speed class
 ([combat/projectiles](../systems/combat/projectiles.md) §`hitscan` is the aiming rule).
 
-Other speed-like keys are still numbers: `min_speed`, `launch_speed_ratio`, `orbit_speed` and
-the `*_speed_ratio` chassis fractions are not speeds on this ladder.
+`aerial.orbit_speed` names a class too. Other speed-like keys are still numbers: `min_speed`,
+`launch_speed_ratio` and the `*_speed_ratio` chassis fractions are not speeds on this ladder.

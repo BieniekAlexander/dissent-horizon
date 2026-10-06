@@ -73,7 +73,7 @@ per-instance.
 - **A maximum keeps the fraction.** Raising `hp` from 100 to 150 takes a unit at 50 to 75; the
   same holds for anything with a current value under a cap. A speed held down by a slow keeps
   its slow: the new speed is scaled by what the live one was to the old.
-- **`body.radius` and `body.hurtbox` are saved, never applied live.** The radius decides a
+- **`body.radius` is saved, never applied live.** It decides a
   unit's navigation size class; the field says that nothing changes until a re-import and
   restart.
 - **The simulation keeps running while a field is edited**, so a change to acceleration can be

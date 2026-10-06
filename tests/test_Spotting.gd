@@ -4,8 +4,9 @@ extends GutTest
 ##
 ## The COMMITMENT is the mechanic and most of what is checked here: a spotter walks into
 ## range, holds still while it calls the strike in, and then STAYS on its beacon until a
-## Bombard spends it. Anything queued behind waits for the shot; any new order cancels the
-## solution and takes the beacon with it. Each of those is a place the naive
+## Bombard fires on it. Anything queued behind waits for the shot; any new order cancels
+## the solution and takes the beacon with it, and the cooldown runs from whenever the order
+## ends. Each of those is a place the naive
 ## implementation (end the command when the beacon goes up) would be silently wrong.
 ##
 ## Driven by calling the command's hooks directly rather than through a live receiver:
@@ -15,9 +16,14 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Spotting.gd -gexit
 
+## The spotter's cooldown in this fixture, in ticks.
+const COOLDOWN_TICKS: int = 450
+
 ## A piece granted Spot.
 const RECRUIT: Dictionary = {
-	"speed": 2.0, "vision": 8.0, "abilities": [{"grants": [Spot.ABILITY_ID]}]
+	"speed": 2.0,
+	"vision": 8.0,
+	"abilities": [{"grants": [Spot.ABILITY_ID], "cooldown_ticks": COOLDOWN_TICKS}]
 }
 
 
@@ -76,9 +82,20 @@ func _give_map(a_actor: Commandable) -> void:
 
 ## Run the channel to completion, returning the beacon it raised.
 func _channel_out(a_actor: Commandable, a_command: Spot) -> Beacon:
-	for _i: int in Spot.CHANNEL_TICKS:
+	for _i: int in Spot.channel_ticks():
 		a_command.fulfill_action(a_actor)
 	return a_command._beacon
+
+
+## The spotter's ability pool.
+func _pool(a_actor: Commandable) -> Abilities:
+	return a_actor.get_node("Abilities") as Abilities
+
+
+## Tick `a_actor`'s ability pool `a_ticks` times.
+func _recharge(a_actor: Commandable, a_ticks: int) -> void:
+	for _i: int in a_ticks:
+		_pool(a_actor)._physics_process(0.0)
 
 
 # --- Capability ------------------------------------------------------------------
@@ -100,13 +117,13 @@ func test_a_unit_without_the_component_cannot_spot() -> void:
 	assert_false(CommandContextParser.commands_for(badger).has("command_spot"))
 
 
-func test_the_reach_is_the_ability_docs_range_and_the_channel_is_ten_seconds() -> void:
+func test_the_reach_is_the_ability_docs_range_and_the_channel_is_in_seconds() -> void:
 	# The reach is read off the spot ability's `range:` (10 in this fixture); the channel is
-	# 10 seconds — 30 physics ticks to the second.
+	# authored in seconds and counted in ticks.
 	var recruit: Commandable = FakePieces.unit({"abilities": [{"grants": [Spot.ABILITY_ID]}]})
 	autofree(recruit)
 	assert_almost_eq(Spot.target_range(recruit), 10.0, 0.001)
-	assert_eq(Spot.CHANNEL_TICKS, 300)
+	assert_eq(Spot.channel_ticks(), TimeUtils.ticks_from_seconds(Spot.CHANNEL_SECONDS))
 
 
 # --- Approach --------------------------------------------------------------------
@@ -139,11 +156,11 @@ func test_the_beacon_only_appears_after_the_full_channel() -> void:
 	var recruit := _recruit(Vector2(0, 0))
 	_give_map(recruit)
 	var command := _order(Vector2(5, 0))
-	for _i: int in 299:
+	for _i: int in Spot.channel_ticks() - 1:
 		command.fulfill_action(recruit)
-	assert_null(command._beacon, "still calling it in at 299 ticks")
+	assert_null(command._beacon, "still calling it in one tick short")
 	command.fulfill_action(recruit)
-	assert_not_null(command._beacon, "and it stands on the 300th")
+	assert_not_null(command._beacon, "and it stands on the last tick")
 
 
 func test_the_channel_reports_its_progress() -> void:
@@ -151,9 +168,9 @@ func test_the_channel_reports_its_progress() -> void:
 	_give_map(recruit)
 	var command := _order(Vector2(5, 0))
 	assert_almost_eq(command.channel_progress(recruit), 0.0, 0.001)
-	for _i: int in 150:
+	for _i: int in Spot.channel_ticks() / 2:
 		command.fulfill_action(recruit)
-	assert_almost_eq(command.channel_progress(recruit), 0.5, 0.01)
+	assert_almost_eq(command.channel_progress(recruit), 0.5, 0.02)
 	_channel_out(recruit, command)
 	assert_almost_eq(command.channel_progress(recruit), 1.0, 0.001)
 
@@ -189,6 +206,19 @@ func test_it_does_not_finish_when_the_beacon_goes_up() -> void:
 	assert_false(command.should_move(recruit), "and holds the unit in place")
 
 
+func test_it_finishes_when_a_bombard_fires_on_the_beacon() -> void:
+	# Fired on, not landed: the spotter is free the moment the shot is away, and the beacon
+	# stands for the shell that is tracking it.
+	var recruit := _recruit(Vector2(0, 0))
+	_give_map(recruit)
+	var command := _order(Vector2(5, 0))
+	var beacon := _channel_out(recruit, command)
+	beacon.mark_used()
+	assert_null(command.get_updated_state(recruit), "the order ends with the shot")
+	command.on_released(recruit)
+	assert_false(beacon.host().is_queued_for_deletion(), "the fired-on beacon stays for the shell")
+
+
 func test_it_finishes_when_the_beacon_is_spent() -> void:
 	var recruit := _recruit(Vector2(0, 0))
 	_give_map(recruit)
@@ -218,3 +248,177 @@ func test_releasing_before_the_beacon_is_up_is_harmless() -> void:
 	command.fulfill_action(recruit)
 	command.on_released(recruit)
 	assert_null(command._beacon)
+
+
+func test_the_spotters_death_takes_an_unfired_beacon_with_it() -> void:
+	var recruit := _recruit(Vector2(0, 0))
+	_give_map(recruit)
+	var beacon := _channel_out(recruit, _order(Vector2(5, 0)))
+	recruit.entity_occurrence.emit(Entity.EntityOccurrence.ON_DEATH, null)
+	assert_true(beacon.host().is_queued_for_deletion())
+
+
+func test_the_spotters_death_leaves_a_fired_on_beacon_for_the_shell() -> void:
+	var recruit := _recruit(Vector2(0, 0))
+	_give_map(recruit)
+	var beacon := _channel_out(recruit, _order(Vector2(5, 0)))
+	beacon.mark_used()
+	recruit.entity_occurrence.emit(Entity.EntityOccurrence.ON_DEATH, null)
+	assert_false(beacon.host().is_queued_for_deletion())
+
+
+# --- The cooldown ----------------------------------------------------------------
+
+
+func test_walking_to_the_point_costs_no_charge() -> void:
+	var recruit := _recruit(Vector2(0, 0))
+	var command := _order(Vector2(40, 0))
+	command.on_released(recruit)
+	assert_true(_pool(recruit).is_ready(Spot.ABILITY_ID), "abandoned before the channel started")
+
+
+func test_the_charge_is_spent_when_the_channel_starts() -> void:
+	var recruit := _recruit(Vector2(0, 0))
+	_give_map(recruit)
+	var command := _order(Vector2(5, 0))
+	command.fulfill_action(recruit)
+	assert_false(_pool(recruit).is_ready(Spot.ABILITY_ID))
+	assert_eq(
+		Spot.meets_precondition(recruit, null),
+		MoveCommand.PreconditionFailureCause.ABILITY_NO_CHARGES,
+		"a second solution waits for the cooldown"
+	)
+
+
+func test_the_cooldown_does_not_run_while_the_solution_is_held() -> void:
+	var recruit := _recruit(Vector2(0, 0))
+	_give_map(recruit)
+	_channel_out(recruit, _order(Vector2(5, 0)))
+	_recharge(recruit, COOLDOWN_TICKS * 2)
+	assert_false(_pool(recruit).is_ready(Spot.ABILITY_ID))
+
+
+func test_the_cooldown_runs_from_the_end_of_the_order() -> void:
+	var recruit := _recruit(Vector2(0, 0))
+	_give_map(recruit)
+	var command := _order(Vector2(5, 0))
+	_channel_out(recruit, command)
+	_recharge(recruit, COOLDOWN_TICKS)
+	command.on_released(recruit)
+	_recharge(recruit, COOLDOWN_TICKS - 1)
+	assert_false(_pool(recruit).is_ready(Spot.ABILITY_ID), "one tick short of the full cooldown")
+	_recharge(recruit, 1)
+	assert_true(_pool(recruit).is_ready(Spot.ABILITY_ID))
+
+
+func test_cancelling_mid_channel_starts_the_cooldown_too() -> void:
+	var recruit := _recruit(Vector2(0, 0))
+	_give_map(recruit)
+	var command := _order(Vector2(5, 0))
+	command.fulfill_action(recruit)
+	command.on_released(recruit)
+	_recharge(recruit, COOLDOWN_TICKS)
+	assert_true(_pool(recruit).is_ready(Spot.ABILITY_ID))
+
+
+# --- Who is sent --------------------------------------------------------------------
+
+
+func _narrowed(a_recruits: Array, a_target: Vector2) -> Array:
+	var controller: RTSController = autofree(RTSController.new())
+	return controller._narrowed_actors(Spot, a_recruits, _order(a_target).message)
+
+
+func test_one_recruit_is_sent_the_nearest() -> void:
+	var near := _recruit(Vector2(10, 0))
+	var far := _recruit(Vector2(30, 0))
+	assert_eq(_narrowed([far, near], Vector2(0, 0)), [near])
+
+
+func test_a_recruit_already_spotting_is_passed_over() -> void:
+	var near := _recruit(Vector2(10, 0))
+	var far := _recruit(Vector2(30, 0))
+	near.update_commands(_order(Vector2(40, 40)))
+	assert_eq(_narrowed([near, far], Vector2(0, 0)), [far])
+
+
+func test_a_busy_recruit_that_is_not_spotting_still_counts_as_free() -> void:
+	var near := _recruit(Vector2(10, 0))
+	var far := _recruit(Vector2(30, 0))
+	near.update_commands(MoveCommand.new(CommandMessage.new(null, null, null, Vector3(5, 0, 5))))
+	assert_eq(_narrowed([near, far], Vector2(0, 0)), [near])
+
+
+func test_when_every_recruit_is_spotting_the_nearest_goes() -> void:
+	var near := _recruit(Vector2(10, 0))
+	var far := _recruit(Vector2(30, 0))
+	near.update_commands(_order(Vector2(40, 40)))
+	far.update_commands(_order(Vector2(40, 40)))
+	assert_eq(_narrowed([far, near], Vector2(0, 0)), [near])
+
+
+# --- A planter plants and leaves ----------------------------------------------------
+
+
+## A unit granted Spot that PLANTS its beacon (the Sleeper's way).
+func _planter(a_at: Vector2 = Vector2.ZERO) -> Commandable:
+	var unit := _recruit(a_at)
+	var planter := BeaconPlanter.new()
+	planter.name = "BeaconPlanter"
+	unit.add_child(planter)
+	_give_map(unit)
+	return unit
+
+
+func _beacons() -> Array:
+	return get_tree().get_nodes_in_group(Beacon.GROUP).map(
+		func(n: Node) -> Beacon: return Beacon.of(n)
+	)
+
+
+func test_a_planter_walks_to_the_point_itself() -> void:
+	var planter := _planter(Vector2(0, 0))
+	var command := _order(Vector2(5, 0))
+	assert_false(command.can_act(planter), "5 units off is inside Spot's range, but not there")
+	assert_eq(command.movement_destination(planter), Vector3(5, 0, 0))
+	planter.global_position = Vector3(5, 0, 0)
+	assert_true(command.can_act(planter))
+
+
+func test_a_planter_plants_a_ground_beacon_and_the_order_ends() -> void:
+	var planter := _planter(Vector2(5, 0))
+	var command := _order(Vector2(5, 0))
+	var result: Variant = null
+	for _i: int in Spot.channel_ticks():
+		result = command.fulfill_action(planter)
+	assert_null(result, "planted: the order is done")
+	var beacons := _beacons()
+	assert_eq(beacons.size(), 1)
+	var beacon: Beacon = beacons[0]
+	assert_almost_eq(VU.in_xz(beacon.host().global_position), Vector2(5, 0), Vector2.ONE * 0.01)
+	command.on_released(planter)
+	assert_false(beacon.is_leaving(), "nothing holds it, so leaving does not withdraw it")
+	assert_false(_pool(planter).is_recharge_held(Spot.ABILITY_ID), "its cooldown runs now")
+	for beacon_node: Node in get_tree().get_nodes_in_group(Beacon.GROUP):
+		beacon_node.free()
+
+
+func test_aimed_over_a_vehicle_a_planter_plants_on_the_ground_beneath() -> void:
+	var planter := _planter(Vector2(5, 0))
+	var vehicle: Commandable = FakePieces.make(FakePieces.MACHINE)
+	var foe := Commander.new()
+	foe.id = 2
+	add_child_autofree(foe)
+	foe.add_child(vehicle)
+	autofree(vehicle)
+	vehicle.top_level = true
+	vehicle.ownership.commander = foe
+	vehicle.global_position = Vector3(5, 0, 0)
+	var command := Spot.new(CommandMessage.new(null, vehicle, null, Vector3(5, 0, 0)))
+	for _i: int in Spot.channel_ticks():
+		command.fulfill_action(planter)
+	var beacons := _beacons()
+	assert_eq(beacons.size(), 1)
+	assert_null((beacons[0] as Beacon).carrier(), "a point beacon, like a Beacon Drop's")
+	for beacon_node: Node in get_tree().get_nodes_in_group(Beacon.GROUP):
+		beacon_node.free()

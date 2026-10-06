@@ -6,10 +6,9 @@
 [node name="Freeze" type="Node"]
 script = ExtResource("1_fz")
 title = "Frozen"
-description = "Slowed to a crawl, and harder to hurt while it lasts."
+description = "Encased in ice: it can do nothing, and the ice takes damage before it does."
 valence = 2
-verbose = "The Colonial cryogenics theme, and deliberately two-edged: a frozen piece is nearly immobile, but the cold RAISES its armour class, so it is a worse target while it is stuck.\nFreezing your own advance is a real cost — this is a tool for stopping something crossing ground, not for softening it up."
-duration_ticks = 450
+verbose = "The Colonial cryogenics theme, and deliberately two-edged: a frozen piece can take no action, but a coat of STRONG ice takes damage before it does. Break the ice and the freeze ends.\nFreezing your own piece saves it from a barrage; freezing an enemy takes it out of the fight, ice and all."
 host_tint = Color(0.62, 0.84, 1, 1)
 indicator_icon = ExtResource("2_flake")
 metadata/_custom_type_script = "uid://tbvart7vj2ii"

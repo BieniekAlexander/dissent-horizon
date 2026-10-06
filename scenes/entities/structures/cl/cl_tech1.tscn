@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://pxcujyrjb1vf"]
+[gd_scene load_steps=23 format=3 uid="uid://pxcujyrjb1vf"]
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_g6ak1"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
@@ -26,6 +26,9 @@ size = Vector3(4, 2, 4)
 [sub_resource type="BoxMesh" id="BoxMesh_g2t4e"]
 size = Vector3(4, 2, 4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(4.0, 2.0, 4.0)
+
 [node name="ClTech1" type="CharacterBody3D" unique_id=1852162434 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
 collision_mask = 0
@@ -36,6 +39,11 @@ id = &"cl_tech1"
 [node name="#####STATE#####" type="Node" parent="." unique_id=1513401258]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_x8n3e")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_ofhyv")]
 
@@ -104,6 +112,7 @@ script = ExtResource("18_fuytj")
 
 [node name="Production" type="Node" parent="."]
 script = ExtResource("2_spec")
-producible_types = Array[StringName]([&"advanced_targetting"])
+producible_types = Array[StringName]([&"advanced_targetting", &"rapid_rearmament", &"reinforced_hulls"])
 
 [editable path="Selectable"]
+[editable path="Hurtbox"]

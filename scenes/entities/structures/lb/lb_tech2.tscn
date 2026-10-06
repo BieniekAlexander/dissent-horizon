@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://dexdnuso3gnxo"]
+[gd_scene load_steps=22 format=3 uid="uid://dexdnuso3gnxo"]
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_3hfg4"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
@@ -25,6 +25,9 @@ size = Vector3(2, 2, 2)
 [sub_resource type="BoxMesh" id="BoxMesh_vje1l"]
 size = Vector3(4, 2, 4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(4.0, 2.0, 4.0)
+
 [node name="LbTech2" type="CharacterBody3D" unique_id=163566691 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
 collision_mask = 0
@@ -35,6 +38,11 @@ id = &"lb_tech2"
 [node name="#####STATE#####" type="Node" parent="." unique_id=592439030]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_wdat2")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_dx6d8")]
 
@@ -101,3 +109,4 @@ script = ExtResource("18_5v5wc")
 [node name="AggroRangeAir" parent="." unique_id=1538563577 instance=ExtResource("5_dx6d8")]
 
 [editable path="Selectable"]
+[editable path="Hurtbox"]

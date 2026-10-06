@@ -180,8 +180,7 @@ def _diff_damage(current: World, desired: World) -> list[Change]:
     multiplier (1.0 / blank); current==None vs a value is filling a blank."""
     out: list[Change] = []
     for attr, kind in [("vs_armour", "damage_vs_armour"),
-                       ("vs_frame", "damage_vs_frame"),
-                       ("vs_attribute", "damage_vs_attribute")]:
+                       ("vs_frame", "damage_vs_frame")]:
         cmap = getattr(current.damage, attr)
         dmap = getattr(desired.damage, attr)
         for dt in set(cmap) | set(dmap):
@@ -288,8 +287,7 @@ _SCENE_DISPATCH = {
 _MANIFEST_FIELDS = {"ore", "population", "dominion"}
 
 
-_DAMAGE_CSV_KEY = {"damage_vs_armour": "armour", "damage_vs_frame": "frame",
-                   "damage_vs_attribute": "attribute"}
+_DAMAGE_CSV_KEY = {"damage_vs_armour": "armour", "damage_vs_frame": "frame"}
 
 
 def _plan_one(change: Change, world: World) -> Edit:

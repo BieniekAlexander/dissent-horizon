@@ -178,8 +178,18 @@ statement of the rule):
   code: `cast_by: SINGLE | ALL` on its `kind: AbilityDefinition` doc, read through
   `AbilityCatalog.cast_arity_of`. The default is SINGLE because the whole selection firing at
   one point spends every caster's charge on it, and a charge pool is the scarce thing an
-  ability is balanced around. `spot` is the roster's one `cast_by: ALL` — a second firing
-  solution on the same ground is worth having.
+  ability is balanced around. `detonate` is the roster's one `cast_by: ALL` — every selected
+  charge is its own.
+- **Which one a SINGLE order goes to** is the nearest actor FREE to take it, and every
+  SINGLE command means the same thing by free: **not already holding an order of that job,
+  current or queued** (`MoveCommand.is_free_to_take`). A builder walking somewhere is taken
+  before a farther idle one; one already building (a Build, or the Assemble it becomes) is
+  passed over. Likewise a recruit already spotting, a Sapper already planting, a caster
+  already casting. With every candidate busy, the nearest goes. An ordinary verb narrowed by
+  `modifier_narrow` still prefers an IDLE actor.
+  TODO: whether a QUEUED order of the job counts as busy, or only the current one. Queued
+  counts today, decided provisionally 2026-10-06; whichever is chosen applies to every SINGLE
+  command alike.
 
 **Narrow is checked FIRST, so holding both keys still narrows.** Broaden then keeps the
 meaning it already had in that pair — it drops the idle preference, so the nearest actor is
@@ -297,7 +307,7 @@ do: MMB is the camera's button and nothing else wants it (see §What the grid sa
 
 |                                        | LMB                                                                   | MMB                       | RMB                                                                           |
 | -------------------------------------- | --------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------- |
-| *none*                                 | run the command (fire now, or arm a sub-mode the next RMB resolves)   | *leaks* — pans the camera | **nothing**: the alternate handler returns early when `Tool.for_name` is null |
+| *none*                                 | run the command (fire now, or arm a sub-mode the next RMB resolves)   | *leaks* — pans the camera | **Spot and Bombard: toggle automatic Bombard fire** — the commander's one setting for every gun (`Commander.toggle_autocast`); the HUD bar's Bombard button does the same. **Every other verb: nothing** — the alternate handler returns early when `Tool.for_name` is null |
 | `modifier_additive`                     | *unused* at the press; the latch is consumed later by the world click | *leaks*                   | *unused*                                                                      |
 | `modifier_narrow` / `modifier_broaden` | *unused*                                                              | *leaks*                   | *unused*                                                                      |
 
@@ -579,6 +589,6 @@ the game has and has not spent. An *unused* cell on MMB or the wheel is not.
 expose a one-button, no-modifier surface. The selector panel, the control-group panel and the
 world all use more than one cell.
 
-**Still unspent, and indexed in `gdd/deferred.md`:** pending-unit selection on the production
+**Still unspent (see `gdd/tasks.md`):** pending-unit selection on the production
 rail (§Context 5), garrison-occupant selection (§Context 6), and the READY state's visuals
 (§Context 1a).

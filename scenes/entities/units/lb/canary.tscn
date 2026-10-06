@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3 uid="uid://vidpk2mkoyqq"]
+[gd_scene load_steps=28 format=3 uid="uid://vidpk2mkoyqq"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_5jla6"]
 [ext_resource type="Script" uid="uid://i5cpflyrc4jkh" path="res://scripts/entities/components/builds.gd" id="1_spec"]
@@ -33,6 +33,10 @@ radius = 0.0
 height = 0.6
 radius = 0.7
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 0.7
+height = 0.2
+
 [node name="Canary" type="CharacterBody3D" unique_id=478052811 groups=["piece", "unit"]]
 script = ExtResource("1_5jla6")
 id = &"lb_aircraftLight_builder"
@@ -44,6 +48,11 @@ id = &"lb_aircraftLight_builder"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_uwpd2")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_udsug")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.1, 0.0)
+shape = SubResource("CylinderShape3D_hurtbox")
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_0y5ix")]
 
@@ -131,3 +140,4 @@ buildable_types = Array[StringName]([&"nt_extractor", &"lb_commandCenter", &"lb_
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

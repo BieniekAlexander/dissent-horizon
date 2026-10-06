@@ -1,21 +1,21 @@
-[gd_scene load_steps=8 format=3 uid="uid://dbd6gxft2fb0v"]
+[gd_scene format=3 uid="uid://dbd6gxft2fb0v"]
 
 [ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_ahhfu"]
 [ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="1_spec"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_gafbt"]
 [ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="2_spec"]
 [ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
-[ext_resource type="Mesh" path="res://resources/emissions/lead_tracer_beam.tres" id="fx_beam"]
-[ext_resource type="Script" path="res://scripts/entities/components/tracer.gd" id="fx_tracer"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/plasma_round_model.tscn" id="fx_round"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/plasma_impact.tscn" id="fx_impact"]
 
 [node name="ConstableBullet" type="CharacterBody3D" unique_id=567706374]
 collision_layer = 0
 collision_mask = 2
 script = ExtResource("1_ahhfu")
 
-[node name="BeamMesh" type="MeshInstance3D" parent="."]
-sorting_offset = 100.0
-mesh = ExtResource("fx_beam")
+[node name="InFlightMesh" parent="." instance=ExtResource("fx_round")]
+
+[node name="PostImpactParticles" parent="." instance=ExtResource("fx_impact")]
 
 [node name="Ownership" type="Node" parent="." unique_id=823987461]
 script = ExtResource("3_gafbt")
@@ -24,12 +24,14 @@ metadata/_custom_type_script = "uid://cw7pigc81a8s6"
 [node name="Flight" type="Node3D" parent="." unique_id=1776767976]
 script = ExtResource("1_spec")
 speed = 28.0
+visuals = Array[NodePath]([NodePath("InFlightMesh")])
 
 [node name="Impact" type="Node3D" parent="." unique_id=330882717]
 script = ExtResource("1_spec")
 ends_on_arrival = false
-lifespan_seconds = 0.0
+lifespan_seconds = 0.5
 applies_payload = true
+visuals = Array[NodePath]([NodePath("PostImpactParticles")])
 
 [node name="Locomotion" type="Node" parent="."]
 script = ExtResource("2_spec")
@@ -37,7 +39,5 @@ script = ExtResource("2_spec")
 [node name="Payload" type="Node" parent="."]
 script = ExtResource("mig_payload")
 hitscan = true
-base_damage = 8.0
-
-[node name="Tracer" type="Node" parent="."]
-script = ExtResource("fx_tracer")
+base_damage = 65.0
+damage_type = 4

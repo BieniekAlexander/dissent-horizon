@@ -13,7 +13,7 @@ defense:
 senses:
   vision: vision_ground_large
 footprint: [6, 4]
-trains: [cl_aircraftLight_antiLight, cl_aircraftMedium_antiMech, cl_aircraftMedium_transport, cl_aircraftStrong_support]
+trains: [cl_aircraftLight_antiLight, cl_aircraftMedium_antiMech, cl_aircraftStrong_transport, cl_aircraftMedium_support]
 infrastructure: -75
 ui: {grid: [2, 1], factions: [colonial], context_grid: [3, 0]}
 ---

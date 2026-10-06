@@ -41,6 +41,12 @@ var commander_id: int = 1
 var caster: Commandable = null
 
 
+## One shell's blast: every shell is aimed at the same point, so that is the ground the barrage
+## hits — the muzzles scatter, the aim does not.
+func area_radius() -> float:
+	return EntityRanges.emission_radius(projectile_scene)
+
+
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	var commander: Commander = a_manager.get_commander(commander_id)
 	var map: Map = a_manager.map

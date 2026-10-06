@@ -63,7 +63,7 @@ def test_frame_multiplier_scales_damage_per_shot():
     # LAZER doubles vs MECH, halves vs BIO; armour neutral so only
     # the frame axis moves.
     table = DamageTable(
-        vs_armour={}, vs_attribute={},
+        vs_armour={},
         vs_frame={DamageType.LAZER: {Frame.MECH: 2.0, Frame.BIO: 0.5}},
     )
     weapon = Weapon(id="w", name="w", split_time=1, reload_time=1, clip_size=1,

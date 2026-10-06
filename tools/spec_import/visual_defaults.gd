@@ -256,6 +256,56 @@ static func _horizontal_radius(model_size: Vector3) -> float:
 
 
 # --------------------------------------------------------------------------- #
+# Hurtbox
+# --------------------------------------------------------------------------- #
+## The smallest hurtbox, so a sliver of a model stays hittable, in world units. Tighter than
+## the click minimums: a hurtbox is what a shot strikes and every range is measured from, so
+## padding it would lengthen every reach to the piece.
+const MIN_HURTBOX_RADIUS: float = 0.1
+const MIN_HURTBOX_HEIGHT: float = 0.2
+
+
+## The volume weapons hit, and what every piece-to-piece range is measured from (Entity.hull):
+## fitted to the model and STANDING ON the origin, never reaching below it — the origin is the
+## piece's base, where navigation places it. Returns `{type, props, center_y}`, `center_y`
+## being where the shape's centre sits above the origin (a shape is centred on its node).
+##
+## A FIXTURE takes a cuboid of its authored grid footprint, as its selection box does: the
+## footprint is what it occupies. A MECH unit takes a cuboid of the model's extent, which
+## turns with it, so its reach varies with its facing (decided 2026-10-06). A BIO unit and an
+## aircraft take an upright cylinder around the model. Rules:
+## gdd/systems/ux/ui/generated-visual-defaults.md §The hurtbox.
+static func hurtbox_shape(
+	visual_class: VisualClass,
+	model_size: Vector3,
+	model_top: float,
+	footprint_cells: Vector2i,
+	is_fixture: bool
+) -> Dictionary:
+	var bottom: float = maxf(model_top - model_size.y, 0.0)
+	var height: float = maxf(model_top - bottom, MIN_HURTBOX_HEIGHT)
+	var center_y: float = bottom + height / 2.0
+	if is_fixture:
+		var cells: Vector2i = _at_least_one_cell(footprint_cells)
+		return _box(
+			Vector3(float(cells.x) * CELL_SIZE, height, float(cells.y) * CELL_SIZE), center_y
+		)
+	var least: float = MIN_HURTBOX_RADIUS * 2.0
+	if visual_class == VisualClass.MECH_UNIT:
+		return _box(Vector3(maxf(model_size.x, least), height, maxf(model_size.z, least)), center_y)
+	return {
+		"type": "CylinderShape3D",
+		"props":
+		{"radius": maxf(_horizontal_radius(model_size), MIN_HURTBOX_RADIUS), "height": height},
+		"center_y": center_y,
+	}
+
+
+static func _box(size: Vector3, center_y: float) -> Dictionary:
+	return {"type": "BoxShape3D", "props": {"size": size}, "center_y": center_y}
+
+
+# --------------------------------------------------------------------------- #
 # HP bar
 # --------------------------------------------------------------------------- #
 ## How much of the model's width the bar spans. Two thirds reads as belonging to the piece

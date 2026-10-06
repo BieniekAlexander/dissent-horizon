@@ -867,7 +867,7 @@ func _on_game_over(a_won: bool) -> void:
 		return
 	_game_over_seen = true
 	print("[Scenario] Game over — player %s" % ("wins" if a_won else "loses"))
-	# TODO: show a win/lose screen and pause, or return to the menu. gdd/deferred.md §2.9.
+	# TODO: show a win/lose screen and pause, or return to the menu. gdd/tasks.md T-080.
 
 
 ## Called when every PRIMARY trigger has fired — the scenario's declared work is finished, so

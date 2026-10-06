@@ -81,9 +81,10 @@ var is_queueable: bool = false
 ## summary makes the player look away from the button to find out about the button.
 var charges: int = 0
 var max_charges: int = 0
-## For a TOGGLE (hold fire): the whole selection has it on. Not a blocker — the button stays
-## pressable, and pressing it turns the state off again — so it is drawn as a lit edge rather
-## than as a tint.
+## For a TOGGLE: hold fire, when the whole selection has it on; a Bombard's automatic fire,
+## when the commander has it on. Not a
+## blocker — the button stays pressable, and pressing it turns the state off again — so it is
+## drawn as a lit edge rather than as a tint.
 var is_toggled_on: bool = false
 ## Physics ticks until the next charge lands, or 0 when nothing is recharging. Ticks rather
 ## than seconds because that is what Abilities counts in; the HUD converts at the boundary
@@ -187,6 +188,9 @@ static func of(
 		return state
 	if command_name == CommandContextParser.HOLD_FIRE_COMMAND:
 		state.is_toggled_on = all_hold_fire(selection)
+	var autocast_id: StringName = CommandContextParser.autocast_ability_of(command_name)
+	if autocast_id != &"" and commander != null:
+		state.is_toggled_on = commander.is_autocasting(autocast_id)
 	var tool: Tool = Tool.for_name(command_name)
 	if tool != null and commander != null:
 		state._classify_purchase(tool, commander, defers)

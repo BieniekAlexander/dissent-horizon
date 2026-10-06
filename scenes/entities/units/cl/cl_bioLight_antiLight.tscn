@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://chrecru1t0001"]
+[gd_scene load_steps=33 format=3 uid="uid://chrecru1t0001"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_fo1pr"]
 [ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="1_spec"]
@@ -33,12 +33,13 @@
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_oxq2k"]
 radius = 0.2
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_nrtd7"]
-radius = 0.3
-
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_dtbx8"]
 height = 1.05
 radius = 0.45
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 0.2
+height = 1.05
 
 [node name="Recruit" type="CharacterBody3D" unique_id=816060183 groups=["piece", "unit"]]
 script = ExtResource("1_fo1pr")
@@ -53,9 +54,10 @@ shape = SubResource("CylinderShape3D_oxq2k")
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_be5b1")]
 
-[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0014038086, 0.00012207031, -0.0008544922)
-shape = SubResource("CylinderShape3D_nrtd7")
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("CylinderShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.525, 0.0)
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_u72pj")]
 
@@ -156,17 +158,7 @@ billboard = 2
 
 [node name="Abilities" type="Node" parent="." unique_id=1177646233]
 script = ExtResource("1_spec")
-groups = Array[Dictionary]([{
-"cooldown_ticks": 90,
-"grants": [&"irradiate"],
-"initial_charges": 3,
-"max_charges": 3
-}, {
-"cooldown_ticks": 30,
-"grants": [&"spot"],
-"initial_charges": 1,
-"max_charges": 1
-}])
+groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 450, "grants": [&"spot"] }])
 
 [node name="DetectionRange" type="CollisionShape3D" parent="." unique_id=1298722091 groups=["debug_shape_detection_range"]]
 visible = false

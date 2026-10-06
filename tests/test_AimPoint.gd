@@ -1,9 +1,8 @@
 extends GutTest
 
-## A piece's hurtbox (Hurtbox/HurtboxShape) stands ON its base rather than straddling it, and a
-## steered weapon aims at that hurtbox's centre (Entity.aim_point). Before 2026-10-03 every hurtbox
-## was centred on its piece's origin — its feet — so half of it was underground and a rocket
-## steered at its centre dived into the terrain in front of a ground target.
+## A steered weapon aims at the centre of a piece's hurtbox (Entity.aim_point), which stands ON
+## the piece's base — the importer fits it there (test_VisualDefaults), so its centre is above
+## the feet rather than at them.
 ## See gdd/systems/combat/projectiles.md §A rocket aims at the hurtbox.
 ##
 ## Run with:
@@ -23,27 +22,10 @@ func _target_shape(a_piece: Entity) -> CollisionShape3D:
 	return a_piece.hurtbox.get_node("HurtboxShape") as CollisionShape3D
 
 
-func test_a_hurtbox_stands_on_its_piece_base() -> void:
-	var unit: Commandable = _unit_at(Vector3(3.0, 0.0, 2.0))
-	var shape: CollisionShape3D = _target_shape(unit)
-	var half_height: float = RangeShapes.half_height_of(shape.shape)
-	assert_gt(half_height, 0.0, "the fixture's hurtbox has a height")
-	assert_almost_eq(
-		shape.global_position.y - half_height, unit.global_position.y, TOLERANCE, "bottom on base"
-	)
-
-
 func test_a_steered_weapon_aims_at_the_hurtbox_centre() -> void:
 	var unit: Commandable = _unit_at(Vector3(3.0, 0.0, 2.0))
 	assert_eq(unit.aim_point(), _target_shape(unit).global_position)
 	assert_gt(unit.aim_point().y, unit.global_position.y, "above the ground, not at the feet")
-
-
-func test_a_hurtbox_placed_higher_is_left_where_it_is() -> void:
-	var unit: Commandable = FakePieces.unit()
-	unit.get_node("Hurtbox/HurtboxShape").position.y = 5.0
-	add_child_autofree(unit)
-	assert_almost_eq(_target_shape(unit).position.y, 5.0, TOLERANCE)
 
 
 func test_a_piece_without_a_hurtbox_is_aimed_at_its_origin() -> void:

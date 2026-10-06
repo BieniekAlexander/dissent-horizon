@@ -276,7 +276,7 @@
 		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
-			"energy": 600,
+			"energy": 450,
 			"infrastructure": 0
 		},
 		"requires": []
@@ -290,16 +290,16 @@
 		},
 		"requires": []
 	},
-	"cl_aircraftMedium_transport": {
-		"build_time_ticks": 450,
+	"cl_aircraftMedium_gunship": {
+		"build_time_ticks": 300,
 		"cost": {
 			"dominion": 0,
-			"energy": 500,
+			"energy": 100,
 			"infrastructure": 0
 		},
 		"requires": []
 	},
-	"cl_aircraftStrong_support": {
+	"cl_aircraftMedium_support": {
 		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
@@ -308,6 +308,17 @@
 		},
 		"requires": [
 			"cl_tech2"
+		]
+	},
+	"cl_aircraftStrong_transport": {
+		"build_time_ticks": 450,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech1"
 		]
 	},
 	"cl_barracks": {
@@ -356,18 +367,18 @@
 			"infrastructure": 0
 		},
 		"requires": [
-			"cl_tech2"
+			"cl_tech1"
 		]
 	},
-	"cl_bioMedium_antiLight": {
+	"cl_bioMedium_antiStrong": {
 		"build_time_ticks": 360,
 		"cost": {
 			"dominion": 0,
-			"energy": 200,
+			"energy": 500,
 			"infrastructure": 0
 		},
 		"requires": [
-			"cl_tech1"
+			"cl_tech2"
 		]
 	},
 	"cl_commandCenter": {
@@ -526,6 +537,24 @@
 		"requires": [
 			"cl_barracks"
 		]
+	},
+	"field_conditioning": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"energy": 700,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"gun_drill": {
+		"build_time_ticks": 1500,
+		"cost": {
+			"dominion": 0,
+			"energy": 1000,
+			"infrastructure": 0
+		},
+		"requires": []
 	},
 	"lb_airField": {
 		"build_time_ticks": 900,
@@ -930,6 +959,24 @@
 		"cost": {
 			"dominion": 0,
 			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"rapid_rearmament": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"reinforced_hulls": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"energy": 700,
 			"infrastructure": 0
 		},
 		"requires": []

@@ -62,8 +62,8 @@ def damage_per_shot(table: DamageTable, weapon: Weapon, target: Buildable) -> fl
     for amount, dtype in shot_components(weapon):
         armour_mult = table.armour_multiplier(dtype, target.armour) if target.armour else 1.0
         frame_mult = table.frame_multiplier(dtype, target.frame) if target.frame else 1.0
-        # Two axes only, as in the live game (scripts/damage/damage_table.gd): the attribute
-        # multipliers (damage_vs_attribute.tsv) are deprecated — armour classes and movement
+        # Two axes only, as in the live game (scripts/damage/damage_table.gd): there are no
+        # attribute multipliers — armour classes and movement
         # physics carry that specificity. See gdd/design-framework/static-defence.md.
         total += amount * armour_mult * frame_mult
     return total

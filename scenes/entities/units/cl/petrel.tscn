@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3 uid="uid://cfvaa2n76377u"]
+[gd_scene load_steps=34 format=3 uid="uid://cfvaa2n76377u"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_lq0ga"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_e5pn7"]
@@ -63,6 +63,10 @@ _bundled = {
 height = 100.0
 radius = 7.5
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 1.233459
+height = 0.463518
+
 [node name="Carronade" type="CharacterBody3D" unique_id=523164765 groups=["piece", "unit"]]
 script = ExtResource("1_lq0ga")
 id = &"cl_aircraftLight_antiLight"
@@ -76,6 +80,11 @@ radius = 0.75
 shape = SubResource("CylinderShape3D_yaaw4")
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_n6gvl")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.231759, 0.0)
+shape = SubResource("CylinderShape3D_hurtbox")
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_tivun")]
 
@@ -175,3 +184,4 @@ billboard = 2
 [node name="AggroRangeAir" parent="." unique_id=2062751045 instance=ExtResource("5_tivun")]
 
 [editable path="HPBar"]
+[editable path="Hurtbox"]

@@ -52,7 +52,7 @@
 			{
 				"description": "Places a firing solution on the ground you can see. Any Bombard can then shell it from anywhere on the map, until a shell spends it.",
 				"title": "Beacon",
-				"verbose": "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for ten seconds and stay\nuntil the shot lands; this puts one wherever you can see, immediately.\n\nIt stands until a shell spends it, so it can be placed before the guns are ready.\nIt is stealthed, and it does not see: once your eyes leave the spot it marks blind\nground — still yours to shell, but you will not see what walks onto it. An enemy\nthat finds it can repair it away."
+				"verbose": "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for three seconds and stay\nuntil the shot is fired; this puts one wherever you can see, immediately.\n\nIt stands until a shell spends it, so it can be placed before the guns are ready.\nIt is stealthed, and it does not see: once your eyes leave the spot it marks blind\nground — still yours to shell, but you will not see what walks onto it. An enemy\nthat finds it can repair it away."
 			}
 		],
 		"passive": false,
@@ -79,9 +79,9 @@
 		"hud_button": true,
 		"levels": [
 			{
-				"description": "Freezes everything in a wide area. STUB: no payload built yet.",
+				"description": "A storm gathers over the target for 10 seconds, then freezes every unit that stands in it for 2 seconds, for 10 more.",
 				"title": "Blizzard",
-				"verbose": "Not implemented. The cell is real — it costs dominion and runs its cooldown — but firing it does nothing yet."
+				"verbose": "The storm's 10 seconds of gathering are its warning: anyone can see it coming and\nwalk out. Once it breaks it freezes friend and foe alike, and holds a frozen unit\nfrozen for as long as it stays inside. STRONG armour and structures are not frozen."
 			}
 		],
 		"passive": false,
@@ -115,7 +115,7 @@
 		"reveals": "",
 		"title": "Bombard",
 		"valence": "NEUTRAL",
-		"verbose": "Range is unlimited; what limits it is VISION BY PROXY. The shot may be aimed at any\npoint one of your pieces is currently spotting, so the gun is worth nothing on its\nown and everything beside a spotter.\n\nA beacon marks a point once and is spent by the shot that uses it; a Bombard's own\nsurroundings and a Reverence's are marked permanently and cost nothing. Spotted\nground inside a permanent range is preferred, so a free solution never burns a\nbeacon a Recruit was walked across the map to place."
+		"verbose": "Range is unlimited; what limits it is VISION BY PROXY. The shot may be aimed at any\npoint one of your pieces is currently spotting, so the gun is worth nothing on its\nown and everything beside a spotter.\n\nA beacon marks a point once and is spent by the shot that uses it; a Bombard's own\nsurroundings and a Reverence's are marked permanently and cost nothing. Spotted\nground inside a permanent range is preferred, so a free solution never burns a\nbeacon a Recruit was walked across the map to place.\n\nOn AUTOMATIC, the default, your guns also fire on their own at a beacon a Recruit is\nholding, as soon as one is loaded — the loaded gun nearest the beacon answers it.\nRight-click this button to switch all your guns between automatic and manual; a lit\ntop edge means automatic. On manual, a gun fires only when you order it."
 	},
 	"detonate": {
 		"active_grid": [],
@@ -220,14 +220,14 @@
 		"hud_button": true,
 		"levels": [
 			{
-				"description": "Freezes one of YOUR units for 15 seconds — it can take no action at all, but its armour rises a step while it stands there. A way to save something about to die.",
+				"description": "Freezes one of YOUR pieces for 10 seconds — it can take no action at all, but 150 points of STRONG ice take damage before it does. A way to save something about to die.",
 				"title": "Freeze 1",
-				"verbose": "Cryogenics cut both ways: a frozen unit is helpless and tougher at the same time.\nFreezing your own unit trades everything it could have done for a step of armour,\nwhich is how you carry something through a barrage it would not otherwise survive.\n\nUnits already at STRONG armour cannot be frozen — there is no step above it, so\nthey would take the immobilisation with none of the protection. Structures cannot\nbe frozen either."
+				"verbose": "Cryogenics cut both ways: a frozen piece is helpless and shielded at the same time.\nFreezing your own unit or building trades everything it could have done for a coat\nof ice, which is how you carry something through a barrage it would not otherwise\nsurvive. Break the ice and the freeze ends.\n\nPieces with STRONG armour cannot be frozen."
 			},
 			{
-				"description": "Freezes any unit for 15 seconds — friendly or hostile. It can take no action, and its armour rises a step. Replaces Freeze 1. Strong armour cannot be frozen.",
+				"description": "Freezes any piece for 10 seconds — friendly or hostile. It can take no action, and 150 points of STRONG ice take damage first. Replaces Freeze 1. Strong armour cannot be frozen.",
 				"title": "Freeze 2",
-				"verbose": "The same effect, now aimable at anyone. On an enemy it is a hard removal from the\nfight for 15 seconds; the armour step it also grants them is the cost of using it\noffensively, so it takes a unit out of a fight rather than setting one up to die."
+				"verbose": "The same effect, now aimable at anyone. On an enemy it is a hard removal from the\nfight for 10 seconds; the ice it also grants them is the cost of using it offensively,\nso it takes a piece out of a fight rather than setting one up to die."
 			}
 		],
 		"passive": false,
@@ -283,9 +283,9 @@
 		"hud_button": true,
 		"levels": [
 			{
-				"description": "Calls a gunship to strafe the target point. STUB: no payload built yet.",
+				"description": "Calls a Gunship to hold station over the target point for 20 seconds, firing on anything it finds.",
 				"title": "Gunship",
-				"verbose": "Not implemented. The cell is real — it costs dominion, opens the tier below it and runs its cooldown — but firing it does nothing yet."
+				"verbose": "The gunship flies in from your side of the board with its guns cold, circles the point\nyou clicked, and opens fire on whatever comes into reach. While it is on station you may\norder it to attack a target, but not to go anywhere else. When its time is up it flies\nhome the way it came.\n\nIt is a real aircraft on the anti-air layer the whole time: shoot it down and the strike\nis over."
 			}
 		],
 		"passive": false,
@@ -555,7 +555,7 @@
 	},
 	"spot": {
 		"active_grid": [],
-		"cast_by": "ALL",
+		"cast_by": "SINGLE",
 		"command": "command_spot",
 		"description": "Call in a firing solution, leaving a beacon for the artillery to spend.",
 		"dominion": false,
@@ -569,7 +569,7 @@
 		"reveals": "",
 		"title": "Spot",
 		"valence": "NEUTRAL",
-		"verbose": "The unit walks within range of the chosen point, holds still while it calls the strike in,\nand leaves a [[beacon|Beacon]] standing there. It then STAYS on the beacon until a Bombard\nspends it — that commitment is what the artillery is paying for.\n\nA LOCAL ability: it is an order given to the spotter, not something the commander calls in,\nso it has no cell on the ORDNANCE card."
+		"verbose": "A Recruit walks within range of the chosen point, holds still while it calls the strike\nin, and leaves a [[beacon|Beacon]] standing there. It then STAYS on the beacon until a\nBombard fires on it — that commitment is what the artillery is paying for. The nearest\nloaded Bombard fires as soon as it can, unless you have switched the Bombard to manual.\n\nA Sleeper walks to the point itself, plants a beacon on the ground over 3 seconds, and\nmoves on. Its beacon stands until a Bombard is ordered onto it.\n\nA LOCAL ability: it is an order given to the spotter, not something the commander calls in,\nso it has no cell on the ORDNANCE card."
 	},
 	"work_detail": {
 		"active_grid": [],

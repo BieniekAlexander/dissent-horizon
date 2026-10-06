@@ -93,7 +93,9 @@ static func linf_distance(pos1: Vector2i, pos2: Vector2i) -> int:
 ## Whether `attacker` can reach `target` with `weapon` from where it stands: the weapon has
 ## a range for the layer the target is on, and the gap between the two footprints is within
 ## that reach plus `reach_bonus` (a garrison's). A bunker's occupants fire from the HOST, so
-## Garrison passes the host as `attacker`.
+## Garrison passes the host as `attacker`. A weapon measuring from its wielder's orbit instead
+## stands its range shape at the orbit's centre and asks whether it overlaps the target's
+## hurtbox (Weapon.RangeOrigin.ORBIT).
 static func is_in_attack_range(
 	weapon: Weapon, attacker: Entity, target: Entity, reach_bonus: float = 0.0
 ) -> bool:
@@ -112,8 +114,48 @@ static func is_in_attack_range(
 		return false
 	if weapon.target_mask & target.targetable_layers() == 0:
 		return false
+	var orbit_origin: Variant = weapon.orbit_origin(attacker)
+	if orbit_origin is Vector3:
+		return shape_touches_hurtbox(
+			attacker.get_world_3d(),
+			_grow_shape_radius(range_node.shape, reach_bonus),
+			orbit_origin,
+			target
+		)
 	var reach: float = RangeShapes.radius_of(range_node.shape)
 	return reach >= 0.0 and hull_gap(attacker, target) <= reach + reach_bonus
+
+
+## How many hurtboxes one range-shape query may report. Generous, because a per-target check
+## reads its answer from this list, and a crowd that filled it would hide the target.
+const RANGE_SHAPE_MAX_RESULTS: int = 128
+
+
+## The pieces on `collision_mask` whose HURTBOX the range shape `shape`, standing upright at
+## `origin`, overlaps — measured by the physics server, not by footprint gap. What a weapon
+## measuring from its wielder's orbit (Weapon.RangeOrigin.ORBIT) reaches.
+static func entities_touched_by(
+	world_3d: World3D, shape: Shape3D, origin: Vector3, collision_mask: int, exclude: Array = []
+) -> Array[Entity]:
+	if world_3d == null or shape == null:
+		return []
+	return query_shape_for_entities(
+		world_3d,
+		shape,
+		Transform3D(Basis.IDENTITY, origin),
+		collision_mask,
+		exclude,
+		RANGE_SHAPE_MAX_RESULTS
+	)
+
+
+## Whether the range shape `shape`, standing at `origin`, overlaps `target`'s hurtbox.
+static func shape_touches_hurtbox(
+	world_3d: World3D, shape: Shape3D, origin: Vector3, target: Entity
+) -> bool:
+	if target.hurtbox == null:
+		return false
+	return entities_touched_by(world_3d, shape, origin, target.hurtbox.collision_layer).has(target)
 
 
 ## Return a copy of `shape` with its radius grown by `amount`, leaving the shared

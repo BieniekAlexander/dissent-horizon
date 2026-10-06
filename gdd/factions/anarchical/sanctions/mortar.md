@@ -46,8 +46,8 @@ Each shell's launch point is scattered around that single origin, so a heavy bar
 arrives as sixteen separate arcs rather than one thick line. The AIM is not scattered:
 every shell is launched at the same point, and the barrage converges.
 
-The shell is the Colonial Bombard's (`cannon_shell`) — a stand-in until the Anarchists
-have one of their own.
+The shell is `mortar_shell`, a copy of the Colonial Bombard's `cannon_shell` taken when the
+two were tuned apart (2026-10-05) — a stand-in until the Anarchists have one of their own.
 
 ## Progression
 4 → 8 → 16 shells. The tiers differ by `shell_count` on the event scene and by nothing

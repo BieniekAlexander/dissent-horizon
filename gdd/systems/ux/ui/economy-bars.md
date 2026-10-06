@@ -82,7 +82,7 @@ and non-fallback queued energy commitments" — a decomposition into two compone
 single `energy_spend_rate()` figure built here. Neither `PurchaseTransaction.FailurePolicy`
 (REJECT/WAIT) nor `Commander.energy_committed()`/`energy_spend_rate()` names a "fallback"
 concept, and which existing figures (if any) the two terms refer to is genuinely undetermined
-— see the open question on "UI Updates" in `gdd/tasks.md`. Once answered, the fix is local to
+— see `gdd/tasks.md` T-069. Once answered, the fix is local to
 `EnergyBar._verbose_text()` and the consumption entry in its `RateIndicator.bars`.
 
 ## Infrastructure

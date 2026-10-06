@@ -335,6 +335,10 @@ func _run_tick() -> ActionTracker.Action:
 	elif owner.can_move() and _command.should_move(owner):
 		_drive_movement()
 		return ActionTracker.Action.MOVING
+	# Holding an order that neither acts nor drives it: an actor that cannot stop keeps flying
+	# its circuit.
+	if _command != null and owner.locomotion != null and not owner.locomotion.can_hold_still():
+		owner.locomotion.settle(_command.orbit_anchor(owner))
 	return ActionTracker.Action.IDLE
 
 
@@ -391,7 +395,7 @@ func _halt() -> void:
 ## is fed an explicit zero rather than merely stopping to call set_velocity; why, and the
 ## open caveat: gdd/systems/commands/the-command-tick.md §A dropped command anchors.
 func _drop_command() -> void:
-	var last_goal: Variant = _last_goal_of(_command)
+	var last_goal: Variant = _last_goal_of(_command, owner)
 	_command = null
 	if owner.locomotion != null:
 		owner.locomotion.settle(last_goal)
@@ -400,7 +404,7 @@ func _drop_command() -> void:
 ## Where `a_command` was last aiming, or null when that is unknowable: no command, or a target
 ## that has left the world (garrisoned), whose position reads as the map origin — the trap
 ## _target_has_left_play exists for. Null lets a mover that cannot stop keep its circuit.
-static func _last_goal_of(a_command: MoveCommand) -> Variant:
+static func _last_goal_of(a_command: MoveCommand, actor: Commandable) -> Variant:
 	if a_command == null:
 		return null
 	var target: Variant = a_command.message.target
@@ -411,7 +415,7 @@ static func _last_goal_of(a_command: MoveCommand) -> Variant:
 		and not (target as Node).is_inside_tree()
 	):
 		return null
-	return a_command.message.position
+	return a_command.orbit_anchor(actor)
 
 
 ## In range and ready: perform the action, settle the movement it leaves behind, and take up
@@ -452,7 +456,7 @@ func _settle_movement_after_acting(a_acting_command: MoveCommand) -> void:
 	if _command.should_move(owner):
 		_drive_movement()
 	else:
-		owner.locomotion.settle(_command.message.position)
+		owner.locomotion.settle(_command.orbit_anchor(owner))
 
 
 ## Steer the owner toward its active command's destination for one tick. Split out of

@@ -18,7 +18,7 @@ extends EconomyBar
 ##
 ## TODO: the consumption-rate indicator shows Commander.energy_spend_rate() alone — the
 ## "fallback vs. non-fallback queued commitments" split the task asked for is not resolved;
-## see gdd/tasks.md "UI Updates" §the open question and gdd/systems/ux/ui/economy-bars.md
+## see gdd/tasks.md T-069 and gdd/systems/ux/ui/economy-bars.md
 ## §Energy consumption is one rate, not two (yet).
 
 #region Constants

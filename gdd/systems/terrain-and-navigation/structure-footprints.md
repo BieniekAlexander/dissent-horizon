@@ -350,7 +350,7 @@ Five files require edits. Three files require no changes at all.
 
 ## 12. Open Questions
 
-Each is a `TODO`; see [deferred](../../deferred.md) §2.
+Each is a `TODO`; see [tasks](../../tasks.md).
 
 **PLANNED — rotation.** Superseded by [footprint-rotation](footprint-rotation.md), which plans it against the current model (a quarter-turn count and one oriented-dimensions function; the rest of this paragraph is the earlier offset-list sketch, which assumed irregular footprints; every footprint is a rectangle and will stay one). Nothing in this design supports rotating a footprint. The `rotation: int` parameter already exists in `add_structure` (always passed as `0`) and as a column in `configs/scenarios/*/init.json`. If footprint rotation is needed, the clean approach is a utility `StructureSpec.rotate_offsets(offsets, turns: int) -> Array[Vector2i]` that applies 90°-CW rotation (`(x, z) → (z, -x)` then normalise to non-negative coords) before the footprint is registered.
 

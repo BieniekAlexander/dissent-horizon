@@ -90,8 +90,13 @@ func show_availability(a_state: CommandButtonState) -> void:
 		if a_state.shows_timer()
 		else ""
 	)
-	if a_state.is_toggled_on or _toggle_edge != null:
-		_toggle_edge_rect().visible = a_state.is_toggled_on
+	show_toggled(a_state.is_toggled_on)
+
+
+## Draw (or clear) the lit top edge a TOGGLE shows while it is on.
+func show_toggled(a_is_on: bool) -> void:
+	if a_is_on or _toggle_edge != null:
+		_toggle_edge_rect().visible = a_is_on
 
 
 ## Write `a_text` in the bottom-left corner, over the icon — how many of a piece the button

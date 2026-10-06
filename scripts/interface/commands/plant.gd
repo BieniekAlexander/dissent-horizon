@@ -42,6 +42,11 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 	return AbilityCatalog.cast_arity_of(ABILITY_ID)
 
 
+## Free unless already planting — the job rule (MoveCommand.is_free_to_take).
+static func is_free_to_take(actor: Commandable) -> bool:
+	return holds_none_of(actor, [Plant])
+
+
 #endregion
 
 #region Properties

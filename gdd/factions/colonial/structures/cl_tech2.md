@@ -13,10 +13,11 @@ defense:
 senses:
   vision: vision_ground_large
 footprint: [4, 4]
+researches: [field_conditioning, gun_drill]
 abilities:
   - max_charges: 1
     cooldown: 60
     grants: [gunship]
 infrastructure: -50
-ui: {grid: [1, 2], factions: [colonial]}
+ui: {grid: [1, 2], factions: [colonial], context_grid: [5, 0]}
 ---

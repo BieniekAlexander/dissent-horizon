@@ -77,7 +77,7 @@ number (1) is left unused, since interaction types are serialised by number.
 
 - TODO: **the charge's damage against armour.** Today's flat 10000 EXPLOSIVE kills anything. The
   intent is *very effective against MEDIUM, fairly effective against STRONG* — which waits on the
-  structure armour policy (`deferred.md` 1.20).
+  structure armour policy (`tasks.md` T-046).
 - TODO: **the recharge length.** Whether 30 s is long enough is unset; its reach against a base is
   worked in [design-framework/timings](../../design-framework/timings.md).
 - TODO: **a second way to learn about a plant** — telling a player when the planting happens inside

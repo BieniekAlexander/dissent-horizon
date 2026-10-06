@@ -79,6 +79,7 @@ const IDENTITY_COMPONENTS: Dictionary = {
 	"shelter": ["Shelter", "res://scripts/entities/components/shelter.gd"],
 	"extraction_site": ["ExtractionSite", "res://scripts/entities/structures/extraction_site.gd"],
 	"extractor": ["Extractor", "res://scripts/entities/structures/extractor.gd"],
+	"plants_beacons": ["BeaconPlanter", "res://scripts/entities/components/beacon_planter.gd"],
 }
 const SCRIPT_EMISSION_PHASE: String = "res://scripts/entities/tools/emission_phase.gd"
 const SCRIPT_SPAWN_EMISSION: String = "res://scripts/scenario/events/event_spawn_emission.gd"
@@ -115,14 +116,13 @@ const PHASE_PROPERTIES: Array[String] = [
 ## The child an `emits:` phase runs on its cadence.
 const PHASE_EMIT_NODE: String = "Emit"
 
-## Doc key -> the CollisionShape3D whose radius it sets. Two detection volumes and the two
-## physical bodies: what the piece pushes through the world with (nav footprint / avoidance
-## radius) and what weapons can lock onto. Composition gives a piece the nodes; `detection:`
-## is handled separately because its node is created on demand.
+## Doc key -> the CollisionShape3D whose radius it sets: vision, and the body the piece pushes
+## through the world with (nav footprint / avoidance radius). Composition gives a piece the
+## nodes; `detection:` is handled separately because its node is created on demand. What
+## weapons hit — the hurtbox — is not a doc key: it is fitted to the model (_bake_hurtbox).
 const SHAPE_PATHS: Dictionary = {
 	"vision": "VisionRange",
 	"movement_radius": "MovementBody",
-	"hurtbox_radius": "Hurtbox/HurtboxShape",
 }
 
 ## The SHAPE_PATHS keys a doc may switch OFF — `false`, or the value simply left empty
@@ -1233,6 +1233,7 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 	var cur_charged: bool = a_node.charged if a_node != null else false
 	var cur_turret: bool = a_node.turret if a_node != null else false
 	var cur_turret_rate: float = a_node.turret_turn_rate if a_node != null else -1.0
+	var cur_range_origin: int = a_node.range_origin if a_node != null else -1
 
 	# `charged: true` marks a weapon that cannot reload in the field — it empties and stays
 	# empty until an airfield recharges it (see Weapon.charged). Written whenever the key is
@@ -1251,6 +1252,12 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 	if a_w.has("turret_turn_rate"):
 		var rate: float = float(a_w["turret_turn_rate"])
 		_set_prop(a_ctx, wpath, "turret_turn_rate", cur_turret_rate, rate, TscnDoc.fmt_float(rate))
+
+	# `range_from:` names where reach is measured from (Weapon.RangeOrigin); written whenever
+	# the key is present, `hull` included, like `turret`.
+	if a_w.has("range_from"):
+		var origin: int = SpecRegistry.RANGE_FROM[str(a_w["range_from"])]
+		_set_prop(a_ctx, wpath, "range_origin", cur_range_origin, origin, str(origin))
 
 	# The doc authors SECONDS (`split_time:`); the scene property is TICKS
 	# (`split_time_ticks`). The two are deliberately spelled differently — they used to share
@@ -2404,7 +2411,15 @@ func _sync_piece_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 			VisualMeasure.PLACEHOLDER_NODE
 		)
 	_bake_selection_shape(a_ctx, visual_class, measurement, footprint)
+	_bake_hurtbox(
+		a_ctx,
+		visual_class,
+		measurement,
+		footprint,
+		a_spec.has("footprint") or a_ctx.inst.has_node("Structure")
+	)
 	_bake_hp_bar(a_ctx, measurement)
+	_keep_hurtbox_editable(a_ctx)
 
 
 ## A projectile's two visual states. The in-flight mesh is unconditional — a projectile
@@ -2541,6 +2556,68 @@ func _bake_selection_shape(
 		"metadata/%s" % VisualMeasure.STAMP_SELECTION,
 		TscnDoc.fmt_string(String(descriptor["type"]))
 	)
+	a_ctx.dirty = true
+
+
+## The hurtbox: its shape, and its height above the origin so it stands on the piece's base.
+## ONLY for a hurtbox with no shape at all. Unlike the other visual slots, `--rebake-visuals`
+## does not widen this: an existing hurtbox shape is never replaced, whoever put it there
+## (Alex, 2026-10-06).
+func _bake_hurtbox(
+	a_ctx: Ctx,
+	a_visual_class: int,
+	a_measurement: Dictionary,
+	a_footprint: Vector2i,
+	a_is_fixture: bool
+) -> void:
+	if not VisualMeasure.hurtbox_is_cleared(a_ctx.inst):
+		return
+	var descriptor: Dictionary = VisualDefaults.hurtbox_shape(
+		a_visual_class,
+		a_measurement["size"],
+		float(a_measurement["top"]),
+		a_footprint,
+		a_is_fixture
+	)
+	var section: Dictionary = _section_for(a_ctx, VisualMeasure.HURTBOX_SHAPE_PATH)
+	if section.is_empty():
+		report["warnings"].append(
+			"%s: no %s node — cannot fit a hurtbox" % [a_ctx.path, VisualMeasure.HURTBOX_SHAPE_PATH]
+		)
+		return
+	_drop_orphan_shape(a_ctx, section)
+	var shape_id: String = a_ctx.doc.add_sub_resource(
+		String(descriptor["type"]), "hurtbox", _raw_props(descriptor["props"])
+	)
+	a_ctx.doc.set_prop(section, "shape", 'SubResource("%s")' % shape_id)
+	a_ctx.doc.set_prop(
+		section,
+		"transform",
+		TscnDoc.fmt_transform(
+			Transform3D(Basis.IDENTITY, Vector3(0.0, float(descriptor["center_y"]), 0.0))
+		)
+	)
+	a_ctx.doc.set_prop(
+		section,
+		"metadata/%s" % VisualMeasure.STAMP_HURTBOX,
+		TscnDoc.fmt_string(String(descriptor["type"]))
+	)
+	a_ctx.dirty = true
+
+
+## A fitted hurtbox overrides a node INSIDE the Hurtbox component instance, and the editor drops
+## such an override on its next save unless the scene marks the instance editable — it did, to
+## the Matilda, on the first save after the fit. Asked of every scene carrying one, not only on
+## the run that fits it, so a scene fitted before this existed is repaired too.
+func _keep_hurtbox_editable(a_ctx: Ctx) -> void:
+	if a_ctx.doc.find_node(VisualMeasure.HURTBOX_SHAPE_PATH).is_empty():
+		return
+	var parent: String = VisualMeasure.HURTBOX_SHAPE_PATH.get_base_dir()
+	if a_ctx.doc.sections_of("editable").any(
+		func(section: Dictionary) -> bool: return section["attrs"].get("path", "") == parent
+	):
+		return
+	a_ctx.doc.ensure_editable(parent)
 	a_ctx.dirty = true
 
 

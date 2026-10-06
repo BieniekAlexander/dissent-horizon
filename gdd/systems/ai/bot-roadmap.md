@@ -312,6 +312,17 @@ Written up as a proposal, with three candidate representations and a recommendat
 > is worth attacking" is already a comparison the bot could make. Worth doing only if it does
 > not prejudge the layer above it.
 
+**7. Nothing tells the bot to stay out of an area.** Many effects punish whatever stands in a
+region — a frost field, a radiation field, a gathering Blizzard — and the bot walks into all of
+them, because nothing it reads says "keep clear".
+
+> **TODO — an avoid-region signal.** A lingering area effect publishes a signal the bot reads
+> as "stay clear of this region", and only effects that last longer than about 3 seconds
+> publish one: steering around every brief blast would be excessive and twitchy. Undecided:
+> what the signal is (a group the effect joins, a registry on the Map, a flag on the emission's
+> phase), whether it carries a weight or is a plain keep-out, and how it reaches pathing,
+> since today the bot routes only through the navmesh. Raised 2026-10-05.
+
 ## Tactics and the Bot
 
 `ScenarioTactic` / `TacticRule` (see

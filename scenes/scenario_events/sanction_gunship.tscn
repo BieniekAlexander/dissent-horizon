@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/scenario/events/event_gunship.gd" id="1_evt"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/cl/cl_aircraftMedium_gunship.tscn" id="2_gunship"]
+
+[node name="SanctionGunship" type="Sprite3D"]
+script = ExtResource("1_evt")
+gunship_scene = ExtResource("2_gunship")
+station_seconds = 20.0

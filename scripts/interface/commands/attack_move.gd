@@ -2,6 +2,16 @@ class_name AttackMove
 extends MoveCommand
 
 
+## Refused for a piece on rails (Commandable.is_on_rails): it cannot go where it is sent. The
+## button still serves it — clicked on a target, it resolves to Attack instead.
+static func meets_precondition(
+	actor: Commandable, _message: CommandMessage
+) -> PreconditionFailureCause:
+	if actor != null and actor.is_on_rails():
+		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	return PreconditionFailureCause.NONE
+
+
 ## This order exists in order to shoot, so an empty charged loadout makes it undoable for
 ## now. The receiver stands it down into the queue rather than have the unit fly at
 ## something it cannot touch — it resumes once the unit has been back to an airfield.

@@ -8,8 +8,9 @@ extends GutTest
 ## What is pinned: who is offered it (anything with a weapon), how the button toggles it (none
 ## or some holding sets it for all; all holding releases all), that pressing it leaves the queue
 ## alone, what releases it (Attack and Attack-move, queued or not), that it suppresses the
-## piece's own target acquisition, that gaining stealth sets it, and that the button is lit —
-## and still pressable — once the whole armed selection is holding.
+## piece's own target acquisition, that gaining stealth sets it, that the button is lit —
+## and still pressable — once the whole armed selection is holding, and that an unarmed piece
+## holding it draws nothing.
 
 
 ## A Commandable with the children Entity/Commandable resolve with a hard `$` — the stub shape
@@ -183,3 +184,16 @@ func _state(a_selection: Array) -> CommandButtonState:
 	return CommandButtonState.of(
 		CommandContextParser.HOLD_FIRE_COMMAND, a_selection, _commander, false
 	)
+
+
+func test_an_unarmed_piece_holding_fire_shows_no_hold() -> void:
+	# Stealth sets the flag on anything it is granted to; only a piece that is offered the
+	# button draws the hold, so an unarmed stealthed piece shows no badge or card for it. The
+	# hold is drawn for the local player's pieces; that id is a static, so it is read, not assumed.
+	_commander.id = RTSController.PLAYER_COMMANDER_ID
+	var unarmed := _piece(false)
+	unarmed.is_holding_fire = true
+	assert_false(ConditionRow._holds_fire(unarmed), "nothing to hold")
+	var armed := _piece(true)
+	armed.is_holding_fire = true
+	assert_true(ConditionRow._holds_fire(armed))

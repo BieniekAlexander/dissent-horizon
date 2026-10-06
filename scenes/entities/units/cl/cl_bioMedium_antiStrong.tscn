@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://dq0pkc7yol24i"]
+[gd_scene load_steps=32 format=3 uid="uid://dq0pkc7yol24i"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_jlec6"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
@@ -34,11 +34,15 @@
 height = 1.1
 radius = 0.45
 
-[node name="ClBioMediumAntiLight" type="CharacterBody3D" unique_id=820640255 groups=["piece", "unit"]]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 0.2
+height = 1.1
+
+[node name="ClBioMediumAntiStrong" type="CharacterBody3D" unique_id=820640255 groups=["piece", "unit"]]
 script = ExtResource("1_jlec6")
 description = "Armed peacekeeper"
 verbose = "Medium bio unit trained at the Barracks"
-id = &"cl_bioMedium_antiLight"
+id = &"cl_bioMedium_antiStrong"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1922240698]
 
@@ -47,6 +51,11 @@ id = &"cl_bioMedium_antiLight"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_algwa")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_aied2")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("CylinderShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.55, 0.0)
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_cmpao")]
 
@@ -65,7 +74,7 @@ nav_agent_path = NodePath("../NavigationAgent")
 [node name="Defense" type="Node" parent="." unique_id=1424146246]
 script = ExtResource("10_a3rre")
 armour_type = 1
-hp_max = 150.0
+hp_max = 225.0
 
 [node name="Veterancy" type="Node" parent="." unique_id=1590922278]
 script = ExtResource("11_401gf")
@@ -134,11 +143,12 @@ script = ExtResource("1_spec")
 [node name="BallisticWeapon" type="Node3D" parent="Loadout" unique_id=1045960849]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.715, 0.14)
 script = ExtResource("2_spec")
-split_time_ticks = 9
-reload_time_ticks = 9
+split_time_ticks = 3
+reload_time_ticks = 30
 projectile_scene = ExtResource("3_spec")
 melee_damage = 0.0
 target_mask = 6
+clip_size = 2
 
 [node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/BallisticWeapon" unique_id=1816582501 groups=["debug_shape_attack_range"]]
 visible = false
@@ -158,3 +168,4 @@ debug_color = Color(0.7, 0.2, 0.9, 0.35)
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

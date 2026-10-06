@@ -94,7 +94,7 @@ The last two spikes were the economy's build-spot search (115 ms) and the scout'
 
 ## Open
 
-- **TODO — the AI's share of a tick** (gdd/deferred.md 1.38) is Alex's to set.
+- **TODO — the AI's share of a tick** (gdd/tasks.md T-005) is Alex's to set.
   `BotScheduler.WORK_UNITS_PER_TICK` is a provisional 2000 units, ~2 ms.
 - **TODO — a debug-build wall-clock tripwire** (Decision 1's option 3) was not built: nothing
   reports a job whose work units have drifted from its real cost. Re-run the calibration

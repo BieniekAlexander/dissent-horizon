@@ -12,6 +12,11 @@ flavor:
     surroundings and a Reverence's are marked permanently and cost nothing. Spotted
     ground inside a permanent range is preferred, so a free solution never burns a
     beacon a Recruit was walked across the map to place.
+
+    On AUTOMATIC, the default, your guns also fire on their own at a beacon a Recruit is
+    holding, as soon as one is loaded — the loaded gun nearest the beacon answers it.
+    Right-click this button to switch all your guns between automatic and manual; a lit
+    top edge means automatic. On manual, a gun fires only when you order it.
 ui: {grid: [0, 0], active_grid: [2, 0], factions: [colonial]}
 hud_button: true
 command: command_bombard
@@ -31,8 +36,13 @@ can fire and arms `command_bombard`, leaving the player one right-click from the
 without it the only way to fire is to find the gun on the map first, which a global-range
 weapon should not require.
 
+## Automatic fire
+A gun answers a spotter's beacon on its own unless its commander has switched the Bombard to
+manual — the right-click on this ability's button, which sets it for every gun at once. See [bombardment](../../../systems/combat/bombardment.md) §Automatic
+fire.
+
 ## Charges
-One pool of one charge, five seconds, authored on the gun itself
+One pool of one charge, 30 seconds, authored on the gun itself
 (`cl_defense_antiStructure`'s `abilities:`) rather than here — the pool belongs to the
 piece holding it, so a second battery is a second shot rather than a faster one.
 

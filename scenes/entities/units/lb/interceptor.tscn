@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://b2qyn8ktx0f56"]
+[gd_scene load_steps=25 format=3 uid="uid://b2qyn8ktx0f56"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_4am00"]
 [ext_resource type="PackedScene" uid="uid://cxk04wu0mkt2s" path="res://assets/meshes/hexagonal_prism.blend" id="2_hexprism"]
@@ -29,6 +29,9 @@ radius = 12.0
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_ot28d"]
 height = 0.6
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(0.866025, 0.2, 1.0)
+
 [node name="Interceptor" type="CharacterBody3D" unique_id=1629976663 groups=["piece", "unit"]]
 script = ExtResource("1_4am00")
 id = &"lb_mechLight_antiBio"
@@ -40,6 +43,11 @@ id = &"lb_mechLight_antiBio"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_d8cpg")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_56ukl")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.1, 0.0)
+shape = SubResource("BoxShape3D_hurtbox")
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_28c0l")]
 
@@ -116,3 +124,4 @@ billboard = 2
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

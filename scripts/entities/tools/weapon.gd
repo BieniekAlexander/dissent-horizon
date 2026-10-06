@@ -522,6 +522,37 @@ func range_node(a_is_air: bool) -> CollisionShape3D:
 	return get_node_or_null("AttackRange") as CollisionShape3D
 
 
+#region Range origin
+## Where this weapon's reach is measured from. Doc key `range_from:` on the weapon.
+## Rules: gdd/systems/combat/range-buckets.md §Where a reach is measured from.
+enum RangeOrigin {
+	## The gap between the wielder's footprint and the target's (SU.hull_gap) — so the wielder
+	## closes range by moving.
+	HULL,
+	## The range shape standing at the centre of the wielder's ORBIT, overlapping the target's
+	## hurtbox. The wielder's own position plays no part, so moving never closes range, and an
+	## Attack never steers it (Commandable.fights_from_orbit).
+	ORBIT,
+}
+
+@export var range_origin: RangeOrigin = RangeOrigin.HULL
+
+
+## The point this weapon measures its reach from on [a_wielder], or null when that is its
+## footprint (HULL). An ORBIT weapon on a wielder that does not orbit — anything but FLYING —
+## falls back to its footprint: there is no orbit to stand the shape at.
+func orbit_origin(a_wielder: Entity) -> Variant:
+	if range_origin != RangeOrigin.ORBIT or a_wielder == null:
+		return null
+	var aerial: Aerial = a_wielder.get_node_or_null("Aerial") as Aerial
+	if aerial == null or aerial.mode != Movement.Mode.FLYING:
+		return null
+	return aerial.anchor()
+
+
+#endregion
+
+
 ## Change which targetable layers this weapon hits, re-resolving the range shapes that follow
 ## from it (they are chosen by the mask at _ready).
 func retarget(a_mask: int) -> void:

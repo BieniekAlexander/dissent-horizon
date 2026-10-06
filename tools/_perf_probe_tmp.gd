@@ -429,7 +429,7 @@ func _sweep(a_tick: int) -> void:
 func _collect_unit_scenes() -> void:
 	for p: String in [
 		"res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn",
-		"res://scenes/entities/units/cl/cl_bioMedium_antiLight.tscn",
+		"res://scenes/entities/units/cl/cl_bioMedium_antiStrong.tscn",
 	]:
 		if ResourceLoader.exists(p):
 			_unit_scenes.append(load(p))

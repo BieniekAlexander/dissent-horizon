@@ -50,15 +50,15 @@ static func check_armour_normalization(catalog: DamageCatalog) -> Array[String]:
 	return violations
 
 
-## §6.4: for each of bio, mech, light, medium, strong, at least one
-## damage type in the catalog has 1.0 in that column.
+## §6.4: for each of bio, mech, light and medium, at least one damage type in the
+## catalog has 1.0 in that column. STRONG is exempt: it is a mitigation class that no
+## type is meant to answer in full (gdd/design.md §Damage Calculations).
 static func check_column_coverage(catalog: DamageCatalog) -> Array[String]:
 	var covered: Dictionary = {
 		"bio": false,
 		"mech": false,
 		"light": false,
 		"medium": false,
-		"strong": false,
 	}
 	for p: DamageProfile in catalog.profiles:
 		if p.bio_multiplier == 1.0:
@@ -69,8 +69,6 @@ static func check_column_coverage(catalog: DamageCatalog) -> Array[String]:
 			covered.light = true
 		if p.medium_multiplier == 1.0:
 			covered.medium = true
-		if p.strong_multiplier == 1.0:
-			covered.strong = true
 	var violations: Array[String] = []
 	for column: String in covered:
 		if not covered[column]:

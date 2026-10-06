@@ -13,7 +13,7 @@ build:
     - cl_tech2
 defense:
   hp: 700
-  armour: STRONG
+  armour: MEDIUM
   frame: MECH
 senses:
   vision: vision_aerial_large
@@ -40,4 +40,3 @@ ui:
   within 5 units of it is permanently bombardable by friendly Bombards, and unlike a
   beacon the range is never spent. A mobile firing solution the player flies to wherever
   the guns are needed.
-- Referencing Paul Revere - "The british are coming"

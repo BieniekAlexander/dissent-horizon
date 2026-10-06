@@ -318,7 +318,11 @@ static func stance_badge(a_stance: Deployable.Stance) -> Array:
 ## Hold fire is drawn for its OWNER only, selected or not: the owner needs to see at a glance
 ## which units will not shoot, and an enemy has no business knowing which will not.
 func _shows_hold_fire() -> bool:
-	return _host.is_holding_fire and _host.commander_id == RTSController.PLAYER_COMMANDER_ID
+	return (
+		_host.is_holding_fire
+		and _host.commander_id == RTSController.PLAYER_COMMANDER_ID
+		and CommandContextParser.offers_hold_fire(_host)
+	)
 
 
 ## The unpowered badge shows on a dark structure that has something to lose by it — weapons,

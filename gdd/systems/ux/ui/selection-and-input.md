@@ -84,7 +84,9 @@ debug view allows it: see [debug-mode](debug-mode.md) §Commanding any piece.
 *Moved out of `rts_controller.gd::_narrowed_actors`.*
 
 Which one: the NEAREST IDLE actor to the order's target, falling back to the nearest
-outright when every candidate is busy. Idle-first is what makes narrowing useful for the
+outright when every candidate is busy. A command that goes to ONE actor by default (Build,
+Spot, an ability) defines "free" as "not already on this job" rather than idle — see
+[control-matrices](control-matrices.md) §Cast arity. Idle-first is what makes narrowing useful for the
 case it exists to serve — keeping one builder free while the rest work — without ever
 refusing the order when nothing is idle.
 

@@ -44,10 +44,7 @@ static var lines: Dictionary[StringName, Array] = {
 	EntityIds.AN_MECH_MEDIUM_ANTI_BIO: [_DEATH],
 	EntityIds.AN_MECH_MEDIUM_ARTILLERY: [_DEATH],
 	EntityIds.CL_AIRCRAFT_MEDIUM_ANTI_MECH: [_DEATH],
-	EntityIds.CL_AIRCRAFT_MEDIUM_TRANSPORT: [_DEATH],
-	EntityIds.CL_AIRCRAFT_STRONG_SUPPORT: [_DEATH],
 	EntityIds.CL_BIO_LIGHT_STEALTH: [_DEATH],
-	EntityIds.CL_BIO_MEDIUM_ANTI_LIGHT: [_DEATH],
 	EntityIds.CL_MECH_MEDIUM_ANTI_LIGHT: [_DEATH],
 	EntityIds.AN_BIO_MEDIUM_SUPPORT: [_DEATH],
 	# The Drop sanction's off-map transport. It has the bark: being shot down on the

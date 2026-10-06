@@ -48,7 +48,7 @@ declare. Two reasons this is data on the effect rather than code in a subclass:
   unit, and two effects each halving it would otherwise quarter it.
 
 **The channel is a COLOUR and not a brightness, and freeze is why.** An EMP drains a
-machine toward black, but cryo RAISES its host's armour class — draining a frozen unit
+machine toward black, but cryo coats its host in protective ice — draining a frozen unit
 would say the opposite of what happened to it, so `host_tint` has to be able to say
 "colder" rather than only "darker". The cost is that a multiply can never add warmth: an
 orange burn tint pushed hard turns this game's cyan-lit models GREEN, so `lazer_burn`
@@ -73,7 +73,7 @@ the selection:
 | veterancy | one/two/three gold chevrons (`veterancy_{1,2,3}.svg`) | everyone |
 | status | the current action's badge, flashing ([unit-animation](../unit-animation.md) §Action badges) | everyone |
 | status (same row) | one icon per active effect that declares one | everyone |
-| status (same row) | the hold-fire badge (`status_hold_fire.svg`) | the owner, selected or not |
+| status (same row) | the hold-fire badge (`status_hold_fire.svg`) | the owner, selected or not — and only on a piece offered hold fire (armed); an unarmed stealthed piece holds fire with nothing to show for it |
 | status (same row) | the unpowered badge (`status_unpowered.svg`): a STRUCTURE whose weapons or abilities have gone dark because its commander's infrastructure is short (`Commandable.is_unpowered`). A building that only trains carries none — production slows under strain but does not stop | the owner's side |
 | status, on a BLUEPRINT | the awaiting-funds badge (`status_awaiting_funds.svg`): ordered, not paid for | the owner's side |
 | capacity pips | garrison seats and charged-ammo rounds | the owner, while selected |

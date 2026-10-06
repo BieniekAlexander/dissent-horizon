@@ -10,7 +10,7 @@ carries only the pointer.*
 
 > **TODO — definitions first.** The vocabulary below is meant to be stable; the rules built on it
 > are mostly undeveloped. Every open decision is a `TODO` under §Open questions, indexed as
-> [deferred](../../deferred.md) 1.66.
+> [tasks](../../tasks.md) T-018.
 
 How a target in the path of a projectile makes it miss, and the terms a design claim about that
 is written in. The mechanics the terms describe live elsewhere: an emission's motion, stages,
@@ -193,4 +193,4 @@ to kill the shooter. That is the payoff the band should be sized for.
 - **TODO — does the AI juke?** Units never evade on their own today; an evasion band is only
   ever reached by a player's orders. Whether bots should use it, or units should evade
   automatically at some floor, is open.
-- **Related:** [deferred](../../deferred.md) 1.9 (how much projectile lead error is too much).
+- **Related:** [tasks](../../tasks.md) T-017 (how much projectile lead error is too much).

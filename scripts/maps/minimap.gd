@@ -398,11 +398,10 @@ func _rebuild_layer() -> void:
 
 	_layer_fixtures.clear()
 	var fixtures: Array[Dictionary] = []
-	for entity: Entity in _map.structure_cell_map:
-		if not is_instance_valid(entity) or entity.commander_id != 0:
-			continue
+	var neutral: Dictionary = neutral_fixtures(_map.structure_cell_map)
+	for entity: Entity in neutral:
 		_layer_fixtures[entity] = true
-		fixtures.append({cells = _map.structure_cell_map[entity], kind = _fixture_kind(entity)})
+		fixtures.append({cells = neutral[entity], kind = _fixture_kind(entity)})
 
 	var starts: Array[Dictionary] = []
 	var half: float = MapGenerationParams.new().start_clear_radius_cells
@@ -423,6 +422,22 @@ func _rebuild_layer() -> void:
 		)
 
 	_layer = MinimapLayer.build(width, depth, in_play, ponds, fixtures, starts)
+
+
+## The live neutral fixtures in `cell_map` (Map.structure_cell_map), each with its cells.
+##
+## Read untyped: a key may be a fixture freed without leaving the map, and a freed object
+## cannot be assigned to a typed variable, so its validity is checked first (CLAUDE.md §A freed
+## object cannot be passed to a typed parameter).
+static func neutral_fixtures(cell_map: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for key: Variant in cell_map:
+		if not is_instance_valid(key):
+			continue
+		var entity := key as Entity
+		if entity != null and entity.commander_id == 0:
+			out[entity] = cell_map[key]
+	return out
 
 
 ## What a neutral fixture is, for its colour: by the facet it carries, never by its id.

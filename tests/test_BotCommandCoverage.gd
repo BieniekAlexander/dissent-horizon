@@ -72,6 +72,11 @@ const NOT_THE_BOTS: Dictionary = {
 		"world behaviour, issued by the Shelter component to loose neutrals. No commander"
 		+ " ever orders it"
 	),
+	"SortieLeg":
+	(
+		"a called-in aircraft's transit leg, flown by its Sortie component. Nothing orders"
+		+ " it; a bot's gunship flies it exactly as a player's does"
+	),
 }
 
 ## KNOWN GAPS — things a commander plausibly wants and this bot cannot do. Enumerated

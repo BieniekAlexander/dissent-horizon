@@ -313,3 +313,69 @@ func test_an_unknown_upgrade_key_is_refused() -> void:
 func test_researches_must_name_an_upgrade() -> void:
 	var r: RefCounted = _registry(_upgrade_doc(), {"researches": ["fake_spotter"]})
 	assert_eq(_errors_mentioning(r, "references unknown upgrade 'fake_spotter'").size(), 1)
+
+
+## An upgrade whose one modifier is `a_modifier`.
+func _modifier_doc(a_modifier: Dictionary) -> Dictionary:
+	return _upgrade_doc({"modifies": [a_modifier]})
+
+
+func test_factor_modifiers_import_clean_and_are_generated_as_numbers() -> void:
+	var r: RefCounted = _registry(
+		_upgrade_doc(
+			{
+				"modifies":
+				[
+					{"frame": "BIO", "hp_factor": 1.25},
+					{"piece": "fake_spotter", "ability": "spot", "cooldown_rate_factor": 1.3},
+				]
+			}
+		)
+	)
+	assert_eq(_errors_mentioning(r, "fake_upgrade"), [])
+	var modifies: Array = (
+		JSON.parse_string(SpecGenerators.upgrades_json(r))["fake_upgrade"]["modifies"]
+	)
+	assert_eq(modifies[0], {"frame": "BIO", "hp_factor": 1.25})
+	assert_almost_eq(float(modifies[1]["cooldown_rate_factor"]), 1.3, 0.001)
+
+
+func test_a_modifier_with_two_effects_is_refused() -> void:
+	var doc: Dictionary = _modifier_doc(
+		{"piece": "fake_spotter", "hp_factor": 1.25, "rearm_rate_factor": 2.0}
+	)
+	assert_eq(_errors_mentioning(_registry(doc), "exactly one effect").size(), 1)
+
+
+func test_a_modifier_needs_exactly_one_selector() -> void:
+	var doc: Dictionary = _modifier_doc(
+		{"piece": "fake_spotter", "frame": "BIO", "hp_factor": 1.25}
+	)
+	assert_eq(_errors_mentioning(_registry(doc), "exactly one of").size(), 1)
+
+
+func test_an_unknown_frame_is_refused() -> void:
+	var doc: Dictionary = _modifier_doc({"frame": "SILICON", "hp_factor": 1.25})
+	assert_eq(_errors_mentioning(_registry(doc), "frame must be one of").size(), 1)
+
+
+func test_a_hit_point_factor_refuses_an_ability() -> void:
+	var doc: Dictionary = _modifier_doc(
+		{"piece": "fake_spotter", "ability": "spot", "hp_factor": 1.25}
+	)
+	assert_eq(_errors_mentioning(_registry(doc), "hp_factor is not about an ability").size(), 1)
+
+
+func test_a_recharge_factor_needs_an_ability() -> void:
+	var doc: Dictionary = _modifier_doc({"piece": "fake_spotter", "cooldown_rate_factor": 1.3})
+	assert_eq(_errors_mentioning(_registry(doc), "cooldown_rate_factor needs an ability").size(), 1)
+
+
+func test_a_rearm_factor_on_a_piece_without_a_charged_weapon_is_refused() -> void:
+	var doc: Dictionary = _modifier_doc({"piece": "fake_spotter", "rearm_rate_factor": 2.0})
+	assert_eq(_errors_mentioning(_registry(doc), "never rearms").size(), 1)
+
+
+func test_a_factor_must_be_positive() -> void:
+	var doc: Dictionary = _modifier_doc({"frame": "BIO", "hp_factor": 0})
+	assert_eq(_errors_mentioning(_registry(doc), "must be a positive number").size(), 1)

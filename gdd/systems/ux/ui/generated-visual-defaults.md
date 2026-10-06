@@ -16,7 +16,8 @@ no bar at all, having buried it inside themselves), **12 units with no visible m
 selection radius of `0.5` on nearly every unit whatever its size — 0.33x the width of the
 Colonial airfield, 3.25x the width of an Anarchist builder.
 
-A fourth pass in the spec importer now derives all three and bakes them into the scene.
+A fourth pass in the spec importer now derives all three and bakes them into the scene, and
+since 2026-10-06 a fourth: the HURTBOX, below.
 
 ## What it is not
 
@@ -78,6 +79,7 @@ What "cleared" means differs by slot, because "empty" does:
 |---|---|
 | HP bar transform | absent, or an origin of exactly `Vector3.ZERO` |
 | Selection shape | absent, or a null `shape` |
+| Hurtbox | a null `shape` on `Hurtbox/HurtboxShape` — and ONLY that: `--rebake-visuals` never replaces an existing hurtbox shape |
 | Placeholder mesh | the node is absent |
 
 **A state filled by art of another kind is not empty.** An emission drawn in flight by a
@@ -149,6 +151,41 @@ stamp is what lets the report distinguish:
 - **generated** — baked, and untouched since.
 - **tuned** — baked, and a human has since changed it. Working as intended.
 - **authored** — never the importer's. It will never be regenerated; clearing it is the ask.
+
+## The hurtbox
+
+Decided 2026-10-06. **A piece's hurtbox is fitted to its model and stands ON its origin**, which
+is its base: navigation places a piece by its origin, so the body lies above it. The hurtbox is
+what a shot strikes, where a steered weapon aims (its centre), and what EVERY piece-to-piece
+range is measured from (`Entity.hull`), so all three follow the model.
+
+| Piece | Shape | Fitted to |
+|---|---|---|
+| fixture (a structure, or a feature with a `footprint:`) | cuboid | the authored footprint × the model's height |
+| MECH unit | cuboid | the model's extent; it turns with the piece |
+| BIO unit, aircraft | upright cylinder | half the model's wider side; the model's height |
+
+From the origin, or the model's lowest point if that is higher, to the model's top, with a small
+floor so a sliver stays hittable. Cylinders and cuboids only: they are what `Hull` measures, and
+a shape the player cannot predict from the model is worse than a slightly loose one.
+
+- **A MECH unit's reach varies with its facing**, accepted: a box measured edge to edge reaches
+  further along its length. Range stays SYMMETRIC either way — `Hull.gap` is the same both
+  ways for any pair of shapes, so whatever reaches you, you reach back at the same gap.
+- **Ranges follow the hurtbox, not a separate range shape** (Alex, 2026-10-06). REJECTED — a
+  distinct attack-range shape: two shapes that can drift, so a shot could land on what range
+  calls out of reach.
+- **Structures are measured from their walls.** Before this every structure's hurtbox was the
+  component's 0.5-radius column at its centre, so attacking a building meant closing on that
+  column; attackers now engage from their real reach.
+- **It is not a doc key.** `body.hurtbox` is retired: the art is the source of truth, and the
+  importer refuses the key.
+- **Superseded:** the game copied the movement body over every hurtbox at load and raised it onto
+  the base. The authored hurtbox was overwritten, and the editor showed shapes centred on the feet.
+
+TODO: the movement body (`MovementBody`) is still a cylinder centred on the origin, half
+underground. It only collides with other bodies for avoidance, so nothing aims at it — see
+`gdd/tasks.md` T-093.
 
 ## What stays hand-authored
 

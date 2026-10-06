@@ -32,7 +32,7 @@ func _init(
 ## grid gives it — "Attack" draws as "Attac", "Defend" as "Defe", "Evacuate" as "Evac". The
 ## remedy is a decision rather than a fix (shrink the font to fit, wrap to two lines, or make
 ## short labels an authoring rule), so nothing is chosen here. Seen by rendering the card
-## offscreen; see gdd/deferred.md and CLAUDE.md §Seeing the HUD without a screen.
+## offscreen; see gdd/tasks.md T-091 and CLAUDE.md §Seeing the HUD without a screen.
 static func create_button_from_spec(spec: ButtonSpec) -> Button:
 	var ret: VerboseTooltipButton = VerboseTooltipButton.new()
 	if spec.icon != null:
@@ -88,7 +88,8 @@ static func create_button_from_spec(spec: ButtonSpec) -> Button:
 	)
 
 	# A grid button's RIGHT-click is unspent, and a standing order is a variant of the same
-	# action the left-click performs — buy this, but keep buying it — so it costs no key.
+	# action the left-click performs — buy this, but keep buying it — so it costs no key. On
+	# the Bombard it toggles automatic fire instead (the controller decides which).
 	#
 	# Connected to the `gui_input` SIGNAL rather than overriding _gui_input: that virtual is
 	# BaseButton's, and a script override would replace the press handling the left click

@@ -21,6 +21,7 @@ const VisualDefaults := preload("res://tools/spec_import/visual_defaults.gd")
 const STAMP_MESH: String = "_visual_default_mesh"
 const STAMP_SELECTION: String = "_visual_default_selection"
 const STAMP_HP_BAR: String = "_visual_default_hp_bar"
+const STAMP_HURTBOX: String = "_visual_default_hurtbox"
 
 ## Where a generated placeholder model is parented, and what it is called. Replacing it with
 ## art is a delete and an add, never a re-instance: a second declaration of a node under one
@@ -44,6 +45,7 @@ const POST_IMPACT_PARTICLES_NODE: String = "PostImpactParticles"
 const HP_BAR_PATH: String = "HPBar"
 const HP_BAR_FILL_PATH: String = "HPBar/HPBarFill"
 const SELECTION_SHAPE_PATH: String = "Selectable/SelectionShape"
+const HURTBOX_SHAPE_PATH: String = "Hurtbox/HurtboxShape"
 
 
 ## Everything the importer and the report need to know about one scene's visuals:
@@ -133,6 +135,13 @@ static func hp_bar_is_cleared(entity: Node3D) -> bool:
 ## A selection shape nobody has given a shape to.
 static func selection_is_cleared(entity: Node3D) -> bool:
 	var node: CollisionShape3D = entity.get_node_or_null(SELECTION_SHAPE_PATH) as CollisionShape3D
+	return node != null and node.shape == null
+
+
+## A hurtbox nobody has given a shape to — the component ships one empty, as it does the
+## selection shape, so a piece that has not overridden it reads as undecided.
+static func hurtbox_is_cleared(entity: Node3D) -> bool:
+	var node: CollisionShape3D = entity.get_node_or_null(HURTBOX_SHAPE_PATH) as CollisionShape3D
 	return node != null and node.shape == null
 
 

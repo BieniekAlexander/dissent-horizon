@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://d23qg30wikg14"]
+[gd_scene load_steps=33 format=3 uid="uid://d23qg30wikg14"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_ef1ae"]
 [ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="1_spec"]
@@ -32,14 +32,15 @@
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_3a2w6"]
 radius = 0.3
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_m5jfw"]
-radius = 0.3
-
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_kf82c"]
 height = 0.9
 radius = 0.45
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_4dih1"]
+radius = 0.18
+height = 0.9
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
 radius = 0.18
 height = 0.9
 
@@ -56,8 +57,10 @@ shape = SubResource("CylinderShape3D_3a2w6")
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_fi3be")]
 
-[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
-shape = SubResource("CylinderShape3D_m5jfw")
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("CylinderShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.45, 0.0)
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="DetectionRange" type="CollisionShape3D" parent="." unique_id=1473748959 groups=["debug_shape_detection_range"]]
 shape = ExtResource("4_spec")

@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://wimh02e67uc5"]
+[gd_scene load_steps=31 format=3 uid="uid://wimh02e67uc5"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_3emyw"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
@@ -35,6 +35,9 @@ radius = 0.7
 [sub_resource type="BoxMesh" id="BoxMesh_evb1o"]
 size = Vector3(0.9, 0.6, 1.4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(0.9, 0.6, 1.4)
+
 [node name="LbMechLightAntiLight1" type="CharacterBody3D" unique_id=243918644 groups=["piece", "unit"]]
 script = ExtResource("1_3emyw")
 description = "Light but mobile gun"
@@ -48,6 +51,11 @@ id = &"lb_mechLight_antiLight1"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_p3d5g")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_cwhg2")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_dyue4")]
 
@@ -157,3 +165,4 @@ is_cancellable = false
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

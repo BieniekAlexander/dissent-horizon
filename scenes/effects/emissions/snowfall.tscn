@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/snowfall.gd" id="1_snow"]
+[ext_resource type="Texture2D" path="res://assets/effects/snowflake.svg" id="2_flake"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_snow"]
+emission_shape = 6
+emission_ring_axis = Vector3(0, 1, 0)
+emission_ring_height = 6.0
+emission_ring_radius = 5.0
+emission_ring_inner_radius = 0.0
+angle_min = -180.0
+angle_max = 180.0
+direction = Vector3(0, -1, 0)
+spread = 20.0
+initial_velocity_min = 5.0
+initial_velocity_max = 9.0
+angular_velocity_min = -360.0
+angular_velocity_max = 360.0
+gravity = Vector3(0, -9.8, 0)
+tangential_accel_min = 8.0
+tangential_accel_max = 14.0
+scale_min = 0.2
+scale_max = 0.45
+turbulence_enabled = true
+turbulence_noise_strength = 2.0
+turbulence_noise_scale = 3.0
+turbulence_influence_min = 0.15
+turbulence_influence_max = 0.3
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_flake"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.92, 0.97, 1, 0.9)
+albedo_texture = ExtResource("2_flake")
+billboard_mode = 3
+billboard_keep_scale = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_flake"]
+material = SubResource("StandardMaterial3D_flake")
+
+[node name="Snowfall" type="GPUParticles3D"]
+emitting = false
+amount = 150
+lifetime = 1.2
+randomness = 0.4
+fixed_fps = 0
+process_material = SubResource("ParticleProcessMaterial_snow")
+draw_pass_1 = SubResource("QuadMesh_flake")
+script = ExtResource("1_snow")

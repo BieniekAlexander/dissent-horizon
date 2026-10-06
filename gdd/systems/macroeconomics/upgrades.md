@@ -11,7 +11,7 @@ carries only the pointer.*
 **An upgrade is a one-time, commander-wide purchase, researched at a structure.** It is authored
 as a `kind: Upgrade` doc ([spec importer](../../../tools/spec_import/README.md) §kind: Upgrade),
 researched wherever a structure's doc lists it under `researches:`, and it changes what its
-`modifies:` entries say. The first one is [[advanced_targetting|Advanced Targetting]]. Decided
+`modifies:` entries say. The first one was [[advanced_targetting|Advanced Targetting]]. Decided
 with Alex, 2026-09-30.
 
 ## The rules
@@ -32,18 +32,38 @@ with Alex, 2026-09-30.
   the order and draws the button LOCKED. A standing research is demoted to a one-off, because
   there is nothing to repeat.
 - **Commander-wide and immediate.** Owning an upgrade changes every affected piece the
-  commander fields, now and later. Nothing is stored per unit: readers ask
-  `UpgradeCatalog.range_for` when they need the value, so a piece trained before the research
-  and one trained after cannot disagree.
+  commander fields, now and later, captured pieces included; a piece captured AWAY loses its
+  old owner's upgrades and takes its new owner's. Readers ask `UpgradeCatalog` for the value
+  in force when they need it, so a piece trained before the research and one trained after
+  cannot disagree. The one exception is the hit-point maximum, which is read in too many
+  places to look up each time: the piece re-applies it whenever its commander changes or
+  researches something.
 - **It survives the building.** Losing the structure that researched an upgrade does not take it
   back. That matches the rule for tech gates: losing a gate blocks new purchases, and what is
   already fielded stays ([pacing/tree-shape](pacing/tree-shape.md) §Pitfalls).
-- **The effect is authored, not coded.** A `modifies:` entry names a piece, one of the abilities
-  that piece is granted, and the value it overrides. `range` is the only value today: a
-  shape-library id, generated as its radius. `AbilityCatalog.range_for(ability, caster)` applies
-  it, and Spot, the generic ability range check and the armed-ability ring all read through that
-  lookup. When two owned upgrades set one reach, **the longest wins**, so research order cannot
-  shorten it.
+- **The effect is authored, not coded.** Each `modifies:` entry names which pieces (below), and
+  carries exactly one effect.
+
+## What an upgrade can change
+
+A modifier selects by **`piece:`** (one piece id) or by **`frame:`** (every UNIT of that frame,
+BIO or MECH; structures are never selected by frame, since "every BIO unit" is what a player
+would mean). An effect about an ability also names the **`ability:`**.
+
+| Effect | Means | Two upgrades on one value |
+|---|---|---|
+| `range` | the ability's reach becomes this shape's radius (piece + ability) | the **longest** wins, so research order cannot shorten it |
+| `hp_factor` | the hit-point maximum is multiplied by this | the factors **multiply** |
+| `rearm_rate_factor` | a docked aircraft refills its charged weapon this many times as fast (piece only, and it must carry a `charged:` weapon) | the factors multiply, and with the bay's own charge rate |
+| `cooldown_rate_factor` | the pool holding this ability recharges this many times as fast (piece + ability) | the factors multiply |
+
+Every factor is a RATE, so 2.0 halves a rearm and 1.5 takes a 30-second cooldown to 20. A
+rate is what the code multiplies; a duration cut of a third is the same 1.5.
+
+**A changed hit-point maximum keeps the unit's fraction of health.** A unit at 60 of 100 that
+gains a quarter more goes to 75 of 125, so a damaged unit benefits in proportion. Capture by a
+commander without the upgrade brings it back down the same way (Alex, 2026-10-06; "captured
+pieces swap upgrades" is accepted for now).
 
 ## Where upgrades are researched
 
@@ -88,7 +108,7 @@ walk into the defence it is marking. The leash on a beacon riding a unit stretch
   mistaken for a unit. The bot needs its own reason to buy one ([ai](../ai/)).
 - **TODO: nothing shows which upgrades a commander owns** apart from the research button going
   dark ("Already researched").
-- Only `range` can be modified. A new modifier key goes into `SpecRegistry.MODIFIER_KEYS`
-  together with the reader that honours it.
+- A new effect goes into `SpecRegistry.MODIFIER_EFFECTS` together with the reader that honours
+  it.
 
-Tests: `tests/test_Upgrades.gd`.
+Tests: `tests/test_Upgrades.gd`, `tests/test_UpgradeFactors.gd`.

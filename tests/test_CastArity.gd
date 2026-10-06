@@ -66,12 +66,6 @@ func test_an_unknown_ability_still_reads_as_single() -> void:
 	)
 
 
-func test_spot_is_authored_to_be_cast_by_all_of_them() -> void:
-	# The roster's one `cast_by: ALL`. A second firing solution on the same ground is worth
-	# having, where a second Irradiate on one point is a wasted charge.
-	assert_eq(Spot.default_cast_arity(_message()), MoveCommand.CastArity.ALL)
-
-
 func test_the_doc_key_governs_rather_than_describing() -> void:
 	# Spot extends MoveCommand, not Ability, so it does not inherit the catalog lookup — the
 	# thing this asserts is that it makes one, and would follow the doc if `cast_by:` changed.
@@ -84,7 +78,9 @@ func test_a_sanction_reads_the_same_key_as_the_ability_it_unlocks() -> void:
 	sanction.ability_id = Spot.ABILITY_ID
 	var message: CommandMessage = _message()
 	message.sanction = sanction
-	assert_eq(UseSanction.default_cast_arity(message), MoveCommand.CastArity.ALL)
+	assert_eq(
+		UseSanction.default_cast_arity(message), AbilityCatalog.cast_arity_of(Spot.ABILITY_ID)
+	)
 
 
 # --- What the modifiers do to a default ------------------------------------------------
@@ -132,3 +128,53 @@ func test_the_preview_and_the_order_ask_the_same_question() -> void:
 		AbilityCatalog.cast_arity_of(RTSController.LAUNCH_ABILITY),
 		"with nothing held, the armed preview is the ability's own default"
 	)
+
+
+# --- Which actor a one-actor order goes to ----------------------------------------------
+# Every command that goes to ONE actor means the same thing by "free": not already holding
+# an order of that job, current or queued. See ui/control-matrices.md §Cast arity.
+
+
+func _worker(a_x: float) -> Commandable:
+	var commander := Commander.new()
+	add_child_autofree(commander)
+	var worker: Commandable = FakePieces.make({"speed": 2.0})
+	commander.add_child(worker)
+	autofree(worker)
+	worker.top_level = true
+	worker.global_position = Vector3(a_x, 0.0, 0.0)
+	return worker
+
+
+func _narrowed(a_type: Script, a_actors: Array) -> Array:
+	return _controller()._narrowed_actors(a_type, a_actors, _message())
+
+
+func _go() -> MoveCommand:
+	return MoveCommand.new(CommandMessage.new(null, null, null, Vector3(5, 0, 5)))
+
+
+func test_a_one_actor_job_passes_over_an_actor_already_on_it() -> void:
+	for job: Array in [[Build, Assemble], [Spot, Spot]]:
+		var near := _worker(10.0)
+		var far := _worker(30.0)
+		var held: MoveCommand = (job[1] as Script).new(_message())
+		near.update_commands(_go())
+		near.update_commands(held, true)
+		assert_eq(_narrowed(job[0], [near, far]), [far], "a queued order of the job counts")
+
+
+func test_a_one_actor_job_takes_a_busy_actor_that_is_not_on_it() -> void:
+	for job: Script in [Build, Spot]:
+		var near := _worker(10.0)
+		var far := _worker(30.0)
+		near.update_commands(_go())
+		assert_eq(_narrowed(job, [near, far]), [near], "%s: other work does not count" % job)
+
+
+func test_with_everyone_on_the_job_the_nearest_goes() -> void:
+	var near := _worker(10.0)
+	var far := _worker(30.0)
+	near.update_commands(Assemble.new(_message()))
+	far.update_commands(Build.new(_message()))
+	assert_eq(_narrowed(Build, [far, near]), [near])

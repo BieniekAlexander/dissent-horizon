@@ -56,7 +56,7 @@ in the editor rather than risk a malformed override. Cost/tech changes route to
 | projectile `speed` | emission scene root — TODO: stale since speed moved onto the `EmissionPhase` children |
 | status-effect `damage_per_tick`/`tick_rate`/`duration_ticks`/`damage_type` | the `DamageOverTimeStatusEffect` node |
 | `energy`/`population`/`dominion` | `manifest.json` — TODO: `population` is a leftover name; `gdd_to_balance.py` fills it from `infrastructure`, and the tool's model, loader and importer should call it that |
-| `damage_table.yaml` cells | source CSVs `resources/damage/damage_vs_{armour,attribute}.tsv` (targeted cell; blank = default multiplier) |
+| `damage_table.yaml` cells | source CSVs `resources/damage/damage_vs_{armour,frame}.tsv` (targeted cell; blank = default multiplier) |
 | structural (`name`, `kind`, `weapons`, `attributes`, `layer`, `requires`) | reported, edited by hand |
 
 ### Damage types are mirrored twice, and both mirrors are pinned
@@ -108,7 +108,7 @@ scanned).
 
 | Concept | Definition |
 |---|---|
-| **DPS(A→T)** | best sustained damage A lands on T, after armour/attribute multipliers; **0 if A can't hit T's layer** (air/ground). |
+| **DPS(A→T)** | best sustained damage A lands on T, after armour/frame multipliers; **0 if A can't hit T's layer** (air/ground). |
 | **TTK(A→T)** | `T.hp / DPS(A→T)` (∞ if A can't hurt T). |
 | **exchange_cost(R,T)** | `cost(R) · TTK(R→T) / TTK(T→R)` — resources of R spent to kill one T in a duel. **Lower = better answer.** |
 | **favorable response** | `exchange_cost(R,T) < cost(T)`. The Costed-Response bar: every threat should have one. |

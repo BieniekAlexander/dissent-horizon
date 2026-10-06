@@ -199,4 +199,4 @@ down, so it is not proposed again.
 - TODO: the pacing calibrations — structure armour and HP policy, the command centre's cost, size
   and health, static-defence reach and specificity, what a production structure is worth against
   the units it makes, and the value of dominion over a match. Each is stated where it bites in
-  [pacing](pacing.md); `deferred.md` indexes them.
+  [pacing](pacing.md); `tasks.md` logs them.

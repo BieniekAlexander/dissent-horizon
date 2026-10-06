@@ -505,6 +505,12 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 	return CastArity.SINGLE
 
 
+## Free unless already building — the job rule (MoveCommand.is_free_to_take). A Build turns
+## into an Assemble once its structure stands, so both are the one job.
+static func is_free_to_take(actor: Commandable) -> bool:
+	return holds_none_of(actor, [Build, Assemble])
+
+
 ## Building is a channeled action: a hit staggers the builder, pausing placement/build
 ## progress until the stagger wears off.
 func blocked_by_stagger(_a_actor: Commandable) -> bool:

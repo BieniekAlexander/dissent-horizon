@@ -51,5 +51,5 @@ script = ExtResource("4_loco")
 
 [node name="Payload" type="Node" parent="."]
 script = ExtResource("mig_payload")
-base_damage = 250.0
-damage_type = 10
+base_damage = 533.3
+damage_type = 4

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mt7nytlt13fe"
-path="res://.godot/imported/cl_bioMedium_antiLight.png-d59c357eff22f699ed48c1cee5260a13.ctex"
+uid="uid://1by4i8622k6"
+path="res://.godot/imported/cl_aircraftMedium_support.png-39f6f5ee54afc4ae8bd309556ea1f7d6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/icons/pieces/cl_bioMedium_antiLight.png"
-dest_files=["res://.godot/imported/cl_bioMedium_antiLight.png-d59c357eff22f699ed48c1cee5260a13.ctex"]
+source_file="res://assets/icons/pieces/cl_aircraftMedium_support.png"
+dest_files=["res://.godot/imported/cl_aircraftMedium_support.png-39f6f5ee54afc4ae8bd309556ea1f7d6.ctex"]
 
 [params]
 

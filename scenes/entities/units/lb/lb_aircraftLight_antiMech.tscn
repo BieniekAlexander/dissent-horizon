@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://ctoksckbou37k"]
+[gd_scene load_steps=31 format=3 uid="uid://ctoksckbou37k"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_iwjap"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_aerial_large.tres" id="1_spec"]
@@ -33,6 +33,10 @@
 height = 0.6
 radius = 0.45
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 0.3
+height = 0.6
+
 [node name="Harpy" type="CharacterBody3D" unique_id=932022701 groups=["piece", "unit"]]
 script = ExtResource("1_iwjap")
 description = "light flying unit, good against mechanical targets"
@@ -46,6 +50,11 @@ id = &"lb_aircraftLight_antiMech"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_0wu06")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_pqrle")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("CylinderShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.305935, 0.0)
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_xjwns")]
 
@@ -155,3 +164,4 @@ disabled = true
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

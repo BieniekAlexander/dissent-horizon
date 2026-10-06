@@ -109,8 +109,8 @@ static func range_for(id: StringName, a_caster: Entity) -> float:
 ## SINGLE is the default because the whole selection firing at one point is almost never what
 ## a player means: it spends every caster's charge on one target, and a pool is the scarce
 ## thing an ability is balanced around. `cast_by: ALL` is for an ability whose value is in
-## being applied by everyone at once — Spot is the shipped case, where a second solution on
-## the same ground is worth having.
+## being applied by everyone at once — Detonate is the shipped case, where every selected
+## charge is its own.
 ##
 ## The doc names it in the enum spelling the rest of the schema uses. An unknown or absent
 ## value reads as SINGLE rather than erroring here: validation is the importer's job, and a

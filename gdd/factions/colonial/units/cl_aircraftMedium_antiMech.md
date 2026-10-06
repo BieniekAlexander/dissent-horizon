@@ -30,7 +30,7 @@ weapons:
       id: drake_rocket
       title: aircraft rocket
       scene: res://scenes/entities/projectiles/cl/drake_rocket.tscn
-      damage: 35
+      damage: 66.2
       damage_type: EXPLOSIVE
       hitscan: false
       bio_ground_aim: true

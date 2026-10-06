@@ -44,7 +44,7 @@ static func meets_precondition(
 		reach >= 0.0
 		and message != null
 		and not actor.can_move()
-		and not within_reach(actor.hull(), VU.in_xz(aim_point(message)), reach)
+		and not within_reach(reach_hull(actor, weapon), VU.in_xz(aim_point(message)), reach)
 	):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
@@ -110,7 +110,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	# Otherwise turn to face the point once we have stopped closing on it, exactly as Attack
 	# does — while still approaching, Movement's own turn-toward-heading facing owns
 	# rotation.y and the two must not fight over it.
-	if a_actor.movement != null and not should_move(a_actor):
+	if a_actor.movement != null and not should_move(a_actor) and a_actor.movement.can_hold_still():
 		a_actor.movement.stop()
 		if not weapon.turret:
 			a_actor.movement.face_toward(_aim())
@@ -126,13 +126,26 @@ func ends_on_arrival() -> bool:
 
 func should_move(a_actor: Commandable) -> bool:
 	var weapon: Weapon = ground_weapon_of(a_actor)
-	if weapon == null:
+	if weapon == null or a_actor.fights_from_orbit():
 		return false
 	# A fixed wing cannot stop to shoot, so being in range is no reason to stop driving it —
 	# it flies at the point, fires as it goes, and comes around. See Attack.should_move.
 	if a_actor.movement != null and not a_actor.movement.can_hold_still():
 		return true
-	return not within_reach(a_actor.hull(), _aim_xz(), weapon.ground_reach())
+	return not within_reach(reach_hull(a_actor, weapon), _aim_xz(), weapon.ground_reach())
+
+
+## What `weapon`'s reach is measured from: the actor's footprint, or for a weapon measuring
+## from its wielder's orbit, the orbit's centre — against a bare point, the range shape standing
+## there overlaps it exactly when it lies within the shape's radius.
+static func reach_hull(actor: Commandable, weapon: Weapon) -> Hull:
+	var orbit_origin: Variant = weapon.orbit_origin(actor)
+	return Hull.point(VU.in_xz(orbit_origin)) if orbit_origin is Vector3 else actor.hull()
+
+
+## A piece fighting from its orbit keeps circling the orbit it had (see Attack.orbit_anchor).
+func orbit_anchor(a_actor: Commandable) -> Variant:
+	return null if a_actor.fights_from_orbit() else message.position
 
 
 func holds_ground(a_actor: Commandable) -> bool:
@@ -149,7 +162,7 @@ func can_act(a_actor: Commandable) -> bool:
 		return false
 	# Held whether or not the weapon is loaded, as in Attack, so an attack startup survives a reload.
 	var is_held: bool = (
-		within_reach(a_actor.hull(), _aim_xz(), weapon.ground_reach())
+		within_reach(reach_hull(a_actor, weapon), _aim_xz(), weapon.ground_reach())
 		and _is_aimed_at_point(a_actor)
 	)
 	if is_held:

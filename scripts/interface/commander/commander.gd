@@ -617,6 +617,29 @@ func casters_of(a_sanction: Sanction) -> Array:
 	return casters_of_ability(a_sanction.ability_id) if a_sanction != null else []
 
 
+## Abilities this commander has switched to MANUAL. Autocast is the default, so the set records
+## the exceptions. A commander-wide setting rather than a per-piece one like hold fire: it says
+## how the player wants the ability used, not what one piece is doing. Only an ability something
+## casts on its own reads it — the Bombard, fired by a holding spotter (Bombard.autofire_on).
+var _manual_abilities: Dictionary = {}
+
+
+## Whether this commander's pieces cast `a_ability_id` on their own when something asks them to.
+func is_autocasting(a_ability_id: StringName) -> bool:
+	return not _manual_abilities.has(a_ability_id)
+
+
+func set_autocast(a_ability_id: StringName, a_is_on: bool) -> void:
+	if a_is_on:
+		_manual_abilities.erase(a_ability_id)
+	else:
+		_manual_abilities[a_ability_id] = true
+
+
+func toggle_autocast(a_ability_id: StringName) -> void:
+	set_autocast(a_ability_id, not is_autocasting(a_ability_id))
+
+
 ## Every commandable this commander owns that can train anything.## Every commandable this commander
 ## owns that can train anything. What an unfenced
 ## purchase resolves against (see PurchaseTransaction.dispatch_filter): a train order given

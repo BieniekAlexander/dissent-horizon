@@ -22,7 +22,7 @@
 		"cl_bioLight_antiMech": ["European badger", "Meles meles"],
 		"cl_bioLight_builder": ["western honey bee", "Apis mellifera", "File:Apis mellifera 462741790.jpg"],
 		"cl_bioLight_stealth": ["common octopus", "Octopus vulgaris"],
-		"cl_bioMedium_antiLight": ["red fox", "Vulpes vulpes"],
+		"cl_bioMedium_antiStrong": ["red fox", "Vulpes vulpes"],
 		"cl_mechLight_dominionGen": ["Highland cattle", "Highland cattle"],
 		"cl_mechMedium_antiLight": ["bottlenose dolphin", "Tursiops truncatus"],
 		"cl_mechMedium_antiMech": ["nine-banded armadillo", "Dasypus novemcinctus"],

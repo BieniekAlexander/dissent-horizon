@@ -18,6 +18,13 @@ func execute(_a_manager: ScenarioTriggerManager) -> void:
 	pass
 
 
+## The radius of ground this event acts over when it is a sanction's payload, or a negative
+## number when the event does not know — the sanction's own `effect_radius` then stands.
+## Overridden by an event whose area follows from something it carries (EventGunship's reach).
+func area_radius() -> float:
+	return -1.0
+
+
 ## The GlobalTrigger this event ultimately belongs to, or null when it has none (an
 ## EntityTrigger reaction, a starting event parked under a commandable — see the three ways
 ## an event runs). Walks ANCESTORS rather than reading get_parent(), because events nest:

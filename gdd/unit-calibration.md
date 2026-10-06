@@ -220,7 +220,7 @@ Two things about the mechanism are worth knowing from the design side:
 ## Open questions
 
 Things this note deliberately does not settle. Each is a `TODO` — a decision waiting on an
-answer, indexed in [deferred](deferred.md) §1.
+answer, logged in [tasks](tasks.md).
 
 **TODO — how much lead error is too much?** The projectile heuristic above gives the
 arithmetic but no threshold. What is wanted is a simulation that sweeps a

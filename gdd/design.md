@@ -32,23 +32,24 @@
 - toxin
 ## Damage Calculations
 
-Eleven damage types (`Damage.Type` in `scripts/entities/tools/damage.gd`): Toxic,
-Incendiary, Sonic, Lead, Electricity (`ELECTRIC` in code), Explosive, Siege, Lazer,
-High Explosive, Plasma, Cryo.
+Nine damage types (`Damage.Type` in `scripts/entities/tools/damage.gd`). Their multipliers
+live ONLY in `resources/damage/damage_vs_armour.tsv` and `damage_vs_frame.tsv`; this table
+says what each type is FOR, which the numbers cannot.
 
-| Type           | Bio  | Mech | Light | Medium | Strong | Properties                                           |
-| -------------- | ---- | ---- | ----- | ------ | ------ | ---------------------------------------------------- |
-| Toxic          | 1.0  | 0.15 | 1.0   | 1.0    | 0.6    | persistent ground AOE; area denial                   |
-| Incendiary     | 1.0  | 0.4  | 1.0   | 0.75   | 0.4    | DoT that follows the unit + lingering patch          |
-| Sonic          | 1.0  | 0.15 | 0.6   | 1.0    | 0.4    | anti-bio specialist                                  |
-| Lead           | 1.0  | 0.4  | 1.0   | 0.6    | 0.25   | hitscan, high rate of fire                           |
-| Electricity    | 0.4  | 1.0  | 1.0   | 0.6    | 0.4    | anti-mech specialist                                 |
-| Explosive      | 0.6  | 1.0  | 0.75  | 1.0    | 0.6    | cheap, portable, infantry-carryable baseline         |
-| Siege          | 0.25 | 1.0  | 0.4   | 0.75   | 1.0    | direct-fire cannon; can't meaningfully hurt infantry |
-| Lazer          | 0.25 | 1.0  | 1.0   | 1.0    | 1.0    | damage scales inverse to target speed                |
-| High Explosive | 1.0  | 1.0  | 1.0   | 0.75   | 0.75   | splash; cost paid in slow/expensive delivery         |
-| Plasma         | 1.0  | 1.0  | 1.0   | 0.75   | 0.6    | short range, frame-agnostic                          |
-| Cryo           | 1.0  | 1.0  | 1.0   | 1.0    | 1.0    | damage is vestigial; value lies elsewhere            |
+| Type           | Role                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------- |
+| Toxic          | anti-bio; persistent ground AOE, area denial                                             |
+| Incendiary     | anti-bio; DoT that follows the unit + lingering patch                                    |
+| Sonic          | anti-bio specialist                                                                      |
+| Lead           | anti-light-bio; hitscan, high rate of fire                                               |
+| Electricity    | anti-mech specialist (`ELECTRIC` in code)                                                |
+| Explosive      | anti-mech, useless against bio; best against LIGHT, moderate against MEDIUM, weak against STRONG. Common early, which is why it falls off as armour rises |
+| Siege          | anti-MEDIUM: the mid-tier answer to mid-tier armour. Middling against LIGHT (and cost-ineffective there) and against STRONG |
+| Lazer          | anti-mech and anti-MEDIUM, tuned like Siege so it can arrive early or mid game; damage scales inverse to target speed |
+| Plasma         | good against everything, frame-agnostic; reserved for the heaviest weapons and paid for in tech, cost and slow delivery |
+
+No type reaches 1.0 against STRONG: it is a class that mitigates everything. Cryogenics is not a damage type: it arrives as a status effect (Freeze, and PLANNED for the
+Avalanche's shell).
 
 **Data model:** `DamageProfile` (`scripts/damage/damage_profile.gd`) holds one type's
 row — just the two multiplier axes (armour: light/medium/strong; frame: bio/mech), no

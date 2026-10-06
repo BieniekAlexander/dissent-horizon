@@ -114,10 +114,12 @@ func test_freeze_refuses_a_strong_unit() -> void:
 	assert_false(heavy.is_stunned())
 
 
-func test_a_structure_is_never_a_target() -> void:
-	var unit := _unit(OWN, Vector2(0, 0))
-	unit.remove_from_group("unit")
-	assert_false(EventFreeze.new().accepts(unit, OWN), "only units are single-unit targets")
+func test_a_structure_is_a_target_only_where_the_event_admits_one() -> void:
+	var building := _unit(OWN, Vector2(0, 0))
+	building.remove_from_group("unit")
+	building.add_to_group("structure")
+	assert_false(EventPromote.new().accepts(building, OWN), "units only, by default")
+	assert_true(EventFreeze.new().accepts(building, OWN), "Freeze names structures too")
 
 
 func test_nothing_named_does_nothing() -> void:
@@ -184,17 +186,17 @@ func test_informant_refuses_an_already_stealthed_unit() -> void:
 # --- Overcharge ------------------------------------------------------------------
 
 
-func _stun(a_unit: Commandable) -> void:
-	var effect := StunStatusEffect.new()
+func _emp(a_unit: Commandable) -> void:
+	var effect := EmpStatusEffect.new()
 	effect.affects_frames = Garrison.FRAME_ANY
 	effect.duration_ticks = 300
 	effect.apply_to(a_unit)
 
 
-func test_overcharge_only_takes_a_disabled_unit() -> void:
+func test_overcharge_only_takes_an_emped_unit() -> void:
 	var awake := _unit(FOE, Vector2(0, 0))
 	var disabled := _unit(FOE, Vector2(1.5, 0))
-	_stun(disabled)
+	_emp(disabled)
 	var event := EventOvercharge.new()
 	event.scope = EventTargetUnit.Scope.ANY
 	event.damage = 400.0
@@ -213,16 +215,20 @@ func test_overcharge_does_nothing_to_an_awake_unit() -> void:
 	)
 
 
-func test_overcharge_reaches_a_frozen_unit() -> void:
-	# FreezeStatusEffect extends StunStatusEffect, so a frozen unit is as helpless as an
-	# EMPed one and qualifies. Accepted cross-faction interaction, not an oversight.
+func test_overcharge_refuses_a_unit_stunned_by_anything_but_an_emp() -> void:
+	# A frozen or otherwise stunned unit is as helpless as an EMP'd one, but Overcharge is the
+	# EMP's follow-through and nothing else's.
 	var frozen := _unit(FOE, Vector2(0, 0))
 	FreezeStatusEffect.new().apply_to(frozen)
+	var stunned := _unit(FOE, Vector2(1.5, 0))
+	var stun := StunStatusEffect.new()
+	stun.affects_frames = Garrison.FRAME_ANY
+	stun.apply_to(stunned)
 	var event := EventOvercharge.new()
 	event.scope = EventTargetUnit.Scope.ANY
-	event.damage = 250.0
-	_run(event, frozen)
-	assert_eq(frozen.defense.hp, 750.0)
+	assert_true(frozen.is_stunned() and stunned.is_stunned(), "guards the fixture")
+	assert_false(event.accepts(frozen, OWN), "not a frozen unit")
+	assert_false(event.accepts(stunned, OWN), "nor a plain stun")
 
 
 # --- Global EMP ------------------------------------------------------------------

@@ -49,8 +49,10 @@ and costs nothing until it is needed.
 **Anything not stable and finished carries a status marker** — `TODO`, `PLANNED`,
 `WIP <UTC timestamp> <session>`, `REJECTED` or `INVARIANT` — in code and in design notes alike;
 the vocabulary and what each one obliges are `~/.claude/CLAUDE.md` §13.1. Unmarked means
-stable and finished. [`gdd/deferred.md`](gdd/deferred.md) indexes the `TODO`s that are
-DECISIONS and the `PLANNED` work rather than local chores — what the question is and which note owns it, never the write-up itself.
+stable and finished. [`gdd/tasks.md`](gdd/tasks.md) logs the `TODO`s that are DECISIONS and
+the `PLANNED` work, alongside queued bugs and requests — what each item is, its effort, whether
+it is scoped, and which note owns it; never the write-up itself. Local chores stay where they are
+written and are not logged.
 
 ### Where a new write-up goes
 
@@ -205,22 +207,36 @@ drive it from a throwaway scene under `res://` that builds a Commander and the p
 <!-- PORTABLE: this section is self-contained. To reuse it in another repo, copy from this
      heading down to the next `---` and change the task file path and test command. -->
 
-**Task file: `gdd/tasks.md`** — an Obsidian note. Each `##` heading is one task; its body is the spec I wrote for it. I kick a session off with `/tasks`, walk away, and read the file when I'm back. That file is the entire interface between us: anything you need to tell me goes in it, at the task it belongs to.
+**Task file: `gdd/tasks.md`** — an Obsidian note, and the one log of work saved for later: bugs, requests, open decisions, and plans not yet built. Each `###` heading is one item, filed under a `##` system section, with a permanent id (`T-001` …) that is never reused — cite it from code and notes as `gdd/tasks.md T-042`. The file's info box holds the next free id: take it and bump it. I kick a session off with `/tasks`, walk away, and read the file when I'm back. That file is the entire interface between us: anything you need to tell me goes in it, at the item it belongs to.
 
-Edit the task file by **appending only**. Never delete, reword, or reorder my task text.
+**Never reword, reorder or delete the text I wrote for an item.** Your own blocks — progress notes, resolved questions — you condense when you stop (§Progress notes and shelving).
 
-### Task status
+### Item tags
 
-State is a tag on the `##` heading. No tag means ready to work.
+Every item heading carries one tag from each facet:
 
-| Tag | Meaning |
-|---|---|
-| *(none)* | Ready — fair game for an unattended session |
-| `#wip` | Started and unfinished; carries a Progress note saying where you stopped |
-| `#needs-input` | Has an unanswered question; that part of the task is parked |
-| `#done` | Finished. Leave it in place; I archive it |
+| Facet | Tag | Meaning |
+|---|---|---|
+| Effort | `#effort/low` | a simple code change not yet made |
+| | `#effort/medium` | between the two |
+| | `#effort/high` | a system overhaul |
+| Scope — exactly one | `#scoped` | everything needed to start is decided; fair game for an unattended session |
+| | `#needs-input` | partly scoped: specific questions are written down and waiting on me |
+| | `#unscoped` | not yet scoped; needs a scoping pass (`/scope` for a large one) before anyone builds |
+| Progress — at most one | *(none)* | not started |
+| | `#wip` | a session is working on it now |
+| | `#shelved` | started and paused; carries a Status note saying where it stopped |
+| | `#done` | finished. Leave it in place; I delete it |
 
-`#wip` and `#needs-input` can both apply: part built, part parked on a question.
+Effort and scope are judgements; correct them when the work shows otherwise. **An item that turns up an unresolved question mid-build is no longer `#scoped`** — it becomes `#needs-input`. The heading tag `#wip` is not the `WIP <timestamp> <session>` code marker of `~/.claude/CLAUDE.md` §13.1, though both mean "a session holds this now".
+
+**Search strings:** `#unscoped` — items needing scoping · `#needs-input` — items with open questions · `[!question]` — question blocks I can answer in place.
+
+### Where the detail goes
+
+- **A small or unscoped item carries its spec in the entry.** The entry is the whole record of it.
+- **An item with real complexity is a few lines and a `→` link** to the design note that owns it. Its design, and the reasoning behind its open questions, live in that note as `TODO` / `PLANNED` (§What is deliberately NOT done); the entry names the section.
+- A question for me is still a `[!question]` block in this file, under its item, so I can answer from my phone. When the reasoning is long, **Why it matters** is one line and a link.
 
 ### Ask rather than assume
 
@@ -232,7 +248,7 @@ If I want a decision to be yours, I'll say so when I answer.
 
 ### Raising a question
 
-Append a question callout to the task. Don't ask me in chat.
+Append a question callout under the item. Don't ask me in chat.
 
 > [!question] Q — 2026-08-06
 > Should the see-through silhouette cover units inside a garrison?
@@ -257,8 +273,8 @@ Append a question callout to the task. Don't ask me in chat.
 
 Do every part of the task the spec *does* determine, and leave the part the question covers unbuilt. Then move to the next task — a parked question is never a reason to sit idle.
 
-- Question covers the task's whole direction → tag `#needs-input`, build nothing on it.
-- Question covers one sub-part → build the rest, tag `#wip #needs-input`, and say in the Progress note exactly which piece is waiting.
+- Question covers the item's whole direction → tag `#needs-input`, build nothing on it.
+- Question covers one sub-part → build the rest, tag `#needs-input #shelved`, and say in the Status note exactly which piece is waiting.
 
 ### Returning to answered questions
 
@@ -268,22 +284,29 @@ A question is answered iff there is text after `> **Answer:**` — on that line 
 
 1. Do the work the answer implies.
 2. Rewrite the first line to `> [!done] Q — resolved — <YYYY-MM-DD>` and append `> **Resolved:** <one line, with file paths; name the option taken>`. Keep my answer text intact.
-3. Clear `#needs-input` from the heading once no unanswered question remains on it.
+3. Once no unanswered question remains on the item, retag it `#scoped` — or `#unscoped`, if what is left still wants scoping.
 
 If my answer is ambiguous or opens a new decision, don't re-ask inside the same block — do what it clearly licenses and add a fresh `[!question]` below it.
 
-### Progress notes
+### Progress notes and shelving
 
-When you stop work on a task, append one:
+While an item is `#wip`, append `[!check] Progress — <date>` blocks as you go. They may be as detailed as the work needs — they are working notes.
 
-> [!check] Progress — 2026-08-06
-> Silhouette pass in `scripts/shaders/see_through.gdshader`, wired into `commandable.tscn`.
+**When you stop** — the session ends, I run `/shelve`, or the item is finished — collapse them:
+
+1. Replace the item's progress notes and resolved question blocks with **one** status block:
+
+> [!check] Status — 2026-08-06
+> Silhouette pass built (`scripts/shaders/see_through.gdshader`); rule in `gdd/systems/ux/…` §See-through.
 > Tests: 214 passing, `test_Fog.gd::test_snapshot_tint` failing (pre-existing).
-> **Not done:** garrison handling — parked on Q above.
+> **Not done:** garrison handling — parked on the question below.
 
-One block per session per task, appended below that task's questions. State what is **not** done as plainly as what is, and name any piece left unbuilt because a question is open — I'm reading this instead of watching you work. Run the test suite (§Running and testing) before writing the note and report failures in it.
+2. Retag progress `#shelved` or `#done`, and scope `#needs-input` if any question is still open.
+3. Leave every unanswered `[!question]` block in place, and add the new ones.
 
-**Keep them short, because the task file is a work queue and not a record.** I delete tasks once they are in the project, so nothing written there survives — a note is a handover I read once, not an archive. Anything durable (a rule, a rationale, a decision and what it superseded) belongs in THIS file or in a `gdd/` design note, and the progress note should just say what changed, what is not done, and where the real write-up lives. A note long enough to be worth keeping is a note written in the wrong file.
+Implementation history goes. What was built is in the code, the notes and git; a resolved question's outcome is in the note its **Resolved:** line named. Say what is **not** done as plainly as what is — I'm reading this instead of watching you work. Run the test suite (§Running and testing) before writing the status and report failures in it.
+
+**The task file is a log of what is still to do, not a record of what was done.** I delete items once they are in the project. Anything durable — a rule, a rationale, a decision and what it superseded — belongs in THIS file or in a `gdd/` design note. A status long enough to be worth keeping is a status written in the wrong file.
 
 ### The task file moves on its own
 
@@ -307,8 +330,8 @@ Either route ends in a local session reading the working tree, so the rules abov
 ### Session rules
 
 - **Don't commit.** Leave the working tree dirty so I can read the diff myself. Don't stash, reset, or switch branches either. This goes double for the task file: committing a Sync-owned note invites a conflict later.
-- Work order: answered questions → untagged tasks → `#wip` tasks. Skip `#needs-input` unless its question got answered.
-- If you think a task is wrong, obsolete, or already done, say so in a `[!question]` — don't act on that judgement.
+- Work order: answered questions → `#scoped` + `#shelved` items → `#scoped` items not yet started. Skip `#needs-input` unless its question got answered, and never build an `#unscoped` item unattended.
+- If you think an item is wrong, obsolete, or already done, say so in a `[!question]` — don't act on that judgement.
 
 ---
 
@@ -462,7 +485,7 @@ assets/
 gdd/
   systems/                            — DESIGN NOTES: one folder per system, README states its scope
   factions/, projectiles/, shapes/, setting/   — spec docs (importable iff frontmatter names a `kind`)
-  tasks.md                            — the AFK work queue
+  tasks.md                            — the work log: bugs, decisions and plans saved for later (AFK sessions work it)
 ```
 
 ---
@@ -834,7 +857,7 @@ the generator again changes the result, the edit was in the wrong place.**
 
 **TODO — one surface has two authored sources of truth, which is a design fault rather than an
 invariant: one of the two should be derived.** Which one is undecided — see
-[`gdd/deferred.md`](gdd/deferred.md) 1.19. Until then, the rules below are how to live with it.
+[`gdd/tasks.md`](gdd/tasks.md) T-052. Until then, the rules below are how to live with it.
 
 A map's terrain is FOUR artifacts describing one surface. Which of them is primary depends on
 how the map was authored, and that is the whole trap:
@@ -910,8 +933,8 @@ work rather than deriving something.
 
 **Entity groups are for entities**: `Scenario._ready` iterates `get_nodes_in_group("piece")` with a typed `for entity: Entity in ...`, so a non-Entity node in that group raises a type error that ABORTS the rest of scenario boot — trigger wiring, the scenario HUD, camera framing — silently. `fog.gd` and `minimap.gd` do the same per frame. `colonial.tscn`'s Faction root shipped in an entity group and cost exactly that. **TODO: this is now UNGUARDED.** `tests/test_FactionRosters.gd` caught it and was cut as an authored-content test; if a guard is wanted back it has to be one that tests the RULE (a non-Entity in an entity group aborts boot) against a fixture, not one that inspects the shipped faction scenes.
 
-**The CLEARED HP bar and selection shape in `scenes/components/`**: `hp_bar.tscn` deliberately
-ships a transform with a ZERO origin and `selectable.tscn` a SelectionShape with no shape. That is
+**The CLEARED HP bar, selection shape and hurtbox in `scenes/components/`**: `hp_bar.tscn` deliberately
+ships a transform with a ZERO origin, and `selectable.tscn` and `hurtbox.tscn` a shape node with no shape. That is
 the "nobody has decided this" signal the importer bakes into (see Generated visual defaults) —
 putting a real value back on the component makes every piece read as hand-authored, and
 silently stops the pass writing anything ever again.

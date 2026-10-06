@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://2u7j2usdqney"]
+[gd_scene load_steps=24 format=3 uid="uid://2u7j2usdqney"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
@@ -27,6 +27,9 @@ size = Vector3(2.0, 2.0, 2.0)
 [sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
 size = Vector3(2.0, 2.0, 2.0)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(2.0, 2.0, 2.0)
+
 [node name="TcDominionGen" type="CharacterBody3D" groups=["piece", "fixture", "structure"]]
 collision_layer = 0
 collision_mask = 0
@@ -39,6 +42,11 @@ infrastructure = -50
 [node name="#####STATE#####" type="Node" parent="."]
 
 [node name="Hurtbox" parent="." instance=ExtResource("1_spec")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
 
@@ -109,3 +117,5 @@ script = ExtResource("18_spec")
 [node name="DominionGenerator" type="Node" parent="."]
 script = ExtResource("19_dom")
 dominion_rate = 25
+
+[editable path="Hurtbox"]

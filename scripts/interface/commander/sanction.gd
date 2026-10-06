@@ -169,9 +169,11 @@ func targeting_needs_engagement() -> bool:
 ## How the bot aims this sanction.
 @export var targeting: Targeting = Targeting.ENEMY_CLUSTER
 
-## World-space radius the sanction's effect covers. The bot uses it to score
-## cluster targets — how many enemies a single drop would catch.
-@export var effect_radius: float = 6.0
+## World-space radius the sanction's effect covers, AUTHORED on the cell — or 0.0 for one that
+## states none, which draws no area: a circle the ability does not actually cover would mislead
+## the player. An event that derives its own area overrides it (area_radius). The bot scores
+## cluster targets by it, falling back to its own guess (BotSanction._cluster_radius).
+@export var effect_radius: float = 0.0
 
 ## Minimum enemy units a drop must catch (within effect_radius) for the bot to
 ## judge an ENEMY_CLUSTER sanction worth spending. Keeps it from wasting a charge
@@ -276,6 +278,14 @@ func _event_prototype() -> AbstractEvent:
 	if _prototype == null and event_scene != null:
 		_prototype = event_scene.instantiate() as AbstractEvent
 	return _prototype
+
+
+## The radius of ground one cast acts over: what the event says, when it derives its own area,
+## else `effect_radius`; 0.0 when neither states one. What the aiming circle draws.
+func area_radius() -> float:
+	var event: AbstractEvent = _event_prototype()
+	var derived: float = event.area_radius() if event != null else -1.0
+	return derived if derived >= 0.0 else effect_radius
 
 
 ## Whether this sanction acts on exactly one unit, which the order must name — true for every

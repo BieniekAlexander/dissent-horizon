@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "factions/anarchical/units/an_bioMedium_dominionGen.md",
+                "file": "factions/colonial/colonial.md",
                 "mode": "source",
-                "source": true
+                "source": false
               },
               "icon": "lucide-file",
-              "title": "an_bioMedium_dominionGen"
+              "title": "colonial"
             }
           }
         ]
@@ -55,7 +55,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "incendiary",
+                "query": "",
                 "matchingCase": true,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -76,8 +76,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -158,7 +157,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "factions/anarchical/units/an_bioMedium_dominionGen.md",
+                "file": "factions/colonial/colonial.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -186,34 +185,34 @@
       "obsidian-excalidraw-plugin:New drawing": false
     }
   },
-  "active": "957570738825d1b7",
+  "active": "15e6c72ff7fc52ba",
   "lastOpenFiles": [
-    "factions/colonial/structures/cl_support2.md",
-    "factions/colonial/structures/cl_support3.md",
-    "factions/anarchical/units/an_aircraftLight_antiMech.md",
-    "factions/anarchical/units/an_aircraftMedium_support.md",
-    "factions/anarchical/units/an_mechMedium_artillery.md",
-    "projectiles/radiation.md",
-    "systems/combat/projectiles.md",
-    "projectiles/projectile.md",
-    "factions/anarchical/abilities/plant.md",
-    "systems/combat/planted-explosives.md",
-    "factions/colonial/units/cl_aircraftLight_antiLight.md",
-    "systems/ux/ui/piece-readouts.md",
-    "systems/ux/ui/debug-tuning.md",
-    "factions/colonial/units/cl_mechMedium_antiLight.md",
-    "movement/speed_classes.md",
-    "systems/combat/projectile-evasion.md",
-    "movement/zero-hour-speed-reference.md",
-    "systems/ai/squads-and-relations.md",
-    "systems/ai/bot-randomness.md",
-    "movement/movement.md",
-    "factions/colonial/units/cl_mechLight_dominionGen.md",
+    "factions/colonial/upgrades/gun_drill.md",
+    "factions/colonial/upgrades/field_conditioning.md",
+    "factions/colonial/upgrades/reinforced_hulls.md",
+    "factions/colonial/upgrades/rapid_rearmament.md",
+    "factions/colonial/units/cl_aircraftMedium_antiMech.md",
     "factions/colonial/colonial.md",
-    "factions/anarchical/sanctions/ambush.md",
-    "systems/commands/move-line-drag.md",
-    "systems/macroeconomics/pacing/sanction-calibration.md",
-    "factions/colonial/sanctions/scan.md",
+    "factions/colonial/structures/cl_tech1.md",
+    "factions/colonial/structures/cl_tech2.md",
+    "systems/authoring/unresolved-crashes.md",
+    "factions/colonial/units/cl_bioMedium_antiStrong.md",
+    "factions/colonial/units/cl_aircraftMedium_gunship.md",
+    "factions/colonial/units/cl_bioLight_antiLight.md",
+    "factions/colonial/structures/cl_barracks.md",
+    "factions/colonial/structures/cl_airField.md",
+    "factions/colonial/units/cl_aircraftStrong_transport.md",
+    "factions/colonial/units/cl_aircraftMedium_support.md",
+    "factions/colonial/structures/cl_support2.md",
+    "factions/colonial/units/cl_mechStrong_support.md",
+    "factions/colonial/units/cl_mechMedium_antiMech.md",
+    "factions/colonial/units/cl_bioLight_stealth.md",
+    "systems/ai/brief.md",
+    "shapes/shapes.md",
+    "systems/combat/shields.md",
+    "movement/speed_classes.md",
+    "factions/libertarian/units/lb_mechLight_antiLight1.md",
+    "factions/libertarian/units/lb_mechLight_antiStrong.md",
     "Untitled.base",
     "spreadsheet.base",
     "systems/macroeconomics/pacing",

@@ -154,7 +154,9 @@ func tick_recharge() -> void:
 		if unit == null or unit.docking == null or not unit.docking.is_docked_at(p):
 			continue
 		if unit.weapon_inventory != null:
-			unit.weapon_inventory.recharge(charge_rate)
+			unit.weapon_inventory.recharge(
+				charge_rate * UpgradeCatalog.factor_for(unit, UpgradeCatalog.REARM_RATE_FACTOR)
+			)
 
 
 ## Every runway this airfield carries, in scene order. An airfield may have several; an

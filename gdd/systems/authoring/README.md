@@ -17,6 +17,7 @@ The pipeline that turns these docs into scenes and generated data, plus code-lev
 | [entity-scene-hierarchy.md](entity-scene-hierarchy.md) | which components a scene may assume; `index=` semantics for moving a node between bases |
 | [composition-rework.md](composition-rework.md) | **plan** — the doc declares the component set; narrowing `kind:`, retiring the base scenes and the two-phase emission model |
 | [piece-vocabulary.md](piece-vocabulary.md) | **proposal**: what a piece is called. Facet adjectives, the building / unit / feature / token / emission partition, and the roster classified |
+| [unresolved-crashes.md](unresolved-crashes.md) | **log** — crashes and runtime errors whose root cause is not yet known, with evidence and where to start |
 | [linting.md](linting.md) | `gdlint` config and what each disabled rule contradicts; `gdformat` as the house style and the failure modes to write around |
 
 **Belongs here:** the importer, the doc schema, generated-data formats, and standing audits

@@ -46,14 +46,23 @@ func _qualifies(_a_candidate: Commandable) -> bool:
 	return true
 
 
-## Whether `a_candidate` is a unit this event may act on for `a_commander_id`: a live unit
-## (not a structure), inside `scope`, and passing `_qualifies`. Untyped parameter, because
-## the cursor and a queued order can both hand over something freed since it was named.
+## Whether this event may name a structure as well as a unit. Default: units only.
+func _admits_structures() -> bool:
+	return false
+
+
+## Whether `a_candidate` is a piece this event may act on for `a_commander_id`: a live unit
+## (or structure, where `_admits_structures` allows), inside `scope`, and passing
+## `_qualifies`. Untyped parameter, because the cursor and a queued order can both hand over
+## something freed since it was named.
 func accepts(a_candidate: Variant, a_commander_id: int) -> bool:
 	if not is_instance_valid(a_candidate) or not (a_candidate is Commandable):
 		return false
 	var unit: Commandable = a_candidate
-	if unit.is_queued_for_deletion() or not unit.is_in_group("unit"):
+	if unit.is_queued_for_deletion():
+		return false
+	var is_structure: bool = unit.is_in_group("structure")
+	if not (unit.is_in_group("unit") or (is_structure and _admits_structures())):
 		return false
 	if scope == Scope.OWN and unit.commander_id != a_commander_id:
 		return false

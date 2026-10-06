@@ -120,7 +120,7 @@ static func feature(a_options: Dictionary = {}) -> Entity:
 	piece.id = a_options.get("id", &"fake_feature")
 	piece.add_to_group(&"piece", true)
 	piece.add_to_group(&"fixture", true)
-	_add_scene(piece, "hurtbox.tscn", "Hurtbox")
+	_add_hurtbox(piece)
 	_add_scene(piece, "selectable.tscn", "Selectable")
 	_add_node(piece, Ownership.new(), "Ownership")
 	var defense := Defense.new()
@@ -180,7 +180,7 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	# The pieces every Commandable's own lookups require.
 	_add_scene(piece, "navigation_agent.tscn", "NavigationAgent")
 	_add_scene(piece, "movement_body.tscn", "MovementBody")
-	_add_scene(piece, "hurtbox.tscn", "Hurtbox")
+	_add_hurtbox(piece)
 	_add_node(piece, Ownership.new(), "Ownership")
 	var defense := Defense.new()
 	defense.hp_max = float(a_options.get("hp", 100.0))
@@ -427,6 +427,22 @@ static func _cylinder(a_radius: float) -> CylinderShape3D:
 
 static func _scene(a_file: String) -> Node:
 	return (load(_COMPONENTS + a_file) as PackedScene).instantiate()
+
+
+## The component ships its hurtbox EMPTY — the importer fits each piece's to its model — so a
+## fake carries one fitted to a nominal body: the default 0.5-radius, 2-tall cylinder,
+## standing on the origin as every baked hurtbox does.
+const HURTBOX_RADIUS: float = 0.5
+const HURTBOX_HEIGHT: float = 2.0
+
+
+static func _add_hurtbox(a_piece: Node) -> void:
+	_add_scene(a_piece, "hurtbox.tscn", "Hurtbox")
+	var node := a_piece.get_node("Hurtbox/HurtboxShape") as CollisionShape3D
+	var shape := _cylinder(HURTBOX_RADIUS)
+	shape.height = HURTBOX_HEIGHT
+	node.shape = shape
+	node.position.y = HURTBOX_HEIGHT / 2.0
 
 
 static func _add_scene(a_piece: Node, a_file: String, a_name: String) -> void:

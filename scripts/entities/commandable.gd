@@ -264,6 +264,12 @@ func update_commands(
 		a_add_to_queue = admission["add_to_queue"]
 		# Nothing jumps ahead of a transition: an interrupt waits behind it like any order.
 		a_prepend = a_prepend and not deployable.is_transitioning()
+	var sortie: Sortie = Sortie.of(self)
+	if sortie != null and a_commands != null:
+		var admitted_by_sortie: Array[MoveCommand] = sortie.admit(_as_orders(a_commands))
+		if admitted_by_sortie.is_empty():
+			return
+		a_commands = admitted_by_sortie
 	_release_hold_fire_for(a_commands)
 	if not a_add_to_queue:
 		# Notify any units waiting to garrison that the host is changing course.
@@ -326,6 +332,10 @@ func load_destination(a_command: MoveCommand) -> void:
 ## gdd/systems/combat/target-acquisition.md.
 func can_use_weapons() -> bool:
 	if is_unpowered():
+		return false
+	# A called-in aircraft's guns are cold until it is on station (Sortie).
+	var sortie: Sortie = Sortie.of(self)
+	if sortie != null and not sortie.can_use_weapons():
 		return false
 	return aerial == null or aerial.is_airborne()
 
@@ -848,6 +858,54 @@ func reach_on_layer(a_layer: int) -> float:
 	return best
 
 
+## Whether this piece is ON RAILS: it moves, but on a course nobody may order it off — a
+## called-in aircraft flying its sortie. It takes no order whose point is to go somewhere
+## (Sortie.admit), so the command card offers none, and an attack-move clicked on ground is
+## refused; one clicked on a target is still the Attack it resolves to.
+func is_on_rails() -> bool:
+	return Sortie.of(self) != null
+
+
+## Whether this piece FIGHTS FROM ITS ORBIT: a weapon of its measures reach from the centre of
+## the orbit it flies (Weapon.RangeOrigin.ORBIT). Moving never closes such a range, so an Attack
+## changes only what it shoots at — never where it flies, nor the point it circles — and its
+## targets are picked up from the orbit's centre rather than from where it is.
+## Rules: gdd/systems/combat/range-buckets.md §Where a reach is measured from.
+func fights_from_orbit() -> bool:
+	return (
+		weapon_inventory != null
+		and weapon_inventory.get_weapons().any(
+			func(w: Weapon) -> bool: return w.orbit_origin(self) is Vector3
+		)
+	)
+
+
+## Hostile pieces inside any of this piece's orbit-measured range shapes, each standing at the
+## orbit's centre — the pickup for a piece that fights from its orbit.
+func _hostiles_in_orbit_range() -> Array[Entity]:
+	var found: Array[Entity] = []
+	for weapon: Weapon in weapon_inventory.get_weapons():
+		var origin: Variant = weapon.orbit_origin(self)
+		if not origin is Vector3:
+			continue
+		for pass_spec: Array in [
+			[weapon.attack_range_shape_ground, CollisionLayers.Mask.TARGETABLE_GROUND],
+			[weapon.attack_range_shape_air, CollisionLayers.Mask.TARGETABLE_AIR]
+		]:
+			var range_node: CollisionShape3D = pass_spec[0]
+			if range_node == null:
+				continue
+			for hostile: Entity in SU.entities_touched_by(
+				get_world_3d(),
+				range_node.shape,
+				origin,
+				CollisionLayers.hostile_mask(pass_spec[1], commander_id)
+			):
+				if not found.has(hostile):
+					found.append(hostile)
+	return found
+
+
 ## Default weapon patterns for unit-grouped commandables. Structures default to
 ## no patterns. Subclasses (e.g. Vanguard) override get_weapon_evaluation_patterns
 ## as an instance method to provide custom weapons.
@@ -885,6 +943,8 @@ func get_aggro_near_position(
 		]:
 			if pass_spec[0] != null:
 				found.append_array(_hostiles_in_region(pass_spec[0], center, pass_spec[1]))
+	elif fights_from_orbit():
+		found = _hostiles_in_orbit_range()
 	else:
 		found = hostiles_in_aggro(AGGRO_SCAN_MAX_RESULTS)
 	var vs: Array[Entity] = found.filter(
@@ -1072,8 +1132,8 @@ func _ready() -> void:
 
 	# Establish the root's movement-collision layer now (map is still null, so this
 	# resolves to MOVEMENT_OBSTRUCTION) — bounding_radius() below reads it, and it
-	# runs before initialize() would otherwise set it. The Hurtbox shape mirror
-	# and STRUCTURE_BLOCKER layer are handled in Entity._ready (via super() above).
+	# runs before initialize() would otherwise set it. The Hurtbox's targetable and
+	# STRUCTURE_BLOCKER layers are handled in Entity._ready (via super() above).
 	refresh_movement_collision()
 	attributes = Set.new(attributes_list)
 	command_receiver.initialize(self)
@@ -1146,6 +1206,7 @@ func _on_commander_changed(a_old_commander: Commander, a_new_commander: Commande
 			movement.enable_avoidance(a_new_commander.id)
 
 	_sync_infrastructure()
+	_follow_upgrades(a_old_commander, a_new_commander)
 	if not is_in_group("structure"):
 		return
 	# A PLANNED structure is owned (it's tinted, selectable and takes train orders) but it
@@ -1158,6 +1219,27 @@ func _on_commander_changed(a_old_commander: Commander, a_new_commander: Commande
 		a_old_commander.remove_structure(self)
 	if a_new_commander != null:
 		a_new_commander.add_structure(self)
+
+
+## Track the owning commander's upgrades: apply what it owns now, and what it researches later.
+## A captured piece trades the old owner's upgrades for the new one's.
+func _follow_upgrades(a_old_commander: Commander, a_new_commander: Commander) -> void:
+	if a_old_commander != null and a_old_commander.upgrade_researched.is_connected(_on_upgrade):
+		a_old_commander.upgrade_researched.disconnect(_on_upgrade)
+	if a_new_commander != null:
+		a_new_commander.upgrade_researched.connect(_on_upgrade)
+	_apply_upgrades()
+
+
+func _on_upgrade(_a_id: StringName) -> void:
+	_apply_upgrades()
+
+
+## The upgrade effects that live on the piece rather than being asked for at each read: today
+## only the hit-point maximum (Defense.set_hp_factor says why it is stored).
+func _apply_upgrades() -> void:
+	if defense != null:
+		defense.set_hp_factor(UpgradeCatalog.factor_for(self, UpgradeCatalog.HP_FACTOR))
 
 
 func initialize(a_map: Map, a_commander: Commander):
@@ -1640,6 +1722,5 @@ func tick_collection() -> void:
 		energy_extractor.tick()
 	if dominion_generator != null:
 		dominion_generator.tick()
-
 
 #endregion

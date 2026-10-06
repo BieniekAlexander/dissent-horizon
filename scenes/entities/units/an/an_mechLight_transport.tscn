@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://bjn8jktofip2n"]
+[gd_scene load_steps=26 format=3 uid="uid://bjn8jktofip2n"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_nqbqt"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="1_spec"]
@@ -30,6 +30,9 @@ radius = 0.7
 [sub_resource type="BoxMesh" id="BoxMesh_i06yd"]
 size = Vector3(0.9, 0.6, 1.4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(0.9, 0.6, 1.4)
+
 [node name="AnMechLightTransport" type="CharacterBody3D" unique_id=82499995 groups=["piece", "unit"]]
 script = ExtResource("1_nqbqt")
 id = &"an_mechLight_transport"
@@ -41,6 +44,11 @@ id = &"an_mechLight_transport"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_ydxx5")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_80p5k")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_hhqmt")]
 
@@ -130,3 +138,4 @@ bunker = false
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

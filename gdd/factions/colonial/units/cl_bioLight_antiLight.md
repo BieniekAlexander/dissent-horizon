@@ -37,12 +37,8 @@ weapons:
     hits:
       - ground
 abilities:
-  - max_charges: 3
-    cooldown: 3
-    grants:
-      - irradiate
   - max_charges: 1
-    cooldown: 1
+    cooldown: 15
     grants:
       - spot
 ui:
@@ -56,12 +52,10 @@ ui:
 - nothing for now
 # Notes
 - Carries the Colonial artillery's forward-observer half, granted as the [[spot|Spot]]
-  ability: it walks to within 10 units of a chosen point, holds still for 10 seconds, and
-  leaves a beacon standing there for the Bombards to spend. It stays on that beacon until
-  the shot lands — see the Spot command. Those two numbers are `Spot.TARGET_RANGE` and
-  `Spot.CHANNEL_TICKS`, not doc keys: this is the only piece in the game that spots, so they
-  never vary. They become a `spotting:` mapping on the day a second, longer-ranged spotter
-  exists.
+  ability: it walks into the spot ability's range of a chosen point, holds still for 3
+  seconds, and leaves a beacon standing there for the Bombards to spend. It stays on that
+  beacon until a Bombard fires on it — see the Spot command. The 15 s cooldown above runs
+  from whenever the order ends, fired on or cancelled.
 - `antiLight` is the role vocabulary's "good against light targets generally" — light mech and light bio alike — as against Badger's `antiArmor`, which is mech-only at any armour weight
 - **A 3-round rifle burst**, 0.1333s (4 ticks) apart, then 1.2333s to reload: a 1.5s cycle at
   the same 15 DPS it had. See [weapon-cadence](../../../systems/combat/weapon-cadence.md)

@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://fm5vh4l1qs66"]
+[gd_scene load_steps=24 format=3 uid="uid://fm5vh4l1qs66"]
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_5my8o"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
@@ -19,12 +19,16 @@
 [ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="19_eqr1u"]
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="21_nntjg"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="22_0l32n"]
+[ext_resource type="Script" uid="uid://cqvco5y3gnfph" path="res://scripts/entities/components/production.gd" id="3_spec"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_r3tdp"]
 size = Vector3(4, 2, 4)
 
 [sub_resource type="BoxMesh" id="BoxMesh_fysp8"]
 size = Vector3(4, 2, 4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(4.0, 2.0, 4.0)
 
 [node name="ClTech2" type="CharacterBody3D" unique_id=1588808034 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -36,6 +40,11 @@ id = &"cl_tech2"
 [node name="#####STATE#####" type="Node" parent="." unique_id=466012088]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_4ftke")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_qehwp")]
 
@@ -106,4 +115,9 @@ script = ExtResource("18_fp57i")
 script = ExtResource("2_spec")
 groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 1800, "grants": [&"gunship"] }])
 
+[node name="Production" type="Node" parent="."]
+script = ExtResource("3_spec")
+producible_types = Array[StringName]([&"field_conditioning", &"gun_drill"])
+
 [editable path="Selectable"]
+[editable path="Hurtbox"]

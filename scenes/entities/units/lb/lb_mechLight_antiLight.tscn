@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://2mywsxj675d"]
+[gd_scene load_steps=28 format=3 uid="uid://2mywsxj675d"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_rheno"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
@@ -32,6 +32,9 @@ radius = 0.7
 [sub_resource type="BoxMesh" id="BoxMesh_38jni"]
 size = Vector3(0.9, 0.6, 1.4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(0.9, 0.6, 1.4)
+
 [node name="LbMechLightAntiLight" type="CharacterBody3D" unique_id=1017122451 groups=["piece", "unit"]]
 script = ExtResource("1_rheno")
 description = "Attack drone"
@@ -45,6 +48,11 @@ id = &"lb_mechLight_antiLight"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_35bj5")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_sbpwg")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_ksfoy")]
 
@@ -138,3 +146,4 @@ disabled = true
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

@@ -24,7 +24,7 @@ script = ExtResource("1_spec")
 
 [node name="Payload" type="Node" parent="."]
 script = ExtResource("2_spec")
-base_damage = 25.0
+base_damage = 15.0
 damage_type = 1
 hitscan = true
 

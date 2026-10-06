@@ -31,9 +31,9 @@ routes.
 
 Three roster facts worth knowing before adding anything:
 
-- **Seven of eleven damage types are fielded.** Incendiary, High Explosive and Plasma appear
-  nowhere; Toxic, Sonic and Cryo appear once each. New pieces should be pulled toward the empty
-  rows rather than adding another Lead gun.
+- **Six of nine damage types are fielded** (2026-10-05). Incendiary, Sonic and Lazer appear
+  nowhere; Toxic and Plasma (the Bombard's shell) appear once each. New pieces should be pulled
+  toward the empty rows rather than adding another Lead gun.
 - **The Sapper has no weapon authored**, and the Refraction Tank's deploy is a `TODO`. Two of the
   most interesting decision shapes in the game are unbuilt rather than badly tuned.
 - **Reversals are not meant to be generic.** Not every fighting-game character has one, and here
@@ -93,7 +93,7 @@ may take something it could never crush, if somebody else disabled it first.
   is the confirm shape generalised beyond Overcharge.
 - It fits the intended progression: capture routes vary per faction, and the investment a capture
   demands is meant to fall as the match goes on, in step with the shrinking telegraph.
-- It also offers a way out of `deferred.md` 1.4: capturability stops being a static class table
+- It also offers a way out of the old capturability-class question: capturability stops being a static class table
   and becomes a state, which is the thing the table keeps getting wrong.
 
 ---

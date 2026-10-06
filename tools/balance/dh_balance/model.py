@@ -82,8 +82,6 @@ class DamageType(str, Enum):
     ELECTRIC = "ELECTRIC"
     LAZER = "LAZER"
     INCENDIARY = "INCENDIARY"
-    HIGH_EXPLOSIVE = "HIGH_EXPLOSIVE"
-    CRYO = "CRYO"
 
 
 class Layer(str, Enum):
@@ -223,9 +221,8 @@ class Faction:
 
 @dataclass
 class DamageTable:
-    """Mirrors the live DamageTable: damage_type x {armour, frame, attribute} -> multiplier."""
+    """Mirrors the live DamageTable: damage_type x {armour, frame} -> multiplier."""
     vs_armour: dict[DamageType, dict[Armour, float]]
-    vs_attribute: dict[DamageType, dict[str, float]]
     vs_frame: dict[DamageType, dict[Frame, float]] = field(default_factory=dict)
 
     def armour_multiplier(self, dtype: DamageType, armour: Armour) -> float:
@@ -233,24 +230,6 @@ class DamageTable:
 
     def frame_multiplier(self, dtype: DamageType, frame: Frame) -> float:
         return self.vs_frame.get(dtype, {}).get(frame, 1.0)
-
-    def attribute_multiplier(self, dtype: DamageType, attributes: list[str], layer: Layer | None) -> float:
-        """DEPRECATED: no longer applied by combat.damage_per_shot, matching the live game."""
-        row = self.vs_attribute.get(dtype, {})
-        if not row:
-            return 1.0
-        # Layer implies the IS_GROUNDED / IS_FLYING attributes the game derives
-        # from Movement.mode, in addition to explicit attributes (stealth).
-        active = set(attributes)
-        if layer == Layer.AIR:
-            active.add("IS_FLYING")
-        elif layer == Layer.GROUND:
-            active.add("IS_GROUNDED")
-        result = 1.0
-        for attr, mult in row.items():
-            if attr in active:
-                result *= mult
-        return result
 
 
 @dataclass

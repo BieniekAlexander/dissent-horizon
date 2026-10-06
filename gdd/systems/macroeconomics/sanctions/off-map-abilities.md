@@ -15,10 +15,11 @@ is standing. A second shape exists alongside it: an ability whose payload comes 
 **off the map**, called in rather than fired. The model is Command & Conquer: Generals'
 promotions — the caster is a radio, not a weapon.
 
-Two are built. **Mortar** (Anarchist, three tiers) simply produces projectiles from that
+Three are built. **Mortar** (Anarchist, three tiers) simply produces projectiles from that
 origin. **Drop** (Colonial, three tiers) produces a piece that then plays out a whole
 flight inside the game. They are the two ends of the same idea, and were built together
-deliberately so the entry rule is shared rather than reinvented at each scale.
+deliberately so the entry rule is shared rather than reinvented at each scale. **Gunship**
+(Colonial) reuses the Drop's flight for a piece the player can then order.
 
 ## The origin is derived from the CASTER, and this is the whole rule
 
@@ -72,7 +73,7 @@ static functions over a `PlayArea`.
 
 `Sanction.activate(position, manager, commander, caster)` sets `caster` on the instantiated
 event with the same optional-property idiom `commander_id` and `sanction_name` already use —
-only an event that declares the field takes it, and today only the two off-map events do.
+only an event that declares the field takes it, and today only the off-map events do.
 `caster` is optional so a scripted or test deployment with no building is still expressible;
 an event with no caster falls back to the target point, which still enters from off the map,
 just no longer keyed to the caster's side.
@@ -200,7 +201,39 @@ team tint, the construction and status shading, or `MeshVisual.model_top_offset(
 decides where floating badges sit and would otherwise put them above the parachute instead
 of above the soldier.
 
-## Adding a third off-map ability
+## Gunship: a sortie the player can steer, but not move
+
+`EventGunship` launches a [[cl_aircraftMedium_gunship]] from the same caster-keyed entry point
+and hands it a `Sortie` (`scripts/entities/components/sortie.gd`): **in** with its weapon
+disabled, **on station** over the target point for `station_seconds` (20) circling it with its
+weapon live, then **out** past the point it entered at, where it removes itself on
+`OffMapArrival.has_left`.
+
+**The run is a component, not a command, and that is the difference from `AirDropRun`.** The
+gunship is selectable and takes the player's Attack orders while on station, and it picks up
+targets on its own (idle aggro). Any of those replaces the active order, so a run held as one
+order would be thrown away by the first target. The sortie sits beside the queue instead:
+
+- **It flies the transit legs as `SortieLeg` orders**, and re-issues one if anything takes it
+  away — a cleared queue arrives as a null order, which nothing can refuse.
+- **It gates admission** (`Sortie.admit`, called from `Commandable.update_commands` beside
+  `Deployable.admit`): in transit only its own leg; on station only Attack, FocusFire and Stop.
+  A piece carrying a sortie is ON RAILS (`Commandable.is_on_rails`): Move, Patrol and Defend
+  are not on its card, and a right-click on ground resolves to a move and is silently refused.
+  Attack-move stays on the card as the way to attack a chosen target — a friendly included —
+  since clicked on a target it resolves to Attack; clicked on ground it is refused with the
+  refusal cursor (`AttackMove.meets_precondition`).
+- **It keeps the weapon cold off station** through `Commandable.can_use_weapons`, which every
+  firing path already asks — so idle aggro, retaliation and Attack all stand down together.
+- **Its targets never move it.** Its weapon measures reach from the centre of its orbit
+  (`range_from: orbit`), so an Attack — ordered or picked up — changes only what it shoots at;
+  it keeps circling the station, picks up and lets go of targets by the range shape standing
+  there, and cannot be drawn off the point. → [combat/range-buckets](../../combat/range-buckets.md)
+  §Where a reach is measured from.
+- **Idle on station circles the station.** Anything else that ends with the orbit anchored
+  elsewhere (a Stop settles where it was given) is re-anchored by the sortie.
+
+## Adding another off-map ability
 
 1. Write the event under `scripts/scenario/events/`, declare `commander_id` and `caster`,
    and get the entry point from `OffMapArrival.entry_xz(map, caster_xz)`.

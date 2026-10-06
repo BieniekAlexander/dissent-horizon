@@ -198,7 +198,8 @@ func _update_facing(a_actor: Commandable) -> void:
 	var turreted: bool = weapon != null and weapon.turret
 	if turreted:
 		weapon.aim_turret_toward(a_actor, message.target.global_position)
-	if a_actor.movement == null or should_move(a_actor):
+	# An actor that cannot stop never halts to aim: it aims by flying, or by its turret.
+	if a_actor.movement == null or should_move(a_actor) or not a_actor.movement.can_hold_still():
 		return
 	a_actor.movement.stop()
 	if not turreted:
@@ -242,7 +243,8 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	# forever — can_act stays false, the actor never goes idle, and aggro can never re-acquire
 	# a target it could actually fire on (the cause of a bunker going silent after a retarget).
 	# See CommandMessage.persist.
-	var can_chase: bool = a_actor.can_move()
+	# A piece fighting from its orbit cannot chase either: moving never closes its range.
+	var can_chase: bool = a_actor.can_move() and not a_actor.fights_from_orbit()
 	if (not message.persist or not can_chase) and not _target_within_leash(a_actor):
 		return null
 	# While this attack is live, a FLYING actor dives onto a ground target (and climbs
@@ -277,7 +279,8 @@ const _LEASH_HYSTERESIS: float = 1.25
 
 
 ## True when message.target is still close enough to keep pursuing a non-persistent
-## attack. Two regimes:
+## attack. A weapon measuring from its wielder's orbit leashes by its own range shape at the
+## orbit's centre, grown by the same hysteresis. Otherwise, two regimes:
 ##   * Defend override (message.aggro_shape set): the target's footprint must stay within
 ##     that fixed defend area, measured from its centre point — exact, no margin. The area
 ##     is centred on `message.aggro_center` when the order named one, which is what pins it
@@ -302,6 +305,15 @@ func _target_within_leash(a_actor: Commandable) -> bool:
 			return true
 		return message.target.hull().distance_to_point(VU.in_xz(origin)) <= radius
 
+	var weapon := _weapon_for(a_actor)
+	if weapon != null and weapon.orbit_origin(a_actor) is Vector3:
+		var reach: float = weapon.reach_for(message.target)
+		return (
+			reach < 0.0
+			or SU.is_in_attack_range(
+				weapon, a_actor, message.target, reach * (_LEASH_HYSTERESIS - 1.0)
+			)
+		)
 	var leash: float = _leash_radius(a_actor)
 	if leash < 0.0:
 		return true
@@ -368,11 +380,15 @@ static func _shape_xz_radius(shape: Shape3D, scale: float) -> float:
 ## hole between the two branches the moment its clip ran dry: not able to act (nothing
 ## loaded), not supposed to move (already in range), so nothing drove it at all and it
 ## coasted to a dead stop in mid-air over its victim.
+##
+## A PIECE FIGHTING FROM ITS ORBIT NEVER SAYS YES (Commandable.fights_from_orbit): its range is
+## measured from the orbit's centre, so flying at the target would close nothing — the target
+## changes what it shoots at, never where it flies.
 func should_move(a_actor: Commandable) -> bool:
 	if not _target_attackable(message):
 		return false
 	var weapon := _weapon_for(a_actor)
-	if weapon == null:
+	if weapon == null or a_actor.fights_from_orbit():
 		return false
 	if a_actor.movement != null and not a_actor.movement.can_hold_still():
 		return true
@@ -384,6 +400,12 @@ func should_move(a_actor: Commandable) -> bool:
 
 func releases_hold_fire() -> bool:
 	return true
+
+
+## A piece fighting from its orbit keeps circling the orbit it had: its target is something it
+## shoots at, not somewhere it flies.
+func orbit_anchor(a_actor: Commandable) -> Variant:
+	return null if a_actor.fights_from_orbit() else message.position
 
 
 func holds_ground(a_actor: Commandable) -> bool:

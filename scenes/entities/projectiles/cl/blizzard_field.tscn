@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_entity"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_own"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="3_phase"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="4_loco"]
+[ext_resource type="Script" path="res://scripts/entities/components/frost_field.gd" id="5_frost"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/snowfall.tscn" id="6_snow"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/aoe_huge.tres" id="7_shape"]
+[ext_resource type="Script" path="res://scripts/rendering/ground_ring.gd" id="8_ring"]
+
+[node name="BlizzardField" type="CharacterBody3D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_entity")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("2_own")
+
+[node name="Gathering" parent="." instance=ExtResource("6_snow")]
+radius = 10.0
+density = 0.3
+
+[node name="Snowfall" parent="." instance=ExtResource("6_snow")]
+radius = 10.0
+
+[node name="HitShape" type="CollisionShape3D" parent="."]
+shape = ExtResource("7_shape")
+
+[node name="FieldRing" type="Decal" parent="."]
+script = ExtResource("8_ring")
+
+[node name="Gather" type="Node3D" parent="."]
+script = ExtResource("3_phase")
+ends_on_arrival = false
+lifespan_seconds = 10.0
+visuals = Array[NodePath]([NodePath("Gathering"), NodePath("FieldRing")])
+
+[node name="Storm" type="Node3D" parent="."]
+script = ExtResource("3_phase")
+ends_on_arrival = false
+lifespan_seconds = 10.0
+visuals = Array[NodePath]([NodePath("Snowfall"), NodePath("FieldRing")])
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("4_loco")
+
+[node name="FrostField" type="Node" parent="."]
+script = ExtResource("5_frost")

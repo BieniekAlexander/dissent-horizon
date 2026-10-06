@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3 uid="uid://bo8rym064b8oy"]
+[gd_scene load_steps=30 format=3 uid="uid://bo8rym064b8oy"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_agkq6"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
@@ -34,6 +34,9 @@ radius = 0.7
 [sub_resource type="BoxMesh" id="BoxMesh_6eroo"]
 size = Vector3(0.9, 0.6, 1.4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(0.9, 0.6, 1.4)
+
 [node name="LbMechLightAntiStrong" type="CharacterBody3D" unique_id=1023589985 groups=["piece", "unit"]]
 script = ExtResource("1_agkq6")
 description = "Lazer-armed tank, can deploy for stronger defense"
@@ -47,6 +50,11 @@ id = &"lb_mechLight_antiStrong"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_046s4")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_dxulf")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_2eghx")]
 
@@ -152,3 +160,4 @@ is_cancellable = false
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

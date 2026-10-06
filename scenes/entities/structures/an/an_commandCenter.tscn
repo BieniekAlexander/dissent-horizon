@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://6d446a6ad5mp"]
+[gd_scene load_steps=25 format=3 uid="uid://6d446a6ad5mp"]
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_ccxwa"]
 [ext_resource type="PackedScene" path="res://assets/meshes/entities/dummy_structure.blend" id="1_dummy"]
@@ -26,6 +26,9 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_4khs5"]
 size = Vector3(4, 3.144775, 4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(4.0, 3.144775, 4.0)
+
 [node name="AnCommandCenter" type="CharacterBody3D" unique_id=501175136 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
 collision_mask = 0
@@ -36,6 +39,11 @@ id = &"an_commandCenter"
 [node name="#####STATE#####" type="Node" parent="." unique_id=129575369]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_h8xvh")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.572388, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_iydci")]
 
@@ -112,3 +120,4 @@ script = ExtResource("2_spec")
 groups = Array[Dictionary]([{ "initial_charges": 0, "max_charges": 1, "cooldown_ticks": 1800, "grants": [&"dignify", &"informant"] }])
 
 [editable path="Selectable"]
+[editable path="Hurtbox"]

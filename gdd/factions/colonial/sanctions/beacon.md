@@ -12,8 +12,8 @@ levels:
     description: Places a firing solution on the ground you can see. Any {{ cl_defense_antiStructure }} can then shell it from anywhere on the map, until a shell spends it.
     verbose: |
       The artillery's reach without the walk. A {{ cl_bioLight_antiLight }} can call a
-      solution in for free, but it has to get there, hold still for ten seconds and stay
-      until the shot lands; this puts one wherever you can see, immediately.
+      solution in for free, but it has to get there, hold still for three seconds and stay
+      until the shot is fired; this puts one wherever you can see, immediately.
 
       It stands until a shell spends it, so it can be placed before the guns are ready.
       It is stealthed, and it does not see: once your eyes leave the spot it marks blind

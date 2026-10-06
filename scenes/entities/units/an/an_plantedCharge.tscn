@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://cjtfujd10oo22"]
+[gd_scene load_steps=22 format=3 uid="uid://cjtfujd10oo22"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
@@ -28,6 +28,9 @@ size = Vector3(0.9, 0.6, 1.4)
 radius = 0.7
 height = 0.6
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(0.9, 0.6, 1.4)
+
 [node name="AnPlantedCharge" type="CharacterBody3D" groups=["piece"]]
 collision_layer = 0
 collision_mask = 0
@@ -39,6 +42,11 @@ verbose = "Goes off when its Sapper says so, when it is destroyed, or when what 
 [node name="#####STATE#####" type="Node" parent="."]
 
 [node name="Hurtbox" parent="." instance=ExtResource("1_spec")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
 
@@ -109,3 +117,5 @@ collision_mask = 0
 
 [node name="Shape" type="CollisionShape3D" parent="StealthBody"]
 shape = SubResource("SphereShape3D_stealth")
+
+[editable path="Hurtbox"]

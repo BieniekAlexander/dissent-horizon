@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://b0o0qcjj0c1of"]
+[gd_scene load_steps=14 format=3 uid="uid://b0o0qcjj0c1of"]
 
 [ext_resource type="Script" path="res://scripts/entities/entity.gd" id="1_entity"]
 [ext_resource type="Script" path="res://scripts/entities/structures/extraction_site.gd" id="2_dep"]
@@ -12,11 +12,11 @@
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="10_flfwd"]
 [ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="11_y1p3o"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_hqpa2"]
-size = Vector3(2, 10, 2)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_ijod7"]
 size = Vector3(2, 2, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(2.0, 2.0, 2.0)
 
 [node name="ExtractionSite" type="CharacterBody3D" unique_id=1970929826 groups=["piece", "fixture", "extraction_site"]]
 collision_layer = 0
@@ -28,8 +28,10 @@ id = &"nt_extractionSite"
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("2_ijod7")]
 
-[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
-shape = SubResource("BoxShape3D_hqpa2")
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.041021, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="Ownership" type="Node" parent="." unique_id=31239474]
 script = ExtResource("2_wha84")

@@ -181,16 +181,15 @@ tested against the target itself (its hurtbox centre), not against a leading sta
 
 **A steered phase steers at, leads, and arrives at the centre of its target's hurtbox**
 (`Entity.aim_point`, the global position of `Hurtbox/HurtboxShape`; the piece's origin when it
-has none) (Alex, 2026-10-03). **And every hurtbox stands ON its piece's base**: `Entity._ready`
-raises the HurtboxShape until its bottom is at the origin (`_seat_target_shape`). A shape authored
-higher is left where it is.
+has none) (Alex, 2026-10-03). **And every hurtbox stands ON its piece's base**: the importer fits
+it to the model with its bottom at the origin ([generated-visual-defaults](../ux/ui/generated-visual-defaults.md)
+§The hurtbox, 2026-10-06). It was first done by raising the shape at runtime.
 
 - **Why both:** a shape is centred on its node, and every piece's hurtbox was authored at its
   origin, its feet. Half of it was underground, so "aim at the centre" was "aim at the ground",
   and a slightly short rocket struck the terrain in front of a ground target.
-- **What else moves:** every weapon and blast now meets the hurtbox above the ground rather than
-  straddling it. Range is unaffected (`Hull` reads the footprint on XZ only), and a shell
-  bursting at ground level still reaches the hurtbox's bottom.
+- **What else moves:** every weapon and blast meets the hurtbox above the ground rather than
+  straddling it, and a shell bursting at ground level still reaches the hurtbox's bottom.
 - **Only steered phases aim at the centre.** A launch still sets off toward the target's
   position, and unsteered shells and bullets still aim at the ground under it. A beacon has no
   hurtbox, so a Bombard shell tracking one is unchanged.
@@ -738,6 +737,9 @@ Every visual node keeps the importer's role names — `InFlightMesh`, `InFlightP
 - **A lead round is a tracer and nothing else**: a `Tracer`-drawn `BeamMesh` whose mesh is the
   one shared `resources/emissions/lead_tracer_beam.tres`, so every lead round in the game draws
   the same streak and a retune is one edit.
+- **A plasma round** (the Constable's) is a small glowing capsule, `plasma_round_model.tscn`,
+  and bursts on impact in `plasma_impact.tscn` — a flash, a few sparks and a faint puff, carried
+  by a half-second impact phase.
 - **A rocket** instances `scenes/effects/emissions/rocket_model.tscn` as its `InFlightMesh`,
   scaled per piece, with `rocket_exhaust.tscn` at its nozzle and `rocket_explosion.tscn`
   (about a unit across) on impact.

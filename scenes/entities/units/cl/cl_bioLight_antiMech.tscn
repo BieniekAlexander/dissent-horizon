@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://xi4d44sl0pu6"]
+[gd_scene load_steps=32 format=3 uid="uid://xi4d44sl0pu6"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_msm4r"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_long.tres" id="1_spec"]
@@ -36,6 +36,10 @@ radius = 0.3
 height = 1.803109
 radius = 0.45
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 0.35
+height = 1.803109
+
 [node name="Badger" type="CharacterBody3D" unique_id=70655620 groups=["piece", "unit"]]
 script = ExtResource("1_msm4r")
 id = &"cl_bioLight_antiMech"
@@ -48,6 +52,11 @@ id = &"cl_bioLight_antiMech"
 shape = SubResource("CylinderShape3D_ape66")
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_dlbjc")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("CylinderShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.901554, 0.0)
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_adpp6")]
 
@@ -148,3 +157,4 @@ debug_color = Color(0.7, 0.2, 0.9, 0.35)
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

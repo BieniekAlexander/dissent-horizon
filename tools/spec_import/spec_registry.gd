@@ -483,7 +483,8 @@ func _register_speed_library(a_path: String, a_data: Dictionary) -> void:
 
 
 ## Swaps every speed-class NAME in a piece or emission for its value from the SpeedLibrary:
-## `movement.speed`, an emission's shorthand `speed:`, and each phase's `motion.speed`. A
+## `movement.speed`, `aerial.orbit_speed`, an emission's shorthand `speed:`, and each phase's
+## `motion.speed`. A
 ## number where a name belongs is refused — the ladder is the source of truth, and a number
 ## would quietly step off it — as is a name the ladder does not have.
 func _resolve_speed_classes() -> void:
@@ -492,6 +493,9 @@ func _resolve_speed_classes() -> void:
 		var movement: Variant = spec.get("movement")
 		if movement is Dictionary and (movement as Dictionary).has("speed"):
 			movement["speed"] = _speed_of(spec, "movement.speed", movement["speed"])
+		var aerial: Variant = spec.get("aerial")
+		if aerial is Dictionary and (aerial as Dictionary).has("orbit_speed"):
+			aerial["orbit_speed"] = _speed_of(spec, "aerial.orbit_speed", aerial["orbit_speed"])
 	for id: Variant in projectiles:
 		var spec: Dictionary = projectiles[id]
 		if spec.has("speed"):
@@ -772,7 +776,7 @@ func _validate_piece(a_spec: Dictionary) -> void:
 		_err(a_spec, "stealth must be true or false")
 	# Identity components: presence only, their tuning is scene-authored (SpecSceneSync.
 	# IDENTITY_COMPONENTS).
-	for key: String in ["shelter", "extraction_site", "extractor"]:
+	for key: String in ["shelter", "extraction_site", "extractor", "plants_beacons"]:
 		if a_spec.has(key) and not (a_spec[key] is bool):
 			_err(a_spec, "%s must be true or false — its tuning lives in the scene" % key)
 	if a_spec.has("garrison"):
@@ -803,7 +807,6 @@ func _validate_piece(a_spec: Dictionary) -> void:
 	_resolve_shape_key(a_spec, "detection")
 	_check_radius(a_spec, "detection", true)
 	_check_radius(a_spec, "movement_radius", false)
-	_check_radius(a_spec, "hurtbox_radius", false)
 	if a_spec.has("infrastructure") and not (a_spec["infrastructure"] is int):
 		# One signed int: positive provides, negative consumes. Catches docs still on
 		# the old {capacity: N} / {upkeep: N} mapping form.
@@ -819,6 +822,7 @@ func _validate_piece(a_spec: Dictionary) -> void:
 					continue
 				_validate_weapon(a_spec, w, seen_names)
 			_validate_charged_can_rearm(a_spec)
+			_derive_orbit_radius(a_spec)
 	if a_spec.has("ui") and a_spec["ui"] is Dictionary:
 		_validate_ui(a_spec, a_spec["ui"])
 
@@ -982,9 +986,12 @@ static func charge_dials_needed(spec: Dictionary, ability_specs: Dictionary) -> 
 		):
 			needed += 1
 	for weapon: Variant in spec.get("weapons", []):
-		if weapon is Dictionary and dial_script.wants_weapon_dial(
-			float((weapon as Dictionary).get("reload_time", 0.0)),
-			bool((weapon as Dictionary).get("charged", false))
+		if (
+			weapon is Dictionary
+			and dial_script.wants_weapon_dial(
+				float((weapon as Dictionary).get("reload_time", 0.0)),
+				bool((weapon as Dictionary).get("charged", false))
+			)
 		):
 			needed += 1
 	return needed
@@ -1545,9 +1552,65 @@ const WEAPON_KEYS: Array = [
 	"charged",
 	"turret",
 	"turret_turn_rate",
+	"range_from",
 	"reach",
 	"hits"
 ]
+
+## The doc's `range_from:` values, mapped to Weapon.RangeOrigin.
+const RANGE_FROM: Dictionary = {"hull": Weapon.RangeOrigin.HULL, "orbit": Weapon.RangeOrigin.ORBIT}
+
+
+## A piece whose weapon fires from its orbit (`range_from: orbit`) orbits at that weapon's
+## GROUND reach: the circle it flies is the circle it fires into, so the radius is derived and
+## never authored — an authored `aerial.orbit_radius` beside it is refused.
+## TODO: an edge case standing in for derivations a doc could express itself — see
+## gdd/tasks.md T-096.
+func _derive_orbit_radius(a_spec: Dictionary) -> void:
+	var orbit_weapons: Array = a_spec["weapons"].filter(
+		func(w: Variant) -> bool:
+			return w is Dictionary and str((w as Dictionary).get("range_from", "")) == "orbit"
+	)
+	if orbit_weapons.is_empty() or not (a_spec.get("aerial") is Dictionary):
+		return
+	var aerial: Dictionary = a_spec["aerial"]
+	if aerial.has("orbit_radius"):
+		_err(
+			a_spec,
+			(
+				"aerial.orbit_radius is derived from the ground reach of a `range_from: orbit` "
+				+ "weapon; remove it"
+			)
+		)
+		return
+	var reach: float = float(orbit_weapons[0].get("_reach_radii", {}).get("ground", -1.0))
+	if reach > 0.0:
+		aerial["orbit_radius"] = reach
+
+
+## `range_from:` names a Weapon.RangeOrigin, and `orbit` needs an orbit to measure from: only a
+## FLYING piece flies one, so on anything else the key would sit in the doc doing nothing.
+func _validate_range_from(a_spec: Dictionary, a_weapon_name: String, a_value: String) -> void:
+	if not RANGE_FROM.has(a_value):
+		_err(
+			a_spec,
+			(
+				"weapon '%s' range_from must be one of %s, got '%s'"
+				% [a_weapon_name, RANGE_FROM.keys(), a_value]
+			)
+		)
+		return
+	if a_value == "orbit" and _mode_of(a_spec) != "FLYING":
+		_err(
+			a_spec,
+			(
+				(
+					"weapon '%s' has `range_from: orbit` but the piece does not fly an orbit "
+					% a_weapon_name
+				)
+				+ "(needs `aerial: {mode: FLYING}`)"
+			)
+		)
 
 
 func _validate_weapon(a_spec: Dictionary, a_weapon: Dictionary, a_seen: Dictionary) -> void:
@@ -1591,6 +1654,8 @@ func _validate_weapon(a_spec: Dictionary, a_weapon: Dictionary, a_seen: Dictiona
 				_err(a_spec, "weapon '%s' hits entries must be ground/air, got '%s'" % [wname, h])
 	if a_weapon.has("reach"):
 		a_weapon["_reach_radii"] = _resolve_reach(a_spec, wname, a_weapon["reach"])
+	if a_weapon.has("range_from"):
+		_validate_range_from(a_spec, wname, str(a_weapon["range_from"]))
 	# A turn rate on a weapon that is not a turret would sit in the doc doing nothing, and
 	# read as authoritative — the drift the key whitelist exists to stop.
 	if a_weapon.has("turret_turn_rate"):
@@ -1835,9 +1900,18 @@ func _validate_ability(a_spec: Dictionary) -> void:
 const UPGRADE_KEYS: Array = [
 	"kind", "title", "description", "verbose", "cost", "build_time", "requires", "modifies", "ui"
 ]
-## Every key a `modifies:` entry may carry. `range` is the only value an upgrade can change
-## today; a new one is added here together with the reader that honours it.
-const MODIFIER_KEYS: Array = ["piece", "ability", "range"]
+## Every key a `modifies:` entry may carry: a SELECTOR (`piece`, or `frame` for every unit of
+## one frame), an optional `ability`, and exactly one EFFECT key. A new effect is added here
+## together with the reader that honours it.
+const MODIFIER_SELECTORS: Array = ["piece", "frame"]
+const MODIFIER_EFFECTS: Array = ["range", "hp_factor", "rearm_rate_factor", "cooldown_rate_factor"]
+const MODIFIER_KEYS: Array = [
+	"piece", "frame", "ability", "range", "hp_factor", "rearm_rate_factor", "cooldown_rate_factor"
+]
+## The effects that are about one of the piece's abilities, so need `ability:`; the others
+## refuse one.
+const ABILITY_EFFECTS: Array = ["range", "cooldown_rate_factor"]
+const FRAMES: Array = ["BIO", "MECH"]
 
 
 ## An UPGRADE: one-time commander-wide research. Priced and timed like a piece (`build:`),
@@ -1892,9 +1966,9 @@ func _validate_upgrade(a_spec: Dictionary) -> void:
 		)
 
 
-## One `modifies:` entry: {piece, ability, range}. The piece must exist and be granted the
-## ability, or the modifier could never apply; `range` names a shape from the library and is
-## resolved to its radius here, so the runtime reads a number.
+## One `modifies:` entry. Its selector must name something that exists, an ability it names
+## must be granted, and its one effect must make sense for what it selects. `range` names a shape
+## from the library and is resolved to its radius here, so the runtime reads a number.
 func _validate_modifier(a_spec: Dictionary, a_entry: Variant) -> void:
 	if not (a_entry is Dictionary):
 		_err(a_spec, "each modifies: entry must be a mapping of %s" % [MODIFIER_KEYS])
@@ -1909,31 +1983,83 @@ func _validate_modifier(a_spec: Dictionary, a_entry: Variant) -> void:
 					% [key, MODIFIER_KEYS]
 				)
 			)
-	var piece_id: String = str(entry.get("piece", ""))
-	var ability_id: String = str(entry.get("ability", ""))
+	var selectors: Array = MODIFIER_SELECTORS.filter(func(k: String) -> bool: return entry.has(k))
+	var effects: Array = MODIFIER_EFFECTS.filter(func(k: String) -> bool: return entry.has(k))
+	if selectors.size() != 1:
+		_err(a_spec, "each modifies: entry names exactly one of %s" % [MODIFIER_SELECTORS])
+		return
+	if effects.size() != 1:
+		_err(
+			a_spec,
+			"each modifies: entry carries exactly one effect, one of %s" % [MODIFIER_EFFECTS]
+		)
+		return
+	var effect: String = effects[0]
+	if not _validate_modifier_selector(a_spec, entry, effect):
+		return
+	if effect == "range":
+		var radius: float = _library_radius(a_spec, "modifies.range", entry["range"])
+		if radius > 0.0:
+			entry["range_metres"] = radius
+	elif not _is_number(entry[effect]) or float(entry[effect]) <= 0.0:
+		_err(
+			a_spec,
+			"modifies: %s must be a positive number (a factor: 1.25 is a quarter more)" % effect
+		)
+
+
+## The selector half of a modifier: the piece or frame exists, the ability is present exactly
+## when the effect is about one, and a rearm factor lands on a piece that rearms. False when the
+## entry is too broken to read its effect.
+func _validate_modifier_selector(a_spec: Dictionary, a_entry: Dictionary, a_effect: String) -> bool:
+	var needs_ability: bool = ABILITY_EFFECTS.has(a_effect)
+	if needs_ability != a_entry.has("ability"):
+		_err(
+			a_spec,
+			"modifies: %s %s an ability:" % [a_effect, "needs" if needs_ability else "is not about"]
+		)
+		return false
+	if a_entry.has("frame"):
+		if not FRAMES.has(str(a_entry["frame"])):
+			_err(a_spec, "modifies: frame must be one of %s" % [FRAMES])
+			return false
+		if needs_ability:
+			_err(a_spec, "modifies: a frame selector cannot name an ability — say which piece")
+			return false
+		if a_effect == "rearm_rate_factor":
+			_err(a_spec, "modifies: rearm_rate_factor needs a piece — say which aircraft")
+			return false
+		return true
+	var piece_id: String = str(a_entry["piece"])
 	if not pieces.has(piece_id):
 		_err(a_spec, "modifies: names unknown piece '%s'" % piece_id)
-		return
-	if not abilities.has(ability_id):
-		_err(a_spec, "modifies: names unknown ability '%s'" % ability_id)
-		return
-	if not _piece_grants(pieces[piece_id], ability_id):
-		_err(
-			a_spec,
-			(
-				"modifies: '%s' is not granted '%s' (its abilities: pools name no such grant)"
-				% [piece_id, ability_id]
+		return false
+	if needs_ability:
+		var ability_id: String = str(a_entry["ability"])
+		if not abilities.has(ability_id):
+			_err(a_spec, "modifies: names unknown ability '%s'" % ability_id)
+			return false
+		if not _piece_grants(pieces[piece_id], ability_id):
+			_err(
+				a_spec,
+				(
+					"modifies: '%s' is not granted '%s' (its abilities: pools name no such grant)"
+					% [piece_id, ability_id]
+				)
 			)
-		)
-	if not entry.has("range"):
-		_err(
-			a_spec,
-			"modifies: entry for %s.%s changes nothing — give it a range:" % [piece_id, ability_id]
-		)
-		return
-	var radius: float = _library_radius(a_spec, "modifies.range", entry["range"])
-	if radius > 0.0:
-		entry["range_metres"] = radius
+			return false
+	if a_effect == "rearm_rate_factor" and not _piece_rearms(pieces[piece_id]):
+		_err(a_spec, "modifies: '%s' has no charged weapon — it never rearms" % piece_id)
+		return false
+	return true
+
+
+## Whether a piece carries a `charged:` weapon: one that rearms docked, which a rearm factor speeds.
+static func _piece_rearms(a_piece: Dictionary) -> bool:
+	for weapon: Variant in a_piece.get("weapons", []):
+		if weapon is Dictionary and bool((weapon as Dictionary).get("charged", false)):
+			return true
+	return false
 
 
 ## Whether a piece's `abilities:` pools grant `a_ability`.
@@ -2337,7 +2463,7 @@ func _check_radius(a_spec: Dictionary, a_key: String, a_zero_disables: bool) -> 
 	# away an import error. Both normalise to 0 here so nothing downstream sees null.
 	#
 	# `true` is still refused, and an empty value is still refused where zero does NOT
-	# disable (movement_radius, hurtbox_radius, blast): a radius has no default to take, and
+	# disable (movement_radius, blast): a radius has no default to take, and
 	# those volumes are not optional.
 	if (r == null or (r is bool and not bool(r))) and a_zero_disables:
 		a_spec[a_key] = 0

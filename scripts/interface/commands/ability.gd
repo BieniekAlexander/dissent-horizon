@@ -112,6 +112,13 @@ static func default_cast_arity(message: CommandMessage) -> CastArity:
 	return AbilityCatalog.cast_arity_of(_ability_of(message))
 
 
+## Free unless already casting an ability — the job rule (MoveCommand.is_free_to_take). Asked
+## of the actor alone, with no message, so any held ability order counts: a piece rarely
+## carries more than one ability, and the narrowing has no message to name one with anyway.
+static func is_free_to_take(actor: Commandable) -> bool:
+	return holds_none_of(actor, [Ability])
+
+
 ## Still reloading. Asked of the ACTOR alone, with no message, so it reads every pool the
 ## actor has — right for a unit with one ability, which is every case today.
 static func actor_is_recharging(actor: Commandable) -> bool:

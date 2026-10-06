@@ -17,7 +17,7 @@ footprint:
   - 4
 trains:
   - lb_aircraftLight_builder
-infrastructure: 100
+infrastructure: 10
 ui:
   grid: [1, 0]
   context_grid: [0, 0]

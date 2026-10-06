@@ -880,6 +880,11 @@ func _finish_taxi() -> void:
 
 
 #region FLYING orbit
+## The point a FLYING unit circles while idle.
+func anchor() -> Vector3:
+	return _anchor
+
+
 ## Set the anchor that a FLYING unit circles while idle. Initialises _orbit_angle
 ## from the unit's current position so the orbit starts without a positional jump.
 func set_anchor(a_pos: Vector3) -> void:

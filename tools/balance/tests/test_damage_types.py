@@ -75,8 +75,8 @@ def test_exporter_damage_types_match_the_engine_by_ordinal() -> None:
     assert _exporter().DAMAGE_TYPES == _engine_damage_types()
 
 
-@pytest.mark.parametrize("name", ["CRYO", "INCENDIARY", "HIGH_EXPLOSIVE"])
-def test_the_three_that_had_gone_missing(name: str) -> None:
+@pytest.mark.parametrize("name", ["INCENDIARY"])
+def test_the_members_that_had_gone_missing(name: str) -> None:
     # The regression that motivated this file: the engine, the damage-table TSVs
     # and the Avalanche's doc all had these; neither Python mirror did.
     assert name in {d.value for d in DamageType}

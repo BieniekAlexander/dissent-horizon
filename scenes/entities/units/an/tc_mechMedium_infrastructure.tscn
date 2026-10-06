@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3 uid="uid://cnsv3dtj20lko"]
+[gd_scene load_steps=26 format=3 uid="uid://cnsv3dtj20lko"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_t8i4w"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_4wvrd"]
@@ -30,6 +30,9 @@ radius = 0.7
 [sub_resource type="PrismMesh" id="PrismMesh_1gr00"]
 size = Vector3(1.2, 0.25, 1.4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(1.2, 0.25, 1.4)
+
 [node name="TcMechMediumInfrastructure" type="CharacterBody3D" unique_id=1858974654 groups=["piece", "unit"]]
 script = ExtResource("1_t8i4w")
 infrastructure = 75
@@ -44,6 +47,11 @@ verbose = "The Technocratic infrastructure provider. Unarmed and carries two lig
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_fvh5b")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_x6fmx")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.125, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_cpmip")]
 
@@ -133,3 +141,4 @@ occupiable_armours = 1
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

@@ -94,6 +94,7 @@ static func _holds_fire(a_piece: Commandable) -> bool:
 		and is_instance_valid(a_piece)
 		and a_piece.is_holding_fire
 		and a_piece.commander_id == RTSController.PLAYER_COMMANDER_ID
+		and CommandContextParser.offers_hold_fire(a_piece)
 	)
 
 

@@ -23,7 +23,7 @@ const GROUP: StringName = &"bot_scheduler"
 
 ## Work units the AI may spend per physics tick, across every bot.
 ##
-## TODO — the AI's share of a tick is Alex's decision (gdd/deferred.md 1.38). 2000 units is
+## TODO — the AI's share of a tick is Alex's decision (gdd/tasks.md T-005). 2000 units is
 ## ~2 ms on the calibration machine, ~6% of a 33 ms tick, a provisional figure.
 const WORK_UNITS_PER_TICK: int = 2000
 

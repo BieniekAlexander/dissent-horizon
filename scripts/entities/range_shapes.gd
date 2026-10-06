@@ -68,17 +68,3 @@ static func radius_of(shape: Shape3D) -> float:
 	if shape is SphereShape3D:
 		return (shape as SphereShape3D).radius
 	return -1.0
-
-
-## How far a shape reaches above (and below) its own centre, unscaled: half a cylinder's,
-## capsule's or box's height, a sphere's radius; 0.0 for null or anything else.
-static func half_height_of(shape: Shape3D) -> float:
-	if shape is CylinderShape3D:
-		return (shape as CylinderShape3D).height * 0.5
-	if shape is CapsuleShape3D:
-		return (shape as CapsuleShape3D).height * 0.5
-	if shape is BoxShape3D:
-		return (shape as BoxShape3D).size.y * 0.5
-	if shape is SphereShape3D:
-		return (shape as SphereShape3D).radius
-	return 0.0

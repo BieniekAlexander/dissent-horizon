@@ -48,8 +48,8 @@ const DEFAULT_MAX_CHARGES: int = 1
 ## Per-pool live state, index-aligned with `groups`.
 var _charges: Array[int] = []
 ## TICKS REMAINING on each pool's cooldown, as a FLOAT. Cooldowns are authored in whole
-## ticks, but a supported pool spends more than one tick's worth of them per tick (see
-## recharge_rate), and rounding that back to an int every frame would quantise an 8% bonus
+## ticks, but an upgraded pool spends more than one tick's worth of them per tick (see
+## _recharge_rate), and rounding that back to an int every frame would quantise an 8% bonus
 ## to nothing.
 var _timers: Array[float] = []
 ## ability id -> index into `groups`. Built once; an ability in no pool is not granted.
@@ -86,17 +86,34 @@ func _physics_process(_a_delta: float) -> void:
 		var pool: Dictionary = groups[i]
 		if _charges[i] >= _max_charges(pool) or _is_held(i):
 			continue
-		_timers[i] -= 1.0
+		_timers[i] -= _recharge_rate(i)
 		if _timers[i] <= 0.0:
 			_charges[i] += 1
 			_timers[i] = float(_cooldown_ticks(pool))
 
 
+## Cooldown ticks pool `a_index` spends per physics tick: 1.0, raised by every owned upgrade
+## speeding the recharge of an ability the pool grants (UpgradeCatalog.COOLDOWN_RATE_FACTOR).
+## Asked each tick rather than stored, so research or a capture takes effect at once.
+func _recharge_rate(a_index: int) -> float:
+	var host := get_parent() as Entity
+	if host == null:
+		return 1.0
+	var rate: float = 1.0
+	for id: Variant in groups[a_index].get("grants", []):
+		rate *= UpgradeCatalog.factor_for(
+			host, UpgradeCatalog.COOLDOWN_RATE_FACTOR, StringName(str(id))
+		)
+	return rate
+
+
 #region Held recharge
 ## Stop the pool `a_ability_id` draws on from recharging while `a_holder` is in play — what
 ## that ability PUT into the world holds its charge hostage (a Sapper's planted explosive). The
-## hold lifts by itself when the holder is freed; nothing has to remember to release it.
-func hold_recharge(a_ability_id: StringName, a_holder: Node) -> void:
+## hold lifts by itself when the holder is freed, or when `release_recharge` names it: a
+## holder that is not a Node (a Spot order, which holds its spotter's charge until it ends)
+## outlives its use and has to say so.
+func hold_recharge(a_ability_id: StringName, a_holder: Object) -> void:
 	var index: int = int(_pool_of.get(a_ability_id, -1))
 	if index < 0 or a_holder == null:
 		return
@@ -105,13 +122,31 @@ func hold_recharge(a_ability_id: StringName, a_holder: Node) -> void:
 	_holders[index] = holders
 
 
+## Lift `a_holder`'s hold on the pool `a_ability_id` draws on. The pool's cooldown runs from
+## here, as it stood when the hold began.
+func release_recharge(a_ability_id: StringName, a_holder: Object) -> void:
+	var index: int = int(_pool_of.get(a_ability_id, -1))
+	if not _holders.has(index):
+		return
+	var holders: Array = (_holders[index] as Array).filter(
+		func(holder: Variant) -> bool: return not is_same(holder, a_holder)
+	)
+	if holders.is_empty():
+		_holders.erase(index)
+	else:
+		_holders[index] = holders
+
+
 ## Whether pool `a_index` has a live holder, dropping any that have left play.
 func _is_held(a_index: int) -> bool:
 	if not _holders.has(a_index):
 		return false
 	var live: Array = (_holders[a_index] as Array).filter(
 		func(holder: Variant) -> bool:
-			return is_instance_valid(holder) and not (holder as Node).is_queued_for_deletion()
+			return (
+				is_instance_valid(holder)
+				and not (holder is Node and (holder as Node).is_queued_for_deletion())
+			)
 	)
 	if live.is_empty():
 		_holders.erase(a_index)
@@ -270,14 +305,13 @@ func max_charges_of(a_ability_id: StringName) -> int:
 
 ## Physics ticks until the pool's next charge, or 0 when it is already at capacity.
 ##
-## Ticks of COOLDOWN left, not ticks of wall clock: a supported pool arrives sooner than
-## this says. Rounded UP so a pool a fraction of a tick from its charge still reads as 1
-## rather than as ready.
+## Physics ticks of wall clock, so an upgraded pool counts down at its faster rate. Rounded UP
+## so a pool a fraction of a tick from its charge still reads as 1 rather than as ready.
 func recharge_remaining(a_ability_id: StringName) -> int:
 	var index: int = int(_pool_of.get(a_ability_id, -1))
 	if index < 0 or _charges[index] >= max_charges_of(a_ability_id):
 		return 0
-	return ceili(_timers[index])
+	return ceili(_timers[index] / _recharge_rate(index))
 
 
 ## How many pools this piece has. The per-POOL queries below are what a readout of the pools

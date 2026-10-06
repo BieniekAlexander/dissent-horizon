@@ -279,7 +279,7 @@ The SAM is ready at ~45 s against the first aircraft at 108 s: comfortably early
 
 With the Extractor now `MEDIUM MECH`, the anti-BIO raid that was the worst case last pass is
 gone: a Toxin Tractor takes 185 s on a 500-hp extractor (was 28 s), the three starting Irregulars
-46 s (was 11 s). The raid role moves to EXPLOSIVE and SIEGE carriers — Badger 19 s, Matilda 15 s,
+46 s (was 11 s). The raid role moves to EXPLOSIVE and SIEGE carriers — Badger 22 s, Matilda 11 s,
 four Kamikazes, four Drake sorties — which the defaults above already answer. Far extractors now
 want a SAM each against Kamikazes.
 
@@ -400,32 +400,21 @@ Multiplier and single-unit time to kill a 500-hp extractor, by class:
 |---|---|---|---|---|
 | CL Recruit | 120 | ×1.00, 33 s | ×0.24, 139 s | ×0.10, 333 s |
 | CL Sloop | 500 | ×1.00, 7 s | ×0.24, 28 s | ×0.10, 67 s |
-| CL Badger | 200 | ×0.15, 125 s | ×1.00, 19 s | ×0.60, 31 s |
-| CL Matilda | 750 | ×0.16, 69 s | ×0.75, 15 s | ×1.00, 11 s |
-| CL Drake, per 4-shot sortie | 1000 | 24 sorties | 3.6 | 6.0 |
-| CL Bombard, from home | 1000 | ×1.00, 10 s | ×0.75, 13 s | ×0.75, 13 s |
+| CL Badger | 200 | ×0.20, 95 s | ×0.85, 22 s | ×0.50, 38 s |
+| CL Matilda | 750 | ×0.24, 47 s | ×1.00, 11 s | ×0.60, 19 s |
+| CL Drake, per 4-shot sortie | 1000 | 9.4 sorties | 2.2 | 3.8 |
+| CL Bombard, from home, per 30 s shot | 1000 | ×1.00, 1 shot | ×0.75, 2 shots, 30 s | ×0.60, 2 shots, 30 s |
 | AN Irregular | 100 | ×1.00, 33 s | ×0.24, 139 s | ×0.10, 333 s |
 | AN Toxin Tractor | 600 | ×1.00, 28 s | ×0.15, 185 s | ×0.09, 309 s |
 | AN Warlord | 250 | ×0.15, 200 s | ×1.00, 30 s | ×0.60, 50 s |
 | AN MLRS | 750 | ×0.15, 139 s | ×1.00, 21 s | ×0.60, 35 s |
 | AN Kamikaze, one-shot | 300 | 22 units | 3.3 | 5.6 |
 
-TODO: **revisit what STRONG is.** The intent is Zero Hour's `StructureArmorTough`: a class that
-makes key targets extra durable against *specific* weapons — ordnance, siege, super-weapons — not
-a general step above MEDIUM. It is a defensive choice for command centres (killing all of them
-ends the game, so they should damp early volatility) and a late-game choice for high-tech pieces.
-The current STRONG column contradicts that intent in two places:
-
-- **HIGH_EXPLOSIVE does 0.75 against STRONG**, the same as against MEDIUM, so a Bombard (250 HE
-  per 5 s, global reach with spotting) kills a 3000-hp Citadel in 80 s alone and 40 s with two —
-  sniping a command centre from home, which STRONG is meant to prevent. At 0.25 it would take
-  240 s per gun.
-- **SIEGE does 1.0 against STRONG** — *more* than against MEDIUM (0.75) — so the Matilda is the
-  command-centre killer.
-
-Which weapons should still do fine against STRONG is the open calibration. One constraint either
-way: whatever damage type STRONG yields to, every faction must field it (M1). Today Anarchical
-has no SIEGE, HIGH_EXPLOSIVE, CRYO, LAZER or PLASMA at all.
+**What STRONG is** (decided 2026-10-05): a class that MITIGATES damage across the board, never
+the class some one type answers in full — no damage type reaches 1.0 against it. Command centres
+pair it with high hit points, so they stay killable by the weapons built for the job but are safer
+than any other structure. A Bombard (533.3 PLASMA per 30 s, ×0.6 against STRONG) takes a
+3000-hp Citadel in ten shots, 270 s alone; the same gun takes a MEDIUM structure at ×0.75.
 
 ---
 

@@ -5,5 +5,4 @@
 [node name="SanctionFreeze1" type="Sprite3D"]
 script = ExtResource("1_evt")
 scope = 0
-duration_ticks = 450
 metadata/_custom_type_script = "uid://c5xewylwf3vkq"

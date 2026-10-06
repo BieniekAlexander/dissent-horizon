@@ -17,6 +17,7 @@ How entities hurt, hold and destroy each other.
 | [turrets.md](turrets.md) | weapons that aim on their own yaw: exact alignment, turn rate, the idle swing home |
 | [target-acquisition.md](target-acquisition.md) | what aggro may pick up (fog, stealth, play bounds) and how long an engagement is kept |
 | [garrison-and-transport.md](garrison-and-transport.md) | units held inside units; occupancy, closed holds, capture and deposit |
+| [shields.md](shields.md) | shields over a piece's Defense, the cryogenic freeze, and frost fields (Avalanche, Blizzard) |
 | [projectiles.md](projectiles.md) | emitted objects: motion, impact, payload schedules — lasers and clouds included |
 | [projectile-evasion.md](projectile-evasion.md) | how a target makes a shot miss: the engagement frame, the evasion modes (outpace, outturn, outguess, outlast), hit rate as the measure; most rules still TODO |
 | [range-buckets.md](range-buckets.md) | reach, vision, detection and AoE as named shape-library buckets; aggro derived from reach per layer |

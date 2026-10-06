@@ -63,7 +63,7 @@ NESTS = {
               "completes_as": "completes_as"},
     "defense": {"hp": "hp", "armour": "armour", "frame": "frame"},
     "senses": {"vision": "vision", "aggro": "aggro", "detection": "detection"},
-    "body": {"radius": "movement_radius", "hurtbox": "hurtbox_radius"},
+    "body": {"radius": "movement_radius"},
 }
 
 
@@ -95,16 +95,40 @@ def wl(value):
     return value
 
 
+# The keys only an emission has — SpecSchema.EMISSION_KEYS in the Godot importer, which owns
+# the list. A `kind: Entity` doc naming any of them is a projectile here.
+EMISSION_KEYS = ("phases", "speed", "trajectory", "damage", "damage_type", "blast", "hitscan",
+                 "bio_ground_aim", "status_effects")
+
+
+def role_of(data: dict) -> str | None:
+    """The role a `kind: Entity` doc plays, from its keys rather than its kind — every piece
+    doc says `kind: Entity`, and the importer derives the same facets (SpecSchema.is_emission,
+    is_fixture, Composition.is_mobile). A fixture that also moves is a structure here: the
+    footprint is what puts it on the build menu. None for a piece with neither (a bodiless
+    or decorative doc), which has no place in the tech graph."""
+    if any(key in data for key in EMISSION_KEYS):
+        return "projectile"
+    if "footprint" in data:
+        return "structure"
+    if "movement" in data:
+        return "unit"
+    return None
+
+
 def collect_docs() -> dict[str, list[tuple[Path, dict]]]:
-    by_kind: dict[str, list[tuple[Path, dict]]] = {}
+    """Spec docs bucketed by role: an `Entity` doc by `role_of`, any other doc by its kind."""
+    by_role: dict[str, list[tuple[Path, dict]]] = {}
     for path in sorted(GDD.rglob("*.md")):
         if ".obsidian" in path.parts:
             continue
         data = frontmatter(path)
         if data is None:
             continue
-        by_kind.setdefault(str(data["kind"]), []).append((path, data))
-    return by_kind
+        role = role_of(data) if data["kind"] == "Entity" else str(data["kind"])
+        if role is not None:
+            by_role.setdefault(role, []).append((path, data))
+    return by_role
 
 
 def faction_of(path: Path) -> str:
@@ -204,8 +228,33 @@ def speed_value(value) -> float:
     return SPEEDS[value]
 
 
+def _shape_radii() -> dict[str, float]:
+    """The shape buckets: the `shapes:` of the one `kind: ShapeLibrary` doc (gdd/shapes/).
+    Docs NAME a reach bucket; its radius lives only there, as with the speed ladder."""
+    libraries = [data for path in sorted(GDD.rglob("*.md"))
+                 if ".obsidian" not in path.parts
+                 and (data := frontmatter(path)) is not None
+                 and data.get("kind") == "ShapeLibrary"]
+    if len(libraries) != 1:
+        sys.exit(f"expected exactly one kind: ShapeLibrary doc under {GDD}, "
+                 f"found {len(libraries)}")
+    return {str(k): float(v["radius"]) for k, v in (libraries[0].get("shapes") or {}).items()}
+
+
+SHAPE_RADII = _shape_radii()
+
+
+def reach_value(value) -> float:
+    """A weapon's `reach:` — a shape bucket name, or a bare number — -> its radius."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    if not isinstance(value, str) or value not in SHAPE_RADII:
+        sys.exit(f"reach {value!r} is neither a number nor a shape bucket")
+    return SHAPE_RADII[value]
+
+
 def projectile_entry(doc: dict) -> dict:
-    """Catalog entry for a projectile. Standalone `kind: projectile` docs and a
+    """Catalog entry for a projectile. A standalone emission doc and a
     weapon's inline `projectile:` mapping use the same field names, so both
     shapes come through here."""
     return {
@@ -249,14 +298,19 @@ def weapon_entries(piece: dict) -> tuple[list[str], dict[str, dict], dict[str, d
         entry["reload_time"] = int(round(float(w.get("reload_time", w.get("split_time", 1))) * TICKS))
         entry["clip_size"] = int(w.get("clip_size", 1))
         reach = w.get("reach", 0)
-        entry["reach"] = float(reach.get("ground", reach.get("air", 0))) if isinstance(reach, dict) else float(reach)
+        entry["reach"] = reach_value(reach.get("ground", reach.get("air", 0)) if isinstance(reach, dict) else reach)
         entry["hits"] = [str(h) for h in (w.get("hits") or ["ground"])]
         ids.append(wid)
         catalog[wid] = entry
     return ids, catalog, projectiles
 
 
-def buildable_entry(piece: dict, weapon_ids: list[str]) -> dict:
+def is_airborne(piece: dict) -> bool:
+    """Whether a piece flies: its `aerial:` block names a flight mode (Aerial, in-engine)."""
+    return str((piece.get("aerial") or {}).get("mode", "")).upper() in ("HOVERING", "FLYING")
+
+
+def buildable_entry(piece: dict, role: str, weapon_ids: list[str]) -> dict:
     cost = piece.get("cost") or {}
     # `requires` and `trains` stay SEPARATE (producers used to be folded into
     # requires). Both become tech-graph edges, but they mean different things —
@@ -264,11 +318,12 @@ def buildable_entry(piece: dict, weapon_ids: list[str]) -> dict:
     # about them differently, which a merge made impossible to recover.
     entry: dict = {
         "id": piece["id"],
-        "kind": piece["kind"],
+        "kind": role,
         "name": piece.get("title")
         or (piece.get("ui") or {}).get("label")
         or str(piece["id"]).replace("_", " ").title(),
-        "cost": {"ore": int(cost.get("ore", 0)),
+        # dh_balance still calls the build resource `ore`; the docs call it energy.
+        "cost": {"ore": int(cost.get("energy", 0)),
                  "population": int(cost.get("infrastructure", 0)),
                  "dominion": int(cost.get("dominion", 0))},
         "requires": [wl(r) for r in (piece.get("requires") or [])],
@@ -287,7 +342,7 @@ def buildable_entry(piece: dict, weapon_ids: list[str]) -> dict:
         entry["hp"] = piece["hp"]
     movement = piece.get("movement") or {}
     if movement:
-        layer = "air" if str(movement.get("mode", "")).upper() in ("HOVERING", "FLYING") else "ground"
+        layer = "air" if is_airborne(piece) else "ground"
         entry["movement"] = {"layer": layer, "speed": speed_value(movement.get("speed"))}
     entry["attributes"] = []
     entry["weapons"] = weapon_ids
@@ -325,13 +380,9 @@ def dump(path: Path, payload: dict) -> None:
 
 
 def main() -> int:
-    # TODO: this sorts docs by the retired lowercase kinds (`unit`, `structure`, `projectile`);
-    # every piece doc now says `kind: Entity`, so those buckets come back empty. The role has to
-    # be derived from the doc's keys the way tools/spec_import does (footprint:, movement:,
-    # emission keys).
     docs = collect_docs()
 
-    status_effects = {d["id"]: status_effect_entry(d) for _, d in docs.get("status_effect", [])}
+    status_effects = {d["id"]: status_effect_entry(d) for _, d in docs.get("StatusEffect", [])}
 
     projectiles = {}
     for _, d in docs.get("projectile", []):
@@ -339,11 +390,13 @@ def main() -> int:
 
     weapons: dict[str, dict] = {}
     factions: dict[str, dict] = {}
-    for path, d in docs.get("unit", []) + docs.get("structure", []):
+    pieces = ([(path, d, "unit") for path, d in docs.get("unit", [])]
+              + [(path, d, "structure") for path, d in docs.get("structure", [])])
+    for path, d, role in pieces:
         wids, wcat, pcat = weapon_entries(d)
         weapons.update(wcat)
         for pid, pentry in pcat.items():
-            # A standalone `kind: projectile` doc is the authoritative
+            # A standalone emission doc is the authoritative
             # declaration; an inline mapping reusing its id is ambiguous.
             if pid in projectiles and projectiles[pid] != pentry:
                 print(f"  WARN: projectile '{pid}' inline in {d['id']} disagrees with the "
@@ -354,9 +407,9 @@ def main() -> int:
         factions.setdefault(fid, {"faction": fid, "name": fid.title(),
                                   "description": "Derived from gdd doc layout by gdd_to_balance.py.",
                                   "buildables": [], "starts_with": []})
-        factions[fid]["buildables"].append(buildable_entry(d, wids))
+        factions[fid]["buildables"].append(buildable_entry(d, role, wids))
 
-    for _, d in docs.get("faction", []):
+    for _, d in docs.get("Faction", []):
         if d["id"] in factions:
             factions[d["id"]]["name"] = d.get("title", d.get("name", d["id"]))
             factions[d["id"]]["starts_with"] = [wl(s) for s in (d.get("starts_with") or [])]
@@ -372,7 +425,6 @@ def main() -> int:
     dump(DATA / "weapons.yaml", {"weapons": weapons})
     dump(DATA / "damage_table.yaml", {
         "vs_armour": load_tsv(DAMAGE_DIR / "damage_vs_armour.tsv"),
-        "vs_attribute": load_tsv(DAMAGE_DIR / "damage_vs_attribute.tsv"),
         "vs_frame": load_tsv(DAMAGE_DIR / "damage_vs_frame.tsv"),
     })
     print("done")

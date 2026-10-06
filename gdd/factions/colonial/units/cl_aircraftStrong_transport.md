@@ -9,15 +9,15 @@ build:
   cost:
     energy: 500
   time: 15
-  requires: []
+  requires: [cl_tech1]
 defense:
-  hp: 180
-  armour: MEDIUM
+  hp: 300
+  armour: STRONG
   frame: MECH
 senses:
   vision: vision_aerial_large
 movement:
-  speed: SWIFT
+  speed: FAST
   turn_rate: 180
   max_acceleration: 4.65
   max_deceleration: -7

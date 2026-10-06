@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_core"]
+shading_mode = 0
+albedo_color = Color(0.9, 0.97, 1, 1)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_core"]
+material = SubResource("StandardMaterial3D_core")
+radius = 0.03
+height = 0.18
+radial_segments = 10
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glow"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(0.35, 0.75, 1, 0.55)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_glow"]
+material = SubResource("StandardMaterial3D_glow")
+radius = 0.055
+height = 0.26
+radial_segments = 10
+rings = 2
+
+[node name="PlasmaRoundModel" type="Node3D"]
+
+[node name="Core" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+cast_shadow = 0
+mesh = SubResource("CapsuleMesh_core")
+
+[node name="Glow" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+cast_shadow = 0
+mesh = SubResource("CapsuleMesh_glow")

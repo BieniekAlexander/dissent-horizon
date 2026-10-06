@@ -43,6 +43,17 @@ func get_frame_multiplier(a_damage_type: Damage.Type, a_frame_type: Defense.Fram
 	return profile.frame_multiplier(a_frame_type) if profile != null else 1.0
 
 
+## The combined multiplier `a_damage_type` meets in a layer of `a_armour` and `a_frame` — a
+## piece's Defense, or a Shield over it.
+func multiplier(
+	a_damage_type: Damage.Type, a_armour: Defense.ArmourType, a_frame: Defense.FrameType
+) -> float:
+	return (
+		get_armour_multiplier(a_damage_type, a_armour)
+		* get_frame_multiplier(a_damage_type, a_frame)
+	)
+
+
 func calculate_damage(a_base: float, a_damage_type: Damage.Type, a_target: Node) -> float:
 	var defense: Defense = a_target.get_node_or_null("Defense") as Defense
 	var armour: Defense.ArmourType = (

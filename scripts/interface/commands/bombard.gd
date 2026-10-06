@@ -17,8 +17,8 @@ extends Ability
 ##
 ## The Bombard has NO weapon and no aggro shape, which is what makes this a command and
 ## not a Weapon: a Weapon brings an AttackRange, an aggro pickup and automatic firing with
-## it, and all three are wrong here. Every shot this piece takes is one the player asked
-## for, at a point the player chose.
+## it, and all three are wrong here. A gun never picks a target: it fires where the player
+## ordered, or on a beacon a spotter is holding (see AUTOFIRE below).
 
 ## The ability this command spends. Hand-written code names abilities through this rather
 ## than by literal, the same way it names pieces through EntityIds.
@@ -102,7 +102,78 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if solution == null:
 		launch_emission(a_actor, ABILITY_ID, message.position)
 		return null
-	solution.mark_used()
-	solution.dismiss_on_landing(launch_emission(a_actor, ABILITY_ID, solution.host()))
+	_spend_beacon(a_actor, solution)
 	return null
+
+
+## Mark `a_beacon` used and send the shell after it — the charge already spent.
+func _spend_beacon(a_actor: Commandable, a_beacon: Beacon) -> void:
+	a_beacon.mark_used()
+	a_beacon.dismiss_on_landing(launch_emission(a_actor, ABILITY_ID, a_beacon.host()))
+
+
+#endregion
+
+
+#region Autofire
+## AUTOFIRE: a spotter holding a beacon calls a shot in itself, from the nearest of its side's
+## batteries that is ready and left on automatic — so the player places the beacon and the gun
+## answers it, without a second order. A commander that switched the Bombard to manual
+## (Commander.set_autocast, the right-click on its button) fires every shot by order instead.
+## Rules: gdd/systems/combat/bombardment.md §Automatic fire.
+##
+## Fires on the BEACON, never on the point: a beacon inside a BeaconRange would otherwise be
+## left standing by a range-covered shot, and its spotter would call in a second one.
+## Returns whether a shell was fired.
+static func autofire_on(beacon: Beacon) -> bool:
+	if beacon == null or beacon.is_leaving() or beacon.is_used():
+		return false
+	var battery: Commandable = nearest_autofiring_battery(beacon)
+	if battery == null:
+		return false
+	var order := Bombard.new(
+		CommandMessage.new(battery.map, null, null, beacon.host().global_position)
+	)
+	if not order.consume(battery, ABILITY_ID):
+		return false
+	order._spend_beacon(battery, beacon)
+	return true
+
+
+## The battery of `beacon`'s owner nearest it (on XZ) that may answer it on its own, or null.
+static func nearest_autofiring_battery(beacon: Beacon) -> Commandable:
+	var commander: Commander = beacon.host().commander if beacon != null else null
+	if commander == null or not commander.is_autocasting(ABILITY_ID):
+		return null
+	var target: Vector2 = VU.in_xz(beacon.host().global_position)
+	var best: Commandable = null
+	var best_distance: float = INF
+	for child: Node in commander.get_children():
+		var battery := child as Commandable
+		if battery == null or not can_autofire(battery):
+			continue
+		var distance: float = VU.in_xz(battery.global_position).distance_to(target)
+		if distance < best_distance:
+			best_distance = distance
+			best = battery
+	return best
+
+
+## Whether `battery` may fire on its own right now: a finished, free gun with a charge. Whether
+## its commander has the Bombard on automatic is asked once, by the caller. A gun holding a
+## Bombard order of the player's is the player's — taking its charge would silently cancel
+## that shot.
+static func can_autofire(battery: Commandable) -> bool:
+	var pool: Abilities = _pool_of(battery)
+	return (
+		pool != null
+		and pool.is_ready(ABILITY_ID)
+		and not battery.is_queued_for_deletion()
+		and not battery.is_planned
+		and battery.is_built
+		and not battery.is_stunned()
+		and not battery.get_command_chain().any(
+			func(command: MoveCommand) -> bool: return command is Bombard
+		)
+	)
 #endregion

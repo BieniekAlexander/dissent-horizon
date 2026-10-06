@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://lg3slrwglq37"]
+[gd_scene load_steps=22 format=3 uid="uid://lg3slrwglq37"]
 
 [ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_xwbti"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_cbl4c"]
@@ -19,14 +19,14 @@
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="21_lou1x"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="22_1ln70"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_k3gyv"]
-size = Vector3(2, 10, 2)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_31f2k"]
 size = Vector3(3, 2, 3)
 
 [sub_resource type="BoxMesh" id="BoxMesh_qc8hf"]
 size = Vector3(3, 2, 3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(3.0, 2.0, 3.0)
 
 [node name="Structure" type="CharacterBody3D" unique_id=147037905 groups=["piece", "fixture", "structure"]]
 process_physics_priority = 10
@@ -42,8 +42,10 @@ id = &"tc_barracks"
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_cbl4c")]
 
-[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
-shape = SubResource("BoxShape3D_k3gyv")
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+shape = SubResource("BoxShape3D_hurtbox")
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_pbnur")]
 

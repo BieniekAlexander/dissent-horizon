@@ -197,6 +197,18 @@ func _on_shell_phase_entered(a_index: int) -> void:
 		dismiss()
 
 
+## Dismiss this beacon if `a_spotter`, the unit holding it, dies before a shot is fired on it.
+## A used beacon stands regardless: the shell in flight is tracking it.
+func dismiss_with_spotter(a_spotter: Entity) -> void:
+	if a_spotter != null:
+		a_spotter.entity_occurrence.connect(_on_spotter_occurrence)
+
+
+func _on_spotter_occurrence(a_occurrence: Entity.EntityOccurrence, _a_source: Entity) -> void:
+	if a_occurrence == Entity.EntityOccurrence.ON_DEATH and not _is_used:
+		dismiss()
+
+
 func _is_allied_to_local_player() -> bool:
 	var owner_commander: Commander = host().commander
 	return (

@@ -146,8 +146,12 @@ static func active_effects(a_entity: Entity) -> Array[StatusEffect]:
 ##
 ## A reach measured between footprints (HULL_MEASURED) is drawn widened by the piece's own
 ## footprint, so the ring is where a target's EDGE comes into reach. Exact for a round body;
-## a box body is widened as the circle about it, which never under-states the reach.
+## a box body is widened as the circle about it, which never under-states the reach. A weapon
+## measured from its orbit is drawn at the orbit's centre instead (_orbit_reach_shape).
 static func shape_for(a_entity: Entity, a_kind: Kind) -> HighlightShape:
+	var orbit_shape: HighlightShape = _orbit_reach_shape(a_entity, a_kind)
+	if orbit_shape != null:
+		return orbit_shape
 	var shape: HighlightShape = _reach_shape(a_entity, a_kind)
 	if shape == null or shape.kind != HighlightShape.Kind.CIRCLE or not HULL_MEASURED.has(a_kind):
 		return shape
@@ -160,6 +164,22 @@ static func _reach_shape(a_entity: Entity, a_kind: Kind) -> HighlightShape:
 		return _effect_shape(a_entity)
 	var node: CollisionShape3D = _shape_node(a_entity, a_kind)
 	return HighlightShape.from_collision_shape(node) if node != null else null
+
+
+## Whether `a_entity`'s `a_kind` reach is a weapon's measured from its ORBIT
+## (Weapon.RangeOrigin.ORBIT): drawn where it is measured, at the orbit's centre, and never
+## widened by the piece's own body, which plays no part in it.
+static func _orbit_reach_shape(a_entity: Entity, a_kind: Kind) -> HighlightShape:
+	if a_kind != Kind.ATTACK and a_kind != Kind.ATTACK_AIR:
+		return null
+	var node: CollisionShape3D = _shape_node(a_entity, a_kind)
+	var weapon: Weapon = node.get_parent() as Weapon if node != null else null
+	var origin: Variant = weapon.orbit_origin(a_entity) if weapon != null else null
+	if not origin is Vector3:
+		return null
+	return HighlightShape.circle(
+		VU.in_xz(origin), RangeShapes.radius_of(node.shape) * node.global_transform.basis.x.length()
+	)
 
 
 ## Every kind in `a_kinds` that `a_entity` actually has, paired with its footprint, as

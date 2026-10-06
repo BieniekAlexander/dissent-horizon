@@ -15,7 +15,7 @@
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="8_a701e"]
 [ext_resource type="Script" uid="uid://co35r0v1yay4j" path="res://scripts/entities/components/movement.gd" id="9_23383"]
 [ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="10_8l10l"]
-[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="11_10w37"]
+[ext_resource type="Script" uid="uid://csahh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="11_10w37"]
 [ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="16_utqae"]
 [ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="17_4yled"]
 [ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="18_mo6my"]
@@ -29,6 +29,9 @@
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_o06rf"]
 radius = 0.75
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(1.395605, 0.55594647, 1.5136786)
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_o08w4"]
 height = 0.652063
@@ -49,6 +52,12 @@ radius = 0.75
 shape = SubResource("CylinderShape3D_o06rf")
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_2olif")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0" unique_id=1914658452]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27797323, 0.05957365)
+visible = true
+shape = SubResource("BoxShape3D_hurtbox")
+metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_o35wd")]
 
@@ -147,5 +156,6 @@ billboard = 2
 
 [node name="AggroRangeAir" parent="." unique_id=172743218 instance=ExtResource("5_o35wd")]
 
+[editable path="Hurtbox"]
 [editable path="Selectable"]
 [editable path="HPBar"]

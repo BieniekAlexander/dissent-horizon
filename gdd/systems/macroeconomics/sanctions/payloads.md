@@ -64,25 +64,17 @@ names no unit, so `UseSanction` now refuses its Promotion and Freeze orders outr
 least stops the charges it used to waste on enemy clusters. TODO: a bot policy that names a
 unit (see `gdd/systems/ai/bot-roadmap.md` §The gaps in the decision surface).
 
-## Freeze is a stun that also armours
+## Freeze is a stun with a shield
 
+`FreezeStatusEffect` extends `StunStatusEffect` rather than reimplementing the stop, because the stop IS a stun: `Commandable.is_stunned()` looks for that class. What it adds is a CRYO shield of ice; the rules are [combat/shields](../../combat/shields.md) §Freeze.
 
-`FreezeStatusEffect` extends `StunStatusEffect` rather than reimplementing the stop, because the stop IS a stun: `Commandable.is_stunned()` looks for that class, and the gate at the top of `CommandReceiver._process_commands()` is what makes "no actions at all" true. Freeze adds one thing — while it is active the host's `Defense.armour_type` is raised one step, which is the "strengthening" half of the Colonials' cryogenics.
-
-**Admission is by ARMOUR, not by frame**, which is the whole reason `_on_apply` is overridden instead of inherited:
-
-- **STRONG armour cannot be frozen.** There is no step above it to raise the host to, so a heavy unit would take the immobilisation with none of the protection — a plain stun wearing a cryo name.
-- **Structures cannot be frozen.** A building has no movement to stop, so it would be a bare armour BUFF on a stationary target, trivially abusable on your own base.
-
-`can_freeze()` is a STATIC so the sanction can ask exactly the question the effect will ask, which is what keeps "not a candidate" and "refused on apply" from disagreeing.
-
-**`_armour_raised` is load-bearing, and its absence was a real bug.** `StatusEffect.remove()` runs `_on_remove()` unconditionally, and a freeze refused in `_on_apply` calls `remove()` — so without the flag, declining to freeze a STRONG unit LOWERED its armour instead, turning the exclusion into a debuff on exactly the units it was meant to protect. Tests: `tests/test_FreezeStatusEffect.gd`.
+`can_freeze()` is a STATIC so the sanction can ask exactly the question the effect will ask, which is what keeps "not a candidate" and "refused on apply" from disagreeing. The Freeze event admits structures as well as units (`EventTargetUnit._admits_structures`).
 
 ## Two sanctions that break the usual shape
 
 
 - **Global EMP ignores its aim point entirely.** It stuns every MECH unit on the map, both sides included, and the asymmetry IS the mechanic: a stun only takes hold on a MECH frame, and the Anarchists are the infantry faction, so the side firing it pays almost nothing while a vehicle-heavy opponent stops dead. Sparing the caster's own machines would hand them that for free and erase the one real cost of fielding vehicles as this faction. It is also the one sanction whose `needs_vision` gate is meaningless, so it authors it off. Units only, not structures — widening it would silence turrets and production at once.
-- **Overcharge is worth nothing on its own.** Being already disabled is an admission test on the CANDIDATE, not a damage bonus, so pointing at a unit that is not stunned targets nothing at all. `is_stunned()` is the test, which means a Colonial `FreezeStatusEffect` also qualifies (it extends `StunStatusEffect`); that cross-faction interaction is accepted rather than special-cased, since a frozen unit is exactly as helpless as an EMPed one. Flat damage rather than a fraction of max HP: the pairing already guarantees the target cannot escape, so scaling to its size would make the combination an unconditional kill on anything.
+- **Overcharge is worth nothing on its own.** Being already disabled is an admission test on the CANDIDATE, not a damage bonus, so pointing at a unit that is not EMP'd targets nothing at all. `EmpStatusEffect.is_emped()` is the test, not `is_stunned()`: a frozen or bio-stunned unit is just as helpless, but Overcharge is the EMP's follow-through and nothing else's (decided 2026-10-05). Flat damage rather than a fraction of max HP: the pairing already guarantees the target cannot escape, so scaling to its size would make the combination an unconditional kill on anything.
 
 ## Scan 3 needed no new entity, and Scout grew one tick
 

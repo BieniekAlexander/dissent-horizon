@@ -14,7 +14,7 @@ A **Bombard** (`cl_defense_antiStructure`) is a siege gun whose reach is **not d
 
 ### The Bombard has no weapon, and that is the point
 
-It carries **no `Loadout` and `aggro: 0`**. It never picks a target and never fires on its own; every shot is a `command_bombard` order at a point the player chose. A `Weapon` would have brought an `AttackRange`, an aggro pickup and automatic firing with it — all three wrong for this piece.
+It carries **no `Loadout` and `aggro: 0`**. It never picks a target: a shot is a `command_bombard` order at a point the player chose, or an answer to a spotter's beacon (§Automatic fire). A `Weapon` would have brought an `AttackRange`, an aggro pickup and firing at whatever wanders into range — all three wrong for this piece.
 
 ### The battery is an ABILITY, not a component
 
@@ -43,17 +43,60 @@ Aiming at ground nobody spots fails with its own `PreconditionFailureCause.TARGE
 
 ### Spotting is a commitment, which is why it is a command
 
-`Spot` (on any unit with a `Spotter`; the Recruit today) walks to within `target_range`, holds still for `channel_ticks`, raises a `Beacon` — and then **stays on it** until a Bombard spends it. Three consequences, each load-bearing:
+`Spot` (on any unit granted the `spot` ability; the Recruit today) walks to within `target_range`, holds still for `CHANNEL_SECONDS`, raises a `Beacon` — and then **stays on it** until a Bombard fires on it. Three consequences, each load-bearing:
 
 - **It does not end when the beacon goes up** (`fulfill_action` returns self). A command that completed there would let the unit walk on to its next queued order while its solution still stood, which is exactly the commitment being sold.
-- **Queued orders therefore wait for the SHOT**, not for the placement — "spot here, then fall back" is one order given once.
-- **Being re-ordered withdraws the beacon** (`on_released`). A solution belongs to the unit holding it; leaving one behind would let a player place beacons for free by re-tasking the spotter.
+- **Queued orders therefore wait for the SHOT**, not for the placement — "spot here, then fall back" is one order given once. The order ends when the shot is FIRED; the beacon stands until the shell lands, because the shell is tracking it.
+- **Being re-ordered, or dying, withdraws an unfired beacon** (`on_released`, `Beacon.dismiss_with_spotter`). A solution belongs to the unit holding it; leaving one behind would let a player place beacons for free by re-tasking the spotter.
+
+The spotter's charge is spent when the channel starts and its recharge is held until the order ends, so its cooldown always runs from the end of the order — see [spot](../../factions/colonial/abilities/spot.md).
 
 **Spotting a unit tags it.** A Spot ordered onto an enemy that can carry a beacon (`Beacon.can_carry`: a grounded MECH unit — never BIO, never an aircraft, never a structure) walks after that unit, channels, and attaches the beacon to it. Any other target — a soldier, a friendly tank — gets an ordinary point beacon where it stood. **The leash:** a beacon riding on a unit stands only while the carrier stays within the spotter's `TARGET_RANGE`; a carrier that drives out of it drops the beacon (`Spot._hold_leash`). That is what makes tagging a fast target a breakable, stealth-adjacent game rather than a guaranteed hit.
 
 `MoveCommand.on_released(actor)` was added for that last one. It fires from `CommandReceiver`'s `_command` setter at the same moment the group-move speed cap is released — when the command has genuinely LEFT the receiver, **not** when an interrupt has merely displaced it into the queue it will resume from. Deliberately not `_notification(PREDELETE)`: a destructor runs whenever the last reference happens to drop, which for a unit dying mid-command is during its own teardown, where reading the actor's components dereferences freed memory (see `_release_speed_cap` for the segfault that taught us).
 
 **`Spot._beacon_raised` is not redundant with `_beacon != null`, and conflating them made the command immortal.** A FREED object compares equal to null in Godot, so once a shot spent the beacon the reference read as "never placed one" and the command fell back to its still-channelling branch forever. The flag records that the work happened; the reference records whether the beacon is still standing.
+
+### Planting a beacon
+
+Decided 2026-10-06. Spot is ONE order that two spotters carry out their own ways, and the
+piece declares which: a `BeaconPlanter` component (`plants_beacons: true`) makes the order
+PLANT rather than HOLD. The Sleeper (`cl_bioLight_stealth`) plants; the Recruit holds.
+
+- **It walks to the point itself**, not to Spot's range of it: a stealthed infiltrator goes
+  where a Recruit could not stand. An order aimed over a piece plants on the ground beneath
+  the cursor.
+- **It plants what a Beacon Drop places:** a point beacon on the ground, never one riding a
+  unit, standing until a shot spends it or an enemy repairs it away.
+- **3 seconds to plant** (the same channel as a Recruit's call), and then the order ENDS: the
+  planter is free, its beacon is not withdrawn when it moves on, and its cooldown runs from the
+  plant.
+- **It calls no automatic fire.** Nothing holds a planted beacon, so like a Beacon Drop's it
+  waits for an order (§Automatic fire).
+
+### Automatic fire
+
+Decided 2026-10-06. Managing the spotter and then ordering the gun was two orders for one
+intent, so **a spotter's beacon calls its own shot.** While a Spot order holds a raised beacon,
+it fires the nearest of its side's Bombards (to the beacon, on XZ) that is ready and on
+automatic, as soon as one is (`Bombard.autofire_on`). The shot is on the beacon itself, never the
+point, so the beacon is spent and the spotter released even where a `BeaconRange` also covers
+the ground.
+
+- **Automatic is the COMMANDER's setting, and the default.** One switch for every gun the
+  commander owns (`Commander.is_autocasting`), unlike hold fire, which is each piece's: it says
+  how the player wants the battery used, not what one gun is doing. Right-clicking the SPOT
+  button toggles it — the order whose beacons the guns answer, on a Recruit's card — and so does
+  right-clicking any Bombard button (either card, or the HUD bar's); each draws hold fire's lit
+  top edge while it is on. On manual, a gun fires only when ordered, as every
+  gun used to.
+- **Manual orders are untouched.** A gun on automatic can still be ordered at any spotted
+  ground, and a gun already holding a Bombard order is never taken for a beacon: spending its
+  charge would silently cancel the shot the player asked for.
+- **A stunned or unpowered gun is passed over**, and so is one still being built.
+- **Only a held beacon calls a shot.** A Beacon Drop's or a Sleeper's planted beacon has no
+  spotter holding it and waits for an order. TODO: whether it should call its own shot too — it would need a holder
+  that ticks (the beacon itself), and nothing has asked for it.
 
 ### Beacons
 

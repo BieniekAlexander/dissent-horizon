@@ -534,8 +534,8 @@
 			"cl_airField"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn",
-		"tooltip": "Train Clipper — 600 energy, 15s",
-		"verbose": "Train Clipper — 600 energy, 15s\n120 HP · light armour · mech frame\nhovering, speed 9.3 · vision 22\nBallisticWeapon: 12 lead, reach 8"
+		"tooltip": "Train Clipper — 450 energy, 15s",
+		"verbose": "Train Clipper — 450 energy, 15s\n120 HP · light armour · mech frame\nhovering, speed 9.3 · vision 22\nBallisticWeapon: 18 lead, reach 8"
 	},
 	"command_tool_cl_aircraftMedium_antiMech": {
 		"context": "TRAIN",
@@ -555,29 +555,9 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_antiMech.tscn",
 		"tooltip": "Train drake — 1000 energy, 15s",
-		"verbose": "Train drake — 1000 energy, 15s\n150 HP · medium armour · mech frame\nflying, speed 12.4 · vision 18\nWeapon: 35 explosive, reach 12"
+		"verbose": "Train drake — 1000 energy, 15s\n150 HP · medium armour · mech frame\nflying, speed 12.4 · vision 18\nWeapon: 66.2 explosive, reach 12"
 	},
-	"command_tool_cl_aircraftMedium_transport": {
-		"context": "TRAIN",
-		"context_grid": [],
-		"factions": [
-			"colonial"
-		],
-		"grid": [
-			3,
-			1
-		],
-		"id": "cl_aircraftMedium_transport",
-		"label": "caravel",
-		"needs_docking": false,
-		"producers": [
-			"cl_airField"
-		],
-		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn",
-		"tooltip": "Train caravel — 500 energy, 15s",
-		"verbose": "Train caravel — 500 energy, 15s\n180 HP · medium armour · mech frame\nhovering, speed 9.3 · vision 22"
-	},
-	"command_tool_cl_aircraftStrong_support": {
+	"command_tool_cl_aircraftMedium_support": {
 		"context": "TRAIN",
 		"context_grid": [],
 		"factions": [
@@ -587,7 +567,7 @@
 			2,
 			1
 		],
-		"id": "cl_aircraftStrong_support",
+		"id": "cl_aircraftMedium_support",
 		"label": "Reverence",
 		"needs_docking": false,
 		"producers": [
@@ -595,7 +575,27 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_aircraftStrong_support.tscn",
 		"tooltip": "Train Reverence — 2000 energy, 15s",
-		"verbose": "Train Reverence — 2000 energy, 15s\nRequires: Academy\n700 HP · strong armour · mech frame\nhovering, speed 7 · vision 22"
+		"verbose": "Train Reverence — 2000 energy, 15s\nRequires: Academy\n700 HP · medium armour · mech frame\nhovering, speed 7 · vision 22"
+	},
+	"command_tool_cl_aircraftStrong_transport": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			1
+		],
+		"id": "cl_aircraftStrong_transport",
+		"label": "caravel",
+		"needs_docking": false,
+		"producers": [
+			"cl_airField"
+		],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_transport.tscn",
+		"tooltip": "Train caravel — 500 energy, 15s",
+		"verbose": "Train caravel — 500 energy, 15s\nRequires: Operations Center\n300 HP · strong armour · mech frame\nhovering, speed 5.25 · vision 22"
 	},
 	"command_tool_cl_barracks": {
 		"context": "BUILD",
@@ -696,9 +696,9 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_stealth.tscn",
 		"tooltip": "Train sleeper — 600 energy, 15s",
-		"verbose": "Train sleeper — 600 energy, 15s\nRequires: Academy\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16"
+		"verbose": "Train sleeper — 600 energy, 15s\nRequires: Operations Center\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16"
 	},
-	"command_tool_cl_bioMedium_antiLight": {
+	"command_tool_cl_bioMedium_antiStrong": {
 		"context": "TRAIN",
 		"context_grid": [],
 		"factions": [
@@ -708,15 +708,15 @@
 			2,
 			1
 		],
-		"id": "cl_bioMedium_antiLight",
+		"id": "cl_bioMedium_antiStrong",
 		"label": "Constable",
 		"needs_docking": false,
 		"producers": [
 			"cl_barracks"
 		],
-		"scene": "res://scenes/entities/units/cl/cl_bioMedium_antiLight.tscn",
-		"tooltip": "Train Constable — 200 energy, 12s",
-		"verbose": "Train Constable — 200 energy, 12s\nRequires: Operations Center\n150 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 8 lead, reach 8 ground / 12 air"
+		"scene": "res://scenes/entities/units/cl/cl_bioMedium_antiStrong.tscn",
+		"tooltip": "Train Constable — 500 energy, 12s",
+		"verbose": "Train Constable — 500 energy, 12s\nRequires: Academy\n225 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 65 plasma, reach 8 ground / 12 air"
 	},
 	"command_tool_cl_commandCenter": {
 		"context": "BUILD",
@@ -773,7 +773,7 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn",
 		"tooltip": "Build Watch Tower — 400 energy, 30s",
-		"verbose": "Build Watch Tower — 400 energy, 30s\nRequires: Compound\n500 HP · medium armour · mech frame\n1×1 cells · vision 24\nCosts 50 infrastructure upkeep\nBallisticWeapon: 25 lead, reach 12"
+		"verbose": "Build Watch Tower — 400 energy, 30s\nRequires: Compound\n500 HP · medium armour · mech frame\n1×1 cells · vision 24\nCosts 50 infrastructure upkeep\nBallisticWeapon: 15 lead, reach 12"
 	},
 	"command_tool_cl_defense_antiStructure": {
 		"context": "BUILD",
@@ -889,7 +889,7 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_mechStrong_support.tscn",
 		"tooltip": "Train avalanche — 1200 energy, 20s",
-		"verbose": "Train avalanche — 1200 energy, 20s\nRequires: Academy\n200 HP · strong armour · mech frame\ngrounded, speed 2.2 · vision 20\nCryoWeapon: 50 cryo, reach 12"
+		"verbose": "Train avalanche — 1200 energy, 20s\nRequires: Academy\n200 HP · strong armour · mech frame\ngrounded, speed 1.4 · vision 20\nCryoWeapon: 0 undefined, reach 20"
 	},
 	"command_tool_cl_support1": {
 		"context": "BUILD",
@@ -964,11 +964,14 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_tech1.tscn",
 		"tooltip": "Build Operations Center — 800 energy, 25s",
-		"verbose": "Build Operations Center — 800 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nResearches: Advanced Targetting"
+		"verbose": "Build Operations Center — 800 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nResearches: Advanced Targetting, Rapid Rearmament, Reinforced Hulls"
 	},
 	"command_tool_cl_tech2": {
 		"context": "BUILD",
-		"context_grid": [],
+		"context_grid": [
+			5,
+			0
+		],
 		"factions": [
 			"colonial"
 		],
@@ -982,7 +985,7 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_tech2.tscn",
 		"tooltip": "Build Academy — 1200 energy, 40s",
-		"verbose": "Build Academy — 1200 energy, 40s\nRequires: Production Yard\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep"
+		"verbose": "Build Academy — 1200 energy, 40s\nRequires: Production Yard\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nResearches: Field Conditioning, Gun Drill"
 	},
 	"command_tool_cl_warFactory": {
 		"context": "BUILD",
@@ -1004,6 +1007,48 @@
 		"scene": "res://scenes/entities/structures/cl/cl_warFactory.tscn",
 		"tooltip": "Build Production Yard — 1200 energy, 15s",
 		"verbose": "Build Production Yard — 1200 energy, 15s\nRequires: Barracks\n400 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: sloop, Matilda, avalanche"
+	},
+	"command_tool_field_conditioning": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			0,
+			2
+		],
+		"id": "field_conditioning",
+		"label": "Field Conditioning",
+		"needs_docking": false,
+		"producers": [
+			"cl_tech2"
+		],
+		"scene": "",
+		"tooltip": "Research Field Conditioning — 700 energy, 40s",
+		"upgrade": true,
+		"verbose": "Research Field Conditioning — 700 energy, 40s\nEvery BIO unit takes a quarter more punishment.\nEvery BIO unit has 25% more hit points\nResearched once, for every unit it affects; kept if the building is lost"
+	},
+	"command_tool_gun_drill": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"id": "gun_drill",
+		"label": "Gun Drill",
+		"needs_docking": false,
+		"producers": [
+			"cl_tech2"
+		],
+		"scene": "",
+		"tooltip": "Research Gun Drill — 1000 energy, 50s",
+		"upgrade": true,
+		"verbose": "Research Gun Drill — 1000 energy, 50s\nBombard crews reload in two thirds the time.\nBombard's Bombard recharges 50% faster\nResearched once, for every unit it affects; kept if the building is lost"
 	},
 	"command_tool_lb_airField": {
 		"context": "BUILD",
@@ -1206,7 +1251,7 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/lb/lb_commandCenter.tscn",
 		"tooltip": "Build Shard — 300 energy, 60s",
-		"verbose": "Build Shard — 300 energy, 60s\n400 HP · strong armour · mech frame\n4×4 cells · vision 30\nProvides 100 infrastructure\nTrains: Canary"
+		"verbose": "Build Shard — 300 energy, 60s\n400 HP · strong armour · mech frame\n4×4 cells · vision 30\nProvides 10 infrastructure\nTrains: Canary"
 	},
 	"command_tool_lb_defense": {
 		"context": "BUILD",
@@ -1633,6 +1678,48 @@
 		"scene": "res://scenes/entities/structures/nt/nt_extractor.tscn",
 		"tooltip": "Build Extractor — 500 energy, 20s",
 		"verbose": "Build Extractor — 500 energy, 20s\n500 HP · medium armour · mech frame\n2×2 cells · vision 20\nCosts 50 infrastructure upkeep"
+	},
+	"command_tool_rapid_rearmament": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			1,
+			2
+		],
+		"id": "rapid_rearmament",
+		"label": "Rapid Rearmament",
+		"needs_docking": false,
+		"producers": [
+			"cl_tech1"
+		],
+		"scene": "",
+		"tooltip": "Research Rapid Rearmament — 500 energy, 30s",
+		"upgrade": true,
+		"verbose": "Research Rapid Rearmament — 500 energy, 30s\nDrakes rearm twice as fast on the pad.\ndrake rearms 100% faster\nResearched once, for every unit it affects; kept if the building is lost"
+	},
+	"command_tool_reinforced_hulls": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			2,
+			2
+		],
+		"id": "reinforced_hulls",
+		"label": "Reinforced Hulls",
+		"needs_docking": false,
+		"producers": [
+			"cl_tech1"
+		],
+		"scene": "",
+		"tooltip": "Research Reinforced Hulls — 700 energy, 40s",
+		"upgrade": true,
+		"verbose": "Research Reinforced Hulls — 700 energy, 40s\nSloops and Matildas take a quarter more punishment.\nsloop has 25% more hit points\nMatilda has 25% more hit points\nResearched once, for every unit it affects; kept if the building is lost"
 	},
 	"command_tool_tc_bioLight_antiMech": {
 		"context": "TRAIN",

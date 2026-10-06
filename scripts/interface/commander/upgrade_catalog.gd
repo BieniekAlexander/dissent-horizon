@@ -9,10 +9,11 @@ extends RefCounted
 ## finishing it adds its id to the commander's owned upgrades (Commander.complete_upgrade)
 ## rather than spawning anything. Losing the structure afterwards does not take it back.
 ##
-## What an upgrade DOES is authored on its doc as `modifies:` entries, each naming a piece and
-## one of its abilities and the value it overrides. Readers ask this class for the value in
-## force for a caster (range_for), so an upgrade reaches pieces already on the field as well
-## as future ones, with no per-unit state to keep in step.
+## What an upgrade DOES is authored on its doc as `modifies:` entries, each naming WHICH pieces
+## (a `piece` id, or every unit of a `frame`), optionally one of their abilities, and one effect:
+## an ability's `range`, or a factor on hit points, on rearm speed or on an ability's recharge
+## speed. Readers ask this class for the value in force (range_for, factor_for), so an upgrade
+## reaches pieces already on the field as well as future ones.
 ##
 ## Why: gdd/systems/macroeconomics/upgrades.md.
 ##
@@ -20,7 +21,13 @@ extends RefCounted
 
 const UPGRADES_JSON_PATH: String = "res://resources/generated/upgrades.json"
 
-## id -> {"title": String, "modifies": [{"piece", "ability", "range"}]}.
+## The multiplicative effects a modifier may carry. Each is a FACTOR on a rate or an amount:
+## 2.0 rearms twice as fast, 1.25 has a quarter more hit points.
+const HP_FACTOR: StringName = &"hp_factor"
+const REARM_RATE_FACTOR: StringName = &"rearm_rate_factor"
+const COOLDOWN_RATE_FACTOR: StringName = &"cooldown_rate_factor"
+
+## id -> {"title": String, "modifies": [{"piece" | "frame", "ability"?, <one effect key>}]}.
 static var _entries: Dictionary = _load()
 
 
@@ -68,3 +75,35 @@ static func range_for(
 				continue
 			best = maxf(best, float(m["range"]))
 	return best
+
+
+## The product of every `a_key` factor `a_piece`'s commander owns that applies to it — and, for
+## an ability-scoped factor, to `a_ability`. 1.0 when none does.
+##
+## A PRODUCT, so two owned upgrades raising one value stack, in either order. An upgrade applies
+## to whatever its commander fields, captured pieces of another faction included.
+static func factor_for(a_piece: Entity, a_key: StringName, a_ability: StringName = &"") -> float:
+	if a_piece == null or a_piece.commander == null:
+		return 1.0
+	var factor: float = 1.0
+	for upgrade_id: StringName in a_piece.commander.owned_upgrades():
+		for modifier: Variant in (_entries.get(upgrade_id, {}) as Dictionary).get("modifies", []):
+			var m: Dictionary = modifier if modifier is Dictionary else {}
+			if (
+				m.has(a_key)
+				and StringName(str(m.get("ability", ""))) == a_ability
+				and applies_to(m, a_piece)
+			):
+				factor *= float(m[a_key])
+	return factor
+
+
+## Whether a modifier's selector picks `a_piece`: its `piece` id, or — for a `frame` selector —
+## any UNIT of that frame. A frame selector leaves structures alone: "every BIO unit" is what
+## one says, and a structure is never what a frame-wide upgrade is bought for.
+static func applies_to(a_modifier: Dictionary, a_piece: Entity) -> bool:
+	if a_modifier.has("piece"):
+		return StringName(str(a_modifier["piece"])) == a_piece.id
+	if not a_modifier.has("frame") or a_piece.defense == null or not a_piece.is_in_group("unit"):
+		return false
+	return str(a_modifier["frame"]) == Defense.FrameType.keys()[a_piece.defense.frame_type]

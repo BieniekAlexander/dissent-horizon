@@ -114,6 +114,49 @@ TODO: the `nt_building_*` pieces and `an_infrastructure` keep the component defa
 them as the point at their centre. A footprint-sized body changes how close everything must
 come to hit them.
 
+## Where a reach is measured from
+
+A weapon names where its reach is measured from (`Weapon.RangeOrigin`, doc key `range_from:`).
+**HULL** is every weapon above: the gap between the two footprints. **ORBIT** stands the
+weapon's range shape — its ordinary reach bucket — at the centre of the orbit its wielder flies,
+and a target is in reach when that shape overlaps the target's HURTBOX, asked of the physics
+server rather than of the footprints (`SU.shape_touches_hurtbox`). Only a FLYING piece flies an
+orbit, so the importer refuses `orbit` on anything else, and at runtime such a weapon measures
+from its hull. The Gunship is the first; it holds station over a point for its whole sortie.
+
+**Its orbit IS its reach.** Such a piece is an aircraft firing out of one side as it circles a
+point, at anything inside the circle it flies, so the importer sets `aerial.orbit_radius` to the
+weapon's GROUND reach and refuses one authored beside it (`SpecRegistry._derive_orbit_radius`).
+TODO: a hard-coded derivation standing in for doc values derived from other doc values — see
+gdd/tasks.md T-096.
+
+**A piece fighting from its orbit is never steered by its target** (`Commandable.fights_from_orbit`).
+Its own position plays no part in its reach, so moving would close nothing, and every place a
+target could move it says so instead:
+
+- **An Attack does not drive it** (`Attack.should_move` is false). The receiver keeps an actor
+  that cannot stop flying its circuit while it holds an order that neither acts nor drives it.
+- **Nor re-anchors its orbit** on the target, after firing or when the target dies
+  (`MoveCommand.orbit_anchor`, which an Attack or FocusFire answers null for it).
+- **Nor stops it to aim.** A circling aircraft rarely points its nose at its target, so such a
+  weapon is a `turret` in practice.
+- **It acquires and releases by the same shape at the same centre.** Pickup scans each range
+  shape at the orbit's centre for hostile hurtboxes; the leash is that shape grown by the
+  usual hysteresis; and no order chases, so a target outside it is dropped even when the player
+  ordered it.
+- **A shot at the ground** is the point's distance from the orbit's centre against the radius —
+  the same overlap, for a body of no size.
+- **Its ring is drawn where it is measured**: at the orbit's centre, at the shape's radius, not
+  widened by the piece's body (`EntityRanges.shape_for`). A sanction that calls one in draws its
+  aiming circle from the same reach (`AbstractEvent.area_radius`, which `Sanction.area_radius`
+  prefers over its authored `effect_radius`), so the circle is the ground it will fire on — as
+  the Mortar draws one shell's blast. A sanction that states no area draws none: there is no default radius, since a circle the
+  ability does not cover would mislead the player.
+
+**Pitfall accepted:** a physics query per check. The hull gap is arithmetic; this asks the
+physics server, once per range test and once per layer per pickup. It is paid only by an
+ORBIT weapon, and there are few of those in play at a time.
+
 ## Asymmetries between the families
 
 The buckets exist so that the families can be ORDERED against each other. The orderings

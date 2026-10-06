@@ -227,7 +227,7 @@ func _recruit(a_xz: Vector2) -> Commandable:
 
 func _spot(a_actor: Commandable, a_target: Entity) -> Spot:
 	var order := Spot.new(CommandMessage.new(null, a_target, null, a_target.global_position))
-	for _i: int in Spot.CHANNEL_TICKS:
+	for _i: int in Spot.channel_ticks():
 		order.fulfill_action(a_actor)
 	return order
 

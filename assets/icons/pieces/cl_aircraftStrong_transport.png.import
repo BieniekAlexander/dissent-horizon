@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1by4i8622k6"
-path="res://.godot/imported/cl_aircraftStrong_support.png-9bb8fc627de3ce3c490bb4a52b3ab263.ctex"
+uid="uid://baxbng2nfsuni"
+path="res://.godot/imported/cl_aircraftStrong_transport.png-ae7ac4e10b48f21b1bdaa6a70a2250d5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/icons/pieces/cl_aircraftStrong_support.png"
-dest_files=["res://.godot/imported/cl_aircraftStrong_support.png-9bb8fc627de3ce3c490bb4a52b3ab263.ctex"]
+source_file="res://assets/icons/pieces/cl_aircraftStrong_transport.png"
+dest_files=["res://.godot/imported/cl_aircraftStrong_transport.png-ae7ac4e10b48f21b1bdaa6a70a2250d5.ctex"]
 
 [params]
 

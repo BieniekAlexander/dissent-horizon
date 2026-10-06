@@ -178,10 +178,10 @@ TSV_ARMOUR = (
     "LEAD\t1.0\t0.5\t0.1\n"
     "LAZER\t0.25\t0.75\t1.5\n"
 )
-TSV_ATTR = (
-    "damage_type\tIS_GROUNDED\tIS_FLYING\tHAS_STEALTH\n"
-    "TOXIN\t\t0.5\t\n"
-    "EXPLOSIVE\t\t0.5\t\n"
+TSV_FRAME_BLANK = (
+    "damage_type\tBIO\tMECH\n"
+    "TOXIC\t1.0\t\n"
+    "EXPLOSIVE\t0.2\t1.0\n"
 )
 
 
@@ -229,14 +229,14 @@ def test_appends_frame_type_into_existing_defense_block():
     assert "armour_type = 0\n" in out                  # neighbour untouched
 
 
-def test_apply_csv_fills_blank_attribute_cell(tmp_path):
-    tsv = tmp_path / "damage_vs_attribute.tsv"
-    tsv.write_text(TSV_ATTR)
-    ch = Change("damage_vs_attribute", "TOXIN", "HAS_STEALTH", None, 0.25)
-    e = Edit(ch, "csv", "attribute", None, "HAS_STEALTH", "0.25")
+def test_apply_csv_fills_blank_cell(tmp_path):
+    tsv = tmp_path / "damage_vs_frame.tsv"
+    tsv.write_text(TSV_FRAME_BLANK)
+    ch = Change("damage_vs_frame", "TOXIC", "MECH", None, 0.15)
+    e = Edit(ch, "csv", "frame", None, "MECH", "0.15")
     importer._apply_csv_edits(tsv, [e], dry_run=False)
     assert e.applied
-    assert "TOXIN\t\t0.5\t0.25\n" in tsv.read_text()  # previously-blank cell filled
+    assert "TOXIC\t1.0\t0.15\n" in tsv.read_text()  # previously-blank cell filled
 
 
 def test_end_to_end_apply_on_temp_copy(tmp_path, monkeypatch):

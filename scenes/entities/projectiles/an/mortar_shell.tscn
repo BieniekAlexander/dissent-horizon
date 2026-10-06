@@ -1,0 +1,55 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_hcpro"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_hcown"]
+[ext_resource type="Script" path="res://scripts/entities/tools/emission_phase.gd" id="3_phase"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="4_loco"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/artillery_shell_model.tscn" id="fx_shell"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/artillery_trail.tscn" id="fx_trail"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/artillery_explosion.tscn" id="fx_shell_boom"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hchit"]
+radius = 3.0
+
+[node name="MortarShell" type="CharacterBody3D"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_hcpro")
+
+[node name="InFlightParticles" parent="." instance=ExtResource("fx_trail")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.084)
+
+[node name="InFlightMesh" parent="." instance=ExtResource("fx_shell")]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, 0)
+
+[node name="PostImpactParticles" parent="." instance=ExtResource("fx_shell_boom")]
+
+[node name="HitShape" type="CollisionShape3D" parent="." unique_id=1310445498]
+shape = SubResource("SphereShape3D_hchit")
+
+[node name="Ownership" type="Node" parent="." unique_id=1219157398]
+script = ExtResource("2_hcown")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"
+
+[node name="Flight" type="Node3D" parent="."]
+script = ExtResource("3_phase")
+speed = 9.0
+gravity_mps2 = 4.5
+tracks_goal = true
+visuals = Array[NodePath]([NodePath("InFlightParticles"), NodePath("InFlightMesh")])
+
+[node name="Impact" type="Node3D" parent="."]
+script = ExtResource("3_phase")
+ends_on_arrival = false
+lifespan_seconds = 2.6
+applies_payload = true
+visuals = Array[NodePath]([NodePath("PostImpactParticles")])
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("4_loco")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("mig_payload")
+base_damage = 250.0
+damage_type = 4

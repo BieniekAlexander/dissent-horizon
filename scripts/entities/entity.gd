@@ -451,21 +451,6 @@ func blocks_line_of_fire() -> bool:
 ## The entity's primary collision shape. Commandables name their movement shape
 ## "MovementBody"; other Entity scenes (radiation, star) use "Body". Prefer "Body"
 ## when present so scenes mid-rename keep working, falling back to "MovementBody".
-## Raise the hurtbox (Hurtbox/HurtboxShape) so it never reaches below this piece's base. A
-## shape is centred on its node, and every piece's hurtbox was authored at its origin — its feet
-## — so half of it stood underground: a rocket steered at its centre dived into the terrain in
-## front of a ground target. Seated, it covers the body above the base, and its centre is a point
-## a weapon can actually reach. A shape already placed higher is left where it is.
-## → gdd/systems/combat/projectiles.md §A rocket aims at the hurtbox
-func _seat_target_shape() -> void:
-	var node: CollisionShape3D = hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
-	if node == null or node.shape == null:
-		return
-	var half_height: float = RangeShapes.half_height_of(node.shape) * node.scale.y
-	if node.position.y < half_height:
-		node.position.y = half_height
-
-
 func _resolve_collider() -> CollisionShape3D:
 	var node := get_node_or_null("Body")
 	if node == null:
@@ -506,8 +491,8 @@ func bounding_radius(a_layer: int) -> float:
 
 
 ## Where a steered weapon aims at this piece: the centre of its hurtbox (Hurtbox/HurtboxShape),
-## which stands on the piece's base (_seat_target_shape); the piece's origin when it has no
-## hurtbox. → gdd/systems/combat/projectiles.md §A rocket aims at the hurtbox
+## which stands on the piece's base; the piece's origin when it has no hurtbox.
+## → gdd/systems/combat/projectiles.md §A rocket aims at the hurtbox
 func aim_point() -> Vector3:
 	var node: CollisionShape3D = (
 		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
@@ -743,15 +728,9 @@ func is_airborne() -> bool:
 func _ready() -> void:
 	ownership.commander_changed.connect(_on_commander_changed)
 
-	# Mirror the root Body shape onto the Hurtbox so targeting matches the
-	# entity's footprint (extractor/turret/compound override Body with a box). Entities
-	# with no root collider (e.g. an ExtractionSite, whose footprint lives only on the
-	# Hurtbox) keep their authored Hurtbox shape. Either way the hurtbox is then seated
-	# ON the piece's base rather than straddling it (_seat_target_shape).
+	# The Hurtbox's shape is the scene's own: the importer fits it to the model, standing on
+	# the piece's base (gdd/systems/ux/ui/generated-visual-defaults.md §The hurtbox).
 	if hurtbox != null:
-		if collider != null:
-			(hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape = collider.shape
-		_seat_target_shape()
 		_apply_targetable_layers()
 
 	_resolve_initial_form()
@@ -900,8 +879,9 @@ func initialize(a_map: Map, a_commander: Commander):
 func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
 	if defense == null:
 		return
-	var final_amount: float = DamageTable.calculate_damage(a_damage.amount, a_damage.type, self)
-	var was_lethal: bool = defense.apply_damage(final_amount)
+	var was_alive: bool = defense.hp > 0
+	var final_amount: float = defense.take_damage(a_damage.amount, a_damage.type)
+	var was_lethal: bool = was_alive and defense.hp <= 0
 	if a_from != null and a_from.veterancy != null:
 		a_from.veterancy.gain_experience(roundi(final_amount * Veterancy.XP_PER_DAMAGE))
 		a_from._fire_entity_occurrence(EntityOccurrence.ON_DEAL_DAMAGE)

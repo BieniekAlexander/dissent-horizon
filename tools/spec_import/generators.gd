@@ -785,29 +785,43 @@ static func upgrade_verbose_tooltip(registry: RefCounted, spec: Dictionary) -> S
 	if not requires.is_empty():
 		lines.append("Requires: %s" % ", ".join(requires))
 	for entry: Variant in spec.get("modifies", []):
-		if not (entry is Dictionary) or not (entry as Dictionary).has("range_metres"):
-			continue
-		var piece: Dictionary = registry.pieces.get(str(entry.get("piece", "")), {})
-		var ability: Dictionary = registry.abilities.get(str(entry.get("ability", "")), {})
-		(
-			lines
-			. append(
-				(
-					"%s's %s reach becomes %s"
-					% [
-						piece_title(piece) if not piece.is_empty() else str(entry.get("piece", "")),
-						(
-							piece_title(ability)
-							if not ability.is_empty()
-							else str(entry.get("ability", ""))
-						),
-						_number(float(entry["range_metres"])),
-					]
-				)
-			)
-		)
+		if entry is Dictionary:
+			lines.append(_modifier_phrase(registry, entry))
 	lines.append("Researched once, for every unit it affects; kept if the building is lost")
 	return "\n".join(lines)
+
+
+## What one `modifies:` entry does, as a tooltip line: "drake rearms 100% faster".
+static func _modifier_phrase(registry: RefCounted, entry: Dictionary) -> String:
+	var who: String
+	if entry.has("frame"):
+		who = "Every %s unit" % str(entry["frame"])
+	else:
+		var piece: Dictionary = registry.pieces.get(str(entry.get("piece", "")), {})
+		who = piece_title(piece) if not piece.is_empty() else str(entry.get("piece", ""))
+	var ability: Dictionary = registry.abilities.get(str(entry.get("ability", "")), {})
+	var ability_title: String = (
+		piece_title(ability) if not ability.is_empty() else str(entry.get("ability", ""))
+	)
+	if entry.has("range_metres"):
+		return (
+			"%s's %s reach becomes %s" % [who, ability_title, _number(float(entry["range_metres"]))]
+		)
+	if entry.has("hp_factor"):
+		return "%s has %s more hit points" % [who, _percent_more(entry["hp_factor"])]
+	if entry.has("rearm_rate_factor"):
+		return "%s rearms %s faster" % [who, _percent_more(entry["rearm_rate_factor"])]
+	if entry.has("cooldown_rate_factor"):
+		return (
+			"%s's %s recharges %s faster"
+			% [who, ability_title, _percent_more(entry["cooldown_rate_factor"])]
+		)
+	return who
+
+
+## A factor as the percentage it adds: 1.25 -> "25%".
+static func _percent_more(factor: Variant) -> String:
+	return "%s%%" % _number((float(factor) - 1.0) * 100.0)
 
 
 ## `{id: {"title", "modifies": [{"piece", "ability", "range"}]}}` for every upgrade doc — what
@@ -823,12 +837,15 @@ static func upgrades_json(registry: RefCounted) -> String:
 		for entry: Variant in spec.get("modifies", []):
 			if not (entry is Dictionary):
 				continue
-			var m: Dictionary = {
-				"piece": str(entry.get("piece", "")),
-				"ability": str(entry.get("ability", "")),
-			}
+			var m: Dictionary = {}
+			for key: String in ["piece", "frame", "ability"]:
+				if (entry as Dictionary).has(key):
+					m[key] = str(entry[key])
 			if (entry as Dictionary).has("range_metres"):
 				m["range"] = float(entry["range_metres"])
+			for key: String in ["hp_factor", "rearm_rate_factor", "cooldown_rate_factor"]:
+				if (entry as Dictionary).has(key):
+					m[key] = float(entry[key])
 			modifies.append(m)
 		table[id] = {"title": piece_title(spec), "modifies": modifies}
 	return _json_header("upgrade definitions") + JSON.stringify(table, "\t") + "\n"

@@ -190,6 +190,27 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 	return CastArity.ALL
 
 
+## Whether `actor` is FREE to take this order when it is narrowed to one actor: free ones are
+## preferred over busy ones however far away, and only then does distance decide.
+##
+## Idle, for an ordinary verb narrowed by `modifier_narrow`. A command that goes to ONE actor
+## by default — a job — overrides it with `holds_none_of`: free unless already holding an
+## order of that job, current or queued, so a spare worker is taken before a farther idle one
+## and one already on the job is passed over. Every such command answers the same way.
+## Rules: gdd/systems/ux/ui/selection-and-input.md §The narrow modifier picks the nearest IDLE
+## actor.
+static func is_free_to_take(actor: Commandable) -> bool:
+	return actor.current_command() == null
+
+
+## Whether no order in `actor`'s chain, current or queued, is one of `commands`.
+static func holds_none_of(actor: Commandable, commands: Array[Script]) -> bool:
+	return not actor.get_command_chain().any(
+		func(held: MoveCommand) -> bool:
+			return commands.any(func(command: Script) -> bool: return is_instance_of(held, command))
+	)
+
+
 #endregion
 
 
@@ -363,6 +384,12 @@ func avoidance_exception(_a_actor: Commandable) -> Commandable:
 ## Why: gdd/systems/terrain-and-navigation/navigation-and-pathing.md §Avoidance priority.
 func holds_ground(_a_actor: Commandable) -> bool:
 	return false
+
+
+## Where an actor that cannot stop — a fixed wing — circles once this order has acted or ended
+## without driving it: the order's own position, or null to keep the circuit it is flying.
+func orbit_anchor(_a_actor: Commandable) -> Variant:
+	return message.position
 
 
 ## Whether receiving this order lifts the actor's hold fire (Commandable.is_holding_fire).

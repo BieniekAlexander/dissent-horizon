@@ -8,7 +8,8 @@
 [ext_resource type="Script" uid="uid://bhm0bavkjvt0q" path="res://scripts/interface/commander/sanction_unlock.gd" id="7_unlock"]
 [ext_resource type="PackedScene" uid="uid://ceccva2mk6k4g" path="res://scenes/scenario_events/sanction_promote.tscn" id="8_pro"]
 [ext_resource type="PackedScene" uid="uid://cecedxppj374g" path="res://scenes/scenario_events/sanction_radar_scan.tscn" id="9_rad"]
-[ext_resource type="PackedScene" path="res://scenes/scenario_events/sanction_stub.tscn" id="10_stub"]
+[ext_resource type="PackedScene" path="res://scenes/scenario_events/sanction_blizzard.tscn" id="10_blizzard"]
+[ext_resource type="PackedScene" path="res://scenes/scenario_events/sanction_gunship.tscn" id="10_gunship"]
 [ext_resource type="PackedScene" uid="uid://0ke7wam350to" path="res://scenes/scenario_events/sanction_beacon.tscn" id="21_b1"]
 [ext_resource type="PackedScene" uid="uid://0khmcn0g50to" path="res://scenes/scenario_events/sanction_drop_1.tscn" id="11_d1"]
 [ext_resource type="PackedScene" uid="uid://0khmcn1g50to" path="res://scenes/scenario_events/sanction_drop_2.tscn" id="12_d2"]
@@ -150,10 +151,10 @@ metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 [sub_resource type="Resource" id="Sanction_gunship"]
 script = ExtResource("6_ord")
 sanction_name = "Gunship"
-description = "Calls a gunship to strafe the target point. STUB: no payload built yet."
-event_scene = ExtResource("10_stub")
+description = "Calls a Gunship to hold station over the target point for 20 seconds, firing on anything it finds."
+event_scene = ExtResource("10_gunship")
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "Not implemented. The cell is real — it costs dominion, opens the tier below it and runs its cooldown — but firing it does nothing yet."
+verbose_description = "The gunship flies in from your side of the board with its guns cold, circles the point\nyou clicked, and opens fire on whatever comes into reach. While it is on station you may\norder it to attack a target, but not to go anywhere else. When its time is up it flies\nhome the way it came.\n\nIt is a real aircraft on the anti-air layer the whole time: shoot it down and the strike\nis over."
 cooldown_duration = 60.0
 ability_id = &"gunship"
 ability_level = 1
@@ -169,10 +170,10 @@ metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 [sub_resource type="Resource" id="Sanction_freeze1"]
 script = ExtResource("6_ord")
 sanction_name = "Freeze 1"
-description = "Freezes one of YOUR units for 15 seconds — it can take no action at all, but its armour rises a step while it stands there. A way to save something about to die."
+description = "Freezes one of YOUR pieces for 10 seconds — it can take no action at all, but 150 points of STRONG ice take damage before it does. A way to save something about to die."
 event_scene = ExtResource("16_f1")
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "Cryogenics cut both ways: a frozen unit is helpless and tougher at the same time.\nFreezing your own unit trades everything it could have done for a step of armour,\nwhich is how you carry something through a barrage it would not otherwise survive.\n\nUnits already at STRONG armour cannot be frozen — there is no step above it, so\nthey would take the immobilisation with none of the protection. Structures cannot\nbe frozen either."
+verbose_description = "Cryogenics cut both ways: a frozen piece is helpless and shielded at the same time.\nFreezing your own unit or building trades everything it could have done for a coat\nof ice, which is how you carry something through a barrage it would not otherwise\nsurvive. Break the ice and the freeze ends.\n\nPieces with STRONG armour cannot be frozen."
 targeting = 3
 cooldown_duration = 60.0
 ability_id = &"freeze"
@@ -189,10 +190,10 @@ metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 [sub_resource type="Resource" id="Sanction_freeze2"]
 script = ExtResource("6_ord")
 sanction_name = "Freeze 2"
-description = "Freezes any unit for 15 seconds — friendly or hostile. It can take no action, and its armour rises a step. Replaces Freeze 1. Strong armour cannot be frozen."
+description = "Freezes any piece for 10 seconds — friendly or hostile. It can take no action, and 150 points of STRONG ice take damage first. Replaces Freeze 1. Strong armour cannot be frozen."
 event_scene = ExtResource("17_f2")
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "The same effect, now aimable at anyone. On an enemy it is a hard removal from the\nfight for 15 seconds; the armour step it also grants them is the cost of using it\noffensively, so it takes a unit out of a fight rather than setting one up to die."
+verbose_description = "The same effect, now aimable at anyone. On an enemy it is a hard removal from the\nfight for 10 seconds; the ice it also grants them is the cost of using it offensively,\nso it takes a piece out of a fight rather than setting one up to die."
 targeting = 3
 cooldown_duration = 60.0
 ability_id = &"freeze"
@@ -210,13 +211,15 @@ metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 [sub_resource type="Resource" id="Sanction_blizzard"]
 script = ExtResource("6_ord")
 sanction_name = "Blizzard"
-description = "Freezes everything in a wide area. STUB: no payload built yet."
-event_scene = ExtResource("10_stub")
+description = "A storm gathers over the target for 10 seconds, then freezes every unit that stands in it for 2 seconds, for 10 more."
+event_scene = ExtResource("10_blizzard")
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "Not implemented. The cell is real — it costs dominion and runs its cooldown — but firing it does nothing yet."
+verbose_description = "The storm's 10 seconds of gathering are its warning: anyone can see it coming and\nwalk out. Once it breaks it freezes friend and foe alike, and holds a frozen unit\nfrozen for as long as it stays inside. STRONG armour and structures are not frozen."
 cooldown_duration = 60.0
 ability_id = &"blizzard"
 ability_level = 1
+effect_radius = 10.0
+min_targets = 3
 
 [sub_resource type="Resource" id="Unlock_blizzard"]
 script = ExtResource("7_unlock")
@@ -232,7 +235,7 @@ sanction_name = "Beacon"
 description = "Places a firing solution on the ground you can see. Any Bombard can then shell it from anywhere on the map, until a shell spends it."
 event_scene = ExtResource("21_b1")
 metadata/_custom_type_script = "uid://cteoy2vx2l533"
-verbose_description = "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for ten seconds and stay\nuntil the shot lands; this puts one wherever you can see, immediately.\n\nIt stands until a shell spends it, so it can be placed before the guns are ready.\nIt is stealthed, and it does not see: once your eyes leave the spot it marks blind\nground — still yours to shell, but you will not see what walks onto it. An enemy\nthat finds it can repair it away."
+verbose_description = "The artillery's reach without the walk. A Recruit can call a\nsolution in for free, but it has to get there, hold still for three seconds and stay\nuntil the shot is fired; this puts one wherever you can see, immediately.\n\nIt stands until a shell spends it, so it can be placed before the guns are ready.\nIt is stealthed, and it does not see: once your eyes leave the spot it marks blind\nground — still yours to shell, but you will not see what walks onto it. An enemy\nthat finds it can repair it away."
 cooldown_duration = 60.0
 ability_id = &"beacon"
 ability_level = 1

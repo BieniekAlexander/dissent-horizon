@@ -68,6 +68,11 @@ static func default_cast_arity(message: CommandMessage) -> CastArity:
 	)
 
 
+## Free unless already casting one — the job rule (MoveCommand.is_free_to_take).
+static func is_free_to_take(actor: Commandable) -> bool:
+	return holds_none_of(actor, [UseSanction])
+
+
 ## The charge is spent, so the button greys; the order is still accepted and waits.
 static func actor_is_recharging(actor: Commandable) -> bool:
 	var abilities: Abilities = _abilities_of(actor)

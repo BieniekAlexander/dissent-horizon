@@ -22,8 +22,14 @@ func test_calculate_damage_applies_frame_and_armour() -> void:
 	var target: Node = autofree(
 		_target_with_defense(Defense.ArmourType.STRONG, Defense.FrameType.MECH)
 	)
-	# SIEGE vs MECH/STRONG: both multipliers are 1.0 per the §3 matrix.
-	assert_eq(DamageTable.calculate_damage(70.0, Damage.Type.SIEGE, target), 70.0)
+	# The multipliers are authored content, so read them rather than pin them.
+	var frame: float = DamageTable.get_frame_multiplier(Damage.Type.SIEGE, Defense.FrameType.MECH)
+	var armour: float = DamageTable.get_armour_multiplier(
+		Damage.Type.SIEGE, Defense.ArmourType.STRONG
+	)
+	assert_almost_eq(
+		DamageTable.calculate_damage(70.0, Damage.Type.SIEGE, target), 70.0 * frame * armour, 0.001
+	)
 
 
 func test_calculate_damage_applies_the_penalty_columns() -> void:

@@ -1,0 +1,114 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://resources/emissions/particle_additive.tres" id="1_add"]
+[ext_resource type="Material" path="res://resources/emissions/particle_smoke.tres" id="2_smoke"]
+
+[sub_resource type="Gradient" id="Gradient_Flash"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.95, 1, 1, 1, 0.3, 0.7, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Flash"]
+gradient = SubResource("Gradient_Flash")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Flash"]
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 0
+initial_velocity_max = 0
+gravity = Vector3(0, 0, 0)
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.3
+scale_max = 0.36
+color_ramp = SubResource("GradientTexture1D_Flash")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Flash"]
+material = ExtResource("1_add")
+
+[sub_resource type="Gradient" id="Gradient_Sparks"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.85, 0.97, 1, 1, 0.25, 0.55, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Sparks"]
+gradient = SubResource("Gradient_Sparks")
+
+[sub_resource type="Curve" id="Curve_Sparks"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.4), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Sparks"]
+curve = SubResource("Curve_Sparks")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Sparks"]
+direction = Vector3(0, 1, 0)
+spread = 180
+initial_velocity_min = 1.4
+initial_velocity_max = 2.6
+gravity = Vector3(0, -3.5, 0)
+damping_min = 1.5
+damping_max = 1.5
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.025
+scale_max = 0.04
+scale_curve = SubResource("CurveTexture_Sparks")
+color_ramp = SubResource("GradientTexture1D_Sparks")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Sparks"]
+material = ExtResource("1_add")
+
+[sub_resource type="Gradient" id="Gradient_Puff"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.55, 0.62, 0.7, 0.45, 0.6, 0.62, 0.65, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Puff"]
+gradient = SubResource("Gradient_Puff")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Puff"]
+emission_shape = 1
+emission_sphere_radius = 0.05
+direction = Vector3(0, 1, 0)
+spread = 60
+initial_velocity_min = 0.1
+initial_velocity_max = 0.3
+gravity = Vector3(0, 0.3, 0)
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.12
+scale_max = 0.18
+color_ramp = SubResource("GradientTexture1D_Puff")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Puff"]
+material = ExtResource("2_smoke")
+
+[node name="PlasmaImpact" type="Node3D"]
+
+[node name="Flash" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 1
+lifetime = 0.1
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-4, -4, -4, 8, 8, 8)
+process_material = SubResource("ParticleProcessMaterial_Flash")
+draw_pass_1 = SubResource("QuadMesh_Flash")
+
+[node name="Sparks" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 10
+lifetime = 0.3
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-4, -4, -4, 8, 8, 8)
+process_material = SubResource("ParticleProcessMaterial_Sparks")
+draw_pass_1 = SubResource("QuadMesh_Sparks")
+
+[node name="Puff" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 4
+lifetime = 0.5
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-4, -4, -4, 8, 8, 8)
+process_material = SubResource("ParticleProcessMaterial_Puff")
+draw_pass_1 = SubResource("QuadMesh_Puff")

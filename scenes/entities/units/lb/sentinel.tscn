@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://r4vbyr7vr23k"]
+[gd_scene load_steps=27 format=3 uid="uid://r4vbyr7vr23k"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_jfyk5"]
 [ext_resource type="PackedScene" uid="uid://b4cpu6t82mlsc" path="res://assets/meshes/cube.blend" id="2_cube"]
@@ -31,6 +31,10 @@ radius = 15.0
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_a51lo"]
 height = 1.0
 
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
+radius = 0.5
+height = 1.0
+
 [node name="Sentinel" type="CharacterBody3D" unique_id=471534818 groups=["piece", "unit"]]
 script = ExtResource("1_jfyk5")
 id = &"lb_aircraftMedium_antiBio"
@@ -42,6 +46,11 @@ id = &"lb_aircraftMedium_antiBio"
 [node name="MovementBody" parent="." unique_id=1895683008 instance=ExtResource("3_3fl6b")]
 
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_0bo1v")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.515656, 0.0)
+shape = SubResource("CylinderShape3D_hurtbox")
+metadata/_visual_default_hurtbox = "CylinderShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_nf0mf")]
 
@@ -126,3 +135,4 @@ billboard = 2
 
 [editable path="Selectable"]
 [editable path="HPBar"]
+[editable path="Hurtbox"]

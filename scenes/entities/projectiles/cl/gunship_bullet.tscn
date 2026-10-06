@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://b132d37e4g7ff"]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_own"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="1_spec"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="2_spec"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="3_spec"]
+[ext_resource type="Mesh" path="res://resources/emissions/lead_tracer_beam.tres" id="fx_beam"]
+[ext_resource type="Script" path="res://scripts/entities/components/tracer.gd" id="fx_tracer"]
+
+[node name="GunshipBullet" type="CharacterBody3D"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_root")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("2_own")
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("1_spec")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("2_spec")
+base_damage = 67.5
+damage_type = 1
+hitscan = true
+
+[node name="BeamMesh" type="MeshInstance3D" parent="."]
+sorting_offset = 100.0
+mesh = ExtResource("fx_beam")
+
+[node name="Flight" type="Node3D" parent="."]
+script = ExtResource("3_spec")
+speed = 28.0
+
+[node name="Impact" type="Node3D" parent="."]
+script = ExtResource("3_spec")
+ends_on_arrival = false
+lifespan_seconds = 0.0
+applies_payload = true
+
+[node name="Tracer" type="Node" parent="."]
+script = ExtResource("fx_tracer")
