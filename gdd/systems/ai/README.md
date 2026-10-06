@@ -13,6 +13,7 @@ The CPU commander: what it perceives, how it decides, and how it acts.
 | [bot-architecture.md](bot-architecture.md) | what is built today — the layers, the modules, and where each decision is made |
 | [bot-roadmap.md](bot-roadmap.md) | TODO: planning over ladders, the gaps below, and the training harness |
 | [objective-selection.md](objective-selection.md) | TODO, unapproved: the layer above every decision — all-in and booming as postures, not modes |
+| [world-model.md](world-model.md) | TODO, unapproved: one fog-limited, layered model of the game state (sightings → tracks → fields and groups → assessment → attention) that every manager reads instead of the scene; the frameworks it adapts, the three fog leaks it closes, and the migration |
 | [three-layer-comparison.md](three-layer-comparison.md) | RESEARCH: ZeroSpace's framework read against this bot — what matches, and the three gaps |
 | [bot-parameter-space.md](bot-parameter-space.md) | what a tuning run may MOVE: the audit behind every `BotDifficulty` field, each one's search range, what interacts with what, and the ladders no parameter reaches |
 | [selfplay-harness.md](selfplay-harness.md) | headless bot-versus-bot matches with injected parameters — how to run one, the JSON in and out, and what determinism actually holds |
