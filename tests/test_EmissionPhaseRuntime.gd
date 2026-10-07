@@ -312,6 +312,36 @@ func test_a_homing_shot_that_loses_its_target_circles_where_it_was() -> void:
 	assert_lt(farthest_after_settling, 2.0, "it loops round the last place its target was")
 
 
+## A garrisoned target is not freed: it leaves the tree and comes back. While it is held its
+## position cannot be read, so the shot treats it as gone and keeps to where it was.
+func test_a_homing_shot_whose_target_is_held_off_the_tree_circles_where_it_was() -> void:
+	var quarry: Entity = _wall(0)
+	quarry.global_position = AIM
+	var quarry_parent: Node = quarry.get_parent()
+	await get_tree().physics_frame
+	var emission: RecordingEmission = _emission(
+		[_phase({"speed": 6.0, "turn_rate_degrees_per_second": 360.0, "lifespan_seconds": 3.0})]
+	)
+	add_child(emission)
+	emission.global_position = LAUNCH
+	Emitter.launch(emission, null, quarry)
+	var hold_tick: int = 10
+	var settle_tick: int = 60
+	var farthest_after_settling: float = 0.0
+	var ticks: int = 0
+	while is_instance_valid(emission) and ticks < MAX_TICKS:
+		await get_tree().physics_frame
+		ticks += 1
+		if ticks == hold_tick:
+			quarry_parent.remove_child(quarry)
+		if ticks > settle_tick and is_instance_valid(emission):
+			farthest_after_settling = maxf(
+				farthest_after_settling, emission.global_position.distance_to(AIM)
+			)
+	quarry_parent.add_child(quarry)  # back in the tree, for autofree
+	assert_lt(farthest_after_settling, 2.0, "it loops round the last place its target was")
+
+
 func test_a_flight_slows_to_its_coast_speed_when_it_burns_out() -> void:
 	# Paying out every tick records where the emission was each tick, so the step between two
 	# records is its speed: fast while the motor burns, the coast speed after.
