@@ -37,10 +37,12 @@ func utility() -> float:
 
 
 func execute(a_act: BotActuator) -> void:
-	# A plain move, not attack-move: the point is to ARRIVE. Attack-moving would stop the
-	# unit to shoot at whatever it met on the way, and for a Warlord the prize is a neutral
-	# it must not shoot at all.
-	a_act.move([actor], _target.global_position)
+	# A move AT the target, not attack-move and not a move to where it stands: the point is
+	# to ARRIVE ON IT, and it moves. Attack-moving would stop the unit to shoot at whatever it
+	# met on the way, and for a Warlord the prize is a neutral it must not shoot at all; a
+	# move to a position arrived on empty ground whenever the prey had walked on (observed
+	# 2026-10-06: the truck took one prisoner per errand and lost the rest).
+	a_act.move_at([actor], _target)
 
 
 func describe() -> String:

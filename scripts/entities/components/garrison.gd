@@ -484,6 +484,13 @@ func garrisoned_count() -> int:
 	return _garrisoned.size()
 
 
+## How many occupants are CAPTIVES (is_captive) — what a carrier has to bank, as opposed to
+## its own side riding along. A Stock Truck's cage carries Servants by order and prisoners by
+## capture, and a Servant is not cargo.
+func captive_count() -> int:
+	return _garrisoned.filter(is_captive).size()
+
+
 ## The occupants that earn their host per-occupant dominion right now (OccupantDominionGenerator).
 ## In a prison only the captives SERVING pay — at most SENTENCES_AT_ONCE — and the ones waiting
 ## their turn do not; in any other garrison every occupant counts.

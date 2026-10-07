@@ -14,6 +14,9 @@ extends RefCounted
 ## stay in a Compound, used to score the capture / collect / deposit loop. A
 ## balance knob; raise to make the bot prize the dominion economy more.
 const PRISONER_VALUE: float = 60.0
+## Multiplier on a deposit once the cage is full: the carrier can take nothing more, so
+## banking is the only thing left worth doing with the load.
+const FULL_LOAD_BONUS: float = 1.5
 
 var _bot: Bot
 var _act: BotActuator
@@ -227,9 +230,15 @@ func _gather_captures() -> Array[BotOpportunity]:
 	return out
 
 
-## Send a carrier holding prisoners to the nearest owned deposit structure (camp) with
+## Send a carrier holding PRISONERS to the nearest owned deposit structure (camp) with
 ## space. A full carrier's deposit is worth the most (it can't capture more until it
-## unloads); a partial one is discounted so carriers prefer to keep filling first.
+## unloads); a partial one is discounted by how empty it still is, so carriers prefer to
+## keep filling first — the discount this comment always promised and the code never
+## applied, which is why a truck banked every prisoner one at a time (observed 2026-10-06).
+##
+## Counts CAPTIVES, not occupants: a Servant riding in the cage is not cargo, and counting it
+## sent an empty truck home. A carrier already driving at prey (a move AT a capturable piece)
+## is left to finish that errand.
 func _gather_deposits() -> Array[BotOpportunity]:
 	var out: Array[BotOpportunity] = []
 	var camps: Array = _bot.get_deposit_structures()
@@ -237,22 +246,47 @@ func _gather_deposits() -> Array[BotOpportunity]:
 		return out
 	for carrier: Commandable in _bot.get_interactors():
 		var cage: Garrison = carrier.garrison
-		if cage == null or cage.garrisoned_count() == 0:
+		if cage == null or cage.captive_count() == 0:
 			continue
 		var c: MoveCommand = carrier.current_command()
 		if c is Interact or c is Build or c is Assemble or c is Repair:
 			continue
+		if _is_driving_at_prey(carrier, c):
+			continue
 		var camp: Commandable = _nearest(camps, carrier.global_position)
 		if camp == null or not _resolves(carrier, camp, Interaction.Type.DEPOSIT):
 			continue
-		# Worth the dominion the carried prisoners will bank. Travel-free (weight 0) so a
-		# truck that captured deep in enemy territory still heads home to deposit rather
-		# than wandering until it dies with its load. A full truck scores highest (it
-		# can't capture more), so partially-loaded trucks prefer to keep filling first.
-		var full: bool = cage.remaining_capacity() <= 0
-		var value: float = float(cage.garrisoned_count()) * PRISONER_VALUE * (1.5 if full else 1.0)
+		# Worth the dominion the carried prisoners will bank, scaled by how full the cage is:
+		# one prisoner in three is a third of a load, a full load is worth a bonus (the truck
+		# can't capture more). Travel-free (weight 0) so a truck that captured deep in enemy
+		# territory still heads home to deposit rather than wandering until it dies with its
+		# load.
+		var value: float = deposit_value(
+			cage.captive_count(), cage.capacity, cage.remaining_capacity() <= 0
+		)
 		out.append(InteractOpportunity.new(carrier, camp, value, "deposit", 0.0))
 	return out
+
+
+## What banking `a_captives` prisoners is worth now: their dominion worth, scaled by the
+## cage's fill fraction so a part-load prefers to keep filling, and by FULL_LOAD_BONUS once
+## nothing more fits. Pure, so the curve is testable without a truck.
+static func deposit_value(a_captives: int, a_capacity: int, a_full: bool) -> float:
+	if a_captives <= 0:
+		return 0.0
+	var fill: float = FULL_LOAD_BONUS if a_full else float(a_captives) / float(maxi(a_capacity, 1))
+	return float(a_captives) * PRISONER_VALUE * fill
+
+
+## Whether `a_carrier`'s current order is a move AT something it would capture on contact —
+## a capture errand in flight, which a deposit must not interrupt one think later.
+func _is_driving_at_prey(a_carrier: Commandable, a_command: MoveCommand) -> bool:
+	if a_command == null or a_command.message == null:
+		return false
+	var target: Variant = a_command.message.target
+	if target == null or not is_instance_valid(target) or not (target is Commandable):
+		return false
+	return Garrison.can_capture(a_carrier, target as Commandable)
 
 
 # ─── GARRISON (bunker fire support) ─────────────────────────────────────────

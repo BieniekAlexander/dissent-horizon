@@ -74,6 +74,26 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 		u.load_destination(cmd)
 
 
+## Order each unit to move AT a piece — the controls' own follow order: a Move whose message
+## names a target reads its destination from the target's position every tick, so the mover
+## follows it. The whole actuation of CONTACT mechanics (a capture, a liberation, a crush): the
+## point is to arrive on the piece, and a plain move to where it stood arrives on empty
+## ground. The engine ends the order itself when the target leaves play (captured and taken
+## off the tree: CommandReceiver._target_has_left_play); for a target that DIES the message
+## falls back to `world_position`, set here to where the target was at issue, so the mover
+## finishes the walk rather than heading for the map origin.
+func move_at(a_units: Array, a_target: Entity) -> void:
+	if _map == null or a_target == null or not is_instance_valid(a_target):
+		return
+	for u: Commandable in a_units:
+		var cmd := MoveCommand.new(
+			CommandMessage.new(_map, a_target, null, a_target.global_position)
+		)
+		usage.record_action("move_at", u.id, BotUsageLog.OUTCOME_ISSUED)
+		u.update_commands(cmd)
+		u.load_destination(cmd)
+
+
 ## Set where `a_structures` send what they produce: a plain move to a world position, which
 ## is exactly what a player's right-click with a producer selected sets (Commandable.set_rally).
 ## No unit is ordered here — Production hands the rally to each unit as it finishes it.

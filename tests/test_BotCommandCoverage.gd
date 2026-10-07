@@ -54,8 +54,8 @@ const COVERED_OTHERWISE: Dictionary = {
 	),
 	"Capture":
 	(
-		"capturing IS driving over the prey, so the bot issues a plain move — see"
-		+ " BotOpportunist's ContactOpportunity"
+		"capturing IS driving over the prey, so the bot issues a move AT it (BotActuator"
+		+ ".move_at) — see BotOpportunist's ContactOpportunity"
 	),
 }
 
