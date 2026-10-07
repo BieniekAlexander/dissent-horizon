@@ -82,6 +82,11 @@ var scenario: Scenario
 ## the editor and for the neutral (id 0) commander.
 var blackboard: CommanderBlackboard
 
+## The squads being kept to a policy on this commander's behalf — the Bot's military's, or a
+## mission tactic's over one of its clusters. Shared action side, separate decision side:
+## gdd/systems/ai/squads-and-relations.md §Squads.
+var squads: SquadRegistry = SquadRegistry.new()
+
 ## Physics ticks between belief updates (~5 Hz). The AI-only belief layer doesn't
 ## need to run every physics frame, and its visible_enemies() step runs expensive
 ## physics-space queries. The player-facing snapshot layer is NOT throttled — it

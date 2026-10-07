@@ -279,6 +279,7 @@ func _apply_config() -> void:
 	_military.assumed_enemy_parity = config.assumed_enemy_parity
 	_military.wave_abort_fraction = config.wave_abort_fraction
 	_military.reinforce_fraction = config.reinforce_fraction
+	_military.squad_cap = config.squad_cap
 	_military.defend_threat_radius = config.defend_threat_radius
 	_targeting.switch_margin = config.retarget_switch_margin
 	_targeting.set_signal_weights(

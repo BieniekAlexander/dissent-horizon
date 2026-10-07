@@ -9,26 +9,30 @@ extends Node
 ##
 ## A cluster is identified by node-group membership (`unit_group`), stamped onto units the
 ## same way EventSpawnEntities.spawn_groups labels a wave for ConditionGroupCount — fixed for
-## the cluster's lifetime; merging or splitting clusters is explicitly out of scope here.
+## the cluster's lifetime, and synced each frame into the tactic's Squad.
 ##
 ## Children are TacticRule nodes, evaluated in authored order every physics frame. The first
 ## whose condition holds (or which has none at all — an unconditional fallback) is the
-## cluster's CURRENT rule. Re-issuing is split two ways, deliberately not "reissue whenever
-## the current rule is still true":
-##  - the rule CHANGING redirects every current member — a real change of posture.
-##  - the rule staying the same but a member going IDLE (its command queue ran dry — an
-##    Attack whose target died, an AttackMove that arrived and found nothing) re-runs that
-##    SAME rule for that member ALONE, so a dynamically-targeted command like
-##    EventCommandTarget's "attack the nearest cluster" gets a fresh target instead of the
-##    unit freezing forever — the bug that motivated this. Members still actively executing
-##    their order are left alone; only the idle ones are touched.
+## cluster's CURRENT rule, and becomes the squad's policy (TacticRulePolicy). The dispatch
+## is Squad.tick's, shared with the Bot's military — the rule CHANGING redirects every
+## member (a real change of posture); the same rule re-runs only for a member that went
+## IDLE (an Attack whose target died, an AttackMove that arrived and found nothing), so a
+## dynamically-targeted command like EventCommandTarget's "attack the nearest cluster" gets
+## a fresh target instead of the unit freezing forever — the bug that motivated this. Which
+## rule wins is the decision side and stays authored here:
+## gdd/systems/ai/squads-and-relations.md §The boundary.
 ##
 ## Add as a sibling of GlobalTrigger under a ScenarioTriggerManager.
 
 @export var unit_group: StringName = &""
 
 var _manager: ScenarioTriggerManager
-var _active_rule: TacticRule = null
+## The cluster as a squad. Registered on its members' commander once the first live member
+## is seen, so the commander's registry lists it beside the Bot's own.
+var _squad: Squad = Squad.new()
+## One policy per rule, built on arm, so the same rule is the same policy object.
+var _policies: Dictionary = {}
+var _registered_on: Commander = null
 
 
 ## Wire this tactic's rule conditions into the manager exactly as GlobalTrigger.arm() does:
@@ -37,7 +41,10 @@ var _active_rule: TacticRule = null
 ## authored region actually scopes the check instead of silently matching everywhere.
 func arm(a_manager: ScenarioTriggerManager) -> void:
 	_manager = a_manager
+	_squad.name = unit_group
+	_policies.clear()
 	for rule: TacticRule in _rules():
+		_policies[rule] = TacticRulePolicy.new(rule, a_manager)
 		var condition: Condition = rule.condition
 		if condition == null:
 			continue
@@ -54,7 +61,8 @@ func arm(a_manager: ScenarioTriggerManager) -> void:
 ## over from a previous session. The tactic counterpart of GlobalTrigger.reset_conditions();
 ## see ScenarioTriggerManager._reset_session_conditions() for why it is needed at all.
 func reset_conditions() -> void:
-	_active_rule = null
+	_squad.policy = null
+	_squad.redirect()
 	for rule: TacticRule in _rules():
 		if rule.condition != null:
 			rule.condition.reset()
@@ -66,19 +74,28 @@ func _physics_process(_a_delta: float) -> void:
 	var members: Array[Commandable] = _live_members()
 	if members.is_empty():
 		return
+	_register_on(members[0].commander)
+	_squad.set_members(members)
 	var winner: TacticRule = _winning_rule()
 	if winner == null:
 		return
-	var commander_id: int = members[0].commander_id
-	if winner != _active_rule:
-		_active_rule = winner
-		winner.issue_commands_to(members, _manager, commander_id)
+	_squad.policy = _policies[winner]
+	_squad.tick()
+
+
+func _register_on(a_commander: Commander) -> void:
+	if a_commander == null or a_commander == _registered_on:
 		return
-	var idle_members: Array[Commandable] = members.filter(
-		func(m: Commandable) -> bool: return m.command_receiver.is_idle()
-	)
-	if not idle_members.is_empty():
-		winner.issue_commands_to(idle_members, _manager, commander_id)
+	if _registered_on != null:
+		_registered_on.squads.release(_squad)
+	_registered_on = a_commander
+	a_commander.squads.register(_squad)
+
+
+func _exit_tree() -> void:
+	if _registered_on != null:
+		_registered_on.squads.release(_squad)
+		_registered_on = null
 
 
 func _rules() -> Array[TacticRule]:

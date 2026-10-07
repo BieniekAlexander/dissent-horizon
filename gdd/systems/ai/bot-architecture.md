@@ -86,8 +86,10 @@ currency below, is still the model for the other managers.
   utility units are on the same footing now**: how many builders and carriers to keep is one
   per live ERRAND (`_utility_demand_for`) rather than the flat count-per-type it used to be,
   and `utility_unit_cap` is the ceiling on that answer rather than the answer.
-- **`BotMilitary`** — a three-state posture FSM over one objective position, re-tasking the
-  whole army only when the posture or objective changes. **The ATTACK objective is a BELIEF**
+- **`BotMilitary`** — a three-state posture FSM over one objective position, commanding the
+  army as SQUADS kept to policies (main, reserve, guard — [squads-and-relations](squads-and-relations.md)
+  §Squads), so a posture change is a new policy and nothing is re-pathed to where it stands.
+  **The ATTACK objective is a BELIEF**
   (see §The attack objective is a belief), and the army it commands is everything with combat
   utility — armed *or* able to crush, which is what stopped an unarmed Stock Truck being
   filtered out of both the re-task and the idle sweep and left standing for the match. **Its commit rule is the one real
