@@ -167,16 +167,17 @@ also a fixture, placed at home.
 
 Three numbers, and every temporal rule in the model is one of them.
 
-**The perception floor** — a constant of the model. The shortest-lived thing the model will
-represent at all. A lead round reaches its target in a handful of ticks and the physics
+**The perception floor** — a constant of the model, **1.0 s to start** (decided 2026-10-06;
+arbitrary, retune in testing). The shortest-lived thing the model will represent at all. A lead round reaches its target in a handful of ticks and the physics
 supports no meaningful response to one, so it never enters L0, by construction. This bounds
 the computation and the behaviour search space, and it is the model's, not a tier's.
 
 **Reaction latency** — a `BotDifficulty` parameter, since the tiers are a parameter vector
 and their periods are already "the tier's identity" (`bot_difficulty.gd`). A sighting becomes
 a track only once it has persisted for `reaction_seconds`. It composes with the existing
-decision periods: latency is when the bot NOTICES, the period is when it ACTS. EASY: seconds,
-so it never dodges anything; IMPOSSIBLE: one perception tick.
+decision periods: latency is when the bot NOTICES, the period is when it ACTS. Starting values
+(decided 2026-10-06; arbitrary, retune in testing): `EASY` 2.0 s, so it never dodges
+anything · `MEDIUM` 1.0 s · `HARD` 0.5 s · `IMPOSSIBLE` one perception tick, 0.2 s.
 
 **Hazard lifetime** — derived from the emission: a phase list with a flight time gives
 time-to-impact, `Lifespan` gives a dwell. **Whether a hazard can be answered is
@@ -197,8 +198,10 @@ So the model has a **focus** — a set of lattice regions perceived at full fide
   coarse fields — something is THERE, as a red blob on a minimap is, without composition or
   heading. That is the peripheral representation a human has.
 - **The allowance** — a `BotDifficulty` parameter: how many focus windows the bot holds and
-  how fast one moves. `EASY` holds one and moves it slowly; `HARD` two or three;
-  `IMPOSSIBLE` has no windows, because its focus is the whole map.
+  how fast one moves. Rudimentary to start (decided 2026-10-06): a window is a disc of radius
+  R = 15 world units on the lattice, moving at most one lattice hop per scout period; `EASY`
+  holds 1, `MEDIUM` 2, `HARD` 3; `IMPOSSIBLE` has no windows, because its focus is the whole
+  map. Retune in testing.
 - **Where the focus goes** is already L4's output: the attention list prices what is worth
   looking at, and the human tiers take its top *k* where IMPOSSIBLE takes all of it. Scouting
   (where to send a unit) and focus (where to look) are two consumers of one ranking.
@@ -287,14 +290,8 @@ costliest term in the sight sweep (`SIGHT_RAYCAST_WORK_UNITS`).
 
 ## Open decisions
 
-> **TODO — the perception floor's value.** A constant in seconds; the lead round's flight is
-> the lower bound and the shortest answerable hazard the upper. Measure the emission
-> catalogue's flight times before picking.
-
-> **TODO — attention's shape.** A window is a disc on the lattice today in prose; whether it
-> is a disc, a lattice region, or a set of tracked groups, and how "moves slowly" is
-> parameterised (cells per second? one hop per period?), is undecided. Decide when L4 is
-> built; the allowance parameter's existence is decided, its unit is not.
+The perception floor's value and attention's shape were open here and are now set, as
+arbitrary starting values, in §Time and §Attention; testing retunes them.
 
 > **TODO — where salience is authored.** On the component that draws (a `StatusVisuals`
 > badge, a particle scene) or in the piece doc the importer validates? The rule above says

@@ -99,6 +99,18 @@ every decision job, read by every manager. **A manager reads the model and the c
 nothing else.** Each layer is a pure `RefCounted` that takes the layer below as input, so each
 is unit-testable from a fixture with no scene (`~/.claude/CLAUDE.md` §7).
 
+**The model is a blackboard, and it holds STATE, never logs** (decided 2026-10-06). Two
+rules, both from the compute budget being small:
+
+- **Every signal is computed once, on its cadence, stored, and READ.** A manager that
+  recomputes what the model already holds is the bug; a signal two managers want is a signal
+  the model stores. This is the blackboard discipline the roadmap's utility arbitration
+  already assumes, applied to perception.
+- **The Markov property.** Where the past matters it is consolidated into a small number of
+  present data points that overwrite themselves; where a past state stops mattering (a clip
+  refilled, an ability recharged) its datum expires on its own. Nothing is appended to and
+  searched later. No event log exists anywhere in the model.
+
 **Which half lives where is decided by one test (2026-10-06): is this information part of a
 human player's own perception of the game?** If the game presents it to the player, or a
 player naturally holds it, it is a `Commander` fact and the bot reads the SAME signal the HUD
@@ -122,18 +134,30 @@ scene / fog ──L0 sightings──▶ L1 tracks ──▶ L2 situation ──�
                                  └──────── L4 attention ◀─────────┘   (what to look at next)
 ```
 
-### L0 — Sightings: events, not state
+### L0 — Sightings
 
-What the fog delivers, as a stream. One `Sighting` per enemy or neutral piece in vision per
-perception tick: `{instance_id, type, owner, position, tick, hp_fraction, is_structure}`,
-plus a `facing`/velocity hint where the piece moved since the last tick. Two kinds of
-evidence the blackboard does not record today:
+What the fog delivers, each perception tick, for the pieces inside the bot's focus (§L4):
+one `Sighting` per visible enemy or neutral piece — `{instance_id, type, owner, position,
+tick, hp_fraction}` — plus, when a piece was seen to act, the ONE fact about the action that
+outlives it: a weapon fired (so its clip is down), an ability used (so it is recharging).
+Those become expiring state on the track (§L1); they are not kept as events.
 
-- **Negative evidence.** The set of lattice cells in vision this tick, with no sighting in
-  them. This is what *disproves* a belief, and it is what the bot walks to the objective to
-  discover today ([bot-engagement-fixes](bot-engagement-fixes.md) §What this does NOT explain).
-- **Own-side events.** An own piece died (where, to which type), damage taken (where from),
-  a kill witnessed. The ledger L3 needs.
+Two gates sit on L0, both from the [ontology](ontology.md) §Time, both with starting values
+to be retuned in testing:
+
+- **the perception floor**, 1.0 s: nothing that exists for less is delivered at all — a lead
+  round never enters the model;
+- **reaction latency**, per tier: a sighting is delivered only once it has persisted that
+  long. `EASY` 2.0 s · `MEDIUM` 1.0 s · `HARD` 0.5 s · `IMPOSSIBLE` one perception tick
+  (0.2 s at the blackboard's 5 Hz).
+
+**Negative evidence is a check, not a set** (decided 2026-10-06, replacing the first draft's
+"cells seen empty"). Per track inside the focus, per tick, two lookups — is its last-known
+position fog-clear now, and was it among this tick's sightings. Clear and absent is the
+evidence: a structure track goes `LOST`, a unit track takes a sharp confidence cut. O(tracks)
+with a pixel read each, and no spatial bookkeeping. The `sight_age` channel (§L2) is stamped
+the same way, lattice cells against the fog's cleared set on a resumable sweep — which is
+what replaces `BotScout`'s raycasts ([ontology](ontology.md) §Vision is unoccluded).
 
 L0 is the ONLY code that touches `Commander.visible_enemies`, `visible_foreign_structures`,
 `has_vision_at` and the fog. Everything above it is a function of sightings.
@@ -144,11 +168,12 @@ L0 is the ONLY code that touches `Commander.visible_enemies`, `visible_foreign_s
 
 | field | meaning |
 |---|---|
-| `type`, `owner`, `is_structure` | as today |
-| `first_seen`, `last_seen`, `last_position`, `last_hp_fraction` | history, not just last |
-| `velocity` | from consecutive sightings; zero for structures |
-| `status` | `CONFIRMED` (in vision now) · `BELIEVED` (out of vision, confidence above floor) · `LOST` (disproved by negative evidence, or expired) · `DESTROYED` (death witnessed) |
-| `confidence` | ∈ (0, 1]. Structures: 1 until negative evidence at their cell. Units: decays with time AND with the fraction of their *reachable disc* (speed × time since seen) that has since been seen empty — a unit that could only have gone somewhere the bot has looked is more likely gone. Decided 2026-10-06, on one condition: the disc check is a lattice read per track per perception tick, budgeted and measured like every other channel (§Cadence and cost) |
+| `type`, `owner`, `noun` | as today, plus the ACTIVE noun ([ontology](ontology.md) §Pieces) |
+| `last_seen`, `last_position`, `last_hp_fraction` | the last sighting |
+| `velocity` | from the last two sightings; zero for fixtures |
+| `status` | `CONFIRMED` (in vision now) · `BELIEVED` (out of vision, confidence above floor) · `LOST` (negative evidence, or decayed out) · `DESTROYED` (death witnessed) |
+| `confidence` | ∈ (0, 1]. Exponential decay in time since last seen, with a half-life per noun — units short, structures very long, features effectively none — cut sharply by the negative-evidence check. Decided 2026-10-06; the first draft's reachable-disc rule is REJECTED, since it was the one part that needed per-cell bookkeeping and the decay plus the last-position check gets most of the honesty |
+| `ammo`, `ability` | EXPIRING STATE: `{empty, refills_at}` from `Weapon.reload_time_ticks` / `clip_size` / `charged`; `{id, ready_at}` from the ability catalog's cooldown. Written when the action was seen inside the focus, read until the time passes, then gone. This is the whole of a track's "history" |
 | `affordances` | the type's derived capability set ([ontology](ontology.md) §Affordances), so higher layers reason without per-type code |
 
 Rules, replacing today's leaks:
@@ -169,73 +194,110 @@ Rules, replacing today's leaks:
   (`bot.gd:989`); liberation, capture, scouting responsibility and the extractor survey read
   tracks instead. Difficulty tiers get no extra information: a very hard bot is tuned, not
   told.
-- **A ledger**: witnessed enemy losses and own losses, by type, time and place. The input
-  momentum lacks ([bot-roadmap](bot-roadmap.md) §Reading the game).
+- **Enemy presence is an L1 read.** `believed_structure_count` is a count over the table;
+  with the `sight_age` channel's unexplored fraction it is what separates "no structures
+  left" from "not found yet" ([bot-engagement-fixes](bot-engagement-fixes.md) §The controlled
+  comparison). L3 only combines the two.
+
+**Per-commander knowledge** sits beside the table, for the few facts worth keeping for the
+whole match: two MONOTONE sets that only grow and stay small — the enemy's inferred tech
+(seen type X ⇒ owns what `technology_mapping` says produces and unlocks X) and the modifiers
+observed (an upgrade seen in effect). This, and the expiring state above, is the entire
+memory of the model.
+
+**REJECTED (2026-10-06) — a ledger of own losses.** No mechanic makes a bot that had three
+units and lost one play differently from one that always had two. The one consumer, momentum,
+is served by the `combat` channel (§L2) instead.
 
 The visual snapshot layer (remembered structure meshes) stays on `CommanderBlackboard` —
 it is player-facing rendering, not belief — and reads L1 for what to show.
 
 ### L2 — Situation: relations and fields
 
-Derived from L1 once per cadence and cached; a manager never recomputes it.
+Derived from L1 once per cadence and stored; a manager never recomputes it.
 
 **Groups.** `enemy_clusters` over BELIEVED tracks, members weighted by confidence
-([bot-roadmap](bot-roadmap.md) §The vision layer), bucketed on the lattice so grouping is linear rather
-than O(n²) (same section). Own-side groups the same way, which is the representation
-[squads-and-relations](squads-and-relations.md) needs for "leave half at home".
+([bot-roadmap](bot-roadmap.md) §The vision layer), bucketed on the lattice so grouping is
+linear rather than O(n²) (same section). Own-side groups the same way, which is the
+representation [squads-and-relations](squads-and-relations.md) needs for "leave half at
+home".
 
-**Fields.** ONE lattice, replacing the scout grid, the dominion survey's lattice and the
-build-spot search's disc as the bot's spatial quantisation. Anchored to the map centre so a
-reflected map reflects the lattice (closing the asymmetry at
-[bot-architecture](bot-architecture.md) §What it was measured to fix). Channels:
+**One lattice.** Today three quantisations of the same ground disagree: the scout grid (5
+units, world-anchored with `roundi`, hence the mirror asymmetry at
+[bot-architecture](bot-architecture.md) §What it was measured to fix), the dominion survey's
+lattice (5 cells, centred on the base), and the build-spot search's disc. They become ONE
+grid-geometry object — pitch 5 world units, origin at the map centre, world↔index — carrying
+several CHANNELS, and every consumer reads it. The channels, each recomputed from tracks on
+its cadence rather than accumulated, each piece stamping a disc bounded by its reach:
 
-| channel | from | reads it answers |
+| channel | definition | reads it answers |
 |---|---|---|
-| `sight_age` | L0 negative evidence | the scout grid's role: stale, never seen |
-| `own_influence`, `enemy_influence` | tracks × strength, decayed by confidence, spread by speed | front line, control fraction |
-| `threat` | weapon reach of believed enemies | "can a unit stand here", retreat destinations |
-| `tension` / `vulnerability` | influence sums and differences | undefended approach, where to defend, where to raid |
-| `avoid` | lingering area effects (emissions publish into it) | the avoid-region signal ([bot-roadmap](bot-roadmap.md) §The gaps in the decision surface) |
-| `value` | resource sites, dominion sites, shelters | expansion and dominion surveys |
+| `sight_age` | seconds since the cell was last fog-clear | stale, never seen; the unexplored fraction |
+| `own_influence`, `enemy_influence` | Σ over pieces with lethality of energy value × confidence × falloff over (reach + speed·τ), τ the combat period | who controls here; the front, where own ≈ enemy and both are high |
+| `threat` | Σ dps of enemy weapons that can REACH the cell, stored PER DAMAGE TYPE (a handful of channels); a unit reads its own threat as Σ_type dps × `DamageTable` multiplier against its armour — relational without a channel per armour class | standing here costs this much HP per second; retreat destinations |
+| `tension`, `vulnerability` | own + enemy; tension − \|own − enemy\| | where fights happen; contested ground |
+| `value` | resource sites, dominion sites, shelters, structures by energy value, per side | what is worth taking, holding, or hitting |
 | `approach` | sampled paths from believed enemy groups to own base | approach coverage ([squads-and-relations](squads-and-relations.md) §Placement beyond open ground) |
+| `avoid` | lingering area effects publish into it | the avoid-region signal ([bot-roadmap](bot-roadmap.md) §The gaps in the decision surface) |
+| `combat` | witnessed damage stamped at its cell, decayed per period | engagements (§L3) |
+| `reach_coverage` | for a candidate cell and a weapon reach: the fraction of the reach disc that is passable ground on an `approach` | whether a static defence placed here guards anything |
 
-**Composition and tech inference.** Believed enemy counts by type; and — the one inference
-step — the enemy's tech: having seen type X implies the enemy owns whatever
-`technology_mapping` says produces and unlocks X. Reading the enemy's structures through the
-units it fields is how a player scouts, and it is what the counter-demand map should be
-computed from rather than from a live `rep` entity (`bot.gd:1395`).
+The derived reads over them, stored too: an **undefended approach** (high `approach`, low
+`own_influence`); a **safe build spot** (low `threat`, high `own_influence`, high
+`reach_coverage` for a defence); an **exposed enemy position** (high enemy `value`, low
+enemy `threat`, low `enemy_influence` — many structures, no weapons, nothing defending);
+and its mirror, the bot's **own exposure** — the same read over its own structures, which is
+where units and static defences belong. The clustered turrets whose ranges covered cliffs
+(observed 2026-10-06) score near zero on `reach_coverage`, which is the placement the read
+rejects.
 
-**Economy estimate**, both sides: own income is arithmetic over `EnergyExtractor`
-components; the enemy's is believed extractors × rate, with confidence. The signal
-[objective-selection](objective-selection.md) §First: the signals is blocked on.
+**Enemy income** is believed extractors × `EnergyExtractor.energy_rate`, with confidence —
+the signal [objective-selection](objective-selection.md) §First: the signals is blocked on.
+**REJECTED (2026-10-06) — an enemy dominion-rate estimate**: a `DominionGenerator` is a piece
+with an income affordance and is priced as infrastructure worth killing through the ordinary
+utility comparison, which removes the estimate entirely.
+
+**Counter-demand** (`enemy_demand_map`) is computed from the believed composition and the
+inferred tech, never from a live `rep` entity (`bot.gd:1395`).
 
 ### L3 — Assessment: what it means for me
 
-Scalars and per-asset reads, in energy-equivalent units where a value is a value:
+Reads over L1 and L2, in energy-equivalent units where a value is a value, stored on the
+model:
 
-- **Per own asset**: threat exposure (field read at its cell) and survivability — the
-  per-structure read [bot-roadmap](bot-roadmap.md) §The gaps in the decision surface asks for when picking a producer.
-- **Momentum** from BOTH sides' ledgers, so a costly winning fight reads as winning
-  (§Reading the game); engagements segmented by the ledger's time gaps, which is also the per-engagement
-  "did that trade well" `BotMomentum` names as the missing measure.
-- **Standing**: army value ahead/behind (believed), income ahead/behind, control fraction —
-  the posture inputs.
-- **Enemy presence**: `KNOWN_STRUCTURES = 0` is distinguished from `UNEXPLORED_FRACTION` —
-  the "no structures left" versus "not found yet" distinction whose absence produces ghost
-  marches ([bot-engagement-fixes](bot-engagement-fixes.md) §The controlled comparison). Each is a number already in
-  L1/L2; the distinction is just reading both.
-- **Counter-demand** (`enemy_demand_map`), moved here, computed from L2 composition.
+- **Per own asset**: `threat` at its cell and the survivability that follows — the
+  per-structure read [bot-roadmap](bot-roadmap.md) §The gaps in the decision surface asks
+  for when picking a producer.
+- **Engagements and momentum.** An engagement is a connected region of the lattice where
+  `combat` is above threshold; momentum is computed PER ENGAGEMENT, from value destroyed by
+  each side inside it (two decaying scalars, overwritten as damage is witnessed). A costly
+  winning fight reads as winning, "did that trade well" is a read of the region, and nothing
+  is segmented in time ([bot-roadmap](bot-roadmap.md) §Reading the game).
+- **Standing is LOCAL** (decided 2026-10-06). Per own group: its value against the enemy
+  influence within its reach. An army beside an exposed enemy position reads a strong standing
+  there and a futile one at the base under attack across the map, and attacks where it is —
+  no special rule. The global figures (army value, income, control fraction) are sums kept
+  for the posture layer, and no decision about a group reads them.
+- **Enemy presence**: the L1 count against the L2 unexplored fraction.
 
-### L4 — Attention: what is worth looking at
+### L4 — Attention: what is worth looking at, and where the bot is looking
 
 The model's own output back to itself: a ranked list of *questions*, each priced in
-energy-equivalent — "is the believed base still at X" (stakes: the whole attack plan),
-"what is at this never-seen high-`value` cell", "confirm or disprove this low-confidence
-group near my flank" — with value = stakes × uncertainty, as `BotScout`'s
-`INFORMATION_VALUE_ENERGY × stale_fraction` already prices the undifferentiated case.
-`BotScout` and the REVEAL sanction consume this list instead of owning a grid. Scouting
-becomes sensor management in the JDL sense: the decision side chooses WHO looks; the model
-says WHAT is worth seeing.
+energy-equivalent as stakes × (1 − confidence) — "is the believed base still at X" (stakes:
+the whole attack plan), "this resource site read empty three minutes ago" (stakes: its
+`value`), "confirm this low-confidence group near my flank". `BotScout`'s
+`INFORMATION_VALUE_ENERGY × stale_fraction` is the special case where every cell has equal
+stakes. Two consumers read the one ranking: **scouting** (where to send a unit — `BotScout`
+and the REVEAL sanction) and **focus** (where the bot looks).
+
+**Focus, rudimentary** (decided 2026-10-06; tune in testing): `k` discs of radius `R` on the
+lattice, centred on the top-`k` entries of the ranking, each moving at most one lattice hop
+per scout period. L0 delivers sightings only inside a disc; outside, only commander-wide cues
+and the coarse fields get through — something is THERE, as a blob on a minimap, without
+composition or heading. Starting values: `EASY` k=1, `MEDIUM` k=2, `HARD` k=3, R = 15 world
+units; `IMPOSSIBLE` has no discs, its focus is the lattice. The allowance is a
+`BotDifficulty` parameter and a MODEL budget; the scheduler's work units are a COMPUTE
+budget, and a tier's attention is never defined as what fits in the frame.
 
 ### Affordances: the signal the brief asked for
 
@@ -310,14 +372,18 @@ Incremental, one landable change each, in the order that pays earliest:
 
 1. **Make the boundary explicit.** Route the three leaks through visibility and belief status
    (fixes the bugs above with no new machinery); add the forbidden-identifier scan.
-2. **Extract `TrackTable`** from `CommanderBlackboard`, with status, confidence and the
-   ledger; snapshots read it. The blackboard's open question
+2. **Extract `TrackTable`** from `CommanderBlackboard`, with status, decaying confidence, the
+   negative-evidence check and expiring state; snapshots read it. The blackboard's open question
    ([bot-engagement-fixes](bot-engagement-fixes.md) §What this does NOT explain) is answered by negative evidence.
-3. **One lattice**: move the scout grid into `BotFields`, anchored to the map centre; add
-   `enemy_influence` and `threat`. `BotScout` reads `sight_age`.
-4. **Believed clusters** from tracks; **momentum** from both ledgers.
-5. **L3 standing and enemy-presence reads**; the military's objective choice reads them.
-6. **L4 attention**; `BotScout` and REVEAL consume it.
+3. **One lattice**: move the scout grid into `BotFields`, anchored to the map centre, stamped
+   from the fog's cleared set (the raycasts go); add `enemy_influence` and `threat`. `BotScout`
+   reads `sight_age`; the dominion survey and the build-spot search read the same grid.
+4. **Believed clusters** from tracks; the `combat` channel, engagements and per-engagement
+   momentum.
+5. **L3 local standing, exposure and enemy-presence reads**; the military's objective choice
+   and the defence placement read them (`reach_coverage`).
+6. **L4 attention and focus**; `BotScout` and REVEAL consume the ranking; L0 gates on the
+   discs, the floor and the latency.
 7. **Affordance derivation** per [ontology](ontology.md) §The capability vocabulary;
    `BotScout`'s scorer and the dominion drive read it.
 
@@ -326,10 +392,13 @@ exists.
 
 ## Open decisions
 
-Four of the five decisions this note was written with are made (2026-10-06) and folded into
-the sections above: where each layer lives (§The model), the reachable-disc confidence and
-instance-keyed tracks (§L1), the 5-unit pitch and the performance requirement (§Cadence and
-cost), and neutral features discovered rather than known (§L1). One remains:
+The decisions this note was written with are made (2026-10-06) and folded into the sections
+above: the blackboard-and-Markov rule and where each layer lives (§The model), the gates and
+the negative-evidence check (§L0), decaying confidence, expiring state, instance-keyed tracks
+and discovered neutrals (§L1), the one lattice and its channels (§L2), per-engagement momentum
+and local standing (§L3), the rudimentary focus (§L4), the 5-unit pitch and the performance
+requirement (§Cadence and cost). The starting constants are arbitrary and to be retuned in
+testing. One remains:
 
 > **TODO — the capability vocabulary is to be revisited** as the ontology of what the model
 > can signal develops; it is now a table of derivations in [ontology](ontology.md), and the
