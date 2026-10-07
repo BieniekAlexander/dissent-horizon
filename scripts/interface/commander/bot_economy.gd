@@ -154,6 +154,18 @@ const CONSTRUCTION_JOB_TIMEOUT_SECONDS: float = 90.0
 ## world units. Roughly one building's footprint.
 const ABANDONED_SPOT_RADIUS: float = 2.0
 
+## A SITE WITH A VISIBLE ARMED ENEMY NEAR IT IS CONTESTED, and a builder is not sent to it —
+## nor left walking to it. The only abort used to be an enemy standing ON the footprint
+## (Build refuses the placement), so a lone Servant walked into a defended site and died
+## (observed 2026-10-06 on main). "Near" is `defend_threat_radius`, the one meaning of "under
+## threat" every manager shares; a contested spot is skipped for this long before it is
+## considered again — a cooldown rather than a ban, since the enemy moves on. Only an order
+## that has NOT yet placed its structure is abandoned: a placed one is a building the
+## builder would have to come back for anyway (the repair gap, test_BotCommandCoverage).
+const CONTESTED_SPOT_SECONDS: float = 30.0
+## How close a candidate spot must be to a contested one to count as the same place.
+const CONTESTED_SPOT_RADIUS: float = ABANDONED_SPOT_RADIUS * 2.0
+
 ## How close a candidate spot may come to one an in-flight construction job is already aimed
 ## at. A footprint's worth of ground plus margin: two sites this close are racing for the same
 ## cells, which is what `build_concurrency = 1` used to prevent by never running a second job.
@@ -176,6 +188,10 @@ var _job_started: Dictionary = {}
 ## job there, and nothing the bot does later changes the terrain; a bot that forgets would
 ## re-learn the same lesson at 90 seconds a time.
 var _abandoned_spots: Array = []
+
+## Spots a builder was called back from, or refused, because an enemy stood near:
+## [{"position": Vector3, "until": float}] — see CONTESTED_SPOT_SECONDS.
+var _contested_spots: Array = []
 
 ## The owner name this module claims builders under (BotClaims). A build job runs to
 ## completion, so the army's rally leaves the builder alone until it does.
@@ -302,6 +318,7 @@ func _decide() -> void:
 	# BEFORE the rate limit, not after: a job that will never finish must give its slot back,
 	# or the test below returns for the rest of the match. See CONSTRUCTION_JOB_TIMEOUT_SECONDS.
 	_release_stalled_construction()
+	_abort_contested_jobs()
 
 	# Construction jobs are rate-limited: wait for a builder to finish rather than pulling
 	# another fighter off the line or racing two builds onto the same cells. `build_concurrency`
@@ -1002,6 +1019,52 @@ func _release_stalled_construction() -> void:
 			_job_started.erase(key)
 
 
+## Call back every builder walking to a site that is contested NOW, before it arrives there.
+## The claim is released with the order, so the army may have the unit back; the spot is
+## remembered as contested so the next think does not send it straight back.
+func _abort_contested_jobs() -> void:
+	for u: Commandable in _bot.get_units():
+		if not _is_constructing(u) or not (u.current_command() is Build):
+			continue
+		var target: Variant = _construction_target(u)
+		if not (target is Vector3) or not _site_is_contested(target):
+			continue
+		_mark_contested(target)
+		u.update_commands(null)
+		claims.release(u, CLAIM_OWNER)
+		_job_started.erase(u.get_instance_id())
+
+
+## Whether an ARMED enemy this bot can see stands within defend_threat_radius of `a_site`.
+## Fog-limited like every threat sense: a defender the bot has not seen is one it walks into.
+func _site_is_contested(a_site: Vector3) -> bool:
+	return _bot.visible_enemies_near(a_site, defend_threat_radius).any(
+		func(enemy: Commandable) -> bool: return _bot.unit_can_attack(enemy.id)
+	)
+
+
+func _mark_contested(a_site: Vector3) -> void:
+	_contested_spots.append(
+		{"position": a_site, "until": _bot.seconds_elapsed() + CONTESTED_SPOT_SECONDS}
+	)
+
+
+## Whether `a_world` is within CONTESTED_SPOT_RADIUS of a spot contested within the cooldown,
+## or is contested right now. Expired entries are dropped as they are met. Consulted by every
+## rung's spot choice, like the abandoned list: contested is a property of the place.
+func _is_contested_spot(a_world: Vector3) -> bool:
+	var now: float = _bot.seconds_elapsed()
+	_contested_spots = _contested_spots.filter(
+		func(entry: Dictionary) -> bool: return float(entry["until"]) > now
+	)
+	if _contested_spots.any(
+		func(entry: Dictionary) -> bool:
+			return (entry["position"] as Vector3).distance_to(a_world) <= CONTESTED_SPOT_RADIUS
+	):
+		return true
+	return _site_is_contested(a_world)
+
+
 ## Where `unit`'s current construction order was aimed, or null when it has none.
 func _construction_target(a_unit: Commandable) -> Variant:
 	if not a_unit.has_command():
@@ -1203,7 +1266,7 @@ func _pond_spot_in(a_body: WaterBody, a_dims: Vector2i) -> Variant:
 		var world: Vector3 = _bot.map.grid_to_world(cell)
 		if not _bot.has_explored(world):
 			continue
-		if _is_abandoned_spot(world) or _is_claimed_spot(world):
+		if _is_abandoned_spot(world) or _is_claimed_spot(world) or _is_contested_spot(world):
 			continue
 		if EnergyExtractor.fits_in_pond(
 			CommandMessage.new(_bot.map, null, null, world), a_dims, true, true
@@ -1235,6 +1298,8 @@ func _nearest_unclaimed_site() -> Entity:
 			continue  # a site the builder could not finish a job on — see _abandoned_spots
 		if _is_claimed_spot(dep.global_position):
 			continue  # a builder is already on its way to it
+		if _is_contested_spot(dep.global_position):
+			continue  # an enemy stands over it; see CONTESTED_SPOT_SECONDS
 		var d: float = base.distance_squared_to(dep.global_position)
 		if d < best_d:
 			best_d = d
@@ -1684,6 +1749,8 @@ func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bo
 	if _is_abandoned_spot(a_world):
 		return false
 	if _is_claimed_spot(a_world):
+		return false
+	if _is_contested_spot(a_world):
 		return false
 	var footprint: Array = _bot.map.footprint_cells(VU.in_xz(a_world), a_dims)
 	var grid: TerrainGrid = _bot.map.terrain_grid

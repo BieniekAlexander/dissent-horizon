@@ -927,6 +927,25 @@ lives).
 > stay permanent, the timeout probably wants to be a function of the structure's build time
 > rather than a constant. Neither has been measured.
 
+## A build at a defended site
+
+**A site with a visible ARMED enemy within `defend_threat_radius` is contested: no builder is
+sent to it, and a builder already walking to it is called back** (`BotEconomy._abort_contested_jobs`,
+run every think before the ladder; `_is_contested_spot` inside every rung's spot test). Until
+2026-10-07 the only abort was an enemy standing ON the footprint — `Build` refusing the
+placement — so a lone Servant walked the length of the map into a defended extraction site and
+died there, watched on main on 2026-10-06. The read is the same visible-armed-enemy sense every
+manager calls "under threat", which is the point: a builder's danger is not a new quantity.
+
+A contested spot is remembered for `CONTESTED_SPOT_SECONDS` (30 s) and then tried again — a
+cooldown, not the permanent ban `_abandoned_spots` is, because the enemy moves on and the site
+does not. Only an order that has not yet PLACED its structure is abandoned; a placed one is a
+building the builder would have to come back for anyway. Cover: `tests/test_BotBuilderAbort.gd`.
+
+TODO: this reads the threat AT the site, not ALONG the walk — a builder whose path crosses a
+defended choke still goes. The lattice's `threat` channel is the read for that
+([world-model](world-model.md) §L2), and this rule becomes one query of it.
+
 ## Dominion routes
 
 **Which pieces earn a faction dominion is the faction's own answer, never a component the bot

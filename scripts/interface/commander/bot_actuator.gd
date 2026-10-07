@@ -26,6 +26,33 @@ func _init(a_map: Map) -> void:
 	_map = a_map
 
 
+## EVERY VERB ASKS ITS COMMAND'S OWN PRECONDITION HERE, the way RTSController asks it before
+## the player's click is issued, and records the answer under `a_kind` for `a_piece`. True
+## when the order may be issued.
+##
+## One helper rather than a check per verb, because the verbs that did not ask (interact,
+## garrison_into — "handled downstream by the command itself") were blind in the piece-usage
+## audit: an order the command silently dropped was counted as ISSUED, so a piece the bot
+## could never actually use read as used. The ledger is only honest if a refusal is counted
+## where it is decided, and the command's static precondition is the one definition of
+## "possible" that cannot drift from the player's.
+func _admits(
+	a_command_class: Script,
+	a_actor: Commandable,
+	a_message: CommandMessage,
+	a_kind: String,
+	a_piece: StringName
+) -> bool:
+	var cause: MoveCommand.PreconditionFailureCause = a_command_class.meets_precondition(
+		a_actor, a_message
+	)
+	if cause != MoveCommand.PreconditionFailureCause.NONE:
+		usage.record_action(a_kind, a_piece, BotUsageLog.refused(cause))
+		return false
+	usage.record_action(a_kind, a_piece, BotUsageLog.OUTCOME_ISSUED)
+	return true
+
+
 ## Order each unit to attack-move toward a world position. The destination is
 ## snapped to the navmesh first (a raw point off the mesh would be dropped).
 ## Attack-move makes units engage enemies encountered en route.
@@ -52,8 +79,9 @@ func attack_move(
 	for u: Commandable in a_units:
 		var msg := CommandMessage.new(_map, null, null, dest)
 		msg.target_priority = a_target_priority
+		if not _admits(AttackMove, u, msg, "attack_move", u.id):
+			continue
 		var cmd := AttackMove.new(msg)
-		usage.record_action("attack_move", u.id, BotUsageLog.OUTCOME_ISSUED)
 		u.update_commands(cmd)
 		# Prime the nav target: a fresh agent defaults target_position to (0,0,0),
 		# so without this a destination at the map centre is silently dropped.
@@ -68,8 +96,10 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
 	for u: Commandable in a_units:
-		var cmd := MoveCommand.new(CommandMessage.new(_map, null, null, dest))
-		usage.record_action("move", u.id, BotUsageLog.OUTCOME_ISSUED)
+		var msg := CommandMessage.new(_map, null, null, dest)
+		if not _admits(MoveCommand, u, msg, "move", u.id):
+			continue
+		var cmd := MoveCommand.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
 
@@ -86,10 +116,10 @@ func move_at(a_units: Array, a_target: Entity) -> void:
 	if _map == null or a_target == null or not is_instance_valid(a_target):
 		return
 	for u: Commandable in a_units:
-		var cmd := MoveCommand.new(
-			CommandMessage.new(_map, a_target, null, a_target.global_position)
-		)
-		usage.record_action("move_at", u.id, BotUsageLog.OUTCOME_ISSUED)
+		var msg := CommandMessage.new(_map, a_target, null, a_target.global_position)
+		if not _admits(MoveCommand, u, msg, "move_at", u.id):
+			continue
+		var cmd := MoveCommand.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
 
@@ -115,12 +145,8 @@ func evacuate(a_hosts: Array) -> void:
 		return
 	for host: Commandable in a_hosts:
 		var msg := CommandMessage.new(_map, null, null, host.global_position)
-		var cause: MoveCommand.PreconditionFailureCause = Evacuate.meets_precondition(host, msg)
-		if cause != MoveCommand.PreconditionFailureCause.NONE:
-			usage.record_action("evacuate", host.id, BotUsageLog.refused(cause))
-			continue
-		usage.record_action("evacuate", host.id, BotUsageLog.OUTCOME_ISSUED)
-		host.update_commands(Evacuate.new(msg))
+		if _admits(Evacuate, host, msg, "evacuate", host.id):
+			host.update_commands(Evacuate.new(msg))
 
 
 ## Order each unit to attack a specific enemy entity directly. persist=false makes
@@ -147,11 +173,8 @@ func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 	for u: Commandable in a_units:
 		var msg := CommandMessage.new(_map, a_target)
 		msg.persist = a_persist
-		var cause: MoveCommand.PreconditionFailureCause = Attack.meets_precondition(u, msg)
-		if cause != MoveCommand.PreconditionFailureCause.NONE:
-			usage.record_action("attack", u.id, BotUsageLog.refused(cause))
+		if not _admits(Attack, u, msg, "attack", u.id):
 			continue
-		usage.record_action("attack", u.id, BotUsageLog.OUTCOME_ISSUED)
 		var cmd := Attack.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
@@ -196,27 +219,35 @@ func build(a_builder: Commandable, a_type: StringName, a_world_pos: Vector3) -> 
 ## unit paths to the target and performs its applicable Interaction on arrival. The
 ## message's `position` derives from the target, so load_destination primes the nav goal.
 ## Applicability (the unit owning a matching Interactor interaction, the target being
-## available) is enforced downstream by Interact.meets_precondition, so an invalid
-## request is a safe no-op.
-func interact(a_unit: Commandable, a_target: Entity) -> void:
+## available) is Interact.meets_precondition's, asked here so a refusal is counted. Returns
+## whether the order was issued.
+func interact(a_unit: Commandable, a_target: Entity) -> bool:
 	if _map == null or a_target == null:
-		return
-	var cmd := Interact.new(CommandMessage.new(_map, a_target))
-	usage.record_action("interact", a_unit.id, BotUsageLog.OUTCOME_ISSUED)
+		return false
+	var msg := CommandMessage.new(_map, a_target)
+	if not _admits(Interact, a_unit, msg, "interact", a_unit.id):
+		return false
+	var cmd := Interact.new(msg)
 	a_unit.update_commands(cmd)
 	a_unit.load_destination(cmd)
+	return true
 
 
-## Order [unit] to enter [host]'s garrison. The Occupy precondition enforces
-## GROUNDED movement and a same-team or neutral, built Garrison host;
-## precondition failures are silently handled by Occupy itself.
-func garrison_into(a_unit: Commandable, a_host: Commandable) -> void:
-	if _map == null:
-		return
-	var cmd := Occupy.new(CommandMessage.new(_map, a_host, null, a_host.global_position))
-	usage.record_action("garrison", a_host.id, BotUsageLog.OUTCOME_ISSUED)
+## Order [unit] to enter [host]'s garrison. The Occupy precondition — GROUNDED movement, a
+## same-team or neutral, built host whose masks admit the unit — is asked here, so a unit
+## the host would never take is refused and counted rather than ordered to stand at the
+## door. Recorded under the HOST's id: the ledger's question is which hosts the bot uses.
+## Returns whether the order was issued.
+func garrison_into(a_unit: Commandable, a_host: Commandable) -> bool:
+	if _map == null or a_host == null:
+		return false
+	var msg := CommandMessage.new(_map, a_host, null, a_host.global_position)
+	if not _admits(Occupy, a_unit, msg, "garrison", a_host.id):
+		return false
+	var cmd := Occupy.new(msg)
 	a_unit.update_commands(cmd)
 	a_unit.load_destination(cmd)
+	return true
 
 
 ## Order `a_caster` to cast `a_sanction` at `a_world_pos` — the SAME route the player takes.
@@ -242,11 +273,8 @@ func use_sanction(
 		return false
 	var msg := CommandMessage.new(_map, a_target, null, a_world_pos)
 	msg.sanction = a_sanction
-	var cause: MoveCommand.PreconditionFailureCause = UseSanction.meets_precondition(a_caster, msg)
-	if cause != MoveCommand.PreconditionFailureCause.NONE:
-		usage.record_action("use_sanction", a_sanction.ability_id, BotUsageLog.refused(cause))
+	if not _admits(UseSanction, a_caster, msg, "use_sanction", a_sanction.ability_id):
 		return false
-	usage.record_action("use_sanction", a_sanction.ability_id, BotUsageLog.OUTCOME_ISSUED)
 	if a_sanction.needs_target:
 		usage.record_cast_position(a_sanction.ability_id, a_world_pos)
 	a_caster.update_commands(UseSanction.new(msg))

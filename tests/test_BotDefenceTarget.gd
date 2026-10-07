@@ -99,6 +99,9 @@ class StubEconomy:
 	func _release_stalled_construction() -> void:
 		pass  # reads each unit's command; the fixture units are out of tree and have none
 
+	func _abort_contested_jobs() -> void:
+		pass  # likewise
+
 	func _pick_builder() -> Commandable:
 		return builder
 

@@ -36,6 +36,11 @@ module can act without being counted. Two tables:
 - **Actions**: every order issued or refused, by kind, piece and outcome, with the refusal
   cause named (`record_action`), plus where every targeted sanction landed
   (`record_cast_position`). `sanction_aim` counts a charged sanction that found no target.
+  **Every verb asks its command's own `meets_precondition` before issuing**
+  (`BotActuator._admits`) — the same check the player's click passes — so a refusal is counted
+  where it is decided. Until 2026-10-07 `interact` and `garrison_into` issued blind and left
+  the command to drop the order, so an impossible order was counted `ISSUED` and a piece the
+  bot could never use read as `USED` (`tests/test_BotActuatorPreconditions.gd`).
 
 The harness writes the ledger into each result slot as `usage`, beside `produced_by_id` (the
 distinct pieces of each id the slot fielded over the match, read from the samples — a floor
