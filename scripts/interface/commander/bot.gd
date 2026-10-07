@@ -1351,6 +1351,9 @@ func unit_effectiveness_vs(a_unit_type, a_target: Commandable) -> float:
 ## a crusher is valued below a neutral matchup against what it could crush — enough that a
 ## vehicle is never read as useless against infantry, not enough to prefer it to a gun that
 ## actually counters them. Rises on the day the bot drives its vehicles through infantry.
+## TODO — that day was 2026-10-07: BotTargeting now issues run-overs (Move at the target).
+## Re-run `sims/matildas_vs_recruits` and `sims/sloops_vs_recruits` before raising this; the
+## measurement above was taken under orders that never drove through.
 const CRUSH_EFFECTIVENESS: float = 0.5
 
 

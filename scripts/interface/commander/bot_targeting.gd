@@ -23,6 +23,14 @@ extends RefCounted
 ## How far (world units) a unit notices threats worth reacting to.
 const DEFAULT_SCAN_RADIUS: float = 8.0
 
+## What running a target over scores on the EFFECTIVENESS signal, whose scale is the damage
+## multiplier a weapon gets (1.0 neutral, a dedicated counter above it). A crush is a kill on
+## contact — the "damage per shot" is the whole target — so it sits above a counter's
+## multiplier, and below the point where a crusher would leave a fight it can win with a gun
+## to chase infantry across the field (the proximity and threat signals still decide that).
+## Decided 2026-10-07 (ontology.md §Affordances, "Crush is lethality"); tune in testing.
+const CRUSH_EFFECTIVENESS_SIGNAL: float = 2.0
+
 var _bot: Bot
 var _act: BotActuator
 
@@ -115,8 +123,8 @@ func tick() -> int:
 		_work += UNIT_WORK_UNITS
 		if not claims.can_claim(unit, CLAIM_OWNER, BotClaims.Priority.COMBAT):
 			continue  # an errand or an exclusive owner has it
-		if unit.weapon_inventory == null:
-			continue  # can't attack anything
+		if unit.weapon_inventory == null and not _can_run_over(unit):
+			continue  # can neither shoot nor run anything over
 		if BotEconomy._is_constructing(unit):
 			continue  # don't yank the active builder mid-construction
 		if BotOpportunist.is_committed(unit):
@@ -127,11 +135,16 @@ func tick() -> int:
 	return _work
 
 
-## Give back every unit whose engagement is over — its Attack ended, or something stronger
-## replaced it — so the army can rally it again.
+## Give back every unit whose engagement is over — its Attack or run-over ended, or
+## something stronger replaced it — so the army can rally it again.
 func _release_finished_engagements() -> void:
 	for unit: Variant in claims.units_of(CLAIM_OWNER):
-		if not is_instance_valid(unit) or not ((unit as Commandable).current_command() is Attack):
+		if not is_instance_valid(unit):
+			claims.release(unit, CLAIM_OWNER)
+			continue
+		var engaged: Commandable = unit as Commandable
+		var command: MoveCommand = engaged.current_command()
+		if not (command is Attack or _is_run_over(engaged, command)):
 			claims.release(unit, CLAIM_OWNER)
 
 
@@ -146,11 +159,7 @@ func _retarget(a_unit: Commandable) -> void:
 	var from: Hull = a_unit.hull()
 	var nearby: Array = _bot.visible_enemies_near(a_unit.global_position, radius + from.extent())
 	var candidates: Array = nearby.filter(
-		func(c: Commandable):
-			return (
-				a_unit.weapon_inventory.weapon_for_target(c) != null
-				and Hull.gap(from, c.hull()) <= radius
-			)
+		func(c: Commandable): return _can_engage(a_unit, c) and Hull.gap(from, c.hull()) <= radius
 	)
 	_work += candidates.size() * CANDIDATE_WORK_UNITS
 	if candidates.is_empty():
@@ -158,10 +167,46 @@ func _retarget(a_unit: Commandable) -> void:
 	var current: Commandable = _current_target(a_unit)
 	var best: Commandable = _best_candidate(a_unit, current, candidates)
 	if best != null and best != current:
-		# persist=false: deal with the threat, then fall back to the army objective
-		# (the military manager re-tasks the unit once it goes idle).
-		_act.attack([a_unit], best, false)
+		if _can_shoot(a_unit, best):
+			# persist=false: deal with the threat, then fall back to the army objective
+			# (the military manager re-tasks the unit once it goes idle).
+			_act.attack([a_unit], best, false)
+		else:
+			# A RUN-OVER: the controls' own follow order, which the crush mechanic completes on
+			# contact. The order ends by itself when the target is taken (captured off the
+			# tree) or dies, and the military re-tasks the unit once it goes idle.
+			_act.move_at([a_unit], best)
 		claims.claim(a_unit, CLAIM_OWNER, BotClaims.Priority.COMBAT)
+
+
+## Whether `a_unit` has a weapon that can be brought to bear on `a_candidate`.
+static func _can_shoot(a_unit: Commandable, a_candidate: Commandable) -> bool:
+	return (
+		a_unit.weapon_inventory != null
+		and a_unit.weapon_inventory.weapon_for_target(a_candidate) != null
+	)
+
+
+## Whether `a_unit` can hurt `a_candidate` by any means it has: a weapon, or driving over it.
+## Crush is lethality (ontology.md §Affordances), so a crusher is retargeted like a shooter.
+static func _can_engage(a_unit: Commandable, a_candidate: Commandable) -> bool:
+	return _can_shoot(a_unit, a_candidate) or Bot.crushes(a_unit.movement, a_candidate)
+
+
+## Whether `a_unit` outranks SOME crush class — there is something it could run over.
+static func _can_run_over(a_unit: Commandable) -> bool:
+	return a_unit.movement != null and a_unit.movement.can_crush_anything()
+
+
+## Whether `a_command` is a run-over `a_unit` is on: a plain Move (not an AttackMove, which
+## extends it) aimed at a piece the unit would crush.
+static func _is_run_over(a_unit: Commandable, a_command: MoveCommand) -> bool:
+	if a_command == null or a_command.get_script() != MoveCommand or a_command.message == null:
+		return false
+	var target: Variant = a_command.message.target
+	if target == null or not is_instance_valid(target) or not (target is Commandable):
+		return false
+	return Bot.crushes(a_unit.movement, target as Commandable)
 
 
 ## HOW FAR THIS UNIT LOOKS FOR A BETTER TARGET: the further of its aggro shape and the
@@ -201,10 +246,14 @@ func _weapon_reach(a_unit: Commandable) -> float:
 	return reach
 
 
-## The enemy this unit is presently set to attack, or null (e.g. while attack-moving).
+## The enemy this unit is presently set to attack or run over, or null (e.g. while
+## attack-moving).
 func _current_target(a_unit: Commandable) -> Commandable:
-	if a_unit.has_command() and a_unit.current_command() is Attack:
-		var t: Entity = a_unit.current_command().message.target
+	if not a_unit.has_command():
+		return null
+	var command: MoveCommand = a_unit.current_command()
+	if command is Attack or _is_run_over(a_unit, command):
+		var t: Entity = command.message.target
 		if is_instance_valid(t):
 			return t as Commandable
 	return null
@@ -267,6 +316,9 @@ static func effectiveness_signal(unit: Commandable, candidate: Commandable) -> f
 	var override: Variant = DamageTable.matchup_override(unit.id, candidate.id)
 	if override != null:
 		return override
+	# A crush is a kill on contact, and outranks any shot the unit could take instead.
+	if Bot.crushes(unit.movement, candidate):
+		return CRUSH_EFFECTIVENESS_SIGNAL
 	if unit.weapon_inventory == null:
 		return 0.0
 	var w: Weapon = unit.weapon_inventory.weapon_for_target(candidate)
