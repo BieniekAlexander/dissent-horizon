@@ -102,6 +102,21 @@ func get_structures() -> Array:
 	return _owned_structures()
 
 
+## Every believed enemy piece that can shoot — units, and structures with weapons — as
+## [{"position": Vector3 (last known), "type": StringName}], for a read of enemy influence
+## over a region. Beliefs, never the live scene: an enemy the bot has not seen weighs nothing.
+func believed_armed_enemies() -> Array:
+	if blackboard == null:
+		return []
+	var out: Array = []
+	for entry: CommanderBlackboard.Entry in blackboard.believed_units():
+		out.append({"position": entry.last_known_location, "type": entry.type})
+	for entry: CommanderBlackboard.Entry in blackboard.believed_structures():
+		if unit_can_attack(entry.type):
+			out.append({"position": entry.last_known_location, "type": entry.type})
+	return out
+
+
 ## Owned, finished structures that RESEARCH something — list an upgrade among their producible
 ## types. Distinct from get_production_structures, which is the unit producers: a research-only
 ## structure (the Operations Center) trains nothing and is not one.

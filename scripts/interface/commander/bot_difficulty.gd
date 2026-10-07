@@ -112,15 +112,12 @@ var production_structure_cap: int = -1
 ## changes nothing (see §The tiers ship flat in bot-parameter-space.md).
 var income_structure_target: int = 1
 
-## How many STATIC DEFENCES the bot wants standing — turrets, towers, SAMs: a buildable
-## structure with weapons that trains nothing (Bot.buildable_defence_structure_types). Bought
-## once the bot owns a producer, ahead of the believed threat (the frontage bearing), and the
-## TYPE is the one whose gun best answers the enemy units it has seen (its own army standing
-## in before then). 0 is the bot before
-## 2026-10-04, which had no rung for them and never built one however cheaply they traded:
-## measured, two Watch Towers beat sixteen Recruits at twice their price
-## (sims/towers_vs_double_recruits). Counts the ones going up, like production_structure_cap.
-var defence_structure_target: int = 2
+## HOW READILY THE BOT ANSWERS STATIC-DEFENCE DEMAND — a propensity on the value × vulnerability
+## read of its own regions (BotEconomy._defence_demand), held against a turret's cost: 1 buys
+## where the ground is worth the gun, 0 never buys one, higher buys sooner. Replaces the count
+## of turrets wanted, which bought three in a clump in the opening before anything had been
+## seen (REJECTED, world-model.md §L3). Higher = more towers, not more skill.
+var defence_propensity: float = 1.0
 
 ## HOW MUCH BETTER A LOCKED UNIT MUST BE before the bot buys the structure that unlocks it:
 ## the best composition value (Bot.unit_composition_value, against the enemy it believes in)
@@ -252,7 +249,7 @@ const SEARCH_RANGES: Dictionary = {
 	"production_structure_cap": [1, 8],
 	"utility_unit_cap": [0, 6],
 	"income_structure_target": [0, 8],
-	"defence_structure_target": [0, 6],
+	"defence_propensity": [0.0, 3.0],
 	"tech_value_margin": [1.0, 3.0],
 	"structure_demand_weight": [0.0, 1.0],
 	"demand_coverage_falloff": [0.0, 4.0],

@@ -1,10 +1,11 @@
 extends GutTest
 
-## THE STATIC-DEFENCE RUNG. `BotDifficulty.defence_structure_target` is how many turrets the
-## bot wants standing; the rung buys one between income and throughput, only once a producer
-## stands, and picks the type whose gun answers the enemy UNITS it has seen. Pinned here
-## because the ladder had no such rung at all and the bot never built a turret however cheaply
-## it traded — a rung that is not pinned can fall out again unnoticed.
+## THE STATIC-DEFENCE RUNG buys a turret between income and throughput when the demand read
+## (value × vulnerability of a region, tests/test_BotDefenceDemand.gd) clears the gun's cost
+## times `defence_propensity`, only once a producer stands, and picks the type whose gun
+## answers the enemy UNITS it has seen. Pinned here because the ladder had no such rung at all
+## and the bot never built a turret however cheaply it traded — a rung that is not pinned can
+## fall out again unnoticed. The demand itself is stubbed: what is under test is the rung.
 ##
 ## Fixtures are stubs on the tests/test_BotIncomeTarget.gd pattern: what is under test is
 ## which rung of `tick()` runs and which type it picks, decided from counts and scores.
@@ -92,6 +93,11 @@ class StubActuator:
 class StubEconomy:
 	extends BotEconomy
 	var builder: Commandable
+	## What the demand read answers; a tower costs 400 here, so the default clears it.
+	var demand_read: Dictionary = {"anchor": Vector2.ZERO, "demand": 1000.0}
+
+	func _defence_demand() -> Dictionary:
+		return demand_read
 
 	func _construction_job_count() -> int:
 		return 0
@@ -153,31 +159,50 @@ func _economy() -> StubEconomy:
 	return economy
 
 
-func test_a_defence_is_bought_before_more_throughput_while_below_the_target() -> void:
+func test_a_defence_is_bought_before_more_throughput_while_the_demand_clears_its_cost() -> void:
 	var economy := _economy()
-	economy.defence_structure_target = 2
 	economy.tick()
-	assert_eq(_act.builds, [TOWER], "the first turret comes before the second barracks")
+	assert_eq(_act.builds, [TOWER], "the turret comes before the second barracks")
 
 
-func test_at_the_target_the_ladder_falls_through_to_throughput() -> void:
+func test_a_demand_below_the_cost_falls_through_to_throughput() -> void:
 	var economy := _economy()
-	economy.defence_structure_target = 1
-	_bot.defences_owned = {TOWER: 1}
+	economy.demand_read = {"anchor": Vector2.ZERO, "demand": 300.0}
 	economy.tick()
 	assert_eq(_act.builds, [REDOUBT])
 
 
-func test_a_target_of_zero_never_builds_one() -> void:
+func test_the_propensity_scales_the_demand() -> void:
 	var economy := _economy()
-	economy.defence_structure_target = 0
+	economy.demand_read = {"anchor": Vector2.ZERO, "demand": 300.0}
+	economy.defence_propensity = 2.0
+	economy.tick()
+	assert_eq(_act.builds, [TOWER], "600 against 400")
+
+
+func test_a_propensity_of_zero_never_builds_one() -> void:
+	var economy := _economy()
+	economy.defence_propensity = 0.0
 	economy.tick()
 	assert_eq(_act.builds, [REDOUBT], "0 is the bot that had no rung")
 
 
+func test_with_nothing_standing_there_is_no_demand_to_answer() -> void:
+	var economy := _economy()
+	economy.demand_read = {}
+	economy.tick()
+	assert_eq(_act.builds, [REDOUBT])
+
+
+func test_the_turret_is_anchored_on_the_region_that_asked_for_it() -> void:
+	var economy := _economy()
+	economy.demand_read = {"anchor": Vector2(7.0, 3.0), "demand": 1000.0}
+	economy.tick()
+	assert_eq(economy._defence_anchor(), Vector2(7.0, 3.0))
+
+
 func test_no_producer_yet_means_the_producer_comes_first() -> void:
 	var economy := _economy()
-	economy.defence_structure_target = 2
 	_bot.producers_owned = 0
 	economy.tick()
 	assert_eq(_act.builds, [REDOUBT], "a turret guards a base; there is none to guard")
@@ -185,7 +210,6 @@ func test_no_producer_yet_means_the_producer_comes_first() -> void:
 
 func test_the_defence_that_answers_the_seen_army_is_the_one_built() -> void:
 	var economy := _economy()
-	economy.defence_structure_target = 1
 	var infantry: Commandable = autofree(Commandable.new())
 	_bot.demand = {&"enemy_infantry": {"demand": 1.0, "rep": infantry}}
 	_bot.values = {TOWER: 0.2, SAM: 1.0}
@@ -195,7 +219,6 @@ func test_the_defence_that_answers_the_seen_army_is_the_one_built() -> void:
 
 func test_with_nothing_seen_the_bots_own_army_stands_in_for_the_enemys() -> void:
 	var economy := _economy()
-	economy.defence_structure_target = 1
 	var recruit_a: Commandable = autofree(Commandable.new())
 	var recruit_b: Commandable = autofree(Commandable.new())
 	var truck: Commandable = autofree(Commandable.new())
@@ -210,7 +233,6 @@ func test_with_nothing_seen_the_bots_own_army_stands_in_for_the_enemys() -> void
 
 func test_with_nothing_seen_and_no_army_a_ground_gun_beats_a_cheaper_anti_air_one() -> void:
 	var economy := _economy()
-	economy.defence_structure_target = 1
 	_bot.costs[SAM] = 300
 	_bot.technology_mapping[SAM] = TechnologySpec.new(300, 0, 0, 30)
 	economy.tick()
@@ -219,7 +241,6 @@ func test_with_nothing_seen_and_no_army_a_ground_gun_beats_a_cheaper_anti_air_on
 
 func test_an_unaffordable_defence_falls_through_rather_than_banking() -> void:
 	var economy := _economy()
-	economy.defence_structure_target = 1
 	_bot.energy = 950  # above the reserve by less than a tower, enough for nothing above it
 	_bot.costs[REDOUBT] = 100
 	_bot.technology_mapping[REDOUBT] = TechnologySpec.new(100, 0, 0, 30)

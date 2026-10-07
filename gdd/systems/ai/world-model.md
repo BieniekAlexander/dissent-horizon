@@ -273,7 +273,8 @@ model:
   each side inside it (two decaying scalars, overwritten as damage is witnessed). A costly
   winning fight reads as winning, "did that trade well" is a read of the region, and nothing
   is segmented in time ([bot-roadmap](bot-roadmap.md) §Reading the game).
-- **Static-defence demand** (decided 2026-10-06): per own exposed region,
+- **Static-defence demand** (decided 2026-10-06; built on presence 2026-10-07,
+  `BotEconomy._defence_demand`, lattice form pending): per own exposed region,
   `value × vulnerability`, in energy-equivalent. A static defence is placed lethality — an
   investment in one region that cannot be moved — so the decision to build one comes from
   this read exceeding the tower's cost, and never from a count. **REJECTED — a

@@ -300,7 +300,7 @@ func _apply_config() -> void:
 	_economy.build_concurrency = config.build_concurrency
 	_economy.production_structure_cap = config.production_structure_cap
 	_economy.income_structure_target = config.income_structure_target
-	_economy.defence_structure_target = config.defence_structure_target
+	_economy.defence_propensity = config.defence_propensity
 	_economy.tech_value_margin = config.tech_value_margin
 	# The research rung buys on the same margin the tech rung buys a building on, and banks
 	# the same reserve every other spender does.

@@ -514,20 +514,36 @@ beat eight Recruits at cost parity and sixteen at twice their price in three see
 cheapest trade in the game on the table, and its infantry-heavy production had nothing to
 answer for it.
 
-`BotDifficulty.defence_structure_target` (default 2, searchable 0–6) is how many the bot wants
-standing, going-up ones counted. The rung sits between income and throughput, and fires only
-once a producer stands or is going up — a static guards a base, and is never bought instead of
-one. The TYPE is the affordable defence whose weapons best answer the enemy UNITS on the
+**A turret is bought where the DEMAND clears its cost, never to a count** (2026-10-07;
+`BotEconomy._defence_demand`, `tests/test_BotDefenceDemand.gd`). The demand is
+[world-model](world-model.md) §L3's: per own region — the ground within
+`DEFENCE_REGION_RADIUS` of a built structure — the VALUE standing there × its VULNERABILITY,
+where vulnerability is the lattice's `tension − |own − enemy|` over the tension, read off
+presence until the lattice exists: own influence is the cost of the bot's armed units and
+armed structures in the region, enemy influence the cost of the BELIEVED enemy units and armed
+structures there. Even sides make a region fully vulnerable; one side having it makes it safe
+or lost; nobody there makes it nothing. So an empty opening buys no turret
+(`sims/bot/economy/no_opening_tower`), a base the army is holding against a raid buys one
+anchored on that region, and a turret built there adds to own influence, so a second must
+clear the demand REMAINING after the first. `BotDifficulty.defence_propensity` (default 1,
+searchable 0–3) scales the demand against the cost — a propensity on a signal, never a count.
+REJECTED, the count it replaced: `defence_structure_target` (default 2) bought towers in the
+opening by construction, three in a clump before anything had been seen (observed 2026-10-06
+on main). The rung sits between income and throughput, and fires only once a producer stands
+or is going up — a static guards a base, and is never bought instead of one. The TYPE is the
+affordable defence whose weapons best answer the enemy UNITS on the
 blackboard (`Bot.unit_composition_value` over the demand map's unit entries: a turret answers
 an army, not a base). Before anything has been seen the bot's own live combat units stand in
 for the enemy's, one for one, and with no army to mirror either (the Colonial opening is three
 builders) only defences that can shoot something on the ground are considered — a static is
 bought ahead of the scout's report, and the cheapest defence was measured to be the wrong
-default: the first turret built was the SAM, against an infantry rush. The spot is the ordinary frontage search, but ANCHORED on what the
-enemy comes for rather than on the base centroid: a command centre under HEGEMONY (the
-frontmost, when there are several), else the structure the enemy reaches first along
-`Bot.threat_direction` — measured, two towers ranked from the centroid stood through a rush
-that walked past them to the command centre. A chokepoint sense that would put it on the
+default: the first turret built was the SAM, against an infantry rush. The spot is the
+ordinary frontage search, ANCHORED on the region whose demand asked for it; with no demand
+read (the anchor is asked outside the rung) it falls back to what the enemy comes for rather
+than the base centroid: a command centre under HEGEMONY (the frontmost, when there are
+several), else the structure the enemy reaches first along `Bot.threat_direction` — measured,
+two towers ranked from the centroid stood through a rush that walked past them to the
+command centre. A chokepoint sense that would put it on the
 approach rather than merely in front is the position-importance work
 [squads-and-relations](squads-and-relations.md) §Placement beyond open ground plans. Like the
 income rung, a rung that cannot act falls through. Tests: `tests/test_BotDefenceTarget.gd`.

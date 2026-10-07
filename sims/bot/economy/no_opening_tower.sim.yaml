@@ -1,0 +1,26 @@
+description: |
+  A Colonial opening — a barracks standing, three Servants, a bank — with nothing seen and
+  nothing to contest it. The old count rung bought two towers here by construction (three in a
+  clump, watched on main 2026-10-06); the demand read buys a turret only where a region of the
+  bot's own is worth something AND contested, and an empty opening is neither. Decision check:
+  no defence structure is ordered in the first minute, while the economy still builds — the
+  rung fell through rather than the ladder stalling.
+  Control: no enemy at all; the axis is DEMAND (none).
+setting: { kind: flat, size: 60 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full, energy: 3000 }
+    with:
+      barracks:
+        of: [ { piece: cl_barracks, count: 1 } ]
+        at: center
+      servants:
+        of: [ { piece: cl_bioLight_builder, count: 3 } ]
+        at: { from: A.barracks, distance: 4, bearing: east }
+run: { for: 60s, seed: 1 }
+expect:
+  - { slot: A, check: ordered, kind: build, at_least: 1, by: 60s }
+  - not:
+      - any:
+          - { slot: A, check: ordered, kind: build, piece: cl_defense_antiLight, by: 60s }
+          - { slot: A, check: ordered, kind: build, piece: cl_defense_antiAircraft, by: 60s }

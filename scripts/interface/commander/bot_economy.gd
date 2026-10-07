@@ -65,11 +65,17 @@ var production_structure_cap: int = -1
 ## rather than a build order — see there.
 var income_structure_target: int = 1
 
-## HOW MANY STATIC DEFENCES THE BOT WANTS STANDING, going-up ones included. A PARAMETER
-## (BotDifficulty.defence_structure_target). The rung it drives sits between income and
-## throughput: a static is a short-term positional investment (static-defence.md), bought
-## ahead of the threat once there is a producer to protect, and never instead of one.
-var defence_structure_target: int = 2
+## HOW READILY THE BOT ANSWERS STATIC-DEFENCE DEMAND: the demand read (see _defence_demand) is
+## multiplied by this before it is held against a turret's cost, so 1 buys a turret where the
+## ground is worth exactly what the gun costs, 0 never buys one, and 2 buys at half the demand.
+## A PARAMETER (BotDifficulty.defence_propensity) — a propensity on a signal, never a count:
+## the count it replaced made towers an opening purchase by construction (world-model.md §L3).
+var defence_propensity: float = 1.0
+
+## HOW FAR A STRUCTURE'S REGION REACHES, in world units: what the demand read counts as "here"
+## around a structure — the value standing with it, the sides' influence over it. The focus
+## disc radius of world-model.md §L4, until the lattice makes a region a set of cells.
+const DEFENCE_REGION_RADIUS: float = 15.0
 
 ## HOW MUCH BETTER A LOCKED UNIT MUST BE for the bot to buy the structure that unlocks it,
 ## as a ratio of composition values. A PARAMETER (BotDifficulty.tech_value_margin).
@@ -433,15 +439,23 @@ func _decide() -> void:
 
 ## The static-defence rung, once there is a producer to stand in front of. The ladder had no
 ## rung for a turret at all until 2026-10-04 — the defence types existed only as a placement
-## bearing — so a bot never built one however cheaply it traded. Below the target, the
-## defence whose gun best answers the enemy UNITS the bot has seen goes up on the frontage
-## bearing. True when the think should end here: a build issued, or a spot still being sought.
+## bearing — so a bot never built one however cheaply it traded. A turret goes up where the
+## DEMAND read (value × vulnerability of a region, _defence_demand) clears its cost; the type
+## is the defence whose gun best answers the enemy UNITS the bot has seen, and it is anchored
+## on the region that asked for it. True when the think should end here: a build issued, or a
+## spot still being sought.
 func _defence_rung(a_builder: Commandable) -> bool:
-	if _owned_defence_structure_count() >= defence_structure_target or not _owns_a_producer():
+	if not _owns_a_producer():
+		return false
+	var read: Dictionary = _defence_demand()
+	if read.is_empty():
 		return false
 	var ftype: Variant = _defence_structure_to_build()
 	if ftype == null:
 		return false
+	if float(read["demand"]) * defence_propensity < float(_energy_cost(ftype)):
+		return false
+	_demanded_anchor = read["anchor"]
 	var fspot: Variant = _find_build_spot(ftype)
 	if fspot is StringName:
 		return true  # still searching; the rest of the ladder waits for the answer
@@ -624,6 +638,70 @@ func _defence_structure_to_build() -> Variant:
 	return candidates[0]
 
 
+## THE STATIC-DEFENCE DEMAND (world-model.md §L3, decided 2026-10-06): per own region, the
+## VALUE standing there × how VULNERABLE it is, in energy. A static defence is placed lethality
+## — an investment in one region that cannot be moved — so the decision to build one comes
+## from this read exceeding the turret's cost, never from a count.
+##
+## A region is the ground within DEFENCE_REGION_RADIUS of an own built structure. Its value is
+## the cost of the structures standing in it. Its vulnerability is the lattice's, in the
+## region's own terms: own influence is the cost of the bot's armed units and armed structures
+## there, enemy influence the cost of the believed enemy units and armed structures there,
+## and vulnerability is `tension − |own − enemy|` over the tension — 1 where the two sides are
+## even, 0 where one side has it, 0 where nobody is. A region nobody contests wants no turret,
+## which is what stops the opening tower clump; a region the army is holding against a raid
+## wants one. A turret built there adds to own influence, so the demand REMAINING after it is
+## what a second one must clear. Returns {"anchor": Vector2, "demand": float} for the region
+## asking the most, or {} with no structure standing. Fog-honest: the enemy side is beliefs.
+##
+## TODO: the lattice replaces the discs — a region becomes its cells, influence is weapon
+## reach rather than presence, and placement maximises reach coverage over the region's
+## approach rather than the frontage bearing.
+func _defence_demand() -> Dictionary:
+	var standing: Array = _bot.get_structures().filter(
+		func(s: Commandable) -> bool: return s.is_built
+	)
+	if standing.is_empty():
+		return {}
+	var own_armed: Array = _bot.get_units().filter(
+		func(u: Commandable) -> bool: return _bot.unit_can_attack(u.id)
+	)
+	own_armed.append_array(
+		standing.filter(func(s: Commandable) -> bool: return _bot.unit_can_attack(s.id))
+	)
+	var enemies: Array = _bot.believed_armed_enemies()  # [{"position": Vector3, "type": ...}]
+	var best: Dictionary = {}
+	var best_demand: float = 0.0
+	for structure: Commandable in standing:
+		var centre: Vector3 = structure.global_position
+		var value: float = _cost_within(standing, centre)
+		var own: float = _cost_within(own_armed, centre)
+		var enemy: float = 0.0
+		for belief: Dictionary in enemies:
+			if _within_region(belief["position"], centre):
+				enemy += float(_bot.unit_cost(belief["type"]))
+		var tension: float = own + enemy
+		if tension <= 0.0:
+			continue
+		var demand: float = value * (tension - absf(own - enemy)) / tension
+		if demand > best_demand:
+			best_demand = demand
+			best = {"anchor": VU.in_xz(centre), "demand": demand}
+	return best
+
+
+func _cost_within(a_pieces: Array, a_centre: Vector3) -> float:
+	var total: float = 0.0
+	for piece: Commandable in a_pieces:
+		if _within_region(piece.global_position, a_centre):
+			total += float(_bot.unit_cost(piece.id))
+	return total
+
+
+static func _within_region(a_point: Vector3, a_centre: Vector3) -> bool:
+	return VU.in_xz(a_point).distance_to(VU.in_xz(a_centre)) <= DEFENCE_REGION_RADIUS
+
+
 ## The bot's own live combat units as a stand-in enemy army, in the demand map's shape:
 ## one unit of importance per unit fielded, a live instance of each type as its rep.
 func _mirror_demand() -> Dictionary:
@@ -636,15 +714,6 @@ func _mirror_demand() -> Dictionary:
 		else:
 			mirror[unit.id] = {"demand": 1.0, "rep": unit}
 	return mirror
-
-
-## Standing static defences plus the ones going up — committed, like production capacity.
-func _owned_defence_structure_count() -> int:
-	var count: int = 0
-	var under_way: Array[StringName] = _types_under_way()
-	for t in _bot.buildable_defence_structure_types():
-		count += _bot.get_structures_of_type(t).size() + under_way.count(t)
-	return count
 
 
 ## Whether a production structure stands or is going up: the thing a static defence is for.
@@ -1436,13 +1505,21 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 	}
 
 
-## WHERE A STATIC DEFENCE IS ANCHORED: on the thing the enemy comes for, not on the middle of
-## the base. Under HEGEMONY that is a command centre (the frontmost, when there are several);
-## otherwise the structure the enemy reaches first along the threat axis. Measured before this:
+## The region the demand read last asked a turret for (XZ), or null before it has asked:
+## what _defence_anchor answers while a demanded build is being placed.
+var _demanded_anchor: Variant = null
+
+
+## WHERE A STATIC DEFENCE IS ANCHORED: on the region whose demand asked for it (_defence_demand),
+## else on the thing the enemy comes for, not on the middle of the base. Under HEGEMONY that
+## is a command centre (the frontmost, when there are several); otherwise the structure the
+## enemy reaches first along the threat axis. Measured before this:
 ## two Watch Towers ranked from the base centroid stood through a whole rush that walked past
 ## them to the command centre and ended the match. The frontage bearing then puts the turret
 ## on the anchor's threat side, and compactness keeps it within its own reach of it.
 func _defence_anchor() -> Vector2:
+	if _demanded_anchor is Vector2:
+		return _demanded_anchor
 	var origin: Vector2 = VU.in_xz(_bot.base_centroid())
 	var toward: Vector2 = _bot.threat_direction(origin)
 	var guarded: Commandable = null
