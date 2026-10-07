@@ -230,7 +230,7 @@ this one measures whether the weights say so.
 
 `A.truck` (`cl_mechLight_dominionGen`, a Compound in range) beside two neutral
 Terrestrials. `ordered: {kind: move_at, of: A.truck, at_least: 2}` by 20s and no deposit
-order before the second. Control: one truck, two prey; axis **value** (load before banking).
+order before the second — the sequence half needs the order journal (§Identity in a check). Control: one truck, two prey; axis **value** (load before banking).
 Needs: nothing — built 2026-10-07 (`deposit_value`); its pair places the prey 40 units apart
 and expects the deposit first.
 
@@ -258,15 +258,25 @@ rather than this proposal's:
 5. **`run_sims` exits 0 on a failing check** (1 only on a parse or build error), unlike
    `run_scenarios`. A decision suite wants the exit code to mean something.
 
-## Open decisions
+## Identity in a check
 
-> **TODO — `consider` as a sim-only lever, or a difficulty parameter too?** The brief's tiers
-> are "numbers a search can move"; a tier that may not consider a class of piece is a
-> handicap of that kind. Leaning: sim-only until a tier wants it, since a bot that cannot see
-> a piece is the "cannot signal" verdict the audit exists to find, and hiding it by parameter
-> would mask that.
+`BotUsageLog.actions` is a ledger by TYPE — `kind → piece type → issued / refused` — so it
+answers "was a tower ever ordered" and never "which unit was ordered at what". Three of the
+first situations need the latter (the tank at THAT trooper, the retreat TOWARD friends, the
+objective NEAR a group). Decided 2026-10-07, two routes and when each applies:
 
-> **TODO — the decision checks read `BotUsageLog`, which counts per TYPE, not per instance.**
-> `ordered … of: <group>` needs the target's identity, so the log grows a target id per
-> action — or the checks that need identity read the claims and commands instead. Decide
-> when the first `of:` check is written; the macro and production sims above need none.
+- **The live command, now.** The existing `command` check grows `target: <group>` (true when
+  the member's current order names a piece of that group) and `near: <group>, within: N`
+  (its destination lies within N of the group's centroid). It reads the present order; an
+  order issued and finished between two polls is invisible, which no real order is, since
+  polling is per tick and an order lasts many. The objective check reads
+  `BotMilitary.current_objective()` directly and needs neither.
+- **An order journal, when the first SEQUENCE check is written.** One record per issue —
+  `{tick, kind, actor id, piece type, target id or position, outcome}` — appended by the
+  actuator beside the type ledger, under a sim-only recording flag (off in play and in
+  self-play, where the type ledger is what the audit reads). It answers "did it ever" with
+  identity and "which came first"; the errand situation's "no deposit before the second
+  capture" is its trigger, and it arrives with that sim.
+
+`consider` is a sim-only lever (decided 2026-10-07); it is not a difficulty parameter and
+never reaches a bot in play.
