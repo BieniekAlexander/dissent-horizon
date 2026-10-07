@@ -713,10 +713,14 @@ func safety() -> float:
 ## committed to, so a target that ignored it would authorise one build per think until the
 ## first one finished. Mirrors _owned_production_structure_count, and is deliberately not
 ## Bot.extractor_count(), which counts only FINISHED extractors (it is an income index).
+## The doc above was true of the intent and not of the code until 2026-10-07: ordered-but-
+## unplaced extractors were not counted, so with three build slots the income rung sent a
+## second and third builder to the same site on consecutive thinks (observed on `main`).
 func _owned_income_structure_count() -> int:
 	var count: int = 0
+	var under_way: Array[StringName] = _types_under_way()
 	for t in _bot.buildable_income_structure_types():
-		count += _bot.get_structures_of_type(t).size()
+		count += _bot.get_structures_of_type(t).size() + under_way.count(t)
 	return count
 
 
@@ -1229,6 +1233,8 @@ func _nearest_unclaimed_site() -> Entity:
 			continue
 		if _is_abandoned_spot(dep.global_position):
 			continue  # a site the builder could not finish a job on — see _abandoned_spots
+		if _is_claimed_spot(dep.global_position):
+			continue  # a builder is already on its way to it
 		var d: float = base.distance_squared_to(dep.global_position)
 		if d < best_d:
 			best_d = d

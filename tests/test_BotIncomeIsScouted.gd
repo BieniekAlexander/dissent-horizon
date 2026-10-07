@@ -29,6 +29,12 @@ class StubBot:
 	func has_vision_at(a_world_pos: Vector3) -> bool:
 		return in_vision.any(func(p: Vector3) -> bool: return p.is_equal_approx(a_world_pos))
 
+	## The income types the bot may build, supplied rather than read from a builder's tools.
+	var income_types: Array = []
+
+	func buildable_income_structure_types() -> Array:
+		return income_types
+
 
 func _bot() -> StubBot:
 	var bot: StubBot = StubBot.new()
@@ -90,6 +96,49 @@ func test_the_nearest_explored_site_wins_over_a_nearer_unexplored_one() -> void:
 		far,
 		"distance only ranks the sites the bot has actually found"
 	)
+
+
+## An economy whose in-flight jobs are a list, so the claimed-site rule can be asked without
+## building a Build command (which needs a Tool, a purchase and a map).
+class JobsEconomy:
+	extends BotEconomy
+	var jobs_at: Array[Vector3] = []
+	var types_under_way: Array[StringName] = []
+
+	func _claimed_spots() -> Array[Vector3]:
+		return jobs_at
+
+	func _types_under_way() -> Array[StringName]:
+		return types_under_way
+
+
+func test_a_site_a_builder_is_already_heading_to_is_not_offered_again() -> void:
+	# With three build slots and a target of one, the income rung sent a second and third
+	# builder to the same site on consecutive thinks (observed 2026-10-06 on main): the job
+	# had not PLACED anything yet, so nothing counted it.
+	var bot: StubBot = _bot()
+	var near: Entity = _site_at(NEAR)
+	var far: Entity = _site_at(FAR)
+	bot.explored = [NEAR, FAR]
+	var economy := autofree(JobsEconomy.new(bot, autofree(BotActuator.new(null)))) as JobsEconomy
+	assert_eq(economy._nearest_unclaimed_site(), near, "guards the fixture: nearest first")
+	economy.jobs_at = [NEAR]
+	assert_eq(economy._nearest_unclaimed_site(), far, "the near site has a builder on the way")
+
+
+func test_an_extractor_on_order_counts_toward_the_income_target() -> void:
+	# The other half of the same leak: the income count read only PLACED extractors, so the
+	# rung stayed open while the first order was still walking.
+	var bot: StubBot = _bot()
+	bot.income_types = [&"extractor"]
+	var economy := autofree(JobsEconomy.new(bot, autofree(BotActuator.new(null)))) as JobsEconomy
+	assert_eq(economy._owned_income_structure_count(), 0, "nothing owned, nothing ordered")
+	economy.types_under_way = [&"extractor"]
+	assert_eq(
+		economy._owned_income_structure_count(), 1, "an extractor on order is income committed to"
+	)
+	economy.types_under_way = [&"extractor", &"redoubt"]
+	assert_eq(economy._owned_income_structure_count(), 1, "only income types count")
 
 
 func test_the_income_spot_is_null_until_something_is_found() -> void:
