@@ -137,6 +137,16 @@ defence — which is a ROLE, §Roles are not affordances):
 A capability a component does not express is not an affordance until a component does. The
 list grows by adding a row with its derivation, never by adding a tag.
 
+**Crush is lethality, and actuates as a Move at a target** (decided 2026-10-06). A crusher's
+lethality against a piece it outsizes is a kill on contact: dps is effectively infinite and
+time-to-kill is the travel time, so it is scored on the same signals as a shot. The game's
+controls already express the order — a Move whose `CommandMessage` names a target FOLLOWS it
+— so the actuator gains the target form of `move`, `BotTargeting` produces a run-over order for
+a crusher as it produces Attack for a shooter, and the capture errand follows its prey rather
+than walking to where it stood. Capture is then a BONUS on the kill, and crushing a
+non-capturable is worth the kill alone; today's `CRUSH_EFFECTIVENESS` discount, which prices
+a crusher that never drives through, expires with it.
+
 ### Relational affordances
 
 Lethality needs a target, logistics an occupant, conversion a victim, protection a ward. These

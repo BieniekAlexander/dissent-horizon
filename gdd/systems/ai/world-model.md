@@ -273,6 +273,16 @@ model:
   each side inside it (two decaying scalars, overwritten as damage is witnessed). A costly
   winning fight reads as winning, "did that trade well" is a read of the region, and nothing
   is segmented in time ([bot-roadmap](bot-roadmap.md) §Reading the game).
+- **Static-defence demand** (decided 2026-10-06): per own exposed region,
+  `value × vulnerability`, in energy-equivalent. A static defence is placed lethality — an
+  investment in one region that cannot be moved — so the decision to build one comes from
+  this read exceeding the tower's cost, and never from a count. **REJECTED — a
+  `defence_structure_target` default.** It made towers an opening purchase by construction
+  (three early towers in a clump, observed 2026-10-06 on `main`); the economy's defence rung
+  becomes an opportunity priced by this read, placement maximises `reach_coverage` over the
+  region's `approach` rather than compactness, and a second tower must clear the demand
+  REMAINING after the first's coverage. A tier knob, if wanted, is a propensity weight on the
+  demand, not a count.
 - **Standing is LOCAL** (decided 2026-10-06). Per own group: its value against the enemy
   influence within its reach. An army beside an exposed enemy position reads a strong standing
   there and a futile one at the base under attack across the map, and attacks where it is —
