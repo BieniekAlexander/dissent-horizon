@@ -193,7 +193,7 @@ func begin_tick() -> Step:
 		phase.ends_on_arrival
 		and not (_free_flight and _had_pursued)
 		and phase.has_arrived(
-			_body().global_position, _body().velocity, goal_position, goal_entity()
+			_body().global_position, _body().velocity, goal_position, _pursued_in_world()
 		)
 	)
 	if not (_phase_over or has_arrived):
@@ -365,11 +365,19 @@ func face_velocity() -> void:
 	body.look_at(body.global_position + body.velocity, up)
 
 
+## The piece this flight pursues while it stands in the world; null once it has left — freed,
+## or held off the tree in a garrison, where its position cannot be read — so the flight
+## carries on to where it was last seen.
+func _pursued_in_world() -> Entity:
+	var pursued: Entity = goal_entity()
+	return pursued if pursued != null and pursued.is_inside_tree() else null
+
+
 ## Where a steered phase aims: the centre of the pursued piece's hurtbox (Entity.aim_point), or
 ## where it was last seen once it has left the game; null for a goal that never named a piece,
 ## which is flown unsteered.
 func _steering_goal() -> Variant:
-	var pursued: Entity = goal_entity()
+	var pursued: Entity = _pursued_in_world()
 	if pursued != null:
 		var aim: Vector3 = pursued.aim_point()
 		if _pursued_samples > 0:
@@ -428,7 +436,7 @@ func _enter_next_phase(a_has_arrived: bool) -> bool:
 	if _ended_by_impact or _lock_lost:
 		while _phase_index + 1 < _phases.size() and not _phases[_phase_index + 1].is_motionless():
 			_phase_index += 1
-	var pursued: Entity = goal_entity()
+	var pursued: Entity = _pursued_in_world()
 	# A GUIDED flight that arrived snaps onto the piece it was chasing: it can hit a target it
 	# geometrically missed. A free flight never arrives at a piece, so never snaps.
 	if a_has_arrived and pursued != null and not _free_flight:

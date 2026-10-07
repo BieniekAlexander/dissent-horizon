@@ -83,6 +83,9 @@ func _add_detection(a_scout: Commandable) -> void:
 	var node := CollisionShape3D.new()
 	node.name = "DetectionRange"
 	node.shape = shape
+	# Query geometry, never a live collider: enabled, it would make the scout's body a
+	# cylinder this wide on MOVEMENT_OBSTRUCTION, and nothing could spawn or be placed under it.
+	node.disabled = true
 	a_scout.add_child(node)
 	# No need to assign Entity.detection_range: the node is attached BEFORE
 	# initialize() puts the scout in the tree, so the @onready get_node_or_null that

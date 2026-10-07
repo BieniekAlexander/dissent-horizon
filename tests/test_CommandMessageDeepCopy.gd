@@ -61,3 +61,28 @@ func test_deep_copy_still_carries_a_live_aggro_shape() -> void:
 	message.aggro_shape = region
 
 	assert_eq(CommandMessage.deep_copy(message).aggro_shape, region)
+
+
+## A target held off the tree — a unit garrisoned in a host — cannot have its position read
+## (the observed path: a transport dies heading for a unit that has just been garrisoned, and
+## its evacuation reads the rally order aimed at that unit). It is aimed at where it was last.
+func test_a_target_held_off_the_tree_is_aimed_at_where_it_was_last_seen() -> void:
+	var target: Commandable = FakePieces.unit()
+	add_child_autofree(target)
+	target.global_position = Vector3(5, 0, 6)
+	var message := CommandMessage.new(null, target, null, Vector3(3, 0, 4))
+	assert_eq(message.position, Vector3(5, 0, 6), "follows the target while it stands")
+
+	remove_child(target)
+	assert_eq(message.position, Vector3(5, 0, 6), "held: aimed where it was last seen")
+	assert_eq(
+		CommandMessage.deep_copy(message).position, Vector3(5, 0, 6), "a copy remembers it too"
+	)
+	add_child(target)  # back in the tree, for autofree
+
+
+func test_a_target_never_seen_in_the_tree_is_aimed_at_the_order_position() -> void:
+	var target: Commandable = FakePieces.unit()
+	autofree(target)
+	var message := CommandMessage.new(null, target, null, Vector3(3, 0, 4))
+	assert_eq(message.position, Vector3(3, 0, 4))

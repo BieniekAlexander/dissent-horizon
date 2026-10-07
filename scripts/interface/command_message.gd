@@ -102,6 +102,10 @@ var persist: bool = true
 signal unreferenced
 
 var _ref_count: int = 0
+## Where `target` last stood in the world, or null before it has been read there. Kept because
+## a target can leave the tree and come back — a unit garrisoned in a host — and while it is
+## held its global_position cannot be read, so a command aimed at it holds where it went.
+var _target_last_seen: Variant = null
 
 var position: Vector3:
 	get:
@@ -109,10 +113,11 @@ var position: Vector3:
 		# so position-based renderers (waypoint + command-line indicators) sit at
 		# the target's height instead of a constant Y=0. xz_position drops Y anyway,
 		# and nav targets snap to the navmesh, so those consumers are unaffected.
-		if target != null and is_instance_valid(target):
-			return target.global_position
-		else:
+		if target == null or not is_instance_valid(target):
 			return world_position
+		if target.is_inside_tree():
+			_target_last_seen = target.global_position
+		return _target_last_seen if _target_last_seen != null else world_position
 
 var xz_position: Vector2:
 	get:
@@ -171,6 +176,7 @@ static func deep_copy(message: CommandMessage) -> CommandMessage:
 		message.map, live_target, message.tool, message.world_position, message.ability_type
 	)
 	copy.persist = message.persist
+	copy._target_last_seen = message._target_last_seen
 	copy.quarter_turns = message.quarter_turns
 	# A region shape can be freed while messages still name it — a Defend region once its last
 	# lease is released, a unit's own aggro shape once the unit dies — and assigning a freed
