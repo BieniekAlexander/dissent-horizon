@@ -255,24 +255,11 @@ func _all_nodes(a_root: Node) -> Array[Node]:
 
 ## The spectator HUD repaints a BBCode label on every resource change, for nobody: this is
 ## headless and there is no watcher. Freeing it is worth ~15% of the run and changes no
-## simulation state. Godot does NOT drop the resources_changed connections with the labels —
-## they are bound as arguments to a Scenario method, so the Scenario owns the connection — so
-## they are cut here first, or every resource change logs an error calling a freed label.
+## simulation state.
 func _strip_spectator_hud() -> void:
 	var hud: Node = _scenario.get_node_or_null("SpectatorHUD")
-	if hud == null:
-		return
-	for commander: Commander in _scenario.commanders:
-		if commander == null:
-			continue
-		for connection: Dictionary in commander.resources_changed.get_connections():
-			var callable: Callable = connection["callable"]
-			if (
-				callable.get_object() == _scenario
-				and callable.get_method() == &"_refresh_spectator_label"
-			):
-				commander.resources_changed.disconnect(callable)
-	hud.free()
+	if hud != null:
+		hud.free()
 
 
 ## MEASUREMENT INFRASTRUCTURE, not a rule of the game: exchange which start point each slot

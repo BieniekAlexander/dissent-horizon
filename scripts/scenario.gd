@@ -635,7 +635,12 @@ func _setup_spectator_hud() -> void:
 		label.custom_minimum_size = Vector2(260.0, 85.0)
 		vbox.add_child(label)
 		_refresh_spectator_label(label, commander)
-		commander.resources_changed.connect(_refresh_spectator_label.bind(label, commander))
+		var refresh: Callable = _refresh_spectator_label.bind(label, commander)
+		commander.resources_changed.connect(refresh)
+		# The connection's object is this Scenario, not the label, so Godot does not drop it
+		# when the label is freed — and a commander outlives its HUD (a harness frees the HUD;
+		# a structure withdraws infrastructure on PREDELETE), so cut it as the label leaves.
+		label.tree_exiting.connect(_disconnect_spectator_label.bind(commander, refresh))
 
 
 func _wire_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
@@ -668,6 +673,15 @@ func _refresh_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
 		var btn: Button = a_fog_row.get_node_or_null("FogBtn_%d" % commander.id) as Button
 		if btn != null:
 			btn.disabled = (active_id == commander.id)
+
+
+## Untyped commander: it may already be freed by the time its label leaves the tree.
+func _disconnect_spectator_label(a_commander: Variant, a_refresh: Callable) -> void:
+	if not is_instance_valid(a_commander):
+		return
+	var commander: Commander = a_commander
+	if commander.resources_changed.is_connected(a_refresh):
+		commander.resources_changed.disconnect(a_refresh)
 
 
 ## Repaint one commander's spectator resource panel.
