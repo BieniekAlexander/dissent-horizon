@@ -315,17 +315,22 @@ func test_a_type_that_builds_is_recognised_from_its_builds_component() -> void:
 
 
 func test_a_capturer_needs_a_garrison_with_room_in_it() -> void:
-	# Garrison.can_capture asks the captor for a cage with space; a hold of capacity 0 is a
-	# component without a job, and must not read as a carrier.
+	# Garrison.can_capture asks the captor for a cage that CAPTURES, with space; a hold of
+	# capacity 0 is a component without a job, and a hold that does not capture (a transport's)
+	# is not a carrier either, however roomy.
 	var full_cage := Garrison.new()
 	full_cage.capacity = 3
+	full_cage.captures = true
 	var no_cage := Garrison.new()
 	no_cage.capacity = 0
+	no_cage.captures = true
+	var transport_hold := Garrison.new()
+	transport_hold.capacity = 6
 	var bot := autofree(PreviewBot.new()) as PreviewBot
 	bot.previews = {
 		CARRIER: _preview({"Garrison": full_cage}),
 		BUILDER: _preview({"Garrison": no_cage}),
-		SOLDIER: _preview({}),
+		SOLDIER: _preview({"Garrison": transport_hold}),
 	}
 	assert_true(bot.unit_type_can_capture(CARRIER))
 	assert_false(bot.unit_type_can_capture(BUILDER))

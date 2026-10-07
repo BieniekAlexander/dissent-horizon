@@ -18,7 +18,7 @@ const SUPPLY_TRUCK: Dictionary = {
 	"speed": 2.0,
 	"vision": 8.0,
 	"crush": Movement.CrushClass.LARGE,
-	"garrison": {"capacity": 3, "bunker": false, "ids": [&"fake_servant"]},
+	"garrison": {"capacity": 3, "bunker": false, "captures": true, "ids": [&"fake_servant"]},
 	"interactions": [Interaction.Type.DEPOSIT]
 }
 const COMPOUND: Dictionary = FakePieces.COMPOUND

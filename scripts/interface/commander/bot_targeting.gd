@@ -31,6 +31,27 @@ const DEFAULT_SCAN_RADIUS: float = 8.0
 ## Decided 2026-10-07 (ontology.md §Affordances, "Crush is lethality"); tune in testing.
 const CRUSH_EFFECTIVENESS_SIGNAL: float = 2.0
 
+## THE TWO GATES ON A RUN-OVER (Alex, 2026-10-07): it is a good decision when the enemies can
+## be crushed, there are FEW ENOUGH that the crusher will not be killed on the way, and they
+## are CLUMPED. Both are read off what the unit can see now; the threat field will replace the
+## first (world-model.md §L2).
+##
+## Survivable: the damage the visible enemies that can shoot the crusher would deal during the
+## drive — their sustained dps summed, times the time to contact — may be at most this fraction
+## of the crusher's CURRENT hp. A drive that would cost more is a drive into a death, and the
+## unit shoots or leaves instead.
+const RUN_OVER_MAX_HP_SPENT: float = 0.5
+## Clumped: each further crushable within this of the target adds CRUSH_CLUMP_BONUS to the
+## run-over's effectiveness, so a target standing in a knot of infantry outranks a lone one —
+## the drive-through takes the knot. One body width or so.
+const CRUSH_CLUMP_RADIUS: float = 2.0
+const CRUSH_CLUMP_BONUS: float = 0.5
+const CRUSH_CLUMP_MAX_BONUS: float = 2.0
+
+## The visible enemies the current pick was drawn from, for the clump reading inside the
+## static effectiveness signal. Set per _retarget; framework-shaped scratch rather than state.
+static var _scan_nearby: Array = []
+
 var _bot: Bot
 var _act: BotActuator
 
@@ -161,16 +182,22 @@ func _retarget(a_unit: Commandable) -> void:
 	var candidates: Array = nearby.filter(
 		func(c: Commandable): return _can_engage(a_unit, c) and Hull.gap(from, c.hull()) <= radius
 	)
+	# The signals are static (unit, candidate) functions; the clump reading needs the scan
+	# they were drawn from, handed over through this scratch for the duration of the pick and
+	# cleared after it, so it never holds a reference past the tick that made it.
+	_scan_nearby = nearby
 	_work += candidates.size() * CANDIDATE_WORK_UNITS
 	if candidates.is_empty():
+		_scan_nearby = []
 		return
 	var current: Commandable = _current_target(a_unit)
 	var best: Commandable = _best_candidate(a_unit, current, candidates)
+	_scan_nearby = []
 	# The piece this unit should be on: a better candidate, else the one it is on already.
 	var chosen: Commandable = best if best != null else current
 	if chosen == null:
 		return
-	if Bot.crushes(a_unit.movement, chosen):
+	if Bot.crushes(a_unit.movement, chosen) and _run_over_is_survivable(a_unit, chosen, nearby):
 		# A RUN-OVER, whether or not the unit could also shoot it: a crush is a kill on
 		# contact, and a gun that can merely target the piece is the slower way to the same
 		# end — which is why a crushable target the unit is already SHOOTING (an Attack its
@@ -205,6 +232,48 @@ static func _can_engage(a_unit: Commandable, a_candidate: Commandable) -> bool:
 ## Whether `a_unit` outranks SOME crush class — there is something it could run over.
 static func _can_run_over(a_unit: Commandable) -> bool:
 	return a_unit.movement != null and a_unit.movement.can_crush_anything()
+
+
+## The first gate: would `a_unit` reach `a_target` with RUN_OVER_MAX_HP_SPENT of its hp or
+## less spent on the way? `a_nearby` is the visible enemy set the candidates were drawn from;
+## the ones that can shoot the crusher are the ones that will.
+static func _run_over_is_survivable(
+	a_unit: Commandable, a_target: Commandable, a_nearby: Array
+) -> bool:
+	if a_unit.defense == null or a_unit.defense.hp <= 0.0:
+		return false
+	var speed: float = a_unit.movement.effective_max_speed() if a_unit.movement != null else 0.0
+	if speed <= 0.0:
+		return false
+	var seconds_to_contact: float = (
+		VU.in_xz(a_unit.global_position).distance_to(VU.in_xz(a_target.global_position)) / speed
+	)
+	var incoming_dps: float = 0.0
+	for enemy: Commandable in a_nearby:
+		if enemy.weapon_inventory == null:
+			continue
+		var weapon: Weapon = enemy.weapon_inventory.weapon_for_target(a_unit)
+		if weapon != null:
+			incoming_dps += weapon.approximate_dps()
+	return incoming_dps * seconds_to_contact <= RUN_OVER_MAX_HP_SPENT * a_unit.defense.hp
+
+
+## The second gate's reading: how many OTHER crushables stand within CRUSH_CLUMP_RADIUS of
+## `a_target` — what the drive-through would take with it.
+static func _clump_around(a_unit: Commandable, a_target: Commandable, a_nearby: Array) -> int:
+	var knot: int = 0
+	var at: Vector2 = VU.in_xz(a_target.global_position)
+	# Untyped: the scratch may hold a piece freed since the scan (CLAUDE.md §A freed object
+	# cannot be passed to a typed parameter), and the loop variable is one.
+	for other: Variant in a_nearby:
+		if not is_instance_valid(other) or other == a_target:
+			continue
+		var piece: Commandable = other as Commandable
+		if piece == null or not Bot.crushes(a_unit.movement, piece):
+			continue
+		if VU.in_xz(piece.global_position).distance_to(at) <= CRUSH_CLUMP_RADIUS:
+			knot += 1
+	return knot
 
 
 ## Whether `a_command` is a run-over `a_unit` is on: a plain Move (not an AttackMove, which
@@ -325,9 +394,11 @@ static func effectiveness_signal(unit: Commandable, candidate: Commandable) -> f
 	var override: Variant = DamageTable.matchup_override(unit.id, candidate.id)
 	if override != null:
 		return override
-	# A crush is a kill on contact, and outranks any shot the unit could take instead.
+	# A crush is a kill on contact, and outranks any shot the unit could take instead; a
+	# target in a knot of crushables is worth the knot (the second run-over gate).
 	if Bot.crushes(unit.movement, candidate):
-		return CRUSH_EFFECTIVENESS_SIGNAL
+		var knot: int = _clump_around(unit, candidate, _scan_nearby)
+		return CRUSH_EFFECTIVENESS_SIGNAL + minf(CRUSH_CLUMP_MAX_BONUS, knot * CRUSH_CLUMP_BONUS)
 	if unit.weapon_inventory == null:
 		return 0.0
 	var w: Weapon = unit.weapon_inventory.weapon_for_target(candidate)

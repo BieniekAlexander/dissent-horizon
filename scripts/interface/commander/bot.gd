@@ -1128,16 +1128,17 @@ func unit_type_can_build(a_type) -> bool:
 	return _type_has_component(a_type, "Builds")
 
 
-## True when [type] can take prisoners: a Garrison with room to put them in, which is what
-## Garrison.can_capture asks of a captor. The DEPOSIT half (somewhere to bank them) is a
-## structure question and belongs to the caller — a carrier with nowhere to unload has no
-## errand, which is why BotOpportunist._gather_captures gates on get_deposit_structures().
+## True when [type] can take prisoners: a Garrison that CAPTURES with room to put them in,
+## which is what Garrison.can_capture asks of a captor. The DEPOSIT half (somewhere to bank
+## them) is a structure question and belongs to the caller — a carrier with nowhere to unload
+## has no errand, which is why BotOpportunist._gather_captures gates on
+## get_deposit_structures().
 func unit_type_can_capture(a_type) -> bool:
 	var preview := _preview_for_type(a_type)
 	var cage: Garrison = (
 		preview.get_node_or_null("Garrison") as Garrison if preview != null else null
 	)
-	return cage != null and cage.capacity > 0
+	return cage != null and cage.captures and cage.capacity > 0
 
 
 ## True when [type] kills by driving over things — the TYPE-level form of unit_can_crush,

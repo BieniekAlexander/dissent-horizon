@@ -117,6 +117,13 @@ var occupiable_movements: int = MOVEMENT_GROUNDED
 ## gdd/design-framework/static-defence.md §Libertarians.
 @export var reach_by_piece: Dictionary[StringName, float] = {}
 
+## Whether this hold TAKES PRISONERS by contact — the Colonial Stock Truck's cage, and nothing
+## else. Capturing is a unique property of that unit (Alex, 2026-10-07): a transport's hold
+## admits light infantry by order and never by running them over, so without this flag the
+## Sloop, whose hold has room and takes LIGHT BIO occupants, captured the soldiers it crushed.
+## Doc key `captures:`; false by default, so a hold has to say so.
+@export var captures: bool = false
+
 ## Whether occupants may be ordered out (see can_release). Defaults to true: a garrison you
 ## can walk into is one you can walk out of, and even a hold filled by capture releases what
 ## it holds — an occupant nothing can ever let out is a cell, and wants saying explicitly.
@@ -279,8 +286,9 @@ func is_captive(a_unit: Commandable) -> bool:
 ## closed (see is_closed).
 ##
 ## Capturable = a non-friendly, non-structure, LIGHT-armoured BIOLOGICAL unit — an enemy
-## soldier or one of a Shelter's neutral Terrestrials — when the captor has a hold with room
-## left. NEUTRALS QUALIFY, which is why this asks is_friendly_to rather than is_enemy_of.
+## soldier or one of a Shelter's neutral Terrestrials — when the captor has a hold that
+## CAPTURES (`captures`) with room left. NEUTRALS QUALIFY, which is why this asks
+## is_friendly_to rather than is_enemy_of.
 ##
 ## Room is part of the rule, and a captor that is full simply answers false. It does not
 ## follow that the contact is harmless: see Commandable._run_over_overlapping_units, where a
@@ -296,7 +304,7 @@ static func can_capture(captor: Commandable, captive: Commandable) -> bool:
 	):
 		return false
 	var cage: Garrison = captor.get_node_or_null("Garrison") as Garrison
-	if cage == null or not cage.has_room_for(captive):
+	if cage == null or not cage.captures or not cage.has_room_for(captive):
 		return false
 	if captive.is_friendly_to(captor) or captive.structure_is_active():
 		return false

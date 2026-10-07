@@ -1274,6 +1274,7 @@ const GARRISON_KEYS: Array = [
 	"releasable",
 	"bunker",
 	"preserve_occupants",
+	"captures",
 	"range_bonus",
 	"reach_by_piece",
 	"pieces",
@@ -1306,7 +1307,7 @@ func _validate_garrison(a_spec: Dictionary, a_g: Variant) -> void:
 			_err(a_spec, "unknown garrison key '%s' (expected one of %s)" % [key, GARRISON_KEYS])
 	if g.has("capacity") and not (g["capacity"] is int and int(g["capacity"]) >= 0):
 		_err(a_spec, "garrison.capacity must be a non-negative int")
-	for flag in ["closed", "releasable", "bunker", "preserve_occupants"]:
+	for flag in ["closed", "releasable", "bunker", "preserve_occupants", "captures"]:
 		if g.has(flag) and not (g[flag] is bool):
 			_err(a_spec, "garrison.%s must be true or false" % flag)
 	if g.has("range_bonus"):

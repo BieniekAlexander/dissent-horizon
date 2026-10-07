@@ -152,3 +152,69 @@ func test_a_crush_scores_as_a_decisive_matchup() -> void:
 	assert_gt(BotTargeting.CRUSH_EFFECTIVENESS_SIGNAL, 1.0, "above a neutral shot")
 	var tank: Commandable = _mover(_foe, Vector3(3.0, 0.0, 0.0), Movement.CrushClass.LARGE)
 	assert_eq(BotTargeting.effectiveness_signal(truck, tank), 0.0, "and nothing without a gun")
+
+
+# ─── THE TWO GATES ───────────────────────────────────────────────────────────
+## A run-over is a good decision when the crusher will not be killed on the way and the
+## targets are clumped (Alex, 2026-10-07). The first gate refuses the drive; the second
+## ranks the targets.
+
+
+## Give `a_piece` one melee weapon that can hit ground targets, dealing `a_damage` a shot.
+func _arm(a_piece: Commandable, a_damage: float) -> void:
+	var loadout := autofree(Loadout.new()) as Loadout
+	var weapon := Weapon.new()
+	weapon.melee_damage = a_damage
+	loadout.add_child(weapon)
+	a_piece.weapon_inventory = loadout
+
+
+func test_a_drive_that_would_cost_more_than_half_its_hp_is_refused() -> void:
+	# Five anti-mech troopers 6 units off, each shooting hard: the drive would be a death, so
+	# the tank shoots the nearest instead of charging.
+	var tank: Commandable = _truck()
+	tank.movement.speed = 1.0  # a slow drive: six seconds to contact
+	var knot: Array = []
+	for i: int in 5:
+		var trooper: Commandable = _infantry(Vector3(6.0, 0.0, float(i)))
+		_arm(trooper, 100.0)  # 10 shots a second each at the default split: lethal fast
+		knot.append(trooper)
+	_bot.enemies = knot
+	_targeting.tick()
+	assert_eq(_act.run_overs, [], "not driven at: the way there is a death")
+
+
+func test_a_drive_it_will_survive_is_taken() -> void:
+	var tank: Commandable = _truck()
+	tank.movement.speed = 6.0  # one second to contact
+	var trooper: Commandable = _infantry(Vector3(6.0, 0.0, 0.0))
+	_arm(trooper, 1.0)  # a scratch
+	_bot.enemies = [trooper]
+	_targeting.tick()
+	assert_eq(_act.run_overs.size(), 1, "driven at: it costs a scratch")
+
+
+func test_a_target_in_a_knot_outranks_a_lone_one() -> void:
+	var tank: Commandable = _truck()
+	var lone: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
+	var knotted: Commandable = _infantry(Vector3(-3.0, 0.0, 0.0))
+	var beside: Commandable = _infantry(Vector3(-3.0, 0.0, 1.0))
+	var also: Commandable = _infantry(Vector3(-3.0, 0.0, -1.0))
+	_bot.enemies = [lone, knotted, beside, also]
+	_targeting.tick()
+	assert_eq(_act.run_overs.size(), 1)
+	assert_ne(_act.run_overs[0]["target"], lone, "the knot is worth more than the loner")
+
+
+func test_the_clump_bonus_is_capped() -> void:
+	var tank: Commandable = _truck()
+	var target: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
+	var crowd: Array = [target]
+	for i: int in 8:
+		crowd.append(_infantry(Vector3(3.0, 0.0, 0.5 * float(i + 1))))
+	BotTargeting._scan_nearby = crowd
+	assert_eq(
+		BotTargeting.effectiveness_signal(tank, target),
+		BotTargeting.CRUSH_EFFECTIVENESS_SIGNAL + BotTargeting.CRUSH_CLUMP_MAX_BONUS
+	)
+	BotTargeting._scan_nearby = []

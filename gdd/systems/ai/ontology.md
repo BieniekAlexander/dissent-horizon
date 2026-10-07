@@ -145,7 +145,13 @@ controls already express the order — a Move whose `CommandMessage` names a tar
 a crusher as it produces Attack for a shooter, and the capture errand follows its prey rather
 than walking to where it stood. Capture is then a BONUS on the kill, and crushing a
 non-capturable is worth the kill alone; today's `CRUSH_EFFECTIVENESS` discount, which prices
-a crusher that never drives through, expires with it.
+a crusher that never drives through, expires with it. **Two gates on the order** (decided
+2026-10-07): the drive must be SURVIVABLE — the visible enemies that can shoot the crusher
+would spend at most half its hp before contact (`BotTargeting.RUN_OVER_MAX_HP_SPENT`; the
+`threat` field replaces this read) — and a target in a KNOT of crushables outranks a lone one
+(`CRUSH_CLUMP_*`). Capturing is a unique property of the Stock Truck (`captures:` on its
+cage, [garrison-and-transport](../combat/garrison-and-transport.md) §Capture is a crush); every
+other crusher kills.
 
 ### Relational affordances
 

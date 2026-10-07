@@ -153,6 +153,7 @@ const NESTED_ORDER: Dictionary = {
 		"releasable",
 		"bunker",
 		"preserve_occupants",
+		"captures",
 		"range_bonus",
 		"reach_by_piece",
 		"pieces",
