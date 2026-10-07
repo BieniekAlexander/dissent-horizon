@@ -45,10 +45,6 @@ var defend_threat_radius: float = 10.0
 ## threat to it, and the army turns for it before a raid on any other building would call it.
 const COMMAND_CENTRE_THREAT_MULTIPLIER: float = 2.0
 
-## How far the objective must move (world units) before counting as "changed"
-## and re-tasking the whole army. Keeps a wandering enemy target from thrashing.
-const OBJECTIVE_EPSILON: float = 3.0
-
 ## CONTEXTUAL attack commitment: launch a wave when our army value is at least
 ## `attack_value_ratio` × the BELIEVED enemy army value — i.e. attack when we're ahead, to
 ## punish, not on a blind timer.
@@ -138,6 +134,23 @@ const OBJECTIVE_ABANDON_SECONDS: float = 120.0
 ## The wave counts as standing ON its objective within this of it: a few arrival radii, since
 ## a wave of many units spreads around the point rather than onto it.
 const STALL_RADIUS: float = HOLD_RADIUS * 3.0
+
+## How far the objective must move (world units) before counting as "changed"
+## and re-tasking the whole army. Keeps a wandering enemy target from thrashing.
+##
+## Was 3.0, which did not: a believed UNIT's last-known location is refreshed every blackboard
+## update while it is in sight, a walking unit covers three units in well under a combat
+## period, and every "change" RE-LAUNCHES the wave — emptying every garrison and re-ordering
+## the whole army — so the army flapped in and out of its bunkers at the think rate (observed
+## 2026-10-06 on main). A drift within this radius is the SAME objective, moved: the wave
+## presses on through _tick_reinforcements, which sends idle members to the new point. A jump
+## beyond it is a different objective, and that is what a re-launch is for. Sized to the
+## stall radius: an objective that has moved further than the wave's own spread around it is
+## no longer where the wave is.
+const OBJECTIVE_EPSILON: float = STALL_RADIUS * 2.0
+## How far the rally point may drift before the producers are re-pointed. A rally is one
+## order per structure and moves nothing, so it tracks closely.
+const RALLY_EPSILON: float = 3.0
 ## How far the walk to a believed objective may end from it and still count as reaching it:
 ## a structure's half-footprint plus the standoff a wide unit keeps, since the path ends
 ## beside a building, never on it.
@@ -410,9 +423,7 @@ func _station_point(a_direction: Vector2) -> Vector3:
 ## A new unit then walks to where the military wants it on its own, instead of standing at
 ## the door until the idle sweep finds it.
 func _rally_production(a_point: Vector3, a_moved: bool) -> void:
-	var moved: bool = (
-		a_moved or not _has_rally or _rally_point.distance_to(a_point) > OBJECTIVE_EPSILON
-	)
+	var moved: bool = a_moved or not _has_rally or _rally_point.distance_to(a_point) > RALLY_EPSILON
 	_rally_point = a_point
 	_has_rally = true
 	var structures: Array = _bot.get_production_structures().filter(

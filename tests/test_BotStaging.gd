@@ -491,3 +491,39 @@ func test_a_heavy_vehicle_counts_as_a_counter_to_infantry_it_can_run_over() -> v
 		Bot.CRUSH_EFFECTIVENESS, 1.0, "below parity: contact is incidental under the bot's orders"
 	)
 	assert_gt(Bot.CRUSH_EFFECTIVENESS, 0.0, "but never useless")
+
+
+# ─── A DRIFTING OBJECTIVE IS NOT A NEW ONE ──────────────────────────────────
+
+
+## A military whose posture and objective are set by the test, so tick() can be driven
+## through its change rule without a believed enemy to find.
+class SteeredMilitary:
+	extends BotMilitary
+	var objective: Variant = null
+
+	func _decide_posture() -> Posture:
+		return Posture.ATTACK
+
+	func _objective_for(_a_posture: Posture) -> Variant:
+		return objective
+
+
+func test_an_objective_that_drifts_a_little_does_not_relaunch_the_wave() -> void:
+	# THE FLAP. A believed unit's last-known location moves every tick it is in sight, and
+	# each move re-launched the wave — evacuating every garrison and re-ordering the army at
+	# the think rate (observed 2026-10-06 on main).
+	var military := SteeredMilitary.new(_bot, _act)
+	_armed_unit(FakeBot.HOME)
+	_bot.holding_hosts = [autofree(Commandable.new())]
+	military.objective = OBJECTIVE
+	military.tick()
+	assert_eq(_act.attack_moves.size(), 1, "launched once")
+	assert_eq(_act.evacuated.size(), 1, "and emptied the bunker for it")
+	military.objective = OBJECTIVE + Vector3(5.0, 0.0, 0.0)  # a soldier walked on
+	military.tick()
+	assert_eq(_act.evacuated.size(), 1, "a drift is the same objective: no second evacuation")
+	# Measured from where the objective now IS, not from where it started.
+	military.objective = OBJECTIVE + Vector3(5.0 + BotMilitary.OBJECTIVE_EPSILON + 1.0, 0.0, 0.0)
+	military.tick()
+	assert_eq(_act.evacuated.size(), 2, "a jump past the epsilon is a new objective")
