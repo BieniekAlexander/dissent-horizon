@@ -437,6 +437,12 @@ func current_posture() -> Posture:
 	return _posture
 
 
+## Where the army is being sent, or null before the first think found anything to anchor on.
+## An instrument for the decision simulations and the self-play harness; no manager reads it.
+func current_objective() -> Variant:
+	return _objective if _has_objective else null
+
+
 ## How many units are in the field with the current wave. An instrument for the self-play
 ## harness, which observes the bot and never issues; no manager reads it.
 func wave_size() -> int:

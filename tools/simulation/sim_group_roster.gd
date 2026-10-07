@@ -59,6 +59,30 @@ func commander_id(a_slot: String) -> int:
 
 
 ## The slot a commander id belongs to, or "" — what the `owner` check compares against.
+## The live commander a slot built, for the bot-state checks. Registered by SimArena once the
+## scenario has built its commanders; null for a slot nobody registered.
+var _commanders: Dictionary = {}  # slot -> Commander
+
+
+func register_commander(a_slot: String, a_commander: Commander) -> void:
+	_commanders[a_slot] = a_commander
+
+
+## The thinking Bot behind `a_slot`, or null when the slot has no bot or its brain has not
+## built its managers yet (the first think does that).
+func bot_of(a_slot: String) -> Bot:
+	var commander: Variant = _commanders.get(a_slot)
+	if commander == null or not is_instance_valid(commander):
+		return null
+	return commander as Bot
+
+
+## `a_slot`'s brain, or null.
+func brain_of(a_slot: String) -> BotBrain:
+	var bot: Bot = bot_of(a_slot)
+	return bot.brain() if bot != null else null
+
+
 func slot_of(a_commander_id: int) -> String:
 	for slot: String in _slot_ids:
 		if int(_slot_ids[slot]) == a_commander_id:

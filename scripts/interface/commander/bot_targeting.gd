@@ -166,16 +166,25 @@ func _retarget(a_unit: Commandable) -> void:
 		return
 	var current: Commandable = _current_target(a_unit)
 	var best: Commandable = _best_candidate(a_unit, current, candidates)
-	if best != null and best != current:
-		if _can_shoot(a_unit, best):
-			# persist=false: deal with the threat, then fall back to the army objective
-			# (the military manager re-tasks the unit once it goes idle).
-			_act.attack([a_unit], best, false)
-		else:
-			# A RUN-OVER: the controls' own follow order, which the crush mechanic completes on
-			# contact. The order ends by itself when the target is taken (captured off the
-			# tree) or dies, and the military re-tasks the unit once it goes idle.
-			_act.move_at([a_unit], best)
+	# The piece this unit should be on: a better candidate, else the one it is on already.
+	var chosen: Commandable = best if best != null else current
+	if chosen == null:
+		return
+	if Bot.crushes(a_unit.movement, chosen):
+		# A RUN-OVER, whether or not the unit could also shoot it: a crush is a kill on
+		# contact, and a gun that can merely target the piece is the slower way to the same
+		# end — which is why a crushable target the unit is already SHOOTING (an Attack its
+		# own aggro picked) is converted too. The controls' own follow order, which the crush
+		# mechanic completes on contact; it ends by itself when the target is taken (captured
+		# off the tree) or dies, and the military re-tasks the unit once it goes idle.
+		if chosen == current and _is_run_over(a_unit, a_unit.current_command()):
+			return  # already running it over
+		_act.move_at([a_unit], chosen)
+		claims.claim(a_unit, CLAIM_OWNER, BotClaims.Priority.COMBAT)
+	elif best != null and best != current:
+		# persist=false: deal with the threat, then fall back to the army objective
+		# (the military manager re-tasks the unit once it goes idle).
+		_act.attack([a_unit], best, false)
 		claims.claim(a_unit, CLAIM_OWNER, BotClaims.Priority.COMBAT)
 
 

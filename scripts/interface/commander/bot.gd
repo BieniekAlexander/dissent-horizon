@@ -1186,12 +1186,40 @@ func _builder_buildable_types() -> Dictionary:
 ## added buildable structure is picked up automatically — no hardcoded type list.
 func buildable_structure_types() -> Array:
 	var caps := _builder_buildable_types()
+	var allowed: Callable = func(type) -> bool:
+		return caps.has(type) and has_tech_for(type) and may_consider_structure(type)
 	return (
 		Tool
 		. tools_in_context(ControlBinding.ControlContext.BUILD)
 		. map(func(t: Tool): return t.type)
-		. filter(func(type): return caps.has(type) and has_tech_for(type))
+		. filter(allowed)
 	)
+
+
+# ─── WHAT A SIMULATION LETS THE BOT CONSIDER ─────────────────────────────────
+#
+# A decision simulation constrains the CHOICE SET so that one decision is under test and no
+# third option decides it ("extractor or tower", and nothing else — gdd/systems/ai/
+# decision-sims.md §Grammar extensions). Empty means unrestricted, which is every bot in
+# play: this is a sim-only lever, never a difficulty parameter, set through PlayerSlot.
+
+## Structure types the bot may consider building, or empty for all of them.
+var consider_structures: Array[StringName] = []
+## Unit types the bot may consider training, or empty for all of them.
+var consider_units: Array[StringName] = []
+
+
+func may_consider_structure(a_type: StringName) -> bool:
+	return consider_structures.is_empty() or consider_structures.has(a_type)
+
+
+func may_consider_unit(a_type: StringName) -> bool:
+	return consider_units.is_empty() or consider_units.has(a_type)
+
+
+## The unit types `a_production` can make that the bot may consider.
+func considered_producible_types(a_production: Production) -> Array:
+	return a_production.producible_types.filter(may_consider_unit)
 
 
 ## Buildable structures that train units (carry a Production component) — the
@@ -1214,7 +1242,7 @@ func best_producible_value(a_structure_type, a_demand: Dictionary) -> float:
 	if production == null:
 		return 0.0
 	var best: float = 0.0
-	for t: StringName in production.producible_types:
+	for t: StringName in considered_producible_types(production):
 		if unit_can_attack(t):
 			best = maxf(best, unit_composition_value(t, a_demand))
 	return best

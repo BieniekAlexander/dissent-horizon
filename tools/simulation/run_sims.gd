@@ -75,6 +75,10 @@ func _ready() -> void:
 	if hold > 0.0:
 		print("\n[run_sims] holding for %.0fs — close the window to quit sooner" % hold)
 		await get_tree().create_timer(hold).timeout
+	# 1 only for a spec that could not be parsed or built: a design claim coming out false is
+	# a finding, not a gate (simulation-tests.md §Running one). TODO: whether a FAILING decision
+	# spec — one with no `needs:` that was expected to pass — should fail the exit code is an
+	# open question in decision-sims.md; the three-count summary above is where it is read.
 	get_tree().quit(1 if _broken > 0 else 0)
 
 
@@ -96,20 +100,31 @@ func _load_specs() -> Array:
 		wanted = str(_arguments["spec"]).split(",")
 	var specs: Array = []
 	var sims_dir: String = str(_arguments.get("dir", SIMS_DIR))
-	var directory: DirAccess = DirAccess.open(sims_dir)
+	_collect_specs(sims_dir, "", wanted, specs)
+	return specs
+
+
+## Walk `a_dir` and its sub-directories, in sorted order; a spec's id is its path under the
+## sims root without the suffix (`bot/targeting/crush_a_counter`), which is also what
+## `spec=` selects by — a bare file name still matches, for the specs at the root.
+func _collect_specs(a_dir: String, a_prefix: String, a_wanted: Array, a_out: Array) -> void:
+	var directory: DirAccess = DirAccess.open(a_dir)
 	if directory == null:
-		push_error("[run_sims] cannot open %s" % sims_dir)
-		return specs
+		push_error("[run_sims] cannot open %s" % a_dir)
+		return
+	var subdirs: PackedStringArray = directory.get_directories()
+	subdirs.sort()
+	for sub: String in subdirs:
+		_collect_specs("%s/%s" % [a_dir, sub], "%s%s/" % [a_prefix, sub], a_wanted, a_out)
 	var files: PackedStringArray = directory.get_files()
 	files.sort()
 	for file: String in files:
 		if not file.ends_with(SPEC_SUFFIX):
 			continue
-		var id: String = file.replace(SPEC_SUFFIX, "")
-		if not wanted.is_empty() and not wanted.has(id):
+		var id: String = a_prefix + file.replace(SPEC_SUFFIX, "")
+		if not a_wanted.is_empty() and not a_wanted.has(id) and not a_wanted.has(id.get_file()):
 			continue
-		specs.append(SimSpec.parse_file("%s/%s" % [sims_dir, file]))
-	return specs
+		a_out.append(SimSpec.parse_file("%s/%s" % [a_dir, file], a_prefix))
 
 
 #endregion
@@ -138,6 +153,7 @@ func _run_spec(a_spec: SimSpec, a_trials: int) -> void:
 		{
 			"spec": a_spec.id,
 			"ok": true,
+			"needs": a_spec.needs,
 			"trials": trials,
 			"passed":
 			trials.reduce(
@@ -217,6 +233,9 @@ func _trace_frame(a_spec: SimSpec, a_seed: int, a_arena: Node, a_frame: int) -> 
 
 
 #region Reporting
+## Three counts, not two: a spec that FAILS, and a spec that is RED BECAUSE IT NEEDS something
+## not built yet (`needs:`), are different findings — the second is a specification waiting
+## on a migration step, and its going green is how that step is known to be done.
 func _print_summary() -> void:
 	print("\n=== summary ===")
 	for entry: Dictionary in _report:
@@ -230,9 +249,38 @@ func _print_summary() -> void:
 			if not trial.get("passed", false):
 				seeds.append(trial["seed"])
 		var failing: String = "" if seeds.is_empty() else "  failing seeds: %s" % str(seeds)
-		print("  %-34s %d/%d met%s" % [entry["spec"], passed, trials.size(), failing])
+		var needs: String = str(entry.get("needs", ""))
+		var tag: String = ""
+		if passed < trials.size() and needs != "":
+			tag = "  [needs: %s]" % needs
+		elif passed == trials.size() and needs != "":
+			tag = "  [needs: %s — now passing; drop the key]" % needs
+		print("  %-34s %d/%d met%s%s" % [entry["spec"], passed, trials.size(), failing, tag])
+	var counts: Dictionary = _outcome_counts()
+	print(
+		(
+			"\n%d passing, %d failing, %d waiting on something not built"
+			% [counts["passing"], counts["failing"], counts["waiting"]]
+		)
+	)
 	if _broken > 0:
-		print("\n%d spec(s) could not be parsed or built — a BROKEN SPEC, not a finding." % _broken)
+		print("%d spec(s) could not be parsed or built — a BROKEN SPEC, not a finding." % _broken)
+
+
+## passing / failing / waiting over the parsed-and-built specs.
+func _outcome_counts() -> Dictionary:
+	var counts: Dictionary = {"passing": 0, "failing": 0, "waiting": 0}
+	for entry: Dictionary in _report:
+		if not entry.get("ok", false):
+			continue
+		var all_passed: bool = int(entry["passed"]) == (entry["trials"] as Array).size()
+		if all_passed:
+			counts["passing"] += 1
+		elif str(entry.get("needs", "")) != "":
+			counts["waiting"] += 1
+		else:
+			counts["failing"] += 1
+	return counts
 
 
 func _write_output() -> void:

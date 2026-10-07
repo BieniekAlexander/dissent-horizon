@@ -47,6 +47,16 @@ enum Difficulty {
 @export var config_overrides: Dictionary = {}
 #endregion
 
+#region Simulation levers
+## Set by a decision simulation only (gdd/systems/ai/decision-sims.md); never by a scene a
+## player can reach. `omniscient` gives the commander no Fog, so it sees the whole map — the
+## perception layer is the same code with a fog that hides nothing. The `consider_*` lists
+## restrict what the bot may build or train so one decision is under test; empty means all.
+var omniscient: bool = false
+var consider_structures: Array[StringName] = []
+var consider_units: Array[StringName] = []
+#endregion
+
 #region Starting resources
 ## The resource stockpiles the commander begins the match with. Scenario applies
 ## these to the built commander; a commander built without a slot (the neutral world

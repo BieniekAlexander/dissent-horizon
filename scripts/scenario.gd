@@ -139,9 +139,10 @@ func _ready() -> void:
 	# the tree) so the brain attaches to a live bot.
 	for slot: PlayerSlot in player_slots:
 		if slot.commander is Bot:
-			_attach_brain(
-				slot.commander as Bot, slot.difficulty, slot.is_bot, _personality_config(slot)
-			)
+			var bot: Bot = slot.commander as Bot
+			bot.consider_structures = slot.consider_structures
+			bot.consider_units = slot.consider_units
+			_attach_brain(bot, slot.difficulty, slot.is_bot, _personality_config(slot))
 
 	# Create a Fog node for each bot commander so it tracks its own exploration.
 	# The human player already has a Fog in player.tscn (watching_commander_id = -1).
@@ -698,6 +699,11 @@ func _create_bot_fogs() -> void:
 	for commander: Commander in commanders:
 		if commander.id == 0 or commander.has_node("Fog"):
 			continue
+		# An omniscient slot (a decision simulation's) gets no Fog at all: Entity.is_visible_to
+		# and Commander.has_vision_at answer true for a commander with none, which is the one
+		# honest way to hand a bot the whole arena without touching the perception code.
+		if _is_omniscient(commander):
+			continue
 		# No mesh/material: fog is drawn by the terrain shader now (fog.gd hides its own plane),
 		# so a bot's Fog node exists only to track that commander's exploration state.
 		var fog: Fog = Fog.new()
@@ -705,6 +711,14 @@ func _create_bot_fogs() -> void:
 		fog.name = "Fog"
 		commander.add_child(fog)
 		fog.set_owner(self)
+
+
+## Whether `a_commander`'s slot asked for no fog (PlayerSlot.omniscient, a simulation lever).
+func _is_omniscient(a_commander: Commander) -> bool:
+	for slot: PlayerSlot in player_slots:
+		if slot != null and slot.commander == a_commander:
+			return slot.omniscient
+	return false
 
 
 ## The scenario's event host. Both commander sanctions and scripted triggers run

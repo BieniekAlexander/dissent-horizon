@@ -1,0 +1,25 @@
+description: |
+  A Matilda beside the one unit that counters it — an anti-mech trooper it OUTSIZES. Crush is
+  lethality (ontology.md §Affordances): the tank is sent to run the trooper over, as the
+  controls' own Move at the target, rather than left to stand beside it. Decision check: the
+  order is a Move aimed at the trooper within a few thinks; outcome check: the trooper dies.
+  Control: one enemy; the axis is EFFECTIVENESS (it hurts us, we flatten it). The Colonial
+  anti-light tank of the sample carries no crush class, so the Matilda stands in for it.
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full }
+    with:
+      tank:
+        of: [ { piece: cl_mechMedium_antiMech, count: 1 } ]
+        at: center
+  B:
+    with:
+      trooper:
+        of: [ { piece: cl_bioLight_antiMech, count: 1 } ]
+        at: { from: A.tank, distance: 6, bearing: east }
+        orders: [ { attack: { target: A.tank } } ]
+run: { for: 20s, seed: 1 }
+expect:
+  - { of: A.tank, check: command, is: MoveCommand, target: B.trooper, by: 3s }
+  - { of: B.trooper, check: dead, by: 20s }

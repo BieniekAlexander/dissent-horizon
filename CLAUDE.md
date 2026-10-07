@@ -141,7 +141,8 @@ Three rules follow:
 balanced and behaves as designed — an answer allowed to move when a stat moves. A check on the
 software's continued correctness is a REGRESSION test and belongs in the suite, whatever
 environment it needs. Simulation scenarios live outside `tests/` and are run from
-`tools/simulation/` (`run_scenarios.tscn`); the authored-spec grammar is planned, not built.
+`tools/simulation/`: authored specs in `sims/` (`run_sims.tscn`), editor scenes
+(`run_scenarios.tscn`).
 → **[`gdd/systems/scenario-scripting/simulation-tests.md`](gdd/systems/scenario-scripting/simulation-tests.md)**
 
 Spec docs are the same argument, one layer up — see below.

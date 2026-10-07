@@ -7,7 +7,10 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**TODO — an unapproved proposal, drafted 2026-10-07.** A suite of simulations that set up a
+**The grammar below is BUILT (2026-10-07)** — the settings keys, the bot-state checks,
+`command`'s `target:`/`near:`, `needs:`, `sims/bot/` discovery and the three-count summary —
+and `sims/bot/targeting/crush_a_counter` and `sims/bot/errand/two_prey_one_truck` pass. The
+rest of this note — the organisation and the first situations — is a proposal still: a suite of simulations that set up a
 game situation and assert what the bot DECIDES, organised so the state space is covered on
 purpose rather than by accident. It extends the existing sim harness
 ([simulation-tests](../scenario-scripting/simulation-tests.md)) rather than adding a third
@@ -88,9 +91,9 @@ One family, read from the bot's own records; each takes `slot:` and the usual te
 | `claimed` | `of: <group>`, `by: scout / combat / errand` | every member is held by that owner |
 | `believes` | `of: <group>`, `at_least / exactly` | the blackboard believes that many of the group |
 
-Two of these need the actuator to record what it does not yet: `move_at` as its own action
-kind (it does, since 2026-10-07), and the objective's position as a readable value rather
-than a private field (`BotMilitary` gets `current_objective() -> Variant`).
+`move_at` is recorded as its own action kind and `BotMilitary.current_objective()` is the
+objective's readable value (both 2026-10-07). The authoritative table is
+[simulation-tests](../scenario-scripting/simulation-tests.md) §The check vocabulary.
 
 ### Decision or outcome?
 
@@ -185,10 +188,12 @@ ground* passes by accident and the other two are specifications.
 
 ### targeting/ — a counter it can crush
 
-`A.tank` (`cl_mechMedium_antiLight`) beside one `cl_bioLight_antiMech`. `ordered: {kind:
-move_at, of: A.tank, target: B.trooper}` by 2s, and `B.trooper dead`. Control: one enemy;
-axis **effectiveness** (it hurts us, we flatten it). Needs: nothing — built 2026-10-07
-(`BotTargeting` run-overs); this is the first sim that should pass on the branch.
+`sims/bot/targeting/crush_a_counter` — PASSING. A Matilda (`cl_mechMedium_antiMech`; the
+sample's anti-light tank carries no crush class) beside one `cl_bioLight_antiMech`; `command
+is: MoveCommand target: B.trooper` by 3s, and `B.trooper dead`. Control: one enemy; axis
+**effectiveness**. Writing it found that the attack-move's own aggro had already put the tank
+on an Attack at the trooper, so `BotTargeting` now converts a crushable CURRENT target to the
+run-over too; the trooper dies at tick 83 where shooting took until 254.
 
 ### macro/ — a builder, an extractor and an enemy in sight
 
@@ -228,9 +233,11 @@ this one measures whether the weights say so.
 
 ### errand/ — two prey, one truck
 
-`A.truck` (`cl_mechLight_dominionGen`, a Compound in range) beside two neutral
-Terrestrials. `ordered: {kind: move_at, of: A.truck, at_least: 2}` by 20s and no deposit
-order before the second — the sequence half needs the order journal (§Identity in a check). Control: one truck, two prey; axis **value** (load before banking).
+`sims/bot/errand/two_prey_one_truck` — PASSING. `A.truck` (`cl_mechLight_dominionGen`, a
+Compound in range) and two enemy soldiers ten and eighteen units off (a spec cannot place
+neutral pieces, and an enemy soldier is capturable too). `ordered: {kind: move_at, at_least:
+2}` by 25s and the truck alive; the "no deposit before the second" half waits on the order
+journal (§Identity in a check). Control: one truck, two prey; axis **value** (load before banking).
 Needs: nothing — built 2026-10-07 (`deposit_value`); its pair places the prey 40 units apart
 and expects the deposit first.
 
@@ -256,7 +263,9 @@ rather than this proposal's:
 4. **`settings.faction` is accepted and undocumented**; `CLAUDE.md` still says the spec
    grammar is "planned, not built".
 5. **`run_sims` exits 0 on a failing check** (1 only on a parse or build error), unlike
-   `run_scenarios`. A decision suite wants the exit code to mean something.
+   `run_scenarios`. Deliberate, per simulation-tests.md §Running one — a false design claim
+   is a finding, not a gate. Whether a FAILING decision spec (no `needs:`, expected to pass)
+   should be different is an open question below; a WAITING spec never is.
 
 ## Identity in a check
 
@@ -280,3 +289,12 @@ objective NEAR a group). Decided 2026-10-07, two routes and when each applies:
 
 `consider` is a sim-only lever (decided 2026-10-07); it is not a difficulty parameter and
 never reaches a bot in play.
+
+## Open decisions
+
+> **TODO — should a failing decision spec fail the exit code?** The duel suite deliberately
+> exits 0 on a false claim (simulation-tests.md §Running one): a balance finding is not a
+> gate. A decision spec with no `needs:` is a claim about the BOT'S SOFTWARE rather than about
+> balance, which argues for the exit code; the summary's three counts are the alternative.
+> Leaning: keep the exit code as it is and read the counts, until a decision spec regresses
+> in a way the counts were not noticed to show.

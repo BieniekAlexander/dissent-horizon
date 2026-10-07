@@ -1,0 +1,29 @@
+description: |
+  One Stock Truck, an empty Compound to bank in, and two capturable soldiers a short drive
+  apart. The truck fills its cage before it banks: a part-load is discounted by how empty the
+  cage still is (BotOpportunist.deposit_value), so the second prey outranks going home.
+  Decision check: two run-over orders are issued; outcome check: the truck survives the
+  errand. Control: one truck, two prey; the axis is VALUE (load before banking).
+setting: { kind: flat, size: 40 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full }
+    with:
+      camp:
+        of: [ { piece: cl_infrastructure, count: 1 } ]
+        at: west
+      truck:
+        of: [ { piece: cl_mechLight_dominionGen, count: 1 } ]
+        at: { from: A.camp, distance: 5, bearing: east }
+  B:
+    with:
+      near:
+        of: [ { piece: cl_bioLight_antiLight, count: 1 } ]
+        at: { from: A.truck, distance: 10, bearing: east }
+      far:
+        of: [ { piece: cl_bioLight_antiLight, count: 1 } ]
+        at: { from: A.truck, distance: 18, bearing: east }
+run: { for: 30s, seed: 1 }
+expect:
+  - { slot: A, check: ordered, kind: move_at, at_least: 2, by: 25s }
+  - { of: A.truck, check: alive }

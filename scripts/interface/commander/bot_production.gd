@@ -152,7 +152,7 @@ func _infrastructure_unit_on_its_way(a_type: StringName) -> bool:
 func _best_utility_unit_for(a_structure: Commandable) -> StringName:
 	var best: StringName = &""
 	var best_cost: int = 1 << 30
-	for t: StringName in a_structure.production.producible_types:
+	for t: StringName in _bot.considered_producible_types(a_structure.production):
 		if not _bot.unit_is_utility(t):
 			continue
 		if _bot.get_units_of_type(t).size() >= _utility_demand_for(t):
@@ -249,7 +249,7 @@ func _best_unit_for(a_structure: Commandable, a_demand: Dictionary) -> StringNam
 		return _cheapest_affordable_unit(a_structure)
 	var types: Array = []
 	var scores: Array = []
-	for t: StringName in a_structure.production.producible_types:
+	for t: StringName in _bot.considered_producible_types(a_structure.production):
 		# Only train combat units — a weaponless unit (e.g. the Stock Truck) adds
 		# nothing to the army, so a structure that can ONLY make such units waits
 		# rather than spamming them. Builders are fielded via the economy, not here.
@@ -280,7 +280,7 @@ func _cheapest_affordable_unit(a_structure: Commandable) -> StringName:
 	var best: StringName = &""
 	var best_cost: int = 1 << 30
 	var scored: Dictionary = {}  # cheaper scores higher, so the audit reads it like any choice
-	for t: StringName in a_structure.production.producible_types:
+	for t: StringName in _bot.considered_producible_types(a_structure.production):
 		# Same combat-only gate as _best_unit_for: never mass a non-combat unit as
 		# the "opening army" filler.
 		if not _bot.unit_can_attack(t):

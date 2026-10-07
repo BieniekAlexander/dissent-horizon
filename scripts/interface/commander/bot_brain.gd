@@ -338,6 +338,13 @@ func get_scout() -> BotScout:
 	return _scout
 
 
+## The military manager, or null before the strategy layer is built. Read by a decision
+## simulation for the posture and the objective (gdd/systems/ai/decision-sims.md); nothing
+## outside the brain decides through it.
+func get_military() -> BotMilitary:
+	return _military
+
+
 ## The actuator, or null before the strategy layer is built. Read by the self-play harness
 ## for its usage ledger (BotActuator.usage); nothing outside the brain issues through it.
 func get_actuator() -> BotActuator:

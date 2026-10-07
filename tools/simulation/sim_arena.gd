@@ -162,14 +162,31 @@ func _build_slots() -> void:
 		slot.is_bot = true
 		slot.faction = _faction_scene(settings)
 		slot.difficulty = PlayerSlot.Difficulty[settings.difficulty]
-		# A controlled measurement starts from a known stockpile, and nothing in a spec buys
-		# anything: the pieces are placed, not produced.
-		slot.starting_energy = 0
-		slot.starting_dominion = 0
+		# A controlled measurement starts from a known stockpile — zero unless the spec says,
+		# and only a thinking slot may say: an inert slot's pieces are placed, not produced.
+		slot.starting_energy = settings.energy
+		slot.starting_dominion = settings.dominion
+		slot.omniscient = settings.vision_full
+		slot.consider_structures = settings.consider_structures
+		slot.consider_units = settings.consider_units
+		if settings.is_thinking():
+			slot.config_overrides = _decision_config(settings)
 		slots.append(slot)
 		roster.register_slot(slot_name, commander_id)
 		commander_id += 1
 	player_slots = slots
+
+
+## The parameters a thinking slot plays by: the spec's overrides over a personality that is
+## ZEROED unless the spec sets it. Every thinking tier draws a random personality from its
+## seed and samples its scored decisions at a temperature; a decision simulation wants the
+## argmax, reproducibly, and a spec that wants the sampled behaviour says so by setting the
+## two fields itself (gdd/systems/ai/decision-sims.md §Grammar extensions).
+func _decision_config(a_settings: SimSpec.CommanderSettings) -> Dictionary:
+	var config: Dictionary = {"personality_spread": 0.0, "decision_temperature": 0.0}
+	for key: String in a_settings.config:
+		config[key] = a_settings.config[key]
+	return config
 
 
 ## A slot's faction scene. Base `Scenario` never spawns a faction's opening force (only
@@ -202,6 +219,10 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	_silence_unthinking_brains()
+	for slot_name: String in spec.commanders:
+		var commander: Variant = commanders[roster.commander_id(slot_name)]
+		if is_instance_valid(commander):
+			roster.register_commander(slot_name, commander)
 	var camera: Camera3D = get_node_or_null("SpectatorCamera") as Camera3D
 	if camera == null:
 		return
