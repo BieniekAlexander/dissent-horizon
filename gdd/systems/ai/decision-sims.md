@@ -188,8 +188,11 @@ ground* passes by accident and the other two are specifications.
 
 ### targeting/ — a counter it can crush
 
-`sims/bot/targeting/crush_a_counter` — PASSING. A Matilda (`cl_mechMedium_antiMech`; the
-sample's anti-light tank carries no crush class) beside one `cl_bioLight_antiMech`; `command
+`sims/bot/targeting/crush_a_counter` — PASSING. A Sloop (`cl_mechMedium_antiLight`, given
+the Matilda's `crush_class: MEDIUM` on 2026-10-07) beside one `cl_bioLight_antiMech` — and
+the Sloop carries a hold, so its run-over CAPTURES the trooper (`garrisoned_in` at tick 84)
+rather than killing it; the outcome check accepts either, since a captive keeps its own side
+and `owner` does not change; `command
 is: MoveCommand target: B.trooper` by 3s, and `B.trooper dead`. Control: one enemy; axis
 **effectiveness**. Writing it found that the attack-move's own aggro had already put the tank
 on an Attack at the trooper, so `BotTargeting` now converts a crushable CURRENT target to the
