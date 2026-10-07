@@ -281,6 +281,41 @@ func use_sanction(
 	return true
 
 
+## Order `a_caster` to use its own LOCAL ability `a_ability_id` at `a_world_pos` — the Ability
+## command the player's `command_launch` issues, carrying the id on the message. The caster
+## walks into the ability's reach and puts the payload down. Recorded under the ability's id,
+## like a sanction, so the audit reads abilities by what was cast rather than by who cast it.
+## Returns whether the order was issued.
+func use_ability(a_caster: Commandable, a_ability_id: StringName, a_world_pos: Vector3) -> bool:
+	if _map == null or a_caster == null or a_ability_id == &"":
+		return false
+	var msg := CommandMessage.new(_map, null, null, a_world_pos, a_ability_id)
+	if not _admits(Ability, a_caster, msg, "use_ability", a_ability_id):
+		return false
+	usage.record_cast_position(a_ability_id, a_world_pos)
+	var cmd := Ability.new(msg)
+	a_caster.update_commands(cmd)
+	a_caster.load_destination(cmd)
+	return true
+
+
+## Order `a_spotter` to call in a firing solution on `a_world_pos`: walk into spotting reach,
+## channel, and hold the beacon until a Bombard fires on it (Spot). The gun answers on its
+## own — automatic fire is the Bombard's default — so this is the bot's whole half of the
+## siege loop. Recorded under the Spot ability's id. Returns whether the order was issued.
+func spot(a_spotter: Commandable, a_world_pos: Vector3) -> bool:
+	if _map == null or a_spotter == null:
+		return false
+	var msg := CommandMessage.new(_map, null, null, a_world_pos)
+	if not _admits(Spot, a_spotter, msg, "spot", Spot.ABILITY_ID):
+		return false
+	usage.record_cast_position(Spot.ABILITY_ID, a_world_pos)
+	var cmd := Spot.new(msg)
+	a_spotter.update_commands(cmd)
+	a_spotter.load_destination(cmd)
+	return true
+
+
 ## Queue one unit of `type` at a production structure. Returns false only when no tool
 ## produces `type`. The purchase goes onto the commander's global production queue,
 ## which deducts the cost and hands the job to `structure` as soon as it's affordable —

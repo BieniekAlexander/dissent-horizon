@@ -50,9 +50,13 @@ const JOB_PRIORITY_MILITARY: int = 70
 const JOB_PRIORITY_KAMIKAZE: int = 60
 const JOB_PRIORITY_PRESERVATION: int = 60
 const JOB_PRIORITY_SANCTION: int = 50
+## Beside the sanctions: a local ability is a cast too, aimed at what targeting just engaged.
+const JOB_PRIORITY_ABILITIES: int = 50
 const JOB_PRIORITY_OPPORTUNIST: int = 40
 const JOB_PRIORITY_ECONOMY: int = 30
 const JOB_PRIORITY_PRODUCTION: int = 20
+## After production: an upgrade is a purchase priced on the army production has fielded.
+const JOB_PRIORITY_RESEARCH: int = 15
 const JOB_PRIORITY_SCOUT: int = 10
 
 ## Work units a job reports when it did nothing measurable, so a no-op still counts against
@@ -77,6 +81,8 @@ var _momentum: BotMomentum
 var _economy: BotEconomy
 var _deployment: BotDeployment
 var _military: BotMilitary
+var _abilities: BotAbilities
+var _research: BotResearch
 var _production: BotProduction
 var _targeting: BotTargeting
 var _kamikaze: BotKamikaze
@@ -218,6 +224,7 @@ func _build_jobs() -> void:
 		BotJob.new(&"targeting", self, combat, JOB_PRIORITY_TARGETING, _unit_work(_targeting.tick)),
 		BotJob.new(&"military", self, combat, JOB_PRIORITY_MILITARY, _unit_work(_military.tick)),
 		BotJob.new(&"sanction", self, combat, JOB_PRIORITY_SANCTION, _unit_work(_sanction.tick)),
+		BotJob.new(&"abilities", self, combat, JOB_PRIORITY_ABILITIES, _unit_work(_abilities.tick)),
 		BotJob.new(
 			&"kamikaze",
 			self,
@@ -246,6 +253,7 @@ func _build_jobs() -> void:
 		BotJob.new(
 			&"production", self, strategy, JOB_PRIORITY_PRODUCTION, _unit_work(_production.tick)
 		),
+		BotJob.new(&"research", self, strategy, JOB_PRIORITY_RESEARCH, _unit_work(_research.tick)),
 		# Seeing comes before dispatching, so a scout is sent on from what was just seen.
 		BotJob.new(
 			&"scout_sight",
@@ -294,6 +302,10 @@ func _apply_config() -> void:
 	_economy.income_structure_target = config.income_structure_target
 	_economy.defence_structure_target = config.defence_structure_target
 	_economy.tech_value_margin = config.tech_value_margin
+	# The research rung buys on the same margin the tech rung buys a building on, and banks
+	# the same reserve every other spender does.
+	_research.tech_value_margin = config.tech_value_margin
+	_research.reserve = config.economy_reserve
 	# The economy is the THIRD consumer of the threat radius (BotMilitary and BotSanction are
 	# the others). "Is something of mine under attack" has to mean one thing across the bot,
 	# and it is what tells the economy to stop expanding — see BotEconomy.safety.
@@ -378,8 +390,12 @@ func _ensure_managers() -> bool:
 	# A REVEAL sanction is aimed by what the scout has not seen, and stamps what it shows.
 	_sanction.scout = _scout
 	_opportunist = BotOpportunist.new(bot, _actuator)
+	_abilities = BotAbilities.new(bot, _actuator)
+	_research = BotResearch.new(bot, _actuator)
 	# One registry, shared: a claim means nothing unless every manager reads the same one.
-	for manager: Object in [_economy, _military, _targeting, _kamikaze, _scout, _opportunist]:
+	for manager: Object in [
+		_economy, _military, _targeting, _kamikaze, _scout, _opportunist, _abilities
+	]:
 		manager.set("claims", claims)
 	# One stream, shared by the modules that sample (null stays null: they then argmax).
 	for manager: Object in [_production, _opportunist, _scout]:

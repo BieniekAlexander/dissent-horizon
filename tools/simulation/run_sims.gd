@@ -145,10 +145,13 @@ func _run_spec(a_spec: SimSpec, a_trials: int) -> void:
 	var trials: Array = []
 	for index: int in a_trials:
 		var result: Dictionary = await _run_trial(a_spec, _seed_for(a_spec, index))
-		trials.append(result)
 		if result.has("build_errors"):
+			# A spec that cannot be built is BROKEN, reported like a parse error: there is no
+			# trial to count, so none is recorded.
 			_broken += 1
-			break
+			_report.append({"spec": a_spec.id, "ok": false, "errors": result["build_errors"]})
+			return
+		trials.append(result)
 	_report.append(
 		{
 			"spec": a_spec.id,
@@ -181,10 +184,12 @@ func _seed_for(a_spec: SimSpec, a_index: int) -> int:
 func _run_trial(a_spec: SimSpec, a_seed: int) -> Dictionary:
 	var arena: SimArena = SimArena.build(a_spec, a_seed)
 	if not arena.build_errors.is_empty():
+		# Read before the free: a freed arena has no build_errors to report.
+		var errors: Array = a_spec.errors + arena.build_errors
 		for error: String in arena.build_errors:
 			print("  BUILD ERROR: %s" % error)
 		arena.free()
-		return {"seed": a_seed, "build_errors": a_spec.errors + arena.build_errors}
+		return {"seed": a_seed, "build_errors": errors}
 
 	add_child(arena)
 	var cap: int = arena.max_ticks + TRIAL_SLACK_FRAMES

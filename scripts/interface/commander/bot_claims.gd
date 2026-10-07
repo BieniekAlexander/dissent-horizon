@@ -79,6 +79,14 @@ func owner_of(a_unit: Commandable) -> StringName:
 	return held["owner"] if held != null else &""
 
 
+## How strongly `a_unit` is held, or 0 when nobody holds it — for a manager that would act on
+## a unit WITHOUT taking it (a one-shot cast mid-fight), and so needs only to know that nobody
+## holds it harder than a fight.
+func priority_of(a_unit: Commandable) -> int:
+	var held: Variant = _live_claim(a_unit.get_instance_id())
+	return int(held["priority"]) if held != null else 0
+
+
 ## Every unit `a_owner` currently holds.
 func units_of(a_owner: StringName) -> Array:
 	var out: Array = []

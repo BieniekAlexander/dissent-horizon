@@ -97,6 +97,25 @@ func get_units() -> Array:
 	return _owned_units()
 
 
+## Every owned structure, built or under construction.
+func get_structures() -> Array:
+	return _owned_structures()
+
+
+## Owned, finished structures that RESEARCH something — list an upgrade among their producible
+## types. Distinct from get_production_structures, which is the unit producers: a research-only
+## structure (the Operations Center) trains nothing and is not one.
+func get_research_structures() -> Array:
+	return _owned_structures().filter(
+		func(s: Commandable) -> bool:
+			return (
+				s.production != null
+				and s.is_built
+				and s.production.producible_types.any(UpgradeCatalog.is_upgrade)
+			)
+	)
+
+
 ## The scene resource path that [type] is produced from, or "" when no build/train
 ## tool registers it. Lets the bot match owned instances to a catalog type by their
 ## scene (a node property) instead of reading each instance's Entity.Type.

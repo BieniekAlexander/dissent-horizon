@@ -561,6 +561,46 @@ production capacity, because it is the same kind of spend. Three things are deli
   ([squads-and-relations](squads-and-relations.md)); until then a specialised unit techs on
   its own gun or not at all. Tests: `tests/test_BotTechRung.gd`.
 
+## Local abilities
+
+Built 2026-10-07. **`BotAbilities` casts the abilities a UNIT holds and uses where it stands**,
+as `BotSanction` aims the commander's. Which pieces carry what is read off their `Abilities`
+pools, and what an ability is FOR is read off its doc's `command:` — the player's own route —
+so no ability is known by name:
+
+- **`command_launch` is a strike** (`BotActuator.use_ability`): thrown where the payload would
+  cover the most visible enemies within the caster's reach — the blast radius is read off the
+  emission's own `HitShape` (`AbilityCatalog.blast_radius_of`), so the bot measures the ground
+  the shell will — and only at a clump of at least two, with none of our own under it, since
+  the blast takes no sides. The caster is usually mid-fight; the throw replaces its Attack for
+  one order and targeting re-engages it after. A unit on an errand keeps to its errand.
+- **`command_spot` is the siege loop** (`BotActuator.spot`): while a loaded Bombard waits for
+  ground — a finished structure whose pool holds a `command_bombard` charge — a spotter is sent
+  to call a solution in on the nearest believed enemy structure its walk can reach, and holds
+  it there as an ERRAND. The gun answers on its own (automatic fire is its default), so the
+  Bombard order itself is never issued. One spotter out per loaded gun.
+- A passive ability has nothing to cast; one whose command this module does not know is left
+  alone, and the piece-usage audit reports it `NO_ACTUATION`.
+
+Cover: `tests/test_BotAbilities.gd`; decision specs `sims/bot/ability/strike_a_clump`,
+`sims/bot/siege/spot_for_the_gun`. TODO: a Bombard is still `NEVER_CONSIDERED` by the
+economy — nothing buys the gun, so in play the loop closes only on a map that starts with one.
+A siege rung wants the relation model (a gun is worth what its spotters can reach).
+
+## The research rung
+
+Built 2026-10-07. **`BotResearch` prices an upgrade by what it does for the pieces the bot
+FIELDS**: every `modifies:` entry is a factor on something — hit points, a rearm or recharge
+rate, an ability's reach (the new reach over today's) — and the value is Σ (factor − 1) × the
+cost of the fielded pieces the entry selects. A quarter more hit points on 2,000 energy of
+tanks is worth 500; an upgrade to pieces the bot has none of is worth nothing, which is what
+keeps it from researching ahead of its army. It is bought when the value clears
+`tech_value_margin` × its cost, the margin the tech rung already buys a building on, with the
+reserve kept like any other spend; the purchase is an ordinary train job at the structure that
+lists it (`Bot.get_research_structures`). Each pricing is recorded as a `research` choice, so
+the audit tells an upgrade priced and never bought from one never priced. Cover:
+`tests/test_BotResearch.gd`.
+
 ## Sanction targeting beyond the strike
 
 `Sanction.Targeting` carries five aims, and the bot's part is only to resolve each

@@ -1364,7 +1364,16 @@ func visible_foreign_structures() -> Array:
 ## Enemy commandables this commander can currently SEE: those within the VisionRange
 ## of any owned unit or structure. Deduplicated. This is the fog-of-war boundary for
 ## belief updates — it must not "cheat" by reading enemies the commander can't see.
+##
+## A commander with NO FOG sees everything, as has_vision_at already answers: a decision
+## simulation's omniscient slot (PlayerSlot.omniscient) is meant to know the whole map, and
+## bounding its sightings by its own pieces' vision ranges quietly re-imposed the fog it was
+## given none of.
 func visible_enemies() -> Array:
+	if not has_fog():
+		return _commandables_of(_enemy_commanders()).filter(
+			func(e: Commandable) -> bool: return not e.is_planned
+		)
 	var result: Array = []
 	var seen: Dictionary = {}
 	for owned: Entity in _owned_vision_sources():

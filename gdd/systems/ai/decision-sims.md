@@ -61,7 +61,9 @@ given:
 
 - **`vision: full`** is the harness convenience the brief asks for: the sim is about a
   decision, not about scouting, so the bot is handed the truth. The perception layer is the
-  same code with a fog that clears everything; nothing is bypassed. A sim about belief
+  same code with no fog; nothing is bypassed — and a commander with no fog SEES EVERYTHING
+  (`Commander.visible_enemies`), not merely what lies in its own pieces' vision ranges, which
+  until 2026-10-07 quietly re-imposed a fog the slot was given none of. A sim about belief
   (a remembered base, a disproved unit) leaves vision at its default and places vision
   sources.
 - **`config`** is the existing override route. **A thinking sim slot zeroes

@@ -69,6 +69,7 @@ python3 tools/selfplay/results/piece_usage.py colonial --catalogue
 | `NEVER_AIMED` | a charged sanction that never found a target | cannot signal |
 | `NEVER_CONSIDERED` | reachable, actuable, and no module scores it | cannot signal |
 | `NO_ACTUATION` | the command it needs is MISSING in the coverage test | cannot actuate |
+| `PASSIVE` | an ability with nothing to cast; its use is its carrier's | — |
 | `UNREACHABLE` | the faction's own tree never offers it | content |
 | `STUB` | its doc says it does nothing yet | content |
 | `NO_DATA` | the rows carry no ledger and it never appeared | run newer matches |
@@ -79,12 +80,16 @@ time — the Scan case below.
 
 ## Findings (2026-10-04, Colonials)
 
-**Static, from the roster alone.** Four abilities and the one upgrade are `NO_ACTUATION`:
-Bombard and Spot (the siege loop), Irradiate (the Recruit's grenade) and Work Detail are
-reachable and cast by no bot module; Advanced Targetting is researched by none. These are
+**Static, from the roster alone.** Four abilities and the one upgrade were `NO_ACTUATION`:
+Bombard and Spot (the siege loop), Irradiate (the Recruit's grenade) and Work Detail were
+reachable and cast by no bot module; Advanced Targetting was researched by none. These were
 the coverage test's MISSING entries seen from the piece side — the test says which commands,
-this says which content those commands strand. Everything else the Colonials field is
-reachable from the opening and orderable by the bot.
+this says which content those commands strand. CLOSED 2026-10-07: Spot and strikes are
+cast by `BotAbilities`, a Bombard fires on its own at a held beacon, and every upgrade is
+priced by `BotResearch` ([bot-architecture](bot-architecture.md) §Local abilities, §The
+research rung). Work Detail was never castable — it is `passive: true` — and the audit now
+says `PASSIVE` rather than blaming the bot. Everything else the Colonials field is reachable
+from the opening and orderable by the bot.
 
 **Scan was aimed as if it were a strike.** `BotSanction._aim` had two targeting modes, both
 for engagements: the densest VISIBLE enemy cluster, or a reinforcement point on our side of
