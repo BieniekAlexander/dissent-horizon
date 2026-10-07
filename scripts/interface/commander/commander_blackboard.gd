@@ -104,6 +104,13 @@ func believed() -> Array:
 	return _entries.values()
 
 
+## Whether the piece with `a_instance_id` is still believed — the fog-honest form of "is it
+## still standing": a structure stays believed until the commander SEES its cell empty, a
+## unit until its sighting goes stale. What a decision asks instead of is_instance_valid.
+func believes(a_instance_id: int) -> bool:
+	return _entries.has(a_instance_id)
+
+
 ## Believed enemy structures (last-known locations; persist until verified gone).
 func believed_structures() -> Array:
 	return _entries.values().filter(func(e: Entry): return e.is_structure)

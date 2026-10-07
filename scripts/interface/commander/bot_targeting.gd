@@ -144,12 +144,11 @@ func _retarget(a_unit: Commandable) -> void:
 	# the footprint gap then decides, as for every range (SU.hull_gap).
 	var radius: float = _engage_radius(a_unit)
 	var from: Hull = a_unit.hull()
-	var nearby: Array = _bot.get_enemies_near(a_unit.global_position, radius + from.extent())
+	var nearby: Array = _bot.visible_enemies_near(a_unit.global_position, radius + from.extent())
 	var candidates: Array = nearby.filter(
 		func(c: Commandable):
 			return (
 				a_unit.weapon_inventory.weapon_for_target(c) != null
-				and c.is_visible_to(_bot.id)
 				and Hull.gap(from, c.hull()) <= radius
 			)
 	)

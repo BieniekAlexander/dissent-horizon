@@ -410,13 +410,24 @@ func test_a_wave_launch_collects_the_bunkered_units() -> void:
 # ─── A WAVE THAT HAS ARRIVED RAZES THE BUILDING IT CAME FOR ───────────────────
 
 
+## Make `a_building` the wave's objective the way _objective_for does: the reference for the
+## Attack order, and the BELIEF that says it is still standing — which is what
+## _objective_is_standing asks, never the node.
+func _set_objective(a_building: Commandable) -> void:
+	if _bot.blackboard == null:
+		_bot.blackboard = CommanderBlackboard.new(_bot)
+	_bot.blackboard._upsert(a_building, 0.0)
+	_military._objective_entity = a_building
+	_military._objective_id = a_building.get_instance_id()
+
+
 func test_an_idle_wave_member_at_the_objective_attacks_the_building_behind_it() -> void:
 	var building: StubPiece = StubPiece.make()
 	add_child_autofree(building)
 	building.global_position = OBJECTIVE + Vector3(6.0, 0.0, 0.0)
 	var veteran := _armed_unit(OBJECTIVE)
 	_launch_wave([veteran], 1000.0)
-	_military._objective_entity = building
+	_set_objective(building)
 	_military._tick_reinforcements(OBJECTIVE)
 	assert_eq(_act.attacks.size(), 1, "one Attack order")
 	assert_eq(_act.attacks[0]["units"], [veteran])
@@ -429,7 +440,7 @@ func test_a_wave_member_short_of_the_objective_keeps_walking_rather_than_attacki
 	add_child_autofree(building)
 	var veteran := _armed_unit(OBJECTIVE + Vector3(-40.0, 0.0, 0.0))
 	_launch_wave([veteran], 1000.0)
-	_military._objective_entity = building
+	_set_objective(building)
 	_military._tick_reinforcements(OBJECTIVE)
 	assert_eq(_act.attacks, [])
 	assert_eq(_destinations_of(veteran), [OBJECTIVE])
@@ -437,12 +448,28 @@ func test_a_wave_member_short_of_the_objective_keeps_walking_rather_than_attacki
 
 func test_a_razed_objective_is_not_attacked() -> void:
 	var building: StubPiece = StubPiece.make()
+	add_child(building)  # freed below, by the test itself
 	var veteran := _armed_unit(OBJECTIVE)
 	_launch_wave([veteran], 1000.0)
-	_military._objective_entity = building
+	_set_objective(building)
 	building.free()
 	_military._tick_reinforcements(OBJECTIVE)
-	assert_eq(_act.attacks, [], "a freed building is no target")
+	assert_eq(_act.attacks, [], "a freed building cannot be handed to an Attack order")
+
+
+func test_an_objective_no_longer_believed_is_not_attacked() -> void:
+	# The fog-honest half of the rule above: the bot does not know a building fell until it
+	# sees the spot empty, and it stops attacking the moment the BELIEF goes — the node's
+	# fate is never consulted.
+	var building: StubPiece = StubPiece.make()
+	add_child_autofree(building)
+	building.global_position = OBJECTIVE + Vector3(6.0, 0.0, 0.0)
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_set_objective(building)
+	_bot.blackboard._entries.erase(building.get_instance_id())
+	_military._tick_reinforcements(OBJECTIVE)
+	assert_eq(_act.attacks, [], "no belief, no Attack — whatever the node says")
 
 
 # ─── CRUSHING COUNTS AS EFFECTIVENESS ───────────────────────────────────────

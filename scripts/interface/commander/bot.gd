@@ -244,18 +244,22 @@ func get_enemies_in_aggro_range(
 	return enemies
 
 
-## Enemy units within [threat_radius] world units of any owned structure.
-## Non-empty means the base is being actively pressured.  Deduplicates
+## Enemy units within [threat_radius] world units of any owned structure that this bot can
+## SEE. Non-empty means the base is being actively pressured.  Deduplicates
 ## enemies that are close to several structures at once.
 ## NOTE: intentionally includes unbuilt structures — an enemy attacking a
 ## structure under construction is still a threat worth responding to.
+## Fog-limited like every other sense: a stealthed or fogged raider near a structure is not a
+## threat the bot knows about until something reveals it (the structure's own vision usually
+## does). This and the two reads below once used the omniscient overlap, so the bot defended
+## against units nobody could see.
 func get_enemies_threatening_base(a_threat_radius: float = 30.0) -> Array:
 	if map == null:
 		return []
 	var seen: Dictionary = {}
 	var threats: Array = []
 	for s: Commandable in _owned_structures():
-		for enemy: Commandable in get_enemies_near(s.global_position, a_threat_radius):
+		for enemy: Commandable in visible_enemies_near(s.global_position, a_threat_radius):
 			if not seen.has(enemy):
 				seen[enemy] = true
 				threats.append(enemy)
@@ -275,7 +279,7 @@ func most_threatened_structure(a_threat_radius: float = 30.0) -> Commandable:
 	var worst: Commandable = null
 	var worst_frac := 1.0
 	for s: Commandable in _owned_structures():
-		if not get_enemies_near(s.global_position, a_threat_radius).is_empty():
+		if not visible_enemies_near(s.global_position, a_threat_radius).is_empty():
 			var frac := s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
 			if frac < worst_frac:
 				worst_frac = frac
@@ -529,7 +533,7 @@ func threatened_command_centre(a_threat_radius: float) -> Commandable:
 	for s: Commandable in _owned_structures():
 		if not Deployment.is_command_centre(s):
 			continue
-		if get_enemies_near(s.global_position, a_threat_radius).is_empty():
+		if visible_enemies_near(s.global_position, a_threat_radius).is_empty():
 			continue
 		var frac: float = s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
 		if frac < worst_frac:
@@ -909,11 +913,15 @@ func belief_is_disproved(a_entry: CommanderBlackboard.Entry) -> bool:
 	if a_entry == null or a_entry.is_structure:
 		return false
 	# Asked of the raw field, and validity first: a destroyed entity is the ordinary case for
-	# a belief, and casting or dereferencing a freed object is an engine error.
+	# a belief, and casting or dereferencing a freed object is an engine error. Its position
+	# is read ONLY if the bot can SEE it — the same fog-and-stealth test the player's screen
+	# answers. A stealthed unit standing on the remembered spot used to read as "still where
+	# we remember it", which told the bot where a unit it could not see was.
 	var remembered: Variant = a_entry.entity
 	if (
 		is_instance_valid(remembered)
 		and (remembered as Node).is_inside_tree()
+		and (remembered as Entity).is_visible_to(id)
 		and (
 			VU.in_xz((remembered as Node3D).global_position).distance_to(
 				VU.in_xz(a_entry.last_known_location)
@@ -921,7 +929,7 @@ func belief_is_disproved(a_entry: CommanderBlackboard.Entry) -> bool:
 			<= BELIEF_VERIFY_RADIUS
 		)
 	):
-		return false  # it is still where we remember it
+		return false  # in sight, and still where we remember it
 	return has_vision_at(a_entry.last_known_location)
 
 
@@ -1375,24 +1383,33 @@ var demand_coverage_falloff: float = 1.0
 
 
 ## Per believed enemy TYPE: { type -> { "demand": float, "rep": Commandable } }.
-## demand = that type's summed importance across the believed-and-still-alive enemy
-## comp (units 1.0, structures structure_demand_weight), DIVIDED DOWN by how well our
-## current army already counters it — so a covered type has low demand (diminishing
-## returns) and an unmet threat has high demand. `rep` is one live instance of the
-## type, since effectiveness needs a live target (build previews read 0). Fog-limited:
-## reads the blackboard's beliefs, restricted to entries whose entity is still alive.
+## demand = that type's summed importance across the believed enemy comp (units 1.0,
+## structures structure_demand_weight), DIVIDED DOWN by how well our current army already
+## counters it — so a covered type has low demand (diminishing returns) and an unmet threat
+## has high demand. Fog-limited: reads the blackboard's beliefs, and EVERY belief counts —
+## a believed enemy that died out of sight is still believed (the liveness filter that used
+## to sit here was a fog leak, world-model.md §The fog boundary).
+##
+## `rep` is one live instance of the type, because effectiveness needs a live target (build
+## previews read 0 for targetable layers) — a STAT CARRIER for the type, not a claim about
+## any particular unit. It is borrowed from a believed entry that is still alive, else from
+## any instance of the type in the tree, and is null when the type is extinct; a null rep
+## reads as uncovered (coverage 0), and unit_composition_value skips it.
+## TODO: effectiveness should be type-level (ontology.md §Type-level), which removes the rep
+## and this borrowing with it.
 func enemy_demand_map() -> Dictionary:
 	if blackboard == null:
 		return {}
 	var importance: Dictionary = {}  # type -> summed importance
-	var reps: Dictionary = {}  # type -> a live Commandable of that type
+	var reps: Dictionary = {}  # type -> a live Commandable of that type, or null
 	for entry: CommanderBlackboard.Entry in blackboard.believed():
-		if not is_instance_valid(entry.entity):
-			continue
 		var imp: float = structure_demand_weight if entry.is_structure else 1.0
 		importance[entry.type] = importance.get(entry.type, 0.0) + imp
-		if not reps.has(entry.type):
+		if reps.get(entry.type) == null and is_instance_valid(entry.entity):
 			reps[entry.type] = entry.entity
+	for etype in importance:
+		if reps.get(etype) == null:
+			reps[etype] = _any_instance_of_type(etype)
 
 	# The enemy ALWAYS has a base to raze (the win condition), so guarantee a baseline
 	# anti-structure target even when none is currently in view. Without this, a bot
@@ -1400,7 +1417,7 @@ func enemy_demand_map() -> Dictionary:
 	# unit — exactly the "keeps making irregulars" bug. Proxy the enemy's (unseen)
 	# structures with one of our own (same armour class, a sound default otherwise).
 	var sees_enemy_structure: bool = reps.values().any(
-		func(r: Commandable): return r.structure_is_active()
+		func(r): return r != null and (r as Commandable).structure_is_active()
 	)
 	if not sees_enemy_structure:
 		var own_structs := _owned_structures()
@@ -1414,8 +1431,9 @@ func enemy_demand_map() -> Dictionary:
 	for etype in importance:
 		var rep: Commandable = reps[etype]
 		var coverage: float = 0.0
-		for u: Commandable in own:
-			coverage += unit_effectiveness_vs(u.id, rep)
+		if rep != null:
+			for u: Commandable in own:
+				coverage += unit_effectiveness_vs(u.id, rep)
 		demand[etype] = {
 			"demand": importance[etype] / (1.0 + coverage * demand_coverage_falloff),
 			"rep": rep,
@@ -1429,8 +1447,23 @@ func unit_composition_value(a_unit_type, a_demand: Dictionary) -> float:
 	var total: float = 0.0
 	for etype in a_demand:
 		var d: Dictionary = a_demand[etype]
+		if d["rep"] == null:
+			continue
 		total += unit_effectiveness_vs(a_unit_type, d["rep"]) * d["demand"]
 	return total
+
+
+## Any live, in-tree Commandable of type `a_type`, whoever owns it, or null. A stat carrier
+## for type-level questions (armour, targetable layers), never a sighting: it says nothing
+## about where any piece is.
+func _any_instance_of_type(a_type: StringName) -> Commandable:
+	if not is_inside_tree():
+		return null
+	for node: Node in get_tree().get_nodes_in_group("piece"):
+		var c: Commandable = node as Commandable
+		if c != null and c.id == a_type and c.is_inside_tree():
+			return c
+	return null
 
 
 # ─── AOE-SUICIDE UNITS (kamikaze cost-effectiveness) ────────────────────────
@@ -1457,9 +1490,12 @@ func unit_build_time_ticks(a_unit_type) -> int:
 func believed_enemy_army_value() -> float:
 	if blackboard == null:
 		return 0.0
+	# Every believed unit counts, whatever happened to its node: a unit that died out of
+	# sight is still believed until the belief lapses or is disproved. Reading the node's
+	# liveness here was the fog leak world-model.md §The fog boundary lists second.
 	var total: float = 0.0
 	for entry: CommanderBlackboard.Entry in blackboard.believed():
-		if entry.is_structure or not is_instance_valid(entry.entity):
+		if entry.is_structure:
 			continue
 		total += unit_cost(entry.type)
 	return total

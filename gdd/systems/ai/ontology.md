@@ -270,8 +270,8 @@ and the bot correctly knows nothing a player would not.
 
 ## Vision is unoccluded — and the scout grid is not
 
-Found 2026-10-06 while checking this note's claims; a bug today, not fixed, listed here
-because the ontology's placement rule is what it breaks.
+Found 2026-10-06 while checking this note's claims, and FIXED the same day; kept because the
+ontology's placement rule is what it broke, and the record says what the rule costs to miss.
 
 The fog (`fog.gd`) stamps every pixel inside a `VisionRange` footprint with no line-of-sight
 test — `_vision_offsets` is a flat shape, and `Entity.is_visible_to` is stealth plus
@@ -282,9 +282,9 @@ ridge can be fog-cleared, its enemies visible to the player and to `visible_enem
 while the scout grid keeps it unseen and sends scouts back to look at ground the bot already
 sees. The bot invented an occlusion the game does not have.
 
-In the world-model the fix is free: the `sight_age` channel is stamped from the fog's own
-cleared set (L0 negative evidence) and the raycasts go away — which also removes the
-costliest term in the sight sweep (`SIGHT_RAYCAST_WORK_UNITS`).
+The fix: `BotScout._mark_seen_by` now stamps a grid point when `Commander.has_vision_at` is
+true there — the fog's own cleared pixel — and the raycast and its work units are gone. When
+the one lattice lands the `sight_age` channel is stamped the same way.
 
 ---
 

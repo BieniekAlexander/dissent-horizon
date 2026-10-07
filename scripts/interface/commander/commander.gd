@@ -1302,6 +1302,12 @@ func _enemy_commanders() -> Array:
 ## All enemy commandables within [radius] world units of [position]. An ENEMY is
 ## owned by a different, non-neutral commander (excluding neutral id 0 matches
 ## _enemy_commanders).
+##
+## OMNISCIENT: a physics overlap, so it returns fogged and stealthed enemies too. It is the
+## primitive under visible_enemies(), which adds the fog gate; anything that models what
+## this commander KNOWS reads visible_enemies_near instead. The bot's threat senses once
+## read this directly and so defended against units nobody could see (world-model.md
+## §The fog boundary).
 func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 	if map == null:
 		return []
@@ -1310,6 +1316,15 @@ func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 	)
 	return nearby.filter(
 		func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0
+	)
+
+
+## The enemies within [radius] of [position] that this commander can SEE — get_enemies_near
+## behind the same fog-and-stealth gate visible_enemies() applies. The one radius query a
+## perception read may use.
+func visible_enemies_near(a_position: Vector3, a_radius: float) -> Array:
+	return get_enemies_near(a_position, a_radius).filter(
+		func(e): return (e as Commandable).is_visible_to(id)
 	)
 
 

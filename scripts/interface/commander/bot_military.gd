@@ -171,6 +171,9 @@ var _wave_members: Dictionary = {}
 ## that has arrived and stands there is the "waiting around" that was reported. Untyped: a
 ## belief outlives the thing it remembers, and a freed object fails a typed field.
 var _objective_entity: Variant = null
+## Its instance id, kept apart from the reference so the belief can be asked about after the
+## node is freed (a freed object cannot answer get_instance_id).
+var _objective_id: int = 0
 ## seconds_elapsed() when the current objective was set, or the wave was last seen fighting
 ## or travelling — what OBJECTIVE_STALL_SECONDS is measured from.
 var _objective_since: float = 0.0
@@ -265,7 +268,11 @@ func _tick_reinforcements(a_objective: Vector3) -> void:
 		func(u: Commandable) -> bool:
 			return u.global_position.distance_to(a_objective) <= STALL_RADIUS
 	)
-	if not arrived.is_empty() and _objective_is_standing():
+	# The Attack order needs a live node to aim at; a believed structure whose node is already
+	# gone gets no order, and the wave standing on its spot is what shows the fog it is gone
+	# (the blackboard drops the belief on its next update). Knowing is the belief's job; the
+	# validity test here is an actuation necessity and changes no decision.
+	if not arrived.is_empty() and _objective_is_standing() and is_instance_valid(_objective_entity):
 		_act.attack(arrived, _objective_entity as Entity)
 	_send_idle(idle_wave, a_objective)
 	var reserve: Array = _combat_units(_bot.get_units()).filter(
@@ -318,13 +325,12 @@ func _check_objective_stall(a_objective: Vector3) -> void:
 		_abandon_objective(a_objective)
 
 
-## Whether the entity behind the objective is still in play. A freed object compares equal
-## to null, so validity is asked first.
+## Whether the bot still BELIEVES the structure behind the objective is standing. Asked of
+## the blackboard, never of the node: a wave that knew its target had fallen before any unit
+## could see the spot was the fog leak world-model.md §The fog boundary lists third.
 func _objective_is_standing() -> bool:
 	return (
-		_objective_entity != null
-		and is_instance_valid(_objective_entity)
-		and (_objective_entity as Node).is_inside_tree()
+		_objective_id != 0 and _bot.blackboard != null and _bot.blackboard.believes(_objective_id)
 	)
 
 
@@ -623,6 +629,7 @@ func _objective_for(a_posture: Posture) -> Variant:
 			# bot snipes. That tuning is the content's (objectives-and-completion.md §Win
 			# conditions), not the bot's.
 			_objective_entity = null
+			_objective_id = 0
 			if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
 				var centre_actionable: Callable = func(entry: CommanderBlackboard.Entry) -> bool:
 					return _bot.is_command_centre_type(entry.type) and actionable.call(entry)
@@ -631,12 +638,14 @@ func _objective_for(a_posture: Posture) -> Variant:
 				)
 				if centre != null:
 					_objective_entity = centre.entity
+					_objective_id = centre.instance_id
 					return centre.last_known_location
 			var believed: CommanderBlackboard.Entry = _bot.nearest_believed_enemy_structure_entry(
 				actionable
 			)
 			if believed != null:
 				_objective_entity = believed.entity
+				_objective_id = believed.instance_id
 				return believed.last_known_location
 			# Nothing of theirs standing that we know of: go after the last place we saw a unit.
 			return _bot.nearest_believed_enemy_unit_position(_home_anchor_position(), actionable)

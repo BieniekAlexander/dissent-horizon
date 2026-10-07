@@ -75,7 +75,7 @@ var decision_temperature: float = 0.0
 ## All points start at -(SCOUT_EXPIRATION_TIMER + 1.0) — treated as never scouted.
 var _scout_grid: Dictionary = {}
 
-## Vector2i → true for every point that has been in real line of sight at least once
+## Vector2i → true for every point that has been in sight at least once
 ## (set only on a genuine LOS hit, never by the optimistic waypoint stamp). Drives the
 ## coverage query so a scenario can assert the whole map was actually scouted.
 var _ever_seen: Dictionary = {}
@@ -141,9 +141,9 @@ var claims: BotClaims = BotClaims.new()
 
 ## Work-unit costs of the sight sweep (BotScheduler counts work in units of roughly a
 ## microsecond on the calibration machine). A point inside a unit's window costs a distance
-## test; one inside its vision costs a physics raycast on top.
+## test; one inside its vision costs a fog pixel read on top.
 const SIGHT_POINT_WORK_UNITS: int = 1
-const SIGHT_RAYCAST_WORK_UNITS: int = 3
+const SIGHT_FOG_READ_WORK_UNITS: int = 1
 
 ## The sight sweep in progress: the units still to look through, and how far it has got. A
 ## resumable sweep's cursor (see BotJob) — state because the sweep is split across ticks, and
@@ -218,7 +218,7 @@ func is_sight_pending() -> bool:
 # ─── COVERAGE QUERY (used by scenario tests / debug) ─────────────────────────
 
 
-## Number of scout-grid points that have been in real line of sight at least once.
+## Number of scout-grid points that have been in sight at least once.
 func observed_point_count() -> int:
 	return _ever_seen.size()
 
@@ -273,14 +273,14 @@ func mark_revealed(a_centre: Vector3, a_radius: float) -> void:
 			_ever_seen[idx] = true
 
 
-## True once every scout-grid point has been in line of sight at least once.
+## True once every scout-grid point has been in sight at least once.
 func all_points_seen() -> bool:
 	return not _scout_grid.is_empty() and _ever_seen.size() >= _scout_grid.size()
 
 
 ## Per scout-grid point, for debug visualisation: its world position, the seconds_elapsed()
 ## time it was last observed (negative sentinel until first seen), and whether it has ever
-## been in real line of sight. The expiry window is SCOUT_EXPIRATION_TIMER.
+## been in sight. The expiry window is SCOUT_EXPIRATION_TIMER.
 func debug_points() -> Array:
 	var out: Array = []
 	for idx: Vector2i in _scout_grid:
@@ -337,10 +337,14 @@ func _grid_world_pos(a_idx: Vector2i) -> Vector3:
 # ─── LOS UPDATE ──────────────────────────────────────────────────────────────
 
 
-## Mark the scout-grid points `a_unit` has in real line of sight; returns the work units it
-## cost. Gated on the unit's ACTUAL vision radius — the same shape the fog of war reveals
-## with — so a point is only marked scouted once it is genuinely in sight (and thus
-## fog-cleared), not merely near the unit.
+## Mark the scout-grid points `a_unit` has in sight; returns the work units it cost. Gated
+## on the unit's ACTUAL vision radius — the same shape the fog of war reveals with — and then
+## on the FOG ITSELF: a point is scouted exactly when the bot's fog is clear there, which is
+## the same signal the player's screen shows. This sweep used to cast a physics ray against
+## terrain and structure blockers as well, but the fog has no line-of-sight test
+## (Fog._vision_offsets is a flat footprint), so the bot was inventing an occlusion the game
+## does not have and sending scouts back to ground it could already see — ontology.md
+## §Vision is unoccluded. The ray's cost went with it.
 ##
 ## Only the grid points in a window around the unit are tested, not the whole grid: the window
 ## is the vision radius in grid steps plus one step of slack, because the unit stands anywhere
@@ -351,10 +355,7 @@ func _mark_seen_by(a_unit: Commandable) -> int:
 	if vision <= 0.0:
 		return 0
 	var now: float = _bot.seconds_elapsed()
-	var space_state: PhysicsDirectSpaceState3D = _bot.map.get_world_3d().direct_space_state
-	var los_mask: int = CollisionLayers.Mask.TERRAIN | CollisionLayers.Mask.STRUCTURE_BLOCKER
 	var radius_sq: float = vision * vision
-	var unit_from: Vector3 = a_unit.global_position + Vector3.UP * 0.1
 	var unit_xz: Vector2 = VU.in_xz(a_unit.global_position)
 	var centre: Vector2i = _grid_index_at(unit_xz)
 	var reach: int = ceili(vision / float(SCOUT_GRID_SIZE)) + 1
@@ -368,12 +369,8 @@ func _mark_seen_by(a_unit: Commandable) -> int:
 			var pt: Vector3 = _scout_grid_positions[idx]
 			if unit_xz.distance_squared_to(VU.in_xz(pt)) > radius_sq:
 				continue
-			spent += SIGHT_RAYCAST_WORK_UNITS
-			var query := PhysicsRayQueryParameters3D.create(
-				unit_from, pt + Vector3.UP * 0.1, los_mask
-			)
-			query.collide_with_bodies = true
-			if space_state.intersect_ray(query).is_empty():
+			spent += SIGHT_FOG_READ_WORK_UNITS
+			if _bot.has_vision_at(pt):
 				_scout_grid[idx] = now
 				_ever_seen[idx] = true
 	return spent
@@ -531,9 +528,9 @@ func _still_scouting(a_scout: Variant, a_rank: int) -> bool:
 
 
 ## Issue `a_scout`'s next waypoint. The target is optimistically stamped as visited so
-## _next_scout_point never re-selects the same cell — for this scout if the LOS raycast is
-## blocked right at its feet, and for the OTHER scouts, which is what keeps two of them
-## from walking to the same place.
+## _next_scout_point never re-selects the same cell — for this scout if its arrival leaves
+## the point's fog pixel uncleared at the disc's edge, and for the OTHER scouts, which is
+## what keeps two of them from walking to the same place.
 func _send_to_next_point(a_scout: Commandable, a_now: float) -> void:
 	var next_idx: Variant = _next_scout_point(a_scout)
 	if next_idx != null:
@@ -868,7 +865,7 @@ func _next_scout_point(a_scout: Commandable) -> Variant:
 
 ## The expired grid point with the best expected return for a scout standing at `a_from_xz`,
 ## or null when there is none. `a_unseen_only` restricts the search to points that have never
-## been in real line of sight — the frontier — rather than to every point whose last sighting
+## been in sight — the frontier — rather than to every point whose last sighting
 ## has aged out.
 ##
 ## Takes the scout's FACTS rather than the scout: where it is, how fast it walks and how much

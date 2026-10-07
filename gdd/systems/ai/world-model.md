@@ -323,23 +323,32 @@ file text: a list of forbidden identifiers (`visible_enemies`, `get_enemies_near
 only in the perception files. A leak then fails CI rather than surviving as an honest
 mistake.
 
-The three leaks it would have caught, found 2026-10-06 while surveying for this note. Each is
-a bug today, listed here so the design accounts for them structurally; none is fixed yet:
+The scan is `tests/test_BotFogBoundary.gd` (built 2026-10-06): every `bot_*.gd` manager file
+is checked, comments stripped, for the omniscient calls — `get_enemies_near`,
+`get_all_enemies`, `get_enemy_units`, `get_enemy_structures`, `nearest_enemy_structure_to_base`,
+`get_nodes_in_group("piece")` — and any hit fails the suite. The fog-limited radius query a
+sense may use is `Commander.visible_enemies_near`.
 
-1. `Commander.get_enemies_near` (`commander.gd:1305`) has no visibility filter. It drives
-   `is_base_under_threat`, `most_threatened_structure` and `threatened_command_centre`
-   (`bot.gd:252–290, 526`), and through them the DEFEND posture (`bot_military.gd:448`),
-   `BotEconomy.safety()` (`bot_economy.gd:698`) and defensive sanction aiming
-   (`bot_sanction.gd:188`). Only `BotTargeting` adds its own `is_visible_to`.
-2. `believed_enemy_army_value` (`bot.gd:1462`) and `enemy_demand_map` (`bot.gd:1390`) drop
-   entries whose entity fails `is_instance_valid` — an enemy that dies out of sight leaves
-   the estimate instantly, against the blackboard's own rule (`commander_blackboard.gd:13`).
-3. `BotMilitary._objective_is_standing` (`bot_military.gd:323`) checks the remembered
-   objective's liveness, so a wave knows its target fell before any unit could see it.
+Three leaks were found by survey on 2026-10-06, before the scan existed, and FIXED the same
+day (migration step 1):
 
-In L1 terms each is one status read: (1) threat is a field over CONFIRMED tracks, (2) sums
-run over BELIEVED tracks whatever happened to the node, (3) an objective stands until its
-track is LOST or DESTROYED.
+1. `Commander.get_enemies_near` is a physics overlap with no visibility filter, and drove
+   `is_base_under_threat`, `most_threatened_structure` and `threatened_command_centre` — the
+   DEFEND posture, `BotEconomy.safety()` and defensive sanction aiming. Those three senses,
+   `BotSanction` and `BotTargeting` now read `visible_enemies_near`; `get_enemies_near` is
+   documented as the omniscient primitive under `visible_enemies()` and nothing above
+   perception calls it.
+2. `believed_enemy_army_value` and `enemy_demand_map` dropped entries whose entity failed
+   `is_instance_valid`, so an enemy that died out of sight left the estimate instantly. Every
+   belief now counts; the demand map's live `rep` is borrowed as a type-level stat carrier
+   (`Bot._any_instance_of_type`), null for an extinct type, with a `TODO` that type-level
+   effectiveness removes it.
+3. `BotMilitary._objective_is_standing` read the remembered objective's liveness. It now asks
+   `CommanderBlackboard.believes(instance_id)` — a structure stands until the bot SEES its
+   cell empty — and the node's validity is checked only at the Attack order, an actuation
+   necessity that changes no decision. `Bot.belief_is_disproved` read a remembered unit's
+   live position whatever its visibility, so a stealthed unit on the spot read as "still
+   there"; the position is now read only for a piece the bot can see.
 
 ## Cadence and cost
 
@@ -370,8 +379,9 @@ mirror-exact** on a symmetric map. The fog-boundary scan is a third.
 
 Incremental, one landable change each, in the order that pays earliest:
 
-1. **Make the boundary explicit.** Route the three leaks through visibility and belief status
-   (fixes the bugs above with no new machinery); add the forbidden-identifier scan.
+1. **Make the boundary explicit.** BUILT 2026-10-06: the three leaks route through visibility
+   and belief status, the scout grid stamps from the fog, and the forbidden-identifier scan is
+   `tests/test_BotFogBoundary.gd`.
 2. **Extract `TrackTable`** from `CommanderBlackboard`, with status, decaying confidence, the
    negative-evidence check and expiring state; snapshots read it. The blackboard's open question
    ([bot-engagement-fixes](bot-engagement-fixes.md) §What this does NOT explain) is answered by negative evidence.

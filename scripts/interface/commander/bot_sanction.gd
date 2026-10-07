@@ -188,7 +188,7 @@ func _engagement_zone() -> Variant:
 	var threatened: Commandable = _bot.most_threatened_structure(defend_threat_radius)
 	if threatened != null:
 		var defenders: Array = _enemy_units(
-			_bot.get_enemies_near(threatened.global_position, defend_threat_radius)
+			_bot.visible_enemies_near(threatened.global_position, defend_threat_radius)
 		)
 		if not defenders.is_empty():
 			return {"mode": Mode.DEFEND, "enemies": defenders, "anchor": threatened.global_position}
