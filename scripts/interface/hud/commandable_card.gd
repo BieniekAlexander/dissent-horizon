@@ -38,6 +38,11 @@ signal activated(commandable: Actor, shift_held: bool)
 ## rail that built it wires this to `RTSController.select_pending`.
 signal pending_selected(transactions: Array, additive: bool, all_of_type: bool)
 
+## A LEFT click with the broaden modifier on a card bound to a queued PURCHASE: cancel every
+## queued purchase of `type`, not just this one. The rail that built the card owns the queue's
+## view, so it decides what that reaches.
+signal cancel_all_requested(type: StringName)
+
 ## A RIGHT click on a card bound to a live Actor. The info panel spends it on a GARRISON
 ## OCCUPANT: selecting one lets the player give it orders it carries out on coming out, where
 ## the LEFT click throws it out of the vehicle immediately.
@@ -425,7 +430,9 @@ func _gui_input(a_event: InputEvent) -> void:
 		if is_instance_valid(_producer) and _producer.production != null:
 			_cancel_job()
 	elif _transaction != null:
-		if _queue != null:
+		if Input.is_action_pressed(RTSController.MODIFIER_BROADEN):
+			cancel_all_requested.emit(_transaction.type)
+		elif _queue != null:
 			_cancel_purchase(_cancel_target if _cancel_target != null else _transaction)
 	elif _commandable != null and is_instance_valid(_commandable):
 		activated.emit(_commandable, (a_event as InputEventMouseButton).shift_pressed)

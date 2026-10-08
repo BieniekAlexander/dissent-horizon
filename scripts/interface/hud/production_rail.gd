@@ -237,6 +237,8 @@ func _wire_pending_selection(a_card: CommandableCard) -> void:
 		return
 	if not a_card.pending_selected.is_connected(_on_pending_selected):
 		a_card.pending_selected.connect(_on_pending_selected)
+	if not a_card.cancel_all_requested.is_connected(cancel_all_of_type):
+		a_card.cancel_all_requested.connect(cancel_all_of_type)
 
 
 ## A right click on a purchase card. `a_all_of_type` is the broaden modifier: take every
@@ -790,6 +792,19 @@ func _on_clear_queued_pressed() -> void:
 
 func _on_clear_standing_pressed() -> void:
 	_cancel_each(_ring)
+
+
+## Broaden + left click on a purchase card: cancel every purchase of `a_type` the rail SHOWS,
+## standing ones too — the whole queue in the global view, the selection's share in the scoped
+## one, by the same rule as the clear buttons.
+func cancel_all_of_type(a_type: StringName) -> void:
+	var of_type: Array[PurchaseTransaction] = []
+	of_type.assign(
+		(_one_offs + _ring).filter(
+			func(entry: PurchaseTransaction) -> bool: return entry.type == a_type
+		)
+	)
+	_cancel_each(of_type)
 
 
 func _cancel_each(a_transactions: Array[PurchaseTransaction]) -> void:

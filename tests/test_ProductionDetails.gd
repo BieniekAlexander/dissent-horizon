@@ -144,6 +144,31 @@ func test_clearing_a_scoped_column_cancels_only_what_it_shows() -> void:
 	assert_eq(commander.production_queue.queued(), [kept] as Array[PurchaseTransaction])
 
 
+## Broaden + left click on a card: every queued purchase of that piece goes, standing ones too,
+## and nothing else.
+func test_a_bulk_cancel_takes_every_purchase_of_the_type_and_only_those() -> void:
+	var commander := _commander()
+	var a := _producer([TRAINEE_A, TRAINEE_B])
+	_purchase(commander, TRAINEE_A, [a])
+	var kept := _purchase(commander, TRAINEE_B, [a])
+	_purchase(commander, TRAINEE_A, [a])
+	_purchase(commander, TRAINEE_A, [a], true)
+	var rail := _rail(commander, false)
+	rail.cancel_all_of_type(TRAINEE_A)
+	assert_eq(commander.production_queue.entries, [kept] as Array[PurchaseTransaction])
+
+
+func test_a_scoped_bulk_cancel_reaches_only_the_selection_s_share() -> void:
+	var commander := _commander()
+	var a := _producer([TRAINEE_A])
+	var b := _producer([TRAINEE_A])
+	_purchase(commander, TRAINEE_A, [a])
+	var kept := _purchase(commander, TRAINEE_A, [b])
+	var rail := _rail(commander, true, [a])
+	rail.cancel_all_of_type(TRAINEE_A)
+	assert_eq(commander.production_queue.entries, [kept] as Array[PurchaseTransaction])
+
+
 # --- The global copy ----------------------------------------------------------------
 
 
