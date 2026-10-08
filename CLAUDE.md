@@ -227,7 +227,7 @@ Every item heading carries one tag from each facet:
 | Progress — at most one | *(none)* | not started |
 | | `#wip` | a session is working on it now |
 | | `#shelved` | started and paused; carries a Status note saying where it stopped |
-| | `#done` | finished. Leave it in place; I delete it |
+| | `#done` | finished. Leave it in place; `/shelve` deletes it (I have reviewed it by then) |
 
 Effort and scope are judgements; correct them when the work shows otherwise. **An item that turns up an unresolved question mid-build is no longer `#scoped`** — it becomes `#needs-input`. The heading tag `#wip` is not the `WIP <timestamp> <session>` code marker of `~/.claude/CLAUDE.md` §13.1, though both mean "a session holds this now".
 
@@ -307,7 +307,7 @@ While an item is `#wip`, append `[!check] Progress — <date>` blocks as you go.
 
 Implementation history goes. What was built is in the code, the notes and git; a resolved question's outcome is in the note its **Resolved:** line named. Say what is **not** done as plainly as what is — I'm reading this instead of watching you work. Run the test suite (§Running and testing) before writing the status and report failures in it.
 
-**The task file is a log of what is still to do, not a record of what was done.** I delete items once they are in the project. Anything durable — a rule, a rationale, a decision and what it superseded — belongs in THIS file or in a `gdd/` design note. A status long enough to be worth keeping is a status written in the wrong file.
+**The task file is a log of what is still to do, not a record of what was done.** `/shelve` deletes `#done` items once I have reviewed them. Anything durable — a rule, a rationale, a decision and what it superseded — belongs in THIS file or in a `gdd/` design note. A status long enough to be worth keeping is a status written in the wrong file.
 
 ### The task file moves on its own
 
