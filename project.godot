@@ -378,6 +378,7 @@ rotate_right={
 
 world/map_use_async_iterations=false
 world/region_use_async_iterations=false
+avoidance/thread_model/avoidance_use_multiple_threads=false
 
 [physics]
 

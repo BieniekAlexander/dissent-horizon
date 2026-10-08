@@ -84,10 +84,10 @@ const AVOIDANCE_THREADS_SETTING: String = (
 )
 
 
-## Take avoidance off its worker threads FOR THIS PROCESS — a declaration of intent more than
-## a switch: the engine reads it when a navigation map is created, and the world map already
-## exists. It is not what makes runs reproducible (synchronous navigation in project.godot
-## is) — see selfplay-harness.md §Determinism, which also records why it left override.cfg.
+## Take avoidance off its worker threads FOR THIS PROCESS. `project.godot` now sets the same
+## thing for every run, so this only guards a checkout whose project settings were changed:
+## multi-threaded avoidance plays a different match in every process
+## (selfplay-harness.md §Determinism).
 func _force_single_threaded_avoidance() -> void:
 	ProjectSettings.set_setting(AVOIDANCE_THREADS_SETTING, false)
 
@@ -472,7 +472,7 @@ func _sample(a_tick: int) -> Dictionary:
 	return {
 		"tick": a_tick,
 		"simulated_seconds": TimeUtils.seconds_from_ticks(a_tick),
-		"digest": _state_digest(),
+		"digest": SimulationDigest.of(_scenario),
 		"slots": slots,
 	}
 
@@ -649,56 +649,6 @@ func _army_energy_value(a_commander: Commander, a_units: Array) -> float:
 	return total
 
 
-## A short hash of everything the simulation is currently made of — the determinism check's
-## whole instrument. Two runs of one seed must produce the same digest at the same tick; the
-## first tick at which they differ is where the divergence entered.
-##
-## SORTED before hashing, and that is the load-bearing part: entity order within a commander
-## follows tree order, which is not something the simulation guarantees. An unsorted digest
-## would report divergence that is not there.
-func _state_digest() -> String:
-	return _state_string().sha256_text().substr(0, 16)
-
-
-## The digest's INPUT, before hashing. Written per sample when the config names a
-## `state_dump_path`, because a mismatched digest says only THAT two runs differ — this says
-## WHICH entity, which is the whole of a divergence hunt.
-func _state_string() -> String:
-	var parts: PackedStringArray = []
-	for commander: Commander in _scenario.commanders:
-		if commander == null:
-			continue
-		var entities: PackedStringArray = []
-		for child: Node in commander.get_children():
-			var entity := child as Commandable
-			if entity == null or entity.is_queued_for_deletion():
-				continue
-			var hp: float = entity.defense.hp if entity.defense != null else 0.0
-			(
-				entities
-				. append(
-					(
-						"%s@%.3f,%.3f,%.3f#%.2f"
-						% [
-							entity.id,
-							entity.global_position.x,
-							entity.global_position.y,
-							entity.global_position.z,
-							hp,
-						]
-					)
-				)
-			)
-		entities.sort()
-		parts.append(
-			(
-				"c%d:e%d:d%d:%s"
-				% [commander.id, commander.energy, commander.dominion, "|".join(entities)]
-			)
-		)
-	return "|".join(parts)
-
-
 ## Append this tick's full pre-hash state to the configured dump file. Off unless the config
 ## names one: it is a debugging instrument for hunting a divergence, not part of a result.
 func _dump_state(a_tick: int) -> void:
@@ -713,7 +663,7 @@ func _dump_state(a_tick: int) -> void:
 	if file == null:
 		return
 	file.seek_end()
-	file.store_line("%d %s" % [a_tick, _state_string()])
+	file.store_line("%d %s" % [a_tick, SimulationDigest.state_string(_scenario)])
 	file.close()
 
 

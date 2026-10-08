@@ -26,6 +26,11 @@ the chunk regions `NavManager` makes by RID as well as scene nodes, which
 `tests/test_NavChunks.gd` checks. Measured before switching: no frame-time cost (headless,
 seed-1 match, 9,000 ticks — mean 5.3 ms sync vs 6.1 ms async, p99 ≈ 11 ms both).
 
+RVO avoidance is single-threaded for the same reason
+(`navigation/avoidance/thread_model/avoidance_use_multiple_threads = false`): on worker threads,
+one seed played a different match in every process ([selfplay-harness](../ai/selfplay-harness.md)
+§Determinism).
+
 #### Do NOT merge cells into larger polygons — it was tried and reverted
 
 One quad per cell means Godot's polygon A* picks one cell corridor out of many equal-cost ones, and the funnel can only pull the string taut *inside* the corridor it was handed — so a shallow diagonal comes back as "run along +x for a while, then cut". Merging cells into large convex polygons is the obvious fix and on an empty flat square it works perfectly (6.8% worst-case excess → 0.0%). **It cannot be represented in this engine**, and the failure is silent:
