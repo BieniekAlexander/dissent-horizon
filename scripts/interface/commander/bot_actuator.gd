@@ -184,12 +184,15 @@ func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 ## (overlay), world_pos must sit on the target ExtractionSite's cell. Tech/resource/
 ## placement validity are enforced downstream by Build.meets_precondition, so an
 ## invalid request is a safe no-op (the builder just won't complete it).
-func build(a_builder: Commandable, a_type: StringName, a_world_pos: Vector3) -> bool:
+func build(
+	a_builder: Commandable, a_type: StringName, a_world_pos: Vector3, a_quarter_turns: int = 0
+) -> bool:
 	var tool := Tool.for_type(a_type)
 	if tool == null:
 		usage.record_action("build", a_type, REFUSED_NO_TOOL)
 		return false
 	var msg := CommandMessage.new(_map, null, tool, a_world_pos)
+	msg.quarter_turns = a_quarter_turns
 	# Asked the way the player's click is, so a refusal is counted with its cause rather than
 	# left for the builder to discover at the site. The order is still issued either way: Build
 	# funds and places lazily, and a cause that clears on the walk (resources) is not a reason

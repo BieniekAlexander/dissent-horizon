@@ -7,7 +7,8 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**BUILT 2026-09-30 (slices 1–3 and the control); the bot and replay recording are still PLANNED.** Indexed as
+**BUILT: slices 1–3 and the control (2026-09-30), the bot and replay recording (2026-10-08).** Only
+two-form pieces remain (§Deferred). Indexed as
 [`tasks.md`](../../tasks.md) T-058. The control is decided: `[` / `]` turn the structure and
 `command_issue` is a press-drag-release gesture — see [construction](../commands/construction.md)
 §Placing and turning a structure, which owns those rules.
@@ -99,9 +100,12 @@ that shows the footprint at that count.** The controller holds one `placement_qu
 
 ## Slices, in order
 
-Slices 1–3 and the control half of 5 are built (`tests/test_FootprintRotation.gd`,
-`tests/test_PlacementRotation.gd`). Left: slice 4 (the bot) and the replay half of slice 5. The editor
-`terrain_snap` plugin reads a node's yaw as a quarter turn, as `Entity._auto_initialize` does.
+All five slices are built (`tests/test_FootprintRotation.gd`, `tests/test_PlacementRotation.gd`,
+`tests/test_BotPlacementEquivariance.gd`). The editor `terrain_snap` plugin reads a node's yaw as a
+quarter turn, as `Entity._auto_initialize` does. The bot ranks a non-square footprint at both
+orientations in one list; between two candidates that tie, the one whose long axis lies across its
+forward axis comes first, and within the orientation chosen it faces up the threat axis
+(`BotEconomy.facing_turns`). An order carries `quarter_turns`, so a replay lays it the same way.
 
 Each slice ends green and is useful alone. All tests build their own fixtures (a synthetic Map, a
 synthetic structure) — none reads an authored scene, per CLAUDE.md §A unit test does not assert facts
@@ -127,10 +131,10 @@ about authored content.
    the editor before any player-facing control exists.
 4. **The bot.** `BotEconomy._find_build_spot` considers both orientations of a non-square footprint
    and scores them like any other candidate; **mirror equivariance** (`tests/test_BotPlacementEquivariance`)
-   extends to rotation: mirroring a map maps a quarter-turn count `t` to `−t` (mod 4).
-   Until then the bot places at 0 and is correct, only less flexible.
-5. **The control, and replay.** Wire the controller to the seam once the new controls exist; record
-   the count in the order stream if 2.46 has landed.
+   extends to rotation: an isometry of the bot's situation carries its count with it (a quarter
+   turn adds one, a point reflection two, a mirror maps `t` to `−t`).
+5. **The control, and replay.** The controller is wired to the seam, and the count rides in the
+   order stream's message.
 
 ## Interactions to get right, not to defer
 

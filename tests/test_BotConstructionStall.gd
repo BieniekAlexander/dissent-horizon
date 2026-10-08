@@ -48,7 +48,9 @@ class StubActuator:
 	extends BotActuator
 	var builds: Array = []
 
-	func build(_a_builder: Commandable, a_type: StringName, a_pos: Vector3) -> bool:
+	func build(
+		_a_builder: Commandable, a_type: StringName, a_pos: Vector3, _a_quarter_turns: int = 0
+	) -> bool:
 		builds.append([a_type, a_pos])
 		return true
 
