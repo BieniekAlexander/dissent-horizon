@@ -21,8 +21,22 @@ class FakeBot:
 	var own_structures: Array = []
 	var believed: Array = []  # [{"position", "type"}]
 
+	var demand_map: Dictionary = {}
+
 	func get_units() -> Array:
 		return own_units
+
+	func enemy_demand_map() -> Dictionary:
+		return demand_map
+
+	func buildable_defence_structure_types() -> Array:
+		return [TOWER]
+
+	func can_afford(_a_type) -> bool:
+		return true
+
+	func type_targets_ground(_a_type) -> bool:
+		return true
 
 	func get_structures() -> Array:
 		return own_structures
@@ -148,3 +162,25 @@ func test_a_believed_enemy_beyond_the_region_weighs_nothing() -> void:
 	_soldier(Vector3(2.0, 0.0, 0.0))
 	_enemy(Vector3(BotEconomy.DEFENCE_REGION_RADIUS + 1.0, 0.0, 0.0))
 	assert_eq(_economy._defence_demand(), {})
+
+
+## A believed type that has gone extinct carries a null rep (Bot.enemy_demand_map); choosing a
+## defence must read past it rather than dereference it.
+func test_an_extinct_believed_type_does_not_stop_a_defence_being_chosen() -> void:
+	_bot.energy = TOWER_COST + _economy.reserve
+	_bot.demand_map = {ENEMY: {"demand": 1.0, "rep": null}}
+	assert_eq(_economy._defence_structure_to_build(), TOWER)
+
+
+func test_every_contested_region_is_reported_with_its_terms() -> void:
+	_structure(HOUSE, Vector3.ZERO)
+	_soldier(Vector3(2.0, 0.0, 0.0))
+	_enemy(Vector3(5.0, 0.0, 0.0))
+	_structure(HOUSE, Vector3(100.0, 0.0, 0.0))  # nobody there: no tension, not reported
+	var regions: Array = _economy.defence_demand_by_region()
+	assert_eq(regions.size(), 1)
+	assert_eq(regions[0]["centre"], Vector3.ZERO)
+	assert_almost_eq(float(regions[0]["value"]), float(STRUCTURE_COST), 0.001)
+	assert_almost_eq(float(regions[0]["own"]), float(UNIT_COST), 0.001)
+	assert_almost_eq(float(regions[0]["enemy"]), float(UNIT_COST), 0.001)
+	assert_almost_eq(float(regions[0]["demand"]), float(STRUCTURE_COST), 0.001)

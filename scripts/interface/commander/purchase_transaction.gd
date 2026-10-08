@@ -293,6 +293,7 @@ func fund() -> void:
 	commander.add_energy(-energy_cost)
 	commander.add_dominion(-dominion_cost)
 	state = State.FUNDED
+	_announce(&"funded")
 	# The blueprint stops being drawn as merely-queued the moment its cost is reserved.
 	# Done here rather than in the queue because this is the ONE place the money is
 	# committed, whichever path got us here — a same-frame dispatch or a shortfall waited
@@ -326,6 +327,7 @@ func complete(a_product: Node = null) -> void:
 	fulfilled.emit(self, a_product)
 	state = State.COMPLETED
 	planned_structure = null
+	_announce(&"completed")
 
 
 ## Drop this purchase, returning any reserved cost to the commander. Safe to call more
@@ -342,9 +344,17 @@ func cancel() -> void:
 	if state == State.FUNDED and refund_on_cancel and is_instance_valid(commander):
 		commander.add_energy(energy_cost)
 		commander.add_dominion(dominion_cost)
+		_announce(&"refunded")
 	if state == State.PENDING or state == State.FUNDED:
 		state = State.CANCELLED
 	discard_planned_structure()
+
+
+## Tell the commander this purchase reached `a_stage` (Commander.purchase_progressed). Not for a
+## commander already gone: at teardown there is nobody left to record it.
+func _announce(a_stage: StringName) -> void:
+	if is_instance_valid(commander):
+		commander.purchase_progressed.emit(self, a_stage)
 
 
 ## Take down the blueprint this purchase raised, if it hasn't been placed. Safe to call

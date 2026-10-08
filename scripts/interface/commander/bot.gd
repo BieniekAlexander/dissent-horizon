@@ -105,6 +105,8 @@ func get_structures() -> Array:
 ## Every believed enemy piece that can shoot — units, and structures with weapons — as
 ## [{"position": Vector3 (last known), "type": StringName}], for a read of enemy influence
 ## over a region. Beliefs, never the live scene: an enemy the bot has not seen weighs nothing.
+## TODO: every believed UNIT is counted, armed or not, so an unarmed piece still weighs as enemy
+## influence in the defence demand — against the rule that an unarmed piece is never a threat.
 func believed_armed_enemies() -> Array:
 	if blackboard == null:
 		return []
@@ -209,6 +211,27 @@ func army_type_counts() -> Dictionary:
 	return counts
 
 
+## Piece id → count of the owned units that can attack: the side the combat model scores a
+## purchase for (CombatModel).
+func own_armed_composition() -> Dictionary:
+	var counts: Dictionary = {}
+	for u: Commandable in _owned_units():
+		if unit_can_attack(u.id):
+			counts[u.id] = int(counts.get(u.id, 0)) + 1
+	return counts
+
+
+## Piece id → count of the enemy units the blackboard believes in, unarmed ones included (the
+## combat model ignores a type it was not trained on). Fog-limited like every belief.
+func believed_enemy_composition() -> Dictionary:
+	var counts: Dictionary = {}
+	if blackboard == null:
+		return counts
+	for entry: CommanderBlackboard.Entry in blackboard.believed_units():
+		counts[entry.type] = int(counts.get(entry.type, 0)) + 1
+	return counts
+
+
 # ─── ARMY HEALTH ────────────────────────────────────────────────────────────
 
 
@@ -278,32 +301,53 @@ func get_enemies_in_aggro_range(
 	return enemies
 
 
-## Enemy units within [threat_radius] world units of any owned structure that this bot can
-## SEE. Non-empty means the base is being actively pressured.  Deduplicates
-## enemies that are close to several structures at once.
-## NOTE: intentionally includes unbuilt structures — an enemy attacking a
-## structure under construction is still a threat worth responding to.
-## Fog-limited like every other sense: a stealthed or fogged raider near a structure is not a
-## threat the bot knows about until something reveals it (the structure's own vision usually
-## does). This and the two reads below once used the omniscient overlap, so the bot defended
-## against units nobody could see.
-func get_enemies_threatening_base(a_threat_radius: float = 30.0) -> Array:
+## THE BASE'S THREATS: every enemy this bot can SEE within `a_threat_radius` of an owned
+## structure — `a_centre_radius` of a command centre, which under HEGEMONY is threatened from
+## further off — that can DAMAGE the structure it is near. As
+## [{"enemy": Commandable, "structure": Commandable, "value": float}], one entry per enemy, at
+## the structure it threatens most.
+##
+## A piece that cannot hurt what it stands beside is no threat (Alex, 2026-10-07): an unarmed
+## builder, a recon drone parked over an extractor, an enemy extractor built next to ours. Each
+## of those used to hold the base "under threat" for as long as it stood there, which no
+## defence could end. `value` is how much of a threat it is, on the bot's energy scale: its
+## cost × its matchup against that structure (Bot.matchup), so a weak matchup weighs little.
+##
+## Fog-limited like every other sense: a stealthed or fogged raider is not a threat the bot
+## knows about until something reveals it. Unbuilt structures count — an enemy attacking a
+## structure going up is still worth answering.
+func base_threats(a_threat_radius: float = 30.0, a_centre_radius: float = -1.0) -> Array:
 	if map == null:
 		return []
-	var seen: Dictionary = {}
-	var threats: Array = []
+	var centre_radius: float = a_centre_radius if a_centre_radius >= 0.0 else a_threat_radius
+	var by_enemy: Dictionary = {}  # enemy -> its entry, at the structure it threatens most
 	for s: Commandable in _owned_structures():
-		for enemy: Commandable in visible_enemies_near(s.global_position, a_threat_radius):
-			if not seen.has(enemy):
-				seen[enemy] = true
-				threats.append(enemy)
-	return threats
+		var radius: float = centre_radius if Deployment.is_command_centre(s) else a_threat_radius
+		for enemy: Commandable in visible_enemies_near(s.global_position, radius):
+			var fit: float = matchup(enemy, s)
+			if fit <= 0.0:
+				continue
+			var value: float = unit_cost(enemy.id) * fit
+			if not by_enemy.has(enemy) or value > by_enemy[enemy]["value"]:
+				by_enemy[enemy] = {"enemy": enemy, "structure": s, "value": value}
+	return by_enemy.values()
 
 
-## True when at least one enemy unit is within [threat_radius] of any
-## owned structure.
+## The enemies in base_threats, without their values.
+func get_enemies_threatening_base(a_threat_radius: float = 30.0) -> Array:
+	return base_threats(a_threat_radius).map(func(t: Dictionary) -> Commandable: return t["enemy"])
+
+
+## True when the base has any threat at all (base_threats).
 func is_base_under_threat(a_threat_radius: float = 30.0) -> bool:
 	return not get_enemies_threatening_base(a_threat_radius).is_empty()
+
+
+## Whether a visible enemy within `a_threat_radius` of `a_structure` can damage it.
+func is_threatened(a_structure: Commandable, a_threat_radius: float) -> bool:
+	return visible_enemies_near(a_structure.global_position, a_threat_radius).any(
+		func(enemy: Commandable) -> bool: return matchup(enemy, a_structure) > 0.0
+	)
 
 
 ## The owned structure most in danger: lowest HP fraction among those
@@ -313,7 +357,7 @@ func most_threatened_structure(a_threat_radius: float = 30.0) -> Commandable:
 	var worst: Commandable = null
 	var worst_frac := 1.0
 	for s: Commandable in _owned_structures():
-		if not visible_enemies_near(s.global_position, a_threat_radius).is_empty():
+		if is_threatened(s, a_threat_radius):
 			var frac := s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
 			if frac < worst_frac:
 				worst_frac = frac
@@ -325,6 +369,8 @@ func most_threatened_structure(a_threat_radius: float = 30.0) -> Commandable:
 ## Computed as enemy_strength / (own_strength + enemy_strength), where
 ## strength is the estimate_army_strength() calculation applied to each side.
 ## Values above 0.5 mean the enemy army is currently stronger than ours.
+## TODO: omniscient (reads every live enemy unit, not beliefs) and called by nothing; delete it,
+## or make it fog-honest before anything reads it.
 func relative_threat_level() -> float:
 	var enemy_strength := 0.0
 	for c: Commandable in get_enemy_units():
@@ -567,7 +613,7 @@ func threatened_command_centre(a_threat_radius: float) -> Commandable:
 	for s: Commandable in _owned_structures():
 		if not Deployment.is_command_centre(s):
 			continue
-		if visible_enemies_near(s.global_position, a_threat_radius).is_empty():
+		if not is_threatened(s, a_threat_radius):
 			continue
 		var frac: float = s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
 		if frac < worst_frac:
@@ -1394,15 +1440,34 @@ func unit_effectiveness_vs(a_unit_type, a_target: Commandable) -> float:
 		if crushes(my_preview.get_node_or_null("Locomotion") as Movement, a_target)
 		else 0.0
 	)
-	var w: Weapon = loadout.weapon_for_target(a_target)
+	return maxf(by_crush, weapon_multiplier(loadout, a_target))
+
+
+## How good LIVE `a_attacker`'s matchup against `a_target` is — the piece-level form of
+## unit_effectiveness_vs, for a piece of any faction, the bot's own or not: a hand-set
+## override, else the better of its weapon's damage multiplier and running it over. 0 when it
+## cannot hurt the target at all. Not the targeting signal: that one also prices a knot of
+## crushables, which is a reason to pick a target, not a measure of danger.
+func matchup(a_attacker: Commandable, a_target: Commandable) -> float:
+	var override: Variant = DamageTable.matchup_override(a_attacker.id, a_target.id)
+	if override != null:
+		return override
+	var by_crush: float = CRUSH_EFFECTIVENESS if crushes(a_attacker.movement, a_target) else 0.0
+	return maxf(by_crush, weapon_multiplier(a_attacker.weapon_inventory, a_target))
+
+
+## The damage-table multiplier (effective / base damage) of the weapon `a_loadout` would use
+## on `a_target`, or 0 when it has none that can.
+static func weapon_multiplier(a_loadout: Loadout, a_target: Commandable) -> float:
+	if a_loadout == null:
+		return 0.0
+	var w: Weapon = a_loadout.weapon_for_target(a_target)
 	if w == null:
-		return by_crush
+		return 0.0
 	var base: float = w.per_shot_damage()
 	if base <= 0.0:
-		return by_crush
-	return maxf(
-		by_crush, DamageTable.calculate_damage(base, w.per_shot_damage_type(), a_target) / base
-	)
+		return 0.0
+	return DamageTable.calculate_damage(base, w.per_shot_damage_type(), a_target) / base
 
 
 ## What running a unit over is worth, on the scale of the damage multiplier a weapon gets
@@ -1439,6 +1504,9 @@ static func crushes(a_mover: Movement, a_target: Commandable) -> bool:
 ## it is what the production mix turns on. It lives HERE rather than on a manager because
 ## enemy_demand_map is perception; the brain writes it, nothing else does.
 var structure_demand_weight: float = 0.4
+
+## The one purchase this bot is saving for, shared by every manager that spends (BotSavings).
+var savings: BotSavings = BotSavings.new()
 
 ## How fast a threat's demand falls once the army already covers it: demand is divided by
 ## `1 + coverage × this`. 1.0 is the plain diminishing-returns the demand map shipped with.
@@ -1508,15 +1576,83 @@ func enemy_demand_map() -> Dictionary:
 
 
 ## How valuable building one more [unit_type] is against the current demand map: its
-## effectiveness vs each believed enemy type (using that type's live rep) × its demand.
+## strength per energy vs each believed enemy type (unit_strength_per_energy_vs, against that
+## type's live rep) × its demand. The one definition production, the production-structure
+## and tech rungs and the turret choice all read.
 func unit_composition_value(a_unit_type, a_demand: Dictionary) -> float:
 	var total: float = 0.0
 	for etype in a_demand:
 		var d: Dictionary = a_demand[etype]
 		if d["rep"] == null:
 			continue
-		total += unit_effectiveness_vs(a_unit_type, d["rep"]) * d["demand"]
+		total += unit_strength_per_energy_vs(a_unit_type, d["rep"]) * d["demand"]
 	return total
+
+
+## Below this, an enemy's multiplier against a unit is read as this: a piece that cannot hurt
+## the unit at all still leaves it mortal, and a zero would make its toughness infinite.
+const MIN_INCOMING_MULTIPLIER: float = 0.1
+
+
+## HOW MUCH FIGHT ONE ENERGY OF [unit_type] BUYS AGAINST [target] (Alex, 2026-10-07): the
+## square root of its damage per second against the target (DPS × the matchup multiplier)
+## times its toughness against it (HP ÷ the target's best multiplier against IT), over its
+## cost. The root is Lanchester's square law — a force's strength goes as its numbers
+## squared, so it is √(dps × hp) per unit of cost that compares two buys of equal energy.
+##
+## It replaces the bare matchup multiplier, which priced nothing: a 100-energy Recruit and a
+## 500-energy anti-light vehicle both scored about 1 against infantry, so the cheap one was
+## always bought. Against Recruits this reads 0.42 for a Recruit and 0.61 for the vehicle,
+## and the vehicle wins that trade in sims/sloops_vs_recruits; DPS × HP without the incoming
+## multiplier ranked them the other way, because the vehicle's edge is its armour.
+##
+## TODO: a stand-in that lacks complexity on purpose — gdd/tasks.md T-098. Range,
+## speed, splash and which layers the target's weapons can reach (a preview cannot say, so
+## its best multiplier is taken) are all missing.
+func unit_strength_per_energy_vs(a_unit_type, a_target: Commandable) -> float:
+	var cost: int = unit_cost(a_unit_type)
+	var preview: Node = _preview_for_type(a_unit_type)
+	if cost <= 0 or preview == null:
+		return 0.0
+	var fit: float = unit_effectiveness_vs(a_unit_type, a_target)
+	if fit <= 0.0:
+		return 0.0
+	var defense: Defense = preview.get_node_or_null("Defense") as Defense
+	var hp: float = defense.hp_max if defense != null else 0.0
+	var loadout: Loadout = preview.get_node_or_null("Loadout") as Loadout
+	var dps: float = _dps_against(loadout, a_target)
+	var incoming: float = maxf(MIN_INCOMING_MULTIPLIER, _incoming_multiplier(a_target, preview))
+	return sqrt(dps * fit * hp / incoming) / cost
+
+
+## The DPS of the weapon `a_loadout` would use on `a_target`, else of its best weapon — a
+## crusher's gun still prices its fight when the matchup came from running the target over.
+static func _dps_against(loadout: Loadout, target: Commandable) -> float:
+	if loadout == null:
+		return 0.0
+	var w: Weapon = loadout.weapon_for_target(target)
+	if w != null:
+		return w.approximate_dps()
+	var best: float = 0.0
+	for weapon: Weapon in loadout.get_weapons():
+		best = maxf(best, weapon.approximate_dps())
+	return best
+
+
+## The best damage multiplier `a_attacker`'s weapons meet in `a_victim`'s armour and frame,
+## read from its Defense so a build preview can answer. 0 for an unarmed attacker.
+func _incoming_multiplier(a_attacker: Commandable, a_victim: Node) -> float:
+	if a_attacker.weapon_inventory == null:
+		return 0.0
+	var best: float = 0.0
+	for weapon: Weapon in a_attacker.weapon_inventory.get_weapons():
+		var base: float = weapon.per_shot_damage()
+		if base > 0.0:
+			best = maxf(
+				best,
+				DamageTable.calculate_damage(base, weapon.per_shot_damage_type(), a_victim) / base
+			)
+	return best
 
 
 ## Any live, in-tree Commandable of type `a_type`, whoever owns it, or null. A stat carrier

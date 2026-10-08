@@ -121,6 +121,7 @@ sims/bot/
   objective/     where the army goes — exposure, defended fronts, value, commitment
   macro/         what to build — income vs defence vs capacity, the demand reads
   production/    what to train — counters to the believed composition
+  commitment/    whether and when the army attacks — the value ratio, the stalemate clock, the gates
   errand/        capture, deposit, liberation, garrison
   placement/     where a building goes — coverage, exposure, corridor
   scouting/      where to look — information value, focus
@@ -245,6 +246,34 @@ neutral pieces, and an enemy soldier is capturable too). `ordered: {kind: move_a
 journal (§Identity in a check). Control: one truck, two prey; axis **value** (load before banking).
 Needs: nothing — built 2026-10-07 (`deposit_value`); its pair places the prey 40 units apart
 and expects the deposit first.
+
+### commitment/ — even armies and no income
+
+`sims/bot/commitment/` — PASSING, all three, over six seeds (2026-10-07). Two HARD bots, full
+vision, scouting off, each with six Recruits beside an unarmed Annex and nothing to earn with.
+- *even_armies_no_income*: neither commits on value (1.0 against 1.3); the stalemate clock
+  commits both at about 15.6 s, they fight, and the fight resolves: a side is wiped out or
+  what is left on both sides is under the commit gate.
+- *below_the_gate_never_attacks*: two Recruits a side, 200 energy against the 300 gate; nobody
+  attacks in 90 s. Two bots that trade down below the gate stay home for good.
+- *behind_side_waits*: 8 against 6. The larger side does NOT commit at once — see the third
+  finding — but after about 7 s; the smaller one (0.75, under the 0.85 floor) never commits.
+
+Control: one army size changed per pair; axis **commitment**. Writing them found:
+
+1. **An army with no structure creeps forward.** With no base, `BotMilitary._home_anchor` is
+   the army's own centroid, and the massing point is that plus `STAGING_OFFSET` toward the
+   threat, so every re-anchor walks the army 10 units closer: two base-less armies meet with
+   neither attacking. Hence each side's Annex. TODO: whether a base-less army should anchor
+   where it stands (Alex's call; only reachable in sims and in a match after every structure
+   is lost).
+2. **Scouting splits a small army.** A HARD bot sends three of six units scouting, which drops
+   the army to the body-count gate and turns the match into scout skirmishes. Off here, since
+   full vision makes a scout worthless.
+3. **The humility prior caps every bot's ratio at 1 / `assumed_enemy_parity`** (1.18 at 0.85),
+   seen enemy or not, so an `attack_value_ratio` above that never fires on value and every
+   attack waits on the stalemate clock — see [bot-parameter-space](bot-parameter-space.md)
+   §Where holding-others-equal is a lie, item 3.
 
 ## What the runner adds
 

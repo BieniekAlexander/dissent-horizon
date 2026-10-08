@@ -112,13 +112,33 @@ groups. A cap is a handicap that reads as human, bounds the think cost by constr
 is a number a search can move.
 
 **The guard** (decided 2026-10-07): while a wave is out and the base comes under threat, the
-staged reserve turns to the threatened structure (`HoldPolicy`) instead of waiting to
+staged reserve answers it (`HoldPolicy` on the most valuable threat) instead of waiting to
 reinforce, and goes back to being the reserve when the threat passes. A committed wave used
 to override DEFEND outright, so a raid during an attack went unanswered; now the part of the
 army that is NOT committed answers it. A fraction held home by rule is deliberately not a
 parameter — the reserve is whatever the release rule has not yet sent, and the guard is the
 reserve with somewhere to be. Merge and split beyond these three (a raid squad, a second
 wave) are `PLANNED` with the relations that give them a reason.
+
+**The guard is sized to the threat, and only an armed piece is one** (Alex, same day). A
+threat is a visible enemy that can damage the structure it stands beside, valued at its cost
+× that matchup (`Bot.base_threats`); a builder, a parked recon drone or an enemy extractor
+next to ours is none. The guard is drawn from guard and reserve together, best answer first,
+until its own cost × matchup against the threats reaches `guard_strength_ratio` × their
+value — a searched parameter, because "as big as the raid, or twice it" is a question for
+the search — and the rest stays the reserve and goes on to the wave. It supersedes "the whole
+reserve guards", which under a threat nobody could end (that parked drone, held over a
+forward extractor for the rest of the match) put every unit built from then on in the guard:
+measured 2026-10-07, 110 units held home behind a wave of two, posture ATTACK throughout.
+
+**The wave is valued by itself, and re-pointed when its objective moves on.** Whether a wave
+is spent, or bleeding badly enough to call off, reads the main squad's value against what it
+launched with — never the army's, which counted a growing guard as the wave holding up.
+And the wave is compared with the point it HOLDS: a new believed structure, or a drift past
+`OBJECTIVE_EPSILON` from that point, re-points it (the reserve and guard keep their orders).
+The objective is re-read every think, so a creep of a few metres a think, or the next
+building a short step on, used to change nothing — 164 units stood idle at a point whose
+target had fallen.
 
 **Missions switch Bot jobs off per slot rather than switching the Bot off.** `BotBrain.active`
 is all-or-nothing today. A per-job enable on `PlayerSlot` lets a mission run the economy and

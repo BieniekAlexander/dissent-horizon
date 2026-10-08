@@ -218,3 +218,14 @@ func test_the_clump_bonus_is_capped() -> void:
 		BotTargeting.CRUSH_EFFECTIVENESS_SIGNAL + BotTargeting.CRUSH_CLUMP_MAX_BONUS
 	)
 	BotTargeting._scan_nearby = []
+
+
+## A target that went into a garrison is off the tree — held, not gone — and scores nothing,
+## rather than having its position read.
+func test_a_garrisoned_target_scores_nothing() -> void:
+	var truck: Commandable = _truck()
+	var soldier: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
+	assert_gt(_targeting._score(truck, soldier), 0.0, "in the open: a candidate")
+	_foe.remove_child(soldier)
+	assert_eq(_targeting._score(truck, soldier), 0.0, "held: nothing to engage")
+	_foe.add_child(soldier)

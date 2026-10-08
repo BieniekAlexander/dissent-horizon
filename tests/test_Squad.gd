@@ -140,6 +140,21 @@ func test_a_dead_member_drops_out_as_it_is_read() -> void:
 	assert_eq(_squad.size(), 1)
 
 
+func test_a_member_off_the_tree_stays_a_member_but_is_neither_ordered_nor_averaged() -> void:
+	var a: Commandable = _unit()
+	var held: Commandable = _unit()
+	a.global_position = Vector3(4.0, 0.0, 0.0)
+	_squad.add_all([a, held])
+	remove_child(held)  # garrisoned: held, not gone
+	var policy := RecordingPolicy.new("go")
+	_squad.policy = policy
+	_squad.tick()
+	assert_eq(policy.issued, [[a]], "a held member cannot take an order")
+	assert_eq(_squad.centroid(), a.global_position, "and has no position to average")
+	assert_true(_squad.has(held), "it is still a member, and rejoins on release")
+	add_child(held)
+
+
 func test_absorb_moves_every_member_across() -> void:
 	var a: Commandable = _unit()
 	var b: Commandable = _unit()

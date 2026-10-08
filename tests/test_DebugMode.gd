@@ -77,3 +77,28 @@ func test_the_debug_view_lets_the_player_command_anyone() -> void:
 	assert_true(RTSController.is_player_commandable(foreign), "but while it is up")
 	assert_false(RTSController.is_player_commandable(null), "and never nothing")
 	RTSController.PLAYER_COMMANDER_ID = player_id
+
+
+# ─── THE FOG SETTING ─────────────────────────────────────────────────────────
+
+
+func test_the_view_lifts_the_fog_by_default_and_only_while_up() -> void:
+	DebugMode.configure(true)
+	assert_false(DebugMode.lifts_fog(), "the view is down: the fog is shown")
+	DebugMode.toggle()
+	assert_true(DebugMode.lifts_fog(), "up, and lifting by default")
+
+
+func test_the_view_can_show_the_fog_as_the_viewer_sees_it() -> void:
+	DebugMode.configure(true)
+	DebugMode.toggle()
+	DebugMode.set_fog_lifted(false)
+	assert_true(DebugMode.is_active(), "the view stays up")
+	assert_false(DebugMode.lifts_fog(), "but the fog is shown")
+
+
+func test_a_new_session_lifts_the_fog_again() -> void:
+	DebugMode.configure(true)
+	DebugMode.set_fog_lifted(false)
+	DebugMode.configure(true)
+	assert_true(DebugMode.is_fog_lifted())

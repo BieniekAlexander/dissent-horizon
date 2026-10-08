@@ -195,8 +195,8 @@ func _retarget(a_unit: Commandable) -> void:
 	_scan_nearby = []
 	# The piece this unit should be on: a better candidate, else the one it is on already.
 	var chosen: Commandable = best if best != null else current
-	if chosen == null:
-		return
+	if chosen == null or not chosen.is_inside_tree():
+		return  # nothing to be on, or the current target is garrisoned
 	if Bot.crushes(a_unit.movement, chosen) and _run_over_is_survivable(a_unit, chosen, nearby):
 		# A RUN-OVER, whether or not the unit could also shoot it: a crush is a kill on
 		# contact, and a gun that can merely target the piece is the slower way to the same
@@ -324,6 +324,19 @@ func _weapon_reach(a_unit: Commandable) -> float:
 	return reach
 
 
+## Every unit this manager holds in a fight, with the enemy it is set on: [{"unit", "target"}].
+## A held unit between orders has no target and is left out. For the debug overlay.
+func engagements() -> Array:
+	var out: Array = []
+	for unit: Variant in claims.units_of(CLAIM_OWNER):
+		if not is_instance_valid(unit):
+			continue
+		var target: Commandable = _current_target(unit)
+		if target != null:
+			out.append({"unit": unit, "target": target})
+	return out
+
+
 ## The enemy this unit is presently set to attack or run over, or null (e.g. while
 ## attack-moving).
 func _current_target(a_unit: Commandable) -> Commandable:
@@ -355,7 +368,12 @@ func _best_candidate(
 
 
 func _score(a_unit: Commandable, a_candidate: Commandable) -> float:
-	if a_candidate == null or not is_instance_valid(a_candidate):
+	# Off the tree is garrisoned: held, not gone, and no more engageable than a dead piece.
+	if (
+		a_candidate == null
+		or not is_instance_valid(a_candidate)
+		or not a_candidate.is_inside_tree()
+	):
 		return 0.0
 	var total: float = 0.0
 	for sig: Dictionary in _signals:

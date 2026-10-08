@@ -40,10 +40,13 @@ func set_goal(
 	_goal_entity = a_entity
 
 
-## The pursued piece, or null when the goal is a plain place or the piece has left the game.
+## The pursued piece, or null when the goal is a plain place or the piece has left the field —
+## freed, or garrisoned (off the tree, with no position, until it is released).
 func goal_entity() -> Entity:
 	var entity: Variant = _goal_entity
-	return entity as Entity if entity != null and is_instance_valid(entity) else null
+	if entity == null or not is_instance_valid(entity):
+		return null
+	return entity as Entity if (entity as Entity).is_inside_tree() else null
 
 
 #endregion

@@ -124,9 +124,11 @@ const SCOUT_STALL_SECONDS: float = 12.0
 ## grid intervals of slack, so ordinary path wiggle and obstacle avoidance never read as stuck.
 const SCOUT_STALL_DISTANCE: float = 2.0
 
-## Per scout (by instance id): { "at": Vector3, "since": float } — where it was when it last
-## made progress, and when. Keyed by id rather than by the node so a freed scout's entry can
-## be pruned without touching a dangling reference.
+## Per scout (by instance id): { "at": Vector3, "since": float, "goal": Variant } — where it
+## was when it last made progress, and when, and the waypoint it was last sent to (null before
+## its first). The goal is kept because nothing else records the errand: the unit's own order
+## may since have been replaced by a manager that borrowed it. Keyed by id rather than by the
+## node so a freed scout's entry can be pruned without touching a dangling reference.
 var _scout_progress: Dictionary = {}
 
 ## Vision-window offsets by radius in grid steps, built on demand — see _vision_window.
@@ -291,6 +293,30 @@ func debug_points() -> Array:
 					"position": _scout_grid_positions[idx],
 					"last_seen": _scout_grid[idx],
 					"ever_seen": _ever_seen.has(idx),
+				}
+			)
+		)
+	return out
+
+
+## Per live scout, for debug visualisation: the unit, the waypoint it was last sent to (null
+## before its first), how long it has gone without progress, and whether it is waiting for a
+## waypoint. Freed and held (garrisoned) scouts are left out: neither stands anywhere.
+func debug_scouts() -> Array:
+	var now: float = _bot.seconds_elapsed()
+	var out: Array = []
+	for scout: Variant in _scouts:
+		if not is_instance_valid(scout) or not (scout as Node).is_inside_tree():
+			continue
+		var record: Dictionary = _scout_progress.get((scout as Node).get_instance_id(), {})
+		(
+			out
+			. append(
+				{
+					"unit": scout,
+					"goal": record.get("goal"),
+					"stalled_for": now - float(record.get("since", now)),
+					"waiting": _dispatch_queue.has(scout),
 				}
 			)
 		)
@@ -542,7 +568,9 @@ func _send_to(a_scout: Commandable, a_idx: Vector2i, a_now: float) -> void:
 	_scout_grid[a_idx] = a_now
 	_act.move([a_scout], _scout_grid_positions[a_idx])
 	# A fresh waypoint restarts the stall clock: the scout has not failed at this one yet.
-	_scout_progress[a_scout.get_instance_id()] = {"at": a_scout.global_position, "since": a_now}
+	_scout_progress[a_scout.get_instance_id()] = {
+		"at": a_scout.global_position, "since": a_now, "goal": _scout_grid_positions[a_idx]
+	}
 
 
 ## True when `a_scout` has held its waypoint for SCOUT_STALL_SECONDS without covering
@@ -552,7 +580,8 @@ func _is_stalled(a_scout: Commandable, a_now: float) -> bool:
 	var key: int = a_scout.get_instance_id()
 	var record: Variant = _scout_progress.get(key)
 	if record == null or a_scout.global_position.distance_to(record["at"]) > SCOUT_STALL_DISTANCE:
-		_scout_progress[key] = {"at": a_scout.global_position, "since": a_now}
+		var goal: Variant = record["goal"] if record != null else null
+		_scout_progress[key] = {"at": a_scout.global_position, "since": a_now, "goal": goal}
 		return false
 	return a_now - float(record["since"]) >= SCOUT_STALL_SECONDS
 

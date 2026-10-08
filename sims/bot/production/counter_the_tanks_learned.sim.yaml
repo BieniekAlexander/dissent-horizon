@@ -1,0 +1,30 @@
+description: |
+  The pair of counter_the_tanks, scored by the learned combat model instead of the demand map
+  (gdd/systems/ai/macro-learning.md §1): the same war factory, the same three enemy Sloops, the
+  same two options. The model must reach the same answer — the anti-mech tank — from fights it
+  was trained on rather than from the matchup table. Control: the switch; axis EFFECTIVENESS.
+  The window is longer than its pair's because the factory's FIRST choice comes on tick 1,
+  before the blackboard has seen the tanks (tick 5), so it falls back to the demand map; the
+  learned choice is the second, once the first unit is out (a 15 s build).
+setting: { kind: flat, size: 60 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      energy: 3000
+      config: { scout_unit_budget: 0, should_use_learned_production: true }
+      consider: { units: [ cl_mechMedium_antiLight, cl_mechMedium_antiMech ] }
+    with:
+      factory:
+        of: [ { piece: cl_warFactory, count: 1 } ]
+        at: west
+  B:
+    with:
+      tanks:
+        of: [ { piece: cl_mechMedium_antiLight, count: 3 } ]
+        at: east
+        formation: cluster
+run: { for: 30s, seed: 1 }
+expect:
+  - { slot: A, check: chosen, domain: train_learned, piece: cl_mechMedium_antiMech, by: 25s }

@@ -1,0 +1,33 @@
+description: |
+  The control for even_armies_no_income with each army worth 200 energy, under
+  BotMilitary.MIN_ATTACK_ARMY_VALUE (300). Below the gate the stalemate clock is reset on
+  every think, so no bar ever lowers and neither side ever attacks: two bots that have traded
+  down below it sit at home for the rest of the match. Axis: COMMITMENT.
+setting: { kind: flat, size: 80 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: west
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 2 } ]
+        at: { from: A.home, distance: 6, bearing: east }
+        formation: cluster
+  B:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: east
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 2 } ]
+        at: { from: B.home, distance: 6, bearing: west }
+        formation: cluster
+run: { for: 120s, seed: 1 }
+expect:
+  - not: [ { slot: A, check: posture, is: ATTACK, by: 90s } ]
+  - not: [ { slot: B, check: posture, is: ATTACK, by: 90s } ]
+  - { of: A.army, check: alive }
+  - { of: B.army, check: alive }

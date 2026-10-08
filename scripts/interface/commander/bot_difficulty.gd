@@ -211,6 +211,12 @@ var reinforce_fraction: float = 0.5
 ## See gdd/systems/ai/squads-and-relations.md §Squads.
 var squad_cap: int = 2
 
+## How strong a guard the bot raises against a threat to its base, as a multiple of the
+## threat's value (cost × matchup): 1 matches it, 2 brings twice it. Higher answers a raid
+## surely and holds more of the army home; lower sends more of it on to the wave. Only binds
+## under a squad_cap of 3 or more, which is what runs a guard.
+var guard_strength_ratio: float = 1.5
+
 ## How close (world units) an enemy must come to an owned structure to count as pressuring
 ## the base, pulling the army home and pointing sanctions at it. Higher answers harassment
 ## further out and turtles more; low enough and a raid inside the base is ignored.
@@ -235,6 +241,13 @@ var personality_spread: float = 0.15
 ## first) and BotScout (which unit scouts); never by placement, which must stay mirror-exact.
 var decision_temperature: float = 0.1
 
+## Whether the unit choice is scored by the learned combat model (CombatModel) instead of the
+## demand map. On in every tier since 2026-10-07 (Alex), with the model as trained then: not yet
+## shown better than the demand map, and with a known weak matchup (gdd/systems/ai/
+## macro-learning.md §1). Kept as a switch so a run can set false and compare a tier against
+## itself; never searched, like the other booleans.
+var should_use_learned_production: bool = true
+
 ## The range each searchable field may take — what a personality draw stays inside, and the
 ## same bounds bot-parameter-space.md gives a tuning run. A field absent here is never
 ## jittered: the periods (reaction time is the tier's identity), the booleans, and the two
@@ -254,7 +267,10 @@ const SEARCH_RANGES: Dictionary = {
 	"structure_demand_weight": [0.0, 1.0],
 	"demand_coverage_falloff": [0.0, 4.0],
 	"attack_value_ratio": [0.8, 2.5],
-	"assumed_enemy_parity": [0.0, 1.5],
+	# Below 1 / BotMilitary.MIN_ATTACK_RATIO (1.18): above it the ratio can never reach the
+	# floor the stalemate clock relaxes to, and the bot never attacks (test_BotPersonality).
+	# TODO: a cautious bot that still commits in the end — gdd/tasks.md T-099.
+	"assumed_enemy_parity": [0.0, 1.15],
 	"wave_abort_fraction": [0.0, 1.0],
 	"reinforce_fraction": [0.0, 1.0],
 	"squad_cap": [1, 3],
@@ -265,6 +281,9 @@ const SEARCH_RANGES: Dictionary = {
 	"place_frontage_bias": [0.0, 1.5],
 	"place_shelter_bias": [0.0, 1.5],
 	"place_corridor_weight": [0.0, 3.0],
+	# Appended, not filed beside squad_cap: the draw order is the table's, so a field added
+	# mid-table gives every existing seed a different personality.
+	"guard_strength_ratio": [0.5, 3.0],
 }
 
 # ── PER-UNIT TARGETING ──────────────────────────────────────────────────────────────

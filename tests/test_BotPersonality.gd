@@ -134,3 +134,14 @@ func test_sampling_reproduces_from_the_seed() -> void:
 
 func test_non_positive_scores_fall_back_to_the_argmax() -> void:
 	assert_eq(BotSampling.pick([0.0, -1.0], 0.5, _rng(1)), 0)
+
+
+## Every parity the search can draw leaves a bot able to attack: its value ratio is at most
+## 1 / parity once the humility prior binds, and the stalemate clock relaxes the bar no lower
+## than MIN_ATTACK_RATIO. A parity past 1 / MIN_ATTACK_RATIO never attacks at all.
+func test_no_searchable_parity_forbids_attacking() -> void:
+	var highest: float = float(BotDifficulty.SEARCH_RANGES["assumed_enemy_parity"][1])
+	assert_gt(1.0 / highest, BotMilitary.MIN_ATTACK_RATIO)
+	for tier: int in PlayerSlot.Difficulty.values():
+		var parity: float = BotDifficulty.for_tier(tier).assumed_enemy_parity
+		assert_lte(parity, highest, "tier %d is inside the range" % tier)

@@ -17,6 +17,7 @@ the trigger system rather than beside it, so composition, region scoping and cha
 | [highlights-and-fog-reveal.md](highlights-and-fog-reveal.md) | world and minimap highlights, and opening the fog |
 | [tactics.md](tactics.md) | `ScenarioTactic`/`TacticRule`: ongoing behaviour for one cluster |
 | [starting-formations.md](starting-formations.md) | where a `Skirmish` deploys a faction's opening force, and how it is arranged |
+| [match-log.md](match-log.md) | the match's event log: what each event records, what is derived from it (summary, build order, series), and the summary view that reads only it |
 | [simulation-tests.md](simulation-tests.md) | the `sims/*.sim.yaml` grammar and its runner: commanders, groups, symbolic order targets, a run window, a boolean tree of checks; why none of it runs in GUT |
 
 Reference scenario: `scenes/scenarios/tutorial.tscn`. It is authored content, so nothing

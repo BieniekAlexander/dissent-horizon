@@ -77,6 +77,14 @@ func test_an_enemy_soldier_is_prey() -> void:
 	assert_true(Garrison.can_capture(_entity(TRUCK_PATH, PLAYER), _entity(RECRUIT_PATH, ENEMY)))
 
 
+func test_a_soldier_killed_this_frame_is_not_prey() -> void:
+	# Freed at the tree flush, inside the cage, if it were taken: every later read of the cage
+	# then touched a freed occupant (2,020 script errors in one self-play match, 2026-10-07).
+	var dying: Commandable = _entity(RECRUIT_PATH, ENEMY)
+	dying.queue_free()
+	assert_false(Garrison.can_capture(_entity(TRUCK_PATH, PLAYER), dying))
+
+
 func test_a_hold_that_does_not_capture_takes_nobody() -> void:
 	# A transport's hold admits light infantry by ORDER; only the truck's cage takes them by
 	# contact (`captures:`). Before the flag, the Sloop captured the soldiers it crushed.

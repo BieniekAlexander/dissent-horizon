@@ -249,7 +249,7 @@ func _process(_a_delta: float) -> void:
 	var resolved_fog: Variant = Fog.get_active_fog()
 	_fog = resolved_fog if resolved_fog is Fog else null
 
-	var reveal_all: bool = DebugMode.is_active()
+	var reveal_all: bool = DebugMode.lifts_fog()
 
 	# Pass 1: the map layer through the fog. The debug reveal and the omniscient spectator see
 	# every cell in sight; with no fog to ask otherwise, terrain stays unseen.

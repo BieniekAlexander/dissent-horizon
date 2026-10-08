@@ -301,6 +301,9 @@ static func can_capture(captor: Commandable, captive: Commandable) -> bool:
 		or captive == null
 		or not is_instance_valid(captor)
 		or not is_instance_valid(captive)
+		# Killed earlier this frame: still answering physics queries until the tree flush,
+		# and freed inside the cage when it comes (seen 2026-10-07 in self-play).
+		or captive.is_queued_for_deletion()
 	):
 		return false
 	var cage: Garrison = captor.get_node_or_null("Garrison") as Garrison

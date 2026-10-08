@@ -88,10 +88,13 @@ var blackboard: CommanderBlackboard
 var squads: SquadRegistry = SquadRegistry.new()
 
 ## Physics ticks between belief updates (~5 Hz). The AI-only belief layer doesn't
-## need to run every physics frame, and its visible_enemies() step runs expensive
-## physics-space queries. The player-facing snapshot layer is NOT throttled — it
+## need to run every physics frame. The player-facing snapshot layer is NOT throttled — it
 ## runs every frame in blackboard.refresh_snapshots() (see _physics_process).
 const BLACKBOARD_TICK_INTERVAL: int = 6
+## Bodies a nearby-enemy query may return. It counts every targetable body in the radius, own
+## pieces included, so it must exceed any crowd a fight packs into one; a query costs the
+## overlaps it finds, not this ceiling. It was ten, which truncated every fight.
+const NEARBY_MAX_RESULTS: int = 256
 var _ticks_since_blackboard: int = 0
 #endregion
 
@@ -121,6 +124,14 @@ var infrastructure:
 ## listener) update on change instead of polling every frame. All resource
 ## mutation goes through the mutators below so this fires consistently.
 signal resources_changed
+
+## A purchase of this commander's reached a stage the match log records: &"funded" (its cost was
+## taken), &"refunded" (cancelled after funding, cost returned) or &"completed" (the thing it
+## bought exists). Emitted by the transaction itself, the one place each stage happens.
+signal purchase_progressed(a_transaction: PurchaseTransaction, a_stage: StringName)
+
+## One of this commander's structures finished construction, on the tick it did.
+signal construction_finished(a_structure: Commandable)
 
 
 ## Add `amount` energy (negative to spend). Single write-point for the energy pool.
@@ -1274,18 +1285,6 @@ func _owned_commandables() -> Array:
 	return get_children().filter(func(n): return n is Commandable)
 
 
-## Owned entities that contribute VISION right now — see Entity.grants_vision.
-## Broader than _owned_commandables(): it also includes non-Commandable vision
-## sources such as the Scout spawned by the Radar Scan sanction. Geometric-vision
-## queries (visible_enemies / has_vision_at, and through it visible_foreign_structures
-## and the blackboard's snapshot/belief memory) iterate THIS set so they match the fog
-## texture — fog.gd likewise reveals for any entity with a vision_range_shape, not just
-## Commandables. Without this a Scout would poke a hole in the fog but never trigger the
-## sight checks that record structure snapshots.
-func _owned_vision_sources() -> Array:
-	return get_children().filter(func(n): return n is Entity and (n as Entity).grants_vision())
-
-
 # Gathers all commandables owned by an arbitrary list of commanders using the same
 # child-based convention.
 func _commandables_of(a_commanders: Array) -> Array:
@@ -1317,7 +1316,7 @@ func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 	if map == null:
 		return []
 	var nearby: Array = SU.get_nearby_entities(
-		map.get_world_3d(), a_position, a_radius, CollisionLayers.TARGETABLE_ANY
+		map.get_world_3d(), a_position, a_radius, CollisionLayers.TARGETABLE_ANY, NEARBY_MAX_RESULTS
 	)
 	return nearby.filter(
 		func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0
@@ -1361,30 +1360,25 @@ func visible_foreign_structures() -> Array:
 	return result
 
 
-## Enemy commandables this commander can currently SEE: those within the VisionRange
-## of any owned unit or structure. Deduplicated. This is the fog-of-war boundary for
-## belief updates — it must not "cheat" by reading enemies the commander can't see.
+## Enemy commandables this commander can currently SEE: in play, and passing the same fog-and-
+## stealth test the fog itself shows them by (Entity.is_visible_to). This is the fog-of-war
+## boundary for belief updates — it must not "cheat" by reading enemies the commander can't see.
+##
+## Every enemy piece is asked, rather than a physics query run around each vision source: the
+## query returned at most ten bodies, own pieces among them, so in a fight it silently dropped
+## enemies in plain view — 38% of them, measured 2026-10-07 — and a unit killed in sight but
+## dropped at the last look was believed alive for the blackboard's whole expiry window. The
+## fog test is also the cheaper of the two: a pixel read per enemy against a query per source.
 ##
 ## A commander with NO FOG sees everything, as has_vision_at already answers: a decision
-## simulation's omniscient slot (PlayerSlot.omniscient) is meant to know the whole map, and
-## bounding its sightings by its own pieces' vision ranges quietly re-imposed the fog it was
-## given none of.
+## simulation's omniscient slot (PlayerSlot.omniscient) is meant to know the whole map.
 func visible_enemies() -> Array:
-	if not has_fog():
-		return _commandables_of(_enemy_commanders()).filter(
-			func(e: Commandable) -> bool: return not e.is_planned
-		)
-	var result: Array = []
-	var seen: Dictionary = {}
-	for owned: Entity in _owned_vision_sources():
-		var vr: float = _shape_xz_radius(owned.vision_range_shape)
-		if vr <= 0.0:
-			continue
-		for e in get_enemies_near(owned.global_position, vr):
-			if not seen.has(e) and (e as Commandable).is_visible_to(id):
-				seen[e] = true
-				result.append(e)
-	return result
+	return _commandables_of(_enemy_commanders()).filter(
+		func(e: Commandable) -> bool:
+			return (
+				not e.is_planned and e.is_inside_tree() and (not has_fog() or e.is_visible_to(id))
+			)
+	)
 
 
 ## True when the fog pixel covering [world_pos] is currently revealed in this

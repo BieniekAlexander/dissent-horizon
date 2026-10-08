@@ -563,12 +563,15 @@ tech structures, the one whose best unit — by the composition value the picker
 against the enemy the bot believes in, and only among units a producer the bot OWNS can
 train — is worth `BotDifficulty.tech_value_margin` (default 1.3, searchable) times the best
 unit it can train today; the biggest gain wins. It sits in the surplus branch beside
-production capacity, because it is the same kind of spend. Three things are deliberate:
+production capacity, because it is the same kind of spend — and runs without a surplus when it
+is what the bot is saving for (§Valuing a unit, and saving for it). Three things are
+deliberate:
 
-- **The ratio is on strength, not strength per energy.** A higher-tech unit is generally
-  stronger and seldom cheaper per point; lower-tech units stay worth training for their price
-  and their scouting, and the picker still trains them while they score. The margin is what
-  represents the overhead of the investment without pricing it.
+- **The ratio is on composition value, which is strength PER ENERGY since 2026-10-07.** It was
+  on strength alone, reasoned as "a higher-tech unit is seldom cheaper per point"; the value
+  under it changed with the unit valuation below, so the margin now asks whether the tech's
+  unit buys more fight per energy. TODO: whether 1.3 still means what it did is part of
+  [tasks](../../tasks.md) T-098.
 - **A producer the bot owns.** An Operations Center is not bought for an aircraft the bot has
   no airfield for.
 - **What it does not see.** The structures a tech building unlocks (the Bombard, the support
@@ -576,6 +579,32 @@ production capacity, because it is the same kind of spend. Three things are deli
   Bombard) scores as if alone. Both are the Relation model's to express
   ([squads-and-relations](squads-and-relations.md)); until then a specialised unit techs on
   its own gun or not at all. Tests: `tests/test_BotTechRung.gd`.
+
+## Valuing a unit, and saving for it
+
+**A unit is valued at the fight one energy of it buys** (Alex, 2026-10-07):
+`Bot.unit_strength_per_energy_vs` — √(DPS × matchup × HP ÷ the target's multiplier against
+it) ÷ cost, the square root being Lanchester's square law, so equal spends compare. It is what
+`unit_composition_value` sums over the demand map, so production, the production-structure and
+tech rungs and the turret choice all read it. It replaced the bare matchup multiplier, which
+priced nothing: a Recruit (100 energy) and the anti-light vehicle (500) both scored about 1
+against infantry and the bot bought Recruits all match, although the vehicle wins that trade
+at cost parity (`sims/sloops_vs_recruits`, five seeds of five). DPS × HP without the incoming
+multiplier ranks the two the wrong way round — the vehicle's edge is its armour — which is why
+toughness is measured against what the unit faces. A stand-in on purpose: range, speed,
+splash and layer reach are missing (TODO, [tasks](../../tasks.md) T-098).
+
+**The bot saves for the best thing it wants** (`BotSavings`, same day). Production proposes the
+most valuable unit an idle producer wants; the economy proposes the better of the tech
+structure it wants and a production structure it owns none of, each valued at the best unit
+it would unlock; affordability is not asked, since saving is for what is not affordable. The
+best proposal is the goal, and every spend gated by the reserve (`can_afford_above_reserve`,
+unit training) must also leave the goal's price banked; the goal's own rung runs without a
+surplus. Income and infrastructure stay exempt, as they are from the reserve. The claim lifts
+while the base is under threat, so saving never stops the bot training its defence. It
+replaces each producer buying the moment it could afford something, under which five barracks
+of Recruits held the balance below every dear purchase: across twenty HARD sides the war
+factory was built at most once and no tech structure ever.
 
 ## Local abilities
 

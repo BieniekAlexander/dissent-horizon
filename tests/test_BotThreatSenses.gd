@@ -15,11 +15,20 @@ extends GutTest
 ## driven by hand, in the manner of test_FogVisibility's _masked_fog.
 
 
-## A Bot whose physics overlap is a list searched by distance. Everything above the overlap
-## — the visibility gate, the structure walk — is the real code.
+## A Bot whose physics overlap is a list searched by distance, and whose matchup is a list
+## too: every piece hurts every other except the `harmless` ones. Everything above the two —
+## the visibility gate, the can-it-hurt filter, the structure walk — is the real code.
 class StubBot:
 	extends Bot
 	var pieces: Array = []
+	var harmless: Array = []
+	const PRICE: int = 100
+
+	func matchup(a_attacker: Commandable, _a_target: Commandable) -> float:
+		return 0.0 if harmless.has(a_attacker) else 1.0
+
+	func unit_cost(_a_unit_type) -> int:
+		return PRICE
 
 	func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 		return pieces.filter(
@@ -198,6 +207,44 @@ func test_a_visible_enemy_out_of_the_radius_is_no_threat() -> void:
 	_enemy_unit(Vector3(RADIUS + 5.0, 0.0, 0.0))
 	_reveal(Vector3.ZERO, RADIUS + 10.0)
 	assert_false(_bot.is_base_under_threat(RADIUS), "the gate adds vision; it does not widen reach")
+
+
+func test_an_enemy_that_cannot_hurt_the_structure_is_no_threat() -> void:
+	# An unarmed builder, a recon drone over an extractor: standing beside a structure is not
+	# threatening it, and a threat that cannot be ended held the base "threatened" for good.
+	var home: Commandable = _own_structure(Vector3.ZERO, 80.0)
+	_bot.harmless.append(_enemy_unit(Vector3(5.0, 0.0, 0.0)))
+	_reveal(Vector3.ZERO, 10.0)
+	assert_false(_bot.is_base_under_threat(RADIUS))
+	assert_eq(_bot.base_threats(RADIUS), [])
+	assert_null(_bot.most_threatened_structure(RADIUS))
+	assert_ne(_bot.most_threatened_structure(RADIUS), home)
+
+
+func test_a_threat_is_valued_at_its_cost_times_its_matchup() -> void:
+	var home: Commandable = _own_structure(Vector3.ZERO)
+	var raider: Commandable = _enemy_unit(Vector3(5.0, 0.0, 0.0))
+	_reveal(Vector3.ZERO, 10.0)
+	assert_eq(
+		_bot.base_threats(RADIUS),
+		[{"enemy": raider, "structure": home, "value": float(StubBot.PRICE)}]
+	)
+
+
+func test_a_command_centre_is_threatened_from_further_off_when_asked() -> void:
+	var centre: Commandable = _own_structure(Vector3.ZERO)
+	centre.id = Deployment.command_centre_ids()[0]
+	_enemy_unit(Vector3(15.0, 0.0, 0.0))
+	_reveal(Vector3.ZERO, 20.0)
+	assert_eq(_bot.base_threats(10.0).size(), 0, "outside the plain radius")
+	assert_eq(_bot.base_threats(10.0, 20.0).size(), 1, "inside the centre's")
+
+
+## The real matchup, not the stub's: a piece with no weapon and no weight reads 0.
+func test_an_unarmed_piece_has_no_matchup() -> void:
+	var real: Bot = autofree(Bot.new()) as Bot
+	var builder: Commandable = _enemy_unit(Vector3(5.0, 0.0, 0.0))
+	assert_eq(real.matchup(builder, _own_structure(Vector3.ZERO)), 0.0)
 
 
 func test_a_neutral_piece_is_never_a_threat() -> void:

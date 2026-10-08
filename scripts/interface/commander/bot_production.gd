@@ -28,6 +28,15 @@ var rng: RandomNumberGenerator = null
 ## How willing the unit choice is to take a near-best counter (BotDifficulty).
 var decision_temperature: float = 0.0
 
+## Whether the unit choice is scored by the learned combat model rather than the demand map
+## (BotDifficulty.should_use_learned_production, on in every tier; BotBrain pushes it). Off on a
+## bare manager, so a test of the demand map gets the demand map. gdd/systems/ai/macro-learning.md
+## §Decided: production is the one reader of the valuation that switches first.
+var should_use_learned_production: bool = false
+## The model the learned choice reads: CombatModel.shared() unless a test supplies one. Null
+## (no model trained) falls back to the demand map.
+var combat_model: CombatModel = null
+
 ## Energy that must still be banked AFTER a unit is paid for, mirroring BotEconomy.reserve
 ## (BotDifficulty.economy_reserve; pushed by BotBrain._apply_config).
 ##
@@ -93,10 +102,15 @@ func tick() -> int:
 	var demand: Dictionary = _bot.enemy_demand_map()
 	var producers: Array = _bot.get_idle_production_structures()
 	var infrastructure_producer: Commandable = _train_infrastructure_unit(producers)
+	var wanted: Array = []  # [producer, type] for every combat pick, to propose before spending
 	for s: Commandable in producers:
 		if s == infrastructure_producer:
 			continue
-		var type: StringName = _best_unit_for(s, demand)
+		wanted.append([s, _best_unit_for(s, demand)])
+	_propose_savings(wanted, demand)
+	for pick: Array in wanted:
+		var s: Commandable = pick[0]
+		var type: StringName = pick[1]
 		# A structure that can't train any combat unit (e.g. the Settlement, which only
 		# makes the weaponless Stock Truck) instead fields a capped number of utility
 		# units — builders/capturers that earn their keep outside the army.
@@ -109,7 +123,24 @@ func tick() -> int:
 		# depend on the floor, only whether it may buy it now does.
 		if type != &"" and _can_afford_above_reserve(type):
 			_act.train(s, type)
+			_bot.savings.spent(type)
 	return DEMAND_WORK_UNITS + producers.size() * PRODUCER_WORK_UNITS
+
+
+## Production's savings proposal: the most valuable unit any idle producer wants, affordable
+## or not, on the scale every proposal shares (Bot.unit_composition_value). See BotSavings.
+func _propose_savings(a_wanted: Array, a_demand: Dictionary) -> void:
+	var best_type: StringName = &""
+	var best_value: float = 0.0
+	for pick: Array in a_wanted:
+		var type: StringName = pick[1]
+		if type == &"":
+			continue
+		var value: float = _bot.unit_composition_value(type, a_demand)
+		if value > best_value:
+			best_value = value
+			best_type = type
+	_bot.savings.propose(&"production", best_type, best_value, _energy_cost(best_type))
 
 
 ## THE INFRASTRUCTURE RUNG, for a faction whose provider is a TRAINED unit (the Technocratic
@@ -248,7 +279,6 @@ func _best_unit_for(a_structure: Commandable, a_demand: Dictionary) -> StringNam
 	if a_demand.is_empty():
 		return _cheapest_affordable_unit(a_structure)
 	var types: Array = []
-	var scores: Array = []
 	for t: StringName in _bot.considered_producible_types(a_structure.production):
 		# Only train combat units — a weaponless unit (e.g. the Stock Truck) adds
 		# nothing to the army, so a structure that can ONLY make such units waits
@@ -264,7 +294,14 @@ func _best_unit_for(a_structure: Commandable, a_demand: Dictionary) -> StringNam
 		if not _bot.has_tech_for(t):
 			continue
 		types.append(t)
-		scores.append(_bot.unit_composition_value(t, a_demand))
+	var learned: Array = _learned_scores(types)
+	var scores: Array = (
+		learned
+		if not learned.is_empty()
+		else types.map(
+			func(t: StringName) -> float: return _bot.unit_composition_value(t, a_demand)
+		)
+	)
 	# A draw at the bot's temperature rather than the argmax, so two matches do not field the
 	# same mix; with no generator or at 0 it IS the argmax.
 	var chosen: int = BotSampling.pick(scores, decision_temperature, rng)
@@ -272,8 +309,28 @@ func _best_unit_for(a_structure: Commandable, a_demand: Dictionary) -> StringNam
 	var scored: Dictionary = {}
 	for i: int in types.size():
 		scored[types[i]] = scores[i]
-	_act.usage.record_choice("train", scored, picked)
+	_act.usage.record_choice("train_learned" if not learned.is_empty() else "train", scored, picked)
 	return picked
+
+
+## Each of `a_types` scored by the combat model: how far one more of it moves the predicted
+## margin against the believed enemy, per energy. Empty — fall back to the demand map — when
+## the switch is off, no model is trained, no enemy unit is believed, or the model does not know
+## every candidate (two scales cannot be compared within one choice).
+func _learned_scores(a_types: Array) -> Array:
+	if not should_use_learned_production or a_types.is_empty():
+		return []
+	var model: CombatModel = combat_model if combat_model != null else CombatModel.shared()
+	if model == null or not a_types.all(func(t: StringName) -> bool: return model.knows(t)):
+		return []
+	var enemy: Dictionary = _bot.believed_enemy_composition()
+	if enemy.is_empty():
+		return []
+	var own: Dictionary = _bot.own_armed_composition()
+	return a_types.map(
+		func(t: StringName) -> float:
+			return model.marginal(own, enemy, t) / float(maxi(1, _energy_cost(t)))
+	)
 
 
 func _cheapest_affordable_unit(a_structure: Commandable) -> StringName:
@@ -298,7 +355,10 @@ func _cheapest_affordable_unit(a_structure: Commandable) -> StringName:
 ## Affordable, and still leaves `reserve` banked afterwards — the training half of the
 ## commander-wide spending floor. See BotEconomy.can_afford_above_reserve.
 func _can_afford_above_reserve(a_type) -> bool:
-	return _bot.can_afford(a_type) and _bot.energy - _energy_cost(a_type) >= reserve
+	return (
+		_bot.can_afford(a_type)
+		and _bot.energy - _energy_cost(a_type) >= reserve + _bot.savings.claim_against(a_type)
+	)
 
 
 func _energy_cost(a_type) -> int:

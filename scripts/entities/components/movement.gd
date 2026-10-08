@@ -562,8 +562,10 @@ var avoidance_obstacle: NavigationObstacle3D = null
 
 ## The commandable this unit currently ignores in RVO — the one it is following, or the
 ## other half of a garrison order (see CommandReceiver._avoidance_exception_target).
-## null = none.
-var _avoidance_follow: Commandable = null
+## null = none. Untyped because the unit it names can be freed while it is held, and a freed
+## object fails a typed read or parameter (CLAUDE.md §A freed object cannot be passed to a
+## typed parameter); `_follow_agent` validates it.
+var _avoidance_follow: Variant = null
 
 
 ## The NavigationAgent3D as an AvoidanceAgent3D, or null if it isn't one (e.g. a
@@ -628,10 +630,12 @@ func set_avoidance_follow_target(a_other: Commandable) -> void:
 		agent.add_avoidance_exception_with(next)
 
 
-func _follow_agent(a_c: Commandable) -> AvoidanceAgent3D:
-	if a_c == null or not is_instance_valid(a_c) or a_c.movement == null:
+## `a_c`'s avoidance agent, or null for nothing, a freed piece or one with no movement. Untyped
+## for the reason `_avoidance_follow` is.
+func _follow_agent(a_c: Variant) -> AvoidanceAgent3D:
+	if not is_instance_valid(a_c) or not (a_c is Commandable) or a_c.movement == null:
 		return null
-	return a_c.movement.avoidance_agent()
+	return (a_c as Commandable).movement.avoidance_agent()
 
 
 ## Zero this agent's broadcast layers and its obstacle layers so no other agent

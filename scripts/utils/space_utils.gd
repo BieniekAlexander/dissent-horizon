@@ -46,12 +46,12 @@ static func query_shape_for_entities(
 
 
 static func get_nearby_entities(
-	world_3d: World3D, position: Vector3, radius: float, collision_mask: int
+	world_3d: World3D, position: Vector3, radius: float, collision_mask: int, max_results: int
 ) -> Array:
 	var shape := SphereShape3D.new()
 	shape.radius = radius
 	return query_shape_for_entities(
-		world_3d, shape, Transform3D(Basis(), position), collision_mask, [], 10
+		world_3d, shape, Transform3D(Basis(), position), collision_mask, [], max_results
 	)
 
 

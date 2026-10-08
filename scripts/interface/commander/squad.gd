@@ -82,6 +82,13 @@ func members() -> Array:
 	return live
 
 
+## The live members that are ON THE FIELD. A garrisoned member is held, not gone — it stays a
+## member and rejoins on release — but it is off the tree, so it has no position to read and
+## cannot take an order.
+func fielded() -> Array:
+	return members().filter(func(unit: Commandable) -> bool: return unit.is_inside_tree())
+
+
 func size() -> int:
 	return members().size()
 
@@ -99,9 +106,9 @@ func absorb(a_other: Squad) -> Array:
 	return moved
 
 
-## The members' mean position, or ZERO for an empty squad.
+## The fielded members' mean position, or ZERO when none is on the field.
 func centroid() -> Vector3:
-	var live: Array = members()
+	var live: Array = fielded()
 	if live.is_empty():
 		return Vector3.ZERO
 	var total: Vector3 = Vector3.ZERO
@@ -125,7 +132,7 @@ func redirect() -> void:
 func tick() -> void:
 	if policy == null:
 		return
-	var live: Array = members().filter(eligible)
+	var live: Array = fielded().filter(eligible)
 	if live.is_empty():
 		return
 	if _issued == null or not policy.same_as(_issued):

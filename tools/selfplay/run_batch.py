@@ -27,6 +27,7 @@ missing result would make a search read a failure as an absence.
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -85,11 +86,43 @@ def run_one(config, args):
         if result is None:
             return _failure(match_id, config, "no_result", started,
                             (completed.stderr or "")[-2000:])
+        result["event_log"] = _keep_event_log(result.get("event_log", ""), match_id, args.out)
 
     result["id"] = match_id
-    result["batch_status"] = "ok" if result.get("ok") else "error"
+    result["batch_status"] = _status(result)
     result["batch_wall_seconds"] = time.time() - started
     return result
+
+
+def _keep_event_log(path, match_id, out):
+    """Move a match's event log out of its temporary directory, which is deleted with the
+    match, to `<out without .jsonl>.events/<id>.events.jsonl.gz` beside the batch's rows.
+    The new path, or "" when the match wrote none."""
+    if not path or not os.path.exists(path):
+        return ""
+    folder = os.path.splitext(os.path.abspath(out))[0] + ".events"
+    os.makedirs(folder, exist_ok=True)
+    kept = os.path.join(folder, "%s.events.jsonl.gz" % match_id)
+    shutil.move(path, kept)
+    return kept
+
+
+def _status(result):
+    """`ok`, `error` (no verdict), or `script_error`: a verdict reached through a GDScript
+    runtime error, which without a debugger does not stop the match -- the failing function
+    returns a default and play goes on -- so the verdict is not evidence of anything."""
+    if not result.get("ok"):
+        return "error"
+    if result.get("clean") is False:
+        return "script_error"
+    return "ok"
+
+
+def _error_line(result):
+    """One line of error counts for the progress log, empty for a match that raised none."""
+    errors = result.get("errors") or {}
+    counts = [(kind, errors.get(kind, 0)) for kind in ("script", "engine", "push_error")]
+    return ", ".join("%d %s" % (n, kind) for kind, n in counts if n)
 
 
 def _from_stdout(stdout):
@@ -144,10 +177,12 @@ def main():
             for result in pool.map(lambda c: run_one(c, args), configs):
                 sink.write(json.dumps(result) + "\n")
                 sink.flush()
-                print("%-28s %-16s winner=%-3s %6.0f sim-s  %6.1f wall-s" % (
+                print("%-28s %-16s %-12s winner=%-3s %6.0f sim-s  %6.1f wall-s  %s" % (
                     result["id"], result.get("outcome", result["batch_status"]),
-                    result.get("winner", "-"), result.get("simulated_seconds", 0.0),
+                    result["batch_status"], result.get("winner", "-"),
+                    result.get("simulated_seconds", 0.0),
                     result.get("wall_seconds", result.get("batch_wall_seconds", 0.0)),
+                    _error_line(result),
                 ), file=sys.stderr)
 
     print("wrote %s" % args.out, file=sys.stderr)

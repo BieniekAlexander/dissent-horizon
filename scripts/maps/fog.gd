@@ -214,8 +214,8 @@ func _physics_process(_a_delta: float) -> void:
 	# Fog is sampled per-fragment in the terrain shader (conforms to terrain height) instead of
 	# being a flat plane. Exactly one node — the ELECTED DRIVER, see terrain_fog_driver_id —
 	# pushes the ACTIVE commander's fog texture into the terrain material each frame;
-	# debug-view / omniscient disable it.
-	var debug_view: bool = DebugMode.is_active()
+	# a fog-lifting debug view / omniscient disable it.
+	var debug_view: bool = DebugMode.lifts_fog()
 	if viewer_id == Fog.terrain_fog_driver_id():
 		_drive_terrain_fog(debug_view)
 
@@ -279,9 +279,10 @@ func _physics_process(_a_delta: float) -> void:
 #region Public API
 ## The test a drawing owned by `a_owner_id` must pass, point by point, to be seen by whoever is
 ## watching: the displayed fog's `fog_clear_at`, or an invalid Callable when everything of
-## theirs is shown — it is the viewer's own, or the view is omniscient or the debug view.
+## theirs is shown — it is the viewer's own, or the view is omniscient or a fog-lifting debug
+## view.
 static func active_sight_test(a_owner_id: int) -> Callable:
-	if DebugMode.is_active():
+	if DebugMode.lifts_fog():
 		return Callable()
 	var active_fog: Variant = Fog.get_active_fog()
 	if not (active_fog is Fog) or (active_fog as Fog).viewer_commander_id() == a_owner_id:

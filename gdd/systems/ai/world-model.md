@@ -361,6 +361,16 @@ day (migration step 1):
    live position whatever its visibility, so a stealthed unit on the spot read as "still
    there"; the position is now read only for a piece the bot can see.
 
+**A death the bot watched is evidence; one it did not is not** (Alex, 2026-10-07). An enemy
+unit in view at the blackboard's last update that has died since is dropped at once —
+`CommanderBlackboard.update` reads liveness only for a unit it was watching. A unit that died
+out of sight is believed for the full expiry window, as before; one seen gone from its spot
+is believed too, since it may have walked on. Before this, every enemy the bot killed in
+front of itself counted toward the army it believed it faced for three minutes more:
+measured in a Recruit-heavy match at two to four times the real army, which kept the bot
+from ever feeling far enough ahead to attack. The rest of negative evidence is still step 2
+of §Migration.
+
 ## Cadence and cost
 
 Perception is jobs on the shared `BotScheduler` budget like everything else

@@ -137,6 +137,18 @@ func test_a_shot_at_a_piece_that_moved_misses_and_lands_on_the_ground() -> void:
 	assert_almost_eq(hits[0].y, 0.0, 0.05, "on the ground")
 
 
+## A target garrisoned mid-flight is off the tree — held, not gone — so the shot stops pursuing
+## it, as it would a dead one, rather than reading a position the piece no longer has.
+func test_a_shot_at_a_piece_that_was_garrisoned_still_bursts() -> void:
+	_ground()
+	var target: Entity = _piece(TARGET_AT)
+	await get_tree().physics_frame
+	var hold: Callable = func() -> void: remove_child(target)
+	var hits: Array = await _fly(_emission(), target, hold)
+	assert_eq(hits.size(), 1, "it still bursts")
+	add_child(target)
+
+
 func test_a_shot_at_the_ground_ignores_every_piece() -> void:
 	_ground()
 	_piece(BYSTANDER_AT)

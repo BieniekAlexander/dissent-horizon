@@ -41,10 +41,11 @@ they landed. Bots are not recorded: they re-derive their orders from the same se
 ### The file (Persistence)
 
 - **JSON lines, compressed with a standard codec** — readable by ordinary tools once
-  decompressed, never a Godot-specific container. TODO: which codec; gzip is the default reach,
-  and whether Godot's `PackedByteArray.compress(COMPRESSION_GZIP)` writes a stream plain `gunzip`
-  reads has to be checked before relying on it (`FileAccess.open_compressed` is Godot's own
-  block format and is ruled out).
+  decompressed, never a Godot-specific container. TODO: which codec; gzip is the default reach.
+  Godot's `PackedByteArray.compress(COMPRESSION_GZIP)` does write a stream plain `gunzip` and
+  Python's `gzip` read (checked 2026-10-07; the match event log ships in it,
+  [scenario-scripting/match-log](../scenario-scripting/match-log.md)).
+  `FileAccess.open_compressed` is Godot's own block format and is ruled out.
 - **Kept under `user://replays/`.** Nothing in the game writes to `user://` yet: this is the
   first persistence.
 - **The header** names the scenario, its map scene, the seed, every slot (faction, difficulty,

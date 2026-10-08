@@ -404,3 +404,8 @@ gdd/.obsidian/
 # Terrain-visual preview renders (tools/terrain_visuals/visual_preview.gd)
 /tools/terrain_visuals/out/
 /tools/dominion_analysis/out/
+
+# The combat model trainer (tools/combat_model/): its virtualenv and the fight corpus it fits on.
+# The fitted model itself is resources/bots/combat_model.json, committed like roster.json.
+/tools/combat_model/.venv/
+/tools/combat_model/out/

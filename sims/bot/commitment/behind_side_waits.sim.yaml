@@ -1,0 +1,37 @@
+description: |
+  The control for even_armies_no_income with A fielding 8 recruits against B's 6.
+  Being ahead does NOT commit A at once. The humility prior assumes the enemy is worth at
+  least assumed_enemy_parity (0.85) of A's own army, so A's ratio is 800 / max(600, 680) =
+  1.18, and no bot can ever read better than 1 / 0.85 = 1.18, which is under
+  attack_value_ratio 1.3. Every attack therefore waits on the stalemate clock, and the lead
+  only shortens the wait: about 6 s here against 15 s for even armies.
+  B is at 600 / 800 = 0.75, under MIN_ATTACK_RATIO 0.85, the floor the clock never lowers the
+  bar past, so it does not attack while it is that far behind: it lets the stronger side come
+  to it. Axis: COMMITMENT.
+setting: { kind: flat, size: 80 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: west
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 8 } ]
+        at: { from: A.home, distance: 6, bearing: east }
+        formation: cluster
+  B:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: east
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 6 } ]
+        at: { from: B.home, distance: 6, bearing: west }
+        formation: cluster
+run: { for: 120s, seed: 1 }
+expect:
+  - not: [ { slot: A, check: posture, is: ATTACK, by: 4s } ]
+  - { slot: A, check: posture, is: ATTACK, by: 10s }
+  - not: [ { slot: B, check: posture, is: ATTACK, by: 25s } ]

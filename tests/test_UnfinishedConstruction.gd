@@ -65,7 +65,8 @@ func test_a_commander_counts_only_finished_structures_as_eyes() -> void:
 	commander.add_child(foundation)
 	var finished: Commandable = FakePieces.make(SAM)
 	commander.add_child(finished)
-	assert_eq(commander._owned_vision_sources(), [finished])
+	assert_false(foundation.grants_vision(), "a foundation is not a watchtower yet")
+	assert_true(finished.grants_vision())
 
 
 # --- It cannot act ----------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/interface/menu/pause_menu.gd" id="1_pause"]
 [ext_resource type="PackedScene" path="res://scenes/interface/playback_controls.tscn" id="2_playback"]
+[ext_resource type="PackedScene" path="res://scenes/interface/match_summary.tscn" id="3_summary"]
 
 [node name="PauseMenu" type="CanvasLayer"]
 layer = 20
@@ -60,6 +61,11 @@ value = 0.5
 
 [node name="PlaybackControls" parent="Center/Panel/Margin/Column" instance=ExtResource("2_playback")]
 unique_name_in_owner = true
+layout_mode = 2
+
+[node name="MatchSummary" parent="Center/Panel/Margin/Column" instance=ExtResource("3_summary")]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 
 [node name="ReturnButton" type="Button" parent="Center/Panel/Margin/Column"]

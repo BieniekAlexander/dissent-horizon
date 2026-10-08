@@ -163,11 +163,23 @@ func test_an_owned_tech_structure_is_not_bought_again() -> void:
 	assert_eq(_act.builds, [REDOUBT])
 
 
-func test_no_surplus_means_no_tech() -> void:
+func test_tech_the_bot_is_saving_for_is_bought_without_a_surplus() -> void:
+	# A falling balance used to rule tech out altogether — and with producers spending every
+	# think the balance always fell, so no tech structure was ever built (2026-10-07).
 	var economy := _economy()
 	economy._prev_energy = _bot.energy + 1  # the balance is falling: not a surplus
 	economy.tick()
-	assert_eq(_act.builds, [])
+	assert_eq(_act.builds, [TECH], "the bank was held for it, so it is bought")
+	assert_eq(_bot.savings.goal(), &"", "and bought, it is no longer saved for")
+
+
+func test_without_a_surplus_tech_that_is_not_the_goal_waits() -> void:
+	var economy := _economy()
+	economy._prev_energy = _bot.energy + 1
+	_bot.savings.propose(&"production", &"fake_dearer_wish", 1.0e9, 1)
+	economy.tick()
+	assert_ne(_bot.savings.goal(), TECH)
+	assert_false(_act.builds.has(TECH), "something worth more holds the bank")
 
 
 func test_the_tech_decision_is_in_the_ledger() -> void:

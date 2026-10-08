@@ -163,6 +163,27 @@ func test_a_unit_belief_is_not_dropped_by_seeing_its_spot_empty() -> void:
 	assert_true(_board.believes(unit.get_instance_id()))
 
 
+func test_a_unit_killed_in_sight_is_dropped_at_once() -> void:
+	# The bot watched it die. Kept for the full window, every enemy it killed counted toward
+	# the army it believed it faced — measured 2026-10-07 at two to four times the real one.
+	var unit: Commandable = _piece(false, FAR)
+	_see([unit], 0.0)
+	var id: int = unit.get_instance_id()
+	unit.free()
+	_look([FAR], 0.2)
+	assert_false(_board.believes(id))
+
+
+func test_a_unit_that_dies_out_of_sight_is_still_believed() -> void:
+	var unit: Commandable = _piece(false, FAR)
+	_see([unit], 0.0)
+	_look([], 1.0)  # it has walked out of view
+	var id: int = unit.get_instance_id()
+	unit.free()
+	_look([], 2.0)
+	assert_true(_board.believes(id), "nobody saw it go: the belief stands")
+
+
 # ─── A STRUCTURE BELIEF IS DROPPED ONLY BY LOOKING ──────────────────────────
 
 

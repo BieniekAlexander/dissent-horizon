@@ -288,6 +288,7 @@ func _apply_config() -> void:
 	_military.wave_abort_fraction = config.wave_abort_fraction
 	_military.reinforce_fraction = config.reinforce_fraction
 	_military.squad_cap = config.squad_cap
+	_military.guard_strength_ratio = config.guard_strength_ratio
 	_military.defend_threat_radius = config.defend_threat_radius
 	_targeting.switch_margin = config.retarget_switch_margin
 	_targeting.set_signal_weights(
@@ -329,6 +330,7 @@ func _apply_config() -> void:
 	# The three scored modules sample at one temperature; placement is deliberately not one
 	# of them (it must stay mirror-exact — BotEconomy §WHERE A BUILDING GOES).
 	_production.decision_temperature = config.decision_temperature
+	_production.should_use_learned_production = config.should_use_learned_production
 	_opportunist.decision_temperature = config.decision_temperature
 	_scout.decision_temperature = config.decision_temperature
 	# The two production-mix weights live on the PERCEPTION layer (Bot.enemy_demand_map is
@@ -356,6 +358,17 @@ func get_scout() -> BotScout:
 ## outside the brain decides through it.
 func get_military() -> BotMilitary:
 	return _military
+
+
+## The economy manager, or null before the strategy layer is built. Read by the debug overlay
+## (gdd/systems/ai/debug-signals.md); nothing outside the brain decides through it.
+func get_economy() -> BotEconomy:
+	return _economy
+
+
+## The targeting manager, or null before the strategy layer is built. Read by the debug overlay.
+func get_targeting() -> BotTargeting:
+	return _targeting
 
 
 ## The actuator, or null before the strategy layer is built. Read by the self-play harness
