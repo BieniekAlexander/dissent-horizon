@@ -351,7 +351,7 @@ scripts/
   scenario.gd                     — root node for a game session
   entities/
 	entity.gd                     — base class (CharacterBody3D)
-	commandable.gd                 — entity that accepts commands (units + structures)
+	actor.gd                       — Actor: a piece that takes orders or can be damaged (units + structures)
 	command_receiver.gd            — manages the command queue (RefCounted)
 	hit_box.gd
 	components/                   — optional node-children bolted onto entities
@@ -368,6 +368,7 @@ scripts/
 	  energy_extractor.gd
 	  ownership.gd                — commander relationship + team tint signal
 	  production.gd               — training queue; also has producible_types
+	  orders.gd                   — the order-taking half of an Actor: command queue, rally queue, routing
 	  garrison.gd                 — holds occupants; Occupy enters, Evacuate releases; occupancy masks + sizes
 	  repairs.gd                  — marks a unit able to repair (doc key `repairs: true`); presence is the check
 	  selectable.gd
@@ -510,8 +511,10 @@ Entity (CharacterBody3D)           — type enum, @export default_commander_id, 
   @onready vision_range_shape: CollisionShape3D
   @onready aggro_shape_ground / aggro_shape_air: CollisionShape3D   — derived from reach (RangeShapes)
 
-  └── Actor (Entity)         — command queue, HP bar, aggro logic, _physics_process
-    @onready command_receiver: CommandReceiver   (RefCounted, not a Node)
+  └── Actor (Entity)         — HP bar, aggro logic, _physics_process
+    @onready orders: Orders            — the order-taking component (command queue, rally, routing);
+                                         null on `commandable: false`, and every order is then a no-op
+    command_receiver: CommandReceiver  — Orders.receiver (RefCounted, not a Node)
     @onready selectable: Selectable
     @onready production: Production    (get_node_or_null; null = can't train)
         @onready energy_extractor: EnergyExtractor

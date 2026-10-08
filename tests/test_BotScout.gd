@@ -42,7 +42,9 @@ func _build_unit(a_speed: float, a_vision: float, a_unit: Actor) -> Actor:
 	var u: Actor = a_unit
 	# @onready, so null on an out-of-tree instance — and every "is this unit free" question
 	# the module asks goes through it.
-	u.command_receiver = CommandReceiver.new()
+	u.orders = Orders.new()
+	u.add_child(u.orders)
+	u.orders.receiver.initialize(u)
 	u.movement = Movement.new()
 	u.movement.speed = a_speed
 	u.add_child(u.movement)

@@ -8,13 +8,13 @@ required; if not, null is a real state.
 
 Who reaches the code decides it, not the component:
 
-- `entity.gd` runs for every piece shape — an Actor (`Actor`), a feature (an uncommandable
+- `entity.gd` runs for every piece shape — an Actor, a feature (an uncommandable
   fixture on an `Entity` root), a bodiless piece, an emission — and for out-of-tree build
   previews, whose `@onready` fields never resolve. Only `Ownership` is guaranteed to all of them.
-- `commandable.gd` runs for Actors only, which are guaranteed `Hurtbox`, `AggroRangeGround` /
+- `actor.gd` runs for Actors only, which are guaranteed `Hurtbox`, `AggroRangeGround` /
   `AggroRangeAir`, `Ownership`, `Defense`, `Veterancy`, `Selectable`, `HPBar`,
   `SelectionIndicator`, `CommandLineIndicator`, `StatusVisuals`, `DebugLabel` and
-  `TargetIndicator`; a MOBILE Actor adds `NavigationAgent`, `MovementBody`, `Locomotion`,
+  `TargetIndicator`, plus `Orders` unless the doc says `commandable: false`; a MOBILE Actor adds `NavigationAgent`, `MovementBody`, `Locomotion`,
   `AltitudeIndicator` and `AvoidanceObstacle`.
 - A test fake (`tests/_fake_pieces.gd`) carries only the components a test names, so turning a
   guaranteed site into `$Node` means the fake gains that node too.
@@ -85,7 +85,7 @@ Who reaches the code decides it, not the component:
 ## Summary
 
 Of the sites above, the ⚠️ ones are guaranteed by the composition and could be required —
-`Ownership` in `entity.gd`, `DebugLabel` and `TargetIndicator` in `commandable.gd`, and
+`Ownership` in `entity.gd`, `DebugLabel` and `TargetIndicator` in `actor.gd`, and
 `Production`'s bar when its path is set. The 🚨 ones hide a broken state or are dead:
 `TrainBarFill` and the controller's `Sprite` branch. Everything else is a real optional state of
 some shape that reaches the code. The rest of the project's ~260 calls are discovery questions

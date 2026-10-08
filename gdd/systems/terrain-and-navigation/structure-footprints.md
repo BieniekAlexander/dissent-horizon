@@ -27,7 +27,7 @@ The codebase already has partial multi-cell infrastructure, but it is incomplete
 
 3. **The `placement_checker` callable signature leaks the rectangular assumption.** The signature is `(msg: CommandMessage, dims: Vector2i) -> bool`. Changing from rectangles to arbitrary offsets requires updating this signature and every caller.
 
-4. **`get_grid_coordinates` returns `Vector2` instead of `Vector2i`** (`commandable.gd:64`). Callers cast the result, so it is harmless today, but it is inconsistent and should be fixed in the same pass.
+4. **`get_grid_coordinates` returns `Vector2` instead of `Vector2i`** (`actor.gd:64`). Callers cast the result, so it is harmless today, but it is inconsistent and should be fixed in the same pass.
 
 5. **`Build.build_cells`** is populated in `_init` but never read anywhere in the codebase. It is dead code today, likely scaffolding for a future placement-preview system.
 
@@ -149,7 +149,7 @@ The `entity.gd:_auto_initialize` code at line 151 also calls `add_structure`. It
 Replace the current helper, which returns `Array[Vector2]` (floats — a latent type bug), with one that accepts the offset array directly:
 
 ```gdscript
-# commandable.gd (proposed)
+# actor.gd (proposed)
 static func footprint_cells(origin: Vector2i, offsets: Array[Vector2i]) -> Array[Vector2i]:
     var result: Array[Vector2i] = []
     for offset in offsets:
@@ -299,7 +299,7 @@ func remove_structure(a_structure: Actor, _rebake: bool = true) -> void:
 
 This code is shape-agnostic and requires no changes.
 
-`Actor._on_death` (commandable.gd:313) calls `map.remove_structure(self)` which chains to the above — also unchanged.
+`Actor._on_death` (actor.gd:313) calls `map.remove_structure(self)` which chains to the above — also unchanged.
 
 ---
 

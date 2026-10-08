@@ -93,6 +93,18 @@ func test_a_unit_is_composed_with_the_actor_set_and_locomotion() -> void:
 	)
 
 
+## Taking orders is a component a doc can omit: an Actor that can be damaged but is never ordered
+## (the Recon Drone) carries no `Orders`.
+func test_an_uncommandable_actor_is_composed_without_orders() -> void:
+	var ordered: Array[String] = _expected_names({"movement": MOBILE})
+	var unordered: Array[String] = _expected_names(
+		{"movement": MOBILE, "commandable": false, "hp": 50}
+	)
+	assert_true(ordered.has("Orders"), "a piece that takes orders gets the component")
+	assert_false(unordered.has("Orders"), "one that takes none does not")
+	assert_true(unordered.has("Defense"), "and it is still an Actor, damageable")
+
+
 func test_a_structure_is_composed_with_its_footprint_and_no_locomotion() -> void:
 	var spec: Dictionary = {"footprint": [2, 2]}
 	var structure: Node = _compose("structure", spec)

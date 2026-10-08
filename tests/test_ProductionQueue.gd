@@ -282,8 +282,10 @@ func test_purchase_is_dropped_when_the_unbuilt_producer_is_destroyed() -> void:
 
 
 func _rally(a_structure: Actor, a_x: float, a_z: float, a_additive: bool = false) -> void:
-	a_structure.command_receiver = CommandReceiver.new()
-	a_structure.command_receiver.initialize(a_structure)
+	if a_structure.orders == null:
+		a_structure.orders = Orders.new()
+		a_structure.add_child(a_structure.orders)
+		a_structure.orders.receiver.initialize(a_structure)
 	a_structure.update_commands(
 		MoveCommand.new(CommandMessage.new(null, null, null, Vector3(a_x, 0.0, a_z))), a_additive
 	)

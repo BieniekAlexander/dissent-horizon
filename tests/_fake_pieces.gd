@@ -60,6 +60,7 @@ extends RefCounted
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
 ##   selectable: bool        false makes the `Selectable` refuse the player (default true)
 ##   obstruction: bool       a structure blocks line of fire (`structure()` only; default true)
+##   commandable: bool       false leaves off the `Orders` component: an Actor that takes no orders
 
 const _COMPONENTS: String = "res://scenes/components/"
 
@@ -190,6 +191,9 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Actor:
 	_add_node(piece, defense, "Defense")
 	_add_node(piece, Veterancy.new(), "Veterancy")
 	_add_scene(piece, "selectable.tscn", "Selectable")
+	# Takes orders unless the test says otherwise, as `commandable: false` does for a doc.
+	if bool(a_options.get("commandable", true)):
+		_add_node(piece, Orders.new(), "Orders")
 	_add_scene(piece, "hp_bar.tscn", "HPBar")
 	_add_scene(piece, "target_indicator.tscn", "TargetIndicator")
 	_add_scene(piece, "avoidance_obstacle.tscn", "AvoidanceObstacle")

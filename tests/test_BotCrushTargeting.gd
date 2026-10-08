@@ -17,6 +17,7 @@ class StubPiece:
 			["Ownership", Ownership.new()],
 			["AvoidanceObstacle", NavigationObstacle3D.new()],
 			["Veterancy", Veterancy.new()],
+			["Orders", Orders.new()],
 			["Hurtbox", StaticBody3D.new()]
 		]:
 			var node: Node = pair[1]

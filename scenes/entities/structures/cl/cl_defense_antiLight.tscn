@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3 uid="uid://cmwo6vlb5bkrn"]
+[gd_scene load_steps=29 format=3 uid="uid://cmwo6vlb5bkrn"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
@@ -24,6 +24,7 @@
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="21_spec"]
 [ext_resource type="PackedScene" uid="uid://nwxttcar8xw5" path="res://scenes/entities/projectiles/cl/watch_tower_bullet.tscn" id="22_spec"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/ground_range_long.tres" id="23_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="24_spec"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
 size = Vector3(1.0, 2.0, 1.0)
@@ -80,6 +81,9 @@ script = ExtResource("7_spec")
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("BoxShape3D_selection")
 metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("24_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="."]
 

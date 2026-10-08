@@ -19,8 +19,9 @@ func _make_structure() -> Actor:
 	production.producible_types = [&"fake_trainee_a"]
 	structure.add_child(production)
 	structure.production = production
-	structure.command_receiver = CommandReceiver.new()
-	structure.command_receiver.initialize(structure)
+	structure.orders = Orders.new()
+	structure.add_child(structure.orders)
+	structure.orders.receiver.initialize(structure)
 	return structure
 
 

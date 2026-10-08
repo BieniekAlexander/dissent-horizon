@@ -31,7 +31,8 @@ The navigated `Locomotion` (a `Movement`) and what surrounds it (nav agent, move
 avoidance obstacle, altitude readout) are guaranteed for a mobile piece and absent from a
 structure; an emission's `Locomotion` is a `PhasedLocomotion` instead. `VisionRange` and
 `MeshVisual` are guaranteed unless the doc switches them off (`senses.vision` emptied, the
-`has_mesh_visual` waiver), and then removed rather than emptied. `Aerial` and `Docking` exist
+`has_mesh_visual` waiver), and then removed rather than emptied. `Orders`, the order-taking
+half, is guaranteed to an Actor unless its doc says `commandable: false`. `Aerial` and `Docking` exist
 exactly when the doc says `aerial:` / `docking: true`, straight after `Locomotion`. `Loadout` is
 optional for everything.
 

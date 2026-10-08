@@ -32,8 +32,8 @@ const ACTOR: Array[int] = [Tier.COMMANDABLE]
 ##   type / script — an inline node
 ##   props  — raw .tscn values written on creation (inline nodes only)
 ##   tiers  — the Tier values that get it
-##   when   — "mobile", "fixture", "sighted", "visible", "aerial" or "docking" to require that
-##            facet as well; absent = always
+##   when   — "mobile", "fixture", "sighted", "visible", "aerial", "docking" or "commandable"
+##            to require that facet as well; absent = always
 ##   after  — a component an EXISTING scene gains is placed straight after this one, which is
 ##            where a new scene has it; absent = at the end
 ##   mobile_props — raw overrides {child path: {property: value}} a MOBILE piece writes on
@@ -93,6 +93,14 @@ const COMPONENTS: Array[Dictionary] = [
 	{"name": "Veterancy", "type": "Node", "script": "veterancy", "tiers": ACTOR},
 	{"name": "#####CONTROLS#####", "type": "Node", "tiers": PHYSICAL},
 	{"name": "Selectable", "scene": "selectable", "tiers": PHYSICAL},
+	{
+		"name": "Orders",
+		"type": "Node",
+		"script": "orders",
+		"tiers": ACTOR,
+		"when": "commandable",
+		"after": "Selectable"
+	},
 	{"name": "#####VISUALS#####", "type": "Node", "tiers": PHYSICAL},
 	{
 		"name": "HPBar",
@@ -211,6 +219,9 @@ static func components(spec: Dictionary) -> Array[Dictionary]:
 					continue
 			"docking":
 				if not bool(spec.get("docking", false)):
+					continue
+			"commandable":
+				if not SpecSchema.is_commandable(spec):
 					continue
 		out.append(entry)
 	return out

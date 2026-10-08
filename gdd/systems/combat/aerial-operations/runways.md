@@ -76,7 +76,7 @@ Three things about it are load-bearing:
 
 ## Releasing a runway is one place, both directions
 
-*Moved out of `commandable.gd::_release_runway`.*
+*Moved out of `actor.gd::_release_runway`.*
 
 The Rearm is PREPENDED, which is what makes the resume free: prepending pushes the
 interrupted order onto the front of the queue, so when the rearm ends by returning null

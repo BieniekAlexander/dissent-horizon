@@ -455,10 +455,9 @@ that gives `repairs:` and `stealth:` bare bools — presence IS the capability.
 overwhelming majority are commandable and map furniture is the exception that should have to
 say so.
 
-Two interactions to carry forward: `Actor` stops being a class in the inheritance
-chain and becomes a component set (a step 4 concern, not before), and §Blast radius gains
-the `Actor.is_built` and `can_rally` sites, which today assume every structure is
-commandable.
+Two interactions carried forward: order-taking became the `Orders` component (2026-10-08, §Step
+4), and §Blast radius gains the `Actor.is_built` and `can_rally` sites, which assume every
+structure is commandable.
 
 ---
 
@@ -649,8 +648,11 @@ spans (`TscnDoc._prop_span`).
 **Still to do in step 4:**
 - The shared locomotion core (§Locomotion is bigger than `Movement` §Order) is built, its own
   step 4 (`Aerial` / `Docking`) included; the Recon Drone keeps a speed-0 `Movement` by decision.
-- TODO: `Actor` as a component set rather than a class (§Commandability is a capability) —
-  not started; today the root class is derived (Actor or feature) instead.
+- Taking orders is a component (§Commandability is a capability), built 2026-10-08: `Orders`
+  holds the command queue, the rally queue, what an incoming order is admitted as and the
+  per-tick command processing, and composition adds it to a piece unless its doc says
+  `commandable: false`. `Actor` keeps its order methods as forwards that do nothing without it,
+  so callers did not change. The Recon Drone, damageable but never ordered, carries none.
 - `Emitter.launch` is the one call for an emission, and an emitted UNIT is built (2026-09-29):
   it is handed an order — attack the Entity it was launched at, or attack-move to the point —
   instead of a flight (`tests/test_EmittedUnit.gd`). TODO: only an ability's `emits:` may name

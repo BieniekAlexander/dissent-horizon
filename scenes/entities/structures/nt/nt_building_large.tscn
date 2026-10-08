@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://djimpdi532ndd"]
+[gd_scene load_steps=24 format=3 uid="uid://djimpdi532ndd"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" uid="uid://c0a8hdddox08m" path="res://scenes/components/footprint_visualizer.tscn" id="16_spec"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="17_spec"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="18_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="19_spec"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
 size = Vector3(8.0, 2.0, 5.0)
@@ -74,6 +75,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 visible = true
 shape = SubResource("BoxShape3D_selection")
 metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("19_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="."]
 

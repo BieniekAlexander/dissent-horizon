@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://c3n80jmglorfn"]
+[gd_scene load_steps=24 format=3 uid="uid://c3n80jmglorfn"]
 
 [ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_27qqb"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="19_6m073"]
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="21_e8x30"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="22_eixw2"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="3_spec"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_tkaiq"]
 size = Vector3(4, 2, 4)
@@ -74,6 +75,9 @@ script = ExtResource("11_mg5ec")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("BoxShape3D_tkaiq")
 metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("3_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1351657332]
 

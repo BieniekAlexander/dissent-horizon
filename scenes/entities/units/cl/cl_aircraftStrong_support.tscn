@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3 uid="uid://vgsh1owtsugg"]
+[gd_scene load_steps=29 format=3 uid="uid://vgsh1owtsugg"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="1_spec"]
@@ -24,6 +24,7 @@
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_spec"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_aerial_large.tres" id="22_spec"]
 [ext_resource type="Script" uid="uid://c2yvk740iyjw" path="res://scripts/entities/components/beacon_range.gd" id="23_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="24_spec"]
 
 [sub_resource type="PrismMesh" id="PrismMesh_placeholder"]
 size = Vector3(1.2, 0.25, 1.4)
@@ -97,6 +98,9 @@ script = ExtResource("11_spec")
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("CylinderShape3D_selection")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("24_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="."]
 

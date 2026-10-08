@@ -25,7 +25,8 @@ class StubPiece:
 		for pair: Array in [
 			["Ownership", Ownership.new()],
 			["AvoidanceObstacle", NavigationObstacle3D.new()],
-			["Veterancy", Veterancy.new()]
+			["Veterancy", Veterancy.new()],
+			["Orders", Orders.new()]
 		]:
 			var node: Node = pair[1]
 			node.name = pair[0]

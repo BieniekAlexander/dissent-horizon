@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://bjn8jktofip2n"]
+[gd_scene load_steps=27 format=3 uid="uid://bjn8jktofip2n"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_nqbqt"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="1_spec"]
@@ -22,6 +22,7 @@
 [ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="19_p6c6n"]
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="20_wd2vl"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_gn37h"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="3_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_8vls5"]
 height = 0.6
@@ -83,6 +84,9 @@ script = ExtResource("11_c8rfn")
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
 shape = SubResource("CylinderShape3D_8vls5")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("3_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=971065609]
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://2u7j2usdqney"]
+[gd_scene load_steps=25 format=3 uid="uid://2u7j2usdqney"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
@@ -20,6 +20,7 @@
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="17_spec"]
 [ext_resource type="Script" uid="uid://dww1hvwpkpygd" path="res://scripts/entities/structures/extractor.gd" id="18_spec"]
 [ext_resource type="Script" uid="uid://dabpqha0g1wjn" path="res://scripts/entities/components/dominion_generator.gd" id="19_dom"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="19_spec"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
 size = Vector3(2.0, 2.0, 2.0)
@@ -76,6 +77,9 @@ script = ExtResource("7_spec")
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("BoxShape3D_selection")
 metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("19_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="."]
 

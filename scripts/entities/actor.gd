@@ -15,7 +15,13 @@ extends Entity
 ## composition rather than by type.
 
 #region Properties
-@onready var command_receiver: CommandReceiver = CommandReceiver.new()
+## The order-taking component, or null on a piece that takes no orders (`commandable: false`):
+## every order method below forwards to it, and is a no-op without it.
+@onready var orders: Orders = get_node_or_null("Orders") as Orders
+## The command queue (Orders.receiver), or null on a piece that takes no orders.
+var command_receiver: CommandReceiver:
+	get:
+		return orders.receiver if orders != null else null
 ## What this piece is doing, for its animation and its action badge. Not @onready: an emitter
 ## may cue it before this piece has entered the tree.
 var action_tracker: ActionTracker = ActionTracker.new()
@@ -98,9 +104,10 @@ func is_hidden_by_stealth() -> bool:
 
 var _command: MoveCommand:
 	get:
-		return command_receiver._command
+		return command_receiver._command if command_receiver != null else null
 	set(value):
-		command_receiver._command = value
+		if command_receiver != null:
+			command_receiver._command = value
 
 @onready var hp_bar_fill: Sprite3D = $HPBar/HPBarFill
 @onready var _debug_label: Label3D = get_node_or_null("DebugLabel") as Label3D
@@ -204,21 +211,11 @@ func _report_missing_flavor_text(a_field: String, a_seen: Dictionary) -> void:
 
 #region Command interface
 func current_command() -> MoveCommand:
-	return command_receiver._command
-
-
-## An order that means "shoot" releases hold fire on receipt — queued or not — so a held unit
-## told to attack or attack-move will also pick up targets on its own again afterwards.
-func _release_hold_fire_for(a_commands: Variant) -> void:
-	var commands: Array = a_commands if a_commands is Array else [a_commands]
-	for command: Variant in commands:
-		if command is MoveCommand and (command as MoveCommand).releases_hold_fire():
-			is_holding_fire = false
-			return
+	return orders.current() if orders != null else null
 
 
 func get_command_chain() -> Array[MoveCommand]:
-	return command_receiver.get_command_chain()
+	return orders.chain() if orders != null else [] as Array[MoveCommand]
 
 
 ## The Garrison currently holding this unit, or null when it is out in the world.
@@ -243,65 +240,12 @@ func clear_command() -> void:
 	update_commands(null)
 
 
+## Give this piece orders (Orders.update_commands); a no-op on a piece that takes none.
 func update_commands(
 	a_commands: Variant, a_add_to_queue: bool = false, a_prepend: bool = false
 ) -> void:
-	# A stationary can_rally() commandable turns a bare move order into a pre-issued
-	# command for the units it produces, rather than trying to walk there itself. Absorbed
-	# HERE, at the point of issue, because this is where the additive flag still exists.
-	if _absorb_rally_commands(a_commands, a_add_to_queue):
-		return
-	if deployable != null and a_commands != null:
-		var admission: Dictionary = deployable.admit(
-			_as_orders(a_commands), a_add_to_queue, command_receiver.get_command_chain()
-		)
-		var admitted: Array[MoveCommand] = admission["orders"]
-		if admission["keep_active"]:
-			command_receiver.clear_queue()
-		if admitted.is_empty():
-			return
-		a_commands = admitted
-		a_add_to_queue = admission["add_to_queue"]
-		# Nothing jumps ahead of a transition: an interrupt waits behind it like any order.
-		a_prepend = a_prepend and not deployable.is_transitioning()
-	var sortie: Sortie = Sortie.of(self)
-	if sortie != null and a_commands != null:
-		var admitted_by_sortie: Array[MoveCommand] = sortie.admit(_as_orders(a_commands))
-		if admitted_by_sortie.is_empty():
-			return
-		a_commands = admitted_by_sortie
-	_release_hold_fire_for(a_commands)
-	if not a_add_to_queue:
-		# Notify any units waiting to garrison that the host is changing course.
-		if garrison != null and not garrison._pending_garrison_units.is_empty():
-			garrison.cancel_pending_garrison()
-		# If the host is grounded (garrison landing, Land command, or parked on a docking pad)
-		# and receives a new command that requires movement, lift off so it can execute it.
-		# Commands that handle their own landing (e.g. Evacuate) return false from
-		# should_move and must not trigger a take-off here.
-		#
-		# Both aerial modes, not just HOVERING: a FLYING unit can be grounded too now that it
-		# docks, and one re-ordered off a pad without this would try to carry out the order by
-		# taxiing along the deck.
-		if aerial != null:
-			var first_cmd: MoveCommand = null
-			if a_commands is MoveCommand:
-				first_cmd = a_commands
-			elif a_commands is Array and not (a_commands as Array).is_empty():
-				first_cmd = (a_commands as Array)[0]
-			if aerial.is_grounded_temp():
-				if first_cmd != null and first_cmd.should_move(self):
-					# A unit on a DOCKING PAD leaves through leave_dock, which gives the pad back and
-					# taxis it out to a runway threshold before it climbs. Taking off in place here
-					# would skip the roll-out entirely — the aircraft would rise straight off its
-					# parking space, which is exactly what the runways exist to stop.
-					if docking != null and docking.is_docked_on_pad():
-						docking.leave_dock()
-					else:
-						aerial.take_off_for_movement()
-			elif aerial.is_pending_land():
-				aerial.cancel_pending_land()
-	command_receiver.update_commands(a_commands, a_add_to_queue, a_prepend)
+	if orders != null:
+		orders.update_commands(a_commands, a_add_to_queue, a_prepend)
 
 
 ## `a_commands` — one order or a list of them, as update_commands takes it — as a list.
@@ -315,7 +259,8 @@ static func _as_orders(a_commands: Variant) -> Array[MoveCommand]:
 
 
 func load_destination(a_command: MoveCommand) -> void:
-	command_receiver.load_destination(a_command)
+	if orders != null:
+		orders.load_destination(a_command)
 
 
 #endregion
@@ -382,7 +327,7 @@ func set_ability_targeted(a_targeted: bool) -> void:
 ## units are untouched, since is_out_of_ammo() is false for any loadout with nothing
 ## CHARGED in it (see Loadout.is_out_of_ammo).
 func _defer_unshootable_orders() -> void:
-	if weapon_inventory == null or not weapon_inventory.is_out_of_ammo():
+	if weapon_inventory == null or not weapon_inventory.is_out_of_ammo() or orders == null:
 		return
 	command_receiver.defer_ammo_dependent_commands()
 
@@ -400,103 +345,39 @@ func can_rally() -> bool:
 	return (production != null and production.trains_units()) or garrison != null
 
 
-## PRE-ISSUED command queue for a stationary can_rally() commandable (movement == null):
-## the orders every unit it produces or releases inherits, in order, as though the player
-## had given them to that unit the moment it appeared. Fed by intercepting bare
-## MoveCommands in update_commands (see _absorb_rally_commands) — a plain right-click
-## REPLACES the queue, a shift right-click APPENDS to it.
-##
-## These are TEMPLATES, never handed out directly: rally_chain() returns fresh copies, so
-## two units produced from one rally can't share command instances. A queue (rather than
-## the single rally point this replaced) exists so richer pre-issued orders — attack-move,
-## defend, a patrol route — can be stacked here later; only bare moves are absorbed today.
-##
-## Meaningless for mobile commandables, which share their own active movement instead —
-## see rally_chain.
-var rally_commands: Array[MoveCommand] = []
+## The pre-issued orders a stationary producer hands to what it makes (Orders.rally_commands);
+## empty on a piece that takes no orders.
+var rally_commands: Array[MoveCommand]:
+	get:
+		return orders.rally_commands if orders != null else [] as Array[MoveCommand]
+	set(value):
+		if orders != null:
+			orders.rally_commands = value
 
 
-## Replace the pre-issued queue with a single command (a plain right-click).
 func set_rally(a_command: MoveCommand) -> void:
-	rally_commands = [a_command]
+	if orders != null:
+		orders.set_rally(a_command)
 
 
-## Add a command to the end of the pre-issued queue (a shift right-click).
 func append_rally(a_command: MoveCommand) -> void:
-	rally_commands.append(a_command)
+	if orders != null:
+		orders.append_rally(a_command)
 
 
 func clear_rally() -> void:
-	rally_commands.clear()
+	if orders != null:
+		orders.clear_rally()
 
 
-## The command chain a unit produced or released by this commandable should inherit, as
-## FRESH copies it owns outright (see MoveCommand.duplicated). Empty for "no forced
-## destination".
-##
-## A mobile commandable (movement != null) has no pre-issued queue of its own and hands
-## on its own active movement instead — so a transport destroyed mid-move passes its
-## heading to its evacuated passengers — excluding commands that don't represent motion
-## (should_move() == false, e.g. Evacuate itself).
+## What a unit produced or released here should inherit (Orders.rally_chain).
 func rally_chain() -> Array[MoveCommand]:
-	var chain: Array[MoveCommand] = []
-	if not can_move():
-		for command: MoveCommand in rally_commands:
-			chain.append(command.duplicated())
-		return chain
-	var current: MoveCommand = current_command()
-	if current != null and current.should_move(self):
-		chain.append(current.duplicated())
-	return chain
+	return orders.rally_chain() if orders != null else [] as Array[MoveCommand]
 
 
-## The first pre-issued command, or null — the heading readers use to bias where a unit
-## appears (Production's spawn offset, Garrison's exit-side seed). Returns the live
-## template, NOT a copy: callers only read `message.position` off it. To actually give
-## the orders to a unit, use rally_chain().
+## The heading a produced or released unit is biased toward (Orders.rally_destination).
 func rally_destination() -> MoveCommand:
-	if not can_move():
-		return rally_commands[0] if not rally_commands.is_empty() else null
-	var current: MoveCommand = current_command()
-	if current != null and current.should_move(self):
-		return current
-	return null
-
-
-## Route a bare MoveCommand aimed at a stationary can_rally() commandable into its
-## pre-issued queue instead of its command receiver — a structure can't walk anywhere, so
-## a move order on it means "send what you make there". Returns true when the commands
-## were absorbed and must not reach the receiver.
-##
-## `add_to_queue` is the additive (shift) flag straight off the player's order, which is
-## why this lives here rather than in _process_commands: by the time the receiver has
-## stored a command, whether it was meant to replace or extend is no longer knowable.
-##
-## Only EXACT MoveCommands are absorbed — an Attack or Evacuate aimed at a structure is a
-## real order for the structure itself. A mixed array is left alone entirely rather than
-## split, so the receiver still sees a coherent chain.
-func _absorb_rally_commands(a_commands: Variant, a_add_to_queue: bool) -> bool:
-	if can_move() or not can_rally() or a_commands == null:
-		return false
-	var incoming: Array[MoveCommand] = []
-	if a_commands is MoveCommand:
-		incoming.append(a_commands)
-	elif a_commands is Array:
-		for command: Variant in a_commands:
-			if not (command is MoveCommand):
-				return false
-			incoming.append(command)
-	else:
-		return false
-	if incoming.is_empty():
-		return false
-	for command: MoveCommand in incoming:
-		if command.get_script() != MoveCommand:
-			return false
-	if not a_add_to_queue:
-		rally_commands.clear()
-	rally_commands.append_array(incoming)
-	return true
+	return orders.rally_destination() if orders != null else null
 
 
 #endregion
@@ -1016,7 +897,13 @@ func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 	if stealth != null:
 		stealth.unstealth()
 	# Retaliation: only a piece with nothing to do answers, so an order is never overridden.
-	if defense != null and defense.hp > 0 and command_receiver.is_idle() and a_from != null:
+	if (
+		defense != null
+		and defense.hp > 0
+		and orders != null
+		and command_receiver.is_idle()
+		and a_from != null
+	):
 		var attack_cmd: MoveCommand = _retaliation_against(a_from)
 		if attack_cmd != null:
 			update_commands(attack_cmd)
@@ -1111,9 +998,9 @@ func _notification(a_what: int) -> void:
 		# dereferences a half-freed actor and hard-crashes. Commands normally clear
 		# themselves on completion; the ones that outlive it (e.g. held while staggered)
 		# are torn down here. See MoveCommand._notification.
-		if command_receiver != null:
-			command_receiver.update_commands(null)
-		rally_commands.clear()
+		if orders != null:
+			orders.receiver.update_commands(null)
+			orders.rally_commands.clear()
 		# Not every exit is a death — a consumed captive, a garrison's occupants killed with
 		# it, an expiry — so the free itself is what finally withdraws the contribution.
 		_withdraw_infrastructure()
@@ -1138,7 +1025,6 @@ func _ready() -> void:
 	# STRUCTURE_BLOCKER layers are handled in Entity._ready (via super() above).
 	refresh_movement_collision()
 	attributes = Set.new(attributes_list)
-	command_receiver.initialize(self)
 
 	# Drive the HP-bar fill geometry off damage events rather than recomputing it
 	# every frame. Visibility still depends on selection (see _process), but the
@@ -1246,7 +1132,8 @@ func _apply_upgrades() -> void:
 
 func initialize(a_map: Map, a_commander: Commander):
 	super(a_map, a_commander)
-	command_receiver.initialize(self)
+	if orders != null:
+		orders.receiver.initialize(self)
 	# `map` is now set (super assigned it), for both dynamically-spawned and
 	# scene-placed units — unlike _on_commander_changed, which fires during _ready
 	# (before initialize) for scene-placed units. Derive the unit's size class from
@@ -1382,36 +1269,9 @@ func _update_state() -> void:
 		docking.release_runway()
 		docking.aim_parked_at_runway()
 
-	# Aggro pickup is gated on being FINISHED as well as idle. The receiver refuses to act
-	# on an unbuilt owner's commands anyway, so an ungated pickup would only have the
-	# structure repeatedly latch onto a target it cannot shoot — and, once built, open fire
-	# on whatever happened to be nearest rather than waiting to be told.
-	#
-	# A GROUNDED AIRCRAFT PICKS UP NOTHING. It is sitting on its airfield (or in a field)
-	# with its own vision still live, so without this gate it would latch onto anything that
-	# wandered past and then stand over it unable to shoot — see can_use_weapons. For a
-	# parked one it would also take off after it, which is not what "stays in its dock until
-	# ordered" means.
-	#
-	# A piece holding fire picks up nothing either — get_aggro_near_position answers null.
-	if is_built and command_receiver.is_idle() and can_use_weapons():
-		var aggro_cmd := get_aggro_near_position()
-		if aggro_cmd != null:
-			update_commands(aggro_cmd)
-
-	command_receiver._update_state()
-
-	# A HOVERING garrison host with pending units descends to accept them once it
-	# is idle (no active command). This fires both when already idle at the moment
-	# intent is registered and when a movement command completes.
-	if (
-		garrison != null
-		and not garrison._pending_garrison_units.is_empty()
-		and aerial != null
-		and aerial.mode == Movement.Mode.HOVERING
-		and command_receiver.is_idle()
-	):
-		aerial.land(Callable())
+	# The command half of the tick — idle target pickup and the queue (Orders.tick).
+	if orders != null:
+		orders.tick()
 
 	# Command processing above may remove this unit from the tree mid-tick (e.g.
 	# garrisoning into a Garrison); the remaining per-tick work touches world/
@@ -1610,28 +1470,11 @@ func _on_form_changed(a_deployed: bool) -> void:
 		commander.remove_structure(self)
 
 
+## Route the current command (Orders.process). CommandReceiver calls this, never its own
+## _process_commands, so a structure's Train becomes a purchase on its way through.
 func _process_commands() -> void:
-	# Structures route Train into the commander's production queue. Everything else falls
-	# through to CommandReceiver's default handling. (Bare MoveCommands aimed at a
-	# stationary can_rally() commandable never get this far — update_commands absorbs them
-	# into rally_commands at the point of issue.)
-	if has_command():
-		var current: MoveCommand = current_command()
-		if production != null and current is Train:
-			# Training is a PURCHASE, so it goes through the commander's global production
-			# queue instead of being enqueued here — the queue deducts the cost and hands the
-			# job back to this component once the energy exists, so an unaffordable order waits
-			# rather than being dropped. This is the single-producer entry point (scenario
-			# events, the bot, anything that hands a Train command straight to a structure);
-			# the player's multi-select train submits one purchase across the whole selection
-			# from RTSController.assign_command_to_units.
-			# No is_built gate: a structure still under construction accepts orders, and the
-			# queue holds them until it finishes (see ProductionQueue._dispatch).
-			if commander != null and commander.can_order(current.message.tool.type):
-				commander.production_queue.submit_train(current.message.tool, [self])
-			clear_command()
-			return
-	command_receiver._process_commands()
+	if orders != null:
+		orders.process()
 
 
 func _on_death() -> void:

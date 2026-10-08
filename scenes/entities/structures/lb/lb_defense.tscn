@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://b1cxhhtxxgplx"]
+[gd_scene load_steps=25 format=3 uid="uid://b1cxhhtxxgplx"]
 
 [ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_55sxv"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="22_44ovl"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/detection_medium.tres" id="2_spec"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="3_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="4_spec"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1yb0a"]
 size = Vector3(2, 2, 2)
@@ -74,6 +75,9 @@ script = ExtResource("11_3cvhn")
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("BoxShape3D_1yb0a")
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("4_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1509907736]
 

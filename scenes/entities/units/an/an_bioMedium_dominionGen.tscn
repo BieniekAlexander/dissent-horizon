@@ -1,4 +1,4 @@
-[gd_scene load_steps=40 format=3 uid="uid://cay5kr6vpi16w"]
+[gd_scene load_steps=41 format=3 uid="uid://cay5kr6vpi16w"]
 
 [ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="1_spec"]
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_tikas"]
@@ -34,6 +34,7 @@
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="30_rv5qs"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/air_range_long.tres" id="6_spec"]
 [ext_resource type="PackedScene" uid="uid://d4hii8hrkdfqe" path="res://scenes/entities/projectiles/cl/sam_missile.tscn" id="7_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="8_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_1vyis"]
 radius = 0.3
@@ -107,6 +108,9 @@ shape = SubResource("CylinderShape3D_7hqlv")
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
 shape = SubResource("CylinderShape3D_rs2ks")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("8_spec")
 
 [node name="Liberator" type="Node" parent="." unique_id=556601423]
 script = ExtResource("4_7tit3")
