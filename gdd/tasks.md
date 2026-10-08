@@ -387,7 +387,7 @@ The map layer's symbols and palette were carried over from the map generator's o
 Ridges, cliffs and deep chasms draw as plain ground; add a layer from the grid's steep and submerged cells.
 → [ui/hud-layout](systems/ux/ui/hud-layout.md) §The minimap
 
-### T-080 · A win/lose screen #effort/medium #unscoped
+### T-080 · A win/lose screen #effort/medium #unscoped #shelved
 `Scenario._on_game_over` only logs.
 → `scripts/scenario.gd`, [ux](systems/ux/README.md) (menu screens)
 
