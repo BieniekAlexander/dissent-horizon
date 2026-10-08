@@ -40,6 +40,19 @@ they do not vary between pieces yet (see [calibration-rules](../authoring/calibr
 - **A non-turret weapon keeps the old rule**: the body turns to face the target
   ([attack-runs](aerial-operations/attack-runs.md) §A stationary attacker aims itself).
 
+## Attacking while moving
+
+**A turret holds its attack target through a movement order** (`Orders.held_attack_target`).
+When a replacing order that is not itself an attack takes over from an Attack, the Attack's
+target is kept, and each tick the turret aims at it and fires once aimed, loaded and locked on —
+the same rules an Attack's turret fire follows — while the body carries out the move. It is
+dropped when the target leaves range or sight, dies or is taken out of the world, when the unit
+holds fire, or when another Attack (which names its own target) or a Stop replaces the order.
+
+Only a turret does this. A weapon the body aims faces the way the unit travels, so it still
+stops to fire ([commitment-and-movement](../../design-framework/commitment-and-movement.md)
+§Commitment, per action).
+
 ## The visual
 
 **The model part shows the physics aim; it never leads it.** `Weapon.turret_visual_path` names
@@ -63,10 +76,6 @@ easing, so what the player sees pointing at a target is what is allowed to fire.
 
 ## Not done
 
-- PLANNED: attacking while moving — holding an attack target separately from a movement
-  target ([commitment-and-movement](../../design-framework/commitment-and-movement.md)
-  §Movement classes). A turret is what will make use of it; today a turreted unit still stops
-  to fire.
 - Projectiles still leave from the weapon node at the unit's centre, not from the barrels.
 - Barrel elevation: the Matilda's two barrels are separate pieces of the turret object, so
   they could become their own part if pitch is ever wanted.

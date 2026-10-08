@@ -29,7 +29,7 @@ extends RefCounted
 ##                             damage: float  per hit (default 0: a fake gun wounds nobody)
 ##                             ground: float  radius of its ground reach (0 = none)
 ##                             air: float     radius of its air reach (0 = none)
-##                             clip_size: int, charged: bool, reload_ticks: int
+##                             clip_size: int, charged: bool, reload_ticks: int, turret: bool
 ##   builds: Array | true    `Builds.buildable_types` (true: one real tool's type), adding `Builds`
 ##   frame / armour: int     `Defense.frame_type` / `Defense.armour_type` (defaults BIO / LIGHT)
 ##   crush: int              `Movement.crush_class` (needs `speed`)
@@ -358,6 +358,7 @@ static func _add_loadout(a_piece: Actor, a_weapon: Dictionary) -> void:
 	weapon.name = "Weapon"
 	weapon.clip_size = int(a_weapon.get("clip_size", 1))
 	weapon.charged = bool(a_weapon.get("charged", false))
+	weapon.turret = bool(a_weapon.get("turret", false))
 	weapon.reload_time_ticks = int(a_weapon.get("reload_ticks", 10))
 	# Harmless by default: a fake that shoots would kill what a test set up to be shot AT.
 	weapon.melee_damage = float(a_weapon.get("damage", 0.0))

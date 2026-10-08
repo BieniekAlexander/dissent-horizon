@@ -24,6 +24,12 @@ var receiver: CommandReceiver = CommandReceiver.new()
 ## which shares its own active movement instead — see rally_chain.
 var rally_commands: Array[MoveCommand] = []
 
+## The target a TURRET keeps shooting while the host carries out a movement order: the Attack's
+## target when a replacing move took over from it. Held until it leaves range or sight, dies, the
+## host holds fire, or another Attack or a Stop replaces it. UNTYPED: it may be freed.
+## gdd/systems/combat/turrets.md §Attacking while moving.
+var held_attack_target: Variant = null
+
 
 func host() -> Actor:
 	return get_parent() as Actor
@@ -95,9 +101,32 @@ func update_commands(
 			return
 		a_commands = admitted_by_sortie
 	_release_hold_fire_for(a_commands)
+	_hold_attack_target_through(a_commands, a_add_to_queue)
 	if not a_add_to_queue:
 		_reorient_host_for(a_commands)
 	receiver.update_commands(a_commands, a_add_to_queue, a_prepend)
+
+
+## Keep the current Attack's target as the held one when a replacing order that is not itself an
+## attack takes over, so a turret goes on shooting it on the move. A new Attack, or a Stop, drops
+## it: the first names its own target, the second means cease.
+func _hold_attack_target_through(a_commands: Variant, a_add_to_queue: bool) -> void:
+	var incoming: Array[MoveCommand] = Actor._as_orders(a_commands)
+	if incoming.any(func(c: MoveCommand) -> bool: return c is Attack or c is Stop):
+		held_attack_target = null
+		return
+	if a_add_to_queue or incoming.is_empty():
+		return
+	var attack := current() as Attack
+	if attack == null or not is_instance_valid(attack.message.target):
+		return
+	var weapon: Weapon = (
+		host().weapon_inventory.weapon_for_target(attack.message.target)
+		if host().weapon_inventory != null
+		else null
+	)
+	if weapon != null and weapon.turret:
+		held_attack_target = attack.message.target
 
 
 ## An order that means "shoot" releases hold fire on receipt — queued or not — so a held unit
@@ -173,6 +202,9 @@ func tick() -> void:
 		if aggro_cmd != null:
 			update_commands(aggro_cmd)
 	receiver._update_state()
+	if not actor.is_inside_tree():
+		return
+	_tick_held_attack_target()
 	# A HOVERING garrison host with pending units descends to accept them once idle — both when
 	# already idle at the moment intent is registered and when a movement command completes.
 	if (
@@ -183,6 +215,37 @@ func tick() -> void:
 		and receiver.is_idle()
 	):
 		actor.aerial.land(Callable())
+
+
+## Shoot the held target this tick if a turret can: aim at it, and fire once it is aimed, loaded
+## and locked on — the rules an Attack's turret fire follows. Drop it once it can no longer be
+## shot at all. Nothing to do while an Attack is running: the Attack aims for itself.
+func _tick_held_attack_target() -> void:
+	if held_attack_target == null or current() is Attack:
+		return
+	var actor: Actor = host()
+	var target: Variant = held_attack_target
+	if (
+		not is_instance_valid(target)
+		or not (target as Node).is_inside_tree()
+		or actor.is_holding_fire
+		or not (target as Entity).is_visible_to(actor.commander_id)
+	):
+		held_attack_target = null
+		return
+	var weapon: Weapon = (
+		actor.weapon_inventory.weapon_for_target(target) if actor.weapon_inventory != null else null
+	)
+	if weapon == null or not weapon.turret or not SU.is_in_attack_range(weapon, actor, target):
+		held_attack_target = null
+		return
+	var aim: Vector3 = (target as Entity).global_position
+	weapon.aim_turret_toward(actor, aim)
+	if not actor.can_use_weapons() or not weapon.is_turret_aimed_at(actor, aim):
+		return
+	weapon.hold_target(target)
+	if weapon.is_ready() and weapon.is_locked_on(target):
+		weapon.fire(actor, target)
 
 
 #endregion
