@@ -2,6 +2,9 @@
 kind: Entity
 title: Production Yard
 scene: res://scenes/entities/structures/cl/cl_warFactory.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 1200}
   time: 15

@@ -1018,6 +1018,16 @@ func _sync_garrison(a_ctx: Ctx, a_g: Variant) -> void:
 	_sync_reach_by_piece(a_ctx, node, g)
 	_sync_occupiable_ids(a_ctx, node, g)
 	_sync_sentence_length(a_ctx, node, g)
+	if g.has("unload_time"):
+		var unload: float = float(g["unload_time"])
+		_set_prop(
+			a_ctx,
+			"Garrison",
+			"unload_time",
+			node.unload_time if node != null else -1.0,
+			unload,
+			TscnDoc.fmt_float(unload)
+		)
 	# A closed hold is every mask cleared; validation already refused it alongside any
 	# occupancy list, so the two branches can never both apply.
 	if bool(g.get("closed", false)):

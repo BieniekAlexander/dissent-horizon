@@ -35,6 +35,8 @@ collision_mask = 0
 script = ExtResource("1_cjfl7")
 infrastructure = -50
 id = &"nt_extractor"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1439942704]
 

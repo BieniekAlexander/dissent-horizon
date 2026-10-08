@@ -35,6 +35,8 @@ collision_mask = 0
 script = ExtResource("1_kmaot")
 infrastructure = 50
 id = &"th_warFactory"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=884386945]
 

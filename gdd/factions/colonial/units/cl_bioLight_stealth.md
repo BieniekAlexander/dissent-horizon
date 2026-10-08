@@ -2,6 +2,9 @@
 kind: Entity
 title: sleeper
 scene: res://scenes/entities/units/cl/cl_bioLight_stealth.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 600

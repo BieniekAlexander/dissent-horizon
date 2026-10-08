@@ -2,6 +2,9 @@
 kind: Entity
 title: th_air_field
 scene: res://scenes/entities/structures/th/th_airField.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 30

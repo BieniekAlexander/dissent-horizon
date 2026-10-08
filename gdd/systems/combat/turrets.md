@@ -46,8 +46,10 @@ they do not vary between pieces yet (see [calibration-rules](../authoring/calibr
 When a replacing order that is not itself an attack takes over from an Attack, the Attack's
 target is kept, and each tick the turret aims at it and fires once aimed, loaded and locked on —
 the same rules an Attack's turret fire follows — while the body carries out the move. It is
-dropped when the target leaves range or sight, dies or is taken out of the world, when the unit
-holds fire, or when another Attack (which names its own target) or a Stop replaces the order.
+dropped when the target leaves range or sight, dies or is taken out of the world, stops being an
+enemy (either side changed hands), when the unit holds fire, or when another Attack (which names
+its own target) replaces the order. **A Stop keeps it**: hold fire is the order that means "stop
+shooting", and Stop only stops the body (decided 2026-10-08).
 
 Only a turret does this. A weapon the body aims faces the way the unit travels, so it still
 stops to fire ([commitment-and-movement](../../design-framework/commitment-and-movement.md)

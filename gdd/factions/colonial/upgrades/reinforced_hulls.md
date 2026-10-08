@@ -3,6 +3,7 @@ kind: Upgrade
 title: Reinforced Hulls
 flavor:
   description: Sloops and Matildas take a quarter more punishment.
+  verbose: potato
 build:
   cost: {energy: 700}
   time: 40

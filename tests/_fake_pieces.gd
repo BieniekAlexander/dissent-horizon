@@ -335,6 +335,7 @@ static func _add_garrison(a_piece: Actor, a_spec: Dictionary) -> void:
 	var garrison := Garrison.new()
 	garrison.capacity = int(a_spec.get("capacity", 1))
 	garrison.sentence_length = float(a_spec.get("sentence_length", 0.0))
+	garrison.unload_time = float(a_spec.get("unload_time", 0.0))
 	garrison.bunker = bool(a_spec.get("bunker", true))
 	garrison.captures = bool(a_spec.get("captures", false))
 	if a_spec.has("frames"):

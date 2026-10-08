@@ -36,6 +36,8 @@ collision_mask = 0
 script = ExtResource("1_tne4g")
 infrastructure = -50
 id = &"an_barracks"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1532381907]
 

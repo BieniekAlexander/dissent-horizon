@@ -384,22 +384,10 @@ static func nearest_of(candidates: Array, from: Entity) -> Actor:
 	return best
 
 
-## Return the grid cell adjacent to `a_structure`'s footprint — in-bounds,
-## passable, and EDGE-adjacent to it — whose world-space centre is closest to `dest`.
-## Returns Vector2i(-1, -1) when no suitable cell exists.
-##
-## EDGE-adjacent, not merely one of `_passable_footprint_neighbors`' 8-directional
-## candidates: a pure DIAGONAL corner of a rectangular footprint touches it at a single
-## grid vertex, which a navmesh baked from passable cells does not connect through (two
-## cells meeting only at a corner share no walkable edge between them). Godot's
-## NavigationAgent3D then reports the corner as unreachable and paths only as close as it
-## can get — which can land short of any cell this function's callers consider "close
-## enough" (Garrison._release_commands, Build's overlay routing, and this function's own
-## caller in CommandReceiver._resolve_movement_target), so the unit arrives, stops, and
-## never satisfies whatever range check was waiting on it. `unit_is_close_to_footprint`
-## keeps the diagonals — a unit already standing at a corner is legitimately close,
-## however it got there — this is a NAVIGATION DESTINATION, where reachability is the
-## question, so it excludes them at the source instead.
+## Return the grid cell adjacent to `a_structure`'s footprint — in-bounds, passable, and
+## EDGE-adjacent, never a diagonal corner — whose world-space centre is closest to `dest`, or
+## Vector2i(-1, -1) when none exists. A navigation destination, so reachability rules out the
+## corners (agent-size-classes.md §Reaching a building).
 ##
 ## `nav_class`, when given, is the walker's NavAgentClass.Size — see footprint_approach_cells.
 static func nearest_footprint_adjacent_cell(

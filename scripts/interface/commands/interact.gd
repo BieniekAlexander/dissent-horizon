@@ -14,6 +14,8 @@ extends MoveCommand
 ## (i.e. while can_act is true, so fulfill_action runs once per physics tick), and the
 ## interaction completes once it reaches the resolved Interaction's required_ticks.
 var _elapsed_ticks: float = 0.0
+## Physics ticks until a deposit hands its next captive over (see _unload_step).
+var _ticks_until_handover: float = 0.0
 #endregion
 
 
@@ -118,16 +120,35 @@ func fulfill_action(a_actor: Actor) -> Variant:
 	_elapsed_ticks += 1.0
 	if _elapsed_ticks < interaction.required_ticks(message.target):
 		return self
+	if interaction.type == Interaction.Type.DEPOSIT:
+		return _unload_step(a_actor)
 	_complete(a_actor, interaction)
 	return null
 
 
-## Run the interaction's completion effect, dispatched by type. DEPOSIT moves what the
-## actor holds into the target's Garrison; HIJACK takes the target over.
+## One tick of a deposit once its interaction has completed. The carrier hands its captives over
+## one at a time, its `unload_time` apart — the first at once, then one per interval — until it
+## is empty or the target is full; re-ordering it stops the unload. Without an unload time the
+## whole load goes over at once.
+func _unload_step(a_actor: Actor) -> Variant:
+	var source: Garrison = a_actor.garrison
+	var sink: Garrison = Interaction.target_garrison(message.target)
+	if source == null or sink == null:
+		return null
+	if source.unload_time <= 0.0:
+		sink.deposit_from(source)
+		return null
+	if _ticks_until_handover <= 0.0:
+		sink.deposit_from(source, 1)
+		_ticks_until_handover = source.unload_time * TimeUtils.ticks_per_second()
+	_ticks_until_handover -= 1.0
+	return self if sink.can_take_next_from(source) else null
+
+
+## Run the interaction's completion effect, dispatched by type. HIJACK takes the target over;
+## DEPOSIT runs over several ticks instead (_unload_step).
 func _complete(a_actor: Actor, a_interaction: Interaction) -> void:
 	match a_interaction.type:
-		Interaction.Type.DEPOSIT:
-			_deposit(a_actor)
 		Interaction.Type.HIJACK:
 			_hijack(a_actor)
 
@@ -146,18 +167,6 @@ func _hijack(a_actor: Actor) -> void:
 	prize.commander = a_actor.commander
 	if a_actor.defense != null:
 		a_actor.defense.kill()
-
-
-## Move the actor's captives into the target's Garrison, oldest first, until the target is
-## full or the actor is empty (partial deposit allowed). A transfer, not a conversion: each
-## captive stays itself and starts serving `sentence_length` in the sink — see
-## Garrison.deposit_from.
-func _deposit(a_actor: Actor) -> void:
-	var source: Garrison = a_actor.garrison
-	var sink: Garrison = Interaction.target_garrison(message.target)
-	if source == null or sink == null:
-		return
-	sink.deposit_from(source)
 
 
 #endregion

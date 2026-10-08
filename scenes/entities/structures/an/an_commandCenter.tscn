@@ -36,6 +36,8 @@ collision_mask = 0
 script = ExtResource("1_ccxwa")
 infrastructure = 100
 id = &"an_commandCenter"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=129575369]
 

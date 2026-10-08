@@ -43,6 +43,8 @@ height = 0.25
 [node name="AnAircraftMediumSupport" type="CharacterBody3D" unique_id=1426684783 groups=["piece", "unit"]]
 script = ExtResource("1_c2jau")
 id = &"an_aircraftMedium_support"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=658827186]
 

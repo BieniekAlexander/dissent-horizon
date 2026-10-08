@@ -181,22 +181,10 @@ func exclusion_group() -> StringName:
 	return &""
 
 
-## Whether this binding ALWAYS WINS its cell — it is drawn wherever it applies, and anything
-## else claiming that cell is hidden under it rather than competing for it.
-##
-## Such a binding cannot be AMBIGUOUS with its neighbours, so the review skips it. Cancel is
-## the case: while an order is armed it shares the card with that order's own menu, but it is
-## placed before every tool (see CommandGrid.bindings) and so takes (5, 2) whatever else
-## wants it. Nothing does today — no tool is laid out in column 5 at all — which is why the
-## exemption costs nothing to keep.
-##
-## Deploy and Undeploy are another case: one button in two states, placed ahead of Land,
-## because a unit's stance outranks an aircraft's landing when one selection offers both.
-## Of the two, Deploy is placed first, so it is the one drawn when both apply. Plant, ahead of
-## Detonate, is the third (RTSController.selection_commands says when it steps aside).
-##
-## False by default; a binding claims it by being named here rather than by a flag, because
-## "what outranks the rest of the card" is a HUD decision.
+## Whether this binding ALWAYS WINS its cell — drawn wherever it applies, with anything else
+## claiming the cell hidden under it — so the collision review skips it. Cancel, Deploy/Undeploy
+## and Plant are the cases (control-matrices.md; deploying.md). Named here rather than by a flag,
+## because what outranks the rest of the card is a HUD decision.
 func wins_its_cell() -> bool:
 	return (
 		command_name

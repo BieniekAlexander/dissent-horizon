@@ -269,7 +269,7 @@ reaches it (`SetHoldFire`, setting what the toggle meant when it was pressed).
 |---|---|---|
 | Build | timed; the builder may leave and return | build times are a commitment and are tuned as one |
 | Deploy / undeploy | timed (3 s / 1 s on the Libertarian tanks); immobile and unable to fire throughout | cancellable per unit ([deploying](../systems/commands/deploying.md)) |
-| Stock-truck unload | every captive at once | PLANNED — one captive at a time, which also sets the dominion rate ([proposals](proposals.md) §The model) |
+| Stock-truck unload | one captive at a time, `unload_time` (1 s) apart on the carrier; re-ordering the truck stops it ([garrison-and-transport](../systems/combat/garrison-and-transport.md) §A captive serves a sentence) | the interval is the model's `t_u` per captive and is tuned with the transport knobs (gdd/tasks.md T-044) |
 | Attack while moving | stop to fire, except aircraft that cannot hold still, and a turret, which keeps shooting its attack target through a move ([turrets](../systems/combat/turrets.md) §Attacking while moving) | turreted is a property (§Movement classes). TODO: per-unit `δ` above, where δ = 1 is stop-to-fire |
 | Startup | turning to face; an attack startup on the MLRS, kept through its reload | only where it earns its place — the rules above, and the cases in [weapon-cadence](../systems/combat/weapon-cadence.md) §Where a startup earns its place |
 | Repair | a repairer works whenever it is in reach, so it can follow a moving patient; stagger blocks it | TODO: whether either party may move. An interesting knob; the long-term shape is undecided |

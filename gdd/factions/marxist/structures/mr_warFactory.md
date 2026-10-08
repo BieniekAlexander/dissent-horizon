@@ -2,6 +2,9 @@
 kind: Entity
 title: mr_war_factory
 scene: res://scenes/entities/structures/mr/mr_warFactory.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 30

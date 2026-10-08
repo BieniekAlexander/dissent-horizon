@@ -42,6 +42,8 @@ height = 0.981097
 [node name="Sapper" type="CharacterBody3D" unique_id=1223516189 groups=["piece", "unit"]]
 script = ExtResource("1_ggink")
 id = &"an_bioLight_antiStructure"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1612218803]
 

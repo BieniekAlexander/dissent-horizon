@@ -2,6 +2,9 @@
 kind: Entity
 title: Reclamator
 scene: res://scenes/entities/structures/lb/lb_support1.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 20

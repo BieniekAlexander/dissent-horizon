@@ -1264,7 +1264,8 @@ static func _is_number(value: Variant) -> bool:
 ## than an enumeration: naming it restricts entry to those piece ids, omitting it restricts
 ## nothing (see Garrison.occupiable_ids). `sentence_length:` is what makes a garrison a
 ## prison — a captive deposited here serves that many seconds before being consumed (see
-## Garrison.can_intern) — replacing the old `interns:` conversion marker.
+## Garrison.can_intern) — replacing the old `interns:` conversion marker. `unload_time:` is a
+## carrier's seconds per captive when it deposits (Garrison.unload_time).
 const GARRISON_KEYS: Array = [
 	"capacity",
 	"frames",
@@ -1278,7 +1279,8 @@ const GARRISON_KEYS: Array = [
 	"range_bonus",
 	"reach_by_piece",
 	"pieces",
-	"sentence_length"
+	"sentence_length",
+	"unload_time"
 ]
 const GARRISON_MASK_KEYS: Array = ["frames", "armours", "movements"]
 const GARRISON_ENUMS: Dictionary = {
@@ -1366,6 +1368,14 @@ func _validate_garrison(a_spec: Dictionary, a_g: Variant) -> void:
 		)
 	):
 		_err(a_spec, "garrison.sentence_length must be a positive number of seconds")
+	if (
+		g.has("unload_time")
+		and not (
+			(g["unload_time"] is int or g["unload_time"] is float)
+			and float(g["unload_time"]) >= 0.0
+		)
+	):
+		_err(a_spec, "garrison.unload_time must be a non-negative number of seconds")
 
 
 ## `garrison.range_bonus:` names two reach buckets, `{from: …, to: …}`, and the bonus is the

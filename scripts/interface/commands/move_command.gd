@@ -333,20 +333,10 @@ func should_move(_a_commandable: Actor) -> bool:
 	return true
 
 
-## Whether issuing this order INTERRUPTS what the actor was doing rather than replacing it.
-##
-## An ordinary order given without the additive modifier clears the queue: the player has said
-## "forget that, do this". A few orders are not a change of plan at all but a thing to do ON
-## THE WAY, and for those the queue should survive — the order takes over now, whatever was
-## running goes to the FRONT of the queue, and the actor picks it back up when this one ends.
-##
-## `Evacuate` is the case that prompted it: a transport with a route queued, told to turn its
-## garrison out, should do that and then carry on along the route. Losing the route means
-## re-issuing it every time you drop off a squad.
-##
-## Defaults FALSE, so every existing order keeps the standing "replace" behaviour; only the
-## ones that are an aside opt in. It changes nothing while `modifier_additive` is held — that
-## already appends, which is what an interrupt is a non-additive version of.
+## Whether issuing this order INTERRUPTS what the actor was doing rather than replacing it: it
+## takes over now and the old command goes to the front of the queue. Defaults false; only an
+## aside (Evacuate) opts in. gdd/systems/commands/the-command-tick.md §An INTERRUPT keeps the
+## queue; an ordinary order replaces it.
 static func is_interrupt() -> bool:
 	return false
 

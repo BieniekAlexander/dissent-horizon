@@ -2,6 +2,9 @@
 kind: Entity
 title: Sam
 scene: res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 400

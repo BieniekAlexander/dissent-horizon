@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Informant
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [1, 0], factions: [anarchists]}
 hud_button: true
 column: 1

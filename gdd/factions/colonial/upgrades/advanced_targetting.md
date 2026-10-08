@@ -3,6 +3,7 @@ kind: Upgrade
 title: Advanced Targetting
 flavor:
   description: Recruits call in firing solutions from much farther away.
+  verbose: potato
 build:
   cost: {energy: 800}
   time: 45

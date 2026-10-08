@@ -2,6 +2,9 @@
 kind: Entity
 title: Toxin Tractor
 scene: res://scenes/entities/units/an/an_mechMedium_antiBio.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 600}
   time: 15

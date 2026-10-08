@@ -434,18 +434,10 @@ func local_player() -> Commander:
 const _GLOBAL_STREAM_SALT: int = 0x9E3779B9
 
 
-## Seed every generator the simulation draws from, from this scenario's `rng_seed`.
-##
-## TWO generators, and the split is forced rather than chosen:
-##
-##   * `SU.rng` is the gameplay generator — hitscan spread, Wander, the unit-placement
-##     scatter, a mortar barrage's muzzle offsets. Everything that can be routed is.
-##   * Godot's GLOBAL generator is what `Expression` gives an authored scenario expression
-##     ("15 + randi_range(0, 10)"), and it cannot be redirected — see ScenarioExpression.
-##     Seeding it is the only way that draw becomes replayable.
-##
-## Public and callable on a bare instance so the rule can be tested without booting a map:
-## it touches no node and no scene state.
+## Seed every generator the simulation draws from, from this scenario's `rng_seed`: `SU.rng`
+## for gameplay, and Godot's GLOBAL generator, which authored `Expression`s draw from and which
+## cannot be redirected (gdd/systems/ai/selfplay-harness.md §Determinism). Touches no node, so the
+## rule can be tested on a bare instance.
 func seed_simulation() -> void:
 	SU.rng.seed = rng_seed
 	seed(rng_seed ^ _GLOBAL_STREAM_SALT)

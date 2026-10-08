@@ -3,6 +3,9 @@ kind: Entity
 title: shack
 scene: res://scenes/entities/structures/nt/nt_building_shack.tscn
 family: neutral_building
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 300}
   time: 20

@@ -1416,25 +1416,13 @@ func set_terrain_heights(a_new_heights: PackedFloat32Array) -> void:
 	rebuild_terrain_visuals(true)
 
 
-## Write terrain_source_mesh back to its own file after a height commit.
+## Write terrain_data and terrain_source_mesh back to their own files after a height commit —
+## BOTH, because a mesh bound as an ExtResource is not saved with the scene and writing one
+## without the other is the whole failure mode (mesh-baked-terrain.md; CLAUDE.md §Regenerating
+## data). Only on a commit, never the live preview: it writes the whole mesh.
 ##
-## THIS IS THE HALF THAT WAS MISSING, and it cost a map. `sync_source_mesh_heights` mutates the
-## mesh IN MEMORY, and a mesh bound as an ExtResource is a file of its own that saving the
-## SCENE does not save. So every sculpted basin survived the session and vanished on reload:
-## `terrain_data` kept it, the mesh did not, and from then on everything that READS heights
-## (units, water, placement, the navmesh) was right while everything you SEE was stale. It is
-## §Regenerating data's failure in its purest form — one surface, two artifacts, one of them
-## never written.
-##
-## Only on a COMMIT — stroke end, paste, undo — never on the per-step live preview
-## (apply_terrain_heights_live), because this writes the whole mesh.
-##
-## BOTH artifacts, in one call, because the whole failure mode is writing one and not the
-## other. An EMBEDDED resource needs nothing: it is part of the scene and saved with it.
-##
-## `OS.has_feature("editor")` rather than `Engine.is_editor_hint()`: the condition that matters
-## is "may this process write into the project", which is true for the editor AND for the
-## headless tool runs that exercise this path, and false for an exported game.
+## `OS.has_feature("editor")`, not `Engine.is_editor_hint()`: the question is whether this
+## process may write into the project, true for headless tool runs as well.
 func persist_terrain_artifacts() -> void:
 	if not OS.has_feature("editor"):
 		return

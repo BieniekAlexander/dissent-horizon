@@ -157,7 +157,8 @@ const NESTED_ORDER: Dictionary = {
 		"range_bonus",
 		"reach_by_piece",
 		"pieces",
-		"sentence_length"
+		"sentence_length",
+		"unload_time"
 	],
 	"weapons":
 	[

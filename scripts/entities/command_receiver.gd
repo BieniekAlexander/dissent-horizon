@@ -342,26 +342,13 @@ func _run_tick() -> ActionTracker.Action:
 	return ActionTracker.Action.IDLE
 
 
-## Whether a command's target has LEFT THE PLAY SPACE — it still exists, but no longer has a
-## place in the world for anything standing in the world to act on.
+## Whether a command's target has LEFT THE PLAY SPACE — it still exists, but is held off the
+## tree (garrisoned), so its position reads as the world origin. Death is not reported here;
+## each command handles a freed target. gdd/systems/commands/the-command-tick.md §A target that
+## LEAVES THE PLAY SPACE takes its order with it.
 ##
-## Garrisoning is the case: `Garrison.garrison()` removes the occupant from the scene tree
-## outright, so nothing can acquire it — but a command issued BEFORE it boarded still holds
-## the reference, and an off-tree node reports `global_position` (0, 0, 0). `CommandMessage.
-## position` reads the target's position whenever a target is set, so the order silently
-## becomes "go to the world origin". A stock truck that captures infantry by running them over
-## did exactly that: it ran one down, took it aboard, and then set off for the middle of the
-## map with a perfectly valid-looking order.
-##
-## This is the missing half of `_end_after_follow_target_died`, which is the same rule for a
-## target that DIED — taken alive looks identical from the outside and is just as
-## un-actionable. Death is deliberately NOT reported here: each command already handles a
-## freed target, and a flying actor's orbit-on-death anchoring lives in that path.
-##
-## The target is read into a VARIANT before anything else touches it: a freed object fails a
-## typed parameter's class check before the callee runs, and `freed == null` is true while
-## `is_instance_valid(freed)` is false (CLAUDE.md §A freed object cannot be passed to a typed
-## parameter).
+## The target is read into a VARIANT first: a freed object fails a typed parameter's check
+## (CLAUDE.md §A freed object cannot be passed to a typed parameter).
 static func _target_has_left_play(a_message: CommandMessage) -> bool:
 	var target: Variant = a_message.target
 	if target == null or not is_instance_valid(target):

@@ -42,6 +42,8 @@ height = 0.82481
 editor_description = "Neutral inhabitant spawned by a Shelter. Unarmed, cannot build."
 script = ExtResource("1_y1jy3")
 id = &"nt_bioLight_terrestrial"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1979786344]
 

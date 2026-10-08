@@ -235,7 +235,14 @@ timed.** `Garrison.deposit_from` moves each captive directly into the sink's `_g
 use), unconverted, and starts a `sentence_length`-second countdown on it (`garrison()`'s own
 bookkeeping — every occupant of a garrison with a positive `sentence_length` is timed, not
 only deposited ones). Partial deposits are allowed: the loop stops when the camp fills and the
-carrier keeps the rest. Ownership never changes hands: a captive's `Ownership` still names the
+carrier keeps the rest.
+
+**The carrier unloads one captive at a time** (decided 2026-10-08). Its `garrison.unload_time:`
+(seconds per captive, 1 on the Stock Truck) is the interval: the first captive goes over when
+the deposit interaction completes, then one each interval (`Interact._unload_step`), until the
+carrier is empty or the Compound full. The order stays live throughout, so re-ordering the truck
+stops the unload with the rest still aboard. The number is the CARRIER's, so more trucks unload
+faster; a carrier with none hands its whole load over at once. Ownership never changes hands: a captive's `Ownership` still names the
 side it was taken from throughout its term.
 
 Three consequences worth knowing:

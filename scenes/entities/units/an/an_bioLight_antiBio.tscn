@@ -39,6 +39,8 @@ height = 0.9
 [node name="Sharpshooter" type="CharacterBody3D" unique_id=1636350330 groups=["piece", "unit"]]
 script = ExtResource("1_g4gea")
 id = &"an_bioLight_antiBio"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=132300421]
 

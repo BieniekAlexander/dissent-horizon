@@ -45,6 +45,8 @@ height = 1.05
 [node name="Recruit" type="CharacterBody3D" unique_id=816060183 groups=["piece", "unit"]]
 script = ExtResource("1_fo1pr")
 id = &"cl_bioLight_antiLight"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=364011675]
 

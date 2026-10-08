@@ -2,6 +2,9 @@
 kind: Entity
 title: Hideout
 scene: res://scenes/entities/structures/an/an_support1.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 600}
   time: 30

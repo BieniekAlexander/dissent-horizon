@@ -2,6 +2,9 @@
 kind: Entity
 title: Storm Cell
 scene: res://scenes/entities/structures/cl/cl_support3.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 2000}
   time: 30

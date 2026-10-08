@@ -2,6 +2,9 @@
 kind: Entity
 title: Citadel
 scene: res://scenes/entities/structures/cl/cl_commandCenter.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 1500

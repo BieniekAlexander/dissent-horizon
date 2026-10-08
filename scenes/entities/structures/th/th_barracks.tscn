@@ -35,6 +35,8 @@ collision_mask = 0
 script = ExtResource("1_vxfxo")
 infrastructure = 50
 id = &"th_barracks"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1073535727]
 

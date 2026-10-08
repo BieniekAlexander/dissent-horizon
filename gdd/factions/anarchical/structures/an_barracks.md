@@ -2,6 +2,9 @@
 kind: Entity
 title: Redoubt
 scene: res://scenes/entities/structures/an/an_barracks.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 400}
   time: 20

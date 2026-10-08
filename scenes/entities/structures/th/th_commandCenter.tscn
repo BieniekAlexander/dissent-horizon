@@ -34,6 +34,8 @@ collision_layer = 0
 collision_mask = 0
 script = ExtResource("1_e7np7")
 id = &"th_commandCenter"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=284561759]
 

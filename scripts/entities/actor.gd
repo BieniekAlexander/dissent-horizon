@@ -294,21 +294,12 @@ func can_use_weapons() -> bool:
 	return aerial == null or aerial.is_airborne()
 
 
-## True while this piece is a STRUCTURE its commander cannot power — infrastructure upkeep
-## exceeds capacity (Commander.is_infrastructure_strained).
+## True while this piece is a STRUCTURE its commander cannot power (infrastructure strained):
+## its weapons and abilities are off. Units are untouched. production-and-economy.md
+## §Insufficient infrastructure.
 ##
-## An over-subscribed network switches its BUILDINGS off: no weapons, and no abilities
-## either, passive or active (see Abilities.is_operational). The building still stands,
-## still occupies its cells, is still a target, and still produces at the reduced rate
-## strain already imposed — going dark is what the shortfall costs, and building an
-## infrastructure provider is the whole remedy.
-##
-## UNITS ARE UNTOUCHED. Strain is a fact about buildings drawing more than the network
-## supplies; an army in the field does not stop shooting because a power plant was lost.
-## Why: gdd/systems/macroeconomics/production-and-economy.md §Insufficient infrastructure.
-## `ownership` is checked before `commander` is read: an OUT-OF-TREE instance (a build
-## preview, a scene instantiated in a test) never ran its @onready, so the component is null
-## and the property getter would error rather than answer. Nothing unowned is unpowered.
+## `ownership` is checked before `commander`: an OUT-OF-TREE instance never ran its @onready.
+## Nothing unowned is unpowered.
 func is_unpowered() -> bool:
 	return (
 		is_in_group("structure")

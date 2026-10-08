@@ -566,22 +566,10 @@ func eliminate() -> void:
 			piece.queue_free()
 
 
-## WHETHER THIS COMMANDER STILL HAS A BASE: at least one structure in play, or a purchase
-## still on the production queue. The second half of the defeat rule — see
-## gdd/systems/ai/bot-architecture.md §When a side is beaten.
-##
-## Why the rule needed widening beyond `has_anything_in_play`: that says a side is alive
-## while it owns ONE straggler, and in the self-play corpus 23 of 61 stalemates were exactly
-## that — a slot at zero structures riding a single surviving unit to the clock while the
-## winner never hunted it down. A commander
-## with no buildings cannot train, cannot expand and cannot come back, so scoring that as
-## alive mis-records a match that was decided several minutes earlier.
-##
-## PRODUCTION, not structures alone, and that half is load-bearing: the last thing a
-## flattened commander can still have is a purchase in flight — a funded Build whose builder
-## is walking to the site. Ending the game on the structure count alone would cut off exactly
-## the comeback the rule means to allow. A PLANNED structure is still not a foothold (same
-## rule as above); the queue entry that funds it is what counts.
+## WHETHER THIS COMMANDER STILL HAS A BASE: at least one structure in play, or a purchase still
+## on the production queue — a funded Build whose builder is walking is a comeback in flight. A
+## PLANNED structure is not a foothold. gdd/systems/ai/bot-architecture.md §When a side is
+## beaten.
 func has_production_base() -> bool:
 	if production_queue != null and not production_queue.is_empty():
 		return true
@@ -807,18 +795,9 @@ func charged_aircraft_count() -> int:
 	return total
 
 
-## True when this commander has a pad spare for one more charged aircraft.
-##
-## A SOFT gate: Train.meets_precondition reads it to grey out and warn on the button, but
-## nothing refuses the purchase — the player may deliberately field more aircraft than
-## pads and accept that they queue for a deck when they run dry. That is the deliberate
-## middle ground between free docking (no relationship between airfields and air force at
-## all) and the Command & Conquer: Generals hard cap (a pad reserved for life at build
-## time, so the airfield count IS the aircraft count).
-##
-## PENDING PIECES COUNT on both sides (see pending_pieces): an aircraft already ordered will take
-## a pad, and an airfield already ordered will add them, so the gate answers for the force the
-## player has committed to rather than the one standing this second.
+## True when this commander has a pad spare for one more charged aircraft. A SOFT gate: it
+## greys and warns on the train button, never refuses. Ordered aircraft and airfields count.
+## docking-bays-and-pads.md.
 func has_spare_docking_capacity() -> bool:
 	var aircraft: int = charged_aircraft_count() + _count_pending(_needs_docking)
 	var pads: int = total_docking_capacity() + roundi(_sum_pending(_pad_count_of))
@@ -968,28 +947,12 @@ func dominion_contributor_count() -> int:
 	return total if any_reported else DominionGenerator.NO_ATTRIBUTION
 
 
-## Steady-state dominion/s this commander's TASKED trucks would sustain, given where they
-## are working right now — the number `DominionBar`'s forward-looking projection region
-## reads, in place of `dominion_collection_rate()`'s instantaneous "what am I earning this
-## instant" (see gdd/systems/ux/ui/economy-bars.md §Rate projection).
-##
-## `dominion_collection_rate()` stays correct for RIGHT NOW under sentences (the per-occupant
-## payout is unchanged), but it is a poor predictor of the NEAR FUTURE: occupancy now decays
-## as sentences complete, so "if this rate held" over-states the next minute unless arrivals
-## keep pace. This answers a different question — "if my trucks keep working these Shelters
-## at this distance, what does that sustain" — derived from live tasking rather than from
-## occupancy history, which is silent about capacity a truck could still reach.
-##
-## One Shelter at a time (each is an independent source), summed. Per Shelter: round-trip
-## time is travel there and back at the trucks' own speed (capacity, load and unload time
-## are dropped — negligible for the one-truck-one-capacity openings this is aimed at, per
-## design-framework/proposals.md §The model), giving an arrival rate capped by whichever is
-## smaller, the Shelter's own regeneration or however many round trips the tasked trucks can
-## make; that rate keeps `arrival_rate * sentence_length` captives serving, capped by how many
-## the receiving Compound sentences at once (Garrison.SENTENCES_AT_ONCE) — the model's
-## `min(Φ·τ, K)` with K the captives SERVING rather than held, since a captive waiting its turn
-## pays nothing; without `m` or `μ` because one Shelter is asked to name the one Compound its
-## own trucks would actually reach.
+## Steady-state dominion/s this commander's TASKED trucks would sustain where they are working
+## now — what `DominionBar`'s projection region reads, rather than
+## `dominion_collection_rate()`'s instantaneous rate, which over-states the next minute once
+## sentences decay occupancy. Per Shelter, summed: arrivals capped by the Shelter's regeneration
+## and the trucks' round trips, times `sentence_length`, capped at the captives the Compound
+## sentences at once. colonial-dominion.md; economy-bars.md §Rate projection.
 func projected_dominion_rate() -> float:
 	var by_shelter: Dictionary = _trucks_by_tasked_shelter()
 	# A route's own sweep pays a steady rate while its sources stand, so it projects as itself.

@@ -3,6 +3,7 @@ kind: Upgrade
 title: Rapid Rearmament
 flavor:
   description: Drakes rearm twice as fast on the pad.
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 30

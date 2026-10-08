@@ -341,6 +341,9 @@ garrison:
                                # Compound is the case: `closed: true` (deposit is the only way
                                # in) plus `sentence_length:`, and no `pieces:` — a captive
                                # is held as itself, never converted
+  unload_time: 1               # a CARRIER's seconds per captive when it deposits: the first
+                               # goes over when the deposit completes, one per interval after.
+                               # Omitted = the whole load at once
 abilities:                     # the abilities it can use, and the charge pools they share
   - {cooldown: 60, grants: [beacon]}
 repairs: true                  # gives the piece a Repairs component; omitted = cannot repair

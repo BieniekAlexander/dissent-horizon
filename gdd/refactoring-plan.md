@@ -97,9 +97,12 @@ with anything else.
 
 ## 5. Continue the documentation escalation
 
-**Done:** 10 functions, 164 comment lines moved into system notes.
-**Remaining:** **37 functions carrying 579 comment lines** above the threshold (comment block
-≥12 lines and longer than the function it documents).
+**Done:** 26 functions moved into system notes (the last 16 on 2026-10-08: every block at least
+twice its function's length outside the bot's files).
+**Remaining:** 43 blocks above the threshold (comment block ≥12 lines and longer than the
+function it documents). Only the 13 clear cases (≥ 2× the function) are to be escalated —
+all in `scripts/interface/commander/bot*.gd`, held back for the bot session (gdd/tasks.md
+T-087); the marginal ones stay where they are.
 
 **Plan.** Same mechanism: keep the summary sentence, move the rationale to the owning system
 note, leave a `§`-anchored pointer. Verify with the same check — every removed sentence must
@@ -123,17 +126,8 @@ the test count rises.
 
 ---
 
-## 8. Author the missing piece descriptions
-
-About **83 of 132** spec docs lack `description` / `verbose` (rough count, 2026-09-28); no test
-asserts it any more. Same shape as
-the projectile-title gap, and mechanical, but the strings are **authorial** — they are player
--facing copy, so I would draft and you would edit rather than the reverse.
-
----
-
 ## Suggested order
 
 **7** (small, reveals unknowns) → **1 step 2** (pure bug fix) → **3** (tooling, isolated
 commits) → **4** (mechanical, after formatting) → **5** (comment-only) → **1 rest**
-→ **2** (stop at step 2 for review) → **8**.
+→ **2** (stop at step 2 for review).

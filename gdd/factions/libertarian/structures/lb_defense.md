@@ -2,6 +2,9 @@
 kind: Entity
 title: Security Tower
 scene: res://scenes/entities/structures/lb/lb_defense.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 20

@@ -44,6 +44,8 @@ height = 0.9
 [node name="AnBioStrongAntiLight" type="CharacterBody3D" unique_id=931771761 groups=["piece", "unit"]]
 script = ExtResource("1_0dyii")
 id = &"an_bioStrong_antiLight"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1184491677]
 

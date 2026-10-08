@@ -2,6 +2,9 @@
 kind: Entity
 title: Academy
 scene: res://scenes/entities/structures/cl/cl_tech2.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 1200}
   time: 40

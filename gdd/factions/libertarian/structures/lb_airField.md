@@ -2,6 +2,9 @@
 kind: Entity
 title: Emission Bay
 scene: res://scenes/entities/structures/lb/lb_airField.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 30

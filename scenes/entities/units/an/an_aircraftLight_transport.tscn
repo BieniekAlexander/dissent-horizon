@@ -39,6 +39,8 @@ height = 0.25
 [node name="Chinook" type="CharacterBody3D" unique_id=994269282 groups=["piece", "unit"]]
 script = ExtResource("1_uaypi")
 id = &"an_aircraftLight_transport"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=902627751]
 

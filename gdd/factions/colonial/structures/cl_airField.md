@@ -2,6 +2,9 @@
 kind: Entity
 title: Sky Port
 scene: res://scenes/entities/structures/cl/cl_airField.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 700}
   time: 25

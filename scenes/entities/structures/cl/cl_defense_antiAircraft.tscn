@@ -43,6 +43,8 @@ collision_mask = 0
 script = ExtResource("1_ypgad")
 infrastructure = -50
 id = &"cl_defense_antiAircraft"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1265698528]
 

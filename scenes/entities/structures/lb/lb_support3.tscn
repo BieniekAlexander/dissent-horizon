@@ -35,6 +35,8 @@ collision_mask = 0
 script = ExtResource("1_55qcm")
 infrastructure = 50
 id = &"lb_support3"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1580329743]
 

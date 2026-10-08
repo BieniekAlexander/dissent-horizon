@@ -2,6 +2,9 @@
 kind: Entity
 title: Vanguard
 scene: res://scenes/entities/units/tc/tc_bioLight_antiMech.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 200}
   time: 20

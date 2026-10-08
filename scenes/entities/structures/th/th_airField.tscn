@@ -37,6 +37,8 @@ collision_mask = 0
 script = ExtResource("1_m5anw")
 infrastructure = 50
 id = &"th_airField"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=898840029]
 

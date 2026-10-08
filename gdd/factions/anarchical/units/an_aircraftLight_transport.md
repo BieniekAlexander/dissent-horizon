@@ -2,6 +2,9 @@
 kind: Entity
 title: Raven
 scene: res://scenes/entities/units/an/an_aircraftLight_transport.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 800}
   time: 15

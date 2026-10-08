@@ -37,6 +37,8 @@ size = Vector3(0.9, 0.6, 1.4)
 [node name="AnMechLightTransport" type="CharacterBody3D" unique_id=82499995 groups=["piece", "unit"]]
 script = ExtResource("1_nqbqt")
 id = &"an_mechLight_transport"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1663091192]
 

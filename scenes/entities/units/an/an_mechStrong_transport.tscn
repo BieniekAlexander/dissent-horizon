@@ -39,6 +39,8 @@ size = Vector3(0.90824, 0.716779, 1.68067)
 script = ExtResource("1_poh5y")
 id = &"an_mechStrong_transport"
 occupancy_size = 2
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=694930461]
 

@@ -43,6 +43,8 @@ height = 0.9
 [node name="AnBioMediumAntiMech" type="CharacterBody3D" unique_id=936513625 groups=["piece", "unit"]]
 script = ExtResource("1_66vl0")
 id = &"an_bioMedium_antiMech"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1250094870]
 

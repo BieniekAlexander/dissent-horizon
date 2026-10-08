@@ -129,6 +129,11 @@ var occupiable_movements: int = MOVEMENT_GROUNDED
 ## it holds — an occupant nothing can ever let out is a cell, and wants saying explicitly.
 @export var releasable: bool = true
 
+## Seconds a carrier takes per captive when it DEPOSITS its load: the first goes over when the
+## deposit interaction completes, each next one this long after. Zero hands the whole load over
+## at once. Set on the carrier, so more trucks unload faster (gdd/tasks.md T-044 tunes it).
+@export var unload_time: float = 0.0
+
 ## Seconds a captive DEPOSITED here serves before being consumed. Setting it positive is
 ## what makes a garrison a prison in the deposit sense (see can_intern): a carrier may hand
 ## its captives over, and each one, when its turn comes, pays dominion per cycle for this long
@@ -333,23 +338,33 @@ func can_intern() -> bool:
 ## Take `source`'s captives directly into this garrison, UNCONVERTED — a captive stays
 ## itself, off the tree, and starts serving `sentence_length` here exactly as it would have
 ## served the rest of it in `source` (see garrison()). Returns how many were moved; stops
-## early when this garrison fills, leaving the rest with the carrier (a partial deposit).
+## early when this garrison fills, leaving the rest with the carrier (a partial deposit), or
+## after `a_limit` captives when that is not negative — the carrier unloading one at a time.
 ##
 ## Ownership does not change here: a captive's `Ownership` still names the side it was taken
 ## from, so a Compound destroyed mid-term still hands it back there (evacuate/evacuate_one),
 ## not to the depositor. See gdd/systems/combat/colonial-dominion.md §A captive serves a
 ## sentence.
-func deposit_from(a_source: Garrison) -> int:
+func deposit_from(a_source: Garrison, a_limit: int = -1) -> int:
 	if a_source == null or sentence_length <= 0.0:
 		return 0
 	var moved: int = 0
 	for captive: Actor in a_source.occupants().duplicate():
-		if not has_room_for(captive):
+		if moved == a_limit or not has_room_for(captive):
 			break
 		a_source.detach(captive)
 		garrison(captive)
 		moved += 1
 	return moved
+
+
+## Whether a deposit from `a_source` would move anything now: it holds a captive and this
+## garrison has room for the next one.
+func can_take_next_from(a_source: Garrison) -> bool:
+	if a_source == null or sentence_length <= 0.0:
+		return false
+	var next: Array = a_source.occupants()
+	return not next.is_empty() and has_room_for(next.front() as Actor)
 
 
 ## Remove `unit` from this garrison and free it WITHOUT returning it to the scene — a

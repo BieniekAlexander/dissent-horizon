@@ -40,6 +40,8 @@ size = Vector3(0.9, 0.6, 1.4)
 [node name="AnMechMediumAntiBio" type="CharacterBody3D" unique_id=780354210 groups=["piece", "unit"]]
 script = ExtResource("1_1blei")
 id = &"an_mechMedium_antiBio"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=2122443723]
 

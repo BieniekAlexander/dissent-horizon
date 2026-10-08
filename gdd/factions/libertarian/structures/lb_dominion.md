@@ -2,6 +2,9 @@
 kind: Entity
 title: Opticon
 scene: res://scenes/entities/structures/lb/lb_dominion.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 250}
   time: 15

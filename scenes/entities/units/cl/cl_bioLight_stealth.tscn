@@ -39,6 +39,8 @@ height = 1.5
 [node name="ClBioLightStealth" type="CharacterBody3D" unique_id=603253754 groups=["piece", "unit"]]
 script = ExtResource("1_u77lh")
 id = &"cl_bioLight_stealth"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=917927729]
 

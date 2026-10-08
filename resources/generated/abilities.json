@@ -3,7 +3,7 @@
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -31,13 +31,13 @@
 		"reveals": "",
 		"title": "Ambush",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"beacon": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -60,13 +60,13 @@
 		"reveals": "",
 		"title": "Beacon Drop",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"blizzard": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -89,7 +89,7 @@
 		"reveals": "",
 		"title": "Blizzard",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"bombard": {
 		"active_grid": [
@@ -139,7 +139,7 @@
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -162,13 +162,13 @@
 		"reveals": "",
 		"title": "Dignify",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"drop": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -201,13 +201,13 @@
 		"reveals": "",
 		"title": "Drop",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"freeze": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -235,13 +235,13 @@
 		"reveals": "",
 		"title": "Freeze",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"global_emp": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -264,13 +264,13 @@
 		"reveals": "",
 		"title": "Global EMP",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"gunship": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -293,13 +293,13 @@
 		"reveals": "",
 		"title": "Gunship",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"informant": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -332,7 +332,7 @@
 		"reveals": "",
 		"title": "Informant",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"irradiate": {
 		"active_grid": [],
@@ -356,7 +356,7 @@
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -389,13 +389,13 @@
 		"reveals": "",
 		"title": "Mortar Strike",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"overcharge": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -418,7 +418,7 @@
 		"reveals": "",
 		"title": "Overcharge",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"plant": {
 		"active_grid": [],
@@ -442,7 +442,7 @@
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -465,7 +465,7 @@
 		"reveals": "",
 		"title": "Promotion",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"retinue": {
 		"active_grid": [],
@@ -489,7 +489,7 @@
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [
@@ -517,13 +517,13 @@
 		"reveals": "",
 		"title": "Scan",
 		"valence": "NEUTRAL",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"scavenge": {
 		"active_grid": [],
 		"cast_by": "SINGLE",
 		"command": "",
-		"description": "",
+		"description": "potato",
 		"dominion": true,
 		"emits": "",
 		"factions": [],
@@ -551,7 +551,7 @@
 		"reveals": "",
 		"title": "Scavenge",
 		"valence": "BOON",
-		"verbose": ""
+		"verbose": "potato"
 	},
 	"spot": {
 		"active_grid": [],

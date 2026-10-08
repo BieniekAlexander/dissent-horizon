@@ -62,24 +62,9 @@ var _has_self_destructed: bool = false
 const MELEE_REACH_MAX: float = 1.0
 
 
-## Whether this weapon can only be delivered by making contact with `a_target`.
-##
-## DERIVED FROM REACH, replacing the authored `dive_attack` export (and the `dive:` doc key
-## that fed it). A FLYING carrier with a melee-reach weapon is a rammer — that is what
-## ramming IS — so the flag was restating something the numbers already said, and a piece
-## could set one without the other.
-##
-## The export's own comment argued against exactly this derivation, on the grounds that it
-## "would silently change how a unit attacks the next time somebody rebalanced a number".
-## That was right when nothing watched the numbers. It no longer is: the importer's
-## `aerial_weapons_not_melee` rule refuses a FLYING piece with a melee-reach weapon unless
-## its doc DECLARES itself a rammer, so pushing a reach across this threshold either trips a
-## hard error or lands on a piece that has already said in writing that ramming is the plan.
-## The change cannot be silent any more, which is the whole condition the objection named.
-##
-## Note what is NOT used: "does this weapon have a projectile". The kamikaze's bomb IS a
-## projectile — it needs one to carry the blast — so that test would have switched the dive
-## off for the one airframe that exists to dive.
+## Whether this weapon can only be delivered by making contact with `a_target` — derived from
+## reach, which is what makes a FLYING carrier a rammer. Not "has a projectile": the kamikaze's
+## blast is one. gdd/systems/authoring/calibration-rules.md §A dive is derived, not authored.
 func is_melee_ranged(a_target: Entity) -> bool:
 	var reach: float = reach_for(a_target)
 	return reach >= 0.0 and reach <= MELEE_REACH_MAX
@@ -463,18 +448,10 @@ func per_shot_damage_type() -> Damage.Type:
 
 
 ## The range shape this weapon reaches `a_target` with: its AIR reach if the target is high
-## enough off the ground, its GROUND reach otherwise.
-##
-## Asks `Entity.is_air_target()` — the same predicate that decides which targetable LAYER
-## the piece sits on — so "what can shoot it" and "at what range" are one answer. It used to
-## ask `is_airborne()`, a flight-state test that no ground unit could ever satisfy; a
-## parachuting soldier was then shot at ground range while sitting on the air layer.
-##
-## NULL means THIS WEAPON HAS NO REACH AGAINST THAT SIDE — a ground-only weapon asked about
-## an air target, or an anti-air one asked about a target on the ground. Callers must read it
-## as "not in range" rather than assuming a shape is always there: `can_target()` is not a
-## guarantee, because it reads the LATCHED Hurtbox layer while this reads LIVE altitude,
-## and the two disagree for the one tick a piece spends crossing AIR_TARGET_ALTITUDE.
+## enough off the ground (`Entity.is_air_target`), its GROUND reach otherwise. NULL means this
+## weapon has no reach against that side, and callers read it as "not in range" — the target's
+## layer is latched while this reads live altitude, so the two can disagree for one tick.
+## gdd/systems/combat/target-acquisition.md §The latch costs one tick.
 func get_range_for_target(a_target: Entity) -> CollisionShape3D:
 	return attack_range_shape_air if a_target.is_air_target() else attack_range_shape_ground
 

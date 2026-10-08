@@ -2,6 +2,9 @@
 kind: Entity
 title: LI War Factory
 scene: res://scenes/entities/structures/lb/lb_warFactory.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 30

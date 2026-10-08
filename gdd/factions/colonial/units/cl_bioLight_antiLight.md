@@ -2,6 +2,9 @@
 kind: Entity
 title: Recruit
 scene: res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 100

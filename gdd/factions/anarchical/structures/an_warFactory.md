@@ -2,6 +2,9 @@
 kind: Entity
 title: Chop Shop
 scene: res://scenes/entities/structures/an/an_warFactory.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 1200}
   time: 15

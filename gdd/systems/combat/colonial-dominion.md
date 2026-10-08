@@ -35,7 +35,7 @@ follows the arrival rate rather than climbing to capacity and staying there.
 **A Compound sentences ONE captive at a time (Alex, 2026-10-05).** The captive serving pays
 `dominion_per_unit` (25 per 5 s cycle, 5/s) for its 30 s term, 150 in all; the others wait their
 turn in arrival order, paying nothing, their terms not yet started. The places beyond the first
-are a QUEUE, not extra earners: they let a truck unload a full cage at once and keep the Compound
+are a QUEUE, not extra earners: they let a truck unload a full cage in one visit and keep the Compound
 busy between deliveries. `Garrison.SENTENCES_AT_ONCE` / `Garrison.paying_count()`.
 
 Why one at a time rather than all at once: with every captive serving at once, a Compound's

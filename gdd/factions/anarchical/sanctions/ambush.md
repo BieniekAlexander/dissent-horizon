@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Ambush
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [0, 1], factions: [anarchists]}
 hud_button: true
 column: 0

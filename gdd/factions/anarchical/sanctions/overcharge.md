@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Overcharge
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [0, 2], factions: [anarchists]}
 hud_button: true
 column: 2

@@ -2,6 +2,9 @@
 kind: Entity
 title: Kamikaze
 scene: res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 300}
   time: 10

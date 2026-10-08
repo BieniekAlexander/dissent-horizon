@@ -136,6 +136,21 @@ is never counted as scouted, though the bot's fog shows it as seen. Whether terr
 sight at all is open ([target-acquisition](target-acquisition.md) §Line of fire); this resolves
 with it, or with the follow-on above.
 
+### One Fog drives the terrain shroud, by election
+
+The terrain material is shared, so exactly one `Fog` may push the shroud into it — two drivers
+would fight over `fog_enabled`. **The driver is the LOWEST-numbered commander with a live Fog**
+(`Fog.terrain_fog_driver_id`; -1 when none is registered, so nobody drives). Which fog drives is
+immaterial — the driver publishes `get_active_fog()`'s texture, not its own — so the only
+property worth having is an election that is total and deterministic in every session shape.
+In a normal game the human is commander 1 and wins it anyway.
+
+It used to be "the local human's fog", and that was the all-bot fog bug: with no human slot,
+`RTSController.PLAYER_COMMANDER_ID` stays 0 while every bot Fog has its own id, so in a
+spectator session the test matched nobody and the shroud silently never drew. Entity hiding
+runs off `active_commander_id` and kept working, which is why it read as "the mesh never shows
+but buildings still hide".
+
 ## Beyond both: the simulation rate
 
 **TODO — Alex to decide, not proposed.** SC2 pays its per-tick costs 22.4 times a real

@@ -35,6 +35,8 @@ collision_mask = 0
 script = ExtResource("1_qdrdp")
 infrastructure = 50
 id = &"lb_tech1"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=668006324]
 

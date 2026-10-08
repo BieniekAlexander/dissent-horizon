@@ -46,6 +46,8 @@ height = 0.53142
 [node name="Kamikaze" type="CharacterBody3D" unique_id=693884101 groups=["piece", "unit"]]
 script = ExtResource("1_7br2d")
 id = &"an_aircraftLight_antiMech"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=976176080]
 

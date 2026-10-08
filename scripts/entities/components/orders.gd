@@ -108,11 +108,11 @@ func update_commands(
 
 
 ## Keep the current Attack's target as the held one when a replacing order that is not itself an
-## attack takes over, so a turret goes on shooting it on the move. A new Attack, or a Stop, drops
-## it: the first names its own target, the second means cease.
+## attack takes over, so a turret goes on shooting it on the move — a Stop included, since hold
+## fire is the order that means "stop shooting". Only a new Attack drops it, naming its own target.
 func _hold_attack_target_through(a_commands: Variant, a_add_to_queue: bool) -> void:
 	var incoming: Array[MoveCommand] = Actor._as_orders(a_commands)
-	if incoming.any(func(c: MoveCommand) -> bool: return c is Attack or c is Stop):
+	if incoming.any(func(c: MoveCommand) -> bool: return c is Attack):
 		held_attack_target = null
 		return
 	if a_add_to_queue or incoming.is_empty():
@@ -219,7 +219,8 @@ func tick() -> void:
 
 ## Shoot the held target this tick if a turret can: aim at it, and fire once it is aimed, loaded
 ## and locked on — the rules an Attack's turret fire follows. Drop it once it can no longer be
-## shot at all. Nothing to do while an Attack is running: the Attack aims for itself.
+## shot at all, or is no longer an enemy (either side changed hands). Nothing to do while an
+## Attack is running: the Attack aims for itself.
 func _tick_held_attack_target() -> void:
 	if held_attack_target == null or current() is Attack:
 		return
@@ -229,6 +230,7 @@ func _tick_held_attack_target() -> void:
 		not is_instance_valid(target)
 		or not (target as Node).is_inside_tree()
 		or actor.is_holding_fire
+		or not actor.is_enemy_of(target as Entity)
 		or not (target as Entity).is_visible_to(actor.commander_id)
 	):
 		held_attack_target = null

@@ -44,6 +44,8 @@ height = 1.803109
 [node name="Badger" type="CharacterBody3D" unique_id=70655620 groups=["piece", "unit"]]
 script = ExtResource("1_msm4r")
 id = &"cl_bioLight_antiMech"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1131298837]
 

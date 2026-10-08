@@ -99,6 +99,7 @@ capacity = 3
 bunker = false
 captures = true
 occupiable_ids = Array[StringName]([&"cl_bioLight_builder"])
+unload_time = 1.0
 
 [node name="#####CONTROLS#####" type="Node" parent="." unique_id=1886377788]
 

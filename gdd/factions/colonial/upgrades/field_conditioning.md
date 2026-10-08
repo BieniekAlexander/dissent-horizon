@@ -3,6 +3,7 @@ kind: Upgrade
 title: Field Conditioning
 flavor:
   description: Every BIO unit takes a quarter more punishment.
+  verbose: potato
 build:
   cost: {energy: 700}
   time: 40

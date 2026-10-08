@@ -2,6 +2,9 @@
 kind: Entity
 title: Relay
 scene: res://scenes/entities/structures/lb/lb_infrastructure.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 300

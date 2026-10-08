@@ -301,25 +301,9 @@ static func get_active_fog() -> Variant:
 	return Fog.for_commander(active_id)
 
 
-## Which commander's Fog pushes the shroud into the terrain material: the LOWEST-numbered
-## one with a live Fog registered. Exactly one node may do this — the material is shared, so
-## two drivers would fight over `fog_enabled` — and this is how that one is chosen.
-##
-## IT USED TO BE "the local human's fog", and that is the whole of the all-bot fog bug.
-## `Scenario._build_commanders` leaves `RTSController.PLAYER_COMMANDER_ID` at 0 when no slot
-## is a human, while every bot Fog resolves to its own commander id (1, 2, …) — so in a
-## SPECTATOR session the test `viewer_id == PLAYER_COMMANDER_ID` matched NOBODY, nothing ever
-## set `fog_enabled`, and the shroud silently did not draw. Nothing else about fog was
-## broken, which is exactly why it read as "the mesh never shows but buildings still hide":
-## entity visibility runs off `active_commander_id` and kept working throughout.
-##
-## Lowest id rather than "the human's, else a bot's" because WHICH fog drives is immaterial —
-## the driver publishes `get_active_fog()`'s texture, not its own — so the only property worth
-## having is that the election is total and deterministic in every session shape. In a normal
-## game the human is commander 1 and still wins it.
-##
-## -1 when no Fog is registered at all, which no live Fog's own viewer id can equal, so the
-## caller simply does not drive.
+## Which commander's Fog pushes the shroud into the shared terrain material: the LOWEST-numbered
+## one with a live Fog, or -1 when none is registered (scan-and-vision-cost.md §One Fog drives
+## the terrain shroud, by election).
 static func terrain_fog_driver_id() -> int:
 	var best: int = -1
 	for id: int in Fog._fogs_by_commander:

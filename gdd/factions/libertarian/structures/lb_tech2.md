@@ -2,6 +2,9 @@
 kind: Entity
 title: Mainframe
 scene: res://scenes/entities/structures/lb/lb_tech2.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 2000

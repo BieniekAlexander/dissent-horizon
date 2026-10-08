@@ -40,6 +40,8 @@ size = Vector3(0.9, 0.6, 1.4)
 [node name="AnMechMediumArtillery" type="CharacterBody3D" unique_id=552585694 groups=["piece", "unit"]]
 script = ExtResource("1_momft")
 id = &"an_mechMedium_artillery"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1552130326]
 
