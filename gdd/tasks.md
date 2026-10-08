@@ -12,7 +12,7 @@ type: index
 > |---|---|
 > | Effort | `#effort/low` a simple change not yet made · `#effort/medium` between · `#effort/high` a system overhaul |
 > | Scope — exactly one | `#scoped` everything needed to start is decided · `#needs-input` partly scoped, with written questions waiting on me · `#unscoped` not yet scoped; needs a scoping pass |
-> | Progress — at most one | *(none)* not started · `#wip` a session is on it now · `#shelved` started and paused · `#done` finished, mine to delete |
+> | Progress — at most one | *(none)* not started · `#wip` a session is on it now · `#shelved` started and paused · `#done` finished; `/shelve` deletes it |
 >
 > **Search strings:**
 > - `#unscoped` — items that need more scoping before anyone can start
@@ -33,13 +33,57 @@ The standing goal: difficulty tiers from PASSIVE to IMPOSSIBLE, decisions derive
 > [!check] Status — 2026-10-06
 > Built since 2026-09-04: difficulty as data (`BotDifficulty`), energy-equivalent arbitration starting with scouting, `BotMomentum` and army retreat, clustering as a perception sense, fog-limited attack objectives, the no-base defeat rule, demand-driven utility units, navmesh-safe placement and training, and the work tracked below as T-002 – T-004. Answered decisions are recorded in the AI notes, not here.
 
-### T-002 · Squads and relations #effort/high #scoped #shelved
+### T-002 · Squads and relations #effort/high #needs-input #shelved
 Approved 2026-10-03. Built: waves in series, staged reinforcements, rally points, placement bearing by role. Left: the squad registry with `Stage`/`Assault`/`Hold`/`Patrol` shared with `ScenarioTactic` and capped per difficulty; `Relation` (provider, consumer, reach, effect, value) read off the pieces; multi-actor opportunities and `Escort` for transport and the Sapper; relation affinity and approach coverage in placement; per-job Bot enable for missions.
 → [ai/squads-and-relations](systems/ai/squads-and-relations.md)
 
-### T-003 · A population of bot personalities #effort/medium #scoped #shelved
+> [!check] Status — 2026-10-08
+> Built: per-job enable for missions — `PlayerSlot.disabled_bot_jobs` names `BotBrain` jobs (`BotBrain.JOB_NAMES`) to leave unscheduled; an unknown name fails the boot (`tests/test_BotJobSwitches.gd`). The squad registry and guard were already built 2026-10-07, so of "Left" the registry is done.
+> Tests: 3953 passing (one shard crashes intermittently, pre-existing — unresolved-crashes.md).
+> **Not done:** step 3 (`Relation`, `Bot.relations()`, opportunities, `Escort`) — parked on the value question below; bot `Patrol` — parked on the second question.
+
+> [!question] Q — 2026-10-08
+> What is a relation worth, in the energy-equivalent currency every bot comparison uses?
+> **Why it matters:** build step 3 (`Relation`, `Bot.relations()`, multi-actor opportunities, `Escort`) prices every consumer by the relation's `value`: an opportunity is "the relation's value against the journey" and placement affinity is "priced by the relation's value". The note gives the unit (energy-equivalent, per second or per event) but no rule for any row of its table, and several rows (a Warlord's dominion per follower, a Compound's cooldown reduction) depend on how energy prices against dominion, which T-001 lists as open.
+> **Options:**
+> 1. Derive each effect kind once: ENABLES = the value of the action it enables (a Bombard shot's expected damage × cost); SCALES = the output rate gained, priced at a fixed energy-per-dominion constant until T-001 settles it; MOVES = the consumer's cost × the travel time saved; PROTECTS = the consumer's cost × the damage reduction.
+> 2. A doc key per relation (`value:` on the provider's spec), authored by hand until a derivation exists.
+> 3. Build the read model (`Relation`, `Bot.relations()`) and one consumer that needs no price — `Escort` for transport and the Sapper, issued whenever a consumer is in a squad without its provider — and leave pricing for when opportunities and placement need it.
+>
+> **Leaning:** 3 — it builds what the note fully specifies, and the pricing question gets answered against a working read model rather than in the abstract.
+>
+> **Answer:** 3
+
+> [!question] Q — 2026-10-08
+> When and where does the bot patrol?
+> **Why it matters:** the note lists `Patrol(route)` as "the Bot's map control" but says nothing about which units patrol, along what route, or what decides it. A patrol squad takes units out of the wave and the reserve, so it competes with them.
+> **Options:**
+> 1. A patrol squad between the bot's own outlying extractors, drawn from the reserve while no wave is out, sized like the guard (`guard_strength_ratio`).
+> 2. A scout-like circuit through the map's contested middle by one cheap fast unit, under `BotScout` rather than `BotMilitary`.
+> 3. No bot patrol for now; `Patrol` stays a mission-only policy.
+>
+> **Leaning:** 1 — it guards what raids actually hit (outlying economy) and reuses the guard's sizing rule.
+>
+> **Answer:** 3. Patrol and Defend can be out of scope for bots. these commands are alternate means of handling unit aggro provided as a convenience to the player, and its underlying behaviors are already usable by the bot.
+
+### T-003 · A population of bot personalities #effort/medium #needs-input #shelved
 Built: the per-bot seeded stream, the personality draw, temperature sampling, the quality-diversity search (`tools/selfplay/train.py`), and scenarios naming a roster member. Left: a tier as a distribution over the roster instead of one point plus jitter, and categorical preference weights on the vector so composition is searchable.
 → [ai/bot-randomness](systems/ai/bot-randomness.md) §Strength is a search
+
+> [!check] Status — 2026-10-08
+> Nothing built this session. The tier-as-distribution half is blocked by the note's own precondition ("waits on a roster worth drawing from: several cells holding members rated clearly above the seeds"); `resources/bots/roster.json` is at generation 2 and the 2026-10-07 rerun still rates a seed (the rusher) first. The preference-weights half waits on the question below.
+
+> [!question] Q — 2026-10-08
+> What are the categorical preference weights, and where do they enter the bot's choices?
+> **Why it matters:** the note names "a weight per unit class in production, an opening-style weight, static-defence and garrison appetites" but no class set and no mechanism. Since 2026-10-07 production picks by the learned combat model (`BotProduction`, T-100), so a weight has to multiply that score or the demand map's, and each class set makes a different personality reachable.
+> **Options:**
+> 1. Three production weights, by frame and flight (`BIO`, `MECH`, aircraft), each multiplying a candidate's score in `BotProduction`; plus one static-defence weight multiplying the turret appetite. All four as `BotDifficulty` fields in the search ranges. Opening style and garrison appetite left out until defined.
+> 2. A weight per piece id in the faction roster: maximally expressive, but the search dimension grows with the roster and a vector stops transferring between factions.
+> 3. Weights by unit role (anti-light / anti-mech / anti-air / support, from the matchup table), so a personality prefers a counter type rather than a chassis.
+>
+> **Leaning:** 1 — it makes the personalities the note names (air-heavy, mech-first) reachable with four searchable numbers that mean the same thing in every faction.
+>
+> **Answer:** 2. The options available to factions differ enough that they're worth modeling independently.
 
 ### T-004 · The bot's unused Colonial pieces #effort/high #unscoped #shelved
 Audited 2026-10-04; the tech-locked picker, the tech rung, Scan's REVEAL and Freeze/Promotion targeting are fixed. Open, each a coverage-test MISSING entry or the Relation model's (T-002): the siege loop (Bombard, Spot, Beacon), the support buildings a tech rung cannot score, the Recruit's Irradiate, Work Detail, researching Advanced Targetting, and a unit worth having only beside another (Reverence beside a Bombard).
@@ -67,7 +111,7 @@ Decided 2026-10-07 as a first cut, with a revisit deferred: the bot values a uni
 ### T-099 · A cautious bot that still commits in the end #effort/low #unscoped
 `assumed_enemy_parity` above 1 / `MIN_ATTACK_RATIO` (≈1.18) meant a bot that could never attack; the search range was capped at 1.15 on 2026-10-07 as the fix for now. Deferred: making the cautious end of the range playable instead — e.g. the stalemate clock relaxing parity too, so a timid bot still commits eventually. `bot_difficulty.gd` SEARCH_RANGES; `BotMilitary._committing_to_attack`.
 
-### T-100 · Learn the bot's purchase valuation #effort/high #scoped #shelved
+### T-100 · Learn the bot's purchase valuation #effort/high #needs-input #shelved
 The macro valuation (demand map → strength per energy → savings) is one additive form that cannot express interaction, distance, a mix, or payback, and tuning its constants cannot change that. Proposed: a combat model learned from sim fights, a threat clock on the lattice, a state value from logged matches, and the existing trainer searching the models' weights. Also: rerun the 2026-10-04 roster round before using it as a baseline (stale). Supersedes T-098 if adopted.
 → [ai/macro-learning](systems/ai/macro-learning.md)
 
@@ -76,33 +120,24 @@ The macro valuation (demand map → strength per energy → savings) is one addi
 > Tests: 3883 passing before the editor was opened (22:52 local). Every full run since crashed one shard at a random test, with the default on OR off, so the editor running on the same project is the likely cause — rerun `gut_shards.py` with the editor closed. The ~2,900 tests that ran all passed. Lint clean except `line_slots.gd` / `test_LineSlots.gd` (not this work).
 > **Not done:** the shipped model underrates the anti-mech tank against Sloops (corpus misses pairwise matchups; `counter_the_tanks_learned` fails) — stratified sampling proposed; a ~200-match comparison; charged weapons, abilities and support value the fights cannot see; the slot-0 bias (27/41); stage 2 waits on world-model steps 3–5. All in `macro-learning.md` §1 and §Still open.
 
+> [!question] Q — 2026-10-08
+> Build the stratified fight corpus and retrain the combat model?
+> **Why it matters:** macro-learning.md §Still open proposes it (unapproved) as the fix for the shipped model rating the Sloop level with the anti-mech tank against Sloops (3 such fights in 6,000), which the default bot now plays with. It changes `tools/combat_model/` sampling and the committed `resources/bots/combat_model.json`, so every tier's production shifts.
+> **Options:**
+> 1. Yes: sample so every pair of armed unit types meets a minimum number of times (on top of the faction-proportional draw), grow the corpus, retrain, and gate the new model on `counter_the_tanks_learned` passing.
+> 2. Yes, but keep the current corpus and only add the missing pairs as a top-up set.
+> 3. Not yet: switch the learned valuation off by default until it is shown better than the demand map.
+>
+> **Leaning:** 1 — it fixes the known blind spot at its cause, and the gate makes the regression visible.
+>
+> **Answer:** My only feedback here is that I will frequently be making changes to the roster, and I'm aware that changes to the pieces will impact the quality of the bot's evaluations. I think the simulations can represent safe expectations of the evaluations, and failing simulations implies that retraining is warranted.
+
 ## Combat
-
-### T-094 · Does a gunship's chase leave its station? #effort/low #scoped #done
-Nothing bounds how far an Attack (ordered or picked up on its own) draws the Gunship from the point it was called to; it returns to circling the station only once idle. Whether to leash it — an attack radius around the station, or dropping targets outside it — waits on flying it in a game.
-→ [macroeconomics/sanctions/off-map-abilities](systems/macroeconomics/sanctions/off-map-abilities.md) §Gunship
-
-> [!check] Status — 2026-10-06
-> Settled by Alex's spec: the gunship's weapon measures reach from its orbit's centre (`range_from: orbit`), so a target never moves it and one outside that shape is dropped. Rule in `gdd/systems/combat/range-buckets.md` §Where a reach is measured from. Tests: 3,622 passing.
 
 ### T-008 · Does terrain obstruct shots, or sight? #effort/high #needs-input
 Changes were recently made to make sure that navigation mesh obstructing fixtures obstruct attack lines, so that an actor on one side of an obstruction cannot attack a target on the other side of the obstruction; Some terrain features have these same sorts of elevation considerations such that a terrain mountain (represented in the world height map) also obstructs attack lines; there's some complexity here regarding projectile collisions happening with the height map surface, but not necessarily with structures, so help me actually come up with better definitions regarding how this is represented in the physics.
 Cases so far: a ridge should not block, high terrain such as a mountain probably should, a cliff between two elevations probably should not, artillery may be exempt; blocking sight is open too, subject to performance, balance and visual fidelity.
 → [combat/target-acquisition](systems/combat/target-acquisition.md) §Line of fire
-
-### T-009 · The Kamikaze drone misses fixtures #effort/medium #scoped
-The Kamikaze drone is not correctly approaching and colliding with targets when they're fixtures; it looks like they're correctly colliding with units, though; I've tested this against extraction sites and Citadels.
-
-### T-010 · Force Fire and Defend release hold fire #effort/low #scoped
-Issuing Force Fire and Defend commands should disable Hold Fire, in the same way that Attack Move does. (`releases_hold_fire()` is overridden only by `Attack` and `AttackMove` today.)
-
-### T-011 · A queued hold fire waits its turn #effort/low #scoped
-Answered: a hold fire issued with the additive modifier is queued, and takes effect when the queue reaches it. Today the modifier changes nothing.
-→ [design-framework/commitment-and-movement](design-framework/commitment-and-movement.md) §Action timing
-
-### T-012 · Record the detector-vision answer #effort/low #scoped
-Asked: `detection_large` has to clear every stealthed unit's vision, which may put it above every unit vision bucket and trip `detection_within_vision`. Answered: dedicated detectors carry `detection_medium` or `detection_large`, and that addresses the constraint. Left: write the answer into the note and check the shipped detectors follow it.
-→ [combat/range-buckets](systems/combat/range-buckets.md) §Asymmetries between the families
 
 ### T-013 · Should aggro rise for long-reach pieces? #effort/low #needs-input
 `AGGRO_MAX_RADIUS` sits below both artillery classes and below `ground_range_long` / `air_range_long`, so a target in that band is never picked up idle.
@@ -155,14 +190,6 @@ The Recruit needs an animation showing the Spot action while it channels and hol
 Built: one drone at a time, firing from inside; the Shock Drone fires at long range (a stub). Open: what each other drone confers, and how long a swap takes.
 → [design-framework/static-defence](design-framework/static-defence.md) §Libertarians
 
-### T-026 · Planted explosives #effort/medium #scoped
-The Sapper's `PLANT` interaction becomes a one-charge ability with a fuse, an area effect, and a recharge blocked while its bomb is live.
-→ [combat/planted-explosives](systems/combat/planted-explosives.md)
-
-### T-027 · Separate attack and movement targets #effort/medium #scoped
-An attack target persists through movement orders until it leaves range or hold fire drops it. Unblocked now that turrets (`Weapon.turret`) are built.
-→ [combat/turrets](systems/combat/turrets.md), [design-framework/commitment-and-movement](design-framework/commitment-and-movement.md) §Movement classes
-
 ### T-028 · Alliances #effort/high #needs-input
 Up to 8 players and up to 7 alliances; possibly 8 alliances under the hood, shown only in a team-game mode. Widens every "yours" rule to "yours or an ally's": `is_enemy_of`/`is_friendly_to`, shared vision, capacity pips.
 → [combat/target-acquisition](systems/combat/target-acquisition.md) §Alliances
@@ -170,9 +197,6 @@ Up to 8 players and up to 7 alliances; possibly 8 alliances under the hood, show
 ### T-029 · Fog resolution: one pixel per cell, or coarser? #effort/medium #needs-input
 Coarser is cheaper and blurs vision edges and the per-cell structure-sighting test.
 → [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) §Proposal: the fog of war
-
-### T-030 · The Stock Truck unloads one captive at a time #effort/low #scoped
-→ [design-framework/commitment-and-movement](design-framework/commitment-and-movement.md) §Commitment, per action
 
 ## Commands
 
@@ -196,13 +220,14 @@ A second plan there is refused today.
 `is_built` is group-keyed, so a unit is always built; constructing a vehicle on a pad wants exactly this rule, and the build system assumes everything it raises registers on the terrain grid.
 → [commands/construction](systems/commands/construction.md)
 
-### T-036 · Placement is judged against what the commander knows #effort/medium #scoped
-Placeable where explored fog shows it placeable (abort on arrival if that proves false); refused outright on unexplored ground.
-→ [commands/construction](systems/commands/construction.md) §Placement is judged against what the commander knows
-
 ### T-037 · Recording and replay #effort/high #scoped #shelved
 Built: a match is bit-reproducible from its seed (navigation synchronous project-wide, 2026-09-29). Left: human orders recorded as a tick-stamped stream and fed back into a re-run; pieces gain a spawn serial; orders land at tick start; compressed JSON-lines files with a version stamp and a per-second state hash. The stream is also the intended input exchange for future rollback netcode.
 → [commands/recording-and-replay](systems/commands/recording-and-replay.md), [ai/selfplay-harness](systems/ai/selfplay-harness.md) §Determinism
+
+> [!check] Status — 2026-10-08
+> Built: the order boundary and the record/replay core. Every player action is a `PlayerOrder` applied at tick start through `OrderStream` / `OrderDispatcher` (commands, hold fire, autocast, purchase/job cancel, garrison release, sanction unlock, the opening drop, orders on pending purchases, dialogs); pieces carry a spawn serial and purchase ids restart per match; `ReplayRecorder` writes orders plus a per-second digest to versioned gzip JSON-lines files with a keep-three autosave rotation, invalidated by debug mode; `Scenario.replay_to_play` plays one back. RVO avoidance is now single-threaded project-wide, which is what made one seed play one match. Rules in recording-and-replay.md and selfplay-harness.md §Determinism.
+> Tests: `test_OrderStream.gd`, `test_ReplayRoundTrip.gd` (a recorded minute plays back digest-for-digest), `test_ReplayFile.gd`, `test_SpawnSerial.gd`; full suite 3953 passing.
+> **Not done:** everything under the note's §Watching — the start-screen replay panel, Save replay with a name, perspective switching, the look-only HUD, replay keys, pause/speed — plus launching a playback from the menu and the header's start points.
 
 ### T-038 · Move-line drag: the follow-ups #effort/medium #unscoped #shelved
 Built for the unarmed right click only. Left: the minimap, armed orders, navmesh snapping of slots, recording issued destinations in the replay (T-037).
@@ -296,6 +321,10 @@ Guarantee counts of clusters of given sizes, positioned relative to the starts �
 Built: `Structure.quarter_turns`, oriented footprints, `[` `]` and press-drag-release placement. Left: the bot placing non-square structures at both orientations (with mirror equivariance), recording the count in the replay stream (T-037), and two-form (deploy) pieces once they exist.
 → [terrain-and-navigation/footprint-rotation](systems/terrain-and-navigation/footprint-rotation.md)
 
+> [!check] Status — 2026-10-08
+> Built the bot half: `BotEconomy` ranks a non-square footprint at both orientations in one list (a tie goes to the one lying across the threat axis), faces it up the threat axis (`facing_turns`), and orders it with that `quarter_turns` (`BotActuator.build`). Replay recording came with T-037 (an order's message carries `quarter_turns`). Tests: four new in `tests/test_BotPlacementEquivariance.gd`.
+> **Not done:** two-form (deploy) pieces — still the note's §Deferred `TODO`, since no shipped piece has two forms. `Map.mirror_map` / `shift_map` keeping a rotated structure's count is unexercised until an authored map holds one.
+
 ### T-059 · Tile-type movement cost and harvestable ground #effort/medium #unscoped
 `TileType.texture` is read by the shader but no tile type has one assigned; `move_cost` / `harvestable` are commented out and unread.
 → [terrain-and-navigation/tile-types](systems/terrain-and-navigation/tile-types.md)
@@ -317,12 +346,6 @@ With interpolated rendering; 20 Hz would cut every per-tick cost by a third. Not
 ### T-095 · What the Drop and reinforcement sanctions draw while aiming #effort/low #unscoped
 A sanction now draws an area only when the ability itself states one (an authored `effect_radius`, or an event deriving its own, like the Gunship's reach and the Mortar's blast). Drop and the Anarchist reinforcement sanctions (Ambush, Informant, Dignify) state none, so they draw nothing; what they should show — the spread their pieces land in, a marker, nothing — is deferred (Alex, 2026-10-06). Scavenge lost its unsourced circle too and was not discussed.
 → [combat/range-buckets](systems/combat/range-buckets.md) §Where a reach is measured from
-
-### T-063 · A control group's camera snap needs a double tap #effort/low #scoped
-Right now, when a player presses a button of a control group, the camera snaps to look at the control group; have a single press just select the control group, and a second press of the same button (a double tap) snap the camera.
-
-### T-064 · A garrisoned unit's waypoint line starts at its host #effort/low #scoped
-When a player issues a command to a unit that's inside a garrison, the waypoint indicator draws the line starting from the world origin; update it so that the starting position is based on the garrison that it still occupies.
 
 ### T-091 · Command-grid labels are clipped #effort/low #needs-input
 Every label of five characters or more is clipped at the cell width the 6-column grid gives it ("Attack" draws as "Attac"). The remedy is a choice: shrink the font to fit, wrap to two lines, or make short labels an authoring rule.
@@ -375,16 +398,8 @@ Built with a producing column; asked for only in Details.
 The banner says "READY" and the card shows one Cancel button; it wants elements naming the armed command and its tool.
 → [ui/control-matrices](systems/ux/ui/control-matrices.md) §Context 1a
 
-### T-077 · Bulk cancel #effort/low #scoped
-`modifier_broaden` + LMB on a rail card cancels every queued purchase of that type.
-→ [ui/control-matrices](systems/ux/ui/control-matrices.md) §Context 5
-
 ### T-078 · Minimap visual details #effort/low #unscoped
 The map layer's symbols and palette were carried over from the map generator's old review images; revisit them.
-→ [ui/hud-layout](systems/ux/ui/hud-layout.md) §The minimap
-
-### T-079 · Impassable terrain on the minimap #effort/low #scoped
-Ridges, cliffs and deep chasms draw as plain ground; add a layer from the grid's steep and submerged cells.
 → [ui/hud-layout](systems/ux/ui/hud-layout.md) §The minimap
 
 ### T-080 · A win/lose screen #effort/medium #unscoped #shelved
@@ -423,21 +438,13 @@ Alex's ideal state: a spec value may be written as an expression naming other ke
 `MovementBody` — the cylinder a piece pushes through the world with — is centred on the origin, half underground, while the hurtbox now stands on the origin fitted to the model. Nothing aims at it (it only collides for avoidance), so whether it should be seated too, and fitted to what, is open.
 → [ux/ui/generated-visual-defaults](systems/ux/ui/generated-visual-defaults.md) §The hurtbox
 
-### T-084 · The composition rework: the rest of step 4 #effort/high #scoped #shelved
-Left: `Commandable` as a component set, an emitted unit, the group renames, re-deriving the get-node-or-null audit, and the Recon Drone as an `Aerial` with no locomotion.
-→ [authoring/composition-rework](systems/authoring/composition-rework.md) §Step 4
-
-### T-085 · Piece flavour text #effort/medium #scoped
-About 83 of 132 spec docs have no `description` or `verbose` (rough count, 2026-09-28). The strings are authorial — mine to write.
-→ `gdd/refactoring-plan.md` item 8
-
-### T-086 · The remaining long functions #effort/medium #scoped
-`assign_command_to_units` (~204 lines and growing), `_build_mesh` (~74), `_cap_xz_for_ascent` (~68, `aerial.gd`).
-→ `gdd/refactoring-plan.md` item 6
-
-### T-087 · 14 doc blocks marginally over the escalation threshold #effort/low #scoped
+### T-087 · 14 doc blocks marginally over the escalation threshold #effort/low #scoped #shelved
 All at ratios between 12/10 and 16/13 — arguably not "outgrown its level" by §4.2's own test.
 → `gdd/refactoring-plan.md` item 5
+
+> [!check] Status — 2026-10-08
+> Option 2, outside the bot's files: the 16 clear blocks are a summary plus a `§` pointer now; two needed new write-ups (agent-size-classes.md §Reaching a building — the edge-adjacent rule; scan-and-vision-cost.md §One Fog drives the terrain shroud).
+> **Not done:** the 13 clear cases in `scripts/interface/commander/bot*.gd`, held back for the bot session; refactoring-plan.md item 5 lists them by count.
 
 ### T-088 · Wire CI #effort/medium #unscoped
 gdformat is the house style and `tools/lint.sh` enforces it; CI is what remains — and GUT in CI needs Godot plus the committed `.godot/imported/`.
@@ -446,6 +453,3 @@ gdformat is the house style and `tools/lint.sh` enforces it; CI is what remains 
 ### T-089 · Is a pre-commit hook required? #effort/low #needs-input
 Linting is (§6.3); mandating the hook is separate.
 → `~/.claude/CLAUDE.md` §Deferred
-
-### T-090 · Stale `gdd/tasks.md` citations in code #effort/low #scoped
-About fifteen comments cite task sections that were deleted long ago ("Damage System — Implementation Spec", "UI Updates", "Command Assignment extensions", "§Bugs", "§Feedback Notes", …) in `scripts/damage/`, `scripts/interface/hud/`, `scripts/scenario/scenario_tactic.gd` and several tests. Repoint each to the design note that now owns the rule, or drop the citation. `git grep -n "gdd/tasks.md" -- scripts tests` lists them.

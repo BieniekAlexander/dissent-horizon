@@ -953,6 +953,8 @@ func dominion_contributor_count() -> int:
 ## sentences decay occupancy. Per Shelter, summed: arrivals capped by the Shelter's regeneration
 ## and the trucks' round trips, times `sentence_length`, capped at the captives the Compound
 ## sentences at once. colonial-dominion.md; economy-bars.md §Rate projection.
+##
+## TODO: the round trip ignores the carrier's `Garrison.unload_time` — gdd/tasks.md T-044.
 func projected_dominion_rate() -> float:
 	var by_shelter: Dictionary = _trucks_by_tasked_shelter()
 	# A route's own sweep pays a steady rate while its sources stand, so it projects as itself.
