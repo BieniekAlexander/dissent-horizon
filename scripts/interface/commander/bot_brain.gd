@@ -113,6 +113,28 @@ var _personality_drawn: bool = false
 
 ## This brain's jobs, in the order `think` runs them. Built with the managers.
 var _jobs: Array[BotJob] = []
+## Every job a brain runs, by name — what `PlayerSlot.disabled_bot_jobs` may name.
+## `tests/test_BotJobSwitches.gd` holds it to the jobs `_build_jobs` actually makes.
+const JOB_NAMES: Array[StringName] = [
+	&"deployment",
+	&"momentum",
+	&"targeting",
+	&"military",
+	&"sanction",
+	&"abilities",
+	&"kamikaze",
+	&"preservation",
+	&"opportunist",
+	&"economy",
+	&"production",
+	&"research",
+	&"scout_sight",
+	&"scout",
+]
+## Jobs this brain leaves off: a mission running the economy and production while it authors
+## the military itself (gdd/systems/ai/squads-and-relations.md §Squads). Set before the jobs
+## are registered; empty runs them all.
+var disabled_jobs: Array[StringName] = []
 ## Whether the jobs have been handed to the session's scheduler.
 var _registered: bool = false
 
@@ -190,7 +212,7 @@ func register_jobs(a_scheduler: BotScheduler) -> void:
 	if _registered or not _ensure_managers():
 		return
 	_registered = true
-	for job: BotJob in _jobs:
+	for job: BotJob in enabled_jobs():
 		a_scheduler.register(job)
 
 
@@ -199,10 +221,15 @@ func register_jobs(a_scheduler: BotScheduler) -> void:
 func think() -> void:
 	if not _ensure_managers():
 		return
-	for job: BotJob in _jobs:
+	for job: BotJob in enabled_jobs():
 		job.work.call(BotScheduler.WORK_UNITS_PER_TICK)
 		while job.has_pending_work():
 			job.work.call(BotScheduler.WORK_UNITS_PER_TICK)
+
+
+## The jobs this brain runs: every one it built, less those its slot switched off.
+func enabled_jobs() -> Array[BotJob]:
+	return _jobs.filter(func(job: BotJob) -> bool: return not disabled_jobs.has(job.name))
 
 
 ## This brain's jobs, built with the managers. The periods are read through the config on

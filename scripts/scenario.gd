@@ -147,6 +147,7 @@ func _ready() -> void:
 			bot.consider_structures = slot.consider_structures
 			bot.consider_units = slot.consider_units
 			_attach_brain(bot, slot.difficulty, slot.is_bot, _personality_config(slot))
+			bot.get_node("BotBrain").disabled_jobs = slot.disabled_bot_jobs
 
 	# Create a Fog node for each bot commander so it tracks its own exploration.
 	# The human player already has a Fog in player.tscn (watching_commander_id = -1).
@@ -485,6 +486,14 @@ func _validate_player_slots() -> void:
 		)
 		push_error(message)
 		assert(false, message)
+	var unknown_jobs: Dictionary = _unknown_bot_job_slots()
+	if not unknown_jobs.is_empty():
+		var message: String = (
+			"%s: player slot(s) %s switch off bot jobs that do not exist (BotBrain.JOB_NAMES)."
+			% [name, str(unknown_jobs)]
+		)
+		push_error(message)
+		assert(false, message)
 	var unresolved: Dictionary = _unresolved_personality_slots()
 	if not unresolved.is_empty():
 		var message: String = (
@@ -493,6 +502,22 @@ func _validate_player_slots() -> void:
 		)
 		push_error(message)
 		assert(false, message)
+
+
+## Slot numbers (1-based commander ids) → the `disabled_bot_jobs` names no BotBrain job has.
+## Pure, so it can be tested directly; _validate_player_slots does the reporting.
+func _unknown_bot_job_slots() -> Dictionary:
+	var unknown: Dictionary = {}
+	for i: int in player_slots.size():
+		var slot: PlayerSlot = player_slots[i]
+		if slot == null:
+			continue
+		var names: Array = slot.disabled_bot_jobs.filter(
+			func(job: StringName) -> bool: return not BotBrain.JOB_NAMES.has(job)
+		)
+		if not names.is_empty():
+			unknown[i + 1] = names
+	return unknown
 
 
 ## Slot numbers (1-based commander ids) → why their `personality` or `config_overrides`
