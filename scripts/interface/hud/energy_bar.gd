@@ -8,7 +8,8 @@ extends EconomyBar
 ## The fill is scaled against ResourcePressure.ENERGY_SURPLUS_THRESHOLD, and painted as a
 ## SINGLE flat colour — chosen from where the fill currently sits on a three-stop
 ## lithium-pond gradient, not painted as a ramp across the fill itself. Past the threshold the
-## fill oscillates toward a lightened version of itself, the "state you should act on now" idiom every bar in this family uses.
+## fill oscillates toward a lightened version of itself, the "state you should act on now"
+## idiom every bar in this family uses.
 ##
 ## Hovering a purchase that costs energy dims a preview of the cost against this bar — see
 ## EconomyBar._preview_regions() and gdd/systems/ux/ui/economy-bars.md §Hover previews. Energy
