@@ -4496,7 +4496,8 @@ func _update_waypoint_display() -> void:
 			continue
 		var unit := entity as Actor
 		var chain := unit.get_command_chain()
-		var prev_pos: Vector3 = unit.global_position
+		# world_position, not global_position: a garrisoned unit's line starts at its host.
+		var prev_pos: Vector3 = unit.world_position()
 		for cmd in chain:
 			var msg: CommandMessage = cmd.message
 			if _active_indicators.has(msg) and not configured.has(msg):

@@ -232,6 +232,15 @@ func is_garrisoned() -> bool:
 	return garrisoned_in != null and is_instance_valid(garrisoned_in)
 
 
+## Where this piece is in the world: its own position, or — held off the tree, where it has
+## none — its host's, through any nesting of hosts.
+func world_position() -> Vector3:
+	if not is_garrisoned():
+		return global_position
+	var host: Actor = garrisoned_in.get_parent() as Actor
+	return host.world_position() if host != null else global_position
+
+
 func has_command() -> bool:
 	return current_command() != null
 

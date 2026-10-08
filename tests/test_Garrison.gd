@@ -793,3 +793,16 @@ func test_an_empty_camp_banks_nothing():
 	generator.ticks_elapsed = DominionGenerator.TICK_RATE - 1
 	generator.tick()
 	assert_eq(compound.commander.dominion, before, "no prisoners, no dominion")
+
+
+## A held unit is off the tree and has no position of its own; where it is in the world is its
+## host's — what a waypoint line starts from.
+func test_a_held_unit_is_where_its_host_is():
+	var host: Actor = _entity(OPEN_GARRISON, 1)
+	host.global_position = Vector3(7.0, 0.0, 3.0)
+	var soldier: Actor = _entity(RECRUIT, 1)
+	soldier.global_position = Vector3(1.0, 0.0, 1.0)
+	assert_eq(soldier.world_position(), Vector3(1.0, 0.0, 1.0), "standing, it is where it is")
+	host.get_node("Garrison").garrison(soldier)
+	assert_true(soldier.is_garrisoned())
+	assert_eq(soldier.world_position(), host.global_position, "held, it is where its host is")
