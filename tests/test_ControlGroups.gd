@@ -209,4 +209,36 @@ func test_an_index_outside_the_ten_is_ignored() -> void:
 	controller.apply_control_group_gesture(RTSController.CONTROL_GROUP_COUNT, A.ASSIGN_GROUP)
 	assert_eq(controller.control_group(-1), [])
 	assert_eq(controller.control_group(RTSController.CONTROL_GROUP_COUNT), [])
+
+
+#endregion
+
+#region The double tap
+## One press selects a group; only a second press of the SAME group, quickly, moves the camera.
+const TAP_WINDOW_MS: int = int(RTSController.DOUBLE_CLICK_SECONDS * 1000.0)
+
+
+func test_a_second_press_of_the_same_group_in_the_window_is_a_double_tap() -> void:
+	assert_true(RTSController.is_double_tap(2, 1000, 2, 1000 + TAP_WINDOW_MS))
+
+
+func test_a_slow_second_press_is_not() -> void:
+	assert_false(RTSController.is_double_tap(2, 1000, 2, 1001 + TAP_WINDOW_MS))
+
+
+func test_a_press_of_another_group_is_not() -> void:
+	assert_false(RTSController.is_double_tap(2, 1000, 3, 1001))
+
+
+func test_the_first_press_is_not() -> void:
+	assert_false(RTSController.is_double_tap(-1, 0, 0, 0))
+
+
+func test_a_write_between_two_reads_breaks_the_pair() -> void:
+	# An empty group and an empty selection: this pins the tap memory, not what gets selected.
+	var controller: RTSController = _controller()
+	controller.apply_control_group_gesture(0, A.RECALL)
+	assert_eq(controller._last_group_tap_index, 0, "a read is remembered")
+	controller.apply_control_group_gesture(0, A.ASSIGN_GROUP)
+	assert_eq(controller._last_group_tap_index, -1, "a write is not a tap")
 #endregion

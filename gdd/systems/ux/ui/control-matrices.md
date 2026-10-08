@@ -533,7 +533,8 @@ Two things worth naming:
   `_unhandled_input`, so the Shift latch can miss it. A control-group press is a keyboard
   press like a selector's and reads them the same way.
 
-An empty group still clears the selection on a bare press — pressing a group is a statement
+A second press of the same group within the double-click window centres the camera on it; a
+single press never moves the camera. An empty group still clears the selection on a bare press — pressing a group is a statement
 about what you want selected, and "nothing, yet" is an answer. Membership is pruned on READ
 rather than watched for: a group is only consulted on a keypress, so hooking every member's
 `tree_exiting` would be a lot of bookkeeping for a filter.

@@ -2337,6 +2337,11 @@ enum ControlGroupGesture {
 ## in a scene tree.
 var _control_groups: Array = _empty_groups()
 
+## The group last READ by a press, and when (wall-clock ms, a UI timing), so a second press of
+## the same group within DOUBLE_CLICK_SECONDS is a double tap. -1: no read to pair with.
+var _last_group_tap_index: int = -1
+var _last_group_tap_ms: int = 0
+
 
 static func _empty_groups() -> Array:
 	var out: Array = []
@@ -2519,10 +2524,8 @@ func apply_control_group_gesture(a_index: int, a_gesture: ControlGroupGesture) -
 			# what you want selected, and "nothing, yet" is an answer.
 			deselect()
 			_select_units(group)
-			_look_at_selection(group)
 		ControlGroupGesture.EXTEND_SELECTION:
 			_select_units(group)
-			_look_at_selection(group)
 		ControlGroupGesture.REMOVE_FROM_SELECTION:
 			# Edits the SELECTION, so no camera move: the player is narrowing what they already
 			# have in hand, and nothing new has been picked to look at.
@@ -2530,6 +2533,28 @@ func apply_control_group_gesture(a_index: int, a_gesture: ControlGroupGesture) -
 				var commandable := member as Actor
 				if commandable != null:
 					remove_from_selection(commandable)
+	# Only a double tap moves the camera: one press selects, the second of the same group goes
+	# to look at it (selection-and-input.md §Control groups).
+	var is_read: bool = (
+		a_gesture == ControlGroupGesture.RECALL or a_gesture == ControlGroupGesture.EXTEND_SELECTION
+	)
+	var now_ms: int = Time.get_ticks_msec()
+	if is_read and is_double_tap(_last_group_tap_index, _last_group_tap_ms, a_index, now_ms):
+		_center_camera_on(group)
+		_last_group_tap_index = -1
+	else:
+		_last_group_tap_index = a_index if is_read else -1
+		_last_group_tap_ms = now_ms
+
+
+## Whether a read of group `index` at `now_ms` pairs with the previous read (`last_index` at
+## `last_ms`) as a double tap: the same group, within DOUBLE_CLICK_SECONDS.
+static func is_double_tap(last_index: int, last_ms: int, index: int, now_ms: int) -> bool:
+	return (
+		last_index >= 0
+		and last_index == index
+		and now_ms - last_ms <= int(DOUBLE_CLICK_SECONDS * 1000.0)
+	)
 
 
 ## Route a control-group key press. Mirrors _dispatch_command_hotkey: the action names the
@@ -2584,6 +2609,13 @@ func _look_at_selection(a_commandables: Array) -> void:
 	if camera_follow_selection == CameraFollow.NEVER:
 		return
 	if not commandables_on_screen(a_commandables).is_empty():
+		return
+	_center_camera_on(a_commandables)
+
+
+## Centre the camera on the live members of `a_commandables`, whatever is on screen.
+func _center_camera_on(a_commandables: Array) -> void:
+	if camera == null:
 		return
 	var centroid: Vector2 = Vector2.ZERO
 	var counted: int = 0
