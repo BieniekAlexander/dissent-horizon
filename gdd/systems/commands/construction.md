@@ -317,20 +317,31 @@ Tests: `tests/test_NavmeshAccessGating.gd`.
 
 ---
 
-## PLANNED — Placement is judged against what the commander knows
+## Placement is judged against what the commander knows
 
-Decided 2026-09-24. Today `Build.meets_precondition` judges a footprint against the TRUE grid,
-so a refused placement leaks what is standing in the fog. The rule instead:
+A refused placement must not tell the commander what stands in the fog, so placement is judged
+against its KNOWLEDGE, never the true grid (`PlacementKnowledge`, decided 2026-09-24):
 
-- **Explored ground is judged by what the commander last saw.** If the fogged view shows the
-  spot placeable, the order is accepted. If the builder arrives and the spot proves invalid (a
-  building went up in the meantime), the order aborts — the arrival re-check in `Build` already
-  does this half.
-- **Unexplored ground refuses the order outright.**
+- **Ground in vision** is judged by the true grid.
+- **Explored ground out of vision** is judged by what the commander last saw. A cell is taken if
+  its occupant is common knowledge — the commander's own, an ally's, or neutral — or is an enemy
+  structure the blackboard still believes in, and also if a believed enemy structure stood there
+  when last seen, whether or not it still does. So a building that went up unseen does not refuse
+  the order, and one destroyed unseen still does. The builder finds out on arrival: `Build`'s
+  arrival checks abort the order when the site proves taken.
+- **Unexplored ground refuses the order outright**, under any cell of the footprint.
 
-This applies to extractors and to every other placement, except the debug spawner's, which
-judges the true grid ([debug-mode](../ux/ui/debug-mode.md) §The piece spawner). It came out of the aggro-fog
-question; aggro itself is fog-gated already ([target-acquisition](../combat/target-acquisition.md)).
+Extractors follow the same rule: a site or a pond reads as taken only when the commander knows of
+its extractor. The bot's site search asks the same question as `Build`, so a spot it picks is
+never refused at the order. The placement grid under the ghost colours its cells by the same
+knowledge, since a red cell is a refusal too.
+
+The debug spawner and scenario deployment judge the true grid — they have no commander's view to
+honour ([debug-mode](../ux/ui/debug-mode.md) §The piece spawner). The start-of-round drop needs
+current vision over its whole footprint, and checks that FIRST, before the footprint, for the same
+reason. Aggro is fog-gated separately ([target-acquisition](../combat/target-acquisition.md)).
+
+Tests: `tests/test_PlacementKnowledge.gd`.
 
 ---
 

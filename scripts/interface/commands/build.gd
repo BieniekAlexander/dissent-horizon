@@ -141,12 +141,25 @@ static func meets_precondition(
 	# lithium pond it occupies its cells like anything else. EnergyExtractor.valid_placement
 	# is what knows which case applies; it is used INSTEAD of the generic check, not in
 	# addition to it. An overlay piece that draws no energy (the Lab) has only the site case.
+	#
+	# Both are judged against what the commander KNOWS, never the true grid, so a refusal
+	# cannot reveal what stands in the fog; fulfill_action catches a placement that proves
+	# false on arrival. gdd/systems/commands/construction.md §Placement is judged against what
+	# the commander knows.
+	var knowledge: PlacementKnowledge = PlacementKnowledge.of(actor.commander, message.map)
 	if Extractor.of(preview) != null:
 		if not EnergyExtractor.valid_placement(
-			message, dims, obs.allow_uneven, obs.allow_submerged, Extractor.works_ponds(preview)
+			message,
+			dims,
+			obs.allow_uneven,
+			obs.allow_submerged,
+			Extractor.works_ponds(preview),
+			knowledge
 		):
 			return PreconditionFailureCause.INVALID_PLACEMENT
-	elif not Fixture.valid_placement(message, dims, obs.allow_uneven, obs.allow_submerged):
+	elif not Fixture.valid_placement(
+		message, dims, obs.allow_uneven, obs.allow_submerged, knowledge
+	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 
 	# The cells can be geometrically legal and still be a bad idea: NavPlacement asks what

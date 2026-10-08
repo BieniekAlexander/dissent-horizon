@@ -44,6 +44,8 @@ class Entry:
 	var last_known_location: Vector3
 	var last_seen_time: float  # seconds (Commander.seconds_elapsed) of last sighting
 	var entity: Actor  # live ref; may become invalid (use is_instance_valid)
+	## A structure's grid cells when last seen; empty for a unit.
+	var cells: Array[Vector2i] = []
 
 
 ## One remembered structure image at a specific grid cell. A single structure may
@@ -131,6 +133,16 @@ func believed_structures() -> Array:
 	return _entries.values().filter(func(e: Entry): return e.is_structure)
 
 
+## Every cell a believed enemy structure stood on when last seen — what placement judges fogged
+## ground by (PlacementKnowledge).
+func remembered_structure_cells() -> Dictionary:
+	var cells: Dictionary = {}
+	for entry: Entry in _entries.values():
+		for cell: Vector2i in entry.cells:
+			cells[cell] = true
+	return cells
+
+
 ## Believed enemy units (last-known locations; expire after BLACKBOARD_EXPIRATION).
 func believed_units() -> Array:
 	return _entries.values().filter(func(e: Entry): return not e.is_structure)
@@ -147,6 +159,8 @@ func _upsert(a_e: Actor, a_now: float) -> void:
 		_entries[id] = entry
 	entry.entity = a_e
 	entry.last_known_location = a_e.global_position
+	if entry.is_structure and _commander.map != null:
+		entry.cells.assign(_commander.map.structure_cell_map.get(a_e, []))
 	entry.last_seen_time = a_now
 
 

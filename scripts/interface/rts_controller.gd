@@ -854,10 +854,14 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 	var planned: Dictionary = (
 		placer.planned_footprint_cells() if placer != null and not is_drop_armed() else {}
 	)
+	# What the placer knows, as Build judges it: the grid must not show what the fog hides.
+	var knowledge: PlacementKnowledge = PlacementKnowledge.of(placer, map)
 	for cell: Vector2i in footprint:
 		var ok: bool = (
 			(
-				Fixture.cell_admits_structure(map, cell, obs.allow_uneven, obs.allow_submerged)
+				Fixture.cell_admits_structure(
+					map, cell, obs.allow_uneven, obs.allow_submerged, knowledge
+				)
 				and not planned.has(cell)
 			)
 			if per_cell

@@ -352,8 +352,11 @@ func test_a_partly_explored_pond_is_offered_only_where_it_was_seen() -> void:
 	_add_water(map, WaterBody.NOMINAL_ENERGY)
 	var economy: BotEconomy = _economy_with(map, [])
 	var seen: Vector3 = map.grid_to_world(_SHALLOW_ORIGIN)
+	# The whole footprint aimed there, since placement refuses unexplored ground under any part
+	# of it (construction.md §Placement is judged against what the commander knows).
+	var seen_cells: Array[Vector2i] = map.footprint_cells(VU.in_xz(seen), _DIMS)
 	(economy._bot as StubBot).explored_filter = func(a_pos: Vector3) -> bool:
-		return a_pos.is_equal_approx(seen)
+		return seen_cells.has(map.world_to_grid(VU.in_xz(a_pos)))
 	assert_eq(
 		economy._nearest_workable_pond_spot(),
 		seen,

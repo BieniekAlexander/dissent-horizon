@@ -74,15 +74,23 @@ static func valid_placement(
 	dimensions: Vector2i,
 	allow_uneven_terrain: bool = false,
 	allow_submerged_terrain: bool = false,
-	a_allow_pond: bool = true
+	a_allow_pond: bool = true,
+	a_knowledge: PlacementKnowledge = null
 ) -> bool:
 	var map: Map = command_message.map
 	if map == null:
 		return false
+	var cells: Array[Vector2i] = map.footprint_cells(command_message.xz_position, dimensions)
+	if a_knowledge != null and not cells.all(a_knowledge.is_explored):
+		return false
 	var host: Entity = map.concentric_structure(command_message.xz_position, dimensions)
 	var site: ExtractionSite = ExtractionSite.of(host)
 	if site != null:
-		return site.extractor == null
+		return (
+			site.extractor == null
+			if a_knowledge == null
+			else not a_knowledge.believes_site_taken(site, cells)
+		)
 	if host != null or not a_allow_pond:
 		return false
 	# Water FIRST: an extractor aimed at dry ground is refused for being nowhere near a
@@ -92,9 +100,13 @@ static func valid_placement(
 	# ONE EXTRACTOR PER BODY, exactly as the ExtractionSite branch above enforces one per
 	# site. A pond is a finite charge, so a second extractor on it splits the same total
 	# between two structures rather than adding income.
-	if body == null or body.has_extractor():
+	if body == null:
 		return false
-	return fits_in_pond(command_message, dimensions, allow_uneven_terrain, allow_submerged_terrain)
+	if body.has_extractor() if a_knowledge == null else a_knowledge.believes_pond_taken(body):
+		return false
+	return fits_in_pond(
+		command_message, dimensions, allow_uneven_terrain, allow_submerged_terrain, a_knowledge
+	)
 
 
 ## The pond half of `valid_placement` WITHOUT the one-per-body claim: whether the footprint
@@ -104,13 +116,14 @@ static func fits_in_pond(
 	command_message: CommandMessage,
 	dimensions: Vector2i,
 	allow_uneven_terrain: bool = false,
-	allow_submerged_terrain: bool = false
+	allow_submerged_terrain: bool = false,
+	a_knowledge: PlacementKnowledge = null
 ) -> bool:
 	var map: Map = command_message.map
 	if map == null or water_body_under(map, command_message.xz_position, dimensions) == null:
 		return false
 	return Fixture.valid_placement(
-		command_message, dimensions, allow_uneven_terrain, allow_submerged_terrain
+		command_message, dimensions, allow_uneven_terrain, allow_submerged_terrain, a_knowledge
 	)
 
 

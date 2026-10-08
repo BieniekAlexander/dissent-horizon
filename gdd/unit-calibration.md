@@ -231,7 +231,7 @@ that sweep is built — see [simulation-tests](systems/scenario-scripting/simula
 
 **`aggro` is fog-filtered** — answered yes, and already built: an aggro candidate must be
 visible to the asking commander ([target-acquisition](systems/combat/target-acquisition.md)).
-The same answer extends the rule to build placement, which is PLANNED in
+The same answer extends the rule to build placement — see
 [construction](systems/commands/construction.md) §Placement is judged against what the
 commander knows. Shared vision waits on alliances, PLANNED in target-acquisition §Alliances.
 

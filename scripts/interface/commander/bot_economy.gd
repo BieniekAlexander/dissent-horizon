@@ -1430,7 +1430,11 @@ func _pond_spot_in(a_body: WaterBody, a_dims: Vector2i) -> Variant:
 		if _is_abandoned_spot(world) or _is_claimed_spot(world) or _is_contested_spot(world):
 			continue
 		if EnergyExtractor.fits_in_pond(
-			CommandMessage.new(_bot.map, null, null, world), a_dims, true, true
+			CommandMessage.new(_bot.map, null, null, world),
+			a_dims,
+			true,
+			true,
+			PlacementKnowledge.of(_bot, _bot.map)
 		):
 			return world
 	return null
@@ -1992,8 +1996,9 @@ const PLACEMENT_NAV_CLASS: int = NavAgentClass.Size.LARGE
 
 ## Whether a structure of `a_dims` centred at `a_world` may actually be built there.
 ##
-## Cheapest test first: the geometry (in bounds, unoccupied, flat), then the written-off
-## list, then the two NAVIGATION rules, which live in the map layer because they are facts
+## Cheapest test first: the geometry (in bounds, flat, and unoccupied as far as the bot knows —
+## Build judges by the same knowledge, so a spot found here is not refused there), then the
+## written-off list, then the two NAVIGATION rules, which live in the map layer because they are facts
 ## about the map rather than bot preferences — see NavPlacement.
 ##
 ## EVERY structure the bot places is required to keep a side on the navmesh, not only the
@@ -2003,7 +2008,11 @@ const PLACEMENT_NAV_CLASS: int = NavAgentClass.Size.LARGE
 ## NavPlacement.accepts' `a_needs_access` flag.
 func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bool:
 	if not Fixture.valid_placement(
-		CommandMessage.new(_bot.map, null, null, a_world), a_dims, false
+		CommandMessage.new(_bot.map, null, null, a_world),
+		a_dims,
+		false,
+		false,
+		PlacementKnowledge.of(_bot, _bot.map)
 	):
 		return false
 	if _is_abandoned_spot(a_world):

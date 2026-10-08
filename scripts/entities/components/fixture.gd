@@ -128,7 +128,8 @@ static func valid_placement(
 	command_message: CommandMessage,
 	dimensions: Vector2i,
 	allow_uneven_terrain: bool = false,
-	allow_submerged_terrain: bool = false
+	allow_submerged_terrain: bool = false,
+	a_knowledge: PlacementKnowledge = null
 ) -> bool:
 	var placement_map: Map = command_message.map
 	if placement_map == null:
@@ -142,7 +143,8 @@ static func valid_placement(
 				placement_map,
 				Vector2i(origin.x + w, origin.y + l),
 				allow_uneven_terrain,
-				allow_submerged_terrain
+				allow_submerged_terrain,
+				a_knowledge
 			):
 				return false
 	return true
@@ -150,13 +152,22 @@ static func valid_placement(
 
 ## Whether ONE cell could hold part of a structure: in bounds, unoccupied, flat unless uneven
 ## ground is allowed, and dry or shallow as the piece permits. valid_placement asks it of every
-## footprint cell; the build preview asks it per cell to colour the grid.
+## footprint cell; the build preview asks it per cell to colour the grid. Given `a_knowledge`,
+## occupancy is what that commander knows and unexplored ground is refused; without it, the true
+## grid (the debug spawner, deployment).
 static func cell_admits_structure(
-	a_map: Map, a_cell: Vector2i, a_allow_uneven: bool = false, a_allow_submerged: bool = false
+	a_map: Map,
+	a_cell: Vector2i,
+	a_allow_uneven: bool = false,
+	a_allow_submerged: bool = false,
+	a_knowledge: PlacementKnowledge = null
 ) -> bool:
 	if not a_map.grid_coordinates_in_bounds(a_cell):
 		return false
-	if a_map.cell_grid[a_cell.x][a_cell.y] != null:
+	if a_knowledge == null:
+		if a_map.cell_grid[a_cell.x][a_cell.y] != null:
+			return false
+	elif not a_knowledge.is_explored(a_cell) or a_knowledge.believes_occupied(a_cell):
 		return false
 	if not a_allow_uneven and not a_map.terrain_grid.is_flat(a_cell):
 		return false

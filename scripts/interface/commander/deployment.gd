@@ -138,15 +138,17 @@ func verdict(a_drop: Drop, a_xz: Vector2) -> Verdict:
 	var rule: Dictionary = _footprint_rule(a_drop)
 	var dims: Vector2i = rule["dims"]
 	var message := CommandMessage.new(map, null, null, Vector3(a_xz.x, 0.0, a_xz.y))
-	# Never onto a site or into a pond, for either drop: allow_submerged is never granted, and
-	# an occupied cell (a site is one) fails the footprint outright.
-	if not Fixture.valid_placement(message, dims, rule["allow_uneven"], false):
-		return Verdict.BAD_FOOTPRINT
+	# Vision FIRST: judging the footprint of fogged ground would tell the commander what stands
+	# in the fog (construction.md §Placement is judged against what the commander knows).
 	var cells: Array[Vector2i] = map.footprint_cells(a_xz, dims)
 	if not cells.all(
 		func(a_cell: Vector2i) -> bool: return _commander.has_vision_at(map.grid_to_world(a_cell))
 	):
 		return Verdict.OUT_OF_VISION
+	# Never onto a site or into a pond, for either drop: allow_submerged is never granted, and
+	# an occupied cell (a site is one) fails the footprint outright.
+	if not Fixture.valid_placement(message, dims, rule["allow_uneven"], false):
+		return Verdict.BAD_FOOTPRINT
 	if _has_foreign_units_on(footprint_area(map, map.footprint_origin(a_xz, dims), dims)):
 		return Verdict.UNITS_IN_THE_WAY
 	return Verdict.OK
