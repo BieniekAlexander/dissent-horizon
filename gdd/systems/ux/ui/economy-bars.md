@@ -235,7 +235,7 @@ stop (or start) the pulse a genuinely-over/under-threshold bar should show.
 off** — "energy is the only hard gate on my ability to build or purchase" (the task), so the
 preview always shows the same shape regardless of whether the commander could actually pay.
 `InfrastructureBar._hovered_infrastructure_delta()` reads the hovered piece's OWN ongoing
-`Commandable.infrastructure` export off `Commander.get_build_preview_instance(tool)` — the
+`Actor.infrastructure` export off `Commander.get_build_preview_instance(tool)` — the
 existing out-of-tree preview-instance cache (CLAUDE.md §Things NOT to break: it must never
 enter the SceneTree) — since `TechnologySpec` does not carry this figure at all.
 

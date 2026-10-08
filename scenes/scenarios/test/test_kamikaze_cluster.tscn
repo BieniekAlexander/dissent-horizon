@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://bkpybipbter41" path="res://scenes/factions/anarchical.tscn" id="5_nn1mh"]
 [ext_resource type="Script" uid="uid://wvdj3itb5y7x" path="res://scripts/maps/map.gd" id="6_7bk8i"]
 [ext_resource type="PackedScene" uid="uid://bmartyrunit01" path="res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn" id="7_bro1q"]
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="8_2soij"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="8_2soij"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="9_hx2ak"]
 
 [sub_resource type="Resource" id="Resource_a56bk"]

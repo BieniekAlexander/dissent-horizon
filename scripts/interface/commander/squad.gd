@@ -26,7 +26,7 @@ var policy: SquadPolicy = null
 ## manager has claimed (mid-fight under BotTargeting, on an errand) — it is still a member and
 ## rejoins when released, it is just not the military's to order this tick. The default admits
 ## every member, which is what a mission's cluster wants.
-var eligible: Callable = func(_a_unit: Commandable) -> bool: return true
+var eligible: Callable = func(_a_unit: Actor) -> bool: return true
 
 ## Instance id → true.
 var _members: Dictionary = {}
@@ -42,16 +42,16 @@ func _init(a_name: StringName = &"") -> void:
 
 
 #region Membership
-func add(a_unit: Commandable) -> void:
+func add(a_unit: Actor) -> void:
 	_members[a_unit.get_instance_id()] = true
 
 
 func add_all(a_units: Array) -> void:
-	for unit: Commandable in a_units:
+	for unit: Actor in a_units:
 		add(unit)
 
 
-func remove(a_unit: Commandable) -> void:
+func remove(a_unit: Actor) -> void:
 	_members.erase(a_unit.get_instance_id())
 
 
@@ -59,7 +59,7 @@ func clear() -> void:
 	_members.clear()
 
 
-func has(a_unit: Commandable) -> bool:
+func has(a_unit: Actor) -> bool:
 	return _members.has(a_unit.get_instance_id())
 
 
@@ -86,7 +86,7 @@ func members() -> Array:
 ## member and rejoins on release — but it is off the tree, so it has no position to read and
 ## cannot take an order.
 func fielded() -> Array:
-	return members().filter(func(unit: Commandable) -> bool: return unit.is_inside_tree())
+	return members().filter(func(unit: Actor) -> bool: return unit.is_inside_tree())
 
 
 func size() -> int:
@@ -112,7 +112,7 @@ func centroid() -> Vector3:
 	if live.is_empty():
 		return Vector3.ZERO
 	var total: Vector3 = Vector3.ZERO
-	for unit: Commandable in live:
+	for unit: Actor in live:
 		total += unit.global_position
 	return total / float(live.size())
 
@@ -139,12 +139,12 @@ func tick() -> void:
 		redirect()
 		_issued = policy
 	var to_order: Array = live.filter(
-		func(unit: Commandable) -> bool:
+		func(unit: Actor) -> bool:
 			return not _reached.has(unit.get_instance_id()) or unit.command_receiver.is_idle()
 	)
 	if to_order.is_empty():
 		return
-	for unit: Commandable in to_order:
+	for unit: Actor in to_order:
 		_reached[unit.get_instance_id()] = true
 	policy.issue(to_order)
 #endregion

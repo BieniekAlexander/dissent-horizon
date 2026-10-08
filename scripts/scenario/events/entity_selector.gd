@@ -6,7 +6,7 @@ extends Node3D
 ## EventIssueCommand or EffectApplicator. Each subclass narrows the input list. Stages
 ## are applied in scene-tree order; the first stage receives the caller's seed.
 ##
-## Operates on Entity (not Commandable): an effect/selection may legitimately target any
+## Operates on Entity (not Actor): an effect/selection may legitimately target any
 ## Entity. A stage that needs a narrower kind (e.g. only Commandables, for command
 ## issuance) is itself just a predicate — express it as a selector, don't bake it into
 ## the base type.

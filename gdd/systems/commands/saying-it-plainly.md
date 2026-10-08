@@ -40,7 +40,7 @@ itself by, beside a row of other things that also involve moving.
 
 The order stays a plain `MoveCommand`, which matters for one thing that is easy to miss: a
 stationary `can_rally()` commandable absorbs an EXACT `MoveCommand` as its rally point
-(`Commandable._absorb_rally_commands`). So pressing G at a barracks and clicking sets the
+(`Actor._absorb_rally_commands`). So pressing G at a barracks and clicking sets the
 rally, which is correct and needed no special case.
 
 ## Fire — shooting at a place

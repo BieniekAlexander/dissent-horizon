@@ -58,10 +58,10 @@ func matching_units(a_manager: ScenarioTriggerManager) -> Array:
 	return commander.get_children().filter(
 		func(n: Node) -> bool:
 			return (
-				n is Commandable
-				and (n as Commandable).is_in_group("unit")
-				and (unit_type == &"" or (n as Commandable).id == unit_type)
-				and region_contains((n as Commandable).global_position)
+				n is Actor
+				and (n as Actor).is_in_group("unit")
+				and (unit_type == &"" or (n as Actor).id == unit_type)
+				and region_contains((n as Actor).global_position)
 			)
 	)
 #endregion

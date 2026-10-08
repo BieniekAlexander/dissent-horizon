@@ -17,7 +17,7 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 
 ## A live charge, or a planter with one in play.
 static func meets_precondition(
-	actor: Commandable, _message: CommandMessage
+	actor: Actor, _message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return (
 		PreconditionFailureCause.NONE
@@ -27,7 +27,7 @@ static func meets_precondition(
 
 
 ## The charge `a_actor` would set off: itself, or the one it planted. Null for neither.
-static func charge_of(a_actor: Commandable) -> PlantedCharge:
+static func charge_of(a_actor: Actor) -> PlantedCharge:
 	var own: PlantedCharge = PlantedCharge.of(a_actor)
 	if own != null:
 		return null if own.is_resolved() else own
@@ -38,15 +38,15 @@ static func charge_of(a_actor: Commandable) -> PlantedCharge:
 
 
 #region State updates
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return false
 
 
-func can_act(_a_actor: Commandable) -> bool:
+func can_act(_a_actor: Actor) -> bool:
 	return true
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	var charge: PlantedCharge = charge_of(a_actor)
 	if charge != null:
 		charge.detonate()

@@ -541,7 +541,7 @@ enum RangeOrigin {
 	HULL,
 	## The range shape standing at the centre of the wielder's ORBIT, overlapping the target's
 	## hurtbox. The wielder's own position plays no part, so moving never closes range, and an
-	## Attack never steers it (Commandable.fights_from_orbit).
+	## Attack never steers it (Actor.fights_from_orbit).
 	ORBIT,
 }
 
@@ -790,7 +790,7 @@ func fill_clip() -> void:
 #endregion
 
 
-func fire(a_owner: Commandable, a_target: Entity) -> void:
+func fire(a_owner: Actor, a_target: Entity) -> void:
 	if self_destruct:
 		consume_round()
 		_self_destruct(a_owner)
@@ -811,7 +811,7 @@ func fire(a_owner: Commandable, a_target: Entity) -> void:
 ## splashes whatever is standing there, while a single-target shot resolves onto the target
 ## it was fired at — which is nobody — and hurts nothing. Shelling a chokepoint works;
 ## emptying a rifle into the dirt does not.
-func fire_at_position(a_owner: Commandable, a_position: Vector3) -> void:
+func fire_at_position(a_owner: Actor, a_position: Vector3) -> void:
 	if not can_fire_at_ground():
 		return
 	consume_round()
@@ -823,7 +823,7 @@ func fire_at_position(a_owner: Commandable, a_position: Vector3) -> void:
 
 ## Spawn one projectile at this weapon's next launch point, aimed at `a_target` — an Entity to
 ## home on or a bare Vector3 to land at (Emitter.launch takes either).
-func _launch(a_owner: Commandable, a_target: Variant) -> void:
+func _launch(a_owner: Actor, a_target: Variant) -> void:
 	var projectile: Entity = projectile_scene.instantiate()
 	projectile.initialize(a_owner.map, a_owner.commander)
 	projectile.global_position = next_launch_position()
@@ -831,9 +831,9 @@ func _launch(a_owner: Commandable, a_target: Variant) -> void:
 
 
 ## The commandable carrying this weapon (its Loadout's parent), or null outside a piece.
-func wielder() -> Commandable:
+func wielder() -> Actor:
 	var loadout: Node = get_parent()
-	return loadout.get_parent() as Commandable if loadout != null else null
+	return loadout.get_parent() as Actor if loadout != null else null
 
 
 ## The wielder died: the self-destruct blast goes off where it is. Runs on the ON_DEATH
@@ -847,7 +847,7 @@ func _on_wielder_occurrence(a_occurrence: Entity.EntityOccurrence, _a_source: En
 
 
 ## Fire a self-destruct weapon: the wielder dies now, and its death sets off the blast.
-func _self_destruct(a_owner: Commandable) -> void:
+func _self_destruct(a_owner: Actor) -> void:
 	if a_owner.defense != null:
 		a_owner.defense.kill()
 	a_owner.die()

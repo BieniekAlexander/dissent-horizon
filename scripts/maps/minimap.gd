@@ -259,9 +259,9 @@ func _process(_a_delta: float) -> void:
 
 	# Pass 2: draw commandable dots/squares on top of the terrain layer.
 	for entity: Entity in get_tree().get_nodes_in_group("piece"):
-		if not entity is Commandable:
+		if not entity is Actor:
 			continue
-		var commandable: Commandable = entity as Commandable
+		var commandable: Actor = entity as Actor
 
 		# Player's own units are always shown. Non-player entities are shown only
 		# when in_sight_range is true — meaning the fog pixel is clear AND the

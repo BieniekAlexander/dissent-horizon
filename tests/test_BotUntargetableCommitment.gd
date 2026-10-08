@@ -15,7 +15,7 @@ extends GutTest
 ## loadout has no targeting mode for it whatsoever. That is a DIFFERENT fact from a damage
 ## multiplier of zero — `Bot.unit_effectiveness_vs` answers 0 for both — and the difference
 ## is exactly what the bot never asked. `Loadout.weapon_for_target` is the honest question,
-## and aggro (`Commandable.get_aggro_near_position`) and `BotTargeting._retarget` had always
+## and aggro (`Actor.get_aggro_near_position`) and `BotTargeting._retarget` had always
 ## asked it; the two places that did not were the ones that decide where an army GOES and
 ## what a drone COMMITS to.
 ##
@@ -38,7 +38,7 @@ extends GutTest
 ## bug is about that piece's real layers.
 
 
-## A Commandable with the children Entity/Commandable resolve with a hard `$`, and nothing
+## A Actor with the children Entity/Actor resolve with a hard `$`, and nothing
 ## else. No Movement — which is also what keeps `load_destination` a no-op, so the actuator
 ## can be exercised without a navigation rig.
 ##
@@ -47,10 +47,10 @@ extends GutTest
 ##   • a Hurtbox, which is where `targetable_layers()` reads the ground/air bit from — a
 ##     stub without one is targetable by nothing at all, which would make every assertion
 ##     here pass for the wrong reason;
-##   • `command_receiver.initialize`, normally done by Commandable._ready (which this stub
+##   • `command_receiver.initialize`, normally done by Actor._ready (which this stub
 ##     skips), so an order the actuator DOES issue can actually land on the piece.
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
@@ -123,7 +123,7 @@ func _commander(a_commander: Commander, a_id: int) -> Commander:
 
 
 ## One owned piece at `a_x, a_z`, with 100 HP so it is a legal Attack target.
-func _piece(a_owner: Commander, a_is_structure: bool, a_x: float, a_z: float) -> Commandable:
+func _piece(a_owner: Commander, a_is_structure: bool, a_x: float, a_z: float) -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	if a_is_structure:
 		var structure := Structure.new()
@@ -145,7 +145,7 @@ func _piece(a_owner: Commander, a_is_structure: bool, a_x: float, a_z: float) ->
 ## Give `a_piece` one weapon that can lock onto `a_mask` (a CollisionLayers.Mask value).
 ## Assigned rather than parented under the piece: it is already in the tree, and a real
 ## Weapon node's own wiring wants children this stub does not have.
-func _arm(a_piece: Commandable, a_mask: int) -> Commandable:
+func _arm(a_piece: Actor, a_mask: int) -> Actor:
 	var loadout := autofree(Loadout.new()) as Loadout
 	var weapon := Weapon.new()
 	weapon.target_mask = a_mask
@@ -156,13 +156,13 @@ func _arm(a_piece: Commandable, a_mask: int) -> Commandable:
 
 
 ## A ground-only soldier owned by the bot — the ordinary army member.
-func _soldier(a_x: float = 0.0, a_z: float = 0.0) -> Commandable:
+func _soldier(a_x: float = 0.0, a_z: float = 0.0) -> Actor:
 	return _arm(_piece(_bot, false, a_x, a_z), CollisionLayers.Mask.TARGETABLE_GROUND)
 
 
 ## An anti-air soldier owned by the bot. Its presence is what proves every assertion below
 ## is about CAPABILITY and not about the scan drone specifically.
-func _flak(a_x: float = 0.0, a_z: float = 0.0) -> Commandable:
+func _flak(a_x: float = 0.0, a_z: float = 0.0) -> Actor:
 	return _arm(_piece(_bot, false, a_x, a_z), CollisionLayers.Mask.TARGETABLE_AIR)
 
 
@@ -172,8 +172,8 @@ func _flak(a_x: float = 0.0, a_z: float = 0.0) -> Commandable:
 ## mode (see tests/test_AirTargetAltitude.gd), and nothing lifts a drone off the deck inside
 ## a test with no physics running — it would otherwise sit at 0 and file itself as a GROUND
 ## target, which would make every assertion here pass for the wrong reason.
-func _scan_drone(a_x: float, a_z: float) -> Commandable:
-	var drone: Commandable = FakePieces.unit({"aerial": true, "vision": 8.0})
+func _scan_drone(a_x: float, a_z: float) -> Actor:
+	var drone: Actor = FakePieces.unit({"aerial": true, "vision": 8.0})
 	_foe.add_child(drone)
 	autofree(drone)
 	drone.ownership.commander = _foe
@@ -184,7 +184,7 @@ func _scan_drone(a_x: float, a_z: float) -> Commandable:
 
 
 ## Record a sighting of `a_piece` on the bot's blackboard, as gaining vision of it would.
-func _believe(a_piece: Commandable) -> Commandable:
+func _believe(a_piece: Actor) -> Actor:
 	_bot.blackboard._upsert(a_piece, 0.0)
 	return a_piece
 
@@ -198,7 +198,7 @@ func _military() -> BotMilitary:
 
 func test_the_scan_drone_really_is_air_only() -> void:
 	# If this ever fails, every other test in the file is passing for the wrong reason.
-	var drone: Commandable = _scan_drone(40.0, 0.0)
+	var drone: Actor = _scan_drone(40.0, 0.0)
 	assert_ne(
 		drone.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR,
 		0,
@@ -248,8 +248,8 @@ func test_an_unarmed_unit_shoots_nothing() -> void:
 ## in the tree and a real Movement node's wiring wants a NavigationAgent it does not have.
 func _truck(
 	a_class: Movement.CrushClass, a_mode: Movement.Mode = Movement.Mode.GROUNDED
-) -> Commandable:
-	var piece: Commandable = _piece(_bot, false, 0.0, 0.0)
+) -> Actor:
+	var piece: Actor = _piece(_bot, false, 0.0, 0.0)
 	var mv := autofree(Movement.new()) as Movement
 	mv.crush_class = a_class
 	mv.mode = a_mode
@@ -258,8 +258,8 @@ func _truck(
 
 
 ## Something small enough to be driven over.
-func _infantry(a_owner: Commander) -> Commandable:
-	var piece: Commandable = _piece(a_owner, false, 1.0, 0.0)
+func _infantry(a_owner: Commander) -> Actor:
+	var piece: Actor = _piece(a_owner, false, 1.0, 0.0)
 	var mv := autofree(Movement.new()) as Movement
 	mv.crush_class = Movement.CrushClass.TINY
 	piece.movement = mv
@@ -296,7 +296,7 @@ func test_an_empty_army_is_not_asked() -> void:
 
 
 func test_one_capable_member_answers_for_the_army() -> void:
-	var drone: Commandable = _scan_drone(40.0, 0.0)
+	var drone: Actor = _scan_drone(40.0, 0.0)
 	assert_false(Bot.any_unit_can_damage([_soldier(), _truck(Movement.CrushClass.LARGE)], drone))
 	assert_true(
 		Bot.any_unit_can_damage([_soldier(), _flak()], drone),
@@ -318,21 +318,21 @@ func test_the_actuator_does_not_order_an_attack_the_unit_cannot_carry_out() -> v
 	# THE REPORTED SYMPTOM, at the point of issue. Without the guard this unit ends the call
 	# holding a persistent Attack that `can_act` refuses and `get_updated_state` never
 	# clears — it stands there until the drone's lifespan expires.
-	var soldier: Commandable = _soldier()
+	var soldier: Actor = _soldier()
 	_actuator().attack([soldier], _scan_drone(40.0, 0.0))
 	assert_false(soldier.has_command(), "no weapon for it, so no order for it")
 
 
 func test_the_actuator_still_orders_the_unit_that_can() -> void:
-	var flak: Commandable = _flak()
+	var flak: Actor = _flak()
 	_actuator().attack([flak], _scan_drone(40.0, 0.0))
 	assert_true(flak.has_command(), "the anti-air unit is sent")
 	assert_true(flak.current_command() is Attack)
 
 
 func test_a_mixed_group_is_split_rather_than_refused() -> void:
-	var soldier: Commandable = _soldier()
-	var flak: Commandable = _flak()
+	var soldier: Actor = _soldier()
+	var flak: Actor = _flak()
 	_actuator().attack([soldier, flak], _scan_drone(40.0, 0.0))
 	assert_false(soldier.has_command())
 	assert_true(flak.has_command())
@@ -359,7 +359,7 @@ func test_one_anti_air_unit_in_the_army_makes_the_drone_an_objective() -> void:
 	_piece(_bot, true, 0.0, 0.0)
 	_soldier()
 	_flak()
-	var drone: Commandable = _believe(_scan_drone(40.0, 0.0))
+	var drone: Actor = _believe(_scan_drone(40.0, 0.0))
 	assert_eq(
 		_military()._objective_for(BotMilitary.Posture.ATTACK),
 		drone.global_position,
@@ -374,7 +374,7 @@ func test_the_drone_is_SKIPPED_rather_than_vetoing_the_whole_offensive() -> void
 	_piece(_bot, true, 0.0, 0.0)
 	_soldier()
 	_believe(_scan_drone(20.0, 0.0))
-	var base: Commandable = _believe(_piece(_foe, true, 60.0, 0.0))
+	var base: Actor = _believe(_piece(_foe, true, 60.0, 0.0))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), base.global_position)
 
 
@@ -382,7 +382,7 @@ func test_an_untargetable_UNIT_belief_is_skipped_for_the_next_one() -> void:
 	_piece(_bot, true, 0.0, 0.0)
 	_soldier()
 	_believe(_scan_drone(10.0, 0.0))
-	var foe_unit: Commandable = _believe(_piece(_foe, false, 50.0, 0.0))
+	var foe_unit: Actor = _believe(_piece(_foe, false, 50.0, 0.0))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), foe_unit.global_position)
 
 
@@ -392,7 +392,7 @@ func test_an_untargetable_UNIT_belief_is_skipped_for_the_next_one() -> void:
 func test_a_unit_belief_is_kept_while_the_unit_is_still_where_we_remember_it() -> void:
 	_piece(_bot, true, 0.0, 0.0)
 	_soldier()
-	var foe_unit: Commandable = _believe(_piece(_foe, false, 50.0, 0.0))
+	var foe_unit: Actor = _believe(_piece(_foe, false, 50.0, 0.0))
 	assert_false(_bot.belief_is_disproved(_bot.blackboard.believed_units()[0]))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), foe_unit.global_position)
 
@@ -404,7 +404,7 @@ func test_a_unit_belief_is_disproved_once_we_can_see_the_spot_is_empty() -> void
 	# looking straight at nothing, it goes on believing.
 	_piece(_bot, true, 0.0, 0.0)
 	_soldier()
-	var wanderer: Commandable = _believe(_piece(_foe, false, 10.0, 0.0))
+	var wanderer: Actor = _believe(_piece(_foe, false, 10.0, 0.0))
 	wanderer.global_position = Vector3(90.0, 0.0, 0.0)  # it moved on
 	assert_true(_bot.belief_is_disproved(_bot.blackboard.believed_units()[0]))
 	assert_null(
@@ -416,9 +416,9 @@ func test_a_unit_belief_is_disproved_once_we_can_see_the_spot_is_empty() -> void
 func test_a_disproved_belief_yields_to_a_live_one_rather_than_ending_the_offensive() -> void:
 	_piece(_bot, true, 0.0, 0.0)
 	_soldier()
-	var wanderer: Commandable = _believe(_piece(_foe, false, 10.0, 0.0))
+	var wanderer: Actor = _believe(_piece(_foe, false, 10.0, 0.0))
 	wanderer.global_position = Vector3(90.0, 0.0, 0.0)
-	var standing: Commandable = _believe(_piece(_foe, false, 50.0, 0.0))
+	var standing: Actor = _believe(_piece(_foe, false, 50.0, 0.0))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), standing.global_position)
 
 
@@ -429,7 +429,7 @@ func test_a_STRUCTURE_belief_is_never_disproved_here() -> void:
 	# deliberate behaviour that a razed base stays the objective until the walk confirms it.
 	_piece(_bot, true, 0.0, 0.0)
 	_soldier()
-	var razed: Commandable = _believe(_piece(_foe, true, 60.0, 0.0))
+	var razed: Actor = _believe(_piece(_foe, true, 60.0, 0.0))
 	var remembered: Vector3 = razed.global_position
 	assert_false(_bot.belief_is_disproved(_bot.blackboard.believed_structures()[0]))
 	razed.get_parent().remove_child(razed)
@@ -445,8 +445,8 @@ func test_a_STRUCTURE_belief_is_never_disproved_here() -> void:
 
 
 ## A stub that IS a suicide unit, from `ProbeBot`'s point of view.
-func _kamikaze() -> Commandable:
-	var drone: Commandable = _soldier()
+func _kamikaze() -> Actor:
+	var drone: Actor = _soldier()
 	drone.id = _bot.suicide_id
 	return drone
 
@@ -455,7 +455,7 @@ func test_a_kamikaze_does_not_anchor_a_blast_on_a_body_it_cannot_strike() -> voi
 	# Same failure, a different decision: the blast used to be priced purely off the damage
 	# table, which answers for anything with armour. Anchoring on the drone produced a
 	# persist = true Attack the drone could never act on and never drop.
-	var drone: Commandable = _scan_drone(40.0, 0.0)
+	var drone: Actor = _scan_drone(40.0, 0.0)
 	_bot.seen = [drone]
 	assert_null(
 		_bot.kamikaze_best_target(_kamikaze()),
@@ -464,7 +464,7 @@ func test_a_kamikaze_does_not_anchor_a_blast_on_a_body_it_cannot_strike() -> voi
 
 
 func test_a_kamikaze_still_finds_a_blast_it_can_deliver() -> void:
-	var body: Commandable = _piece(_foe, false, 40.0, 0.0)
+	var body: Actor = _piece(_foe, false, 40.0, 0.0)
 	_bot.seen = [_scan_drone(41.0, 0.0), body]
 	var best: Variant = _bot.kamikaze_best_target(_kamikaze())
 	assert_not_null(best, "the reachable body is still worth a run")

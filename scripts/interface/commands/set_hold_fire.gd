@@ -20,15 +20,15 @@ static func requires_position() -> bool:
 	return false
 
 
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return false
 
 
-func can_act(_a_actor: Commandable) -> bool:
+func can_act(_a_actor: Actor) -> bool:
 	return true
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	a_actor.is_holding_fire = is_holding
 	return null
 

@@ -97,7 +97,7 @@ func test_a_unit_holding_ground_yields_to_nobody() -> void:
 
 
 func test_the_rank_follows_what_the_unit_is_doing_now() -> void:
-	# Re-evaluated every tick from Commandable._physics_process rather than latched when a
+	# Re-evaluated every tick from Actor._physics_process rather than latched when a
 	# command is issued, so a unit regains its rank the moment it starts moving and drops it
 	# again on arrival.
 	var movement: Movement = _make_movement(true)

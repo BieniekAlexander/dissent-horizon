@@ -215,7 +215,7 @@ var _landing_state: LandingState = LandingState.AIRBORNE
 var _prev_tilt_velocity: Vector3 = Vector3.ZERO
 
 ## Aerial terrain-following state (see _update_aerial_altitude). _smoothed_terrain_y is
-## the eased base terrain height the unit follows — Commandable adds height_offset() to
+## the eased base terrain height the unit follows — Actor adds height_offset() to
 ## it for the final world Y (follow_y). _vertical_velocity is its current rate of
 ## change (world-units/s), ramped under MAX_VERTICAL_ACCEL. Seeded to the actual terrain
 ## height on the first tick (guarded by _aerial_y_seeded) so the unit doesn't ease up
@@ -406,7 +406,7 @@ static func of(a_piece: Node) -> Aerial:
 	return a_piece.get_node_or_null("Aerial") as Aerial if a_piece != null else null
 
 
-## World-units above the terrain surface Commandable adds when snapping Y.
+## World-units above the terrain surface Actor adds when snapping Y.
 func height_offset() -> float:
 	return _current_height_offset
 
@@ -623,7 +623,7 @@ func park_on_deck(a_deck_offset: float = 0.0) -> void:
 ##
 ## POSITION, not velocity: a commanded velocity is suppressed outright while a unit is on the
 ## deck, so a velocity handed to a taxiing aircraft goes nowhere. Y is left alone —
-## Commandable rewrites it from the terrain every tick.
+## Actor rewrites it from the terrain every tick.
 ##
 ## Refused unless the unit is actually on the deck, so this can never be mistaken for a
 ## flight instruction. A HOVERING dock would simply not call it: a helicopter has no

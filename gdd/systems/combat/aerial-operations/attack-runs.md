@@ -57,7 +57,7 @@ than a clean refusal: the comparison sat on a knife edge and tipped on a fractio
 drift in the range shape's transform, so the same unit fired or did not depending on
 rounding.
 
-**An aerial unit on the ground cannot shoot at all.** `Commandable.can_use_weapons()` is
+**An aerial unit on the ground cannot shoot at all.** `Actor.can_use_weapons()` is
 false for an aerial unit that is not `is_airborne()` — a helicopter set down in a field, a
 jet parked on its pad or rolling down a runway, one still in its climb-out or its final.
 None of them are fighting, and a parked aircraft cutting down whatever wandered past its
@@ -69,7 +69,7 @@ deliberately, so that it is not untouchable while it sits there. Being harmless 
 what makes that fair.
 
 Three places read it, so a grounded aircraft neither fires, retaliates, nor goes looking:
-`Attack._own_weapon_can_fire`, `Commandable._get_vision_range_attack`, and the idle-aggro
+`Attack._own_weapon_can_fire`, `Actor._get_vision_range_attack`, and the idle-aggro
 pickup — which used to be gated on the narrower "parked" test and so missed a hover unit
 landed in a field. Ground units and turrets are untouched: neither carries an `Aerial`.
 

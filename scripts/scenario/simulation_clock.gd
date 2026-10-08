@@ -6,7 +6,7 @@ extends Node
 ##
 ## The mechanism is `SceneTree.paused`, which suppresses `_physics_process` on every node
 ## whose process_mode is PAUSABLE/INHERIT. That maps exactly onto this game's split: all
-## simulation lives in `_physics_process` (Commandable._update_state, Commander's
+## simulation lives in `_physics_process` (Actor._update_state, Commander's
 ## ProductionQueue tick, Fog, BotBrain, Scenario.tick), while the player's own agency —
 ## selection, hotkeys, right-click orders, camera, HUD — lives in `_process` /
 ## `_unhandled_input`. So a hold freezes the world but leaves the player able to look

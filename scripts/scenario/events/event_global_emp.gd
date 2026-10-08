@@ -33,7 +33,7 @@ const EMP_EFFECT: PackedScene = preload("res://scenes/entities/status_effects/em
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
 	for node: Node in a_manager.get_tree().get_nodes_in_group("unit"):
-		var unit := node as Commandable
+		var unit := node as Actor
 		if unit == null or unit.is_queued_for_deletion():
 			continue
 		# MECH only, and that comes from the scene: an EMP that also stopped infantry would

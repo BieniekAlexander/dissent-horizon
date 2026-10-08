@@ -6,7 +6,7 @@ extends Node3D
 ## "Condition" means everything about a unit that is true of it right now and can change
 ## while it stands there: whether stealth is hiding it, which StatusEffects are acting on
 ## it, and what rank it has earned. Deliberately NOT the construction lifecycle — that is
-## Commandable._apply_construction_visuals' business, and the two write separate channels
+## Actor._apply_construction_visuals' business, and the two write separate channels
 ## on MeshVisual (see its STATUS_* constants) precisely so they can never overwrite each
 ## other. A half-built barracks can be EMP'd; a stealthed unit is no less finished for
 ## fading.
@@ -29,7 +29,7 @@ extends Node3D
 ## subclass between them.
 ##
 ## This replaces the billboard-sprite era's visual code, which lived inline in
-## Commandable._process and wrote Sprite.modulate directly — a channel it shared with the
+## Actor._process and wrote Sprite.modulate directly — a channel it shared with the
 ## team tint and the construction fade, which is why that block had to rewrite all three
 ## every single frame to stop them clobbering one another.
 
@@ -56,7 +56,7 @@ const AMMO_FILLED: Texture2D = preload("res://assets/interface/ammo_filled.svg")
 const HOLD_FIRE_ICON: Texture2D = preload("res://assets/interface/status_hold_fire.svg")
 
 ## Over a structure its commander cannot power, whose weapons or abilities have gone dark
-## (Commandable.is_unpowered). See _shows_unpowered.
+## (Actor.is_unpowered). See _shows_unpowered.
 const UNPOWERED_ICON: Texture2D = preload("res://assets/interface/status_unpowered.svg")
 
 ## Over a BLUEPRINT whose purchase is still waiting for energy: the site is ordered, and nothing
@@ -105,7 +105,7 @@ const PIPS_PER_ROW: int = 8
 #endregion
 
 #region State
-var _host: Commandable = null
+var _host: Actor = null
 var _mesh_visual: MeshVisual = null
 var _veterancy_sprite: Sprite3D = null
 ## Pool of icon sprites, grown on demand and hidden when unused — a unit gains and loses
@@ -119,7 +119,7 @@ var _elapsed: float = 0.0
 
 #region Lifecycle
 func _ready() -> void:
-	_host = get_parent() as Commandable
+	_host = get_parent() as Actor
 	_mesh_visual = get_parent().get_node_or_null("MeshVisual") as MeshVisual
 
 
@@ -159,7 +159,7 @@ func _stealth_opacity() -> float:
 	if _host.stealth == null:
 		return MeshVisual.STATUS_OPACITY_NORMAL
 	# Physics frames rather than _elapsed so the pulse keeps the cadence it had when this
-	# lived in Commandable._process, and so every stealthed unit on screen pulses together.
+	# lived in Actor._process, and so every stealthed unit on screen pulses together.
 	var pulse: float = 0.3 + 0.1 * sin(Engine.get_physics_frames() / 5.0)
 	match _host.stealth.state:
 		Stealth.State.UNSTEALTHED:
@@ -188,7 +188,7 @@ func _effect_tint(a_effects: Array[StatusEffect]) -> Color:
 
 ## Every StatusEffect currently acting on the host. Effects are children of the entity
 ## they act on (see StatusEffect.apply_to), so this is a scan of the host's own children —
-## the same shape Commandable.is_stunned() uses.
+## the same shape Actor.is_stunned() uses.
 func _active_effects() -> Array[StatusEffect]:
 	var out: Array[StatusEffect] = []
 	for child: Node in _host.get_children():

@@ -324,7 +324,7 @@ func activate(
 	a_position: Vector3,
 	a_manager: ScenarioTriggerManager,
 	a_commander: Commander,
-	a_caster: Commandable = null,
+	a_caster: Actor = null,
 	a_payload: StringName = &"",
 	a_target: Variant = null
 ) -> bool:

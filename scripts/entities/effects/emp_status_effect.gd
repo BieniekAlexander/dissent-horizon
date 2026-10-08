@@ -9,7 +9,7 @@ extends StunStatusEffect
 
 
 ## Whether an EMP is disabling `a_unit` right now.
-static func is_emped(a_unit: Commandable) -> bool:
+static func is_emped(a_unit: Actor) -> bool:
 	for child: Node in a_unit.get_children():
 		if child is EmpStatusEffect and (child as EmpStatusEffect).is_active():
 			return true

@@ -292,7 +292,7 @@ func _economy_with(a_map: Map, a_units: Array) -> BotEconomy:
 
 
 ## A builder holding a Build aimed at `a_world`, which is what makes it read as in flight.
-func _builder_building_at(a_map: Map, a_world: Vector3) -> Commandable:
+func _builder_building_at(a_map: Map, a_world: Vector3) -> Actor:
 	var unit := FakePieces.unit(FakePieces.BUILDER)
 	add_child_autofree(unit)
 	var tool := Tool.new("command_tool_x", &"test_extractor", null, "x", Vector2i.ZERO, 0, 0)

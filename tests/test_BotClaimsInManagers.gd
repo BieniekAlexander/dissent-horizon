@@ -6,7 +6,7 @@ extends GutTest
 
 
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
@@ -55,7 +55,7 @@ func before_each() -> void:
 	_claims = BotClaims.new()
 
 
-func _armed_unit() -> Commandable:
+func _armed_unit() -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	_bot.add_child(piece)
 	piece.ownership.commander = _bot

@@ -67,10 +67,10 @@ func has_free_pad() -> bool:
 
 
 ## The units currently holding a pad here — parked or inbound.
-func claimants() -> Array[Commandable]:
-	var result: Array[Commandable] = []
+func claimants() -> Array[Actor]:
+	var result: Array[Actor] = []
 	for p: DockingPad in pads():
-		var c: Commandable = p.claimed_by()
+		var c: Actor = p.claimed_by()
 		if c != null:
 			result.append(c)
 	return result
@@ -78,7 +78,7 @@ func claimants() -> Array[Commandable]:
 
 ## The pad `unit` already holds here, or null. Checked before reserving so a Rearm command
 ## re-entering its own approach reclaims its space rather than taking a second one.
-func pad_held_by(a_unit: Commandable) -> DockingPad:
+func pad_held_by(a_unit: Actor) -> DockingPad:
 	for p: DockingPad in pads():
 		if p.claimed_by() == a_unit:
 			return p
@@ -98,12 +98,12 @@ func pad_held_by(a_unit: Commandable) -> DockingPad:
 ##   * FINISHED — a half-built airfield has no deck to land on.
 ## Room is deliberately NOT part of this, mirroring Garrison.admits: a full bay still
 ## admits a unit, which then waits for a pad rather than being refused the order.
-func admits(a_unit: Commandable) -> bool:
+func admits(a_unit: Actor) -> bool:
 	if a_unit == null or not is_instance_valid(a_unit):
 		return false
 	if a_unit.docking == null:
 		return false
-	var host: Commandable = owner_commandable()
+	var host: Actor = owner_commandable()
 	if host == null or not host.is_built:
 		return false
 	if host.commander_id == 0 or host.commander_id != a_unit.commander_id:
@@ -114,14 +114,14 @@ func admits(a_unit: Commandable) -> bool:
 ## Both questions at once: may this unit dock here, and is there room right now. The
 ## admits / has_room / accepts trio mirrors Garrison's, so the two mechanics answer the
 ## same three questions under the same three names.
-func accepts(a_unit: Commandable) -> bool:
+func accepts(a_unit: Actor) -> bool:
 	return admits(a_unit) and (has_free_pad() or pad_held_by(a_unit) != null)
 
 
 ## Claim a pad here for `unit`, returning it — or null when the bay is full. Idempotent:
 ## a unit that already holds a pad here gets the same one back, so a command re-reserving
 ## every tick cannot consume the whole bay.
-func reserve(a_unit: Commandable) -> DockingPad:
+func reserve(a_unit: Actor) -> DockingPad:
 	var held: DockingPad = pad_held_by(a_unit)
 	if held != null:
 		return held
@@ -134,7 +134,7 @@ func reserve(a_unit: Commandable) -> DockingPad:
 
 
 ## Drop whatever pad `unit` holds here. Safe to call for a unit that holds none.
-func release(a_unit: Commandable) -> void:
+func release(a_unit: Actor) -> void:
 	for p: DockingPad in pads():
 		if p.claimed_by() == a_unit:
 			p.release(a_unit)
@@ -150,7 +150,7 @@ func release(a_unit: Commandable) -> void:
 ## without ever landing.
 func tick_recharge() -> void:
 	for p: DockingPad in pads():
-		var unit: Commandable = p.claimed_by()
+		var unit: Actor = p.claimed_by()
 		if unit == null or unit.docking == null or not unit.docking.is_docked_at(p):
 			continue
 		if unit.weapon_inventory != null:
@@ -187,9 +187,9 @@ func runway_for(a_pad: DockingPad) -> Runway:
 	return best
 
 
-## The Commandable this bay belongs to. Structures put their components directly under the
+## The Actor this bay belongs to. Structures put their components directly under the
 ## entity root, so this is just the parent — resolved through a helper rather than inline
 ## so the one cast lives in one place.
-func owner_commandable() -> Commandable:
-	return get_parent() as Commandable
+func owner_commandable() -> Actor:
+	return get_parent() as Actor
 #endregion

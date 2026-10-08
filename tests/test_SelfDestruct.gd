@@ -6,11 +6,11 @@ extends GutTest
 ## its target's top, and is spent on contact. Every piece is a fake (tests/_fake_pieces.gd).
 
 
-func _wielder(a_self_destruct: bool) -> Commandable:
+func _wielder(a_self_destruct: bool) -> Actor:
 	var commander := Commander.new()
 	commander.id = 1
 	add_child_autofree(commander)
-	var piece := FakePieces.unit({"weapon": {"ground": 0.5, "projectile": true}}) as Commandable
+	var piece := FakePieces.unit({"weapon": {"ground": 0.5, "projectile": true}}) as Actor
 	var weapon: Weapon = piece.get_node("Loadout").get_child(0) as Weapon
 	weapon.projectile_scene = FakePieces.emission_scene()
 	weapon.self_destruct = a_self_destruct
@@ -20,7 +20,7 @@ func _wielder(a_self_destruct: bool) -> Commandable:
 	return piece
 
 
-func _weapon(a_piece: Commandable) -> Weapon:
+func _weapon(a_piece: Actor) -> Weapon:
 	return a_piece.weapon_inventory.get_weapons()[0]
 
 
@@ -31,10 +31,10 @@ func _emissions(a_commander: Commander) -> Array:
 
 
 func test_firing_kills_the_wielder_and_sets_off_one_blast_where_it_is() -> void:
-	var piece: Commandable = _wielder(true)
+	var piece: Actor = _wielder(true)
 	var commander: Commander = piece.commander
 	var at: Vector3 = piece.global_position
-	var target: Commandable = FakePieces.unit()
+	var target: Actor = FakePieces.unit()
 	add_child_autofree(target)
 	_weapon(piece).fire(piece, target)
 	assert_true(piece.is_queued_for_deletion(), "the airframe is spent on the tick it strikes")
@@ -45,7 +45,7 @@ func test_firing_kills_the_wielder_and_sets_off_one_blast_where_it_is() -> void:
 
 
 func test_a_wielder_killed_otherwise_still_explodes_once() -> void:
-	var piece: Commandable = _wielder(true)
+	var piece: Actor = _wielder(true)
 	var commander: Commander = piece.commander
 	piece._fire_entity_occurrence(Entity.EntityOccurrence.ON_DEATH)
 	piece._fire_entity_occurrence(Entity.EntityOccurrence.ON_DEATH)
@@ -53,7 +53,7 @@ func test_a_wielder_killed_otherwise_still_explodes_once() -> void:
 
 
 func test_an_ordinary_weapon_does_nothing_at_death() -> void:
-	var piece: Commandable = _wielder(false)
+	var piece: Actor = _wielder(false)
 	var commander: Commander = piece.commander
 	piece._fire_entity_occurrence(Entity.EntityOccurrence.ON_DEATH)
 	assert_eq(_emissions(commander).size(), 0)

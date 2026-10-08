@@ -35,8 +35,8 @@ func _commander() -> Commander:
 
 ## A live unit. Ownership is assigned directly rather than through initialize(), so no Map
 ## is needed; entering the tree is what resolves its components.
-func _unit(a_options: Dictionary) -> Commandable:
-	var u: Commandable = FakePieces.unit(a_options)
+func _unit(a_options: Dictionary) -> Actor:
+	var u: Actor = FakePieces.unit(a_options)
 	add_child_autofree(u)
 	u.ownership.commander = _commander()
 	return u
@@ -57,8 +57,8 @@ func test_a_selection_with_no_builder_offers_nothing() -> void:
 
 
 func test_the_menu_does_not_depend_on_which_unit_was_selected_first() -> void:
-	var servant: Commandable = _unit(SERVANT)
-	var recruit: Commandable = _unit(RECRUIT)
+	var servant: Actor = _unit(SERVANT)
+	var recruit: Actor = _unit(RECRUIT)
 	var expected: Array = _build_tools([servant])
 	assert_gt(expected.size(), 0, "guards the fixture")
 	assert_eq(_build_tools([servant, recruit]), expected, "builder picked first")
@@ -70,8 +70,8 @@ func test_the_menu_does_not_depend_on_which_unit_was_selected_first() -> void:
 
 
 func test_the_union_is_deduplicated() -> void:
-	var one: Commandable = _unit(SERVANT)
-	var two: Commandable = _unit(SERVANT)
+	var one: Actor = _unit(SERVANT)
+	var two: Actor = _unit(SERVANT)
 	assert_eq(
 		_build_tools([one, two]),
 		_build_tools([one]),
@@ -80,8 +80,8 @@ func test_the_union_is_deduplicated() -> void:
 
 
 func test_the_build_order_is_refused_by_a_non_builder() -> void:
-	var servant: Commandable = _unit(SERVANT)
-	var recruit: Commandable = _unit(RECRUIT)
+	var servant: Actor = _unit(SERVANT)
+	var recruit: Actor = _unit(RECRUIT)
 	var tools: Array = _build_tools([servant])
 	assert_gt(tools.size(), 0, "guards the fixture")
 	var message := CommandMessage.new(null, null)

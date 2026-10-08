@@ -37,9 +37,9 @@ func draw(a_bot: Bot, a_pen: BotDebugPen) -> void:
 		color.a = lerpf(
 			THREAT_ALPHA_MIN, THREAT_ALPHA_MAX, t["value"] / most if most > 0.0 else 1.0
 		)
-		var enemy: Commandable = t["enemy"]
+		var enemy: Actor = t["enemy"]
 		a_pen.ring(enemy.global_position, THREAT_RING_RADIUS, color)
-		a_pen.line(enemy.global_position, (t["structure"] as Commandable).global_position, color)
+		a_pen.line(enemy.global_position, (t["structure"] as Actor).global_position, color)
 	if not a_bot.get_structures().is_empty():
 		var centroid: Vector3 = a_bot.base_centroid()
 		a_pen.square(centroid, CENTROID_HALF, COLOR_CENTROID)

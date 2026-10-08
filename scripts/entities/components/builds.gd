@@ -2,7 +2,7 @@ class_name Builds
 extends Node
 
 ## Declares which structure Entity.Types this unit is allowed to build.
-## Add as a child of any Commandable that should have build capability;
+## Add as a child of any Actor that should have build capability;
 ## populate buildable_types in the inspector or scene file.
 
 @export var buildable_types: Array[StringName] = []

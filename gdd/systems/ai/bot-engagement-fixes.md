@@ -17,7 +17,7 @@ way.
 **The bots could not SEE.** `Fog` resolved its `Map` from `get_tree().current_scene`, which
 is the Scenario only when the Scenario is the opened scene. The harness instantiates the
 Scenario as a child of a runner node, so the lookup missed, every `Fog` stayed inert, and
-`fog_clear_at` then answered FALSE for every point on the map. `Commandable.is_visible_to`
+`fog_clear_at` then answered FALSE for every point on the map. `Actor.is_visible_to`
 is built on it, so aggro, `BotTargeting` and the blackboard all saw an empty world.
 
 Two bots then spent twenty minutes building armies that could not acquire each other. That
@@ -212,11 +212,11 @@ not see anything at all; with vision the drone acquired a target and was command
 
 **The expectation was right and the hold was fiction.** `BotKamikaze._hold` only walked the
 drone home — and only when the bot owned a structure, so a drone with no base was not even
-walked. Walking is not holding: idle aggro (`Commandable._update_state`) picks up whatever
+walked. Walking is not holding: idle aggro (`Actor._update_state`) picks up whatever
 comes into range on the way, so the cost-effectiveness scan this module exists to perform was
 silently overridden by proximity.
 
-`Commandable.is_holding_fire` is the fix: a flag that stops a piece acquiring targets ON ITS
+`Actor.is_holding_fire` is the fix: a flag that stops a piece acquiring targets ON ITS
 OWN while leaving explicit orders untouched. `_hold` now sets it, drops any engagement aggro
 has already committed the drone to (suppression only prevents the NEXT pickup), and only then
 takes the drone home if there is a home. `_commit` clears it first, so a drone flying a run is
@@ -380,12 +380,12 @@ partly not, and the honest split matters more than the tidy answer:
 weapon does no damage" — and the Scan drone is the first kind: `scenes/entities/scout.tscn` is
 HOVERING, so `Entity._apply_targetable_layers` files it on TARGETABLE_AIR **alone**.
 
-The capability was always there. Aggro (`Commandable.get_aggro_near_position`) and
+The capability was always there. Aggro (`Actor.get_aggro_near_position`) and
 `BotTargeting._retarget` both filter candidates through it. The two places that did not were
 the two that decide WHERE AN ARMY GOES and WHAT A DRONE COMMITS TO — and a third that could
 have caught either: `BotActuator.attack` issued whatever it was handed.
 
-**Why an impossible order never resolves itself.** `Commandable.update_commands` does not
+**Why an impossible order never resolves itself.** `Actor.update_commands` does not
 consult preconditions — that is `RTSController`'s job, and the bot does not go through it. So
 an `Attack` at an untargetable entity sits there: `should_move` returns false (no weapon to
 close for), `can_act` returns false (nothing to fire), and with `persist = true`

@@ -37,11 +37,11 @@ func is_ai_controlled() -> bool:
 # bot's unit/structure discriminator, so new scenes classify correctly without any
 # type-table edits.
 func _owned_units() -> Array:
-	return _owned_commandables().filter(func(c: Commandable): return not c.structure_is_active())
+	return _owned_commandables().filter(func(c: Actor): return not c.structure_is_active())
 
 
 func _owned_structures() -> Array:
-	return _owned_commandables().filter(func(c: Commandable): return c.structure_is_active())
+	return _owned_commandables().filter(func(c: Actor): return c.structure_is_active())
 
 
 # ─── ECONOMY ────────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ func extractor_count() -> int:
 	# component rather than by Entity.Type.
 	return (
 		_owned_structures()
-		. filter(func(s: Commandable): return s.has_node("EnergyExtractor") and s.is_built)
+		. filter(func(s: Actor): return s.has_node("EnergyExtractor") and s.is_built)
 		. size()
 	)
 
@@ -124,7 +124,7 @@ func believed_armed_enemies() -> Array:
 ## structure (the Operations Center) trains nothing and is not one.
 func get_research_structures() -> Array:
 	return _owned_structures().filter(
-		func(s: Commandable) -> bool:
+		func(s: Actor) -> bool:
 			return (
 				s.production != null
 				and s.is_built
@@ -147,7 +147,7 @@ func get_units_of_type(a_type: StringName) -> Array:
 	var scene_path := _scene_path_for_type(a_type)
 	if scene_path == "":
 		return []
-	return _owned_units().filter(func(c: Commandable): return c.scene_file_path == scene_path)
+	return _owned_units().filter(func(c: Actor): return c.scene_file_path == scene_path)
 
 
 ## All structures of a specific type.  Wraps structure_type_map for
@@ -162,7 +162,7 @@ func get_structures_of_type(a_type: StringName) -> Array:
 ## production.tick() is gated on is_built and their queues won't advance.
 func get_production_structures() -> Array:
 	return _owned_structures().filter(
-		func(s: Commandable):
+		func(s: Actor):
 			return s.production != null and s.production.trains_units() and s.is_built
 	)
 
@@ -174,14 +174,14 @@ func get_production_structures() -> Array:
 ## without it the bot would re-order the same unit every tick while saving up.
 func get_idle_production_structures() -> Array:
 	return get_production_structures().filter(
-		func(s: Commandable):
+		func(s: Actor):
 			return s.production.is_free() and production_queue.pending_count_for(s) == 0
 	)
 
 
 ## Units with no active command — standing idle and available to be re-tasked.
 func get_idle_units() -> Array:
-	return _owned_units().filter(func(c: Commandable): return not c.has_command())
+	return _owned_units().filter(func(c: Actor): return not c.has_command())
 
 
 ## Total number of units owned by this commander.
@@ -194,7 +194,7 @@ func army_size() -> int:
 ## invested in an army" gauge that drives attack-wave commitment.
 func army_resource_value() -> float:
 	var total: float = 0.0
-	for u: Commandable in _owned_units():
+	for u: Actor in _owned_units():
 		var spec: TechnologySpec = technology_mapping.get(u.id)
 		if spec != null:
 			total += spec.energy_cost
@@ -206,7 +206,7 @@ func army_resource_value() -> float:
 ## composition without inspecting each unit's type.
 func army_type_counts() -> Dictionary:
 	var counts: Dictionary = {}
-	for c: Commandable in _owned_units():
+	for c: Actor in _owned_units():
 		counts[c.scene_file_path] = counts.get(c.scene_file_path, 0) + 1
 	return counts
 
@@ -215,7 +215,7 @@ func army_type_counts() -> Dictionary:
 ## purchase for (CombatModel).
 func own_armed_composition() -> Dictionary:
 	var counts: Dictionary = {}
-	for u: Commandable in _owned_units():
+	for u: Actor in _owned_units():
 		if unit_can_attack(u.id):
 			counts[u.id] = int(counts.get(u.id, 0)) + 1
 	return counts
@@ -243,7 +243,7 @@ func army_average_health_fraction() -> float:
 	if units.is_empty():
 		return 0.0
 	var total := 0.0
-	for c: Commandable in units:
+	for c: Actor in units:
 		total += c.defense.hp / c.defense.hp_max if c.defense != null else 0.0
 	return total / float(units.size())
 
@@ -254,7 +254,7 @@ func army_average_health_fraction() -> float:
 ## not as an absolute damage-per-second figure.
 func estimate_army_strength() -> float:
 	var strength := 0.0
-	for c: Commandable in _owned_units():
+	for c: Actor in _owned_units():
 		strength += entity_strength(c)
 	return strength
 
@@ -269,28 +269,28 @@ func get_all_enemies() -> Array:
 
 ## Only the mobile units owned by enemy commanders — the things that attack.
 func get_enemy_units() -> Array:
-	return get_all_enemies().filter(func(c: Commandable): return not c.structure_is_active())
+	return get_all_enemies().filter(func(c: Actor): return not c.structure_is_active())
 
 
 ## Only the structures owned by enemy commanders — the things to destroy.
 func get_enemy_structures() -> Array:
-	return get_all_enemies().filter(func(c: Commandable): return c.structure_is_active())
+	return get_all_enemies().filter(func(c: Actor): return c.structure_is_active())
 
 
 ## Enemy commandables within [unit]'s aggro range, keeping only targets ranked at least
 ## as important as [min_target_priority] and sorting them by target priority (most
 ## important first). Uses the unit's actual aggro volumes via Entity.hostiles_in_aggro —
-## the same check Commandable.get_aggro_near_position runs, including its vision gate: an
+## the same check Actor.get_aggro_near_position runs, including its vision gate: an
 ## enemy this bot cannot see (fogged or stealthed) is not in aggro range, so the bot does
 ## not react to what its units could not have picked a fight with. Empty when the unit has none.
 func get_enemies_in_aggro_range(
-	a_unit: Commandable,
+	a_unit: Actor,
 	min_target_priority: Entity.TargetPriority = Entity.TargetPriority.NON_COMBAT_UNITS
 ) -> Array:
 	var enemies: Array = a_unit.hostiles_in_aggro().filter(
 		func(e):
 			return (
-				e is Commandable
+				e is Actor
 				and e.commander_id != id
 				and e.commander_id != 0
 				and e.target_priority <= min_target_priority
@@ -304,7 +304,7 @@ func get_enemies_in_aggro_range(
 ## THE BASE'S THREATS: every enemy this bot can SEE within `a_threat_radius` of an owned
 ## structure — `a_centre_radius` of a command centre, which under HEGEMONY is threatened from
 ## further off — that can DAMAGE the structure it is near. As
-## [{"enemy": Commandable, "structure": Commandable, "value": float}], one entry per enemy, at
+## [{"enemy": Actor, "structure": Actor, "value": float}], one entry per enemy, at
 ## the structure it threatens most.
 ##
 ## A piece that cannot hurt what it stands beside is no threat (Alex, 2026-10-07): an unarmed
@@ -321,9 +321,9 @@ func base_threats(a_threat_radius: float = 30.0, a_centre_radius: float = -1.0) 
 		return []
 	var centre_radius: float = a_centre_radius if a_centre_radius >= 0.0 else a_threat_radius
 	var by_enemy: Dictionary = {}  # enemy -> its entry, at the structure it threatens most
-	for s: Commandable in _owned_structures():
+	for s: Actor in _owned_structures():
 		var radius: float = centre_radius if Deployment.is_command_centre(s) else a_threat_radius
-		for enemy: Commandable in visible_enemies_near(s.global_position, radius):
+		for enemy: Actor in visible_enemies_near(s.global_position, radius):
 			var fit: float = matchup(enemy, s)
 			if fit <= 0.0:
 				continue
@@ -335,7 +335,7 @@ func base_threats(a_threat_radius: float = 30.0, a_centre_radius: float = -1.0) 
 
 ## The enemies in base_threats, without their values.
 func get_enemies_threatening_base(a_threat_radius: float = 30.0) -> Array:
-	return base_threats(a_threat_radius).map(func(t: Dictionary) -> Commandable: return t["enemy"])
+	return base_threats(a_threat_radius).map(func(t: Dictionary) -> Actor: return t["enemy"])
 
 
 ## True when the base has any threat at all (base_threats).
@@ -344,19 +344,19 @@ func is_base_under_threat(a_threat_radius: float = 30.0) -> bool:
 
 
 ## Whether a visible enemy within `a_threat_radius` of `a_structure` can damage it.
-func is_threatened(a_structure: Commandable, a_threat_radius: float) -> bool:
+func is_threatened(a_structure: Actor, a_threat_radius: float) -> bool:
 	return visible_enemies_near(a_structure.global_position, a_threat_radius).any(
-		func(enemy: Commandable) -> bool: return matchup(enemy, a_structure) > 0.0
+		func(enemy: Actor) -> bool: return matchup(enemy, a_structure) > 0.0
 	)
 
 
 ## The owned structure most in danger: lowest HP fraction among those
 ## that currently have enemies nearby.  Returns null if nothing is under
 ## active attack.  A natural rally target for defensive units.
-func most_threatened_structure(a_threat_radius: float = 30.0) -> Commandable:
-	var worst: Commandable = null
+func most_threatened_structure(a_threat_radius: float = 30.0) -> Actor:
+	var worst: Actor = null
 	var worst_frac := 1.0
-	for s: Commandable in _owned_structures():
+	for s: Actor in _owned_structures():
 		if is_threatened(s, a_threat_radius):
 			var frac := s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
 			if frac < worst_frac:
@@ -373,7 +373,7 @@ func most_threatened_structure(a_threat_radius: float = 30.0) -> Commandable:
 ## or make it fog-honest before anything reads it.
 func relative_threat_level() -> float:
 	var enemy_strength := 0.0
-	for c: Commandable in get_enemy_units():
+	for c: Actor in get_enemy_units():
 		enemy_strength += entity_strength(c)
 	var own := estimate_army_strength()
 	var total := own + enemy_strength
@@ -407,7 +407,7 @@ const CLUSTER_LINK_DISTANCE: float = 8.0
 
 ## One believed enemy force — a group of enemies close enough to fight as one.
 class EnemyCluster:
-	var members: Array  ## Commandable
+	var members: Array  ## Actor
 	var centroid: Vector3
 	## Σ damage × hp fraction, the same measure relative_threat_level and
 	## estimate_army_strength use, so the three are comparable.
@@ -431,7 +431,7 @@ class EnemyCluster:
 ## can see. Not built; it needs the grouping to work on positions rather than on nodes.
 func enemy_clusters(a_link_distance: float = CLUSTER_LINK_DISTANCE) -> Array:
 	var units: Array = visible_enemies().filter(
-		func(e: Commandable): return not e.structure_is_active()
+		func(e: Actor): return not e.structure_is_active()
 	)
 	var groups: Array = CU.get_nodes_clustered(units, a_link_distance)
 	var out: Array = groups.map(func(g: Array): return _cluster_of(g))
@@ -493,7 +493,7 @@ func _cluster_profile(a_members: Array) -> Dictionary:
 	var strength: float = 0.0
 	var energy_value: float = 0.0
 	var velocity_sum := Vector3.ZERO
-	for m: Commandable in a_members:
+	for m: Actor in a_members:
 		velocity_sum += m.velocity
 		strength += entity_strength(m)
 		energy_value += float(unit_cost(m.id))
@@ -506,7 +506,7 @@ func _cluster_profile(a_members: Array) -> Dictionary:
 ## One entity's contribution to a strength estimate: its damage output scaled by how much
 ## of it is left. The single definition of "how strong is this thing", so estimate_army_
 ## strength, relative_threat_level and a cluster's strength cannot drift apart.
-func entity_strength(a_entity: Commandable) -> float:
+func entity_strength(a_entity: Actor) -> float:
 	if a_entity.defense == null or a_entity.defense.hp_max <= 0.0:
 		return 0.0
 	var damage: float = (
@@ -517,13 +517,13 @@ func entity_strength(a_entity: Commandable) -> float:
 
 ## True when `a_unit` is ARMED — a Loadout that actually holds a Weapon. An empty Loadout is
 ## a node without weapons, so `weapon_inventory != null` is not this question.
-func unit_is_armed(a_unit: Commandable) -> bool:
+func unit_is_armed(a_unit: Actor) -> bool:
 	return a_unit.weapon_inventory != null and a_unit.weapon_inventory.has_weapons()
 
 
 ## True when `a_unit` kills by DRIVING OVER things — the crush mechanic, which is a size-class
 ## comparison on Movement and needs no component of its own (Movement.can_crush_anything).
-func unit_can_crush(a_unit: Commandable) -> bool:
+func unit_can_crush(a_unit: Actor) -> bool:
 	return a_unit.movement != null and a_unit.movement.can_crush_anything()
 
 
@@ -540,7 +540,7 @@ func unit_can_crush(a_unit: Commandable) -> bool:
 ## Deliberately NOT the same question as BotScout._applicable_responsibility_count's "does
 ## the army want this unit": crushing is contact damage a unit does wherever it happens to
 ## be, not a job that keeps it somewhere, so it does not make a unit needed elsewhere.
-func unit_has_combat_utility(a_unit: Commandable) -> bool:
+func unit_has_combat_utility(a_unit: Actor) -> bool:
 	return unit_is_armed(a_unit) or unit_can_crush(a_unit)
 
 
@@ -548,7 +548,7 @@ func unit_has_combat_utility(a_unit: Commandable) -> bool:
 ##
 ## Centres the scan on each candidate in turn and totals `a_weight` over everything within
 ## the radius of it — so the answer is always a point some real entity sits at, which is
-## what makes it reachable and aimable. `a_weight` is Callable(Commandable) -> float: pass
+## what makes it reachable and aimable. `a_weight` is Callable(Actor) -> float: pass
 ## one that returns 1.0 to count bodies, or a damage-and-price function to value a blast.
 ##
 ## Returns {"anchor": the candidate centred on (null when none), "center": centroid of what
@@ -588,7 +588,7 @@ func army_centroid() -> Vector3:
 	if units.is_empty():
 		return Vector3.ZERO
 	var sum := Vector3.ZERO
-	for c: Commandable in units:
+	for c: Actor in units:
 		sum += c.global_position
 	return sum / float(units.size())
 
@@ -607,10 +607,10 @@ func is_command_centre_type(a_type: StringName) -> bool:
 ## The owned command centre with enemies within `a_threat_radius`, the most hurt first, or
 ## null. Asked at a wider radius than most_threatened_structure's: under HEGEMONY a centre
 ## is the whole game, so an enemy still some way off it is already a threat to it.
-func threatened_command_centre(a_threat_radius: float) -> Commandable:
-	var worst: Commandable = null
+func threatened_command_centre(a_threat_radius: float) -> Actor:
+	var worst: Actor = null
 	var worst_frac: float = INF
-	for s: Commandable in _owned_structures():
+	for s: Actor in _owned_structures():
 		if not Deployment.is_command_centre(s):
 			continue
 		if not is_threatened(s, a_threat_radius):
@@ -652,18 +652,18 @@ func threat_direction(a_from_xz: Vector2) -> Vector2:
 ## stands in front of. Empty when none stands.
 func owned_command_centres() -> Array:
 	return _owned_structures().filter(
-		func(s: Commandable) -> bool: return Deployment.is_command_centre(s)
+		func(s: Actor) -> bool: return Deployment.is_command_centre(s)
 	)
 
 
 ## The owned structure furthest ALONG `a_direction` from the base centroid — the building
 ## the enemy reaches first coming that way, and so the one the army stands in front of. Null
 ## when the bot owns no structure.
-func frontmost_structure(a_direction: Vector2) -> Commandable:
+func frontmost_structure(a_direction: Vector2) -> Actor:
 	var origin: Vector2 = VU.in_xz(base_centroid())
-	var best: Commandable = null
+	var best: Actor = null
 	var best_along: float = -INF
-	for s: Commandable in _owned_structures():
+	for s: Actor in _owned_structures():
 		var along: float = (VU.in_xz(s.global_position) - origin).dot(a_direction)
 		if along > best_along:
 			best_along = along
@@ -679,7 +679,7 @@ func base_centroid() -> Vector3:
 	if all_s.is_empty():
 		return Vector3.ZERO
 	var sum := Vector3.ZERO
-	for s: Commandable in all_s:
+	for s: Actor in all_s:
 		sum += s.global_position
 	return sum / float(all_s.size())
 
@@ -690,7 +690,7 @@ func base_centroid() -> Vector3:
 ## per-unit (Garrison.accepts) — see nearest_garrison_for.
 func get_garrison_structures() -> Array:
 	return _owned_structures().filter(
-		func(s: Commandable) -> bool:
+		func(s: Actor) -> bool:
 			return (
 				s.is_built
 				and s.garrison != null
@@ -707,13 +707,13 @@ func get_garrison_structures() -> Array:
 ## is admitted is Garrison.accepts, asked by the caller.
 func get_bunker_hosts() -> Array:
 	var hosts: Array = get_garrison_structures().filter(
-		func(s: Commandable) -> bool: return s.garrison.bunker
+		func(s: Actor) -> bool: return s.garrison.bunker
 	)
 	var neutral: Commander = _neutral_commander()
 	if neutral == null:
 		return hosts
 	for node: Node in neutral.get_children():
-		var s := node as Commandable
+		var s := node as Actor
 		if (
 			s != null
 			and s.structure_is_active()
@@ -731,11 +731,11 @@ func get_bunker_hosts() -> Array:
 ## army's bunkered units are, for the wave to collect them.
 func get_hosts_holding_my_units() -> Array:
 	return _owned_structures().filter(
-		func(s: Commandable) -> bool:
+		func(s: Actor) -> bool:
 			return (
 				s.garrison != null
 				and s.garrison.occupants().any(
-					func(u: Commandable) -> bool: return s.garrison.can_release_occupant(u)
+					func(u: Actor) -> bool: return s.garrison.can_release_occupant(u)
 				)
 			)
 	)
@@ -760,16 +760,16 @@ func is_reachable(a_from: Vector3, a_to: Vector3, a_tolerance: float) -> bool:
 ## The nearest owned garrison structure that would accept [unit], or null when the bot
 ## owns none. Used by preservation to garrison at-risk units — filtered by accepts() so
 ## a host whose occupancy masks reject this unit isn't offered as a refuge it can't reach.
-func nearest_garrison_for(a_unit: Commandable) -> Commandable:
+func nearest_garrison_for(a_unit: Actor) -> Actor:
 	var hosts: Array = get_garrison_structures().filter(
-		func(s: Commandable) -> bool: return s.garrison.accepts(a_unit)
+		func(s: Actor) -> bool: return s.garrison.accepts(a_unit)
 	)
 	if hosts.is_empty():
 		return null
 	return (
 		AU
 		. sort_on_key(
-			func(s: Commandable):
+			func(s: Actor):
 				return a_unit.global_position.distance_squared_to(s.global_position),
 			hosts
 		)
@@ -779,14 +779,14 @@ func nearest_garrison_for(a_unit: Commandable) -> Commandable:
 
 ## The owned structure nearest to [from], or null when the bot owns none.
 ## Used by BotPreservation as the retreat waypoint for at-risk units.
-func nearest_own_structure(a_from: Vector3) -> Commandable:
+func nearest_own_structure(a_from: Vector3) -> Actor:
 	var structs: Array = _owned_structures()
 	if structs.is_empty():
 		return null
 	return (
 		AU
 		. sort_on_key(
-			func(s: Commandable): return a_from.distance_squared_to(s.global_position), structs
+			func(s: Actor): return a_from.distance_squared_to(s.global_position), structs
 		)
 		. front()
 	)
@@ -799,7 +799,7 @@ func nearest_own_structure(a_from: Vector3) -> Commandable:
 ## OMNISCIENT — it reads the live scene. That is fine for a query about what EXISTS (the
 ## hostile-target audit in tests/test_BotHostileTargets.gd uses it that way), but it is not
 ## what the army marches on any more: see nearest_believed_enemy_structure_position.
-func nearest_enemy_structure_to_base() -> Commandable:
+func nearest_enemy_structure_to_base() -> Actor:
 	var enemies := get_enemy_structures()
 	if enemies.is_empty():
 		return null
@@ -807,7 +807,7 @@ func nearest_enemy_structure_to_base() -> Commandable:
 	return (
 		AU
 		. sort_on_key(
-			func(s: Commandable): return base.distance_squared_to(s.global_position), enemies
+			func(s: Actor): return base.distance_squared_to(s.global_position), enemies
 		)
 		. front()
 	)
@@ -825,7 +825,7 @@ func nearest_enemy_structure_to_base() -> Commandable:
 # buying far less than BotScout's trade-off claims, because the most valuable thing scouting
 # could tell the bot was already free.
 #
-# Both queries below answer with a POSITION rather than a Commandable, and they have to: a
+# Both queries below answer with a POSITION rather than a Actor, and they have to: a
 # belief outlives the thing it remembers (the blackboard drops a structure only when the
 # commander regains vision of its spot and finds it gone), so "the last place I saw their
 # base" is still somewhere worth marching on after the building has been destroyed. The walk
@@ -897,7 +897,7 @@ func _nearest_belief_entry(
 # ─── CAN WE ACTUALLY HURT IT? ────────────────────────────────────────────────
 #
 # THE QUESTION NEITHER OBJECTIVE SELECTION NOR THE KAMIKAZE SCAN USED TO ASK. Aggro
-# (`Commandable.get_aggro_near_position`) and `BotTargeting._retarget` both filter their
+# (`Actor.get_aggro_near_position`) and `BotTargeting._retarget` both filter their
 # candidates through `Loadout.weapon_for_target`, so the capability was always there — it
 # simply was not consulted anywhere a bot decides WHERE TO GO or WHAT TO COMMIT TO. The
 # reported symptom is what that costs: an army ordered onto a Scan drone marches out,
@@ -917,7 +917,7 @@ func _nearest_belief_entry(
 ## occupant's? Exactly the pair of tests `Attack.meets_precondition` applies, asked before
 ## the order is issued rather than after, so it is also the honest bound on who may be handed
 ## an Attack at all.
-static func unit_can_shoot(a_unit: Commandable, a_target: Commandable) -> bool:
+static func unit_can_shoot(a_unit: Actor, a_target: Actor) -> bool:
 	if a_unit == null or a_target == null:
 		return false
 	if a_unit.weapon_inventory != null and a_unit.weapon_inventory.any_weapon_can_target(a_target):
@@ -937,7 +937,7 @@ static func unit_can_shoot(a_unit: Commandable, a_target: Commandable) -> bool:
 ##
 ## The weapon-only question survives as `unit_can_shoot` because the two are genuinely
 ## different: what may an army MARCH ON, versus who may be handed an Attack.
-static func unit_can_damage(a_unit: Commandable, a_target: Commandable) -> bool:
+static func unit_can_damage(a_unit: Actor, a_target: Actor) -> bool:
 	if unit_can_shoot(a_unit, a_target):
 		return true
 	return (
@@ -959,16 +959,16 @@ static func unit_can_damage(a_unit: Commandable, a_target: Commandable) -> bool:
 ## objective is built on (see the section above `nearest_believed_enemy_structure_position`).
 ## An empty army answers true for the same reason: there is no one to ask.
 ##
-## VALIDITY IS CHECKED BEFORE THE CAST, and that order is load-bearing: `freed as Commandable`
+## VALIDITY IS CHECKED BEFORE THE CAST, and that order is load-bearing: `freed as Actor`
 ## is itself an engine error in Godot 4, and a belief whose remembered entity has been
 ## destroyed is the ordinary case here, not an edge one.
 static func any_unit_can_damage(a_units: Array, a_target: Variant) -> bool:
 	if a_target == null or not is_instance_valid(a_target):
 		return true
-	var target: Commandable = a_target as Commandable
+	var target: Actor = a_target as Actor
 	if target == null or not target.is_inside_tree():
 		return true
-	for u: Commandable in a_units:
+	for u: Actor in a_units:
 		if unit_can_damage(u, target):
 			return true
 	return a_units.is_empty()
@@ -1028,7 +1028,7 @@ func get_neutral_extractors() -> Array:
 		return []
 	# An extractor is identified by its EnergyExtractor component, not by Entity.Type.
 	return neutral.get_children().filter(
-		func(n): return n is Commandable and n.has_node("EnergyExtractor")
+		func(n): return n is Actor and n.has_node("EnergyExtractor")
 	)
 
 
@@ -1043,14 +1043,14 @@ func _neutral_commander() -> Commander:
 
 ## The neutral Extractor closest to [from_position].
 ## Returns null when every Extractor on the map has already been claimed.
-func nearest_neutral_extractor(a_from_position: Vector3) -> Commandable:
+func nearest_neutral_extractor(a_from_position: Vector3) -> Actor:
 	var extractors := get_neutral_extractors()
 	if extractors.is_empty():
 		return null
 	return (
 		AU
 		. sort_on_key(
-			func(m: Commandable): return a_from_position.distance_squared_to(m.global_position),
+			func(m: Actor): return a_from_position.distance_squared_to(m.global_position),
 			extractors
 		)
 		. front()
@@ -1065,13 +1065,13 @@ func nearest_neutral_extractor(a_from_position: Vector3) -> Commandable:
 ## component, so
 ## any future interactor unit is picked up.
 func get_interactors() -> Array:
-	return _owned_units().filter(func(u: Commandable): return u.interactor != null)
+	return _owned_units().filter(func(u: Actor): return u.interactor != null)
 
 
 ## Owned units that convert neutrals on contact — those carrying a Liberator component
 ## (e.g. Warlords). The set the opportunist draws liberation errands from.
 func get_liberators() -> Array:
-	return _owned_units().filter(func(u: Commandable): return u.liberator != null)
+	return _owned_units().filter(func(u: Actor): return u.liberator != null)
 
 
 ## Every loose neutral Terrestrial on the map. Like neutral extractors, these are world-owned
@@ -1083,13 +1083,13 @@ func get_neutral_terrestrials() -> Array:
 		return []
 	return neutral.get_children().filter(
 		func(n: Node):
-			return n is Commandable and (n as Commandable).id == EntityIds.NT_BIO_LIGHT_TERRESTRIAL
+			return n is Actor and (n as Actor).id == EntityIds.NT_BIO_LIGHT_TERRESTRIAL
 	)
 
 
 ## What one liberation is worth to `a_liberator`, in energy: the cost of the unit its
 ## Liberator mints. 0 when the component has no conversion scene configured.
-func liberation_value(a_liberator: Commandable) -> float:
+func liberation_value(a_liberator: Actor) -> float:
 	if a_liberator.liberator == null:
 		return 0.0
 	return float(_scene_unit_cost(a_liberator.liberator.converted_scene))
@@ -1100,7 +1100,7 @@ func liberation_value(a_liberator: Commandable) -> float:
 ## these for dominion.
 func get_capturable_enemies() -> Array:
 	return visible_enemies().filter(
-		func(e: Commandable) -> bool:
+		func(e: Actor) -> bool:
 			return (
 				not e.structure_is_active()
 				and EntityAttribute.evaluate(EntityAttribute.Type.IS_BIOLOGICAL, e)
@@ -1253,7 +1253,7 @@ func _type_has_component(a_type, a_component: String) -> bool:
 ## type -> true). Empty when the bot owns no builder.
 func _builder_buildable_types() -> Dictionary:
 	var caps: Dictionary = {}
-	for u: Commandable in _owned_units():
+	for u: Actor in _owned_units():
 		var builds: Node = u.get_node_or_null("Builds")
 		if builds != null:
 			for t: StringName in builds.buildable_types:
@@ -1404,7 +1404,7 @@ func buildable_infrastructure_structure_types() -> Array:
 ## inspected on the cached preview so no per-type table is needed.
 func _type_provides_infrastructure(a_type) -> bool:
 	var preview := _preview_for_type(a_type)
-	return preview is Commandable and (preview as Commandable).infrastructure > 0
+	return preview is Actor and (preview as Actor).infrastructure > 0
 
 
 # ─── COUNTER-INTEL ──────────────────────────────────────────────────────────
@@ -1420,7 +1420,7 @@ func _type_provides_infrastructure(a_type) -> bool:
 ## rather than which unit hits hardest (robust while raw damage is uncalibrated), and
 ## mirrors the targeting effectiveness signal. Reads the weapon off the cached train
 ## preview, so it generalises to any unit type with no per-type table.
-func unit_effectiveness_vs(a_unit_type, a_target: Commandable) -> float:
+func unit_effectiveness_vs(a_unit_type, a_target: Actor) -> float:
 	# A hand-set matchup override wins over the computed multiplier (AOE, kiting, …
 	# the damage table can't express — e.g. Kamikaze ≫ Irregular).
 	var override: Variant = DamageTable.matchup_override(a_unit_type, a_target.id)
@@ -1448,7 +1448,7 @@ func unit_effectiveness_vs(a_unit_type, a_target: Commandable) -> float:
 ## override, else the better of its weapon's damage multiplier and running it over. 0 when it
 ## cannot hurt the target at all. Not the targeting signal: that one also prices a knot of
 ## crushables, which is a reason to pick a target, not a measure of danger.
-func matchup(a_attacker: Commandable, a_target: Commandable) -> float:
+func matchup(a_attacker: Actor, a_target: Actor) -> float:
 	var override: Variant = DamageTable.matchup_override(a_attacker.id, a_target.id)
 	if override != null:
 		return override
@@ -1458,7 +1458,7 @@ func matchup(a_attacker: Commandable, a_target: Commandable) -> float:
 
 ## The damage-table multiplier (effective / base damage) of the weapon `a_loadout` would use
 ## on `a_target`, or 0 when it has none that can.
-static func weapon_multiplier(a_loadout: Loadout, a_target: Commandable) -> float:
+static func weapon_multiplier(a_loadout: Loadout, a_target: Actor) -> float:
 	if a_loadout == null:
 		return 0.0
 	var w: Weapon = a_loadout.weapon_for_target(a_target)
@@ -1488,7 +1488,7 @@ const CRUSH_EFFECTIVENESS: float = 0.5
 ## Whether a unit moving as `a_mover` would crush `a_target` on contact: the size-class rule
 ## Movement.can_crush applies between two grounded movers; a structure or a flier is never
 ## crushed.
-static func crushes(a_mover: Movement, a_target: Commandable) -> bool:
+static func crushes(a_mover: Movement, a_target: Actor) -> bool:
 	if a_mover == null or a_target == null or a_target.movement == null:
 		return false
 	return a_mover.can_crush(a_target.movement)
@@ -1516,7 +1516,7 @@ var savings: BotSavings = BotSavings.new()
 var demand_coverage_falloff: float = 1.0
 
 
-## Per believed enemy TYPE: { type -> { "demand": float, "rep": Commandable } }.
+## Per believed enemy TYPE: { type -> { "demand": float, "rep": Actor } }.
 ## demand = that type's summed importance across the believed enemy comp (units 1.0,
 ## structures structure_demand_weight), DIVIDED DOWN by how well our current army already
 ## counters it — so a covered type has low demand (diminishing returns) and an unmet threat
@@ -1535,7 +1535,7 @@ func enemy_demand_map() -> Dictionary:
 	if blackboard == null:
 		return {}
 	var importance: Dictionary = {}  # type -> summed importance
-	var reps: Dictionary = {}  # type -> a live Commandable of that type, or null
+	var reps: Dictionary = {}  # type -> a live Actor of that type, or null
 	for entry: CommanderBlackboard.Entry in blackboard.believed():
 		var imp: float = structure_demand_weight if entry.is_structure else 1.0
 		importance[entry.type] = importance.get(entry.type, 0.0) + imp
@@ -1551,22 +1551,22 @@ func enemy_demand_map() -> Dictionary:
 	# unit — exactly the "keeps making irregulars" bug. Proxy the enemy's (unseen)
 	# structures with one of our own (same armour class, a sound default otherwise).
 	var sees_enemy_structure: bool = reps.values().any(
-		func(r): return r != null and (r as Commandable).structure_is_active()
+		func(r): return r != null and (r as Actor).structure_is_active()
 	)
 	if not sees_enemy_structure:
 		var own_structs := _owned_structures()
 		if not own_structs.is_empty():
-			var s_rep: Commandable = own_structs[0]
+			var s_rep: Actor = own_structs[0]
 			importance[s_rep.id] = importance.get(s_rep.id, 0.0) + structure_demand_weight
 			reps[s_rep.id] = s_rep
 
 	var own := _owned_units()
 	var demand: Dictionary = {}
 	for etype in importance:
-		var rep: Commandable = reps[etype]
+		var rep: Actor = reps[etype]
 		var coverage: float = 0.0
 		if rep != null:
-			for u: Commandable in own:
+			for u: Actor in own:
 				coverage += unit_effectiveness_vs(u.id, rep)
 		demand[etype] = {
 			"demand": importance[etype] / (1.0 + coverage * demand_coverage_falloff),
@@ -1609,7 +1609,7 @@ const MIN_INCOMING_MULTIPLIER: float = 0.1
 ## TODO: a stand-in that lacks complexity on purpose — gdd/tasks.md T-098. Range,
 ## speed, splash and which layers the target's weapons can reach (a preview cannot say, so
 ## its best multiplier is taken) are all missing.
-func unit_strength_per_energy_vs(a_unit_type, a_target: Commandable) -> float:
+func unit_strength_per_energy_vs(a_unit_type, a_target: Actor) -> float:
 	var cost: int = unit_cost(a_unit_type)
 	var preview: Node = _preview_for_type(a_unit_type)
 	if cost <= 0 or preview == null:
@@ -1627,7 +1627,7 @@ func unit_strength_per_energy_vs(a_unit_type, a_target: Commandable) -> float:
 
 ## The DPS of the weapon `a_loadout` would use on `a_target`, else of its best weapon — a
 ## crusher's gun still prices its fight when the matchup came from running the target over.
-static func _dps_against(loadout: Loadout, target: Commandable) -> float:
+static func _dps_against(loadout: Loadout, target: Actor) -> float:
 	if loadout == null:
 		return 0.0
 	var w: Weapon = loadout.weapon_for_target(target)
@@ -1641,7 +1641,7 @@ static func _dps_against(loadout: Loadout, target: Commandable) -> float:
 
 ## The best damage multiplier `a_attacker`'s weapons meet in `a_victim`'s armour and frame,
 ## read from its Defense so a build preview can answer. 0 for an unarmed attacker.
-func _incoming_multiplier(a_attacker: Commandable, a_victim: Node) -> float:
+func _incoming_multiplier(a_attacker: Actor, a_victim: Node) -> float:
 	if a_attacker.weapon_inventory == null:
 		return 0.0
 	var best: float = 0.0
@@ -1655,14 +1655,14 @@ func _incoming_multiplier(a_attacker: Commandable, a_victim: Node) -> float:
 	return best
 
 
-## Any live, in-tree Commandable of type `a_type`, whoever owns it, or null. A stat carrier
+## Any live, in-tree Actor of type `a_type`, whoever owns it, or null. A stat carrier
 ## for type-level questions (armour, targetable layers), never a sighting: it says nothing
 ## about where any piece is.
-func _any_instance_of_type(a_type: StringName) -> Commandable:
+func _any_instance_of_type(a_type: StringName) -> Actor:
 	if not is_inside_tree():
 		return null
 	for node: Node in get_tree().get_nodes_in_group("piece"):
-		var c: Commandable = node as Commandable
+		var c: Actor = node as Actor
 		if c != null and c.id == a_type and c.is_inside_tree():
 			return c
 	return null
@@ -1756,21 +1756,21 @@ func _projectile_blast_radius(a_proj: Node) -> float:
 
 
 ## True when [unit] is an AOE-suicide unit (has an aoe_suicide_profile).
-func is_suicide_aoe_unit(a_unit: Commandable) -> bool:
+func is_suicide_aoe_unit(a_unit: Actor) -> bool:
 	return aoe_suicide_profile(a_unit.id) != null
 
 
 ## Owned AOE-suicide units (the ones BotKamikaze micromanages).
 func get_suicide_aoe_units() -> Array:
-	return _owned_units().filter(func(u: Commandable): return is_suicide_aoe_unit(u))
+	return _owned_units().filter(func(u: Actor): return is_suicide_aoe_unit(u))
 
 
 ## The most COST-EFFECTIVE blast target for [kamikaze], or null if none clears the
 ## bar. For each visible enemy unit (a blast centre), the hit's value is summed over
 ## the enemy units the blast would catch: (HP-fraction it removes) × (their energy cost).
 ## A run is worth it only when that value beats the drone's own cost — i.e. the blast
-## destroys more than it spends. Returns { "target": Commandable, "value": float }.
-func kamikaze_best_target(a_kamikaze: Commandable) -> Variant:
+## destroys more than it spends. Returns { "target": Actor, "value": float }.
+func kamikaze_best_target(a_kamikaze: Actor) -> Variant:
 	var profile: Variant = aoe_suicide_profile(a_kamikaze.id)
 	if profile == null:
 		return null
@@ -1788,10 +1788,10 @@ func kamikaze_best_target(a_kamikaze: Commandable) -> Variant:
 	# `unit_can_damage`: a drone delivers a BLAST, and being heavy enough to drive over
 	# something is not a way of getting a bomb onto it.
 	var units: Array = visible_enemies().filter(
-		func(e: Commandable): return not e.structure_is_active() and unit_can_shoot(a_kamikaze, e)
+		func(e: Actor): return not e.structure_is_active() and unit_can_shoot(a_kamikaze, e)
 	)
 	var best: Dictionary = best_covered_point(
-		units, profile["radius"], func(u: Commandable): return _aoe_unit_value(u, profile)
+		units, profile["radius"], func(u: Actor): return _aoe_unit_value(u, profile)
 	)
 	if best["anchor"] != null and best["weight"] >= float(unit_cost(a_kamikaze.id)):
 		return {"target": best["anchor"], "value": best["weight"]}
@@ -1800,7 +1800,7 @@ func kamikaze_best_target(a_kamikaze: Commandable) -> Variant:
 
 ## What blasting one unit is worth, in energy: the fraction of it the blast actually removes,
 ## priced at its build cost. Capped at the unit's remaining HP, so overkill is not paid for.
-func _aoe_unit_value(a_unit: Commandable, a_profile: Dictionary) -> float:
+func _aoe_unit_value(a_unit: Actor, a_profile: Dictionary) -> float:
 	if a_unit.defense == null or a_unit.defense.hp_max <= 0.0:
 		return 0.0
 	var effective: float = DamageTable.calculate_damage(
@@ -1871,7 +1871,7 @@ func game_phase() -> int:
 	# proxy for tech-tree depth. Only fully-built structures count; one under
 	# construction doesn't yet contribute tech or production capacity.
 	var kinds: Dictionary = {}
-	for s: Commandable in _owned_structures():
+	for s: Actor in _owned_structures():
 		if s.is_built:
 			kinds[s.scene_file_path] = true
 	var unique_struct_types := kinds.size()

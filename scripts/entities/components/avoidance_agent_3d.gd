@@ -13,7 +13,7 @@ extends NavigationAgent3D
 ##    (bits TEAM_BITS..2*TEAM_BITS-1). A unit's avoidance_mask includes all
 ##    FOREIGN obstacle bits but NOT the enemy's agent bit, so the unit steers
 ##    around the enemy's obstacle unilaterally without triggering reciprocal RVO.
-##    The obstacle's layers are wired in Commandable._on_commander_changed.
+##    The obstacle's layers are wired in Actor._on_commander_changed.
 ##
 ## 3. PER-PAIR EXCEPTIONS (follow mechanic). Godot's RVO has no per-instance
 ##    exclusion list; each excepted agent borrows a unique bit from the high pool
@@ -59,7 +59,7 @@ var _unique_bit: int = 0
 var _exceptions: Dictionary = {}  # AvoidanceAgent3D -> true
 
 ## Foreign obstacle bits (see obstacle_bit()) currently excluded from this agent's
-## mask because Commandable._update_crush_avoidance_exclusions() found at least one
+## mask because Actor._update_crush_avoidance_exclusions() found at least one
 ## nearby enemy on that channel this agent can crush (Movement.can_crush) — the
 ## agent should path through it rather than detour around it. 0 = nothing excluded.
 ## CAVEAT: an obstacle channel is shared by an entire commander's units, not one
@@ -87,7 +87,7 @@ static func team_bit(commander_id: int) -> int:
 
 
 ## The avoidance-layer bit for a commander's NavigationObstacle3D (bits 8..15).
-## Used by Commandable._on_commander_changed to configure the obstacle node.
+## Used by Actor._on_commander_changed to configure the obstacle node.
 static func obstacle_bit(commander_id: int) -> int:
 	return 1 << (_TEAM_BITS + clampi(commander_id, 0, _TEAM_BITS - 1))
 
@@ -99,7 +99,7 @@ static func obstacle_bit(commander_id: int) -> int:
 ## Turn on avoidance for the given commander's team. The agent broadcasts on
 ## that commander's team bit and masks own-team agents + all foreign obstacles +
 ## the exception pool. Same-team pairs get reciprocal RVO; cross-team avoidance
-## is one-sided via NavigationObstacle3D (see Commandable._on_commander_changed).
+## is one-sided via NavigationObstacle3D (see Actor._on_commander_changed).
 func enable_avoidance(a_commander_id: int) -> void:
 	avoidance_enabled = true
 	_team_bit = team_bit(a_commander_id)
@@ -147,7 +147,7 @@ func clear_avoidance_exceptions() -> void:
 ## Set which foreign obstacle bits (see obstacle_bit()) to drop from avoidance_mask
 ## because every nearby enemy currently on that channel is one this agent can crush
 ## (see the _crush_excluded_obstacles caveat above). Pass 0 to clear. Called every
-## tick by Commandable._update_crush_avoidance_exclusions(); a no-op when unchanged.
+## tick by Actor._update_crush_avoidance_exclusions(); a no-op when unchanged.
 func set_crush_excluded_obstacles(a_mask: int) -> void:
 	if a_mask == _crush_excluded_obstacles:
 		return

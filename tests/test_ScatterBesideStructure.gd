@@ -45,7 +45,7 @@ class FixtureMap:
 
 
 var _map: FixtureMap
-var _structure: Commandable
+var _structure: Actor
 var _commander: Commander
 
 
@@ -105,7 +105,7 @@ func _make_map() -> FixtureMap:
 
 ## A FOOTPRINT×FOOTPRINT obstruction centred on the map, registered on the cell grid and the
 ## terrain grid, with a hurtbox covering its whole footprint as a real building's does.
-func _place_structure(a_grid: TerrainGrid) -> Commandable:
+func _place_structure(a_grid: TerrainGrid) -> Actor:
 	var piece := FakePieces.structure({"dimensions": Vector2i(FOOTPRINT, FOOTPRINT)})
 	var hurtbox := piece.get_node("Hurtbox") as CollisionObject3D
 	var box := BoxShape3D.new()

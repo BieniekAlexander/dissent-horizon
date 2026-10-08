@@ -1,7 +1,7 @@
 [gd_scene load_steps=28 format=3 uid="uid://chn6tbb8uh0m5"]
 
 [ext_resource type="PackedScene" path="res://assets/meshes/entities/dummy_structure.blend" id="1_dummy"]
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_ypgad"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_ypgad"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="2_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="PackedScene" path="res://scenes/entities/projectiles/cl/sam_missile.tscn" id="4_hro24"]

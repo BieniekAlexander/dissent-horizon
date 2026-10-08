@@ -37,10 +37,10 @@ const APPROACH_DISTANCE: float = 6.0
 
 
 func _find_units() -> Dictionary:
-	var kamikaze: Commandable = null
-	var victim: Commandable = null
+	var kamikaze: Actor = null
+	var victim: Actor = null
 	for node: Node in get_tree().get_nodes_in_group("unit"):
-		var c := node as Commandable
+		var c := node as Actor
 		if c == null:
 			continue
 		if c.id == EntityIds.AN_AIRCRAFT_LIGHT_ANTI_MECH:
@@ -61,15 +61,15 @@ func test_kamikaze_detonates_and_dies_to_its_own_blast() -> void:
 	# and the drone spawns inside aggro of the cluster, so left to itself it latches on and
 	# detonates within the boot window. The Attack below releases the hold.
 	_silence_brains(scenario)
-	var spawned_drone: Commandable = _find_units()["kamikaze"]
+	var spawned_drone: Actor = _find_units()["kamikaze"]
 	if spawned_drone != null:
 		spawned_drone.is_holding_fire = true
 	for i in BOOT_TICKS:
 		await get_tree().physics_frame
 
 	var units: Dictionary = _find_units()
-	var kamikaze: Commandable = units["kamikaze"]
-	var victim: Commandable = units["victim"]
+	var kamikaze: Actor = units["kamikaze"]
+	var victim: Actor = units["victim"]
 	assert_not_null(kamikaze, "the scenario provides a kamikaze")
 	assert_not_null(victim, "the scenario provides an enemy target")
 	if kamikaze == null or victim == null:

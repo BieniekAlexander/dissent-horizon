@@ -13,11 +13,11 @@ extends GutTest
 ## the TURRET is aimed, without turning the body — while a non-turret weapon keeps the old rule.
 
 
-## A Commandable with the children Entity/Commandable resolve with a hard `$` — the stub
+## A Actor with the children Entity/Actor resolve with a hard `$` — the stub
 ## shape tests/test_HoldFire.gd uses — carrying a Loadout with one Weapon. No Movement, so
 ## the body cannot turn: whatever aiming happens here is the turret's.
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	var stub_layers: int = CollisionLayers.Mask.TARGETABLE_GROUND
 
@@ -86,7 +86,7 @@ func _piece(
 	return piece
 
 
-func _gun(a_piece: Commandable) -> Weapon:
+func _gun(a_piece: Actor) -> Weapon:
 	return a_piece.get_node("Loadout/Gun") as Weapon
 
 

@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Terminology
 
-**Garrison (verb / noun)** — the mechanic by which one entity is *inside* another: a unit enters a Commandable that has a `Garrison` component. The `Garrison` component is the host; `Occupy` is the command issued by the entering unit, and `Embark` is the order given to the HOST that hands one out (it never puts a unit inside anything itself). Which units may enter is three per-host bitmasks (frame / armour / locomotion), and how much of the host each one fills is the occupant's own `Entity.occupancy_size` — see §Garrison occupancy.
+**Garrison (verb / noun)** — the mechanic by which one entity is *inside* another: a unit enters a Actor that has a `Garrison` component. The `Garrison` component is the host; `Occupy` is the command issued by the entering unit, and `Embark` is the order given to the HOST that hands one out (it never puts a unit inside anything itself). Which units may enter is three per-host bitmasks (frame / armour / locomotion), and how much of the host each one fills is the occupant's own `Entity.occupancy_size` — see §Garrison occupancy.
 
 **Closed garrison (noun)** — a garrison with every occupancy mask cleared, so nothing can be ordered INTO it. A HOLD, filled only by capture, deposit, or scenario authoring: the Compound (again, as of 2026-09-17). The stock truck's cage is NOT closed: it admits Servants by order, and fills with prisoners by capture. `Garrison.is_closed()`. Closure says nothing about getting OUT: that is `Garrison.can_release()`, true by default even for a hold, and an order only ever releases the host's own side, never a captive (`Garrison.can_release_occupant`) — see §Garrison occupancy.
 
 **Intern (verb) / internment (noun) / sentence (noun)** — what a garrison naming a positive `sentence_length` does to a captive deposited in it: the captive is held AS ITSELF, off the tree, for that many seconds — paying dominion per cycle like any other occupant — and then CONSUMED. `Garrison.can_intern()` is what marks a deposit target, and it is the Compound's whole role in the Colonial POW loop — see §Garrison occupancy.
 
-**Actor / fixture / structure / feature / unit / token / obstruction / emission** are defined terms. An **Actor** takes orders (today's `Commandable`); a **fixture** claims terrain-grid cells. structure = Actor fixture, feature = uncommandable fixture, a **figure** is any non-fixture: unit = Actor figure, token = uncommandable figure. An **obstruction** is a fixture that blocks navigation, and an **emission** is anything an emitter put into the world. "Building" is one specific piece, not a category. Each noun is a conjunction of component facets, and code tests the facets, never the noun. → [`gdd/systems/authoring/piece-vocabulary.md`](gdd/systems/authoring/piece-vocabulary.md)
+**Actor / fixture / structure / feature / unit / token / obstruction / emission** are defined terms. An **Actor** takes orders (today's `Actor`); a **fixture** claims terrain-grid cells. structure = Actor fixture, feature = uncommandable fixture, a **figure** is any non-fixture: unit = Actor figure, token = uncommandable figure. An **obstruction** is a fixture that blocks navigation, and an **emission** is anything an emitter put into the world. "Building" is one specific piece, not a category. Each noun is a conjunction of component facets, and code tests the facets, never the noun. → [`gdd/systems/authoring/piece-vocabulary.md`](gdd/systems/authoring/piece-vocabulary.md)
 
 **Shelter (noun)** — a specific game structure with resource significance (distinct from the generic garrison mechanic). Do not use "shelter" as a synonym for a garrison host.
 
@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Dissent Horizon is a Godot 4.7 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is `scenes/scenarios/s1.tscn`. Physics runs at 30 ticks/second.
 
-Current state: playable prototype. Terrain is a single `TerrainData` resource holding per-corner heights + a per-cell ground-material layer (see `gdd/systems/terrain-and-navigation/map-composition.md`), authored in-editor with the `terrain_brush` plugin (paint materials; raise/lower/smooth/set height). Unit/Structure class hierarchy was recently collapsed into a single `Commandable` class using component children (see §Entity hierarchy below).
+Current state: playable prototype. Terrain is a single `TerrainData` resource holding per-corner heights + a per-cell ground-material layer (see `gdd/systems/terrain-and-navigation/map-composition.md`), authored in-editor with the `terrain_brush` plugin (paint materials; raise/lower/smooth/set height). Unit/Structure class hierarchy was recently collapsed into a single `Actor` class using component children (see §Entity hierarchy below).
 
 ---
 
@@ -126,7 +126,7 @@ Three rules follow:
   eleven tests drive the event against a synthetic group it creates itself. The one test that
   reached into `s1.tscn` to count camps was deleted; it told you nothing the eleven did not.
 - **Build pieces with `FakePieces`, never by loading a shipped scene.** `tests/_fake_pieces.gd`
-  makes a `Commandable` (or feature, or emission) with exactly the components a test names —
+  makes a `Actor` (or feature, or emission) with exactly the components a test names —
   `FakePieces.unit({"speed": 2.0, "weapon": {"ground": 6.0}})` — plus fake tools, families,
   technology and abilities for the code that looks those up (`register_tool`, `install_families`,
   `install_ability`; each has a `restore_*` for `after_each`). A test that loads
@@ -510,7 +510,7 @@ Entity (CharacterBody3D)           — type enum, @export default_commander_id, 
   @onready vision_range_shape: CollisionShape3D
   @onready aggro_shape_ground / aggro_shape_air: CollisionShape3D   — derived from reach (RangeShapes)
 
-  └── Commandable (Entity)         — command queue, HP bar, aggro logic, _physics_process
+  └── Actor (Entity)         — command queue, HP bar, aggro logic, _physics_process
     @onready command_receiver: CommandReceiver   (RefCounted, not a Node)
     @onready selectable: Selectable
     @onready production: Production    (get_node_or_null; null = can't train)
@@ -546,7 +546,7 @@ Required nodes use `$NodeName` directly or assert. See `gdd/systems/authoring/ge
 
 ## Command system
 
-Commands are the primary game-action abstraction. Each command is a `RefCounted`-subclass instance. The per-tick lifecycle (driven by `CommandReceiver._update_state()` → `Commandable._process_commands()`):
+Commands are the primary game-action abstraction. Each command is a `RefCounted`-subclass instance. The per-tick lifecycle (driven by `CommandReceiver._update_state()` → `Actor._process_commands()`):
 
 1. `get_updated_state(actor)` — may reactively swap to a new command (e.g., interrupt with attack)
 2. `can_act(actor)` — checks if the action is ready (in range, timer elapsed, etc.)
@@ -846,8 +846,8 @@ entity.is_in_group("unit")        # unit-flavored (not "is Unit")
 ### Terrain height snapping for units
 
 Units snap to terrain Y every physics tick in two places:
-1. `Commandable._on_velocity_computed()` — after `move_and_slide()`, snaps to `map.terrain_height_at(xz)`
-2. `Commandable._physics_process()` — unconditional snap at the end of each tick
+1. `Actor._on_velocity_computed()` — after `move_and_slide()`, snaps to `map.terrain_height_at(xz)`
+2. `Actor._physics_process()` — unconditional snap at the end of each tick
 
 Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance stable. Terrain tracking is handled separately.
 
@@ -933,7 +933,7 @@ work rather than deriving something.
 
 **`get_node_or_null` for optional components**: the `@onready` optional-component pattern is intentional. Don't change optional components to hard `$` references without checking all call sites gate on null. See `gdd/systems/authoring/get-node-or-null-audit.md` for verdicts on each occurrence.
 
-**`Commandable._process_commands()` routing**: structures intercept `Train`, and stationary `can_rally()` commandables intercept base `MoveCommand` (rally), here before they reach `CommandReceiver._process_commands()`. Calling `command_receiver._process_commands()` directly (bypassing `Commandable._process_commands()`) breaks structure training and rally points.
+**`Actor._process_commands()` routing**: structures intercept `Train`, and stationary `can_rally()` commandables intercept base `MoveCommand` (rally), here before they reach `CommandReceiver._process_commands()`. Calling `command_receiver._process_commands()` directly (bypassing `Actor._process_commands()`) breaks structure training and rally points.
 
 **Commander_id = 0 is neutral/world**: fog hides enemies (id != player_id), aggro checks gate on `commander_id > 0 and != self.commander_id`. Don't conflate "unowned" with "player-owned."
 

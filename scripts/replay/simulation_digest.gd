@@ -28,7 +28,7 @@ static func state_string(scenario: Scenario) -> String:
 			continue
 		var entities: PackedStringArray = []
 		for child: Node in commander.get_children():
-			var entity := child as Commandable
+			var entity := child as Actor
 			if entity == null or entity.is_queued_for_deletion():
 				continue
 			var hp: float = entity.defense.hp if entity.defense != null else 0.0

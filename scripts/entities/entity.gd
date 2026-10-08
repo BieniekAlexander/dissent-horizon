@@ -212,9 +212,9 @@ var pc_set: Set = Set.new()
 ## real node, owned, selectable and able to take train orders, but it is not physically
 ## on the map: no grid cells, no collision, no line of sight, no infrastructure, no tech
 ## contribution, and it is invisible to every commander but its owner. Placement
-## (Commandable.commit_construction) flips this off and turns all of that on.
+## (Actor.commit_construction) flips this off and turns all of that on.
 ##
-## Set BEFORE the entity enters the tree (see Commandable.plan_construction), because
+## Set BEFORE the entity enters the tree (see Actor.plan_construction), because
 ## _ready and _on_commander_changed both consult it.
 var is_planned: bool = false
 
@@ -249,7 +249,7 @@ var target_priority: TargetPriority:
 
 
 ## Whether this entity can currently project weapon fire — by default, its own equipped
-## weapons. Commandable overrides this to ALSO count a bunker garrison that is actively
+## weapons. Actor overrides this to ALSO count a bunker garrison that is actively
 ## holding armed occupants (whose fire the structure propagates), so it stays a method for
 ## that override rather than an inline check.
 func is_armed() -> bool:
@@ -336,7 +336,7 @@ func set_deployed(a_deployed: bool) -> void:
 
 
 ## Whether this entity currently reveals fog for its owner. A PLANNED structure never does:
-## ordering a build must not scout the site. Commandable narrows it further.
+## ordering a build must not scout the site. Actor narrows it further.
 func grants_vision() -> bool:
 	return vision_range_shape != null and vision_range_shape.shape != null and not is_planned
 
@@ -421,7 +421,7 @@ func refresh_aggro_shapes() -> void:
 #endregion
 
 
-## Hook for what a subclass keeps in step with the form (Commandable: its commander's
+## Hook for what a subclass keeps in step with the form (Actor: its commander's
 ## structure registry). Runs after every set_deployed.
 func _on_form_changed(_a_deployed: bool) -> void:
 	pass
@@ -442,7 +442,7 @@ func _resolve_initial_form() -> void:
 ##
 ## Cover is what a FINISHED building gives. A foundation is a site with materials on it: it
 ## occupies the grid, it can be shot, and units path around it, but there is nothing
-## standing there yet for a bullet to hit. Commandable overrides this to say so — a
+## standing there yet for a bullet to hit. Actor overrides this to say so — a
 ## structure earns the layer on the tick it completes (see advance_build_progress), not on
 ## the tick it is placed.
 func blocks_line_of_fire() -> bool:
@@ -657,7 +657,7 @@ var _targetable_as_air: bool = false
 
 
 ## Re-file this entity on the AIR or GROUND layer if its altitude has crossed the threshold
-## since the layers were last written. Called every tick by Commandable, where the same
+## since the layers were last written. Called every tick by Actor, where the same
 ## height is already being applied to the body — so this costs one float comparison, and a
 ## property write only on the tick the answer flips.
 func refresh_targetable_altitude() -> void:
@@ -770,7 +770,7 @@ func _ready() -> void:
 
 	# Any entity with a VisionRange contributes line-of-sight, so it joins the "los"
 	# group that fog.gd iterates to reveal fog — independent of "piece". This is
-	# what lets a non-Commandable recon entity (e.g. Scout) clear fog for its owner.
+	# what lets a non-Actor recon entity (e.g. Scout) clear fog for its owner.
 	# A merely PLANNED structure grants none: ordering a build must not scout the site.
 	# commit_construction adds it to the group when the structure is actually placed.
 	if vision_range_shape != null and not is_planned:
@@ -920,7 +920,7 @@ func initialize(a_map: Map, a_commander: Commander):
 	refresh_movement_collision()
 
 
-func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
+func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 	if defense == null:
 		return
 	var was_alive: bool = defense.hp > 0
@@ -947,7 +947,7 @@ func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
 ## an unattributed effect pays nobody, which is right: those are not kills.
 ##
 ## Enemies only, so friendly fire and scuttling your own losses can never fund you.
-func _pay_kill_bounty(a_from: Commandable) -> void:
+func _pay_kill_bounty(a_from: Actor) -> void:
 	if a_from == null or not is_instance_valid(a_from) or a_from.commander == null:
 		return
 	if not a_from.is_enemy_of(self):
@@ -973,14 +973,14 @@ func die() -> void:
 func _on_death() -> void:
 	# Fire the death reaction FIRST, while map / global_position / commander are
 	# still valid (the teardown + queue_free below would invalidate them). This is
-	# the single death chokepoint: Commandable._on_death reaches it via super()
+	# the single death chokepoint: Actor._on_death reaches it via super()
 	# after its commander bookkeeping, which leaves those references intact.
 	_fire_entity_occurrence(EntityOccurrence.ON_DEATH)
 	EntityDeathSounds.play_for(id, get_tree() if is_inside_tree() else null)
 
 	# Structure-flavored grid teardown: any entity that occupies the terrain grid
 	# (registered via Structure → Map.add_structure) must release its cells so the
-	# navmesh reopens them. Commandable._on_death adds commander/economy teardown
+	# navmesh reopens them. Actor._on_death adds commander/economy teardown
 	# on top of this via super(). Gated on group + map so plain units skip it.
 	if is_in_group("fixture") and map != null:
 		map.remove_structure(self)

@@ -10,7 +10,7 @@ extends GutTest
 ##     (rule 1, every structure) or leave a PRODUCTION structure no side to spawn from
 ##     (rule 2, scoped to a Production component — NavPlacement.accepts' `a_needs_access`).
 ##   * Train.meets_precondition refuses to train at a producer the grid can show has no
-##     navmesh side right now (Commandable.has_navmesh_access) — the safety net for a
+##     navmesh side right now (Actor.has_navmesh_access) — the safety net for a
 ##     structure placement can no longer create new, but terrain changing later or a
 ##     scenario-authored pocket can still reach.
 ##
@@ -150,8 +150,8 @@ func _seal_pocket(a_interior_origin: Vector2i, a_dims: Vector2i) -> void:
 			_map.terrain_grid.set_blocked(cell, true)
 
 
-func _make_builder() -> Commandable:
-	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
+func _make_builder() -> Actor:
+	var builder: Actor = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map
@@ -160,8 +160,8 @@ func _make_builder() -> Commandable:
 
 ## A producer registered directly on the grid at `a_origin`, bypassing Build entirely — the
 ## "terrain changed later" and "authored into a pocket" cases Train's own gate exists for.
-func _register_producer(a_origin: Vector2i, a_dims: Vector2i, a_trainee: StringName) -> Commandable:
-	var producer: Commandable = FakePieces.structure({"production": true, "dimensions": a_dims})
+func _register_producer(a_origin: Vector2i, a_dims: Vector2i, a_trainee: StringName) -> Actor:
+	var producer: Actor = FakePieces.structure({"production": true, "dimensions": a_dims})
 	_world.add_child(producer)
 	producer.ownership.commander = _commander
 	producer.map = _map
@@ -179,7 +179,7 @@ func _register_producer(a_origin: Vector2i, a_dims: Vector2i, a_trainee: StringN
 
 
 func test_has_navmesh_access_is_true_with_no_map() -> void:
-	var producer: Commandable = FakePieces.structure(
+	var producer: Actor = FakePieces.structure(
 		{"production": true, "dimensions": PRODUCTION_DIMS}
 	)
 	add_child_autofree(producer)

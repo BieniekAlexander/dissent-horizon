@@ -186,7 +186,7 @@ func _on_purchase_progressed(
 	)
 
 
-func _on_construction_finished(a_structure: Commandable, a_commander: Commander) -> void:
+func _on_construction_finished(a_structure: Actor, a_commander: Commander) -> void:
 	record(CONSTRUCTION_FINISHED, {"commander": a_commander.id, "piece": String(a_structure.id)})
 
 

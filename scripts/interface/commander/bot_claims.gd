@@ -35,7 +35,7 @@ var _claims: Dictionary = {}
 
 ## Claim `a_unit` for `a_owner`. True when the owner holds it afterwards: it was unclaimed,
 ## already this owner's, or held at a strictly lower priority.
-func claim(a_unit: Commandable, a_owner: StringName, a_priority: Priority) -> bool:
+func claim(a_unit: Actor, a_owner: StringName, a_priority: Priority) -> bool:
 	if not can_claim(a_unit, a_owner, a_priority):
 		return false
 	_claims[a_unit.get_instance_id()] = {"owner": a_owner, "priority": a_priority}
@@ -43,7 +43,7 @@ func claim(a_unit: Commandable, a_owner: StringName, a_priority: Priority) -> bo
 
 
 ## Whether `claim` would succeed, without claiming.
-func can_claim(a_unit: Commandable, a_owner: StringName, a_priority: Priority) -> bool:
+func can_claim(a_unit: Actor, a_owner: StringName, a_priority: Priority) -> bool:
 	var held: Variant = _live_claim(a_unit.get_instance_id())
 	return held == null or held["owner"] == a_owner or int(held["priority"]) < a_priority
 
@@ -69,12 +69,12 @@ func owns(a_unit: Variant, a_owner: StringName) -> bool:
 
 
 ## True when anybody has claimed `a_unit` — i.e. it is not the army's to take.
-func is_claimed(a_unit: Commandable) -> bool:
+func is_claimed(a_unit: Actor) -> bool:
 	return _live_claim(a_unit.get_instance_id()) != null
 
 
 ## Who holds `a_unit`, or &"" when nobody does.
-func owner_of(a_unit: Commandable) -> StringName:
+func owner_of(a_unit: Actor) -> StringName:
 	var held: Variant = _live_claim(a_unit.get_instance_id())
 	return held["owner"] if held != null else &""
 
@@ -82,7 +82,7 @@ func owner_of(a_unit: Commandable) -> StringName:
 ## How strongly `a_unit` is held, or 0 when nobody holds it — for a manager that would act on
 ## a unit WITHOUT taking it (a one-shot cast mid-fight), and so needs only to know that nobody
 ## holds it harder than a fight.
-func priority_of(a_unit: Commandable) -> int:
+func priority_of(a_unit: Actor) -> int:
 	var held: Variant = _live_claim(a_unit.get_instance_id())
 	return int(held["priority"]) if held != null else 0
 

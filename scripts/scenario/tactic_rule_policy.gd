@@ -17,7 +17,7 @@ func _init(a_rule: TacticRule, a_manager: ScenarioTriggerManager) -> void:
 
 
 func issue(a_members: Array) -> void:
-	var typed: Array[Commandable] = []
+	var typed: Array[Actor] = []
 	typed.assign(a_members)
 	rule.issue_commands_to(typed, _manager, typed[0].commander_id)
 

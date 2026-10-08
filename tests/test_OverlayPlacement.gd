@@ -139,7 +139,7 @@ func _order(a_tool: Tool, a_at: Vector2) -> CommandMessage:
 
 
 ## Several of the scenes instanced here (the neutral building, the extractor) still ship without
-## flavor text, and Commandable reports that with a push_error the moment one is built —
+## flavor text, and Actor reports that with a push_error the moment one is built —
 ## which GUT counts as an unexpected error and fails the test on. That is a content gap in
 ## those pieces' scenes, tracked by the spec-doc description tests, and nothing to do with
 ## placement, so it is dismissed HERE and only by message: any other error still fails.
@@ -188,7 +188,7 @@ func test_ghost_and_blueprint_agree_across_a_whole_cell() -> void:
 		for dz: float in [-0.45, -0.2, 0.0, 0.2, 0.45]:
 			var aim: Vector2 = Vector2(3.0 + dx, 2.0 + dz)
 			var message: CommandMessage = _order(SAFEHOUSE_TOOL, aim)
-			var blueprint: Commandable = Build.plan_structure(_commander, message)
+			var blueprint: Actor = Build.plan_structure(_commander, message)
 			assert_not_null(blueprint, "a blueprint went up for aim %s" % aim)
 			var ghost: Variant = _ghost_position(SAFEHOUSE_TOOL, aim)
 			assert_not_null(ghost, "the ghost resolved for aim %s" % aim)
@@ -229,7 +229,7 @@ func test_extractor_blueprint_stands_on_its_site() -> void:
 		EnergyExtractor.valid_placement(message, DIMS),
 		"an extractor aimed at the extraction site's centre is a valid placement"
 	)
-	var blueprint: Commandable = Build.plan_structure(_commander, message)
+	var blueprint: Actor = Build.plan_structure(_commander, message)
 	_dismiss_missing_flavor_text()
 	assert_not_null(blueprint, "the extractor order raised a blueprint")
 	assert_almost_eq(

@@ -6,23 +6,23 @@ extends GutTest
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_StatusEffect.gd
 ##
-## A full Commandable needs a Map/scene to _ready (see test_Extractor notes), so we use a
+## A full Actor needs a Map/scene to _ready (see test_Extractor notes), so we use a
 ## StubCommandable that skips that heavy init and hand-sets only the fields the effects
 ## touch (movement, defense, attributes, receive_damage). The per-tick lifecycle is
 ## driven by calling _physics_process directly rather than waiting on the physics loop.
 
 
-## A Commandable that records damage instead of routing it through the (uninitialised)
-## command receiver. Crucially the stub is NEVER added to the scene tree: Commandable's
+## A Actor that records damage instead of routing it through the (uninitialised)
+## command receiver. Crucially the stub is NEVER added to the scene tree: Actor's
 ## @onready vars (@implicit_ready, which runs on tree-entry even if _ready is overridden)
 ## hard-reference $Ownership / $AvoidanceObstacle / $HPBar etc., which don't exist on a
 ## bare instance and would spew errors. None of the effect logic needs the host in the
 ## tree — effects are attached as children and ticked manually — so we keep it out.
 class StubCommandable:
-	extends Commandable
+	extends Actor
 	var damage_taken: float = 0.0
 
-	func receive_damage(a_damage: Damage, _a_from: Commandable = null) -> void:
+	func receive_damage(a_damage: Damage, _a_from: Actor = null) -> void:
 		damage_taken += a_damage.amount
 
 

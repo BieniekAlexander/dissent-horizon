@@ -47,8 +47,8 @@ func _commanded(a_id: int) -> Commander:
 ## A live unit owned by [a_commander_id]. Ownership is assigned directly (not through
 ## initialize) so no Map is needed; entering the tree is what resolves its components and
 ## its targetable layers, which weapon matching reads.
-func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var u := FakePieces.make(a_options) as Commandable
+func _unit(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var u := FakePieces.make(a_options) as Actor
 	add_child_autofree(u)
 	u.ownership.commander = _commanded(a_commander_id)
 	return u
@@ -70,9 +70,9 @@ func _resolve(a_selection: Array, a_target: Entity) -> Variant:
 func test_a_selection_resolves_attack_when_only_some_units_can_attack():
 	# The truck is FIRST and cannot shoot at all — the old lead-only resolution took the
 	# whole group's meaning from it and the recruit never fired.
-	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
-	var recruit: Commandable = _unit(RECRUIT, PLAYER)
-	var enemy: Commandable = _unit(IRREGULAR, ENEMY)
+	var truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
+	var recruit: Actor = _unit(RECRUIT, PLAYER)
+	var enemy: Actor = _unit(IRREGULAR, ENEMY)
 	assert_eq(
 		_resolve([truck, recruit], enemy),
 		Attack,
@@ -81,9 +81,9 @@ func test_a_selection_resolves_attack_when_only_some_units_can_attack():
 
 
 func test_resolution_does_not_depend_on_selection_order():
-	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
-	var recruit: Commandable = _unit(RECRUIT, PLAYER)
-	var enemy: Commandable = _unit(IRREGULAR, ENEMY)
+	var truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
+	var recruit: Actor = _unit(RECRUIT, PLAYER)
+	var enemy: Actor = _unit(IRREGULAR, ENEMY)
 	assert_eq(
 		_resolve([recruit, truck], enemy),
 		_resolve([truck, recruit], enemy),
@@ -93,8 +93,8 @@ func test_resolution_does_not_depend_on_selection_order():
 
 func test_the_unit_that_cannot_attack_is_the_one_left_out():
 	# The issue-time filter (assign_command_to_units) reads exactly this.
-	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
-	var recruit: Commandable = _unit(RECRUIT, PLAYER)
+	var truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
+	var recruit: Actor = _unit(RECRUIT, PLAYER)
 	var message: CommandMessage = _message_for(_unit(IRREGULAR, ENEMY))
 	assert_eq(
 		Attack.meets_precondition(recruit, message),
@@ -109,8 +109,8 @@ func test_the_unit_that_cannot_attack_is_the_one_left_out():
 
 
 func test_the_selection_reads_as_valid_when_any_unit_can_act():
-	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
-	var recruit: Commandable = _unit(RECRUIT, PLAYER)
+	var truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
+	var recruit: Actor = _unit(RECRUIT, PLAYER)
 	var message: CommandMessage = _message_for(_unit(IRREGULAR, ENEMY))
 	assert_eq(
 		RTSController.selection_precondition(Attack, [truck, recruit], message),
@@ -120,8 +120,8 @@ func test_the_selection_reads_as_valid_when_any_unit_can_act():
 
 
 func test_the_selection_reads_as_invalid_only_when_nobody_can_act():
-	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
-	var other_truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
+	var truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
+	var other_truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
 	var message: CommandMessage = _message_for(_unit(IRREGULAR, ENEMY))
 	assert_ne(
 		RTSController.selection_precondition(Attack, [truck, other_truck], message),
@@ -135,9 +135,9 @@ func test_the_selection_reads_as_invalid_only_when_nobody_can_act():
 
 func test_an_air_target_resolves_attack_from_the_air_capable_unit():
 	# The user's second case: the recruit's weapon can't reach air at all, the Warlord's can.
-	var recruit: Commandable = _unit(RECRUIT, PLAYER)
-	var warlord: Commandable = _unit(WARLORD, PLAYER)
-	var helicopter: Commandable = _unit(CLIPPER, ENEMY)
+	var recruit: Actor = _unit(RECRUIT, PLAYER)
+	var warlord: Actor = _unit(WARLORD, PLAYER)
+	var helicopter: Actor = _unit(CLIPPER, ENEMY)
 	assert_true(helicopter.is_airborne(), "the target is an air unit")
 	assert_eq(
 		_resolve([recruit, warlord], helicopter),
@@ -158,9 +158,9 @@ func test_an_air_target_resolves_attack_from_the_air_capable_unit():
 
 
 func test_a_ground_only_selection_falls_back_to_a_move_against_an_air_target():
-	var recruit: Commandable = _unit(RECRUIT, PLAYER)
-	var other_recruit: Commandable = _unit(RECRUIT, PLAYER)
-	var helicopter: Commandable = _unit(CLIPPER, ENEMY)
+	var recruit: Actor = _unit(RECRUIT, PLAYER)
+	var other_recruit: Actor = _unit(RECRUIT, PLAYER)
+	var helicopter: Actor = _unit(CLIPPER, ENEMY)
 	assert_eq(
 		_resolve([recruit, other_recruit], helicopter),
 		MoveCommand,
@@ -174,7 +174,7 @@ func test_a_ground_only_selection_falls_back_to_a_move_against_an_air_target():
 func test_a_lone_truck_still_deposits():
 	# The Attack-over-Interact precedence only settles MIXED selections; it must not take
 	# the truck's own interaction away from it.
-	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
+	var truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
 	truck.garrison.garrison(_unit(RECRUIT, ENEMY))
 	assert_eq(
 		_resolve([truck], _unit(COMPOUND_PATH, PLAYER)),
@@ -186,7 +186,7 @@ func test_a_lone_truck_still_deposits():
 ## Capture has no command of its own — driving over the prey IS the mechanic — so the
 ## right-click that starts one is a plain move at it. See test_CaptureByCrushing.gd.
 func test_a_truck_clicking_its_prey_just_drives_at_it():
-	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
+	var truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
 	assert_eq(
 		_resolve([truck], _unit(IRREGULAR, ENEMY)),
 		MoveCommand,
@@ -198,8 +198,8 @@ func test_a_truck_clicking_its_prey_just_drives_at_it():
 
 
 func test_a_garrison_host_resolves_occupy():
-	var recruit: Commandable = _unit(RECRUIT, PLAYER)
-	var transport: Commandable = _unit(MERCURY, PLAYER)
+	var recruit: Actor = _unit(RECRUIT, PLAYER)
+	var transport: Actor = _unit(MERCURY, PLAYER)
 	assert_eq(
 		_resolve([recruit], transport),
 		Occupy,
@@ -211,8 +211,8 @@ func test_a_host_whose_allowlist_rejects_the_unit_falls_back_to_a_move():
 	# Regression: the ladder used to re-state Occupy's rule as "target has a Garrison and
 	# the actor is grounded", which resolved Occupy for a host that would not take the unit.
 	# The order could never be issued, so the click did nothing at all instead of moving.
-	var recruit: Commandable = _unit(RECRUIT, PLAYER)
-	var truck: Commandable = _unit(SUPPLY_TRUCK, PLAYER)
+	var recruit: Actor = _unit(RECRUIT, PLAYER)
+	var truck: Actor = _unit(SUPPLY_TRUCK, PLAYER)
 	assert_false((truck.garrison as Garrison).admits(recruit), "the truck takes Servants only")
 	assert_eq(
 		_resolve([recruit], truck),

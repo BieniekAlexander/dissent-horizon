@@ -2,7 +2,7 @@ class_name EnergyExtractor
 extends Node
 
 ## Extracts energy from the map cell under the structure each tick and pays
-## it into the owning commander's energy pool. Attach as a child of a Commandable
+## it into the owning commander's energy pool. Attach as a child of a Actor
 ## that sits on an energy-bearing cell.
 
 #region Properties
@@ -39,7 +39,7 @@ func tick() -> void:
 	var paid: int = reservoir.extract(energy_rate) if reservoir != null else energy_rate
 	if paid <= 0:
 		return
-	var commandable := get_parent() as Commandable
+	var commandable := get_parent() as Actor
 	commandable.commander.add_energy(paid)
 
 

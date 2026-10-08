@@ -58,11 +58,11 @@ func _controller(a_selection: Array) -> RTSController:
 	return controller
 
 
-func _entity(a_options: Dictionary) -> Commandable:
+func _entity(a_options: Dictionary) -> Actor:
 	var commander := Commander.new()
 	commander.id = 1
 	add_child_autofree(commander)
-	var entity := FakePieces.make(a_options) as Commandable
+	var entity := FakePieces.make(a_options) as Actor
 	add_child_autofree(entity)
 	entity.ownership.commander = commander
 	return entity
@@ -243,7 +243,7 @@ func test_a_context_cells_hotkey_switches_to_it() -> void:
 ## its commander as its parent when there is no scenario, so it is given one.
 func _owned_controller(a_entities: Array) -> RTSController:
 	var commander := autofree(Commander.new()) as Commander
-	for entity: Commandable in a_entities:
+	for entity: Actor in a_entities:
 		entity.ownership.commander = commander
 	var controller: RTSController = _controller(a_entities)
 	commander.add_child(controller)
@@ -279,9 +279,9 @@ func test_details_show_no_production_off_the_production_card() -> void:
 
 func test_details_show_the_chosen_contexts_producers() -> void:
 	var trains: Dictionary = _register_trainee()
-	var barracks: Commandable = _entity(BARRACKS.merged(trains))
-	var other_barracks: Commandable = _entity(BARRACKS.merged(trains))
-	var factory: Commandable = _entity(FACTORY.merged(trains))
+	var barracks: Actor = _entity(BARRACKS.merged(trains))
+	var other_barracks: Actor = _entity(BARRACKS.merged(trains))
+	var factory: Actor = _entity(FACTORY.merged(trains))
 	var controller: RTSController = _owned_controller([barracks, factory, other_barracks])
 	controller.set_command_family(ControlBinding.CommandFamily.PRODUCTION)
 	controller.choose_producer_context(&"fake_barracks")
@@ -291,8 +291,8 @@ func test_details_show_the_chosen_contexts_producers() -> void:
 
 func test_details_leave_out_another_commanders_producer() -> void:
 	var trains: Dictionary = _register_trainee()
-	var own: Commandable = _entity(BARRACKS.merged(trains))
-	var theirs: Commandable = _entity(BARRACKS.merged(trains))
+	var own: Actor = _entity(BARRACKS.merged(trains))
+	var theirs: Actor = _entity(BARRACKS.merged(trains))
 	var controller: RTSController = _owned_controller([own])
 	controller.selection.append(theirs)
 	controller.set_command_family(ControlBinding.CommandFamily.PRODUCTION)

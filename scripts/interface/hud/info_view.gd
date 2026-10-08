@@ -26,13 +26,13 @@ extends Control
 
 ## Requests the controller re-select `commandable` as the sole selection (summary card
 ## left click).
-signal select_only_requested(commandable: Commandable)
+signal select_only_requested(commandable: Actor)
 ## Requests the controller drop `commandable` from the current selection (summary card
 ## shift+left click).
-signal deselect_requested(commandable: Commandable)
+signal deselect_requested(commandable: Actor)
 ## Requests the controller ADD `commandable` to the current selection, keeping what is there
 ## — the additive reading of an occupant card's right click.
-signal add_to_selection_requested(commandable: Commandable)
+signal add_to_selection_requested(commandable: Actor)
 ## Raised while the pointer is over an info widget that has ranges to draw, with the entity
 ## and the EntityRanges.Kind values it wants shown; and when it leaves. The controller owns
 ## the world-space indicator — this panel only says what is being asked about.
@@ -130,7 +130,7 @@ func _update_summary(a_selection: Array) -> void:
 	var commandables: Array = []
 	var sig: String = ""
 	for node: Node in a_selection:
-		var c: Commandable = node as Commandable
+		var c: Actor = node as Actor
 		if c == null:
 			continue
 		commandables.append(c)
@@ -140,7 +140,7 @@ func _update_summary(a_selection: Array) -> void:
 	# change without the selection changing, so refresh it every frame (outside the sig
 	# gate that guards the more expensive card rebuilds).
 	if commandables.size() == 1:
-		_summary_name.text = _single_unit_text(commandables[0] as Commandable)
+		_summary_name.text = _single_unit_text(commandables[0] as Actor)
 
 	if sig == _summary_sig:
 		return
@@ -163,7 +163,7 @@ func _update_summary(a_selection: Array) -> void:
 		for group: Array in rows_by_type(commandables, per_row):
 			var row := StaggeredCardRow.new()
 			_summary_rows.add_child(row)
-			for c: Commandable in group:
+			for c: Actor in group:
 				var card := CommandableCard.new()
 				row.add_card(card)
 				card.bind_existing(c, true)
@@ -178,7 +178,7 @@ func _update_summary(a_selection: Array) -> void:
 ## continues on the next row rather than running off its edge).
 static func rows_by_type(a_commandables: Array, a_per_row: int) -> Array:
 	var by_type: Dictionary = {}
-	for c: Commandable in a_commandables:
+	for c: Actor in a_commandables:
 		if not by_type.has(c.id):
 			by_type[c.id] = []
 		(by_type[c.id] as Array).append(c)
@@ -197,11 +197,11 @@ func _scrollbar_allowance() -> float:
 
 ## Generic single-unit blurb, for a panel WITHOUT the widget block: the unit's node name, its
 ## flavor text (description, or verbose while ui_verbose is held — see
-## Commandable.resolved_description/verbose), an HP line when it has a Defense component, an
+## Actor.resolved_description/verbose), an HP line when it has a Defense component, an
 ## occupancy line when it has a Garrison (occupancy held vs capacity — in occupancy_size, not
 ## head count, so a bulky occupant reads as the room it takes), and its production line when it
 ## has a Production component.
-func _single_unit_text(a_commandable: Commandable) -> String:
+func _single_unit_text(a_commandable: Actor) -> String:
 	var text: String = ""
 	# EVERYTHING HERE BELONGS TO THE WIDGET BLOCK where there is one — name, flavour, hit
 	# points, occupancy and production are its slots, said as figures with tooltips, which is
@@ -245,7 +245,7 @@ func _single_unit_text(a_commandable: Commandable) -> String:
 ##
 ## Read off the structure's own commander rather than an injected one: the panel already has
 ## the entity, and a producer always knows who owns it.
-func _production_line(a_commandable: Commandable) -> String:
+func _production_line(a_commandable: Actor) -> String:
 	var line: String = "Idle"
 	if a_commandable.production.job_count() > 0:
 		var building: Variant = a_commandable.production.job_type(0)
@@ -266,7 +266,7 @@ func _production_line(a_commandable: Commandable) -> String:
 ## Left click on a summary card: shift removes that unit from the selection; a plain
 ## click makes it the sole selection. The controller applies the change, and the next
 ## update() rebuilds the cards to match.
-func _on_summary_card_activated(a_commandable: Commandable, a_shift_held: bool) -> void:
+func _on_summary_card_activated(a_commandable: Actor, a_shift_held: bool) -> void:
 	if a_shift_held:
 		deselect_requested.emit(a_commandable)
 	else:
@@ -279,11 +279,11 @@ func _update_details(a_selection: Array) -> void:
 	var occupants: Array = []
 	var sig: String = ""
 	if a_selection.size() == 1:
-		var host: Commandable = a_selection[0] as Commandable
+		var host: Actor = a_selection[0] as Actor
 		if host != null and host.commander_id == RTSController.PLAYER_COMMANDER_ID:
 			var garrison: Garrison = host.get_node_or_null("Garrison") as Garrison
 			if garrison != null:
-				for occupant: Commandable in garrison.occupants():
+				for occupant: Actor in garrison.occupants():
 					occupants.append([host, occupant])
 					sig += "occ:%d:%d|" % [host.get_instance_id(), occupant.get_instance_id()]
 
@@ -295,9 +295,9 @@ func _update_details(a_selection: Array) -> void:
 	for entry: Array in occupants:
 		var occ_card := CommandableCard.new()
 		_details_cards.add_child(occ_card)
-		occ_card.bind_existing(entry[1] as Commandable, true)
+		occ_card.bind_existing(entry[1] as Actor, true)
 		# Bind the host so the click knows which garrison to evacuate from.
-		occ_card.activated.connect(_on_occupant_card_activated.bind(entry[0] as Commandable))
+		occ_card.activated.connect(_on_occupant_card_activated.bind(entry[0] as Actor))
 		# RIGHT click SELECTS the occupant instead of evacuating it, so the player can give it
 		# orders it carries out when it comes out. See
 		# gdd/systems/ux/ui/control-matrices.md §Context 6.
@@ -307,7 +307,7 @@ func _update_details(a_selection: Array) -> void:
 ## Right click on a garrison-occupant card: select it. Routed through the same signals the
 ## summary cards use, so the controller has one way to be told "select this" — the additive
 ## reading is the one it has everywhere else.
-func _on_occupant_select_requested(a_occupant: Commandable, a_additive: bool) -> void:
+func _on_occupant_select_requested(a_occupant: Actor, a_additive: bool) -> void:
 	if a_additive:
 		add_to_selection_requested.emit(a_occupant)
 	else:
@@ -321,7 +321,7 @@ func _on_occupant_select_requested(a_occupant: Commandable, a_additive: bool) ->
 ## Gated on Garrison.can_release_occupant — the EXIT question, and only for the host's own
 ## side: a Servant riding a Stock Truck can be let out, the captives beside it cannot.
 func _on_occupant_card_activated(
-	a_occupant: Commandable, _a_shift_held: bool, a_host: Commandable
+	a_occupant: Actor, _a_shift_held: bool, a_host: Actor
 ) -> void:
 	if not is_instance_valid(a_host) or not is_instance_valid(a_occupant):
 		return

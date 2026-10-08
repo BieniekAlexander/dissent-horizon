@@ -1,6 +1,6 @@
 extends GutTest
 
-## A Scout — a non-Commandable Entity carrying a VisionRange — counts as one of its
+## A Scout — a non-Actor Entity carrying a VisionRange — counts as one of its
 ## commander's vision sources.
 ##
 ## That is ALL this file pins now. It used to assert a geometric vision model through
@@ -21,8 +21,8 @@ func before_each() -> void:
 	add_child_autofree(_cmdr)  # in-tree so child Entities' @onready shapes resolve
 
 
-func _add_scout_at(a_world_xz: Vector2) -> Commandable:
-	var scout: Commandable = FakePieces.unit({"vision": 12.0})
+func _add_scout_at(a_world_xz: Vector2) -> Actor:
+	var scout: Actor = FakePieces.unit({"vision": 12.0})
 	_cmdr.add_child(scout)
 	scout.global_position = Vector3(a_world_xz.x, 0.0, a_world_xz.y)
 	return scout

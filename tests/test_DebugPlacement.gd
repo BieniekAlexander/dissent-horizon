@@ -133,7 +133,7 @@ func test_a_placed_structure_stands_finished_on_its_cells() -> void:
 	assert_true(_map.structure_cell_map.has(structure), "on the grid")
 
 
-## A delete is a death: a piece with no Commandable tick to notice its hit points dies at once.
+## A delete is a death: a piece with no Actor tick to notice its hit points dies at once.
 func test_delete_kills_a_selected_feature() -> void:
 	var site: Entity = DebugPlacement.spawn(
 		FakePieces.scene_of(SITE_SCENE), _map, _commander, _at(OPEN_CELL).xz_position

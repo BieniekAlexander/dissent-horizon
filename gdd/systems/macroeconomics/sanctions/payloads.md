@@ -66,7 +66,7 @@ unit (see `gdd/systems/ai/bot-roadmap.md` §The gaps in the decision surface).
 
 ## Freeze is a stun with a shield
 
-`FreezeStatusEffect` extends `StunStatusEffect` rather than reimplementing the stop, because the stop IS a stun: `Commandable.is_stunned()` looks for that class. What it adds is a CRYO shield of ice; the rules are [combat/shields](../../combat/shields.md) §Freeze.
+`FreezeStatusEffect` extends `StunStatusEffect` rather than reimplementing the stop, because the stop IS a stun: `Actor.is_stunned()` looks for that class. What it adds is a CRYO shield of ice; the rules are [combat/shields](../../combat/shields.md) §Freeze.
 
 `can_freeze()` is a STATIC so the sanction can ask exactly the question the effect will ask, which is what keeps "not a candidate" and "refused on apply" from disagreeing. The Freeze event admits structures as well as units (`EventTargetUnit._admits_structures`).
 
@@ -81,15 +81,15 @@ unit (see `gdd/systems/ai/bot-roadmap.md` §The gaps in the decision surface).
 
 The Scan family is one event (`EventRadarScan`) with three sets of exports. Scan 3's "hovering unit that floats above the designated position indefinitely ... uncommandable" is a `Scout` with `lifespan_frames < 0`.
 
-**The Scout is a real, attackable piece** (`gdd/factions/neutral/units/nt_aircraftLight_recon.md` — 50 HP, LIGHT armour, MECH frame, HOVERING). It used to be a bare `Entity` with no `Defense` and no `Hurtbox`, which made it UNKILLABLE: aggro filters on `t is Commandable`, so nothing could ever shoot one and a permanent Scan 3 eye was an unanswerable, cost-free reveal. Three things carry that:
+**The Scout is a real, attackable piece** (`gdd/factions/neutral/units/nt_aircraftLight_recon.md` — 50 HP, LIGHT armour, MECH frame, HOVERING). It used to be a bare `Entity` with no `Defense` and no `Hurtbox`, which made it UNKILLABLE: aggro filters on `t is Actor`, so nothing could ever shoot one and a permanent Scan 3 eye was an unanswerable, cost-free reveal. Three things carry that:
 
 - **HOVERING is not about travel** — it is what puts the drone on the `TARGETABLE_AIR` layer (see `Entity._apply_targetable_layers`), so it needs a `Movement` to be shootable at all. `speed: ZERO` is what keeps it where the sanction put it.
 - **It cannot be ordered because it cannot be SELECTED** — `Selectable.selectable_by_player = false`. Godot cannot remove a node inherited from a base scene, so the component is unavoidable; the flag switches it off, refused at `select()`, the one choke point both the click path (`RTSController.set_selection`) and the box drag go through.
 
   **Doing this by clearing the Selectable's `collision_layer` instead is wrong twice over**, and both ways bit. The SELECTION layer is what the CURSOR picks against (`get_cursor_target`), so a layerless Selectable also became impossible to RIGHT-CLICK — the drone could not be attacked, which was the entire point of giving it hit points. And it did not even achieve the goal: box-select reads the `"selectables"` GROUP rather than the layer, so a drag still caught it. An unselectable piece must stay pickable.
-- **`Commander.has_anything_in_play()` skips unreachable pieces.** The old rule excluded the Scout for being a non-Commandable; the exclusion moved to what was doing the real work — a piece the player cannot command cannot be what is keeping them in the game. Otherwise a drone in a far corner would force the opponent to hunt it to finish a decided match. Tests: `tests/test_ReconDrone.gd`.
+- **`Commander.has_anything_in_play()` skips unreachable pieces.** The old rule excluded the Scout for being a non-Actor; the exclusion moved to what was doing the real work — a piece the player cannot command cannot be what is keeping them in the game. Otherwise a drone in a far corner would force the opponent to hunt it to finish a decided match. Tests: `tests/test_ReconDrone.gd`.
 
-What DID have to be built is stealth detection. The detection tick lives in `Commandable._update_state`, and a `Scout` is an `Entity`, so a `DetectionRange` child alone would sit inert — `Scout._detect_stealthed_units` mirrors it against the same STEALTH collision layer, so a scan reveals precisely what a unit standing there would. The shape is CREATED by the event rather than shipped disabled on `scout.tscn`, so Scan 1 genuinely has no detector and skips the query entirely rather than running a disabled one.
+What DID have to be built is stealth detection. The detection tick lives in `Actor._update_state`, and a `Scout` is an `Entity`, so a `DetectionRange` child alone would sit inert — `Scout._detect_stealthed_units` mirrors it against the same STEALTH collision layer, so a scan reveals precisely what a unit standing there would. The shape is CREATED by the event rather than shipped disabled on `scout.tscn`, so Scan 1 genuinely has no detector and skips the query entirely rather than running a disabled one.
 
 **A new cell is priced at a placeholder 500 dominion; a cell that already had a hand-set price KEEPS it.** Every Colonial cell is 500 because the whole grid was new. The Anarchists' three real payloads predate the grid, are reachable in the shipped prologue scenarios, and stayed at 100 / 100 / 250 — repricing a working, playable sanction is a balance change, not stubbing, and stubbing is what filling in a grid is. The result is deliberately uneven between the factions, and the placeholder is the thing to fix: neither grid is balanced yet.
 

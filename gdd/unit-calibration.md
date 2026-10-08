@@ -58,8 +58,8 @@ walked into arm's length.
 
 | Radius | The question | Read by |
 |---|---|---|
-| `vision` | what does my side SEE from here? | fog of war; also the retaliation radius (`Commandable._get_vision_range_attack`) |
-| `aggro` | what will I START a fight over, unprompted? — derived, never authored | the idle pickup (`Commandable.get_aggro_near_position`) |
+| `vision` | what does my side SEE from here? | fog of war; also the retaliation radius (`Actor._get_vision_range_attack`) |
+| `aggro` | what will I START a fight over, unprompted? — derived, never authored | the idle pickup (`Actor.get_aggro_near_position`) |
 | weapon `reach` | what can I actually shoot? | `SU.is_in_attack_range` |
 
 ### `aggro` is not a knob any more

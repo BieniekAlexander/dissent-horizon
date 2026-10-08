@@ -51,12 +51,12 @@ var _ticks_elapsed: int = 0
 
 #region Public API
 ## The Warlords (or anything else granting Retinue) this commander owns and can act with.
-func sources() -> Array[Commandable]:
-	var out: Array[Commandable] = []
+func sources() -> Array[Actor]:
+	var out: Array[Actor] = []
 	if commander == null:
 		return out
 	for node: Node in commander.get_children():
-		var piece := node as Commandable
+		var piece := node as Actor
 		if piece != null and is_instance_valid(piece) and piece.is_built and grants_aura(piece):
 			out.append(piece)
 	return out
@@ -67,7 +67,7 @@ func sources() -> Array[Commandable]:
 
 
 ## Whether `a_piece` projects a dominion aura at all — i.e. whether it grants Retinue.
-static func grants_aura(a_piece: Commandable) -> bool:
+static func grants_aura(a_piece: Actor) -> bool:
 	if a_piece == null or not is_instance_valid(a_piece):
 		return false
 	var pool := a_piece.get_node_or_null("Abilities") as Abilities
@@ -81,8 +81,8 @@ static func grants_aura(a_piece: Commandable) -> bool:
 ## a Warlord says what THAT Warlord is claiming, and subtracting a follower because a
 ## different Warlord also reaches it would make the card unreadable ("why does mine say two?")
 ## for a rule the player cannot see from here.
-static func followers_of(a_source: Commandable) -> Array[Commandable]:
-	var out: Array[Commandable] = []
+static func followers_of(a_source: Actor) -> Array[Actor]:
+	var out: Array[Actor] = []
 	if not grants_aura(a_source) or not a_source.is_inside_tree():
 		return out
 	var region := a_source.get_node_or_null(REGION_NODE) as CollisionShape3D
@@ -95,7 +95,7 @@ static func followers_of(a_source: Commandable) -> Array[Commandable]:
 		a_source.global_position,
 		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION
 	):
-		var follower := entity as Commandable
+		var follower := entity as Actor
 		if follower == null or follower == a_source:
 			continue
 		if follower.commander_id != a_source.commander_id:
@@ -114,7 +114,7 @@ static func followers_of(a_source: Commandable) -> Array[Commandable]:
 ## An INSTANCE method because the rate is authored per scenario (see dominion_per_unit), so
 ## pricing a follower means finding the node that owns the number — which is what
 ## `for_commander` is for.
-func dominion_for(a_source: Commandable) -> float:
+func dominion_for(a_source: Actor) -> float:
 	return followers_of(a_source).size() * dominion_per_unit
 
 
@@ -134,11 +134,11 @@ static func for_commander(a_commander: Commander) -> AnarchicalDominion:
 ##
 ## A follower is a friendly BIO piece that is not itself a source: the claim is on units led,
 ## so a Warlord never counts itself or another Warlord.
-func followers() -> Array[Commandable]:
+func followers() -> Array[Actor]:
 	var seen: Dictionary = {}
-	var out: Array[Commandable] = []
-	for source: Commandable in sources():
-		for follower: Commandable in followers_of(source):
+	var out: Array[Actor] = []
+	for source: Actor in sources():
+		for follower: Actor in followers_of(source):
 			if seen.has(follower):
 				continue
 			seen[follower] = true

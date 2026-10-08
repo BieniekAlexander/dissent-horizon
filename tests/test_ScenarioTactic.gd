@@ -31,7 +31,7 @@ class SpyTacticRule:
 	var issued_calls: Array[Dictionary] = []
 
 	func issue_commands_to(
-		a_units: Array[Commandable],
+		a_units: Array[Actor],
 		_a_manager: ScenarioTriggerManager,
 		a_p_commander_id_context: int = -1
 	) -> void:
@@ -54,8 +54,8 @@ func after_each() -> void:
 		_manager.simulation_clock.clear()
 
 
-func _member(a_group: StringName = GROUP) -> Commandable:
-	var unit: Commandable = FakePieces.make(UNIT)
+func _member(a_group: StringName = GROUP) -> Actor:
+	var unit: Actor = FakePieces.make(UNIT)
 	unit.add_to_group(a_group)
 	add_child_autofree(unit)
 	return unit

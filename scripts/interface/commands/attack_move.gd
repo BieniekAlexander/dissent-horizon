@@ -2,10 +2,10 @@ class_name AttackMove
 extends MoveCommand
 
 
-## Refused for a piece on rails (Commandable.is_on_rails): it cannot go where it is sent. The
+## Refused for a piece on rails (Actor.is_on_rails): it cannot go where it is sent. The
 ## button still serves it — clicked on a target, it resolves to Attack instead.
 static func meets_precondition(
-	actor: Commandable, _message: CommandMessage
+	actor: Actor, _message: CommandMessage
 ) -> PreconditionFailureCause:
 	if actor != null and actor.is_on_rails():
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -24,7 +24,7 @@ func releases_hold_fire() -> bool:
 
 
 #region State updates
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	var aggro_command: MoveCommand = a_actor.get_aggro_near_position(
 		null, null, message.target_priority
 	)

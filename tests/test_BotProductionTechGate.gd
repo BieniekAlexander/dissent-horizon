@@ -35,7 +35,7 @@ class StubActuator:
 	extends BotActuator
 	var trains: Array = []
 
-	func train(_a_structure: Commandable, a_type: StringName) -> bool:
+	func train(_a_structure: Actor, a_type: StringName) -> bool:
 		trains.append(a_type)
 		return true
 
@@ -48,7 +48,7 @@ func before_each() -> void:
 	_bot = FakeBot.new()
 	_bot.energy = 5000
 	_act = StubActuator.new(null)
-	var structure := autofree(Commandable.new()) as Commandable
+	var structure := autofree(Actor.new()) as Actor
 	structure.production = Production.new()
 	structure.production.producible_types = [RECRUIT, GUARD]
 	structure.add_child(structure.production)

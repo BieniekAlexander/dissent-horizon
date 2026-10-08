@@ -30,8 +30,8 @@ func before_each() -> void:
 	add_child_autofree(_effects)
 
 
-func _piece(a_options: Dictionary) -> Commandable:
-	var piece: Commandable = FakePieces.make(a_options) as Commandable
+func _piece(a_options: Dictionary) -> Actor:
+	var piece: Actor = FakePieces.make(a_options) as Actor
 	add_child_autofree(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true

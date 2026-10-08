@@ -82,7 +82,7 @@ static func passives_in(a_selection: Array, a_commander: Commander) -> Array[Str
 		return []
 	var held: Dictionary = {}
 	var owns_any: bool = false
-	# Entity rather than Commandable: ownership and the Abilities pool both live one level up,
+	# Entity rather than Actor: ownership and the Abilities pool both live one level up,
 	# and a passive is a fact about a PIECE rather than about taking orders.
 	for node: Node in a_selection:
 		var entity := node as Entity
@@ -170,7 +170,7 @@ func update(a_selection: Array, a_commander: Commander) -> void:
 func _badge_for(a_ability_id: StringName) -> String:
 	if a_ability_id != AnarchicalDominion.ABILITY_ID:
 		return ""
-	var source: Commandable = _host as Commandable
+	var source: Actor = _host as Actor
 	if _aura_source == null or source == null or not is_instance_valid(source):
 		return ""
 	# One decimal: the per-follower rate is fractional, so a whole-number badge would round a
@@ -190,7 +190,7 @@ static func _signature(a_passives: Array[StringName]) -> String:
 
 
 func _rebuild(a_passives: Array[StringName]) -> void:
-	var host_commandable: Commandable = _host as Commandable
+	var host_commandable: Actor = _host as Actor
 	_aura_source = AnarchicalDominion.for_commander(
 		host_commandable.commander if host_commandable != null else null
 	)

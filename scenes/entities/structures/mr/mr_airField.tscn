@@ -1,6 +1,6 @@
 [gd_scene load_steps=24 format=3 uid="uid://dsspnujr5gpan"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_ebfhh"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_ebfhh"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/docking_bay.gd" id="2_dockbay"]
 [ext_resource type="Script" path="res://scripts/entities/components/docking_pad.gd" id="2_dockpad"]

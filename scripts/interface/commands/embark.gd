@@ -33,13 +33,13 @@ static func requires_position() -> bool:
 ## hovering a unit is asking whether calling it in would achieve anything, and calling one
 ## into a full hold would not.
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if actor == null or not is_instance_valid(actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if not is_instance_valid(message.target) or not (message.target is Commandable):
+	if not is_instance_valid(message.target) or not (message.target is Actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	var occupant := message.target as Commandable
+	var occupant := message.target as Actor
 	var garrison := actor.get_node_or_null("Garrison") as Garrison
 	if garrison == null or not garrison.has_room_for(occupant):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -58,10 +58,10 @@ static func meets_precondition(
 ##
 ## Static and message-only so the rule can be pinned without a scene tree.
 static func nearest_host(hosts: Array, message: CommandMessage) -> Array:
-	var best: Commandable = null
+	var best: Actor = null
 	var best_distance: float = 0.0
 	for node: Node in hosts:
-		var host := node as Commandable
+		var host := node as Actor
 		if host == null or not is_instance_valid(host):
 			continue
 		var distance: float = host.xz_position.distance_to(message.xz_position)
@@ -98,8 +98,8 @@ var _occupant_ordered: bool = false
 ## not order the passenger aboard while the host is still busy with something else. The
 ## occupant's own orders are REPLACED, matching a right-click: being called into a
 ## transport is an order like any other.
-func get_updated_state(a_actor: Commandable) -> Variant:
-	var occupant := message.target as Commandable
+func get_updated_state(a_actor: Actor) -> Variant:
+	var occupant := message.target as Actor
 	# is_instance_valid() still reports true for a unit that has GARRISONED — entering a
 	# garrison orphans the node without freeing it — so tree membership is what says the
 	# order is finished. The dead case reads the same way and wants the same answer.
@@ -113,13 +113,13 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 
 ## The passenger it called in. The host side of the same exemption Occupy states: the two are
 ## driving at each other on purpose, so neither may steer around the other.
-func avoidance_exception(_a_actor: Commandable) -> Commandable:
-	return message.target as Commandable if is_instance_valid(message.target) else null
+func avoidance_exception(_a_actor: Actor) -> Actor:
+	return message.target as Actor if is_instance_valid(message.target) else null
 
 
 ## Only a host that can actually walk goes anywhere. A bunker's whole half of this order is
 ## the Occupy it already handed out, and driving it would be nonsense.
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	return a_actor.can_move()
 
 
@@ -132,7 +132,7 @@ func ends_on_arrival() -> bool:
 
 ## Never acts: everything this command does to the world it does through the Occupy it
 ## issued, and the boarding itself is that command's fulfil_action.
-func can_act(_a_actor: Commandable) -> bool:
+func can_act(_a_actor: Actor) -> bool:
 	return false
 
 
@@ -140,7 +140,7 @@ func can_act(_a_actor: Commandable) -> bool:
 
 
 #region Private helpers
-func _order_occupant(a_host: Commandable, a_occupant: Commandable) -> void:
+func _order_occupant(a_host: Actor, a_occupant: Actor) -> void:
 	var order := CommandMessage.new(message.map)
 	order.target = a_host
 	order.world_position = a_host.global_position

@@ -3,7 +3,7 @@ extends GutTest
 ## A Defend order that took a target and dropped it again on the very next tick, forever.
 ##
 ## Acquisition and release were two different tests over two different regions. Defend scans
-## for threats around the POST (Commandable.get_aggro_near_position, handed the post as its
+## for threats around the POST (Actor.get_aggro_near_position, handed the post as its
 ## centre) while Attack's ordinary leash is measured from the DEFENDER. Those coincide only
 ## while the defender happens to be standing on its post — and the whole march out to it is
 ## time when it is not.
@@ -29,8 +29,8 @@ const ENEMY: int = 2
 const MARCH_DISTANCE: float = 24.0
 
 
-func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var u := FakePieces.make(a_options) as Commandable
+func _unit(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var u := FakePieces.make(a_options) as Actor
 	add_child_autofree(u)
 	var c := Commander.new()
 	c.id = a_commander_id
@@ -42,7 +42,7 @@ func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
 ## A Defend order held at `a_post`, and the Attack it would hand back for `a_target`.
 ## _leash_to_defended_area is what get_updated_state applies to every command it produces;
 ## producing one takes a physics query, so the stamping is exercised directly.
-func _engagement(a_defender: Commandable, a_post: Vector3, a_target: Commandable) -> Attack:
+func _engagement(a_defender: Actor, a_post: Vector3, a_target: Actor) -> Attack:
 	var defend := Defend.new(CommandMessage.new(null, null, null, a_post))
 	var message := CommandMessage.new(null, a_target)
 	message.persist = false
@@ -52,9 +52,9 @@ func _engagement(a_defender: Commandable, a_post: Vector3, a_target: Commandable
 
 
 func test_the_engagement_is_leashed_to_the_post_not_the_defender() -> void:
-	var defender: Commandable = _unit(RECRUIT, PLAYER)
+	var defender: Actor = _unit(RECRUIT, PLAYER)
 	var post := Vector3(MARCH_DISTANCE, 0.0, 0.0)
-	var intruder: Commandable = _unit(IRREGULAR, ENEMY)
+	var intruder: Actor = _unit(IRREGULAR, ENEMY)
 	var attack: Attack = _engagement(defender, post, intruder)
 	assert_eq(
 		attack.message.aggro_shape,
@@ -68,10 +68,10 @@ func test_an_intruder_at_the_post_is_held_while_the_defender_is_still_marching()
 	# The regression. The defender is 24 units from its post; the intruder is 3 units from
 	# it. Measured from the defender that is far outside any leash, which is why the order
 	# was thrown away the instant it was made.
-	var defender: Commandable = _unit(RECRUIT, PLAYER)
+	var defender: Actor = _unit(RECRUIT, PLAYER)
 	defender.global_position = Vector3.ZERO
 	var post := Vector3(MARCH_DISTANCE, 0.0, 0.0)
-	var intruder: Commandable = _unit(IRREGULAR, ENEMY)
+	var intruder: Actor = _unit(IRREGULAR, ENEMY)
 	intruder.global_position = post + Vector3(3.0, 0.0, 0.0)
 	assert_true(
 		_engagement(defender, post, intruder)._target_within_leash(defender),
@@ -81,10 +81,10 @@ func test_an_intruder_at_the_post_is_held_while_the_defender_is_still_marching()
 
 func test_an_intruder_that_leaves_the_defended_area_is_released() -> void:
 	# The leash still has to let go, or a bait drags the defender off its post for good.
-	var defender: Commandable = _unit(RECRUIT, PLAYER)
+	var defender: Actor = _unit(RECRUIT, PLAYER)
 	defender.global_position = Vector3.ZERO
 	var post := Vector3(MARCH_DISTANCE, 0.0, 0.0)
-	var runner: Commandable = _unit(IRREGULAR, ENEMY)
+	var runner: Actor = _unit(IRREGULAR, ENEMY)
 	runner.global_position = post + Vector3(200.0, 0.0, 0.0)
 	assert_false(_engagement(defender, post, runner)._target_within_leash(defender))
 
@@ -93,8 +93,8 @@ func test_an_authored_defend_region_still_wins() -> void:
 	# A scripted defend names its own region (the largest aggro shape in the issuing group),
 	# and that must keep overriding the fallback — every defender then reacts to the same
 	# incursion instead of each one guarding its own little circle.
-	var defender: Commandable = _unit(RECRUIT, PLAYER)
-	var region: Commandable = _unit(RECRUIT, PLAYER)
+	var defender: Actor = _unit(RECRUIT, PLAYER)
+	var region: Actor = _unit(RECRUIT, PLAYER)
 	region.global_position = Vector3(100.0, 0.0, 0.0)
 	var defend := Defend.new(CommandMessage.new(null, null, null, Vector3.ZERO))
 	defend.message.aggro_shape = region.aggro_shape_ground
@@ -111,9 +111,9 @@ func test_an_authored_defend_region_still_wins() -> void:
 func test_an_ordinary_aggro_attack_is_still_leashed_to_its_actor() -> void:
 	# Only a Defend names a region. An idle unit that picks a target up on its own must keep
 	# chasing it as it moves, which is what measuring from the actor buys.
-	var actor: Commandable = _unit(RECRUIT, PLAYER)
+	var actor: Actor = _unit(RECRUIT, PLAYER)
 	actor.global_position = Vector3.ZERO
-	var target: Commandable = _unit(IRREGULAR, ENEMY)
+	var target: Actor = _unit(IRREGULAR, ENEMY)
 	target.global_position = Vector3(1.0, 0.0, 0.0)
 	var message := CommandMessage.new(null, target)
 	message.persist = false

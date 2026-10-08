@@ -319,7 +319,7 @@ every bounded-lifetime object with a motion and a payload schedule.
 
 **Out: units.** A weapon or ability that emits a *unit* (the Brood Lord case) must not be
 modelled by widening this class until it grows a command queue, an owner, grid registration and
-a selection shape — that is a `Commandable`, and it already exists. The generalisation belongs
+a selection shape — that is a `Actor`, and it already exists. The generalisation belongs
 on the **emitter** side: every spawn site (`Weapon.fire`, `Bombard`, `Ability`, `Interact`, the
 scenario events, `EventSpawnEmission`) does the same three steps — instantiate, initialise
 against the owner, hand it its initial intent. `Emitter.launch` is that interface for an

@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Tests for the pre-issued command queue a producing/garrisoning structure holds for the
-## units it turns out (Commandable.rally_commands and friends).
+## units it turns out (Actor.rally_commands and friends).
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_RallyQueue.gd -gexit
@@ -9,12 +9,12 @@ extends GutTest
 ## The structures here are out-of-tree Commandables with a Production component wired
 ## directly to the `production` field (the @onready never resolves outside the tree) and
 ## an explicit CommandReceiver, which is all `update_commands` touches on a stationary
-## host. `movement` stays null, which is what makes a Commandable "stationary" and so
+## host. `movement` stays null, which is what makes a Actor "stationary" and so
 ## eligible to absorb move orders as rally rather than walking them.
 
 
-func _make_structure() -> Commandable:
-	var structure := autofree(Commandable.new()) as Commandable
+func _make_structure() -> Actor:
+	var structure := autofree(Actor.new()) as Actor
 	var production := Production.new()
 	production.producible_types = [&"fake_trainee_a"]
 	structure.add_child(production)

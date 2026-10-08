@@ -101,7 +101,7 @@ func test_a_node_dying_this_frame_is_not_counted() -> void:
 
 
 func test_at_most_marks_the_members_that_can_be_marked() -> void:
-	var entity: Commandable = FakePieces.make(UNIT)
+	var entity: Actor = FakePieces.make(UNIT)
 	entity.add_to_group(GROUP)
 	add_child_autofree(entity)
 	_member()  # a plain Node in the same group — nothing to point at
@@ -112,7 +112,7 @@ func test_at_most_marks_the_members_that_can_be_marked() -> void:
 
 
 func test_at_least_marks_nothing() -> void:
-	var entity: Commandable = FakePieces.make(UNIT)
+	var entity: Actor = FakePieces.make(UNIT)
 	entity.add_to_group(GROUP)
 	add_child_autofree(entity)
 	var condition := _condition(ConditionGroupCount.Comparison.AT_LEAST, 3)
@@ -127,7 +127,7 @@ func test_spawn_groups_label_everything_the_event_produced() -> void:
 	event.spawn_groups = [GROUP, &"test_second_label"] as Array[StringName]
 	add_child_autofree(event)
 
-	var spawned: Commandable = FakePieces.make(UNIT)
+	var spawned: Actor = FakePieces.make(UNIT)
 	event._apply_spawn_groups(spawned)
 	autofree(spawned)
 

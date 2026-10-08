@@ -81,8 +81,8 @@ func transition_fraction() -> float:
 
 #region Order admission
 ## The orders the host should actually take, from `a_orders` given with the additive
-## modifier or not. Called at the one point every order enters a Commandable
-## (Commandable.update_commands), and returns what the host takes plus how:
+## modifier or not. Called at the one point every order enters a Actor
+## (Actor.update_commands), and returns what the host takes plus how:
 ##   { "orders": Array[MoveCommand], "add_to_queue": bool, "keep_active": bool }
 ## `keep_active` asks the host to clear the queue but leave the running transition alone.
 ##

@@ -45,11 +45,11 @@ func _bot() -> StubBot:
 
 
 ## A live piece owned by commander `a_owner_id`, standing at `a_position`, to act as a claimant.
-func _extractor_at(a_position: Vector3, a_owner_id: int) -> Commandable:
+func _extractor_at(a_position: Vector3, a_owner_id: int) -> Actor:
 	var owner: Commander = Commander.new()
 	owner.id = a_owner_id
 	add_child_autofree(owner)
-	var piece: Commandable = FakePieces.make(WORKER_SCENE) as Commandable
+	var piece: Actor = FakePieces.make(WORKER_SCENE) as Actor
 	add_child_autofree(piece)
 	piece.ownership.commander = owner
 	piece.global_position = a_position

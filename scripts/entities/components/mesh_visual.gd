@@ -11,9 +11,9 @@ extends Node3D
 ##   • faces the model toward a direction (replaces the old Sprite.flip_h),
 ##   • exposes an animation-state hook (a no-op until an AnimationTree exists).
 ##
-## Add it as a child of a Commandable with the model scene parented under it:
+## Add it as a child of a Actor with the model scene parented under it:
 ##
-##     Commandable
+##     Actor
 ##       └── MeshVisual   (this script)
 ##             └── Model   (instanced .glb / MeshInstance3D)
 ##
@@ -26,7 +26,7 @@ extends Node3D
 enum AnimationState { IDLE, MOVE, ATTACK, DIE }
 
 ## The three opacities of the construction lifecycle. Shared by the live entity
-## (Commandable._apply_construction_visuals) and by the HUD's ghost copies
+## (Actor._apply_construction_visuals) and by the HUD's ghost copies
 ## (RTSController's placement preview + blueprints), so a structure reads the same
 ## everywhere it's drawn:
 ##   PLANNED      — not on the map at all: the structure under the cursor while the
@@ -40,7 +40,7 @@ const OPACITY_BUILT: float = 1.0
 
 ## How dark a blueprint is drawn while its purchase is still WAITING FOR FUNDS — a
 ## build order the commander has committed to but can't pay for yet (see
-## Commandable.awaiting_funds). Multiplies the model's colour, so an unfunded site reads
+## Actor.awaiting_funds). Multiplies the model's colour, so an unfunded site reads
 ## as a darker version of the same blueprint rather than as a different thing.
 ##
 ## Deliberately a SHADE and not a fourth opacity: the opacity scale already means
@@ -54,7 +54,7 @@ const SHADE_NORMAL: float = 1.0
 ## at. A SECOND pair of factors alongside the construction ones above, multiplied into
 ## the same albedo, because the two answer questions that vary independently: a
 ## half-built barracks can be EMP'd, and a stealthed unit is no less finished for
-## fading. Written by StatusVisuals; construction is written by Commandable.
+## fading. Written by StatusVisuals; construction is written by Actor.
 ##   • status opacity — how VISIBLE the entity currently is (the stealth pulse).
 ##   • status tint    — what colour its condition draws it (an EMP's dead-machine black,
 ##                      a freeze's cryo blue).

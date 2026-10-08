@@ -19,7 +19,7 @@ signal hp_changed(hp: float, hp_max: float)
 signal shield_broken(type: Shield.Type)
 
 ## What owned upgrades multiply the authored hp_max by (UpgradeCatalog.HP_FACTOR). Stored rather
-## than asked for per read because hp_max is read in some sixty places; Commandable keeps it in
+## than asked for per read because hp_max is read in some sixty places; Actor keeps it in
 ## step with its commander's upgrades (_apply_upgrades).
 var _hp_factor: float = 1.0
 
@@ -134,7 +134,7 @@ func take_damage(a_base: float, a_damage_type: Damage.Type) -> float:
 ## Lower hp by `amount` (already armour-adjusted by the caller), bypassing any shield.
 ## Returns true when this brought a previously-living entity to 0 or below — i.e. the hit
 ## was lethal — so the caller can run death-attribution logic. Death handling itself stays with
-## the caller (Commandable._update_state detects hp <= 0).
+## the caller (Actor._update_state detects hp <= 0).
 func apply_damage(a_amount: float) -> bool:
 	var was_alive: bool = hp > 0
 	hp -= a_amount
@@ -153,14 +153,14 @@ func apply_damage(a_amount: float) -> bool:
 ## suppresses (Build, Repair, PLANT). Enforced HERE rather than at each mender so the
 ## Repair command, a heal aura and whatever is added next cannot come to disagree — and a
 ## staggered patient reads as "not full yet", which keeps a repairer standing by rather
-## than dropping its order. See Commandable.is_staggered.
+## than dropping its order. See Actor.is_staggered.
 ##
 ## Construction is untouched: advance_build_progress writes hp directly, because raising a
 ## building is not healing it.
 func restore(a_amount: float) -> bool:
 	if a_amount <= 0.0:
 		return hp >= hp_max
-	var host := get_parent() as Commandable
+	var host := get_parent() as Actor
 	var is_staggered: bool = host != null and host.is_staggered()
 	# A heal that lands takes off whatever an enemy has stuck on the piece — a beacon, a planted
 	# charge — whether or not there was any hp to restore, so a heal proc on a whole piece still
@@ -179,7 +179,7 @@ func restore(a_amount: float) -> bool:
 
 ## Drop hp straight to 0 without running the damage pipeline, for effects that must
 ## destroy an entity outright. Death still routes through
-## the normal hp <= 0 detection in Commandable._update_state.
+## the normal hp <= 0 detection in Actor._update_state.
 func kill() -> void:
 	if hp == 0:
 		return

@@ -28,8 +28,8 @@ func _ready() -> void:
 	host().entity_occurrence.connect(_on_host_occurrence)
 
 
-func host() -> Commandable:
-	return get_parent() as Commandable
+func host() -> Actor:
+	return get_parent() as Actor
 
 
 static func of(a_node: Variant) -> PlantedCharge:
@@ -58,9 +58,9 @@ static func is_riding(a_entity: Node) -> bool:
 ## Whether `a_entity` may carry a charge: a live MECH piece, unit or structure, that does not
 ## fly. Whose it is does not matter — a charge may be driven into the enemy on a friendly truck.
 static func can_carry(a_entity: Variant) -> bool:
-	if a_entity == null or not is_instance_valid(a_entity) or not (a_entity is Commandable):
+	if a_entity == null or not is_instance_valid(a_entity) or not (a_entity is Actor):
 		return false
-	var piece := a_entity as Commandable
+	var piece := a_entity as Actor
 	return (
 		piece.is_inside_tree()
 		and not piece.is_queued_for_deletion()
@@ -85,7 +85,7 @@ static func carried_by(a_carrier: Node) -> Array[PlantedCharge]:
 
 ## Arm the charge: planted by `a_planter`, riding on `a_carrier` or (null) standing where the
 ## host is. Holds the planter's Plant charge until this one leaves play.
-func arm(a_planter: Commandable, a_carrier: Commandable) -> void:
+func arm(a_planter: Actor, a_carrier: Actor) -> void:
 	_planter = a_planter
 	a_planter.entity_occurrence.connect(_on_planter_occurrence)
 	var pool := a_planter.get_node_or_null("Abilities") as Abilities
@@ -98,12 +98,12 @@ func arm(a_planter: Commandable, a_carrier: Commandable) -> void:
 		host()._apply_targetable_layers()
 
 
-func planter() -> Commandable:
-	return _planter as Commandable if is_instance_valid(_planter) else null
+func planter() -> Actor:
+	return _planter as Actor if is_instance_valid(_planter) else null
 
 
-func carrier() -> Commandable:
-	return _carrier as Commandable if is_instance_valid(_carrier) else null
+func carrier() -> Actor:
+	return _carrier as Actor if is_instance_valid(_carrier) else null
 
 
 func is_resolved() -> bool:
@@ -117,7 +117,7 @@ func _physics_process(_a_delta: float) -> void:
 	if not _is_resolved and _planter != null and not is_instance_valid(_planter):
 		remove()
 		return
-	var carrier: Commandable = carrier()
+	var carrier: Actor = carrier()
 	if carrier != null and carrier.is_inside_tree():
 		host().global_position = carrier.global_position
 
@@ -148,7 +148,7 @@ func _blast() -> void:
 	var emission: Entity = scene.instantiate() as Entity
 	emission.initialize(map, host().commander)
 	emission.global_position = host().global_position
-	var carrier: Commandable = carrier()
+	var carrier: Actor = carrier()
 	var target: Variant = (
 		carrier if carrier != null and carrier.is_inside_tree() else host().global_position
 	)

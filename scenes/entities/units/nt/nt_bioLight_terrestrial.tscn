@@ -1,7 +1,7 @@
 [gd_scene load_steps=28 format=3 uid="uid://cw4rqhg1l32u1"]
 
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="1_spec"]
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_y1jy3"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_y1jy3"]
 [ext_resource type="PackedScene" uid="uid://bbpr4d102dgv8" path="res://assets/meshes/entities/dummy_bio.blend" id="2_mesh"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/detection_small.tres" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_xn6eq"]

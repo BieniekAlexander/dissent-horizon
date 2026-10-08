@@ -143,7 +143,7 @@ time, so that ground not seen for a while counts as novel again.
 | Producing (`Production` has an active job) | full |
 | Idle, with energy that is not reserved (see Precision) | zero |
 | Idle because the commander is broke | **not eligible**. Being broke is Precision's concern, and should not be charged twice. |
-| Dark (`Commandable.is_unpowered()`) | zero, and it also counts against Precision |
+| Dark (`Actor.is_unpowered()`) | zero, and it also counts against Precision |
 
 A standing order keeps a producer credited indefinitely. That is intended. The design already
 wants idle income to always have somewhere to go.

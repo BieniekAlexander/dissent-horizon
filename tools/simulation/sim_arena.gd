@@ -394,9 +394,9 @@ func _spawn_one(a_group: SimSpec.Group, a_piece: String, a_at: Vector2) -> void:
 	if packed == null:
 		build_errors.append("cannot load scene for piece '%s' (%s)" % [a_piece, path])
 		return
-	var entity := packed.instantiate() as Commandable
+	var entity := packed.instantiate() as Actor
 	if entity == null:
-		build_errors.append("piece '%s' is not a Commandable" % a_piece)
+		build_errors.append("piece '%s' is not a Actor" % a_piece)
 		return
 	entity.default_commander_id = roster.commander_id(a_group.slot)
 	add_child(entity)
@@ -446,7 +446,7 @@ func _issue_orders_after(a_seconds: float) -> void:
 		var members: Array = roster.living(reference)
 		var offsets: Array[Vector2] = _group_offsets.get(reference, [] as Array[Vector2])
 		for index: int in members.size():
-			var unit: Commandable = members[index]
+			var unit: Actor = members[index]
 			var offset: Vector2 = offsets[index] if index < offsets.size() else Vector2.ZERO
 			var chain: Array[MoveCommand] = _chain_for(orders, offset)
 			if chain.is_empty():
@@ -495,7 +495,7 @@ func _chain_for(a_orders: Array[SimSpec.Order], a_offset: Vector2) -> Array[Move
 func _append_entity_commands(
 	a_chain: Array[MoveCommand], a_order: SimSpec.Order, a_targets: Array
 ) -> void:
-	for target: Commandable in a_targets:
+	for target: Actor in a_targets:
 		var command: MoveCommand = _make_command(a_order.command, target, target.global_position)
 		if command != null:
 			a_chain.append(command)
@@ -533,11 +533,11 @@ func _targets_of(a_target: SimSpec.TargetRef) -> Array:
 ## than from the ordering unit keeps a group's members on one shared target — the alternative
 ## fans a group out over several, which is the spread-fire case a spec expresses by splitting
 ## the defenders into groups instead.
-func _extreme(a_candidates: Array, a_nearest: bool) -> Commandable:
-	var best: Commandable = a_candidates[0]
+func _extreme(a_candidates: Array, a_nearest: bool) -> Actor:
+	var best: Actor = a_candidates[0]
 	var best_distance: float = VU.in_xz(best.global_position).length()
 	for index: int in range(1, a_candidates.size()):
-		var candidate: Commandable = a_candidates[index]
+		var candidate: Actor = a_candidates[index]
 		var distance: float = VU.in_xz(candidate.global_position).length()
 		if (distance < best_distance) == a_nearest:
 			best = candidate
@@ -575,7 +575,7 @@ func _pulled_back_to_edge(a_placement: SimSpec.Placement, a_point: Vector2) -> V
 	if centre == null:
 		return a_point
 	var radius: float = 0.0
-	for member: Commandable in roster.living(reference):
+	for member: Actor in roster.living(reference):
 		radius = maxf(radius, VU.in_xz(member.global_position - (centre as Vector3)).length())
 	var inward: Vector2 = Vector2.ZERO - a_point
 	if inward.length() < 0.001:
@@ -583,7 +583,7 @@ func _pulled_back_to_edge(a_placement: SimSpec.Placement, a_point: Vector2) -> V
 	return a_point + inward.normalized() * (radius + APPROACH_STANDOFF)
 
 
-func _make_command(a_name: String, a_target: Commandable, a_position: Vector3) -> MoveCommand:
+func _make_command(a_name: String, a_target: Actor, a_position: Vector3) -> MoveCommand:
 	var message := CommandMessage.new(map, a_target, null, a_position)
 	match a_name:
 		"attack":

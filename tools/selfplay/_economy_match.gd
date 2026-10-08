@@ -90,7 +90,7 @@ func _observe(a_commander: Commander, a_delta: float) -> void:
 	var production_structures: int = 0
 	var extractors: int = 0
 	for child: Node in a_commander.get_children():
-		var entity := child as Commandable
+		var entity := child as Actor
 		if entity == null or entity.is_queued_for_deletion():
 			continue
 		if entity.has_node("Structure"):
@@ -135,7 +135,7 @@ func _slot_sample(a_commander: Commander) -> Dictionary:
 	base["at_reserve"] = a_commander.energy >= reserve
 	var production_structures: int = 0
 	for child: Node in a_commander.get_children():
-		var entity := child as Commandable
+		var entity := child as Actor
 		if (
 			entity != null
 			and not entity.is_queued_for_deletion()
@@ -159,7 +159,7 @@ func _diag(a_commander: Commander) -> Dictionary:
 	var economy: BotEconomy = brain._economy
 	var bot: Bot = brain.bot
 	var builders: int = 0
-	for u: Commandable in bot.get_units():
+	for u: Actor in bot.get_units():
 		if u.has_node("Builds"):
 			builders += 1
 	var income_types: Array = bot.buildable_income_structure_types()

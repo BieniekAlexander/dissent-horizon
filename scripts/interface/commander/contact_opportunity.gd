@@ -18,13 +18,13 @@ extends BotOpportunity
 ## off directly. Tunable per difficulty later.
 const TRAVEL_COST_PER_UNIT: float = 2.0
 
-var _target: Commandable
+var _target: Actor
 var _value: float
 var _distance: float
 var _label: String
 
 
-func _init(a_actor: Commandable, a_target: Commandable, a_value: float, a_label: String) -> void:
+func _init(a_actor: Actor, a_target: Actor, a_value: float, a_label: String) -> void:
 	actor = a_actor
 	_target = a_target
 	_value = a_value

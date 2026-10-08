@@ -20,11 +20,11 @@ Three commands, and the axis is **what the target IS**, not what the worker does
 
 **`Assemble` and `Repair` are two commands over one action, split at the precondition.** Construction is always two commands — Build lays the foundation and hands off, and `Assemble` is what every co-builder converges on — and mending is a third thing again. One command cannot answer both, because "may I work on this?" has *opposite* answers for a half-built barracks and a dented tank. Below the precondition they are identical: the same channeled action, the same `ends_on_arrival() == false`, the same builder registration and AOE2 crowding formula.
 
-**A unit that can repair says so with a component, and presence is the whole check.** `Repairs` (`scripts/entities/components/repairs.gd`) is created by a bare `repairs: true` in the piece's doc (Kobold and Sapper today). It carries a node rather than a bool on `Commandable` so the capability has somewhere to grow — a target filter, a cost, a rate that varies — and it is deliberately unlike `Builds`, whose capability was never presence alone: WHICH structures a unit may place is data, so `Builds` carried a list from the day it existed. Repairers do NOT diminish each other the way builders do; each applies its own `repair_rate` every tick, because construction is one job several units crowd around while repair is several units each working on the same patient.
+**A unit that can repair says so with a component, and presence is the whole check.** `Repairs` (`scripts/entities/components/repairs.gd`) is created by a bare `repairs: true` in the piece's doc (Kobold and Sapper today). It carries a node rather than a bool on `Actor` so the capability has somewhere to grow — a target filter, a cost, a rate that varies — and it is deliberately unlike `Builds`, whose capability was never presence alone: WHICH structures a unit may place is data, so `Builds` carried a list from the day it existed. Repairers do NOT diminish each other the way builders do; each applies its own `repair_rate` every tick, because construction is one job several units crowd around while repair is several units each working on the same patient.
 
 **What may be repaired is stated once, in `Repair.repairable_cause`**, and the precondition, `can_act`, `get_updated_state` and the controller's right-click ladder all read it. Four gates, each earning its place:
 
-- **MECH frame, not armour type.** The armour axis here is LIGHT/MEDIUM/STRONG (how hard you are to hurt); the frame axis is BIO/MECH (what you are made of), and "a mechanic mends machines" is the second. Biological units are mended by `HealAOE`. Structures are included and need no special case — a structure is a `Commandable` with a `Defense` like any other.
+- **MECH frame, not armour type.** The armour axis here is LIGHT/MEDIUM/STRONG (how hard you are to hurt); the frame axis is BIO/MECH (what you are made of), and "a mechanic mends machines" is the second. Biological units are mended by `HealAOE`. Structures are included and need no special case — a structure is a `Actor` with a `Defense` like any other.
 - **Same commander, not merely non-hostile.** A derelict neutral (commander 0) building is nobody's to mend.
 - **Finished and not planned.** An unfinished structure reads as "hp below max" — `advance_build_progress` scales hp with progress — so without this gate a repairer would silently build it to completion, bypassing Assemble's builder registration and XP.
 - **Actually damaged**, so a right-click on an intact friendly falls through the ladder instead of issuing an order with nothing to do.
@@ -50,15 +50,15 @@ Neither command has a grid button yet — both are right-click-resolved only, an
 
 **Command preconditions** — every command subclass implements:
 ```gdscript
-static func meets_precondition(a_actor: Commandable, a_message: CommandMessage) -> PreconditionFailureCause
+static func meets_precondition(a_actor: Actor, a_message: CommandMessage) -> PreconditionFailureCause
 static func requires_position() -> bool
 static func tool_applies_to(command_tool_name: String, entity_type: Entity.Type) -> bool
 ```
 `PreconditionFailureCause.COMMAND_PENDING_TOOL` is not a failure — it means "armed but waiting on tool selection."
 
-**Structure-flavored routing**: `Commandable._process_commands()` intercepts `Train`, routing it into the commander's production queue, before it reaches `CommandReceiver._process_commands()`. A bare `MoveCommand` aimed at a stationary `can_rally()` commandable is intercepted earlier still — in `Commandable.update_commands()`, by `_absorb_rally_commands()` — because that is the only place the additive (shift) flag still exists; by the time the receiver has stored a command, "replace" vs "extend" is no longer knowable.
+**Structure-flavored routing**: `Actor._process_commands()` intercepts `Train`, routing it into the commander's production queue, before it reaches `CommandReceiver._process_commands()`. A bare `MoveCommand` aimed at a stationary `can_rally()` commandable is intercepted earlier still — in `Actor.update_commands()`, by `_absorb_rally_commands()` — because that is the only place the additive (shift) flag still exists; by the time the receiver has stored a command, "replace" vs "extend" is no longer knowable.
 
-**Rally / release destinations** (`Commandable.can_rally()` / `rally_commands` / `rally_chain()`): any commandable that trains units (`Production`) or holds occupants (`Garrison`) can rally. A stationary one (no `Movement`) holds `rally_commands` — a QUEUE of PRE-ISSUED commands, not a single point — fed by `_absorb_rally_commands()` as above: a plain right-click REPLACES the queue, a shift right-click APPENDS to it. A mobile one (e.g. a transport) has no queue and hands on its own active movement command instead. Only exact `MoveCommand`s are absorbed today (an `Attack` aimed at a structure stays an order for the structure), but the queue holds commands rather than points precisely so richer pre-issued orders — attack-move, defend, a patrol route — can be stacked later.
+**Rally / release destinations** (`Actor.can_rally()` / `rally_commands` / `rally_chain()`): any commandable that trains units (`Production`) or holds occupants (`Garrison`) can rally. A stationary one (no `Movement`) holds `rally_commands` — a QUEUE of PRE-ISSUED commands, not a single point — fed by `_absorb_rally_commands()` as above: a plain right-click REPLACES the queue, a shift right-click APPENDS to it. A mobile one (e.g. a transport) has no queue and hands on its own active movement command instead. Only exact `MoveCommand`s are absorbed today (an `Attack` aimed at a structure stays an order for the structure), but the queue holds commands rather than points precisely so richer pre-issued orders — attack-move, defend, a patrol route — can be stacked later.
 
 **What the rally LINE draws is the rally as CONFIGURED, not the job in progress.** `RTSController._rally_commands_to_draw` reads `rally_commands` for a selected structure, and reads a specific unit's own pre-issued chain only while the player is hovering that unit's production card (`InfoView.hovered_training_target`) — overriding just the structure being hovered. It used to draw the head job's captured chain unhovered, which meant the line a player saw while merely selecting a barracks described a unit already being built rather than the rally they were about to set, and it changed under them silently whenever a job started or finished. The default view now answers "where will my units go"; the card hover is the only way to ask the other question. A hovered job's stored chain can be empty — it falls back to the structure's rally at spawn (`Production._spawn_unit`) — so the drawing falls back the same way, and the line always matches what that unit will actually receive.
 
@@ -173,7 +173,7 @@ at this building while it builds" mean anything.
 
 `CommandReceiver._process_commands` refuses to act for an owner that is `not is_built`,
 alongside the stun gate and for the same reason: no `get_updated_state`, no `can_act`, no
-`fulfill_action`, no movement — but the queue is untouched. `Commandable._update_state`
+`fulfill_action`, no movement — but the queue is untouched. `Actor._update_state`
 additionally skips the idle-aggro pickup while unbuilt, or the structure would latch onto
 a target it cannot shoot and then open fire on whatever happened to be nearest the instant
 it completed, rather than waiting to be told.
@@ -200,9 +200,9 @@ finds nothing there, and units shoot straight through the plot until the buildin
 site worthwhile), and only the blocker bit waits.
 
 `Entity.blocks_line_of_fire` is the predicate — true for a structure, overridden on
-`Commandable` to require `is_built` — and `Entity._apply_targetable_layers` is the one
+`Actor` to require `is_built` — and `Entity._apply_targetable_layers` is the one
 place that writes the layer from it. The bit is added on the completing tick by
-`Commandable.advance_build_progress`, NOT by `Assemble`, so every route that finishes a
+`Actor.advance_build_progress`, NOT by `Assemble`, so every route that finishes a
 structure (a captured one, a scenario event) agrees without each having to remember.
 
 > **TODO — building things that are NOT structures.** `is_built` is group-keyed
@@ -222,11 +222,11 @@ A blueprint is **the structure itself in a PLANNED state** (`Entity.is_planned`)
 
 What it has: ownership + team tint, its `Selectable`, its `Production`, and 0.2 opacity. What it does NOT have until placement: grid cells, collision (`refresh_movement_collision` / `_apply_targetable_layers` bail out on `is_planned`), line of sight, infrastructure upkeep, a place in the commander's `structure_type_map`, and `_physics_process`. It is invisible to every commander but its owner (`fog.gd`, `Commander.visible_foreign_structures`).
 
-`Commandable.commit_construction` is the transition: the builder arriving turns that same node into the real structure (`Build._place_structure`) — nothing is re-instantiated, so a selection or queued order survives placement.
+`Actor.commit_construction` is the transition: the builder arriving turns that same node into the real structure (`Build._place_structure`) — nothing is re-instantiated, so a selection or queued order survives placement.
 
-**Lifetime belongs to the BUILD purchase** (`PurchaseTransaction.planned_structure`): `consume()` (placement) releases it, `cancel()` (order abandoned, queue pruned) frees it. Units queued at a freed blueprint lose their only candidate producer, so `ProductionQueue._prune` drops and refunds them; a destroyed producer refunds its own queued jobs in `Commandable._on_death`.
+**Lifetime belongs to the BUILD purchase** (`PurchaseTransaction.planned_structure`): `consume()` (placement) releases it, `cancel()` (order abandoned, queue pruned) frees it. Units queued at a freed blueprint lose their only candidate producer, so `ProductionQueue._prune` drops and refunds them; a destroyed producer refunds its own queued jobs in `Actor._on_death`.
 
-**A blueprint whose purchase is still queued is drawn darker** than one that is funded and merely waiting for its builder to walk over — see §Construction opacity for the shade channel and `Commandable.awaiting_funds`. Without it the two states are indistinguishable, and a player has no way to tell "the builder is on its way" from "this is stuck behind everything else in the queue".
+**A blueprint whose purchase is still queued is drawn darker** than one that is funded and merely waiting for its builder to walk over — see §Construction opacity for the shade channel and `Actor.awaiting_funds`. Without it the two states are indistinguishable, and a player has no way to tell "the builder is on its way" from "this is stuck behind everything else in the queue".
 
 It also carries an awaiting-funds badge ([condition-visuals](../ux/ui/condition-visuals.md)).
 
@@ -308,7 +308,7 @@ is a policy rather than a fact every player placement must obey.
 
 **Placement closes off the common case, not every case.** A structure already standing can
 still end up with no navmesh side — terrain changing under it, or one scene-authored into a
-pocket — so `Commandable.has_navmesh_access()` asks the same question of an already-registered
+pocket — so `Actor.has_navmesh_access()` asks the same question of an already-registered
 footprint, and `Train.meets_precondition` refuses with `NO_NAVMESH_ACCESS` when it says no. The
 training button greys out exactly as an unaffordable purchase does; nothing spawns into a
 sealed room.
@@ -343,13 +343,13 @@ Three things happen, and the ORDER is load-bearing:
 1. **The target's orders are dropped.** It is mid-execution of its previous owner's
    command queue — a hijacked tank that kept its old attack order would immediately
    turn on its new owner. Cleared BEFORE the handover, while it is still nobody's.
-2. **Ownership moves.** Assigning `commander` runs Commandable._on_commander_changed,
+2. **Ownership moves.** Assigning `commander` runs Actor._on_commander_changed,
    which reparents the unit under its new commander and re-points its RVO avoidance
    layers at the new team — so it stops steering around its old allies and starts
    steering around its new ones. The structure-registry / infrastructure branch there is gated
    on the "structure" group and correctly does nothing for a unit.
 3. **The hijacker dies.** Via `defense.kill()` rather than queue_free(): the normal death
-   path (Commandable._update_state -> _on_death) owns the teardown — spatial-partition removal, garrison release,
+   path (Actor._update_state -> _on_death) owns the teardown — spatial-partition removal, garrison release,
    production refunds, queue_free — and skipping it would leave stale grid entries.
    Killing LAST means a hijack that somehow fails partway leaves the actor alive.
 

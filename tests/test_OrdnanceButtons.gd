@@ -50,8 +50,8 @@ func _commander_offering_the_ability() -> Commander:
 
 
 ## A structure that can cast the ability, owned by `a_commander`.
-func _caster(a_commander: Commander) -> Commandable:
-	var caster: Commandable = FakePieces.structure({"abilities": [{"grants": [ABILITY]}]})
+func _caster(a_commander: Commander) -> Actor:
+	var caster: Actor = FakePieces.structure({"abilities": [{"grants": [ABILITY]}]})
 	add_child_autofree(caster)
 	caster.ownership.commander = a_commander
 	assert_true((caster.get_node("Abilities") as Abilities).grants(ABILITY), "guards the fixture")
@@ -76,7 +76,7 @@ func test_owning_the_caster_does_not_unlock_a_sanction() -> void:
 ## cast, not that the commander may.
 func test_selecting_the_caster_does_not_unlock_a_sanction_either() -> void:
 	var commander: Commander = _commander_offering_the_ability()
-	var caster: Commandable = _caster(commander)
+	var caster: Actor = _caster(commander)
 	var state: CommandButtonState = CommandButtonState.of(
 		Sanction.command_name_for(LEVEL_TITLE), [caster], commander, false
 	)
@@ -86,7 +86,7 @@ func test_selecting_the_caster_does_not_unlock_a_sanction_either() -> void:
 ## And once it IS bought, the same selection reads as available.
 func test_unlocking_it_lights_the_button() -> void:
 	var commander: Commander = _commander_offering_the_ability()
-	var caster: Commandable = _caster(commander)
+	var caster: Actor = _caster(commander)
 	var grid: SanctionGrid = commander.sanction_grid
 	commander.dominion = 99999
 	assert_true(grid.try_unlock(grid.entries[0]), "bought")

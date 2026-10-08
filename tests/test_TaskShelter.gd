@@ -4,7 +4,7 @@ extends GutTest
 ## gdd/systems/commands/unit-tasking.md.
 ##
 ## Built from real scenes (truck, Shelter, Compound), like test_WorkDetail.gd: a bare
-## off-tree Commandable never gets a real CommandReceiver (its @onready initializer only
+## off-tree Actor never gets a real CommandReceiver (its @onready initializer only
 ## runs on _ready(), which never fires off-tree), and this needs one live to hold and chain
 ## commands. Every fixture lives under `_world`, added to the actual GUT tree in
 ## before_each() so _ready() resolves normally.
@@ -37,8 +37,8 @@ func before_each() -> void:
 ## A truck owned by `_commander`, positioned at `a_position`, with an ACTIVE TaskShelter
 ## naming `a_shelter` at sequence `a_sequence` — stamped directly, mirroring what
 ## RTSController.assign_command_to_units does at issue time.
-func _tasked_truck(a_shelter: Entity, a_position: Vector3, a_sequence: int) -> Commandable:
-	var truck: Commandable = FakePieces.make(TRUCK)
+func _tasked_truck(a_shelter: Entity, a_position: Vector3, a_sequence: int) -> Actor:
+	var truck: Actor = FakePieces.make(TRUCK)
 	_world.add_child(truck)
 	truck.set_physics_process(false)
 	truck.top_level = true
@@ -57,15 +57,15 @@ func _shelter_with_residents(a_count: int) -> Entity:
 	shelter.top_level = true
 	var comp := shelter.get_node("Shelter") as Shelter
 	for _i: int in a_count:
-		var resident: Commandable = FakePieces.make(TERRESTRIAL)
+		var resident: Actor = FakePieces.make(TERRESTRIAL)
 		_world.add_child(resident)
 		resident.top_level = true
 		comp.register(resident)
 	return shelter
 
 
-func _compound(a_commander: Commander) -> Commandable:
-	var compound: Commandable = FakePieces.make(COMPOUND)
+func _compound(a_commander: Commander) -> Actor:
+	var compound: Actor = FakePieces.make(COMPOUND)
 	_world.add_child(compound)
 	compound.set_physics_process(false)
 	compound.top_level = true
@@ -73,7 +73,7 @@ func _compound(a_commander: Commander) -> Commandable:
 	return compound
 
 
-func _active_task(a_truck: Commandable) -> TaskShelter:
+func _active_task(a_truck: Actor) -> TaskShelter:
 	return a_truck.current_command() as TaskShelter
 
 
@@ -241,7 +241,7 @@ func test_a_direct_player_order_clears_the_task_entirely() -> void:
 #region Precondition
 func test_meets_precondition_for_a_garrisoned_actor_and_a_shelter_target() -> void:
 	var shelter := _shelter_with_residents(0)
-	var truck: Commandable = FakePieces.make(TRUCK)
+	var truck: Actor = FakePieces.make(TRUCK)
 	_world.add_child(truck)
 	assert_eq(
 		TaskShelter.meets_precondition(truck, CommandMessage.new(null, shelter)),
@@ -250,9 +250,9 @@ func test_meets_precondition_for_a_garrisoned_actor_and_a_shelter_target() -> vo
 
 
 func test_meets_precondition_refuses_a_non_shelter_target() -> void:
-	var truck: Commandable = FakePieces.make(TRUCK)
+	var truck: Actor = FakePieces.make(TRUCK)
 	_world.add_child(truck)
-	var other: Commandable = FakePieces.make(TRUCK)
+	var other: Actor = FakePieces.make(TRUCK)
 	_world.add_child(other)
 	assert_ne(
 		TaskShelter.meets_precondition(truck, CommandMessage.new(null, other)),
@@ -262,7 +262,7 @@ func test_meets_precondition_refuses_a_non_shelter_target() -> void:
 
 func test_meets_precondition_refuses_an_actor_with_no_garrison() -> void:
 	var shelter := _shelter_with_residents(0)
-	var soldier: Commandable = FakePieces.make(TERRESTRIAL)
+	var soldier: Actor = FakePieces.make(TERRESTRIAL)
 	_world.add_child(soldier)
 	assert_ne(
 		TaskShelter.meets_precondition(soldier, CommandMessage.new(null, shelter)),
@@ -273,9 +273,9 @@ func test_meets_precondition_refuses_an_actor_with_no_garrison() -> void:
 #endregion
 
 
-## A bare neutral Commandable, for filling a cage without caring who it is.
-func _entity(a_commander_id: int) -> Commandable:
-	var e := FakePieces.make(TERRESTRIAL) as Commandable
+## A bare neutral Actor, for filling a cage without caring who it is.
+func _entity(a_commander_id: int) -> Actor:
+	var e := FakePieces.make(TERRESTRIAL) as Actor
 	_world.add_child(e)
 	e.top_level = true
 	e.commander = _commanded(a_commander_id)

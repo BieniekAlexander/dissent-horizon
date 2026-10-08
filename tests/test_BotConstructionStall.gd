@@ -49,7 +49,7 @@ class StubActuator:
 	var builds: Array = []
 
 	func build(
-		_a_builder: Commandable, a_type: StringName, a_pos: Vector3, _a_quarter_turns: int = 0
+		_a_builder: Actor, a_type: StringName, a_pos: Vector3, _a_quarter_turns: int = 0
 	) -> bool:
 		builds.append([a_type, a_pos])
 		return true
@@ -57,12 +57,12 @@ class StubActuator:
 
 class StubEconomy:
 	extends BotEconomy
-	var builder: Commandable
+	var builder: Actor
 	var income_offer: Variant = EXTRACTOR
 	var site_spot: Variant = Vector3.ZERO
 	var income_owned: int = 0
 
-	func _pick_builder() -> Commandable:
+	func _pick_builder() -> Actor:
 		return builder
 
 	func _dominion_structure_to_build() -> Variant:
@@ -87,7 +87,7 @@ class StubEconomy:
 ## A builder stuck on a Build it will never complete — which from outside is exactly what a
 ## builder walking to a legitimate site looks like, and why the guard is a timeout.
 class StuckBuilder:
-	extends Commandable
+	extends Actor
 	var order: Build
 
 	static func aimed_at(a_map: Map, a_pos: Vector3) -> StuckBuilder:

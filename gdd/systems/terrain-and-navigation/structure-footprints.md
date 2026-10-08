@@ -17,7 +17,7 @@ The codebase already has partial multi-cell infrastructure, but it is incomplete
 - `NavManager` (`scripts/maps/terrain/nav_manager.gd`) rebuilds the navmesh chunks around the changed cells whenever `cells_changed` fires (see [incremental-navmesh](incremental-navmesh.md)). Multi-cell buildings automatically exclude all their cells from the navmesh — no changes needed.
 - `SU.unit_is_close_to_structure` (`scripts/utils/space_utils.gd:61`) already iterates the full registered footprint when checking whether a builder or collector is adjacent — it scales correctly with any footprint shape.
 - `StructureSpec` (`scripts/entities/structures/structure_spec.gd`) already carries a `dimensions: Vector2` field, and five structure types are already non-1×1: Outpost (3×3), Lab (2×2), Compound (2×2), Armory (2×2).
-- `Map.add_structure` (`scripts/maps/map.gd:124`) and `Commandable.valid_placement` (`scripts/entities/commandable.gd:90`) already iterate a `dims.x × dims.y` rectangle of cells.
+- `Map.add_structure` (`scripts/maps/map.gd:124`) and `Actor.valid_placement` (`scripts/entities/actor.gd:90`) already iterate a `dims.x × dims.y` rectangle of cells.
 
 **What is broken or missing:**
 
@@ -62,13 +62,13 @@ static func rect(w: int, h: int) -> Array[Vector2i]:
     return offsets
 
 static var structure_type_spec_map: Dictionary[int, StructureSpec] = {
-    Entity.Type.UNDEFINED:          StructureSpec.new(Commandable.valid_placement, StructureSpec.rect(1, 1)),
+    Entity.Type.UNDEFINED:          StructureSpec.new(Actor.valid_placement, StructureSpec.rect(1, 1)),
     Entity.Type.STRUCTURE_MINE:     StructureSpec.new(Mine.valid_placement,        StructureSpec.rect(1, 1)),
-    Entity.Type.STRUCTURE_DWELLING: StructureSpec.new(Commandable.valid_placement, StructureSpec.rect(1, 1)),
-    Entity.Type.STRUCTURE_OUTPOST:  StructureSpec.new(Commandable.valid_placement, StructureSpec.rect(3, 3)),
-    Entity.Type.STRUCTURE_LAB:      StructureSpec.new(Commandable.valid_placement, StructureSpec.rect(2, 2)),
-    Entity.Type.STRUCTURE_COMPOUND: StructureSpec.new(Commandable.valid_placement, StructureSpec.rect(2, 2)),
-    Entity.Type.STRUCTURE_ARMORY:   StructureSpec.new(Commandable.valid_placement, StructureSpec.rect(2, 2)),
+    Entity.Type.STRUCTURE_DWELLING: StructureSpec.new(Actor.valid_placement, StructureSpec.rect(1, 1)),
+    Entity.Type.STRUCTURE_OUTPOST:  StructureSpec.new(Actor.valid_placement, StructureSpec.rect(3, 3)),
+    Entity.Type.STRUCTURE_LAB:      StructureSpec.new(Actor.valid_placement, StructureSpec.rect(2, 2)),
+    Entity.Type.STRUCTURE_COMPOUND: StructureSpec.new(Actor.valid_placement, StructureSpec.rect(2, 2)),
+    Entity.Type.STRUCTURE_ARMORY:   StructureSpec.new(Actor.valid_placement, StructureSpec.rect(2, 2)),
 }
 ```
 
@@ -76,7 +76,7 @@ An irregular footprint is defined by listing offsets explicitly. For example, a 
 
 ```gdscript
 # fmt: one offset per entry, (x, z) in grid space
-StructureSpec.new(Commandable.valid_placement, [
+StructureSpec.new(Actor.valid_placement, [
     Vector2i(0,0), Vector2i(1,0), Vector2i(2,0),
     Vector2i(0,1),                Vector2i(2,1),
     Vector2i(0,2), Vector2i(1,2), Vector2i(2,2),
@@ -85,7 +85,7 @@ StructureSpec.new(Commandable.valid_placement, [
 
 No changes to the scene files are needed: footprint shape is data, not geometry.
 
-### Do not put footprint data on the scene or on the Commandable instance
+### Do not put footprint data on the scene or on the Actor instance
 
 `StructureSpec.structure_type_spec_map` is the authoritative per-type lookup. Duplicating footprint data as an `@export` array on the scene would create a second source of truth that could drift. If you later want designer-friendly editing in the Godot inspector, introduce a `FootprintResource extends Resource` and store it in `StructureSpec`, not on the entity scene directly.
 
@@ -112,7 +112,7 @@ Replace the single `grid_to_world(grid_location)` call with the average of `grid
 
 ```gdscript
 # map.gd — add_structure (proposed)
-func add_structure(a_structure: Commandable, origin_cell: Vector2i, rotation: int, _rebake: bool = true) -> void:
+func add_structure(a_structure: Actor, origin_cell: Vector2i, rotation: int, _rebake: bool = true) -> void:
     var spec: StructureSpec = StructureSpec.structure_type_spec_map.get(a_structure.type)
     var offsets: Array[Vector2i] = spec.footprint_offsets if spec != null \
         else StructureSpec.rect(a_structure.width, a_structure.length)
@@ -144,7 +144,7 @@ The `entity.gd:_auto_initialize` code at line 151 also calls `add_structure`. It
 
 ## 5. How Placement Validation Changes
 
-### `Commandable.get_grid_coordinates` → `footprint_cells`
+### `Actor.get_grid_coordinates` → `footprint_cells`
 
 Replace the current helper, which returns `Array[Vector2]` (floats — a latent type bug), with one that accepts the offset array directly:
 
@@ -157,7 +157,7 @@ static func footprint_cells(origin: Vector2i, offsets: Array[Vector2i]) -> Array
     return result
 ```
 
-### `Commandable.valid_placement`
+### `Actor.valid_placement`
 
 Update the second parameter from `a_dimensions: Vector2i` to `a_offsets: Array[Vector2i]`:
 
@@ -177,7 +177,7 @@ static func valid_placement(a_command_message: CommandMessage, a_offsets: Array[
 
 The callers in `build.gd:26` and `extractor.gd:5` pass `StructureSpec.dimensions` today; they must be updated to pass `StructureSpec.footprint_offsets`.
 
-### `Commandable.get_arrangement_cells`
+### `Actor.get_arrangement_cells`
 
 This is called by `Build._init` to populate `build_cells`. Update the third parameter from `a_dimensions: Vector2i` to `a_offsets: Array[Vector2i]`:
 
@@ -241,7 +241,7 @@ Update to pass `footprint_offsets`:
 ```gdscript
 func _init(a_message: CommandMessage) -> void:
     super(a_message)
-    build_cells = Commandable.get_arrangement_cells(
+    build_cells = Actor.get_arrangement_cells(
         a_message.map,
         VU.in_xz(a_message.position),
         StructureSpec.structure_type_spec_map[a_message.tool.type].footprint_offsets
@@ -289,7 +289,7 @@ This means a scene-placed 3×3 Outpost whose mesh is centred at the editor posit
 `Map.remove_structure` (map.gd:148–153) already drives teardown by reading the registered footprint from `terrain_grid.get_building_cells(a_structure)`:
 
 ```gdscript
-func remove_structure(a_structure: Commandable, _rebake: bool = true) -> void:
+func remove_structure(a_structure: Actor, _rebake: bool = true) -> void:
     var cells: Array = terrain_grid.get_building_cells(a_structure)
     for cell: Vector2i in cells:
         cell_grid[cell.x][cell.y] = null
@@ -299,7 +299,7 @@ func remove_structure(a_structure: Commandable, _rebake: bool = true) -> void:
 
 This code is shape-agnostic and requires no changes.
 
-`Commandable._on_death` (commandable.gd:313) calls `map.remove_structure(self)` which chains to the above — also unchanged.
+`Actor._on_death` (commandable.gd:313) calls `map.remove_structure(self)` which chains to the above — also unchanged.
 
 ---
 
@@ -316,12 +316,12 @@ No changes needed. `NavManager._build_chunk` builds from `TerrainGrid.navigable_
 | `TerrainGrid._building_cells / _building_footprints` | Arbitrary `Array[Vector2i]` — already generic | **No** |
 | `NavManager` | Responds to `cells_changed`, queries passable cells | **No** |
 | `SU.unit_is_close_to_structure` | Iterates full `structure_cell_map[structure]` footprint | **No** |
-| `Commandable.map_cells` (property, line 52) | Reads `structure_cell_map` — footprint-agnostic | **No** |
+| `Actor.map_cells` (property, line 52) | Reads `structure_cell_map` — footprint-agnostic | **No** |
 | `Map.remove_structure` | Reads footprint from `terrain_grid` — shape-agnostic | **No** |
 | `Map.cell_grid` | `O(1)` cell→structure lookup, populated per-cell | **No** — `add_structure` loop already handles it |
 | `Build.can_act` / `should_move` | Uses `message.world_position` (click) + reach | Reach formula needs update (§6) |
 | `Build.meets_precondition` | Passes `dimensions` to `placement_checker` | Passes `footprint_offsets` instead (§5) |
-| `Commandable.valid_placement` | Iterates rectangular dim loop | Iterates `footprint_offsets` array (§5) |
+| `Actor.valid_placement` | Iterates rectangular dim loop | Iterates `footprint_offsets` array (§5) |
 | `Map.add_structure` | Uses `dims.x × dims.y` loop + wrong centering | Use offset loop + centroid positioning (§4) |
 | `Entity._auto_initialize` | `world_to_grid(visual_pos)` → origin | Subtract centroid offset (§7) |
 | `Extractor.valid_placement` stub | `(msg, dims: Vector2i)` | `(msg, offsets: Array[Vector2i])` (§5) |
@@ -338,7 +338,7 @@ Five files require edits. Three files require no changes at all.
 
 **`scripts/maps/map.gd`** — fix `add_structure`: compute footprint from `spec.footprint_offsets` + in-bounds guard; set `global_position` to the footprint centroid rather than `grid_to_world(corner)`.
 
-**`scripts/entities/commandable.gd`** — rename/replace `get_grid_coordinates(center, dims)` with `footprint_cells(origin, offsets)`; update `valid_placement` second param from `dims: Vector2i` to `offsets: Array[Vector2i]`; update `get_arrangement_cells` third param similarly.
+**`scripts/entities/actor.gd`** — rename/replace `get_grid_coordinates(center, dims)` with `footprint_cells(origin, offsets)`; update `valid_placement` second param from `dims: Vector2i` to `offsets: Array[Vector2i]`; update `get_arrangement_cells` third param similarly.
 
 **`scripts/interface/commands/build.gd`** — update `meets_precondition` to pass `footprint_offsets`; rewrite `_build_reach` to use max Chebyshev extent of offsets; update `_init` to pass `footprint_offsets`.
 

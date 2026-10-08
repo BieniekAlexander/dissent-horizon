@@ -28,7 +28,7 @@ extends Control
 
 ## Emitted when a clickable live-unit card is left-clicked. `shift_held` is true when
 ## Shift was down. Not emitted for training cards (those cancel their job directly).
-signal activated(commandable: Commandable, shift_held: bool)
+signal activated(commandable: Actor, shift_held: bool)
 
 ## A RIGHT click on a card bound to a queued PURCHASE: the player is selecting the unit that
 ## purchase will produce, so they can give it orders before it exists. `all_of_type` carries
@@ -38,10 +38,10 @@ signal activated(commandable: Commandable, shift_held: bool)
 ## rail that built it wires this to `RTSController.select_pending`.
 signal pending_selected(transactions: Array, additive: bool, all_of_type: bool)
 
-## A RIGHT click on a card bound to a live Commandable. The info panel spends it on a GARRISON
+## A RIGHT click on a card bound to a live Actor. The info panel spends it on a GARRISON
 ## OCCUPANT: selecting one lets the player give it orders it carries out on coming out, where
 ## the LEFT click throws it out of the vehicle immediately.
-signal select_requested(commandable: Commandable, additive: bool)
+signal select_requested(commandable: Actor, additive: bool)
 
 const CARD_SIZE: Vector2 = Vector2(48, 48)
 ## The column geometry, as fractions of the card's HEIGHT so a rail chip scales with it.
@@ -99,8 +99,8 @@ var _badge: Label = null
 var _glyph: Label = null
 
 ## What this card represents (exactly one is set). See the bind_* methods.
-var _commandable: Commandable = null
-var _producer: Commandable = null
+var _commandable: Actor = null
+var _producer: Actor = null
 var _job_index: int = -1
 var _transaction: PurchaseTransaction = null
 ## Every transaction a COLLAPSED run stands for, or empty for a single-purchase card. Kept so
@@ -183,7 +183,7 @@ func _process(_a_delta: float) -> void:
 ## Represent a live unit: icon from its scene, red HP bar. When `clickable` is true the
 ## card accepts left clicks and emits `activated(commandable, shift_held)` — used by the
 ## summary (re-select) and garrison-occupant (evacuate) card lists.
-func bind_existing(a_commandable: Commandable, a_clickable: bool = false) -> void:
+func bind_existing(a_commandable: Actor, a_clickable: bool = false) -> void:
 	_commandable = a_commandable
 	_producer = null
 	_job_index = -1
@@ -198,7 +198,7 @@ func bind_existing(a_commandable: Commandable, a_clickable: bool = false) -> voi
 ## Represent the queued/training unit at `job_index` of `producer`'s queue:
 ## icon from its scene, blue training-progress bar. The card is clickable — a left
 ## click cancels this job (removing it from the queue and refunding its cost).
-func bind_training(a_producer: Commandable, a_job_index: int) -> void:
+func bind_training(a_producer: Actor, a_job_index: int) -> void:
 	_producer = a_producer
 	_job_index = a_job_index
 	_commandable = null
@@ -524,7 +524,7 @@ func hovered_transaction() -> PurchaseTransaction:
 
 
 ## The producer/job_index this card is bound to via bind_training, or null/-1 otherwise.
-func training_producer() -> Commandable:
+func training_producer() -> Actor:
 	return _producer
 
 
@@ -612,7 +612,7 @@ func _refresh_existing() -> void:
 ## One dial for a producer's queue, then one per ability pool that has something to cast, then
 ## one per slow weapon. A card that cannot fit them all reports it and draws the first that
 ## fit — the importer warns about the same piece before it ever gets here.
-func _build_dials(a_commandable: Commandable) -> void:
+func _build_dials(a_commandable: Actor) -> void:
 	for dial: ChargeDial in _dials:
 		dial.queue_free()
 	_dials.clear()

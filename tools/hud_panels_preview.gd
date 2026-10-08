@@ -61,14 +61,14 @@ func _ready() -> void:
 	add_child(player)
 	var pieces: Array[Node] = []
 	for path: String in PIECES:
-		var piece: Commandable = (load(path) as PackedScene).instantiate() as Commandable
+		var piece: Actor = (load(path) as PackedScene).instantiate() as Actor
 		player.add_child(piece)
 		piece.ownership.commander = player
 		piece.build_progress = 1.0
 		pieces.append(piece)
 	if "--cards" in OS.get_cmdline_user_args():
 		for path: String in CARD_PIECES:
-			var extra: Commandable = (load(path) as PackedScene).instantiate() as Commandable
+			var extra: Actor = (load(path) as PackedScene).instantiate() as Actor
 			player.add_child(extra)
 			extra.ownership.commander = player
 			extra.build_progress = 1.0
@@ -138,7 +138,7 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 		controller.process_command(CommandContextParser.HOLD_FIRE_COMMAND)
 		await get_tree().process_frame
 		for piece: Node in controller.selection:
-			prints("holding fire:", piece.name, (piece as Commandable).is_holding_fire)
+			prints("holding fire:", piece.name, (piece as Actor).is_holding_fire)
 		prints("card shows:", controller._visible_command_names())
 	var info: InfoView = controller.get_node("InfoSection") as InfoView
 	var widgets: InfoWidgetRow = info.get_node_or_null("Widgets") as InfoWidgetRow
@@ -165,7 +165,7 @@ func _drive(a_player: Commander, a_pieces: Array[Node]) -> void:
 	# border — a state that needs both a queue and a right click, so neither a scenario render
 	# nor a headless test can show it. `--nopending` leaves the rail unselected.
 	if not "--nopending" in OS.get_cmdline_user_args():
-		var producer: Commandable = (load(PRODUCER) as PackedScene).instantiate() as Commandable
+		var producer: Actor = (load(PRODUCER) as PackedScene).instantiate() as Actor
 		a_player.add_child(producer)
 		producer.ownership.commander = a_player
 		producer.build_progress = 1.0
@@ -235,7 +235,7 @@ func _load_card_states(a_pieces: Array[Node]) -> void:
 				weapon.consume_round()
 		var garrison: Garrison = piece.get_node_or_null("Garrison") as Garrison
 		if garrison != null:
-			garrison.garrison(a_pieces[0] as Commandable)
+			garrison.garrison(a_pieces[0] as Actor)
 		prints("card piece:", piece.name, (piece as Entity).id)
 
 
@@ -246,8 +246,8 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 	prints("PROBE info:", info, "controller wired:", info.controller if info != null else "n/a")
 
 	# --- occupant ---------------------------------------------------------------------
-	var host: Commandable = a_pieces[0] as Commandable
-	var occupant: Commandable = a_pieces[1] as Commandable
+	var host: Actor = a_pieces[0] as Actor
+	var occupant: Actor = a_pieces[1] as Actor
 	var garrison := Garrison.new()
 	# NAMED, because every lookup of it is get_node_or_null("Garrison") — an unnamed
 	# Garrison.new() is invisible to the component pattern.
@@ -337,7 +337,7 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 	)
 
 	# --- the actively-training unit -------------------------------------------------------
-	var producer: Commandable = (load(PRODUCER) as PackedScene).instantiate() as Commandable
+	var producer: Actor = (load(PRODUCER) as PackedScene).instantiate() as Actor
 	a_player.add_child(producer)
 	producer.ownership.commander = a_player
 	producer.build_progress = 1.0
@@ -462,7 +462,7 @@ func _probe_cards(a_player: Commander, a_controller: RTSController, a_pieces: Ar
 		await get_tree().process_frame
 	prints("PROBE job_count after ticking:", producer.production.job_count())
 	for child: Node in a_player.get_children():
-		var made := child as Commandable
+		var made := child as Actor
 		if made != null and made.id == QUEUED_PIECE:
 			var spawned_dests: Array = []
 			for c: MoveCommand in made.command_receiver.get_command_chain():

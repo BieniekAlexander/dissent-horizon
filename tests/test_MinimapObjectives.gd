@@ -79,7 +79,7 @@ func test_nothing_is_stamped_when_nothing_is_highlighted() -> void:
 
 
 func test_a_marked_entity_gets_a_green_ring() -> void:
-	var unit: Commandable = FakePieces.unit(UNIT)
+	var unit: Actor = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	unit.global_position = Vector3.ZERO
 	var entities: Array[Entity] = [unit]
@@ -97,7 +97,7 @@ func test_a_marked_entity_gets_a_green_ring() -> void:
 func test_the_ring_is_hollow_so_the_team_dot_shows_through() -> void:
 	# The marker says "this one matters", not "this one is green" — ownership must stay
 	# readable underneath it.
-	var unit: Commandable = FakePieces.unit(UNIT)
+	var unit: Actor = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	unit.global_position = Vector3.ZERO
 	var entities: Array[Entity] = [unit]
@@ -144,7 +144,7 @@ func test_the_region_outline_is_continuous() -> void:
 func test_markers_use_the_highlights_own_colour() -> void:
 	# The minimap reads each highlight's colour rather than assuming green, so a highlight
 	# that means something other than "objective" still agrees with its world markers.
-	var unit: Commandable = FakePieces.unit(UNIT)
+	var unit: Actor = FakePieces.unit(UNIT)
 	add_child_autofree(unit)
 	unit.global_position = Vector3.ZERO
 	var entities: Array[Entity] = [unit]
@@ -158,7 +158,7 @@ func test_markers_use_the_highlights_own_colour() -> void:
 
 
 func test_entities_that_left_the_world_are_not_stamped() -> void:
-	var unit: Commandable = FakePieces.unit(UNIT)
+	var unit: Actor = FakePieces.unit(UNIT)
 	add_child(unit)
 	unit.global_position = Vector3.ZERO
 	var entities: Array[Entity] = [unit]

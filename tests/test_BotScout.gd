@@ -26,20 +26,20 @@ func after_each() -> void:
 
 ## A stand-in unit. Out of tree deliberately (see the file comment) and freed with the
 ## test, so the component fields below are ours to set.
-func _unit(a_speed: float, a_vision: float) -> Commandable:
-	return _build_unit(a_speed, a_vision, autofree(Commandable.new()) as Commandable)
+func _unit(a_speed: float, a_vision: float) -> Actor:
+	return _build_unit(a_speed, a_vision, autofree(Actor.new()) as Actor)
 
 
 ## A stand-in unit OWNED by the bot — parented to it, so Bot._owned_units() sees it and
 ## the bot's free() takes it with them. Not autofree'd: it already has an owner.
-func _owned_unit(a_speed: float, a_vision: float) -> Commandable:
-	var u := Commandable.new()
+func _owned_unit(a_speed: float, a_vision: float) -> Actor:
+	var u := Actor.new()
 	_bot.add_child(u)
 	return _build_unit(a_speed, a_vision, u)
 
 
-func _build_unit(a_speed: float, a_vision: float, a_unit: Commandable) -> Commandable:
-	var u: Commandable = a_unit
+func _build_unit(a_speed: float, a_vision: float, a_unit: Actor) -> Actor:
+	var u: Actor = a_unit
 	# @onready, so null on an out-of-tree instance — and every "is this unit free" question
 	# the module asks goes through it.
 	u.command_receiver = CommandReceiver.new()
@@ -59,7 +59,7 @@ func _build_unit(a_speed: float, a_vision: float, a_unit: Commandable) -> Comman
 
 
 ## Arm a unit: a Loadout holding one Weapon, which is what the army lays claim to.
-func _arm(a_unit: Commandable) -> Commandable:
+func _arm(a_unit: Actor) -> Actor:
 	var loadout := Loadout.new()
 	loadout.add_child(Weapon.new())
 	a_unit.weapon_inventory = loadout
@@ -68,7 +68,7 @@ func _arm(a_unit: Commandable) -> Commandable:
 
 
 ## Give a unit the Builds component, by node name — which is how the bot classifies it.
-func _make_builder(a_unit: Commandable) -> Commandable:
+func _make_builder(a_unit: Actor) -> Actor:
 	var builds := Node.new()
 	builds.name = "Builds"
 	a_unit.add_child(builds)
@@ -78,7 +78,7 @@ func _make_builder(a_unit: Commandable) -> Commandable:
 ## Score every candidate against one shared set of scales, as _pick_best_scout does.
 func _scores(a_units: Array) -> Array:
 	var scales: Dictionary = _scout._score_scales(a_units)
-	return a_units.map(func(u: Commandable): return _scout._scout_score(u, scales))
+	return a_units.map(func(u: Actor): return _scout._scout_score(u, scales))
 
 
 func test_faster_wins_when_nothing_else_differs() -> void:
@@ -145,7 +145,7 @@ func test_a_unit_carrying_occupants_has_a_delivery_to_make() -> void:
 	var garrison := Garrison.new()
 	loaded.garrison = garrison
 	loaded.add_child(garrison)
-	var occupant := Commandable.new()
+	var occupant := Actor.new()
 	garrison.add_child(occupant)
 	garrison._garrisoned.append(occupant)
 	assert_eq(
@@ -180,7 +180,7 @@ func _set_staleness(a_stale_fraction: float) -> void:
 
 
 ## A candidate scout costing `a_cost` energy.
-func _candidate(a_cost: int) -> Commandable:
+func _candidate(a_cost: int) -> Actor:
 	var u := _unit(4.0, 5.0)
 	u.id = &"candidate"
 	_bot.technology_mapping[u.id] = TechnologySpec.new(a_cost, 0, 0, 30)
@@ -252,14 +252,14 @@ func test_no_allowance_releases_every_scout() -> void:
 
 
 ## An order of `a_class` on `a_unit`, built the way a manager would build it.
-func _order(a_unit: Commandable, a_class: GDScript) -> Commandable:
+func _order(a_unit: Actor, a_class: GDScript) -> Actor:
 	a_unit._command = a_class.new(CommandMessage.new(null, null, null, Vector3.ZERO))
 	return a_unit
 
 
 ## A scout already out, with the grid `a_stale_fraction` blind so the retention test has a
 ## number to price against.
-func _scouting(a_cost: int, a_stale_fraction: float) -> Commandable:
+func _scouting(a_cost: int, a_stale_fraction: float) -> Actor:
 	_set_staleness(a_stale_fraction)
 	var u := _candidate(a_cost)
 	_scout._scouts = [u]
@@ -306,7 +306,7 @@ func test_a_garrisoned_scout_is_no_longer_scouting() -> void:
 
 func test_a_scout_that_died_is_no_longer_scouting() -> void:
 	# The sweep runs through a Variant precisely so this case cannot abort the think pass.
-	var dead := Commandable.new()
+	var dead := Actor.new()
 	dead.free()
 	assert_false(_scout._still_scouting(dead, 1))
 
@@ -389,7 +389,7 @@ func _point(a_i: int, a_x: float, a_last_seen: float, a_ever_seen: bool = false)
 
 ## Ask the selector where a scout standing at (`a_x`, 0) would go, on a map `a_span` wide.
 ## Drives _best_errand rather than _next_scout_point because the facts it needs — a position,
-## a speed, a vision window — are exactly what a live Commandable would have to be in the
+## a speed, a vision window — are exactly what a live Actor would have to be in the
 ## scene tree to supply, and the choice is what is under test, not the unit.
 func _errand_from(a_x: float, a_span: float = 100.0) -> Variant:
 	_scout._map_width = a_span

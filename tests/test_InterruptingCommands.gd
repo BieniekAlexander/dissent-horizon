@@ -156,7 +156,7 @@ class ReleaseCounter:
 	func _init() -> void:
 		super(CommandMessage.new(null))
 
-	func on_released(_a_actor: Commandable) -> void:
+	func on_released(_a_actor: Actor) -> void:
 		releases += 1
 
 

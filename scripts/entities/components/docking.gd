@@ -28,8 +28,8 @@ static func of(a_piece: Node) -> Docking:
 	return a_piece.get_node_or_null("Docking") as Docking if a_piece != null else null
 
 
-func host() -> Commandable:
-	return get_parent() as Commandable
+func host() -> Actor:
+	return get_parent() as Actor
 
 
 ## True while the piece has arrived on a deck — parked, not merely grounded.
@@ -101,7 +101,7 @@ func leave_dock() -> void:
 func release_lost_dock() -> void:
 	if not is_on_deck() or _holds_a_live_pad():
 		return
-	var piece: Commandable = host()
+	var piece: Actor = host()
 	var lost_dock_position: Vector3 = piece.global_position
 	docked_pad = null
 	if is_instance_valid(claimed_runway):
@@ -111,7 +111,7 @@ func release_lost_dock() -> void:
 	aerial.take_off()
 	var commander: Commander = piece.commander
 	var bay: DockingBay = commander.nearest_docking_bay_for(piece) if commander != null else null
-	var airfield: Commandable = bay.owner_commandable() if bay != null else null
+	var airfield: Actor = bay.owner_commandable() if bay != null else null
 	if airfield != null:
 		# PREPENDED, like the automatic rearm: whatever the unit was going to do next is still
 		# what it wants, it just has to find somewhere to stand first.
@@ -154,7 +154,7 @@ func aim_parked_at_runway() -> void:
 	# fuel should already be pointing the way it will leave, so the turn is behind it by the
 	# time the clip is full. Taxiing is excluded — is_on_deck() is false then — so this never
 	# fights the taxi's own rotation.
-	var piece: Commandable = host()
+	var piece: Actor = host()
 	if (
 		not is_on_deck()
 		or docked_pad == null
@@ -176,7 +176,7 @@ func aim_parked_at_runway() -> void:
 ## Send this piece to an airfield when its charged weapons run dry, and resume whatever it was
 ## doing once it is loaded again.
 func maybe_auto_rearm() -> void:
-	var piece: Commandable = host()
+	var piece: Actor = host()
 	if piece.weapon_inventory == null or not piece.weapon_inventory.is_out_of_ammo():
 		return
 	if piece.commander == null or piece.map == null:
@@ -187,7 +187,7 @@ func maybe_auto_rearm() -> void:
 	# ONLY IF IT HAS NOTHING ELSE WORTH DOING. It used to prepend a Rearm regardless, which
 	# overrode a move order the player had just given — so an empty aircraft could not be
 	# sent anywhere except back to its airfield. An order it cannot carry out unarmed has
-	# already been stood down into the queue by Commandable._defer_unshootable_orders and does
+	# already been stood down into the queue by Actor._defer_unshootable_orders and does
 	# not count as work; a plain move does, and is left alone.
 	if not piece.command_receiver.awaiting_only_ammo_dependent_work():
 		return
@@ -197,7 +197,7 @@ func maybe_auto_rearm() -> void:
 	var bay: DockingBay = piece.commander.nearest_docking_bay_for(piece)
 	if bay == null:
 		return
-	var airfield: Commandable = bay.owner_commandable()
+	var airfield: Actor = bay.owner_commandable()
 	var msg := CommandMessage.new(piece.map, airfield, null, airfield.global_position)
 	# PREPENDED, so it goes IN FRONT of whatever is waiting rather than replacing it. The
 	# order this piece just stood down for lack of ammunition is sitting at the head of that

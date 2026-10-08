@@ -3,8 +3,8 @@ extends GutTest
 ## ATTACKABLE is its own facet: a target layer and a Defense, and nothing about being an Actor
 ## (gdd/systems/authoring/piece-vocabulary.md §Facets).
 ##
-## Attack and aggro used to filter on `is Commandable`, so an uncommandable piece could only be
-## made shootable by making it a Commandable it was not — which is exactly how the Recon Drone
+## Attack and aggro used to filter on `is Actor`, so an uncommandable piece could only be
+## made shootable by making it a Actor it was not — which is exactly how the Recon Drone
 ## came to be one. The fixture here is the extraction site: a plain `Entity` with a Hurtbox
 ## and a footprint, so it shows a ground target layer, and no Defense of its own.
 ##
@@ -33,7 +33,7 @@ func _attack_message(a_target: Entity) -> CommandMessage:
 
 func test_the_fixture_is_not_an_actor_and_is_targetable() -> void:
 	var site := _site(false)
-	assert_false(site is Commandable, "the premise: an uncommandable piece")
+	assert_false(site is Actor, "the premise: an uncommandable piece")
 	assert_ne(site.targetable_layers(), 0, "that a weapon could lock onto")
 
 

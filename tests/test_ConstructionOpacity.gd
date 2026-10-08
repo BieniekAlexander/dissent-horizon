@@ -34,7 +34,7 @@ func test_finished_structure_is_fully_opaque() -> void:
 ## no listeners yet.
 func test_structure_placed_under_construction_is_faded() -> void:
 	var s: Node = FakePieces.structure(STRUCTURE)
-	(s as Commandable).begin_construction()
+	(s as Actor).begin_construction()
 	add_child_autofree(s)
 	assert_eq(
 		_visual(s).opacity(),
@@ -47,7 +47,7 @@ func test_structure_placed_under_construction_is_faded() -> void:
 ## as "under construction" rather than as nearly-invisible.
 func test_opacity_does_not_track_progress_until_complete() -> void:
 	var s: Node = FakePieces.structure(STRUCTURE)
-	var c := s as Commandable
+	var c := s as Actor
 	c.begin_construction()
 	add_child_autofree(s)
 	c.advance_build_progress(0.5)
@@ -61,7 +61,7 @@ func test_opacity_does_not_track_progress_until_complete() -> void:
 
 func test_finishing_construction_restores_full_opacity() -> void:
 	var s: Node = FakePieces.structure(STRUCTURE)
-	var c := s as Commandable
+	var c := s as Actor
 	c.begin_construction()
 	add_child_autofree(s)
 	assert_true(c.advance_build_progress(1.0), "advancing past 1.0 reports completion")
@@ -86,7 +86,7 @@ func test_units_are_never_faded() -> void:
 ## from the ground up regardless of its alpha.
 func test_fading_drops_the_models_shadow() -> void:
 	var s: Node = FakePieces.structure(STRUCTURE)
-	var c := s as Commandable
+	var c := s as Actor
 	c.begin_construction()
 	add_child_autofree(s)
 	for mi: MeshInstance3D in _mesh_instances(_visual(s)):

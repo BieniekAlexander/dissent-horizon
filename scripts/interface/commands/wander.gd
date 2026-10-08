@@ -46,7 +46,7 @@ static func requires_position() -> bool:
 
 ## Only a unit that can actually navigate can wander.
 static func meets_precondition(
-	actor: Commandable, _message: CommandMessage
+	actor: Actor, _message: CommandMessage
 ) -> PreconditionFailureCause:
 	return (
 		PreconditionFailureCause.NONE
@@ -70,7 +70,7 @@ func _init(a_message: CommandMessage) -> void:
 #region State updates
 ## Tick the pick timer and retarget when it elapses. Always returns self — this
 ## command is deliberately unfinishable.
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	if not a_actor.can_move():
 		return self
 	_cooldown -= 1.0 / TimeUtils.ticks_per_second()
@@ -85,7 +85,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 ## CommandReceiver's move branch) so that is_navigation_finished() flips to false
 ## on the same tick — otherwise a unit parked at its previous destination would
 ## keep answering can_act() and never set off.
-func _retarget(a_actor: Commandable) -> void:
+func _retarget(a_actor: Actor) -> void:
 	var map: Map = message.map if message.map != null else a_actor.map
 	# Uniform over the disc: sqrt() on the radial term, otherwise picks bunch up
 	# near the anchor.
@@ -101,7 +101,7 @@ func _retarget(a_actor: Commandable) -> void:
 	a_actor.movement.set_target_position(candidate)
 
 
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return true
 
 
@@ -109,12 +109,12 @@ func should_move(_a_actor: Commandable) -> bool:
 ## here is what keeps the command alive: CommandReceiver drops a command whose
 ## navigation finished in the move branch, so a wanderer must be caught by
 ## can_act/fulfill_action instead.
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	return a_actor.movement == null or a_actor.movement.is_navigation_finished()
 
 
 ## Idle in place; returning self keeps the command running forever.
-func fulfill_action(_a_actor: Commandable) -> Variant:
+func fulfill_action(_a_actor: Actor) -> Variant:
 	return self
 
 

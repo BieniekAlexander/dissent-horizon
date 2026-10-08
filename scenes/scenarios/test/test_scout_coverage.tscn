@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="5_siam3"]
 [ext_resource type="Script" path="res://scripts/maps/map.gd" id="6_nfe0d"]
 [ext_resource type="PackedScene" path="res://scenes/entities/units/an/technician.tscn" id="7_mrgn3"]
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="8_vfj1i"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="8_vfj1i"]
 
 [sub_resource type="Resource" id="Resource_k8j24"]
 script = ExtResource("3_un1m1")

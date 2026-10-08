@@ -67,7 +67,7 @@ func test_completion_is_recorded_once_with_the_purchase_it_closes() -> void:
 
 
 func test_a_finished_construction_is_recorded() -> void:
-	var structure: Commandable = FakePieces.structure({"id": &"depot"})
+	var structure: Actor = FakePieces.structure({"id": &"depot"})
 	add_child_autofree(structure)
 	_commander.construction_finished.emit(structure)
 	var finished: Array = _of_type(MatchLog.CONSTRUCTION_FINISHED)

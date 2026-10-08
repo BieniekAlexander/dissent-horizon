@@ -255,7 +255,7 @@ The fighting-game vocabulary, mapped:
 TODO: whether an action is interruptible could be a flag on some shared description of how an
 action is fulfilled; no such description exists yet.
 
-**Hold fire** is a flag rather than an order (`Commandable.is_holding_fire`), toggled from the
+**Hold fire** is a flag rather than an order (`Actor.is_holding_fire`), toggled from the
 command card: it leaves the queue alone, and an Attack, Attack-move, Force Fire or Defend lifts
 it. Stealth units are its main customer — a
 piece holds fire the moment it gains stealth. Once startups exist it is also their interrupt.

@@ -33,7 +33,7 @@ extends Marker3D
 ## authored line, so asking the physics engine about it would be answering a question the
 ## line already settles. It also scales the way the airfield does — more strips means more
 ## aircraft moving at once, which is what a second runway is FOR.
-var _claimant: Commandable = null
+var _claimant: Actor = null
 
 
 ## Free when nobody holds it, or when whoever did has been destroyed — a claim cannot
@@ -42,14 +42,14 @@ func is_free() -> bool:
 	return _claimant == null or not is_instance_valid(_claimant)
 
 
-func claimed_by() -> Commandable:
+func claimed_by() -> Actor:
 	return _claimant if is_instance_valid(_claimant) else null
 
 
 ## Take the strip for `unit`. False when somebody else has it, which is the caller's cue to
 ## wait where it is and try again — a departing aircraft holds its pad, an arriving one
 ## keeps circling.
-func claim(a_unit: Commandable) -> bool:
+func claim(a_unit: Actor) -> bool:
 	if not is_free() and claimed_by() != a_unit:
 		return false
 	_claimant = a_unit
@@ -58,7 +58,7 @@ func claim(a_unit: Commandable) -> bool:
 
 ## Give the strip back. A no-op when somebody else holds it, so a stale release from a
 ## torn-down order cannot evict the aircraft currently rolling down it.
-func release(a_unit: Commandable) -> void:
+func release(a_unit: Actor) -> void:
 	if claimed_by() == a_unit or not is_instance_valid(_claimant):
 		_claimant = null
 

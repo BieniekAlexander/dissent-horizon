@@ -101,7 +101,7 @@ Consequences, each with the place it lives:
   ability. Row 1 is full. `N` (5, 2) is hold fire on the ordinary card
   and Cancel on the READY card, which is drawn alone, so the two never meet; hold fire is a
   verb by meaning and sits in the ability pool only for want of room. It is a pseudo-command
-  and a TOGGLE — it sets `Commandable.is_holding_fire` across the armed selection, or clears it
+  and a TOGGLE — it sets `Actor.is_holding_fire` across the armed selection, or clears it
   when all of them already hold, and touches no queue. While all hold it draws a lit top edge
   (`CommandButtonState.is_toggled_on`) and stays pressable: an "on" state is not a blocker.
   The Spot and Bombard buttons draw the same edge while the commander has automatic Bombard fire on, the toggle its

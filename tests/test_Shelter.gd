@@ -54,8 +54,8 @@ func _shelter_on(a_host: Entity, a_interval: float, a_capacity: int = 3) -> Shel
 
 ## A resident to register: a real terrestrial, left neutral (no commander assigned →
 ## commander id 0) so it matches the stub host's ownership.
-func _stub_resident() -> Commandable:
-	var r := FakePieces.make(TERRESTRIAL) as Commandable
+func _stub_resident() -> Actor:
+	var r := FakePieces.make(TERRESTRIAL) as Actor
 	add_child_autofree(r)
 	return r
 
@@ -236,7 +236,7 @@ func test_liberation_layer_survives_targetable_layer_recompute():
 
 
 func test_liberated_unit_follows_its_liberator():
-	var warlord := FakePieces.make(WARLORD) as Commandable
+	var warlord := FakePieces.make(WARLORD) as Actor
 	add_child_autofree(warlord)
 	var recruit := FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(recruit)

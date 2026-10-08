@@ -48,8 +48,8 @@ func _write_doc(a_name: String, a_text: String) -> void:
 	file.close()
 
 
-func _piece(a_options: Dictionary = {}) -> Commandable:
-	var piece: Commandable = FakePieces.unit(
+func _piece(a_options: Dictionary = {}) -> Actor:
+	var piece: Actor = FakePieces.unit(
 		{"id": &"fake_tuned", "hp": 100.0, "speed": 2.0}.merged(a_options, true)
 	)
 	add_child_autofree(piece)
@@ -77,9 +77,9 @@ func test_an_edit_is_written_into_the_doc() -> void:
 
 
 func test_an_edit_reaches_every_live_piece_of_the_type() -> void:
-	var first: Commandable = _piece()
-	var second: Commandable = _piece()
-	var other: Commandable = _piece({"id": &"fake_other"})
+	var first: Actor = _piece()
+	var second: Actor = _piece()
+	var other: Actor = _piece({"id": &"fake_other"})
 	_edit(["defense", "hp"], 150)
 	assert_eq(first.defense.hp_max, 150.0)
 	assert_eq(second.defense.hp_max, 150.0)
@@ -88,13 +88,13 @@ func test_an_edit_reaches_every_live_piece_of_the_type() -> void:
 
 func test_a_piece_entering_play_after_an_edit_takes_it() -> void:
 	_edit(["defense", "hp"], 150)
-	var late: Commandable = _piece()
+	var late: Actor = _piece()
 	assert_eq(late.defense.hp_max, 150.0)
 	assert_eq(late.defense.hp, 150.0, "it arrives at full health, as from a re-imported scene")
 
 
 func test_a_speed_is_edited_as_its_class() -> void:
-	var piece: Commandable = _piece()
+	var piece: Actor = _piece()
 	_edit(["movement", "speed"], "FAST")
 	assert_eq(
 		_session.value_at(_session.piece_address(&"fake_tuned"), ["movement", "speed"]), "FAST"
@@ -103,10 +103,10 @@ func test_a_speed_is_edited_as_its_class() -> void:
 
 
 func test_retuning_a_class_retunes_every_piece_naming_it() -> void:
-	var piece: Commandable = _piece()
+	var piece: Actor = _piece()
 	assert_eq(_session.set_speed("SLOW", 3.0), "")
 	assert_almost_eq((piece.get_node("Locomotion") as Movement).speed, 3.0, 0.001)
-	var late: Commandable = _piece()
+	var late: Actor = _piece()
 	assert_almost_eq((late.get_node("Locomotion") as Movement).speed, 3.0, 0.001)
 
 
@@ -117,7 +117,7 @@ func test_the_speed_ladder_stays_increasing() -> void:
 
 
 func test_a_value_the_doc_leaves_unsaid_shows_the_running_value() -> void:
-	var piece: Commandable = _piece()
+	var piece: Actor = _piece()
 	var shown: Dictionary = _session.shown_value(
 		_session.piece_address(&"fake_tuned"), _field(["defense", "armour"]), {"node": piece}
 	)

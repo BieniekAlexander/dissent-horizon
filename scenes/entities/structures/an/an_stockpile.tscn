@@ -1,6 +1,6 @@
 [gd_scene load_steps=22 format=3 uid="uid://bp3ff45bjswg1"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_26bbe"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_26bbe"]
 [ext_resource type="PackedScene" path="res://assets/meshes/entities/dummy_structure.blend" id="1_dummy"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_b20cc"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_wfi4a"]

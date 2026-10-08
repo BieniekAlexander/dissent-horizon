@@ -484,7 +484,7 @@ func _note_instances(a_slot: int, a_commander: Commander) -> void:
 		return
 	var seen: Dictionary = _instances_seen[a_slot]
 	for child: Node in a_commander.get_children():
-		var entity := child as Commandable
+		var entity := child as Actor
 		if entity == null or entity.is_queued_for_deletion():
 			continue
 		var by_id: Dictionary = seen.get(String(entity.id), {})
@@ -509,7 +509,7 @@ func _slot_sample(a_commander: Commander) -> Dictionary:
 	var extractors: int = 0
 	var income_structures: int = 0
 	for child: Node in a_commander.get_children():
-		var entity := child as Commandable
+		var entity := child as Actor
 		if entity == null or entity.is_queued_for_deletion():
 			continue
 		if entity.has_node("Structure"):
@@ -554,7 +554,7 @@ func _utility_unit_count(a_commander: Commander, a_units: Array) -> int:
 	if bot == null:
 		return -1
 	var count: int = 0
-	for u: Commandable in a_units:
+	for u: Actor in a_units:
 		if bot.unit_is_utility(u.id):
 			count += 1
 	return count
@@ -622,7 +622,7 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 ## How many units `a_structures` hold between them (occupants of any garrison).
 func _bunkered_count(a_structures: Array) -> int:
 	var total: int = 0
-	for s: Commandable in a_structures:
+	for s: Actor in a_structures:
 		if s.garrison != null:
 			total += s.garrison.occupants().size()
 	return total
@@ -631,7 +631,7 @@ func _bunkered_count(a_structures: Array) -> int:
 ## Piece id -> how many of them, for a roster line in a sample.
 func _count_by_id(a_pieces: Array) -> Dictionary:
 	var out: Dictionary = {}
-	for piece: Commandable in a_pieces:
+	for piece: Actor in a_pieces:
 		var key: String = String(piece.id)
 		out[key] = int(out.get(key, 0)) + 1
 	return out
@@ -642,7 +642,7 @@ func _count_by_id(a_pieces: Array) -> Dictionary:
 ## pointed at later) still produces a series instead of nothing.
 func _army_energy_value(a_commander: Commander, a_units: Array) -> float:
 	var total: float = 0.0
-	for unit: Commandable in a_units:
+	for unit: Actor in a_units:
 		var spec: TechnologySpec = a_commander.technology_mapping.get(unit.id)
 		if spec != null:
 			total += spec.energy_cost

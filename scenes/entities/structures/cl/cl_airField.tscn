@@ -1,6 +1,6 @@
 [gd_scene load_steps=26 format=3 uid="uid://b0vef6ulljfjb"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_hpr8a"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_hpr8a"]
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/docking_bay.gd" id="2_dockbay"]
 [ext_resource type="Script" path="res://scripts/entities/components/docking_pad.gd" id="2_dockpad"]

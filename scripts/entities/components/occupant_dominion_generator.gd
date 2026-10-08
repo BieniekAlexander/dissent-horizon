@@ -10,7 +10,7 @@ extends DominionGenerator
 ## is, so a large captive filling two of the camp's slots still banks one unit's worth.
 ##
 ## Subclasses DominionGenerator and is named "DominionGenerator" in the scene so
-## Commandable's existing `dominion_generator` hook ticks it with no extra wiring.
+## Actor's existing `dominion_generator` hook ticks it with no extra wiring.
 
 #region Properties
 ## Dominion awarded per paying occupant, per TICK_RATE cycle (every 5 seconds): 5/s, so a

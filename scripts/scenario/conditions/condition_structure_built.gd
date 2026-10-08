@@ -22,9 +22,9 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 		if not map.grid_coordinates_in_bounds(grid_cell):
 			return false
 		var occupant = map.cell_grid[grid_cell.x][grid_cell.y]
-		if occupant == null or not occupant is Commandable:
+		if occupant == null or not occupant is Actor:
 			return false
-		var c := occupant as Commandable
+		var c := occupant as Actor
 		if structure_type != &"" and c.id != structure_type:
 			return false
 		if commander_id >= 0 and c.commander_id != commander_id:

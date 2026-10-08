@@ -86,7 +86,7 @@ info panel swaps a unit's `description` for its `verbose`, and the help overlay 
 Only the shallow tier is mandatory, and that is **enforced at runtime**: a button with no simple
 tooltip pushes an error naming itself and displays `MISSING_TOOLTIP` ("TODO fill out this
 tooltip"). An undescribed control is loud in the error log and visibly unfinished in game, never
-silently featureless. Same treatment for `Commandable.description` / `verbose`.
+silently featureless. Same treatment for `Actor.description` / `verbose`.
 
 ### III. Player-facing copy never names a key
 

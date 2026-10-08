@@ -1,6 +1,6 @@
 [gd_scene load_steps=22 format=3 uid="uid://r5d76hoe5wxx"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_8vwj1"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_8vwj1"]
 [ext_resource type="Script" path="res://scripts/entities/components/dominion_generator.gd" id="4_domgn"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_gg5l4"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_d6h8f"]

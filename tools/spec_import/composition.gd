@@ -11,12 +11,12 @@ extends RefCounted
 const SpecSchema := preload("res://tools/spec_import/schema.gd")
 
 ## Which set of guaranteed components a piece gets. Decided by what the piece can DO, not by
-## what it is called: anything that takes orders or can be damaged carries the Commandable set.
+## what it is called: anything that takes orders or can be damaged carries the Actor set.
 enum Tier { COMMANDABLE, FEATURE, BODILESS }
 
 const LIBRARY: String = "res://scenes/components/%s.tscn"
 const SCRIPT_ENTITY: String = "res://scripts/entities/entity.gd"
-const SCRIPT_COMMANDABLE: String = "res://scripts/entities/commandable.gd"
+const SCRIPT_COMMANDABLE: String = "res://scripts/entities/actor.gd"
 const SCRIPTS: String = "res://scripts/entities/components/%s.gd"
 const SCRIPT_OWNERSHIP: String = "res://scripts/entities/components/ownership.gd"
 
@@ -150,7 +150,7 @@ const EMISSION_COMPONENTS: Array[Dictionary] = [
 ]
 
 
-## A piece that takes orders or can be damaged is a Commandable; a fixture that does neither
+## A piece that takes orders or can be damaged is a Actor; a fixture that does neither
 ## is a feature on a plain Entity; anything else has no body at all. "Can be damaged" is asked
 ## of the doc's shape AND of the flattened spec (`defense.hp` becomes `hp`), since the importer
 ## composes from the latter.

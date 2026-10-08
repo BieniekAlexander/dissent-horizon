@@ -9,7 +9,7 @@ extends GutTest
 ##
 ## Two predicates, tested directly because both are pure:
 ##   Garrison.can_capture(captor, captive) — would this contact take a prisoner?
-##   Commandable._can_run_over(other)      — would driving into it come to anything at all?
+##   Actor._can_run_over(other)      — would driving into it come to anything at all?
 ## The contact itself needs a physics tick and is not covered here.
 ##
 ## Scenes are load()ed INSIDE the tests rather than preloaded at file scope — a file-scope
@@ -46,8 +46,8 @@ func _commanded(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var e: Commandable = (
+func _entity(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var e: Actor = (
 		FakePieces.structure(a_options)
 		if a_options.has("structure")
 		else FakePieces.unit(a_options)
@@ -58,8 +58,8 @@ func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
 
 
 ## A truck whose cage is already full of prisoners.
-func _full_truck() -> Commandable:
-	var truck: Commandable = _entity(TRUCK_PATH, PLAYER)
+func _full_truck() -> Actor:
+	var truck: Actor = _entity(TRUCK_PATH, PLAYER)
 	for _i in range(truck.garrison.capacity):
 		truck.garrison.garrison(_entity(TERRESTRIAL_PATH, NEUTRAL))
 	assert_eq(truck.garrison.remaining_capacity(), 0, "the cage is full")
@@ -80,7 +80,7 @@ func test_an_enemy_soldier_is_prey() -> void:
 func test_a_soldier_killed_this_frame_is_not_prey() -> void:
 	# Freed at the tree flush, inside the cage, if it were taken: every later read of the cage
 	# then touched a freed occupant (2,020 script errors in one self-play match, 2026-10-07).
-	var dying: Commandable = _entity(RECRUIT_PATH, ENEMY)
+	var dying: Actor = _entity(RECRUIT_PATH, ENEMY)
 	dying.queue_free()
 	assert_false(Garrison.can_capture(_entity(TRUCK_PATH, PLAYER), dying))
 
@@ -110,7 +110,7 @@ func test_a_structure_is_not_prey() -> void:
 
 
 func test_heavier_armour_is_not_prey() -> void:
-	var soldier: Commandable = _entity(RECRUIT_PATH, ENEMY)
+	var soldier: Actor = _entity(RECRUIT_PATH, ENEMY)
 	soldier.defense.armour_type = Defense.ArmourType.MEDIUM
 	assert_false(
 		Garrison.can_capture(_entity(TRUCK_PATH, PLAYER), soldier), "the cage is for light infantry"
@@ -130,7 +130,7 @@ func test_a_full_truck_captures_nobody() -> void:
 
 #region What contact comes to
 func test_the_truck_outsizes_infantry() -> void:
-	var truck: Commandable = _entity(TRUCK_PATH, PLAYER)
+	var truck: Actor = _entity(TRUCK_PATH, PLAYER)
 	assert_true(
 		truck.movement.can_crush(_entity(RECRUIT_PATH, ENEMY).movement),
 		"the whole mechanic rests on the truck being a crusher"
@@ -138,7 +138,7 @@ func test_the_truck_outsizes_infantry() -> void:
 
 
 func test_driving_at_prey_comes_to_something() -> void:
-	var truck: Commandable = _entity(TRUCK_PATH, PLAYER)
+	var truck: Actor = _entity(TRUCK_PATH, PLAYER)
 	assert_true(truck._can_run_over(_entity(RECRUIT_PATH, ENEMY)))
 	assert_true(
 		truck._can_run_over(_entity(TERRESTRIAL_PATH, NEUTRAL)),
@@ -159,11 +159,11 @@ func test_a_full_truck_leaves_a_neutral_alone() -> void:
 
 
 func test_our_own_units_are_never_run_over() -> void:
-	var truck: Commandable = _entity(TRUCK_PATH, PLAYER)
+	var truck: Actor = _entity(TRUCK_PATH, PLAYER)
 	assert_false(truck._can_run_over(_entity(RECRUIT_PATH, PLAYER)))
 
 
 func test_something_its_own_size_is_not_run_over() -> void:
-	var truck: Commandable = _entity(TRUCK_PATH, PLAYER)
+	var truck: Actor = _entity(TRUCK_PATH, PLAYER)
 	assert_false(truck._can_run_over(_entity(VEHICLE_PATH, ENEMY)))
 #endregion

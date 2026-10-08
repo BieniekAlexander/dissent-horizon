@@ -130,7 +130,7 @@ weapon's GROUND reach and refuses one authored beside it (`SpecRegistry._derive_
 TODO: a hard-coded derivation standing in for doc values derived from other doc values — see
 gdd/tasks.md T-096.
 
-**A piece fighting from its orbit is never steered by its target** (`Commandable.fights_from_orbit`).
+**A piece fighting from its orbit is never steered by its target** (`Actor.fights_from_orbit`).
 Its own position plays no part in its reach, so moving would close nothing, and every place a
 target could move it says so instead:
 

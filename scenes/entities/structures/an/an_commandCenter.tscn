@@ -1,6 +1,6 @@
 [gd_scene load_steps=25 format=3 uid="uid://6d446a6ad5mp"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_ccxwa"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_ccxwa"]
 [ext_resource type="PackedScene" path="res://assets/meshes/entities/dummy_structure.blend" id="1_dummy"]
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
 [ext_resource type="PackedScene" path="res://assets/meshes/cube.blend" id="2_bcu6m"]

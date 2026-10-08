@@ -133,17 +133,17 @@ var _drawn: int = 0
 ## row is a widget.
 var _popup: PieceReadoutPopup = null
 ## The piece the widgets describe, for the popup a click opens.
-var _piece: Commandable = null
+var _piece: Actor = null
 #endregion
 
 
 #region Public API
-## Redraw for `a_selection`. Anything other than exactly one Commandable empties the row.
+## Redraw for `a_selection`. Anything other than exactly one Actor empties the row.
 ##
 ## The widgets are rebuilt only when the SELECTED PIECE changes; their VALUES are refreshed
 ## every call, because hit points move without the selection doing anything.
 func update(a_selection: Array) -> void:
-	var piece: Commandable = a_selection[0] as Commandable if a_selection.size() == 1 else null
+	var piece: Actor = a_selection[0] as Actor if a_selection.size() == 1 else null
 	var id: int = piece.get_instance_id() if piece != null else 0
 	if id != _drawn:
 		_drawn = id
@@ -171,7 +171,7 @@ func widgets() -> Array[VerboseTooltipButton]:
 
 
 #region Building
-func _rebuild(a_piece: Commandable) -> void:
+func _rebuild(a_piece: Actor) -> void:
 	_piece = a_piece
 	_ensure_popup()
 	_popup.close()
@@ -363,7 +363,7 @@ static func _make_label(a_text: String, a_size: int, a_color: Color) -> Label:
 #region Live values
 ## The figures that move while the selection stands still. Rebuilding the widgets for these
 ## would rebuild them every frame, so the labels are written in place instead.
-func _refresh_values(a_piece: Commandable) -> void:
+func _refresh_values(a_piece: Actor) -> void:
 	if a_piece.defense != null:
 		_set_value("hp", "%d/%d" % [roundi(a_piece.defense.hp), roundi(a_piece.defense.hp_max)])
 	if a_piece.movement != null:
@@ -388,7 +388,7 @@ func _refresh_values(a_piece: Commandable) -> void:
 ## or a charge to spend. A one-round weapon that reloads between every shot is dry for a
 ## fraction of a second at a time, and blinking the widget at its rate of fire would be noise
 ## rather than information.
-func _refresh_weapon_state(a_piece: Commandable) -> void:
+func _refresh_weapon_state(a_piece: Actor) -> void:
 	var widget: Control = widget_for("weapon")
 	if widget == null:
 		return
@@ -419,13 +419,13 @@ func _set_value(a_key: String, a_text: String) -> void:
 
 
 #region Copy
-static func _piece_title(a_piece: Commandable) -> String:
+static func _piece_title(a_piece: Actor) -> String:
 	return String((a_piece as Node).name)
 
 
 ## Vision and detection as one figure, with detection omitted when the piece has none —
 ## most pieces do not sweep for stealth, and "8 · —" is not a reading.
-static func _sight_value(a_piece: Commandable) -> String:
+static func _sight_value(a_piece: Actor) -> String:
 	var vision: float = EntityRanges.radius_of(a_piece, EntityRanges.Kind.VISION)
 	var detection: float = EntityRanges.radius_of(a_piece, EntityRanges.Kind.DETECTION)
 	if detection < 0.0:
@@ -433,7 +433,7 @@ static func _sight_value(a_piece: Commandable) -> String:
 	return "%.0f · %.0f" % [maxf(vision, 0.0), detection]
 
 
-static func _defense_tooltip(a_piece: Commandable) -> String:
+static func _defense_tooltip(a_piece: Actor) -> String:
 	var defense: Defense = a_piece.defense
 	return (
 		"%d/%d hp  ·  %s armour  ·  %s frame"
@@ -489,7 +489,7 @@ static func _movement_tooltip(a_movement: Movement) -> String:
 ## What a host is holding, and whether it fires what it holds.
 ## What a producer is building — "idle", or the piece's name — and, bracketed, how many of the
 ## commander's queued purchases could land here.
-static func _production_value(a_piece: Commandable) -> String:
+static func _production_value(a_piece: Actor) -> String:
 	var production: Production = a_piece.production
 	var value: String = "idle"
 	if production.job_count() > 0:

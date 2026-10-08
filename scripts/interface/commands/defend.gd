@@ -42,7 +42,7 @@ func _init(a_message: CommandMessage) -> void:
 var _on_station: bool = false
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	# "Arrived at post": hold here and keep guarding. Reuses the nav agent's own arrival
 	# test — the same one a plain MoveCommand uses — instead of a hand-rolled distance
 	# threshold. The target_position guard stops a stale destination from the previous leg
@@ -57,7 +57,7 @@ func can_act(a_actor: Commandable) -> bool:
 	return _on_station
 
 
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	# Travel to post exactly like a plain move: drive until the nav agent reports arrival.
 	# While the post isn't yet loaded as the destination, keep moving so the receiver loads
 	# it (CommandReceiver._process_commands) rather than stalling short of it.
@@ -68,7 +68,7 @@ func should_move(a_actor: Commandable) -> bool:
 	return not _on_station
 
 
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	# Scan for threats around the DEFENDED REGION — the shared aggro_shape at its own world
 	# position — not this unit's post, so every defender reacts to the same incursion and a
 	# bait can't peel one unit off alone. Passing the shape node as the centre makes
@@ -95,7 +95,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 ## defender's own aggro range centred on the post — exactly the area the scan just used.
 ## Why, and the per-tick flicker the two disagreeing produced:
 ## gdd/systems/combat/target-acquisition.md §The leash must be the region.
-func _leash_to_defended_area(a_actor: Commandable, a_command: MoveCommand) -> void:
+func _leash_to_defended_area(a_actor: Actor, a_command: MoveCommand) -> void:
 	if message.aggro_shape != null:
 		a_command.message.aggro_shape = message.aggro_shape
 		a_command.message.aggro_center = message.aggro_shape.global_transform.origin
@@ -112,6 +112,6 @@ func _post_position() -> Vector3:
 	return message.position
 
 
-func fulfill_action(_a_actor: Commandable) -> Variant:
+func fulfill_action(_a_actor: Actor) -> Variant:
 	return self
 #endregion

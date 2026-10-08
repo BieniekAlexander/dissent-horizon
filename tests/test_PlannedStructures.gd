@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Blueprints — the PLANNED state a structure lives in between "the player ordered it"
-## and "a builder laid it down" (Commandable.plan_construction → commit_construction).
+## and "a builder laid it down" (Actor.plan_construction → commit_construction).
 ##
 ## A blueprint is the structure itself, not a decorative ghost: one node per ORDER
 ## (however many builders are walking to it), owned and selectable, and able to take
@@ -119,7 +119,7 @@ func _order(a_at: Vector2 = Vector2(2.0, 3.0)) -> CommandMessage:
 	return CommandMessage.new(_map, null, _tool(), Vector3(a_at.x, 0.0, a_at.y))
 
 
-func _plan(a_at: Vector2 = Vector2(2.0, 3.0)) -> Commandable:
+func _plan(a_at: Vector2 = Vector2(2.0, 3.0)) -> Actor:
 	var message: CommandMessage = _order(a_at)
 	Build.submit_purchase(_commander, message)
 	return Build.plan_structure(_commander, message)
@@ -133,7 +133,7 @@ func _plan(a_at: Vector2 = Vector2(2.0, 3.0)) -> Commandable:
 func test_every_builder_in_an_order_shares_one_blueprint() -> void:
 	var message: CommandMessage = _order()
 	Build.submit_purchase(_commander, message)
-	var blueprint: Commandable = Build.plan_structure(_commander, message)
+	var blueprint: Actor = Build.plan_structure(_commander, message)
 	assert_not_null(blueprint, "the order raised a blueprint")
 
 	var snapshots: Array[CommandMessage] = []
@@ -148,7 +148,7 @@ func test_every_builder_in_an_order_shares_one_blueprint() -> void:
 
 
 func test_blueprint_stands_on_the_footprint_centre() -> void:
-	var blueprint: Commandable = _plan(Vector2(2.0, 3.0))
+	var blueprint: Actor = _plan(Vector2(2.0, 3.0))
 	# an_barracks is 3×3, so its centre is the clicked cell itself.
 	var expected: Vector3 = _map.footprint_centroid(
 		_map.footprint_origin(Vector2(2.0, 3.0), Vector2i(3, 3)), Vector2i(3, 3)
@@ -172,7 +172,7 @@ func test_no_blueprint_without_a_chosen_structure() -> void:
 
 #region Not physically there
 func test_blueprint_is_intangible() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	assert_eq(
 		blueprint.collision_layer & CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
 		0,
@@ -193,14 +193,14 @@ func test_blueprint_is_intangible() -> void:
 
 
 func test_blueprint_occupies_no_cells() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	assert_false(_map.structure_cell_map.has(blueprint), "no footprint registered")
 	assert_false(blueprint.is_grid_obstruction(), "and so no navmesh hole")
 
 
 ## Ordering a build must not scout the site.
 func test_blueprint_grants_no_vision() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	assert_false(blueprint.is_in_group("los"), "a blueprint is not a vision source")
 
 
@@ -208,7 +208,7 @@ func test_blueprint_grants_no_vision() -> void:
 ## buildings: no infrastructure upkeep, and nothing the tech tree or the AI can count.
 func test_blueprint_is_not_registered_with_the_commander() -> void:
 	var infrastructure_before: int = _commander.infrastructure_required
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	assert_eq(blueprint.commander, _commander, "it is owned")
 	assert_eq(
 		_commander.infrastructure_required,
@@ -222,7 +222,7 @@ func test_blueprint_is_not_registered_with_the_commander() -> void:
 
 
 func test_blueprint_runs_no_per_tick_logic() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	assert_false(
 		blueprint.is_physics_processing(),
 		"nothing to produce, shoot or die — physics is off until it's placed"
@@ -230,7 +230,7 @@ func test_blueprint_runs_no_per_tick_logic() -> void:
 
 
 func test_blueprint_is_drawn_at_the_planned_opacity() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	assert_eq(
 		blueprint.construction_opacity(),
 		MeshVisual.OPACITY_PLANNED,
@@ -246,7 +246,7 @@ func test_blueprint_is_drawn_at_the_planned_opacity() -> void:
 
 #region Selectable, and orderable
 func test_blueprint_can_be_selected() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	assert_not_null(blueprint.selectable, "it carries the Selectable the cursor picks")
 	blueprint.selectable.select()
 	assert_true(blueprint.selectable.is_selected(), "and it can actually be selected")
@@ -255,7 +255,7 @@ func test_blueprint_can_be_selected() -> void:
 ## The whole point of it being a real entity: units can be queued at a building that
 ## hasn't been started, exactly as they can at one that's half-built.
 func test_blueprint_accepts_train_orders() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	var train_message := CommandMessage.new(_map, null, Tool.for_id(_trained_type))
 	assert_eq(
 		Train.meets_precondition(blueprint, train_message),
@@ -267,7 +267,7 @@ func test_blueprint_accepts_train_orders() -> void:
 ## Queued units wait for the building rather than being dropped or trained early — the
 ## same rule a structure still under construction follows.
 func test_units_queued_at_a_blueprint_wait_for_it() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	var energy_before: int = _commander.energy
 	var purchase: PurchaseTransaction = _commander.production_queue.submit_train(
 		Tool.for_id(_trained_type), [blueprint]
@@ -287,7 +287,7 @@ func test_units_queued_at_a_blueprint_wait_for_it() -> void:
 
 #region Placement
 func test_committing_makes_the_same_node_the_real_structure() -> void:
-	var blueprint: Commandable = _plan(Vector2(2.0, 3.0))
+	var blueprint: Actor = _plan(Vector2(2.0, 3.0))
 	var infrastructure_before: int = _commander.infrastructure_required
 	blueprint.commit_construction(_map, Vector2(2.0, 3.0))
 
@@ -296,7 +296,7 @@ func test_committing_makes_the_same_node_the_real_structure() -> void:
 	assert_same(_map.placed[0]["structure"], blueprint, "and it's the same node")
 	assert_true(blueprint.is_physics_processing(), "per-tick logic is on")
 	assert_true(blueprint.is_in_group("los"), "it sees for its owner now")
-	# Infrastructure follows FINISHING, not starting (see Commandable.advance_build_progress
+	# Infrastructure follows FINISHING, not starting (see Actor.advance_build_progress
 	# and tests/test_UnfinishedConstruction.gd) — a foundation is not yet a working relay or a
 	# load-bearing upkeep, so laying it must not move the pool at all.
 	assert_eq(
@@ -306,7 +306,7 @@ func test_committing_makes_the_same_node_the_real_structure() -> void:
 	)
 	assert_almost_eq(
 		blueprint.build_progress,
-		Commandable.INITIAL_BUILD_PROGRESS,
+		Actor.INITIAL_BUILD_PROGRESS,
 		0.0001,
 		"construction has started"
 	)
@@ -318,11 +318,11 @@ func test_committing_makes_the_same_node_the_real_structure() -> void:
 
 
 func test_committing_starts_construction_hp() -> void:
-	var blueprint: Commandable = _plan()
+	var blueprint: Actor = _plan()
 	blueprint.commit_construction(_map, Vector2(2.0, 3.0))
 	assert_almost_eq(
 		blueprint.defense.hp,
-		blueprint.defense.hp_max * Commandable.INITIAL_HEALTH_FACTOR,
+		blueprint.defense.hp_max * Actor.INITIAL_HEALTH_FACTOR,
 		0.001,
 		"a just-founded structure starts at the construction hp fraction"
 	)
@@ -333,7 +333,7 @@ func test_committing_starts_construction_hp() -> void:
 func test_a_consumed_purchase_no_longer_owns_the_blueprint() -> void:
 	var message: CommandMessage = _order()
 	var purchase: PurchaseTransaction = Build.submit_purchase(_commander, message)
-	var blueprint: Commandable = Build.plan_structure(_commander, message)
+	var blueprint: Actor = Build.plan_structure(_commander, message)
 	purchase.consume()
 	purchase.cancel()
 	assert_true(is_instance_valid(blueprint), "the placed structure survives the cancel")
@@ -350,7 +350,7 @@ func test_cancelling_the_order_refunds_and_removes_the_blueprint() -> void:
 	var energy_before: int = _commander.energy
 	var message: CommandMessage = _order()
 	var purchase: PurchaseTransaction = Build.submit_purchase(_commander, message)
-	var blueprint: Commandable = Build.plan_structure(_commander, message)
+	var blueprint: Actor = Build.plan_structure(_commander, message)
 	assert_lt(_commander.energy, energy_before, "the build cost was reserved")
 
 	purchase.cancel()
@@ -363,7 +363,7 @@ func test_cancelling_the_order_refunds_and_removes_the_blueprint() -> void:
 func test_cancelling_the_order_drops_units_queued_at_the_blueprint() -> void:
 	var message: CommandMessage = _order()
 	var purchase: PurchaseTransaction = Build.submit_purchase(_commander, message)
-	var blueprint: Commandable = Build.plan_structure(_commander, message)
+	var blueprint: Actor = Build.plan_structure(_commander, message)
 	var train: PurchaseTransaction = _commander.production_queue.submit_train(
 		Tool.for_id(_trained_type), [blueprint]
 	)
@@ -384,7 +384,7 @@ func test_cancelling_the_order_drops_units_queued_at_the_blueprint() -> void:
 ## A destroyed producer must not swallow the energy for units it never trained: jobs already
 ## in its own queue are refunded here...
 func test_destroying_a_producer_refunds_its_queued_jobs() -> void:
-	var structure: Commandable = _tool().packed_scene.instantiate()
+	var structure: Actor = _tool().packed_scene.instantiate()
 	structure.initialize(_map, _commander)
 	var cost: int = _commander.technology_mapping.get(_trained_type).energy_cost
 	_commander.add_energy(-cost)
@@ -402,7 +402,7 @@ func test_destroying_a_producer_refunds_its_queued_jobs() -> void:
 ## ...and purchases still waiting in the commander's global queue for that producer are
 ## dropped on the next tick, since nothing can fulfil them any more.
 func test_destroying_a_producer_drops_purchases_waiting_on_it() -> void:
-	var structure: Commandable = _tool().packed_scene.instantiate()
+	var structure: Actor = _tool().packed_scene.instantiate()
 	# Still going up, so the purchase waits at it rather than being dispatched at once —
 	# which is exactly the state that would strand energy if the building were lost.
 	structure.begin_construction()
@@ -435,7 +435,7 @@ const CLAIM_AT: Vector2 = Vector2(-4.0, -4.0)
 ## Planned at CLAIM_AT: StubMap's grid_to_world skips the map's centring offset, so a blueprint
 ## stands off its order's cells, and this aim keeps where it stands inside the stub's bounds.
 func test_a_blueprint_claims_its_footprint() -> void:
-	var blueprint: Commandable = _plan(CLAIM_AT)
+	var blueprint: Actor = _plan(CLAIM_AT)
 	var dims: Vector2i = (blueprint.get_node("Structure") as Structure).dimensions
 	var footprint: Array = _map.footprint_cells(VU.in_xz(blueprint.global_position), dims)
 	assert_eq(footprint.size(), dims.x * dims.y, "guards the fixture: it stands in bounds")
@@ -447,13 +447,13 @@ func test_a_blueprint_claims_its_footprint() -> void:
 
 ## The order asking about its own site must not be refused by its own blueprint.
 func test_an_order_does_not_collide_with_its_own_blueprint() -> void:
-	var blueprint: Commandable = _plan(CLAIM_AT)
+	var blueprint: Actor = _plan(CLAIM_AT)
 	assert_true(_commander.planned_footprint_cells(blueprint).is_empty())
 
 
 ## Once laid, the building holds real cells; the plan no longer claims anything.
 func test_a_committed_blueprint_stops_claiming() -> void:
-	var blueprint: Commandable = _plan(CLAIM_AT)
+	var blueprint: Actor = _plan(CLAIM_AT)
 	blueprint.commit_construction(_map, CLAIM_AT)
 	assert_true(_commander.planned_footprint_cells().is_empty())
 #endregion

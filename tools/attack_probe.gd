@@ -85,20 +85,20 @@ func _run() -> void:
 		await get_tree().physics_frame
 	var centre: Vector2 = map.play_area().center
 
-	var target := (load(_target_scene) as PackedScene).instantiate() as Commandable
+	var target := (load(_target_scene) as PackedScene).instantiate() as Actor
 	target.initialize(map, enemy)
 	target.global_position = Vector3(centre.x, 0.0, centre.y)
 	await get_tree().physics_frame
 
 	# An airfield BEHIND the attacker, so the return leg has to turn the aircraft around.
-	var field := (load(AIRFIELD) as PackedScene).instantiate() as Commandable
+	var field := (load(AIRFIELD) as PackedScene).instantiate() as Actor
 	field.initialize(map, player)
 	var field_xz := Vector2(centre.x + _distance + 12.0, centre.y)
 	field.global_position = Vector3(field_xz.x, 0.0, field_xz.y)
 	map.add_structure(field, field_xz)
 	await get_tree().physics_frame
 
-	var unit := (load(_unit_scene) as PackedScene).instantiate() as Commandable
+	var unit := (load(_unit_scene) as PackedScene).instantiate() as Actor
 	unit.initialize(map, player)
 	unit.global_position = Vector3(centre.x + _distance, 6.0, centre.y + _offset)
 	await get_tree().physics_frame

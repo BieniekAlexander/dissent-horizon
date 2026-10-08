@@ -44,7 +44,7 @@ func _target(a_xz: Vector2) -> Node3D:
 	return node
 
 
-func _vision_shape(a_scout: Commandable) -> CylinderShape3D:
+func _vision_shape(a_scout: Actor) -> CylinderShape3D:
 	return (a_scout.get_node("VisionRange") as CollisionShape3D).shape as CylinderShape3D
 
 
@@ -92,7 +92,7 @@ func test_an_empty_group_reveals_nothing() -> void:
 
 func test_the_area_is_a_cylinder_of_the_configured_radius() -> void:
 	_event.radius = 10.0
-	var scout: Commandable = FakePieces.unit(SCOUT)
+	var scout: Actor = FakePieces.unit(SCOUT)
 	add_child_autofree(scout)
 	EventRevealRegion._resize_vision(scout, _event.radius)
 	assert_almost_eq(_vision_shape(scout).radius, 10.0, 0.001)
@@ -106,9 +106,9 @@ func test_resizing_one_area_does_not_resize_the_scout_scene() -> void:
 	var shared := CylinderShape3D.new()
 	shared.radius = 12.0
 	var original: float = shared.radius
-	var resized: Commandable = FakePieces.unit(SCOUT)
+	var resized: Actor = FakePieces.unit(SCOUT)
 	(resized.get_node("VisionRange") as CollisionShape3D).shape = shared
-	var untouched: Commandable = FakePieces.unit(SCOUT)
+	var untouched: Actor = FakePieces.unit(SCOUT)
 	(untouched.get_node("VisionRange") as CollisionShape3D).shape = shared
 
 	_event.radius = 99.0

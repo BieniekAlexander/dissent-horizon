@@ -94,8 +94,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _soldier(a_commander: Commander, a_at: Vector3) -> Commandable:
-	var piece := FakePieces.make(SOLDIER) as Commandable
+func _soldier(a_commander: Commander, a_at: Vector3) -> Actor:
+	var piece := FakePieces.make(SOLDIER) as Actor
 	add_child_autofree(piece)
 	piece.ownership.commander = a_commander
 	piece.global_position = a_at
@@ -104,7 +104,7 @@ func _soldier(a_commander: Commander, a_at: Vector3) -> Commandable:
 
 ## The same soldier, but with a 4x4 box for a body, turned 30 degrees: as unlike the round
 ## one as a body gets, with the same weapon and so the same reach and aggro.
-func _boxed(a_piece: Commandable) -> void:
+func _boxed(a_piece: Actor) -> void:
 	var box := BoxShape3D.new()
 	box.size = Vector3(4, 2, 4)
 	(a_piece.hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape = box
@@ -113,8 +113,8 @@ func _boxed(a_piece: Commandable) -> void:
 
 func test_a_round_body_and_a_box_reach_each_other_at_the_same_separations() -> void:
 	Fog._fogs_by_commander.clear()
-	var round_piece: Commandable = _soldier(_commander(1), Vector3.ZERO)
-	var box_piece: Commandable = _soldier(_commander(2), Vector3(30, 0, 0))
+	var round_piece: Actor = _soldier(_commander(1), Vector3.ZERO)
+	var box_piece: Actor = _soldier(_commander(2), Vector3(30, 0, 0))
 	_boxed(box_piece)
 	# Held, so the two never fight: the sweep measures, it does not want a casualty.
 	round_piece.is_holding_fire = true

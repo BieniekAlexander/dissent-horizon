@@ -35,7 +35,7 @@ func before_each() -> void:
 
 
 func _launch(a_at: Vector3 = HOME) -> Array:
-	var aircraft: Commandable = FakePieces.unit(GUNSHIP)
+	var aircraft: Actor = FakePieces.unit(GUNSHIP)
 	add_child_autofree(aircraft)
 	aircraft.global_position = a_at
 	var sortie: Sortie = Sortie.launch(aircraft, _map, HOME, STATION, STATION_SECONDS)
@@ -57,7 +57,7 @@ func _move_order() -> MoveCommand:
 
 
 func _attack_order() -> Attack:
-	var target: Commandable = FakePieces.unit({"speed": 2.0})
+	var target: Actor = FakePieces.unit({"speed": 2.0})
 	add_child_autofree(target)
 	return Attack.new(CommandMessage.new(_map, target, null))
 
@@ -150,7 +150,7 @@ func test_attack_move_on_ground_is_refused_but_on_a_target_is_an_attack() -> voi
 
 
 func test_a_piece_off_rails_may_still_attack_move() -> void:
-	var aircraft: Commandable = FakePieces.unit(GUNSHIP)
+	var aircraft: Actor = FakePieces.unit(GUNSHIP)
 	add_child_autofree(aircraft)
 	var ground := CommandMessage.new(_map, null, null, Vector3(10.0, 0.0, 10.0))
 	assert_eq(
@@ -159,6 +159,6 @@ func test_a_piece_off_rails_may_still_attack_move() -> void:
 
 
 func test_an_aircraft_without_a_sortie_is_offered_a_move() -> void:
-	var aircraft: Commandable = FakePieces.unit(GUNSHIP)
+	var aircraft: Actor = FakePieces.unit(GUNSHIP)
 	add_child_autofree(aircraft)
 	assert_has(CommandContextParser.commands_for(aircraft), "command_move")

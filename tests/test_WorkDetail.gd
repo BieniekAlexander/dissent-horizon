@@ -130,8 +130,8 @@ func test_an_unregistered_structure_has_no_neighbours() -> void:
 
 ## A fake structure placed on the grid and owned by `a_commander`, with an Abilities pool
 ## bolted on.
-func _structure(a_commander: Commander, a_origin: Vector2i, a_grants: Array) -> Commandable:
-	var piece: Commandable = FakePieces.structure({"dimensions": Vector2i(2, 2)})
+func _structure(a_commander: Commander, a_origin: Vector2i, a_grants: Array) -> Actor:
+	var piece: Actor = FakePieces.structure({"dimensions": Vector2i(2, 2)})
 	_world.add_child(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -148,8 +148,8 @@ func _structure(a_commander: Commander, a_origin: Vector2i, a_grants: Array) -> 
 ## A fake compound (a closed hold) placed on the grid and owned by `a_commander`. No occupants
 ## needed: the
 ## bonus is a flat per-completion event now, not scaled by how many are held.
-func _compound(a_commander: Commander, a_origin: Vector2i) -> Commandable:
-	var piece: Commandable = FakePieces.structure(
+func _compound(a_commander: Commander, a_origin: Vector2i) -> Actor:
+	var piece: Actor = FakePieces.structure(
 		{
 			"dimensions": Vector2i(2, 2),
 			"occupant_dominion": true,
@@ -166,13 +166,13 @@ func _compound(a_commander: Commander, a_origin: Vector2i) -> Commandable:
 	return piece
 
 
-func _pool_of(a_piece: Commandable) -> Abilities:
+func _pool_of(a_piece: Actor) -> Abilities:
 	return a_piece.get_node("Abilities") as Abilities
 
 
 ## Spends the beneficiary's one charge (starting its 100-tick cooldown) and returns its
 ## pool, ready for a completion event to act on.
-func _spent_pool(a_beneficiary: Commandable) -> Abilities:
+func _spent_pool(a_beneficiary: Actor) -> Abilities:
 	var pool := _pool_of(a_beneficiary)
 	pool._rebuild()
 	pool.spend(&"scan")
@@ -242,7 +242,7 @@ func test_an_enemy_compound_lends_nothing() -> void:
 func test_an_unfinished_compound_lends_nothing() -> void:
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
 	var compound := _compound(_commander, Vector2i(6, 4))
-	compound.build_progress = Commandable.INITIAL_BUILD_PROGRESS
+	compound.build_progress = Actor.INITIAL_BUILD_PROGRESS
 	var pool := _spent_pool(beneficiary)
 	compound.garrison._emit_positional_bonus()
 	assert_almost_eq(pool._timers[0], 100.0, 0.0001)
@@ -262,7 +262,7 @@ func test_a_piece_that_does_not_grant_work_detail_lends_nothing() -> void:
 	# A structure with a Garrison but no Work Detail grant — a plain shelter, say — must not
 	# start handing out the bonus just because something in it got consumed.
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
-	var plain: Commandable = FakePieces.structure(
+	var plain: Actor = FakePieces.structure(
 		{"dimensions": Vector2i(2, 2), "garrison": {"capacity": 4}}
 	)
 	_world.add_child(plain)

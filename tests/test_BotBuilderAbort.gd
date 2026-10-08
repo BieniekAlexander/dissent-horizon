@@ -9,7 +9,7 @@ extends GutTest
 
 
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
@@ -38,7 +38,7 @@ class StubPiece:
 ## Sees exactly the enemies the test places, each armed unless named "unarmed".
 class FakeBot:
 	extends Bot
-	var enemies: Array = []  # [{"at": Vector3, "piece": Commandable}]
+	var enemies: Array = []  # [{"at": Vector3, "piece": Actor}]
 	var own: Array = []
 	var now: float = 0.0
 
@@ -73,7 +73,7 @@ func before_each() -> void:
 	_economy.defend_threat_radius = 10.0
 
 
-func _builder_walking_to(a_site: Vector3) -> Commandable:
+func _builder_walking_to(a_site: Vector3) -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	_bot.add_child(piece)
 	piece.ownership.commander = _bot
@@ -84,13 +84,13 @@ func _builder_walking_to(a_site: Vector3) -> Commandable:
 
 
 func _enemy_at(a_at: Vector3, a_type: StringName = &"trooper") -> void:
-	var piece: Commandable = autofree(Commandable.new())
+	var piece: Actor = autofree(Actor.new())
 	piece.id = a_type
 	_bot.enemies.append({"at": a_at, "piece": piece})
 
 
 func test_a_builder_walking_into_a_defended_site_is_called_back() -> void:
-	var builder: Commandable = _builder_walking_to(SITE)
+	var builder: Actor = _builder_walking_to(SITE)
 	_enemy_at(SITE + Vector3(5.0, 0.0, 0.0))
 	_economy._abort_contested_jobs()
 	assert_false(builder.has_command(), "the order is dropped before it arrives")
@@ -98,14 +98,14 @@ func test_a_builder_walking_into_a_defended_site_is_called_back() -> void:
 
 
 func test_an_unarmed_enemy_near_the_site_is_no_reason_to_turn_back() -> void:
-	var builder: Commandable = _builder_walking_to(SITE)
+	var builder: Actor = _builder_walking_to(SITE)
 	_enemy_at(SITE + Vector3(5.0, 0.0, 0.0), &"unarmed")
 	_economy._abort_contested_jobs()
 	assert_true(builder.has_command(), "a scout cannot kill a builder")
 
 
 func test_an_enemy_beyond_the_threat_radius_is_not_near() -> void:
-	var builder: Commandable = _builder_walking_to(SITE)
+	var builder: Actor = _builder_walking_to(SITE)
 	_enemy_at(SITE + Vector3(25.0, 0.0, 0.0))
 	_economy._abort_contested_jobs()
 	assert_true(builder.has_command())

@@ -36,28 +36,28 @@ func _init(
 ## has no existing Patrol command anywhere in its chain, the actor's current
 ## position is added to _before so the unit has a return anchor; otherwise the
 ## new waypoint is simply appended to the ongoing route.
-static func for_actor(actor: Commandable, message: CommandMessage) -> Patrol:
+static func for_actor(actor: Actor, message: CommandMessage) -> Patrol:
 	if actor.command_receiver.has_patrol_command():
 		return Patrol.new(message)
 	return Patrol.new(message, [actor.global_position])
 
 
 #region State updates
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	var aggro: MoveCommand = a_actor.get_aggro_near_position(null, null, message.target_priority)
 	return aggro if aggro != null else self
 
 
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	_nav_loaded = true
 	return true
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	return _nav_loaded and a_actor.movement != null and a_actor.movement.is_navigation_finished()
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	# Absorb any Patrol commands the player queued up while this leg was running.
 	var extra: Array[Vector3] = a_actor.command_receiver.consume_leading_patrol_positions()
 	_after.append_array(extra)

@@ -22,8 +22,8 @@ func before_each() -> void:
 	_field.freeze_effect = template
 
 
-func _unit(a_armour: Defense.ArmourType = Defense.ArmourType.LIGHT) -> Commandable:
-	var unit := Commandable.new()
+func _unit(a_armour: Defense.ArmourType = Defense.ArmourType.LIGHT) -> Actor:
+	var unit := Actor.new()
 	var defense := Defense.new()
 	defense.name = "Defense"
 	defense.armour_type = a_armour
@@ -37,12 +37,12 @@ func _unit(a_armour: Defense.ArmourType = Defense.ArmourType.LIGHT) -> Commandab
 	return unit
 
 
-func _ticks(a_inside: Array[Commandable], a_count: int) -> void:
+func _ticks(a_inside: Array[Actor], a_count: int) -> void:
 	for _i: int in a_count:
 		_field.tick_exposure(a_inside)
 
 
-func _freeze_on(a_unit: Commandable) -> FreezeStatusEffect:
+func _freeze_on(a_unit: Actor) -> FreezeStatusEffect:
 	return FrostField._freeze_on(a_unit)
 
 

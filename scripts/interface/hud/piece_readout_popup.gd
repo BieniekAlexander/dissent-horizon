@@ -24,7 +24,7 @@ const ERROR_COLOR: Color = Color(1.0, 0.45, 0.4)
 const NEW_PHASE: Dictionary = {"lifespan": 0, "payload": "once"}
 
 var _widget: StringName = &""
-var _piece: Commandable = null
+var _piece: Actor = null
 var _anchor: Control = null
 var _rows: VBoxContainer
 var _scroll: ScrollContainer
@@ -65,7 +65,7 @@ static func opens(a_widget: StringName, a_is_verbose: bool, a_is_debug: bool) ->
 
 ## Open the popup for `a_widget` of `a_piece` beside `a_anchor`, or close it if that is what is
 ## open already.
-func toggle(a_widget: StringName, a_piece: Commandable, a_anchor: Control) -> void:
+func toggle(a_widget: StringName, a_piece: Actor, a_anchor: Control) -> void:
 	if visible and a_widget == _widget and a_piece == _piece:
 		close()
 		return

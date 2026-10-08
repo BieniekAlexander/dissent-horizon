@@ -45,7 +45,7 @@ class RecordingActuator:
 	extends BotActuator
 	var trained: Array = []  # [{"at", "type"}]
 
-	func train(a_structure: Commandable, a_type: StringName) -> bool:
+	func train(a_structure: Actor, a_type: StringName) -> bool:
 		trained.append({"at": a_structure, "type": a_type})
 		return true
 
@@ -81,8 +81,8 @@ func after_each() -> void:
 	FakePieces.restore_abilities()
 
 
-func _lab(a_researches: Array) -> Commandable:
-	var lab: Commandable = FakePieces.structure({"produces": a_researches})
+func _lab(a_researches: Array) -> Actor:
+	var lab: Actor = FakePieces.structure({"produces": a_researches})
 	add_child_autofree(lab)
 	lab.ownership.commander = _bot
 	_bot.labs.append(lab)
@@ -91,7 +91,7 @@ func _lab(a_researches: Array) -> Commandable:
 
 func _fielded(a_id: StringName, a_count: int) -> void:
 	for i: int in a_count:
-		var piece: Commandable = FakePieces.unit({})
+		var piece: Actor = FakePieces.unit({})
 		add_child_autofree(piece)
 		piece.id = a_id
 		piece.ownership.commander = _bot
@@ -99,7 +99,7 @@ func _fielded(a_id: StringName, a_count: int) -> void:
 
 
 func test_an_upgrade_worth_more_than_its_margin_is_bought_at_the_lab() -> void:
-	var lab: Commandable = _lab([HULLS])
+	var lab: Actor = _lab([HULLS])
 	_fielded(TANK, 4)  # 0.25 × 1200 = 300 against a 260 bar
 	_research.tick()
 	assert_eq(_act.trained, [{"at": lab, "type": HULLS}])
@@ -122,14 +122,14 @@ func test_an_upgrade_for_pieces_the_bot_has_none_of_is_worth_nothing() -> void:
 
 
 func test_a_reach_upgrade_is_priced_by_how_many_times_the_reach_it_adds() -> void:
-	var lab: Commandable = _lab([EYES])
+	var lab: Actor = _lab([EYES])
 	_fielded(SCOUT, 1)  # 30 over 10 is ×3: (3 − 1) × 300 = 600 against 260
 	_research.tick()
 	assert_eq(_act.trained, [{"at": lab, "type": EYES}])
 
 
 func test_the_better_of_two_upgrades_is_the_one_bought() -> void:
-	var lab: Commandable = _lab([HULLS, EYES])
+	var lab: Actor = _lab([HULLS, EYES])
 	_fielded(TANK, 4)  # hulls: 300
 	_fielded(SCOUT, 1)  # eyes: 600
 	_research.tick()

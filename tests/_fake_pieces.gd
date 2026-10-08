@@ -1,14 +1,14 @@
 class_name FakePieces
 extends RefCounted
-## FAKE PIECES for unit tests: a `Commandable` built here, with exactly the components a test
+## FAKE PIECES for unit tests: a `Actor` built here, with exactly the components a test
 ## asks for and nothing a designer can retune.
 ##
 ## A test that instantiates a shipped piece (`cl_bioLight_antiLight.tscn`) is asserting about
 ## authored content by proxy — it breaks the day that piece is renamed, retuned or deleted,
 ## and isolates nothing. A test names the PROPERTY it needs instead:
 ##
-##   var armed: Commandable = FakePieces.unit({"weapon": {"ground": 6.0}})
-##   var gunless: Commandable = FakePieces.unit()
+##   var armed: Actor = FakePieces.unit({"weapon": {"ground": 6.0}})
+##   var gunless: Actor = FakePieces.unit()
 ##
 ## The parts a piece is made of (`scenes/components/`) are the engine's own mechanics, not
 ## content, so they are used as-is; only pieces are faked. Nothing here reads `gdd/`, a shipped
@@ -19,7 +19,7 @@ extends RefCounted
 ##
 ## Options (every one optional):
 ##   id: StringName          the piece's `Entity.id` (default `&"fake_unit"`)
-##   infrastructure: int     `Commandable.infrastructure`: what it provides (+) or draws (-)
+##   infrastructure: int     `Actor.infrastructure`: what it provides (+) or draws (-)
 ##   occupancy: int          `Entity.occupancy_size`, how much of a garrison it fills (default 1)
 ##   hp: float               `Defense.hp_max`
 ##   speed: float            gives it a navigated `Movement` at this speed (default: immobile)
@@ -157,16 +157,16 @@ static func _claim_for_packing(a_root: Node, a_node: Node) -> void:
 			_claim_for_packing(a_root, child)
 
 
-static func unit(a_options: Dictionary = {}) -> Commandable:
+static func unit(a_options: Dictionary = {}) -> Actor:
 	return _build(a_options, false)
 
 
-static func structure(a_options: Dictionary = {}) -> Commandable:
+static func structure(a_options: Dictionary = {}) -> Actor:
 	return _build(a_options, true)
 
 
-static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
-	var piece := Commandable.new()
+static func _build(a_options: Dictionary, a_structure: bool) -> Actor:
+	var piece := Actor.new()
 	piece.name = "FakeStructure" if a_structure else "FakeUnit"
 	piece.id = a_options.get("id", &"fake_structure" if a_structure else &"fake_unit")
 	if a_options.has("infrastructure"):
@@ -178,7 +178,7 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	if a_structure:
 		piece.add_to_group(&"fixture", true)
 
-	# The pieces every Commandable's own lookups require.
+	# The pieces every Actor's own lookups require.
 	_add_scene(piece, "navigation_agent.tscn", "NavigationAgent")
 	_add_scene(piece, "movement_body.tscn", "MovementBody")
 	_add_hurtbox(piece)
@@ -310,7 +310,7 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Commandable:
 	return piece
 
 
-static func _add_docking_bay(a_piece: Commandable, a_spec: Dictionary) -> void:
+static func _add_docking_bay(a_piece: Actor, a_spec: Dictionary) -> void:
 	var bay := DockingBay.new()
 	bay.name = "DockingBay"
 	for i: int in int(a_spec.get("pads", 2)):
@@ -327,7 +327,7 @@ static func _add_docking_bay(a_piece: Commandable, a_spec: Dictionary) -> void:
 	a_piece.add_child(bay)
 
 
-static func _add_garrison(a_piece: Commandable, a_spec: Dictionary) -> void:
+static func _add_garrison(a_piece: Actor, a_spec: Dictionary) -> void:
 	var garrison := Garrison.new()
 	garrison.capacity = int(a_spec.get("capacity", 1))
 	garrison.sentence_length = float(a_spec.get("sentence_length", 0.0))
@@ -347,7 +347,7 @@ static func _add_garrison(a_piece: Commandable, a_spec: Dictionary) -> void:
 	_add_node(a_piece, garrison, "Garrison")
 
 
-static func _add_loadout(a_piece: Commandable, a_weapon: Dictionary) -> void:
+static func _add_loadout(a_piece: Actor, a_weapon: Dictionary) -> void:
 	var loadout := Loadout.new()
 	loadout.name = "Loadout"
 	var weapon := Weapon.new()
@@ -395,7 +395,7 @@ static func _blank_projectile() -> PackedScene:
 	return scene
 
 
-static func _add_aggro(a_piece: Commandable, a_name: String, a_radius: float) -> void:
+static func _add_aggro(a_piece: Actor, a_name: String, a_radius: float) -> void:
 	var aggro: Node = _scene("aggro_range.tscn")
 	aggro.name = a_name
 	if a_radius > 0.0:

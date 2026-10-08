@@ -200,7 +200,7 @@ func _ready() -> void:
 		_setup_spectator_hud()
 		_init_spectator_fog()
 
-	# Typed Entity (not Commandable): commander/default_commander_id are Entity-level, and
+	# Typed Entity (not Actor): commander/default_commander_id are Entity-level, and
 	# the "piece" group holds features such as ExtractionSite as well as Actors.
 	for entity: Entity in get_tree().get_nodes_in_group("piece"):
 		entity.commander = commanders[entity.default_commander_id]
@@ -242,8 +242,8 @@ func _ready() -> void:
 ## In a HEGEMONY scenario, give every player commander a short look at every shelter on the map
 ## (SHELTER_REVEAL_RADIUS / _SECONDS). Nothing for any other win condition: a mission decides for
 ## itself what its player knows. Returns the vision sources spawned, for a test to inspect.
-func _reveal_shelters_at_start() -> Array[Commandable]:
-	var spawned: Array[Commandable] = []
+func _reveal_shelters_at_start() -> Array[Actor]:
+	var spawned: Array[Actor] = []
 	if win_condition != WinCondition.HEGEMONY or map == null:
 		return spawned
 	var points: Array[Vector2] = shelter_points(get_tree())
@@ -251,7 +251,7 @@ func _reveal_shelters_at_start() -> Array[Commandable]:
 		if slot.commander == null:
 			continue
 		for point: Vector2 in points:
-			var source: Commandable = EventRevealRegion.spawn_vision(
+			var source: Actor = EventRevealRegion.spawn_vision(
 				slot.commander, map, point, SHELTER_REVEAL_RADIUS, SHELTER_REVEAL_SECONDS
 			)
 			if source != null:
@@ -1001,7 +1001,7 @@ func _center_player_camera_on_starting_entities() -> void:
 func _player_owned_positions_xz(a_player: Commander, a_group: String) -> Array[Vector2]:
 	var result: Array[Vector2] = []
 	for node: Node in get_tree().get_nodes_in_group(a_group):
-		var entity := node as Commandable
+		var entity := node as Actor
 		if entity != null and entity.commander == a_player:
 			result.append(VU.in_xz(entity.global_position))
 	return result

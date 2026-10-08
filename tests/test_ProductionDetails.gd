@@ -26,8 +26,8 @@ func _commander() -> Commander:
 
 ## An out-of-tree producer of `a_types`, its `production` wired by hand (the @onready never
 ## resolves outside the tree).
-func _producer(a_types: Array[StringName]) -> Commandable:
-	var producer := autofree(Commandable.new()) as Commandable
+func _producer(a_types: Array[StringName]) -> Actor:
+	var producer := autofree(Actor.new()) as Actor
 	var production := Production.new()
 	production.producible_types = a_types
 	producer.add_child(production)

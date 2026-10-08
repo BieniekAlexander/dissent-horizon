@@ -16,7 +16,7 @@ extends Node
 #region Public API
 ## The first listed interaction whose evaluation passes (returns NONE) for the
 ## given actor/message, or null when none applies.
-func applicable_interaction(a_actor: Commandable, a_message: CommandMessage) -> Interaction:
+func applicable_interaction(a_actor: Actor, a_message: CommandMessage) -> Interaction:
 	for interaction: Interaction in interactions:
 		if (
 			interaction != null
@@ -30,6 +30,6 @@ func applicable_interaction(a_actor: Commandable, a_message: CommandMessage) -> 
 
 
 ## True when this interactor has an interaction applicable to the actor/message.
-func can_interact(a_actor: Commandable, a_message: CommandMessage) -> bool:
+func can_interact(a_actor: Actor, a_message: CommandMessage) -> bool:
 	return applicable_interaction(a_actor, a_message) != null
 #endregion

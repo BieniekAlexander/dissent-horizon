@@ -75,8 +75,8 @@ func test_weight_beats_headcount() -> void:
 ## health, weaponry, velocity and a price — everything the valuation half reads.
 func _enemy(
 	a_cost: int, a_damage: float, a_hp_fraction: float, a_velocity: Vector3 = Vector3.ZERO
-) -> Commandable:
-	var c: Commandable = autofree(Commandable.new()) as Commandable
+) -> Actor:
+	var c: Actor = autofree(Actor.new()) as Actor
 	c.velocity = a_velocity
 	c.id = StringName("stand_in_%d_%d" % [a_cost, int(a_damage)])
 	_bot.technology_mapping[c.id] = TechnologySpec.new(a_cost, 0, 0, 30)

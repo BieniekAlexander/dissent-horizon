@@ -12,7 +12,7 @@
 [ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="10_lsq13"]
 [ext_resource type="PackedScene" uid="uid://csyr8p6ug2rpw" path="res://scenes/entities/structures/nt/nt_shelter.tscn" id="11_kj85o"]
 [ext_resource type="PackedScene" uid="uid://djimpdi532ndd" path="res://scenes/entities/structures/nt/nt_building_large.tscn" id="12_0ptrc"]
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="13_kdtj6"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="13_kdtj6"]
 [ext_resource type="PackedScene" uid="uid://cts83yi4a6s4q" path="res://scenes/entities/structures/nt/nt_building_long.tscn" id="14_221sn"]
 [ext_resource type="PackedScene" uid="uid://c2s5yo2m20vob" path="res://scenes/entities/structures/nt/nt_building_square.tscn" id="15_4gd6h"]
 [ext_resource type="PackedScene" uid="uid://ulu3qdibo04a" path="res://scenes/entities/structures/nt/nt_building_shack.tscn" id="16_ebqkc"]

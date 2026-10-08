@@ -86,8 +86,8 @@ func _make_map() -> StubMap:
 
 
 ## The builder, given a one-cell footprint before it enters the tree, owned and on the map.
-func _two_form_piece() -> Commandable:
-	var piece: Commandable = FakePieces.make(PIECE_SCENE) as Commandable
+func _two_form_piece() -> Actor:
+	var piece: Actor = FakePieces.make(PIECE_SCENE) as Actor
 	var structure := Structure.new()
 	structure.name = "Structure"
 	piece.add_child(structure)

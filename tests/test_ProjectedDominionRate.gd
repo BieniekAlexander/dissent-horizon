@@ -9,7 +9,7 @@ extends GutTest
 ## sentence.
 ##
 ## Built from real scenes, like test_WorkDetail.gd and test_TaskShelter.gd: a bare
-## off-tree Commandable never gets a real CommandReceiver.
+## off-tree Actor never gets a real CommandReceiver.
 ##
 ## Run with:
 ## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ProjectedDominionRate.gd
@@ -50,8 +50,8 @@ func _shelter(a_spawn_interval: float, a_position: Vector3 = Vector3.ZERO) -> En
 	return shelter
 
 
-func _compound(a_position: Vector3 = Vector3.ZERO) -> Commandable:
-	var compound: Commandable = FakePieces.make(COMPOUND)
+func _compound(a_position: Vector3 = Vector3.ZERO) -> Actor:
+	var compound: Actor = FakePieces.make(COMPOUND)
 	_world.add_child(compound)
 	compound.set_physics_process(false)
 	compound.top_level = true
@@ -61,8 +61,8 @@ func _compound(a_position: Vector3 = Vector3.ZERO) -> Commandable:
 
 
 ## A truck tasked on `a_shelter`, at `a_position`.
-func _tasked_truck(a_shelter: Entity, a_position: Vector3 = Vector3.ZERO) -> Commandable:
-	var truck: Commandable = FakePieces.make(TRUCK)
+func _tasked_truck(a_shelter: Entity, a_position: Vector3 = Vector3.ZERO) -> Actor:
+	var truck: Actor = FakePieces.make(TRUCK)
 	_world.add_child(truck)
 	truck.set_physics_process(false)
 	truck.top_level = true

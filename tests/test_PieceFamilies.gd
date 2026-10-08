@@ -244,7 +244,7 @@ func test_every_shipped_member_scene_agrees_with_its_template() -> void:
 				(root.get_node("Defense") as Defense).hp_max, template.hp, "%s: hp" % template.id
 			)
 			assert_eq(
-				(root as Commandable).infrastructure,
+				(root as Actor).infrastructure,
 				0,
 				"%s: a member scene grants no infrastructure by standing on the map" % template.id
 			)

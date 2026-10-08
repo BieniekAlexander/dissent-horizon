@@ -20,7 +20,7 @@ lives on the EFFECT rather than on the `EffectApplicator` because the applicator
 duplicates its effect templates per recipient — so the effect is already the per-recipient
 object, and a second copy of the rule on the applicator could only disagree with it.
 
-A stun here is a HARD stop: `Commandable.is_stunned()` gates all command processing, so an
+A stun here is a HARD stop: `Actor.is_stunned()` gates all command processing, so an
 EMP'd vehicle neither moves nor fires. "Disabled but still mobile" would be a different
 effect type and does not exist.
 

@@ -23,12 +23,12 @@ func _admits_structures() -> bool:
 	return true
 
 
-func _qualifies(a_candidate: Commandable) -> bool:
+func _qualifies(a_candidate: Actor) -> bool:
 	return FreezeStatusEffect.can_freeze(a_candidate)
 
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
-	var target: Commandable = _find_target_unit(a_manager)
+	var target: Actor = _find_target_unit(a_manager)
 	if target == null:
 		return
 	var effect := FREEZE_EFFECT.instantiate() as FreezeStatusEffect

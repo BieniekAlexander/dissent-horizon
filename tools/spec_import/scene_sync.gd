@@ -338,12 +338,12 @@ func _sync_editor_description(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	_set_prop(a_ctx, "", "editor_description", current, target, TscnDoc.fmt_string(target))
 
 
-## Copies the optional `description`/`verbose` spec keys into Commandable's own exported
+## Copies the optional `description`/`verbose` spec keys into Actor's own exported
 ## fields — the player-facing HUD flavor text (NOT the engine's editor-only
 ## `editor_description`; see _sync_editor_description for that one). Guarded by `in`
-## rather than `is Commandable`, since a "piece" doc's scene root can be a non-Commandable
+## rather than `is Actor`, since a "piece" doc's scene root can be a non-Actor
 ## Entity (e.g. ExtractionSite). Omitted key -> untouched; a piece with neither key falls back to
-## Commandable's own runtime "obnoxious TODO" placeholder rather than being synced here.
+## Actor's own runtime "obnoxious TODO" placeholder rather than being synced here.
 func _sync_flavor_text(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if a_spec.has("description") and "description" in a_ctx.inst:
 		var target: String = str(a_spec["description"])
@@ -772,7 +772,7 @@ func _sync_footprint(a_ctx: Ctx, a_spec: Dictionary) -> void:
 ## The keys that belong to the ROOT node rather than to any component.
 ##
 ## A family member's `infrastructure:` is TEMPLATE data — what the piece grants once it is built
-## as another piece — so it is never written here: Commandable.infrastructure is credited to
+## as another piece — so it is never written here: Actor.infrastructure is credited to
 ## whichever commander owns the node, and a neutral building (or one a garrison captured) must
 ## grant nothing. It is published through families.json instead.
 func _sync_root_properties(a_ctx: Ctx, a_spec: Dictionary) -> void:

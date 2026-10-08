@@ -22,8 +22,8 @@ func _commanded(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var e := FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var e := FakePieces.make(a_options) as Actor
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(a_commander_id)
 	return e
@@ -33,7 +33,7 @@ func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
 
 
-func _passes(a_host: Commandable, a_occupant: Commandable) -> bool:
+func _passes(a_host: Actor, a_occupant: Actor) -> bool:
 	return (
 		Embark.meets_precondition(a_host, _message_for(a_occupant))
 		== MoveCommand.PreconditionFailureCause.NONE
@@ -60,13 +60,13 @@ func test_an_enemy_unit_is_not_collected() -> void:
 
 
 func test_a_host_cannot_collect_itself() -> void:
-	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
+	var transport: Actor = _entity(TRANSPORT_PATH, 1)
 	assert_false(_passes(transport, transport))
 
 
 func test_a_unit_the_masks_reject_is_not_collected() -> void:
-	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
-	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
+	var transport: Actor = _entity(TRANSPORT_PATH, 1)
+	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	assert_true(_passes(transport, soldier), "admitted before the mask is narrowed")
 	transport.garrison.occupiable_frames = 0
 	assert_false(_passes(transport, soldier), "a closed hold takes nobody by order")
@@ -76,8 +76,8 @@ func test_a_unit_the_masks_reject_is_not_collected() -> void:
 ## garrison walks over and waits for a slot; a player HOVERING a unit over a full transport
 ## is asking whether calling it in would achieve anything, and it would not.
 func test_a_full_host_is_not_offered_the_order() -> void:
-	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
-	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
+	var transport: Actor = _entity(TRANSPORT_PATH, 1)
+	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	transport.garrison.capacity = 0
 	assert_false(_passes(transport, soldier))
 	assert_true(
@@ -91,8 +91,8 @@ func test_a_full_host_is_not_offered_the_order() -> void:
 
 #region Occupy asks the same question from the other end
 func test_the_masks_rule_is_stated_once() -> void:
-	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
-	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
+	var transport: Actor = _entity(TRANSPORT_PATH, 1)
+	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	assert_eq(
 		Occupy.meets_precondition(soldier, _message_for(transport)),
 		MoveCommand.PreconditionFailureCause.NONE,
@@ -112,9 +112,9 @@ func test_the_masks_rule_is_stated_once() -> void:
 
 #region Which host collects
 func test_the_nearest_applicable_host_takes_the_order() -> void:
-	var near: Commandable = _entity(TRANSPORT_PATH, 1)
-	var far: Commandable = _entity(TRANSPORT_PATH, 1)
-	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
+	var near: Actor = _entity(TRANSPORT_PATH, 1)
+	var far: Actor = _entity(TRANSPORT_PATH, 1)
+	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	soldier.global_position = Vector3(10.0, 0.0, 0.0)
 	near.global_position = Vector3(8.0, 0.0, 0.0)
 	far.global_position = Vector3(-30.0, 0.0, 0.0)
@@ -137,8 +137,8 @@ func test_no_hosts_means_nobody_collects() -> void:
 ## The whole of the host's effect on the world: it hands the unit an Occupy aimed back at
 ## itself. Occupy is still the only thing that puts a unit inside a garrison.
 func test_the_first_tick_hands_the_passenger_an_occupy() -> void:
-	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
-	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
+	var transport: Actor = _entity(TRANSPORT_PATH, 1)
+	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	var command := Embark.new(_message_for(soldier))
 	assert_eq(command.get_updated_state(transport), command, "and the order carries on")
 	var handed: MoveCommand = soldier.current_command()
@@ -149,8 +149,8 @@ func test_the_first_tick_hands_the_passenger_an_occupy() -> void:
 ## Handed out ONCE. A player who re-orders the passenger elsewhere is not overruled every
 ## tick by a host that is still following it.
 func test_the_passenger_is_not_re_ordered_every_tick() -> void:
-	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
-	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
+	var transport: Actor = _entity(TRANSPORT_PATH, 1)
+	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	var command := Embark.new(_message_for(soldier))
 	command.get_updated_state(transport)
 	soldier.update_commands(Stop.new(_message_for(null)))
@@ -161,8 +161,8 @@ func test_the_passenger_is_not_re_ordered_every_tick() -> void:
 ## A garrisoned unit is ORPHANED, not freed, so is_instance_valid still reports true for it —
 ## tree membership is what says the order is over.
 func test_the_order_ends_once_the_passenger_is_aboard() -> void:
-	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
-	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
+	var transport: Actor = _entity(TRANSPORT_PATH, 1)
+	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	var command := Embark.new(_message_for(soldier))
 	command.get_updated_state(transport)
 	transport.garrison.garrison(soldier)
@@ -173,8 +173,8 @@ func test_the_order_ends_once_the_passenger_is_aboard() -> void:
 ## An immobile host is still worth giving the order to — its whole half of it is the Occupy
 ## it handed out — but it has nowhere to walk.
 func test_an_immobile_host_hands_the_order_out_and_stays_put() -> void:
-	var bunker: Commandable = _entity(OPEN_GARRISON_PATH, 1)
-	var soldier: Commandable = _entity(SOLDIER_PATH, 1)
+	var bunker: Actor = _entity(OPEN_GARRISON_PATH, 1)
+	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	var command := Embark.new(_message_for(soldier))
 	command.get_updated_state(bunker)
 	assert_true(soldier.current_command() is Occupy)
@@ -182,7 +182,7 @@ func test_an_immobile_host_hands_the_order_out_and_stays_put() -> void:
 
 
 func test_a_mobile_host_walks_to_meet_the_passenger() -> void:
-	var transport: Commandable = _entity(TRANSPORT_PATH, 1)
+	var transport: Actor = _entity(TRANSPORT_PATH, 1)
 	assert_true(Embark.new(_message_for(_entity(SOLDIER_PATH, 1))).should_move(transport))
 
 

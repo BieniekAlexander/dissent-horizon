@@ -10,7 +10,7 @@ const _WARLORD_SCENE: PackedScene = preload(
 )
 
 
-func _qualifies(a_candidate: Commandable) -> bool:
+func _qualifies(a_candidate: Actor) -> bool:
 	return a_candidate.id == EntityIds.AN_BIO_LIGHT_BUILDER
 
 
@@ -19,14 +19,14 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	var map: Map = a_manager.map
 	if commander == null or map == null:
 		return
-	var target: Commandable = _find_target_unit(a_manager)
+	var target: Actor = _find_target_unit(a_manager)
 	if target == null:
 		return
 
 	var rank: Veterancy.Level = target.veterancy.level
 	var spawn_xz: Vector2 = VU.in_xz(target.global_position)
 
-	var warlord := _WARLORD_SCENE.instantiate() as Commandable
+	var warlord := _WARLORD_SCENE.instantiate() as Actor
 	if warlord == null:
 		return
 	# Asked BEFORE the Irregular is freed, and answered against the not-yet-in-tree Warlord

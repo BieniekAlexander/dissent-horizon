@@ -6,13 +6,13 @@ extends GutTest
 
 var _scenario: Scenario
 var _stream: OrderStream
-var _piece: Commandable
+var _piece: Actor
 
 
 func before_each() -> void:
 	_scenario = Scenario.new()
 	_scenario.commanders = [Commander.new(), Commander.new()]
-	_piece = FakePieces.unit({"weapon": {"ground": 4.0}}) as Commandable
+	_piece = FakePieces.unit({"weapon": {"ground": 4.0}}) as Actor
 	add_child_autofree(_piece)
 	_piece.spawn_serial = _scenario.register_piece(_piece)
 	_stream = OrderStream.new(_scenario)

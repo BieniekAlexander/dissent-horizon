@@ -122,8 +122,8 @@ func _occupy(a_origin: Vector2i, a_dims: Vector2i) -> Entity:
 	return host
 
 
-func _make_builder(a_at: Vector3) -> Commandable:
-	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
+func _make_builder(a_at: Vector3) -> Actor:
+	var builder: Actor = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map
@@ -238,7 +238,7 @@ func test_a_second_builder_joins_the_extractor_already_on_the_site() -> void:
 	var site: Vector3 = _map.footprint_centroid(origin, dims)
 	var tool: Tool = EXTRACTOR_TOOL
 
-	var bound: Commandable = tool.packed_scene.instantiate() as Commandable
+	var bound: Actor = tool.packed_scene.instantiate() as Actor
 	bound.begin_construction()
 	_world.add_child(bound)
 	bound.ownership.commander = _commander

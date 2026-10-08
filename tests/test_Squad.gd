@@ -7,7 +7,7 @@ extends GutTest
 
 
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
@@ -44,7 +44,7 @@ class RecordingPolicy:
 
 	func issue(a_members: Array) -> void:
 		issued.append(a_members.duplicate())
-		for unit: Commandable in a_members:
+		for unit: Actor in a_members:
 			unit.update_commands(MoveCommand.new(CommandMessage.new(null, null, null, Vector3.ONE)))
 
 	func same_as(a_other: SquadPolicy) -> bool:
@@ -58,15 +58,15 @@ func before_each() -> void:
 	_squad = Squad.new(&"test")
 
 
-func _unit() -> Commandable:
+func _unit() -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	add_child_autofree(piece)
 	return piece
 
 
 func test_a_new_policy_reaches_every_member() -> void:
-	var a: Commandable = _unit()
-	var b: Commandable = _unit()
+	var a: Actor = _unit()
+	var b: Actor = _unit()
 	_squad.add_all([a, b])
 	var policy := RecordingPolicy.new("go")
 	_squad.policy = policy
@@ -76,8 +76,8 @@ func test_a_new_policy_reaches_every_member() -> void:
 
 
 func test_the_same_policy_reaches_only_a_member_that_went_idle() -> void:
-	var a: Commandable = _unit()
-	var b: Commandable = _unit()
+	var a: Actor = _unit()
+	var b: Actor = _unit()
 	_squad.add_all([a, b])
 	var policy := RecordingPolicy.new("go")
 	_squad.policy = policy
@@ -91,12 +91,12 @@ func test_the_same_policy_reaches_only_a_member_that_went_idle() -> void:
 
 
 func test_a_member_that_joins_is_ordered_on_the_next_tick_whatever_it_is_doing() -> void:
-	var a: Commandable = _unit()
+	var a: Actor = _unit()
 	_squad.add(a)
 	var policy := RecordingPolicy.new("go")
 	_squad.policy = policy
 	_squad.tick()
-	var late: Commandable = _unit()
+	var late: Actor = _unit()
 	late.update_commands(MoveCommand.new(CommandMessage.new(null, null, null, Vector3.ZERO)))
 	_squad.add(late)
 	_squad.tick()
@@ -105,7 +105,7 @@ func test_a_member_that_joins_is_ordered_on_the_next_tick_whatever_it_is_doing()
 
 
 func test_a_changed_policy_redirects_a_busy_member() -> void:
-	var a: Commandable = _unit()
+	var a: Actor = _unit()
 	_squad.add(a)
 	_squad.policy = RecordingPolicy.new("go")
 	_squad.tick()
@@ -116,11 +116,11 @@ func test_a_changed_policy_redirects_a_busy_member() -> void:
 
 
 func test_an_ineligible_member_is_left_alone_and_picked_up_when_eligible_again() -> void:
-	var a: Commandable = _unit()
-	var claimed: Commandable = _unit()
+	var a: Actor = _unit()
+	var claimed: Actor = _unit()
 	_squad.add_all([a, claimed])
 	var free: Dictionary = {a: true}
-	_squad.eligible = func(unit: Commandable) -> bool: return free.has(unit)
+	_squad.eligible = func(unit: Actor) -> bool: return free.has(unit)
 	var policy := RecordingPolicy.new("go")
 	_squad.policy = policy
 	_squad.tick()
@@ -131,7 +131,7 @@ func test_an_ineligible_member_is_left_alone_and_picked_up_when_eligible_again()
 
 
 func test_a_dead_member_drops_out_as_it_is_read() -> void:
-	var a: Commandable = _unit()
+	var a: Actor = _unit()
 	var dead: StubPiece = StubPiece.make()
 	add_child(dead)
 	_squad.add_all([a, dead])
@@ -141,8 +141,8 @@ func test_a_dead_member_drops_out_as_it_is_read() -> void:
 
 
 func test_a_member_off_the_tree_stays_a_member_but_is_neither_ordered_nor_averaged() -> void:
-	var a: Commandable = _unit()
-	var held: Commandable = _unit()
+	var a: Actor = _unit()
+	var held: Actor = _unit()
 	a.global_position = Vector3(4.0, 0.0, 0.0)
 	_squad.add_all([a, held])
 	remove_child(held)  # garrisoned: held, not gone
@@ -156,8 +156,8 @@ func test_a_member_off_the_tree_stays_a_member_but_is_neither_ordered_nor_averag
 
 
 func test_absorb_moves_every_member_across() -> void:
-	var a: Commandable = _unit()
-	var b: Commandable = _unit()
+	var a: Actor = _unit()
+	var b: Actor = _unit()
 	var other := Squad.new(&"other")
 	other.add_all([a, b])
 	var moved: Array = _squad.absorb(other)
@@ -168,8 +168,8 @@ func test_absorb_moves_every_member_across() -> void:
 
 func test_the_centroid_is_the_members_mean_and_zero_for_nobody() -> void:
 	assert_eq(_squad.centroid(), Vector3.ZERO)
-	var a: Commandable = _unit()
-	var b: Commandable = _unit()
+	var a: Actor = _unit()
+	var b: Actor = _unit()
 	a.global_position = Vector3(0.0, 0.0, 0.0)
 	b.global_position = Vector3(10.0, 0.0, 0.0)
 	_squad.add_all([a, b])

@@ -38,8 +38,8 @@ func after_each() -> void:
 
 
 ## A piece owned by the fixture commander, with the given FakePieces options.
-func _owned(a_options: Dictionary, a_id: StringName = &"") -> Commandable:
-	var piece: Commandable = FakePieces.make(a_options)
+func _owned(a_options: Dictionary, a_id: StringName = &"") -> Actor:
+	var piece: Actor = FakePieces.make(a_options)
 	_commander.add_child(piece)
 	autofree(piece)
 	piece.ownership.commander = _commander
@@ -48,7 +48,7 @@ func _owned(a_options: Dictionary, a_id: StringName = &"") -> Commandable:
 	return piece
 
 
-func _research_purchase(a_producer: Commandable, a_energy: int = 100) -> PurchaseTransaction:
+func _research_purchase(a_producer: Actor, a_energy: int = 100) -> PurchaseTransaction:
 	var tool := Tool.new(
 		"command_tool_%s" % UPGRADE, UPGRADE, null, "Fake Upgrade", Vector2i.ZERO, 0, 0
 	)
@@ -61,7 +61,7 @@ func _research_purchase(a_producer: Commandable, a_energy: int = 100) -> Purchas
 	return transaction
 
 
-func _tick(a_producer: Commandable, a_times: int) -> void:
+func _tick(a_producer: Actor, a_times: int) -> void:
 	for _i: int in a_times:
 		a_producer.production.tick()
 
@@ -70,12 +70,12 @@ func _tick(a_producer: Commandable, a_times: int) -> void:
 
 
 func test_an_unowned_upgrade_leaves_the_reach_at_the_ability_docs_range() -> void:
-	var spotter: Commandable = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
+	var spotter: Actor = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
 	assert_almost_eq(Spot.target_range(spotter), 10.0, 0.001)
 
 
 func test_an_owned_upgrade_raises_the_reach_of_existing_units() -> void:
-	var spotter: Commandable = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
+	var spotter: Actor = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
 	_commander.complete_upgrade(UPGRADE)
 	assert_almost_eq(
 		Spot.target_range(spotter),
@@ -86,13 +86,13 @@ func test_an_owned_upgrade_raises_the_reach_of_existing_units() -> void:
 
 
 func test_an_upgrade_modifies_only_the_piece_it_names() -> void:
-	var other: Commandable = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, &"someone_else")
+	var other: Actor = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, &"someone_else")
 	_commander.complete_upgrade(UPGRADE)
 	assert_almost_eq(Spot.target_range(other), 10.0, 0.001)
 
 
 func test_an_upgrade_belongs_to_its_commander() -> void:
-	var spotter: Commandable = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
+	var spotter: Actor = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
 	var rival := Commander.new()
 	rival.id = 2
 	add_child_autofree(rival)
@@ -104,7 +104,7 @@ func test_the_longest_reach_wins_whatever_order_upgrades_arrive_in() -> void:
 	UpgradeCatalog._entries[&"fake_short"] = {
 		"modifies": [{"piece": String(SPOTTER), "ability": String(Spot.ABILITY_ID), "range": 15.0}]
 	}
-	var spotter: Commandable = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
+	var spotter: Actor = _owned({"abilities": [{"grants": [Spot.ABILITY_ID]}]}, SPOTTER)
 	_commander.complete_upgrade(UPGRADE)
 	_commander.complete_upgrade(&"fake_short")
 	assert_almost_eq(Spot.target_range(spotter), 24.0, 0.001)
@@ -125,7 +125,7 @@ func test_completing_an_upgrade_is_idempotent_and_announced_once() -> void:
 
 
 func test_research_runs_as_a_job_and_grants_the_upgrade_instead_of_spawning() -> void:
-	var lab: Commandable = _owned({"structure": true, "produces": [UPGRADE]})
+	var lab: Actor = _owned({"structure": true, "produces": [UPGRADE]})
 	_commander.energy = 100
 	var transaction := _commander.production_queue.submit(_research_purchase(lab))
 	assert_true(lab.production.is_producing(UPGRADE), "the research is the lab's job")
@@ -137,7 +137,7 @@ func test_research_runs_as_a_job_and_grants_the_upgrade_instead_of_spawning() ->
 
 
 func test_an_upgrade_being_researched_cannot_be_bought_again() -> void:
-	var lab: Commandable = _owned({"structure": true, "produces": [UPGRADE]})
+	var lab: Actor = _owned({"structure": true, "produces": [UPGRADE]})
 	_commander.energy = 1000
 	_commander.technology_mapping[UPGRADE] = TechnologySpec.new(100, 0, 0, 3)
 	assert_false(_commander.is_research_taken(UPGRADE))
@@ -147,7 +147,7 @@ func test_an_upgrade_being_researched_cannot_be_bought_again() -> void:
 
 
 func test_a_queued_research_cannot_be_bought_again() -> void:
-	var lab: Commandable = _owned({"structure": true, "produces": [UPGRADE]})
+	var lab: Actor = _owned({"structure": true, "produces": [UPGRADE]})
 	# Unaffordable, so the purchase waits in the queue rather than reaching the lab.
 	_commander.energy = 0
 	_commander.production_queue.submit(_research_purchase(lab, 100))
@@ -167,7 +167,7 @@ func test_a_piece_is_never_refused_as_already_researched() -> void:
 
 
 func test_a_standing_research_is_demoted_to_a_one_off() -> void:
-	var lab: Commandable = _owned({"structure": true, "produces": [UPGRADE]})
+	var lab: Actor = _owned({"structure": true, "produces": [UPGRADE]})
 	var purchase := _research_purchase(lab)
 	purchase.standing = true
 	_commander.production_queue.submit(purchase)
@@ -175,7 +175,7 @@ func test_a_standing_research_is_demoted_to_a_one_off() -> void:
 
 
 func test_the_upgrade_survives_losing_the_lab() -> void:
-	var lab: Commandable = _owned({"structure": true, "produces": [UPGRADE]})
+	var lab: Actor = _owned({"structure": true, "produces": [UPGRADE]})
 	_commander.energy = 100
 	_commander.production_queue.submit(_research_purchase(lab))
 	_tick(lab, 3)
@@ -184,14 +184,14 @@ func test_the_upgrade_survives_losing_the_lab() -> void:
 
 
 func test_a_research_only_structure_is_not_a_unit_producer() -> void:
-	var lab: Commandable = _owned({"structure": true, "produces": [UPGRADE]})
+	var lab: Actor = _owned({"structure": true, "produces": [UPGRADE]})
 	assert_false(lab.production.trains_units())
 	assert_false(Production.node_trains_units(lab))
 	assert_false(lab.can_rally(), "research spawns nothing, so there is nowhere to rally to")
 
 
 func test_a_structure_that_also_trains_is_a_unit_producer() -> void:
-	var yard: Commandable = _owned({"structure": true, "produces": [UPGRADE, &"fake_trainee"]})
+	var yard: Actor = _owned({"structure": true, "produces": [UPGRADE, &"fake_trainee"]})
 	assert_true(yard.production.trains_units())
 	assert_true(yard.can_rally())
 

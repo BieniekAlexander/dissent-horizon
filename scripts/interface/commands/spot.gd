@@ -41,7 +41,7 @@ extends MoveCommand
 ## wait; anything else about the order (reachability, whether the ground is worth spotting)
 ## is not a precondition's business.
 static func meets_precondition(
-	actor: Commandable, _message: CommandMessage
+	actor: Actor, _message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	if actor == null or not _can_spot(actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -58,7 +58,7 @@ static func meets_precondition(
 ## piece's spotting (Advanced Targetting — see UpgradeCatalog). It used to be a constant, on the
 ## grounds that a value that never varied was not a configuration; an upgrade is what made it
 ## vary.
-static func target_range(a_actor: Commandable) -> float:
+static func target_range(a_actor: Actor) -> float:
 	return AbilityCatalog.range_for(ABILITY_ID, a_actor)
 
 
@@ -75,13 +75,13 @@ static func channel_ticks() -> int:
 ## Whether `a_actor` is granted Spot at all. It used to be the presence of a `Spotter`
 ## component; it is an ordinary granted ability now, so the capability is asked the way every
 ## other ability's is.
-static func _can_spot(actor: Commandable) -> bool:
+static func _can_spot(actor: Actor) -> bool:
 	var pool: Abilities = _pool(actor)
 	return pool != null and pool.grants(ABILITY_ID)
 
 
 ## `a_actor`'s ability pool, or null for a piece with none.
-static func _pool(a_actor: Commandable) -> Abilities:
+static func _pool(a_actor: Actor) -> Abilities:
 	return a_actor.get_node_or_null("Abilities") as Abilities if a_actor != null else null
 
 
@@ -97,7 +97,7 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 
 
 ## Free unless already spotting — the job rule (MoveCommand.is_free_to_take).
-static func is_free_to_take(actor: Commandable) -> bool:
+static func is_free_to_take(actor: Actor) -> bool:
 	return holds_none_of(actor, [Spot])
 
 
@@ -130,13 +130,13 @@ var _held_pool: Abilities = null
 #region State updates
 ## Calling a strike in is a channeled action, so a hit interrupts it exactly as it
 ## interrupts building.
-func blocked_by_stagger(_a_actor: Commandable) -> bool:
+func blocked_by_stagger(_a_actor: Actor) -> bool:
 	return true
 
 
 ## Once the beacon is up, this command's life is the beacon's. It ends when a Bombard fires
 ## on it, or when it leaves play some other way, and until then holds the unit in place.
-func get_updated_state(_a_actor: Commandable) -> Variant:
+func get_updated_state(_a_actor: Actor) -> Variant:
 	if _beacon_raised and (not is_instance_valid(_beacon) or _beacon.is_used()):
 		return null
 	return self
@@ -151,11 +151,11 @@ func ends_on_arrival() -> bool:
 
 ## Stand still once the beacon is standing: the unit is committed to holding the solution,
 ## not to walking back to the point it was called from.
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	return not _beacon_raised and not can_act(a_actor)
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	if not _can_spot(a_actor):
 		return false
 	if _beacon_raised:
@@ -168,11 +168,11 @@ func can_act(a_actor: Commandable) -> bool:
 
 
 ## A planter walks to the ground it was pointed at, never after a unit it was pointed over.
-func movement_destination(a_actor: Commandable) -> Variant:
+func movement_destination(a_actor: Actor) -> Variant:
 	return message.world_position if BeaconPlanter.plants(a_actor) else null
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	if _beacon_raised:
 		_hold_leash(a_actor)
 		# Call the shot in from a battery left on automatic, as soon as one is ready. The
@@ -200,7 +200,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 
 ## How far through the call this spotter is, 0..1 — for a HUD readout. 1.0 once the
 ## beacon stands, since the call is finished even though the command is not.
-func channel_progress(a_actor: Commandable) -> float:
+func channel_progress(a_actor: Actor) -> float:
 	if _beacon_raised:
 		return 1.0
 	if not _can_spot(a_actor):
@@ -211,7 +211,7 @@ func channel_progress(a_actor: Commandable) -> float:
 ## Withdraw the solution when this order is replaced or cleared — unless a shot has been
 ## fired on it, when the shell in flight still needs it — and start the spotter's cooldown.
 ## See the class docs for why a re-ordered spotter must not leave its beacon behind.
-func on_released(_a_actor: Commandable) -> void:
+func on_released(_a_actor: Actor) -> void:
 	if is_instance_valid(_beacon) and not _beacon.is_used():
 		_beacon.dismiss()
 	_beacon = null
@@ -227,7 +227,7 @@ func on_released(_a_actor: Commandable) -> void:
 #region Private helpers
 ## Spend the spotter's charge and hold its recharge until this order ends. False when it has
 ## none to spend — a queued order whose charge another order used first.
-func _start_channel(a_actor: Commandable) -> bool:
+func _start_channel(a_actor: Actor) -> bool:
 	var pool: Abilities = Spot._pool(a_actor)
 	if pool == null or not pool.spend(ABILITY_ID):
 		return false
@@ -240,7 +240,7 @@ func _start_channel(a_actor: Commandable) -> bool:
 ## carry one (Beacon.can_carry: a grounded MECH unit), ON that unit, so it moves with it. It
 ## never expires on its own: a spotter's solution is held by the spotter, so its lifetime is
 ## this command's, not a timer's.
-func _raise_beacon(a_actor: Commandable) -> Beacon:
+func _raise_beacon(a_actor: Actor) -> Beacon:
 	var map: Map = message.map if message.map != null else a_actor.map
 	if map == null or a_actor.commander == null:
 		return null
@@ -257,7 +257,7 @@ func _raise_beacon(a_actor: Commandable) -> Beacon:
 
 ## Leave a point beacon on the ground the order named — what a Beacon Drop places. Not kept:
 ## nothing holds a planted beacon, so on_released must not find it to withdraw.
-func _plant_beacon(a_actor: Commandable) -> void:
+func _plant_beacon(a_actor: Actor) -> void:
 	var map: Map = message.map if message.map != null else a_actor.map
 	if map == null or a_actor.commander == null:
 		return
@@ -275,7 +275,7 @@ func _ground_xz() -> Vector2:
 ## THE LEASH: a beacon riding on a unit stands only while that unit stays within the
 ## spotter's target_range. A carrier that drives out of it drops the beacon — and a shell
 ## already tracking it lands where it last was. A point beacon has no leash.
-func _hold_leash(a_actor: Commandable) -> void:
+func _hold_leash(a_actor: Actor) -> void:
 	if not is_instance_valid(_beacon):
 		return
 	var carrier: Entity = _beacon.carrier()

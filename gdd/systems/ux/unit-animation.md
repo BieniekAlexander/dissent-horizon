@@ -18,7 +18,7 @@ rig announces which clips it should be playing, but nothing plays a clip yet.
 
 | Half | Answers | Where |
 |---|---|---|
-| `ActionTracker` | what is this piece doing? | a RefCounted on every `Commandable` (`action_tracker`) |
+| `ActionTracker` | what is this piece doing? | a RefCounted on every `Actor` (`action_tracker`) |
 | `AnimationRig` + `AnimationProfile` | so what should its model play? | an optional component, with a profile per kind of piece |
 
 The tracker is on every commandable because the action badges need it everywhere. The rig is

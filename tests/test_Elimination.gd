@@ -7,7 +7,7 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_Elimination.gd -gexit
 ##
 ## Everything here stays OUT of the scene tree. Scenario._ready builds commanders, fog, HUD
-## and a camera rig, and Commandable._ready resolves a dozen component children that a bare
+## and a camera rig, and Actor._ready resolves a dozen component children that a bare
 ## .new() hasn't got — none of which this rule touches. Orphaned nodes run neither, so the
 ## check can be exercised on exactly the state it actually reads.
 
@@ -39,8 +39,8 @@ func after_each() -> void:
 
 
 ## An owned entity, parented to the commander the way Entity.initialize() does it.
-func _own(a_planned: bool = false) -> Commandable:
-	var entity := Commandable.new()
+func _own(a_planned: bool = false) -> Actor:
+	var entity := Actor.new()
 	entity.is_planned = a_planned
 	_player.add_child(entity)
 	return entity
@@ -48,8 +48,8 @@ func _own(a_planned: bool = false) -> Commandable:
 
 ## An owned STRUCTURE: the same thing carrying the component that is the discriminator
 ## everywhere else in the codebase (has_node("Structure")), not a type or a group.
-func _own_structure(a_planned: bool = false) -> Commandable:
-	var entity: Commandable = _own(a_planned)
+func _own_structure(a_planned: bool = false) -> Actor:
+	var entity: Actor = _own(a_planned)
 	var structure := Structure.new()
 	structure.name = "Structure"
 	entity.add_child(structure)
@@ -84,7 +84,7 @@ func test_a_dying_entity_stops_counting_the_frame_it_dies() -> void:
 	# Entity._on_death calls queue_free(), which is END OF FRAME: the dying entity is still
 	# its commander's child for the rest of this frame. Without the is_queued_for_deletion
 	# filter the whole check resolves a frame late.
-	var last: Commandable = _own()
+	var last: Actor = _own()
 	last.queue_free()
 	assert_true(last.is_queued_for_deletion(), "queue_free marks it immediately")
 	assert_false(_player.has_anything_in_play(), "and it stops counting immediately")
@@ -95,14 +95,14 @@ func test_a_scout_does_not_keep_a_wiped_out_commander_alive() -> void:
 	# and a permanent Scan 3 eye would otherwise make its owner immortal — the opponent
 	# would have to hunt a drone in a far corner to finish a match already decided.
 	#
-	# The Scout used to be excluded because it was an Entity rather than a Commandable.
+	# The Scout used to be excluded because it was an Entity rather than a Actor.
 	# It IS one now (that is what made it shootable), so the exclusion moved to the rule
 	# that was doing the real work all along: a piece the player cannot SELECT is a piece
 	# they cannot command, and cannot be what is keeping them in the game.
 	#
 	# Built here rather than loaded from scout.tscn so this tests the RULE. That the drone
 	# actually clears its layer is test_ReconDrone's business.
-	var drone: Commandable = _own()
+	var drone: Actor = _own()
 	var selectable := Selectable.new()
 	selectable.name = "Selectable"
 	selectable.selectable_by_player = false  # exactly what scout.tscn does
@@ -124,7 +124,7 @@ func test_owning_nothing_at_the_start_is_not_a_defeat() -> void:
 
 
 func test_losing_everything_after_deploying_is_a_defeat() -> void:
-	var army: Commandable = _own()
+	var army: Actor = _own()
 	_tick()
 	assert_false(_scenario._game_over_seen, "still in play")
 
@@ -134,7 +134,7 @@ func test_losing_everything_after_deploying_is_a_defeat() -> void:
 
 
 func test_the_defeat_is_announced_once_and_does_not_reopen() -> void:
-	var army: Commandable = _own()
+	var army: Actor = _own()
 	_tick()
 	army.queue_free()
 	_tick()
@@ -160,7 +160,7 @@ func test_a_spectator_session_is_never_eliminated() -> void:
 func test_a_blueprint_is_not_a_stay_of_execution() -> void:
 	# The one place the blueprint rule actually decides a game: last builder dies with a
 	# structure still planned.
-	var builder: Commandable = _own()
+	var builder: Actor = _own()
 	_own(true)
 	_tick()
 	assert_false(_scenario._game_over_seen)
@@ -203,7 +203,7 @@ func test_a_purchase_still_on_the_queue_is_a_production_base() -> void:
 
 
 func test_a_dying_structure_stops_counting_the_frame_it_dies() -> void:
-	var last: Commandable = _own_structure()
+	var last: Actor = _own_structure()
 	last.queue_free()
 	assert_false(_player.has_production_base(), "queue_free counts immediately here too")
 
@@ -212,8 +212,8 @@ func test_a_dying_structure_stops_counting_the_frame_it_dies() -> void:
 
 
 func test_losing_the_last_structure_is_a_defeat_even_with_units_alive() -> void:
-	var base: Commandable = _own_structure()
-	var army: Commandable = _own()
+	var base: Actor = _own_structure()
+	var army: Actor = _own()
 	_tick()
 	assert_false(_scenario._game_over_seen, "a base and an army is not a defeat")
 
@@ -238,7 +238,7 @@ func test_a_scenario_that_never_gives_a_base_is_not_lost_on_frame_one() -> void:
 func test_a_rebuild_in_flight_holds_the_verdict_off() -> void:
 	# The half of the rule that is about PRODUCTION rather than structures: the last building
 	# is gone, but a purchase is funded and a builder is on its way.
-	var base: Commandable = _own_structure()
+	var base: Actor = _own_structure()
 	_own()
 	_tick()
 	base.queue_free()
@@ -254,8 +254,8 @@ func test_a_rebuild_in_flight_holds_the_verdict_off() -> void:
 # --- HEGEMONY: the command centre decides -------------------------------------------------
 
 
-func _own_command_centre(a_commander: Commander = _player) -> Commandable:
-	var centre := Commandable.new()
+func _own_command_centre(a_commander: Commander = _player) -> Actor:
+	var centre := Actor.new()
 	centre.id = Deployment.command_centre_ids()[0]
 	var structure := Structure.new()
 	structure.name = "Structure"
@@ -278,7 +278,7 @@ func test_hegemony_does_not_eliminate_before_a_command_centre_is_placed() -> voi
 
 func test_hegemony_eliminates_a_commander_whose_last_command_centre_is_gone() -> void:
 	_scenario.win_condition = Scenario.WinCondition.HEGEMONY
-	var centre: Commandable = _own_command_centre()
+	var centre: Actor = _own_command_centre()
 	_own()  # a unit that survives the centre
 	_tick()
 	assert_false(_player.is_eliminated, "armed, and still standing")
@@ -294,8 +294,8 @@ func test_hegemony_removes_an_eliminated_rival_and_hands_the_player_the_win() ->
 	rival.id = 2
 	_scenario.commanders = [_scenario.commanders[0], _player, rival]
 	_own_command_centre()
-	var rival_centre: Commandable = _own_command_centre(rival)
-	var rival_unit := Commandable.new()
+	var rival_centre: Actor = _own_command_centre(rival)
+	var rival_unit := Actor.new()
 	rival.add_child(rival_unit)
 	_tick()
 	assert_false(rival.is_eliminated)
@@ -308,7 +308,7 @@ func test_hegemony_removes_an_eliminated_rival_and_hands_the_player_the_win() ->
 
 func test_a_blueprint_is_not_a_command_centre() -> void:
 	_scenario.win_condition = Scenario.WinCondition.HEGEMONY
-	var planned: Commandable = _own_command_centre()
+	var planned: Actor = _own_command_centre()
 	planned.is_planned = true
 	_tick()
 	assert_false(_player.is_eliminated)
@@ -317,7 +317,7 @@ func test_a_blueprint_is_not_a_command_centre() -> void:
 
 func test_none_never_ends_the_match() -> void:
 	_scenario.win_condition = Scenario.WinCondition.NONE
-	var unit: Commandable = _own()
+	var unit: Actor = _own()
 	_tick()
 	unit.free()
 	_tick()

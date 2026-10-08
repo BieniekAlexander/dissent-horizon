@@ -28,7 +28,7 @@ enum PreconditionFailureCause {
 	## never deferred by the additive modifier — waiting will not conjure a pad.
 	NO_FREE_PAD,
 	## The caster is a structure its commander cannot power: infrastructure upkeep exceeds
-	## capacity, so the building is dark (see Commandable.is_unpowered). Its own cause rather
+	## capacity, so the building is dark (see Actor.is_unpowered). Its own cause rather
 	## than ABILITY_NO_CHARGES, whose remedy is only time — this one is cleared by building an
 	## infrastructure provider, and never by waiting.
 	UNPOWERED,
@@ -133,7 +133,7 @@ static func requires_position() -> bool:
 ## ready, which is what makes "fire as soon as you can" expressible), so a cooldown must
 ## not fail the precondition. But the button has to say so, or the player is left clicking
 ## something that appears to do nothing. This is what the HUD greys on.
-static func actor_is_recharging(_actor: Commandable) -> bool:
+static func actor_is_recharging(_actor: Actor) -> bool:
 	return false
 
 
@@ -146,7 +146,7 @@ static func actor_is_recharging(_actor: Commandable) -> bool:
 ## Only commands with a reach call this: a global-range ability (Bombard) has no distance
 ## to be out of.
 static func unreachable_for_immobile(
-	actor: Commandable, message: CommandMessage, range: float
+	actor: Actor, message: CommandMessage, range: float
 ) -> bool:
 	if actor == null or message == null or actor.can_move():
 		return false
@@ -199,12 +199,12 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 ## and one already on the job is passed over. Every such command answers the same way.
 ## Rules: gdd/systems/ux/ui/selection-and-input.md §The narrow modifier picks the nearest IDLE
 ## actor.
-static func is_free_to_take(actor: Commandable) -> bool:
+static func is_free_to_take(actor: Actor) -> bool:
 	return actor.current_command() == null
 
 
 ## Whether no order in `actor`'s chain, current or queued, is one of `commands`.
-static func holds_none_of(actor: Commandable, commands: Array[Script]) -> bool:
+static func holds_none_of(actor: Actor, commands: Array[Script]) -> bool:
 	return not actor.get_command_chain().any(
 		func(held: MoveCommand) -> bool:
 			return commands.any(func(command: Script) -> bool: return is_instance_of(held, command))
@@ -216,7 +216,7 @@ static func holds_none_of(actor: Commandable, commands: Array[Script]) -> bool:
 
 ## Checks whether the relevant command is allowable, given the situation
 static func meets_precondition(
-	_actor: Commandable, _message: CommandMessage
+	_actor: Actor, _message: CommandMessage
 ) -> PreconditionFailureCause:
 	# examples:
 	# - can the unit can perform this operation on the specified target?
@@ -248,7 +248,7 @@ var _swap_cooldown: float = 0.0
 ## never reactively retargets on its own — it always returns self. Aggro-based
 ## retargeting (chasing down a nearby enemy) is opt-in per subclass (see
 ## AttackMove, Patrol, Defend), not a base-class behavior every command inherits.
-func get_updated_state(a_commandable: Commandable) -> Variant:
+func get_updated_state(a_commandable: Actor) -> Variant:
 	_swap_cooldown -= 1.0 / TimeUtils.ticks_per_second()
 	if _swap_cooldown <= 0.0:
 		_swap_cooldown = 1.0
@@ -273,7 +273,7 @@ static func is_same_order(mine: CommandMessage, other: CommandMessage) -> bool:
 	return is_same(mine.origin, other.origin)
 
 
-func _resolve_destination_swap(a_commandable: Commandable) -> void:
+func _resolve_destination_swap(a_commandable: Actor) -> void:
 	if message.origin == null or message.target != null:
 		return
 	if a_commandable.movement == null or a_commandable.movement.is_navigation_finished():
@@ -283,9 +283,9 @@ func _resolve_destination_swap(a_commandable: Commandable) -> void:
 
 	var my_dest: Vector3 = message.position
 	for other in a_commandable.commander.get_children():
-		if not (other is Commandable) or other == a_commandable:
+		if not (other is Actor) or other == a_commandable:
 			continue
-		var other_unit: Commandable = other as Commandable
+		var other_unit: Actor = other as Actor
 		var other_cmd: MoveCommand = other_unit.current_command()
 		if other_cmd == null or not is_same_order(message, other_cmd.message):
 			continue
@@ -324,12 +324,12 @@ func duplicated() -> MoveCommand:
 ## representing a channeled / vulnerable action (Build, Repair, and some Interactions)
 ## overrides this to opt in — the actor still moves into range but waits, not completing
 ## the action, until the stagger wears off. Enforced in CommandReceiver._process_commands.
-func blocked_by_stagger(_a_commandable: Commandable) -> bool:
+func blocked_by_stagger(_a_commandable: Actor) -> bool:
 	return false
 
 
-## Check if the [Commandable] should move in response to the command
-func should_move(_a_commandable: Commandable) -> bool:
+## Check if the [Actor] should move in response to the command
+func should_move(_a_commandable: Actor) -> bool:
 	return true
 
 
@@ -365,7 +365,7 @@ func requires_ammo() -> bool:
 ## message.target / message.position, or null to use that. Lets an order fly somewhere its
 ## target is not — a Rearm heads for its runway's final-approach fix rather than the
 ## airfield's origin, because joining the centreline is the point of having a runway.
-func movement_destination(_a_actor: Commandable) -> Variant:
+func movement_destination(_a_actor: Actor) -> Variant:
 	return null
 
 
@@ -374,7 +374,7 @@ func movement_destination(_a_actor: Commandable) -> Variant:
 ## another unit has one.
 ##
 ## Why it exists: gdd/systems/combat/garrison-and-transport.md §Meeting in the middle.
-func avoidance_exception(_a_actor: Commandable) -> Commandable:
+func avoidance_exception(_a_actor: Actor) -> Actor:
 	return null
 
 
@@ -382,17 +382,17 @@ func avoidance_exception(_a_actor: Commandable) -> Commandable:
 ## refuse to step aside for friendly units in RVO. False for anything still travelling.
 ##
 ## Why: gdd/systems/terrain-and-navigation/navigation-and-pathing.md §Avoidance priority.
-func holds_ground(_a_actor: Commandable) -> bool:
+func holds_ground(_a_actor: Actor) -> bool:
 	return false
 
 
 ## Where an actor that cannot stop — a fixed wing — circles once this order has acted or ended
 ## without driving it: the order's own position, or null to keep the circuit it is flying.
-func orbit_anchor(_a_actor: Commandable) -> Variant:
+func orbit_anchor(_a_actor: Actor) -> Variant:
 	return message.position
 
 
-## Whether receiving this order lifts the actor's hold fire (Commandable.is_holding_fire).
+## Whether receiving this order lifts the actor's hold fire (Actor.is_holding_fire).
 ## True only for the orders whose point is to shoot: Attack, Attack-move, Force Fire
 ## (FocusFire) and Defend.
 func releases_hold_fire() -> bool:
@@ -411,20 +411,20 @@ func ends_on_arrival() -> bool:
 	return true
 
 
-## Check if the [Commandable] is ready to [fulfill_action]
-func can_act(_a_commandable: Commandable) -> bool:
+## Check if the [Actor] is ready to [fulfill_action]
+func can_act(_a_commandable: Actor) -> bool:
 	return false
 
 
 ## What the actor is doing on a tick this command acts — read BEFORE fulfill_action, so a
 ## command that finishes on the tick still reports it. For its animation and action badge.
-func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
+func acting_action(_a_actor: Actor) -> ActionTracker.Action:
 	return ActionTracker.Action.ACTING
 
 
 ## Perform the characteristic action of this command and return whatever might be a follow-up
 ## [MoveCommand], or null otherwise
-func fulfill_action(_a_commandable: Commandable) -> Variant:
+func fulfill_action(_a_commandable: Actor) -> Variant:
 	push_error("no action should have been performed")
 	return self
 
@@ -439,7 +439,7 @@ func fulfill_action(_a_commandable: Commandable) -> Variant:
 ## teardown, where reading the actor's components dereferences freed memory (see
 ## CommandReceiver._release_speed_cap for the segfault that taught us). This hook fires
 ## from the receiver instead, at a moment when `a_actor` is known to be alive.
-func on_released(_a_actor: Commandable) -> void:
+func on_released(_a_actor: Actor) -> void:
 	pass
 
 

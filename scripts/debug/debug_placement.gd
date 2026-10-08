@@ -76,15 +76,15 @@ static func spawn(
 		return null
 	var points: Array[Vector2] = [a_xz]
 	a_map.add_entities([entity], a_xz, a_commander, points)
-	_send_home(entity as Commandable)
+	_send_home(entity as Actor)
 	return entity
 
 
-static func _send_home(a_unit: Commandable) -> void:
+static func _send_home(a_unit: Actor) -> void:
 	if a_unit == null or a_unit.docking == null or a_unit.commander == null:
 		return
 	var bay: DockingBay = a_unit.commander.nearest_docking_bay_for(a_unit)
-	var airfield: Commandable = (
+	var airfield: Actor = (
 		bay.owner_commandable() if bay != null and bay.has_free_pad() else null
 	)
 	if airfield != null:

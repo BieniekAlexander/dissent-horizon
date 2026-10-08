@@ -12,12 +12,12 @@ class_name EventPromote extends EventTargetUnit
 ## mixed group picks the nearest UNBLOODED unit rather than being refused.
 
 
-func _qualifies(a_candidate: Commandable) -> bool:
+func _qualifies(a_candidate: Actor) -> bool:
 	return a_candidate.veterancy != null and a_candidate.veterancy.level == Veterancy.Level.NONE
 
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
-	var target: Commandable = _find_target_unit(a_manager)
+	var target: Actor = _find_target_unit(a_manager)
 	if target == null:
 		return
 	target.veterancy.promote()

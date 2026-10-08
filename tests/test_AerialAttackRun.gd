@@ -39,21 +39,21 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
-	var e := FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary, a_commander: Commander) -> Actor:
+	var e := FakePieces.make(a_options) as Actor
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e
 
 
-func _attack(_a_actor: Commandable, a_target: Commandable) -> Attack:
+func _attack(_a_actor: Actor, a_target: Actor) -> Attack:
 	return Attack.new(CommandMessage.new(null, a_target, null, a_target.global_position))
 
 
 ## Point `a_actor` exactly at `a_point`, then swing its nose `a_degrees_off` past it.
 ## face_toward is RATE LIMITED (it turns one tick's worth per call), so a single call would
 ## leave the body wherever the turn had got to rather than where the test means it to be.
-func _aim(a_actor: Commandable, a_point: Vector3, a_degrees_off: float) -> void:
+func _aim(a_actor: Actor, a_point: Vector3, a_degrees_off: float) -> void:
 	for _i: int in 400:
 		if a_actor.movement.is_facing(a_point):
 			break
@@ -70,8 +70,8 @@ func _aim(a_actor: Commandable, a_point: Vector3, a_degrees_off: float) -> void:
 ## there, loaded and facing its victim, indefinitely.
 func test_a_ranged_aircraft_never_waits_to_descend() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
 	assert_false(weapon.is_melee_ranged(tank), "the Drake shoots, it does not ram")
 	assert_eq(plane.aerial.height_offset(), Aerial.AERIAL_HEIGHT, "and it is up at cruise")
@@ -84,8 +84,8 @@ func test_a_ranged_aircraft_never_waits_to_descend() -> void:
 ## The airframe the gate exists for still has it.
 func test_a_ramming_aircraft_must_come_down_first() -> void:
 	var cmd: Commander = _commander(1)
-	var drone: Commandable = _entity(KAMIKAZE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var drone: Actor = _entity(KAMIKAZE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	var weapon: Weapon = drone.weapon_inventory.get_weapons()[0]
 	assert_true(
 		weapon.is_melee_ranged(tank),
@@ -103,8 +103,8 @@ func test_a_ramming_aircraft_must_come_down_first() -> void:
 ## Contact is measured to the TOP of the target, so the drone strikes the unit rather than
 ## burrowing through it to the ground.
 func test_a_rammer_strikes_the_top_of_its_target() -> void:
-	var drone: Commandable = _entity(KAMIKAZE, _commander(1))
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var drone: Actor = _entity(KAMIKAZE, _commander(1))
+	var tank: Actor = _entity(TANK, _commander(2))
 	var weapon: Weapon = drone.weapon_inventory.get_weapons()[0]
 	var top: float = tank.top_height()
 	assert_gt(top, 0.0, "the fake tank has a body to stand above the ground")
@@ -117,7 +117,7 @@ func test_a_rammer_strikes_the_top_of_its_target() -> void:
 
 ## The dive bottoms out on that top: however steep the descent, it never drops below it.
 func test_a_dive_bottoms_out_on_the_target_top() -> void:
-	var drone: Commandable = _entity(KAMIKAZE, _commander(1))
+	var drone: Actor = _entity(KAMIKAZE, _commander(1))
 	var floor_height: float = 0.8
 	for _i: int in 120:
 		drone.aerial.request_dive(VU.in_xz(drone.global_position), floor_height)
@@ -129,8 +129,8 @@ func test_a_dive_bottoms_out_on_the_target_top() -> void:
 ## come down to.
 func test_a_ramming_aircraft_does_not_dive_at_an_air_target() -> void:
 	var cmd: Commander = _commander(1)
-	var drone: Commandable = _entity(KAMIKAZE, cmd)
-	var other: Commandable = _entity(DRAKE, _commander(2))
+	var drone: Actor = _entity(KAMIKAZE, cmd)
+	var other: Actor = _entity(DRAKE, _commander(2))
 	var weapon: Weapon = drone.weapon_inventory.get_weapons()[0]
 	assert_true(_attack(drone, other)._dive_contact_made(drone, weapon))
 
@@ -146,8 +146,8 @@ const CITADEL: Dictionary = {"structure": true, "dimensions": Vector2i(3, 3)}
 
 
 func test_a_rammer_flies_at_a_fixtures_centre() -> void:
-	var drone: Commandable = _entity(KAMIKAZE, _commander(1))
-	var site: Commandable = _entity(CITADEL, _commander(2))
+	var drone: Actor = _entity(KAMIKAZE, _commander(1))
+	var site: Actor = _entity(CITADEL, _commander(2))
 	site.global_position = Vector3(5.0, 0.0, 5.0)
 	assert_eq(
 		_attack(drone, site).movement_destination(drone),
@@ -159,8 +159,8 @@ func test_a_rammer_flies_at_a_fixtures_centre() -> void:
 ## The override is the rammer's alone: everything else still resolves a fixture target to its
 ## approach cell.
 func test_a_ranged_aircraft_keeps_the_approach_cell() -> void:
-	var plane: Commandable = _entity(DRAKE, _commander(1))
-	var site: Commandable = _entity(CITADEL, _commander(2))
+	var plane: Actor = _entity(DRAKE, _commander(1))
+	var site: Actor = _entity(CITADEL, _commander(2))
 	assert_null(_attack(plane, site).movement_destination(plane))
 
 
@@ -171,8 +171,8 @@ func test_a_ranged_aircraft_keeps_the_approach_cell() -> void:
 ## stop in mid-air.
 func test_a_fixed_wing_keeps_closing_even_in_range() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
 	assert_true(SU.is_in_attack_range(weapon, plane, tank), "stacked on top of each other")
 	assert_true(_attack(plane, tank).should_move(plane), "and it flies on regardless")
@@ -181,8 +181,8 @@ func test_a_fixed_wing_keeps_closing_even_in_range() -> void:
 ## A gunship holds station to shoot, exactly as it always did.
 func test_a_gunship_still_stops_to_shoot() -> void:
 	var cmd: Commander = _commander(1)
-	var heli: Commandable = _entity(CLIPPER, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var heli: Actor = _entity(CLIPPER, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	var weapon: Weapon = heli.weapon_inventory.get_weapons()[0]
 	assert_true(SU.is_in_attack_range(weapon, heli, tank))
 	assert_false(
@@ -202,8 +202,8 @@ func test_a_gunship_still_stops_to_shoot() -> void:
 ## default tolerance, and the aircraft flew the entire run without firing a shot.
 func test_a_fixed_wing_shoots_within_an_arc_not_on_a_hair() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	tank.global_position = Vector3(0.0, 0.0, 0.0)
 	plane.global_position = Vector3(10.0, Aerial.AERIAL_HEIGHT, 0.0)
 	# Nose a fifth of a degree off the bearing — the lag actually measured in flight.
@@ -223,8 +223,8 @@ func test_a_fixed_wing_shoots_within_an_arc_not_on_a_hair() -> void:
 ## The arc is not a licence to shoot sideways: it still has to be pointing at the thing.
 func test_a_fixed_wing_still_will_not_shoot_off_its_beam() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	plane.global_position = Vector3(10.0, Aerial.AERIAL_HEIGHT, 0.0)
 	_aim(plane, tank.global_position, Attack.FLYING_AIM_ARC_DEGREES + 15.0)
 	assert_false(_attack(plane, tank)._is_aimed_at_target(plane))
@@ -233,8 +233,8 @@ func test_a_fixed_wing_still_will_not_shoot_off_its_beam() -> void:
 ## A unit that CAN stop is still held to the hair — it turns to aim, so it can converge.
 func test_a_unit_that_can_stop_is_still_held_to_exact_alignment() -> void:
 	var cmd: Commander = _commander(1)
-	var heli: Commandable = _entity(CLIPPER, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var heli: Actor = _entity(CLIPPER, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	heli.global_position = Vector3(4.0, Aerial.AERIAL_HEIGHT, 0.0)
 	_aim(heli, tank.global_position, 5.0)
 	assert_false(
@@ -246,8 +246,8 @@ func test_a_unit_that_can_stop_is_still_held_to_exact_alignment() -> void:
 ## A structure has no facing to wait on at all.
 func test_a_turret_with_no_movement_is_always_aimed() -> void:
 	var cmd: Commander = _commander(1)
-	var turret: Commandable = _entity(SAM, cmd)
-	var plane: Commandable = _entity(DRAKE, _commander(2))
+	var turret: Actor = _entity(SAM, cmd)
+	var plane: Actor = _entity(DRAKE, _commander(2))
 	assert_null(turret.movement)
 	assert_true(_attack(turret, plane)._is_aimed_at_target(turret))
 
@@ -256,7 +256,7 @@ func test_a_turret_with_no_movement_is_always_aimed() -> void:
 
 
 #region Running dry
-func _empty(a_unit: Commandable) -> void:
+func _empty(a_unit: Actor) -> void:
 	for w: Weapon in a_unit.weapon_inventory.charged_weapons():
 		while w.ammo() > 0:
 			w.consume_round()
@@ -287,8 +287,8 @@ func test_the_orders_that_assume_a_shot_declare_themselves() -> void:
 ## the same order straight back up.
 func test_an_undoable_order_is_stood_down_into_the_queue() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	plane.update_commands(_attack(plane, tank))
 	plane.update_commands(_move_order(Vector3(20.0, 0.0, 0.0)), true)
 	_empty(plane)
@@ -303,8 +303,8 @@ func test_an_undoable_order_is_stood_down_into_the_queue() -> void:
 ## Anything already queued was never being driven, so there is nothing to stand down.
 func test_only_the_active_order_is_stood_down() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	plane.update_commands(_move_order(Vector3(20.0, 0.0, 0.0)))
 	plane.update_commands(_attack(plane, tank), true)
 	_empty(plane)
@@ -320,7 +320,7 @@ func test_only_the_active_order_is_stood_down() -> void:
 ## anywhere but back to its airfield.
 func test_an_empty_aircraft_still_obeys_a_move_order() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
+	var plane: Actor = _entity(DRAKE, cmd)
 	_empty(plane)
 	plane.update_commands(_move_order(Vector3(30.0, 0.0, 0.0)))
 	plane._defer_unshootable_orders()
@@ -334,8 +334,8 @@ func test_an_empty_aircraft_still_obeys_a_move_order() -> void:
 ## carry out is worth stopping on its own account.
 func test_an_attack_is_stood_down_even_with_no_airfield_to_return_to() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	_empty(plane)
 	plane.update_commands(_attack(plane, tank))
 	plane._defer_unshootable_orders()
@@ -350,7 +350,7 @@ func test_an_attack_is_stood_down_even_with_no_airfield_to_return_to() -> void:
 ## popped IS real work, and a Rearm must not be put in front of it.
 func test_a_queued_move_still_counts_as_work_worth_doing() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
+	var plane: Actor = _entity(DRAKE, cmd)
 	_empty(plane)
 	plane.update_commands(_move_order(Vector3(30.0, 0.0, 0.0)))
 	plane.update_commands(_move_order(Vector3(40.0, 0.0, 0.0)), true)
@@ -365,8 +365,8 @@ func test_a_queued_move_still_counts_as_work_worth_doing() -> void:
 ## A unit with rounds left keeps everything — this is about being EMPTY, not about being low.
 func test_a_loaded_aircraft_keeps_its_attack() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	plane.update_commands(_attack(plane, tank))
 	plane._defer_unshootable_orders()
 	assert_false(plane.command_receiver.is_idle())
@@ -381,7 +381,7 @@ func test_a_loaded_aircraft_keeps_its_attack() -> void:
 ## what "stays in its dock until ordered" means.
 func test_a_parked_aircraft_reports_itself_parked() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
+	var plane: Actor = _entity(DRAKE, cmd)
 	assert_false(plane.docking.is_on_deck(), "airborne to start with")
 	plane.aerial.park_on_deck(0.0)
 	assert_true(plane.docking.is_on_deck())
@@ -393,7 +393,7 @@ func test_a_parked_aircraft_reports_itself_parked() -> void:
 ## where it stands.
 func test_a_parked_empty_aircraft_does_not_order_itself_home() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
+	var plane: Actor = _entity(DRAKE, cmd)
 	_empty(plane)
 	plane.aerial.park_on_deck(0.0)
 	plane.docking.maybe_auto_rearm()
@@ -413,8 +413,8 @@ func test_a_parked_empty_aircraft_does_not_order_itself_home() -> void:
 ## untouchable while it sits there. Being harmless in return is what makes that fair.
 func test_a_parked_aircraft_cannot_fire() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var tank: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var tank: Actor = _entity(TANK, _commander(2))
 	assert_true(plane.can_use_weapons(), "airborne, so it may shoot")
 
 	plane.aerial.park_on_deck(0.0)
@@ -429,7 +429,7 @@ func test_a_parked_aircraft_cannot_fire() -> void:
 ## final approach has something else to be doing.
 func test_an_aircraft_cannot_fire_while_climbing_out() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
+	var plane: Actor = _entity(DRAKE, cmd)
 	plane.aerial.park_on_deck(0.0)
 	plane.aerial.take_off()
 	assert_false(plane.can_use_weapons(), "still on its way up")
@@ -445,7 +445,7 @@ func test_an_aircraft_cannot_fire_while_climbing_out() -> void:
 ## same rule.
 func test_a_landed_gunship_cannot_fire() -> void:
 	var cmd: Commander = _commander(1)
-	var heli: Commandable = _entity(CLIPPER, cmd)
+	var heli: Actor = _entity(CLIPPER, cmd)
 	assert_true(heli.can_use_weapons())
 	heli.aerial.land(Callable())
 	for _i: int in 2000:
@@ -460,7 +460,7 @@ func test_a_landed_gunship_cannot_fire() -> void:
 func test_ground_units_and_turrets_are_unaffected() -> void:
 	var cmd: Commander = _commander(1)
 	assert_true(_entity(TANK, cmd).can_use_weapons(), "a tank shoots from the ground")
-	var turret: Commandable = _entity(SAM, cmd)
+	var turret: Actor = _entity(SAM, cmd)
 	assert_null(turret.movement)
 	assert_true(turret.can_use_weapons(), "and a turret has no flight state at all")
 
@@ -469,8 +469,8 @@ func test_ground_units_and_turrets_are_unaffected() -> void:
 ## only be given an order it cannot carry out, and a parked one would chase off its pad.
 func test_a_parked_aircraft_does_not_retaliate() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(DRAKE, cmd)
-	var enemy: Commandable = _entity(TANK, _commander(2))
+	var plane: Actor = _entity(DRAKE, cmd)
+	var enemy: Actor = _entity(TANK, _commander(2))
 	plane.aerial.park_on_deck(0.0)
 	assert_null(plane._retaliation_against(enemy))
 #endregion

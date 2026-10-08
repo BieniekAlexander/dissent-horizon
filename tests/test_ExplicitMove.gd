@@ -21,14 +21,14 @@ func _commanded(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var e: Commandable = FakePieces.unit(a_options)
+func _entity(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var e: Actor = FakePieces.unit(a_options)
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(a_commander_id)
 	return e
 
 
-func _resolved(a_pending: String, a_actor: Commandable, a_target: Entity) -> Variant:
+func _resolved(a_pending: String, a_actor: Actor, a_target: Entity) -> Variant:
 	return RTSController.resolve_command_class_for_selection(
 		a_pending, [a_actor], CommandMessage.new(null, a_target)
 	)
@@ -36,14 +36,14 @@ func _resolved(a_pending: String, a_actor: Commandable, a_target: Entity) -> Var
 
 #region Resolution
 func test_an_enemy_under_the_cursor_is_normally_an_attack() -> void:
-	var soldier: Commandable = _entity(SHOOTER, 1)
-	var enemy: Commandable = _entity(SHOOTER, 2)
+	var soldier: Actor = _entity(SHOOTER, 1)
+	var enemy: Actor = _entity(SHOOTER, 2)
 	assert_eq(_resolved("", soldier, enemy), Attack, "the default right-click")
 
 
 func test_arming_go_makes_the_same_click_a_move() -> void:
-	var soldier: Commandable = _entity(SHOOTER, 1)
-	var enemy: Commandable = _entity(SHOOTER, 2)
+	var soldier: Actor = _entity(SHOOTER, 1)
+	var enemy: Actor = _entity(SHOOTER, 2)
 	assert_eq(_resolved("command_move", soldier, enemy), MoveCommand)
 
 
@@ -54,8 +54,8 @@ func test_go_at_bare_ground_is_still_a_move() -> void:
 ## A move at a friendly unit is a FOLLOW — the receiver makes that of it, not the command
 ## (see CommandReceiver._follow_target) — so "shadow that unit" needs no command of its own.
 func test_go_keeps_the_target_so_the_receiver_can_follow_it() -> void:
-	var soldier: Commandable = _entity(SHOOTER, 1)
-	var enemy: Commandable = _entity(SHOOTER, 2)
+	var soldier: Actor = _entity(SHOOTER, 1)
+	var enemy: Actor = _entity(SHOOTER, 2)
 	var message := CommandMessage.new(null, enemy)
 	var command := MoveCommand.new(message)
 	assert_eq(command.message.target, enemy)

@@ -13,7 +13,7 @@ extends GutTest
 
 
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
@@ -90,7 +90,7 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _piece_of(a_owner: Commander) -> Commandable:
+func _piece_of(a_owner: Commander) -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	a_owner.add_child(piece)
 	piece.ownership.commander = a_owner
@@ -100,12 +100,12 @@ func _piece_of(a_owner: Commander) -> Commandable:
 func test_only_captives_count_as_cargo() -> void:
 	var us: Commander = _commander(1)
 	var them: Commander = _commander(2)
-	var truck: Commandable = _piece_of(us)
+	var truck: Actor = _piece_of(us)
 	var cage := Garrison.new()
 	cage.name = "Garrison"
 	truck.add_child(cage)
-	var servant: Commandable = _piece_of(us)
-	var prisoner: Commandable = _piece_of(them)
+	var servant: Actor = _piece_of(us)
+	var prisoner: Actor = _piece_of(them)
 	# Ridden and captured respectively; the garrison's own admission is not under test.
 	cage._garrisoned = [servant, prisoner]
 	assert_eq(cage.garrisoned_count(), 2, "guards the fixture")
@@ -118,8 +118,8 @@ func test_only_captives_count_as_cargo() -> void:
 func test_move_at_names_the_target_and_remembers_where_it_stood() -> void:
 	var us: Commander = _commander(1)
 	var them: Commander = _commander(2)
-	var truck: Commandable = _piece_of(us)
-	var prey: Commandable = _piece_of(them)
+	var truck: Actor = _piece_of(us)
+	var prey: Actor = _piece_of(them)
 	prey.global_position = Vector3(30.0, 0.0, 0.0)
 	var act := BotActuator.new(autofree(Map.new()) as Map)
 	act.move_at([truck], prey)
@@ -134,8 +134,8 @@ func test_move_at_names_the_target_and_remembers_where_it_stood() -> void:
 func test_a_contact_opportunity_moves_at_its_prey() -> void:
 	var us: Commander = _commander(1)
 	var them: Commander = _commander(2)
-	var truck: Commandable = _piece_of(us)
-	var prey: Commandable = _piece_of(them)
+	var truck: Actor = _piece_of(us)
+	var prey: Actor = _piece_of(them)
 	prey.global_position = Vector3(30.0, 0.0, 0.0)
 	var act := BotActuator.new(autofree(Map.new()) as Map)
 	ContactOpportunity.new(truck, prey, WORTH, "capture").execute(act)

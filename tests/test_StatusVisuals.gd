@@ -16,8 +16,8 @@ const DRAWN: Dictionary = {
 }
 
 
-func _unit() -> Commandable:
-	var unit: Commandable = FakePieces.unit(DRAWN)
+func _unit() -> Actor:
+	var unit: Actor = FakePieces.unit(DRAWN)
 	add_child_autofree(unit)
 	return unit
 
@@ -44,7 +44,7 @@ func _emp() -> StatusEffect:
 ## The whole reason the status channel exists: a half-built structure can be EMP'd, and a
 ## stealthed unit is no less finished for fading. Neither channel may clobber the other.
 func test_construction_shade_and_status_tint_multiply() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var visual: MeshVisual = _visual(unit)
 	visual.set_team_color(Color.WHITE)
 	visual.set_shade(0.5)
@@ -57,7 +57,7 @@ func test_construction_shade_and_status_tint_multiply() -> void:
 
 
 func test_construction_and_status_opacities_multiply() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var visual: MeshVisual = _visual(unit)
 	visual.set_opacity(MeshVisual.OPACITY_CONSTRUCTING)
 	visual.set_status_opacity(0.4)
@@ -73,7 +73,7 @@ func test_construction_and_status_opacities_multiply() -> void:
 ## stencil — so the x-ray silhouette has to drop for it exactly as it does for a
 ## construction fade. Leaving it on paints the WHOLE model as though it were hidden.
 func test_a_status_fade_suppresses_the_silhouette() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var visual: MeshVisual = _visual(unit)
 	assert_false(visual._surfaces.is_empty(), "the model has a tintable surface to check")
 	visual.set_status_opacity(0.3)
@@ -89,7 +89,7 @@ func test_a_status_fade_suppresses_the_silhouette() -> void:
 
 #region Effects declare, StatusVisuals composes
 func test_an_emp_darkens_its_host_and_lets_go_when_it_ends() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var sv: StatusVisuals = _status_visuals(unit)
 	var effect: StatusEffect = _emp()
 	effect.apply_to(unit)
@@ -109,7 +109,7 @@ func test_an_emp_darkens_its_host_and_lets_go_when_it_ends() -> void:
 ## An effect the host is immune to removes ITSELF in _on_apply (StunStatusEffect's frame
 ## mask), so a bio unit must never pick up the tint of a stun that never took hold.
 func test_an_effect_that_refuses_its_host_changes_nothing() -> void:
-	var unit: Commandable = FakePieces.unit(
+	var unit: Actor = FakePieces.unit(
 		{"speed": 2.0, "mesh": true, "status_visuals": true, "frame": Defense.FrameType.BIO}
 	)
 	add_child_autofree(unit)
@@ -122,7 +122,7 @@ func test_an_effect_that_refuses_its_host_changes_nothing() -> void:
 ## The MINIMUM, not the product: "how dark does this unit's condition draw it" is one
 ## reading of the unit, and two effects each halving it would otherwise quarter it.
 func test_two_effects_do_not_compound_into_black() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var sv: StatusVisuals = _status_visuals(unit)
 	var emp: StatusEffect = _emp()
 	emp.apply_to(unit)
@@ -144,7 +144,7 @@ func test_two_effects_do_not_compound_into_black() -> void:
 
 #region Billboards
 func test_veterancy_raises_a_chevron_badge_only_once_promoted() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var sv: StatusVisuals = _status_visuals(unit)
 	sv._process(0.0)
 	assert_null(sv._veterancy_sprite, "an unranked unit never even builds the sprite")
@@ -161,7 +161,7 @@ func test_veterancy_raises_a_chevron_badge_only_once_promoted() -> void:
 
 
 func test_an_effect_with_an_icon_raises_one_sprite_and_drops_it_again() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var sv: StatusVisuals = _status_visuals(unit)
 	var effect: StatusEffect = _emp()
 	effect.apply_to(unit)
@@ -180,7 +180,7 @@ func test_an_effect_with_an_icon_raises_one_sprite_and_drops_it_again() -> void:
 ## A blink is what says "this is happening TO the unit right now"; a 0 Hz icon is a state
 ## you read at a glance and must never flicker.
 func test_blinking_turns_the_icon_off_and_on() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var sv: StatusVisuals = _status_visuals(unit)
 	assert_true(sv._blink_is_on(0.0), "0 Hz is always on")
 	sv._elapsed = 0.0
@@ -194,7 +194,7 @@ func test_blinking_turns_the_icon_off_and_on() -> void:
 ## An enemy stealth is hiding is drawn at zero alpha — a badge or a bolt floating over it
 ## would give away the very unit the fade is hiding.
 func test_nothing_floats_over_a_unit_stealth_is_hiding() -> void:
-	var unit: Commandable = FakePieces.unit(
+	var unit: Actor = FakePieces.unit(
 		{"speed": 2.0, "mesh": true, "status_visuals": true, "stealth": true}
 	)
 	add_child_autofree(unit)
@@ -217,7 +217,7 @@ func test_nothing_floats_over_a_unit_stealth_is_hiding() -> void:
 ## Its OWNER still sees the faint pulse — they have to be able to command what the enemy
 ## cannot see. Carried over unchanged from the billboard-sprite era.
 func test_its_owner_still_sees_a_stealthed_unit_faintly() -> void:
-	var unit: Commandable = FakePieces.unit(
+	var unit: Actor = FakePieces.unit(
 		{"speed": 2.0, "mesh": true, "status_visuals": true, "stealth": true}
 	)
 	add_child_autofree(unit)
@@ -254,8 +254,8 @@ const LONG_CLIP: Dictionary = {
 }
 
 
-func _owned(a_options: Dictionary) -> Commandable:
-	var unit := FakePieces.make(a_options) as Commandable
+func _owned(a_options: Dictionary) -> Actor:
+	var unit := FakePieces.make(a_options) as Actor
 	add_child_autofree(unit)
 	var player := Commander.new()
 	player.id = RTSController.PLAYER_COMMANDER_ID
@@ -267,7 +267,7 @@ func _owned(a_options: Dictionary) -> Commandable:
 ## A transport draws one pip per SEAT, solid for the seats that are taken. Capacity is
 ## OCCUPANCY rather than head count, so this is also what a size-2 occupant fills.
 func test_a_selected_transport_counts_out_its_seats() -> void:
-	var truck: Commandable = _owned(CARRIER)
+	var truck: Actor = _owned(CARRIER)
 	var sv: StatusVisuals = _status_visuals(truck)
 	truck.selectable.select()
 	sv._process(0.0)
@@ -279,7 +279,7 @@ func test_a_selected_transport_counts_out_its_seats() -> void:
 
 ## The information a rearming aircraft's behaviour is otherwise unexplained by.
 func test_a_selected_charged_aircraft_counts_out_its_rounds() -> void:
-	var plane: Commandable = _owned(CHARGED_AIRCRAFT)
+	var plane: Actor = _owned(CHARGED_AIRCRAFT)
 	var sv: StatusVisuals = _status_visuals(plane)
 	assert_true(
 		plane.weapon_inventory.has_charged_weapons(), "a charged clip reloads at an airfield"
@@ -294,7 +294,7 @@ func test_a_selected_charged_aircraft_counts_out_its_rounds() -> void:
 ## Selection-only: both are detail you ask for about one unit, not a readout to track
 ## across the field.
 func test_pips_are_drawn_only_while_the_unit_is_selected() -> void:
-	var truck: Commandable = _owned(CARRIER)
+	var truck: Actor = _owned(CARRIER)
 	var sv: StatusVisuals = _status_visuals(truck)
 	sv._process(0.0)
 	assert_eq(_visible_pips(sv).size(), 0, "nothing while deselected")
@@ -323,7 +323,7 @@ func test_an_enemy_transport_never_shows_its_seats() -> void:
 ## Almost every unit in the game has neither a garrison nor a charged clip, and must pay
 ## nothing for this.
 func test_an_ordinary_unit_draws_no_pips_at_all() -> void:
-	var unit: Commandable = _owned(DRAWN)
+	var unit: Actor = _owned(DRAWN)
 	unit.selectable.select()
 	var sv: StatusVisuals = _status_visuals(unit)
 	sv._process(0.0)
@@ -332,7 +332,7 @@ func test_an_ordinary_unit_draws_no_pips_at_all() -> void:
 
 ## A 12-round clip on one line would be two tank-lengths wide.
 func test_a_long_clip_wraps_onto_a_second_row() -> void:
-	var plane: Commandable = _owned(LONG_CLIP)
+	var plane: Actor = _owned(LONG_CLIP)
 	var sv: StatusVisuals = _status_visuals(plane)
 	assert_gt(
 		plane.weapon_inventory.charged_clip_size(),
@@ -368,7 +368,7 @@ func test_a_pip_row_lies_along_the_camera_and_ignores_the_units_facing() -> void
 	add_child_autofree(camera)
 	camera.make_current()
 
-	var truck: Commandable = _owned(CARRIER)
+	var truck: Actor = _owned(CARRIER)
 	var sv: StatusVisuals = _status_visuals(truck)
 	truck.selectable.select()
 
@@ -411,7 +411,7 @@ func test_the_rows_still_stack_straight_up() -> void:
 	camera.make_current()
 	camera.rotation = Vector3(-PI / 4.0, PI / 3.0, 0.0)
 
-	var truck: Commandable = _owned(CARRIER)
+	var truck: Actor = _owned(CARRIER)
 	var sv: StatusVisuals = _status_visuals(truck)
 	truck.veterancy.set_level(Veterancy.Level.VETERAN)
 	truck.selectable.select()

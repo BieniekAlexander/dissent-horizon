@@ -470,7 +470,7 @@ nothing, so the orders simply wait; a unit that never comes out never acts on th
 release, **its own orders win over the host's rally** — the same precedence a trained unit
 gets between a player order and its producer's rally.
 
-Why that needed no new storage: the occupant is a real `Commandable` with a real
+Why that needed no new storage: the occupant is a real `Actor` with a real
 `CommandReceiver`, which survives being garrisoned. Where a pending unit needed a slot on its
 purchase, this one already had somewhere to put orders.
 

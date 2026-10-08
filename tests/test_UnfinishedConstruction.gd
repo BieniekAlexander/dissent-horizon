@@ -18,11 +18,11 @@ extends GutTest
 const SAM: Dictionary = {"structure": true, "vision": 10.0, "weapon": {"air": 8.0}}
 
 
-func _sam(a_built: bool) -> Commandable:
-	var turret: Commandable = FakePieces.make(SAM)
+func _sam(a_built: bool) -> Actor:
+	var turret: Actor = FakePieces.make(SAM)
 	add_child_autofree(turret)
 	turret.top_level = true
-	turret.build_progress = 1.0 if a_built else Commandable.INITIAL_BUILD_PROGRESS
+	turret.build_progress = 1.0 if a_built else Actor.INITIAL_BUILD_PROGRESS
 	return turret
 
 
@@ -38,7 +38,7 @@ func test_a_unit_is_always_built() -> void:
 	# is_built is group-keyed: only members of "structure" have construction to finish, so
 	# the gate is inert for everything else — including a unit whose build_progress was
 	# never touched.
-	var unit: Commandable = FakePieces.unit(FakePieces.PLAIN)
+	var unit: Actor = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(unit)
 	assert_true(unit.is_built)
 
@@ -60,10 +60,10 @@ func test_finishing_construction_turns_its_vision_on() -> void:
 func test_a_commander_counts_only_finished_structures_as_eyes() -> void:
 	var commander := Commander.new()
 	add_child_autofree(commander)
-	var foundation: Commandable = FakePieces.make(SAM)
-	foundation.build_progress = Commandable.INITIAL_BUILD_PROGRESS
+	var foundation: Actor = FakePieces.make(SAM)
+	foundation.build_progress = Actor.INITIAL_BUILD_PROGRESS
 	commander.add_child(foundation)
-	var finished: Commandable = FakePieces.make(SAM)
+	var finished: Actor = FakePieces.make(SAM)
 	commander.add_child(finished)
 	assert_false(foundation.grants_vision(), "a foundation is not a watchtower yet")
 	assert_true(finished.grants_vision())
@@ -112,11 +112,11 @@ func test_an_unfinished_garrison_admits_nobody() -> void:
 	# A building still going up has no inside to stand in. Checked on the Garrison rather
 	# than only in Occupy, so capture and deposit — which put units in WITHOUT consent —
 	# agree with the command that asks.
-	var host: Commandable = FakePieces.structure({"garrison": {"capacity": 4}})
+	var host: Actor = FakePieces.structure({"garrison": {"capacity": 4}})
 	add_child_autofree(host)
-	var occupant: Commandable = FakePieces.unit(FakePieces.PLAIN)
+	var occupant: Actor = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(occupant)
-	host.build_progress = Commandable.INITIAL_BUILD_PROGRESS
+	host.build_progress = Actor.INITIAL_BUILD_PROGRESS
 	assert_false(host.garrison.admits(occupant), "not while it is a foundation")
 	host.build_progress = 1.0
 	assert_true(host.garrison.admits(occupant), "once it is up")
@@ -125,7 +125,7 @@ func test_an_unfinished_garrison_admits_nobody() -> void:
 # --- It is not cover ---------------------------------------------------------------
 
 
-func _hurtbox(a_turret: Commandable) -> StaticBody3D:
+func _hurtbox(a_turret: Actor) -> StaticBody3D:
 	return a_turret.get_node_or_null("Hurtbox") as StaticBody3D
 
 
@@ -170,7 +170,7 @@ func test_finishing_construction_makes_it_cover() -> void:
 ## rest of this file covers, applied to the economy rather than to commands.
 
 
-func _owned_sam(a_built: bool, a_commander: Commander) -> Commandable:
+func _owned_sam(a_built: bool, a_commander: Commander) -> Actor:
 	var turret := _sam(a_built)
 	turret.commander = a_commander
 	return turret
@@ -262,7 +262,7 @@ func test_transferring_a_finished_structure_moves_its_infrastructure() -> void:
 ## A flat DominionGenerator (the Technocratic Lab) used to tick from the moment its blueprint
 ## went down, earning through its whole construction. Income is gated on is_built, as the
 ## EnergyExtractor's always was.
-func _generator_on(a_piece: Commandable) -> DominionGenerator:
+func _generator_on(a_piece: Actor) -> DominionGenerator:
 	var generator: DominionGenerator = DominionGenerator.new()
 	generator.name = "DominionGenerator"
 	a_piece.add_child(generator)
@@ -271,14 +271,14 @@ func _generator_on(a_piece: Commandable) -> DominionGenerator:
 
 
 func test_a_foundation_generates_no_dominion() -> void:
-	var foundation: Commandable = _sam(false)
+	var foundation: Actor = _sam(false)
 	var generator: DominionGenerator = _generator_on(foundation)
 	foundation.tick_collection()
 	assert_eq(generator.ticks_elapsed, 0, "a structure still going up does not run its generator")
 
 
 func test_a_finished_structure_runs_its_generator() -> void:
-	var finished: Commandable = _sam(true)
+	var finished: Actor = _sam(true)
 	var generator: DominionGenerator = _generator_on(finished)
 	finished.tick_collection()
 	assert_eq(generator.ticks_elapsed, 1, "the control: a built one does")

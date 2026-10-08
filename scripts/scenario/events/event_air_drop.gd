@@ -42,7 +42,7 @@ var commander_id: int = 1
 ## The building that called it in — its position decides which edge the transport comes
 ## over. Null falls back to the drop point itself, which still brings the transport in
 ## from off the map, just from the nearest edge to the target rather than to the caster.
-var caster: Commandable = null
+var caster: Actor = null
 #endregion
 
 
@@ -57,7 +57,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	var anchor_xz: Vector2 = VU.in_xz(caster.global_position) if caster != null else drop_xz
 	var entry_xz: Vector2 = OffMapArrival.entry_xz(map, anchor_xz)
 
-	var transport: Commandable = _launch_transport(map, commander, entry_xz, drop_xz)
+	var transport: Actor = _launch_transport(map, commander, entry_xz, drop_xz)
 	if transport == null:
 		return
 	_load_cargo(transport, map, commander)
@@ -81,8 +81,8 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## full circle, before it got onto the run-in line the player is watching for.
 func _launch_transport(
 	a_map: Map, a_commander: Commander, a_entry_xz: Vector2, a_drop_xz: Vector2
-) -> Commandable:
-	var transport: Commandable = transport_scene.instantiate() as Commandable
+) -> Actor:
+	var transport: Actor = transport_scene.instantiate() as Actor
 	if transport == null:
 		return null
 	transport.initialize(a_map, a_commander)
@@ -106,7 +106,7 @@ func _launch_transport(
 ## with no room is an AUTHORING error — the tier asked for more than its transport carries
 ## — so it is reported rather than silently short-shipped, and the surplus is freed rather
 ## than left orphaned off-tree.
-func _load_cargo(a_transport: Commandable, a_map: Map, a_commander: Commander) -> void:
+func _load_cargo(a_transport: Actor, a_map: Map, a_commander: Commander) -> void:
 	var hold: Garrison = a_transport.get_node_or_null("Garrison") as Garrison
 	if hold == null:
 		push_error(
@@ -120,7 +120,7 @@ func _load_cargo(a_transport: Commandable, a_map: Map, a_commander: Commander) -
 		if packed == null:
 			continue
 		for _i: int in maxi(count, 0):
-			var unit: Commandable = packed.instantiate() as Commandable
+			var unit: Actor = packed.instantiate() as Actor
 			if unit == null:
 				continue
 			unit.initialize(a_map, a_commander)

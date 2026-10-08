@@ -57,7 +57,7 @@ func _ready() -> void:
 func update_producers(a_producers: Array) -> void:
 	_mesh.clear_surfaces()
 	var drawable: Array = a_producers.filter(
-		func(node: Variant) -> bool: return node is Commandable and is_instance_valid(node)
+		func(node: Variant) -> bool: return node is Actor and is_instance_valid(node)
 	)
 	if drawable.is_empty():
 		return
@@ -65,7 +65,7 @@ func update_producers(a_producers: Array) -> void:
 	_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
 	_mesh.surface_set_color(COLOR)
 	for node: Node in drawable:
-		_add_ring(node as Commandable)
+		_add_ring(node as Actor)
 	_mesh.surface_end()
 
 
@@ -74,7 +74,7 @@ func update_producers(a_producers: Array) -> void:
 ## Height is sampled per VERTEX from the terrain rather than taken once from the structure's
 ## origin, so a ring on sloped ground follows the slope instead of cutting into the hill on
 ## one side and floating on the other.
-func _add_ring(a_producer: Commandable) -> void:
+func _add_ring(a_producer: Actor) -> void:
 	var centre: Vector2 = VU.in_xz(a_producer.global_position)
 	var radius: float = _radius_for(a_producer)
 	var previous: Vector3 = _ring_point(a_producer, centre, radius, RING_SEGMENTS - 1)
@@ -86,7 +86,7 @@ func _add_ring(a_producer: Commandable) -> void:
 
 
 func _ring_point(
-	a_producer: Commandable, a_centre: Vector2, a_radius: float, a_index: int
+	a_producer: Actor, a_centre: Vector2, a_radius: float, a_index: int
 ) -> Vector3:
 	var angle: float = TAU * float(a_index) / float(RING_SEGMENTS)
 	var xz: Vector2 = a_centre + Vector2(cos(angle), sin(angle)) * a_radius
@@ -102,7 +102,7 @@ func _ring_point(
 ## Sized to the footprint's half-DIAGONAL, not its half-width: a circle at half-width passes
 ## inside the corners of the square it is meant to enclose, which is visibly wrong on anything
 ## bigger than about 2×2.
-static func _radius_for(producer: Commandable) -> float:
+static func _radius_for(producer: Actor) -> float:
 	var structure: Structure = producer.get_node_or_null("Structure") as Structure
 	if structure == null:
 		return DEFAULT_RADIUS

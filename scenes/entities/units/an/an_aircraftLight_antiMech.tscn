@@ -1,6 +1,6 @@
 [gd_scene load_steps=33 format=3 uid="uid://bmartyrunit01"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_7br2d"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_7br2d"]
 [ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="1_spec"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_melee.tres" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_xs7nb"]

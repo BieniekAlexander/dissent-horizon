@@ -48,7 +48,7 @@ class StubActuator:
 	var builds: Array = []
 
 	func build(
-		_a_builder: Commandable, a_type: StringName, _a_pos: Vector3, _a_quarter_turns: int = 0
+		_a_builder: Actor, a_type: StringName, _a_pos: Vector3, _a_quarter_turns: int = 0
 	) -> bool:
 		builds.append(a_type)
 		return true
@@ -59,13 +59,13 @@ class StubEconomy:
 	var production_offer: Variant = null
 	var income_offer: Variant = null
 	var income_owned: int = 0
-	var builder: Commandable
+	var builder: Actor
 	var site_spot: Variant = Vector3.ZERO
 
 	func _construction_job_count() -> int:
 		return 0
 
-	func _pick_builder() -> Commandable:
+	func _pick_builder() -> Actor:
 		return builder
 
 	func _dominion_structure_to_build() -> Variant:
@@ -122,7 +122,7 @@ func after_each() -> void:
 func _economy(a_momentum: BotMomentum = null) -> StubEconomy:
 	var economy := StubEconomy.new(_bot, _act, a_momentum)
 	economy.reserve = RESERVE
-	economy.builder = autofree(Commandable.new()) as Commandable
+	economy.builder = autofree(Actor.new()) as Actor
 	economy.income_offer = EXTRACTOR
 	economy.production_offer = REDOUBT
 	economy._prev_energy = _bot.energy  # in surplus, so the capacity rung is live

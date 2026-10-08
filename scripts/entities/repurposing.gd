@@ -30,7 +30,7 @@ const KEPT: Array[StringName] = [&"hp_max", &"infrastructure", &"script"]
 ## Turn `a_node` — an instance of a scene of some piece with a template (PieceFamilies) — into
 ## `a_target_id`, in place. See the class doc for what is taken from where. Records the piece it
 ## was in `built_from` (which prices and times it) and leaves its family's group.
-static func into(a_node: Commandable, a_target_id: StringName) -> void:
+static func into(a_node: Actor, a_target_id: StringName) -> void:
 	var target_tool: Tool = Tool.for_id(a_target_id)
 	if a_node == null or target_tool == null or target_tool.packed_scene == null:
 		push_error("Repurposing: cannot make %s into %s" % [a_node, a_target_id])
@@ -48,7 +48,7 @@ static func into(a_node: Commandable, a_target_id: StringName) -> void:
 		a_node.refresh_aggro_shapes()
 
 
-static func _copy_authored(a_node: Commandable, a_state: SceneState) -> void:
+static func _copy_authored(a_node: Actor, a_state: SceneState) -> void:
 	for i: int in a_state.get_node_count():
 		var path: String = str(a_state.get_node_path(i)).trim_prefix("./")
 		if not COMPONENTS.has(path):

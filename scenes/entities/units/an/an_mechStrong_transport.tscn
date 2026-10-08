@@ -1,6 +1,6 @@
 [gd_scene load_steps=27 format=3 uid="uid://beurhqsrdi45w"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_poh5y"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_poh5y"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="1_spec"]
 [ext_resource type="PackedScene" uid="uid://bhjcpnh5cknd3" path="res://assets/meshes/entities/an_mechStrong_transport.blend" id="2_6hm2s"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_baaro"]

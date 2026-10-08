@@ -30,7 +30,7 @@ static func requires_position() -> bool:
 ## IMMOBILE one aimed past its reach — a turret told to shell something it can never walk
 ## closer to would hold the order for ever (see MoveCommand.unreachable_for_immobile).
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if actor == null or not is_instance_valid(actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -63,7 +63,7 @@ static func aim_point(a_message: CommandMessage) -> Vector3:
 
 ## The weapon `a_actor` would shell a point with, or null if it has none. Static so the
 ## precondition and the HUD's capability question read one statement of it.
-static func ground_weapon_of(actor: Commandable) -> Weapon:
+static func ground_weapon_of(actor: Actor) -> Weapon:
 	if actor == null or not is_instance_valid(actor):
 		return null
 	var loadout := actor.get_node_or_null("Loadout") as Loadout
@@ -105,7 +105,7 @@ func releases_hold_fire() -> bool:
 	return true
 
 
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	var weapon: Weapon = ground_weapon_of(a_actor)
 	if weapon == null:
 		return null
@@ -129,7 +129,7 @@ func ends_on_arrival() -> bool:
 	return false
 
 
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	var weapon: Weapon = ground_weapon_of(a_actor)
 	if weapon == null or a_actor.fights_from_orbit():
 		return false
@@ -143,25 +143,25 @@ func should_move(a_actor: Commandable) -> bool:
 ## What `weapon`'s reach is measured from: the actor's footprint, or for a weapon measuring
 ## from its wielder's orbit, the orbit's centre — against a bare point, the range shape standing
 ## there overlaps it exactly when it lies within the shape's radius.
-static func reach_hull(actor: Commandable, weapon: Weapon) -> Hull:
+static func reach_hull(actor: Actor, weapon: Weapon) -> Hull:
 	var orbit_origin: Variant = weapon.orbit_origin(actor)
 	return Hull.point(VU.in_xz(orbit_origin)) if orbit_origin is Vector3 else actor.hull()
 
 
 ## A piece fighting from its orbit keeps circling the orbit it had (see Attack.orbit_anchor).
-func orbit_anchor(a_actor: Commandable) -> Variant:
+func orbit_anchor(a_actor: Actor) -> Variant:
 	return null if a_actor.fights_from_orbit() else message.position
 
 
-func holds_ground(a_actor: Commandable) -> bool:
+func holds_ground(a_actor: Actor) -> bool:
 	return ground_weapon_of(a_actor) != null and not should_move(a_actor)
 
 
-func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
+func acting_action(_a_actor: Actor) -> ActionTracker.Action:
 	return ActionTracker.Action.ATTACKING
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	var weapon: Weapon = ground_weapon_of(a_actor)
 	if weapon == null or not a_actor.can_use_weapons():
 		return false
@@ -179,7 +179,7 @@ func can_act(a_actor: Commandable) -> bool:
 ## that suits how it aims — exact for anything that can stop and turn, a forward arc for
 ## anything that aims by flying. Mirrors Attack's rule, which is the one the player has
 ## already learned; the arc constant is shared rather than restated.
-func _is_aimed_at_point(a_actor: Commandable) -> bool:
+func _is_aimed_at_point(a_actor: Actor) -> bool:
 	var weapon: Weapon = ground_weapon_of(a_actor)
 	if weapon != null and weapon.turret:
 		return weapon.is_turret_aimed_at(a_actor, _aim())
@@ -193,7 +193,7 @@ func _is_aimed_at_point(a_actor: Commandable) -> bool:
 ## KEEPS FIRING. Ground does not die, so nothing ends this order except the player — which
 ## is what "attack ground" means in every game that has it: a battery told to shell a
 ## crossing shells it until it is told to stop.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	var weapon: Weapon = ground_weapon_of(a_actor)
 	if weapon == null:
 		return null

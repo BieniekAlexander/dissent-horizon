@@ -50,8 +50,8 @@ func _commander() -> Commander:
 	return commander
 
 
-func _entity(a_options: Dictionary) -> Commandable:
-	var entity: Commandable = FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary) -> Actor:
+	var entity: Actor = FakePieces.make(a_options) as Actor
 	add_child_autofree(entity)
 	entity.ownership.commander = _commander()
 	return entity
@@ -118,7 +118,7 @@ func test_a_purchase_carries_no_charges() -> void:
 
 
 func test_a_loaded_ability_is_not_blocked() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	var pool := cannon.get_node("Abilities") as Abilities
 	assert_true(pool.grants(POOLED_ABILITY), "guards the fixture")
 	var state: CommandButtonState = _state(
@@ -129,7 +129,7 @@ func test_a_loaded_ability_is_not_blocked() -> void:
 
 
 func test_a_spent_pool_reads_recharging_with_a_countdown() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	var pool := cannon.get_node("Abilities") as Abilities
 	assert_true(pool.spend(POOLED_ABILITY), "guards the fixture: the charge was there")
 	var state: CommandButtonState = _state(
@@ -149,7 +149,7 @@ func test_a_spent_pool_reads_recharging_with_a_countdown() -> void:
 ## one idea at the call site (CommandMessage.defer_if_unaffordable), so they are one idea on
 ## the button too.
 func test_a_recharging_ability_is_queueable_while_the_modifier_is_held() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	(cannon.get_node("Abilities") as Abilities).spend(POOLED_ABILITY)
 	var state: CommandButtonState = _state(
 		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, HELD
@@ -162,8 +162,8 @@ func test_a_recharging_ability_is_queueable_while_the_modifier_is_held() -> void
 ## Every, not any — matching selection_precondition's rule that a command is available as
 ## soon as anybody can act on it.
 func test_one_loaded_caster_keeps_the_button_lit() -> void:
-	var spent: Commandable = _entity(CANNON)
-	var loaded: Commandable = _entity(CANNON)
+	var spent: Actor = _entity(CANNON)
+	var loaded: Actor = _entity(CANNON)
 	(spent.get_node("Abilities") as Abilities).spend(POOLED_ABILITY)
 	var state: CommandButtonState = _state(
 		AbilityCatalog.command_of(POOLED_ABILITY), [spent, loaded], loaded.commander, NOT_HELD
@@ -175,7 +175,7 @@ func test_one_loaded_caster_keeps_the_button_lit() -> void:
 ## as unavailable — which is what the ORDNANCE card needs, since its buttons stand whatever is
 ## selected. With no caster anywhere it is NO_CASTER; see that section below.
 func test_a_selection_that_cannot_cast_falls_through_to_the_commander() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	var recruit := FakePieces.unit(RECRUIT)
 	add_child_autofree(recruit)
 	recruit.ownership.commander = cannon.commander
@@ -193,7 +193,7 @@ func test_a_selection_that_cannot_cast_falls_through_to_the_commander() -> void:
 
 
 func test_a_single_charge_pool_draws_no_pips() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	var state: CommandButtonState = _state(
 		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD
 	)
@@ -202,7 +202,7 @@ func test_a_single_charge_pool_draws_no_pips() -> void:
 
 
 func test_a_multi_charge_pool_draws_its_pips() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	var pool := cannon.get_node("Abilities") as Abilities
 	pool.groups = [
 		{
@@ -368,7 +368,7 @@ func test_an_unlocked_ability_with_nothing_to_cast_it_reads_no_caster() -> void:
 ## The button speaks for the commander's casters when none is SELECTED — which is the state
 ## the ORDNANCE card is normally read in.
 func test_an_unselected_caster_still_lights_the_button() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	var state: CommandButtonState = _state(
 		AbilityCatalog.command_of(POOLED_ABILITY), [], cannon.commander, NOT_HELD
 	)
@@ -380,7 +380,7 @@ func test_an_unselected_caster_still_lights_the_button() -> void:
 
 
 func test_an_unselected_caster_reports_its_cooldown() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	(cannon.get_node("Abilities") as Abilities).spend(POOLED_ABILITY)
 	var state: CommandButtonState = _state(
 		AbilityCatalog.command_of(POOLED_ABILITY), [], cannon.commander, NOT_HELD
@@ -397,7 +397,7 @@ func test_an_unselected_caster_reports_its_cooldown() -> void:
 
 
 func test_a_partly_filled_pool_still_counts_down() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	var pool := cannon.get_node("Abilities") as Abilities
 	pool.groups = [
 		{
@@ -417,7 +417,7 @@ func test_a_partly_filled_pool_still_counts_down() -> void:
 
 
 func test_a_full_pool_counts_down_to_nothing() -> void:
-	var cannon: Commandable = _entity(CANNON)
+	var cannon: Actor = _entity(CANNON)
 	var state: CommandButtonState = _state(
 		AbilityCatalog.command_of(POOLED_ABILITY), [cannon], cannon.commander, NOT_HELD
 	)

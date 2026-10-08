@@ -8,8 +8,8 @@ extends GutTest
 ## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_FreezeStatusEffect.gd -gexit
 
 
-func _unit(a_armour: Defense.ArmourType, a_structure: bool = false) -> Commandable:
-	var unit := Commandable.new()
+func _unit(a_armour: Defense.ArmourType, a_structure: bool = false) -> Actor:
+	var unit := Actor.new()
 	var defense := Defense.new()
 	defense.name = "Defense"
 	defense.armour_type = a_armour
@@ -18,7 +18,7 @@ func _unit(a_armour: Defense.ArmourType, a_structure: bool = false) -> Commandab
 	unit.defense = defense
 	if a_structure:
 		unit.add_to_group("structure")
-	# Kept OUT of the tree: Commandable._ready wants an Ownership / AvoidanceObstacle rig
+	# Kept OUT of the tree: Actor._ready wants an Ownership / AvoidanceObstacle rig
 	# this test has no use for, and every assertion here is synchronous. StatusEffect's
 	# own _physics_process is inert outside the tree, which is exactly what lets
 	# apply_to / remove() be driven directly.
@@ -26,7 +26,7 @@ func _unit(a_armour: Defense.ArmourType, a_structure: bool = false) -> Commandab
 	return unit
 
 
-func _freeze(a_unit: Commandable, a_ticks: int = 450) -> FreezeStatusEffect:
+func _freeze(a_unit: Actor, a_ticks: int = 450) -> FreezeStatusEffect:
 	var effect := FreezeStatusEffect.new()
 	effect.duration_ticks = a_ticks
 	effect.apply_to(a_unit)
@@ -101,7 +101,7 @@ func test_breaking_the_ice_ends_the_freeze() -> void:
 
 func test_a_frozen_unit_is_stunned() -> void:
 	# The "can take no action" half is not reimplemented here: Freeze extends
-	# StunStatusEffect precisely so Commandable.is_stunned() — and the gate at the top of
+	# StunStatusEffect precisely so Actor.is_stunned() — and the gate at the top of
 	# CommandReceiver._process_commands — already covers it.
 	var unit := _unit(Defense.ArmourType.LIGHT)
 	assert_false(unit.is_stunned(), "not stunned to begin with")

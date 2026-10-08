@@ -91,7 +91,7 @@ func _tear_down(scenario: Scenario) -> void:
 ## Send every builder the commander owns somewhere away from the cluster, as a player would.
 func _give_order(scenario: Scenario) -> void:
 	var builders: Array = scenario.commanders[ORDER_COMMANDER].get_children().filter(
-		func(n: Node) -> bool: return n is Commandable and (n as Commandable).can_move()
+		func(n: Node) -> bool: return n is Actor and (n as Actor).can_move()
 	)
 	var message := CommandMessage.new(scenario.map, null, null, Vector3(6.0, 0.0, -6.0))
 	scenario.order_stream.submit(

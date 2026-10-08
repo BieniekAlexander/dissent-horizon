@@ -61,7 +61,7 @@ func test_a_blueprint_freed_first_is_discarded_quietly() -> void:
 	var transaction: PurchaseTransaction = PurchaseTransaction.for_cost(
 		commander, PurchaseTransaction.Kind.BUILD, null, ENERGY_COST
 	)
-	var blueprint: Commandable = Commandable.new()
+	var blueprint: Actor = Actor.new()
 	transaction.planned_structure = blueprint
 	blueprint.free()
 	transaction.discard_planned_structure()

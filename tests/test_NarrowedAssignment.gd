@@ -12,7 +12,7 @@ extends GutTest
 ## wrapper `_narrowed_actors` reads those off live Commandables and additionally decides
 ## that Train is never narrowed and that a lone actor is returned untouched; both need a
 ## live entity (an out-of-tree Node3D has no usable global_position, and an in-tree bare
-## Commandable push_errors its way through _ready) and are not covered here.
+## Actor push_errors its way through _ready) and are not covered here.
 ##
 ## Run with:
 ## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NarrowedAssignment.gd -gexit

@@ -43,7 +43,7 @@ class Entry:
 	var is_structure: bool
 	var last_known_location: Vector3
 	var last_seen_time: float  # seconds (Commander.seconds_elapsed) of last sighting
-	var entity: Commandable  # live ref; may become invalid (use is_instance_valid)
+	var entity: Actor  # live ref; may become invalid (use is_instance_valid)
 
 
 ## One remembered structure image at a specific grid cell. A single structure may
@@ -52,7 +52,7 @@ class Entry:
 class Snapshot:
 	var structure_id: int
 	var cell: Vector2i  # representative grid cell (map.world_to_grid of last-known pos)
-	# Live ref to the real structure. Entity (NOT Commandable) — Shelters/ExtractionSites are
+	# Live ref to the real structure. Entity (NOT Actor) — Shelters/ExtractionSites are
 	# structures that derive from Entity. is_instance_valid may go false on destruction.
 	var entity: Entity
 	var node: Node3D  # duplicated MeshVisual, world-positioned in the container
@@ -87,7 +87,7 @@ func update() -> void:
 
 	# 1. Refresh / add an entry for every enemy currently in view.
 	var visible_ids: Dictionary = {}
-	for e: Commandable in _commander.visible_enemies():
+	for e: Actor in _commander.visible_enemies():
 		visible_ids[e.get_instance_id()] = true
 		_upsert(e, now)
 
@@ -136,7 +136,7 @@ func believed_units() -> Array:
 	return _entries.values().filter(func(e: Entry): return not e.is_structure)
 
 
-func _upsert(a_e: Commandable, a_now: float) -> void:
+func _upsert(a_e: Actor, a_now: float) -> void:
 	var id: int = a_e.get_instance_id()
 	var entry: Entry = _entries.get(id)
 	if entry == null:

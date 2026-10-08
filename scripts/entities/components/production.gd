@@ -322,7 +322,7 @@ func _spawn_unit(
 	var entity: Entity = get_parent() as Entity
 	if entity == null:
 		return
-	var owner_cmd: Commandable = entity as Commandable
+	var owner_cmd: Actor = entity as Actor
 	# READ AT SPAWN, not at dispatch: the player can select a unit that is already being built
 	# and order it, so the transaction's orders are asked for HERE rather than trusted from the
 	# copy taken when the job was enqueued. Same reason the rally is read here — see the note
@@ -337,7 +337,7 @@ func _spawn_unit(
 		chain.append(command.duplicated())
 	if chain.is_empty() and owner_cmd != null:
 		chain = owner_cmd.rally_chain()
-	var unit: Commandable = a_scene.instantiate() as Commandable
+	var unit: Actor = a_scene.instantiate() as Actor
 	# Bias the spawn toward the FIRST leg of the chain, so units emerge on the side they're
 	# heading for rather than walking back around the building.
 	var spawn_bias: Vector3 = (
@@ -381,7 +381,7 @@ func _complete_research(a_id: StringName, a_transaction: PurchaseTransaction) ->
 ## something asks it to move (CommandReceiver takes a docked unit off the pad before
 ## driving it), so a rally chain still gets obeyed — it just gets obeyed by taxiing out and
 ## taking off, which is what an aircraft leaving an airfield does.
-func _spawn_on_pad(a_structure: Commandable, a_unit: Commandable) -> bool:
+func _spawn_on_pad(a_structure: Actor, a_unit: Actor) -> bool:
 	if a_structure == null:
 		return false
 	var bay: DockingBay = a_structure.get_node_or_null("DockingBay") as DockingBay

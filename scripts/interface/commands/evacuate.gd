@@ -20,7 +20,7 @@ static func is_interrupt() -> bool:
 ## which is about entry. Only the host's own side leaves by order; captives stay
 ## (Garrison.can_release_occupant).
 static func meets_precondition(
-	actor: Commandable, _message: CommandMessage
+	actor: Actor, _message: CommandMessage
 ) -> PreconditionFailureCause:
 	var garrison := actor.get_node_or_null("Garrison") as Garrison
 	if garrison == null or not garrison.can_release():
@@ -33,14 +33,14 @@ static func meets_precondition(
 
 #region State updates
 ## Structures don't move.
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return false
 
 
 ## Evacuate fires once the host is on the ground.
 ## For HOVERING hosts, land() is called each tick (idempotent) until
 ## GROUNDED_TEMP; evacuate() already calls take_off() at completion.
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	if (
 		a_actor.aerial != null
 		and a_actor.aerial.mode == Movement.Mode.HOVERING
@@ -53,7 +53,7 @@ func can_act(a_actor: Commandable) -> bool:
 
 ## Restore every occupant an order may release to the scene tree and disperse them. A
 ## captive stays where it is (Garrison.can_release_occupant).
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	var garrison := a_actor.get_node_or_null("Garrison") as Garrison
 	if garrison != null:
 		garrison.evacuate_by_order(message.map)

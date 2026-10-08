@@ -41,16 +41,16 @@ func _commanded(a_id: int) -> Commander:
 ## A live entity owned by [a_commander_id]. Ownership is assigned directly rather than
 ## through initialize(), so no Map is needed — the same fixture test_MixedSelectionCommands
 ## and test_Garrison use.
-func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var e := FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var e := FakePieces.make(a_options) as Actor
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(a_commander_id)
 	return e
 
 
 ## An entity of the given scene, owned by [a_commander_id], with `a_damage` hp knocked off.
-func _damaged(a_options: Dictionary, a_commander_id: int, a_damage: float = 50.0) -> Commandable:
-	var e: Commandable = _entity(a_options, a_commander_id)
+func _damaged(a_options: Dictionary, a_commander_id: int, a_damage: float = 50.0) -> Actor:
+	var e: Actor = _entity(a_options, a_commander_id)
 	e.defense.apply_damage(a_damage)
 	return e
 
@@ -59,11 +59,11 @@ func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
 
 
-func _cause(a_actor: Commandable, a_target: Variant) -> MoveCommand.PreconditionFailureCause:
+func _cause(a_actor: Actor, a_target: Variant) -> MoveCommand.PreconditionFailureCause:
 	return Repair.repairable_cause(a_actor, a_target)
 
 
-func _ok(a_actor: Commandable, a_target: Variant) -> bool:
+func _ok(a_actor: Actor, a_target: Variant) -> bool:
 	return _cause(a_actor, a_target) == MoveCommand.PreconditionFailureCause.NONE
 
 
@@ -84,7 +84,7 @@ func test_a_unit_without_repairs_cannot() -> void:
 
 func test_the_repairer_need_not_be_mechanical_itself() -> void:
 	# The Sapper is BIO and repairs; the frame restriction is on the PATIENT, not the medic.
-	var sapper: Commandable = _entity(SAPPER, PLAYER)
+	var sapper: Actor = _entity(SAPPER, PLAYER)
 	assert_eq(
 		sapper.defense.frame_type, Defense.FrameType.BIO, "precondition: the sapper is biological"
 	)
@@ -99,9 +99,9 @@ func test_a_damaged_friendly_mech_unit_qualifies() -> void:
 
 
 func test_a_damaged_friendly_structure_qualifies() -> void:
-	# "Including structures of that type" — a structure is a Commandable like any other,
+	# "Including structures of that type" — a structure is a Actor like any other,
 	# so nothing in the rule distinguishes them; this pins that it stays that way.
-	var building: Commandable = _damaged(BUILDING, PLAYER)
+	var building: Actor = _damaged(BUILDING, PLAYER)
 	assert_eq(
 		building.defense.frame_type, Defense.FrameType.MECH, "precondition: the building is MECH"
 	)
@@ -137,7 +137,7 @@ func test_a_null_target_is_refused() -> void:
 func test_an_unfinished_structure_is_refused() -> void:
 	# An unfinished structure reads as "hp below max" and would otherwise be silently
 	# repaired to completion, bypassing Assemble (and its builder registration and XP).
-	var site: Commandable = _entity(BUILDING, PLAYER)
+	var site: Actor = _entity(BUILDING, PLAYER)
 	site.begin_construction()
 	assert_false(site.is_built, "precondition: the site is under construction")
 	assert_false(_ok(_entity(SAPPER, PLAYER), site), "finishing a building is Assemble's job")
@@ -147,7 +147,7 @@ func test_an_unfinished_structure_is_refused() -> void:
 
 
 func test_restore_raises_hp_and_clamps_at_full() -> void:
-	var tank: Commandable = _damaged(MATILDA, PLAYER, 60.0)
+	var tank: Actor = _damaged(MATILDA, PLAYER, 60.0)
 	var before: float = tank.defense.hp
 	assert_false(tank.defense.restore(10.0), "not full yet")
 	assert_almost_eq(tank.defense.hp, before + 10.0, 0.001)
@@ -156,7 +156,7 @@ func test_restore_raises_hp_and_clamps_at_full() -> void:
 
 
 func test_repair_rate_is_per_second() -> void:
-	var sapper: Commandable = _entity(SAPPER, PLAYER)
+	var sapper: Actor = _entity(SAPPER, PLAYER)
 	var repairs := sapper.get_node("Repairs") as Repairs
 	assert_almost_eq(repairs.repair_amount(1.0), repairs.repair_rate, 0.001)
 	assert_almost_eq(repairs.repair_amount(0.5), repairs.repair_rate * 0.5, 0.001)
@@ -183,7 +183,7 @@ func test_right_clicking_an_intact_friendly_mech_is_a_move() -> void:
 ## an intact transport still loads on a right-click, a burning one gets mended. Both
 ## halves are asserted, because either alone would pass under the wrong ordering.
 func test_a_transport_loads_when_intact_and_is_mended_when_hurt() -> void:
-	var sapper: Commandable = _entity(SAPPER, PLAYER)
+	var sapper: Actor = _entity(SAPPER, PLAYER)
 	assert_eq(
 		_resolve([sapper], _entity(CARAVEL, ALLY)),
 		Occupy,

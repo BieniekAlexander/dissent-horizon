@@ -51,7 +51,7 @@ enum Blocker {
 	## already offers its command, so "nobody can do this" cannot arise.
 	NO_CASTER,
 	## The caster is a building its commander cannot power — infrastructure upkeep exceeds
-	## capacity, so it is dark (see Commandable.is_unpowered). A third remedy again: not a
+	## capacity, so it is dark (see Actor.is_unpowered). A third remedy again: not a
 	## purchase, not time, but an infrastructure provider. Never queueable — waiting does not
 	## close a shortfall.
 	UNPOWERED,
@@ -204,7 +204,7 @@ static func of(
 static func all_hold_fire(selection: Array) -> bool:
 	var offered_by_any: bool = false
 	for node: Variant in selection:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if (
 			actor == null
 			or not is_instance_valid(actor)
@@ -345,7 +345,7 @@ func _classify_plain_verb(a_command_name: String, a_selection: Array, a_defers: 
 		return
 	var offered_by_any: bool = false
 	for node: Node in a_selection:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if actor == null or not is_instance_valid(actor):
 			continue
 		if not CommandContextParser.commands_for(actor).has(a_command_name):

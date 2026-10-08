@@ -17,8 +17,8 @@ func resolve(a_source: Entity, a_manager: ScenarioTriggerManager) -> Vector3:
 	var best: Vector3 = origin
 	var best_distance: float = INF
 	for node in a_manager.get_tree().get_nodes_in_group("fixture"):
-		# ENTITY, not Commandable. A structure need not be a Commandable — an ExtractionSite, a
-		# A Shelter is a plain Entity carrying a Structure component — and `as Commandable` on
+		# ENTITY, not Actor. A structure need not be a Actor — an ExtractionSite, a
+		# A Shelter is a plain Entity carrying a Structure component — and `as Actor` on
 		# one yields null SILENTLY, so narrowing here quietly excluded every feature from "the
 		# nearest structure" while the docstring above promised `commander_id = -1` would
 		# consider any of them. structure_is_active() is the fixture test.

@@ -70,7 +70,7 @@ class FakeBot:
 
 	## Every owned unit, flattened out of `owned` — what the pool-wide scout term counts.
 	## Instances are pooled and rebuilt only when `owned` changes: the count is asked once per
-	## type per think, and minting a fresh Commandable each time leaks physics RIDs.
+	## type per think, and minting a fresh Actor each time leaks physics RIDs.
 	var _pool: Array = []
 	var _pool_key: Dictionary = {}
 
@@ -79,14 +79,14 @@ class FakeBot:
 			release_pool()
 			for t: StringName in owned:
 				for _i: int in int(owned[t]):
-					var u := Commandable.new()
+					var u := Actor.new()
 					u.id = t
 					_pool.append(u)
 			_pool_key = owned.duplicate()
 		return _pool
 
 	func release_pool() -> void:
-		for u: Commandable in _pool:
+		for u: Actor in _pool:
 			u.free()
 		_pool = []
 		_pool_key = {}
@@ -105,7 +105,7 @@ class StubActuator:
 	extends BotActuator
 	var trains: Array = []
 
-	func train(_a_structure: Commandable, a_type: StringName) -> bool:
+	func train(_a_structure: Actor, a_type: StringName) -> bool:
 		trains.append(a_type)
 		return true
 
@@ -144,8 +144,8 @@ func _production() -> BotProduction:
 	return production
 
 
-func _producer_of(a_types: Array[StringName]) -> Commandable:
-	var structure := autofree(Commandable.new()) as Commandable
+func _producer_of(a_types: Array[StringName]) -> Actor:
+	var structure := autofree(Actor.new()) as Actor
 	structure.production = Production.new()
 	structure.production.producible_types = a_types
 	structure.add_child(structure.production)
@@ -368,11 +368,11 @@ class PreyBot:
 		return neutrals
 
 
-## A Commandable that can live in the tree without a scene behind it — the same shape
+## A Actor that can live in the tree without a scene behind it — the same shape
 ## tests/test_BotCombatUtility.gd uses, and for the same reason. Clustering reads
 ## `global_position`, which only answers inside the tree.
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()

@@ -9,13 +9,13 @@ extends GutTest
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_RallyIndicator.gd -gexit
 ##
 ## _rally_commands_to_draw is exercised on a bare (not-in-tree) RTSController instance —
-## it only reads its Commandable/hovered arguments, none of the controller's @onready
+## it only reads its Actor/hovered arguments, none of the controller's @onready
 ## state — same pattern test_InfoViewWiring.gd uses for API-surface checks. Structures
-## mirror test_RallyQueue.gd's out-of-tree Commandable+Production wiring.
+## mirror test_RallyQueue.gd's out-of-tree Actor+Production wiring.
 
 
-func _make_structure() -> Commandable:
-	var structure := autofree(Commandable.new()) as Commandable
+func _make_structure() -> Actor:
+	var structure := autofree(Actor.new()) as Actor
 	var production := Production.new()
 	production.producible_types = [&"fake_trainee_a"]
 	structure.add_child(production)

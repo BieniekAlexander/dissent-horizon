@@ -8,7 +8,7 @@ required; if not, null is a real state.
 
 Who reaches the code decides it, not the component:
 
-- `entity.gd` runs for every piece shape — an Actor (`Commandable`), a feature (an uncommandable
+- `entity.gd` runs for every piece shape — an Actor (`Actor`), a feature (an uncommandable
   fixture on an `Entity` root), a bodiless piece, an emission — and for out-of-tree build
   previews, whose `@onready` fields never resolve. Only `Ownership` is guaranteed to all of them.
 - `commandable.gd` runs for Actors only, which are guaranteed `Hurtbox`, `AggroRangeGround` /
@@ -47,7 +47,7 @@ Who reaches the code decides it, not the component:
 | 881 | `MeshVisual` | pieces that draw a model (the `has_mesh_visual` waiver removes it) | ✅ |
 | 1046 | `ScenarioTriggerManager` on the scene root | scenarios | ✅ a piece can be in a test with no scenario |
 
-## `scripts/entities/commandable.gd`
+## `scripts/entities/actor.gd`
 
 | Line | Node | Who has it | Verdict |
 |---|---|---|---|

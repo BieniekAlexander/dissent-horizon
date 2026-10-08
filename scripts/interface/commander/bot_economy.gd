@@ -314,7 +314,7 @@ func _release_finished_jobs() -> void:
 
 
 ## Order `a_builder` to build, and claim it for the job when the order is issued.
-func _issue_build(a_builder: Commandable, a_type: StringName, a_spot: Vector3) -> bool:
+func _issue_build(a_builder: Actor, a_type: StringName, a_spot: Vector3) -> bool:
 	var issued: bool = _act.build(a_builder, a_type, a_spot, int(_spot_turns.get(a_spot, 0)))
 	if issued:
 		claims.claim(a_builder, CLAIM_OWNER, BotClaims.Priority.ERRAND)
@@ -344,7 +344,7 @@ func _decide() -> void:
 	):
 		return
 
-	var builder: Commandable = _pick_builder()
+	var builder: Actor = _pick_builder()
 	if builder == null:
 		return
 
@@ -455,7 +455,7 @@ func _decide() -> void:
 ## is the defence whose gun best answers the enemy UNITS the bot has seen, and it is anchored
 ## on the region that asked for it. True when the think should end here: a build issued, or a
 ## spot still being sought.
-func _defence_rung(a_builder: Commandable) -> bool:
+func _defence_rung(a_builder: Actor) -> bool:
 	if not _owns_a_producer():
 		return false
 	var read: Dictionary = _defence_demand()
@@ -478,7 +478,7 @@ func _defence_rung(a_builder: Commandable) -> bool:
 ## surplus branch, because it is the same kind of spend: throughput of a better unit rather
 ## than more of the same. Measured 2026-10-04 before this rung existed: over twelve HARD slots
 ## not one tech or support structure was considered. True as _defence_rung is.
-func _tech_rung(a_builder: Commandable) -> bool:
+func _tech_rung(a_builder: Actor) -> bool:
 	var ttype: Variant = _tech_structure_to_build()
 	if ttype == null:
 		return false
@@ -611,7 +611,7 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 ## unlock for THIS bot, as opposed to for the faction.
 func _owned_producible_types() -> Array:
 	var out: Array = []
-	for s: Commandable in _bot.get_production_structures():
+	for s: Actor in _bot.get_production_structures():
 		for t: StringName in s.production.producible_types:
 			if not out.has(t):
 				out.append(t)
@@ -716,19 +716,19 @@ func _defence_demand() -> Dictionary:
 ## in energy. A region with no tension is left out — it wants nothing.
 func defence_demand_by_region() -> Array:
 	var standing: Array = _bot.get_structures().filter(
-		func(s: Commandable) -> bool: return s.is_built
+		func(s: Actor) -> bool: return s.is_built
 	)
 	if standing.is_empty():
 		return []
 	var own_armed: Array = _bot.get_units().filter(
-		func(u: Commandable) -> bool: return _bot.unit_can_attack(u.id)
+		func(u: Actor) -> bool: return _bot.unit_can_attack(u.id)
 	)
 	own_armed.append_array(
-		standing.filter(func(s: Commandable) -> bool: return _bot.unit_can_attack(s.id))
+		standing.filter(func(s: Actor) -> bool: return _bot.unit_can_attack(s.id))
 	)
 	var enemies: Array = _bot.believed_armed_enemies()  # [{"position": Vector3, "type": ...}]
 	var regions: Array = []
-	for structure: Commandable in standing:
+	for structure: Actor in standing:
 		var centre: Vector3 = structure.global_position
 		var value: float = _cost_within(standing, centre)
 		var own: float = _cost_within(own_armed, centre)
@@ -756,7 +756,7 @@ func defence_demand_by_region() -> Array:
 
 func _cost_within(a_pieces: Array, a_centre: Vector3) -> float:
 	var total: float = 0.0
-	for piece: Commandable in a_pieces:
+	for piece: Actor in a_pieces:
 		if _within_region(piece.global_position, a_centre):
 			total += float(_bot.unit_cost(piece.id))
 	return total
@@ -770,7 +770,7 @@ static func _within_region(a_point: Vector3, a_centre: Vector3) -> bool:
 ## one unit of importance per unit fielded, a live instance of each type as its rep.
 func _mirror_demand() -> Dictionary:
 	var mirror: Dictionary = {}
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not _bot.unit_can_attack(unit.id):
 			continue
 		if mirror.has(unit.id):
@@ -919,7 +919,7 @@ func _dominion_structure_to_build() -> Variant:
 ## Technocratic Lab) has no site to price: each one adds a whole source. Its gate is instead
 ## whether the dominion has a use (Bot.dominion_demand): a Lab turns a site's energy into
 ## dominion, and dominion that buys nothing is a site thrown away.
-func _extend_dominion(a_builder: Commandable) -> bool:
+func _extend_dominion(a_builder: Actor) -> bool:
 	var under_way: Array[StringName] = _types_under_way()
 	var route: DominionRoute = _bot.dominion_route()
 	var stacks: bool = route != null and route.another_source_adds_income()
@@ -999,7 +999,7 @@ func _dominion_site(a_type: StringName, a_min_fraction: float) -> Variant:
 func _dominion_survey(a_type: StringName) -> Variant:
 	var owned: Array = _bot._owned_structures()
 	var key: Array = [
-		a_type, owned.size(), owned.filter(func(o: Commandable) -> bool: return o.is_built).size()
+		a_type, owned.size(), owned.filter(func(o: Actor) -> bool: return o.is_built).size()
 	]
 	if _dominion_search.get("key", []) != key:
 		_dominion_search = _new_dominion_search(a_type, key)
@@ -1076,7 +1076,7 @@ func _infrastructure_unit_trainable() -> bool:
 	var source: StringName = _bot.infrastructure_source_type()
 	if not _bot.has_tech_for(source):
 		return false
-	for s: Commandable in _bot.get_production_structures():
+	for s: Actor in _bot.get_production_structures():
 		if s.production.can_produce(source):
 			return true
 	return false
@@ -1134,7 +1134,7 @@ func _has_resource_surplus() -> bool:
 ## caps. Also what keeps the military from yanking an active builder back into the fight.
 func _construction_job_count() -> int:
 	var count: int = 0
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		if _is_constructing(u):
 			count += 1
 	return count
@@ -1149,7 +1149,7 @@ func _construction_job_count() -> int:
 func _release_stalled_construction() -> void:
 	var now: float = _bot.seconds_elapsed()
 	var live: Dictionary = {}
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		if not _is_constructing(u):
 			continue
 		var key: int = u.get_instance_id()
@@ -1173,7 +1173,7 @@ func _release_stalled_construction() -> void:
 ## The claim is released with the order, so the army may have the unit back; the spot is
 ## remembered as contested so the next think does not send it straight back.
 func _abort_contested_jobs() -> void:
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		if not _is_constructing(u) or not (u.current_command() is Build):
 			continue
 		var target: Variant = _construction_target(u)
@@ -1189,7 +1189,7 @@ func _abort_contested_jobs() -> void:
 ## Fog-limited like every threat sense: a defender the bot has not seen is one it walks into.
 func _site_is_contested(a_site: Vector3) -> bool:
 	return _bot.visible_enemies_near(a_site, defend_threat_radius).any(
-		func(enemy: Commandable) -> bool: return _bot.unit_can_attack(enemy.id)
+		func(enemy: Actor) -> bool: return _bot.unit_can_attack(enemy.id)
 	)
 
 
@@ -1216,7 +1216,7 @@ func _is_contested_spot(a_world: Vector3) -> bool:
 
 
 ## Where `unit`'s current construction order was aimed, or null when it has none.
-func _construction_target(a_unit: Commandable) -> Variant:
+func _construction_target(a_unit: Actor) -> Variant:
 	if not a_unit.has_command():
 		return null
 	var cmd: MoveCommand = a_unit.current_command()
@@ -1251,7 +1251,7 @@ func debug_spots() -> Dictionary:
 ## site. That was harmless while only one job ever ran.
 func _claimed_spots() -> Array[Vector3]:
 	var spots: Array[Vector3] = []
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not _is_constructing(unit):
 			continue
 		var target: Variant = _construction_target(unit)
@@ -1273,7 +1273,7 @@ func _is_claimed_spot(a_world: Vector3) -> bool:
 ## building as already handled instead of ordering it twice.
 func _types_under_way() -> Array[StringName]:
 	var types: Array[StringName] = []
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not _is_constructing(unit):
 			continue
 		var command: MoveCommand = unit.current_command()
@@ -1287,7 +1287,7 @@ func _types_under_way() -> Array[StringName]:
 	return types
 
 
-static func _is_constructing(u: Commandable) -> bool:
+static func _is_constructing(u: Actor) -> bool:
 	if not u.has_command():
 		return false
 	var c: MoveCommand = u.current_command()
@@ -1299,9 +1299,9 @@ static func _is_constructing(u: Commandable) -> bool:
 ## prefer an idle one to minimise disrupting the army; if none is idle we pull a
 ## fighter (it rejoins combat once the structure is finished). Returns null when
 ## the bot owns no builder yet.
-func _pick_builder() -> Commandable:
-	var busy_builder: Commandable = null
-	for u: Commandable in _bot.get_units():
+func _pick_builder() -> Actor:
+	var busy_builder: Actor = null
+	for u: Actor in _bot.get_units():
 		if not u.has_node("Builds"):
 			continue
 		# Don't yank a unit mid-opportunity (e.g. a truck capturing/depositing) onto a
@@ -1403,7 +1403,7 @@ func _nearest_workable_pond_spot() -> Variant:
 ## Better not to spend the builder in the first place.
 func _ponds_under_way() -> Array:
 	var ponds: Array = []
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not _is_constructing(unit):
 			continue
 		var target: Variant = _construction_target(unit)
@@ -1497,7 +1497,7 @@ func _believes_pond_claimed(a_body: WaterBody) -> bool:
 func _is_claim_known(a_claimant: Variant) -> bool:
 	if a_claimant == null or not is_instance_valid(a_claimant):
 		return false
-	var claimant: Commandable = a_claimant as Commandable
+	var claimant: Actor = a_claimant as Actor
 	return (
 		claimant != null
 		and (claimant.commander_id == _bot.id or _bot.has_vision_at(claimant.global_position))
@@ -1661,10 +1661,10 @@ func _defence_anchor() -> Vector2:
 		return _demanded_anchor
 	var origin: Vector2 = VU.in_xz(_bot.base_centroid())
 	var toward: Vector2 = _bot.threat_direction(origin)
-	var guarded: Commandable = null
+	var guarded: Actor = null
 	if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
 		var best_along: float = -INF
-		for centre: Commandable in _bot.owned_command_centres():
+		for centre: Actor in _bot.owned_command_centres():
 			var along: float = (VU.in_xz(centre.global_position) - origin).dot(toward)
 			if along > best_along:
 				best_along = along
@@ -1970,7 +1970,7 @@ const RANK_ALONG_BIT: int = 1 << (RANK_INDEX_BITS + 1)
 func _home_region() -> int:
 	var grid: TerrainGrid = _bot.map.terrain_grid
 	var tally: Dictionary = {}
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		var region: int = grid.component_at(_bot.map.world_to_grid(VU.in_xz(u.global_position)))
 		if region >= 0:
 			tally[region] = int(tally.get(region, 0)) + 1

@@ -3,7 +3,7 @@ extends MoveCommand
 
 
 #region Preconditions
-static func evaluator(actor: Commandable, message: CommandMessage) -> Variant:
+static func evaluator(actor: Actor, message: CommandMessage) -> Variant:
 	if meets_precondition(actor, message):
 		return Capture
 	else:
@@ -11,12 +11,12 @@ static func evaluator(actor: Commandable, message: CommandMessage) -> Variant:
 
 
 static func meets_precondition(
-	_actor: Commandable, message: CommandMessage
+	_actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	return (
 		PreconditionFailureCause.NONE
 		if (
-			message.target is Commandable
+			message.target is Actor
 			and message.target.is_in_group("structure")
 			and message.target.commander_id == 0
 		)
@@ -28,23 +28,23 @@ static func meets_precondition(
 
 
 #region State updates
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	return SU.unit_is_close_to_structure(a_actor, message.target)
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	message.target.build_progress += .00222222222
 
 	if message.target.build_progress < 2:
 		return self
 	else:
-		# Transferring ownership re-runs Commandable._on_commander_changed, which moves
+		# Transferring ownership re-runs Actor._on_commander_changed, which moves
 		# the structure's infrastructure contribution from the old commander to the captor — so
 		# the captor is credited (and the former owner debited) automatically here.
 		message.target.commander = a_actor.commander
 		return null
 
 
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	return not SU.unit_is_close_to_structure(a_actor, message.target)
 #endregion

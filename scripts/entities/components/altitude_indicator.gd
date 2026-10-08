@@ -60,7 +60,7 @@ func _process(_a_delta: float) -> void:
 func _redraw() -> void:
 	_mesh.clear_surfaces()
 
-	var unit := get_parent() as Commandable
+	var unit := get_parent() as Actor
 	if unit == null or unit.map == null:
 		return
 

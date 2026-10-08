@@ -18,7 +18,7 @@ extends RefCounted
 ## A template's `infrastructure` is what the piece grants once BUILT AS ANOTHER PIECE
 ## (an_infrastructure
 ## takes it from its variant). It is deliberately absent from the member's own scene, whose
-## Commandable.infrastructure stays 0: a neutral or garrison-captured building grants nothing.
+## Actor.infrastructure stays 0: a neutral or garrison-captured building grants nothing.
 
 const FAMILIES_JSON_PATH: String = "res://resources/generated/families.json"
 

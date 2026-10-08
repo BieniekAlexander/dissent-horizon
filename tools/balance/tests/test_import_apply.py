@@ -91,7 +91,7 @@ def test_missing_block_without_base_is_refused():
 # --- Category B: synthesise an override for an inherited node -------------- #
 BASE = """[gd_scene format=3 uid="uid://base"]
 
-[node name="Commandable" type="CharacterBody3D" unique_id=249815651]
+[node name="Actor" type="CharacterBody3D" unique_id=249815651]
 
 [node name="Defense" type="Node" parent="." unique_id=637704181]
 hp_max = 100.0

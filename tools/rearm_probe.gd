@@ -27,7 +27,7 @@ var _keep_clip: bool = false
 var _offset: float = 0.0
 ## Ticks to keep watching AFTER the command ends, to see what the aircraft does next.
 var _linger: int = 1400
-var _fleet: Array[Commandable] = []
+var _fleet: Array[Actor] = []
 
 
 func _ready() -> void:
@@ -62,7 +62,7 @@ func _run() -> void:
 
 	var centre: Vector2 = map.play_area().center
 
-	var field := (load(AIRFIELD) as PackedScene).instantiate() as Commandable
+	var field := (load(AIRFIELD) as PackedScene).instantiate() as Actor
 	field.initialize(map, player)
 	field.global_position = Vector3(centre.x, 0.0, centre.y)
 	map.add_structure(field, Vector2(centre.x, centre.y))
@@ -84,7 +84,7 @@ func _run() -> void:
 			)
 		)
 
-	var unit := (load(_unit_scene) as PackedScene).instantiate() as Commandable
+	var unit := (load(_unit_scene) as PackedScene).instantiate() as Actor
 	unit.initialize(map, player)
 	unit.global_position = Vector3(centre.x + _start_distance, 0.0, centre.y + _offset)
 	await get_tree().physics_frame
@@ -164,23 +164,23 @@ func _run() -> void:
 
 ## What the aircraft does once the order is done: an idle FLYING unit orbits its anchor,
 ## so this is where "it flew off into the distance" would show up.
-func _watch_idle(a_unit: Commandable, a_bay: DockingBay) -> void:
+func _watch_idle(a_unit: Actor, a_bay: DockingBay) -> void:
 	# Parked and full. Now give it somewhere to be, which is the ONLY thing that gets an
 	# aircraft off a pad — and watch it taxi out to the threshold before it climbs.
 	for _i: int in 20:
 		await get_tree().physics_frame
 	# Two MORE aircraft rolled out onto their own pads, then every one of them ordered off at
 	# the same instant: the contended-runway case.
-	var fleet: Array[Commandable] = [a_unit]
+	var fleet: Array[Actor] = [a_unit]
 	var production: Production = a_bay.get_parent().get_node("Production") as Production
 	for i: int in 2:
-		var extra := (load(_unit_scene) as PackedScene).instantiate() as Commandable
+		var extra := (load(_unit_scene) as PackedScene).instantiate() as Actor
 		extra.initialize(a_unit.map, a_unit.commander)
 		if production._spawn_on_pad(a_bay.get_parent(), extra):
 			fleet.append(extra)
 		await get_tree().physics_frame
 	var away := Vector3(a_unit.global_position.x - 40.0, 0.0, a_unit.global_position.z + 40.0)
-	for plane: Commandable in fleet:
+	for plane: Actor in fleet:
 		plane.update_commands(MoveCommand.new(CommandMessage.new(plane.map, null, null, away)))
 	print("--- ordered %d aircraft to %s ---" % [fleet.size(), away])
 	_fleet = fleet
@@ -188,7 +188,7 @@ func _watch_idle(a_unit: Commandable, a_bay: DockingBay) -> void:
 		await get_tree().physics_frame
 		if tick % 10 == 0:
 			var parts: PackedStringArray = PackedStringArray()
-			for plane: Commandable in _fleet:
+			for plane: Actor in _fleet:
 				parts.append(
 					(
 						"%s h=%4.1f v=%4.1f %s%s"
@@ -212,7 +212,7 @@ func _pads(a_bay: DockingBay) -> Array[DockingPad]:
 	return out
 
 
-func _pad_distance(a_unit: Commandable, a_bay: DockingBay) -> float:
+func _pad_distance(a_unit: Actor, a_bay: DockingBay) -> float:
 	var best: float = INF
 	for pad: DockingPad in _pads(a_bay):
 		best = minf(
@@ -221,7 +221,7 @@ func _pad_distance(a_unit: Commandable, a_bay: DockingBay) -> float:
 	return best
 
 
-func _state_of(a_plane: Commandable) -> String:
+func _state_of(a_plane: Actor) -> String:
 	if a_plane.aerial.is_docked():
 		return "PARK"
 	if a_plane.aerial.is_taxiing():

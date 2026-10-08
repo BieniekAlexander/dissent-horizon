@@ -8,7 +8,7 @@ static func requires_position() -> bool:
 
 
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if not _target_attackable(message):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -46,7 +46,7 @@ static func _target_attackable(message: CommandMessage) -> bool:
 ## unordered). Only between two pieces on the ground: when either is an AIR target, the
 ## shot clears every building, and may visually pass through one.
 ## Why: gdd/systems/combat/target-acquisition.md §Line of fire.
-static func _obstruction_on_line(actor: Commandable, target: Entity) -> bool:
+static func _obstruction_on_line(actor: Actor, target: Entity) -> bool:
 	if actor.is_air_target() or target.is_air_target():
 		return false
 	var space_state := actor.get_world_3d().direct_space_state
@@ -66,7 +66,7 @@ static func _obstruction_on_line(actor: Commandable, target: Entity) -> bool:
 
 ## Returns the weapon from a_actor's inventory that can target message.target,
 ## or null if none can.
-func _weapon_for(a_actor: Commandable) -> Weapon:
+func _weapon_for(a_actor: Actor) -> Weapon:
 	if a_actor.weapon_inventory == null:
 		return null
 	return a_actor.weapon_inventory.weapon_for_target(message.target)
@@ -75,7 +75,7 @@ func _weapon_for(a_actor: Commandable) -> Weapon:
 ## True when a_actor is acting as a bunker: it owns a Garrison with bunker fire
 ## enabled and at least one unit garrisoned, so its garrisoned units' weapons can
 ## fire at the target even when the actor itself carries no weapon.
-func _is_bunker(a_actor: Commandable) -> bool:
+func _is_bunker(a_actor: Actor) -> bool:
 	var garrison := a_actor.garrison
 	return garrison != null and garrison.bunker and garrison.garrisoned_count() > 0
 
@@ -88,7 +88,7 @@ func _is_bunker(a_actor: Commandable) -> bool:
 ##
 ## The HOLD is judged whether or not the weapon is loaded, so a weapon with an attack startup
 ## keeps its lock through a reload (Weapon.hold_target).
-func _own_weapon_can_fire(a_actor: Commandable) -> bool:
+func _own_weapon_can_fire(a_actor: Actor) -> bool:
 	var weapon := _weapon_for(a_actor)
 	if weapon == null or not a_actor.can_use_weapons():
 		return false
@@ -119,7 +119,7 @@ const FLYING_AIM_ARC_DEGREES: float = 20.0
 ## Whether the actor is pointing close enough at its target to shoot, by the standard that
 ## suits how it aims: exact alignment for anything that can stop and turn, a forward arc for
 ## anything that aims by flying.
-func _is_aimed_at_target(a_actor: Commandable) -> bool:
+func _is_aimed_at_target(a_actor: Actor) -> bool:
 	var weapon := _weapon_for(a_actor)
 	if weapon != null and weapon.turret:
 		return weapon.is_turret_aimed_at(a_actor, message.target.global_position)
@@ -141,7 +141,7 @@ func _is_aimed_at_target(a_actor: Commandable) -> bool:
 ## Gated on the WEAPON'S REACH (`Weapon.is_melee_ranged`), not on `Movement.Mode.FLYING`:
 ## gating on the mode stopped every ranged aircraft firing at all.
 ## Why: gdd/systems/combat/aerial-operations/attack-runs.md §The attack run.
-func _dive_contact_made(a_actor: Commandable, a_weapon: Weapon) -> bool:
+func _dive_contact_made(a_actor: Actor, a_weapon: Weapon) -> bool:
 	if a_weapon == null:
 		return true
 	var aerial: Aerial = a_actor.aerial
@@ -161,7 +161,7 @@ func _dive_contact_made(a_actor: Commandable, a_weapon: Weapon) -> bool:
 ## ask Movement to dive toward it so the unit drops out of the sky as it closes in. Movement
 ## eases the unit back up on its own once this stops being called — see Aerial.request_dive /
 ## _update_flying_height.
-func _update_flying_dive(a_actor: Commandable) -> void:
+func _update_flying_dive(a_actor: Actor) -> void:
 	if _rams_target(a_actor):
 		a_actor.aerial.request_dive(
 			VU.in_xz(message.target.global_position), message.target.top_height()
@@ -171,7 +171,7 @@ func _update_flying_dive(a_actor: Commandable) -> void:
 ## Whether [a_actor] attacks by RAMMING its target: a FLYING unit whose weapon reaches only
 ## as far as its own body (Weapon.is_melee_ranged), against a ground target. Air targets are
 ## engaged at cruise altitude, so they are never rammed.
-func _rams_target(a_actor: Commandable) -> bool:
+func _rams_target(a_actor: Actor) -> bool:
 	var aerial: Aerial = a_actor.aerial
 	if aerial == null or aerial.mode != Movement.Mode.FLYING:
 		return false
@@ -191,7 +191,7 @@ func _rams_target(a_actor: Commandable) -> bool:
 ## target otherwise resolves to: that cell is where a WALKER stands to act, and arriving at it
 ## ends the order. The dive is timed to bottom out over the centre, so a drone sent to the cell
 ## arrived still above its reach and dropped the attack without striking (gdd/tasks.md T-009).
-func movement_destination(a_actor: Commandable) -> Variant:
+func movement_destination(a_actor: Actor) -> Variant:
 	return message.target.global_position if _rams_target(a_actor) else null
 
 
@@ -205,7 +205,7 @@ func movement_destination(a_actor: Commandable) -> Variant:
 ## while the actor is merely waiting to align, so the avoidance sim would keep re-simulating
 ## its stale approach velocity and rotating the body toward it. Why:
 ## gdd/systems/combat/aerial-operations/attack-runs.md §A stationary attacker aims itself.
-func _update_facing(a_actor: Commandable) -> void:
+func _update_facing(a_actor: Actor) -> void:
 	var weapon := _weapon_for(a_actor)
 	var turreted: bool = weapon != null and weapon.turret
 	if turreted:
@@ -235,7 +235,7 @@ func requires_ammo() -> bool:
 
 
 #region State updates
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	## Potentially return a new command based on a state check.
 	if not is_instance_valid(message.target):
 		return null
@@ -276,7 +276,7 @@ var _target_was_seen: bool = false
 ## True once a target this attack has SEEN is no longer visible to the actor's side — it
 ## ran into the fog or went stealthed — so the attack is dropped, persistent or not. The same
 ## vision gate idle aggro acquires through (gdd/systems/combat/target-acquisition.md).
-func _target_lost_from_sight(a_actor: Commandable) -> bool:
+func _target_lost_from_sight(a_actor: Actor) -> bool:
 	var is_seen: bool = message.target.is_visible_to(a_actor.commander_id)
 	var is_lost: bool = _target_was_seen and not is_seen
 	_target_was_seen = _target_was_seen or is_seen
@@ -305,7 +305,7 @@ const _LEASH_HYSTERESIS: float = 1.25
 ##     Taking the max of the two keeps a unit engaging a target it can still shoot (weapon
 ##     range) while never leashing tighter than its aggro range; the margin is the
 ##     hysteresis that absorbs boundary jitter.
-func _target_within_leash(a_actor: Commandable) -> bool:
+func _target_within_leash(a_actor: Actor) -> bool:
 	if message.aggro_shape != null:
 		var origin: Vector3 = (
 			message.aggro_center
@@ -335,10 +335,10 @@ func _target_within_leash(a_actor: Commandable) -> bool:
 ## The pursue radius for an ordinary attack: max(firing weapon's AttackRange, actor's
 ## aggro range) XZ radius × _LEASH_HYSTERESIS, or -1.0 when neither is known (treated as
 ## "always in range").
-func _leash_radius(a_actor: Commandable) -> float:
+func _leash_radius(a_actor: Actor) -> float:
 	# A bunker host carries no weapon of its own (it fires through garrisoned units), so
 	# _weapon_for returns null here. It leashes by its occupants' reach instead
-	# (Commandable.reach_on_layer) — the aggro fallback is capped below long reach and dropped
+	# (Actor.reach_on_layer) — the aggro fallback is capped below long reach and dropped
 	# targets the occupants could still hit.
 	var weapon := _weapon_for(a_actor)
 	if weapon == null:
@@ -393,10 +393,10 @@ static func _shape_xz_radius(shape: Shape3D, scale: float) -> float:
 ## loaded), not supposed to move (already in range), so nothing drove it at all and it
 ## coasted to a dead stop in mid-air over its victim.
 ##
-## A PIECE FIGHTING FROM ITS ORBIT NEVER SAYS YES (Commandable.fights_from_orbit): its range is
+## A PIECE FIGHTING FROM ITS ORBIT NEVER SAYS YES (Actor.fights_from_orbit): its range is
 ## measured from the orbit's centre, so flying at the target would close nothing — the target
 ## changes what it shoots at, never where it flies.
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	if not _target_attackable(message):
 		return false
 	var weapon := _weapon_for(a_actor)
@@ -416,19 +416,19 @@ func releases_hold_fire() -> bool:
 
 ## A piece fighting from its orbit keeps circling the orbit it had: its target is something it
 ## shoots at, not somewhere it flies.
-func orbit_anchor(a_actor: Commandable) -> Variant:
+func orbit_anchor(a_actor: Actor) -> Variant:
 	return null if a_actor.fights_from_orbit() else message.position
 
 
-func holds_ground(a_actor: Commandable) -> bool:
+func holds_ground(a_actor: Actor) -> bool:
 	return _target_attackable(message) and _weapon_for(a_actor) != null and not should_move(a_actor)
 
 
-func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
+func acting_action(_a_actor: Actor) -> ActionTracker.Action:
 	return ActionTracker.Action.ATTACKING
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	if not _target_attackable(message) or message.target == a_actor:
 		return false
 	if _obstruction_on_line(a_actor, message.target):
@@ -442,7 +442,7 @@ func can_act(a_actor: Commandable) -> bool:
 	)
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	# Fire the actor's own weapon when it is loaded and in range.
 	if _own_weapon_can_fire(a_actor):
 		var weapon := _weapon_for(a_actor)

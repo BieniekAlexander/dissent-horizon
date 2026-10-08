@@ -121,8 +121,8 @@ static func spawn_vision(
 	a_point: Vector2,
 	a_radius: float,
 	a_lifespan_seconds: float
-) -> Commandable:
-	var scout := _SCOUT_SCENE.instantiate() as Commandable
+) -> Actor:
+	var scout := _SCOUT_SCENE.instantiate() as Actor
 	if scout == null:
 		return null
 	Lifespan.attach(scout, a_lifespan_seconds)
@@ -137,7 +137,7 @@ static func spawn_vision(
 ## The shape is DUPLICATED first: a PackedScene's sub-resources are shared across every
 ## instance of it, so writing the radius in place would resize the Radar Scan sanction's
 ## scouts — and each other reveal — along with this one.
-static func _resize_vision(a_scout: Commandable, a_radius: float) -> void:
+static func _resize_vision(a_scout: Actor, a_radius: float) -> void:
 	var vision := a_scout.get_node_or_null("VisionRange") as CollisionShape3D
 	if vision == null or vision.shape == null:
 		return

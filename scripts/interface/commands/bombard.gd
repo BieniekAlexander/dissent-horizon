@@ -28,7 +28,7 @@ const ABILITY_ID: StringName = &"bombard"
 #region Reach
 ## Spotted, not near. Asked of the commander's side rather than of this gun, which is what
 ## "vision by proxy" means.
-static func is_in_range(actor: Commandable, message: CommandMessage) -> bool:
+static func is_in_range(actor: Actor, message: CommandMessage) -> bool:
 	return (
 		actor != null
 		and message != null
@@ -55,7 +55,7 @@ static func out_of_range_cause() -> PreconditionFailureCause:
 ## The shared ability precondition — granted, charged, in reach — plus the one thing that is
 ## this piece's alone: an unfinished gun does not fire.
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	if actor == null or not actor.is_built:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -76,7 +76,7 @@ static func _ability_of(_message: CommandMessage) -> StringName:
 
 
 #region State updates
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	return a_actor.is_built and super(a_actor)
 
 
@@ -93,7 +93,7 @@ func can_act(a_actor: Commandable) -> bool:
 ## The beacon is resolved BEFORE the charge is spent and MARKED used rather than dismissed:
 ## it has to stand for the whole flight, so it is dismissed when the shell lands
 ## (Beacon.dismiss_on_landing). Being used is what stops a second battery spending it.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	if not is_in_range(a_actor, message):
 		return null
 	var solution: Beacon = BombardTargeting.source_at(a_actor.commander, message.position)
@@ -107,7 +107,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 
 
 ## Mark `a_beacon` used and send the shell after it — the charge already spent.
-func _spend_beacon(a_actor: Commandable, a_beacon: Beacon) -> void:
+func _spend_beacon(a_actor: Actor, a_beacon: Beacon) -> void:
 	a_beacon.mark_used()
 	a_beacon.dismiss_on_landing(launch_emission(a_actor, ABILITY_ID, a_beacon.host()))
 
@@ -128,7 +128,7 @@ func _spend_beacon(a_actor: Commandable, a_beacon: Beacon) -> void:
 static func autofire_on(beacon: Beacon) -> bool:
 	if beacon == null or beacon.is_leaving() or beacon.is_used():
 		return false
-	var battery: Commandable = nearest_autofiring_battery(beacon)
+	var battery: Actor = nearest_autofiring_battery(beacon)
 	if battery == null:
 		return false
 	var order := Bombard.new(
@@ -141,15 +141,15 @@ static func autofire_on(beacon: Beacon) -> bool:
 
 
 ## The battery of `beacon`'s owner nearest it (on XZ) that may answer it on its own, or null.
-static func nearest_autofiring_battery(beacon: Beacon) -> Commandable:
+static func nearest_autofiring_battery(beacon: Beacon) -> Actor:
 	var commander: Commander = beacon.host().commander if beacon != null else null
 	if commander == null or not commander.is_autocasting(ABILITY_ID):
 		return null
 	var target: Vector2 = VU.in_xz(beacon.host().global_position)
-	var best: Commandable = null
+	var best: Actor = null
 	var best_distance: float = INF
 	for child: Node in commander.get_children():
-		var battery := child as Commandable
+		var battery := child as Actor
 		if battery == null or not can_autofire(battery):
 			continue
 		var distance: float = VU.in_xz(battery.global_position).distance_to(target)
@@ -163,7 +163,7 @@ static func nearest_autofiring_battery(beacon: Beacon) -> Commandable:
 ## its commander has the Bombard on automatic is asked once, by the caller. A gun holding a
 ## Bombard order of the player's is the player's — taking its charge would silently cancel
 ## that shot.
-static func can_autofire(battery: Commandable) -> bool:
+static func can_autofire(battery: Actor) -> bool:
 	var pool: Abilities = _pool_of(battery)
 	return (
 		pool != null

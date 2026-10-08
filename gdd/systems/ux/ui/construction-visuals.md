@@ -9,7 +9,7 @@ type: system-note
 
 ## Two channels, not one four-step scale
 
-`Commandable._apply_construction_visuals` writes the model on two INDEPENDENT channels:
+`Actor._apply_construction_visuals` writes the model on two INDEPENDENT channels:
 **opacity**, how far along the construction lifecycle the piece is, and **shade**, whether
 it has been paid for. They are separate because they answer different questions and vary
 independently — a blueprint can be funded or not at the same lifecycle point.
@@ -29,13 +29,13 @@ How solid a structure is drawn says how real it is. The three steps are `MeshVis
 
 | State | Drawn at | Owned by |
 | --- | --- | --- |
-| **Planned** — a blueprint (a real entity, see below), or the ghost under the cursor while aiming a Build | 0.2 | `Commandable.construction_opacity`; the cursor ghost is `RTSController._add_ghost_visual` |
-| **Constructing** — placed, collidable, unfinished | 0.5 | `Commandable._apply_construction_visuals`, driven by `build_progress_changed` |
+| **Planned** — a blueprint (a real entity, see below), or the ghost under the cursor while aiming a Build | 0.2 | `Actor.construction_opacity`; the cursor ghost is `RTSController._add_ghost_visual` |
+| **Constructing** — placed, collidable, unfinished | 0.5 | `Actor._apply_construction_visuals`, driven by `build_progress_changed` |
 | **Built** | 1.0 | same |
 
 The fade is a **step, not a ramp** with `build_progress`: a half-built structure should read as "under construction", not as nearly invisible. `MeshVisual.set_opacity` also drops the model's shadow while faded (a translucent building that still casts a filled shadow reads as solid).
 
-**Opacity is one of TWO channels.** The other is `MeshVisual.set_shade` (`SHADE_AWAITING_FUNDS` 0.35 / `SHADE_NORMAL` 1.0), an RGB multiply that darkens a blueprint whose purchase is still PENDING — a build the commander has committed to but can't pay for yet (`Commandable.awaiting_funds` / `construction_shade`). Two channels rather than one four-step scale because they answer different questions and vary independently: a blueprint is at the same point in the construction lifecycle whether or not it has been paid for. `_reapply` composes `albedo = base × tint × shade` on RGB and `base.a × opacity` on alpha, so shade never affects transparency and the team tint survives underneath both.
+**Opacity is one of TWO channels.** The other is `MeshVisual.set_shade` (`SHADE_AWAITING_FUNDS` 0.35 / `SHADE_NORMAL` 1.0), an RGB multiply that darkens a blueprint whose purchase is still PENDING — a build the commander has committed to but can't pay for yet (`Actor.awaiting_funds` / `construction_shade`). Two channels rather than one four-step scale because they answer different questions and vary independently: a blueprint is at the same point in the construction lifecycle whether or not it has been paid for. `_reapply` composes `albedo = base × tint × shade` on RGB and `base.a × opacity` on alpha, so shade never affects transparency and the team tint survives underneath both.
 
 **And each of those two is itself one of a PAIR** — the construction channel written here, and a STATUS channel written by `StatusVisuals` for the unit's condition. See §Condition visuals; the composition is `effective_opacity()` / `effective_shade()`.
 

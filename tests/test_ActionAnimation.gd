@@ -17,13 +17,13 @@ const FAR_AWAY: Vector3 = Vector3(30.0, 0.0, 0.0)
 class AlwaysBuilding:
 	extends MoveCommand
 
-	func can_act(_a_actor: Commandable) -> bool:
+	func can_act(_a_actor: Actor) -> bool:
 		return true
 
-	func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
+	func acting_action(_a_actor: Actor) -> ActionTracker.Action:
 		return ActionTracker.Action.BUILDING
 
-	func fulfill_action(_a_actor: Commandable) -> Variant:
+	func fulfill_action(_a_actor: Actor) -> Variant:
 		return self
 
 
@@ -161,23 +161,23 @@ func test_commands_name_their_action() -> void:
 
 
 #region Reported by the command tick
-func _truck() -> Commandable:
+func _truck() -> Actor:
 	var commander: Commander = Commander.new()
 	commander.id = 1
 	add_child_autofree(commander)
-	var truck: Commandable = FakePieces.unit(TRUCK)
+	var truck: Actor = FakePieces.unit(TRUCK)
 	add_child_autofree(truck)
 	truck.ownership.commander = commander
 	return truck
 
 
-func _tick(a_actor: Commandable) -> void:
+func _tick(a_actor: Actor) -> void:
 	a_actor.command_receiver._update_state()
 	a_actor._process_commands()
 
 
 func test_an_acting_tick_reports_the_command_action() -> void:
-	var truck: Commandable = _truck()
+	var truck: Actor = _truck()
 	truck.update_commands(
 		(
 			[AlwaysBuilding.new(CommandMessage.new(null, null, null, truck.global_position))]
@@ -189,7 +189,7 @@ func test_an_acting_tick_reports_the_command_action() -> void:
 
 
 func test_a_travelling_tick_reports_moving_and_an_empty_one_idle() -> void:
-	var truck: Commandable = _truck()
+	var truck: Actor = _truck()
 	truck.update_commands(
 		[MoveCommand.new(CommandMessage.new(null, null, null, FAR_AWAY))] as Array[MoveCommand]
 	)

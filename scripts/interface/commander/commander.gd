@@ -65,7 +65,7 @@ var _dominion_route_faction_id: int = 0
 #endregion
 
 #region Controls
-@onready var selection: Array[Commandable] = []
+@onready var selection: Array[Actor] = []
 @onready var click_screen_pos: Vector2 = Vector2.ZERO
 #endregion
 
@@ -107,7 +107,7 @@ var energy: int = 0
 var dominion: int = 0
 
 ## Infrastructure is the "power" resource. Each commandable carries ONE signed `infrastructure` int
-## (positive = provides, negative = consumes — see Commandable); the commander tallies
+## (positive = provides, negative = consumes — see Actor); the commander tallies
 ## those into capacity (infrastructure_provided) and upkeep (infrastructure_required) so
 ## the HUD can show used/total. Every commander starts with a base 100 capacity; entities add/remove
 ## their contribution at runtime via add_infrastructure / remove_infrastructure. When upkeep exceeds
@@ -131,7 +131,7 @@ signal resources_changed
 signal purchase_progressed(a_transaction: PurchaseTransaction, a_stage: StringName)
 
 ## One of this commander's structures finished construction, on the tick it did.
-signal construction_finished(a_structure: Commandable)
+signal construction_finished(a_structure: Actor)
 
 
 ## Add `amount` energy (negative to spend). Single write-point for the energy pool.
@@ -214,7 +214,7 @@ func infrastructure_provider_grant() -> int:
 		return 0
 	# The default variant's: what the faction's provider is when nothing else is asked.
 	var source := (
-		get_build_preview_instance(Tool.for_type(faction.infrastructure_source)) as Commandable
+		get_build_preview_instance(Tool.for_type(faction.infrastructure_source)) as Actor
 	)
 	return maxi(source.infrastructure, 0) if source != null else 0
 
@@ -309,13 +309,13 @@ func missing_prerequisites_are_incoming(a_type: Variant) -> bool:
 ##
 ## The BLUEPRINT scan is the one that makes prerequisite chains work, and it cannot come
 ## from `structure_type_map`: a planned structure is deliberately kept out of that registry
-## (see Commandable._on_commander_changed — it contributes no infrastructure and is not a building
+## (see Actor._on_commander_changed — it contributes no infrastructure and is not a building
 ## the tech tree counts), so it is invisible to the other two checks. Without it a chain of
 ## A ← B ← C broke at C the moment B's purchase was FUNDED: the transaction leaves the queue
 ## on funding, and B is then a blueprint nobody has laid a foundation for — on its way by
 ## every ordinary meaning of the word, and reported as not coming at all.
 func has_incoming_structure(a_id: StringName) -> bool:
-	for structure: Commandable in _structures_of(a_id).get_values():
+	for structure: Actor in _structures_of(a_id).get_values():
 		if not structure.is_queued_for_deletion() and not structure.is_built:
 			return true
 	if production_queue != null and production_queue.has_pending_build(a_id):
@@ -328,7 +328,7 @@ func has_incoming_structure(a_id: StringName) -> bool:
 ## planned structure is intentionally absent from `structure_type_map`.
 func has_planned_structure(a_id: StringName) -> bool:
 	return _owned_commandables().any(
-		func(c: Commandable) -> bool:
+		func(c: Actor) -> bool:
 			return c.id == a_id and c.is_planned and not c.is_queued_for_deletion()
 	)
 
@@ -417,7 +417,7 @@ func is_research_taken(a_type: Variant) -> bool:
 		return true
 	if production_queue != null and production_queue.has_pending_train(id):
 		return true
-	for commandable: Commandable in _owned_commandables():
+	for commandable: Actor in _owned_commandables():
 		if commandable.production != null and commandable.production.is_producing(id):
 			return true
 	return false
@@ -430,7 +430,7 @@ func is_research_taken(a_type: Variant) -> bool:
 ## given piece id. Single source of truth for "is this structure prereq met?",
 ## shared by proc_technology and ConditionStructureBuilt.
 func has_built_structure(a_id: StringName) -> bool:
-	return _structures_of(a_id).get_values().any(func(s: Commandable): return s.is_built)
+	return _structures_of(a_id).get_values().any(func(s: Actor): return s.is_built)
 
 
 ## What stops this commander buying `a_tool`: the piece's prerequisites (read off its `type`) and
@@ -465,7 +465,7 @@ func use_resources_for(a_type: Variant) -> void:
 	add_energy(-technology_spec.energy_cost)
 	add_dominion(-technology_spec.dominion_cost)
 	# Infrastructure is upkeep, not a one-time spend — it's adjusted when structures are
-	# built/lost (see Commandable), not deducted per train.
+	# built/lost (see Actor), not deducted per train.
 
 
 ## Refund the cost of `a_type` — the inverse of use_resources_for. Used when a queued
@@ -506,12 +506,12 @@ func _structures_of(a_id: StringName) -> Set:
 	return structure_type_map[a_id]
 
 
-func add_structure(a_structure: Commandable) -> void:
+func add_structure(a_structure: Actor) -> void:
 	_structures_of(a_structure.id).add(a_structure)
 	proc_technology()
 
 
-func remove_structure(a_structure: Commandable) -> void:
+func remove_structure(a_structure: Actor) -> void:
 	_structures_of(a_structure.id).remove(a_structure)
 	proc_technology()
 
@@ -526,7 +526,7 @@ func remove_structure(a_structure: Commandable) -> void:
 ## as still being in play.
 func has_anything_in_play() -> bool:
 	return _owned_commandables().any(
-		func(c: Commandable) -> bool:
+		func(c: Actor) -> bool:
 			return (
 				not c.is_queued_for_deletion()
 				and not c.is_planned
@@ -539,7 +539,7 @@ func has_anything_in_play() -> bool:
 ## (Scenario.win_condition) arms on and eliminates on. A blueprint is a plan, not a centre.
 func owns_command_centre() -> bool:
 	return _owned_commandables().any(
-		func(c: Commandable) -> bool:
+		func(c: Actor) -> bool:
 			return (
 				Deployment.is_command_centre(c)
 				and not c.is_queued_for_deletion()
@@ -561,7 +561,7 @@ func eliminate() -> void:
 	var brain: BotBrain = get_node_or_null("BotBrain") as BotBrain
 	if brain != null:
 		brain.active = false
-	for piece: Commandable in _owned_commandables():
+	for piece: Actor in _owned_commandables():
 		if not piece.is_queued_for_deletion():
 			piece.queue_free()
 
@@ -586,7 +586,7 @@ func has_production_base() -> bool:
 	if production_queue != null and not production_queue.is_empty():
 		return true
 	return _owned_commandables().any(
-		func(c: Commandable) -> bool:
+		func(c: Actor) -> bool:
 			return c.structure_is_active() and not c.is_queued_for_deletion() and not c.is_planned
 	)
 
@@ -605,7 +605,7 @@ func scenario_event_manager() -> ScenarioTriggerManager:
 
 ## The sanctions this commandable may cast right now, given what the commander has
 ## unlocked. Empty when it is nobody's caster or the commander has no sanction grid.
-func sanctions_castable_by(a_caster: Commandable) -> Array[Sanction]:
+func sanctions_castable_by(a_caster: Actor) -> Array[Sanction]:
 	if sanction_grid == null:
 		return [] as Array[Sanction]
 	return sanction_grid.castable_by(a_caster)
@@ -620,7 +620,7 @@ func casters_of_ability(a_ability_id: StringName) -> Array:
 	if String(a_ability_id).is_empty():
 		return []
 	return _owned_commandables().filter(
-		func(c: Commandable) -> bool:
+		func(c: Actor) -> bool:
 			if c.is_queued_for_deletion() or c.is_planned or not c.is_built:
 				return false
 			var abilities := c.get_node_or_null("Abilities") as Abilities
@@ -675,7 +675,7 @@ func toggle_autocast(a_ability_id: StringName) -> void:
 ## `is_built` gate belongs at dispatch (ready_producers), not here.
 func owned_producers() -> Array:
 	return _owned_commandables().filter(
-		func(c: Commandable) -> bool: return not c.is_queued_for_deletion() and c.production != null
+		func(c: Actor) -> bool: return not c.is_queued_for_deletion() and c.production != null
 	)
 
 
@@ -688,7 +688,7 @@ func owned_producers() -> Array:
 ## same question answered for its own tasking (TaskShelter._nearest_available_compound).
 func get_deposit_structures() -> Array:
 	return _owned_commandables().filter(
-		func(s: Commandable) -> bool:
+		func(s: Actor) -> bool:
 			return (
 				s.structure_is_active()
 				and s.is_built
@@ -718,9 +718,9 @@ func next_task_sequence() -> int:
 ## somewhere in the unit's command chain (active or queued behind a pushed errand) — sorted
 ## OLDEST-tasked first. The arbitration `TaskShelter._errand_to_resident` reads each tick to
 ## decide which of several trucks working the same Shelter claims its next resident.
-func trucks_tasked_on(a_shelter: Entity) -> Array[Commandable]:
+func trucks_tasked_on(a_shelter: Entity) -> Array[Actor]:
 	var sequence_of: Dictionary = {}
-	for commandable: Commandable in _owned_commandables():
+	for commandable: Actor in _owned_commandables():
 		if commandable.command_receiver == null:
 			continue
 		for command: MoveCommand in commandable.command_receiver.get_command_chain():
@@ -728,10 +728,10 @@ func trucks_tasked_on(a_shelter: Entity) -> Array[Commandable]:
 			if task != null and task.message.target == a_shelter:
 				sequence_of[commandable] = task.sequence
 				break
-	var tasked: Array[Commandable] = []
+	var tasked: Array[Actor] = []
 	tasked.assign(sequence_of.keys())
 	tasked.sort_custom(
-		func(a: Commandable, b: Commandable) -> bool:
+		func(a: Actor, b: Actor) -> bool:
 			return int(sequence_of[a]) < int(sequence_of[b])
 	)
 	return tasked
@@ -746,7 +746,7 @@ func trucks_tasked_on(a_shelter: Entity) -> Array[Commandable]:
 ## aircraft sent to rearm needs a deck that exists right now.
 func docking_bays() -> Array[DockingBay]:
 	var result: Array[DockingBay] = []
-	for c: Commandable in _owned_commandables():
+	for c: Actor in _owned_commandables():
 		if c.is_queued_for_deletion() or c.is_planned or not c.is_built:
 			continue
 		if c.docking_bay != null:
@@ -760,7 +760,7 @@ func docking_bays() -> Array[DockingBay]:
 ##
 ## Distance is measured to the airfield, not along a flight path, which for an aerial unit
 ## is the same thing.
-func nearest_docking_bay_for(a_unit: Commandable) -> DockingBay:
+func nearest_docking_bay_for(a_unit: Actor) -> DockingBay:
 	var best_free: DockingBay = null
 	var best_free_d: float = INF
 	var best_any: DockingBay = null
@@ -768,7 +768,7 @@ func nearest_docking_bay_for(a_unit: Commandable) -> DockingBay:
 	for bay: DockingBay in docking_bays():
 		if not bay.admits(a_unit):
 			continue
-		var host: Commandable = bay.owner_commandable()
+		var host: Actor = bay.owner_commandable()
 		if host == null:
 			continue
 		var d: float = VU.in_xz(a_unit.global_position).distance_to(VU.in_xz(host.global_position))
@@ -797,7 +797,7 @@ func total_docking_capacity() -> int:
 ## since it can never occupy one.
 func charged_aircraft_count() -> int:
 	var total: int = 0
-	for c: Commandable in _owned_commandables():
+	for c: Actor in _owned_commandables():
 		if c.is_queued_for_deletion() or c.is_planned:
 			continue
 		if c.docking == null:
@@ -827,12 +827,12 @@ func has_spare_docking_capacity() -> bool:
 
 ## Whether `a_piece` would want a pad — the importer's flag on its tool, so an out-of-tree
 ## preview needs no loadout inspection.
-static func _needs_docking(a_piece: Commandable) -> bool:
+static func _needs_docking(a_piece: Actor) -> bool:
 	var tool: Tool = Tool.for_type(a_piece.id)
 	return tool != null and tool.needs_docking
 
 
-static func _pad_count_of(a_piece: Commandable) -> float:
+static func _pad_count_of(a_piece: Actor) -> float:
 	var bay := a_piece.get_node_or_null("DockingBay") as DockingBay
 	return float(bay.capacity()) if bay != null else 0.0
 
@@ -887,7 +887,7 @@ func energy_collection_rate() -> float:
 
 ## Energy/s `a_piece` extracts once it runs. Reads its node rather than an @onready field, so it
 ## answers for an out-of-tree preview instance too (see pending_pieces).
-static func _extraction_rate_of(a_piece: Commandable) -> float:
+static func _extraction_rate_of(a_piece: Actor) -> float:
 	var extractor := a_piece.get_node_or_null("EnergyExtractor") as EnergyExtractor
 	if extractor == null:
 		return 0.0
@@ -902,7 +902,7 @@ func dominion_collection_rate() -> float:
 ## Dominion/s `a_piece`'s own generator pays. payout() rather than the bare `dominion_rate`
 ## field: OccupantDominionGenerator (the Compound) scales payout() with its LIVE occupant count
 ## and leaves the inherited field at its unused script default.
-static func _generation_rate_of(a_piece: Commandable) -> float:
+static func _generation_rate_of(a_piece: Actor) -> float:
 	var generator := a_piece.get_node_or_null("DominionGenerator") as DominionGenerator
 	if generator == null:
 		return 0.0
@@ -923,7 +923,7 @@ func _route_rate() -> float:
 ## can never disagree about which structures are live.
 func energy_source_count() -> int:
 	return _count_over(
-		func(c: Commandable) -> bool: return c.get_node_or_null("EnergyExtractor") != null
+		func(c: Actor) -> bool: return c.get_node_or_null("EnergyExtractor") != null
 	)
 
 
@@ -937,7 +937,7 @@ func energy_source_count() -> int:
 ## anything, so not reporting one is the correct answer and it falls out of the count.
 func dominion_source_count() -> int:
 	return _count_over(
-		func(c: Commandable) -> bool: return c.get_node_or_null("DominionGenerator") != null
+		func(c: Actor) -> bool: return c.get_node_or_null("DominionGenerator") != null
 	)
 
 
@@ -948,7 +948,7 @@ func dominion_source_count() -> int:
 func dominion_contributor_count() -> int:
 	var total: int = 0
 	var any_reported: bool = false
-	for commandable: Commandable in _owned_commandables():
+	for commandable: Actor in _owned_commandables():
 		if (
 			commandable.is_queued_for_deletion()
 			or commandable.is_planned
@@ -1002,7 +1002,7 @@ func projected_dominion_rate() -> float:
 ## This commander's tasked trucks, grouped by the Shelter each is tasked on.
 func _trucks_by_tasked_shelter() -> Dictionary:
 	var by_shelter: Dictionary = {}
-	for commandable: Commandable in _owned_commandables():
+	for commandable: Actor in _owned_commandables():
 		if commandable.command_receiver == null:
 			continue
 		for command: MoveCommand in commandable.command_receiver.get_command_chain():
@@ -1011,8 +1011,8 @@ func _trucks_by_tasked_shelter() -> Dictionary:
 				continue
 			var shelter: Entity = task.message.target
 			if not by_shelter.has(shelter):
-				by_shelter[shelter] = [] as Array[Commandable]
-			(by_shelter[shelter] as Array[Commandable]).append(commandable)
+				by_shelter[shelter] = [] as Array[Actor]
+			(by_shelter[shelter] as Array[Actor]).append(commandable)
 			break
 	return by_shelter
 
@@ -1022,11 +1022,11 @@ func _trucks_by_tasked_shelter() -> Dictionary:
 ## Shelter names no regeneration rate, or the trucks have none.
 func _projected_rate_for_shelter(a_shelter: Entity, a_trucks: Array) -> float:
 	var shelter := a_shelter.get_node_or_null("Shelter") as Shelter
-	var compound: Commandable = SU.nearest_of(get_deposit_structures(), a_shelter)
+	var compound: Actor = SU.nearest_of(get_deposit_structures(), a_shelter)
 	if shelter == null or shelter.spawn_interval <= 0.0 or compound == null or a_trucks.is_empty():
 		return 0.0
 	var truck_speed: float = 0.0
-	for truck: Commandable in a_trucks:
+	for truck: Actor in a_trucks:
 		if truck.movement != null:
 			truck_speed = truck.movement.speed
 			break
@@ -1060,7 +1060,7 @@ func _projected_rate_for_shelter(a_shelter: Entity, a_trucks: Array) -> float:
 ## a spend once a producer has actually started on it.
 func energy_spend_rate() -> float:
 	return _rate_over(
-		func(c: Commandable) -> float:
+		func(c: Actor) -> float:
 			if c.production == null or c.production.is_free():
 				return 0.0
 			var spec: TechnologySpec = technology_mapping.get(c.production.job_type(0))
@@ -1075,7 +1075,7 @@ func energy_spend_rate() -> float:
 ## Blueprints are excluded because a plan neither collects nor spends.
 func _rate_over(a_per_structure: Callable) -> float:
 	var total: float = 0.0
-	for commandable: Commandable in _owned_commandables():
+	for commandable: Actor in _owned_commandables():
 		if (
 			commandable.is_queued_for_deletion()
 			or commandable.is_planned
@@ -1091,7 +1091,7 @@ func _rate_over(a_per_structure: Callable) -> float:
 ## describe the same set of structures.
 func _count_over(a_predicate: Callable) -> int:
 	var total: int = 0
-	for commandable: Commandable in _owned_commandables():
+	for commandable: Actor in _owned_commandables():
 		if (
 			commandable.is_queued_for_deletion()
 			or commandable.is_planned
@@ -1133,7 +1133,7 @@ func energy_clearance_seconds() -> float:
 ##     entries of one instance.
 ## A preview never entered the tree, so read its exports and nodes, never its @onready fields.
 ## A standing entry is a policy, not an order, and is left out.
-func pending_pieces() -> Array[Commandable]:
+func pending_pieces() -> Array[Actor]:
 	# Memoized per frame: every economy bar and each aircraft button asks, every frame, and each
 	# answer is a walk over every owned piece and the whole queue. Keyed on the piece and queue
 	# counts as well, so an order placed earlier in the same frame is not missed.
@@ -1149,12 +1149,12 @@ func pending_pieces() -> Array[Commandable]:
 
 
 var _pending_pieces_key: Array = []
-var _pending_pieces: Array[Commandable] = []
+var _pending_pieces: Array[Actor] = []
 
 
-func _collect_pending_pieces() -> Array[Commandable]:
-	var out: Array[Commandable] = []
-	for piece: Commandable in _owned_commandables():
+func _collect_pending_pieces() -> Array[Actor]:
+	var out: Array[Actor] = []
+	for piece: Actor in _owned_commandables():
 		if piece.is_queued_for_deletion():
 			continue
 		if piece.is_planned or not piece.is_built:
@@ -1176,8 +1176,8 @@ func _collect_pending_pieces() -> Array[Commandable]:
 	return out
 
 
-func _append_preview(a_out: Array[Commandable], a_tool: Tool) -> void:
-	var preview := get_build_preview_instance(a_tool) as Commandable if a_tool != null else null
+func _append_preview(a_out: Array[Actor], a_tool: Tool) -> void:
+	var preview := get_build_preview_instance(a_tool) as Actor if a_tool != null else null
 	if preview != null:
 		a_out.append(preview)
 
@@ -1185,7 +1185,7 @@ func _append_preview(a_out: Array[Commandable], a_tool: Tool) -> void:
 ## `a_value` summed over pending_pieces.
 func _sum_pending(a_value: Callable) -> float:
 	var total: float = 0.0
-	for piece: Commandable in pending_pieces():
+	for piece: Actor in pending_pieces():
 		total += a_value.call(piece) as float
 	return total
 
@@ -1198,14 +1198,14 @@ func _count_pending(a_predicate: Callable) -> int:
 ## Infrastructure capacity pending pieces will add once they are up.
 func pending_infrastructure_provided() -> int:
 	return roundi(
-		_sum_pending(func(p: Commandable) -> float: return float(maxi(p.infrastructure, 0)))
+		_sum_pending(func(p: Actor) -> float: return float(maxi(p.infrastructure, 0)))
 	)
 
 
 ## Infrastructure upkeep pending pieces will add once they are up.
 func pending_infrastructure_required() -> int:
 	return roundi(
-		_sum_pending(func(p: Commandable) -> float: return float(maxi(-p.infrastructure, 0)))
+		_sum_pending(func(p: Actor) -> float: return float(maxi(-p.infrastructure, 0)))
 	)
 
 
@@ -1227,11 +1227,11 @@ func pending_dominion_collection_rate() -> float:
 ## order asking about its own site). Read by placement: a site something on our side already
 ## means to build on is refused (see Build.meets_precondition).
 ## PLANNED — ALLIES: only this commander's blueprints until alliances land (shares_side_with).
-func planned_footprint_cells(a_except: Commandable = null) -> Dictionary:
+func planned_footprint_cells(a_except: Actor = null) -> Dictionary:
 	var out: Dictionary = {}
 	if map == null:
 		return out
-	for piece: Commandable in _owned_commandables():
+	for piece: Actor in _owned_commandables():
 		if piece == a_except or not piece.is_planned or piece.is_queued_for_deletion():
 			continue
 		var obs := piece.get_node_or_null("Structure") as Structure
@@ -1293,7 +1293,7 @@ func _notification(a_what: int) -> void:
 # direct child of this node. get_children() is therefore the authoritative source
 # for owned-entity queries, and requires no scene-tree scan.
 func _owned_commandables() -> Array:
-	return get_children().filter(func(n): return n is Commandable)
+	return get_children().filter(func(n): return n is Actor)
 
 
 # Gathers all commandables owned by an arbitrary list of commanders using the same
@@ -1302,7 +1302,7 @@ func _commandables_of(a_commanders: Array) -> Array:
 	var result: Array = []
 	for c: Commander in a_commanders:
 		for child in c.get_children():
-			if child is Commandable:
+			if child is Actor:
 				result.append(child)
 	return result
 
@@ -1330,7 +1330,7 @@ func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 		map.get_world_3d(), a_position, a_radius, CollisionLayers.TARGETABLE_ANY, NEARBY_MAX_RESULTS
 	)
 	return nearby.filter(
-		func(e): return e is Commandable and e.commander_id != id and e.commander_id != 0
+		func(e): return e is Actor and e.commander_id != id and e.commander_id != 0
 	)
 
 
@@ -1339,7 +1339,7 @@ func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 ## perception read may use.
 func visible_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 	return get_enemies_near(a_position, a_radius).filter(
-		func(e): return (e as Commandable).is_visible_to(id)
+		func(e): return (e as Actor).is_visible_to(id)
 	)
 
 
@@ -1347,8 +1347,8 @@ func visible_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 ## INCLUDING neutral (id 0) ones (extractors, mountains, Shelters, ExtractionSites). Unlike
 ## visible_enemies(), this deliberately keeps neutral structures so the snapshot
 ## memory remembers them too. "Structure" means an entity carrying a Structure
-## component (grid-occupying footprint) — NOT necessarily a Commandable: Shelters and
-## ExtractionSites derive from Entity, so gate on structure_is_active(), not `is Commandable`.
+## component (grid-occupying footprint) — NOT necessarily a Actor: Shelters and
+## ExtractionSites derive from Entity, so gate on structure_is_active(), not `is Actor`.
 ## Uses the "fixture" group + Fog.structure_in_vision (the SAME any-footprint-cell
 ## fog check fog.gd uses to reveal a structure), so it needs no targetable collision
 ## layer (neutral structures may not be on one), and a structure is deemed "seen"
@@ -1385,7 +1385,7 @@ func visible_foreign_structures() -> Array:
 ## simulation's omniscient slot (PlayerSlot.omniscient) is meant to know the whole map.
 func visible_enemies() -> Array:
 	return _commandables_of(_enemy_commanders()).filter(
-		func(e: Commandable) -> bool:
+		func(e: Actor) -> bool:
 			return (
 				not e.is_planned and e.is_inside_tree() and (not has_fog() or e.is_visible_to(id))
 			)

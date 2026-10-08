@@ -32,7 +32,7 @@ extends RegionAwareCondition
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var selected: int = 0
-	for candidate: Commandable in _candidates(a_manager):
+	for candidate: Actor in _candidates(a_manager):
 		if candidate.selectable != null and candidate.selectable.is_selected():
 			selected += 1
 	return selected >= count
@@ -62,7 +62,7 @@ func _candidates(a_manager: ScenarioTriggerManager) -> Array:
 		return []
 	return commander.get_children().filter(
 		func(n: Node) -> bool:
-			var c := n as Commandable
+			var c := n as Actor
 			if c == null:
 				return false
 			if (

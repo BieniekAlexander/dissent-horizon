@@ -55,7 +55,7 @@ const GATHER_WORK_UNITS: int = 12
 ## is a plain move order, indistinguishable from any other, so the combat managers may
 ## retask a warlord walking toward a terrestrial or a truck running down a soldier. Both
 ## re-gather on the next think.
-static func is_committed(unit: Commandable) -> bool:
+static func is_committed(unit: Actor) -> bool:
 	return unit.has_command() and unit.current_command() is Interact
 
 
@@ -115,8 +115,8 @@ func _release_finished_errands() -> void:
 	for unit: Variant in claims.units_of(CLAIM_OWNER):
 		if (
 			not is_instance_valid(unit)
-			or not (unit as Commandable).has_command()
-			or (unit as Commandable).is_garrisoned()
+			or not (unit as Actor).has_command()
+			or (unit as Actor).is_garrisoned()
 		):
 			claims.release(unit, CLAIM_OWNER)
 
@@ -135,8 +135,8 @@ func _gather_liberations() -> Array[BotOpportunity]:
 	var liberators: Array = _free_liberators()
 	if liberators.is_empty():
 		return out
-	for terrestrial: Commandable in _bot.get_neutral_terrestrials():
-		var warlord: Commandable = _nearest(liberators, terrestrial.global_position)
+	for terrestrial: Actor in _bot.get_neutral_terrestrials():
+		var warlord: Actor = _nearest(liberators, terrestrial.global_position)
 		if warlord == null:
 			continue
 		var value: float = _bot.liberation_value(warlord)
@@ -151,13 +151,13 @@ func _gather_liberations() -> Array[BotOpportunity]:
 ## an unoccupied (commandless) warlord is the one we're willing to send. A warlord
 ## already walking to a terrestrial keeps that move command and is skipped here.
 func _free_liberators() -> Array:
-	return _bot.get_liberators().filter(func(u: Commandable): return not u.has_command())
+	return _bot.get_liberators().filter(func(u: Actor): return not u.has_command())
 
 
-func _nearest(a_units: Array, a_world_pos: Vector3) -> Commandable:
-	var best: Commandable = null
+func _nearest(a_units: Array, a_world_pos: Vector3) -> Actor:
+	var best: Actor = null
 	var best_d: float = INF
-	for u: Commandable in a_units:
+	for u: Actor in a_units:
 		var d: float = u.global_position.distance_squared_to(a_world_pos)
 		if d < best_d:
 			best_d = d
@@ -186,14 +186,14 @@ func _nearest(a_units: Array, a_world_pos: Vector3) -> Commandable:
 ## the bot's captures stopped for the rest of the match.
 func _free_carriers() -> Array:
 	return _bot.get_interactors().filter(
-		func(u: Commandable) -> bool:
+		func(u: Actor) -> bool:
 			return not u.has_command() or u.current_command() is AttackMove
 	)
 
 
 ## True when `carrier` resolves the expected interaction `kind` on `target` — routed
 ## through its own Interactor so it honours the same applicability a player click does.
-func _resolves(a_carrier: Commandable, a_target: Entity, a_kind: Interaction.Type) -> bool:
+func _resolves(a_carrier: Actor, a_target: Entity, a_kind: Interaction.Type) -> bool:
 	if a_carrier.interactor == null:
 		return false
 	var interaction: Interaction = a_carrier.interactor.applicable_interaction(
@@ -216,13 +216,13 @@ func _gather_captures() -> Array[BotOpportunity]:
 	if _bot.get_deposit_structures().is_empty():
 		return out
 	var carriers: Array = _free_carriers().filter(
-		func(u: Commandable): return u.garrison != null and u.garrison.remaining_capacity() > 0
+		func(u: Actor): return u.garrison != null and u.garrison.remaining_capacity() > 0
 	)
 	if carriers.is_empty():
 		return out
 	var candidates: Array = _bot.get_capturable_enemies() + _bot.get_neutral_terrestrials()
-	for prey: Commandable in candidates:
-		var carrier: Commandable = _nearest(carriers, prey.global_position)
+	for prey: Actor in candidates:
+		var carrier: Actor = _nearest(carriers, prey.global_position)
 		if carrier == null or not Garrison.can_capture(carrier, prey):
 			continue
 		var value: float = PRISONER_VALUE + 0.5 * float(_bot.unit_cost(prey.id))
@@ -244,7 +244,7 @@ func _gather_deposits() -> Array[BotOpportunity]:
 	var camps: Array = _bot.get_deposit_structures()
 	if camps.is_empty():
 		return out
-	for carrier: Commandable in _bot.get_interactors():
+	for carrier: Actor in _bot.get_interactors():
 		var cage: Garrison = carrier.garrison
 		if cage == null or cage.captive_count() == 0:
 			continue
@@ -253,7 +253,7 @@ func _gather_deposits() -> Array[BotOpportunity]:
 			continue
 		if _is_driving_at_prey(carrier, c):
 			continue
-		var camp: Commandable = _nearest(camps, carrier.global_position)
+		var camp: Actor = _nearest(camps, carrier.global_position)
 		if camp == null or not _resolves(carrier, camp, Interaction.Type.DEPOSIT):
 			continue
 		# Worth the dominion the carried prisoners will bank, scaled by how full the cage is:
@@ -280,13 +280,13 @@ static func deposit_value(a_captives: int, a_capacity: int, a_full: bool) -> flo
 
 ## Whether `a_carrier`'s current order is a move AT something it would capture on contact —
 ## a capture errand in flight, which a deposit must not interrupt one think later.
-func _is_driving_at_prey(a_carrier: Commandable, a_command: MoveCommand) -> bool:
+func _is_driving_at_prey(a_carrier: Actor, a_command: MoveCommand) -> bool:
 	if a_command == null or a_command.message == null:
 		return false
 	var target: Variant = a_command.message.target
-	if target == null or not is_instance_valid(target) or not (target is Commandable):
+	if target == null or not is_instance_valid(target) or not (target is Actor):
 		return false
-	return Garrison.can_capture(a_carrier, target as Commandable)
+	return Garrison.can_capture(a_carrier, target as Actor)
 
 
 # ─── GARRISON (bunker fire support) ─────────────────────────────────────────
@@ -304,7 +304,7 @@ func _gather_garrison_orders() -> Array[BotOpportunity]:
 	if hosts.is_empty():
 		return out
 	var candidates: Array = _bot.get_idle_units().filter(
-		func(u: Commandable) -> bool:
+		func(u: Actor) -> bool:
 			return (
 				u.movement != null
 				and u.movement.mode == Movement.Mode.GROUNDED
@@ -316,13 +316,13 @@ func _gather_garrison_orders() -> Array[BotOpportunity]:
 	)
 	if candidates.is_empty():
 		return out
-	for host: Commandable in hosts:
+	for host: Actor in hosts:
 		# Only units this host's occupancy masks admit — a hangar-style bunker that takes
 		# only aircraft must not be offered the nearest infantryman.
 		var admitted: Array = candidates.filter(
-			func(u: Commandable) -> bool: return host.garrison.accepts(u)
+			func(u: Actor) -> bool: return host.garrison.accepts(u)
 		)
-		var nearest: Commandable = _nearest(admitted, host.global_position)
+		var nearest: Actor = _nearest(admitted, host.global_position)
 		if nearest == null:
 			continue
 		var dist: float = nearest.global_position.distance_to(host.global_position)
@@ -335,7 +335,7 @@ func _gather_garrison_orders() -> Array[BotOpportunity]:
 
 ## Utility of garrisoning [unit] into a bunker: its weapon output minus a small
 ## travel cost so nearby units are preferred over distant ones.
-func _bunker_garrison_utility(a_unit: Commandable, a_distance: float) -> float:
+func _bunker_garrison_utility(a_unit: Actor, a_distance: float) -> float:
 	var attack_value: float = (
 		a_unit.weapon_inventory.total_damage() if a_unit.weapon_inventory != null else 0.0
 	)

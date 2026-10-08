@@ -29,7 +29,7 @@ class_name CommandContextParser
 ## to be hardcoded here as two name lists; the registry is the source of truth.
 
 ## HOLD FIRE is a pseudo-command: no class, never queued. Pressing it sets
-## Commandable.is_holding_fire on each armed piece in the selection and nothing else. Named
+## Actor.is_holding_fire on each armed piece in the selection and nothing else. Named
 ## here because the controller answers it and the button classifier reads it.
 const HOLD_FIRE_COMMAND: String = "command_hold_fire"
 
@@ -52,7 +52,7 @@ static var _rules: Array
 
 
 ## Whether `a_entity` has something to shoot WITH — a Loadout actually holding a Weapon, or
-## a bunker garrison whose occupants' fire it propagates (Commandable.is_armed).
+## a bunker garrison whose occupants' fire it propagates (Actor.is_armed).
 ##
 ## Reads the NODE rather than `Entity.weapon_inventory`, which is `@onready` and so still
 ## null for an entity that has never entered the tree — a build preview, a test fixture. A
@@ -68,14 +68,14 @@ static func _is_armed(a_entity: Entity) -> bool:
 	var loadout := a_entity.get_node_or_null("Loadout") as Loadout
 	if loadout != null and loadout.has_weapons():
 		return true
-	var commandable := a_entity as Commandable
+	var commandable := a_entity as Actor
 	return commandable != null and commandable.is_armed()
 
 
 ## Whether `a_entity` can be sent somewhere: it moves, and is not on rails
-## (Commandable.is_on_rails).
+## (Actor.is_on_rails).
 static func _goes_where_ordered(a_entity: Entity) -> bool:
-	var commandable := a_entity as Commandable
+	var commandable := a_entity as Actor
 	return (
 		a_entity.live_movement() != null and not (commandable != null and commandable.is_on_rails())
 	)
@@ -92,17 +92,17 @@ static func _build_rules() -> Array:
 		# ATTACK-MOVE NEEDS SOMETHING TO SHOOT WITH, not merely a Loadout node. An unarmed
 		# vehicle carries an empty one, and offering it an attack-move handed it an order it
 		# could never carry out: the click resolves to Attack the moment it lands on a
-		# Commandable (RTSController._resolve_hotkey_command), and Attack on a weaponless actor
+		# Actor (RTSController._resolve_hotkey_command), and Attack on a weaponless actor
 		# can never act and never moves, so the unit stood still holding a dead order.
 		#
 		# CRUSHING IS NOT A WEAPON. A truck flattens what it drives over as a physics contact,
 		# with no aim, no range and no intent — so it must not read as a reason to offer an
-		# attack order. See Commandable._tick_crush.
+		# attack order. See Actor._tick_crush.
 		#
 		# TODO: `command_attack` and `command_defend` above/below still gate on the Loadout NODE
 		# and have the same defect — an unarmed truck is offered an Attack button that does
 		# nothing. Not changed here because only attack-move was asked for, and because the
-		# bunker case needs a decision first: Commandable.is_armed() counts a garrison holding
+		# bunker case needs a decision first: Actor.is_armed() counts a garrison holding
 		# armed occupants, so gating those two on _is_armed would make a shelter's attack button
 		# appear and disappear as it is loaded and emptied.
 		# Offered on rails too: there the button only attacks a TARGET, since the ground click
@@ -123,7 +123,7 @@ static func _build_rules() -> Array:
 		],
 		[func(e: Entity): return e.has_node("Production"), "command_train"],
 		# NO rally entry for Production. A producer accepts a bare MoveCommand as a RALLY
-		# (Commandable._absorb_rally_commands) and always did, but that is resolved by the
+		# (Actor._absorb_rally_commands) and always did, but that is resolved by the
 		# right-click ladder, which never consults this table — so advertising `command_move`
 		# here only ever put a GO BUTTON on the card of a building that cannot go anywhere.
 		# It also made every stationary producer report an ACTIVE command, which is what put a
@@ -200,7 +200,7 @@ static func _can_plant(e: Entity) -> bool:
 
 
 static func _can_detonate(e: Entity) -> bool:
-	return e is Commandable and Detonate.charge_of(e as Commandable) != null
+	return e is Actor and Detonate.charge_of(e as Actor) != null
 
 
 static func _grants(e: Entity, ability_id: StringName) -> bool:
@@ -374,7 +374,7 @@ static func command_for_name(name: String) -> Script:
 ## This is what makes a unit TRANSFORMATION able to carry its orders across (see
 ## CommandReceiver.portable_chain_for): a Warlord has no Builds component, so an
 ## Irregular's queued Build is not portable, while its queued Move is.
-static func actor_can_perform(actor: Commandable, command: MoveCommand) -> bool:
+static func actor_can_perform(actor: Actor, command: MoveCommand) -> bool:
 	var name: String = name_for(command)
 	if name.is_empty():
 		return true
@@ -405,7 +405,7 @@ static func commands_for(entity: Entity) -> Array:
 	# here, read off the commander's sanction grid.
 	# Ordered so the CHEAP, always-safe checks come first: Entity.commander reads through
 	# the Ownership component, which a bare out-of-tree node has not resolved yet.
-	var caster := entity as Commandable
+	var caster := entity as Actor
 	if (
 		caster != null
 		and caster.get_node_or_null("Abilities") != null

@@ -17,8 +17,8 @@ func _controller() -> RTSController:
 	return controller
 
 
-func _unit(a_options: Dictionary, a_xz: Vector2) -> Commandable:
-	var unit: Commandable = FakePieces.unit(a_options)
+func _unit(a_options: Dictionary, a_xz: Vector2) -> Actor:
+	var unit: Actor = FakePieces.unit(a_options)
 	add_child_autofree(unit)
 	unit.global_position = Vector3(a_xz.x, 0.0, a_xz.y)
 	return unit
@@ -112,8 +112,8 @@ func test_orders_that_are_not_a_move_may_not() -> void:
 
 #region Laying out a selection
 func test_an_immobile_actor_takes_no_slot() -> void:
-	var mover: Commandable = _unit({"speed": 2.0}, Vector2(0, 5))
-	var still: Commandable = _unit({}, Vector2(1, 5))
+	var mover: Actor = _unit({"speed": 2.0}, Vector2(0, 5))
+	var still: Actor = _unit({}, Vector2(1, 5))
 	assert_eq(OrderDispatcher.line_movers([mover, still]), [mover])
 
 
@@ -121,7 +121,7 @@ func test_a_lone_actor_goes_to_the_end_of_the_line() -> void:
 	var controller := _controller()
 	controller._line_start = Vector2(0, 0)
 	controller._line_end = Vector2(10, 0)
-	var mover: Commandable = _unit({"speed": 2.0}, Vector2(0, 5))
+	var mover: Actor = _unit({"speed": 2.0}, Vector2(0, 5))
 	var result: Dictionary = controller._line_destinations([mover])
 	assert_eq(result[mover], Vector2(10, 0))
 
@@ -130,10 +130,10 @@ func test_ground_and_air_each_fill_the_whole_line() -> void:
 	var controller := _controller()
 	controller._line_start = Vector2(0, 0)
 	controller._line_end = Vector2(20, 0)
-	var ground: Array[Commandable] = [
+	var ground: Array[Actor] = [
 		_unit({"speed": 2.0}, Vector2(0, 5)), _unit({"speed": 2.0}, Vector2(4, 5))
 	]
-	var air: Array[Commandable] = [
+	var air: Array[Actor] = [
 		_unit({"aerial": true}, Vector2(0, 8)), _unit({"aerial": true}, Vector2(4, 8))
 	]
 	var result: Dictionary = controller._line_destinations(ground + air)

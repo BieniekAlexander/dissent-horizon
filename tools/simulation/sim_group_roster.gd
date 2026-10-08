@@ -37,7 +37,7 @@ func register_slot(a_slot: String, a_commander_id: int) -> void:
 	_slot_ids[a_slot] = a_commander_id
 
 
-func add(a_reference: String, a_entity: Commandable, a_piece: String) -> void:
+func add(a_reference: String, a_entity: Actor, a_piece: String) -> void:
 	if not _members.has(a_reference):
 		_members[a_reference] = []
 	(_members[a_reference] as Array).append(
@@ -121,7 +121,7 @@ func living(a_reference: String, a_piece: String = "") -> Array:
 		var member: Variant = entry["entity"]
 		if not is_instance_valid(member):
 			continue
-		var entity: Commandable = member
+		var entity: Actor = member
 		if entity.defense != null and entity.defense.hp <= 0.0:
 			continue
 		result.append(entity)
@@ -141,7 +141,7 @@ func centroid(a_reference: String, a_piece: String = "") -> Variant:
 	if alive.is_empty():
 		return null
 	var total: Vector3 = Vector3.ZERO
-	for entity: Commandable in alive:
+	for entity: Actor in alive:
 		total += entity.global_position
 	return total / float(alive.size())
 

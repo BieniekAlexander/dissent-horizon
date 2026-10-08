@@ -101,15 +101,15 @@ func tick() -> int:
 	_capture_errands = -1  # recomputed lazily, at most once per think
 	var demand: Dictionary = _bot.enemy_demand_map()
 	var producers: Array = _bot.get_idle_production_structures()
-	var infrastructure_producer: Commandable = _train_infrastructure_unit(producers)
+	var infrastructure_producer: Actor = _train_infrastructure_unit(producers)
 	var wanted: Array = []  # [producer, type] for every combat pick, to propose before spending
-	for s: Commandable in producers:
+	for s: Actor in producers:
 		if s == infrastructure_producer:
 			continue
 		wanted.append([s, _best_unit_for(s, demand)])
 	_propose_savings(wanted, demand)
 	for pick: Array in wanted:
-		var s: Commandable = pick[0]
+		var s: Actor = pick[0]
 		var type: StringName = pick[1]
 		# A structure that can't train any combat unit (e.g. the Settlement, which only
 		# makes the weaponless Stock Truck) instead fields a capped number of utility
@@ -153,13 +153,13 @@ func _propose_savings(a_wanted: Array, a_demand: Dictionary) -> void:
 ## purchase the bank exists to keep affordable. A provider is not a combat or utility unit, so
 ## without this the bot never trained one — and the economy, finding no structure provider,
 ## would have built Outposts for infrastructure instead.
-func _train_infrastructure_unit(a_idle_producers: Array) -> Commandable:
+func _train_infrastructure_unit(a_idle_producers: Array) -> Actor:
 	if not _bot.needs_infrastructure_provider() or not _bot.infrastructure_source_is_unit():
 		return null
 	var source: StringName = _bot.infrastructure_source_type()
 	if _infrastructure_unit_on_its_way(source) or not _bot.can_afford(source):
 		return null
-	for s: Commandable in a_idle_producers:
+	for s: Actor in a_idle_producers:
 		if s.production.can_produce(source):
 			_act.train(s, source)
 			return s
@@ -172,7 +172,7 @@ func _infrastructure_unit_on_its_way(a_type: StringName) -> bool:
 	for t: PurchaseTransaction in _bot.production_queue.pending():
 		if t.type == a_type and t.is_pending():
 			return true
-	for s: Commandable in _bot.get_production_structures():
+	for s: Actor in _bot.get_production_structures():
 		if s.production.is_producing(a_type):
 			return true
 	return false
@@ -180,7 +180,7 @@ func _infrastructure_unit_on_its_way(a_type: StringName) -> bool:
 
 ## Cheapest affordable producible utility unit at [structure] that the bot still has WORK
 ## for, or UNDEFINED. Used only when no combat unit is producible there.
-func _best_utility_unit_for(a_structure: Commandable) -> StringName:
+func _best_utility_unit_for(a_structure: Actor) -> StringName:
 	var best: StringName = &""
 	var best_cost: int = 1 << 30
 	for t: StringName in _bot.considered_producible_types(a_structure.production):
@@ -266,7 +266,7 @@ func _capture_errand_count() -> int:
 ## carrier are all drawn from. Counted across types because scouting is a pool errand.
 func _owned_utility_unit_count() -> int:
 	var count: int = 0
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		if _bot.unit_is_utility(u.id):
 			count += 1
 	return count
@@ -275,7 +275,7 @@ func _owned_utility_unit_count() -> int:
 ## The producible unit at [structure] that best counters the believed enemy. With no
 ## intel yet (empty demand), falls back to the cheapest affordable unit so the
 ## building still fields an opening army.
-func _best_unit_for(a_structure: Commandable, a_demand: Dictionary) -> StringName:
+func _best_unit_for(a_structure: Actor, a_demand: Dictionary) -> StringName:
 	if a_demand.is_empty():
 		return _cheapest_affordable_unit(a_structure)
 	var types: Array = []
@@ -333,7 +333,7 @@ func _learned_scores(a_types: Array) -> Array:
 	)
 
 
-func _cheapest_affordable_unit(a_structure: Commandable) -> StringName:
+func _cheapest_affordable_unit(a_structure: Actor) -> StringName:
 	var best: StringName = &""
 	var best_cost: int = 1 << 30
 	var scored: Dictionary = {}  # cheaper scores higher, so the audit reads it like any choice

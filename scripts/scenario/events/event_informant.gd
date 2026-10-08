@@ -26,7 +26,7 @@ enum Eligibility {
 @export var eligibility: Eligibility = Eligibility.BUILDER
 
 
-func _qualifies(a_candidate: Commandable) -> bool:
+func _qualifies(a_candidate: Actor) -> bool:
 	# Already stealthed is not a candidate, so a click near a mixed group finds a unit the
 	# sanction can actually do something to instead of no-oping on the nearest one.
 	if a_candidate.stealth != null:
@@ -43,7 +43,7 @@ func _qualifies(a_candidate: Commandable) -> bool:
 
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
-	var target: Commandable = _find_target_unit(a_manager)
+	var target: Actor = _find_target_unit(a_manager)
 	if target == null:
 		return
 	var stealth := Stealth.new()

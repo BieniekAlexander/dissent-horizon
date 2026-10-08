@@ -56,8 +56,8 @@ func after_each() -> void:
 
 
 ## A unit granted Spot.
-func _recruit(a_at: Vector2 = Vector2.ZERO) -> Commandable:
-	var unit: Commandable = FakePieces.make(RECRUIT)
+func _recruit(a_at: Vector2 = Vector2.ZERO) -> Actor:
+	var unit: Actor = FakePieces.make(RECRUIT)
 	_commander.add_child(unit)
 	autofree(unit)
 	unit.top_level = true
@@ -74,26 +74,26 @@ func _order(a_target: Vector2) -> Spot:
 
 ## Give the actor a Map so a beacon has somewhere to be placed. Minimal: _raise_beacon
 ## reads only terrain_height_at.
-func _give_map(a_actor: Commandable) -> void:
+func _give_map(a_actor: Actor) -> void:
 	if _map == null:
 		_map = StubMap.new()
 	a_actor.map = _map
 
 
 ## Run the channel to completion, returning the beacon it raised.
-func _channel_out(a_actor: Commandable, a_command: Spot) -> Beacon:
+func _channel_out(a_actor: Actor, a_command: Spot) -> Beacon:
 	for _i: int in Spot.channel_ticks():
 		a_command.fulfill_action(a_actor)
 	return a_command._beacon
 
 
 ## The spotter's ability pool.
-func _pool(a_actor: Commandable) -> Abilities:
+func _pool(a_actor: Actor) -> Abilities:
 	return a_actor.get_node("Abilities") as Abilities
 
 
 ## Tick `a_actor`'s ability pool `a_ticks` times.
-func _recharge(a_actor: Commandable, a_ticks: int) -> void:
+func _recharge(a_actor: Actor, a_ticks: int) -> void:
 	for _i: int in a_ticks:
 		_pool(a_actor)._physics_process(0.0)
 
@@ -111,7 +111,7 @@ func test_the_recruit_is_a_spotter() -> void:
 
 
 func test_a_unit_without_the_component_cannot_spot() -> void:
-	var badger: Commandable = FakePieces.unit({"speed": 2.0, "weapon": {"ground": 6.0}})
+	var badger: Actor = FakePieces.unit({"speed": 2.0, "weapon": {"ground": 6.0}})
 	autofree(badger)
 	assert_ne(Spot.meets_precondition(badger, null), MoveCommand.PreconditionFailureCause.NONE)
 	assert_false(CommandContextParser.commands_for(badger).has("command_spot"))
@@ -120,7 +120,7 @@ func test_a_unit_without_the_component_cannot_spot() -> void:
 func test_the_reach_is_the_ability_docs_range_and_the_channel_is_in_seconds() -> void:
 	# The reach is read off the spot ability's `range:` (10 in this fixture); the channel is
 	# authored in seconds and counted in ticks.
-	var recruit: Commandable = FakePieces.unit({"abilities": [{"grants": [Spot.ABILITY_ID]}]})
+	var recruit: Actor = FakePieces.unit({"abilities": [{"grants": [Spot.ABILITY_ID]}]})
 	autofree(recruit)
 	assert_almost_eq(Spot.target_range(recruit), 10.0, 0.001)
 	assert_eq(Spot.channel_ticks(), TimeUtils.ticks_from_seconds(Spot.CHANNEL_SECONDS))
@@ -361,7 +361,7 @@ func test_when_every_recruit_is_spotting_the_nearest_goes() -> void:
 
 
 ## A unit granted Spot that PLANTS its beacon (the Sleeper's way).
-func _planter(a_at: Vector2 = Vector2.ZERO) -> Commandable:
+func _planter(a_at: Vector2 = Vector2.ZERO) -> Actor:
 	var unit := _recruit(a_at)
 	var planter := BeaconPlanter.new()
 	planter.name = "BeaconPlanter"
@@ -405,7 +405,7 @@ func test_a_planter_plants_a_ground_beacon_and_the_order_ends() -> void:
 
 func test_aimed_over_a_vehicle_a_planter_plants_on_the_ground_beneath() -> void:
 	var planter := _planter(Vector2(5, 0))
-	var vehicle: Commandable = FakePieces.make(FakePieces.MACHINE)
+	var vehicle: Actor = FakePieces.make(FakePieces.MACHINE)
 	var foe := Commander.new()
 	foe.id = 2
 	add_child_autofree(foe)

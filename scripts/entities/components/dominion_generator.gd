@@ -2,7 +2,7 @@ class_name DominionGenerator
 extends Node
 
 ## Generates dominion for the owning commander at a fixed tick rate. Attach as
-## a child of a Commandable that should contribute dominion over time.
+## a child of a Actor that should contribute dominion over time.
 
 #region Properties
 @export var dominion_rate: int = 10
@@ -19,7 +19,7 @@ var build_up_max: int = 10
 func tick() -> void:
 	ticks_elapsed += 1
 	if ticks_elapsed == TICK_RATE:
-		var commandable := get_parent() as Commandable
+		var commandable := get_parent() as Actor
 		commandable.commander.add_dominion(dominion_rate)
 		ticks_elapsed = 0
 		build_up += 1

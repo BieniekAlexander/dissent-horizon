@@ -19,7 +19,7 @@ signal one_shot_requested(a_request: AnimationRequest)
 ## How this kind of piece animates. Left empty, the default: one body clip per action.
 @export var profile: AnimationProfile = null
 
-var _host: Commandable = null
+var _host: Actor = null
 ## Framework-imposed state: what each layer was last told to hold, so an unchanged tick says
 ## nothing.
 var _held: Array[AnimationRequest] = []
@@ -28,7 +28,7 @@ var _held: Array[AnimationRequest] = []
 func _ready() -> void:
 	if profile == null:
 		profile = AnimationProfile.new()
-	_host = get_parent() as Commandable
+	_host = get_parent() as Actor
 	if _host == null:
 		return
 	_host.action_tracker.cued.connect(_on_cued)

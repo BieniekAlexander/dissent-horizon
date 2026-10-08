@@ -35,8 +35,8 @@ func _commanded(a_id: int) -> Commander:
 
 ## A live unit instance owned by [a_commander_id]. Ownership is assigned directly (not
 ## through initialize) so no Map is needed.
-func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var u: Commandable = (
+func _unit(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var u: Actor = (
 		FakePieces.structure(a_options)
 		if a_options.has("structure")
 		else FakePieces.unit(a_options)
@@ -50,7 +50,7 @@ func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
 
 
-func _interaction_of(a_unit: Commandable, a_type: Interaction.Type) -> Interaction:
+func _interaction_of(a_unit: Actor, a_type: Interaction.Type) -> Interaction:
 	if a_unit.interactor == null:
 		return null
 	for i: Interaction in a_unit.interactor.interactions:

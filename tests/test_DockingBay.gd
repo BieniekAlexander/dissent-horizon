@@ -43,8 +43,8 @@ func _commander(a_id: int) -> Commander:
 
 ## A live entity owned by `a_commander`. Ownership is assigned directly rather than through
 ## initialize() so no Map is needed — the same shortcut test_Garrison takes.
-func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
-	var e := FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary, a_commander: Commander) -> Actor:
+	var e := FakePieces.make(a_options) as Actor
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e
@@ -53,8 +53,8 @@ func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
 ## A FINISHED airfield. `is_built` is derived from build_progress, not settable, so a
 ## structure is finished by completing it — editor-placed structures already default to
 ## 1.0, and this is here to say so at the call site.
-func _airfield(a_commander: Commander) -> Commandable:
-	var f: Commandable = _entity(AIRFIELD, a_commander)
+func _airfield(a_commander: Commander) -> Actor:
+	var f: Actor = _entity(AIRFIELD, a_commander)
 	f.build_progress = 1.0
 	return f
 
@@ -107,7 +107,7 @@ func test_a_bay_refuses_an_aircraft_that_opts_out_of_airfields() -> void:
 	# that refusal declarative rather than incidental.
 	var cmd: Commander = _commander(1)
 	var bay: DockingBay = _airfield(cmd).docking_bay
-	var drone: Commandable = _entity(KAMIKAZE, cmd)
+	var drone: Actor = _entity(KAMIKAZE, cmd)
 	assert_eq(drone.movement.mode, Movement.Mode.FLYING, "it flies (the fixture this needs)")
 	assert_false(bay.admits(drone), "but it does not use airfields")
 	assert_null(bay.reserve(drone), "so it is handed no pad")
@@ -115,7 +115,7 @@ func test_a_bay_refuses_an_aircraft_that_opts_out_of_airfields() -> void:
 
 func test_an_unfinished_airfield_admits_nothing() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _entity(AIRFIELD, cmd)
+	var field: Actor = _entity(AIRFIELD, cmd)
 	field.build_progress = 0.5
 	assert_false(field.is_built, "half-built (the fixture this test needs)")
 	assert_false(
@@ -133,7 +133,7 @@ func test_reserving_claims_one_pad_and_is_idempotent() -> void:
 	# same pad rather than eating the whole bay.
 	var cmd: Commander = _commander(1)
 	var bay: DockingBay = _airfield(cmd).docking_bay
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var pad: DockingPad = bay.reserve(plane)
 	assert_not_null(pad, "a free bay hands out a pad")
 	assert_eq(bay.free_pads().size(), bay.capacity() - 1, "exactly one pad is spoken for")
@@ -157,7 +157,7 @@ func test_a_full_bay_hands_out_nothing_but_still_admits() -> void:
 	var bay: DockingBay = _airfield(cmd).docking_bay
 	for i in bay.capacity():
 		assert_not_null(bay.reserve(_entity(CLIPPER, cmd)), "pad %d claimed" % i)
-	var latecomer: Commandable = _entity(CLIPPER, cmd)
+	var latecomer: Actor = _entity(CLIPPER, cmd)
 	assert_false(bay.has_free_pad(), "the bay is full")
 	assert_null(bay.reserve(latecomer), "so nothing is handed out")
 	assert_true(bay.admits(latecomer), "but the aircraft is still one this bay serves")
@@ -167,7 +167,7 @@ func test_a_full_bay_hands_out_nothing_but_still_admits() -> void:
 func test_releasing_returns_the_pad() -> void:
 	var cmd: Commander = _commander(1)
 	var bay: DockingBay = _airfield(cmd).docking_bay
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	bay.reserve(plane)
 	bay.release(plane)
 	assert_eq(bay.free_pads().size(), bay.capacity(), "the space is free again")
@@ -178,10 +178,10 @@ func test_a_stale_release_cannot_evict_the_current_occupant() -> void:
 	# the newcomer off the pad.
 	var cmd: Commander = _commander(1)
 	var bay: DockingBay = _airfield(cmd).docking_bay
-	var first: Commandable = _entity(CLIPPER, cmd)
+	var first: Actor = _entity(CLIPPER, cmd)
 	var pad: DockingPad = bay.reserve(first)
 	pad.release(first)
-	var second: Commandable = _entity(CLIPPER, cmd)
+	var second: Actor = _entity(CLIPPER, cmd)
 	pad.claim(second)
 	pad.release(first)  # the stale release
 	assert_same(pad.claimed_by(), second, "the current occupant keeps its pad")
@@ -192,7 +192,7 @@ func test_a_destroyed_claimant_does_not_strand_its_pad() -> void:
 	# read as gone rather than reserving a space forever.
 	var cmd: Commander = _commander(1)
 	var bay: DockingBay = _airfield(cmd).docking_bay
-	var doomed: Commandable = _entity(CLIPPER, cmd)
+	var doomed: Actor = _entity(CLIPPER, cmd)
 	var pad: DockingPad = bay.reserve(doomed)
 	assert_false(pad.is_free(), "claimed while alive")
 	doomed.free()
@@ -208,8 +208,8 @@ func test_only_an_arrived_aircraft_is_recharged() -> void:
 	# A pad is claimed from the moment its aircraft SETS OFF. Charging on the claim alone
 	# would let a unit refill in flight and never actually land.
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
 	assert_true(weapon.charged, "the aircraft's weapon is charged (the fixture this needs)")
 	for i in weapon.clip_size:
@@ -230,7 +230,7 @@ func test_only_an_arrived_aircraft_is_recharged() -> void:
 #region The capacity soft gate
 func test_spare_capacity_counts_charged_aircraft_against_pads() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	field.reparent(cmd)
 	var pads: int = field.docking_bay.capacity()
 	assert_eq(cmd.total_docking_capacity(), pads, "pads across every finished airfield")
@@ -266,14 +266,14 @@ func test_opted_out_aircraft_do_not_consume_capacity() -> void:
 func test_an_opted_out_aircraft_is_sent_to_no_airfield() -> void:
 	var cmd: Commander = _commander(1)
 	_airfield(cmd).reparent(cmd)
-	var drone: Commandable = _entity(KAMIKAZE, cmd)
+	var drone: Actor = _entity(KAMIKAZE, cmd)
 	drone.reparent(cmd)
 	assert_null(cmd.nearest_docking_bay_for(drone), "there is nowhere it would go")
 
 
 func test_a_commander_with_no_airfield_has_no_capacity_and_no_bay_to_send_to() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.reparent(cmd)
 	assert_eq(cmd.total_docking_capacity(), 0)
 	assert_false(cmd.has_spare_docking_capacity(), "one aircraft, nowhere to put it")
@@ -286,13 +286,13 @@ func test_a_commander_with_no_airfield_has_no_capacity_and_no_bay_to_send_to() -
 #region Choosing a bay
 func test_the_nearest_bay_with_a_free_pad_wins() -> void:
 	var cmd: Commander = _commander(1)
-	var near: Commandable = _airfield(cmd)
+	var near: Actor = _airfield(cmd)
 	near.reparent(cmd)
 	near.global_position = Vector3(5, 0, 0)
-	var far: Commandable = _airfield(cmd)
+	var far: Actor = _airfield(cmd)
 	far.reparent(cmd)
 	far.global_position = Vector3(50, 0, 0)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.reparent(cmd)
 	plane.global_position = Vector3.ZERO
 	assert_same(cmd.nearest_docking_bay_for(plane), near.docking_bay, "the close one")
@@ -302,9 +302,9 @@ func test_a_full_near_bay_still_beats_no_bay_at_all() -> void:
 	# With every pad taken the unit queues at the nearest rather than refusing to go —
 	# the same "a full host is a queue, not a refusal" rule Occupy follows.
 	var cmd: Commander = _commander(1)
-	var only: Commandable = _airfield(cmd)
+	var only: Actor = _airfield(cmd)
 	only.reparent(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.reparent(cmd)
 	for i in only.docking_bay.capacity():
 		only.docking_bay.reserve(_entity(CLIPPER, cmd))
@@ -318,14 +318,14 @@ func test_a_full_near_bay_still_beats_no_bay_at_all() -> void:
 #region Runways
 ## A runway is a LINE with a takeoff point at one end, and the direction is the whole point
 ## of it: both halves of the choreography are stated relative to that end.
-func _runway_of(a_field: Commandable) -> Runway:
+func _runway_of(a_field: Actor) -> Runway:
 	var bay: DockingBay = a_field.get_node("DockingBay") as DockingBay
 	return bay.runway_for(bay.pads()[0])
 
 
 func test_the_sky_port_authors_a_runway_along_its_apron() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
 	assert_not_null(strip, "the Sky Port has a strip")
 	assert_almost_eq(strip.heading().length(), 1.0, 0.001, "which points somewhere")
@@ -340,7 +340,7 @@ func test_the_sky_port_authors_a_runway_along_its_apron() -> void:
 ## Where a departing aircraft joins the strip, and where an arriving one leaves it.
 func test_the_nearest_point_lands_on_the_strip_and_is_clamped_to_it() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
 	var pad: DockingPad = (field.get_node("DockingBay") as DockingBay).pads()[0]
 
@@ -370,7 +370,7 @@ func test_the_nearest_point_lands_on_the_strip_and_is_clamped_to_it() -> void:
 ## instead of dropping onto it across or back to front.
 func test_the_approach_fix_lies_beyond_the_threshold_on_the_centreline() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
 	var fix: Vector3 = strip.approach_point(10.0)
 
@@ -396,7 +396,7 @@ func test_the_approach_fix_lies_beyond_the_threshold_on_the_centreline() -> void
 ## The ground drive is Movement's, shared by both halves so they cannot drift apart.
 func test_taxiing_walks_the_aircraft_along_its_path_and_stops() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.global_position = Vector3(5.0, 0.0, 5.0)
 	plane.aerial.park_on_deck(0.0)
 
@@ -421,10 +421,10 @@ func test_taxiing_walks_the_aircraft_along_its_path_and_stops() -> void:
 	assert_true(plane.aerial.is_docked(), "and is back to being parked when it stops")
 
 
-## A taxi is a ground drive, so the height is Commandable's business throughout.
+## A taxi is a ground drive, so the height is Actor's business throughout.
 func test_taxiing_leaves_the_height_alone() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.global_position = Vector3(5.0, 2.5, 0.0)
 	plane.aerial.park_on_deck(0.0)
 	plane.aerial.taxi_along([Vector3(0.0, 0.0, 0.0)], Callable())
@@ -436,7 +436,7 @@ func test_taxiing_leaves_the_height_alone() -> void:
 ## instruction.
 func test_an_airborne_unit_cannot_be_told_to_taxi() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.aerial.taxi_along([Vector3(0.0, 0.0, 0.0)], Callable())
 	assert_false(plane.aerial.is_taxiing())
 
@@ -447,14 +447,14 @@ func test_an_airborne_unit_cannot_be_told_to_taxi() -> void:
 #region Rolling out onto a pad
 ## An airfield's own aircraft appears ON the airfield. Production asks the bay first and
 ## only falls back to the ordinary ground spawn when there is no pad for this unit.
-func _production_of(a_field: Commandable) -> Production:
+func _production_of(a_field: Actor) -> Production:
 	return a_field.get_node("Production") as Production
 
 
 func test_a_new_aircraft_is_rolled_out_onto_a_free_pad() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	assert_true(_production_of(field)._spawn_on_pad(field, plane), "the bay took it")
 	assert_true(plane.aerial.is_docked(), "and it is standing on the deck, not over it")
 	assert_not_null(plane.docking.docked_pad, "holding the pad it was given")
@@ -469,9 +469,9 @@ func test_a_new_aircraft_is_rolled_out_onto_a_free_pad() -> void:
 ## being built on top of the first.
 func test_two_aircraft_rolled_out_take_different_pads() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var a: Commandable = _entity(CLIPPER, cmd)
-	var b: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var a: Actor = _entity(CLIPPER, cmd)
+	var b: Actor = _entity(CLIPPER, cmd)
 	assert_true(_production_of(field)._spawn_on_pad(field, a))
 	assert_true(_production_of(field)._spawn_on_pad(field, b))
 	assert_ne(a.docking.docked_pad, b.docking.docked_pad)
@@ -481,8 +481,8 @@ func test_two_aircraft_rolled_out_take_different_pads() -> void:
 ## airfield does not appear parked on the apron.
 func test_a_ground_unit_is_never_rolled_out_onto_a_pad() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var soldier: Commandable = _entity(RECRUIT, cmd)
+	var field: Actor = _airfield(cmd)
+	var soldier: Actor = _entity(RECRUIT, cmd)
 	assert_false(_production_of(field)._spawn_on_pad(field, soldier))
 	assert_null(soldier.docking, "it does not dock, so it holds no pad")
 
@@ -490,9 +490,9 @@ func test_a_ground_unit_is_never_rolled_out_onto_a_pad() -> void:
 ## Leaving is the one way off, and it gives the space back.
 func test_leaving_the_dock_returns_the_pad() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var bay: DockingBay = field.get_node("DockingBay") as DockingBay
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 	var pad: DockingPad = plane.docking.docked_pad
 	assert_false(pad.is_free(), "held while it sits there")
@@ -506,7 +506,7 @@ func test_leaving_the_dock_returns_the_pad() -> void:
 ## for it on any drive.
 func test_leaving_a_dock_you_are_not_in_does_nothing() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.docking.leave_dock()
 	assert_null(plane.docking.docked_pad)
 
@@ -520,9 +520,9 @@ func test_leaving_a_dock_you_are_not_in_does_nothing() -> void:
 ## only climbs from there.
 func test_leaving_a_pad_taxis_to_the_runway_before_climbing() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var bay: DockingBay = field.get_node("DockingBay") as DockingBay
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 	var strip: Runway = bay.runway_for(plane.docking.docked_pad)
 	var started_at: Vector3 = plane.global_position
@@ -553,8 +553,8 @@ func test_leaving_a_pad_taxis_to_the_runway_before_climbing() -> void:
 ## stays blocked while its occupant is already halfway down the runway.
 func test_the_pad_is_released_as_soon_as_it_rolls() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 	var pad: DockingPad = plane.docking.docked_pad
 	plane.docking.leave_dock()
@@ -567,11 +567,11 @@ func test_the_pad_is_released_as_soon_as_it_rolls() -> void:
 ## a helicopter has no roll-out to fly.
 func test_a_bay_with_no_runway_still_lifts_straight_off_the_pad() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var bay: DockingBay = field.get_node("DockingBay") as DockingBay
 	for strip: Runway in bay.runways():
 		strip.free()
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 	plane.docking.leave_dock()
 	assert_false(plane.aerial.is_taxiing(), "nothing to roll along")
@@ -594,7 +594,7 @@ func _tool_for(a_needs_docking: bool) -> Tool:
 
 func test_training_is_refused_once_every_pad_is_taken() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var bay: DockingBay = field.get_node("DockingBay") as DockingBay
 	var docker: Tool = _tool_for(true)
 
@@ -608,7 +608,7 @@ func test_training_is_refused_once_every_pad_is_taken() -> void:
 ## The rule is about pieces that OCCUPY a pad. Everything else is none of its business.
 func test_a_piece_that_never_docks_is_never_blocked() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	for pad: DockingPad in (field.get_node("DockingBay") as DockingBay).pads():
 		pad.claim(_entity(CLIPPER, cmd))
 	var ground: Tool = _tool_for(false)
@@ -618,7 +618,7 @@ func test_a_piece_that_never_docks_is_never_blocked() -> void:
 ## A producer with no bay at all cannot be short of pads.
 func test_a_producer_with_no_bay_is_never_blocked() -> void:
 	var cmd: Commander = _commander(1)
-	var barracks: Commandable = _entity({"structure": true}, cmd)
+	var barracks: Actor = _entity({"structure": true}, cmd)
 	assert_null(barracks.get_node_or_null("DockingBay"))
 	assert_true(Train.has_free_pad_for(barracks, _tool_for(true)))
 
@@ -632,10 +632,10 @@ func test_a_producer_with_no_bay_is_never_blocked() -> void:
 ## the question, so nothing has to ask the physics engine.
 func test_a_runway_is_held_by_one_unit_at_a_time() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var a: Commandable = _entity(CLIPPER, cmd)
-	var b: Commandable = _entity(CLIPPER, cmd)
+	var a: Actor = _entity(CLIPPER, cmd)
+	var b: Actor = _entity(CLIPPER, cmd)
 
 	assert_true(strip.is_free())
 	assert_true(strip.claim(a), "first one takes it")
@@ -652,9 +652,9 @@ func test_a_runway_is_held_by_one_unit_at_a_time() -> void:
 ## A claim cannot outlive its claimant and strand the strip for the rest of the match.
 func test_a_runway_frees_itself_when_its_claimant_dies() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var doomed: Commandable = _entity(CLIPPER, cmd)
+	var doomed: Actor = _entity(CLIPPER, cmd)
 	strip.claim(doomed)
 	doomed.free()
 	assert_true(strip.is_free())
@@ -663,13 +663,13 @@ func test_a_runway_frees_itself_when_its_claimant_dies() -> void:
 ## A busy strip is a WAIT, not a refusal: the aircraft keeps its pad and tries again.
 func test_a_busy_runway_keeps_the_departing_aircraft_on_its_pad() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var bay: DockingBay = field.get_node("DockingBay") as DockingBay
 	var strip: Runway = _runway_of(field)
-	var blocker: Commandable = _entity(CLIPPER, cmd)
+	var blocker: Actor = _entity(CLIPPER, cmd)
 	strip.claim(blocker)
 
-	var waiting: Commandable = _entity(CLIPPER, cmd)
+	var waiting: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, waiting)
 	var pad: DockingPad = waiting.docking.docked_pad
 	waiting.docking.leave_dock()
@@ -693,7 +693,7 @@ func test_a_busy_runway_keeps_the_departing_aircraft_on_its_pad() -> void:
 ## diagonally across the apron, which is the one thing an aeroplane cannot do.
 func test_a_taxiing_unit_turns_before_it_moves() -> void:
 	var cmd: Commander = _commander(1)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.global_position = Vector3.ZERO
 	plane.movement.turn_rate = 90.0
 	plane.aerial.park_on_deck(0.0)
@@ -731,11 +731,11 @@ func test_a_taxiing_unit_turns_before_it_moves() -> void:
 ## order away.
 func test_an_aircraft_waiting_for_the_runway_keeps_its_order() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
 	strip.claim(_entity(CLIPPER, cmd))  # somebody else has the strip
 
-	var waiting: Commandable = _entity(CLIPPER, cmd)
+	var waiting: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, waiting)
 	waiting.update_commands(
 		MoveCommand.new(CommandMessage.new(null, null, null, Vector3(40.0, 0.0, 40.0)))
@@ -754,9 +754,9 @@ func test_an_aircraft_waiting_for_the_runway_keeps_its_order() -> void:
 ## The strip goes back the moment its user is airborne, so the next one can have it.
 func test_the_strip_is_released_once_the_departing_aircraft_is_airborne() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 
 	plane.docking.leave_dock()
@@ -779,7 +779,7 @@ func test_the_strip_is_released_once_the_departing_aircraft_is_airborne() -> voi
 
 #region Interrupting a rearm on the pad
 ## A live Rearm with its pad already claimed, as the first tick of one would leave it.
-func _rearm_on(a_actor: Commandable, a_field: Commandable) -> Rearm:
+func _rearm_on(a_actor: Actor, a_field: Actor) -> Rearm:
 	var order := Rearm.new(CommandMessage.new(null, a_field, null, a_field.global_position))
 	order.get_updated_state(a_actor)  # claims a pad
 	return order
@@ -794,8 +794,8 @@ func _rearm_on(a_actor: Commandable, a_field: Commandable) -> Rearm:
 ## "only when they do not have full charges" symptom.
 func test_a_rearm_cut_short_hands_the_pad_over_instead_of_taking_off() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _rearm_on(plane, field)
 	var pad: DockingPad = order._pad
 	# Park it exactly as a completed descent would, mid-recharge.
@@ -814,8 +814,8 @@ func test_a_rearm_cut_short_hands_the_pad_over_instead_of_taking_off() -> void:
 ## Interrupted in the AIR, though, it must still be lifted — nothing else knows to.
 func test_a_rearm_cut_short_in_the_air_still_takes_off() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _rearm_on(plane, field)
 	order.on_released(plane)
 	assert_null(plane.docking.docked_pad, "nothing to hand over — it never parked")
@@ -830,9 +830,9 @@ func test_a_rearm_cut_short_in_the_air_still_takes_off() -> void:
 ## nothing to do points itself at the taxiway.
 func test_a_parked_idle_aircraft_turns_toward_its_taxiway() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 	var join: Vector3 = strip.nearest_point(plane.global_position)
 	plane.movement.face_toward(plane.global_position - (join - plane.global_position))
@@ -849,8 +849,8 @@ func test_a_parked_idle_aircraft_turns_toward_its_taxiway() -> void:
 ## threshold at taxi speed and then jumped into the air is not taking off.
 func test_the_last_leg_of_a_departure_opens_up_to_flight_speed() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 	plane.docking.leave_dock()
 	assert_true(plane.aerial.is_taxiing())
@@ -883,14 +883,14 @@ func test_the_last_leg_of_a_departure_opens_up_to_flight_speed() -> void:
 ## fix at cruise heading directly AWAY from the runway and committed anyway — and the
 ## descent then had to turn it 180 degrees while it sank, which is the wide repeated
 ## swinging that looks like an aircraft unable to find the field.
-func _approaching(a_field: Commandable, a_plane: Commandable) -> Rearm:
+func _approaching(a_field: Actor, a_plane: Actor) -> Rearm:
 	var order := Rearm.new(CommandMessage.new(null, a_field, null, a_field.global_position))
 	order.get_updated_state(a_plane)
 	return order
 
 
 func _place_on_final(
-	a_plane: Commandable, a_strip: Runway, a_out: float, a_lateral: float, a_reversed: bool
+	a_plane: Actor, a_strip: Runway, a_out: float, a_lateral: float, a_reversed: bool
 ) -> void:
 	var along: Vector3 = a_strip.heading()
 	var side := Vector3(-along.z, 0.0, along.x)
@@ -904,9 +904,9 @@ func _place_on_final(
 
 func test_an_aircraft_pointed_down_the_strip_may_start_down() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _approaching(field, plane)
 	_place_on_final(plane, strip, 4.0, 0.0, false)
 	assert_true(order._is_established_on_final(plane))
@@ -915,9 +915,9 @@ func test_an_aircraft_pointed_down_the_strip_may_start_down() -> void:
 ## Flying the other way is the case that used to slip through.
 func test_an_aircraft_pointed_away_may_not() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _approaching(field, plane)
 	_place_on_final(plane, strip, 4.0, 0.0, true)
 	assert_false(
@@ -929,9 +929,9 @@ func test_an_aircraft_pointed_away_may_not() -> void:
 ## Nor from the wrong side of the threshold — it is past the numbers.
 func test_an_aircraft_beyond_the_threshold_may_not() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _approaching(field, plane)
 	_place_on_final(plane, strip, -3.0, 0.0, false)
 	assert_false(order._is_established_on_final(plane))
@@ -942,9 +942,9 @@ func test_an_aircraft_beyond_the_threshold_may_not() -> void:
 ## one no aircraft arriving from the far side can ever satisfy, so it circles forever.
 func test_the_corridor_admits_an_aircraft_that_has_just_turned_around() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _approaching(field, plane)
 	var diameter: float = plane.movement.turn_radius() * 2.0
 	assert_gt(diameter, 0.0, "the clipper has a finite turn rate")
@@ -958,9 +958,9 @@ func test_the_corridor_admits_an_aircraft_that_has_just_turned_around() -> void:
 ## Miles off to the side is still a rejection, though.
 func test_far_off_the_centreline_is_still_refused() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _approaching(field, plane)
 	_place_on_final(plane, strip, 4.0, 40.0, false)
 	assert_false(order._is_established_on_final(plane))
@@ -971,15 +971,15 @@ func test_far_off_the_centreline_is_still_refused() -> void:
 
 #region The pad is the unit's from touchdown
 ## Everything that asks "is this aircraft standing on a pad" goes through
-## Commandable.docking.docked_pad — releasing the runway, turning to face the taxiway, leaving
+## Actor.docking.docked_pad — releasing the runway, turning to face the taxiway, leaving
 ## through leave_dock. Holding it on the COMMAND until the clip was full meant an aircraft
 ## spent its whole refuelling stop still owning the runway and still pointing the way it
 ## landed.
 func test_reaching_the_pad_hands_it_over_and_frees_the_strip() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _approaching(field, plane)
 	var pad: DockingPad = order._pad
 	strip.claim(plane)
@@ -999,9 +999,9 @@ func test_reaching_the_pad_hands_it_over_and_frees_the_strip() -> void:
 ## And it turns to face its taxiway straight away, rather than after the reload.
 func test_a_refuelling_aircraft_already_faces_its_taxiway() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var strip: Runway = _runway_of(field)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order: Rearm = _approaching(field, plane)
 	var pad: DockingPad = order._pad
 	plane.global_position = pad.dock_position()
@@ -1034,15 +1034,15 @@ func test_a_refuelling_aircraft_already_faces_its_taxiway() -> void:
 
 
 ## Kill `a_field` outright and let the frees settle, so its pads are genuinely gone.
-func _demolish(a_field: Commandable) -> void:
+func _demolish(a_field: Actor) -> void:
 	a_field.get_parent().remove_child(a_field)
 	a_field.free()
 
 
 func test_the_lost_pad_is_given_up_and_the_aircraft_lifts_off() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 	assert_true(plane.aerial.is_docked(), "guards the fixture")
 
@@ -1057,8 +1057,8 @@ func test_a_parked_aircraft_with_a_live_pad_is_left_alone() -> void:
 	# The same check runs every tick on every parked aircraft, so it must be inert for the
 	# ordinary case — including the window between touching down and being handed the pad.
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 
 	plane.docking.release_lost_dock()
@@ -1071,9 +1071,9 @@ func test_an_inbound_aircraft_holding_a_reserved_pad_is_left_alone() -> void:
 	# docked_pad is null for the whole descent and taxi — the Rearm holds the reservation —
 	# so "no docked_pad" alone must not read as "my airfield was destroyed".
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
+	var field: Actor = _airfield(cmd)
 	var bay: DockingBay = field.get_node("DockingBay") as DockingBay
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	plane.aerial.park_on_deck(0.0)
 	assert_not_null(bay.reserve(plane), "the bay gave it a space")
 	assert_null(plane.docking.docked_pad, "which it has not been handed yet")
@@ -1085,9 +1085,9 @@ func test_an_inbound_aircraft_holding_a_reserved_pad_is_left_alone() -> void:
 
 func test_the_aircraft_is_sent_to_another_airfield_when_one_exists() -> void:
 	var cmd: Commander = _commander(1)
-	var doomed: Commandable = _airfield(cmd)
-	var refuge: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var doomed: Actor = _airfield(cmd)
+	var refuge: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(doomed)._spawn_on_pad(doomed, plane)
 
 	_demolish(doomed)
@@ -1100,8 +1100,8 @@ func test_the_aircraft_is_sent_to_another_airfield_when_one_exists() -> void:
 
 func test_with_nowhere_left_to_go_it_holds_over_the_wreck() -> void:
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	_production_of(field)._spawn_on_pad(field, plane)
 	var parked_at: Vector3 = plane.global_position
 
@@ -1120,8 +1120,8 @@ func test_a_rearm_whose_airfield_dies_ends_instead_of_crashing() -> void:
 	# The crash itself: Rearm._bay_of took a typed Entity, so the freed airfield failed the
 	# ARGUMENT type-check and the is_instance_valid guard one line inside never ran.
 	var cmd: Commander = _commander(1)
-	var field: Commandable = _airfield(cmd)
-	var plane: Commandable = _entity(CLIPPER, cmd)
+	var field: Actor = _airfield(cmd)
+	var plane: Actor = _entity(CLIPPER, cmd)
 	var order := Rearm.new(CommandMessage.new(null, field, null, field.global_position))
 	_demolish(field)
 	assert_null(order.get_updated_state(plane), "the order ends, quietly")

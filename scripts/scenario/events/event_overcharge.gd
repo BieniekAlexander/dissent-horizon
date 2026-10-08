@@ -25,7 +25,7 @@ class_name EventOvercharge extends EventTargetUnit
 @export var damage: float = 400.0
 
 
-func _qualifies(a_candidate: Commandable) -> bool:
+func _qualifies(a_candidate: Actor) -> bool:
 	return (
 		a_candidate.defense != null
 		and a_candidate.defense.hp > 0
@@ -34,9 +34,9 @@ func _qualifies(a_candidate: Commandable) -> bool:
 
 
 func execute(a_manager: ScenarioTriggerManager) -> void:
-	var target: Commandable = _find_target_unit(a_manager)
+	var target: Actor = _find_target_unit(a_manager)
 	if target == null:
 		return
-	# Death itself is detected by Commandable._update_state's hp <= 0 check, so the normal
+	# Death itself is detected by Actor._update_state's hp <= 0 check, so the normal
 	# teardown (garrison release, production refunds, grid removal) runs either way.
 	target.defense.apply_damage(damage)

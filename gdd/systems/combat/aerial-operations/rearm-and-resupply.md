@@ -19,7 +19,7 @@ One command owns the whole sequence, because every stage is conditional on the o
 
 Running dry is handled in TWO steps, per tick, ahead of the idle-aggro check. Splitting them is the point: what an empty unit must GIVE UP is a different question from where it should GO.
 
-**`Commandable._defer_unshootable_orders` — stand down what you cannot do.** An order that exists in order to shoot (`MoveCommand.requires_ammo()`: `Attack`, `AttackMove`, `Defend`) is pushed to the FRONT of the queue by `CommandReceiver.defer_ammo_dependent_commands` and stops being driven.
+**`Actor._defer_unshootable_orders` — stand down what you cannot do.** An order that exists in order to shoot (`MoveCommand.requires_ammo()`: `Attack`, `AttackMove`, `Defend`) is pushed to the FRONT of the queue by `CommandReceiver.defer_ammo_dependent_commands` and stops being driven.
 
 **DEFERRED, NOT DISCARDED**, and that distinction is the whole design: an Attack or a Defend the player gave is still what they want done, it is just not something this unit can do this minute. Pushing it into the queue BEFORE clearing `_command` is what makes it an interrupt rather than a release — the `_command` setter only fires `on_released` for a command that is NOT in the queue, which is exactly the line it draws. Only the ACTIVE order is stood down; anything already queued was never being driven. This runs **unconditionally**, before any question of where to rearm: an order it cannot carry out is worth stopping whether or not it owns an airfield to go home to. Ordinary units never notice, since `is_out_of_ammo()` is false for a loadout with nothing CHARGED in it.
 

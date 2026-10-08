@@ -1,13 +1,13 @@
-class_name Commandable
+class_name Actor
 extends Entity
 
-## Commandable — the unified base for entities that participate in the command
+## Actor — the unified base for entities that participate in the command
 ## system. "Units" and "structures" are both just Commandables, differing only in
 ## their component bags and their group memberships.
 ##
 ## - ask `is_in_group("unit")` and `is_in_group("structure")`, never a class check.
 ##   There is no Unit class, and `Structure` is the footprint COMPONENT — `is Structure`
-##   asks a different question than a reader expects it to. On a Commandable, "structure"
+##   asks a different question than a reader expects it to. On a Actor, "structure"
 ##   and "fixture" coincide; code that must also reach FEATURES asks "fixture".
 ##
 ## The group memberships are derived by the spec importer from each piece's doc and written
@@ -21,7 +21,7 @@ extends Entity
 var action_tracker: ActionTracker = ActionTracker.new()
 
 ## Component references — all optional. Entity declares `ownership`, `movement`,
-## `selectable`, and `hurtbox`; Commandable adds `production` and the
+## `selectable`, and `hurtbox`; Actor adds `production` and the
 ## command/combat machinery below.
 ## NavigationObstacle3D used for cross-team one-sided avoidance (see
 ## AvoidanceAgent3D for the bit-layout). Enabled and sized in _ready for units
@@ -160,7 +160,7 @@ static var _warned_missing_verbose: Dictionary = {}
 @export var description: String = MISSING_DESCRIPTION:
 	set(value):
 		if value.is_empty():
-			push_error("Commandable '%s' was given an empty description" % name)
+			push_error("Actor '%s' was given an empty description" % name)
 			description = MISSING_DESCRIPTION
 		else:
 			description = value
@@ -169,7 +169,7 @@ static var _warned_missing_verbose: Dictionary = {}
 @export var verbose: String = MISSING_VERBOSE:
 	set(value):
 		if value.is_empty():
-			push_error("Commandable '%s' was given an empty verbose description" % name)
+			push_error("Actor '%s' was given an empty verbose description" % name)
 			verbose = MISSING_VERBOSE
 		else:
 			verbose = value
@@ -196,7 +196,7 @@ func _report_missing_flavor_text(a_field: String, a_seen: Dictionary) -> void:
 	if a_seen.has(id):
 		return
 	a_seen[id] = true
-	print("Commandable id '%s' entered the tree with no %s text" % [id, a_field])
+	print("Actor id '%s' entered the tree with no %s text" % [id, a_field])
 
 
 #endregion
@@ -502,7 +502,7 @@ func _absorb_rally_commands(a_commands: Variant, a_add_to_queue: bool) -> bool:
 #endregion
 
 #region Structure state
-## These were on Structure before the collapse. Kept on Commandable so the
+## These were on Structure before the collapse. Kept on Actor so the
 ## scene script can stay generic; readers gate on group membership or on the
 ## presence of the component that exposes the related behavior (e.g. Production).
 var build_progress: float = 1.
@@ -536,7 +536,7 @@ func blocks_line_of_fire() -> bool:
 
 
 ## Units currently registered as active builders of this structure.
-var _active_builders: Array[Commandable] = []
+var _active_builders: Array[Actor] = []
 
 ## BLUEPRINTS only — true while the purchase that raised this blueprint is still PENDING,
 ## i.e. the commander has committed to the build but can't pay for it yet. Drawn darker
@@ -617,7 +617,7 @@ func commit_construction(a_map: Map, a_world_center: Vector2) -> void:
 
 ## Mark a freshly-instantiated structure as just-started construction. Call before
 ## add_entity so _ready → add_structure → proc_technology see is_built = false.
-## HP is initialized to INITIAL_HEALTH_FACTOR * hp_max in Commandable._ready(),
+## HP is initialized to INITIAL_HEALTH_FACTOR * hp_max in Actor._ready(),
 ## after Defense._ready() has set it to hp_max, so we don't touch it here.
 func begin_construction() -> void:
 	build_progress = INITIAL_BUILD_PROGRESS
@@ -694,7 +694,7 @@ func construction_shade() -> float:
 ## Register `unit` as an active builder of this structure. Connects to tree_exiting
 ## so a dead or removed builder is automatically unregistered. Safe to call multiple
 ## times with the same unit (idempotent).
-func register_builder(a_unit: Commandable) -> void:
+func register_builder(a_unit: Actor) -> void:
 	if _active_builders.has(a_unit):
 		return
 	_active_builders.append(a_unit)
@@ -703,7 +703,7 @@ func register_builder(a_unit: Commandable) -> void:
 
 ## Remove `unit` from the active-builder list. Called explicitly when a Repair
 ## command ends, and automatically via tree_exiting when a builder dies.
-func unregister_builder(a_unit: Commandable) -> void:
+func unregister_builder(a_unit: Actor) -> void:
 	_active_builders.erase(a_unit)
 
 
@@ -772,9 +772,9 @@ func has_navmesh_access() -> bool:
 
 #region Static helpers
 ## These were Structure.<method> before the collapse. A future GridUtils
-## module is the right home, but moving them onto Commandable keeps the
+## module is the right home, but moving them onto Actor keeps the
 ## existing `Structure.get_arrangement_cells(...)` call shape working as
-## `Commandable.get_arrangement_cells(...)`.
+## `Actor.get_arrangement_cells(...)`.
 static func get_grid_coordinates(center: Vector2i, dimensions) -> Array:
 	var ret: Array = []
 	var ox: int = (dimensions.x - 1) / 2
@@ -838,7 +838,7 @@ func shed_hostile_markers() -> void:
 			charge.remove()
 
 
-## Widen Entity.is_armed(): a Commandable also counts as armed while it is a bunker
+## Widen Entity.is_armed(): a Actor also counts as armed while it is a bunker
 ## garrison ACTIVELY holding an occupant that carries a weapon, since bunker fire
 ## propagates that occupant's shots (making e.g. a garrisoned shelter a COMBAT_STRUCTURES
 ## target). Capability alone — an empty bunker — does not qualify.
@@ -1006,7 +1006,7 @@ func _hostiles_in_region(
 	)
 
 
-func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
+func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 	super(a_damage, a_from)
 	# Any hit staggers the unit: refresh the timer so channeled actions (Build, Repair,
 	# certain interactions) are suppressed for STAGGER_SECONDS. See is_staggered / the
@@ -1070,7 +1070,7 @@ func is_stunned() -> bool:
 ## (gdd/systems/combat/target-acquisition.md). Aggro distance plays no part: this is what
 ## answers fire from past aggro. A piece that cannot move answers only what it already
 ## reaches, since it could never close on anything else.
-func _retaliation_against(a_attacker: Commandable) -> MoveCommand:
+func _retaliation_against(a_attacker: Actor) -> MoveCommand:
 	if is_holding_fire or not is_inside_tree() or not can_use_weapons():
 		return null
 	if (
@@ -1531,7 +1531,7 @@ func _update_crush_avoidance_exclusions() -> void:
 		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
 		[get_rid()]
 	):
-		var other := e as Commandable
+		var other := e as Actor
 		if other == null or not _can_run_over(other):
 			continue
 		excluded |= AvoidanceAgent3D.obstacle_bit(other.commander_id)
@@ -1555,7 +1555,7 @@ func _crush_avoidance_scan_shape(a_agent: AvoidanceAgent3D) -> SphereShape3D:
 ## why this is not simply is_enemy_of. `can_crush()` already rules out every aerial pairing,
 ## so no altitude test is needed. Why:
 ## gdd/systems/combat/garrison-and-transport.md.
-func _can_run_over(a_other: Commandable) -> bool:
+func _can_run_over(a_other: Actor) -> bool:
 	if a_other.movement == null or not movement.can_crush(a_other.movement):
 		return false
 	return is_enemy_of(a_other) or Garrison.can_capture(self, a_other)
@@ -1584,7 +1584,7 @@ func _run_over_overlapping_units() -> void:
 		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
 		[get_rid()]
 	):
-		var other := e as Commandable
+		var other := e as Actor
 		if other == null or not _can_run_over(other):
 			continue
 		if garrison != null and Garrison.can_capture(self, other):

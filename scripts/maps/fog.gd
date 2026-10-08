@@ -224,11 +224,11 @@ func _physics_process(_a_delta: float) -> void:
 		# Omniscient spectator: every Fog instance runs this — idempotent and cheap.
 		for entity: Entity in get_tree().get_nodes_in_group("piece"):
 			entity.visible = true
-			if entity is Commandable:
+			if entity is Actor:
 				var stealthed: bool = (
 					entity.stealth != null and entity.stealth.state == Stealth.State.STEALTHED
 				)
-				(entity as Commandable).in_sight_range = not stealthed
+				(entity as Actor).in_sight_range = not stealthed
 		_apply_figure_visibility(viewer_id, true)
 	elif is_active:
 		_apply_figure_visibility(viewer_id, debug_view)
@@ -254,8 +254,8 @@ func _physics_process(_a_delta: float) -> void:
 			# at, so it is never shown to anyone but its owner, whatever the fog says.
 			if entity.is_planned:
 				entity.visible = false
-				if entity is Commandable:
-					(entity as Commandable).in_sight_range = false
+				if entity is Actor:
+					(entity as Actor).in_sight_range = false
 				continue
 			# A structure occupies a footprint of grid cells, so it's in sight when
 			# ANY occupied cell is revealed — not only the cell under its origin.
@@ -266,11 +266,11 @@ func _physics_process(_a_delta: float) -> void:
 			else:
 				fog_clear = fog_clear_at(VU.in_xz(entity.global_position))
 			entity.visible = debug_view or fog_clear
-			if entity is Commandable:
+			if entity is Actor:
 				var stealthed: bool = (
 					entity.stealth != null and entity.stealth.state == Stealth.State.STEALTHED
 				)
-				(entity as Commandable).in_sight_range = fog_clear and not stealthed
+				(entity as Actor).in_sight_range = fog_clear and not stealthed
 
 
 #endregion

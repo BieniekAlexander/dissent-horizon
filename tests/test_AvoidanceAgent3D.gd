@@ -44,7 +44,7 @@ func test_same_team_agents_do_reciprocal_rvo():
 
 func test_different_team_agents_do_not_reciprocal_rvo():
 	# Cross-team agents must NOT do reciprocal RVO with each other (both adjusting).
-	# Cross-team avoidance is one-sided via NavigationObstacle3D (see Commandable).
+	# Cross-team avoidance is one-sided via NavigationObstacle3D (see Actor).
 	var a := _agent(1)
 	var d := _agent(2)
 	assert_eq(a.avoidance_mask & d.avoidance_layers, 0, "a does not see enemy d as an agent")

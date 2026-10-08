@@ -39,12 +39,12 @@ func before_each() -> void:
 
 
 ## A war factory owned by the commander, either finished or still going up.
-func _prerequisite(a_built: bool) -> Commandable:
-	var structure: Commandable = FakePieces.structure({"id": PREREQUISITE})
+func _prerequisite(a_built: bool) -> Actor:
+	var structure: Actor = FakePieces.structure({"id": PREREQUISITE})
 	_commander.add_child(structure)
 	autofree(structure)
 	structure.ownership.commander = _commander
-	structure.build_progress = 1.0 if a_built else Commandable.INITIAL_BUILD_PROGRESS
+	structure.build_progress = 1.0 if a_built else Actor.INITIAL_BUILD_PROGRESS
 	_commander.add_structure(structure)
 	_commander.proc_technology()
 	return structure
@@ -164,8 +164,8 @@ const CHAIN_C: StringName = &"fake_chain_c"  # requires B
 ## A BLUEPRINT of `a_id`: ordered and standing on its site, with no foundation laid.
 ## plan_construction() runs before ownership for the reason Build.plan_structure documents —
 ## _on_commander_changed reads is_planned to decide what registration to skip.
-func _blueprint(a_type: StringName) -> Commandable:
-	var structure: Commandable = FakePieces.structure({"id": a_type})
+func _blueprint(a_type: StringName) -> Actor:
+	var structure: Actor = FakePieces.structure({"id": a_type})
 	structure.plan_construction()
 	_commander.add_child(structure)
 	autofree(structure)

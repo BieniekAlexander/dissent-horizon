@@ -7,7 +7,7 @@ extends StunStatusEffect
 ## who applies it: gdd/systems/combat/shields.md §Freeze.
 ##
 ## Extends StunStatusEffect rather than reimplementing the stop, because the stop IS a stun —
-## Commandable.is_stunned() looks for that class.
+## Actor.is_stunned() looks for that class.
 ##
 ## REAPPLYING takes the larger of each: the remaining time and the shield's hit points (see
 ## _reapply_with). A frost field that holds a freeze on a unit standing in it extends only the
@@ -54,7 +54,7 @@ func _validate_property(a_property: Dictionary) -> void:
 ## an Avalanche never freezes itself in its own field. Static so a sanction can refuse a bad
 ## click before it spends its charge, asking exactly the question the effect asks on apply.
 static func can_freeze(entity: Entity) -> bool:
-	var actor := entity as Commandable
+	var actor := entity as Actor
 	if actor == null or actor.defense == null:
 		return false
 	return actor.defense.armour_type < Defense.ArmourType.STRONG
@@ -69,7 +69,7 @@ func hold_for(a_ticks: int) -> void:
 
 ## The ice standing on the host, for the shield's hit points and their display.
 func shield() -> Shield:
-	var actor := _entity as Commandable
+	var actor := _entity as Actor
 	if actor == null or not is_instance_valid(actor) or actor.defense == null:
 		return null
 	return actor.defense.shield_of(Shield.Type.CRYO)
@@ -79,7 +79,7 @@ func _on_apply() -> void:
 	if not can_freeze(_entity):
 		remove()
 		return
-	var actor := _entity as Commandable
+	var actor := _entity as Actor
 	actor.defense.apply_shield(_new_shield())
 	actor.defense.shield_broken.connect(_on_shield_broken)
 	if actor.locomotion != null:
@@ -94,14 +94,14 @@ func _reapply_with(a_incoming: StatusEffect) -> void:
 	if incoming == null:
 		return
 	hold_for(incoming.duration_ticks)
-	var actor := _entity as Commandable
+	var actor := _entity as Actor
 	if actor != null and actor.defense != null:
 		actor.defense.apply_shield(incoming._new_shield())
 
 
 func _on_remove() -> void:
 	# A host that died under the freeze has already been torn down; there is nothing to thaw.
-	var actor := _entity as Commandable
+	var actor := _entity as Actor
 	if actor == null or not is_instance_valid(actor) or actor.defense == null:
 		return
 	if actor.defense.shield_broken.is_connected(_on_shield_broken):

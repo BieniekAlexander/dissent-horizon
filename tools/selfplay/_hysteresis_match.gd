@@ -18,7 +18,7 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	# unit instance id -> what it is presently doing: an enemy instance id for an Attack,
 	# "AM" for an attack-move, "M" for a plain move, "-" for idle.
 	var targets: Dictionary = {}
-	for u: Commandable in bot.get_units():
+	for u: Actor in bot.get_units():
 		var key: String = str(u.get_instance_id())
 		if not u.has_command():
 			targets[key] = "-"

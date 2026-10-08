@@ -16,7 +16,7 @@ extends EconomyBar
 ## The bar's own length is `max(required, provided)` (gdd/tasks.md "UI Updates"), so the
 ## boundary between the two regions marks capacity directly — no separate marker line needed.
 ##
-## Hovering a purchase previews its `Commandable.infrastructure` export (read off
+## Hovering a purchase previews its `Actor.infrastructure` export (read off
 ## `Commander.get_build_preview_instance` — see CLAUDE.md §Things NOT to break for why that
 ## instance must never enter the SceneTree), dimmed, on TOP of the real regions. Unlike
 ## Energy/Dominion there is no afford/can't-afford split — infrastructure never blocks a
@@ -186,7 +186,7 @@ func _verbose_text() -> String:
 	return text
 
 
-## The hovered purchase's own ongoing `Commandable.infrastructure` contribution once built —
+## The hovered purchase's own ongoing `Actor.infrastructure` contribution once built —
 ## positive provides, negative consumes, 0 (the default) when nothing relevant is hovered.
 ## Read off the cached out-of-tree preview instance rather than TechnologySpec, which does
 ## not carry this figure at all (see the class comment above).
@@ -194,7 +194,7 @@ func _hovered_infrastructure_delta() -> int:
 	var tool: Tool = _previewed_tool()
 	if tool == null or commander == null:
 		return 0
-	var preview: Commandable = commander.get_build_preview_instance(tool) as Commandable
+	var preview: Actor = commander.get_build_preview_instance(tool) as Actor
 	return preview.infrastructure if preview != null else 0
 
 

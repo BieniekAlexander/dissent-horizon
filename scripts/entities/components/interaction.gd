@@ -26,7 +26,7 @@ enum Type {
 	# than reused, for the renumbering reason above.
 	## Take a MECH-frame UNIT over: on completion the target changes ownership to the
 	## actor's commander and the ACTOR is expended (see Interact._hijack). Applicable to a
-	## non-friendly, MECH-frame, non-structure Commandable.
+	## non-friendly, MECH-frame, non-structure Actor.
 	##
 	## Deliberately units-only: a building changing hands
 	## is Capture's job, and it has completely different bookkeeping (structure registry,
@@ -130,7 +130,7 @@ static func _build_evaluators() -> Dictionary:
 ## it has room. That is what marks a prison (a Compound) apart from an ordinary
 ## garrison; prisoners are not dropped off in a safehouse.
 static func _deposit_precondition(
-	a_actor: Commandable, a_message: CommandMessage
+	a_actor: Actor, a_message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return (
 		MoveCommand.PreconditionFailureCause.NONE
@@ -152,13 +152,13 @@ static func _deposit_precondition(
 ## outright; a building changing hands is Capture, which has its own registry /
 ## infrastructure / grid bookkeeping.
 static func _hijack_precondition(
-	a_actor: Commandable, a_message: CommandMessage
+	a_actor: Actor, a_message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return (
 		MoveCommand.PreconditionFailureCause.NONE
 		if (
 			is_instance_valid(a_message.target)
-			and a_message.target is Commandable
+			and a_message.target is Actor
 			and not a_message.target.is_friendly_to(a_actor)
 			and not a_message.target.structure_is_active()
 			and PlantedCharge.of(a_message.target) == null
@@ -178,7 +178,7 @@ static func _evaluator_for(type: Interaction.Type) -> Callable:
 ## Evaluate this interaction's applicability for the given actor/message, using
 ## the function mapped to its `type`.
 func meets_precondition(
-	a_actor: Commandable, a_message: CommandMessage
+	a_actor: Actor, a_message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return _evaluator_for(type).call(a_actor, a_message)
 #endregion

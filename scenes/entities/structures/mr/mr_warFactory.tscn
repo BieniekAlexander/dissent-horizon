@@ -1,6 +1,6 @@
 [gd_scene load_steps=22 format=3 uid="uid://3h8ci7wfmhut"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_m1qkw"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_m1qkw"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_lvvay"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_ctxlm"]

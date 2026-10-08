@@ -80,7 +80,7 @@ func _expected_names(a_spec: Dictionary) -> Array[String]:
 func test_a_unit_is_composed_with_the_actor_set_and_locomotion() -> void:
 	var spec: Dictionary = {"movement": MOBILE}
 	var unit: Node = _compose("unit", spec)
-	assert_true(unit is Commandable)
+	assert_true(unit is Actor)
 	assert_eq(_child_names(unit), _expected_names(spec))
 	assert_true(unit.get_node("Locomotion") is Movement and unit.has_node("NavigationAgent"))
 	assert_false(unit.has_node("Structure"))
@@ -96,7 +96,7 @@ func test_a_unit_is_composed_with_the_actor_set_and_locomotion() -> void:
 func test_a_structure_is_composed_with_its_footprint_and_no_locomotion() -> void:
 	var spec: Dictionary = {"footprint": [2, 2]}
 	var structure: Node = _compose("structure", spec)
-	assert_true(structure is Commandable)
+	assert_true(structure is Actor)
 	assert_eq(_child_names(structure), _expected_names(spec))
 	assert_true(structure.has_node("Structure") and structure.has_node("FootprintVisualizer"))
 	assert_false(structure.has_node("Locomotion"))
@@ -106,7 +106,7 @@ func test_a_structure_is_composed_with_its_footprint_and_no_locomotion() -> void
 func test_a_feature_is_a_plain_entity_with_no_actor_components() -> void:
 	var spec: Dictionary = {"footprint": [2, 2], "commandable": false}
 	var feature: Node = _compose("feature", spec)
-	assert_false(feature is Commandable)
+	assert_false(feature is Actor)
 	assert_true(feature is Entity)
 	assert_eq(_child_names(feature), _expected_names(spec))
 	for actor_only: String in ["Defense", "HPBar", "NavigationAgent", "Veterancy"]:

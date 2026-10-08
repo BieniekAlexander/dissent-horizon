@@ -21,7 +21,7 @@ extends MoveCommand
 
 #region Preconditions
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	var sanction: Sanction = message.sanction if message != null else null
 	if actor == null or sanction == null or actor.commander == null:
@@ -69,12 +69,12 @@ static func default_cast_arity(message: CommandMessage) -> CastArity:
 
 
 ## Free unless already casting one — the job rule (MoveCommand.is_free_to_take).
-static func is_free_to_take(actor: Commandable) -> bool:
+static func is_free_to_take(actor: Actor) -> bool:
 	return holds_none_of(actor, [UseSanction])
 
 
 ## The charge is spent, so the button greys; the order is still accepted and waits.
-static func actor_is_recharging(actor: Commandable) -> bool:
+static func actor_is_recharging(actor: Actor) -> bool:
 	var abilities: Abilities = _abilities_of(actor)
 	if abilities == null or actor.commander == null:
 		return false
@@ -89,7 +89,7 @@ static func actor_is_recharging(actor: Commandable) -> bool:
 	return true
 
 
-static func _abilities_of(actor: Commandable) -> Abilities:
+static func _abilities_of(actor: Actor) -> Abilities:
 	return actor.get_node_or_null("Abilities") as Abilities if actor != null else null
 
 
@@ -98,11 +98,11 @@ static func _abilities_of(actor: Commandable) -> Abilities:
 
 #region State updates
 ## A building does not travel to its target — its reach is the sanction's own.
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return false
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	var abilities: Abilities = _abilities_of(a_actor)
 	return (
 		abilities != null
@@ -113,7 +113,7 @@ func can_act(a_actor: Commandable) -> bool:
 
 ## One order, one casting. Returning null ends the command rather than leaving the building
 ## re-firing at a point the player asked about once.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	var sanction: Sanction = message.sanction
 	var abilities: Abilities = _abilities_of(a_actor)
 	if sanction == null or abilities == null or a_actor.commander == null:

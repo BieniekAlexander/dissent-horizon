@@ -1,6 +1,6 @@
 [gd_scene load_steps=23 format=3 uid="uid://jt8ig6pcr5kt"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_50dal"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_50dal"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/garrison.gd" id="2_ktfv8"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_1lnas"]

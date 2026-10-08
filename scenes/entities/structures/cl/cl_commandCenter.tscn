@@ -1,6 +1,6 @@
 [gd_scene load_steps=24 format=3 uid="uid://b6ekhb31kkiys"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_5sk6e"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_5sk6e"]
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/abilities.gd" id="2_spec"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_huge.tres" id="3_spec"]

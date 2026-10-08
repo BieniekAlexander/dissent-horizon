@@ -63,14 +63,14 @@ static func apply(order: PlayerOrder, scenario: Scenario) -> Array:
 						owner.production_queue.cancel(transaction)
 		PlayerOrder.Kind.CANCEL_JOB:
 			var producer := (
-				scenario.piece_by_serial(int(order.data.get("producer", 0))) as Commandable
+				scenario.piece_by_serial(int(order.data.get("producer", 0))) as Actor
 			)
 			if producer != null and producer.production != null:
 				producer.production.cancel(int(order.data.get("job", -1)))
 		PlayerOrder.Kind.RELEASE_OCCUPANT:
 			release_occupant(
-				scenario.piece_by_serial(int(order.data.get("host", 0))) as Commandable,
-				scenario.piece_by_serial(int(order.data.get("occupant", 0))) as Commandable
+				scenario.piece_by_serial(int(order.data.get("host", 0))) as Actor,
+				scenario.piece_by_serial(int(order.data.get("occupant", 0))) as Actor
 			)
 		PlayerOrder.Kind.UNLOCK_SANCTION:
 			var commander: Commander = _commander(scenario, order.commander_id)
@@ -120,7 +120,7 @@ static func apply(order: PlayerOrder, scenario: Scenario) -> Array:
 
 ## Let `a_occupant` out of `a_host`'s garrison, when it is one of the host's own side
 ## (Garrison.can_release_occupant) — never a captive.
-static func release_occupant(host: Commandable, occupant: Commandable) -> void:
+static func release_occupant(host: Actor, occupant: Actor) -> void:
 	if host == null or occupant == null:
 		return
 	var garrison: Garrison = host.get_node_or_null("Garrison") as Garrison
@@ -163,7 +163,7 @@ static func toggle_hold_fire(actors: Array) -> void:
 static func hold_fire(actors: Array, is_queued: bool, map: Map) -> void:
 	var is_holding: bool = not CommandButtonState.all_hold_fire(actors)
 	for node: Variant in actors:
-		var actor := node as Commandable if is_instance_valid(node) else null
+		var actor := node as Actor if is_instance_valid(node) else null
 		if (
 			actor == null
 			or not CommandContextParser.commands_for(actor).has(
@@ -190,7 +190,7 @@ static func recipients(
 		func(c: Variant) -> bool:
 			return (
 				is_instance_valid(c)
-				and c is Commandable
+				and c is Actor
 				and (
 					command_type.meets_precondition(c, message)
 					== MoveCommand.PreconditionFailureCause.NONE
@@ -278,7 +278,7 @@ static func apply_command(
 	var batch_origin: CommandMessage = CommandMessage.new(map)
 	var interrupts: bool = command_type.is_interrupt() and not add_to_queue
 	var defend_messages: Array[CommandMessage] = []
-	for c: Commandable in capable:
+	for c: Actor in capable:
 		var snapshot := CommandMessage.deep_copy(message)
 		snapshot.origin = batch_origin
 		if defend_shape != null:
@@ -336,7 +336,7 @@ static func _purchase_training(
 		if (
 			i > 0
 			and (
-				Train.meets_precondition(producers[0] as Commandable, message)
+				Train.meets_precondition(producers[0] as Actor, message)
 				!= MoveCommand.PreconditionFailureCause.NONE
 			)
 		):
@@ -389,7 +389,7 @@ static func narrowed(
 		return actors
 	var candidates: Array = []
 	for node: Node in actors:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if actor == null:
 			continue
 		candidates.append([VU.in_xz(actor.global_position), command_type.is_free_to_take(actor)])
@@ -421,7 +421,7 @@ static func narrowed_index(candidates: Array, target: Vector2, prefer_idle: bool
 static func line_movers(actors: Array) -> Array:
 	return actors.filter(
 		func(c: Node) -> bool:
-			return is_instance_valid(c) and c is Commandable and (c as Commandable).can_move()
+			return is_instance_valid(c) and c is Actor and (c as Actor).can_move()
 	)
 
 
@@ -438,7 +438,7 @@ static func line_destinations(movers: Array, start: Vector2, end: Vector2) -> Di
 	var radius: float = 0.0
 	var ground: Array = []
 	var air: Array = []
-	for c: Commandable in movers:
+	for c: Actor in movers:
 		radius = maxf(radius, c.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
 		(air if c.aerial != null else ground).append(c)
 	var spacing: float = LineSlots.spacing_for_radius(radius)
@@ -454,7 +454,7 @@ static func _lay_out_on_line(
 		return
 	var positions: Array[Vector2] = []
 	var centroid: Vector2 = Vector2.ZERO
-	for c: Commandable in group:
+	for c: Actor in group:
 		var xz: Vector2 = VU.in_xz(c.global_position)
 		positions.append(xz)
 		centroid += xz
@@ -500,7 +500,7 @@ static func fanned_destinations(
 		capable.size()
 	)
 	var selection_centroid := Vector2.ZERO
-	for c: Commandable in capable:
+	for c: Actor in capable:
 		selection_centroid += VU.in_xz((c as Entity).global_position)
 	selection_centroid /= float(capable.size())
 	# Destinations sorted by angle around the order's point, units by angle around their own
@@ -515,7 +515,7 @@ static func fanned_destinations(
 	)
 	var sorted_capable: Array = capable.duplicate()
 	sorted_capable.sort_custom(
-		func(a: Commandable, b: Commandable) -> bool:
+		func(a: Actor, b: Actor) -> bool:
 			var a_xz: Vector2 = VU.in_xz((a as Entity).global_position)
 			var b_xz: Vector2 = VU.in_xz((b as Entity).global_position)
 			return (
@@ -536,10 +536,10 @@ static func fanned_destinations(
 static func slowest_group_speed(capable: Array) -> float:
 	if capable.size() <= 1:
 		return -1.0
-	var movers: Array = capable.filter(func(c: Commandable) -> bool: return c.can_move())
+	var movers: Array = capable.filter(func(c: Actor) -> bool: return c.can_move())
 	if movers.is_empty():
 		return -1.0
-	return movers.map(func(c: Commandable) -> float: return c.movement.speed).min()
+	return movers.map(func(c: Actor) -> float: return c.movement.speed).min()
 
 
 static func make_defend_region_shape(
@@ -557,7 +557,7 @@ static func make_defend_region_shape(
 static func largest_aggro_shape(units: Array) -> CollisionShape3D:
 	var best: CollisionShape3D = null
 	var best_radius: float = 0.0
-	for c: Commandable in units:
+	for c: Actor in units:
 		for shape: CollisionShape3D in c.aggro_shapes():
 			var radius: float = RangeShapes.xz_radius(shape)
 			if radius > best_radius:
@@ -592,7 +592,7 @@ static func order_bystanders_to_move(
 	map: Map, actors: Array, the_recipients: Array, message: CommandMessage, add_to_queue: bool
 ) -> void:
 	for node: Variant in actors:
-		var actor := node as Commandable if is_instance_valid(node) else null
+		var actor := node as Actor if is_instance_valid(node) else null
 		if actor == null or the_recipients.has(actor):
 			continue
 		var snapshot: CommandMessage = CommandMessage.deep_copy(message)

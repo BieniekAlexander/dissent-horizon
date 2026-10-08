@@ -216,7 +216,7 @@ static func is_in_scope(a_transaction: PurchaseTransaction, a_scope: Array) -> b
 	if a_transaction.kind != PurchaseTransaction.Kind.TRAIN:
 		return false
 	return a_transaction.candidate_producers().any(
-		func(producer: Commandable) -> bool: return a_scope.has(producer)
+		func(producer: Actor) -> bool: return a_scope.has(producer)
 	)
 
 
@@ -368,8 +368,8 @@ func _busy_producers() -> Array:
 		func(producer: Variant) -> bool:
 			return (
 				is_instance_valid(producer)
-				and (producer as Commandable).production != null
-				and (producer as Commandable).production.job_count() > 0
+				and (producer as Actor).production != null
+				and (producer as Actor).production.job_count() > 0
 			)
 	)
 
@@ -380,7 +380,7 @@ func _build_signature(a_queue: ProductionQueue, a_busy: Array) -> String:
 	var signature: String = ""
 	for transaction: PurchaseTransaction in a_queue.entries:
 		signature += "%d:%d:%d|" % [transaction.id, transaction.state, transaction.sequence]
-	for producer: Commandable in a_busy:
+	for producer: Actor in a_busy:
 		signature += "j%d:%s|" % [producer.get_instance_id(), producer.production.job_type(0)]
 	if is_scoped:
 		for producer: Variant in _scope:
@@ -418,7 +418,7 @@ func _rebuild(a_queue: ProductionQueue, a_busy: Array) -> void:
 ## is producing. A left click cancels the job (the card does that itself).
 func _rebuild_producing(a_busy: Array) -> void:
 	_clear(_producing_cards)
-	for producer: Commandable in a_busy:
+	for producer: Actor in a_busy:
 		var card := CommandableCard.new()
 		_producing_cards.add_child(card)
 		card.set_card_size(HEAD_CHIP_SIZE)

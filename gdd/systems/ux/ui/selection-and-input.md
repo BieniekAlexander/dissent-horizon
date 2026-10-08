@@ -9,7 +9,7 @@ type: system-note
 
 
 `RTSController` is a `CanvasLayer` in `scenes/player.tscn`. It owns:
-- **Selection**: box-select (drag) or click; selection stored as `Array[Node]` (Commandable instances). See §Box-select drags below for the drag lifecycle — it is driven per-frame from the live cursor, not from MouseMotion events
+- **Selection**: box-select (drag) or click; selection stored as `Array[Node]` (Actor instances). See §Box-select drags below for the drag lifecycle — it is driven per-frame from the live cursor, not from MouseMotion events
 - **`pending_command_name`**: arms a sub-mode (e.g., `"command_attack_move"` → next right-click resolves to `AttackMove`/`Attack`)
 - **`_available_commands`**: recomputed via `CommandContextParser.commands_for_selection()` on every selection change; HUD button visibility and hotkey gate read from this
 - **Build preview ghost**: a translucent copy of the structure's `MeshVisual` (or its `Sprite3D`, for billboard art) duplicated from `Commander.get_build_preview_instance(tool)`; snapped to the footprint centre each frame, tinted red on invalid placement

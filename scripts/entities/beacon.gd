@@ -60,7 +60,7 @@ func _ready() -> void:
 	get_parent().add_to_group(GROUP)
 
 
-## Ride along with the carrier, and advance stealth — a beacon is not a Commandable, so
+## Ride along with the carrier, and advance stealth — a beacon is not a Actor, so
 ## nothing else ticks its Stealth.
 func _physics_process(_a_delta: float) -> void:
 	var carrier: Entity = carrier()
@@ -122,9 +122,9 @@ func is_leaving() -> bool:
 ## True when `a_entity` may carry a beacon: a live, grounded, MECH unit — not a structure,
 ## not an aircraft, and never BIO (see gdd/design-framework/static-defence.md §The Bombard).
 static func can_carry(a_entity: Variant) -> bool:
-	if a_entity == null or not is_instance_valid(a_entity) or not (a_entity is Commandable):
+	if a_entity == null or not is_instance_valid(a_entity) or not (a_entity is Actor):
 		return false
-	var unit := a_entity as Commandable
+	var unit := a_entity as Actor
 	return (
 		unit.is_inside_tree()
 		and not unit.is_queued_for_deletion()

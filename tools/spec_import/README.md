@@ -351,7 +351,7 @@ shelter: true                  # identity components, by PRESENCE only — also
                                # plants a ground beacon and leaves, rather than holding one);
                                # tuning stays in the scene
 beacon: 20                     # persistent bombardable bubble (BeaconRange); false removes
-infrastructure: -40                    # Commandable.infrastructure: >0 provides, <0 consumes, 0 neutral
+infrastructure: -40                    # Actor.infrastructure: >0 provides, <0 consumes, 0 neutral
 occupancy_size: 2              # how much of a garrison's capacity this piece consumes
                                # when garrisoned (default 1)
 ui: {grid: [1, 2], factions: [anarchists]}   # button text is `title`; no label key
@@ -523,7 +523,7 @@ members and their **template data** — footprint, hp, energy cost, build time i
 `infrastructure` — in `resources/generated/families.json`, and `PieceFamilies` reads it back.
 
 A family member is a TEMPLATE, so its `infrastructure:` is published there and is **never
-written to the scene root**: `Commandable.infrastructure` is credited to whichever commander owns
+written to the scene root**: `Actor.infrastructure` is credited to whichever commander owns
 the node, and a neutral (or garrison-captured) building must grant nothing.
 
 **`variants:`** lists the family members a piece is built from, default first (Anarchical

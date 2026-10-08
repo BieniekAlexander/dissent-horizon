@@ -103,8 +103,8 @@ func _world_for_origin(a_origin: Vector2i, a_dims: Vector2i) -> Vector2:
 	return Vector2(a_origin.x + a_dims.x * 0.5 - half, a_origin.y + a_dims.y * 0.5 - half)
 
 
-func _long_building() -> Commandable:
-	var building: Commandable = FakePieces.make(LONG_SCENE) as Commandable
+func _long_building() -> Actor:
+	var building: Actor = FakePieces.make(LONG_SCENE) as Actor
 	_world.add_child(building)
 	building.ownership.commander = _commander
 	building.map = _map
@@ -112,14 +112,14 @@ func _long_building() -> Commandable:
 
 
 ## The piece's target shape as the footprint rectangle, whatever the scene happens to ship.
-func _give_box_shape(a_piece: Commandable) -> void:
+func _give_box_shape(a_piece: Actor) -> void:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(LONG_DIMS.x, 1.0, LONG_DIMS.y)
 	(a_piece.hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape = shape
 
 
-func _make_builder() -> Commandable:
-	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
+func _make_builder() -> Actor:
+	var builder: Actor = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map
@@ -319,7 +319,7 @@ func test_a_blueprint_stands_on_and_faces_the_turned_footprint() -> void:
 	var at: Vector2 = _world_for_origin(Vector2i(12, 12), Vector2i(5, 3))
 	var message := CommandMessage.new(_map, null, _long_tool(), Vector3(at.x, 0.0, at.y))
 	message.quarter_turns = 1
-	var blueprint: Commandable = Build.plan_structure(_commander, message)
+	var blueprint: Actor = Build.plan_structure(_commander, message)
 	assert_not_null(blueprint)
 	if blueprint == null:
 		return

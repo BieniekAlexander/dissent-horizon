@@ -126,7 +126,7 @@ keep working against the full passable surface.
   footprint).
 - `NavManager.layer_for(size)` = `1 << (size-1)` (SMALL→bit0 … MASSIVE→bit3); the base
   un-eroded region uses a reserved bit (`1<<30`) no agent selects.
-- Called from `Commandable._on_commander_changed` (the first point where `map` is set
+- Called from `Actor._on_commander_changed` (the first point where `map` is set
   for both dynamically-spawned and scene-placed units), next to `enable_avoidance()`,
   passing `bounding_radius(MOVEMENT_OBSTRUCTION)` — the MovementBody shape radius.
 - `Movement.nav_agent_class` is the resolved value (a plain var, for introspection),

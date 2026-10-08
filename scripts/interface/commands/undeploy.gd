@@ -13,7 +13,7 @@ static func requires_position() -> bool:
 
 ## Valid for a Deployable piece that is DEPLOYED — any other is a no-op.
 static func meets_precondition(
-	actor: Commandable, _message: CommandMessage
+	actor: Actor, _message: CommandMessage
 ) -> PreconditionFailureCause:
 	var deployable: Deployable = Deployable.of(actor)
 	if deployable == null or deployable.stance != Deployable.Stance.DEPLOYED:
@@ -26,16 +26,16 @@ static func meets_precondition(
 
 #region State updates
 ## Never swapped for anything else: a transition is not interrupted by aggro.
-func get_updated_state(_a_actor: Commandable) -> Variant:
+func get_updated_state(_a_actor: Actor) -> Variant:
 	return self
 
 
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return false
 
 
 ## Starts the undeploy on its first tick and reports true once it has run its time.
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	var deployable: Deployable = Deployable.of(a_actor)
 	if deployable == null:
 		return true
@@ -44,13 +44,13 @@ func can_act(a_actor: Commandable) -> bool:
 	return deployable.advance()
 
 
-func fulfill_action(_a_actor: Commandable) -> Variant:
+func fulfill_action(_a_actor: Actor) -> Variant:
 	return null
 
 
 ## Dropped before it finished — only the actor's teardown does that — so the actor keeps
 ## its deployed stance.
-func on_released(a_actor: Commandable) -> void:
+func on_released(a_actor: Actor) -> void:
 	var deployable: Deployable = Deployable.of(a_actor)
 	if deployable != null and deployable.stance == Deployable.Stance.UNDEPLOYING:
 		deployable.abandon_transition()

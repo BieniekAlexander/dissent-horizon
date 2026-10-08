@@ -193,7 +193,7 @@ func test_selecting_the_same_phantom_twice_holds_it_once() -> void:
 func test_selecting_a_phantom_keeps_the_live_selection() -> void:
 	var controller: RTSController = _controller()
 	# A live unit: the selection paths ask each member for its Selectable.
-	var unit := add_child_autofree(FakePieces.unit(FakePieces.PLAIN)) as Commandable
+	var unit := add_child_autofree(FakePieces.unit(FakePieces.PLAIN)) as Actor
 	controller.selection = [unit] as Array[Node]
 	controller.select_pending([_transaction()], false)
 	assert_eq(
@@ -207,7 +207,7 @@ func test_selecting_a_phantom_keeps_the_live_selection() -> void:
 ## goes to the phantoms whenever any are selected, which is what clicking their card asked for.
 func test_both_channels_can_be_held_at_once() -> void:
 	var controller: RTSController = _controller()
-	var unit := add_child_autofree(FakePieces.unit(FakePieces.PLAIN)) as Commandable
+	var unit := add_child_autofree(FakePieces.unit(FakePieces.PLAIN)) as Actor
 	controller.selection = [unit] as Array[Node]
 	var transaction: PurchaseTransaction = _transaction()
 	controller.select_pending([transaction], false)

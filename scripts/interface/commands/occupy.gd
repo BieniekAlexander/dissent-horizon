@@ -8,7 +8,7 @@ static func requires_position() -> bool:
 
 
 ## Valid when:
-##   - the target is a Commandable that owns a Garrison component and is either
+##   - the target is a Actor that owns a Garrison component and is either
 ##     of the actor's own commander OR commanderless (neutral, id 0)
 ##   - that Garrison's occupancy masks admit the acting unit (frame, armour, and
 ##     locomotion style — see Garrison.admits). The masks replace what used to be a
@@ -18,13 +18,13 @@ static func requires_position() -> bool:
 ## Remaining capacity is deliberately NOT part of the precondition — it is checked in
 ## can_act(), so a unit ordered into a full garrison walks over and waits for a slot.
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
-	if not is_instance_valid(message.target) or not (message.target is Commandable):
+	if not is_instance_valid(message.target) or not (message.target is Actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return (
 		PreconditionFailureCause.NONE
-		if host_admits(actor, message.target as Commandable)
+		if host_admits(actor, message.target as Actor)
 		else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	)
 
@@ -41,7 +41,7 @@ static func meets_precondition(
 ## over and waits for a slot, which is why it is checked in can_act instead. Embark adds
 ## the capacity test on its own, because the player hovering a unit wants to know whether
 ## calling it in would achieve anything.
-static func host_admits(occupant: Commandable, host: Commandable) -> bool:
+static func host_admits(occupant: Actor, host: Actor) -> bool:
 	if occupant == null or not is_instance_valid(occupant):
 		return false
 	if host == null or not is_instance_valid(host):
@@ -66,15 +66,15 @@ static func host_admits(occupant: Commandable, host: Commandable) -> bool:
 #region Properties
 ## The actor that currently holds a MOVEMENT_OBSTRUCTION collision exception
 ## against the target, so we know whose exception to clear on teardown.
-var _excluded_actor: Commandable = null
+var _excluded_actor: Actor = null
 
 ## The actor that registered garrison intent on the HOVERING host, so we can
 ## unregister if the command is replaced before the actor actually garrisons.
-var _garrison_registered_actor: Commandable = null
+var _garrison_registered_actor: Actor = null
 
 ## While approaching, the actor would physically collide with the target's
 ## MOVEMENT_OBSTRUCTION body — stopping it short of garrison range (and tripping
-## the slide-collision command-cancel in Commandable._on_velocity_computed).
+## the slide-collision command-cancel in Actor._on_velocity_computed).
 ## Exclude the target's body so the actor can move right up to / into it.
 
 ## Suppress RVO broadcasting on both the actor and the target so neither agent
@@ -84,12 +84,12 @@ var _garrison_registered_actor: Commandable = null
 ##   - Target's layers zeroed: actor's mask no longer sees the target → actor
 ##     goes straight in rather than being deflected sideways.
 ## Only affects units (Movement != null); structures don't participate in RVO.
-var _rvo_suppressed_actor: Commandable = null
+var _rvo_suppressed_actor: Actor = null
 #endregion
 
 
 #region Private helpers
-func _ensure_collision_exception(a_actor: Commandable) -> void:
+func _ensure_collision_exception(a_actor: Actor) -> void:
 	if _excluded_actor != null:
 		return
 	if (
@@ -113,14 +113,14 @@ func _clear_collision_exception() -> void:
 	_excluded_actor = null
 
 
-func _ensure_rvo_suppression(a_actor: Commandable) -> void:
+func _ensure_rvo_suppression(a_actor: Actor) -> void:
 	if _rvo_suppressed_actor != null:
 		return
 	if is_instance_valid(a_actor) and a_actor.movement != null:
 		a_actor.movement.suppress_avoidance_layers()
 		_rvo_suppressed_actor = a_actor
 	if is_instance_valid(message.target):
-		var target := message.target as Commandable
+		var target := message.target as Actor
 		if target != null and target.movement != null:
 			target.movement.suppress_avoidance_layers()
 
@@ -130,7 +130,7 @@ func _clear_rvo_suppression() -> void:
 		_rvo_suppressed_actor.movement.restore_avoidance_layers()
 	_rvo_suppressed_actor = null
 	if is_instance_valid(message.target):
-		var target := message.target as Commandable
+		var target := message.target as Actor
 		if target != null and target.movement != null:
 			target.movement.restore_avoidance_layers()
 
@@ -142,14 +142,14 @@ func _clear_rvo_suppression() -> void:
 ## Cancel if the target is destroyed while the unit is en route.
 ## For HOVERING hosts, registers garrison intent on the first valid tick so the
 ## host knows to descend and can take off again once all pending units are inside.
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	if not is_instance_valid(message.target):
 		_clear_collision_exception()
 		_clear_rvo_suppression()
 		return null
 	_ensure_collision_exception(a_actor)
 	_ensure_rvo_suppression(a_actor)
-	var host := message.target as Commandable
+	var host := message.target as Actor
 	if (
 		host != null
 		and host.aerial != null
@@ -169,17 +169,17 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 ## the follower is still MOVING: a passenger that has arrived and is waiting for a slot in a
 ## full hold is exactly when the host is nearest and the shoving worst, and a NEUTRAL host
 ## (a Shelter) is never a follow target at all.
-func avoidance_exception(_a_actor: Commandable) -> Commandable:
-	return message.target as Commandable if is_instance_valid(message.target) else null
+func avoidance_exception(_a_actor: Actor) -> Actor:
+	return message.target as Actor if is_instance_valid(message.target) else null
 
 
 ## While the host is a HOVERING unit that has not yet grounded, keep approaching
 ## unconditionally so the actor tracks the host's moving XZ position.
 ## Once grounded, fall back to the normal proximity check.
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	if not is_instance_valid(message.target):
 		return false
-	var host := message.target as Commandable
+	var host := message.target as Actor
 	if (
 		host != null
 		and host.aerial != null
@@ -192,8 +192,8 @@ func should_move(a_actor: Commandable) -> bool:
 
 ## Occupy once adjacent and the garrison still has room.
 ## For HOVERING hosts the host descends automatically (driven by
-## Commandable._update_state); this just waits until GROUNDED_TEMP.
-func can_act(a_actor: Commandable) -> bool:
+## Actor._update_state); this just waits until GROUNDED_TEMP.
+func can_act(a_actor: Actor) -> bool:
 	if not is_instance_valid(message.target):
 		return false
 	if not SU.unit_is_close_to_target(a_actor, message.target):
@@ -203,7 +203,7 @@ func can_act(a_actor: Commandable) -> bool:
 	# (its Movement mode, say) can change between the order and its arrival.
 	if garrison == null or not garrison.accepts(a_actor):
 		return false
-	var host := message.target as Commandable
+	var host := message.target as Actor
 	if (
 		host != null
 		and host.aerial != null
@@ -215,7 +215,7 @@ func can_act(a_actor: Commandable) -> bool:
 
 
 ## Remove the acting unit from the scene tree into the garrison.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	# Clear both exceptions before garrisoning — once garrisoned the actor leaves
 	# the tree, so do the bookkeeping while its body is still resolvable.
 	_clear_collision_exception()
@@ -223,7 +223,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	var garrison := message.target.get_node_or_null("Garrison") as Garrison
 	if garrison == null:
 		return null
-	var host := message.target as Commandable
+	var host := message.target as Actor
 	if host != null and host.aerial != null and host.aerial.mode == Movement.Mode.HOVERING:
 		# Only accept units that are still registered; units that died during
 		# the descent removed themselves from the list via tree_exiting.
@@ -241,11 +241,11 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 #region Lifecycle
 ## Replaced mid-approach (the player issued a new order), the command leaves without completing,
 ## so it drops both exceptions and the garrison intent here, while the actor is alive.
-func on_released(_a_actor: Commandable) -> void:
+func on_released(_a_actor: Actor) -> void:
 	_clear_collision_exception()
 	_clear_rvo_suppression()
 	if is_instance_valid(_garrison_registered_actor) and is_instance_valid(message.target):
-		var target := message.target as Commandable
+		var target := message.target as Actor
 		if target != null and target.garrison != null:
 			target.garrison.unregister_garrison_intent(_garrison_registered_actor)
 	_garrison_registered_actor = null
@@ -259,7 +259,7 @@ func on_released(_a_actor: Commandable) -> void:
 ## through its own tree_exiting hook (Garrison.register_garrison_intent).
 func _notification(a_what: int) -> void:
 	if a_what == NOTIFICATION_PREDELETE and message != null and is_instance_valid(message.target):
-		var target := message.target as Commandable
+		var target := message.target as Actor
 		if target != null and target.movement != null:
 			target.movement.restore_avoidance_layers()
 	super._notification(a_what)

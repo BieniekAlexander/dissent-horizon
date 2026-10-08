@@ -122,7 +122,7 @@ func set_quarter_turns(a_turns: int) -> void:
 ## True iff every cell of the structure's footprint is in-bounds, unoccupied,
 ## and (when a_allow_uneven_terrain is false) perfectly flat. The clicked world
 ## position is treated as the footprint centre, matching how Map.add_structure
-## places the building. Lives on Entity (not Commandable) so any grid-occupying
+## places the building. Lives on Entity (not Actor) so any grid-occupying
 ## entity — including non-commandable structures like ExtractionSite — can be placed.
 static func valid_placement(
 	command_message: CommandMessage,

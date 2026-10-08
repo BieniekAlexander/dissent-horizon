@@ -701,7 +701,7 @@ func _placement_bands() -> Array[RangeIndicator.Band]:
 	if Input.is_action_pressed("ui_verbose"):
 		kinds.append(EntityRanges.Kind.VISION)
 	var centre: Vector2 = VU.in_xz(_build_preview.global_position)
-	var neighbours: Array[Commandable] = _placement_neighbours()
+	var neighbours: Array[Actor] = _placement_neighbours()
 	for kind: int in kinds:
 		var reach: Array[float] = _distinct_radii(source, kind)
 		for radius: float in reach:
@@ -713,7 +713,7 @@ func _placement_bands() -> Array[RangeIndicator.Band]:
 		if reach.is_empty():
 			continue
 		var widest: float = reach.max()
-		for neighbour: Commandable in neighbours:
+		for neighbour: Actor in neighbours:
 			var pending: bool = neighbour.is_planned or not neighbour.is_built
 			for radius: float in _distinct_radii(neighbour, kind):
 				if centre.distance_to(neighbour.xz_position) < widest + radius:
@@ -743,13 +743,13 @@ func _distinct_radii(a_piece: Entity, a_kind: int) -> Array[float]:
 
 ## The structures on the placer's side whose coverage a placement might join — standing, going
 ## up, or only planned.
-func _placement_neighbours() -> Array[Commandable]:
-	var out: Array[Commandable] = []
+func _placement_neighbours() -> Array[Actor]:
+	var out: Array[Actor] = []
 	var placer: Commander = _placement_commander()
 	if placer == null:
 		return out
 	for node: Node in get_tree().get_nodes_in_group("structure"):
-		var piece := node as Commandable
+		var piece := node as Actor
 		if (
 			piece != null
 			and not piece.is_queued_for_deletion()
@@ -890,7 +890,7 @@ func _armed_ability_bands() -> Array[RangeIndicator.Band]:
 		return bands
 
 	if _armed_reach_is_a_distance():
-		for caster: Commandable in armed_ability_casters():
+		for caster: Actor in armed_ability_casters():
 			bands.append(
 				RangeIndicator.Band.of(
 					HighlightShape.circle(
@@ -941,14 +941,14 @@ func armed_ability_id() -> StringName:
 ## to EVERY capable caster (only `modifier_narrow` picks one), so with several selected the
 ## ring describes one of several that will all fire. Right for the single-caster case, which
 ## is every case today; revisit when a faction fields several of one battery.
-func armed_ability_caster() -> Commandable:
-	var casters: Array[Commandable] = _charged_casters(armed_ability_id())
+func armed_ability_caster() -> Actor:
+	var casters: Array[Actor] = _charged_casters(armed_ability_id())
 	if casters.is_empty() or command_message == null:
 		return null
 	var aim: Vector2 = VU.in_xz(command_message.world_position)
-	var best: Commandable = null
+	var best: Actor = null
 	var best_distance: float = INF
-	for actor: Commandable in casters:
+	for actor: Actor in casters:
 		var distance: float = aim.distance_squared_to(actor.xz_position)
 		if distance < best_distance:
 			best_distance = distance
@@ -962,23 +962,23 @@ func armed_ability_caster() -> Commandable:
 ## This is what makes the preview honest. The rings and the pieces that actually fire are
 ## the same set by construction, so holding `modifier_broaden` over a pair of spotters lights
 ## both rings AND sends both the order.
-func armed_ability_casters() -> Array[Commandable]:
+func armed_ability_casters() -> Array[Actor]:
 	var ability: StringName = armed_ability_id()
 	if ability == &"":
 		return []
 	if armed_cast_arity() == MoveCommand.CastArity.ALL:
 		return _charged_casters(ability)
-	var one: Commandable = armed_ability_caster()
-	return [one] as Array[Commandable] if one != null else []
+	var one: Actor = armed_ability_caster()
+	return [one] as Array[Actor] if one != null else []
 
 
 ## The selected pieces that grant `a_ability` and are holding a charge for it.
-func _charged_casters(a_ability: StringName) -> Array[Commandable]:
-	var out: Array[Commandable] = []
+func _charged_casters(a_ability: StringName) -> Array[Actor]:
+	var out: Array[Actor] = []
 	if a_ability == &"":
 		return out
 	for node: Node in selection:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if actor == null or not is_instance_valid(actor):
 			continue
 		var pool := actor.get_node_or_null("Abilities") as Abilities
@@ -1464,7 +1464,7 @@ func deselect():
 
 ## Make `commandable` the sole selection (used by the info panel's summary cards). Clears
 ## the current selection, selects just this one, and refreshes the HUD to match.
-func select_only(a_commandable: Commandable) -> void:
+func select_only(a_commandable: Actor) -> void:
 	deselect()
 	if is_instance_valid(a_commandable) and a_commandable.selectable.select():
 		selection.append(a_commandable)
@@ -1476,7 +1476,7 @@ func select_only(a_commandable: Commandable) -> void:
 ## Add `commandable` to the current selection, keeping what is already there — the additive
 ## reading of an occupant card's right click. Selecting anything live drops the pending
 ## selection, the same as every other way of picking a unit.
-func add_to_selection(a_commandable: Commandable) -> void:
+func add_to_selection(a_commandable: Actor) -> void:
 	if (
 		a_commandable == null
 		or not is_instance_valid(a_commandable)
@@ -1488,7 +1488,7 @@ func add_to_selection(a_commandable: Commandable) -> void:
 
 ## Drop `commandable` from the current selection (used by shift+click on a summary card),
 ## leaving the rest selected, then refresh the HUD.
-func remove_from_selection(a_commandable: Commandable) -> void:
+func remove_from_selection(a_commandable: Actor) -> void:
 	if a_commandable in selection:
 		if is_instance_valid(a_commandable):
 			a_commandable.selectable.deselect()
@@ -1600,7 +1600,7 @@ func select_units_in_world_rect(a_world_rect: Rect2, a_additive: bool) -> void:
 ## of them. See ui/control-matrices.md §Context 2.
 func _deselect_in_world_rect(a_world_rect: Rect2) -> void:
 	for node: Node in selection.duplicate():
-		var commandable := node as Commandable
+		var commandable := node as Actor
 		if (
 			commandable != null
 			and is_instance_valid(commandable)
@@ -1670,7 +1670,7 @@ static func selection_commands(a_selection: Array) -> Array:
 static func _can_plant_now(a_node: Variant) -> bool:
 	return (
 		is_instance_valid(a_node)
-		and a_node is Commandable
+		and a_node is Actor
 		and Plant.meets_precondition(a_node, null) == MoveCommand.PreconditionFailureCause.NONE
 	)
 
@@ -1929,7 +1929,7 @@ func _deselect_gesture(
 			if entity != null:
 				caught.append(entity)
 	for entity: Variant in caught:
-		var commandable := entity as Commandable
+		var commandable := entity as Actor
 		if commandable != null and selection.has(commandable):
 			remove_from_selection(commandable)
 	_refresh_available_commands()
@@ -1977,7 +1977,7 @@ func _commander() -> Commander:
 
 ## Kill everything selected, whoever owns it. A DEATH rather than a removal: `_on_death` is
 ## the one complete teardown (grid cells, commander bookkeeping), and triggers and tallies
-## see it as they would any other. A Commandable with hit points is killed through them, so
+## see it as they would any other. A Actor with hit points is killed through them, so
 ## it dies on its own tick like any other kill; anything else dies at once.
 func delete_selection() -> void:
 	if _scenario != null and not selection.is_empty():
@@ -1986,7 +1986,7 @@ func delete_selection() -> void:
 		var entity: Entity = node as Entity if is_instance_valid(node) else null
 		if entity == null:
 			continue
-		if entity is Commandable and entity.defense != null:
+		if entity is Actor and entity.defense != null:
 			entity.defense.kill()
 		else:
 			entity.die()
@@ -2081,33 +2081,33 @@ func _update_selection_owned_panels() -> void:
 		_production_rail.is_active = not has_selection
 
 
-# --- Category predicates (a Commandable satisfies the category) ---------------
+# --- Category predicates (a Actor satisfies the category) ---------------
 ## "Army" unit: a unit carrying at least one Weapon in its Loadout.
-func _is_army_unit(a_c: Commandable) -> bool:
+func _is_army_unit(a_c: Actor) -> bool:
 	var loadout: Loadout = a_c.get_node_or_null("Loadout") as Loadout
 	return a_c.is_in_group("unit") and loadout != null and loadout.has_weapons()
 
 
 ## "Builder" unit: a unit with a Builds component.
-func _is_builder_unit(a_c: Commandable) -> bool:
+func _is_builder_unit(a_c: Actor) -> bool:
 	return a_c.is_in_group("unit") and a_c.has_node("Builds")
 
 
 ## "Production structure": a structure that can train units (has Production).
-func _is_producer_structure(a_c: Commandable) -> bool:
+func _is_producer_structure(a_c: Actor) -> bool:
 	return a_c.is_in_group("structure") and a_c.production != null and a_c.production.trains_units()
 
 
-# --- Idle predicates (a Commandable in that category has nothing to do) --------
+# --- Idle predicates (a Actor in that category has nothing to do) --------
 ## Idle unit: no active command.
-func _is_idle_unit(a_c: Commandable) -> bool:
+func _is_idle_unit(a_c: Actor) -> bool:
 	return a_c._command == null
 
 
 ## Idle production structure: can produce but has neither a job training nor a queued
 ## purchase waiting to land on it — a structure named by a pending transaction is spoken
 ## for, not wasted throughput.
-func _is_idle_producer(a_c: Commandable) -> bool:
+func _is_idle_producer(a_c: Actor) -> bool:
 	return (
 		a_c.production.is_free()
 		and (_commander() == null or _commander().production_queue.pending_count_for(a_c) == 0)
@@ -2136,7 +2136,7 @@ func _run_selector(a_category: Callable, a_idle: Callable) -> void:
 	var idle_only: bool = Input.is_action_pressed(MODIFIER_NARROW)
 	var predicate: Callable = a_category
 	if idle_only:
-		predicate = func(c: Commandable) -> bool: return a_category.call(c) and a_idle.call(c)
+		predicate = func(c: Actor) -> bool: return a_category.call(c) and a_idle.call(c)
 	if Input.is_action_pressed(MODIFIER_BROADEN):
 		_select_all_matching(predicate)
 		return
@@ -2171,7 +2171,7 @@ func selector_preview(a_family: int) -> Dictionary:
 	var take_all: bool = Input.is_action_pressed(MODIFIER_BROADEN)
 	var predicate: Callable = category
 	if idle_only:
-		predicate = func(c: Commandable) -> bool: return category.call(c) and idle.call(c)
+		predicate = func(c: Actor) -> bool: return category.call(c) and idle.call(c)
 	var count: int = _owned_matching(predicate).size()
 	# The VERB matters as much as the number: "cycle 6" and "select 6" are different presses
 	# with the same count, and the button is the only place that difference is visible. The
@@ -2216,7 +2216,7 @@ func _select_all_matching(a_predicate: Callable) -> void:
 func _owned_matching(a_predicate: Callable) -> Array:
 	return get_tree().get_nodes_in_group("piece").filter(
 		func(node: Variant) -> bool:
-			var c: Commandable = node as Commandable
+			var c: Actor = node as Actor
 			return is_player_commandable(c) and c.selectable != null and a_predicate.call(c)
 	)
 
@@ -2230,7 +2230,7 @@ func _select_units(a_entities: Array) -> void:
 	if not a_entities.is_empty():
 		clear_pending_selection()
 	for entity: Node in a_entities:
-		var cmd: Commandable = entity as Commandable
+		var cmd: Actor = entity as Actor
 		if cmd == null or cmd.selectable == null or selection.has(cmd):
 			continue
 		if cmd.selectable.select():
@@ -2253,15 +2253,15 @@ func _select_units(a_entities: Array) -> void:
 ## exactly whenever that modifier would have mattered. Two cells collapsing into one is the
 ## failure the old on-screen/global split had, and it is not worth repeating. The filter is
 ## the modifier's job; the order is this function's.
-func _cycle_one_matching(a_predicate: Callable) -> Commandable:
+func _cycle_one_matching(a_predicate: Callable) -> Actor:
 	var candidates: Array = _owned_matching(a_predicate)
 	var times: Array = []
 	for node: Node in candidates:
-		times.append((node as Commandable).selectable.last_selected_time as float)
+		times.append((node as Actor).selectable.last_selected_time as float)
 	var index: int = cycle_index(times)
 	if index < 0:
 		return null
-	var best: Commandable = candidates[index] as Commandable
+	var best: Actor = candidates[index] as Actor
 
 	# Shift adds to the selection rather than replacing it, the same way _select_all_matching
 	# reads it — so a cycler can extend a group one member at a time.
@@ -2523,7 +2523,7 @@ func apply_control_group_gesture(a_index: int, a_gesture: ControlGroupGesture) -
 			# Edits the SELECTION, so no camera move: the player is narrowing what they already
 			# have in hand, and nothing new has been picked to look at.
 			for member: Variant in group:
-				var commandable := member as Commandable
+				var commandable := member as Actor
 				if commandable != null:
 					remove_from_selection(commandable)
 
@@ -2584,7 +2584,7 @@ func _look_at_selection(a_commandables: Array) -> void:
 	var centroid: Vector2 = Vector2.ZERO
 	var counted: int = 0
 	for node: Node in a_commandables:
-		var c: Commandable = node as Commandable
+		var c: Actor = node as Actor
 		if c == null or not is_instance_valid(c):
 			continue
 		centroid += VU.in_xz(c.global_position)
@@ -2607,13 +2607,13 @@ func commandables_on_screen(a_commandables: Array) -> Array:
 	var viewport_rect: Rect2 = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
 	return a_commandables.filter(
 		func(c: Variant) -> bool:
-			return c is Commandable and _selection_shape_in_view(c as Commandable, viewport_rect)
+			return c is Actor and _selection_shape_in_view(c as Actor, viewport_rect)
 	)
 
 
 ## True when the commandable's selection shape projects onto `viewport_rect` at
 ## all (any overlap — a partially-visible shape still counts as on screen).
-func _selection_shape_in_view(a_commandable: Commandable, a_viewport_rect: Rect2) -> bool:
+func _selection_shape_in_view(a_commandable: Actor, a_viewport_rect: Rect2) -> bool:
 	if a_commandable == null or a_commandable.selectable == null:
 		return false
 	var shape_node: CollisionShape3D = _selection_shape_node(a_commandable.selectable)
@@ -3012,10 +3012,10 @@ static func _resolve_hotkey_command(pending: String, message: CommandMessage) ->
 
 ## The default ladder: no sub-mode armed, so the actor's capabilities and whatever is under
 ## the cursor decide. Ends in a plain MoveCommand, which stationary can_rally() hosts read
-## as a rally point (see Commandable._process_commands).
+## as a rally point (see Actor._process_commands).
 static func _resolve_target_command(actor: Entity, message: CommandMessage) -> Variant:
 	var target: Variant = message.target
-	var actor_cmd := actor as Commandable
+	var actor_cmd := actor as Actor
 
 	# A producer with a tool selected is deliberately training.
 	if actor.has_node("Production") and message.tool != null:
@@ -3036,7 +3036,7 @@ static func _resolve_target_command(actor: Entity, message: CommandMessage) -> V
 	# Builder targeting a friendly under-construction structure -> resume construction. The
 	# click is unambiguous (same-commander, not-yet-built, actor can build that type), so it
 	# short-circuits ahead of the generic fallthrough.
-	var target_cmd := target as Commandable
+	var target_cmd := target as Actor
 	if (
 		target_cmd != null
 		and target_cmd.commander_id == actor.commander_id
@@ -3089,7 +3089,7 @@ static func resolve_command_class_for_selection(
 	var best_rank: int = 0x7FFFFFFF
 	var lead_resolution: Variant = null
 	for node: Node in selection:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if actor == null or not is_instance_valid(actor):
 			continue
 		var resolved: Variant = _resolve_command_class(pending, actor, message)
@@ -3156,7 +3156,7 @@ static func _command_specificity(command_type: Script) -> int:
 ## Whether `a_actor` could carry out `a_command_type` right now. COMMAND_PENDING_TOOL
 ## counts: it means "armed, waiting on the player's tool pick", not a failure (see
 ## MoveCommand.PreconditionFailureCause).
-static func _can_execute(command_type: Script, actor: Commandable, message: CommandMessage) -> bool:
+static func _can_execute(command_type: Script, actor: Actor, message: CommandMessage) -> bool:
 	var cause: MoveCommand.PreconditionFailureCause = command_type.meets_precondition(
 		actor, message
 	)
@@ -3181,7 +3181,7 @@ static func selection_precondition(
 	)
 	var have_lead: bool = false
 	for node: Node in selection:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if actor == null or not is_instance_valid(actor):
 			continue
 		var cause: MoveCommand.PreconditionFailureCause = command_type.meets_precondition(
@@ -3846,11 +3846,11 @@ func producer_context_names() -> Array:
 func _narrow_to_producer_context(a_names: Array) -> Array:
 	if _producer_context == &"" or producer_context_names().is_empty():
 		return a_names
-	var producer: Commandable = null
+	var producer: Actor = null
 	for node: Node in selection:
 		var entity := node as Entity
 		if entity != null and is_instance_valid(entity) and entity.id == _producer_context:
-			producer = entity as Commandable
+			producer = entity as Actor
 			break
 	if producer == null:
 		return a_names
@@ -3878,7 +3878,7 @@ func production_detail_scope() -> Array:
 		func(node: Variant) -> bool:
 			if not is_instance_valid(node):
 				return false
-			var producer := node as Commandable
+			var producer := node as Actor
 			return (
 				producer != null
 				and producer.commander == own
@@ -4034,12 +4034,12 @@ static func cursor_evaluator(command_type: Script, command_message: CommandMessa
 
 
 ## True when the player can currently perceive `entity` — so the cursor may target
-## it. Own units are always known; a fog-tracked Commandable is perceptible only
+## it. Own units are always known; a fog-tracked Actor is perceptible only
 ## while it's in sight (in_sight_range is fog.gd's per-tick "fog pixel clear AND not
 ## stealthed" flag, so this subsumes both fog and stealth). A fogged enemy — or a
 ## fogged structure's remembered snapshot, which has no SELECTION collider at all —
 ## is not detected, so a right-click over it resolves to a Move on the terrain
-## beneath. Non-Commandable map features (e.g. neutral Shelters) aren't fog-managed,
+## beneath. Non-Actor map features (e.g. neutral Shelters) aren't fog-managed,
 ## so fall back to their render state (always drawn → still targetable to liberate).
 static func _is_perceptible(entity: Entity) -> bool:
 	# A fog-lifting debug view draws everything, so everything it draws can be pointed at.
@@ -4049,8 +4049,8 @@ static func _is_perceptible(entity: Entity) -> bool:
 	# their own vision (fog.gd draws it on that test), and cannot pick out of it.
 	if entity.commander_id == PLAYER_COMMANDER_ID:
 		return PlantedCharge.of(entity) == null or entity.visible
-	if entity is Commandable:
-		return (entity as Commandable).in_sight_range
+	if entity is Actor:
+		return (entity as Actor).in_sight_range
 	# A beacon's stealth is drawn on its model, not on the root fog toggles, so ask both.
 	if Beacon.of(entity) != null:
 		return entity.is_visible_to(PLAYER_COMMANDER_ID)
@@ -4065,7 +4065,7 @@ static func _is_perceptible(entity: Entity) -> bool:
 ##    even assignment to a TYPED local raises "previously freed instance" before any guard
 ##    inside the callee runs (CLAUDE.md §A freed object cannot be passed to a typed
 ##    parameter). So the slot is read UNTYPED and validity is established first. Reading it
-##    into `var entity: Node` and asking `entity is Commandable` first is exactly the crash
+##    into `var entity: Node` and asking `entity is Actor` first is exactly the crash
 ##    this ordering exists to prevent.
 ## 2. **Off the tree and not held.** A GARRISONED unit is off the tree and is NOT gone — being
 ##    able to select it is how orders reach it before it comes out. Everything else off the
@@ -4080,13 +4080,13 @@ func prune_selection() -> bool:
 			pruned = true
 			continue
 		var entity: Node = slot
-		var held: bool = entity is Commandable and (entity as Commandable).is_garrisoned()
+		var held: bool = entity is Actor and (entity as Actor).is_garrisoned()
 		if not entity.is_inside_tree() and not held:
 			entity.selectable.deselect()
 			selection.remove_at(i)
 			pruned = true
 			continue
-		var commandable: Commandable = entity as Commandable
+		var commandable: Actor = entity as Actor
 		if (
 			commandable != null
 			and is_player_commandable(commandable)
@@ -4216,7 +4216,7 @@ func _cursor_readout_text() -> String:
 
 ## The neutral building the armed Build would convert if issued at the cursor, or null when the
 ## armed order is not a conversion (or is not a Build at all).
-func armed_conversion_target() -> Commandable:
+func armed_conversion_target() -> Actor:
 	if command_message == null or current_command_type != Build:
 		return null
 	return Build.conversion_target(_selection_commander(), command_message)
@@ -4227,18 +4227,18 @@ func armed_conversion_target() -> Commandable:
 func previewed_conversion_energy() -> int:
 	if hovered_command_name() != &"":
 		return -1
-	var target: Commandable = armed_conversion_target()
+	var target: Actor = armed_conversion_target()
 	return Build.conversion_energy(target) if target != null else -1
 
 
 ## The building currently wearing the conversion marker.
-var _conversion_marked: Commandable = null
+var _conversion_marked: Actor = null
 
 
 ## Mark the building the armed Build would convert, using the marker a single-unit ability
 ## uses for its target: "this is what the order lands on".
 func _update_conversion_marker() -> void:
-	var target: Commandable = armed_conversion_target()
+	var target: Actor = armed_conversion_target()
 	if target == _conversion_marked:
 		return
 	if is_instance_valid(_conversion_marked):
@@ -4456,9 +4456,9 @@ func _update_waypoint_display() -> void:
 	# indicators is shown, not just the first representative's.
 	var configured: Dictionary = {}  # CommandMessage -> true, prevents double-configure
 	for entity in selection:
-		if not (entity is Commandable):
+		if not (entity is Actor):
 			continue
-		var unit := entity as Commandable
+		var unit := entity as Actor
 		var chain := unit.get_command_chain()
 		var prev_pos: Vector3 = unit.global_position
 		for cmd in chain:
@@ -4499,7 +4499,7 @@ func _update_rally_indicator() -> void:
 	var hovered: Array = _info_view.hovered_training_target() if _info_view != null else []
 	var chains: Array = []
 	for node: Node in selection:
-		var structure := node as Commandable
+		var structure := node as Actor
 		if structure == null or not structure.is_in_group("structure") or not structure.can_rally():
 			continue
 		var commands: Array = _rally_commands_to_draw(structure, hovered)
@@ -4518,7 +4518,7 @@ func _update_rally_indicator() -> void:
 ##
 ## The unhovered case deliberately does NOT read the job in progress. Why:
 ## gdd/systems/commands/construction.md §Rally / release destinations.
-func _rally_commands_to_draw(a_structure: Commandable, a_hovered: Array) -> Array:
+func _rally_commands_to_draw(a_structure: Actor, a_hovered: Array) -> Array:
 	if a_structure.production != null and a_hovered.size() == 2 and a_hovered[0] == a_structure:
 		var job_index: int = a_hovered[1]
 		if job_index >= 0 and job_index < a_structure.production.job_count():
@@ -4749,7 +4749,7 @@ func _ability_readiness(a_ability_id: StringName) -> Vector2i:
 		return Vector2i.ZERO
 	var casters: Array = commander.casters_of_ability(a_ability_id)
 	var ready: int = 0
-	for caster: Commandable in casters:
+	for caster: Actor in casters:
 		var store := caster.get_node_or_null("Abilities") as Abilities
 		if store != null and store.is_ready(a_ability_id):
 			ready += 1
@@ -4845,7 +4845,7 @@ func _on_deploy_button_pressed(a_ability_id: StringName) -> void:
 	if casters.is_empty():
 		return
 	deselect()
-	for caster: Commandable in casters:
+	for caster: Actor in casters:
 		if caster.selectable.select():
 			selection.append(caster)
 	_refresh_available_commands()
@@ -4904,7 +4904,7 @@ func _issue_sanction(a_sanction: Sanction, a_position: Vector3) -> void:
 #region Single-unit ability targeting
 ## The unit the armed single-unit ability would act on if issued now — the unit under the
 ## cursor that the ability accepts — or null. Null too when nothing of that kind is armed.
-var ability_target: Commandable = null
+var ability_target: Actor = null
 
 
 ## Whether the armed order is a cast that acts on exactly one unit (see
@@ -4919,7 +4919,7 @@ func armed_targets_one_unit() -> bool:
 ## unit that would actually be affected. Every frame, like the rest of the cursor state:
 ## the pointer leaves a unit as often as it arrives on one.
 func _update_ability_target() -> void:
-	var found: Commandable = null
+	var found: Actor = null
 	if armed_targets_one_unit() and map != null and camera != null:
 		var sanction: Sanction = _pending_sanction
 		var commander: Commander = _commander()
@@ -4931,7 +4931,7 @@ func _update_ability_target() -> void:
 				end,
 				func(a_entity: Entity) -> bool: return sanction.accepts_target(a_entity, commander)
 			)
-			as Commandable
+			as Actor
 		)
 		command_message.target = found
 	if found != ability_target:
@@ -5272,7 +5272,7 @@ func _place_drop() -> void:
 	var drop: Deployment.Drop = _armed_drop as Deployment.Drop
 	var stream: OrderStream = _order_stream()
 	if stream == null:
-		var landed: Array[Commandable] = _bound_deployment.drop(drop, _drop_aim())
+		var landed: Array[Actor] = _bound_deployment.drop(drop, _drop_aim())
 		if landed.is_empty():
 			return
 		_select_landed(landed, additive_latched)

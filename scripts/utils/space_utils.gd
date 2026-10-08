@@ -177,9 +177,9 @@ static func _grow_shape_radius(shape: Shape3D, amount: float) -> Shape3D:
 
 
 static func unit_is_close_to_target(
-	unit: Commandable, target: Variant, distance_squared: float = .001
+	unit: Actor, target: Variant, distance_squared: float = .001
 ) -> bool:
-	# Group-based, not type-based: a structure may be an Entity that is NOT a Commandable
+	# Group-based, not type-based: a structure may be an Entity that is NOT a Actor
 	# (e.g. ShelterStructure / ExtractionSite), and it still wants footprint-adjacency proximity
 	# rather than the strict touch-the-target-body check used for mobile units.
 	if target is Entity and target.is_in_group("fixture"):
@@ -194,7 +194,7 @@ static func unit_is_close_to_target(
 
 
 static func unit_is_close_to_position(
-	unit: Commandable, position: Vector2, _distance_squared: float = .001
+	unit: Actor, position: Vector2, _distance_squared: float = .001
 ) -> bool:
 	# The navigation agent stops at the destination rather than overshooting, so
 	# arrival is just a position-equality check — no collision radius needed.
@@ -202,7 +202,7 @@ static func unit_is_close_to_position(
 
 
 static func unit_is_close_to_structure(
-	unit: Commandable, structure: Entity, _distance_squared: float = .001
+	unit: Actor, structure: Entity, _distance_squared: float = .001
 ) -> bool:
 	# A unit counts as close to a structure when its grid cell lies within the
 	# structure's footprint or is immediately adjacent to it (see
@@ -282,7 +282,7 @@ static func edge_adjacent_structures(map: Map, structure: Entity) -> Array[Entit
 ## every building edge by NavAgentClass.radius, which for MEDIUM (0.95) leaves almost none
 ## of an adjacent cell reachable — so the grid test alone is one such a unit can never pass,
 ## and a Stock Truck parked at its Compound stood there forever, loaded.
-static func unit_is_close_to_footprint(unit: Commandable, map: Map, footprint: Array) -> bool:
+static func unit_is_close_to_footprint(unit: Actor, map: Map, footprint: Array) -> bool:
 	if map == null or footprint.is_empty():
 		return false
 	var unit_cell: Vector2i = map.world_to_grid(VU.in_xz(unit.global_position))
@@ -309,7 +309,7 @@ static func class_standoff_reach(nav_class: int) -> float:
 ## `footprint` — NavAgentClass.radius (the erosion of its class mesh) plus
 ## CLASS_STANDOFF_SLACK — measured from the unit's XZ position to the nearest footprint
 ## cell's square. False for a unit with no Movement, which never pathed there anyway.
-static func _within_class_standoff(unit: Commandable, map: Map, footprint: Array) -> bool:
+static func _within_class_standoff(unit: Actor, map: Map, footprint: Array) -> bool:
 	if unit.movement == null:
 		return false
 	var reach: float = class_standoff_reach(unit.movement.nav_agent_class)
@@ -326,7 +326,7 @@ static func _within_class_standoff(unit: Commandable, map: Map, footprint: Array
 ## Whether `target` lies within an interaction's authored reach `shape` (e.g. a Cylinder)
 ## of `unit`: the footprint gap within the shape's radius, with the shape's height kept by
 ## the broad phase (see entities_within). False when the shape or target is missing.
-static func unit_shape_overlaps_target(unit: Commandable, target: Entity, shape: Shape3D) -> bool:
+static func unit_shape_overlaps_target(unit: Actor, target: Entity, shape: Shape3D) -> bool:
 	if shape == null or not is_instance_valid(target):
 		return false
 	return (
@@ -345,7 +345,7 @@ static func unit_shape_overlaps_target(unit: Commandable, target: Entity, shape:
 ## Engagement proximity: the two footprints touch, within a slack whose SQUARE is
 ## `distance_squared`.
 static func unit_is_close_to_unit(
-	unit: Commandable, an_entity: Entity, distance_squared: float = .001
+	unit: Actor, an_entity: Entity, distance_squared: float = .001
 ) -> bool:
 	var gap: float = hull_gap(unit, an_entity)
 	return gap * gap < distance_squared
@@ -357,7 +357,7 @@ static func unit_is_close_to_unit(
 ## list is shuffled so callers can pop_front() to assign distinct destinations
 ## without bias.
 ##
-## ENTITY, not Commandable — a structure need not be a Commandable (an ExtractionSite, a
+## ENTITY, not Actor — a structure need not be a Actor (an ExtractionSite, a
 ## Shelter and a Rock are plain Entities carrying a Structure component), and every other
 ## member of this family already says Entity: `_passable_footprint_neighbors`, which does
 ## all the work, `nearest_footprint_adjacent_cell`, and `unit_is_close_to_structure`. This
@@ -373,10 +373,10 @@ static func passable_cells_adjacent_to(structure: Entity, map: Map) -> Array[Vec
 ## and Commander.projected_dominion_rate's nearest-Compound-to-a-Shelter are both this,
 ## asked from a different point, and neither wants its own copy of "walk a list, keep the
 ## closest".
-static func nearest_of(candidates: Array, from: Entity) -> Commandable:
-	var best: Commandable = null
+static func nearest_of(candidates: Array, from: Entity) -> Actor:
+	var best: Actor = null
 	var best_distance: float = 0.0
-	for candidate: Commandable in candidates:
+	for candidate: Actor in candidates:
 		var distance: float = from.xz_position.distance_to(candidate.xz_position)
 		if best == null or distance < best_distance:
 			best = candidate

@@ -6,7 +6,7 @@ enum Disposition { PASSIVE, AGGRESSIVE }
 #endregion
 
 #region Properties
-var owner: Commandable
+var owner: Actor
 
 ## The active command. Assigning it is the single chokepoint for group-move speed-cap
 ## cleanup (see _release_speed_cap): every path that starts, swaps, or drops a command
@@ -37,7 +37,7 @@ var _disposition: Disposition = Disposition.PASSIVE
 ## captured while the target is still valid. Needed because a freed reference
 ## reads as null in Godot (== null is true), so once the followed unit dies its
 ## death is indistinguishable from a plain terrain move unless we remembered it.
-var _followed: Commandable = null
+var _followed: Actor = null
 var _follow_cmd: MoveCommand = null
 
 ## Memoized approach to a structure target: which command it was resolved for, and the cell.
@@ -50,7 +50,7 @@ var _approach_cell: Vector2i = Vector2i(-1, -1)
 
 
 #region Public API
-func initialize(a_owner: Commandable) -> void:
+func initialize(a_owner: Actor) -> void:
 	owner = a_owner
 	_command_queue = []
 
@@ -89,7 +89,7 @@ func get_command_chain() -> Array[MoveCommand]:
 ## same treatment rally templates get. Why both:
 ## gdd/systems/macroeconomics/sanctions/payloads.md §A transformation carries the unit's
 ## orders.
-func portable_chain_for(a_recipient: Commandable) -> Array[MoveCommand]:
+func portable_chain_for(a_recipient: Actor) -> Array[MoveCommand]:
 	var portable: Array[MoveCommand] = []
 	for command: MoveCommand in get_command_chain():
 		if not CommandContextParser.actor_can_perform(a_recipient, command):
@@ -366,7 +366,7 @@ static func _target_has_left_play(a_message: CommandMessage) -> bool:
 	var target: Variant = a_message.target
 	if target == null or not is_instance_valid(target):
 		return false  # absent or dead — somebody else's branch
-	var commandable: Commandable = target as Commandable
+	var commandable: Actor = target as Actor
 	return commandable != null and commandable.is_garrisoned()
 
 
@@ -404,7 +404,7 @@ func _drop_command() -> void:
 ## Where `a_command` was last aiming, or null when that is unknowable: no command, or a target
 ## that has left the world (garrisoned), whose position reads as the map origin — the trap
 ## _target_has_left_play exists for. Null lets a mover that cannot stop keep its circuit.
-static func _last_goal_of(a_command: MoveCommand, actor: Commandable) -> Variant:
+static func _last_goal_of(a_command: MoveCommand, actor: Actor) -> Variant:
 	if a_command == null:
 		return null
 	var target: Variant = a_command.message.target
@@ -466,7 +466,7 @@ func _drive_movement() -> void:
 	if not _leave_pad_before_moving():
 		return
 
-	var followed: Commandable = _follow_target()
+	var followed: Actor = _follow_target()
 	if followed != null:
 		# Remember the live relationship so we can spot the target's death next tick — a freed
 		# reference reads as null, so it cannot be detected after the fact.
@@ -531,7 +531,7 @@ func _end_after_follow_target_died() -> void:
 
 
 ## The path has finished — chain to the next waypoint, or settle here.
-func _arrive(a_followed: Commandable) -> void:
+func _arrive(a_followed: Actor) -> void:
 	# HOVERING/FLYING pass-through: with more waypoints after this one, load the next
 	# destination on the SAME tick rather than nulling the command and restarting on the next.
 	# That one-tick standstill is what would otherwise break the banking curve.
@@ -560,9 +560,9 @@ func _update_state() -> void:
 	if _command == null and not _command_queue.is_empty():
 		_command = _command_queue.pop_front()
 
-	# Delegate to the owner's command processor (Commandable._process_commands),
+	# Delegate to the owner's command processor (Actor._process_commands),
 	# which routes structure-flavored commands (Train → Production.enqueue,
-	# base MoveCommand → Commandable.set_rally) before falling back to this
+	# base MoveCommand → Actor.set_rally) before falling back to this
 	# receiver's default handling via _process_commands(). Calling our own
 	# _process_commands() here would bypass that routing entirely, which is why
 	# structure training and rally points silently did nothing.
@@ -578,7 +578,7 @@ func _update_state() -> void:
 ## The friendly unit this unit is currently "following" — i.e. its active command
 ## moves it toward another unit on its own team — or null. Used both to suppress
 ## reciprocal avoidance and to stop at the followed unit's body.
-func _follow_target() -> Commandable:
+func _follow_target() -> Actor:
 	if _command == null or not _command.should_move(owner):
 		return null
 	var t: Entity = _command.message.target
@@ -586,12 +586,12 @@ func _follow_target() -> Commandable:
 	if (
 		t != null
 		and is_instance_valid(t)
-		and t is Commandable
+		and t is Actor
 		and t != owner
 		and t.is_in_group("unit")
-		and (t as Commandable).commander_id == owner.commander_id
+		and (t as Actor).commander_id == owner.commander_id
 	):
-		return t as Commandable
+		return t as Actor
 	return null
 
 
@@ -612,7 +612,7 @@ func _reconcile_follow_avoidance() -> void:
 ## command's answer wins: an order that exists in order to close with another unit knows more
 ## about the pair than the generic follow rule, which asks a narrower question (same
 ## commander, group "unit", still moving) and would drop the exemption at the worst moment.
-func _avoidance_exception_target() -> Commandable:
-	var declared: Commandable = _command.avoidance_exception(owner) if _command != null else null
+func _avoidance_exception_target() -> Actor:
+	var declared: Actor = _command.avoidance_exception(owner) if _command != null else null
 	return declared if declared != null else _follow_target()
 #endregion

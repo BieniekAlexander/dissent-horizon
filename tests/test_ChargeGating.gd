@@ -36,12 +36,12 @@ func before_each() -> void:
 ## A finished Colonial gun owned by `_commander`. The scene is loaded INSIDE the test
 ## rather than preloaded at file scope: a file-scope preload of an entity scene runs at
 ## parse time and can build Tool's static registry before it is ready (see CLAUDE.md).
-func _gun(a_ready: bool) -> Commandable:
+func _gun(a_ready: bool) -> Actor:
 	# The gun costs 75 infrastructure of upkeep, and a commander with only
 	# BASE_INFRASTRUCTURE cannot cover two of them — an unpowered building casts nothing
 	# (see tests/test_InfrastructureStrain.gd), which is not what is under test here.
 	_commander.add_infrastructure(1000)
-	var gun: Commandable = FakePieces.structure(
+	var gun: Actor = FakePieces.structure(
 		{
 			"dimensions": Vector2i(2, 2),
 			"beacon_range": 30.0,
@@ -120,15 +120,15 @@ func test_the_cooldown_still_only_greys_the_button() -> void:
 
 
 ## A real ability-carrying unit, standing at the origin, holding `charges` of the one
-## ability under test. A real scene rather than a bare Commandable because `can_act`
+## ability under test. A real scene rather than a bare Actor because `can_act`
 ## reads `xz_position` — i.e. `global_position` — which errors outside the tree, and a
-## `Commandable.new()` added TO the tree runs a `_ready` that wants its own `Ownership`.
+## `Actor.new()` added TO the tree runs a `_ready` that wants its own `Ownership`.
 ## Its authored specs are replaced so the test does not ride on the doc's charge counts.
-func _caster(a_charges: int) -> Commandable:
+func _caster(a_charges: int) -> Actor:
 	# The Vanguard, which is one of the three pieces actually granted the ability. The Warlord
 	# stood here while charges lived in an `Inventory` any unit could be handed at runtime;
 	# a pool is authored per piece, so the fixture has to be a piece that carries one.
-	var actor: Commandable = FakePieces.unit({"speed": 2.0, "vision": 8.0, "abilities": [{}]})
+	var actor: Actor = FakePieces.unit({"speed": 2.0, "vision": 8.0, "abilities": [{}]})
 	_commander.add_child(actor)
 	autofree(actor)
 	actor.top_level = true

@@ -1,6 +1,6 @@
 [gd_scene load_steps=26 format=3 uid="uid://b6oqu7bqdu6sy"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_8syv0"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_8syv0"]
 [ext_resource type="PackedScene" path="res://assets/meshes/entities/dummy_structure.blend" id="1_dummy"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/abilities.gd" id="2_spec"]

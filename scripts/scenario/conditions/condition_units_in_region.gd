@@ -46,7 +46,7 @@ var _was_inside: bool = false
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var units: Array = _matching_units(a_manager)
 	var any_inside: bool = units.any(
-		func(u: Commandable) -> bool: return region_contains(u.global_position)
+		func(u: Actor) -> bool: return region_contains(u.global_position)
 	)
 	match check:
 		Check.ANY_INSIDE:
@@ -55,7 +55,7 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 			return (
 				not units.is_empty()
 				and units.all(
-					func(u: Commandable) -> bool: return region_contains(u.global_position)
+					func(u: Actor) -> bool: return region_contains(u.global_position)
 				)
 			)
 		Check.ANY_ENTER:
@@ -76,7 +76,7 @@ func poll(a_manager: ScenarioTriggerManager) -> void:
 	super(a_manager)
 	if check == Check.ANY_ENTER or check == Check.ANY_EXIT:
 		_was_inside = _matching_units(a_manager).any(
-			func(u: Commandable) -> bool: return region_contains(u.global_position)
+			func(u: Actor) -> bool: return region_contains(u.global_position)
 		)
 
 
@@ -104,9 +104,9 @@ func _matching_units(a_manager: ScenarioTriggerManager) -> Array:
 	return commander.get_children().filter(
 		func(n: Node) -> bool:
 			return (
-				n is Commandable
-				and (n as Commandable).is_in_group("unit")
-				and (unit_type == &"" or (n as Commandable).id == unit_type)
+				n is Actor
+				and (n as Actor).is_in_group("unit")
+				and (unit_type == &"" or (n as Actor).id == unit_type)
 			)
 	)
 

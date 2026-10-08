@@ -38,7 +38,7 @@ func _init(a_map: Map) -> void:
 ## "possible" that cannot drift from the player's.
 func _admits(
 	a_command_class: Script,
-	a_actor: Commandable,
+	a_actor: Actor,
 	a_message: CommandMessage,
 	a_kind: String,
 	a_piece: StringName
@@ -76,7 +76,7 @@ func attack_move(
 	if _map == null:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
-	for u: Commandable in a_units:
+	for u: Actor in a_units:
 		var msg := CommandMessage.new(_map, null, null, dest)
 		msg.target_priority = a_target_priority
 		if not _admits(AttackMove, u, msg, "attack_move", u.id):
@@ -95,7 +95,7 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 	if _map == null:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
-	for u: Commandable in a_units:
+	for u: Actor in a_units:
 		var msg := CommandMessage.new(_map, null, null, dest)
 		if not _admits(MoveCommand, u, msg, "move", u.id):
 			continue
@@ -115,7 +115,7 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 func move_at(a_units: Array, a_target: Entity) -> void:
 	if _map == null or a_target == null or not is_instance_valid(a_target):
 		return
-	for u: Commandable in a_units:
+	for u: Actor in a_units:
 		var msg := CommandMessage.new(_map, a_target, null, a_target.global_position)
 		if not _admits(MoveCommand, u, msg, "move_at", u.id):
 			continue
@@ -125,13 +125,13 @@ func move_at(a_units: Array, a_target: Entity) -> void:
 
 
 ## Set where `a_structures` send what they produce: a plain move to a world position, which
-## is exactly what a player's right-click with a producer selected sets (Commandable.set_rally).
+## is exactly what a player's right-click with a producer selected sets (Actor.set_rally).
 ## No unit is ordered here — Production hands the rally to each unit as it finishes it.
 func rally(a_structures: Array, a_world_pos: Vector3) -> void:
 	if _map == null:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
-	for s: Commandable in a_structures:
+	for s: Actor in a_structures:
 		usage.record_action("rally", s.id, BotUsageLog.OUTCOME_ISSUED)
 		s.set_rally(MoveCommand.new(CommandMessage.new(_map, null, null, dest)))
 
@@ -143,7 +143,7 @@ func rally(a_structures: Array, a_world_pos: Vector3) -> void:
 func evacuate(a_hosts: Array) -> void:
 	if _map == null:
 		return
-	for host: Commandable in a_hosts:
+	for host: Actor in a_hosts:
 		var msg := CommandMessage.new(_map, null, null, host.global_position)
 		if _admits(Evacuate, host, msg, "evacuate", host.id):
 			host.update_commands(Evacuate.new(msg))
@@ -154,7 +154,7 @@ func evacuate(a_hosts: Array) -> void:
 ## returns to idle — and gets re-tasked — instead of chasing forever.
 ##
 ## A UNIT THAT CANNOT TOUCH THE TARGET IS SKIPPED, and this is the guard rather than a
-## nicety. `Commandable.update_commands` does not consult preconditions — that is the
+## nicety. `Actor.update_commands` does not consult preconditions — that is the
 ## player UI's job (`RTSController`) — so nothing downstream refuses an impossible Attack:
 ## `should_move` returns false (no weapon to close for), `can_act` returns false (nothing to
 ## fire), and `get_updated_state` returns `self` for a persistent one, which leaves the unit
@@ -170,7 +170,7 @@ func evacuate(a_hosts: Array) -> void:
 func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 	if _map == null or a_target == null:
 		return
-	for u: Commandable in a_units:
+	for u: Actor in a_units:
 		var msg := CommandMessage.new(_map, a_target)
 		msg.persist = a_persist
 		if not _admits(Attack, u, msg, "attack", u.id):
@@ -185,7 +185,7 @@ func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 ## placement validity are enforced downstream by Build.meets_precondition, so an
 ## invalid request is a safe no-op (the builder just won't complete it).
 func build(
-	a_builder: Commandable, a_type: StringName, a_world_pos: Vector3, a_quarter_turns: int = 0
+	a_builder: Actor, a_type: StringName, a_world_pos: Vector3, a_quarter_turns: int = 0
 ) -> bool:
 	var tool := Tool.for_type(a_type)
 	if tool == null:
@@ -224,7 +224,7 @@ func build(
 ## Applicability (the unit owning a matching Interactor interaction, the target being
 ## available) is Interact.meets_precondition's, asked here so a refusal is counted. Returns
 ## whether the order was issued.
-func interact(a_unit: Commandable, a_target: Entity) -> bool:
+func interact(a_unit: Actor, a_target: Entity) -> bool:
 	if _map == null or a_target == null:
 		return false
 	var msg := CommandMessage.new(_map, a_target)
@@ -241,7 +241,7 @@ func interact(a_unit: Commandable, a_target: Entity) -> bool:
 ## the host would never take is refused and counted rather than ordered to stand at the
 ## door. Recorded under the HOST's id: the ledger's question is which hosts the bot uses.
 ## Returns whether the order was issued.
-func garrison_into(a_unit: Commandable, a_host: Commandable) -> bool:
+func garrison_into(a_unit: Actor, a_host: Actor) -> bool:
 	if _map == null or a_host == null:
 		return false
 	var msg := CommandMessage.new(_map, a_host, null, a_host.global_position)
@@ -270,7 +270,7 @@ func garrison_into(a_unit: Commandable, a_host: Commandable) -> bool:
 ## sanction with cargo takes its default. `a_target` is the unit a single-unit cast names
 ## (Sanction.targets_one_unit), null for every other kind.
 func use_sanction(
-	a_caster: Commandable, a_sanction: Sanction, a_world_pos: Vector3, a_target: Entity = null
+	a_caster: Actor, a_sanction: Sanction, a_world_pos: Vector3, a_target: Entity = null
 ) -> bool:
 	if _map == null or a_caster == null or a_sanction == null:
 		return false
@@ -289,7 +289,7 @@ func use_sanction(
 ## walks into the ability's reach and puts the payload down. Recorded under the ability's id,
 ## like a sanction, so the audit reads abilities by what was cast rather than by who cast it.
 ## Returns whether the order was issued.
-func use_ability(a_caster: Commandable, a_ability_id: StringName, a_world_pos: Vector3) -> bool:
+func use_ability(a_caster: Actor, a_ability_id: StringName, a_world_pos: Vector3) -> bool:
 	if _map == null or a_caster == null or a_ability_id == &"":
 		return false
 	var msg := CommandMessage.new(_map, null, null, a_world_pos, a_ability_id)
@@ -306,7 +306,7 @@ func use_ability(a_caster: Commandable, a_ability_id: StringName, a_world_pos: V
 ## channel, and hold the beacon until a Bombard fires on it (Spot). The gun answers on its
 ## own — automatic fire is the Bombard's default — so this is the bot's whole half of the
 ## siege loop. Recorded under the Spot ability's id. Returns whether the order was issued.
-func spot(a_spotter: Commandable, a_world_pos: Vector3) -> bool:
+func spot(a_spotter: Actor, a_world_pos: Vector3) -> bool:
 	if _map == null or a_spotter == null:
 		return false
 	var msg := CommandMessage.new(_map, null, null, a_world_pos)
@@ -326,7 +326,7 @@ func spot(a_spotter: Commandable, a_world_pos: Vector3) -> bool:
 ## rather than as a Train command so the structure stops reading as idle in the SAME
 ## tick (see Bot.get_idle_production_structures), which is what stops the bot
 ## re-ordering the unit it just ordered.
-func train(a_structure: Commandable, a_type: StringName) -> bool:
+func train(a_structure: Actor, a_type: StringName) -> bool:
 	var tool := Tool.for_type(a_type)
 	if tool == null or a_structure.commander == null:
 		usage.record_action("train", a_type, REFUSED_NO_TOOL)

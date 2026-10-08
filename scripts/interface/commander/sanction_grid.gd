@@ -329,7 +329,7 @@ func deployable_sanctions() -> Array[Sanction]:
 ## The piece is asked, not the sanction — see Sanction.ability_id for why. A piece with no
 ## Abilities component casts nothing, which is most of the roster, so this is cheap to ask
 ## of any entity.
-func castable_by(a_caster: Commandable) -> Array[Sanction]:
+func castable_by(a_caster: Actor) -> Array[Sanction]:
 	var out: Array[Sanction] = []
 	if a_caster == null or not is_instance_valid(a_caster):
 		return out

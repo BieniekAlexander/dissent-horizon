@@ -42,8 +42,8 @@ func before_each() -> void:
 	_commanders = {}
 
 
-func _piece(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var piece := FakePieces.make(a_options) as Commandable
+func _piece(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var piece := FakePieces.make(a_options) as Actor
 	add_child_autofree(piece)
 	piece.ownership.commander = _commander(a_commander_id)
 	return piece
@@ -51,8 +51,8 @@ func _piece(a_options: Dictionary, a_commander_id: int) -> Commandable:
 
 ## A charge planted by `a_planter`, riding on `a_carrier` or standing on the ground (null) —
 ## what Plant does on completion, minus the walk and the map.
-func _plant(a_planter: Commandable, a_carrier: Commandable = null) -> PlantedCharge:
-	var piece := (load(Plant.CHARGE_SCENE_PATH) as PackedScene).instantiate() as Commandable
+func _plant(a_planter: Actor, a_carrier: Actor = null) -> PlantedCharge:
+	var piece := (load(Plant.CHARGE_SCENE_PATH) as PackedScene).instantiate() as Actor
 	add_child_autofree(piece)
 	piece.ownership.commander = a_planter.commander
 	(a_planter.get_node("Abilities") as Abilities).spend(Plant.ABILITY_ID)
@@ -61,7 +61,7 @@ func _plant(a_planter: Commandable, a_carrier: Commandable = null) -> PlantedCha
 	return charge
 
 
-func _pool(a_piece: Commandable) -> Abilities:
+func _pool(a_piece: Actor) -> Abilities:
 	return a_piece.get_node("Abilities") as Abilities
 
 
@@ -76,7 +76,7 @@ func _message(a_target: Variant = null) -> CommandMessage:
 
 #region The Sapper's charge is held
 func test_the_plant_charge_does_not_recharge_while_the_charge_is_in_play() -> void:
-	var sapper: Commandable = _piece(SAPPER_PATH, 1)
+	var sapper: Actor = _piece(SAPPER_PATH, 1)
 	var charge: PlantedCharge = _plant(sapper)
 	var pool: Abilities = _pool(sapper)
 	var cooldown: int = int(pool.groups[0]["cooldown_ticks"])
@@ -91,7 +91,7 @@ func test_the_plant_charge_does_not_recharge_while_the_charge_is_in_play() -> vo
 
 
 func test_a_sapper_with_no_charge_ready_cannot_plant() -> void:
-	var sapper: Commandable = _piece(SAPPER_PATH, 1)
+	var sapper: Actor = _piece(SAPPER_PATH, 1)
 	assert_eq(
 		Plant.meets_precondition(sapper, _message()), MoveCommand.PreconditionFailureCause.NONE
 	)
@@ -107,7 +107,7 @@ func test_a_sapper_with_no_charge_ready_cannot_plant() -> void:
 
 #region Leaving play
 func test_the_sapper_dying_removes_its_charge_quietly() -> void:
-	var sapper: Commandable = _piece(SAPPER_PATH, 1)
+	var sapper: Actor = _piece(SAPPER_PATH, 1)
 	var charge: PlantedCharge = _plant(sapper)
 	sapper.die()
 	assert_true(charge.is_resolved())
@@ -115,7 +115,7 @@ func test_the_sapper_dying_removes_its_charge_quietly() -> void:
 
 
 func test_a_charge_rides_its_carrier_and_is_not_a_target_of_its_own() -> void:
-	var tank: Commandable = _piece(TANK_PATH, 2)
+	var tank: Actor = _piece(TANK_PATH, 2)
 	tank.global_position = Vector3(4.0, 0.0, 7.0)
 	var charge: PlantedCharge = _plant(_piece(SAPPER_PATH, 1), tank)
 	assert_eq(charge.host().global_position, tank.global_position)
@@ -131,7 +131,7 @@ func test_a_charge_on_the_ground_can_be_shot() -> void:
 
 
 func test_the_carrier_dying_sets_its_charge_off() -> void:
-	var tank: Commandable = _piece(TANK_PATH, 2)
+	var tank: Actor = _piece(TANK_PATH, 2)
 	var charge: PlantedCharge = _plant(_piece(SAPPER_PATH, 1), tank)
 	tank.die()
 	assert_true(charge.is_resolved())
@@ -149,7 +149,7 @@ func test_a_charge_destroyed_where_it_stands_goes_off() -> void:
 
 #region Detonate
 func test_detonate_is_for_a_charge_or_its_planter() -> void:
-	var sapper: Commandable = _piece(SAPPER_PATH, 1)
+	var sapper: Actor = _piece(SAPPER_PATH, 1)
 	var none := MoveCommand.PreconditionFailureCause.NONE
 	assert_ne(Detonate.meets_precondition(sapper, _message()), none, "nothing to set off yet")
 	var charge: PlantedCharge = _plant(sapper)
@@ -165,7 +165,7 @@ func test_detonate_is_for_a_charge_or_its_planter() -> void:
 #region Repairing it away
 func test_an_opponent_repairs_a_ground_charge_away() -> void:
 	var charge: PlantedCharge = _plant(_piece(SAPPER_PATH, 1))
-	var mender: Commandable = _piece(SAPPER_PATH, 2)
+	var mender: Actor = _piece(SAPPER_PATH, 2)
 	assert_true(Repair.can_repair(mender, charge.host()))
 	Repair.new(_message(charge.host())).fulfill_action(mender)
 	assert_true(charge.is_resolved())
@@ -173,9 +173,9 @@ func test_an_opponent_repairs_a_ground_charge_away() -> void:
 
 
 func test_mending_a_carrier_strips_an_enemy_charge_even_when_whole() -> void:
-	var tank: Commandable = _piece(TANK_PATH, 2)
+	var tank: Actor = _piece(TANK_PATH, 2)
 	var charge: PlantedCharge = _plant(_piece(SAPPER_PATH, 1), tank)
-	var mender: Commandable = _piece(SAPPER_PATH, 2)
+	var mender: Actor = _piece(SAPPER_PATH, 2)
 	assert_eq(tank.defense.hp, tank.defense.hp_max, "guards the fixture: undamaged")
 	assert_true(Repair.can_repair(mender, tank))
 	Repair.new(_message(tank)).fulfill_action(mender)
@@ -184,15 +184,15 @@ func test_mending_a_carrier_strips_an_enemy_charge_even_when_whole() -> void:
 
 
 func test_the_planter_side_does_not_strip_its_own_charge() -> void:
-	var tank: Commandable = _piece(TANK_PATH, 2)
+	var tank: Actor = _piece(TANK_PATH, 2)
 	_plant(_piece(SAPPER_PATH, 2), tank)
 	assert_false(Repair.can_repair(_piece(SAPPER_PATH, 2), tank))
 
 
 func test_its_owner_repairs_a_ground_charge_back() -> void:
-	var sapper: Commandable = _piece(SAPPER_PATH, 1)
+	var sapper: Actor = _piece(SAPPER_PATH, 1)
 	var charge: PlantedCharge = _plant(sapper)
-	var mender: Commandable = _piece(SAPPER_PATH, 1)
+	var mender: Actor = _piece(SAPPER_PATH, 1)
 	assert_true(Repair.can_repair(mender, charge.host()), "however whole it is")
 	Repair.new(_message(charge.host())).fulfill_action(mender)
 	assert_true(charge.is_resolved())
@@ -203,7 +203,7 @@ func test_its_owner_repairs_a_ground_charge_back() -> void:
 ## Any heal sheds what an enemy stuck on the piece — a charge and a beacon alike — not only a
 ## Repair order, and even on a whole piece.
 func test_any_heal_sheds_enemy_charges_and_beacons() -> void:
-	var tank: Commandable = _piece(TANK_PATH, 2)
+	var tank: Actor = _piece(TANK_PATH, 2)
 	var charge: PlantedCharge = _plant(_piece(SAPPER_PATH, 1), tank)
 	var beacon_piece: Entity = Beacon.SCENE.instantiate()
 	add_child_autofree(beacon_piece)
@@ -218,7 +218,7 @@ func test_any_heal_sheds_enemy_charges_and_beacons() -> void:
 
 
 func test_a_staggered_piece_sheds_nothing() -> void:
-	var tank: Commandable = _piece(TANK_PATH, 2)
+	var tank: Actor = _piece(TANK_PATH, 2)
 	var charge: PlantedCharge = _plant(_piece(SAPPER_PATH, 1), tank)
 	tank.receive_damage(Damage.new(1.0))
 	assert_true(tank.is_staggered(), "guards the fixture")
@@ -251,7 +251,7 @@ func test_a_charge_cannot_be_hijacked() -> void:
 
 #region The card
 func test_a_sapper_offers_plant_until_it_has_a_charge_in_play() -> void:
-	var sapper: Commandable = _piece(SAPPER_PATH, 1)
+	var sapper: Actor = _piece(SAPPER_PATH, 1)
 	assert_true(CommandContextParser.commands_for(sapper).has("command_plant"))
 	assert_false(CommandContextParser.commands_for(sapper).has("command_detonate"))
 	var charge: PlantedCharge = _plant(sapper)
@@ -261,8 +261,8 @@ func test_a_sapper_offers_plant_until_it_has_a_charge_in_play() -> void:
 
 
 func test_plant_holds_the_cell_while_any_sapper_can_plant() -> void:
-	var ready: Commandable = _piece(SAPPER_PATH, 1)
-	var spent: Commandable = _piece(SAPPER_PATH, 1)
+	var ready: Actor = _piece(SAPPER_PATH, 1)
+	var spent: Actor = _piece(SAPPER_PATH, 1)
 	_plant(spent)
 	var names: Array = RTSController.selection_commands([ready, spent])
 	assert_true(names.has("command_plant"))
@@ -270,8 +270,8 @@ func test_plant_holds_the_cell_while_any_sapper_can_plant() -> void:
 
 
 func test_detonate_takes_the_cell_once_no_sapper_can_plant() -> void:
-	var recharging: Commandable = _piece(SAPPER_PATH, 1)
-	var spent: Commandable = _piece(SAPPER_PATH, 1)
+	var recharging: Actor = _piece(SAPPER_PATH, 1)
+	var spent: Actor = _piece(SAPPER_PATH, 1)
 	var charge: PlantedCharge = _plant(recharging)
 	charge.host().free()  # gone off: the charge is recharging, with nothing in play
 	_plant(spent)
@@ -281,7 +281,7 @@ func test_detonate_takes_the_cell_once_no_sapper_can_plant() -> void:
 
 
 func test_a_recharging_sapper_alone_still_draws_plant() -> void:
-	var sapper: Commandable = _piece(SAPPER_PATH, 1)
+	var sapper: Actor = _piece(SAPPER_PATH, 1)
 	_plant(sapper).host().free()
 	assert_true(
 		RTSController.selection_commands([sapper]).has("command_plant"),

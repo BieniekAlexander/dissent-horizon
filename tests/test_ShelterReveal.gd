@@ -33,7 +33,7 @@ func test_only_a_hegemony_match_reveals_anything() -> void:
 	_fixture(Vector2(10.0, 4.0), true)
 	var scenario: Scenario = autofree(Scenario.new())
 	scenario.win_condition = Scenario.WinCondition.MISSION
-	assert_eq(scenario._reveal_shelters_at_start(), [] as Array[Commandable], "a mission decides")
+	assert_eq(scenario._reveal_shelters_at_start(), [] as Array[Actor], "a mission decides")
 	scenario.win_condition = Scenario.WinCondition.NONE
-	assert_eq(scenario._reveal_shelters_at_start(), [] as Array[Commandable])
+	assert_eq(scenario._reveal_shelters_at_start(), [] as Array[Actor])
 

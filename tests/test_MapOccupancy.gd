@@ -94,7 +94,7 @@ func _make_map() -> StubMap:
 	return stub
 
 
-## Several scenes here still ship without flavour text, which Commandable reports with a
+## Several scenes here still ship without flavour text, which Actor reports with a
 ## push_error that GUT would count against the test. Dismissed by message only.
 func _dismiss_missing_flavor_text() -> void:
 	for tracked in get_errors():

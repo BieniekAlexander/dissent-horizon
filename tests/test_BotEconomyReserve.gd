@@ -57,12 +57,12 @@ class StubActuator:
 	var trains: Array = []
 
 	func build(
-		_a_builder: Commandable, a_type: StringName, _a_pos: Vector3, _a_quarter_turns: int = 0
+		_a_builder: Actor, a_type: StringName, _a_pos: Vector3, _a_quarter_turns: int = 0
 	) -> bool:
 		builds.append(a_type)
 		return true
 
-	func train(_a_structure: Commandable, a_type: StringName) -> bool:
+	func train(_a_structure: Actor, a_type: StringName) -> bool:
 		trains.append(a_type)
 		return true
 
@@ -74,13 +74,13 @@ class StubEconomy:
 	extends BotEconomy
 	var production_offer: Variant = null
 	var income_offer: Variant = null
-	var builder: Commandable
+	var builder: Actor
 	var site_spot: Variant = Vector3.ZERO
 
 	func _construction_job_count() -> int:
 		return 0
 
-	func _pick_builder() -> Commandable:
+	func _pick_builder() -> Actor:
 		return builder
 
 	func _dominion_structure_to_build() -> Variant:
@@ -131,7 +131,7 @@ func after_each() -> void:
 func _economy() -> StubEconomy:
 	var economy := StubEconomy.new(_bot, _act)
 	economy.reserve = RESERVE
-	economy.builder = autofree(Commandable.new()) as Commandable
+	economy.builder = autofree(Actor.new()) as Actor
 	economy.income_offer = EXTRACTOR
 	return economy
 
@@ -141,7 +141,7 @@ func _production() -> BotProduction:
 	production.reserve = RESERVE
 	# One idle producer that can make the trooper. Out of tree, so the optional component
 	# field is ours to assign (the tests/test_BotScout.gd fixture pattern).
-	var structure := autofree(Commandable.new()) as Commandable
+	var structure := autofree(Actor.new()) as Actor
 	structure.production = Production.new()
 	structure.production.producible_types = [TROOPER]
 	structure.add_child(structure.production)

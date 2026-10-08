@@ -1,6 +1,6 @@
 [gd_scene load_steps=24 format=3 uid="uid://dhcnn0str0001"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_qfsmc"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_qfsmc"]
 [ext_resource type="Script" path="res://scripts/entities/components/beacon_range.gd" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/abilities.gd" id="2_spec"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="3_spec"]

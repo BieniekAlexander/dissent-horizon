@@ -44,7 +44,7 @@ func _init(
 
 func issue(a_members: Array) -> void:
 	var arrived: Array = a_members.filter(
-		func(unit: Commandable) -> bool:
+		func(unit: Actor) -> bool:
 			return unit.global_position.distance_to(point) <= STALL_RADIUS
 	)
 	# The Attack order needs a live node to aim at; a believed structure whose node is already
@@ -56,7 +56,7 @@ func issue(a_members: Array) -> void:
 		_act.attack(arrived, target as Entity)
 		razing = arrived
 	var to_send: Array = a_members.filter(
-		func(unit: Commandable) -> bool:
+		func(unit: Actor) -> bool:
 			return (
 				unit.global_position.distance_to(point) > PostPolicy.HOLD_RADIUS
 				and not razing.has(unit)

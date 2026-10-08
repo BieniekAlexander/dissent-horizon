@@ -457,7 +457,7 @@ func _ensure_managers() -> bool:
 ## Whether this bot should attempt to save [unit] from destruction — a PARAMETER now
 ## (`BotDifficulty.preserve_min_cost`) rather than a match on the tier, so the threshold is
 ## a number a tuning run can move rather than three branches it cannot.
-func _should_preserve(a_unit: Commandable) -> bool:
+func _should_preserve(a_unit: Actor) -> bool:
 	if config == null:
 		return false
 	var spec: TechnologySpec = bot.technology_mapping.get(a_unit.id)
@@ -472,7 +472,7 @@ func _tick_preservation() -> int:
 	if _actuator == null:
 		return 0
 	var units: Array = bot.get_units()
-	for unit: Commandable in units:
+	for unit: Actor in units:
 		if not _should_preserve(unit):
 			continue
 		if unit.defense == null:
@@ -485,7 +485,7 @@ func _tick_preservation() -> int:
 		if not (cmd is Attack or cmd is AttackMove):
 			continue
 		unit.update_commands(null)
-		var garrison_host: Commandable = bot.nearest_garrison_for(unit)
+		var garrison_host: Actor = bot.nearest_garrison_for(unit)
 		if garrison_host != null:
 			_actuator.garrison_into(unit, garrison_host)
 		else:
@@ -497,11 +497,11 @@ func _tick_preservation() -> int:
 ## any of them (unit_effectiveness_vs returns 0 for every target). Returns false
 ## — i.e. "don't retreat on this gate" — when the range is empty, since an
 ## attack-moving unit with no enemies nearby isn't in a bad matchup yet.
-func _no_effective_targets_in_aggro(a_unit: Commandable) -> bool:
+func _no_effective_targets_in_aggro(a_unit: Actor) -> bool:
 	var nearby: Array = bot.get_enemies_in_aggro_range(a_unit)
 	if nearby.is_empty():
 		return false
-	for enemy: Commandable in nearby:
+	for enemy: Actor in nearby:
 		if bot.unit_effectiveness_vs(a_unit.id, enemy) > 0.0:
 			return false
 	return true
@@ -509,8 +509,8 @@ func _no_effective_targets_in_aggro(a_unit: Commandable) -> bool:
 
 ## Retreat destination for [unit]: nearest own structure, or base centroid as
 ## fallback when the bot has no structures left.
-func _preservation_retreat_dest(a_unit: Commandable) -> Vector3:
-	var nearest: Commandable = bot.nearest_own_structure(a_unit.global_position)
+func _preservation_retreat_dest(a_unit: Actor) -> Vector3:
+	var nearest: Actor = bot.nearest_own_structure(a_unit.global_position)
 	if nearest != null:
 		return nearest.global_position
 	return bot.base_centroid()

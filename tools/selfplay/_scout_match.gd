@@ -28,7 +28,7 @@ func _enemy_start_for(a_slot: int) -> Vector3:
 	return _starts[1 - a_slot].global_position
 
 
-func _cmd_name(a_u: Commandable) -> String:
+func _cmd_name(a_u: Actor) -> String:
 	if not a_u.has_command():
 		return "IDLE"
 	var c: MoveCommand = a_u.current_command()
@@ -55,12 +55,12 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	# ── candidate scoring ────────────────────────────────────────────────────
 	var all_units: Array = bot.get_units()
 	var scales: Dictionary = sc._score_scales(
-		all_units.filter(func(u: Commandable) -> bool: return u.movement != null)
+		all_units.filter(func(u: Actor) -> bool: return u.movement != null)
 	)
 	var rows: Array = []
 	var best_id: String = ""
 	var best_score: float = -INF
-	for u: Commandable in all_units:
+	for u: Actor in all_units:
 		if u.movement == null:
 			continue
 		var score: float = sc._scout_score(u, scales)
@@ -98,10 +98,10 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	# ── live scouts ──────────────────────────────────────────────────────────
 	var slines: Array = []
 	for entry: Variant in sc._scouts:
-		if not is_instance_valid(entry) or (entry as Commandable).is_garrisoned():
+		if not is_instance_valid(entry) or (entry as Actor).is_garrisoned():
 			slines.append("<gone>")
 			continue
-		var u: Commandable = entry
+		var u: Actor = entry
 		var dest: String = "-"
 		var to_dest: float = -1.0
 		if u.has_command() and u.current_command().message != null:

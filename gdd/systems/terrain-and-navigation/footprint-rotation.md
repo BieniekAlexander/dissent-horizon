@@ -28,7 +28,7 @@ The footprint itself is already **rotation-shaped**, which is why this is smalle
 - `Entity.hull()` already builds its rectangle from the HurtboxShape's **global basis**, so a piece
   whose root is yawed a quarter turn already measures every range from the rotated rectangle. Ranges,
   aggro, reach and interaction need no change.
-- Facing is the root node's `rotation.y` (`Movement.get_facing`, `Commandable._drive_mesh_visual`),
+- Facing is the root node's `rotation.y` (`Movement.get_facing`, `Actor._drive_mesh_visual`),
   and `MeshVisual`, the selection shape and the baked placeholder mesh are children that inherit it.
 
 What is **not** rotation-shaped is every caller that reads `Structure.dimensions` and hands it to one

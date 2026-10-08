@@ -53,17 +53,17 @@ func _economy(a_bot: FakeBot) -> BotEconomy:
 	return autofree(BotEconomy.new(a_bot, autofree(BotActuator.new(null))))
 
 
-## A real instance, because a bare `Commandable.new()` has none of the component nodes its
+## A real instance, because a bare `Actor.new()` has none of the component nodes its
 ## @onready lookups expect and pushes errors the moment anything touches it.
-func _instance(a_options: Dictionary) -> Commandable:
-	var unit := FakePieces.make(a_options) as Commandable
+func _instance(a_options: Dictionary) -> Actor:
+	var unit := FakePieces.make(a_options) as Actor
 	add_child_autofree(unit)
 	return unit
 
 
 ## A live unit holding `a_command`, which is what makes it read as constructing.
-func _builder_running(a_command: MoveCommand) -> Commandable:
-	var unit: Commandable = _instance(BUILDER_SCENE)
+func _builder_running(a_command: MoveCommand) -> Actor:
+	var unit: Actor = _instance(BUILDER_SCENE)
 	unit.update_commands([a_command] as Array[MoveCommand])
 	return unit
 
@@ -73,7 +73,7 @@ func _build_at(a_type: StringName, a_where: Vector3) -> MoveCommand:
 	return Build.new(CommandMessage.new(null, null, tool, a_where))
 
 
-func _assemble_on(a_structure: Commandable) -> MoveCommand:
+func _assemble_on(a_structure: Actor) -> MoveCommand:
 	return Assemble.new(CommandMessage.new(null, a_structure, null, a_structure.global_position))
 
 
@@ -91,7 +91,7 @@ func test_a_build_order_reports_the_type_it_is_raising() -> void:
 func test_an_assemble_reports_the_structure_it_is_finishing() -> void:
 	# The second half of a build's life: once the structure exists the tool is gone and the
 	# claim has to come off the target instead.
-	var structure: Commandable = _instance(STRUCTURE_SCENE)
+	var structure: Actor = _instance(STRUCTURE_SCENE)
 	structure.id = DOMINION
 	var bot: FakeBot = autofree(FakeBot.new())
 	bot.units = [_builder_running(_assemble_on(structure))]
