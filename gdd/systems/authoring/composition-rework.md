@@ -659,8 +659,8 @@ spans (`TscnDoc._prop_span`).
   only for one that takes orders ([piece-vocabulary](piece-vocabulary.md) §Where today's code
   disagrees). PLANNED there, still: the `Commandable` → `Actor` and `Structure` → fixture
   component class renames.
-- TODO: re-derive the [get-node-or-null-audit](get-node-or-null-audit.md) verdicts against the
-  composed tiers.
+- The [get-node-or-null-audit](get-node-or-null-audit.md) verdicts are re-derived against the
+  composed tiers (2026-10-08).
 
 **Built 2026-09-19: no piece has a root script of its own.** The four that did were folded into
 components on a derived root, the way the shelter already was: `ExtractionSite`, `Extractor`

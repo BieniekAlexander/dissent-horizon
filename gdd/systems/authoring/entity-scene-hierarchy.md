@@ -39,9 +39,8 @@ optional for everything.
 component's former node names to its current one, and the sync renames the node in place —
 composing the new name beside the old would put two copies of the component on the piece.
 
-[get-node-or-null-audit](get-node-or-null-audit.md) holds the per-site verdicts. TODO: they
-were written when "optional" meant "some base scene lacks it"; re-derive them against the
-tiers above.
+[get-node-or-null-audit](get-node-or-null-audit.md) holds the per-site verdicts, derived against
+these tiers.
 
 ## The component library
 

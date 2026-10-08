@@ -184,10 +184,12 @@ each piece, with declared exceptions.
 - **Area of effect is set against body size,** loosely, since how tightly a player bunches
   their units matters more than the radius.
 
-TODO: any Informant-granted stealth can put a HOVERING unit under stealth, so
-`detection_large` has to clear `vision_aerial_large`. If that puts it above every vision
-bucket a unit can carry, a dedicated detector trips `detection_within_vision` unless it
-declares an exception or a vision bucket is added for it.
+**A dedicated detector carries `detection_medium` or `detection_large`** (answered 2026-10-07).
+Informant-granted stealth can put a HOVERING unit under stealth, so `detection_large` (24) clears
+`vision_aerial_large` (22), and it stays within `vision_ground_large` (24), so a detector with
+structure vision does not trip `detection_within_vision`. The shipped detectors — the two
+towers (`cl_defense_antiLight`, `lb_defense`) and Scan's observer — all carry
+`detection_medium`.
 
 TODO: the aggro ceiling (`AGGRO_MAX_RADIUS`) sits below both artillery classes — and, since
 the radii were retuned, below `ground_range_long` and `air_range_long` too — so a target
