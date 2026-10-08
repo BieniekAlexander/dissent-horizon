@@ -1,7 +1,7 @@
 class_name DamageCatalog
 extends Resource
 
-## An in-memory instance of the damage matrix (gdd/tasks.md §2/§3): one
+## An in-memory instance of the damage matrix (gdd/design.md §Damage Calculations): one
 ## DamageProfile per Damage.Type. resources/damage/damage_vs_{armour,frame}.tsv
 ## are the canonical, on-disk source — plain text so the Python balance/validation
 ## tooling under tools/balance/ can read them directly — so a catalog is always

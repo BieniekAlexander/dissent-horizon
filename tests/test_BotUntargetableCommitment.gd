@@ -3,7 +3,7 @@ extends GutTest
 ## AN ORDER A UNIT CANNOT CARRY OUT IS NOT AN ORDER, AND A PLACE NOTHING IN THE ARMY CAN
 ## HURT IS NOT AN OBJECTIVE.
 ##
-## Reported from a watched Colonial-vs-Colonial match (gdd/tasks.md §Feedback Notes):
+## Reported from a watched Colonial-vs-Colonial match:
 ##
 ##   "Bot units appear to be receiving commands to attack targets which aren't applicable
 ##    for their weapon. For example, I placed a scan drone near the enemy base, and several

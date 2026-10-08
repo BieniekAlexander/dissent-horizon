@@ -1,8 +1,8 @@
 extends GutTest
 
-## Pins the "Damage System — Implementation Spec" catalog (gdd/tasks.md) against
-## its own §6 validation rules, plus a few spot checks of the authored §3 matrix
-## and the §4 resolution formula.
+## Pins the damage catalog (gdd/design.md §Damage Calculations) against its
+## validation rules, plus a few spot checks of the authored matrix and the
+## resolution formula.
 ##
 ## Run: godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_DamageCatalog.gd
 ##

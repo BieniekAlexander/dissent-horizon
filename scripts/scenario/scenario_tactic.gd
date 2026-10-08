@@ -5,7 +5,7 @@ extends Node
 ## Ongoing, hand-authored behaviour for one cluster of scenario-spawned units — the gap
 ## between the Bot (governs a whole skirmish commander, untouched by this) and
 ## EventIssueCommand (issues one command chain, once, with nothing watching afterward). See
-## gdd/tasks.md, "Command Assignment extensions".
+## gdd/systems/scenario-scripting/tactics.md.
 ##
 ## A cluster is identified by node-group membership (`unit_group`), stamped onto units the
 ## same way EventSpawnEntities.spawn_groups labels a wave for ConditionGroupCount — fixed for

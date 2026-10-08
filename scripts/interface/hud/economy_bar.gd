@@ -157,8 +157,9 @@ func _capacity() -> float:
 
 ## The flat-coloured regions to paint, each `{start_frac, end_frac, color}` in fractions of
 ## _capacity(). The default is ONE region, [0, value/capacity], in _fill_color()'s colour at
-## the overall fraction — a single flat fill, per gdd/tasks.md "UI Updates": the colour is
-## chosen from where the fill SITS on the ramp, not painted as a ramp across the fill.
+## the overall fraction — a single flat fill (economy-bars.md §A bar's fill is one or more
+## flat regions): the colour is chosen from where the fill SITS on the ramp, not painted as a
+## ramp across the fill.
 ## InfrastructureBar overrides this for its two-region used/excess picture.
 func _fill_regions() -> Array[Dictionary]:
 	var frac: float = clampf(_current_value() / maxf(_capacity(), 0.0001), 0.0, 1.0)

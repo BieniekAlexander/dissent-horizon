@@ -13,7 +13,7 @@ extends EconomyBar
 ##   - the remainder, right: light grey when there is spare capacity (`provided > required`),
 ##     dark orange when upkeep has run past it (`required > provided`) — the "approaching /
 ##     over" states apply to THIS region, since it is the one whose meaning changes.
-## The bar's own length is `max(required, provided)` (gdd/tasks.md "UI Updates"), so the
+## The bar's own length is `max(required, provided)` (economy-bars.md §Infrastructure), so the
 ## boundary between the two regions marks capacity directly — no separate marker line needed.
 ##
 ## Hovering a purchase previews its `Actor.infrastructure` export (read off

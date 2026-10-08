@@ -14,7 +14,7 @@ extends GutTest
 ##     structure placement can no longer create new, but terrain changing later or a
 ##     scenario-authored pocket can still reach.
 ##
-## gdd/tasks.md "CPU Bot Behavior Work" — the navmesh-spawn question, answered 4 + 1.
+## Rules: navigation-and-pathing.md §Placement keeps navigation intact.
 ##
 ## Run with:
 ## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NavmeshAccessGating.gd -gexit

@@ -1,6 +1,6 @@
 extends GutTest
 
-## Two selection bugs from `gdd/tasks.md` §Bugs.
+## Two reported selection bugs.
 ##
 ## 1. **Cursor picking prefers a UNIT to a structure.** The camera looks down at an angle and
 ##    structure selection shapes are tall, so a structure routinely covers units standing

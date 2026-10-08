@@ -190,7 +190,8 @@ func _rams_target(a_actor: Actor) -> bool:
 ## A rammer flies at its target's centre, never at the footprint-adjacent cell a FIXTURE
 ## target otherwise resolves to: that cell is where a WALKER stands to act, and arriving at it
 ## ends the order. The dive is timed to bottom out over the centre, so a drone sent to the cell
-## arrived still above its reach and dropped the attack without striking (gdd/tasks.md T-009).
+## arrived still above its reach and dropped the attack without striking (attack-runs.md §A
+## rammer strikes its target's top, and is spent on contact).
 func movement_destination(a_actor: Actor) -> Variant:
 	return message.target.global_position if _rams_target(a_actor) else null
 

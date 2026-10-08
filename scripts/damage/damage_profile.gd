@@ -1,8 +1,8 @@
 class_name DamageProfile
 extends Resource
 
-## One row of the damage matrix (gdd/tasks.md "Damage System — Implementation
-## Spec" §3): a damage type's multipliers against both defensive axes. Built at
+## One row of the damage matrix (gdd/design.md §Damage Calculations): a damage
+## type's multipliers against both defensive axes. Built at
 ## runtime by DamageCatalog.from_tsv() — resources/damage/damage_vs_{armour,frame}.tsv
 ## are the canonical, on-disk data (readable by the Python balance tooling too);
 ## this is only the in-memory shape DamageTable resolves against, never authored
@@ -11,8 +11,8 @@ extends Resource
 ##
 ## Keys off the pre-existing Damage.Type / Defense.FrameType / Defense.ArmourType
 ## enums rather than new ones — the spec's ELECTRICITY collided with this
-## codebase's already-wired ELECTRIC, and the call (gdd/tasks.md, 2026-08-10) was
-## to keep the name that already existed in code. Defense.FrameType itself was
+## codebase's already-wired ELECTRIC, and the call (2026-08-10) was to keep the
+## name that already existed in code. Defense.FrameType itself was
 ## later renamed BIOLOGICAL/METALLIC -> BIO/MECH to match the gdd id convention
 ## (see gdd/id-rename-proposal.md), so this file's multipliers now match the
 ## spec's own axis names after all.

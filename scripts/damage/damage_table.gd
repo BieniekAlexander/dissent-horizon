@@ -1,10 +1,9 @@
 extends Node
 
-## Resolves damage per the "Damage System — Implementation Spec" (gdd/tasks.md):
-## §4's formula is base × frame_multiplier × armour_multiplier — two axes, no
-## third — so this carries no attribute-multiplier axis (the old
-## damage_vs_attribute.tsv did IS_GROUNDED/IS_FLYING/HAS_STEALTH; dropped from
-## the live path, per §1's "no third axis"). The armour/frame multipliers are
+## Resolves damage as base × frame_multiplier × armour_multiplier — two axes, no
+## third (gdd/design.md §Damage Calculations) — so this carries no attribute-
+## multiplier axis (the old damage_vs_attribute.tsv did IS_GROUNDED/IS_FLYING/
+## HAS_STEALTH; dropped from the live path). The armour/frame multipliers are
 ## parsed at boot into a DamageCatalog (DamageCatalog.from_tsv) — the two TSVs
 ## remain the canonical, on-disk data (plain text, readable by the Python
 ## balance tooling under tools/balance/ too); the catalog is only the in-memory

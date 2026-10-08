@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Tests for EventCommandTarget — the `frame_filter` addition, and to_command()'s BASE-type
-## branch (Command Assignment extensions, gdd/tasks.md). Both exercised without a live
+## branch (scenario-scripting/tactics.md). Both exercised without a live
 ## Map/navmesh fixture: _enemy_candidates() has no such dependency, and neither does
 ## to_command() for Type.BASE specifically — it builds an Attack targeting a live structure
 ## entity directly rather than calling NavigationServer3D.map_get_closest_point(), which is

@@ -1,8 +1,8 @@
 extends GutTest
 
 ## How DIRECT is a path across open ground, and why can't the navmesh just use bigger
-## polygons? Cover for gdd/tasks.md's "Navigation Agent Revisit" — agents visibly travelling
-## in X/Z-aligned legs where a straight diagonal was available.
+## polygons? Agents visibly travelled in X/Z-aligned legs where a straight diagonal was
+## available (navigation-and-pathing.md §Do NOT merge cells into larger polygons).
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_NavPathDirectness.gd -gexit

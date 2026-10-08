@@ -141,7 +141,7 @@ func test_a_ramming_aircraft_does_not_dive_at_an_air_target() -> void:
 ## A big structure to ram. Its footprint is what sent the drone to the WRONG place: a fixture
 ## target resolves to a footprint-adjacent cell, arriving there ends the order, and the dive is
 ## timed to bottom out over the centre — so the drone arrived still above its reach and dropped
-## the attack without striking (gdd/tasks.md T-009).
+## the attack without striking.
 const CITADEL: Dictionary = {"structure": true, "dimensions": Vector2i(3, 3)}
 
 

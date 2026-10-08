@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Tests for ScenarioTactic / TacticRule — the hand-authored "tactics grammar" for one
-## cluster of scenario-spawned units (gdd/tasks.md, "Command Assignment extensions").
+## cluster of scenario-spawned units (gdd/systems/scenario-scripting/tactics.md).
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_ScenarioTactic.gd -gexit
