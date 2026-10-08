@@ -56,6 +56,15 @@ because a threshold is a statement about a sample and a spec has no sample in it
 
 ## The file
 
+Specs live under `sims/`, and **a sub-directory is part of a spec's id**:
+`sims/bot/targeting/crush_a_counter.sim.yaml` is `bot/targeting/crush_a_counter`, which is
+what `spec=` selects by (a bare file name still matches). The decision simulations are filed
+under `sims/bot/<domain>/`, one directory per decision, and a spec there must have a thinking
+slot or it is refused. A top-level `needs:` names what a spec is waiting on — a read or a
+migration step not built yet — so its red run is reported as WAITING, not as a failure
+([ai/decision-sims](../ai/decision-sims.md) §Organising the state space). Unknown top-level
+keys are refused (they used to be ignored).
+
 `sims/<name>.sim.yaml`, one spec per file, **the file name is the test id**. Parsed by
 `SpecFrontmatter.parse_yaml` — already exposed for bare (unfenced) lines, and its subset
 already covers nested mappings, sequences of mappings, flow collections and `|` block scalars.
@@ -164,6 +173,16 @@ Three levels, each meaningful:
 - **`settings` configures the commander itself.** `difficulty` defaults to **`PASSIVE`**, and
   in a spec that means **INERT**: the slot's `BotBrain` is switched off, so a force does only
   what its orders say. A slot that should think names any other tier and gets the real brain.
+  `faction` names a faction scene (the Colonial one by default).
+- **A THINKING slot may carry five more keys** — a decision simulation's levers
+  ([ai/decision-sims](../ai/decision-sims.md) §Grammar extensions), each refused on an inert
+  slot: `vision: full` (no `Fog` for the commander, so it sees the whole arena through the
+  same perception code), `energy` and `dominion` (its stockpiles; zero otherwise), `config`
+  (a mapping of `BotDifficulty` field overrides, validated as a `PlayerSlot`'s are), and
+  `consider: { structures: […], units: […] }` (the only piece types the bot may build or
+  train; a list left out means all of them). **A thinking slot's personality is zeroed** —
+  `personality_spread` and `decision_temperature` are 0 unless `config` sets them — so a
+  decision is the argmax and a run reproduces.
 
 > **In a spec, `PASSIVE` is a narrowing of the engine's tier, and it has to be.** `Scenario`
 > attaches a thinking `BotBrain` to every bot slot, and PASSIVE does *not* make it inert —
@@ -446,10 +465,27 @@ Every leaf takes `of:` (a group reference) and optionally `piece:` (narrowing a 
 | `hp_fraction` | `at_least` / `at_most` | every living member is within that fraction of its max hp |
 | `owner` | `is: <slot>` | every living member belongs to that slot — capture outcomes |
 | `distance_to` | `target: <group>`, `at_least` / `at_most` | the two centroids are that far apart |
-| `command` | `is: <CommandName>` | every living member's current command is that one |
+| `command` | `is: <CommandName>`, optional `target: <group>`, optional `near: <group>` + `within: N` | every living member's current command is that one — and, when asked, is aimed at a piece of `target`, or has its destination within N of `near`'s centroid |
 | `idle` | — | no member holds a command |
 | `garrisoned_in` | `host: <group>` | every member is inside that host |
 | `hit_rate` | `target: <group>`, `at_least` / `at_most` | of the shots the group fired that have settled, that fraction landed on the target group (§Counting shots) |
+
+**Bot-state checks** ask what a THINKING slot decided, from its own records, and take `slot:`
+in place of `of:` (`claimed` keeps `of:`, a claim being about units; `believes` takes both).
+Each is false until the slot's brain has built its managers — a decision not yet made does not
+pass. The rule for them, and the situations they were written for, are
+[ai/decision-sims](../ai/decision-sims.md).
+
+| Check | Arguments | True when |
+|---|---|---|
+| `posture` | `slot`, `is: ATTACK / MASS / DEFEND` | `BotMilitary.current_posture()` is that |
+| `objective` | `slot`, `near: <group>`, `within: N` | the army's objective lies within N of that group's centroid |
+| `ordered` | `slot`, `kind: <actuator verb>`, optional `piece`, `at_least` (default 1) | the actuator ISSUED that many orders of that kind (`BotUsageLog.actions`, a ledger by type) |
+| `refused` | `slot`, `kind`, optional `piece`, optional `cause: <PreconditionFailureCause>`, `at_least` | the actuator refused that many, with that cause when named |
+| `chosen` | `slot`, `domain: <choice domain>`, `piece` | the piece won a scored decision in that domain (`BotUsageLog.choices`) |
+| `considered` | same | the piece was scored at all — the audit's "not aware" versus "not worth it" |
+| `claimed` | `of: <group>`, `holder: <claim owner>` | every living member is held by that manager (`BotClaims`) |
+| `believes` | `slot`, `of: <group>`, `exactly` / `at_least` / `at_most` | the slot's blackboard believes that many of the group (all, with no count) |
 
 **A check with no count argument quantifies over ALL of the selection.** One axis, not a
 separate `quantifier:` key. A new check is a new row in that table, never a new branch (§1.2).
@@ -543,6 +579,10 @@ the world, not the HUD's interactive state.
 `trials` and `seed` are the RUNNER's, never a spec's. Trial *k* runs at `seed + k`, and the
 seed is recorded with every trial — so a 7-of-10 result can be reopened at the seed that lost.
 A spec naming no seed gets a random one, recorded the same way.
+
+The summary ends with three counts — passing, failing, and **waiting on something not built**
+(a spec with `needs:` that did not pass; one that passes with the key still set says so, so the
+key is dropped).
 
 **The exit code is 1 only when a spec failed to PARSE or BUILD**, never when an expectation
 came out false. A design claim being false is a finding; a runner that exited non-zero for it

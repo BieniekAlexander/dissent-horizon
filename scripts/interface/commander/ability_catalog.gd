@@ -259,3 +259,39 @@ static func emission_of(id: StringName) -> PackedScene:
 	if not _emission_cache.has(path):
 		_emission_cache[path] = load(path) as PackedScene
 	return _emission_cache[path]
+
+
+## id -> the XZ radius of the emission's blast, read once off an out-of-tree instance.
+static var _blast_radius_cache: Dictionary = {}
+
+
+## HOW MUCH GROUND THIS ABILITY'S PAYLOAD COVERS: the XZ radius of its emission's HitShape, or
+## -1.0 for an ability that emits nothing, or whose emission lands on one piece (no blast).
+## Read off the scene once — a payload's area is authored on the emission, nowhere else — so
+## whoever aims the ability (the bot) measures the same ground the shell will.
+static func blast_radius_of(id: StringName) -> float:
+	if _blast_radius_cache.has(id):
+		return _blast_radius_cache[id]
+	var radius: float = -1.0
+	var scene: PackedScene = emission_of(id)
+	if scene != null:
+		var instance: Node = scene.instantiate()
+		var shape_node: CollisionShape3D = instance.get_node_or_null("HitShape") as CollisionShape3D
+		if shape_node != null and shape_node.shape != null:
+			radius = _xz_radius(shape_node.shape)
+		instance.free()
+	_blast_radius_cache[id] = radius
+	return radius
+
+
+static func _xz_radius(a_shape: Shape3D) -> float:
+	if a_shape is CylinderShape3D:
+		return (a_shape as CylinderShape3D).radius
+	if a_shape is SphereShape3D:
+		return (a_shape as SphereShape3D).radius
+	if a_shape is CapsuleShape3D:
+		return (a_shape as CapsuleShape3D).radius
+	if a_shape is BoxShape3D:
+		var size: Vector3 = (a_shape as BoxShape3D).size
+		return maxf(size.x, size.z) / 2.0
+	return -1.0

@@ -10,14 +10,15 @@ extends RefCounted
 ##   • ATTACK — the army is big enough: march on the nearest enemy structure.
 ##   • MASS   — otherwise: gather at the base and wait to build up.
 ##
-## To avoid re-pathing every tick, the whole army is only re-tasked when the
-## posture or objective actually changes. In between, an idle unit is handled by where it
-## stands: a WAVE member that went idle (arrived, or its fight ended) presses on to the
-## objective; a unit that is not in the wave is RESERVE, staged on the threat side of the
-## base and released as a body once the reserve is worth a fraction of the wave. Before
-## staging existed every idle unit walked to the objective alone, which is the one-at-a-time
-## army the design note opens with. The wave and the reserve are the first two squads —
-## gdd/systems/ai/squads-and-relations.md.
+## The army is SQUADS, each kept to a policy (Squad, SquadPolicy): the MAIN body — the wave
+## under ATTACK (AssaultPolicy), the army at home otherwise (HoldPolicy); the RESERVE, staged
+## on the threat side of the base while a wave is out and released as a body once it is
+## worth a fraction of the wave (StagePolicy); and the GUARD, the reserve turned to a
+## threatened structure while the wave is away (HoldPolicy). How many of the three the bot
+## may run is `squad_cap`, a difficulty parameter: one squad is the trickle — every new unit
+## walks to the front alone — two is wave and reserve, three adds the guard. Dispatch is the
+## squad's: a changed policy re-orders everyone, the same policy only the idle, so the army
+## is never re-pathed to where it already stands. gdd/systems/ai/squads-and-relations.md.
 
 enum Posture { MASS, ATTACK, DEFEND }
 
@@ -44,10 +45,6 @@ var defend_threat_radius: float = 10.0
 ## defend_threat_radius: it is the whole game, so an enemy still some way off it is already a
 ## threat to it, and the army turns for it before a raid on any other building would call it.
 const COMMAND_CENTRE_THREAT_MULTIPLIER: float = 2.0
-
-## How far the objective must move (world units) before counting as "changed"
-## and re-tasking the whole army. Keeps a wandering enemy target from thrashing.
-const OBJECTIVE_EPSILON: float = 3.0
 
 ## CONTEXTUAL attack commitment: launch a wave when our army value is at least
 ## `attack_value_ratio` × the BELIEVED enemy army value — i.e. attack when we're ahead, to
@@ -116,16 +113,27 @@ const REGROUP_SECONDS: float = 20.0
 ## A PARAMETER (BotDifficulty.reinforce_fraction).
 var reinforce_fraction: float = 0.5
 
+## How many squads the military may run at once: 1 is one body (reinforcements walk to the
+## front alone, the trickle), 2 is wave and reserve, 3 adds the guard. −1 lifts the cap. A
+## PARAMETER (BotDifficulty.squad_cap); the default is the two squads the bot ran before the
+## cap existed.
+var squad_cap: int = 2
+
+## How strong the guard is made against what it answers: units join it until their value
+## against the threats (cost × matchup, the scale Bot.base_threats prices a threat on)
+## reaches this multiple of the threat's value, and the rest of the reserve stays with the
+## wave. 1 matches the threat; 2 brings twice it. A PARAMETER
+## (BotDifficulty.guard_strength_ratio), searched rather than reasoned about (Alex, 2026-10-07).
+var guard_strength_ratio: float = 1.5
+
 ## How far forward of home the reserve stages, in world units: on the threat side of the
 ## base, so a released reserve starts its walk ahead of the buildings rather than through
 ## them, and short enough that the base's own defences still cover it.
 const STAGING_OFFSET: float = 10.0
 
-## A unit this close to where it was sent (world units) has ARRIVED and is left standing
-## rather than re-ordered every think. Arriving is a navigation radius, not a point, and a
-## unit told to walk to where it stands swirls — which, re-issued every combat period to a
-## whole army, is the swarm around a point that was reported.
-const HOLD_RADIUS: float = 4.0
+## A unit this close to where it was sent has ARRIVED and is left standing — the policies'
+## rule (PostPolicy.HOLD_RADIUS), named here for the stall radius below.
+const HOLD_RADIUS: float = PostPolicy.HOLD_RADIUS
 
 ## A wave standing on its objective with nothing to fight for this long has found nothing it
 ## can act on there — the belief was not disproved because nothing walked into vision of it
@@ -135,9 +143,25 @@ const OBJECTIVE_STALL_SECONDS: float = 20.0
 ## How long an abandoned objective stays off the list. The ground may change — a wall comes
 ## down, a scout disproves it — so it is a cooldown, not a ban.
 const OBJECTIVE_ABANDON_SECONDS: float = 120.0
-## The wave counts as standing ON its objective within this of it: a few arrival radii, since
-## a wave of many units spreads around the point rather than onto it.
-const STALL_RADIUS: float = HOLD_RADIUS * 3.0
+## The wave counts as standing ON its objective within this of it (AssaultPolicy.STALL_RADIUS).
+const STALL_RADIUS: float = AssaultPolicy.STALL_RADIUS
+
+## How far the objective must move (world units) before counting as "changed"
+## and re-tasking the whole army. Keeps a wandering enemy target from thrashing.
+##
+## Was 3.0, which did not: a believed UNIT's last-known location is refreshed every blackboard
+## update while it is in sight, a walking unit covers three units in well under a combat
+## period, and every "change" RE-LAUNCHES the wave — emptying every garrison and re-ordering
+## the whole army — so the army flapped in and out of its bunkers at the think rate (observed
+## 2026-10-06 on main). A drift within this radius is the SAME objective, moved: the wave
+## presses on through _tick_reinforcements, which sends idle members to the new point. A jump
+## beyond it is a different objective, and that is what a re-launch is for. Sized to the
+## stall radius: an objective that has moved further than the wave's own spread around it is
+## no longer where the wave is.
+const OBJECTIVE_EPSILON: float = STALL_RADIUS * 2.0
+## How far the rally point may drift before the producers are re-pointed. A rally is one
+## order per structure and moves nothing, so it tracks closely.
+const RALLY_EPSILON: float = 3.0
 ## How far the walk to a believed objective may end from it and still count as reaching it:
 ## a structure's half-footprint plus the standoff a wide unit keeps, since the path ends
 ## beside a building, never on it.
@@ -161,16 +185,20 @@ var _enemy_value_estimate: float = 0.0  # smoothed (decayed-peak) belief of enem
 ## seconds_elapsed() until which a called-off wave is regrouping and will not re-commit.
 var _regroup_until: float = 0.0
 
-## Instance id → true for every unit in the field with the current wave. The reserve is every
-## other combat unit. Keyed by id so a dead member needs no reference to drop.
-var _wave_members: Dictionary = {}
+## The three squads, created on the bot's registry so the harness sees them beside a
+## mission's. MAIN is the wave under ATTACK and the whole army otherwise; RESERVE and GUARD
+## are empty outside ATTACK. See the class note and `squad_cap`.
+var _main: Squad
+var _reserve: Squad
+var _guard: Squad
 ## The remembered ENTITY behind the ATTACK objective when it is a structure belief, or null —
-## set by _objective_for(ATTACK) beside the position it returns. A wave member standing idle
-## at the objective is ordered to ATTACK it: the point the army is sent to lies beside the
-## building, often outside the aggro range a unit picks targets from on its own, and an army
-## that has arrived and stands there is the "waiting around" that was reported. Untyped: a
-## belief outlives the thing it remembers, and a freed object fails a typed field.
+## set by _objective_for(ATTACK) beside the position it returns, and handed to the wave's
+## AssaultPolicy at launch, which orders an arrived member to ATTACK it. Untyped: a belief
+## outlives the thing it remembers, and a freed object fails a typed field.
 var _objective_entity: Variant = null
+## Its instance id, kept apart from the reference so the belief can be asked about after the
+## node is freed (a freed object cannot answer get_instance_id).
+var _objective_id: int = 0
 ## seconds_elapsed() when the current objective was set, or the wave was last seen fighting
 ## or travelling — what OBJECTIVE_STALL_SECONDS is measured from.
 var _objective_since: float = 0.0
@@ -194,6 +222,11 @@ func _init(a_bot: Bot, a_act: BotActuator, a_momentum: BotMomentum = null) -> vo
 	_bot = a_bot
 	_act = a_act
 	_momentum = a_momentum
+	_main = _bot.squads.create(&"main")
+	_reserve = _bot.squads.create(&"reserve")
+	_guard = _bot.squads.create(&"guard")
+	for squad: Squad in [_main, _reserve, _guard]:
+		squad.eligible = _is_armys
 
 
 ## Returns the work units spent.
@@ -219,80 +252,175 @@ func tick() -> int:
 	_objective = objective_pos
 	_has_objective = true
 
-	# Re-task everyone on a posture/objective change. Otherwise an idle unit goes where it
-	# belongs: in ATTACK that is the wave or the reserve (_tick_reinforcements); in MASS and
-	# DEFEND every idle unit is swept to the standing objective. Only units with combat
-	# utility fight — never march the unarmed technician to its death.
+	# Re-task on a posture/objective change: a new policy for the main body, which the squad
+	# issues to everyone. Otherwise the squads carry on — a new unit joins the body it belongs
+	# to, the reserve is released when it is worth sending, and each squad re-issues its
+	# policy only to a member that went idle. Only units with combat utility fight — never
+	# march the unarmed technician to its death.
 	if changed:
-		var units: Array = _combat_units(_bot.get_units())
 		_objective_since = _bot.seconds_elapsed()
 		if posture == Posture.ATTACK:
-			_launch(units, objective_pos)
+			_launch(objective_pos)
 		else:
-			_wave_members.clear()
-			if not units.is_empty():
-				_act.attack_move(units, objective_pos)
+			_hold(objective_pos)
 	elif posture == Posture.ATTACK:
+		_retarget_wave(objective_pos)
 		_tick_reinforcements(objective_pos)
 		_check_objective_stall(objective_pos)
 	else:
-		_send_idle(_combat_units(_bot.get_idle_units()), objective_pos)
+		_main.add_all(_combat_units(_bot.get_units()))
+	_tick_squads()
 	_rally_production(
 		_staging_point(objective_pos) if posture == Posture.ATTACK else objective_pos, changed
 	)
 	return considered * UNIT_WORK_UNITS
 
 
+## Every squad's dispatch: a changed policy to all its members, the same one to the idle.
+func _tick_squads() -> void:
+	for squad: Squad in [_main, _reserve, _guard]:
+		squad.tick()
+
+
 ## Send the whole army at `a_objective` as the new wave, collecting first whatever is sitting
 ## in a bunker: a unit firing from cover at home is no use at the front. MASS and DEFEND
 ## leave bunkered units where they are.
-func _launch(a_units: Array, a_objective: Vector3) -> void:
-	_wave_members.clear()
-	for unit: Commandable in a_units:
-		_wave_members[unit.get_instance_id()] = true
+func _launch(a_objective: Vector3) -> void:
+	for squad: Squad in [_main, _reserve, _guard]:
+		squad.clear()
+	_main.add_all(_combat_units(_bot.get_units()))
+	_main.policy = AssaultPolicy.new(
+		_bot, _act, a_objective, _objective_entity, _objective_id, OBJECTIVE_EPSILON
+	)
+	_main.redirect()
 	_act.evacuate(_bot.get_hosts_holding_my_units())
-	if not a_units.is_empty():
-		_act.attack_move(a_units, a_objective)
 
 
-## ATTACK posture, nothing changed: press a wave member that went idle on to the objective;
-## stage every reserve unit; release the reserve as a body when it is worth sending.
+## Point the wave at `a_objective` again when it is no longer what the wave was sent at: a
+## different believed structure, or the same belief drifted past OBJECTIVE_EPSILON from the
+## point the wave holds. Compared with the WAVE'S point, not the last think's objective — the
+## objective is re-read every think, so a creep of a few metres a think, or a new structure a
+## short step on, never counted as a change, and the wave stood idle at a point whose target
+## was gone. Only the wave is re-pointed; the reserve and guard keep their orders.
+func _retarget_wave(a_objective: Vector3) -> void:
+	var held: AssaultPolicy = _main.policy as AssaultPolicy
+	if (
+		held != null
+		and held.target_id == _objective_id
+		and held.point.distance_to(a_objective) <= OBJECTIVE_EPSILON
+	):
+		return
+	_main.policy = AssaultPolicy.new(
+		_bot, _act, a_objective, _objective_entity, _objective_id, OBJECTIVE_EPSILON
+	)
+	_main.redirect()
+
+
+## MASS or DEFEND: the whole army is one body standing at `a_post`. A posture change is a
+## real change even when the post has not moved, so the squad is told to re-issue to all.
+func _hold(a_post: Vector3) -> void:
+	_main.absorb(_reserve)
+	_main.absorb(_guard)
+	_main.add_all(_combat_units(_bot.get_units()))
+	_main.policy = HoldPolicy.new(_act, a_post, OBJECTIVE_EPSILON)
+	_main.redirect()
+
+
+## ATTACK posture, nothing changed: a new combat unit joins the reserve (or the wave itself,
+## under a cap of one); the reserve turns to a threatened structure when the cap allows a
+## guard; and the reserve is released to the wave as a body when it is worth sending.
 func _tick_reinforcements(a_objective: Vector3) -> void:
-	var idle_wave: Array = _combat_units(_bot.get_idle_units()).filter(_is_wave_member)
-	# Arrived, and the building is still there: raze it. Only a wave member standing at the
-	# objective; one still short of it keeps walking.
-	var arrived: Array = idle_wave.filter(
-		func(u: Commandable) -> bool:
-			return u.global_position.distance_to(a_objective) <= STALL_RADIUS
+	var newcomers: Array = _combat_units(_bot.get_units()).filter(
+		func(u: Commandable) -> bool: return not (_main.has(u) or _reserve.has(u) or _guard.has(u))
 	)
-	if not arrived.is_empty() and _objective_is_standing():
-		_act.attack(arrived, _objective_entity as Entity)
-	_send_idle(idle_wave, a_objective)
-	var reserve: Array = _combat_units(_bot.get_units()).filter(
-		func(u: Commandable) -> bool: return not _is_wave_member(u)
-	)
-	if reserve.is_empty():
+	if _may_run(2):
+		_reserve.add_all(newcomers)
+	else:
+		_main.add_all(newcomers)
+	_tick_guard()
+	if _reserve.is_empty():
 		return
-	if _wave_is_spent() or _reserve_value(reserve) >= reinforce_fraction * _wave_launch_value:
-		for unit: Commandable in reserve:
-			_wave_members[unit.get_instance_id()] = true
-		_act.attack_move(reserve, a_objective)
+	# The wave has nobody left: the reserve IS the army, and holding it back would leave the
+	# objective to nobody.
+	if _main.is_empty() or _value_of(_reserve.members()) >= reinforce_fraction * _wave_launch_value:
+		_main.absorb(_reserve)
 		return
-	_send_idle(
-		reserve.filter(func(u: Commandable) -> bool: return not u.has_command()),
-		_staging_point(a_objective)
-	)
+	_reserve.policy = StagePolicy.new(_act, _staging_point(a_objective), OBJECTIVE_EPSILON)
 
 
-## Attack-move `a_units` to `a_destination`, except any already standing within HOLD_RADIUS
-## of it — they have arrived, and an order to walk to where they stand is the swarm.
-func _send_idle(a_units: Array, a_destination: Vector3) -> void:
-	var to_send: Array = a_units.filter(
-		func(u: Commandable) -> bool:
-			return u.global_position.distance_to(a_destination) > HOLD_RADIUS
+## THE GUARD: while a wave is out and the base comes under threat, the staged reserve turns
+## to the threatened structure instead of waiting to reinforce — the part of the army that
+## is not committed answers the raid the wave's commitment used to leave unanswered. Only
+## under a cap of three; it goes back to being the reserve once the threat has passed.
+## Decided 2026-10-07; a fraction held home by rule is deliberately NOT a parameter.
+func _tick_guard() -> void:
+	if not _may_run(3):
+		return
+	var threats: Array = _base_threats()
+	if threats.is_empty():
+		_reserve.absorb(_guard)
+		_guard.policy = null
+		return
+	var worst: Dictionary = threats[0]
+	for threat: Dictionary in threats:
+		if threat["value"] > worst["value"]:
+			worst = threat
+	# At the threat itself, not at the structure it is near: the guard is there to end it.
+	_guard.policy = HoldPolicy.new(
+		_act, (worst["enemy"] as Commandable).global_position, OBJECTIVE_EPSILON
 	)
-	if not to_send.is_empty():
-		_act.attack_move(to_send, a_destination)
+	_size_guard(threats)
+
+
+## Draw the guard from the guard and reserve together: the units best able to hurt the
+## threats first, until their value against them reaches guard_strength_ratio × the threats'
+## value. Whoever is not needed is the reserve, and goes on to the wave — so a threat that
+## never ends no longer swallows everything built while it stands. A unit that cannot hurt
+## any threat never guards. At least one unit answers any threat, however cheap.
+func _size_guard(a_threats: Array) -> void:
+	var needed: float = 0.0
+	for threat: Dictionary in a_threats:
+		needed += threat["value"]
+	needed *= guard_strength_ratio
+	var answers: Array = []  # [unit, its value against the threats]
+	for unit: Commandable in _guard.members() + _reserve.members():
+		var best: float = 0.0
+		for threat: Dictionary in a_threats:
+			best = maxf(best, _bot.matchup(unit, threat["enemy"]))
+		if best > 0.0:
+			answers.append([unit, _bot.unit_cost(unit.id) * best])
+	answers.sort_custom(
+		func(a: Array, b: Array) -> bool:
+			if a[1] != b[1]:
+				return a[1] > b[1]
+			return a[0].get_instance_id() < b[0].get_instance_id()
+	)
+	var chosen: Array = []
+	var strength: float = 0.0
+	for answer: Array in answers:
+		if strength >= needed and not chosen.is_empty():
+			break
+		chosen.append(answer[0])
+		strength += answer[1]
+	var rest: Array = (_guard.members() + _reserve.members()).filter(
+		func(unit: Commandable) -> bool: return not chosen.has(unit)
+	)
+	_guard.set_members(chosen)
+	_reserve.set_members(rest)
+
+
+## Every threat to the base, at the radius this military judges one by — a command centre's
+## under HEGEMONY, where it is the whole game, from further off (Bot.base_threats).
+func _base_threats() -> Array:
+	var centre_radius: float = defend_threat_radius
+	if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
+		centre_radius *= COMMAND_CENTRE_THREAT_MULTIPLIER
+	return _bot.base_threats(defend_threat_radius, centre_radius)
+
+
+## Whether the cap lets the military run `a_count` squads at once.
+func _may_run(a_count: int) -> bool:
+	return BotDifficulty.is_squad_uncapped(squad_cap) or squad_cap >= a_count
 
 
 ## A wave that has stood on its objective for OBJECTIVE_STALL_SECONDS with nobody fighting
@@ -304,28 +432,13 @@ func _check_objective_stall(a_objective: Vector3) -> void:
 	if not claims.units_of(BotTargeting.CLAIM_OWNER).is_empty():
 		_objective_since = now
 		return
-	var members: Array = _bot.get_units().filter(_is_wave_member)
-	if members.is_empty():
+	if _main.is_empty():
 		return
-	var centroid: Vector3 = Vector3.ZERO
-	for unit: Commandable in members:
-		centroid += unit.global_position
-	centroid /= float(members.size())
-	if centroid.distance_to(a_objective) > STALL_RADIUS:
+	if _main.centroid().distance_to(a_objective) > STALL_RADIUS:
 		_objective_since = now
 		return
 	if now - _objective_since > OBJECTIVE_STALL_SECONDS:
 		_abandon_objective(a_objective)
-
-
-## Whether the entity behind the objective is still in play. A freed object compares equal
-## to null, so validity is asked first.
-func _objective_is_standing() -> bool:
-	return (
-		_objective_entity != null
-		and is_instance_valid(_objective_entity)
-		and (_objective_entity as Node).is_inside_tree()
-	)
 
 
 func _abandon_objective(a_position: Vector3) -> void:
@@ -356,24 +469,10 @@ func _threatened_command_centre() -> Commandable:
 	return _bot.threatened_command_centre(defend_threat_radius * COMMAND_CENTRE_THREAT_MULTIPLIER)
 
 
-func _is_wave_member(a_unit: Commandable) -> bool:
-	return _wave_members.has(a_unit.get_instance_id())
-
-
-## True when no wave member is still alive — the reserve is then the whole army, and holding
-## it back would leave the objective to nobody. Dead members are dropped as they are found.
-func _wave_is_spent() -> bool:
-	for id: int in _wave_members.keys():
-		if is_instance_id_valid(id):
-			return false
-		_wave_members.erase(id)
-	return true
-
-
-## What the reserve is worth, in the energy the wave's launch value is measured in.
-func _reserve_value(a_reserve: Array) -> float:
+## What `a_units` are worth, in the energy the wave's launch value is measured in.
+func _value_of(a_units: Array) -> float:
 	var total: float = 0.0
-	for unit: Commandable in a_reserve:
+	for unit: Commandable in a_units:
 		total += float(_bot.unit_cost(unit.id))
 	return total
 
@@ -404,9 +503,7 @@ func _station_point(a_direction: Vector2) -> Vector3:
 ## A new unit then walks to where the military wants it on its own, instead of standing at
 ## the door until the idle sweep finds it.
 func _rally_production(a_point: Vector3, a_moved: bool) -> void:
-	var moved: bool = (
-		a_moved or not _has_rally or _rally_point.distance_to(a_point) > OBJECTIVE_EPSILON
-	)
+	var moved: bool = a_moved or not _has_rally or _rally_point.distance_to(a_point) > RALLY_EPSILON
 	_rally_point = a_point
 	_has_rally = true
 	var structures: Array = _bot.get_production_structures().filter(
@@ -420,14 +517,16 @@ func current_posture() -> Posture:
 	return _posture
 
 
+## Where the army is being sent, or null before the first think found anything to anchor on.
+## An instrument for the decision simulations and the self-play harness; no manager reads it.
+func current_objective() -> Variant:
+	return _objective if _has_objective else null
+
+
 ## How many units are in the field with the current wave. An instrument for the self-play
 ## harness, which observes the bot and never issues; no manager reads it.
 func wave_size() -> int:
-	var live: int = 0
-	for id: int in _wave_members.keys():
-		if is_instance_id_valid(id):
-			live += 1
-	return live
+	return _main.size() if _posture == Posture.ATTACK else 0
 
 
 ## How many combat units are held in reserve — not in the wave. Only meaningful in ATTACK
@@ -435,9 +534,50 @@ func wave_size() -> int:
 func reserve_size() -> int:
 	return (
 		_combat_units(_bot.get_units())
-		. filter(func(u: Commandable) -> bool: return not _is_wave_member(u))
+		. filter(
+			func(u: Commandable) -> bool: return not (_posture == Posture.ATTACK and _main.has(u))
+		)
 		. size()
 	)
+
+
+## How far ahead an army worth `a_own` is: its value over the smoothed enemy estimate, after
+## the humility prior (assume the enemy is at least assumed_enemy_parity × our own unless more
+## has been seen) and the floor.
+func attack_ratio(a_own: float) -> float:
+	var enemy_estimate: float = maxf(_enemy_value_estimate, a_own * assumed_enemy_parity)
+	return a_own / maxf(enemy_estimate, ENEMY_VALUE_FLOOR)
+
+
+## The value ratio a wave must clear to launch: attack_value_ratio, relaxed by the stalemate
+## clock and never below MIN_ATTACK_RATIO.
+func required_attack_ratio() -> float:
+	return maxf(
+		MIN_ATTACK_RATIO, attack_value_ratio - _stalemate_time * STALEMATE_ESCALATION_PER_SEC
+	)
+
+
+## The wave and objective state no other accessor reports, for the debug overlay. Times are
+## seconds; `objective_entity` is null or possibly freed, so a reader checks it is valid.
+func debug_state() -> Dictionary:
+	var now: float = _bot.seconds_elapsed()
+	return {
+		"objective_entity": _objective_entity,
+		"wave_active": _wave_active,
+		"wave_launch_value": _wave_launch_value,
+		"wave_value": _value_of(_main.members()) if _wave_active else 0.0,
+		"regroup_left": maxf(0.0, _regroup_until - now),
+		"on_objective": now - _objective_since if _has_objective else 0.0,
+		"stalemate": _stalemate_time,
+		"enemy_estimate": _enemy_value_estimate,
+		"abandoned_objectives": _abandoned_objectives.duplicate(),
+		"rally": _rally_point if _has_rally else null,
+	}
+
+
+## The army's squads — main, reserve, guard — for the harness and the decision simulations.
+func squads() -> Array:
+	return [_main, _reserve, _guard]
 
 
 func _decide_posture() -> Posture:
@@ -483,8 +623,11 @@ func _committing_to_attack() -> bool:
 		)
 
 	# Already committed: see the wave through — unless it is going badly enough to leave.
+	# Judged on the WAVE, not the army: a reserve or guard at home is not the wave holding up,
+	# and counting them kept a wave of two "unspent" while a guard grew behind it.
 	if _wave_active:
-		if own <= _wave_launch_value * WAVE_SPENT_FRACTION or _should_abort_wave(own):
+		var wave: float = _value_of(_main.members())
+		if wave <= _wave_launch_value * WAVE_SPENT_FRACTION or _should_abort_wave(wave):
 			_end_wave()
 		return _wave_active
 
@@ -500,19 +643,15 @@ func _committing_to_attack() -> bool:
 		_stalemate_time = 0.0
 		return false
 
-	# Apply the humility prior: assume the enemy is at least ASSUMED_ENEMY_PARITY × our
-	# own army unless we've actually seen more.
-	var enemy_estimate: float = maxf(_enemy_value_estimate, own * assumed_enemy_parity)
-	var ratio: float = own / maxf(enemy_estimate, ENEMY_VALUE_FLOOR)
+	var ratio: float = attack_ratio(own)
 	# Bar starts at attack_value_ratio and relaxes the longer we hold without fighting, so a
 	# parity deadlock eventually forces a commit (but never below MIN_ATTACK_RATIO).
-	var threshold: float = maxf(
-		MIN_ATTACK_RATIO, attack_value_ratio - _stalemate_time * STALEMATE_ESCALATION_PER_SEC
-	)
+	var threshold: float = required_attack_ratio()
 
 	if ratio >= threshold:
 		_wave_active = true
-		_wave_launch_value = own
+		# What _launch is about to send, so the spent test compares the wave with itself.
+		_wave_launch_value = _value_of(_combat_units(_bot.get_units()))
 		_stalemate_time = 0.0
 		return true
 
@@ -556,15 +695,19 @@ func _end_wave() -> void:
 ## a scout, a unit mid-fight under BotTargeting, or one on an errand is left alone however the
 ## managers happen to be interleaved.
 func _combat_units(a_units: Array) -> Array:
-	return a_units.filter(
-		func(u: Commandable):
-			return (
-				_bot.unit_has_combat_utility(u)
-				and not claims.is_claimed(u)
-				and not BotEconomy._is_constructing(u)
-				and not BotOpportunist.is_committed(u)
-				and not _bot.is_suicide_aoe_unit(u)
-			)
+	return a_units.filter(_is_armys)
+
+
+## Whether `a_unit` is the army's to order right now — see _combat_units. Also every squad's
+## `eligible` test, so a member claimed mid-fight or on an errand is left alone by dispatch
+## and picked up again when released.
+func _is_armys(a_unit: Commandable) -> bool:
+	return (
+		_bot.unit_has_combat_utility(a_unit)
+		and not claims.is_claimed(a_unit)
+		and not BotEconomy._is_constructing(a_unit)
+		and not BotOpportunist.is_committed(a_unit)
+		and not _bot.is_suicide_aoe_unit(a_unit)
 	)  # kamikazes are micro'd by BotKamikaze
 
 
@@ -623,6 +766,7 @@ func _objective_for(a_posture: Posture) -> Variant:
 			# bot snipes. That tuning is the content's (objectives-and-completion.md §Win
 			# conditions), not the bot's.
 			_objective_entity = null
+			_objective_id = 0
 			if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
 				var centre_actionable: Callable = func(entry: CommanderBlackboard.Entry) -> bool:
 					return _bot.is_command_centre_type(entry.type) and actionable.call(entry)
@@ -631,12 +775,14 @@ func _objective_for(a_posture: Posture) -> Variant:
 				)
 				if centre != null:
 					_objective_entity = centre.entity
+					_objective_id = centre.instance_id
 					return centre.last_known_location
 			var believed: CommanderBlackboard.Entry = _bot.nearest_believed_enemy_structure_entry(
 				actionable
 			)
 			if believed != null:
 				_objective_entity = believed.entity
+				_objective_id = believed.instance_id
 				return believed.last_known_location
 			# Nothing of theirs standing that we know of: go after the last place we saw a unit.
 			return _bot.nearest_believed_enemy_unit_position(_home_anchor_position(), actionable)

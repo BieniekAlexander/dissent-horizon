@@ -1,7 +1,9 @@
 class_name BotDebugOverlay
 extends Node3D
 
-## In-world debug visualisation of a single bot's internal state.
+## In-world debug visualisation of a single bot's internal state, one CATEGORY of signals at a
+## time: world marks drawn by the category's BotDebugLayer, and its scalars as a text readout in
+## the top-right corner.
 ##
 ## Gated two ways, matching the rest of the game's debug HUD:
 ##   1. Only drawn while the debug view is up (DebugMode.is_active()) — the same gate
@@ -10,31 +12,68 @@ extends Node3D
 ##      (Fog.active_commander_id, the spectator POV button). When the active view isn't a
 ##      specific bot (player view / omniscient), nothing is drawn.
 ##
-## Created once per session by Scenario._ready. Extend _draw_overlay() to add more bot-debug
-## layers later; for now it renders the scout coverage grid.
-##
-## Scout coverage: a flat marker at each scout-grid point, coloured by how recently the bot
-## last saw it — green (just scouted) → red (stale, about to expire) — with never-seen
-## points drawn grey. A short stick rises from each so the markers read from the iso camera.
+## Which category shows is `active_category`, chosen from the spectator HUD's
+## BotDebugCategoryBar. Created once per session by Scenario._ready. A new category is an enum
+## member, a label, and a layer in `_layers`; the catalogue of what each will carry is
+## gdd/systems/ai/debug-signals.md.
 
-#region Tuning
-## Half-size (world units) of each ground marker.
-const MARKER_HALF: float = 0.35
-## Height of the stick rising from each marker.
-const STICK_HEIGHT: float = 0.8
-## Lift markers slightly off the terrain so they don't z-fight the ground.
-const Y_LIFT: float = 0.1
+enum Category {
+	OFF,
+	SCOUTING,
+	ENEMY_PICTURE,
+	BASE_DEFENCE,
+	ARMY,
+	ECONOMY,
+	UNIT_CONTROL,
+	INTERNALS,
+}
 
-const COLOR_FRESH: Color = Color(0.2, 1.0, 0.3)  # just scouted
-const COLOR_STALE: Color = Color(1.0, 0.2, 0.2)  # about to expire
-const COLOR_NEVER: Color = Color(0.45, 0.45, 0.5)  # never in line of sight
-#endregion
+const CATEGORY_LABELS: Dictionary = {
+	Category.OFF: "Off",
+	Category.SCOUTING: "Scouting",
+	Category.ENEMY_PICTURE: "Enemy picture",
+	Category.BASE_DEFENCE: "Base defence",
+	Category.ARMY: "Army",
+	Category.ECONOMY: "Economy",
+	Category.UNIT_CONTROL: "Unit control",
+	Category.INTERNALS: "Bot internals",
+}
+## What a session starts on: the scout coverage the overlay drew before it had categories.
+const DEFAULT_CATEGORY: Category = Category.SCOUTING
+## Seconds between readout refreshes. The marks redraw every frame; the text reads derived
+## figures (the counter-demand map), which need not cost a frame's worth each.
+const READOUT_PERIOD_SECONDS: float = 0.25
+## Gap between the readout panel and the screen's right edge, in pixels.
+const READOUT_MARGIN: float = 8.0
+## Gap above the readout panel, in pixels: enough to clear the match clock in that corner.
+const READOUT_TOP_MARGIN: float = 48.0
+
+## The category being drawn. Static, like Fog.active_commander_id and DebugMode, because its
+## writer (the spectator HUD) and this overlay share nothing but the session; reset on exit so
+## it never outlives one.
+static var active_category: Category = DEFAULT_CATEGORY
 
 ## The scenario this overlay belongs to; supplies the commander list. Set on creation.
 var scenario: Scenario
 
 var _mesh: ImmediateMesh
 var _mesh_instance: MeshInstance3D
+## Category → its layer. Layers are stateless; built once rather than per frame.
+var _layers: Dictionary = {
+	Category.SCOUTING: BotDebugScoutingLayer.new(),
+	Category.ENEMY_PICTURE: BotDebugEnemyPictureLayer.new(),
+	Category.BASE_DEFENCE: BotDebugBaseDefenceLayer.new(),
+	Category.ARMY: BotDebugArmyLayer.new(),
+	Category.ECONOMY: BotDebugEconomyLayer.new(),
+	Category.UNIT_CONTROL: BotDebugUnitControlLayer.new(),
+	Category.INTERNALS: BotDebugInternalsLayer.new(),
+}
+var _readout_panel: PanelContainer
+var _readout_label: Label
+## Seconds since the readout last refreshed, and what it was refreshed for: a change of category
+## or bot refreshes it at once rather than at the next period.
+var _readout_age: float = INF
+var _readout_key: Vector2i = Vector2i(-1, -1)
 
 
 func _ready() -> void:
@@ -49,25 +88,32 @@ func _ready() -> void:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_mesh_instance.material_override = mat
 	add_child(_mesh_instance)
+	_build_readout()
 
 
-func _process(_a_delta: float) -> void:
+func _exit_tree() -> void:
+	active_category = DEFAULT_CATEGORY
+
+
+func _process(a_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_mesh.clear_surfaces()
-	# Gate 1: the shared debug view.
-	if not DebugMode.is_active():
+	var layer: BotDebugLayer = _layers.get(active_category)
+	# Gate 1: the shared debug view. Gate 2: a specific bot must be the active view.
+	var bot: Bot = _active_bot() if DebugMode.is_active() else null
+	_readout_panel.visible = layer != null and bot != null
+	if not _readout_panel.visible:
 		return
-	# Gate 2: a specific bot must be the active view.
-	var bot: Bot = _active_bot()
-	if bot == null:
-		return
-	_draw_overlay(bot)
+	var pen := BotDebugPen.new()
+	layer.draw(bot, pen)
+	pen.flush(_mesh, global_transform.affine_inverse())
+	_refresh_readout(layer, bot, a_delta)
 
 
-## Draw every enabled debug layer for [bot]. Add more layers here as they're built.
-func _draw_overlay(a_bot: Bot) -> void:
-	_draw_scout_coverage(a_bot)
+## The readout text currently shown, header included; empty while nothing is drawn.
+func readout_text() -> String:
+	return _readout_label.text if _readout_panel.visible else ""
 
 
 # ─── ACTIVE BOT RESOLUTION ───────────────────────────────────────────────────
@@ -87,63 +133,32 @@ func _active_bot() -> Bot:
 	return null
 
 
-# ─── SCOUT COVERAGE LAYER ────────────────────────────────────────────────────
+# ─── READOUT ─────────────────────────────────────────────────────────────────
 
 
-func _draw_scout_coverage(a_bot: Bot) -> void:
-	var brain: BotBrain = a_bot.get_node_or_null("BotBrain") as BotBrain
-	if brain == null:
+func _build_readout() -> void:
+	var canvas := CanvasLayer.new()
+	canvas.name = "Readout"
+	add_child(canvas)
+	_readout_panel = PanelContainer.new()
+	_readout_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_readout_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_readout_panel.offset_right = -READOUT_MARGIN
+	_readout_panel.offset_top = READOUT_TOP_MARGIN
+	_readout_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_readout_panel.visible = false
+	canvas.add_child(_readout_panel)
+	_readout_label = Label.new()
+	_readout_panel.add_child(_readout_label)
+
+
+func _refresh_readout(a_layer: BotDebugLayer, a_bot: Bot, a_delta: float) -> void:
+	var key := Vector2i(active_category, a_bot.id)
+	_readout_age += a_delta
+	if key == _readout_key and _readout_age < READOUT_PERIOD_SECONDS:
 		return
-	var scout: BotScout = brain.get_scout()
-	if scout == null:
-		return  # managers not built yet (before the first think)
-
-	var now: float = a_bot.seconds_elapsed()
-	var points: Array = scout.debug_points()
-	if points.is_empty():
-		return
-
-	# One surface for the filled ground markers (translucent quads)...
-	_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-	for p: Dictionary in points:
-		_add_marker_quad(p["position"], _recency_color(p["last_seen"], p["ever_seen"], now))
-	_mesh.surface_end()
-
-	# ...and one for the opaque sticks, so the points read against the terrain.
-	_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
-	for p: Dictionary in points:
-		var color: Color = _recency_color(p["last_seen"], p["ever_seen"], now)
-		color.a = 1.0
-		_add_stick(p["position"], color)
-	_mesh.surface_end()
-
-
-## Green (just scouted) → red (stale at SCOUT_EXPIRATION_TIMER); grey if never seen.
-func _recency_color(a_last_seen: float, a_ever_seen: bool, a_now: float) -> Color:
-	if not a_ever_seen:
-		return COLOR_NEVER
-	var age: float = a_now - a_last_seen
-	var t: float = clampf(age / BotScout.SCOUT_EXPIRATION_TIMER, 0.0, 1.0)
-	var c: Color = COLOR_FRESH.lerp(COLOR_STALE, t)
-	c.a = 0.55
-	return c
-
-
-## A flat square centred on `world_pos`, slightly lifted, as two triangles.
-func _add_marker_quad(a_world_pos: Vector3, a_color: Color) -> void:
-	var c: Vector3 = to_local(a_world_pos) + Vector3(0.0, Y_LIFT, 0.0)
-	var a: Vector3 = c + Vector3(-MARKER_HALF, 0.0, -MARKER_HALF)
-	var b: Vector3 = c + Vector3(MARKER_HALF, 0.0, -MARKER_HALF)
-	var d: Vector3 = c + Vector3(MARKER_HALF, 0.0, MARKER_HALF)
-	var e: Vector3 = c + Vector3(-MARKER_HALF, 0.0, MARKER_HALF)
-	_mesh.surface_set_color(a_color)
-	for v: Vector3 in [a, b, d, a, d, e]:
-		_mesh.surface_add_vertex(v)
-
-
-## A short vertical line rising from `world_pos`.
-func _add_stick(a_world_pos: Vector3, a_color: Color) -> void:
-	var base: Vector3 = to_local(a_world_pos) + Vector3(0.0, Y_LIFT, 0.0)
-	_mesh.surface_set_color(a_color)
-	_mesh.surface_add_vertex(base)
-	_mesh.surface_add_vertex(base + Vector3(0.0, STICK_HEIGHT, 0.0))
+	_readout_key = key
+	_readout_age = 0.0
+	var lines: PackedStringArray = a_layer.readout(a_bot)
+	lines.insert(0, "Bot %d — %s" % [a_bot.id, CATEGORY_LABELS[active_category]])
+	_readout_label.text = "\n".join(lines)

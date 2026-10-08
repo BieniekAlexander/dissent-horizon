@@ -19,6 +19,8 @@ extends RefCounted
 
 const OUTCOME_ISSUED: String = "issued"
 const OUTCOME_REFUSED_PREFIX: String = "refused:"
+## How many of the latest choices `recent_choices` keeps: a screenful for the debug overlay.
+const RECENT_CHOICE_COUNT: int = 8
 
 ## domain -> type -> {"considered": int, "chosen": int, "score_sum": float, "best_sum": float}
 var _choices: Dictionary = {}
@@ -26,6 +28,9 @@ var _choices: Dictionary = {}
 var _actions: Dictionary = {}
 ## type -> Array of [x, z] where a targeted sanction of that ability was cast.
 var _cast_positions: Dictionary = {}
+## The latest choices, oldest first: [{"domain", "chosen", "chosen_score", "runner_up",
+## "runner_up_score"}]. The tables above keep counts and lose which decision came when.
+var _recent: Array[Dictionary] = []
 
 
 ## One scored decision in `a_domain` over `a_scores` (type -> score); `a_chosen` is the
@@ -47,6 +52,7 @@ func record_choice(a_domain: String, a_scores: Dictionary, a_chosen: StringName)
 			row["chosen"] += 1
 		domain[String(type)] = row
 	_choices[a_domain] = domain
+	_remember(a_domain, a_scores, a_chosen)
 
 
 ## One order of `a_kind` concerning `a_type` ("" for an order about no piece in particular,
@@ -65,6 +71,38 @@ func record_cast_position(a_ability: StringName, a_world: Vector3) -> void:
 	var positions: Array = _cast_positions.get(String(a_ability), [])
 	positions.append([snappedf(a_world.x, 0.01), snappedf(a_world.z, 0.01)])
 	_cast_positions[String(a_ability)] = positions
+
+
+## The latest choices, oldest first — see `_recent`.
+func recent_choices() -> Array[Dictionary]:
+	return _recent.duplicate()
+
+
+func _remember(a_domain: String, a_scores: Dictionary, a_chosen: StringName) -> void:
+	var runner_up: String = ""
+	var runner_up_score: float = -INF
+	var chosen_score: float = 0.0
+	# Compared as Strings: a scorer may key by String or StringName, which index apart.
+	for type: Variant in a_scores:
+		if String(type) == String(a_chosen):
+			chosen_score = float(a_scores[type])
+		elif float(a_scores[type]) > runner_up_score:
+			runner_up = String(type)
+			runner_up_score = float(a_scores[type])
+	(
+		_recent
+		. append(
+			{
+				"domain": a_domain,
+				"chosen": String(a_chosen),
+				"chosen_score": chosen_score,
+				"runner_up": runner_up,
+				"runner_up_score": runner_up_score if runner_up != "" else 0.0,
+			}
+		)
+	)
+	if _recent.size() > RECENT_CHOICE_COUNT:
+		_recent.remove_at(0)
 
 
 static func refused(a_cause: MoveCommand.PreconditionFailureCause) -> String:

@@ -35,6 +35,8 @@ const ISSUED: Array = [
 	"Occupy",
 	"UseSanction",
 	"Evacuate",
+	"Ability",
+	"Spot",
 ]
 
 ## The bot causes these WITHOUT constructing the command, each for a stated reason. This
@@ -54,8 +56,14 @@ const COVERED_OTHERWISE: Dictionary = {
 	),
 	"Capture":
 	(
-		"capturing IS driving over the prey, so the bot issues a plain move — see"
-		+ " BotOpportunist's ContactOpportunity"
+		"capturing IS driving over the prey, so the bot issues a move AT it (BotActuator"
+		+ ".move_at) — see BotOpportunist's ContactOpportunity"
+	),
+	"Bombard":
+	(
+		"a gun on automatic fires on its own at a beacon a spotter holds, and the bot never"
+		+ " switches its guns to manual — its half of the siege loop is the Spot order"
+		+ " (BotAbilities)"
 	),
 }
 
@@ -89,12 +97,9 @@ const MISSING: Dictionary = {
 		+ " sweep the unit into the attack"
 	),
 	"Patrol": "the other standing order it cannot give",
-	"Ability": "unit abilities are unreachable: Abilities is read only by BotSanction",
 	"Land": "no aerial operations at all",
 	"Rearm": "no aerial operations at all; a charged clip is never refilled",
 	"AirDropRun": "no aerial operations at all",
-	"Bombard": "the Colonial siege loop needs a spotter and a battery decision",
-	"Spot": "the other half of bombardment",
 	"Deploy": "the bot never plants a deploying unit; it fights them as ordinary movers",
 	"Undeploy": "and so never has one to pack up",
 	"Plant": "the Sapper's charge is never planted",
@@ -212,9 +217,11 @@ func test_the_gap_list_does_not_grow_silently() -> void:
 	# Raised 12 -> 16 on 2026-09-29: Deploy/Undeploy and Plant/Detonate, built for the player;
 	# whether the bot should use either is open (gdd/systems/commands/deploying.md,
 	# gdd/systems/combat/planted-explosives.md).
+	# Lowered 16 -> 13 on 2026-10-07: Ability and Spot are issued (BotAbilities), and Bombard
+	# fires on its own at a held beacon.
 	assert_lte(
 		MISSING.size(),
-		16,
+		13,
 		(
 			"more commands the bot cannot use than last time this was reviewed — either wire"
 			+ " it up or raise this number on purpose"

@@ -7,8 +7,8 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**Approved 2026-10-03.** The first step of §Build order is built on `feat/squads-and-relations`;
-everything marked `PLANNED` is agreed and waits for the build. This note supersedes
+**Approved 2026-10-03.** Steps 1 and 2 of §Build order are built (2026-10-03 and
+2026-10-07); everything marked `PLANNED` is agreed and waits for the build. This note supersedes
 [bot-roadmap](bot-roadmap.md) §The gaps in the decision surface items 1 and 2 and §Tactics
 and the Bot, and [tactics](../scenario-scripting/tactics.md)' "merging or splitting is out of
 scope".
@@ -78,26 +78,67 @@ shared.
 
 ## Squads
 
-`PLANNED` — a commander-level registry of squads: membership, a standing POLICY, a staging
-point. The Bot's military creates, merges and splits them and picks each one's policy by
-score; a mission gets a squad from `EventSpawnEntities.spawn_groups` and a `TacticRule`
-picks its policy. Merge and split are the operations that keep the count small, which is
-the whole reason to group: decisions are made per squad, not per unit.
+Built 2026-10-07. **A `Squad` is a set of units and the standing policy they are kept to,
+and its `tick()` is the one dispatch loop**: a new policy is issued to every member, the
+same policy only to a member that went idle or joined since, and a member busy with its
+order is left alone. `Commander.squads` is the registry, so a side's army reads as squads
+whoever runs them: `BotMilitary` keeps three (`main`, `reserve`, `guard`), and
+`ScenarioTactic` syncs its node-group cluster into one and makes the winning `TacticRule`
+its policy (`TacticRulePolicy`). The tactic's "rule changing redirects everyone; the same
+rule re-runs for the idle" is now `Squad.tick`, written once. Cover: `tests/test_Squad.gd`,
+`tests/test_BotStaging.gd`, `tests/test_ScenarioTactic.gd`.
 
-Policies are the shared vocabulary:
+Policies are the shared vocabulary; the first three are built:
 
 | Policy | What it keeps the squad doing | Who wants it |
 |---|---|---|
-| `Stage(point, release rule)` | gather and wait, then hand over to the next policy | the reinforcement reserve; a mission's "wait for the wave" |
-| `Assault(target selector)` | attack-move on a selected target, re-issued to idle members | the wave; a mission's "attack this region / kind of target" |
-| `Hold(region)` | `Defend` posts; deliberate idleness | the standing-order gap; a mission's garrison |
-| `Patrol(route)` | the standing order the bot cannot give today | a mission's patrol; the Bot's map control |
-| `Escort(provider role, consumer role, reach)` | keep a provider within reach of a consumer — see §Relations | transport, spotting, retinue, the Sapper's carrier |
+| `StagePolicy(point)` | gather and wait to be handed on; the release rule is the decision side's (`reinforce_fraction`) | the reinforcement reserve; a mission's "wait for the wave" |
+| `AssaultPolicy(point, believed target)` | attack-move on the objective; an arrived member razes the believed structure while the belief stands | the wave; a mission's "attack this region / kind of target" |
+| `HoldPolicy(point)` | stand at a post; deliberate idleness | the army at home; the guard; a mission's garrison |
+| `Patrol(route)` | `PLANNED` — the standing order the bot cannot give today | a mission's patrol; the Bot's map control |
+| `Escort(provider role, consumer role, reach)` | `PLANNED` — keep a provider within reach of a consumer — see §Relations | transport, spotting, retinue, the Sapper's carrier |
 
-**How many squads a bot may run at once is a difficulty parameter.** A bot that manoeuvres a
-hundred units independently is optimal and unbelievable; a player plays through a handful
-of control groups. A cap is a handicap that reads as human, bounds the think cost by
-construction, and is a number a search can move.
+**Hold leaves an arrived member idle on purpose, and does not use `Defend` posts yet.** A
+`Defend` order is itself the standing order — it never goes idle — so a held unit would be
+invisible to the bunker opportunity (§Cover) and to the idle sweep. TODO: move the cover
+rule onto the policy, then Hold can post a leashed `Defend`.
+
+**How many squads a bot may run at once is a difficulty parameter**, `squad_cap`: 1 is one
+body — every reinforcement walks to the front alone, the trickle, whatever
+`reinforce_fraction` says; 2 is wave and reserve; 3 adds the guard. PASSIVE and EASY run
+one, MEDIUM two, HARD three, IMPOSSIBLE is uncapped. A bot that manoeuvres a hundred units
+independently is optimal and unbelievable; a player plays through a handful of control
+groups. A cap is a handicap that reads as human, bounds the think cost by construction, and
+is a number a search can move.
+
+**The guard** (decided 2026-10-07): while a wave is out and the base comes under threat, the
+staged reserve answers it (`HoldPolicy` on the most valuable threat) instead of waiting to
+reinforce, and goes back to being the reserve when the threat passes. A committed wave used
+to override DEFEND outright, so a raid during an attack went unanswered; now the part of the
+army that is NOT committed answers it. A fraction held home by rule is deliberately not a
+parameter — the reserve is whatever the release rule has not yet sent, and the guard is the
+reserve with somewhere to be. Merge and split beyond these three (a raid squad, a second
+wave) are `PLANNED` with the relations that give them a reason.
+
+**The guard is sized to the threat, and only an armed piece is one** (Alex, same day). A
+threat is a visible enemy that can damage the structure it stands beside, valued at its cost
+× that matchup (`Bot.base_threats`); a builder, a parked recon drone or an enemy extractor
+next to ours is none. The guard is drawn from guard and reserve together, best answer first,
+until its own cost × matchup against the threats reaches `guard_strength_ratio` × their
+value — a searched parameter, because "as big as the raid, or twice it" is a question for
+the search — and the rest stays the reserve and goes on to the wave. It supersedes "the whole
+reserve guards", which under a threat nobody could end (that parked drone, held over a
+forward extractor for the rest of the match) put every unit built from then on in the guard:
+measured 2026-10-07, 110 units held home behind a wave of two, posture ATTACK throughout.
+
+**The wave is valued by itself, and re-pointed when its objective moves on.** Whether a wave
+is spent, or bleeding badly enough to call off, reads the main squad's value against what it
+launched with — never the army's, which counted a growing guard as the wave holding up.
+And the wave is compared with the point it HOLDS: a new believed structure, or a drift past
+`OBJECTIVE_EPSILON` from that point, re-points it (the reserve and guard keep their orders).
+The objective is re-read every think, so a creep of a few metres a think, or the next
+building a short step on, used to change nothing — 164 units stood idle at a point whose
+target had fallen.
 
 **Missions switch Bot jobs off per slot rather than switching the Bot off.** `BotBrain.active`
 is all-or-nothing today. A per-job enable on `PlayerSlot` lets a mission run the economy and
@@ -238,8 +279,9 @@ role is wrong. Not built until a piece needs it; derivation first, as everywhere
 ## Build order
 
 1. Built 2026-10-03 — waves in series, staged reinforcements, rally points, role bearing.
-2. `PLANNED` — the squad registry with `Stage`/`Assault`/`Hold`, the military rewritten over
-   it, `ScenarioTactic` reading the same object, the squad cap as a difficulty parameter.
+2. Built 2026-10-07 — the squad registry with `Stage`/`Assault`/`Hold`, the military
+   rewritten over it, `ScenarioTactic` reading the same object, the squad cap as a
+   difficulty parameter, and the guard.
 3. `PLANNED` — `Relation`, `Bot.relations()`, multi-actor opportunities; `Escort` for
    transport and the Sapper.
 4. `PLANNED` — `Patrol`, relation affinity and approach coverage in placement, the per-job

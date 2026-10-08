@@ -1,0 +1,52 @@
+description: |
+  Two bots with equal armies and no way to earn more: no builders, no production, no energy.
+  Neither is ahead (army value over the believed enemy's is 1.0, below attack_value_ratio 1.3),
+  so neither commits at once — but the stalemate clock lowers the bar 0.02 a second while an
+  army stands idle, and both cross it after about 15 s (BotMilitary._committing_to_attack). So
+  equal armies with no income DO fight. The fight then resolves: a side is wiped out, or what
+  is left on both sides is under the commit gate (worth less than 300 energy) and stays home.
+  Each side has an unarmed Annex as a home, because an army with no structure anchors on its
+  own centroid and its massing point creeps toward the enemy every think. Scouting is off:
+  with full vision a scout learns nothing, and three of six recruits walking off as scouts
+  put the army at the body-count gate.
+  Controls: below_the_gate_never_attacks (the same, under the value gate) and
+  behind_side_waits (one side clearly smaller). Axis: COMMITMENT.
+setting: { kind: flat, size: 80 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: west
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 6 } ]
+        at: { from: A.home, distance: 6, bearing: east }
+        formation: cluster
+  B:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: east
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 6 } ]
+        at: { from: B.home, distance: 6, bearing: west }
+        formation: cluster
+run: { for: 120s, seed: 1 }
+expect:
+  # Decision: even armies do not commit on value alone…
+  - not: [ { slot: A, check: posture, is: ATTACK, by: 10s } ]
+  - not: [ { slot: B, check: posture, is: ATTACK, by: 10s } ]
+  # …but the stalemate clock commits both.
+  - { slot: A, check: posture, is: ATTACK, by: 20s }
+  - { slot: B, check: posture, is: ATTACK, by: 20s }
+  # Outcome: they fight, and the fight resolves.
+  - { of: A.army, check: dead, at_least: 1, by: 60s }
+  - { of: B.army, check: dead, at_least: 1, by: 60s }
+  - any:
+      - { of: A.army, check: dead }
+      - { of: B.army, check: dead }
+      - all:
+          - { of: A.army, check: alive, at_most: 2 }
+          - { of: B.army, check: alive, at_most: 2 }

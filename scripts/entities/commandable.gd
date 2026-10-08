@@ -657,6 +657,8 @@ func advance_build_progress(a_delta: float) -> bool:
 		# Infrastructure counts from the tick the piece is WORKING, not from the tick its
 		# foundation was laid (see commit_construction).
 		_sync_infrastructure()
+		if commander != null:
+			commander.construction_finished.emit(self)
 	return just_built
 
 

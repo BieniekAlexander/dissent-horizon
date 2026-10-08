@@ -65,11 +65,17 @@ var production_structure_cap: int = -1
 ## rather than a build order — see there.
 var income_structure_target: int = 1
 
-## HOW MANY STATIC DEFENCES THE BOT WANTS STANDING, going-up ones included. A PARAMETER
-## (BotDifficulty.defence_structure_target). The rung it drives sits between income and
-## throughput: a static is a short-term positional investment (static-defence.md), bought
-## ahead of the threat once there is a producer to protect, and never instead of one.
-var defence_structure_target: int = 2
+## HOW READILY THE BOT ANSWERS STATIC-DEFENCE DEMAND: the demand read (see _defence_demand) is
+## multiplied by this before it is held against a turret's cost, so 1 buys a turret where the
+## ground is worth exactly what the gun costs, 0 never buys one, and 2 buys at half the demand.
+## A PARAMETER (BotDifficulty.defence_propensity) — a propensity on a signal, never a count:
+## the count it replaced made towers an opening purchase by construction (world-model.md §L3).
+var defence_propensity: float = 1.0
+
+## HOW FAR A STRUCTURE'S REGION REACHES, in world units: what the demand read counts as "here"
+## around a structure — the value standing with it, the sides' influence over it. The focus
+## disc radius of world-model.md §L4, until the lattice makes a region a set of cells.
+const DEFENCE_REGION_RADIUS: float = 15.0
 
 ## HOW MUCH BETTER A LOCKED UNIT MUST BE for the bot to buy the structure that unlocks it,
 ## as a ratio of composition values. A PARAMETER (BotDifficulty.tech_value_margin).
@@ -154,6 +160,18 @@ const CONSTRUCTION_JOB_TIMEOUT_SECONDS: float = 90.0
 ## world units. Roughly one building's footprint.
 const ABANDONED_SPOT_RADIUS: float = 2.0
 
+## A SITE WITH A VISIBLE ARMED ENEMY NEAR IT IS CONTESTED, and a builder is not sent to it —
+## nor left walking to it. The only abort used to be an enemy standing ON the footprint
+## (Build refuses the placement), so a lone Servant walked into a defended site and died
+## (observed 2026-10-06 on main). "Near" is `defend_threat_radius`, the one meaning of "under
+## threat" every manager shares; a contested spot is skipped for this long before it is
+## considered again — a cooldown rather than a ban, since the enemy moves on. Only an order
+## that has NOT yet placed its structure is abandoned: a placed one is a building the
+## builder would have to come back for anyway (the repair gap, test_BotCommandCoverage).
+const CONTESTED_SPOT_SECONDS: float = 30.0
+## How close a candidate spot must be to a contested one to count as the same place.
+const CONTESTED_SPOT_RADIUS: float = ABANDONED_SPOT_RADIUS * 2.0
+
 ## How close a candidate spot may come to one an in-flight construction job is already aimed
 ## at. A footprint's worth of ground plus margin: two sites this close are racing for the same
 ## cells, which is what `build_concurrency = 1` used to prevent by never running a second job.
@@ -176,6 +194,10 @@ var _job_started: Dictionary = {}
 ## job there, and nothing the bot does later changes the terrain; a bot that forgets would
 ## re-learn the same lesson at 90 seconds a time.
 var _abandoned_spots: Array = []
+
+## Spots a builder was called back from, or refused, because an enemy stood near:
+## [{"position": Vector3, "until": float}] — see CONTESTED_SPOT_SECONDS.
+var _contested_spots: Array = []
 
 ## The owner name this module claims builders under (BotClaims). A build job runs to
 ## completion, so the army's rally leaves the builder alone until it does.
@@ -291,6 +313,7 @@ func _issue_build(a_builder: Commandable, a_type: StringName, a_spot: Vector3) -
 	var issued: bool = _act.build(a_builder, a_type, a_spot)
 	if issued:
 		claims.claim(a_builder, CLAIM_OWNER, BotClaims.Priority.ERRAND)
+		_bot.savings.spent(a_type)
 	return issued
 
 
@@ -298,10 +321,14 @@ func _issue_build(a_builder: Commandable, a_type: StringName, a_spot: Vector3) -
 func _decide() -> void:
 	var surplus: bool = _has_resource_surplus()
 	_prev_energy = _bot.energy
+	# Before the rate limit: what the bot is saving for does not wait on a free builder.
+	_propose_savings()
+	var goal: StringName = _bot.savings.goal()
 
 	# BEFORE the rate limit, not after: a job that will never finish must give its slot back,
 	# or the test below returns for the rest of the match. See CONSTRUCTION_JOB_TIMEOUT_SECONDS.
 	_release_stalled_construction()
+	_abort_contested_jobs()
 
 	# Construction jobs are rate-limited: wait for a builder to finish rather than pulling
 	# another fighter off the line or racing two builds onto the same cells. `build_concurrency`
@@ -377,7 +404,9 @@ func _decide() -> void:
 	# STATIC DEFENCE AHEAD OF THE THREAT, then TECH when a surplus allows; each rung ends the
 	# think when it issued a build or is still searching for a spot, and falls through
 	# otherwise, like the rungs above.
-	if _defence_rung(builder) or (surplus and _tech_rung(builder)):
+	# A rung whose building IS the savings goal runs without a surplus: the bank was held for it.
+	var tech_is_goal: bool = goal != &"" and _bot.buildable_structure_types().has(goal)
+	if _defence_rung(builder) or ((surplus or tech_is_goal) and _tech_rung(builder)):
 		return
 
 	# A surplus first extends a dominion route that pays per SITE (more Opticons), while a site
@@ -387,7 +416,7 @@ func _decide() -> void:
 
 	# When income is outpacing spending, sink the surplus into more production
 	# capacity. Built near the base, so the build completes reliably.
-	if surplus:
+	if surplus or _bot.buildable_production_structure_types().has(goal):
 		var ptype: Variant = _production_structure_to_build()
 		if ptype != null:
 			var spot: Variant = _find_build_spot(ptype)
@@ -416,15 +445,23 @@ func _decide() -> void:
 
 ## The static-defence rung, once there is a producer to stand in front of. The ladder had no
 ## rung for a turret at all until 2026-10-04 — the defence types existed only as a placement
-## bearing — so a bot never built one however cheaply it traded. Below the target, the
-## defence whose gun best answers the enemy UNITS the bot has seen goes up on the frontage
-## bearing. True when the think should end here: a build issued, or a spot still being sought.
+## bearing — so a bot never built one however cheaply it traded. A turret goes up where the
+## DEMAND read (value × vulnerability of a region, _defence_demand) clears its cost; the type
+## is the defence whose gun best answers the enemy UNITS the bot has seen, and it is anchored
+## on the region that asked for it. True when the think should end here: a build issued, or a
+## spot still being sought.
 func _defence_rung(a_builder: Commandable) -> bool:
-	if _owned_defence_structure_count() >= defence_structure_target or not _owns_a_producer():
+	if not _owns_a_producer():
+		return false
+	var read: Dictionary = _defence_demand()
+	if read.is_empty():
 		return false
 	var ftype: Variant = _defence_structure_to_build()
 	if ftype == null:
 		return false
+	if float(read["demand"]) * defence_propensity < float(_energy_cost(ftype)):
+		return false
+	_demanded_anchor = read["anchor"]
 	var fspot: Variant = _find_build_spot(ftype)
 	if fspot is StringName:
 		return true  # still searching; the rest of the ladder waits for the answer
@@ -444,6 +481,31 @@ func _tech_rung(a_builder: Commandable) -> bool:
 	if tspot is StringName:
 		return true
 	return tspot is Vector3 and _issue_build(a_builder, ttype, tspot)
+
+
+## THE ECONOMY'S SAVINGS PROPOSAL: the better of the tech structure it wants and a production
+## structure it owns none of, each valued at the best unit it would unlock — whether or not it
+## is affordable, since saving is for what is not. A second barracks is never proposed: more of
+## what the bot can already train is throughput, not something worth holding the bank for.
+## Also decides whether the claim holds: never while the base is under threat.
+func _propose_savings() -> void:
+	_bot.savings.held = not _bot.is_base_under_threat(defend_threat_radius)
+	var best: Dictionary = _best_tech(false)
+	var demand: Dictionary = _bot.enemy_demand_map()
+	var buildable: Array = _bot.buildable_production_structure_types()
+	var capped: bool = (
+		production_structure_cap >= 0
+		and _owned_production_structure_count(buildable) >= production_structure_cap
+	)
+	var under_way: Array[StringName] = _types_under_way()
+	for t: StringName in buildable:
+		if capped or under_way.has(t) or not _bot.get_structures_of_type(t).is_empty():
+			continue
+		var value: float = _bot.best_producible_value(t, demand)
+		if best.is_empty() or value > best["value"]:
+			best = {"type": t, "value": value}
+	var type: StringName = best.get("type", &"")
+	_bot.savings.propose(&"economy", type, best.get("value", 0.0), _energy_cost(type))
 
 
 ## Which production structure to build now: an affordable buildable production type,
@@ -492,9 +554,18 @@ func _production_structure_to_build() -> Variant:
 ## buildings), and synergy between pieces (a unit worth having only beside another). Both are
 ## the Relation model's to express (gdd/systems/ai/squads-and-relations.md), not a ratio's.
 func _tech_structure_to_build() -> Variant:
+	var best: Dictionary = _best_tech(true)
+	_act.usage.record_choice("tech_structure", _tech_candidates_scored(), best.get("type", &""))
+	return best.get("type")
+
+
+## The tech structure _tech_structure_to_build would pick, as {"type", "value"} — `value` the
+## composition value of the best unit it unlocks — or {} for none. `a_affordable` false asks
+## what is WANTED, which is what the savings goal is made of.
+func _best_tech(a_affordable: bool) -> Dictionary:
 	var demand: Dictionary = _bot.enemy_demand_map()
 	if demand.is_empty():
-		return null
+		return {}
 	var owned_producible: Array = _owned_producible_types()
 	var trainable_best: float = 0.0
 	for t: StringName in owned_producible:
@@ -503,10 +574,11 @@ func _tech_structure_to_build() -> Variant:
 	var under_way: Array[StringName] = _types_under_way()
 	var best_type: Variant = null
 	var best_gain: float = 0.0
+	var best_value: float = 0.0
 	for ttype: StringName in _bot.buildable_structure_types():
 		if not _bot.get_structures_of_type(ttype).is_empty() or under_way.has(ttype):
 			continue
-		if not can_afford_above_reserve(ttype):
+		if a_affordable and not can_afford_above_reserve(ttype):
 			continue
 		var unlocked_best: float = 0.0
 		for t: StringName in owned_producible:
@@ -526,10 +598,8 @@ func _tech_structure_to_build() -> Variant:
 		):
 			best_gain = gain
 			best_type = ttype
-	_act.usage.record_choice(
-		"tech_structure", _tech_candidates_scored(), best_type if best_type != null else &""
-	)
-	return best_type
+			best_value = unlocked_best
+	return {"type": best_type, "value": best_value} if best_type != null else {}
 
 
 ## Every type some OWNED producer can train, locked or not — the units a tech structure could
@@ -587,7 +657,9 @@ func _defence_structure_to_build() -> Variant:
 	var demand: Dictionary = _bot.enemy_demand_map()
 	var unit_demand: Dictionary = {}
 	for etype: Variant in demand:
-		if not (demand[etype]["rep"] as Node).is_in_group("structure"):
+		var rep: Node = demand[etype]["rep"]
+		# A null rep is an extinct type: no stat carrier, so it adds no value either way.
+		if rep != null and not rep.is_in_group("structure"):
 			unit_demand[etype] = demand[etype]
 	if unit_demand.is_empty():
 		unit_demand = _mirror_demand()
@@ -607,6 +679,88 @@ func _defence_structure_to_build() -> Variant:
 	return candidates[0]
 
 
+## THE STATIC-DEFENCE DEMAND (world-model.md §L3, decided 2026-10-06): per own region, the
+## VALUE standing there × how VULNERABLE it is, in energy. A static defence is placed lethality
+## — an investment in one region that cannot be moved — so the decision to build one comes
+## from this read exceeding the turret's cost, never from a count.
+##
+## A region is the ground within DEFENCE_REGION_RADIUS of an own built structure. Its value is
+## the cost of the structures standing in it. Its vulnerability is the lattice's, in the
+## region's own terms: own influence is the cost of the bot's armed units and armed structures
+## there, enemy influence the cost of the believed enemy units and armed structures there,
+## and vulnerability is `tension − |own − enemy|` over the tension — 1 where the two sides are
+## even, 0 where one side has it, 0 where nobody is. A region nobody contests wants no turret,
+## which is what stops the opening tower clump; a region the army is holding against a raid
+## wants one. A turret built there adds to own influence, so the demand REMAINING after it is
+## what a second one must clear. Returns {"anchor": Vector2, "demand": float} for the region
+## asking the most, or {} with no structure standing. Fog-honest: the enemy side is beliefs.
+##
+## TODO: the lattice replaces the discs — a region becomes its cells, influence is weapon
+## reach rather than presence, and placement maximises reach coverage over the region's
+## approach rather than the frontage bearing.
+func _defence_demand() -> Dictionary:
+	var best: Dictionary = {}
+	for region: Dictionary in defence_demand_by_region():
+		if float(region["demand"]) > float(best.get("demand", 0.0)):
+			best = {"anchor": VU.in_xz(region["centre"]), "demand": region["demand"]}
+	return best
+
+
+## Every region's terms in the static-defence demand (_defence_demand), one per own built
+## structure that anything contests: [{"centre": Vector3, "value", "own", "enemy", "demand"}],
+## in energy. A region with no tension is left out — it wants nothing.
+func defence_demand_by_region() -> Array:
+	var standing: Array = _bot.get_structures().filter(
+		func(s: Commandable) -> bool: return s.is_built
+	)
+	if standing.is_empty():
+		return []
+	var own_armed: Array = _bot.get_units().filter(
+		func(u: Commandable) -> bool: return _bot.unit_can_attack(u.id)
+	)
+	own_armed.append_array(
+		standing.filter(func(s: Commandable) -> bool: return _bot.unit_can_attack(s.id))
+	)
+	var enemies: Array = _bot.believed_armed_enemies()  # [{"position": Vector3, "type": ...}]
+	var regions: Array = []
+	for structure: Commandable in standing:
+		var centre: Vector3 = structure.global_position
+		var value: float = _cost_within(standing, centre)
+		var own: float = _cost_within(own_armed, centre)
+		var enemy: float = 0.0
+		for belief: Dictionary in enemies:
+			if _within_region(belief["position"], centre):
+				enemy += float(_bot.unit_cost(belief["type"]))
+		var tension: float = own + enemy
+		if tension <= 0.0:
+			continue
+		(
+			regions
+			. append(
+				{
+					"centre": centre,
+					"value": value,
+					"own": own,
+					"enemy": enemy,
+					"demand": value * (tension - absf(own - enemy)) / tension,
+				}
+			)
+		)
+	return regions
+
+
+func _cost_within(a_pieces: Array, a_centre: Vector3) -> float:
+	var total: float = 0.0
+	for piece: Commandable in a_pieces:
+		if _within_region(piece.global_position, a_centre):
+			total += float(_bot.unit_cost(piece.id))
+	return total
+
+
+static func _within_region(a_point: Vector3, a_centre: Vector3) -> bool:
+	return VU.in_xz(a_point).distance_to(VU.in_xz(a_centre)) <= DEFENCE_REGION_RADIUS
+
+
 ## The bot's own live combat units as a stand-in enemy army, in the demand map's shape:
 ## one unit of importance per unit fielded, a live instance of each type as its rep.
 func _mirror_demand() -> Dictionary:
@@ -619,15 +773,6 @@ func _mirror_demand() -> Dictionary:
 		else:
 			mirror[unit.id] = {"demand": 1.0, "rep": unit}
 	return mirror
-
-
-## Standing static defences plus the ones going up — committed, like production capacity.
-func _owned_defence_structure_count() -> int:
-	var count: int = 0
-	var under_way: Array[StringName] = _types_under_way()
-	for t in _bot.buildable_defence_structure_types():
-		count += _bot.get_structures_of_type(t).size() + under_way.count(t)
-	return count
 
 
 ## Whether a production structure stands or is going up: the thing a static defence is for.
@@ -695,17 +840,28 @@ func effective_income_target() -> int:
 ## prior is there to stop the bot ATTACKING on a phantom lead, and applying it here would
 ## instead stop it ever expanding on a map it has not scouted.
 func safety() -> float:
-	if _bot.is_base_under_threat(defend_threat_radius):
+	var terms: Dictionary = safety_terms()
+	if terms["under_attack"]:
 		return 0.0
-	var out: float = 1.0
+	return clampf(float(terms["outgunned"]) * float(terms["bleeding"]), 0.0, 1.0)
+
+
+## safety()'s three terms, each read separately: whether the base is under attack (a), and the
+## factors (b) and (c) contribute, each 1.0 when it does not bend safety at all.
+func safety_terms() -> Dictionary:
 	var own: float = _bot.army_resource_value()
 	var believed: float = _bot.believed_enemy_army_value()
 	var total: float = own + believed
-	if total > 0.0:
-		out *= 1.0 - believed / total
-	if _momentum != null:
-		out *= 1.0 - clampf(_momentum.loss_rate() / BotMomentum.LOSING_LOSS_RATE, 0.0, 1.0)
-	return clampf(out, 0.0, 1.0)
+	return {
+		"under_attack": _bot.is_base_under_threat(defend_threat_radius),
+		"outgunned": 1.0 - believed / total if total > 0.0 else 1.0,
+		"bleeding":
+		(
+			1.0 - clampf(_momentum.loss_rate() / BotMomentum.LOSING_LOSS_RATE, 0.0, 1.0)
+			if _momentum != null
+			else 1.0
+		),
+	}
 
 
 ## How many income structures the bot owns, counting the buildable income types and
@@ -713,10 +869,14 @@ func safety() -> float:
 ## committed to, so a target that ignored it would authorise one build per think until the
 ## first one finished. Mirrors _owned_production_structure_count, and is deliberately not
 ## Bot.extractor_count(), which counts only FINISHED extractors (it is an income index).
+## The doc above was true of the intent and not of the code until 2026-10-07: ordered-but-
+## unplaced extractors were not counted, so with three build slots the income rung sent a
+## second and third builder to the same site on consecutive thinks (observed on `main`).
 func _owned_income_structure_count() -> int:
 	var count: int = 0
+	var under_way: Array[StringName] = _types_under_way()
 	for t in _bot.buildable_income_structure_types():
-		count += _bot.get_structures_of_type(t).size()
+		count += _bot.get_structures_of_type(t).size() + under_way.count(t)
 	return count
 
 
@@ -947,8 +1107,14 @@ func _energy_cost(a_type) -> int:
 ## capacity here, and unit training in BotProduction. The income, infrastructure and
 ## dominion rungs are deliberately EXEMPT: those are the purchases the bank exists to keep
 ## affordable, so a floor that blocked them would bank for nothing.
+##
+## The savings goal's price (BotSavings.claim_against) sits on top of the reserve, for anything
+## that is not the goal itself.
 func can_afford_above_reserve(a_type) -> bool:
-	return _bot.can_afford(a_type) and _bot.energy - _energy_cost(a_type) >= reserve
+	return (
+		_bot.can_afford(a_type)
+		and _bot.energy - _energy_cost(a_type) >= reserve + _bot.savings.claim_against(a_type)
+	)
 
 
 ## Are we earning faster than we spend? Simple proxy (overridable seam for
@@ -998,6 +1164,52 @@ func _release_stalled_construction() -> void:
 			_job_started.erase(key)
 
 
+## Call back every builder walking to a site that is contested NOW, before it arrives there.
+## The claim is released with the order, so the army may have the unit back; the spot is
+## remembered as contested so the next think does not send it straight back.
+func _abort_contested_jobs() -> void:
+	for u: Commandable in _bot.get_units():
+		if not _is_constructing(u) or not (u.current_command() is Build):
+			continue
+		var target: Variant = _construction_target(u)
+		if not (target is Vector3) or not _site_is_contested(target):
+			continue
+		_mark_contested(target)
+		u.update_commands(null)
+		claims.release(u, CLAIM_OWNER)
+		_job_started.erase(u.get_instance_id())
+
+
+## Whether an ARMED enemy this bot can see stands within defend_threat_radius of `a_site`.
+## Fog-limited like every threat sense: a defender the bot has not seen is one it walks into.
+func _site_is_contested(a_site: Vector3) -> bool:
+	return _bot.visible_enemies_near(a_site, defend_threat_radius).any(
+		func(enemy: Commandable) -> bool: return _bot.unit_can_attack(enemy.id)
+	)
+
+
+func _mark_contested(a_site: Vector3) -> void:
+	_contested_spots.append(
+		{"position": a_site, "until": _bot.seconds_elapsed() + CONTESTED_SPOT_SECONDS}
+	)
+
+
+## Whether `a_world` is within CONTESTED_SPOT_RADIUS of a spot contested within the cooldown,
+## or is contested right now. Expired entries are dropped as they are met. Consulted by every
+## rung's spot choice, like the abandoned list: contested is a property of the place.
+func _is_contested_spot(a_world: Vector3) -> bool:
+	var now: float = _bot.seconds_elapsed()
+	_contested_spots = _contested_spots.filter(
+		func(entry: Dictionary) -> bool: return float(entry["until"]) > now
+	)
+	if _contested_spots.any(
+		func(entry: Dictionary) -> bool:
+			return (entry["position"] as Vector3).distance_to(a_world) <= CONTESTED_SPOT_RADIUS
+	):
+		return true
+	return _site_is_contested(a_world)
+
+
 ## Where `unit`'s current construction order was aimed, or null when it has none.
 func _construction_target(a_unit: Commandable) -> Variant:
 	if not a_unit.has_command():
@@ -1014,6 +1226,17 @@ func _is_abandoned_spot(a_world: Vector3) -> bool:
 		if spot.distance_to(a_world) <= ABANDONED_SPOT_RADIUS:
 			return true
 	return false
+
+
+## The spots the economy is keeping builders away from, for the debug overlay: written off
+## (Vector3s), contested ([{"position", "until"}], expired ones included until next consulted),
+## and aimed at by an in-flight job (Vector3s).
+func debug_spots() -> Dictionary:
+	return {
+		"abandoned": _abandoned_spots.duplicate(),
+		"contested": _contested_spots.duplicate(),
+		"claimed": _claimed_spots(),
+	}
 
 
 ## Where every in-flight construction job is aimed. A job that has not PLACED its structure
@@ -1199,7 +1422,7 @@ func _pond_spot_in(a_body: WaterBody, a_dims: Vector2i) -> Variant:
 		var world: Vector3 = _bot.map.grid_to_world(cell)
 		if not _bot.has_explored(world):
 			continue
-		if _is_abandoned_spot(world) or _is_claimed_spot(world):
+		if _is_abandoned_spot(world) or _is_claimed_spot(world) or _is_contested_spot(world):
 			continue
 		if EnergyExtractor.fits_in_pond(
 			CommandMessage.new(_bot.map, null, null, world), a_dims, true, true
@@ -1229,6 +1452,10 @@ func _nearest_unclaimed_site() -> Entity:
 			continue
 		if _is_abandoned_spot(dep.global_position):
 			continue  # a site the builder could not finish a job on — see _abandoned_spots
+		if _is_claimed_spot(dep.global_position):
+			continue  # a builder is already on its way to it
+		if _is_contested_spot(dep.global_position):
+			continue  # an enemy stands over it; see CONTESTED_SPOT_SECONDS
 		var d: float = base.distance_squared_to(dep.global_position)
 		if d < best_d:
 			best_d = d
@@ -1365,13 +1592,21 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 	}
 
 
-## WHERE A STATIC DEFENCE IS ANCHORED: on the thing the enemy comes for, not on the middle of
-## the base. Under HEGEMONY that is a command centre (the frontmost, when there are several);
-## otherwise the structure the enemy reaches first along the threat axis. Measured before this:
+## The region the demand read last asked a turret for (XZ), or null before it has asked:
+## what _defence_anchor answers while a demanded build is being placed.
+var _demanded_anchor: Variant = null
+
+
+## WHERE A STATIC DEFENCE IS ANCHORED: on the region whose demand asked for it (_defence_demand),
+## else on the thing the enemy comes for, not on the middle of the base. Under HEGEMONY that
+## is a command centre (the frontmost, when there are several); otherwise the structure the
+## enemy reaches first along the threat axis. Measured before this:
 ## two Watch Towers ranked from the base centroid stood through a whole rush that walked past
 ## them to the command centre and ended the match. The frontage bearing then puts the turret
 ## on the anchor's threat side, and compactness keeps it within its own reach of it.
 func _defence_anchor() -> Vector2:
+	if _demanded_anchor is Vector2:
+		return _demanded_anchor
 	var origin: Vector2 = VU.in_xz(_bot.base_centroid())
 	var toward: Vector2 = _bot.threat_direction(origin)
 	var guarded: Commandable = null
@@ -1678,6 +1913,8 @@ func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bo
 	if _is_abandoned_spot(a_world):
 		return false
 	if _is_claimed_spot(a_world):
+		return false
+	if _is_contested_spot(a_world):
 		return false
 	var footprint: Array = _bot.map.footprint_cells(VU.in_xz(a_world), a_dims)
 	var grid: TerrainGrid = _bot.map.terrain_grid

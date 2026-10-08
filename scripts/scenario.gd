@@ -90,6 +90,10 @@ var _player_has_had_base: bool = false
 ## the verdict off this and Scenario.is_eliminated.
 signal commander_eliminated(a_commander_id: int)
 
+## The match's event log: every summary and statistic of this match reads it, never the game.
+## Null in the editor.
+var match_log: MatchLog = null
+
 ## Per commander id: whether it has placed a command centre yet, which is what ARMS the
 ## HEGEMONY rule for it — before the drop lands every commander owns no centre, and that is
 ## the opening, not a defeat. Never cleared.
@@ -139,9 +143,10 @@ func _ready() -> void:
 	# the tree) so the brain attaches to a live bot.
 	for slot: PlayerSlot in player_slots:
 		if slot.commander is Bot:
-			_attach_brain(
-				slot.commander as Bot, slot.difficulty, slot.is_bot, _personality_config(slot)
-			)
+			var bot: Bot = slot.commander as Bot
+			bot.consider_structures = slot.consider_structures
+			bot.consider_units = slot.consider_units
+			_attach_brain(bot, slot.difficulty, slot.is_bot, _personality_config(slot))
 
 	# Create a Fog node for each bot commander so it tracks its own exploration.
 	# The human player already has a Fog in player.tscn (watching_commander_id = -1).
@@ -174,6 +179,9 @@ func _ready() -> void:
 	# dynamically-spawned entities default to commander_id 0, so spawning earlier
 	# would let that loop reset them to the neutral commander. Map.add_entities sets
 	# their owner directly, and being placed after the loop keeps it.
+	# The event log starts before the opening force spawns, so nothing the match does is missed.
+	_create_match_log()
+
 	_spawn_initial_entities()
 
 	# HEGEMONY: every player is shown every shelter for the opening seconds.
@@ -192,8 +200,8 @@ func _ready() -> void:
 	# has no RTSController but can still be running a scripted sequence.
 	_create_scenario_hud(event_manager)
 
-	# In-world debug visualisation of the active bot's internals (scout coverage, …),
-	# gated on hold-Spacebar + the bot-view toggle. See BotDebugOverlay.
+	# In-world debug visualisation of the active bot's internals, one category at a time,
+	# gated on the debug view + the bot-view toggle. See BotDebugOverlay.
 	_create_bot_debug_overlay()
 
 	if Engine.is_editor_hint():
@@ -297,11 +305,33 @@ func _check_hegemony() -> void:
 			commander_eliminated.emit(c.id)
 	var player: Commander = local_player()
 	if player == null:
-		return  # spectator session: the harness adjudicates
+		_check_last_standing()
+		return
 	if player.is_eliminated:
 		_on_game_over(false)
 	elif _hegemony_armed.get(player.id, false) and _rivals() > 0 and _rivals_standing() == 0:
 		_on_game_over(true)
+
+
+## A spectator session's HEGEMONY end: once two or more commanders have deployed and only one
+## is left standing, the match is over and it is the winner. Ending it records the verdict
+## and shows the summary; it stops nothing, and the self-play harness still adjudicates.
+func _check_last_standing() -> void:
+	if _hegemony_armed.size() < 2:
+		return
+	var standing: Array = _standing_commanders()
+	if standing.size() == 1:
+		end_match((standing[0] as Commander).id)
+
+
+## Non-neutral commanders not yet eliminated.
+func _standing_commanders() -> Array:
+	return commanders.filter(
+		func(c: Variant) -> bool:
+			return (
+				c is Commander and (c as Commander).id != 0 and not (c as Commander).is_eliminated
+			)
+	)
 
 
 ## Non-neutral commanders other than the local player.
@@ -388,6 +418,10 @@ func seed_simulation() -> void:
 ## has no WorldEnvironment. See gdd/systems/ux/aesthetics/lighting.md.
 ## The scenario HUD's pause menu; authored layout, instanced in _create_scenario_hud.
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/menu/pause_menu.tscn")
+const MATCH_SUMMARY_SCENE: PackedScene = preload("res://scenes/interface/match_summary.tscn")
+## The end-of-match summary's canvas layer: above ScenarioDialogView's 10, below the pause
+## menu's 20, so the way out of the scenario stays on top of it.
+const MATCH_SUMMARY_LAYER: int = 15
 ## The scenario HUD's elapsed-time readout; authored layout, instanced in _create_scenario_hud.
 const SCENARIO_TIMER_SCENE: PackedScene = preload("res://scenes/interface/scenario_timer.tscn")
 const DEFAULT_LIGHTING_SCENE: String = "res://scenes/environment/default_lighting.tscn"
@@ -588,7 +622,8 @@ func _setup_spectator_camera() -> void:
 
 
 ## Build a CanvasLayer HUD that shows one resource panel per non-neutral
-## commander, plus a fog-toggle row so the spectator can switch perspectives.
+## commander, plus a fog-toggle row so the spectator can switch perspectives and a picker
+## for which category of the viewed bot's signals the debug overlay draws.
 ## Called only in spectator mode (no human rig).
 func _setup_spectator_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -624,6 +659,15 @@ func _setup_spectator_hud() -> void:
 	_wire_spectator_fog_buttons(fog_row)
 	_refresh_spectator_fog_buttons(fog_row)
 
+	# ── Bot debug overlay category (shown only while the debug view is up) ──
+	var category_bar := BotDebugCategoryBar.new()
+	category_bar.name = "BotDebugCategoryBar"
+	vbox.add_child(category_bar)
+	# ── Debug view fog: lifted, or as the viewed bot sees it (also only while the view is up) ──
+	var debug_fog_row := DebugFogRow.new()
+	debug_fog_row.name = "DebugFogRow"
+	vbox.add_child(debug_fog_row)
+
 	vbox.add_child(HSeparator.new())
 
 	# ── Per-commander resource labels ──
@@ -635,7 +679,12 @@ func _setup_spectator_hud() -> void:
 		label.custom_minimum_size = Vector2(260.0, 85.0)
 		vbox.add_child(label)
 		_refresh_spectator_label(label, commander)
-		commander.resources_changed.connect(_refresh_spectator_label.bind(label, commander))
+		var refresh: Callable = _refresh_spectator_label.bind(label, commander)
+		commander.resources_changed.connect(refresh)
+		# The connection's object is this Scenario, not the label, so Godot does not drop it
+		# when the label is freed — and a commander outlives its HUD (a harness frees the HUD;
+		# a structure withdraws infrastructure on PREDELETE), so cut it as the label leaves.
+		label.tree_exiting.connect(_disconnect_spectator_label.bind(commander, refresh))
 
 
 func _wire_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
@@ -670,6 +719,15 @@ func _refresh_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
 			btn.disabled = (active_id == commander.id)
 
 
+## Untyped commander: it may already be freed by the time its label leaves the tree.
+func _disconnect_spectator_label(a_commander: Variant, a_refresh: Callable) -> void:
+	if not is_instance_valid(a_commander):
+		return
+	var commander: Commander = a_commander
+	if commander.resources_changed.is_connected(a_refresh):
+		commander.resources_changed.disconnect(a_refresh)
+
+
 ## Repaint one commander's spectator resource panel.
 func _refresh_spectator_label(a_label: RichTextLabel, a_commander: Commander) -> void:
 	a_label.text = (
@@ -698,6 +756,11 @@ func _create_bot_fogs() -> void:
 	for commander: Commander in commanders:
 		if commander.id == 0 or commander.has_node("Fog"):
 			continue
+		# An omniscient slot (a decision simulation's) gets no Fog at all: Entity.is_visible_to
+		# and Commander.has_vision_at answer true for a commander with none, which is the one
+		# honest way to hand a bot the whole arena without touching the perception code.
+		if _is_omniscient(commander):
+			continue
 		# No mesh/material: fog is drawn by the terrain shader now (fog.gd hides its own plane),
 		# so a bot's Fog node exists only to track that commander's exploration state.
 		var fog: Fog = Fog.new()
@@ -705,6 +768,14 @@ func _create_bot_fogs() -> void:
 		fog.name = "Fog"
 		commander.add_child(fog)
 		fog.set_owner(self)
+
+
+## Whether `a_commander`'s slot asked for no fog (PlayerSlot.omniscient, a simulation lever).
+func _is_omniscient(a_commander: Commander) -> bool:
+	for slot: PlayerSlot in player_slots:
+		if slot != null and slot.commander == a_commander:
+			return slot.omniscient
+	return false
 
 
 ## The scenario's event host. Both commander sanctions and scripted triggers run
@@ -765,6 +836,17 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	var pause_menu: PauseMenu = PAUSE_MENU_SCENE.instantiate()
 	add_child(pause_menu)
 	pause_menu.bind(a_event_manager)
+	pause_menu.bind_match_log(match_log)
+
+
+## Start the match's event log (MatchLog). Not in the editor, which plays no match.
+func _create_match_log() -> void:
+	if Engine.is_editor_hint():
+		return
+	match_log = MatchLog.new()
+	match_log.name = "MatchLog"
+	add_child(match_log)
+	match_log.begin(self)
 
 
 ## The node that receives the debug toggle, and the session's debug permission with it. First
@@ -867,7 +949,49 @@ func _on_game_over(a_won: bool) -> void:
 		return
 	_game_over_seen = true
 	print("[Scenario] Game over — player %s" % ("wins" if a_won else "loses"))
-	# TODO: show a win/lose screen and pause, or return to the menu. gdd/tasks.md T-080.
+	var player: Commander = local_player()
+	if a_won:
+		end_match(player.id if player != null else -1)
+	else:
+		var rivals: Array = _standing_commanders().filter(
+			func(c: Variant) -> bool: return c != player
+		)
+		end_match((rivals[0] as Commander).id if rivals.size() == 1 else -1)
+	# TODO: the rest of a win/lose screen — pausing, a way back to the menu. gdd/tasks.md T-080.
+
+
+## End the match with `a_winner_id` the winner, or -1 for none: the event log records it and
+## the summary is shown, whether or not the debug view is up. Once; a later call is ignored.
+func end_match(a_winner_id: int) -> void:
+	if match_log == null or match_log.is_ended():
+		return
+	match_log.end(a_winner_id)
+	_show_match_summary(_match_summary_title(a_winner_id))
+
+
+## The heading of the end-of-match summary: the verdict as the local player hears it, or the
+## winner's name in a spectator session.
+func _match_summary_title(a_winner_id: int) -> String:
+	var player: Commander = local_player()
+	if player != null:
+		return "Victory" if a_winner_id == player.id else "Defeat"
+	return "Commander %d wins" % a_winner_id if a_winner_id > 0 else "Match over"
+
+
+func _show_match_summary(a_title: String) -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "MatchSummaryLayer"
+	layer.layer = MATCH_SUMMARY_LAYER
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(centre)
+	var view: MatchSummaryView = MATCH_SUMMARY_SCENE.instantiate()
+	view.is_closable = true
+	centre.add_child(view)
+	add_child(layer)
+	view.present(match_log, a_title)
+	view.closed.connect(layer.queue_free)
 
 
 ## Called when every PRIMARY trigger has fired — the scenario's declared work is finished, so

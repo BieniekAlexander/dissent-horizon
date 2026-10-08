@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/interface/hud/debug_panel.gd" id="1_panel"]
+[ext_resource type="Script" path="res://scripts/interface/hud/debug_fog_row.gd" id="2_fog"]
 
 [node name="DebugPanel" type="PanelContainer" groups=["selection_blocking_ui"]]
 custom_minimum_size = Vector2(352, 0)
@@ -58,6 +59,10 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
+
+[node name="FogRow" type="HBoxContainer" parent="Margin/Column/Body"]
+layout_mode = 2
+script = ExtResource("2_fog")
 
 [node name="BotsTitle" type="Label" parent="Margin/Column/Body"]
 layout_mode = 2

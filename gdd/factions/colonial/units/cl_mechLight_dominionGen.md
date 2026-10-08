@@ -30,6 +30,7 @@ garrison:
   movements: [GROUNDED]
   releasable: true
   bunker: false
+  captures: true
   pieces: [cl_bioLight_builder]
 ui:
   grid: [1, 1]

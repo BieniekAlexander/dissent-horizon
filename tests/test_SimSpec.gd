@@ -452,4 +452,138 @@ func test_an_order_naming_two_commands_is_refused() -> void:
 	)
 	assert_true(_has_error(SimSpec.parse(text, "f"), "single { command: argument }"))
 
+
+#endregion
+
+
+#region Decision-sim grammar (gdd/systems/ai/decision-sims.md)
+## The valid fixture's slot A, with its `settings` block replaced by `a_settings` (lines
+## indented under `settings:`).
+func _with_a_settings(a_settings: String) -> String:
+	return _valid().replace("    settings:\n      difficulty: MEDIUM", a_settings)
+
+
+func test_a_thinking_slot_reads_its_levers() -> void:
+	var spec: SimSpec = (
+		SimSpec
+		. parse(
+			_with_a_settings(
+				(
+					"\n"
+					. join(
+						[
+							"    settings:",
+							"      difficulty: HARD",
+							"      vision: full",
+							"      energy: 1500",
+							"      dominion: 20",
+							"      config: { build_concurrency: 1 }",
+							"      consider: { structures: [cl_bioLight_antiLight], units: [an_bioLight_builder] }",
+						]
+					)
+				)
+			),
+			"f"
+		)
+	)
+	assert_eq(spec.errors, [] as Array[String])
+	var a: SimSpec.CommanderSettings = spec.commanders["A"]
+	assert_true(a.vision_full)
+	assert_eq(a.energy, 1500)
+	assert_eq(a.dominion, 20)
+	assert_eq(a.config, {"build_concurrency": 1})
+	assert_eq(a.consider_structures, [&"cl_bioLight_antiLight"] as Array[StringName])
+	assert_eq(a.consider_units, [&"an_bioLight_builder"] as Array[StringName])
+
+
+func test_a_lever_on_an_inert_slot_is_refused() -> void:
+	var text: String = _with_a_settings("    settings:\n      vision: full")
+	assert_true(_has_error(SimSpec.parse(text, "f"), "PASSIVE (inert) slot"))
+
+
+func test_a_config_key_that_names_no_field_is_refused() -> void:
+	var text: String = _with_a_settings(
+		"    settings:\n      difficulty: HARD\n      config: { no_such_field: 1 }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "no field"))
+
+
+func test_consider_refuses_an_unknown_piece() -> void:
+	var text: String = _with_a_settings(
+		"    settings:\n      difficulty: HARD\n      consider: { units: [nobody] }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "unknown piece 'nobody'"))
+
+
+func test_an_unknown_setting_is_refused() -> void:
+	var text: String = _with_a_settings("    settings:\n      difficulty: HARD\n      fog: off")
+	assert_true(_has_error(SimSpec.parse(text, "f"), "is not a setting"))
+
+
+func test_a_bot_state_check_names_a_thinking_slot() -> void:
+	var text: String = _valid().replace(
+		"  - { of: B.army, check: dead }", "  - { slot: A, check: posture, is: ATTACK }"
+	)
+	var spec: SimSpec = SimSpec.parse(text, "f")
+	assert_eq(spec.errors, [] as Array[String])
+	var leaf: SimSpec.Check = spec.expect_root.leaves()[0]
+	assert_eq(leaf.slot, "A")
+	assert_eq(leaf.name, "posture")
+
+
+func test_a_bot_state_check_on_an_inert_slot_is_refused() -> void:
+	var text: String = _valid().replace(
+		"  - { of: B.army, check: dead }", "  - { slot: B, check: posture, is: ATTACK }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "PASSIVE (inert) and decides nothing"))
+
+
+func test_a_bot_state_check_without_a_slot_is_refused() -> void:
+	var text: String = _valid().replace(
+		"  - { of: B.army, check: dead }", "  - { check: ordered, kind: build }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "names no `slot`"))
+
+
+func test_an_unknown_posture_is_refused() -> void:
+	var text: String = _valid().replace(
+		"  - { of: B.army, check: dead }", "  - { slot: A, check: posture, is: SULK }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "`is` must be one of"))
+
+
+func test_command_reads_its_target_and_near_arguments() -> void:
+	var text: String = (
+		_valid()
+		. replace(
+			"  - { of: B.army, check: dead }",
+			"  - { of: A.army, check: command, is: MoveCommand, target: B.army, near: B.army, within: 4 }"
+		)
+	)
+	var spec: SimSpec = SimSpec.parse(text, "f")
+	assert_eq(spec.errors, [] as Array[String])
+	var leaf: SimSpec.Check = spec.expect_root.leaves()[0]
+	assert_eq(leaf.arguments["target"], "B.army")
+	assert_eq(leaf.arguments["within"], 4)
+
+
+func test_command_near_without_within_is_refused() -> void:
+	var text: String = _valid().replace(
+		"  - { of: B.army, check: dead }",
+		"  - { of: A.army, check: command, is: MoveCommand, near: B.army }"
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "needs `within`"))
+
+
+func test_needs_is_read_and_an_unknown_top_level_key_is_refused() -> void:
+	var spec: SimSpec = SimSpec.parse("needs: fields\n" + _valid(), "f")
+	assert_eq(spec.needs, "fields")
+	assert_true(_has_error(SimSpec.parse("whatever: 1\n" + _valid(), "f"), "not a spec key"))
+
+
+func test_a_spec_filed_under_bot_needs_a_thinking_slot() -> void:
+	var inert: String = _valid().replace("      difficulty: MEDIUM", "      difficulty: PASSIVE")
+	assert_true(_has_error(SimSpec.parse(inert, "bot/targeting/x"), "needs a thinking slot"))
+	assert_true(SimSpec.parse(inert, "x").is_valid(), "a duel at the root may be all inert")
+
 #endregion

@@ -50,3 +50,24 @@ func test_the_summary_is_plain_data_and_a_copy() -> void:
 	assert_ne(JSON.stringify(summary), "", "serialises")
 	summary["actions"]["train"]["recruit"][BotUsageLog.OUTCOME_ISSUED] = 99
 	assert_eq(log.actions()["train"]["recruit"][BotUsageLog.OUTCOME_ISSUED], 1)
+
+
+func test_the_latest_choices_keep_the_winner_and_its_runner_up() -> void:
+	var log := BotUsageLog.new()
+	log.record_choice("train", {&"recruit": 0.4, &"tank": 0.9, &"drone": 0.6}, &"tank")
+	var recent: Array[Dictionary] = log.recent_choices()
+	assert_eq(recent.size(), 1)
+	assert_eq(recent[0]["chosen"], "tank")
+	assert_almost_eq(recent[0]["chosen_score"], 0.9, 1e-5)
+	assert_eq(recent[0]["runner_up"], "drone")
+	assert_almost_eq(recent[0]["runner_up_score"], 0.6, 1e-5)
+
+
+func test_only_the_latest_choices_are_kept() -> void:
+	var log := BotUsageLog.new()
+	for i: int in BotUsageLog.RECENT_CHOICE_COUNT + 3:
+		log.record_choice("train", {&"only": float(i)}, &"only")
+	var recent: Array[Dictionary] = log.recent_choices()
+	assert_eq(recent.size(), BotUsageLog.RECENT_CHOICE_COUNT)
+	assert_almost_eq(recent[-1]["chosen_score"], float(BotUsageLog.RECENT_CHOICE_COUNT + 2), 1e-5)
+	assert_eq(recent[-1]["runner_up"], "", "a lone candidate has no runner-up")

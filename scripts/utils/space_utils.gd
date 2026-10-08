@@ -6,6 +6,9 @@ class_name SU
 #region Properties
 static var rng = RandomNumberGenerator.new()
 
+## How far (in XZ world units) a candidate point may drift from the navmesh
+## closest-point snap before it is considered off-navmesh.  Half a cell width
+## (CELL_SIZE = 1.0) keeps points well inside valid navmesh quads.
 const _NAV_SNAP_TOLERANCE: float = 0.5
 #endregion
 
@@ -43,12 +46,12 @@ static func query_shape_for_entities(
 
 
 static func get_nearby_entities(
-	world_3d: World3D, position: Vector3, radius: float, collision_mask: int
+	world_3d: World3D, position: Vector3, radius: float, collision_mask: int, max_results: int
 ) -> Array:
 	var shape := SphereShape3D.new()
 	shape.radius = radius
 	return query_shape_for_entities(
-		world_3d, shape, Transform3D(Basis(), position), collision_mask, [], 10
+		world_3d, shape, Transform3D(Basis(), position), collision_mask, [], max_results
 	)
 
 
@@ -457,9 +460,6 @@ static func _edge_adjacent_to_any(cell: Vector2i, footprint: Array) -> bool:
 	return false
 
 
-## How far (in XZ world units) a candidate point may drift from the navmesh
-## closest-point snap before it is considered off-navmesh.  Half a cell width
-## (CELL_SIZE = 1.0) keeps points well inside valid navmesh quads.
 ## Scatter up to `max_points` distinct XZ points around `center`, each on the
 ## navmesh and clear of `collision_mask` bodies.
 ##
@@ -470,6 +470,11 @@ static func _edge_adjacent_to_any(cell: Vector2i, footprint: Array) -> bool:
 ## bodies packs each according to its real footprint rather than inheriting one
 ## shared (often oversized) radius. `point_radius` remains the fallback for any
 ## index beyond `point_radii`'s length.
+##
+## The scatter grows outward from points it has already placed, so it needs one free
+## seed. When `center` itself is taken — the usual case for a spawn anchored on a
+## structure, whose footprint has no navmesh — the seed is the first free point on
+## rings walked outward from it (see _seed_off_center).
 static func get_nonoverlapping_points(
 	map: Map,
 	center: Vector2,
@@ -486,22 +491,27 @@ static func get_nonoverlapping_points(
 	var about_points: Array[Vector2] = []
 	var about_radii: Array[float] = []
 	var ret_points: Array[Vector2] = []
+	# Radius each of ret_points was placed at: an accepted point has no body yet, so the
+	# physics probe cannot see it, and a candidate is checked against these instead.
+	var ret_radii: Array[float] = []
 
 	# A sphere sized per candidate; radius is reset before each free-space probe.
 	var probe_shape := SphereShape3D.new()
 
-	# Seed with center if it lands on a valid nav surface and is free.
+	# Seed with center if it is free, else with the nearest free point around it.
 	var seed_radius: float = _radius_at(point_radii, 0, point_radius)
 	probe_shape.radius = seed_radius
-	var center_ground := _project_to_nav_surface(map, center)
-	if (
-		center_ground != Vector3.INF
-		and _shape_has_space(
-			Transform3D(Basis(), center_ground), probe_shape, world_3d, collision_mask
+	var seed: Vector2 = (
+		center
+		if _is_free_on_nav(map, center, probe_shape, world_3d, collision_mask)
+		else _seed_off_center(
+			map, center, probe_shape, world_3d, collision_mask, region_radius, sample_count
 		)
-	):
-		ret_points.append(center)
-		about_points.append(center)
+	)
+	if seed != NO_POINT:
+		ret_points.append(seed)
+		ret_radii.append(seed_radius)
+		about_points.append(seed)
 		about_radii.append(seed_radius)
 		if max_points == 1:
 			return ret_points
@@ -525,18 +535,14 @@ static func get_nonoverlapping_points(
 			if (new_point - center).length_squared() >= region_radius * region_radius:
 				continue
 
-			# Project this XZ onto a valid nav surface.
-			var ground_pos := _project_to_nav_surface(map, new_point)
-			if ground_pos == Vector3.INF:
-				continue  # not on a valid surface
-
-			# Check for overlaps at grounded position.
-			if _shape_has_space(
-				Transform3D(Basis(), ground_pos), probe_shape, world_3d, collision_mask
+			if (
+				_clears_points(new_point, new_radius, ret_points, ret_radii)
+				and _is_free_on_nav(map, new_point, probe_shape, world_3d, collision_mask)
 			):
 				about_points.insert(0, new_point)
 				about_radii.insert(0, new_radius)
 				ret_points.append(new_point)
+				ret_radii.append(new_radius)
 
 				if ret_points.size() == max_points:
 					return ret_points
@@ -552,6 +558,68 @@ static func get_nonoverlapping_points(
 		"Not enough points collected - requested %s, got %s" % [max_points, ret_points.size()]
 	)
 	return ret_points
+
+
+## get_nonoverlapping_points' "no seed was found".
+const NO_POINT: Vector2 = Vector2(INF, INF)
+
+## The ring spacing _seed_off_center falls back to for a body with no radius, so the walk
+## still advances: half a cell, the same resolution _NAV_SNAP_TOLERANCE accepts.
+const MIN_SEED_RING_STEP: float = Map.CELL_SIZE * 0.5
+
+
+## The first free point on rings walked outward from a taken `center`, one probe body
+## (`probe_shape.radius`) apart, out to `region_radius` — or to the map's own size, past
+## which every candidate is off the navmesh anyway. Each ring is sampled at
+## `sample_count` random angles. NO_POINT when no ring has room.
+static func _seed_off_center(
+	map: Map,
+	center: Vector2,
+	probe_shape: SphereShape3D,
+	world_3d: World3D,
+	collision_mask: int,
+	region_radius: float,
+	sample_count: int,
+) -> Vector2:
+	var step: float = maxf(probe_shape.radius, MIN_SEED_RING_STEP)
+	var columns: int = map.cell_grid.size()
+	var rows: int = map.cell_grid[0].size() if columns > 0 else 0
+	var map_span: float = Vector2(columns, rows).length() * Map.CELL_SIZE
+	var search_radius: float = minf(region_radius, map_span)
+	var ring: float = step
+	while ring < search_radius:
+		for i in range(sample_count):
+			var angle: float = 2.0 * PI * rng.randf()
+			var candidate: Vector2 = center + ring * Vector2(sin(angle), cos(angle))
+			if _is_free_on_nav(map, candidate, probe_shape, world_3d, collision_mask):
+				return candidate
+		ring += step
+	return NO_POINT
+
+
+## Whether a body of `radius` at `point` overlaps none of `points`, each of the radius at
+## the same index of `radii`.
+static func _clears_points(
+	point: Vector2, radius: float, points: Array[Vector2], radii: Array[float]
+) -> bool:
+	for i: int in points.size():
+		if point.distance_to(points[i]) < radius + radii[i]:
+			return false
+	return true
+
+
+## Whether `point_xz` is on the navmesh and `probe_shape`, stood there, overlaps nothing
+## on `collision_mask`.
+static func _is_free_on_nav(
+	map: Map, point_xz: Vector2, probe_shape: Shape3D, world_3d: World3D, collision_mask: int
+) -> bool:
+	var ground_pos: Vector3 = _project_to_nav_surface(map, point_xz)
+	return (
+		ground_pos != Vector3.INF
+		and _shape_has_space(
+			Transform3D(Basis(), ground_pos), probe_shape, world_3d, collision_mask
+		)
+	)
 
 
 ## Radius for the point at `idx`: its own entry in `point_radii` when present,

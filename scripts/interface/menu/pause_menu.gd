@@ -4,7 +4,8 @@ extends CanvasLayer
 ## The in-scenario pause screen. `show_pause_menu` (Escape) raises it, the same key drops it,
 ## and while it is up the simulation is held. It offers the way out of a running scenario:
 ## back to the title screen, through SceneManager — the same call the victory dialog's return
-## button makes — and, under `debug_allowed`, the playback-speed controls (PlaybackControls).
+## button makes — and, under `debug_allowed`, the playback-speed controls (PlaybackControls),
+## and while the debug view is up, the match summary read from the match's event log.
 ##
 ## A CanvasLayer of its own, ABOVE ScenarioDialogView's: a pause menu that a scripted dialog
 ## could cover would be unreachable exactly when the player most wants to leave.
@@ -47,9 +48,12 @@ const LAYER: int = 20
 @onready var _return_button: Button = %ReturnButton
 @onready var _volume_slider: HSlider = %VolumeSlider
 @onready var _playback_controls: PlaybackControls = %PlaybackControls
+@onready var _match_summary: MatchSummaryView = %MatchSummary
 
 ## The scenario's clock, supplied by Scenario.bind. Null in a scene with no trigger manager.
 var _clock: SimulationClock = null
+## The match's event log, supplied by Scenario. Null outside a scenario: no summary is offered.
+var _match_log: MatchLog = null
 
 var _open: bool = false
 
@@ -100,6 +104,11 @@ func bind(a_manager: ScenarioTriggerManager) -> void:
 	_playback_controls.bind(_clock)
 
 
+## Give the menu the match's event log, which its summary reads.
+func bind_match_log(a_log: MatchLog) -> void:
+	_match_log = a_log
+
+
 func is_open() -> bool:
 	return _open
 
@@ -120,6 +129,9 @@ func open() -> void:
 	visible = true
 	# Re-read on every open: debug permission and the speed can both change while closed.
 	_playback_controls.refresh()
+	_match_summary.visible = DebugMode.is_active() and _match_log != null
+	if _match_summary.visible:
+		_match_summary.present(_match_log, "Match so far")
 	# So the menu is operable from the keyboard the moment it appears.
 	_return_button.grab_focus()
 

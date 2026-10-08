@@ -65,6 +65,13 @@ const PICKS: Array[String] = ["nearest", "furthest", "first"]
 ## Difficulty tier names, matching PlayerSlot.Difficulty. Spelled here rather than reflected
 ## off the enum so this file stays free of engine types.
 const DIFFICULTIES: Array[String] = ["PASSIVE", "EASY", "MEDIUM", "HARD", "IMPOSSIBLE"]
+## Every key a spec may carry at the top level. Unknown keys used to be ignored silently.
+const TOP_LEVEL_KEYS: Array[String] = ["description", "needs", "setting", "given", "run", "expect"]
+## Every key `settings` accepts, and the subset only a thinking slot may carry.
+const SETTINGS_KEYS: Array[String] = [
+	"difficulty", "faction", "vision", "energy", "dominion", "config", "consider"
+]
+const THINKING_SETTINGS_KEYS: Array[String] = ["vision", "energy", "dominion", "config", "consider"]
 
 ## Every check name and the argument keys it accepts beyond the universal `of` / `piece` /
 ## `when` / `by`. A new check is a new ROW here and a new row in SimCheckLibrary — never a
@@ -75,11 +82,27 @@ const CHECK_ARGUMENTS: Dictionary = {
 	"hp_fraction": ["at_least", "at_most"],
 	"owner": ["is"],
 	"distance_to": ["target", "at_least", "at_most"],
-	"command": ["is"],
+	"command": ["is", "target", "near", "within"],
 	"idle": [],
 	"garrisoned_in": ["host"],
 	"hit_rate": ["target", "at_least", "at_most"],
+	# Bot-state checks (gdd/systems/ai/decision-sims.md §Bot-state checks): what a thinking
+	# slot DECIDED, read from its own records. These take `slot:` rather than `of:`, except
+	# `claimed` (a claim is about units) and `believes` (a belief is about the other side).
+	"posture": ["is"],
+	"objective": ["near", "within"],
+	"ordered": ["kind", "at_least"],
+	"refused": ["kind", "cause", "at_least"],
+	"chosen": ["domain"],
+	"considered": ["domain"],
+	"claimed": ["holder"],
+	"believes": ["exactly", "at_least", "at_most"],
 }
+## The checks that are about a SLOT's bot and take `slot:`; `believes` takes both.
+const SLOT_CHECKS: Array[String] = [
+	"posture", "objective", "ordered", "refused", "chosen", "considered", "believes"
+]
+const POSTURES: Array[String] = ["ATTACK", "MASS", "DEFEND"]
 #endregion
 
 
@@ -162,6 +185,20 @@ class CommanderSettings:
 	extends RefCounted
 	var difficulty: String = "PASSIVE"
 	var faction: String = ""
+	## A thinking slot's levers (gdd/systems/ai/decision-sims.md §Grammar extensions). Each is
+	## meaningless on an inert slot and refused there, so a spec cannot look like it tests a
+	## decision nobody makes.
+	var vision_full: bool = false
+	var energy: int = 0
+	var dominion: int = 0
+	## BotDifficulty field overrides, validated at boot as a PlayerSlot's are.
+	var config: Dictionary = {}
+	## What the bot may build and train; empty lists mean everything.
+	var consider_structures: Array[StringName] = []
+	var consider_units: Array[StringName] = []
+
+	func is_thinking() -> bool:
+		return difficulty != "PASSIVE"
 
 
 ## One leaf of the expectation tree: a predicate over a group, plus the temporal FOLD that
@@ -174,6 +211,8 @@ class Check:
 	enum Mode { AT_END, LIVENESS, SAFETY }
 
 	var group_ref: String = ""
+	## The thinking slot a bot-state check asks about (SLOT_CHECKS); "" for a group check.
+	var slot: String = ""
 	var piece: String = ""
 	var name: String = ""
 	var arguments: Dictionary = {}
@@ -187,6 +226,8 @@ class Check:
 		for key: String in arguments:
 			detail += " %s=%s" % [key, arguments[key]]
 		var subject: String = group_ref if piece == "" else "%s[%s]" % [group_ref, piece]
+		if slot != "":
+			subject = slot if group_ref == "" else "%s/%s" % [slot, subject]
 		match mode:
 			Mode.LIVENESS:
 				return "%s %s%s by %.1fs" % [subject, name, detail, deadline_seconds]
@@ -246,6 +287,11 @@ var run_seconds: float = 0.0
 ## The seed for THIS ONE RUN. -1 means the spec named none and the runner draws one; a spec
 ## never carries a sampling policy (see the note, §One spec is one run).
 var seed_value: int = -1
+## What this spec needs that is not built yet — a migration step or a read it names — so a
+## red run is a SPECIFICATION rather than a failure, and the runner reports it under its own
+## heading (gdd/systems/ai/decision-sims.md §Organising the state space). "" when it needs
+## nothing: the spec is expected to pass.
+var needs: String = ""
 var commanders: Dictionary = {}  ## slot name -> CommanderSettings
 var groups: Dictionary = {}  ## "A.armyA" -> Group, in authored order
 var expect_root: ExpectNode = null
@@ -270,9 +316,11 @@ static func parse(a_text: String, a_id: String = "") -> SimSpec:
 	return spec
 
 
-static func parse_file(a_path: String) -> SimSpec:
+## `a_id_prefix` is the path under the sims root ("bot/targeting/"), carried into the id so a
+## spec is named by where it is filed and a `bot/` spec is known as a decision spec.
+static func parse_file(a_path: String, a_id_prefix: String = "") -> SimSpec:
 	var text: String = FileAccess.get_file_as_string(a_path)
-	var id: String = a_path.get_file().replace(".sim.yaml", "")
+	var id: String = a_id_prefix + a_path.get_file().replace(".sim.yaml", "")
 	if text == "" and not FileAccess.file_exists(a_path):
 		var spec := SimSpec.new()
 		spec.id = id
@@ -289,12 +337,34 @@ func is_valid() -> bool:
 ## (references, cycles). Order matters: a reference check needs the group table complete.
 func _read(a_data: Dictionary) -> void:
 	description = str(a_data.get("description", ""))
+	needs = str(a_data.get("needs", "")).strip_edges()
+	for key: String in a_data:
+		if not TOP_LEVEL_KEYS.has(key):
+			errors.append("`%s` is not a spec key; one of %s" % [key, TOP_LEVEL_KEYS])
 	_read_setting(a_data.get("setting", {}))
 	_read_run(a_data.get("run", {}))
 	_read_given(a_data.get("given", {}))
 	_read_expect(a_data.get("expect", []))
 	_validate_references()
 	_validate_placement_cycles()
+	_validate_decision_spec()
+
+
+## A decision spec — one with a bot-state check, or one filed under `sims/bot/` (the runner
+## passes that in through `a_id`) — needs somebody deciding: a spec with no thinking slot
+## tests nothing and is refused rather than run.
+func _validate_decision_spec() -> void:
+	var has_bot_check: bool = false
+	if expect_root != null:
+		for check: Check in expect_root.leaves():
+			if SLOT_CHECKS.has(check.name) or check.name == "claimed":
+				has_bot_check = true
+	if not has_bot_check and not id.begins_with("bot/"):
+		return
+	for slot: String in commanders:
+		if (commanders[slot] as CommanderSettings).is_thinking():
+			return
+	errors.append("a decision spec needs a thinking slot (a `difficulty` other than PASSIVE)")
 
 
 func _read_setting(a_value: Variant) -> void:
@@ -392,7 +462,83 @@ func _read_settings(a_slot: String, a_value: Variant) -> CommanderSettings:
 			)
 		)
 	settings.faction = str(body.get("faction", ""))
+	for key: String in body:
+		if not SETTINGS_KEYS.has(key):
+			errors.append(
+				"`given.%s.settings.%s` is not a setting; one of %s" % [a_slot, key, SETTINGS_KEYS]
+			)
+	var thinking_keys: Array[String] = []
+	for key: String in THINKING_SETTINGS_KEYS:
+		if body.has(key):
+			thinking_keys.append(key)
+	if not thinking_keys.is_empty() and not settings.is_thinking():
+		errors.append(
+			(
+				"`given.%s.settings` sets %s on a PASSIVE (inert) slot; these are a thinking bot's"
+				% [a_slot, thinking_keys]
+			)
+		)
+	if body.has("vision"):
+		if str(body["vision"]) != "full":
+			errors.append("`given.%s.settings.vision` must be `full` when given" % a_slot)
+		settings.vision_full = true
+	settings.energy = _read_count(body.get("energy", 0), "`given.%s.settings.energy`" % a_slot)
+	settings.dominion = _read_count(
+		body.get("dominion", 0), "`given.%s.settings.dominion`" % a_slot
+	)
+	var config: Variant = body.get("config", {})
+	if not (config is Dictionary):
+		errors.append(
+			"`given.%s.settings.config` must be a mapping of BotDifficulty fields" % a_slot
+		)
+	else:
+		settings.config = config
+		var probe: String = BotDifficulty.new().apply_overrides(config)
+		if probe != "":
+			errors.append("`given.%s.settings.config`: %s" % [a_slot, probe])
+	var consider: Variant = body.get("consider", {})
+	if not (consider is Dictionary):
+		errors.append("`given.%s.settings.consider` must be a mapping" % a_slot)
+	else:
+		for key: String in consider:
+			if key != "structures" and key != "units":
+				errors.append(
+					(
+						"`given.%s.settings.consider.%s` is neither `structures` nor `units`"
+						% [a_slot, key]
+					)
+				)
+		settings.consider_structures = _read_piece_list(
+			(consider as Dictionary).get("structures", []),
+			"`given.%s.settings.consider.structures`" % a_slot
+		)
+		settings.consider_units = _read_piece_list(
+			(consider as Dictionary).get("units", []), "`given.%s.settings.consider.units`" % a_slot
+		)
 	return settings
+
+
+## A non-negative integer, or 0 with an error.
+func _read_count(a_value: Variant, a_where: String) -> int:
+	if a_value is int and (a_value as int) >= 0:
+		return a_value
+	errors.append("%s must be a non-negative integer, got %s" % [a_where, str(a_value)])
+	return 0
+
+
+## A list of piece ids the catalogue knows, each as a StringName.
+func _read_piece_list(a_value: Variant, a_where: String) -> Array[StringName]:
+	var out: Array[StringName] = []
+	if not (a_value is Array):
+		errors.append("%s must be a list of piece ids" % a_where)
+		return out
+	for item: Variant in a_value:
+		var id: String = str(item)
+		if not SimPieceCatalog.has_piece(id):
+			errors.append("%s names unknown piece '%s'" % [a_where, id])
+			continue
+		out.append(StringName(id))
+	return out
 
 
 func _read_with(a_slot: String, a_value: Variant) -> void:
@@ -656,9 +802,15 @@ func _read_combinator(a_where: String, a_name: String, a_body: Dictionary) -> Ex
 func _read_leaf(a_where: String, a_body: Dictionary) -> ExpectNode:
 	var check := Check.new()
 	check.group_ref = str(a_body.get("of", ""))
+	check.slot = str(a_body.get("slot", ""))
 	check.piece = str(a_body.get("piece", ""))
 	check.name = str(a_body.get("check", ""))
-	if check.group_ref == "":
+	var is_slot_check: bool = SLOT_CHECKS.has(check.name)
+	if is_slot_check and check.slot == "":
+		errors.append("`%s`: check '%s' names no `slot`" % [a_where, check.name])
+	if not is_slot_check and check.slot != "":
+		errors.append("`%s`: check '%s' takes `of`, not `slot`" % [a_where, check.name])
+	if check.group_ref == "" and (not is_slot_check or check.name == "believes"):
 		errors.append("`%s` names no `of`" % a_where)
 	if not CHECK_ARGUMENTS.has(check.name):
 		errors.append(
@@ -699,7 +851,7 @@ func _read_leaf_mode(a_where: String, a_body: Dictionary, a_check: Check) -> voi
 
 
 func _read_leaf_arguments(a_where: String, a_body: Dictionary, a_check: Check) -> void:
-	const UNIVERSAL: Array[String] = ["of", "piece", "check", "when", "by"]
+	const UNIVERSAL: Array[String] = ["of", "slot", "piece", "check", "when", "by"]
 	var accepted: Array = CHECK_ARGUMENTS[a_check.name]
 	for key: String in a_body:
 		if UNIVERSAL.has(key):
@@ -776,6 +928,45 @@ func _validate_references() -> void:
 				var slot: String = str(check.arguments["is"])
 				if not commanders.has(slot):
 					errors.append("check `owner` names unknown slot '%s'" % slot)
+			_validate_bot_check(check)
+
+
+## A bot-state check asks a THINKING slot; the rest of its arguments name groups, pieces and
+## the vocabularies the bot itself uses, each checked here so a typo refuses the spec rather
+## than failing a run.
+func _validate_bot_check(a_check: Check) -> void:
+	var where: String = "check `%s`" % a_check.name
+	if a_check.slot != "":
+		if not commanders.has(a_check.slot):
+			errors.append("%s names unknown slot '%s'" % [where, a_check.slot])
+		elif not (commanders[a_check.slot] as CommanderSettings).is_thinking():
+			errors.append(
+				(
+					"%s asks slot '%s', which is PASSIVE (inert) and decides nothing"
+					% [where, a_check.slot]
+				)
+			)
+	if a_check.arguments.has("near"):
+		_require_group(str(a_check.arguments["near"]), "%s near" % where)
+	if a_check.name == "posture" and not POSTURES.has(str(a_check.arguments.get("is", ""))):
+		errors.append("%s `is` must be one of %s" % [where, POSTURES])
+	if a_check.name == "claimed" and str(a_check.arguments.get("holder", "")) == "":
+		errors.append("%s names no `holder`" % where)
+	if a_check.name in ["ordered", "refused"] and str(a_check.arguments.get("kind", "")) == "":
+		errors.append("%s names no `kind`" % where)
+	if a_check.name in ["chosen", "considered"]:
+		if str(a_check.arguments.get("domain", "")) == "":
+			errors.append("%s names no `domain`" % where)
+		if a_check.piece == "":
+			errors.append("%s names no `piece`" % where)
+	if a_check.name == "objective" and not a_check.arguments.has("near"):
+		errors.append("%s names no `near`" % where)
+	if (
+		a_check.name == "command"
+		and a_check.arguments.has("near")
+		and not a_check.arguments.has("within")
+	):
+		errors.append("%s with `near` needs `within`" % where)
 
 
 func _require_place_ref(a_placement: Placement, a_where: String) -> void:

@@ -50,9 +50,13 @@ const JOB_PRIORITY_MILITARY: int = 70
 const JOB_PRIORITY_KAMIKAZE: int = 60
 const JOB_PRIORITY_PRESERVATION: int = 60
 const JOB_PRIORITY_SANCTION: int = 50
+## Beside the sanctions: a local ability is a cast too, aimed at what targeting just engaged.
+const JOB_PRIORITY_ABILITIES: int = 50
 const JOB_PRIORITY_OPPORTUNIST: int = 40
 const JOB_PRIORITY_ECONOMY: int = 30
 const JOB_PRIORITY_PRODUCTION: int = 20
+## After production: an upgrade is a purchase priced on the army production has fielded.
+const JOB_PRIORITY_RESEARCH: int = 15
 const JOB_PRIORITY_SCOUT: int = 10
 
 ## Work units a job reports when it did nothing measurable, so a no-op still counts against
@@ -77,6 +81,8 @@ var _momentum: BotMomentum
 var _economy: BotEconomy
 var _deployment: BotDeployment
 var _military: BotMilitary
+var _abilities: BotAbilities
+var _research: BotResearch
 var _production: BotProduction
 var _targeting: BotTargeting
 var _kamikaze: BotKamikaze
@@ -218,6 +224,7 @@ func _build_jobs() -> void:
 		BotJob.new(&"targeting", self, combat, JOB_PRIORITY_TARGETING, _unit_work(_targeting.tick)),
 		BotJob.new(&"military", self, combat, JOB_PRIORITY_MILITARY, _unit_work(_military.tick)),
 		BotJob.new(&"sanction", self, combat, JOB_PRIORITY_SANCTION, _unit_work(_sanction.tick)),
+		BotJob.new(&"abilities", self, combat, JOB_PRIORITY_ABILITIES, _unit_work(_abilities.tick)),
 		BotJob.new(
 			&"kamikaze",
 			self,
@@ -246,6 +253,7 @@ func _build_jobs() -> void:
 		BotJob.new(
 			&"production", self, strategy, JOB_PRIORITY_PRODUCTION, _unit_work(_production.tick)
 		),
+		BotJob.new(&"research", self, strategy, JOB_PRIORITY_RESEARCH, _unit_work(_research.tick)),
 		# Seeing comes before dispatching, so a scout is sent on from what was just seen.
 		BotJob.new(
 			&"scout_sight",
@@ -279,6 +287,8 @@ func _apply_config() -> void:
 	_military.assumed_enemy_parity = config.assumed_enemy_parity
 	_military.wave_abort_fraction = config.wave_abort_fraction
 	_military.reinforce_fraction = config.reinforce_fraction
+	_military.squad_cap = config.squad_cap
+	_military.guard_strength_ratio = config.guard_strength_ratio
 	_military.defend_threat_radius = config.defend_threat_radius
 	_targeting.switch_margin = config.retarget_switch_margin
 	_targeting.set_signal_weights(
@@ -291,8 +301,12 @@ func _apply_config() -> void:
 	_economy.build_concurrency = config.build_concurrency
 	_economy.production_structure_cap = config.production_structure_cap
 	_economy.income_structure_target = config.income_structure_target
-	_economy.defence_structure_target = config.defence_structure_target
+	_economy.defence_propensity = config.defence_propensity
 	_economy.tech_value_margin = config.tech_value_margin
+	# The research rung buys on the same margin the tech rung buys a building on, and banks
+	# the same reserve every other spender does.
+	_research.tech_value_margin = config.tech_value_margin
+	_research.reserve = config.economy_reserve
 	# The economy is the THIRD consumer of the threat radius (BotMilitary and BotSanction are
 	# the others). "Is something of mine under attack" has to mean one thing across the bot,
 	# and it is what tells the economy to stop expanding — see BotEconomy.safety.
@@ -316,6 +330,7 @@ func _apply_config() -> void:
 	# The three scored modules sample at one temperature; placement is deliberately not one
 	# of them (it must stay mirror-exact — BotEconomy §WHERE A BUILDING GOES).
 	_production.decision_temperature = config.decision_temperature
+	_production.should_use_learned_production = config.should_use_learned_production
 	_opportunist.decision_temperature = config.decision_temperature
 	_scout.decision_temperature = config.decision_temperature
 	# The two production-mix weights live on the PERCEPTION layer (Bot.enemy_demand_map is
@@ -336,6 +351,24 @@ func get_momentum() -> BotMomentum:
 ## scenario / debugger read scouting coverage (BotScout.observed_fraction).
 func get_scout() -> BotScout:
 	return _scout
+
+
+## The military manager, or null before the strategy layer is built. Read by a decision
+## simulation for the posture and the objective (gdd/systems/ai/decision-sims.md); nothing
+## outside the brain decides through it.
+func get_military() -> BotMilitary:
+	return _military
+
+
+## The economy manager, or null before the strategy layer is built. Read by the debug overlay
+## (gdd/systems/ai/debug-signals.md); nothing outside the brain decides through it.
+func get_economy() -> BotEconomy:
+	return _economy
+
+
+## The targeting manager, or null before the strategy layer is built. Read by the debug overlay.
+func get_targeting() -> BotTargeting:
+	return _targeting
 
 
 ## The actuator, or null before the strategy layer is built. Read by the self-play harness
@@ -370,8 +403,12 @@ func _ensure_managers() -> bool:
 	# A REVEAL sanction is aimed by what the scout has not seen, and stamps what it shows.
 	_sanction.scout = _scout
 	_opportunist = BotOpportunist.new(bot, _actuator)
+	_abilities = BotAbilities.new(bot, _actuator)
+	_research = BotResearch.new(bot, _actuator)
 	# One registry, shared: a claim means nothing unless every manager reads the same one.
-	for manager: Object in [_economy, _military, _targeting, _kamikaze, _scout, _opportunist]:
+	for manager: Object in [
+		_economy, _military, _targeting, _kamikaze, _scout, _opportunist, _abilities
+	]:
 		manager.set("claims", claims)
 	# One stream, shared by the modules that sample (null stays null: they then argmax).
 	for manager: Object in [_production, _opportunist, _scout]:

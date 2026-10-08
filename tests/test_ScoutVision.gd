@@ -31,6 +31,6 @@ func _add_scout_at(a_world_xz: Vector2) -> Commandable:
 func test_scout_is_an_owned_vision_source() -> void:
 	var scout := _add_scout_at(Vector2.ZERO)
 	assert_true(
-		_cmdr._owned_vision_sources().has(scout),
+		scout.grants_vision(),
 		"a Scout child should count as a vision source (it has a VisionRange)"
 	)

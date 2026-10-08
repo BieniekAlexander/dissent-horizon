@@ -32,8 +32,10 @@ field existed**, and the ramp ships FLAT — see §The tiers ship flat below.
 | `structure_demand_weight` | `Bot.STRUCTURE_IMPORTANCE = 0.4` | `Bot.enemy_demand_map` |
 | `demand_coverage_falloff` | the literal `1.0 + coverage` divisor | `Bot.enemy_demand_map` |
 | `attack_value_ratio` | `BotMilitary.ATTACK_RATIO = 1.3` | `BotMilitary._committing_to_attack` |
-| `assumed_enemy_parity` | `BotMilitary.ASSUMED_ENEMY_PARITY = 0.85` | `BotMilitary._committing_to_attack` |
+| `assumed_enemy_parity` | float | 0.0 – 1.15 | ordinal (lower = credulous) | 0 trusts the seen slice completely; at 1.15 the bot assumes the enemy is 15% larger than itself. The ceiling is just below `1 / MIN_ATTACK_RATIO` (≈1.18): past it the value ratio can never reach the floor the stalemate clock relaxes to, and the bot NEVER attacks — measured 2026-10-07 (a bot drawn at 1.36 massed 134 units against 39 for twenty minutes). Was 0.0 – 1.5. TODO: a cautious bot that still commits in the end — gdd/tasks.md T-099 |
 | `wave_abort_fraction` | `BotMilitary.WAVE_ABORT_FRACTION = 0.70` | `BotMilitary._should_abort_wave` |
+| `squad_cap` | the wave and the reserve were the two squads, unconditionally | `BotMilitary._may_run` |
+| `guard_strength_ratio` | float | 0.5 – 3.0 | ordinal (higher = more held home) | the guard's strength against what it answers, as a multiple of the threat's value (cost × matchup): 1 matches the threat, 3 is a raid answered by three times itself. Below 1 a guard can lose to the raid it was raised for. Only binds under a `squad_cap` of 3. Added 2026-10-07, when the guard stopped absorbing every unit built during a threat |
 | `reinforce_fraction` | float | 0.0 – 1.0 | ordinal (higher = holds reinforcements longer) | 0 is the pre-2026-10-03 trickle, every new unit walking to the front alone; 1.0 waits until the reserve matches the wave it joins, which on a long wave never happens. Interacts with `WAVE_SPENT_FRACTION` (0.35, fixed): a wave spent below it ends before a slow reserve releases |
 | `personality_spread` | float | 0.0 – 0.4 | ordinal (higher = less like its tier) | 0 is the tier exactly, which a controlled experiment MUST set; 0.4 of a range is a different tier as often as not. Not itself jittered |
 | `decision_temperature` | float | 0.0 – 0.5 | ordinal (higher = less decisive) | 0 is the argmax every scored module used before; 0.5 takes an option half as good as the best often enough to read as careless. Not itself jittered; placement never reads it |
@@ -186,11 +188,12 @@ treat it as a choice rather than as a dial.
 | `scout_unit_budget` | int | 0 – 4 | ordinal | 0 plays blind; above ~4 the `1/(n+1)` information divisor makes another scout worth less than any unit's absence, so higher values cannot bind. **Now one of the most consequential fields in the table**: the ATTACK objective is fog-limited, so a bot that has not found the opponent has no offensive at all. The tier ramp is 0/1/2/3/4 (it was a flat 1 below IMPOSSIBLE) |
 | `economy_reserve` | int | 0 – 1500 | ordinal (lower = commits earlier) | 0 spends to zero; 1500 is several structures' worth, at which surplus never triggers |
 | `may_attack` | bool | {true, false} | **categorical** | PASSIVE is a KIND of opponent, not a weaker one, and false makes half this table inert |
+| `squad_cap` | int | 1 – 3, or -1 | ordinal (higher = more bodies manoeuvred at once) | 1 is one body: the trickle, whatever `reinforce_fraction` says; 2 is wave and reserve; 3 adds the guard, which answers a raid while the wave is out. **-1 is UNCAPPED** (`is_squad_uncapped`), and today means 3 — there are three squads to run |
 | `build_concurrency` | int | 1 – 4, or -1 | ordinal | 1 is the serialised bot; **-1 is UNCAPPED** and must be tested with `is_build_uncapped`, never read as a count (`maxi(1, -1)` is 1). Above the number of builders it fields (itself bounded by `utility_unit_cap`) it does nothing |
 | `production_structure_cap` | int | −1, then 1 – 8 | ordinal (−1 = uncapped, at the greedy end) | 1 = all-in on one building's output; 8 is past what a map's infrastructure supports |
 | `utility_unit_cap` | int | 0 – 6 | ordinal | 0 removes the capture loop and the opening scout entirely; 6 is where the producer's spend crowds out the army. A CEILING on the demand model now, so above the demand it is inert — on Colonial content that demand is 2-4 per type, which is where the useful range ends |
 | `income_structure_target` | int | 0 – 8 | ordinal (higher = greedier) | 0 is the pre-2026-09-05 opening — throughput first, income only through the fall-through. Above the sites a map offers it cannot bind (twelve on `skirmish.tscn`, contested), and `safety()` bends it down well before that: measured, a target of 4 stops claiming at ~2.5 because by then the bot has SEEN the opponent |
-| `defence_structure_target` | int | 0 – 6 | ordinal (higher = turtles) | 0 is the bot before 2026-10-04, whose ladder had no rung for a static at all; 6 is a turret per approach on `skirmish.tscn`, past which the frontage spots run out and the rung falls through. Added 2026-10-04 with its rung (between income and throughput, only once a producer stands); measured two Watch Towers beat sixteen Recruits at twice their price (`sims/towers_vs_double_recruits`), which is why it does not ship at the old-play value |
+| `defence_propensity` | float | 0.0 – 3.0 | ordinal (higher = more towers) | a propensity on the value × vulnerability demand of the bot's own regions ([bot-architecture](bot-architecture.md) §The static-defence rung): 0 never buys a turret, 1 buys where a region is worth exactly what the gun costs, 3 buys at a third of that. Replaced `defence_structure_target` (0–6, a count) on 2026-10-07, which bought three towers in a clump before anything had been seen (REJECTED, [world-model](world-model.md) §L3)
 | `tech_value_margin` | float | 1.0 – 3.0 | ordinal (higher = techs later) | the ratio by which the best unit behind a tech structure must outscore the best the bot can train, on composition value against the believed enemy. 1.0 techs the moment anything better exists; 3.0 is past any matchup the roster offers, so the bot never techs. The margin is the investment overhead (price, build time) represented without being priced. Added 2026-10-05 with the tech rung |
 | `structure_demand_weight` | float | 0.0 – 1.0 | ordinal (higher = more anti-structure) | 0 never trains anything that razes a base, so it cannot close a game against a turtle; 1.0 is the top of the scale — a building mattering as much as a soldier |
 | `demand_coverage_falloff` | float | 0.0 – 4.0 | ordinal (higher = diversifies sooner) | 0 masses the single best counter forever; at 4 one covering unit nearly zeroes a type's demand, which is maximal diversification |
@@ -220,9 +223,16 @@ attribute an effect to the wrong knob.
 2. **`economy_reserve` × `build_concurrency` × `production_structure_cap`** all gate the same
    spending: the reserve decides IF, concurrency decides HOW FAST, the cap decides HOW MUCH.
    Two of the three are dead in most of the third's range.
-3. **`attack_value_ratio` × `assumed_enemy_parity` × `scout_unit_budget`.** The parity prior
-   only binds while the enemy is unseen, so scouting DISABLES it; the aggression pair must be
-   searched jointly with scouting or the prior will read as inert.
+3. **`attack_value_ratio` × `assumed_enemy_parity` × `scout_unit_budget`.** The prior is a
+   floor under the enemy estimate — `max(seen, own × parity)` — so it binds whenever the SEEN
+   enemy is smaller than `parity` × our army, seen or not, and the ratio the bot reads is
+   `min(own / seen, 1 / parity)`. **At the default parity that ceiling is 1.18, below the
+   default `attack_value_ratio` of 1.3: no bot ever commits on value, and every wave waits on
+   the stalemate clock** (`sims/bot/commitment/behind_side_waits`: 8 against 6 waits about
+   7 s). Above `1 / parity`, `attack_value_ratio` is a DELAY, `(ratio − 1/parity) / 0.02`
+   seconds, not a threshold. Scouting moves `seen`, so it decides whether a real lead shows
+   up below the ceiling; the three must be searched jointly. Measured 2026-10-07; this item
+   said until then that scouting disabled the prior.
 4. **`attack_value_ratio` × `army_commit_threshold`** are two commit gates in series (a value
    and a body count). Whichever is stricter binds, and the other is invisible. They were in
    PARALLEL until 2026-10-03 — the count alone returned ATTACK without launching a wave, so
@@ -353,5 +363,9 @@ The self-play harness injects values by reflecting over `BotDifficulty`'s proper
   ("never") and `production_structure_cap = -1` ("no cap"). A sampler that interpolates
   across them will produce nonsense between −1 and 0; treat each as a discrete point at the
   end of its range.
-- **`may_attack` is the one bool and is not a dial.** It defines PASSIVE, so it belongs in a
-  separate configuration rather than in the same sweep.
+- **`may_attack` is not a dial.** It defines PASSIVE, so it belongs in a separate
+  configuration rather than in the same sweep.
+- **`should_use_learned_production` is not a dial either.** It switches the unit choice from
+  the demand map to the learned combat model ([macro-learning](macro-learning.md)), so a tier
+  can be compared against itself with only the valuation changed. On in every tier (2026-10-07);
+  set per configuration, never sampled.

@@ -15,11 +15,24 @@ PLANNED: using debug mode ends a match's recording and marks the replay invalid 
 
 ## The debug view
 
-While active: fog is lifted in the world and on the minimap, commandables show their current
-command, the bot overlay draws for the bot being viewed, and the cursor readout is up. While
-allowed and not active, a line above the testing-info hint names the key. Toggling off
-restores the fog as the player's commander actually sees it — nothing the view revealed is
-remembered.
+While active: commandables show their current command, the bot overlay draws for the bot
+being viewed, and the cursor readout is up. While allowed and not active, a line above the
+testing-info hint names the key.
+
+**The fog is a setting of the view** (Alex, 2026-10-07). With the view down, the fog is always
+shown as the active viewer sees it. With it up, the **Fog** picker — in the debug menu, and in
+the spectator HUD — chooses between **Off** (lifted in the world and on the minimap, everything
+pointable, as the view always was) and **As the viewer sees it**: the local player's fog, or
+the fog of the bot a spectator is viewing. The second is for reading a bot's signals against
+what that bot can actually see. A session starts on Off. Lowering the view restores the
+viewer's fog either way; nothing the view revealed is remembered. The spectator's own **No
+Fog** button is a separate thing — the omniscient view, which shows everything whatever this
+setting says.
+
+The bot overlay shows one category of the viewed bot's signals at a time, chosen from the
+spectator HUD's **Bot overlay** picker (shown only while the view is up): world marks, plus a
+readout in the top-right corner. The categories and what each carries:
+[ai/debug-signals](../../ai/debug-signals.md).
 
 ## The debug menu
 
@@ -32,8 +45,8 @@ up, folded or not. It is not a command-grid card and does not interact with `car
 A second menu, top-left, tunes the shared libraries and saves edited docs; it and the
 editable readouts are [debug-tuning](debug-tuning.md).
 
-It carries four things, independent of each other: the **player** setting (§Playing as
-another commander), a **difficulty** picker per bot, an **energy and dominion** field per
+It carries five things, independent of each other: the **player** setting (§Playing as
+another commander), the **fog** setting (§The debug view), a **difficulty** picker per bot, an **energy and dominion** field per
 commander, and the **piece card** (§The piece spawner).
 
 The resource fields accept digits only. Each shows the live amount until it is focused; Enter,

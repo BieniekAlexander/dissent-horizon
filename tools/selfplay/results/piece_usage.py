@@ -23,6 +23,8 @@ every upgrade, every ability a piece grants and every sanction in its grid — w
                            gap — the bot has no decision that would want this piece
     NO_ACTUATION           no bot module can issue the order that uses it (the command is
                            in test_BotCommandCoverage's MISSING bucket): an actuation gap
+    PASSIVE                an ability with nothing to cast (`passive: true`): it works by
+                           being owned, so its use is its carrier's
     UNREACHABLE            the faction's own tree never offers it to a bot: no builder lists
                            it, no reachable producer trains it, or its prerequisite is
                            itself unreachable — content, not the bot
@@ -57,12 +59,14 @@ COVERAGE_TEST = os.path.join(PROJECT, "tests", "test_BotCommandCoverage.gd")
 
 # Which usage-ledger domains and action kinds speak for which acquisition route.
 CHOICE_DOMAINS = {"train": ["train", "train_opening"], "build": ["production_structure", "defence_structure"]}
-ACTION_KINDS = {"train": "train", "build": "build", "sanction": "use_sanction"}
+ACTION_KINDS = {"train": "train", "build": "build", "sanction": "use_sanction",
+                "unit_ability": "use_ability", "spot": "spot"}
 # The command class each route needs the bot to issue, matched against the coverage test's
 # ISSUED / MISSING buckets so this report and that test cannot disagree about what the bot
 # can order.
+# Research is an ordinary train job at the structure that lists it (upgrades.md §The rules).
 ROUTE_COMMAND = {"train": "Train", "build": "Build", "sanction": "UseSanction",
-                 "research": "Research", "unit_ability": "Ability"}
+                 "research": "Train", "unit_ability": "Ability"}
 REPEAT_RADIUS = 2.0  # world units: two casts closer than this are "the same spot"
 
 
@@ -216,6 +220,7 @@ def catalogue(faction):
             row["actuable"] = can_issue.get(cls, can_issue.get("Ability", False))
             row["command"] = cls
             row["stub"] = "STUB" in json.dumps(definition)
+            row["passive"] = (key_value(spec.get(ability, ("", "", ""))[1] or "", "passive") or "").lower() == "true"
     for ability, level, tier in sanction_grid(faction):
         aid = "sanction:" + ability
         row = rows.setdefault(aid, {"piece": ability, "route": "sanction", "title": ability,
@@ -285,12 +290,20 @@ def usage(faction, rows):
                         continue
                     if kind not in ACTION_KINDS.values():
                         continue
-                    key = pid if kind != "use_sanction" else "sanction:" + pid
+                    if kind == "use_sanction":
+                        key = "sanction:" + pid
+                    elif kind in ("use_ability", "spot"):
+                        key = "ability:" + pid
+                    else:
+                        key = pid
                     acts = row(key)["actions"].setdefault(kind, {})
                     for o, n in outcomes.items():
                         acts[o] = acts.get(o, 0) + n
             for pid, positions in ledger.get("cast_positions", {}).items():
-                row("sanction:" + pid)["casts"].extend(positions)
+                # A sanction's casts and a unit ability's are keyed by the ability id alike;
+                # the one that exists in the catalogue is the one they belong to.
+                key = "sanction:" + pid if ("sanction:" + pid) in stats or ("ability:" + pid) not in stats else "ability:" + pid
+                row(key)["casts"].extend(positions)
     return stats, slots, with_ledger
 
 
@@ -310,6 +323,8 @@ def verdict(cat, use, has_ledger):
         return "STUB"
     if not cat["reachable"]:
         return "UNREACHABLE"
+    if cat.get("passive"):
+        return "PASSIVE"
     if not cat["actuable"]:
         return "NO_ACTUATION"
     if use is None:
@@ -335,8 +350,9 @@ def report(faction, cat, stats, slots, with_ledger):
              "%d faction slots read, %d with a usage ledger." % (slots, with_ledger), "",
              "| piece | route | verdict | produced | in slots | considered | chosen | score/best | orders | refused | detail |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]
-    order = {"USED": 0, "REFUSED": 1, "CHOSEN_NOT_ORDERED": 2, "CONSIDERED_NOT_CHOSEN": 3, "NEVER_AIMED": 4,
-             "NEVER_CONSIDERED": 5, "NO_ACTUATION": 6, "UNREACHABLE": 7, "STUB": 8, "NO_DATA": 9}
+    order = {"USED": 0, "PASSIVE": 1, "REFUSED": 2, "CHOSEN_NOT_ORDERED": 3, "CONSIDERED_NOT_CHOSEN": 4,
+             "NEVER_AIMED": 5, "NEVER_CONSIDERED": 6, "NO_ACTUATION": 7, "UNREACHABLE": 8, "STUB": 9,
+             "NO_DATA": 10}
     rows = []
     for key, c in cat.items():
         use = stats.get(key)

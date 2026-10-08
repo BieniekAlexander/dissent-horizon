@@ -53,6 +53,16 @@ static func title_of(a_id: StringName) -> String:
 	return str((_entries.get(a_id, {}) as Dictionary).get("title", String(a_id)))
 
 
+## The upgrade's `modifies:` entries, each a Dictionary with a selector (`piece` or `frame`),
+## an optional `ability`, and one effect key. Empty for an unknown id.
+static func modifiers_of(a_id: StringName) -> Array:
+	var out: Array = []
+	for modifier: Variant in (_entries.get(a_id, {}) as Dictionary).get("modifies", []):
+		if modifier is Dictionary:
+			out.append(modifier)
+	return out
+
+
 ## The reach of `a_ability` as `a_piece_id` casts it for `a_commander`: the longest `range`
 ## any owned upgrade authors for that piece and ability, or `a_base` when none does.
 ##

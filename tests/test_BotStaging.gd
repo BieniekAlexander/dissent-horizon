@@ -68,6 +68,25 @@ class FakeBot:
 	func get_production_structures() -> Array:
 		return producers
 
+	var under_threat: bool = false
+	var threatened: Commandable = null
+	## What base_threats answers: [{"enemy", "structure", "value"}].
+	var threats: Array = []
+	## Units whose matchup against anything is 0; every other unit's is 1.
+	var harmless: Array = []
+
+	func base_threats(_a_threat_radius: float = 30.0, _a_centre_radius: float = -1.0) -> Array:
+		return threats
+
+	func matchup(a_attacker: Commandable, _a_target: Commandable) -> float:
+		return 0.0 if harmless.has(a_attacker) else 1.0
+
+	func is_base_under_threat(_a_threat_radius: float = 30.0) -> bool:
+		return under_threat
+
+	func most_threatened_structure(_a_threat_radius: float = 30.0) -> Commandable:
+		return threatened
+
 
 ## Records orders instead of issuing them, so no map is needed. One entry per call, so a
 ## test can tell "sent as a body" from "sent one at a time".
@@ -131,12 +150,29 @@ func _armed_unit(a_at: Vector3 = Vector3.ZERO) -> Commandable:
 	return piece
 
 
-## A wave in the field: `a_members` are its units and it launched at `a_value`.
+## A wave in the field: `a_members` are its units and it launched at `a_value`, already
+## ordered on to OBJECTIVE (the launch is not what these tests watch).
 func _launch_wave(a_members: Array, a_value: float) -> void:
 	_military._wave_active = true
 	_military._wave_launch_value = a_value
+	_military._posture = BotMilitary.Posture.ATTACK
+	_military._main.add_all(a_members)
+	_military._main.policy = AssaultPolicy.new(
+		_bot, _act, OBJECTIVE, null, 0, BotMilitary.OBJECTIVE_EPSILON
+	)
+	_military._main._issued = _military._main.policy
 	for unit: Commandable in a_members:
-		_military._wave_members[unit.get_instance_id()] = true
+		_military._main._reached[unit.get_instance_id()] = true
+
+
+## One ATTACK think with nothing changed: the reinforcement rules, then every squad's dispatch.
+func _tick_attack() -> void:
+	_military._tick_reinforcements(OBJECTIVE)
+	_military._tick_squads()
+
+
+func _is_wave_member(a_unit: Commandable) -> bool:
+	return _military._main.has(a_unit)
 
 
 func _destinations_of(a_unit: Commandable) -> Array:
@@ -168,9 +204,9 @@ func test_a_new_unit_stages_instead_of_walking_to_the_front_alone() -> void:
 	var veteran := _armed_unit(OBJECTIVE)
 	_launch_wave([veteran], 1000.0)
 	var recruit := _armed_unit(FakeBot.HOME)
-	_military._tick_reinforcements(OBJECTIVE)
+	_tick_attack()
 	assert_eq(_destinations_of(recruit), [_staging()], "the recruit gathers at the staging point")
-	assert_false(_military._is_wave_member(recruit), "and is not in the wave yet")
+	assert_false(_is_wave_member(recruit), "and is not in the wave yet")
 
 
 func test_a_staged_unit_already_there_is_left_alone() -> void:
@@ -178,7 +214,7 @@ func test_a_staged_unit_already_there_is_left_alone() -> void:
 	_launch_wave([veteran], 1000.0)
 	_armed_unit(_staging())
 	_act.attack_moves.clear()
-	_military._tick_reinforcements(OBJECTIVE)
+	_tick_attack()
 	var to_staging: Array = _act.attack_moves.filter(
 		func(call: Dictionary) -> bool: return call["to"] == _staging()
 	)
@@ -189,7 +225,7 @@ func test_an_idle_wave_member_presses_on_to_the_objective() -> void:
 	# Idle short of the objective — its fight ended on the way — not standing on it.
 	var veteran := _armed_unit(OBJECTIVE + Vector3(-20.0, 0.0, 0.0))
 	_launch_wave([veteran], 1000.0)
-	_military._tick_reinforcements(OBJECTIVE)
+	_tick_attack()
 	assert_eq(_destinations_of(veteran), [OBJECTIVE])
 
 
@@ -201,19 +237,19 @@ func test_the_reserve_is_released_as_a_body_once_it_is_worth_sending() -> void:
 	var reserve: Array = []
 	for i: int in 4:
 		reserve.append(_armed_unit(FakeBot.HOME))
-	_military._tick_reinforcements(OBJECTIVE)
+	_tick_attack()
 	for unit: Commandable in reserve:
-		assert_false(_military._is_wave_member(unit), "400 of 500: still staging")
+		assert_false(_is_wave_member(unit), "400 of 500: still staging")
 	# The fifth tips it, and ALL five go together in one order.
 	reserve.append(_armed_unit(FakeBot.HOME))
 	_act.attack_moves.clear()
-	_military._tick_reinforcements(OBJECTIVE)
+	_tick_attack()
 	var release: Array = _act.attack_moves.filter(
 		func(call: Dictionary) -> bool: return call["to"] == OBJECTIVE and call["units"].size() == 5
 	)
 	assert_eq(release.size(), 1, "one order carrying the whole reserve to the objective")
 	for unit: Commandable in reserve:
-		assert_true(_military._is_wave_member(unit), "released units are the wave's now")
+		assert_true(_is_wave_member(unit), "released units are the wave's now")
 
 
 func test_a_spent_wave_releases_the_reserve_however_small() -> void:
@@ -221,9 +257,9 @@ func test_a_spent_wave_releases_the_reserve_however_small() -> void:
 	_launch_wave([veteran], 1000.0)
 	var recruit := _armed_unit(FakeBot.HOME)
 	veteran.free()
-	_military._tick_reinforcements(OBJECTIVE)
+	_tick_attack()
 	assert_eq(_destinations_of(recruit), [OBJECTIVE], "nobody is left at the front to wait for")
-	assert_true(_military._wave_members.is_empty() or _military._is_wave_member(recruit))
+	assert_true(_is_wave_member(recruit), "and is the wave now")
 
 
 func test_zero_fraction_is_the_old_trickle() -> void:
@@ -231,8 +267,141 @@ func test_zero_fraction_is_the_old_trickle() -> void:
 	_launch_wave([veteran], 1000.0)
 	_military.reinforce_fraction = 0.0
 	var recruit := _armed_unit(FakeBot.HOME)
-	_military._tick_reinforcements(OBJECTIVE)
+	_tick_attack()
 	assert_eq(_destinations_of(recruit), [OBJECTIVE], "the A/B arm: straight to the front, alone")
+
+
+func test_a_cap_of_one_squad_is_the_trickle_whatever_the_fraction_says() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.reinforce_fraction = 1.0
+	_military.squad_cap = 1
+	var recruit := _armed_unit(FakeBot.HOME)
+	_tick_attack()
+	assert_eq(_destinations_of(recruit), [OBJECTIVE], "one body: no reserve to stage in")
+	assert_true(_is_wave_member(recruit))
+	assert_true(_military._reserve.is_empty())
+
+
+# ─── THE GUARD ───────────────────────────────────────────────────────────────
+
+
+## A raid on home while the wave is out: a structure behind home comes under threat.
+## A raider of `a_value` beside a building at home; returns the raider, which is where a
+## guard is sent.
+func _raid_at_home(a_value: float = float(FakeBot.UNIT_PRICE)) -> Commandable:
+	var building: StubPiece = StubPiece.make()
+	add_child_autofree(building)
+	building.global_position = FakeBot.HOME + Vector3(-30.0, 0.0, 0.0)
+	var raider: StubPiece = StubPiece.make()
+	add_child_autofree(raider)
+	raider.global_position = building.global_position + Vector3(-3.0, 0.0, 0.0)
+	_bot.under_threat = true
+	_bot.threatened = building
+	_bot.threats = [{"enemy": raider, "structure": building, "value": a_value}]
+	return raider
+
+
+func _end_raid() -> void:
+	_bot.under_threat = false
+	_bot.threatened = null
+	_bot.threats = []
+
+
+func test_under_a_cap_of_three_the_reserve_answers_a_raid_while_the_wave_is_out() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.squad_cap = 3
+	_military.reinforce_fraction = 1.0
+	var recruit := _armed_unit(FakeBot.HOME)
+	_tick_attack()
+	assert_true(_military._reserve.has(recruit), "staged, like any reserve")
+	var raider: Commandable = _raid_at_home()
+	_act.attack_moves.clear()
+	_tick_attack()
+	assert_true(_military._guard.has(recruit), "the reserve is the guard now")
+	assert_false(_military._reserve.has(recruit))
+	assert_eq(_destinations_of(recruit), [raider.global_position], "and goes at the raider")
+	assert_eq(_destinations_of(veteran), [], "the wave is left to its objective")
+	_end_raid()
+	_tick_attack()
+	assert_true(_military._reserve.has(recruit), "threat over: the reserve again")
+	assert_true(_military._guard.is_empty())
+
+
+func test_under_a_cap_of_two_there_is_no_guard_and_the_reserve_stays_staged() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.squad_cap = 2
+	_military.reinforce_fraction = 1.0
+	var recruit := _armed_unit(FakeBot.HOME)
+	_tick_attack()
+	_raid_at_home()
+	_tick_attack()
+	assert_true(_military._reserve.has(recruit), "two squads: wave and reserve, nothing else")
+	assert_true(_military._guard.is_empty())
+
+
+func test_the_guard_takes_only_what_the_threat_needs_and_the_rest_reinforces() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.squad_cap = 3
+	_military.reinforce_fraction = 1.0
+	_military.guard_strength_ratio = 1.5
+	var recruits: Array = [_armed_unit(), _armed_unit(), _armed_unit(), _armed_unit()]
+	_raid_at_home(float(FakeBot.UNIT_PRICE))  # one unit's worth: 1.5 of it takes two
+	_tick_attack()
+	assert_eq(_military._guard.size(), 2, "enough to beat the raid, and no more")
+	assert_eq(_military._reserve.size(), 2, "the rest is still the wave's reserve")
+	for unit: Commandable in recruits:
+		assert_true(_military._guard.has(unit) or _military._reserve.has(unit))
+
+
+func test_a_guard_grows_and_shrinks_with_the_threat() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.squad_cap = 3
+	_military.reinforce_fraction = 1.0
+	_military.guard_strength_ratio = 1.0
+	for i: int in 4:
+		_armed_unit()
+	_raid_at_home(float(FakeBot.UNIT_PRICE))
+	_tick_attack()
+	assert_eq(_military._guard.size(), 1)
+	_raid_at_home(3.0 * FakeBot.UNIT_PRICE)
+	_tick_attack()
+	assert_eq(_military._guard.size(), 3, "a bigger raid draws more")
+	_raid_at_home(float(FakeBot.UNIT_PRICE))
+	_tick_attack()
+	assert_eq(_military._guard.size(), 1, "and gives them back as it shrinks")
+	assert_eq(_military._reserve.size(), 3)
+
+
+func test_a_unit_that_cannot_hurt_the_threat_never_guards() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.squad_cap = 3
+	_military.reinforce_fraction = 1.0
+	var useless := _armed_unit()
+	_bot.harmless.append(useless)
+	var useful := _armed_unit()
+	_raid_at_home()
+	_tick_attack()
+	assert_true(_military._guard.has(useful))
+	assert_false(_military._guard.has(useless), "it would stand beside the raider uselessly")
+	assert_true(_military._reserve.has(useless))
+
+
+func test_the_guard_is_not_released_to_the_wave_while_it_holds() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.squad_cap = 3
+	_military.reinforce_fraction = 0.1  # a single recruit would be released at once
+	var recruit := _armed_unit(FakeBot.HOME)
+	_raid_at_home()
+	_tick_attack()
+	assert_true(_military._guard.has(recruit), "a raid at home outranks reinforcing")
+	assert_false(_destinations_of(recruit).has(OBJECTIVE))
 
 
 # ─── THE WAVE GATES ARE IN SERIES ─────────────────────────────────────────────
@@ -270,7 +439,19 @@ func test_both_gates_met_launches_a_wave() -> void:
 	_military.army_commit_threshold = 2
 	assert_true(_military._committing_to_attack())
 	assert_true(_military._wave_active)
-	assert_eq(_military._wave_launch_value, 1000.0)
+	assert_eq(
+		_military._wave_launch_value,
+		2.0 * FakeBot.UNIT_PRICE,
+		"what the wave sends, not the army's whole value: it is the wave the spent test reads"
+	)
+
+
+func test_a_wave_is_spent_by_its_own_losses_whatever_stands_at_home() -> void:
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 10.0 * FakeBot.UNIT_PRICE)
+	_bot.army_value = 50.0 * FakeBot.UNIT_PRICE  # a big guard and reserve at home
+	assert_false(_military._committing_to_attack(), "one unit left of ten: spent")
+	assert_false(_military._wave_active)
 
 
 # ─── RALLY ───────────────────────────────────────────────────────────────────
@@ -343,7 +524,7 @@ func test_with_no_structure_the_station_is_in_front_of_home() -> void:
 func test_a_unit_standing_on_its_destination_is_not_re_ordered() -> void:
 	var there := _armed_unit(OBJECTIVE + Vector3(1.0, 0.0, 0.0))
 	var away := _armed_unit(FakeBot.HOME)
-	_military._send_idle([there, away], OBJECTIVE)
+	HoldPolicy.new(_act, OBJECTIVE, BotMilitary.OBJECTIVE_EPSILON).issue([there, away])
 	assert_eq(
 		_destinations_of(there), [], "arrived: an order to walk to where it stands is the swarm"
 	)
@@ -353,7 +534,7 @@ func test_a_unit_standing_on_its_destination_is_not_re_ordered() -> void:
 func test_an_idle_wave_member_standing_on_the_objective_is_left_alone() -> void:
 	var veteran := _armed_unit(OBJECTIVE)
 	_launch_wave([veteran], 1000.0)
-	_military._tick_reinforcements(OBJECTIVE)
+	_tick_attack()
 	assert_eq(_destinations_of(veteran), [])
 
 
@@ -401,13 +582,28 @@ func test_a_wave_launch_collects_the_bunkered_units() -> void:
 	add_child_autofree(host)
 	_bot.holding_hosts = [host]
 	var unit := _armed_unit(FakeBot.HOME)
-	_military._launch([unit], OBJECTIVE)
+	_military._launch(OBJECTIVE)
+	_military._tick_squads()
 	assert_eq(_act.evacuated, [host], "the hosts holding its units are turned out first")
-	assert_true(_military._is_wave_member(unit))
+	assert_true(_is_wave_member(unit))
 	assert_eq(_destinations_of(unit), [OBJECTIVE])
 
 
 # ─── A WAVE THAT HAS ARRIVED RAZES THE BUILDING IT CAME FOR ───────────────────
+
+
+## Make `a_building` the wave's objective the way _objective_for does: the reference for the
+## Attack order, and the BELIEF that says it is still standing — which is what
+## AssaultPolicy.is_target_standing asks, never the node.
+func _set_objective(a_building: Commandable) -> void:
+	if _bot.blackboard == null:
+		_bot.blackboard = CommanderBlackboard.new(_bot)
+	_bot.blackboard._upsert(a_building, 0.0)
+	_military._objective_entity = a_building
+	_military._objective_id = a_building.get_instance_id()
+	var assault: AssaultPolicy = _military._main.policy as AssaultPolicy
+	assault.target = a_building
+	assault.target_id = a_building.get_instance_id()
 
 
 func test_an_idle_wave_member_at_the_objective_attacks_the_building_behind_it() -> void:
@@ -416,8 +612,8 @@ func test_an_idle_wave_member_at_the_objective_attacks_the_building_behind_it() 
 	building.global_position = OBJECTIVE + Vector3(6.0, 0.0, 0.0)
 	var veteran := _armed_unit(OBJECTIVE)
 	_launch_wave([veteran], 1000.0)
-	_military._objective_entity = building
-	_military._tick_reinforcements(OBJECTIVE)
+	_set_objective(building)
+	_tick_attack()
 	assert_eq(_act.attacks.size(), 1, "one Attack order")
 	assert_eq(_act.attacks[0]["units"], [veteran])
 	assert_eq(_act.attacks[0]["target"], building)
@@ -429,20 +625,36 @@ func test_a_wave_member_short_of_the_objective_keeps_walking_rather_than_attacki
 	add_child_autofree(building)
 	var veteran := _armed_unit(OBJECTIVE + Vector3(-40.0, 0.0, 0.0))
 	_launch_wave([veteran], 1000.0)
-	_military._objective_entity = building
-	_military._tick_reinforcements(OBJECTIVE)
+	_set_objective(building)
+	_tick_attack()
 	assert_eq(_act.attacks, [])
 	assert_eq(_destinations_of(veteran), [OBJECTIVE])
 
 
 func test_a_razed_objective_is_not_attacked() -> void:
 	var building: StubPiece = StubPiece.make()
+	add_child(building)  # freed below, by the test itself
 	var veteran := _armed_unit(OBJECTIVE)
 	_launch_wave([veteran], 1000.0)
-	_military._objective_entity = building
+	_set_objective(building)
 	building.free()
-	_military._tick_reinforcements(OBJECTIVE)
-	assert_eq(_act.attacks, [], "a freed building is no target")
+	_tick_attack()
+	assert_eq(_act.attacks, [], "a freed building cannot be handed to an Attack order")
+
+
+func test_an_objective_no_longer_believed_is_not_attacked() -> void:
+	# The fog-honest half of the rule above: the bot does not know a building fell until it
+	# sees the spot empty, and it stops attacking the moment the BELIEF goes — the node's
+	# fate is never consulted.
+	var building: StubPiece = StubPiece.make()
+	add_child_autofree(building)
+	building.global_position = OBJECTIVE + Vector3(6.0, 0.0, 0.0)
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_set_objective(building)
+	_bot.blackboard._entries.erase(building.get_instance_id())
+	_tick_attack()
+	assert_eq(_act.attacks, [], "no belief, no Attack — whatever the node says")
 
 
 # ─── CRUSHING COUNTS AS EFFECTIVENESS ───────────────────────────────────────
@@ -464,3 +676,80 @@ func test_a_heavy_vehicle_counts_as_a_counter_to_infantry_it_can_run_over() -> v
 		Bot.CRUSH_EFFECTIVENESS, 1.0, "below parity: contact is incidental under the bot's orders"
 	)
 	assert_gt(Bot.CRUSH_EFFECTIVENESS, 0.0, "but never useless")
+
+
+# ─── A DRIFTING OBJECTIVE IS NOT A NEW ONE ──────────────────────────────────
+
+
+## A military whose posture and objective are set by the test, so tick() can be driven
+## through its change rule without a believed enemy to find.
+class SteeredMilitary:
+	extends BotMilitary
+	var objective: Variant = null
+	## The believed structure behind `objective`, as _objective_for would name it; 0 for none.
+	var objective_id: int = 0
+
+	func _decide_posture() -> Posture:
+		return Posture.ATTACK
+
+	func _objective_for(_a_posture: Posture) -> Variant:
+		_objective_id = objective_id
+		return objective
+
+
+func test_an_objective_that_drifts_a_little_does_not_relaunch_the_wave() -> void:
+	# THE FLAP. A believed unit's last-known location moves every tick it is in sight, and
+	# each move re-launched the wave — evacuating every garrison and re-ordering the army at
+	# the think rate (observed 2026-10-06 on main).
+	var military := SteeredMilitary.new(_bot, _act)
+	_armed_unit(FakeBot.HOME)
+	_bot.holding_hosts = [autofree(Commandable.new())]
+	military.objective = OBJECTIVE
+	military.tick()
+	assert_eq(_act.attack_moves.size(), 1, "launched once")
+	assert_eq(_act.evacuated.size(), 1, "and emptied the bunker for it")
+	military.objective = OBJECTIVE + Vector3(5.0, 0.0, 0.0)  # a soldier walked on
+	military.tick()
+	assert_eq(_act.evacuated.size(), 1, "a drift is the same objective: no second evacuation")
+	# Measured from where the objective now IS, not from where it started.
+	military.objective = OBJECTIVE + Vector3(5.0 + BotMilitary.OBJECTIVE_EPSILON + 1.0, 0.0, 0.0)
+	military.tick()
+	assert_eq(_act.evacuated.size(), 2, "a jump past the epsilon is a new objective")
+
+
+func _wave_point(a_military: BotMilitary) -> Vector3:
+	return (a_military._main.policy as AssaultPolicy).point
+
+
+func test_a_drift_that_adds_up_re_points_the_wave_without_relaunching_it() -> void:
+	# Each think's step is under the epsilon, so none of them is a change by itself; measured
+	# against the point the wave holds, the sum is. Seen 2026-10-07: 164 units idle at a point
+	# the objective had crept away from.
+	var military := SteeredMilitary.new(_bot, _act)
+	_armed_unit(FakeBot.HOME)
+	_bot.holding_hosts = [autofree(Commandable.new())]
+	military.objective = OBJECTIVE
+	military.tick()
+	var step: Vector3 = Vector3(BotMilitary.OBJECTIVE_EPSILON * 0.4, 0.0, 0.0)
+	for i: int in 3:
+		military.objective += step
+		military.tick()
+	assert_eq(_wave_point(military), military.objective, "the wave follows the sum of the drift")
+	assert_eq(_act.attack_moves[-1]["to"], military.objective, "and is ordered there")
+	assert_eq(_act.evacuated.size(), 1, "re-pointed, not relaunched: the bunker is left alone")
+
+
+func test_a_new_structure_close_by_re_points_the_wave_at_it() -> void:
+	# The objective's building fell and the next one stands a short step on: a new target, not
+	# the old one drifted. Before, the wave kept the dead building's point and stood there.
+	var military := SteeredMilitary.new(_bot, _act)
+	_armed_unit(FakeBot.HOME)
+	military.objective = OBJECTIVE
+	military.objective_id = 1001
+	military.tick()
+	military.objective = OBJECTIVE + Vector3(BotMilitary.OBJECTIVE_EPSILON * 0.5, 0.0, 0.0)
+	military.objective_id = 1002
+	military.tick()
+	var held: AssaultPolicy = military._main.policy as AssaultPolicy
+	assert_eq(held.target_id, 1002, "aimed at the structure the bot now means")
+	assert_eq(held.point, military.objective)

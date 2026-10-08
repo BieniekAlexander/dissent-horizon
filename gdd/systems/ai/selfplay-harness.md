@@ -81,6 +81,7 @@ Defaults`.
 {
   "seed": 20260905,                  // Scenario.rng_seed — the whole match's randomness
   "scenario": "res://scenes/scenarios/skirmish.tscn",
+  "map_seed": 4217,                  // play on a MapGenerator map from this seed, not the scene's own
   "faction": "res://scenes/factions/colonial.tscn",  // forced onto BOTH slots
   "max_simulated_seconds": 1200,     // 20 minutes — the stalemate cap
   "max_wall_seconds": 900,           // the safety cap; a hung match must not eat a batch
@@ -117,12 +118,13 @@ ignored reports a result for an experiment it did not run.
 
 One object, printed between `---SELFPLAY-RESULT-BEGIN---` / `---SELFPLAY-RESULT-END---` on
 stdout and written to `out=`. `run_batch.py` appends it to a JSONL with `id` and
-`batch_status` added.
+`batch_status` (`ok` | `script_error` | `error` | `timeout` | `no_result`) added.
 
 ```jsonc
 {
   "ok": true,
   "seed": 20260905,
+  "map_seed": 4217,             // the generated map actually played (a rejected seed moves on), or -1
   "outcome": "elimination",     // | stalemate | mutual_elimination | wall_clock_cap
   "winner": 0,                  // slot index, or -1
   "ticks": 36000,
@@ -132,6 +134,10 @@ stdout and written to `out=`. `run_batch.py` appends it to a JSONL with `id` and
   "physics_ticks_per_second": 30,
   "deployed_ticks": [1, 1],     // when each slot first owned anything
   "final_digest": "71da892e568809bd",
+  "clean": true,                // false when any GDScript runtime error was raised
+  "errors": { "script": 0, "engine": 0, "push_error": 53,
+              "top": [ { "kind": "push_error", "count": 51, "message": "...",
+                         "at": "res://scripts/utils/space_utils.gd:551 get_nonoverlapping_points" } ] },
   "slots": [ { "slot": 0, "commander_id": 1, "difficulty": "HARD", "faction": "colonial",
                "config": { /* every BotDifficulty field, as played */ },
                "produced_by_id": { /* piece id -> distinct pieces fielded over the match */ },
@@ -150,9 +156,33 @@ stdout and written to `out=`. `run_batch.py` appends it to a JSONL with `id` and
                      "scouts_out": 1,
                      "momentum_loss_rate": 0.0,
                      "idle_units": 1
-                   } } ] } ]
+                   } } ] } ],
+  "event_log": "/abs/path/result.events.jsonl.gz"   // the match's event log; "" without out=
 }
 ```
+
+**The event log is written beside every result** — gzipped JSON lines, readable with
+`gunzip -c` or Python's `gzip`. The harness's verdict is recorded as its `match_ended`. A build
+order, energy and army value over time, and purchase counts per piece are all derived from it
+rather than from `samples`: [scenario-scripting/match-log](../scenario-scripting/match-log.md).
+`run_batch.py` runs each match in a temporary directory and moves its log to
+`<results without .jsonl>.events/<id>.events.jsonl.gz` before that directory goes; until
+2026-10-07 the logs were deleted with it.
+
+**A verdict reached through a script error is not a result.** With no debugger attached, a
+GDScript runtime error does not stop the match: the failing function returns a default and play
+goes on, so a match whose bot skipped every decision of one kind still reaches a verdict and
+looks clean. `match_error_log.gd` (a `Logger` the harness registers) counts every error by kind
+and lists the most frequent with the script line each came from; `run_batch.py` marks a row
+whose `clean` is false as `batch_status: "script_error"`. Engine errors and `push_error` are
+counted and printed but do not fail a row — an engine error is usually a bug too, but
+`push_error` also carries known noise, and failing on it would fail every match.
+**In training, one script error invalidates the experiment** (Alex, 2026-10-07): `train.py`
+ingests none of that batch, marks the archive invalid with every script error and where it was
+raised, and refuses `seed`, `step` and `export` against it; `report` still runs, under a banner.
+The errors are fixed, and experimentation restarts in a fresh `--state` directory — ratings
+fitted partly through a bug are not salvaged. Any script error counts, not only one in bot
+code: a broken piece or projectile corrupts a match as surely as a broken decision.
 
 **Each row carries the parameters it was played with**, so a JSONL of results is
 self-describing and a search need not keep the configs that produced it.

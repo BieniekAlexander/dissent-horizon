@@ -96,6 +96,7 @@ occupiable_armours = 1
 occupiable_movements = 1
 capacity = 3
 bunker = false
+captures = true
 occupiable_ids = Array[StringName]([&"cl_bioLight_builder"])
 
 [node name="#####CONTROLS#####" type="Node" parent="." unique_id=1886377788]

@@ -1,0 +1,28 @@
+description: |
+  A war factory facing three enemy Sloops (anti-light tanks), allowed to train only the Sloop or
+  the anti-mech tank. The answer to tanks is the anti-mech tank. Scored by the demand map, which
+  is no longer the tier default (the learned model is, since 2026-10-07), so it is switched
+  off here. Its pair, counter_the_tanks_learned, is the same situation scored by the learned
+  combat model (gdd/systems/ai/macro-learning.md §1). Control: two options; axis EFFECTIVENESS.
+setting: { kind: flat, size: 60 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      energy: 3000
+      config: { scout_unit_budget: 0, should_use_learned_production: false }
+      consider: { units: [ cl_mechMedium_antiLight, cl_mechMedium_antiMech ] }
+    with:
+      factory:
+        of: [ { piece: cl_warFactory, count: 1 } ]
+        at: west
+  B:
+    with:
+      tanks:
+        of: [ { piece: cl_mechMedium_antiLight, count: 3 } ]
+        at: east
+        formation: cluster
+run: { for: 10s, seed: 1 }
+expect:
+  - { slot: A, check: chosen, domain: train, piece: cl_mechMedium_antiMech, by: 5s }

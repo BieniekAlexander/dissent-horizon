@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-098**
+> Next id: **T-101**
 
 # Tasks
 
@@ -60,6 +60,21 @@ Scout raycasts stop on terrain and fog does not, so ground behind a ridge is nev
 ### T-092 · How the bot is told to stay out of an area #effort/medium #unscoped
 Lingering effects over ~3 s (frost fields, the Blizzard's gathering) should publish an avoid-region signal; its form, weight and route into pathing are open.
 → [ai/bot-roadmap](systems/ai/bot-roadmap.md) §The gaps in the decision surface, gap 7
+
+### T-098 · Unit value is a stand-in: revisit strength per energy #effort/medium #unscoped
+Decided 2026-10-07 as a first cut, with a revisit deferred: the bot values a unit at √(DPS × matchup × HP ÷ the target's multiplier against it) ÷ cost — Lanchester's square law — instead of the bare matchup multiplier, which made the 100-energy Recruit always win. Deliberately missing: range, speed, splash, and which layers the target's weapons can reach (a build preview cannot say). `Bot.unit_strength_per_energy_vs`.
+
+### T-099 · A cautious bot that still commits in the end #effort/low #unscoped
+`assumed_enemy_parity` above 1 / `MIN_ATTACK_RATIO` (≈1.18) meant a bot that could never attack; the search range was capped at 1.15 on 2026-10-07 as the fix for now. Deferred: making the cautious end of the range playable instead — e.g. the stalemate clock relaxing parity too, so a timid bot still commits eventually. `bot_difficulty.gd` SEARCH_RANGES; `BotMilitary._committing_to_attack`.
+
+### T-100 · Learn the bot's purchase valuation #effort/high #scoped #shelved
+The macro valuation (demand map → strength per energy → savings) is one additive form that cannot express interaction, distance, a mix, or payback, and tuning its constants cannot change that. Proposed: a combat model learned from sim fights, a threat clock on the lattice, a state value from logged matches, and the existing trainer searching the models' weights. Also: rerun the 2026-10-04 roster round before using it as a baseline (stale). Supersedes T-098 if adopted.
+→ [ai/macro-learning](systems/ai/macro-learning.md)
+
+> [!check] Status — 2026-10-07
+> Stage 1 built and ON BY DEFAULT in every tier (`BotDifficulty.should_use_learned_production`), with the model as trained: a combat model fitted on 6,000 single-faction sim fights (`tools/combat_model/`, `CombatModel`, `resources/bots/combat_model.json`), held-out R² 0.655, scoring `BotProduction`'s unit choice. Self-play: learned 17/31 against the demand map (p = 0.72) and 4/10 on random maps — not worse, not shown better; it fields fewer Recruits and more anti-mech infantry. Baseline roster rerun: rusher first but even with the economist. Fixed on the way: a freed avoidance partner (`movement.gd`), and `run_batch.py` deleting every match's event log.
+> Tests: 3883 passing before the editor was opened (22:52 local). Every full run since crashed one shard at a random test, with the default on OR off, so the editor running on the same project is the likely cause — rerun `gut_shards.py` with the editor closed. The ~2,900 tests that ran all passed. Lint clean except `line_slots.gd` / `test_LineSlots.gd` (not this work).
+> **Not done:** the shipped model underrates the anti-mech tank against Sloops (corpus misses pairwise matchups; `counter_the_tanks_learned` fails) — stratified sampling proposed; a ~200-match comparison; charged weapons, abilities and support value the fights cannot see; the slot-0 bias (27/41); stage 2 waits on world-model steps 3–5. All in `macro-learning.md` §1 and §Still open.
 
 ## Combat
 
@@ -375,6 +390,10 @@ Ridges, cliffs and deep chasms draw as plain ground; add a layer from the grid's
 ### T-080 · A win/lose screen #effort/medium #unscoped
 `Scenario._on_game_over` only logs.
 → `scripts/scenario.gd`, [ux](systems/ux/README.md) (menu screens)
+
+> [!check] Status — 2026-10-07
+> A match's end now shows the match summary (units and structures per commander, the winner marked) with Victory / Defeat / "Commander N wins" as its heading — [scenario-scripting/match-log](systems/scenario-scripting/match-log.md) §The summary view.
+> **Not done:** pausing at the end, a way back to the menu, anything else a win/lose screen should carry.
 
 ### T-081 · A piece's model as named parts and keyed variants #effort/high #unscoped
 Hull and turret; an upgrade's model swap; later cosmetics. **Blocked** on the movement and action physics rework, which owns how a part aims. The Matilda's turret already works through a scene-authored node path.

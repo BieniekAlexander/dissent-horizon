@@ -42,6 +42,13 @@ State lives in one directory (--state, default tools/selfplay/results/train/):
     gen_NNN.json      the match list each generation ran
     report.md         the last report
 
+A SCRIPT ERROR INVALIDATES THE EXPERIMENT. Without a debugger a GDScript runtime error does not
+stop a match -- the failing function returns a default and play goes on -- so a bot that
+silently skipped a whole kind of decision still wins or loses, and its rating would measure the
+bug. When any match of a batch raised one (run_batch's `script_error` status), none of the
+batch is ingested, the archive is marked invalid, and every command but `report` refuses to
+run against it. Fix the errors, then start a fresh experiment in a new --state directory.
+
 Needs no third-party packages. Never run alongside another Godot process (see the memory
 on vision shapes being rewritten under a running match).
 """
@@ -104,7 +111,7 @@ SEED_PERSONALITIES = {
                "reinforce_fraction": 0.0, "utility_unit_cap": 1},
     "economist": {"economy_reserve": 1200, "build_concurrency": 4, "utility_unit_cap": 6,
                   "income_structure_target": 4, "attack_value_ratio": 2.0,
-                  "assumed_enemy_parity": 1.2, "army_commit_threshold": 8},
+                  "assumed_enemy_parity": 1.15, "army_commit_threshold": 8},
     "turtle": {"army_commit_threshold": 12, "scout_unit_budget": 0, "economy_reserve": 900,
                "attack_value_ratio": 2.5, "wave_abort_fraction": 1.0,
                "defend_threat_radius": 30.0, "place_frontage_bias": 1.5},
@@ -305,6 +312,35 @@ class State:
             "generation": 0, "cap": None, "members": {}, "cells": {}, "log": []}
         self.ledger = load_ledger(self.ledger_path) if os.path.exists(self.ledger_path) else []
 
+    def refuse_if_invalid(self):
+        """Stop here when an earlier batch raised script errors: nothing built on that
+        experiment's ratings means anything."""
+        invalid = self.archive.get("invalid")
+        if invalid:
+            sys.exit("experiment in %s is INVALID: %s\nFix the script errors, then start a "
+                     "fresh experiment with a new --state directory." % (
+                         self.directory, invalid["reason"]))
+
+    def invalidate(self, generation, rows):
+        """Mark the experiment invalid over `rows`, the script-error rows of one batch, and
+        keep what each error was so the report says what to fix."""
+        errors = {}
+        for row in rows:
+            for entry in (row.get("errors") or {}).get("top", []):
+                if entry["kind"] != "script":
+                    continue
+                key = (entry["message"], entry["at"])
+                errors[key] = errors.get(key, 0) + entry["count"]
+        self.archive["invalid"] = {
+            "generation": generation,
+            "reason": "%d match(es) of generation %d raised GDScript runtime errors" % (
+                len(rows), generation),
+            "matches": [row["id"] for row in rows],
+            "script_errors": [{"message": m, "at": at, "count": n}
+                              for (m, at), n in sorted(errors.items(), key=lambda kv: -kv[1])],
+        }
+        self.save()
+
     def save(self):
         json.dump(self.archive, open(self.archive_path, "w"), indent=1, sort_keys=True)
 
@@ -408,6 +444,13 @@ def run_matches(state, matches, generation, jobs):
         row["members"] = members_by_id[row["id"]]
         row["generation"] = generation
         rows.append(row)
+    broken = [r for r in rows if r.get("batch_status") == "script_error" or r.get("clean") is False]
+    if broken:
+        # The batch's results stay on disk for inspection; none of them reaches the ledger.
+        state.invalidate(generation, broken)
+        for error in state.archive["invalid"]["script_errors"]:
+            print("  %5d  %s  @ %s" % (error["count"], error["message"], error["at"]), file=sys.stderr)
+        state.refuse_if_invalid()
     state.append_ledger(rows)
     ok = sum(1 for r in rows if r.get("ok"))
     print("ingested %d rows (%d ok) in %.0f s" % (len(rows), ok, time.time() - started), file=sys.stderr)
@@ -542,7 +585,14 @@ def cmd_report(state, args):
     ratings = {m: state.members[m]["rating"] for m in state.members}
     matrix, counts = score_matrix(live, pairs, ratings)
     mixture, exploitability = equilibrium(live, matrix) if len(live) > 1 else ({live[0]: 1.0}, 0.0)
-    lines = ["# Training report", "",
+    invalid = state.archive.get("invalid")
+    banner = []
+    if invalid:
+        banner = ["**INVALID EXPERIMENT:** %s. Nothing below can be trusted; fix these and start "
+                  "a fresh --state directory." % invalid["reason"], ""]
+        banner += ["- %d x `%s` at `%s`" % (e["count"], e["message"], e["at"])
+                   for e in invalid["script_errors"]] + [""]
+    lines = ["# Training report", ""] + banner + [
              "Generation %d, %d ledger rows, %d live of %d members, cap %s s." % (
                  state.archive["generation"], len(state.ledger), len(live), len(state.members),
                  state.archive["cap"]), "",
@@ -620,6 +670,8 @@ def main():
     parser.add_argument("--roster", default=DEFAULT_ROSTER, help="export target (default: %(default)s)")
     args = parser.parse_args()
     state = State(args.state)
+    if args.command != "report":
+        state.refuse_if_invalid()
     {"seed": cmd_seed, "step": cmd_step, "report": cmd_report, "export": cmd_export}[args.command](state, args)
 
 

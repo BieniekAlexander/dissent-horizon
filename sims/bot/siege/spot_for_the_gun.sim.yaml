@@ -1,0 +1,29 @@
+description: |
+  A loaded Bombard, a Recruit, and an enemy barracks the bot can see across the field. The gun
+  fires only on spotted ground, so the bot's half of the siege loop is to SEND THE SPOTTER:
+  the Recruit is ordered to call a solution in on the believed structure and holds it there;
+  the gun answers on its own (bombardment.md §Automatic fire). Decision check: a Spot order
+  within a few thinks, aimed at the barracks; outcome check: the barracks has taken a shell.
+  The target stands beyond the gun's own permanent beacon range (20), so without the spotter
+  the gun never has ground to fire on — the outcome depends on the decision.
+  Control: one gun, one spotter, one target; the axis is the LOOP closing at all.
+setting: { kind: flat, size: 90 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full }
+    with:
+      gun:
+        of: [ { piece: cl_defense_antiStructure, count: 1 } ]
+        at: center
+      spotter:
+        of: [ { piece: cl_bioLight_antiLight, count: 1 } ]
+        at: { from: A.gun, distance: 3, bearing: east }
+  B:
+    with:
+      barracks:
+        of: [ { piece: an_barracks, count: 1 } ]
+        at: { from: A.gun, distance: 36, bearing: east }
+run: { for: 60s, seed: 1 }
+expect:
+  - { of: A.spotter, check: command, is: Spot, near: B.barracks, within: 4, by: 3s }
+  - { of: B.barracks, check: hp_fraction, at_most: 0.99, by: 60s }

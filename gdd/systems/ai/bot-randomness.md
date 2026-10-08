@@ -94,6 +94,15 @@ the instrument that checks whether the units actually form the rock-paper-scisso
 wants (the Matilda-versus-recruit measurement in
 [squads-and-relations](squads-and-relations.md) was the first such finding).
 
+**Rerun (2026-10-07, 20 matches, cap 900 s, same seed roster and settings, every match
+clean):** the rush is still rated first (+1.08) and the equilibrium is still the rusher alone,
+but it is no longer dominant: it scores 0.88 against the tier and 0.92 against the turtle,
+and only **0.54 against the economist**, which it beat 0.77–0.90 before. The default tier beats
+the economist (0.84) and the turtle (0.88). Two matches per pairing, so this ranks the roster
+and measures little else. Report: `tools/selfplay/results/train_2026-10-07/report.md`. The run
+below predates squads and staging gates, the savings goal, the defence demand, the tech rung,
+crush targeting and the fog-honest senses.
+
 **First run (2026-10-04, 52 matches, cap 900 s, HARD periods, `skirmish.tscn`):** the
 rush is dominant. The seed that commits at one unit with no reserve won 11 of its 12 matches,
 eliminating in under six simulated minutes on average, and scored 0.77–0.90 against every

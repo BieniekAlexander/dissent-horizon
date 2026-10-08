@@ -97,6 +97,42 @@ func get_units() -> Array:
 	return _owned_units()
 
 
+## Every owned structure, built or under construction.
+func get_structures() -> Array:
+	return _owned_structures()
+
+
+## Every believed enemy piece that can shoot — units, and structures with weapons — as
+## [{"position": Vector3 (last known), "type": StringName}], for a read of enemy influence
+## over a region. Beliefs, never the live scene: an enemy the bot has not seen weighs nothing.
+## TODO: every believed UNIT is counted, armed or not, so an unarmed piece still weighs as enemy
+## influence in the defence demand — against the rule that an unarmed piece is never a threat.
+func believed_armed_enemies() -> Array:
+	if blackboard == null:
+		return []
+	var out: Array = []
+	for entry: CommanderBlackboard.Entry in blackboard.believed_units():
+		out.append({"position": entry.last_known_location, "type": entry.type})
+	for entry: CommanderBlackboard.Entry in blackboard.believed_structures():
+		if unit_can_attack(entry.type):
+			out.append({"position": entry.last_known_location, "type": entry.type})
+	return out
+
+
+## Owned, finished structures that RESEARCH something — list an upgrade among their producible
+## types. Distinct from get_production_structures, which is the unit producers: a research-only
+## structure (the Operations Center) trains nothing and is not one.
+func get_research_structures() -> Array:
+	return _owned_structures().filter(
+		func(s: Commandable) -> bool:
+			return (
+				s.production != null
+				and s.is_built
+				and s.production.producible_types.any(UpgradeCatalog.is_upgrade)
+			)
+	)
+
+
 ## The scene resource path that [type] is produced from, or "" when no build/train
 ## tool registers it. Lets the bot match owned instances to a catalog type by their
 ## scene (a node property) instead of reading each instance's Entity.Type.
@@ -175,6 +211,27 @@ func army_type_counts() -> Dictionary:
 	return counts
 
 
+## Piece id → count of the owned units that can attack: the side the combat model scores a
+## purchase for (CombatModel).
+func own_armed_composition() -> Dictionary:
+	var counts: Dictionary = {}
+	for u: Commandable in _owned_units():
+		if unit_can_attack(u.id):
+			counts[u.id] = int(counts.get(u.id, 0)) + 1
+	return counts
+
+
+## Piece id → count of the enemy units the blackboard believes in, unarmed ones included (the
+## combat model ignores a type it was not trained on). Fog-limited like every belief.
+func believed_enemy_composition() -> Dictionary:
+	var counts: Dictionary = {}
+	if blackboard == null:
+		return counts
+	for entry: CommanderBlackboard.Entry in blackboard.believed_units():
+		counts[entry.type] = int(counts.get(entry.type, 0)) + 1
+	return counts
+
+
 # ─── ARMY HEALTH ────────────────────────────────────────────────────────────
 
 
@@ -244,28 +301,53 @@ func get_enemies_in_aggro_range(
 	return enemies
 
 
-## Enemy units within [threat_radius] world units of any owned structure.
-## Non-empty means the base is being actively pressured.  Deduplicates
-## enemies that are close to several structures at once.
-## NOTE: intentionally includes unbuilt structures — an enemy attacking a
-## structure under construction is still a threat worth responding to.
-func get_enemies_threatening_base(a_threat_radius: float = 30.0) -> Array:
+## THE BASE'S THREATS: every enemy this bot can SEE within `a_threat_radius` of an owned
+## structure — `a_centre_radius` of a command centre, which under HEGEMONY is threatened from
+## further off — that can DAMAGE the structure it is near. As
+## [{"enemy": Commandable, "structure": Commandable, "value": float}], one entry per enemy, at
+## the structure it threatens most.
+##
+## A piece that cannot hurt what it stands beside is no threat (Alex, 2026-10-07): an unarmed
+## builder, a recon drone parked over an extractor, an enemy extractor built next to ours. Each
+## of those used to hold the base "under threat" for as long as it stood there, which no
+## defence could end. `value` is how much of a threat it is, on the bot's energy scale: its
+## cost × its matchup against that structure (Bot.matchup), so a weak matchup weighs little.
+##
+## Fog-limited like every other sense: a stealthed or fogged raider is not a threat the bot
+## knows about until something reveals it. Unbuilt structures count — an enemy attacking a
+## structure going up is still worth answering.
+func base_threats(a_threat_radius: float = 30.0, a_centre_radius: float = -1.0) -> Array:
 	if map == null:
 		return []
-	var seen: Dictionary = {}
-	var threats: Array = []
+	var centre_radius: float = a_centre_radius if a_centre_radius >= 0.0 else a_threat_radius
+	var by_enemy: Dictionary = {}  # enemy -> its entry, at the structure it threatens most
 	for s: Commandable in _owned_structures():
-		for enemy: Commandable in get_enemies_near(s.global_position, a_threat_radius):
-			if not seen.has(enemy):
-				seen[enemy] = true
-				threats.append(enemy)
-	return threats
+		var radius: float = centre_radius if Deployment.is_command_centre(s) else a_threat_radius
+		for enemy: Commandable in visible_enemies_near(s.global_position, radius):
+			var fit: float = matchup(enemy, s)
+			if fit <= 0.0:
+				continue
+			var value: float = unit_cost(enemy.id) * fit
+			if not by_enemy.has(enemy) or value > by_enemy[enemy]["value"]:
+				by_enemy[enemy] = {"enemy": enemy, "structure": s, "value": value}
+	return by_enemy.values()
 
 
-## True when at least one enemy unit is within [threat_radius] of any
-## owned structure.
+## The enemies in base_threats, without their values.
+func get_enemies_threatening_base(a_threat_radius: float = 30.0) -> Array:
+	return base_threats(a_threat_radius).map(func(t: Dictionary) -> Commandable: return t["enemy"])
+
+
+## True when the base has any threat at all (base_threats).
 func is_base_under_threat(a_threat_radius: float = 30.0) -> bool:
 	return not get_enemies_threatening_base(a_threat_radius).is_empty()
+
+
+## Whether a visible enemy within `a_threat_radius` of `a_structure` can damage it.
+func is_threatened(a_structure: Commandable, a_threat_radius: float) -> bool:
+	return visible_enemies_near(a_structure.global_position, a_threat_radius).any(
+		func(enemy: Commandable) -> bool: return matchup(enemy, a_structure) > 0.0
+	)
 
 
 ## The owned structure most in danger: lowest HP fraction among those
@@ -275,7 +357,7 @@ func most_threatened_structure(a_threat_radius: float = 30.0) -> Commandable:
 	var worst: Commandable = null
 	var worst_frac := 1.0
 	for s: Commandable in _owned_structures():
-		if not get_enemies_near(s.global_position, a_threat_radius).is_empty():
+		if is_threatened(s, a_threat_radius):
 			var frac := s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
 			if frac < worst_frac:
 				worst_frac = frac
@@ -287,6 +369,8 @@ func most_threatened_structure(a_threat_radius: float = 30.0) -> Commandable:
 ## Computed as enemy_strength / (own_strength + enemy_strength), where
 ## strength is the estimate_army_strength() calculation applied to each side.
 ## Values above 0.5 mean the enemy army is currently stronger than ours.
+## TODO: omniscient (reads every live enemy unit, not beliefs) and called by nothing; delete it,
+## or make it fog-honest before anything reads it.
 func relative_threat_level() -> float:
 	var enemy_strength := 0.0
 	for c: Commandable in get_enemy_units():
@@ -529,7 +613,7 @@ func threatened_command_centre(a_threat_radius: float) -> Commandable:
 	for s: Commandable in _owned_structures():
 		if not Deployment.is_command_centre(s):
 			continue
-		if get_enemies_near(s.global_position, a_threat_radius).is_empty():
+		if not is_threatened(s, a_threat_radius):
 			continue
 		var frac: float = s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
 		if frac < worst_frac:
@@ -909,11 +993,15 @@ func belief_is_disproved(a_entry: CommanderBlackboard.Entry) -> bool:
 	if a_entry == null or a_entry.is_structure:
 		return false
 	# Asked of the raw field, and validity first: a destroyed entity is the ordinary case for
-	# a belief, and casting or dereferencing a freed object is an engine error.
+	# a belief, and casting or dereferencing a freed object is an engine error. Its position
+	# is read ONLY if the bot can SEE it — the same fog-and-stealth test the player's screen
+	# answers. A stealthed unit standing on the remembered spot used to read as "still where
+	# we remember it", which told the bot where a unit it could not see was.
 	var remembered: Variant = a_entry.entity
 	if (
 		is_instance_valid(remembered)
 		and (remembered as Node).is_inside_tree()
+		and (remembered as Entity).is_visible_to(id)
 		and (
 			VU.in_xz((remembered as Node3D).global_position).distance_to(
 				VU.in_xz(a_entry.last_known_location)
@@ -921,7 +1009,7 @@ func belief_is_disproved(a_entry: CommanderBlackboard.Entry) -> bool:
 			<= BELIEF_VERIFY_RADIUS
 		)
 	):
-		return false  # it is still where we remember it
+		return false  # in sight, and still where we remember it
 	return has_vision_at(a_entry.last_known_location)
 
 
@@ -1120,16 +1208,17 @@ func unit_type_can_build(a_type) -> bool:
 	return _type_has_component(a_type, "Builds")
 
 
-## True when [type] can take prisoners: a Garrison with room to put them in, which is what
-## Garrison.can_capture asks of a captor. The DEPOSIT half (somewhere to bank them) is a
-## structure question and belongs to the caller — a carrier with nowhere to unload has no
-## errand, which is why BotOpportunist._gather_captures gates on get_deposit_structures().
+## True when [type] can take prisoners: a Garrison that CAPTURES with room to put them in,
+## which is what Garrison.can_capture asks of a captor. The DEPOSIT half (somewhere to bank
+## them) is a structure question and belongs to the caller — a carrier with nowhere to unload
+## has no errand, which is why BotOpportunist._gather_captures gates on
+## get_deposit_structures().
 func unit_type_can_capture(a_type) -> bool:
 	var preview := _preview_for_type(a_type)
 	var cage: Garrison = (
 		preview.get_node_or_null("Garrison") as Garrison if preview != null else null
 	)
-	return cage != null and cage.capacity > 0
+	return cage != null and cage.captures and cage.capacity > 0
 
 
 ## True when [type] kills by driving over things — the TYPE-level form of unit_can_crush,
@@ -1178,12 +1267,40 @@ func _builder_buildable_types() -> Dictionary:
 ## added buildable structure is picked up automatically — no hardcoded type list.
 func buildable_structure_types() -> Array:
 	var caps := _builder_buildable_types()
+	var allowed: Callable = func(type) -> bool:
+		return caps.has(type) and has_tech_for(type) and may_consider_structure(type)
 	return (
 		Tool
 		. tools_in_context(ControlBinding.ControlContext.BUILD)
 		. map(func(t: Tool): return t.type)
-		. filter(func(type): return caps.has(type) and has_tech_for(type))
+		. filter(allowed)
 	)
+
+
+# ─── WHAT A SIMULATION LETS THE BOT CONSIDER ─────────────────────────────────
+#
+# A decision simulation constrains the CHOICE SET so that one decision is under test and no
+# third option decides it ("extractor or tower", and nothing else — gdd/systems/ai/
+# decision-sims.md §Grammar extensions). Empty means unrestricted, which is every bot in
+# play: this is a sim-only lever, never a difficulty parameter, set through PlayerSlot.
+
+## Structure types the bot may consider building, or empty for all of them.
+var consider_structures: Array[StringName] = []
+## Unit types the bot may consider training, or empty for all of them.
+var consider_units: Array[StringName] = []
+
+
+func may_consider_structure(a_type: StringName) -> bool:
+	return consider_structures.is_empty() or consider_structures.has(a_type)
+
+
+func may_consider_unit(a_type: StringName) -> bool:
+	return consider_units.is_empty() or consider_units.has(a_type)
+
+
+## The unit types `a_production` can make that the bot may consider.
+func considered_producible_types(a_production: Production) -> Array:
+	return a_production.producible_types.filter(may_consider_unit)
 
 
 ## Buildable structures that train units (carry a Production component) — the
@@ -1206,7 +1323,7 @@ func best_producible_value(a_structure_type, a_demand: Dictionary) -> float:
 	if production == null:
 		return 0.0
 	var best: float = 0.0
-	for t: StringName in production.producible_types:
+	for t: StringName in considered_producible_types(production):
 		if unit_can_attack(t):
 			best = maxf(best, unit_composition_value(t, a_demand))
 	return best
@@ -1323,15 +1440,34 @@ func unit_effectiveness_vs(a_unit_type, a_target: Commandable) -> float:
 		if crushes(my_preview.get_node_or_null("Locomotion") as Movement, a_target)
 		else 0.0
 	)
-	var w: Weapon = loadout.weapon_for_target(a_target)
+	return maxf(by_crush, weapon_multiplier(loadout, a_target))
+
+
+## How good LIVE `a_attacker`'s matchup against `a_target` is — the piece-level form of
+## unit_effectiveness_vs, for a piece of any faction, the bot's own or not: a hand-set
+## override, else the better of its weapon's damage multiplier and running it over. 0 when it
+## cannot hurt the target at all. Not the targeting signal: that one also prices a knot of
+## crushables, which is a reason to pick a target, not a measure of danger.
+func matchup(a_attacker: Commandable, a_target: Commandable) -> float:
+	var override: Variant = DamageTable.matchup_override(a_attacker.id, a_target.id)
+	if override != null:
+		return override
+	var by_crush: float = CRUSH_EFFECTIVENESS if crushes(a_attacker.movement, a_target) else 0.0
+	return maxf(by_crush, weapon_multiplier(a_attacker.weapon_inventory, a_target))
+
+
+## The damage-table multiplier (effective / base damage) of the weapon `a_loadout` would use
+## on `a_target`, or 0 when it has none that can.
+static func weapon_multiplier(a_loadout: Loadout, a_target: Commandable) -> float:
+	if a_loadout == null:
+		return 0.0
+	var w: Weapon = a_loadout.weapon_for_target(a_target)
 	if w == null:
-		return by_crush
+		return 0.0
 	var base: float = w.per_shot_damage()
 	if base <= 0.0:
-		return by_crush
-	return maxf(
-		by_crush, DamageTable.calculate_damage(base, w.per_shot_damage_type(), a_target) / base
-	)
+		return 0.0
+	return DamageTable.calculate_damage(base, w.per_shot_damage_type(), a_target) / base
 
 
 ## What running a unit over is worth, on the scale of the damage multiplier a weapon gets
@@ -1343,6 +1479,9 @@ func unit_effectiveness_vs(a_unit_type, a_target: Commandable) -> float:
 ## a crusher is valued below a neutral matchup against what it could crush — enough that a
 ## vehicle is never read as useless against infantry, not enough to prefer it to a gun that
 ## actually counters them. Rises on the day the bot drives its vehicles through infantry.
+## TODO — that day was 2026-10-07: BotTargeting now issues run-overs (Move at the target).
+## Re-run `sims/matildas_vs_recruits` and `sims/sloops_vs_recruits` before raising this; the
+## measurement above was taken under orders that never drove through.
 const CRUSH_EFFECTIVENESS: float = 0.5
 
 
@@ -1366,6 +1505,9 @@ static func crushes(a_mover: Movement, a_target: Commandable) -> bool:
 ## enemy_demand_map is perception; the brain writes it, nothing else does.
 var structure_demand_weight: float = 0.4
 
+## The one purchase this bot is saving for, shared by every manager that spends (BotSavings).
+var savings: BotSavings = BotSavings.new()
+
 ## How fast a threat's demand falls once the army already covers it: demand is divided by
 ## `1 + coverage × this`. 1.0 is the plain diminishing-returns the demand map shipped with.
 ## 0 never saturates — the bot masses whatever counters the biggest threat and never
@@ -1375,24 +1517,33 @@ var demand_coverage_falloff: float = 1.0
 
 
 ## Per believed enemy TYPE: { type -> { "demand": float, "rep": Commandable } }.
-## demand = that type's summed importance across the believed-and-still-alive enemy
-## comp (units 1.0, structures structure_demand_weight), DIVIDED DOWN by how well our
-## current army already counters it — so a covered type has low demand (diminishing
-## returns) and an unmet threat has high demand. `rep` is one live instance of the
-## type, since effectiveness needs a live target (build previews read 0). Fog-limited:
-## reads the blackboard's beliefs, restricted to entries whose entity is still alive.
+## demand = that type's summed importance across the believed enemy comp (units 1.0,
+## structures structure_demand_weight), DIVIDED DOWN by how well our current army already
+## counters it — so a covered type has low demand (diminishing returns) and an unmet threat
+## has high demand. Fog-limited: reads the blackboard's beliefs, and EVERY belief counts —
+## a believed enemy that died out of sight is still believed (the liveness filter that used
+## to sit here was a fog leak, world-model.md §The fog boundary).
+##
+## `rep` is one live instance of the type, because effectiveness needs a live target (build
+## previews read 0 for targetable layers) — a STAT CARRIER for the type, not a claim about
+## any particular unit. It is borrowed from a believed entry that is still alive, else from
+## any instance of the type in the tree, and is null when the type is extinct; a null rep
+## reads as uncovered (coverage 0), and unit_composition_value skips it.
+## TODO: effectiveness should be type-level (ontology.md §Type-level), which removes the rep
+## and this borrowing with it.
 func enemy_demand_map() -> Dictionary:
 	if blackboard == null:
 		return {}
 	var importance: Dictionary = {}  # type -> summed importance
-	var reps: Dictionary = {}  # type -> a live Commandable of that type
+	var reps: Dictionary = {}  # type -> a live Commandable of that type, or null
 	for entry: CommanderBlackboard.Entry in blackboard.believed():
-		if not is_instance_valid(entry.entity):
-			continue
 		var imp: float = structure_demand_weight if entry.is_structure else 1.0
 		importance[entry.type] = importance.get(entry.type, 0.0) + imp
-		if not reps.has(entry.type):
+		if reps.get(entry.type) == null and is_instance_valid(entry.entity):
 			reps[entry.type] = entry.entity
+	for etype in importance:
+		if reps.get(etype) == null:
+			reps[etype] = _any_instance_of_type(etype)
 
 	# The enemy ALWAYS has a base to raze (the win condition), so guarantee a baseline
 	# anti-structure target even when none is currently in view. Without this, a bot
@@ -1400,7 +1551,7 @@ func enemy_demand_map() -> Dictionary:
 	# unit — exactly the "keeps making irregulars" bug. Proxy the enemy's (unseen)
 	# structures with one of our own (same armour class, a sound default otherwise).
 	var sees_enemy_structure: bool = reps.values().any(
-		func(r: Commandable): return r.structure_is_active()
+		func(r): return r != null and (r as Commandable).structure_is_active()
 	)
 	if not sees_enemy_structure:
 		var own_structs := _owned_structures()
@@ -1414,8 +1565,9 @@ func enemy_demand_map() -> Dictionary:
 	for etype in importance:
 		var rep: Commandable = reps[etype]
 		var coverage: float = 0.0
-		for u: Commandable in own:
-			coverage += unit_effectiveness_vs(u.id, rep)
+		if rep != null:
+			for u: Commandable in own:
+				coverage += unit_effectiveness_vs(u.id, rep)
 		demand[etype] = {
 			"demand": importance[etype] / (1.0 + coverage * demand_coverage_falloff),
 			"rep": rep,
@@ -1424,13 +1576,96 @@ func enemy_demand_map() -> Dictionary:
 
 
 ## How valuable building one more [unit_type] is against the current demand map: its
-## effectiveness vs each believed enemy type (using that type's live rep) × its demand.
+## strength per energy vs each believed enemy type (unit_strength_per_energy_vs, against that
+## type's live rep) × its demand. The one definition production, the production-structure
+## and tech rungs and the turret choice all read.
 func unit_composition_value(a_unit_type, a_demand: Dictionary) -> float:
 	var total: float = 0.0
 	for etype in a_demand:
 		var d: Dictionary = a_demand[etype]
-		total += unit_effectiveness_vs(a_unit_type, d["rep"]) * d["demand"]
+		if d["rep"] == null:
+			continue
+		total += unit_strength_per_energy_vs(a_unit_type, d["rep"]) * d["demand"]
 	return total
+
+
+## Below this, an enemy's multiplier against a unit is read as this: a piece that cannot hurt
+## the unit at all still leaves it mortal, and a zero would make its toughness infinite.
+const MIN_INCOMING_MULTIPLIER: float = 0.1
+
+
+## HOW MUCH FIGHT ONE ENERGY OF [unit_type] BUYS AGAINST [target] (Alex, 2026-10-07): the
+## square root of its damage per second against the target (DPS × the matchup multiplier)
+## times its toughness against it (HP ÷ the target's best multiplier against IT), over its
+## cost. The root is Lanchester's square law — a force's strength goes as its numbers
+## squared, so it is √(dps × hp) per unit of cost that compares two buys of equal energy.
+##
+## It replaces the bare matchup multiplier, which priced nothing: a 100-energy Recruit and a
+## 500-energy anti-light vehicle both scored about 1 against infantry, so the cheap one was
+## always bought. Against Recruits this reads 0.42 for a Recruit and 0.61 for the vehicle,
+## and the vehicle wins that trade in sims/sloops_vs_recruits; DPS × HP without the incoming
+## multiplier ranked them the other way, because the vehicle's edge is its armour.
+##
+## TODO: a stand-in that lacks complexity on purpose — gdd/tasks.md T-098. Range,
+## speed, splash and which layers the target's weapons can reach (a preview cannot say, so
+## its best multiplier is taken) are all missing.
+func unit_strength_per_energy_vs(a_unit_type, a_target: Commandable) -> float:
+	var cost: int = unit_cost(a_unit_type)
+	var preview: Node = _preview_for_type(a_unit_type)
+	if cost <= 0 or preview == null:
+		return 0.0
+	var fit: float = unit_effectiveness_vs(a_unit_type, a_target)
+	if fit <= 0.0:
+		return 0.0
+	var defense: Defense = preview.get_node_or_null("Defense") as Defense
+	var hp: float = defense.hp_max if defense != null else 0.0
+	var loadout: Loadout = preview.get_node_or_null("Loadout") as Loadout
+	var dps: float = _dps_against(loadout, a_target)
+	var incoming: float = maxf(MIN_INCOMING_MULTIPLIER, _incoming_multiplier(a_target, preview))
+	return sqrt(dps * fit * hp / incoming) / cost
+
+
+## The DPS of the weapon `a_loadout` would use on `a_target`, else of its best weapon — a
+## crusher's gun still prices its fight when the matchup came from running the target over.
+static func _dps_against(loadout: Loadout, target: Commandable) -> float:
+	if loadout == null:
+		return 0.0
+	var w: Weapon = loadout.weapon_for_target(target)
+	if w != null:
+		return w.approximate_dps()
+	var best: float = 0.0
+	for weapon: Weapon in loadout.get_weapons():
+		best = maxf(best, weapon.approximate_dps())
+	return best
+
+
+## The best damage multiplier `a_attacker`'s weapons meet in `a_victim`'s armour and frame,
+## read from its Defense so a build preview can answer. 0 for an unarmed attacker.
+func _incoming_multiplier(a_attacker: Commandable, a_victim: Node) -> float:
+	if a_attacker.weapon_inventory == null:
+		return 0.0
+	var best: float = 0.0
+	for weapon: Weapon in a_attacker.weapon_inventory.get_weapons():
+		var base: float = weapon.per_shot_damage()
+		if base > 0.0:
+			best = maxf(
+				best,
+				DamageTable.calculate_damage(base, weapon.per_shot_damage_type(), a_victim) / base
+			)
+	return best
+
+
+## Any live, in-tree Commandable of type `a_type`, whoever owns it, or null. A stat carrier
+## for type-level questions (armour, targetable layers), never a sighting: it says nothing
+## about where any piece is.
+func _any_instance_of_type(a_type: StringName) -> Commandable:
+	if not is_inside_tree():
+		return null
+	for node: Node in get_tree().get_nodes_in_group("piece"):
+		var c: Commandable = node as Commandable
+		if c != null and c.id == a_type and c.is_inside_tree():
+			return c
+	return null
 
 
 # ─── AOE-SUICIDE UNITS (kamikaze cost-effectiveness) ────────────────────────
@@ -1457,9 +1692,12 @@ func unit_build_time_ticks(a_unit_type) -> int:
 func believed_enemy_army_value() -> float:
 	if blackboard == null:
 		return 0.0
+	# Every believed unit counts, whatever happened to its node: a unit that died out of
+	# sight is still believed until the belief lapses or is disproved. Reading the node's
+	# liveness here was the fog leak world-model.md §The fog boundary lists second.
 	var total: float = 0.0
 	for entry: CommanderBlackboard.Entry in blackboard.believed():
-		if entry.is_structure or not is_instance_valid(entry.entity):
+		if entry.is_structure:
 			continue
 		total += unit_cost(entry.type)
 	return total

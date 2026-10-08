@@ -40,7 +40,12 @@ const DEFAULT_SAMPLE_INTERVAL_SECONDS: float = 10.0
 ## opening force is deferred to NavManager.navmesh_ready, so every commander genuinely owns
 ## nothing for the first frames — see Scenario._player_has_deployed for the same problem.
 const BOOT_GRACE_TICKS: int = 120
+## Seeds tried, from `map_seed` upward, before a generated-map match gives up.
+const MAP_SEED_ATTEMPTS: int = 20
 #endregion
+
+## Counts every error the match raises; see match_error_log.gd.
+const MatchErrorLog: GDScript = preload("res://tools/selfplay/match_error_log.gd")
 
 #region Arguments
 var _config_path: String = ""
@@ -66,6 +71,10 @@ var _samples: Array = []
 ## missed, so this is a floor at the sample interval, not a census).
 var _instances_seen: Array = []
 var _wall_start_usec: int = 0
+## Registered first thing in _ready, so it sees every error the match itself raises.
+var _errors: Logger = MatchErrorLog.new()
+## The generated map's seed when the config asked for one, -1 for the scenario's own map.
+var _played_map_seed: int = -1
 #endregion
 
 ## The project setting that puts RVO avoidance on worker threads. Forced OFF for a harness
@@ -84,6 +93,7 @@ func _force_single_threaded_avoidance() -> void:
 
 
 func _ready() -> void:
+	OS.add_logger(_errors)
 	_force_single_threaded_avoidance()
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("config="):
@@ -115,6 +125,10 @@ func _run() -> void:
 	var slot_error: String = _configure_slots()
 	if slot_error != "":
 		_fail(slot_error)
+		return
+	var map_error: String = _apply_generated_map()
+	if map_error != "":
+		_fail(map_error)
 		return
 	var swap_error: String = _apply_start_point_swap()
 	if swap_error != "":
@@ -255,24 +269,11 @@ func _all_nodes(a_root: Node) -> Array[Node]:
 
 ## The spectator HUD repaints a BBCode label on every resource change, for nobody: this is
 ## headless and there is no watcher. Freeing it is worth ~15% of the run and changes no
-## simulation state. Godot does NOT drop the resources_changed connections with the labels —
-## they are bound as arguments to a Scenario method, so the Scenario owns the connection — so
-## they are cut here first, or every resource change logs an error calling a freed label.
+## simulation state.
 func _strip_spectator_hud() -> void:
 	var hud: Node = _scenario.get_node_or_null("SpectatorHUD")
-	if hud == null:
-		return
-	for commander: Commander in _scenario.commanders:
-		if commander == null:
-			continue
-		for connection: Dictionary in commander.resources_changed.get_connections():
-			var callable: Callable = connection["callable"]
-			if (
-				callable.get_object() == _scenario
-				and callable.get_method() == &"_refresh_spectator_label"
-			):
-				commander.resources_changed.disconnect(callable)
-	hud.free()
+	if hud != null:
+		hud.free()
 
 
 ## MEASUREMENT INFRASTRUCTURE, not a rule of the game: exchange which start point each slot
@@ -293,6 +294,35 @@ func _strip_spectator_hud() -> void:
 ##
 ## Two slots is all this reverses. A three-slot scenario would need a permutation rather than
 ## a flag, and nothing has needed one.
+## `map_seed` in the config replaces the scenario's own Map with one MapGenerator makes from
+## that seed — a skirmish on a random map, as the menu would start one. A rejected seed is
+## retried at the next seed, and the seed actually played is recorded in the result.
+func _apply_generated_map() -> String:
+	if not _config.has("map_seed"):
+		return ""
+	var writer := GeneratedMapWriter.new()
+	var params: MapGenerationParams = writer.default_params(_scenario.player_slots.size())
+	var first_seed: int = int(_config["map_seed"])
+	var generated: GeneratedMap = null
+	for offset: int in MAP_SEED_ATTEMPTS:
+		generated = MapGenerator.generate(params, first_seed + offset)
+		if generated.is_valid():
+			break
+	if not generated.is_valid():
+		return "map_seed %d: no valid map in %d seeds" % [first_seed, MAP_SEED_ATTEMPTS]
+	_played_map_seed = generated.generation_seed
+	var terrain_path: String = "user://selfplay_map_%d_terrain.tres" % _played_map_seed
+	var map: Map = writer.build_map(generated, terrain_path)
+	if map == null:
+		return "map_seed %d: could not write terrain to %s" % [_played_map_seed, terrain_path]
+	var old_map: Node = _scenario.get_node_or_null(GeneratedMapWriter.MAP_NODE_NAME)
+	if old_map != null:
+		_scenario.remove_child(old_map)
+		old_map.free()
+	GeneratedMapWriter.adopt(_scenario, map)
+	return ""
+
+
 func _apply_start_point_swap() -> String:
 	if not bool(_config.get("swap_start_points", false)):
 		return ""
@@ -697,10 +727,14 @@ func _wall_seconds() -> float:
 #region Result
 func _emit(a_outcome: String, a_winner: int) -> void:
 	var ticks: int = _scenario.tick
+	# The harness's verdict is the match's end (a no-op when the scenario already ended it).
+	_scenario.end_match(_scenario.player_slots[a_winner].commander.id if a_winner >= 0 else -1)
+	var event_log: String = _write_event_log()
 	var result: Dictionary = {
 		"ok": true,
 		"config_path": _config_path,
 		"seed": _scenario.rng_seed,
+		"map_seed": _played_map_seed,
 		"scenario": _config.get("scenario", DEFAULT_SCENARIO),
 		"win_condition": Scenario.WinCondition.keys()[_scenario.win_condition],
 		"swap_start_points": bool(_config.get("swap_start_points", false)),
@@ -713,10 +747,27 @@ func _emit(a_outcome: String, a_winner: int) -> void:
 		"physics_ticks_per_second": TimeUtils.ticks_per_second(),
 		"deployed_ticks": _deployed_tick,
 		"final_digest": _samples[-1]["digest"] if not _samples.is_empty() else "",
+		# A script error is a bug that did not stop the match (no debugger is attached), so
+		# a verdict reached through one is reported as not clean rather than as a result.
+		"clean": _errors.script_error_count() == 0,
+		"errors": _errors.summary(),
 		"slots": _result_slots(),
 		"samples": _samples,
+		"event_log": event_log,
 	}
 	_write(result)
+
+
+## Write the match's event log beside the result, as gzipped JSON lines (`<out>.events.jsonl.gz`),
+## and return its path; "" when no result file was asked for or it could not be written.
+func _write_event_log() -> String:
+	if _out_path.is_empty() or _scenario.match_log == null:
+		return ""
+	var path: String = _out_path.get_basename() + ".events.jsonl.gz"
+	if _scenario.match_log.write_gzip(path) != OK:
+		push_error("run_match: could not write %s" % path)
+		return ""
+	return path
 
 
 ## What each slot was PLAYING — the tier it started from and every field of the live
@@ -755,7 +806,15 @@ func _result_slots() -> Array:
 
 
 func _fail(a_reason: String) -> void:
-	_write({"ok": false, "error": a_reason, "config_path": _config_path})
+	_write(
+		{
+			"ok": false,
+			"error": a_reason,
+			"config_path": _config_path,
+			"clean": _errors.script_error_count() == 0,
+			"errors": _errors.summary(),
+		}
+	)
 
 
 ## stdout AND a file. The file is what a batch collects; the stdout line is what makes a
@@ -773,5 +832,6 @@ func _write(a_result: Dictionary) -> void:
 		else:
 			file.store_string(text)
 			file.close()
+	OS.remove_logger(_errors)
 	get_tree().quit(0 if a_result.get("ok", false) else 1)
 #endregion

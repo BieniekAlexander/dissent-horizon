@@ -35,6 +35,7 @@ extends RefCounted
 ##   crush: int              `Movement.crush_class` (needs `speed`)
 ##   interactions: Array     `Interaction.Type`s, which adds an `Interactor`
 ##   garrison: Dictionary    a `Garrison`: capacity: int, sentence_length: float, bunker: bool,
+##                             captures: bool (takes prisoners by contact; the truck's cage),
 ##                             frames / armours / movements: int masks, ids: Array
 ##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
 ##   flying: bool            `Movement.mode` FLYING rather than HOVERING (needs `aerial`)
@@ -77,7 +78,7 @@ const TRUCK: Dictionary = {
 	"speed": 2.0,
 	"vision": 8.0,
 	"crush": Movement.CrushClass.LARGE,
-	"garrison": {"capacity": 3, "bunker": false},
+	"garrison": {"capacity": 3, "bunker": false, "captures": true},
 	"interactions": [Interaction.Type.DEPOSIT]
 }
 ## A structure that spawns residents.
@@ -331,6 +332,7 @@ static func _add_garrison(a_piece: Commandable, a_spec: Dictionary) -> void:
 	garrison.capacity = int(a_spec.get("capacity", 1))
 	garrison.sentence_length = float(a_spec.get("sentence_length", 0.0))
 	garrison.bunker = bool(a_spec.get("bunker", true))
+	garrison.captures = bool(a_spec.get("captures", false))
 	if a_spec.has("frames"):
 		garrison.occupiable_frames = int(a_spec["frames"])
 	if a_spec.has("armours"):

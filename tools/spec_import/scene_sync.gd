@@ -994,7 +994,7 @@ func _sync_garrison(a_ctx: Ctx, a_g: Variant) -> void:
 		_set_prop(
 			a_ctx, "Garrison", "capacity", node.capacity if node != null else -1, cap, str(cap)
 		)
-	for flag: String in ["bunker", "preserve_occupants", "releasable"]:
+	for flag: String in ["bunker", "preserve_occupants", "releasable", "captures"]:
 		if g.has(flag):
 			var v: bool = bool(g[flag])
 			_set_prop(

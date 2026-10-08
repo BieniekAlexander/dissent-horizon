@@ -366,7 +366,7 @@ func face_velocity() -> void:
 
 
 ## Where a steered phase aims: the centre of the pursued piece's hurtbox (Entity.aim_point), or
-## where it was last seen once it has left the game; null for a goal that never named a piece,
+## where it was last seen once it has left the field; null for a goal that never named a piece,
 ## which is flown unsteered.
 func _steering_goal() -> Variant:
 	var pursued: Entity = goal_entity()

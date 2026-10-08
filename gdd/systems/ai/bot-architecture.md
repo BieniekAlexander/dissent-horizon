@@ -86,8 +86,10 @@ currency below, is still the model for the other managers.
   utility units are on the same footing now**: how many builders and carriers to keep is one
   per live ERRAND (`_utility_demand_for`) rather than the flat count-per-type it used to be,
   and `utility_unit_cap` is the ceiling on that answer rather than the answer.
-- **`BotMilitary`** — a three-state posture FSM over one objective position, re-tasking the
-  whole army only when the posture or objective changes. **The ATTACK objective is a BELIEF**
+- **`BotMilitary`** — a three-state posture FSM over one objective position, commanding the
+  army as SQUADS kept to policies (main, reserve, guard — [squads-and-relations](squads-and-relations.md)
+  §Squads), so a posture change is a new policy and nothing is re-pathed to where it stands.
+  **The ATTACK objective is a BELIEF**
   (see §The attack objective is a belief), and the army it commands is everything with combat
   utility — armed *or* able to crush, which is what stopped an unarmed Stock Truck being
   filtered out of both the re-task and the idle sweep and left standing for the match. **Its commit rule is the one real
@@ -512,20 +514,36 @@ beat eight Recruits at cost parity and sixteen at twice their price in three see
 cheapest trade in the game on the table, and its infantry-heavy production had nothing to
 answer for it.
 
-`BotDifficulty.defence_structure_target` (default 2, searchable 0–6) is how many the bot wants
-standing, going-up ones counted. The rung sits between income and throughput, and fires only
-once a producer stands or is going up — a static guards a base, and is never bought instead of
-one. The TYPE is the affordable defence whose weapons best answer the enemy UNITS on the
+**A turret is bought where the DEMAND clears its cost, never to a count** (2026-10-07;
+`BotEconomy._defence_demand`, `tests/test_BotDefenceDemand.gd`). The demand is
+[world-model](world-model.md) §L3's: per own region — the ground within
+`DEFENCE_REGION_RADIUS` of a built structure — the VALUE standing there × its VULNERABILITY,
+where vulnerability is the lattice's `tension − |own − enemy|` over the tension, read off
+presence until the lattice exists: own influence is the cost of the bot's armed units and
+armed structures in the region, enemy influence the cost of the BELIEVED enemy units and armed
+structures there. Even sides make a region fully vulnerable; one side having it makes it safe
+or lost; nobody there makes it nothing. So an empty opening buys no turret
+(`sims/bot/economy/no_opening_tower`), a base the army is holding against a raid buys one
+anchored on that region, and a turret built there adds to own influence, so a second must
+clear the demand REMAINING after the first. `BotDifficulty.defence_propensity` (default 1,
+searchable 0–3) scales the demand against the cost — a propensity on a signal, never a count.
+REJECTED, the count it replaced: `defence_structure_target` (default 2) bought towers in the
+opening by construction, three in a clump before anything had been seen (observed 2026-10-06
+on main). The rung sits between income and throughput, and fires only once a producer stands
+or is going up — a static guards a base, and is never bought instead of one. The TYPE is the
+affordable defence whose weapons best answer the enemy UNITS on the
 blackboard (`Bot.unit_composition_value` over the demand map's unit entries: a turret answers
 an army, not a base). Before anything has been seen the bot's own live combat units stand in
 for the enemy's, one for one, and with no army to mirror either (the Colonial opening is three
 builders) only defences that can shoot something on the ground are considered — a static is
 bought ahead of the scout's report, and the cheapest defence was measured to be the wrong
-default: the first turret built was the SAM, against an infantry rush. The spot is the ordinary frontage search, but ANCHORED on what the
-enemy comes for rather than on the base centroid: a command centre under HEGEMONY (the
-frontmost, when there are several), else the structure the enemy reaches first along
-`Bot.threat_direction` — measured, two towers ranked from the centroid stood through a rush
-that walked past them to the command centre. A chokepoint sense that would put it on the
+default: the first turret built was the SAM, against an infantry rush. The spot is the
+ordinary frontage search, ANCHORED on the region whose demand asked for it; with no demand
+read (the anchor is asked outside the rung) it falls back to what the enemy comes for rather
+than the base centroid: a command centre under HEGEMONY (the frontmost, when there are
+several), else the structure the enemy reaches first along `Bot.threat_direction` — measured,
+two towers ranked from the centroid stood through a rush that walked past them to the
+command centre. A chokepoint sense that would put it on the
 approach rather than merely in front is the position-importance work
 [squads-and-relations](squads-and-relations.md) §Placement beyond open ground plans. Like the
 income rung, a rung that cannot act falls through. Tests: `tests/test_BotDefenceTarget.gd`.
@@ -545,12 +563,15 @@ tech structures, the one whose best unit — by the composition value the picker
 against the enemy the bot believes in, and only among units a producer the bot OWNS can
 train — is worth `BotDifficulty.tech_value_margin` (default 1.3, searchable) times the best
 unit it can train today; the biggest gain wins. It sits in the surplus branch beside
-production capacity, because it is the same kind of spend. Three things are deliberate:
+production capacity, because it is the same kind of spend — and runs without a surplus when it
+is what the bot is saving for (§Valuing a unit, and saving for it). Three things are
+deliberate:
 
-- **The ratio is on strength, not strength per energy.** A higher-tech unit is generally
-  stronger and seldom cheaper per point; lower-tech units stay worth training for their price
-  and their scouting, and the picker still trains them while they score. The margin is what
-  represents the overhead of the investment without pricing it.
+- **The ratio is on composition value, which is strength PER ENERGY since 2026-10-07.** It was
+  on strength alone, reasoned as "a higher-tech unit is seldom cheaper per point"; the value
+  under it changed with the unit valuation below, so the margin now asks whether the tech's
+  unit buys more fight per energy. TODO: whether 1.3 still means what it did is part of
+  [tasks](../../tasks.md) T-098.
 - **A producer the bot owns.** An Operations Center is not bought for an aircraft the bot has
   no airfield for.
 - **What it does not see.** The structures a tech building unlocks (the Bombard, the support
@@ -558,6 +579,72 @@ production capacity, because it is the same kind of spend. Three things are deli
   Bombard) scores as if alone. Both are the Relation model's to express
   ([squads-and-relations](squads-and-relations.md)); until then a specialised unit techs on
   its own gun or not at all. Tests: `tests/test_BotTechRung.gd`.
+
+## Valuing a unit, and saving for it
+
+**A unit is valued at the fight one energy of it buys** (Alex, 2026-10-07):
+`Bot.unit_strength_per_energy_vs` — √(DPS × matchup × HP ÷ the target's multiplier against
+it) ÷ cost, the square root being Lanchester's square law, so equal spends compare. It is what
+`unit_composition_value` sums over the demand map, so production, the production-structure and
+tech rungs and the turret choice all read it. It replaced the bare matchup multiplier, which
+priced nothing: a Recruit (100 energy) and the anti-light vehicle (500) both scored about 1
+against infantry and the bot bought Recruits all match, although the vehicle wins that trade
+at cost parity (`sims/sloops_vs_recruits`, five seeds of five). DPS × HP without the incoming
+multiplier ranks the two the wrong way round — the vehicle's edge is its armour — which is why
+toughness is measured against what the unit faces. A stand-in on purpose: range, speed,
+splash and layer reach are missing (TODO, [tasks](../../tasks.md) T-098).
+
+**The bot saves for the best thing it wants** (`BotSavings`, same day). Production proposes the
+most valuable unit an idle producer wants; the economy proposes the better of the tech
+structure it wants and a production structure it owns none of, each valued at the best unit
+it would unlock; affordability is not asked, since saving is for what is not affordable. The
+best proposal is the goal, and every spend gated by the reserve (`can_afford_above_reserve`,
+unit training) must also leave the goal's price banked; the goal's own rung runs without a
+surplus. Income and infrastructure stay exempt, as they are from the reserve. The claim lifts
+while the base is under threat, so saving never stops the bot training its defence. It
+replaces each producer buying the moment it could afford something, under which five barracks
+of Recruits held the balance below every dear purchase: across twenty HARD sides the war
+factory was built at most once and no tech structure ever.
+
+## Local abilities
+
+Built 2026-10-07. **`BotAbilities` casts the abilities a UNIT holds and uses where it stands**,
+as `BotSanction` aims the commander's. Which pieces carry what is read off their `Abilities`
+pools, and what an ability is FOR is read off its doc's `command:` — the player's own route —
+so no ability is known by name:
+
+- **`command_launch` is a strike** (`BotActuator.use_ability`): thrown where the payload would
+  cover the most visible enemies within the caster's reach — the blast radius is read off the
+  emission's own `HitShape` (`AbilityCatalog.blast_radius_of`), so the bot measures the ground
+  the shell will — and only at a clump of at least two, with none of our own under it, since
+  the blast takes no sides. The caster is usually mid-fight; the throw replaces its Attack for
+  one order and targeting re-engages it after. A unit on an errand keeps to its errand.
+- **`command_spot` is the siege loop** (`BotActuator.spot`): while a loaded Bombard waits for
+  ground — a finished structure whose pool holds a `command_bombard` charge — a spotter is sent
+  to call a solution in on the nearest believed enemy structure its walk can reach, and holds
+  it there as an ERRAND. The gun answers on its own (automatic fire is its default), so the
+  Bombard order itself is never issued. One spotter out per loaded gun.
+- A passive ability has nothing to cast; one whose command this module does not know is left
+  alone, and the piece-usage audit reports it `NO_ACTUATION`.
+
+Cover: `tests/test_BotAbilities.gd`; decision specs `sims/bot/ability/strike_a_clump`,
+`sims/bot/siege/spot_for_the_gun`. TODO: a Bombard is still `NEVER_CONSIDERED` by the
+economy — nothing buys the gun, so in play the loop closes only on a map that starts with one.
+A siege rung wants the relation model (a gun is worth what its spotters can reach).
+
+## The research rung
+
+Built 2026-10-07. **`BotResearch` prices an upgrade by what it does for the pieces the bot
+FIELDS**: every `modifies:` entry is a factor on something — hit points, a rearm or recharge
+rate, an ability's reach (the new reach over today's) — and the value is Σ (factor − 1) × the
+cost of the fielded pieces the entry selects. A quarter more hit points on 2,000 energy of
+tanks is worth 500; an upgrade to pieces the bot has none of is worth nothing, which is what
+keeps it from researching ahead of its army. It is bought when the value clears
+`tech_value_margin` × its cost, the margin the tech rung already buys a building on, with the
+reserve kept like any other spend; the purchase is an ordinary train job at the structure that
+lists it (`Bot.get_research_structures`). Each pricing is recorded as a `research` choice, so
+the audit tells an upgrade priced and never bought from one never priced. Cover:
+`tests/test_BotResearch.gd`.
 
 ## Sanction targeting beyond the strike
 
@@ -926,6 +1013,25 @@ lives).
 > the timeout is kept as-is, `_abandoned_spots` probably should not be permanent; if the spots
 > stay permanent, the timeout probably wants to be a function of the structure's build time
 > rather than a constant. Neither has been measured.
+
+## A build at a defended site
+
+**A site with a visible ARMED enemy within `defend_threat_radius` is contested: no builder is
+sent to it, and a builder already walking to it is called back** (`BotEconomy._abort_contested_jobs`,
+run every think before the ladder; `_is_contested_spot` inside every rung's spot test). Until
+2026-10-07 the only abort was an enemy standing ON the footprint — `Build` refusing the
+placement — so a lone Servant walked the length of the map into a defended extraction site and
+died there, watched on main on 2026-10-06. The read is the same visible-armed-enemy sense every
+manager calls "under threat", which is the point: a builder's danger is not a new quantity.
+
+A contested spot is remembered for `CONTESTED_SPOT_SECONDS` (30 s) and then tried again — a
+cooldown, not the permanent ban `_abandoned_spots` is, because the enemy moves on and the site
+does not. Only an order that has not yet PLACED its structure is abandoned; a placed one is a
+building the builder would have to come back for anyway. Cover: `tests/test_BotBuilderAbort.gd`.
+
+TODO: this reads the threat AT the site, not ALONG the walk — a builder whose path crosses a
+defended choke still goes. The lattice's `threat` channel is the read for that
+([world-model](world-model.md) §L2), and this rule becomes one query of it.
 
 ## Dominion routes
 

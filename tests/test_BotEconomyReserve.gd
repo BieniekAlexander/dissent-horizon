@@ -172,6 +172,18 @@ func test_a_zero_reserve_leaves_training_on_plain_affordability() -> void:
 	assert_eq(_act.trains, [TROOPER])
 
 
+func test_training_leaves_the_savings_goal_banked_on_top_of_the_reserve() -> void:
+	# 900 banked: a trooper would leave 700, above the reserve — but not above the reserve and
+	# the 900 a factory the bot is saving for needs. Cheap units no longer starve the dear buy.
+	_bot.energy = 900
+	_bot.savings.propose(&"economy", REDOUBT, 1.0e9, 900)
+	_production().tick()
+	assert_eq(_act.trains, [], "the trooper waits for the goal")
+	_bot.savings.held = false
+	_production().tick()
+	assert_eq(_act.trains, [TROOPER], "a threatened base trains whatever is saved for")
+
+
 func test_capacity_is_not_bought_down_through_the_reserve() -> void:
 	_bot.energy = 1400  # affords the 900 redoubt, but only by spending the reserve
 	assert_false(_economy().can_afford_above_reserve(REDOUBT))

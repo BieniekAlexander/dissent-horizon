@@ -4376,8 +4376,8 @@ static func cursor_evaluator(command_type: Script, command_message: CommandMessa
 ## beneath. Non-Commandable map features (e.g. neutral Shelters) aren't fog-managed,
 ## so fall back to their render state (always drawn → still targetable to liberate).
 static func _is_perceptible(entity: Entity) -> bool:
-	# The debug view lifts the fog, so everything it draws can be pointed at.
-	if DebugMode.is_active():
+	# A fog-lifting debug view draws everything, so everything it draws can be pointed at.
+	if DebugMode.lifts_fog():
 		return true
 	# Own pieces are always known — except a planted charge, which its owner sees only in
 	# their own vision (fog.gd draws it on that test), and cannot pick out of it.

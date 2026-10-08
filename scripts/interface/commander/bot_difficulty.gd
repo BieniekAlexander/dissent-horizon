@@ -112,15 +112,12 @@ var production_structure_cap: int = -1
 ## changes nothing (see §The tiers ship flat in bot-parameter-space.md).
 var income_structure_target: int = 1
 
-## How many STATIC DEFENCES the bot wants standing — turrets, towers, SAMs: a buildable
-## structure with weapons that trains nothing (Bot.buildable_defence_structure_types). Bought
-## once the bot owns a producer, ahead of the believed threat (the frontage bearing), and the
-## TYPE is the one whose gun best answers the enemy units it has seen (its own army standing
-## in before then). 0 is the bot before
-## 2026-10-04, which had no rung for them and never built one however cheaply they traded:
-## measured, two Watch Towers beat sixteen Recruits at twice their price
-## (sims/towers_vs_double_recruits). Counts the ones going up, like production_structure_cap.
-var defence_structure_target: int = 2
+## HOW READILY THE BOT ANSWERS STATIC-DEFENCE DEMAND — a propensity on the value × vulnerability
+## read of its own regions (BotEconomy._defence_demand), held against a turret's cost: 1 buys
+## where the ground is worth the gun, 0 never buys one, higher buys sooner. Replaces the count
+## of turrets wanted, which bought three in a clump in the opening before anything had been
+## seen (REJECTED, world-model.md §L3). Higher = more towers, not more skill.
+var defence_propensity: float = 1.0
 
 ## HOW MUCH BETTER A LOCKED UNIT MUST BE before the bot buys the structure that unlocks it:
 ## the best composition value (Bot.unit_composition_value, against the enemy it believes in)
@@ -205,6 +202,21 @@ var wave_abort_fraction: float = 0.70
 ## 0 stays reachable for an A/B. See gdd/systems/ai/squads-and-relations.md.
 var reinforce_fraction: float = 0.5
 
+## How many squads the military may run at once — the control groups a player plays
+## through. 1 is one body: every reinforcement walks to the front alone, and the reserve
+## never stages (the trickle, whatever `reinforce_fraction` says). 2 is wave and reserve. 3
+## adds the guard: the reserve turns to a threatened structure while the wave is away. −1
+## lifts the cap. A bot that manoeuvres a hundred units independently is optimal and
+## unbelievable; the cap is a handicap that reads as human and bounds the think cost.
+## See gdd/systems/ai/squads-and-relations.md §Squads.
+var squad_cap: int = 2
+
+## How strong a guard the bot raises against a threat to its base, as a multiple of the
+## threat's value (cost × matchup): 1 matches it, 2 brings twice it. Higher answers a raid
+## surely and holds more of the army home; lower sends more of it on to the wave. Only binds
+## under a squad_cap of 3 or more, which is what runs a guard.
+var guard_strength_ratio: float = 1.5
+
 ## How close (world units) an enemy must come to an owned structure to count as pressuring
 ## the base, pulling the army home and pointing sanctions at it. Higher answers harassment
 ## further out and turtles more; low enough and a raid inside the base is ignored.
@@ -229,6 +241,13 @@ var personality_spread: float = 0.15
 ## first) and BotScout (which unit scouts); never by placement, which must stay mirror-exact.
 var decision_temperature: float = 0.1
 
+## Whether the unit choice is scored by the learned combat model (CombatModel) instead of the
+## demand map. On in every tier since 2026-10-07 (Alex), with the model as trained then: not yet
+## shown better than the demand map, and with a known weak matchup (gdd/systems/ai/
+## macro-learning.md §1). Kept as a switch so a run can set false and compare a tier against
+## itself; never searched, like the other booleans.
+var should_use_learned_production: bool = true
+
 ## The range each searchable field may take — what a personality draw stays inside, and the
 ## same bounds bot-parameter-space.md gives a tuning run. A field absent here is never
 ## jittered: the periods (reaction time is the tier's identity), the booleans, and the two
@@ -243,14 +262,18 @@ const SEARCH_RANGES: Dictionary = {
 	"production_structure_cap": [1, 8],
 	"utility_unit_cap": [0, 6],
 	"income_structure_target": [0, 8],
-	"defence_structure_target": [0, 6],
+	"defence_propensity": [0.0, 3.0],
 	"tech_value_margin": [1.0, 3.0],
 	"structure_demand_weight": [0.0, 1.0],
 	"demand_coverage_falloff": [0.0, 4.0],
 	"attack_value_ratio": [0.8, 2.5],
-	"assumed_enemy_parity": [0.0, 1.5],
+	# Below 1 / BotMilitary.MIN_ATTACK_RATIO (1.18): above it the ratio can never reach the
+	# floor the stalemate clock relaxes to, and the bot never attacks (test_BotPersonality).
+	# TODO: a cautious bot that still commits in the end — gdd/tasks.md T-099.
+	"assumed_enemy_parity": [0.0, 1.15],
 	"wave_abort_fraction": [0.0, 1.0],
 	"reinforce_fraction": [0.0, 1.0],
+	"squad_cap": [1, 3],
 	"defend_threat_radius": [3.0, 30.0],
 	"retarget_weight_effectiveness": [0.0, 3.0],
 	"retarget_weight_finishability": [0.0, 3.0],
@@ -258,6 +281,9 @@ const SEARCH_RANGES: Dictionary = {
 	"place_frontage_bias": [0.0, 1.5],
 	"place_shelter_bias": [0.0, 1.5],
 	"place_corridor_weight": [0.0, 3.0],
+	# Appended, not filed beside squad_cap: the draw order is the table's, so a field added
+	# mid-table gives every existing seed a different personality.
+	"guard_strength_ratio": [0.5, 3.0],
 }
 
 # ── PER-UNIT TARGETING ──────────────────────────────────────────────────────────────
@@ -309,6 +335,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.scout_unit_budget = 0
 			config.economy_reserve = 900
 			config.build_concurrency = 1
+			config.squad_cap = 1
 			config.may_attack = false
 			# A sparring partner is predictable on purpose: no personality, no sampling.
 			config.personality_spread = 0.0
@@ -321,6 +348,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.scout_unit_budget = 1
 			config.economy_reserve = 900
 			config.build_concurrency = 1
+			config.squad_cap = 1
 		PlayerSlot.Difficulty.MEDIUM:
 			config.set_all_periods(0.667)
 			config.army_commit_threshold = 5
@@ -329,6 +357,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.scout_unit_budget = 2
 			config.economy_reserve = 600
 			config.build_concurrency = 2
+			config.squad_cap = 2
 		PlayerSlot.Difficulty.HARD:
 			config.set_all_periods(0.4)
 			config.army_commit_threshold = 3
@@ -337,6 +366,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.scout_unit_budget = 3
 			config.economy_reserve = 450
 			config.build_concurrency = 3
+			config.squad_cap = 3
 		PlayerSlot.Difficulty.IMPOSSIBLE:
 			# TODO: the brief is "a human will never realistically beat it", which wants
 			# frame-perfect micro and an execution layer these parameters cannot express. This is
@@ -349,6 +379,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.economy_reserve = 300
 			# Uncapped: it builds with everything it can spare.
 			config.build_concurrency = -1
+			config.squad_cap = -1
 	return config
 
 
@@ -452,4 +483,10 @@ static func is_build_uncapped(a_concurrency: int) -> bool:
 ## sentinel has no finite answer, so an uncapped caller must ask is_build_uncapped first.
 static func build_slots(a_concurrency: int) -> int:
 	return maxi(1, a_concurrency)
+
+
+## Whether `a_cap` places no ceiling on how many squads the military runs. Static for the
+## same reason as is_build_uncapped: the military is pushed the int, not the config.
+static func is_squad_uncapped(a_cap: int) -> bool:
+	return a_cap < 0
 #endregion

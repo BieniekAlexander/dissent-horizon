@@ -21,6 +21,7 @@ movement:
   turn_rate: 150
   max_acceleration: 1.5
   max_deceleration: -4.5
+  crush_class: MEDIUM
   min_turn_speed_ratio: 0.5
 weapons:
   - name: BallisticWeapon

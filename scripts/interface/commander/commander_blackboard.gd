@@ -65,6 +65,9 @@ class Snapshot:
 var _commander: Commander
 var _entries: Dictionary = {}  # instance_id -> Entry
 var _snapshots: Dictionary = {}  # "id:cell" -> Snapshot
+## The ids in view at the last update: what the commander was watching, so a death among them
+## is one it saw.
+var _in_view: Dictionary = {}
 ## Lazily created Node3D under the map that parents every snapshot MeshVisual. Freed
 ## by free_visuals() (called from Commander's PREDELETE).
 var _snapshot_container: Node3D = null
@@ -89,19 +92,38 @@ func update() -> void:
 		_upsert(e, now)
 
 	# 2. Age out beliefs. Structures: drop only when we can see their spot and they
-	#    aren't there (verified gone). Units: drop once the sighting is stale.
+	#    aren't there (verified gone). Units: drop once the sighting is stale — or at once if
+	#    the unit was in view at the last look and has died since. That death happened in
+	#    front of us; liveness is read only for a unit we were watching, never for one out of
+	#    sight, so a unit that died unseen is believed as long as ever.
 	for id: int in _entries.keys():
 		var entry: Entry = _entries[id]
 		if entry.is_structure:
 			if not visible_ids.has(id) and _commander.has_vision_at(entry.last_known_location):
 				_entries.erase(id)
+		elif _in_view.has(id) and not visible_ids.has(id) and not is_instance_valid(entry.entity):
+			_entries.erase(id)
 		elif now - entry.last_seen_time > BLACKBOARD_EXPIRATION:
 			_entries.erase(id)
+	_in_view = visible_ids
 
 
 ## All believed enemy entities (persistent structures + unexpired units).
 func believed() -> Array:
 	return _entries.values()
+
+
+## Whether the piece with `a_instance_id` is still believed — the fog-honest form of "is it
+## still standing": a structure stays believed until the commander SEES its cell empty, a
+## unit until its sighting goes stale. What a decision asks instead of is_instance_valid.
+func believes(a_instance_id: int) -> bool:
+	return _entries.has(a_instance_id)
+
+
+## Whether the piece with `a_instance_id` was in view at the last update: a CONFIRMED belief
+## rather than a remembered one.
+func is_in_view(a_instance_id: int) -> bool:
+	return _in_view.has(a_instance_id)
 
 
 ## Believed enemy structures (last-known locations; persist until verified gone).
@@ -277,12 +299,12 @@ func _snapshot_key(a_structure_id: int, a_cell: Vector2i) -> String:
 
 ## Mirrors fog.gd's active-fog resolution: snapshots render only for the commander
 ## whose view is currently on screen, and never under the omniscient spectator or
-## the debug reveal (both of which show real structures directly).
+## a fog-lifting debug view (both of which show real structures directly).
 func _commander_is_active_viewer() -> bool:
 	var active_id: int = Fog.active_commander_id
 	if active_id == -2:
 		return false
-	if DebugMode.is_active():
+	if DebugMode.lifts_fog():
 		return false
 	var viewer_id: int = active_id if active_id >= 1 else RTSController.PLAYER_COMMANDER_ID
 	return _commander.id == viewer_id

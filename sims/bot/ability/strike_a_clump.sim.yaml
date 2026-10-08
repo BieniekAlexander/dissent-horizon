@@ -1,0 +1,25 @@
+description: |
+  A Technocratic Vanguard — a rifle with three Irradiate charges — beside a clump of three
+  enemy troopers. A charge is for a clump: the bot throws the field where it covers the most
+  of them, and never at a lone one (BotAbilities §Strikes). Decision check: an Ability order
+  within a few thinks, aimed near the troopers; outcome check: the field hurts — at least one
+  trooper is dead by the end, which a rifle alone takes longer to manage.
+  Control: three enemies in a knot; the axis is COVERAGE (how many the payload catches).
+setting: { kind: flat, size: 30 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full }
+    with:
+      grenadier:
+        of: [ { piece: tc_bioLight_antiMech, count: 1 } ]
+        at: center
+  B:
+    with:
+      troopers:
+        of: [ { piece: cl_bioLight_antiMech, count: 3 } ]
+        at: { from: A.grenadier, distance: 4, bearing: east }
+        orders: [ { attack: { target: A.grenadier } } ]
+run: { for: 20s, seed: 1 }
+expect:
+  - { of: A.grenadier, check: command, is: Ability, near: B.troopers, within: 3, by: 3s }
+  - { of: B.troopers, check: dead, at_least: 1, by: 20s }

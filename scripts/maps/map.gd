@@ -549,7 +549,13 @@ func add_entities(
 	var radius: float = 0.0
 	for unit: Entity in units:
 		radius = maxf(radius, unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
-	var region_radius: float = maxf(5.0, radius * 2.5 * float(maxi(units.size(), 1)))
+	# Measured from the edge of whatever fixture the anchor sits on (a structure spawning
+	# beside itself), not from its centre: a footprint wider than the scatter would
+	# otherwise cover the whole region and leave nowhere to stand.
+	var region_radius: float = (
+		_fixture_extent_at(a_location)
+		+ maxf(MIN_SCATTER_REGION_RADIUS, radius * SCATTER_SPREAD_PER_UNIT * float(units.size()))
+	)
 	# An AUTHORED arrangement (a faction's starting formation) is used as given, in the order
 	# the units were passed — indexing the UNIT sublist, not a_entities, since structures were
 	# filtered out above. Scattering is what happens when nobody has said where to stand.
@@ -587,6 +593,23 @@ func add_entities(
 		)
 		units[i].position = Vector3(snapped_xz.x, terrain_height_at(snapped_xz), snapped_xz.y)
 		units[i].initialize(self, a_commander)
+
+
+## How far add_entities' scatter extends from the anchor's edge, at least: enough room
+## for a small batch whatever the units' radii.
+const MIN_SCATTER_REGION_RADIUS: float = 5.0
+## add_entities' scatter radius per unit in the batch, in units of the largest body radius.
+const SCATTER_SPREAD_PER_UNIT: float = 2.5
+
+
+## How far the fixture registered on the cell under `a_world_xz` reaches from its centre;
+## 0.0 on open ground.
+func _fixture_extent_at(a_world_xz: Vector2) -> float:
+	var cell: Vector2i = world_to_grid(a_world_xz)
+	if not grid_coordinates_in_bounds(cell):
+		return 0.0
+	var fixture := cell_grid[cell.x][cell.y] as Entity
+	return fixture.hull().extent() if fixture != null else 0.0
 
 
 ## Convenience wrapper for placing a single entity. See add_entities.
